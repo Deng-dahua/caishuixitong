@@ -77,8 +77,13 @@ class ScenarioExecutionTests(unittest.TestCase):
         )
         self.assertFalse(result["industry_resolved"])
         self.assertEqual(result["industry_scenes_assessed"], 0)
+        self.assertTrue(result["findings"])
+        # 未知行业只允许跨行业共同事实门输出，不得回退旧式行业发现
         self.assertTrue(all(item["scenario_scope"] == "common_fact_gate" for item in result["findings"]))
-        self.assertTrue(all(item.get("score") == 0 for item in result["findings"]))
+        self.assertTrue(all(item["_scenario_governed"] for item in result["findings"]))
+        self.assertTrue(all(item.get("required_human_review") for item in result["findings"]))
+        # 共同事实门按观察证据打分（0~10），未知行业不得出现行业场景高分发现
+        self.assertTrue(all(0 <= int(item.get("score", 0) or 0) <= 10 for item in result["findings"]))
 
     def test_one_click_pipeline_enforces_scenario_boundary(self):
         pipeline = (ROOT / "engine" / "pipeline.py").read_text(encoding="utf-8")

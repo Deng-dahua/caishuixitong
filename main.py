@@ -2212,13 +2212,13 @@ _FILE_FINGERPRINTS = {
         "keywords": ["仓库租赁", "仓储合同", "仓库合同", "仓租合同", "仓库坐落", "仓储面积",
                      "仓库面积", "库房租赁", "仓库租赁费", "仓储费合同"],
         "score_threshold": 2,
-        "parser": lambda s, h: {"type": "warehouse_lease", "rows": (s if isinstance(s, list) else [])}
+        "parser": lambda s, h: _parse_warehouse_lease_sheet(s, h)
     },
     "transport_contract": {
         "keywords": ["运输合同", "物流合同", "货运合同", "承运合同", "运输协议", "运费承担",
                      "运输方式", "运输费用承担", "物流运输合同"],
         "score_threshold": 2,
-        "parser": lambda s, h: {"type": "transport_contract", "rows": (s if isinstance(s, list) else [])}
+        "parser": lambda s, h: _parse_transport_contract_sheet(s, h)
     },
     # 科目余额表
     "trial_balance": {
@@ -3353,6 +3353,12 @@ def _parse_by_content(names, get_sheet, original_name=""):
                 title_bonus["cit_declaration"] = 99
             elif any(k in fn_lower for k in ["纳税申报", "申报表", "tax_return", "declaration"]):
                 title_bonus["vat_declaration"] = 90
+            elif any(k in fn_lower for k in ["仓库租赁", "仓储合同", "仓库合同", "库房租赁", "仓租"]):
+                title_bonus["warehouse_lease"] = 99
+            elif any(k in fn_lower for k in ["运输合同", "物流合同", "货运合同", "运输协议"]):
+                title_bonus["transport_contract"] = 99
+            elif any(k in fn_lower for k in ["bom", "物料清单", "配方"]):
+                title_bonus["bom"] = 99
             elif any(k in fn_lower for k in ["客户", "供应商", "人员", "部门", "档案"]):
                 title_bonus["archive"] = 5
             # 单元格内容检测（作为补充）
@@ -5121,6 +5127,121 @@ def _parse_bom_sheet(sheet):
         "product_count": len(bom_products),
         "total_materials": sum(len(p["materials"]) for p in bom_products.values())
     }
+
+
+def _parse_warehouse_lease_sheet(sheet, header=None):
+    """解析仓库租赁合同台账：出租方/坐落/面积/期限/租金/品类。
+    
+    税务稽查视角（VR026）：合同面积条款是仓储能力核验的第一证据。
+    账面存货所需面积必须 ≤ 合同面积；若合同未明确面积条款，
+    存货真实存放地存疑（租仓库放不下账面库存→存货真实性风险）。
+    """
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "仓库租赁", "仓储合同", "仓库合同", "合同编号", "出租方", "承租方",
+        "仓库坐落", "仓储面积", "仓库面积", "租赁期限", "月租金", "仓储品类",
+    ])
+    header = _get_row_values(sheet, header_row)
+    cols = _find_cols_semantic(header, {
+        "仓库租赁": "contract_no",
+        "合同编号": "contract_no",
+        "出租方": "lessor",
+        "甲方": "lessor",
+        "承租方": "lessee",
+        "乙方": "lessee",
+        "仓库坐落": "location",
+        "坐落": "location",
+        "仓储面积": "area",
+        "仓库面积": "area",
+        "租赁面积": "area",
+        "租赁期限": "lease_term",
+        "期限": "lease_term",
+        "月租金": "monthly_rent",
+        "租金": "monthly_rent",
+        "年租金": "annual_rent",
+        "仓储品类": "storage_category",
+        "品类": "storage_category",
+    })
+    if not cols: return None
+    rows = []
+    for r in range(header_row + 1, min(nrows, 3000)):
+        raw_vals = _get_row_values(sheet, r)
+        vals = {}
+        for field, col_idx in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col_idx)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col_idx] or '') if col_idx < len(raw_vals) else ''
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("contract_no") and not vals.get("location"):
+            continue
+        for k in ("area", "monthly_rent", "annual_rent"):
+            try:
+                v = vals.get(k, "0")
+                if isinstance(v, str):
+                    v = v.replace("%", "").replace(",", "").strip()
+                vals[k] = float(v) if v else 0
+            except: vals[k] = 0
+        rows.append(vals)
+    if not rows: return None
+    return {"type": "warehouse_lease", "rows": rows, "contract_count": len(rows)}
+
+
+def _parse_transport_contract_sheet(sheet, header=None):
+    """解析运输合同台账：承运方/起运地/到达地/方式/距离/重量/运费/承担方式。
+    
+    税务稽查视角（VR027）：运费承担方式条款决定运输费在谁的账上体现。
+    "到货价含运/购方承担"不能解释本企业账面零运输费——物流单据仍须提供；
+    若无任何运输合同+跨省购销，货物流断裂，涉嫌资金回流式虚开。
+    """
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    header_row, _scores = _detect_header_row(sheet, nrows, [
+        "运输合同", "物流合同", "货运合同", "承运合同", "承运方", "起运地",
+        "到达地", "运输方式", "运输距离", "运输重量", "运费", "运费承担方式",
+    ])
+    header = _get_row_values(sheet, header_row)
+    cols = _find_cols_semantic(header, {
+        "运输合同": "contract_no",
+        "合同编号": "contract_no",
+        "承运方": "carrier",
+        "承运人": "carrier",
+        "物流公司": "carrier",
+        "起运地": "origin",
+        "出发地": "origin",
+        "到达地": "destination",
+        "目的地": "destination",
+        "运输方式": "transport_mode",
+        "运输距离": "distance_km",
+        "距离": "distance_km",
+        "运输重量": "weight_t",
+        "重量": "weight_t",
+        "运费": "freight",
+        "运费金额": "freight",
+        "运费承担方式": "freight_bearer",
+        "承担方式": "freight_bearer",
+    })
+    if not cols: return None
+    rows = []
+    for r in range(header_row + 1, min(nrows, 3000)):
+        raw_vals = _get_row_values(sheet, r)
+        vals = {}
+        for field, col_idx in cols.items():
+            try:
+                v = str(sheet.cell_value(r, col_idx)).strip() if hasattr(sheet, 'cell_value') else str(raw_vals[col_idx] or '') if col_idx < len(raw_vals) else ''
+                vals[field] = v
+            except: vals[field] = ""
+        if not vals.get("contract_no") and not vals.get("carrier"):
+            continue
+        for k in ("distance_km", "weight_t", "freight"):
+            try:
+                v = vals.get(k, "0")
+                if isinstance(v, str):
+                    v = v.replace(",", "").strip()
+                vals[k] = float(v) if v else 0
+            except: vals[k] = 0
+        rows.append(vals)
+    if not rows: return None
+    return {"type": "transport_contract", "rows": rows, "contract_count": len(rows)}
+
 
 # ═══════════ PDF 银行流水解析 ═══════════
 
@@ -8344,6 +8465,8 @@ def _apply_methodology_stage(report_data):
         match_methodology,
     )
     from engine.methodology_guardrails import review_finding, review_report_methodology
+    from datetime import datetime as _dt_meth
+    now = _dt_meth.now().isoformat(timespec="seconds")
 
     findings = report_data.get("all_findings", []) or []
     pipeline_log = report_data.setdefault("pipeline_log", [])
@@ -8400,6 +8523,20 @@ def _apply_methodology_stage(report_data):
                 "version_note": "法规版本和效力状态以国家税务总局官方网站最新公布为准。本系统引用仅作参考，不替代有权机关的正式解释。",
                 "auto_enforced": True,
             }
+    # ═══ 等级定稿后的高/中/低统计（复核阶段可能调整等级，故在此处统一计数）═══
+    _lvl_high = _lvl_mid = _lvl_low = 0
+    for _fnd_lv in findings:
+        _lv = str(_fnd_lv.get("level", ""))
+        if _lv.startswith("极高") or _lv.startswith("高"):
+            _lvl_high += 1
+        elif _lv.startswith("中"):
+            _lvl_mid += 1
+        elif _lv.startswith("低"):
+            _lvl_low += 1
+    report_data["high_risk"] = _lvl_high
+    report_data["mid_risk"] = _lvl_mid
+    report_data["low_risk"] = _lvl_low
+    report_data["total_risks"] = len(findings)
     summary = {
         "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
         "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),

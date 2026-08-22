@@ -1080,15 +1080,16 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
     return findings
 
 
-def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs=None, target_industry=""):
+def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs=None, target_industry="", warehouse_contracts=None):
     """VR026 仓储容量匹配：库存所需仓储面积 vs 合同/自有面积 + 租金元/㎡合理性。
 
     稽查逻辑（仓库是否满足库存需要）：
     期末存货必须在物理空间内存放。系统按行业承载密度测算「所需仓储面积」，
-    再与两类证据比对：
-    (1) 租金倒推面积 = 期间仓储租金支出 ÷ 当地市场租金(元/㎡/年)；
-    (2) 若上传仓库租赁合同(含面积) → 直接比对合同面积（见五流调取清单）。
-    若 所需面积 ≫ 可承载面积 → 存货物理上放不下 → 虚增存货 或 账外存货(已销未入账)。
+    再与三类证据比对（证据强度递增）：
+    (1) 若上传仓库租赁合同(含面积) → 直接比对合同面积（第一证据）；
+    (2) 租金倒推面积 = 期间仓储租金支出 ÷ 当地市场租金(元/㎡/年)；
+    (3) 合同面积与租金倒推面积互相印证。
+    若 所需面积 ≫ 合同/可承载面积 → 存货物理上放不下 → 虚增存货 或 账外存货(已销未入账)。
     """
     findings = []
     if not inventory:
@@ -1119,6 +1120,44 @@ def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs
     # 行业承载密度（元/㎡）：制造业/贸易业仓储约 1.5万~3万 元/㎡ 存货货值
     DENSITY_MID = 20000.0
     required_area = total_end_val / DENSITY_MID if total_end_val > 0 else max(total_end_qty * 0.001, 0.0)
+
+    # ── 第一证据：仓库租赁合同的面积条款 ──
+    contracts = [c for c in (warehouse_contracts or []) if isinstance(c, dict)]
+    contract_area = 0.0
+    contracts_no_area = []
+    for c in contracts:
+        try:
+            a = float(c.get("area", 0) or 0)
+        except (TypeError, ValueError):
+            a = 0.0
+        if a > 0:
+            contract_area += a
+        else:
+            contracts_no_area.append(c.get("contract_no", "") or c.get("location", "") or "未编号合同")
+    if contracts and required_area > 0:
+        if contract_area > 0 and required_area > contract_area * 1.2:
+            findings.append({"type": "合同面积不足以容纳账面存货", "level": "高风险", "score": 8,
+                "how_found": f"上传{len(contracts)}份仓库租赁合同，合同面积合计{contract_area:,.0f}㎡；而期末存货按货值{total_end_val:,.0f}元÷行业约2万元/㎡测算约需{required_area:,.0f}㎡，所需为合同面积的{required_area/contract_area:.1f}倍。",
+                "detail": f"合同面积合计{contract_area:,.0f}㎡，所需面积约{required_area:,.0f}㎡，缺口{required_area-contract_area:,.0f}㎡。",
+                "description": f"仓库租赁合同载明的仓储面积合计仅{contract_area:,.0f}平方米，而账面期末存货（货值{total_end_val:,.0f}元）按行业仓储承载密度约需{required_area:,.0f}平方米。合同面积远小于存货所需面积——租来的仓库在物理上放不下账面存货，指向存货虚增或账外存货。",
+                "tax_impact": "合同面积<存货所需→账实不符：虚增存货（虚增成本/虚抵进项）或存货已销售未入账（隐匿收入）。以书面合同这一客观证据可直接推翻存货真实性。",
+                "policy_ref": "《企业所得税法》第八条（成本费用真实性）；《税收征收管理法》第三十五条（账目混乱可核定征收）。",
+                "suggestion": "① 解释面积缺口的真实仓储安排（外租/自有/关联方仓库须补充对应合同与发票）；② 提供期末存货盘点表与仓库平面图；③ 无法解释→按核定方式调整应纳税额。",
+                "category": "域6 存货"})
+        elif contract_area > 0:
+            findings.append({"type": "合同面积与库存匹配", "level": "低风险", "score": 2,
+                "how_found": f"上传{len(contracts)}份仓库租赁合同，合同面积合计{contract_area:,.0f}㎡，≥存货所需约{required_area:,.0f}㎡。",
+                "detail": f"合同面积{contract_area:,.0f}㎡ ≥ 所需{required_area:,.0f}㎡，面积条款与库存规模匹配。",
+                "description": f"仓库租赁合同明确载明仓储面积合计{contract_area:,.0f}平方米，能够容纳账面期末存货所需空间（约{required_area:,.0f}平方米）。合同面积条款、租金与库存规模三者互相印证，存货物理存放具备合理性基础。",
+                "category": "域6 存货"})
+        if contracts_no_area:
+            findings.append({"type": "仓库租赁合同缺面积条款", "level": "中风险", "score": 6,
+                "how_found": f"{len(contracts_no_area)}份仓库租赁合同未明确仓库面积（{('、'.join(contracts_no_area[:5]))}）。",
+                "detail": f"{len(contracts_no_area)}份合同缺面积条款，无法以合同验证仓储能力。",
+                "description": "仓库租赁合同未载明仓储面积，属于关键条款缺失：既无法验证存货是否有真实存放空间，也无法核验租金单价（元/㎡/年）的合理性。稽查实践中，面积条款缺失的仓租合同常被用于虚增租赁费用列支。",
+                "tax_impact": "合同关键条款缺失→租赁费真实性存疑→租赁费税前扣除面临调整；同时存货物理存放无法验证。",
+                "suggestion": "① 补充载明面积的规范合同（面积、坐落、品类、期限、租金五要素齐全）；② 提供租金支付流水与租赁发票互相印证；③ 说明面积条款缺失原因。",
+                "category": "域6 存货"})
 
     # ── 租金倒推可承载面积 ──
     rent_kws = ["仓库", "仓租", "仓储", "仓储费", "库房租赁", "库房租金"]
@@ -1168,20 +1207,27 @@ def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs
             "category": "域6 存货"})
 
     # 合同内容穿透提示（无论是否有租金，均要求合同明确面积）
-    findings.append({"type": "仓库租赁合同内容审查要点", "level": "信息", "score": 1,
-        "detail": f"请上传仓库租赁合同，并确认合同文本是否明确写有「仓库面积、坐落位置、仓储品类、租赁期限」四项。期末存货约需{required_area:,.0f}㎡，合同面积须≥该值方为合理。",
-        "description": "税务稽查对仓库租赁合同的审查要点：① 面积是否与存货规模匹配；② 坐落是否与企业经营地/供应商/客户地理一致；③ 仓储品类是否涵盖实际存货；④ 租金是否与当地市场（约280元/㎡/年）相符。合同缺失面积条款或面积明显不足，均构成证据瑕疵。",
-        "category": "域6 存货"})
+    if contracts:
+        findings.append({"type": "仓库租赁合同内容审查要点", "level": "信息", "score": 1,
+            "detail": f"已核验{len(contracts)}份仓库租赁合同的面积条款（合计{contract_area:,.0f}㎡）。请进一步核对：坐落位置与购销地理是否一致、仓储品类是否涵盖实际存货、租金单价是否与当地市场（约280元/㎡/年）相符。",
+            "description": "税务稽查对仓库租赁合同的审查要点：① 面积是否与存货规模匹配；② 坐落是否与企业经营地/供应商/客户地理一致；③ 仓储品类是否涵盖实际存货；④ 租金是否与当地市场（约280元/㎡/年）相符。合同缺失面积条款或面积明显不足，均构成证据瑕疵。",
+            "category": "域6 存货"})
+    else:
+        findings.append({"type": "仓库租赁合同内容审查要点", "level": "信息", "score": 1,
+            "detail": f"请上传仓库租赁合同，并确认合同文本是否明确写有「仓库面积、坐落位置、仓储品类、租赁期限」四项。期末存货约需{required_area:,.0f}㎡，合同面积须≥该值方为合理。",
+            "description": "税务稽查对仓库租赁合同的审查要点：① 面积是否与存货规模匹配；② 坐落是否与企业经营地/供应商/客户地理一致；③ 仓储品类是否涵盖实际存货；④ 租金是否与当地市场（约280元/㎡/年）相符。合同缺失面积条款或面积明显不足，均构成证据瑕疵。",
+            "category": "域6 存货"})
     return findings
 
 
-def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""):
+def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry="", transport_contracts=None):
     """VR027 运输费量化配比：运输费 vs 货值×运费率(3%~8%) + 合同运费条款审查。
 
     稽查逻辑（经营是否必然产生运输费等必要费用）：
     制造业/贸易业购销必伴货物流转→必产生运输/装卸/物流费（货物流物证）。
     系统统计实际运输费，测算 货值×行业运费率(3%~8%) 的预期运输费并比对占比；
-    零运输费+跨省重物→货物流物证链断裂→三流不一致→交易真实性存疑。
+    并审查运输合同的运费承担方式条款：到货价含运≠免除货物流举证责任。
+    零运输费+跨省重物+无合同解释→货物流物证链断裂→三流不一致→交易真实性存疑。
     """
     findings = []
     transport_kws = ["运输", "物流", "货运", "运费", "快递", "配送", "搬", "装卸", "承运", "运送"]
@@ -1233,8 +1279,41 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
     ratio = actual_transport / goods_value
 
     # ── 3. 量化判定 ──
+    # 运输合同条款审查（运费承担方式决定运输费在谁的账上体现）
+    tc = [c for c in (transport_contracts or []) if isinstance(c, dict)]
+    contract_freight = 0.0
+    for c in tc:
+        try:
+            contract_freight += float(c.get("freight", 0) or 0)
+        except (TypeError, ValueError):
+            pass
+    bearer_str = "；".join(
+        f"{(c.get('contract_no','') or c.get('carrier',''))}: {c.get('freight_bearer','')}"
+        for c in tc if c.get("freight_bearer")
+    )
+    _bearer_all = " ".join(str(c.get("freight_bearer", "")) + str(c.get("freight", "")) for c in tc)
+    has_buyer_borne = ("购方" in _bearer_all) or ("到货价" in _bearer_all)
+    has_seller_borne = any(k in _bearer_all for k in ("销方", "供方", "卖方", "包邮"))
+
     if actual_transport <= 0:
-        if cross:
+        if tc and contract_freight > 0:
+            findings.append({"type": "合同约定运费与账面零运费矛盾", "level": "高风险", "score": 9,
+                "how_found": f"运输合同约定运费合计{contract_freight:,.0f}元（{bearer_str}），但银行流水与进项发票中运输类支出为0。",
+                "detail": f"合同运费{contract_freight:,.0f}元 vs 账面运输费0元。",
+                "description": f"企业提供的运输合同明确约定了运费金额（合计{contract_freight:,.0f}元），但账面既无运费支付流水也无运费发票——合同与账载直接矛盾。要么合同是为应付检查补签的假合同，要么运费账外支付（资金体外循环）。",
+                "tax_impact": "合同与账面矛盾→合同真实性存疑→货物流无法验证→成本扣除与进项抵扣面临否定；账外支付运费→资金流体外循环→隐匿收入线索。",
+                "suggestion": "① 解释合同运费的结算与支付方式并提供凭证；② 提供运费发票与银行支付记录；③ 无法解释→合同不得作为证据采信。",
+                "category": "域4 成本费用"})
+        elif has_buyer_borne:
+            findings.append({"type": "到货价含运-零运费有条款解释仍需物流单据", "level": "中风险", "score": 6,
+                "how_found": f"货值{goods_value:,.0f}元，账面运输费0元；运输合同约定运费承担方式为「{bearer_str}」——运费隐含在货物价格中。",
+                "detail": f"运费承担条款：{bearer_str}。账面零运费源于到货价定价，但货物流物证仍缺失。",
+                "description": f"运输合同采用到货价（含运）定价、运费由购方承担并计入货物采购成本，这为账面无独立运输费提供了合同解释。但注意两点稽查要点：① 到货价下运费已隐含在采购成本中，须防范以虚高「含运价」虚增采购成本、多抵进项；② 定价方式不能免除货物流举证——新疆等地跨省运输仍须提供物流运单、签收记录等物证，否则货物流链条依然断裂。",
+                "tax_impact": "到货价含运可解释账面零运费，但若无法提供物流单据，货物流仍无法验证；含运价虚高部分属于虚增成本，不得税前扣除。",
+                "policy_ref": "《企业所得税法》第八条（成本费用真实性）；三流一致（货物流、资金流、发票流）核验要求。",
+                "suggestion": "① 提供全部运输合同的运费承担条款原件；② 提供物流运单/签收单/过磅单等货物流物证；③ 提供采购定价依据（同期市场价比对），证明含运价未虚高；④ 销售端的运输安排（谁承担、有无运费收入）一并说明。",
+                "category": "域4 成本费用"})
+        elif cross:
             findings.append({"type": "零运输费+跨省购销-货物流断裂", "level": "高风险", "score": 9,
                 "how_found": f"货值{goods_value:,.0f}元，购销涉及{len(cities)}个地区（{', '.join(sorted(cities))}），但银行流水与进项发票中运输/物流类支出为0。",
                 "detail": f"实际运输费0元，货值{goods_value:,.0f}元（含跨省重物购销）。",
@@ -1275,10 +1354,16 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
             "category": "域4 成本费用"})
 
     # ── 4. 合同运费条款审查（待核） ──
-    findings.append({"type": "运输合同运费条款审查要点", "level": "信息", "score": 1,
-        "detail": "请提供采购/销售合同中「运输费用承担方式」条款：到货价→运费含在料价（须供应商运费发票佐证）；出厂价→企业须自付运费（须本企业运费发票）。",
-        "description": "税务稽查对运输合同/条款的审查：① 运费由谁承担（到货价含在料价、出厂价企业自付、运费到付）；② 若供应商包邮（到货价），须提供合同运费条款及供应商运费发票，否则本企业成本不得扣除；③ 运费发票品名/金额须与购销规模匹配。无法提供运输证明→成本费用不得税前扣除。",
-        "category": "域4 成本费用"})
+    if tc:
+        findings.append({"type": "运输合同运费条款审查要点", "level": "信息", "score": 1,
+            "detail": f"已核验{len(tc)}份运输合同的运费承担条款：{bearer_str}。请进一步核对运费金额与购销货值的配比、承运方是否具备运输资质及运费发票流。",
+            "description": "税务稽查对运输合同/条款的审查：① 运费由谁承担（到货价含在料价、出厂价企业自付、运费到付）；② 若供应商包邮（到货价），须提供合同运费条款及供应商运费发票，否则本企业成本不得扣除；③ 运费发票品名/金额须与购销规模匹配。无法提供运输证明→成本费用不得税前扣除。",
+            "category": "域4 成本费用"})
+    else:
+        findings.append({"type": "运输合同运费条款审查要点", "level": "信息", "score": 1,
+            "detail": "请提供采购/销售合同中「运输费用承担方式」条款：到货价→运费含在料价（须供应商运费发票佐证）；出厂价→企业须自付运费（须本企业运费发票）。",
+            "description": "税务稽查对运输合同/条款的审查：① 运费由谁承担（到货价含在料价、出厂价企业自付、运费到付）；② 若供应商包邮（到货价），须提供合同运费条款及供应商运费发票，否则本企业成本不得扣除；③ 运费发票品名/金额须与购销规模匹配。无法提供运输证明→成本费用不得税前扣除。",
+            "category": "域4 成本费用"})
     return findings
 
 

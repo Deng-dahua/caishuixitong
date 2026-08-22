@@ -216,6 +216,10 @@ def review_finding(finding):
     
     finding["evidence_grade"] = safe_grade
     finding["_evidence_grade"] = safe_grade
+    # 客观域发现（BOM/仓储/运输/存货勾稽等由域引擎按数据模式判定等级）：
+    # 证据成熟度已用 evidence_grade 表达，level 保留域引擎的风险信号，不因证据链评价而降级为"待核验"
+    if finding.get("_objective_domain_finding") and finding.get("_domain_risk_level"):
+        finding["level"] = finding["_domain_risk_level"]
     finding["independent_source_count"] = source_count
     finding["evidence_maturity"] = (
         "multi_source_system_assisted" if source_count >= 3 and finding_score >= 6

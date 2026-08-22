@@ -210,6 +210,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     bank_txs, invoices, salaries, social_security, vouchers, inventory, bom_data, export_data, rd_data = [], [], [], [], [], [], [], {}, {}
     input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
     contract_data, related_party_data, trial_balance_data = [], [], []
+    warehouse_contracts, transport_contracts = [], []  # 仓库租赁/运输合同台账（VR026/VR027证据源）
     tax_declarations = []  # 纳税申报表（增值税/企业所得税等），供票税账表勾稽
     pipeline_log, file_results = [], []
     
@@ -556,6 +557,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                         fr["actions"].append(f"提取{success_count}条流水（共{n}行）")
                     elif ftype == "housing_fund": fr["actions"].append(f"提取{n}条公积金")
                     elif ftype == "contract": contract_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份合同")
+                    elif ftype == "warehouse_lease":
+                        warehouse_contracts.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份仓库租赁合同(含面积条款)")
+                    elif ftype == "transport_contract":
+                        transport_contracts.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份运输合同(含运费承担条款)")
                     elif ftype == "related_party": related_party_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条关联交易")
                     elif ftype == "trial_balance": trial_balance_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条科目余额")
                     elif ftype in ("vat_declaration", "cit_declaration", "tax_declaration", "individual_tax", "stamp_duty", "tax_payment"):
@@ -1535,9 +1540,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "经营实质分析", "findings": []})
     if bom_data: domain_results.append({"domain": "BOM投入产出验证", "findings": _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs)})
     else: domain_results.append({"domain": "BOM投入产出验证", "findings": []})
-    if inventory: domain_results.append({"domain": "仓储容量匹配(VR026)", "findings": _domain_warehouse_capacity(inventory, bank_txs, sal_invs, pur_invs, ctx.company_profile.get("industry", ""))})
+    if inventory: domain_results.append({"domain": "仓储容量匹配(VR026)", "findings": _domain_warehouse_capacity(inventory, bank_txs, sal_invs, pur_invs, ctx.company_profile.get("industry", ""), warehouse_contracts)})
     else: domain_results.append({"domain": "仓储容量匹配(VR026)", "findings": []})
-    domain_results.append({"domain": "运输费量化配比(VR027)", "findings": _domain_transport_necessity(bank_txs, sal_invs, pur_invs, ctx.company_profile.get("industry", ""))})
+    domain_results.append({"domain": "运输费量化配比(VR027)", "findings": _domain_transport_necessity(bank_txs, sal_invs, pur_invs, ctx.company_profile.get("industry", ""), transport_contracts)})
     if clean_invs: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(clean_invs)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
     doc_cplt_findings = _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results, ctx.company_profile.get("industry", ""))
@@ -1967,8 +1972,19 @@ def _run_analyze(company_id, db, progress_callback=None):
                     engine_results = engine_results.get("results", []) or []
                 # ═══ 行业过滤：排除不适用行业的制造专有规则 ═══
                 _manu_only_rules = {"考勤记录与计件工资的产量反推", "计件工资"}
-                ind = (ctx.company_profile or {}).get("industry", "")
-                _is_manu = any(kw in str(ind) for kw in ["制造", "生产", "加工", "工业", "工厂", "车间"])
+                ind = str((ctx.company_profile or {}).get("industry", ""))
+                # 制造业识别：除显性关键词外，行业子类名（纺织/服装/化工/机械等，GB/T 4754 大类13-43）
+                # 均属制造业——行业推断来自销项税收分类（如"纺织品"），不含"制造"字样
+                _manu_kws = ["制造", "生产", "加工", "工业", "工厂", "车间",
+                             "纺织", "服装", "服饰", "皮革", "木材", "家具", "造纸", "纸制品", "印刷",
+                             "文教体育用品", "石油加工", "化工", "化学", "化学纤维", "化学纤维", "橡胶",
+                             "塑料", "非金属矿物", "黑色金属", "有色金属", "金属制品", "通用设备",
+                             "专用设备", "汽车", "铁路", "船舶", "航空航天", "电气机械", "计算机",
+                             "通信", "电子", "仪器仪表", "食品", "饮料", "酒", "烟草", "农副食品",
+                             "饲料", "纺织服装", "医药", "医疗仪器", "纤维", "纱", "布", "面料"]
+                _is_manu = (any(kw in ind for kw in _manu_kws)
+                            or bool(bom_data)  # 上传BOM物料清单本身就是制造业强证据
+                            or any("加工费" in str(iv.get("goods", "")) for iv in (pur_invs or []) if isinstance(iv, dict)))  # 委外加工费进项=生产型特征
                 if not _is_manu:
                     engine_results = [r for r in engine_results if r.get("item", "") not in _manu_only_rules]
                     pipeline_log.append(f"[行业过滤] 非制造业，已排除制造专有规则（{len(_manu_only_rules)}条）")
@@ -3550,6 +3566,57 @@ def _run_analyze(company_id, db, progress_callback=None):
             _scenario_execution.setdefault("findings", []).extend(_supply_chain_findings)
             all_findings = _scenario_execution["findings"]
             pipeline_log.append(f"[供应链联网核查] 已并入正式输出：{len(_supply_chain_findings)}项六员重叠/关联交易发现")
+        # BOM投入产出/仓储容量/运输费/存货勾稽等客观域发现是基于台账与发票的直接事实，
+        # 并入场景执行结果并赋予规范事实编号（scene_fact_id），否则会被正式输出封印吞掉
+        _objective_domain_keys = ("BOM投入产出验证", "仓储容量匹配", "运输费量化配比",
+                                  "存货周转预警", "进销存匹配", "进销存数量勾稽")
+        _objective_domain_sources = {
+            "BOM投入产出验证": ["BOM物料清单", "进项发票", "进销存台账"],
+            "仓储容量匹配": ["银行流水", "进销存台账", "仓库租赁合同"],
+            "运输费量化配比": ["销项发票", "进项发票", "银行流水"],
+            "存货周转预警": ["进销存台账"],
+            "进销存匹配": ["销项发票", "进项发票"],
+            "进销存数量勾稽": ["进销存台账"],
+        }
+        _existing_fact_ids = {
+            str(_f.get("scene_fact_id") or _f.get("fact_id") or "").strip()
+            for _f in _scenario_execution.get("findings", []) if isinstance(_f, dict)
+        }
+        _objective_injected = 0
+        for _dr in domain_results:
+            _dn = _dr.get("domain", "")
+            _dk = next((_k for _k in _objective_domain_keys if _k in _dn), "")
+            if not _dk:
+                continue
+            for _f in _dr.get("findings", []):
+                if not isinstance(_f, dict) or _f.get("level") in ("信息", None, ""):
+                    continue
+                _seq = 1
+                _fact_id = f"DOMAIN-{_dn}-{_seq}"
+                while _fact_id in _existing_fact_ids:
+                    _seq += 1
+                    _fact_id = f"DOMAIN-{_dn}-{_seq}"
+                _existing_fact_ids.add(_fact_id)
+                _f["scene_fact_id"] = _fact_id
+                _f["fact_id"] = _fact_id
+                _f["_scenario_governed"] = True
+                _f["_objective_domain_finding"] = True
+                _f["_domain_risk_level"] = _f.get("level", "")
+                _f.setdefault("independent_sources", list(_objective_domain_sources.get(_dk, [])))
+                _f.setdefault("scenario_scope", "common_fact_gate")
+                _f.setdefault("category", "客观域待核事实")
+                _f.setdefault("domain", _dn)
+                _scenario_execution.setdefault("findings", []).append(_f)
+                _objective_injected += 1
+        if _objective_injected:
+            all_findings = _scenario_execution["findings"]
+            # 注入后重算域汇总，使 BOM/仓储/运输/存货勾稽域进入报告 domain_summary
+            try:
+                from engine.scenario_execution import _domain_summary as _recompute_domain_summary
+                _scenario_execution["domain_summary"] = _recompute_domain_summary(_scenario_execution["findings"])
+            except Exception:
+                pass
+            pipeline_log.append(f"[客观域发现] 已并入正式输出：{_objective_injected}项BOM/仓储/运输/存货勾稽发现")
         domain_summary = _scenario_execution.get("domain_summary", [])
         comprehensive["scenario_execution"] = _scenario_execution
         comprehensive["scenario_methodology"] = scenario_methodology
@@ -4686,9 +4753,18 @@ def _run_analyze(company_id, db, progress_callback=None):
     result["report"]["scenario_methodology"] = _scenario_execution.get("review_plan", {})
     result["report"]["domain_summary"] = _scenario_execution.get("domain_summary", [])
     result["report"]["total_risks"] = len(all_findings)
-    result["report"]["high_risk"] = 0
-    result["report"]["mid_risk"] = 0
-    result["report"]["low_risk"] = 0
+    _lvl_high = _lvl_mid = _lvl_low = 0
+    for _sf in all_findings:
+        _lv = str(_sf.get("level", ""))
+        if _lv.startswith("极高") or _lv.startswith("高"):
+            _lvl_high += 1
+        elif _lv.startswith("中"):
+            _lvl_mid += 1
+        elif _lv.startswith("低"):
+            _lvl_low += 1
+    result["report"]["high_risk"] = _lvl_high
+    result["report"]["mid_risk"] = _lvl_mid
+    result["report"]["low_risk"] = _lvl_low
     result["report"]["overall_level"] = "待人工复核" if all_findings else "未形成待核事实"
     result["report"]["summary_text"] = (
         f"场景驱动分析完成：{_scenario_execution.get('industry_scenes_assessed', 0)}个行业场景已评估，"
