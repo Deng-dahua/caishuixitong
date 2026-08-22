@@ -276,6 +276,17 @@ VERIFIED_RULE_CATALOG = [
         "status": "verified_executable_screening",
         "limitation": "个人或个体户供应商在农产品收购、劳务、建材等行业可能正常；须核验交易真实性、是否代开发票及是否履行个税扣缴义务。",
     },
+    {
+        "id": "VR025",
+        "name": "资金回流与公私混同检测",
+        "layer": "资金关系交叉规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税", "个人所得税"],
+        "lifecycle": ["收付款与资金结算", "资本投入与融资"],
+        "required_sources": ["bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "企业账户与个人账户的转存转取可能是股东借款、注资、代垫、分红等正常往来；须逐笔核验款项性质、是否履行扣缴义务，不能仅凭转账推断违法。",
+    },
 ]
 
 
@@ -1207,6 +1218,76 @@ def _scan_individual_counterparty(data, spec):
     )]
 
 
+_COMPANY_SUFFIX = ["公司", "有限", "集团", "厂", "店", "银行", "税务", "国库", "金库", "ETS", "社保", "公积金",
+                   "预算", "中心", "学校", "医院", "政府", "局", "支行", "分理处", "信用社", "合作社", "单位"]
+
+
+def _scan_fund_recirculation(data, spec):
+    """资金回流与公私混同检测：企业↔个人账户大额整数转账。
+
+    核心信号：企业账户向个人账户大额整数转出（20万/30万），摘要为"转存/转取/往来"
+    等公私转账，是资金抽逃、回流、私分的典型特征。
+    """
+    bank = data.get("bank_txs", []) or []
+    target_entity = data.get("target_entity", {})
+    personnel = _collect_personnel(target_entity)
+
+    person_txs = defaultdict(lambda: {"credit": 0.0, "debit": 0.0, "count": 0, "big_out": [], "big_in": []})
+    for row in bank:
+        counterparty = str(row.get("counterparty") or "").strip()
+        if not counterparty:
+            continue
+        is_person = counterparty in personnel or any(p and p in counterparty for p in personnel) \
+            or (not any(s in counterparty for s in _COMPANY_SUFFIX))
+        if not is_person:
+            continue
+        credit = _number(row.get("credit"))
+        debit = _number(row.get("debit"))
+        summary = str(row.get("summary") or "").strip()
+        date = str(row.get("date") or "")[:10]
+        amount = credit if credit > 0 else debit
+        entry = person_txs[counterparty]
+        entry["credit"] += credit
+        entry["debit"] += debit
+        entry["count"] += 1
+        if amount >= 100000 and abs(amount % 10000) < 0.01:
+            rec = {"date": date, "amount": round(amount, 2), "summary": summary[:12]}
+            if credit > 0:
+                entry["big_in"].append(rec)
+            else:
+                entry["big_out"].append(rec)
+
+    signals = []
+    for name, agg in sorted(person_txs.items(), key=lambda item: -(item[1]["debit"] + item[1]["credit"])):
+        out_to_person = agg["debit"]
+        in_from_person = agg["credit"]
+        big_out = agg["big_out"]
+        big_in = agg["big_in"]
+        if out_to_person >= 500000 and big_out:
+            summary_hint = "、".join(sorted({r["summary"] or "转账" for r in big_out}))[:30]
+            signals.append(
+                f"{name}：企业向其转出{out_to_person:,.0f}元（{len(big_out)}笔大额整数转账{summary_hint}），"
+                f"收到{in_from_person:,.0f}元，公私账户资金混同，须核验资金抽逃、回流、私分或借款性质"
+            )
+
+    if not signals:
+        return []
+    return [_finding(
+        spec,
+        "；".join(signals) + "。企业账户与个人账户的大额整数转存转取是资金回流、抽逃、账外经营的高发形态，须逐笔核验款项性质、是否计入股东往来或分红、是否履行个人所得税扣缴义务。",
+        {
+            "person_account_count": len(person_txs),
+            "matches": [
+                {"name": name, "out_to_person": round(agg["debit"], 2), "in_from_person": round(agg["credit"], 2),
+                 "big_out_count": len(agg["big_out"]), "big_in_count": len(agg["big_in"])}
+                for name, agg in sorted(person_txs.items(), key=lambda item: -(item[1]["debit"] + item[1]["credit"]))[:10]
+            ],
+        },
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -1232,6 +1313,7 @@ _SCANNERS = {
     "VR022": _scan_workforce_revenue,
     "VR023": _scan_material_output_ratio,
     "VR024": _scan_individual_counterparty,
+    "VR025": _scan_fund_recirculation,
 }
 
 

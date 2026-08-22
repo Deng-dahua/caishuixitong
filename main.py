@@ -8566,6 +8566,85 @@ def _build_business_substance_profile(report_data):
     }
 
 
+def _build_related_party_graph(report_data):
+    """关联方穿透图谱：整合核心客户、核心供应商、资金混同主体，串起穿透故事。"""
+    inv = (report_data.get("material_intel") or {}).get("发票", {}) or {}
+    company_name = str((report_data.get("target_entity") or {}).get("name", "") or "")
+    findings = report_data.get("all_findings", []) or []
+
+    customers = []
+    for c in inv.get("销项客户明细", []) or []:
+        name = str(c.get("名称", ""))
+        if name and name != company_name:
+            customers.append({"name": name, "amount": _parse_amount_str(c.get("金额"))})
+    customers.sort(key=lambda x: -x["amount"])
+    total_sales = sum(c["amount"] for c in customers)
+
+    suppliers = []
+    for s in inv.get("进项供应商明细", []) or []:
+        name = str(s.get("名称", ""))
+        if name and name != company_name:
+            suppliers.append({"name": name, "amount": _parse_amount_str(s.get("金额"))})
+    suppliers.sort(key=lambda x: -x["amount"])
+    total_purchase = sum(s["amount"] for s in suppliers)
+
+    risks = []
+    core_customers = []
+    for c in customers[:3]:
+        ratio = (c["amount"] / total_sales * 100) if total_sales else 0.0
+        node = {"role": "客户", "name": c["name"], "amount": round(c["amount"], 2), "ratio": round(ratio, 1)}
+        core_customers.append(node)
+        if ratio >= 50:
+            risks.append({"type": "客户高度集中", "detail": f"{c['name']}占销售额{ratio:.1f}%，购销高度依赖单一渠道"})
+
+    core_suppliers = []
+    for s in suppliers[:3]:
+        ratio = (s["amount"] / total_purchase * 100) if total_purchase else 0.0
+        node = {"role": "供应商", "name": s["name"], "amount": round(s["amount"], 2), "ratio": round(ratio, 1)}
+        core_suppliers.append(node)
+
+    # 供应商地域聚集：同省/同县供应商
+    region_groups = {}
+    for s in suppliers:
+        prov = _province_hint(s["name"])
+        region_groups.setdefault(prov, {"count": 0, "amount": 0.0, "names": []})
+        region_groups[prov]["count"] += 1
+        region_groups[prov]["amount"] += s["amount"]
+        if len(region_groups[prov]["names"]) < 5:
+            region_groups[prov]["names"].append(s["name"])
+    for prov, agg in region_groups.items():
+        if agg["count"] >= 3 and agg["amount"] >= 3000000:
+            risks.append({"type": "供应商地域聚集", "detail": f"{prov}{agg['count']}家供应商合计{agg['amount']:,.0f}元，疑似关联或集中供货"})
+
+    # 资金混同主体（从六员资金发现提取）
+    fund_finding = next((f for f in findings if "六员" in str(f.get("type", "")) or "回流" in str(f.get("type", "")) or "混同" in str(f.get("type", ""))), None)
+    if fund_finding:
+        detail = str(fund_finding.get("detail", ""))
+        risks.append({"type": "公私资金混同", "detail": detail[:120]})
+
+    return {
+        "generated": True,
+        "core_customers": core_customers,
+        "core_suppliers": core_suppliers,
+        "risk_count": len(risks),
+        "risks": risks,
+    }
+
+
+def _province_hint(name):
+    """从企业名提取省份提示（用于地域聚集判断）。"""
+    province_cities = {
+        "河南": ["鄢陵", "许昌", "郑州", "开封", "洛阳"], "浙江": ["绍兴", "杭州", "宁波", "温州"],
+        "广东": ["中山", "广州", "深圳", "东莞", "佛山"], "山东": ["淄博", "临沂", "潍坊", "青岛"],
+        "江苏": ["吴江", "苏州", "南京", "盛泽"], "湖北": ["宜城", "武汉", "襄阳"],
+        "宁夏": ["石嘴山", "银川"], "云南": ["昆明", "大理"], "广西": ["百色", "南宁"],
+    }
+    for prov, cities in province_cities.items():
+        if prov in name or any(c in name for c in cities):
+            return prov
+    return "其他"
+
+
 def _persist_one_click_result(company_id, result):
     """只在全部必经阶段完成后写入最近结果和分析历史。"""
     if company_id not in _last_analysis_cache and len(_last_analysis_cache) >= _MAX_ANALYSIS_CACHE:
@@ -8913,6 +8992,12 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
             report_data["business_substance_profile"] = _build_business_substance_profile(report_data)
         except Exception as _bsp_exc:
             _append_one_click_log(report_data, f"[经营实质画像] 生成失败: {_bsp_exc}")
+
+        # ═══ 稽查分身·穿透深挖：关联方穿透图谱（客户/供应商/资金混同串起来）═══
+        try:
+            report_data["related_party_graph"] = _build_related_party_graph(report_data)
+        except Exception as _rpg_exc:
+            _append_one_click_log(report_data, f"[关联方图谱] 生成失败: {_rpg_exc}")
 
         # ═══ 稽查分身·受控交付：生成受控分析轮次（草稿，人工复核后才可正式发布）═══
         report_data["compliance_round"] = _build_compliance_round(report_data, company_id)
