@@ -210,6 +210,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     bank_txs, invoices, salaries, social_security, vouchers, inventory, bom_data, export_data, rd_data = [], [], [], [], [], [], [], {}, {}
     input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
     contract_data, related_party_data, trial_balance_data = [], [], []
+    tax_declarations = []  # 纳税申报表（增值税/企业所得税等），供票税账表勾稽
     pipeline_log, file_results = [], []
     
     # ── 🤖 财税智能体 + AGI管线统一初始化 ──
@@ -557,6 +558,16 @@ def _run_analyze(company_id, db, progress_callback=None):
                     elif ftype == "contract": contract_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份合同")
                     elif ftype == "related_party": related_party_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条关联交易")
                     elif ftype == "trial_balance": trial_balance_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条科目余额")
+                    elif ftype in ("vat_declaration", "cit_declaration", "tax_declaration", "individual_tax", "stamp_duty", "tax_payment"):
+                        # 纳税申报表：优先取 declaration 结构化字段，否则用通用 rows
+                        decl = parsed.get("declaration")
+                        if decl:
+                            tax_declarations.append(decl)
+                            fr["actions"].append(f"提取申报表(销售额{decl.get('sales_amount', 0):,.0f}/销项税{decl.get('sales_tax', 0):,.0f}/进项税{decl.get('input_tax', 0):,.0f})")
+                        else:
+                            for _row in parsed.get("rows", []):
+                                tax_declarations.append({**(_row if isinstance(_row, dict) else {}), "_declaration_type": ftype})
+                            fr["actions"].append(f"提取申报表({n}行)")
                     else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条")
             elif ext == ".pdf":
@@ -3513,6 +3524,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             "inventory": inventory,
             "trial_balance": trial_balance_data,
             "rd_data": rd_data,
+            "tax_declarations": tax_declarations,
+            "target_entity": target_entity,
         }
         _pre_scenario_candidate_count = len(all_findings)
         _scenario_execution = execute_scenario_methodology(

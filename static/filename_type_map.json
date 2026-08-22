@@ -11,6 +11,8 @@
     { "keywords": ["开票", "销项", "销售发票", "销货"], "type": "sales_invoice", "label": "销项发票" },
     { "keywords": ["取票", "进项", "采购发票", "购货", "取得发票"], "type": "purchase_invoice", "label": "进项发票" },
     { "keywords": ["抵扣", "勾选", "认证"], "type": "input_vat_deduction", "label": "进项抵扣认证" },
+    { "keywords": ["增值税申报", "增值税纳税申报"], "type": "vat_declaration", "label": "增值税申报表" },
+    { "keywords": ["企业所得税申报", "所得税申报", "汇算清缴"], "type": "cit_declaration", "label": "企业所得税申报表" },
     { "keywords": ["工资", "薪金", "个税申报", "扣缴"], "type": "salary", "label": "工资薪金/个税申报" },
     { "keywords": ["所得", "个税"], "type": "salary_tax", "label": "个人所得税扣缴申报" },
     { "keywords": ["社保", "社会保险"], "type": "social_security", "label": "社保明细" },

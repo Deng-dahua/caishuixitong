@@ -199,6 +199,50 @@ VERIFIED_RULE_CATALOG = [
         "status": "verified_executable_screening",
         "limitation": "集中度受行业和商业模式影响；定制生产、代工或单一核心客户模式下，少数客户或供应商占比较高可能正常。",
     },
+    {
+        "id": "VR018",
+        "name": "增值税申报销售额与销项开票金额月度差异",
+        "layer": "通用基础规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["开票、红冲与用途确认", "销售与收入确认", "税费申报与缴纳"],
+        "required_sources": ["tax_declarations", "sal_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "开票与申报存在时间性差异（纳税义务发生时间与开票时点）、未开票收入、红字发票和税率差异，须逐期复核后判断。",
+    },
+    {
+        "id": "VR019",
+        "name": "增值税申报进项税额与进项发票税额月度差异",
+        "layer": "通用基础规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["采购与取得", "开票、红冲与用途确认", "税费申报与缴纳"],
+        "required_sources": ["tax_declarations", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "认证抵扣时点与取得发票时点、进项转出、留抵和农产品加计抵扣存在时间差异，须逐期复核。",
+    },
+    {
+        "id": "VR020",
+        "name": "六员个人账户与经营资金往来核验",
+        "layer": "交易关系交叉规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税", "个人所得税"],
+        "lifecycle": ["收付款与资金结算", "资本投入与融资"],
+        "required_sources": ["bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "法定代表人、股东、董事等六员个人账户可能与公司存在借款、代垫、报销等正常往来；须逐笔核验款项性质后再判断是否涉及资金回流或隐匿收入。",
+    },
+    {
+        "id": "VR021",
+        "name": "供应商与客户名称近似核验",
+        "layer": "交易关系交叉规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与取得", "销售与收入确认"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "名称近似可能来自集团关联企业、同一字号的分设购销公司或巧合；须结合股权、注册地址、人员重叠核验是否构成关联交易或闭环开票。",
+    },
 ]
 
 
@@ -796,6 +840,212 @@ def _scan_concentration(data, spec):
     )]
 
 
+def _declaration_month(value):
+    text = str(value or "").strip().replace("/", "-").replace(".", "-").replace("年", "-").replace("月", "")
+    if not text:
+        return ""
+    digits = "".join(ch for ch in text if ch.isdigit())
+    return digits[:6] if len(digits) >= 6 else ""
+
+
+def _scan_vat_declaration_sales_gap(data, spec):
+    decls = data.get("tax_declarations", []) or []
+    sal = data.get("sal_invs", []) or []
+    decl_by_month = defaultdict(float)
+    for decl in decls:
+        if not isinstance(decl, dict):
+            continue
+        sales = _number(decl.get("sales_amount"))
+        if sales <= 0:
+            continue
+        month = _declaration_month(decl.get("period"))
+        if month:
+            decl_by_month[month] += sales
+    if not decl_by_month:
+        return []
+    inv_by_month = defaultdict(float)
+    for row in sal:
+        month = _month(row.get("date") or row.get("invoice_date") or row.get("开票日期"))
+        if month:
+            inv_by_month[month] += _number(row.get("amount"))
+    total_declared = sum(decl_by_month.values())
+    total_invoice = sum(inv_by_month.get(m, 0.0) for m in decl_by_month)
+    gap = total_declared - total_invoice
+    gaps = []
+    for m in sorted(decl_by_month):
+        declared = decl_by_month[m]
+        invoiced = inv_by_month.get(m, 0.0)
+        g = declared - invoiced
+        if declared > 0 and abs(g) > max(declared * 0.05, 10000):
+            gaps.append({"month": m, "declared_sales": round(declared, 2), "invoice_sales": round(invoiced, 2), "gap": round(g, 2)})
+    if not gaps:
+        return []
+    detail = f"增值税申报表销售额合计{total_declared:,.2f}元，同期销项发票金额合计{total_invoice:,.2f}元，差异{gap:,.2f}元，有{len(gaps)}个月度差异超过5%或1万元："
+    detail += "；".join(f"{g['month']}申报{g['declared_sales']:,.0f}vs开票{g['invoice_sales']:,.0f}(差{g['gap']:,.0f})" for g in gaps[:6])
+    return [_finding(
+        spec,
+        detail,
+        {"declared_sales_total": round(total_declared, 2), "invoice_sales_total": round(total_invoice, 2), "gap_months": len(gaps), "gaps": gaps[:12]},
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _scan_vat_declaration_input_gap(data, spec):
+    decls = data.get("tax_declarations", []) or []
+    pur = data.get("pur_invs", []) or []
+    decl_by_month = defaultdict(float)
+    for decl in decls:
+        if not isinstance(decl, dict):
+            continue
+        input_tax = _number(decl.get("input_tax"))
+        if input_tax <= 0:
+            continue
+        month = _declaration_month(decl.get("period"))
+        if month:
+            decl_by_month[month] += input_tax
+    if not decl_by_month:
+        return []
+    inv_tax_by_month = defaultdict(float)
+    for row in pur:
+        month = _month(row.get("date") or row.get("invoice_date") or row.get("开票日期"))
+        if month:
+            inv_tax_by_month[month] += _number(row.get("tax"))
+    total_declared = sum(decl_by_month.values())
+    total_invoice = sum(inv_tax_by_month.get(m, 0.0) for m in decl_by_month)
+    gap = total_declared - total_invoice
+    gaps = []
+    for m in sorted(decl_by_month):
+        declared = decl_by_month[m]
+        invoiced = inv_tax_by_month.get(m, 0.0)
+        g = declared - invoiced
+        if declared > 0 and abs(g) > max(declared * 0.05, 5000):
+            gaps.append({"month": m, "declared_input_tax": round(declared, 2), "invoice_input_tax": round(invoiced, 2), "gap": round(g, 2)})
+    if not gaps:
+        return []
+    detail = f"增值税申报表进项税额合计{total_declared:,.2f}元，同期进项发票税额合计{total_invoice:,.2f}元，差异{gap:,.2f}元，有{len(gaps)}个月度差异超过5%或5千元："
+    detail += "；".join(f"{g['month']}申报{g['declared_input_tax']:,.0f}vs发票{g['invoice_input_tax']:,.0f}(差{g['gap']:,.0f})" for g in gaps[:6])
+    return [_finding(
+        spec,
+        detail,
+        {"declared_input_tax_total": round(total_declared, 2), "invoice_input_tax_total": round(total_invoice, 2), "gap_months": len(gaps), "gaps": gaps[:12]},
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _collect_personnel(target_entity):
+    """从 target_entity 提取六员姓名集合（法人/股东/董事/监事/财务/经理）。"""
+    names = set()
+    if not isinstance(target_entity, dict):
+        return names
+    for key in ("legal_person", "legal_representative"):
+        value = target_entity.get(key)
+        if value and str(value).strip():
+            names.add(str(value).strip())
+    for key in ("directors", "supervisors", "finance_contacts", "shareholders", "managers", "contacts"):
+        value = target_entity.get(key)
+        if isinstance(value, list):
+            for item in value:
+                name = item.get("name") if isinstance(item, dict) else item
+                if name and str(name).strip():
+                    names.add(str(name).strip())
+    filtered = set()
+    for name in names:
+        if len(name) >= 2 and not any(suffix in name for suffix in ("有限公司", "公司", "集团", "厂", "店", "事务所")):
+            filtered.add(name)
+    return filtered
+
+
+def _scan_personnel_fund_flow(data, spec):
+    target_entity = data.get("target_entity", {})
+    personnel = _collect_personnel(target_entity)
+    if not personnel:
+        return []
+    bank = data.get("bank_txs", []) or []
+    matches = defaultdict(lambda: {"credit": 0.0, "debit": 0.0, "count": 0})
+    for row in bank:
+        party = str(row.get("counterparty") or "").strip()
+        if not party:
+            continue
+        for name in personnel:
+            if name and name in party:
+                matches[name]["credit"] += _number(row.get("credit"))
+                matches[name]["debit"] += _number(row.get("debit"))
+                matches[name]["count"] += 1
+                break
+    if not matches:
+        return []
+    total_amount = sum(agg["credit"] + agg["debit"] for agg in matches.values())
+    if total_amount < 100000:
+        return []
+    detail_parts = []
+    for name, agg in sorted(matches.items(), key=lambda item: -(item[1]["credit"] + item[1]["debit"])):
+        detail_parts.append(f"{name}往来{agg['count']}笔(收{agg['credit']:,.0f}/付{agg['debit']:,.0f})")
+    return [_finding(
+        spec,
+        f"法定代表人、股东、董事等六员个人账户出现在银行流水对手方：" + "、".join(detail_parts) + "。个人账户与公司经营资金往来须核验是否为代收代付、资金回流、隐匿收入或账外经营。",
+        {
+            "personnel_match_count": len(matches),
+            "total_amount": round(total_amount, 2),
+            "matches": {name: {"credit": round(agg["credit"], 2), "debit": round(agg["debit"], 2), "count": agg["count"]} for name, agg in sorted(matches.items(), key=lambda item: -(item[1]["credit"] + item[1]["debit"]))[:10]},
+        },
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _core_entity_name(text):
+    """提取企业名称核心字号：去掉企业形式后缀和常见行业后缀。"""
+    text = str(text or "").strip()
+    for suffix in ("有限责任公司", "股份有限公司", "有限公司", "公司", "集团", "厂", "店", "事务所"):
+        if text.endswith(suffix):
+            text = text[:-len(suffix)]
+            break
+    for keyword in ("纺织", "服装", "贸易", "实业", "科技", "制衣", "布业", "纱业", "氨纶", "纤维", "针织", "印染", "染整", "辅料", "面料"):
+        if text.endswith(keyword):
+            text = text[:-len(keyword)]
+            break
+    return text
+
+
+def _scan_name_similarity(data, spec):
+    sal = data.get("sal_invs", []) or []
+    pur = data.get("pur_invs", []) or []
+    customers = {}
+    suppliers = {}
+    for row in sal:
+        name = str(row.get("buyer") or "").strip()
+        key = _normalise_party(name)
+        if key and len(key) >= 4:
+            customers[key] = name
+    for row in pur:
+        name = str(row.get("seller") or "").strip()
+        key = _normalise_party(name)
+        if key and len(key) >= 4:
+            suppliers[key] = name
+    similar_pairs = []
+    for skey, sname in suppliers.items():
+        score = _core_entity_name(sname)
+        for ckey, cname in customers.items():
+            if skey == ckey:
+                continue
+            ccore = _core_entity_name(cname)
+            if len(score) >= 2 and len(ccore) >= 2 and (score in ccore or ccore in score):
+                similar_pairs.append((sname, cname))
+                break
+    if not similar_pairs:
+        return []
+    examples = [{"supplier": s, "customer": c} for s, c in similar_pairs[:10]]
+    return [_finding(
+        spec,
+        f"有{len(similar_pairs)}对供应商与客户名称高度近似：" + "；".join(f"{s}≈{c}" for s, c in similar_pairs[:5]) + "。同字号分设购销公司是虚开、对开和关联交易闭环的常见形态，须核验股权、注册地址、人员重叠和业务实质。",
+        {"similar_pair_count": len(similar_pairs), "examples": examples},
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -814,6 +1064,10 @@ _SCANNERS = {
     "VR015": _scan_invoice_goods_missing,
     "VR016": _scan_supplier_geo,
     "VR017": _scan_concentration,
+    "VR018": _scan_vat_declaration_sales_gap,
+    "VR019": _scan_vat_declaration_input_gap,
+    "VR020": _scan_personnel_fund_flow,
+    "VR021": _scan_name_similarity,
 }
 
 

@@ -2255,7 +2255,7 @@ _FILE_FINGERPRINTS = {
                      "简易计税", "按适用税率计税销售额", "应税劳务", "应税服务",
                      "一般项目", "即征即退项目", "免税", "不征税", "零税率"],
         "score_threshold": 3,
-        "parser": lambda s, h: {"type": "vat_declaration", "rows": _parse_generic_table(s, h)}
+        "parser": lambda s, h: _parse_vat_declaration_sheet(s, h)
     },
     "cit_declaration": {
         "keywords": ["企业所得税", "应纳税所得额", "利润总额", "纳税调整增加额", "纳税调整减少额",
@@ -3041,6 +3041,114 @@ def _parse_generic_table(sheet, header):
             rows.append(row)
     return rows
 
+
+def _declaration_cell(sheet, r, c):
+    """安全读取申报表单单元格，兼容 xlrd 与 openpyxl。"""
+    try:
+        vals = _get_row_values(sheet, r)
+        if c < len(vals):
+            return vals[c]
+    except Exception:
+        pass
+    return ""
+
+
+def _declaration_num(v):
+    """把申报表单元格值转成数值，容错处理空值、占位符和千分位。"""
+    if v is None:
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).replace(",", "").replace("，", "").replace(" ", "").replace("\u00a0", "").strip()
+    if not s or s in ("—", "-", "－", "/", "无", "—", "***"):
+        return 0.0
+    m = re.search(r"-?\d+(\.\d+)?", s)
+    return float(m.group()) if m else 0.0
+
+
+def _parse_vat_declaration_sheet(sheet, header=None):
+    """解析增值税纳税申报表：从表单式布局提取关键勾稽字段。
+
+    增值税申报表是表单式（项目名在左列、金额在右列），不是行式清单。
+    按关键词定位单元格后向右取第一个数值，提取 period(所属期)、
+    sales_amount(销售额)、sales_tax(销项税额)、input_tax(进项税额)、
+    payable_tax(应纳税额)。提取不到关键字段时退回通用表格解析，保证数据不丢。
+    """
+    import re as _re_local
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    ncols = sheet.ncols if hasattr(sheet, 'ncols') else sheet.max_column
+
+    FIELDS = {
+        "sales_amount": ["按适用税率计税销售额", "计税销售额", "应税销售额", "销售额"],
+        "sales_tax": ["销项税额"],
+        "input_tax": ["进项税额"],
+        "payable_tax": ["本期应补（退）税额", "本期应补(退)税额", "本期应补退税额", "应纳税额合计", "应纳税额"],
+    }
+    extracted = {k: 0.0 for k in FIELDS}
+
+    def _right_value(r, c):
+        # 申报表布局通常是「项目名｜栏次｜金额…」，向右取绝对值最大的数值（金额远大于栏次号）
+        best = None
+        best_abs = 0.0
+        for cc in range(c + 1, min(ncols, c + 12)):
+            v = _declaration_cell(sheet, r, cc)
+            nv = _declaration_num(v)
+            if nv != 0.0 and abs(nv) > best_abs:
+                best_abs = abs(nv)
+                best = nv
+        return best
+
+    for r in range(min(nrows, 200)):
+        for c in range(min(ncols, 60)):
+            cell = str(_declaration_cell(sheet, r, c) or "").strip()
+            if not cell:
+                continue
+            for field, keywords in FIELDS.items():
+                for kw in keywords:
+                    if kw not in cell:
+                        continue
+                    # 精确排除：进项税额的主栏不含"转出/留抵/加计/上期"，销项税额不含"进项"
+                    if field == "input_tax" and ("转出" in cell or "留抵" in cell or "加计" in cell or "上期" in cell or "免抵退" in cell):
+                        continue
+                    if field == "sales_amount" and "销项税额" in cell:
+                        continue
+                    val = _right_value(r, c)
+                    if val is not None and val != 0.0:
+                        extracted[field] = val
+                    break
+                else:
+                    continue
+                break
+
+    # 提取所属期（标题或表头行里的"YYYY年M月"或"YYYY-MM"）
+    period = ""
+    for r in range(min(nrows, 15)):
+        row_text = " ".join(str(_declaration_cell(sheet, r, c) or "") for c in range(min(ncols, 30)))
+        m = _re_local.search(r"(20\d{2})\s*[年\-/.]\s*(\d{1,2})\s*月", row_text)
+        if m:
+            period = f"{m.group(1)}-{int(m.group(2)):02d}"
+            break
+        m = _re_local.search(r"(20\d{2})\s*[-/.]\s*(\d{1,2})(?:\s*月)?", row_text)
+        if m and "期" in row_text:
+            period = f"{m.group(1)}-{int(m.group(2)):02d}"
+            break
+
+    key_amount = extracted["sales_amount"] + extracted["sales_tax"] + extracted["input_tax"] + extracted["payable_tax"]
+    if key_amount <= 0:
+        # 提取不到关键字段时退回通用表格解析，避免数据丢失
+        return {"type": "vat_declaration", "rows": _parse_generic_table(sheet, header or [])}
+
+    record = {
+        "period": period,
+        "sales_amount": extracted["sales_amount"],
+        "sales_tax": extracted["sales_tax"],
+        "input_tax": extracted["input_tax"],
+        "payable_tax": extracted["payable_tax"],
+        "_declaration_type": "vat",
+    }
+    return {"type": "vat_declaration", "rows": [record], "declaration": record}
+
+
 def _parse_bank_sheet(sheet):
     """解析银行流水：自适应表头+提取交易记录"""
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
@@ -3227,6 +3335,12 @@ def _parse_by_content(names, get_sheet, original_name=""):
                 title_bonus["input_vat_deduction"] = 99
             elif any(k in fn_lower for k in ["凭证", "记账", "序时"]):
                 title_bonus["voucher"] = 99
+            elif any(k in fn_lower for k in ["增值税申报", "增值税纳税申报", "增值税及附加", "vat"]):
+                title_bonus["vat_declaration"] = 99
+            elif any(k in fn_lower for k in ["企业所得税申报", "所得税申报", "汇算清缴", "cit"]):
+                title_bonus["cit_declaration"] = 99
+            elif any(k in fn_lower for k in ["纳税申报", "申报表", "tax_return", "declaration"]):
+                title_bonus["vat_declaration"] = 90
             elif any(k in fn_lower for k in ["客户", "供应商", "人员", "部门", "档案"]):
                 title_bonus["archive"] = 5
             # 单元格内容检测（作为补充）
