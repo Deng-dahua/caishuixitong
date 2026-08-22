@@ -12226,7 +12226,12 @@ def _auto_verify_file_types(file_results, pipeline_log):
                 type_groups[ftype].append((fname, vec, fp))
     
     # ── Step 3: 组内聚类分析 → 自动发现子类型 ──
+    # 发票方向类（进项/销项/抵扣）的方向靠文件名和买卖方身份判断，
+    # 结构指纹无法区分进销（两者表头相同），禁止结构聚类纠正，避免进项误判为销项
+    _INVOICE_DIRECTION_TYPES = ("purchase_invoice", "sales_invoice", "input_vat_deduction", "invoice", "invoice_universal")
     for ftype, members in list(type_groups.items()):
+        if ftype in _INVOICE_DIRECTION_TYPES:
+            continue
         if len(members) < 4:
             continue  # 少于4个文件无法可靠聚类
         
@@ -12408,6 +12413,8 @@ def _auto_verify_file_types(file_results, pipeline_log):
         
         if ftype == "unknown" or not fp or ftype not in type_avg_fp:
             continue
+        if ftype in _INVOICE_DIRECTION_TYPES:
+            continue  # 发票方向类不参与结构偏差纠正
         
         own_avg = type_avg_fp[ftype]
         own_distance = _calc_fingerprint_distance(fp, own_avg)
