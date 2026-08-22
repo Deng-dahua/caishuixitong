@@ -3232,7 +3232,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 修正：经营范围包含≥3个不同品类→判定为贸易/批发而非制造
     if target_entity.get("_online_lookup") and target_entity.get("industry"):
         biz_scope = target_entity.get("biz_scope", "") or target_entity.get("business_scope", "")
-        if biz_scope:
+        if target_entity.get("_has_processing_signal"):
+            # 有委外加工信号（进项含加工费）→ 是制造业，不得修正为贸易/批发
+            pipeline_log.append(f"行业修正跳过: 检测到委外加工信号(加工费进项)，保持制造业判定 {target_entity.get('industry','')}")
+        elif biz_scope:
             # 统计经营范围中的品类多样性
             _TRADE_CATEGORY_KW = ["销售", "零售", "批发", "贸易", "进出口", "日用百货",
                                   "五金", "化妆品", "食品", "服装", "鞋帽", "箱包", "家具",
