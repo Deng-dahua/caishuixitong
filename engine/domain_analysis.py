@@ -10337,7 +10337,7 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
     biz_model = cp.get("biz_model", "")
     
     # ── 制造业必须有水电+运输 ──
-    if biz_model == "制造业" and total_sales > T.amount_thresholds.micro_transaction000:
+    if biz_model == "制造业" and total_sales > T.amount_thresholds.micro_transaction:
         if not has_utility and total_purchases > T.amount_thresholds.large_transaction:
             findings.append({
                 "type": "经营实质-缺水电支出",
@@ -10348,7 +10348,7 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
                 "suggestion": "核查企业实际经营场所、电表读数、水费单据",
                 "category": "经营实质深挖"
             })
-        if not has_transport and total_sales > T.amount_thresholds.micro_transaction000:
+        if not has_transport and total_sales > T.amount_thresholds.micro_transaction:
             findings.append({
                 "type": "经营实质-缺运输支出",
                 "level": "中风险",
@@ -10374,7 +10374,7 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
                     "suggestion": "核查是否有外协加工/外包/挂靠等未披露的安排",
                     "category": "经营实质深挖"
                 })
-        elif emp_count == 0 and total_sales > T.amount_thresholds.micro_transaction000:
+        elif emp_count == 0 and total_sales > T.amount_thresholds.micro_transaction:
             findings.append({
                 "type": "经营实质-无人工支出",
                 "level": "高风险",
@@ -12668,7 +12668,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
             for tx in bank_txs:
                 amt = abs(float(tx.get("amount", 0) or 0))
                 summary = str(tx.get("summary", tx.get("raw", "")))
-                if amt > T.amount_thresholds.micro_transaction00 and any(k in summary for k in ["借款","贷款","融资","授信"]):
+                if amt > T.amount_thresholds.micro_transaction and any(k in summary for k in ["借款","贷款","融资","授信"]):
                     large_loans.append(amt)
         if large_loans:
             findings.append({
