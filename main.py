@@ -8645,6 +8645,131 @@ def _province_hint(name):
     return "其他"
 
 
+def _goods_core(goods):
+    """从品名'*分类*商品'提取核心商品词。"""
+    parts = str(goods or "").split("*")
+    return parts[-1].strip() if len(parts) >= 2 else str(goods or "").strip()
+
+
+def _core_name_for_graph(name):
+    """提取企业核心字号：去地域前缀、行业后缀、企业形式。"""
+    name = str(name or "").strip()
+    for suffix in ("有限责任公司", "股份有限公司", "有限公司", "公司", "集团", "厂", "店", "经营部"):
+        if name.endswith(suffix):
+            name = name[: -len(suffix)]
+            break
+    for kw in ("纺织", "服装", "贸易", "实业", "科技", "制衣", "布业", "纱业", "氨纶", "纤维", "针织", "印染", "染整", "辅料", "面料", "制衣"):
+        if name.endswith(kw):
+            name = name[: -len(kw)]
+            break
+    return name
+
+
+def _build_invoice_network_graph(report_data):
+    """虚开对开环开发票网络图谱：构建购销关系网络，检测对开、同字号、品名变换、地域聚集。"""
+    inv = (report_data.get("material_intel") or {}).get("发票", {}) or {}
+    company_name = str((report_data.get("target_entity") or {}).get("name", "") or "")
+    file_results = report_data.get("file_results", []) or []
+
+    customers = []
+    for c in inv.get("销项客户明细", []) or []:
+        name = str(c.get("名称", ""))
+        if name and name != company_name:
+            customers.append({"name": name, "amount": _parse_amount_str(c.get("金额"))})
+    suppliers = []
+    for s in inv.get("进项供应商明细", []) or []:
+        name = str(s.get("名称", ""))
+        if name and name != company_name:
+            suppliers.append({"name": name, "amount": _parse_amount_str(s.get("金额"))})
+
+    risks = []
+    detections = {}
+
+    # 1. 对开检测：同一主体既是客户又是供应商
+    customer_names = {c["name"] for c in customers}
+    supplier_names = {s["name"] for s in suppliers}
+    reciprocal = sorted(customer_names & supplier_names)
+    detections["reciprocal_opening"] = {
+        "detected": bool(reciprocal), "count": len(reciprocal), "parties": reciprocal,
+    }
+    if reciprocal:
+        risks.append({"type": "对开", "detail": f"{'、'.join(reciprocal)}同时作为客户和供应商，存在双向开票嫌疑"})
+
+    # 2. 同字号检测：客户与供应商核心字号相同（同字号分设购销 = 关联/环开线索）
+    similar_pairs = []
+    for c in customers:
+        ccore = _core_name_for_graph(c["name"])
+        if len(ccore) < 2:
+            continue
+        for s in suppliers:
+            score = _core_name_for_graph(s["name"])
+            if len(score) >= 2 and (ccore in score or score in ccore):
+                similar_pairs.append({"customer": c["name"], "supplier": s["name"]})
+                break
+    detections["name_similarity"] = {
+        "detected": bool(similar_pairs), "count": len(similar_pairs), "pairs": similar_pairs[:10],
+    }
+    if similar_pairs:
+        risks.append({"type": "同字号分设购销", "detail": f"客户与供应商有{len(similar_pairs)}对核心字号相同，疑似关联方分设购销公司"})
+
+    # 3. 品名变换检测：进项品名 vs 销项品名
+    pur_goods = {}
+    sal_goods = {}
+    for fr in file_results:
+        if not isinstance(fr, dict):
+            continue
+        ftype = fr.get("type", "")
+        rows = fr.get("_rows", []) or []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            core = _goods_core(row.get("goods") or row.get("货物或应税劳务名称") or "")
+            if not core:
+                continue
+            amt = float(row.get("amount", 0) or 0)
+            if ftype == "purchase_invoice":
+                pur_goods[core] = pur_goods.get(core, 0.0) + amt
+            elif ftype == "sales_invoice":
+                sal_goods[core] = sal_goods.get(core, 0.0) + amt
+
+    buy_sell_same = sorted(set(pur_goods) & set(sal_goods))
+    only_in = sorted(set(pur_goods) - set(sal_goods))
+    only_out = sorted(set(sal_goods) - set(pur_goods))
+    detections["goods_transform"] = {
+        "buy_sell_same": buy_sell_same, "only_in": only_in, "only_out": only_out,
+    }
+    if buy_sell_same:
+        risks.append({"type": "买成品卖成品", "detail": f"进项和销项品名重叠：{'、'.join(buy_sell_same[:8])}，存在购成品转卖的贸易行为或变名虚开嫌疑"})
+
+    # 4. 地域聚集：供应商按省市聚集
+    region = {}
+    for s in suppliers:
+        prov = _province_hint(s["name"])
+        region.setdefault(prov, {"count": 0, "amount": 0.0, "names": []})
+        region[prov]["count"] += 1
+        region[prov]["amount"] += s["amount"]
+        if len(region[prov]["names"]) < 6:
+            region[prov]["names"].append(s["name"])
+    clusters = [
+        {"region": p, "count": v["count"], "amount": round(v["amount"], 2), "names": v["names"]}
+        for p, v in sorted(region.items(), key=lambda x: -x[1]["amount"]) if v["count"] >= 3 and v["amount"] >= 3000000
+    ]
+    detections["region_cluster"] = clusters
+    for cl in clusters:
+        risks.append({"type": "地域聚集", "detail": f"{cl['region']}{cl['count']}家供应商合计{cl['amount']:,.0f}元，集中供货或虚开窝点嫌疑"})
+
+    return {
+        "generated": True,
+        "customer_count": len(customers),
+        "supplier_count": len(suppliers),
+        "customers": sorted(customers, key=lambda x: -x["amount"])[:15],
+        "suppliers": sorted(suppliers, key=lambda x: -x["amount"])[:15],
+        "detections": detections,
+        "risk_count": len(risks),
+        "risks": risks,
+    }
+
+
 def _persist_one_click_result(company_id, result):
     """只在全部必经阶段完成后写入最近结果和分析历史。"""
     if company_id not in _last_analysis_cache and len(_last_analysis_cache) >= _MAX_ANALYSIS_CACHE:
@@ -8998,6 +9123,12 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
             report_data["related_party_graph"] = _build_related_party_graph(report_data)
         except Exception as _rpg_exc:
             _append_one_click_log(report_data, f"[关联方图谱] 生成失败: {_rpg_exc}")
+
+        # ═══ 稽查分身·穿透深挖：虚开对开环开发票网络图谱 ═══
+        try:
+            report_data["invoice_network_graph"] = _build_invoice_network_graph(report_data)
+        except Exception as _ing_exc:
+            _append_one_click_log(report_data, f"[发票网络图谱] 生成失败: {_ing_exc}")
 
         # ═══ 稽查分身·受控交付：生成受控分析轮次（草稿，人工复核后才可正式发布）═══
         report_data["compliance_round"] = _build_compliance_round(report_data, company_id)
