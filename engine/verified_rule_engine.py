@@ -155,6 +155,50 @@ VERIFIED_RULE_CATALOG = [
         "status": "verified_executable_screening",
         "limitation": "双向收付可能来自退款、借还款、保证金、代收代付和正常双向贸易；单一资金来源只形成调查线索。",
     },
+    {
+        "id": "VR014",
+        "name": "生产用能源消耗与制造业生产规模不匹配",
+        "layer": "生产经营实质规则",
+        "industries": ["A", "B", "C", "D"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["生产、加工与服务交付", "采购与取得"],
+        "required_sources": ["pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "生产可能外包、外购或使用房东代收的自备能源；能源发票缺失也可能是资料未上传或归集口径不同，不能据此认定无真实生产。",
+    },
+    {
+        "id": "VR015",
+        "name": "进项发票品名缺失",
+        "layer": "数据质量与发票规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与取得", "资料接收"],
+        "required_sources": ["pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "品名缺失可能来自字段映射、汇总导出或票面本身缺项，须回查原始票面后再判断业务性质。",
+    },
+    {
+        "id": "VR016",
+        "name": "供应商地域分布与跨省核验",
+        "layer": "交易关系交叉规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与取得"],
+        "required_sources": ["pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "跨省采购在原料产地集中、大宗采购或集团协同中可能正常；须按合同、物流和实际交付核验业务真实性。",
+    },
+    {
+        "id": "VR017",
+        "name": "购销双方集中度核验",
+        "layer": "交易关系交叉规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与取得", "销售与收入确认"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "集中度受行业和商业模式影响；定制生产、代工或单一核心客户模式下，少数客户或供应商占比较高可能正常。",
+    },
 ]
 
 
@@ -567,6 +611,191 @@ def _scan_bidirectional_bank(data, spec):
     )]
 
 
+_PROVINCE_CITIES = {
+    "广东": ["广州", "深圳", "东莞", "中山", "佛山", "珠海", "惠州", "江门", "汕头", "湛江", "肇庆", "茂名", "梅州", "揭阳", "潮州", "清远", "河源", "阳江", "韶关", "云浮"],
+    "山东": ["济南", "青岛", "淄博", "潍坊", "临沂", "烟台", "日照", "德州", "威海", "菏泽", "泰安", "济宁", "聊城", "滨州", "东营", "枣庄"],
+    "江苏": ["南京", "苏州", "无锡", "常州", "南通", "徐州", "扬州", "盐城", "泰州", "镇江", "淮安", "连云港", "宿迁", "吴江", "盛泽", "常熟", "张家港", "江阴", "宜兴"],
+    "浙江": ["杭州", "宁波", "温州", "绍兴", "嘉兴", "湖州", "金华", "台州", "衢州", "丽水", "舟山"],
+    "福建": ["福州", "厦门", "泉州", "漳州", "莆田", "三明", "南平", "龙岩", "宁德"],
+    "上海": ["上海"], "北京": ["北京"], "天津": ["天津"], "重庆": ["重庆"],
+    "河北": ["石家庄", "唐山", "秦皇岛", "邯郸", "邢台", "保定", "张家口", "承德", "沧州", "廊坊", "衡水"],
+    "河南": ["郑州", "开封", "洛阳", "平顶山", "安阳", "新乡", "焦作", "许昌", "漯河", "南阳", "商丘", "信阳", "周口", "驻马店", "濮阳", "三门峡", "鹤壁", "济源", "鄢陵", "长葛", "禹州", "襄城"],
+    "湖北": ["武汉", "黄石", "宜昌", "襄阳", "鄂州", "荆门", "孝感", "荆州", "黄冈", "咸宁", "十堰", "随州", "恩施", "宜城", "枣阳", "老河口", "仙桃", "潜江", "天门"],
+    "湖南": ["长沙", "株洲", "湘潭", "衡阳", "邵阳", "岳阳", "常德", "益阳", "郴州", "永州", "怀化", "娄底"],
+    "四川": ["成都", "自贡", "泸州", "德阳", "绵阳", "广元", "遂宁", "内江", "乐山", "南充", "眉山", "宜宾", "达州"],
+    "安徽": ["合肥", "芜湖", "蚌埠", "淮南", "马鞍山", "铜陵", "安庆", "黄山", "滁州", "阜阳", "宿州", "六安", "宣城", "亳州", "池州"],
+    "江西": ["南昌", "景德镇", "萍乡", "九江", "新余", "赣州", "吉安", "宜春", "抚州", "上饶"],
+    "辽宁": ["沈阳", "大连", "鞍山", "抚顺", "本溪", "丹东", "锦州", "营口", "盘锦", "辽阳", "铁岭"],
+    "陕西": ["西安", "铜川", "宝鸡", "咸阳", "渭南", "延安", "汉中", "榆林", "安康", "商洛"],
+    "广西": ["南宁", "柳州", "桂林", "梧州", "北海", "钦州", "贵港", "玉林", "百色", "河池"],
+    "云南": ["昆明", "曲靖", "玉溪", "保山", "昭通", "丽江", "普洱", "临沧", "大理", "红河"],
+    "贵州": ["贵阳", "六盘水", "遵义", "安顺", "毕节", "铜仁", "黔南", "黔东南"],
+    "山西": ["太原", "大同", "阳泉", "长治", "晋城", "晋中", "运城", "忻州", "临汾", "吕梁"],
+    "黑龙江": ["哈尔滨", "齐齐哈尔", "大庆", "佳木斯", "牡丹江", "绥化"],
+    "吉林": ["长春", "吉林", "四平", "通化", "白山", "松原", "延边"],
+    "甘肃": ["兰州", "天水", "武威", "张掖", "平凉", "酒泉", "庆阳", "陇南"],
+    "内蒙古": ["呼和浩特", "包头", "赤峰", "通辽", "鄂尔多斯", "呼伦贝尔"],
+    "新疆": ["乌鲁木齐", "克拉玛依", "吐鲁番", "哈密", "昌吉", "巴音郭楞"],
+    "海南": ["海口", "三亚", "儋州", "琼海"],
+    "宁夏": ["银川", "石嘴山", "吴忠", "固原", "中卫"],
+    "青海": ["西宁", "海东", "海西"],
+    "西藏": ["拉萨", "日喀则", "昌都", "林芝"],
+}
+
+
+def _province_of(text):
+    text = str(text or "")
+    for province, cities in _PROVINCE_CITIES.items():
+        if province in text or any(city in text for city in cities):
+            return province
+    return None
+
+
+def _invoice_goods_text(row):
+    return str(row.get("goods") or row.get("货物或应税劳务名称") or row.get("品名") or "").strip()
+
+
+def _scan_production_energy(data, spec):
+    pur = data.get("pur_invs", []) or []
+    if not pur:
+        return []
+    energy_keywords = ["电费", "水费", "燃气", "天然气", "蒸汽", "热能", "供热", "供电", "供水", "电力"]
+    vehicle_keywords = ["汽油", "柴油", "车用", "加油", "充电桩", "充电"]
+    raw_material_keywords = ["纱", "布", "棉", "氨纶", "纤维", "坯布", "面料", "针织", "梭织", "染整",
+                             "原料", "钢材", "钢板", "铝", "铜", "铁", "塑料", "化工", "粮食", "木材",
+                             "石材", "水泥", "矿产", "原油", "煤炭", "纸浆", "浆粕", "化工原料", "颗粒"]
+    raw_material_amount = 0.0
+    energy_amount = 0.0
+    energy_count = 0
+    for row in pur:
+        goods = _invoice_goods_text(row)
+        if not goods:
+            continue
+        if any(key in goods for key in vehicle_keywords):
+            continue
+        amount = _number(row.get("amount"))
+        if any(key in goods for key in raw_material_keywords):
+            raw_material_amount += amount
+        if any(key in goods for key in energy_keywords):
+            energy_amount += amount
+            energy_count += 1
+    # 仅当存在明显原材料/生产物资采购时，才按制造业口径核验能源消耗，避免贸易企业误触发
+    if raw_material_amount >= 1000000 and energy_amount < raw_material_amount * 0.001:
+        return [_finding(
+            spec,
+            f"进项发票中原材料及生产物资采购{raw_material_amount:,.0f}元，但未识别到生产用能源（电/水/燃气/蒸汽）发票（能源发票{energy_count}张、{energy_amount:,.0f}元），能源消耗与生产规模不匹配，须核验生产场地、设备及实际生产实质。",
+            {
+                "raw_material_amount": round(raw_material_amount, 2),
+                "production_energy_amount": round(energy_amount, 2),
+                "production_energy_invoice_count": energy_count,
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        )]
+    return []
+
+
+def _scan_invoice_goods_missing(data, spec):
+    pur = data.get("pur_invs", []) or []
+    if not pur:
+        return []
+    missing = [row for row in pur if not _invoice_goods_text(row)]
+    missing_amount = sum(_number(row.get("amount")) for row in missing)
+    if missing and (len(missing) >= 30 or missing_amount >= 500000):
+        return [_finding(
+            spec,
+            f"进项发票中有{len(missing)}张品名为空，合计金额{missing_amount:,.2f}元，无法识别购进业务性质，须回查原始票面并补充品名后再进入交易核验。",
+            {"missing_count": len(missing), "missing_amount": round(missing_amount, 2), "total_count": len(pur)},
+            spec["required_sources"],
+        )]
+    return []
+
+
+def _scan_supplier_geo(data, spec):
+    pur = data.get("pur_invs", []) or []
+    if not pur:
+        return []
+    suppliers = defaultdict(lambda: {"amount": 0.0, "count": 0, "province": None})
+    for row in pur:
+        name = str(row.get("seller") or row.get("销方名称") or "").strip()
+        if not name:
+            continue
+        entry = suppliers[name]
+        entry["amount"] += _number(row.get("amount"))
+        entry["count"] += 1
+        if entry["province"] is None:
+            entry["province"] = _province_of(name)
+    if len(suppliers) < 3:
+        return []
+    provinces = defaultdict(lambda: {"amount": 0.0, "count": 0})
+    for name, entry in suppliers.items():
+        province = entry["province"] or "未知"
+        provinces[province]["amount"] += entry["amount"]
+        provinces[province]["count"] += 1
+    cross_province = [p for p in provinces if p != "未知"]
+    if len(cross_province) < 2:
+        return []
+    total_amount = sum(entry["amount"] for entry in suppliers.values())
+    top_provinces = sorted(provinces.items(), key=lambda item: -item[1]["amount"])
+    detail_parts = []
+    for province, agg in top_provinces[:5]:
+        ratio = (agg["amount"] / total_amount * 100) if total_amount else 0
+        detail_parts.append(f"{province}{agg['count']}家{agg['amount']:,.0f}元({ratio:.0f}%)")
+    return [_finding(
+        spec,
+        f"进项发票供应商分布在{len(cross_province)}个省份，前几大采购来源地：" + "、".join(detail_parts) + "。跨省分散采购须核验各供应商资质、合同、物流和实际交付，识别是否存在无实质交易的票据流转。",
+        {
+            "supplier_count": len(suppliers),
+            "province_count": len(cross_province),
+            "province_breakdown": {p: {"count": v["count"], "amount": round(v["amount"], 2)} for p, v in top_provinces[:8]},
+        },
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _scan_concentration(data, spec):
+    sal = data.get("sal_invs", []) or []
+    pur = data.get("pur_invs", []) or []
+    suppliers = defaultdict(float)
+    customers = defaultdict(float)
+    for row in pur:
+        name = str(row.get("seller") or row.get("销方名称") or "").strip()
+        if name:
+            suppliers[name] += _number(row.get("amount"))
+    for row in sal:
+        name = str(row.get("buyer") or row.get("购方名称") or "").strip()
+        if name:
+            customers[name] += _number(row.get("amount"))
+    supplier_total = sum(suppliers.values())
+    customer_total = sum(customers.values())
+    top3_supplier = sum(sorted(suppliers.values(), reverse=True)[:3])
+    top3_customer = sum(sorted(customers.values(), reverse=True)[:3])
+    supplier_ratio = (top3_supplier / supplier_total) if supplier_total else 0.0
+    customer_ratio = (top3_customer / customer_total) if customer_total else 0.0
+    signals = []
+    if supplier_total > 0 and len(suppliers) >= 3 and supplier_ratio >= 0.8:
+        top_supplier = max(suppliers, key=suppliers.get)
+        signals.append(f"前3大供应商占采购额{supplier_ratio*100:.1f}%（最大供应商{top_supplier}）")
+    if customer_total > 0 and len(customers) >= 3 and customer_ratio >= 0.8:
+        top_customer = max(customers, key=customers.get)
+        signals.append(f"前3大客户占销售额{customer_ratio*100:.1f}%（最大客户{top_customer}）")
+    if not signals:
+        return []
+    return [_finding(
+        spec,
+        "；".join(signals) + "。购销集中度偏高，须核验交易真实性、定价独立性、是否存在关联关系或对单一渠道的异常依赖。",
+        {
+            "supplier_count": len(suppliers),
+            "customer_count": len(customers),
+            "supplier_top3_ratio": round(supplier_ratio, 4),
+            "customer_top3_ratio": round(customer_ratio, 4),
+        },
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -581,6 +810,10 @@ _SCANNERS = {
     "VR011": lambda data, spec: _scan_invoice_arithmetic(data, spec, "pur_invs"),
     "VR012": _scan_customer_supplier_overlap,
     "VR013": _scan_bidirectional_bank,
+    "VR014": _scan_production_energy,
+    "VR015": _scan_invoice_goods_missing,
+    "VR016": _scan_supplier_geo,
+    "VR017": _scan_concentration,
 }
 
 
