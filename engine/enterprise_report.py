@@ -132,6 +132,17 @@ def _build_detail_table(f):
             # VR031 印花税
             "purchase_amount": "采购金额", "sales_amount": "销售金额", "contract_base": "购销合计",
             "declared_stamp_base": "申报印花计税依据",
+            # VR032 进项转出
+            "hit_count": "命中张数", "reversal_tax_total": "应转出税额", "examples": "疑点示例",
+            "suspicion": "嫌疑用途", "seller": "销方", "invoice_no": "发票号",
+            # VR033 变名
+            "purchase_categories": "购进大类", "sales_categories": "销售大类", "divergence": "背离项",
+            # VR034 费用虚列
+            "suspicious_count": "可疑笔数", "suspicious_total": "可疑金额合计", "cash_total": "现金支出合计",
+            "expense_total": "费用合计", "revenue_total": "收入合计", "expense_rate": "费用率",
+            "summary": "摘要",
+            # VR035 印花其他税目
+            "loan_base": "借款计税依据", "lease_base": "租赁计税依据", "other_base": "其他税目合计",
         }
         skip = {"examples"}
         # 2.5) 嵌套字典（dict-of-dicts）：如 province_breakdown{省份:{count,amount}}、

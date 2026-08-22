@@ -242,10 +242,16 @@ def run_evolved_audit():
         {"invoice_no": "FP002", "date": "2025-01-10", "goods": "染料", "amount": 50000, "tax": 6500, "total": 56500, "seller": "广东化工染料"},
         {"invoice_no": "FP005", "date": "2025-01-18", "goods": "棉纱", "amount": 100000, "tax": 13000, "total": 113000, "seller": "新疆棉业有限公司"},
         {"invoice_no": "FP006", "date": "2025-01-22", "goods": "染料", "amount": 30000, "tax": 3900, "total": 33900, "seller": "广东化工染料"},
+        # VR032 触发：取得的专票但用途为业务招待（酒），应转出未转出
+        {"invoice_no": "FP007", "date": "2025-01-25", "invoice_code": "011002100", "goods": "高档酒-业务招待", "amount": 100000, "tax": 13000, "total": 113000, "seller": "某商贸有限公司"},
     ]
     vouchers = [
         # 其他应收款挂股东范善茂借款（财税[2003]158号信号）
         {"account_name": "其他应收款-股东借款", "summary": "范善茂借款", "debit": 600000, "credit": 0},
+        # VR034 触发：大额咨询费（虚列成本费用高频载体）
+        {"account_name": "管理费用-咨询费", "summary": "管理咨询服务费", "debit": 800000, "credit": 0, "settle": "转账"},
+        # VR035 触发：租赁合同（其他税目印花税）
+        {"account_name": "管理费用-租赁费", "summary": "厂房租金", "debit": 1200000, "credit": 0, "settle": "转账"},
     ]
     # 申报表：模拟达冠实际可能低报的情形——
     # 销项申报仅 250万（隐匿 ~1000万未开票），实缴增值税仅 5万 → 税负率极低
@@ -265,20 +271,28 @@ def run_evolved_audit():
         "target_entity": target_entity,
     }
     result = run_verified_rules(engine_data)
-    print("\n========== 进化规则·达冠严谨稽查（VR026–VR031）==========")
-    new_ids = {"VR026", "VR027", "VR028", "VR029", "VR030", "VR031"}
+    print("\n========== 进化规则·达冠严谨稽查（VR026–VR035）==========")
+    new_ids = {f"VR{i:03d}" for i in range(26, 36)}
     hit = [f for f in result["findings"] if f["rule_id"] in new_ids]
-    print(f"新增规则命中数: {len(hit)} / 6")
+    print(f"新增规则命中数: {len(hit)} / 10")
     for f in hit:
         m = f.get("observed_metrics", {})
         print(f"  [{f['rule_id']}] {f['type']} | 等级:{f.get('level')} | 优先级:{f.get('priority')}")
         print(f"      {f['detail'][:200]}")
     # 断言：达冠在进化后应被识别出的风险点
     hit_ids = {f["rule_id"] for f in hit}
-    expected = {"VR026", "VR028", "VR030"}  # 税负率极低 + 未开票收入隐匿 + 股东借款
+    expected = {"VR026", "VR028", "VR030", "VR032", "VR034", "VR035"}  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目
     missing = expected - hit_ids
     print(f"  预期命中 {sorted(expected)}，实际缺失 {sorted(missing) if missing else '无'}")
     assert not missing, f"达冠严谨稽查未命中预期风险点: {missing}"
+    # VR033 独立对照：进销品名严重背离（煤炭→建材变名）验证规则本身能力
+    ctrl = run_verified_rules({
+        "sal_invs": [{"invoice_no": "X1", "goods": "建材", "amount": 1000000, "tax": 130000, "total": 1130000}],
+        "pur_invs": [{"invoice_no": "P1", "invoice_code": "011", "goods": "煤炭", "amount": 800000, "tax": 104000, "total": 904000}],
+    })
+    ctrl_hit = {f["rule_id"] for f in ctrl["findings"]}
+    print(f"  [VR033对照] 煤炭→建材背离命中: {'VR033' in ctrl_hit}")
+    assert "VR033" in ctrl_hit, "VR033 变名开票规则未命中对照样本"
     return hit_ids
 
 

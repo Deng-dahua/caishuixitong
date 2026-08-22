@@ -353,6 +353,50 @@ VERIFIED_RULE_CATALOG = [
         "status": "verified_executable_screening",
         "limitation": "购销合同印花税计税依据通常不低于购销金额合计；未申报或明显偏低须核是否享受小微企业免征、是否仅按部分合同申报，不能单凭差额认定漏报（金税四期利润表与申报失真比对漏洞之一）。",
     },
+    {
+        "id": "VR032",
+        "name": "进项税额应转出未转出",
+        "layer": "增值税抵扣规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["采购与付款", "税费计提与申报"],
+        "required_sources": ["pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "用途判定依赖发票品名/摘要关键词，存在上下文误判可能（如餐饮业料酒、酒厂原酒、化工厂酒精属生产原料可抵扣）。须逐张核对用途与对应成本费用科目，结合企业画像豁免后处理（依据增值税法第十条、财税〔2016〕36号）。",
+    },
+    {
+        "id": "VR033",
+        "name": "进销品名背离（变名开票）",
+        "layer": "发票真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["采购与付款", "销售与收款"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "购进原料、销售成品本就存在合理品名差异（如棉纱→针织布）；只有背离跨越明显不同商品大类、且伴随资金回流/异常才是变名虚开线索。须结合生产工艺与BOM判断。",
+    },
+    {
+        "id": "VR034",
+        "name": "成本费用虚列异常",
+        "layer": "成本费用真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["采购与付款", "费用报销"],
+        "required_sources": ["vouchers"],
+        "status": "verified_executable_screening",
+        "limitation": "大额咨询/会议/广告/服务费及现金支出可能是真实经营需要；费用率高于同业可能源于商业模式差异。须逐笔核验合同、成果物、付款对象与现金去向。",
+    },
+    {
+        "id": "VR035",
+        "name": "印花税其他税目漏报",
+        "layer": "申报与勾稽规则",
+        "industries": ["ALL"],
+        "taxes": ["印花税"],
+        "lifecycle": ["税费计提与申报", "融资与借款", "资产租赁"],
+        "required_sources": ["bank_txs", "vouchers", "tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "借款合同、租赁合同的印花税计税依据与购销不同口径；部分情形（如金融机构借款合同、小微免征）有免税规定。须逐税目核对贴花情况。",
+    },
 ]
 
 
@@ -1775,6 +1819,251 @@ def _scan_stamp_tax(data, spec):
     return []
 
 
+# ── VR032 进项税额应转出未转出 ────────────────────────────────────
+# 进项发票取得专票且已抵扣，但用途关键词命中不得抵扣情形（业务招待/集体福利/
+# 个人消费/免税/简易计税/非正常损失/贷款服务），应做进项税额转出而未转出的线索。
+# 依据：增值税法第十条、财税〔2016〕36号附件1第二十七条。
+_INPUT_REVERSAL_KEYWORDS = [
+    ("业务招待", ["招待", "宴请", "餐饮", "娱乐", "礼品", "高档茶", "高档酒"]),
+    ("集体福利", ["福利", "员工", "团建", "食堂", "工会", "旅游", "聚餐", "节日礼品"]),
+    ("个人消费", ["个人", "自用", "私用", "私家车"]),
+    ("免税项目", ["免税", "零税率"]),
+    ("简易计税", ["简易计税", "简易征收"]),
+    ("非正常损失", ["被盗", "丢失", "霉烂", "销毁", "没收", "毁损"]),
+    ("贷款服务", ["贷款", "利息", "融资", "投融"]),
+]
+
+
+def _scan_input_tax_reversal(data, spec):
+    pur = data.get("pur_invs", []) or []
+    if not pur:
+        return []
+    hits = []
+    reversal_total = 0.0
+    for row in pur:
+        if not isinstance(row, dict):
+            continue
+        # 仅对 Dedicated 专票（含税额）且未标记已转出者做筛查
+        tax = _number(row.get("tax") or row.get("税额") or row.get("tax_amount"))
+        if tax <= 0:
+            continue
+        code = str(row.get("invoice_code", "") or row.get("发票代码", ""))
+        is_special = code[:2] in ("01", "04", "10", "11") or row.get("_has_deduction_columns", False) \
+            or str(row.get("invoice_category", "") or "").find("专用") >= 0
+        if not is_special:
+            continue
+        text = " ".join(str(v) for v in row.values())
+        for item, kws in _INPUT_REVERSAL_KEYWORDS:
+            if any(kw in text for kw in kws):
+                hits.append({
+                    "invoice_no": row.get("invoice_no") or row.get("发票号码", ""),
+                    "goods": row.get("goods") or row.get("品名", ""),
+                    "seller": row.get("seller") or row.get("销方", ""),
+                    "tax": round(tax, 2),
+                    "suspicion": item,
+                })
+                reversal_total += tax
+                break
+    if hits:
+        detail = (
+            f"检出{len(hits)}张专票进项税额存在不得抵扣用途嫌疑（合计税额{reversal_total:,.2f}元），"
+            "如用于业务招待、集体福利、个人消费、免税/简易计税项目、非正常损失或贷款服务，"
+            "即使取得专票也须做进项税额转出。须逐张核对用途与对应成本费用科目，结合企业画像排除生产经营用途后处理。"
+        )
+        return [_finding(
+            spec,
+            detail,
+            {
+                "hit_count": len(hits),
+                "reversal_tax_total": round(reversal_total, 2),
+                "examples": hits[:10],
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        )]
+    return []
+
+
+# ── VR033 进销品名背离（变名开票） ────────────────────────────────
+# 购进与销售的商品如跨越明显不同大类（原料 vs 完全不同成品，或煤炭→建材类变名），
+# 且伴随资金回流/异常，是变名虚开线索。此处仅做品名大类背离筛查，定性留人工。
+_GOODS_CATEGORY_MAP = {
+    "棉纱": "纺织原料", "纱": "纺织原料", "布料": "纺织品", "针织布": "纺织品",
+    "布": "纺织品", "染料": "化工", "化工": "化工", "加工费": "加工服务",
+    "煤": "矿产", "炭": "矿产", "钢材": "金属", "钢": "金属", "建材": "建材",
+    "水泥": "建材", "设备": "设备", "木材": "木材", "农产品": "农产品", "粮": "农产品",
+    "油": "能源", "电": "能源", "酒": "食品饮料", "茶": "食品饮料", "食品": "食品饮料",
+}
+
+
+def _goods_category(name):
+    if not name:
+        return "未知"
+    for kw, cat in _GOODS_CATEGORY_MAP.items():
+        if kw in str(name):
+            return cat
+    return "其他"
+
+
+def _scan_goods_name_divergence(data, spec):
+    sal = data.get("sal_invs", []) or []
+    pur = data.get("pur_invs", []) or []
+    if not sal or not pur:
+        return []
+    pur_cats = {_goods_category(r.get("goods")) for r in pur if _goods_category(r.get("goods")) not in ("未知",)}
+    sal_cats = {_goods_category(r.get("goods")) for r in sal if _goods_category(r.get("goods")) not in ("未知",)}
+    if not pur_cats or not sal_cats:
+        return []
+    # 合理产业链：原料→成品、加工服务不构成背离
+    supply_chain_ok = bool(pur_cats & sal_cats) or "加工服务" in pur_cats
+    if supply_chain_ok:
+        return []
+    # 大类完全不同，构成背离
+    divergence = sorted(pur_cats ^ sal_cats)
+    if len(divergence) >= 1 and not (pur_cats & sal_cats):
+        detail = (
+            f"购进商品大类{pur_cats}，销售商品大类{sal_cats}，二者无交集且非加工服务衔接，"
+            "存在进销品名严重背离。若伴随资金回流、富余票或异常票流向，是『变名开票』（如煤炭变建材、废钢变设备）"
+            "掩饰虚开的高频线索。须结合生产工艺、BOM与物流核验交易实质。"
+        )
+        return [_finding(
+            spec,
+            detail,
+            {
+                "purchase_categories": sorted(pur_cats),
+                "sales_categories": sorted(sal_cats),
+                "divergence": divergence,
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        )]
+    return []
+
+
+# ── VR034 成本费用虚列异常 ────────────────────────────────────────
+# 凭证中出现大额咨询/会议/广告/服务费、以及大额现金支出，或费用率显著高于同业，
+# 标注成本费用真实性风险（虚列成本费用的线索）。
+_SUSPICIOUS_EXPENSE_KW = ["咨询", "顾问", "会议", "会务", "广告", "推广", "服务费", "中介", "佣金", "劳务", "培训", "营销"]
+# 行业参考费用率（费用/收入），超过即预警（分行业粗口径）
+_EXPENSE_RATE_WARN = 0.40
+
+
+def _scan_expense_fabrication(data, spec):
+    vs = data.get("vouchers", []) or []
+    if not vs:
+        return []
+    suspicious = []
+    cash_total = 0.0
+    expense_total = 0.0
+    revenue_total = 0.0
+    for v in vs:
+        if not isinstance(v, dict):
+            continue
+        amount = _number(v.get("amount") or v.get("金额") or v.get("debit"))
+        if amount <= 0:
+            continue
+        summary = str(v.get("summary") or v.get("摘要") or v.get("subject") or "")
+        expense_total += amount
+        if "现金" in summary or str(v.get("settle") or "").find("现金") >= 0:
+            cash_total += amount
+        if any(kw in summary for kw in _SUSPICIOUS_EXPENSE_KW) and amount >= 100000:
+            suspicious.append({
+                "summary": summary[:40],
+                "amount": round(amount, 2),
+                "date": v.get("date", ""),
+            })
+    # 收入口径：优先发票不含税，其次申报
+    sal = data.get("sal_invs", []) or []
+    decls = data.get("tax_declarations", []) or []
+    revenue_total = sum(_number(r.get("amount")) for r in sal)
+    if revenue_total <= 0:
+        revenue_total = sum(_number(d.get("sales_amount")) for d in decls)
+    expense_rate = expense_total / revenue_total if revenue_total > 0 else 0
+
+    findings = []
+    if suspicious:
+        detail = (
+            f"检出{len(suspicious)}笔大额（≥10万）咨询/会议/广告/服务/佣金类费用合计"
+            f"{sum(x['amount'] for x in suspicious):,.2f}元，是虚列成本费用、虚开发票套取资金的高频载体。"
+            "须逐笔核验合同、成果物、付款对象（是否个体户/空壳）与资金最终去向。"
+        )
+        findings.append(_finding(
+            spec, detail,
+            {"suspicious_count": len(suspicious), "suspicious_total": round(sum(x["amount"] for x in suspicious), 2),
+             "examples": suspicious[:10], "cash_total": round(cash_total, 2)},
+            spec["required_sources"], priority="中",
+        ))
+    if expense_rate >= _EXPENSE_RATE_WARN and revenue_total > 0:
+        detail = (
+            f"凭证费用合计{expense_total:,.2f}元，收入口径{revenue_total:,.2f}元，费用率{expense_rate:.1%}，"
+            "显著高于常规行业水平。费用率畸高可能源于成本费用虚列、关联交易转移利润或收入隐匿，须结合成本结构核验。"
+        )
+        findings.append(_finding(
+            spec, detail,
+            {"expense_total": round(expense_total, 2), "revenue_total": round(revenue_total, 2),
+             "expense_rate": round(expense_rate, 4), "cash_total": round(cash_total, 2)},
+            spec["required_sources"], priority="中",
+        ))
+    return findings
+
+
+# ── VR035 印花税其他税目漏报 ──────────────────────────────────────
+# 在 VR031 购销合同基础上，扩展借款合同（bank_txs 借款/其他应收款）、租赁合同
+# （vouchers 租赁费）、产权转移等税目，比对申报印花税计税依据，标注漏报线索。
+def _scan_stamp_tax_other_items(data, spec):
+    bank = data.get("bank_txs", []) or []
+    vs = data.get("vouchers", []) or []
+    decls = data.get("tax_declarations", []) or []
+    if not bank and not vs:
+        return []
+
+    # 借款合同计税依据：向银行/非金融借款、其他应收款挂股东款近似
+    loan_base = 0.0
+    for row in bank:
+        txt = " ".join(str(x) for x in row.values())
+        if "借款" in txt or "贷款" in txt:
+            loan_base += abs(_number(row.get("credit") or row.get("debit")))
+    for v in vs:
+        txt = " ".join(str(x) for x in v.values())
+        if "借款" in txt or "其他应收款" in txt:
+            loan_base += abs(_number(v.get("amount") or v.get("debit")))
+
+    # 租赁合同计税依据：租赁费（税额千分之一）
+    lease_base = 0.0
+    for v in vs:
+        txt = str(v.get("summary") or v.get("摘要") or "")
+        if "租赁" in txt or "房租" in txt or "租金" in txt:
+            lease_base += _number(v.get("amount") or v.get("debit"))
+
+    declared_base = 0.0
+    for decl in decls:
+        if isinstance(decl, dict):
+            declared_base += _number(decl.get("stamp_tax_base") or decl.get("印花税计税依据"))
+
+    other_base = loan_base + lease_base
+    if other_base <= 0:
+        return []
+    if declared_base <= 0:
+        # 无申报数据时不强行误报，仅在有申报且明显偏低时提示
+        return []
+    gap = other_base - declared_base
+    ratio = gap / other_base if other_base else 0
+    if gap >= 300000 and ratio >= 0.3:
+        detail = (
+            f"借款/租赁合同推算印花税计税依据约{other_base:,.2f}元（借款{loan_base:,.2f}+租赁{lease_base:,.2f}），"
+            f"申报计税依据{declared_base:,.2f}元，差额{gap:,.2f}元（{ratio:.1%}）。"
+            "借款合同、租赁合同等分属不同印花税税目，须逐税目核对贴花，排除金融机构借款合同免征、小微免征后处理。"
+        )
+        return [_finding(
+            spec, detail,
+            {"loan_base": round(loan_base, 2), "lease_base": round(lease_base, 2),
+             "other_base": round(other_base, 2), "declared_stamp_base": round(declared_base, 2),
+             "gap": round(gap, 2), "gap_ratio": round(ratio, 4)},
+            spec["required_sources"], priority="中",
+        )]
+    return []
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -1807,6 +2096,10 @@ _SCANNERS = {
     "VR029": _scan_long_zero_filing,
     "VR030": _scan_shareholder_loan,
     "VR031": _scan_stamp_tax,
+    "VR032": _scan_input_tax_reversal,
+    "VR033": _scan_goods_name_divergence,
+    "VR034": _scan_expense_fabrication,
+    "VR035": _scan_stamp_tax_other_items,
 }
 
 
