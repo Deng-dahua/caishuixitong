@@ -8402,6 +8402,170 @@ def _build_compliance_round(report_data, company_id):
     }
 
 
+def _parse_amount_str(value):
+    """把 material_intel 里的金额字符串解析成 float。"""
+    if value is None:
+        return 0.0
+    if isinstance(value, (int, float)):
+        return float(value)
+    s = str(value).replace(",", "").replace("，", "").replace("元", "").strip()
+    try:
+        return float(s)
+    except Exception:
+        return 0.0
+
+
+def _build_reconciliation_matrix(report_data):
+    """五流合一勾稽矩阵：汇总发票/资金/税/合同/货物流两两对账状态。"""
+    import re as _re
+    mi = report_data.get("material_intel", {}) or {}
+    doc_requests = report_data.get("document_requests", []) or []
+
+    invoice_info = mi.get("发票", {}) or {}
+    def _amount_from_text(text):
+        m = _re.search(r"金额([\d,]+\.?\d*)", str(text))
+        return float(m.group(1).replace(",", "")) if m else 0.0
+    sales_amount = _amount_from_text(invoice_info.get("销项发票", ""))
+    purchase_amount = _amount_from_text(invoice_info.get("进项发票", ""))
+    bank = mi.get("银行流水", {}) or {}
+    bank_in = _parse_amount_str(bank.get("总收款"))
+    bank_out = _parse_amount_str(bank.get("总付款"))
+
+    tax_declarations = report_data.get("tax_declarations", []) or []
+    declared_sales = sum(_parse_amount_str(d.get("sales_amount")) for d in tax_declarations if isinstance(d, dict)) if tax_declarations else 0.0
+    has_declaration = declared_sales > 0
+
+    flow_status = {r.get("flow"): r.get("status") for r in doc_requests if isinstance(r, dict)}
+    has_contract = flow_status.get("合同流") not in ("缺失",)
+    has_inventory = flow_status.get("货物流") not in ("缺失",)
+
+    pairs = []
+    def _gap_pair(left, right, name, left_amt, right_amt, source_rule, note):
+        gap = left_amt - right_amt
+        status = "一致" if abs(gap) <= max(left_amt, right_amt, 1) * 0.01 else "差异"
+        pairs.append({
+            "left": left, "right": right, "name": name, "status": status,
+            "left_amount": round(left_amt, 2), "right_amount": round(right_amt, 2),
+            "gap": round(gap, 2),
+            "gap_ratio": round(gap / right_amt, 4) if right_amt else None,
+            "note": note, "source_rule": source_rule,
+        })
+
+    if sales_amount and bank_in:
+        _gap_pair("发票流·销项", "资金流·收款", "销项开票 vs 银行收款",
+                  sales_amount, bank_in, "VR001",
+                  "开票大于收款须核验应收账款、未开票收入或代收代付；收款大于开票须核验借款、预收或账外经营")
+
+    if purchase_amount and bank_out:
+        _gap_pair("发票流·进项", "资金流·付款", "进项取得 vs 银行付款",
+                  purchase_amount, bank_out, "VR001",
+                  "取得大于付款须核验应付账款、赊购或虚开发票；付款大于取得须核验预付款、借款或资金回流")
+
+    if has_declaration:
+        _gap_pair("发票流·销项", "税流·申报", "销项开票 vs 申报销售额",
+                  sales_amount, declared_sales, "VR018",
+                  "开票与申报差异须核验未开票收入、纳税义务发生时间与红字发票")
+    else:
+        pairs.append({
+            "left": "发票流·销项", "right": "税流·申报", "name": "销项开票 vs 申报销售额",
+            "status": "缺数据", "left_amount": round(sales_amount, 2), "right_amount": None,
+            "gap": None, "gap_ratio": None,
+            "note": "缺增值税申报表，无法做票税勾稽，须调取申报表", "source_rule": "VR018",
+        })
+
+    if not has_contract:
+        pairs.append({
+            "left": "合同流", "right": "发票流", "name": "合同 vs 开票",
+            "status": "缺数据", "left_amount": None, "right_amount": round(sales_amount, 2),
+            "gap": None, "gap_ratio": None,
+            "note": "缺合同，无法核验交易真实性、权利义务和商业目的", "source_rule": "五流勾稽",
+        })
+
+    if not has_inventory:
+        pairs.append({
+            "left": "货物流", "right": "发票流", "name": "存货物流 vs 开票",
+            "status": "缺数据", "left_amount": None, "right_amount": round(sales_amount, 2),
+            "gap": None, "gap_ratio": None,
+            "note": "缺存货台账和物流记录，无法核验货物流转与账实相符", "source_rule": "五流勾稽",
+        })
+
+    diff_count = sum(1 for p in pairs if p.get("status") == "差异")
+    missing_count = sum(1 for p in pairs if p.get("status") == "缺数据")
+    return {
+        "generated": True,
+        "sales_invoice_amount": round(sales_amount, 2),
+        "purchase_invoice_amount": round(purchase_amount, 2),
+        "bank_in_amount": round(bank_in, 2),
+        "bank_out_amount": round(bank_out, 2),
+        "declared_sales_amount": round(declared_sales, 2) if has_declaration else None,
+        "diff_count": diff_count,
+        "missing_count": missing_count,
+        "pairs": pairs,
+    }
+
+
+def _build_business_substance_profile(report_data):
+    """经营实质画像：主体/模式/产能/能耗/用工五维，汇总可信度。"""
+    target = report_data.get("target_entity", {}) or {}
+    stats = report_data.get("stats", {}) or {}
+    findings = report_data.get("all_findings", []) or []
+    doc_requests = report_data.get("document_requests", []) or []
+    flow_status = {r.get("flow"): r.get("status") for r in doc_requests if isinstance(r, dict)}
+
+    industry = str(target.get("industry", "") or "未知")
+    biz_model = str(target.get("biz_model", "") or "未知")
+    legal_person = str(target.get("legal_person", "") or target.get("legal_representative", "") or "未知")
+
+    energy_finding = next((f for f in findings if "能源" in str(f.get("type", ""))), None)
+    salary_count = stats.get("工资记录", 0) or 0
+    social_count = stats.get("社保记录", 0) or 0
+    has_workforce = salary_count > 0 or social_count > 0
+
+    def _dim(name, status, detail, flag):
+        return {"dimension": name, "status": status, "detail": detail, "flag": flag}
+
+    dims = []
+    dims.append(_dim("主体", industry, f"工商登记行业{industry}，法定代表人{legal_person}", "正常"))
+    processing_signal = bool(target.get("_has_processing_signal") or any("加工" in str(f.get("type", "")) for f in findings))
+    mode_flag = "存疑" if processing_signal else "正常"
+    dims.append(_dim("经营模式", biz_model, "进项含委外加工费，反映外包轻加工模式" if processing_signal else biz_model, mode_flag))
+    if flow_status.get("货物流") == "缺失":
+        dims.append(_dim("产能", "无产能数据", "缺设备、产量、存货台账，无法核验产能与收入匹配", "缺失"))
+    else:
+        dims.append(_dim("产能", "有存货数据", "有存货台账，可核验产能匹配", "正常"))
+    if energy_finding:
+        dims.append(_dim("能耗", "零生产用能源", "有原材料采购但无电/水/燃气发票，生产实质存疑", "异常"))
+    else:
+        dims.append(_dim("能耗", "能耗正常", "生产用能源采购与规模匹配", "正常"))
+    if not has_workforce:
+        dims.append(_dim("用工", "零工资社保", "无工资表、社保明细，无法核验用工规模与人工成本", "缺失"))
+    else:
+        dims.append(_dim("用工", f"工资{salary_count}人/社保{social_count}人", "有用工记录，可核验人均产值", "正常"))
+
+    abnormal = [d for d in dims if d["flag"] in ("异常", "存疑")]
+    missing = [d for d in dims if d["flag"] == "缺失"]
+    if len(abnormal) >= 2:
+        level = "严重存疑"
+    elif abnormal or len(missing) >= 2:
+        level = "存疑"
+    else:
+        level = "基本可信"
+
+    conclusion = (
+        f"经营实质{level}：{'、'.join(d['dimension'] for d in abnormal)}异常，"
+        f"{'、'.join(d['dimension'] for d in missing)}数据缺失。" if (abnormal or missing) else "经营实质基本可信。"
+    )
+
+    return {
+        "generated": True,
+        "level": level,
+        "abnormal_count": len(abnormal),
+        "missing_count": len(missing),
+        "dimensions": dims,
+        "conclusion": conclusion,
+    }
+
+
 def _persist_one_click_result(company_id, result):
     """只在全部必经阶段完成后写入最近结果和分析历史。"""
     if company_id not in _last_analysis_cache and len(_last_analysis_cache) >= _MAX_ANALYSIS_CACHE:
@@ -8737,6 +8901,18 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
             report_data["document_requests"] = _build_five_flow_document_requests(report_data)
         except Exception as _dreq_exc:
             _append_one_click_log(report_data, f"[五流调取清单] 生成失败: {_dreq_exc}")
+
+        # ═══ 稽查分身·核心勾稽：五流合一勾稽矩阵（对账找矛盾）═══
+        try:
+            report_data["reconciliation_matrix"] = _build_reconciliation_matrix(report_data)
+        except Exception as _rmx_exc:
+            _append_one_click_log(report_data, f"[五流勾稽矩阵] 生成失败: {_rmx_exc}")
+
+        # ═══ 稽查分身·经营实质：五维可信度画像（判断是否真经营）═══
+        try:
+            report_data["business_substance_profile"] = _build_business_substance_profile(report_data)
+        except Exception as _bsp_exc:
+            _append_one_click_log(report_data, f"[经营实质画像] 生成失败: {_bsp_exc}")
 
         # ═══ 稽查分身·受控交付：生成受控分析轮次（草稿，人工复核后才可正式发布）═══
         report_data["compliance_round"] = _build_compliance_round(report_data, company_id)
