@@ -185,8 +185,8 @@ from engine.memory import (
     BANK_KW_MAP, BIZ_EXPENSE_KEYWORDS, SENSITIVE_INVOICE_KEYWORDS,
     SERVICE_EXCLUDE_KEYWORDS, SERVICE_CODES_FALLBACK,
     VAT_DEDUCTIBLE_VOUCHER_TYPES, VAT_NON_DEDUCTIBLE_TYPES,
-    VAT_INPUT_TAX_REVERSAL_RULES, VAT_CONTEXTUAL_REVERSAL_OVERRIDES
 )
+from engine.vat_reversal import classify_input_tax_reversal
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -293,94 +293,24 @@ def _classify_voucher_deductibility(invoice_dict):
         is_deductible = False
         signals.append("无明确扣税凭证信号→保守判定为不可抵扣")
     
-    # 信号7（初审）：凭证类型可抵扣，但用途关键词触发转出嫌疑
+    # 信号7（初审+二审）：凭证类型可抵扣，但用途关键词触发转出嫌疑
     # 如："酒"→业务招待嫌疑，"福利"→集体福利嫌疑
+    # 复用 engine.vat_reversal.classify_input_tax_reversal（与 VR032 共用同一引擎）
     # 依据：《中华人民共和国增值税法》第十条、财税[2016]36号
     needs_reversal = False
     reversal_reason = ""
-    if is_deductible and VAT_INPUT_TAX_REVERSAL_RULES:
-        all_text = " ".join(str(v) for v in invoice_dict.values())
-        all_text_lower = all_text.lower()
-        for rule in VAT_INPUT_TAX_REVERSAL_RULES.get("non_deductible_uses", []):
-            for kw in rule.get("keywords", []):
-                if kw in all_text or kw in all_text_lower:
-                    # ══ 初审：关键词命中 → 标记嫌疑 ══
-                    suspicion_item = rule["item"]
-                    suspicion_kw = kw
-                    
-                    # ══ 二审（终审）：上下文豁免检查 ══
-                    # 同一个"酒"字，在餐饮店是调料，在酒厂是原料，在化工厂是燃料
-                    # 只有排除所有生产/经营用途后，才最终判定为招待/福利
-                    exempted = _check_reversal_exemption(all_text, suspicion_kw, invoice_dict)
-                    
-                    if exempted:
-                        signals.append(f"⚡ 关键词「{kw}」触发{suspicion_item}嫌疑，但上下文豁免通过→维持可抵扣")
-                        # 不改变 is_deductible，不设置 needs_reversal
-                    else:
-                        is_deductible = False
-                        needs_reversal = True
-                        reversal_reason = f"用途为「{suspicion_item}」({kw})→即使取得扣税凭证也须进项税额转出"
-                        signals.append(f"⚠ {reversal_reason}")
-                    break
-            if needs_reversal:
-                break
+    if is_deductible:
+        verdict = classify_input_tax_reversal(invoice_dict)
+        if verdict["needs_reversal"] and not verdict["exempted"]:
+            is_deductible = False
+            needs_reversal = True
+            reversal_reason = verdict["rationale"]
+            signals.append(f"⚠ {reversal_reason}")
+        elif verdict["exempted"]:
+            signals.append(f"⚡ {verdict['rationale']}")
     
     rationale = " | ".join(signals) if signals else "默认"
     return (is_deductible, voucher_type, rationale, needs_reversal, reversal_reason)
-
-
-def _check_reversal_exemption(all_text, keyword, invoice_dict):
-    """进项税额转出的上下文豁免检查（引擎的'二次思考'机制）。
-    
-    同一个关键词在不同语境下有完全不同的税务处理：
-    - 餐饮企业买料酒 → 生产调料 → 可抵扣
-    - 酒厂买入原酒 → 生产原料 → 可抵扣
-    - 化工企业买酒精 → 燃料/溶剂 → 可抵扣
-    - 贸易公司买茅台 → 业务招待 → 不可抵扣（维持转出）
-    
-    判定策略：企业画像 + 品名 + 会计科目，宽松匹配（命中任一条件即生效）
-    理由：实际发票数据通常不会同时包含企业类型和会计科目，
-    引擎应该根据已有信号做最佳判断，而非因数据不完整而错判。
-    """
-    if not VAT_CONTEXTUAL_REVERSAL_OVERRIDES:
-        return False  # 无豁免规则，维持原判定
-    
-    for override in VAT_CONTEXTUAL_REVERSAL_OVERRIDES.get("overrides", []):
-        if override.get("keyword") != keyword:
-            continue
-        
-        for condition in override.get("exempt_when", []):
-            # 如果标记了 override_allowed=False，表示硬性规定，不豁免
-            if condition.get("override_allowed") is False:
-                continue
-            
-            # 宽松匹配：企业类型 或 会计科目 至少命中一个
-            type_hit = False
-            acct_hit = False
-            
-            enterprise_types = condition.get("enterprise_types", [])
-            if enterprise_types:
-                if "*" in enterprise_types:
-                    type_hit = True
-                else:
-                    for et in enterprise_types:
-                        if et in all_text:
-                            type_hit = True
-                            break
-            
-            account_keywords = condition.get("account_keywords", [])
-            if account_keywords:
-                for ak in account_keywords:
-                    if ak in all_text:
-                        acct_hit = True
-                        break
-            
-            # 判定逻辑：如有企业类型要求未命中，且无会计科目要求或也未命中 → 不豁免
-            # 但若任一命中 → 豁免
-            if type_hit or acct_hit:
-                return True  # 豁免！
-    
-    return False  # 不豁免，维持转出判定
 
 
 def _classify_purchase_voucher_distribution(pur_invs):

@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 
+from engine.vat_reversal import classify_input_tax_reversal
+
 
 VERIFIED_RULE_CATALOG = [
     {
@@ -396,6 +398,28 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["bank_txs", "vouchers", "tax_declarations"],
         "status": "verified_executable_screening",
         "limitation": "借款合同、租赁合同的印花税计税依据与购销不同口径；部分情形（如金融机构借款合同、小微免征）有免税规定。须逐税目核对贴花情况。",
+    },
+    {
+        "id": "VR036",
+        "name": "视同销售未计提销项税额",
+        "layer": "税会差异与特殊交易规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["销售与收入确认", "资产领用与用途改变", "费用报销与税前扣除"],
+        "required_sources": ["sal_invs", "vouchers", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "无偿赠送、样品、自产自用、用于集体福利或个人消费的资产移转须视同销售计提销项；凭证明细不足时仅能给出线索，最终以用途与计税依据为准。",
+    },
+    {
+        "id": "VR037",
+        "name": "关联交易价格偏离（转让定价探针）",
+        "layer": "关联交易与转让定价规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["销售与收入确认", "采购与付款", "关联方交易"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "转让定价需以独立交易原则(ARM'S LENGTH)比对，权威判定依赖工商股权穿透(关联方识别)与同期资料。本规则仅以'同一品名同单位对不同交易对象的单价离散度'做定量探针，关联定性需补充股权穿透数据。",
     },
 ]
 
@@ -1820,30 +1844,26 @@ def _scan_stamp_tax(data, spec):
 
 
 # ── VR032 进项税额应转出未转出 ────────────────────────────────────
-# 进项发票取得专票且已抵扣，但用途关键词命中不得抵扣情形（业务招待/集体福利/
-# 个人消费/免税/简易计税/非正常损失/贷款服务），应做进项税额转出而未转出的线索。
+# 进项专票用途命中不得抵扣情形（业务招待/集体福利/个人消费/免税/简易计税/
+# 非正常损失/贷款服务），应做进项税额转出而未转出的线索。
+# 复用 engine.vat_reversal 的"初审命中→二审上下文豁免→去误报"两阶段引擎，
+# 与 domain_analysis 共用同一套判定逻辑，避免同一张发票两处结论打架。
 # 依据：增值税法第十条、财税〔2016〕36号附件1第二十七条。
-_INPUT_REVERSAL_KEYWORDS = [
-    ("业务招待", ["招待", "宴请", "餐饮", "娱乐", "礼品", "高档茶", "高档酒"]),
-    ("集体福利", ["福利", "员工", "团建", "食堂", "工会", "旅游", "聚餐", "节日礼品"]),
-    ("个人消费", ["个人", "自用", "私用", "私家车"]),
-    ("免税项目", ["免税", "零税率"]),
-    ("简易计税", ["简易计税", "简易征收"]),
-    ("非正常损失", ["被盗", "丢失", "霉烂", "销毁", "没收", "毁损"]),
-    ("贷款服务", ["贷款", "利息", "融资", "投融"]),
-]
 
 
 def _scan_input_tax_reversal(data, spec):
     pur = data.get("pur_invs", []) or []
     if not pur:
         return []
+    # 企业画像文本：用于二审豁免（如餐饮/酒厂购酒可抵扣），无则不参与
+    profile = " ".join(str(data.get("enterprise_profile", "")).split()) \
+        if isinstance(data.get("enterprise_profile"), (str, list)) else ""
     hits = []
     reversal_total = 0.0
     for row in pur:
         if not isinstance(row, dict):
             continue
-        # 仅对 Dedicated 专票（含税额）且未标记已转出者做筛查
+        # 仅对含税额的专票做筛查（普票本身不可抵扣，不在此列）
         tax = _number(row.get("tax") or row.get("税额") or row.get("tax_amount"))
         if tax <= 0:
             continue
@@ -1852,23 +1872,25 @@ def _scan_input_tax_reversal(data, spec):
             or str(row.get("invoice_category", "") or "").find("专用") >= 0
         if not is_special:
             continue
-        text = " ".join(str(v) for v in row.values())
-        for item, kws in _INPUT_REVERSAL_KEYWORDS:
-            if any(kw in text for kw in kws):
-                hits.append({
-                    "invoice_no": row.get("invoice_no") or row.get("发票号码", ""),
-                    "goods": row.get("goods") or row.get("品名", ""),
-                    "seller": row.get("seller") or row.get("销方", ""),
-                    "tax": round(tax, 2),
-                    "suspicion": item,
-                })
-                reversal_total += tax
-                break
+        # 两阶段判定：初审关键词命中 → 二审上下文豁免
+        verdict = classify_input_tax_reversal(row, profile)
+        if verdict["needs_reversal"] and not verdict["exempted"]:
+            hits.append({
+                "invoice_no": row.get("invoice_no") or row.get("发票号码", ""),
+                "goods": row.get("goods") or row.get("品名", ""),
+                "seller": row.get("seller") or row.get("销方", ""),
+                "tax": round(tax, 2),
+                "suspicion": verdict["suspicion"],
+                "keyword": verdict["keyword"],
+                "rationale": verdict["rationale"],
+            })
+            reversal_total += tax
     if hits:
         detail = (
             f"检出{len(hits)}张专票进项税额存在不得抵扣用途嫌疑（合计税额{reversal_total:,.2f}元），"
             "如用于业务招待、集体福利、个人消费、免税/简易计税项目、非正常损失或贷款服务，"
-            "即使取得专票也须做进项税额转出。须逐张核对用途与对应成本费用科目，结合企业画像排除生产经营用途后处理。"
+            "即使取得专票也须做进项税额转出。已结合企业画像与会计科目做上下文豁免排除生产经营用途，"
+            "仍命中的须逐张核对用途与对应成本费用科目处理。"
         )
         return [_finding(
             spec,
@@ -2064,6 +2086,192 @@ def _scan_stamp_tax_other_items(data, spec):
     return []
 
 
+# ── VR036 视同销售未计提销项税额 ──────────────────────────────────
+# 下列情形应视同销售计提销项税额，却未对应申报收入的线索：
+# ①无偿赠送/样品/赠品（摘要含"赠送/样品/赠品/宣传品"且无对应销项收入）
+# ②自产或委托加工货物用于集体福利/个人消费（领用产成品入福利费/在建工程等）
+# ③将自产、委托加工或购进货物无偿送其他单位或个人
+# 依据：增值税法第十条、财税[2016]36号附件1第十四条。
+_GIFT_KEYWORDS = ["赠送", "赠品", "样品", "宣传品", "无偿", "礼盒", "促销赠"]
+_SELF_USE_KEYWORDS = ["福利费", "集体福利", "个人消费", "在建工程", "职工", "工会", "食堂"]
+
+
+def _scan_deemed_sales(data, spec):
+    sal = data.get("sal_invs", []) or []
+    vs = data.get("vouchers", []) or []
+    pur = data.get("pur_invs", []) or []
+    if not vs and not sal:
+        return []
+
+    gifts = []          # 无偿赠送/样品类
+    self_use = []       # 自产自用/集体福利领用类
+
+    # 通道1：凭证摘要中的赠送/样品/福利领用
+    for v in vs:
+        if not isinstance(v, dict):
+            continue
+        summary = str(v.get("summary") or v.get("摘要") or v.get("subject") or "")
+        amount = _number(v.get("amount") or v.get("金额") or v.get("debit"))
+        # 赠送/样品：有支出但无对应收入，且非销售费用-促销（促销已含视同销售处理）
+        if any(kw in summary for kw in _GIFT_KEYWORDS):
+            gifts.append({
+                "summary": summary[:40],
+                "amount": round(amount, 2),
+                "date": v.get("date", ""),
+                "channel": "凭证摘要",
+            })
+        # 自产自用/集体福利：领用产成品或外购货物入福利/在建工程
+        if any(kw in summary for kw in _SELF_USE_KEYWORDS) and amount > 0:
+            # 排除明显的工资/社保等常规福利费（已代扣个税路径）
+            if "样品" not in summary and "赠送" not in summary:
+                self_use.append({
+                    "summary": summary[:40],
+                    "amount": round(amount, 2),
+                    "date": v.get("date", ""),
+                    "channel": "凭证摘要",
+                })
+
+    # 通道2：销项发票中"样品/赠品"零金额或异常低金额（视同销售未计收入）
+    for row in sal:
+        if not isinstance(row, dict):
+            continue
+        goods = str(row.get("goods") or row.get("品名") or "")
+        amt = _number(row.get("amount") or row.get("金额"))
+        if any(kw in goods for kw in _GIFT_KEYWORDS) and amt <= 0:
+            gifts.append({
+                "summary": f"销项发票品名含{goods}",
+                "amount": 0.0,
+                "date": row.get("date", ""),
+                "channel": "销项发票零金额",
+            })
+
+    findings = []
+    if gifts:
+        g_total = sum(x["amount"] for x in gifts)
+        detail = (
+            f"检出{len(gifts)}笔疑似无偿赠送/样品/赠品支出（合计{g_total:,.2f}元），"
+            "将自产、委托加工或购进货物无偿赠送其他单位或个人、交付样品，应视同销售计提销项税额。"
+            "若未对应确认收入，存在少计销项风险。须逐笔核对受赠对象、是否作销售费用-促销（已含视同销售）"
+            "及是否按组成计税价格申报。"
+        )
+        findings.append(_finding(
+            spec, detail,
+            {"gift_count": len(gifts), "gift_total": round(g_total, 2),
+             "examples": gifts[:10]},
+            spec["required_sources"], priority="中",
+        ))
+    if self_use:
+        s_total = sum(x["amount"] for x in self_use)
+        detail = (
+            f"检出{len(self_use)}笔将货物用于集体福利/个人消费/在建工程的领用（合计{s_total:,.2f}元），"
+            "自产或委托加工货物用于集体福利、个人消费，应视同销售计提销项税额。"
+            "须核对领用物资是否为自产/委托加工货物，以及对应销项税额计提情况。"
+        )
+        findings.append(_finding(
+            spec, detail,
+            {"self_use_count": len(self_use), "self_use_total": round(s_total, 2),
+             "examples": self_use[:10]},
+            spec["required_sources"], priority="中",
+        ))
+    return findings
+
+
+# ── VR037 关联交易价格偏离（转让定价探针） ────────────────────────
+# 独立交易原则要求关联方交易价格应等同于非关联方。本规则以可量化信号做探针：
+# 同一品名+同单位，对不同交易对手方的单价离散度异常（相对中位数偏离≥阈值），
+# 是转让定价偏离（低价输送利润/高价虚增成本）的线索。
+# 关联定性（是否真为关联方）需工商股权穿透数据；无该数据时仅提示补充。
+# 依据：企业所得税法第四十一条、特别纳税调整实施办法。
+_PRICE_DEVIATION_RATIO = 0.40
+
+
+def _norm_goods(name):
+    if not name:
+        return "未知"
+    name = str(name)
+    # 简单归一：去掉规格后缀，保留主体品名（棉纱32S→棉纱；针织布全棉→针织布）
+    for kw in ("棉纱", "纱", "针织布", "布", "染料", "加工费", "钢", "建材", "水泥",
+               "设备", "木材", "农产品", "粮", "油", "电", "酒", "茶", "食品"):
+        if kw in name:
+            return kw
+    return name
+
+
+def _scan_related_party_pricing(data, spec):
+    sal = data.get("sal_invs", []) or []
+    pur = data.get("pur_invs", []) or []
+    related = data.get("related_parties", []) or data.get("equity_penetration", []) or []
+
+    # 按 (归一品名, 单位) 分组单价与对手方
+    groups = {}
+    for row in sal + pur:
+        if not isinstance(row, dict):
+            continue
+        goods = _norm_goods(row.get("goods") or row.get("品名"))
+        unit = str(row.get("unit") or row.get("单位") or "").strip()
+        # 单价优先读 price/单价，缺失时由 amount/数量 推算
+        price = _number(row.get("price") or row.get("单价"))
+        if price <= 0:
+            amt = _number(row.get("amount") or row.get("金额"))
+            qty = _number(row.get("qty") or row.get("数量"))
+            if amt > 0 and qty > 0:
+                price = amt / qty
+        if price <= 0 or not unit or goods == "未知":
+            continue
+        key = (goods, unit)
+        groups.setdefault(key, []).append({
+            "price": price,
+            "counterparty": row.get("buyer") or row.get("购方名称") or row.get("seller") or row.get("销方名称") or "",
+            "invoice_no": row.get("invoice_no") or row.get("发票号码", ""),
+            "direction": "销" if row in sal else "进",
+        })
+
+    deviations = []
+    for (goods, unit), recs in groups.items():
+        if len(recs) < 3:     # 至少3笔不同交易才具统计意义
+            continue
+        prices = sorted(r["price"] for r in recs)
+        mid = prices[len(prices) // 2]
+        if mid <= 0:
+            continue
+        for r in recs:
+            dev = abs(r["price"] - mid) / mid
+            if dev >= _PRICE_DEVIATION_RATIO:
+                deviations.append({
+                    "goods": goods, "unit": unit,
+                    "counterparty": r["counterparty"],
+                    "price": round(r["price"], 2),
+                    "median_price": round(mid, 2),
+                    "deviation": round(dev, 3),
+                    "direction": r["direction"],
+                    "invoice_no": r["invoice_no"],
+                })
+
+    findings = []
+    if deviations:
+        detail = (
+            f"同一品名同单位交易中检出{len(deviations)}笔单价相对中位数偏离≥{_PRICE_DEVIATION_RATIO:.0%}的异常，"
+            "偏离独立交易原则(ARM'S LENGTH)，是转让定价（利润输送/成本虚增）的可疑线索。"
+            "须结合工商股权穿透识别是否关联方，并准备同期资料举证定价合理性。"
+        )
+        findings.append(_finding(
+            spec, detail,
+            {"deviation_count": len(deviations), "threshold": _PRICE_DEVIATION_RATIO,
+             "examples": deviations[:10]},
+            spec["required_sources"], priority="调查优先级",
+        ))
+    # 数据完整性提示：若未提供股权穿透，无法做关联定性
+    if not related:
+        findings.append(_finding(
+            spec,
+            "未检测到工商股权穿透/关联方清单数据，转让定价无法完成关联定性（仅做价格离散度探针）。"
+            "建议接入工商股权穿透数据（股东/对外投资/人员任职交叉）以识别隐性关联方，提升转让定价稽查精度。",
+            {"related_party_data": False, "note": "需补充股权穿透数据"},
+            spec["required_sources"], priority="提示",
+        ))
+    return findings
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -2100,6 +2308,8 @@ _SCANNERS = {
     "VR033": _scan_goods_name_divergence,
     "VR034": _scan_expense_fabrication,
     "VR035": _scan_stamp_tax_other_items,
+    "VR036": _scan_deemed_sales,
+    "VR037": _scan_related_party_pricing,
 }
 
 

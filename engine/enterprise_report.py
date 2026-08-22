@@ -143,6 +143,13 @@ def _build_detail_table(f):
             "summary": "摘要",
             # VR035 印花其他税目
             "loan_base": "借款计税依据", "lease_base": "租赁计税依据", "other_base": "其他税目合计",
+            # VR036 视同销售
+            "gift_count": "赠送笔数", "gift_total": "赠送金额合计", "self_use_count": "自用处数",
+            "self_use_total": "自用金额合计", "channel": "线索来源",
+            # VR037 关联交易转让定价
+            "deviation_count": "单价偏离笔数", "threshold": "偏离阈值", "median_price": "中位单价",
+            "deviation": "偏离幅度", "direction": "方向", "counterparty": "交易对手方",
+            "related_party_data": "股权穿透数据", "note": "说明",
         }
         skip = {"examples"}
         # 2.5) 嵌套字典（dict-of-dicts）：如 province_breakdown{省份:{count,amount}}、

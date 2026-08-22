@@ -231,9 +231,11 @@ def run_evolved_audit():
         {"date": "2025-02-25", "counterparty": "范善茂", "credit": 0, "debit": 600000, "balance": 8112000, "summary": "转存"},
     ]
     sal_invs = [
-        {"invoice_no": "XS001", "date": "2025-02-05", "goods": "针织布", "amount": 10000000, "tax": 1300000, "total": 11300000, "buyer": "广州服装有限公司"},
-        {"invoice_no": "XS002", "date": "2025-02-10", "goods": "针织布", "amount": 500000, "tax": 65000, "total": 565000, "buyer": "东莞制衣厂"},
-        {"invoice_no": "XS003", "date": "2025-02-20", "goods": "针织布", "amount": 2000000, "tax": 260000, "total": 2260000, "buyer": "广州服装有限公司"},
+        {"invoice_no": "XS001", "date": "2025-02-05", "goods": "针织布", "unit": "米", "qty": 40000, "amount": 10000000, "tax": 1300000, "total": 11300000, "buyer": "广州服装有限公司"},
+        {"invoice_no": "XS002", "date": "2025-02-10", "goods": "针织布", "unit": "米", "qty": 2000, "amount": 500000, "tax": 65000, "total": 565000, "buyer": "东莞制衣厂"},
+        {"invoice_no": "XS003", "date": "2025-02-20", "goods": "针织布", "unit": "米", "qty": 8000, "amount": 2000000, "tax": 260000, "total": 2260000, "buyer": "广州服装有限公司"},
+        # VR037 触发：同品名针织布/米，关联对手方单价 80（中位数250，偏离68%）
+        {"invoice_no": "XS004", "date": "2025-02-25", "goods": "针织布", "unit": "米", "qty": 2000, "amount": 160000, "tax": 20800, "total": 180800, "buyer": "达冠关联贸易公司"},
     ]
     pur_invs = [
         {"invoice_no": "FP001", "date": "2025-01-05", "goods": "棉纱", "amount": 200000, "tax": 26000, "total": 226000, "seller": "新疆棉业有限公司"},
@@ -252,6 +254,8 @@ def run_evolved_audit():
         {"account_name": "管理费用-咨询费", "summary": "管理咨询服务费", "debit": 800000, "credit": 0, "settle": "转账"},
         # VR035 触发：租赁合同（其他税目印花税）
         {"account_name": "管理费用-租赁费", "summary": "厂房租金", "debit": 1200000, "credit": 0, "settle": "转账"},
+        # VR036 触发：无偿赠送样品（视同销售未计销项）
+        {"account_name": "销售费用-样品", "summary": "赠送样品宣传", "debit": 30000, "credit": 0, "settle": "转账"},
     ]
     # 申报表：模拟达冠实际可能低报的情形——
     # 销项申报仅 250万（隐匿 ~1000万未开票），实缴增值税仅 5万 → 税负率极低
@@ -271,17 +275,17 @@ def run_evolved_audit():
         "target_entity": target_entity,
     }
     result = run_verified_rules(engine_data)
-    print("\n========== 进化规则·达冠严谨稽查（VR026–VR035）==========")
-    new_ids = {f"VR{i:03d}" for i in range(26, 36)}
+    print("\n========== 进化规则·达冠严谨稽查（VR026–VR037）==========")
+    new_ids = {f"VR{i:03d}" for i in range(26, 38)}
     hit = [f for f in result["findings"] if f["rule_id"] in new_ids]
-    print(f"新增规则命中数: {len(hit)} / 10")
+    print(f"新增规则命中数: {len(hit)} / 12")
     for f in hit:
         m = f.get("observed_metrics", {})
         print(f"  [{f['rule_id']}] {f['type']} | 等级:{f.get('level')} | 优先级:{f.get('priority')}")
         print(f"      {f['detail'][:200]}")
     # 断言：达冠在进化后应被识别出的风险点
     hit_ids = {f["rule_id"] for f in hit}
-    expected = {"VR026", "VR028", "VR030", "VR032", "VR034", "VR035"}  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目
+    expected = {"VR026", "VR028", "VR030", "VR032", "VR034", "VR035", "VR036"}  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目/视同销售
     missing = expected - hit_ids
     print(f"  预期命中 {sorted(expected)}，实际缺失 {sorted(missing) if missing else '无'}")
     assert not missing, f"达冠严谨稽查未命中预期风险点: {missing}"
@@ -293,6 +297,14 @@ def run_evolved_audit():
     ctrl_hit = {f["rule_id"] for f in ctrl["findings"]}
     print(f"  [VR033对照] 煤炭→建材背离命中: {'VR033' in ctrl_hit}")
     assert "VR033" in ctrl_hit, "VR033 变名开票规则未命中对照样本"
+    # VR037 独立验证：价格偏离探针应检出 XS004 关联低价，或给出需补股权数据提示
+    v37 = [f for f in result["findings"] if f["rule_id"] == "VR037"]
+    assert v37, "VR037 关联交易价格偏离探针未触发"
+    v37_m = v37[0].get("observed_metrics", {})
+    dev_n = v37_m.get("deviation_count", 0)
+    has_pointer = (dev_n and dev_n > 0) or v37_m.get("related_party_data") is False
+    print(f"  [VR037] 单价偏离笔数={dev_n} | 股权穿透提示={'已给出' if v37_m.get('related_party_data') is False else '无'}")
+    assert has_pointer, "VR037 既未检出价格偏离也未给出需补数据提示"
     return hit_ids
 
 
