@@ -1535,6 +1535,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "经营实质分析", "findings": []})
     if bom_data: domain_results.append({"domain": "BOM投入产出验证", "findings": _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs)})
     else: domain_results.append({"domain": "BOM投入产出验证", "findings": []})
+    if inventory: domain_results.append({"domain": "仓储容量匹配(VR026)", "findings": _domain_warehouse_capacity(inventory, bank_txs, sal_invs, pur_invs, ctx.company_profile.get("industry", ""))})
+    else: domain_results.append({"domain": "仓储容量匹配(VR026)", "findings": []})
+    domain_results.append({"domain": "运输费量化配比(VR027)", "findings": _domain_transport_necessity(bank_txs, sal_invs, pur_invs, ctx.company_profile.get("industry", ""))})
     if clean_invs: domain_results.append({"domain": "发票深度特征", "findings": _domain_invoice_deep(clean_invs)})
     # 域14: 资料完备度（始终运行——空数据本身就是信号）
     doc_cplt_findings = _domain_document_completeness(docs, bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory, trial_balance_data, contract_data, file_results, ctx.company_profile.get("industry", ""))

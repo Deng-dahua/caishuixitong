@@ -524,6 +524,8 @@ function fpFingerprints() {
     {icon:'📑', name:'进项抵扣勾选', sig:'勾选状态 | 有效抵扣税额 | 数电发票号码 | 发票风险等级 (5个关键词 阈值2分)', threshold:'≥2', parser:'_parse_input_vat_sheet'},
     {icon:'📦', name:'进销存台账', sig:'期初库存 | 本期入库 | 本期出库 | 期末库存 | 存货编码 | 产品名称 (16个关键词 阈值2分)', threshold:'≥2', parser:'_parse_inventory_sheet'},
     {icon:'🧩', name:'BOM物料清单', sig:'成品编码 | 原料名称 | 单位用量 | 损耗率 | 物料清单 | 配方 (制造业核心资料，用于投入产出与进销存合理性核验)', threshold:'≥2', parser:'_parse_bom_sheet'},
+    {icon:'🏬', name:'仓库租赁合同', sig:'仓库面积 | 仓库坐落 | 仓储品类 | 租赁期限 | 租金 | 租赁物 (合同面积须≥存货所需面积，用于仓储容量匹配VR026)', threshold:'≥2', parser:'_parse_warehouse_lease'},
+    {icon:'🚚', name:'运输合同', sig:'运输方式 | 运费承担 | 起运地 | 到达地 | 货物重量 | 运价 (证明货物流真实，用于运输费配比VR027)', threshold:'≥2', parser:'_parse_transport_contract'},
     {icon:'📊', name:'科目余额表', sig:'科目编码 | 科目名称 | 期初余额 | 本期发生额 | 期末余额 (8个关键词 阈值2分)', threshold:'≥2', parser:'_parse_trial_balance_sheet'},
     // 第二梯队
     {icon:'📄', name:'合同文件', sig:'合同编号 | 签约方 | 合同金额 | 签订日期 | 履约期限 (9个关键词 阈值2分)', threshold:'≥2', parser:'_parse_contract_sheet'},

@@ -2208,6 +2208,18 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 3,
         "parser": lambda s, h: _parse_bom_sheet(s)
     },
+    "warehouse_lease": {
+        "keywords": ["仓库租赁", "仓储合同", "仓库合同", "仓租合同", "仓库坐落", "仓储面积",
+                     "仓库面积", "库房租赁", "仓库租赁费", "仓储费合同"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "warehouse_lease", "rows": (s if isinstance(s, list) else [])}
+    },
+    "transport_contract": {
+        "keywords": ["运输合同", "物流合同", "货运合同", "承运合同", "运输协议", "运费承担",
+                     "运输方式", "运输费用承担", "物流运输合同"],
+        "score_threshold": 2,
+        "parser": lambda s, h: {"type": "transport_contract", "rows": (s if isinstance(s, list) else [])}
+    },
     # 科目余额表
     "trial_balance": {
         "keywords": ["科目编码", "科目名称", "期初余额", "本期发生额", "本年累计发生额",
@@ -8470,11 +8482,11 @@ def _build_five_flow_document_requests(report_data):
                 provided_types.add(t)
 
     flows = [
-        ("合同流", ["contract", "contract_list"],
-         ["销售合同", "采购合同", "委托加工合同", "订单", "履约验收记录"],
+        ("合同流", ["contract", "contract_list", "warehouse_lease", "transport_contract"],
+         ["销售合同", "采购合同", "委托加工合同", "仓库租赁合同(含面积/位置/品类)", "运输合同(含重量/里程/运价承担方式)", "订单", "履约验收记录"],
          "无合同无法核验交易真实性、权利义务和商业目的"),
-        ("货物流", ["inventory", "logistics", "delivery", "acceptance", "warehouse"],
-         ["物流单据", "入库单", "出库单", "存货台账", "盘点表"],
+        ("货物流", ["inventory", "logistics", "delivery", "acceptance", "warehouse", "transport_contract"],
+         ["物流单据", "入库单", "出库单", "存货台账", "盘点表", "运输合同(含重量/里程/运价)"],
          "无货物流转记录无法核验真实交易与账实相符"),
         ("发票流", ["sales_invoice", "purchase_invoice", "input_vat_deduction"],
          ["销项发票", "进项发票", "进项抵扣认证"],
