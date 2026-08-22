@@ -687,9 +687,17 @@ def seal_scenario_findings(execution):
             continue
         identities.add(identity)
         canonical = copy.deepcopy(item)
-        canonical["required_human_review"] = True
-        canonical["automatic_determination_allowed"] = False
-        canonical["report_release_allowed"] = False
-        canonical["release_status"] = "草稿_待人工复核"
+        if canonical.get("conclusion_grade") == "已核定":
+            # 两级结论：账面勾稽可核定事项——给出最终答案并允许进入报告，
+            # 核定范围限于企业所报资料（推翻须更正资料本身），行政定性权仍在人工
+            canonical["required_human_review"] = False
+            canonical["automatic_determination_allowed"] = True
+            canonical["report_release_allowed"] = True
+            canonical["release_status"] = "已核定_限于所报资料勾稽"
+        else:
+            canonical["required_human_review"] = True
+            canonical["automatic_determination_allowed"] = False
+            canonical["report_release_allowed"] = False
+            canonical["release_status"] = "草稿_待人工复核"
         sealed.append(canonical)
     return sealed

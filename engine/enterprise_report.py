@@ -182,6 +182,8 @@ def _problem_paragraphs(f):
     paragraphs = [
         {"heading": "查明的主要事实",
          "text": "经查，" + detail + "上述数字来自本轮已读取资料的全量筛查，不是抽样估计。"},
+        {"heading": "结论状态",
+         "text": _conclusion_statement(f)},
         {"heading": "检查范围、方法和资料依据",
          "text": "本项使用的资料范围为" + scope + "。稽查人员直接读取企业上传的资料，按照同一口径逐项重新计算，并将计算结果与资料中的记录进行比较。原始文件指纹、读取回执、复算指标、代表性明细和可用的原文件行号已保存在内部稽查底稿中；专业人员可在工作底稿中回查。"},
         {"heading": "这件事对企业意味着什么",
@@ -199,6 +201,25 @@ def _problem_paragraphs(f):
     return paragraphs
 
 
+def _conclusion_statement(f):
+    """两级结论文本：可核定→最终答案；待核→建议与补证要求"""
+    grade = str(f.get("conclusion_grade") or "")
+    if grade == "已核定":
+        answer = str(f.get("final_answer") or "").strip()
+        scope_note = str(f.get("conclusion_scope_note") or "").strip()
+        return (
+            (answer or "本项结论已由本轮所报资料直接计算核定。")
+            + (" " + scope_note if scope_note else "")
+            + " 本项无须补充核实即可作为定案事实引用；行政处理决定仍由稽查人员依程序作出。"
+        )
+    suggestion = str(f.get("suggestion") or "").strip()
+    return (
+        "本项为待核事项：现有资料只能确认疑点信号，尚不足以作出最终认定。"
+        "须补充外部证据（合同、物流单据、盘点表、权属证明等）后方可定性。"
+        + (f"本轮建议：{suggestion}" if suggestion else "请按报告『企业应当怎样处理』一节逐项补证。")
+    )
+
+
 def _build_confirmed_problems(report_data):
     """从 findings 组装『确认的具体问题』（level 非待核验/信息的）"""
     findings = report_data.get("all_findings", []) or []
@@ -212,7 +233,9 @@ def _build_confirmed_problems(report_data):
         ev = f.get("_evidence_ref", {}) or {}
         problems.append({
             "seq": seq,
-            "title": f.get("type") or "具体资料问题",
+            "title": (f.get("type") or "具体资料问题").replace("待核事实：", "").replace("待核事实:", ""),
+            "conclusion_grade": f.get("conclusion_grade") or "待核",
+            "final_answer": str(f.get("final_answer") or ""),
             "narrative_paragraphs": _problem_paragraphs(f),
             "trace_id": ev.get("trace_id", ""),
         })
@@ -302,9 +325,22 @@ def _build_summary(report_data, problems, completed, further):
     if further:
         key_points.append(f"还有{len(further)}项检查尚未完成，优先补齐资料。这些事项表示检查范围受限，不表示已经发生相应违法。")
 
+    verified_cnt = sum(1 for p in problems if p.get("conclusion_grade") == "已核定")
+    pending_cnt = len(problems) - verified_cnt
+    grade_phrase = ""
+    if problems:
+        if verified_cnt and pending_cnt:
+            grade_phrase = (f"其中{verified_cnt}项为账面勾稽已核定事项，已直接给出最终结论；"
+                            f"{pending_cnt}项为待核事项，须补充外部证据后定性，本轮已随附检查建议。")
+        elif verified_cnt:
+            grade_phrase = f"全部{verified_cnt}项为账面勾稽已核定事项，已直接给出最终结论。"
+        else:
+            grade_phrase = f"全部{pending_cnt}项为待核事项，须补充外部证据后定性，本轮已随附检查建议。"
+
     headline = (f"本次税务稽查共接收{files_count}个文件，归并为{len(types)}类资料。稽查人员经逐项读取、复算和交叉核对，"
-                f"确认{len(problems)}项已有资料能够证明的具体问题；{len(completed)}项检查已执行且本轮未发现达到条件的异常；"
-                f"另有{len(further)}项因资料不足或影响范围尚未查清，本轮不作问题认定，补充资料后再检查。")
+                f"确认{len(problems)}项已有资料能够证明的具体问题。{grade_phrase}"
+                f"另有{len(completed)}项检查已执行且本轮未发现达到条件的异常；"
+                f"{len(further)}项因资料不足或影响范围尚未查清，本轮不作问题认定，补充资料后再检查。")
 
     owner_message = (f"请企业负责人先组织处理本报告列明的具体问题，并按要求补齐资料。"
                      f"完成真实更正和资料补充后，应发起新一轮全量复查，由稽查人员继续核对原问题是否处理完成，以及补充资料是否带出新的关联问题。")
@@ -316,6 +352,8 @@ def _build_summary(report_data, problems, completed, further):
         "received_material_count": files_count,
         "material_category_count": len(types),
         "confirmed_problem_count": len(problems),
+        "verified_problem_count": verified_cnt,
+        "pending_problem_count": pending_cnt,
         "completed_check_count": len(completed),
         "further_check_count": len(further),
     }

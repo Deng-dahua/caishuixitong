@@ -3582,7 +3582,18 @@ def _run_analyze(company_id, db, progress_callback=None):
             str(_f.get("scene_fact_id") or _f.get("fact_id") or "").strip()
             for _f in _scenario_execution.get("findings", []) if isinstance(_f, dict)
         }
+        # ═══ 两级结论分级：能核定的给最终答案，不能核定的保留建议 ═══
+        # 可核定 = 基于企业所报资料的确定性计算（勾稽/比对/条款审查），结论成立无需补充核实，
+        # 推翻须更正资料本身；待核 = 需要企业提供外部证据（合同、物流单据、盘点表等）才能定性。
+        _verifiable_type_marks = (
+            "进销存数量勾稽不平衡", "BOM投入产出偏离", "有销无进风险", "有进无销风险",
+            "合同面积不足", "合同面积与库存匹配", "仓储容量不匹配", "仓储容量偏紧",
+            "仓储容量匹配-经营真实", "仓库租赁合同缺面积条款",
+            "零运输费", "无运输费记录", "到货价含运", "合同约定运费与账面零运费矛盾",
+            "运输费占比", "运输费与货值匹配",
+        )
         _objective_injected = 0
+        _verified_injected = 0
         for _dr in domain_results:
             _dn = _dr.get("domain", "")
             _dk = next((_k for _k in _objective_domain_keys if _k in _dn), "")
@@ -3606,6 +3617,19 @@ def _run_analyze(company_id, db, progress_callback=None):
                 _f.setdefault("scenario_scope", "common_fact_gate")
                 _f.setdefault("category", "客观域待核事实")
                 _f.setdefault("domain", _dn)
+                # 两级结论：可核定 → final_answer；待核 → 保留 suggestion 作为建议
+                _ft = str(_f.get("type", ""))
+                if any(_m in _ft for _m in _verifiable_type_marks):
+                    _f["conclusion_grade"] = "已核定"
+                    _f["conclusion_scope_note"] = "核定范围限于企业本轮所报资料的账面勾稽；推翻本结论须更正所报台账/发票/合同本身，不因补充解释而改变。"
+                    _fd = str(_f.get("detail") or _f.get("description") or "").strip()
+                    _f["final_answer"] = (
+                        f"核定结论：{_fd} 该结论由企业所报资料直接计算得出，成立无须补充核实。"
+                    )
+                    _verified_injected += 1
+                else:
+                    _f["conclusion_grade"] = "待核"
+                    _f["final_answer"] = ""
                 _scenario_execution.setdefault("findings", []).append(_f)
                 _objective_injected += 1
         if _objective_injected:
@@ -3616,7 +3640,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 _scenario_execution["domain_summary"] = _recompute_domain_summary(_scenario_execution["findings"])
             except Exception:
                 pass
-            pipeline_log.append(f"[客观域发现] 已并入正式输出：{_objective_injected}项BOM/仓储/运输/存货勾稽发现")
+            pipeline_log.append(
+                f"[客观域发现] 已并入正式输出：{_objective_injected}项BOM/仓储/运输/存货勾稽发现"
+                f"（其中{_verified_injected}项为账面勾稽可核定，已给出最终答案；其余待核并保留建议）"
+            )
         domain_summary = _scenario_execution.get("domain_summary", [])
         comprehensive["scenario_execution"] = _scenario_execution
         comprehensive["scenario_methodology"] = scenario_methodology
@@ -4765,13 +4792,24 @@ def _run_analyze(company_id, db, progress_callback=None):
     result["report"]["high_risk"] = _lvl_high
     result["report"]["mid_risk"] = _lvl_mid
     result["report"]["low_risk"] = _lvl_low
-    result["report"]["overall_level"] = "待人工复核" if all_findings else "未形成待核事实"
+    # ═══ 两级结论统计：可核定（已给出最终答案）/ 待核（保留建议）═══
+    _verified_cnt = sum(1 for _sf in all_findings if isinstance(_sf, dict) and _sf.get("conclusion_grade") == "已核定")
+    _pending_cnt = len(all_findings) - _verified_cnt
+    result["report"]["verified_count"] = _verified_cnt
+    result["report"]["pending_count"] = _pending_cnt
+    result["report"]["overall_level"] = (
+        f"已核定{_verified_cnt}项/待核{_pending_cnt}项" if all_findings else "未形成待核事实"
+    )
     result["report"]["summary_text"] = (
         f"场景驱动分析完成：{_scenario_execution.get('industry_scenes_assessed', 0)}个行业场景已评估，"
-        f"{_scenario_execution.get('trusted_observation_count', 0)}项客观观察形成{len(all_findings)}项待核事实。"
-        "所有事项均未自动定性，须完成调查、正反证据、政策时效、金额底稿和人工审签。"
+        f"{_scenario_execution.get('trusted_observation_count', 0)}项客观观察形成{len(all_findings)}项结论。"
+        f"其中{_verified_cnt}项为账面勾稽可核定事项，已基于所报资料给出最终答案（推翻须更正资料本身）；"
+        f"{_pending_cnt}项待核事项须补充外部证据后方可定性，报告已附检查建议。"
+        "行政定性权保留于人工，系统不替代有权机关作出处罚决定。"
     )
-    pipeline_log.append(f"[正式输出封印] 保留{len(all_findings)}项场景治理待核事实，其他派生输出均未进入报告")
+    pipeline_log.append(
+        f"[正式输出封印] 保留{len(all_findings)}项结论（已核定{_verified_cnt}项+待核{_pending_cnt}项），其他派生输出均未进入报告"
+    )
 
     # ═══ 报告块架构：将分析结果转化为结构化 blocks 数组 ═══
     # 每个 block 是独立的、自描述的。前端通用渲染器遍历 blocks 按 type 渲染。

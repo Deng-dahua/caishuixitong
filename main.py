@@ -8417,15 +8417,21 @@ def _enforce_scenario_execution_boundary(report_data):
     report_data["all_findings"] = findings
     report_data["domain_summary"] = execution.get("domain_summary", [])
     report_data["total_risks"] = len(findings)
+    # 两级结论统计：可核定（已给出最终答案）/ 待核（保留建议）
+    _vf_cnt = sum(1 for f in findings if isinstance(f, dict) and f.get("conclusion_grade") == "已核定")
+    report_data["verified_count"] = _vf_cnt
+    report_data["pending_count"] = len(findings) - _vf_cnt
     report_data["high_risk"] = 0
     report_data["mid_risk"] = 0
     report_data["low_risk"] = 0
-    report_data["overall_level"] = "待人工复核" if findings else "未形成待核事实"
+    report_data["overall_level"] = (
+        f"已核定{_vf_cnt}项/待核{len(findings) - _vf_cnt}项" if findings else "未形成待核事实"
+    )
     report_data["release_status"] = "草稿_待人工复核"
     report_data["automatic_determination_allowed"] = False
     _append_one_click_log(
         report_data,
-        f"[统一主流程] 场景执行门禁通过：{len(findings)}项规范待核事实进入后续阶段",
+        f"[统一主流程] 场景执行门禁通过：{len(findings)}项结论进入后续阶段（已核定{_vf_cnt}项/待核{len(findings)-_vf_cnt}项）",
     )
     return {
         "status": "completed",
@@ -8537,6 +8543,13 @@ def _apply_methodology_stage(report_data):
     report_data["mid_risk"] = _lvl_mid
     report_data["low_risk"] = _lvl_low
     report_data["total_risks"] = len(findings)
+    # 两级结论统计（等级定稿后终值）：可核定已给最终答案 / 待核保留建议
+    _vf_final = sum(1 for f in findings if isinstance(f, dict) and f.get("conclusion_grade") == "已核定")
+    report_data["verified_count"] = _vf_final
+    report_data["pending_count"] = len(findings) - _vf_final
+    report_data["overall_level"] = (
+        f"已核定{_vf_final}项/待核{len(findings) - _vf_final}项" if findings else "未形成待核事实"
+    )
     summary = {
         "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
         "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
