@@ -37,6 +37,7 @@ async function renderJournal(container) {
     html += '<div class="toolbar-left" style="display:flex;align-items:center;gap:8px">';
     html += '<div id="je-period-bar" style="display:flex;align-items:center;gap:4px"></div>';
     html += '<button class="btn-toolbar-danger" id="jeBatchDelBtn" onclick="batchDeleteJe()">批量删除</button>';
+    html += '<button class="btn-toolbar" id="smart-review-btn" onclick="runJournalSmartReview()" style="margin-left:8px">🔍 智能复核</button>';
     html += '</div>';
     html += '</div>';
 
@@ -727,18 +728,4 @@ async function runJournalSmartReview() {
   btn.disabled = false; btn.textContent = '🔍 智能复核';
 }
 
-// 添加复核按钮到工具栏
-document.addEventListener('DOMContentLoaded', function(){
-  setTimeout(function(){
-    var toolbar = document.querySelector('.toolbar, [class*="toolbar"]');
-    if (toolbar && !document.getElementById('smart-review-btn')) {
-      var btn = document.createElement('button');
-      btn.id = 'smart-review-btn';
-      btn.className = 'btn btn-sm';
-      btn.style.cssText = 'margin-left:8px;padding:4px 12px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px';
-      btn.textContent = '🔍 智能复核';
-      btn.onclick = runJournalSmartReview;
-      toolbar.appendChild(btn);
-    }
-  }, 500);
-});
+// 智能复核按钮已改为在 renderJournal 的工具栏内直接渲染，不再全局注入

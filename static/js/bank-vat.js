@@ -75,6 +75,7 @@ async function renderBankTransactions(container) {
   html += '<button class="btn-toolbar" onclick="showUploadModal(\'bank-transaction\')">导入文件</button>';
   html += '<button class="btn-toolbar" id="btBatchGenBtn" onclick="batchGenerateBankVouchers()">生成凭证</button>';
   html += '<button class="btn-toolbar-danger" id="btBatchDelBtn" onclick="batchDeleteBankTx()">批量删除</button>';
+  html += '<button class="btn-toolbar" id="classify-btn" onclick="runBankAutoClassify()" style="margin-left:8px">🤖 自动分类</button>';
   html += '</div></div>';
 
   // 表格
@@ -1108,28 +1109,19 @@ function renderMatchResult(result) {
 }
 
 
-// 自动添加分类按钮
-setTimeout(function(){
-  var toolbar = document.querySelector('.toolbar, [class*="toolbar"]');
-  if (toolbar && !document.getElementById('classify-btn')) {
-    var btn = document.createElement('button');
-    btn.id = 'classify-btn';
-    btn.textContent = '🤖 自动分类';
-    btn.style.cssText = 'margin-left:8px;padding:4px 12px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px';
-    btn.onclick = async function(){
-      btn.disabled = true; btn.textContent = '分类中...';
-      try {
-        var resp = await fetch('/api/bank-transactions?company_id='+(currentCompanyId||1)+'&limit=500');
-        var data = await resp.json();
-        var txs = data.items || data || [];
-        var cats = batchClassifyBank(txs);
-        var h = Object.keys(cats).map(function(k){
-          return k+': '+cats[k].count+'笔/'+(cats[k].amount/10000).toFixed(1)+'万';
-        }).join('\n');
-        alert('银行流水自动分类:\n'+h);
-      } catch(e) { alert('分类失败: '+e.message); }
-      btn.disabled = false; btn.textContent = '🤖 自动分类';
-    };
-    toolbar.appendChild(btn);
-  }
-}, 800);
+// 自动分类按钮已改为在银行流水工具栏内直接渲染，不再全局注入
+async function runBankAutoClassify() {
+  var btn = document.getElementById('classify-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '分类中...'; }
+  try {
+    var resp = await fetch('/api/bank-transactions?company_id='+(currentCompanyId||1)+'&limit=500');
+    var data = await resp.json();
+    var txs = data.items || data || [];
+    var cats = batchClassifyBank(txs);
+    var h = Object.keys(cats).map(function(k){
+      return k+': '+cats[k].count+'笔/'+(cats[k].amount/10000).toFixed(1)+'万';
+    }).join('\n');
+    alert('银行流水自动分类:\n'+h);
+  } catch(e) { alert('分类失败: '+e.message); }
+  if (btn) { btn.disabled = false; btn.textContent = '🤖 自动分类'; }
+}
