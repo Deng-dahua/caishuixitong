@@ -8413,6 +8413,14 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         execution["stages"]["report_compilation"] = report_stage
         execution["status"] = "completed"
         report_data["_one_click_pipeline"] = execution
+
+        # ═══ 生成企业易读版九章稽查报告数据（供前端渲染涉税稽查工作报告）═══
+        try:
+            from engine.enterprise_report import build_enterprise_readable_report
+            report_data["enterprise_readable_report"] = build_enterprise_readable_report(report_data)
+        except Exception as _ere_exc:
+            _append_one_click_log(report_data, f"[企业版报告] 生成失败: {_ere_exc}")
+
         result["report"] = report_data
 
         _persist_one_click_result(company_id, result)
