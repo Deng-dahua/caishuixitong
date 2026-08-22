@@ -3128,6 +3128,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         import re as _re_proc3
         has_processing_fee = False
         _outsourcing_finding = None
+        _supply_chain_findings = []
         for i in pur_invs:
             g = _get_goods(i)
             if '加工费' in g:
@@ -3369,6 +3370,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             supply_chain_risk = _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs)
             sc_findings = supply_chain_risk.get("findings", [])
             if sc_findings:
+                _supply_chain_findings = sc_findings
                 all_findings.extend(sc_findings)
                 sc_results = len(supply_chain_risk.get("lookup_results", []))
                 pipeline_log.append(f"供应链联网核查: {sc_results}家供应商/客户已查询, {len(sc_findings)}项风险发现")
@@ -3540,6 +3542,11 @@ def _run_analyze(company_id, db, progress_callback=None):
             _scenario_execution.setdefault("findings", []).append(_outsourcing_finding)
             all_findings = _scenario_execution["findings"]
             pipeline_log.append("[委外加工] 已并入正式输出：跨省加工供应商地域分散核验")
+        # 供应链联网核查的六员重叠/关联交易发现也带 _scenario_governed 标记，并入正式输出
+        if _supply_chain_findings:
+            _scenario_execution.setdefault("findings", []).extend(_supply_chain_findings)
+            all_findings = _scenario_execution["findings"]
+            pipeline_log.append(f"[供应链联网核查] 已并入正式输出：{len(_supply_chain_findings)}项六员重叠/关联交易发现")
         domain_summary = _scenario_execution.get("domain_summary", [])
         comprehensive["scenario_execution"] = _scenario_execution
         comprehensive["scenario_methodology"] = scenario_methodology
@@ -6514,6 +6521,8 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
         "established_date": "",
         "business_scope": "",
         "address": "",
+        "registered_address": "",
+        "insured_count": "",
         "industry": "",
         "company_type": "",
         "uscc": uscc or "",
@@ -6616,6 +6625,8 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
         result["established_date"] = online_info.get("established_date", "")
         result["business_scope"] = online_info.get("business_scope", "")
         result["address"] = online_info.get("address", "")
+        result["registered_address"] = online_info.get("address", "") or online_info.get("registered_address", "")
+        result["insured_count"] = online_info.get("insured_count", "") or online_info.get("social_security_count", "") or online_info.get("employee_count", "")
         result["uscc"] = online_info.get("uscc", "") or (uscc or "")
         result["status"] = online_info.get("status", "")
         result["company_type"] = online_info.get("company_type", "")
@@ -6937,6 +6948,10 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
                     "legal_rep": lk.get("legal_representative", ""),
                     "status": lk.get("status", ""),
                     "address": lk.get("address", ""),
+                    "registered_address": lk.get("registered_address", "") or lk.get("address", ""),
+                    "established_date": lk.get("established_date", ""),
+                    "insured_count": lk.get("insured_count", ""),
+                    "registered_capital": lk.get("registered_capital", ""),
                     "_raw_html": lk.get("_raw_html", ""),
                 })
                 lookup_count += 1
@@ -6988,7 +7003,11 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
             is_both = (relation == "供应商+客户")
             
             findings_entry = {
-                "type": "供应商/客户六员重叠风险",
+                "fact_id": "COMMON-SUPPLY-PERSONNEL-OVERLAP",
+                "scene_fact_id": "COMMON-SUPPLY-PERSONNEL-OVERLAP",
+                "scenario_scope": "common_fact_gate",
+                "_scenario_governed": True,
+                "type": "待核事实：供应商客户六员重叠与关联交易核验",
                 "level": "高风险" if is_both else "中风险",
                 "score": 9 if is_both else 7,
                 "detail": f"{relation}{sname}与本企业存在人员重叠：{'、'.join(overlap_details)}。疑似关联方交易。",

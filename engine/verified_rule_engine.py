@@ -243,6 +243,39 @@ VERIFIED_RULE_CATALOG = [
         "status": "verified_executable_screening",
         "limitation": "名称近似可能来自集团关联企业、同一字号的分设购销公司或巧合；须结合股权、注册地址、人员重叠核验是否构成关联交易或闭环开票。",
     },
+    {
+        "id": "VR022",
+        "name": "用工人数与收入规模核验",
+        "layer": "生产经营实质规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税", "个人所得税"],
+        "lifecycle": ["用工、薪酬与扣缴", "销售与收入确认"],
+        "required_sources": ["sal_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "人均产值受行业、外包、临时用工和季节性影响；异常偏高可能虚开或空壳，异常偏低可能隐匿收入或挂靠，须结合工资和社保明细逐人核验。",
+    },
+    {
+        "id": "VR023",
+        "name": "进销物耗投入产出比核验",
+        "layer": "生产经营实质规则",
+        "industries": ["A", "B", "C", "D", "F", "G", "H", "Q"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与取得", "生产、加工与服务交付", "销售与收入确认"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "加价倍数受产品结构、增值环节和存货周期影响；异常偏高可能虚开或空壳，购销倒挂可能隐匿收入或虚抵进项，须结合BOM、存货和产能核验。",
+    },
+    {
+        "id": "VR024",
+        "name": "个人或个体工商户供应商客户交易核验",
+        "layer": "交易关系交叉规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税", "个人所得税"],
+        "lifecycle": ["采购与取得", "销售与收入确认"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "个人或个体户供应商在农产品收购、劳务、建材等行业可能正常；须核验交易真实性、是否代开发票及是否履行个税扣缴义务。",
+    },
 ]
 
 
@@ -1046,6 +1079,134 @@ def _scan_name_similarity(data, spec):
     )]
 
 
+def _unique_person_count(rows):
+    names = set()
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("name") or row.get("姓名") or row.get("员工") or "").strip()
+        if name:
+            names.add(name)
+    return len(names)
+
+
+def _scan_workforce_revenue(data, spec):
+    sal_invs = data.get("sal_invs", []) or []
+    if not sal_invs:
+        return []
+    revenue = sum(_number(row.get("amount")) for row in sal_invs)
+    if revenue <= 0:
+        return []
+    salary_count = _unique_person_count(data.get("salaries", []))
+    social_count = _unique_person_count(data.get("social_security", []))
+    headcount = max(salary_count, social_count)
+    if headcount <= 0:
+        return []  # 无工资/社保数据，无法核验用工规模
+    per_capita = revenue / headcount
+    if per_capita > 5000000 or per_capita < 50000:
+        direction = "异常偏高" if per_capita > 5000000 else "异常偏低"
+        return [_finding(
+            spec,
+            f"销项收入合计{revenue:,.2f}元，估算用工人数{headcount}人（工资表{salary_count}人/社保{social_count}人），人均产值{per_capita:,.0f}元，{direction}，须核验用工真实性、业务外包情况和收入完整性。",
+            {
+                "revenue": round(revenue, 2),
+                "headcount": headcount,
+                "salary_headcount": salary_count,
+                "social_headcount": social_count,
+                "per_capita_output": round(per_capita, 2),
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        )]
+    return []
+
+
+_RAW_MATERIAL_KEYWORDS = ["纱", "布", "棉", "氨纶", "纤维", "坯布", "面料", "针织", "梭织", "染整",
+                          "原料", "钢材", "钢板", "铝", "铜", "铁", "塑料", "化工", "粮食", "木材",
+                          "石材", "水泥", "矿产", "原油", "煤炭", "纸浆", "浆粕", "颗粒"]
+
+
+def _scan_material_output_ratio(data, spec):
+    sal_invs = data.get("sal_invs", []) or []
+    pur_invs = data.get("pur_invs", []) or []
+    if not sal_invs or not pur_invs:
+        return []
+    raw_amount = sum(
+        _number(row.get("amount"))
+        for row in pur_invs
+        if any(key in str(row.get("goods") or row.get("货物或应税劳务名称") or "") for key in _RAW_MATERIAL_KEYWORDS)
+    )
+    output_amount = sum(_number(row.get("amount")) for row in sal_invs)
+    if raw_amount <= 0 or output_amount <= 0:
+        return []
+    ratio = output_amount / raw_amount
+    if ratio > 5.0 or ratio < 0.8:
+        direction = "加价倍数异常高" if ratio > 5.0 else "购销倒挂"
+        return [_finding(
+            spec,
+            f"进项原材料及生产物资{raw_amount:,.2f}元，销项成品{output_amount:,.2f}元，加价倍数{ratio:.2f}倍，{direction}，须核验是否存在虚开、空壳、隐匿收入或虚抵进项，并结合BOM、存货和产能逐项复核。",
+            {
+                "raw_material_amount": round(raw_amount, 2),
+                "output_amount": round(output_amount, 2),
+                "markup_ratio": round(ratio, 4),
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        )]
+    return []
+
+
+def _is_individual_entity(name):
+    """判断供应商/客户是否为个人或个体工商户（非公司制主体）。"""
+    name = str(name or "").strip()
+    if not name:
+        return False
+    if any(key in name for key in ("公司", "有限", "股份", "集团")):
+        return False
+    if any(key in name for key in ("个体", "经营部", "商行", "经销部", "个人", "厂", "店", "部", "中心", "工作室")):
+        return True
+    return len(name) <= 4  # 短名称大概率是人名
+
+
+def _scan_individual_counterparty(data, spec):
+    sal = data.get("sal_invs", []) or []
+    pur = data.get("pur_invs", []) or []
+    suppliers = defaultdict(lambda: {"amount": 0.0, "count": 0})
+    customers = defaultdict(lambda: {"amount": 0.0, "count": 0})
+    for row in pur:
+        name = str(row.get("seller") or row.get("销方名称") or "").strip()
+        if name and _is_individual_entity(name):
+            suppliers[name]["amount"] += _number(row.get("amount"))
+            suppliers[name]["count"] += 1
+    for row in sal:
+        name = str(row.get("buyer") or row.get("购方名称") or "").strip()
+        if name and _is_individual_entity(name):
+            customers[name]["amount"] += _number(row.get("amount"))
+            customers[name]["count"] += 1
+    if not suppliers and not customers:
+        return []
+    sup_total = sum(agg["amount"] for agg in suppliers.values())
+    cus_total = sum(agg["amount"] for agg in customers.values())
+    detail_parts = []
+    if suppliers:
+        detail_parts.append(f"个人/个体户供应商{len(suppliers)}家，合计{sup_total:,.0f}元")
+    if customers:
+        detail_parts.append(f"个人/个体户客户{len(customers)}家，合计{cus_total:,.0f}元")
+    return [_finding(
+        spec,
+        "；".join(detail_parts) + "。个人或个体工商户交易须核验业务真实性、是否代开发票、是否履行个人所得税扣缴义务，以及是否存在借用个人主体走账或虚开。",
+        {
+            "individual_supplier_count": len(suppliers),
+            "individual_customer_count": len(customers),
+            "supplier_amount": round(sup_total, 2),
+            "customer_amount": round(cus_total, 2),
+            "examples": sorted(set(list(suppliers.keys()) + list(customers.keys())))[:12],
+        },
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -1068,6 +1229,9 @@ _SCANNERS = {
     "VR019": _scan_vat_declaration_input_gap,
     "VR020": _scan_personnel_fund_flow,
     "VR021": _scan_name_similarity,
+    "VR022": _scan_workforce_revenue,
+    "VR023": _scan_material_output_ratio,
+    "VR024": _scan_individual_counterparty,
 }
 
 
