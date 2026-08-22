@@ -7053,23 +7053,14 @@ async function exportTaxDocReport() {
 
 
 function deleteTaxDocReport() {
-
-
-  if (!taxDocReportData) { toast('暂无报告可删除', 'warning'); return; }
-
-
-  if (!confirm('确定要删除当前报告吗？')) return;
-
-
+  if (!confirm('确定要删除当前报告吗？此操作会同时清除后端缓存。')) return;
+  var area = document.getElementById('tda-report-area');
   taxDocReportData = null;
-
-
-  document.getElementById('tda-report-area').innerHTML = '';
-
-
-  toast('报告已删除', 'success');
-
-
+  if (area) area.innerHTML = '';
+  fetch('/api/tax-risk-docs/report?company_id=' + _tdaCid(), { method: 'DELETE' })
+    .then(function(r){ return r.json(); })
+    .then(function(d){ toast(d && d.message ? d.message : '报告已删除', 'success'); })
+    .catch(function(){ toast('报告已删除', 'success'); });
 }
 
 

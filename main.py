@@ -1969,6 +1969,27 @@ def clear_transfer_cache(company_id: int = Query(...)):
     except Exception as e:
         return {"ok": False, "message": f"清除失败: {str(e)}"}
 
+@app.delete("/api/tax-risk-docs/report")
+def delete_tax_risk_report(company_id: int = Query(...)):
+    """删除指定账套的分析报告（清内存缓存 + 磁盘缓存）"""
+    removed = company_id in _last_analysis_cache
+    _last_analysis_cache.pop(company_id, None)
+    # 同步磁盘缓存，避免刷新后报告又被恢复
+    try:
+        disk = read_json(LAST_ANALYSIS_CACHE, {})
+        key = str(company_id)
+        if isinstance(disk, dict) and key in disk:
+            del disk[key]
+            atomic_write_json(LAST_ANALYSIS_CACHE, disk)
+    except Exception:
+        pass
+    return {
+        "ok": True,
+        "removed": removed,
+        "message": "报告已删除" if removed else "该账套暂无分析报告",
+    }
+
+
 @app.delete("/api/tax-risk-docs/{doc_id}")
 def delete_tax_risk_doc(doc_id: int, company_id: int = Query(...)):
     """删除单条涉税资料"""
