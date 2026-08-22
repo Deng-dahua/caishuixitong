@@ -52,7 +52,8 @@ async function renderDashboard(container) {
         {page:'tax-risk-report', label:'📊 账务风险', cls:'btn-outline'},
       ]},
       {group:'核心能力', items:[
-        {page:'engine-hub', label:'🧠 智能引擎中枢', cls:'btn-primary'},
+        {page:'compliance-workbench', label:'🧭 持续合规工作台', cls:'btn-primary'},
+        {page:'engine-hub', label:'🧠 智能引擎中枢', cls:'btn-outline'},
         {page:'methodology', label:'📖 稽查方法论', cls:'btn-outline'},
         {page:'report-standards', label:'📖 报告编制要求', cls:'btn-outline'},
         {page:'taxpayer-rights', label:'🎁 税收权益保障', cls:'btn-outline'},

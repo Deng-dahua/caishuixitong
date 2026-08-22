@@ -49,7 +49,7 @@ function getSystemConfig(callback) {
   if (_systemConfig) { callback(_systemConfig); return; }
   _systemConfigCallbacks.push(callback);
   if (_systemConfigCallbacks.length === 1) {
-    fetch('/static/system_config.json?_t=' + Date.now()).then(function(r){return r.json();}).then(function(cfg){
+    fetch('/api/knowledge/assets/system_config.json?_t=' + Date.now()).then(function(r){return r.json();}).then(function(cfg){
       _systemConfig = cfg;
       var cbs = _systemConfigCallbacks; _systemConfigCallbacks = [];
       cbs.forEach(function(cb){cb(cfg);});
@@ -74,12 +74,86 @@ function getUserPath() {
     return (u && u.pinyin) ? '/' + u.pinyin : '';
   } catch(e) { return ''; }
 }
+function normalizeDisplayValue(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map(normalizeDisplayValue).filter(Boolean).join('、');
+  if (typeof value === 'object') {
+    try {
+      var seen = typeof WeakSet === 'function' ? new WeakSet() : null;
+      var json = JSON.stringify(value, function(key, item) {
+        if (item && typeof item === 'object' && seen) {
+          if (seen.has(item)) return '[循环引用]';
+          seen.add(item);
+        }
+        return item;
+      });
+      if (!json || json === '{}') return '结构化数据（无可展示字段）';
+      return json.length > 2000 ? json.slice(0, 2000) + '…' : json;
+    } catch (error) {
+      return '结构化数据（请展开详情查看）';
+    }
+  }
+  return String(value);
+}
+
 function escapeHtml(s) {
-    if (!s) return '';
-    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    var text = normalizeDisplayValue(s);
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 var esc = escapeHtml;      // 全局统一转义函数（简写）
 var escHtml = escapeHtml;  // 全局统一转义函数（全名，供 tax-pipeline-pages / tax-risk-rules 等模块使用）
+
+var _visibleTextObserver = null;
+function _cleanVisibleTextValue(value) {
+  var text = String(value == null ? '' : value).replace(/\[object Object\]/g, '结构化数据（请展开详情查看）');
+  text = text.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+  var trimmed = text.trim();
+  var looksLikeCss = trimmed.length > 80
+    && /(?:^|\s)(?:[.#][a-z_-][\w-]*|:root|@media|@keyframes)\s*[^\n{]*\{[^}]*:[^}]*\}/i.test(trimmed)
+    && (trimmed.match(/[{}]/g) || []).length >= 4;
+  return looksLikeCss ? '' : text;
+}
+
+function sanitizeVisibleTextLayer(root) {
+  if (!root || !document.createTreeWalker) return {object_tokens:0, css_nodes:0};
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  var nodes = [], objectTokens = 0, cssNodes = 0;
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(function(node) {
+    var parent = node.parentElement;
+    if (!parent || parent.closest('style,script,pre,code,textarea,[data-allow-raw-text="true"]')) return;
+    var before = node.nodeValue || '';
+    var objectCount = (before.match(/\[object Object\]/g) || []).length;
+    var after = _cleanVisibleTextValue(before);
+    if (objectCount) objectTokens += objectCount;
+    if (before.trim() && !after.trim()) cssNodes += 1;
+    if (after !== before) node.nodeValue = after;
+  });
+  return {object_tokens:objectTokens, css_nodes:cssNodes};
+}
+
+function _ensureVisibleTextSanitizer(root) {
+  var target = document.getElementById('content-area') || root;
+  if (!target) return;
+  sanitizeVisibleTextLayer(target);
+  if (_visibleTextObserver || typeof MutationObserver !== 'function') return;
+  _visibleTextObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'characterData') {
+        sanitizeVisibleTextLayer(mutation.target.parentElement);
+        return;
+      }
+      Array.prototype.forEach.call(mutation.addedNodes || [], function(node) {
+        if (node.nodeType === 3) sanitizeVisibleTextLayer(node.parentElement);
+        else if (node.nodeType === 1) sanitizeVisibleTextLayer(node);
+      });
+    });
+  });
+  _visibleTextObserver.observe(target, {subtree:true, childList:true, characterData:true});
+}
 
 const pages = {
   'chat': '财税问答',
@@ -138,6 +212,7 @@ const pages = {
   'evidence-page': '证据链',
   // 以下6个缺标题的页面（2026-07-23 补齐）
   'company-overview': '企业概览',
+  'compliance-workbench': '企业持续合规工作台',
   '未记账发票': '未记账发票',
   '文化事业建设费': '文化事业建设费',
   'correction-rules': '纠正规则中心',
@@ -719,11 +794,13 @@ function navigateTo(page) {
   document.querySelectorAll('#content-area > [id^="page-"]').forEach(el => el.style.display = 'none');
   const container = _ensureContainer(page);
   container.style.display = '';
+  _ensureVisibleTextSanitizer(container);
 
   // ═══ 安全派发：所有页面渲染走 _sR/_sRX，函数未就绪时降级不抛异常 ═══
   switch (page) {
     case 'dashboard':            _sR(container, 'renderDashboard'); break;
     case 'company-overview':    _sR(container, 'renderCompanyOverview'); break;
+    case 'compliance-workbench': _sR(container, 'renderComplianceWorkbench'); break;
     case 'journal':                _sR(container, 'renderJournal'); break;
     case 'general-ledger':         _sR(container, 'renderGeneralLedger'); break;
     case 'detail-ledger':          _sR(container, 'renderDetailLedger'); break;
@@ -1245,7 +1322,7 @@ function _renderAgiFallback(container, errMsg) {
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">' +
       '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:16px;text-align:center;">' +
         '<div style="font-size:28px;margin-bottom:6px;">⚖️</div><div style="font-size:14px;font-weight:700;color:#991b1b;">法律逻辑推理</div>' +
-        '<div style="font-size:11px;color:#7f1d1d;margin-top:4px;">11720条条文·三段论推理</div></div>' +
+        '<div style="font-size:11px;color:#7f1d1d;margin-top:4px;">具体条款待从官方有效文本核验条文·三段论推理</div></div>' +
       '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px;text-align:center;">' +
         '<div style="font-size:28px;margin-bottom:6px;">🔗</div><div style="font-size:14px;font-weight:700;color:#1e40af;">跨企业关系网</div>' +
         '<div style="font-size:11px;color:#1e3a5f;margin-top:4px;">全系统企业关联检测</div></div>' +
@@ -1581,4 +1658,3 @@ function _bindPickPageButtons() {
   // 退出登录链接（兜底，HTML已有inline onclick，此处不重复绑定）
   // 创建新账套按钮已在HTML中使用 inline onclick，无需此处绑定
 }
-

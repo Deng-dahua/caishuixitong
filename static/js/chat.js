@@ -5,6 +5,25 @@ let chatMessages = [];
 let chatLoading = false;
 let _chatUnread = 0;
 
+window.openRiskQuestion = function(context) {
+  var payload = context && typeof context === 'object' ? context : {question:String(context || '')};
+  payload.opened_at = new Date().toISOString();
+  try { sessionStorage.setItem('taxRiskQuestionContext', JSON.stringify(payload)); } catch (error) {}
+  if (typeof navigateTo === 'function') navigateTo('chat');
+};
+
+function _consumeRiskQuestionContext() {
+  try {
+    var raw = sessionStorage.getItem('taxRiskQuestionContext');
+    if (!raw) return null;
+    sessionStorage.removeItem('taxRiskQuestionContext');
+    var parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+}
+
 function _chatInit() {
   if (!chatSessionId) {
     chatSessionId = 'sess_' + Date.now();
@@ -89,6 +108,8 @@ async function renderChat(container) {
       .cq-msg.ai li{margin-bottom:7px}
       .cq-msg.ai code{padding:2px 6px;border-radius:4px;color:#334155;background:#eef2f6;font-size:12px}
       .cq-msg.ai pre{margin:12px 0;padding:14px 16px;border-radius:8px;color:#e2e8f0;background:#17273c;overflow-x:auto;font-size:12px;line-height:1.7}
+      .cq-risk-context{margin:0 0 12px;padding:12px 14px;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:8px;color:#1e3a5f;background:#eff6ff;font-size:12px;line-height:1.7}
+      .cq-risk-context b{color:#1d4ed8}
       @keyframes cqFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
       .cq-msg-typing{align-self:flex-start;padding:10px 16px;color:#718095;font-size:12px;display:flex;align-items:center;gap:7px}
       .cq-msg-typing .cq-dot{width:5px;height:5px;border-radius:50%;background:#94a3b8;animation:cqBounce .6s infinite alternate}
@@ -211,6 +232,19 @@ async function renderChat(container) {
   `;
 
   el.innerHTML = css + `<div class="cq-wrap">${leftPanel}${mainPanel}${rightPanel}</div>`;
+  const pendingRisk = _consumeRiskQuestionContext();
+  if (pendingRisk) {
+    const input = document.getElementById('chat-input');
+    const body = document.getElementById('chat-body');
+    if (input) input.value = String(pendingRisk.question || '');
+    if (body) {
+      body.insertAdjacentHTML('afterbegin', '<div class="cq-risk-context"><b>已带入风险卡上下文：</b>'
+        + escapeHtml(pendingRisk.title || pendingRisk.risk_id || '待核风险')
+        + ' · 轮次 ' + escapeHtml(pendingRisk.round_id || '待核验')
+        + '<br>请检查问题内容后发送。回答必须区分已证实事实、资料缺口、正常解释和待人工判断，并附可核验官方来源。</div>');
+    }
+    if (input) input.focus();
+  }
 }
 
 window._cqSendTopic = function(topic) {
@@ -319,9 +353,15 @@ async function sendChat() {
     hideTyping();
     
     if (data.ok && data.answer) {
-      appendMessage('ai', data.answer + '\n\n---\n*⚠ 本回答为AI辅助生成，仅供参考。具体税务处理应以现行法律法规及主管税务机关正式意见为准。如涉及重大税务事项，请咨询专业税务顾问。*');
+      const sourceNotice = data.citation_status === 'missing_official_source'
+        ? '\n\n**依据状态：未取得可核验的官方来源，本回答不得写入正式报告或自动进入规则学习。**'
+        : '\n\n**依据状态：' + ((data.citations || []).length ? '已附可核验来源，请逐项核对适用期间。' : '待核验。') + '**';
+      appendMessage('ai', data.answer + sourceNotice + '\n\n---\n*⚠ 本回答为AI辅助生成，仅供参考。具体税务处理应以现行法律法规及主管税务机关正式意见为准。如涉及重大税务事项，请咨询专业税务顾问。*');
     } else if (data.ok && data.reply) {
-      appendMessage('ai', data.reply + '\n\n---\n*⚠ 本回答为AI辅助生成，仅供参考。具体税务处理应以现行法律法规及主管税务机关正式意见为准。*');
+      const sourceNotice = data.citation_status === 'missing_official_source'
+        ? '\n\n**依据状态：未取得可核验的官方来源，本回答不得写入正式报告或自动进入规则学习。**'
+        : '';
+      appendMessage('ai', data.reply + sourceNotice + '\n\n---\n*⚠ 本回答为AI辅助生成，仅供参考。具体税务处理应以现行法律法规及主管税务机关正式意见为准。*');
     } else {
       appendMessage('ai', '⚠️ ' + (data.message || '服务暂不可用，请稍后重试'));
     }

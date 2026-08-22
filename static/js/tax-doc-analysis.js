@@ -67,6 +67,9 @@ function renderTaxDocAnalysis(container) {
     + '<h2>资料风险分析报告</h2>'
 
 
+    + '<div style="font-size:13px;color:#64748b;margin-top:6px">一键分析将按稽查任务、资料接收、程序执行、逐项检查、证据底稿、过程意见和复查安排生成工作过程报告。</div>'
+
+
     + '</div>'
 
 
@@ -85,7 +88,7 @@ function renderTaxDocAnalysis(container) {
     + '<span style="font-weight:600;font-size:16px">上传经营资料 <span id="tda-file-count" style="color:var(--gray-400);font-weight:400;font-size:14px">(0 份)</span></span>'
 
 
-    + '<span style="font-size:12px;color:var(--gray-400);margin-left:12px">支持 Excel / PDF 格式，可多文件同时上传</span>'
+    + '<span style="font-size:12px;color:var(--gray-400);margin-left:12px">支持 Excel / PDF / Word / 图片 / XML / OFD / ZIP，可多文件同时上传；压缩包会逐成员安全解析</span>'
 
 
     + '</div>'
@@ -94,7 +97,7 @@ function renderTaxDocAnalysis(container) {
     + '<div style="display:flex;gap:10px">'
 
 
-    + '<input type="file" id="tda-file-input" multiple style="display:none" onchange="uploadTaxDocs()">'
+    + '<input type="file" id="tda-file-input" multiple accept=".xlsx,.xls,.csv,.pdf,.txt,.docx,.doc,.jpg,.jpeg,.png,.bmp,.tiff,.xml,.ofd,.zip" style="display:none" onchange="uploadTaxDocs()">'
 
 
     + '<button class="btn-toolbar" onclick="document.getElementById(\'tda-file-input\').click()" style="cursor:pointer">上传资料</button>'
@@ -103,10 +106,10 @@ function renderTaxDocAnalysis(container) {
     + '<button class="btn-toolbar" onclick="batchDelTdaDocs()">删除选中资料</button>'
 
 
-    + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析</button>'
+    + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析并生成过程报告</button>'
 
 
-    + '<button class="btn-toolbar" id="tda-export-btn">导出报告</button>'
+    + '<button class="btn-toolbar" id="tda-export-btn" onclick="exportTaxDocReport()">导出内部草稿</button>'
 
 
     + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
@@ -161,6 +164,63 @@ function renderTaxDocAnalysis(container) {
 
 
     if (btn) btn.style.display = '';
+
+
+  } else {
+
+
+    restoreTaxDocReportFromServer();
+
+
+  }
+
+
+}
+
+
+async function restoreTaxDocReportFromServer() {
+
+
+  var cid = _tdaCid();
+
+
+  if (!cid || taxDocAnalyzing) return;
+
+
+  try {
+
+
+    var response = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + encodeURIComponent(cid));
+
+
+    if (!response.ok) return;
+
+
+    var data = await response.json();
+
+
+    if (!data || !data.ok || !data.report) return;
+
+
+    if (!taxDocPageActive || taxDocAnalyzing || !document.getElementById('tda-report-area')) return;
+
+
+    taxDocReportData = data.report;
+
+
+    renderTaxDocReport(taxDocReportData);
+
+
+    var btn = document.getElementById('tda-export-btn');
+
+
+    if (btn) btn.style.display = '';
+
+
+  } catch (error) {
+
+
+    console.warn('[tax-doc] 最近一次分析报告恢复失败', error);
 
 
   }
@@ -226,10 +286,19 @@ async function uploadTaxDocs() {
     var data = await resp.json();
 
 
-    if (data.ok) {
+  if (data.ok) {
 
 
       toast(data.message || ('已上传 ' + input.files.length + ' 个文件'), 'success');
+
+      // 补件进入系统后自动重跑全部规则和场景，不让企业重复点击或遗漏复查。
+      if (data.uploaded && data.uploaded.length) {
+        toast('补件已登记，正在自动发起新一轮全量复查', 'success');
+        input.value = '';
+        await refreshTaxDocList();
+        if (btn) { btn.disabled = false; btn.textContent = '一键分析并生成过程报告'; }
+        return analyzeTaxDocs();
+      }
 
 
     } else {
@@ -259,7 +328,7 @@ async function uploadTaxDocs() {
   } finally {
 
 
-    if (btn) { btn.disabled = false; btn.textContent = '一键分析'; }
+    if (btn) { btn.disabled = false; btn.textContent = '一键分析并生成过程报告'; }
 
 
   }
@@ -580,25 +649,25 @@ function renderAnalyzeHeader(report) {
     { title: '第一阶段：文件解析与身份识别', desc: '① {{file_fingerprints}}类文件指纹扫描 → ② 四方交叉验证判定类型 → ③ 公司身份锚定（名+统一社会信用代码双向比对） → ④ 发票方向判定（购买方=公司→进项/销售方=公司→销项/双方不匹配→存疑排除） → ⑤ 只读有效数据（过滤空白行/小计行）' },
 
 
-    { title: '第二阶段：Phase1 初查——企业画像与财务快照', desc: '⑥ 目标实体识别（频次统计） → ⑦ 财务快照（销项/进项/银行/工资汇总） → ⑧ 主营业务成本识别（core/major/minor三层分类） → ⑨ 企业画像（行业推断+经营模式判定） → ⑩ 服务行业闸门（销项金税编码检测→跳过进销存/BOM） → ⑪ 历史记忆检索（51720条相似案例） → ⑫ 资料缺失检测（14类必查资料逐项扫描）' },
+    { title: '第二阶段：Phase1 初查——企业画像与财务快照', desc: '⑥ 目标实体识别（频次统计） → ⑦ 财务快照（销项/进项/银行/工资汇总） → ⑧ 主营业务成本识别（core/major/minor三层分类） → ⑨ 企业画像（行业推断+经营模式判定） → ⑩ 服务行业闸门（销项金税编码检测→跳过进销存/BOM） → ⑪ 历史记忆检索（具体条款待从官方有效文本核验相似案例） → ⑫ 资料缺失检测（14类必查资料逐项扫描）' },
 
 
     { title: '第三阶段：Phase2 定向深挖——信号驱动+行业自适应', desc: '⑬ 信号→域映射（16个初查信号驱动5域深挖） → ⑭ 发票实质性审计（五层：合规/同品单价/加工费/金额合理性/BOM） → ⑮ 经营实质分析（工商登记↔发票数据↔加工信号三层穿透） → ⑯ 资金流向追踪（付款→供应商比对/收款→客户比对） → ⑰ 个人交易风险检测 → ⑱ 关联交易穿透检测 → ⑲ 税收优惠分析 → ⑳ 行业自适应知识库注入（8行业画像+{{industries}}行业基准值）' },
 
 
-    { title: '第四阶段：Phase3 交叉验证——冲突消解与证据闭环', desc: '㉑ 冲突消解引擎（信号互斥检测→自动降级/升级） → ㉒ 规则引擎（1720条逐条匹配） → ㉓ 线索链驱动（1720条链驱动发现） → ㉔ 证据链匹配（21720条跨域证据闭环） → ㉕ 轻量跨结论串联 → ㉖ 证伪检查（30+规则覆盖） → ㉗ 联网核查（DB缓存→API→搜索引擎三层降级） → ㉘ 经营实质五步核查法 → ㉙ 知识图谱（49实体/5异常关系检测）' },
+    { title: '第四阶段：Phase3 交叉验证——冲突消解与证据闭环', desc: '㉑ 冲突消解引擎（信号互斥检测→自动降级/升级） → ㉒ 规则引擎（具体条款待从官方有效文本核验逐条匹配） → ㉓ 线索链驱动（具体条款待从官方有效文本核验链驱动发现） → ㉔ 证据链匹配（具体条款待从官方有效文本核验跨域证据闭环） → ㉕ 轻量跨结论串联 → ㉖ 证伪检查（30+规则覆盖） → ㉗ 联网核查（DB缓存→API→搜索引擎三层降级） → ㉘ 经营实质五步核查法 → ㉙ 知识图谱（49实体/5异常关系检测）' },
 
 
-    { title: '第五阶段：方法论过滤——噪声剔除97%', desc: '㉚ 禁止词硬删除（40+） → ㉛ 无资料条件过滤 → ㉜ 行业不匹配过滤 → ㉝ 服务行业进销存过滤（三层闸门） → ㉞ 重复发现去重 → ㉟ 正常结论排除 → ㊱ 1720条→21720条，剔除31720条噪声' },
+    { title: '第五阶段：方法论过滤——噪声剔除97%', desc: '㉚ 禁止词硬删除（40+） → ㉛ 无资料条件过滤 → ㉜ 行业不匹配过滤 → ㉝ 服务行业进销存过滤（三层闸门） → ㉞ 重复发现去重 → ㉟ 正常结论排除 → ㊱ 具体条款待从官方有效文本核验→具体条款待从官方有效文本核验，剔除具体条款待从官方有效文本核验噪声' },
 
 
-    { title: '第六阶段：Phase4 综合定性——AI推理与因果叙事', desc: '㊲ 风险综合评分 → ㊳ 因果叙事链（1720条因果规则推理） → ㊴ 缺失后果自动触发（14类资料缺失→1720条风险结论） → ㊵ 贝叶斯因果推理 → ㊶ 矛盾检测（11720条逻辑冲突） → ㊷ 回溯引擎定位根因 → ㊸ 四步税务审查法（detect→verify→diagnose→report）' },
+    { title: '第六阶段：Phase4 综合定性——AI推理与因果叙事', desc: '㊲ 风险综合评分 → ㊳ 因果叙事链（具体条款待从官方有效文本核验因果规则推理） → ㊴ 缺失后果自动触发（14类资料缺失→具体条款待从官方有效文本核验风险结论） → ㊵ 贝叶斯因果推理 → ㊶ 矛盾检测（具体条款待从官方有效文本核验逻辑冲突） → ㊷ 回溯引擎定位根因 → ㊸ 四步税务审查法（detect→verify→diagnose→report）' },
 
 
-    { title: '第七阶段：质量保障——三层门禁', desc: '㊹ 文本净化（剔除模板句/重复句/空描述） → ㊺ 建议质量增强（11720条补充操作路径） → ㊻ 12项质量标准检测（5/32项通过·15.62%） → ㊼ 合规门禁（178项检测+自动修复+质量标记） → ㊽ Provenance溯源链注入（21720条） → ㊾ Benford数字检验 → ㊿ EMA自学习（58样本）' },
+    { title: '第七阶段：质量保障——三层门禁', desc: '㊹ 文本净化（剔除模板句/重复句/空描述） → ㊺ 建议质量增强（具体条款待从官方有效文本核验补充操作路径） → ㊻ 12项质量标准检测（5/32项通过·15.62%） → ㊼ 合规门禁（178项检测+自动修复+质量标记） → ㊽ Provenance溯源链注入（具体条款待从官方有效文本核验） → ㊾ Benford数字检验 → ㊿ EMA自学习（58样本）' },
 
 
-    { title: '第八阶段：持续学习——智能体反思与记忆积累', desc: '⓫ AGI法律推理 → ⓬ AGI跨企业关联 → ⓭ AGI趋势追踪 → ⓮ 自动规则发现（1720条新信号） → ⓯ 审计策略推荐（1720条·P0×2） → ⓰ 分析记忆保存（51720条积累） → ⓱ 行业基准更新 → ⓲ 智能体反思与学习闭环' },
+    { title: '第八阶段：持续学习——智能体反思与记忆积累', desc: '⓫ AGI法律推理 → ⓬ AGI跨企业关联 → ⓭ AGI趋势追踪 → ⓮ 自动规则发现（具体条款待从官方有效文本核验新信号） → ⓯ 审计策略推荐（具体条款待从官方有效文本核验·P0×2） → ⓰ 分析记忆保存（具体条款待从官方有效文本核验积累） → ⓱ 行业基准更新 → ⓲ 智能体反思与学习闭环' },
 
 
   ];
@@ -1024,6 +1093,15 @@ function _fmt(v, dft) {
   return String(v);
 
 
+}
+
+
+function _amountNumber(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  var cleaned = String(v === undefined || v === null ? '' : v)
+    .replace(/,/g, '').replace(/，/g, '').replace(/￥/g, '').replace(/¥/g, '').replace(/元/g, '').trim();
+  var parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? 0 : parsed;
 }
 
 
@@ -1854,7 +1932,7 @@ async function analyzeTaxDocs() {
     // 2. 轮询进度
 
 
-    var maxPolls = 1800; // 最多等30分钟（1秒一次，1720条链需更长时间）
+    var maxPolls = 1800; // 最多等30分钟（1秒一次，具体条款待从官方有效文本核验链需更长时间）
 
 
     var pollCount = 0;
@@ -1995,7 +2073,13 @@ async function analyzeTaxDocs() {
     if (exportBtn) exportBtn.style.display = 'inline-block';
 
 
-    toast('分析完成：' + data.report.total_risks + '项风险发现', 'success');
+    var closeInfo = (data.report||{}).coverage_closure || {};
+    toast(
+      '分析完成：' + data.report.total_risks + '项待核事项，' +
+      (closeInfo.total_items||0) + '项规则/场景已记账，未决' +
+      (closeInfo.unresolved_items||0) + '项',
+      'success'
+    );
 
 
     
@@ -2067,7 +2151,7 @@ async function analyzeTaxDocs() {
     taxDocAnalyzing = false;
 
 
-    btn.disabled = false; btn.textContent = '一键分析';
+    btn.disabled = false; btn.textContent = '一键分析并生成过程报告';
 
 
   }
@@ -2380,6 +2464,56 @@ function renderTaxDocReport(r) {
 
 
   var html = ctx.html;
+  var enterpriseMode = !!(r.enterprise_readable_report && ['税务稽查文书式报告', '内部税务稽查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0);
+
+  // 持续合规轮次与系统角色必须在报告首屏固定展示，防止内部分析
+  // 被误认为税务机关行政处理、处罚或案件定性结论。
+  var cr = r.compliance_round || {};
+  var identity = r.report_identity || {};
+  var mode = (identity.mode || cr.mode || r.operating_mode_profile || {});
+  var disclosure = mode.disclaimer || identity.required_display_statement || r.release_boundary || '本报告为企业内部风险分析，不属于税务机关行政处理、处罚或案件定性结论。';
+  var complianceBanner = '<div style="border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;padding:12px 14px;margin:0 0 14px;font-size:12px;line-height:1.8;color:#1e3a8a">' +
+    '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>🧭 ' + escHtml(mode.name || '企业自查模式') + '</b>' +
+    '<span>持续合规第' + escHtml(cr.round_no || r.analysis_round || 1) + '轮 · ' + escHtml(cr.status || r.release_status || '草稿_待人工复核') + '</span></div>' +
+    '<div>' + escHtml(disclosure) + '</div>' +
+    (cr.immutable_hash ? '<div style="font-size:10px;color:#64748b">案件快照指纹：' + escHtml(cr.immutable_hash) + '</div>' : '') +
+    '</div>';
+  if (!enterpriseMode) html = complianceBanner + html;
+
+  var oneClickClosure = r.one_click_closure || {};
+  if (!enterpriseMode && (oneClickClosure.modules||[]).length) {
+    var closureStrip = '<div style="border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:12px 14px;margin:0 0 14px;font-size:12px;line-height:1.8">' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>一键分析四模块闭环</b><span>静默跳过 ' + (oneClickClosure.silent_skip_count||0) + ' · 未决 ' + (oneClickClosure.unresolved_items||0) + '</span></div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">';
+    (oneClickClosure.modules||[]).forEach(function(mod){
+      closureStrip += '<span style="background:#f1f5f9;border-radius:4px;padding:3px 7px">' + escHtml(mod.module||'') + '：' + escHtml(mod.status||'') + '（' + (mod.items||0) + '项）</span>';
+    });
+    closureStrip += '</div><div style="color:#475569">下一步：' + escHtml(oneClickClosure.next_action||'') + '</div></div>';
+    html = closureStrip + html;
+  }
+
+  var taskClosure = cr.task_closure || {};
+  if (!enterpriseMode && taskClosure.open_issue_count != null) {
+    var taskStrip = '<div style="border:1px solid #fed7aa;background:#fff7ed;border-radius:8px;padding:12px 14px;margin:0 0 14px;font-size:12px;line-height:1.8;color:#9a3412">' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b>补件—整改—复查任务已生成</b><span>开放事项 ' + (taskClosure.open_issue_count||0) + '</span></div>' +
+      '<div>补件任务 ' + (taskClosure.material_request_count||0) + ' 项 · 专项资料门 ' + (taskClosure.source_gate_request_count||0) + ' 项 · 风险整改任务 ' + (taskClosure.risk_rectification_count||0) + ' 项 · 本轮新增 ' + (taskClosure.created||0) + ' 项 · 跨轮承接 ' + (taskClosure.carried_forward||0) + ' 项</div>' +
+      '<button class="btn-toolbar" style="margin-top:6px" onclick="navigateTo(\'compliance-workbench\')">进入持续合规工作台处理</button></div>';
+    html = taskStrip + html;
+  }
+
+  var roundComparison = cr.comparison || {};
+  if (!enterpriseMode && !roundComparison.baseline && roundComparison.counts) {
+    var rcnt = roundComparison.counts || {};
+    var comparisonStrip = '<div style="border:1px solid #a7f3d0;background:#ecfdf5;border-radius:8px;padding:12px 14px;margin:0 0 14px;font-size:12px;line-height:1.8;color:#065f46">' +
+      '<b>本轮与上一轮闭环比较</b>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">' +
+      '<span>新增风险 ' + (rcnt.new_risks||0) + '</span><span>持续风险 ' + (rcnt.continuing_risks||0) + '</span>' +
+      '<span>未再复现 ' + (rcnt.not_reproduced_risks||0) + '</span><span>状态变化 ' + (rcnt.risk_status_changes||0) + '</span>' +
+      '<span>重新出现 ' + (rcnt.reopened_risks||0) + '</span>' +
+      '<span>已补资料 ' + (rcnt.closed_material_gaps||0) + '</span><span>持续缺口 ' + (rcnt.continuing_material_gaps||0) + '</span></div>' +
+      '<div>未再复现不等于自动关闭，须进入持续合规工作台完成独立关闭复核。</div></div>';
+    html = comparisonStrip + html;
+  }
 
 
   area.innerHTML = html;
@@ -2404,6 +2538,13 @@ function renderTaxDocReport(r) {
 
 
   setTimeout(function() { _initReportTTS(); }, 300);
+
+  // 企业易读版已经包含完整结论、处理方法和补件清单，不再插入内部评分、
+  // 技术状态码或未经本轮证据门槛筛选的智能分析卡片。
+  if (enterpriseMode) {
+    _initReportChatPanel();
+    return;
+  }
 
 
   
@@ -2502,7 +2643,7 @@ function renderTaxDocReport(r) {
           smartHtml += '</tbody></table>';
 
 
-          smartHtml += '<p class="i1" style="font-size:12px;color:#64748b">以上为基于现有发票数据的精确计算（增值税=专票实际税额，普票税额为0已并入成本），不含滞纳金和罚款。实际应纳税额以税务机关核定为准。</p>';
+          smartHtml += '<p class="i1" style="font-size:12px;color:#64748b">以上仅为基于现有资料的税负测算线索，不构成确定税额。应逐项核验事实期间、计税口径、抵扣条件、优惠条件、已缴税款和有效政策，并形成可复算金额底稿后由有权人员审签。</p>';
 
 
           smartHtml += '</div>';
@@ -2562,7 +2703,7 @@ function renderTaxDocReport(r) {
         
 
 
-        // ④ AGI自审评分
+        // ④ 智能报告质量自审评分
 
 
         if (smart.agi_enhanced && smart.agi_enhanced.meta_audit) {
@@ -2578,10 +2719,10 @@ function renderTaxDocReport(r) {
           var dimNote = dimParts.length > 0 ? '（评分构成：' + dimParts.join('，') + '）' : '';
 
 
-          smartHtml += '<div class="edt-block" style="display:flex;align-items:flex-start;gap:0;margin:4px 0">';
+          smartHtml += '<div class="edt-block agi-quality-audit" style="display:block;width:100%;max-width:none;margin:12px 0">';
 
 
-          smartHtml += '<span style="flex:1;min-width:0"><p class="i2" style="margin:0"><strong>🔍 AGI报告质量自审：</strong>' + auditSummary + '</p>' + (dimNote ? '<p class="i2" style="margin:4px 0 0 0;font-size:11px;color:#64748b">' + dimNote + '</p>' : '') + '<p class="i2" style="margin:2px 0 0 0;font-size:10px;color:#94a3b8">本评分为内部质量自审，不得直接用于处罚或正式定性</p></span>';
+          smartHtml += '<div style="display:block;width:100%;min-width:0"><p class="i2" style="margin:0"><strong>🔍 智能报告质量自审：</strong>' + auditSummary + '</p>' + (dimNote ? '<p class="i2" style="margin:4px 0 0 0;font-size:11px;color:#64748b">' + dimNote + '</p>' : '') + '<p class="i2" style="margin:2px 0 0 0;font-size:10px;color:#94a3b8">本评分为内部质量自审，不得直接用于处罚或正式定性</p></div>';
 
 
           smartHtml += '';
@@ -4324,6 +4465,427 @@ window._saveAskAsCorrection = function(fi, mode) {
 };
 
 
+function _prValue(value, fallback) {
+  if (value === undefined || value === null || value === '') return fallback || '';
+  if (Array.isArray(value)) return value.map(function(item){ return _prValue(item, ''); }).filter(Boolean).join('；');
+  if (typeof value === 'object') {
+    var preferred = value.label || value.name || value.source || value.file || value.description || value.explanation || value.status || value.reference;
+    if (preferred) return _prValue(preferred, fallback);
+    return Object.keys(value).map(function(key){
+      var text = _prValue(value[key], '');
+      return text ? key + '：' + text : '';
+    }).filter(Boolean).join('；');
+  }
+  return String(value);
+}
+
+
+function _prList(values, emptyText) {
+  var rows = Array.isArray(values) ? values : (values ? [values] : []);
+  rows = rows.map(function(item){ return _prValue(item, ''); }).filter(Boolean);
+  if (!rows.length) return '<span style="color:#64748b">' + esc(emptyText || '本轮未形成记录') + '</span>';
+  return '<ol style="margin:4px 0 4px 20px;padding:0">' + rows.map(function(item){return '<li style="margin:3px 0">' + esc(item) + '</li>';}).join('') + '</ol>';
+}
+
+
+function _prStatus(status) {
+  var raw = String(status || '待记录');
+  var ok = raw === 'completed' || raw === 'completed_no_candidate' || raw === '已人工确认' || raw === '已关闭';
+  var bad = raw === 'blocked' || raw === 'failed' || raw.indexOf('阻断') >= 0;
+  var labelMap = {
+    completed: '已执行', completed_no_candidate: '已执行/无候选', completed_with_open_items: '已执行/有未决',
+    insufficient_data: '资料不足', blocked: '已阻断', failed: '执行失败',
+    usable: '解析可用', partial: '部分解析', unknown: '待核验', pending: '待处理',
+    human_review_required: '待人工复核', manual_review_required: '待人工复核'
+  };
+  var color = ok ? '#166534' : (bad ? '#991b1b' : '#9a3412');
+  var bg = ok ? '#dcfce7' : (bad ? '#fee2e2' : '#ffedd5');
+  return '<span style="display:inline-block;padding:2px 7px;border-radius:4px;background:' + bg + ';color:' + color + ';font-size:11px;font-weight:700">' + esc(labelMap[raw] || raw) + '</span>';
+}
+
+
+function _prFileName(value) {
+  if (typeof value === 'string') return value;
+  return _prValue(value, '待回查源资料');
+}
+
+
+function _renderProcessInvoiceAppendix(r) {
+  var tables = r.invoice_tables || {};
+  var groups = [
+    {key:'sales', title:'销项发票逐票清册', party:'购买方'},
+    {key:'purchases', title:'进项发票逐票清册', party:'销售方'}
+  ];
+  var html = '';
+  groups.forEach(function(group){
+    var rows = tables[group.key] || [];
+    if (!rows.length) return;
+    html += '<h3>' + esc(group.title) + '（' + rows.length + '张）</h3><div style="overflow-x:auto"><table class="tbl"><thead><tr>' +
+      '<th>序号</th><th>' + esc(group.party) + '</th><th>发票号码</th><th>开票日期</th><th>品名</th><th>金额</th><th>税额</th><th>价税合计</th><th>票种/状态</th></tr></thead><tbody>';
+    rows.forEach(function(inv, index){
+      html += '<tr><td>' + (index + 1) + '</td><td>' + esc(inv.counterparty || '') + '</td><td class="mono">' + esc(inv.inv_no || inv.invoice_no || '') + '</td>' +
+        '<td>' + esc(inv.date || '') + '</td><td>' + esc(inv.goods || '') + '</td><td class="r">' + esc(_prValue(inv.amount, '0')) + '</td>' +
+        '<td class="r">' + esc(_prValue(inv.tax, '0')) + '</td><td class="r">' + esc(_prValue(inv.total, '0')) + '</td><td>' + esc(_prValue(inv.inv_type || inv.status, '待核')) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  });
+  return html;
+}
+
+
+function _renderNarrativeParagraphs(rows, emptyText) {
+  rows = Array.isArray(rows) ? rows : [];
+  if (!rows.length) return '<p class="i2">' + esc(emptyText || '本轮未形成可展示的段落内容。') + '</p>';
+  return rows.map(function(row){
+    var heading = row && row.heading ? '<strong>' + esc(row.heading) + '。</strong>' : '';
+    return '<p class="i2" style="margin:10px 0;text-align:justify;line-height:2">' + heading + esc((row && row.text) || '') + '</p>';
+  }).join('');
+}
+
+
+function _narrativeSequence(values, emptyText) {
+  var rows = Array.isArray(values) ? values : (values ? [values] : []);
+  rows = rows.map(function(item){ return _prValue(item, ''); }).filter(Boolean);
+  if (!rows.length) return emptyText || '';
+  var nums = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+  return rows.map(function(item, index){
+    return '第' + (nums[index] || String(index + 1)) + '，' + String(item).replace(/[。；]+$/, '');
+  }).join('；') + '。';
+}
+
+
+function _reportChineseNumber(value) {
+  var number = Number(value || 0);
+  var nums = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+  if (number >= 0 && number <= 10) return nums[number];
+  if (number > 10 && number < 20) return '十' + nums[number - 10];
+  if (number >= 20 && number < 100) return nums[Math.floor(number / 10)] + '十' + (number % 10 ? nums[number % 10] : '');
+  return String(value || '');
+}
+
+
+function _enterpriseMaterialName(item) {
+  var raw = String((item && (item.display_name || item.document_type)) || '财税资料');
+  return raw.replace(/^资料(?:第)?[一二三四五六七八九十百零0-9]+[：:]\s*/, '') || '财税资料';
+}
+
+
+function _enterpriseMaterialNarrative(item, displayName) {
+  if (item && item.narrative) return item.narrative;
+  return '本轮收到的第' + _reportChineseNumber(item.seq) + '份资料为' + displayName + '。' +
+    '该资料通过' + (item.read_method || '资料读取') + '方式处理，读取结果为' + (item.read_result || '已接收') +
+    '。本轮使用范围为：' + (item.use_boundary || '仅使用已经成功读取的内容。');
+}
+
+
+function _enterpriseProblemParagraphs(item) {
+  if (Array.isArray(item.narrative_paragraphs) && item.narrative_paragraphs.length) return item.narrative_paragraphs;
+  var evidence = item.evidence_summary || {};
+  return [
+    {heading:'查明的主要事实', text:'经查，' + (item.what_found || '') + '上述数字来自本轮已读取资料的全量筛查，不是抽样估计。'},
+    {heading:'检查范围、方法和资料依据', text:'本项使用的资料范围为' + (evidence.source_scope || _prValue(item.source_references, '本轮已上传并成功读取的相关资料')) + '。' + (item.how_confirmed || '稽查人员按照统一口径整理本项资料并重新计算。') + (evidence.workpaper_note || '')},
+    {heading:'这件事对企业意味着什么', text:(item.inspection_opinion || '') + (item.possible_effect || '') + (item.amount_conclusion || '')},
+    {heading:'应当同时核对的正常业务原因', text:'出现上述情况不当然等于发生税务违法。企业应结合真实业务核对：' + _narrativeSequence(evidence.normal_explanations, '正常业务原因和对企业有利的原始资料。')},
+    {heading:'企业应当怎样处理', text:'企业应依据真实业务办理，不得倒签、补造或者作无事实依据的调整。具体处理顺序为：' + _narrativeSequence(item.what_to_do, '按真实业务和原始资料查明原因并作真实处理。')},
+    {heading:'怎样才算处理完成', text:'本项只有达到下列条件后才可申请关闭：' + _narrativeSequence(item.completion_standard, '问题能够定位、处理过程能够回查，重新检查不再出现同一差异。')}
+  ];
+}
+
+
+function _enterpriseFollowUpParagraphs(item) {
+  if (Array.isArray(item.narrative_paragraphs) && item.narrative_paragraphs.length) return item.narrative_paragraphs;
+  return [
+    {heading:'本轮检查结论', text:'经检查，' + (item.reason || '本轮没有取得完成该项检查所需的完整资料。') + (item.current_conclusion || '本轮不作问题认定') + '。这表示相应检查尚未完成，不表示企业已经发生违法或者少缴税款。'},
+    {heading:'被阻断的检查和风险影响', text:'本轮无法完成以下检查：' + _narrativeSequence(item.blocked_checks, '相关业务事实、会计处理和纳税申报检查。') + '目前仍无法排除以下风险方向：' + _narrativeSequence(item.risks_not_excluded, '相关风险需要在取得资料后判断。') + (item.conclusion_effect || '相关检查不得显示为无异常或已经合规。')},
+    {heading:'补充资料要求', text:'企业应补充：' + _narrativeSequence(item.required_materials, '能够证明相关业务事实的原始资料。') + '如原资料客观上无法取得，可以提供以下能够证明同一事实的替代资料：' + _narrativeSequence(item.alternative_materials, '能够真实证明同一事项的其他原始资料。')},
+    {heading:'下一轮复查程序', text:'资料补齐后，稽查人员将重新执行：' + _narrativeSequence(item.next_checks, item.next_check || '重新运行受影响的全部检查项目。') + '本项完成标准为：' + (item.completion_standard || '资料完整、能够回查，并已完成受影响项目的重新检查。')}
+  ];
+}
+
+
+function _buildEnterpriseReadableBody(r, dateStr) {
+  var report = r.enterprise_readable_report || {};
+  var identity = report.identity || {};
+  var summary = report.summary || {};
+  var keyPoints = summary.key_points || [];
+  var inspector = report.inspector_perspective || {};
+  var procedures = report.inspection_procedures || [];
+  var materials = report.materials || [];
+  var problems = report.confirmed_problems || [];
+  var completed = report.completed_checks || [];
+  var plans = report.action_plan || [];
+  var further = report.further_checks || [];
+  var recheck = report.recheck || {};
+  var statements = (report.report_statement || []).map(function(item){
+    var value = String(item || '');
+    if (value.indexOf('本报告以企业内部税务稽查人员视角编制') >= 0) {
+      return '本报告采用税务稽查文书式结构和稽查人员陈述口径编制，所列检查事实、处理意见和复查要求用于企业合规整改。';
+    }
+    return value;
+  });
+  var displayedAddressee = '被检查企业及其负责人';
+  var openingText = String(inspector.opening || '');
+  if (!openingText || openingText.indexOf('本报告以内部税务稽查人员的工作口径') >= 0 || openingText.indexOf('稽查人员对被检查企业提交') >= 0) {
+    openingText = '根据本轮税务稽查工作安排，现对被检查企业提交并成功读取的财税资料实施检查，并将检查范围、实施程序、查明事实、税务影响、处理意见及后续复查要求报告如下。';
+  }
+  var headlineText = String(summary.headline || '').replace(/本次内部税务稽查/g, '本次税务稽查');
+  var administrativeBoundary = String(inspector.administrative_boundary || '');
+  if (!administrativeBoundary || administrativeBoundary.indexOf('企业内部自查文书') >= 0) {
+    administrativeBoundary = '本报告由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务稽查程序并开展合规整改，不具有税务机关行政执法文书效力；税务机关实际检查结论应以依法送达的正式文书为准。';
+  }
+  var html = '';
+
+  html += '<div class="cover"><h1>涉 税 稽 查 工 作 报 告</h1><div class="sub">' +
+    '报告送达对象：' + esc(displayedAddressee) + '<br>' +
+    '被检查企业：' + esc(identity.subject_name || '未填写企业名称') + '<br>' +
+    '统一社会信用代码：' + esc(identity.taxpayer_id || '未填写') + '<br>' +
+    '检查期间：' + esc(identity.period || '以本轮资料记载期间为准') + '<br>' +
+    '检查轮次：第' + esc(identity.analysis_round || 1) + '轮<br>' +
+    '报告日期：' + esc(report.generated_date || dateStr) +
+    '</div></div>';
+
+  html += '<div style="padding:16px 18px;border:2px solid #1e3a8a;background:#eff6ff;margin:0 0 24px;line-height:1.9">' +
+    esc(openingText) + '<br>' + esc(headlineText) + '<br>' + esc(summary.owner_message || '') +
+    '</div>';
+
+  html += '<div class="toc"><a href="#company-conclusion">一、稽查任务和给企业负责人的总体结论</a><br>' +
+    '<a href="#company-materials">二、本轮接收和使用的资料</a><br>' +
+    '<a href="#company-procedures">三、稽查员实际执行的检查程序</a><br>' +
+    '<a href="#company-problems">四、本轮稽查确认的具体问题</a><br>' +
+    '<a href="#company-completed">五、已经执行且本轮未发现达到条件异常的检查</a><br>' +
+    '<a href="#company-actions">六、稽查处理意见和整改验收标准</a><br>' +
+    '<a href="#company-further">七、因资料缺失或不完整而无法完成的检查</a><br>' +
+    '<a href="#company-recheck">八、下一轮复查安排</a><br>' +
+    '<a href="#company-statement">九、报告性质和使用说明</a></div>';
+
+  html += '<h2 id="company-conclusion">一、稽查任务和给企业负责人的总体结论</h2>' +
+    '<p class="i2"><strong>稽查工作原则：</strong>' + esc(inspector.work_principle || '') + '</p>' +
+    '<p class="i2"><strong>问题确认标准：</strong>' + esc(inspector.conclusion_rule || '') + '</p>' +
+    '<p class="i2">' + esc(headlineText) + '</p>' +
+    '<p class="i2">' + esc(summary.owner_message || '') + '</p>' +
+    '<p class="i2">本轮共收到<strong>' + (summary.received_material_count || 0) + '个文件</strong>，归并为<strong>' + (summary.material_category_count || materials.length || 0) + '类资料</strong>。其中，已有资料能够证明的具体问题<strong>' + (summary.confirmed_problem_count || 0) + '项</strong>；已经执行且本轮未发现达到条件异常的检查<strong>' + (summary.completed_check_count || 0) + '项</strong>；因资料缺失、资料不完整或者影响范围尚未查清，需要补充资料后再检查的事项<strong>' + (summary.further_check_count || 0) + '项</strong>。</p>';
+  if (keyPoints.length) {
+    html += '<h3>本轮最需要负责人关注的内容</h3>' + keyPoints.map(function(item){
+      return '<p class="i2" style="line-height:2">' + esc(item) + '</p>';
+    }).join('');
+  }
+
+  html += '<h2 id="company-materials">二、本轮接收和使用的资料</h2>' +
+    '<p class="i2">为便于企业负责人阅读，本报告不逐个罗列月份文件和英文文件名，而是按中文资料类别归并说明文件数量、读取记录数、读取质量和本轮使用范围；逐文件清单及指纹保留在内部资料底稿中。</p>';
+  materials.forEach(function(item){
+    var displayName = _enterpriseMaterialName(item);
+    html += '<h3>资料' + esc(_reportChineseNumber(item.seq)) + '：' + esc(displayName) + '</h3>' +
+      '<p class="i2">' + esc(_enterpriseMaterialNarrative(item, displayName)) + '</p>';
+  });
+  if (!materials.length) html += '<p class="i2">本轮没有可列示的已读取资料。</p>';
+
+  html += '<h2 id="company-procedures">三、稽查员实际执行的检查程序</h2>' +
+    '<p class="i2">以下内容记录本轮实际完成的稽查工作。资料条件不满足的程序会明确写出停止位置和后续要求，不以空结果表示检查已经完成。</p>';
+  procedures.forEach(function(item){
+    html += '<section class="fact-sec"><div class="ftitle">程序' + esc(item.seq || '') + '：' + esc(item.name || '稽查程序') + '</div>' +
+      '<p class="i2" style="line-height:2">' + esc(item.narrative || ('稽查人员执行的工作是：' + (item.work || '') + '本轮程序结果为：' + (item.result || ''))) + '</p></section>';
+  });
+  if (!procedures.length) html += '<p class="i2">本轮没有形成可向企业负责人展示的稽查程序记录。</p>';
+
+  html += '<h2 id="company-problems">四、本轮稽查确认的具体问题</h2>' +
+    '<p class="i2">本部分只写本轮资料能够直接证明的具体问题。没有达到这一标准的事项，不在这里写成企业已经存在的问题。</p>';
+  if (!problems.length) {
+    html += '<p class="i2">本轮没有发现能够由现有资料直接证明的具体问题。请继续处理第七部分列明的资料缺口事项。</p>';
+  }
+  problems.forEach(function(item){
+    html += '<section class="fact-sec"><div class="ftitle">问题' + esc(item.seq || '') + '：' + esc(item.title || '具体资料问题') + '</div>' +
+      _renderNarrativeParagraphs(_enterpriseProblemParagraphs(item), '本项尚未形成完整的段落式检查记录。') +
+      '</section>';
+  });
+
+  html += '<h2 id="company-completed">五、已经执行且本轮未发现达到条件异常的检查</h2>' +
+    '<p class="i2">本部分只列示资料条件满足且规则已经实际执行的项目。“本轮未发现达到条件的异常”不等于企业在其他资料、期间或事项上完全没有风险。</p>';
+  if (!completed.length) html += '<p class="i2">本轮没有可单独列示为已经完成且未发现达到检查条件异常的项目。</p>';
+  completed.forEach(function(item){
+    html += '<section class="fact-sec"><div class="ftitle">检查' + esc(item.seq || '') + '：' + esc(item.title || '') + '</div>' +
+      '<p class="i2" style="line-height:2">' + esc(item.narrative || ((item.method || '') + (item.result || '') + (item.boundary || ''))) + '</p></section>';
+  });
+
+  html += '<h2 id="company-actions">六、稽查处理意见和整改验收标准</h2>' +
+    '<p class="i2">请按照下列顺序办理。所有处理必须建立在真实业务和原始资料基础上，不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';
+  if (!plans.length) html += '<p class="i2">本轮没有需要立即处理的已证实具体问题，企业应先按第七部分补充资料。</p>';
+  plans.forEach(function(item){
+    html += '<h3>' + esc(item.seq || '') + '、先处理“' + esc(item.problem || '') + '”</h3>' +
+      '<p class="i2" style="line-height:2">' + esc(item.narrative || ('稽查人员提出的第一项处理动作是：' + (item.first_action || '') + '责任安排为：' + (item.responsibility || '') + '本项整改不能以口头说明作为完成依据，必须达到以下验收条件：' + _narrativeSequence(item.completion_standard, '完成后能够用原始资料重新核对。'))) + '</p>';
+  });
+
+  html += '<h2 id="company-further">七、因资料缺失或不完整而无法完成的检查</h2>' +
+    '<p class="i2">本部分不是问题认定。系统逐项说明缺少什么、阻断了什么检查、哪些风险目前无法排除、可以提供什么替代资料，以及补齐后下一轮具体重新检查什么。</p>';
+  if (!further.length) html += '<p class="i2">本轮没有单独列明的补充资料事项。</p>';
+  further.forEach(function(item){
+    html += '<section class="fact-sec"><div class="ftitle">事项' + esc(item.seq || '') + '：' + esc(item.title || '') + '</div>' +
+      _renderNarrativeParagraphs(_enterpriseFollowUpParagraphs(item), '本项资料缺口尚未形成完整的段落式说明。') + '</section>';
+  });
+
+  html += '<h2 id="company-recheck">八、下一轮复查安排</h2>' +
+    '<p class="i2"><strong>什么时候重新检查：</strong>' + esc(recheck.trigger || '') + '</p>' +
+    '<p class="i2"><strong>重新检查什么：</strong>' + esc(recheck.work || '') + '</p>' +
+    '<p class="i2"><strong>怎样判断企业正在趋于合规：</strong>' + esc(recheck.convergence || '') + '</p>';
+
+  html += '<h2 id="company-statement">九、报告性质和使用说明</h2>' +
+    '<p class="i2"><strong>文书性质说明。</strong>' + esc(administrativeBoundary) + '</p>';
+  statements.forEach(function(item, index){ html += '<p class="i2"><strong>说明' + (index + 1) + '。</strong>' + esc(item || '') + '</p>'; });
+  html += '<div class="seal"><p>稽查报告编制人：_______________　日期：_______________</p>' +
+    '<p>被检查企业负责人签收：_______________　日期：_______________</p>' +
+    '<p>整改负责人：_______________　复核人员：_______________</p></div>';
+  return html;
+}
+
+
+function _buildInspectionProcessBody(r, allF, dateStr) {
+  var process = r.inspection_process_report || {};
+  var identity = process.identity || {};
+  var assignment = process.work_assignment || {};
+  var intake = process.material_intake || {};
+  var execution = process.procedure_execution || {};
+  var workItems = process.item_work_records || [];
+  var evidence = process.evidence_and_workpapers || {};
+  var disposition = process.interim_disposition || {};
+  var recheck = process.recheck_and_follow_up || {};
+  var release = process.release_and_signoff || {};
+  var processCheck = process.process_compilation_check || {};
+  var html = '';
+
+  html += '<div class="cover"><h1>企 业 内 部 涉 税 稽 查 工 作 过 程 报 告</h1><div class="sub">' +
+    '文书性质：一键分析形成的内部过程报告草稿<br>' +
+    '被检查主体：' + esc(identity.subject_name || '未指定') + '<br>' +
+    '检查轮次：第' + esc(identity.analysis_round || 1) + '轮<br>' +
+    '资料批次/快照：' + esc(identity.snapshot_id || '待生成') + '<br>' +
+    '编制日期：' + esc(dateStr) + '<br>' +
+    '当前状态：' + esc(release.release_status || r.release_status || '过程报告草稿_待人工复核') +
+    '</div></div>';
+
+  html += '<div style="padding:12px 14px;border:2px solid #1e3a8a;background:#eff6ff;margin:0 0 24px;line-height:1.8">' +
+    '<strong>报告定位：</strong>' + esc(process.report_subtitle || '记录本轮检查程序、证据形成过程和未决事项。') +
+    '<br><strong>效力边界：</strong>本报告记录企业内部涉税稽查辅助工作的实际过程，不是税务机关检查报告、审理报告、税务处理决定或行政处罚文书。' +
+    '</div>';
+
+  html += '<div class="toc"><a href="#ch1">第一章　本轮稽查工作任务与边界</a><br>' +
+    '<a href="#ch2">第二章　资料接收、解析与取证准备过程</a><br>' +
+    '<a href="#ch3">第三章　稽查程序与模块执行记录</a><br>' +
+    '<a href="#ch4">第四章　逐项检查工作记录</a><br>' +
+    '<a href="#ch5">第五章　证据、反证、资料缺口与金额底稿</a><br>' +
+    '<a href="#ch6">第六章　本轮过程性意见与处理指引</a><br>' +
+    '<a href="#ch7">第七章　未决事项、复查安排与报告状态</a><br>' +
+    '<a href="#appendix">附件　工作日志与逐票清册</a></div>';
+
+  html += '<h2 id="ch1">第一章 本轮稽查工作任务与边界</h2>' +
+    '<table class="tbl2"><tr><th style="width:20%">项目</th><th>本轮工作记录</th></tr>' +
+    '<tr><td>任务来源</td><td>' + esc(assignment.source || '') + '</td></tr>' +
+    '<tr><td>工作目标</td><td>' + esc(assignment.objective || '') + '</td></tr>' +
+    '<tr><td>被检查主体</td><td>' + esc(identity.subject_name || '') + '；统一标识：' + esc(identity.taxpayer_id || '待核验') + '；行业：' + esc(identity.industry || '待核验') + '</td></tr>' +
+    '<tr><td>检查期间</td><td>' + esc(identity.period || '以源资料记录期间为准') + '</td></tr>' +
+    '<tr><td>检查范围</td><td>' + esc(assignment.scope || r.scope || '') + '</td></tr>' +
+    '<tr><td>局限与停止边界</td><td>' + esc(assignment.limitations || r.limitations || '') + '</td></tr>' +
+    '<tr><td>行政效力</td><td>无。报告中的风险等级用于安排内部检查顺序，不是违法程度、补税金额或处罚幅度。</td></tr></table>';
+
+  html += '<h2 id="ch2">第二章 资料接收、解析与取证准备过程</h2>' +
+    '<p class="i2">' + esc(intake.work_rule || '') + '</p>' +
+    '<p class="i2"><strong>接收情况：</strong>共接收' + (intake.received_count || 0) + '份；可用解析' + (intake.usable_count || 0) + '份；部分解析' + (intake.partial_count || 0) + '份；解析阻断' + (intake.blocked_count || 0) + '份；可进入自动计算候选' + (intake.calculation_candidate_count || 0) + '份。</p>' +
+    '<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>序号</th><th>资料</th><th>类型</th><th>解析方法</th><th>质量/定位</th><th>逐票或字段复核</th><th>本轮处理</th></tr></thead><tbody>';
+  (intake.files || []).forEach(function(file){
+    var subjectText = file.invoice_unit_count ? ('逐票核验' + (file.invoice_verified_unit_count || 0) + '/' + file.invoice_unit_count + '，阻断' + (file.invoice_blocked_unit_count || 0)) : '非发票资料/不适用逐票主体核验';
+    var fieldText = file.field_review_required ? ('字段复核套用' + (file.field_review_applied || 0) + '/' + file.field_review_required) : '无待套用字段复核';
+    html += '<tr><td>' + (file.seq || '') + '</td><td>' + esc(file.source_name || '') + (file.receipt_hash ? '<br><small>回执 ' + esc(String(file.receipt_hash).slice(0,16)) + '…</small>' : '') + '</td>' +
+      '<td>' + esc(file.document_type || '') + '</td><td>' + esc(file.extraction_method || '') + '</td><td>' + _prStatus(file.quality_status) + '<br>源位置覆盖 ' + (file.source_locator_coverage || 0) + '%</td>' +
+      '<td>' + esc(subjectText) + '<br>' + esc(fieldText) + '</td><td>' + esc(file.work_status || '') + (file.blockers && file.blockers.length ? '<br><strong>阻断：</strong>' + esc(_prValue(file.blockers, '')) : '') + '</td></tr>';
+  });
+  if (!(intake.files || []).length) html += '<tr><td colspan="7">本轮没有形成可核验的资料接收记录，检查程序停留在资料准备阶段。</td></tr>';
+  html += '</tbody></table></div>';
+
+  html += '<h2 id="ch3">第三章 稽查程序与模块执行记录</h2><p class="i2">' + esc(execution.sequence_rule || '') + '</p>' +
+    '<table class="tbl"><thead><tr><th>顺序</th><th>工作阶段</th><th>检查目的</th><th>执行状态</th><th>本轮结果</th><th>未决/停止条件</th></tr></thead><tbody>';
+  (execution.stages || []).forEach(function(stage){
+    html += '<tr><td>' + esc(stage.seq || '') + '</td><td><strong>' + esc(stage.name || '') + '</strong><br><small>' + esc(stage.stage_code || '') + '</small></td>' +
+      '<td>' + esc(stage.purpose || '') + '</td><td>' + _prStatus(stage.status) + '</td><td>' + esc(stage.result || '') + '</td>' +
+      '<td>' + _prList(stage.open_items || [], '本阶段无单独未决事项') + '<div style="margin-top:5px;color:#64748b"><strong>停止条件：</strong>' + esc(stage.stop_condition || '') + '</div></td></tr>';
+  });
+  html += '</tbody></table>';
+
+  html += '<h2 id="ch4">第四章 逐项检查工作记录</h2>';
+  if (!workItems.length) html += '<p class="i2">本轮未形成具体待核风险事项；这只表示已上传资料未触发可记录事项，不表示企业全部事项无风险。资料缺口和未执行场景仍见第二、三章。</p>';
+  workItems.forEach(function(item){
+    html += '<section class="fact-sec" id="risk-' + esc(item.risk_id || item.seq) + '"><div class="ftitle">' + (item.seq || '') + '. ' + esc(item.title || '待核事项') + '　' + _prStatus(item.work_status) + '</div>' +
+      '<table class="tbl2"><tr><th style="width:20%">工作项目</th><th>过程记录</th></tr>' +
+      '<tr><td>事项编号与检查范围</td><td>' + esc(item.risk_id || '') + '；' + esc(_prValue(item.inspection_scope, '待按业务主键定位')) + '</td></tr>' +
+      '<tr><td>观察事实</td><td>' + _prList(item.observed_facts, '尚无可定位观察事实') + '</td></tr>' +
+      '<tr><td>待证事实</td><td>' + esc(item.target_fact || '') + '</td></tr>' +
+      '<tr><td>已执行/拟执行检查程序</td><td>' + _prList(item.procedures_performed, '待制定逐项检查步骤') + '</td></tr>' +
+      '<tr><td>支持证据</td><td>' + _prList(item.supporting_evidence, '尚未取得充分支持证据') + '</td></tr>' +
+      '<tr><td>反向证据与正常解释</td><td>' + _prList((item.opposing_evidence || []).concat(item.competing_explanations || []), '尚未取得足够反向证据或正常解释') + '</td></tr>' +
+      '<tr><td>资料缺口</td><td>' + _prList(item.missing_information, '本项暂无明确资料缺口，仍须复核完整性') + '</td></tr>' +
+      '<tr><td>政策核验</td><td>' + esc(_prValue(item.policy_review, '待按事实期间核验官方依据')) + '</td></tr>' +
+      '<tr><td>金额底稿</td><td>' + esc(_prValue(item.amount_workpaper, '尚未形成确定金额或可复算底稿')) + '</td></tr>' +
+      '<tr><td>本轮过程性意见</td><td>' + esc(item.process_opinion || '') + '</td></tr>' +
+      '<tr><td>停止条件</td><td>' + esc(item.stop_condition || '') + '</td></tr>' +
+      '<tr><td>定性边界</td><td><strong>' + esc(item.determination_boundary || '') + '</strong></td></tr></table></section>';
+  });
+
+  html += '<h2 id="ch5">第五章 证据、反证、资料缺口与金额底稿</h2>' +
+    '<p class="i2">' + esc(evidence.boundary || '') + '</p>' +
+    '<h3>一、证据溯源索引</h3><table class="tbl"><thead><tr><th>事项编号</th><th>资料来源</th><th>溯源编号</th><th>状态</th><th>证据边界</th></tr></thead><tbody>';
+  (evidence.evidence_index || []).forEach(function(row){
+    html += '<tr><td>' + esc(row.risk_id || '') + '</td><td>' + esc(_prFileName(row.source)) + '</td><td>' + esc(row.trace_id || '待建立') + '</td><td>' + esc(row.status || '') + '</td><td>' + esc(row.evidence_boundary || '') + '</td></tr>';
+  });
+  if (!(evidence.evidence_index || []).length) html += '<tr><td colspan="5">本轮尚未形成完整证据索引；相关事项保持未决并禁止正式发布。</td></tr>';
+  html += '</tbody></table><h3>二、补充资料工作单</h3><table class="tbl"><thead><tr><th>事项编号</th><th>应补资料</th><th>证明目的</th><th>边界</th></tr></thead><tbody>';
+  (evidence.missing_information_requests || []).forEach(function(request){
+    html += '<tr><td>' + esc(request.risk_id || '') + '</td><td>' + esc(_prValue(request.items, '')) + '</td><td>' + esc(request.purpose || '') + '</td><td>' + esc(request.boundary || '') + '</td></tr>';
+  });
+  if (!(evidence.missing_information_requests || []).length) html += '<tr><td colspan="4">本轮没有形成明确补件工作单。</td></tr>';
+  html += '</tbody></table><p class="i2"><strong>金额底稿状态：</strong>已形成可识别金额底稿' + (evidence.amount_workpaper_count || 0) + '项；未形成底稿的事项不得写成确定补税、退税、罚款或其他金额结论。</p>';
+
+  html += '<h2 id="ch6">第六章 本轮过程性意见与处理指引</h2><p class="i2">' + esc(disposition.decision_boundary || '') + '</p>';
+  (disposition.items || []).forEach(function(item, index){
+    html += '<h3>' + (index + 1) + '. ' + esc(item.title || '') + '（' + esc(item.risk_id || '') + '）</h3>' +
+      '<p class="i2"><strong>当前状态：</strong>' + esc(item.current_status || '') + '</p>' +
+      '<p class="i2"><strong>过程性意见：</strong>' + esc(item.process_opinion || '') + '</p>' +
+      '<p class="i2"><strong>处理步骤：</strong></p>' + _prList(item.handling_guidance, '待责任部门依据真实事实制定') +
+      '<p class="i2"><strong>完成标准：</strong></p>' + _prList(item.completion_criteria, '待建立可验证完成标准') +
+      '<p class="i2"><strong>禁止事项：</strong></p>' + _prList(item.forbidden_actions, '禁止倒签、补造、删改或无事实依据调整');
+  });
+
+  html += '<h2 id="ch7">第七章 未决事项、复查安排与报告状态</h2>' +
+    '<p class="i2"><strong>本轮未决：</strong>' + (disposition.open_item_count || 0) + '项逐项检查记录仍需补资料、复算或人工审理。</p>' +
+    '<p class="i2"><strong>下一轮触发：</strong>' + esc(recheck.trigger || '') + '</p>' +
+    '<p class="i2"><strong>下一轮：</strong>第' + esc(recheck.next_round || ((identity.analysis_round || 1) + 1)) + '轮；必须重跑：' + esc(_prValue(recheck.must_rerun, '全部适用场景')) + '。</p>' +
+    '<p class="i2"><strong>轮次比较：</strong>' + esc(_prValue(recheck.comparison_dimensions, '风险、资料、金额、政策及复核状态')) + '。</p>' +
+    '<p class="i2"><strong>趋于合规规则：</strong>' + esc(recheck.convergence_rule || '') + '</p>' +
+    '<p class="i2"><strong>停止规则：</strong>' + esc(recheck.stop_rule || '') + '</p>' +
+    '<h3>一、报告编制检查</h3><p class="i2">过程报告检查通过' + (processCheck.passed || 0) + '/' + (processCheck.total || 0) + '项；失败' + (processCheck.failed || 0) + '项。</p>' +
+    '<table class="tbl"><thead><tr><th>编号</th><th>检查项目</th><th>状态</th></tr></thead><tbody>';
+  (processCheck.details || []).forEach(function(check){
+    html += '<tr><td>' + esc(check.id || '') + '</td><td>' + esc(check.label || '') + '</td><td>' + _prStatus(check.passed ? 'completed' : 'blocked') + '</td></tr>';
+  });
+  html += '</tbody></table><h3>二、发布与审签边界</h3>' +
+    '<p class="i2"><strong>报告状态：</strong>' + esc(release.release_status || '') + '</p>' +
+    '<p class="i2"><strong>发布边界：</strong>' + esc(release.release_boundary || r.release_boundary || '') + '</p>' +
+    '<p class="i2"><strong>正式发布：</strong>当前不具备自动正式发布资格。只要还有待审、资料不足、政策待核、金额待复算或角色不独立，报告必须保持内部过程草稿。</p>' +
+    '<div class="seal"><p>检查工作记录编制人：_______________　日期：_______________</p>' +
+    '<p>证据复核人：_______________　政策与金额复核人：_______________</p>' +
+    '<p>独立报告批准人：_______________　日期：_______________</p></div>';
+
+  html += '<h2 id="appendix">附件 工作日志与逐票清册</h2><h3>附件一：一键分析工作日志</h3>' +
+    '<table class="tbl"><thead><tr><th>序号</th><th>系统工作记录</th></tr></thead><tbody>';
+  (execution.execution_log || []).forEach(function(log, index){
+    html += '<tr><td>' + (index + 1) + '</td><td>' + esc(_prValue(log, '')) + '</td></tr>';
+  });
+  if (!(execution.execution_log || []).length) html += '<tr><td colspan="2">本轮未返回可展示的过程日志。</td></tr>';
+  html += '</tbody></table><h3>附件二：资料与回执索引</h3>' +
+    '<table class="tbl"><thead><tr><th>序号</th><th>资料</th><th>质量</th><th>回执</th><th>自动计算边界</th></tr></thead><tbody>';
+  (intake.files || []).forEach(function(file){
+    html += '<tr><td>' + file.seq + '</td><td>' + esc(file.source_name || '') + '</td><td>' + esc(file.quality_status || '') + '</td><td>' + esc(file.receipt_hash || '待生成') + '</td><td>' + (file.safe_for_automatic_calculation ? '可进入候选，仍须业务审理' : '不得直接用于金额定稿') + '</td></tr>';
+  });
+  html += '</tbody></table>' + _renderProcessInvoiceAppendix(r);
+  return html;
+}
+
+
 function _renderReportFallback(r, allF) {
 
 
@@ -4397,6 +4959,12 @@ function _renderReportFallback(r, allF) {
 
 
     + '#tda-report-area p.edt-p-flex .edt-icon{flex-shrink:0;margin-left:4px;align-self:flex-start;line-height:1.85}'
+
+
+    + '#tda-report-area .agi-quality-audit{display:block!important;width:100%!important;max-width:none!important;min-width:0}'
+
+
+    + '#tda-report-area .agi-quality-audit > p,#tda-report-area .agi-quality-audit > div{display:block;width:100%;max-width:none;overflow-wrap:anywhere}'
 
 
     // 表格
@@ -4489,10 +5057,33 @@ function _renderReportFallback(r, allF) {
     + '</style><div id="rr-report">';
 
 
+  // 企业版是主文书；专业过程底稿继续保留在后台，供内部复查和历史轮次追溯。
+  if (r.enterprise_readable_report && ['税务稽查文书式报告', '内部税务稽查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
+    h += _buildEnterpriseReadableBody(r, dateStr);
+    h += '</div>';
+    return {
+      html: h,
+      renderedModules: ['稽查任务与总体结论','中文资料清单','稽查程序','稽查确认问题','处理意见与验收','受阻检查','下一轮复查','报告说明'],
+      skippedModules: []
+    };
+  }
+
+  // 旧缓存没有企业版时展示原过程报告，保证历史轮次可回看。
+  if (r.inspection_process_report && r.inspection_process_report.compilation_style === 'inspection_work_process') {
+    h += _buildInspectionProcessBody(r, allF, dateStr);
+    h += '</div>';
+    return {
+      html: h,
+      renderedModules: ['process-cover','process-assignment','process-material-intake','process-procedure-ledger','process-item-work-records','process-evidence-workpapers','process-guidance','process-recheck-release','process-appendix'],
+      skippedModules: []
+    };
+  }
+
+
   // fallback 使用7章标准结构渲染
 
 
-  h += '<div class="cover"><h1>税 务 稽 查 报 告</h1><div class="sub">'
+  h += '<div class="cover"><h1>企 业 内 部 税 务 合 规 风 险 分 析 报 告</h1><div class="sub">'
 
 
     + '报告编号：未配置（交付前由有权人员按适用制度填写）<br>'
@@ -4783,7 +5374,7 @@ function _renderReportFallback(r, allF) {
   h += '<h2 id="ch1">第一章 公司和基本情况</h2>';
 
 
-  h += '<p class="i2">根据《税务合规工作规程》第二十一条之规定，本系统在对账套内' + (r.files_count || 0) + '份经营资料执行涉税风险自动预审时，检出多项涉税风险指标异常，触发税务合规预审程序。预审程序启动后，系统依法对被审查企业提交的全部经营资料进行了系统性综合判定。以下为被审查企业的基本情况及本税务合规事项的立案依据。</p>';
+  h += '<p class="i2">本系统根据企业上传的' + (r.files_count || 0) + '份经营资料执行涉税风险辅助分析。观察信号只用于形成待核事项和补充资料清单，不构成税务机关立案、检查、审理、处罚或执行决定。以下列示主体情况和本次分析范围。</p>';
 
 
   h += '<table class="tbl">';
@@ -4828,7 +5419,7 @@ function _renderReportFallback(r, allF) {
   h += '<tr><td class="lbl">审查范围</td><td>' + _detectTaxScope(r, te).join('、') + '</td></tr>';
 
 
-  h += '<tr><td class="lbl">执行标准</td><td>《税务合规工作规程》（国税发[2009]157号）、《税收征收管理法》及其实施细则</td></tr>';
+  h += '<tr><td class="lbl">执行标准</td><td>系统方法论场景合同、报告18项质量门禁及业务期间现行有效税收法律规范；正式稽查程序以有权机关依法启动和送达的文书为准</td></tr>';
 
 
   h += '</table>';
@@ -4867,10 +5458,36 @@ function _renderReportFallback(r, allF) {
   if (ftypeCounts.housing_fund) typeParts.push('公积金' + ftypeCounts.housing_fund + '份');
   if (ftypeCounts.sales_invoice) typeParts.push('销项发票' + ftypeCounts.sales_invoice + '份');
   if (ftypeCounts.purchase_invoice) typeParts.push('进项发票' + ftypeCounts.purchase_invoice + '份');
+  if (ftypeCounts.invoice_mixed) typeParts.push('逐票核验混合购销发票' + ftypeCounts.invoice_mixed + '份');
   if (ftypeCounts.input_vat_deduction) typeParts.push('进项抵扣' + ftypeCounts.input_vat_deduction + '份');
   if (ftypeCounts.bank || ftypeCounts.bank_statement) typeParts.push('银行流水' + (ftypeCounts.bank || ftypeCounts.bank_statement) + '份');
   if (typeParts.length > 0) h += typeParts.join('、') + '，共' + typeParts.length + '类资料';
   h += '，提取有效数据' + (totalRecords || '若干') + '条。</p>';
+
+  var parseSummary = r.parse_quality_summary || {};
+  if (parseSummary.total) {
+    var parseTone = parseSummary.release_blocked ? '#b45309' : '#166534';
+    h += '<p class="i2"><strong>解析质量。</strong><span style="color:' + parseTone + '">可用解析' + (parseSummary.usable || 0) + '份、部分解析' + (parseSummary.partial || 0) + '份、解析阻断' + (parseSummary.blocked || 0) + '份，其中' + (parseSummary.calculation_ready || 0) + '份可进入自动计算候选。</span>' +
+      (parseSummary.release_blocked ? ' 部分解析或阻断资料已转为补件/重解析缺口，本报告只能作为内部草稿，不能正式发布。' : ' 解析质量门已通过，但资料真实性、合法性和税务结论仍须人工审理。') + '</p>';
+    if (parseSummary.invoice_subject_blocker_count) {
+      h += '<p class="i2" style="color:#b91c1c"><strong>发票主体归属门禁。</strong>本轮仍有' + parseSummary.invoice_subject_blocker_count + '张/组发票存在账套主体、购销方向或关键字段冲突，已停止进入进销项金额计算并阻断正式发布：' + (parseSummary.invoice_subject_blockers || []).map(function(item){return (item.source_name || '未命名发票') + '/' + (item.unit_ref || '整份文件') + (item.invoice_no ? '/票号' + item.invoice_no : '') + '（' + (item.state_label || item.state || '待核验') + '：' + (item.basis || '') + '）';}).join('；') + '。</p>';
+    }
+  }
+
+  var ocrReceipts = fileResults.map(function(item){return item && item.parse_receipt || {};}).filter(function(receipt){return receipt.extraction_method === 'ocr';});
+  if (ocrReceipts.length) {
+    var ocrRuntime = ocrReceipts[0].ocr_runtime_status || {};
+    var ocrCandidates = ocrReceipts.reduce(function(total, receipt){return total + ((receipt.field_review_candidates || []).length || 0);},0);
+    var ocrApplied = ocrReceipts.reduce(function(total, receipt){return total + (((receipt.field_review_summary || {}).approved_applied) || 0);},0);
+    h += '<p class="i2"><strong>扫描件识别。</strong>' + (ocrRuntime.ready ? ('离线OCR引擎已就绪（' + ((ocrRuntime.engines || []).join('、') || '本机引擎') + '）') : ('OCR引擎未就绪：' + (ocrRuntime.blocking_reason || '原因待核验'))) + '；本轮生成关键字段候选' + ocrCandidates + '项，已在本轮按原文件指纹和定位套用独立复核结果' + ocrApplied + '项。未完成逐字段确认、不同人员复核和下一轮全量复查前，不得作为确定金额或正式发布依据。</p>';
+  }
+
+  var documentEvidence = r.document_evidence_index || [];
+  if (documentEvidence.length) {
+    var locatedDocuments = documentEvidence.filter(function(item){return (item.source_locator_coverage || 0) === 100;}).length;
+    var mappedDocuments = documentEvidence.filter(function(item){return item.field_mapping_status === 'complete';}).length;
+    h += '<p class="i2"><strong>证据定位。</strong>已为' + documentEvidence.length + '份资料建立文档级索引，其中' + locatedDocuments + '份达到解析行100%定位覆盖，' + mappedDocuments + '份完成财税字段映射。定位和字段映射只用于回查与复核，不替代原件真实性、合法性和关联性审查。</p>';
+  }
   
   h += '<p class="i2"><strong>数据概览。</strong>';
   var ov = [];
@@ -4911,12 +5528,60 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   
 
 
-  h += '<p class="i2">经分析，共发现<strong>' + allF.length + '</strong>项问题，其中高风险' + risks.length + '项、中风险' + mids.length + '项、低风险' + lows.length + '项。各项问题的事实认定如下：</p>';
+  var reportCards = r.risk_register || ((r._report_package||{}).risk_register) || [];
+  var reportTasks = r.rectification_tasks || ((r._report_package||{}).rectification_tasks) || [];
+  var reportRecheck = r.recheck_plan || ((r._report_package||{}).recheck_plan) || {};
+  var coverageClosure = r.coverage_closure || ((r.scenario_execution||{}).coverage_closure) || {};
+  var closureCounts = coverageClosure.counts || {};
+  if (coverageClosure.total_items) {
+    h += '<h3>一键分析闭环台账</h3>';
+    h += '<p class="i2">本轮应查项目共<strong>' + coverageClosure.total_items + '</strong>项，全部已生成唯一处置状态和原因；静默跳过<strong>' + (coverageClosure.silent_skip_count||0) + '</strong>项。未见阈值异常不等同于企业完全合规，资料不足、执行失败和待人工复核事项必须进入下一轮。</p>';
+    h += '<table class="tbl"><thead><tr><th>已发现</th><th>未见阈值异常</th><th>资料不足</th><th>不适用</th><th>执行失败</th><th>待人工复核</th></tr></thead><tbody><tr>' +
+      '<td>' + (closureCounts.finding||0) + '</td>' +
+      '<td>' + (closureCounts.no_exception_observed||0) + '</td>' +
+      '<td>' + (closureCounts.insufficient_data||0) + '</td>' +
+      '<td>' + (closureCounts.not_applicable||0) + '</td>' +
+      '<td>' + (closureCounts.execution_failed||0) + '</td>' +
+      '<td>' + (closureCounts.human_review_required||0) + '</td></tr></tbody></table>';
+    h += '<details style="margin:10px 0 18px"><summary style="cursor:pointer;font-weight:600;color:#1e3a8a">展开全部规则与场景执行明细</summary>';
+    h += '<table class="tbl"><thead><tr><th>编号</th><th>类型</th><th>项目</th><th>状态</th><th>原因/下一步</th></tr></thead><tbody>';
+    (coverageClosure.items||[]).forEach(function(item){
+      h += '<tr><td>' + escHtml(item.item_id||'') + '</td><td>' + escHtml(item.item_type==='atomic_rule'?'通用规则':(item.item_type==='industry_scene'?'行业场景':'治理门禁')) + '</td><td>' + escHtml(item.name||'') + '</td><td>' + escHtml(item.status_label||item.status||'') + '</td><td>' + escHtml(item.reason||'') + '</td></tr>';
+    });
+    h += '</tbody></table></details>';
+  }
+  h += '<p class="i2">经分析，共形成<strong>' + allF.length + '</strong>项待核事项。风险等级和分数仅用于安排核验顺序，不代表违法定性、确定税额、处罚或移送结论。</p>';
 
 
   
 
 
+  if (reportCards.length > 0) {
+    for (var rci = 0; rci < reportCards.length; rci++) {
+      var card = reportCards[rci] || {};
+      var ce = card.evidence || {};
+      var cim = card.investigation_method || {};
+      var cp = card.policy || {};
+      var csteps = cim.steps || [];
+      h += '<div style="border:1px solid #cbd5e1;border-radius:8px;padding:14px;margin:12px 0;background:#fff">';
+      h += '<p class="i2" style="margin:0 0 8px"><strong>【风险卡' + (rci+1) + '】' + (card.title||'待核涉税事项') + '</strong></p>';
+      h += '<p class="i2"><strong>编号：</strong>' + (card.risk_id||'') + '　<strong>核验优先级：</strong>' + (card.priority_level||'待核验') + '　<strong>当前状态：</strong>' + (card.conclusion_state||'待人工复核') + '</p>';
+      h += '<p class="i2"><strong>完整表述：</strong>' + (card.statement||'') + '</p>';
+      h += '<p class="i2"><strong>待证事实：</strong>' + (card.target_fact||'') + '</p>';
+      h += '<p class="i2"><strong>仍缺资料：</strong>' + ((card.missing_information||[]).join('、')||'暂无明确缺口，仍须复核完整性') + '</p>';
+      h += '<p class="i2"><strong>竞争解释：</strong>' + ((card.competing_explanations||[]).join('、')||'尚待核验') + '</p>';
+      h += '<p class="i2"><strong>调查起点：</strong>' + (cim.start||'先确定主体、事项、期间和业务主键') + '</p>';
+      if (csteps.length) {
+        h += '<ol style="margin:6px 0 8px 32px">';
+        for (var csi=0; csi<csteps.length; csi++) h += '<li>' + (typeof csteps[csi]==='string' ? csteps[csi] : (csteps[csi].action||'')) + '</li>';
+        h += '</ol>';
+      }
+      h += '<p class="i2"><strong>停止条件：</strong>' + (cim.stop_condition||'资料不足或主要反向解释未核验时停止外推') + '</p>';
+      h += '<p class="i2"><strong>政策状态：</strong>' + (cp.validity||'待按事实期间核验官方有效依据') + '</p>';
+      h += '<p class="i2"><strong>证据边界：</strong>支持材料' + ((ce.supporting||[]).length) + '项、反向材料' + ((ce.opposing||[]).length) + '项；系统索引不替代原件核验、法定取证和人工审签。</p>';
+      h += '</div>';
+    }
+  } else {
   for (var fi = 0; fi < allSorted.length; fi++) {
 
 
@@ -5216,7 +5881,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
     }
 
 
-    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑤ 涉及法规：</strong>' + (f.policy_ref || '《税收征收管理法》及《税务合规工作规程》相关规定') + '</p>';
+    h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>⑤ 待核依据：</strong>' + (f.policy_ref || '须按事实期间、地区、纳税人身份、交易性质和程序阶段取得官方有效依据并完成人工复核') + '</p>';
 
 
     if (f.suggestion && f.suggestion.length > 5) {
@@ -5250,6 +5915,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
 
 
   }
+  }
 
 
   // ═══ 第四章：税务合规结论 ═══
@@ -5263,6 +5929,19 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
 
   // ── 推理引擎综合结论卡片 ──
 
+  if (reportCards.length > 0) {
+    var qgateSummary = r._quality_gate || {};
+    var methodSummary = r._methodology_applied || {};
+    h += '<div style="margin:0 0 18px;padding:18px;background:#eff6ff;border:1px solid #93c5fd;border-radius:10px">';
+    h += '<p class="i2" style="margin:0 0 8px"><strong>报告状态：</strong>' + (r.release_status||'草稿_待人工复核') + '</p>';
+    h += '<p class="i2"><strong>本轮结论：</strong>系统在已上传资料范围内形成' + reportCards.length + '项待核风险卡。优先级只用于安排核验顺序；资料缺失、模型评分和行业对标不得单独作为违法事实。</p>';
+    h += '<p class="i2"><strong>方法论门禁：</strong>' + (methodSummary.portfolio_acceptance_status||'待核验') + '；失败场景' + (methodSummary.portfolio_failed_scenes||0) + '个。<strong>内部草稿门禁：</strong>' + (qgateSummary.draft_gate_passed?'通过':'未通过') + '。<strong>正式发布：</strong>' + (qgateSummary.formal_release_eligible?'可发布':'不可发布/待独立复核') + '。</p>';
+    if ((qgateSummary.formal_release_blockers||[]).length) {
+      h += '<p class="i2" style="color:#b91c1c"><strong>正式发布待办：</strong>' + (qgateSummary.formal_release_blockers||[]).map(function(item){return item.message||item.code||'';}).join('；') + '</p>';
+    }
+    h += '<p class="i2"><strong>下一步：</strong>按第五章任务补充真实资料、完成差异复算和反证核验后，发起第' + (reportRecheck.next_round||'下一') + '轮全量合规核验。本轮指引不承诺风险必然消除。</p>';
+    h += '</div>';
+  } else {
 
   var synthFinding = null;
 
@@ -5366,7 +6045,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   // 证据链完整性
 
 
-  h += '<p class="i2"><strong>证据链完整性：</strong>本次税务审查覆盖了18个分析域，共触发证据链交叉验证。所有高风险发现均经过多源数据交叉验证——银行流水、销项发票、进项发票三源比对构成了核心证据闭环。每条发现均标注了数据来源（数据源+规则ID+查证方法），可供后续审理环节逐条追溯复核。</p>';
+  h += '<p class="i2"><strong>证据链状态：</strong>本轮仅在已上传且可解析的资料范围内形成待核事实和资料缺口。证据编号用于内部溯源，不代表真实性、合法性、关联性或来源独立性已经完成复核；单一来源、资料缺失和反向解释均须在后续任务中逐项处理。</p>';
 
 
   
@@ -5390,25 +6069,26 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   if (overall === '高风险' || overall === '极高风险') {
 
 
-    h += '被审查企业存在多项高风险涉税事项，涉及银行收款与开票金额严重偏差（涉嫌隐匿收入）、基础经营费用缺失（经营实质存疑）、供应商与客户存在关联交易嫌疑等核心问题。建议在收到本报告后立即启动深度核查程序，重点核实：银行收款来源的真实性、经营场所和经营能力的实际情况、关联交易的商业实质。同时要求被审查企业在15个工作日内补充提交缺失的9类资料，为后续审理提供完整的证据基础。';
+    h += '本轮存在需要优先核验的观察差异。应按每项风险卡锁定主体、事项、期间和业务主键，补充真实资料并同时检验正常商业解释；在证据、政策、金额底稿和人工复核完成前，不得写成违法定性或确定税额。';
 
 
   } else if (overall === '中风险') {
 
 
-    h += '被审查企业存在一定数量的涉税风险事项，主要集中在发票合规、社保缴纳、资料完备度等方面。虽未发现明显的逃税或虚开信号，但多项中低风险问题叠加可能影响企业的纳税信用等级和税务合规形象。建议被审查企业在收到本报告后15个工作日内完成整改，补充相关资料并规范财务税务处理。';
+    h += '本轮形成若干待核事项，须结合真实业务、原始资料和业务期间有效政策逐项复核。风险数量和等级仅用于排序，不自动影响纳税信用，也不代表违法事实。';
 
 
   } else {
 
 
-    h += '被审查企业整体税务合规状况良好，仅存在少量低风险事项和税收优惠提醒。建议被审查企业继续保持规范的财务税务管理，并对报告中指出的低风险事项进行完善。';
+    h += '本轮已上传资料中未形成高优先级观察信号，但不能据此证明全部期间和全部事项完全合规；仍应核对资料覆盖范围、未上传资料及政策适用条件。';
 
 
   }
 
 
   h += '</p>';
+  }
 
 
   // ═══ 第五章：处理处罚建议 ═══
@@ -5416,21 +6096,45 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
 
     var qg = r._quality_gate || {};
 
-  h += '<h2 id="ch4b">附：验收标准自检</h2>';
-  h += '<div class="wide-table"><table><thead><tr><th>验收项</th><th>标准</th><th>当前</th><th>状态</th></tr></thead><tbody>';
-  h += '<tr><td>数据一致率</td><td>100%</td><td>' + (qg.data_consistency_rate||'未检') + '%</td><td>' + ((qg.data_consistency_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
-  h += '<tr><td>关键事实可追溯率</td><td>100%</td><td>' + (qg.key_facts_traceability_rate||'未检') + '%</td><td>' + ((qg.key_facts_traceability_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
-  h += '<tr><td>高影响反证处理率</td><td>100%</td><td>' + (qg.adverse_evidence_rate||'未检') + '%</td><td>' + ((qg.adverse_evidence_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
-  h += '<tr><td>法律时效核验率</td><td>100%</td><td>' + (qg.legal_validity_rate||'未检') + '%</td><td>' + ((qg.legal_validity_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
-  h += '<tr><td>金额可复算率</td><td>100%</td><td>' + (qg.amount_recomputability_rate||'未检') + '%</td><td>' + ((qg.amount_recomputability_rate||0)>=100 ? '<span style="color:#166534">通过</span>' : '<span style="color:#dc2626">未达标</span>') + '</td></tr>';
-  h += '</tbody></table></div>';
-  if (!qg.gate_passed) {
-    h += '<p class="i2" style="background:#fef2f2;padding:10px;border-radius:6px;font-size:13px"><strong>验收警告：</strong>五项标准未全部达标。本报告为系统辅助分析结果，不得直接作为正式稽查结论、补税金额或违法定性使用。请经有权人员复核确认后签署。</p>';
+  h += '<h2 id="ch4b">附：内部草稿质量自检与正式发布边界</h2>';
+  h += '<div class="wide-table"><table><thead><tr><th>验收项</th><th>评价口径</th><th>当前</th><th>状态</th></tr></thead><tbody>';
+  var metricDetails = qg.metric_details || [];
+  if (metricDetails.length) {
+    metricDetails.forEach(function(metric){
+      var current = metric.rate === null || typeof metric.rate === 'undefined' ? '不适用' : metric.rate + '% (' + (metric.numerator||0) + '/' + (metric.denominator||0) + ')';
+      var label = metric.status === 'passed' ? '<span style="color:#166534">通过</span>' : (metric.status === 'not_applicable' ? '<span style="color:#64748b">不适用</span>' : '<span style="color:#dc2626">待完成</span>');
+      h += '<tr><td>' + (metric.label||metric.code||'') + '</td><td>' + (metric.reason||'逐项核验') + '</td><td>' + current + '</td><td>' + label + '</td></tr>';
+    });
+  } else {
+    h += '<tr><td colspan="4">尚未生成可核验的质量指标；不得显示为100%通过。</td></tr>';
   }
-h += '<h2 id="ch5">第五章 整改建议</h2>';
+  h += '</tbody></table></div>';
+  h += '<p class="i2" style="background:#fef2f2;padding:10px;border-radius:6px;font-size:13px"><strong>发布边界：</strong>本表仅评价内部草稿质量。正式发布状态：' + (qg.formal_release_eligible?'可发布':'不可发布') + '。在证据、法规时效、金额底稿、人员分离和受控发布全部完成前，不得作为正式对外结论、补税金额或违法定性使用。</p>';
+h += '<h2 id="ch5">第五章 合规改进与复查任务</h2>';
 
 
-  h += '<p class="i2">根据本次发现的问题的事实和被审查企业的风险等级，按照紧急程度和影响程度，分级提出以下建议：</p>';
+  h += '<p class="i2">以下内容是查清事实、修正真实差错和改进内部控制的操作指引，不保证执行后风险必然消除，也不得用于倒签、补造、删除或覆盖历史资料。</p>';
+
+  if (reportTasks.length > 0) {
+    for (var rti=0; rti<reportTasks.length; rti++) {
+      var task = reportTasks[rti] || {};
+      h += '<div style="border-left:4px solid #2563eb;background:#f8fafc;padding:12px 14px;margin:10px 0">';
+      h += '<p class="i2" style="margin:0 0 6px"><strong>【任务' + (rti+1) + '】' + (task.task_id||'') + ' / 风险卡 ' + (task.risk_id||'') + '</strong></p>';
+      h += '<p class="i2"><strong>目标：</strong>' + (task.objective||'') + '</p>';
+      h += '<p class="i2"><strong>执行步骤：</strong></p><ol style="margin:4px 0 8px 32px">';
+      (task.actions||[]).forEach(function(item){ h += '<li>' + item + '</li>'; });
+      h += '</ol>';
+      h += '<p class="i2"><strong>应补资料：</strong>' + ((task.required_documents||[]).join('、')||'按风险卡逐项确认') + '</p>';
+      h += '<p class="i2"><strong>完成标准：</strong>' + ((task.completion_criteria||[]).join('；')||'待人工确定') + '</p>';
+      h += '<p class="i2"><strong>回传证据：</strong>' + ((task.evidence_to_return||[]).join('、')||'待确定') + '</p>';
+      h += '<p class="i2" style="color:#b91c1c"><strong>禁止：</strong>' + ((task.forbidden_actions||[]).join('；')||'禁止倒签补造和无依据调账') + '</p>';
+      h += '<p class="i2"><strong>责任人与期限：</strong>' + (task.owner||'待指定') + '；' + (task.due_date||'待结合实际期限确定') + '</p>';
+      h += '</div>';
+    }
+    h += '<h3>下一轮复查</h3>';
+    h += '<p class="i2">本轮为第' + (reportRecheck.current_round||1) + '轮，补充资料并完成真实整改后发起第' + (reportRecheck.next_round||2) + '轮全量合规核验。必须重跑：' + ((reportRecheck.must_rerun||[]).join('、')||'全部适用场景') + '。</p>';
+    h += '<p class="i2"><strong>趋于合规判断：</strong>' + (reportRecheck.convergence_rule||'以风险状态、资料缺口和控制缺陷持续减少且证据质量提高为准，不以分数下降单独判定。') + '</p>';
+  } else {
 
 
   
@@ -5559,16 +6263,17 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
   h += '<h3>四、整改期限</h3>';
 
 
-  h += '<p class="i2">1. <strong>P0事项：</strong>被审查企业应在收到本报告之日起<strong>5个工作日</strong>内，对以上P0事项逐条书面说明情况并提供相关佐证资料。逾期未回复的，税务合规部门将依据现有相关数据直接作出处理决定。</p>';
+  h += '<p class="i2">1. <strong>高优先级事项：</strong>企业应结合申报期限、法定程序期限和事项重要性确定内部完成时间；资料未补齐时保留为未决事项，系统不得依据现有数据直接作出处理决定。</p>';
 
 
-  h += '<p class="i2">2. <strong>P1事项：</strong>被审查企业应在收到本报告之日起<strong>15个工作日</strong>内，完成P1事项的整改，并向税务合规部门提交书面整改报告及相关证明材料。</p>';
+  h += '<p class="i2">2. <strong>一般待核事项：</strong>按事实和有效依据决定是否更正账务、申报或内部流程；无事实依据时不得为了降低系统分数而调整。</p>';
 
 
-  h += '<p class="i2">3. <strong>P2事项：</strong>被审查企业应在收到本报告之日起<strong>30个工作日</strong>内，对P2事项进行完善，并在后续税务申报和财务管理中持续规范。</p>';
+  h += '<p class="i2">3. <strong>持续改进事项：</strong>完成资料、底稿和内部控制改进后上传完成证据，发起新一轮全量分析并保留轮次比较。</p>';
 
 
   h += '<p class="i2">4. 被审查企业如对以上发现的事实有异议，可依据第六章规定的陈述申辩权和听证权，在法定期限内提出。</p>';
+  }
 
 
   // ═══ 第六章：告知权利义务 ═══
@@ -5577,7 +6282,7 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
   h += '<h2 id="ch6">第六章 您的权利</h2>';
 
 
-  h += '<p class="i2">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被审查企业「' + (te.name || te.company_name || '') + '」在本次审查中依法享有以下权利。系统仅提供线索核验辅助，不得直接用于正式稽查结论：</p>';
+  h += '<p class="i2">被分析企业「' + (te.name || te.company_name || '') + '」依法享有知情、保密、陈述申辩、申请回避、救济等权利。具体权利、条件和期限应以现行法律规范及有权机关依法送达的文书为准；本系统仅提供线索核验辅助：</p>';
 
   h += '<h3>一、知情权</h3>';
   h += '<p class="i2">有权了解审查的法律依据、审查范围、审查期间以及审查人员的身份信息。</p>';
@@ -5611,7 +6316,7 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
   h += '<h3>五、陈述申辩权</h3>';
 
 
-  h += '<p class="i2">被审查企业对税务合规认定的事实、依据和建议，有权进行陈述和申辩。税务合规部门应当充分听取被审查企业的意见，对其提出的事实、理由和证据进行复核。被审查企业提出的事实、理由或者证据成立的，税务合规部门应当采纳。陈述申辩应当在收到《税务合规报告》后<strong>7日内</strong>以书面形式提交。</p>';
+  h += '<p class="i2">企业有权对系统风险卡中的事实、依据、数据口径和指引提出说明并上传反向证据。涉及正式行政程序时，陈述申辩方式和期限以有权机关依法送达的文书及现行规定为准，系统不得自行设定法定期限。</p>';
 
 
   h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政处罚法》第三十二条</p>';
@@ -5623,10 +6328,10 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
   h += '<h3>六、要求听证权</h3>';
 
 
-  h += '<p class="i2">对拟作出的税务行政处罚决定，罚款金额达到法定听证标准的（对公民处以2000元以上、对法人或其他组织处以10000元以上罚款），被审查企业有权在收到《税务行政处罚事项告知书》后<strong>3日内</strong>书面申请听证。税务合规部门应当在收到听证申请后<strong>15日内</strong>组织听证。听证不收取费用。</p>';
+  h += '<p class="i2">本系统不作行政处罚或听证决定。如企业收到有权机关送达的行政处罚告知文书，应按该文书和现行法律核验是否享有听证权、申请方式和期限，并及时交由有权人员处理。</p>';
 
 
-  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政处罚法》第四十二条、《税务行政处罚听证程序实施办法（试行）》</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">具体适用依据、标准和期限须按实际送达文书及当时有效规定核验。</p>';
 
 
   
@@ -5635,10 +6340,10 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
   h += '<h3>七、申请行政复议权</h3>';
 
 
-  h += '<p class="i2">被审查企业对税务合规部门作出的处理决定不服的，可以自收到《税务处理决定书》之日起<strong>60日内</strong>，向上一级税务机关申请行政复议。申请行政复议不影响处理决定的执行，但被审查企业按规定提供相应担保的，经税务机关确认后可以暂缓执行。对行政复议决定不服的，可以依法向人民法院提起行政诉讼。</p>';
+  h += '<p class="i2">本系统报告不是税务处理决定。企业如收到正式税务文书，应按文书载明的权利、期限和受理机关，结合现行法律判断是否申请行政复议，并及时取得专业意见。</p>';
 
 
-  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政复议法》第九条、第二十一条</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">行政复议规则须结合文书类型、前置条件和最新有效法律逐案核验。</p>';
 
 
   
@@ -5647,10 +6352,10 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
   h += '<h3>八、提起行政诉讼权</h3>';
 
 
-  h += '<p class="i2">被审查企业对税务合规部门作出的处理决定或行政复议决定不服的，可以自收到《税务处理决定书》或《行政复议决定书》之日起<strong>6个月内</strong>，依法向有管辖权的人民法院提起行政诉讼。在诉讼期间，不停止处理决定的执行，但法律另有规定的除外。</p>';
+  h += '<p class="i2">本系统不判断行政诉讼条件或期限。企业如收到税务处理、处罚或复议文书，应以实际文书和现行法律为准核验起诉条件、期限及管辖。</p>';
 
 
-  h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《中华人民共和国行政诉讼法》第四十五条、第四十六条</p>';
+  h += '<p class="i1" style="font-size:12px;color:#64748b">建议对正式文书单独进行程序与救济期限核验。</p>';
 
 
   
@@ -5660,25 +6365,25 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
 
 
   h += '<h2 id="ch7">第七章 签字页</h2>';
-  h += '<p class="i2" style="background:#fef3c7;padding:10px;border-radius:6px;font-size:12px"><strong>角色分离提醒：</strong>根据国家税务总局令第52号《税务稽查案件办理程序规定》，正式稽查应当实行选案、检查、审理、执行四环节分工制约。本系统为辅助分析工具，不应由同一角色完成全部流程。正式报告须经编制、复核、审理分别签署。</p>';
+  h += '<p class="i2" style="background:#fef3c7;padding:10px;border-radius:6px;font-size:12px"><strong>角色分离提醒：</strong>本系统为企业内部辅助分析工具。风险卡编制、税务复核和报告批准应由不同授权角色完成；系统分析不得冒充税务机关检查、审理或执行。</p>';
 
 
   h += '<div class="seal" style="margin-top:40px;padding:24px 0;line-height:3">';
 
 
-  h += '<p>稽 查 执 行 人：_______________　　执法证件号：_______________</p>';
+  h += '<p>内部报告编制人：_______________　　日期：_______________</p>';
 
 
-  h += '<p>审　理　人：_______________　　执法证件号：_______________</p>';
+  h += '<p>税 务 复 核 人：_______________　　日期：_______________</p>';
 
 
-  h += '<p>税务合规部门（盖章）：_______________</p>';
+  h += '<p>企业内部批准人/授权标识（如适用）：_______________</p>';
 
 
   h += '<p style="margin-top:20px">报告日期：' + dateStr + '</p>';
 
 
-  h += '<p style="margin-top:12px;font-size:12px;color:#94a3b8">本报告一式三份：税务合规部门留存一份，被审查企业一份，报送上一级税务机关备案一份。</p>';
+  h += '<p style="margin-top:12px;font-size:12px;color:#94a3b8">本报告为企业风险防控系统生成的内部辅助分析草稿。是否形成正式文书、份数、送达和归档方式，由有权主体依适用制度另行确定。</p>';
 
 
   h += '</div>';
@@ -5885,10 +6590,10 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
   h += '<div class="appendix"><div class="atitle">附件五：银行流水数据</div>';
 
 
-  h += '<div class="aitem">· 银行流水' + ((r.bank_stats && r.bank_stats.count) || 'N/A') + '条</div>';
+  h += '<div class="aitem">· 银行流水' + ((r.bank_stats && r.bank_stats.count) || bi['笔数'] || 0) + '条</div>';
 
 
-  h += '<div class="aitem">· 累计收款' + ((bi['总收款']||0)/10000).toFixed(2) + '万元 · 累计付款' + ((bi['总付款']||0)/10000).toFixed(2) + '万元</div>';
+  h += '<div class="aitem">· 累计收款' + (_amountNumber(bi['总收款'])/10000).toFixed(2) + '万元 · 累计付款' + (_amountNumber(bi['总付款'])/10000).toFixed(2) + '万元</div>';
 
 
   h += '</div>';
@@ -5906,7 +6611,16 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
     r.file_results.forEach(function(fr, fi) {
 
 
-      h += '<div class="aitem">' + (fi+1) + '. ' + (fr.file || '') + ' (' + (fr.type || '未知') + ')</div>';
+      var receipt = fr.parse_receipt || {};
+      var qualityText = {usable:'可用解析',partial:'部分解析',blocked:'解析阻断'}[receipt.quality_status] || '待核验';
+      var fileName = typeof fr.file === 'string' ? fr.file : ((fr.file || {}).original_name || '');
+      var subject = receipt.invoice_subject_assessment || {};
+      h += '<div class="aitem">' + (fi+1) + '. ' + fileName + ' (' + (fr.type || '未知') + ') · ' + qualityText +
+        (receipt.confidence == null ? '' : ' · 置信度' + receipt.confidence + '%') +
+        (receipt.receipt_hash ? ' · 回执' + receipt.receipt_hash.slice(0,12) + '…' : '') +
+        (receipt.safe_for_automatic_calculation ? ' · 可进入自动计算候选' : ' · 不得直接用于金额定稿') +
+        (receipt.extraction_method === 'ocr' ? ' · 字段候选' + ((receipt.field_review_candidates || []).length || 0) + '项/已复核套用' + (((receipt.field_review_summary || {}).approved_applied) || 0) + '项' : '') +
+        (subject.state ? '<br>发票主体：' + (subject.state_label || subject.state) + ' · 方向' + (subject.direction || '存疑') + ' · 逐票' + (subject.verified_unit_count || 0) + '/' + (subject.unit_count || 0) + '通过' + (subject.blocked_unit_count ? '、阻断' + subject.blocked_unit_count + '张/组' : '') + ' · ' + (subject.basis || '') + ((subject.units || []).length ? '<br>' + subject.units.map(function(unit){return (unit.unit_ref || unit.unit_id || '发票单元') + (unit.invoice_no ? '/票号' + unit.invoice_no : '') + '：' + (unit.state_label || unit.state || '待核验') + '，方向' + (unit.direction || '存疑');}).join('；') : '') : '') + '</div>';
 
 
     });
@@ -5917,6 +6631,17 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
 
   h += '</div>';
 
+  if (r.document_evidence_index && r.document_evidence_index.length) {
+    h += '<div class="appendix"><div class="atitle">附件七：文档证据定位与字段映射索引</div>';
+    r.document_evidence_index.forEach(function(item, index) {
+      var mapped = Object.keys(item.mapped_fields || {});
+      var suggested = (item.suggested_document_types || []).map(function(row){return (row.label || row.type || '待确认') + (row.confidence == null ? '' : '(' + row.confidence + '%)');});
+      var subject = item.invoice_subject_assessment || {};
+      h += '<div class="aitem">' + (index + 1) + '. ' + (item.source_name || '') + ' · ' + (item.quality_status || '待核验') + ' · 定位覆盖' + (item.source_locator_coverage || 0) + '% · ' + ((item.locator_kinds || []).join('、') || '无精确定位') + '<br>映射字段：' + (mapped.join('、') || '无') + (suggested.length ? ' · 资料类型建议：' + suggested.join('；') + '（待人工确认）' : '') + (subject.state ? '<br>主体归属：' + (subject.state_label || subject.state) + ' · 方向' + (subject.direction || '存疑') + ' · 逐票' + (subject.verified_unit_count || 0) + '/' + (subject.unit_count || 0) + '通过 · ' + (subject.basis || '') : '') + ' · 回执' + ((item.receipt_hash || '').slice(0,12) || '-') + '…</div>';
+    });
+    h += '<div class="aitem">边界：资料类型建议不得自动替代主体方向、业务性质、政策适用和证据三性审查。</div></div>';
+  }
+
 
   
 
@@ -5924,7 +6649,7 @@ h += '<h2 id="ch5">第五章 整改建议</h2>';
   if (r.quality_check) {
 
 
-    h += '<div class="appendix"><div class="atitle">附件七：质量标准自检</div>';
+    h += '<div class="appendix"><div class="atitle">附件八：质量标准自检</div>';
 
 
     var qc = r.quality_check;
@@ -6269,66 +6994,61 @@ function _getParagraphHTML(i) {
 // ==================== 导出报告 ====================
 
 
-function exportTaxDocReport() {
+async function exportTaxDocReport() {
 
-
-  var area = document.getElementById('tda-report-area');
-
-
-  if (!area) return;
-
-
-  var content = area.innerHTML;
-
-
-  var title = '涉税资料分析报告';
-
-
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + title + '</title>'
-
-
-    + '<style>body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;max-width:960px;margin:0 auto;padding:20px;color:#333;line-height:1.8}'
-
-
-    + 'h2{color:#1e293b;border-bottom:2px solid #e2e8f0;padding-bottom:8px}'
-
-
-    + '@media print{body{padding:0;font-size:11pt}}</style></head><body>'
-
-
-    + '<h1 style="text-align:center">' + title + '</h1>'
-
-
-    + '<p style="text-align:center;color:#64748b">生成时间：' + new Date().toLocaleString('zh-CN') + '</p>'
-
-
-    + content + '</body></html>';
-
-
-  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
-
-
-  var url = URL.createObjectURL(blob);
-
-
-  var a = document.createElement('a');
-
-
-  a.href = url;
-
-
-  a.download = title + '_' + new Date().toISOString().substring(0,10) + '.html';
-
-
-  a.click();
-
-
-  URL.revokeObjectURL(url);
-
-
-  toast('报告已导出', 'success');
-
-
+  var report = window._reportData || taxDocReportData || {};
+  var round = report.compliance_round || {};
+  var roundId = round.round_id || '';
+  if (!roundId) {
+    toast('当前报告尚未形成受控分析轮次，请重新执行一键分析', 'warning');
+    return;
+  }
+  try {
+    var cid = _tdaCid();
+    var detailResp = await fetch('/api/compliance/rounds/' + encodeURIComponent(roundId) + '?company_id=' + encodeURIComponent(cid));
+    var detail = await _safeJson(detailResp, '报告发布状态');
+    if (!detailResp.ok || !detail.ok) throw new Error(detail.detail || detail.message || '无法读取报告发布状态');
+    var isOfficial = (detail.round || {}).status === 'published';
+    var recipient = '', purpose = '';
+    if (isOfficial) {
+      recipient = prompt('请输入正式报告接收对象（企业、部门或人员）：', (report.target_entity || {}).name || '本企业管理层');
+      if (recipient === null || !String(recipient).trim()) return;
+      purpose = prompt('请输入本次正式交付用途：', '企业内部税务合规决策');
+      if (purpose === null || !String(purpose).trim()) return;
+    }
+    var response = await fetch('/api/compliance/rounds/' + encodeURIComponent(roundId) + '/deliver?company_id=' + encodeURIComponent(cid), {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        delivery_type: isOfficial ? 'official' : 'draft',
+        format: 'html',
+        recipient: recipient,
+        purpose: purpose
+      })
+    });
+    if (!response.ok) {
+      var error = await response.json().catch(function(){return {detail:'报告交付失败'};});
+      throw new Error(error.detail || error.message || '报告交付失败');
+    }
+    var blob = await response.blob();
+    var disposition = response.headers.get('Content-Disposition') || '';
+    var match = disposition.match(/filename="?([^";]+)"?/i);
+    var filename = match ? match[1] : (isOfficial ? 'tax-compliance-official.html' : 'tax-compliance-draft.html');
+    var downloadUrl = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function(){ URL.revokeObjectURL(downloadUrl); }, 1000);
+    var exportBtn = document.getElementById('tda-export-btn');
+    if (exportBtn) exportBtn.textContent = isOfficial ? '下载正式报告' : '导出内部草稿';
+    toast(isOfficial ? '正式报告已交付，并记录接收对象和文件指纹' : '带水印内部草稿已导出', 'success');
+    return;
+  } catch (error) {
+    toast(error.message || '报告交付失败', 'error');
+  }
 }
 
 

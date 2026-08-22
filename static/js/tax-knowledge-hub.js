@@ -4,6 +4,21 @@
 
 var _khLoaded = {};
 var _khTab = 'audit-knowledge';
+
+function _khSummary(value, limit) {
+  var max = limit || 120;
+  if (value === null || typeof value === 'undefined') return '-';
+  if (Array.isArray(value)) {
+    return value.map(function(item){ return _khSummary(item, 40); }).join('、').substring(0, max);
+  }
+  if (typeof value === 'object') {
+    return Object.keys(value).slice(0, 6).map(function(key){
+      return key + '：' + _khSummary(value[key], 50);
+    }).join('；').substring(0, max);
+  }
+  return String(value).substring(0, max);
+}
+
 var KNOWLEDGE_HUB_GROUPS = [
   {id:'audit-knowledge', icon:'📚', name:'稽查知识库', purpose:'事实识别、调查步骤与实务经验', file:'audit_knowledge.json'},
   {id:'industry-data', icon:'🏭', name:'行业基准数据', purpose:'行业画像、指标区间与经营模式参照', files:['industry_data.json','industry_profiles.json']},
@@ -183,8 +198,11 @@ function filterKnowledgeHubIntegrated(query) {
 
 function _khFetch(file, cb) {
   if (_khLoaded[file]) { cb(_khLoaded[file]); return; }
-  fetch('/static/'+file+'?_t='+Date.now())
-    .then(function(r) { return r.json(); })
+  fetch('/api/knowledge/assets/'+encodeURIComponent(file)+'?_t='+Date.now())
+    .then(function(r) {
+      if (!r.ok) throw new Error('知识数据读取失败：HTTP '+r.status);
+      return r.json();
+    })
     .then(function(d) { _khLoaded[file] = d; cb(d); })
     .catch(function(e) { cb(null, e); });
 }
@@ -273,7 +291,7 @@ function _khLoadIndustryData(body) {
       h += '<div class="kh-meta">';
       var pc = idata.product_chains;
       Object.keys(pc).slice(0,10).forEach(function(k) {
-        h += '<span class="kh-badge">'+_khEsc(k)+' → '+_khEsc(String(pc[k]).substring(0,60))+'</span> ';
+        h += '<span class="kh-badge">'+_khEsc(k)+' → '+_khEsc(_khSummary(pc[k], 100))+'</span> ';
       });
       if (Object.keys(pc).length > 10) h += ' ...共'+Object.keys(pc).length+'条';
       h += '</div></div>';
@@ -294,7 +312,7 @@ function _khLoadIndustryData(body) {
       h += '<table class="kh-table"><tr><th>大分类</th><th>子行业</th></tr>';
       var im = idata.industry_map;
       Object.keys(im).slice(0,20).forEach(function(k) {
-        h += '<tr><td>'+_khEsc(k)+'</td><td>'+_khEsc(String(im[k]).substring(0,200))+'</td></tr>';
+        h += '<tr><td>'+_khEsc(k)+'</td><td>'+_khEsc(_khSummary(im[k], 200))+'</td></tr>';
       });
       h += '</table></div>';
     }

@@ -570,7 +570,7 @@ var ReportEngine = (function() {
     priority: 0,
     enabled: function() { return true; },
     render: function(data) {
-      return '<p class="i2">本案来源于电子经营资料自动预审系统推送。经依法受理并按照《税务合规工作规程》组织实施税务合规，以下为被查单位基本情况。</p>';
+      return '<p class="i2">本报告来源于企业主动提交的本轮经营资料。系统按内部财税风险核验方法形成辅助分析草稿，不代表税务机关立案、检查、审理或处理。</p>';
     }
   });
 
@@ -665,7 +665,7 @@ var ReportEngine = (function() {
       var scopeTaxes = _modulesDetectTaxScope(data);
       h += '<tr><td class="lbl">税务合规期间</td><td>' + esc(te.period || '') + '</td></tr>'
         + '<tr><td class="lbl">税务合规范围</td><td>涉税范围：' + scopeTaxes.join('、') + '（共' + data.files_count + '份经营资料）</td></tr>'
-        + '<tr><td class="lbl">执行标准</td><td>依据' + data.rules_used + '条税务合规指令及《税务合规工作规程》</td></tr>'
+        + '<tr><td class="lbl">执行标准</td><td>依据' + data.rules_used + '条税务合规指令及内部财税风险核验方法（不替代税务机关执法程序）</td></tr>'
         + '</table>';
 
       return h;
@@ -1377,7 +1377,7 @@ var ReportEngine = (function() {
       }
 
       // 证据链完整性
-      h += '<h3>证据链完整性</h3><p class="i2">所有高风险及税务合规重点事项的认定均有规则ID溯源和≥2域交叉验证。本次税务合规共激活<strong>' + chainList.length + '条</strong>线索链，符合《税务合规工作规程》关于证据必须真实、与所证明事项相关联的要求。</p>';
+      h += '<h3>证据链完整性</h3><p class="i2">所有高风险及税务合规重点事项的认定均有规则ID溯源和≥2域交叉验证。本次税务合规共激活<strong>' + chainList.length + '条</strong>线索链，符合内部财税风险核验方法（不替代税务机关执法程序）关于证据必须真实、与所证明事项相关联的要求。</p>';
 
       // 线索链使用
       if (typeof renderChainUsage === 'function') {
@@ -1790,7 +1790,7 @@ var ReportEngine = (function() {
       if (actions.length > 0) {
         actions.slice(0,8).forEach(function(a,i){h+='<p class="i2">'+(i+1)+'. '+esc(a)+'</p>';});
       }
-      h += '<p class="i2">根据相关税收法规规定，建议被查单位在收到本报告后15日内自查补税，并将整改情况书面回复税务合规部门。</p>';
+      h += '<p class="i2">上述内容仅为内部补证与整改指引。责任人、计划日期和完成标准应在整改任务单中确定；在事实、政策和金额未完成复核前，不得自动形成补税、处罚或风险已消除结论。</p>';
       return h;
     }
   });
@@ -1806,12 +1806,12 @@ var ReportEngine = (function() {
     enabled: function() { return true; },
     render: function() {
       return '<div class="rights-sec">'
-        + '<div class="rtitle">根据《中华人民共和国税收征收管理法》及《税务合规工作规程》，被查单位享有以下权利：</div>'
-        + '<div class="ritem">1. <b>申请回避权</b>：认为税务合规人员与本案有利害关系的，可在收到本报告之日起3日内申请回避。</div>'
-        + '<div class="ritem">2. <b>陈述申辩权</b>：对本报告认定的事实、证据、法律依据有异议的，可在收到本报告之日起5日内提出陈述申辩意见。</div>'
-        + '<div class="ritem">3. <b>听证权</b>：对拟作出的较大数额罚款有异议的，可在收到《税务行政处罚事项告知书》后3日内申请听证。</div>'
-        + '<div class="ritem">4. <b>复议权</b>：对税务处理决定或处罚决定不服的，可在收到决定书之日起60日内向上一级税务机关申请行政复议。</div>'
-        + '<div class="ritem">5. <b>诉讼权</b>：对税务处理决定或处罚决定不服的，可在收到决定书之日起6个月内向人民法院提起行政诉讼。</div>'
+        + '<div class="rtitle">本报告是企业内部风险核验草稿，企业可对其中事实、证据、政策和测算进行复核：</div>'
+        + '<div class="ritem">1. <b>补充与更正</b>：可提交真实存续资料、正常商业解释和反向证据。</div>'
+        + '<div class="ritem">2. <b>知情与可追踪</b>：可查看风险卡使用的资料、场景、政策版本和计算底稿。</div>'
+        + '<div class="ritem">3. <b>保密与最小使用</b>：商业秘密和个人信息应按授权范围处理。</div>'
+        + '<div class="ritem">4. <b>正式程序权利</b>：如进入税务机关程序，陈述申辩、听证、复议和诉讼的条件、期限及渠道，以实际送达文书和现行法律为准。</div>'
+        + '<div class="ritem">5. <b>系统边界</b>：本系统不作处理、处罚或救济决定。</div>'
         + '</div>';
     }
   });
@@ -1829,9 +1829,9 @@ var ReportEngine = (function() {
       var now = new Date();
       var dateStr = now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
       return '<div class="seal">'
-        + '<div>税务合规执行人：___________ （签名）  ' + dateStr + '</div>'
-        + '<div style="margin-top:10px">审理人：___________ （签名）</div>'
-        + '<div style="margin-top:20px">税务合规部门（盖章）：___________</div>'
+        + '<div>内部报告编制人：___________ （签名）  ' + dateStr + '</div>'
+        + '<div style="margin-top:10px">税务复核人：___________ （签名）</div>'
+        + '<div style="margin-top:20px">企业内部授权标识（如适用）：___________</div>'
         + '<div style="margin-top:20px">报告日期：' + dateStr + '</div>'
         + '</div>';
     }

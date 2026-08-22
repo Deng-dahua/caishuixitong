@@ -36,7 +36,7 @@
     var d = b.data;
     return ''
       + '<div class="block-cover">'
-      + '<h1>税 务 稽 查 报 告</h1>'
+      + '<h1>企 业 内 部 税 务 合 规 风 险 分 析 报 告</h1>'
       + '<div class="cover-sub">'
       + '编号：' + esc(d.report_no) + '<br>'
       + '被查单位：' + esc(d.company_name) + '<br>'
