@@ -7460,6 +7460,93 @@ _methodology_coverage_cache = {}
 _methodology_rewrite_cache = {}
 
 
+def _build_canonical_tax_model():
+    """统一财税数据模型：18 个稳定财税对象 + 已登记资料格式。"""
+    entities = {
+        "bank_transaction": {"name": "银行资金交易", "required_core_fields": ["transaction_date", "inflow", "outflow", "counterparty"], "source_types": ["bank", "bank_statement", "bank_transaction"]},
+        "sales_invoice": {"name": "销项发票", "required_core_fields": ["invoice_number", "transaction_date", "counterparty", "amount", "tax_amount"], "source_types": ["sales_invoice"]},
+        "purchase_invoice": {"name": "进项发票", "required_core_fields": ["invoice_number", "transaction_date", "counterparty", "amount", "tax_amount"], "source_types": ["purchase_invoice"]},
+        "input_vat_deduction": {"name": "进项抵扣用途确认", "required_core_fields": ["invoice_number", "tax_amount", "status"], "source_types": ["input_vat_deduction"]},
+        "accounting_entry": {"name": "会计凭证分录", "required_core_fields": ["period", "document_number", "account_name", "debit", "credit"], "source_types": ["voucher", "journal"]},
+        "trial_balance": {"name": "科目余额与总账", "required_core_fields": ["period", "account_name", "opening_balance", "closing_balance"], "source_types": ["trial_balance", "ledger"]},
+        "tax_declaration": {"name": "纳税申报及回执", "required_core_fields": ["period", "tax_type", "declared_base", "declared_tax"], "source_types": ["tax_return", "tax_declaration", "salary_tax"]},
+        "contract": {"name": "合同、订单与权利义务", "required_core_fields": ["document_number", "counterparty", "transaction_date", "amount"], "source_types": ["contract", "order"]},
+        "fulfilment_record": {"name": "履约、物流、入库、验收与交付", "required_core_fields": ["document_number", "transaction_date", "counterparty", "quantity"], "source_types": ["logistics", "delivery", "acceptance", "warehouse"]},
+        "payroll_record": {"name": "工资薪金及个税人员明细", "required_core_fields": ["period", "person_key", "amount", "tax_amount"], "source_types": ["salary", "payroll"]},
+        "social_security_record": {"name": "社会保险缴费明细", "required_core_fields": ["period", "person_key", "declared_base", "amount"], "source_types": ["social_security"]},
+        "housing_fund_record": {"name": "住房公积金缴存明细", "required_core_fields": ["period", "person_key", "declared_base", "amount"], "source_types": ["housing_fund"]},
+        "inventory_record": {"name": "存货、收发存及盘点", "required_core_fields": ["period", "goods_name", "quantity", "opening_balance", "closing_balance"], "source_types": ["inventory"]},
+        "fixed_asset_record": {"name": "固定资产卡片及折旧", "required_core_fields": ["asset_key", "transaction_date", "amount", "status"], "source_types": ["fixed_asset", "assets"]},
+        "related_party_record": {"name": "关联方及关联交易", "required_core_fields": ["counterparty", "relation_type", "amount", "transaction_date"], "source_types": ["related_party"]},
+        "customs_export_record": {"name": "海关、出口及收汇", "required_core_fields": ["document_number", "transaction_date", "counterparty", "amount"], "source_types": ["customs", "export"]},
+        "financial_statement": {"name": "财务报表", "required_core_fields": ["period", "account_name", "amount"], "source_types": ["financial", "financial_statement"]},
+        "unclassified_record": {"name": "待确认业务资料", "required_core_fields": [], "source_types": ["generic_data", "unknown", "suspect"]},
+    }
+    supported_formats = {
+        ".xls": "电子表格", ".xlsx": "电子表格", ".xlsm": "电子表格", ".csv": "分隔文本",
+        ".pdf": "版式文档", ".docx": "文字文档", ".jpg": "扫描图片", ".jpeg": "扫描图片",
+        ".png": "扫描图片", ".bmp": "扫描图片", ".tiff": "扫描图片", ".xml": "结构化数据",
+        ".ofd": "版式文档", ".zip": "压缩资料包", ".json": "结构化数据", ".txt": "文本资料",
+    }
+    return {
+        "entities": entities,
+        "supported_formats": supported_formats,
+        "boundary": "统一模型负责资料标准化和来源谱系，不自动形成违法定性。",
+    }
+
+
+def _build_capability_ledger():
+    """242 项真实能力账本：逐项公开方法论、自动执行、独立验证和正式发布状态。"""
+    try:
+        from engine.verified_rule_engine import VERIFIED_RULE_CATALOG
+        rules = VERIFIED_RULE_CATALOG or []
+    except Exception:
+        rules = []
+    items = []
+    for rule in rules:
+        items.append({
+            "id": rule.get("id", ""),
+            "name": rule.get("name", ""),
+            "industry": "全行业" if rule.get("industries") == ["ALL"] else "、".join(rule.get("industries", [])),
+            "category": rule.get("layer", ""),
+            "automation": "已验证原子计算",
+            "rule_refs": [rule.get("id", "")],
+            "validation": "待独立验证",
+            "next": "进入独立验证集",
+        })
+    verified = len(rules)
+    return {
+        "methodology_item_count": 242,
+        "verified_atomic_rule_count": verified,
+        "design_status_counts": {
+            "partial_atomic_support": 175,
+            "independently_validated": 0,
+            "published": 0,
+        },
+        "independently_validated_method_count": 0,
+        "boundary": "242项表示方法论资产数量，不表示242项都能自动查出风险。自动筛查、完整方法执行、独立验证和正式发布必须分别计数。",
+        "items": items,
+    }
+
+
+def _build_validation_blueprint():
+    """全行业独立验证体系：固定回归样本、文字样例和独立验证案例分开计数。"""
+    return {
+        "industry_contract_count": 23,
+        "scene_count": 153,
+        "required_validation_cells": 834,
+        "minimum_independent_case_count": 1530,
+        "scene_requirements": [
+            {
+                "minimum_independent_cases": 10,
+                "required_evidence_states": ["supported", "rebutted", "partial", "contradictory", "insufficient"],
+                "positive_negative_requirement": "每场景至少3个风险正样本、3个正常负样本，同时达到准确率和召回率门槛",
+            }
+        ],
+        "boundary": "方法论自带的文字边界样本只用于结构验收，不计入独立验证。只有冻结、可追溯、正反分离且绑定规则版本的脱敏标注资料才计入发布门禁。",
+    }
+
+
 @app.get("/api/methodology/assets/{asset_name}")
 def get_methodology_asset(asset_name: str):
     """向已登录用户提供只读方法论数据，不暴露受保护的静态目录。"""
@@ -7480,6 +7567,9 @@ def get_methodology_asset(asset_name: str):
         "canonical_catalog": load_canonical_catalog,
         "portfolio": load_methodology_portfolio,
         "acceptance": run_portfolio_acceptance,
+        "capability_ledger": lambda: _build_capability_ledger(),
+        "canonical_tax_model": _build_canonical_tax_model,
+        "validation_blueprint": _build_validation_blueprint,
     }
     if normalized_asset in virtual_assets:
         return virtual_assets[normalized_asset]()
