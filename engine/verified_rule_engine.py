@@ -287,6 +287,72 @@ VERIFIED_RULE_CATALOG = [
         "status": "verified_executable_screening",
         "limitation": "企业账户与个人账户的转存转取可能是股东借款、注资、代垫、分红等正常往来；须逐笔核验款项性质、是否履行扣缴义务，不能仅凭转账推断违法。",
     },
+    {
+        "id": "VR026",
+        "name": "增值税税负率与行业区间偏离",
+        "layer": "税负率与申报实质规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["税费申报与缴纳", "采购与取得", "销售与收入确认"],
+        "required_sources": ["tax_declarations", "pur_invs", "sal_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "税负率受进项结构、留抵、免税、简易计税、农产品加计抵扣和固定资产一次性抵扣影响；行业区间仅为参考，须结合进销项结构逐期解释，不能单凭偏离认定偷税（参考宁夏鑫海德案税负率0.1%被稽查）。",
+    },
+    {
+        "id": "VR027",
+        "name": "作废与红冲发票异常占比",
+        "layer": "发票数据质量规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["开票、红冲与用途确认"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "作废/红冲可能因开票错误、退货、折让正常发生；临近申报期集中作废、顶额作废或红冲后重新开具是隐匿收入或调节税基的高频信号，须逐票核验原交易是否真实履行。",
+    },
+    {
+        "id": "VR028",
+        "name": "银行收款显著大于销项开票（未开票收入隐匿线索）",
+        "layer": "收入与申报协同规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["收付款与资金结算", "销售与收入确认", "开票、红冲与用途确认"],
+        "required_sources": ["bank_txs", "sal_invs", "tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "收款大于开票可能源于预收款、借款、代收代付、关联往来、非应税收入或跨期；但长期、大额且无未开票收入申报时，是隐匿收入的典型线索（参考宁夏鑫海德、临潭盛渝案）。",
+    },
+    {
+        "id": "VR029",
+        "name": "长期零申报或申报数据异常",
+        "layer": "税负率与申报实质规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税", "个人所得税"],
+        "lifecycle": ["税费申报与缴纳"],
+        "required_sources": ["tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "零申报在筹建期、停产期可能正常；但当银行流水、发票或工资显示持续经营却长期零申报，是空壳或账外经营的预警，须结合经营实质核对。",
+    },
+    {
+        "id": "VR030",
+        "name": "股东借款长期挂账与其他应收款异常",
+        "layer": "资金关系交叉规则",
+        "industries": ["ALL"],
+        "taxes": ["个人所得税", "企业所得税", "增值税"],
+        "lifecycle": ["资本投入与融资", "收付款与资金结算", "会计核算与期末结转"],
+        "required_sources": ["bank_txs", "vouchers", "target_entity"],
+        "status": "verified_executable_screening",
+        "limitation": "其他应收款挂股东借款，在纳税年度内归还且用于经营的不视同分红；但跨年未还且无经营用途，依财税〔2003〕158号、国税发〔2005〕120号可视同红利分配按20%征个税，企业还需履行代扣代缴义务（金税四期重点筛查指标）。",
+    },
+    {
+        "id": "VR031",
+        "name": "印花税计税依据与购销金额勾稽",
+        "layer": "税负率与申报实质规则",
+        "industries": ["ALL"],
+        "taxes": ["印花税"],
+        "lifecycle": ["税费申报与缴纳", "采购与取得", "销售与收入确认"],
+        "required_sources": ["sal_invs", "pur_invs", "tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "购销合同印花税计税依据通常不低于购销金额合计；未申报或明显偏低须核是否享受小微企业免征、是否仅按部分合同申报，不能单凭差额认定漏报（金税四期利润表与申报失真比对漏洞之一）。",
+    },
 ]
 
 
@@ -1341,6 +1407,374 @@ def _scan_fund_recirculation(data, spec):
     )]
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 新增风险点扫描器（VR026–VR031，依据 web 稽查案例与税法条款提炼）
+# ─────────────────────────────────────────────────────────────────────────────
+
+# 各行业增值税税负率参考区间（行业代码 → 参考区间[低, 高]），仅作偏离筛查参考
+_INDUSTRY_VAT_BURDEN = {
+    "13": (2.5, 4.5),   # 纺织业
+    "14": (2.0, 4.0),   # 服装
+    "17": (2.5, 4.5),   # 纺织（达冠样例）
+    "C": (2.0, 4.0),
+    "A": (1.5, 3.5),
+    "B": (2.5, 5.0),
+    "D": (3.0, 6.0),
+    "F": (2.5, 5.0),
+    "G": (1.5, 3.5),
+    "H": (2.0, 4.5),
+    "Q": (2.0, 4.0),
+}
+
+
+def _scan_vat_burden_rate(data, spec):
+    """税负率异常：实际税负率 = 实缴增值税 / 应税销售收入，与行业参考区间偏离。
+
+    依据：金税四期十大预警禁区之“税负率异常”；案例宁夏鑫海德税负率0.1%被稽查。
+    """
+    decls = data.get("tax_declarations", []) or []
+    sal = data.get("sal_invs", []) or []
+    if not decls:
+        return []
+
+    paid_vat = 0.0          # 实缴/应纳税额
+    declared_sales = 0.0    # 申报销售额
+    for decl in decls:
+        if not isinstance(decl, dict):
+            continue
+        paid_vat += _number(decl.get("payable_tax") or decl.get("vat_paid") or decl.get("actual_vat") or decl.get("tax_payable"))
+        declared_sales += _number(decl.get("sales_amount") or decl.get("output_amount"))
+
+    # 税负率应以实际经营规模（发票反映的销售额）为分母；申报销售额显著低于发票时，
+    # 若用申报数作分母会掩盖低税负，故优先采用发票不含税金额作为收入基数。
+    invoice_sales = sum(_number(row.get("amount")) for row in sal)
+    revenue_base = invoice_sales if invoice_sales > 0 else declared_sales
+    if revenue_base <= 0:
+        return []
+
+    burden = paid_vat / revenue_base * 100.0
+
+    industry_code = str((data.get("target_entity") or {}).get("industry_code") or "C")
+    ref = _INDUSTRY_VAT_BURDEN.get(industry_code) or _INDUSTRY_VAT_BURDEN.get(industry_code[0]) or (2.0, 4.0)
+    low, high = ref
+
+    if burden < low - 0.5 and paid_vat >= 0:
+        direction = "显著低于行业参考区间"
+        flag = burden < 1.0  # 极低税负（如 <1%）属高危
+    elif burden > high + 1.0:
+        direction = "显著高于行业参考区间"
+        flag = False
+    else:
+        return []
+
+    detail = (
+        f"测算增值税税负率约{burden:.2f}%（实缴增值税{paid_vat:,.2f}元 / 应税销售收入{revenue_base:,.2f}元），"
+        f"{direction}（行业参考区间{low:.1f}%–{high:.1f}%）。"
+        + ("该极低税负率是隐匿收入、虚抵进项或空壳经营的高发信号，须逐期核验进销项结构与未开票收入。"
+           if flag else
+           "税负率偏高可能源于进项税额不足、简易计税或行业特性，须结合进销项结构解释。")
+    )
+    return [_finding(
+        spec,
+        detail,
+        {
+            "paid_vat": round(paid_vat, 2),
+            "revenue_base": round(revenue_base, 2),
+            "burden_rate_pct": round(burden, 4),
+            "industry_ref_low": low,
+            "industry_ref_high": high,
+            "extreme_low": flag,
+        },
+        spec["required_sources"],
+        priority="调查优先级" if flag else "中",
+    )]
+
+
+def _is_void_or_red(row):
+    """判断发票行是否为作废/红冲。支持字段：is_void/作废、is_red/红字/负数。"""
+    status = str(row.get("status") or row.get("发票状态") or "").strip()
+    if "作废" in status or "红" in status or "负数" in status:
+        return True
+    if str(row.get("is_void") or "").strip().lower() in ("1", "true", "y", "是"):
+        return True
+    if str(row.get("is_red") or "").strip().lower() in ("1", "true", "y", "是"):
+        return True
+    try:
+        if _number(row.get("amount")) < 0 or _number(row.get("total")) < 0:
+            return True
+    except (TypeError, ValueError):
+        pass
+    return False
+
+
+def _scan_void_red_invoice(data, spec):
+    """作废/红冲发票异常占比。
+
+    依据：金税四期预警——临近申报期集中作废、顶额作废、红冲后重开是隐匿收入信号。
+    """
+    sal = data.get("sal_invs", []) or []
+    pur = data.get("pur_invs", []) or []
+    if not sal and not pur:
+        return []
+    total = len(sal) + len(pur)
+    void_red = [row for row in sal + pur if _is_void_or_red(row)]
+    if total < 5 or not void_red:
+        return []
+    ratio = len(void_red) / total
+    near_period_end = 0
+    top_amount = 0
+    examples = []
+    for row in void_red[:30]:
+        date = str(row.get("date") or row.get("invoice_date") or "")
+        day = date[-2:] if len(date) >= 2 else ""
+        if day in ("28", "29", "30", "31") or date[-3:] in ("/12", "-12", "/03", "-03", "/06", "-06", "/09", "-09"):
+            near_period_end += 1
+        amt = _number(row.get("amount"))
+        top_amount = max(top_amount, amt)
+        if len(examples) < 5:
+            examples.append({
+                "invoice_no": str(row.get("inv_no") or row.get("invoice_no") or row.get("发票号码") or "")[:20],
+                "amount": round(amt, 2),
+                "date": date[:10],
+                "status": str(row.get("status") or "红冲/作废")[:8],
+            })
+    if ratio >= 0.2 or near_period_end >= 3:
+        detail = (
+            f"作废/红冲发票{len(void_red)}张，占全部发票{total}张的{ratio:.1%}。"
+            + (f"其中{near_period_end}张集中在月末/季末，存在临近申报期调节税基嫌疑；" if near_period_end else "")
+            + "作废红冲须逐票核验原交易是否真实履行、是否退货折让或变相隐匿收入。"
+        )
+        return [_finding(
+            spec,
+            detail,
+            {
+                "void_red_count": len(void_red),
+                "total_count": total,
+                "void_red_ratio": round(ratio, 4),
+                "near_period_end_count": near_period_end,
+                "top_amount": round(top_amount, 2),
+                "examples": examples,
+            },
+            spec["required_sources"],
+            priority="调查优先级" if (near_period_end >= 3 or ratio >= 0.3) else "中",
+        )]
+    return []
+
+
+def _scan_uninvoiced_income(data, spec):
+    """未开票收入隐匿线索（双口径）：
+
+    口径一：银行收款显著大于销项开票（私户走账、账外经营）。
+    口径二：销项开票（或银行收款）显著大于增值税申报销售额（申报少列收入）。
+    依据：案例 宁夏鑫海德（私户走账隐匿收入）、临潭盛渝（资金回流闭环）。
+    """
+    bank = data.get("bank_txs", []) or []
+    sal = data.get("sal_invs", []) or []
+    decls = data.get("tax_declarations", []) or []
+    if not sal:
+        return []
+
+    bank_credit = sum(_number(row.get("credit")) for row in bank if _number(row.get("credit")) > 0)
+    invoice_total = sum(_invoice_amount(row) for row in sal)        # 价税合计（口径一用）
+    invoice_amount = sum(_number(row.get("amount")) for row in sal)  # 不含税金额（口径二与申报销售额比对）
+
+    declared_sales = 0.0
+    for decl in decls:
+        if isinstance(decl, dict):
+            declared_sales += _number(decl.get("sales_amount"))
+
+    # 口径二：开票/收款 与 申报销售额 的偏离（核心隐匿信号）
+    if declared_sales > 0:
+        gap_decl = invoice_amount - declared_sales
+        ratio_decl = gap_decl / declared_sales if declared_sales else 0
+        if gap_decl >= 500000 and ratio_decl >= 0.3:
+            detail = (
+                f"销项发票不含税金额合计{invoice_amount:,.2f}元，增值税申报销售额合计{declared_sales:,.2f}元，"
+                f"差额{gap_decl:,.2f}元（{ratio_decl:.1%}）。开票规模显著高于申报销售额，"
+                "存在少列收入或未开票收入未申报的典型隐匿线索，须逐月核对未开票收入、预收款及视同销售。"
+            )
+            return [_finding(
+                spec,
+                detail,
+                {
+                    "invoice_total": round(invoice_amount, 2),
+                    "declared_sales": round(declared_sales, 2),
+                    "gap": round(gap_decl, 2),
+                    "gap_ratio": round(ratio_decl, 4),
+                    "basis": "开票vs申报",
+                },
+                spec["required_sources"],
+                priority="调查优先级",
+            )]
+
+    # 口径一：银行收款 显著大于 开票（无申报数据时退化为资金线索）
+    if bank_credit > 0 and invoice_total > 0:
+        gap = bank_credit - invoice_total
+        ratio = gap / invoice_total if invoice_total else 0
+        if gap >= 500000 and ratio >= 0.3:
+            detail = (
+                f"银行贷方收款合计{bank_credit:,.2f}元，销项发票价税合计{invoice_total:,.2f}元，"
+                f"差额{gap:,.2f}元（{ratio:.1%}）。收款持续、大幅超过开票且无合理解释，"
+                "是隐匿未开票收入的典型线索，须按预收款、借款、代收代付逐笔排除后核实。"
+            )
+            return [_finding(
+                spec,
+                detail,
+                {
+                    "bank_credit_total": round(bank_credit, 2),
+                    "invoice_total": round(invoice_total, 2),
+                    "declared_sales": round(declared_sales, 2),
+                    "gap": round(gap, 2),
+                    "gap_ratio": round(ratio, 4),
+                    "basis": "收款vs开票",
+                },
+                spec["required_sources"],
+                priority="调查优先级",
+            )]
+    return []
+
+
+def _scan_long_zero_filing(data, spec):
+    """长期零申报或申报数据异常。"""
+    decls = data.get("tax_declarations", []) or []
+    if not decls:
+        return []
+    zero_count = 0
+    periods = []
+    for decl in decls:
+        if not isinstance(decl, dict):
+            continue
+        sales = _number(decl.get("sales_amount"))
+        vat = _number(decl.get("payable_tax") or decl.get("vat_paid") or decl.get("tax_payable"))
+        period = str(decl.get("period") or decl.get("申报期间") or "")
+        periods.append(period)
+        if sales <= 0 and vat <= 0:
+            zero_count += 1
+    total = len(decls)
+    if total >= 6 and zero_count >= max(3, int(total * 0.5)):
+        detail = (
+            f"在{total}个申报期中，有{zero_count}期销售额与应纳税额均为零（零申报）。"
+            "长期零申报与持续经营迹象（银行流水、发票、工资）冲突时，是空壳或账外经营的预警，须结合经营实质核对。"
+        )
+        return [_finding(
+            spec,
+            detail,
+            {"declaration_count": total, "zero_count": zero_count, "periods": periods[:12]},
+            spec["required_sources"],
+            priority="中",
+        )]
+    return []
+
+
+def _scan_shareholder_loan(data, spec):
+    """股东借款长期挂账与其他应收款异常（视同分红线索）。
+
+    依据：财税〔2003〕158号第二条、国税发〔2005〕120号第三十五条、新《公司法》五年实缴。
+    """
+    bank = data.get("bank_txs", []) or []
+    vouchers = data.get("vouchers", []) or []
+    target_entity = data.get("target_entity", {}) or {}
+    personnel = _collect_personnel(target_entity)
+    if not personnel:
+        return []
+
+    person_out = defaultdict(float)
+    for row in bank:
+        party = str(row.get("counterparty") or "").strip()
+        if not party:
+            continue
+        if any(p and p in party for p in personnel) or party in personnel:
+            person_out[party] += _number(row.get("debit"))
+
+    receivable = 0.0
+    recv_examples = []
+    for row in vouchers:
+        account = str(row.get("account_name") or row.get("account") or "")
+        summary = str(row.get("summary") or "")
+        if "其他应收款" in account and any(p and p in summary for p in personnel):
+            amt = _number(row.get("debit"))
+            receivable += amt
+            if len(recv_examples) < 5:
+                recv_examples.append({"summary": summary[:20], "debit": round(amt, 2)})
+
+    total_to_person = sum(person_out.values())
+    if total_to_person >= 500000 or receivable >= 300000:
+        parts = []
+        if person_out:
+            parts.append("；".join(f"{name}转出{amt:,.0f}元" for name, amt in
+                                   sorted(person_out.items(), key=lambda x: -x[1])[:3]))
+        if receivable > 0:
+            parts.append(f"凭证中其他应收款挂六员合计{receivable:,.0f}元")
+        detail = (
+            "、".join(parts)
+            + "。股东（个人投资者）从企业借款，在纳税年度终了既不归还又未用于生产经营的，依财税〔2003〕158号、"
+              "国税发〔2005〕120号可视同红利分配按“利息、股息、红利所得”征20%个税，企业须履行代扣代缴义务；"
+              "大额挂账亦触发金税四期其他应收款预警，须核验借款协议、用途及归还时点。"
+        )
+        return [_finding(
+            spec,
+            detail,
+            {
+                "person_out_total": round(total_to_person, 2),
+                "other_receivable_to_person": round(receivable, 2),
+                "person_out_detail": {name: round(amt, 2) for name, amt in person_out.items()},
+                "receivable_examples": recv_examples,
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        )]
+    return []
+
+
+def _scan_stamp_tax(data, spec):
+    """印花税计税依据与购销金额勾稽。
+
+    依据：金税四期“利润表与所得税申报失真/印花税漏洞”比对；购销合同印花税计税依据通常≥购销合计。
+    """
+    sal = data.get("sal_invs", []) or []
+    pur = data.get("pur_invs", []) or []
+    decls = data.get("tax_declarations", []) or []
+    if not sal and not pur:
+        return []
+
+    purchase_amount = sum(_number(row.get("amount")) for row in pur)
+    sales_amount = sum(_number(row.get("amount")) for row in sal)
+    contract_base = purchase_amount + sales_amount
+    if contract_base <= 0:
+        return []
+
+    declared_base = 0.0
+    for decl in decls:
+        if isinstance(decl, dict):
+            declared_base += _number(decl.get("stamp_tax_base") or decl.get("印花税计税依据"))
+
+    if declared_base <= 0:
+        return []
+    gap = contract_base - declared_base
+    ratio = gap / contract_base if contract_base else 0
+    if gap >= 500000 and ratio >= 0.3:
+        detail = (
+            f"购销发票金额合计{contract_base:,.2f}元（购{purchase_amount:,.2f}+销{sales_amount:,.2f}），"
+            f"申报印花税计税依据{declared_base:,.2f}元，差额{gap:,.2f}元（{ratio:.1%}）。"
+            "购销合同印花税计税依据通常不低于购销金额合计，差额较大须核是否仅按部分合同申报或未申报，排除小微企业免征后处理。"
+        )
+        return [_finding(
+            spec,
+            detail,
+            {
+                "purchase_amount": round(purchase_amount, 2),
+                "sales_amount": round(sales_amount, 2),
+                "contract_base": round(contract_base, 2),
+                "declared_stamp_base": round(declared_base, 2),
+                "gap": round(gap, 2),
+                "gap_ratio": round(ratio, 4),
+            },
+            spec["required_sources"],
+            priority="中",
+        )]
+    return []
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -1367,6 +1801,12 @@ _SCANNERS = {
     "VR023": _scan_material_output_ratio,
     "VR024": _scan_individual_counterparty,
     "VR025": _scan_fund_recirculation,
+    "VR026": _scan_vat_burden_rate,
+    "VR027": _scan_void_red_invoice,
+    "VR028": _scan_uninvoiced_income,
+    "VR029": _scan_long_zero_filing,
+    "VR030": _scan_shareholder_loan,
+    "VR031": _scan_stamp_tax,
 }
 
 

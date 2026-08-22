@@ -115,6 +115,23 @@ def _build_detail_table(f):
             "total_amount": "往来总额", "person_account_count": "涉及个人账号数",
             "anomaly_months": "异常月份", "supplier_amount": "个体户供应商金额",
             "goods": "货物", "sale_qty": "销数量", "purchase_qty": "进数量", "diff": "差额",
+            # VR026 税负率
+            "paid_vat": "实缴增值税", "revenue_base": "应税销售收入", "burden_rate_pct": "税负率(%)",
+            "industry_ref_low": "行业参考下限(%)", "industry_ref_high": "行业参考上限(%)", "extreme_low": "极低税负",
+            # VR027 作废红冲
+            "void_red_count": "作废红冲张数", "total_count": "发票总数", "void_red_ratio": "作废红冲占比",
+            "near_period_end_count": "月末季末作废数", "top_amount": "最大单张金额",
+            # VR028 未开票收入
+            "bank_credit_total": "银行收款合计", "invoice_total": "销项开票合计",
+            "declared_sales": "申报销售额", "declared_uninvoiced": "已申报未开票收入", "basis": "比对口径",
+            # VR029 零申报
+            "declaration_count": "申报期数", "zero_count": "零申报期数", "periods": "申报期间",
+            # VR030 股东借款
+            "person_out_total": "转个人合计", "other_receivable_to_person": "其他应收款挂股东",
+            "person_out_detail": "转个人明细", "receivable_examples": "挂账示例",
+            # VR031 印花税
+            "purchase_amount": "采购金额", "sales_amount": "销售金额", "contract_base": "购销合计",
+            "declared_stamp_base": "申报印花计税依据",
         }
         skip = {"examples"}
         # 2.5) 嵌套字典（dict-of-dicts）：如 province_breakdown{省份:{count,amount}}、
