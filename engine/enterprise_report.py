@@ -711,6 +711,64 @@ def _build_discovery_overview(report_data, problems, completed, further):
     return rows
 
 
+def _build_derivation_tree_report(report_data):
+    """疑点派生树（稽查思维导图 / 洋葱式逐层展开章节）。
+
+    把引擎生成的 derivation_tree 渲染成「剥洋葱」式的可读结构：
+    每一层疑点都给出——分析口径 / 佐证动作 / 需补资料 / 派生的连带疑点，
+    并标注每个节点永远存在的两种终态：铁证如山 或 待证可自证清白。
+    """
+    dt = report_data.get("derivation_tree") or {}
+    tree = dt.get("tree") or []
+    if not tree:
+        return None
+    note = dt.get("note", "")
+
+    def render_node(n, depth):
+        pad = "    " * depth
+        lines = []
+        rid = n.get("rule_id", "")
+        name = n.get("name", rid)
+        state = n.get("terminal_state", "")
+        if n.get("cycle_ref"):
+            lines.append(f"{pad}↺ [{rid}] {name} ——（已在上方展开，详见前序节点；防止循环展开）")
+            return lines
+        lines.append(f"{pad}● [{rid}] {name}")
+        lines.append(f"{pad}  终态：{state}")
+        if n.get("layer"):
+            lines.append(f"{pad}  所属层：{n.get('layer')}")
+        link = n.get("link")
+        if link:
+            lines.append(f"{pad}  派生关系：{link}")
+        analyze = n.get("analyze")
+        if analyze:
+            lines.append(f"{pad}  怎么分析：{analyze}")
+        evidence = n.get("evidence")
+        if evidence:
+            lines.append(f"{pad}  怎么佐证：{evidence}")
+        materials = n.get("materials")
+        if materials:
+            lines.append(f"{pad}  补什么资料：{materials}")
+        children = n.get("children") or []
+        if children:
+            lines.append(f"{pad}  牵连出的疑点（剥下一层）：")
+            for c in children:
+                lines.extend(render_node(c, depth + 1))
+        return lines
+
+    blocks = []
+    for root in tree:
+        blocks.append("\n".join(render_node(root, 0)))
+    body = "\n\n".join(blocks)
+    return {
+        "title": "疑点派生树（稽查思维导图 · 洋葱式逐层展开）",
+        "summary": f"本轮识别入口疑点 {dt.get('root_count', 0)} 个，经勾稽共派生疑点节点 {dt.get('total_nodes', 0)} 个，"
+                   f"最大展开层深 {dt.get('max_depth', 0)} 层。每个疑点被铁证闭合或企业自证清白前，永远存在两种可能。",
+        "principle": note,
+        "body": body,
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -724,6 +782,7 @@ def build_enterprise_readable_report(report_data):
     summary = _build_summary(report_data, problems, completed, further)
     plans = _build_action_plan(problems)
     discovery_overview = _build_discovery_overview(report_data, problems, completed, further)
+    derivation_tree_report = _build_derivation_tree_report(report_data)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -736,6 +795,7 @@ def build_enterprise_readable_report(report_data):
         "materials": materials,
         "confirmed_problems": problems,
         "completed_checks": completed,
+        "derivation_tree_report": derivation_tree_report,
         "action_plan": plans,
         "further_checks": further,
         "recheck": {

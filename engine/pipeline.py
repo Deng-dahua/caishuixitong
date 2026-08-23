@@ -4952,10 +4952,21 @@ def _run_analyze(company_id, db, progress_callback=None):
             result["report"]["material_intel"] = material_intel
     except Exception as _inj_err:
         pipeline_log.append(f"material_intel注入失败: {_inj_err}")
-    
-    return result
 
-# ═══════════ 文本净化：剔除模板句/重复句/空描述 ═══════════
+    # 注入疑点派生树（稽查思维导图 / 洋葱式展开）：引擎已基于触发的规则与
+    # catalog 中的 derives_to 声明构建好拓扑树，直接下发供报告与前端渲染。
+    try:
+        if '_verified_result' in dir() and isinstance(_verified_result, dict) and _verified_result.get("derivation_tree"):
+            result["derivation_tree"] = _verified_result["derivation_tree"]
+            pipeline_log.append(
+                f"[疑点派生树] 根疑点{_verified_result['derivation_tree'].get('root_count', 0)}个、"
+                f"节点{_verified_result['derivation_tree'].get('total_nodes', 0)}个、"
+                f"最大层深{_verified_result['derivation_tree'].get('max_depth', 0)}"
+            )
+    except Exception as _dt_err:
+        pipeline_log.append(f"疑点派生树注入失败: {_dt_err}")
+
+    return result
 # 必须在质量标准执行之前运行，确保进入报告的是可读的专业文本
 
 def _enrich_short_findings(all_findings, pipeline_log):

@@ -12765,6 +12765,471 @@
         "有销无进风险"
       ],
       "timestamp": "2026-08-24T00:31:37.831096"
+    },
+    {
+      "trace_id": "cf6e0ce6",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T00:50:56.484248",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "5617649a",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T00:50:57.580592"
+    },
+    {
+      "trace_id": "d9573023",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T00:53:56.820765",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "7d3f217b",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T00:53:57.928346"
+    },
+    {
+      "trace_id": "8473a863",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T00:55:24.371976",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "00318b3b",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T00:55:25.477445"
+    },
+    {
+      "trace_id": "c1f93ad6",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T00:55:59.980997",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "ee68c098",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T00:56:01.131665"
+    },
+    {
+      "trace_id": "ab42dc1f",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T00:58:03.587104",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "1f7aa1c8",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T00:58:04.748009"
+    },
+    {
+      "trace_id": "9eb00c54",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T00:58:37.521380",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "35ebaaac",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T00:58:38.690913"
+    },
+    {
+      "trace_id": "6a92c7eb",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T00:59:41.537585",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "2fd93762",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T00:59:42.749049"
+    },
+    {
+      "trace_id": "d82f8638",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T01:02:34.008283",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "61eaa7bd",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T01:02:35.210051"
+    },
+    {
+      "trace_id": "369c0f52",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T01:03:24.368830",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "045f5889",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T01:03:25.593010"
+    },
+    {
+      "trace_id": "d0d6a7cc",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T01:04:10.868182",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "eb1afe73",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T01:04:12.113793"
+    },
+    {
+      "trace_id": "d0b8ac66",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T01:05:14.152614",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "d501f874",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T01:05:15.413117"
+    },
+    {
+      "trace_id": "9627e1fd",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T01:06:04.481032",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "0c3e7fd2",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T01:06:05.746734"
+    },
+    {
+      "trace_id": "29dbb799",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T01:06:55.496917",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "824924fc",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T01:06:56.797877"
+    },
+    {
+      "trace_id": "7d590e1a",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T01:07:39.796042",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "d176547d",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T01:07:41.098340"
+    },
+    {
+      "trace_id": "7ea2cb16",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T01:09:56.622606",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "6edfde18",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T01:09:57.992173"
     }
   ],
   "industry_patterns": {
@@ -12799,7 +13264,7 @@
       "typical_data_profile": {}
     },
     "综合": {
-      "analyses_count": 45,
+      "analyses_count": 60,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

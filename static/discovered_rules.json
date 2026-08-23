@@ -21364,5 +21364,315 @@
     "action": "自动更新综合行业风险基准为59.3分",
     "discovered_at": "2026-08-24T00:31:36.374894",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "纺织产品",
+    "avg_risk_score": 82.1,
+    "sample_size": 5,
+    "action": "自动更新纺织产品行业风险基准为82.1分",
+    "discovered_at": "2026-08-24T00:50:55.855419",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T00:50:55.855440",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 46,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T00:50:55.855454",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T00:53:56.222890",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 47,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T00:53:56.222914",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T00:55:23.790557",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 48,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T00:55:23.790581",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T00:55:59.394207",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 49,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T00:55:59.394228",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T00:58:03.003368",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 50,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T00:58:03.003391",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T00:58:36.934234",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T00:58:36.934253",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T00:59:40.946123",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T00:59:40.946141",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T01:02:33.425339",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T01:02:33.425358",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T01:03:23.778394",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T01:03:23.778413",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T01:04:10.278631",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T01:04:10.278651",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T01:05:13.562883",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T01:05:13.562901",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T01:06:03.880706",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T01:06:03.880725",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T01:06:54.907383",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T01:06:54.907402",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T01:07:39.205593",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T01:07:39.205612",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 59.3,
+    "sample_size": 51,
+    "action": "自动更新综合行业风险基准为59.3分",
+    "discovered_at": "2026-08-24T01:09:56.030669",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 50,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-08-24T01:09:56.030687",
+    "source": "audit_memory.json"
   }
 ]

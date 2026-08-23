@@ -301,6 +301,24 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["tax_declarations", "pur_invs", "sal_invs"],
         "status": "verified_executable_screening",
         "limitation": "税负率受进项结构、留抵、免税、简易计税、农产品加计抵扣和固定资产一次性抵扣影响；行业区间仅为参考，须结合进销项结构逐期解释，不能单凭偏离认定偷税（参考宁夏鑫海德案税负率0.1%被稽查）。",
+        "derives_to": [
+            {"child": "VR028", "link": "税负率异常偏低 → 须核查是否隐匿未开票收入",
+             "analyze": "将税负率与未开票收入缺口结合：税负低可能因收入未入账",
+             "evidence": "销项开票 vs 申报销售额逐期比对，核查未开票收入",
+             "materials": "增值税申报表、销项发票、银行收款流水"},
+            {"child": "VR043", "link": "增值税异常 → 随征的城建税及附加是否同步异常",
+             "analyze": "核查城建税及教育费附加是否随增值税如实附征",
+             "evidence": "城建税申报记录与实缴增值税勾稽",
+             "materials": "城建税及附加申报表"},
+            {"child": "VR042", "link": "房产相关税费是否如实申报",
+             "analyze": "核查房产税从价/从租计征是否完整",
+             "evidence": "固定资产房屋原值与租赁合同的房产税勾稽",
+             "materials": "房产税申报记录、房屋原值凭证"},
+            {"child": "VR051", "link": "综合疑点须下达补证责令单",
+             "analyze": "归集税负率及关联疑点，向企业下达补资清单",
+             "evidence": "责令企业说明税负结构并补证",
+             "materials": "补证责令单"},
+        ],
     },
     {
         "id": "VR027",
@@ -312,6 +330,16 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["sal_invs", "pur_invs"],
         "status": "verified_executable_screening",
         "limitation": "本规则仅就作废/红冲发票占比与临近申报期集中度做单维预警，不直接认定隐匿收入。作废/红冲可能因开票错误、退货、折让正常发生；但临近申报期集中作废、顶额作废、红冲后未重开，叠加对公收款与申报收入缺口（见VR053资金回流勾稽、VR054未重开未申报勾稽），才可能形成隐匿收入的证据链。本规则仅作筛查入口，须由VR053/VR054及人工核验完成三流闭合。",
+        "derives_to": [
+            {"child": "VR053", "link": "作废占比异常 → 须进一步做开票收款后作废的资金回流勾稽",
+             "analyze": "将作废发票与对公收款流水勾稽，确认作废发票是否已实际收款",
+             "evidence": "作废发票对应对公收款流水、申报收入比对",
+             "materials": "作废发票清单、对公流水、申报表"},
+            {"child": "VR054", "link": "作废占比异常 → 须核查作废后是否重开并申报",
+             "analyze": "按受票方聚合作废发票，识别只作废不重开户",
+             "evidence": "作废后蓝字重开记录、申报收入变动",
+             "materials": "作废与重开发票对照表"},
+        ],
     },
     {
         "id": "VR028",
@@ -323,6 +351,16 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["bank_txs", "sal_invs", "tax_declarations"],
         "status": "verified_executable_screening",
         "limitation": "收款大于开票可能源于预收款、借款、代收代付、关联往来、非应税收入或跨期；但长期、大额且无未开票收入申报时，是隐匿收入的典型线索（参考宁夏鑫海德、临潭盛渝案）。",
+        "derives_to": [
+            {"child": "VR051", "link": "收款大于开票的差额须向企业核实性质并补证",
+             "analyze": "要求企业逐笔说明收款性质，区分应税/非应税、预收款/借款",
+             "evidence": "逐笔收款的合同与业务背景资料、未开票收入申报记录",
+             "materials": "收款性质说明、对应合同、未开票收入申报表"},
+            {"child": "VR036", "link": "若收款对应视同销售行为（无偿移送/自用），须核查视同销售未计收入",
+             "analyze": "排查收款是否对应应税但未按视同销售申报的情形",
+             "evidence": "存货/资产移送记录、自用资产计税依据",
+             "materials": "视同销售明细、资产移送凭证"},
+        ],
     },
     {
         "id": "VR029",
@@ -389,6 +427,20 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["vouchers"],
         "status": "verified_executable_screening",
         "limitation": "大额咨询/会议/广告/服务费及现金支出可能是真实经营需要；费用率高于同业可能源于商业模式差异。须逐笔核验合同、成果物、付款对象与现金去向。",
+        "derives_to": [
+            {"child": "VR037", "link": "费用虚列 → 是否经关联方高价转移利润",
+             "analyze": "核查大额费用收款方是否构成关联方，单价是否偏离独立交易原则",
+             "evidence": "股权穿透识别隐性关联方，比对同品名交易单价",
+             "materials": "工商股权穿透数据、关联交易合同"},
+            {"child": "VR025", "link": "费用付款对象为个人/个体户 → 资金回流或私户收款线索",
+             "analyze": "核查大额费用付款是否回流至企业控制人私户",
+             "evidence": "付款对象身份与资金流向追踪",
+             "materials": "付款凭证、收款方身份资料"},
+            {"child": "VR051", "link": "费用真实性存疑须下达补证责令单",
+             "analyze": "责令逐笔提供费用合同、成果物与付款凭证",
+             "evidence": "向企业下达补证单",
+             "materials": "补证责令单（费用真实性）"},
+        ],
     },
     {
         "id": "VR035",
@@ -499,6 +551,24 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["inventory_ledger", "declaration", "sal_invs"],
         "status": "verified_executable_screening",
         "limitation": "账外经营无法直接取证，本规则以'进销存期末库存金额 ÷ 营业收入'显著高于行业常态、或持续大额入库却几乎不形成销售为间接证据，指向账外销售或隐匿产成品。属线索型发现，须责令企业提供存货盘点表、出入库原始单据及对应资金流水佐证。",
+        "derives_to": [
+            {"child": "VR045", "link": "库存背离 → 货物已发出但运输/物流资料缺位，指向账外发货",
+             "analyze": "核查运输费与产销规模是否匹配，验证货物是否绕过账面发出",
+             "evidence": "运输合同、运费发票、物流轨迹与出库量勾稽",
+             "materials": "运输合同、运费增值税专用发票、物流提货单"},
+            {"child": "VR046", "link": "库存背离 → 长期滞销/呆滞库存是否虚假入库",
+             "analyze": "核查呆滞存货是否真实存在，排除虚假入库或账外调拨",
+             "evidence": "实物盘点表、库龄分析、出入库原始凭证",
+             "materials": "期末存货盘点表、库龄分析报告"},
+            {"child": "VR047", "link": "库存背离 → 进销存滚动是否平衡",
+             "analyze": "核查期末库存与恒等式是否一致，识别账外领用",
+             "evidence": "进销存滚动勾稽与盘盈盘亏审批记录",
+             "materials": "存货盘点表、盘盈盘亏审批单"},
+            {"child": "VR051", "link": "账外经营线索须下达补证责令单",
+             "analyze": "归集库存背离及关联疑点，向企业下达补资清单",
+             "evidence": "责令提供存货盘点与出入库资金流水",
+             "materials": "补证责令单（存货/物流/资金）"},
+        ],
     },
     {
         "id": "VR045",
@@ -510,6 +580,20 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["transport_contracts", "vouchers", "sal_invs", "inventory_ledger"],
         "status": "verified_executable_screening",
         "limitation": "正常购销必有对应物流。若运费（运输合同/运费凭证）与出库量、销售规模显著不匹配（运费偏低=账外发货或第三方代发；到货价却无运费凭证=物流资料缺失），指向账外经营。属线索型发现，须责令补充运输合同、运费发票与物流轨迹。",
+        "derives_to": [
+            {"child": "VR052", "link": "运输缺位 → 委托加工/异地服务业务真实性更须三维勾稽",
+             "analyze": "运输缺位时，核查委托加工费发票是否也存在地理背离、合同缺位",
+             "evidence": "委托加工合同、加工商产能与运输轨迹勾稽",
+             "materials": "委托加工合同、加工商工商资料、运输发票"},
+            {"child": "VR049", "link": "运输缺位 → 损耗率是否异常（出入库计量不实）",
+             "analyze": "核查实际损耗率与BOM定额是否偏离",
+             "evidence": "磅单、损耗计算表与BOM定额比对",
+             "materials": "运输合同、磅单、损耗计算表"},
+            {"child": "VR051", "link": "物流缺位须下达补证责令单",
+             "analyze": "责令企业补充运输合同与运费凭证",
+             "evidence": "向企业下达补证单",
+             "materials": "补证责令单（物流资料）"},
+        ],
     },
     {
         "id": "VR046",
@@ -576,6 +660,16 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["pur_invs", "company_profile"],
         "status": "verified_executable_screening",
         "limitation": "本规则仅做地理背离、物流缺位、合同缺位三维间接证据勾稽，不直接认定虚开。舍近求远委托外地加工可能因产业链集群、产能紧张、工艺专长等正当商业理由；跨市经营亦可能仅为未办理跨区域涉税报告的程序性问题。最终定性须由稽查人员结合合同、物流轨迹、付款资金流、加工商实地核查综合判断。",
+        "derives_to": [
+            {"child": "VR053", "link": "委托加工业务真实性存疑 → 其对应加工费发票若已收款又作废，须做资金回流勾稽",
+             "analyze": "将委托加工费进项发票与对公付款、作废重开情况勾稽，排查资金回流式虚开",
+             "evidence": "加工商收款流水、加工费发票作废/红冲记录",
+             "materials": "加工费进项发票、对公付款凭证、加工商工商信息"},
+            {"child": "VR051", "link": "业务真实性无法自证 → 下达补证责令单",
+             "analyze": "责令企业提供委托加工合同、运输轨迹、加工成果物验收单",
+             "evidence": "向企业下达补证单，限期内未补证则疑点升级",
+             "materials": "补证责令单（加工合同/运输/验收）"},
+        ],
     },
     {
         "id": "VR053",
@@ -587,6 +681,20 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["sal_invs", "bank_txs", "company_profile"],
         "status": "verified_executable_screening",
         "limitation": "本规则将作废/红冲销项发票与对公账户收款流水做勾稽：若作废发票的受票方、金额在与该发票同期的对公收款中存在同额或接近收款，且作废后长期无对应蓝字重开、申报收入未同步增加，则形成「开票收款后作废」隐匿收入的强证据链（参照贵阳X设计公司案：6679份作废发票中600余户受票企业付款金额与作废发票金额完全吻合，最终定性隐匿收入3.26亿）。规则仅形成可复算的数据勾稽事实，不作偷税定性；企业可就每笔作废说明真实业务背景、退货折让或重开情况。",
+        "derives_to": [
+            {"child": "VR028", "link": "开票收款后作废 → 对应收入未如实申报，须核查未开票/未申报收入",
+             "analyze": "将作废发票受票方与申报收入按户勾稽：作废金额是否已通过其他正常发票或账外体现，差额即隐匿收入敞口",
+             "evidence": "逐户调取作废发票对应的对公收款流水与申报表，比对已申报收入与已收款项",
+             "materials": "作废发票清单及对应收款凭证、增值税及企业所得税申报表、银行对公流水"},
+            {"child": "VR051", "link": "已坐实「开票收款后作废」线索，须向企业下达补证责令单",
+             "analyze": "归集本轮所有疑点，向企业一次性下达需补充资料的清单，限定举证期限",
+             "evidence": "责令企业提供每笔作废业务的真实交易合同、交付凭证、重开/未重开说明",
+             "materials": "稽查取证补充资料责令单（含每笔疑点的举证要求与期限）"},
+            {"child": "VR052", "link": "如需进一步核实业务真实性，对作废发票涉及的委托加工/异地服务做三维勾稽",
+             "analyze": "检查作废发票对应业务是否也存在舍近求远、物流缺位、合同缺位等真实性破绽",
+             "evidence": "调取作废业务对应的运输发票、委托加工/服务合同、加工商实地核查",
+             "materials": "运输费发票、委托加工/服务合同、加工商或供应商工商与产能资料"},
+        ],
     },
     {
         "id": "VR054",
@@ -598,6 +706,16 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["sal_invs", "company_profile"],
         "status": "verified_executable_screening",
         "limitation": "本规则按受票方/月份聚合作废发票，核验作废后合理期限（90天）内是否存在对应蓝字重开，并结合申报收入是否同步增加。若大量作废发票长期无重开、申报收入无变动，指向系统性隐匿收入嫌疑（区别于偶发开票错误、退货折让）。规则仅形成聚勾稽事实，不作定性；正当理由包括：受票方退票后未再采购、跨期重开、作废当月即重新正常开票等，企业可逐笔举证排除。",
+        "derives_to": [
+            {"child": "VR028", "link": "「只作废不重开」户的作废金额未体现在申报中，须核查未申报收入",
+             "analyze": "将异常户作废金额与申报收入勾稽，确认差额是否构成隐匿收入",
+             "evidence": "异常户对公收款流水 vs 申报收入逐户比对",
+             "materials": "异常户作废发票、对公流水、申报表"},
+            {"child": "VR051", "link": "系统性疑点须下达补证责令单",
+             "analyze": "归集系统性疑点，向企业下达补充资料清单",
+             "evidence": "责令逐户说明作废原因、提供重开与否的书面说明",
+             "materials": "补证责令单"},
+        ],
     },
 ]
 
@@ -3675,6 +3793,128 @@ _SCANNERS = {
 }
 
 
+def build_derivation_tree(findings, catalog=None):
+    """疑点派生树（稽查思维导图 / 洋葱式展开引擎）。
+
+    把扁平的 findings 按 catalog 中每条规则的 derives_to 声明，构造成一棵
+    「疑点 → 分析口径 → 佐证动作 → 补资清单 → 派生子疑点」的拓扑树。
+
+    设计原则（对应税务稽查本质）：
+    1) 一个疑点不是终点，而是勾稽网络的节点；识别后会自然派生出子疑点。
+    2) 每个节点永远存在两种可能终态：铁证如山（已有硬证据闭合）或
+       待证/可自证清白（企业可举证排除）——绝不越界作定性。
+    3) 子疑点再派生孙疑点，层层剥洋葱，直到触到终态。
+    """
+    catalog = catalog or VERIFIED_RULE_CATALOG
+    cat_by_id = {c["id"]: c for c in catalog}
+    # VR051（稽查取证补充资料责令单）已从 VERIFIED_RULE_CATALOG 移除，仅作循环后兜底下发；
+    # 派生树需引用它作为各疑点的共同终端动作，故在此补最小 spec 以便节点构造。
+    if "VR051" not in cat_by_id:
+        cat_by_id["VR051"] = {
+            "id": "VR051", "name": "稽查取证补充资料责令单",
+            "layer": "账外经营与业务真实性间接证据规则",
+            "derives_to": [],
+        }
+    triggered = {f.get("rule_id") for f in findings if isinstance(f, dict)}
+    finding_by_id = {f.get("rule_id"): f for f in findings if isinstance(f, dict)}
+
+    def terminal_state(f):
+        """判定节点的终态：铁证如山 / 待证可自证清白。"""
+        if not f:
+            return "待证可自证清白"
+        # 铁证信号：已闭合的资金流三流勾稽 + 受票方言证吻合（由规则名/指标推断）
+        m = f.get("observed_metrics", {}) or {}
+        strong = (
+            m.get("matched_amount") and _number(m.get("matched_amount")) > 0
+            and (m.get("income_gap") is None or _number(m.get("income_gap")) > 0)
+        )
+        if strong:
+            return "铁证如山（资金流闭合，待企业反证）"
+        return "待证可自证清白（企业可举证排除）"
+
+    def build_node(rid, depth, visited):
+        spec = cat_by_id.get(rid)
+        if not spec:
+            return None
+        if rid in visited and rid != "VR051":  # 防止环：已展开过的节点不再递归，仅挂引用
+            # VR051 补证责令单为各疑点共同终端动作，豁免防环，允许作为叶节点重复出现
+            f = finding_by_id.get(rid)
+            return {
+                "rule_id": rid,
+                "name": spec.get("name", rid),
+                "depth": depth,
+                "terminal_state": terminal_state(f),
+                "cycle_ref": True,
+            }
+        visited = visited | {rid}
+        f = finding_by_id.get(rid)
+        derives = spec.get("derives_to") or []
+        children = []
+        for d in derives:
+            child_id = d.get("child")
+            if child_id in triggered:  # 只展开「实际触发」的子疑点，避免臆测
+                child_node = build_node(child_id, depth + 1, visited)
+                if child_node:
+                    child_node.update({
+                        "link": d.get("link", ""),
+                        "analyze": d.get("analyze", "结合该子疑点对应资料的勾稽口径进一步分析"),
+                        "evidence": d.get("evidence", "调取与该子疑点相关的原始凭证与资金流水核验"),
+                        "materials": d.get("materials", "能够证实相关业务事实的原始资料"),
+                    })
+                    children.append(child_node)
+        node = {
+            "rule_id": rid,
+            "name": spec.get("name", rid),
+            "layer": spec.get("layer", ""),
+            "depth": depth,
+            "triggered": rid in triggered,
+            "terminal_state": terminal_state(f),
+            "detail": (f or {}).get("detail", ""),
+            "verified_facts": (f or {}).get("verified_facts", []),
+            "to_prove": (f or {}).get("to_prove", []),
+            "children": children,
+        }
+        return node
+
+    # 根节点 = 所有「触发且不是任何其他规则的子节点」的规则（入口疑点）
+    child_ids = set()
+    for c in catalog:
+        for d in (c.get("derives_to") or []):
+            child_ids.add(d.get("child"))
+    roots = [rid for rid in triggered if rid not in child_ids]
+    if not roots:  # 退化情况：无派生关系，所有触发的都作根
+        roots = list(triggered)
+    tree = [build_node(r, 0, set()) for r in roots if build_node(r, 0, set())]
+    max_depth = 0
+
+    def _depth(n, d):
+        nonlocal max_depth
+        max_depth = max(max_depth, d)
+        for c in n.get("children", []):
+            _depth(c, d + 1)
+    for t in tree:
+        _depth(t, 0)
+
+    total_nodes = 0
+
+    def _count(n):
+        nonlocal total_nodes
+        total_nodes += 1
+        for c in n.get("children", []):
+            _count(c)
+    for t in tree:
+        _count(t)
+
+    return {
+        "tree": tree,
+        "root_count": len(tree),
+        "total_nodes": total_nodes,
+        "max_depth": max_depth,
+        "note": "本树展示疑点如何逐层派生、牵连、再派生。任一节点在被铁证闭合或企业自证清白前，"
+                "永远存在两种可能；剥完一层自动展开连带疑点，直至触到终态。",
+    }
+
+
 def run_verified_rules(engine_data):
     """运行全部已验证原子规则，返回发现和逐规则执行记录。"""
     findings, executions = [], []
@@ -3728,6 +3968,7 @@ def run_verified_rules(engine_data):
         VERIFIED_RULE_CATALOG, set(_SCANNERS.keys()),
         {"findings": findings}, available_sources,
     )
+    _dt = build_derivation_tree(findings, VERIFIED_RULE_CATALOG)
     return {
         "version": "1.0.0",
         "executed_at": datetime.now().isoformat(),
@@ -3736,4 +3977,5 @@ def run_verified_rules(engine_data):
         "executions": executions,
         "coverage": coverage,
         "coverage_text": format_coverage_text(coverage),
+        "derivation_tree": _dt,
     }

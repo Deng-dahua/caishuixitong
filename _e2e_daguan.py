@@ -431,6 +431,37 @@ def run_evolved_audit():
     print("\n========== 稽查覆盖度自检 ==========")
     print(result.get("coverage_text", ""))
     assert cov.get("summary", {}).get("coverage_rate", 0) > 0, "覆盖度自检未生成"
+
+    # ── 疑点派生树（洋葱式展开）验证 ──
+    dt = result.get("derivation_tree", {})
+    print("\n========== 疑点派生树（稽查思维导图 · 洋葱式展开）==========")
+    print(f"根疑点={dt.get('root_count')} 节点={dt.get('total_nodes')} 最大层深={dt.get('max_depth')}")
+    assert dt.get("root_count", 0) >= 1, "疑点派生树无根节点"
+    assert dt.get("total_nodes", 0) >= dt.get("root_count", 0), "派生树节点数异常"
+    assert dt.get("max_depth", 0) >= 1, "派生树未形成多层展开（剥洋葱失效）"
+    # 断言：VR053 作为根疑点，应向下派生出 VR028/VR051/VR052 子疑点
+    def _find_nodes(tree, rid, acc):
+        for n in tree:
+            if n.get("rule_id") == rid and not n.get("cycle_ref"):
+                acc.append(n)
+            _find_nodes(n.get("children", []), rid, acc)
+        return acc
+    v53_list = _find_nodes(dt.get("tree", []), "VR053", [])
+    assert v53_list, "派生树未包含 VR053 疑点节点"
+    # 汇总所有 VR053 非环节点的子节点（任一展开实例含 VR051/VR028 即达标）
+    child_ids = set()
+    for v53 in v53_list:
+        child_ids |= {c.get("rule_id") for c in v53.get("children", [])}
+    assert "VR028" in child_ids, "VR053 未派生 VR028（未开票收入核验）"
+    assert "VR051" in child_ids, "VR053 未派生 VR051（补证责令单）"
+    # 子节点必须带分析口径/佐证/补资/终态（剥洋葱内容完整）
+    for v53 in v53_list:
+        for c in v53.get("children", []):
+            assert c.get("analyze"), f"{c.get('rule_id')} 子疑点缺分析口径"
+            assert c.get("evidence"), f"{c.get('rule_id')} 子疑点缺佐证动作"
+            assert c.get("materials"), f"{c.get('rule_id')} 子疑点缺补资清单"
+            assert c.get("terminal_state"), f"{c.get('rule_id')} 子疑点缺终态标注"
+    print("  ✓ VR053 →", " / ".join(sorted(child_ids)), "（逐层带分析/佐证/补资/终态）")
     return hit_ids
 
 

@@ -1041,7 +1041,7 @@
     "target": "Causal: 加工费掩盖的虚开发票路径",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T23:51:45.733922",
-    "applied_count": 44,
+    "applied_count": 59,
     "status": "active"
   },
   {
@@ -1063,7 +1063,7 @@
     "target": "BOM投入产出偏离-采购不足",
     "dimension": "证据充分性",
     "applied_at": "2026-08-23T00:50:35.758470",
-    "applied_count": 37,
+    "applied_count": 52,
     "status": "active"
   },
   {
@@ -1074,7 +1074,7 @@
     "target": "Causal: 虚开发票的资金闭环回路",
     "dimension": "证据充分性",
     "applied_at": "2026-08-23T00:50:35.758519",
-    "applied_count": 37,
+    "applied_count": 52,
     "status": "active"
   },
   {
@@ -1085,7 +1085,7 @@
     "target": "Causal: 加工费掩盖的虚开发票路径",
     "dimension": "证据充分性",
     "applied_at": "2026-08-23T00:50:35.758531",
-    "applied_count": 37,
+    "applied_count": 52,
     "status": "active"
   },
   {
@@ -1096,7 +1096,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-23T00:50:35.758542",
-    "applied_count": 37,
+    "applied_count": 52,
     "status": "active"
   }
 ]
