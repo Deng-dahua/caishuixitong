@@ -256,13 +256,30 @@ def run_evolved_audit():
         {"account_name": "管理费用-租赁费", "summary": "厂房租金", "debit": 1200000, "credit": 0, "settle": "转账"},
         # VR036 触发：无偿赠送样品（视同销售未计销项）
         {"account_name": "销售费用-样品", "summary": "赠送样品宣传", "debit": 30000, "credit": 0, "settle": "转账"},
+        # VR038 触发：业务招待费 20万（收入1250万，限额=min(12万,6.25万)=6.25万，超限13.75万）
+        {"account_name": "管理费用-业务招待费", "summary": "客户招待宴请", "debit": 200000, "credit": 0, "settle": "转账"},
+        # VR039 触发：广告费 300万（收入1250万，限额=187.5万，超限112.5万）
+        {"account_name": "销售费用-广告费", "summary": "央视广告投放", "debit": 3000000, "credit": 0, "settle": "转账"},
+        # VR040 触发：福利费 200万（无工资数据→走提示分支，验证不报错）
+        {"account_name": "应付职工薪酬-职工福利费", "summary": "节日福利", "debit": 200000, "credit": 0, "settle": "转账"},
+        # VR041 触发：折旧 500万（无固定资产原值→走提示分支，验证不报错）
+        {"account_name": "制造费用-折旧费", "summary": "设备折旧", "debit": 5000000, "credit": 0, "settle": "转账"},
     ]
     # 申报表：模拟达冠实际可能低报的情形——
     # 销项申报仅 250万（隐匿 ~1000万未开票），实缴增值税仅 5万 → 税负率极低
+    # 注意：引擎读取的键为 declaration（非 tax_declarations）
     tax_declarations = [
         {"period": "2025-01", "sales_amount": 0, "sales_tax": 0, "input_tax": 1646600, "payable_tax": 0},
         {"period": "2025-02", "sales_amount": 2500000, "sales_tax": 325000, "input_tax": 0, "payable_tax": 50000,
          "uninvoiced_sales": 0, "stamp_tax_base": 300000},
+    ]
+    declaration = tax_declarations
+    # VR042 触发：固定资产房屋原值 + 仓库租赁合同租金
+    fixed_assets = [
+        {"name": "生产厂房", "original_value": 10000000, "category": "房屋建筑物"},
+    ]
+    contracts = [
+        {"合同类型": "仓库租赁", "月租金": 30000, "租赁月数": 12, "合同编号": "DH-CL-2025"},
     ]
     target_entity = {"legal_representative": "范善茂", "industry_code": "17"}
 
@@ -272,20 +289,24 @@ def run_evolved_audit():
         "pur_invs": pur_invs,
         "vouchers": vouchers,
         "tax_declarations": tax_declarations,
+        "declaration": declaration,
+        "fixed_assets": fixed_assets,
+        "contracts": contracts,
         "target_entity": target_entity,
     }
     result = run_verified_rules(engine_data)
-    print("\n========== 进化规则·达冠严谨稽查（VR026–VR037）==========")
-    new_ids = {f"VR{i:03d}" for i in range(26, 38)}
+    print("\n========== 进化规则·达冠严谨稽查（VR026–VR043）==========")
+    new_ids = {f"VR{i:03d}" for i in range(26, 44)}
     hit = [f for f in result["findings"] if f["rule_id"] in new_ids]
-    print(f"新增规则命中数: {len(hit)} / 12")
+    print(f"新增规则命中数: {len(hit)} / 18")
     for f in hit:
         m = f.get("observed_metrics", {})
         print(f"  [{f['rule_id']}] {f['type']} | 等级:{f.get('level')} | 优先级:{f.get('priority')}")
         print(f"      {f['detail'][:200]}")
     # 断言：达冠在进化后应被识别出的风险点
     hit_ids = {f["rule_id"] for f in hit}
-    expected = {"VR026", "VR028", "VR030", "VR032", "VR034", "VR035", "VR036"}  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目/视同销售
+    expected = {"VR026", "VR028", "VR030", "VR032", "VR034", "VR035", "VR036",
+                "VR038", "VR039", "VR042", "VR043"}  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目/视同销售/招待费/广告费/房产税/城建附加
     missing = expected - hit_ids
     print(f"  预期命中 {sorted(expected)}，实际缺失 {sorted(missing) if missing else '无'}")
     assert not missing, f"达冠严谨稽查未命中预期风险点: {missing}"
@@ -305,6 +326,23 @@ def run_evolved_audit():
     has_pointer = (dev_n and dev_n > 0) or v37_m.get("related_party_data") is False
     print(f"  [VR037] 单价偏离笔数={dev_n} | 股权穿透提示={'已给出' if v37_m.get('related_party_data') is False else '无'}")
     assert has_pointer, "VR037 既未检出价格偏离也未给出需补数据提示"
+    # VR040 提示分支验证（无工资数据→福利费超14%无法精确，产出提示）
+    v40 = [f for f in result["findings"] if f["rule_id"] == "VR040"]
+    print(f"  [VR040] 福利费提示发现数={len(v40)}")
+    assert len(v40) >= 1, "VR040 福利费提示分支未产出"
+    # VR041 独立对照：有折旧凭证但无房屋类固定资产原值，应产出'数据缺失'提示而非静默
+    v41_ctrl = run_verified_rules({
+        "vouchers": [{"account_name": "制造费用-折旧费", "summary": "设备折旧", "debit": 5000000}],
+        "fixed_assets": [{"name": "设备", "original_value": 100, "category": "机器设备"}],
+    })
+    v41 = [f for f in v41_ctrl["findings"] if f["rule_id"] == "VR041"]
+    print(f"  [VR041对照] 无固定资产时提示发现数={len(v41)}")
+    assert len(v41) >= 1, "VR041 折旧异常提示分支（无固定资产）未产出"
+    # 覆盖度自检器输出
+    cov = result.get("coverage", {})
+    print("\n========== 稽查覆盖度自检 ==========")
+    print(result.get("coverage_text", ""))
+    assert cov.get("summary", {}).get("coverage_rate", 0) > 0, "覆盖度自检未生成"
     return hit_ids
 
 

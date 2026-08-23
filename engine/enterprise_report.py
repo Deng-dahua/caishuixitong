@@ -150,6 +150,21 @@ def _build_detail_table(f):
             "deviation_count": "单价偏离笔数", "threshold": "偏离阈值", "median_price": "中位单价",
             "deviation": "偏离幅度", "direction": "方向", "counterparty": "交易对手方",
             "related_party_data": "股权穿透数据", "note": "说明",
+            # VR038 业务招待费
+            "entertainment_total": "业务招待费发生额", "deduct_cap": "扣除限额", "over_limit": "超限金额",
+            # VR039 广告费
+            "ad_promo_total": "广告费发生额",
+            # VR040 福利费
+            "welfare_total": "福利费发生额", "wage_total": "工资总额", "wage_source": "工资数据来源",
+            # VR041 折旧摊销
+            "dep_amort_total": "折旧摊销合计", "fixed_assets_total": "固定资产原值", "notes": "异常说明",
+            # VR042 房产税
+            "building_value": "房屋原值", "from_price_tax": "从价房产税", "rent_total": "租金收入",
+            "from_rent_tax": "从租房产税", "est_property_tax": "测算房产税", "declared_property_tax": "已申报房产税",
+            "rent_contracts": "租赁合同",
+            # VR043 城建附加
+            "paid_vat": "实缴增值税", "est_city_tax": "测算城建税", "est_edu": "测算教育费附加",
+            "est_local_edu": "测算地方教育附加", "est_total": "测算附加税合计", "declared_supplementary": "已申报附加税",
         }
         skip = {"examples"}
         # 2.5) 嵌套字典（dict-of-dicts）：如 province_breakdown{省份:{count,amount}}、

@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 
+from engine.audit_coverage import build_coverage_report, format_coverage_text
+
 from engine.vat_reversal import classify_input_tax_reversal
 
 
@@ -420,6 +422,72 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["sal_invs", "pur_invs"],
         "status": "verified_executable_screening",
         "limitation": "转让定价需以独立交易原则(ARM'S LENGTH)比对，权威判定依赖工商股权穿透(关联方识别)与同期资料。本规则仅以'同一品名同单位对不同交易对象的单价离散度'做定量探针，关联定性需补充股权穿透数据。",
+    },
+    {
+        "id": "VR038",
+        "name": "业务招待费扣除超限未纳税调整",
+        "layer": "成本费用真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["成本费用归集", "纳税调整"],
+        "required_sources": ["vouchers", "declaration"],
+        "status": "verified_executable_screening",
+        "limitation": "业务招待费按发生额的60%扣除，且最高不得超过当年销售(营业)收入的5‰，超出部分须作纳税调增。本规则据凭证归集招待费并比对收入限额，未做纳税调整即预警。",
+    },
+    {
+        "id": "VR039",
+        "name": "广告费和业务宣传费扣除超限未纳税调整",
+        "layer": "成本费用真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["成本费用归集", "纳税调整"],
+        "required_sources": ["vouchers", "declaration"],
+        "status": "verified_executable_screening",
+        "limitation": "广告费和业务宣传费不超过当年销售(营业)收入15%的部分准予扣除，超过部分准予在以后纳税年度结转。本规则据凭证归集并比对收入限额。",
+    },
+    {
+        "id": "VR040",
+        "name": "职工福利费扣除超限未纳税调整",
+        "layer": "成本费用真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["成本费用归集", "纳税调整"],
+        "required_sources": ["vouchers", "declaration"],
+        "status": "verified_executable_screening",
+        "limitation": "职工福利费不超过工资薪金总额14%的部分准予扣除，超出须纳税调增。本规则据凭证归集福利费并比对工资总额限额。",
+    },
+    {
+        "id": "VR041",
+        "name": "折旧摊销与长期待摊异常（加速/遗漏）",
+        "layer": "成本费用真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["资产购置", "成本费用归集", "纳税调整"],
+        "required_sources": ["vouchers", "fixed_assets"],
+        "status": "verified_executable_screening",
+        "limitation": "固定资产折旧、无形资产摊销、长期待摊费用须依税法最低年限计提，一次性税前扣除(如500万元以下设备器具)须符合政策规定。本规则筛查折旧/摊销凭证异常与实际资产变动背离。",
+    },
+    {
+        "id": "VR042",
+        "name": "房产税从价/从租计征勾稽",
+        "layer": "财产税与行为税规则",
+        "industries": ["ALL"],
+        "taxes": ["房产税"],
+        "lifecycle": ["资产持有", "成本费用归集", "纳税申报"],
+        "required_sources": ["fixed_assets", "contracts", "declaration"],
+        "status": "verified_executable_screening",
+        "limitation": "自用房产从价计征=原值×(1-扣除比例)×1.2%；出租从租计征=租金收入×12%(个人住房4%)。免租期由产权人从价缴税。本规则据固定资产原值与租赁合同租金测算应缴，与申报勾稽。",
+    },
+    {
+        "id": "VR043",
+        "name": "城建税及教育费附加随增值税附征勾稽",
+        "layer": "财产税与行为税规则",
+        "industries": ["ALL"],
+        "taxes": ["城建税", "教育费附加", "地方教育附加"],
+        "lifecycle": ["纳税申报", "税款缴纳"],
+        "required_sources": ["declaration"],
+        "status": "verified_executable_screening",
+        "limitation": "城建税=实缴增值税×7%(县城5%/乡村1%)，教育费附加3%，地方教育附加2%，随增值税附征。本规则以申报实缴增值税推算应缴附加，与附加税申报勾稽。",
     },
 ]
 
@@ -2272,6 +2340,264 @@ def _scan_related_party_pricing(data, spec):
     return findings
 
 
+# ── VR038–VR041 企业所得税税前扣除限额与资产摊销 ──────────────────────
+def _sum_voucher_by_keywords(vouchers, kw_list, fields=("account_name", "summary")):
+    """归集凭证中科目/摘要命中关键词的借方合计与明细。"""
+    total = 0.0
+    rows = []
+    for v in vouchers or []:
+        if not isinstance(v, dict):
+            continue
+        text = " ".join(str(v.get(f) or "") for f in fields)
+        if any(kw in text for kw in kw_list):
+            amt = _number(v.get("debit") or v.get("借方") or v.get("amount"))
+            if amt > 0:
+                total += amt
+                rows.append({
+                    "account": str(v.get("account_name") or v.get("account") or ""),
+                    "summary": str(v.get("summary") or v.get("摘要") or "")[:40],
+                    "debit": round(amt, 2),
+                })
+    return total, rows
+
+
+def _annual_revenue(data):
+    """年度销售(营业)收入：优先申报销售额合计，其次销项开票不含税合计。"""
+    decls = data.get("declaration", []) or []
+    if isinstance(decls, dict):
+        decls = [decls]
+    rev = sum(_number(d.get("sales_amount") or d.get("output_amount")) for d in decls)
+    if rev <= 0:
+        rev = sum(_number(r.get("amount")) for r in (data.get("sal_invs") or []))
+    return rev
+
+
+def _wage_total(data):
+    """工资薪金总额：优先 payroll 合计，其次应付职工薪酬贷方/工资凭证。"""
+    payroll = data.get("payroll")
+    if isinstance(payroll, list) and payroll:
+        s = sum(_number(p.get("salary") or p.get("工资") or p.get("amount")) for p in payroll)
+        if s > 0:
+            return s, "payroll"
+    vouchers = data.get("vouchers") or []
+    wage_kw = ["工资", "薪酬", "应付职工薪酬"]
+    total, _ = _sum_voucher_by_keywords(vouchers, wage_kw)
+    return total, ("vouchers" if total > 0 else "缺失")
+
+
+def _scan_biz_entertainment_limit(data, spec):
+    """VR038 业务招待费：发生额×60% 与 收入×5‰ 孰低扣除，超限未调增预警。"""
+    vouchers = data.get("vouchers") or []
+    if not vouchers:
+        return []
+    occ, rows = _sum_voucher_by_keywords(vouchers, ["业务招待", "招待费", "招待", "应酬"])
+    if occ <= 0:
+        return []
+    rev = _annual_revenue(data)
+    if rev <= 0:
+        return []
+    deduct_cap = min(occ * 0.6, rev * 0.005)
+    over = occ - deduct_cap
+    if over <= 0:
+        return []
+    detail = (
+        f"业务招待费账面发生额{occ:,.2f}元，按税法规定限额为 min(发生额×60%, 营业收入×5‰)="
+        f"{deduct_cap:,.2f}元，超限{over:,.2f}元须作纳税调增。若汇算清缴未做调整，存在少缴企业所得税风险。"
+    )
+    return [_finding(spec, detail,
+                     {"entertainment_total": round(occ, 2), "deduct_cap": round(deduct_cap, 2),
+                      "over_limit": round(over, 2), "annual_revenue": round(rev, 2),
+                      "examples": rows[:10]},
+                     spec["required_sources"], priority="调查优先级")]
+
+
+def _scan_ad_promo_limit(data, spec):
+    """VR039 广告费和业务宣传费：不超过收入15%扣除，超限预警（可结转）。"""
+    vouchers = data.get("vouchers") or []
+    if not vouchers:
+        return []
+    occ, rows = _sum_voucher_by_keywords(vouchers, ["广告", "宣传", "业务宣传"])
+    if occ <= 0:
+        return []
+    rev = _annual_revenue(data)
+    if rev <= 0:
+        return []
+    cap = rev * 0.15
+    over = occ - cap
+    if over <= 0:
+        return []
+    detail = (
+        f"广告费和业务宣传费账面{occ:,.2f}元，扣除限额为营业收入×15%={cap:,.2f}元，"
+        f"超限{over:,.2f}元（可在以后纳税年度结转扣除）。若当年未正确区分资本性支出与费用化支出，"
+        "或超限部分未作纳税调增，存在所得税风险。"
+    )
+    return [_finding(spec, detail,
+                     {"ad_promo_total": round(occ, 2), "deduct_cap": round(cap, 2),
+                      "over_limit": round(over, 2), "annual_revenue": round(rev, 2),
+                      "examples": rows[:10]},
+                     spec["required_sources"], priority="调查优先级")]
+
+
+def _scan_welfare_limit(data, spec):
+    """VR040 职工福利费：不超过工资薪金总额14%扣除，超限预警。"""
+    vouchers = data.get("vouchers") or []
+    if not vouchers:
+        return []
+    occ, rows = _sum_voucher_by_keywords(vouchers, ["福利", "职工福利", "工会经费", "职工教育"])
+    if occ <= 0:
+        return []
+    wage, src = _wage_total(data)
+    if wage <= 0:
+        # 工资总额缺失：仅提示绝对值，无法精确限额
+        return [_finding(spec,
+                         f"检出职工福利费等相关支出{occ:,.2f}元，但未获取到工资薪金总额数据，"
+                         "无法核对14%扣除限额。须补充工资总额（payroll或应付职工薪酬）以完成限额比对。",
+                         {"welfare_total": round(occ, 2), "wage_total": 0, "note": "工资总额缺失"},
+                         spec["required_sources"], priority="提示")]
+    cap = wage * 0.14
+    over = occ - cap
+    if over <= 0:
+        return []
+    detail = (
+        f"职工福利费等相关支出{occ:,.2f}元，工资薪金总额{wage:,.2f}元，扣除限额为工资总额×14%="
+        f"{cap:,.2f}元，超限{over:,.2f}元须纳税调增（工会经费2%、职工教育经费8%另有专项限额）。"
+    )
+    return [_finding(spec, detail,
+                     {"welfare_total": round(occ, 2), "wage_total": round(wage, 2),
+                      "deduct_cap": round(cap, 2), "over_limit": round(over, 2),
+                      "wage_source": src, "examples": rows[:10]},
+                     spec["required_sources"], priority="调查优先级")]
+
+
+def _scan_depreciation_anomaly(data, spec):
+    """VR041 折旧摊销异常：凭证折旧/摊销与固定资产原值勾稽，或一次性扣除违规。"""
+    vouchers = data.get("vouchers") or []
+    if not vouchers:
+        return []
+    dep, dep_rows = _sum_voucher_by_keywords(vouchers, ["折旧", "摊销", "长期待摊"])
+    if dep <= 0:
+        return []
+    fa = data.get("fixed_assets") or []
+    fa_total = sum(_number(a.get("original_value") or a.get("原值") or a.get("cost")) for a in fa)
+    notes = []
+    if fa_total <= 0:
+        notes.append("未获取到固定资产原值，无法核对折旧计提充分性")
+    else:
+        # 年折旧率粗略合理性：若年折旧额/原值 > 50%（远超加速折旧上限）提示异常
+        rate = dep / fa_total
+        if rate > 0.5:
+            notes.append(f"年折旧摊销额占固定资产原值{rate:.0%}，明显高于常规折旧率，疑一次性税前扣除或加速折旧违规")
+    if not notes:
+        return []
+    detail = (
+        f"检出折旧/摊销/长期待摊费用合计{dep:,.2f}元。" + "；".join(notes) +
+        "。须核对资产计税基础、折旧年限与一次性税前扣除政策适用条件（如单价≤500万元设备器具）。"
+    )
+    return [_finding(spec, detail,
+                     {"dep_amort_total": round(dep, 2), "fixed_assets_total": round(fa_total, 2),
+                      "notes": notes, "examples": dep_rows[:10]},
+                     spec["required_sources"], priority="提示")]
+
+
+def _scan_property_tax(data, spec):
+    """VR042 房产税从价/从租勾稽：房屋原值从价计征 + 租金从租计征，与申报勾稽。"""
+    findings = []
+    fa = data.get("fixed_assets") or []
+    building_value = sum(
+        _number(a.get("original_value") or a.get("原值") or a.get("cost"))
+        for a in fa if "房" in str(a.get("name") or a.get("名称") or a.get("类别") or "")
+    )
+    from_price_tax = building_value * (1 - 0.3) * 0.012 if building_value > 0 else 0.0
+    contracts = data.get("contracts") or []
+    if isinstance(contracts, dict):
+        contracts = [contracts]
+    rent_total = 0.0
+    rent_notes = []
+    for c in contracts:
+        if not isinstance(c, dict):
+            continue
+        txt = " ".join(str(v) for v in c.values())
+        if "租" in txt or "租赁" in str(c.get("合同类型") or c.get("type") or ""):
+            monthly = _number(c.get("月租金") or c.get("rent_monthly") or c.get("租金"))
+            months = _number(c.get("租赁月数") or c.get("months") or 12)
+            if monthly > 0:
+                rent_total += monthly * (months if months > 0 else 12)
+                rent_notes.append(str(c.get("合同编号") or c.get("no") or "租赁合同")[:20])
+    from_rent_tax = rent_total * 0.12 if rent_total > 0 else 0.0
+    est_total = from_price_tax + from_rent_tax
+    if est_total <= 0:
+        return []
+    decls = data.get("declaration", []) or []
+    if isinstance(decls, dict):
+        decls = [decls]
+    declared_property = sum(
+        _number(d.get("property_tax") or d.get("房产税") or d.get("city_tax")
+                or d.get("supplementary_tax") or 0)
+        for d in decls
+    )
+    metrics = {"building_value": round(building_value, 2), "from_price_tax": round(from_price_tax, 2),
+               "rent_total": round(rent_total, 2), "from_rent_tax": round(from_rent_tax, 2),
+               "est_property_tax": round(est_total, 2), "declared_property_tax": round(declared_property, 2),
+               "rent_contracts": rent_notes}
+    if declared_property <= 0:
+        detail = (
+            f"据固定资产房屋原值{building_value:,.2f}元测算从价房产税约{from_price_tax:,.2f}元；"
+            f"据租赁合同租金{rent_total:,.2f}元测算从租房产税约{from_rent_tax:,.2f}元，"
+            f"合计应缴约{est_total:,.2f}元，但未检出房产税申报记录。须确认是否已申报缴纳，避免漏报。"
+        )
+        findings.append(_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级"))
+    elif declared_property < est_total * 0.9:
+        detail = (
+            f"测算房产税应缴约{est_total:,.2f}元（从价{from_price_tax:,.2f}+从租{from_rent_tax:,.2f}），"
+            f"申报仅{declared_property:,.2f}元，存在少报风险。须核对计税依据（原值扣除比例、租金口径）。"
+        )
+        findings.append(_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级"))
+    return findings
+
+
+def _scan_city_constr_tax(data, spec):
+    """VR043 城建税及附加随增值税附征勾稽。"""
+    decls = data.get("declaration", []) or []
+    if isinstance(decls, dict):
+        decls = [decls]
+    if not decls:
+        return []
+    paid_vat = sum(_number(d.get("payable_tax") or d.get("vat_paid") or d.get("actual_vat")
+                           or d.get("tax_payable")) for d in decls)
+    if paid_vat <= 0:
+        return []
+    city_rate = 0.07
+    edu_rate = 0.03
+    local_edu_rate = 0.02
+    est_city = paid_vat * city_rate
+    est_edu = paid_vat * edu_rate
+    est_local = paid_vat * local_edu_rate
+    declared_supp = sum(
+        _number(d.get("supplementary_tax") or d.get("城建税") or d.get("附加税")
+                or d.get("city_edu_tax") or 0)
+        for d in decls
+    )
+    est_total = est_city + est_edu + est_local
+    metrics = {"paid_vat": round(paid_vat, 2), "est_city_tax": round(est_city, 2),
+               "est_edu": round(est_edu, 2), "est_local_edu": round(est_local, 2),
+               "est_total": round(est_total, 2), "declared_supplementary": round(declared_supp, 2),
+               "note": "城建税率按市区7%测算，县城5%/乡村1%需按实际地区调整"}
+    if declared_supp <= 0:
+        detail = (
+            f"实缴增值税{paid_vat:,.2f}元，应随征城建税及附加约{est_total:,.2f}元"
+            f"（城建7%={est_city:,.2f}+教育费附加3%={est_edu:,.2f}+地方教育附加2%={est_local:,.2f}），"
+            "但未检出附加税申报记录。城建税及附加须随增值税附征，须确认是否漏报。"
+        )
+        return [_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
+    if declared_supp < est_total * 0.8:
+        detail = (
+            f"测算随征附加税约{est_total:,.2f}元，申报仅{declared_supp:,.2f}元，存在少报风险"
+            "（注意：县城/乡村城建税率低于市区，须按实际地区核对）。"
+        )
+        return [_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
+    return []
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -2310,6 +2636,12 @@ _SCANNERS = {
     "VR035": _scan_stamp_tax_other_items,
     "VR036": _scan_deemed_sales,
     "VR037": _scan_related_party_pricing,
+    "VR038": _scan_biz_entertainment_limit,
+    "VR039": _scan_ad_promo_limit,
+    "VR040": _scan_welfare_limit,
+    "VR041": _scan_depreciation_anomaly,
+    "VR042": _scan_property_tax,
+    "VR043": _scan_city_constr_tax,
 }
 
 
@@ -2339,10 +2671,17 @@ def run_verified_rules(engine_data):
                 "status": "execution_error",
                 "message": str(error)[:240],
             })
+    available_sources = {k for k, v in engine_data.items() if v}
+    coverage = build_coverage_report(
+        VERIFIED_RULE_CATALOG, set(_SCANNERS.keys()),
+        {"findings": findings}, available_sources,
+    )
     return {
         "version": "1.0.0",
         "executed_at": datetime.now().isoformat(),
         "catalog_count": len(VERIFIED_RULE_CATALOG),
         "findings": findings,
         "executions": executions,
+        "coverage": coverage,
+        "coverage_text": format_coverage_text(coverage),
     }
