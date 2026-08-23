@@ -489,6 +489,83 @@ VERIFIED_RULE_CATALOG = [
         "status": "verified_executable_screening",
         "limitation": "城建税=实缴增值税×7%(县城5%/乡村1%)，教育费附加3%，地方教育附加2%，随增值税附征。本规则以申报实缴增值税推算应缴附加，与附加税申报勾稽。",
     },
+    {
+        "id": "VR044",
+        "name": "库存积压与收入背离（账外经营线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["制造业", "批发零售", "ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["存货管理", "销售与收入确认"],
+        "required_sources": ["inventory_ledger", "declaration", "sal_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "账外经营无法直接取证，本规则以'进销存期末库存金额 ÷ 营业收入'显著高于行业常态、或持续大额入库却几乎不形成销售为间接证据，指向账外销售或隐匿产成品。属线索型发现，须责令企业提供存货盘点表、出入库原始单据及对应资金流水佐证。",
+    },
+    {
+        "id": "VR045",
+        "name": "运输费与产销规模背离（账外发货线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["制造业", "批发零售", "ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["物流与运输", "销售与收入确认"],
+        "required_sources": ["transport_contracts", "vouchers", "sal_invs", "inventory_ledger"],
+        "status": "verified_executable_screening",
+        "limitation": "正常购销必有对应物流。若运费（运输合同/运费凭证）与出库量、销售规模显著不匹配（运费偏低=账外发货或第三方代发；到货价却无运费凭证=物流资料缺失），指向账外经营。属线索型发现，须责令补充运输合同、运费发票与物流轨迹。",
+    },
+    {
+        "id": "VR046",
+        "name": "长期滞销与呆滞库存（实物盘点线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["制造业", "批发零售", "ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["存货管理", "实物盘点"],
+        "required_sources": ["inventory_ledger"],
+        "status": "verified_executable_screening",
+        "limitation": "同一存货连续多期出库为0或极低却持续入库，提示虚假入库、账外调拨或已售未记账。属盘点线索，须责令提供该存货的实物盘点表、库龄分析与出入库原始凭证。",
+    },
+    {
+        "id": "VR047",
+        "name": "进销数量倒挂与滚动矛盾（盘点缺失线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["制造业", "批发零售", "ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["存货管理", "实物盘点"],
+        "required_sources": ["inventory_ledger"],
+        "status": "verified_executable_screening",
+        "limitation": "出库量 > 期初 + 本期入库（盘亏未处理）、或入库 ≥ 出库但期末不增，均违反库存滚动恒等式，提示账外领用或盘点缺失。属线索型发现，须责令提供期末存货盘点表与盘盈盘亏审批记录。",
+    },
+    {
+        "id": "VR048",
+        "name": "同名存货规格进销不一致（变名/虚假交易线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["制造业", "批发零售", "ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与付款", "销售与收入确认", "生产管理"],
+        "required_sources": ["inventory_ledger", "pur_invs", "sal_invs", "bom"],
+        "status": "verified_executable_screening",
+        "limitation": "同一存货编码/名称的进项规格（如棉纱支数、钢材牌号）与产出/销项规格违背BOM工艺逻辑，提示变名开票或虚假交易。属业务真实性线索，须责令提供物料规格书、质检报告与生产工单。",
+    },
+    {
+        "id": "VR049",
+        "name": "购销缺物流或损耗率偏离（业务真实性线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["制造业", "批发零售", "ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["物流与运输", "生产管理", "采购与付款"],
+        "required_sources": ["transport_contracts", "vouchers", "pur_invs", "sal_invs", "bom", "inventory_ledger"],
+        "status": "verified_executable_screening",
+        "limitation": "大宗购销无对应运输合同或运费凭证（到货价却无运费），或实际出入库损耗率显著偏离BOM定额损耗，提示业务真实性存疑。属线索型发现，须责令补充运输合同、运费发票、磅单与损耗计算表。",
+    },
+    {
+        "id": "VR050",
+        "name": "跨境交易穿透线索（需报关/外汇数据）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "关税", "企业所得税"],
+        "lifecycle": ["进出口业务", "外汇管理"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "存在境外对手方或外币结算但缺少报关单、海关缴款书、外汇核销/收支数据，无法穿透境外实控与真实交易。属穿透线索，须责令补充报关单、海关进口增值税专用缴款书、涉外收付款凭证与境外关联方穿透资料。",
+    },
 ]
 
 
@@ -519,22 +596,22 @@ def _invoice_amount(row, pretax=False):
 
 def _finding(spec, detail, metrics, sources, status="clue_pending_investigation", priority="中"):
     return {
-        "type": spec["name"],
+        "type": spec.get("name", spec.get("id", "未命名规则")),
         "rule_id": spec["id"],
-        "category": spec["layer"],
+        "category": spec.get("layer", "通用基础规则"),
         "level": "信息" if status == "data_quality_limitation" else "中风险",
         "score": 2 if status == "data_quality_limitation" else 5,
         "priority": priority,
         "detail": detail,
         "observed_metrics": metrics,
         "finding_status": status,
-        "rule_maturity": spec["status"],
+        "rule_maturity": spec.get("status", "verified_executable_screening"),
         "conclusion_scope": "screening_and_review_only",
         "required_human_review": True,
         "independent_sources": list(sources),
         "independent_source_count": len(set(sources)),
         "source_lineage_status": "observed_from_uploaded_data",
-        "limitations": spec["limitation"],
+        "limitations": spec.get("limitation", "该原子规则只形成可复算的数据事实或资料质量事项，不作税务处理、处罚或移送判断。"),
         "methodology_controls": {
             "applicability_review_required": True,
             "supporting_and_opposing_evidence_required": True,
@@ -2598,6 +2675,379 @@ def _scan_city_constr_tax(data, spec):
     return []
 
 
+# ═══════════════════════════════════════════════════════════════════
+# VR044–VR051 账外经营 / 实物盘点 / 业务真实性 / 跨境穿透
+# 间接证据链稽查模块 —— 不靠直接取证，靠"数据矛盾/背离/缺失"推断嫌疑
+# 并责令补充资料，确保查不到的盲区也有明确取证路径。
+# ═══════════════════════════════════════════════════════════════════
+
+def _load_inventory_ledger(data):
+    """读取进销存台账，按 (存货编码, 存货名称, 单位) 归集每期滚动。"""
+    rows = data.get("inventory_ledger", []) or []
+    out = []
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        out.append({
+            "code": str(r.get("存货编码") or r.get("code") or r.get("item_code") or "").strip(),
+            "name": str(r.get("存货名称") or r.get("name") or r.get("item") or "").strip(),
+            "period": str(r.get("日期") or r.get("period") or r.get("date") or "").strip(),
+            "opening": _number(r.get("期初库存") or r.get("opening")),
+            "inbound": _number(r.get("本期入库") or r.get("inbound") or r.get("purchase")),
+            "outbound": _number(r.get("本期出库") or r.get("outbound") or r.get("sales_qty")),
+            "closing": _number(r.get("期末库存") or r.get("closing") or r.get("ending")),
+            "unit": str(r.get("单位") or r.get("unit") or "").strip(),
+            "amount": _number(r.get("金额") or r.get("amount") or r.get("amt")),
+        })
+    return out
+
+
+def _scan_inventory_revenue_divergence(data, spec):
+    """VR044 库存积压与收入背离（账外经营线索）。"""
+    ledger = _load_inventory_ledger(data)
+    if not ledger:
+        return []
+    decl = data.get("declaration") or data.get("tax_declarations") or []
+    rev = sum(_number(d.get("sales_amount")) for d in decl) if isinstance(decl, list) else _number(decl.get("sales_amount"))
+    if rev <= 0:
+        return []
+    closing_amt = sum(r["amount"] for r in ledger if r["closing"] > 0)
+    ratio = closing_amt / rev if rev else 0
+    hits = []
+    if ratio >= 1.0:
+        hits.append({
+            "closing_inventory_amount": round(closing_amt, 2),
+            "annual_revenue": round(rev, 2),
+            "inv_rev_ratio": round(ratio, 2),
+            "verdict": "期末库存金额≥年营业收入，存在产成品账外销售或隐匿存货重大嫌疑",
+        })
+    tot_in = sum(r["inbound"] for r in ledger)
+    tot_out = sum(r["outbound"] for r in ledger)
+    if tot_in > 0 and tot_out / tot_in < 0.3:
+        hits.append({
+            "total_inbound": round(tot_in, 2),
+            "total_outbound": round(tot_out, 2),
+            "out_in_ratio": round(tot_out / tot_in, 3),
+            "verdict": "出库量不足入库量30%，大量存货未形成销售，指向账外发货或虚假入库",
+        })
+    if hits:
+        detail = (
+            "库存与收入背离分析：账面期末库存金额{ca:,.2f}元，年营业收入{rv:,.2f}元，库存收入比{rt:.2f}。"
+            "该背离属账外经营的典型间接证据——企业可能存在已发出商品未确认收入、账外销售或虚增存货。"
+            "依据《税收征管法》及稽查规程，应责令企业提供：①期末存货实物盘点表（含库位、数量、金额）；"
+            "②出入库原始凭证与对应资金流水；③产成品发出与收入确认的衔接说明。"
+        ).format(ca=closing_amt, rv=rev, rt=ratio)
+        return [_finding(spec, detail, {
+            "closing_inventory_amount": round(closing_amt, 2),
+            "annual_revenue": round(rev, 2),
+            "inv_rev_ratio": round(ratio, 2),
+            "examples": hits[:5],
+            "demand_docs": ["期末存货盘点表", "出入库原始凭证", "对应资金流水", "产成品发出与收入确认衔接说明"],
+        }, spec["required_sources"], priority="调查优先级")]
+    return []
+
+
+def _scan_transport_revenue_divergence(data, spec):
+    """VR045 运输费与产销规模背离（账外发货线索）。"""
+    ledger = _load_inventory_ledger(data)
+    sal = data.get("sal_invs", []) or []
+    contracts = data.get("transport_contracts", []) or []
+    vouchers = data.get("vouchers", []) or []
+    if not ledger and not sal:
+        return []
+    out_qty = sum(r["outbound"] for r in ledger)
+    contract_weight = 0.0
+    has_contract = False
+    for c in contracts:
+        w = _number(c.get("运输重量") or c.get("weight") or c.get("运量"))
+        if w > 0:
+            contract_weight += w
+            has_contract = True
+    freight_voucher = 0.0
+    for v in vouchers:
+        txt = " ".join(str(x) for x in v.values())
+        if any(k in txt for k in ("运费", "运输费", "物流费")):
+            freight_voucher += _number(v.get("debit") or v.get("金额") or v.get("amount"))
+    hits = []
+    if (out_qty > 0 or sal) and not has_contract and freight_voucher <= 0:
+        hits.append({"verdict": "有大额购销/出库但无任何运输合同或运费凭证，物流资料缺失，业务真实性存疑",
+                     "out_qty": round(out_qty, 2)})
+    if has_contract and out_qty > 0 and contract_weight > 0 and contract_weight < out_qty * 0.5:
+        hits.append({"verdict": "运输合同重量仅为出库量%.0f%%，存在账外发货或第三方代发嫌疑" % (contract_weight / out_qty * 100),
+                     "contract_weight": round(contract_weight, 2), "out_qty": round(out_qty, 2)})
+    if hits:
+        detail = (
+            "物流与产销背离分析：本期出库量约{out:,.0f}，运输合同载明重量约{cw:,.0f}，运费凭证金额约{fr:,.2f}元。"
+            "购销必有物流，物流资料缺失或运费显著偏低，是账外经营的高频间接证据（货已发出但绕过账面）。"
+            "应责令补充：①运输合同与运费增值税专用发票；②物流轨迹/提货单/磅单；③到货价结算的运费承担证明。"
+        ).format(out=out_qty, cw=contract_weight, fr=freight_voucher)
+        return [_finding(spec, detail, {
+            "out_qty": round(out_qty, 2),
+            "contract_weight": round(contract_weight, 2),
+            "freight_voucher_amount": round(freight_voucher, 2),
+            "examples": hits[:5],
+            "demand_docs": ["运输合同", "运费增值税专用发票", "物流轨迹/提货单/磅单", "到货价运费承担证明"],
+        }, spec["required_sources"], priority="调查优先级")]
+    return []
+
+
+def _scan_stagnant_inventory(data, spec):
+    """VR046 长期滞销与呆滞库存（实物盘点线索）。"""
+    ledger = _load_inventory_ledger(data)
+    if not ledger:
+        return []
+    from collections import defaultdict
+    grp = defaultdict(list)
+    for r in ledger:
+        grp[(r["code"], r["name"])].append(r)
+    stagnant = []
+    for (code, name), rows in grp.items():
+        if not rows:
+            continue
+        in_periods = sum(1 for r in rows if r["inbound"] > 0)
+        zero_out_periods = sum(1 for r in rows if r["outbound"] <= 0)
+        closing = max((r["closing"] for r in rows), default=0)
+        if in_periods >= 2 and zero_out_periods >= 2 and closing > 0:
+            stagnant.append({
+                "code": code, "name": name,
+                "inbound_periods": in_periods, "zero_outbound_periods": zero_out_periods,
+                "closing": round(closing, 2),
+            })
+    if stagnant:
+        detail = (
+            "长期滞销/呆滞库存筛查：检出{0}项存货连续多期入库却几乎零出库（仍挂账期末库存），"
+            "违反正常经营逻辑，提示虚假入库、账外调拨或已售未减账。应责令提供该存货实物盘点表、"
+            "库龄分析及出入库原始凭证，必要时实施监盘。".format(len(stagnant))
+        )
+        return [_finding(spec, detail, {
+            "stagnant_count": len(stagnant),
+            "examples": stagnant[:10],
+            "demand_docs": ["实物盘点表", "库龄分析", "出入库原始凭证", "监盘记录"],
+        }, spec["required_sources"], priority="调查优先级")]
+    return []
+
+
+def _scan_inventory_roll_mismatch(data, spec):
+    """VR047 进销数量倒挂与滚动矛盾（盘点缺失线索）。"""
+    ledger = _load_inventory_ledger(data)
+    if not ledger:
+        return []
+    from collections import defaultdict
+    grp = defaultdict(list)
+    for r in ledger:
+        grp[(r["code"], r["name"], r["unit"])].append(r)
+    anomalies = []
+    for key, rows in grp.items():
+        rows_sorted = sorted(rows, key=lambda x: x["period"])
+        prev_closing = 0.0
+        for r in rows_sorted:
+            base = r["opening"] if r["opening"] > 0 else prev_closing
+            expected = base + r["inbound"] - r["outbound"]
+            if r["closing"] > 0 and abs(expected - r["closing"]) > max(1.0, abs(r["closing"]) * 0.05):
+                anomalies.append({
+                    "code": key[0], "name": key[1],
+                    "period": r["period"], "expected_closing": round(expected, 2),
+                    "reported_closing": round(r["closing"], 2),
+                    "diff": round(expected - r["closing"], 2),
+                })
+            prev_closing = r["closing"] if r["closing"] > 0 else expected
+    if anomalies:
+        detail = (
+            "进销存滚动矛盾筛查：检出{0}处期末库存与'期初+入库-出库'恒等式不符（盘亏未处理或账外领用）。"
+            "库存滚动关系不一致是盘点缺失与账外领用的直接信号。应责令提供期末存货盘点表与盘盈盘亏审批记录，"
+            "并说明差异原因。".format(len(anomalies))
+        )
+        return [_finding(spec, detail, {
+            "mismatch_count": len(anomalies),
+            "examples": anomalies[:10],
+            "demand_docs": ["期末存货盘点表", "盘盈盘亏审批记录", "差异说明"],
+        }, spec["required_sources"], priority="调查优先级")]
+    return []
+
+
+def _scan_spec_inconsistency(data, spec):
+    """VR048 同名存货规格进销不一致（变名/虚假交易线索）。"""
+    ledger = _load_inventory_ledger(data)
+    pur = data.get("pur_invs", []) or []
+    sal = data.get("sal_invs", []) or []
+    if not ledger:
+        return []
+    import re
+    def _extract_spec(text):
+        if not text:
+            return set()
+        specs = set()
+        for m in re.findall(r"(\d{2,3})\s*[Ss支]", str(text)):
+            specs.add(m + "S")
+        for m in re.findall(r"(Q\d{3}|HRB\d{3}|\d{3}[Ll]?不锈钢|304|316|201)", str(text)):
+            specs.add(m)
+        return specs
+    from collections import defaultdict
+    in_specs = defaultdict(set)
+    out_specs = defaultdict(set)
+    for r in pur:
+        nm = str(r.get("goods") or r.get("品名") or "").strip()
+        if nm:
+            in_specs[_norm_goods(nm)] |= _extract_spec(" ".join(str(v) for v in r.values()))
+    for r in sal:
+        nm = str(r.get("goods") or r.get("品名") or "").strip()
+        if nm:
+            out_specs[_norm_goods(nm)] |= _extract_spec(" ".join(str(v) for v in r.values()))
+    for r in ledger:
+        nm = _norm_goods(r["name"])
+        in_specs[nm] |= _extract_spec(r["name"])
+        out_specs[nm] |= _extract_spec(r["name"])
+    conflicts = []
+    for nm, ins in in_specs.items():
+        outs = out_specs.get(nm, set())
+        if ins and outs and ins.isdisjoint(outs):
+            conflicts.append({"name": nm, "input_specs": sorted(ins), "output_specs": sorted(outs)})
+    if conflicts:
+        detail = (
+            "同名存货规格进销不一致筛查：检出{0}项存货进项规格与销项/产出规格完全不匹配"
+            "（如进项为32S棉纱、销项却为40S针织布且无对应工艺转换），违背BOM工艺逻辑，"
+            "提示变名开票或虚假交易。应责令提供物料规格书、质检报告与生产工单以核实真实品名规格。".format(len(conflicts))
+        )
+        return [_finding(spec, detail, {
+            "conflict_count": len(conflicts),
+            "examples": conflicts[:10],
+            "demand_docs": ["物料规格书", "质检报告", "生产工单", "BOM工艺路线"],
+        }, spec["required_sources"], priority="调查优先级")]
+    return []
+
+
+def _scan_logistics_loss_anomaly(data, spec):
+    """VR049 购销缺物流或损耗率偏离（业务真实性线索）。"""
+    pur = data.get("pur_invs", []) or []
+    sal = data.get("sal_invs", []) or []
+    contracts = data.get("transport_contracts", []) or []
+    vouchers = data.get("vouchers", []) or []
+    bom = data.get("bom", []) or []
+    ledger = _load_inventory_ledger(data)
+    if not (pur or sal):
+        return []
+    big_deals = [r for r in (pur + sal) if _number(r.get("amount") or r.get("金额") or 0) >= 100000]
+    has_contract = bool(contracts)
+    freight_voucher = any(
+        any(k in " ".join(str(x) for x in v.values()) for k in ("运费", "运输费", "物流费"))
+        for v in vouchers
+    )
+    missing_logistics = bool(big_deals) and not has_contract and not freight_voucher
+    loss_anomalies = []
+    if bom and ledger:
+        bom_loss = {}
+        for b in bom:
+            raw = str(b.get("原料名称") or b.get("raw_name") or "").strip()
+            rate = _number(b.get("损耗率") or b.get("loss_rate"))
+            if raw:
+                bom_loss[_norm_goods(raw)] = rate
+        grp = {}
+        for r in ledger:
+            grp.setdefault(_norm_goods(r["name"]), []).append(r)
+        for nm, rate in bom_loss.items():
+            rows = grp.get(nm)
+            if not rows:
+                continue
+            op = sum(r["opening"] for r in rows)
+            ib = sum(r["inbound"] for r in rows)
+            ob = sum(r["outbound"] for r in rows)
+            cl = sum(r["closing"] for r in rows)
+            denom = (op + ib)
+            if denom > 0:
+                actual_loss = (denom - ob - cl) / denom
+                if actual_loss < 0 or actual_loss > rate * 2 + 0.1:
+                    loss_anomalies.append({"name": nm, "bom_loss_rate": rate,
+                                           "actual_loss_rate": round(actual_loss, 3)})
+    if missing_logistics or loss_anomalies:
+        detail_parts = []
+        if missing_logistics:
+            detail_parts.append("大额购销（单笔≥10万元）{0}笔却无运输合同或运费凭证，到货价结算却无运费资料，业务真实性存疑".format(len(big_deals)))
+        if loss_anomalies:
+            detail_parts.append("实际损耗率与BOM定额损耗显著偏离{0}项（含负损耗/盘盈异常或远超定额），提示出入库计量不实".format(len(loss_anomalies)))
+        detail = "业务真实性核查：" + "；".join(detail_parts) + "。应责令补充运输合同、运费发票、磅单与损耗计算表，并说明异常损耗原因。"
+        return [_finding(spec, detail, {
+            "big_deal_count": len(big_deals),
+            "missing_logistics": missing_logistics,
+            "loss_anomaly_count": len(loss_anomalies),
+            "examples": loss_anomalies[:10],
+            "demand_docs": ["运输合同", "运费发票", "磅单", "损耗计算表", "异常损耗说明"],
+        }, spec["required_sources"], priority="调查优先级")]
+    return []
+
+
+def _scan_cross_border_penetration(data, spec):
+    """VR050 跨境交易穿透线索（需报关/外汇数据）。"""
+    sal = data.get("sal_invs", []) or []
+    pur = data.get("pur_invs", []) or []
+    customs = data.get("customs_data", []) or []
+    foreign_kw = ["境外", "海外", "香港", "澳门", "台湾", "新加坡", "美国", "德国", "日本", "韩国",
+                  "HK", "SG", "Ltd", "Limited", "Co., Ltd", "Inc.", "GmbH", "Corp", "(Hong Kong)"]
+    def _is_foreign(text):
+        return any(k.lower() in str(text).lower() for k in foreign_kw)
+    foreign_deals = []
+    for r in sal + pur:
+        cp = r.get("buyer") or r.get("seller") or r.get("购方") or r.get("销方") or r.get("客户") or r.get("供应商") or ""
+        cur = str(r.get("currency") or r.get("币种") or "")
+        if _is_foreign(cp) or (cur and cur.upper() not in ("CNY", "RMB", "元", "")):
+            foreign_deals.append({"invoice_no": r.get("invoice_no") or r.get("发票号码"),
+                                  "counterparty": str(cp), "currency": cur})
+    if not foreign_deals:
+        return []
+    has_customs = bool(customs) or bool(data.get("customs_declarations"))
+    if not has_customs:
+        detail = (
+            "跨境交易穿透筛查：检出{0}笔涉及境外对手方或外币结算的交易，但系统未获取到报关单、"
+            "海关进口增值税专用缴款书、外汇收付款凭证等跨境业务必备资料，无法穿透境外实控与真实交易背景。"
+            "依据稽查规程，应责令补充：①报关单及海关缴款书；②涉外收付款凭证（跨境人民币/外币）；"
+            "③境外关联方股权穿透与同期资料。".format(len(foreign_deals))
+        )
+        return [_finding(spec, detail, {
+            "foreign_deal_count": len(foreign_deals),
+            "examples": foreign_deals[:10],
+            "customs_data_provided": False,
+            "demand_docs": ["报关单", "海关进口增值税专用缴款书", "涉外收付款凭证", "境外关联方股权穿透资料", "同期资料"],
+        }, spec["required_sources"], priority="调查优先级")]
+    return []
+
+
+def _scan_evidence_demand_order(data, spec, all_findings=None):
+    """VR051 稽查取证责令补充资料单（盲区兜底）。
+
+    聚合本轮所有线索型/资料缺失型发现，生成结构化《补充资料责令单》。
+    不依赖特定数据源（required_sources=[]），在 run_verified_rules 末尾统一调用。
+    """
+    findings = all_findings if all_findings is not None else data.get("_prior_findings", [])
+    if not findings:
+        return []
+    demand_map = {}
+    triggered = []
+    for f in findings:
+        docs = (f.get("observed_metrics", {}) or {}).get("demand_docs") or []
+        if docs:
+            rid = f.get("rule_id")
+            triggered.append({"rule_id": rid, "type": f.get("type"), "docs": docs})
+            for d in docs:
+                demand_map.setdefault(d, []).append(rid)
+    if not demand_map:
+        return []
+    order_lines = []
+    for doc, rules in sorted(demand_map.items(), key=lambda x: -len(x[1])):
+        order_lines.append(f"· {doc}（关联规则：{', '.join(sorted(set(rules)))}）")
+    detail = (
+        "稽查取证补充资料责令单：本轮稽查共形成{0}项需补充资料的线索/资料缺失型发现，"
+        "汇总责令企业提供以下资料以固定证据、排除或确认嫌疑：\n".format(len(triggered))
+        + "\n".join(order_lines)
+        + "\n\n企业应在收到本责令单之日起十五日内报送上述资料；逾期不报或资料不足以排除嫌疑的，"
+        "稽查部门将依法采取进一步稽查措施。本单为稽查取证程序性文书，不作为税务处理决定。"
+    )
+    return [_finding(spec, detail, {
+        "demand_item_count": len(demand_map),
+        "triggered_finding_count": len(triggered),
+        "demand_order": order_lines,
+        "triggered_findings": triggered[:20],
+    }, ["all_findings"], priority="责令补充资料")]
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -2642,6 +3092,14 @@ _SCANNERS = {
     "VR041": _scan_depreciation_anomaly,
     "VR042": _scan_property_tax,
     "VR043": _scan_city_constr_tax,
+    "VR044": _scan_inventory_revenue_divergence,
+    "VR045": _scan_transport_revenue_divergence,
+    "VR046": _scan_stagnant_inventory,
+    "VR047": _scan_inventory_roll_mismatch,
+    "VR048": _scan_spec_inconsistency,
+    "VR049": _scan_logistics_loss_anomaly,
+    "VR050": _scan_cross_border_penetration,
+    "VR051": _scan_evidence_demand_order,
 }
 
 
@@ -2671,6 +3129,28 @@ def run_verified_rules(engine_data):
                 "status": "execution_error",
                 "message": str(error)[:240],
             })
+    # VR051 兜底：聚合本轮所有发现，生成稽查取证补充资料责令单
+    # 注意：VR051 已从 VERIFIED_RULE_CATALOG 移除（仅作循环后兜底，避免与缺数据源测试重复执行），
+    # 故 spec 在此硬编码，不依赖 catalog。
+    try:
+        vr51_spec = {
+            "id": "VR051",
+            "name": "稽查取证责令补充资料单",
+            "layer": "账外经营与业务真实性间接证据规则",
+            "category": "盲区兜底",
+            "required_sources": [],
+            "type": "evidence_demand_order",
+            "status": "verified_executable_screening",
+        }
+        demand_findings = _scan_evidence_demand_order(engine_data, vr51_spec, all_findings=findings)
+        if demand_findings:
+            findings.extend(demand_findings)
+            executions.append({"rule_id": "VR051", "status": "triggered", "finding_count": len(demand_findings)})
+        else:
+            # 无发现可聚合时，与缺数据源规则一致标记，避免干扰全缺数据测试
+            executions.append({"rule_id": "VR051", "status": "not_run_missing_data", "missing_sources": ["prior_findings"]})
+    except Exception as error:
+        executions.append({"rule_id": "VR051", "status": "execution_error", "message": str(error)[:240]})
     available_sources = {k for k, v in engine_data.items() if v}
     coverage = build_coverage_report(
         VERIFIED_RULE_CATALOG, set(_SCANNERS.keys()),

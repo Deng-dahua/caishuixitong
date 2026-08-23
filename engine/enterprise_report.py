@@ -165,6 +165,24 @@ def _build_detail_table(f):
             # VR043 城建附加
             "paid_vat": "实缴增值税", "est_city_tax": "测算城建税", "est_edu": "测算教育费附加",
             "est_local_edu": "测算地方教育附加", "est_total": "测算附加税合计", "declared_supplementary": "已申报附加税",
+            # VR044 库存收入背离
+            "closing_inventory_amount": "期末库存金额", "annual_revenue": "年营业收入", "inv_rev_ratio": "库存收入比",
+            # VR045 运输背离
+            "out_qty": "出库量", "contract_weight": "合同运输重量", "freight_voucher_amount": "运费凭证金额",
+            # VR046 呆滞
+            "stagnant_count": "呆滞存货项数", "zero_outbound_periods": "零出库期数",
+            # VR047 滚动矛盾
+            "mismatch_count": "滚动矛盾处数", "expected_closing": "应有期末", "reported_closing": "账面期末", "diff": "差异",
+            # VR048 规格不一致
+            "conflict_count": "规格冲突项数", "input_specs": "进项规格", "output_specs": "销项规格",
+            # VR049 物流/损耗
+            "big_deal_count": "大额交易笔数", "missing_logistics": "物流资料缺失", "loss_anomaly_count": "损耗异常项数",
+            "actual_loss_rate": "实际损耗率", "bom_loss_rate": "BOM定额损耗率",
+            # VR050 跨境
+            "foreign_deal_count": "跨境交易笔数", "customs_data_provided": "报关资料已提供",
+            # VR051 责令单
+            "demand_item_count": "责令补资项数", "triggered_finding_count": "触发发现数", "demand_order": "责令单明细",
+            "demand_docs": "需补充资料",
         }
         skip = {"examples"}
         # 2.5) 嵌套字典（dict-of-dicts）：如 province_breakdown{省份:{count,amount}}、

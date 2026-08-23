@@ -236,16 +236,22 @@ def run_evolved_audit():
         {"invoice_no": "XS003", "date": "2025-02-20", "goods": "针织布", "unit": "米", "qty": 8000, "amount": 2000000, "tax": 260000, "total": 2260000, "buyer": "广州服装有限公司"},
         # VR037 触发：同品名针织布/米，关联对手方单价 80（中位数250，偏离68%）
         {"invoice_no": "XS004", "date": "2025-02-25", "goods": "针织布", "unit": "米", "qty": 2000, "amount": 160000, "tax": 20800, "total": 180800, "buyer": "达冠关联贸易公司"},
+        # VR048 触发：销项棉纱 40S，但进项仅 32S（规格背离，违背工艺）
+        {"invoice_no": "XS005", "date": "2025-02-26", "goods": "棉纱 40S", "unit": "kg", "qty": 500, "amount": 30000, "tax": 3900, "total": 33900, "buyer": "珠海布行"},
+        # VR050 触发：境外对手方销售（无报关资料）
+        {"invoice_no": "XS006", "date": "2025-02-27", "goods": "针织布", "unit": "米", "qty": 3000, "amount": 750000, "tax": 97500, "total": 847500, "buyer": "Hong Kong Garment Ltd", "currency": "USD"},
     ]
     pur_invs = [
         {"invoice_no": "FP001", "date": "2025-01-05", "goods": "棉纱", "amount": 200000, "tax": 26000, "total": 226000, "seller": "新疆棉业有限公司"},
         {"invoice_no": "FP003", "date": "2025-01-08", "goods": "加工费", "amount": 9040000, "tax": 1175200, "total": 10215200, "seller": "河南鄢陵纺织加工厂"},
         {"invoice_no": "FP004", "date": "2025-01-09", "goods": "加工费", "amount": 3280000, "tax": 426400, "total": 3706400, "seller": "厦门旻刘纺织加工厂"},
         {"invoice_no": "FP002", "date": "2025-01-10", "goods": "染料", "amount": 50000, "tax": 6500, "total": 56500, "seller": "广东化工染料"},
-        {"invoice_no": "FP005", "date": "2025-01-18", "goods": "棉纱", "amount": 100000, "tax": 13000, "total": 113000, "seller": "新疆棉业有限公司"},
+        {"invoice_no": "FP005", "date": "2025-01-18", "goods": "棉纱 32S", "amount": 100000, "tax": 13000, "total": 113000, "seller": "新疆棉业有限公司"},
         {"invoice_no": "FP006", "date": "2025-01-22", "goods": "染料", "amount": 30000, "tax": 3900, "total": 33900, "seller": "广东化工染料"},
         # VR032 触发：取得的专票但用途为业务招待（酒），应转出未转出
         {"invoice_no": "FP007", "date": "2025-01-25", "invoice_code": "011002100", "goods": "高档酒-业务招待", "amount": 100000, "tax": 13000, "total": 113000, "seller": "某商贸有限公司"},
+        # VR050 触发：境外对手方（无报关资料）
+        {"invoice_no": "FP008", "date": "2025-01-30", "goods": "棉纱", "amount": 500000, "tax": 65000, "total": 565000, "seller": "Hong Kong Textile Supply Ltd", "currency": "USD"},
     ]
     vouchers = [
         # 其他应收款挂股东范善茂借款（财税[2003]158号信号）
@@ -281,6 +287,28 @@ def run_evolved_audit():
     contracts = [
         {"合同类型": "仓库租赁", "月租金": 30000, "租赁月数": 12, "合同编号": "DH-CL-2025"},
     ]
+    # VR044/046/047/048/049 触发：进销存台账
+    #  - 针织布期末金额巨大且出库/入库比低 → VR044 库存收入背离
+    #  - 呆滞品 A001 连续入库却零出库 → VR046
+    #  - B002 滚动矛盾（期初+入库-出库≠期末）→ VR047
+    #  - 棉纱 32S 进项但 40S 销项（在发票层触发 VR048，台账仅辅助）
+    inventory_ledger = [
+        {"日期": "2025-01-31", "存货编码": "FG01", "存货名称": "针织布", "期初库存": 50, "本期入库": 44500, "本期出库": 4500, "期末库存": 40000, "单位": "米", "金额": 10000000},
+        {"日期": "2025-02-28", "存货编码": "FG01", "存货名称": "针织布", "期初库存": 40000, "本期入库": 20000, "本期出库": 5000, "期末库存": 55000, "单位": "米", "金额": 13750000},
+        {"日期": "2025-01-31", "存货编码": "A001", "存货名称": "呆滞纱线", "期初库存": 0, "本期入库": 1000, "本期出库": 0, "期末库存": 1000, "单位": "kg", "金额": 50000},
+        {"日期": "2025-02-28", "存货编码": "A001", "存货名称": "呆滞纱线", "期初库存": 1000, "本期入库": 500, "本期出库": 0, "期末库存": 1500, "单位": "kg", "金额": 75000},
+        {"日期": "2025-01-31", "存货编码": "B002", "存货名称": "棉纱", "期初库存": 200, "本期入库": 4450, "本期出库": 400, "期末库存": 650, "单位": "kg", "金额": 32500},
+        # VR047 滚动矛盾：期初200+入库4450-出库400=4250，但期末写650（差异3600）
+    ]
+    # VR045 触发：运输合同重量4000 << 总出库量(50400+)，且银行无运费支出 → 账外发货
+    transport_contracts = [
+        {"运输合同": "DH-YS-2025", "承运方": "物流公司", "起运地": "新疆", "到达地": "中山",
+         "运输方式": "汽运", "运输距离": 3500, "运输重量": 4000, "运费": "到货价含运", "运费承担方式": "购方承担(到货价)"},
+    ]
+    # VR049 损耗异常：BOM棉纱损耗0.05，但实际出入库损耗负（盘盈异常）
+    bom = [
+        {"成品编码": "FG01", "成品名称": "针织布", "原料编码": "RM01", "原料名称": "棉纱", "单位用量": 1.1, "损耗率": 0.05, "物料清单": "针织布配方"},
+    ]
     target_entity = {"legal_representative": "范善茂", "industry_code": "17"}
 
     engine_data = {
@@ -292,13 +320,16 @@ def run_evolved_audit():
         "declaration": declaration,
         "fixed_assets": fixed_assets,
         "contracts": contracts,
+        "inventory_ledger": inventory_ledger,
+        "transport_contracts": transport_contracts,
+        "bom": bom,
         "target_entity": target_entity,
     }
     result = run_verified_rules(engine_data)
-    print("\n========== 进化规则·达冠严谨稽查（VR026–VR043）==========")
-    new_ids = {f"VR{i:03d}" for i in range(26, 44)}
+    print("\n========== 进化规则·达冠严谨稽查（VR026–VR051 盲区间接证据链）==========")
+    new_ids = {f"VR{i:03d}" for i in range(26, 52)}
     hit = [f for f in result["findings"] if f["rule_id"] in new_ids]
-    print(f"新增规则命中数: {len(hit)} / 18")
+    print(f"新增规则命中数: {len(hit)} / 26")
     for f in hit:
         m = f.get("observed_metrics", {})
         print(f"  [{f['rule_id']}] {f['type']} | 等级:{f.get('level')} | 优先级:{f.get('priority')}")
@@ -306,7 +337,10 @@ def run_evolved_audit():
     # 断言：达冠在进化后应被识别出的风险点
     hit_ids = {f["rule_id"] for f in hit}
     expected = {"VR026", "VR028", "VR030", "VR032", "VR034", "VR035", "VR036",
-                "VR038", "VR039", "VR042", "VR043"}  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目/视同销售/招待费/广告费/房产税/城建附加
+                "VR038", "VR039", "VR042", "VR043",
+                "VR044", "VR045", "VR046", "VR047", "VR048", "VR049", "VR050", "VR051"
+                }  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目/视同销售/招待费/广告费/房产税/城建附加
+                  # + 账外经营间接证据链(库存背离/运输背离/呆滞/滚动矛盾/规格不一致/物流损耗) + 跨境穿透 + 责令补资单
     missing = expected - hit_ids
     print(f"  预期命中 {sorted(expected)}，实际缺失 {sorted(missing) if missing else '无'}")
     assert not missing, f"达冠严谨稽查未命中预期风险点: {missing}"
@@ -338,6 +372,12 @@ def run_evolved_audit():
     v41 = [f for f in v41_ctrl["findings"] if f["rule_id"] == "VR041"]
     print(f"  [VR041对照] 无固定资产时提示发现数={len(v41)}")
     assert len(v41) >= 1, "VR041 折旧异常提示分支（无固定资产）未产出"
+    # VR051 稽查取证补充资料责令单：聚合所有线索型发现的 demand_docs
+    v51 = [f for f in result["findings"] if f["rule_id"] == "VR051"]
+    assert v51, "VR051 补充资料责令单未生成"
+    v51_m = v51[0].get("observed_metrics", {})
+    print(f"\n  [VR051] 责令补资项数={v51_m.get('demand_item_count')} | 触发发现数={v51_m.get('triggered_finding_count')}")
+    assert v51_m.get("demand_item_count", 0) >= 5, "VR051 责令单聚合的需补资料项过少"
     # 覆盖度自检器输出
     cov = result.get("coverage", {})
     print("\n========== 稽查覆盖度自检 ==========")
