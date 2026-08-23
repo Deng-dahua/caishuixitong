@@ -595,12 +595,38 @@ def _invoice_amount(row, pretax=False):
 
 
 def _finding(spec, detail, metrics, sources, status="clue_pending_investigation", priority="中"):
+    """统一的稽查发现底盘。
+
+    全系统 51 条规则的 finding 均经此构造，强制携带「三件套」：
+    1) finding_disposition —— 处置定性（明确非已认定违法，仅待证线索）
+    2) verified_facts / to_prove —— 已核实事实 / 待企业举证事项（规则可自填，未填给诚实兜底）
+    3) enterprise_rights —— 企业权利告知（复议/诉讼防御的统一底线）
+    避免任何规则以「贴标签」方式输出结论，导致报告被复议推翻。
+    """
+    metrics = dict(metrics or {})
+    is_limitation = (status == "data_quality_limitation")
+    # 规则可在 metrics 自带 verified_facts / to_prove；否则给通用兜底，绝不裸奔
+    verified_facts = metrics.pop("verified_facts", None)
+    to_prove = metrics.pop("to_prove", None)
+    if verified_facts is None:
+        verified_facts = [
+            "本线索所依据的数据事实均来自企业上传的资料，系统已按可复算口径提取并标注，企业可逐笔核对。",
+        ]
+    if to_prove is None:
+        to_prove = [
+            "与本线索相关的原始凭证、合同、成果物及支撑性资料；",
+            "如需排除嫌疑，请就异常点提交说明与反证，资料充分则本项疑点排除。",
+        ]
+    enterprise_rights = (
+        "【企业权利告知】本事项在贵方提供充分举证前，仅作为待核实线索，不作为税务处理、处罚或移送依据；"
+        "贵方有权就任一事项陈述申辩、提交反证，并依《税收征管法》申请行政复议或提起行政诉讼。"
+    )
     return {
         "type": spec.get("name", spec.get("id", "未命名规则")),
         "rule_id": spec["id"],
         "category": spec.get("layer", "通用基础规则"),
-        "level": "信息" if status == "data_quality_limitation" else "中风险",
-        "score": 2 if status == "data_quality_limitation" else 5,
+        "level": "信息" if is_limitation else "中风险",
+        "score": 2 if is_limitation else 5,
         "priority": priority,
         "detail": detail,
         "observed_metrics": metrics,
@@ -611,6 +637,11 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
         "independent_sources": list(sources),
         "independent_source_count": len(set(sources)),
         "source_lineage_status": "observed_from_uploaded_data",
+        # ── 三件套（全系统统一）──
+        "finding_disposition": "待证线索（非已认定违法）" if not is_limitation else "数据质量提示（非违法定性）",
+        "verified_facts": verified_facts,
+        "to_prove": to_prove,
+        "enterprise_rights": enterprise_rights,
         "limitations": spec.get("limitation", "该原子规则只形成可复算的数据事实或资料质量事项，不作税务处理、处罚或移送判断。"),
         "methodology_controls": {
             "applicability_review_required": True,
@@ -1604,11 +1635,28 @@ def _scan_fund_recirculation(data, spec):
 
     if not signals:
         return []
+    detail = (
+        "；".join(signals) + "。\n"
+        "【为何值得查·具体理由】企业账户与法定代表人、股东、高管等个人（六员）账户间发生大额整数转存转取，"
+        "是资金回流、抽逃出资、账外经营及私分利润的可量化信号。触发门槛的具体事实是：单笔转出≥50万元且呈整数特征、"
+        "与个人账户形成双向大额往来——该资金流向在银行流水可直接复算，构成待证疑点。\n"
+        "【需企业举证排除的事项】请就每笔大额个人往来提供：款项性质说明（借款/分红/报销/代垫/投资款）；"
+        "如为借款，提供借款协议与利息处理；如为分红，说明是否已履行「利息、股息、红利所得」20%个税代扣代缴；"
+        "如为报销/代垫，提供对应业务凭证。资料充分则本项排除。"
+    )
     return [_finding(
         spec,
-        "；".join(signals) + "。企业账户与个人账户的大额整数转存转取是资金回流、抽逃、账外经营的高发形态，须逐笔核验款项性质、是否计入股东往来或分红、是否履行个人所得税扣缴义务。",
+        detail,
         {
             "person_account_count": len(person_txs),
+            "verified_facts": [
+                "企业账户与个人账户间检出大额（≥50万）整数转存转取，资金流向由银行流水直接复算。",
+                "公私账户大额往来属法定关注事项，是否违法取决于款项性质，非仅凭转账即定性。",
+            ],
+            "to_prove": [
+                "每笔个人往来的款项性质证明（借款协议/分红决议/报销单据/代垫凭证）；",
+                "如涉分红，提供个税代扣代缴凭证；如涉借款，说明利息税务处理。",
+            ],
             "matches": [
                 {"name": name, "out_to_person": round(agg["debit"], 2), "in_from_person": round(agg["credit"], 2),
                  "big_out_count": len(agg["big_out"]), "big_in_count": len(agg["big_in"])}
@@ -2347,28 +2395,51 @@ def _scan_deemed_sales(data, spec):
     if gifts:
         g_total = sum(x["amount"] for x in gifts)
         detail = (
-            f"检出{len(gifts)}笔疑似无偿赠送/样品/赠品支出（合计{g_total:,.2f}元），"
-            "将自产、委托加工或购进货物无偿赠送其他单位或个人、交付样品，应视同销售计提销项税额。"
-            "若未对应确认收入，存在少计销项风险。须逐笔核对受赠对象、是否作销售费用-促销（已含视同销售）"
-            "及是否按组成计税价格申报。"
+            f"【已核实事实】凭证检出{len(gifts)}笔摘要含「赠送/样品/赠品/宣传品」的支出，合计 {g_total:,.2f}元，"
+            "账务计入销售费用-样品等科目，账面未见对应的销项税额计提与收入确认分录。\n"
+            "【为何值得查·具体理由】依增值税法，将自产、委托加工或购进货物无偿赠送其他单位或个人、交付样品，"
+            "应视同销售计提销项税额。触发门槛的具体事实是：账面存在「对外无偿转出货物」的支出记录，"
+            "却无对应的销项税额贷方发生额——这一勾稽缺口在账面可直接复算，故构成待证疑点，而非预设违法。\n"
+            "【需企业举证排除的事项】请逐笔提供：受赠对象与用途说明；该笔是否已作销售费用-促销（账务已含视同销售处理）；"
+            "如确属视同销售，是否按组成计税价格（成本×(1+成本利润率)）申报销项。资料充分则本项排除。"
         )
         findings.append(_finding(
             spec, detail,
             {"gift_count": len(gifts), "gift_total": round(g_total, 2),
-             "examples": gifts[:10]},
+             "examples": gifts[:10],
+             "verified_facts": [
+                 f"凭证检出{len(gifts)}笔赠送/样品类支出合计 {g_total:,.2f}元，账面未见对应销项计提。",
+                 "视同销售认定依据为增值税法第十条，属法定情形，非针对本企业预设。",
+             ],
+             "to_prove": [
+                 "每笔赠送/样品的受赠对象、用途与内部审批单据；",
+                 "是否已作视同销售处理（销项税额计提凭证）；如未计提，说明并按组成计税价格补报。",
+             ]},
             spec["required_sources"], priority="中",
         ))
     if self_use:
         s_total = sum(x["amount"] for x in self_use)
         detail = (
-            f"检出{len(self_use)}笔将货物用于集体福利/个人消费/在建工程的领用（合计{s_total:,.2f}元），"
-            "自产或委托加工货物用于集体福利、个人消费，应视同销售计提销项税额。"
-            "须核对领用物资是否为自产/委托加工货物，以及对应销项税额计提情况。"
+            f"【已核实事实】凭证检出{len(self_use)}笔货物领用计入集体福利费/个人消费/在建工程，合计 {s_total:,.2f}元，"
+            "账面未见对应的销项税额计提。\n"
+            "【为何值得查·具体理由】依增值税法，自产或委托加工货物用于集体福利、个人消费，应视同销售计提销项。"
+            "触发门槛的具体事实是：货物从存货转出至非销售用途且未计提销项——该勾稽缺口账面可复算，"
+            "构成待证疑点。若所领用货物为外购（非自产/委托加工），则不适用视同销售，企业可凭采购进项归属举证排除。\n"
+            "【需企业举证排除的事项】请逐笔提供：领用物资的生产来源（自产/委托加工/外购）；"
+            "如为自产或委托加工，是否按组成计税价格计提销项；如为外购，说明不触发视同销售的依据。"
         )
         findings.append(_finding(
             spec, detail,
             {"self_use_count": len(self_use), "self_use_total": round(s_total, 2),
-             "examples": self_use[:10]},
+             "examples": self_use[:10],
+             "verified_facts": [
+                 f"凭证检出{len(self_use)}笔货物转非销售用途合计 {s_total:,.2f}元，未见销项计提。",
+                 "视同销售认定依据为增值税法第十条，属法定情形。",
+             ],
+             "to_prove": [
+                 "每笔领用物资的生产来源证明（自产/委托加工/外购采购凭证）；",
+                 "如属自产/委托加工，提供销项计提凭证；如属外购，说明不触发视同销售的依据。",
+             ]},
             spec["required_sources"], priority="中",
         ))
     return findings
@@ -2448,23 +2519,39 @@ def _scan_related_party_pricing(data, spec):
     findings = []
     if deviations:
         detail = (
-            f"同一品名同单位交易中检出{len(deviations)}笔单价相对中位数偏离≥{_PRICE_DEVIATION_RATIO:.0%}的异常，"
-            "偏离独立交易原则(ARM'S LENGTH)，是转让定价（利润输送/成本虚增）的可疑线索。"
-            "须结合工商股权穿透识别是否关联方，并准备同期资料举证定价合理性。"
+            f"【已核实事实】同一品名、同单位的交易中检出{len(deviations)}笔，其单价相对同批交易中位数偏离≥{_PRICE_DEVIATION_RATIO:.0%}"
+            f"（如某笔单价 {deviations[0]['price']:,.2f}元 vs 中位数 {deviations[0]['median_price']:,.2f}元，偏离 {deviations[0]['deviation']:.0%}）。\n"
+            "【为何值得查·具体理由】企业所得税法第四十一条与特别纳税调整实施办法要求关联方交易遵循独立交易原则"
+            "(arm's length)。同一商品对不同时点/对手方的单价若出现显著离散，是转让定价（低价输送利润或高价虚增成本）"
+            "的可量化信号。触发门槛的具体事实是：可复算的单价离散度超阈，而非预设关联关系。\n"
+            "【需企业举证排除的事项】请就偏离交易提供：交易对手方与本校的股权/任职关联关系说明（是否关联方）；"
+            "如为非关联方，说明价差合理的商业理由（批量、账期、质量等级、运费承担等）；"
+            "如为关联方，准备同期资料举证定价符合独立交易原则。"
         )
         findings.append(_finding(
             spec, detail,
             {"deviation_count": len(deviations), "threshold": _PRICE_DEVIATION_RATIO,
-             "examples": deviations[:10]},
+             "examples": deviations[:10],
+             "verified_facts": [
+                 f"检出{len(deviations)}笔同品名同单位交易单价偏离中位数≥{_PRICE_DEVIATION_RATIO:.0%}。",
+                 "价格离散度由发票单价直接计算，属可复算数据事实；是否构成转让定价违规须结合关联定性。",
+             ],
+             "to_prove": [
+                 "偏离交易对手方的关联关系说明；非关联则提供价差商业合理性证据；关联则提供同期资料。",
+             ]},
             spec["required_sources"], priority="调查优先级",
         ))
     # 数据完整性提示：若未提供股权穿透，无法做关联定性
     if not related:
         findings.append(_finding(
             spec,
-            "未检测到工商股权穿透/关联方清单数据，转让定价无法完成关联定性（仅做价格离散度探针）。"
-            "建议接入工商股权穿透数据（股东/对外投资/人员任职交叉）以识别隐性关联方，提升转让定价稽查精度。",
-            {"related_party_data": False, "note": "需补充股权穿透数据"},
+            "【已核实事实】系统未检测到工商股权穿透/关联方清单数据，故仅能完成价格离散度探针，无法做关联定性。\n"
+            "【说明】转让定价违规的认定前提是「交易双方构成关联方」。在缺股权穿透数据时，系统不臆测关联关系，"
+            "仅保留价格离散线索并提示补充资料。\n"
+            "【需企业补充/系统待接入】工商股权穿透数据（股东/对外投资/人员任职交叉），以识别隐性关联方。",
+            {"related_party_data": False, "note": "需补充股权穿透数据",
+             "verified_facts": ["未提供股权穿透数据，关联定性暂缺。"],
+             "to_prove": ["请补充关联方清单或授权接入工商股权穿透数据。"]},
             spec["required_sources"], priority="提示",
         ))
     return findings
@@ -2714,9 +2801,15 @@ def _scan_city_constr_tax(data, spec):
                "note": "城建税率按市区7%测算，县城5%/乡村1%需按实际地区调整"}
     if declared_supp <= 0:
         detail = (
-            f"实缴增值税{paid_vat:,.2f}元，应随征城建税及附加约{est_total:,.2f}元"
+            f"【已核实事实】实缴增值税 {paid_vat:,.2f}元，按法定附征率测算应随征城建税及附加约 {est_total:,.2f}元"
             f"（城建7%={est_city:,.2f}+教育费附加3%={est_edu:,.2f}+地方教育附加2%={est_local:,.2f}），"
-            "但未检出附加税申报记录。城建税及附加须随增值税附征，须确认是否漏报。"
+            "但系统未检索到对应的城建税及附加申报记录。\n"
+            "【为何值得查·具体理由】城建税及教育费附加依《城市维护建设税法》《征收教育费附加的暂行规定》"
+            "须随增值税附征，二者存在法定勾稽关系。触发门槛的具体事实是：有实缴增值税、却无附加税申报——"
+            "该勾稽缺口可复算，构成待证疑点。可能成因亦包括：企业适用县城/乡村税率（5%/1%低于市区7%）、"
+            "或附加税在合并申报表中未单独列示致系统未识别。\n"
+            "【需企业举证排除的事项】请提供：城建税及附加的申报表或合并申报明细；"
+            "企业实际注册地区（据以核定适用城建税率）；如确已申报，说明申报路径以便系统核验。"
         )
         return [_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
     if declared_supp < est_total * 0.8:
