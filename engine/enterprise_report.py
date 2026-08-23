@@ -183,6 +183,14 @@ def _build_detail_table(f):
             # VR051 责令单
             "demand_item_count": "责令补资项数", "triggered_finding_count": "触发发现数", "demand_order": "责令单明细",
             "demand_docs": "需补充资料",
+            # VR052 委托加工业务真实性
+            "registered_province": "企业注册省", "registered_city": "企业注册市",
+            "processing_inv_count": "加工费进项笔数", "processing_inv_total": "加工费进项合计",
+            "cross_province_processing_count": "跨省加工费笔数", "cross_province_processing_amount": "跨省加工费金额",
+            "cross_province_suppliers": "跨省供应商省份", "transport_invoice_count": "运输费发票笔数",
+            "has_transport_contract": "是否有运输合同", "has_processing_contract": "是否有委托加工合同",
+            "missing_dims": "缺失维度", "auto_exonerate_path": "自证清白路径",
+            "verified_facts": "已核实事实", "to_prove": "需企业举证",
         }
         skip = {"examples"}
         # 2.5) 嵌套字典（dict-of-dicts）：如 province_breakdown{省份:{count,amount}}、

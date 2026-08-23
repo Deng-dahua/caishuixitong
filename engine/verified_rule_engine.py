@@ -566,6 +566,17 @@ VERIFIED_RULE_CATALOG = [
         "status": "verified_executable_screening",
         "limitation": "存在境外对手方或外币结算但缺少报关单、海关缴款书、外汇核销/收支数据，无法穿透境外实控与真实交易。属穿透线索，须责令补充报关单、海关进口增值税专用缴款书、涉外收付款凭证与境外关联方穿透资料。",
     },
+    {
+        "id": "VR052",
+        "name": "委托加工业务真实性·地理-物流-合同三维勾稽",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与取得", "生产、加工与服务交付", "存货、物流与资产"],
+        "required_sources": ["pur_invs", "company_profile"],
+        "status": "verified_executable_screening",
+        "limitation": "本规则仅做地理背离、物流缺位、合同缺位三维间接证据勾稽，不直接认定虚开。舍近求远委托外地加工可能因产业链集群、产能紧张、工艺专长等正当商业理由；跨市经营亦可能仅为未办理跨区域涉税报告的程序性问题。最终定性须由稽查人员结合合同、物流轨迹、付款资金流、加工商实地核查综合判断。",
+    },
 ]
 
 
@@ -3156,6 +3167,165 @@ def _scan_cross_border_penetration(data, spec):
     return []
 
 
+def _scan_processing_business_authenticity(data, spec):
+    """VR052 委托加工业务真实性·地理-物流-合同三维勾稽。
+
+    逻辑骨架（对应稽查实务中"外地加工费+无运输费+无委托加工合同→业务真实性存疑"证据链）：
+      ① 地理背离：企业注册省 vs 加工费进项发票供应商所在省，跨省且距离远（舍近求远）
+      ② 物流缺位：全量进项发票中无运输费/运费/物流类发票，且无运输合同覆盖该加工业务
+      ③ 合同缺位：无书面委托加工合同（contracts 中无 type=委托加工 且 goods 匹配）
+    三维叠加 → 业务真实性线索，责令补证；补不出则有理由怀疑虚开（写在 to_prove，不直接定性）。
+    """
+    pur = data.get("pur_invs", []) or []
+    profile = data.get("company_profile") or {}
+    if isinstance(profile, list):
+        profile = profile[0] if profile else {}
+    reg_province = (profile.get("registered_province") or profile.get("注册省") or profile.get("省份") or "").strip()
+    reg_city = (profile.get("registered_city") or profile.get("注册市") or profile.get("城市") or "").strip()
+
+    # 提取加工费类进项发票（货物/品名含 加工费/加工/委外）
+    processing_kw = ["加工费", "委托加工", "委外加工", "外发加工", "加工服务"]
+    transport_kw = ["运输", "运费", "物流", "货运", "快递", "托运", "承运"]
+    processing_invs = []
+    transport_inv_count = 0
+    for r in pur:
+        goods = str(r.get("goods") or r.get("货物或应税劳务名称") or r.get("品名") or "")
+        seller = str(r.get("seller") or r.get("销方") or r.get("供应商") or "")
+        amt = _number(r.get("amount"))
+        if any(k in goods for k in processing_kw):
+            processing_invs.append({
+                "invoice_no": r.get("invoice_no") or r.get("发票号码"),
+                "goods": goods, "seller": seller, "amount": amt,
+                "province": _province_of(seller) or _province_of(goods),
+            })
+        if any(k in goods for k in transport_kw):
+            transport_inv_count += 1
+
+    if not processing_invs:
+        return []
+
+    # 委托加工合同识别
+    contracts = data.get("contracts") or []
+    if isinstance(contracts, dict):
+        contracts = [contracts]
+    has_processing_contract = False
+    for c in contracts:
+        ctype = str(c.get("合同类型") or c.get("type") or c.get("类型") or "")
+        cgoods = str(c.get("goods") or c.get("标的") or c.get("品名") or c.get("货物") or "")
+        if ("加工" in ctype or "加工" in cgoods) and any(k in cgoods or k in ctype for k in processing_kw + ["加工"]):
+            has_processing_contract = True
+            break
+
+    # 三维逐条勾稽：先算地理背离明细（供后续物流覆盖判定复用）
+    geo_flags = []      # 地理背离明细
+    for inv in processing_invs:
+        if inv["province"] and reg_province and inv["province"] != reg_province:
+            geo_flags.append(inv)
+
+    # 运输合同覆盖判定：不仅看"有没有运输合同"，还要看是否覆盖跨省加工往返路线
+    transport_contracts = data.get("transport_contracts") or []
+    # 物流佐证充分性：运输费进项发票存在，或运输合同起讫地覆盖加工供应商省/注册地
+    logistics_verified = transport_inv_count > 0
+    if not logistics_verified and transport_contracts:
+        proc_provinces = {inv["province"] for inv in geo_flags if inv["province"]}
+        for tc in transport_contracts:
+            route = str(tc.get("起运地") or tc.get("到达地") or tc.get("路线") or "")
+            if reg_province in route or any(p in route for p in proc_provinces):
+                logistics_verified = True
+                break
+    has_transport_contract = bool(transport_contracts)
+
+    # 组装证据链
+    findings = []
+    if geo_flags:
+        # 已核实事实
+        proc_total = sum(inv["amount"] for inv in processing_invs)
+        geo_amount = sum(inv["amount"] for inv in geo_flags)
+        detail_parts = []
+        detail_parts.append(
+            "【已核实事实·地理背离】企业注册地为{reg}{rc}（省内经营 presumption）。经全量进项发票勾稽，"
+            "检出{gn}份加工费类进项发票的供应商位于「{gp}」等外省市，合计{ga:,.2f}元，占加工费进项{ratio:.0%}。"
+            "加工制造具有强地域就近属性，舍近求远到跨省数千公里外委托加工，与常规经营逻辑不符，"
+            "需说明选址合理性（如专属工艺、产能瓶颈、产业集群）。".format(
+                reg=reg_province, rc=("·" + reg_city) if reg_city else "",
+                gn=len(geo_flags), gp="、".join(sorted({inv['province'] for inv in geo_flags})),
+                ga=geo_amount, ratio=(geo_amount / proc_total if proc_total else 0))
+        )
+        if not logistics_verified:
+            detail_parts.append(
+                "【已核实事实·物流缺位】全量进项发票中未检出任何运输费/运费/物流类发票（运输费发票笔数={tc}），"
+                "且现有运输合同未能覆盖「跨省加工供应商→注册地」的往返路线（现有运输合同起讫地不含{provs}或{reg}）。"
+                "跨省加工必然产生大宗货物流转，却无任何运费凭证或物流轨迹佐证，货物如何往返、运输责任方（委托方/受托方）为何方均无法判断，物流真实性存疑。".format(
+                    tc=transport_inv_count, provs="、".join(sorted({inv['province'] for inv in geo_flags})), reg=reg_province)
+            )
+        else:
+            detail_parts.append(
+                "【物流凭证情况】检出运输费发票{ti}笔 / 覆盖加工往返的运输合同{tt}份，物流责任方与费用承担方式可据以核对。".format(
+                    ti=transport_inv_count, tt=len(transport_contracts))
+            )
+        if not has_processing_contract:
+            detail_parts.append(
+                "【已核实事实·合同缺位】未检索到书面委托加工合同（contracts 中无 type=委托加工 且品名匹配的协议）。"
+                "委托加工关系成立、加工标的、的数量、质量、交付与费用结算均无合同支撑，加工业务真实性无法自证。"
+            )
+        else:
+            detail_parts.append("【合同情况】检出委托加工合同，加工关系与标的可据合同进一步核验。")
+
+        # 推理链与处置
+        missing_dims = []
+        if not logistics_verified:
+            missing_dims.append("物流轨迹/运费凭证")
+        if not has_processing_contract:
+            missing_dims.append("书面委托加工合同")
+        verdict = ""
+        if missing_dims:
+            verdict = (
+                "【证据链推理】地理背离（舍近求远）+ " + " + ".join(missing_dims) + " 三项间接证据叠加，"
+                "构成「委托加工业务真实性存疑」线索。若企业能在限期内补充充分资料（见下）证实业务真实，疑点排除；"
+                "若无法进一步提供佐证，则依稽查规程有理由将加工费进项发票列为虚开发票嫌疑对象，依法移送进一步调查。"
+                "另：跨市经营未办理跨区域涉税报告亦可能仅为程序性违规，需与实质性虚开区分判断。"
+            )
+        else:
+            verdict = (
+                "【证据链推理】虽存在地理背离（舍近求远），但物流凭证与委托加工合同齐备，"
+                "暂不构成业务真实性线索；仍建议核实跨省选址的商业合理性以排除异常。"
+            )
+
+        detail = "\n".join(detail_parts) + "\n" + verdict
+        findings.append(_finding(
+            spec, detail,
+            {
+                "registered_province": reg_province,
+                "registered_city": reg_city,
+                "processing_inv_count": len(processing_invs),
+                "processing_inv_total": round(proc_total, 2),
+                "cross_province_processing_count": len(geo_flags),
+                "cross_province_processing_amount": round(geo_amount, 2),
+                "cross_province_suppliers": sorted({inv["province"] for inv in geo_flags}),
+                "transport_invoice_count": transport_inv_count,
+                "has_transport_contract": has_transport_contract,
+                "has_processing_contract": has_processing_contract,
+                "missing_dims": missing_dims,
+                "demand_docs": ["委托加工合同（含标的/数量/交付/费用结算）", "跨省加工往返运输合同与运费发票",
+                                "物流轨迹/磅单/出入库单", "加工商资质与实地核查资料", "跨省选址合理性说明"],
+                "verified_facts": [
+                    f"企业注册地：{reg_province}{('·'+reg_city) if reg_city else ''}",
+                    f"检出{len(geo_flags)}份外省市加工费进项发票，供应商省份：{', '.join(sorted({inv['province'] for inv in geo_flags}))}，合计{geo_amount:,.2f}元",
+                    f"全量进项发票中运输费类发票笔数={transport_inv_count}，委托加工合同={'有' if has_processing_contract else '无'}",
+                ],
+                "to_prove": [
+                    "跨省选址的商业合理性说明（专属工艺/产能瓶颈/产业集群证据）",
+                    "书面委托加工合同及加工业务真实性佐证",
+                    "覆盖跨省加工往返的运输合同、运费发票与物流轨迹",
+                    "若限期内无法补证，加工费进项发票涉嫌虚开的进一步调查资料",
+                ],
+                "auto_exonerate_path": "企业补充委托加工合同+运输合同/运费发票+物流轨迹，且跨省选址合理性成立，则疑点排除",
+            },
+            spec["required_sources"], priority="调查优先级",
+        ))
+    return findings
+
+
 def _scan_evidence_demand_order(data, spec, all_findings=None):
     """VR051 稽查取证责令补充资料单（盲区兜底）。
 
@@ -3246,6 +3416,7 @@ _SCANNERS = {
     "VR049": _scan_logistics_loss_anomaly,
     "VR050": _scan_cross_border_penetration,
     "VR051": _scan_evidence_demand_order,
+    "VR052": _scan_processing_business_authenticity,
 }
 
 

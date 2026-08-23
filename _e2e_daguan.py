@@ -324,10 +324,11 @@ def run_evolved_audit():
         "transport_contracts": transport_contracts,
         "bom": bom,
         "target_entity": target_entity,
+        "company_profile": {"registered_province": "广东", "registered_city": "中山", "legal_name": "达冠纺织有限公司"},
     }
     result = run_verified_rules(engine_data)
-    print("\n========== 进化规则·达冠严谨稽查（VR026–VR051 盲区间接证据链）==========")
-    new_ids = {f"VR{i:03d}" for i in range(26, 52)}
+    print("\n========== 进化规则·达冠严谨稽查（VR026–VR052 盲区间接证据链）==========")
+    new_ids = {f"VR{i:03d}" for i in range(26, 53)}
     hit = [f for f in result["findings"] if f["rule_id"] in new_ids]
     print(f"新增规则命中数: {len(hit)} / 26")
     for f in hit:
@@ -338,9 +339,10 @@ def run_evolved_audit():
     hit_ids = {f["rule_id"] for f in hit}
     expected = {"VR026", "VR028", "VR030", "VR032", "VR034", "VR035", "VR036",
                 "VR038", "VR039", "VR042", "VR043",
-                "VR044", "VR045", "VR046", "VR047", "VR048", "VR049", "VR050", "VR051"
+                "VR044", "VR045", "VR046", "VR047", "VR048", "VR049", "VR050", "VR051", "VR052"
                 }  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目/视同销售/招待费/广告费/房产税/城建附加
                   # + 账外经营间接证据链(库存背离/运输背离/呆滞/滚动矛盾/规格不一致/物流损耗) + 跨境穿透 + 责令补资单
+                  # + 委托加工业务真实性三维勾稽(VR052)
     missing = expected - hit_ids
     print(f"  预期命中 {sorted(expected)}，实际缺失 {sorted(missing) if missing else '无'}")
     assert not missing, f"达冠严谨稽查未命中预期风险点: {missing}"
@@ -378,6 +380,19 @@ def run_evolved_audit():
     v51_m = v51[0].get("observed_metrics", {})
     print(f"\n  [VR051] 责令补资项数={v51_m.get('demand_item_count')} | 触发发现数={v51_m.get('triggered_finding_count')}")
     assert v51_m.get("demand_item_count", 0) >= 5, "VR051 责令单聚合的需补资料项过少"
+    # VR052 委托加工业务真实性·三维勾稽专项验证
+    v52 = [f for f in result["findings"] if f["rule_id"] == "VR052"]
+    assert v52, "VR052 委托加工业务真实性三维勾稽未触发"
+    v52_m = v52[0].get("observed_metrics", {})
+    print(f"\n  [VR052] 跨省加工费笔数={v52_m.get('cross_province_processing_count')} "
+          f"金额={v52_m.get('cross_province_processing_amount')} 供应商省={v52_m.get('cross_province_suppliers')}")
+    print(f"         运输费发票笔数={v52_m.get('transport_invoice_count')} 委托加工合同={'有' if v52_m.get('has_processing_contract') else '无'}")
+    print(f"         缺失维度={v52_m.get('missing_dims')}")
+    assert v52_m.get("cross_province_processing_count", 0) >= 1, "VR052 未检出跨省加工费"
+    assert not v52_m.get("has_processing_contract"), "VR052 应识别无委托加工合同"
+    assert "物流轨迹/运费凭证" in (v52_m.get("missing_dims") or []), "VR052 应识别物流缺位"
+    assert v52[0].get("finding_disposition"), "VR052 必须带处置定性(待证线索)"
+    assert "行政复议" in (v52[0].get("enterprise_rights") or ""), "VR052 必须带企业权利告知"
     # 覆盖度自检器输出
     cov = result.get("coverage", {})
     print("\n========== 稽查覆盖度自检 ==========")
