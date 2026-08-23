@@ -1,17 +1,17 @@
 {
-  "updated_at": "2026-08-22T14:14:59.308673",
+  "updated_at": "2026-08-24T00:31:37.851761",
   "total_events": 1,
   "events": [
     {
       "type": "analysis_completed",
       "data": {
-        "company": "中山市达冠纺织有限公司",
-        "findings_count": 0,
+        "company": "达冠测试样例纺织",
+        "findings_count": 2,
         "causal_edges": 0,
         "patterns": 0
       },
       "source": "agi_pipeline",
-      "timestamp": "2026-08-22T14:14:59.306719",
+      "timestamp": "2026-08-24T00:31:37.851461",
       "id": "evt_000000"
     }
   ]

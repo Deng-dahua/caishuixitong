@@ -31,6 +31,10 @@
     "mtime": 1785112565.7618656,
     "size": 19866
   },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\audit_coverage.py": {
+    "mtime": 1787453668.332901,
+    "size": 8191
+  },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\auto_patrol.py": {
     "mtime": 1785112565.7628655,
     "size": 16248
@@ -76,8 +80,8 @@
     "size": 23443
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\domain_analysis.py": {
-    "mtime": 1787373233.2436342,
-    "size": 768826
+    "mtime": 1787416964.3663783,
+    "size": 801760
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\enforcement_procedure.py": {
     "mtime": 1785672073.2471752,
@@ -88,8 +92,8 @@
     "size": 23555
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\enterprise_report.py": {
-    "mtime": 1787371865.1248522,
-    "size": 21965
+    "mtime": 1787501058.3498886,
+    "size": 45314
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\evolution.py": {
     "mtime": 1785112565.7688656,
@@ -156,8 +160,8 @@
     "size": 5255
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_guardrails.py": {
-    "mtime": 1785857673.5988295,
-    "size": 14476
+    "mtime": 1787405527.6373656,
+    "size": 15143
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\methodology_loader.py": {
     "mtime": 1785667737.9512112,
@@ -196,8 +200,8 @@
     "size": 17144
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\pipeline.py": {
-    "mtime": 1787379107.0570753,
-    "size": 450700
+    "mtime": 1787411232.3743193,
+    "size": 462479
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rd_audit.py": {
     "mtime": 1786031948.2252183,
@@ -236,8 +240,8 @@
     "size": 14132
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\scenario_execution.py": {
-    "mtime": 1787379179.9912994,
-    "size": 36944
+    "mtime": 1787501031.9278252,
+    "size": 54323
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\scenario_methodology.py": {
     "mtime": 1785762551.1088674,
@@ -291,9 +295,13 @@
     "mtime": 1785112565.7788653,
     "size": 22012
   },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\vat_reversal.py": {
+    "mtime": 1787416812.6852107,
+    "size": 5525
+  },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\verified_rule_engine.py": {
-    "mtime": 1787379164.8796253,
-    "size": 59149
+    "mtime": 1787501561.2465017,
+    "size": 183521
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\agents\\__init__.py": {
     "mtime": 1785112565.7598655,
@@ -424,8 +432,8 @@
     "size": 4572
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-doc-analysis.js": {
-    "mtime": 1787366244.4027884,
-    "size": 237013
+    "mtime": 1787409493.536184,
+    "size": 240151
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-engine-dashboard.js": {
     "mtime": 1787364905.158009,
@@ -436,8 +444,8 @@
     "size": 42653
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-pipeline-pages.js": {
-    "mtime": 1787364905.1892517,
-    "size": 562696
+    "mtime": 1787403302.8118215,
+    "size": 556343
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-report-standards.js": {
     "mtime": 1785426905.219388,
@@ -472,7 +480,7 @@
     "size": 41313
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\main.py": {
-    "mtime": 1787378553.3329854,
-    "size": 536544
+    "mtime": 1787406275.8092294,
+    "size": 583722
   }
 }

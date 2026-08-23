@@ -1,8 +1,8 @@
 [
   {
-    "timestamp": "2026-08-22T14:14:59.308828",
-    "avg_quality": 0.0,
-    "findings_count": 0,
-    "issues": 0
+    "timestamp": "2026-08-24T00:31:37.851933",
+    "avg_quality": 0.25,
+    "findings_count": 2,
+    "issues": 8
   }
 ]

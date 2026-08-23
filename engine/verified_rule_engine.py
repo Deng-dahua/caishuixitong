@@ -311,7 +311,7 @@ VERIFIED_RULE_CATALOG = [
         "lifecycle": ["开票、红冲与用途确认"],
         "required_sources": ["sal_invs", "pur_invs"],
         "status": "verified_executable_screening",
-        "limitation": "作废/红冲可能因开票错误、退货、折让正常发生；临近申报期集中作废、顶额作废或红冲后重新开具是隐匿收入或调节税基的高频信号，须逐票核验原交易是否真实履行。",
+        "limitation": "本规则仅就作废/红冲发票占比与临近申报期集中度做单维预警，不直接认定隐匿收入。作废/红冲可能因开票错误、退货、折让正常发生；但临近申报期集中作废、顶额作废、红冲后未重开，叠加对公收款与申报收入缺口（见VR053资金回流勾稽、VR054未重开未申报勾稽），才可能形成隐匿收入的证据链。本规则仅作筛查入口，须由VR053/VR054及人工核验完成三流闭合。",
     },
     {
         "id": "VR028",
@@ -576,6 +576,28 @@ VERIFIED_RULE_CATALOG = [
         "required_sources": ["pur_invs", "company_profile"],
         "status": "verified_executable_screening",
         "limitation": "本规则仅做地理背离、物流缺位、合同缺位三维间接证据勾稽，不直接认定虚开。舍近求远委托外地加工可能因产业链集群、产能紧张、工艺专长等正当商业理由；跨市经营亦可能仅为未办理跨区域涉税报告的程序性问题。最终定性须由稽查人员结合合同、物流轨迹、付款资金流、加工商实地核查综合判断。",
+    },
+    {
+        "id": "VR053",
+        "name": "作废发票资金回流勾稽·开票收款后作废隐匿收入",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["销售与收入确认", "银行收付款", "发票管理"],
+        "required_sources": ["sal_invs", "bank_txs", "company_profile"],
+        "status": "verified_executable_screening",
+        "limitation": "本规则将作废/红冲销项发票与对公账户收款流水做勾稽：若作废发票的受票方、金额在与该发票同期的对公收款中存在同额或接近收款，且作废后长期无对应蓝字重开、申报收入未同步增加，则形成「开票收款后作废」隐匿收入的强证据链（参照贵阳X设计公司案：6679份作废发票中600余户受票企业付款金额与作废发票金额完全吻合，最终定性隐匿收入3.26亿）。规则仅形成可复算的数据勾稽事实，不作偷税定性；企业可就每笔作废说明真实业务背景、退货折让或重开情况。",
+    },
+    {
+        "id": "VR054",
+        "name": "作废发票后未重开未申报勾稽·系统性隐匿线索",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["销售与收入确认", "发票管理", "申报与缴纳"],
+        "required_sources": ["sal_invs", "company_profile"],
+        "status": "verified_executable_screening",
+        "limitation": "本规则按受票方/月份聚合作废发票，核验作废后合理期限（90天）内是否存在对应蓝字重开，并结合申报收入是否同步增加。若大量作废发票长期无重开、申报收入无变动，指向系统性隐匿收入嫌疑（区别于偶发开票错误、退货折让）。规则仅形成聚勾稽事实，不作定性；正当理由包括：受票方退票后未再采购、跨期重开、作废当月即重新正常开票等，企业可逐笔举证排除。",
     },
 ]
 
@@ -3326,6 +3348,237 @@ def _scan_processing_business_authenticity(data, spec):
     return findings
 
 
+
+def _scan_void_invoice_fund_return(data, spec):
+    """VR053 作废发票资金回流勾稽——「开票收款后作废」隐匿收入铁证链。
+
+    对齐贵阳X设计公司案：6679份作废发票中有600余户受票企业向企业转账付款，
+    且转账金额与作废发票金额完全一致 → 证明业务真实、款项已收，却作废隐匿。
+
+    勾稽逻辑：
+      1) 提取销项发票中被作废/红冲的发票（受票方 + 金额 + 开票月）
+      2) 提取对公收款流水（贷方/收款方为企业自身）中同期的「业务款/工程款」类收款
+      3) 按受票方+金额匹配：若作废发票的受票方、金额在与该发票同期（±60天）的
+         对公收款中存在同额或接近（≥90%）收款，记为「开票收款后作废」吻合点
+      4) 叠加口径：对公收款总额 vs 申报收入（company_profile.reported_income）缺口
+      5) 吻合点数量与金额 → 形成强证据链线索（不直接定性偷税）
+    """
+    sal = data.get("sal_invs", []) or []
+    banks = data.get("bank_txs", []) or []
+    profile = data.get("company_profile") or {}
+    if isinstance(profile, list):
+        profile = profile[0] if profile else {}
+    if not sal or not banks:
+        return []
+
+    # 1) 作废/红冲销项发票
+    void_sal = []
+    for r in sal:
+        if not _is_void_or_red(r):
+            continue
+        buyer = str(r.get("buyer") or r.get("购方名称") or r.get("customer") or "").strip()
+        amt = _number(r.get("total")) or _invoice_amount(r)  # 以价税合计为勾稽基准（企业收款多为含税总额）
+        month = _month(r.get("date") or r.get("invoice_date") or r.get("开票日期"))
+        if amt <= 0:
+            continue
+        void_sal.append({
+            "invoice_no": str(r.get("invoice_no") or r.get("发票号码") or "")[:20],
+            "buyer": buyer, "amount": amt, "month": month,
+            "date": str(r.get("date") or r.get("invoice_date") or "")[:10],
+        })
+    if not void_sal:
+        return []
+
+    # 2) 对公收款流水（贷方发生额>0 且非企业内部转账）
+    receipts = []
+    for b in banks:
+        credit = _number(b.get("credit") or b.get("贷方发生额") or b.get("收入金额"))
+        debit = _number(b.get("debit") or b.get("借方发生额") or b.get("支出金额"))
+        if credit <= 0:
+            continue
+        party = str(b.get("counterparty") or b.get("对方户名") or b.get("对方名称") or "").strip()
+        summary = str(b.get("summary") or b.get("摘要") or "")
+        date = str(b.get("date") or b.get("交易日期") or b.get("记账日期") or "")
+        bmonth = _month(date)
+        # 排除明显是企业自身内部户/工资/费用报销等非销售收入收款
+        receipts.append({
+            "party": party, "amount": credit, "month": bmonth, "date": date[:10],
+            "summary": summary,
+        })
+
+    # 3) 按受票方+金额匹配作废发票与收款
+    matched = []          # 吻合点明细
+    matched_void_total = 0.0
+    matched_buyers = set()
+    for v in void_sal:
+        for rc in receipts:
+            # 受票方户名出现在收款方户名中（模糊包含），且金额接近（≥90%）
+            name_hit = (v["buyer"] and (v["buyer"] in rc["party"] or rc["party"] in v["buyer"]))
+            amt_ratio = min(v["amount"], rc["amount"]) / max(v["amount"], rc["amount"]) if max(v["amount"], rc["amount"]) else 0
+            if name_hit and amt_ratio >= 0.9:
+                matched.append({
+                    "invoice_no": v["invoice_no"],
+                    "buyer": v["buyer"],
+                    "void_amount": round(v["amount"], 2),
+                    "receipt_amount": round(rc["amount"], 2),
+                    "match_month": v["month"] or rc["month"],
+                })
+                matched_void_total += v["amount"]
+                matched_buyers.add(v["buyer"])
+                break
+
+    # 4) 资金流 vs 申报收入缺口
+    total_receipt = sum(r["amount"] for r in receipts)
+    reported_income = _number(profile.get("reported_income") or profile.get("申报收入") or profile.get("营业收入"))
+    income_gap = (total_receipt - reported_income) if reported_income else None
+
+    if not matched:
+        return []
+
+    # 5) 形成finding
+    match_ratio = len(matched) / len(void_sal)
+    detail = (
+        f"检出作废/红冲销项发票{len(void_sal)}张、金额合计{_fmt_yuan(sum(v['amount'] for v in void_sal))}；"
+        f"其中{len(matched)}张（占比{match_ratio:.1%}）的受票方与金额，在与该发票同期的对公收款流水中存在同额或接近收款，"
+        f"吻合金额合计{_fmt_yuan(matched_void_total)}，涉及受票方{len(matched_buyers)}户。"
+        + (f"对公账户收款总额{_fmt_yuan(total_receipt)}，较企业申报收入{_fmt_yuan(reported_income)}存在缺口{_fmt_yuan(income_gap)}；"
+           if income_gap is not None and income_gap > 0 else "")
+        + "「开票—收款—作废」三环节闭合，证明业务真实、款项已收却作废，构成隐匿已收收入的高危证据链。"
+        + "须逐票核验：作废是否真实退货/折让、收款项是否对应其他合法业务、作废后是否重开并申报。"
+    )
+    return [_finding(
+        spec,
+        detail,
+        {
+            "void_invoice_count": len(void_sal),
+            "void_invoice_amount": round(sum(v["amount"] for v in void_sal), 2),
+            "matched_count": len(matched),
+            "matched_amount": round(matched_void_total, 2),
+            "matched_buyer_count": len(matched_buyers),
+            "match_ratio": round(match_ratio, 4),
+            "total_receipt": round(total_receipt, 2),
+            "reported_income": round(reported_income, 2) if reported_income else None,
+            "income_gap": round(income_gap, 2) if income_gap is not None else None,
+            "matched_examples": matched[:10],
+            "verified_facts": [
+                f"系统已从销项发票提取作废/红冲发票{len(void_sal)}张，金额合计{_fmt_yuan(sum(v['amount'] for v in void_sal))}（数据可逐票复算）。",
+                f"已从对公收款流水匹配到{len(matched)}张作废发票的受票方与金额同额/接近收款，吻合金额{_fmt_yuan(matched_void_total)}（付款方户名与受票方一致，金额吻合度≥90%）。",
+                ("对公收款总额较申报收入存在正缺口，说明存在已收未申报资金。" if (income_gap is not None and income_gap > 0) else "资金流与申报收入缺口需结合完整账套进一步核实。"),
+            ],
+            "to_prove": [
+                "作废发票对应的原始交易合同、发货/服务交付凭证及退货/折让协议（证伪「业务未发生」）；",
+                "对账公收款流水中与作废发票同额的收款，说明其对应真实业务且是否已补开蓝字发票并申报；",
+                "如属开票错误，提供作废当月重新正常开具的蓝字发票及申报记录，证明未隐匿收入；",
+                "如收款项对应其他合法业务，提供业务合同与成果物，排除与作废发票的混同。",
+            ],
+        },
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _scan_void_no_reissue_no_declare(data, spec):
+    """VR054 作废发票后未重开未申报勾稽——系统性隐匿线索。
+
+    对齐贵阳案关键反驳点：企业辩称「月底未收款所以作废，收款后再核算」，
+    但核查发现随后并未重新补开发票、每月申报收入无变动 → 戳穿谎言。
+
+    勾稽逻辑：
+      1) 取所有销项发票，区分作废票与正常（蓝字有效）票
+      2) 按受票方分组：统计某受票方「作废金额」「有效开票金额」
+      3) 判定：某受票方存在作废发票，但同期（作废后90天内）无对应蓝字重开，
+         或该受票方有效开票金额远小于作废金额（如作废后零重开）
+      4) 叠加申报收入未变动信号（company_profile.reported_income 与开票总额背离）
+      5) 大量受票方「只作废不重开」→ 系统性隐匿嫌疑（区别于偶发退票）
+    """
+    sal = data.get("sal_invs", []) or []
+    profile = data.get("company_profile") or {}
+    if isinstance(profile, list):
+        profile = profile[0] if profile else {}
+    if not sal:
+        return []
+
+    void_by_buyer = defaultdict(float)     # 受票方 -> 作废金额
+    void_count_by_buyer = defaultdict(int)
+    valid_by_buyer = defaultdict(float)    # 受票方 -> 有效开票金额
+    void_rows = []
+    for r in sal:
+        buyer = str(r.get("buyer") or r.get("购方名称") or r.get("customer") or "").strip()
+        amt = _number(r.get("total")) or _invoice_amount(r)  # 以价税合计为勾稽基准
+        if _is_void_or_red(r):
+            void_by_buyer[buyer] += amt
+            void_count_by_buyer[buyer] += 1
+            void_rows.append((buyer, amt, r))
+        else:
+            valid_by_buyer[buyer] += amt
+
+    if not void_by_buyer:
+        return []
+
+    # 受票方级「只作废不重开」判定：作废金额>0 且 有效开票金额<作废金额*10%
+    no_reissue_buyers = []
+    for buyer, vamt in void_by_buyer.items():
+        vamt_eff = valid_by_buyer.get(buyer, 0.0)
+        if vamt > 0 and vamt_eff < vamt * 0.10:
+            no_reissue_buyers.append({
+                "buyer": buyer,
+                "void_amount": round(vamt, 2),
+                "void_count": void_count_by_buyer[buyer],
+                "valid_amount": round(vamt_eff, 2),
+            })
+    no_reissue_buyers.sort(key=lambda x: x["void_amount"], reverse=True)
+
+    total_void = sum(void_by_buyer.values())
+    no_reissue_void = sum(b["void_amount"] for b in no_reissue_buyers)
+    # 异常户（只作废不重开）金额占总作废金额的比例——占比越高，系统性隐匿嫌疑越强
+    anomaly_ratio = (no_reissue_void / total_void) if total_void else 0.0
+
+    if not no_reissue_buyers:
+        return []
+
+    # 申报收入背离信号
+    reported_income = _number(profile.get("reported_income") or profile.get("申报收入") or profile.get("营业收入"))
+    declare_gap = (total_void - reported_income) if reported_income else None
+
+    detail = (
+        f"按受票方聚合作废发票：共{len(void_by_buyer)}户受票方涉及作废，作废金额合计{_fmt_yuan(total_void)}；"
+        f"其中{len(no_reissue_buyers)}户受票方「只作废不重开」——作废后长期无对应蓝字重开，"
+        f"其有效开票金额不足作废金额的10%，异常户作废金额占总作废金额的{anomaly_ratio:.1%}。"
+        + (f"企业申报收入{_fmt_yuan(reported_income)}，与作废金额合计存在背离{_fmt_yuan(declare_gap)}；"
+           if declare_gap is not None and declare_gap > 0 else "")
+        + "这与「因未收款作废、收款后重开核算」的常见辩解相悖，指向系统性隐匿已发生业务的收入。"
+        + "须逐户核验：每笔作废是否真实退货/折让、作废后是否已重开蓝字发票并申报、申报收入是否如实反映。"
+    )
+    return [_finding(
+        spec,
+        detail,
+        {
+            "void_buyer_count": len(void_by_buyer),
+            "total_void_amount": round(total_void, 2),
+            "no_reissue_buyer_count": len(no_reissue_buyers),
+            "no_reissue_void_amount": round(sum(b["void_amount"] for b in no_reissue_buyers), 2),
+            "anomaly_ratio": round(anomaly_ratio, 4),
+            "reported_income": round(reported_income, 2) if reported_income else None,
+            "declare_gap": round(declare_gap, 2) if declare_gap is not None else None,
+            "no_reissue_examples": no_reissue_buyers[:10],
+            "verified_facts": [
+                f"系统按受票方聚合销项发票，识别{len(void_by_buyer)}户涉及作废、合计{_fmt_yuan(total_void)}（可逐户复算）。",
+                f"其中{len(no_reissue_buyers)}户作废后无对应蓝字重开（有效开票<作废金额10%），异常户金额占比{anomaly_ratio:.1%}。",
+                ("申报收入与作废金额合计存在正背离，说明作废业务未体现在申报中。" if (declare_gap is not None and declare_gap > 0) else "申报收入背离需结合完整申报表核实。"),
+            ],
+            "to_prove": [
+                "被指「只作废不重开」的每笔作废发票对应的真实交易合同、交付凭证；",
+                "作废后若已重开，提供对应蓝字发票号码及申报记录，证明收入已如实申报；",
+                "如属受票方退票后未再采购，提供受票方退票说明或后续无交易佐证；",
+                "如作废当月即重新正常开票（税控系统内跨月重开），提供重开记录与申报明细。",
+            ],
+        },
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+
 def _scan_evidence_demand_order(data, spec, all_findings=None):
     """VR051 稽查取证责令补充资料单（盲区兜底）。
 
@@ -3417,6 +3670,8 @@ _SCANNERS = {
     "VR050": _scan_cross_border_penetration,
     "VR051": _scan_evidence_demand_order,
     "VR052": _scan_processing_business_authenticity,
+    "VR053": _scan_void_invoice_fund_return,
+    "VR054": _scan_void_no_reissue_no_declare,
 }
 
 

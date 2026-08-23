@@ -190,6 +190,17 @@ def _build_detail_table(f):
             "cross_province_suppliers": "跨省供应商省份", "transport_invoice_count": "运输费发票笔数",
             "has_transport_contract": "是否有运输合同", "has_processing_contract": "是否有委托加工合同",
             "missing_dims": "缺失维度", "auto_exonerate_path": "自证清白路径",
+            # VR053 作废发票资金回流勾稽
+            "void_invoice_count": "作废发票张数", "void_invoice_amount": "作废发票金额",
+            "matched_count": "资金吻合张数", "matched_amount": "资金吻合金额",
+            "matched_buyer_count": "资金吻合受票方户数", "match_ratio": "资金吻合占比",
+            "total_receipt": "对公收款总额", "reported_income": "申报收入",
+            "income_gap": "资金流与申报缺口", "matched_examples": "吻合示例",
+            # VR054 作废发票未重开未申报勾稽
+            "void_buyer_count": "涉及作废受票方户数", "total_void_amount": "作废金额合计",
+            "no_reissue_buyer_count": "只作废不重开户数", "no_reissue_void_amount": "只作废不重开金额",
+            "anomaly_ratio": "异常户金额占比", "declare_gap": "申报收入背离",
+            "no_reissue_examples": "只作废不重开示例",
             "verified_facts": "已核实事实", "to_prove": "需企业举证",
         }
         skip = {"examples"}

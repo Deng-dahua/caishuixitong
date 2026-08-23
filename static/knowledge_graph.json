@@ -1,12 +1,45 @@
 {
   "entities": {
-    "中山市达冠纺织有限公司": {
+    "达冠测试样例纺织": {
       "type": "enterprise",
       "props": {
         "source": "analysis"
       }
+    },
+    "risk:有进无销风险": {
+      "type": "risk",
+      "props": {
+        "level": "低风险",
+        "count": 1
+      }
+    },
+    "risk:有销无进风险": {
+      "type": "risk",
+      "props": {
+        "level": "低风险",
+        "count": 1
+      }
     }
   },
-  "relations": [],
-  "updated_at": "2026-08-22T14:14:59.310895"
+  "relations": [
+    {
+      "from": "达冠测试样例纺织",
+      "to": "risk:有进无销风险",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-08-24T00:31:37.852202"
+    },
+    {
+      "from": "达冠测试样例纺织",
+      "to": "risk:有销无进风险",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-08-24T00:31:37.852209"
+    }
+  ],
+  "updated_at": "2026-08-24T00:31:37.852369"
 }

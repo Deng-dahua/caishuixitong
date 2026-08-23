@@ -1,2917 +1,5 @@
 [
   {
-    "timestamp": "2026-08-22T11:33:15.129405",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:42:10.358966",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "资金结算与往来域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:42:10.375396",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:42:32.739641",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "资金结算与往来域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:42:32.750449",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:48:56.153289",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "发票数据质量域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:48:56.167506",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:49:57.506655",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "发票数据质量域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:49:57.516270",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:53:23.147173",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:53:23.157198",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:53:50.734946",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:53:50.745410",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:55:20.772975",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "资金结算与往来域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:55:20.783795",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T11:58:41.881374",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T11:58:41.893638",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:01:32.651255",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "资金结算与往来域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:01:32.662767",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:08:45.178491",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "发票数据质量域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:08:45.187856",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:09:24.081428",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "资金结算与往来域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:09:24.091335",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:11:52.372707",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:11:52.383433",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:22:05.829694",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:22:05.841763",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:22:46.045856",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:22:46.056136",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:23:26.146802",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "收入与申报协同域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:23:26.156405",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:24:16.214034",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:24:16.227119",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:32:34.714450",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "发票数据质量域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:32:34.725467",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 85.7,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 66,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 376012608.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": -2097.1119394386865
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:34:22.669830",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:34:22.681006",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:34:56.303378",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "综合贸易/批发",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "收入与申报协同域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:34:56.315641",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:37:03.527793",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:37:03.538716",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:37:35.960834",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:37:35.972984",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:38:13.054530",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:38:13.065280",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:39:19.711852",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "发票数据质量域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:39:19.731356",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:40:51.111336",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "资金结算与往来域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:40:51.123487",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:41:23.974469",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:41:23.985930",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:43:21.280518",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "发票数据质量域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '综合分析', '资金结算与往来域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:43:21.290733",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:45:02.585288",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:45:02.597876",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:45:34.187509",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "收入与申报协同域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:45:34.197906",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:47:08.250740",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 2,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "收入与申报协同域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:47:08.262133",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:48:39.072381",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "pur_invs",
-          "综合分析",
-          "Synthesis: Causal Narrative"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['pur_invs', 'Synthesis: Causal Narrative', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:48:39.083271",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:49:11.830016",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "pur_invs",
-          "综合分析",
-          "Synthesis: Causal Narrative"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['发票数据质量域', 'pur_invs', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:49:11.840948",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T12:50:36.936422",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "资金结算与往来域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "Synthesis: Causal Narrative",
-          "综合分析",
-          "pur_invs"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域', 'pur_invs', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T12:50:36.949166",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:32:15.043872",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "pur_invs",
-          "综合分析",
-          "Synthesis: Causal Narrative"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['pur_invs', '发票数据质量域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:32:15.055969",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:32:48.689466",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "资金结算与往来域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "综合分析",
-          "pur_invs",
-          "Synthesis: Causal Narrative"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['发票数据质量域', 'pur_invs', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:32:48.698723",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:33:40.320664",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "收入与申报协同域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "Synthesis: Causal Narrative",
-          "pur_invs",
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', 'Synthesis: Causal Narrative', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:33:40.334575",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:34:34.770119",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "Synthesis: Causal Narrative",
-          "pur_invs",
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['发票数据质量域', 'Synthesis: Causal Narrative', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:34:34.781114",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:35:11.335423",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "Synthesis: Causal Narrative",
-          "pur_invs",
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['pur_invs', '发票数据质量域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:35:11.348370",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:37:08.633910",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "pur_invs",
-          "Synthesis: Causal Narrative",
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', 'pur_invs', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:37:08.645855",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:37:43.499370",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "pur_invs",
-          "综合分析",
-          "Synthesis: Causal Narrative"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '收入与申报协同域', '资金结算与往来域'] vs ['pur_invs', '发票数据质量域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:37:43.511379",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:39:34.767682",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "收入与申报协同域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "pur_invs",
-          "Synthesis: Causal Narrative",
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['pur_invs', 'Synthesis: Causal Narrative', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:39:34.777007",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:42:17.067759",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "交易对手与合同履约域",
-          "存货物流与生产经营域",
-          "发票数据质量域",
-          "收入与申报协同域"
-        ],
-        "sources_b": [
-          "pur_invs",
-          "综合分析",
-          "Synthesis: Causal Narrative"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['综合分析', '资金结算与往来域', '收入与申报协同域'] vs ['pur_invs', '交易对手与合同履约域', '存货物流与生产经营域', '发票数据质量域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['pur_invs', '交易对手与合同履约域', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:42:17.078992",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:42:55.914915",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "资金结算与往来域",
-          "发票数据质量域",
-          "交易对手与合同履约域",
-          "收入与申报协同域",
-          "存货物流与生产经营域"
-        ],
-        "sources_b": [
-          "综合分析",
-          "Synthesis: Causal Narrative",
-          "pur_invs"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '收入与申报协同域', '综合分析'] vs ['发票数据质量域', '交易对手与合同履约域', 'pur_invs', 'Synthesis: Causal Narrative', '存货物流与生产经营域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['交易对手与合同履约域', 'pur_invs', 'Synthesis: Causal Narrative'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:42:55.927244",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:43:49.440559",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "交易对手与合同履约域",
-          "资金结算与往来域",
-          "存货物流与生产经营域",
-          "发票数据质量域"
-        ],
-        "sources_b": [
-          "综合分析",
-          "Synthesis: Causal Narrative",
-          "pur_invs"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['交易对手与合同履约域', 'Synthesis: Causal Narrative', 'pur_invs', '存货物流与生产经营域', '发票数据质量域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['交易对手与合同履约域', 'Synthesis: Causal Narrative', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:43:49.453025",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:44:48.190357",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "发票数据质量域",
-          "收入与申报协同域",
-          "资金结算与往来域",
-          "存货物流与生产经营域",
-          "交易对手与合同履约域"
-        ],
-        "sources_b": [
-          "Synthesis: Causal Narrative",
-          "pur_invs",
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['资金结算与往来域', '综合分析', '收入与申报协同域'] vs ['pur_invs', '发票数据质量域', 'Synthesis: Causal Narrative', '存货物流与生产经营域', '交易对手与合同履约域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['Synthesis: Causal Narrative', 'pur_invs', '交易对手与合同履约域'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-22T13:44:48.200757",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 82.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 62,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-22T13:57:40.713848",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 3,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "收入与申报协同域",
-          "存货物流与生产经营域",
-          "交易对手与合同履约域",
-          "发票数据质量域",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "Synthesis: Causal Narrative",
-          "综合分析",
-          "pur_invs"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['收入与申报协同域', '资金结算与往来域', '综合分析'] vs ['存货物流与生产经营域', 'pur_invs', '发票数据质量域', '交易对手与合同履约域', 'Synthesis: Causal Narrative'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['Synthesis: Causal Narrative', '交易对手与合同履约域', 'pur_invs'] vs ['综合分析'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
     "timestamp": "2026-08-22T13:57:40.728458",
     "industry": "纺织产品",
     "biz_model": "制造业",
@@ -3349,6 +437,4239 @@
       "bank_out": 10270235.99,
       "salary": 0,
       "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-22T23:51:45.746694",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 7,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "生产与存货域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-22T23:51:45.766758",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:30:16.859247",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 7,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "发票数据质量域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "inventory",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:30:16.907051",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:31:51.896149",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 7,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:31:51.931327",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:32:47.952976",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 7,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "inventory",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'Synthesis: Causal Narrative', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:32:47.993250",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:33:38.971382",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 7,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "生产与存货域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:33:38.994025",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:34:52.065534",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 7,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'Synthesis: Causal Narrative', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:34:52.086113",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:35:15.606102",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 7,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "生产与存货域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:35:15.628865",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:50:35.777738",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "生产与存货域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "inventory",
+          "pur_invs",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:50:35.807061",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:50:59.823956",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "国际税收与关联交易域",
+          "交易对手与合同履约域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "inventory",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:50:59.847677",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:52:19.402134",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "国际税收与关联交易域",
+          "发票数据质量域",
+          "生产与存货域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:52:19.429904",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T00:53:55.833218",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "inventory",
+          "pur_invs",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['inventory', 'Synthesis: Causal Narrative', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T00:53:55.855170",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T11:02:20.116735",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "生产与存货域",
+          "发票数据质量域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "inventory",
+          "sal_invs",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T11:02:20.171981",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T11:04:36.708129",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "生产与存货域",
+          "国际税收与关联交易域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T11:04:36.749537",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T11:06:09.624865",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "国际税收与关联交易域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T11:06:09.665956",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T11:07:12.130668",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "生产与存货域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "inventory",
+          "pur_invs",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['inventory', 'Synthesis: Causal Narrative', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T11:07:12.170319",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T11:08:27.361901",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "国际税收与关联交易域",
+          "交易对手与合同履约域",
+          "生产与存货域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "inventory",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T11:08:27.387307",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T12:02:03.473066",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "国际税收与关联交易域",
+          "交易对手与合同履约域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T12:02:03.486915",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T12:02:43.091744",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "国际税收与关联交易域",
+          "发票数据质量域",
+          "生产与存货域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'Synthesis: Causal Narrative', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T12:02:43.103956",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:05:54.368333",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "发票数据质量域",
+          "生产与存货域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:05:54.379898",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:06:54.382969",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "国际税收与关联交易域",
+          "生产与存货域",
+          "发票数据质量域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:06:54.394211",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:08:56.866624",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "inventory",
+          "sal_invs",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['inventory', 'Synthesis: Causal Narrative', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:08:56.880930",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:10:26.328455",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "国际税收与关联交易域",
+          "交易对手与合同履约域",
+          "发票数据质量域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'Synthesis: Causal Narrative', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:10:26.340697",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:14:08.788689",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:14:08.799475",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:14:39.420615",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "生产与存货域",
+          "国际税收与关联交易域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:14:39.431128",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:15:02.008575",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "生产与存货域",
+          "国际税收与关联交易域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'Synthesis: Causal Narrative', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:15:02.024840",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:38:46.594258",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "inventory",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:38:46.617377",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:46:49.842591",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "inventory",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:46:49.855434",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-23T23:48:33.827639",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['inventory', 'Synthesis: Causal Narrative', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-23T23:48:33.840106",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:05:47.280659",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:05:47.296025",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:06:49.566600",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "发票数据质量域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:06:49.579771",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:07:30.155139",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:07:30.168276",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:08:34.069953",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "国际税收与关联交易域",
+          "交易对手与合同履约域",
+          "发票数据质量域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:08:34.085601",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:09:58.985549",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "生产与存货域",
+          "国际税收与关联交易域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "inventory",
+          "sal_invs",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:09:58.999449",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:11:01.128561",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "生产与存货域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:11:01.141672",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:11:27.581487",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:11:27.593121",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:12:08.320201",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "生产与存货域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:12:08.333477",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:13:24.845106",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "国际税收与关联交易域",
+          "发票数据质量域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "inventory",
+          "pur_invs",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['inventory', 'Synthesis: Causal Narrative', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:13:24.858415",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:22:16.026401",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "生产与存货域",
+          "国际税收与关联交易域",
+          "发票数据质量域"
+        ],
+        "sources_b": [
+          "inventory",
+          "sal_invs",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'inventory', 'sal_invs', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:22:16.039101",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:22:28.109997",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "发票数据质量域",
+          "生产与存货域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'sal_invs', 'pur_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:22:28.121013",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:23:22.023281",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "生产与存货域",
+          "发票数据质量域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'Synthesis: Causal Narrative', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:23:22.035789",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:28:36.582035",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "国际税收与关联交易域",
+          "发票数据质量域",
+          "生产与存货域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "inventory",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['inventory', 'pur_invs', 'sal_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:28:36.595384",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:28:48.112305",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "交易对手与合同履约域",
+          "生产与存货域",
+          "发票数据质量域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "pur_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'pur_invs', 'inventory', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:28:48.125388",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:30:19.952032",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "国际税收与关联交易域",
+          "发票数据质量域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:30:19.964407",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:31:24.630675",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "国际税收与关联交易域",
+          "交易对手与合同履约域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "inventory",
+          "sal_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs', 'inventory', 'sal_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', '综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:31:24.644227",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-08-24T00:31:36.331209",
+    "company_id": 9999,
+    "company_name": "达冠测试样例纺织",
+    "industry": "纺织制造",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "生产与存货域",
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "国际税收与关联交易域"
+        ],
+        "sources_b": [
+          "sal_invs",
+          "inventory",
+          "pur_invs"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_009",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['sal_invs', 'inventory', 'Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源重叠(['综合分析', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: []"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-08-24T00:31:36.342209",
+    "industry": "综合",
+    "biz_model": "制造业",
+    "scale": "中",
+    "risk_score": 59.3,
+    "risk_level": "高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 1,
+    "total_findings": 56,
+    "has_processing": true,
+    "has_personal_payments": false,
+    "supplier_concentration": 99.37254901960785,
+    "customer_concentration": 100.0,
+    "data_quality_score": 85,
+    "snapshot": {
+      "sales": 12500000.0,
+      "purchases": 12750000.0,
+      "bank_in": 12500000.0,
+      "bank_out": 13228000.0,
+      "salary": 0,
+      "gross_margin_pct": -2.0
     }
   }
 ]

@@ -70,5 +70,19 @@
     "verify_count": 34,
     "misfire_count": 0,
     "updated": 1787379975.891386
+  },
+  "fund:客户维度开票收款偏差（逐户穿透）;rela:;invo:付款无进项发票（三源交叉）|加工费发票缺少数量或单位|进销存数量勾稽不平衡|进销比1.02高于行业上限0.95": {
+    "confidence": 1.0,
+    "status": "观察中",
+    "entities": [
+      "达冠测试样例纺织"
+    ],
+    "industries": [
+      "综合"
+    ],
+    "created": 1787413897.2501466,
+    "verify_count": 50,
+    "misfire_count": 0,
+    "updated": 1787502690.1072369
   }
 }

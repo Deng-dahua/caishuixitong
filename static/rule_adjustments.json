@@ -1,71 +1,5 @@
 [
   {
-    "id": "ADJ-0078",
-    "rule_id": "51a84fa9",
-    "trigger": "高风险发现#57仅0条证据",
-    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
-    "target": "Causal: 关联交易的利润转移路径",
-    "dimension": "证据充分性",
-    "applied_at": "2026-07-19T19:25:19.874290",
-    "applied_count": 2,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0079",
-    "rule_id": "30b7fad3",
-    "trigger": "发现#48引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "第三方涉税信息比对不符",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T19:25:19.874411",
-    "applied_count": 11,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0080",
-    "rule_id": "540ef5ba",
-    "trigger": "发现#53引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "运费发票抵扣金额与货物周转量不匹配",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T19:25:19.874451",
-    "applied_count": 2,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0081",
-    "rule_id": "fe444322",
-    "trigger": "发现#46引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "合同要素不完整",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T19:25:28.449536",
-    "applied_count": 4,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0082",
-    "rule_id": "a65059a3",
-    "trigger": "发现#51引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "交易时间与金额模式异常——周末/整数交易",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T19:25:28.449580",
-    "applied_count": 3,
-    "status": "active"
-  },
-  {
-    "id": "ADJ-0083",
-    "rule_id": "e16d127e",
-    "trigger": "发现#54引用了已废止的《增值税暂行条例》",
-    "action": "自动替换已废止的法条引用为现行有效版本",
-    "target": "第三方涉税信息比对不符",
-    "dimension": "法条准确性",
-    "applied_at": "2026-07-19T19:25:28.449594",
-    "applied_count": 1,
-    "status": "active"
-  },
-  {
     "id": "ADJ-0084",
     "rule_id": "9021bdfc",
     "trigger": "发现#59引用了已废止的《增值税暂行条例》",
@@ -1052,7 +986,7 @@
     "target": "经营实质-缺水电支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T13:42:17.063245",
-    "applied_count": 4,
+    "applied_count": 11,
     "status": "active"
   },
   {
@@ -1096,7 +1030,73 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T14:01:20.461789",
-    "applied_count": 4,
+    "applied_count": 11,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0101",
+    "rule_id": "382a1a45",
+    "trigger": "高风险发现#17仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 加工费掩盖的虚开发票路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T23:51:45.733922",
+    "applied_count": 44,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0102",
+    "rule_id": "61b41367",
+    "trigger": "高风险发现#21仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-无人工支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-22T23:51:45.733933",
+    "applied_count": 6,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0101",
+    "rule_id": "07c68559",
+    "trigger": "高风险发现#12仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "BOM投入产出偏离-采购不足",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-23T00:50:35.758470",
+    "applied_count": 37,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0102",
+    "rule_id": "c8e0256f",
+    "trigger": "高风险发现#18仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 虚开发票的资金闭环回路",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-23T00:50:35.758519",
+    "applied_count": 37,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0103",
+    "rule_id": "6d5b9512",
+    "trigger": "高风险发现#19仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "Causal: 加工费掩盖的虚开发票路径",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-23T00:50:35.758531",
+    "applied_count": 37,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0104",
+    "rule_id": "dd43540a",
+    "trigger": "高风险发现#23仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-无人工支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-08-23T00:50:35.758542",
+    "applied_count": 37,
     "status": "active"
   }
 ]

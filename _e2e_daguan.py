@@ -223,10 +223,10 @@ def run_evolved_audit():
 
     # 达冠真实样本数字（来自上方 make_files 的银行/进销发票）
     bank_txs = [
-        {"date": "2025-02-05", "counterparty": "广州服装有限公司", "credit": 1000000, "debit": 0, "balance": -2168000, "summary": "收货款"},
+        {"date": "2025-02-05", "counterparty": "广州服装有限公司", "credit": 1130000, "debit": 0, "balance": -2168000, "summary": "收货款"},
         {"date": "2025-02-06", "counterparty": "广州服装有限公司", "credit": 0, "debit": 500000, "balance": -2668000, "summary": "付货款"},
-        {"date": "2025-02-10", "counterparty": "东莞制衣厂", "credit": 9500000, "debit": 0, "balance": 6832000, "summary": "收货款"},
-        {"date": "2025-02-20", "counterparty": "广州服装有限公司", "credit": 2000000, "debit": 0, "balance": 8712000, "summary": "收货款"},
+        {"date": "2025-02-10", "counterparty": "东莞制衣厂", "credit": 10735000, "debit": 0, "balance": 6832000, "summary": "收货款"},
+        {"date": "2025-02-20", "counterparty": "广州服装有限公司", "credit": 2260000, "debit": 0, "balance": 8712000, "summary": "收货款"},
         # 资金回流/公私混同：向六员个人范善茂大额转出（增值税法/征管法63条信号）
         {"date": "2025-02-25", "counterparty": "范善茂", "credit": 0, "debit": 600000, "balance": 8112000, "summary": "转存"},
     ]
@@ -240,6 +240,14 @@ def run_evolved_audit():
         {"invoice_no": "XS005", "date": "2025-02-26", "goods": "棉纱 40S", "unit": "kg", "qty": 500, "amount": 30000, "tax": 3900, "total": 33900, "buyer": "珠海布行"},
         # VR050 触发：境外对手方销售（无报关资料）
         {"invoice_no": "XS006", "date": "2025-02-27", "goods": "针织布", "unit": "米", "qty": 3000, "amount": 750000, "tax": 97500, "total": 847500, "buyer": "Hong Kong Garment Ltd", "currency": "USD"},
+        # VR053/VR054 触发：开票收款后作废（贵阳X设计公司案同构）
+        #  - XS007 广州服装 100万：与 02-05 收货款 100万 同额吻合
+        #  - XS008 东莞制衣 950万：与 02-10 收货款 950万 同额吻合
+        #  - XS009 广州服装 200万：与 02-20 收货款 200万 同额吻合
+        # 三张作废且对应受票方已付款，但作废后无重开（有效开票远低于作废）
+        {"invoice_no": "XS007", "date": "2025-02-05", "status": "作废", "goods": "针织布", "unit": "米", "qty": 4000, "amount": 1000000, "tax": 130000, "total": 1130000, "buyer": "广州服装有限公司"},
+        {"invoice_no": "XS008", "date": "2025-02-10", "status": "作废", "goods": "针织布", "unit": "米", "qty": 38000, "amount": 9500000, "tax": 1235000, "total": 10735000, "buyer": "东莞制衣厂"},
+        {"invoice_no": "XS009", "date": "2025-02-20", "status": "作废", "goods": "针织布", "unit": "米", "qty": 8000, "amount": 2000000, "tax": 260000, "total": 2260000, "buyer": "广州服装有限公司"},
     ]
     pur_invs = [
         {"invoice_no": "FP001", "date": "2025-01-05", "goods": "棉纱", "amount": 200000, "tax": 26000, "total": 226000, "seller": "新疆棉业有限公司"},
@@ -324,13 +332,14 @@ def run_evolved_audit():
         "transport_contracts": transport_contracts,
         "bom": bom,
         "target_entity": target_entity,
-        "company_profile": {"registered_province": "广东", "registered_city": "中山", "legal_name": "达冠纺织有限公司"},
+        "company_profile": {"registered_province": "广东", "registered_city": "中山", "legal_name": "达冠纺织有限公司",
+                            "reported_income": 5000000},
     }
     result = run_verified_rules(engine_data)
     print("\n========== 进化规则·达冠严谨稽查（VR026–VR052 盲区间接证据链）==========")
-    new_ids = {f"VR{i:03d}" for i in range(26, 53)}
+    new_ids = {f"VR{i:03d}" for i in range(26, 55)}
     hit = [f for f in result["findings"] if f["rule_id"] in new_ids]
-    print(f"新增规则命中数: {len(hit)} / 26")
+    print(f"新增规则命中数: {len(hit)} / 28")
     for f in hit:
         m = f.get("observed_metrics", {})
         print(f"  [{f['rule_id']}] {f['type']} | 等级:{f.get('level')} | 优先级:{f.get('priority')}")
@@ -339,10 +348,11 @@ def run_evolved_audit():
     hit_ids = {f["rule_id"] for f in hit}
     expected = {"VR026", "VR028", "VR030", "VR032", "VR034", "VR035", "VR036",
                 "VR038", "VR039", "VR042", "VR043",
-                "VR044", "VR045", "VR046", "VR047", "VR048", "VR049", "VR050", "VR051", "VR052"
+                "VR044", "VR045", "VR046", "VR047", "VR048", "VR049", "VR050", "VR051", "VR052",
+                "VR053", "VR054"
                 }  # 税负率/未开票/股东借款/进项转出/费用虚列/印花其他税目/视同销售/招待费/广告费/房产税/城建附加
                   # + 账外经营间接证据链(库存背离/运输背离/呆滞/滚动矛盾/规格不一致/物流损耗) + 跨境穿透 + 责令补资单
-                  # + 委托加工业务真实性三维勾稽(VR052)
+                  # + 委托加工业务真实性三维勾稽(VR052) + 作废发票资金回流/未重开未申报(VR053/VR054)
     missing = expected - hit_ids
     print(f"  预期命中 {sorted(expected)}，实际缺失 {sorted(missing) if missing else '无'}")
     assert not missing, f"达冠严谨稽查未命中预期风险点: {missing}"
@@ -393,6 +403,29 @@ def run_evolved_audit():
     assert "物流轨迹/运费凭证" in (v52_m.get("missing_dims") or []), "VR052 应识别物流缺位"
     assert v52[0].get("finding_disposition"), "VR052 必须带处置定性(待证线索)"
     assert "行政复议" in (v52[0].get("enterprise_rights") or ""), "VR052 必须带企业权利告知"
+    # VR053 作废发票资金回流勾稽·专项验证（对齐贵阳X设计公司案铁证链）
+    v53 = [f for f in result["findings"] if f["rule_id"] == "VR053"]
+    assert v53, "VR053 作废发票资金回流勾稽未触发"
+    v53_m = v53[0].get("observed_metrics", {})
+    print(f"\n  [VR053] 作废发票={v53_m.get('void_invoice_count')}张/{v53_m.get('void_invoice_amount')}元 "
+          f"| 资金吻合={v53_m.get('matched_count')}张/{v53_m.get('matched_amount')}元 "
+          f"| 吻合受票方={v53_m.get('matched_buyer_count')}户 | 对公收款={v53_m.get('total_receipt')} ")
+    print(f"         申报收入={v53_m.get('reported_income')} 资金流缺口={v53_m.get('income_gap')}")
+    assert v53_m.get("matched_count", 0) >= 1, "VR053 未匹配到作废发票对应的同额收款"
+    assert v53_m.get("matched_amount", 0) > 0, "VR053 资金吻合金额应为正"
+    assert v53[0].get("finding_disposition"), "VR053 必须带处置定性(待证线索)"
+    assert "行政复议" in (v53[0].get("enterprise_rights") or ""), "VR053 必须带企业权利告知"
+    assert any("重新" in t or "重开" in t for t in (v53[0].get("to_prove") or [])), "VR053 to_prove应含重开/申报自证路径"
+    # VR054 作废发票后未重开未申报勾稽·专项验证
+    v54 = [f for f in result["findings"] if f["rule_id"] == "VR054"]
+    assert v54, "VR054 作废发票未重开未申报勾稽未触发"
+    v54_m = v54[0].get("observed_metrics", {})
+    print(f"\n  [VR054] 涉及作废受票方={v54_m.get('void_buyer_count')}户 | 作废合计={v54_m.get('total_void_amount')}元 "
+          f"| 只作废不重开={v54_m.get('no_reissue_buyer_count')}户/{v54_m.get('no_reissue_void_amount')}元 "
+          f"| 异常户金额占比={v54_m.get('anomaly_ratio')}")
+    assert v54_m.get("no_reissue_buyer_count", 0) >= 1, "VR054 未识别只作废不重开户"
+    assert v54[0].get("finding_disposition"), "VR054 必须带处置定性(待证线索)"
+    assert "行政复议" in (v54[0].get("enterprise_rights") or ""), "VR054 必须带企业权利告知"
     # 覆盖度自检器输出
     cov = result.get("coverage", {})
     print("\n========== 稽查覆盖度自检 ==========")
