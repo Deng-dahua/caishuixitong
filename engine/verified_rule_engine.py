@@ -2149,26 +2149,79 @@ def _scan_expense_fabrication(data, spec):
 
     findings = []
     if suspicious:
+        susp_total = round(sum(x["amount"] for x in suspicious), 2)
+        # 把每一笔可疑费用落成"可反驳的具体事实"，而非笼统标签
+        lines = []
+        for i, x in enumerate(suspicious, 1):
+            amt = f"{x['amount']:,.2f}元"
+            lines.append(
+                f"  ({i}) 凭证摘要「{x['summary']}」金额 {amt}"
+                + (f"（凭证日期：{x['date']}）" if x.get("date") else "（凭证未标注日期，须补记账凭证号与日期）")
+            )
+        # 已核实事实（系统从Uploaded数据直接算出，企业可当场核对）
+        verified_facts = [
+            f"上述{len(suspicious)}笔费用合计 {susp_total:,.2f}元，占凭证费用总额（{expense_total:,.2f}元）的"
+            f"{ (susp_total/expense_total*100) if expense_total else 0:.1f}%；",
+            "两笔结算方式均为「转账」——系统已核实无现金支付，故暂未发现现金套取的直接痕迹"
+            "（现金维度不构成疑点，已排除，不列入待证事项）；",
+            "凭证仅记载「科目+摘要+金额」，未附合同、成果物、收款方全称与统一社会信用代码——"
+            "这是费用真实性无法在账面自证的直接原因，而非已认定虚列。",
+        ]
+        # 待企业举证事项（企业若能提供，则疑点排除；提供不出，才进入进一步稽查）
+        to_prove = [
+            "对应的服务合同（标的、期限、验收标准、对价合理性说明）；",
+            "服务成果物（报告/方案/投放记录/会议纪要等可交付物）；",
+            "收款方全称与统一社会信用代码，及其是否为个体户、当年新设或已注销（空壳特征）；",
+            "银行流水：该笔款项付出后，收款方账户资金是否于短期内回流至本企业股东、法定代表人"
+            "或员工个人账户（资金回流是虚列套现的关键证据）；",
+            "费用与收入的对应性说明（如广告费对应的销售收入增量、咨询费对应的管理提升证据）。",
+        ]
         detail = (
-            f"检出{len(suspicious)}笔大额（≥10万）咨询/会议/广告/服务/佣金类费用合计"
-            f"{sum(x['amount'] for x in suspicious):,.2f}元，是虚列成本费用、虚开发票套取资金的高频载体。"
-            "须逐笔核验合同、成果物、付款对象（是否个体户/空壳）与资金最终去向。"
+            f"【线索定性】成本费用真实性待证事项（非已认定违法）。\n"
+            f"【已核实事实】系统从记账凭证中检出{len(suspicious)}笔大额（单笔≥10万元）咨询/广告/服务类费用：\n"
+            + "\n".join(lines) + "\n"
+            + "\n".join(verified_facts) + "\n"
+            f"【为何值得查·具体理由】咨询费、广告费、服务费是虚开发票与虚列成本费用的高发载体，"
+            "这一判断基于税务稽查统计规律，而非针对本企业的预设结论。触发「值得查」门槛的具体数据特征是："
+            "①单笔金额达到10万元级且摘要为服务类（非实物采购，无实物入库可对应）；"
+            "②凭证本身未承载合同与成果物，费用真实性在账面不可自证；"
+            "③如费用率同时畸高（见下方关联测算），则「无对应实物、无成果物、占比畸高」三项叠加，"
+            "构成需企业举证方能排除的疑点。\n"
+            f"【需企业举证排除的事项】请就上述每笔费用提供以下资料，资料充分则本项疑点排除：\n"
+            + "\n".join("  · " + t for t in to_prove) + "\n"
+            "【企业权利告知】上述事项在贵方提供充分举证前，仅作为待核实线索，不作为税务处理、"
+            "处罚或移送依据；贵方有权就任一事项陈述申辩并提交反证。"
         )
         findings.append(_finding(
             spec, detail,
-            {"suspicious_count": len(suspicious), "suspicious_total": round(sum(x["amount"] for x in suspicious), 2),
-             "examples": suspicious[:10], "cash_total": round(cash_total, 2)},
+            {"suspicious_count": len(suspicious), "suspicious_total": susp_total,
+             "suspicious_ratio_of_expense": round(susp_total / expense_total, 4) if expense_total else 0,
+             "examples": suspicious[:10], "cash_total": round(cash_total, 2),
+             "verified_facts": verified_facts, "to_prove": to_prove,
+             "conclusion_type": "待证线索（非定性）"},
             spec["required_sources"], priority="中",
         ))
     if expense_rate >= _EXPENSE_RATE_WARN and revenue_total > 0:
         detail = (
-            f"凭证费用合计{expense_total:,.2f}元，收入口径{revenue_total:,.2f}元，费用率{expense_rate:.1%}，"
-            "显著高于常规行业水平。费用率畸高可能源于成本费用虚列、关联交易转移利润或收入隐匿，须结合成本结构核验。"
+            f"【线索定性】费用率畸高待证事项（非已认定违法）。\n"
+            f"【已核实事实】凭证费用合计 {expense_total:,.2f}元，收入口径 {revenue_total:,.2f}元"
+            f"（取销项发票不含税金额；若以申报收入 {_number((data.get('declaration') or [{}])[0].get('sales_amount') if data.get('declaration') else 0):,.2f}元计则更高），"
+            f"费用率 {expense_rate:.1%}，超过预设预警线 {_EXPENSE_RATE_WARN:.0%}。\n"
+            "【为何值得查·具体理由】费用率畸高存在三种可解释的成因——成本费用虚列、关联交易转移利润、或收入隐匿；"
+            "三者均指向「账实不符」，且无法仅凭凭证自证。本项与上方「大额服务费用无成果物」线索若同时命中，"
+            "则形成「高费用率 + 无对应实物/成果物」的叠加疑点，举证责任相应加重。\n"
+            "【需企业举证排除的事项】\n"
+            "  · 各项大额费用的合同、成果物与收款方画像（同上方待证清单）；\n"
+            "  · 成本结构说明（制造费用、直接材料占比与同行业对比）；\n"
+            "  · 如主张收入隐匿不成立，请说明费用率高于同业的商业合理性（如新品牌投放期、产能爬坡期）。\n"
+            "【企业权利告知】费用率高于同业可能源于商业模式差异（如新品牌前期投放），贵方提供充分举证后本项疑点排除；"
+            "在举证前仅作为待核实线索，不作为税务处理、处罚或移送依据。"
         )
         findings.append(_finding(
             spec, detail,
             {"expense_total": round(expense_total, 2), "revenue_total": round(revenue_total, 2),
-             "expense_rate": round(expense_rate, 4), "cash_total": round(cash_total, 2)},
+             "expense_rate": round(expense_rate, 4), "cash_total": round(cash_total, 2),
+             "warn_line": _EXPENSE_RATE_WARN, "conclusion_type": "待证线索（非定性）"},
             spec["required_sources"], priority="中",
         ))
     return findings
