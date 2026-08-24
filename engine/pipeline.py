@@ -172,6 +172,11 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # 从磁盘扫描 + 内存列表交叉验证 —— 防止沙箱下删除失败导致已删除文件被误扫
     # _tax_risk_docs 是前端用户看到的真实文件列表，磁盘可能有残留
+    # ⚠️ pipeline_log 必须在磁盘扫描循环之前初始化：扫描中遇到"前端已删但磁盘残留"文件时
+    #    会在 line~196 引用 pipeline_log，若在此之后才初始化会触发
+    #    "cannot access local variable 'pipeline_log' where it is not associated with a value"
+    #    （沙箱无回收站导致残留文件清理不掉，更易命中此路径）
+    pipeline_log, file_results = [], []
     company_upload_dir = _get_company_upload_dir(company_id)
     docs = []
     # 构建内存列表中的有效文件ID集合
@@ -212,8 +217,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     contract_data, related_party_data, trial_balance_data = [], [], []
     warehouse_contracts, transport_contracts = [], []  # 仓库租赁/运输合同台账（VR026/VR027证据源）
     tax_declarations = []  # 纳税申报表（增值税/企业所得税等），供票税账表勾稽
-    pipeline_log, file_results = [], []
-    
+
     # ── 🤖 财税智能体 + AGI管线统一初始化 ──
     agent = None  # 保留兼容，由agi_pipeline内部管理
     agent_status = None
