@@ -4770,6 +4770,58 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   html += '<h2 id="company-statement">九、报告性质和使用说明</h2>' +
     '<p class="i2"><strong>文书性质说明。</strong>' + esc(administrativeBoundary) + '</p>';
   statements.forEach(function(item, index){ html += '<p class="i2"><strong>说明' + (index + 1) + '。</strong>' + esc(item || '') + '</p>'; });
+
+  // ═══ 第十章：疑点派生树（洋葱式逐层展开） ═══
+  var dtree = report.derivation_tree_report || {};
+  if (dtree && dtree.title) {
+    html += '<h2 id="company-derivation-tree">十、疑点派生树（稽查思维导图 · 洋葱式逐层展开）</h2>' +
+      '<p class="i2">' + esc(dtree.summary || '') + '</p>';
+    if (dtree.principle) html += '<p class="i2" style="color:#64748b">' + esc(dtree.principle) + '</p>';
+    if (dtree.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(dtree.body) + '</div>';
+  }
+
+  // ═══ 第十一章：跨企业关联交易闭环（供应链网状违法图谱） ═══
+  var ceSec = report.cross_enterprise_report || {};
+  if (ceSec && ceSec.title) {
+    html += '<h2 id="company-cross-enterprise">十一、跨企业关联交易闭环（供应链网状违法图谱）</h2>' +
+      '<p class="i2">' + esc(ceSec.summary || '') + '</p>';
+    if (ceSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(ceSec.body) + '</div>';
+    // 高风险关联单独提示
+    if (ceSec.high_risk_count) {
+      html += '<p class="i2" style="color:#b91c1c"><strong>高风险关联交易 ' + esc(ceSec.high_risk_count) + ' 条：</strong>上述关联指向同一实际控制人、关联交易或资金往来独立性存疑，须逐笔核实。</p>';
+    }
+    if (ceSec.note) html += '<p class="i2" style="color:#64748b">' + esc(ceSec.note) + '</p>';
+  }
+
+  // ═══ 第十二章：能力边界与彻底稽查路线 ═══
+  var capb = report.capability_boundary || {};
+  if (capb && capb.title) {
+    html += '<h2 id="company-capability-boundary">十二、能力边界与彻底稽查路线</h2>' +
+      '<p class="i2">' + esc(capb.opening || '') + '</p>';
+    var cov = capb.covered_in_scope || [];
+    if (cov.length) {
+      html += '<h3>系统已能在数据可触达范围内近乎彻底覆盖</h3><ul class="i2">';
+      cov.forEach(function(it){ html += '<li>' + esc(it) + '</li>'; });
+      html += '</ul>';
+      if (capb.coverage_note) html += '<p class="i2" style="color:#64748b">' + esc(capb.coverage_note) + '</p>';
+    }
+    var ext = capb.must_rely_on_external || [];
+    if (ext.length) {
+      html += '<h3>必须依赖外部数据源与人工下户才能查实</h3><table class="tbl"><thead><tr><th>缺口</th><th>为何系统够不着</th><th>所需证据</th></tr></thead><tbody>';
+      ext.forEach(function(it){
+        html += '<tr><td>' + esc(it.gap || '') + '</td><td>' + esc(it.why || '') + '</td><td>' + esc(it.need || '') + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    var road = capb.roadmap || [];
+    if (road.length) {
+      html += '<h3>继续向上推进的路线</h3><ol class="i2">';
+      road.forEach(function(it){ html += '<li>' + esc(it) + '</li>'; });
+      html += '</ol>';
+    }
+    if (capb.bottom_line) html += '<p class="i2"><strong>底线：</strong>' + esc(capb.bottom_line) + '</p>';
+  }
+
   html += '<div class="seal"><p>稽查报告编制人：_______________　日期：_______________</p>' +
     '<p>被检查企业负责人签收：_______________　日期：_______________</p>' +
     '<p>整改负责人：_______________　复核人员：_______________</p></div>';
