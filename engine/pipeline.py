@@ -4253,6 +4253,25 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"[AGI-趋势] {trend_results.get('summary','')}")
     except Exception as e:
         pipeline_log.append(f"[AGI-趋势] 执行异常: {e}")
+
+    # ── ④ 外部工商/风险核验（第二阶：企业自报数据之外的独立视角）──
+    # 沙箱可能无外网或通道失败，必须容错，失败仅记录日志、不阻断主分析。
+    try:
+        from engine.external_verifier import get_external_verifier
+        from database import Company
+        _co = db.query(Company).filter(Company.id == company_id).first()
+        _co_name = _co.name if _co else ""
+        _co_tax = getattr(_co, "uscc", "") or "" if _co else ""
+        if _co_name:
+            _verifier = get_external_verifier()
+            _ext = _verifier.verify(_co_name, _co_tax, use_premium=False)
+            comprehensive["external_verify"] = _ext
+            _ext_ass = _ext.get("assessment", {})
+            pipeline_log.append(f"[AGI-外部核验] {_co_name}: 通道={_ext.get('channels_used')}, 结论={_ext_ass.get('verdict','')}")
+        else:
+            pipeline_log.append(f"[AGI-外部核验] 未取到企业名称(company_id={company_id})，跳过")
+    except Exception as e:
+        pipeline_log.append(f"[AGI-外部核验] 执行异常(不影响主分析): {e}")
     
     _step_timing["step7_start"] = time.time()
     _report(99, "步骤⑦正式报告输出 — 开始...", step=7)

@@ -892,6 +892,98 @@ def _build_cross_enterprise_report(report_data):
     }
 
 
+def _build_external_verify_report(report_data):
+    """第二阶：外部工商/风险核验章节——企业自报数据之外的独立视角。
+
+    数据来自 report_data["comprehensive"]["external_verify"]
+    （engine/external_verifier 的 ExternalVerificationEngine.verify 输出）。
+    免费通道（国家企业信用公示系统+搜索引擎）已实装；天眼查/企查查需 token。
+    """
+    ce = (report_data.get("comprehensive") or {}).get("external_verify") or {}
+    if not ce:
+        return {
+            "title": "外部工商与风险核验（企业自报数据之外的独立视角）",
+            "available": False,
+            "summary": "本轮未获取外部核验数据（企业名称缺失或核验通道未响应）。",
+            "body": "未纳入外部工商/风险核验。属系统能力边界内的待补强项："
+                    "当企业账外经营、私户收款或借壳控制时，仅看企业自报数据不足以发现，"
+                    "须通过外部工商、股权穿透、行政处罚与涉诉记录交叉验证。",
+            "channels": [],
+            "signals": [],
+            "verdict": "无法核验",
+            "recommendation": "建议接通天眼查/企查查或国家企业信用公示系统后重新核验。",
+            "note": "外部核验结论属「待证线索」，仅供稽查员延伸调查参考，不作为定性依据。",
+        }
+
+    channels = ce.get("channels_used") or []
+    results = ce.get("results") or {}
+    assessment = ce.get("assessment") or {}
+    verdict = assessment.get("verdict", "无法核验")
+    rec = assessment.get("recommendation", "")
+    risk_signals = assessment.get("risk_signals") or []
+
+    # 整理各通道关键信息
+    chan_summary = []
+    for ch, res in results.items():
+        if not isinstance(res, dict):
+            continue
+        if res.get("status") == "跳过(免费模式)":
+            chan_summary.append(f"{ch}：付费通道（本次未启用）")
+            continue
+        if not res.get("ok"):
+            chan_summary.append(f"{ch}：未响应（{str(res.get('error',''))[:40]}）")
+            continue
+        if ch == "国家企业信用信息公示系统":
+            st = res.get("status", "未知")
+            chan_summary.append(f"{ch}：工商状态={st}，存续={res.get('is_active')}，异常={res.get('is_abnormal')}")
+        elif ch == "搜索引擎综合核实":
+            chk = res.get("checks") or {}
+            det = "、".join([f"{k}={'有' if v else '无'}" for k, v in chk.items()])
+            chan_summary.append(f"{ch}：{det}；综合={res.get('assessment','')}")
+        else:
+            chan_summary.append(f"{ch}：{res.get('source','')} 已响应")
+
+    # 风险信号 → 稽查指向
+    REL_HINT = {
+        "企业状态异常": "关注是否借注销/吊销前转移收入、逃避税款；核查注销前突击开票与资金流向。",
+        "高风险": "外部多源提示高风险，结合自报数据核查是否存在账外经营或隐瞒收入。",
+        "经营异常": "列入经营异常名录，核查实际经营地址与申报一致性、是否空壳。",
+        "处罚记录": "存在行政处罚记录，核查历史违法类型是否涉及虚开发票/偷税，警惕重复违法。",
+        "涉诉记录": "存在涉诉/裁判记录，核查是否涉及合同诈骗、虚开增值税专用发票等。",
+    }
+    signals = []
+    for s in risk_signals:
+        hint = ""
+        for k, v in REL_HINT.items():
+            if k in s:
+                hint = v
+                break
+        signals.append({"signal": s, "hint": hint or "建议稽查员延伸核实。"})
+
+    lines = [f"外部核验通道：{('、'.join(channels)) if channels else '无'}"]
+    for cs in chan_summary:
+        lines.append(f"● {cs}")
+    if signals:
+        lines.append("风险信号与稽查指向：")
+        for s in signals:
+            lines.append(f"  - {s['signal']} → {s['hint']}")
+    body = "\n".join(lines)
+
+    return {
+        "title": "外部工商与风险核验（企业自报数据之外的独立视角）",
+        "available": True,
+        "summary": f"本轮通过{len([c for c in channels if c not in ('天眼查','企查查')])}个免费通道对企业工商与风险状况作独立核验，"
+                   f"综合结论：{verdict}。",
+        "body": body,
+        "channels": chan_summary,
+        "signals": signals,
+        "verdict": verdict,
+        "recommendation": rec,
+        "note": "外部核验结论属「待证线索」，由企业自报数据之外的公开/第三方视角所得，仅供稽查员延伸调查参考，"
+                "不作为定性依据；付费深度通道（天眼查/企查查）配置 token 后可自动启用，进一步穿透股权与关联企业。",
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -908,6 +1000,7 @@ def build_enterprise_readable_report(report_data):
     derivation_tree_report = _build_derivation_tree_report(report_data)
     capability_boundary = _build_capability_boundary(report_data)
     cross_enterprise_report = _build_cross_enterprise_report(report_data)
+    external_verify_report = _build_external_verify_report(report_data)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -922,6 +1015,7 @@ def build_enterprise_readable_report(report_data):
         "completed_checks": completed,
         "derivation_tree_report": derivation_tree_report,
         "cross_enterprise_report": cross_enterprise_report,
+        "external_verify_report": external_verify_report,
         "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,

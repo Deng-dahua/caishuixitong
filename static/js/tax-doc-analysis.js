@@ -4793,6 +4793,26 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     if (ceSec.note) html += '<p class="i2" style="color:#64748b">' + esc(ceSec.note) + '</p>';
   }
 
+  // ═══ 第十一章之二：外部工商与风险核验（企业自报数据之外的独立视角） ═══
+  var evSec = report.external_verify_report || {};
+  if (evSec && evSec.title) {
+    html += '<h2 id="company-external-verify">十一（二）、外部工商与风险核验（企业自报数据之外的独立视角）</h2>' +
+      '<p class="i2">' + esc(evSec.summary || '') + '</p>';
+    if (evSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(evSec.body) + '</div>';
+    // 风险信号 → 稽查指向
+    var evSigs = evSec.signals || [];
+    if (evSigs.length) {
+      html += '<h3 style="color:#b91c1c">风险信号与稽查指向</h3><ul class="i2">';
+      evSigs.forEach(function(s){
+        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
+      });
+      html += '</ul>';
+    }
+    if (evSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(evSec.verdict) + '</p>';
+    if (evSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(evSec.recommendation) + '</p>';
+    if (evSec.note) html += '<p class="i2" style="color:#64748b">' + esc(evSec.note) + '</p>';
+  }
+
   // ═══ 第十二章：能力边界与彻底稽查路线 ═══
   var capb = report.capability_boundary || {};
   if (capb && capb.title) {
