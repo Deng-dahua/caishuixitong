@@ -824,6 +824,74 @@ def _build_capability_boundary(report_data):
     }
 
 
+def _build_cross_enterprise_report(report_data):
+    """跨企业关联交易闭环章节（第三阶：单户疑点 → 供应链网状违法图谱）。
+
+    读取引擎已在主链路算好的 comprehensive.cross_enterprise，把「同一实际控制人控制的
+    关联企业 / 共享供应商 / 共享客户 / 共享人员」渲染成稽查文书式可读结构。
+    这是把系统从「查一户」推向「查一张网」的关键一档——虚开、洗票、利润转移类违法
+    在网状视角下暴露率显著提升。
+    """
+    comprehensive = report_data.get("comprehensive") or {}
+    ce = comprehensive.get("cross_enterprise") or {}
+    if not ce:
+        return None
+    rels = ce.get("relationships") or []
+    if not rels:
+        return {
+            "title": "跨企业关联交易闭环（供应链网状违法图谱）",
+            "summary": ce.get("summary", "系统内企业未发现明显跨企业关联关系。"),
+            "body": "本轮跨企业关系检测已完成：系统内企业之间的供应商、客户、法定代表人及关键人员均未形成需进一步追查的重合。此结论仅基于本轮可读取的企业主体与发票往来数据；如存在未纳入系统的关联企业，须通过外部工商股权穿透补充核查（见「能力边界与彻底稽查路线」）。",
+            "risk_links": [],
+        }
+
+    TYPE_CN = {
+        "shared_supplier": "共享供应商",
+        "shared_customer": "共享客户",
+        "shared_personnel": "共享人员（法人/股东/董事/监事）",
+        "same_legal_rep": "同一法定代表人",
+    }
+    REL_RISK_HINT = {
+        "shared_supplier": "可能为同一实际控制人通过多家企业操纵供应链、拆分业务或虚增成本",
+        "shared_customer": "需排查是否通过多主体分散收入、转移利润或循环开票",
+        "shared_personnel": "人员重合指向同一实际控制人控制的关联企业群",
+        "same_legal_rep": "同一法定代表人直接构成关联企业，资金与业务往来须逐笔核实独立性",
+    }
+    lines = []
+    risk_links = []
+    for r in rels:
+        t = r.get("type", "")
+        tcn = TYPE_CN.get(t, t)
+        a, b = r.get("company_a", ""), r.get("company_b", "")
+        ents = r.get("shared_entities") or []
+        lvl = r.get("risk_level", "")
+        lines.append(f"● [{a}] ↔ [{b}]　关系：{tcn}（{lvl}风险）")
+        if ents:
+            lines.append(f"  重合实体：{'、'.join(ents[:8])}{'…' if len(ents) > 8 else ''}")
+        lines.append(f"  稽查指向：{REL_RISK_HINT.get(t, r.get('description', ''))}")
+        risk_links.append({
+            "pair": f"{a} ↔ {b}",
+            "type": tcn,
+            "risk_level": lvl,
+            "shared": ents,
+            "hint": REL_RISK_HINT.get(t, r.get("description", "")),
+        })
+    body = "\n".join(lines)
+    high = sum(1 for r in rels if r.get("risk_level") == "high")
+    return {
+        "title": "跨企业关联交易闭环（供应链网状违法图谱）",
+        "summary": ce.get("summary", ""),
+        "body": body,
+        "risk_links": risk_links,
+        "high_risk_count": high,
+        "note": (
+            f"本轮识别跨企业关联关系 {len(rels)} 条（高风险 {high} 条）。上述关系为企业主体与发票往来数据"
+            f"自动勾稽所得，属「待证线索」：是否构成关联交易违法，须稽查员结合资金流水、合同实质与询问"
+            f"笔录进一步核实，并依法定程序认定。"
+        ),
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -839,6 +907,7 @@ def build_enterprise_readable_report(report_data):
     discovery_overview = _build_discovery_overview(report_data, problems, completed, further)
     derivation_tree_report = _build_derivation_tree_report(report_data)
     capability_boundary = _build_capability_boundary(report_data)
+    cross_enterprise_report = _build_cross_enterprise_report(report_data)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -852,6 +921,7 @@ def build_enterprise_readable_report(report_data):
         "confirmed_problems": problems,
         "completed_checks": completed,
         "derivation_tree_report": derivation_tree_report,
+        "cross_enterprise_report": cross_enterprise_report,
         "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,
