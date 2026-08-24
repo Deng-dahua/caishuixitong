@@ -769,6 +769,61 @@ def _build_derivation_tree_report(report_data):
     }
 
 
+def _build_capability_boundary(report_data):
+    """能力边界与彻底稽查路线章节。
+
+    把系统从「接近彻底」再往上推的关键抓手写进报告：明确本系统在数据可触达范围内
+    已能近乎彻底覆盖的违法形态、必须依赖外部数据源与人工下户才能查实的形态、以及
+    法律责任边界。让每份报告都自带「证据来源局限声明」，既回应「彻底稽查」诉求，
+    又不越界替稽查员做终裁。
+    """
+    findings = report_data.get("all_findings", []) or []
+    triggered = {f.get("rule_id") for f in findings if isinstance(f, dict) and f.get("rule_id")}
+
+    covered = [
+        "申报数据内部矛盾（增值税/企业所得税表间钩稽、税负率异常、未开票收入隐匿）",
+        "发票流异常（频繁作废后资金回流、作废未重开未申报、进销严重背离、接受异常凭证）",
+        "票账税表款钩稽断裂（有票无货、有货无票、账表不符、申报数与账簿不符）",
+        "成本费用真实性缺口（无合同/无运输/无资金流对应的异常进项、委托加工三流缺失）",
+        "关联交易与资金回流线索（同一主体兼具供应商与客户、资金闭环、突击注销前转移）",
+    ]
+    need_external = [
+        {"gap": "账外经营 / 私户收款 / 两套账",
+         "why": "企业不将上述行为纳入系统可读取资料，纯靠自报数据无法发现",
+         "need": "银行对公与对私流水交叉、物流/库存实地盘点、上下游企业开票受票反向比对、第三方支付与现金证据"},
+        {"gap": "主观故意定性（偷税 vs 少缴）",
+         "why": "系统能证明数据矛盾，但证明不了主观故意",
+         "need": "稽查员结合询问笔录、经营情境、补证反应综合判断，并依法定程序认定"},
+        {"gap": "未申报的隐性收入与体外循环",
+         "why": "收入未进入任何申报与账簿系统，无内部数据可钩稽",
+         "need": "外部涉税数据（金税四期比对、工商股权穿透、社保与人员规模反推产能）"},
+    ]
+    # 本轮实际触发的规则数，作为「已覆盖维度」的量化注脚
+    coverage_note = (
+        f"本轮已触发 {len(triggered)} 条可复算规则形成勾稽网络；上述「已覆盖」项均能在"
+        f"企业已上传且可读取资料范围内被自动复算与回查。"
+    )
+    roadmap = [
+        "第一阶（本轮已具备）：企业自报资料的票账税表款货合同人员七维闭合勾稽 + 疑点派生树逐层深挖。",
+        "第二阶（待接通外部源）：接入财税/开票类与工商风险类数据源，使企业自报数据获得外部独立视角，识别账外与隐性收入。",
+        "第三阶（引擎深挖）：打通跨企业关联交易闭环识别，把单户疑点扩展为供应链网状违法图谱。",
+    ]
+    return {
+        "title": "能力边界与彻底稽查路线",
+        "opening": "本节说明本系统在「彻底稽查企业税收违法行为」这一目标上的实际能力边界，以及继续向上推进的路线。系统已能在数据可触达范围内近乎彻底地发现违法线索，但「彻底」的最后一环依赖外部数据源与人工执法，不在算法能力内。",
+        "covered_in_scope": covered,
+        "coverage_note": coverage_note,
+        "must_rely_on_external": need_external,
+        "responsibility_boundary": [
+            "系统产出为「待证线索」与「已验证事实」，定性权、执法权与法律责任始终在稽查员、法制审核与税务机关。",
+            "系统结论用于模拟稽查程序与合规整改，不替代依法送达的税务处理/处罚决定书。",
+            "证据不足的事项只列入待补证清单，不以风险评分或模型推测单独认定违法。",
+        ],
+        "roadmap": roadmap,
+        "bottom_line": "系统是企业税收违法稽查的锋利显微镜与推演器；要逼近「彻底」，必须由系统（数据勾稽）+ 外部源（独立视角）+ 稽查员（取证与定性）三者合体。单靠系统无法、也不应变身终裁者。",
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -783,6 +838,7 @@ def build_enterprise_readable_report(report_data):
     plans = _build_action_plan(problems)
     discovery_overview = _build_discovery_overview(report_data, problems, completed, further)
     derivation_tree_report = _build_derivation_tree_report(report_data)
+    capability_boundary = _build_capability_boundary(report_data)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -796,6 +852,7 @@ def build_enterprise_readable_report(report_data):
         "confirmed_problems": problems,
         "completed_checks": completed,
         "derivation_tree_report": derivation_tree_report,
+        "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,
         "recheck": {
@@ -808,5 +865,6 @@ def build_enterprise_readable_report(report_data):
             "本报告所列“具体问题”均有本轮资料中的直接数据或可回查证据支持；资料不足的事项已单独列入补充资料后再检查清单。",
             "本报告采用税务稽查文书式结构和稽查人员陈述口径编制，所列检查事实、处理意见和复查要求用于企业合规整改。",
             "企业应依据真实业务和原始资料办理整改，不得倒签、补造、篡改、删除或隐匿资料。",
+            "系统能力存在边界：账外经营、私户收款、主观故意定性等须依赖外部数据源与人工下户取证，详见「能力边界与彻底稽查路线」章节。",
         ],
     }
