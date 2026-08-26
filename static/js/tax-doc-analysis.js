@@ -4851,6 +4851,63 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     if (ttSec.note) html += '<p class="i2" style="color:#64748b">' + esc(ttSec.note) + '</p>';
   }
 
+  // ═══ 第十五章：进项异常凭证 / 应转出未转出比对 ═══
+  var ivSec = report.input_voucher_report || {};
+  if (ivSec && ivSec.title) {
+    html += '<h2 id="company-input-voucher">十五、进项异常凭证 / 应转出未转出比对</h2>' +
+      '<p class="i2">' + esc(ivSec.summary || '') + '</p>';
+    if (ivSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(ivSec.body) + '</div>';
+    var ivSigs = ivSec.signals || [];
+    if (ivSigs.length) {
+      html += '<h3 style="color:#b91c1c">进项异常信号</h3><ul class="i2">';
+      ivSigs.forEach(function(s){
+        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
+      });
+      html += '</ul>';
+    }
+    if (ivSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(ivSec.verdict) + '</p>';
+    if (ivSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(ivSec.recommendation) + '</p>';
+    if (ivSec.note) html += '<p class="i2" style="color:#64748b">' + esc(ivSec.note) + '</p>';
+  }
+
+  // ═══ 第十六章：虚开风险网络比对 ═══
+  var fiSec = report.false_invoice_report || {};
+  if (fiSec && fiSec.title) {
+    html += '<h2 id="company-false-invoice">十六、虚开风险网络比对</h2>' +
+      '<p class="i2">' + esc(fiSec.summary || '') + '</p>';
+    if (fiSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(fiSec.body) + '</div>';
+    var fiSigs = fiSec.signals || [];
+    if (fiSigs.length) {
+      html += '<h3 style="color:#b91c1c">虚开特征信号</h3><ul class="i2">';
+      fiSigs.forEach(function(s){
+        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
+      });
+      html += '</ul>';
+    }
+    if (fiSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(fiSec.verdict) + '</p>';
+    if (fiSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(fiSec.recommendation) + '</p>';
+    if (fiSec.note) html += '<p class="i2" style="color:#64748b">' + esc(fiSec.note) + '</p>';
+  }
+
+  // ═══ 第十七章：跨企业资金回流闭环 ═══
+  var flSec = report.fund_loop_report || {};
+  if (flSec && flSec.title) {
+    html += '<h2 id="company-fund-loop">十七、跨企业资金回流闭环</h2>' +
+      '<p class="i2">' + esc(flSec.summary || '') + '</p>';
+    if (flSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(flSec.body) + '</div>';
+    var flSigs = flSec.signals || [];
+    if (flSigs.length) {
+      html += '<h3 style="color:#b91c1c">资金回流信号</h3><ul class="i2">';
+      flSigs.forEach(function(s){
+        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
+      });
+      html += '</ul>';
+    }
+    if (flSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(flSec.verdict) + '</p>';
+    if (flSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(flSec.recommendation) + '</p>';
+    if (flSec.note) html += '<p class="i2" style="color:#64748b">' + esc(flSec.note) + '</p>';
+  }
+
   // ═══ 第十二章：能力边界与彻底稽查路线 ═══
   var capb = report.capability_boundary || {};
   if (capb && capb.title) {

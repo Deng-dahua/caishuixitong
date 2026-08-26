@@ -151,6 +151,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     _outsourcing_finding = None
     _supply_chain_findings = []
     has_processing_fee = False
+    # 防御性初始化：Company 在本函数多处 `from database import Company`（如第4007行门控块）
+    # 使其成为函数局部名；而发票方向判定（~第455行）需提前引用 Company，若该函数级 import
+    # 未先执行会触发 UnboundLocalError，导致所有进/销项发票解析失败。此处于函数入口预置绑定。
+    from database import Company
     from engine.cognitive_bridge import broadcast, extract_topology_pattern, self_heal_from_blind_test
     from engine.red_team import red_team_falsification, blind_destruction_test, hallucination_check, consistency_rerun_check
     from engine.orchestrator import build_data_profile, build_orchestration_plan
@@ -4328,6 +4332,70 @@ def _run_analyze(company_id, db, progress_callback=None):
             pipeline_log.append(f"[两税差异] 未取得两税申报表，跳过")
     except Exception as e:
         pipeline_log.append(f"[两税差异] 执行异常(不影响主分析): {e}")
+
+    # ── ⑦ 进项异常凭证 / 应转出未转出（第四阶 P1：票表比对自动放行的进项侧盲区）──
+    # 走逃失联/非正常户开具的异常抵扣凭证、购进用于免税/福利/个人消费的应转出未转出。
+    try:
+        from engine.input_voucher import run_input_voucher_check
+        from database import Company as _IV_Company
+        _iv_co = db.query(_IV_Company).filter(_IV_Company.id == company_id).first()
+        _iv_name = _iv_co.name if _iv_co else ""
+        _iv = run_input_voucher_check(
+            pur_invs=pur_invs, sal_invs=sal_invs,
+            cross_enterprise=comprehensive.get("cross_enterprise"),
+            company_name=_iv_name,
+        )
+        comprehensive["input_voucher"] = _iv
+        _iv_m = _iv.get("metrics", {}) or {}
+        if _iv.get("available"):
+            pipeline_log.append(f"[进项异常凭证] 异常抵扣{_iv_m.get('abnormal_deduction_tax')} "
+                                f"应转出{_iv_m.get('should_transfer_out_tax')} 集中度{_iv_m.get('concentration_ratio')} 结论={_iv.get('verdict','')}")
+        else:
+            pipeline_log.append(f"[进项异常凭证] 未取得进项发票，跳过")
+    except Exception as e:
+        pipeline_log.append(f"[进项异常凭证] 执行异常(不影响主分析): {e}")
+
+    # ── ⑧ 虚开风险网络（第四阶 P1：票真业务假的盲区，叠加跨企业图谱+资金流）──
+    try:
+        from engine.false_invoice import run_false_invoice_check
+        from database import Company as _FI_Company
+        _fi_co = db.query(_FI_Company).filter(_FI_Company.id == company_id).first()
+        _fi_name = _fi_co.name if _fi_co else ""
+        _fi = run_false_invoice_check(
+            sal_invs=sal_invs, pur_invs=pur_invs,
+            cross_enterprise=comprehensive.get("cross_enterprise"),
+            bank_txs=bank_txs, company_name=_fi_name,
+        )
+        comprehensive["false_invoice"] = _fi
+        _fi_m = _fi.get("metrics", {}) or {}
+        if _fi.get("available"):
+            pipeline_log.append(f"[虚开风险网络] 进销比{_fi_m.get('in_out_ratio')} 前3客户{_fi_m.get('top3_customer_share')} "
+                                f"资金回流{_fi_m.get('fund_loop_amount')} 高风险关联{_fi_m.get('high_risk_relationships')} 结论={_fi.get('verdict','')}")
+        else:
+            pipeline_log.append(f"[虚开风险网络] 未取得进/销项发票，跳过")
+    except Exception as e:
+        pipeline_log.append(f"[虚开风险网络] 执行异常(不影响主分析): {e}")
+
+    # ── ⑨ 跨企业资金回流闭环（第四阶 P1：bank_flow 钩子的闭环增强，三角/关联闭环）──
+    try:
+        from engine.fund_loop import run_fund_loop_check
+        from database import Company as _FL_Company
+        _fl_co = db.query(_FL_Company).filter(_FL_Company.id == company_id).first()
+        _fl_name = _fl_co.name if _fl_co else ""
+        _fl = run_fund_loop_check(
+            bank_txs=bank_txs,
+            cross_enterprise=comprehensive.get("cross_enterprise"),
+            company_name=_fl_name,
+        )
+        comprehensive["fund_loop"] = _fl
+        _fl_m = _fl.get("metrics", {}) or {}
+        if _fl.get("available"):
+            pipeline_log.append(f"[资金回流闭环] 直接{_fl_m.get('direct_loop_amount')} 关联三角{_fl_m.get('indirect_loop_amount')} "
+                                f"合计{_fl_m.get('circular_amount')} 结论={_fl.get('verdict','')}")
+        else:
+            pipeline_log.append(f"[资金回流闭环] 未取得银行流水，跳过")
+    except Exception as e:
+        pipeline_log.append(f"[资金回流闭环] 执行异常(不影响主分析): {e}")
 
     _step_timing["step7_start"] = time.time()
     _report(99, "步骤⑦正式报告输出 — 开始...", step=7)

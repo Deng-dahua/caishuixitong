@@ -1061,6 +1061,90 @@ def _build_two_tax_report(report_data):
     }
 
 
+def _build_input_voucher_report(report_data):
+    """第四阶 P1：进项异常凭证 / 应转出未转出比对章节。"""
+    iv = (report_data.get("comprehensive") or {}).get("input_voucher") or {}
+    if not iv:
+        return {
+            "title": "进项异常凭证 / 应转出未转出比对",
+            "available": False,
+            "summary": "本轮未提供进项发票数据。",
+            "body": "进项异常凭证（上游走逃失联、非正常户开具）与应进项转出未转出（购进用于免税、"
+                    "集体福利、个人消费、非正常损失等）是数电票下票表比对仍会自动放行的风险点。未提供进项发票则无法量化。",
+            "signals": [],
+            "verdict": "未提供进项发票",
+            "recommendation": "上传进项发票/进项抵扣勾选明细，并粘贴上游异常凭证清单。",
+            "note": "进项异常凭证比对结论属「待证线索」，不作为定性依据。",
+        }
+    return {
+        "title": "进项异常凭证 / 应转出未转出比对",
+        "available": True,
+        "summary": iv.get("summary", ""),
+        "body": iv.get("body", "") or "",
+        "metrics": iv.get("metrics") or {},
+        "signals": iv.get("signals") or [],
+        "verdict": iv.get("verdict", ""),
+        "recommendation": iv.get("recommendation", ""),
+        "note": iv.get("note", "进项异常凭证比对结论属「待证线索」，不作为定性依据。"),
+    }
+
+
+def _build_false_invoice_report(report_data):
+    """第四阶 P1：虚开风险网络比对章节。"""
+    fi = (report_data.get("comprehensive") or {}).get("false_invoice") or {}
+    if not fi:
+        return {
+            "title": "虚开风险网络比对",
+            "available": False,
+            "summary": "本轮未提供进/销项发票数据。",
+            "body": "虚开（票真业务假）是数电票下票表比对自动放行的盲区，需结合进销项背离、集中顶额开票、"
+                    "资金回流闭环与跨企业图谱才能暴露。未提供发票则无法量化。",
+            "signals": [],
+            "verdict": "未提供发票数据",
+            "recommendation": "上传销/进项发票、银行流水与关联企业清单。",
+            "note": "虚开风险比对结论属「待证线索」，系统不替代主管机关认定。",
+        }
+    return {
+        "title": "虚开风险网络比对",
+        "available": True,
+        "summary": fi.get("summary", ""),
+        "body": fi.get("body", "") or "",
+        "metrics": fi.get("metrics") or {},
+        "signals": fi.get("signals") or [],
+        "verdict": fi.get("verdict", ""),
+        "recommendation": fi.get("recommendation", ""),
+        "note": fi.get("note", "虚开风险比对结论属「待证线索」，系统不替代主管机关认定。"),
+    }
+
+
+def _build_fund_loop_report(report_data):
+    """第四阶 P1：跨企业资金回流闭环比对章节。"""
+    fl = (report_data.get("comprehensive") or {}).get("fund_loop") or {}
+    if not fl:
+        return {
+            "title": "跨企业资金回流闭环",
+            "available": False,
+            "summary": "本轮未提供银行流水。",
+            "body": "资金回流闭环（货款回流至开票方/关联方）是虚开与账外经营的关键证据，"
+                    "需银行流水结合跨企业图谱才能识别。未提供银行流水则无法做闭环检测。",
+            "signals": [],
+            "verdict": "未提供银行流水",
+            "recommendation": "上传企业银行流水并提供关联企业清单。",
+            "note": "资金回流闭环识别属「待证线索」，不作为定性依据。",
+        }
+    return {
+        "title": "跨企业资金回流闭环",
+        "available": True,
+        "summary": fl.get("summary", ""),
+        "body": fl.get("body", "") or "",
+        "metrics": fl.get("metrics") or {},
+        "signals": fl.get("signals") or [],
+        "verdict": fl.get("verdict", ""),
+        "recommendation": fl.get("recommendation", ""),
+        "note": fl.get("note", "资金回流闭环识别属「待证线索」，不作为定性依据。"),
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -1080,6 +1164,9 @@ def build_enterprise_readable_report(report_data):
     external_verify_report = _build_external_verify_report(report_data)
     bank_flow_report = _build_bank_flow_report(report_data)
     two_tax_report = _build_two_tax_report(report_data)
+    input_voucher_report = _build_input_voucher_report(report_data)
+    false_invoice_report = _build_false_invoice_report(report_data)
+    fund_loop_report = _build_fund_loop_report(report_data)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -1097,6 +1184,9 @@ def build_enterprise_readable_report(report_data):
         "external_verify_report": external_verify_report,
         "bank_flow_report": bank_flow_report,
         "two_tax_report": two_tax_report,
+        "input_voucher_report": input_voucher_report,
+        "false_invoice_report": false_invoice_report,
+        "fund_loop_report": fund_loop_report,
         "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,
