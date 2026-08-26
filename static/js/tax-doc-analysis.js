@@ -4813,6 +4813,25 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     if (evSec.note) html += '<p class="i2" style="color:#64748b">' + esc(evSec.note) + '</p>';
   }
 
+  // ═══ 第十三章：银行流水（资金流）比对 ═══
+  var bfSec = report.bank_flow_report || {};
+  if (bfSec && bfSec.title) {
+    html += '<h2 id="company-bank-flow">十三、银行流水（资金流）比对</h2>' +
+      '<p class="i2">' + esc(bfSec.summary || '') + '</p>';
+    if (bfSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(bfSec.body) + '</div>';
+    var bfSigs = bfSec.signals || [];
+    if (bfSigs.length) {
+      html += '<h3 style="color:#b91c1c">资金流异常信号</h3><ul class="i2">';
+      bfSigs.forEach(function(s){
+        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
+      });
+      html += '</ul>';
+    }
+    if (bfSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(bfSec.verdict) + '</p>';
+    if (bfSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(bfSec.recommendation) + '</p>';
+    if (bfSec.note) html += '<p class="i2" style="color:#64748b">' + esc(bfSec.note) + '</p>';
+  }
+
   // ═══ 第十二章：能力边界与彻底稽查路线 ═══
   var capb = report.capability_boundary || {};
   if (capb && capb.title) {

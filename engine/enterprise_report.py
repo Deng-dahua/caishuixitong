@@ -984,6 +984,44 @@ def _build_external_verify_report(report_data):
     }
 
 
+def _build_bank_flow_report(report_data):
+    """第四阶 P0：银行流水（资金流）比对章节。
+
+    数据来自 report_data["comprehensive"]["bank_flow"]
+    （engine/bank_flow.run_bank_flow_compare 输出）。
+    """
+    bf = (report_data.get("comprehensive") or {}).get("bank_flow") or {}
+    if not bf:
+        return {
+            "title": "银行流水（资金流）比对",
+            "available": False,
+            "summary": "本轮未提供银行流水，未做资金流比对。",
+            "body": "银行流水是数电票时代暴露账外经营、私户收款、未开票收入的核心依据，也是稽查必收资料。"
+                    "未提供则无法量化资金流与申报收入的偏离。",
+            "signals": [],
+            "verdict": "未提供银行流水",
+            "recommendation": "上传企业银行流水（含交易日期、对方户名、借贷金额、摘要）。",
+            "note": "银行流水比对结论属「待证线索」，需逐笔核实，不作为定性依据。",
+        }
+
+    metrics = bf.get("metrics") or {}
+    signals = bf.get("signals") or []
+    verdict = bf.get("verdict", "")
+    body = bf.get("body", "") or ""
+
+    return {
+        "title": "银行流水（资金流）比对",
+        "available": True,
+        "summary": bf.get("summary", ""),
+        "body": body,
+        "metrics": metrics,
+        "signals": signals,
+        "verdict": verdict,
+        "recommendation": bf.get("recommendation", ""),
+        "note": bf.get("note", "银行流水比对结论属「待证线索」，需逐笔核实，不作为定性依据。"),
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -1001,6 +1039,7 @@ def build_enterprise_readable_report(report_data):
     capability_boundary = _build_capability_boundary(report_data)
     cross_enterprise_report = _build_cross_enterprise_report(report_data)
     external_verify_report = _build_external_verify_report(report_data)
+    bank_flow_report = _build_bank_flow_report(report_data)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -1016,6 +1055,7 @@ def build_enterprise_readable_report(report_data):
         "derivation_tree_report": derivation_tree_report,
         "cross_enterprise_report": cross_enterprise_report,
         "external_verify_report": external_verify_report,
+        "bank_flow_report": bank_flow_report,
         "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,

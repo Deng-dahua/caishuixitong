@@ -4272,7 +4272,37 @@ def _run_analyze(company_id, db, progress_callback=None):
             pipeline_log.append(f"[AGI-外部核验] 未取到企业名称(company_id={company_id})，跳过")
     except Exception as e:
         pipeline_log.append(f"[AGI-外部核验] 执行异常(不影响主分析): {e}")
-    
+
+    # ── ⑤ 银行流水（资金流）比对（第四阶 P0：数电票时代暴露账外/私户的核心视角）──
+    # 与 ④ 同构，失败仅记录日志、不阻断主分析。
+    try:
+        from engine.bank_flow import run_bank_flow_compare
+        from database import Company as _BF_Company
+        _bf_co = db.query(_BF_Company).filter(_BF_Company.id == company_id).first()
+        _bf_name = _bf_co.name if _bf_co else ""
+        _bf_reported = 0.0
+        for _d in (tax_declarations or []):
+            _sa = (_d.get("sales_amount") or (_d.get("declaration") or {}).get("sales_amount")
+                   or (_d.get("rows") or [{}])[0].get("sales_amount") or 0)
+            try:
+                _bf_reported += float(_sa or 0)
+            except Exception:
+                pass
+        if bank_txs:
+            _bf = run_bank_flow_compare(
+                bank_txs, sal_invs=sal_invs, pur_invs=pur_invs,
+                reported_income=_bf_reported if _bf_reported > 0 else None,
+                cross_enterprise=comprehensive.get("cross_enterprise"),
+                company_name=_bf_name,
+            )
+            comprehensive["bank_flow"] = _bf
+            _bf_m = _bf.get("metrics", {}) or {}
+            pipeline_log.append(f"[资金流比对] 收款{_bf_m.get('flow_receipt')} vs 申报侧{_bf_m.get('declared_value')} 私户{_bf_m.get('personal_receipt')} 结论={_bf.get('verdict','')}")
+        else:
+            pipeline_log.append(f"[资金流比对] 本轮未提供银行流水，跳过")
+    except Exception as e:
+        pipeline_log.append(f"[资金流比对] 执行异常(不影响主分析): {e}")
+
     _step_timing["step7_start"] = time.time()
     _report(99, "步骤⑦正式报告输出 — 开始...", step=7)
     result = {"ok": True, "report": {
