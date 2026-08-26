@@ -79,6 +79,44 @@ def safe_filename(name: str, fallback: str = "upload") -> str:
     return f"{stem[:100]}{suffix[:12].lower()}"
 
 
+def _to_json_safe(value: Any, _seen: set | None = None) -> Any:
+    """递归转为可 JSON 序列化结构，遇到循环引用用占位符断开。
+
+    json.dump 的 default= 只能处理「非 JSON 原生类型」，无法处理 dict/list 的
+    循环引用（会抛 ValueError: Circular reference detected）。个别企业报告内部
+    可能存在自引用（如 comprehensive 的某子结构回指自身），直接 dump 会崩溃。
+    这里用 id() 访问集合检测环，把回指位置替换为占位字符串，保证保存永不失败。
+    """
+    if _seen is None:
+        _seen = set()
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    if isinstance(value, dict):
+        vid = id(value)
+        if vid in _seen:
+            return "<circular reference>"
+        _seen.add(vid)
+        try:
+            return {str(k): _to_json_safe(v, _seen) for k, v in value.items()}
+        finally:
+            _seen.discard(vid)
+    if isinstance(value, (list, tuple, set, frozenset)):
+        vid = id(value)
+        if vid in _seen:
+            return "<circular reference>"
+        _seen.add(vid)
+        try:
+            return [_to_json_safe(v, _seen) for v in value]
+        finally:
+            _seen.discard(vid)
+    # 其余类型：能原生序列化就保留，否则转字符串
+    try:
+        json.dumps(value)
+        return value
+    except (TypeError, ValueError):
+        return str(value)
+
+
 def atomic_write_json(path: os.PathLike[str] | str, value: Any) -> None:
     """Write JSON using fsync + atomic replace so crashes cannot truncate it."""
     destination = Path(path)
@@ -91,7 +129,7 @@ def atomic_write_json(path: os.PathLike[str] | str, value: Any) -> None:
         )
         try:
             with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
-                json.dump(value, handle, ensure_ascii=False, default=str)
+                json.dump(_to_json_safe(value), handle, ensure_ascii=False, default=str)
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temp_name, destination)

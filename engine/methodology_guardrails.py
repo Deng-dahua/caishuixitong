@@ -250,16 +250,32 @@ def review_findings(findings):
     return [review_finding(finding) for finding in findings if isinstance(finding, dict)]
 
 
-def _clean_review_section(value):
+def _clean_review_section(value, _seen=None):
+    """递归净化文本/嵌套结构。
+
+    关键防护：用 id() 访问集合检测环。report_data（尤其 comprehensive）可能含
+    自引用/祖孙引用（个别企业数据结构存在循环），无防护会触发 RecursionError。
+    """
+    if _seen is None:
+        _seen = set()
     if isinstance(value, str):
         return _clean_text(value)
-    if isinstance(value, list):
-        return [_clean_review_section(item) for item in value]
-    if isinstance(value, dict):
-        if "type" in value and any(key in value for key in ("detail", "description", "level", "score")):
-            review_finding(value)
-        for key, item in list(value.items()):
-            value[key] = _clean_review_section(item)
+    if isinstance(value, (list, dict)):
+        vid = id(value)
+        if vid in _seen:
+            return value  # 已访问过，直接返回以断环，避免无限递归
+        _seen.add(vid)
+        try:
+            if isinstance(value, list):
+                return [_clean_review_section(item, _seen) for item in value]
+            # dict
+            if "type" in value and any(key in value for key in ("detail", "description", "level", "score")):
+                review_finding(value)
+            for key, item in list(value.items()):
+                value[key] = _clean_review_section(item, _seen)
+            return value
+        finally:
+            _seen.discard(vid)
     return value
 
 

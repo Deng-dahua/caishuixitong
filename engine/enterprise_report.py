@@ -1157,6 +1157,47 @@ def _build_fund_loop_report(report_data):
     }
 
 
+def _build_inspection_questions_report(report_data):
+    """十八、稽查询问清单与待澄清事项：把系统识别的待证线索转化为企业可答复、可举证的具体问题。
+    补偿系统做不了的下户盘货/查金税四期/穿透资金最终去向——以提问引导企业自证自改。"""
+    comp = report_data.get("comprehensive", {}) or {}
+    iq = comp.get("inspection_questions") or {}
+    if not isinstance(iq, dict) or not iq.get("available"):
+        return {
+            "title": "十八、稽查询问清单与待澄清事项",
+            "available": False,
+            "summary": "本轮未生成稽查询问事项（未发现需置疑的线索或资料不足未触发）。",
+            "themes": [],
+            "note": "系统不能下户盘货、不能查金税四期、不能穿透资金最终去向；如后续补充资料或发现新线索，将重新生成询问清单。",
+        }
+    themes = iq.get("themes") or []
+    return {
+        "title": "十八、稽查询问清单与待澄清事项",
+        "available": True,
+        "summary": iq.get("summary", ""),
+        "verdict": iq.get("verdict", ""),
+        "recommendation": iq.get("recommendation", ""),
+        "note": iq.get("note", ""),
+        "themes": [
+            {
+                "theme": t.get("theme", ""),
+                "severity": t.get("severity", ""),
+                "questions": [
+                    {
+                        "question": q.get("question", ""),
+                        "basis": q.get("basis", ""),
+                        "materials": q.get("materials", []),
+                        "resolves": q.get("resolves", ""),
+                        "system_gap": q.get("system_gap", ""),
+                    }
+                    for q in t.get("questions", [])
+                ],
+            }
+            for t in themes
+        ],
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -1179,6 +1220,7 @@ def build_enterprise_readable_report(report_data):
     input_voucher_report = _build_input_voucher_report(report_data)
     false_invoice_report = _build_false_invoice_report(report_data)
     fund_loop_report = _build_fund_loop_report(report_data)
+    inspection_questions_report = _build_inspection_questions_report(report_data)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -1199,6 +1241,7 @@ def build_enterprise_readable_report(report_data):
         "input_voucher_report": input_voucher_report,
         "false_invoice_report": false_invoice_report,
         "fund_loop_report": fund_loop_report,
+        "inspection_questions_report": inspection_questions_report,
         "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,

@@ -129,11 +129,21 @@ def run_false_invoice_check(sal_invs, pur_invs, cross_enterprise=None,
     top3_share = (top3_amt / sal_total) if sal_total else 0.0
 
     # ── 3) 顶额凑数（大量同额发票）──
-    amt_cnt = defaultdict(int)
+    # 按发票号去重后再统计金额频次：一张发票的多行明细不应被重复计数，
+    # 否则行项金额一致会被误判为"多张同额发票"假阳性。要求≥3张不同发票金额一致。
+    _inv_amt = {}
     for i in sal:
         a = round(_amount(i), 2)
-        if a > 0:
-            amt_cnt[a] += 1
+        if a <= 0:
+            continue
+        _inv = str(i.get("invoice_no") or i.get("inv_no") or "").strip()
+        if _inv:
+            _inv_amt.setdefault(_inv, a)  # 同发票号取首次金额
+        else:
+            _inv_amt[f"_row_{id(i)}"] = a  # 无发票号按行计
+    amt_cnt = defaultdict(int)
+    for a in _inv_amt.values():
+        amt_cnt[a] += 1
     same_amount_groups = sorted([(a, c) for a, c in amt_cnt.items() if c >= 3],
                                  key=lambda x: -x[1])[:5]
 

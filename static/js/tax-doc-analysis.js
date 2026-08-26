@@ -4908,6 +4908,28 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     if (flSec.note) html += '<p class="i2" style="color:#64748b">' + esc(flSec.note) + '</p>';
   }
 
+  // ═══ 第十八章：稽查询问清单与待澄清事项（稽查分身增强）═══
+  var iqSec = report.inspection_questions_report || {};
+  if (iqSec && iqSec.title) {
+    html += '<h2 id="company-inspection-questions">十八、稽查询问清单与待澄清事项</h2>' +
+      '<p class="i2">' + esc(iqSec.summary || '') + '</p>';
+    var iqThemes = iqSec.themes || [];
+    iqThemes.forEach(function(th){
+      html += '<h3 style="color:#b91c1c">' + esc(th.theme || '') + '　<span style="font-size:12px;color:#64748b">关注级别：' + esc(th.severity || '') + '</span></h3>';
+      (th.questions || []).forEach(function(q, idx){
+        html += '<div class="i2" style="border-left:3px solid #b91c1c;padding:6px 12px;margin:8px 0;background:#fff7f7">';
+        html += '<p style="margin:4px 0"><strong>询问 ' + (idx + 1) + '：</strong>' + esc(q.question || '') + '</p>';
+        if (q.basis) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">稽查依据：</span>' + esc(q.basis) + '</p>';
+        if (q.materials && q.materials.length) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">需补充资料：</span>' + esc(q.materials.join('；')) + '</p>';
+        if (q.system_gap) html += '<p style="margin:4px 0;color:#64748b"><span style="color:#92400e">系统局限→企业自证：</span>' + esc(q.system_gap) + '</p>';
+        html += '</div>';
+      });
+    });
+    if (iqSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(iqSec.verdict) + '</p>';
+    if (iqSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(iqSec.recommendation) + '</p>';
+    if (iqSec.note) html += '<p class="i2" style="color:#64748b">' + esc(iqSec.note) + '</p>';
+  }
+
   // ═══ 第十二章：能力边界与彻底稽查路线 ═══
   var capb = report.capability_boundary || {};
   if (capb && capb.title) {

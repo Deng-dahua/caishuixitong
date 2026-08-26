@@ -21,3 +21,6 @@ work/
 htmlcov/
 *.bak
 *.tmp
+
+# 分析验证产物（大文件，非源码）
+scripts/four_reports/

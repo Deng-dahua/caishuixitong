@@ -129,6 +129,54 @@ def _auto_assign_rule_ids(all_findings, pipeline_log=None):
         pipeline_log.append(f"域→规则自动分配: {assigned}条发现获得rule_id")
     return all_findings
 
+
+def _aggregate_invoices_by_no(rows, direction, extra=None):
+    """把一张发票的多行明细合并为按发票号的一行（金额求和），避免重复计数。
+    原始发票每行是一个货物明细，但系统各引擎对发票做金额求和；
+    若不按发票号聚合，同一发票的多行会被重复累加，导致进项/销项总额虚高、
+    且'同额发票'检测被行项放大成假阳性。无发票号的行原样保留。
+    """
+    extra = extra or {}
+    groups = {}
+    standalone = []
+    for r in rows:
+        if not isinstance(r, dict):
+            standalone.append(r)
+            continue
+        inv = str(r.get("invoice_no") or r.get("inv_no") or "").strip()
+        if not inv:
+            nr = dict(r)
+            nr["direction"] = r.get("direction") or direction
+            standalone.append({**nr, **extra})
+            continue
+        if inv not in groups:
+            groups[inv] = {"_first": dict(r), "amount": 0.0, "tax": 0.0,
+                           "total": 0.0, "goods": []}
+        g = groups[inv]
+        for key in ("amount", "tax", "total"):
+            try:
+                g[key] += float(r.get(key) or 0)
+            except (TypeError, ValueError):
+                pass
+        gs = str(r.get("goods") or "").strip()
+        if gs and gs not in g["goods"]:
+            g["goods"].append(gs)
+    out = []
+    for inv, g in groups.items():
+        f = g["_first"]
+        o = dict(f)
+        o["direction"] = f.get("direction") or direction
+        o["amount"] = round(g["amount"], 2)
+        o["tax"] = round(g["tax"], 2)
+        o["total"] = round(g["total"], 2)
+        if not o.get("invoice_no"):
+            o["invoice_no"] = inv
+        if g["goods"]:
+            o["goods"] = "；".join(g["goods"])
+        out.append({**o, **extra})
+    return out + standalone
+
+
 def _run_analyze(company_id, db, progress_callback=None):
     import sys as _sys
     _sys.setrecursionlimit(5000)  # 88文件分析需更高递归上限（2026-07-25 修复RecursionError）
@@ -444,11 +492,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                     n = len(parsed.get("rows", []))
                     if ftype == "salary": salaries.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条工资")
                     elif ftype == "social_security": social_security.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条社保")
-                    elif ftype == "sales_invoice": invoices.extend([{**r, "direction": "销项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条销项")
-                    elif ftype == "purchase_invoice": invoices.extend([{**r, "direction": "进项"} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项")
-                    elif ftype == "input_vat_deduction": input_vat_deductions.extend([{**r, "direction": "进项", "_file_type": "input_vat_deduction", "_has_deduction_columns": True} for r in parsed["rows"]]); fr["actions"].append(f"提取{n}条进项认证抵扣")
+                    elif ftype == "sales_invoice": invoices.extend(_aggregate_invoices_by_no(parsed["rows"], "销项")); fr["actions"].append(f"提取{n}条销项(按发票号聚合)")
+                    elif ftype == "purchase_invoice": invoices.extend(_aggregate_invoices_by_no(parsed["rows"], "进项")); fr["actions"].append(f"提取{n}条进项(按发票号聚合)")
+                    elif ftype == "input_vat_deduction": input_vat_deductions.extend(_aggregate_invoices_by_no(parsed["rows"], "进项", {"_file_type": "input_vat_deduction", "_has_deduction_columns": True})); fr["actions"].append(f"提取{n}条进项认证抵扣(按发票号聚合)")
                     elif ftype == "invoice":  # 通用发票 → 按列内容判断进销方向
                         rows = parsed["rows"]
+                        gen_invoices = []
                         for r in rows:
                             seller_name = str(r.get("seller", "")).strip()
                             buyer_name = str(r.get("buyer", "")).strip()
@@ -484,8 +533,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 r["direction"] = "销项"
                             else:
                                 r["direction"] = "存疑"  # 无法判定
-                            invoices.append(r)
-                        fr["actions"].append(f"提取{n}条发票")
+                            gen_invoices.append(r)
+                        invoices.extend(_aggregate_invoices_by_no(gen_invoices, "存疑"))
+                        fr["actions"].append(f"提取{n}条发票(按发票号聚合)")
                     elif ftype == "voucher": vouchers.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条凭证")
                     elif ftype == "inventory": inventory.extend(parsed["rows"]); fr["actions"].append(f"提取进销存")
                     elif ftype == "bom":
@@ -4346,6 +4396,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             company_name=_iv_name,
         )
         comprehensive["input_voucher"] = _iv
+        # 留存按发票号聚合后的进项发票清单，使进项总额可独立复算/审计（稽查分身透明化）
+        comprehensive["purchase_invoices_aggregated"] = [i for i in invoices if i.get("direction") == "进项"]
         _iv_m = _iv.get("metrics", {}) or {}
         if _iv.get("available"):
             pipeline_log.append(f"[进项异常凭证] 异常抵扣{_iv_m.get('abnormal_deduction_tax')} "
@@ -4396,6 +4448,20 @@ def _run_analyze(company_id, db, progress_callback=None):
             pipeline_log.append(f"[资金回流闭环] 未取得银行流水，跳过")
     except Exception as e:
         pipeline_log.append(f"[资金回流闭环] 执行异常(不影响主分析): {e}")
+
+    # ── ⑩ 稽查询问与质疑清单（第四阶·稽查分身增强：把待证线索转成企业可答复的询问+举证）──
+    try:
+        from engine.inspection_questions import run_inspection_questions
+        _iq = run_inspection_questions(
+            comprehensive=comprehensive,
+            company_name=next((locals().get(n) for n in ("_tt_name", "_iv_name", "_fi_name", "_fl_name") if locals().get(n)), ""),
+            data_overview=comprehensive.get("data_overview"),
+        )
+        comprehensive["inspection_questions"] = _iq
+        _iq_m = _iq.get("metrics", {}) or {}
+        pipeline_log.append(f"[稽查询问] 共{_iq_m.get('total_questions')}条询问 / {_iq_m.get('themes')}主题 结论={_iq.get('verdict','')}")
+    except Exception as e:
+        pipeline_log.append(f"[稽查询问] 执行异常(不影响主分析): {e}")
 
     _step_timing["step7_start"] = time.time()
     _report(99, "步骤⑦正式报告输出 — 开始...", step=7)
