@@ -1,17 +1,17 @@
 {
-  "updated_at": "2026-08-24T01:09:58.015134",
+  "updated_at": "2026-08-26T09:54:00.517184",
   "total_events": 1,
   "events": [
     {
       "type": "analysis_completed",
       "data": {
-        "company": "达冠测试样例纺织",
-        "findings_count": 2,
+        "company": "测试两税差异企业",
+        "findings_count": 0,
         "causal_edges": 0,
         "patterns": 0
       },
       "source": "agi_pipeline",
-      "timestamp": "2026-08-24T01:09:58.012830",
+      "timestamp": "2026-08-26T09:54:00.513523",
       "id": "evt_000000"
     }
   ]

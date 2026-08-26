@@ -4832,6 +4832,25 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     if (bfSec.note) html += '<p class="i2" style="color:#64748b">' + esc(bfSec.note) + '</p>';
   }
 
+  // ═══ 第十四章：增值税收入 vs 企业所得税收入差异比对 ═══
+  var ttSec = report.two_tax_report || {};
+  if (ttSec && ttSec.title) {
+    html += '<h2 id="company-two-tax">十四、增值税收入 vs 企业所得税收入差异比对</h2>' +
+      '<p class="i2">' + esc(ttSec.summary || '') + '</p>';
+    if (ttSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(ttSec.body) + '</div>';
+    var ttSigs = ttSec.signals || [];
+    if (ttSigs.length) {
+      html += '<h3 style="color:#b91c1c">两税差异信号</h3><ul class="i2">';
+      ttSigs.forEach(function(s){
+        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
+      });
+      html += '</ul>';
+    }
+    if (ttSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(ttSec.verdict) + '</p>';
+    if (ttSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(ttSec.recommendation) + '</p>';
+    if (ttSec.note) html += '<p class="i2" style="color:#64748b">' + esc(ttSec.note) + '</p>';
+  }
+
   // ═══ 第十二章：能力边界与彻底稽查路线 ═══
   var capb = report.capability_boundary || {};
   if (capb && capb.title) {

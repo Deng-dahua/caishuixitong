@@ -13230,11 +13230,351 @@
         "有销无进风险"
       ],
       "timestamp": "2026-08-24T01:09:57.992173"
+    },
+    {
+      "trace_id": "2d139335",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-24T10:40:17.991660",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "685febce",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-24T10:40:21.163493"
+    },
+    {
+      "trace_id": "f5736d6f",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-24T10:44:02.826581",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "b6c67a33",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-24T10:44:05.911284"
+    },
+    {
+      "trace_id": "e3666fc8",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-24T11:58:53.034490",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "ad67dd40",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-24T11:58:55.940858"
+    },
+    {
+      "trace_id": "bdd0a6dc",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-24T12:31:43.813379",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "3e97c540",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-24T12:31:46.737944"
+    },
+    {
+      "trace_id": "423442c9",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T09:06:06.188479",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.08,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "9bef896d",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T09:06:09.891094"
+    },
+    {
+      "trace_id": "c967e737",
+      "company_id": 9999,
+      "company_name": "达冠测试样例纺织",
+      "industry": "综合",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T09:07:37.327726",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.08,
+        "supplier_concentration": 99.37254901960785,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "74e1d278",
+      "company_name": "达冠测试样例纺织",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T09:07:39.978841"
+    },
+    {
+      "trace_id": "42cf713a",
+      "company_id": 9918,
+      "company_name": "dbg4",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T09:47:06.567096",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "649879df",
+      "company_name": "dbg4",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T09:47:08.443049"
+    },
+    {
+      "trace_id": "19eb5d01",
+      "company_id": 9914,
+      "company_name": "测试两税差异企业",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T09:47:28.237792",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "88464de0",
+      "company_name": "测试两税差异企业",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T09:47:30.090516"
+    },
+    {
+      "trace_id": "a6e29371",
+      "company_id": 98163,
+      "company_name": "测试两税差异企业",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T09:50:16.736927",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "672c1f63",
+      "company_name": "测试两税差异企业",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T09:50:18.636404"
+    },
+    {
+      "trace_id": "881d8b93",
+      "company_id": 92729,
+      "company_name": "dbg",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T09:51:27.787609",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "0e7f1660",
+      "company_name": "dbg",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T09:51:29.654467"
+    },
+    {
+      "trace_id": "b861ecc0",
+      "company_id": 96991,
+      "company_name": "dbg",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T09:52:55.239191",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "0076cd7e",
+      "company_name": "dbg",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T09:52:57.091707"
+    },
+    {
+      "trace_id": "782bd8a6",
+      "company_id": 93541,
+      "company_name": "测试两税差异企业",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T09:53:58.592271",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "48525123",
+      "company_name": "测试两税差异企业",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T09:54:00.476383"
     }
   ],
   "industry_patterns": {
     "现代服务": {
-      "analyses_count": 91,
+      "analyses_count": 94,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
@@ -13258,13 +13598,13 @@
       "typical_data_profile": {}
     },
     "纺织产品": {
-      "analyses_count": 52,
+      "analyses_count": 53,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
     },
     "综合": {
-      "analyses_count": 60,
+      "analyses_count": 68,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

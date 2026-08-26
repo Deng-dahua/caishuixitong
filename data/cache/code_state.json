@@ -39,6 +39,10 @@
     "mtime": 1785112565.7628655,
     "size": 16248
   },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\bank_flow.py": {
+    "mtime": 1787705800.6490996,
+    "size": 14825
+  },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\capability_matrix.py": {
     "mtime": 1785112565.7628655,
     "size": 19767
@@ -92,8 +96,8 @@
     "size": 23555
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\enterprise_report.py": {
-    "mtime": 1787503765.7623787,
-    "size": 48905
+    "mtime": 1787708233.1548088,
+    "size": 66371
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\evolution.py": {
     "mtime": 1785112565.7688656,
@@ -200,8 +204,8 @@
     "size": 17144
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\pipeline.py": {
-    "mtime": 1787503619.9672537,
-    "size": 463220
+    "mtime": 1787708788.0152996,
+    "size": 468118
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\rd_audit.py": {
     "mtime": 1786031948.2252183,
@@ -290,6 +294,10 @@
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\trend_group.py": {
     "mtime": 1785112565.7788653,
     "size": 8840
+  },
+  "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\two_tax_income.py": {
+    "mtime": 1787708144.448508,
+    "size": 12941
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\engine\\unknown_pattern_detector.py": {
     "mtime": 1785112565.7788653,
@@ -432,8 +440,8 @@
     "size": 4572
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-doc-analysis.js": {
-    "mtime": 1787409493.536184,
-    "size": 240151
+    "mtime": 1787708258.809826,
+    "size": 246645
   },
   "C:\\Users\\Administrator\\WorkBuddy\\2026-08-04-21-37-33\\caishuixitong\\static\\js\\tax-engine-dashboard.js": {
     "mtime": 1787364905.158009,

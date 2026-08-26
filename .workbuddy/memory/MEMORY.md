@@ -14,3 +14,9 @@
 - 引擎数据字典在 engine/pipeline.py 组装；BOM/进销存 已接入 `_domain_bom_verify` / `_domain_inventory_turnover`（domain_analysis.py）。
 - 验证引擎纯函数可直接 `from engine.domain_analysis import _domain_*` 用 .venv 跑（.venv/Scripts/python.exe）。
 - 前端上传走内容自动分类（FILE_TYPE_CONFIG，main.py:2109 起），BOM 解析器已注册，上传即被识别。
+
+## 关键认知修正（2026-08-26，用户指正 + 官方口径核实）
+- **数电票 + 申报自动预填 + 一窗式比对下，"已开票未申报"差异已被系统锁死**（税务数字账户预填销项/进项，有开票却零申报被拦截，销项填不满发票汇总即票表比对失败）。故原"接云帐房做开票 vs 自报比对"路线价值已近冗余，云帐房从 P0 降级为 P1（真实价值在账套+银行流水）。
+- **差异主战场已迁移**：①未开票收入栏留空（私有收钱不填，主通道）②增值税收入 vs 所得税收入差>10% ③私户/个人码收款 vs 申报（银税互动资金流）④虚开（票真业务假，票表比对反通过）。
+- **下一阶最高优先级 = 资金流比对**（银行流水/企业网银 vs 申报收入，抓未开票+私户+资金回流），而非发票数据。路线图 docs/capability_boundary_roadmap.md 已按此重写。
+- **资金流比对已实现**（2026-08-26，提交 0ad40587）：engine/bank_flow.py + pipeline 主链路 comprehensive["bank_flow"] + 报告第十三章 + 前端渲染。引擎 run_bank_flow_compare 量化未开票敞口/私户收款/资金回流；样本列用 贷方金额/借方金额（借贷标志+交易金额 在 pipeline 标准化下不会被拆分 credit/debit）。

@@ -1022,6 +1022,45 @@ def _build_bank_flow_report(report_data):
     }
 
 
+def _build_two_tax_report(report_data):
+    """第四阶 P0：增值税收入 vs 企业所得税收入差异比对章节。
+
+    数据来自 report_data["comprehensive"]["two_tax_income"]
+    （engine/two_tax_income.run_two_tax_compare 输出）。
+    """
+    tt = (report_data.get("comprehensive") or {}).get("two_tax_income") or {}
+    if not tt:
+        return {
+            "title": "增值税收入 vs 企业所得税收入差异比对",
+            "available": False,
+            "summary": "本轮未提供增值税申报表与企业所得税申报表，未做两税收入勾稽。",
+            "body": "增值税申报销售额与企业所得税申报营业收入的勾稽，是数电票时代暴露所得税少计收入、"
+                    "隐匿利润的第二条主线证据（第一主线为银行资金流）。两税分属不同申报表、自动预填互不校验，"
+                    "税局不会自动拦截其背离。未提供两税申报表则无法量化该差异。",
+            "signals": [],
+            "verdict": "未提供两税申报表",
+            "recommendation": "上传增值税纳税申报表与企业所得税纳税申报表（年度汇算清缴/季度预缴均可）。",
+            "note": "两税收入差异比对结论属「待证线索」，需结合收入确认政策与纳税调整底稿核实，不作为定性依据。",
+        }
+
+    metrics = tt.get("metrics") or {}
+    signals = tt.get("signals") or []
+    verdict = tt.get("verdict", "")
+    body = tt.get("body", "") or ""
+
+    return {
+        "title": "增值税收入 vs 企业所得税收入差异比对",
+        "available": True,
+        "summary": tt.get("summary", ""),
+        "body": body,
+        "metrics": metrics,
+        "signals": signals,
+        "verdict": verdict,
+        "recommendation": tt.get("recommendation", ""),
+        "note": tt.get("note", "两税收入差异比对结论属「待证线索」，需结合收入确认政策与纳税调整底稿核实，不作为定性依据。"),
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -1040,6 +1079,7 @@ def build_enterprise_readable_report(report_data):
     cross_enterprise_report = _build_cross_enterprise_report(report_data)
     external_verify_report = _build_external_verify_report(report_data)
     bank_flow_report = _build_bank_flow_report(report_data)
+    two_tax_report = _build_two_tax_report(report_data)
 
     return {
         "compilation_style": "税务稽查文书式报告",
@@ -1056,6 +1096,7 @@ def build_enterprise_readable_report(report_data):
         "cross_enterprise_report": cross_enterprise_report,
         "external_verify_report": external_verify_report,
         "bank_flow_report": bank_flow_report,
+        "two_tax_report": two_tax_report,
         "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,

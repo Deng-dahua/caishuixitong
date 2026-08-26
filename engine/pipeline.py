@@ -145,6 +145,12 @@ def _run_analyze(company_id, db, progress_callback=None):
     from engine.phase2_deep_dive import _phase2_deep_dive
     from engine.phase3_cross_validate import _phase3_cross_validate
     from engine.phase4_synthesis import _phase4_synthesis
+
+    # 防御性初始化：以下变量仅在 `if pur_invs and sal_invs` 块内赋值，
+    # 当 pur_invs 为空导致该块跳过时，下方读取会引发 UnboundLocalError；此处预置，避免分析中断。
+    _outsourcing_finding = None
+    _supply_chain_findings = []
+    has_processing_fee = False
     from engine.cognitive_bridge import broadcast, extract_topology_pattern, self_heal_from_blind_test
     from engine.red_team import red_team_falsification, blind_destruction_test, hallucination_check, consistency_rerun_check
     from engine.orchestrator import build_data_profile, build_orchestration_plan
@@ -4302,6 +4308,26 @@ def _run_analyze(company_id, db, progress_callback=None):
             pipeline_log.append(f"[资金流比对] 本轮未提供银行流水，跳过")
     except Exception as e:
         pipeline_log.append(f"[资金流比对] 执行异常(不影响主分析): {e}")
+
+    # ── ⑥ 两税收入差异比对（第四阶 P0：增值税申报销售额 vs 企业所得税申报营业收入）──
+    # 数电票下"已开票未申报"已被系统焊死，但两税分属不同申报表、自动预填互不校验，
+    # 其背离税局不自动拦截。增值税销售额>所得税营业收入>10% 是所得税少计收入的红线。
+    # 与 ④⑤ 同构，失败仅记录日志、不阻断主分析。
+    try:
+        from engine.two_tax_income import run_two_tax_compare
+        from database import Company as _TT_Company
+        _tt_co = db.query(_TT_Company).filter(_TT_Company.id == company_id).first()
+        _tt_name = _tt_co.name if _tt_co else ""
+        _tt = run_two_tax_compare(tax_declarations=tax_declarations, company_name=_tt_name)
+        comprehensive["two_tax_income"] = _tt
+        _tt_m = _tt.get("metrics", {}) or {}
+        if _tt.get("available"):
+            pipeline_log.append(f"[两税差异] 增值税{_tt_m.get('vat_sales')} vs 所得税{_tt_m.get('cit_income')} "
+                                f"差额{_tt_m.get('diff')} 结论={_tt.get('verdict','')}")
+        else:
+            pipeline_log.append(f"[两税差异] 未取得两税申报表，跳过")
+    except Exception as e:
+        pipeline_log.append(f"[两税差异] 执行异常(不影响主分析): {e}")
 
     _step_timing["step7_start"] = time.time()
     _report(99, "步骤⑦正式报告输出 — 开始...", step=7)
