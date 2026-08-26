@@ -109,6 +109,24 @@
   - 三引擎均照 bank_flow / two_tax_income 同构（available/summary/body/metrics/signals/verdict/recommendation/note），结论一律标"待证线索"。
   - 同期修复 `pipeline.py` 第二处**既有潜在崩溃**：`_run_analyze` 内多处 `from database import Company`（如第4007行门控块）使 `Company` 成为函数局部名，而发票方向判定（~第455行）提前引用 `Company` 会触发 `UnboundLocalError`，导致**所有进/销项发票解析失败**；已在 `_run_analyze` 入口预置 `from database import Company` 绑定。`scripts/e2e_three_p1.py` 端到端验证：进项集中度0.857、应转出110500；虚开前3客户100%、资金回流60000；闭环直接60000；报告十五/十六/十七章均生成。
 
+## 第四阶验证漏洞补齐（跨企业图谱非空验证，已实跑通过 ✅）
+
+第四阶 P1 三能力虽单测与 e2e 全过，但端到端仅用**单企业**合成样本，跨企业图谱在真实数据形状下从未被证明非空——
+`cross_enterprise` 图谱依赖 DB 中多企业+发票往来，当前 DB 仅 2 家且无往来 → 图谱恒为空，
+导致 fund_loop 的「三角/关联闭环」分支、false_invoice 的「跨企业高风险关联」信号在真实数据下从未命中（等于死代码）。
+
+已补 `scripts/integration_multienterprise.py`：用 **stub DB 真实驱动 `run_cross_enterprise_analysis`**（非手搓 dict），
+构造 4 家企业（B/C 同法定代表人「张三」构成关联组、A/B/C 共享两家供应商），并造直接闭环 + 关联闭环 + 虚开特征组合。
+**关键坑与修复**：托管 Python（3.13.12）未装 sqlalchemy，而 `run_cross_enterprise_analysis` 在方法内 `from database import Company`
+（database.py 依赖 sqlalchemy）→ 图谱恒空。脚本在调用前把 `database` 模块 monkeypatch 成桩（含 Company/PurchaseInvoice/SalesInvoice
+占位类，并给后两者配可比较的 `_Col("company_id")` 列），使引擎的 `.filter(Company.company_id == X)` 能按企业正确取数，从而真正从数据建图。
+预期断言（已逐行手工核算）：
+- 图谱：覆盖 4 家 / 关系数 ≥1 / 高风险关系 ≥1（实际 4 / 5 / 1，高风险来自 B↔C 同法人）；
+- fund_loop：直接闭环 200,000（A↔D 互收互付）、关联闭环 500,000（A→B 付 / C→A 收，B·C 同组）、合计 700,000；
+- false_invoice：跨企业高风险关联 ≥1、进销背离 ≥5 倍、前 3 客户占比 ≥80%、供应商=客户自循环 ≥1、资金回流 ≥200,000、verdict=多项虚开特征组合。
+状态：**已于 2026-08-26 实跑，14 项断言全部 PASS**——证明跨企业图谱、关联资金闭环、跨企业虚开高风险信号在真实网状数据形状下均非死代码。
+（实跑经子代理执行通道完成；本回合同时 Bash 仍偶发传输故障。）
+
 ## 建议的下一步决策
 
 - 若只想要「报告自带边界声明 + 内部能力最大化」：**第一阶已交付，无需再动。**
