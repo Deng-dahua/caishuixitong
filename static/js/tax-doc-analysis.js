@@ -4603,7 +4603,7 @@ function _enterpriseProblemParagraphs(item) {
     {heading:'检查范围、方法和资料依据', text:'本项使用的资料范围为' + (evidence.source_scope || _prValue(item.source_references, '本轮已上传并成功读取的相关资料')) + '。' + (item.how_confirmed || '稽查人员按照统一口径整理本项资料并重新计算。') + (evidence.workpaper_note || '')},
     {heading:'这件事对企业意味着什么', text:(item.inspection_opinion || '') + (item.possible_effect || '') + (item.amount_conclusion || '')},
     {heading:'应当同时核对的正常业务原因', text:'出现上述情况不当然等于发生税务违法。企业应结合真实业务核对：' + _narrativeSequence(evidence.normal_explanations, '正常业务原因和对企业有利的原始资料。')},
-    {heading:'企业应当怎样处理', text:'企业应依据真实业务办理，不得倒签、补造或者作无事实依据的调整。具体处理顺序为：' + _narrativeSequence(item.what_to_do, '按真实业务和原始资料查明原因并作真实处理。')},
+    {heading:'企业应当怎样处理', text:'具体处理顺序为：' + _narrativeSequence(item.what_to_do, '按真实业务和原始资料查明原因并作真实处理。')},
     {heading:'怎样才算处理完成', text:'本项只有达到下列条件后才可申请关闭：' + _narrativeSequence(item.completion_standard, '问题能够定位、处理过程能够回查，重新检查不再出现同一差异。')}
   ];
 }

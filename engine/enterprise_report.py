@@ -499,7 +499,7 @@ def _problem_paragraphs(f):
         {"heading": "应当同时核对的正常业务原因",
          "text": "出现上述情况不当然等于发生税务违法。企业应按同一证据标准核对：" + _seq(reasons, "正常业务原因和对企业有利的原始资料。")},
         {"heading": "企业应当怎样处理",
-         "text": "企业应当依据真实业务办理，不得为了消除系统提示而倒签、补造或者无事实依据调整。具体处理顺序为：" + _seq(steps or [suggestion], "按真实业务和原始资料查明原因并作真实处理。")},
+         "text": "具体处理顺序为：" + _seq(steps or [suggestion], "按真实业务和原始资料查明原因并作真实处理。")},
         {"heading": "怎样才算处理完成",
          "text": "本项只有达到下列条件后才可申请关闭：" + _seq(["本次发现的每一组差异都有原始资料、差异原因和处理结果可以回查",
                                                           "更正后的数据能够与会计记录和相关纳税申报资料核对一致，或对仍有差异的事项单独说明",
@@ -547,6 +547,7 @@ def _build_confirmed_problems(report_data):
             "title": (f.get("type") or "具体资料问题").replace("待核事实：", "").replace("待核事实:", ""),
             "conclusion_grade": f.get("conclusion_grade") or "待核",
             "final_answer": str(f.get("final_answer") or ""),
+            "suggestion": str(f.get("suggestion") or ""),
             "observed_metrics": f.get("observed_metrics") or {},
             "narrative_paragraphs": _problem_paragraphs(f),
             "trace_id": ev.get("trace_id", ""),
@@ -575,13 +576,24 @@ def _build_completed_checks(report_data):
 
 
 def _build_action_plan(problems):
-    """处理意见（从确认问题派生）"""
+    """处理意见（从确认问题派生）：每条按问题类型给出具体整改要点，避免逐条复制同一段套话。"""
     plans = []
     for i, p in enumerate(problems):
+        title = p.get("title", "") or "具体资料问题"
+        suggestion = _norm_text(str(p.get("suggestion") or "").strip())
+        final_answer = _norm_text(str(p.get("final_answer") or "").strip())
+        # 具体整改要点：优先用该项已给出的处理建议或已核定结论，回指真实业务
+        if suggestion and "尚未形成" not in suggestion:
+            core = "本项已给出处理建议：" + suggestion
+        elif final_answer and "尚未形成" not in final_answer:
+            core = "本项已确认事实为：" + final_answer + "。企业应据此先修复资料与计算口径，再开展账、票、表、税和资金用途核对。"
+        else:
+            core = f"本项（{title}）须按报告『企业应当怎样处理』一节逐项补证，以原始业务资料查明原因并作真实处理；不得仅以口头说明作为完成依据。"
+        gov = "办理须指定熟悉该项业务和资料的负责人，并由另一名人员复核；验收时确认处理过程能够回查、更正后的数据能够与会计和申报资料核对一致。"
         plans.append({
             "seq": _cn_num(i + 1),
-            "problem": p.get("title", ""),
-            "narrative": "企业应先依据真实业务和原始资料办理，不得倒签、补造或者作无事实依据的调整。本项由企业指定熟悉该项业务和资料的负责人办理，并由另一名人员复核。整改不能仅以口头说明作为完成依据，验收时应确认处理过程能够回查、更正后的数据能够与会计和申报资料核对一致。",
+            "problem": title,
+            "narrative": core + gov,
         })
     return plans
 
