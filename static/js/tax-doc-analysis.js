@@ -4633,6 +4633,8 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   var plans = report.action_plan || [];
   var further = report.further_checks || [];
   var recheck = report.recheck || {};
+  var capb = report.capability_boundary || {};
+  var iqSec = report.inspection_questions_report || {};
   var statements = (report.report_statement || []).map(function(item){
     var value = String(item || '');
     if (value.indexOf('本报告以企业内部税务稽查人员视角编制') >= 0) {
@@ -4665,19 +4667,14 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     esc(openingText) + '<br>检查范围、总体结论和给企业负责人的整改要求，详见本报告第一章。' +
     '</div>';
 
-  html += '<div class="toc"><a href="#company-conclusion">一、稽查任务和给企业负责人的总体结论</a><br>' +
-    '<a href="#company-materials">二、本轮接收和使用的资料</a><br>' +
-    '<a href="#company-procedures">三、稽查员实际执行的检查程序</a><br>' +
-    '<a href="#company-problems">四、本轮稽查确认的具体问题</a><br>' +
-    '<a href="#company-completed">五、已经执行且本轮未发现达到条件异常的检查</a><br>' +
-    '<a href="#company-actions">六、稽查处理意见和整改验收标准</a><br>' +
-    '<a href="#company-further">七、因资料缺失或不完整而无法完成的检查</a><br>' +
-    '<a href="#company-recheck">八、下一轮复查安排</a><br>' +
-    '<a href="#company-statement">九、报告性质和使用说明</a></div>';
+  html += '<div class="toc"><a href="#company-conclusion">一、本轮检查总体结论</a><br>' +
+    '<a href="#company-problems">二、本轮稽查确认的具体问题</a><br>' +
+    '<a href="#company-completed">三、已经执行且本轮未发现达到条件异常的检查</a><br>' +
+    '<a href="#company-actions">四、稽查处理意见和整改验收标准</a><br>' +
+    '<a href="#company-further">五、因资料缺失或不完整而无法完成的检查</a><br>' +
+    '<a href="#company-statement">六、报告性质和使用说明</a></div>';
 
-  html += '<h2 id="company-conclusion">一、稽查任务和给企业负责人的总体结论</h2>' +
-    '<p class="i2"><strong>稽查工作原则：</strong>' + esc(inspector.work_principle || '') + '</p>' +
-    '<p class="i2"><strong>问题确认标准：</strong>' + esc(inspector.conclusion_rule || '') + '</p>' +
+  html += '<h2 id="company-conclusion">一、本轮检查总体结论</h2>' +
     '<p class="i2">' + esc(headlineText) + '</p>' +
     '<p class="i2">' + esc(summary.owner_message || '') + '</p>' +
     '<p class="i2">本轮共收到<strong>' + (summary.received_material_count || 0) + '个文件</strong>，归并为<strong>' + (summary.material_category_count || materials.length || 0) + '类资料</strong>。其中，已有资料能够证明的具体问题<strong>' + (summary.confirmed_problem_count || 0) + '项</strong>；已经执行且本轮未发现达到条件异常的检查<strong>' + (summary.completed_check_count || 0) + '项</strong>；因资料缺失、资料不完整或者影响范围尚未查清，需要补充资料后再检查的事项<strong>' + (summary.further_check_count || 0) + '项</strong>。</p>';
@@ -4687,47 +4684,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     }).join('');
   }
 
-  // 本轮全部发现一览：让负责人不展开各章就能看到全貌
-  var overview = report.discovery_overview || [];
-  if (overview.length) {
-    html += '<h3>本轮全部发现一览</h3>' +
-      '<p class="i2">下表汇总本轮确认问题、已执行检查与受阻检查的全部条目；点击目录可跳转至对应章节查看逐笔明细。</p>' +
-      '<table class="fact-detail-table discovery-overview"><thead><tr>' +
-      '<th>序号</th><th>类别</th><th>项目</th><th>结论等级</th><th>一句话结论</th>' +
-      '</tr></thead><tbody>';
-    overview.forEach(function(row){
-      var gradeCls = '';
-      if (row.grade === '已核定') gradeCls = ' grade-verified';
-      else if (row.grade === '待核' || row.grade === '待补资料') gradeCls = ' grade-pending';
-      html += '<tr class="' + (gradeCls || '') + '">' +
-        '<td>' + esc(row.no || '') + '</td>' +
-        '<td>' + esc(row.category || '') + '</td>' +
-        '<td>' + esc(row.type || '') + '</td>' +
-        '<td>' + esc(row.grade || '') + '</td>' +
-        '<td>' + esc(row.summary || '') + '</td>' +
-        '</tr>';
-    });
-    html += '</tbody></table>';
-  }
-
-  html += '<h2 id="company-materials">二、本轮接收和使用的资料</h2>' +
-    '<p class="i2">为便于企业负责人阅读，本报告不逐个罗列月份文件和英文文件名，而是按中文资料类别归并说明文件数量、读取记录数、读取质量和本轮使用范围；逐文件清单及指纹保留在内部资料底稿中。</p>';
-  materials.forEach(function(item){
-    var displayName = _enterpriseMaterialName(item);
-    html += '<h3>资料' + esc(_reportChineseNumber(item.seq)) + '：' + esc(displayName) + '</h3>' +
-      '<p class="i2">' + esc(_enterpriseMaterialNarrative(item, displayName)) + '</p>';
-  });
-  if (!materials.length) html += '<p class="i2">本轮没有可列示的已读取资料。</p>';
-
-  html += '<h2 id="company-procedures">三、稽查员实际执行的检查程序</h2>' +
-    '<p class="i2">以下内容记录本轮实际完成的稽查工作。资料条件不满足的程序会明确写出停止位置和后续要求，不以空结果表示检查已经完成。</p>';
-  procedures.forEach(function(item){
-    html += '<section class="fact-sec"><div class="ftitle">程序' + esc(item.seq || '') + '：' + esc(item.name || '稽查程序') + '</div>' +
-      '<p class="i2" style="line-height:2">' + esc(item.narrative || ('稽查人员执行的工作是：' + (item.work || '') + '本轮程序结果为：' + (item.result || ''))) + '</p></section>';
-  });
-  if (!procedures.length) html += '<p class="i2">本轮没有形成可向企业负责人展示的稽查程序记录。</p>';
-
-  html += '<h2 id="company-problems">四、本轮稽查确认的具体问题</h2>' +
+  html += '<h2 id="company-problems">二、本轮稽查确认的具体问题</h2>' +
     '<p class="i2">本部分只写本轮资料能够直接证明的具体问题。没有达到这一标准的事项，不在这里写成企业已经存在的问题。</p>';
   if (!problems.length) {
     html += '<p class="i2">本轮没有发现能够由现有资料直接证明的具体问题。请继续处理第七部分列明的资料缺口事项。</p>';
@@ -4738,7 +4695,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       '</section>';
   });
 
-  html += '<h2 id="company-completed">五、已经执行且本轮未发现达到条件异常的检查</h2>' +
+  html += '<h2 id="company-completed">三、已经执行且本轮未发现达到条件异常的检查</h2>' +
     '<p class="i2">本部分只列示资料条件满足且规则已经实际执行的项目。“本轮未发现达到条件的异常”不等于企业在其他资料、期间或事项上完全没有风险。</p>';
   if (!completed.length) html += '<p class="i2">本轮没有可单独列示为已经完成且未发现达到检查条件异常的项目。</p>';
   completed.forEach(function(item){
@@ -4746,176 +4703,55 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       '<p class="i2" style="line-height:2">' + esc(item.narrative || ((item.method || '') + (item.result || '') + (item.boundary || ''))) + '</p></section>';
   });
 
-  html += '<h2 id="company-actions">六、稽查处理意见和整改验收标准</h2>' +
+  html += '<h2 id="company-actions">四、稽查处理意见和整改验收标准</h2>' +
     '<p class="i2">请按照下列顺序办理。所有处理必须建立在真实业务和原始资料基础上，不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';
-  if (!plans.length) html += '<p class="i2">本轮没有需要立即处理的已证实具体问题，企业应先按第七部分补充资料。</p>';
+  if (!plans.length) html += '<p class="i2">本轮没有需要立即处理的已证实具体问题，企业应先按第五部分补充资料。</p>';
   plans.forEach(function(item){
     html += '<h3>' + esc(item.seq || '') + '、先处理“' + esc(item.problem || '') + '”</h3>' +
       '<p class="i2" style="line-height:2">' + esc(item.narrative || ('稽查人员提出的第一项处理动作是：' + (item.first_action || '') + '责任安排为：' + (item.responsibility || '') + '本项整改不能以口头说明作为完成依据，必须达到以下验收条件：' + _narrativeSequence(item.completion_standard, '完成后能够用原始资料重新核对。'))) + '</p>';
   });
 
-  html += '<h2 id="company-further">七、因资料缺失或不完整而无法完成的检查</h2>' +
+  html += '<h3>整改验收与下一轮复查标准</h3>' +
+    '<p class="i2"><strong>什么时候重新检查：</strong>' + esc(recheck.trigger || '') + '</p>' +
+    '<p class="i2"><strong>重新检查什么：</strong>' + esc(recheck.work || '') + '</p>' +
+    '<p class="i2"><strong>怎样判断企业正在趋于合规：</strong>' + esc(recheck.convergence || '') + '</p>';
+
+  html += '<h2 id="company-further">五、因资料缺失或不完整而无法完成的检查</h2>' +
     '<p class="i2">本部分不是问题认定。系统逐项说明缺少什么、阻断了什么检查、哪些风险目前无法排除、可以提供什么替代资料，以及补齐后下一轮具体重新检查什么。</p>';
   if (!further.length) html += '<p class="i2">本轮没有单独列明的补充资料事项。</p>';
   further.forEach(function(item){
     html += '<section class="fact-sec"><div class="ftitle">事项' + esc(item.seq || '') + '：' + esc(item.title || '') + '</div>' +
       _renderNarrativeParagraphs(_enterpriseFollowUpParagraphs(item), '本项资料缺口尚未形成完整的段落式说明。') + '</section>';
   });
-
-  html += '<h2 id="company-recheck">八、下一轮复查安排</h2>' +
-    '<p class="i2"><strong>什么时候重新检查：</strong>' + esc(recheck.trigger || '') + '</p>' +
-    '<p class="i2"><strong>重新检查什么：</strong>' + esc(recheck.work || '') + '</p>' +
-    '<p class="i2"><strong>怎样判断企业正在趋于合规：</strong>' + esc(recheck.convergence || '') + '</p>';
-
-  html += '<h2 id="company-statement">九、报告性质和使用说明</h2>' +
-    '<p class="i2"><strong>文书性质说明。</strong>' + esc(administrativeBoundary) + '</p>';
-  statements.forEach(function(item, index){ html += '<p class="i2"><strong>说明' + (index + 1) + '。</strong>' + esc(item || '') + '</p>'; });
-
-  // ═══ 第十章：疑点派生树（洋葱式逐层展开） ═══
-  var dtree = report.derivation_tree_report || {};
-  if (dtree && dtree.title) {
-    html += '<h2 id="company-derivation-tree">十、疑点派生树（稽查思维导图 · 洋葱式逐层展开）</h2>' +
-      '<p class="i2">' + esc(dtree.summary || '') + '</p>';
-    if (dtree.principle) html += '<p class="i2" style="color:#64748b">' + esc(dtree.principle) + '</p>';
-    if (dtree.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(dtree.body) + '</div>';
-  }
-
-  // ═══ 第十一章：跨企业关联交易闭环（供应链网状违法图谱） ═══
-  var ceSec = report.cross_enterprise_report || {};
-  if (ceSec && ceSec.title) {
-    html += '<h2 id="company-cross-enterprise">十一、跨企业关联交易闭环（供应链网状违法图谱）</h2>' +
-      '<p class="i2">' + esc(ceSec.summary || '') + '</p>';
-    if (ceSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(ceSec.body) + '</div>';
-    // 高风险关联单独提示
-    if (ceSec.high_risk_count) {
-      html += '<p class="i2" style="color:#b91c1c"><strong>高风险关联交易 ' + esc(ceSec.high_risk_count) + ' 条：</strong>上述关联指向同一实际控制人、关联交易或资金往来独立性存疑，须逐笔核实。</p>';
+  // 系统能力边界：须依赖外部数据源与人工下户才能查实
+  if (capb && capb.title) {
+    html += '<h3>系统能力边界：须依赖外部数据源与人工下户才能查实</h3>' +
+      '<p class="i2">' + esc(capb.opening || '') + '</p>';
+    var cov = capb.covered_in_scope || [];
+    if (cov.length) {
+      html += '<p class="i2">系统已能在数据可触达范围内近乎彻底覆盖：' + esc(cov.join('；')) + (capb.coverage_note ? '。' + esc(capb.coverage_note) : '') + '</p>';
     }
-    if (ceSec.note) html += '<p class="i2" style="color:#64748b">' + esc(ceSec.note) + '</p>';
-  }
-
-  // ═══ 第十一章之二：外部工商与风险核验（企业自报数据之外的独立视角） ═══
-  var evSec = report.external_verify_report || {};
-  if (evSec && evSec.title) {
-    html += '<h2 id="company-external-verify">十一（二）、外部工商与风险核验（企业自报数据之外的独立视角）</h2>' +
-      '<p class="i2">' + esc(evSec.summary || '') + '</p>';
-    if (evSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(evSec.body) + '</div>';
-    // 风险信号 → 稽查指向
-    var evSigs = evSec.signals || [];
-    if (evSigs.length) {
-      html += '<h3 style="color:#b91c1c">风险信号与稽查指向</h3><ul class="i2">';
-      evSigs.forEach(function(s){
-        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
+    var ext = capb.must_rely_on_external || [];
+    if (ext.length) {
+      html += '<table class="tbl"><thead><tr><th>缺口</th><th>为何系统够不着</th><th>所需证据</th></tr></thead><tbody>';
+      ext.forEach(function(it){
+        html += '<tr><td>' + esc(it.gap || '') + '</td><td>' + esc(it.why || '') + '</td><td>' + esc(it.need || '') + '</td></tr>';
       });
-      html += '</ul>';
+      html += '</tbody></table>';
     }
-    if (evSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(evSec.verdict) + '</p>';
-    if (evSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(evSec.recommendation) + '</p>';
-    if (evSec.note) html += '<p class="i2" style="color:#64748b">' + esc(evSec.note) + '</p>';
-  }
-
-  // ═══ 第十三章：银行流水（资金流）比对 ═══
-  var bfSec = report.bank_flow_report || {};
-  if (bfSec && bfSec.title) {
-    html += '<h2 id="company-bank-flow">十三、银行流水（资金流）比对</h2>' +
-      '<p class="i2">' + esc(bfSec.summary || '') + '</p>';
-    if (bfSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(bfSec.body) + '</div>';
-    var bfSigs = bfSec.signals || [];
-    if (bfSigs.length) {
-      html += '<h3 style="color:#b91c1c">资金流异常信号</h3><ul class="i2">';
-      bfSigs.forEach(function(s){
-        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
-      });
-      html += '</ul>';
+    var road = capb.roadmap || [];
+    if (road.length) {
+      html += '<p class="i2">继续向上推进的路线：' + road.map(function(it){ return esc(it); }).join('；') + '</p>';
     }
-    if (bfSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(bfSec.verdict) + '</p>';
-    if (bfSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(bfSec.recommendation) + '</p>';
-    if (bfSec.note) html += '<p class="i2" style="color:#64748b">' + esc(bfSec.note) + '</p>';
+    if (capb.bottom_line) html += '<p class="i2"><strong>底线：</strong>' + esc(capb.bottom_line) + '</p>';
   }
-
-  // ═══ 第十四章：增值税收入 vs 企业所得税收入差异比对 ═══
-  var ttSec = report.two_tax_report || {};
-  if (ttSec && ttSec.title) {
-    html += '<h2 id="company-two-tax">十四、增值税收入 vs 企业所得税收入差异比对</h2>' +
-      '<p class="i2">' + esc(ttSec.summary || '') + '</p>';
-    if (ttSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(ttSec.body) + '</div>';
-    var ttSigs = ttSec.signals || [];
-    if (ttSigs.length) {
-      html += '<h3 style="color:#b91c1c">两税差异信号</h3><ul class="i2">';
-      ttSigs.forEach(function(s){
-        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
-      });
-      html += '</ul>';
-    }
-    if (ttSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(ttSec.verdict) + '</p>';
-    if (ttSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(ttSec.recommendation) + '</p>';
-    if (ttSec.note) html += '<p class="i2" style="color:#64748b">' + esc(ttSec.note) + '</p>';
-  }
-
-  // ═══ 第十五章：进项异常凭证 / 应转出未转出比对 ═══
-  var ivSec = report.input_voucher_report || {};
-  if (ivSec && ivSec.title) {
-    html += '<h2 id="company-input-voucher">十五、进项异常凭证 / 应转出未转出比对</h2>' +
-      '<p class="i2">' + esc(ivSec.summary || '') + '</p>';
-    if (ivSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(ivSec.body) + '</div>';
-    var ivSigs = ivSec.signals || [];
-    if (ivSigs.length) {
-      html += '<h3 style="color:#b91c1c">进项异常信号</h3><ul class="i2">';
-      ivSigs.forEach(function(s){
-        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
-      });
-      html += '</ul>';
-    }
-    if (ivSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(ivSec.verdict) + '</p>';
-    if (ivSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(ivSec.recommendation) + '</p>';
-    if (ivSec.note) html += '<p class="i2" style="color:#64748b">' + esc(ivSec.note) + '</p>';
-  }
-
-  // ═══ 第十六章：虚开风险网络比对 ═══
-  var fiSec = report.false_invoice_report || {};
-  if (fiSec && fiSec.title) {
-    html += '<h2 id="company-false-invoice">十六、虚开风险网络比对</h2>' +
-      '<p class="i2">' + esc(fiSec.summary || '') + '</p>';
-    if (fiSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(fiSec.body) + '</div>';
-    var fiSigs = fiSec.signals || [];
-    if (fiSigs.length) {
-      html += '<h3 style="color:#b91c1c">虚开特征信号</h3><ul class="i2">';
-      fiSigs.forEach(function(s){
-        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
-      });
-      html += '</ul>';
-    }
-    if (fiSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(fiSec.verdict) + '</p>';
-    if (fiSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(fiSec.recommendation) + '</p>';
-    if (fiSec.note) html += '<p class="i2" style="color:#64748b">' + esc(fiSec.note) + '</p>';
-  }
-
-  // ═══ 第十七章：跨企业资金回流闭环 ═══
-  var flSec = report.fund_loop_report || {};
-  if (flSec && flSec.title) {
-    html += '<h2 id="company-fund-loop">十七、跨企业资金回流闭环</h2>' +
-      '<p class="i2">' + esc(flSec.summary || '') + '</p>';
-    if (flSec.body) html += '<div class="i2" style="line-height:2;white-space:pre-wrap">' + esc(flSec.body) + '</div>';
-    var flSigs = flSec.signals || [];
-    if (flSigs.length) {
-      html += '<h3 style="color:#b91c1c">资金回流信号</h3><ul class="i2">';
-      flSigs.forEach(function(s){
-        html += '<li><strong>' + esc(s.signal || '') + '</strong> → ' + esc(s.hint || '') + '</li>';
-      });
-      html += '</ul>';
-    }
-    if (flSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(flSec.verdict) + '</p>';
-    if (flSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(flSec.recommendation) + '</p>';
-    if (flSec.note) html += '<p class="i2" style="color:#64748b">' + esc(flSec.note) + '</p>';
-  }
-
-  // ═══ 第十八章：稽查询问清单与待澄清事项（稽查分身增强）═══
-  var iqSec = report.inspection_questions_report || {};
+  // 待企业澄清事项（稽查询问清单）
   if (iqSec && iqSec.title) {
-    html += '<h2 id="company-inspection-questions">十八、稽查询问清单与待澄清事项</h2>' +
+    html += '<h3>待企业澄清事项（稽查询问清单）</h3>' +
       '<p class="i2">' + esc(iqSec.summary || '') + '</p>';
     var iqThemes = iqSec.themes || [];
     iqThemes.forEach(function(th){
-      html += '<h3 style="color:#b91c1c">' + esc(th.theme || '') + '　<span style="font-size:12px;color:#64748b">关注级别：' + esc(th.severity || '') + '</span></h3>';
+      html += '<h4 style="color:#b91c1c">' + esc(th.theme || '') + '　<span style="font-size:12px;color:#64748b">关注级别：' + esc(th.severity || '') + '</span></h4>';
       (th.questions || []).forEach(function(q, idx){
         html += '<div class="i2" style="border-left:3px solid #b91c1c;padding:6px 12px;margin:8px 0;background:#fff7f7">';
         html += '<p style="margin:4px 0"><strong>询问 ' + (idx + 1) + '：</strong>' + esc(q.question || '') + '</p>';
@@ -4926,38 +4762,13 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       });
     });
     if (iqSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(iqSec.verdict) + '</p>';
-    if (iqSec.recommendation) html += '<p class="i2" style="color:#64748b">' + esc(iqSec.recommendation) + '</p>';
-    if (iqSec.note) html += '<p class="i2" style="color:#64748b">' + esc(iqSec.note) + '</p>';
   }
 
-  // ═══ 第十二章：能力边界与彻底稽查路线 ═══
-  var capb = report.capability_boundary || {};
-  if (capb && capb.title) {
-    html += '<h2 id="company-capability-boundary">十二、能力边界与彻底稽查路线</h2>' +
-      '<p class="i2">' + esc(capb.opening || '') + '</p>';
-    var cov = capb.covered_in_scope || [];
-    if (cov.length) {
-      html += '<h3>系统已能在数据可触达范围内近乎彻底覆盖</h3><ul class="i2">';
-      cov.forEach(function(it){ html += '<li>' + esc(it) + '</li>'; });
-      html += '</ul>';
-      if (capb.coverage_note) html += '<p class="i2" style="color:#64748b">' + esc(capb.coverage_note) + '</p>';
-    }
-    var ext = capb.must_rely_on_external || [];
-    if (ext.length) {
-      html += '<h3>必须依赖外部数据源与人工下户才能查实</h3><table class="tbl"><thead><tr><th>缺口</th><th>为何系统够不着</th><th>所需证据</th></tr></thead><tbody>';
-      ext.forEach(function(it){
-        html += '<tr><td>' + esc(it.gap || '') + '</td><td>' + esc(it.why || '') + '</td><td>' + esc(it.need || '') + '</td></tr>';
-      });
-      html += '</tbody></table>';
-    }
-    var road = capb.roadmap || [];
-    if (road.length) {
-      html += '<h3>继续向上推进的路线</h3><ol class="i2">';
-      road.forEach(function(it){ html += '<li>' + esc(it) + '</li>'; });
-      html += '</ol>';
-    }
-    if (capb.bottom_line) html += '<p class="i2"><strong>底线：</strong>' + esc(capb.bottom_line) + '</p>';
-  }
+  html += '<h2 id="company-statement">六、报告性质和使用说明</h2>' +
+    '<p class="i2"><strong>文书性质说明。</strong>' + esc(administrativeBoundary) + '</p>';
+  statements.forEach(function(item, index){ html += '<p class="i2"><strong>说明' + (index + 1) + '。</strong>' + esc(item || '') + '</p>'; });
+
+
 
   html += '<div class="seal"><p>稽查报告编制人：_______________　日期：_______________</p>' +
     '<p>被检查企业负责人签收：_______________　日期：_______________</p>' +

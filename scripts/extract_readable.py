@@ -8,16 +8,27 @@ ROOT = r"c:/Users/Administrator/WorkBuddy/2026-08-04-21-37-33/caishuixitong"
 OUT = os.path.join(ROOT, "scripts", "four_reports")
 SYS = os.path.join(OUT, "readable")
 
-# 想看的章节（叙事 + 各能力章）；按顺序排版
+# 只保留四类内容：确认问题 / 已执行无异常 / 处理意见+验收 / 资料缺失未完成
 CHAPTER_ORDER = [
-    "identity", "inspector_perspective", "summary", "discovery_overview",
-    "inspection_procedures", "materials", "confirmed_problems", "completed_checks",
-    "cross_enterprise_report", "external_verify_report",
-    "bank_flow_report", "two_tax_report", "input_voucher_report",
-    "false_invoice_report", "fund_loop_report",
-    "inspection_questions_report",
-    "capability_boundary", "action_plan", "further_checks", "recheck", "report_statement",
+    "identity", "summary",
+    "confirmed_problems", "completed_checks",
+    "action_plan", "recheck",
+    "further_checks", "capability_boundary", "inspection_questions_report",
+    "report_statement",
 ]
+
+TITLE_MAP = {
+    "identity": "一、企业信息",
+    "summary": "二、本轮检查总体结论",
+    "confirmed_problems": "三、本轮稽查确认的具体问题",
+    "completed_checks": "四、已经执行且本轮未发现达到条件异常的检查",
+    "action_plan": "五、稽查处理意见和整改验收标准",
+    "recheck": "五（续）、下一轮复查安排",
+    "further_checks": "六、因资料缺失或不完整而无法完成的检查",
+    "capability_boundary": "六（续）、系统能力边界",
+    "inspection_questions_report": "六（续）、待企业澄清事项（稽查询问清单）",
+    "report_statement": "七、报告性质和使用说明",
+}
 
 PER_CHAPTER_CAP = 5000
 TOTAL_CAP = 90000
@@ -46,14 +57,10 @@ def extract(cid):
         name = name.get("name") or str(name)
 
     lines = [f"# 企业 {cid} 涉税稽查工作报告（可读提取）\n"]
-    # 顶部：6 大能力 verdict
-    comp = report.get("comprehensive") or {}
-    caps = ["two_tax_income", "bank_flow", "input_voucher", "false_invoice", "fund_loop", "cross_enterprise"]
-    lines.append("## 一、六大能力结论速览")
-    for k in caps:
-        sec = comp.get(k)
-        if isinstance(sec, dict):
-            lines.append(f"- **{k}**: available={sec.get('available')} | verdict={sec.get('verdict') or sec.get('risk_level') or '—'}")
+    s = er.get("summary") or {}
+    if s:
+        lines.append(f"- 接收文件 {s.get('received_material_count', '—')} 个，归并 {s.get('material_category_count', '—')} 类资料")
+        lines.append(f"- 确认具体问题 {s.get('confirmed_problem_count', '—')} 项；已执行无异常检查 {s.get('completed_check_count', '—')} 项；资料缺失需补件 {s.get('further_check_count', '—')} 项")
     lines.append("")
 
     total = sum(len(x) for x in lines)
@@ -61,11 +68,7 @@ def extract(cid):
         if key not in er:
             continue
         v = er[key]
-        title = ""
-        if isinstance(v, dict):
-            title = v.get("title") or v.get("heading") or key
-        else:
-            title = key
+        title = TITLE_MAP.get(key) or (v.get("title") or v.get("heading") or key if isinstance(v, dict) else key)
         body = dump_val(v)
         sec = f"\n## {title}\n\n{body}\n"
         if total + len(sec) > TOTAL_CAP:
