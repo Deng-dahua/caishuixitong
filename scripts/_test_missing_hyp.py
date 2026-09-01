@@ -58,19 +58,24 @@ BENIGN_FINDING = {
     "desc": "跨省购销却零运输费，货物流断裂",
 }
 
-# ── 证据不足（toss-up）fixture：同地区购销，账面有运费/加工费但无场地/无能耗/无车辆 ──
+# ── 证据不足（toss-up）fixture：同地区购销，缺场地+物流，但能耗/车辆已在账面体现 ──
+# 风险信号净胜 1 条（无场地×2 + 大额无物流×1 = 3；自有车辆 + 生产能耗 = 2 良性）→
+# 风险假设以微弱优势胜出（后验≈0.58<0.60），证据不足以直接断言 → 转待证。
 AMB_PUR = [
     {"goods": "钢材", "amount": 3000000, "buyer": "北京宏远制造有限公司", "seller": "北京某钢贸有限公司"},
-    {"goods": "运输费", "amount": 400000, "buyer": "北京宏远制造有限公司", "seller": "德邦物流有限公司"},
-    {"goods": "加工费", "amount": 300000, "buyer": "北京宏远制造有限公司", "seller": "北京某加工厂"},
 ]
 AMB_SAL = [
     {"goods": "机械设备", "amount": 8000000, "buyer": "北京某机电公司", "seller": "北京宏远制造有限公司"},
 ]
+# 银行流水体现能耗与车辆费用，但无租金、无运费
+AMB_BANK = [
+    {"credit": 0, "counterparty_name": "国家电网", "summary": "电费缴纳", "remark": "用电"},
+    {"credit": 0, "counterparty_name": "中石化", "summary": "加油费", "remark": "油费"},
+]
 AMB_FINDING = {
     "type": "基础经营费用缺失",
     "score": 9,
-    "desc": "制造业基础经营费用缺失（无场地/无能耗/无车辆）",
+    "desc": "制造业基础经营费用缺失（无场地/无物流）",
 }
 
 
@@ -108,14 +113,14 @@ def main():
     assert res2["selected"] == 0, "良性型应正常假设(索引0)胜出"
     assert res2["best_posterior"] >= 0.60, "良性型后验应≥0.60（可判定为非风险）"
 
-    print("\n=== 测试3：证据不足（同地区+有运费有加工费但无场地/能耗/车辆）→ 转置疑清单 ===")
+    print("\n=== 测试3：证据不足（同地区+缺场地/物流，但能耗/车辆已体现）→ 转置疑清单 ===")
     ctx3 = _make_ctx("北京宏远制造有限公司", "制造")
-    res3 = _run(AMB_FINDING, ctx3, [], AMB_PUR, AMB_SAL)
+    res3 = _run(AMB_FINDING, ctx3, AMB_BANK, AMB_PUR, AMB_SAL)
     print("  胜出假设:", res3["hypothesis_selected"], "| 后验:", res3["best_posterior"])
     print("  推理:", res3["reasoning"])
     assert res3["best_posterior"] < 0.60, "证据不足型后验应<0.60（无法明确判定）"
     enhanced3, _ = H.run_hypothesis_verification(
-        [AMB_FINDING], ctx3, [], None, AMB_SAL, AMB_PUR, None, []
+        [AMB_FINDING], ctx3, AMB_BANK, None, AMB_SAL, AMB_PUR, None, []
     )
     fa = enhanced3[0]
     print("  [端到端] unconfirmed:", fa.get("_hypothesis_unconfirmed"), "| note:", fa.get("_hypothesis_note"))

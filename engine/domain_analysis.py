@@ -1542,6 +1542,63 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
             "observed_metrics": {"industry": _industry or "", "missing_common": missing_common},
             "category": "域12 经营实质"})
 
+    # ═══════ 维度1.5: 缺失型专项（无场地租金 / 外省加工费无自有产能） ═══════
+    # 这两类属于"该有的没有"型异常：无论行业，真实经营都必然具备对应要素；
+    # 缺失时不直接定性，交由 hypothesis_engine 的 missing_element 模板做竞争假设裁决，
+    # 证据不足自动转入「待企业澄清事项」抛企业自证（见用户原则：违法事实不因阈值而消失）。
+    try:
+        from engine.geo_infer import invoice_region, collect_regions, infer_province
+        _self_name = (_ctx.company_profile.get("name", "") if _ctx else "")
+        _outside = collect_regions(list(pur_invs) + list(sal_invs), [_self_name]) if _self_name else set()
+        # 外省加工费：加工费类进项发票的销方省份落在"外埠省份"集合（即非本省）
+        _out_proc = []  # (province, amount)
+        for inv in pur_invs:
+            g = str(inv.get("goods", ""))
+            if any(k in g for k in ("加工费", "委外", "外协", "受托加工")):
+                r = invoice_region(inv)
+                if r and _outside and r in _outside:
+                    _out_proc.append((r, float(inv.get("amount", 0) or 0)))
+        _out_proc_amount = sum(a for _, a in _out_proc)
+        _out_proc_provs = sorted({r for r, _ in _out_proc})
+    except Exception:
+        _outside, _out_proc, _out_proc_amount, _out_proc_provs = set(), [], 0.0, []
+
+    # 自有产能佐证：设备 / 生产能耗 / 场地（自有厂房或租赁）任一存在即视为有产能基础
+    _has_equip = "设备" in all_biz
+    _has_energy = "能源" in all_biz
+    _has_premises = "场地" in all_biz
+    _has_own_capacity = _has_equip or _has_energy or _has_premises
+
+    # (A) 无场地租金及权属证明：有购销业务但无任何场地（租赁/自有）证据
+    if (not _has_premises) and (pur_invs or sal_invs):
+        _sev = "高风险" if _profile else "中风险"
+        _score = 9 if _profile else 7
+        findings.append({"type": "无场地租金及权属证明", "level": _sev, "score": _score,
+            "how_found": "扫描进项发票品名与银行流水摘要，未命中场地类关键词（租金/租赁/房租/厂房/场地/物业），且未取得自有不动产购置证据。",
+            "detail": f"企业存在购销业务（进项{len(pur_invs)}笔/销项{len(sal_invs)}笔），但全程无场地租金或自有厂房相关支出。",
+            "description": "正常经营企业必然有经营场所（租赁或自有）。既无租金支出、又无自有不动产购置证据，指向无实际经营场所→空壳企业嫌疑、账外经营或虚构业务。无固定经营场所是税务机关认定'无实际经营能力'的核心依据。",
+            "tax_impact": "被认定无实际经营场所或经营能力与业务规模不匹配→一般纳税人资格可能被取消→已抵扣进项税额需转出；虚开发票刑事风险上升。",
+            "policy_ref": "《中华人民共和国增值税法》关于一般纳税人认定标准；国税总局关于纳税人认定或登记为一般纳税人前进项税额抵扣问题的公告。",
+            "suggestion": "1）租赁经营→提供租赁合同+租金发票+水电费发票；2）股东无偿提供→签租赁协议并按公允价值纳税；3）自有房产→提供不动产权证与折旧台账；4）工商注册地址与实际经营地址必须一致。",
+            "observed_metrics": {"industry": _industry or "", "has_premises": _has_premises,
+                                 "pur_count": len(pur_invs), "sal_count": len(sal_invs)},
+            "category": "域12 经营实质"})
+
+    # (B) 外省加工费无自有产能佐证：发生外省加工费却无自有设备/能耗/场地佐证
+    if _out_proc_amount > 0 and not _has_own_capacity:
+        findings.append({"type": "外省加工费无自有产能佐证", "level": "高风险", "score": 9,
+            "how_found": f"进项中存在加工费类发票且销方位于外埠省份（{', '.join(_out_proc_provs)}），合计{_out_proc_amount:,.2f}元；同时未见自有产能证据（无设备/能耗/厂房）。",
+            "detail": f"外省加工费合计{_out_proc_amount:,.2f}元，涉及省份：{', '.join(_out_proc_provs) or '未知'}。企业存在购销业务却无自有设备/生产能耗/场地佐证。",
+            "description": "制造业发生外省加工费本身不违规，但若企业声称自主生产却无任何自有设备、生产能耗或厂房证据，则'外省加工费'可能暴露其实际为纯贸易/壳公司，或外省加工业务真实性存疑（虚假委托加工、虚列成本、关联交易转移利润）。",
+            "tax_impact": "若为虚假委托加工→虚列成本少缴企业所得税；若为壳公司→无真实生产却大额开票，虚开发票风险上升。",
+            "policy_ref": "《企业所得税法》关于成本真实性；《增值税法》关于真实交易。",
+            "suggestion": "提供：1）委托加工合同、送料单、收货单、加工费发票；2）自有产能证明（设备清单/折旧/能耗单据）；3）如为纯贸易说明商业模式并补采购端发票。",
+            "observed_metrics": {"out_province_processing_amount": round(_out_proc_amount, 2),
+                                 "out_province_provinces": _out_proc_provs,
+                                 "has_own_capacity": _has_own_capacity,
+                                 "has_equipment": _has_equip, "has_energy": _has_energy, "has_premises": _has_premises},
+            "category": "域12 经营实质"})
+
     # ═══════ 维度2: 收入-费用弹性系数检测 ═══════
     total_sales = sum(float(i.get("total", 0) or 0) for i in sal_invs) if sal_invs else 0
     total_purchases = sum(float(i.get("total", 0) or 0) for i in pur_invs) if pur_invs else 0

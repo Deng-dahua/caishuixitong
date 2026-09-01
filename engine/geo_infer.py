@@ -215,11 +215,10 @@ def collect_regions(invs, self_names=()):
         r = invoice_region(inv)
         if r:
             regions.add(r)
-    if self_regions and len(regions) > len(self_regions):
-        # 存在外埠对手方时，剔除本企业所在地，留下的即为外埠地区
-        outside = regions - self_regions
-        if outside:
-            return outside
+    if self_regions:
+        # 始终剔除本企业所在地：仅返回外埠地区。
+        # 全部对手方与本企业同省时返回空集（无跨地区），避免将本省误判为外省（误报来源）。
+        return regions - self_regions
     return regions
 
 

@@ -277,15 +277,19 @@ HYPOTHESIS_TEMPLATES = {
                 "supporting": [
                     "运输费已在账面体现（运输/物流/货运发票或流水）",
                     "已提供场地/租赁合同",
+                    "已提供场地/租赁合同或自有房产证明",
                     "存在自有车辆或车辆费用",
                     "存在加工费发票（外协加工已发生）",
+                    "发生外省加工费但确有自有产能（设备/能耗/厂房）佐证",
                     "生产能耗已在账面体现（电费/水费/燃气）",
                 ],
                 "opposing": [
                     "跨省购销却零运输费",
                     "无场地租赁合同却有购销业务",
+                    "无场地租金却有购销业务",
                     "制造业无生产能耗支出",
                     "无自有车辆费用",
+                    "外省加工费却无自有产能佐证",
                     "大额实物购销无物流物证",
                 ]
             },
@@ -295,15 +299,19 @@ HYPOTHESIS_TEMPLATES = {
                 "supporting": [
                     "跨省购销却零运输费",
                     "无场地租赁合同却有购销业务",
+                    "无场地租金却有购销业务",
                     "制造业无生产能耗支出",
                     "无自有车辆费用",
+                    "外省加工费却无自有产能佐证",
                     "大额实物购销无物流物证",
                 ],
                 "opposing": [
                     "运输费已在账面体现（运输/物流/货运发票或流水）",
                     "已提供场地/租赁合同",
+                    "已提供场地/租赁合同或自有房产证明",
                     "存在自有车辆或车辆费用",
                     "存在加工费发票（外协加工已发生）",
+                    "发生外省加工费但确有自有产能（设备/能耗/厂房）佐证",
                     "生产能耗已在账面体现（电费/水费/燃气）",
                 ]
             }
@@ -335,6 +343,8 @@ SIGNAL_TO_TEMPLATE = {
     "运输费": "missing_element",
     "基础经营费用缺失": "missing_element",
     "经营要素缺失": "missing_element",
+    "无场地租金及权属证明": "missing_element",
+    "外省加工费无自有产能佐证": "missing_element",
 }
 
 
@@ -493,6 +503,13 @@ def _verify_hypothesis(finding, template, ctx, bank_txs, invoices, sal_invs, pur
     if second:
         confidence = best["posterior"] - second["posterior"]
     
+    # 待证判定：缺失型裁决中，风险假设(after best_idx==1)仅以微弱优势胜出、无法用现有资料直接断言时，转"待企业澄清事项"而非直接确认。
+    is_missing = template.get("adjudication") == "missing"
+    unconfirmed = bool(
+        is_missing
+        and best_idx == 1
+        and not (confidence > 0.6 or best["posterior"] >= 0.60)
+    )
     return {
         "hypothesis_selected": best["hypothesis"],
         "confidence": round(confidence, 3),
@@ -502,6 +519,7 @@ def _verify_hypothesis(finding, template, ctx, bank_txs, invoices, sal_invs, pur
         "confidence_delta": round(abs(best["evidence_weight"]) * 3),
         "evidence_for": best["supporting_hits"],
         "evidence_against": best["opposing_hits"],
+        "unconfirmed": unconfirmed,  # 缺失型证据不足、两假设后验接近 → 转待证（不影响"缺失败象已被抓取"这一事实）
         "reasoning": f"先验概率{best['prior']:.0%}，证据支持{best['supporting_count']}条/反对{best['opposing_count']}条 → 后验{best['posterior']:.0%}",
     }
 
@@ -585,6 +603,31 @@ def _build_evidence_context(finding, ctx, bank_txs, invoices, sal_invs, pur_invs
     context["has_energy"] = _bank_hit(_energy_kws) or _inv_hit(_energy_kws)
     context["has_goods"] = (context.get("pur_goods_count", 0) > 0) or (context.get("sal_goods_count", 0) > 0)
 
+    # 自有产能佐证：设备 / 生产能耗 / 场地（自有厂房或租赁）任一存在即视为有产能基础
+    _equip_kws = ["设备", "机器", "机床", "机械", "生产线", "模具", "注塑机", "冲压机"]
+    context["has_equipment"] = _inv_hit(_equip_kws) or _bank_hit(_equip_kws)
+    context["has_own_capacity"] = bool(context["has_equipment"] or context["has_energy"] or context["has_rent"])
+
+    # 外省加工费：加工费类进项发票销方位于外埠省份（非本省）
+    try:
+        from engine.geo_infer import invoice_region, collect_regions
+        _self = ""
+        if ctx and getattr(ctx, "company_profile", None):
+            _self = str(ctx.company_profile.get("name", "") or "")
+        _outside = collect_regions(list(pur_invs or []) + list(sal_invs or []), [_self]) if _self else set()
+        _opp = False
+        if _outside:
+            for inv in (pur_invs or []):
+                g = str(inv.get("goods", ""))
+                if any(k in g for k in ("加工费", "委外", "外协", "受托加工")):
+                    r = invoice_region(inv)
+                    if r and r in _outside:
+                        _opp = True
+                        break
+        context["has_out_province_processing"] = _opp
+    except Exception:
+        context["has_out_province_processing"] = False
+
     # 跨地区经营：剔除本企业自身所在地后，外埠省份 ≥ 2 即视为跨地区购销
     try:
         from engine.geo_infer import is_cross_region
@@ -621,6 +664,14 @@ def _evaluate_evidence(evidence_desc, context):
         return context.get("has_rent", False)
     if "生产能耗已在账面体现" in desc:
         return context.get("has_energy", False)
+    if "无场地租金却有购销业务" in desc:
+        return bool(not context.get("has_rent", True) and context.get("has_goods", False))
+    if "外省加工费却无自有产能佐证" in desc:
+        return bool(context.get("has_out_province_processing", False) and not context.get("has_own_capacity", True))
+    if "已提供场地/租赁合同或自有房产证明" in desc:
+        return context.get("has_rent", False)
+    if "发生外省加工费但确有自有产能（设备/能耗/厂房）佐证" in desc:
+        return bool(context.get("has_processing_fee", False) and context.get("has_own_capacity", False))
 
     # 经营模式判断
     if "服务型" in desc and context.get("is_service"):
