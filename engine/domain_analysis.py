@@ -12,6 +12,9 @@ import json, os, re, math
 from engine.thresholds import T  # 税率阈值统一配置
 
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX  # 城市列表+正则
+# 地区推断：发票解析链路未写入 city 字段且无税号，从购销方名称反推所属省份，
+# 用于修复跨地区（跨省）判定失效 —— 详见 engine/geo_infer.py 顶部说明
+from engine.geo_infer import invoice_region as _invoice_region, collect_regions as _collect_regions
 
 # 数据库模型引用 — 这些函数在 _run_analyze 上下文调用，需要直接引用模型
 from database import (
@@ -183,6 +186,7 @@ def _domain_bank_tracking(txs):
 
 from engine.memory import (
     BANK_KW_MAP, BIZ_EXPENSE_KEYWORDS, SENSITIVE_INVOICE_KEYWORDS,
+    ELEMENT_KEYWORDS, INDUSTRY_ELEMENT_PROFILES,
     SERVICE_EXCLUDE_KEYWORDS, SERVICE_CODES_FALLBACK,
     VAT_DEDUCTIBLE_VOUCHER_TYPES, VAT_NON_DEDUCTIBLE_TYPES,
 )
@@ -1211,7 +1215,10 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
                 continue
             goods_value += amt
             has_goods = True
-            c = str(inv.get("city", "")).strip()
+            # 修复：原实现只读 inv["city"]，而解析链路从未写入该字段、也无税号字段，
+            # 导致 cities 恒为空集 → cross 恒为假 → 制造业「零运输费+跨地区购销」高风险档
+            # （:1266）永不触发，只能落中风险。改从购销方名称推断所属省份。
+            c = _invoice_region(inv) or str(inv.get("city", "")).strip()
             if c:
                 cities.add(c)
 
@@ -1441,40 +1448,98 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
             "category": "域12 经营实质"})
         return findings
 
-    # ═══════ 维度1: 基础经营费用六要素检测 ═══════
+    # ═══════ 维度1: 经营要素完备性检测（分行业；制造业用专项清单） ═══════
     biz_types = set()
-    biz_keywords = BIZ_EXPENSE_KEYWORDS
+    # 识别范围 = 通用要素关键词 + 分行业要素关键词（制造业含能耗/直接材料/设备等生产必备要素）
+    biz_keywords = dict(BIZ_EXPENSE_KEYWORDS)
+    biz_keywords.update(ELEMENT_KEYWORDS)
     for i in pur_invs:
         g = str(i.get("goods", ""))
         for bt, kws in biz_keywords.items():
             if any(k in g for k in kws): biz_types.add(bt)
-    # 也从银行流水检查
+    # 也从银行流水检查（补充制造业生产要素的流水侧关键词）
     bank_biz_types = set()
-    bank_kw_map = BANK_KW_MAP
+    bank_kw_map = dict(BANK_KW_MAP)
+    bank_kw_map.update({
+        "能源": ("电费", "水费", "自来水", "燃气", "用电", "天然气"),
+        "人员": ("工资", "代发", "薪", "社保", "公积金"),
+        "设备": ("设备", "机器", "机床", "生产线"),
+        "外协加工": ("加工费", "委外", "外协"),
+    })
     for tx in bank_txs:
         raw = tx.get("raw", "")
         for bt, kws in bank_kw_map.items():
             if any(k in raw for k in kws): bank_biz_types.add(bt)
     all_biz = biz_types | bank_biz_types
+    # 人员要素优先取工资/社保数据认定：存在工资表即可证明有人员支出，
+    # 不依赖发票品名或流水摘要关键词，避免"有工资表却被判无人员"的误报。
+    if salaries:
+        all_biz.add("人员")
 
-    expected = ["租赁", "水电", "物业", "通信", "物流", "办公"]
+    # 按行业选择必备要素清单：制造业走专项清单，其余行业沿用通用六要素兜底
+    _profile = None
+    for _k, _v in (INDUSTRY_ELEMENT_PROFILES or {}).items():
+        if _industry and _k in str(_industry):
+            _profile = _v
+            break
+    _ELEMENT_MSG = {
+        "场地": "无厂房/场地租赁或自有场地相关支出",
+        "能源": "无生产能耗支出（电费/水费/燃气等）",
+        "直接材料": "无直接材料/原材料采购",
+        "运输物流": "无运输物流费用支出",
+        "人员": "无工资/社保等人员支出",
+        "设备": "无生产设备购置、租赁或折旧",
+        "包装": "无包装物支出",
+        "仓储": "无仓储费用支出",
+        "维修": "无设备维修维护支出",
+        "租赁": "无房租/场地租赁支出",
+        "水电": "无水电费支出",
+        "物业": "无物业管理费支出",
+        "通信": "无通信网络支出",
+        "物流": "无物流快递支出",
+        "办公": "无办公用品支出",
+    }
+    if _profile:
+        expected = list(_profile.get("required") or [])
+        expected_common = list(_profile.get("expected") or [])
+        _scan_note = (f"按「{_industry}」要素清单扫描：必备要素（{'/'.join(expected)}）、"
+                      f"常见要素（{'/'.join(expected_common)}）；来源为进项发票品名与银行流水摘要。")
+    else:
+        expected = ["租赁", "水电", "物业", "通信", "物流", "办公"]
+        expected_common = []
+        _scan_note = "扫描进项发票品名+银行流水摘要，检测六类基础经营费用(租赁/水电/物业/通信/物流/办公)关键词。"
+
     missing = [m for m in expected if m not in all_biz]
+    missing_common = [m for m in expected_common if m not in all_biz]
     if missing:
-        msgs = []
-        for m in missing:
-            if m == "租赁": msgs.append("无房租/场地租赁支出")
-            elif m == "水电": msgs.append("无水电费支出")
-            elif m == "物业": msgs.append("无物业管理费支出")
-            elif m == "通信": msgs.append("无通信网络支出")
-            elif m == "物流": msgs.append("无物流快递支出")
-            elif m == "办公": msgs.append("无办公用品支出")
+        msgs = [_ELEMENT_MSG.get(m, f"无{m}相关支出") for m in missing]
+        # 制造业核心生产要素缺失：无能耗/无场地却有购销，物理上无法完成生产
+        _mfg_core = [m for m in missing if m in ("能源", "场地", "直接材料", "人员")]
+        _core_note = ""
+        if _profile and _mfg_core:
+            _core_note = (f"其中{'、'.join(_mfg_core)}属于生产要素——没有生产能耗与场地却存在购销业务，"
+                          "在物理上无法完成生产，指向空壳经营、账外经营或虚构业务。")
         findings.append({"type": "基础经营费用缺失", "level": "高风险", "score": 9,
-            "how_found": "扫描进项发票品名+银行流水摘要，检测六类基础经营费用(租赁/水电/物业/通信/物流/办公)关键词。",
-            "detail": f"缺失{'；'.join(msgs)}。",
-            "description": f"正常经营企业必然产生基本费用，但分析发现{'；'.join(msgs)}。缺失去向：(1)可能无实际经营场所→空壳企业嫌疑；(2)费用由关联方代付→关联交易未披露；(3)现金支付未取票→账外经营。无固定经营场所是税务机关认定'无实际经营能力'的核心依据。",
+            "how_found": _scan_note,
+            "detail": f"缺失{'；'.join(msgs)}。{_core_note}",
+            "description": f"正常经营企业必然产生基本费用，但分析发现{'；'.join(msgs)}。{_core_note}缺失去向：(1)可能无实际经营场所→空壳企业嫌疑；(2)费用由关联方代付→关联交易未披露；(3)现金支付未取票→账外经营。无固定经营场所是税务机关认定'无实际经营能力'的核心依据。",
             "tax_impact": "被认定无实际经营场所或经营能力与业务规模不匹配→一般纳税人资格可能被取消→已抵扣进项税额需转出。虚开发票刑事风险大幅上升。",
             "policy_ref": "《中华人民共和国增值税法》关于一般纳税人认定标准；国税总局关于纳税人认定或登记为一般纳税人前进项税额抵扣问题的公告。",
             "suggestion": "1）有经营场所→收集租赁合同+租金发票+水电费发票；2）股东无偿提供→签租赁协议并按公允价值纳税；3）所有经营费用通过对公账户支付并取得正规发票；4）工商注册地址与实际经营地址必须一致。",
+            "observed_metrics": {"industry": _industry or "", "expected": expected,
+                                 "missing": missing, "missing_common": missing_common,
+                                 "detected_elements": sorted(all_biz)},
+            "category": "域12 经营实质"})
+    if missing_common:
+        msgs2 = [_ELEMENT_MSG.get(m, f"无{m}相关支出") for m in missing_common]
+        findings.append({"type": "常见经营要素缺失（辅助提示）", "level": "中风险", "score": 5,
+            "how_found": f"按「{_industry or '通用'}」清单扫描常见要素；来源为进项发票品名与银行流水摘要。",
+            "detail": f"缺失{'；'.join(msgs2)}。",
+            "description": f"以下属于该行业常见但非绝对必备的要素：{'；'.join(msgs2)}。需结合企业实际经营模式判断；"
+                           "若企业确有对应业务活动却无相关支出，应说明由何方承担并提供佐证。",
+            "tax_impact": "常见要素缺失需合理解释，否则相关成本费用的真实性存疑。",
+            "suggestion": "说明对应业务的实际承担方与结算方式，并提供合同、单据或关联方代付凭证。",
+            "observed_metrics": {"industry": _industry or "", "missing_common": missing_common},
             "category": "域12 经营实质"})
 
     # ═══════ 维度2: 收入-费用弹性系数检测 ═══════

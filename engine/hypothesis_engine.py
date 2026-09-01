@@ -267,6 +267,48 @@ HYPOTHESIS_TEMPLATES = {
             }
         ]
     },
+    "missing_element": {
+        "title": "经营要素/必要费用缺失（该有的没有）",
+        "adjudication": "missing",
+        "hypotheses": [
+            {
+                "name": "存在合理商业解释（合同条款/自营/关联方代付/行业特性）",
+                "default_prior": 0.45,
+                "supporting": [
+                    "运输费已在账面体现（运输/物流/货运发票或流水）",
+                    "已提供场地/租赁合同",
+                    "存在自有车辆或车辆费用",
+                    "存在加工费发票（外协加工已发生）",
+                    "生产能耗已在账面体现（电费/水费/燃气）",
+                ],
+                "opposing": [
+                    "跨省购销却零运输费",
+                    "无场地租赁合同却有购销业务",
+                    "制造业无生产能耗支出",
+                    "无自有车辆费用",
+                    "大额实物购销无物流物证",
+                ]
+            },
+            {
+                "name": "经营实质存疑（空壳/账外经营/虚开发票/隐匿收入）",
+                "default_prior": 0.55,
+                "supporting": [
+                    "跨省购销却零运输费",
+                    "无场地租赁合同却有购销业务",
+                    "制造业无生产能耗支出",
+                    "无自有车辆费用",
+                    "大额实物购销无物流物证",
+                ],
+                "opposing": [
+                    "运输费已在账面体现（运输/物流/货运发票或流水）",
+                    "已提供场地/租赁合同",
+                    "存在自有车辆或车辆费用",
+                    "存在加工费发票（外协加工已发生）",
+                    "生产能耗已在账面体现（电费/水费/燃气）",
+                ]
+            }
+        ]
+    },
 }
 
 # ═══════════════ 信号类型 → 模板映射 ═══════════════
@@ -287,6 +329,12 @@ SIGNAL_TO_TEMPLATE = {
     "毛利异常": "gross_margin_anomaly",
     "有进无销": "inventory_in_out_mismatch",
     "有销无进": "inventory_in_out_mismatch",
+    # 缺失型（该有的没有）：零运费 / 无租金 / 无能耗 / 必要费用缺失
+    "零运输费": "missing_element",
+    "货物流断裂": "missing_element",
+    "运输费": "missing_element",
+    "基础经营费用缺失": "missing_element",
+    "经营要素缺失": "missing_element",
 }
 
 
@@ -332,12 +380,21 @@ def run_hypothesis_verification(all_findings, ctx, bank_txs, invoices, sal_invs,
                 # 第二个假设高置信胜出（通常是"风险"假设）→ 维持或升级
                 verified_findings[i]["score"] = min(10, score + 1)
                 verified_findings[i]["_hypothesis_note"] = "假设验证确认风险，置信度" + str(int(result["confidence"]*100)) + "%"
+            else:
+                # 证据不足、无法形成明确裁决
+                if template.get("adjudication") == "missing":
+                    verified_findings[i]["_hypothesis_note"] = "缺失型疑点证据不足，转置疑清单待企业自证"
+                    verified_findings[i]["_hypothesis_unconfirmed"] = True
+                    # 不确认、不升级：维持原分但标注待核（交由 inspection_questions 抛企业自证）
+                else:
+                    verified_findings[i]["_hypothesis_note"] = "假设验证证据不足，维持原判断"
             summaries.append({
                 "finding_type": ftype,
                 "hypothesis_selected": result["hypothesis_selected"],
                 "confidence": result["confidence"],
                 "evidence_for": result["evidence_for"],
                 "evidence_against": result["evidence_against"],
+                "unconfirmed": bool(verified_findings[i].get("_hypothesis_unconfirmed", False)),
             })
     
     if total_verified > 0:
@@ -423,11 +480,12 @@ def _verify_hypothesis(finding, template, ctx, bank_txs, invoices, sal_invs, pur
             "opposing_count": opp_score,
         })
     
-    # 选出后验概率最高的假设
-    scores.sort(key=lambda x: -x["posterior"])
-    best = scores[0]
-    second = scores[1] if len(scores) > 1 else None
-    
+    # 选出后验概率最高的假设（保留原始索引：0=正常假设, 1=风险假设…）
+    best_idx = max(range(len(scores)), key=lambda i: scores[i]["posterior"])
+    best = scores[best_idx]
+    others = [s for i, s in enumerate(scores) if i != best_idx]
+    second = others[0] if others else None
+
     # 置信度 = 最佳假设后验 - 次佳假设后验（差距越大越确定）
     confidence = best["posterior"]
     if second:
@@ -437,7 +495,7 @@ def _verify_hypothesis(finding, template, ctx, bank_txs, invoices, sal_invs, pur
         "hypothesis_selected": best["hypothesis"],
         "confidence": round(confidence, 3),
         "all_scores": scores,
-        "selected": 0,  # 索引0=第一个假设（正常假设）
+        "selected": best_idx,  # 实际胜出假设的原始索引（0=正常, 1=风险…）
         "confidence_delta": round(abs(best["evidence_weight"]) * 3),
         "evidence_for": best["supporting_hits"],
         "evidence_against": best["opposing_hits"],
@@ -497,7 +555,43 @@ def _build_evidence_context(finding, ctx, bank_txs, invoices, sal_invs, pur_invs
         personal_in = sum(float(tx.get("credit", 0) or 0) for tx in bank_txs if not any(k in str(tx.get("counterparty_name", "")) for k in ["公司", "厂", "店", "中心"]))
         total_in = sum(float(tx.get("credit", 0) or 0) for tx in bank_txs)
         context["personal_receipt_ratio"] = personal_in / max(total_in, 1)
-    
+
+    # ── 缺失型裁决所需的客观事实（该有的没有）──
+    _transport_kws = ["运输", "物流", "货运", "运费", "快递", "配送", "装卸", "搬运", "承运"]
+    _rent_kws = ["租金", "租赁", "房租", "厂房", "场地", "物业"]
+    _vehicle_kws = ["车辆", "车牌", "油费", "过路", "汽修", "车险", "保养", "维修费"]
+    _energy_kws = ["电费", "水费", "用电", "燃气", "天然气", "蒸汽", "能源", "热力", "燃煤", "燃油"]
+
+    def _bank_hit(kws):
+        for tx in (bank_txs or []):
+            raw = " ".join(str(tx.get(k, "")) for k in ("raw", "summary", "desc", "remark"))
+            if any(k in raw for k in kws):
+                return True
+        return False
+
+    def _inv_hit(kws):
+        for inv in (pur_invs or []):
+            g = str(inv.get("goods", ""))
+            if any(k in g for k in kws):
+                return True
+        return False
+
+    context["has_transport_cost"] = _bank_hit(_transport_kws) or _inv_hit(_transport_kws)
+    context["has_rent"] = _bank_hit(_rent_kws) or _inv_hit(_rent_kws)
+    context["has_vehicle"] = _bank_hit(_vehicle_kws) or _inv_hit(_vehicle_kws)
+    context["has_energy"] = _bank_hit(_energy_kws) or _inv_hit(_energy_kws)
+    context["has_goods"] = (context.get("pur_goods_count", 0) > 0) or (context.get("sal_goods_count", 0) > 0)
+
+    # 跨地区经营：剔除本企业自身所在地后，外埠省份 ≥ 2 即视为跨地区购销
+    try:
+        from engine.geo_infer import is_cross_region
+        _self = ""
+        if ctx and getattr(ctx, "company_profile", None):
+            _self = str(ctx.company_profile.get("name", "") or "")
+        context["cross_region"] = is_cross_region(list(pur_invs or []) + list(sal_invs or []), _self)
+    except Exception:
+        context["cross_region"] = False
+
     return context
 
 
@@ -505,6 +599,26 @@ def _evaluate_evidence(evidence_desc, context):
     """评估一条证据条件是否在当前上下文中成立"""
     desc = evidence_desc.lower()
     
+    # ── 缺失型裁决证据（该有的没有）──
+    # 必须位于通用「经营模式/运输」分支之前：如"制造业无生产能耗支出"含"制造"二字，
+    # 若后置于通用经营模式分支会被误判为"制造业恒真"，故优先精确匹配。
+    if "跨省购销却零运输费" in desc:
+        return bool(context.get("cross_region") and not context.get("has_transport_cost", False))
+    if "大额实物购销无物流物证" in desc:
+        return bool(context.get("has_goods") and not context.get("has_transport_cost", False))
+    if "无场地租赁合同却有购销业务" in desc:
+        return bool(not context.get("has_rent", True) and context.get("has_goods", False))
+    if "制造业无生产能耗支出" in desc:
+        return bool(not context.get("has_energy", True) and context.get("is_manufacturing", False))
+    if "无自有车辆费用" in desc:
+        return not context.get("has_vehicle", True)
+    if "存在自有车辆或车辆费用" in desc:
+        return context.get("has_vehicle", False)
+    if "已提供场地/租赁合同" in desc:
+        return context.get("has_rent", False)
+    if "生产能耗已在账面体现" in desc:
+        return context.get("has_energy", False)
+
     # 经营模式判断
     if "服务型" in desc and context.get("is_service"):
         return True

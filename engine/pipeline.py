@@ -4449,19 +4449,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as e:
         pipeline_log.append(f"[资金回流闭环] 执行异常(不影响主分析): {e}")
 
-    # ── ⑩ 稽查询问与质疑清单（第四阶·稽查分身增强：把待证线索转成企业可答复的询问+举证）──
-    try:
-        from engine.inspection_questions import run_inspection_questions
-        _iq = run_inspection_questions(
-            comprehensive=comprehensive,
-            company_name=next((locals().get(n) for n in ("_tt_name", "_iv_name", "_fi_name", "_fl_name") if locals().get(n)), ""),
-            data_overview=comprehensive.get("data_overview"),
-        )
-        comprehensive["inspection_questions"] = _iq
-        _iq_m = _iq.get("metrics", {}) or {}
-        pipeline_log.append(f"[稽查询问] 共{_iq_m.get('total_questions')}条询问 / {_iq_m.get('themes')}主题 结论={_iq.get('verdict','')}")
-    except Exception as e:
-        pipeline_log.append(f"[稽查询问] 执行异常(不影响主分析): {e}")
+    # ── ⑩ 稽查询问与质疑清单：已移至下方「假设-验证推理」之后，
+    #    以便消费经竞争假设裁决后仍为「证据不足」的缺失型待证发现（unconfirmed），转化为企业自证询问。──
 
     _step_timing["step7_start"] = time.time()
     _report(99, "步骤⑦正式报告输出 — 开始...", step=7)
@@ -4557,6 +4546,24 @@ def _run_analyze(company_id, db, progress_callback=None):
         result["report"]["mid_risk"] = sum(1 for f in all_findings if f.get("level") == "中风险")
         result["report"]["low_risk"] = sum(1 for f in all_findings if f.get("level") in ("低风险", "良好"))
     except Exception: pass
+
+    # ── ⑩ 稽查询问与质疑清单（第四阶·稽查分身增强：把待证线索转成企业可答复的询问+举证）──
+    # 置于假设-验证之后：消费经竞争假设裁决后仍为「证据不足」的缺失型待证发现（unconfirmed），抛企业自证
+    try:
+        from engine.inspection_questions import run_inspection_questions
+        _unconfirmed = [f for f in all_findings if f.get("_hypothesis_unconfirmed")]
+        _iq = run_inspection_questions(
+            comprehensive=comprehensive,
+            company_name=next((locals().get(n) for n in ("_tt_name", "_iv_name", "_fi_name", "_fl_name") if locals().get(n)), ""),
+            data_overview=comprehensive.get("data_overview"),
+            unconfirmed_findings=_unconfirmed,
+        )
+        comprehensive["inspection_questions"] = _iq
+        _iq_m = _iq.get("metrics", {}) or {}
+        pipeline_log.append(f"[稽查询问] 共{_iq_m.get('total_questions')}条询问 / {_iq_m.get('themes')}主题 结论={_iq.get('verdict','')}"
+                            + (f" | 含缺失型待证{len(_unconfirmed)}条" if _unconfirmed else ""))
+    except Exception as e:
+        pipeline_log.append(f"[稽查询问] 执行异常(不影响主分析): {e}")
     
     # ═══ 纠正规则自动应用 ───
     try:
