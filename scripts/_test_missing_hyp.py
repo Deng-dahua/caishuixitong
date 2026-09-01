@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """缺失型假设模板单元测试：不调用大模型，直接验证竞争假设裁决逻辑。
 
-验证目标：
-1) 风险型（类 C2：跨地区购销 + 零运输费 + 制造业无能耗/无场地/无车辆）
-   → 缺失型模板被命中，风险假设胜出，但按设计转 unconfirmed（待证，抛置疑清单）。
-2) 良性型（运输费/场地/能耗/车辆均在账面体现）
-   → 正常假设胜出，风险降级（score 下降，标注“风险降级”）。
+新裁决策略（用户 2026-09-01 指令）：
+  无论行业，缺失型（"该有的没有"）信号——
+  · 风险假设胜出且后验≥0.60 → 直接判定为风险（confirm，score 升）。
+  · 正常假设胜出且后验≥0.60 → 判定为非风险（降级）。
+  · 两假设后验接近（均<0.60，证据不足）→ 转 unconfirmed（置疑清单待企业自证）。
 """
 import os
 import sys
@@ -58,6 +58,21 @@ BENIGN_FINDING = {
     "desc": "跨省购销却零运输费，货物流断裂",
 }
 
+# ── 证据不足（toss-up）fixture：同地区购销，账面有运费/加工费但无场地/无能耗/无车辆 ──
+AMB_PUR = [
+    {"goods": "钢材", "amount": 3000000, "buyer": "北京宏远制造有限公司", "seller": "北京某钢贸有限公司"},
+    {"goods": "运输费", "amount": 400000, "buyer": "北京宏远制造有限公司", "seller": "德邦物流有限公司"},
+    {"goods": "加工费", "amount": 300000, "buyer": "北京宏远制造有限公司", "seller": "北京某加工厂"},
+]
+AMB_SAL = [
+    {"goods": "机械设备", "amount": 8000000, "buyer": "北京某机电公司", "seller": "北京宏远制造有限公司"},
+]
+AMB_FINDING = {
+    "type": "基础经营费用缺失",
+    "score": 9,
+    "desc": "制造业基础经营费用缺失（无场地/无能耗/无车辆）",
+}
+
 
 def _run(finding, ctx, bank, pur, sal):
     tpl_key = H._match_template(finding["type"])
@@ -69,37 +84,43 @@ def _run(finding, ctx, bank, pur, sal):
 
 
 def main():
-    print("=== 测试1：风险型（类C2 零运费+跨地区+制造业无要素）===")
+    print("=== 测试1：风险型（类C2 零运费+跨地区+制造业无要素）→ 直接判定为风险 ===")
     ctx = _make_ctx("北京宏远制造有限公司", "制造")
     res = _run(RISK_FINDING, ctx, [], RISK_PUR, RISK_SAL)
-    print("  胜出假设:", res["hypothesis_selected"])
-    print("  置信度:", res["confidence"])
+    print("  胜出假设:", res["hypothesis_selected"], "| 后验:", res["best_posterior"])
     print("  推理:", res["reasoning"])
-    print("  证据支持:", res["evidence_for"])
     assert res["selected"] == 1, "风险型应风险假设(索引1)胜出"
-    assert res["confidence"] > 0.4, "风险假设后验应明显偏高"
-
-    print("\n=== 测试2：良性型（必要费用均在账面体现）===")
-    ctx2 = _make_ctx("北京宏远制造有限公司", "制造")
-    res2 = _run(BENIGN_FINDING, ctx2, BENIGN_BANK, BENIGN_PUR, BENIGN_SAL)
-    print("  胜出假设:", res2["hypothesis_selected"])
-    print("  置信度:", res2["confidence"])
-    print("  推理:", res2["reasoning"])
-    print("  证据支持:", res2["evidence_for"])
-    assert res2["selected"] == 0, "良性型应正常假设(索引0)胜出"
-    assert res2["confidence"] > 0.4, "正常假设后验应明显偏高"
-
-    print("\n=== 测试3：run_hypothesis_verification 端到端（风险型应转 unconfirmed）===")
-    ctx3 = _make_ctx("北京宏远制造有限公司", "制造")
+    assert res["best_posterior"] >= 0.60, "风险型后验应≥0.60（可判定为风险）"
     enhanced, summary = H.run_hypothesis_verification(
-        [RISK_FINDING], ctx3, [], None, RISK_SAL, RISK_PUR, None, []
+        [RISK_FINDING], ctx, [], None, RISK_SAL, RISK_PUR, None, []
     )
     f0 = enhanced[0]
-    print("  score:", f0.get("score"), "note:", f0.get("_hypothesis_note"))
-    print("  unconfirmed:", f0.get("_hypothesis_unconfirmed"))
-    assert f0.get("_hypothesis_unconfirmed") is True, "缺失型证据不足应转 unconfirmed(待证)"
-    assert "置疑" in (f0.get("_hypothesis_note") or ""), "应标注转置疑清单"
-    assert summary["total_verified"] == 1
+    print("  [端到端] score:", f0.get("score"), "| note:", f0.get("_hypothesis_note"), "| unconfirmed:", f0.get("_hypothesis_unconfirmed"))
+    assert f0.get("_hypothesis_unconfirmed") is not True, "风险型证据充分，应直接判定为风险而非转待证"
+    assert f0.get("score") == 10, "确认风险应升级 score 至 10"
+    assert "确认风险" in (f0.get("_hypothesis_note") or ""), "应标注「确认风险」"
+
+    print("\n=== 测试2：良性型（必要费用均在账面体现）→ 判定为非风险（降级）===")
+    ctx2 = _make_ctx("北京宏远制造有限公司", "制造")
+    res2 = _run(BENIGN_FINDING, ctx2, BENIGN_BANK, BENIGN_PUR, BENIGN_SAL)
+    print("  胜出假设:", res2["hypothesis_selected"], "| 后验:", res2["best_posterior"])
+    print("  推理:", res2["reasoning"])
+    assert res2["selected"] == 0, "良性型应正常假设(索引0)胜出"
+    assert res2["best_posterior"] >= 0.60, "良性型后验应≥0.60（可判定为非风险）"
+
+    print("\n=== 测试3：证据不足（同地区+有运费有加工费但无场地/能耗/车辆）→ 转置疑清单 ===")
+    ctx3 = _make_ctx("北京宏远制造有限公司", "制造")
+    res3 = _run(AMB_FINDING, ctx3, [], AMB_PUR, AMB_SAL)
+    print("  胜出假设:", res3["hypothesis_selected"], "| 后验:", res3["best_posterior"])
+    print("  推理:", res3["reasoning"])
+    assert res3["best_posterior"] < 0.60, "证据不足型后验应<0.60（无法明确判定）"
+    enhanced3, _ = H.run_hypothesis_verification(
+        [AMB_FINDING], ctx3, [], None, AMB_SAL, AMB_PUR, None, []
+    )
+    fa = enhanced3[0]
+    print("  [端到端] unconfirmed:", fa.get("_hypothesis_unconfirmed"), "| note:", fa.get("_hypothesis_note"))
+    assert fa.get("_hypothesis_unconfirmed") is True, "证据不足应转 unconfirmed(待证)"
+    assert "置疑" in (fa.get("_hypothesis_note") or ""), "应标注转置疑清单"
 
     print("\n全部断言通过 ✅")
 

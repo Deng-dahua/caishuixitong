@@ -371,21 +371,23 @@ def run_hypothesis_verification(all_findings, ctx, bank_txs, invoices, sal_invs,
             verified_findings[i] = dict(finding)
             verified_findings[i]["_hypothesis"] = result
             total_verified += 1
-            # 根据验证结果更新评分
+            # 根据验证结果更新评分（竞争假设裁决：能判定则直接判定，证据不足才转置疑清单）
+            is_missing = template.get("adjudication") == "missing"
+            best_post = result["best_posterior"]
             if result["selected"] == 0:
-                # 第一个假设胜出（通常是"正常"假设）→ 降分
+                # 正常假设胜出 → 降分（判定为非风险）
                 verified_findings[i]["score"] = max(3, score - result["confidence_delta"])
                 verified_findings[i]["_hypothesis_note"] = "假设验证倾向正常解释，风险降级"
-            elif result["selected"] == 1 and result["confidence"] > 0.6:
-                # 第二个假设高置信胜出（通常是"风险"假设）→ 维持或升级
+            elif result["selected"] == 1 and (result["confidence"] > 0.6 or (is_missing and best_post >= 0.60)):
+                # 风险假设胜出：通用数值型需置信差>0.6；缺失型"该有的没有"风险假设后验≥0.60 即直接判定为风险
+                # —— 无论行业：证据足以认定经营实质存疑的，直接判定为风险
                 verified_findings[i]["score"] = min(10, score + 1)
-                verified_findings[i]["_hypothesis_note"] = "假设验证确认风险，置信度" + str(int(result["confidence"]*100)) + "%"
+                verified_findings[i]["_hypothesis_note"] = "假设验证确认风险，置信度" + str(int(best_post*100)) + "%"
             else:
-                # 证据不足、无法形成明确裁决
-                if template.get("adjudication") == "missing":
+                # 证据不足、两假设后验接近，无法形成明确裁决
+                if is_missing:
                     verified_findings[i]["_hypothesis_note"] = "缺失型疑点证据不足，转置疑清单待企业自证"
                     verified_findings[i]["_hypothesis_unconfirmed"] = True
-                    # 不确认、不升级：维持原分但标注待核（交由 inspection_questions 抛企业自证）
                 else:
                     verified_findings[i]["_hypothesis_note"] = "假设验证证据不足，维持原判断"
             summaries.append({
@@ -494,6 +496,7 @@ def _verify_hypothesis(finding, template, ctx, bank_txs, invoices, sal_invs, pur
     return {
         "hypothesis_selected": best["hypothesis"],
         "confidence": round(confidence, 3),
+        "best_posterior": round(best["posterior"], 3),  # 胜出假设后验概率（缺失型裁决用：≥0.60 即"能判定"）
         "all_scores": scores,
         "selected": best_idx,  # 实际胜出假设的原始索引（0=正常, 1=风险…）
         "confidence_delta": round(abs(best["evidence_weight"]) * 3),

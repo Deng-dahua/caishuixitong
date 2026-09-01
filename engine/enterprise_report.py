@@ -534,12 +534,19 @@ def _conclusion_statement(f):
 def _build_confirmed_problems(report_data):
     """从 findings 组装『确认的具体问题』（level 非待核验/信息的）"""
     findings = report_data.get("all_findings", []) or []
+    # 缺失型（该有的没有）经竞争假设裁决后仍为"证据不足"的，转「待企业澄清事项」抛企业自证，
+    # 不列为已确认问题（避免同一发现既"已核定"又"待证"的矛盾）。
+    # 以 hypothesis_verification.details 为权威来源（all_findings 未必回写该标记）。
+    _hv = (report_data.get("comprehensive", {}) or {}).get("hypothesis_verification", {}) or {}
+    _unconfirmed_types = {d.get("finding_type") for d in (_hv.get("details") or []) if d.get("unconfirmed")}
     problems = []
     seq = 1
     for f in findings:
         if not isinstance(f, dict):
             continue
         if f.get("level") in ("待核验", "信息", "低风险"):
+            continue
+        if f.get("_hypothesis_unconfirmed") is True or (f.get("type") in _unconfirmed_types):
             continue
         ev = f.get("_evidence_ref", {}) or {}
         problems.append({
