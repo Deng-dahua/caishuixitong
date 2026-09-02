@@ -15801,6 +15801,160 @@
         "有销无进风险"
       ],
       "timestamp": "2026-09-02T09:28:22.129115"
+    },
+    {
+      "trace_id": "87d71dd3",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-02T22:34:05.209909",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "757f0c5b",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-02T22:34:08.727114"
+    },
+    {
+      "trace_id": "419f43a3",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-02T22:34:53.973822",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "e3d27696",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-02T22:34:56.244803"
+    },
+    {
+      "trace_id": "35b3afcd",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-02T23:00:21.208319",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "5b47b1d6",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-02T23:00:24.551797"
+    },
+    {
+      "trace_id": "0225e400",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-02T23:01:47.861979",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "1fcd9ff0",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：供应商客户六员重叠与关联交易核验",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-02T23:01:51.241889"
+    },
+    {
+      "trace_id": "45db0825",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-02T23:03:11.368331",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "3b203c6d",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-02T23:03:14.707177"
     }
   ],
   "industry_patterns": {
@@ -15829,7 +15983,7 @@
       "typical_data_profile": {}
     },
     "纺织产品": {
-      "analyses_count": 75,
+      "analyses_count": 78,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
@@ -15841,7 +15995,7 @@
       "typical_data_profile": {}
     },
     "饲料": {
-      "analyses_count": 15,
+      "analyses_count": 17,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

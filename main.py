@@ -9309,7 +9309,8 @@ def _verify_cross_account_isolation_shadowed_legacy(result, company_id):
     
     # 文件级检查：所有文件路径必须在当前公司目录下
     for fr in report.get("file_results", []) or []:
-        fpath = (fr.get("file", {}) or {}).get("path", "")
+        _file = fr.get("file", {}) or {}
+        fpath = _file if isinstance(_file, str) else _file.get("path", "")
         if fpath and f"/{company_id}/" not in fpath and f"/{company_id}_" not in fpath:
             continue  # 容忍非标准路径
     return True
@@ -9331,7 +9332,8 @@ def _verify_cross_account_isolation(result, company_id):
     
     # 文件级检查：所有文件路径必须在当前公司目录下
     for fr in report.get("file_results", []) or []:
-        fpath = (fr.get("file", {}) or {}).get("path", "")
+        _file = fr.get("file", {}) or {}
+        fpath = _file if isinstance(_file, str) else _file.get("path", "")
         if fpath and f"/{company_id}/" not in fpath and f"/{company_id}_" not in fpath:
             continue  # 容忍非标准路径
     return True

@@ -1,6 +1,6 @@
 {
-  "updated_at": "2026-09-02T09:28:22.171941",
-  "total_events": 2,
+  "updated_at": "2026-09-02T23:03:14.730272",
+  "total_events": 1,
   "events": [
     {
       "type": "analysis_completed",
@@ -11,20 +11,8 @@
         "patterns": 0
       },
       "source": "agi_pipeline",
-      "timestamp": "2026-09-01T23:22:03.169300",
+      "timestamp": "2026-09-02T23:03:14.729818",
       "id": "evt_000000"
-    },
-    {
-      "type": "analysis_completed",
-      "data": {
-        "company": "中山市达冠纺织有限公司",
-        "findings_count": 3,
-        "causal_edges": 0,
-        "patterns": 0
-      },
-      "source": "agi_pipeline",
-      "timestamp": "2026-09-02T09:28:22.169912",
-      "id": "evt_000001"
     }
   ]
 }
