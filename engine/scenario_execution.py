@@ -45,7 +45,7 @@ ENGINE_SOURCE_FAMILIES = {
 COMMON_FACT_CONTRACTS = {
     "COMMON-REVENUE-RECONCILIATION": {
         "name": "收入、开票、收款与会计记录勾稽",
-        "rule_ids": {"VR001", "VR002"},
+        "rule_ids": {"VR001", "VR002", "VR057"},
         "target_fact": "同一主体和期间的销售履约、收入确认、开票、收款及申报差异能否由逐笔业务事实完整解释。",
         "lead": "收入与申报协同域",
         "supporting": ["销售合同和履约记录", "销项发票明细", "银行收款流水", "会计收入明细", "纳税申报表"],
@@ -63,7 +63,7 @@ COMMON_FACT_CONTRACTS = {
     },
     "COMMON-EMPLOYMENT-COVERAGE": {
         "name": "工资、社保、用工身份与扣缴范围核验",
-        "rule_ids": {"VR005"},
+        "rule_ids": {"VR005", "VR055"},
         "target_fact": "工资名册、社会保险、实际用工、劳务结算和个人所得税扣缴范围差异能否按人员及月份解释。",
         "lead": "人员薪酬与扣缴域",
         "supporting": ["劳动或劳务合同", "考勤及岗位记录", "工资明细", "社会保险明细", "个税扣缴申报"],
@@ -144,7 +144,7 @@ COMMON_FACT_CONTRACTS = {
     },
     "COMMON-PERSONNEL-FUND-FLOW": {
         "name": "六员个人账户与经营资金往来核验",
-        "rule_ids": {"VR020", "VR025"},
+        "rule_ids": {"VR020", "VR025", "VR056"},
         "target_fact": "法定代表人、股东、董事等六员个人账户频繁出现在公司银行流水对手方，是否源于借款、代垫、报销等正常往来，还是指向资金回流、代收代付、隐匿收入或账外经营。",
         "lead": "资金结算与往来域",
         "supporting": ["银行原始流水", "借款或代垫协议", "报销凭证", "往来明细账", "个人账户说明"],

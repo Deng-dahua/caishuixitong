@@ -278,7 +278,7 @@ VERIFIED_RULE_CATALOG = [
         "lifecycle": ["采购与取得", "销售与收入确认"],
         "required_sources": ["sal_invs", "pur_invs"],
         "status": "verified_executable_screening",
-        "limitation": "个人或个体户供应商在农产品收购、劳务、建材等行业可能正常；须核验交易真实性、是否代开发票及是否履行个税扣缴义务。",
+        "limitation": "销售侧须先作经营模式裁决：零售/电商企业面向不特定个人消费者的销售属正常经营模式，不列为风险；采购侧不因零售身份豁免，仍须核验交易真实性、是否代开发票及是否履行个税扣缴义务。即便认定为零售模式，单一自然人巨额累计、关联自然人交易、伪装零售的批发三类异常子特征仍一律暴露。",
     },
     {
         "id": "VR025",
@@ -717,6 +717,65 @@ VERIFIED_RULE_CATALOG = [
              "materials": "补证责令单"},
         ],
     },
+    {
+        "id": "VR055",
+        "name": "工资薪酬均额/拆分疑点（个税规避线索）",
+        "layer": "人员税费协同规则",
+        "industries": ["ALL"],
+        "taxes": ["个人所得税", "企业所得税"],
+        "lifecycle": ["用工、薪酬与扣缴"],
+        "required_sources": ["salaries"],
+        "status": "verified_executable_screening",
+        "limitation": "多名员工工资高度均一（相同整数整额）、且个税申报『已缴额』为0或社保缴费基数高于账面工资，呈『拆分工资』模板痕迹，实务中常见于公账+私户拆分支付以压低单人多层级税基、规避个税全员全额扣缴。规则仅形成可复算的数据事实，不作违法定性；正当理由包括：同岗同酬、绩效未体现、实习生/兼职统一标准等，企业可逐人举证排除。社保基数倒挂亦可能源于年终奖单独计税、公积金基数口径差异等，须结合缴费明细核验。",
+        "derives_to": [
+            {"child": "VR056", "link": "均额工资 → 须核验实际支付来源是否公账+私账拆分",
+             "analyze": "将均额工资与对公/私户实际支付勾稽，排查私户发薪",
+             "evidence": "调取对公账户与实际控制人/股东/财务个人卡流水、工资代发回单",
+             "materials": "公户+私户银行流水、工资发放明细与签收记录"},
+            {"child": "VR051", "link": "均额/拆分疑点 → 下达补证责令单",
+             "analyze": "归集疑点，向企业下达个税扣缴申报表与私户流水补充资料清单",
+             "evidence": "责令提供个人所得税扣缴申报表、社保缴费明细、私户流水",
+             "materials": "补证责令单（个税申报+私户流水+社保明细）"},
+        ],
+    },
+    {
+        "id": "VR056",
+        "name": "公私混同发薪/私户支付薪酬（支付来源不可见盲区）",
+        "layer": "人员税费协同规则",
+        "industries": ["ALL"],
+        "taxes": ["个人所得税", "企业所得税"],
+        "lifecycle": ["用工、薪酬与扣缴", "银行收付款"],
+        "required_sources": ["salaries"],
+        "status": "verified_executable_screening",
+        "limitation": "账面工资与对公账户实际支付背离、或银行流水显示以员工个人账户直接支付薪酬，指向『公账+私账拆分支付薪酬』『老板卡/财务卡私户发薪』，存在未如实扣缴个人所得税的盲区。规则仅形成可复算的支付来源勾稽事实，不作违法定性；正当理由包括：员工借款冲抵、费用报销误挂、股东代垫后收回等，企业可逐笔举证排除。未提供任何银行流水时，规则仅输出监管盲区提示，责令补充公户+私户流水以清扫盲区。",
+        "derives_to": [
+            {"child": "VR051", "link": "支付来源盲区 → 下达补证责令单",
+             "analyze": "归集盲区，向企业下达公户+私户流水与个税申报表补充资料清单",
+             "evidence": "责令提供对公账户流水、实际控制人/股东/财务个人卡流水、个税扣缴申报表",
+             "materials": "补证责令单（公户+私户流水+个税申报）"},
+        ],
+    },
+    {
+        "id": "VR057",
+        "name": "第三方支付平台收款监管盲区（账外收入线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税", "个人所得税"],
+        "lifecycle": ["销售与收入确认", "银行收付款", "电商平台经营"],
+        "required_sources": ["sal_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "销项经天猫/淘宝/京东/抖音等平台结算、或银行收款方为支付宝/财付通等第三方支付归集账户，企业自身银行流水仅体现第三方一笔归集入账，无法透视平台端真实交易笔数、买家、退货退款、手续费与账期，形成『平台资金体外循环/账外收入』监管盲区。规则仅形成可复算的第三方归集勾稽事实，不作违法定性；正当理由包括：平台结算账期差异、手续费扣除、退款挂账等，企业可提交平台结算单与店铺后台订单举证排除。未提供平台结算资料时，规则仅输出监管盲区提示，责令补充平台侧完整资料以清扫盲区。",
+        "derives_to": [
+            {"child": "VR028", "link": "平台销项高于对公归集 → 疑平台侧收入未完全入账（账外收入）",
+             "analyze": "将平台销项合计与银行第三方归集入账勾稽，差额即账外收入敞口",
+             "evidence": "调取平台结算单、提现流水与网店后台订单逐笔核验",
+             "materials": "平台结算单、提现至对公流水、网店后台订单与物流数据"},
+            {"child": "VR051", "link": "平台盲区 → 下达补证责令单",
+             "analyze": "归集盲区，向企业下达平台结算单、提现流水、店铺后台订单补充资料清单",
+             "evidence": "责令提供第三方平台结算单、提现流水、网店后台订单与物流轨迹",
+             "materials": "补证责令单（平台结算+提现+后台订单）"},
+        ],
+    },
 ]
 
 
@@ -745,7 +804,8 @@ def _invoice_amount(row, pretax=False):
     return total if total else _number(row.get("amount")) + _number(row.get("tax"))
 
 
-def _finding(spec, detail, metrics, sources, status="clue_pending_investigation", priority="中"):
+def _finding(spec, detail, metrics, sources, status="clue_pending_investigation", priority="中",
+             level=None, score=None, cleared_reason=None):
     """统一的风险检查发现底盘。
 
     全系统 51 条规则的 finding 均经此构造，强制携带「三件套」：
@@ -753,6 +813,10 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
     2) verified_facts / to_prove —— 已核实事实 / 待企业举证事项（规则可自填，未填给诚实兜底）
     3) enterprise_rights —— 企业权利告知（复议/诉讼防御的统一底线）
     避免任何规则以「贴标签」方式输出结论，导致报告被复议推翻。
+
+    level / score 覆写：规则经竞争假设裁决后，若「正常经营」假设胜出（如零售 B2C
+    企业的个人消费者客户），须能主动降级，避免把正常经营模式误报为风险。
+    降级必须随附 cleared_reason（逐条写明据以排除的证据），不得无理由降级。
     """
     metrics = dict(metrics or {})
     is_limitation = (status == "data_quality_limitation")
@@ -772,12 +836,12 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
         "【企业权利告知】本事项在贵方提供充分举证前，仅作为待核实线索，不作为税务处理、处罚或移送依据；"
         "贵方有权就任一事项陈述申辩、提交反证，并依《税收征管法》申请行政复议或提起行政诉讼。"
     )
-    return {
+    result = {
         "type": spec.get("name", spec.get("id", "未命名规则")),
         "rule_id": spec["id"],
         "category": spec.get("layer", "通用基础规则"),
-        "level": "信息" if is_limitation else "中风险",
-        "score": 2 if is_limitation else 5,
+        "level": level if level is not None else ("信息" if is_limitation else "中风险"),
+        "score": score if score is not None else (2 if is_limitation else 5),
         "priority": priority,
         "detail": detail,
         "observed_metrics": metrics,
@@ -801,6 +865,10 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
             "decision_boundary": "该原子规则只形成可复算的数据事实或资料质量事项，不作税务处理、处罚或移送判断。",
         },
     }
+    if cleared_reason:
+        result["cleared_reason"] = cleared_reason
+        result["adjudication"] = "正常经营假设胜出（经竞争假设裁决后排除）"
+    return result
 
 
 def _fmt_yuan(value):
@@ -1682,18 +1750,37 @@ def _scan_material_output_ratio(data, spec):
 
 
 def _is_individual_entity(name):
-    """判断供应商/客户是否为个人或个体工商户（非公司制主体）。"""
-    name = str(name or "").strip()
-    if not name:
-        return False
-    if any(key in name for key in ("公司", "有限", "股份", "集团")):
-        return False
-    if any(key in name for key in ("个体", "经营部", "商行", "经销部", "个人", "厂", "店", "部", "中心", "工作室")):
-        return True
-    return len(name) <= 4  # 短名称大概率是人名
+    """判断供应商/客户是否为个人或个体工商户（非公司制主体）。
+
+    统一委托 engine.business_model 实现，本函数保留为历史别名，
+    避免既有调用点与回归测试失效。
+    """
+    from engine.business_model import is_individual_entity as _impl
+    return _impl(name)
 
 
 def _scan_individual_counterparty(data, spec):
+    """个人或个体工商户供应商/客户交易核验（VR024，经营模式感知版）。
+
+    裁决逻辑（竞争假设）
+    --------------------
+    假设A（风险）：借用个人主体走账、虚开发票、隐匿收入。
+    假设B（正常）：零售/电商企业面向终端消费者的正常销售。
+
+    销售侧与采购侧风险性质不同，必须分开裁决：
+    * 销售侧：零售 B2C 模式下，个人消费者客户是正常经营模式的结果。
+      以电商/零售结构证据（平台客户、票均小额、客户分散、户均消费级）
+      支持假设B 时判非风险；证据不足转置疑清单；未能支持假设B 时维持风险口径。
+    * 采购侧：向个人采购涉及代开发票与个人所得税扣缴义务，零售身份不能豁免，
+      但按金额与占比区分"须核验"与"异常"。
+
+    铁律：即使认定为零售模式，下列异常子特征仍一律暴露，绝不以模式认定为由屏蔽：
+      ① 单一自然人客户累计金额异常巨大（非消费级）；
+      ② 个人客户与六员/股东等关联自然人重合；
+      ③ 个人客户家数极少但户均巨大（借零售之名行批发之实）。
+    """
+    from engine.business_model import detect_business_model, describe_model_text
+
     sal = data.get("sal_invs", []) or []
     pur = data.get("pur_invs", []) or []
     suppliers = defaultdict(lambda: {"amount": 0.0, "count": 0})
@@ -1710,25 +1797,192 @@ def _scan_individual_counterparty(data, spec):
             customers[name]["count"] += 1
     if not suppliers and not customers:
         return []
+
     sup_total = sum(agg["amount"] for agg in suppliers.values())
     cus_total = sum(agg["amount"] for agg in customers.values())
-    detail_parts = []
-    if suppliers:
-        detail_parts.append(f"个人/个体户供应商{len(suppliers)}家，合计{sup_total:,.0f}元")
+    model = detect_business_model(data)
+    model_text = describe_model_text(model)
+    findings = []
+
+    # ══════════════ 销售侧：个人/个体户客户 ══════════════
     if customers:
-        detail_parts.append(f"个人/个体户客户{len(customers)}家，合计{cus_total:,.0f}元")
+        findings.extend(_adjudicate_individual_customers(
+            spec, customers, cus_total, model, model_text, sal, data,
+        ))
+
+    # ══════════════ 采购侧：个人/个体户供应商 ══════════════
+    if suppliers:
+        findings.extend(_adjudicate_individual_suppliers(
+            spec, suppliers, sup_total, pur, model,
+        ))
+    return findings
+
+
+def _individual_customer_anomalies(customers, cus_total, data):
+    """零售模式下仍需暴露的异常子特征（绝不因模式认定而屏蔽）。"""
+    from engine.business_model import (
+        ABNORMAL_SINGLE_CUSTOMER_AMOUNT, DISGUISED_WHOLESALE_MIN_AVG,
+        DISGUISED_WHOLESALE_MAX_COUNT,
+    )
+    anomalies = []
+
+    # ① 单一自然人客户累计金额异常巨大（已非消费级）
+    huge = sorted(
+        [(n, agg["amount"]) for n, agg in customers.items()
+         if agg["amount"] >= ABNORMAL_SINGLE_CUSTOMER_AMOUNT],
+        key=lambda x: -x[1],
+    )
+    for name, amount in huge[:10]:
+        anomalies.append(
+            f"自然人客户「{name}」累计销售额{amount:,.2f}元，已远超消费级水平"
+            f"（消费级判定线{ABNORMAL_SINGLE_CUSTOMER_AMOUNT:,.0f}元）"
+        )
+
+    # ② 个人客户与六员/股东等关联自然人重合
+    personnel = _collect_personnel(data.get("target_entity", {}) or {})
+    if personnel:
+        related = [n for n in customers if any(p and p in n for p in personnel)]
+        for name in sorted(related)[:10]:
+            anomalies.append(
+                f"自然人客户「{name}」与企业法定代表人、股东、董事、监事、财务负责人或经办人同名，"
+                f"存在关联自然人交易嫌疑"
+            )
+
+    # ③ 个人客户家数极少但户均巨大（借零售之名行批发之实）
+    if customers and len(customers) <= DISGUISED_WHOLESALE_MAX_COUNT:
+        avg = cus_total / len(customers)
+        if avg >= DISGUISED_WHOLESALE_MIN_AVG:
+            anomalies.append(
+                f"个人客户仅{len(customers)}家但户均销售额{avg:,.2f}元，"
+                f"不具备分散零售特征，须核查是否以零售名义从事批发或拆分收入"
+            )
+    return anomalies
+
+
+def _adjudicate_individual_customers(spec, customers, cus_total, model, model_text, sal, data):
+    """销售侧个人客户的竞争假设裁决。"""
+    avg_per_customer = cus_total / len(customers) if customers else 0.0
+    anomalies = _individual_customer_anomalies(customers, cus_total, data)
+    base_metrics = {
+        "individual_customer_count": len(customers),
+        "customer_amount": round(cus_total, 2),
+        "avg_amount_per_individual_customer": round(avg_per_customer, 2),
+        "business_model": model.get("model", ""),
+        "business_model_score": model.get("score", 0.0),
+        "business_model_evidence": model.get("evidence", []),
+        "examples": sorted(customers.keys())[:12],
+    }
+
+    # ── 情形一：存在异常子特征 —— 无论何种经营模式一律暴露 ──
+    if anomalies:
+        return [_finding(
+            spec,
+            f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
+            + "经按经营模式裁决，本项虽存在零售经营背景，但仍检出下列异常特征："
+            + "；".join(anomalies)
+            + "。上述特征不属于正常零售经营范畴，须核验业务真实性、是否代开发票、是否履行个人所得税扣缴义务，"
+              "以及是否存在借用个人主体走账、拆分收入或虚开。",
+            dict(base_metrics, anomalies=anomalies),
+            spec["required_sources"],
+            priority="调查优先级",
+        )]
+
+    # ── 情形二：证据充分支持零售/B2C —— 正常经营假设胜出，判非风险 ──
+    if model.get("is_b2c_retail"):
+        return [_finding(
+            spec,
+            f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
+            + (model_text + "。" if model_text else "")
+            + "面向不特定个人消费者的销售系该企业正常经营模式的必然结果，"
+              "且未检出单一自然人巨额累计、关联自然人交易、伪装零售的批发等异常特征，"
+              "本项不列为税务风险。",
+            base_metrics,
+            spec["required_sources"],
+            status="normal_business_pattern",
+            level="待核验",
+            score=0,
+            priority="低",
+            cleared_reason=(
+                "竞争假设裁决：风险假设（借用个人主体走账/虚开）与正常假设（零售B2C正常经营）竞争，"
+                "现有证据支持正常假设——" + "；".join(model.get("evidence", [])[:6])
+                + "。且已逐一排查单一自然人巨额累计、关联自然人重合、伪装零售的批发三类异常子特征，均未触发。"
+            ),
+        )]
+
+    # ── 情形三：证据不足 —— 转置疑清单，要求企业说明经营模式 ──
+    if model.get("needs_clarification"):
+        return [_finding(
+            spec,
+            f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
+            "现有资料不足以判定企业是否为面向终端消费者的零售经营模式"
+            f"（经营模式证据分{model.get('score', 0.0)}，未达零售认定门槛），"
+            "本项作为待澄清事项：请企业说明销售模式（零售/批发/电商）、门店或平台经营情况、"
+            "个人客户的身份与交易背景，并提供相应佐证资料。",
+            dict(base_metrics, needs_clarification=True),
+            spec["required_sources"],
+            priority="中",
+            level="待核验",
+            score=2,
+        )]
+
+    # ── 情形四：不支持零售假设 —— 维持原风险口径 ──
     return [_finding(
         spec,
-        "；".join(detail_parts) + "。个人或个体工商户交易须核验业务真实性、是否代开发票、是否履行个人所得税扣缴义务，以及是否存在借用个人主体走账或虚开。",
-        {
-            "individual_supplier_count": len(suppliers),
-            "individual_customer_count": len(customers),
-            "supplier_amount": round(sup_total, 2),
-            "customer_amount": round(cus_total, 2),
-            "examples": sorted(set(list(suppliers.keys()) + list(customers.keys())))[:12],
-        },
+        f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
+        "现有销项结构未呈现面向终端消费者的零售特征"
+        f"（客户分散度、票均与户均金额、平台或门店经营证据均不足，经营模式证据分{model.get('score', 0.0)}），"
+        "正常零售假设未获支持。本项须核验业务真实性、是否代开发票、是否履行个人所得税扣缴义务，"
+        "以及是否存在借用个人主体走账或虚开。",
+        base_metrics,
         spec["required_sources"],
         priority="调查优先级",
+    )]
+
+
+def _adjudicate_individual_suppliers(spec, suppliers, sup_total, pur, model):
+    """采购侧个人供应商：零售身份不能豁免代开发票与个税扣缴义务，但按金额占比分级。"""
+    pur_total = sum(_number(row.get("amount")) for row in pur)
+    share = (sup_total / pur_total) if pur_total > 0 else 0.0
+    avg_per_supplier = sup_total / len(suppliers) if suppliers else 0.0
+    metrics = {
+        "individual_supplier_count": len(suppliers),
+        "supplier_amount": round(sup_total, 2),
+        "avg_amount_per_individual_supplier": round(avg_per_supplier, 2),
+        "purchase_total": round(pur_total, 2),
+        "individual_supplier_share": round(share, 4),
+        "business_model": model.get("model", ""),
+        "examples": sorted(suppliers.keys())[:12],
+    }
+    detail_head = (
+        f"个人/个体户供应商{len(suppliers)}家，合计{sup_total:,.2f}元，"
+        f"占进项总额{share * 100:.2f}%，户均{avg_per_supplier:,.2f}元。"
+    )
+    # 采购侧规模极小且占比很低时，属常规零星采购，列为须核验事项而非异常
+    if sup_total <= 100000 and share <= 0.10:
+        return [_finding(
+            spec,
+            detail_head + "向个人采购金额与占比均处于零星水平，属常规经营中的小额采购。"
+            "仍须核验是否取得合法有效的代开发票或税务代开凭证，"
+            "以及是否就劳务报酬等应税所得履行个人所得税扣缴义务。",
+            metrics,
+            spec["required_sources"],
+            status="normal_business_pattern",
+            level="待核验",
+            score=0,
+            priority="低",
+            cleared_reason=(
+                f"竞争假设裁决：个人采购金额{sup_total:,.2f}元、占进项{share * 100:.2f}%，"
+                "属零星小额采购规模，正常经营假设胜出；代开发票与个税扣缴义务仍列为常规核验事项。"
+            ),
+        )]
+    return [_finding(
+        spec,
+        detail_head + "向个人/个体户采购涉及发票取得与个人所得税扣缴两项法定义务，"
+        "须核验业务真实性、是否取得合法有效的代开发票、是否履行个人所得税扣缴义务，"
+        "以及是否存在借用个人主体虚开发票或虚列成本。",
+        metrics,
+        spec["required_sources"],
+        priority="中",
     )]
 
 
@@ -3735,6 +3989,278 @@ def _scan_evidence_demand_order(data, spec, all_findings=None):
     }, ["all_findings"], priority="责令补充资料")]
 
 
+# ── VR055/056/057：工资拆分·公私混同发薪·第三方平台盲区（监管盲区清扫三规则）──
+# 设计基调（对应老邓系统级整改要求）：
+#   1) 均额工资/拆分、公账+私账发薪、第三方平台收款——均属实务普遍猫腻，但「发现≠认定」；
+#   2) 规则一律以「待证线索 / 监管盲区提示」输出，强制责令企业提供公户+私户流水、个税申报表、
+#      平台结算单等佐证，把盲区转为可清扫的取证动作（呼应 VR051 补证责令单兜底）；
+#   3) 缺佐证数据（无银行流水、无平台结算）时，输出「盲区提示」而非静默放过，杜绝盲区逃逸。
+
+_PLATFORM_BUYER_KEYWORDS = (
+    "天猫", "淘宝", "阿里妈妈", "京东", "拼多多", "抖音", "快手", "美团", "饿了么",
+    "微店", "有赞", "苏宁", "唯品会", "国美", "小红书", "视频号", "得物",
+    "shopify", "亚马逊", "amazon", "微信小店",
+)
+_THIRD_PARTY_PAY_KEYWORDS = (
+    "支付宝", "财付通", "微信支付", "网银在线", "通联支付", "汇付", "易宝",
+    "连连支付", "快钱", "京东支付", "拼多多支付", "抖音支付", "首信易", "随行付",
+)
+_PAYROLL_TX_KEYWORDS = ("工资", "薪酬", "发薪", "薪金", "工资表", "薪资", "补贴", "奖金", "报销")
+
+
+def _salary_amount(row):
+    return _number(row.get("salary") or row.get("wage") or row.get("应发") or row.get("gross"))
+
+
+def _scan_wage_splitting(data, spec):
+    """VR055 工资薪酬均额/拆分疑点（个税规避线索）。
+
+    识别多名员工工资高度均一（相同整数整额）、个税申报已缴额为0、社保基数高于账面工资
+    等「拆分工资」模板痕迹，输出待证线索并要求企业提供私户流水+个税申报表+社保明细佐证。
+    不认定为违法——同岗同酬、绩效未体现、年终奖单独计税等均可能解释，须由企业举证排除。
+    """
+    salaries = data.get("salaries") or []
+    if len(salaries) < 3:
+        return []
+    by_amt = defaultdict(list)
+    for r in salaries:
+        name = _person_name(r)
+        sal = _salary_amount(r)
+        if sal <= 0:
+            continue
+        by_amt[round(sal, 2)].append({
+            "name": name or "未具名",
+            "salary": sal,
+            "net": _number(r.get("net") or r.get("实发")),
+            "acc_paid": _number(r.get("acc_paid") or r.get("个税已缴") or r.get("tax_paid")),
+        })
+    # 同薪且为整数整额、人数≥3 → 拆分痕迹
+    uniform = [
+        {"amount": a, "count": len(v), "people": v}
+        for a, v in by_amt.items()
+        if len(v) >= 3 and float(a).is_integer()
+    ]
+    if not uniform:
+        return []
+    sal_by_name = {
+        p["name"]: p["salary"]
+        for g in uniform for p in g["people"] if p["name"] != "未具名"
+    }
+    # 社保基数倒挂：缴费基数 > 账面工资
+    inverted = []
+    for r in (data.get("social_security") or []):
+        n = _person_name(r)
+        base = _number(r.get("base") or r.get("缴费基数") or r.get("base_amount"))
+        if n in sal_by_name and base > sal_by_name[n] + 1:
+            inverted.append({"name": n, "salary": sal_by_name[n], "social_base": base})
+    total_uniform = sum(g["count"] for g in uniform)
+    zero_tax = sum(1 for g in uniform for p in g["people"] if p["acc_paid"] == 0)
+    groups_txt = "；".join(
+        "工资{0}共{1}人（{2}{3}）".format(
+            _fmt_yuan(g["amount"]), g["count"],
+            "、".join(p["name"] for p in g["people"][:8]),
+            "等" if g["count"] > 8 else "",
+        )
+        for g in uniform
+    )
+    detail = (
+        "工资名册中{0}名员工工资高度均一：{1}。多名员工领取完全相同且为整数整额的工资，"
+        "呈典型的『拆分工资』模板痕迹——实务中常见于将单名员工应得薪酬拆分为多人名义发放，"
+        "或公账+私账拆分支付，以压低单人多层级税基、规避个人所得税全员全额扣缴义务。".format(
+            total_uniform, groups_txt)
+    )
+    if zero_tax:
+        detail += ("其中{0}名均额员工的个人所得税申报『已缴额』为0，与账面应发工资规模不匹配，"
+                   "无法排除私户补差或账外发放薪酬的可能。").format(zero_tax)
+    if inverted:
+        inv_txt = "、".join(
+            "{0}（账面工资{1}，社保基数{2}）".format(x["name"], _fmt_yuan(x["salary"]), _fmt_yuan(x["social_base"]))
+            for x in inverted[:8]
+        )
+        detail += "另发现社保缴费基数高于账面工资的倒挂情形：{0}，提示存在未入账薪酬或社保基数不实。".format(inv_txt)
+    detail += "本项不认定为违法行为，仅作为待证线索：企业须就工资实际支付来源（公账/私账拆分）与个税扣缴真实性提供佐证。"
+    demand_docs = [
+        "实际控制人、股东、财务负责人等个人银行账户流水（排查私户/老板卡发放工资、奖金、补贴）",
+        "个人所得税扣缴申报表（全员全额扣缴明细，含每名员工收入额、减除费用、已缴税额）",
+        "工资发放明细表与员工签收记录、银行代发工资回单",
+        "社保费缴费明细及缴费基数申报表（核验缴费基数与账面工资、实际薪酬的一致性）",
+    ]
+    sources = ["salaries"] + (["social_security"] if data.get("social_security") else [])
+    return [_finding(spec, detail, {
+        "uniform_salary_groups": [
+            {"amount": g["amount"], "count": g["count"], "people": [p["name"] for p in g["people"]]}
+            for g in uniform
+        ],
+        "uniform_employee_count": total_uniform,
+        "zero_declared_tax_count": zero_tax,
+        "social_base_inverted": inverted[:10],
+        "demand_docs": demand_docs,
+    }, sources, priority="调查优先级")]
+
+
+def _scan_mixed_payroll(data, spec):
+    """VR056 公私混同发薪/私户支付薪酬（支付来源不可见盲区）。
+
+    比对账面工资与对公账户实际支付：无银行流水→监管盲区提示（责令补公户+私户流水）；
+    有流水且公户工资支出远小于账面→公账+私账拆分嫌疑（差额=私户支付敞口）；
+    流水直接显示员工个人账户支付薪酬→坐实私户发薪。一律待证，责令提供私户流水+个税申报表。
+    """
+    salaries = data.get("salaries") or []
+    if not salaries:
+        return []
+    names = [_person_name(r) for r in salaries if _person_name(r)]
+    total_payroll = sum(_salary_amount(r) for r in salaries)
+    if total_payroll <= 0:
+        return []
+    bank = data.get("bank_txs") or []
+    has_bank = bool(bank)
+    name_set = {n for n in names}
+
+    def _is_payroll_tx(tx):
+        s = str(tx.get("summary") or tx.get("摘要") or tx.get("remark") or tx.get("用途") or "")
+        return any(k in s for k in _PAYROLL_TX_KEYWORDS)
+
+    public_payroll = sum(
+        _number(tx.get("debit") or tx.get("借方"))
+        for tx in bank if _is_payroll_tx(tx) and _number(tx.get("debit") or tx.get("借方")) > 0
+    )
+    private_paid = []
+    for tx in bank:
+        cp = str(tx.get("counterparty") or tx.get("对方户名") or tx.get("交易对方") or "")
+        if cp in name_set and _is_payroll_tx(tx):
+            private_paid.append({"counterparty": cp, "amount": _number(tx.get("debit") or tx.get("借方"))})
+    sources = ["salaries"] + (["bank_txs"] if has_bank else [])
+
+    # 情形一：无银行流水 → 监管盲区
+    if not has_bank:
+        detail = (
+            "企业账面应发工资合计{0}（{1}名员工），但未提供任何银行流水，无法核验工资实际支付来源"
+            "（对公账户代发 or 实际控制人/股东/财务个人卡私户支付）。实务中『一部分公账支付、一部分私账支付』"
+            "以压低单人多层级税基、规避个税全员全额扣缴的情形，在缺少私户流水时将完全暴露于监管盲区。"
+            "本项为监管盲区提示（非违法定性），须责令补充资料以清扫盲区。".format(_fmt_yuan(total_payroll), len(names))
+        )
+        demand_docs = [
+            "对公账户银行流水（核验工资代发记录与账面计提是否一致）",
+            "实际控制人、股东、财务负责人等个人银行账户流水（排查私户/老板卡发放工资、奖金、补贴）",
+            "个人所得税扣缴申报表（全员全额扣缴明细）",
+            "工资发放明细表与员工签收记录",
+        ]
+        return [_finding(spec, detail, {
+            "book_payroll_total": round(total_payroll, 2),
+            "employee_count": len(names),
+            "blind_spot": "未提供银行流水，支付来源不可见",
+            "demand_docs": demand_docs,
+        }, sources, status="data_quality_limitation", priority="盲区清扫")]
+
+    # 情形二：有银行流水
+    # 2a 已发现私户直接支付痕迹 → 强嫌疑
+    if private_paid:
+        pp_txt = "；".join("{0}{1}".format(p["counterparty"], _fmt_yuan(p["amount"])) for p in private_paid[:10])
+        detail = (
+            "账面应发工资合计{0}，对公账户工资类支出{1}，二者存在重大背离。更关键的是，银行流水显示以员工个人账户"
+            "直接支付的工资/薪酬记录：{2}，坐实『公账+私账拆分支付薪酬』的操作模式，存在未通过企业账户、"
+            "未如实扣缴个人所得税的敞口。".format(_fmt_yuan(total_payroll), _fmt_yuan(public_payroll), pp_txt)
+        )
+        demand_docs = [
+            "实际控制人、股东、财务负责人等个人银行账户完整流水（固定私户支付薪酬、奖金、补贴的全貌）",
+            "个人所得税扣缴申报表（核验上述私户支付是否已并入全员全额扣缴）",
+            "工资发放明细与员工签收记录",
+        ]
+        return [_finding(spec, detail, {
+            "book_payroll_total": round(total_payroll, 2),
+            "public_account_payroll": round(public_payroll, 2),
+            "private_paid_records": private_paid[:20],
+            "demand_docs": demand_docs,
+        }, sources, priority="调查优先级")]
+
+    # 2b 公户工资支出明显小于账面 → 拆分盲区
+    gap = total_payroll - public_payroll
+    if gap > max(total_payroll * 0.3, 3000):
+        detail = (
+            "账面应发工资合计{0}，但对公账户中可识别的工资/薪酬类支出仅{1}，差额约{2}（占账面工资{3:.0%}）"
+            "未见对公支付痕迹。该差额无法排除通过实际控制人/股东/财务个人卡等私户渠道支付、从而规避个人所得税"
+            "全员全额扣缴的可能，属典型的『公账+私账拆分支付薪酬』盲区。本项不认定为违法，须责令企业提供私户流水佐证。".format(
+                _fmt_yuan(total_payroll), _fmt_yuan(public_payroll), _fmt_yuan(gap), gap / total_payroll)
+        )
+        demand_docs = [
+            "对公账户银行流水（核验工资代发与账面计提差异）",
+            "实际控制人、股东、财务负责人等个人银行账户流水（排查私户支付薪酬差额）",
+            "个人所得税扣缴申报表（全员全额扣缴明细，核验私户支付是否已如实申报）",
+            "工资发放明细表与员工签收记录",
+        ]
+        return [_finding(spec, detail, {
+            "book_payroll_total": round(total_payroll, 2),
+            "public_account_payroll": round(public_payroll, 2),
+            "unexplained_gap": round(gap, 2),
+            "gap_ratio": round(gap / total_payroll, 4),
+            "demand_docs": demand_docs,
+        }, sources, priority="调查优先级")]
+    return []
+
+
+def _scan_thirdparty_blindspot(data, spec):
+    """VR057 第三方支付平台收款监管盲区（账外收入线索）。
+
+    识别销项经天猫/淘宝/抖音等平台结算、或银行收款方为支付宝/财付通等第三方支付归集账户，
+    说明企业自身流水只见第三方一笔归集入账、无法透视平台端真实交易。未提供平台结算资料时
+    输出监管盲区提示；平台销项高于对公归集时输出账外收入敞口待证线索。一律责令平台侧佐证。
+    """
+    sal_invs = data.get("sal_invs") or []
+    bank = data.get("bank_txs") or []
+    target = data.get("target_entity") or {}
+    tname = str(target.get("name") or target.get("company_name") or "")
+    platform_sales, third_party_credit, third_party_rows = [], 0.0, 0
+    for inv in sal_invs:
+        b = str(inv.get("buyer") or inv.get("购买方名称") or "")
+        if any(k in b for k in _PLATFORM_BUYER_KEYWORDS):
+            platform_sales.append({"buyer": b, "amount": _invoice_amount(inv)})
+    for tx in bank:
+        cp = str(tx.get("counterparty") or tx.get("对方户名") or tx.get("交易对方") or "")
+        if any(k in cp for k in _THIRD_PARTY_PAY_KEYWORDS):
+            third_party_credit += _number(tx.get("credit") or tx.get("贷方"))
+            third_party_rows += 1
+    if not platform_sales and not third_party_rows:
+        return []
+    sources = ["sal_invs"] + (["bank_txs"] if bank else []) + (["target_entity"] if target else [])
+    has_settlement = any(data.get(k) for k in ("platform_settlement", "platform_txs", "shop_orders", "platform_orders"))
+    platform_amount = sum(p["amount"] for p in platform_sales)
+    buyers_txt = "、".join(sorted({p["buyer"] for p in platform_sales})[:5]) or "—"
+    detail = (
+        "企业（{0}）的销项/收款高度依赖第三方平台：销项发票购方含平台主体（如{1}）"
+        "{2}；银行流水收款方为第三方支付归集账户（如支付宝支付科技有限公司）共{3}笔、归集金额{4}。"
+        "企业自身银行流水仅体现第三方归集账户一笔入账，无法透视平台端的真实交易笔数、买家身份、退货退款、"
+        "平台手续费与结算账期，形成『平台资金体外循环/账外收入』监管盲区——实务中平台店铺刷单、线下收款不入账、"
+        "平台返点账外、退货不作废重开等猫腻均藏身于此。".format(
+            tname or "标的公司", buyers_txt,
+            ("，共{0}笔平台销项、合计{1}".format(len(platform_sales), _fmt_yuan(platform_amount))) if platform_sales else "",
+            third_party_rows, _fmt_yuan(third_party_credit))
+    )
+    if not has_settlement:
+        detail += "当前资料未提供平台结算单与店铺后台订单，盲区未被清扫。本项为监管盲区提示（非违法定性），须责令企业提供平台侧完整资料。"
+    else:
+        detail += "已提供平台结算资料，须进一步勾稽平台GMV、退款与到账金额，核验是否全部如实申报。"
+    divergence = None
+    if platform_sales and third_party_credit and third_party_credit < platform_amount * 0.8:
+        divergence = round(platform_amount - third_party_credit, 2)
+        detail += "另：平台销项合计{0}明显高于银行第三方归集入账{1}，差额{2}，存在平台侧收入未完全进入对公账户的疑点。".format(
+            _fmt_yuan(platform_amount), _fmt_yuan(third_party_credit), _fmt_yuan(divergence))
+    demand_docs = [
+        "第三方平台（天猫/淘宝/京东/抖音等）结算单及对账单（含交易明细、手续费、退款、到账金额）",
+        "平台结算账户提现/结算至对公账户的银行流水",
+        "网店后台订单数据与物流轨迹（核验真实交易笔数与金额）",
+        "平台返点、佣金、活动补贴的收入确认与申报资料",
+    ]
+    return [_finding(spec, detail, {
+        "platform_sales_count": len(platform_sales),
+        "platform_sales_amount": round(platform_amount, 2),
+        "third_party_collection_rows": third_party_rows,
+        "third_party_collection_amount": round(third_party_credit, 2),
+        "settlement_provided": bool(has_settlement),
+        "divergence_amount": divergence,
+        "demand_docs": demand_docs,
+    }, sources, priority="调查优先级" if (divergence or not has_settlement) else "中")]
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -3790,6 +4316,9 @@ _SCANNERS = {
     "VR052": _scan_processing_business_authenticity,
     "VR053": _scan_void_invoice_fund_return,
     "VR054": _scan_void_no_reissue_no_declare,
+    "VR055": _scan_wage_splitting,
+    "VR056": _scan_mixed_payroll,
+    "VR057": _scan_thirdparty_blindspot,
 }
 
 
