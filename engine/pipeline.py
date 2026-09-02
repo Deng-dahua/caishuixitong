@@ -4396,7 +4396,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             company_name=_iv_name,
         )
         comprehensive["input_voucher"] = _iv
-        # 留存按发票号聚合后的进项发票清单，使进项总额可独立复算/审计（稽查分身透明化）
+        # 留存按发票号聚合后的进项发票清单，使进项总额可独立复算/审计（风险检查分身透明化）
         comprehensive["purchase_invoices_aggregated"] = [i for i in invoices if i.get("direction") == "进项"]
         _iv_m = _iv.get("metrics", {}) or {}
         if _iv.get("available"):
@@ -4449,7 +4449,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as e:
         pipeline_log.append(f"[资金回流闭环] 执行异常(不影响主分析): {e}")
 
-    # ── ⑩ 稽查询问与质疑清单：已移至下方「假设-验证推理」之后，
+    # ── ⑩ 风险检查询问与质疑清单：已移至下方「假设-验证推理」之后，
     #    以便消费经竞争假设裁决后仍为「证据不足」的缺失型待证发现（unconfirmed），转化为企业自证询问。──
 
     _step_timing["step7_start"] = time.time()
@@ -4547,7 +4547,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         result["report"]["low_risk"] = sum(1 for f in all_findings if f.get("level") in ("低风险", "良好"))
     except Exception: pass
 
-    # ── ⑩ 稽查询问与质疑清单（第四阶·稽查分身增强：把待证线索转成企业可答复的询问+举证）──
+    # ── ⑩ 风险检查询问与质疑清单（第四阶·风险检查分身增强：把待证线索转成企业可答复的询问+举证）──
     # 置于假设-验证之后：消费经竞争假设裁决后仍为「证据不足」的缺失型待证发现（unconfirmed），抛企业自证
     try:
         from engine.inspection_questions import run_inspection_questions
@@ -4560,10 +4560,10 @@ def _run_analyze(company_id, db, progress_callback=None):
         )
         comprehensive["inspection_questions"] = _iq
         _iq_m = _iq.get("metrics", {}) or {}
-        pipeline_log.append(f"[稽查询问] 共{_iq_m.get('total_questions')}条询问 / {_iq_m.get('themes')}主题 结论={_iq.get('verdict','')}"
+        pipeline_log.append(f"[风险检查询问] 共{_iq_m.get('total_questions')}条询问 / {_iq_m.get('themes')}主题 结论={_iq.get('verdict','')}"
                             + (f" | 含缺失型待证{len(_unconfirmed)}条" if _unconfirmed else ""))
     except Exception as e:
-        pipeline_log.append(f"[稽查询问] 执行异常(不影响主分析): {e}")
+        pipeline_log.append(f"[风险检查询问] 执行异常(不影响主分析): {e}")
     
     # ═══ 纠正规则自动应用 ───
     try:
@@ -5173,7 +5173,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _inj_err:
         pipeline_log.append(f"material_intel注入失败: {_inj_err}")
 
-    # 注入疑点派生树（稽查思维导图 / 洋葱式展开）：引擎已基于触发的规则与
+    # 注入疑点派生树（风险检查思维导图 / 洋葱式展开）：引擎已基于触发的规则与
     # catalog 中的 derives_to 声明构建好拓扑树，直接下发供报告与前端渲染。
     try:
         if '_verified_result' in dir() and isinstance(_verified_result, dict) and _verified_result.get("derivation_tree"):
@@ -5688,7 +5688,7 @@ def _build_engine_hub_summary(red_team, blind_test, hallucination, topology):
 
 
 def _build_methodology_summary_legacy(all_findings, quality_report, cross_verify, pipeline_log):
-    """构建稽查方法论七层执行摘要（2026-08-26 审计修复前的原版实现，内容保留备查）。
+    """构建风险检查方法论七层执行摘要（2026-08-26 审计修复前的原版实现，内容保留备查）。
     历史问题（P0-2）：各层恒显 ✓、硬编码"42域"、"第五层·定案"使用定性措辞，
     与真实执行状态无关。现由下方 _build_methodology_summary 动态版替代，本函数不再被调用。"""
     lines = []
@@ -5713,7 +5713,7 @@ def _build_methodology_summary_legacy(all_findings, quality_report, cross_verify
 
 
 def _build_methodology_summary(all_findings, quality_report, cross_verify, pipeline_log):
-    """构建稽查方法论七层执行摘要（一键分析可见语言）。
+    """构建风险检查方法论七层执行摘要（一键分析可见语言）。
 
     2026-08-26 审计修复（P0-2）：
     ① 有量化数据的层按真实数据输出（✓/⚠ 由数据决定，不再恒显 ✓）；
@@ -5785,7 +5785,7 @@ def _build_doubt_library_summary(all_findings):
     )
     lines.append(f"推理注入: {llm_injected}条注入direction推理链+drill_questions穿透追问")
     lines.append(f"定性注入: {det_injected}条注入determination定性路径")
-    lines.append(f"报告驱动: {rep_injected}条注入suggestion稽查处理+remedy整改建议")
+    lines.append(f"报告驱动: {rep_injected}条注入suggestion风险检查处理+remedy整改建议")
 
     # 命中规则的分类分布 TOP5
     if hit and rule_cat:
@@ -5806,8 +5806,8 @@ def _generate_rights_and_signature_chapters(company_info):
         "title": "告知权利义务",
         "company": company_name,
         "rights": {
-            "回避权": {"期限": "3日内申请", "条件": "稽查人员与被查单位有利害关系"},
-            "陈述申辩权": {"期限": "7日内", "条件": "对稽查发现的事实和证据进行陈述和申辩"},
+            "回避权": {"期限": "3日内申请", "条件": "风险检查人员与被查单位有利害关系"},
+            "陈述申辩权": {"期限": "7日内", "条件": "对风险检查发现的事实和证据进行陈述和申辩"},
             "听证权": {"期限": "5日内申请", "条件": "对拟作出的行政处罚有异议"},
             "行政复议权": {"期限": "60日内", "条件": "对税务处理决定不服"},
             "行政诉讼权": {"期限": "15日内", "条件": "对行政复议决定不服或直接起诉"},

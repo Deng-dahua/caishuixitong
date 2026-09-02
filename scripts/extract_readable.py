@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """从 run_four_companies 产出的 full.json 中抽取 enterprise_readable_report 的正文，
-生成可读 markdown，供人工评估"稽查员分身"达成度。不重复跑分析。
+生成可读 markdown，供人工评估"风险检查员分身"达成度。不重复跑分析。
 """
 import sys, os, json
 
@@ -20,13 +20,13 @@ CHAPTER_ORDER = [
 TITLE_MAP = {
     "identity": "一、企业信息",
     "summary": "二、本轮检查总体结论",
-    "confirmed_problems": "三、本轮稽查确认的具体问题",
+    "confirmed_problems": "三、本轮风险检查确认的具体问题",
     "completed_checks": "四、已经执行且本轮未发现达到条件异常的检查",
-    "action_plan": "五、稽查处理意见和整改验收标准",
+    "action_plan": "五、风险检查处理意见和整改验收标准",
     "recheck": "五（续）、下一轮复查安排",
     "further_checks": "六、因资料缺失或不完整而无法完成的检查",
     "capability_boundary": "六（续）、系统能力边界",
-    "inspection_questions_report": "六（续）、待企业澄清事项（稽查询问清单）",
+    "inspection_questions_report": "六（续）、待企业澄清事项（风险检查询问清单）",
     "report_statement": "七、报告性质和使用说明",
 }
 
@@ -56,7 +56,7 @@ def extract(cid):
     if isinstance(name, dict):
         name = name.get("name") or str(name)
 
-    lines = [f"# 企业 {cid} 涉税稽查工作报告（可读提取）\n"]
+    lines = [f"# 企业 {cid} 涉税风险检查工作报告（可读提取）\n"]
     s = er.get("summary") or {}
     if s:
         lines.append(f"- 接收文件 {s.get('received_material_count', '—')} 个，归并 {s.get('material_category_count', '—')} 类资料")

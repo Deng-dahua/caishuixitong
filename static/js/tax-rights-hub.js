@@ -76,7 +76,7 @@ function renderTaxpayerRightsHub(container) {
           <div class="rights-step"><b>04 测算权益金额</b><small>明确计算口径、数据来源与测算前提。</small></div>
           <div class="rights-step"><b>05 形成办理建议</b><small>整理申报路径、所需材料和待确认事项。</small></div>
         </div>
-        <div class="rights-boundary"><b>职责边界：</b>本模块只确认“是否可能享受、尚缺什么材料、如何办理”；对已享优惠是否存在违规适用的风险核查，仍由“稽查方法论”中的疑点规则和证据链负责。两者共享数据，但不混用结论。</div>
+        <div class="rights-boundary"><b>职责边界：</b>本模块只确认“是否可能享受、尚缺什么材料、如何办理”；对已享优惠是否存在违规适用的风险核查，仍由“风险检查方法论”中的疑点规则和证据链负责。两者共享数据，但不混用结论。</div>
       </section>
       <section class="rights-workspace">
         <div class="rights-workspace-title">税收优惠扫描与核验结果<small>展示当前账套可能适用的权益事项、预期收益和进一步核验要求。</small></div>

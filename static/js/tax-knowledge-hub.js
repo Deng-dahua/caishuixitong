@@ -20,7 +20,7 @@ function _khSummary(value, limit) {
 }
 
 var KNOWLEDGE_HUB_GROUPS = [
-  {id:'audit-knowledge', icon:'📚', name:'稽查知识库', purpose:'事实识别、调查步骤与实务经验', file:'audit_knowledge.json'},
+  {id:'audit-knowledge', icon:'📚', name:'风险检查知识库', purpose:'事实识别、调查步骤与实务经验', file:'audit_knowledge.json'},
   {id:'industry-data', icon:'🏭', name:'行业基准数据', purpose:'行业画像、指标区间与经营模式参照', files:['industry_data.json','industry_profiles.json']},
   {id:'agi-memory', icon:'🧠', name:'AGI记忆', purpose:'历史分析、纠正记录与企业指纹', file:'agi_memory.json'},
   {id:'self-heal', icon:'🩹', name:'自愈规则库', purpose:'异常模式、自动修复动作与验证记录', file:'self_heal_rules.json'},
@@ -72,7 +72,7 @@ function renderKnowledgeHub(container) {
 
   h += '<div class="kh-wrap">';
   h += '<h2>🧠 引擎知识中枢</h2>';
-  h += '<p class="kh-lead">聚合展示引擎后端全部隐藏数据——稽查知识库 · 行业基准 · 自愈规则 · 发现规则 · 关联记忆 · 假说 · 整改 · 审计历史。全部来自静态JSON数据文件，由引擎实时维护。</p>';
+  h += '<p class="kh-lead">聚合展示引擎后端全部隐藏数据——风险检查知识库 · 行业基准 · 自愈规则 · 发现规则 · 关联记忆 · 假说 · 整改 · 审计历史。全部来自静态JSON数据文件，由引擎实时维护。</p>';
 
   // Tabs
   h += '<div class="kh-tabs">';
@@ -219,13 +219,13 @@ function _khFetchAll(files, cb) {
   });
 }
 
-// ======== 稽查知识库 ========
+// ======== 风险检查知识库 ========
 function _khLoadAuditKnowledge(body) {
   _khFetch('audit_knowledge.json', function(d) {
-    if (!d) { body.innerHTML = '<div class="kh-placeholder">⚠ 稽查知识库数据加载失败</div>'; return; }
+    if (!d) { body.innerHTML = '<div class="kh-placeholder">⚠ 风险检查知识库数据加载失败</div>'; return; }
 
     var h = '';
-    var title = d.title || '稽查知识库';
+    var title = d.title || '风险检查知识库';
     var desc = d.description || '';
     var groups = d.groups || [];
 
@@ -253,7 +253,7 @@ function _khLoadAuditKnowledge(body) {
       h += '</div>';
     });
 
-    body.innerHTML = h || '<div class="kh-placeholder">暂无稽查知识库内容</div>';
+    body.innerHTML = h || '<div class="kh-placeholder">暂无风险检查知识库内容</div>';
   });
 }
 
@@ -473,7 +473,7 @@ function _khLoadHypotheses(body) {
     var verified = d.verified || [];
 
     h += '<div class="kh-card"><h4>创造性假说</h4>';
-    h += '<div class="kh-meta">LLM在分析过程中生成的创造性稽查假说：已生成'+generated.length+'条 · 已验证'+verified.length+'条</div></div>';
+    h += '<div class="kh-meta">LLM在分析过程中生成的创造性风险检查假说：已生成'+generated.length+'条 · 已验证'+verified.length+'条</div></div>';
 
     if (Array.isArray(generated) && generated.length > 0) {
       h += '<div class="kh-card"><h4>已生成假说</h4>';

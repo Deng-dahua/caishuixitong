@@ -246,11 +246,11 @@
         + esc(caseDepths.sort(function (a,b){return a-b;}).join('、')) + '</td></tr>';
     }).join('');
     var html = '<style>' + methodologyCss() + '</style><div class="m3-shell">'
-      + '<aside class="m3-nav"><b>稽查方法论</b>'
+      + '<aside class="m3-nav"><b>风险检查方法论</b>'
       + [['m3-overview','职责与主流程'],['m3-coverage','覆盖体系'],['m3-ledger','真实能力账本'],['m3-data-model','统一数据模型'],['m3-validation','独立验证体系'],['m3-common','共同事实底座'],['m3-industries','全行业场景'],['m3-workflow','作业规程'],['m3-domains','业务域协同'],['m3-chains','链路与证据'],['m3-report','报告移交'],['m3-results','执行成果'],['m3-quality','质量与进化']].map(function (item) {
         return '<a href="#' + item[0] + '">' + item[1] + '</a>';
       }).join('') + '</aside><main class="m3-main">'
-      + '<header class="m3-hero" id="m3-overview"><span>税务稽查方法论 · 现行版本 ' + esc(portfolio.version || '') + '</span>'
+      + '<header class="m3-hero" id="m3-overview"><span>税务风险检查方法论 · 现行版本 ' + esc(portfolio.version || '') + '</span>'
       + '<h1>从资料进入到报告移交的完整专业作业体系</h1><p>' + esc(portfolio.positioning || '')
       + ' 系统负责形成待核事实、调查任务、证据矩阵、分析底稿和报告移交包；有权人员依法完成事实认定、税额确认、处理处罚及其他法定决定。</p>'
       + '<div class="m3-flow"><b>资料准入</b><i>→</i><b>经营画像</b><i>→</i><b>事实规则</b><i>→</i><b>调查核验</b><i>→</i><b>证据组织</b><i>→</i><b>分析论证</b><i>→</i><b>人工审理</b><i>→</i><b>报告移交</b></div></header>'
@@ -266,7 +266,7 @@
       + '</div><div class="m3-principle"><b>数量原则</b><p>' + esc(portfolio.count_policy || '') + '</p></div>'
       + '<h3>税费事项覆盖</h3><div class="m3-table-wrap"><table><thead><tr><th>税费组</th><th>覆盖事项</th><th>核验重点</th></tr></thead><tbody>' + taxRows + '</tbody></table></div>'
       + '<h3>行业和叠加业务覆盖</h3><div class="m3-table-wrap"><table><thead><tr><th>代码</th><th>合同</th><th>场景</th><th>调查深度</th><th>边界样本深度</th></tr></thead><tbody>' + industryRows + '</tbody></table></div></section>'
-      + '<section class="m3-section" id="m3-ledger"><div class="m3-heading"><span>02</span><div><h2>242项真实能力账本</h2><p>逐项公开方法论、自动执行、独立验证和正式发布状态，禁止用资产数量冒充自动稽查能力。</p></div></div>'
+      + '<section class="m3-section" id="m3-ledger"><div class="m3-heading"><span>02</span><div><h2>242项真实能力账本</h2><p>逐项公开方法论、自动执行、独立验证和正式发布状态，禁止用资产数量冒充自动风险检查能力。</p></div></div>'
       + capabilityLedgerHtml(ledger) + '</section>'
       + '<section class="m3-section" id="m3-data-model"><div class="m3-heading"><span>03</span><div><h2>统一财税数据模型</h2><p>不同银行、财务软件、税务导出、非标准表格和非结构化文档统一映射到稳定财税对象，并保留源文件定位。</p></div></div>'
       + canonicalModelHtml(canonicalModel) + '</section>'
@@ -333,8 +333,8 @@
 
   window.renderMethodologyPage = function (container) {
     if (!container) return;
-    window.currentModule = '稽查方法论';
-    container.innerHTML = '<div style="padding:50px;text-align:center;color:#637083">正在装载现行稽查方法论...</div>';
+    window.currentModule = '风险检查方法论';
+    container.innerHTML = '<div style="padding:50px;text-align:center;color:#637083">正在装载现行风险检查方法论...</div>';
     Promise.all([
       fetch('/api/methodology/coverage?_t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('覆盖矩阵读取失败'); return r.json(); }),
       fetch('/api/methodology/assets/portfolio?_t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('行业场景读取失败'); return r.json(); }),
@@ -348,7 +348,7 @@
       if (!document.body.contains(container)) return;
       renderPage(container, values[0] || {}, values[1] || {}, values[2] || {}, values[3] || {}, values[4] || {}, values[5] || {}, values[6] || {}, values[7]);
     }).catch(function (error) {
-      container.innerHTML = '<div style="max-width:900px;margin:40px auto;padding:24px;border:1px solid #fecaca;border-radius:10px;background:#fff7f7;color:#991b1b">稽查方法论读取失败：' + esc(error.message || error) + '</div>';
+      container.innerHTML = '<div style="max-width:900px;margin:40px auto;padding:24px;border:1px solid #fecaca;border-radius:10px;background:#fff7f7;color:#991b1b">风险检查方法论读取失败：' + esc(error.message || error) + '</div>';
     });
   };
 }());

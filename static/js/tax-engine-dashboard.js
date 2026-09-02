@@ -1565,7 +1565,7 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-flow-box" style="background:#f0f9ff;border:1px solid #bae6fd">';
   h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方 · 出度25</h4>';
   // 摘要（默认可见）
-  h += '<div class="pp-summary">管道调度消费<b>25</b>个模块：智能大脑5个（4双向）、稽查方法论3个（2双向）、报告规范6个（0双向）、数据与分析3个（1双向）、文件解析5个（4双向）、AI交互4个（全双向）、系统1个（双向）。点击下方按钮查看明细。</div>';
+  h += '<div class="pp-summary">管道调度消费<b>25</b>个模块：智能大脑5个（4双向）、风险检查方法论3个（2双向）、报告规范6个（0双向）、数据与分析3个（1双向）、文件解析5个（4双向）、AI交互4个（全双向）、系统1个（双向）。点击下方按钮查看明细。</div>';
   h += '<div class="pp-toggle" onclick="toggleDetail(\'up-detail\',this)"><span class="arrow">▶</span>展开明细</div>';
   // 详情（默认隐藏）
   h += '<div class="pp-detail" id="up-detail">';
@@ -1573,7 +1573,7 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><span class="bi">双向</span><div class="desc">引擎运行状态、模块清单、七步进度</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><span class="bi">双向</span><div class="desc">引擎8维能力指标（识别/分析/规则/报告/学习/推理/域/记忆）</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-grow\')" style="color:#2563eb">成长曲线</a><span class="bi">双向</span><div class="desc">引擎成长轨迹和学习效果追踪</div></div>';
-  // 稽查方法论组（3个，其中2个双向）
+  // 风险检查方法论组（3个，其中2个双向）
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch9\')" style="color:#2563eb">跨域协商引擎</a><span class="bi">双向</span><div class="desc">跨域线索/证据/分析三链协商与冲突消解</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch10\')" style="color:#2563eb">数据一致性自检</a><div class="desc">5维自检矩阵确保分析逻辑不矛盾</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch11\')" style="color:#2563eb">审核反馈闭环</a><span class="bi">双向</span><div class="desc">用户审核→学习→下次自动应用的闭环</div></div>';
@@ -1586,7 +1586,7 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'rs-sync\')" style="color:#2563eb">触发与交付</a><div class="desc">报告触发条件和交付时机</div></div>';
   // 数据与分析组（3个，其中1个双向）
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'aly-logs\')" style="color:#2563eb">管线执行日志</a><span class="bi">双向</span><div class="desc">记录每步执行时间、输入输出、异常</div></div>';
-  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">全链路稽查质量保障体系</a><div class="desc">全链路质量保障：规则驱动+线索⇄证据并行→分析串联→报告平权汇入</div></div>';
+  h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'qs-layer5\')" style="color:#2563eb">全链路风险检查质量保障体系</a><div class="desc">全链路质量保障：规则驱动+线索⇄证据并行→分析串联→报告平权汇入</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'qs-layer1\')" style="color:#2563eb">核心数据资产</a><div class="desc">七步执行流程详解和核心数据资产清单</div></div>';
   // 文件解析组（5个，其中4个双向）
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'fp-mechanism\')" style="color:#2563eb">识别机制</a><span class="bi">双向</span><div class="desc">三层递进识别+四方交叉验证+{{file_fingerprints}}类指纹库</div></div>';
@@ -1608,7 +1608,7 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-flow-box" style="background:#f0fdf4;border:1px solid #bbf7d0">';
   h += '<h4 style="color:#15803d;border-bottom:1px solid #bbf7d0">⬇ 下游 · 消费方 · 入度24</h4>';
   // 摘要（默认可见）
-  h += '<div class="pp-summary">被<b>24</b>个模块消费：风险分析1个、智能大脑6个（3双向）、稽查方法论3个（2双向）、数据与分析3个（1双向）、文件解析5个（4双向）、AI交互4个（全双向）、系统1个（双向）。点击下方按钮查看明细。</div>';
+  h += '<div class="pp-summary">被<b>24</b>个模块消费：风险分析1个、智能大脑6个（3双向）、风险检查方法论3个（2双向）、数据与分析3个（1双向）、文件解析5个（4双向）、AI交互4个（全双向）、系统1个（双向）。点击下方按钮查看明细。</div>';
   h += '<div class="pp-toggle" onclick="toggleDetail(\'down-detail\',this)"><span class="arrow">▶</span>展开明细</div>';
   // 详情（默认隐藏）
   h += '<div class="pp-detail" id="down-detail">';
@@ -1622,7 +1622,7 @@ function renderPipeDashboard(container) {
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理引擎</a><div class="desc">因果推理和逻辑验证，消费管道产出</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'eng-info\')" style="color:#2563eb">引擎详情</a><span class="bi">双向</span><div class="desc">引擎全景状态，消费管道调度信息</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'engine-dimensions\')" style="color:#2563eb">能力维度</a><span class="bi">双向</span><div class="desc">引擎8维能力评分，消费管道运行数据</div></div>';
-  // 稽查方法论组（3个，其中2个双向+1个单向）
+  // 风险检查方法论组（3个，其中2个双向+1个单向）
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch9\')" style="color:#2563eb">跨域协商引擎</a><span class="bi">双向</span><div class="desc">消费管道调度的跨域线索进行协商</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch11\')" style="color:#2563eb">审核反馈闭环</a><span class="bi">双向</span><div class="desc">反馈闭环消费管道产出做审核验证</div></div>';
   h += '<div class="pp-flow-item"><a href="javascript:navigateTo(\'hb-ch12\')" style="color:#2563eb">引擎记忆体系</a><div class="desc">历史分析经验注入先验知识，消费管道记忆数据</div></div>';
@@ -3084,7 +3084,7 @@ function renderBrainPage(container) {
     + '</style>';
   var toc = '<nav class="brn-toc"><div class="tt">目录</div>';
   var body = '<div class="brn-body"><h1>🧠 智能大脑</h1>'
-    + '<p class="lead">管道调度 · 学习反馈 · 调度中枢 · 成长曲线 · 质量保障 · 推理引擎 · 引擎详情 · 能力维度 —— 稽查系统的智能中枢，统一编排各引擎的协同、学习、推理与质量把关。</p>';
+    + '<p class="lead">管道调度 · 学习反馈 · 调度中枢 · 成长曲线 · 质量保障 · 推理引擎 · 引擎详情 · 能力维度 —— 风险检查系统的智能中枢，统一编排各引擎的协同、学习、推理与质量把关。</p>';
   for (var i = 0; i < chapters.length; i++) {
     toc += '<a href="#brn-' + i + '">' + chapters[i][1] + '</a>';
     body += '<section id="brn-' + i + '"><div class="ch-h"><span class="idx">' + chapters[i][0] + '</span> ' + chapters[i][1] + '</div><div id="brn-body-' + i + '"></div></section>';

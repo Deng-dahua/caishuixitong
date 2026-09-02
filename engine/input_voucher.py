@@ -246,5 +246,5 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
         "verdict": verdict,
         "recommendation": recommendation,
         "note": "本比对基于进项发票与（可选）异常凭证清单，属「待证线索」：异常凭证须以税局官方公告或"
-                "发票查询平台为准，应转出未转出须结合用途明细账，定性权在稽查员。",
+                "发票查询平台为准，应转出未转出须结合用途明细账，定性权在风险检查员。",
     }

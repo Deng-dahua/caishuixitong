@@ -189,7 +189,7 @@ def run_fund_loop_check(bank_txs, cross_enterprise=None, company_name=""):
     body = "\n".join(lines)
 
     recommendation = ("系统已识别资金回流结构。下一步：①逐笔核实闭环对手方真实交易与货物流；"
-                      "②穿透关联企业同一控制人；③补充关联企业账户流水做完整闭环检测。定性权在稽查员。")
+                      "②穿透关联企业同一控制人；③补充关联企业账户流水做完整闭环检测。定性权在风险检查员。")
 
     return {
         "available": True,

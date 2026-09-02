@@ -1,6 +1,6 @@
 {
   "version": "1.1.0", "effective_date": "2026-08-05",
-  "name": "金融保险行业稽查场景合同", "industry_code": "FIN", "maturity": "M2.5_boundary_tested",
+  "name": "金融保险行业风险检查场景合同", "industry_code": "FIN", "maturity": "M2.5_boundary_tested",
   "positioning": "聚焦金融保险业特有风险——资管产品增值税、金融商品转让、贷款损失准备金、手续费收入确认。该行业税制复杂且有专门的金融业增值税政策。",
   "official_sources": [
     {"id": "SRC-VAT-LAW", "name": "增值税法"},

@@ -1,7 +1,7 @@
 {
   "version": "1.1.0", "effective_date": "2026-08-05",
-  "name": "信息技术与软件行业稽查场景合同", "industry_code": "IT", "maturity": "M2.5_boundary_tested",
-  "positioning": "聚焦IT/软件行业核心风险——研发加计扣除造假、软件即征即退骗税、跨境数字服务、技术转让滥用、人力成本虚列。该行业以人力和技术为主要投入，传统稽查手段难以覆盖无形资产的真实性和定价。",
+  "name": "信息技术与软件行业风险检查场景合同", "industry_code": "IT", "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦IT/软件行业核心风险——研发加计扣除造假、软件即征即退骗税、跨境数字服务、技术转让滥用、人力成本虚列。该行业以人力和技术为主要投入，传统风险检查手段难以覆盖无形资产的真实性和定价。",
   "official_sources": [
     {"id": "SRC-VAT-LAW", "name": "增值税法", "effective_period": "2026-01-01起"},
     {"id": "SRC-RD-DEDUCTION", "name": "研发费用加计扣除政策", "issuer": "财政部/税务总局"}

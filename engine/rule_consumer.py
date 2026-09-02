@@ -4,7 +4,7 @@
 按老邓"所有内容给引擎消费"理念（2026-07-13确立），把至今零消费的深度字段接入分析管道：
   - threshold 结构化触发指标：取代正则抠数字+关键词猜测
   - direction 推理链 + drill_questions 穿透追问 + evidence 证据清单：注入LLM推理上下文
-  - determination 定性路径 + suggestion 稽查处理 + remedy 整改建议：驱动报告生成
+  - determination 定性路径 + suggestion 风险检查处理 + remedy 整改建议：驱动报告生成
 """
 
 import re, json
@@ -200,7 +200,7 @@ def build_rule_context_for_llm(rule, finding=None):
     """把一条规则的深度字段组装成 LLM 推理上下文。
     在引擎发现异常信号命中某规则后，将以下内容注入 prompt：
       - 推理链 → 告诉 LLM"这个异常为什么是疑点，推到哪一步了"
-      - 穿透追问 → 告诉 LLM"稽查人员会问什么，应该往哪个方向深挖"
+      - 穿透追问 → 告诉 LLM"风险检查人员会问什么，应该往哪个方向深挖"
       - 证据清单 → 告诉 LLM"需要什么证据才能闭环"
     返回 (context_str, token_est) 或 (None, 0)。
     """
@@ -219,7 +219,7 @@ def build_rule_context_for_llm(rule, finding=None):
     if drill:
         parts.append(f"【穿透追问方向】{drill[:2000]}")
     if focus and focus != "待明确重点":
-        parts.append(f"【稽查重点预判】{focus[:1000]}")
+        parts.append(f"【风险检查重点预判】{focus[:1000]}")
     if evidence:
         parts.append(f"【需获取证据】{evidence[:1500]}")
     if normal:
@@ -264,7 +264,7 @@ def build_report_context_from_rule(rule, finding_data=None):
     det = rule.get("determination", "")
     if det:
         ctx["determination_guide"] = det[:2000]
-    # 稽查处理（稽查局视角）
+    # 风险检查处理（稽查局视角）
     sg = rule.get("suggestion", "")
     if sg:
         ctx["enforcement_guide"] = sg[:2000]
@@ -291,7 +291,7 @@ def build_report_context_from_rule(rule, finding_data=None):
     th = rule.get("threshold", "")
     if th:
         ctx["trigger_condition"] = th[:500]
-    # 稽查动作
+    # 风险检查动作
     act = rule.get("action", "")
     if act:
         ctx["investigation_steps"] = act[:2000]

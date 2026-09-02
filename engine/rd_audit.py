@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""研发费用加计扣除稽查审计引擎
+"""研发费用加计扣除风险检查审计引擎
 
 实现 CAN-12-R03 / CAN-17-R01~R03 要求的研发费用合规审计：
 1. 研发辅助账解析 — A107012表结构识别与费用分类
@@ -107,7 +107,7 @@ def audit_rd_deduction(
     target_entity: Optional[Dict] = None,
     pipeline_log: Optional[List] = None,
 ) -> List[Dict]:
-    """研发费用加计扣除稽查审计主入口
+    """研发费用加计扣除风险检查审计主入口
     
     Args:
         rd_data: 解析后的研发辅助账数据（来自_parse_rd_aux_ledger）

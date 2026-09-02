@@ -1,6 +1,6 @@
 {
   "version": "1.1.0", "effective_date": "2026-08-05",
-  "name": "跨境电商行业稽查场景合同", "industry_code": "CBEC", "maturity": "M2.5_boundary_tested",
+  "name": "跨境电商行业风险检查场景合同", "industry_code": "CBEC", "maturity": "M2.5_boundary_tested",
   "positioning": "聚焦跨境电商特有风险——跨境零售出口退税、海外仓存货不实、平台代扣代缴、多店铺多主体运营。与CAN-15(跨境海关)联动但聚焦B2C零售场景。",
   "official_sources": [
     {"id": "SRC-VAT-LAW", "name": "增值税法"},

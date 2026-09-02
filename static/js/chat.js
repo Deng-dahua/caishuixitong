@@ -37,7 +37,7 @@ function _chatInit() {
 const CHAT_CATEGORIES = [
   {icon:'📋',name:'税务政策',topics:['增值税税率','企业所得税计算','小规模纳税人优惠','印花税税目','个税专项附加扣除']},
   {icon:'📝',name:'账务处理',topics:['采购材料分录','固定资产折旧','收入确认时点','成本费用归集']},
-  {icon:'⚖️',name:'法律合规',topics:['虚开发票认定','偷税与漏税区别','税务稽查程序','滞纳金计算']},
+  {icon:'⚖️',name:'法律合规',topics:['虚开发票认定','偷税与漏税区别','税务风险检查程序','滞纳金计算']},
   {icon:'⚠️',name:'风险提示',topics:['进项发票合规','四流一致要求','关联交易风险','发票作废红冲规范']},
   {icon:'💰',name:'财务管理',topics:['毛利率分析','费用率控制','存货管理','现金流规划']},
 ];
@@ -223,15 +223,15 @@ async function renderChat(container) {
         <div class="cq-right-topic" onclick="_cqSendTopic('企业所得税怎么计算')">企业所得税计算</div>
         <div class="cq-right-topic" onclick="_cqSendTopic('小规模纳税人优惠政策')">小规模纳税人优惠</div>
         <div class="cq-right-topic" onclick="_cqSendTopic('进项发票抵扣规范')">进项发票抵扣规范</div>
-        <div class="cq-right-topic" onclick="_cqSendTopic('税务稽查常见风险点')">税务稽查常见风险点</div>
+        <div class="cq-right-topic" onclick="_cqSendTopic('税务风险检查常见风险点')">税务风险检查常见风险点</div>
         <div class="cq-right-topic" onclick="_cqSendTopic('固定资产折旧年限表')">固定资产折旧年限</div>
         <div class="cq-right-topic" onclick="_cqSendTopic('印花税最新税目税率')">印花税最新税目</div>
       </div>
       <div class="cq-right-section">
         <h4>🔗 知识库快捷入口</h4>
         <a class="cq-kb-link" href="javascript:navigateTo('knowledge-hub')">🧠 引擎知识中枢</a>
-        <a class="cq-kb-link" href="javascript:navigateTo('methodology')">📖 稽查方法论</a>
-        <a class="cq-kb-link" href="javascript:navigateTo('auditor-handbook')">⚖️ 稽查员手册</a>
+        <a class="cq-kb-link" href="javascript:navigateTo('methodology')">📖 风险检查方法论</a>
+        <a class="cq-kb-link" href="javascript:navigateTo('auditor-handbook')">⚖️ 风险检查员手册</a>
         <a class="cq-kb-link" href="javascript:navigateTo('tax-risk-rules-list')">📋 规则与调查目录</a>
         <a class="cq-kb-link" href="javascript:navigateTo('report-standards')">📐 报告编制要求</a>
       </div>

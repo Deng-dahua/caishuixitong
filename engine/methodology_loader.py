@@ -81,7 +81,7 @@ def _default_config():
 
 
 def save_methodology_config(config):
-    """保存方法论配置（稽查员在线编辑后持久化）"""
+    """保存方法论配置（风险检查员在线编辑后持久化）"""
     try:
         os.makedirs(os.path.dirname(_CONFIG_PATH), exist_ok=True)
         with open(_CONFIG_PATH, "w", encoding="utf-8") as f:
@@ -132,7 +132,7 @@ def get_filter_rules():
 def seed_filter_rules(defaults):
     """首次运行时把代码内置默认规则写入配置文件（幂等：已有节点不覆盖）。
 
-    引擎不再"背"规则而是"读"规则——写入后稽查员可直接编辑
+    引擎不再"背"规则而是"读"规则——写入后风险检查员可直接编辑
     static/methodology_config.json 的 filter_rules 节点，修改即生效。
     """
     config = load_methodology_config()
@@ -263,7 +263,7 @@ def get_relevant_laws(data_profile, knowledge=None):
     selected = []
     for law in laws:
         name = str(law.get("name", ""))
-        if "税务稽查案件办理程序" in name or "行政处罚法" in name:
+        if "税务风险检查案件办理程序" in name or "行政处罚法" in name:
             selected.append(law)
         elif "增值税" in name and any(word in text for word in ("增值税", "发票", "进项", "销项", "销售")):
             selected.append(law)

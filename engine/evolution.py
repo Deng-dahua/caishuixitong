@@ -9,7 +9,7 @@
 #
 # 秘笈自更新：
 #   每次分析后对比方法论七层执行情况 → 未触发步骤计数标记"待验证"
-#   → 新发现类型不在秘笈覆盖范围 → 写入补充建议节点等稽查员审核
+#   → 新发现类型不在秘笈覆盖范围 → 写入补充建议节点等风险检查员审核
 # ══════════════════════════════════════════════════════════════
 
 import json
@@ -18,7 +18,7 @@ import time
 
 _CONFIDENCE_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "pattern_confidence.json")
 
-# 置信度参数（老稽查员的直觉养成规律）
+# 置信度参数（老风险检查员的直觉养成规律）
 _CONF_INIT = 0.5          # 新模式初始置信度
 _CONF_STEP_UP = 0.1       # 验证通过 +0.1
 _CONF_STEP_DOWN = 0.1     # 误报 -0.1
@@ -169,8 +169,8 @@ def update_methodology_suggestions(pipeline_log, all_findings):
     """秘笈自更新：分析结果反向写入方法论配置。
 
     ① 七层执行完整性对比 → 未触发层累计计数 → 达阈值标记"待验证"
-    ② 新发现类型不在秘笈方法论覆盖范围 → 写入 pending_suggestions 等稽查员审核
-    审核通过前秘笈正文不变——引擎只提建议，定夺权在稽查员。
+    ② 新发现类型不在秘笈方法论覆盖范围 → 写入 pending_suggestions 等风险检查员审核
+    审核通过前秘笈正文不变——引擎只提建议，定夺权在风险检查员。
     """
     summary = {"untriggered": [], "new_suggestions": 0}
     try:
@@ -209,7 +209,7 @@ def update_methodology_suggestions(pipeline_log, all_findings):
                 su.setdefault("pending_suggestions", []).append({
                     "type": ftype,
                     "suggestion": f"发现秘笈未覆盖的风险类型「{ftype}」，建议评估是否补充为方法论检测项",
-                    "status": "待稽查员审核",
+                    "status": "待风险检查员审核",
                     "created": time.time(),
                 })
                 existing_sugs.add(ftype)
@@ -224,7 +224,7 @@ def update_methodology_suggestions(pipeline_log, all_findings):
             if summary["untriggered"]:
                 pipeline_log.append(f"[秘笈自更新] {len(summary['untriggered'])}层连续未触发已标记待验证: {summary['untriggered']}")
             if summary["new_suggestions"]:
-                pipeline_log.append(f"[秘笈自更新] {summary['new_suggestions']}条新模式补充建议已写入，等待稽查员审核")
+                pipeline_log.append(f"[秘笈自更新] {summary['new_suggestions']}条新模式补充建议已写入，等待风险检查员审核")
     except Exception as e:
         if pipeline_log is not None:
             pipeline_log.append(f"[秘笈自更新] ERROR: {e}")

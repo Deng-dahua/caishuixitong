@@ -1,7 +1,7 @@
 {
   "version": "1.1.0",
   "effective_date": "2026-08-05",
-  "name": "交通运输业稽查场景合同",
+  "name": "交通运输业风险检查场景合同",
   "industry_code": "TRA",
   "maturity": "M2.5_boundary_tested",
   "positioning": "聚焦交通运输业特有的虚开发票风险特征——油票分离、ETC虚抵、无车承运、代开链条、挂靠经营。场景非固定模板，触发条件与线索步数根据实际资料可用性动态调整。每个场景保留 trigger_signals（数据触发条件）、severity_modifiers（风险调节因子）、cross_industry_tags（跨行业复用标签）。",

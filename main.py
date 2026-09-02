@@ -2471,11 +2471,11 @@ _FILE_FINGERPRINTS = {
         "parser": lambda s, h: _parse_forex_sheet(s)
     },
     "audit_notice": {
-        "keywords": ["税务稽查通知书", "税务检查通知书", "税务自查通知书", "稽查局", "税务稽查",
-                     "自查提纲", "自查事项", "稽查所属期间", "检查期间", "检查所属期",
-                     "稽查人员", "检查人员", "联系电话", "稽查局盖章", "文书字号",
-                     "税稽通", "税自查", "被查单位", "纳税人识别号", "稽查任务",
-                     "案源编号", "稽查类型", "重点稽查", "专项检查"],
+        "keywords": ["税务稽查通知书", "税务检查通知书", "税务自查通知书", "稽查局", "税务风险检查",
+                     "自查提纲", "自查事项", "风险检查所属期间", "检查期间", "检查所属期",
+                     "风险检查人员", "检查人员", "联系电话", "稽查局盖章", "文书字号",
+                     "税稽通", "税自查", "被查单位", "纳税人识别号", "风险检查任务",
+                     "案源编号", "风险检查类型", "重点风险检查", "专项检查"],
         "score_threshold": 3,
         "parser": lambda s, h: _parse_audit_notice(s)
     },
@@ -2680,10 +2680,10 @@ def _parse_forex_sheet(sheet):
 # ═══════════ 税务通知书解析器 ═══════════
 
 def _parse_audit_notice(sheet):
-    """解析税务稽查/自查通知书——提取稽查机关、税种、期间、重点事项等关键信息。
+    """解析税务风险检查/自查通知书——提取风险检查机关、税种、期间、重点事项等关键信息。
     
     通知书类型包括：
-    - 税务稽查通知书（稽查局发出，正式稽查）
+    - 税务稽查通知书（稽查局发出，正式风险检查）
     - 税务自查通知书（税务机关发出，要求企业自查）
     - 税务检查通知书（日常检查或专项检查）
     
@@ -2730,7 +2730,7 @@ def _parse_audit_notice(sheet):
     # 识别通知书类型
     if any(kw in full_text for kw in ["自查", "自查提纲", "自查事项"]):
         result["notice_type"] = "自查通知书"
-    elif any(kw in full_text for kw in ["稽查", "稽查局"]):
+    elif any(kw in full_text for kw in ["风险检查", "稽查局"]):
         result["notice_type"] = "稽查通知书"
     elif any(kw in full_text for kw in ["检查", "检查通知书"]):
         result["notice_type"] = "检查通知书"
@@ -2739,7 +2739,7 @@ def _parse_audit_notice(sheet):
     m = re.search(r'([\u4e00-\u9fa5]+税[\u4e00-\u9fa5]?[通字查检]?\s*[〔\[\(]?\s*\d{4}\s*[〕\]\)]?\s*\d+\s*号)', full_text)
     if m: result["notice_no"] = m.group(1).strip()
     
-    # 稽查机关
+    # 风险检查机关
     m = re.search(r'(国家税务总?局[\u4e00-\u9fa5]*税务局[\u4e00-\u9fa5]*(?:稽查局|税务分局)?)', full_text)
     if m: result["audit_authority"] = m.group(1).strip()
     
@@ -2751,10 +2751,10 @@ def _parse_audit_notice(sheet):
     m = re.search(r'(?:纳税人识别号|统一社会信用代码|税号)[\s:：]*(\d{15,18}[A-Za-z0-9]?)', full_text)
     if m: result["taxpayer_id"] = m.group(1).strip()
     
-    # 稽查期间
+    # 风险检查期间
     period_patterns = [
         r'(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)\s*[至到—\-]+\s*(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)',
-        r'(?:稽查|检查|自查|所属)[\s:：]*期[间限][\s:：]*(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)\s*[至到—\-]+\s*(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)',
+        r'(?:风险检查|检查|自查|所属)[\s:：]*期[间限][\s:：]*(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)\s*[至到—\-]+\s*(\d{4}[\s\-./年]*\d{1,2}[\s\-./月]*)',
         r'(\d{4})\s*年\s*度',
     ]
     for pat in period_patterns:
@@ -2769,7 +2769,7 @@ def _parse_audit_notice(sheet):
                 result["audit_period_end"] = f"{groups[0].strip()}-12"
             break
     
-    # 稽查税种
+    # 风险检查税种
     tax_map = {
         "增值税": ["增值税", "增值税及附加"],
         "企业所得税": ["企业所得税", "企业所得税及"],
@@ -2791,7 +2791,7 @@ def _parse_audit_notice(sheet):
     if not result["tax_types"]:
         result["tax_types"] = ["增值税", "企业所得税"]  # 默认最常见
     
-    # 稽查重点/自查提纲
+    # 风险检查重点/自查提纲
     focus_map = {
         "发票合规": ["发票", "虚开", "代开", "发票真实性", "发票管理"],
         "关联交易": ["关联交易", "关联方", "转让定价", "同期资料"],
@@ -2809,7 +2809,7 @@ def _parse_audit_notice(sheet):
             result["focus_areas"].append(focus)
     
     # 联系人信息
-    m = re.search(r'(?:联系人|稽查人员|检查人员)[\s:：]*([\u4e00-\u9fa5]{2,4})', full_text)
+    m = re.search(r'(?:联系人|风险检查人员|检查人员)[\s:：]*([\u4e00-\u9fa5]{2,4})', full_text)
     if m: result["contact_person"] = m.group(1).strip()
     m = re.search(r'(?:联系|电话)[\s:：]*(\d[\d\-]{7,15})', full_text)
     if m: result["contact_phone"] = m.group(1).strip()
@@ -2827,7 +2827,7 @@ def _parse_audit_notice(sheet):
 def _generate_notice_materials(notice_info):
     """根据通知书内容智能推荐应对材料。
     
-    映射逻辑：稽查重点 + 税种 → 需要准备的资料类型
+    映射逻辑：风险检查重点 + 税种 → 需要准备的资料类型
     分为三个优先级：P0（必交）、P1（重点核查）、P2（辅助支持）
     """
     tax_types = notice_info.get("tax_types", [])
@@ -2835,13 +2835,13 @@ def _generate_notice_materials(notice_info):
     notice_type = notice_info.get("notice_type", "")
     period = f"{notice_info.get('audit_period_start', '')}至{notice_info.get('audit_period_end', '')}"
     if not notice_info.get("audit_period_start"):
-        period = "稽查所属期间"
+        period = "风险检查所属期间"
     
     p0 = []  # 必交
     p1 = []  # 重点核查
     p2 = []  # 辅助支持
     
-    # ── P0: 所有稽查必须提供的基础材料 ──
+    # ── P0: 所有风险检查必须提供的基础材料 ──
     p0.append({"material": "营业执照副本", "reason": "核实被查主体身份", "format": "PDF/图片"})
     p0.append({"material": "公司章程及修正案", "reason": "了解股权结构和治理机制", "format": "PDF"})
     
@@ -2857,7 +2857,7 @@ def _generate_notice_materials(notice_info):
     p0.append({"material": f"银行对账单（{period}，全部对公账户，按月）", "reason": "核查资金流与发票流一致性", "format": "Excel/PDF"})
     p0.append({"material": "科目余额表（逐月，至最末级科目）", "reason": "核查账务记录完整性", "format": "Excel"})
     
-    # ── P1: 根据稽查重点推荐 ──
+    # ── P1: 根据风险检查重点推荐 ──
     for focus in focus_areas:
         if focus == "发票合规":
             p1.append({"material": "发票领用存台账", "reason": "核查发票管理规范性", "focus": "发票合规"})
@@ -2899,7 +2899,7 @@ def _generate_notice_materials(notice_info):
     
     return [
         {"priority": "P0-必交", "level": "critical", "description": f"{len(p0)}项：基础资料必须提交，缺失可能导致程序性不利后果", "items": p0},
-        {"priority": "P1-重点核查", "level": "focus", "description": f"{len(p1)}项：根据通知书明确的稽查重点推荐的专项材料", "items": p1},
+        {"priority": "P1-重点核查", "level": "focus", "description": f"{len(p1)}项：根据通知书明确的风险检查重点推荐的专项材料", "items": p1},
         {"priority": "P2-辅助支持", "level": "support", "description": f"{len(p2)}项：支持性材料，有助于全面说明情况", "items": p2},
     ]
 
@@ -2911,10 +2911,10 @@ def _build_response_checklist(notice_info):
     items.append({"seq": 1, "action": "确认收到通知书", "detail": f"收到{notice_info.get('notice_type', '')}（文书字号：{notice_info.get('notice_no', '待确认')}），确认送达日期并计算法定期限", "category": "程序", "deadline": "收到当日"})
     
     if notice_info.get("contact_person"):
-        items.append({"seq": 2, "action": "联系稽查人员", "detail": f"联系{notice_info['audit_authority']}的{notice_info['contact_person']}（电话：{notice_info.get('contact_phone', '待确认')}），确认稽查安排和资料提交方式", "category": "程序", "deadline": "2个工作日内"})
+        items.append({"seq": 2, "action": "联系风险检查人员", "detail": f"联系{notice_info['audit_authority']}的{notice_info['contact_person']}（电话：{notice_info.get('contact_phone', '待确认')}），确认风险检查安排和资料提交方式", "category": "程序", "deadline": "2个工作日内"})
     
     # 2. 内部准备
-    items.append({"seq": 3, "action": "成立稽查应对小组", "detail": "指定财务负责人+税务顾问+法务（如需要），明确分工", "category": "组织", "deadline": "2个工作日内"})
+    items.append({"seq": 3, "action": "成立风险检查应对小组", "detail": "指定财务负责人+税务顾问+法务（如需要），明确分工", "category": "组织", "deadline": "2个工作日内"})
     items.append({"seq": 4, "action": "内部预审", "detail": f"针对{', '.join(notice_info.get('tax_types', []))}等税种{', '.join(notice_info.get('focus_areas', ['整体合规']))}等重点，使用本系统做预分析", "category": "分析", "deadline": "5个工作日内"})
     
     # 3. 材料收集
@@ -5015,7 +5015,7 @@ def _parse_bom_sheet(sheet):
     """解析BOM物料清单：成品→原料的配方/用量/损耗映射关系。
     
     BOM表是生产型企业的核心资料，定义了每个成品由哪些原料、按什么比例、
-    经过哪些工序制成。税务局稽查生产型企业时，BOM表是验证投入产出逻辑
+    经过哪些工序制成。税务局风险检查生产型企业时，BOM表是验证投入产出逻辑
     是否合理的最重要依据。
     
     常见BOM表格式：
@@ -5132,7 +5132,7 @@ def _parse_bom_sheet(sheet):
 def _parse_warehouse_lease_sheet(sheet, header=None):
     """解析仓库租赁合同台账：出租方/坐落/面积/期限/租金/品类。
     
-    税务稽查视角（VR026）：合同面积条款是仓储能力核验的第一证据。
+    税务风险检查视角（VR026）：合同面积条款是仓储能力核验的第一证据。
     账面存货所需面积必须 ≤ 合同面积；若合同未明确面积条款，
     存货真实存放地存疑（租仓库放不下账面库存→存货真实性风险）。
     """
@@ -5189,7 +5189,7 @@ def _parse_warehouse_lease_sheet(sheet, header=None):
 def _parse_transport_contract_sheet(sheet, header=None):
     """解析运输合同台账：承运方/起运地/到达地/方式/距离/重量/运费/承担方式。
     
-    税务稽查视角（VR027）：运费承担方式条款决定运输费在谁的账上体现。
+    税务风险检查视角（VR027）：运费承担方式条款决定运输费在谁的账上体现。
     "到货价含运/购方承担"不能解释本企业账面零运输费——物流单据仍须提供；
     若无任何运输合同+跨省购销，货物流断裂，涉嫌资金回流式虚开。
     """
@@ -8641,7 +8641,7 @@ def _apply_methodology_stage(report_data):
     ]
     quality_gate["gate_passed"] = all(v >= 100 for v in all_checks)
     quality_gate["decision_boundary"] = (
-        "五项验收标准全部100%方可作为正式稽查结论导出。"
+        "五项验收标准全部100%方可作为正式风险检查结论导出。"
         "未达标时系统标记为'辅助分析结果'，不得直接用于处罚或定性。"
     )
     report_data["_quality_gate"] = quality_gate
@@ -8650,7 +8650,7 @@ def _apply_methodology_stage(report_data):
     
     _append_one_click_log(
         report_data,
-        f"[统一主流程] 稽查方法论完成：复核{len(findings)}项，匹配{enriched}项",
+        f"[统一主流程] 风险检查方法论完成：复核{len(findings)}项，匹配{enriched}项",
     )
     return {"status": "completed", **summary}
 
@@ -8677,8 +8677,8 @@ def _apply_report_compilation_stage(report_data):
 def _build_five_flow_document_requests(report_data):
     """按五流生成调取资料清单：识别每流已提供/缺失的资料，缺失说明影响。
 
-    五流：合同流、货物流、发票流、资金流、税流（另加人员流）。这是"稽查分身"
-    数据准入层——像稽查员发《调取资料清单》，缺哪流就提示补哪流。
+    五流：合同流、货物流、发票流、资金流、税流（另加人员流）。这是"风险检查分身"
+    数据准入层——像风险检查员发《调取资料清单》，缺哪流就提示补哪流。
     """
     file_results = report_data.get("file_results", []) or []
     provided_types = set()
@@ -9147,7 +9147,7 @@ def _persist_one_click_result(company_id, result):
             "snapshot_id": f"ANALYSIS-{company_id}-{now[:10]}",
             "source_files": [str(fr.get("file", "") or "") for fr in (file_results or [])[:5] if isinstance(fr, dict) and fr.get("file")],
             "generated_at": now,
-            "decision_boundary": "此编号仅用于系统内部数据溯源，不代表正式稽查证据编号。",
+            "decision_boundary": "此编号仅用于系统内部数据溯源，不代表正式风险检查证据编号。",
         }
 
     # ═══ 规则漂移检测 ═══
@@ -9521,44 +9521,44 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         execution["status"] = "completed"
         report_data["_one_click_pipeline"] = execution
 
-        # ═══ 生成企业易读版九章稽查报告数据（供前端渲染涉税稽查工作报告）═══
+        # ═══ 生成企业易读版九章风险检查报告数据（供前端渲染涉税风险检查工作报告）═══
         try:
             from engine.enterprise_report import build_enterprise_readable_report
             report_data["enterprise_readable_report"] = build_enterprise_readable_report(report_data)
         except Exception as _ere_exc:
             _append_one_click_log(report_data, f"[企业版报告] 生成失败: {_ere_exc}")
 
-        # ═══ 稽查分身·数据准入：五流调取资料清单（缺哪流提示补哪流）═══
+        # ═══ 风险检查分身·数据准入：五流调取资料清单（缺哪流提示补哪流）═══
         try:
             report_data["document_requests"] = _build_five_flow_document_requests(report_data)
         except Exception as _dreq_exc:
             _append_one_click_log(report_data, f"[五流调取清单] 生成失败: {_dreq_exc}")
 
-        # ═══ 稽查分身·核心勾稽：五流合一勾稽矩阵（对账找矛盾）═══
+        # ═══ 风险检查分身·核心勾稽：五流合一勾稽矩阵（对账找矛盾）═══
         try:
             report_data["reconciliation_matrix"] = _build_reconciliation_matrix(report_data)
         except Exception as _rmx_exc:
             _append_one_click_log(report_data, f"[五流勾稽矩阵] 生成失败: {_rmx_exc}")
 
-        # ═══ 稽查分身·经营实质：五维可信度画像（判断是否真经营）═══
+        # ═══ 风险检查分身·经营实质：五维可信度画像（判断是否真经营）═══
         try:
             report_data["business_substance_profile"] = _build_business_substance_profile(report_data)
         except Exception as _bsp_exc:
             _append_one_click_log(report_data, f"[经营实质画像] 生成失败: {_bsp_exc}")
 
-        # ═══ 稽查分身·穿透深挖：关联方穿透图谱（客户/供应商/资金混同串起来）═══
+        # ═══ 风险检查分身·穿透深挖：关联方穿透图谱（客户/供应商/资金混同串起来）═══
         try:
             report_data["related_party_graph"] = _build_related_party_graph(report_data)
         except Exception as _rpg_exc:
             _append_one_click_log(report_data, f"[关联方图谱] 生成失败: {_rpg_exc}")
 
-        # ═══ 稽查分身·穿透深挖：虚开对开环开发票网络图谱 ═══
+        # ═══ 风险检查分身·穿透深挖：虚开对开环开发票网络图谱 ═══
         try:
             report_data["invoice_network_graph"] = _build_invoice_network_graph(report_data)
         except Exception as _ing_exc:
             _append_one_click_log(report_data, f"[发票网络图谱] 生成失败: {_ing_exc}")
 
-        # ═══ 稽查分身·受控交付：生成受控分析轮次（草稿，人工复核后才可正式发布）═══
+        # ═══ 风险检查分身·受控交付：生成受控分析轮次（草稿，人工复核后才可正式发布）═══
         report_data["compliance_round"] = _build_compliance_round(report_data, company_id)
 
         result["report"] = report_data
@@ -11236,7 +11236,7 @@ def _get_rights_notice():
             "行政诉讼权：6个月内向法院提起诉讼",
             "监督检举权：对违法违纪行为可检举控告",
         ],
-        "law_ref": "《税收征收管理法》《纳税人权利与义务公告》《税务稽查案件办理程序规定》",
+        "law_ref": "《税收征收管理法》《纳税人权利与义务公告》《税务风险检查案件办理程序规定》",
         "note": "本告知书仅为系统生成的辅助参考。正式权利告知以税务机关出具的文书为准。",
     }
 

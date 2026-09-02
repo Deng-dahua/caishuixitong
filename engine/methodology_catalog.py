@@ -147,7 +147,7 @@ def load_flat_rules() -> list[dict]:
                 "validation_cases": list(module.get("validation_cases", [])),
                 "suggestion": module.get("report_boundary", "完成事实、证据和程序复核后提交人工审理。"),
                 "policy_ref": _source_names(module, catalog),
-                "source": "税务稽查权威方法论目录",
+                "source": "税务风险检查权威方法论目录",
                 # 2026-08-26 审计修复（P0-3）：统一政策——全部复核合同均须人工复核，
                 # 不允许按评分免除复核或授予自动定性许可。
                 # 【原实现备查（已停用）："human_review_required": rule_score < 7,
@@ -192,7 +192,7 @@ def load_flat_rules() -> list[dict]:
                 "validation_cases": copy.deepcopy(scene.get("validation_cases", [])),
                 "suggestion": (scene.get("clue_chain") or {}).get("terminal", "完成事实、证据和程序复核后提交人工审理。"),
                 "policy_ref": "按业务期间的现行有效依据逐项核验",
-                "source": "全行业税务稽查方法论场景组合",
+                "source": "全行业税务风险检查方法论场景组合",
                 "industry_code": code,
                 "scene_id": scene.get("id"),
                 # 2026-08-26 审计修复（P0-3）：同上，全部场景均须人工复核。

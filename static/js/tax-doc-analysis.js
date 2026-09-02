@@ -2449,7 +2449,7 @@ function renderTaxDocReport(r) {
 
 
   var html = ctx.html;
-  var enterpriseMode = !!(r.enterprise_readable_report && ['税务稽查文书式报告', '内部税务稽查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0);
+  var enterpriseMode = !!(r.enterprise_readable_report && ['税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0);
 
   // 持续合规轮次与系统角色必须在报告首屏固定展示，防止内部分析
   // 被误认为税务机关行政处理、处罚或案件定性结论。
@@ -4585,7 +4585,7 @@ function _enterpriseProblemParagraphs(item) {
   var evidence = item.evidence_summary || {};
   return [
     {heading:'查明的主要事实', text:'经查，' + (item.what_found || '') + '上述数字来自本轮已读取资料的全量筛查，不是抽样估计。'},
-    {heading:'检查范围、方法和资料依据', text:'本项使用的资料范围为' + (evidence.source_scope || _prValue(item.source_references, '本轮已上传并成功读取的相关资料')) + '。' + (item.how_confirmed || '稽查人员按照统一口径整理本项资料并重新计算。') + (evidence.workpaper_note || '')},
+    {heading:'检查范围、方法和资料依据', text:'本项使用的资料范围为' + (evidence.source_scope || _prValue(item.source_references, '本轮已上传并成功读取的相关资料')) + '。' + (item.how_confirmed || '风险检查人员按照统一口径整理本项资料并重新计算。') + (evidence.workpaper_note || '')},
     {heading:'这件事对企业意味着什么', text:(item.inspection_opinion || '') + (item.possible_effect || '') + (item.amount_conclusion || '')},
     {heading:'应当同时核对的正常业务原因', text:'出现上述情况不当然等于发生税务违法。企业应结合真实业务核对：' + _narrativeSequence(evidence.normal_explanations, '正常业务原因和对企业有利的原始资料。')},
     {heading:'企业应当怎样处理', text:'具体处理顺序为：' + _narrativeSequence(item.what_to_do, '按真实业务和原始资料查明原因并作真实处理。')},
@@ -4600,7 +4600,7 @@ function _enterpriseFollowUpParagraphs(item) {
     {heading:'本轮检查结论', text:'经检查，' + (item.reason || '本轮没有取得完成该项检查所需的完整资料。') + (item.current_conclusion || '本轮不作问题认定') + '。这表示相应检查尚未完成，不表示企业已经发生违法或者少缴税款。'},
     {heading:'被阻断的检查和风险影响', text:'本轮无法完成以下检查：' + _narrativeSequence(item.blocked_checks, '相关业务事实、会计处理和纳税申报检查。') + '目前仍无法排除以下风险方向：' + _narrativeSequence(item.risks_not_excluded, '相关风险需要在取得资料后判断。') + (item.conclusion_effect || '相关检查不得显示为无异常或已经合规。')},
     {heading:'补充资料要求', text:'企业应补充：' + _narrativeSequence(item.required_materials, '能够证明相关业务事实的原始资料。') + '如原资料客观上无法取得，可以提供以下能够证明同一事实的替代资料：' + _narrativeSequence(item.alternative_materials, '能够真实证明同一事项的其他原始资料。')},
-    {heading:'下一轮复查程序', text:'资料补齐后，稽查人员将重新执行：' + _narrativeSequence(item.next_checks, item.next_check || '重新运行受影响的全部检查项目。') + '本项完成标准为：' + (item.completion_standard || '资料完整、能够回查，并已完成受影响项目的重新检查。')}
+    {heading:'下一轮复查程序', text:'资料补齐后，风险检查人员将重新执行：' + _narrativeSequence(item.next_checks, item.next_check || '重新运行受影响的全部检查项目。') + '本项完成标准为：' + (item.completion_standard || '资料完整、能够回查，并已完成受影响项目的重新检查。')}
   ];
 }
 
@@ -4622,20 +4622,20 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   var iqSec = report.inspection_questions_report || {};
   var statements = (report.report_statement || []).map(function(item){
     var value = String(item || '');
-    if (value.indexOf('本报告以企业内部税务稽查人员视角编制') >= 0) {
-      return '本报告采用税务稽查文书式结构和稽查人员陈述口径编制，所列检查事实、处理意见和复查要求用于企业合规整改。';
+    if (value.indexOf('本报告以企业内部税务风险检查人员视角编制') >= 0) {
+      return '本报告采用税务风险检查文书式结构和风险检查人员陈述口径编制，所列检查事实、处理意见和复查要求用于企业合规整改。';
     }
     return value;
   });
   var displayedAddressee = '被检查企业及其负责人';
   var openingText = String(inspector.opening || '');
-  if (!openingText || openingText.indexOf('本报告以内部税务稽查人员的工作口径') >= 0 || openingText.indexOf('稽查人员对被检查企业提交') >= 0) {
-    openingText = '根据本轮税务稽查工作安排，现对被检查企业提交并成功读取的财税资料实施检查，并将检查范围、实施程序、查明事实、税务影响、处理意见及后续复查要求报告如下。';
+  if (!openingText || openingText.indexOf('本报告以内部税务风险检查人员的工作口径') >= 0 || openingText.indexOf('风险检查人员对被检查企业提交') >= 0) {
+    openingText = '根据本轮税务风险检查工作安排，现对被检查企业提交并成功读取的财税资料实施检查，并将检查范围、实施程序、查明事实、税务影响、处理意见及后续复查要求报告如下。';
   }
-  var headlineText = String(summary.headline || '').replace(/本次内部税务稽查/g, '本次税务稽查');
+  var headlineText = String(summary.headline || '').replace(/本次内部税务风险检查/g, '本次税务风险检查');
   var administrativeBoundary = String(inspector.administrative_boundary || '');
   if (!administrativeBoundary || administrativeBoundary.indexOf('企业内部自查文书') >= 0) {
-    administrativeBoundary = '本报告由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务稽查程序并开展合规整改，不具有税务机关行政执法文书效力；税务机关实际检查结论应以依法送达的正式文书为准。';
+    administrativeBoundary = '本报告由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务风险检查程序并开展合规整改，不具有税务机关行政执法文书效力；税务机关实际检查结论应以依法送达的正式文书为准。';
   }
   var html = '';
 
@@ -4653,9 +4653,9 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '</div>';
 
   html += '<div class="toc"><a href="#company-conclusion">一、本轮检查总体结论</a><br>' +
-    '<a href="#company-problems">二、本轮稽查确认的具体问题</a><br>' +
+    '<a href="#company-problems">二、本轮风险检查确认的具体问题</a><br>' +
     '<a href="#company-completed">三、已经执行且本轮未发现达到条件异常的检查</a><br>' +
-    '<a href="#company-actions">四、稽查处理意见和整改验收标准</a><br>' +
+    '<a href="#company-actions">四、风险检查处理意见和整改验收标准</a><br>' +
     '<a href="#company-further">五、因资料缺失或不完整而无法完成的检查</a><br>' +
     '<a href="#company-statement">六、报告性质和使用说明</a></div>';
 
@@ -4669,7 +4669,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     }).join('');
   }
 
-  html += '<h2 id="company-problems">二、本轮稽查确认的具体问题</h2>' +
+  html += '<h2 id="company-problems">二、本轮风险检查确认的具体问题</h2>' +
     '<p class="i2">本部分只写本轮资料能够直接证明的具体问题。没有达到这一标准的事项，不在这里写成企业已经存在的问题。</p>';
   if (!problems.length) {
     html += '<p class="i2">本轮没有发现能够由现有资料直接证明的具体问题。请继续处理第七部分列明的资料缺口事项。</p>';
@@ -4688,12 +4688,12 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       '<p class="i2" style="line-height:2">' + esc(item.narrative || ((item.method || '') + (item.result || '') + (item.boundary || ''))) + '</p></section>';
   });
 
-  html += '<h2 id="company-actions">四、稽查处理意见和整改验收标准</h2>' +
+  html += '<h2 id="company-actions">四、风险检查处理意见和整改验收标准</h2>' +
     '<p class="i2">请按照下列顺序办理。所有处理必须建立在真实业务和原始资料基础上，不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';
   if (!plans.length) html += '<p class="i2">本轮没有需要立即处理的已证实具体问题，企业应先按第五部分补充资料。</p>';
   plans.forEach(function(item){
     html += '<h3>' + esc(item.seq || '') + '、先处理“' + esc(item.problem || '') + '”</h3>' +
-      '<p class="i2" style="line-height:2">' + esc(item.narrative || ('稽查人员提出的第一项处理动作是：' + (item.first_action || '') + '责任安排为：' + (item.responsibility || '') + '本项整改不能以口头说明作为完成依据，必须达到以下验收条件：' + _narrativeSequence(item.completion_standard, '完成后能够用原始资料重新核对。'))) + '</p>';
+      '<p class="i2" style="line-height:2">' + esc(item.narrative || ('风险检查人员提出的第一项处理动作是：' + (item.first_action || '') + '责任安排为：' + (item.responsibility || '') + '本项整改不能以口头说明作为完成依据，必须达到以下验收条件：' + _narrativeSequence(item.completion_standard, '完成后能够用原始资料重新核对。'))) + '</p>';
   });
 
   html += '<h3>整改验收与下一轮复查标准</h3>' +
@@ -4730,9 +4730,9 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     }
     if (capb.bottom_line) html += '<p class="i2"><strong>底线：</strong>' + esc(capb.bottom_line) + '</p>';
   }
-  // 待企业澄清事项（稽查询问清单）
+  // 待企业澄清事项（风险检查询问清单）
   if (iqSec && iqSec.title) {
-    html += '<h3>待企业澄清事项（稽查询问清单）</h3>' +
+    html += '<h3>待企业澄清事项（风险检查询问清单）</h3>' +
       '<p class="i2">' + esc(iqSec.summary || '') + '</p>';
     var iqThemes = iqSec.themes || [];
     iqThemes.forEach(function(th){
@@ -4740,7 +4740,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       (th.questions || []).forEach(function(q, idx){
         html += '<div class="i2" style="border-left:3px solid #b91c1c;padding:6px 12px;margin:8px 0;background:#fff7f7">';
         html += '<p style="margin:4px 0"><strong>询问 ' + (idx + 1) + '：</strong>' + esc(q.question || '') + '</p>';
-        if (q.basis) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">稽查依据：</span>' + esc(q.basis) + '</p>';
+        if (q.basis) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">风险检查依据：</span>' + esc(q.basis) + '</p>';
         if (q.materials && q.materials.length) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">需补充资料：</span>' + esc(q.materials.join('；')) + '</p>';
         if (q.system_gap) html += '<p style="margin:4px 0;color:#64748b"><span style="color:#92400e">系统局限→企业自证：</span>' + esc(q.system_gap) + '</p>';
         html += '</div>';
@@ -4755,7 +4755,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
 
 
 
-  html += '<div class="seal"><p>稽查报告编制人：_______________　日期：_______________</p>' +
+  html += '<div class="seal"><p>风险检查报告编制人：_______________　日期：_______________</p>' +
     '<p>被检查企业负责人签收：_______________　日期：_______________</p>' +
     '<p>整改负责人：_______________　复核人员：_______________</p></div>';
   return html;
@@ -4787,19 +4787,19 @@ function _buildInspectionProcessBody(r, allF, dateStr) {
 
   html += '<div style="padding:12px 14px;border:2px solid #1e3a8a;background:#eff6ff;margin:0 0 24px;line-height:1.8">' +
     '<strong>报告定位：</strong>' + esc(process.report_subtitle || '记录本轮检查程序、证据形成过程和未决事项。') +
-    '<br><strong>效力边界：</strong>本报告记录企业内部涉税稽查辅助工作的实际过程，不是税务机关检查报告、审理报告、税务处理决定或行政处罚文书。' +
+    '<br><strong>效力边界：</strong>本报告记录企业内部涉税风险检查辅助工作的实际过程，不是税务机关检查报告、审理报告、税务处理决定或行政处罚文书。' +
     '</div>';
 
-  html += '<div class="toc"><a href="#ch1">第一章　本轮稽查工作任务与边界</a><br>' +
+  html += '<div class="toc"><a href="#ch1">第一章　本轮风险检查工作任务与边界</a><br>' +
     '<a href="#ch2">第二章　资料接收、解析与取证准备过程</a><br>' +
-    '<a href="#ch3">第三章　稽查程序与模块执行记录</a><br>' +
+    '<a href="#ch3">第三章　风险检查程序与模块执行记录</a><br>' +
     '<a href="#ch4">第四章　逐项检查工作记录</a><br>' +
     '<a href="#ch5">第五章　证据、反证、资料缺口与金额底稿</a><br>' +
     '<a href="#ch6">第六章　本轮过程性意见与处理指引</a><br>' +
     '<a href="#ch7">第七章　未决事项、复查安排与报告状态</a><br>' +
     '<a href="#appendix">附件　工作日志与逐票清册</a></div>';
 
-  html += '<h2 id="ch1">第一章 本轮稽查工作任务与边界</h2>' +
+  html += '<h2 id="ch1">第一章 本轮风险检查工作任务与边界</h2>' +
     '<table class="tbl2"><tr><th style="width:20%">项目</th><th>本轮工作记录</th></tr>' +
     '<tr><td>任务来源</td><td>' + esc(assignment.source || '') + '</td></tr>' +
     '<tr><td>工作目标</td><td>' + esc(assignment.objective || '') + '</td></tr>' +
@@ -4823,7 +4823,7 @@ function _buildInspectionProcessBody(r, allF, dateStr) {
   if (!(intake.files || []).length) html += '<tr><td colspan="7">本轮没有形成可核验的资料接收记录，检查程序停留在资料准备阶段。</td></tr>';
   html += '</tbody></table></div>';
 
-  html += '<h2 id="ch3">第三章 稽查程序与模块执行记录</h2><p class="i2">' + esc(execution.sequence_rule || '') + '</p>' +
+  html += '<h2 id="ch3">第三章 风险检查程序与模块执行记录</h2><p class="i2">' + esc(execution.sequence_rule || '') + '</p>' +
     '<table class="tbl"><thead><tr><th>顺序</th><th>工作阶段</th><th>检查目的</th><th>执行状态</th><th>本轮结果</th><th>未决/停止条件</th></tr></thead><tbody>';
   (execution.stages || []).forEach(function(stage){
     html += '<tr><td>' + esc(stage.seq || '') + '</td><td><strong>' + esc(stage.name || '') + '</strong><br><small>' + esc(stage.stage_code || '') + '</small></td>' +
@@ -5093,12 +5093,12 @@ function _renderReportFallback(r, allF) {
 
 
   // 企业版是主文书；专业过程底稿继续保留在后台，供内部复查和历史轮次追溯。
-  if (r.enterprise_readable_report && ['税务稽查文书式报告', '内部税务稽查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
+  if (r.enterprise_readable_report && ['税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
     h += _buildEnterpriseReadableBody(r, dateStr);
     h += '</div>';
     return {
       html: h,
-      renderedModules: ['稽查任务与总体结论','中文资料清单','稽查程序','稽查确认问题','处理意见与验收','受阻检查','下一轮复查','报告说明'],
+      renderedModules: ['风险检查任务与总体结论','中文资料清单','风险检查程序','风险检查确认问题','处理意见与验收','受阻检查','下一轮复查','报告说明'],
       skippedModules: []
     };
   }
@@ -5454,7 +5454,7 @@ function _renderReportFallback(r, allF) {
   h += '<tr><td class="lbl">审查范围</td><td>' + _detectTaxScope(r, te).join('、') + '</td></tr>';
 
 
-  h += '<tr><td class="lbl">执行标准</td><td>系统方法论场景合同、报告18项质量门禁及业务期间现行有效税收法律规范；正式稽查程序以有权机关依法启动和送达的文书为准</td></tr>';
+  h += '<tr><td class="lbl">执行标准</td><td>系统方法论场景合同、报告18项质量门禁及业务期间现行有效税收法律规范；正式风险检查程序以有权机关依法启动和送达的文书为准</td></tr>';
 
 
   h += '</table>';

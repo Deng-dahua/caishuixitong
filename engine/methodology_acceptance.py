@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""稽查方法论场景验收与结论边界校准。"""
+"""风险检查方法论场景验收与结论边界校准。"""
 
 from __future__ import annotations
 

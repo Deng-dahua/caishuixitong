@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""验证本轮交付：稽查询问清单已生成 + 两处精度缺陷已消除。
+"""验证本轮交付：风险检查询问清单已生成 + 两处精度缺陷已消除。
 断言：
   ① 同额发票 4906 不再出现（false_invoice 按发票号去重后无此凑数组）
   ② 进项总额可复算（comprehensive.invoices 进项聚合合计 ≈ input_voucher.input_amount_total）
@@ -45,7 +45,7 @@ def recompute_input_total(comprehensive):
 
 
 print("=" * 60)
-print("验证：稽查询问清单 + 精度修复")
+print("验证：风险检查询问清单 + 精度修复")
 print("=" * 60)
 
 for cid in [1, 2, 3, 4]:
@@ -83,17 +83,17 @@ for cid in [1, 2, 3, 4]:
         # 不是硬失败，记录观察
         failures.append(f"C{cid}: 进项总额偏差 {eng_total-rec_total:,.2f}")
 
-    # ③ + ④ 稽查询问清单
+    # ③ + ④ 风险检查询问清单
     iq = comp.get("inspection_questions") or {}
     iqr = er.get("inspection_questions_report") or {}
     tq = _num((iq.get("metrics") or {}).get("total_questions"))
     nthemes = len(iq.get("themes") or [])
     has_q_text = bool(iqr.get("title")) and ("question" in json.dumps(iqr, ensure_ascii=False) or iq.get("themes"))
     if iq.get("available") and tq > 0 and iqr.get("title"):
-        print(f"  [PASS] 稽查询问清单已生成: {int(tq)} 条 / {nthemes} 主题，章标题='{iqr.get('title')}'")
+        print(f"  [PASS] 风险检查询问清单已生成: {int(tq)} 条 / {nthemes} 主题，章标题='{iqr.get('title')}'")
     else:
-        print(f"  [FAIL] 稽查询问清单缺失或不完整: available={iq.get('available')} total={tq} chapter_title={iqr.get('title')}")
-        failures.append(f"C{cid}: 稽查询问清单缺失")
+        print(f"  [FAIL] 风险检查询问清单缺失或不完整: available={iq.get('available')} total={tq} chapter_title={iqr.get('title')}")
+        failures.append(f"C{cid}: 风险检查询问清单缺失")
 
     # 逐主题列问句数量抽样
     for th in (iq.get("themes") or []):

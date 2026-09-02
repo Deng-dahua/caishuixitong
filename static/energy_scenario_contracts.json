@@ -1,7 +1,7 @@
 {
   "version": "1.1.0", "effective_date": "2026-08-05",
-  "name": "能源电力行业稽查场景合同", "industry_code": "ENE", "maturity": "M2.5_boundary_tested",
-  "positioning": "聚焦能源电力行业特有风险——新能源补贴收入确认、碳排放权交易、自产能源税务处理、煤矿/电厂资产处置。该行业以重资产和资源依赖为特征，国有资本占比高，稽查重点在于补贴合规和资源税。",
+  "name": "能源电力行业风险检查场景合同", "industry_code": "ENE", "maturity": "M2.5_boundary_tested",
+  "positioning": "聚焦能源电力行业特有风险——新能源补贴收入确认、碳排放权交易、自产能源税务处理、煤矿/电厂资产处置。该行业以重资产和资源依赖为特征，国有资本占比高，风险检查重点在于补贴合规和资源税。",
   "official_sources": [
     {"id": "SRC-VAT-LAW", "name": "增值税法"},
     {"id": "SRC-RESOURCE-TAX", "name": "资源税法", "issuer": "全国人大常委会"}

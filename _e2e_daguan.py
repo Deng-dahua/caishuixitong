@@ -214,7 +214,7 @@ def run_e2e(sample_dir):
     return rep
 
 
-# ── 4. 进化规则严谨稽查：用达冠真实样本数字构造含申报表的引擎数据，
+# ── 4. 进化规则严谨风险检查：用达冠真实样本数字构造含申报表的引擎数据，
 #       直接跑 run_verified_rules，验证 VR026–VR031 对达冠的风险命中 ──
 def run_evolved_audit():
     import sys as _sys
@@ -336,7 +336,7 @@ def run_evolved_audit():
                             "reported_income": 5000000},
     }
     result = run_verified_rules(engine_data)
-    print("\n========== 进化规则·达冠严谨稽查（VR026–VR052 盲区间接证据链）==========")
+    print("\n========== 进化规则·达冠严谨风险检查（VR026–VR052 盲区间接证据链）==========")
     new_ids = {f"VR{i:03d}" for i in range(26, 55)}
     hit = [f for f in result["findings"] if f["rule_id"] in new_ids]
     print(f"新增规则命中数: {len(hit)} / 28")
@@ -355,7 +355,7 @@ def run_evolved_audit():
                   # + 委托加工业务真实性三维勾稽(VR052) + 作废发票资金回流/未重开未申报(VR053/VR054)
     missing = expected - hit_ids
     print(f"  预期命中 {sorted(expected)}，实际缺失 {sorted(missing) if missing else '无'}")
-    assert not missing, f"达冠严谨稽查未命中预期风险点: {missing}"
+    assert not missing, f"达冠严谨风险检查未命中预期风险点: {missing}"
     # VR033 独立对照：进销品名严重背离（煤炭→建材变名）验证规则本身能力
     ctrl = run_verified_rules({
         "sal_invs": [{"invoice_no": "X1", "goods": "建材", "amount": 1000000, "tax": 130000, "total": 1130000}],
@@ -384,7 +384,7 @@ def run_evolved_audit():
     v41 = [f for f in v41_ctrl["findings"] if f["rule_id"] == "VR041"]
     print(f"  [VR041对照] 无固定资产时提示发现数={len(v41)}")
     assert len(v41) >= 1, "VR041 折旧异常提示分支（无固定资产）未产出"
-    # VR051 稽查取证补充资料责令单：聚合所有线索型发现的 demand_docs
+    # VR051 风险检查取证补充资料责令单：聚合所有线索型发现的 demand_docs
     v51 = [f for f in result["findings"] if f["rule_id"] == "VR051"]
     assert v51, "VR051 补充资料责令单未生成"
     v51_m = v51[0].get("observed_metrics", {})
@@ -428,13 +428,13 @@ def run_evolved_audit():
     assert "行政复议" in (v54[0].get("enterprise_rights") or ""), "VR054 必须带企业权利告知"
     # 覆盖度自检器输出
     cov = result.get("coverage", {})
-    print("\n========== 稽查覆盖度自检 ==========")
+    print("\n========== 风险检查覆盖度自检 ==========")
     print(result.get("coverage_text", ""))
     assert cov.get("summary", {}).get("coverage_rate", 0) > 0, "覆盖度自检未生成"
 
     # ── 疑点派生树（洋葱式展开）验证 ──
     dt = result.get("derivation_tree", {})
-    print("\n========== 疑点派生树（稽查思维导图 · 洋葱式展开）==========")
+    print("\n========== 疑点派生树（风险检查思维导图 · 洋葱式展开）==========")
     print(f"根疑点={dt.get('root_count')} 节点={dt.get('total_nodes')} 最大层深={dt.get('max_depth')}")
     assert dt.get("root_count", 0) >= 1, "疑点派生树无根节点"
     assert dt.get("total_nodes", 0) >= dt.get("root_count", 0), "派生树节点数异常"

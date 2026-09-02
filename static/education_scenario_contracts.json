@@ -1,6 +1,6 @@
 {
   "version": "1.1.0", "effective_date": "2026-08-05",
-  "name": "教育培训行业稽查场景合同", "industry_code": "EDU", "maturity": "M2.5_boundary_tested",
+  "name": "教育培训行业风险检查场景合同", "industry_code": "EDU", "maturity": "M2.5_boundary_tested",
   "positioning": "聚焦教育培训行业核心风险——预收学费不确认收入、兼职教师个税社保漏缴、线上教育跨境收入、虚假招生骗取补贴。预收款模式和大量兼职人员是该行业与一般服务业的最大区别。",
   "official_sources": [
     {"id": "SRC-VAT-LAW", "name": "增值税法"},

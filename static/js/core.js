@@ -197,7 +197,7 @@ const pages = {
   'feedback-template': '审核内容模板',
   'brain': '智能大脑（已迁移至智能分析系统中枢）',
   'engine-hub': '智能分析系统中枢',
-  'methodology': '稽查方法论',
+  'methodology': '风险检查方法论',
   'rs-pipeline': '质量保障管线',
   'report-standards': '报告编制要求',
   'rs-negotiation': '跨域协商标记展示规范',
@@ -217,7 +217,7 @@ const pages = {
   '文化事业建设费': '文化事业建设费',
   'correction-rules': '纠正规则中心',
   'report-spec': '报告编制要求',
-  'auditor-handbook': '稽查员手册',
+  'auditor-handbook': '风险检查员手册',
   // 以下6个新独立路由（2026-07-23 补齐）
   'engine-dashboard': '引擎仪表盘',
   'quality-system': '质量保障体系',
@@ -860,7 +860,7 @@ function navigateTo(page) {
       if (window.__METHODOLOGY_V3_LOADED__ && typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
       else {
         container.innerHTML = '<div style="max-width:760px;margin:40px auto;padding:24px;border:1px solid #fecaca;border-radius:10px;background:#fff7f7;color:#991b1b">'
-          + '<b>稽查方法论页面装载失败</b><br>现行渲染器（methodology-v3.js）未加载完成。请刷新页面重试；若持续失败请检查网络与脚本加载。</div>';
+          + '<b>风险检查方法论页面装载失败</b><br>现行渲染器（methodology-v3.js）未加载完成。请刷新页面重试；若持续失败请检查网络与脚本加载。</div>';
       }
       break;
     case 'rs-pipeline':

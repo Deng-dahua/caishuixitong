@@ -1,8 +1,8 @@
-"""企业易读版「涉税稽查工作报告」九章数据生成。
+"""企业易读版「涉税风险检查工作报告」九章数据生成。
 
 从一键分析结果（all_findings / file_results / target_entity 等）组装
 `enterprise_readable_report` 字段，供前端 _buildEnterpriseReadableBody 渲染
-九章稽查文书式报告。
+九章风险检查文书式报告。
 
 字段结构对齐前端 static/js/tax-doc-analysis.js 的读取逻辑。
 """
@@ -527,15 +527,15 @@ def _build_identity(report_data):
 
 def _build_inspector_perspective():
     return {
-        "opening": "根据本轮税务稽查工作安排，现对被检查企业提交并成功读取的财税资料实施检查，并将检查范围、实施程序、查明事实、税务影响、处理意见及后续复查要求报告如下。",
+        "opening": "根据本轮税务风险检查工作安排，现对被检查企业提交并成功读取的财税资料实施检查，并将检查范围、实施程序、查明事实、税务影响、处理意见及后续复查要求报告如下。",
         "work_principle": "以企业上传的原始资料为起点，先确认数据事实，再核对交易、会计处理和纳税申报；正常解释、反向证据和资料缺口分别记录。",
         "conclusion_rule": "只有能够回查到本轮资料的具体事实才写入问题部分；行业指标、风险评分和资料缺失不能单独作为问题认定。",
-        "administrative_boundary": "本报告由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务稽查程序并开展合规整改，不具有税务机关行政执法文书效力；税务机关实际检查结论应以依法送达的正式文书为准。",
+        "administrative_boundary": "本报告由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务风险检查程序并开展合规整改，不具有税务机关行政执法文书效力；税务机关实际检查结论应以依法送达的正式文书为准。",
     }
 
 
 def _build_procedures(report_data):
-    """七项稽查程序（固定描述 + 本轮实际数字）"""
+    """七项风险检查程序（固定描述 + 本轮实际数字）"""
     file_results = report_data.get("file_results", []) or []
     files_count = report_data.get("files_count", len(file_results)) or len(file_results)
     full_read = sum(1 for fr in file_results if isinstance(fr, dict) and "完整" in str(fr.get("actions", [])))
@@ -558,7 +558,7 @@ def _build_procedures(report_data):
         ("检查应有但未提供的资料及其连带影响",
          "根据企业行业、经营活动和税种，反向检查本轮未取得的申报、账簿、合同、履约、资金、人员、资产和优惠资料。本轮程序结果为：形成受阻检查及补件要求；缺少资料只表示相应检查未完成，不直接认定企业存在违法。"),
         ("形成处理意见、验收标准和下一轮复查计划",
-         "对已确认问题逐项提出处理步骤、责任安排、完成标准和应回传资料；对资料缺口明确补齐后必须重跑的检查。本轮程序结果为：本轮保持涉税稽查工作报告草稿状态。"),
+         "对已确认问题逐项提出处理步骤、责任安排、完成标准和应回传资料；对资料缺口明确补齐后必须重跑的检查。本轮程序结果为：本轮保持涉税风险检查工作报告草稿状态。"),
     ]
     return [{"seq": i + 1, "name": name, "narrative": narrative}
             for i, (name, narrative) in enumerate(procedures)]
@@ -654,9 +654,9 @@ def _problem_paragraphs(f):
          "text": _conclusion_statement(f)},
         {"heading": "代表性明细（可回查）",
          "text": ("以下为本项涉及的逐笔/代表明细（已脱敏行号与金额，原始数据见工作底稿）：" if detail_rows
-                  else "本项明细已留存于内部稽查底稿，可按上述资料范围逐笔回查。")},
+                  else "本项明细已留存于内部风险检查底稿，可按上述资料范围逐笔回查。")},
         {"heading": "检查范围、方法和资料依据",
-         "text": "本项使用的资料范围为" + scope + "。稽查人员直接读取企业上传的资料，按照同一口径逐项重新计算，并将计算结果与资料中的记录进行比较。原始文件指纹、读取回执、复算指标、代表性明细和可用的原文件行号已保存在内部稽查底稿中；专业人员可在工作底稿中回查。"},
+         "text": "本项使用的资料范围为" + scope + "。风险检查人员直接读取企业上传的资料，按照同一口径逐项重新计算，并将计算结果与资料中的记录进行比较。原始文件指纹、读取回执、复算指标、代表性明细和可用的原文件行号已保存在内部风险检查底稿中；专业人员可在工作底稿中回查。"},
         {"heading": "这件事对企业意味着什么",
          "text": "本轮确认资料中存在能够重复计算的数据差异。企业应先修复资料完整性和计算口径，再开展账、票、表、税和资金用途核对。仅凭这一数据差异，不能认定企业少缴税款或违反税收规定。" + tax_impact},
         {"heading": "应当同时核对的正常业务原因",
@@ -684,7 +684,7 @@ def _conclusion_statement(f):
         return (
             (answer or "本项结论已由本轮所报资料直接计算核定。")
             + (" " + scope_note if scope_note else "")
-            + " 本项无须补充核实即可作为定案事实引用；行政处理决定仍由稽查人员依程序作出。"
+            + " 本项无须补充核实即可作为定案事实引用；行政处理决定仍由风险检查人员依程序作出。"
         )
     suggestion = _norm_text(str(f.get("suggestion") or "").strip())
     return (
@@ -739,7 +739,7 @@ def _build_completed_checks(report_data):
         completed.append({
             "seq": seq,
             "title": (f.get("type") or "检查").replace("待核事实：", "").replace("待核事实:", ""),
-            "narrative": "稽查人员对本项执行了本轮规定的检查程序，按照该检查项目规定的字段、口径和计算条件完成筛查，并记录本轮唯一执行状态。检查结果为：本轮已经取得该项检查所需资料并执行规则，未发现达到该规则检查条件的异常。",
+            "narrative": "风险检查人员对本项执行了本轮规定的检查程序，按照该检查项目规定的字段、口径和计算条件完成筛查，并记录本轮唯一执行状态。检查结果为：本轮已经取得该项检查所需资料并执行规则，未发现达到该规则检查条件的异常。",
         })
         seq += 1
     return completed
@@ -799,7 +799,7 @@ def _build_further_checks(report_data):
                 {"heading": "补充资料要求",
                  "text": f"企业应补充{cat}。如原资料客观上无法取得，可以提供能够证明同一事实的替代资料。"},
                 {"heading": "下一轮复查程序",
-                 "text": f"资料补齐后，稽查人员将重新执行受影响的全部检查程序。本项完成标准为：资料能够覆盖本轮检查期间，来源、形成时间、原始版本和具体业务可以回查；补齐后重新运行受影响的全部检查程序。"},
+                 "text": f"资料补齐后，风险检查人员将重新执行受影响的全部检查程序。本项完成标准为：资料能够覆盖本轮检查期间，来源、形成时间、原始版本和具体业务可以回查；补齐后重新运行受影响的全部检查程序。"},
             ],
         })
     return further
@@ -836,13 +836,13 @@ def _build_summary(report_data, problems, completed, further):
         else:
             grade_phrase = f"全部{pending_cnt}项为待核事项，须补充外部证据后定性，本轮已随附检查建议。"
 
-    headline = (f"本次税务稽查共接收{files_count}个文件，归并为{len(types)}类资料。稽查人员经逐项读取、复算和交叉核对，"
+    headline = (f"本次税务风险检查共接收{files_count}个文件，归并为{len(types)}类资料。风险检查人员经逐项读取、复算和交叉核对，"
                 f"确认{len(problems)}项已有资料能够证明的具体问题。{grade_phrase}"
                 f"另有{len(completed)}项检查已执行且本轮未发现达到条件的异常；"
                 f"{len(further)}项因资料不足或影响范围尚未查清，本轮不作问题认定，补充资料后再检查。")
 
     owner_message = (f"请企业负责人先组织处理本报告列明的具体问题，并按要求补齐资料。"
-                     f"完成真实更正和资料补充后，应发起新一轮全量复查，由稽查人员继续核对原问题是否处理完成，以及补充资料是否带出新的关联问题。")
+                     f"完成真实更正和资料补充后，应发起新一轮全量复查，由风险检查人员继续核对原问题是否处理完成，以及补充资料是否带出新的关联问题。")
 
     return {
         "headline": headline,
@@ -895,7 +895,7 @@ def _build_discovery_overview(report_data, problems, completed, further):
 
 
 def _build_derivation_tree_report(report_data):
-    """疑点派生树（稽查思维导图 / 洋葱式逐层展开章节）。
+    """疑点派生树（风险检查思维导图 / 洋葱式逐层展开章节）。
 
     把引擎生成的 derivation_tree 渲染成「剥洋葱」式的可读结构：
     每一层疑点都给出——分析口径 / 佐证动作 / 需补资料 / 派生的连带疑点，
@@ -944,7 +944,7 @@ def _build_derivation_tree_report(report_data):
         blocks.append("\n".join(render_node(root, 0)))
     body = "\n\n".join(blocks)
     return {
-        "title": "疑点派生树（稽查思维导图 · 洋葱式逐层展开）",
+        "title": "疑点派生树（风险检查思维导图 · 洋葱式逐层展开）",
         "summary": f"本轮识别入口疑点 {dt.get('root_count', 0)} 个，经勾稽共派生疑点节点 {dt.get('total_nodes', 0)} 个，"
                    f"最大展开层深 {dt.get('max_depth', 0)} 层。每个疑点被铁证闭合或企业自证清白前，永远存在两种可能。",
         "principle": note,
@@ -953,12 +953,12 @@ def _build_derivation_tree_report(report_data):
 
 
 def _build_capability_boundary(report_data):
-    """能力边界与彻底稽查路线章节。
+    """能力边界与彻底风险检查路线章节。
 
     把系统从「接近彻底」再往上推的关键抓手写进报告：明确本系统在数据可触达范围内
     已能近乎彻底覆盖的违法形态、必须依赖外部数据源与人工下户才能查实的形态、以及
-    法律责任边界。让每份报告都自带「证据来源局限声明」，既回应「彻底稽查」诉求，
-    又不越界替稽查员做终裁。
+    法律责任边界。让每份报告都自带「证据来源局限声明」，既回应「彻底风险检查」诉求，
+    又不越界替风险检查员做终裁。
     """
     findings = report_data.get("all_findings", []) or []
     triggered = {f.get("rule_id") for f in findings if isinstance(f, dict) and f.get("rule_id")}
@@ -976,7 +976,7 @@ def _build_capability_boundary(report_data):
          "need": "银行对公与对私流水交叉、物流/库存实地盘点、上下游企业开票受票反向比对、第三方支付与现金证据"},
         {"gap": "主观故意定性（偷税 vs 少缴）",
          "why": "系统能证明数据矛盾，但证明不了主观故意",
-         "need": "稽查员结合询问笔录、经营情境、补证反应综合判断，并依法定程序认定"},
+         "need": "风险检查员结合询问笔录、经营情境、补证反应综合判断，并依法定程序认定"},
         {"gap": "未申报的隐性收入与体外循环",
          "why": "收入未进入任何申报与账簿系统，无内部数据可钩稽",
          "need": "外部涉税数据（金税四期比对、工商股权穿透、社保与人员规模反推产能）"},
@@ -992,18 +992,18 @@ def _build_capability_boundary(report_data):
         "第三阶（引擎深挖）：打通跨企业关联交易闭环识别，把单户疑点扩展为供应链网状违法图谱。",
     ]
     return {
-        "title": "能力边界与彻底稽查路线",
-        "opening": "本节说明本系统在「彻底稽查企业税收违法行为」这一目标上的实际能力边界，以及继续向上推进的路线。系统已能在数据可触达范围内近乎彻底地发现违法线索，但「彻底」的最后一环依赖外部数据源与人工执法，不在算法能力内。",
+        "title": "能力边界与彻底风险检查路线",
+        "opening": "本节说明本系统在「彻底风险检查企业税收违法行为」这一目标上的实际能力边界，以及继续向上推进的路线。系统已能在数据可触达范围内近乎彻底地发现违法线索，但「彻底」的最后一环依赖外部数据源与人工执法，不在算法能力内。",
         "covered_in_scope": covered,
         "coverage_note": coverage_note,
         "must_rely_on_external": need_external,
         "responsibility_boundary": [
-            "系统产出为「待证线索」与「已验证事实」，定性权、执法权与法律责任始终在稽查员、法制审核与税务机关。",
-            "系统结论用于模拟稽查程序与合规整改，不替代依法送达的税务处理/处罚决定书。",
+            "系统产出为「待证线索」与「已验证事实」，定性权、执法权与法律责任始终在风险检查员、法制审核与税务机关。",
+            "系统结论用于模拟风险检查程序与合规整改，不替代依法送达的税务处理/处罚决定书。",
             "证据不足的事项只列入待补证清单，不以风险评分或模型推测单独认定违法。",
         ],
         "roadmap": roadmap,
-        "bottom_line": "系统是企业税收违法稽查的锋利显微镜与推演器；要逼近「彻底」，必须由系统（数据勾稽）+ 外部源（独立视角）+ 稽查员（取证与定性）三者合体。单靠系统无法、也不应变身终裁者。",
+        "bottom_line": "系统是企业税收违法风险检查的锋利显微镜与推演器；要逼近「彻底」，必须由系统（数据勾稽）+ 外部源（独立视角）+ 风险检查员（取证与定性）三者合体。单靠系统无法、也不应变身终裁者。",
     }
 
 
@@ -1011,7 +1011,7 @@ def _build_cross_enterprise_report(report_data):
     """跨企业关联交易闭环章节（第三阶：单户疑点 → 供应链网状违法图谱）。
 
     读取引擎已在主链路算好的 comprehensive.cross_enterprise，把「同一实际控制人控制的
-    关联企业 / 共享供应商 / 共享客户 / 共享人员」渲染成稽查文书式可读结构。
+    关联企业 / 共享供应商 / 共享客户 / 共享人员」渲染成风险检查文书式可读结构。
     这是把系统从「查一户」推向「查一张网」的关键一档——虚开、洗票、利润转移类违法
     在网状视角下暴露率显著提升。
     """
@@ -1024,7 +1024,7 @@ def _build_cross_enterprise_report(report_data):
         return {
             "title": "跨企业关联交易闭环（供应链网状违法图谱）",
             "summary": ce.get("summary", "系统内企业未发现明显跨企业关联关系。"),
-            "body": "本轮跨企业关系检测已完成：系统内企业之间的供应商、客户、法定代表人及关键人员均未形成需进一步追查的重合。此结论仅基于本轮可读取的企业主体与发票往来数据；如存在未纳入系统的关联企业，须通过外部工商股权穿透补充核查（见「能力边界与彻底稽查路线」）。",
+            "body": "本轮跨企业关系检测已完成：系统内企业之间的供应商、客户、法定代表人及关键人员均未形成需进一步追查的重合。此结论仅基于本轮可读取的企业主体与发票往来数据；如存在未纳入系统的关联企业，须通过外部工商股权穿透补充核查（见「能力边界与彻底风险检查路线」）。",
             "risk_links": [],
         }
 
@@ -1051,7 +1051,7 @@ def _build_cross_enterprise_report(report_data):
         lines.append(f"● [{a}] ↔ [{b}]　关系：{tcn}（{lvl}风险）")
         if ents:
             lines.append(f"  重合实体：{'、'.join(ents[:8])}{'…' if len(ents) > 8 else ''}")
-        lines.append(f"  稽查指向：{REL_RISK_HINT.get(t, r.get('description', ''))}")
+        lines.append(f"  风险检查指向：{REL_RISK_HINT.get(t, r.get('description', ''))}")
         risk_links.append({
             "pair": f"{a} ↔ {b}",
             "type": tcn,
@@ -1069,7 +1069,7 @@ def _build_cross_enterprise_report(report_data):
         "high_risk_count": high,
         "note": (
             f"本轮识别跨企业关联关系 {len(rels)} 条（高风险 {high} 条）。上述关系为企业主体与发票往来数据"
-            f"自动勾稽所得，属「待证线索」：是否构成关联交易违法，须稽查员结合资金流水、合同实质与询问"
+            f"自动勾稽所得，属「待证线索」：是否构成关联交易违法，须风险检查员结合资金流水、合同实质与询问"
             f"笔录进一步核实，并依法定程序认定。"
         ),
     }
@@ -1095,7 +1095,7 @@ def _build_external_verify_report(report_data):
             "signals": [],
             "verdict": "无法核验",
             "recommendation": "建议接通天眼查/企查查或国家企业信用公示系统后重新核验。",
-            "note": "外部核验结论属「待证线索」，仅供稽查员延伸调查参考，不作为定性依据。",
+            "note": "外部核验结论属「待证线索」，仅供风险检查员延伸调查参考，不作为定性依据。",
         }
 
     channels = ce.get("channels_used") or []
@@ -1126,7 +1126,7 @@ def _build_external_verify_report(report_data):
         else:
             chan_summary.append(f"{ch}：{res.get('source','')} 已响应")
 
-    # 风险信号 → 稽查指向
+    # 风险信号 → 风险检查指向
     REL_HINT = {
         "企业状态异常": "关注是否借注销/吊销前转移收入、逃避税款；核查注销前突击开票与资金流向。",
         "高风险": "外部多源提示高风险，结合自报数据核查是否存在账外经营或隐瞒收入。",
@@ -1141,13 +1141,13 @@ def _build_external_verify_report(report_data):
             if k in s:
                 hint = v
                 break
-        signals.append({"signal": s, "hint": hint or "建议稽查员延伸核实。"})
+        signals.append({"signal": s, "hint": hint or "建议风险检查员延伸核实。"})
 
     lines = [f"外部核验通道：{('、'.join(channels)) if channels else '无'}"]
     for cs in chan_summary:
         lines.append(f"● {cs}")
     if signals:
-        lines.append("风险信号与稽查指向：")
+        lines.append("风险信号与风险检查指向：")
         for s in signals:
             lines.append(f"  - {s['signal']} → {s['hint']}")
     body = "\n".join(lines)
@@ -1162,7 +1162,7 @@ def _build_external_verify_report(report_data):
         "signals": signals,
         "verdict": verdict,
         "recommendation": rec,
-        "note": "外部核验结论属「待证线索」，由企业自报数据之外的公开/第三方视角所得，仅供稽查员延伸调查参考，"
+        "note": "外部核验结论属「待证线索」，由企业自报数据之外的公开/第三方视角所得，仅供风险检查员延伸调查参考，"
                 "不作为定性依据；付费深度通道（天眼查/企查查）配置 token 后可自动启用，进一步穿透股权与关联企业。",
     }
 
@@ -1179,7 +1179,7 @@ def _build_bank_flow_report(report_data):
             "title": "银行流水（资金流）比对",
             "available": False,
             "summary": "本轮未提供银行流水，未做资金流比对。",
-            "body": "银行流水是数电票时代暴露账外经营、私户收款、未开票收入的核心依据，也是稽查必收资料。"
+            "body": "银行流水是数电票时代暴露账外经营、私户收款、未开票收入的核心依据，也是风险检查必收资料。"
                     "未提供则无法量化资金流与申报收入的偏离。",
             "signals": [],
             "verdict": "未提供银行流水",
@@ -1329,21 +1329,21 @@ def _build_fund_loop_report(report_data):
 
 
 def _build_inspection_questions_report(report_data):
-    """十八、稽查询问清单与待澄清事项：把系统识别的待证线索转化为企业可答复、可举证的具体问题。
+    """十八、风险检查询问清单与待澄清事项：把系统识别的待证线索转化为企业可答复、可举证的具体问题。
     补偿系统做不了的下户盘货/查金税四期/穿透资金最终去向——以提问引导企业自证自改。"""
     comp = report_data.get("comprehensive", {}) or {}
     iq = comp.get("inspection_questions") or {}
     if not isinstance(iq, dict) or not iq.get("available"):
         return {
-            "title": "十八、稽查询问清单与待澄清事项",
+            "title": "十八、风险检查询问清单与待澄清事项",
             "available": False,
-            "summary": "本轮未生成稽查询问事项（未发现需置疑的线索或资料不足未触发）。",
+            "summary": "本轮未生成风险检查询问事项（未发现需置疑的线索或资料不足未触发）。",
             "themes": [],
             "note": "系统不能下户盘货、不能查金税四期、不能穿透资金最终去向；如后续补充资料或发现新线索，将重新生成询问清单。",
         }
     themes = iq.get("themes") or []
     return {
-        "title": "十八、稽查询问清单与待澄清事项",
+        "title": "十八、风险检查询问清单与待澄清事项",
         "available": True,
         "summary": iq.get("summary", ""),
         "verdict": iq.get("verdict", ""),
@@ -1401,7 +1401,7 @@ def build_enterprise_readable_report(report_data):
             _sec["metrics"] = _translate_metric_keys(_sec["metrics"])
 
     return _zh_normalize_obj({
-        "compilation_style": "税务稽查文书式报告",
+        "compilation_style": "税务风险检查文书式报告",
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
         "identity": _build_identity(report_data),
         "inspector_perspective": _build_inspector_perspective(),
@@ -1431,8 +1431,8 @@ def build_enterprise_readable_report(report_data):
         "report_statement": [
             "本报告只对本轮已上传且能够读取的资料负责，未上传资料不在本轮具体问题认定范围内。",
             "本报告所列“具体问题”均有本轮资料中的直接数据或可回查证据支持；资料不足的事项已单独列入补充资料后再检查清单。",
-            "本报告采用税务稽查文书式结构和稽查人员陈述口径编制，所列检查事实、处理意见和复查要求用于企业合规整改。",
+            "本报告采用税务风险检查文书式结构和风险检查人员陈述口径编制，所列检查事实、处理意见和复查要求用于企业合规整改。",
             "企业应依据真实业务和原始资料办理整改，不得倒签、补造、篡改、删除或隐匿资料。",
-            "系统能力存在边界：账外经营、私户收款、主观故意定性等须依赖外部数据源与人工下户取证，详见「能力边界与彻底稽查路线」章节。",
+            "系统能力存在边界：账外经营、私户收款、主观故意定性等须依赖外部数据源与人工下户取证，详见「能力边界与彻底风险检查路线」章节。",
         ],
     })

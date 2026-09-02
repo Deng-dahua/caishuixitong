@@ -503,7 +503,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
 
         for page, label in (
             ("engine-hub", "🧠 智能引擎中枢"),
-            ("methodology", "📖 稽查方法论"),
+            ("methodology", "📖 风险检查方法论"),
             ("report-standards", "📖 报告编制要求"),
             ("taxpayer-rights", "🎁 税收权益保障"),
         ):
@@ -614,7 +614,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "虚开现形",
             "从“可能有”到“就是有”",
             "系统永远紧跟最新法规",
-            "建议稽查频率",
+            "建议风险检查频率",
         ):
             self.assertNotIn(unsafe_text, methodology_v3)
 

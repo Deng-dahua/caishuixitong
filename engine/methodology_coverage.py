@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""现行稽查方法论的真实覆盖与质量报告。"""
+"""现行风险检查方法论的真实覆盖与质量报告。"""
 
 from __future__ import annotations
 

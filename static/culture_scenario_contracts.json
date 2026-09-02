@@ -1,6 +1,6 @@
 {
   "version": "1.1.0", "effective_date": "2026-08-05",
-  "name": "文化娱乐与影视行业稽查场景合同", "industry_code": "CUL", "maturity": "M2.5_boundary_tested",
+  "name": "文化娱乐与影视行业风险检查场景合同", "industry_code": "CUL", "maturity": "M2.5_boundary_tested",
   "positioning": "聚焦文娱影视行业核心风险——明星工作室核定征收滥用、直播打赏个税隐匿、影视制作成本虚列、版权收入拆分、关联方定价转移。该行业高净值个人集中，收入形式多样化（片酬/分红/打赏/版权），个税和增值税风险高度交织。",
   "official_sources": [
     {"id": "SRC-VAT-LAW", "name": "增值税法"},
