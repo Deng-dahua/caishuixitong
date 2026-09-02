@@ -81,6 +81,167 @@ def _fmt_metric_val(v):
     return str(v)
 
 
+_METRIC_CN = {
+    "material": "原料", "issue": "问题", "theoretical": "理论耗用", "actual": "实际耗用",
+    "deviation_ratio": "偏差率", "finished_products": "对应成品",
+    "processing_count": "加工费笔数", "total_amount": "加工费合计", "cross_region_count": "跨地区笔数",
+    "contract_area": "合同面积(㎡)", "required_area": "库存所需面积(㎡)",
+    "end_inventory_value": "期末存货货值", "end_inventory_qty": "期末存货数量",
+    "goods_value": "购销货值", "actual_transport": "账面运输费", "contract_freight": "合同运费",
+    "cities": "涉及城市", "freight_bearer": "运费承担方",
+    "duplicate_invoice_count": "重复发票号数", "salary_only_count": "仅工资册人数",
+    "social_only_count": "仅社保册人数", "supplier": "加工方", "goods": "货物",
+    "amount": "金额", "cross_region": "是否跨地区",
+    "only_buy_count": "仅采购商品类数", "only_buy_amount": "涉及金额", "core_cost_pct": "占核心成本%",
+    "has_processing": "是否存在加工费", "only_buy_goods": "仅采购商品",
+    "only_sell_count": "仅销售商品类数", "only_sell_amount": "涉及金额", "only_sell_goods": "仅销售商品",
+    "count": "家数", "amount": "金额", "credit": "收款", "debit": "付款",
+    "month": "月份", "left": "收款(银行)", "right": "开票(销项)", "gap": "差额",
+    "gap_ratio": "差额率", "province": "省份", "supplier_count": "供应商家数",
+    "province_count": "涉及省份", "supplier_top3_ratio": "前3大供应商占比",
+    "customer_top3_ratio": "前3大客户占比", "individual_supplier_count": "个体户供应商数",
+    "raw_material_amount": "原材料采购金额", "production_energy_amount": "生产能源金额",
+    "production_energy_invoice_count": "生产能源发票数", "personnel_match_count": "命中六员数",
+    "total_amount": "往来总额", "person_account_count": "涉及个人账号数",
+    "anomaly_months": "异常月份", "supplier_amount": "个体户供应商金额",
+    "goods": "货物", "sale_qty": "销数量", "purchase_qty": "进数量", "diff": "差额",
+    # VR026 税负率
+    "paid_vat": "实缴增值税", "revenue_base": "应税销售收入", "burden_rate_pct": "税负率(%)",
+    "industry_ref_low": "行业参考下限(%)", "industry_ref_high": "行业参考上限(%)", "extreme_low": "极低税负",
+    # VR027 作废红冲
+    "void_red_count": "作废红冲张数", "total_count": "发票总数", "void_red_ratio": "作废红冲占比",
+    "near_period_end_count": "月末季末作废数", "top_amount": "最大单张金额",
+    # VR028 未开票收入
+    "bank_credit_total": "银行收款合计", "invoice_total": "销项开票合计",
+    "declared_sales": "申报销售额", "declared_uninvoiced": "已申报未开票收入", "basis": "比对口径",
+    # VR029 零申报
+    "declaration_count": "申报期数", "zero_count": "零申报期数", "periods": "申报期间",
+    # VR030 股东借款
+    "person_out_total": "转个人合计", "other_receivable_to_person": "其他应收款挂股东",
+    "person_out_detail": "转个人明细", "receivable_examples": "挂账示例",
+    # VR031 印花税
+    "purchase_amount": "采购金额", "sales_amount": "销售金额", "contract_base": "购销合计",
+    "declared_stamp_base": "申报印花计税依据",
+    # VR032 进项转出
+    "hit_count": "命中张数", "reversal_tax_total": "应转出税额", "examples": "疑点示例",
+    "suspicion": "嫌疑用途", "seller": "销方", "invoice_no": "发票号",
+    # VR033 变名
+    "purchase_categories": "购进大类", "sales_categories": "销售大类", "divergence": "背离项",
+    # VR034 费用虚列
+    "suspicious_count": "可疑笔数", "suspicious_total": "可疑金额合计", "cash_total": "现金支出合计",
+    "expense_total": "费用合计", "revenue_total": "收入合计", "expense_rate": "费用率",
+    "summary": "摘要",
+    # VR035 印花其他税目
+    "loan_base": "借款计税依据", "lease_base": "租赁计税依据", "other_base": "其他税目合计",
+    # VR036 视同销售
+    "gift_count": "赠送笔数", "gift_total": "赠送金额合计", "self_use_count": "自用处数",
+    "self_use_total": "自用金额合计", "channel": "线索来源",
+    # VR037 关联交易转让定价
+    "deviation_count": "单价偏离笔数", "threshold": "偏离阈值", "median_price": "中位单价",
+    "deviation": "偏离幅度", "direction": "方向", "counterparty": "交易对手方",
+    "related_party_data": "股权穿透数据", "note": "说明",
+    # VR038 业务招待费
+    "entertainment_total": "业务招待费发生额", "deduct_cap": "扣除限额", "over_limit": "超限金额",
+    # VR039 广告费
+    "ad_promo_total": "广告费发生额",
+    # VR040 福利费
+    "welfare_total": "福利费发生额", "wage_total": "工资总额", "wage_source": "工资数据来源",
+    # VR041 折旧摊销
+    "dep_amort_total": "折旧摊销合计", "fixed_assets_total": "固定资产原值", "notes": "异常说明",
+    # VR042 房产税
+    "building_value": "房屋原值", "from_price_tax": "从价房产税", "rent_total": "租金收入",
+    "from_rent_tax": "从租房产税", "est_property_tax": "测算房产税", "declared_property_tax": "已申报房产税",
+    "rent_contracts": "租赁合同",
+    # VR043 城建附加
+    "paid_vat": "实缴增值税", "est_city_tax": "测算城建税", "est_edu": "测算教育费附加",
+    "est_local_edu": "测算地方教育附加", "est_total": "测算附加税合计", "declared_supplementary": "已申报附加税",
+    # VR044 库存收入背离
+    "closing_inventory_amount": "期末库存金额", "annual_revenue": "年营业收入", "inv_rev_ratio": "库存收入比",
+    # VR045 运输背离
+    "out_qty": "出库量", "contract_weight": "合同运输重量", "freight_voucher_amount": "运费凭证金额",
+    # VR046 呆滞
+    "stagnant_count": "呆滞存货项数", "zero_outbound_periods": "零出库期数",
+    # VR047 滚动矛盾
+    "mismatch_count": "滚动矛盾处数", "expected_closing": "应有期末", "reported_closing": "账面期末", "diff": "差异",
+    # VR048 规格不一致
+    "conflict_count": "规格冲突项数", "input_specs": "进项规格", "output_specs": "销项规格",
+    # VR049 物流/损耗
+    "big_deal_count": "大额交易笔数", "missing_logistics": "物流资料缺失", "loss_anomaly_count": "损耗异常项数",
+    "actual_loss_rate": "实际损耗率", "bom_loss_rate": "BOM定额损耗率",
+    # VR050 跨境
+    "foreign_deal_count": "跨境交易笔数", "customs_data_provided": "报关资料已提供",
+    # VR051 责令单
+    "demand_item_count": "责令补资项数", "triggered_finding_count": "触发发现数", "demand_order": "责令单明细",
+    "demand_docs": "需补充资料",
+    # VR052 委托加工业务真实性
+    "registered_province": "企业注册省", "registered_city": "企业注册市",
+    "processing_inv_count": "加工费进项笔数", "processing_inv_total": "加工费进项合计",
+    "cross_province_processing_count": "跨省加工费笔数", "cross_province_processing_amount": "跨省加工费金额",
+    "cross_province_suppliers": "跨省供应商省份", "transport_invoice_count": "运输费发票笔数",
+    "has_transport_contract": "是否有运输合同", "has_processing_contract": "是否有委托加工合同",
+    "missing_dims": "缺失维度", "auto_exonerate_path": "自证清白路径",
+    # VR053 作废发票资金回流勾稽
+    "void_invoice_count": "作废发票张数", "void_invoice_amount": "作废发票金额",
+    "matched_count": "资金吻合张数", "matched_amount": "资金吻合金额",
+    "matched_buyer_count": "资金吻合受票方户数", "match_ratio": "资金吻合占比",
+    "total_receipt": "对公收款总额", "reported_income": "申报收入",
+    "income_gap": "资金流与申报缺口", "matched_examples": "吻合示例",
+    # VR054 作废发票未重开未申报勾稽
+    "void_buyer_count": "涉及作废受票方户数", "total_void_amount": "作废金额合计",
+    "no_reissue_buyer_count": "只作废不重开户数", "no_reissue_void_amount": "只作废不重开金额",
+    "anomaly_ratio": "异常户金额占比", "declare_gap": "申报收入背离",
+    "no_reissue_examples": "只作废不重开示例",
+    "verified_facts": "已核实事实", "to_prove": "需企业举证",
+    # ── 补充：基础扫描/缺失型/勾稽/资金往来规则指标键（补齐中文，杜绝英文漏网）──
+    # 进项品名为空
+    "missing_count": "品名为空张数", "missing_amount": "品名为空金额",
+    # 公私账户资金混同（matches 列表内键）
+    "name": "人员", "out_to_person": "转出个人金额", "in_from_person": "个人转入金额",
+    "big_out_count": "大额转出笔数", "big_in_count": "大额转入笔数",
+    # 申报 vs 开票/发票勾稽（gaps 列表内键 + 汇总）
+    "declared_sales": "申报销售额", "invoice_sales": "开票销售额",
+    "declared_input_tax": "申报进项税额", "invoice_input_tax": "发票进项税额",
+    "declared_sales_total": "申报销售额合计", "invoice_sales_total": "开票销售额合计",
+    "declared_input_tax_total": "申报进项税额合计", "invoice_input_tax_total": "发票进项税额合计",
+    "directional_total_gap": "累计方向性差额", "gap_months": "差异月份数", "gaps": "逐月差异明细",
+    # 客户集中度
+    "customer_count": "客户户数", "customer_amount": "客户金额合计",
+    "individual_customer_count": "个体户客户数",
+    # 名称近似/重叠
+    "similar_pair_count": "近似名称对数", "overlap_count": "重叠户数",
+    "counterparty_count": "对手方户数", "comparable_count": "可比对数",
+    # 用工/人均产值
+    "headcount": "估算用工人数", "per_capita_output": "人均产值", "revenue": "销项收入",
+    "salary_headcount": "工资人数", "social_headcount": "社保人数",
+    "salary_only_examples": "仅工资示例", "social_only_examples": "仅社保示例",
+    # 加价/产出
+    "markup_ratio": "加价倍数", "output_amount": "销项成品金额",
+    # 费用虚列
+    "suspicious_ratio_of_expense": "可疑费用占比", "warn_line": "预警线",
+    "conclusion_type": "结论类型",
+    # 负库存/账实不符
+    "negative_count": "负数笔数", "unbalanced_count": "不平衡笔数", "imbalance_count": "不平衡笔数",
+    # 经营实质（缺失型）
+    "industry": "行业", "expected": "应备要素", "missing": "缺失要素",
+    "missing_common": "缺失常见要素", "detected_elements": "已识别要素",
+    "has_premises": "是否有场地", "has_equipment": "是否有设备",
+    "has_energy": "是否有能耗", "has_own_capacity": "是否有自有产能",
+    "pur_count": "进项发票笔数", "sal_count": "销项发票笔数",
+    "out_province_processing_amount": "外省加工费金额", "out_province_provinces": "外省省份",
+    "expected_freight_high": "运费区间上限", "expected_freight_low": "运费区间下限",
+    # 供应链/数量勾稽
+    "big_diff_count": "大额差异笔数", "quantity_diffs": "数量差异明细",
+    # 责令单
+    "triggered_findings": "触发发现明细",
+}
+
+def _translate_metric_keys(m):
+    """把 observed_metrics 字典的英文键汉化为中文标签（供报告透传字段使用）。"""
+    if not isinstance(m, dict):
+        return m
+    return {_METRIC_CN.get(k, str(k)): v for k, v in m.items()}
+
+
 def _build_detail_table(f):
     """从 finding 的 observed_metrics / examples / 明细 生成可回查的代表性明细表。
 
@@ -116,118 +277,6 @@ def _build_detail_table(f):
     # 3) 兜底：标量 observed_metrics（无逐笔列表时）按『指标/数值』两列渲染，
     #    让 BOM 投入产出、合同面积、到货价等所有带指标的发现都能落到明细表。
     if not rows:
-        _scalar_cn = {
-            "material": "原料", "issue": "问题", "theoretical": "理论耗用", "actual": "实际耗用",
-            "deviation_ratio": "偏差率", "finished_products": "对应成品",
-            "processing_count": "加工费笔数", "total_amount": "加工费合计", "cross_region_count": "跨地区笔数",
-            "contract_area": "合同面积(㎡)", "required_area": "库存所需面积(㎡)",
-            "end_inventory_value": "期末存货货值", "end_inventory_qty": "期末存货数量",
-            "goods_value": "购销货值", "actual_transport": "账面运输费", "contract_freight": "合同运费",
-            "cities": "涉及城市", "freight_bearer": "运费承担方",
-            "duplicate_invoice_count": "重复发票号数", "salary_only_count": "仅工资册人数",
-            "social_only_count": "仅社保册人数", "supplier": "加工方", "goods": "货物",
-            "amount": "金额", "cross_region": "是否跨地区",
-            "only_buy_count": "仅采购商品类数", "only_buy_amount": "涉及金额", "core_cost_pct": "占核心成本%",
-            "has_processing": "是否存在加工费", "only_buy_goods": "仅采购商品",
-            "only_sell_count": "仅销售商品类数", "only_sell_amount": "涉及金额", "only_sell_goods": "仅销售商品",
-            "count": "家数", "amount": "金额", "credit": "收款", "debit": "付款",
-            "month": "月份", "left": "收款(银行)", "right": "开票(销项)", "gap": "差额",
-            "gap_ratio": "差额率", "province": "省份", "supplier_count": "供应商家数",
-            "province_count": "涉及省份", "supplier_top3_ratio": "前3大供应商占比",
-            "customer_top3_ratio": "前3大客户占比", "individual_supplier_count": "个体户供应商数",
-            "raw_material_amount": "原材料采购金额", "production_energy_amount": "生产能源金额",
-            "production_energy_invoice_count": "生产能源发票数", "personnel_match_count": "命中六员数",
-            "total_amount": "往来总额", "person_account_count": "涉及个人账号数",
-            "anomaly_months": "异常月份", "supplier_amount": "个体户供应商金额",
-            "goods": "货物", "sale_qty": "销数量", "purchase_qty": "进数量", "diff": "差额",
-            # VR026 税负率
-            "paid_vat": "实缴增值税", "revenue_base": "应税销售收入", "burden_rate_pct": "税负率(%)",
-            "industry_ref_low": "行业参考下限(%)", "industry_ref_high": "行业参考上限(%)", "extreme_low": "极低税负",
-            # VR027 作废红冲
-            "void_red_count": "作废红冲张数", "total_count": "发票总数", "void_red_ratio": "作废红冲占比",
-            "near_period_end_count": "月末季末作废数", "top_amount": "最大单张金额",
-            # VR028 未开票收入
-            "bank_credit_total": "银行收款合计", "invoice_total": "销项开票合计",
-            "declared_sales": "申报销售额", "declared_uninvoiced": "已申报未开票收入", "basis": "比对口径",
-            # VR029 零申报
-            "declaration_count": "申报期数", "zero_count": "零申报期数", "periods": "申报期间",
-            # VR030 股东借款
-            "person_out_total": "转个人合计", "other_receivable_to_person": "其他应收款挂股东",
-            "person_out_detail": "转个人明细", "receivable_examples": "挂账示例",
-            # VR031 印花税
-            "purchase_amount": "采购金额", "sales_amount": "销售金额", "contract_base": "购销合计",
-            "declared_stamp_base": "申报印花计税依据",
-            # VR032 进项转出
-            "hit_count": "命中张数", "reversal_tax_total": "应转出税额", "examples": "疑点示例",
-            "suspicion": "嫌疑用途", "seller": "销方", "invoice_no": "发票号",
-            # VR033 变名
-            "purchase_categories": "购进大类", "sales_categories": "销售大类", "divergence": "背离项",
-            # VR034 费用虚列
-            "suspicious_count": "可疑笔数", "suspicious_total": "可疑金额合计", "cash_total": "现金支出合计",
-            "expense_total": "费用合计", "revenue_total": "收入合计", "expense_rate": "费用率",
-            "summary": "摘要",
-            # VR035 印花其他税目
-            "loan_base": "借款计税依据", "lease_base": "租赁计税依据", "other_base": "其他税目合计",
-            # VR036 视同销售
-            "gift_count": "赠送笔数", "gift_total": "赠送金额合计", "self_use_count": "自用处数",
-            "self_use_total": "自用金额合计", "channel": "线索来源",
-            # VR037 关联交易转让定价
-            "deviation_count": "单价偏离笔数", "threshold": "偏离阈值", "median_price": "中位单价",
-            "deviation": "偏离幅度", "direction": "方向", "counterparty": "交易对手方",
-            "related_party_data": "股权穿透数据", "note": "说明",
-            # VR038 业务招待费
-            "entertainment_total": "业务招待费发生额", "deduct_cap": "扣除限额", "over_limit": "超限金额",
-            # VR039 广告费
-            "ad_promo_total": "广告费发生额",
-            # VR040 福利费
-            "welfare_total": "福利费发生额", "wage_total": "工资总额", "wage_source": "工资数据来源",
-            # VR041 折旧摊销
-            "dep_amort_total": "折旧摊销合计", "fixed_assets_total": "固定资产原值", "notes": "异常说明",
-            # VR042 房产税
-            "building_value": "房屋原值", "from_price_tax": "从价房产税", "rent_total": "租金收入",
-            "from_rent_tax": "从租房产税", "est_property_tax": "测算房产税", "declared_property_tax": "已申报房产税",
-            "rent_contracts": "租赁合同",
-            # VR043 城建附加
-            "paid_vat": "实缴增值税", "est_city_tax": "测算城建税", "est_edu": "测算教育费附加",
-            "est_local_edu": "测算地方教育附加", "est_total": "测算附加税合计", "declared_supplementary": "已申报附加税",
-            # VR044 库存收入背离
-            "closing_inventory_amount": "期末库存金额", "annual_revenue": "年营业收入", "inv_rev_ratio": "库存收入比",
-            # VR045 运输背离
-            "out_qty": "出库量", "contract_weight": "合同运输重量", "freight_voucher_amount": "运费凭证金额",
-            # VR046 呆滞
-            "stagnant_count": "呆滞存货项数", "zero_outbound_periods": "零出库期数",
-            # VR047 滚动矛盾
-            "mismatch_count": "滚动矛盾处数", "expected_closing": "应有期末", "reported_closing": "账面期末", "diff": "差异",
-            # VR048 规格不一致
-            "conflict_count": "规格冲突项数", "input_specs": "进项规格", "output_specs": "销项规格",
-            # VR049 物流/损耗
-            "big_deal_count": "大额交易笔数", "missing_logistics": "物流资料缺失", "loss_anomaly_count": "损耗异常项数",
-            "actual_loss_rate": "实际损耗率", "bom_loss_rate": "BOM定额损耗率",
-            # VR050 跨境
-            "foreign_deal_count": "跨境交易笔数", "customs_data_provided": "报关资料已提供",
-            # VR051 责令单
-            "demand_item_count": "责令补资项数", "triggered_finding_count": "触发发现数", "demand_order": "责令单明细",
-            "demand_docs": "需补充资料",
-            # VR052 委托加工业务真实性
-            "registered_province": "企业注册省", "registered_city": "企业注册市",
-            "processing_inv_count": "加工费进项笔数", "processing_inv_total": "加工费进项合计",
-            "cross_province_processing_count": "跨省加工费笔数", "cross_province_processing_amount": "跨省加工费金额",
-            "cross_province_suppliers": "跨省供应商省份", "transport_invoice_count": "运输费发票笔数",
-            "has_transport_contract": "是否有运输合同", "has_processing_contract": "是否有委托加工合同",
-            "missing_dims": "缺失维度", "auto_exonerate_path": "自证清白路径",
-            # VR053 作废发票资金回流勾稽
-            "void_invoice_count": "作废发票张数", "void_invoice_amount": "作废发票金额",
-            "matched_count": "资金吻合张数", "matched_amount": "资金吻合金额",
-            "matched_buyer_count": "资金吻合受票方户数", "match_ratio": "资金吻合占比",
-            "total_receipt": "对公收款总额", "reported_income": "申报收入",
-            "income_gap": "资金流与申报缺口", "matched_examples": "吻合示例",
-            # VR054 作废发票未重开未申报勾稽
-            "void_buyer_count": "涉及作废受票方户数", "total_void_amount": "作废金额合计",
-            "no_reissue_buyer_count": "只作废不重开户数", "no_reissue_void_amount": "只作废不重开金额",
-            "anomaly_ratio": "异常户金额占比", "declare_gap": "申报收入背离",
-            "no_reissue_examples": "只作废不重开示例",
-            "verified_facts": "已核实事实", "to_prove": "需企业举证",
-        }
         skip = {"examples"}
         # 2.5) 嵌套字典（dict-of-dicts）：如 province_breakdown{省份:{count,amount}}、
         #      matches{姓名:{credit,debit,count}}——渲染成多行多列表格
@@ -243,9 +292,9 @@ def _build_detail_table(f):
                     for key, inner in list(v.items())[:30]:
                         row = {label: str(key)}
                         for ik in inner_keys:
-                            row[_scalar_cn.get(ik, str(ik))] = _fmt_metric_val(inner.get(ik))
+                            row[_METRIC_CN.get(ik, str(ik))] = _fmt_metric_val(inner.get(ik))
                         rows.append(row)
-                    columns = [label] + [_scalar_cn.get(ik, str(ik)) for ik in inner_keys]
+                    columns = [label] + [_METRIC_CN.get(ik, str(ik)) for ik in inner_keys]
                     break
         # 2.6) 列表嵌套字典（list-of-dicts）：如 anomaly_months[{month,left,right,gap,...}]——逐行表格
         if not rows:
@@ -254,8 +303,8 @@ def _build_detail_table(f):
                     continue
                 inner_keys = list(v[0].keys())
                 # 列名：把已知 key 汉化
-                columns = [_scalar_cn.get(ik, str(ik)) for ik in inner_keys]
-                rows = [{_scalar_cn.get(ik, str(ik)): _fmt_metric_val(item.get(ik)) for ik in inner_keys}
+                columns = [_METRIC_CN.get(ik, str(ik)) for ik in inner_keys]
+                rows = [{_METRIC_CN.get(ik, str(ik)): _fmt_metric_val(item.get(ik)) for ik in inner_keys}
                         for item in v[:30]]
                 break
         scalar_rows = []
@@ -278,7 +327,7 @@ def _build_detail_table(f):
             val = v
             if isinstance(v, float):
                 val = f"{v:,.2f}" if abs(v) < 1e9 else f"{v:,.0f}"
-            scalar_rows.append({"指标": _scalar_cn.get(k, str(k)), "数值": val})
+            scalar_rows.append({"指标": _METRIC_CN.get(k, str(k)), "数值": val})
         if scalar_rows and not rows:
             rows = scalar_rows
             columns = ["指标", "数值"]
@@ -580,7 +629,7 @@ def _build_confirmed_problems(report_data):
             "conclusion_grade": f.get("conclusion_grade") or "待核",
             "final_answer": str(f.get("final_answer") or ""),
             "suggestion": str(f.get("suggestion") or ""),
-            "observed_metrics": f.get("observed_metrics") or {},
+            "observed_metrics": _translate_metric_keys(f.get("observed_metrics") or {}),
             "narrative_paragraphs": _problem_paragraphs(f),
             "trace_id": ev.get("trace_id", ""),
         })
