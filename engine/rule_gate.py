@@ -268,13 +268,20 @@ def _scan_one_rule(rule, engine_data, company_data):
     return findings
 
 
-# ═══════════════════ 模块4: 三路径自动定级 ═══════════════════
+# ═══════════════════ 模块4: 三路径复核分级 ═══════════════════
 
 def auto_grade_determination(all_findings):
     """
     基于运行时真实记录的来源谱系标记证据成熟度，并分配风险等级。
 
-    规则: 3+独立来源→系统辅助定性，2源→建议复核，1源→待补证，0源→未核验。
+    2026-08-26 审计修复（P0-3）：统一政策——所有路径均须人工复核，证据强弱仅
+    决定复核工作量，不引入"系统辅助定性"。
+    【原文案备查（已停用）："规则: 3+独立来源→系统辅助定性，2源→建议复核，
+      1源→待补证，0源→未核验。"；"多源交叉验证-系统辅助定性"；
+      "multi_source_system_assisted"；
+      "多源交叉验证→系统辅助定性→人工确认后发布"】
+    现行规则: 3+独立来源→证据充分进入快速复核通道（仍须人工确认），
+    2源→建议复核，1源→待补证，0源→未核验。
     """
     for f in all_findings:
         if not isinstance(f, dict):
@@ -293,7 +300,7 @@ def auto_grade_determination(all_findings):
             f['evidence_grade'] = '单一来源待补证'
             f['evidence_maturity'] = 'single_source'
             f['independent_source_count'] = 1
-            f['determination_path'] = '单一来源→需补充至少1个独立数据源→复核后定性'
+            f['determination_path'] = '单一来源→需补充至少1个独立数据源→人工复核确认'
             if fscore >= 7:
                 f['level'] = '中风险'
             elif fscore >= 5:
@@ -304,7 +311,7 @@ def auto_grade_determination(all_findings):
             f['evidence_grade'] = '双源交叉验证'
             f['evidence_maturity'] = 'dual_source'
             f['independent_source_count'] = 2
-            f['determination_path'] = '双源交叉验证→建议人工复核后定性'
+            f['determination_path'] = '双源交叉验证→建议人工复核确认'
             if fscore >= 8:
                 f['level'] = '高风险'
             elif fscore >= 6:
@@ -314,10 +321,10 @@ def auto_grade_determination(all_findings):
             else:
                 f['level'] = '待核验'
         else:
-            f['evidence_grade'] = '多源交叉验证-系统辅助定性'
-            f['evidence_maturity'] = 'multi_source_system_assisted'
+            f['evidence_grade'] = '多源交叉验证-证据充分待人工确认'
+            f['evidence_maturity'] = 'multi_source_strong_evidence_pending_confirmation'
             f['independent_source_count'] = len(sources)
-            f['determination_path'] = '多源交叉验证→系统辅助定性→人工确认后发布'
+            f['determination_path'] = '多源交叉验证→证据充分→人工复核确认后发布'
             if fscore >= 9:
                 f['level'] = '极高风险'
             elif fscore >= 7:

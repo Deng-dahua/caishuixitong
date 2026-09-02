@@ -1,18 +1,30 @@
 {
-  "updated_at": "2026-08-26T09:54:00.517184",
-  "total_events": 1,
+  "updated_at": "2026-09-02T09:28:22.171941",
+  "total_events": 2,
   "events": [
     {
       "type": "analysis_completed",
       "data": {
-        "company": "测试两税差异企业",
-        "findings_count": 0,
+        "company": "中山市达冠纺织有限公司",
+        "findings_count": 2,
         "causal_edges": 0,
         "patterns": 0
       },
       "source": "agi_pipeline",
-      "timestamp": "2026-08-26T09:54:00.513523",
+      "timestamp": "2026-09-01T23:22:03.169300",
       "id": "evt_000000"
+    },
+    {
+      "type": "analysis_completed",
+      "data": {
+        "company": "中山市达冠纺织有限公司",
+        "findings_count": 3,
+        "causal_edges": 0,
+        "patterns": 0
+      },
+      "source": "agi_pipeline",
+      "timestamp": "2026-09-02T09:28:22.169912",
+      "id": "evt_000001"
     }
   ]
 }

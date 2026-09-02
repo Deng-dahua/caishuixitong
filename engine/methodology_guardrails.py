@@ -66,10 +66,17 @@ def _clean_text(value):
     cleaned = value
     for old, new in _DIRECT_REPLACEMENTS:
         cleaned = cleaned.replace(old, new)
-    cleaned = _PENALTY_SENTENCE.sub(
-        "具体税款、滞纳金、处罚或移送后果须依据适用期间、完整事实、证据和法定程序由有权人员复核。",
-        cleaned,
-    )
+
+    # 2026-08-26 审计修复（P2-2）：处罚正则白名单。
+    # 仅当命中片段不是已有法规引文（含《》）时才替换为中性复核提示，
+    # 避免误伤合法的法条引用（如"依据《税收征收管理法》处五倍以下罚款"）。
+    def _penalty_repl(match):
+        seg = match.group(0)
+        if "《" in seg:
+            return seg
+        return "具体税款、滞纳金、处罚或移送后果须依据适用期间、完整事实、证据和法定程序由有权人员复核。"
+
+    cleaned = _PENALTY_SENTENCE.sub(_penalty_repl, cleaned)
     return cleaned
 
 
@@ -157,19 +164,23 @@ def review_finding(finding):
         finding["score"] = min(score, 2)
 
     finding["finding_status"] = state
-    # ── 证据驱动的条件性人工复核 ──
-    # 核心原则: 证据充分时系统可以做辅助定性，但保留法律后果的最终人工裁量权
+    # ── 证据驱动的复核分级（2026-08-26 审计修复 P0-3）──
+    # 统一政策：无论证据强弱，required_human_review 恒为 True。
+    # 强证据仅降低复核工作量（快速复核通道），绝不免除人工复核、绝不引入"系统辅助定性"。
+    # 【原实现备查（已停用）：强证据分支曾设 required_human_review=False、
+    #   determination_status="system_assisted_pending_confirmation"、
+    #   safe_grade="多源交叉验证-系统辅助定性"，与 RQ3/五条禁令冲突，已按统一政策改写。】
     observed_sources = finding.get("independent_sources")
     source_count = len(set(observed_sources)) if isinstance(observed_sources, (list, tuple, set)) else 0
     finding_type = finding.get("type", "")
     finding_score = max(0, min(10, int(finding.get("score", 0) or 0)))
     
-    # 根据证据强度决定复核级别
+    # 根据证据强度决定复核级别（所有分支均强制人工复核）
     if source_count >= 3 and finding_score >= 6:
-        # 强证据: 系统可做辅助定性，标注"系统初判-待人工确认"
-        finding["required_human_review"] = False
+        # 强证据: 多源交叉验证通过，进入快速复核通道（仍须人工确认，不免除复核）
+        finding["required_human_review"] = True
         finding["review_level"] = "快速复核"
-        finding["determination_status"] = "system_assisted_pending_confirmation"
+        finding["determination_status"] = "strong_evidence_pending_human_confirmation"
         # 基于score映射风险等级
         if finding_score >= 9:
             finding["level"] = "极高风险"
@@ -181,7 +192,7 @@ def review_finding(finding):
             finding["level"] = "低风险"
         else:
             finding["level"] = "信息"
-        safe_grade = "多源交叉验证-系统辅助定性"
+        safe_grade = "多源交叉验证-证据充分待人工确认"
     elif source_count >= 2:
         # 双源证据: 标注"多源材料-建议人工复核"
         finding["required_human_review"] = True
@@ -221,15 +232,20 @@ def review_finding(finding):
     if finding.get("_objective_domain_finding") and finding.get("_domain_risk_level"):
         finding["level"] = finding["_domain_risk_level"]
     finding["independent_source_count"] = source_count
+    # 2026-08-26 审计修复（P0-3）：evidence_maturity / determination_path 中的
+    # "系统辅助定性""复核后定性"话术全部改为"人工确认"口径。
+    # 【原实现备查（已停用）："multi_source_system_assisted"、
+    #   "多源交叉验证→系统辅助定性→人工确认后发布"、
+    #   "双源证据→建议人工复核后定性"、"单一来源→需补充证据后定性"】
     finding["evidence_maturity"] = (
-        "multi_source_system_assisted" if source_count >= 3 and finding_score >= 6
+        "multi_source_strong_evidence_pending_confirmation" if source_count >= 3 and finding_score >= 6
         else ("multi_source_pending_human_review" if source_count >= 2
         else ("single_source" if source_count == 1 else "unverified_source_lineage"))
     )
     finding["determination_path"] = (
-        "多源交叉验证→系统辅助定性→人工确认后发布" if source_count >= 3 and finding_score >= 6
-        else ("双源证据→建议人工复核后定性" if source_count >= 2
-        else ("单一来源→需补充证据后定性" if source_count == 1
+        "多源交叉验证→证据充分→人工复核确认后发布" if source_count >= 3 and finding_score >= 6
+        else ("双源证据→建议人工复核确认" if source_count >= 2
+        else ("单一来源→需补充证据并经人工复核确认" if source_count == 1
         else "不自动定性；按证据成熟度移交人工复核"))
     )
     finding["alternative_explanations"] = finding.get("alternative_explanations") or _alternative_explanations(combined)

@@ -1,6 +1,11 @@
 (function () {
   'use strict';
 
+  // 2026-08-26 审计修复（P1-2）：加载成功标记。core.js 的 methodology 路由以此
+  // 判定现行 v3 渲染器就绪；未设置时显式报错，禁止静默回退到 tax-pipeline-pages.js
+  // 中被覆盖的旧版渲染器。
+  window.__METHODOLOGY_V3_LOADED__ = true;
+
   function esc(value) {
     if (typeof window.escHtml === 'function') return window.escHtml(String(value == null ? '' : value));
     return String(value == null ? '' : value)
@@ -19,6 +24,15 @@
   function metric(value, label, note) {
     return '<div class="m3-metric"><strong>' + esc(value) + '</strong><span>' + esc(label) + '</span>'
       + (note ? '<small>' + esc(note) + '</small>' : '') + '</div>';
+  }
+
+  // 2026-08-26 审计修复（P0-4）：账本一致性说明——登记数必须与 items 明细行数一致，
+  // 替代历史硬编码"必须为242且无静默状态"（242 与明细不符，属假不变量）。
+  function ledgerConsistencyNote(ledger) {
+    var items = (ledger && ledger.items) || [];
+    var count = (ledger && ledger.methodology_item_count) || 0;
+    if (!items.length && !count) return '暂无登记明细';
+    return items.length === count ? '与明细行数一致且无静默状态' : '与明细行数不符（' + items.length + '行），需核查';
   }
 
   function capabilityLedgerHtml(ledger) {
@@ -40,7 +54,7 @@
       + metric((ledger.design_status_counts || {}).partial_atomic_support || 0, '有部分自动支持的方法', '不等于完整自动执行')
       + metric(ledger.independently_validated_method_count || 0, '独立验证通过的方法', '未验证不得作为正式能力')
       + '</div><div class="m3-principle"><b>能力数量边界</b><p>' + esc(ledger.boundary || '') + '</p></div>'
-      + '<details class="m3-contract"><summary><span><b>242</b>逐项查看真实能力</span><em>方法、自动筛查、验证和发布分别计数</em></summary>'
+      + '<details class="m3-contract"><summary><span><b>' + esc(String(ledger.methodology_item_count || 0)) + '</b>逐项查看真实能力</span><em>方法、自动筛查、验证和发布分别计数</em></summary>'
       + '<div class="m3-contract-body"><div class="m3-table-wrap"><table><thead><tr><th>编号</th><th>方法或场景</th><th>行业</th><th>类型</th><th>自动化状态</th><th>关联原子规则</th><th>独立验证</th><th>下一步建设</th></tr></thead><tbody>'
       + rows + '</tbody></table></div></div></details>';
   }
@@ -199,7 +213,7 @@
       + metric(scenario.scene_count || 0, '已选择场景', scenario.industry_name || '按实际经营匹配')
       + metric(scenario.ready_for_human_review || 0, '资料就绪', '仍须人工核验')
       + metric(scenario.pending_more_sources || 0, '待补资料', '缺失不推定违法')
-      + metric(ledger.methodology_item_count || 0, '账本已登记', '必须为242且无静默状态')
+      + metric(ledger.methodology_item_count || 0, '账本已登记', ledgerConsistencyNote(ledger))
       + metric(canonical.canonical_record_count || 0, '标准财税记录', '来自本轮全部已解析资料')
       + metric(adaptation.unresolved_document_count || 0, '资料适配待处理', '逐份说明原因和下一步')
       + metric(validation.qualified_independent_case_count || 0, '合格独立验证样本', currentValidation.release_ready ? '当前范围验证通过' : '当前范围不得正式发布')

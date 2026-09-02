@@ -28,7 +28,12 @@ def prepare_methodology_asset(asset_name, payload):
         from engine.methodology_catalog import ASSET_TO_CODE, load_reviewed_scenario_contracts
         code = ASSET_TO_CODE.get(str(asset_name or ""))
         if code:
-            payload = load_reviewed_scenario_contracts(code)
+            try:
+                # 2026-08-26 审计修复（P1-4）：解析失败时优雅回退到原始 payload，
+                # 不中断接口（原实现直接将异常抛出导致 500）。
+                payload = load_reviewed_scenario_contracts(code)
+            except Exception:
+                pass
     adapted = _adapt(payload)
     if asset_name == "framework":
         return adapted

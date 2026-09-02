@@ -92,6 +92,12 @@ window.switchBank = function(bankId) {
   renderBankTransactions();
 };
 
+// 银行流水原始数据展示中文化：ETS=电子税务局。仅展示层归一，不改动存储数据，审计追溯完整。
+function zhBankText(s) {
+  if (!s) return s;
+  return String(s).replace(/\bETS\b/g, '电子税务局');
+}
+
 async function loadBankTxList() {
   const type = document.getElementById('bt-type-filter')?.value || '';
   const params = new URLSearchParams();
@@ -119,12 +125,12 @@ async function loadBankTxList() {
         <td style="${creditColor}">${(tx.credit_amount || 0) > 0 ? '¥' + (tx.credit_amount || 0).toLocaleString() : '-'}</td>
         <td>¥${(tx.balance || 0).toLocaleString()}</td>
         <td>${tx.counterparty_account || '-'}</td>
-        <td>${tx.counterparty_name || '-'}</td>
+        <td>${zhBankText(tx.counterparty_name) || '-'}</td>
         <td>${tx.counterparty_bank || '-'}</td>
         <td>${tx.transaction_serial_no || '-'}</td>
         <td>${tx.voucher_seq || '-'}</td>
         <td>${tx.record_status || '-'}</td>
-        <td>${tx.summary || '-'}</td>
+        <td>${zhBankText(tx.summary) || '-'}</td>
         <td>${tx.transaction_remark || '-'}</td>
         <td>${tx.account_type || '-'}</td>
         <td>${tx.journal_voucher_no ? '<a href="javascript:void(0)" onclick="showVoucherDetail(\'' + tx.journal_voucher_no + '\')" style="color:#1d4ed8;font-weight:500;text-decoration:none;border-bottom:1px dashed #1d4ed8;cursor:pointer">' + tx.journal_voucher_no + '</a>' : '-'}</td>
@@ -1098,7 +1104,7 @@ function renderMatchResult(result) {
     result.details.forEach(function(m){
       h += '<tr><td>'+(m.invoice.seller||m.invoice.buyer||'').substring(0,15)+'</td>';
       h += '<td style="text-align:right">'+parseFloat(m.invoice.amount||0).toLocaleString()+'</td>';
-      h += '<td>'+(m.bank.counterparty||'').substring(0,15)+'</td>';
+      h += '<td>'+zhBankText(m.bank.counterparty||'').substring(0,15)+'</td>';
       h += '<td style="text-align:right">'+parseFloat(m.bank.credit||m.bank.debit||0).toLocaleString()+'</td>';
       h += '<td style="text-align:right;color:'+(m.diff<100?'#16a34a':'#f59e0b')+'">'+m.diff.toFixed(0)+'</td></tr>';
     });

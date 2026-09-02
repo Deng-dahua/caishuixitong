@@ -855,8 +855,13 @@ function navigateTo(page) {
       navigateTo('engine-hub');
       return;
     case 'methodology':
-      if (typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
-      else { container.innerHTML = _LOADING_HTML; }
+      // 2026-08-26 审计修复（P1-2）：现行方法论页仅由 methodology-v3.js 渲染，
+      // 旧版 renderMethodologyPage 已移除，故仅以加载标记 + 函数存在判定就绪。
+      if (window.__METHODOLOGY_V3_LOADED__ && typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
+      else {
+        container.innerHTML = '<div style="max-width:760px;margin:40px auto;padding:24px;border:1px solid #fecaca;border-radius:10px;background:#fff7f7;color:#991b1b">'
+          + '<b>稽查方法论页面装载失败</b><br>现行渲染器（methodology-v3.js）未加载完成。请刷新页面重试；若持续失败请检查网络与脚本加载。</div>';
+      }
       break;
     case 'rs-pipeline':
       window._engineHubSection = 'quality';

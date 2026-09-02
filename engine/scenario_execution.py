@@ -544,11 +544,15 @@ def _common_finding(contract_id, contract, observations, file_inventory):
     max_obs_score = max(obs_scores) if obs_scores else 0
     total_score = sum(obs_scores)
     source_count = len(source_families)
-    # 证据驱动定级
+    # 证据驱动复核分级（2026-08-26 审计修复 P0-3：统一政策——所有分支均强制人工复核，
+    # 强证据仅进入快速复核通道，不免除复核、不允许自动定性、不提前放行发布。
+    # 【原实现备查（已停用）：强证据分支 finding_status="system_assisted_pending_confirmation"、
+    #   required_review=False，conclusion_state="系统辅助定性_待人工确认"、
+    #   automatic_determination_allowed=True、release_status="可发布_已系统辅助定性"】）
     if source_count >= 3 and max_obs_score >= 7:
         risk_level = "高风险"
-        finding_status = "system_assisted_pending_confirmation"
-        required_review = False
+        finding_status = "strong_evidence_pending_human_confirmation"
+        required_review = True
     elif source_count >= 2 and max_obs_score >= 5:
         risk_level = "中风险"
         finding_status = "multi_source_pending_review"
@@ -576,12 +580,12 @@ def _common_finding(contract_id, contract, observations, file_inventory):
         "detail": detail or contract["target_fact"],
         "description": contract["target_fact"],
         "finding_status": finding_status,
-        "conclusion_state": "系统辅助定性_待人工确认" if not required_review else "待人工复核_未定性",
+        "conclusion_state": "证据充分_待人工确认" if finding_status == "strong_evidence_pending_human_confirmation" else "待人工复核_未定性",
         "conclusion_scope": "observed_fact_and_investigation_only",
         "required_human_review": required_review,
-        "automatic_determination_allowed": not required_review,
-        "report_release_allowed": not required_review,
-        "release_status": "可发布_已系统辅助定性" if not required_review else "草稿_待人工复核",
+        "automatic_determination_allowed": False,
+        "report_release_allowed": False,
+        "release_status": "草稿_待人工复核",
         "policy_validity": "待按事实期间、地区、纳税人身份和现行有效依据人工核验",
         "tax_impact": "尚未形成税费影响结论；须完成事实核验、政策适用和金额底稿后另行评价。",
         "target_fact": contract["target_fact"],
@@ -636,12 +640,17 @@ def _industry_finding(industry_code, scene, observations, gates, file_inventory)
     max_obs_score = max(obs_scores) if obs_scores else 0
     total_obs_score = sum(obs_scores)
     source_count = len(source_families)
+    # 2026-08-26 审计修复（P0-3）：统一政策——所有分支均强制人工复核，
+    # 强证据仅进入快速复核通道（required_review=True / auto_allowed=False / release_allowed=False）。
+    # 【原实现备查（已停用）：强证据分支 finding_status="system_assisted_pending_confirmation"、
+    #   required_review=False、release_allowed=True、auto_allowed=True、
+    #   release_status="可发布_已系统辅助定性"】
     if source_count >= 3 and max_obs_score >= 7 and status == "资料就绪_待人工核验":
         risk_level = "高风险"
-        finding_status = "system_assisted_pending_confirmation"
-        required_review = False
-        release_allowed = True
-        auto_allowed = True
+        finding_status = "strong_evidence_pending_human_confirmation"
+        required_review = True
+        release_allowed = False
+        auto_allowed = False
     elif source_count >= 2 and max_obs_score >= 5:
         risk_level = "中风险"
         finding_status = "multi_source_pending_review"
@@ -681,7 +690,7 @@ def _industry_finding(industry_code, scene, observations, gates, file_inventory)
         "required_human_review": required_review,
         "automatic_determination_allowed": auto_allowed,
         "report_release_allowed": release_allowed,
-        "release_status": "可发布_已系统辅助定性" if release_allowed else "草稿_待人工复核",
+        "release_status": "草稿_待人工复核（证据充分，走快速复核通道）" if finding_status == "strong_evidence_pending_human_confirmation" else "草稿_待人工复核",
         "policy_validity": "待按事实期间、地区、纳税人身份、交易性质和程序阶段核验",
         "tax_impact": "尚未形成税费影响结论；政策时效、事实要件和金额底稿完成前不得测算确定税额。",
         "taxes": list(scene.get("taxes", [])),
@@ -882,12 +891,16 @@ def seal_scenario_findings(execution):
         identities.add(identity)
         canonical = copy.deepcopy(item)
         if canonical.get("conclusion_grade") == "已核定":
-            # 两级结论：账面勾稽可核定事项——给出最终答案并允许进入报告，
-            # 核定范围限于企业所报资料（推翻须更正资料本身），行政定性权仍在人工
-            canonical["required_human_review"] = False
-            canonical["automatic_determination_allowed"] = True
+            # 两级结论：账面勾稽可核定事项——给出勾稽结论并允许进入报告，
+            # 核定范围限于企业所报资料（推翻须更正资料本身），行政定性权仍在人工。
+            # 2026-08-26 审计修复（P0-3）：统一政策——即使"已核定"勾稽事项也保留人工复核
+            # 要求与不自动定性标志；进入报告不等于免除人工确认。
+            # 【原实现备查（已停用）：required_human_review=False、
+            #   automatic_determination_allowed=True、report_release_allowed=True】
+            canonical["required_human_review"] = True
+            canonical["automatic_determination_allowed"] = False
             canonical["report_release_allowed"] = True
-            canonical["release_status"] = "已核定_限于所报资料勾稽"
+            canonical["release_status"] = "已核定_限于所报资料勾稽_待人工确认"
         else:
             canonical["required_human_review"] = True
             canonical["automatic_determination_allowed"] = False

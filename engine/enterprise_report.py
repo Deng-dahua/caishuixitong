@@ -32,17 +32,42 @@ def _norm_text(text):
     return t.strip()
 
 
-def _brief(text, limit=180):
-    """按句子边界截断摘要文本，避免半句话被切断。"""
-    t = _norm_text(text)
-    if len(t) <= limit:
-        return t
-    cut = t[:limit]
-    for stop in ("。", "；", "！", "？"):
-        idx = cut.rfind(stop)
-        if idx >= 40:
-            return cut[:idx + 1]
-    return cut.rstrip("，、；, ") + "。"
+# ── 报告输出中文化归一：消除规则引擎/流水线遗留的英文缩写与术语 ──
+# 这些英文是上游 finding 文本/方法论描述里写死的缩写，enterprise_report 原样拼入报告；
+# 在此统一归一为中文，保证「报告内容不固定为英文、随数据动态呈现中文」。
+_ZH_REPLACEMENTS = [
+    (r"detect→verify→diagnose→report", "检测→核验→诊断→报告"),
+    (r"detect→verify→diagnose", "检测→核验→诊断"),
+    (r"(?<![A-Za-z])detect(?![A-Za-z])", "检测"),
+    (r"(?<![A-Za-z])verify(?![A-Za-z])", "核验"),
+    (r"(?<![A-Za-z])diagnose(?![A-Za-z])", "诊断"),
+    (r"(?<![A-Za-z])rectify(?![A-Za-z])", "整改"),
+    (r"(?<![A-Za-z])report(?![A-Za-z])", "报告"),
+    (r"(?<![A-Za-z])[Vv][Ss](?![A-Za-z])", "与"),   # vs / VS（中文或空格环绕均适用）
+    (r"(?<![A-Za-z])BOM(?![A-Za-z])", "物料清单"),
+    (r"(?<![A-Za-z])ETS(?![A-Za-z])", "电子税务局"),
+]
+
+
+def _zh_normalize(text):
+    """把报告正文里的英文缩写/术语归一为中文，避免报告出现英文。"""
+    if not isinstance(text, str):
+        return text
+    s = text
+    for pat, rep in _ZH_REPLACEMENTS:
+        s = re.sub(pat, rep, s, flags=re.IGNORECASE)
+    return s
+
+
+def _zh_normalize_obj(o):
+    """递归对报告字典的全部字符串值做中文化归一（键名/非字符串值原样保留）。"""
+    if isinstance(o, str):
+        return _zh_normalize(o)
+    if isinstance(o, list):
+        return [_zh_normalize_obj(x) for x in o]
+    if isinstance(o, dict):
+        return {k: _zh_normalize_obj(v) for k, v in o.items()}
+    return o
 
 
 def _fmt_metric_val(v):
@@ -654,7 +679,8 @@ def _build_summary(report_data, problems, completed, further):
         first = p.get("narrative_paragraphs", [{}])[0].get("text", "") if p.get("narrative_paragraphs") else ""
         grade = p.get("conclusion_grade") or "待核"
         grade_tag = "（已核定）" if grade == "已核定" else "（待核）"
-        key_points.append(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{_brief(first, limit=110)}")
+        # 重点摘要不加固定字数截断：直接输出完整首段，报告内容随数据动态呈现（不固定、不丢确定性数字串）
+        key_points.append(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{first}")
     if len(problems) > 5:
         key_points.append(f"另有{len(problems) - 5}项具体问题见第四章及本章『本轮全部发现一览』。")
     if further:
@@ -703,7 +729,7 @@ def _build_discovery_overview(report_data, problems, completed, further):
     rows = []
     for p in problems:
         first_para = (p.get("narrative_paragraphs") or [{}])[0] or {}
-        one_line = _brief(first_para.get("text", ""), limit=70)
+        one_line = _norm_text(first_para.get("text", ""))
         rows.append({
             "no": p.get("seq"),
             "category": "确认问题",
@@ -1229,7 +1255,7 @@ def build_enterprise_readable_report(report_data):
     fund_loop_report = _build_fund_loop_report(report_data)
     inspection_questions_report = _build_inspection_questions_report(report_data)
 
-    return {
+    return _zh_normalize_obj({
         "compilation_style": "税务稽查文书式报告",
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
         "identity": _build_identity(report_data),
@@ -1264,4 +1290,4 @@ def build_enterprise_readable_report(report_data):
             "企业应依据真实业务和原始资料办理整改，不得倒签、补造、篡改、删除或隐匿资料。",
             "系统能力存在边界：账外经营、私户收款、主观故意定性等须依赖外部数据源与人工下户取证，详见「能力边界与彻底稽查路线」章节。",
         ],
-    }
+    })

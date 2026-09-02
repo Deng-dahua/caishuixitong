@@ -1,16 +1,5 @@
 [
   {
-    "id": "ADJ-0087",
-    "rule_id": "2ec9b6f8",
-    "trigger": "高风险发现#58仅0条证据",
-    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
-    "target": "Causal: 虚开发票的资金闭环回路",
-    "dimension": "证据充分性",
-    "applied_at": "2026-07-25T02:09:05.034265",
-    "applied_count": 0,
-    "status": "active"
-  },
-  {
     "id": "ADJ-0088",
     "rule_id": "ddabf18d",
     "trigger": "高风险发现#59仅0条证据",
@@ -909,7 +898,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T11:31:57.366170",
-    "applied_count": 46,
+    "applied_count": 47,
     "status": "active"
   },
   {
@@ -931,7 +920,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T12:48:39.062213",
-    "applied_count": 15,
+    "applied_count": 31,
     "status": "active"
   },
   {
@@ -953,7 +942,7 @@
     "target": "经营实质-缺水电支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T13:42:17.063245",
-    "applied_count": 11,
+    "applied_count": 27,
     "status": "active"
   },
   {
@@ -964,7 +953,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T13:42:17.063253",
-    "applied_count": 9,
+    "applied_count": 27,
     "status": "active"
   },
   {
@@ -975,7 +964,7 @@
     "target": "Causal: 成本虚列的科目腾挪路径",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T14:01:20.461768",
-    "applied_count": 4,
+    "applied_count": 5,
     "status": "active"
   },
   {
@@ -986,7 +975,7 @@
     "target": "经营实质-缺水电支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T14:01:20.461783",
-    "applied_count": 7,
+    "applied_count": 32,
     "status": "active"
   },
   {
@@ -997,7 +986,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T14:01:20.461789",
-    "applied_count": 12,
+    "applied_count": 34,
     "status": "active"
   },
   {
@@ -1008,7 +997,7 @@
     "target": "Causal: 加工费掩盖的虚开发票路径",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T23:51:45.733922",
-    "applied_count": 60,
+    "applied_count": 75,
     "status": "active"
   },
   {
@@ -1019,7 +1008,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T23:51:45.733933",
-    "applied_count": 7,
+    "applied_count": 22,
     "status": "active"
   },
   {
@@ -1030,7 +1019,7 @@
     "target": "BOM投入产出偏离-采购不足",
     "dimension": "证据充分性",
     "applied_at": "2026-08-23T00:50:35.758470",
-    "applied_count": 55,
+    "applied_count": 89,
     "status": "active"
   },
   {
@@ -1063,7 +1052,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-23T00:50:35.758542",
-    "applied_count": 53,
+    "applied_count": 68,
     "status": "active"
   },
   {
@@ -1074,7 +1063,7 @@
     "target": "Causal: 隐匿收入的资金回流路径",
     "dimension": "证据充分性",
     "applied_at": "2026-08-24T10:40:16.919660",
-    "applied_count": 0,
+    "applied_count": 22,
     "status": "active"
   },
   {
@@ -1085,7 +1074,7 @@
     "target": "Causal: 加工费掩盖的虚开发票路径",
     "dimension": "证据充分性",
     "applied_at": "2026-08-26T09:06:03.763840",
-    "applied_count": 1,
+    "applied_count": 8,
     "status": "active"
   },
   {
@@ -1097,6 +1086,17 @@
     "dimension": "证据充分性",
     "applied_at": "2026-08-26T09:06:03.763872",
     "applied_count": 1,
+    "status": "active"
+  },
+  {
+    "id": "ADJ-0101",
+    "rule_id": "c54e9bca",
+    "trigger": "高风险发现#22仅0条证据",
+    "action": "降低证据不足的高风险发现权重，标注'证据薄弱'",
+    "target": "经营实质-无人工支出",
+    "dimension": "证据充分性",
+    "applied_at": "2026-09-01T00:08:14.787536",
+    "applied_count": 6,
     "status": "active"
   }
 ]

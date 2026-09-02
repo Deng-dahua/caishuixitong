@@ -49,28 +49,13 @@ function renderTaxDocAnalysis(container) {
   taxDocPageActive = true;  // 标记页面激活
 
 
-  container.innerHTML = ''
-
-
+  container.innerHTML = '<header class="risk-report-header"><h2>资料风险分析报告</h2></header>'
     + '<div class="risk-report-container card card-fill">'
 
 
     
 
 
-    // ── 标题区 ──
-
-
-    + '<div class="risk-report-header">'
-
-
-    + '<h2>资料风险分析报告</h2>'
-
-
-    + '<div style="font-size:13px;color:#64748b;margin-top:6px">一键分析将按稽查任务、资料接收、程序执行、逐项检查、证据底稿、过程意见和复查安排生成工作过程报告。</div>'
-
-
-    + '</div>'
 
 
     // ── 资料上传区 ──
@@ -110,6 +95,8 @@ function renderTaxDocAnalysis(container) {
 
 
     + '<button class="btn-toolbar" id="tda-export-btn" onclick="exportTaxDocReport()">导出内部草稿</button>'
+
+    + '<button class="btn-toolbar" id="tda-export-pdf-btn" onclick="exportTaxDocReportPdf()">导出PDF</button>'
 
 
     + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
@@ -2057,20 +2044,18 @@ async function analyzeTaxDocs() {
 
 
         var exportBtn = document.getElementById('tda-export-btn');
-    if (exportBtn) {
-      var ma = (data.report||{})._methodology_applied || {};
-      if (ma.methodology_gate_enforced) {
-        exportBtn.style.display = 'inline-block';
-        exportBtn.title = '方法论验收未通过，导出已禁用。请修复失败场景后重新分析。';
-        exportBtn.style.opacity = '0.5';
-        exportBtn.style.cursor = 'not-allowed';
-      } else {
-        exportBtn.style.display = 'inline-block';
+    var pdfBtn = document.getElementById('tda-export-pdf-btn');
+    var ma = (data.report||{})._methodology_applied || {};
+    var gateBlocked = !!ma.methodology_gate_enforced;
+    [exportBtn, pdfBtn].forEach(function(b){
+      if (!b) return;
+      b.style.display = 'inline-block';
+      if (gateBlocked) {
+        b.title = '方法论验收未通过，导出已禁用。请修复失败场景后重新分析。';
+        b.style.opacity = '0.5';
+        b.style.cursor = 'not-allowed';
       }
-    }
-
-
-    if (exportBtn) exportBtn.style.display = 'inline-block';
+    });
 
 
     var closeInfo = (data.report||{}).coverage_closure || {};
@@ -7098,6 +7083,55 @@ async function exportTaxDocReport() {
     return;
   } catch (error) {
     toast(error.message || '报告交付失败', 'error');
+  }
+}
+
+
+// 导出 PDF：复用交付 HTML（自包含样式、草稿带水印），在新窗口打印为 PDF（浏览器「另存为 PDF」）。
+async function exportTaxDocReportPdf() {
+  var report = window._reportData || taxDocReportData || {};
+  var round = report.compliance_round || {};
+  var roundId = round.round_id || '';
+  if (!roundId) {
+    toast('当前报告尚未形成受控分析轮次，请重新执行一键分析', 'warning');
+    return;
+  }
+  var btn = document.getElementById('tda-export-pdf-btn');
+  var oldText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '生成PDF…'; }
+  try {
+    var cid = _tdaCid();
+    var detailResp = await fetch('/api/compliance/rounds/' + encodeURIComponent(roundId) + '?company_id=' + encodeURIComponent(cid));
+    var detail = await _safeJson(detailResp, '报告发布状态');
+    if (!detailResp.ok || !detail.ok) throw new Error(detail.detail || detail.message || '无法读取报告发布状态');
+    var isOfficial = (detail.round || {}).status === 'published';
+    var body = { delivery_type: isOfficial ? 'official' : 'draft', format: 'html' };
+    if (isOfficial) {
+      body.recipient = '本企业管理层';
+      body.purpose = '企业内部税务合规决策（PDF导出）';
+    }
+    var response = await fetch('/api/compliance/rounds/' + encodeURIComponent(roundId) + '/deliver?company_id=' + encodeURIComponent(cid), {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!response.ok) {
+      var error = await response.json().catch(function(){return {detail:'报告交付失败'};});
+      throw new Error(error.detail || error.message || '报告交付失败');
+    }
+    var html = await response.text();
+    var w = window.open('', '_blank');
+    if (!w) throw new Error('浏览器拦截了弹出窗口，请允许本站弹出窗口后重试');
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    setTimeout(function(){ w.print(); }, 400);
+    toast('已生成打印视图，请在打印对话框中选择「另存为 PDF」', 'success');
+  } catch (error) {
+    toast(error.message || 'PDF 导出失败', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = oldText; }
   }
 }
 

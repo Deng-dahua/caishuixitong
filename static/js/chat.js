@@ -48,13 +48,23 @@ async function renderChat(container) {
 
   const css = `
     <style>
+      .cq-page{
+        display:flex;
+        flex-direction:column;
+        height:calc(100vh - 72px);
+        min-height:0;
+        box-sizing:border-box;
+        padding:16px
+      }
       .cq-wrap{
         display:grid;
         grid-template-columns:240px minmax(0,1fr) 280px;
         gap:16px;
-        height:calc(100vh - 72px);
+        flex:1;
+        min-height:0;
+        height:auto;
         margin:0;
-        padding:16px;
+        padding:0;
         overflow:hidden;
         color:#405166;
         background:#edf1f5;
@@ -144,13 +154,14 @@ async function renderChat(container) {
         .cq-right{display:none}
       }
       @media(max-width:820px){
-        .cq-wrap{grid-template-columns:minmax(0,1fr);gap:0;padding:8px}
+        .cq-wrap{grid-template-columns:minmax(0,1fr);gap:0;padding:0}
         .cq-left{display:none}
         .cq-body{padding:20px 16px}
         .cq-msg{max-width:92%;font-size:13px}
       }
       @media(max-width:560px){
-        .cq-wrap{height:calc(100vh - 64px);padding:4px}
+        .cq-page{height:calc(100vh - 64px);padding:8px}
+        .cq-wrap{padding:0}
         .cq-main-header{padding:16px}
         .cq-input-wrap{padding:11px;gap:7px}
         .cq-input-wrap .cq-btn{padding:10px 12px}
@@ -231,7 +242,11 @@ async function renderChat(container) {
     </div>
   `;
 
-  el.innerHTML = css + `<div class="cq-wrap">${leftPanel}${mainPanel}${rightPanel}</div>`;
+  el.innerHTML = css
+    + '<div class="cq-page">'
+    + '<header class="risk-report-header"><h2>智能问答</h2></header>'
+    + `<div class="cq-wrap">${leftPanel}${mainPanel}${rightPanel}</div>`
+    + '</div>';
   const pendingRisk = _consumeRiskQuestionContext();
   if (pendingRisk) {
     const input = document.getElementById('chat-input');

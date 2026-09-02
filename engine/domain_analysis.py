@@ -2288,6 +2288,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
     bank_by_payer = defaultdict(lambda: {"credit": 0, "debit": 0, "count": 0, "dates": [], "raw": []})
     for tx in bank_txs:
         cp = str(tx.get("counterparty", "")).strip()
+        cp = _normalize_counterparty_name(cp)
         if not cp or len(cp) < 2:
             continue
         key = cp[:30]
@@ -3294,6 +3295,7 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity=None):
     
     for tx in bank_txs:
         cp = str(tx.get("counterparty", "")).strip()
+        cp = _normalize_counterparty_name(cp)
         if not cp: continue
         credit = float(tx.get("credit", 0) or 0)
         debit = float(tx.get("debit", 0) or 0)
@@ -3511,6 +3513,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
     pay_timeline = defaultdict(list)
     for tx in bank_txs:
         cp = str(tx.get("counterparty", "")).strip()
+        cp = _normalize_counterparty_name(cp)
         if not cp: continue
         debit = float(tx.get("debit", 0) or 0)
         dt = str(tx.get("date", ""))
@@ -3793,6 +3796,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
     if not has_transport:
         for tx in bank_txs:
             cp = str(tx.get("counterparty", "")).strip()
+            cp = _normalize_counterparty_name(cp)
             if any(kw in cp for kw in transport_kws):
                 has_transport = True
                 break
@@ -5427,6 +5431,19 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
 # 资料情报提取引擎 —— 从资料数据中提取税务合规所需信息
 # ═══════════════════════════════════════════════════
 
+def _normalize_counterparty_name(name):
+    """对手方名称源端中文化。
+
+    银行流水原始对手方常为英文缩写，例如 ETS=电子税务局，原始行如
+    「省ETS（社保费）」「社保广东省ETS扣税缴费」。在抽取即归一，保证报告
+    与原始数据视图均显示中文，不再夹杂英文缩写。仅匹配独立英文词 ETS，
+    避免误伤含 ET 的中文词语。
+    """
+    if not name:
+        return name
+    return re.sub(r"(?<![A-Za-z])ETS(?![A-Za-z])", "电子税务局", name)
+
+
 def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouchers, inventory, input_vat_deductions=None, pipeline_log=None):
     """从各类资料中提取关键审计情报——让系统真正'读懂'资料"""
     intel = {}
@@ -5445,6 +5462,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             d = str(tx.get("date", "") or tx.get("transaction_date", ""))[:10]
             if d and len(d) >= 7: months.add(d[:7])
             cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
+            cp = _normalize_counterparty_name(cp)
             debit = float(tx.get("debit", 0) or 0)
             credit = float(tx.get("credit", 0) or 0)
             summary = str(tx.get("summary", "") or "")
@@ -5484,7 +5502,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         if not rc_rules_cfg:
             # 兜底：内置默认规则
             rc_rules_cfg = [
-                {"label": "税费社保退款", "keywords": ["社保","医保","税","国库","ETS"]},
+                {"label": "税费社保退款", "keywords": ["社保","医保","税","国库","ETS","电子税务局"]},
                 {"label": "银行内部款项", "keywords": ["结息","利息","银行","农行"]},
                 {"label": "企业客户款", "keywords": ["有限公司","公司","企业","厂","店","集团"]},
                 {"label": "个人待分析", "is_default": True},
@@ -5498,6 +5516,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             credit = float(tx.get("credit", 0) or 0)
             if credit <= 0: continue
             cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
+            cp = _normalize_counterparty_name(cp)
             summary = str(tx.get("summary", "") or "")
             # 收集全部可用文本字段用于综合分析
             remark = str(tx.get("remark", "") or tx.get("notes", "") or tx.get("memo", "") or tx.get("交易附言", "") or "")
@@ -5538,6 +5557,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             credit = float(tx.get("credit", 0) or 0)
             if credit <= 0: continue
             cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
+            cp = _normalize_counterparty_name(cp)
             summary = str(tx.get("summary", "") or "")
             remark = str(tx.get("remark", "") or tx.get("notes", "") or tx.get("memo", "") or tx.get("交易附言", "") or "")
             purpose = str(tx.get("purpose", "") or tx.get("用途", "") or "")
@@ -5603,9 +5623,10 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             debit = float(tx.get("debit", 0) or 0)
             if debit <= 0: continue
             cp = str(tx.get("counterparty", "")).strip()
+            cp = _normalize_counterparty_name(cp)
             summary = str(tx.get("summary", "")).strip()
             if not cp:
-                if any(k in summary for k in ['社保','ETS','扣税']): cp = "(税费扣款)"
+                if any(k in summary for k in ['社保','ETS','电子税务局','扣税']): cp = "(税费扣款)"
                 elif any(k in summary for k in ['结息','利息']): cp = "(银行扣息)"
                 elif any(k in summary for k in ['费用','短信','账户']): cp = "(银行费用)"
                 else: cp = "(未记录名称)"
@@ -5613,7 +5634,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                                           '厂','店','部','中心','局','院','所','社','会','馆','场','园','苑','山庄','大厦',
                                           '集团','公司','企业','合作社','农场','牧场','渔场','林场']):
                 enterprise_payee[cp] += debit
-            elif any(k in cp for k in ['国家金库','税务局','ETS','社保','国库','税','财政','省ETS']):
+            elif any(k in cp for k in ['国家金库','税务局','电子税务局','社保','国库','税','财政']):
                 tax_payee[cp] += debit
             elif any(k in cp for k in ['银行','农行','清算','资金','批量','结息','扣息','费用']):
                 bank_payee[cp] += debit

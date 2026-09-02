@@ -13,12 +13,9 @@ function getDetailStr(f) {
 function renderTaxRiskReport(container) {
   window.currentModule = '账务风险分析报告';
 
-  container.innerHTML = ''
+  container.innerHTML = '<header class="risk-report-header"><h2>账务风险分析报告</h2></header>'
     + '<div class="card card-fill risk-report-container">'
-    + '<div class="risk-report-header">'
-    + '<h2>账务风险分析报告</h2>'
-    + '<div id="tr-period-bar" style="display:flex;align-items:center;gap:4px;margin-top:12px"></div>'
-    + '</div>'
+    + '<div id="tr-period-bar" style="display:flex;align-items:center;gap:4px;margin:4px 0 18px"></div>'
     + '<div id="risk-summary-cards" class="risk-summary-cards"></div>'
     + '<div id="risk-report-body" class="risk-report-body"></div>'
     + '</div>';

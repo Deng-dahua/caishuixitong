@@ -13570,11 +13570,2242 @@
       "data_profile": {},
       "learning_points": [],
       "timestamp": "2026-08-26T09:54:00.476383"
+    },
+    {
+      "trace_id": "5c9cc9cf",
+      "company_id": 99787,
+      "company_name": "测试虚开风险企业",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T11:00:34.238576",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "d66c4f1f",
+      "company_name": "测试虚开风险企业",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T11:00:35.751880"
+    },
+    {
+      "trace_id": "569e930d",
+      "company_id": 94060,
+      "company_name": "测试虚开风险企业",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T11:01:44.562865",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "af1027cd",
+      "company_name": "测试虚开风险企业",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T11:01:47.642994"
+    },
+    {
+      "trace_id": "8f6bfaa9",
+      "company_id": 92696,
+      "company_name": "测试虚开风险企业",
+      "industry": "综合",
+      "biz_model": "服务/劳务",
+      "timestamp": "2026-08-26T11:05:55.429510",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "7d9d7511",
+      "company_name": "测试虚开风险企业",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T11:05:58.476550"
+    },
+    {
+      "trace_id": "6010ba48",
+      "company_id": 90546,
+      "company_name": "测试虚开风险企业",
+      "industry": "综合",
+      "biz_model": "服务/劳务",
+      "timestamp": "2026-08-26T11:06:25.582962",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "1450535f",
+      "company_name": "测试虚开风险企业",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T11:06:27.516151"
+    },
+    {
+      "trace_id": "4e5a3a0f",
+      "company_id": 94115,
+      "company_name": "测试虚开风险企业",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T11:08:36.081047",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.82,
+        "supplier_concentration": 100.0,
+        "goods_match_ratio": 0.0
+      }
+    },
+    {
+      "trace_id": "84ae96cc",
+      "company_name": "测试虚开风险企业",
+      "industry": "",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T11:08:38.763154"
+    },
+    {
+      "trace_id": "a84d4c98",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T12:55:38.519599",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "4efd10d9",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：供应商客户六员重叠与关联交易核验",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T12:55:41.604291"
+    },
+    {
+      "trace_id": "7fd13744",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T12:58:27.456861",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "d9bb6748",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T12:58:30.259011"
+    },
+    {
+      "trace_id": "794afb1f",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T12:59:21.455399",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "d0722b9c",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T12:59:22.544885"
+    },
+    {
+      "trace_id": "a53ad02f",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:08:23.064291",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "f3e0e149",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T13:08:26.301655"
+    },
+    {
+      "trace_id": "f2c70349",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T13:08:47.627864",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "77367d7a",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T13:08:49.257231"
+    },
+    {
+      "trace_id": "6219ab56",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:09:28.170117",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "a58fb569",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T13:09:29.760994"
+    },
+    {
+      "trace_id": "969fc41b",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:09:33.781254",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "2db66788",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T13:09:34.742469"
+    },
+    {
+      "trace_id": "92a937f8",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:24:16.195473",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "61e323ae",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T13:24:20.050184"
+    },
+    {
+      "trace_id": "23bed5f3",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T13:24:43.765635",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "dc8eb774",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T13:24:45.696803"
+    },
+    {
+      "trace_id": "eb0bc0c5",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:25:19.048830",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "565617ee",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T13:25:20.901357"
+    },
+    {
+      "trace_id": "96ce1b1c",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:25:25.161852",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "80d829c7",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T13:25:26.307644"
+    },
+    {
+      "trace_id": "22cceaf2",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:31:37.226003",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.880140047146615,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "0471eac3",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T13:31:41.373796"
+    },
+    {
+      "trace_id": "ae82e1a8",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T13:32:05.354895",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "b4015ef2",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T13:32:07.515071"
+    },
+    {
+      "trace_id": "7da4256b",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:32:39.690894",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "28c8b9a1",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T13:32:41.750086"
+    },
+    {
+      "trace_id": "50af033f",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T13:32:45.966681",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "eed57ab1",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T13:32:47.216991"
+    },
+    {
+      "trace_id": "78d59a4a",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:18:20.173411",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "9e761ae4",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T14:18:23.756084"
+    },
+    {
+      "trace_id": "017feb42",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T14:18:52.680823",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "5990a0ac",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T14:18:54.497283"
+    },
+    {
+      "trace_id": "8f5d40b0",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:19:30.125386",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "216fea81",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T14:19:31.829994"
+    },
+    {
+      "trace_id": "7878fdf9",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:19:36.206701",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "61059127",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T14:19:37.249387"
+    },
+    {
+      "trace_id": "ff28de09",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:22:20.569418",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "63a32568",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T14:22:24.495988"
+    },
+    {
+      "trace_id": "75f1ddb4",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:24:36.777428",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "db31defe",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:26:50.215888",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "96704d40",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:28:59.939712",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "87412328",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T14:29:04.242844"
+    },
+    {
+      "trace_id": "4a9fad6f",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:31:54.911506",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "e2c930f4",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T14:31:59.572903"
+    },
+    {
+      "trace_id": "839ddfe6",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:36:37.812101",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "0c3da852",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T14:36:42.639067"
+    },
+    {
+      "trace_id": "ca76c7ad",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T14:37:08.774994",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "7f2468cb",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T14:37:11.180712"
+    },
+    {
+      "trace_id": "9076f1f4",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:37:46.097063",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "7870b0b5",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T14:37:48.322551"
+    },
+    {
+      "trace_id": "0982d962",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:37:52.874436",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "dde3f82a",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T14:37:54.193152"
+    },
+    {
+      "trace_id": "eed2a124",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T14:40:31.347275",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "5f9ccead",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T14:40:33.851521"
+    },
+    {
+      "trace_id": "1d529abe",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:43:29.616423",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "6c421bf0",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T14:43:35.936260"
+    },
+    {
+      "trace_id": "79d82239",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:43:43.792739",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "c8fdd910",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T14:43:46.707155"
+    },
+    {
+      "trace_id": "56a4943a",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T14:44:48.390167",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "97b89229",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T14:44:52.891790"
+    },
+    {
+      "trace_id": "d57f62cc",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:48:19.729525",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "d71e80d5",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T14:48:29.247542"
+    },
+    {
+      "trace_id": "358eed46",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:56:03.606773",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "febd1ccc",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T14:56:15.298465"
+    },
+    {
+      "trace_id": "2066e65a",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T14:56:49.692997",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "b5d1fc0d",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T14:56:55.243922"
+    },
+    {
+      "trace_id": "e57f0d36",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:57:44.376185",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "28154206",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T14:57:49.510839"
+    },
+    {
+      "trace_id": "d6de206f",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T14:57:57.249972",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "b23ad671",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T14:58:00.353670"
+    },
+    {
+      "trace_id": "f9883c52",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T15:03:29.392379",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "c15a737f",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T15:03:41.390080"
+    },
+    {
+      "trace_id": "cd235470",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T15:04:11.572247",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "1cb5fec1",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T15:04:17.174279"
+    },
+    {
+      "trace_id": "f09dce9c",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T15:05:04.065804",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "62cc75d2",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T15:05:09.177559"
+    },
+    {
+      "trace_id": "f618925e",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T15:05:16.604227",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "7893bef8",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T15:05:19.792661"
+    },
+    {
+      "trace_id": "a148d357",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T15:13:28.348706",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "60540289",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-08-26T15:13:40.337677"
+    },
+    {
+      "trace_id": "62a0ba24",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-08-26T15:14:14.025586",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "8060062f",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-08-26T15:14:19.840083"
+    },
+    {
+      "trace_id": "c9c5e102",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T15:15:08.815187",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "f67aa7ef",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-08-26T15:15:14.344320"
+    },
+    {
+      "trace_id": "11d1de52",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-08-26T15:15:22.451766",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "66c50a5e",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-08-26T15:15:25.757146"
+    },
+    {
+      "trace_id": "aa8ec681",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T00:07:51.771136",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "a532bd89",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-09-01T00:07:57.048104"
+    },
+    {
+      "trace_id": "8231b5a4",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T00:08:15.435131",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "dea6de96",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T00:08:18.059630"
+    },
+    {
+      "trace_id": "d30143e8",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T00:08:47.338088",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "6481f09b",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-01T00:08:49.834058"
+    },
+    {
+      "trace_id": "5ae3a616",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T00:08:54.065556",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "55ace2da",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-09-01T00:08:55.589993"
+    },
+    {
+      "trace_id": "be84ff07",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T08:12:03.605867",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "83b29f6c",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-09-01T08:12:09.356824"
+    },
+    {
+      "trace_id": "cc033542",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T08:12:27.968687",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "de2a88a0",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T08:12:30.801953"
+    },
+    {
+      "trace_id": "a6aa2c4d",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T08:12:59.412561",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "c1a172ac",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-01T08:13:02.123750"
+    },
+    {
+      "trace_id": "1aff0ead",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T08:13:06.489430",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "16d8def7",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-09-01T08:13:08.101510"
+    },
+    {
+      "trace_id": "a1e6d40c",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T08:17:26.907417",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "83b3bd4a",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T08:17:32.018802"
+    },
+    {
+      "trace_id": "64dfd5b1",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T10:09:58.131705",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "8b78a986",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-09-01T10:10:04.435795"
+    },
+    {
+      "trace_id": "3b05800e",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T10:10:08.980540",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "72be4d5b",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T10:10:11.898179"
+    },
+    {
+      "trace_id": "18ef4e84",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T10:10:22.513920",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "e6c38629",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-01T10:10:25.306059"
+    },
+    {
+      "trace_id": "073013b8",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T10:10:27.641524",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "ef54db2e",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-09-01T10:10:29.322919"
+    },
+    {
+      "trace_id": "323b094e",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T10:31:44.953216",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "8041e2af",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T10:31:51.297909"
+    },
+    {
+      "trace_id": "e7186da7",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T10:37:17.193934",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "f49f0012",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T10:37:22.231343"
+    },
+    {
+      "trace_id": "a93b4f71",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T10:40:55.449683",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "75084942",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T10:41:00.530669"
+    },
+    {
+      "trace_id": "c34a32d4",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T10:44:57.403860",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "896bdff7",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-09-01T10:45:07.362921"
+    },
+    {
+      "trace_id": "8a8f51e8",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T10:45:41.196813",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "e4678826",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T10:45:46.066713"
+    },
+    {
+      "trace_id": "d9dc7a72",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T10:46:38.430996",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "8363f2f6",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-01T10:46:43.306053"
+    },
+    {
+      "trace_id": "d8256d99",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T10:46:51.727855",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "c6822a99",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-09-01T10:46:54.702408"
+    },
+    {
+      "trace_id": "4956c96c",
+      "company_id": 1,
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "现代服务",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T15:04:11.148750",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.26,
+        "supplier_concentration": 31.88033135601689,
+        "goods_match_ratio": 0.02
+      }
+    },
+    {
+      "trace_id": "2de87750",
+      "company_name": "深圳海更数字传媒有限公司",
+      "industry": "广告传媒",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "待核事实：质量索赔、召回、退换、返修与质保预计负债",
+        "购销闭环风险"
+      ],
+      "timestamp": "2026-09-01T15:04:28.067985"
+    },
+    {
+      "trace_id": "5f470605",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T15:05:10.771135",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "70bac877",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T15:05:19.292847"
+    },
+    {
+      "trace_id": "da95124d",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T15:06:28.086150",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "92585fa6",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-01T15:06:37.439513"
+    },
+    {
+      "trace_id": "4fa6f6e7",
+      "company_id": 4,
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "综合",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-01T15:06:51.521727",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 1.0,
+        "supplier_concentration": 0,
+        "goods_match_ratio": 1.0
+      }
+    },
+    {
+      "trace_id": "80286796",
+      "company_name": "北京潘祥记餐饮有限公司",
+      "industry": "",
+      "data_profile": {},
+      "learning_points": [],
+      "timestamp": "2026-09-01T15:06:56.861506"
+    },
+    {
+      "trace_id": "b5436708",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-01T23:22:00.732729",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "ad518c90",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-01T23:22:03.147812"
+    },
+    {
+      "trace_id": "58782598",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-02T09:28:17.184034",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "9f1054f1",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-02T09:28:22.129115"
     }
   ],
   "industry_patterns": {
     "现代服务": {
-      "analyses_count": 94,
+      "analyses_count": 113,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
@@ -13598,13 +15829,19 @@
       "typical_data_profile": {}
     },
     "纺织产品": {
-      "analyses_count": 53,
+      "analyses_count": 75,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
     },
     "综合": {
-      "analyses_count": 68,
+      "analyses_count": 88,
+      "common_high_risks": {},
+      "avg_risk_score": 0,
+      "typical_data_profile": {}
+    },
+    "饲料": {
+      "analyses_count": 15,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

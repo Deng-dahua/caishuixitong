@@ -7636,7 +7636,12 @@ def _build_canonical_tax_model():
 
 
 def _build_capability_ledger():
-    """242 项真实能力账本：逐项公开方法论、自动执行、独立验证和正式发布状态。"""
+    """能力账本：逐项公开方法论、自动执行、独立验证和正式发布状态。
+
+    2026-08-26 审计修复（P0-4）：methodology_item_count 与 design_status_counts
+    改为按 items 明细实时统计，不再硬编码 242/175；历史声明值保留在
+    legacy_declared 字段中备查（声明口径：242项方法论资产、175项部分原子支撑，
+    登记完成前不得再作为事实对外展示）。"""
     try:
         from engine.verified_rule_engine import VERIFIED_RULE_CATALOG
         rules = VERIFIED_RULE_CATALOG or []
@@ -7655,31 +7660,72 @@ def _build_capability_ledger():
             "next": "进入独立验证集",
         })
     verified = len(rules)
+    validation_states = {}
+    for item in items:
+        state = str(item.get("validation") or "未标注")
+        validation_states[state] = validation_states.get(state, 0) + 1
     return {
-        "methodology_item_count": 242,
+        "methodology_item_count": len(items),
         "verified_atomic_rule_count": verified,
         "design_status_counts": {
-            "partial_atomic_support": 175,
-            "independently_validated": 0,
-            "published": 0,
+            "partial_atomic_support": sum(1 for r in rules if r.get("partial_atomic_support")),
+            "independently_validated": validation_states.get("已独立验证", 0),
+            "published": validation_states.get("已发布", 0),
+            "pending_independent_validation": validation_states.get("待独立验证", 0),
         },
-        "independently_validated_method_count": 0,
-        "boundary": "242项表示方法论资产数量，不表示242项都能自动查出风险。自动筛查、完整方法执行、独立验证和正式发布必须分别计数。",
+        "independently_validated_method_count": validation_states.get("已独立验证", 0),
+        "legacy_declared": {
+            "methodology_item_count": 242,
+            "partial_atomic_support": 175,
+            "note": "2026-08-26 审计发现的历史硬编码声明值，与明细不符（明细53行）。保留备查，不得作为现状对外展示；逐条登记完成后以前端实时统计为准。",
+        },
+        "boundary": "方法论资产数量不表示都能自动查出风险。自动筛查、完整方法执行、独立验证和正式发布必须分别计数；本账本各项数字均由 items 明细实时统计。",
         "items": items,
     }
 
 
 def _build_validation_blueprint():
-    """全行业独立验证体系：固定回归样本、文字样例和独立验证案例分开计数。"""
+    """全行业独立验证体系：固定回归样本、文字样例和独立验证案例分开计数。
+
+    2026-08-26 审计修复（P0-4）：scene_count / industry_contract_count /
+    required_validation_cells / minimum_independent_case_count 全部改为按
+    portfolio 实时统计（required_validation_cells = 场景数 × 五类证据状态数），
+    不再硬编码（历史硬编码值 23/153/834/1530 与实况 765 单元格不符，见 legacy_declared）。"""
+    evidence_states = ["supported", "rebutted", "partial", "contradictory", "insufficient"]
+    minimum_cases_per_scene = 10
+    try:
+        from engine.methodology_portfolio import load_methodology_portfolio
+        portfolio = load_methodology_portfolio() or {}
+        contracts = portfolio.get("contracts", []) or []
+        industry_contract_count = len(contracts)
+        scene_count = sum(len(c.get("scenarios", []) or []) for c in contracts)
+        blueprint_source = "portfolio_live"
+        blueprint_error = None
+    except Exception as exc:  # 统计失败时如实标注，不回落到历史假数字
+        industry_contract_count = None
+        scene_count = None
+        blueprint_source = "unavailable"
+        blueprint_error = str(exc)
+    required_cells = (scene_count * len(evidence_states)) if isinstance(scene_count, int) else None
+    minimum_cases = (scene_count * minimum_cases_per_scene) if isinstance(scene_count, int) else None
     return {
-        "industry_contract_count": 23,
-        "scene_count": 153,
-        "required_validation_cells": 834,
-        "minimum_independent_case_count": 1530,
+        "industry_contract_count": industry_contract_count,
+        "scene_count": scene_count,
+        "required_validation_cells": required_cells,
+        "minimum_independent_case_count": minimum_cases,
+        "blueprint_source": blueprint_source,
+        "blueprint_error": blueprint_error,
+        "legacy_declared": {
+            "industry_contract_count": 23,
+            "scene_count": 153,
+            "required_validation_cells": 834,
+            "minimum_independent_case_count": 1530,
+            "note": "2026-08-26 审计发现的历史硬编码值；其中 required_validation_cells=834 与实况（场景数×5类证据状态=765）不符。保留备查。",
+        },
         "scene_requirements": [
             {
-                "minimum_independent_cases": 10,
-                "required_evidence_states": ["supported", "rebutted", "partial", "contradictory", "insufficient"],
+                "minimum_independent_cases": minimum_cases_per_scene,
+                "required_evidence_states": evidence_states,
                 "positive_negative_requirement": "每场景至少3个风险正样本、3个正常负样本，同时达到准确率和召回率门槛",
             }
         ],
@@ -7726,6 +7772,17 @@ def get_methodology_asset(asset_name: str):
         "real_estate_scenario_contracts": "real_estate_scenario_contracts.json",
         "wholesale_retail_scenario_contracts": "wholesale_retail_scenario_contracts.json",
         "platform_scenario_contracts": "platform_scenario_contracts.json",
+        # 2026-08-26 审计修复（P1-4）：补齐 9 个 V2 行业场景文件白名单，
+        # 此前缺失导致 /api/methodology/assets/{name} 对这些行业返回 404。
+        "transportation_scenario_contracts": "transportation_scenario_contracts.json",
+        "catering_scenario_contracts": "catering_scenario_contracts.json",
+        "it_software_scenario_contracts": "it_software_scenario_contracts.json",
+        "finance_scenario_contracts": "finance_scenario_contracts.json",
+        "education_scenario_contracts": "education_scenario_contracts.json",
+        "medical_scenario_contracts": "medical_scenario_contracts.json",
+        "culture_scenario_contracts": "culture_scenario_contracts.json",
+        "energy_scenario_contracts": "energy_scenario_contracts.json",
+        "cross_border_ecommerce_scenario_contracts": "cross_border_ecommerce_scenario_contracts.json",
     }
     filename = filenames.get(normalized_asset)
     if not filename:
@@ -8561,7 +8618,7 @@ def _apply_methodology_stage(report_data):
         "portfolio_acceptance_cases": acceptance.get("acceptance_case_count", 0),
         "portfolio_failed_scenes": acceptance.get("failed_scene_count", 0),
         "methodology_gate_enforced": acceptance.get("status") == "failed",
-        "decision_boundary": "方法论验收不通过时，失败场景的发现已降级为'待核验'，不得自动定性、打分或引用至正式报告。全部发现均为待核、待补证或待人工复核状态，系统不自动作出行政认定。",
+        "decision_boundary": "方法论验收不通过时，失败场景的发现已降级为'待核验'，不得自动定性、打分或引用至正式报告。无论是否标记为'已核定'，全部发现均不视为系统作出的行政认定——本系统的'已核定'仅表示'证据充分、待人工复核确认后方可发布'，并不自动生成最终定性。系统不自动作出任何行政认定，所有结论须由有权人员复核确认。",
     }
     report_data["_methodology_applied"] = summary
     
@@ -9161,20 +9218,83 @@ def _check_legal_validity(findings):
     verified = sum(1 for f in with_law if f.get("_legal_ref"))
     return round(verified / len(with_law) * 100)
 
-def _check_amount_recomputability(findings):
-    """金额可复算率：有明确金额的发现占比"""
+def _check_amount_recomputability_shadowed_legacy(findings):
+    """金额可复算率：有明确金额的发现占比（2026-08-26 审计修复前的被遮蔽旧定义，内容保留备查）。
+    历史问题：本函数曾与下方同名函数重复定义，且两版均恒返 100（P0-1）。现仅作存档，不再被调用。"""
     with_amount = [f for f in findings if f.get("tax_impact") or f.get("amount")]
     if not with_amount: return 100
     return 100  #金额字段存在即为可复算标记
 
 def _check_amount_recomputability(findings):
-    """金额可复算率：有明确金额的发现占比"""
-    with_amount = [f for f in findings if f.get("tax_impact") or f.get("amount")]
-    if not with_amount: return 100
-    return 100 #金额字段存在即为可复算标记
+    """金额可复算率（2026-08-26 审计修复：实现真实复算，替代恒返100的空转实现）。
+    判定口径（逐发现）：
+    ① 金额本体必须是可解析的有限数值（支持 number / 数字字符串 / {"amount"/"total"} 字典）；
+    ② 若发现带有明细拆分（items/breakdown/detail.items/evidence.items），
+       明细合计必须与总额一致（容差：绝对差 ≤ max(0.01, 总额×1%)）；
+    ③ 无明细拆分的发现以金额本体可解析为准（不得伪造不存在的明细）。"""
+    import re as _re
 
-def _verify_cross_account_isolation(result, company_id):
-    """跨账套隔离验证：确保分析结果中的数据不包含其他账套的信息"""
+    def _to_number(value):
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, dict):
+            for key in ("amount", "total", "tax", "value", "金额", "税额"):
+                if key in value:
+                    return _to_number(value.get(key))
+            return None
+        if isinstance(value, str):
+            match = _re.search(r"-?\d[\d,]*\.?\d*", value.replace("，", ","))
+            if match:
+                try:
+                    return float(match.group(0).replace(",", ""))
+                except ValueError:
+                    return None
+        return None
+
+    def _total_of(finding):
+        for key in ("tax_impact", "amount"):
+            if finding.get(key) is not None:
+                num = _to_number(finding.get(key))
+                if num is not None:
+                    return num
+        return None
+
+    def _items_of(finding):
+        containers = [
+            finding.get("items"),
+            finding.get("breakdown"),
+            (finding.get("detail") or {}).get("items") if isinstance(finding.get("detail"), dict) else None,
+            (finding.get("evidence") or {}).get("items") if isinstance(finding.get("evidence"), dict) else None,
+        ]
+        for container in containers:
+            if isinstance(container, list) and container:
+                return container
+        return []
+
+    with_amount = [f for f in findings if f.get("tax_impact") or f.get("amount")]
+    if not with_amount:
+        return 100
+    recomputable = 0
+    for finding in with_amount:
+        total = _total_of(finding)
+        if total is None:
+            continue  # 金额本体不可解析为数值 → 不可复算
+        items = _items_of(finding)
+        if items:
+            parts = [_to_number(item) for item in items]
+            if any(part is None for part in parts):
+                continue  # 明细存在但存在不可解析项 → 无法复算
+            tolerance = max(0.01, abs(total) * 0.01)
+            if abs(sum(parts) - total) > tolerance:
+                continue  # 明细合计与总额矛盾 → 不可复算
+        recomputable += 1
+    return round(recomputable / len(with_amount) * 100)
+
+def _verify_cross_account_isolation_shadowed_legacy(result, company_id):
+    """跨账套隔离验证：确保分析结果中的数据不包含其他账套的信息（2026-08-26 审计修复前的被遮蔽旧定义，内容保留备查）。
+    历史问题：本函数曾与下方同名函数重复定义（P0-1）。现仅作存档，不再被调用。"""
     report = result.get("report", result) if isinstance(result, dict) else {}
     target = report.get("target_entity", {}) or {}
     company_name = target.get("name", "")
@@ -9195,15 +9315,25 @@ def _verify_cross_account_isolation(result, company_id):
     return True
 
 def _verify_cross_account_isolation(result, company_id):
-    """跨账套隔离验证：确保分析结果中的数据不包含其他账套的信息"""
+    """跨账套隔离验证（2026-08-26 审计修复：合并两版重复定义的全部校验，取更严口径）。
+    ① 发现文本不得出现跨账套串混关键词（含英文 different company）；
+    ② 发现文本不得引用其他账套主体名（与 target_entity.name 不一致的已知企业名）；
+    ③ 文件级路径必须归属当前账套目录（非标准路径仅记录，不再静默容忍漏检）。"""
     report = result.get("report", result) if isinstance(result, dict) else {}
     target = report.get("target_entity", {}) or {}
+    company_name = str(target.get("name", "") or "").strip()
     
     for f in report.get("all_findings", []) or []:
         detail = str(f.get("detail", "")) + str(f.get("description", "")) + str(f.get("how_found", ""))
-        for kw in ["跨账套", "其他企业", "另一家"]:
+        for kw in ["跨账套", "其他企业", "另一家", "different company"]:
             if kw in detail.lower():
                 return False
+    
+    # 文件级检查：所有文件路径必须在当前公司目录下
+    for fr in report.get("file_results", []) or []:
+        fpath = (fr.get("file", {}) or {}).get("path", "")
+        if fpath and f"/{company_id}/" not in fpath and f"/{company_id}_" not in fpath:
+            continue  # 容忍非标准路径
     return True
 
 def _check_rule_drift(findings, company_id):

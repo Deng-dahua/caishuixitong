@@ -568,85 +568,56 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         )
         for panel_id in ("status", "rules", "brain", "quality", "methods", "details"):
             self.assertIn(f"id:'{panel_id}'", engine_dashboard)
-        methodology_start = methodology.index(
-            "var METHODOLOGY_PAGE_SECTIONS"
+        methodology_v3 = (
+            root / "static" / "js" / "methodology-v3.js"
+        ).read_text(encoding="utf-8")
+        # 现行方法论页由 methodology-v3.js 渲染（IIFE 覆盖 window.renderMethodologyPage）。
+        self.assertIn("window.__METHODOLOGY_V3_LOADED__ = true", methodology_v3)
+        self.assertIn(
+            "window.renderMethodologyPage = function (container)",
+            methodology_v3,
         )
-        methodology_end = methodology.index(
-            "function _renderMethodologyGuide",
-            methodology_start,
-        )
-        active_methodology = methodology[methodology_start:methodology_end]
+        self.assertIn("从资料进入到报告移交的完整专业作业体系", methodology_v3)
+        self.assertIn("系统负责形成待核事实", methodology_v3)
+        self.assertIn("有权人员依法完成事实认定", methodology_v3)
         for section_id in (
-            "overview",
-            "guide",
-            "files",
-            "rules",
-            "domains",
-            "results",
-            "chains",
-            "handbook",
+            "m3-overview",
+            "m3-coverage",
+            "m3-ledger",
+            "m3-data-model",
+            "m3-validation",
+            "m3-common",
+            "m3-industries",
+            "m3-workflow",
+            "m3-domains",
+            "m3-chains",
+            "m3-report",
+            "m3-results",
+            "m3-quality",
         ):
-            self.assertIn(f"id:'{section_id}'", active_methodology)
-        for view_id in ("compact", "clues", "evidence", "analysis"):
-            self.assertIn(
-                f'id="methodology-chain-{view_id}"',
-                active_methodology,
-            )
-        for renderer in (
-            "_renderMethodologyOverview",
-            "_renderMethodologyGuide",
-            "renderFileParsingPage",
-            "renderTaxRiskRules",
-            "renderUnifiedDomainPanel",
-            "renderAnalyzePage",
-            "renderMethodologyChainsIntegrated",
-            "_renderMethodologyPracticeManual",
+            self.assertIn(f'id="{section_id}"', methodology_v3)
+        for asset_url in (
+            "/api/methodology/coverage",
+            "/api/methodology/assets/portfolio",
+            "/api/methodology/assets/canonical_catalog",
+            "/api/methodology/assets/framework",
+            "/api/methodology/assets/capability_ledger",
+            "/api/methodology/assets/canonical_tax_model",
+            "/api/methodology/assets/validation_blueprint",
         ):
-            self.assertIn(renderer, active_methodology)
-        self.assertIn("程序规范 · 证据闭环 · 审慎判断", active_methodology)
-        self.assertIn("稽查方法论以主体与期间确认", active_methodology)
-        self.assertIn('data-method-layout="executive"', active_methodology)
-        self.assertIn('class="method-layout"', active_methodology)
-        self.assertIn(".method-mount .au-toc,.method-mount .fp-toc{display:none!important}", active_methodology)
-        self.assertNotIn("本页把原", active_methodology)
-        self.assertNotIn('class="method-tabs"', active_methodology)
-        self.assertNotIn('id="methodology-workspace"', active_methodology)
-        self.assertNotIn("data-method-section", active_methodology)
-        self.assertIn(
-            "_renderMethodologyResultSnapshot",
-            methodology,
-        )
-        self.assertIn(
-            "最近一次执行快照与复核队列",
-            methodology,
-        )
-        self.assertIn(
-            "模型评分、规则命中和链路匹配只负责排序与提示",
-            methodology,
-        )
-        analyze_start = methodology.index("function renderAnalyzePage")
-        analyze_end = methodology.index(
-            "async function toggleDomainDetail",
-            analyze_start,
-        )
-        active_results = methodology[analyze_start:analyze_end]
-        self.assertNotIn('id="analyze-body"', active_results)
-        self.assertIn(
-            "当前账套暂无最近一次一键稽查结果",
-            active_results,
-        )
+            self.assertIn(asset_url, methodology_v3)
+        self.assertIn("function renderPage(container", methodology_v3)
+        self.assertIn("242项真实能力账本", methodology_v3)
+        self.assertIn("ledgerConsistencyNote", methodology_v3)
+        for unsafe_text in (
+            "差额即逃税证据",
+            "虚开现形",
+            "从“可能有”到“就是有”",
+            "系统永远紧跟最新法规",
+            "建议稽查频率",
+        ):
+            self.assertNotIn(unsafe_text, methodology_v3)
 
-        domain_start = methodology.index("function renderUnifiedDomainPanelV4")
-        domain_end = methodology.index(
-            "function _renderMethodologyOverview", domain_start
-        )
-        active_domains = methodology[domain_start:domain_end]
-        self.assertIn("十四个专业业务域及输出合同", active_domains)
-        self.assertIn("统一放行规则", active_domains)
-        self.assertIn("跨域协同场景库", active_domains)
-        self.assertIn("全税费种协同范围", active_domains)
-        self.assertNotIn("1720条", active_domains)
-        self.assertNotIn("系统性造假", active_domains)
         self.assertIn(
             '@app.get("/api/methodology/assets/{asset_name}")',
             main,
@@ -667,28 +638,6 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             )
         self.assertIn('"evidence": lambda: {"evidence_chains": load_flat_evidence()}', main)
         self.assertIn('"analysis": lambda: {"analysis_chains": load_flat_analysis()}', main)
-
-        guide_start = methodology.index("function _renderMethodologyGuide")
-        guide_end = methodology.index(
-            "// 方法论面板内的紧凑线索链渲染",
-            guide_start,
-        )
-        active_guide = methodology[guide_start:guide_end]
-        for required_text in (
-            "事实、证据、测算与法律适用分别复核",
-            "系统只提供结构化复核，不作行政认定",
-            "风险评分仅用于安排核验顺序",
-            "规则、调查、证据、分析和域协同作为同一场景合同编制并复审",
-        ):
-            self.assertIn(required_text, active_guide)
-        for unsafe_text in (
-            "差额即逃税证据",
-            "虚开现形",
-            "从“可能有”到“就是有”",
-            "系统永远紧跟最新法规",
-            "建议稽查频率",
-        ):
-            self.assertNotIn(unsafe_text, active_guide)
 
         self.assertIn("window._engineHubSection = 'knowledge';", core)
         self.assertIn(
@@ -923,29 +872,16 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         expected_desktop = "padding:36px clamp(8px,1.1vw,18px) 56px;"
         for relative_path in (
             "static/js/engine-hub.js",
-            "static/js/tax-pipeline-pages.js",
             "static/js/tax-report-standards.js",
         ):
             source = (root / relative_path).read_text(encoding="utf-8")
             self.assertIn("max-width:1680px;", source, msg=relative_path)
             self.assertIn(expected_desktop, source, msg=relative_path)
 
-        methodology = (
-            root / "static" / "js" / "tax-pipeline-pages.js"
+        methodology_v3 = (
+            root / "static" / "js" / "methodology-v3.js"
         ).read_text(encoding="utf-8")
-        chain_selector = (
-            ".method-mount .rr,.method-mount .cl,.method-mount .ev,"
-            ".method-mount .alc{"
-        )
-        self.assertIn(chain_selector, methodology)
-        chain_override = methodology.split(chain_selector, 1)[1].split("}", 1)[0]
-        for declaration in (
-            "width:100%!important;",
-            "max-width:none!important;",
-            "margin:0!important;",
-            "padding:0!important",
-        ):
-            self.assertIn(declaration, chain_override)
+        self.assertIn("max-width:1480px;margin:0 auto", methodology_v3)
 
         chat = (root / "static" / "js" / "chat.js").read_text(
             encoding="utf-8"
@@ -983,7 +919,6 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             ),
             3,
         )
-        self.assertIn(".method-chain-table{min-width:840px", methodology)
         self.assertIn(
             '<colgroup><col style="width:6%"><col style="width:40%">'
             '<col style="width:12%"><col style="width:10%">'

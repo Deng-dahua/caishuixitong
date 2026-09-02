@@ -1,16 +1,208 @@
 {
-  "version": "2.0",
-  "description": "跨模块共享内容映射——定义每个共享内容块的权威源和依赖模块。--sync时自动同步text_sync类，审计时验证concept_link类。",
+  "version": "2.1",
+  "description": "跨模块共享内容映射——text_sync_blocks逐字同步，concept_links关联验证。2026-08-26按现行文件结构重建。",
   "text_sync_blocks": [
-    {"id":"report_cover","label":"封面","title":"编号格式+报告日期","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
-    {"id":"report_ch1","label":"第一章","title":"案件来源及税务合规对象基本情况","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
-    {"id":"report_ch2","label":"第二章","title":"税务合规实施情况","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
-    {"id":"report_ch3","label":"第三章","title":"税务合规发现问题及事实认定","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
-    {"id":"report_ch4","label":"第四章","title":"税务合规结论","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
-    {"id":"report_ch5","label":"第五章","title":"处理处罚建议","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
-    {"id":"report_ch6","label":"第六章","title":"告知权利义务","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
-    {"id":"report_ch7","label":"第七章","title":"税务合规人员签字","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0},
-    {"id":"report_appendix","label":"附件","title":"证据清单","source_file":"static/js/tax-report-standards.js","dependent_files":[],"content_hash":"","content_length":0}
+    {
+      "id": "report_section_rpt-1",
+      "label": "职责、文种与法律边界",
+      "title": "职责、文种与法律边界",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "306d9e3b44b4dfba891a4b11c44ec928",
+      "content_length": 813
+    },
+    {
+      "id": "report_section_rpt-2",
+      "label": "编制启动与输入门禁",
+      "title": "编制启动与输入门禁",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "4d3fee1e3d1bb5de4011b6ea84a58105",
+      "content_length": 621
+    },
+    {
+      "id": "report_section_rpt-3",
+      "label": "单项发现的七联单",
+      "title": "单项发现的七联单",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "1c7a0e8be426c50c654106705626f57b",
+      "content_length": 996
+    },
+    {
+      "id": "report_section_rpt-4",
+      "label": "证据组织与全链路溯源",
+      "title": "证据组织与全链路溯源",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "08e6d06ba0fe3782f2a6dd255877af79",
+      "content_length": 695
+    },
+    {
+      "id": "report_section_rpt-5",
+      "label": "法律适用与时效核验",
+      "title": "法律适用与时效核验",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "5361a02efcbc5b2ed5073c25786a9bbf",
+      "content_length": 813
+    },
+    {
+      "id": "report_section_rpt-6",
+      "label": "金额测算、时间轴与勾稽",
+      "title": "金额测算、时间轴与勾稽",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "d1ed6fec36bb9381ed9be428d6fa83c2",
+      "content_length": 602
+    },
+    {
+      "id": "report_section_rpt-7",
+      "label": "成稿结构、叙事与呈现",
+      "title": "成稿结构、叙事与呈现",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "0372e01c2aefab2f5b7235785c549dfb",
+      "content_length": 828
+    },
+    {
+      "id": "report_section_rpt-8",
+      "label": "编制全过程审核",
+      "title": "编制全过程审核",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "1a16e80af128fd2ac74c98b88571a298",
+      "content_length": 1114
+    },
+    {
+      "id": "report_section_rpt-9",
+      "label": "常见误判的归因与复核矩阵",
+      "title": "常见误判的归因与复核矩阵",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "51cd2bc8cf03eb8a3ab1b9adcc3f55cd",
+      "content_length": 950
+    },
+    {
+      "id": "report_section_rpt-10",
+      "label": "质量放行、版本交付与受控反馈",
+      "title": "质量放行、版本交付与受控反馈",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "status": "no_dependent",
+      "content_hash": "f9256af83baec2ca97b0c776657ada3a",
+      "content_length": 1104
+    }
+  ],
+  "legacy_text_sync_blocks": [
+    {
+      "id": "report_cover",
+      "label": "封面",
+      "title": "编号格式+报告日期",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    },
+    {
+      "id": "report_ch1",
+      "label": "第一章",
+      "title": "案件来源及税务合规对象基本情况",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    },
+    {
+      "id": "report_ch2",
+      "label": "第二章",
+      "title": "税务合规实施情况",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    },
+    {
+      "id": "report_ch3",
+      "label": "第三章",
+      "title": "税务合规发现问题及事实认定",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    },
+    {
+      "id": "report_ch4",
+      "label": "第四章",
+      "title": "税务合规结论",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    },
+    {
+      "id": "report_ch5",
+      "label": "第五章",
+      "title": "处理处罚建议",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    },
+    {
+      "id": "report_ch6",
+      "label": "第六章",
+      "title": "告知权利义务",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    },
+    {
+      "id": "report_ch7",
+      "label": "第七章",
+      "title": "税务合规人员签字",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    },
+    {
+      "id": "report_appendix",
+      "label": "附件",
+      "title": "证据清单",
+      "source_file": "static/js/tax-report-standards.js",
+      "dependent_files": [],
+      "content_hash": "",
+      "content_length": 0,
+      "status": "legacy_unmapped",
+      "note": "2026-08-26 重建映射时无法按现行文件结构建立，保留备查"
+    }
   ],
   "concept_links": [
     {
@@ -220,11 +412,5 @@
       ],
       "note": "本标准本身也是共享内容——引擎记忆为定义，手册引用该标准"
     }
-  ],
-  "summary": {
-    "text_sync_blocks": 9,
-    "concept_links": 20,
-    "total_shared_items": 29,
-    "sync_triggers": ["start.bat --sync", "git pre-commit --sync", "一键分析 subprocess --sync", "手动 --sync"]
-  }
+  ]
 }

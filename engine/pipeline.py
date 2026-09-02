@@ -5600,7 +5600,11 @@ def _enforce_six_elements(all_findings, pipeline_log):
 
 # ═══════════ 报告编制总纲补全：五条禁令 ═══════════
 def _check_five_prohibitions(all_findings, pipeline_log):
-    """五条禁令文本检查：一逗到底/多逻辑/括号堆叠/子项成段/数据解释分层"""
+    """五条禁令文本检查：一逗到底/多逻辑/括号堆叠/子项成段/数据解释分层
+
+    【2026-08-26 审计修复说明（P1-6）】本简化版仅实现 ①③⑤ 三条检查，
+    现行主流程（本文件 _run_pipeline 段）实际调用的是完整版 _check_five_prohibitions_full（五条全检）。
+    本函数全库无调用点，保留内容备查，不再参与执行；新增代码请使用完整版。"""
     violations = 0
     for f in all_findings:
         detail = str(f.get("detail", ""))
@@ -5628,29 +5632,35 @@ def _check_five_prohibitions(all_findings, pipeline_log):
     return all_findings
 
 
-# ═══════════ 报告编制总纲补全：四方交叉验证 ═══════════
+# ═══════════ 报告编制总纲补全：发票↔资金双向交叉验证 ═══════════
 def _four_way_cross_verify(invoices, bank_txs, pipeline_log):
-    """四方交叉验证：发票流↔资金流初步比对"""
+    """发票流↔资金流双向交叉验证（总额比值初筛）。
+
+    【2026-08-26 审计修复说明（P1-6）】本函数历史上命名与输出文案称"四方交叉验证"，
+    但实际只执行发票总额与银行流水总额的比值（0.3~3.0）一类初筛比对，名不符实。
+    真正的"四方交叉验证"（文件名/表头/内容/身份匹配四维）属于文件类型识别语境；
+    四流一致（合同流/发票流/货物流/资金流）完整矩阵由五流勾稽矩阵模块承担。
+    现将本函数输出文案如实改为"发票-资金双向交叉验证"，函数名保留以兼容既有调用。"""
     result = {"verified": True, "conflicts": []}
     if not invoices or not bank_txs:
         missing = []
         if not invoices: missing.append("发票")
         if not bank_txs: missing.append("银行流水")
         result["verified"] = False
-        result["conflicts"].append(f"⚠️ 资料缺失：缺少{'、'.join(missing)}数据，无法执行四方交叉验证。缺失{'、'.join(missing)}意味着发票流与资金流的比对无法完成，四流一致（合同流/发票流/货物流/资金流）的核心验证缺失。")
-        pipeline_log.append(f"四方交叉验证: 资料不足跳过(缺少{'、'.join(missing)})")
+        result["conflicts"].append(f"⚠️ 资料缺失：缺少{'、'.join(missing)}数据，无法执行发票-资金双向交叉验证。缺失{'、'.join(missing)}意味着发票流与资金流的比对无法完成；四流一致（合同流/发票流/货物流/资金流）的完整验证由五流勾稽矩阵承担，本初筛仅覆盖发票↔资金两方。")
+        pipeline_log.append(f"发票-资金双向交叉验证: 资料不足跳过(缺少{'、'.join(missing)})")
         return result
     inv_amt = sum(float(i.get("amount", 0) or i.get("金额", 0) or 0) for i in invoices)
     bank_amt = sum(float(t.get("amount", 0) or t.get("金额", 0) or 0) for t in bank_txs)
     if inv_amt > 0 and bank_amt > 0:
         ratio = bank_amt / max(inv_amt, 1)
         if ratio < 0.3 or ratio > 3.0:
-            result["conflicts"].append(f"四流不一致: 发票{inv_amt:,.0f} vs 银行{bank_amt:,.0f}(比例{ratio:.2f})")
+            result["conflicts"].append(f"发票-资金双向不一致: 发票{inv_amt:,.0f} vs 银行{bank_amt:,.0f}(比例{ratio:.2f}，初筛阈值0.3~3.0)")
             result["verified"] = False
     if result["conflicts"]:
-        pipeline_log.append(f"四方交叉验证: {len(result['conflicts'])}处不一致")
+        pipeline_log.append(f"发票-资金双向交叉验证: {len(result['conflicts'])}处不一致")
     else:
-        pipeline_log.append(f"四方交叉验证: 通过（发票{len(invoices)}笔 银行{len(bank_txs)}笔）")
+        pipeline_log.append(f"发票-资金双向交叉验证: 通过（发票{len(invoices)}笔 银行{len(bank_txs)}笔，总额比值初筛）")
     return result
 
 
@@ -5677,8 +5687,10 @@ def _build_engine_hub_summary(red_team, blind_test, hallucination, topology):
     return {"status": "五环路运行完成", "details": lines}
 
 
-def _build_methodology_summary(all_findings, quality_report, cross_verify, pipeline_log):
-    """构建稽查方法论七层执行摘要（一键分析可见语言）"""
+def _build_methodology_summary_legacy(all_findings, quality_report, cross_verify, pipeline_log):
+    """构建稽查方法论七层执行摘要（2026-08-26 审计修复前的原版实现，内容保留备查）。
+    历史问题（P0-2）：各层恒显 ✓、硬编码"42域"、"第五层·定案"使用定性措辞，
+    与真实执行状态无关。现由下方 _build_methodology_summary 动态版替代，本函数不再被调用。"""
     lines = []
     domains = len([f for f in all_findings if f.get("domain")])
     finding_count = len(all_findings)
@@ -5697,6 +5709,47 @@ def _build_methodology_summary(all_findings, quality_report, cross_verify, pipel
     cross_status = "通过" if cross_verify.get("verified", True) else "发现不一致"
     lines.append(f"四方交叉验证: {cross_status}")
     
+    return {"status": "七层执行完成", "details": lines}
+
+
+def _build_methodology_summary(all_findings, quality_report, cross_verify, pipeline_log):
+    """构建稽查方法论七层执行摘要（一键分析可见语言）。
+
+    2026-08-26 审计修复（P0-2）：
+    ① 有量化数据的层按真实数据输出（✓/⚠ 由数据决定，不再恒显 ✓）；
+    ② 无量化指标的层如实标注"无独立量化指标，详见执行日志"，不伪造完成标记；
+    ③ 业务域数量按本次发现归属域去重统计，不再硬编码"42域"；
+    ④ "定案"等定性措辞改为"专业复核"，符合发现者立场；
+    ⑤ 原版实现保留于上方 _build_methodology_summary_legacy 备查。"""
+    lines = []
+    domain_set = {str(f.get("domain")) for f in all_findings if f.get("domain")}
+    domain_count = len(domain_set)
+    finding_count = len(all_findings)
+    high_count = sum(1 for f in all_findings if str(f.get("level", "")) in ("高风险", "极高风险"))
+
+    total_q = int(quality_report.get("total", 0) or 0)
+    passed_q = int(quality_report.get("passed", 0) or 0)
+    noise = max(0, total_q - passed_q)
+
+    lines.append("第一层·启动: 主体与期间确认（本层无独立量化指标，详见执行日志）")
+    lines.append("第二层·扫描: 资料识别与情报提取（本层无独立量化指标，详见执行日志）")
+    lines.append(f"第三层·布网: 本次命中业务域{domain_count}个（按发现归属域去重统计） 多域信号汇聚")
+    if total_q:
+        quality_mark = "✓" if passed_q == total_q else "⚠"
+        lines.append(f"第四层·过滤: 噪声拦截{noise}条 质量检查{passed_q}/{total_q}条通过 {quality_mark}")
+    else:
+        lines.append("第四层·过滤: 本次无质量检查记录（详见执行日志）")
+    lines.append("第五层·专业复核: 证据三性与反向证据处理状态以质量报告为准，不作定性结论")
+    lines.append("第六层·出鞘: 报告生成与语言立场过滤（详见执行日志）")
+    lines.append("第七层·进化: 规则效果回写（详见执行日志）")
+    lines.append(f"产出: {finding_count}条发现 {high_count}条高风险（均为待核事项，不构成行政认定）")
+
+    cross_status = "通过" if cross_verify.get("verified", True) else "发现不一致"
+    conflicts = cross_verify.get("conflicts") or []
+    if conflicts:
+        cross_status += f"（{len(conflicts)}处待核）"
+    lines.append(f"发票-资金双向交叉验证: {cross_status}")
+
     return {"status": "七层执行完成", "details": lines}
 
 

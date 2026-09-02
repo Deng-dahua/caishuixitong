@@ -1,12 +1,79 @@
 {
   "entities": {
-    "测试两税差异企业": {
+    "中山市达冠纺织有限公司": {
       "type": "enterprise",
       "props": {
         "source": "analysis"
       }
+    },
+    "risk:有进无销风险": {
+      "type": "risk",
+      "props": {
+        "level": "低风险",
+        "count": 1
+      }
+    },
+    "risk:有销无进风险": {
+      "type": "risk",
+      "props": {
+        "level": "低风险",
+        "count": 1
+      }
+    },
+    "risk:历史任期关联风险（深度核查）": {
+      "type": "risk",
+      "props": {
+        "level": "中风险",
+        "count": 1
+      }
     }
   },
-  "relations": [],
-  "updated_at": "2026-08-26T09:54:00.521543"
+  "relations": [
+    {
+      "from": "中山市达冠纺织有限公司",
+      "to": "risk:有进无销风险",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-09-01T23:22:03.186180"
+    },
+    {
+      "from": "中山市达冠纺织有限公司",
+      "to": "risk:有销无进风险",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-09-01T23:22:03.186188"
+    },
+    {
+      "from": "中山市达冠纺织有限公司",
+      "to": "risk:历史任期关联风险（深度核查）",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-09-02T09:28:22.173468"
+    },
+    {
+      "from": "中山市达冠纺织有限公司",
+      "to": "risk:有进无销风险",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-09-02T09:28:22.173477"
+    },
+    {
+      "from": "中山市达冠纺织有限公司",
+      "to": "risk:有销无进风险",
+      "type": "触发",
+      "props": {
+        "finding_count": 1
+      },
+      "timestamp": "2026-09-02T09:28:22.173482"
+    }
+  ],
+  "updated_at": "2026-09-02T09:28:22.174172"
 }

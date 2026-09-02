@@ -45,7 +45,19 @@ V2_SCENARIO_FILES = {
     "FIN": "finance_scenario_contracts.json",
     "ENE": "energy_scenario_contracts.json",
 }
-ASSET_TO_CODE = {filename.removesuffix(".json"): code for code, filename in V2_SCENARIO_FILES.items()}
+# 2026-08-26 审计修复（P1-4）：原字典推导式按遍历顺序"后写覆盖"，
+# 导致多字母别名（TRA/MED/CAT/IT/CUL/CBEC/EDU/FIN/ENE）覆盖单字母官方码
+# （G/D/H/I/R/C...），进而 load_reviewed_scenario_asset("transportation_scenario_contracts")
+# 解析到 "TRA"，而 load_industry_contract 仅认单字母码 → KeyError 'TRA'。
+# 现改为单字母官方码优先，多字母别名不得覆盖已存在的单字母码。
+ASSET_TO_CODE = {}
+for _code, _filename in V2_SCENARIO_FILES.items():
+    _key = _filename.removesuffix(".json")
+    if _key not in ASSET_TO_CODE:
+        ASSET_TO_CODE[_key] = _code
+    elif len(_code) == 1 and len(ASSET_TO_CODE[_key]) > 1:
+        # 单字母官方码优先级高于多字母别名
+        ASSET_TO_CODE[_key] = _code
 SCENARIO_FILES = tuple(set(k for k in V2_SCENARIO_FILES if len(k) == 1 or k.startswith("OVERLAY-")))
 
 
@@ -136,8 +148,12 @@ def load_flat_rules() -> list[dict]:
                 "suggestion": module.get("report_boundary", "完成事实、证据和程序复核后提交人工审理。"),
                 "policy_ref": _source_names(module, catalog),
                 "source": "税务稽查权威方法论目录",
-                "human_review_required": rule_score < 7,
-                "automatic_determination_allowed": rule_score >= 7,
+                # 2026-08-26 审计修复（P0-3）：统一政策——全部复核合同均须人工复核，
+                # 不允许按评分免除复核或授予自动定性许可。
+                # 【原实现备查（已停用）："human_review_required": rule_score < 7,
+                #   "automatic_determination_allowed": rule_score >= 7】
+                "human_review_required": True,
+                "automatic_determination_allowed": False,
                 "threshold": None,
             })
     for code in SCENARIO_FILES:
@@ -179,8 +195,11 @@ def load_flat_rules() -> list[dict]:
                 "source": "全行业税务稽查方法论场景组合",
                 "industry_code": code,
                 "scene_id": scene.get("id"),
-                "human_review_required": scene_score < 7,
-                "automatic_determination_allowed": scene_score >= 7,
+                # 2026-08-26 审计修复（P0-3）：同上，全部场景均须人工复核。
+                # 【原实现备查（已停用）："human_review_required": scene_score < 7,
+                #   "automatic_determination_allowed": scene_score >= 7】
+                "human_review_required": True,
+                "automatic_determination_allowed": False,
                 "threshold": None,
             })
     return output
@@ -471,6 +490,18 @@ def methodology_inventory() -> dict:
     canonical_clue_count = sum(len(module.get("clue_paths", [])) for module in catalog.get("modules", []))
     canonical_evidence_count = len(catalog.get("modules", []))
     canonical_analysis_count = len(catalog.get("modules", []))
+    # 2026-08-26 审计修复（P1-1）：原 industry_scenarios（108）只统计 V2 复审文件场景，
+    # 与 portfolio（153，含生成场景与叠加层）双口径并存。现保留原字段（语义：V2 复审文件场景数），
+    # 并新增 portfolio 权威口径字段，两个口径各自命名、不得混用。
+    portfolio_scene_count = None
+    portfolio_contract_count = None
+    try:
+        from engine.methodology_portfolio import portfolio_inventory
+        _portfolio = portfolio_inventory()
+        portfolio_scene_count = _portfolio.get("scenario_count", _portfolio.get("industry_scenarios"))
+        portfolio_contract_count = _portfolio.get("industry_contracts", 0) + _portfolio.get("overlay_contracts", 0)
+    except Exception:
+        pass
     return {
         "canonical_modules": len(catalog.get("modules", [])),
         "canonical_rules": canonical_rule_count,
@@ -483,6 +514,12 @@ def methodology_inventory() -> dict:
         "evidence_plans": len(load_flat_evidence()),
         "analysis_plans": len(load_flat_analysis()),
         "industry_scenarios": len(scenarios),
+        "portfolio_scene_count": portfolio_scene_count,
+        "portfolio_contract_count": portfolio_contract_count,
+        "count_semantics": {
+            "industry_scenarios": "V2 复审文件场景数（仅统计静态 *_scenario_contracts.json 中的场景）",
+            "portfolio_scene_count": "组合权威场景总数（20 行业门类 + 3 叠加层，含复审场景与生成场景）；对外引用场景总数时必须使用本口径",
+        },
         "industry_scenario_counts": {
             code: len(payload.get("scenarios", []))
             for code, payload in zip(SCENARIO_FILES, scenario_payloads)
