@@ -46,6 +46,24 @@ _ZH_REPLACEMENTS = [
     (r"(?<![A-Za-z])[Vv][Ss](?![A-Za-z])", "与"),   # vs / VS（中文或空格环绕均适用）
     (r"(?<![A-Za-z])BOM(?![A-Za-z])", "物料清单"),
     (r"(?<![A-Za-z])ETS(?![A-Za-z])", "电子税务局"),
+    # 文件扩展名（文件类型描述里出现的 .xlsx/.xls/.pdf 等）
+    (r"(?<![A-Za-z])xlsx(?![A-Za-z])", "Excel"),
+    (r"(?<![A-Za-z])xls(?![A-Za-z])", "Excel"),
+    (r"(?<![A-Za-z])pdf(?![A-Za-z])", "PDF"),
+    (r"(?<![A-Za-z])docx(?![A-Za-z])", "Word"),
+    (r"(?<![A-Za-z])doc(?![A-Za-z])", "Word"),
+    (r"(?<![A-Za-z])csv(?![A-Za-z])", "CSV"),
+    (r"(?<![A-Za-z])txt(?![A-Za-z])", "文本"),
+    # 布尔值字符串化残留
+    (r"(?<![A-Za-z])False(?![A-Za-z])", "否"),
+    (r"(?<![A-Za-z])True(?![A-Za-z])", "是"),
+    # 常见计量单位
+    (r"(?<![A-Za-z])kg(?![A-Za-z])", "千克"),
+    (r"(?<![A-Za-z])mm(?![A-Za-z])", "毫米"),
+    (r"(?<![A-Za-z])cm(?![A-Za-z])", "厘米"),
+    # 技术/法律术语残留
+    (r"arm's length", "独立交易原则"),
+    (r"(?<![A-Za-z])token(?![A-Za-z])", "令牌"),
 ]
 
 
@@ -71,7 +89,9 @@ def _zh_normalize_obj(o):
 
 
 def _fmt_metric_val(v):
-    """明细表单元格格式化：浮点千分位、列表转中文顿号、其余转字符串。"""
+    """明细表单元格格式化：布尔转是/否、浮点千分位、列表转中文顿号、其余转字符串。"""
+    if isinstance(v, bool):
+        return "是" if v else "否"
     if isinstance(v, float):
         return f"{v:,.2f}" if abs(v) < 1e9 else f"{v:,.0f}"
     if isinstance(v, list):
@@ -235,11 +255,91 @@ _METRIC_CN = {
     "triggered_findings": "触发发现明细",
 }
 
-def _translate_metric_keys(m):
-    """把 observed_metrics 字典的英文键汉化为中文标签（供报告透传字段使用）。"""
-    if not isinstance(m, dict):
-        return m
-    return {_METRIC_CN.get(k, str(k)): v for k, v in m.items()}
+def _translate_metric_keys(o):
+    """递归把字典（含嵌套列表/字典）的英文键汉化为中文标签（供报告透传字段使用）。"""
+    if isinstance(o, dict):
+        return {_translate_key(k): _translate_metric_keys(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [_translate_metric_keys(x) for x in o]
+    return o
+
+
+# ── 通用英文单词 → 中文词表（兜底翻译任何未显式映射的 snake_case 键）──
+# 报告表格/章节里出现的英文键名，精确映射(_METRIC_CN)未命中时，按此词表逐词翻译。
+# 这样新增规则/章节产生的英文键也能自动中文化，不再需要手工逐个补映射。
+_WORD_CN = {
+    "count": "数", "amount": "金额", "total": "合计", "qty": "数量", "value": "值",
+    "number": "号码", "no": "号", "code": "代码", "num": "数", "id": "编号",
+    "name": "名称", "type": "类型", "category": "类别", "kind": "种类",
+    "goods": "货物", "unit": "单位", "price": "单价", "supplier": "供应商",
+    "customer": "客户", "counterparty": "对手方", "seller": "销方", "buyer": "购方",
+    "person": "个人", "account": "账户",
+    "direction": "方向", "deviation": "偏离", "median": "中位", "diff": "差额",
+    "gap": "缺口", "difference": "差额", "ratio": "率", "share": "占比", "top": "前",
+    "rate": "率", "pct": "%",
+    "purchase": "进", "sale": "销", "input": "进项", "output": "销项", "in": "进",
+    "out": "出", "invoice": "发票", "tax": "税额", "vat": "增值税",
+    "deduction": "抵扣", "reversal": "转出",
+    "month": "月份", "date": "日期", "period": "期间", "year": "年", "day": "日",
+    "status": "状态", "level": "层级", "grade": "等级", "verdict": "结论",
+    "recommendation": "建议", "result": "结果", "available": "可用性", "boundary": "边界",
+    "scope": "范围", "note": "说明", "summary": "摘要", "desc": "说明",
+    "voucher": "凭证", "debit": "借方", "credit": "贷方", "balance": "余额",
+    "expected": "应有", "reported": "账面", "begin": "期初", "end": "期末",
+    "document": "资料", "file": "文件", "material": "资料", "doc": "资料",
+    "read": "读取", "method": "方式", "display": "展示", "use": "使用", "row": "行",
+    "rows": "行", "source": "来源", "receipt": "收款", "payment": "付款",
+    "transaction": "交易", "headcount": "人数", "salary": "工资", "social": "社保",
+    "example": "示例", "examples": "示例", "detail": "明细", "list": "清单",
+    "items": "项目", "province": "省份", "city": "城市", "region": "地区",
+    "industry": "行业", "theme": "主题", "severity": "严重度", "question": "问题",
+    "questions": "问题", "basis": "依据", "signal": "信号", "signals": "信号",
+    "hint": "提示", "need": "需求", "why": "原因", "trigger": "触发", "work": "工作",
+    "convergence": "收敛", "problem": "问题", "opening": "导语", "bottom": "底线",
+    "line": "线", "roadmap": "路线图", "responsibility": "责任", "principle": "原则",
+    "conclusion": "结论", "rule": "规则", "administrative": "行政", "perspective": "视角",
+    "plan": "计划", "action": "行动", "procedure": "程序", "inspection": "检查",
+    "coverage": "覆盖", "identity": "身份", "subject": "主体", "taxpayer": "纳税人",
+    "analysis": "分析", "round": "轮次", "generated": "生成", "headline": "标题",
+    "owner": "负责人", "message": "说明", "statement": "声明", "compilation": "编制",
+    "style": "风格", "checked": "已核", "pending": "待办", "further": "进一步",
+    "check": "核验", "risk": "风险", "link": "关联", "cross": "跨", "enterprise": "企业",
+    "derivation": "派生", "tree": "树", "recheck": "复查", "must": "必须",
+    "rely": "依赖", "external": "外部", "system": "系统", "verified": "已核",
+    "confirmed": "确认", "completed": "完成", "overview": "总览", "discovery": "发现",
+    "key": "关键", "point": "要点", "paragraph": "段落", "paragraphs": "段落",
+    "table": "表", "metric": "指标", "metrics": "指标", "identity": "身份",
+    "entity": "主体", "fund": "资金", "loop": "回流", "flow": "流", "bank": "银行",
+    "report": "报告", "cross_enterprise": "跨企业", "financial": "财务",
+    "statement": "报表", "request": "请求", "required": "必需", "optional": "可选",
+    "missing": "缺失", "present": "已提交", "received": "已接收", "counted": "计数",
+    "abnormal": "异常", "concentration": "集中", "high": "高", "relationships": "关联",
+    "should": "应", "transfer": "转", "same": "同", "groups": "组", "sales": "销",
+    "breakdown": "分布", "links": "关联", "top1": "第一大", "top3": "前三大",
+    "completed": "完成", "confirmed": "确认", "circular": "环开", "relationship": "关联",
+}
+
+
+def _translate_key(key):
+    """把英文键名翻译为中文：精确映射(_METRIC_CN)优先，否则按单词词表逐词翻译。
+
+    纯中文或无英文的键原样返回（幂等）；无法翻译的词保留原样，避免破坏数据。
+    """
+    s = str(key)
+    if not s or not re.search(r"[A-Za-z]", s):
+        return s
+    if s in _METRIC_CN:
+        return _METRIC_CN[s]
+    words = re.split(r"[_\-]", s)
+    out, hit = [], False
+    for w in words:
+        low = w.lower()
+        if low in _WORD_CN:
+            out.append(_WORD_CN[low])
+            hit = True
+        else:
+            out.append(w)
+    return "".join(out) if hit else s
 
 
 def _build_detail_table(f):
@@ -333,21 +433,10 @@ def _build_detail_table(f):
             columns = ["指标", "数值"]
     if not rows:
         return [], []
-    # 列名汉化
-    _col_cn = {
-        "invoice_number": "发票号码", "invoice_code": "发票代码", "rows": "出现行号",
-        "count": "出现次数", "account": "账户尾号", "date": "日期",
-        "expected_balance": "应滚余额", "reported_balance": "账面余额", "difference": "差额",
-        "row": "行号", "amount": "金额", "tax": "税额", "total": "价税合计",
-        "counterparty": "资金对手方", "receipts": "累计收款", "payments": "累计付款",
-        "transaction_count": "笔数", "name": "对手方", "month": "月份", "voucher_no": "凭证号",
-        "supplier": "加工方", "goods": "货物", "cross_region": "是否跨地区",
-        "rows": "出现行号", "invoice_code": "发票代码",
-        "debit": "借方", "credit": "贷方", "code": "存货编码", "end_qty": "期末数量",
-        "name": "品项", "begin": "期初", "in_qty": "入库", "out_qty": "出库",
-        "expected_end_qty": "应滚期末", "reported_end_qty": "账面期末",
-    }
-    columns = [_col_cn.get(c, str(c)) for c in columns]
+    # 统一汉化列名与行键：保证 columns 与 rows 键一致（前端按 columns 取值）。
+    # 精确映射优先，词表兜底，杜绝英文键名漏网。
+    columns = [_translate_key(c) for c in columns]
+    rows = [{_translate_key(k): v for k, v in row.items()} for row in rows]
     return rows, columns
 
 
@@ -1303,6 +1392,13 @@ def build_enterprise_readable_report(report_data):
     false_invoice_report = _build_false_invoice_report(report_data)
     fund_loop_report = _build_fund_loop_report(report_data)
     inspection_questions_report = _build_inspection_questions_report(report_data)
+
+    # 专项报告的 metrics 指标键统一中文化（独立于 observed_metrics 的另一处英文键来源）
+    for _sec in (two_tax_report, input_voucher_report, false_invoice_report,
+                 fund_loop_report, external_verify_report, bank_flow_report,
+                 cross_enterprise_report, derivation_tree_report):
+        if isinstance(_sec, dict) and isinstance(_sec.get("metrics"), dict):
+            _sec["metrics"] = _translate_metric_keys(_sec["metrics"])
 
     return _zh_normalize_obj({
         "compilation_style": "税务稽查文书式报告",

@@ -15985,6 +15985,67 @@
         "有销无进待核事实"
       ],
       "timestamp": "2026-09-02T23:23:51.457560"
+    },
+    {
+      "trace_id": "3205ffb0",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-02T23:50:31.696644",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "4978fe9e",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-02T23:50:43.537935"
+    },
+    {
+      "trace_id": "55756edc",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-02T23:51:29.918387",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "bb46aa95",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-02T23:51:38.051649"
     }
   ],
   "industry_patterns": {
@@ -16013,7 +16074,7 @@
       "typical_data_profile": {}
     },
     "纺织产品": {
-      "analyses_count": 78,
+      "analyses_count": 79,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
@@ -16025,7 +16086,7 @@
       "typical_data_profile": {}
     },
     "饲料": {
-      "analyses_count": 18,
+      "analyses_count": 19,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

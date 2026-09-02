@@ -953,7 +953,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T13:42:17.063253",
-    "applied_count": 30,
+    "applied_count": 31,
     "status": "active"
   },
   {
@@ -975,7 +975,7 @@
     "target": "经营实质-缺水电支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T14:01:20.461783",
-    "applied_count": 37,
+    "applied_count": 39,
     "status": "active"
   },
   {
@@ -986,7 +986,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-08-22T14:01:20.461789",
-    "applied_count": 37,
+    "applied_count": 38,
     "status": "active"
   },
   {
@@ -1019,7 +1019,7 @@
     "target": "BOM投入产出偏离-采购不足",
     "dimension": "证据充分性",
     "applied_at": "2026-08-23T00:50:35.758470",
-    "applied_count": 92,
+    "applied_count": 93,
     "status": "active"
   },
   {
@@ -1063,7 +1063,7 @@
     "target": "Causal: 隐匿收入的资金回流路径",
     "dimension": "证据充分性",
     "applied_at": "2026-08-24T10:40:16.919660",
-    "applied_count": 25,
+    "applied_count": 26,
     "status": "active"
   },
   {
@@ -1074,7 +1074,7 @@
     "target": "Causal: 加工费掩盖的虚开发票路径",
     "dimension": "证据充分性",
     "applied_at": "2026-08-26T09:06:03.763840",
-    "applied_count": 10,
+    "applied_count": 11,
     "status": "active"
   },
   {
@@ -1096,7 +1096,7 @@
     "target": "经营实质-无人工支出",
     "dimension": "证据充分性",
     "applied_at": "2026-09-01T00:08:14.787536",
-    "applied_count": 8,
+    "applied_count": 9,
     "status": "active"
   }
 ]

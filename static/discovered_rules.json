@@ -26804,5 +26804,145 @@
     "action": "自动更新综合行业风险基准为48.6分",
     "discovered_at": "2026-09-02T23:23:45.885835",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 16,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-09-02T23:50:28.853607",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 68.0,
+    "sample_size": 16,
+    "action": "自动更新现代服务行业风险基准为68.0分",
+    "discovered_at": "2026-09-02T23:50:28.853663",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 9,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-09-02T23:50:28.853689",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "纺织产品",
+    "avg_risk_score": 81.5,
+    "sample_size": 22,
+    "action": "自动更新纺织产品行业风险基准为81.5分",
+    "discovered_at": "2026-09-02T23:50:28.853720",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "食品加工",
+    "avg_risk_score": 0.0,
+    "sample_size": 14,
+    "action": "自动更新食品加工行业风险基准为0.0分",
+    "discovered_at": "2026-09-02T23:50:28.853743",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "饲料",
+    "avg_risk_score": 82.6,
+    "sample_size": 14,
+    "action": "自动更新饲料行业风险基准为82.6分",
+    "discovered_at": "2026-09-02T23:50:28.853767",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "综合",
+    "avg_risk_score": 48.6,
+    "sample_size": 11,
+    "action": "自动更新综合行业风险基准为48.6分",
+    "discovered_at": "2026-09-02T23:50:28.853788",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "纺织产品",
+    "avg_risk_score": 81.5,
+    "sample_size": 22,
+    "action": "自动更新纺织产品行业风险基准为81.5分",
+    "discovered_at": "2026-09-02T23:51:28.365327",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "食品加工",
+    "avg_risk_score": 0.0,
+    "sample_size": 15,
+    "action": "自动更新食品加工行业风险基准为0.0分",
+    "discovered_at": "2026-09-02T23:51:28.365353",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "饲料",
+    "avg_risk_score": 82.7,
+    "sample_size": 15,
+    "action": "自动更新饲料行业风险基准为82.7分",
+    "discovered_at": "2026-09-02T23:51:28.365369",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合",
+    "avg_risk_score": 48.6,
+    "sample_size": 11,
+    "action": "自动更新综合行业风险基准为48.6分",
+    "discovered_at": "2026-09-02T23:51:28.365381",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 15,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-09-02T23:51:28.365392",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "现代服务",
+    "avg_risk_score": 68.0,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为68.0分",
+    "discovered_at": "2026-09-02T23:51:28.365406",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 8,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-09-02T23:51:28.365415",
+    "source": "audit_memory.json"
   }
 ]
