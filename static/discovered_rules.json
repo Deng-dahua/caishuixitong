@@ -26944,5 +26944,285 @@
     "action": "自动更新纺织制造行业风险基准为0.0分",
     "discovered_at": "2026-09-02T23:51:28.365415",
     "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "纺织产品",
+    "avg_risk_score": 81.5,
+    "sample_size": 23,
+    "action": "自动更新纺织产品行业风险基准为81.5分",
+    "discovered_at": "2026-09-03T00:05:32.157128",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "食品加工",
+    "avg_risk_score": 0.0,
+    "sample_size": 15,
+    "action": "自动更新食品加工行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:05:32.157181",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "饲料",
+    "avg_risk_score": 82.7,
+    "sample_size": 15,
+    "action": "自动更新饲料行业风险基准为82.7分",
+    "discovered_at": "2026-09-03T00:05:32.157212",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "综合",
+    "avg_risk_score": 48.6,
+    "sample_size": 11,
+    "action": "自动更新综合行业风险基准为48.6分",
+    "discovered_at": "2026-09-03T00:05:32.157237",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 15,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:05:32.157262",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "现代服务",
+    "avg_risk_score": 68.0,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为68.0分",
+    "discovered_at": "2026-09-03T00:05:32.157480",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 8,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:05:32.157514",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 48.6,
+    "sample_size": 11,
+    "action": "自动更新综合行业风险基准为48.6分",
+    "discovered_at": "2026-09-03T00:06:31.735779",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 15,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:06:31.735824",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "现代服务",
+    "avg_risk_score": 68.0,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为68.0分",
+    "discovered_at": "2026-09-03T00:06:31.735853",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 8,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:06:31.735874",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 81.5,
+    "sample_size": 22,
+    "action": "自动更新纺织产品行业风险基准为81.5分",
+    "discovered_at": "2026-09-03T00:06:31.735903",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "食品加工",
+    "avg_risk_score": 0.0,
+    "sample_size": 15,
+    "action": "自动更新食品加工行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:06:31.735926",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "饲料",
+    "avg_risk_score": 82.7,
+    "sample_size": 15,
+    "action": "自动更新饲料行业风险基准为82.7分",
+    "discovered_at": "2026-09-03T00:06:31.735949",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "综合",
+    "avg_risk_score": 48.6,
+    "sample_size": 11,
+    "action": "自动更新综合行业风险基准为48.6分",
+    "discovered_at": "2026-09-03T00:07:35.693184",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 15,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:07:35.693233",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "现代服务",
+    "avg_risk_score": 68.0,
+    "sample_size": 15,
+    "action": "自动更新现代服务行业风险基准为68.0分",
+    "discovered_at": "2026-09-03T00:07:35.693264",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 8,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:07:35.693286",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "纺织产品",
+    "avg_risk_score": 81.5,
+    "sample_size": 23,
+    "action": "自动更新纺织产品行业风险基准为81.5分",
+    "discovered_at": "2026-09-03T00:07:35.693315",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "食品加工",
+    "avg_risk_score": 0.0,
+    "sample_size": 15,
+    "action": "自动更新食品加工行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:07:35.693343",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "饲料",
+    "avg_risk_score": 82.7,
+    "sample_size": 15,
+    "action": "自动更新饲料行业风险基准为82.7分",
+    "discovered_at": "2026-09-03T00:07:35.693367",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-0",
+    "industry": "广告传媒",
+    "avg_risk_score": 0.0,
+    "sample_size": 14,
+    "action": "自动更新广告传媒行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:08:30.735279",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-1",
+    "industry": "现代服务",
+    "avg_risk_score": 68.0,
+    "sample_size": 14,
+    "action": "自动更新现代服务行业风险基准为68.0分",
+    "discovered_at": "2026-09-03T00:08:30.735339",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-2",
+    "industry": "纺织制造",
+    "avg_risk_score": 0.0,
+    "sample_size": 8,
+    "action": "自动更新纺织制造行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:08:30.735364",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-3",
+    "industry": "纺织产品",
+    "avg_risk_score": 81.5,
+    "sample_size": 23,
+    "action": "自动更新纺织产品行业风险基准为81.5分",
+    "discovered_at": "2026-09-03T00:08:30.735403",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-4",
+    "industry": "食品加工",
+    "avg_risk_score": 0.0,
+    "sample_size": 16,
+    "action": "自动更新食品加工行业风险基准为0.0分",
+    "discovered_at": "2026-09-03T00:08:30.735430",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-5",
+    "industry": "饲料",
+    "avg_risk_score": 82.7,
+    "sample_size": 16,
+    "action": "自动更新饲料行业风险基准为82.7分",
+    "discovered_at": "2026-09-03T00:08:30.735461",
+    "source": "audit_memory.json"
+  },
+  {
+    "type": "industry_benchmark_auto",
+    "rule_id": "AUTO-BM-6",
+    "industry": "综合",
+    "avg_risk_score": 48.6,
+    "sample_size": 10,
+    "action": "自动更新综合行业风险基准为48.6分",
+    "discovered_at": "2026-09-03T00:08:30.735487",
+    "source": "audit_memory.json"
   }
 ]

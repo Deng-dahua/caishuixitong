@@ -16046,6 +16046,129 @@
         "有销无进待核事实"
       ],
       "timestamp": "2026-09-02T23:51:38.051649"
+    },
+    {
+      "trace_id": "d64f7889",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-03T00:05:34.487268",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "a175666a",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "历史任期关联风险（深度核查）",
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-03T00:05:46.907108"
+    },
+    {
+      "trace_id": "66ba54ed",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-03T00:06:34.245861",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "f5481062",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-03T00:06:41.676103"
+    },
+    {
+      "trace_id": "ca980615",
+      "company_id": 2,
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织产品",
+      "biz_model": "制造业",
+      "timestamp": "2026-09-03T00:07:38.138005",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.61,
+        "supplier_concentration": 56.25555562181207,
+        "goods_match_ratio": 0.03
+      }
+    },
+    {
+      "trace_id": "7ad0128a",
+      "company_name": "中山市达冠纺织有限公司",
+      "industry": "纺织制造",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有进无销风险",
+        "有销无进风险"
+      ],
+      "timestamp": "2026-09-03T00:07:48.789545"
+    },
+    {
+      "trace_id": "8904ee52",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-03T00:08:33.176812",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "41724ae0",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-03T00:08:40.671046"
     }
   ],
   "industry_patterns": {
@@ -16074,7 +16197,7 @@
       "typical_data_profile": {}
     },
     "纺织产品": {
-      "analyses_count": 79,
+      "analyses_count": 81,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}
@@ -16086,7 +16209,7 @@
       "typical_data_profile": {}
     },
     "饲料": {
-      "analyses_count": 19,
+      "analyses_count": 21,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

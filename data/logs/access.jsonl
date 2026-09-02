@@ -5430,3 +5430,4 @@
 {"t": 1788363781.62308, "cid": 3, "m": "GET", "p": "/api/tax-risk-docs/list", "s": 200, "ip_hash": "12ca17b49af22894", "ms": 5, "a": null, "user": "admin"}
 {"t": 1788363781.8295872, "cid": 3, "m": "GET", "p": "/api/tax-risk-docs/list", "s": 200, "ip_hash": "12ca17b49af22894", "ms": 4, "a": null, "user": "admin"}
 {"t": 1788364387.9574866, "cid": null, "m": "GET", "p": "/", "s": 302, "ip_hash": "12ca17b49af22894", "ms": 0, "a": null, "user": ""}
+{"t": 1788365373.376266, "cid": null, "m": "GET", "p": "/", "s": 302, "ip_hash": "12ca17b49af22894", "ms": 1, "a": null, "user": ""}

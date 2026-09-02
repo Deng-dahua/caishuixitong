@@ -1,533 +1,5 @@
 [
   {
-    "timestamp": "2026-08-26T14:43:27.214305",
-    "company": "猩猩织光（北京）商贸有限公司",
-    "finding_count": 17,
-    "overall_score": 0.69,
-    "dimensions": {
-      "证据充分性": {
-        "score": 0,
-        "issues": [
-          {
-            "dimension": "证据充分性",
-            "finding_index": 0,
-            "finding_type": "待核事实：会计凭证完整性与借贷关系核验",
-            "issue": "发现#1缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 1,
-            "finding_type": "待核事实：成本费用真实性与虚列核验",
-            "issue": "发现#2缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 2,
-            "finding_type": "待核事实：发票数据完整性与票面关系核验",
-            "issue": "发现#3缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 3,
-            "finding_type": "待核事实：供应商地域分布与购销集中度核验",
-            "issue": "发现#4缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 4,
-            "finding_type": "待核事实：关联交易转让定价偏离核验",
-            "issue": "发现#5缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 5,
-            "finding_type": "待核事实：用工人数与收入规模核验",
-            "issue": "发现#6缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 6,
-            "finding_type": "进销存虚拟匹配概览",
-            "issue": "发现#7缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 11,
-            "finding_type": "Causal: 虚开发票的资金闭环回路",
-            "issue": "高风险发现#12仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 12,
-            "finding_type": "Causal: 成本虚列的科目腾挪路径",
-            "issue": "高风险发现#13仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 13,
-            "finding_type": "Causal: 加工费掩盖的虚开发票路径",
-            "issue": "高风险发现#14仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 16,
-            "finding_type": "对抗鲁棒性-重复金额异常",
-            "issue": "发现#17缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          }
-        ],
-        "status": "不合格"
-      },
-      "法条准确性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "逻辑一致性": {
-        "score": 0.7,
-        "issues": [
-          {
-            "dimension": "逻辑一致性",
-            "issue": "检测到增值税问题但未包含城建税及附加检查",
-            "severity": "警告",
-            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
-          },
-          {
-            "dimension": "逻辑一致性",
-            "issue": "检测到增值税问题但未包含企业所得税检查",
-            "severity": "提示",
-            "fix": "收入/发票问题通常同时影响企业所得税"
-          }
-        ],
-        "status": "通过"
-      },
-      "覆盖面完整性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "可操作性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "表达质量": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      }
-    },
-    "critical_count": 3,
-    "warning_count": 20,
-    "grade": "C"
-  },
-  {
-    "timestamp": "2026-08-26T14:43:41.491008",
-    "company": "北京潘祥记餐饮有限公司",
-    "finding_count": 1,
-    "overall_score": 0.96,
-    "dimensions": {
-      "证据充分性": {
-        "score": 0.85,
-        "issues": [
-          {
-            "dimension": "证据充分性",
-            "finding_index": 0,
-            "finding_type": "待核事实：会计凭证完整性与借贷关系核验",
-            "issue": "发现#1缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          }
-        ],
-        "status": "通过"
-      },
-      "法条准确性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "逻辑一致性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "覆盖面完整性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "可操作性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "表达质量": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      }
-    },
-    "critical_count": 0,
-    "warning_count": 2,
-    "grade": "A"
-  },
-  {
-    "timestamp": "2026-08-26T14:44:46.463490",
-    "company": "中山市达冠纺织有限公司",
-    "finding_count": 25,
-    "overall_score": 0.63,
-    "dimensions": {
-      "证据充分性": {
-        "score": 0,
-        "issues": [
-          {
-            "dimension": "证据充分性",
-            "finding_index": 0,
-            "finding_type": "待核事实：资金流水余额及往来关系核验",
-            "issue": "发现#1缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 1,
-            "finding_type": "待核事实：发票数据完整性与票面关系核验",
-            "issue": "发现#2缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 2,
-            "finding_type": "待核事实：六员个人账户与经营资金往来核验",
-            "issue": "发现#3缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 3,
-            "finding_type": "待核事实：供应商地域分布与购销集中度核验",
-            "issue": "发现#4缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 4,
-            "finding_type": "待核事实：订单—投料—完工—发货—收入数量闭环",
-            "issue": "发现#5缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 5,
-            "finding_type": "待核事实：设备取得、投用、试生产、折旧和补助闭环",
-            "issue": "发现#6缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 6,
-            "finding_type": "待核事实：关联方委托生产、功能风险与利润匹配",
-            "issue": "发现#7缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 9,
-            "finding_type": "进销存虚拟匹配概览",
-            "issue": "发现#10缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 14,
-            "finding_type": "Causal: 隐匿收入的资金回流路径",
-            "issue": "高风险发现#15仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 15,
-            "finding_type": "Causal: 成本虚列的科目腾挪路径",
-            "issue": "高风险发现#16仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 16,
-            "finding_type": "Causal: 加工费掩盖的虚开发票路径",
-            "issue": "高风险发现#17仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 20,
-            "finding_type": "经营实质-缺水电支出",
-            "issue": "高风险发现#21仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 22,
-            "finding_type": "经营实质-无人工支出",
-            "issue": "高风险发现#23仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 22,
-            "finding_type": "经营实质-无人工支出",
-            "issue": "发现#23缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 24,
-            "finding_type": "对抗鲁棒性-重复金额异常",
-            "issue": "发现#25缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          }
-        ],
-        "status": "不合格"
-      },
-      "法条准确性": {
-        "score": 0.7,
-        "issues": [
-          {
-            "dimension": "法条准确性",
-            "finding_index": 20,
-            "finding_type": "经营实质-缺水电支出",
-            "issue": "高风险发现#21缺少法律依据",
-            "severity": "警告",
-            "fix": "补充引用的法律条文"
-          },
-          {
-            "dimension": "法条准确性",
-            "finding_index": 22,
-            "finding_type": "经营实质-无人工支出",
-            "issue": "高风险发现#23缺少法律依据",
-            "severity": "警告",
-            "fix": "补充引用的法律条文"
-          }
-        ],
-        "status": "通过"
-      },
-      "逻辑一致性": {
-        "score": 0.7,
-        "issues": [
-          {
-            "dimension": "逻辑一致性",
-            "issue": "检测到增值税问题但未包含城建税及附加检查",
-            "severity": "警告",
-            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
-          },
-          {
-            "dimension": "逻辑一致性",
-            "issue": "检测到增值税问题但未包含企业所得税检查",
-            "severity": "提示",
-            "fix": "收入/发票问题通常同时影响企业所得税"
-          }
-        ],
-        "status": "通过"
-      },
-      "覆盖面完整性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "可操作性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "表达质量": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      }
-    },
-    "critical_count": 5,
-    "warning_count": 28,
-    "grade": "C"
-  },
-  {
-    "timestamp": "2026-08-26T14:48:17.171293",
-    "company": "深圳海更数字传媒有限公司",
-    "finding_count": 24,
-    "overall_score": 0.69,
-    "dimensions": {
-      "证据充分性": {
-        "score": 0,
-        "issues": [
-          {
-            "dimension": "证据充分性",
-            "finding_index": 0,
-            "finding_type": "待核事实：工资、社保、用工身份与扣缴范围核验",
-            "issue": "发现#1缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 1,
-            "finding_type": "待核事实：资金流水余额及往来关系核验",
-            "issue": "发现#2缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 2,
-            "finding_type": "待核事实：六员个人账户与经营资金往来核验",
-            "issue": "发现#3缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 3,
-            "finding_type": "待核事实：供应商地域分布与购销集中度核验",
-            "issue": "发现#4缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 4,
-            "finding_type": "待核事实：订单—投料—完工—发货—收入数量闭环",
-            "issue": "发现#5缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 5,
-            "finding_type": "待核事实：关联方委托生产、功能风险与利润匹配",
-            "issue": "发现#6缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 6,
-            "finding_type": "待核事实：质量索赔、召回、退换、返修与质保预计负债",
-            "issue": "发现#7缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 9,
-            "finding_type": "Causal: 隐匿收入的资金回流路径",
-            "issue": "高风险发现#10仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 10,
-            "finding_type": "Causal: 虚开发票的资金闭环回路",
-            "issue": "高风险发现#11仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 11,
-            "finding_type": "Causal: 成本虚列的科目腾挪路径",
-            "issue": "高风险发现#12仅0条证据",
-            "severity": "严重",
-            "fix": "需补充至少1个额外数据源的证据"
-          },
-          {
-            "dimension": "证据充分性",
-            "finding_index": 23,
-            "finding_type": "对抗鲁棒性-重复金额异常",
-            "issue": "发现#24缺少证据来源(hw_found)",
-            "severity": "警告",
-            "fix": "补充how_found字段说明分析方法"
-          }
-        ],
-        "status": "不合格"
-      },
-      "法条准确性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "逻辑一致性": {
-        "score": 0.7,
-        "issues": [
-          {
-            "dimension": "逻辑一致性",
-            "issue": "检测到增值税问题但未包含城建税及附加检查",
-            "severity": "警告",
-            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
-          },
-          {
-            "dimension": "逻辑一致性",
-            "issue": "检测到增值税问题但未包含企业所得税检查",
-            "severity": "提示",
-            "fix": "收入/发票问题通常同时影响企业所得税"
-          }
-        ],
-        "status": "通过"
-      },
-      "覆盖面完整性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "可操作性": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      },
-      "表达质量": {
-        "score": 1.0,
-        "issues": [],
-        "status": "通过"
-      }
-    },
-    "critical_count": 3,
-    "warning_count": 20,
-    "grade": "C"
-  },
-  {
     "timestamp": "2026-08-26T14:56:01.725736",
     "company": "深圳海更数字传媒有限公司",
     "finding_count": 24,
@@ -7102,6 +6574,676 @@
   },
   {
     "timestamp": "2026-09-02T23:51:28.238994",
+    "company": "猩猩织光（北京）商贸有限公司",
+    "finding_count": 17,
+    "overall_score": 0.69,
+    "dimensions": {
+      "证据充分性": {
+        "score": 0,
+        "issues": [
+          {
+            "dimension": "证据充分性",
+            "finding_index": 0,
+            "finding_type": "待核事实：会计凭证完整性与借贷关系核验",
+            "issue": "发现#1缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 1,
+            "finding_type": "待核事实：成本费用真实性与虚列核验",
+            "issue": "发现#2缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 2,
+            "finding_type": "待核事实：发票数据完整性与票面关系核验",
+            "issue": "发现#3缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 3,
+            "finding_type": "待核事实：供应商地域分布与购销集中度核验",
+            "issue": "发现#4缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 4,
+            "finding_type": "待核事实：关联交易转让定价偏离核验",
+            "issue": "发现#5缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 5,
+            "finding_type": "待核事实：用工人数与收入规模核验",
+            "issue": "发现#6缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 6,
+            "finding_type": "进销存虚拟匹配概览",
+            "issue": "发现#7缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 11,
+            "finding_type": "Causal: 虚开发票的资金闭环回路",
+            "issue": "高风险发现#12仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 12,
+            "finding_type": "Causal: 成本虚列的科目腾挪路径",
+            "issue": "高风险发现#13仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 13,
+            "finding_type": "Causal: 加工费掩盖的虚开发票路径",
+            "issue": "高风险发现#14仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 16,
+            "finding_type": "对抗鲁棒性-重复金额异常",
+            "issue": "发现#17缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          }
+        ],
+        "status": "不合格"
+      },
+      "法条准确性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "逻辑一致性": {
+        "score": 0.7,
+        "issues": [
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含城建税及附加检查",
+            "severity": "警告",
+            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
+          },
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含企业所得税检查",
+            "severity": "提示",
+            "fix": "收入/发票问题通常同时影响企业所得税"
+          }
+        ],
+        "status": "通过"
+      },
+      "覆盖面完整性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "可操作性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "表达质量": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      }
+    },
+    "critical_count": 3,
+    "warning_count": 20,
+    "grade": "C"
+  },
+  {
+    "timestamp": "2026-09-03T00:05:31.953244",
+    "company": "中山市达冠纺织有限公司",
+    "finding_count": 25,
+    "overall_score": 0.63,
+    "dimensions": {
+      "证据充分性": {
+        "score": 0,
+        "issues": [
+          {
+            "dimension": "证据充分性",
+            "finding_index": 0,
+            "finding_type": "待核事实：资金流水余额及往来关系核验",
+            "issue": "发现#1缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 1,
+            "finding_type": "待核事实：发票数据完整性与票面关系核验",
+            "issue": "发现#2缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 2,
+            "finding_type": "待核事实：六员个人账户与经营资金往来核验",
+            "issue": "发现#3缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 3,
+            "finding_type": "待核事实：生产经营实质与能源消耗核验",
+            "issue": "发现#4缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 4,
+            "finding_type": "待核事实：收入、开票、收款与会计记录勾稽",
+            "issue": "发现#5缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 5,
+            "finding_type": "待核事实：供应商地域分布与购销集中度核验",
+            "issue": "发现#6缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 6,
+            "finding_type": "待核事实：关联交易转让定价偏离核验",
+            "issue": "发现#7缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 9,
+            "finding_type": "进销存虚拟匹配概览",
+            "issue": "发现#10缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 14,
+            "finding_type": "Causal: 隐匿收入的资金回流路径",
+            "issue": "高风险发现#15仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 15,
+            "finding_type": "Causal: 成本虚列的科目腾挪路径",
+            "issue": "高风险发现#16仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 16,
+            "finding_type": "Causal: 加工费掩盖的虚开发票路径",
+            "issue": "高风险发现#17仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 20,
+            "finding_type": "经营实质-缺水电支出",
+            "issue": "高风险发现#21仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 22,
+            "finding_type": "经营实质-无人工支出",
+            "issue": "高风险发现#23仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 22,
+            "finding_type": "经营实质-无人工支出",
+            "issue": "发现#23缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 24,
+            "finding_type": "对抗鲁棒性-重复金额异常",
+            "issue": "发现#25缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          }
+        ],
+        "status": "不合格"
+      },
+      "法条准确性": {
+        "score": 0.7,
+        "issues": [
+          {
+            "dimension": "法条准确性",
+            "finding_index": 20,
+            "finding_type": "经营实质-缺水电支出",
+            "issue": "高风险发现#21缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          },
+          {
+            "dimension": "法条准确性",
+            "finding_index": 22,
+            "finding_type": "经营实质-无人工支出",
+            "issue": "高风险发现#23缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          }
+        ],
+        "status": "通过"
+      },
+      "逻辑一致性": {
+        "score": 0.7,
+        "issues": [
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含城建税及附加检查",
+            "severity": "警告",
+            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
+          },
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含企业所得税检查",
+            "severity": "提示",
+            "fix": "收入/发票问题通常同时影响企业所得税"
+          }
+        ],
+        "status": "通过"
+      },
+      "覆盖面完整性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "可操作性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "表达质量": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      }
+    },
+    "critical_count": 5,
+    "warning_count": 28,
+    "grade": "C"
+  },
+  {
+    "timestamp": "2026-09-03T00:06:31.527534",
+    "company": "猩猩织光（北京）商贸有限公司",
+    "finding_count": 17,
+    "overall_score": 0.69,
+    "dimensions": {
+      "证据充分性": {
+        "score": 0,
+        "issues": [
+          {
+            "dimension": "证据充分性",
+            "finding_index": 0,
+            "finding_type": "待核事实：会计凭证完整性与借贷关系核验",
+            "issue": "发现#1缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 1,
+            "finding_type": "待核事实：成本费用真实性与虚列核验",
+            "issue": "发现#2缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 2,
+            "finding_type": "待核事实：发票数据完整性与票面关系核验",
+            "issue": "发现#3缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 3,
+            "finding_type": "待核事实：供应商地域分布与购销集中度核验",
+            "issue": "发现#4缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 4,
+            "finding_type": "待核事实：关联交易转让定价偏离核验",
+            "issue": "发现#5缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 5,
+            "finding_type": "待核事实：用工人数与收入规模核验",
+            "issue": "发现#6缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 6,
+            "finding_type": "进销存虚拟匹配概览",
+            "issue": "发现#7缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 11,
+            "finding_type": "Causal: 虚开发票的资金闭环回路",
+            "issue": "高风险发现#12仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 12,
+            "finding_type": "Causal: 成本虚列的科目腾挪路径",
+            "issue": "高风险发现#13仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 13,
+            "finding_type": "Causal: 加工费掩盖的虚开发票路径",
+            "issue": "高风险发现#14仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 16,
+            "finding_type": "对抗鲁棒性-重复金额异常",
+            "issue": "发现#17缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          }
+        ],
+        "status": "不合格"
+      },
+      "法条准确性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "逻辑一致性": {
+        "score": 0.7,
+        "issues": [
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含城建税及附加检查",
+            "severity": "警告",
+            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
+          },
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含企业所得税检查",
+            "severity": "提示",
+            "fix": "收入/发票问题通常同时影响企业所得税"
+          }
+        ],
+        "status": "通过"
+      },
+      "覆盖面完整性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "可操作性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "表达质量": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      }
+    },
+    "critical_count": 3,
+    "warning_count": 20,
+    "grade": "C"
+  },
+  {
+    "timestamp": "2026-09-03T00:07:35.465726",
+    "company": "中山市达冠纺织有限公司",
+    "finding_count": 24,
+    "overall_score": 0.63,
+    "dimensions": {
+      "证据充分性": {
+        "score": 0,
+        "issues": [
+          {
+            "dimension": "证据充分性",
+            "finding_index": 0,
+            "finding_type": "待核事实：资金流水余额及往来关系核验",
+            "issue": "发现#1缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 1,
+            "finding_type": "待核事实：发票数据完整性与票面关系核验",
+            "issue": "发现#2缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 2,
+            "finding_type": "待核事实：六员个人账户与经营资金往来核验",
+            "issue": "发现#3缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 3,
+            "finding_type": "待核事实：生产经营实质与能源消耗核验",
+            "issue": "发现#4缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 4,
+            "finding_type": "待核事实：收入、开票、收款与会计记录勾稽",
+            "issue": "发现#5缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 5,
+            "finding_type": "待核事实：供应商地域分布与购销集中度核验",
+            "issue": "发现#6缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 6,
+            "finding_type": "待核事实：关联交易转让定价偏离核验",
+            "issue": "发现#7缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 8,
+            "finding_type": "进销存虚拟匹配概览",
+            "issue": "发现#9缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 13,
+            "finding_type": "Causal: 隐匿收入的资金回流路径",
+            "issue": "高风险发现#14仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 14,
+            "finding_type": "Causal: 成本虚列的科目腾挪路径",
+            "issue": "高风险发现#15仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 15,
+            "finding_type": "Causal: 加工费掩盖的虚开发票路径",
+            "issue": "高风险发现#16仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 19,
+            "finding_type": "经营实质-缺水电支出",
+            "issue": "高风险发现#20仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 21,
+            "finding_type": "经营实质-无人工支出",
+            "issue": "高风险发现#22仅0条证据",
+            "severity": "严重",
+            "fix": "需补充至少1个额外数据源的证据"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 21,
+            "finding_type": "经营实质-无人工支出",
+            "issue": "发现#22缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          },
+          {
+            "dimension": "证据充分性",
+            "finding_index": 23,
+            "finding_type": "对抗鲁棒性-重复金额异常",
+            "issue": "发现#24缺少证据来源(hw_found)",
+            "severity": "警告",
+            "fix": "补充how_found字段说明分析方法"
+          }
+        ],
+        "status": "不合格"
+      },
+      "法条准确性": {
+        "score": 0.7,
+        "issues": [
+          {
+            "dimension": "法条准确性",
+            "finding_index": 19,
+            "finding_type": "经营实质-缺水电支出",
+            "issue": "高风险发现#20缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          },
+          {
+            "dimension": "法条准确性",
+            "finding_index": 21,
+            "finding_type": "经营实质-无人工支出",
+            "issue": "高风险发现#22缺少法律依据",
+            "severity": "警告",
+            "fix": "补充引用的法律条文"
+          }
+        ],
+        "status": "通过"
+      },
+      "逻辑一致性": {
+        "score": 0.7,
+        "issues": [
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含城建税及附加检查",
+            "severity": "警告",
+            "fix": "涉及增值税的问题应同时检查城建税(7%)+教育费附加(3%+2%)"
+          },
+          {
+            "dimension": "逻辑一致性",
+            "issue": "检测到增值税问题但未包含企业所得税检查",
+            "severity": "提示",
+            "fix": "收入/发票问题通常同时影响企业所得税"
+          }
+        ],
+        "status": "通过"
+      },
+      "覆盖面完整性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "可操作性": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      },
+      "表达质量": {
+        "score": 1.0,
+        "issues": [],
+        "status": "通过"
+      }
+    },
+    "critical_count": 5,
+    "warning_count": 28,
+    "grade": "C"
+  },
+  {
+    "timestamp": "2026-09-03T00:08:30.538075",
     "company": "猩猩织光（北京）商贸有限公司",
     "finding_count": 17,
     "overall_score": 0.69,
