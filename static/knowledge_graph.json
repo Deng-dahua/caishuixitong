@@ -1,19 +1,12 @@
 {
   "entities": {
-    "中山市达冠纺织有限公司": {
+    "猩猩织光（北京）商贸有限公司": {
       "type": "enterprise",
       "props": {
         "source": "analysis"
       }
     },
-    "risk:有进无销风险": {
-      "type": "risk",
-      "props": {
-        "level": "低风险",
-        "count": 1
-      }
-    },
-    "risk:有销无进风险": {
+    "risk:有销无进待核事实": {
       "type": "risk",
       "props": {
         "level": "低风险",
@@ -23,23 +16,14 @@
   },
   "relations": [
     {
-      "from": "中山市达冠纺织有限公司",
-      "to": "risk:有进无销风险",
+      "from": "猩猩织光（北京）商贸有限公司",
+      "to": "risk:有销无进待核事实",
       "type": "触发",
       "props": {
         "finding_count": 1
       },
-      "timestamp": "2026-09-02T23:03:14.730910"
-    },
-    {
-      "from": "中山市达冠纺织有限公司",
-      "to": "risk:有销无进风险",
-      "type": "触发",
-      "props": {
-        "finding_count": 1
-      },
-      "timestamp": "2026-09-02T23:03:14.730918"
+      "timestamp": "2026-09-02T23:23:51.495318"
     }
   ],
-  "updated_at": "2026-09-02T23:03:14.731132"
+  "updated_at": "2026-09-02T23:23:51.495610"
 }

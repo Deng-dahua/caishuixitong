@@ -1,17 +1,17 @@
 {
-  "updated_at": "2026-09-02T23:03:14.730272",
+  "updated_at": "2026-09-02T23:23:51.494624",
   "total_events": 1,
   "events": [
     {
       "type": "analysis_completed",
       "data": {
-        "company": "中山市达冠纺织有限公司",
-        "findings_count": 2,
+        "company": "猩猩织光（北京）商贸有限公司",
+        "findings_count": 1,
         "causal_edges": 0,
         "patterns": 0
       },
       "source": "agi_pipeline",
-      "timestamp": "2026-09-02T23:03:14.729818",
+      "timestamp": "2026-09-02T23:23:51.494125",
       "id": "evt_000000"
     }
   ]

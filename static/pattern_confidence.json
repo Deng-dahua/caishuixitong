@@ -156,9 +156,9 @@
       "饲料"
     ],
     "created": 1787720273.5102453,
-    "verify_count": 16,
+    "verify_count": 17,
     "misfire_count": 0,
-    "updated": 1788359668.7137456
+    "updated": 1788362601.7211869
   },
   "fund:银行流水缺失;rela:;invo:进项发票缺失|销项发票缺失": {
     "confidence": 1.0,

@@ -1,233 +1,6 @@
 [
   {
     "type": "auto_diagnosis",
-    "timestamp": "2026-08-26T13:32:04.698500",
-    "company_id": 2,
-    "company_name": "中山市达冠纺织有限公司",
-    "industry": "纺织制造",
-    "total_contradictions": 9,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "存货物流与生产经营域",
-          "关联交易域",
-          "收入与申报协同域",
-          "交易对手与合同履约域",
-          "bank_txs",
-          "发票数据质量域",
-          "vouchers",
-          "资金结算与往来域"
-        ],
-        "sources_b": [
-          "综合分析",
-          "Synthesis: Causal Narrative",
-          "inventory",
-          "sal_invs",
-          "pur_invs"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_003",
-        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_009",
-        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_024",
-        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_033",
-        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_035",
-        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_040",
-        "reason": "数据源重叠(['综合分析'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_045",
-        "reason": "数据源不重叠(['运输费量化配比(VR027)', '收入与申报协同域', '综合分析', '资金结算与往来域', 'bank_txs', 'vouchers', '关联交易'] vs ['存货物流与生产经营域', '交易对手与合同履约域', 'Synthesis: Causal Narrative', '发票数据质量域', 'inventory', 'sal_invs', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源重叠(['pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['纺织产品']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-26T13:32:04.711733",
-    "industry": "纺织产品",
-    "biz_model": "制造业",
-    "scale": "中",
-    "risk_score": 81.1,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 3,
-    "total_findings": 64,
-    "has_processing": true,
-    "has_personal_payments": false,
-    "supplier_concentration": 56.25555562181207,
-    "customer_concentration": 95.85287652435744,
-    "data_quality_score": 85,
-    "snapshot": {
-      "sales": 17113948.6,
-      "purchases": 15667192.0,
-      "bank_in": 10435010.05,
-      "bank_out": 10270235.99,
-      "salary": 0,
-      "gross_margin_pct": 8.453669190054722
-    }
-  },
-  {
-    "type": "auto_diagnosis",
-    "timestamp": "2026-08-26T13:32:39.016784",
-    "company_id": 3,
-    "company_name": "猩猩织光（北京）商贸有限公司",
-    "industry": "食品加工",
-    "total_contradictions": 8,
-    "auto_fixes": [
-      {
-        "id": "CONTR_008",
-        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
-        "sources_a": [
-          "人员薪酬与扣缴域",
-          "关联交易域",
-          "成本费用域",
-          "交易对手与合同履约域",
-          "会计数据质量域",
-          "发票数据质量域",
-          "vouchers"
-        ],
-        "sources_b": [
-          "综合分析"
-        ]
-      }
-    ],
-    "manual_flags": [
-      {
-        "id": "CONTR_003",
-        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_024",
-        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_033",
-        "reason": "数据源重叠(['sal_invs', 'inventory', 'pur_invs', 'Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_035",
-        "reason": "数据源不重叠(['sal_invs', 'inventory', 'pur_invs'] vs ['vouchers', '成本费用域'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_040",
-        "reason": "数据源不重叠(['交易对手与合同履约域', '综合分析', 'Synthesis: Causal Narrative'] vs ['关联交易域', '成本费用域', 'vouchers', 'inventory', 'sal_invs', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      },
-      {
-        "id": "CONTR_045",
-        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
-        "action": "manual_review"
-      },
-      {
-        "id": "CONTR_049",
-        "reason": "数据源不重叠(['交易对手与合同履约域', 'Synthesis: Causal Narrative'] vs ['运输费量化配比(VR027)', '成本费用域', 'vouchers', 'inventory', 'sal_invs', 'pur_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
-        "action": "dev_review"
-      }
-    ],
-    "fix_results": [
-      {
-        "id": "CONTR_008",
-        "action": "auto_fixed",
-        "before": "矛盾存在",
-        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['宠物用品', '饲料', '研发和技术服务']"
-      }
-    ]
-  },
-  {
-    "timestamp": "2026-08-26T13:32:39.030355",
-    "industry": "饲料",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 82.5,
-    "risk_level": "极高风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 4,
-    "total_findings": 64,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 37.528406946022244,
-    "customer_concentration": 48.76089444289744,
-    "data_quality_score": 70,
-    "snapshot": {
-      "sales": 94349.19,
-      "purchases": 5030839.56,
-      "bank_in": 0,
-      "bank_out": 0,
-      "salary": 0.0,
-      "gross_margin_pct": -5232.149179023158
-    }
-  },
-  {
-    "timestamp": "2026-08-26T13:32:45.310789",
-    "industry": "综合",
-    "biz_model": "未确定",
-    "scale": "微",
-    "risk_score": 48.6,
-    "risk_level": "中风险",
-    "red_flags": [],
-    "yellow_flags": [],
-    "pattern_hits": 0,
-    "total_findings": 21,
-    "has_processing": false,
-    "has_personal_payments": false,
-    "supplier_concentration": 0,
-    "customer_concentration": 0,
-    "data_quality_score": 25,
-    "snapshot": {
-      "sales": 0,
-      "purchases": 0,
-      "bank_in": 0,
-      "bank_out": 0,
-      "salary": 0,
-      "gross_margin_pct": 0
-    }
-  },
-  {
-    "type": "auto_diagnosis",
     "timestamp": "2026-08-26T14:18:19.504206",
     "company_id": 1,
     "company_name": "深圳海更数字传媒有限公司",
@@ -4384,6 +4157,105 @@
       "bank_out": 20540471.98,
       "salary": 0,
       "gross_margin_pct": 8.453669190054722
+    }
+  },
+  {
+    "type": "auto_diagnosis",
+    "timestamp": "2026-09-02T23:23:45.652250",
+    "company_id": 3,
+    "company_name": "猩猩织光（北京）商贸有限公司",
+    "industry": "食品加工",
+    "total_contradictions": 8,
+    "auto_fixes": [
+      {
+        "id": "CONTR_008",
+        "desc": "行业推断规则已修正为仅用销项品名（2026-06-26），若仍触发→检查销项品名分类码是否与公司名行业特征匹配",
+        "sources_a": [
+          "vouchers",
+          "关联交易域",
+          "发票数据质量域",
+          "交易对手与合同履约域",
+          "成本费用域",
+          "人员薪酬与扣缴域",
+          "会计数据质量域"
+        ],
+        "sources_b": [
+          "pur_invs",
+          "综合分析",
+          "sal_invs",
+          "inventory"
+        ]
+      }
+    ],
+    "manual_flags": [
+      {
+        "id": "CONTR_003",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_024",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_033",
+        "reason": "数据源重叠(['pur_invs', 'Synthesis: Causal Narrative', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_035",
+        "reason": "数据源重叠(['pur_invs', 'sal_invs', 'inventory'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_040",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', '综合分析', '交易对手与合同履约域'] vs ['pur_invs', 'vouchers', '关联交易域', '成本费用域', 'inventory', 'sal_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      },
+      {
+        "id": "CONTR_045",
+        "reason": "数据源重叠(['Synthesis: Causal Narrative'])→不同分析域对同一数据得出矛盾结论，需业务专家判断",
+        "action": "manual_review"
+      },
+      {
+        "id": "CONTR_049",
+        "reason": "数据源不重叠(['Synthesis: Causal Narrative', '交易对手与合同履约域'] vs ['pur_invs', 'vouchers', '成本费用域', '运输费量化配比(VR027)', 'inventory', 'sal_invs'])→内部逻辑矛盾，但无预设修正方案，需研发介入",
+        "action": "dev_review"
+      }
+    ],
+    "fix_results": [
+      {
+        "id": "CONTR_008",
+        "action": "auto_fixed",
+        "before": "矛盾存在",
+        "after": "行业推断规则已修正（2026-06-26），本次分析仅用销项品名: ['研发和技术服务', '宠物用品', '饲料']"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-09-02T23:23:45.690276",
+    "industry": "饲料",
+    "biz_model": "未确定",
+    "scale": "微",
+    "risk_score": 83.0,
+    "risk_level": "极高风险",
+    "red_flags": [],
+    "yellow_flags": [],
+    "pattern_hits": 4,
+    "total_findings": 65,
+    "has_processing": false,
+    "has_personal_payments": false,
+    "supplier_concentration": 37.528406946022244,
+    "customer_concentration": 48.76089444289744,
+    "data_quality_score": 55,
+    "snapshot": {
+      "sales": 94349.19,
+      "purchases": 5030839.56,
+      "bank_in": 0,
+      "bank_out": 0,
+      "salary": 0.0,
+      "gross_margin_pct": -5232.149179023158
     }
   }
 ]

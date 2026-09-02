@@ -15955,6 +15955,36 @@
         "有销无进风险"
       ],
       "timestamp": "2026-09-02T23:03:14.707177"
+    },
+    {
+      "trace_id": "cf89614d",
+      "company_id": 3,
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "饲料",
+      "biz_model": "未确定",
+      "timestamp": "2026-09-02T23:23:47.493991",
+      "key_findings_count": 0,
+      "high_risk_count": 0,
+      "generated_hypotheses": 0,
+      "verified_hypotheses": 0,
+      "learning_points": [],
+      "data_profile": {
+        "bank_in_ratio": 0.0,
+        "supplier_concentration": 37.528406946022244,
+        "goods_match_ratio": 0.13
+      }
+    },
+    {
+      "trace_id": "9e647cb9",
+      "company_name": "猩猩织光（北京）商贸有限公司",
+      "industry": "食品加工",
+      "data_profile": {
+        "has_biz_cost_classification": true
+      },
+      "learning_points": [
+        "有销无进待核事实"
+      ],
+      "timestamp": "2026-09-02T23:23:51.457560"
     }
   ],
   "industry_patterns": {
@@ -15995,7 +16025,7 @@
       "typical_data_profile": {}
     },
     "饲料": {
-      "analyses_count": 17,
+      "analyses_count": 18,
       "common_high_risks": {},
       "avg_risk_score": 0,
       "typical_data_profile": {}

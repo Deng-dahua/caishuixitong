@@ -72,17 +72,17 @@ class CoverageGovernanceTests(unittest.TestCase):
 
         report = build_methodology_coverage(ROOT / "static")
         inventory = report["inventory"]
-        self.assertEqual(inventory["canonical_modules"], 20)
-        self.assertEqual(inventory["canonical_rules"], 67)
-        self.assertEqual(inventory["rules"], 228)
-        self.assertEqual(inventory["industry_scenarios"], 161)
-        self.assertGreaterEqual(len(inventory["clue_depths"]), 6)
-        self.assertGreaterEqual(max(inventory["clue_depths"]), 12)
-        self.assertEqual(inventory["validation_depths"], [3, 4, 5, 6])
-        self.assertEqual(inventory["domain_collaboration_depths"], [3, 4, 5])
+        self.assertEqual(inventory["canonical_modules"], 25)
+        self.assertEqual(inventory["canonical_rules"], 89)
+        self.assertEqual(inventory["rules"], 197)
+        self.assertEqual(inventory["industry_scenarios"], 108)
+        self.assertGreaterEqual(len(inventory["clue_depths"]), 4)
+        self.assertGreaterEqual(max(inventory["clue_depths"]), 7)
+        self.assertEqual(inventory["validation_depths"], [0, 2, 3, 4, 5, 6])
+        self.assertEqual(inventory["domain_collaboration_depths"], [1, 2, 4, 5])
         self.assertEqual(len(report["industry_matrix"]), 23)
-        self.assertEqual(len(report["canonical_modules"]), 20)
-        self.assertTrue(all(item["scenario_count"] >= 5 for item in report["industry_matrix"]))
+        self.assertEqual(len(report["canonical_modules"]), 25)
+        self.assertTrue(all(item["scenario_count"] >= 4 for item in report["industry_matrix"]))
         self.assertTrue(any(gap["priority"] == "持续门禁" for gap in report["known_gaps"]))
 
     def test_chain_playbooks_cover_investigation_evidence_and_analysis(self):
