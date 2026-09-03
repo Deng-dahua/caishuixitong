@@ -797,6 +797,27 @@ VERIFIED_RULE_CATALOG = [
              "materials": "补证责令单（个人码账单+个人卡流水+个税申报）"},
         ],
     },
+    {
+        "id": "VR059",
+        "name": "现金交易监管盲区（账外收入·现金侧完全不可见线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税", "个人所得税"],
+        "lifecycle": ["销售与收入确认", "银行收付款", "现金交易"],
+        "required_sources": ["vouchers"],
+        "status": "verified_executable_screening",
+        "limitation": "农贸、零售、餐饮、便利店、废品回收等直面个人消费者且现金比例高的行业，大额现金收款不进银行账户、不落第三方平台、不扫个人码，完全脱离企业全部资金监管链路，是最传统也最隐蔽的『账外经营/账外收入』手法。现金侧真实交易笔数、金额、退款在企业上传资料中天然不可见——序时账即便记『库存现金/收现』也仅是企业自记、无银行流水平衡印证。硬规定：凡现金密集型行业或序时账出现现金收款，企业必须提交现金日记账与银行取现流水勾稽，核验现金收款是否全部如实入账；当前未提供任何现金侧资料，现金交易完全不可见，须强制责令补证。规则仅形成可复算的现金收款勾稽事实与盲区责令，不作违法定性；正当理由包括：小额零星收款、员工借支冲抵、股东代垫后收回、真实退货等，企业可逐笔举证排除。",
+        "derives_to": [
+            {"child": "VR028", "link": "现金收款高于入账/申报 → 疑现金侧收入未完全入账（账外收入）",
+             "analyze": "将序时账现金收款合计与银行取现流水、申报收入勾稽，差额即账外收入敞口",
+             "evidence": "调取现金日记账、银行取现流水与销售收入明细逐笔核验",
+             "materials": "现金日记账、银行取现流水、销售收入明细"},
+            {"child": "VR051", "link": "现金盲区 → 下达补证责令单",
+             "analyze": "归集盲区，向企业下达现金日记账、银行取现流水补充资料清单",
+             "evidence": "责令提供现金日记账、银行取现流水、现金收款对应合同/小票/出库单",
+             "materials": "补证责令单（现金日记账+取现流水）"},
+        ],
+    },
 ]
 
 
@@ -4033,6 +4054,18 @@ _PERSONAL_COLLECTION_KEYWORDS = (
     "老板微信", "老板支付宝", "法人微信", "法人支付宝", "私户", "个人卡", "微信零钱",
     "微信红包", "支付宝转账", "个人码收款", "个人收款", "实际控制人卡", "股东个人卡",
 )
+# VR059：现金交易盲区关键词
+_CASH_RECEIPT_KEYWORDS = (
+    "收现", "现收", "现金收款", "收现金", "现金收入", "现款", "现金结算", "现金回款", "库存现金",
+)
+# VR059：现金密集型行业（经营范围含以下词 → 现金交易普遍，须责令现金日记账勾稽）
+_CASH_INTENSIVE_KEYWORDS = (
+    "农贸", "农副产品", "农产品", "生鲜", "果蔬", "蔬菜", "水果", "粮油", "副食", "副食品",
+    "超市", "便利", "便利店", "小商品", "集贸市场", "农贸市场", "废品", "回收", "五金", "建材零售",
+    "家居", "服饰", "服装", "鞋帽", "珠宝", "金银", "美容", "美发", "美甲", "汽修", "汽配",
+    "家政", "餐饮", "小吃", "快餐", "食品", "烘焙", "奶茶", "饮品", "茶叶", "烟酒", "糖酒",
+    "花卉", "宠物用品零售", "棋牌", "歌舞", "KTV", "洗浴", "理发", "维修", "手机维修", "电脑维修",
+)
 
 
 def _salary_amount(row):
@@ -4517,6 +4550,106 @@ def _scan_personal_collection_blindspot(data, spec):
     }, sources, priority=priority)]
 
 
+def _scan_cash_vouchers(vouchers):
+    """从序时账（vouchers）识别现金收款（库存现金科目入账腿 / 摘要含收现·现金收款等）。
+
+    现金交易完全脱离银行/第三方平台/个人码全链路，企业自记『库存现金』仅能反映其自陈金额，无银行流水平衡印证。
+    仅累加收款入账腿（debit>0），返回 (rows, amount)。
+    """
+    rows, amount = 0, 0.0
+    for v in (vouchers or []):
+        sm = str(v.get("summary") or v.get("摘要") or "")
+        ac = str(v.get("account_name") or v.get("account") or v.get("科目") or "")
+        is_cash = ("库存现金" in ac) or any(k in sm for k in _CASH_RECEIPT_KEYWORDS)
+        if not is_cash:
+            continue
+        amt = _number(v.get("debit") or v.get("借方"))
+        if amt > 0:
+            amount += amt
+            rows += 1
+    return rows, amount
+
+
+def _scan_cash_blindspot(data, spec):
+    """VR059 现金交易监管盲区（账外收入·现金侧完全不可见线索）。
+
+    现金收款是最彻底的账外收入手法：不进银行、不落第三方平台、不扫个人码，完全脱离企业全部资金监管链路。
+    规则两条触发路径：
+    (A) 序时账直接证据——出现『库存现金』入账腿或『收现/现金收款』摘要，证明企业确有现金收款，且现金侧无银行印证；
+    (B) 盲区提示——企业属现金密集型行业（农贸/零售/餐饮等）但上传资料无任何现金记录、亦未提供现金日记账，
+        现金交易完全不可见，须强制责令补证（呼应 VR056/057 缺佐证即盲区提示，杜绝逃逸）。
+    核心硬规定：凡现金收款，企业必须提交现金日记账与银行取现流水勾稽。复用 _finding 底盘与『发现≠确认』基调。
+    """
+    vouchers = data.get("vouchers") or []
+    target = data.get("target_entity") or {}
+    tname = str(target.get("name") or target.get("company_name") or "")
+    scope = str(target.get("scope") or target.get("business_scope") or target.get("经营范围")
+                or target.get("name") or "")
+    v_rows, v_amount = _scan_cash_vouchers(vouchers)
+    has_cash_ledger = bool(data.get("cash_ledger") or data.get("cash_journal"))
+    cash_intensive = any(k in scope for k in _CASH_INTENSIVE_KEYWORDS)
+
+    # 分支A：序时账直接证据企业确有现金收款
+    if v_rows:
+        sources = ["vouchers"] + (["target_entity"] if target else [])
+        detail = (
+            "企业（{0}）序时账显示『库存现金』入账腿或现金收款摘要共{1}笔、合计{2}，证明企业存在现金收款。"
+            "现金交易完全脱离银行/第三方平台/个人码全链路，现金侧真实交易笔数、金额、退款完全不可见，"
+            "形成比个人码（VR058）更彻底的『账外经营/账外收入』监管盲区——现金可直接用于账外支付薪酬、"
+            "账外采购、股东分红或私户沉淀，且企业自记『库存现金』无银行流水平衡印证，金额真实性无法核验。".format(
+                tname or "标的公司", v_rows, _fmt_yuan(v_amount))
+        )
+        if not has_cash_ledger:
+            detail += (
+                "【硬规定】凡以现金收款，企业依法须提交现金日记账与银行取现流水勾稽，"
+                "核验现金收款是否全部如实入账、与申报收入一致；当前未提供任何现金侧资料，"
+                "现金交易完全不可见、可被随时账外支付而不留痕——不构成立案定性，但须强制责令补证。"
+            )
+        else:
+            detail += "已提供现金日记账，须进一步勾稽现金收款笔数/金额与银行取现流水、申报收入，核验是否全部如实入账。"
+        demand_docs = [
+            "现金日记账（逐笔登记现金收支，含交易对方、用途、对应凭证）",
+            "银行取现流水（核验取现现金去向与库存现金余额钩稽）",
+            "现金收款对应的合同、小票、出库单等原始凭据",
+            "增值税及企业所得税申报收入与现金收款的勾稽说明",
+        ]
+        priority = "调查优先级" if (not has_cash_ledger or v_amount >= 100000) else "中"
+        return [_finding(spec, detail, {
+            "cash_voucher_rows": v_rows,
+            "cash_voucher_amount": round(v_amount, 2),
+            "cash_ledger_provided": bool(has_cash_ledger),
+            "demand_docs": demand_docs,
+        }, sources, priority=priority)]
+
+    # 分支B：现金密集型行业但无任何现金记录+无现金日记账佐证 → 盲区提示（缺佐证即责令，杜绝逃逸）
+    if cash_intensive and not has_cash_ledger:
+        sources = ["vouchers"] + (["target_entity"] if target else [])
+        detail = (
+            "企业（{0}）经营范围含『{1}』等现金密集型业态，直面个人消费者、现金交易普遍；"
+            "但上传资料中序时账无任何现金收款记录（无『库存现金』入账腿/收现摘要），亦未提供现金日记账，"
+            "现金侧交易完全不可见，形成账外收入监管盲区。实务中此类企业常以现金收款不入账方式隐匿收入，"
+            "须强制责令提供现金日记账与银行取现流水，勾稽现金收款是否全部如实入账。".format(
+                tname or "标的公司", "、".join(sorted({k for k in _CASH_INTENSIVE_KEYWORDS if k in scope})[:5]) or "现金密集")
+        )
+        detail += "【硬规定】现金密集型行业须提交现金日记账与银行取现流水，否则现金侧收入不可见、账外经营盲区无法清扫。"
+        demand_docs = [
+            "现金日记账（逐笔登记现金收支）",
+            "银行取现流水（核验取现现金去向与库存现金余额）",
+            "现金收款对应的合同、小票、出库单等原始凭据",
+            "增值税及企业所得税申报收入与现金收款的勾稽说明",
+        ]
+        # 盲区提示：data_quality_limitation（信息级），仍须责令补证
+        return [_finding(spec, detail, {
+            "cash_voucher_rows": 0,
+            "cash_voucher_amount": 0.0,
+            "cash_ledger_provided": False,
+            "cash_intensive_blindspot": True,
+            "demand_docs": demand_docs,
+        }, sources, status="data_quality_limitation", priority="中")]
+
+    return []
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -4576,6 +4709,7 @@ _SCANNERS = {
     "VR056": _scan_mixed_payroll,
     "VR057": _scan_thirdparty_blindspot,
     "VR058": _scan_personal_collection_blindspot,
+    "VR059": _scan_cash_blindspot,
 }
 
 

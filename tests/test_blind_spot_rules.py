@@ -79,7 +79,28 @@ def _personal_data():
             {"counterparty": "微信零钱", "credit": 5000.0, "debit": 0.0, "summary": "个人码提现"},
             {"counterparty": "实际控制人卡_王某", "credit": 20000.0, "debit": 0.0, "summary": "个人卡收营业款"},
         ],
-        "target_entity": {"name": "某某餐饮管理有限公司"},
+        "target_entity": {"name": "某某电商科技有限公司"},
+    }
+
+
+def _cash_data():
+    """模拟农贸/餐饮现金密集型：序时账现金收款（库存现金入账腿），无现金日记账佐证。"""
+    return {
+        "vouchers": [
+            {"summary": "收现_摊位零售", "account_name": "库存现金", "debit": 15000.0, "credit": 0.0},
+            {"summary": "收现_零售", "account_name": "库存现金", "debit": 8000.0, "credit": 0.0},
+        ],
+        "target_entity": {"name": "某某农贸有限公司", "scope": "农产品批发零售、农贸市场的摊位租赁与管理"},
+    }
+
+
+def _cash_intensive_no_ledger_data():
+    """模拟现金密集型小吃店：序时账无现金收款记录、未提供现金日记账 → 盲区提示。"""
+    return {
+        "vouchers": [
+            {"summary": "付房租", "account_name": "银行存款", "debit": 0.0, "credit": 20000.0},
+        ],
+        "target_entity": {"name": "某某小吃店", "scope": "小吃、快餐、餐饮服务"},
     }
 
 
@@ -166,6 +187,36 @@ class TestVR058PersonalCollection(unittest.TestCase):
         self.assertTrue(hits[0]["observed_metrics"]["wage_split_linkage"], "均额工资应联动 VR058 个税逃漏线索")
 
 
+class TestVR059CashBlindspot(unittest.TestCase):
+    def test_vr059_fires_on_cash_voucher(self):
+        res = V.run_verified_rules(_cash_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR059"]
+        self.assertEqual(len(hits), 1, "序时账现金收款应触发 VR059 盲区")
+        f = hits[0]
+        self.assertIn("demand_docs", f["observed_metrics"])
+        self.assertTrue(any("现金日记账" in d for d in f["observed_metrics"]["demand_docs"]))
+        self.assertTrue(any("取现" in d for d in f["observed_metrics"]["demand_docs"]))
+
+    def test_vr059_blind_spot_when_cash_intensive_no_ledger(self):
+        res = V.run_verified_rules(_cash_intensive_no_ledger_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR059"]
+        self.assertEqual(len(hits), 1, "现金密集型行业无现金记录应触发 VR059 盲区提示")
+        self.assertEqual(hits[0]["finding_status"], "data_quality_limitation")
+        self.assertTrue(hits[0]["observed_metrics"]["cash_intensive_blindspot"])
+
+    def test_vr059_not_fired_on_b2b(self):
+        # B2B 制造无 vouchers（required_sources 缺失）→ 规则被跳过，不误报
+        res = V.run_verified_rules(_b2b_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR059"]
+        self.assertEqual(len(hits), 0, "无 vouchers 的 B2B 不应触发 VR059")
+
+    def test_vr059_not_fired_on_personal_code_only(self):
+        # 个人码收款（VR058 口径）不应误触发 VR059 现金盲区
+        res = V.run_verified_rules(_personal_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR059"]
+        self.assertEqual(len(hits), 0, "仅个人码收款（无现金摘要+非现金密集型名号）不应触发 VR059")
+
+
 class TestScenarioSurfacing(unittest.TestCase):
     """端到端：三条规则经共同事实门落到 scenario_execution.findings。"""
     def test_surfaced_via_common_gate(self):
@@ -180,18 +231,24 @@ class TestScenarioSurfacing(unittest.TestCase):
         ids = _rule_ids_from_findings(se)
         self.assertIn("VR058", ids, "VR058 应经共同事实门进入 findings")
 
+    def test_vr059_surfaced_via_common_gate(self):
+        se = SE.execute_scenario_methodology("农贸零售", file_results=None, engine_data=_cash_data())
+        ids = _rule_ids_from_findings(se)
+        self.assertIn("VR059", ids, "VR059 应经共同事实门进入 findings")
+
     def test_b2b_control_not_flagged(self):
         se = SE.execute_scenario_methodology("通用设备制造", file_results=None, engine_data=_b2b_data())
         ids = _rule_ids_from_findings(se)
         self.assertNotIn("VR055", ids)
         self.assertNotIn("VR057", ids)
         self.assertNotIn("VR058", ids)
+        self.assertNotIn("VR059", ids)
 
 
 class TestConfiguration(unittest.TestCase):
     def test_registered_in_catalog_and_scanners(self):
         catalog_ids = {c["id"] for c in V.VERIFIED_RULE_CATALOG}
-        for rid in ("VR055", "VR056", "VR057", "VR058"):
+        for rid in ("VR055", "VR056", "VR057", "VR058", "VR059"):
             self.assertIn(rid, catalog_ids, f"{rid} 应在 VERIFIED_RULE_CATALOG")
             self.assertIn(rid, V._SCANNERS, f"{rid} 应在 _SCANNERS")
             self.assertTrue(callable(V._SCANNERS[rid]))
@@ -202,6 +259,7 @@ class TestConfiguration(unittest.TestCase):
         self.assertIn("VR056", contracts["COMMON-PERSONNEL-FUND-FLOW"]["rule_ids"])
         self.assertIn("VR057", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
         self.assertIn("VR058", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
+        self.assertIn("VR059", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
 
 
 if __name__ == "__main__":
