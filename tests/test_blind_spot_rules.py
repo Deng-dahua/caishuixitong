@@ -62,6 +62,27 @@ def _b2b_data():
     }
 
 
+def _personal_data():
+    """模拟直面个人消费者的零售/餐饮：个人码+老板个人卡收款、均额工资个税为0、无个人侧结算单。"""
+    return {
+        "salaries": [
+            {"name": "张帅", "salary": 7000.0, "net": 6062.14, "acc_paid": 0.0},
+            {"name": "范雪", "salary": 7000.0, "net": 6062.14, "acc_paid": 0.0},
+            {"name": "董师超", "salary": 7000.0, "net": 6062.14, "acc_paid": 0.0},
+            {"name": "李宪洲", "salary": 7000.0, "net": 6062.14, "acc_paid": 0.0},
+        ],
+        "vouchers": [
+            {"summary": "收销售款_微信（个人）", "debit": 12000.0, "credit": 0.0},
+            {"summary": "收销售款_老板支付宝", "debit": 8000.0, "credit": 0.0},
+        ],
+        "bank_txs": [
+            {"counterparty": "微信零钱", "credit": 5000.0, "debit": 0.0, "summary": "个人码提现"},
+            {"counterparty": "实际控制人卡_王某", "credit": 20000.0, "debit": 0.0, "summary": "个人卡收营业款"},
+        ],
+        "target_entity": {"name": "某某餐饮管理有限公司"},
+    }
+
+
 def _rule_ids_from_findings(se_result):
     ids = set()
     for f in (se_result.get("findings") or []):
@@ -117,6 +138,34 @@ class TestVR057ThirdPartyBlindspot(unittest.TestCase):
         self.assertEqual(len(hits), 0, "无平台销售的 B2B 不应触发 VR057")
 
 
+class TestVR058PersonalCollection(unittest.TestCase):
+    def test_vr058_fires_on_personal_collection(self):
+        res = V.run_verified_rules(_personal_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR058"]
+        self.assertEqual(len(hits), 1, "个人码+老板个人卡收款应触发 VR058 盲区")
+        f = hits[0]
+        self.assertIn("demand_docs", f["observed_metrics"])
+        self.assertTrue(any("个人码" in d for d in f["observed_metrics"]["demand_docs"]))
+        self.assertTrue(any("个人卡" in d for d in f["observed_metrics"]["demand_docs"]))
+
+    def test_vr058_not_fired_on_third_party_platform_only(self):
+        # VR057（企业第三方平台）数据不应误触发 VR058（个人码），两规则口径互斥
+        res = V.run_verified_rules(_company3_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR058"]
+        self.assertEqual(len(hits), 0, "仅企业第三方平台收款不应触发 VR058")
+
+    def test_vr058_not_fired_on_b2b(self):
+        res = V.run_verified_rules(_b2b_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR058"]
+        self.assertEqual(len(hits), 0, "差异化工资+对公代发的 B2B 不应触发 VR058")
+
+    def test_vr058_wage_split_linkage(self):
+        res = V.run_verified_rules(_personal_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR058"]
+        self.assertEqual(len(hits), 1)
+        self.assertTrue(hits[0]["observed_metrics"]["wage_split_linkage"], "均额工资应联动 VR058 个税逃漏线索")
+
+
 class TestScenarioSurfacing(unittest.TestCase):
     """端到端：三条规则经共同事实门落到 scenario_execution.findings。"""
     def test_surfaced_via_common_gate(self):
@@ -126,17 +175,23 @@ class TestScenarioSurfacing(unittest.TestCase):
         self.assertIn("VR056", ids, "VR056 应经共同事实门进入 findings")
         self.assertIn("VR057", ids, "VR057 应进入 findings")
 
+    def test_vr058_surfaced_via_common_gate(self):
+        se = SE.execute_scenario_methodology("餐饮零售", file_results=None, engine_data=_personal_data())
+        ids = _rule_ids_from_findings(se)
+        self.assertIn("VR058", ids, "VR058 应经共同事实门进入 findings")
+
     def test_b2b_control_not_flagged(self):
         se = SE.execute_scenario_methodology("通用设备制造", file_results=None, engine_data=_b2b_data())
         ids = _rule_ids_from_findings(se)
         self.assertNotIn("VR055", ids)
         self.assertNotIn("VR057", ids)
+        self.assertNotIn("VR058", ids)
 
 
 class TestConfiguration(unittest.TestCase):
     def test_registered_in_catalog_and_scanners(self):
         catalog_ids = {c["id"] for c in V.VERIFIED_RULE_CATALOG}
-        for rid in ("VR055", "VR056", "VR057"):
+        for rid in ("VR055", "VR056", "VR057", "VR058"):
             self.assertIn(rid, catalog_ids, f"{rid} 应在 VERIFIED_RULE_CATALOG")
             self.assertIn(rid, V._SCANNERS, f"{rid} 应在 _SCANNERS")
             self.assertTrue(callable(V._SCANNERS[rid]))
@@ -146,6 +201,7 @@ class TestConfiguration(unittest.TestCase):
         self.assertIn("VR055", contracts["COMMON-EMPLOYMENT-COVERAGE"]["rule_ids"])
         self.assertIn("VR056", contracts["COMMON-PERSONNEL-FUND-FLOW"]["rule_ids"])
         self.assertIn("VR057", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
+        self.assertIn("VR058", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
 
 
 if __name__ == "__main__":

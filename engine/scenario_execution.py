@@ -45,7 +45,7 @@ ENGINE_SOURCE_FAMILIES = {
 COMMON_FACT_CONTRACTS = {
     "COMMON-REVENUE-RECONCILIATION": {
         "name": "收入、开票、收款与会计记录勾稽",
-        "rule_ids": {"VR001", "VR002", "VR057"},
+        "rule_ids": {"VR001", "VR002", "VR057", "VR058"},
         "target_fact": "同一主体和期间的销售履约、收入确认、开票、收款及申报差异能否由逐笔业务事实完整解释。",
         "lead": "收入与申报协同域",
         "supporting": ["销售合同和履约记录", "销项发票明细", "银行收款流水", "会计收入明细", "纳税申报表"],

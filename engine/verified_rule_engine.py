@@ -776,6 +776,27 @@ VERIFIED_RULE_CATALOG = [
              "materials": "补证责令单（平台结算+提现+后台订单）"},
         ],
     },
+    {
+        "id": "VR058",
+        "name": "个人码/个人账户收款监管盲区（账外收入·资金回流个人线索）",
+        "layer": "账外经营与业务真实性间接证据规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税", "个人所得税"],
+        "lifecycle": ["销售与收入确认", "银行收付款", "电商平台经营"],
+        "required_sources": ["vouchers", "bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "零售、餐饮、生活服务等直面个人消费者的行业，大量收款经『个人微信/个人支付宝收款码』『老板/实际控制人个人银行卡』直接入账，企业账面仅体现一笔微信零钱提现或根本不体现，个人码侧真实交易笔数、金额、退款完全脱离企业账务监管，形成比第三方平台（VR057）更隐蔽的『账外经营/账外收入』监管盲区。硬规定：凡以个人码或个人账户收款，企业必须提交个人码交易明细（微信/支付宝个人码账单）、实际控制人个人卡流水与个税扣缴申报表佐证，否则资金滞留个人账户、可被随时对外支付而不留痕——典型手法即以公账发较低工资、个人账户沉淀资金另付差额，拆分逃避个税。规则仅形成可复算的个人码/个人账户归集勾稽事实与盲区责令，不作违法定性；正当理由包括：员工借款冲抵、股东代垫、亲友转账、退款挂账等，企业可逐笔举证排除，并可就工资实际支付来源与个税扣缴真实性一并说明。",
+        "derives_to": [
+            {"child": "VR028", "link": "个人码收款高于对公归集 → 疑个人侧收入未完全入账（账外收入）",
+             "analyze": "将个人码/个人账户收款合计与对公账户入账勾稽，差额即账外收入敞口",
+             "evidence": "调取个人码交易明细、实际控制人个人卡流水与银行卡流水逐笔核验",
+             "materials": "个人微信/支付宝账单、实际控制人个人卡流水、银行卡流水"},
+            {"child": "VR051", "link": "个人码盲区 → 下达补证责令单",
+             "analyze": "归集盲区，向企业下达个人码交易明细、实际控制人个人卡流水、个税申报表补充资料清单",
+             "evidence": "责令提供个人微信/支付宝收款码账单、老板/实际控制人个人银行卡流水、个税扣缴申报表",
+             "materials": "补证责令单（个人码账单+个人卡流水+个税申报）"},
+        ],
+    },
 ]
 
 
@@ -4006,6 +4027,12 @@ _THIRD_PARTY_PAY_KEYWORDS = (
     "连连支付", "快钱", "京东支付", "拼多多支付", "抖音支付", "首信易", "随行付",
 )
 _PAYROLL_TX_KEYWORDS = ("工资", "薪酬", "发薪", "薪金", "工资表", "薪资", "补贴", "奖金", "报销")
+# VR058：个人码/个人账户收款盲区关键词（与 VR057 企业第三方平台归集口径互斥，避免双触发）
+_PERSONAL_COLLECTION_KEYWORDS = (
+    "个人微信", "微信（个人）", "微信个人", "个人支付宝", "支付宝（个人）", "个人收款码", "个人码",
+    "老板微信", "老板支付宝", "法人微信", "法人支付宝", "私户", "个人卡", "微信零钱",
+    "微信红包", "支付宝转账", "个人码收款", "个人收款", "实际控制人卡", "股东个人卡",
+)
 
 
 def _salary_amount(row):
@@ -4354,6 +4381,142 @@ def _scan_thirdparty_blindspot(data, spec):
     }, sources, priority=priority)]
 
 
+def _scan_personal_collection_vouchers(vouchers):
+    """从序时账（vouchers）识别个人码/个人账户收款（如『收销售款_微信（个人）/老板支付宝』）。
+
+    个人消费者零售款经个人微信/支付宝收款码或老板个人卡直接入账，账面仅体现一笔提现或根本不体现，
+    个人码侧真实交易笔数、金额、退款完全脱离企业账务监管，形成比第三方平台（VR057）更隐蔽的账外收入盲区。
+    仅累加收款入账腿（debit>0），返回 (rows, amount)。
+    """
+    rows, amount = 0, 0.0
+    for v in (vouchers or []):
+        sm = str(v.get("summary") or v.get("摘要") or "")
+        if not any(k in sm for k in _PERSONAL_COLLECTION_KEYWORDS):
+            continue
+        amt = _number(v.get("debit") or v.get("借方"))
+        if amt > 0:
+            amount += amt
+            rows += 1
+    return rows, amount
+
+
+def _scan_personal_collection_bank(bank_txs):
+    """从银行流水（bank_txs）识别个人码/个人账户归集回款（如『微信零钱/个人支付宝』入账）。
+
+    仅累加收款入账腿（credit>0），返回 (rows, amount)。与 VR057 企业第三方平台归集口径互斥。
+    """
+    rows, amount = 0, 0.0
+    for tx in (bank_txs or []):
+        cp = str(tx.get("counterparty") or tx.get("对方户名") or tx.get("交易对方") or "")
+        if not any(k in cp for k in _PERSONAL_COLLECTION_KEYWORDS):
+            continue
+        amt = _number(tx.get("credit") or tx.get("贷方"))
+        if amt > 0:
+            amount += amt
+            rows += 1
+    return rows, amount
+
+
+def _scan_personal_collection_blindspot(data, spec):
+    """VR058 个人码/个人账户收款监管盲区（账外收入·资金回流个人线索）。
+
+    核心硬规定：凡以个人微信/个人支付宝收款码、老板/实际控制人个人银行卡收款（直面个人消费者的零售、
+    餐饮、生活服务等行业普遍），企业必须提交个人码交易明细（微信/支付宝个人码账单）、实际控制人个人卡
+    流水与个税扣缴申报表佐证，否则资金滞留个人账户、脱离企业账务监管，可被随时对外支付而不留痕——实务中
+    典型手法即以公账发放较低金额、个人账户沉淀资金另付差额，拆分规避个人所得税全员全额扣缴。
+    本规则形成可复算的个人码/个人账户归集勾稽事实与盲区责令，不作违法定性；企业可逐笔举证排除。
+    """
+    bank = data.get("bank_txs") or []
+    vouchers = data.get("vouchers") or []
+    target = data.get("target_entity") or {}
+    tname = str(target.get("name") or target.get("company_name") or "")
+
+    v_rows, v_amount = _scan_personal_collection_vouchers(vouchers)
+    b_rows, b_amount = _scan_personal_collection_bank(bank)
+    personal_rows = v_rows + b_rows
+    personal_amount = v_amount + b_amount
+    if not personal_rows:
+        return []
+
+    sources = (["vouchers"] if v_rows else []) + (["bank_txs"] if b_rows else []) + (["target_entity"] if target else [])
+    has_settlement = any(data.get(k) for k in ("personal_code_txs", "personal_account_txs", "personal_bank_stmt", "boss_card_stmt"))
+    wage_sig = _detect_wage_split_signal(data)
+
+    detail = (
+        "企业（{0}）存在以个人码/个人账户收取营业款的事实：序时账与银行流水显示个人微信/个人支付宝收款码、"
+        "老板/实际控制人个人卡直接入账共{1}笔、合计{2}。直面个人消费者的零售、餐饮、生活服务等行业此类收款普遍，"
+        "但个人码侧真实交易笔数、金额、退款完全脱离企业账务监管，形成比第三方平台（VR057）更隐蔽的"
+        "『账外经营/账外收入』监管盲区——个人码刷单、线下收款不入账、退货不作废重开等猫腻均藏身于此。".format(
+            tname or "标的公司", personal_rows, _fmt_yuan(personal_amount))
+    )
+
+    # 硬规定：个人码/个人账户收款必须提交个人侧真实记录
+    if not has_settlement:
+        detail += (
+            "【硬规定】凡以个人微信/个人支付宝收款码、老板/实际控制人个人银行卡收款，企业依法须提交个人码交易明细"
+            "（微信/支付宝个人码账单）、实际控制人个人卡流水与个人所得税扣缴申报表作为对账与申报依据；"
+            "当前未提供任何个人侧资料，资金滞留个人账户、脱离企业账务监管，可被企业随时对外支付而不留痕——"
+            "这是典型的账外支付与资金挪用敞口，不构成立案定性，但须强制责令补证。"
+        )
+    else:
+        detail += "已提供个人码/个人账户资料，须进一步勾稽个人码GMV、退款与入账金额，核验是否全部如实申报。"
+
+    # 资金滞留个人户可被随意对外支付 → 打通『个人账户资金→私户另付工资→个税逃漏』链条
+    if wage_sig:
+        detail += (
+            "进一步关联：企业工资名册呈『均额/拆分』模板（{0}名员工工资均为{1}、其中{2}名个税已缴为0），"
+            "存在以公账发放较低金额、个人账户沉淀资金另付差额以拆分规避个人所得税全员全额扣缴的通道。"
+            "个人码/个人卡恰可作为该『账外补差』的来源——资金滞留个人账户、脱离监管，正是该手法得以实施的前提。"
+            "故须将『个人码提现/个人卡收付款流水』与『个税扣缴申报表』一并责令，"
+            "验证个人账户资金是否被用于账外支付薪酬、进而逃避个税。".format(
+                wage_sig["count"], _fmt_yuan(wage_sig["amount"]), wage_sig["zero_tax"])
+        )
+
+    # 个人码/个人账户收款占对公收款相当比重 → 个人侧收入大量未进入对公账户（账外收入敞口）
+    divergence = None
+    corp_amount = 0.0
+    for tx in bank:
+        cp = str(tx.get("counterparty") or tx.get("对方户名") or tx.get("交易对方") or "")
+        if any(k in cp for k in _PERSONAL_COLLECTION_KEYWORDS):
+            continue
+        amt = _number(tx.get("credit") or tx.get("贷方"))
+        if amt > 0:
+            corp_amount += amt
+    if personal_amount and corp_amount and personal_amount > corp_amount * 0.3:
+        divergence = round(personal_amount, 2)
+        detail += "另：个人码/个人账户收款合计{0}占对公收款{1}的相当比重，个人侧收入大量未进入对公账户，存在账外收入敞口。".format(
+            _fmt_yuan(personal_amount), _fmt_yuan(corp_amount))
+
+    demand_docs = [
+        "个人微信/个人支付宝收款码交易明细（含交易笔数、金额、退款、到账）",
+        "实际控制人/股东/财务负责人个人银行卡流水",
+        "个人码提现至对公账户的银行流水",
+        "个人所得税扣缴申报表（全员全额扣缴明细，核验个人侧/私户另付的薪酬差额是否已如实并入扣缴）",
+    ]
+    if not has_settlement:
+        demand_docs.append(
+            "老板/实际控制人个人卡完整收付款流水——核验滞留个人账户资金是否被用于账外支付薪酬、对外支付货款等"
+        )
+    if wage_sig:
+        demand_docs.append(
+            "工资名册与公户+私户发薪流水逐笔勾稽——核验平台或个人侧沉淀资金是否被用于账外支付薪酬差额"
+        )
+
+    priority = "调查优先级" if (divergence or not has_settlement or wage_sig) else "中"
+    return [_finding(spec, detail, {
+        "personal_collection_rows": personal_rows,
+        "personal_collection_amount": round(personal_amount, 2),
+        "voucher_collection_rows": v_rows,
+        "voucher_collection_amount": round(v_amount, 2),
+        "bank_collection_rows": b_rows,
+        "bank_collection_amount": round(b_amount, 2),
+        "settlement_provided": bool(has_settlement),
+        "wage_split_linkage": (wage_sig is not None),
+        "divergence_amount": divergence,
+        "demand_docs": demand_docs,
+    }, sources, priority=priority)]
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -4412,6 +4575,7 @@ _SCANNERS = {
     "VR055": _scan_wage_splitting,
     "VR056": _scan_mixed_payroll,
     "VR057": _scan_thirdparty_blindspot,
+    "VR058": _scan_personal_collection_blindspot,
 }
 
 
