@@ -324,6 +324,36 @@ def _validation_cases(name: str, sources: list[str], explanations: list[str], in
     return cases
 
 
+def _build_validation_cases(scene: dict, sources: list[str], explanations: list[str]) -> list[dict]:
+    """为每个场景生成同口径、可执行的验证样本（validation_cases）。
+
+    与 _acceptance_cases 同源：从场景自身的支持证据与反向解释派生 3 条验证样本，
+    覆盖『事实充分支持 / 正常解释成立 / 关键资料不足』三态，供人工复核时逐项核验。
+    仅在场景原始 JSON 未自带 validation_cases 时由 _clean_detailed_scene 调用（已有则保留），
+    以补齐 2026-08-26 审计 P0-6 遗留的验证样本缺口，而非覆盖既有撰写内容。
+    """
+    name = str(scene.get("name", "本场景"))
+    source_text = "、".join(sources[:3]) or "原始业务、资金和申报资料"
+    explanation_text = "、".join(explanations[:2]) or "正常商业安排和期间口径差异"
+    return [
+        {
+            "case": "positive",
+            "facts": f"{name}能够由{source_text}逐笔闭合，主要反向解释已经取得独立材料并被排除。",
+            "expected": "事实充分支持_待审理",
+        },
+        {
+            "case": "negative",
+            "facts": f"表面差异能够由{explanation_text}完整解释，解释范围、期间、金额和期后结果相互印证。",
+            "expected": "解释成立_关闭",
+        },
+        {
+            "case": "insufficient",
+            "facts": f"缺少{source_text}中的关键资料，仅有汇总数字、模型评分或来源无法说明的材料。",
+            "expected": "资料不足_未启动",
+        },
+    ]
+
+
 def _acceptance_cases(name: str, sources: list[str], explanations: list[str]) -> list[dict]:
     """为每个场景生成同口径、可执行的五类证据状态验收样本。"""
     source_text = "、".join(sources[:3]) or "原始业务、资金和申报资料"
@@ -637,6 +667,10 @@ def _clean_detailed_scene(scene: dict, code: str) -> dict:
     cleaned["acceptance_cases"] = _acceptance_cases(
         cleaned.get("name", ""), sources, opposing
     )
+    # 2026-09-02 修复：V2 场景普遍缺失 validation_cases（P0-6 遗漏）。仅当原始场景未自带时生成，
+    # 已有撰写内容的 76 个场景一律保留，避免覆盖既有验证样本。
+    if not cleaned.get("validation_cases"):
+        cleaned["validation_cases"] = _build_validation_cases(cleaned, sources, opposing)
     cleaned["policy_applicability"] = _policy_applicability_contract()
     report_contract = cleaned.setdefault("report_contract", {})
     report_contract["release_gate"] = (

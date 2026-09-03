@@ -81,7 +81,25 @@
       ], "terminal": "骗取补贴→退还+列入黑名单→取消后续补贴资格。"},
       "evidence_chain": {"supporting": ["补贴申报表", "学员名册"], "opposing": ["签到记录/影像", "线上学习记录"], "must_state": ["项目数", "学员总数", "虚报估算"]},
       "domain_collaboration": {"lead": "税收优惠域", "partners": [{"domain": "经营实质域", "responsibility": "培训场所/设备"}]}
+    },
+    {
+      "id": "EDU-CAMPUS-SERVICE",
+      "name": "校园服务收入隐匿——食堂/宿舍/校服等非学历服务收入体外循环",
+      "trigger_signals": ["校园服务（食堂/宿舍/超市/校服）收入>300万", "服务由关联方或承包方运营且收入未并入机构账", "代收代付科目长期挂账不结算"],
+      "severity_modifiers": {"amount_threshold": 3000000},
+      "cross_industry_tags": ["校园服务", "收入隐匿", "关联交易"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税", "企业所得税"],
+      "applicability": {"business": "提供食堂/宿舍/超市/校服/场地租赁等非学历服务的学校及关联运营主体", "activate_when": "校园服务收入>300万 AND 承包/关联方运营收入未并入机构账"},
+      "doubt": {"target_fact": "校园服务取得的经营收入是否全额计入机构账务并申报纳税——由关联方或承包方运营的部分是否通过代收代付、费用分摊或往来挂账方式滞留账外。", "observed_signal": "食堂/超市由关联方承包，机构仅挂'代收代付'往来科目、长期不结算→实质经营收入体外循环。", "must_exclude": ["真实现金收支已全额入账并按净额结算的代收费", "独立第三方场地租赁且开具发票并申报"], "output": "形成校园服务→运营主体→收款路径→入账/挂账→申报状态对照表"},
+      "clue_chain": {"start": "梳理校园服务项目→界定运营主体→追踪收款与入账路径。", "steps": [
+        {"step": 1, "action": "列出校园服务项目→运营主体（自营/承包/关联）→合同条款", "deliverable": "服务清单"},
+        {"step": 2, "action": "追踪收款路径→银行/第三方→是否进入机构账或长期挂往来", "deliverable": "资金路径"},
+        {"step": 3, "action": "核查代收代付科目→结算周期与净额→是否掩盖经营收入", "deliverable": "挂账核查"},
+        {"step": 4, "action": "比对申报→校园服务收入是否完整计入增值税/企业所得税", "deliverable": "税负差异"}
+      ], "terminal": "经营收入体外循环→补确认收入→补缴增值税+企业所得税+滞纳金。"},
+      "evidence_chain": {"supporting": ["校园服务合同与结算单", "银行流水与第三方收款记录", "机构账务（往来/代收代付）"], "opposing": ["独立第三方运营证明", "真实现金收支净额结算凭证"], "must_state": ["运营主体", "收款路径", "挂账性质", "未申报金额"]},
+      "domain_collaboration": {"lead": "收入完整性域", "partners": [{"domain": "关联交易域", "responsibility": "承包/关联主体实质"}]}
     }
   ],
-  "forbidden_outputs": ["自动取消补贴资格", "自动认定骗补"]
+  "forbidden_outputs": ["自动取消补贴资格", "自动认定骗补", "自动认定校园服务体外循环"]
 }

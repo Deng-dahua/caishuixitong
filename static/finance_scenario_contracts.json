@@ -81,7 +81,24 @@
       ], "terminal": "跨期不当→重新确认收入时点→补税+滞纳金。"},
       "evidence_chain": {"supporting": ["手续费收入明细", "业务合同"], "opposing": ["分期确认说明"], "must_state": ["跨期差异金额", "调整时点"]},
       "domain_collaboration": {"lead": "收入完整性域", "partners": [{"domain": "合同履约域", "responsibility": "服务完成时点"}]}
+    },
+    {
+      "id": "FIN-INTEREST-VAT",
+      "name": "利息收入增值税——保本与非保本理财利息收入计税错配",
+      "trigger_signals": ["利息收入>500万", "保本与非保本理财利息收入增值税处理不一致", "金融机构往来收入免税范围存疑"],
+      "severity_modifiers": {"amount_threshold": 5000000},
+      "cross_industry_tags": ["利息收入", "增值税", "免税范围"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税"],
+      "applicability": {"business": "银行/保险/证券等持有金融资产并取得利息收入的金融机构", "activate_when": "利息收入>500万 AND 保本属性判定与申报不一致"},
+      "doubt": {"target_fact": "持有金融资产取得的利息收入是否按保本/非保本属性正确区分增值税纳税义务——非保本理财收益不征增值税、保本需按贷款服务6%计征，免税范围是否超出政策允许。", "observed_signal": "将本应征税的保本利息收入计入非保本免税类别→少缴增值税。", "must_exclude": ["央行往来利息收入（法定免税）", "真正确权持有至到期的国债/地方债利息"], "output": "形成利息收入→产品类型→保本/非保本→增值税处理对照表"},
+      "clue_chain": {"start": "提取利息收入明细→按产品类型→判定保本属性→核对增值税申报。", "steps": [
+        {"step": 1, "action": "提取利息收入明细→按产品/合同→分类保本与非保本", "deliverable": "利息分类"},
+        {"step": 2, "action": "核查合同→是否承诺保本→确定增值税纳税义务", "deliverable": "纳税义务判定"},
+        {"step": 3, "action": "比对申报→免税收入范围是否超出政策允许", "deliverable": "税负差异"}
+      ], "terminal": "免税范围扩大→补缴增值税及附加。"},
+      "evidence_chain": {"supporting": ["利息收入明细账", "理财产品合同", "增值税申报表"], "opposing": ["免税政策依据", "央行业务往来证明"], "must_state": ["保本判定", "免税范围", "税负差异"]},
+      "domain_collaboration": {"lead": "收入完整性域", "partners": [{"domain": "税会申报域", "responsibility": "增值税免税范围"}]}
     }
   ],
-  "forbidden_outputs": ["自动核定资管产品增值税", "自动认定延期确认"]
+  "forbidden_outputs": ["自动核定资管产品增值税", "自动认定延期确认", "自动认定利息收入免税"]
 }

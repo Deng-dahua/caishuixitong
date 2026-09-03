@@ -81,6 +81,24 @@
       ], "terminal": "未及时处置→资产损失延迟确认→影响税前扣除年度。"},
       "evidence_chain": {"supporting": ["关停批文", "资产评估报告", "处置合同"], "opposing": ["资产继续使用证明"], "must_state": ["关停资产总额", "处置方式", "税务影响"]},
       "domain_collaboration": {"lead": "资产研发域", "partners": [{"domain": "税会申报域", "responsibility": "税前扣除"}]}
+    },
+    {
+      "id": "ENE-CONNECTION-FEE",
+      "name": "供电工程服务收入——业扩报装与接入工程混合销售",
+      "trigger_signals": ["供电工程/业扩收入>500万", "安装服务与设备销售未分别核算", "工程收入增值税税率适用存疑"],
+      "severity_modifiers": {"amount_threshold": 5000000},
+      "cross_industry_tags": ["供电工程", "混合销售", "增值税税率"],
+      "maturity": "M2.5_boundary_tested", "taxes": ["增值税", "企业所得税"],
+      "applicability": {"business": "提供供电工程（业扩报装/接入工程）的供电企业及关联施工单位", "activate_when": "供电工程收入>500万"},
+      "doubt": {"target_fact": "供电工程收入中安装服务与设备销售是否按规定分别核算并适用正确增值税税率——混合销售是否被正确拆分。", "observed_signal": "工程总包收入按单一税率申报，未区分设备销售（13%）与安装服务（9%）→少缴增值税。", "must_exclude": ["纯设备销售且安装由客户另行委托", "工程分包方独立开票"], "output": "形成合同总价→设备/服务拆分→税率适用→税负对照表"},
+      "clue_chain": {"start": "提取供电工程合同→拆分设备与服务→与发票及申报比对。", "steps": [
+        {"step": 1, "action": "提取工程合同→总价构成→设备采购成本/安装人工与材料", "deliverable": "工程构成拆分"},
+        {"step": 2, "action": "核对发票→设备销售与安装服务是否分别开具→税率适用", "deliverable": "发票税率核查"},
+        {"step": 3, "action": "比对申报→混合销售是否整体按某一税率→测算税率差异影响", "deliverable": "税负差异"},
+        {"step": 4, "action": "核查兼营分别核算→是否满足条件分别计税", "deliverable": "兼营核算核查"}
+      ], "terminal": "混合销售未正确拆分→补缴增值税及附加。"},
+      "evidence_chain": {"supporting": ["工程合同与结算单", "设备采购发票", "安装服务工时与材料清单"], "opposing": ["分包独立开票证明", "客户另行委托安装说明"], "must_state": ["设备/服务拆分", "税率适用", "税负差异"]},
+      "domain_collaboration": {"lead": "收入完整性域", "partners": [{"domain": "税会申报域", "responsibility": "增值税税率适用"}]}
     }
   ],
   "forbidden_outputs": ["自动核定资源税", "自动认定补贴违规"]

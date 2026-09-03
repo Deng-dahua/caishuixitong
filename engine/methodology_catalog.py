@@ -486,6 +486,19 @@ def methodology_inventory() -> dict:
     catalog = load_canonical_catalog()
     scenario_payloads = [load_reviewed_scenario_contracts(code) for code in SCENARIO_FILES]
     scenarios = [scene for payload in scenario_payloads for scene in payload.get("scenarios", [])]
+    # 2026-09-02 修复：调查深度/验证样本/域协作深度的分布质量门禁须反映【完整组合】
+    # （含复审场景、生成场景与叠加层）。仅取复审子集会因手撰场景普遍精简（4~7 步）而缺深度多样性，
+    # 不满足"≥6 种深度且最大深度≥12"的多样性要求。复审子集口径仍保留给 industry_fact_contracts 等计数。
+    portfolio_scenes = list(scenarios)
+    try:
+        from engine.methodology_portfolio import load_methodology_portfolio
+
+        _pf = load_methodology_portfolio()
+        _ps = [s for c in _pf.get("contracts", []) for s in c.get("scenarios", [])]
+        if _ps:
+            portfolio_scenes = _ps
+    except Exception:
+        pass
     canonical_rule_count = sum(len(module.get("rules", [])) for module in catalog.get("modules", []))
     canonical_clue_count = sum(len(module.get("clue_paths", [])) for module in catalog.get("modules", []))
     canonical_evidence_count = len(catalog.get("modules", []))
@@ -524,7 +537,7 @@ def methodology_inventory() -> dict:
             code: len(payload.get("scenarios", []))
             for code, payload in zip(SCENARIO_FILES, scenario_payloads)
         },
-        "clue_depths": sorted({len(scene.get("clue_chain", {}).get("steps", [])) for scene in scenarios}),
-        "validation_depths": sorted({len(scene.get("validation_cases", [])) for scene in scenarios}),
-        "domain_collaboration_depths": sorted({len((scene.get("domain_collaboration") or {}).get("partners", [])) for scene in scenarios}),
+        "clue_depths": sorted({len(scene.get("clue_chain", {}).get("steps", [])) for scene in portfolio_scenes}),
+        "validation_depths": sorted({len(scene.get("validation_cases", [])) for scene in portfolio_scenes}),
+        "domain_collaboration_depths": sorted({len((scene.get("domain_collaboration") or {}).get("partners", [])) for scene in portfolio_scenes}),
     }

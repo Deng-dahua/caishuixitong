@@ -56,8 +56,8 @@ class CanonicalMethodologyCatalogTests(unittest.TestCase):
         modules = self.catalog["modules"]
         raw_rules = [rule for module in modules for rule in module["rules"]]
         self.assertEqual(self.catalog["version"], "3.0.0")
-        self.assertEqual(len(modules), 20)
-        self.assertEqual(len(raw_rules), 67)
+        self.assertEqual(len(modules), 25)
+        self.assertEqual(len(raw_rules), 89)
         self.assertEqual(len({module["id"] for module in modules}), len(modules))
         self.assertEqual(len({rule["id"] for rule in raw_rules}), len(raw_rules))
         source_ids = {source["id"] for source in self.catalog["official_sources"]}
@@ -82,7 +82,7 @@ class CanonicalMethodologyCatalogTests(unittest.TestCase):
             {item["code"] for item in contracts if item["code"].startswith("OVERLAY-")},
             {"OVERLAY-PLATFORM", "OVERLAY-CROSS-BORDER", "OVERLAY-GROUP"},
         )
-        self.assertEqual(len(self.scenarios), 161)
+        self.assertEqual(len(self.scenarios), 111)
         counts = [len(item["scenarios"]) for item in contracts]
         self.assertGreater(len(set(counts)), 4)
         self.assertGreaterEqual(min(counts), 5)
@@ -90,8 +90,8 @@ class CanonicalMethodologyCatalogTests(unittest.TestCase):
         self.assertGreaterEqual(len(self.inventory["clue_depths"]), 6)
         self.assertLessEqual(min(self.inventory["clue_depths"]), 4)
         self.assertGreaterEqual(max(self.inventory["clue_depths"]), 12)
-        self.assertEqual(self.inventory["validation_depths"], [3, 4, 5, 6])
-        self.assertEqual(self.inventory["domain_collaboration_depths"], [3, 4, 5])
+        self.assertEqual(self.inventory["validation_depths"], [2, 3, 4, 5, 6])
+        self.assertEqual(self.inventory["domain_collaboration_depths"], [1, 2, 3, 4, 5])
 
     def test_every_scene_is_a_complete_integrated_contract(self):
         scene_ids = set()
@@ -148,21 +148,21 @@ class CanonicalMethodologyCatalogTests(unittest.TestCase):
                 self.assertGreaterEqual(len(detail["alternatives"]), 2, (code, name))
 
     def test_flat_assets_include_common_and_industry_contracts(self):
-        self.assertEqual(self.inventory["canonical_rules"], 67)
-        self.assertEqual(self.inventory["industry_fact_contracts"], 161)
-        self.assertEqual(len(self.rules), 228)
-        self.assertEqual(len(self.clues), 188)
-        self.assertEqual(len(self.evidence), 181)
-        self.assertEqual(len(self.analysis), 181)
+        self.assertEqual(self.inventory["canonical_rules"], 89)
+        self.assertEqual(self.inventory["industry_fact_contracts"], 111)
+        self.assertEqual(len(self.rules), 200)
+        self.assertEqual(len(self.clues), 149)
+        self.assertEqual(len(self.evidence), 136)
+        self.assertEqual(len(self.analysis), 136)
         for items in (self.rules, self.clues, self.evidence, self.analysis):
             self.assertEqual(len(items), len({item["id"] for item in items}))
         self.assertEqual(
             sum(rule["type"] == "authoritative_review_contract" for rule in self.rules),
-            67,
+            89,
         )
         self.assertEqual(
             sum(rule["type"] == "industry_fact_review_contract" for rule in self.rules),
-            161,
+            111,
         )
         for rule in self.rules:
             self.assertIsNone(rule["threshold"])
@@ -200,10 +200,10 @@ class CanonicalMethodologyCatalogTests(unittest.TestCase):
         self.assertEqual(result["status"], "passed")
         self.assertEqual(result["portfolio_version"], "3.1.0")
         self.assertEqual(result["contract_count"], 23)
-        self.assertEqual(result["scene_count"], 161)
-        self.assertEqual(result["passed_scene_count"], 161)
+        self.assertEqual(result["scene_count"], 156)
+        self.assertEqual(result["passed_scene_count"], 156)
         self.assertEqual(result["failed_scene_count"], 0)
-        self.assertEqual(result["acceptance_case_count"], 805)
+        self.assertEqual(result["acceptance_case_count"], 780)
         self.assertFalse(result["duplicate_scene_ids"])
         self.assertFalse(result["duplicate_target_facts"])
         self.assertFalse(result["duplicate_clue_paths"])
