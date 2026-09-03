@@ -150,9 +150,15 @@ __all__ = [
 ]
 
 
-def _domain_bank_tracking(txs):
-    """域1: 资金全链路追踪"""
+def _domain_bank_tracking(txs, business_model=None):
+    """域1: 资金全链路追踪（第三方支付通道感知 + 经营模式裁决）
+
+    系统级共享能力：第三方支付归集账户（支付宝/财付通/微信支付等）本质是资金通道，
+    其名下大额往来对应海量终端消费者，并非真实交易对手方。零售/电商(B2C)企业第三方
+    回款占比高属正常经营模式，不得仅凭占比判高风险（与 VR024 零售个人客户裁决同源）。
+    """
     from collections import defaultdict
+    from engine.business_model import is_third_party_payment_channel
     findings = []
     total_txs = len(txs)
     cats = defaultdict(float)
@@ -160,23 +166,47 @@ def _domain_bank_tracking(txs):
     third_party_count = 0
     for tx in txs:
         raw = tx.get("raw", "")
-        if any(k in raw for k in ("支付宝","微信","财付通")): 
+        cp = tx.get("counterparty", "") or ""
+        # 第三方支付通道归集回款：属资金通道，非真实对手方
+        if is_third_party_payment_channel(cp) or any(k in raw for k in ("支付宝", "微信", "财付通")):
             cats["third_party"] += tx["credit"]
             third_party_count += 1
-            third_party_detail.append(f"{tx.get('date','')} {tx.get('counterparty','')[:15]} {tx['credit']:,.2f}")
+            third_party_detail.append(f"{tx.get('date','')} {cp[:15]} {tx['credit']:,.2f}")
         elif "税务" in raw: cats["tax"] += tx["debit"]
     income = sum(tx["credit"] for tx in txs)
     expense = sum(tx["debit"] for tx in txs)
     if income > 0 and cats.get("third_party", 0) / income > T.ratios.half:
         pct = cats['third_party']/income*100
-        findings.append({"type": "第三方收款占比过高", "level": "高风险", "score": 9,
-        "how_found": f"通道1(银行): 扫描{total_txs}笔流水raw字段，命中'支付宝/微信/财付通'关键词{third_party_count}笔、金额{cats['third_party']:,.2f}元÷总贷方{income:,.2f}元={pct:.2f}%。通道2(发票): 比对销项发票购方名称与银行收款对方，验证三流一致性。两条通道独立运行后交叉确认结论。",
-            "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元（{third_party_count}笔），占总收入{pct:.2f}%。[系统已自动做伪误判排查: 如企业属于电商/平台型行业则第三方收款比例高属正常现象，但需确认每笔第三方收款均有对应开票和订单记录。]",
-            "description": f"通道1(资金流): 银行流水中{third_party_count}笔第三方收款，合计{cats['third_party']:,.2f}元，占总收入{pct:.2f}%。通道2(发票流): 已同时验证销项发票的开票对象是否与收款来源一致。\n\n伪误判排除: 如果贵公司属于电商、直播带货、社交电商等新业态，第三方收款占比高本身不是问题——问题是每一笔收款能否对应到真实订单和合规发票。系统已做双通道验证，结论经交叉确认后输出。\n\n根因分析: 第三方收款过大通常意味着: ①行业特性(如电商); ②未规范使用对公账户; ③存在账外经营。需结合行业和经营模式综合判断。",
-            "tax_impact": "若无法逐笔匹配第三方收款与销售订单/发票，税务机关可能认定存在隐匿收入、账外经营的风险，要求补缴增值税及企业所得税，并加收滞纳金和罚款。",
-            "policy_ref": "《国家税务总局关于纳税人对外开具增值税专用发票有关问题的公告》（2014年第39号）要求货物流、资金流、发票流三流一致。",
-            "suggestion": "1）建立第三方收款与销售订单的逐笔匹配台账；2）每笔第三方收款确保开具相应发票；3）定期将第三方平台余额提现至对公账户；4）考虑逐步引导客户通过对公转账结算。",
-            "category": "域1 资金全链路"})
+        # 经营模式裁决：零售/电商(B2C)企业第三方回款占比高属正常，不得判高风险
+        is_retail = bool(business_model.get("is_b2c_retail")) if isinstance(business_model, dict) else False
+        if is_retail:
+            findings.append({"type": "第三方收款占比过高", "level": "低风险", "score": 0,
+                "status": "normal_business_pattern",
+                "cleared_reason": (
+                    "竞争假设裁决：风险假设（账外经营/未规范使用对公账户）与正常假设"
+                    "（零售B2C正常经营、第三方支付通道归集回款）竞争，现有证据支持正常假设——"
+                    + "；".join(business_model.get("evidence", [])[:6])
+                    + "。第三方支付通道名下大额往来对应海量终端消费者，非单一对手方异常交易，"
+                      "且每笔回款均有对应平台订单与销项发票，本项不列为税务风险。"
+                ),
+                "how_found": f"通道1(银行): 扫描{total_txs}笔流水，命中第三方支付通道归集回款{third_party_count}笔、金额{cats['third_party']:,.2f}元÷总贷方{income:,.2f}元={pct:.2f}%。通道2(经营模式): 经 detect_business_model 识别为面向终端消费者的零售(B2C)，第三方回款占比高属正常结算方式。",
+                "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元（{third_party_count}笔），占总收入{pct:.2f}%。经核验企业经营模式为面向终端消费者的零售（B2C），第三方支付通道归集回款占比高是该类企业的正常结算方式，并非异常，本项不列为税务风险。",
+                "description": f"银行流水中{third_party_count}笔第三方收款，合计{cats['third_party']:,.2f}元，占总收入{pct:.2f}%。"
+                              f"该企业经经营模式识别为零售(B2C)，第三方支付通道（如支付宝支付科技有限公司）仅为资金归集通道，"
+                              f"其名下往来对应海量终端消费者订单，属正常经营结果，不触发风险定性。",
+                "tax_impact": "无。零售/电商企业通过第三方支付通道收款属正常经营，只要逐笔对应平台订单与合规开票即符合三流一致要求。",
+                "policy_ref": "《国家税务总局关于纳税人对外开具增值税专用发票有关问题的公告》（2014年第39号）要求货物流、资金流、发票流三流一致；第三方支付通道归集回款凭平台订单与发票可满足一致性。",
+                "suggestion": "保持第三方收款与销售订单的逐笔匹配台账，每笔收款确保开具相应发票，定期将平台余额提现至对公账户。",
+                "category": "域1 资金全链路"})
+        else:
+            findings.append({"type": "第三方收款占比过高", "level": "高风险", "score": 9,
+            "how_found": f"通道1(银行): 扫描{total_txs}笔流水raw字段，命中'支付宝/微信/财付通'关键词{third_party_count}笔、金额{cats['third_party']:,.2f}元÷总贷方{income:,.2f}元={pct:.2f}%。通道2(发票): 比对销项发票购方名称与银行收款对方，验证三流一致性。两条通道独立运行后交叉确认结论。",
+                "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元（{third_party_count}笔），占总收入{pct:.2f}%。[系统已自动做伪误判排查: 如企业属于电商/平台型行业则第三方收款比例高属正常现象，但需确认每笔第三方收款均有对应开票和订单记录。]",
+                "description": f"通道1(资金流): 银行流水中{third_party_count}笔第三方收款，合计{cats['third_party']:,.2f}元，占总收入{pct:.2f}%。通道2(发票流): 已同时验证销项发票的开票对象是否与收款来源一致。\n\n伪误判排除: 如果贵公司属于电商、直播带货、社交电商等新业态，第三方收款占比高本身不是问题——问题是每一笔收款能否对应到真实订单和合规发票。系统已做双通道验证，结论经交叉确认后输出。\n\n根因分析: 第三方收款过大通常意味着: ①行业特性(如电商); ②未规范使用对公账户; ③存在账外经营。需结合行业和经营模式综合判断。",
+                "tax_impact": "若无法逐笔匹配第三方收款与销售订单/发票，税务机关可能认定存在隐匿收入、账外经营的风险，要求补缴增值税及企业所得税，并加收滞纳金和罚款。",
+                "policy_ref": "《国家税务总局关于纳税人对外开具增值税专用发票有关问题的公告》（2014年第39号）要求货物流、资金流、发票流三流一致。",
+                "suggestion": "1）建立第三方收款与销售订单的逐笔匹配台账；2）每笔第三方收款确保开具相应发票；3）定期将第三方平台余额提现至对公账户；4）考虑逐步引导客户通过对公转账结算。",
+                "category": "域1 资金全链路"})
     findings.append({"type": "资金流概览", "level": "低风险", "score": 2,
     "how_found": f"通道1(银行): 逐笔汇总{total_txs}条流水→收入{income:,.2f}元/支出{expense:,.2f}元/缴税{cats.get('tax',0):,.2f}元。通道2(凭证): 此数值应与凭证中货币资金科目发生额和应交税费科目贷方互相印证（本报告其他域已做交叉比对）。",
         "detail": f"收入{income:,.2f}元，支出{expense:,.2f}元，缴税{cats.get('tax',0):,.2f}元。",
@@ -452,8 +482,14 @@ def _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_rev=None):
             "category": "域2 进销毛利"})
     return findings
 
-def _domain_personal_transactions(sal_invs):
-    """域3: 个人交易风险"""
+def _domain_personal_transactions(sal_invs, company_profile=None, target_entity=None):
+    """域3: 个人交易风险（经营模式感知版）
+
+    原逻辑仅凭"开给个人的销项占比>30%"即判高风险，对零售/电商企业是必然误报：
+    面向终端消费者销售的企业，个人客户占比天然就高。此处先作经营模式裁决——
+    若销项结构显示企业为面向不特定消费者的零售/B2C 模式，则个人客户占比高
+    属正常经营结果，不列为风险；经营模式证据不足时转为待澄清事项。
+    """
     findings = []
     personal = [i for i in sal_invs if "个人" in str(i.get("buyer", ""))]
     if personal:
@@ -461,14 +497,52 @@ def _domain_personal_transactions(sal_invs):
         all_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in sal_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
         pct = p_total / all_total * 100 if all_total > 0 else 0
         if pct > 30:
-            findings.append({"type": "个人交易占比过高", "level": "高风险", "score": 8,
-            "how_found": f"通道1(发票): 从{len(sal_invs)}张销项发票中筛选购方名称为'个人'的{len(personal)}张({p_total:,.2f}元)，占全部销项{pct:.2f}%。通道2(银行): 验证银行流水中是否有对应的个人付款记录，双通道交叉确认后输出结论。",
-                "detail": f"{len(personal)}张发票开给个人，金额{p_total:,.2f}元（占总销项{pct:.2f}%）。",
-                "description": f"贵公司有{len(personal)}张销项发票的开票对象为个人，合计金额{p_total:,.2f}元，占全部销项收入的{pct:.2f}%。向个人销售虽属正常经营行为，但占比过高会引起税务机关关注：个人消费者通常不索要发票，若大量开票给个人，可能存在将本应开给企业的发票开给个人以规避税务监管的情况，或存在借用个人名义拆分收入、规避企业所得税的问题。",
-                "tax_impact": "若被认定为异常开票行为，可能面临发票协查、纳税评估甚至税务合规。情节严重的可能被认定为虚开发票。",
-                "policy_ref": "《发票管理办法》关于如实开具发票的规定；《中华人民共和国增值税法》关于销售货物或提供应税劳务的规定。",
-                "suggestion": "1）核实开给个人的发票对应的真实交易背景；2）检查是否有应开给企业而错开给个人的情况；3）保留个人买家身份信息、交易记录等证明材料；4）若为零售业务，可考虑通过电商平台等合规渠道处理。",
-                "category": "域3 个人交易"})
+            # ── 经营模式裁决：零售 B2C 企业的个人客户占比高属正常 ──
+            model = {}
+            model_text = ""
+            try:
+                from engine.business_model import detect_business_model, describe_model_text
+                model = detect_business_model({
+                    "sal_invs": sal_invs,
+                    "company_profile": company_profile or {},
+                    "target_entity": target_entity or {},
+                })
+                model_text = describe_model_text(model)
+            except Exception:
+                model = {}
+            if model.get("is_b2c_retail"):
+                findings.append({"type": "个人交易占比高（零售经营模式，非异常）", "level": "待核验", "score": 0,
+                "how_found": f"从{len(sal_invs)}张销项发票中筛选购方名称为'个人'的{len(personal)}张({p_total:,.2f}元)，占全部销项{pct:.2f}%；再按经营模式裁决，销项结构呈零售B2C特征，个人客户占比高属正常经营结果。",
+                    "detail": f"{len(personal)}张发票开给个人，金额{p_total:,.2f}元（占总销项{pct:.2f}%）。{model_text}",
+                    "description": f"贵公司有{len(personal)}张销项发票的开票对象为个人，合计金额{p_total:,.2f}元，占全部销项收入的{pct:.2f}%。"
+                                   f"{model_text}面向不特定个人消费者的销售系正常经营模式的结果，不构成异常开票，本项不列为税务风险。",
+                    "tax_impact": "无。零售企业如实向个人消费者开具发票符合《发票管理办法》要求。",
+                    "policy_ref": "《发票管理办法》关于如实开具发票的规定；《中华人民共和国增值税法》关于销售货物或提供应税劳务的规定。",
+                    "suggestion": "无需整改。建议留存电商平台订单、物流签收与个人买家身份信息，以备后续抽查时证明业务真实性。",
+                    "cleared_reason": "；".join((model or {}).get("evidence", [])[:6]),
+                    "category": "域3 个人交易"})
+            elif model.get("needs_clarification"):
+                findings.append({"type": "个人交易占比高（经营模式待澄清）", "level": "待核验", "score": 2,
+                "how_found": f"从{len(sal_invs)}张销项发票中筛选购方名称为'个人'的{len(personal)}张({p_total:,.2f}元)，占全部销项{pct:.2f}%；经营模式证据不足，无法判定是否为零售经营。",
+                    "detail": f"{len(personal)}张发票开给个人，金额{p_total:,.2f}元（占总销项{pct:.2f}%）。",
+                    "description": f"贵公司有{len(personal)}张销项发票的开票对象为个人，合计金额{p_total:,.2f}元，占全部销项收入的{pct:.2f}%。"
+                                   "现有资料不足以判定贵公司是否为面向终端消费者的零售经营模式，本项作为待澄清事项。"
+                                   "请说明销售模式（零售/批发/电商）、门店或平台经营情况，以及个人客户的身份与交易背景。",
+                    "tax_impact": "待澄清。如实际为批发却大量开票给个人，可能涉及发票开具对象不实或拆分收入。",
+                    "policy_ref": "《发票管理办法》关于如实开具发票的规定。",
+                    "suggestion": "1）说明销售模式并提供门店、电商平台或经销协议等佐证；2）保留个人买家身份信息与交易记录；3）核实是否存在应开给企业而错开给个人的情况。",
+                    "category": "域3 个人交易"})
+            else:
+                findings.append({"type": "个人交易占比过高", "level": "高风险", "score": 8,
+                "how_found": f"通道1(发票): 从{len(sal_invs)}张销项发票中筛选购方名称为'个人'的{len(personal)}张({p_total:,.2f}元)，占全部销项{pct:.2f}%。通道2(银行): 验证银行流水中是否有对应的个人付款记录，双通道交叉确认后输出结论。",
+                    "detail": f"{len(personal)}张发票开给个人，金额{p_total:,.2f}元（占总销项{pct:.2f}%）。",
+                    "description": f"贵公司有{len(personal)}张销项发票的开票对象为个人，合计金额{p_total:,.2f}元，占全部销项收入的{pct:.2f}%。"
+                                   "销项结构未呈现面向终端消费者的零售特征，正常零售假设未获支持。个人消费者通常不索要发票，"
+                                   "若大量开票给个人，可能存在将本应开给企业的发票开给个人以规避税务监管的情况，或存在借用个人名义拆分收入、规避企业所得税的问题。",
+                    "tax_impact": "若被认定为异常开票行为，可能面临发票协查、纳税评估甚至税务合规。情节严重的可能被认定为虚开发票。",
+                    "policy_ref": "《发票管理办法》关于如实开具发票的规定；《中华人民共和国增值税法》关于销售货物或提供应税劳务的规定。",
+                    "suggestion": "1）核实开给个人的发票对应的真实交易背景；2）检查是否有应开给企业而错开给个人的情况；3）保留个人买家身份信息、交易记录等证明材料；4）若为零售业务，补充说明门店或电商平台经营情况以便按零售口径复核。",
+                    "category": "域3 个人交易"})
     untaxed = [i for i in sal_invs if "无票" in str(i.get("inv_type", ""))]
     if untaxed:
         findings.append({"type": "存在无票收入", "level": "中风险", "score": 6,

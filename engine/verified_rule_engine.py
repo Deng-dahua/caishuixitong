@@ -764,7 +764,7 @@ VERIFIED_RULE_CATALOG = [
         "lifecycle": ["销售与收入确认", "银行收付款", "电商平台经营"],
         "required_sources": ["sal_invs"],
         "status": "verified_executable_screening",
-        "limitation": "销项经天猫/淘宝/京东/抖音等平台结算、或银行收款方为支付宝/财付通等第三方支付归集账户，企业自身银行流水仅体现第三方一笔归集入账，无法透视平台端真实交易笔数、买家、退货退款、手续费与账期，形成『平台资金体外循环/账外收入』监管盲区。规则仅形成可复算的第三方归集勾稽事实，不作违法定性；正当理由包括：平台结算账期差异、手续费扣除、退款挂账等，企业可提交平台结算单与店铺后台订单举证排除。未提供平台结算资料时，规则仅输出监管盲区提示，责令补充平台侧完整资料以清扫盲区。",
+        "limitation": "销项经天猫/淘宝/京东/抖音等平台结算、或银行/序时账收款方为支付宝/财付通等第三方支付归集账户，企业自身流水仅体现第三方一笔归集入账，无法透视平台端真实交易笔数、买家、退货退款、手续费与账期，形成『平台资金体外循环/账外收入』监管盲区。硬规定：凡第三方收款，企业必须提交平台后台真实记录（结算单/订单/提现流水）作为对账与申报依据，否则资金滞留第三方平台、脱离账务监管，可被随时对外支付而不留痕——典型手法即以公账发较低工资、平台沉淀资金经私户另付差额，拆分逃避个税。规则仅形成可复算的第三方归集勾稽事实与盲区责令，不作违法定性；正当理由包括：平台结算账期差异、手续费扣除、退款挂账等，企业可提交平台结算单、店铺后台订单及提现流水举证排除，并可就工资实际支付来源与个税扣缴真实性一并说明。",
         "derives_to": [
             {"child": "VR028", "link": "平台销项高于对公归集 → 疑平台侧收入未完全入账（账外收入）",
              "analyze": "将平台销项合计与银行第三方归集入账勾稽，差额即账外收入敞口",
@@ -1892,7 +1892,7 @@ def _adjudicate_individual_customers(spec, customers, cus_total, model, model_te
         return [_finding(
             spec,
             f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
-            + (model_text + "。" if model_text else "")
+            + (model_text if model_text else "")
             + "面向不特定个人消费者的销售系该企业正常经营模式的必然结果，"
               "且未检出单一自然人巨额累计、关联自然人交易、伪装零售的批发等异常特征，"
               "本项不列为税务风险。",
@@ -4198,15 +4198,66 @@ def _scan_mixed_payroll(data, spec):
     return []
 
 
-def _scan_thirdparty_blindspot(data, spec):
-    """VR057 第三方支付平台收款监管盲区（账外收入线索）。
+def _scan_thirdparty_voucher_collection(vouchers):
+    """从序时账（vouchers）识别第三方支付通道归集回款（如『收销售款_支付宝支付科技有限公司』）。
 
-    识别销项经天猫/淘宝/抖音等平台结算、或银行收款方为支付宝/财付通等第三方支付归集账户，
-    说明企业自身流水只见第三方一笔归集入账、无法透视平台端真实交易。未提供平台结算资料时
-    输出监管盲区提示；平台销项高于对公归集时输出账外收入敞口待证线索。一律责令平台侧佐证。
+    实务中支付宝/财付通等第三方归集回款大量沉淀在序时账，银行流水未必逐笔体现，故 VR057 须一并扫描。
+    仅累加银行入账腿（debit>0），跳过应收挂账腿（credit>0 且 debit=0），避免与挂账重复计数。
+    返回 (rows, amount)。
+    """
+    rows, amount = 0, 0.0
+    for v in (vouchers or []):
+        sm = str(v.get("summary") or v.get("摘要") or "")
+        if not any(k in sm for k in _THIRD_PARTY_PAY_KEYWORDS):
+            continue
+        amt = _number(v.get("debit") or v.get("借方"))
+        if amt > 0:
+            amount += amt
+            rows += 1
+    return rows, amount
+
+
+def _detect_wage_split_signal(data):
+    """轻量复用 VR055『均额/拆分』模板识别，供 VR057 判断是否存在『平台资金→私户另付工资→个税逃漏』联动线索。
+
+    仅做存在性判定（≥3 名员工同为整数整额工资，且存在个税已缴为0），返回 None 或
+    {"amount": 同额工资金额, "count": 同额人数, "zero_tax": 个税已缴为0人数}。
+    """
+    salaries = data.get("salaries") or []
+    if len(salaries) < 3:
+        return None
+    by_amt = defaultdict(list)
+    for r in salaries:
+        sal = _salary_amount(r)
+        if sal <= 0:
+            continue
+        by_amt[round(sal, 2)].append(r)
+    uniform = [a for a, v in by_amt.items() if len(v) >= 3 and float(a).is_integer()]
+    if not uniform:
+        return None
+    uniform_rows = [r for a in uniform for r in by_amt[a]]
+    return {
+        "amount": uniform[0],
+        "count": len(uniform_rows),
+        "zero_tax": sum(
+            1 for r in uniform_rows
+            if _number(r.get("acc_paid") or r.get("个税已缴") or r.get("tax_paid")) == 0
+        ),
+    }
+
+
+def _scan_thirdparty_blindspot(data, spec):
+    """VR057 第三方支付平台收款监管盲区（账外收入 + 资金滞留平台可随意对外支付线索）。
+
+    核心硬规定：凡存在第三方支付平台收款（银行归集账户 / 序时账『收销售款_支付宝支付科技有限公司』/
+    平台主体销项），企业必须提交第三方平台后台真实记录（结算单、店铺订单、提现至对公/对私流水），
+    否则资金滞留第三方平台、脱离企业账务监管，可被企业随时对外支付——实务中典型手法即：公账按较低
+    金额（如7000元/人）发放工资、平台沉淀资金经私户另付差额，拆分发放以规避个人所得税全员全额扣缴。
+    本规则形成可复算的第三方归集勾稽事实与盲区责令，不作违法定性；企业可提交平台后台记录自证清白。
     """
     sal_invs = data.get("sal_invs") or []
     bank = data.get("bank_txs") or []
+    vouchers = data.get("vouchers") or []
     target = data.get("target_entity") or {}
     tname = str(target.get("name") or target.get("company_name") or "")
     platform_sales, third_party_credit, third_party_rows = [], 0.0, 0
@@ -4219,46 +4270,88 @@ def _scan_thirdparty_blindspot(data, spec):
         if any(k in cp for k in _THIRD_PARTY_PAY_KEYWORDS):
             third_party_credit += _number(tx.get("credit") or tx.get("贷方"))
             third_party_rows += 1
+    # 关键修复：支付宝等第三方归集回款大量沉淀在序时账（vouchers），银行流水未必体现，须一并扫描
+    v_rows, v_amount = _scan_thirdparty_voucher_collection(vouchers)
+    third_party_rows += v_rows
+    third_party_credit += v_amount
     if not platform_sales and not third_party_rows:
         return []
-    sources = ["sal_invs"] + (["bank_txs"] if bank else []) + (["target_entity"] if target else [])
+    sources = (["sal_invs"] + (["bank_txs"] if bank else [])
+               + (["vouchers"] if v_rows else []) + (["target_entity"] if target else []))
     has_settlement = any(data.get(k) for k in ("platform_settlement", "platform_txs", "shop_orders", "platform_orders"))
     platform_amount = sum(p["amount"] for p in platform_sales)
     buyers_txt = "、".join(sorted({p["buyer"] for p in platform_sales})[:5]) or "—"
+
+    # 联动 VR055/VR056：是否存在『均额/拆分工资』模板 —— 决定是否需要打通『平台资金→私户另付工资→个税逃漏』
+    wage_sig = _detect_wage_split_signal(data)
+
     detail = (
-        "企业（{0}）的销项/收款高度依赖第三方平台：销项发票购方含平台主体（如{1}）"
-        "{2}；银行流水收款方为第三方支付归集账户（如支付宝支付科技有限公司）共{3}笔、归集金额{4}。"
-        "企业自身银行流水仅体现第三方归集账户一笔入账，无法透视平台端的真实交易笔数、买家身份、退货退款、"
+        "企业（{0}）的销项/收款高度依赖第三方平台：销项发票购方含平台主体（如{1}）{2}；"
+        "银行流水收款方及序时账归集回款显示第三方支付通道（如支付宝支付科技有限公司）共{3}笔、归集金额{4}。"
+        "企业自身流水仅体现第三方归集账户一笔入账，无法透视平台端真实交易笔数、买家身份、退货退款、"
         "平台手续费与结算账期，形成『平台资金体外循环/账外收入』监管盲区——实务中平台店铺刷单、线下收款不入账、"
         "平台返点账外、退货不作废重开等猫腻均藏身于此。".format(
             tname or "标的公司", buyers_txt,
             ("，共{0}笔平台销项、合计{1}".format(len(platform_sales), _fmt_yuan(platform_amount))) if platform_sales else "",
             third_party_rows, _fmt_yuan(third_party_credit))
     )
+
+    # 硬规定：第三方收款必须提交平台后台真实记录
     if not has_settlement:
-        detail += "当前资料未提供平台结算单与店铺后台订单，盲区未被清扫。本项为监管盲区提示（非违法定性），须责令企业提供平台侧完整资料。"
+        detail += (
+            "【硬规定】凡通过第三方支付平台收款，企业依法须提交第三方平台后台真实记录"
+            "（平台结算单、店铺后台订单、提现至对公/对私账户流水）作为对账与申报依据；"
+            "当前未提供任何平台侧资料，资金滞留第三方平台、脱离企业账务监管，可被企业随时对外支付而不留痕——"
+            "这是典型的账外支付与资金挪用敞口，不构成立案定性，但须强制责令补证。"
+        )
     else:
         detail += "已提供平台结算资料，须进一步勾稽平台GMV、退款与到账金额，核验是否全部如实申报。"
+
+    # 资金滞留平台可被随意对外支付 → 打通『平台资金→私户另付工资→个税逃漏』链条
+    if wage_sig:
+        detail += (
+            "进一步关联：企业工资名册呈『均额/拆分』模板（{0}名员工工资均为{1}、其中{2}名个税已缴为0），"
+            "存在以公账发放较低金额、平台滞留资金经私户另付差额以拆分规避个人所得税全员全额扣缴的通道。"
+            "平台沉淀资金恰可作为该『账外补差』的来源——资金滞留第三方平台、脱离监管，正是该手法得以实施的前提。"
+            "故须将『平台提现至对私户（实际控制人/股东/财务/员工个人卡）流水』与『个税扣缴申报表』一并责令，"
+            "验证平台资金是否被用于账外支付薪酬、进而逃避个税。".format(
+                wage_sig["count"], _fmt_yuan(wage_sig["amount"]), wage_sig["zero_tax"])
+        )
+
     divergence = None
     if platform_sales and third_party_credit and third_party_credit < platform_amount * 0.8:
         divergence = round(platform_amount - third_party_credit, 2)
-        detail += "另：平台销项合计{0}明显高于银行第三方归集入账{1}，差额{2}，存在平台侧收入未完全进入对公账户的疑点。".format(
+        detail += "另：平台销项合计{0}明显高于银行/序时账第三方归集入账{1}，差额{2}，存在平台侧收入未完全进入对公账户的疑点。".format(
             _fmt_yuan(platform_amount), _fmt_yuan(third_party_credit), _fmt_yuan(divergence))
+
     demand_docs = [
         "第三方平台（天猫/淘宝/京东/抖音等）结算单及对账单（含交易明细、手续费、退款、到账金额）",
         "平台结算账户提现/结算至对公账户的银行流水",
         "网店后台订单数据与物流轨迹（核验真实交易笔数与金额）",
         "平台返点、佣金、活动补贴的收入确认与申报资料",
     ]
+    if not has_settlement:
+        demand_docs.append(
+            "平台结算账户提现至对私户（实际控制人、股东、财务负责人、员工个人卡）的流水——核验滞留平台资金是否被用于账外支付薪酬等"
+        )
+    if wage_sig:
+        demand_docs.append(
+            "个人所得税扣缴申报表（全员全额扣缴明细，核验平台侧/私户另付的薪酬差额是否已如实并入扣缴）"
+        )
+
+    priority = "调查优先级" if (divergence or not has_settlement or wage_sig) else "中"
     return [_finding(spec, detail, {
         "platform_sales_count": len(platform_sales),
         "platform_sales_amount": round(platform_amount, 2),
         "third_party_collection_rows": third_party_rows,
         "third_party_collection_amount": round(third_party_credit, 2),
+        "voucher_collection_rows": v_rows,
+        "voucher_collection_amount": round(v_amount, 2),
         "settlement_provided": bool(has_settlement),
+        "wage_split_linkage": (wage_sig is not None),
         "divergence_amount": divergence,
         "demand_docs": demand_docs,
-    }, sources, priority="调查优先级" if (divergence or not has_settlement) else "中")]
+    }, sources, priority=priority)]
 
 
 _SCANNERS = {

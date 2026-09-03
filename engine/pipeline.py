@@ -177,6 +177,54 @@ def _aggregate_invoices_by_no(rows, direction, extra=None):
     return out + standalone
 
 
+def _build_target_entity_snapshot(company_id, db, ctx=None):
+    """构建企业主体快照，供原子规则引擎判断经营模式。
+
+    历史缺陷：原子规则（如 VR024 个人/个体户交易核验）执行时拿不到"被检查企业是谁、
+    做什么行业"，只能就数据论数据，导致零售/电商企业面向个人消费者的正常销售被误判为
+    税务风险。此处把企业名称、行业、经营范围、六员信息汇总为快照注入引擎数据。
+
+    说明：完整的 target_entity 在流程后段（联网核查与行业修正之后）才生成，
+    本快照只取工商登记与 Phase1 画像中已确定的部分，用于规则层的经营模式裁决。
+    """
+    snapshot = {"legal_person": None, "shareholders": [], "directors": [],
+                "supervisors": [], "finance_contacts": [], "managers": []}
+    try:
+        from database import (Company, CompanyShareholder, CompanyDirector,
+                              CompanySupervisor, CompanyFinanceContact)
+        company = db.query(Company).filter(Company.id == company_id).first()
+        if company:
+            snapshot.update({
+                "name": company.name or "",
+                "uscc": company.uscc or "",
+                "industry": company.industry_code or "",
+                "industry_code": company.industry_code or "",
+                "business_scope": company.business_scope or "",
+                "biz_scope": company.business_scope or "",
+                "legal_person": company.legal_representative or "",
+                "registered_capital": company.registered_capital,
+                "established_date": company.established_date or "",
+            })
+        for model_, key in ((CompanyShareholder, "shareholders"), (CompanyDirector, "directors"),
+                            (CompanySupervisor, "supervisors"), (CompanyFinanceContact, "finance_contacts")):
+            try:
+                rows = db.query(model_).filter(model_.company_id == company_id).all()
+                snapshot[key] = [{"name": getattr(r, "name", "") or ""} for r in rows if getattr(r, "name", "")]
+            except Exception:
+                snapshot[key] = []
+    except Exception:
+        pass
+    # Phase1 画像补充行业与经营模式（工商登记缺失时的兜底）
+    profile = getattr(ctx, "company_profile", None) if ctx is not None else None
+    if isinstance(profile, dict):
+        if not snapshot.get("industry"):
+            snapshot["industry"] = profile.get("industry", "") or ""
+        snapshot["biz_model"] = profile.get("biz_model", "") or ""
+        if not snapshot.get("name"):
+            snapshot["name"] = profile.get("name", "") or ""
+    return snapshot
+
+
 def _run_analyze(company_id, db, progress_callback=None):
     import sys as _sys
     _sys.setrecursionlimit(5000)  # 88文件分析需更高递归上限（2026-07-25 修复RecursionError）
@@ -1613,9 +1661,20 @@ def _run_analyze(company_id, db, progress_callback=None):
             if candidates:
                 _target_industry = candidates[0][0]
 
-    if bank_txs: domain_results.append({"domain": "资金全链路追踪", "findings": _domain_bank_tracking(bank_txs)})
+    if bank_txs:
+        from engine.business_model import detect_business_model
+        _cp = (ctx.company_profile if ctx else {}) or {}
+        _bm = detect_business_model({"sal_invs": sal_invs or [], "company_profile": _cp})
+        domain_results.append({"domain": "资金全链路追踪", "findings": _domain_bank_tracking(bank_txs, _bm)})
     if sal_invs and pur_invs: domain_results.append({"domain": "进销毛利率分析", "findings": _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_revenue)})
-    if sal_invs: domain_results.append({"domain": "个人交易风险", "findings": _domain_personal_transactions(sal_invs)})
+    # 个人交易须按经营模式裁决：零售/电商企业面向个人消费者销售属正常，不得仅凭占比判高风险
+    if sal_invs:
+        _target_snapshot = _build_target_entity_snapshot(company_id, db, ctx)
+        domain_results.append({"domain": "个人交易风险", "findings": _domain_personal_transactions(
+            sal_invs,
+            company_profile=(ctx.company_profile if ctx else {}) or {},
+            target_entity=_target_snapshot,
+        )})
     if pur_invs: domain_results.append({"domain": "供应商穿透分析", "findings": _domain_supplier_deep(pur_invs)})
     if vouchers: domain_results.append({"domain": "凭证科目异常", "findings": _domain_voucher_anomaly(vouchers)})
     if inventory: domain_results.append({"domain": "存货周转预警", "findings": _domain_inventory_turnover(inventory, sal_invs, pur_invs, bank_txs)})
@@ -2139,6 +2198,11 @@ def _run_analyze(company_id, db, progress_callback=None):
     if all_findings:
         pipeline_log.append("[方法论目录] 本批资料未满足相应事实与证据契约，不进入结论计算")
 
+    # ── 企业主体快照：供原子规则判断经营模式（零售B2C / 批发B2B）──
+    # 缺失该快照时，规则只能"见个人主体就报风险"，会把零售企业面向消费者的正常销售误判为疑点。
+    if "_target_snapshot" not in dir():
+        _target_snapshot = _build_target_entity_snapshot(company_id, db, ctx)
+
     # ── 可执行三链引擎 (v3.0): 基于JSON链定义执行真实的聚合/比对/查询/判定操作 ──
     try:
         from engine.chain_executor import run_chains_for_rule, _build_chain_index
@@ -2165,6 +2229,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "social_security": social_security,
                 "inventory": inventory,
                 "trial_balance": trial_balance_data,
+                # 企业主体快照：名称/行业/经营范围/六员，供规则层作经营模式裁决
+                "target_entity": _target_snapshot,
+                "company_profile": (ctx.company_profile if ctx else {}) or {},
             }
             # 构建销项发票客户名集合（供线索链 not_in 过滤）
             _sal_buyers = set()
@@ -2217,6 +2284,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             "inventory": inventory,
             "trial_balance": trial_balance_data,
         }
+        # 无论走哪条分支，都必须带上企业主体快照，否则规则无法判断经营模式
+        _verified_data.setdefault("target_entity", _target_snapshot)
+        _verified_data.setdefault("company_profile", (ctx.company_profile if ctx else {}) or {})
         _verified_result = run_verified_rules(_verified_data)
         _verified_findings = _verified_result.get("findings", [])
         if _verified_findings:

@@ -1,0 +1,186 @@
+{
+ "company_id": 3,
+ "company_name": "猩猩织光（北京）商贸有限公司",
+ "capabilities": [
+  {
+   "capability": "two_tax_income",
+   "available": false,
+   "verdict": "未提供两税申报表",
+   "summary": "本轮未提供增值税申报表与企业所得税申报表。",
+   "metrics_keys": []
+  },
+  {
+   "capability": "input_voucher",
+   "available": true,
+   "verdict": "进项侧存在异常线索，需核实用途与供应商真实性",
+   "summary": "进项发票858张、进项税440,666.68元；应转出未转出税额29.68元；供应商集中度5.7%。",
+   "metrics_keys": [
+    "input_invoice_count",
+    "input_amount_total",
+    "input_tax_total",
+    "abnormal_deduction_tax",
+    "abnormal_supplier_count",
+    "concentration_supplier",
+    "concentration_ratio",
+    "should_transfer_out_tax",
+    "circular_supplier_count"
+   ]
+  },
+  {
+   "capability": "false_invoice",
+   "available": true,
+   "verdict": "存在多项虚开特征组合，须重点核查业务真实性",
+   "summary": "销项94,349.19元 / 进项5,030,839.56元；进销背离×0.019；前3客户占44.7%；",
+   "metrics_keys": [
+    "sales_total",
+    "purchase_total",
+    "in_out_ratio",
+    "top1_customer_share",
+    "top3_customer_share",
+    "same_amount_groups",
+    "circular_supplier_count",
+    "fund_loop_amount",
+    "high_risk_relationships"
+   ]
+  },
+  {
+   "capability": "fund_loop",
+   "available": false,
+   "verdict": "未提供银行流水",
+   "summary": "本轮未提供银行流水。",
+   "metrics_keys": []
+  },
+  {
+   "capability": "cross_enterprise",
+   "available": null,
+   "verdict": "",
+   "summary": "系统内4家企业，未发现明显的跨企业关联关系。",
+   "metrics_keys": []
+  }
+ ],
+ "report_chapters": [
+  {
+   "key": "compilation_style",
+   "value": "税务风险检查文书式报告"
+  },
+  {
+   "key": "generated_date",
+   "value": "2026年09月03日 08时28分"
+  },
+  {
+   "key": "identity",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "inspector_perspective",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "summary",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "discovery_overview",
+   "value": "[{\"no\": 1, \"category\": \"确认问题\", \"type\": \"收入、开票、收款与会计记录勾稽\", \"grade\": \"待核\", \"summary\": \"经查，企业（猩猩织光（北京）商贸有限公司）的销项/收款高度依赖第三方平"
+  },
+  {
+   "key": "inspection_procedures",
+   "value": "[{\"seq\": 1, \"name\": \"确认被检查企业、期间和资料批次\", \"narrative\": \"确认被检查企业为猩猩织光（北京）商贸有限公司，检查期间以本轮资料记载期间为准；登记并冻结16份资料。本轮程序结果为：企业主体、检查轮次"
+  },
+  {
+   "key": "materials",
+   "value": "[{\"seq\": 1, \"document_type\": \"其他财税资料\", \"display_name\": \"其他财税资料\", \"read_method\": \"电子表格/结构化读取\", \"read_result\": \"3份读取完整，共0条"
+  },
+  {
+   "key": "confirmed_problems",
+   "value": "[{\"seq\": 1, \"title\": \"收入、开票、收款与会计记录勾稽\", \"conclusion_grade\": \"待核\", \"final_answer\": \"\", \"suggestion\": \"按主体、账户和月份重建收款及开票序列；"
+  },
+  {
+   "key": "completed_checks",
+   "value": "[{\"seq\": 1, \"title\": \"会计凭证完整性与借贷关系核验\", \"narrative\": \"风险检查人员对本项执行了本轮规定的检查程序，按照该检查项目规定的字段、口径和计算条件完成筛查，并记录本轮唯一执行状态。检查结果为：本轮"
+  },
+  {
+   "key": "derivation_tree_report",
+   "value": "null"
+  },
+  {
+   "key": "cross_enterprise_report",
+   "title": "跨企业关联交易闭环（供应链网状违法图谱）",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "external_verify_report",
+   "title": "外部工商与风险核验（企业自报数据之外的独立视角）",
+   "available": true,
+   "verdict": "需深入核实"
+  },
+  {
+   "key": "bank_flow_report",
+   "title": "银行流水（资金流）比对",
+   "available": false,
+   "verdict": "未提供银行流水"
+  },
+  {
+   "key": "two_tax_report",
+   "title": "增值税收入 与 企业所得税收入差异比对",
+   "available": true,
+   "verdict": "未提供两税申报表"
+  },
+  {
+   "key": "input_voucher_report",
+   "title": "进项异常凭证 / 应转出未转出比对",
+   "available": true,
+   "verdict": "进项侧存在异常线索，需核实用途与供应商真实性"
+  },
+  {
+   "key": "false_invoice_report",
+   "title": "虚开风险网络比对",
+   "available": true,
+   "verdict": "存在多项虚开特征组合，须重点核查业务真实性"
+  },
+  {
+   "key": "fund_loop_report",
+   "title": "跨企业资金回流闭环",
+   "available": true,
+   "verdict": "未提供银行流水"
+  },
+  {
+   "key": "inspection_questions_report",
+   "title": "十八、风险检查询问清单与待澄清事项",
+   "available": true,
+   "verdict": "存在需企业澄清事项，建议逐条答复"
+  },
+  {
+   "key": "capability_boundary",
+   "title": "能力边界与彻底风险检查路线",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "action_plan",
+   "value": "[{\"seq\": \"一\", \"problem\": \"收入、开票、收款与会计记录勾稽\", \"narrative\": \"本项已给出处理建议：按主体、账户和月份重建收款及开票序列；逐笔连接合同、订单、履约、会计和申报；对差异分别核验正常解释及未决"
+  },
+  {
+   "key": "further_checks",
+   "value": "[{\"seq\": 1, \"title\": \"未收到“银行流水”导致相关检查未完成\", \"narrative_paragraphs\": [{\"heading\": \"本轮检查结论\", \"text\": \"经检查，本轮未收到该项资料，无法取得完成相"
+  },
+  {
+   "key": "recheck",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "report_statement",
+   "value": "[\"本报告只对本轮已上传且能够读取的资料负责，未上传资料不在本轮具体问题认定范围内。\", \"本报告所列“具体问题”均有本轮资料中的直接数据或可回查证据支持；资料不足的事项已单独列入补充资料后再检查清单。\", \"本报告采用税务风险检查文书式结"
+  }
+ ],
+ "overall_risk": ""
+}
