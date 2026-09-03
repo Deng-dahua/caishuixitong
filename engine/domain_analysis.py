@@ -10455,6 +10455,7 @@ def _build_entity_graph(bank_txs, invoices, salaries):
     异常检测：同一实体在多个角色中出现（既是供应商又是客户）
     """
     from collections import defaultdict
+    from engine.verified_rule_engine import _is_platform_operator
     
     entities = defaultdict(lambda: {"roles": set(), "transactions": [], "total_amount": 0})
     
@@ -10469,7 +10470,9 @@ def _build_entity_graph(bank_txs, invoices, salaries):
             entities[seller]["transactions"].append({"type": "开票", "counterparty": buyer[:20], "amount": amount})
             entities[seller]["total_amount"] += amount
         if buyer:
-            entities[buyer]["roles"].add("客户")
+            # 平台运营商（天猫/阿里妈妈/淘宝等）作为购方收到服务费发票，并非货物销售客户，改标『平台服务商』
+            role = "平台服务商" if _is_platform_operator(buyer) else "客户"
+            entities[buyer]["roles"].add(role)
             entities[buyer]["transactions"].append({"type": "受票", "counterparty": seller[:20], "amount": amount})
             entities[buyer]["total_amount"] += amount
     

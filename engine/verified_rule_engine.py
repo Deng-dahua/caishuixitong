@@ -4047,6 +4047,15 @@ _THIRD_PARTY_PAY_KEYWORDS = (
     "支付宝", "财付通", "微信支付", "网银在线", "通联支付", "汇付", "易宝",
     "连连支付", "快钱", "京东支付", "拼多多支付", "抖音支付", "首信易", "随行付",
 )
+# 服务费品名提示：平台运营商（天猫/阿里妈妈等）作为购方收到的发票若品名为以下服务费、或税收分类编码以 '3' 开头
+# （营改增现代服务/生活服务等，非货物销售），属平台营销·积分·技术服务费结算，并非向消费者销售货物，
+# 不计入 VR057『平台对消费者销售』账外收入敞口，转作『品名与经营主体不匹配』待证疑点。
+_SERVICE_FEE_GOODS_HINTS = (
+    "研发和技术服务", "专业技术服务", "信息技术服务", "广告服务", "服务费", "咨询服务",
+    "技术服务", "现代服务", "生活服务", "文化创意服务", "物流辅助服务", "企业管理服务", "商务辅助服务",
+    "软件开发服务", "设计服务", "会议展览服务", "经纪代理服务", "贷款服务", "直接收费金融服务",
+    "广播影视服务", "有形动产融资租赁", "不动产融资租赁", "代理服务",
+)
 _PAYROLL_TX_KEYWORDS = ("工资", "薪酬", "发薪", "薪金", "工资表", "薪资", "补贴", "奖金", "报销")
 # VR058：个人码/个人账户收款盲区关键词（与 VR057 企业第三方平台归集口径互斥，避免双触发）
 _PERSONAL_COLLECTION_KEYWORDS = (
@@ -4306,6 +4315,35 @@ def _detect_wage_split_signal(data):
     }
 
 
+def _invoice_is_service_fee(inv):
+    """判断一张销项发票是否为『服务费发票』（营改增现代服务/生活服务等，非货物销售）。
+
+    判定依据（满足任一即认定）：
+    1) 税收分类编码以 '3' 开头（营改增服务：现代服务 304-309、生活服务 31、建筑 34、金融 35、无形资产 36、不动产 37 等），
+       与货物销售编码（以 '1' 开头，如 103 饲料/宠物食品）显著区分；
+    2) 货物名称含服务费品名提示（研发和技术服务/专业技术服务/广告服务…）。
+    平台运营商（天猫/阿里妈妈等）作为购方的服务费发票，属平台营销·积分·技术服务费结算，并非对消费者销售货物，
+    故不应计入 VR057『平台对消费者销售』账外收入敞口。
+    """
+    tc = str(inv.get("tax_code") or inv.get("税收分类编码") or "")
+    if tc.startswith("3"):
+        return True
+    goods = str(inv.get("goods") or inv.get("货物名称") or inv.get("品名") or inv.get("name") or "")
+    if any(h in goods for h in _SERVICE_FEE_GOODS_HINTS):
+        return True
+    return False
+
+
+def _is_platform_operator(name):
+    """判断名称是否为电商/平台运营商（天猫/阿里妈妈/淘宝/京东/抖音等）。
+
+    其作为购方收到的多为平台营销·积分·技术服务费发票，并非向消费者销售货物产生的客户，
+    应在关联方图谱/实体图谱中改标『平台服务商』，不计入『客户集中度』风险判定。
+    """
+    name = str(name or "")
+    return any(k in name for k in _PLATFORM_BUYER_KEYWORDS)
+
+
 def _scan_thirdparty_blindspot(data, spec):
     """VR057 第三方支付平台收款监管盲区（账外收入 + 资金滞留平台可随意对外支付线索）。
 
@@ -4320,11 +4358,21 @@ def _scan_thirdparty_blindspot(data, spec):
     vouchers = data.get("vouchers") or []
     target = data.get("target_entity") or {}
     tname = str(target.get("name") or target.get("company_name") or "")
-    platform_sales, third_party_credit, third_party_rows = [], 0.0, 0
+    platform_sales, service_fee_invoices, third_party_credit, third_party_rows = [], [], 0.0, 0
     for inv in sal_invs:
         b = str(inv.get("buyer") or inv.get("购买方名称") or "")
         if any(k in b for k in _PLATFORM_BUYER_KEYWORDS):
-            platform_sales.append({"buyer": b, "amount": _invoice_amount(inv)})
+            if _invoice_is_service_fee(inv):
+                # 平台运营商收到的服务费发票（tax_code 以 3 开头/品名含服务费）：平台营销·积分·技术服务费结算，
+                # 并非向消费者销售货物，不计入『平台对消费者销售』账外收入敞口，转作『品名与主体不匹配』待证疑点。
+                service_fee_invoices.append({
+                    "buyer": b,
+                    "amount": _invoice_amount(inv),
+                    "goods": str(inv.get("goods") or inv.get("货物名称") or ""),
+                    "tax_code": str(inv.get("tax_code") or ""),
+                })
+            else:
+                platform_sales.append({"buyer": b, "amount": _invoice_amount(inv)})
     for tx in bank:
         cp = str(tx.get("counterparty") or tx.get("对方户名") or tx.get("交易对方") or "")
         if any(k in cp for k in _THIRD_PARTY_PAY_KEYWORDS):
@@ -4346,15 +4394,16 @@ def _scan_thirdparty_blindspot(data, spec):
     wage_sig = _detect_wage_split_signal(data)
 
     detail = (
-        "企业（{0}）的销项/收款高度依赖第三方平台：销项发票购方含平台主体（如{1}）{2}；"
-        "银行流水收款方及序时账归集回款显示第三方支付通道（如支付宝支付科技有限公司）共{3}笔、归集金额{4}。"
-        "企业自身流水仅体现第三方归集账户一笔入账，无法透视平台端真实交易笔数、买家身份、退货退款、"
-        "平台手续费与结算账期，形成『平台资金体外循环/账外收入』监管盲区——实务中平台店铺刷单、线下收款不入账、"
+        "企业（{0}）的收款高度依赖第三方支付通道：银行流水收款方及序时账归集回款显示第三方支付平台"
+        "（如支付宝支付科技有限公司）共{1}笔、归集金额{2}；企业自身流水仅体现第三方归集账户一笔入账，"
+        "无法透视平台端真实交易笔数、买家身份、退货退款、平台手续费与结算账期，"
+        "形成『平台资金体外循环/账外收入』监管盲区——实务中平台店铺刷单、线下收款不入账、"
         "平台返点账外、退货不作废重开等猫腻均藏身于此。".format(
-            tname or "标的公司", buyers_txt,
-            ("，共{0}笔平台销项、合计{1}".format(len(platform_sales), _fmt_yuan(platform_amount))) if platform_sales else "",
-            third_party_rows, _fmt_yuan(third_party_credit))
+            tname or "标的公司", third_party_rows, _fmt_yuan(third_party_credit))
     )
+    if platform_sales:
+        detail += "另：销项发票购方含平台主体（如{0}）共{1}笔、合计{2}，系经平台向消费者销售货物，须勾稽平台GMV与到账金额以核验是否全额如实申报。".format(
+            buyers_txt, len(platform_sales), _fmt_yuan(platform_amount))
 
     # 硬规定：第三方收款必须提交平台后台真实记录
     if not has_settlement:
@@ -4384,6 +4433,7 @@ def _scan_thirdparty_blindspot(data, spec):
         detail += "另：平台销项合计{0}明显高于银行/序时账第三方归集入账{1}，差额{2}，存在平台侧收入未完全进入对公账户的疑点。".format(
             _fmt_yuan(platform_amount), _fmt_yuan(third_party_credit), _fmt_yuan(divergence))
 
+    # 平台服务商责令资料单（先定义，供下方服务费分支与工资联动分支追加）
     demand_docs = [
         "第三方平台（天猫/淘宝/京东/抖音等）结算单及对账单（含交易明细、手续费、退款、到账金额）",
         "平台结算账户提现/结算至对公账户的银行流水",
@@ -4394,6 +4444,26 @@ def _scan_thirdparty_blindspot(data, spec):
         demand_docs.append(
             "平台结算账户提现至对私户（实际控制人、股东、财务负责人、员工个人卡）的流水——核验滞留平台资金是否被用于账外支付薪酬等"
         )
+
+    # 平台运营商服务费发票：品名与经营主体不匹配，疑似虚开/替平台代开（待证，系统不作定性）
+    service_fee_amount = sum(s["amount"] for s in service_fee_invoices)
+    if service_fee_invoices:
+        sf_buyers = "、".join(sorted({s["buyer"] for s in service_fee_invoices})[:5])
+        sf_goods = service_fee_invoices[0]["goods"]
+        sf_code = service_fee_invoices[0]["tax_code"]
+        detail += (
+            "另须注意：标的公司销项发票购方虽含平台主体（{0}）共{1}笔、合计{2}，但对应品名为『{3}』"
+            "（税收分类编码{4}，现代服务业6%税率），系平台营销/积分/技术服务费发票，并非向消费者销售货物，"
+            "故不计入上述『平台对消费者销售』账外收入敞口。但该等『服务费』发票计入『主营业务收入』，"
+            "品名与标的公司（宠物用品零售/商贸）经营范围显著不符，存在『发票品名与经营主体不匹配、"
+            "疑似虚开发票或替平台代开』待证疑点——须责令说明服务实质、服务合同、成果交付凭证及对应资金流向，"
+            "由企业自证，系统不作违法定性。".format(
+                sf_buyers, len(service_fee_invoices), _fmt_yuan(service_fee_amount), sf_goods, sf_code)
+        )
+        demand_docs.append(
+            "平台服务费/积分发票对应的服务合同、服务成果交付凭证、服务能力说明及对应资金流向——核验品名与经营主体是否匹配、是否涉嫌虚开或替平台代开"
+        )
+
     if wage_sig:
         demand_docs.append(
             "个人所得税扣缴申报表（全员全额扣缴明细，核验平台侧/私户另付的薪酬差额是否已如实并入扣缴）"
@@ -4410,6 +4480,8 @@ def _scan_thirdparty_blindspot(data, spec):
         "settlement_provided": bool(has_settlement),
         "wage_split_linkage": (wage_sig is not None),
         "divergence_amount": divergence,
+        "service_fee_invoice_count": len(service_fee_invoices),
+        "service_fee_invoice_amount": round(service_fee_amount, 2),
         "demand_docs": demand_docs,
     }, sources, priority=priority)]
 

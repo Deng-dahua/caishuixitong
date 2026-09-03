@@ -42,6 +42,33 @@ def _company3_data():
     }
 
 
+def _company3_service_fee_data():
+    """猩猩织光真实场景：平台运营商购方开『研发和技术服务*专业技术服务』服务费发票（tax_code 304…，6%），
+    支付宝归集结算 B2C 宠物食品款。用于验证 VR057 不把服务费发票误算『账外收入敞口』、不把平台商当客户。"""
+    return {
+        "salaries": [
+            {"name": "张帅", "salary": 7000.0, "net": 6062.14, "acc_paid": 0.0},
+            {"name": "范雪", "salary": 7000.0, "net": 6062.14, "acc_paid": 0.0},
+            {"name": "董师超", "salary": 7000.0, "net": 6062.14, "acc_paid": 0.0},
+            {"name": "李宪洲", "salary": 7000.0, "net": 6062.14, "acc_paid": 0.0},
+        ],
+        "sal_invs": [
+            # 平台运营商服务费发票（tax_code 以 3 开头 = 营改增服务，非货物销售）
+            {"buyer": "浙江天猫技术有限公司", "goods": "*研发和技术服务*专业技术服务",
+             "tax_code": "3040105000000000000", "amount": 2852.81, "tax": 171.17, "total": 3023.98},
+            {"buyer": "杭州阿里妈妈软件服务有限公司", "goods": "*研发和技术服务*专业技术服务",
+             "tax_code": "3040105000000000000", "amount": 4998.8, "tax": 299.93, "total": 5298.73},
+            # 真实 B2C 宠物食品（货物，tax_code 以 1 开头），购方为个人，经支付宝归集
+            {"buyer": "杨华（个人）", "goods": "*饲料*宠物食品", "tax_code": "1030104010000000000",
+             "amount": 1200.0, "tax": 108.0, "total": 1308.0},
+        ],
+        "bank_txs": [
+            {"counterparty": "支付宝支付科技有限公司", "credit": 8000.0, "debit": 0.0, "summary": "提现"},
+        ],
+        "target_entity": {"name": "猩猩织光宠物用品有限公司"},
+    }
+
+
 def _b2b_data():
     """B2B 制造对照：工资差异化、对公代发、无平台。"""
     return {
@@ -260,6 +287,56 @@ class TestConfiguration(unittest.TestCase):
         self.assertIn("VR057", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
         self.assertIn("VR058", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
         self.assertIn("VR059", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
+
+
+class TestPlatformServiceFeeClassification(unittest.TestCase):
+    """回归：平台运营商服务费发票不得误算『账外收入敞口』，平台商不得当『客户』。"""
+
+    def test_classifier_identifies_service_fee(self):
+        service_inv = {"buyer": "浙江天猫技术有限公司", "goods": "*研发和技术服务*专业技术服务",
+                       "tax_code": "3040105000000000000"}
+        goods_inv = {"buyer": "杨华（个人）", "goods": "*饲料*宠物食品", "tax_code": "1030104010000000000"}
+        self.assertTrue(V._invoice_is_service_fee(service_inv), "服务费发票（tax_code 3 开头）应判为服务费")
+        self.assertFalse(V._invoice_is_service_fee(goods_inv), "宠物食品（tax_code 1 开头）不应判为服务费")
+
+    def test_is_platform_operator(self):
+        self.assertTrue(V._is_platform_operator("浙江天猫技术有限公司"))
+        self.assertTrue(V._is_platform_operator("杭州阿里妈妈软件服务有限公司"))
+        self.assertFalse(V._is_platform_operator("杨华（个人）"))
+        self.assertFalse(V._is_platform_operator("苏州某某制造有限公司"))
+
+    def test_vr057_excludes_service_fee_from_divergence(self):
+        res = V.run_verified_rules(_company3_service_fee_data())
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR057"]
+        self.assertEqual(len(hits), 1, "支付宝收款仍应触发 VR057 第三方平台盲区")
+        m = hits[0]["observed_metrics"]
+        self.assertEqual(m["platform_sales_count"], 0, "服务费发票不得计入『平台对消费者销售』")
+        self.assertEqual(m["service_fee_invoice_count"], 2, "应识别 2 张平台服务费发票")
+        self.assertIsNone(m["divergence_amount"], "服务费发票不得算出虚假账外收入敞口（divergence）")
+        self.assertIn("品名与经营主体不匹配", hits[0]["detail"], "应提示服务费发票品名与主体不匹配待证疑点")
+
+    def test_related_party_graph_relabels_platform_operator(self):
+        try:
+            from main import _build_related_party_graph
+        except Exception as e:  # main 导入较重，环境不可用时跳过而非失败
+            self.skipTest(f"main 模块不可用：{e}")
+        report_data = {
+            "target_entity": {"name": "猩猩织光宠物用品有限公司"},
+            "all_findings": [],
+            "material_intel": {"发票": {"销项客户明细": [
+                {"名称": "浙江天猫技术有限公司", "金额": "23688.03"},
+                {"名称": "杭州阿里妈妈软件服务有限公司", "金额": "17375.55"},
+                {"名称": "王颖（个人）", "金额": "45000.00"},
+            ], "进项供应商明细": []}},
+        }
+        g = _build_related_party_graph(report_data)
+        roles = {n["name"]: n["role"] for n in g["core_customers"]}
+        self.assertEqual(roles.get("浙江天猫技术有限公司"), "平台服务商", "天猫应标『平台服务商』而非『客户』")
+        self.assertEqual(roles.get("杭州阿里妈妈软件服务有限公司"), "平台服务商")
+        self.assertEqual(roles.get("王颖（个人）"), "客户", "真实个人客户应保留『客户』")
+        # 平台服务商不计入『客户集中度』风险；真实个人客户占比高仍应正常标风险
+        risk_types = [r["type"] for r in g["risks"]]
+        self.assertIn("客户高度集中", risk_types, "真实个人客户高度集中仍应提示")
 
 
 if __name__ == "__main__":

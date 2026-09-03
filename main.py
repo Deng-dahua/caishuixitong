@@ -8943,11 +8943,17 @@ def _build_related_party_graph(report_data):
 
     risks = []
     core_customers = []
+    from engine.verified_rule_engine import _is_platform_operator
     for c in customers[:3]:
         ratio = (c["amount"] / total_sales * 100) if total_sales else 0.0
-        node = {"role": "客户", "name": c["name"], "amount": round(c["amount"], 2), "ratio": round(ratio, 1)}
+        # 平台运营商（天猫/阿里妈妈/淘宝/京东/抖音等）作为购方收到的多为平台营销·积分·技术服务费发票，
+        # 并非向消费者销售货物产生的客户，改标『平台服务商』，不计入『客户集中度』风险判定。
+        if _is_platform_operator(c["name"]):
+            node = {"role": "平台服务商", "name": c["name"], "amount": round(c["amount"], 2), "ratio": round(ratio, 1)}
+        else:
+            node = {"role": "客户", "name": c["name"], "amount": round(c["amount"], 2), "ratio": round(ratio, 1)}
         core_customers.append(node)
-        if ratio >= 50:
+        if node["role"] == "客户" and ratio >= 50:
             risks.append({"type": "客户高度集中", "detail": f"{c['name']}占销售额{ratio:.1f}%，购销高度依赖单一渠道"})
 
     core_suppliers = []
