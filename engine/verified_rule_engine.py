@@ -1029,30 +1029,175 @@ def _person_name(row):
     return str(row.get("name") or row.get("employee_name") or row.get("姓名") or "").strip()
 
 
+# Excel 解析时「合计」「姓名」「小计」等表头/合计行常被当作数据行落入人员明细，
+# 混入后会被误报成「仅在社保清单的人员」（实测出现过『仅在社保清单的人员：合计、姓名、小计』）。
+_NOISE_PERSON_NAMES = {
+    "合计", "小计", "总计", "姓名", "人员", "职工姓名", "员工姓名", "序号", "本月合计",
+    "本年累计", "平均", "人数", "单位", "部门", "备注", "说明", "员工", "职工",
+    "合计金额", "本页合计", "累计", "总人数", "应发合计", "实发合计", "个人合计",
+    "单位合计", "缴费基数合计", "小写", "大写", "社保", "公积金",
+}
+
+
+def _is_noise_name(name):
+    """判断名称是否为表头/合计行等非人员文本（非真实员工姓名）。"""
+    n = str(name or "").strip()
+    if not n:
+        return True
+    n_compact = n.replace(" ", "").replace("\u3000", "")
+    if n in _NOISE_PERSON_NAMES:
+        return True
+    if n_compact in {x.replace(" ", "") for x in _NOISE_PERSON_NAMES}:
+        return True
+    # 纯数字（序号行）视为噪声
+    return bool(n_compact) and n_compact.isdigit()
+
+
+def _row_period(row):
+    """从工资/社保记录提取所属月份（YYYY-MM）。
+
+    工资表/社保表每行自带费款所属期（period_start / period_end / 所属期…），这是「按月份分析」
+    的唯一可靠依据。**逐行聚合而忽略月份，会把「同一人 12 个月的记录」误算成「12 名员工」**
+    （实测把 6 名员工报成「51 名员工工资高度均一」）。凡涉及工资/社保的人员统计与均额判定，
+    必须先按 (姓名, 月份) 归位。
+    """
+    import re as _re
+    for k in ("period_start", "period_end", "所属期", "费款所属期", "期间",
+              "月份", "month", "所属月份", "账期", "缴费所属期", "税款所属期"):
+        v = str(row.get(k) or "").strip()
+        if not v:
+            continue
+        m = _re.search(r"(\d{4})\s*[-/年.]?\s*(\d{1,2})", v)
+        if m:
+            mm = int(m.group(2))
+            if 1 <= mm <= 12:
+                return "{0}-{1:02d}".format(m.group(1), mm)
+    return ""
+
+
 def _scan_payroll_social(data, spec):
-    salary_names = {_person_name(row) for row in data.get("salaries", []) or [] if _person_name(row)}
-    social_names = {_person_name(row) for row in data.get("social_security", []) or [] if _person_name(row)}
+    """工资名册与社会保险人员范围差异（人员级 + 月份级双向匹配）。
+
+    修复要点（2026-09-04）：
+    1. 过滤表头/合计行噪声名（合计/姓名/小计…），避免把标题行当成未匹配人员；
+    2. 以 (姓名, 月份) 归位，除「人员级」差异外，额外给出「同人部分月份有工资无社保」的
+       月份级差异——这才是「按人员身份和所属月份逐人解释」的可执行形态；
+    3. 输出逐人逐月明细（person_month_detail），供报告渲染明细表，而非只给举例。
+    """
+    sal_by_month = defaultdict(set)
+    soc_by_month = defaultdict(set)
+    sal_amount = {}
+    soc_base = {}
+    for r in (data.get("salaries") or []):
+        if not isinstance(r, dict):
+            continue
+        n = _person_name(r)
+        if not n or _is_noise_name(n):
+            continue
+        p = _row_period(r)
+        sal_by_month[n].add(p)
+        sal_amount[(n, p)] = _salary_amount(r)
+    for r in (data.get("social_security") or []):
+        if not isinstance(r, dict):
+            continue
+        n = _person_name(r)
+        if not n or _is_noise_name(n):
+            continue
+        p = _row_period(r)
+        soc_by_month[n].add(p)
+        b = _number(r.get("base") or r.get("缴费基数") or r.get("base_amount"))
+        if b > 0:
+            soc_base[(n, p)] = max(soc_base.get((n, p), 0.0), b)
+
+    salary_names = set(sal_by_month)
+    social_names = set(soc_by_month)
     if len(salary_names) < 5 or len(social_names) < 5:
         return []
     only_salary = sorted(salary_names - social_names)
     only_social = sorted(social_names - salary_names)
     mismatch = len(only_salary) + len(only_social)
     denominator = max(len(salary_names | social_names), 1)
-    if mismatch < 2 or mismatch / denominator < 0.2:
-        return []
-    example_text = (
-        (f"仅在工资名册的人员举例：{'、'.join(only_salary[:5])}。" if only_salary else "")
-        + (f"仅在社保清单的人员举例：{'、'.join(only_social[:5])}。" if only_social else "")
+
+    # ── 月份级差异：同一人在部分月份有工资但无社保（或反之）──
+    month_gaps = []
+    for n in sorted(salary_names & social_names):
+        sal_m = {p for p in sal_by_month[n] if p}
+        soc_m = {p for p in soc_by_month[n] if p}
+        miss = sorted(sal_m - soc_m)
+        if miss:
+            month_gaps.append({
+                "姓名": n,
+                "工资有社保无的月份": "、".join(miss),
+                "缺失月数": len(miss),
+            })
+
+    mismatch_ratio = mismatch / denominator
+    # 「有工资但无社保」= 未依法参保，属实质违规线索。
+    # 铁律：不得通过抬高阈值放过任何信号——确认/待证只区分「现有资料能否直接断言」，
+    # 不能因人数占比未达 20% 就把真实存在的未参保人员吞掉。故此项不受比例阈值限制。
+    has_uninsured = bool(only_salary)
+    if not has_uninsured and (mismatch < 2 or mismatch_ratio < 0.2):
+        if not month_gaps:
+            return []
+
+    # ── 逐人逐月明细（供报告渲染明细表）──
+    all_persons = sorted(salary_names | social_names)
+    person_month_detail = []
+    for n in all_persons:
+        sal_m = {p for p in sal_by_month.get(n, set()) if p}
+        soc_m = {p for p in soc_by_month.get(n, set()) if p}
+        for m in sorted(sal_m | soc_m):
+            has_s, has_o = m in sal_m, m in soc_m
+            status = ("工资社保均有" if has_s and has_o
+                      else "仅有工资无社保" if has_s else "仅有社保无工资")
+            person_month_detail.append({
+                "姓名": n,
+                "月份": m,
+                "工资": sal_amount.get((n, m), 0.0) if has_s else 0.0,
+                "社保基数": soc_base.get((n, m), 0.0) if has_o else 0.0,
+                "状态": status,
+            })
+    # 优先展示异常行（非「工资社保均有」），异常行不足再补正常行
+    abnormal = [x for x in person_month_detail if x["状态"] != "工资社保均有"]
+    normal = [x for x in person_month_detail if x["状态"] == "工资社保均有"]
+    detail_rows = (abnormal + normal)[:30]
+
+    detail = (
+        "工资名册与社会保险人员清单共{0}人、{1}个『人员-月份』组合纳入比对；"
+        "人员级未能双向匹配{2}人，占合并人员范围{3:.1%}（已剔除『合计/姓名/小计』等表头合计行，"
+        "不参与人员比对）。".format(len(salary_names | social_names),
+                                    len(person_month_detail), mismatch, mismatch_ratio)
     )
+    if only_salary:
+        detail += ("仅在工资名册、未出现在社保清单的人员共{0}人：{1}——该类人员存在『有工资发放但未依法参保』"
+                   "的待证线索，须逐人说明用工身份（在职/退休返聘/劳务派遣/兼职/非雇员劳务）"
+                   "及未参保原因，并提供劳动合同、参保凭证或异地参保证明。").format(
+            len(only_salary), "、".join(only_salary))
+    if only_social:
+        detail += "仅在社保清单（未出现在工资名册）的人员：{0}。".format("、".join(only_social))
+    if month_gaps:
+        gap_txt = "；".join(
+            "{0}（{1}，共{2}个月有工资无社保）".format(g["姓名"], g["工资有社保无的月份"], g["缺失月数"])
+            for g in month_gaps[:8]
+        )
+        detail += ("另有{0}人存在『同人部分月份有工资但无社保』的月份级差异：{1}。"
+                   "该差异须按所属月份逐人解释：属入职/离职当月未缴纳、社保关系在外单位、"
+                   "还是未依法参保。").format(len(month_gaps), gap_txt)
+    detail += "明细表已按『人员-月份』逐行列示工资与社保基数的对应关系，可据此逐人逐月核对。"
+
     return [_finding(
         spec,
-        (f"工资名册与社会保险人员清单共有{mismatch}人未能双向匹配，占合并人员范围的{mismatch / denominator:.1%}。该差异需要按人员身份和所属月份逐人解释。"
-         + example_text),
+        detail,
         {
+            "salary_person_count": len(salary_names),
+            "social_person_count": len(social_names),
             "salary_only_count": len(only_salary),
             "social_only_count": len(only_social),
             "salary_only_examples": only_salary[:30],
             "social_only_examples": only_social[:30],
+            "month_gap_count": len(month_gaps),
+            "month_gaps": month_gaps[:30],
+            "person_month_detail": detail_rows,
         },
         spec["required_sources"],
     )]
@@ -4101,52 +4246,82 @@ def _scan_wage_splitting(data, spec):
     salaries = data.get("salaries") or []
     if len(salaries) < 3:
         return []
-    by_amt = defaultdict(list)
+    # ── 按 (姓名, 所属月份) 归位：每人每月一条 ──
+    # 关键修复（2026-09-04）：旧逻辑按「金额」逐行聚合，把同一人分 12 个月领取的记录
+    # 计成 12 个人，曾将 6 名员工误报为「51 名员工工资高度均一」。必须先归位到人月，
+    # 再判断「同一月份内是否有多人领取相同整数整额工资」——这才是拆分工资的实质痕迹。
+    person_month = {}
     for r in salaries:
-        name = _person_name(r)
+        if not isinstance(r, dict):
+            continue
+        n = _person_name(r)
+        if not n or _is_noise_name(n):
+            continue
         sal = _salary_amount(r)
         if sal <= 0:
             continue
-        by_amt[round(sal, 2)].append({
-            "name": name or "未具名",
+        p = _row_period(r)
+        person_month[(n, p)] = {
+            "name": n,
+            "month": p or "未标注月份",
             "salary": sal,
             "net": _number(r.get("net") or r.get("实发")),
             "acc_paid": _number(r.get("acc_paid") or r.get("个税已缴") or r.get("tax_paid")),
-        })
-    # 同薪且为整数整额、人数≥3 → 拆分痕迹
-    uniform = [
-        {"amount": a, "count": len(v), "people": v}
-        for a, v in by_amt.items()
-        if len(v) >= 3 and float(a).is_integer()
-    ]
-    if not uniform:
+        }
+    if not person_month:
         return []
-    sal_by_name = {
-        p["name"]: p["salary"]
-        for g in uniform for p in g["people"] if p["name"] != "未具名"
-    }
+    person_count = len({k[0] for k in person_month})
+    record_count = len(person_month)
+    # ── 同月多人同薪：同一月份内多个不同人领取相同整数整额工资 → 拆分痕迹 ──
+    by_month_amt = defaultdict(list)
+    for v in person_month.values():
+        by_month_amt[(v["month"], round(v["salary"], 2))].append(v)
+    uniform = []
+    for (m, a), vs in sorted(by_month_amt.items()):
+        uniq = {}
+        for v in vs:
+            uniq.setdefault(v["name"], v)
+        if len(uniq) >= 3 and float(a).is_integer():
+            uniform.append({
+                "month": m, "amount": a, "count": len(uniq),
+                "people": sorted(uniq.values(), key=lambda x: x["name"]),
+            })
+    if not uniform:
+        # 同月多人同薪不成立：同一人分多个月份领取等额工资属固定薪酬的正常表现，
+        # 不构成「拆分工资」模板痕迹，不得据此报警（避免把小企业正常发薪误报为拆分）。
+        return []
+    sal_by_name = {}
+    for g in uniform:
+        for p in g["people"]:
+            sal_by_name[p["name"]] = p["salary"]
     # 社保基数倒挂：缴费基数 > 账面工资
     inverted = []
     for r in (data.get("social_security") or []):
+        if not isinstance(r, dict):
+            continue
         n = _person_name(r)
+        if not n or _is_noise_name(n):
+            continue
         base = _number(r.get("base") or r.get("缴费基数") or r.get("base_amount"))
         if n in sal_by_name and base > sal_by_name[n] + 1:
             inverted.append({"name": n, "salary": sal_by_name[n], "social_base": base})
     total_uniform = sum(g["count"] for g in uniform)
     zero_tax = sum(1 for g in uniform for p in g["people"] if p["acc_paid"] == 0)
     groups_txt = "；".join(
-        "工资{0}共{1}人（{2}{3}）".format(
-            _fmt_yuan(g["amount"]), g["count"],
+        "{0}工资{1}共{2}人（{3}{4}）".format(
+            g["month"], _fmt_yuan(g["amount"]), g["count"],
             "、".join(p["name"] for p in g["people"][:8]),
             "等" if g["count"] > 8 else "",
         )
         for g in uniform
     )
     detail = (
-        "工资名册中{0}名员工工资高度均一：{1}。多名员工领取完全相同且为整数整额的工资，"
+        "按『人员-月份』归位后（共{4}名员工、{5}条人月记录），发现同一月份内多人领取完全相同"
+        "整数整额工资的情形：{1}，合计{0}人次（已按姓名去重；同一人分多月领取等额工资属固定薪酬，"
+        "不计入本项）。多名员工在同一月份领取完全相同且为整数整额的工资，"
         "呈典型的『拆分工资』模板痕迹——实务中常见于将单名员工应得薪酬拆分为多人名义发放，"
         "或公账+私账拆分支付，以压低单人多层级税基、规避个人所得税全员全额扣缴义务。".format(
-            total_uniform, groups_txt)
+            total_uniform, groups_txt, 0, 0, person_count, record_count)
     )
     if zero_tax:
         detail += ("其中{0}名均额员工的个人所得税申报『已缴额』为0，与账面应发工资规模不匹配，"
@@ -4165,14 +4340,32 @@ def _scan_wage_splitting(data, spec):
         "社保费缴费明细及缴费基数申报表（核验缴费基数与账面工资、实际薪酬的一致性）",
     ]
     sources = ["salaries"] + (["social_security"] if data.get("social_security") else [])
+    # ── 逐人逐月明细（供报告渲染明细表，异常行在前）──
+    uniform_keys = {(g["month"], g["amount"]) for g in uniform}
+    detail_rows = []
+    for (n, p), v in sorted(person_month.items(), key=lambda kv: (kv[0][0], kv[0][1])):
+        in_group = (v["month"], round(v["salary"], 2)) in uniform_keys
+        detail_rows.append({
+            "姓名": n,
+            "月份": v["month"],
+            "工资": v["salary"],
+            "个税已缴": v["acc_paid"],
+            "状态": "同月多人同薪" if in_group else "正常",
+        })
+    detail_rows = ([x for x in detail_rows if x["状态"] != "正常"]
+                   + [x for x in detail_rows if x["状态"] == "正常"])[:30]
     return [_finding(spec, detail, {
         "uniform_salary_groups": [
-            {"amount": g["amount"], "count": g["count"], "people": [p["name"] for p in g["people"]]}
+            {"month": g["month"], "amount": g["amount"], "count": g["count"],
+             "people": [p["name"] for p in g["people"]]}
             for g in uniform
         ],
+        "employee_count": person_count,
+        "person_month_record_count": record_count,
         "uniform_employee_count": total_uniform,
         "zero_declared_tax_count": zero_tax,
         "social_base_inverted": inverted[:10],
+        "salary_person_month_detail": detail_rows,
         "demand_docs": demand_docs,
     }, sources, priority="调查优先级")]
 
