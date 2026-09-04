@@ -237,6 +237,8 @@ def _run_analyze(company_id, db, progress_callback=None):
         _score_tax_relevance,
     )
     from engine.main_biz_cost import identify_main_biz_cost
+    # 工资/社保人员名噪声过滤（合计/姓名/小计等表头行）——与 verified_rule_engine 同源一致
+    from engine.verified_rule_engine import _is_noise_name as _sal_noise_name
     from engine.phase1_triage import _phase1_triage
     from engine.phase2_deep_dive import _phase2_deep_dive
     from engine.phase3_cross_validate import _phase3_cross_validate
@@ -2084,12 +2086,15 @@ def _run_analyze(company_id, db, progress_callback=None):
                             amount=abs(_to_dec(tx.get("amount"))), summary=str(tx.get("summary", ""))[:200])
                         db.add(bt); db.flush(); bt_ids.append(bt.id)
                 except: pass
-            # 工资
+            # 工资（跳过表头/合计行噪声名，避免写入 SalaryRecord 表污染人员统计）
             for s in salaries:
                 try:
+                    _nm = str(s.get("name", "")).strip()
+                    if not _nm or _sal_noise_name(_nm):
+                        continue
                     salary_val = _to_dec(s.get("salary", s.get("net", s.get("gross", 0))))
                     sr = SR(company_id=company_id,
-                        employee_name=str(s.get("name", ""))[:50],
+                        employee_name=_nm[:50],
                         current_income=salary_val,
                         taxable_income=salary_val,
                         period=str(s.get("period", "2025-01"))[:20])
@@ -2417,8 +2422,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                 if goods: data_keywords.update(goods[:20].replace(" ",""))
                 if seller: data_keywords.add(seller[:20])
             for sal in salaries:
-                name = str(sal.get("name", ""))
-                if name: data_keywords.add(name)
+                name = str(sal.get("name", "")).strip()
+                if name and not _sal_noise_name(name): data_keywords.add(name)
             
             # 汇总数据特征
             has_bank = len(bank_txs) > 0
@@ -2432,7 +2437,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             bank_total_in = sum(tx.get("credit", 0) for tx in bank_txs)
             bank_total_out = sum(tx.get("debit", 0) for tx in bank_txs)
             inv_total = sum(float(inv.get("amount", 0) or 0) for inv in clean_invs)
-            sal_total = sum(float(sal.get("salary", sal.get("本期收入", 0)) or 0) for sal in salaries)
+            sal_total = sum(float(sal.get("salary", sal.get("本期收入", 0)) or 0)
+                            for sal in salaries if not _sal_noise_name(str(sal.get("name", ""))))
             # 第三方收款检测
             third_party_keywords = ["支付宝","微信","财付通","个人","张三","李四","王五"]
             third_party_count = sum(1 for tx in bank_txs if any(k in str(tx.get("counterparty","")) for k in third_party_keywords))
@@ -8169,7 +8175,7 @@ def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouc
     salary_names = set()
     for s in salaries:
         name = str(s.get("name", "")).strip()
-        if name: salary_names.add(name)
+        if name and not _sal_noise_name(name): salary_names.add(name)
     if len(salaries) > 0 and len(salary_names) == 0:
         issues.append({
             "level": "错误", "item": "工资数据姓名字段全空",

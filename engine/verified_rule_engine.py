@@ -4380,13 +4380,20 @@ def _scan_mixed_payroll(data, spec):
     salaries = data.get("salaries") or []
     if not salaries:
         return []
-    names = [_person_name(r) for r in salaries if _person_name(r)]
-    total_payroll = sum(_salary_amount(r) for r in salaries)
+    # 过滤表头/合计行噪声名（合计/姓名/小计…），并按「真实员工」去重——
+    # 旧逻辑按逐行聚合把同一人 12 个月记录算成 12 人，曾把 55 条人月记录报成 55 名员工。
+    sal_rows = [r for r in salaries if isinstance(r, dict)
+                and _person_name(r) and not _is_noise_name(_person_name(r))]
+    if not sal_rows:
+        return []
+    names = [_person_name(r) for r in sal_rows]
+    total_payroll = sum(_salary_amount(r) for r in sal_rows)
     if total_payroll <= 0:
         return []
     bank = data.get("bank_txs") or []
     has_bank = bool(bank)
     name_set = {n for n in names}
+    employee_count = len(name_set)
 
     def _is_payroll_tx(tx):
         s = str(tx.get("summary") or tx.get("摘要") or tx.get("remark") or tx.get("用途") or "")
@@ -4409,7 +4416,7 @@ def _scan_mixed_payroll(data, spec):
             "企业账面应发工资合计{0}（{1}名员工），但未提供任何银行流水，无法核验工资实际支付来源"
             "（对公账户代发 or 实际控制人/股东/财务个人卡私户支付）。实务中『一部分公账支付、一部分私账支付』"
             "以压低单人多层级税基、规避个税全员全额扣缴的情形，在缺少私户流水时将完全暴露于监管盲区。"
-            "本项为监管盲区提示（非违法定性），须责令补充资料以清扫盲区。".format(_fmt_yuan(total_payroll), len(names))
+            "本项为监管盲区提示（非违法定性），须责令补充资料以清扫盲区。".format(_fmt_yuan(total_payroll), employee_count)
         )
         demand_docs = [
             "对公账户银行流水（核验工资代发记录与账面计提是否一致）",
@@ -4419,7 +4426,7 @@ def _scan_mixed_payroll(data, spec):
         ]
         return [_finding(spec, detail, {
             "book_payroll_total": round(total_payroll, 2),
-            "employee_count": len(names),
+            "employee_count": employee_count,
             "blind_spot": "未提供银行流水，支付来源不可见",
             "demand_docs": demand_docs,
         }, sources, status="data_quality_limitation", priority="盲区清扫")]

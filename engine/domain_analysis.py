@@ -16,6 +16,73 @@ from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX  # 城市列�
 # 用于修复跨地区（跨省）判定失效 —— 详见 engine/geo_infer.py 顶部说明
 from engine.geo_infer import invoice_region as _invoice_region, collect_regions as _collect_regions
 
+# ── 工资/社保人员名噪声过滤 + 月份归位（2026-09-04 同源排查，与 verified_rule_engine 一致）──
+# Excel 解析时「合计」「姓名」「小计」等表头/合计行常被当作数据行落入人员明细，
+# 不过滤会把标题行误报成「仅在社保清单的人员」（实测出现过『仅在社保清单的人员：合计、姓名、小计』）。
+# 工资/社保每行自带费款所属期，凡涉及人员统计与均额判定必须先按 (姓名, 月份) 归位。
+_NOISE_PERSON_NAMES = {
+    "合计", "小计", "总计", "姓名", "人员", "职工姓名", "员工姓名", "序号", "本月合计",
+    "本年累计", "平均", "人数", "单位", "部门", "备注", "说明", "员工", "职工",
+    "合计金额", "本页合计", "累计", "总人数", "应发合计", "实发合计", "个人合计",
+    "单位合计", "缴费基数合计", "小写", "大写", "社保", "公积金",
+}
+
+
+def _is_noise_name(name):
+    """判断名称是否为表头/合计行等非人员文本（非真实员工姓名）。"""
+    n = str(name or "").strip()
+    if not n:
+        return True
+    n_compact = n.replace(" ", "").replace("\u3000", "")
+    if n in _NOISE_PERSON_NAMES:
+        return True
+    if n_compact in {x.replace(" ", "") for x in _NOISE_PERSON_NAMES}:
+        return True
+    return bool(n_compact) and n_compact.isdigit()
+
+
+def _row_period(row):
+    """从工资/社保记录提取所属月份（YYYY-MM）。"""
+    for k in ("period_start", "period_end", "所属期", "费款所属期", "期间",
+              "月份", "month", "所属月份", "账期", "缴费所属期", "税款所属期"):
+        v = str((row or {}).get(k) or "").strip()
+        if not v:
+            continue
+        m = re.search(r"(\d{4})\s*[-/年.]?\s*(\d{1,2})", v)
+        if m:
+            mm = int(m.group(2))
+            if 1 <= mm <= 12:
+                return "{0}-{1:02d}".format(m.group(1), mm)
+    return ""
+
+
+def _number(v):
+    """容错数值解析：处理 '12,000.00' / '¥' / None / 空串。"""
+    if v is None:
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v).replace(",", "").replace("￥", "").replace("¥", "").strip()
+    if not s:
+        return 0.0
+    try:
+        return float(s)
+    except ValueError:
+        mm = re.search(r"-?\d+(?:\.\d+)?", s)
+        return float(mm.group(0)) if mm else 0.0
+
+
+def _clean_emp_names(rows):
+    """从工资/社保记录提取去重后的真实员工姓名集合（过滤表头/合计行噪声）。"""
+    out = set()
+    for r in (rows or []):
+        if not isinstance(r, dict):
+            continue
+        n = str(r.get("name", "")).strip()
+        if n and not _is_noise_name(n):
+            out.add(n)
+    return out
+
 # 数据库模型引用 — 这些函数在 _run_analyze 上下文调用，需要直接引用模型
 from database import (
     VATDeclaration, JournalEntry, BankTransaction, Account,
@@ -1427,33 +1494,98 @@ def _domain_tax_consistency(bank_txs, db, company_id):
     return findings
 
 def _domain_salary_ss_hf_compare(salaries, social_security):
-    """域8: 工资社保比对"""
+    """域8: 工资社保比对（按月归位 + 过滤表头合计行）。
+
+    修复要点（2026-09-04 同源排查）：
+    1. 工资/社保名单均过滤表头合计行噪声名（合计/姓名/小计…），避免把标题行当成人员；
+    2. 按 (姓名, 所属月份) 归位，『有工资无社保』以「人员-月份」粒度输出，满足『按人员身份和
+       所属月份逐人解释』要求，并附逐人逐月明细表（observed_metrics.person_month_detail）。
+    """
+    from collections import defaultdict
     findings = []
-    sal_names = set(s.get("name", "") for s in salaries if s.get("name"))
-    ss_names = set(s.get("name", "") for s in social_security if s.get("name"))
-    only_sal = sal_names - ss_names
-    only_ss = ss_names - sal_names
-    if only_sal:
-        findings.append({"type": "有工资无社保", "level": "高风险", "score": 8,
-        "how_found": "将工资表的人员名单与社保明细的人员名单进行集合差集运算（工资有名 - 社保有名），找出有工资但无社保记录的人员。",
-            "detail": f"{len(only_sal)}名员工有工资但无社保记录：{'、'.join(list(only_sal))}等。",
-            "description": f"发现{len(only_sal)}名员工有工资发放记录但在社保缴纳名单中未找到对应记录。根据《社会保险法》规定，用人单位应当自用工之日起三十日内为其职工向社会保险经办机构申请办理社会保险登记。有工资无社保属于典型的未依法参保行为，将面临社保稽核和行政处罚风险。",
-            "tax_impact": "社保违规不仅面临社保部门的行政处罚（责令补缴+滞纳金+罚款），还会引起税务机关关注——工资在企业所得税前扣除的前提是工资的真实性和合法性，未参保人员工资的合理性可能被质疑。此外，个税申报中的工资数据与社保人数不一致也会触发税务系统预警。",
+    if not salaries:
+        return findings
+    # ── 按月归位（过滤表头/合计行噪声名）──
+    sal_pm, ss_pm = set(), set()
+    sal_amt = {}
+    for r in salaries:
+        if not isinstance(r, dict):
+            continue
+        n = str(r.get("name", "")).strip()
+        if not n or _is_noise_name(n):
+            continue
+        m = _row_period(r) or "未标注月份"
+        sal_pm.add((n, m))
+        sal_amt[(n, m)] = _number(r.get("salary") or r.get("wage") or r.get("应发") or r.get("gross"))
+    for r in (social_security or []):
+        if not isinstance(r, dict):
+            continue
+        n = str(r.get("name", "")).strip()
+        if not n or _is_noise_name(n):
+            continue
+        m = _row_period(r) or "未标注月份"
+        ss_pm.add((n, m))
+    sal_names = {n for n, _ in sal_pm}
+    ss_names = {n for n, _ in ss_pm}
+    # 社保是否含月份维度：决定「有工资无社保」以人员级还是人月级判定
+    ss_has_month = any(m != "未标注月份" for _, m in ss_pm)
+    if ss_has_month:
+        uninsured = sorted((n, m) for (n, m) in sal_pm if (n, m) not in ss_pm)
+    else:
+        uninsured = sorted((n, "未标注月份") for n in (sal_names - ss_names))
+    if uninsured:
+        uninsured_persons = sorted({n for n, _ in uninsured})
+        detail_rows = [{"姓名": n, "月份": m, "工资": round(float(sal_amt.get((n, m), 0.0) or 0.0), 2)}
+                       for n, m in uninsured]
+        # 月份维度摘要：每人涉及哪些未参保月份
+        person_months = defaultdict(list)
+        for n, m in uninsured:
+            if m != "未标注月份":
+                person_months[n].append(m)
+        month_txt = "；".join("{0}（{1}）".format(n, "、".join(ms)) for n, ms in person_months.items()) \
+            or "（社保清单未标注月份，无法按月核验，仅按人员级判定）"
+        findings.append({
+            "type": "有工资无社保", "level": "高风险", "score": 8,
+            "how_found": "将工资表与社保明细按 (姓名, 所属月份) 归位后做集合差集，找出『有工资但对应月份无社保记录』的人员-月份组合（已剔除合计/姓名/小计等表头行）。",
+            "detail": f"{len(uninsured_persons)}名员工存在『有工资发放但对应月份无社保记录』：{month_txt}。根据《社会保险法》用人单位应自用工之日起三十日内为职工办理社保登记，属典型的未依法参保待证线索。",
+            "description": f"发现{len(uninsured_persons)}名员工（共{len(uninsured)}个『人员-月份』组合）有工资发放记录但在社保缴纳名单中未找到对应月份记录。未依法参保不仅面临社保稽核与行政处罚（责令补缴+滞纳金+罚款），还会触发金税四期人社-税务数据比对预警，并牵连工资薪金企业所得税税前扣除的真实性。",
+            "tax_impact": "社保违规面临社保部门行政处罚；工资在企业所得税前扣除以工资真实合法为前提，未参保人员工资合理性会被质疑；个税申报人数与社保人数不一致触发税务系统预警。",
             "policy_ref": "《社会保险法》第五十八条（参保义务）、第八十四条（未参保处罚）；《企业所得税法实施条例》第三十四条关于工资薪金扣除的规定。",
-            "suggestion": f"1）立即为{len(only_sal)}名未参保员工办理社保登记；2）如有特殊情况（如退休返聘、劳务派遣），保留相关证明材料；3）确保个税申报人数、工资表人数、社保参保人数三方一致。",
-            "category": "域8 工资社保"})
-    for s in salaries:
-        name, salary = s.get("name", ""), s.get("salary", 0)
-        for ss in social_security:
-            if ss.get("name") == name and ss.get("base", 0) > 0 and salary > 0 and ss["base"] < salary * 0.6:
-                findings.append({"type": "社保低基数参保", "level": "中风险", "score": 6,
-                "how_found": "逐人比对工资表的工资金额与社保明细的缴费基数。缴费基数<实际工资的60%触发预警。",
-                    "detail": f"{name}：工资{salary:,.2f}元，社保缴费基数仅{ss['base']:,.2f}元（{ss['base']/salary*100:.2f}%）。",
-                    "description": f"员工{name}实际发放工资{salary:,.2f}元，但社保缴费基数仅{ss['base']:,.2f}元，仅为实际工资的{ss['base']/salary*100:.2f}%。根据规定，社保缴费基数应按职工本人上年度月平均工资确定，低于当地社平工资60%的按60%计算。缴费基数明显低于实际工资属于低基数参保，是社保税务合规的重点关注事项。",
-                    "tax_impact": "低基数参保被查处后需补缴差额及滞纳金。一次性补缴大量社保费会给企业现金流造成压力。同时低基数参保可能被认定为恶意规避社保义务，面临罚款。",
-                    "policy_ref": "《社会保险法》第十二条、第三十五条关于缴费基数的规定。",
-                    "suggestion": f"1）按员工实际工资调整{name}的社保缴费基数；2）全面排查其他员工是否存在类似低基数问题；3）建立工资变动与社保基数联动的内控制度。",
-                    "category": "域8 工资社保"})
+            "suggestion": f"1）立即为{len(uninsured_persons)}名未参保员工办理社保登记并补缴；2）如属退休返聘/劳务派遣须保留证明材料；3）确保个税申报人数、工资表人数、社保参保人数三方一致。",
+            "category": "域8 工资社保",
+            "observed_metrics": {
+                "uninsured_person_count": len(uninsured_persons),
+                "uninsured_person_month_count": len(uninsured),
+                "person_month_detail": detail_rows,
+            },
+        })
+    # 社保低基数参保（逐人按月比对，过滤噪声名）
+    for r in (social_security or []):
+        if not isinstance(r, dict):
+            continue
+        n = str(r.get("name", "")).strip()
+        if not n or _is_noise_name(n):
+            continue
+        base = _number(r.get("base") or r.get("缴费基数") or r.get("base_amount"))
+        if base <= 0:
+            continue
+        m = _row_period(r)
+        salary = sal_amt.get((n, m), sal_amt.get((n, "未标注月份"))) if m else None
+        if salary is None:
+            for (nn, _mm), v in sal_amt.items():
+                if nn == n:
+                    salary = v
+                    break
+        if salary and base < salary * 0.6:
+            findings.append({
+                "type": "社保低基数参保", "level": "中风险", "score": 6,
+                "how_found": "逐人按月比对工资表的工资金额与社保明细的缴费基数，缴费基数<实际工资60%触发预警。",
+                "detail": f"{n}：工资{salary:,.2f}元，社保缴费基数仅{base:,.2f}元（{base/salary*100:.2f}%）。",
+                "description": f"员工{n}实际发放工资{salary:,.2f}元，但社保缴费基数仅{base:,.2f}元，仅为实际工资的{base/salary*100:.2f}%。社保缴费基数应按职工本人上年度月平均工资确定，明显低于实际工资属低基数参保。",
+                "tax_impact": "低基数参保被查处后需补缴差额及滞纳金，并可能被认定为恶意规避社保义务面临罚款。",
+                "policy_ref": "《社会保险法》第十二条、第三十五条关于缴费基数的规定。",
+                "suggestion": f"1）按员工实际工资调整{n}的社保缴费基数；2）全面排查其他员工是否存在类似低基数问题；3）建立工资变动与社保基数联动的内控制度。",
+                "category": "域8 工资社保"})
     return findings
 
 def _domain_invoice_lifecycle(invoices):
@@ -3525,8 +3657,8 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
             "category": "域8 工资社保"})
         return findings
     
-    # 提取员工姓名和薪资
-    emp_count = len(set(str(s.get("name", "")).strip() for s in salaries if str(s.get("name", "")).strip()))
+    # 提取员工姓名和薪资（过滤表头/合计行噪声名，避免把合计/姓名/小计算作人员）
+    emp_count = len(_clean_emp_names(salaries))
     total_salary = sum(float(s.get("salary", 0) or 0) for s in salaries)
     avg_salary = total_salary / max(emp_count, 1)
     
@@ -3556,8 +3688,8 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
                 "category": "人员画像"
             })
     
-    # 薪酬与社保人数比对
-    ss_count = len(set(str(s.get("name", "")).strip() for s in social_security if str(s.get("name", "")).strip())) if social_security else 0
+    # 薪酬与社保人数比对（同样过滤噪声名）
+    ss_count = len(_clean_emp_names(social_security)) if social_security else 0
     if emp_count > 0 and ss_count > 0 and emp_count != ss_count:
         findings.append({
             "type": "工资人数与社保人数不一致",
