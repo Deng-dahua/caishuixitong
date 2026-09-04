@@ -57,3 +57,18 @@
 
 关键函数：`verified_rule_engine.py` 的 `_industry_to_gate`/`_spec_applies_to_entity`/`_is_raw_material_goods`；
 `pipeline.py` 进销存比对内的 `_inv_is_service`/`_no_physical_sales`；`_detect_target_entity` biz_model 从名称/经营范围推断服务业。
+
+## 专家思维四步铁律（2026-09-04 确立，用户质问"能不能像人类一样思考"）
+系统要像人类税务稽查专家一样思考，报告开篇必须走「**企业画像 → 行业对标 → 重点线索 → 核查路线**」的
+心智叙事，而非平铺规则命中。落点：`engine/inspector_reasoning.py`（`build_inspector_reasoning`）。
+1. **企业画像**：一句话定性（行业/模式/规模/轻资产 or 物耗链条）+ 数据快照；行业空时从名称/经营范围推断。
+2. **行业对标**：毛利率/进销结构 vs `industry_data.json` 的 66 个细分行业基准，做**相对判断**
+   （显著偏低/偏高/合理/购销倒挂 + 成因推演），绝不只看绝对值——这是规则引擎做不出来的那一层。
+3. **重点线索分级**：按「风险性质×证据硬度×行业敏感性」排序，资金流/发票穿透优先、数据质量殿后；
+   反面解释（opposing）按行业动态生成（服务业供应商分散≠制造业原料产地集中）。
+4. **核查路线**：先查证据最硬、定性最直接的，再查需外部证据的，最后补数据质量。
+
+**关键教训**：系统底层早已埋好专家思维字段（`_reasoning_path`/`opposing_evidence`/`reasonable_explanations`/
+`investigation_steps`/`evidence_grade`），但全是场景模板空壳且报告层只用 detail 文案——"专家的骨架有，
+肉是空的、嘴不会说人话"。判断"像不像人"的试金石：读报告第一段，能否感受到"一个专家先懂了这家企业、
+再告诉你哪里不对劲、为什么、怎么查"。
