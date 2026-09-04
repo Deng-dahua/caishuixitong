@@ -65,5 +65,31 @@ class TestCustomerPenetrationPlatformExclusion(unittest.TestCase):
         self.assertEqual(results, [], "纯平台销项不应产生任何客户穿透结论")
 
 
+class TestCustomerRevenueMatchingPlatformExclusion(unittest.TestCase):
+    """规则310-313 逐客户三源穿透（开票vs收款）排除平台运营商。
+
+    平台商（天猫/阿里妈妈）是服务费收款方，对价经支付宝等第三方归集收回，并非直接打款
+    给企业的「客户 debtor」。纳入逐户开票-收款匹配会因银行付款方为支付宝/消费者（与平台名
+    不匹配）误报「已开票未收款→可能虚开发票」，颠倒三方归集与账外收入的界限（第三对矛盾）。
+    """
+
+    def test_platform_excluded_from_invoice_receipt_matching(self):
+        sal_invs = [
+            {"buyer": "浙江天猫技术有限公司", "total": 254000.0},
+            {"buyer": "嘉兴彼格猫商贸有限公司", "total": 400000.0},
+        ]
+        # 银行付款方为支付宝（平台结算归集）+ 真实客户嘉兴，均与平台名不直接匹配
+        bank_txs = [
+            {"counterparty": "支付宝（中国）网络技术有限公司", "credit": 254000.0},
+            {"counterparty": "嘉兴彼格猫商贸有限公司", "credit": 400000.0},
+        ]
+        results = []
+        TR._analyze_customer_revenue_matching(bank_txs, sal_invs, results)
+        joined = " ".join(r.get("detail", "") + r.get("item", "") for r in results)
+        self.assertNotIn("天猫", joined, "平台商不得进入逐客户开票-收款匹配，避免误报虚开")
+        # 真实客户嘉兴有 matching 银行付款方 → 不应误报
+        self.assertNotIn("嘉兴彼格猫商贸有限公司", joined)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

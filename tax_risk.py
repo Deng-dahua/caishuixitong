@@ -11080,12 +11080,18 @@ def _analyze_customer_revenue_matching(bank_txs, sal_invs, results):
         return
     
     from collections import defaultdict
+    from engine.verified_rule_engine import _is_platform_operator
     
     # 构建客户维度数据
     inv_by_buyer = defaultdict(lambda: {"total": 0, "count": 0})
     for inv in sal_invs:
         buyer = str(inv.get("buyer", "")).strip()
         if not buyer or len(buyer) < 2: continue
+        # 平台运营商（天猫/阿里妈妈等）是服务费收款方，对价经支付宝等第三方归集收回，
+        # 并非直接打款给企业的「客户 debtor」；纳入逐户开票-收款匹配会误报
+        # 「已开票未收款→可能虚开发票」，颠倒三方归集（支付宝结算）与账外收入的界限。
+        if _is_platform_operator(buyer):
+            continue
         key = buyer[:30]
         inv_by_buyer[key]["total"] += float(inv.get("total", 0) or inv.get("amount", 0) or 0)
         inv_by_buyer[key]["count"] += 1
