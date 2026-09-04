@@ -1,5 +1,5 @@
 // ==================== 全局状态 ====================
-var currentPage = 'dashboard';
+var currentPage = 'tax-doc-analysis';
 var currentPeriod = '';
 var allAccounts = [];
 
@@ -469,7 +469,7 @@ window.enterApp = enterApp;  // 确保全局可访问
   await loadCompanies();
   await loadCurrentPeriod();
   await loadAllAccounts();
-  const lastPage = localStorage.getItem('lastPage') || 'dashboard';
+  const lastPage = localStorage.getItem('lastPage') || 'tax-doc-analysis';
   navigateTo(lastPage);
 }
 
@@ -776,6 +776,8 @@ function _applySystemStatsWithoutRebuilding(root) {
 }
 
 function navigateTo(page) {
+  var _allowedPages = ['tax-doc-analysis', 'methodology', 'system-logs'];
+  if (_allowedPages.indexOf(page) === -1) { page = 'tax-doc-analysis'; }
   currentPage = page;
   // 离开资料分析页时标记为非活跃
   if (typeof taxDocPageActive !== 'undefined') taxDocPageActive = false;

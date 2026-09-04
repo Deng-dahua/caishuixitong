@@ -66,27 +66,9 @@ from database import (
 )
 
 from tax_risk import router as tax_risk_router
-from chat import router as chat_router
-from salary import router as salary_router
-from vat import router as vat_router
-from housing_fund import router as housing_fund_router
-from social_security import router as social_security_router
-from cultural_construction_fee import router as cultural_construction_fee_router
 from utils import build_account_hierarchy as _build_account_hierarchy, clear_source_voucher_no as _clear_source_voucher_no, renumber_vouchers as _renumber_vouchers, renumber_archive as _renumber_archive, sync_biz_voucher_no as _sync_biz_voucher_no
-from journal import router as journal_router
-from payments import router as payments_router
-from input_vat import router as input_vat_router
 from tax_rules_api import router as tax_rules_api_router
 from file_parser import router as file_parser_router
-from archives import router as archives_router
-from financial_reports import router as financial_reports_router
-from bank_transactions import router as bank_transactions_router
-from bookkeeping_invoices import router as bookkeeping_invoices_router
-from contracts import router as contracts_router
-from inventory import router as inventory_router
-from intangible_assets import router as intangible_assets_router
-from fixed_assets import router as fixed_assets_router
-from dashboard import router as dashboard_router
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
@@ -667,26 +649,8 @@ async def add_cache_headers(request, call_next):
     response.headers["Expires"] = "0"
     return response
 app.include_router(tax_risk_router)
-app.include_router(chat_router)
-app.include_router(salary_router)
-app.include_router(vat_router)
-app.include_router(housing_fund_router)
-app.include_router(social_security_router)
-app.include_router(cultural_construction_fee_router)
-app.include_router(journal_router)
-app.include_router(payments_router)
-app.include_router(input_vat_router)
 app.include_router(tax_rules_api_router)
 app.include_router(file_parser_router)
-app.include_router(archives_router)
-app.include_router(financial_reports_router)
-app.include_router(bank_transactions_router)
-app.include_router(bookkeeping_invoices_router)
-app.include_router(contracts_router)
-app.include_router(inventory_router)
-app.include_router(intangible_assets_router)
-app.include_router(fixed_assets_router)
-app.include_router(dashboard_router)
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")
@@ -6161,45 +6125,7 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         except: pass
         findings = all_findings[:20]
     
-    # ═══ 优先 LLM 回答（连接智能问答引擎）═══
-    try:
-        from chat import _chat_tax_qa
-        llm_db = next(get_db())
-        llm_answer = _chat_tax_qa(question, company_id, llm_db)
-        llm_db.close()
-        if llm_answer and len(llm_answer) > 30:
-            # ═══ 闭环：追问结果注入纠正规则库，引擎学习 ═══
-            try:
-                from engine.self_learning import record_correction
-                ftype = all_findings[finding_index].get("type", "") if finding_index >= 0 and finding_index < len(all_findings) else "追问分析补充"
-                ind = target_entity.get("industry", "通用")
-                bm = target_entity.get("biz_model", "通用")
-                lv = all_findings[finding_index].get("level", "中风险") if finding_index >= 0 and finding_index < len(all_findings) else "中风险"
-                record_correction(
-                    finding_type=ftype,
-                    industry=ind,
-                    biz_model=bm,
-                    original_risk=lv,
-                    corrected_risk=lv,
-                    reason=f"追问: {question[:100]}\nLLM回答: {llm_answer[:200]}",
-                    finding_detail=str(all_findings[finding_index].get('type','')) if finding_index >= 0 else "段落追问",
-                )
-            except: pass
-            
-            return {
-                "ok": True,
-                "intent": intent,
-                "finding_index": finding_index,
-                "answer": llm_answer,
-                "source": "LLM智能问答引擎",
-                "analysis": [{"title": "LLM回答", "content": llm_answer}],
-                "chain_links": [],
-                "evidence_links": [],
-                "severity_implications": [],
-            }
-    except: pass
-    
-    # ═══ AGI引擎调用（LLM不可用时兜底）═══
+    # ═══ AGI引擎调用（稽查核心追问，智能问答模块已下线）═══
     try:
         from engine.agi_engine import agi
         result = agi.ask(question, findings, context, intent, history)
@@ -10241,9 +10167,6 @@ def submit_error_feedback(body: ErrorFeedbackInput, db: Session = Depends(get_db
     result = engine.record_error(body.dict())
     return result
 
-
-from routers.agi import router as agi_router
-app.include_router(agi_router)
 
 # ═══════════════════════════════════════════════════════════
 # 对话式税务合规 — AGI直接用中文回答税务问题
