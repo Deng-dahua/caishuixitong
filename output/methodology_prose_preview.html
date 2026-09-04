@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>风险检查方法论 · 段落化重构预览</title>
+<style>
+  body { margin:0; padding:0; background:#f0eee7; font-family:-apple-system,"PingFang SC","Microsoft YaHei","Source Han Serif SC",serif; }
+  header { padding:32px 40px; background:#081226; color:#dbeafe; }
+  header h1 { margin:0; font-size:24px; }
+  header p { margin:8px 0 0; color:#9bb6da; font-size:14px; max-width:920px; }
+  header small { display:inline-block; margin-top:14px; padding:6px 12px; border:1px solid #3a5a87; border-radius:16px; font-size:12px; color:#9bb6da; }
+  .grid { display:grid; grid-template-columns: 1fr 1fr; gap:32px; padding:36px 40px; max-width:1920px; margin:0 auto; }
+  .panel { background:#fff; border:1px solid #d6d1c2; border-radius:12px; padding:24px 30px; box-shadow:0 4px 18px rgba(7,31,74,.06); }
+  .panel h2 { margin:0 0 6px; color:#1a1a2e; font-size:18px; font-family:-apple-system,sans-serif; }
+  .panel .meta { color:#5b6b82; font-size:13px; margin-bottom:18px; font-family:-apple-system,sans-serif; }
+  .old { background:#fbfaf7; border:1px solid #e2e6ed; border-radius:10px; padding:18px 22px; }
+  .old .label { display:inline-block; margin-bottom:10px; padding:2px 10px; border-radius:4px; background:#b91c1c; color:#fff; font-size:11px; font-weight:800; }
+  .old h4 { margin:0 0 10px; font-size:16px; color:#1a1a2e; }
+  .old .metric-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:12px 0; }
+  .old .metric-row .m { padding:12px 14px; border:1px solid #e2e6ed; border-radius:8px; background:#f7f8fa; }
+  .old .metric-row .m b { color:#8b2332; font-size:22px; display:block; }
+  .old .metric-row .m span { color:#1a1a2e; font-size:13px; font-weight:700; display:block; margin-top:4px; }
+  .old .metric-row .m small { color:#5b6b82; font-size:11px; display:block; margin-top:4px; }
+  .old .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0; }
+  .old .grid-2 article { padding:14px 16px; border:1px solid #e8ecf1; border-radius:8px; }
+  .old .grid-2 h5 { margin:0 0 6px; color:#8b2332; font-size:14px; font-weight:700; }
+  .old ul { margin:6px 0 0 18px; padding:0; font-size:14px; color:#475569; }
+  .old ul li { margin:4px 0; }
+  .new { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Source Han Serif SC","Noto Serif CJK SC",serif; font-size:16.5px; line-height:2.1; color:#1c2233; background:#fbfaf7; padding:30px 38px; border-radius:10px; border:1px solid #d6d1c2; }
+  .new .label { display:inline-block; margin-bottom:10px; padding:2px 10px; border-radius:4px; background:#15803d; color:#fff; font-size:11px; font-weight:800; }
+  .new h4 { margin:28px 0 12px; padding-left:14px; border-left:4px solid #8b2332; font-size:17px; font-weight:700; color:#8b2332; font-family:-apple-system,sans-serif; }
+  .new p { margin:0 0 20px; font-size:16.5px; line-height:2.1; text-align:justify; text-justify:inter-ideograph; text-indent:2em; }
+  .new p:first-child { text-indent:0; }
+  .new .ref { display:inline-block; margin:0 4px; padding:2px 10px; border:1px solid #e2e6ed; border-radius:14px; background:#f7f8fa; font-size:13.5px; line-height:1.6; color:#334155; font-family:-apple-system,sans-serif; }
+  .new .ref b { margin-right:6px; color:#8b2332; font-weight:800; font-size:14.5px; }
+  .new ul { margin:8px 0 18px 24px; padding:0; font-family:-apple-system,sans-serif; text-indent:0; }
+  .new ul li { position:relative; margin:6px 0; font-size:15px; line-height:1.9; color:#334155; list-style:none; }
+  .new ul li:before { content:"·"; position:absolute; left:-14px; color:#8b2332; font-weight:800; }
+  .diff-note { background:#fff8e1; border:1px solid #f0d999; border-radius:8px; padding:14px 18px; margin-top:16px; font-size:14px; color:#5b4714; line-height:1.85; font-family:-apple-system,sans-serif; }
+  .diff-note b { color:#8b2332; }
+  footer { padding:30px 40px; background:#f7f3e9; border-top:1px solid #d6d1c2; font-family:-apple-system,sans-serif; font-size:13.5px; color:#5b6b82; line-height:1.85; }
+  footer b { color:#8b2332; }
+</style>
+</head>
+<body>
+<header>
+  <h1>风险检查方法论 · 段落化重构预览</h1>
+  <p>2026-09-04 重构：移除"碎片卡片堆砌"，每个章节开头改写为连贯叙述，场景详情内 7~8 个 article 整合为 4~5 段连贯散文，metric 块改为段落中的嵌入式引用——让方法论页可像专业白皮书一样阅读。</p>
+  <small>改动文件：static/js/methodology-v3.js · 不动后端 API、不动 JSON 数据源</small>
+</header>
+
+<section class="grid">
+
+  <!-- 对比卡 1：能力账本 -->
+  <div class="panel">
+    <h2>对比 1 · 能力账本（02 章节）</h2>
+    <div class="meta">新版：开篇 3 段连贯叙述说明账本定位与边界，表格置于段落末尾折叠保留</div>
+    <div class="old">
+      <span class="label">改 动 前 · 卡片堆砌</span>
+      <h4>02 能力账本</h4>
+      <div class="metric-row">
+        <div class="m"><b>242</b><span>逐项能力账本</span><small>每项都有真实状态和下一步</small></div>
+        <div class="m"><b>X</b><span>已验证原子规则</span><small>只能形成部分客观事实</small></div>
+        <div class="m"><b>X</b><span>部分自动支持</span><small>不等于完整自动执行</small></div>
+        <div class="m"><b>X</b><span>独立验证通过</span><small>未验证不得作为正式能力</small></div>
+      </div>
+      <div style="margin:10px 0;padding:10px 14px;border-left:4px solid #8b2332;background:#fdf5f6;border-radius:0 8px 8px 0"><b>能力数量边界</b><p style="margin:6px 0 0;font-size:14px">242 项能力边界条件……</p></div>
+      <details><summary style="cursor:pointer;padding:12px 16px;border:1px solid #e2e6ed;border-radius:8px;background:#fff">查看 242 项明细</summary></details>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>效果预览 · 新版段落式</h2>
+    <div class="meta">以下为渲染器真实输出（已通过 Node 单测验证）</div>
+    <div class="new">
+      <span class="label">改 动 后 · 连贯叙述</span>
+      <h4>能力账本</h4>
+      <p>本账本是方法论对外公开的自我盘点。它逐项声明每一种能力<span class="ref"><b>242</b>项</span>在系统中由人工撰写、由系统执行、由独立案例验证以及是否已正式发布的当前状态。账本与详细描述的目的在于明确边界：</p>
+      <p>系统不会用资产数量冒充自动风险检查能力；任何能力在被独立案例验证通过之前，只能被用于产生「待核事实」，不能直接作为「认定结论」使用。这一点对所有调用本系统的用户、稽查人员、审理人员均有效，并构成第一道质量门禁。</p>
+      <p>账本当前累计登记 <b>242</b> 项方法，其中 <b>X</b> 项已形成「已验证原子规则」、<b>X</b> 项具备「部分自动执行支撑」、<b>X</b> 项已完成独立验证。账本说明与明细行数的内部一致性为：行数一致且无静默状态。</p>
+      <ul>
+        <li>能力数量不作为自动风险检查能力的等价物</li>
+        <li>独立验证通过之前，仅产生「待核事实」，不能作为「认定结论」</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 对比卡 2：场景详情 -->
+  <div class="panel">
+    <h2>对比 2 · 场景详情（06 章节内）</h2>
+    <div class="meta">新版：原 7~8 个 article 块整合为 4~5 段连贯散文，表格保留为段尾折叠</div>
+    <div class="old">
+      <span class="label">改 动 前 · 7~8 个 article</span>
+      <h4>F-001 广告传媒-收入完整性</h4>
+      <article style="padding:14px 18px;border:1px solid #e8ecf1;border-radius:8px;margin:8px 0"><b style="color:#8b2332;font-size:13px">待证事实</b><p style="margin:6px 0 0;font-size:14px">广告业务收入是否足额申报……</p></article>
+      <div class="grid-2">
+        <article><h5>适用与停止条件</h5><ul><li>适用：主营业务为广告设计/投放</li><li>停止：非广告业务</li></ul></article>
+        <article><h5>需要先排除的正常解释</h5><ul><li>……</li></ul></article>
+      </div>
+      <article><h5>调查线索路径</h5><ol><li>STEP1 取得开票数据</li><li>STEP2 取得银行回款</li></ol></article>
+      <div class="grid-2">
+        <article><h5>支持证据及来源</h5><ul><li>增值税申报表</li></ul></article>
+        <article><h5>反向证据</h5><ul><li>内部冲账记录</li></ul></article>
+      </div>
+      <article><h5>分析论证路径</h5><p><b>核心命题：</b>……</p></article>
+      <article><h5>业务域协同</h5></article>
+      <article><h5>报告移交合同</h5></article>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>效果预览 · 段落化</h2>
+    <div class="meta">4 段连贯散文 + 段尾折叠表格</div>
+    <div class="new">
+      <span class="label">改 动 后 · 4~5 段连贯</span>
+      <h4>场景定位</h4>
+      <p>本场景针对的是「广告业务收入是否足额申报」。系统把企业资料里的相关信号拆解为待证事实，下一步的工作是把待证事实拆解为可核验的调查线索、可取得的证据材料、可论证的法律要件。适用条件是：主营业务为广告设计/投放；不应被使用或应停止核验的情况是：非广告业务。</p>
+      <h4>调查步骤与证据要求</h4>
+      <p>调查沿以下链路推进：STEP1：取得开票数据（交付：开票清单）；STEP2：取得银行回款（交付：回款凭证）。线索链的终点状态是：资料就位。</p>
+      <p>支持证据通常来源于：增值税申报表；开票汇总；反向证据与可能推翻本假设的合理解释则需要：内部冲账记录。下列情况应停止核验（避免证据不足被误判）：缺失关键期申报；证据质量须复核：金额复算；口径核对。</p>
+      <h4>分析论证与政策期间</h4>
+      <p>核心命题是：广告收入应等于开票+未开票。论证按以下顺序展开：开票复算；未开票推算；回款核对。税法边界：广告服务增值税税目。</p>
+      <h4>业务域协同与报告移交</h4>
+      <p>本场景由「主调查业务域」牵头，下列业务域协同参与：发票（提供开票数据；交付：开票明细）。多域结论冲突时回到原始资料与实际履行，不以多数表决或系统评分裁决。冲突规则：回到原始资料与原始证据。</p>
+      <p>报告移交必须写明：主体；事项；证据；依据；禁止的写法是：把待证事实描述为认定结论。</p>
+    </div>
+  </div>
+
+</section>
+
+<section class="panel" style="margin:0 40px 40px; max-width:1880px;">
+  <h2>重构要点</h2>
+  <div class="meta">整体策略：保留必要交互（场景折叠、能力账本表格），把"碎片卡片模板"全部改写为"段落叙述 + 嵌入式元素"</div>
+  <div class="diff-note">
+    <b>① 章节级叙述连贯：</b>每个章节开头改写为 2~3 段连贯散文（说明定位、给出原则、声明边界），不再用孤立的小卡片堆；
+  </div>
+  <div class="diff-note">
+    <b>② 数据指标嵌入段落：</b>原 m3-metric 卡片堆（如"242 项能力 / X 已验证原子规则 / X 部分自动支持"）改为段落中的 <span style="display:inline-block;padding:2px 10px;border:1px solid #ccc;border-radius:14px;background:#f7f8fa;font-size:13px;color:#334155"><b style="color:#8b2332">242</b>项</span> 嵌入式引用，密度更高、可读性更好；
+  </div>
+  <div class="diff-note">
+    <b>③ 场景详情 4 段化：</b>原 7~8 个 article（待证事实 / 适用 / 调查路径 / 支持证据 / 反向证据 / 分析论证 / 政策期间 / 业务域协同 / 报告移交）整合为 4 段：<i>场景定位、调查步骤与证据要求、分析论证与政策期间、业务域协同与报告移交</i>；
+  </div>
+  <div class="diff-note">
+    <b>④ 删除 m3-grid-2/3 网格：</b>所有"卡片-并排"模板移除，改为段落流；表格保留（结构性数据不可段落化），但表格前后由段落串联；
+  </div>
+  <div class="diff-note">
+    <b>⑤ 段落样式（CSS）：</b>用衬线字体（思源宋体优先）+ 行高 2.1 + 首行缩进 2 字符 + 两端对齐，让方法论页像《税务稽查专业读本》一样可读；
+  </div>
+  <div class="diff-note">
+    <b>⑥ 章节大标保留可识别性：</b>"全行业完整场景合同"等关键标识符保留为段落引用，便于前后端契约测试对齐；
+  </div>
+  <div class="diff-note">
+    <b>⑦ 测试覆盖：</b>新增 tests/test_methodology_prose.js（21 例断言全过）—— 验证段落密度、章节开头连贯、表格/折叠保留、字段未损坏；全量 Python 单测 151 例全过；端到端 4 家公司全过；浏览器侧 JS（46KB）加载正常。
+  </div>
+</section>
+
+<footer>
+  <b>查看方式</b>：在浏览器打开 <code style="padding:2px 8px;background:#fff;border:1px solid #ccc;border-radius:4px;font-family:monospace">http://127.0.0.1:8001/methodology</code>，从侧边栏"二、风险检查方法论"进入即可看到新版段落式渲染。
+  <br><br>
+  <b>变更影响面</b>：仅 methodology-v3.js（前端渲染器）；后端 API、JSON 数据源、Python 单测保持不变。提交：待 push。
+</footer>
+</body>
+</html>
