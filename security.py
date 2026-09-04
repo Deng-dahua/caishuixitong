@@ -225,6 +225,79 @@ def list_users() -> list[dict]:
     ]
 
 
+# 2026-09-05 修复：/api/companies 必须能在创建时把账套授权给当前用户（普通用户也能建账套并查看），
+# 否则新建账套后选择页始终看不到。前端契约要求创建后立即可访问。
+def grant_company_to_user(user_id: int, company_id: int) -> list[int]:
+    """把账套加入用户的 allowed_company_ids 列表（去重），返回最新列表。"""
+    if int(user_id) <= 0 or int(company_id) <= 0:
+        return []
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT company_ids FROM users WHERE id=?",
+            (int(user_id),),
+        ).fetchone()
+        if not row:
+            return []
+        current = sorted({
+            int(v) for v in json.loads(row["company_ids"] or "[]") if int(v) > 0
+        } | {int(company_id)})
+        connection.execute(
+            "UPDATE users SET company_ids=?, updated_at=? WHERE id=?",
+            (json.dumps(current), int(time.time()), int(user_id)),
+        )
+        return current
+
+
+# 2026-09-05 修复：/api/companies/{id} DELETE 时也撤销用户对该账套的授权。
+def revoke_company_from_user(user_id: int, company_id: int) -> list[int]:
+    if int(user_id) <= 0 or int(company_id) <= 0:
+        return []
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT company_ids FROM users WHERE id=?",
+            (int(user_id),),
+        ).fetchone()
+        if not row:
+            return []
+        current = sorted({
+            int(v) for v in json.loads(row["company_ids"] or "[]")
+            if int(v) > 0 and int(v) != int(company_id)
+        })
+        connection.execute(
+            "UPDATE users SET company_ids=?, updated_at=? WHERE id=?",
+            (json.dumps(current), int(time.time()), int(user_id)),
+        )
+        return current
+
+
+# 2026-09-05 修复：删除账套的级联清理——撤销全部用户的授权 + 清除会话选中态，
+# 避免选择账套页残留已删除账套的会话状态。
+def delete_company_cascade(company_id: int) -> int:
+    """删除账套后：从所有用户的 company_ids 中移除该账套，并清空相关会话的选中态。返回受影响用户数。"""
+    cid = int(company_id)
+    if cid <= 0:
+        return 0
+    affected = 0
+    with _connect() as connection:
+        rows = connection.execute("SELECT id, company_ids FROM users").fetchall()
+        for row in rows:
+            ids = [
+                int(v) for v in json.loads(row["company_ids"] or "[]") if int(v) > 0
+            ]
+            if cid in ids:
+                ids.remove(cid)
+                connection.execute(
+                    "UPDATE users SET company_ids=?, updated_at=? WHERE id=?",
+                    (json.dumps(sorted(ids)), int(time.time()), int(row["id"])),
+                )
+                affected += 1
+        connection.execute(
+            "UPDATE sessions SET selected_company_id=NULL WHERE selected_company_id=?",
+            (cid,),
+        )
+    return affected
+
+
 def _identity_hash(username: str, client_ip: str) -> str:
     value = f"{(username or '').casefold()}|{client_ip or 'unknown'}"
     return hashlib.sha256(value.encode("utf-8")).hexdigest()

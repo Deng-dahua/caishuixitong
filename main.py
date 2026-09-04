@@ -81,6 +81,7 @@ from security import (
     init_security_db, is_protected_static_path, is_public_path,
     login_is_allowed, normalize_client_ip, record_login_result,
     revoke_session, select_company,
+    grant_company_to_user, delete_company_cascade,
 )
 from security_web import (
     auth_me_handler, enforce_request_security, login_handler, logout_handler,
@@ -10852,6 +10853,82 @@ def get_audit_logs(
         ]}
     except Exception as e:
         return {"ok": False, "error": str(e), "logs": []}
+
+
+# ───────────────────────────────────────────────────────────────
+# 账套管理：选择账套页 / 新建账套页 前后端契约（2026-09-05 补齐）
+# 根因：select-company.html 依赖 GET /api/companies 列表、
+#       new-company.html 依赖 POST /api/companies 创建、
+#       select-company.html 依赖 DELETE /api/companies/{id} 删除——
+#       这三个端点此前从未实现，导致「新建账套后选择账套页看不到」。
+# 权限：POST/DELETE 由 enforce_request_security 中间件限定 admin；
+#       GET 按用户授权过滤（admin 全量、普通用户按 company_ids）。
+# ───────────────────────────────────────────────────────────────
+
+def _company_to_card(company) -> dict:
+    """Company 行 → 前端账套卡片字段（select-company.html 契约）。"""
+    return {
+        "id": company.id,
+        "name": company.name or "",
+        "uscc": company.uscc or "",
+        "industry": company.industry_code or "",
+        "company_type": company.company_type or "",
+        "established_date": (
+            str(company.established_date) if company.established_date else ""
+        ),
+    }
+
+
+class CompanyCreatePayload(BaseModel):
+    name: str
+    uscc: str
+
+
+@app.get("/api/companies")
+def list_companies(request: Request, db: Session = Depends(get_db)):
+    """选择账套页：列出当前用户有权访问的全部账套（admin 全量、普通用户按授权过滤）。"""
+    session = request.state.auth
+    companies = db.query(Company).order_by(Company.id.desc()).all()
+    if not session.is_admin:
+        companies = [c for c in companies if c.id in session.allowed_company_ids]
+    return [_company_to_card(c) for c in companies]
+
+
+@app.post("/api/companies")
+def create_company(
+    payload: CompanyCreatePayload,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """新建账套页：创建账套并立即授权给创建者，保证跳转选择页后立即可见。"""
+    name = (payload.name or "").strip()
+    uscc = (payload.uscc or "").strip()
+    if not name:
+        raise HTTPException(400, "公司名称不能为空")
+    if not uscc or len(uscc) != 18:
+        raise HTTPException(400, "统一社会信用代码必须为18位")
+    existing = db.query(Company).filter(Company.uscc == uscc).first()
+    if existing:
+        raise HTTPException(400, "该统一社会信用代码已存在账套")
+    company = Company(name=name, uscc=uscc)
+    db.add(company)
+    db.commit()
+    db.refresh(company)
+    # 创建者立即可见：普通用户依赖 company_ids 授权，admin 恒真但保持数据一致
+    grant_company_to_user(request.state.auth.user_id, company.id)
+    return {"ok": True, "id": company.id, "message": "账套创建成功"}
+
+
+@app.delete("/api/companies/{company_id}")
+def delete_company(company_id: int, db: Session = Depends(get_db)):
+    """删除账套：清理 Company 行 + 全部用户授权 + 会话选中态。"""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(404, "账套不存在")
+    db.delete(company)
+    db.commit()
+    delete_company_cascade(company_id)
+    return {"ok": True, "message": "账套已删除"}
 
 
 @app.put("/api/companies/{company_id}/industry")
