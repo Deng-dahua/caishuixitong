@@ -7462,7 +7462,10 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
     for cname, camt in top_customers:
         if cname not in to_lookup:
             to_lookup.add(cname)
-            lookup_map[cname] = "客户"
+            # 平台运营商（天猫/阿里妈妈/淘宝/京东/抖音等）作为购方收到的多为平台营销·积分·技术服务费发票，
+            # 并非向消费者销售货物产生的客户，外部核查关系改标『平台服务商』，避免误判为购销客户。
+            from engine.verified_rule_engine import _is_platform_operator
+            lookup_map[cname] = "平台服务商" if _is_platform_operator(cname) else "客户"
             lookup_amt[cname] = camt
         elif lookup_map.get(cname) == "供应商":
             lookup_map[cname] = "供应商+客户"  # 同一个企业既是供应商又是客户→购销闭环
