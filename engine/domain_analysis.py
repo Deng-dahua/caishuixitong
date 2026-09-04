@@ -2739,13 +2739,21 @@ def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_securi
 
     # ── 规则3: 购销品名匹配度检测 ──
     if sal_invs and pur_invs:
+        from engine.verified_rule_engine import _invoice_is_service_fee
         sal_goods = set()
         for inv in sal_invs:
+            # 服务费发票（平台结算/纯服务业）本质非货物，不参与购销品名匹配，
+            # 否则货物采购 + 服务销售会被算作品名无重叠、误触发「购销售商品种不匹配」
+            # （服务费 vs 货物销售矛盾，与 VR033 / agi_pipeline.perceive 同源一致）。
+            if _invoice_is_service_fee(inv):
+                continue
             g = str(inv.get("goods", "")).lower()
             for kw in g.replace("*"," ").split():
                 if len(kw) >= 2: sal_goods.add(kw)
         pur_goods = set()
         for inv in pur_invs:
+            if _invoice_is_service_fee(inv):
+                continue
             g = str(inv.get("goods", "")).lower()
             for kw in g.replace("*"," ").split():
                 if len(kw) >= 2: pur_goods.add(kw)
