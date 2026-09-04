@@ -59,6 +59,21 @@ class CompanyApiIntegrationTests(unittest.TestCase):
                 cid = created.json()["id"]
                 assert cid > 0 and cid not in before_ids
 
+                # 4b. 账套种子数据（科目表/增值税科目/部门/期间）——稽查科目余额分析的基础设施
+                from database import SessionLocal, Account, Period, Department
+                sdb = SessionLocal()
+                acct = sdb.query(Account).filter(Account.company_id == cid).count()
+                vat = sdb.query(Account).filter(
+                    Account.company_id == cid, Account.code == "221001001"
+                ).count()
+                dept = sdb.query(Department).filter(Department.company_id == cid).count()
+                period = sdb.query(Period).filter(Period.company_id == cid).count()
+                sdb.close()
+                assert acct > 0, "新账套缺少科目种子"
+                assert vat == 1, "新账套缺少销项税额科目"
+                assert dept > 0, "新账套缺少部门种子"
+                assert period > 0, "新账套缺少期间种子"
+
                 # 5. 创建后选择账套页立即可见（字段契约：id/name/uscc/industry/company_type/established_date）
                 after = client.get("/api/companies")
                 assert after.status_code == 200

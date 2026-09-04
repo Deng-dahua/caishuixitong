@@ -10914,6 +10914,9 @@ def create_company(
     db.add(company)
     db.commit()
     db.refresh(company)
+    # 初始化账套种子数据（科目表/增值税科目/部门/期间）——稽查科目余额分析的基础设施
+    from database import init_company_data
+    init_company_data(db, company.id)
     # 创建者立即可见：普通用户依赖 company_ids 授权，admin 恒真但保持数据一致
     grant_company_to_user(request.state.auth.user_id, company.id)
     return {"ok": True, "id": company.id, "message": "账套创建成功"}

@@ -71,22 +71,22 @@ class Company(Base):
     customers = relationship("Customer", back_populates="company", cascade="all, delete-orphan")
     suppliers = relationship("Supplier", back_populates="company", cascade="all, delete-orphan")
     accounts = relationship("Account", back_populates="company", cascade="all, delete-orphan")
-    periods = relationship("Period", back_populates="company")
+    periods = relationship("Period", back_populates="company", cascade="all, delete-orphan")
     fixed_assets = relationship("FixedAsset", back_populates="company", cascade="all, delete-orphan")
     intangible_assets = relationship("IntangibleAsset", back_populates="company", cascade="all, delete-orphan")
     inventory_items = relationship("InventoryItem", back_populates="company", cascade="all, delete-orphan")
-    inventory_transactions = relationship("InventoryTransaction", back_populates="company")
-    inventory_balances = relationship("InventoryBalance", back_populates="company")
+    inventory_transactions = relationship("InventoryTransaction", back_populates="company", cascade="all, delete-orphan")
+    inventory_balances = relationship("InventoryBalance", back_populates="company", cascade="all, delete-orphan")
     contracts = relationship("Contract", back_populates="company", cascade="all, delete-orphan")
-    contract_payments = relationship("ContractPayment", back_populates="company")
-    payments = relationship("Payment", back_populates="company")
-    sales_invoices = relationship("SalesInvoice", back_populates="company")
-    purchase_invoices = relationship("PurchaseInvoice", back_populates="company")
-    bookkeeping_invoices = relationship("BookkeepingInvoice", back_populates="company")
-    bank_transactions = relationship("BankTransaction", back_populates="company")
-    input_vat_deductions = relationship("InputVATDeduction", back_populates="company")
+    contract_payments = relationship("ContractPayment", back_populates="company", cascade="all, delete-orphan")
+    payments = relationship("Payment", back_populates="company", cascade="all, delete-orphan")
+    sales_invoices = relationship("SalesInvoice", back_populates="company", cascade="all, delete-orphan")
+    purchase_invoices = relationship("PurchaseInvoice", back_populates="company", cascade="all, delete-orphan")
+    bookkeeping_invoices = relationship("BookkeepingInvoice", back_populates="company", cascade="all, delete-orphan")
+    bank_transactions = relationship("BankTransaction", back_populates="company", cascade="all, delete-orphan")
+    input_vat_deductions = relationship("InputVATDeduction", back_populates="company", cascade="all, delete-orphan")
     column_templates = relationship("ColumnTemplate", back_populates="company", cascade="all, delete-orphan")
-    journal_entries = relationship("JournalEntry", back_populates="company")
+    journal_entries = relationship("JournalEntry", back_populates="company", cascade="all, delete-orphan")
     salary_records = relationship("SalaryRecord", back_populates="company", cascade="all, delete-orphan")
     cultural_construction_fee_declarations = relationship("CulturalConstructionFeeDeclaration", back_populates="company", cascade="all, delete-orphan")
 
@@ -1813,6 +1813,152 @@ class IndustryBenchmark(Base):
     __table_args__ = (
         Index('idx_ib_industry_metric', 'industry', 'metric_name'),
     )
+
+
+# ───────────────────────────────────────────────────────────────
+# 账套种子数据（2026-09-05 恢复：上一轮"删做账死代码"时误删了
+# init_company_data 与 _ensure_account 依赖链，导致 init_db 报
+# name 'init_company_data' is not defined、新建账套没有科目/期间种子。
+# 科目表是稽查分析（科目余额比对）的基础设施，必须保留。）
+# ───────────────────────────────────────────────────────────────
+
+# 语义等价映射：短名/别名 → 标准名称
+ACCOUNT_NAME_SEMANTIC_MAP = {
+    "社保费": "社会保险费",
+}
+
+
+def _normalize_account_name(name: str) -> str:
+    """标准化科目名称：去掉服务标记前缀，应用语义等价映射"""
+    import re
+    # 去掉 *XXX* 类服务标记前缀
+    cleaned = re.sub(r'\*[^*]*\*', '', name).strip()
+    # 应用语义等价映射
+    return ACCOUNT_NAME_SEMANTIC_MAP.get(cleaned, cleaned)
+
+
+def _ACCOUNT_PARENT_MAP():
+    """科目→父级编码静态映射（延迟构建避免循环import）"""
+    return {
+        "2211": None, "221101": "2211", "221102": "2211", "221103": "2211",
+        "2221": None, "222101": "2221",
+        "2210": None, "221001": "2210", "221001001": "221001", "221001002": "221001", "221001003": "221001",
+        "221002": "2210", "221003": "2210", "221004": "2210", "221005": "2210",
+        "221006": "2210", "221007": "2210", "221008": "2210",
+        "6602": None, "660201": "6602", "660202": "6602", "660203": "6602",
+        "660204": "6602", "660206": "6602", "660207": "6602",
+        "660209": "6602", "660210": "6602", "660211": "6602", "660212": "6602",
+        "660213": "6602", "660214": "6602", "660215": "6602", "660216": "6602",
+        "6603": None, "660301": "6603",
+        "1221": None,
+        "1122": None,
+        "1123": None,
+        "1002": None,
+        "6001": None,
+    }
+
+
+def _ensure_account(db, company_id, code, name, category, direction, parent_code=None):
+    """确保科目存在，不存在则创建。
+
+    去重规则（自动执行）：
+    - 规则A: 编码去重 —— 同公司+同code已存在→直接跳过
+    - 规则B: 名称去重 —— 同公司+同parent+标准化名已→跳过（日志输出）
+    - 规则C: 语义等价 —— 短名自动映射为标准名再查重
+    """
+    # 规则A: 编码去重（主键级）
+    if db.query(Account).filter(Account.company_id == company_id, Account.code == code).first():
+        return
+
+    # 确定 parent_code
+    if parent_code is None:
+        parent_code = _ACCOUNT_PARENT_MAP().get(code)
+
+    # 规则B+C: 名称去重 —— 同公司、同parent下查标准化名
+    normalized = _normalize_account_name(name)
+    if parent_code:
+        siblings = db.query(Account).filter(
+            Account.company_id == company_id,
+            Account.parent_code == parent_code,
+        ).all()
+        for sib in siblings:
+            sib_norm = _normalize_account_name(sib.name)
+            if sib_norm == normalized:
+                # 名称语义重复 → 防止发散创建
+                import logging
+                logging.getLogger("caishui").warning(
+                    f"[科目去重] 公司{company_id} parent={parent_code} "
+                    f"编码{code}名称\"{name}\"与已有编码{sib.code}名称\"{sib.name}\"语义重复，跳过创建"
+                )
+                return
+
+    # 计算层级
+    level = 1
+    if parent_code:
+        parent_acc = db.query(Account).filter(Account.company_id == company_id, Account.code == parent_code).first()
+        level = (parent_acc.level + 1) if parent_acc else 2
+
+    db.add(Account(
+        company_id=company_id, code=code, name=name,
+        category=category, balance_direction=direction,
+        level=level, parent_code=parent_code,
+    ))
+    db.flush()
+
+
+def init_company_data(db, company_id: int):
+    """为新公司初始化科目表、部门、期间等基础数据"""
+    # 科目表
+    existing = db.query(Account).filter(Account.company_id == company_id).count()
+    if existing == 0:
+        for row in ACCOUNTS_TEMPLATE:
+            code, name, category, direction, level = row[0], row[1], row[2], row[3], row[4]
+            parent = row[5] if len(row) > 5 else None
+            db.add(Account(
+                company_id=company_id, code=code, name=name,
+                category=category, balance_direction=direction,
+                level=level, parent_code=parent
+            ))
+        db.flush()  # 立即刷新，让后续 _ensure_account 能查询到已添加的科目
+
+    # 始终确保增值税完整科目体系（财会〔2016〕22号）
+    vat_accounts = [
+        ("221001001", "销项税额", "负债", "贷"),
+        ("221001002", "进项税额", "负债", "借"),
+        ("221001003", "待认证进项税额", "负债", "贷"),
+        ("221001004", "已交税金", "负债", "借"),
+        ("221001005", "转出未交增值税", "负债", "借"),
+        ("221001006", "转出多交增值税", "负债", "贷"),
+        ("221001007", "减免税款", "负债", "借"),
+        ("221001008", "出口抵减内销产品应纳税额", "负债", "借"),
+        ("221001009", "出口退税", "负债", "贷"),
+        ("221001010", "进项税额转出", "负债", "贷"),
+        ("221001011", "销项税额抵减", "负债", "借"),
+        ("221009", "预交增值税", "负债", "借"),
+        ("221010", "待抵扣进项税额", "负债", "借"),
+        ("221011", "待转销项税额", "负债", "贷"),
+        ("221012", "增值税留抵税额", "负债", "借"),
+        ("221013", "简易计税", "负债", "贷"),
+        ("221014", "转让金融商品应交增值税", "负债", "贷"),
+        ("221015", "代扣代交增值税", "负债", "贷"),
+    ]
+    for code, name, category, direction in vat_accounts:
+        _ensure_account(db, company_id, code, name, category, direction)
+
+    # 部门
+    dept_count = db.query(Department).filter(Department.company_id == company_id).count()
+    if dept_count == 0:
+        for code, name in DEPARTMENTS_TEMPLATE:
+            db.add(Department(company_id=company_id, code=code, name=name))
+
+    # 期间
+    period_count = db.query(Period).filter(Period.company_id == company_id).count()
+    if period_count == 0:
+        from datetime import date
+        current = date.today().strftime("%Y-%m")
+        db.add(Period(company_id=company_id, period=current))
+
+    db.commit()
 
 
 def init_db():
