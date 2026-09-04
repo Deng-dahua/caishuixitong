@@ -65,7 +65,7 @@
   },
   {
    "key": "generated_date",
-   "value": "2026年09月04日 17时13分"
+   "value": "2026年09月04日 21时31分"
   },
   {
    "key": "identity",
@@ -95,7 +95,7 @@
   },
   {
    "key": "materials",
-   "value": "[{\"seq\": 1, \"document_type\": \"其他财税资料\", \"display_name\": \"其他财税资料\", \"read_method\": \"电子表格/结构化读取\", \"read_result\": \"3份读取完整，共0条"
+   "value": "[{\"seq\": 1, \"document_type\": \"记账凭证\", \"display_name\": \"记账凭证\", \"read_method\": \"电子表格/结构化读取\", \"read_result\": \"4份读取完整，共2090条记"
   },
   {
    "key": "confirmed_problems",

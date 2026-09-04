@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime
+import re
 
 from engine.audit_coverage import build_coverage_report, format_coverage_text
 
@@ -1075,6 +1076,95 @@ def _row_period(row):
     return ""
 
 
+# 报告叙述自检：工资/社保记录中常含身份证号（个税申报明细、社保清单、人员档案等），
+# 系统须按姓名回查并据此约束用工身份候选（如『退休返聘』），避免对一名 34 岁的女性盲列
+# 该选项——这是「编制的内容逐字验证其正确性」的最低要求。
+_ID_CARD_KEYS = ("id_card", "id_number", "证件号码", "证件号", "身份证号",
+                "身份证", "cert_no", "idcard", "证书编号")
+_ID_CARD_RE = re.compile(r"^\d{15}$|^\d{17}[\dXx]$|^\d{18}$")
+
+
+def _id_card_of(row):
+    """从记录中提取身份证号字符串，兼容多种键名。
+    仅接受 15/18 位合规格式，避免把工号/电话号码误当作身份证。未获取到或格式不合法返回 ""。"""
+    if not isinstance(row, dict):
+        return ""
+    for k in _ID_CARD_KEYS:
+        v = row.get(k)
+        if not v:
+            continue
+        s = str(v).strip()
+        if _ID_CARD_RE.match(s):
+            return s
+    return ""
+
+
+def _parse_id_card(idcard):
+    """解析 15/18 位身份证号，返回 (出生年份:int, 性别:'男'/'女'/None)。
+    18 位：第 7-10 位为出生年份；17 位（索引 16）奇数=男、偶数=女。
+    15 位：19+第 7-8 位为出生年份；15 位（索引 14）奇数=男。
+    无法解析返回 (None, None)。"""
+    s = str(idcard or "").strip()
+    if re.match(r"^\d{17}[\dXx]$|^\d{18}$", s):
+        try:
+            y = int(s[6:10]); m = int(s[10:12]); d = int(s[12:14])
+            if not (1900 <= y <= 2025 and 1 <= m <= 12 and 1 <= d <= 31):
+                return (None, None)
+            g = "男" if int(s[16]) % 2 == 1 else "女"
+            return (y, g)
+        except Exception:
+            return (None, None)
+    if re.match(r"^\d{15}$", s):
+        try:
+            y = int("19" + s[6:8]); m = int(s[8:10]); d = int(s[10:12])
+            if not (1900 <= y <= 2010 and 1 <= m <= 12 and 1 <= d <= 31):
+                return (None, None)
+            g = "男" if int(s[14]) % 2 == 1 else "女"
+            return (y, g)
+        except Exception:
+            return (None, None)
+    return (None, None)
+
+
+def _employment_candidates_and_note(name, id_by_name, cur_year=None):
+    """按姓名查 → 报告叙述自检用工身份候选。
+    逻辑：
+      - 已核身份证号 + 年龄明显低于法定退休年龄下限（女 50 / 男 60）→ 移除『退休返聘』
+        并附身份证核验信息，避免对一名 34 岁女性等远未到退休年龄的人员盲列该选项；
+      - 已核身份证号 + 已达退休线 → 保留全部候选，附核验信息（透明披露而非定性）；
+      - 未获取身份证号 → 显式声明数据缺口，候选清单标注为「排查清单而非认定结论」，
+        须由企业逐人提供佐证材料闭环。
+    返回 (候选列表, 身份证核验附注字符串)。"""
+    if cur_year is None:
+        cur_year = datetime.now().year
+    all_candidates = ["在职", "退休返聘", "劳务派遣", "兼职", "非雇员劳务"]
+    ic = id_by_name.get(name) or ""
+    if ic:
+        birth_year, gender = _parse_id_card(ic)
+        if birth_year:
+            age = cur_year - birth_year
+            retire_floor = 50 if gender == "女" else (60 if gender == "男" else 50)
+            if gender in ("男", "女") and age < retire_floor:
+                cands = [c for c in all_candidates if c != "退休返聘"]
+                note = ("已核身份证号 {0}：出生于{1}年，{2}性，当前约{3}岁，"
+                        "未达法定退休年龄下限（女 50/男 60），"
+                        "『退休返聘』客观不成立，已从候选清单中剔除").format(
+                    ic, birth_year, gender, age)
+            else:
+                cands = list(all_candidates)
+                note = "已核身份证号 {0}：出生于{1}年，{2}性，当前约{3}岁".format(
+                    ic, birth_year, gender or "未知", age)
+        else:
+            cands = list(all_candidates)
+            note = "已记录身份证号 {0}（格式无法解析出生年份，未能据此校验年龄）".format(ic)
+    else:
+        cands = list(all_candidates)
+        note = ("系统未获取到{0}的身份证号（工资名册/社保清单/人员档案中均无该人员的身份证号字段），"
+                "无法据此校验其年龄与退休状态；下列用工身份选项为排查清单而非认定结论，"
+                "须由企业逐人提供劳动合同、参保凭证或异地参保证明等佐证材料闭环").format(name)
+    return cands, note
+
+
 def _scan_payroll_social(data, spec):
     """工资名册与社会保险人员范围差异（人员级 + 月份级双向匹配）。
 
@@ -1113,6 +1203,23 @@ def _scan_payroll_social(data, spec):
     social_names = set(soc_by_month)
     if len(salary_names) < 5 or len(social_names) < 5:
         return []
+
+    # ── 身份证号自检（报告叙述逐字验证）：按姓名建立 id_card 映射 ──
+    # 来源：工资名册（个税申报明细含证件号码）、社保清单、人员档案等。
+    # 用于在生成『待证线索·用工身份』候选清单时，回查年龄/性别约束『退休返聘』选项，
+    # 避免对一名 34 岁的女性盲列该选项——这是「编制内容逐字验证其正确性」的基本要求。
+    id_by_name = {}
+    for src in (data.get("salaries") or []):
+        nm = _person_name(src)
+        ic = _id_card_of(src)
+        if nm and ic and nm not in id_by_name:
+            id_by_name[nm] = ic
+    for src in (data.get("social_security") or []):
+        nm = _person_name(src)
+        ic = _id_card_of(src)
+        if nm and ic and nm not in id_by_name:
+            id_by_name[nm] = ic
+
     only_salary = sorted(salary_names - social_names)
     only_social = sorted(social_names - salary_names)
     mismatch = len(only_salary) + len(only_social)
@@ -1163,16 +1270,25 @@ def _scan_payroll_social(data, spec):
     detail_rows = (abnormal + normal)[:30]
 
     detail = (
-        "工资名册与社会保险人员清单共{0}人、{1}个『人员-月份』组合纳入比对；"
+        "将工资名册中的每一位员工、每一个月的工资，与社保清单中同人同月的参保记录逐一配对，"
+        "共{0}名员工、{1}组『姓名+月份』配对记录纳入比对（每个配对项即『某员工某月』的工资与社保对应关系）；"
         "人员级未能双向匹配{2}人，占合并人员范围{3:.1%}（已剔除『合计/姓名/小计』等表头合计行，"
         "不参与人员比对）。".format(len(salary_names | social_names),
                                     len(person_month_detail), mismatch, mismatch_ratio)
     )
     if only_salary:
-        detail += ("仅在工资名册、未出现在社保清单的人员共{0}人：{1}——该类人员存在『有工资发放但未依法参保』"
-                   "的待证线索，须逐人说明用工身份（在职/退休返聘/劳务派遣/兼职/非雇员劳务）"
-                   "及未参保原因，并提供劳动合同、参保凭证或异地参保证明。").format(
-            len(only_salary), "、".join(only_salary))
+        # ── 报告自检——按身份证号核验年龄/性别，对『退休返聘』做客观约束 ──
+        person_lines = []
+        for nm in only_salary:
+            cands, note = _employment_candidates_and_note(nm, id_by_name)
+            cands_txt = "、".join(cands)
+            person_lines.append(
+                "{0}（{1}）——存在『有工资发放但未依法参保』待证线索，"
+                "须说明用工身份（{2}）及未参保原因，"
+                "并提供劳动合同、参保凭证或异地参保证明。".format(nm, note, cands_txt)
+            )
+        detail += ("仅在工资名册、未出现在社保清单的人员共{0}人，须按人说明并自证："
+                   "{1}").format(len(only_salary), "；".join(person_lines))
     if only_social:
         detail += "仅在社保清单（未出现在工资名册）的人员：{0}。".format("、".join(only_social))
     if month_gaps:
@@ -1183,7 +1299,7 @@ def _scan_payroll_social(data, spec):
         detail += ("另有{0}人存在『同人部分月份有工资但无社保』的月份级差异：{1}。"
                    "该差异须按所属月份逐人解释：属入职/离职当月未缴纳、社保关系在外单位、"
                    "还是未依法参保。").format(len(month_gaps), gap_txt)
-    detail += "明细表已按『人员-月份』逐行列示工资与社保基数的对应关系，可据此逐人逐月核对。"
+    detail += "明细表已逐行列出每位员工每个月的工资与社保基数对应关系，可据此逐人逐月核对。"
 
     return [_finding(
         spec,
@@ -4316,7 +4432,8 @@ def _scan_wage_splitting(data, spec):
         for g in uniform
     )
     detail = (
-        "按『人员-月份』归位后（共{4}名员工、{5}条人月记录），发现同一月份内多人领取完全相同"
+        "把每位员工每个月的工资逐一归位（按『姓名+月份』分组），共{4}名员工、{5}条人月记录，"
+        "发现同一月份内多人领取完全相同"
         "整数整额工资的情形：{1}，合计{0}人次（已按姓名去重；同一人分多月领取等额工资属固定薪酬，"
         "不计入本项）。多名员工在同一月份领取完全相同且为整数整额的工资，"
         "呈典型的『拆分工资』模板痕迹——实务中常见于将单名员工应得薪酬拆分为多人名义发放，"
