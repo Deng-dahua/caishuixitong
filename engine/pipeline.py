@@ -12,24 +12,11 @@ from engine.thresholds import T  # 税率阈值统一配置
 
 from database import (
     get_db, SessionLocal,
-    Company, Department, Employee, Customer, Supplier,
-    Account, Period,
-    FixedAsset, FixedAssetDepreciation,
-    IntangibleAsset, IntangibleAssetAmortization,
-    InventoryItem, InventoryTransaction, InventoryBalance,
-    Contract, ContractPayment,
-    Payment,
+    Company, CompanyShareholder, CompanyDirector, CompanySupervisor, CompanyFinanceContact,
     SalesInvoice, PurchaseInvoice, BookkeepingInvoice,
-    BankConfig, BankTransaction, BankRule,
-    InputVATDeduction, ColumnTemplate, JournalEntry,
-    SalaryRecord, VATDeclaration,
-    CompanyShareholder, CompanyDirector, CompanySupervisor, CompanyFinanceContact,
-    auto_generate_single_invoice,
-    auto_generate_input_vat_for_period, auto_generate_input_vat_journals,
-    _normalize_customer_name, _match_customer, _generate_bank_journals, _classify_bank_tx, _build_entity_index, _ensure_account,
-    _generate_salary_journals, _generate_hf_accrual_journals, _match_hf_payment_journals,
-    _match_ss_payment_journals, _match_tax_payment_journals,
-    auto_generate_purchase_journal, auto_generate_bookkeeping_journal, _next_voucher_no, _classify_purchase_debit,
+    BankTransaction, SalaryRecord, VATDeclaration,
+    Contract, InputVATDeduction,
+    _normalize_customer_name,
 )
 
 from engine.domain_analysis import *  # 35域分析函数

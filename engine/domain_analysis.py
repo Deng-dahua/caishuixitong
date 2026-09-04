@@ -85,9 +85,7 @@ def _clean_emp_names(rows):
 
 # 数据库模型引用 — 这些函数在 _run_analyze 上下文调用，需要直接引用模型
 from database import (
-    VATDeclaration, JournalEntry, BankTransaction, Account,
-    SalesInvoice, PurchaseInvoice, BookkeepingInvoice,
-    InputVATDeduction, SalaryRecord, Company, Contract,
+    VATDeclaration, Contract, IndustryBenchmark, SessionLocal,
 )
 
 # 项目根目录（engine/ 子目录需要回退一层才能访问 static/ 和根级文件）
