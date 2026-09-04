@@ -479,11 +479,14 @@ def _detect_supplier_concentration(ctx, pur_invs):
 def _detect_customer_concentration(ctx, sal_invs):
     """客户集中度检测（行业自适应阈值）"""
     from collections import defaultdict
+    from engine.verified_rule_engine import _is_platform_operator
     customer_amounts = defaultdict(float)
     for inv in sal_invs:
         buyer = str(inv.get("buyer", inv.get("购方名称", ""))).strip()
         amount = float(inv.get("amount", inv.get("total", 0)) or 0)
-        if buyer and amount > 0:
+        # 平台运营商（天猫/阿里妈妈等）是服务费收款方，非货物销售客户，
+        # 不得计入客户集中度，否则把平台商标为前3大客户（同源矛盾信息误标）
+        if buyer and amount > 0 and not _is_platform_operator(buyer):
             customer_amounts[buyer] += amount
     
     if len(customer_amounts) < 2:
