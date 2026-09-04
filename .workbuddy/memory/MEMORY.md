@@ -46,3 +46,14 @@
 - **业务术语须面向财务展开**：「人员-月份」展开为『姓名+月份』/『员工某月』+ 解释「每位员工每个月的工资与社保一一配对」；禁止抛工程用语而无展开。
 
 实施点：VR005 `_scan_payroll_social`（verified_rule_engine.py）→ `_id_card_of`/`_parse_id_card`/`_employment_candidates_and_note` 三个工具函数；id_by_name 从 `data["salaries"]` + `data["social_security"]` 双源去重构造。域8 描述同步通俗化。同源排查其他含并列候选清单的结论层叙述段。
+
+## 行业门类门槛铁律（2026-09-04 确立，制造业规则误套服务业全面整改）
+凡**制造业专属规则**（进销物耗比/能源消耗/进销存/有进无销/有销无进/数量偏差/运输费货值/BOM/产能/委外加工），执行前必须做**业务模式/行业门类门槛**：
+1. **biz_model==服务业 → 跳过**（广告/传媒/咨询/软件/餐饮等无"原材料→成品"物耗链条，"加价倍数/有进无销/运输费货值"对其无意义——实测广告传媒被误报 20.91 倍、有进无销 82.59%）。
+2. **spec["industries"] 门类过滤必须真正执行**：`run_verified_rules` 里 `_spec_applies_to_entity`（不是只声明在 catalog 不执行）。字母门类 A~Q，行业名→门类映射 `_industry_to_gate`；无法判定时保守返回 True 不误杀。
+3. **服务费（税码 3 开头）一律不参与"货物"维度的任何计算**：税码 3 开头 = 营改增服务，是判定服务的硬口径（`_invoice_is_service_fee` 已实现）。
+4. **原材料/货物判定用 `*类别*` 前缀匹配，禁用裸子串关键词**——"广告发**布**费"的"布"、"航空意外**险**"的"铁"、"卫生**巾**"的"棉"会被裸子串误中成原材料。
+5. **数据特征双保险**：biz_model 识别失败时，若销项/进项服务费占比>90% 也判定为服务业跳过（不单靠 biz_model）。
+
+关键函数：`verified_rule_engine.py` 的 `_industry_to_gate`/`_spec_applies_to_entity`/`_is_raw_material_goods`；
+`pipeline.py` 进销存比对内的 `_inv_is_service`/`_no_physical_sales`；`_detect_target_entity` biz_model 从名称/经营范围推断服务业。
