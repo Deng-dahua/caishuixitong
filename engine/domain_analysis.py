@@ -1324,6 +1324,18 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
     findings = []
     transport_kws = ["运输", "物流", "货运", "运费", "快递", "配送", "搬", "装卸", "承运", "运送"]
 
+    # ── 行业门槛：服务业无「货值→运输费」配比关系 ──
+    # 广告/传媒/咨询/软件/餐饮等服务业购销的是服务，不存在"跨省重物购销必产生运输费"的
+    # 物理必然性。此前把广告传媒的服务费当成"货值"算运输费占比，得出荒谬结论。服务业直接跳过。
+    _SERVICE_INDUSTRY_HINTS = (
+        "广告", "传媒", "咨询", "服务", "设计", "科技", "软件", "互联网", "信息技术",
+        "网络", "通信", "餐饮", "酒店", "教育", "培训", "法律", "财税", "人力", "物业",
+        "中介", "金融", "保险", "旅游", "会展", "策划", "营销", "直播", "文化", "影视",
+        "娱乐", "经纪", "代理", "租赁", "数据",
+    )
+    if target_industry and any(k in str(target_industry) for k in _SERVICE_INDUSTRY_HINTS):
+        return findings
+
     # ── 1. 实际运输费 ──
     actual_transport = 0.0
     if bank_txs:
@@ -1348,6 +1360,10 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
         for inv in (invs or []):
             g = str(inv.get("goods", "")).strip()
             if not g:
+                continue
+            # 服务类发票（税码 3 开头 = 营改增服务）不构成"货值"——服务无实物货物流转
+            tc = str(inv.get("tax_code") or inv.get("税收分类编码") or "")
+            if tc.startswith("3"):
                 continue
             if any(s in g for s in service_kws):
                 continue

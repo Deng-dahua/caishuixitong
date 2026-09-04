@@ -2019,22 +2019,79 @@ def _scan_workforce_revenue(data, spec):
     return []
 
 
-_RAW_MATERIAL_KEYWORDS = ["纱", "布", "棉", "氨纶", "纤维", "坯布", "面料", "针织", "梭织", "染整",
-                          "原料", "钢材", "钢板", "铝", "铜", "铁", "塑料", "化工", "粮食", "木材",
-                          "石材", "水泥", "矿产", "原油", "煤炭", "纸浆", "浆粕", "颗粒"]
+# 原材料/生产物资的「类别前缀」匹配（税目分类 *类别* 口径，避免子串误中）。
+# 反例：广告传媒公司进项「*广告服务*广告发布费」含"布"字，若用裸子串会被误判成纺织原材料，
+# 进而套出「进销加价倍数 20.91 倍」的荒谬结论。故改为匹配 *类别* 里的材料类词，而非品名全文。
+_RAW_MATERIAL_CATEGORIES = [
+    "纱", "布", "棉", "丝", "毛", "麻", "纺织", "针织", "梭织", "面料", "坯布", "纤维", "服装",
+    "金属", "钢铁", "钢材", "钢", "铁", "铝", "铜", "锌", "不锈钢", "合金", "矿产", "矿石",
+    "化工", "塑料", "橡胶", "化学", "涂料", "颜料", "树脂", "原油", "煤炭", "煤炭制品",
+    "木材", "木", "竹", "板材", "纸张", "纸", "浆", "纸浆", "浆粕", "颗粒",
+    "粮食", "谷物", "大豆", "小麦", "玉米", "饲料", "油料", "农副",
+    "水泥", "石材", "玻璃", "陶瓷", "皮革", "毛皮", "电子元件", "电子元器件", "半导体",
+    "线路板", "原料", "原材料",
+]
+# 裸品名（无 *类别* 前缀）兜底用单字/词——仅当税码确认为货物（非 3 开头服务）时才生效，
+# 避免服务费品名被单字误中。
+_RAW_MATERIAL_BARE_KEYWORDS = ["纱", "坯布", "面料", "氨纶", "纤维", "钢材", "钢板", "纸浆", "浆粕"]
+
+
+def _is_raw_material_goods(row):
+    """判定一张进项发票是否为「原材料/生产物资」货物（非服务、非消费品误中）。
+
+    1) 先剔除服务费（税码 3 开头或服务类品名提示）；
+    2) 有 *类别* 前缀 → 要求类别词命中材料类别；
+    3) 无类别前缀 → 仅当裸品名命中明确材料词才认定（避免单字误中）。
+    """
+    if _invoice_is_service_fee(row):
+        return False
+    goods = str(row.get("goods") or row.get("货物或应税劳务名称") or "")
+    if not goods:
+        return False
+    m = re.search(r"\*([^*]+)\*", goods)
+    if m:
+        cat = m.group(1)
+        return any(k in cat for k in _RAW_MATERIAL_CATEGORIES)
+    return any(k in goods for k in _RAW_MATERIAL_BARE_KEYWORDS)
 
 
 def _scan_material_output_ratio(data, spec):
+    """VR023 进销物耗投入产出比核验（仅适用有实物生产/流通的企业，纯服务业不适用）。
+
+    修复要点（2026-09-04）：
+    1. 业务模式门槛：biz_model == 服务业（广告/传媒/咨询等无实物生产）直接跳过——服务业
+       没有「原材料→成品」的物耗链条，「加价倍数」对其无意义（实测广告传媒被误报 20.91 倍）；
+    2. 服务费剔除：进项/销项均用 _invoice_is_service_fee 剔除（税码 3 开头=服务），
+       避免「广告发布费」被当成原材料、「广告服务费」被当成成品；
+    3. 类别前缀匹配：_is_raw_material_goods 按 *类别* 匹配材料类词，根除「发布→布」子串误中。
+    """
     sal_invs = data.get("sal_invs", []) or []
     pur_invs = data.get("pur_invs", []) or []
     if not sal_invs or not pur_invs:
         return []
+    # 业务模式门槛（biz_model 识别 + 服务费占比数据特征双保险）
+    bm = str((data.get("target_entity") or {}).get("biz_model") or "")
+    if bm == "服务业":
+        return []
+    _sal_total = sum(_number(r.get("amount")) for r in sal_invs)
+    _sal_svc = sum(_number(r.get("amount")) for r in sal_invs if _invoice_is_service_fee(r))
+    _pur_total = sum(_number(r.get("amount")) for r in pur_invs)
+    _pur_svc = sum(_number(r.get("amount")) for r in pur_invs if _invoice_is_service_fee(r))
+    # 销项/进项几乎全是服务费（>90%）→ 服务业经营，无「原材料→成品」物耗链条，跳过
+    if _sal_total > 0 and _sal_svc / _sal_total > 0.9:
+        return []
+    if _pur_total > 0 and _pur_svc / _pur_total > 0.9:
+        return []
     raw_amount = sum(
         _number(row.get("amount"))
         for row in pur_invs
-        if any(key in str(row.get("goods") or row.get("货物或应税劳务名称") or "") for key in _RAW_MATERIAL_KEYWORDS)
+        if _is_raw_material_goods(row)
     )
-    output_amount = sum(_number(row.get("amount")) for row in sal_invs)
+    output_amount = sum(
+        _number(row.get("amount"))
+        for row in sal_invs
+        if not _invoice_is_service_fee(row)
+    )
     if raw_amount <= 0 or output_amount <= 0:
         return []
     ratio = output_amount / raw_amount
@@ -5234,9 +5291,80 @@ def build_derivation_tree(findings, catalog=None):
     }
 
 
+# ── 行业门类（GB/T 4754）→ 中文行业名映射 ──
+# 用于执行 VERIFIED_RULE_CATALOG 里 spec["industries"] 的行业门槛过滤。
+# 关键：VR023 等「物耗/能源」规则声明 industries 不含 L（租赁商务服务），
+# 广告/传媒/咨询等服务业（L 门类）本不该触发——此前调度器未执行该过滤导致误报。
+_INDUSTRY_GATE_RULES = [
+    # (关键词组, 门类字母) —— 按顺序匹配，先具体后宽泛（industry 名优先，biz_model 兜底）
+    ("纺织 服装 印染 染整 机械 设备 模具 五金 电子 电器 仪器 汽车 金属 塑料 化工 建材 家具 造纸 印刷 制药 酿造 钢铁 电缆 阀门 轴承 制造 加工 生产 食品加工", "C"),
+    ("餐饮 酒店 住宿 饭店 酒楼 快餐 小吃 烘焙 茶饮", "H"),
+    ("农 林 牧 渔 种植 养殖 茶叶 果蔬 粮食 畜牧 农业", "A"),
+    ("矿 煤 石油 天然气 开采 采掘 矿业", "B"),
+    ("电 热 燃气 供水 能源 电力", "D"),
+    ("建筑 施工 工程 安装 装饰 装修 房地产 房产", "E"),
+    ("运输 物流 仓储 快递 货运 配送 供应链", "G"),
+    ("批发 零售 贸易 商贸 经销 商行 超市 商场 电商 百货 销售 供销", "F"),
+    ("信息 软件 互联网 网络 通信 计算机 数据", "I"),
+    ("金融 银行 保险 证券 投资 基金 典当 担保 小额贷 资本", "J"),
+    ("卫生 医疗 医院 诊所 养老 康复 护理 健康", "Q"),
+    ("教育 培训 学校", "P"),
+    ("文化 体育 娱乐 影视 传媒 广告 设计 咨询 商务 服务 策划 营销 会展 旅游 法律 财税 人力资源 物业 中介 代理 经纪 租赁 科技 管理 数字传媒", "L"),
+]
+_BIZ_MODEL_GATE = {"制造业": "C", "贸易业": "F", "服务业": "L"}
+
+
+def _industry_to_gate(industry_name, biz_model=""):
+    """把中文行业名映射到 GB/T 门类字母（无法识别时用 biz_model 兜底）。"""
+    ind = str(industry_name or "").strip()
+    if ind:
+        for group, gate in _INDUSTRY_GATE_RULES:
+            for kw in group.split():
+                if kw and kw in ind:
+                    return gate
+    return _BIZ_MODEL_GATE.get(str(biz_model or "").strip(), "")
+
+
+def _spec_applies_to_entity(spec, target_entity):
+    """判定某条原子规则是否适用于当前企业（行业门槛）。
+
+    依据 spec["industries"]（GB/T 门类字母、中文业务模式词，或 "ALL"）：
+    - "ALL" → 一律适用；
+    - 字母门类（A/B/C/...）→ 企业行业名/业务模式映射后的门类须命中；
+    - 中文业务模式词（制造业/批发零售/服务业/贸易业）→ 与 biz_model 匹配。
+    缺省（无 industries 字段）视为 ALL（向后兼容，不因新门槛误杀既有规则）。
+    """
+    industries = spec.get("industries") or ["ALL"]
+    if "ALL" in industries:
+        return True
+    te = target_entity or {}
+    bm = str(te.get("biz_model") or "")
+    # 中文业务模式口径
+    for cn in ("制造业", "批发零售", "服务业", "贸易业"):
+        if cn in industries:
+            if cn == "制造业" and bm == "制造业":
+                return True
+            if cn == "批发零售" and bm in ("制造业", "贸易业"):
+                return True
+            if cn == "服务业" and bm == "服务业":
+                return True
+            if cn == "贸易业" and bm == "贸易业":
+                return True
+    # 字母门类口径
+    letters = [x for x in industries if isinstance(x, str) and len(x) == 1 and x.isupper()]
+    if letters:
+        gate = _industry_to_gate(str(te.get("industry") or ""), bm)
+        if not gate:
+            return True  # 行业无法判定 → 保守执行，不误杀真实风险
+        return gate in letters
+    # 既无 ALL、无字母、无中文业务模式词 → 无法判定，视为适用（保守，不误杀）
+    return True
+
+
 def run_verified_rules(engine_data):
     """运行全部已验证原子规则，返回发现和逐规则执行记录。"""
     findings, executions = [], []
+    target_entity = engine_data.get("target_entity") or {}
     for spec in VERIFIED_RULE_CATALOG:
         missing = [source for source in spec["required_sources"] if not engine_data.get(source)]
         if missing:
@@ -5244,6 +5372,16 @@ def run_verified_rules(engine_data):
                 "rule_id": spec["id"],
                 "status": "not_run_missing_data",
                 "missing_sources": missing,
+            })
+            continue
+        # ── 行业门槛：规则声明仅适用某些门类时，服务业等不匹配行业直接跳过 ──
+        if not _spec_applies_to_entity(spec, target_entity):
+            executions.append({
+                "rule_id": spec["id"],
+                "status": "skipped_industry",
+                "industries": spec.get("industries"),
+                "entity_industry": target_entity.get("industry", ""),
+                "entity_biz_model": target_entity.get("biz_model", ""),
             })
             continue
         try:

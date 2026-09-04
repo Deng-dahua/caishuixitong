@@ -1112,34 +1112,35 @@ def _run_analyze(company_id, db, progress_callback=None):
         # 结果：一家公司既有服务又有货物 → 服务跳过，货物照查
         import re
         # 从 industry_data.json 加载服务行业编码（外部化配置，支持全行业扩展）
-        try:
-            _ind_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
-            with open(_ind_path, 'r', encoding='utf-8') as _f:
-                _ind_data = json.loads(_f.read())
-            SERVICE_INDUSTRY_CODES = _ind_data.get("service_industries", {}).get("codes", [
-                "广告服务","信息技术服务","研发和技术服务","文化创意服务",
-                "物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务",
-                "金融服务","现代服务","生活服务","电信服务","建筑服务",
-                "教育服务","医疗服务","旅游服务","娱乐服务","餐饮服务",
-                "居民日常服务","其他现代服务","经纪代理服务","人力资源服务",
-                "安全保护服务","会议展览服务","租赁服务","无形资产",
-            ])
-        except Exception:
-            SERVICE_INDUSTRY_CODES = [
-                "广告服务","信息技术服务","研发和技术服务","文化创意服务",
-                "物流辅助服务","鉴证咨询服务","广播影视服务","商务辅助服务",
-                "金融服务","现代服务","生活服务","电信服务","建筑服务",
-                "教育服务","医疗服务","旅游服务","娱乐服务","餐饮服务",
-                "居民日常服务","其他现代服务","经纪代理服务","人力资源服务",
-                "安全保护服务","会议展览服务","租赁服务","无形资产",
-            ]
-        
+        # ═══ 服务类发票判定（税码 3 开头 = 营改增服务，无实物货物流转）═══
+        # 服务税目分类词（营改增现代服务/生活服务/建筑/金融/无形资产等税目口径）。
+        # 注意：industry_data.json 的 service_industries 是「行业名」列表（如"广告传媒"），
+        # 与发票品名 *类别*（税目分类，如"广告服务"）口径不同，不能用它直接匹配品名类别。
+        _SERVICE_TAX_CATEGORIES = [
+            "广告服务", "信息技术服务", "研发和技术服务", "文化创意服务", "设计服务",
+            "物流辅助服务", "鉴证咨询服务", "咨询服务", "广播影视服务", "商务辅助服务",
+            "金融服务", "现代服务", "生活服务", "电信服务", "建筑服务", "检测服务",
+            "教育服务", "医疗服务", "旅游服务", "娱乐服务", "餐饮服务", "酒店服务",
+            "居民日常服务", "其他现代服务", "经纪代理服务", "人力资源服务", "技术服务",
+            "安全保护服务", "会议展览服务", "租赁服务", "无形资产", "研发服务", "法律服务",
+            "财税服务", "互联网", "物流运输", "物流仓储", "物业服务", "服务费", "咨询",
+        ]
+
         def _is_service_goods(goods_name):
-            """判断品名是否为服务类（非实物）"""
+            """判断品名是否为服务类（非实物）——按 *类别* 税目分类词匹配。"""
             m = re.search(r'\*([^*]+)\*', str(goods_name))
-            if not m: return False
+            if not m:
+                return False
             cat = m.group(1)
-            return any(s in cat for s in SERVICE_INDUSTRY_CODES)
+            return any(s in cat for s in _SERVICE_TAX_CATEGORIES)
+
+        def _inv_is_service(inv):
+            """判断一张发票是否为服务类（税码 3 开头优先，品名类别兜底）。"""
+            tc = str(inv.get("tax_code") or inv.get("税收分类编码") or "")
+            if tc.startswith("3"):
+                return True
+            g = str(inv.get("goods") or inv.get("货物或应税劳务名称") or "")
+            return _is_service_goods(g)
         
         # 扫描所有品名的服务/实物分类
         all_sale_cats = set()
@@ -1176,16 +1177,18 @@ def _run_analyze(company_id, db, progress_callback=None):
         pur_core_by_goods = defaultdict(lambda: {"qty": 0, "amount": 0, "count": 0})
         
         for inv in sal_invs:
+            # 服务类发票跳过进销存比对（税码 3 开头或服务品名）
+            if _inv_is_service(inv): continue
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
             if not g: g = "未命名商品"
-            # 服务类品名跳过进销存数量比对
-            if _is_service_goods(g): continue
             q = float(inv.get("qty", inv.get("数量", 0)) or 0)
             a = float(inv.get("amount", inv.get("金额", 0)) or 0)
             sale_by_goods[g]["qty"] += q
             sale_by_goods[g]["amount"] += a
             sale_by_goods[g]["count"] += 1
         for inv in pur_invs:
+            # 服务类进项（广告发布费/咨询费/设计费/餐饮费…）不是"货物"，不参与进销存比对
+            if _inv_is_service(inv): continue
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
             if not g: g = "未命名商品"
             q = float(inv.get("qty", inv.get("数量", 0)) or 0)
@@ -1193,8 +1196,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             pur_by_goods[g]["qty"] += q
             pur_by_goods[g]["amount"] += a
             pur_by_goods[g]["count"] += 1
-        # ── 核心成本层独立聚合 ──
+        # ── 核心成本层独立聚合（同样剔除服务类，避免服务费被当作"核心成本货物"）──
         for inv in core_cost_invs:
+            if _inv_is_service(inv): continue
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
             if not g: g = "未命名商品"
             q = float(inv.get("qty", inv.get("数量", 0)) or 0)
@@ -1205,7 +1209,13 @@ def _run_analyze(company_id, db, progress_callback=None):
         
         # 排除的费用品名集合（用于有进无销/有销无进的过滤）
         expense_goods_set = set(expense_goods)
-        
+
+        # 服务业经营（销项无实物货物）：不适用「货物进销存」比对
+        # 广告/传媒/咨询等服务业销项是服务费，进项是办公用品/服务，不存在"采购货物→销售货物"的
+        # 进销存链条。若销项经服务费剔除后无任何实物货物，则"有进无销/有销无进/数量偏差"等
+        # 货物比对对其无意义，应跳过而非报"有进无销 100%"这类荒谬结论。
+        _no_physical_sales = len(sale_by_goods) == 0
+
         # ═══════════════════════════════════════════════════
         # 检查1：有进无销（33）
         # 税务合规方法论④-A：只对主营业务成本的采购做有进无销判断
@@ -1217,7 +1227,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         # 统计被排除的费用类"仅采购"（不标记为风险，仅作说明）
         expense_only_buy = [g for g in pur_by_goods if g not in sale_by_goods and g in expense_goods_set]
         
-        if core_only_buy:
+        if core_only_buy and not _no_physical_sales:
             pur_core_total = sum(pur_core_by_goods[g]["amount"] for g in pur_core_by_goods)
             pur_amount_only = sum(pur_core_by_goods[g]["amount"] for g in core_only_buy)
             pct = pur_amount_only / max(pur_core_total, 1) * 100
@@ -1446,15 +1456,29 @@ def _run_analyze(company_id, db, progress_callback=None):
                 },
             })
         
-        # 总额概括
-        sale_total = sum(float(inv.get("amount", 0) or 0) for inv in sal_invs)
-        pur_total = sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
-        pur_core_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in core_cost_invs)
-        inv_match_findings.insert(0, {
-            "type": "进销存虚拟匹配概览", "level": "低风险", "score": 2,
-            "detail": f"基于{len(sal_invs)}张销项发票×{len(pur_invs)}张进项发票构建虚拟进销存。销项总额{sale_total:,.2f}元，进项总额{pur_total:,.2f}元（其中核心成本{pur_core_total:,.2f}元/{n_core}张，重大费用{n_major}张，日常报销{n_minor}张）。货物品类：销{len(sale_by_goods)}种/进{len(pur_by_goods)}种。",
-            "category": "进销存匹配",
-        })
+        # 总额概括（只统计实物发票——服务费不是"货值"，不参与进销存/运输费货值计算）
+        _phys_sal = [i for i in sal_invs if not _inv_is_service(i)]
+        _phys_pur = [i for i in pur_invs if not _inv_is_service(i)]
+        _phys_core = [i for i in core_cost_invs if not _inv_is_service(i)]
+        sale_total = sum(float(inv.get("amount", 0) or 0) for inv in _phys_sal)
+        pur_total = sum(float(inv.get("amount", 0) or 0) for inv in _phys_pur)
+        pur_core_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in _phys_core)
+        if _no_physical_sales:
+            # 服务业：销项经剔除后无实物货物，不构建"货物进销存"比对
+            inv_match_findings.insert(0, {
+                "type": "进销存虚拟匹配概览", "level": "信息", "score": 0,
+                "detail": f"销项发票经剔除服务类后无实物货物（销项均为服务费/劳务），"
+                          f"不适用『货物进销存』比对；进项中非服务类采购{pur_total:,.2f}元"
+                          f"（{len(_phys_pur)}张）多为办公、耗材、礼品等日常经营采购，"
+                          f"非用于再销售的主营货物，不按有进无销判定。",
+                "category": "进销存匹配",
+            })
+        else:
+            inv_match_findings.insert(0, {
+                "type": "进销存虚拟匹配概览", "level": "低风险", "score": 2,
+                "detail": f"基于{len(_phys_sal)}张销项发票×{len(_phys_pur)}张进项发票构建虚拟进销存（已剔除服务类发票）。销项总额{sale_total:,.2f}元，进项总额{pur_total:,.2f}元（其中核心成本{pur_core_total:,.2f}元/{len(_phys_core)}张，重大费用{n_major}张，日常报销{n_minor}张）。货物品类：销{len(sale_by_goods)}种/进{len(pur_by_goods)}种。",
+                "category": "进销存匹配",
+            })
     
     if inv_match_findings:
         pipeline_log.append(f"虚拟进销存分析: {len(inv_match_findings)}项发现")
@@ -6658,6 +6682,19 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline
             if real_processing or "劳务" in goods or "制造" in goods or "生产" in goods:
                 entity["biz_model"] = "制造业"
                 break
+        if not entity.get("biz_model"):
+            # 从公司名称/经营范围推断服务业（餐饮/广告/咨询/软件/设计/科技等无实物生产）
+            # 修复：餐饮等行业识别为空时被误判"贸易业"，导致后续套用货物进销存规则
+            _scope = str(entity.get("business_scope") or "") + str(entity.get("name") or "")
+            _SERVICE_NAME_HINTS = (
+                "餐饮", "酒店", "住宿", "饭店", "酒楼", "小吃", "快餐", "烘焙", "茶饮",
+                "广告", "传媒", "咨询", "服务", "设计", "科技", "软件", "互联网", "网络",
+                "信息技术", "教育", "培训", "法律", "财税", "人力资源", "物业", "中介",
+                "金融", "保险", "旅游", "会展", "策划", "营销", "直播", "文化", "影视",
+                "娱乐", "经纪", "代理", "租赁",
+            )
+            if any(k in _scope for k in _SERVICE_NAME_HINTS):
+                entity["biz_model"] = "服务业"
         if not entity.get("biz_model"):
             entity["biz_model"] = "贸易业"
     
