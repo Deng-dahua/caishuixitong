@@ -1517,23 +1517,29 @@ class TaxAuditAgent:
         """感知层：数据解析 + 特征提取 + 异常检测"""
         if ctx is None:
             return {}
-        
+        from engine.verified_rule_engine import _invoice_is_service_fee
+
         cp = ctx.company_profile or {}
         fs = ctx.financial_snapshot or {}
-        
+
         # 计算关键比率
         total_sales = fs.get("total_sales", 0)
         total_bank_in = fs.get("total_bank_in", 0)
         total_purchases = fs.get("total_purchases", 0)
         total_bank_out = fs.get("total_bank_out", 0)
-        
+
         bank_in_ratio = total_bank_in / total_sales if total_sales > 0 else 1.0
         bank_out_ratio = total_bank_out / total_purchases if total_purchases > 0 else 1.0
-        
+
         # 进销品名匹配率
         sal_goods = set()
         pur_goods = set()
         for inv in invoices or []:
+            # 服务费发票（平台结算/纯服务业）本质非货物，不参与进销品名匹配，
+            # 否则货物采购+服务销售会被算作 100% 不匹配、误触发「进销品名不匹配→虚开」
+            # 假设（与 VR033 一致，服务费 vs 货物销售矛盾）。
+            if _invoice_is_service_fee(inv):
+                continue
             goods = str(inv.get("goods", "")).strip()
             if not goods:
                 continue
