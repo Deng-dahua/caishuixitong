@@ -13,6 +13,8 @@ import re
 from datetime import datetime
 from collections import Counter, OrderedDict
 
+from engine.inspector_reasoning import build_inspector_reasoning
+
 
 def _norm_text(text):
     """中文标点规范化：消除拼接残留的 "。。""。；"".、" 等异常序列。"""
@@ -813,6 +815,23 @@ def _build_summary(report_data, problems, completed, further):
     te = report_data.get("target_entity", {}) or {}
 
     key_points = []
+
+    # 专家研判·行业对标置顶：把"毛利率/进销结构 vs 行业基准"的相对判断放在最前，
+    # 让报告开篇像人类稽查专家一样先给出"这家企业哪里不对劲"的整体判断，而非平铺规则命中。
+    try:
+        _reasoning = build_inspector_reasoning(report_data)
+        _bench = (_reasoning.get("industry_benchmark") or {}).get("observations") or []
+        _striking = [o for o in _bench if o.get("direction") not in ("处于合理区间",)]
+        if _striking:
+            _o = _striking[0]
+            key_points.append(
+                f"【行业对标】对照{(_reasoning.get('industry_benchmark') or {}).get('benchmark_name', '行业')}"
+                f"基准，本企业{_o['metric']}{_o['actual']}%（行业{_o['benchmark']}），{_o['direction']}。"
+                f"{_o['why']}"
+            )
+    except Exception:
+        pass
+
     for p in problems[:5]:
         first = p.get("narrative_paragraphs", [{}])[0].get("text", "") if p.get("narrative_paragraphs") else ""
         grade = p.get("conclusion_grade") or "待核"
@@ -1392,6 +1411,7 @@ def build_enterprise_readable_report(report_data):
     false_invoice_report = _build_false_invoice_report(report_data)
     fund_loop_report = _build_fund_loop_report(report_data)
     inspection_questions_report = _build_inspection_questions_report(report_data)
+    inspector_reasoning = build_inspector_reasoning(report_data)
 
     # 专项报告的 metrics 指标键统一中文化（独立于 observed_metrics 的另一处英文键来源）
     for _sec in (two_tax_report, input_voucher_report, false_invoice_report,
@@ -1405,6 +1425,7 @@ def build_enterprise_readable_report(report_data):
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
         "identity": _build_identity(report_data),
         "inspector_perspective": _build_inspector_perspective(),
+        "inspector_reasoning": inspector_reasoning,
         "summary": summary,
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
