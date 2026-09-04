@@ -2574,8 +2574,16 @@ def _scan_goods_name_divergence(data, spec):
     pur = data.get("pur_invs", []) or []
     if not sal or not pur:
         return []
-    pur_cats = {_goods_category(r.get("goods")) for r in pur if _goods_category(r.get("goods")) not in ("未知",)}
-    sal_cats = {_goods_category(r.get("goods")) for r in sal if _goods_category(r.get("goods")) not in ("未知",)}
+    # 变名开票仅适用于「货物→货物」改名（如煤炭变建材）；服务费发票（平台结算/纯服务业）
+    # 本质是服务而非货物，不计入进销品名背离比对，否则会把「货物采购 + 服务销售」的正常
+    # 经营模式（电商 B2C 经平台结算，进项宠物食品货、销项平台服务费）误报为变名开票——
+    # 与 domain_analysis 纯服务业进销品名差异归零逻辑一致（服务费 vs 货物销售矛盾）。
+    sal_goods = [r for r in sal if not _invoice_is_service_fee(r)]
+    pur_goods = [r for r in pur if not _invoice_is_service_fee(r)]
+    if not sal_goods or not pur_goods:
+        return []
+    pur_cats = {_goods_category(r.get("goods")) for r in pur_goods if _goods_category(r.get("goods")) not in ("未知",)}
+    sal_cats = {_goods_category(r.get("goods")) for r in sal_goods if _goods_category(r.get("goods")) not in ("未知",)}
     if not pur_cats or not sal_cats:
         return []
     # 合理产业链：原料→成品、加工服务不构成背离

@@ -520,5 +520,45 @@ class TestScanConcentrationPlatformExclusion(unittest.TestCase):
         self.assertEqual(cust, [], "纯平台服务费销项不应产生客户集中度信号")
 
 
+class TestScanGoodsDivergenceServiceExclusion(unittest.TestCase):
+    """VR033（进销品名背离/变名开票）服务费发票不得参与货物品名比对。
+
+    变名开票仅适用于「货物→货物」改名；电商 B2C 经平台结算（进项宠物食品货、
+    销项平台服务费）的货物采购 + 服务销售本质差异，非变名开票，不得误报。
+    """
+
+    _SPEC = {"id": "VR033", "name": "进销品名背离", "required_sources": ["发票"]}
+
+    def test_service_sales_with_goods_purchases_not_flagged(self):
+        # 猩猩织光式：进项宠物食品（货）、销项平台服务费（tax_code 304）
+        data = {
+            "sal_invs": [
+                {"buyer": "浙江天猫技术有限公司", "goods": "*研发和技术服务*专业技术服务",
+                 "tax_code": "3040800000000000000", "amount": 254000.0},
+                {"buyer": "杭州阿里妈妈软件服务有限公司", "goods": "*信息技术服务*服务费",
+                 "tax_code": "3049900000000000000", "amount": 187000.0},
+            ],
+            "pur_invs": [
+                {"seller": "某宠物食品厂", "goods": "宠物食品", "tax_code": "1030000000000000000", "amount": 300000.0},
+            ],
+        }
+        fs = V._scan_goods_name_divergence(data, self._SPEC)
+        self.assertEqual(fs, [], "货物采购+服务销售不得误报为变名开票")
+
+    def test_goods_to_goods_divergence_still_fires(self):
+        # 对照组：煤炭（矿产）→ 建材（建材），均为货物，应正常触发变名开票
+        data = {
+            "sal_invs": [
+                {"buyer": "某建材公司", "goods": "建材", "tax_code": "1020000000000000000", "amount": 500000.0},
+            ],
+            "pur_invs": [
+                {"seller": "某煤矿", "goods": "煤炭", "tax_code": "1010000000000000000", "amount": 480000.0},
+            ],
+        }
+        fs = V._scan_goods_name_divergence(data, self._SPEC)
+        self.assertTrue(fs, "货物→货物变名（煤炭变建材）应触发进销品名背离")
+        self.assertIn("进销品名严重背离", fs[0]["detail"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
