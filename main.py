@@ -7081,11 +7081,14 @@ def smart_sampling(company_id: int = Query(...), sample_size: int = Query(10)):
         })
     
     # 客户金额排序（Top N）
+    from engine.verified_rule_engine import _is_platform_operator
     customer_amt = {}
     for inv in sal_detail:
         cname = inv.get("对方公司名称", "").strip()
-        amt = float(inv.get("价税合计", 0) or 0)
-        customer_amt[cname] = customer_amt.get(cname, 0) + amt
+        # 平台运营商（天猫/阿里妈妈等）是服务费收款方，本质非客户，排除出客户列表
+        if cname and not _is_platform_operator(cname):
+            amt = float(inv.get("价税合计", 0) or 0)
+            customer_amt[cname] = customer_amt.get(cname, 0) + amt
     
     top_customers = sorted(customer_amt.items(), key=lambda x: -x[1])[:sample_size]
     for cname, amt in top_customers:

@@ -2651,6 +2651,7 @@ def _analyze_salary_compliance(db, company_id, ps, pe, results):
 
 def _analyze_customer_penetration(db, company_id, ps, pe, results):
     """前十大客户分析、客户集中度、异常客户"""
+    from engine.verified_rule_engine import _is_platform_operator
     customers = db.query(Customer).filter(Customer.company_id == company_id).all()
     if not customers:
         return
@@ -2659,12 +2660,17 @@ def _analyze_customer_penetration(db, company_id, ps, pe, results):
     customer_sales = {}
     for c in customers:
         code = c.code or ''
+        cname = c.name or code
+        # 平台运营商（天猫/阿里妈妈等）是服务费收款方，本质非客户；
+        # 计入客户集中度会把平台商标为「第一大客户」，虚增占比（三对矛盾信息同源误标）。
+        if _is_platform_operator(cname):
+            continue
         if code:
             amt = _safe_float(db.query(func.sum(SalesInvoice.total_amount)).filter(
                 SalesInvoice.company_id == company_id,
                 SalesInvoice.buyer_tax_no == c.tax_no).scalar())
             if amt > 0:
-                customer_sales[c.name or code] = amt
+                customer_sales[cname] = amt
 
     if not customer_sales:
         return
