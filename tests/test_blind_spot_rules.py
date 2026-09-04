@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from engine import verified_rule_engine as V
 from engine import scenario_execution as SE
 from engine import domain_analysis as DA
+from engine import false_invoice as FI
 
 
 def _company3_data():
@@ -397,6 +398,48 @@ class TestSupplyChainConcentration(unittest.TestCase):
         self.assertEqual(len(sup), 1, "前3供应商占91.89%应触发供应商高度集中")
         self.assertIn("前3大供应商占比91.89%", sup[0]["type"],
             "应取前3切片而非全部100%；旧代码会误报100%")
+
+
+class TestFalseInvoiceConcentration(unittest.TestCase):
+    """回归：虚开引擎『集中顶额开票』客户集中度须剔除平台服务商（天猫/阿里妈妈），
+    服务费发票收款方不得当『前3大客户』计入占比——同源矛盾信息误标的最后一环。"""
+
+    def _check(self, sal_invs):
+        return FI.run_false_invoice_check(sal_invs, pur_invs=[], bank_txs=None,
+                                          company_name="测试主体")
+
+    def test_excludes_platform_operators_from_customer_concentration(self):
+        """销项被平台服务费发票主导时，集中度指标应仅反映真实客户，平台商不得成『最大客户』。"""
+        sal = [
+            {"buyer": "浙江天猫技术有限公司", "amount": 254000.0},
+            {"buyer": "杭州阿里妈妈软件服务有限公司", "amount": 187000.0},
+            {"buyer": "真实客户A", "amount": 50000.0},
+            {"buyer": "真实客户B", "amount": 40000.0},
+            {"buyer": "真实客户C", "amount": 30000.0},
+            {"buyer": "真实客户D", "amount": 1000.0},
+        ]
+        r = self._check(sal)
+        m = r["metrics"]
+        # 通过信号文案反查：集中度信号不得把平台商标为最大客户
+        conc_sig = [s for s in r["signals"] if "集中顶额开票" in s["signal"]]
+        if conc_sig:
+            self.assertNotIn("天猫", conc_sig[0]["signal"])
+            self.assertNotIn("阿里妈妈", conc_sig[0]["signal"])
+        # 占比基于真实客户合计（121000）的前3（120000）= 99.17%
+        self.assertAlmostEqual(m["top3_customer_share"], 0.9917, places=3,
+            msg="前3真实客户占比应≈99.17%（剔除平台后），而非含平台的44.1%")
+
+    def test_platform_only_sales_yield_no_customer_concentration_signal(self):
+        """销项全部为平台服务费发票时，不应产生『客户集中度』信号（无真实货物销售客户）。"""
+        sal = [
+            {"buyer": "浙江天猫技术有限公司", "amount": 254000.0},
+            {"buyer": "杭州阿里妈妈软件服务有限公司", "amount": 187000.0},
+        ]
+        r = self._check(sal)
+        conc_sig = [s for s in r["signals"] if "集中顶额开票" in s["signal"]]
+        self.assertEqual(len(conc_sig), 0,
+            "纯平台服务费发票不应触发『客户集中度』信号；平台商不得当客户")
+        self.assertEqual(r["metrics"]["top3_customer_share"], 0.0)
 
 
 if __name__ == "__main__":

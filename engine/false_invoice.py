@@ -111,22 +111,27 @@ def run_false_invoice_check(sal_invs, pur_invs, cross_enterprise=None,
             deviate_signal = ("进销项严重背离", f"进项{pur_total:,.2f}元 / 销项{sal_total:,.2f}元 = {pur_total/sal_total:.1f}倍",
                               "大量采购无对应销售，疑似过票/空转；结合库存与下游销售核实。")
 
-    # ── 2) 集中顶额开票（销项）──
-    top1_name = ""
+    # ── 2) 集中顶额开票（销项，剔除平台服务商后按真实客户集中度）──
+    # 平台运营商（天猫/阿里妈妈等）是服务费收款方，非货物销售客户；
+    # 服务费发票不得计入"客户集中度"，否则会把平台商误标为"前3大客户"、虚增占比（同源矛盾信息误标）。
+    from engine.verified_rule_engine import _is_platform_operator
+    top1_name = "（无真实货物销售客户，销项均为平台服务费）"
     top1_amt = 0.0
     cust = defaultdict(float)
     for i in sal:
         b = _buyer(i)
         a = _amount(i)
-        if b:
-            cust[b] += a
+        if not b or _is_platform_operator(b):
+            continue  # 跳过平台运营商（服务费收款方，非货物销售客户）
+        cust[b] += a
         if a > top1_amt:
             top1_amt = a
-            top1_name = b or "（无购方名）"
-    top1_share = (top1_amt / sal_total) if sal_total else 0.0
+            top1_name = b
+    sal_total_real = sum(cust.values())  # 真实客户销项合计（已剔除平台服务商）
+    top1_share = (top1_amt / sal_total_real) if sal_total_real else 0.0
     sorted_cust = sorted(cust.items(), key=lambda x: -x[1])
     top3_amt = sum(a for _, a in sorted_cust[:3])
-    top3_share = (top3_amt / sal_total) if sal_total else 0.0
+    top3_share = (top3_amt / sal_total_real) if sal_total_real else 0.0
 
     # ── 3) 顶额凑数（大量同额发票）──
     # 按发票号去重后再统计金额频次：一张发票的多行明细不应被重复计数，
@@ -234,7 +239,7 @@ def run_false_invoice_check(sal_invs, pur_invs, cross_enterprise=None,
     lines.append(f"销项总额：{sal_total:,.2f}元（{len(sal)}张）｜进项总额：{pur_total:,.2f}元（{len(pur)}张）")
     if deviate_signal:
         lines.append(f"进销背离：{deviate_signal[1]}")
-    lines.append(f"客户集中度：最大{top1_share*100:.1f}%、前3{top3_share*100:.1f}%（最大客户：{top1_name}）")
+    lines.append(f"客户集中度：最大{top1_share*100:.1f}%、前3占{top3_share*100:.1f}%（最大客户：{top1_name}）")
     if same_amount_groups:
         lines.append("同额发票：" + "、".join(f"{a:,.0f}元×{c}张" for a, c in same_amount_groups[:3]))
     if circ_names:

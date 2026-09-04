@@ -30,7 +30,7 @@
    "capability": "false_invoice",
    "available": true,
    "verdict": "存在多项虚开特征组合，须重点核查业务真实性",
-   "summary": "销项94,349.19元 / 进项5,030,839.56元；进销背离×0.019；前3客户占44.7%；",
+   "summary": "销项94,349.19元 / 进项5,030,839.56元；进销背离×0.019；前3客户占17.5%；",
    "metrics_keys": [
     "sales_total",
     "purchase_total",
@@ -65,7 +65,7 @@
   },
   {
    "key": "generated_date",
-   "value": "2026年09月04日 16时58分"
+   "value": "2026年09月04日 17时13分"
   },
   {
    "key": "identity",
