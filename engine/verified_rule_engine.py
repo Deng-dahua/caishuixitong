@@ -1477,7 +1477,9 @@ def _scan_concentration(data, spec):
             suppliers[name] += _number(row.get("amount"))
     for row in sal:
         name = str(row.get("buyer") or row.get("购方名称") or "").strip()
-        if name:
+        # 平台运营商（天猫/阿里妈妈等）是服务费收款方，本质非客户；
+        # 计入客户集中度会把平台商标为「前3大客户」、虚增占比（三对矛盾信息同源误标）。
+        if name and not _is_platform_operator(name):
             customers[name] += _number(row.get("amount"))
     supplier_total = sum(suppliers.values())
     customer_total = sum(customers.values())

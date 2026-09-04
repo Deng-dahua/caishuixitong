@@ -477,5 +477,48 @@ class TestBusinessModelPlatformExclusion(unittest.TestCase):
         self.assertTrue(s["platforms"])
 
 
+class TestScanConcentrationPlatformExclusion(unittest.TestCase):
+    """VR017（购销集中度）客户侧不得把平台运营商当「前3大客户」计入占比。
+
+    与 domain_analysis / false_invoice / phase1_triage / business_model 同源：
+    平台运营商是服务费收款方，本质非客户。_scan_concentration 此前只做了 [:3] 切片，
+    漏了平台剔除，会输出「前3大客户占X%（最大客户：浙江天猫技术有限公司）」式误标。
+    """
+
+    _SPEC = {"id": "VR017", "name": "购销集中度", "required_sources": ["发票"]}
+
+    def _sal(self, rows):
+        return {"sal_invs": rows, "pur_invs": []}
+
+    def test_customer_concentration_excludes_platform_operators(self):
+        # 平台服务费（大）+ 3 个真实客户（top3 占真实客户合计 94.7%）
+        sal = [
+            {"buyer": "浙江天猫技术有限公司", "amount": 500000.0},  # 应被剔除
+            {"buyer": "杭州阿里妈妈软件服务有限公司", "amount": 300000.0},  # 应被剔除
+            {"buyer": "嘉兴彼格猫商贸有限公司", "amount": 400000.0},
+            {"buyer": "苏州某某制造有限公司", "amount": 300000.0},
+            {"buyer": "宁波生鲜供应链有限公司", "amount": 200000.0},
+            {"buyer": "温州小商品批发部", "amount": 50000.0},
+        ]
+        fs = V._scan_concentration(self._sal(sal), self._SPEC)
+        cust = [f for f in fs if "前3大客户" in f.get("detail", "")]
+        self.assertTrue(cust, "真实客户高度集中应触发『前3大客户』信号")
+        detail = cust[0]["detail"]
+        self.assertIn("嘉兴彼格猫商贸有限公司", detail, "最大客户应为真实客户，而非平台商")
+        self.assertNotIn("天猫", detail, "平台商不得出现在客户集中度信号中")
+        self.assertNotIn("阿里妈妈", detail, "平台商不得出现在客户集中度信号中")
+        # metrics 应反映真实客户口径（平台商不计入 customer_count）
+        self.assertEqual(cust[0].get("observed_metrics", {}).get("customer_count"), 4)
+
+    def test_platform_only_sales_yield_no_customer_signal(self):
+        sal = [
+            {"buyer": "浙江天猫技术有限公司", "amount": 254000.0},
+            {"buyer": "杭州阿里妈妈软件服务有限公司", "amount": 187000.0},
+        ]
+        fs = V._scan_concentration(self._sal(sal), self._SPEC)
+        cust = [f for f in fs if "前3大客户" in f.get("detail", "")]
+        self.assertEqual(cust, [], "纯平台服务费销项不应产生客户集中度信号")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
