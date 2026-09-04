@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine import verified_rule_engine as V
 from engine import scenario_execution as SE
+from engine import domain_analysis as DA
 
 
 def _company3_data():
@@ -337,6 +338,65 @@ class TestPlatformServiceFeeClassification(unittest.TestCase):
         # 平台服务商不计入『客户集中度』风险；真实个人客户占比高仍应正常标风险
         risk_types = [r["type"] for r in g["risks"]]
         self.assertIn("客户高度集中", risk_types, "真实个人客户高度集中仍应提示")
+
+
+class TestSupplyChainConcentration(unittest.TestCase):
+    """回归：上下游穿透集中度计算——
+    1) 客户侧须剔除平台服务商、且取前3名切片（旧代码 sum 全部 → 恒为100% 虚假信号）；
+    2) 供应商侧须取前3名切片（旧代码同样恒为100%）；
+    3) 真实高度集中仍须正确触发。"""
+
+    def _cust_findings(self, invs):
+        fs = DA._domain_supply_chain_deep(invs, [])
+        return [f for f in fs if "前3大客户" in f.get("type", "")]
+
+    def _sup_findings(self, invs):
+        fs = DA._domain_supply_chain_deep(invs, [])
+        return [f for f in fs if "前3大供应商" in f.get("type", "")]
+
+    def test_customer_concentration_excludes_platform_operators(self):
+        """平台运营商（天猫/阿里妈妈）为最大『购方』时，旧代码恒报100%虚假高集中；
+        修复后应剔除平台服务商并按真实客户前3切片，正常多客户公司不报警。"""
+        invs = [
+            {"direction": "销项", "buyer": "浙江天猫技术有限公司", "amount": 254000.0},
+            {"direction": "销项", "buyer": "杭州阿里妈妈软件服务有限公司", "amount": 187000.0},
+            {"direction": "销项", "buyer": "真实客户A", "amount": 100000.0},
+            {"direction": "销项", "buyer": "真实客户B", "amount": 100000.0},
+            {"direction": "销项", "buyer": "真实客户C", "amount": 100000.0},
+            {"direction": "销项", "buyer": "真实客户D", "amount": 100000.0},
+            {"direction": "销项", "buyer": "真实客户E", "amount": 100000.0},
+        ]
+        cust = self._cust_findings(invs)
+        self.assertEqual(len(cust), 0,
+            "剔除平台服务商后前3真实客户仅占60%，不应误报客户高度集中；旧代码恒报100%")
+        # 平台运营商不得进入客户集中度计算（已剔除）
+        self.assertTrue(V._is_platform_operator("浙江天猫技术有限公司"))
+        self.assertTrue(V._is_platform_operator("杭州阿里妈妈软件服务有限公司"))
+
+    def test_customer_concentration_fires_on_genuine_dominance(self):
+        """真实客户前3名确实高度集中时，仍须正确触发（不能超额抑制）。"""
+        invs = [
+            {"direction": "销项", "buyer": "真实客户A", "amount": 50000.0},
+            {"direction": "销项", "buyer": "真实客户B", "amount": 40000.0},
+            {"direction": "销项", "buyer": "真实客户C", "amount": 30000.0},
+            {"direction": "销项", "buyer": "真实客户D", "amount": 1000.0},
+        ]
+        cust = self._cust_findings(invs)
+        self.assertEqual(len(cust), 1, "前3真实客户占99.17%应触发客户高度集中")
+        self.assertIn("前3大客户占比99.17%", cust[0]["type"])
+
+    def test_supplier_concentration_uses_top3_slice(self):
+        """供应商侧旧代码 sum 全部 → 恒为100%；修复后取前3切片。"""
+        invs = [
+            {"direction": "进项", "seller": "供应商A", "amount": 120000.0},
+            {"direction": "进项", "seller": "供应商B", "amount": 30000.0},
+            {"direction": "进项", "seller": "供应商C", "amount": 20000.0},
+            {"direction": "进项", "seller": "供应商D", "amount": 15000.0},
+        ]
+        sup = self._sup_findings(invs)
+        self.assertEqual(len(sup), 1, "前3供应商占91.89%应触发供应商高度集中")
+        self.assertIn("前3大供应商占比91.89%", sup[0]["type"],
+            "应取前3切片而非全部100%；旧代码会误报100%")
 
 
 if __name__ == "__main__":

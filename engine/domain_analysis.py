@@ -4495,6 +4495,7 @@ def _domain_supply_chain_deep(invoices, bank_txs):
         return findings
     
     from collections import Counter, defaultdict
+    from engine.verified_rule_engine import _is_platform_operator
     
     suppliers = Counter()
     customers = Counter()
@@ -4513,10 +4514,10 @@ def _domain_supply_chain_deep(invoices, bank_txs):
             customers[buyer] += 1
             customer_amounts[buyer] += amt
     
-    # 供应商集中度
+    # 供应商集中度（修正：仅取前3名切片，避免恒等于100%的计算错误）
     if suppliers:
         total_pur = sum(supplier_amounts.values())
-        top3_ratio = sum(a for _, a in sorted(supplier_amounts.items(), key=lambda x: -x[1])) / max(total_pur, 1)
+        top3_ratio = sum(a for _, a in sorted(supplier_amounts.items(), key=lambda x: -x[1])[:3]) / max(total_pur, 1)
         if top3_ratio > T.industry_thresholds.concentration_high:
             findings.append({
                 "type": f"前3大供应商占比{top3_ratio*100:.2f}%——高度集中",
@@ -4546,17 +4547,19 @@ def _domain_supply_chain_deep(invoices, bank_txs):
                     "category": "上下游穿透"
                 })
     
-    # 客户集中度
+    # 客户集中度（修正：剔除平台服务商后仅取前3名真实客户切片）
+    # 平台运营商（天猫/阿里妈妈等）本质是非客户的服务费收款方，计入集中度会虚增占比并误标核心客户
     if customers:
-        total_sal = sum(customer_amounts.values())
-        top3_cust_ratio = sum(a for _, a in sorted(customer_amounts.items(), key=lambda x: -x[1])) / max(total_sal, 1)
+        cust_real = {n: a for n, a in customer_amounts.items() if not _is_platform_operator(n)}
+        total_sal = sum(cust_real.values())
+        top3_cust_ratio = sum(a for _, a in sorted(cust_real.items(), key=lambda x: -x[1])[:3]) / max(total_sal, 1)
         if top3_cust_ratio > T.ratios.dominant:
             findings.append({
                 "type": f"前3大客户占比{top3_cust_ratio*100:.2f}%——高度集中",
                 "level": "中风险", "score": 5,
-                "detail": f"共{len(customers)}家客户，前3家占销售额{top3_cust_ratio*100:.2f}%。",
+                "detail": f"共{len(cust_real)}家真实客户（已剔除平台服务商），前3家占销售额{top3_cust_ratio*100:.2f}%。",
                 "description": "客户高度集中可能意味着关联方交易或为特定客户虚开发票。",
-                "how_found": f"top3客户金额÷总销售={top3_cust_ratio*100:.2f}%>80%。",
+                "how_found": f"前3大真实客户（已排除平台服务商）金额÷真实销售总额={top3_cust_ratio*100:.2f}%>80%。",
                 "suggestion": "对前3大客户做穿透：工商关联/合同流/资金流/货物流是否完整。",
                 "category": "上下游穿透"
             })
