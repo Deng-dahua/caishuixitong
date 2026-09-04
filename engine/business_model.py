@@ -187,26 +187,32 @@ def _sales_structure(sal_invs):
             consumer_goods_amount += amount
         if not name:
             continue
-        by_customer[name]["amount"] += amount
-        by_customer[name]["count"] += 1
+        # 平台运营商（天猫/阿里妈妈等）是服务费收款方，非货物销售客户，
+        # 不得计入"客户"结构与"最大单一客户占比"，否则会把平台商标为最大客户（同源矛盾信息误标）
+        is_platform = any(p in name for p in _ECOMMERCE_PLATFORM_KEYWORDS)
         for platform in _ECOMMERCE_PLATFORM_KEYWORDS:
             if platform in name:
                 platform_hits.add(platform)
                 break
+        if is_platform:
+            continue  # 跳过平台运营商，不计入 by_customer
+        by_customer[name]["amount"] += amount
+        by_customer[name]["count"] += 1
     if not by_customer:
         return {
             "customer_count": 0, "invoice_count": invoice_count, "total_amount": round(total_amount, 2),
-            "avg_invoice_amount": 0.0, "top1_share": 0.0, "platforms": [],
+            "avg_invoice_amount": 0.0, "top1_share": 0.0, "platforms": sorted(platform_hits),
             "consumer_goods_amount": round(consumer_goods_amount, 2),
             "by_customer": {},
         }
     top1 = max(agg["amount"] for agg in by_customer.values())
+    real_total = sum(agg["amount"] for agg in by_customer.values())
     return {
         "customer_count": len(by_customer),
         "invoice_count": invoice_count,
         "total_amount": round(total_amount, 2),
         "avg_invoice_amount": round(total_amount / invoice_count, 2) if invoice_count else 0.0,
-        "top1_share": round(top1 / total_amount, 4) if total_amount > 0 else 0.0,
+        "top1_share": round(top1 / real_total, 4) if real_total > 0 else 0.0,
         "platforms": sorted(platform_hits),
         "consumer_goods_amount": round(consumer_goods_amount, 2),
         "by_customer": {k: {"amount": round(v["amount"], 2), "count": v["count"]}

@@ -6920,8 +6920,20 @@ def get_relation_graph(company_id: int = Query(...)):
     overlap_names = set(customer_amounts.keys()) & set(supplier_amounts.keys())
     
     # Top10客户
+    from engine.verified_rule_engine import _is_platform_operator
     top_customers = sorted(customer_amounts.items(), key=lambda x: -x[1])[:10]
     for name, amt in top_customers:
+        # 平台运营商（天猫/阿里妈妈等）是服务费收款方，非货物销售客户，节点改标『平台服务商』
+        if _is_platform_operator(name):
+            _add_node(f"cust_{name}", name, "平台服务商", amt, risk=False)
+            edges.append({
+                "from": "entity_main",
+                "to": f"cust_{name}",
+                "type": "平台服务费",
+                "amount": round(amt, 2),
+                "label": f"平台服务费{amt:,.2f}",
+            })
+            continue
         is_overlap = name in overlap_names
         _add_node(f"cust_{name}", name, "customer", amt, risk=is_overlap)
         edges.append({

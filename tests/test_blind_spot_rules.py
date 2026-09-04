@@ -16,6 +16,7 @@ from engine import verified_rule_engine as V
 from engine import scenario_execution as SE
 from engine import domain_analysis as DA
 from engine import false_invoice as FI
+from engine import business_model as BM
 
 
 def _company3_data():
@@ -440,6 +441,40 @@ class TestFalseInvoiceConcentration(unittest.TestCase):
         self.assertEqual(len(conc_sig), 0,
             "纯平台服务费发票不应触发『客户集中度』信号；平台商不得当客户")
         self.assertEqual(r["metrics"]["top3_customer_share"], 0.0)
+
+
+class TestBusinessModelPlatformExclusion(unittest.TestCase):
+    """回归：经营模式画像的『最大单一客户占比/客户家数』须剔除平台服务商，
+    否则会把天猫/阿里妈妈误标为最大客户（报告现『最大单一客户占比23.7%』即此误标）。"""
+
+    def test_top1_share_excludes_platform_operators(self):
+        sal = [
+            {"buyer": "浙江天猫技术有限公司", "amount": 254000.0},
+            {"buyer": "杭州阿里妈妈软件服务有限公司", "amount": 187000.0},
+            {"buyer": "杨华（个人）", "amount": 1000.0},
+            {"buyer": "李娜（个人）", "amount": 900.0},
+            {"buyer": "王芳（个人）", "amount": 800.0},
+        ]
+        s = BM._sales_structure(sal)
+        # 平台不得计入客户结构
+        self.assertNotIn("浙江天猫技术有限公司", s["by_customer"])
+        self.assertNotIn("杭州阿里妈妈软件服务有限公司", s["by_customer"])
+        # 平台仍被独立识别
+        self.assertTrue(any("天猫" in p or "阿里妈妈" in p for p in s["platforms"]))
+        # 最大单一客户占比应基于真实客户（2700 合计，最大 1000 → 37.04%），而非含平台的 254000/443700
+        self.assertAlmostEqual(s["top1_share"], 1000 / 2700, places=3,
+            msg="最大单一客户占比应基于真实客户，而非含平台的23.7%")
+        self.assertEqual(s["customer_count"], 3)
+
+    def test_platform_only_sales_no_real_customers(self):
+        sal = [
+            {"buyer": "浙江天猫技术有限公司", "amount": 254000.0},
+            {"buyer": "杭州阿里妈妈软件服务有限公司", "amount": 187000.0},
+        ]
+        s = BM._sales_structure(sal)
+        self.assertEqual(s["customer_count"], 0, "纯平台服务费销项无真实客户")
+        self.assertEqual(s["top1_share"], 0.0)
+        self.assertTrue(s["platforms"])
 
 
 if __name__ == "__main__":
