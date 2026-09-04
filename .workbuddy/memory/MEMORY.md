@@ -72,3 +72,13 @@
 `investigation_steps`/`evidence_grade`），但全是场景模板空壳且报告层只用 detail 文案——"专家的骨架有，
 肉是空的、嘴不会说人话"。判断"像不像人"的试金石：读报告第一段，能否感受到"一个专家先懂了这家企业、
 再告诉你哪里不对劲、为什么、怎么查"。
+
+## 系统已回归纯税务稽查（2026-09-04，commit 8bfbe5c9）
+- 做账/报表/档案/总览/智能引擎中枢/智能问答/报告编制/税收权益 模块的前端菜单、后端路由、模块文件
+  （19 个 .py + 19 个 JS）已全部删除。系统只剩：**资料风险分析报告（税务稽查核心）+ 风险检查方法论 + 系统日志**。
+- **稽查核心**：tax_risk.py + engine/ + file_parser.py + main.py `/api/tax-risk-docs/*`（文件上传）。
+- **关键依赖（勿动）**：database.py 的表模型 + 做账函数（auto_generate_* 等）是 `engine/pipeline.py`
+  顶层 `from database import` 的深度依赖，稽查分析用它们作**临时工作区**（导入→跑规则→清理），
+  **不能简单删除**，否则稽查引擎 import 崩溃。
+- **本环境坑**：`git rm` 会连带删除同目录未 staged 文件，务必用 bash `rm` 或删完立即 commit；恢复用
+  `git checkout -- <目录>`。
