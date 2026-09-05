@@ -2471,7 +2471,7 @@ function renderTaxDocReport(r) {
 
 
   var html = ctx.html;
-  var enterpriseMode = !!(r.enterprise_readable_report && ['税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0);
+  var enterpriseMode = !!(r.enterprise_readable_report && ['涉税风险检查工作报告（风险检查文书式）', '税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0);
 
   // 持续合规轮次与系统角色必须在报告首屏固定展示，防止内部分析
   // 被误认为税务机关行政处理、处罚或案件定性结论。
@@ -4661,7 +4661,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   }
   var html = '';
 
-  html += '<div class="cover"><h1>涉 税 稽 查 工 作 报 告</h1><div class="sub">' +
+  html += '<div class="cover"><h1>涉税风险检查工作报告</h1><div class="sub">' +
     '报告送达对象：' + esc(displayedAddressee) + '<br>' +
     '被检查企业：' + esc(identity.subject_name || '未填写企业名称') + '<br>' +
     '统一社会信用代码：' + esc(identity.taxpayer_id || '未填写') + '<br>' +
@@ -4689,6 +4689,27 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     html += '<h3>本轮最需要负责人关注的内容</h3>' + keyPoints.map(function(item){
       return '<p class="i2" style="line-height:2">' + esc(item) + '</p>';
     }).join('');
+  }
+
+  // ═══ 资料齐备性总览（2026-09-05）：必查资料是否齐全，缺失项映射风险盲区 ═══
+  var readiness = report.material_readiness || {};
+  if (readiness.summary_text) {
+    html += '<h3>稽查必查资料齐备性</h3>' +
+      '<p class="i2"><strong>' + esc(readiness.summary_text) + '</strong></p>';
+    if (readiness.provided && readiness.provided.length) {
+      html += '<p class="i2">已提供资料：' + esc(readiness.provided.join('、')) + '。</p>';
+    }
+    if (readiness.missing && readiness.missing.length) {
+      html += '<div class="table-wrap" style="margin:10px 0 18px"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
+        '<thead><tr><th style="border:1px solid #e2e8f0;padding:8px 10px;background:#f8fafc;text-align:left">缺失资料</th>' +
+        '<th style="border:1px solid #e2e8f0;padding:8px 10px;background:#f8fafc;text-align:left">无法检查的风险方面</th>' +
+        '<th style="border:1px solid #e2e8f0;padding:8px 10px;background:#f8fafc;text-align:left">补救要求</th></tr></thead><tbody>' +
+        readiness.missing.map(function(m){
+          return '<tr><td style="border:1px solid #e2e8f0;padding:8px 10px;color:#991b1b;font-weight:600">' + esc(m.doc) + '</td>' +
+            '<td style="border:1px solid #e2e8f0;padding:8px 10px">' + esc((m.uncheckable_risks || []).join('、')) + '</td>' +
+            '<td style="border:1px solid #e2e8f0;padding:8px 10px">' + esc(m.remedy || '') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
   }
 
   html += '<h2 id="company-problems">二、本轮风险检查确认的具体问题</h2>' +
@@ -5115,7 +5136,7 @@ function _renderReportFallback(r, allF) {
 
 
   // 企业版是主文书；专业过程底稿继续保留在后台，供内部复查和历史轮次追溯。
-  if (r.enterprise_readable_report && ['税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
+  if (r.enterprise_readable_report && ['涉税风险检查工作报告（风险检查文书式）', '税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
     h += _buildEnterpriseReadableBody(r, dateStr);
     h += '</div>';
     return {

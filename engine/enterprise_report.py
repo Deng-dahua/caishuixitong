@@ -449,6 +449,42 @@ _REQUIRED_DOC_CATEGORIES = [
     "增值税申报表", "企业所得税申报表", "个税申报表", "其他税种申报表",
 ]
 
+# 2026-09-05 新增：缺失资料 → 无法检查的风险方面映射表。
+# 用户要求：告知"缺失某项资料而无法检查哪一方面的风险"。
+# 每项：缺什么资料 → 查不了哪些风险（大白话）→ 补什么能查清。
+_MISSING_DOC_RISK_MAP = [
+    ("银行流水", ["资金回流与公私混同", "账外收入", "收入收款印证", "主营成本资金印证", "暂估成本公转私闭环", "利息与补贴收入完整性"],
+     "提供全部银行账户流水（含个人账户与第三方平台账单），否则资金侧风险完全不可见。"),
+    ("销项发票", ["收入完整性（申报-开票勾稽）", "作废红冲异常", "折扣折让计税", "客户集中度", "主营收入识别"],
+     "提供销项发票明细（含作废与红字发票），否则收入侧风险无法定量。"),
+    ("进项发票", ["成本真实性", "虚开发票与上游异常", "进项转出", "供应商集中度与地域分布", "主营成本识别"],
+     "提供进项发票明细（含税码与品名），否则成本侧风险无法定量。"),
+    ("记账凭证", ["账票税勾稽", "暂估成本与挂账", "成本费用归集准确性", "其他应付款异常"],
+     "提供序时账（记账凭证），否则账面数据无法与发票、申报核对。"),
+    ("工资表", ["用工真实性", "个税全员全额扣缴", "工资拆分规避", "人均产值合理性"],
+     "提供工资薪金明细（含工号与证件号），否则薪酬与个税风险无法检查。"),
+    ("社保明细", ["用工一致性（工资vs参保）", "未参保与基数不符", "挂靠用工线索"],
+     "提供社会保险明细（分月分人），否则参保真实性无法核对。"),
+    ("进销存台账", ["账外经营线索", "进销数量勾稽", "存货真实性", "呆滞库存"],
+     "提供进销存台账（收发存逐笔），否则货物流动侧风险无法检查。"),
+    ("合同文件", ["业务真实性", "五流一致", "关联交易与定价", "履约与结算匹配"],
+     "提供购销与服务合同，否则交易实质无法核验。"),
+    ("科目余额表", ["暂估成本", "预收账款长期挂账", "其他应付款异常", "科目结构勾稽"],
+     "提供科目余额表（至末级科目），否则账面科目风险无法检查。"),
+    ("资产负债表", ["资产负债结构异常", "长期挂账往来款", "净资产与申报勾稽"],
+     "提供资产负债表，否则资产端与权益端风险无法检查。"),
+    ("利润表", ["成本费用结构", "毛利率异常", "期间费用合理性", "两税收入差异"],
+     "提供利润表，否则利润构成与收入成本配比无法检查。"),
+    ("增值税申报表", ["收入完整性（申报-开票差额）", "税负率偏离", "留抵异常", "未开票收入敞口"],
+     "提供增值税纳税申报表（分月），否则申报侧风险无法定量。"),
+    ("企业所得税申报表", ["扣除限额与纳税调整", "亏损弥补合规", "暂估成本税前扣除", "两税收入差异"],
+     "提供企业所得税申报表，否则所得税侧风险无法检查。"),
+    ("个税申报表", ["个税扣缴合规", "劳务报酬代扣", "工资拆分线索"],
+     "提供个人所得税扣缴申报表，否则扣缴义务履行情况无法检查。"),
+    ("其他税种申报表", ["印花税漏报", "房产税漏报", "城建税及附加附征", "其他财产行为税"],
+     "提供印花税、房产税等申报表，否则财产行为税风险无法检查。"),
+]
+
 # 资料 type → 中文类别名
 _DOC_TYPE_NAME = {
     "bank": "银行流水明细", "bank_statement": "银行流水明细",
@@ -847,6 +883,62 @@ def _build_further_checks(report_data):
             ],
         })
     return further
+
+
+def _build_material_readiness(report_data):
+    """资料齐备性总览（2026-09-05，用户要求）。
+
+    稽查必查资料是否齐全：每类资料给出「已提供/缺失」状态；
+    缺失项逐一说明「缺这份资料 → 无法检查哪几方面风险 → 补什么能查清」，
+    资料不齐全时显式提醒，让检查范围受限的原因透明可查。
+    """
+    file_results = report_data.get("file_results", []) or []
+    covered = set()
+    for fr in file_results:
+        if not isinstance(fr, dict):
+            continue
+        cat = _DOC_TYPE_TO_CATEGORY.get(fr.get("type", ""))
+        if cat:
+            covered.add(cat)
+    mi = report_data.get("comprehensive", {}).get("material_intel", {}) if isinstance(report_data.get("comprehensive"), dict) else {}
+    if isinstance(mi, dict):
+        for k in mi.keys():
+            covered.add(str(k))
+
+    provided = []
+    missing = []
+    for cat in _REQUIRED_DOC_CATEGORIES:
+        if cat in covered:
+            provided.append(cat)
+        else:
+            entry = next((e for e in _MISSING_DOC_RISK_MAP if e[0] == cat), None)
+            if entry:
+                missing.append({
+                    "doc": entry[0],
+                    "uncheckable_risks": entry[1],
+                    "remedy": entry[2],
+                })
+            else:
+                missing.append({
+                    "doc": cat,
+                    "uncheckable_risks": ["相关风险方向"],
+                    "remedy": f"提供{cat}，否则相关检查无法完成。",
+                })
+    total = len(_REQUIRED_DOC_CATEGORIES)
+    complete = total - len(missing)
+    return {
+        "required_total": total,
+        "provided_count": complete,
+        "missing_count": len(missing),
+        "complete": len(missing) == 0,
+        "provided": provided,
+        "missing": missing,
+        "summary_text": (
+            f"稽查必查资料共 {total} 类，本轮已提供 {complete} 类、缺失 {len(missing)} 类。"
+            + ("资料齐全，全部检查程序可执行。" if not missing
+               else "资料不齐全：以下缺失将导致相应风险方向无法检查（详见缺失清单）。")
+        ),
+    }
 
 
 def _build_summary(report_data, problems, completed, further):
@@ -1459,6 +1551,7 @@ def build_enterprise_readable_report(report_data):
     fund_loop_report = _build_fund_loop_report(report_data)
     inspection_questions_report = _build_inspection_questions_report(report_data)
     inspector_reasoning = build_inspector_reasoning(report_data)
+    material_readiness = _build_material_readiness(report_data)
 
     # 专项报告的 metrics 指标键统一中文化（独立于 observed_metrics 的另一处英文键来源）
     for _sec in (two_tax_report, input_voucher_report, false_invoice_report,
@@ -1468,11 +1561,12 @@ def build_enterprise_readable_report(report_data):
             _sec["metrics"] = _translate_metric_keys(_sec["metrics"])
 
     return _zh_normalize_obj({
-        "compilation_style": "税务风险检查文书式报告",
+        "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
         "identity": _build_identity(report_data),
         "inspector_perspective": _build_inspector_perspective(),
         "inspector_reasoning": inspector_reasoning,
+        "material_readiness": material_readiness,
         "summary": summary,
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
