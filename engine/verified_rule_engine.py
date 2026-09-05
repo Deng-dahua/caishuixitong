@@ -882,6 +882,142 @@ VERIFIED_RULE_CATALOG = [
              "materials": "银行流水、个人身份信息、关联方清单、合同"},
         ],
     },
+    {
+        "id": "VR063",
+        "name": "预收账款合同负债长期挂账",
+        "layer": "收入与申报协同规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["销售与收入确认", "收付款与资金结算"],
+        "required_sources": ["trial_balance"],
+        "status": "verified_executable_screening",
+        "limitation": "预收账款（2203）/合同负债长期不结转收入会推迟增值税纳税义务发生时间与企业所得税收入确认。规则只输出可复算的科目余额事实；长期挂账也可能是合同约定的分期发货、未履约等正当情形，企业可举证。",
+        "derives_to": [
+            {"child": "VR051", "link": "预收长期挂账 → 下达补证责令单",
+             "analyze": "核验预收款项对应合同、发货记录与纳税义务发生时间",
+             "evidence": "调取销售合同、发货单、预收账款明细账、纳税申报表",
+             "materials": "销售合同、发货单、预收账款明细、申报表"},
+        ],
+    },
+    {
+        "id": "VR064",
+        "name": "价外费用与零星收入未开票",
+        "layer": "收入与申报协同规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["销售与收入确认", "收付款与资金结算"],
+        "required_sources": ["bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "违约金、赔偿金、滞纳金等价外费用属于增值税应税收入，收款未开票未申报属漏税。规则通过银行摘要关键词识别；正常情形（如退还保证金、代收代付）企业可逐笔举证排除。",
+        "derives_to": [
+            {"child": "VR051", "link": "价外费用收款 → 下达补证责令单",
+             "analyze": "逐笔核验摘要含违约金/赔偿的流入款项性质与申报情况",
+             "evidence": "调取银行流水、收款凭证、合同、纳税申报表",
+             "materials": "银行流水、收款凭证、合同、申报表"},
+        ],
+    },
+    {
+        "id": "VR065",
+        "name": "个人劳务报酬支付未代扣个税",
+        "layer": "人员税费协同规则",
+        "industries": ["ALL"],
+        "taxes": ["个人所得税"],
+        "lifecycle": ["用工、薪酬与扣缴", "收付款与资金结算"],
+        "required_sources": ["bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "向个人支付劳务报酬、稿酬等应税所得负有代扣代缴个税义务。规则通过公转私流水+劳务性质摘要识别；正常情形（如员工工资、股东分红已另行扣缴）企业可举证。",
+        "derives_to": [
+            {"child": "VR051", "link": "个人劳务付款 → 下达补证责令单",
+             "analyze": "核验劳务性质付款的代扣个税申报与合同发票",
+             "evidence": "调取劳务合同、代开发票、个税扣缴申报表、银行流水",
+             "materials": "劳务合同、发票、个税扣缴申报、银行流水"},
+        ],
+    },
+    {
+        "id": "VR066",
+        "name": "进项发票上游异常开票特征",
+        "layer": "发票真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与取得", "开票、红冲与用途确认"],
+        "required_sources": ["pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "顶额开票与集中开票是虚开团伙上游的典型特征。规则只输出可复算的发票统计特征；正常情形（如大宗贸易、集团集中采购）企业可举证排除。",
+        "derives_to": [
+            {"child": "VR051", "link": "上游异常开票 → 下达补证责令单",
+             "analyze": "核验异常供应商税务状态、合同物流与资金回流",
+             "evidence": "调取供应商资质、合同、物流单据、付款流水、上游税务状态",
+             "materials": "合同、物流单据、付款流水、供应商资质"},
+        ],
+    },
+    {
+        "id": "VR067",
+        "name": "销售折扣与折让异常",
+        "layer": "发票真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["开票、红冲与用途确认", "销售与收入确认"],
+        "required_sources": ["sal_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "商业折扣须与销售额在同一发票金额栏注明方可扣减销售额。规则输出折扣/负数行统计事实；正常折扣情形企业可举证（同票注明的折扣不受影响）。",
+        "derives_to": [
+            {"child": "VR051", "link": "折扣异常 → 下达补证责令单",
+             "analyze": "核验折扣开具方式与计税口径",
+             "evidence": "调取销项发票全联次、折扣协议、返利凭证",
+             "materials": "销项发票、折扣协议、返利凭证"},
+        ],
+    },
+    {
+        "id": "VR068",
+        "name": "银行存款利息收入未申报",
+        "layer": "收入与申报协同规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["收付款与资金结算", "税费申报与缴纳"],
+        "required_sources": ["bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "存款利息收入须并入企业所得税应纳税所得额，多账户零散利息常被遗漏。规则输出流水事实，金额小（<1万）不触发。",
+        "derives_to": [
+            {"child": "VR051", "link": "利息收入 → 核对申报",
+             "analyze": "核对财务费用利息收入入账与所得税申报",
+             "evidence": "调取银行流水、财务费用明细、所得税申报表",
+             "materials": "银行流水、财务费用明细、申报表"},
+        ],
+    },
+    {
+        "id": "VR069",
+        "name": "财政补贴政府补助未申报",
+        "layer": "收入与申报协同规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["收付款与资金结算", "税费申报与缴纳"],
+        "required_sources": ["bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "财政补贴原则上并入收入总额缴税；按不征税收入处理须有专门文件并单独核算（财税〔2011〕70号）。规则输出流水事实，企业可举证补贴性质。",
+        "derives_to": [
+            {"child": "VR051", "link": "财政补贴 → 核对申报",
+             "analyze": "核验补贴性质文件、入账科目与申报情况",
+             "evidence": "调取拨付文件、银行流水、营业外收入明细、所得税申报表",
+             "materials": "拨付文件、银行流水、营业外收入明细、申报表"},
+        ],
+    },
+    {
+        "id": "VR070",
+        "name": "固定资产处置收入未申报",
+        "layer": "收入与申报协同规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["销售与收入确认", "收付款与资金结算"],
+        "required_sources": ["bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "销售使用过的固定资产属增值税应税行为，处置净损益并入企业所得税。规则通过银行摘要识别处置类收款；正常情形（如退货款、借款归还）企业可举证。",
+        "derives_to": [
+            {"child": "VR051", "link": "处置收入 → 下达补证责令单",
+             "analyze": "核验处置收入开票申报与资产转销",
+             "evidence": "调取资产清单、处置合同、发票、折旧明细、申报表",
+             "materials": "资产清单、处置合同、发票、折旧明细、申报表"},
+        ],
+    },
 ]
 
 
@@ -5410,6 +5546,296 @@ def _scan_provisional_cost_fund_loop(data, spec):
     return findings
 
 
+def _scan_prepaid_income_aging(data, spec):
+    """VR063 预收账款/合同负债长期挂账——收入延迟确认线索（2026-09-05）。"""
+    tb = data.get("trial_balance") or []
+    vouchers = data.get("vouchers") or []
+    prepaid = 0.0
+    found = False
+    for row in tb:
+        if not isinstance(row, dict):
+            continue
+        code = str(row.get("code") or row.get("col_0") or "")
+        name = str(row.get("name") or row.get("col_1") or "")
+        c = _number(row.get("credit") or row.get("贷方") or row.get("close_credit") or row.get("year_credit"))
+        d = _number(row.get("debit") or row.get("借方") or row.get("close_debit") or row.get("year_debit"))
+        if ("预收" in name or "合同负债" in name) or code.startswith("2203"):
+            prepaid += (c - d)
+            found = True
+    if not found and vouchers:
+        for v in vouchers:
+            if not isinstance(v, dict):
+                continue
+            acc = str(v.get("account_name") or v.get("科目") or v.get("col_1") or "")
+            if "预收" in acc or "合同负债" in acc:
+                prepaid += _number(v.get("credit") or v.get("贷方")) - _number(v.get("debit") or v.get("借方"))
+    if not found or prepaid < 100000:
+        return []
+    return [_finding(
+        spec,
+        f"预收账款/合同负债期末贷方余额{prepaid:,.2f}元，长期未结转收入。"
+        "企业收到货款后长期挂预收账款不确认收入，会推迟增值税纳税义务发生时间、"
+        "延迟企业所得税收入确认，隐匿当期收入与应纳税额。"
+        "需要核实：①预收款项对应的合同与发货时间（纳税义务发生时间）；"
+        "②是否存在已发货未开票未申报的情形；③长期挂账的真实原因。",
+        {"prepaid_balance": round(prepaid, 2),
+         "source": "trial_balance" if found and tb else "vouchers"},
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _scan_extra_price_income(data, spec):
+    """VR064 价外费用与零星收入未开票——银行摘要识别（2026-09-05）。"""
+    bank = data.get("bank_txs") or []
+    if not bank:
+        return []
+    kws = ("违约金", "赔偿", "赔款", "滞纳金", "手续费收入", "服务费收入", "管理费收入",
+           "赞助", "利息收入", "租金收入")
+    total = 0.0
+    hits = []
+    for tx in bank:
+        credit = _number(tx.get("credit"))
+        if credit <= 0:
+            continue
+        summary = str(tx.get("summary") or "").strip()
+        if any(k in summary for k in kws):
+            total += credit
+            hits.append({"date": str(tx.get("date") or "")[:10], "summary": summary[:20],
+                         "amount": round(credit, 2)})
+    if total < 50000:
+        return []
+    return [_finding(
+        spec,
+        f"银行流入中摘要含『违约金/赔偿/利息/手续费』等性质的收入合计{total:,.2f}元（{len(hits)}笔）。"
+        "价外费用与零星收入属于增值税应税收入，也是企业所得税收入总额的组成部分，"
+        "实务中常见收款不开票、不入账、不申报。需要核实这些款项是否已开票入账并申报纳税，"
+        "是否存在价外费用未并入销售额的情形。",
+        {"extra_price_income": round(total, 2), "hit_count": len(hits), "examples": hits[:5]},
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _scan_personal_service_withholding(data, spec):
+    """VR065 个人劳务报酬支付未代扣个税——公转私+摘要识别（2026-09-05）。"""
+    bank = data.get("bank_txs") or []
+    if not bank:
+        return []
+    from engine.fund_matching import is_individual_name, is_platform_counterparty
+    kws = ("劳务", "咨询费", "服务费", "佣金", "稿酬", "讲课", "设计费", "居间", "中介费", "演出费", "报酬")
+    total = 0.0
+    persons = set()
+    hits = []
+    for tx in bank:
+        debit = _number(tx.get("debit"))
+        if debit <= 0:
+            continue
+        cp = str(tx.get("counterparty") or "").strip()
+        summary = str(tx.get("summary") or "").strip()
+        if cp and is_individual_name(cp) and not is_platform_counterparty(cp) and any(k in summary for k in kws):
+            total += debit
+            persons.add(cp)
+            hits.append({"date": str(tx.get("date") or "")[:10], "person": cp[:12],
+                         "summary": summary[:20], "amount": round(debit, 2)})
+    if total < 50000:
+        return []
+    return [_finding(
+        spec,
+        f"银行支出中向个人支付劳务性质款项合计{total:,.2f}元（{len(persons)}个自然人，{len(hits)}笔），"
+        f"如{sorted(persons)[0] if persons else ''}等，摘要含『劳务/咨询/佣金/服务费』等。"
+        "支付方对个人劳务报酬、稿酬等应税所得负有代扣代缴个人所得税义务，"
+        "未代扣代缴的，税务机关可追缴并处罚。需要核实：①是否已按劳务报酬所得代扣个税并申报；"
+        "②支付金额与合同、发票是否一致；③是否存在以报销名义发放劳务报酬规避扣缴。",
+        {"personal_service_pay": round(total, 2), "person_count": len(persons),
+         "hit_count": len(hits), "examples": hits[:5]},
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _scan_supplier_invoice_pattern(data, spec):
+    """VR066 进项发票上游异常开票特征——顶额/集中开票识别（2026-09-05）。"""
+    pur = data.get("pur_invs") or []
+    if not pur:
+        return []
+    # 铁律：只统计主营业务成本口径（费用报销类发票如滴滴/京东/朴朴的
+    # 集中开票是正常消费特征，不构成虚开信号）
+    from engine.main_biz_cost import identify_main_biz_cost
+    _cls = identify_main_biz_cost(pur, data.get("sal_invs") or [])
+    core_invs = _cls.get("core_cost_invs") or []
+    scope = core_invs if core_invs else pur
+    from collections import defaultdict as _dd
+    by_supplier = _dd(lambda: {"count": 0, "amount": 0.0, "top_amounts": []})
+    for row in scope:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("seller") or row.get("销方名称") or "").strip()
+        if not name:
+            continue
+        amt = _number(row.get("amount"))
+        by_supplier[name]["count"] += 1
+        by_supplier[name]["amount"] += amt
+        by_supplier[name]["top_amounts"].append(amt)
+    signals = []
+    for name, agg in by_supplier.items():
+        n = agg["count"]
+        if n < 8:
+            continue
+        avg = agg["amount"] / n if n else 0
+        top_style = sum(1 for a in agg["top_amounts"] if 95000 <= a <= 100000 or 950000 <= a <= 1000000)
+        if top_style >= max(3, n // 2):
+            signals.append(f"供应商「{name}」开票{n}张，其中{top_style}张金额接近版别限额（顶额开票特征），合计{agg['amount']:,.0f}元")
+        elif n >= 30 and avg >= 5000:
+            # 集中开票须是"大额集中"才可疑（户均≥5000元）；
+            # 小额零散消费（京东/朴朴/滴滴等户均几百元的报销采购）属正常消费特征
+            signals.append(f"供应商「{name}」集中开票{n}张、合计{agg['amount']:,.0f}元，户均{avg:,.0f}元（集中开票特征）")
+    if not signals:
+        return []
+    return [_finding(
+        spec,
+        "；".join(signals[:5]) + "。"
+        "顶额开票与集中开票是虚开团伙上游的典型特征（新办企业短期大量顶格开票后走逃），"
+        "取得此类发票的企业面临进项转出与补税风险。需要核实：①上游供应商税务登记状态与经营能力；"
+        "②业务真实性（合同、物流、资金回流）；③是否属于异常凭证或已证实虚开的发票。",
+        {"supplier_count": len(by_supplier), "suspicious_suppliers": len(signals), "signals": signals[:5]},
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
+def _scan_discount_anomaly(data, spec):
+    """VR067 销售折扣与折让异常——折扣未同一发票注明（2026-09-05）。"""
+    sal = data.get("sal_invs") or []
+    if not sal:
+        return []
+    discount_total = 0.0
+    discount_rows = 0
+    examples = []
+    for row in sal:
+        if not isinstance(row, dict):
+            continue
+        goods = str(row.get("goods") or row.get("货物或应税劳务名称") or "")
+        amt = _number(row.get("amount"))
+        if amt < 0:
+            discount_total += abs(amt)
+            discount_rows += 1
+            examples.append({"goods": goods[:24], "amount": round(amt, 2)})
+        elif "折扣" in goods or "折让" in goods:
+            discount_total += amt
+            discount_rows += 1
+            examples.append({"goods": goods[:24], "amount": round(amt, 2)})
+    if discount_total < 50000:
+        return []
+    return [_finding(
+        spec,
+        f"销项发票中折扣/折让/负数金额行合计{discount_total:,.2f}元（{discount_rows}笔），"
+        f"如{examples[0]['goods'] if examples else ''}等。"
+        "商业折扣只有与销售额在同一张发票的金额栏注明，才能按折扣后金额计税；"
+        "折扣单独开票、事后返利或以负数发票冲减的，不得扣减销售额，须按折扣前金额全额计税。"
+        "需要核实折扣的开具方式与计税口径是否符合规定。",
+        {"discount_amount": round(discount_total, 2), "discount_rows": discount_rows,
+         "examples": examples[:5]},
+        spec["required_sources"],
+        priority="中",
+    )]
+
+
+def _scan_interest_income_unreported(data, spec):
+    """VR068 银行存款利息收入未申报（2026-09-05）。"""
+    bank = data.get("bank_txs") or []
+    if not bank:
+        return []
+    interest_total = 0.0
+    hits = []
+    for tx in bank:
+        credit = _number(tx.get("credit"))
+        if credit <= 0:
+            continue
+        summary = str(tx.get("summary") or "").strip()
+        cp = str(tx.get("counterparty") or "").strip()
+        if "利息" in summary or "结息" in summary or "利息" in cp:
+            interest_total += credit
+            hits.append({"date": str(tx.get("date") or "")[:10], "summary": summary[:20],
+                         "amount": round(credit, 2)})
+    if interest_total < 10000:
+        return []
+    return [_finding(
+        spec,
+        f"银行流水摘要含『利息/结息』的贷方流入合计{interest_total:,.2f}元（{len(hits)}笔）。"
+        "存款利息收入应计入财务费用并全额并入企业所得税应纳税所得额，"
+        "实务中多账户零散利息常被遗漏申报。需要核实利息收入是否已完整入账并申报。",
+        {"interest_income": round(interest_total, 2), "hit_count": len(hits), "examples": hits[:5]},
+        spec["required_sources"],
+        level="待核验",
+        priority="中",
+    )]
+
+
+def _scan_subsidy_income_unreported(data, spec):
+    """VR069 财政补贴/政府补助收入未申报（2026-09-05）。"""
+    bank = data.get("bank_txs") or []
+    if not bank:
+        return []
+    kws = ("补贴", "补助", "奖励资金", "扶持资金", "专项拨款", "政府补助", "财政拨款")
+    total = 0.0
+    hits = []
+    for tx in bank:
+        credit = _number(tx.get("credit"))
+        if credit <= 0:
+            continue
+        summary = str(tx.get("summary") or "").strip()
+        cp = str(tx.get("counterparty") or "").strip()
+        if any(k in summary for k in kws) or ("财政局" in cp or "科技局" in cp or "管委会" in cp):
+            total += credit
+            hits.append({"date": str(tx.get("date") or "")[:10], "summary": summary[:24],
+                         "counterparty": cp[:20], "amount": round(credit, 2)})
+    if total < 50000:
+        return []
+    return [_finding(
+        spec,
+        f"银行流入中来自财政/政府部门的款项合计{total:,.2f}元（{len(hits)}笔），摘要含"
+        f"『补贴/补助/扶持资金』等。财政补贴原则上并入收入总额缴纳企业所得税；"
+        "如按不征税收入处理，须有专项资金拨付文件并单独核算，对应支出不得税前扣除。"
+        "需要核实补贴性质、入账科目与申报情况。",
+        {"subsidy_amount": round(total, 2), "hit_count": len(hits), "examples": hits[:5]},
+        spec["required_sources"],
+        priority="中",
+    )]
+
+
+def _scan_fixed_asset_disposal(data, spec):
+    """VR070 固定资产处置收入未申报（2026-09-05）。"""
+    bank = data.get("bank_txs") or []
+    if not bank:
+        return []
+    kws = ("设备款", "机器款", "车辆款", "车款", "处置款", "变卖", "拍卖款", "旧货", "回收款")
+    total = 0.0
+    hits = []
+    for tx in bank:
+        credit = _number(tx.get("credit"))
+        if credit <= 0:
+            continue
+        summary = str(tx.get("summary") or "").strip()
+        if any(k in summary for k in kws):
+            total += credit
+            hits.append({"date": str(tx.get("date") or "")[:10], "summary": summary[:24],
+                         "counterparty": str(tx.get("counterparty") or "")[:20], "amount": round(credit, 2)})
+    if total < 50000:
+        return []
+    return [_finding(
+        spec,
+        f"银行流入中摘要含『设备款/车辆款/处置款』等性质的收款合计{total:,.2f}元（{len(hits)}笔）。"
+        "销售使用过的固定资产属于增值税应税行为（可依规适用简易计税），处置净损益并入"
+        "企业所得税应纳税所得额。实务中处置收入常不开票、不入账。"
+        "需要核实：①处置收入是否开票申报；②处置资产原值与折旧是否已转销；"
+        "③处置净收益是否并入企业所得税。",
+        {"disposal_income": round(total, 2), "hit_count": len(hits), "examples": hits[:5]},
+        spec["required_sources"],
+        priority="调查优先级",
+    )]
+
+
 def _scan_revenue_receipt_evidence(data, spec):
     """VR061 主营业务收入收款印证核验（2026-09-05）。
 
@@ -5644,6 +6070,14 @@ _SCANNERS = {
     "VR060": _scan_core_cost_fund_evidence,
     "VR061": _scan_revenue_receipt_evidence,
     "VR062": _scan_provisional_cost_fund_loop,
+    "VR063": _scan_prepaid_income_aging,
+    "VR064": _scan_extra_price_income,
+    "VR065": _scan_personal_service_withholding,
+    "VR066": _scan_supplier_invoice_pattern,
+    "VR067": _scan_discount_anomaly,
+    "VR068": _scan_interest_income_unreported,
+    "VR069": _scan_subsidy_income_unreported,
+    "VR070": _scan_fixed_asset_disposal,
 }
 
 

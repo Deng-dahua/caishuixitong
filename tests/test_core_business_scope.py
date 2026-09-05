@@ -301,3 +301,85 @@ class VR062ProvisionalCostLoopTests(unittest.TestCase):
         # 暂估50万+其他应付20万 → 两信号，但公转私3万不构成闭环
         for f in findings:
             self.assertNotIn("闭环证据链", f["detail"])
+
+
+class VR063to070NewScenariosTests(unittest.TestCase):
+    """VR063-VR070 新增稽查场景单测（2026-09-05）。"""
+
+    def _spec(self, rid, sources):
+        return {"id": rid, "name": "测试规则", "required_sources": sources}
+
+    def test_vr063_prepaid_aging(self):
+        from engine.verified_rule_engine import _scan_prepaid_income_aging
+        data = {"trial_balance": [{"code": "2203", "name": "预收账款", "col_0": "2203", "col_1": "预收账款",
+                                    "贷方": 500000, "借方": 0}]}
+        f = _scan_prepaid_income_aging(data, self._spec("VR063", ["trial_balance"]))
+        self.assertTrue(f)
+        self.assertAlmostEqual(f[0]["observed_metrics"]["prepaid_balance"], 500000, delta=1)
+        # 小额不触发
+        data2 = {"trial_balance": [{"code": "2203", "name": "预收账款", "col_0": "2203", "col_1": "预收账款",
+                                     "贷方": 50000, "借方": 0}]}
+        self.assertEqual(_scan_prepaid_income_aging(data2, self._spec("VR063", ["trial_balance"])), [])
+
+    def test_vr064_extra_price(self):
+        from engine.verified_rule_engine import _scan_extra_price_income
+        bank = [{"credit": 60000, "debit": 0, "summary": "收到违约金", "date": "2026-01-05"}]
+        f = _scan_extra_price_income({"bank_txs": bank}, self._spec("VR064", ["bank_txs"]))
+        self.assertTrue(f)
+        self.assertIn("价外费用", f[0]["detail"])
+
+    def test_vr065_personal_service_withholding(self):
+        from engine.verified_rule_engine import _scan_personal_service_withholding
+        bank = [{"debit": 80000, "credit": 0, "counterparty": "王小明", "summary": "咨询费", "date": "2026-01-05"}]
+        f = _scan_personal_service_withholding({"bank_txs": bank}, self._spec("VR065", ["bank_txs"]))
+        self.assertTrue(f, "个人劳务付款应触发")
+        self.assertIn("代扣代缴", f[0]["detail"])
+
+    def test_vr066_top_amount_invoice_pattern(self):
+        from engine.verified_rule_engine import _scan_supplier_invoice_pattern
+        pur = [{"seller": "某商贸公司", "amount": 99000} for _ in range(10)]
+        f = _scan_supplier_invoice_pattern({"pur_invs": pur}, self._spec("VR066", ["pur_invs"]))
+        self.assertTrue(f, "顶额开票应触发")
+        self.assertIn("顶额开票", f[0]["detail"])
+
+    def test_vr067_discount_anomaly(self):
+        from engine.verified_rule_engine import _scan_discount_anomaly
+        sal = [{"goods": "*服装*毛衫", "amount": -80000},
+               {"goods": "*服装*毛衫", "amount": 100000}]
+        f = _scan_discount_anomaly({"sal_invs": sal}, self._spec("VR067", ["sal_invs"]))
+        self.assertTrue(f)
+        self.assertIn("折扣", f[0]["detail"])
+
+    def test_vr068_interest_income(self):
+        from engine.verified_rule_engine import _scan_interest_income_unreported
+        bank = [{"credit": 15000, "debit": 0, "summary": "结息", "date": "2026-03-21"}]
+        f = _scan_interest_income_unreported({"bank_txs": bank}, self._spec("VR068", ["bank_txs"]))
+        self.assertTrue(f)
+        self.assertEqual(f[0]["level"], "待核验")
+
+    def test_vr069_subsidy(self):
+        from engine.verified_rule_engine import _scan_subsidy_income_unreported
+        bank = [{"credit": 200000, "debit": 0, "summary": "科技扶持资金", "counterparty": "某区财政局", "date": "2026-02-01"}]
+        f = _scan_subsidy_income_unreported({"bank_txs": bank}, self._spec("VR069", ["bank_txs"]))
+        self.assertTrue(f)
+        self.assertIn("财政补贴", f[0]["detail"])
+
+    def test_vr070_asset_disposal(self):
+        from engine.verified_rule_engine import _scan_fixed_asset_disposal
+        bank = [{"credit": 120000, "debit": 0, "summary": "设备处置款", "date": "2026-01-10"}]
+        f = _scan_fixed_asset_disposal({"bank_txs": bank}, self._spec("VR070", ["bank_txs"]))
+        self.assertTrue(f)
+        self.assertIn("固定资产", f[0]["detail"])
+
+    def test_all_new_rules_no_data_no_trigger(self):
+        from engine.verified_rule_engine import (_scan_prepaid_income_aging, _scan_extra_price_income,
+            _scan_personal_service_withholding, _scan_supplier_invoice_pattern, _scan_discount_anomaly,
+            _scan_interest_income_unreported, _scan_subsidy_income_unreported, _scan_fixed_asset_disposal)
+        self.assertEqual(_scan_prepaid_income_aging({"trial_balance": []}, self._spec("VR063", ["trial_balance"])), [])
+        self.assertEqual(_scan_extra_price_income({"bank_txs": []}, self._spec("VR064", ["bank_txs"])), [])
+        self.assertEqual(_scan_personal_service_withholding({"bank_txs": []}, self._spec("VR065", ["bank_txs"])), [])
+        self.assertEqual(_scan_supplier_invoice_pattern({"pur_invs": []}, self._spec("VR066", ["pur_invs"])), [])
+        self.assertEqual(_scan_discount_anomaly({"sal_invs": []}, self._spec("VR067", ["sal_invs"])), [])
+        self.assertEqual(_scan_interest_income_unreported({"bank_txs": []}, self._spec("VR068", ["bank_txs"])), [])
+        self.assertEqual(_scan_subsidy_income_unreported({"bank_txs": []}, self._spec("VR069", ["bank_txs"])), [])
+        self.assertEqual(_scan_fixed_asset_disposal({"bank_txs": []}, self._spec("VR070", ["bank_txs"])), [])
