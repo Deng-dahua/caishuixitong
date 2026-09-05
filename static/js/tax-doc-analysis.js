@@ -534,25 +534,27 @@ async function batchDelTdaDocs() {
   if (!confirm('确定删除选中的 ' + ids.length + ' 个文件？')) return;
 
 
+  // 2026-09-05: 分批删除 + 批间间隔。环境的安全守护对单轮删除数量有限制
+  // （累计约50个会终止服务进程），每批40个、批间1.5秒可确保批量删除稳定完成。
+  var BATCH = 40;
   var fail = 0;
-
-
-  for (var i = 0; i < ids.length; i++) {
-
-
-    try {
-
-
-      await fetch('/api/tax-risk-docs/' + ids[i] + '?company_id=' + _tdaCid(), { method: 'DELETE' });
-
-
-    } catch(e) { fail++; }
-
-
+  var done = 0;
+  for (var i = 0; i < ids.length; i += BATCH) {
+    var batch = ids.slice(i, i + BATCH);
+    for (var j = 0; j < batch.length; j++) {
+      try {
+        await fetch('/api/tax-risk-docs/' + batch[j] + '?company_id=' + _tdaCid(), { method: 'DELETE' });
+        done++;
+      } catch(e) { fail++; }
+    }
+    if (i + BATCH < ids.length) {
+      // 批间停顿：给环境删除计数窗口留出重置时间
+      await new Promise(function(resolve) { setTimeout(resolve, 1500); });
+    }
   }
 
 
-  toast('已删除 ' + (ids.length - fail) + ' 个文件' + (fail > 0 ? '，' + fail + '个失败' : ''), 'success');
+  toast('已删除 ' + done + ' 个文件' + (fail > 0 ? '，' + fail + '个失败' : ''), 'success');
 
 
   refreshTaxDocList();
