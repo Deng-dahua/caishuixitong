@@ -522,7 +522,7 @@
       '.m3-nav a{display:block;padding:9px 20px;border-left:3px solid transparent;color:#5c6675;text-decoration:none;font-size:10px;font-weight:500;transition:all .15s}',
       '.m3-nav a:hover{border-left-color:var(--brand);color:var(--brand);background:#fdf5f6}',
       // ── 正文阅读区：白底居中、宽松内边距 ──
-      '.m3-prose{min-width:0;flex:1;max-width:920px;margin:0 auto;background:#fff;padding:36px 48px 48px;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 32px rgba(7,31,74,.05)}',
+      '.m3-prose{min-width:0;flex:1;max-width:960px;margin:0 auto;background:#fff;padding:36px 48px 48px;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 32px rgba(7,31,74,.05)}',
       '.m3-prose section{margin:0 0 44px;padding-bottom:26px;border-bottom:1px solid var(--line)}',
       '.m3-prose section:last-child{border-bottom:0;margin-bottom:0}',
       // ── 章节大标题：层级第一级 ──
