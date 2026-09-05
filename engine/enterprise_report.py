@@ -501,6 +501,31 @@ def _cn_num(n):
     return str(n)
 
 
+def _core_sentence(text, max_len=90):
+    """从一段事实叙述里提取「核心一句」——第一个含数字的分句（摘要用）。
+
+    稽查专家写摘要的原则：标题 + 一个带数字的结论句，而不是整段复述。
+    取第一个句号/分号前的分句；若其不含数字则向后找第一个含数字的分句；
+    超过 max_len 截断并补省略号。
+    """
+    text = _norm_text(str(text or "")).replace("经查，", "").replace("经查,", "").strip()
+    if not text:
+        return ""
+    import re
+    # 按句号/分号切分句
+    clauses = re.split(r"[。；]", text)
+    clauses = [c.strip() for c in clauses if c.strip()]
+    if not clauses:
+        return text[:max_len] + ("…" if len(text) > max_len else "")
+    # 优先：含数字的分句（数字=事实的锚点）
+    for c in clauses:
+        if re.search(r"[0-9]", c):
+            return c[:max_len] + ("…" if len(c) > max_len else "")
+    # 兜底：第一句
+    first = clauses[0]
+    return first[:max_len] + ("…" if len(first) > max_len else "")
+
+
 def _seq(items, empty="能够证明相关业务事实的原始资料。"):
     """把 list 转成『第一，…；第二，…。』序列"""
     if not items:
@@ -626,7 +651,16 @@ def _build_materials(report_data):
 
 
 def _problem_paragraphs(f):
-    """从 finding 生成六段式问题说明（大白话叙述，2026-09-05）"""
+    """从 finding 生成问题说明（2026-09-05 重构：稽查专家写法，四段式）。
+
+    用户批评原八段式「啰嗦、该讲的不讲、废话一堆」。重构原则：
+    1. 发现了什么——数字与事实优先，是核心段；
+    2. 为什么值得查——风险与正常解释对抗呈现（稽查员的双向思维）；
+    3. 怎么查——下一步动作（合并原「企业应当怎样处理」与「本轮建议」，去重）；
+    4. 什么时候算完——一句完成标准。
+    删除每条约185字的「检查范围方法」重复段（资料范围已在明细与底稿中可回查，
+    全报告只在第一章总述一次）与无明细时的「代表性明细」空话段。
+    """
     from engine.plain_language import to_plain, to_plain_list
     detail = to_plain(_norm_text(str(f.get("detail") or f.get("description") or "")))
     how = to_plain(_norm_text(str(f.get("how_found") or "")))
@@ -646,31 +680,37 @@ def _problem_paragraphs(f):
     scope = "、".join(sorted(scope_names)) or "本轮已上传并成功读取的相关资料"
     tax_impact = _norm_text(str(f.get("tax_impact") or ""))
     if not tax_impact or "尚未形成" in tax_impact:
-        tax_impact = "本项只确认资料中存在需要核清的具体差异，不把差异直接当作应补税额。税额影响以完成资料更正、账税核对和重新计算后的结果为准。"
+        tax_impact = "税额影响以完成资料更正、账税核对和重新计算后的结果为准，本项不直接给出应补税额。"
 
-    # 代表性明细：把后台已算出的逐笔差异落到正文，是报告『详尽』的关键
+    # 代表性明细：有真明细才挂表
     detail_rows, detail_cols = _build_detail_table(f)
+
+    # ── 段1：发现了什么（核心段，数字与事实）──
+    fact_text = "经查，" + detail
+    fact_text += "（依据资料：" + scope + "，全量筛查，非抽样。）" if scope else ""
+
+    # ── 段2：为什么值得查（风险 + 正常解释对抗呈现）──
+    grade = str(f.get("conclusion_grade") or "")
+    if grade == "已核定":
+        why_text = _conclusion_statement(f)
+    else:
+        risk_part = "现有资料只能确认可疑信号，还不足以最终定性；需要补充外部证据后才能下结论。"
+        why_text = risk_part + tax_impact
+        if reasons:
+            why_text += "正常业务也可能出现这种情况：" + _seq(reasons, "企业可先按正常原因逐项排除。")
+
+    # ── 段3：怎么查（下一步动作，去重合并）──
+    action_items = steps or ([suggestion] if suggestion else [])
+    how_text = "下一步查法：" + _seq(action_items, "按真实业务和原始资料查明原因。")
+
+    # ── 段4：什么时候算完 ──
+    done_text = "完成标准：每一组差异都有原始资料、原因和处理结果可回查；更正后的数据能与账表核对一致；补充资料重新检查后不再出现同一差异。"
+
     paragraphs = [
-        {"heading": "查明的主要事实",
-         "text": "经查，" + detail + "上述数字来自本轮已读取资料的全量筛查，不是抽样估计。"},
-        {"heading": "结论状态",
-         "text": _conclusion_statement(f)},
-        {"heading": "代表性明细（可回查）",
-         "text": ("以下为本项涉及的逐笔/代表明细（已隐去行号与金额，原始数据见工作底稿）：" if detail_rows
-                  else "本项明细已留存在内部检查底稿里，可以按上述资料范围逐笔回查。")},
-        {"heading": "检查范围、方法和资料依据",
-         "text": "本项使用的资料范围是" + scope + "。检查人员直接读取企业上传的资料，按照同一口径逐项重新计算，并把计算结果与资料中的记录进行比较。原始文件指纹、读取回执、复算指标、代表性明细和可用的原文件行号已保存在内部检查底稿里；专业人员可以在工作底稿中回查。"},
-        {"heading": "这件事对企业意味着什么",
-         "text": "本轮确认资料中存在能够重复计算的数据差异。企业应先修复资料完整性和计算口径，再开展账、票、表、税和资金用途核对。仅凭这一数据差异，不能认定企业少缴税款或违反税收规定。" + tax_impact},
-        {"heading": "应当同时核对的正常业务原因",
-         "text": "出现上述情况不等于一定发生了税务违法。企业应按同一证据标准核对：" + _seq(reasons, "正常业务原因和对企业有利的原始资料。")},
-        {"heading": "企业应当怎样处理",
-         "text": "具体处理顺序为：" + _seq(steps or [suggestion], "按真实业务和原始资料查明原因并作真实处理。")},
-        {"heading": "怎样才算处理完成",
-         "text": "本项只有达到下列条件后才可申请关闭：" + _seq(["本次发现的每一组差异都有原始资料、差异原因和处理结果可以回查",
-                                                          "更正后的数据能够与会计记录和相关纳税申报资料核对一致，或对仍有差异的事项单独说明",
-                                                          "补充资料后重新检查，系统能够分别列示合理事项、仍需处理事项和证据不足事项"],
-                                                         "问题能够定位、处理过程能够回查，重新检查不再出现同一差异。")},
+        {"heading": "发现了什么", "text": fact_text},
+        {"heading": "为什么值得查", "text": why_text},
+        {"heading": "怎么查", "text": how_text},
+        {"heading": "什么时候算完", "text": done_text},
     ]
     if detail_rows:
         # 把明细表挂在第一段对象上，供前端渲染；同时保留文本回退
@@ -841,8 +881,10 @@ def _build_summary(report_data, problems, completed, further):
         first = p.get("narrative_paragraphs", [{}])[0].get("text", "") if p.get("narrative_paragraphs") else ""
         grade = p.get("conclusion_grade") or "待核"
         grade_tag = "（已核定）" if grade == "已核定" else "（待核）"
-        # 重点摘要不加固定字数截断：直接输出完整首段，报告内容随数据动态呈现（不固定、不丢确定性数字串）
-        key_points.append(to_plain(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{first}"))
+        # 2026-09-05 重构：摘要只写「标题 + 核心一句」（第一个含数字的分句），
+        # 不再把整段 detail 抄进摘要——同一内容在报告里出现三遍是"啰嗦"的最大来源。
+        core_line = _core_sentence(first)
+        key_points.append(to_plain(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{core_line}"))
     if len(problems) > 5:
         key_points.append(f"另有{len(problems) - 5}项具体问题见第四章及本章『本轮全部发现一览』。")
     if further:
@@ -891,7 +933,7 @@ def _build_discovery_overview(report_data, problems, completed, further):
     rows = []
     for p in problems:
         first_para = (p.get("narrative_paragraphs") or [{}])[0] or {}
-        one_line = _norm_text(first_para.get("text", ""))
+        one_line = _core_sentence(first_para.get("text", ""))
         rows.append({
             "no": p.get("seq"),
             "category": "确认问题",
