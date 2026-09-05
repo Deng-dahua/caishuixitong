@@ -240,7 +240,7 @@
     clueDepths.sort(function (a, b) { return a - b; });
     caseDepths.sort(function (a, b) { return a - b; });
 
-    return '<details class="m3-fold"><summary><span><b>' + esc(contract.code) + '</b> ' +
+    return '<details class="m3-fold"><summary><span><b>' + displayCode(contract.code) + '</b> ' +
       esc(contract.name || '') + '</span><em>' + scenes.length + ' 个场景 · 调查步骤深度 ' +
       esc(clueDepths.join('、') || '未登记') + ' · 边界样本深度 ' + esc(caseDepths.join('、') || '未登记') +
       '</em></summary><div class="m3-fold-body">' +
@@ -375,6 +375,13 @@
     }
   ];
 
+  function displayCode(code) {
+    // 展示层：行业合同字母代码 A~T → 数字 1~20；叠加层保留 OVERLAY- 语义标识
+    if (!code) return '';
+    if (/^[A-T]$/.test(code)) { return String(code.charCodeAt(0) - 64); }
+    return code;
+  }
+
   function stageAccount(stage) {
     // 执行对账条：自动执行 N 条规则 + 需人工复核动作
     return '<aside class="m3-stage-account"><b>执行对账</b>' +
@@ -404,7 +411,7 @@
         var vd = (scene.validation_cases || []).length;
         if (caseDepths.indexOf(vd) < 0) caseDepths.push(vd);
       });
-      return '<tr><td>' + esc(item.code) + '</td><td>' + esc(item.name || '') + '</td>' +
+      return '<tr><td>' + displayCode(item.code) + '</td><td>' + esc(item.name || '') + '</td>' +
         '<td>' + scenes.length + '</td>' +
         '<td>' + esc(clueDepths.sort(function (a, b) { return a - b; }).join('、') || '未登记') + '</td>' +
         '<td>' + esc(caseDepths.sort(function (a, b) { return a - b; }).join('、') || '未登记') + '</td></tr>';
