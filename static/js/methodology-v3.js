@@ -534,7 +534,7 @@
       '.m3-prose h5.m3-scene-title b{padding:2px 8px;border-radius:4px;background:#fdf5f6;color:var(--brand);font-size:12px;font-weight:800;letter-spacing:.05em}',
       '.m3-prose h5.m3-scene-title span{flex:1;line-height:1.6}',
       // ── 正文段落：首行缩进、两端对齐 ──
-      '.m3-prose p{margin:0 0 10px;font-size:12px;line-height:1.6;color:#242b3a;text-align:justify;text-justify:inter-ideograph;text-indent:2em}',
+      '.m3-prose p{margin:0 0 10px;font-size:12px;line-height:1.6;color:#242b3a;text-align:justify;text-justify:inter-ideograph;text-indent:0}',
       '.m3-prose p:first-child{text-indent:0}',
       '.m3-prose p b{color:#8b2332;font-weight:700}',
       // ── 段落式实体（原实体卡改段落）：编号+名称+描述连续成段 ──
