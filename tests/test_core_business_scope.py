@@ -203,3 +203,101 @@ class VRFundEvidenceRulesTests(unittest.TestCase):
         from engine.verified_rule_engine import _scan_core_cost_fund_evidence, _scan_revenue_receipt_evidence
         self.assertEqual(_scan_core_cost_fund_evidence({"pur_invs": [{"amount": 100}], "bank_txs": []}, self._spec("VR060")), [])
         self.assertEqual(_scan_revenue_receipt_evidence({"sal_invs": [{"amount": 100}], "bank_txs": []}, self._spec("VR061")), [])
+
+
+class VR062ProvisionalCostLoopTests(unittest.TestCase):
+    """VR062 暂估成本·其他应付款·公转私闭环核验单测（2026-09-05）。"""
+
+    def _spec(self):
+        return {"id": "VR062", "name": "暂估成本公转私闭环", "required_sources": ["trial_balance"]}
+
+    def _tb(self, code, name, debit=0, credit=0):
+        # 兼容两种字段风格（标准 + 通用解析器）
+        return {"code": code, "name": name, "col_0": code, "col_1": name,
+                "借方": debit, "贷方": credit}
+
+    def _loop_data(self):
+        """闭环场景：账面成本100万、发票仅支持40万→暂估60万；
+        其他应付款贷方余额60万；公转私支付55万。三者金额相近。"""
+        tb = [
+            self._tb("6401", "主营业务成本", debit=1000000),
+            self._tb("2241", "其他应付款", credit=600000),
+        ]
+        pur = [
+            {"seller": "原料公司", "goods": "*纺织产品*纱线", "amount": 400000},
+        ]
+        bank = [
+            {"counterparty": "范善茂", "debit": 300000, "credit": 0},
+            {"counterparty": "李四", "debit": 250000, "credit": 0},
+        ]
+        return {"trial_balance": tb, "pur_invs": pur, "bank_txs": bank, "sal_invs": []}
+
+    def test_closed_loop_triggered(self):
+        from engine.verified_rule_engine import _scan_provisional_cost_fund_loop
+        data = self._loop_data()
+        findings = _scan_provisional_cost_fund_loop(data, self._spec())
+        self.assertTrue(findings, "暂估-挂账-公转私闭环应触发")
+        self.assertIn("闭环证据链", findings[0]["detail"])
+        self.assertIn("暂估成本", findings[0]["detail"])
+        m = findings[0]["observed_metrics"]
+        self.assertAlmostEqual(m["provisional_cost"], 600000, delta=1)
+        self.assertAlmostEqual(m["other_payable_balance"], 600000, delta=1)
+        self.assertAlmostEqual(m["person_payout"], 550000, delta=1)
+
+    def test_partial_signal_pending(self):
+        """只有账票缺口（暂估），无挂账无公转私 → 待核验级。"""
+        from engine.verified_rule_engine import _scan_provisional_cost_fund_loop
+        data = {
+            "trial_balance": [self._tb("6401", "主营业务成本", debit=800000)],
+            "pur_invs": [{"seller": "原料公司", "goods": "*纺织产品*纱线", "amount": 100000}],
+            "bank_txs": [],
+            "sal_invs": [],
+        }
+        findings = _scan_provisional_cost_fund_loop(data, self._spec())
+        self.assertTrue(findings)
+        self.assertEqual(findings[0]["level"], "待核验")
+        self.assertIn("账面成本超出进项发票支持部分", findings[0]["detail"])
+
+    def test_no_data_no_trigger(self):
+        from engine.verified_rule_engine import _scan_provisional_cost_fund_loop
+        self.assertEqual(_scan_provisional_cost_fund_loop(
+            {"trial_balance": [], "pur_invs": [], "bank_txs": []}, self._spec()), [])
+        # 无成本科目且无其他应付 → 不触发
+        self.assertEqual(_scan_provisional_cost_fund_loop(
+            {"trial_balance": [self._tb("1001", "库存现金", debit=100)],
+             "pur_invs": [], "bank_txs": []}, self._spec()), [])
+
+    def test_voucher_dimension_fallback(self):
+        """序时账维度兜底：无科目余额表但有序时账记录主营成本与公转私。"""
+        from engine.verified_rule_engine import _scan_provisional_cost_fund_loop
+        data = {
+            "trial_balance": [],
+            "vouchers": [
+                {"account_name": "主营业务成本", "debit": 700000, "credit": 0},
+                {"account_name": "其他应付款", "credit": 500000, "debit": 0},
+            ],
+            "pur_invs": [{"seller": "原料公司", "goods": "*纺织产品*纱线", "amount": 200000}],
+            "bank_txs": [{"counterparty": "范善茂", "debit": 450000, "credit": 0}],
+            "sal_invs": [],
+        }
+        findings = _scan_provisional_cost_fund_loop(data, self._spec())
+        self.assertTrue(findings, "序时账兜底维度应能识别暂估与公转私")
+        m = findings[0]["observed_metrics"]
+        self.assertAlmostEqual(m["provisional_cost"], 500000, delta=1)
+
+    def test_person_pay_small_not_signal(self):
+        """公转私小额（<5万）不构成信号。"""
+        from engine.verified_rule_engine import _scan_provisional_cost_fund_loop
+        data = {
+            "trial_balance": [
+                self._tb("6401", "主营业务成本", debit=600000),
+                self._tb("2241", "其他应付款", credit=200000),
+            ],
+            "pur_invs": [{"seller": "原料公司", "goods": "*纺织产品*纱线", "amount": 100000}],
+            "bank_txs": [{"counterparty": "王小明", "debit": 30000, "credit": 0}],
+            "sal_invs": [],
+        }
+        findings = _scan_provisional_cost_fund_loop(data, self._spec())
+        # 暂估50万+其他应付20万 → 两信号，但公转私3万不构成闭环
+        for f in findings:
+            self.assertNotIn("闭环证据链", f["detail"])

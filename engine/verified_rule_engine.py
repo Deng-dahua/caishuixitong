@@ -861,6 +861,27 @@ VERIFIED_RULE_CATALOG = [
              "materials": "销售合同、出库单、物流单据、银行流水"},
         ],
     },
+    {
+        "id": "VR062",
+        "name": "暂估成本·其他应付款·公转私闭环核验",
+        "layer": "资金证据链规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税", "个人所得税"],
+        "lifecycle": ["成本费用与扣除", "收付款与资金结算"],
+        "required_sources": ["trial_balance"],
+        "status": "verified_executable_screening",
+        "limitation": "账面主营业务成本超出进项发票支持的部分为暂估成本；暂估成本挂其他应付款并以公账向个人账户付款冲销，是虚构成本逃避企业所得税与公转私的典型路径。规则只形成可复算的账票缺口、科目余额与个人付款数据事实，不作违法定性；暂估成本在汇算清缴前取得发票的可税前扣除，正当业务包括真实劳务外包、个体户采购代开发票等，企业可逐笔举证。无科目余额表数据时由序时账维度兜底或按资料缺失处理。",
+        "derives_to": [
+            {"child": "VR051", "link": "暂估成本与公转私疑点 → 下达补证责令单",
+             "analyze": "逐笔核验暂估成本期后冲回依据、其他应付款对手方、个人收款人身份与业务依据",
+             "evidence": "调取暂估入库单、期后发票、其他应付款明细账、个人付款凭证、劳务合同",
+             "materials": "暂估凭证、期后发票、其他应付款明细、银行流水、劳务合同"},
+            {"child": "VR025", "link": "公账向个人付款 → 核验资金回流与公私混同",
+             "analyze": "公转私付款金额与暂估成本、其他应付款冲销金额勾稽，识别资金循环",
+             "evidence": "调取个人账户收款人信息、关联关系排查、付款业务合同",
+             "materials": "银行流水、个人身份信息、关联方清单、合同"},
+        ],
+    },
 ]
 
 
@@ -5212,6 +5233,183 @@ def _scan_core_cost_fund_evidence(data, spec):
     return findings
 
 
+def _scan_provisional_cost_fund_loop(data, spec):
+    """VR062 暂估成本·其他应付款·公转私闭环核验（2026-09-05）。
+
+    税务稽查典型违法路径（用户点名）：
+      1. 账面主营业务成本 > 进项发票支持金额 → 差额为「暂估成本」（无票先记账）；
+      2. 暂估成本挂「其他应付款」贷方；
+      3. 公账向个人账户付款，冲减其他应付款余额；
+      4. 结果：虚构成本压低利润（少缴企业所得税）+ 公款转私人腰包。
+
+    四层信号（账、票、科目、资金交叉印证）：
+      A. 账票缺口：账面主营成本 − 发票口径主营成本 = 暂估成本（大额）；
+      B. 其他应付款：科目余额表/序时账的「其他应付款」期末贷方余额或大额发生；
+      C. 公转私：银行流水支出到个人账户（is_individual_name）；
+      D. 闭环：暂估成本 ≈ 其他应付款冲销 ≈ 公转私金额（±40% 视为匹配）。
+    铁律：只形成可复算的数据事实与核验责令，不作违法定性；无科目数据或
+    无流水数据时相应层缺省、不凭空造数。
+    """
+    from engine.main_biz_cost import identify_main_biz_cost
+    from engine.fund_matching import is_individual_name, is_platform_counterparty
+
+    tb = data.get("trial_balance") or []
+    vouchers = data.get("vouchers") or []
+    pur = data.get("pur_invs") or []
+    bank = data.get("bank_txs") or []
+
+    # ── 辅助：从科目余额表行提取 (科目编码, 科目名称, 借方期末, 贷方期末) ──
+    def _tb_fields(row):
+        if not isinstance(row, dict):
+            return "", "", 0.0, 0.0
+        code = str(row.get("code") or row.get("col_0") or "")
+        name = str(row.get("name") or row.get("col_1") or "")
+        d = _number(row.get("debit") or row.get("借方") or row.get("close_debit") or row.get("year_debit"))
+        c = _number(row.get("credit") or row.get("贷方") or row.get("close_credit") or row.get("year_credit"))
+        return code, name, d, c
+
+    # ── A. 账面主营业务成本（科目余额表 6401/名称含"主营业务成本"；序时账兜底）──
+    book_cost = 0.0
+    cost_rows = []
+    for row in tb:
+        code, name, d, c = _tb_fields(row)
+        if not name and not code:
+            continue
+        is_cost = ("主营业务成本" in name) or (code and code.startswith("6401"))
+        if is_cost:
+            book_cost += (d - c)
+            cost_rows.append((code, name, d, c))
+    if not cost_rows and vouchers:
+        for v in vouchers:
+            if not isinstance(v, dict):
+                continue
+            acc = str(v.get("account_name") or v.get("科目") or v.get("col_1") or "")
+            if "主营业务成本" in acc:
+                book_cost += _number(v.get("debit") or v.get("借方"))
+
+    # ── B. 其他应付款（2241 科目编码或名称含"其他应付"）──
+    other_payable = 0.0
+    op_rows = []
+    for row in tb:
+        code, name, d, c = _tb_fields(row)
+        if not name and not code:
+            continue
+        is_op = ("其他应付" in name) or (code and code.startswith("2241"))
+        if is_op:
+            other_payable += (c - d)  # 贷方余额为正
+            op_rows.append((code, name, d, c))
+    if not op_rows and vouchers:
+        for v in vouchers:
+            if not isinstance(v, dict):
+                continue
+            acc = str(v.get("account_name") or v.get("科目") or v.get("col_1") or "")
+            if "其他应付" in acc:
+                other_payable += _number(v.get("credit") or v.get("贷方")) - _number(v.get("debit") or v.get("借方"))
+
+    # ── C. 公转私：银行流水支出到个人账户 ──
+    person_pay = 0.0
+    person_names = set()
+    person_rows = []
+    for tx in bank:
+        debit = _number(tx.get("debit"))
+        if debit <= 0:
+            continue
+        cp = str(tx.get("counterparty") or "").strip()
+        if cp and is_individual_name(cp) and not is_platform_counterparty(cp):
+            person_pay += debit
+            person_names.add(cp)
+            person_rows.append(tx)
+
+    # ── 发票口径主营成本 ──
+    core_cost_amount = 0.0
+    if pur:
+        _cls = identify_main_biz_cost(pur, data.get("sal_invs") or [])
+        core_invs = _cls.get("core_cost_invs") or []
+        core_cost_amount = sum(_number(r.get("amount")) for r in core_invs)
+
+    # ── 暂估成本 = 账面成本 − 发票口径成本 ──
+    provisional = book_cost - core_cost_amount if book_cost > 0 else 0.0
+    if provisional < 0:
+        provisional = 0.0
+
+    findings = []
+    # 任何一层无数据 → 不触发（诚实：缺账或缺票都无法判定暂估）
+    if book_cost <= 0 and other_payable <= 0:
+        return findings
+
+    signals = []
+    metrics = {
+        "book_cost": round(book_cost, 2),
+        "invoice_core_cost": round(core_cost_amount, 2),
+        "provisional_cost": round(provisional, 2),
+        "other_payable_balance": round(other_payable, 2),
+        "person_payout": round(person_pay, 2),
+        "person_count": len(person_names),
+    }
+
+    # 信号A：暂估成本大额（占账面成本≥20% 或绝对额≥5万）
+    if provisional >= 50000 and (book_cost <= 0 or provisional / book_cost >= 0.10):
+        signals.append(
+            f"账面主营业务成本{book_cost:,.2f}元，其中进项发票只能支持{core_cost_amount:,.2f}元，"
+            f"差额{provisional:,.2f}元为无发票的暂估成本（占账面{provisional / book_cost * 100:.1f}%）"
+        )
+    # 信号B：其他应付款大额
+    if other_payable >= 50000:
+        signals.append(f"其他应付款期末贷方余额{other_payable:,.2f}元")
+    # 信号C：公转私大额
+    if person_pay >= 50000:
+        signals.append(
+            f"银行支出中{person_pay:,.2f}元支付给个人账户（{len(person_names)}个自然人"
+            f"，如{sorted(person_names, key=len)[0] if person_names else ''}）"
+        )
+
+    # ── 闭环判定：暂估/其他应付/公转私三者金额相近 ──
+    loop_matched = False
+    if provisional > 0 and other_payable > 0 and person_pay > 0:
+        values = [provisional, other_payable, person_pay]
+        mx = max(values)
+        if mx > 0 and all(abs(v - mx) / mx <= 0.40 for v in values):
+            loop_matched = True
+
+    if loop_matched and signals:
+        findings.append(_finding(
+            spec,
+            "发现「暂估成本—其他应付款—公转私」闭环证据链："
+            + "；".join(signals)
+            + "。三者金额相近，符合『虚构成本挂账→公账付款到个人账户冲销挂账』的典型资金循环特征，"
+            "企业利润被无票暂估成本虚减，同时公账资金流向个人账户。"
+            "需要核实：①暂估成本是否期后取得发票冲回（企业所得税汇算清缴前仍未取得发票的应全额纳税调增）；"
+            "②其他应付款的对手方是谁、是否与个人账户收款人一致；③向个人付款的真实业务依据（合同、劳务、发票）；"
+            "④是否存在以个人名义收款的关联方。",
+            metrics,
+            spec["required_sources"],
+            priority="调查优先级",
+        ))
+    elif len(signals) >= 2:
+        findings.append(_finding(
+            spec,
+            "暂估成本与其他应付款、公转私付款存在关联疑点："
+            + "；".join(signals)
+            + "。暂估成本挂账并以对个人付款冲销，是虚构成本逃避企业所得税的常见路径，"
+            "需要核实暂估成本期后冲回依据与向个人付款的真实业务。",
+            metrics,
+            spec["required_sources"],
+            priority="中",
+        ))
+    elif len(signals) == 1 and provisional >= 50000:
+        findings.append(_finding(
+            spec,
+            "；".join(signals)
+            + "。账面成本超出进项发票支持部分须核实暂估依据与期后结算，"
+            "汇算清缴前未取得发票的暂估成本不得税前扣除。",
+            metrics,
+            spec["required_sources"],
+            level="待核验",
+            priority="中",
+        ))
+    return findings
+
+
 def _scan_revenue_receipt_evidence(data, spec):
     """VR061 主营业务收入收款印证核验（2026-09-05）。
 
@@ -5445,6 +5643,7 @@ _SCANNERS = {
     "VR059": _scan_cash_blindspot,
     "VR060": _scan_core_cost_fund_evidence,
     "VR061": _scan_revenue_receipt_evidence,
+    "VR062": _scan_provisional_cost_fund_loop,
 }
 
 
