@@ -1688,8 +1688,22 @@ def _scan_supplier_geo(data, spec):
     pur = data.get("pur_invs", []) or []
     if not pur:
         return []
+    # ── 主营成本口径（2026-09-05）：税务稽查员只对主营业务成本做地域与集中度分析，
+    #    日常报销（餐饮/住宿/汽油）与重大费用（房租/咨询）发票不应混入供应商统计，
+    #    否则会把费用发票供应商误计入"采购来源地"，导致地域分布失真。 ──
+    from engine.main_biz_cost import identify_main_biz_cost
+    _cls = identify_main_biz_cost(pur, data.get("sal_invs") or [])
+    core_invs = _cls.get("core_cost_invs") or []
+    all_total = sum(_number(r.get("amount")) for r in pur)
+    core_total = sum(_number(r.get("amount")) for r in core_invs)
+    if core_invs and all_total > 0 and core_total / all_total >= 0.5:
+        scope = core_invs
+        scope_note = "（按主营业务成本口径，已剔除日常报销与费用类发票）"
+    else:
+        scope = pur
+        scope_note = "（主营业务成本识别不充分，暂按全部进项发票统计）"
     suppliers = defaultdict(lambda: {"amount": 0.0, "count": 0, "province": None})
-    for row in pur:
+    for row in scope:
         name = str(row.get("seller") or row.get("销方名称") or "").strip()
         if not name:
             continue
@@ -1716,11 +1730,13 @@ def _scan_supplier_geo(data, spec):
         detail_parts.append(f"{province}{agg['count']}家{agg['amount']:,.0f}元({ratio:.0f}%)")
     return [_finding(
         spec,
-        f"进项发票供应商分布在{len(cross_province)}个省份，前几大采购来源地：" + "、".join(detail_parts) + "。跨省分散采购须核验各供应商资质、合同、物流和实际交付，识别是否存在无实质交易的票据流转。",
+        f"进项发票供应商分布在{len(cross_province)}个省份{scope_note}，前几大采购来源地：" + "、".join(detail_parts) + "。跨省分散采购需要核实各供应商资质、合同、物流和实际交付，识别是否存在无实质交易的票据流转。",
         {
             "supplier_count": len(suppliers),
             "province_count": len(cross_province),
             "province_breakdown": {p: {"count": v["count"], "amount": round(v["amount"], 2)} for p, v in top_provinces[:8]},
+            "scope": "core_cost" if scope is core_invs else "all",
+            "core_cost_ratio": round(core_total / all_total, 4) if all_total else 0.0,
         },
         spec["required_sources"],
         priority="调查优先级",
@@ -1730,13 +1746,27 @@ def _scan_supplier_geo(data, spec):
 def _scan_concentration(data, spec):
     sal = data.get("sal_invs", []) or []
     pur = data.get("pur_invs", []) or []
+    # ── 主营口径（2026-09-05）：集中度只对主营业务收入与主营业务成本统计，
+    #    费用类发票会稀释集中度、掩盖对主营供应商/客户的真实依赖。 ──
+    from engine.main_biz_cost import identify_main_biz_cost, identify_core_revenue
+    _cls = identify_main_biz_cost(pur, sal)
+    core_pur = _cls.get("core_cost_invs") or []
+    pur_total = sum(_number(r.get("amount")) for r in pur)
+    core_pur_total = sum(_number(r.get("amount")) for r in core_pur)
+    if core_pur and pur_total > 0 and core_pur_total / pur_total >= 0.5:
+        pur_scope = core_pur
+    else:
+        pur_scope = pur
+    _rev = identify_core_revenue(sal, _cls.get("pur_core_goods") or set())
+    sal_scope = _rev.get("core_revenue_invs") or sal
+
     suppliers = defaultdict(float)
     customers = defaultdict(float)
-    for row in pur:
+    for row in pur_scope:
         name = str(row.get("seller") or row.get("销方名称") or "").strip()
         if name:
             suppliers[name] += _number(row.get("amount"))
-    for row in sal:
+    for row in sal_scope:
         name = str(row.get("buyer") or row.get("购方名称") or "").strip()
         # 平台运营商（天猫/阿里妈妈等）是服务费收款方，本质非客户；
         # 计入客户集中度会把平台商标为「前3大客户」、虚增占比（三对矛盾信息同源误标）。
@@ -1751,20 +1781,21 @@ def _scan_concentration(data, spec):
     signals = []
     if supplier_total > 0 and len(suppliers) >= 3 and supplier_ratio >= 0.8:
         top_supplier = max(suppliers, key=suppliers.get)
-        signals.append(f"前3大供应商占采购额{supplier_ratio*100:.1f}%（最大供应商{top_supplier}）")
+        signals.append(f"前3大供应商占主营采购额{supplier_ratio*100:.1f}%（最大供应商{top_supplier}）")
     if customer_total > 0 and len(customers) >= 3 and customer_ratio >= 0.8:
         top_customer = max(customers, key=customers.get)
-        signals.append(f"前3大客户占销售额{customer_ratio*100:.1f}%（最大客户{top_customer}）")
+        signals.append(f"前3大客户占主营销售额{customer_ratio*100:.1f}%（最大客户{top_customer}）")
     if not signals:
         return []
     return [_finding(
         spec,
-        "；".join(signals) + "。购销集中度偏高，须核验交易真实性、定价独立性、是否存在关联关系或对单一渠道的异常依赖。",
+        "；".join(signals) + "。购销集中度偏高，需要核实交易真实性、定价独立性、是否存在关联关系或对单一渠道的异常依赖。",
         {
             "supplier_count": len(suppliers),
             "customer_count": len(customers),
             "supplier_top3_ratio": round(supplier_ratio, 4),
             "customer_top3_ratio": round(customer_ratio, 4),
+            "scope": "core_business",
         },
         spec["required_sources"],
         priority="调查优先级",
@@ -2145,13 +2176,24 @@ def _scan_individual_counterparty(data, spec):
 
     sal = data.get("sal_invs", []) or []
     pur = data.get("pur_invs", []) or []
+    # ── 主营成本口径（2026-09-05）：个人供应商只统计主营业务成本范围内的采购，
+    #    日常报销类（餐饮/住宿/汽油）向个人采购不混入统计，避免占比失真。 ──
+    from engine.main_biz_cost import identify_main_biz_cost, identify_core_revenue
+    _cls = identify_main_biz_cost(pur, sal)
+    core_pur = _cls.get("core_cost_invs") or []
+    pur_all_total = sum(_number(r.get("amount")) for r in pur)
+    core_pur_total = sum(_number(r.get("amount")) for r in core_pur)
+    pur_scope = core_pur if (core_pur and pur_all_total > 0 and core_pur_total / pur_all_total >= 0.5) else pur
+    pur_scope_label = "占主营成本总额" if pur_scope is core_pur else "占进项总额"
+
     suppliers = defaultdict(lambda: {"amount": 0.0, "count": 0})
     customers = defaultdict(lambda: {"amount": 0.0, "count": 0})
-    for row in pur:
+    for row in pur_scope:
         name = str(row.get("seller") or row.get("销方名称") or "").strip()
         if name and _is_individual_entity(name):
             suppliers[name]["amount"] += _number(row.get("amount"))
             suppliers[name]["count"] += 1
+    # 销售侧客户仍用全量销项（个人客户统计须覆盖全部销售，含零售终端）
     for row in sal:
         name = str(row.get("buyer") or row.get("购方名称") or "").strip()
         if name and _is_individual_entity(name):
@@ -2175,7 +2217,8 @@ def _scan_individual_counterparty(data, spec):
     # ══════════════ 采购侧：个人/个体户供应商 ══════════════
     if suppliers:
         findings.extend(_adjudicate_individual_suppliers(
-            spec, suppliers, sup_total, pur, model,
+            spec, suppliers, sup_total, pur_scope, model,
+            pur_scope_label=pur_scope_label,
         ))
     return findings
 
@@ -2301,7 +2344,7 @@ def _adjudicate_individual_customers(spec, customers, cus_total, model, model_te
     )]
 
 
-def _adjudicate_individual_suppliers(spec, suppliers, sup_total, pur, model):
+def _adjudicate_individual_suppliers(spec, suppliers, sup_total, pur, model, pur_scope_label="占进项总额"):
     """采购侧个人供应商：零售身份不能豁免代开发票与个税扣缴义务，但按金额占比分级。"""
     pur_total = sum(_number(row.get("amount")) for row in pur)
     share = (sup_total / pur_total) if pur_total > 0 else 0.0
@@ -2317,14 +2360,14 @@ def _adjudicate_individual_suppliers(spec, suppliers, sup_total, pur, model):
     }
     detail_head = (
         f"个人/个体户供应商{len(suppliers)}家，合计{sup_total:,.2f}元，"
-        f"占进项总额{share * 100:.2f}%，户均{avg_per_supplier:,.2f}元。"
+        f"{pur_scope_label}{share * 100:.2f}%，户均{avg_per_supplier:,.2f}元。"
     )
     # 采购侧规模极小且占比很低时，属常规零星采购，列为须核验事项而非异常
     if sup_total <= 100000 and share <= 0.10:
         return [_finding(
             spec,
             detail_head + "向个人采购金额与占比均处于零星水平，属常规经营中的小额采购。"
-            "仍须核验是否取得合法有效的代开发票或税务代开凭证，"
+            "仍需要核实是否取得合法有效的代开发票或税务代开凭证，"
             "以及是否就劳务报酬等应税所得履行个人所得税扣缴义务。",
             metrics,
             spec["required_sources"],
@@ -2333,14 +2376,14 @@ def _adjudicate_individual_suppliers(spec, suppliers, sup_total, pur, model):
             score=0,
             priority="低",
             cleared_reason=(
-                f"竞争假设裁决：个人采购金额{sup_total:,.2f}元、占进项{share * 100:.2f}%，"
+                f"竞争假设裁决：个人采购金额{sup_total:,.2f}元、{pur_scope_label}{share * 100:.2f}%，"
                 "属零星小额采购规模，正常经营假设胜出；代开发票与个税扣缴义务仍列为常规核验事项。"
             ),
         )]
     return [_finding(
         spec,
         detail_head + "向个人/个体户采购涉及发票取得与个人所得税扣缴两项法定义务，"
-        "须核验业务真实性、是否取得合法有效的代开发票、是否履行个人所得税扣缴义务，"
+        "需要核实业务真实性、是否取得合法有效的代开发票、是否履行个人所得税扣缴义务，"
         "以及是否存在借用个人主体虚开发票或虚列成本。",
         metrics,
         spec["required_sources"],

@@ -97,8 +97,8 @@ def _match_benchmark(industry, biz_model, entity_name="", business_scope=""):
     return None, None
 
 
-def _build_entity_profile(target_entity, fin_snap, stats):
-    """第 1 步：企业画像。"""
+def _build_entity_profile(target_entity, fin_snap, stats, core_biz=None):
+    """第 1 步：企业画像。core_biz: 主营业务识别结果（2026-09-05）。"""
     te = target_entity or {}
     name = te.get("name") or "被检查企业"
     industry = te.get("industry") or ""
@@ -163,11 +163,25 @@ def _build_entity_profile(target_entity, fin_snap, stats):
     )
     if registered_capital:
         text += f"注册资本{registered_capital}。"
+    # 主营业务识别（2026-09-05）：像税务稽查员一样先圈定"这家企业靠什么赚钱"
+    if core_biz and core_biz.get("core_revenue_amount") is not None:
+        _cr = core_biz.get("core_revenue_amount") or 0
+        _cc = core_biz.get("core_cost_amount") or 0
+        _ratio = (core_biz.get("core_revenue_ratio") or 0) * 100
+        _gm = ((_cr - _cc) / _cr * 100) if _cr > 0 else None
+        text += (
+            f"经识别，该企业的主营业务收入约{_cr:,.0f}元（占开票收入{_ratio:.0f}%）、"
+            f"对应主营业务成本约{_cc:,.0f}元"
+        )
+        if _gm is not None:
+            text += f"，主营业务毛利率约{_gm:.1f}%"
+        text += "。后续行业对标与重点线索均以主营业务口径为主。"
     return profile, text
 
 
-def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", business_scope=""):
-    """第 2 步：行业对标——毛利率/人均产值 vs 行业基准，给出专家式相对判断。"""
+def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", business_scope="", core_biz=None):
+    """第 2 步：行业对标——毛利率/人均产值 vs 行业基准，给出专家式相对判断。
+    优先用主营业务毛利率对标（2026-09-05：稽查员只对标主营业务的赚钱能力）。"""
     bench_name, bench = _match_benchmark(industry, biz_model, entity_name, business_scope)
     if not bench:
         return None, ""
@@ -176,18 +190,28 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
     sales = fs.get("total_sales") or 0
     purchases = fs.get("total_purchases") or 0
 
-    # 实际毛利率（gross_margin_pct 是百分比，如 13.3 表示 13.3%）
-    gm_pct = fs.get("gross_margin_pct")
-    if gm_pct is None and sales > 0:
-        gm_pct = (sales - purchases) / sales * 100
+    # 实际毛利率：优先主营业务口径，缺省用财务快照（gross_margin_pct 是百分比）
+    gm_pct = None
+    gm_scope_note = ""
+    if core_biz and core_biz.get("core_revenue_amount"):
+        _cr = core_biz.get("core_revenue_amount") or 0
+        _cc = core_biz.get("core_cost_amount") or 0
+        if _cr > 0:
+            gm_pct = (_cr - _cc) / _cr * 100
+            gm_scope_note = "（主营业务口径）"
+    if gm_pct is None:
+        gm_pct = fs.get("gross_margin_pct")
+        if gm_pct is None and sales > 0:
+            gm_pct = (sales - purchases) / sales * 100
 
     observations = []
 
-    # 毛利率对标
+    # 毛利率对标（优先主营业务口径，2026-09-05）
     gm_range = bench.get("毛利率")  # [下限, 上限, 中位]（小数）
     if gm_range and gm_pct is not None:
         lo, hi, mid = gm_range[0] * 100, gm_range[1] * 100, gm_range[2] * 100
         gm = float(gm_pct)
+        _m = f"毛利率{gm_scope_note}" if gm_scope_note else "毛利率"
         if gm < 0:
             # 销项 < 进项成本 → 购销倒挂，不是普通"毛利率偏低"
             observations.append({
@@ -202,7 +226,7 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
             })
         elif gm < lo:
             observations.append({
-                "metric": "毛利率",
+                "metric": _m,
                 "actual": round(gm, 1),
                 "benchmark": f"{lo:.0f}%~{hi:.0f}%（中位{mid:.0f}%）",
                 "direction": "明显偏低",
@@ -212,7 +236,7 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
             })
         elif gm > hi:
             observations.append({
-                "metric": "毛利率",
+                "metric": _m,
                 "actual": round(gm, 1),
                 "benchmark": f"{lo:.0f}%~{hi:.0f}%（中位{mid:.0f}%）",
                 "direction": "明显偏高",
@@ -221,7 +245,7 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
             })
         else:
             observations.append({
-                "metric": "毛利率",
+                "metric": _m,
                 "actual": round(gm, 1),
                 "benchmark": f"{lo:.0f}%~{hi:.0f}%（中位{mid:.0f}%）",
                 "direction": "处于合理区间",
@@ -353,6 +377,36 @@ def _build_investigation_route(key_clues, biz_model):
     return route
 
 
+def _build_core_biz(report_data):
+    """主营业务识别（2026-09-05）：销项按主营成本品名重合 + 80/20 主业法则识别主营收入，
+    进项用报告里已分类的主营成本（invoice_tables.core_cost / engine_status.biz_cost_classification）。"""
+    it = report_data.get("invoice_tables") or {}
+    sales = it.get("sales") or []
+    core_cost_rows = it.get("core_cost") or []
+    bcc = (report_data.get("engine_status") or {}).get("biz_cost_classification") or {}
+    core_cost_amount = bcc.get("core_cost_amount")
+    if core_cost_amount is None:
+        core_cost_amount = sum(float(r.get("amount") or r.get("total") or 0) for r in core_cost_rows)
+    core_goods = set()
+    for r in core_cost_rows:
+        g = str(r.get("goods") or "").strip()
+        if g:
+            core_goods.add(g)
+    core_goods |= set(bcc.get("core_goods") or [])
+    try:
+        from engine.main_biz_cost import identify_core_revenue
+        rev = identify_core_revenue(sales, core_goods)
+    except Exception:
+        rev = {}
+    return {
+        "core_revenue_amount": rev.get("core_revenue_amount"),
+        "core_revenue_ratio": rev.get("core_revenue_ratio"),
+        "core_cost_amount": round(core_cost_amount, 2) if core_cost_amount is not None else None,
+        "core_goods_sale": rev.get("core_goods_sale") or set(),
+        "core_cost_count": bcc.get("core_cost_count") or len(core_cost_rows),
+    }
+
+
 def build_inspector_reasoning(report_data):
     """主入口：生成税务稽查专家研判。"""
     if not isinstance(report_data, dict):
@@ -368,9 +422,10 @@ def build_inspector_reasoning(report_data):
     name = te.get("name") or ""
     scope = te.get("business_scope") or ""
 
-    profile, profile_text = _build_entity_profile(te, fin_snap, stats)
+    core_biz = _build_core_biz(report_data)
+    profile, profile_text = _build_entity_profile(te, fin_snap, stats, core_biz)
     bench_result, bench_text = _build_industry_benchmark(
-        industry, biz_model, fin_snap, name, scope)
+        industry, biz_model, fin_snap, name, scope, core_biz)
     key_clues = _build_key_clues(all_findings, biz_model)
     route = _build_investigation_route(key_clues, biz_model)
 
@@ -400,5 +455,6 @@ def build_inspector_reasoning(report_data):
         "industry_benchmark": bench_result,
         "key_clues": key_clues,
         "investigation_route": route,
+        "core_business": core_biz,
         "narrative": narrative,
     }

@@ -7,6 +7,8 @@
 # 税务合规方法论：先分三层，再逐层分析，而非一刀切全量比对。
 # ═══════════════════════════════════════════════════════════
 
+from collections import defaultdict
+
 # ├─ 日常报销关键词（全行业通用）
 # │  员工先行垫付后凭发票报销，对公付款对象是员工而非开票单位
 _REIMBURSEMENT_KWS_GLOBAL = [
@@ -208,6 +210,114 @@ def identify_main_biz_cost(pur_invs, sal_invs=None):
         "minor_expense_invs": minor_expense_invs,
         "pur_core_goods": pur_core_goods,
         "pur_expense_goods": pur_expense_goods,
+    }
+
+
+def identify_core_revenue(sal_invs, core_goods=None):
+    """
+    识别主营业务收入（2026-09-05 新增，税务稽查员视角）。
+
+    税务稽查员判断"这家企业靠什么赚钱"的口径：
+      1. 品名与主营业务成本品名重合（买什么卖什么=主营，贸易企业典型）；
+      2. 金额排序累计前 80% 的销项品名（80/20 主业法则：企业绝大多数收入
+         来自少数几个核心品名，制造企业的原料→成品品名不同，靠此兜底）；
+      3. 日常报销/重大费用类品名永远不可能是主营收入（先排除）。
+
+    参数:
+        sal_invs: 销项发票列表
+        core_goods: 主营业务成本品名集合（identify_main_biz_cost 输出，可选）
+
+    返回:
+        {
+            "core_revenue_invs": [...],   # 主营业务收入发票
+            "other_revenue_invs": [...],  # 其他业务收入发票
+            "core_revenue_amount": float, # 主营业务收入合计
+            "other_revenue_amount": float,
+            "core_revenue_ratio": float,  # 主营业务收入占比 0~1
+            "core_goods_sale": set(),     # 主营收入品名集合
+        }
+    """
+    core_revenue_invs = []
+    other_revenue_invs = []
+    core_goods_sale = set()
+    core_revenue_amount = 0.0
+    other_revenue_amount = 0.0
+
+    if not sal_invs:
+        return {
+            "core_revenue_invs": [], "other_revenue_invs": [],
+            "core_revenue_amount": 0.0, "other_revenue_amount": 0.0,
+            "core_revenue_ratio": 0.0, "core_goods_sale": set(),
+        }
+
+    core_goods = core_goods or set()
+
+    # 第 1 步：费用类品名直接排除（不可能是主营业务收入）
+    for inv in sal_invs:
+        goods = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
+        if any(kw in goods for kw in _REIMBURSEMENT_KWS_GLOBAL) or \
+           any(kw in goods for kw in _MAJOR_EXPENSE_KWS):
+            other_revenue_invs.append(inv)
+            other_revenue_amount += amount
+            continue
+        # 第 2 步：品名与主营成本品名重合 → 主营收入
+        if goods in core_goods:
+            core_revenue_invs.append(inv)
+            core_goods_sale.add(goods)
+            core_revenue_amount += amount
+            continue
+        # 暂存待第 3 步（80/20 法则）裁决
+        other_revenue_invs.append(inv)
+        other_revenue_amount += amount
+
+    # 第 3 步：80/20 主业法则——把暂存里金额大的品名捞回主营，
+    # 直到主营收入累计占比 >= 80%（企业绝大多数收入来自少数核心品名）
+    pending = other_revenue_invs
+    total_sale = core_revenue_amount + other_revenue_amount
+    if total_sale > 0 and core_revenue_amount / total_sale < 0.8:
+        # 按品名聚合暂存金额
+        goods_amount = defaultdict(float)
+        for inv in pending:
+            goods = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+            goods_amount[goods] += float(inv.get("amount", inv.get("total", 0)) or 0)
+        # 品名金额降序，逐个捞回主营直到占比>=80%
+        kept_ratio = core_revenue_amount / total_sale
+        promoted_goods = set()
+        for goods, amt in sorted(goods_amount.items(), key=lambda x: -x[1]):
+            if kept_ratio >= 0.8:
+                break
+            promoted_goods.add(goods)
+            kept_ratio += amt / total_sale
+        # 重新分流
+        core_revenue_invs = [i for i in core_revenue_invs]
+        other_revenue_invs = []
+        core_revenue_amount = 0.0
+        other_revenue_amount = 0.0
+        for inv in sal_invs:
+            goods = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
+            amount = float(inv.get("amount", inv.get("total", 0)) or 0)
+            if any(kw in goods for kw in _REIMBURSEMENT_KWS_GLOBAL) or \
+               any(kw in goods for kw in _MAJOR_EXPENSE_KWS):
+                other_revenue_invs.append(inv)
+                other_revenue_amount += amount
+                continue
+            if goods in core_goods or goods in promoted_goods:
+                core_revenue_invs.append(inv)
+                core_goods_sale.add(goods)
+                core_revenue_amount += amount
+            else:
+                other_revenue_invs.append(inv)
+                other_revenue_amount += amount
+
+    total = core_revenue_amount + other_revenue_amount
+    return {
+        "core_revenue_invs": core_revenue_invs,
+        "other_revenue_invs": other_revenue_invs,
+        "core_revenue_amount": round(core_revenue_amount, 2),
+        "other_revenue_amount": round(other_revenue_amount, 2),
+        "core_revenue_ratio": round(core_revenue_amount / total, 4) if total > 0 else 0.0,
+        "core_goods_sale": core_goods_sale,
     }
 
 
