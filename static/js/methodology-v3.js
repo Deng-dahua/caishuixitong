@@ -316,6 +316,73 @@
   // 章节级段落化组装：12 个章节统一为 "段落叙述 + 嵌入元素" 风格
   // ------------------------------------------------------------------
 
+  // ═══════════════════════════════════════════════════════════════
+  // 稽查作业顺序与原子规则分组（2026-09-05 税务稽查专家拟定）
+  // 依据《税务稽查工作规程》实务顺序：先收入、再成本、再发票、再资金、
+  // 再薪酬、再经营实质、最后穿透关联——证据最硬、定性最直接的先行。
+  // 每组列出引擎自动执行的原子规则（VR编号）与需人工复核的动作，
+  // 实现「方法论展示内容 vs 引擎执行内容」逐章对账。
+  // ═══════════════════════════════════════════════════════════════
+  var AUDIT_STAGES = [
+    {
+      id: 'm3-revenue', no: '第五步', name: '收入完整性稽查',
+      lead: '稽查的第一步永远是「钱从哪来」——收入是否足额、及时、完整申报。',
+      rules: ['VR001','VR002','VR018','VR028','VR036','VR053','VR054','VR063','VR064','VR068','VR069','VR070'],
+      auto: '申报与开票逐月勾稽、未开票收入敞口、作废发票回流、预收长期挂账、价外费用、利息收入、财政补贴、固定资产处置——共 12 条原子规则自动计算。',
+      manual: '调取销售合同、发货记录、期后回款流水，逐笔核验纳税义务发生时间与未开票收入性质（需外部证据，引擎不能代取）。'
+    },
+    {
+      id: 'm3-cost', no: '第六步', name: '成本费用稽查',
+      lead: '收入查完查成本——成本是否真实发生、是否与收入配比、是否有票有资金印证。',
+      rules: ['VR023','VR032','VR034','VR038','VR039','VR040','VR041','VR060','VR062'],
+      auto: '进销物耗比、进项转出、费用虚列、三项费用扣除限额、主营成本资金印证、暂估成本公转私闭环——共 9 条原子规则自动计算。',
+      manual: '调取应付账款账龄表、报销凭证、供应商对账单，逐笔核验暂估成本期后发票与付款去向（需外部证据）。'
+    },
+    {
+      id: 'm3-invoice', no: '第七步', name: '发票真实性稽查',
+      lead: '票是交易的血脉——发票真假、票面完整性、作废红冲与折扣口径。',
+      rules: ['VR003','VR004','VR010','VR011','VR015','VR027','VR033','VR066','VR067'],
+      auto: '发票号码重复、票面金额关系、品名缺失、作废红冲占比、品名背离、上游顶额集中开票、折扣折让——共 9 条原子规则自动计算。',
+      manual: '回查原始票面与文件指纹、穿透上游税务登记状态（走逃户/异常凭证需外部数据源）。'
+    },
+    {
+      id: 'm3-fund', no: '第八步', name: '资金流稽查',
+      lead: '钱不会说谎——资金流向印证交易真实性，公私混同与个人账户是账外的铁证来源。',
+      rules: ['VR009','VR013','VR020','VR025','VR030','VR057','VR058','VR059','VR061'],
+      auto: '流水余额滚动、双向收付、六员往来、公私混同、股东借款、第三方平台/个人码/现金盲区、收入收款印证——共 9 条原子规则自动计算。',
+      manual: '调取个人账户明细、现金日记账、平台对账单，逐笔核验款项性质（需外部证据）。'
+    },
+    {
+      id: 'm3-payroll', no: '第九步', name: '人员薪酬稽查',
+      lead: '用工与薪酬是成本与个税的交汇点——工资社保一致性与扣缴义务。',
+      rules: ['VR005','VR022','VR055','VR056','VR065'],
+      auto: '工资社保人员差异、用工收入规模、工资拆分、公私混同发薪、个人劳务代扣——共 5 条原子规则自动计算。',
+      manual: '调取劳动合同、考勤记录、个税扣缴申报表，逐人核验差异原因（需外部证据）。'
+    },
+    {
+      id: 'm3-substance', no: '第十步', name: '生产经营实质稽查',
+      lead: '生意是不是真的——产能、能耗、运输、存货与收入规模是否匹配。',
+      rules: ['VR006','VR007','VR014','VR044','VR045','VR046','VR047','VR048','VR049','VR052'],
+      auto: '库存滚动、能源消耗、库存收入背离、运输费背离、呆滞库存、进销倒挂、规格不一致、物流缺失、委外三维勾稽——共 10 条原子规则自动计算。',
+      manual: '实地盘点、调取磅单与物流单据、核验产能设备（需外部证据与现场核查）。'
+    },
+    {
+      id: 'm3-penetration', no: '第十一步', name: '穿透与关联稽查',
+      lead: '单户查完看网络——关联关系、转让定价、上游穿透与跨企业资金闭环。',
+      rules: ['VR012','VR016','VR017','VR021','VR024','VR026','VR029','VR037','VR050','VR031','VR035','VR042','VR043'],
+      auto: '客户供应商重合、地域分布、集中度、名称近似、个人主体、税负偏离、关联价格偏离、跨境线索、印花税、房产税、附征——共 13 条原子规则自动计算。',
+      manual: '调取股权结构、关联方清单、报关单与外汇凭证，逐笔核验定价独立性（需外部证据）。'
+    }
+  ];
+
+  function stageAccount(stage) {
+    // 执行对账条：自动执行 N 条规则 + 需人工复核动作
+    return '<aside class="m3-stage-account"><b>执行对账</b>' +
+      '<span>引擎自动执行：<em>' + stage.rules.length + '</em> 条原子规则（' +
+      esc(stage.rules.join('、')) + '）——' + esc(stage.auto) + '</span>' +
+      '<span>需人工复核：' + esc(stage.manual) + '</span></aside>';
+  }
+
   function renderPage(container, coverage, portfolio, catalog, framework, ledger, canonicalModel, validationBlueprint, latest) {
     var inventory = coverage.inventory || {};
     var acceptance = coverage.acceptance || {};
@@ -346,35 +413,40 @@
     var html = '<style>' + methodologyCss() + '</style>' +
       '<aside class="m3-nav">' +
       '<b>风险检查方法论</b>' +
-      [['m3-overview', '前言'], ['m3-coverage', '覆盖体系'], ['m3-ledger', '能力账本'],
-       ['m3-data-model', '数据模型'], ['m3-validation', '独立验证'],
-       ['m3-common', '共同事实'], ['m3-industries', '行业场景'],
-       ['m3-workflow', '作业规程'], ['m3-domains', '业务域协同'],
-       ['m3-chains', '链路与证据'], ['m3-report', '报告移交'],
-       ['m3-results', '执行成果'], ['m3-quality', '质量与进化']
+      [['m3-overview', '稽查总纲'], ['m3-foundation', '能力底座'],
+       ['m3-prep', '检查准备'], ['m3-parsing', '资料解析'],
+       ['m3-revenue', '①收入完整性'], ['m3-cost', '②成本费用'],
+       ['m3-invoice', '③发票真实性'], ['m3-fund', '④资金流'],
+       ['m3-payroll', '⑤人员薪酬'], ['m3-substance', '⑥经营实质'],
+       ['m3-penetration', '⑦穿透关联'], ['m3-crosscheck', '交叉验证'],
+       ['m3-report', '报告移交']
       ].map(function (item) {
         return '<a href="#' + item[0] + '">' + item[1] + '</a>';
       }).join('') +
       '</aside>' +
       '<article class="m3-prose">' +
-        // 前言
+        // ═══ 第一章 稽查总纲：来源边界 + 稽查作业顺序总述 ═══
         '<section id="m3-overview">' +
+          '<h2>稽查总纲</h2>' +
           p('<b>本方法的来源与适用边界。</b>' + esc(portfolio.positioning ||
             '本系统的方法论源自税务稽查一线工作经验与公开稽查规范，结合金融、税法与会计领域的方法论汇编而成。' +
             '它不替代有权人员的法定职责，而是为有权人员提供可复核的待核事实、调查路径与证据组织结构。')) +
-          p('从资料进入到报告移交，本系统的工作沿固定链路展开：<b>资料准入 → 经营画像 → 事实规则 → 调查核验 → ' +
-            '证据组织 → 分析论证 → 人工审理 → 报告移交</b>。每一个阶段都设有启动门槛、停止条件与可审计交付物；' +
-            '任何一阶段未达门槛即停止并补件，不可跨越。') +
+          p('<b>稽查作业顺序（本页内容按此顺序排列）。</b>税务稽查不是把规则清单从头跑到尾，' +
+            '而是按证据硬度与定性直接程度依次推进：<b>①检查准备（资料调取）→ ②资料接收与解析 → ' +
+            '③收入完整性 → ④成本费用 → ⑤发票真实性 → ⑥资金流 → ⑦人员薪酬 → ⑧生产经营实质 → ' +
+            '⑨穿透与关联 → ⑩交叉验证与综合定性 → ⑪报告编制与移交</b>。' +
+            '收入与成本先行（证据最硬、定性最直接），穿透与关联殿后（依赖外部数据），' +
+            '每一步通过后进入下一步，任何一步证据不足即转置疑清单要求补证，不可跨越。') +
           p('<small>现行方法论版本 ' + esc(portfolio.version || '') + '。' +
             '本页内容由系统从权威方法论目录、行业场景合同、统一数据模型、独立验证蓝图、能力账本与执行结果汇总生成，' +
             '并随方法论变更而自动更新。</small>') +
         '</section>' +
 
-        // 01 覆盖体系
-        '<section id="m3-coverage">' +
-          p('<b>覆盖的范围与边界。</b>覆盖体系由三层组成：' +
-            '跨行业共同事实（用于一切企业的通用底座）、行业场景合同（按实际经营活动选择）、' +
-            '叠加业务层（平台、跨境、集团关联等特殊情形）。' +
+        // ═══ 第二章 能力底座：覆盖体系+能力账本+共同事实+行业场景 ═══
+        '<section id="m3-foundation">' +
+          '<h2>能力底座</h2>' +
+          p('<b>覆盖的范围与边界。</b>覆盖体系由三层组成：跨行业共同事实（用于一切企业的通用底座）、' +
+            '行业场景合同（按实际经营活动选择）、叠加业务层（平台、跨境、集团关联等特殊情形）。' +
             '数量不是越多越好，而是必须按真实业务需要决定——任何一项方法在被独立案例验证之前都不进入正式覆盖。') +
           p('当前登记：跨行业共同事实 <b>' + esc(inventory.canonical_rules || 0) + '</b> 项、' +
             '完整行业场景 <b>' + esc(inventory.industry_scenarios || 0) + '</b> 个、' +
@@ -382,8 +454,9 @@
             '叠加业务层 <b>' + esc(overlays.length) + '</b> 个、' +
             '调查路径 <b>' + esc(inventory.clue_paths || 0) + '</b> 类、' +
             '证据方案 <b>' + esc(inventory.evidence_plans || 0) + '</b> 类、' +
-            '证据状态验收 <b>' + esc(acceptance.acceptance_case_count || 0) + '</b> 例。') +
-          p('数量原则是：' + esc(portfolio.count_policy || '') + '。') +
+            '证据状态验收 <b>' + esc(acceptance.acceptance_case_count || 0) + '</b> 例。' +
+            '数量原则是：' + esc(portfolio.count_policy || '') + '。') +
+          '<h4>能力账本（与引擎实时对账）</h4>' + capabilityLedgerProse(ledger) +
           '<h4>税费事项覆盖</h4>' +
           '<div class="m3-table-wrap"><table>' +
           '<thead><tr><th>税费组</th><th>覆盖事项</th><th>核验重点</th></tr></thead><tbody>' + taxRows + '</tbody></table></div>' +
@@ -391,38 +464,21 @@
           '<div class="m3-table-wrap"><table>' +
           '<thead><tr><th>代码</th><th>合同</th><th>场景</th><th>调查深度</th><th>边界样本深度</th></tr></thead><tbody>' +
           industryRows + '</tbody></table></div>' +
-        '</section>' +
-
-        // 02 能力账本
-        '<section id="m3-ledger">' + capabilityLedgerProse(ledger) + '</section>' +
-
-        // 03 数据模型
-        '<section id="m3-data-model">' + canonicalModelProse(canonicalModel) + '</section>' +
-
-        // 04 独立验证
-        '<section id="m3-validation">' + validationBlueprintProse(validationBlueprint) + '</section>' +
-
-        // 05 共同事实
-        '<section id="m3-common">' +
-          p('<b>为什么先做共同事实。</b>本系统处理的稽查工作，首先不是「找出风险」，而是先把一切企业都会涉及的身份、期间、' +
-            '资料、交易、资金、发票、税会与程序性问题解决掉，再叠加行业经营事实。' +
-            '这样做的好处是：把绝大多数通用异常在第一阶段识别，企业特定场景只在剩余空间内展开。') +
+          '<h4>跨行业共同事实（全行业通用底座）</h4>' +
+          p('先把一切企业都会涉及的身份、期间、资料、交易、资金、发票、税会与程序性问题解决掉，' +
+            '再叠加行业经营事实。把绝大多数通用异常在第一阶段识别，企业特定场景只在剩余空间内展开。') +
           (catalog.modules || []).map(canonicalModuleProse).join('') +
-        '</section>' +
-
-        // 06 行业场景（标识符保留为「全行业完整场景合同」以便前后端契约对齐）
-        '<section id="m3-industries">' +
-          p('<b>本节（标识符：全行业完整场景合同）说明行业场景的展开原则。</b>' +
-            '每个行业的真实业务都有自身的常态（季节、人员、产能、客户类型）。' +
+          '<h4>全行业完整场景合同</h4>' +
+          p('每个行业的真实业务都有自身的常态（季节、人员、产能、客户类型）。' +
             '本节提供的是「场景合同」——一组按场景拆解的调查与证据要求，而不是按企业拆解的固定清单。' +
             '在执行时按企业实际经营活动匹配场景、按匹配场景展开调查路径。' +
-            '下列合同涵盖 <b>' + esc(industries.length) + '</b> 个行业门类与 <b>' + esc(overlays.length) + '</b> 个叠加业务层，' +
-            '每个场景在本节完整呈现适用边界、调查路径、支持与反向证据、分析论证、政策期间、业务域协同和报告要求。') +
+            '下列合同涵盖 <b>' + esc(industries.length) + '</b> 个行业门类与 <b>' + esc(overlays.length) + '</b> 个叠加业务层。') +
           contracts.map(contractProse).join('') +
         '</section>' +
 
-        // 07 作业规程
-        '<section id="m3-workflow">' +
+        // ═══ 第三章 检查准备·资料调取 ═══
+        '<section id="m3-prep">' +
+          '<h2>检查准备·资料调取</h2>' +
           p('<b>作业规程的启动与放行。</b>全流程沿资料准入 → 经营画像 → 事实规则 → 调查核验 → ' +
             '证据组织 → 分析论证 → 人工审理 → 报告移交这八步推进，每一步都设有启动条件、停止条件与可审计交付。' +
             '系统不允许跨越资料、证据和程序门槛——任何一步未达交付标准，下一步不能启动。') +
@@ -432,13 +488,10 @@
               '。启动门槛：' + esc(step.gate || '') +
               '。交付：' + esc(step.output || '') + '。';
           }).join('　')) +
-        '</section>' +
-
-        // 08 业务域协同
-        '<section id="m3-domains">' +
-          p('<b>多业务域协同的工作模型。</b>不同业务域围绕同一「待证事实」协同，' +
-            '而不是各管一摊、独立出报告。当多域结论出现冲突时，回到原始资料与实际履行进行比对，' +
-            '不以多数表决、不以系统评分裁决、不以先入为主的口径压制相反意见。') +
+          '<h4>多业务域协同</h4>' +
+          p('不同业务域围绕同一「待证事实」协同，而不是各管一摊、独立出报告。' +
+            '当多域结论出现冲突时，回到原始资料与实际履行进行比对，不以多数表决、不以系统评分裁决、' +
+            '不以先入为主的口径压制相反意见。') +
           p((framework.business_domains || []).map(function (domain) {
             return '<b>' + esc(domain.id) + ' ' + esc(domain.name || '') + '。</b>' +
               esc(domain.scope || '') +
@@ -446,34 +499,35 @@
           }).join('　')) +
         '</section>' +
 
-        // 09 链路与证据
-        '<section id="m3-chains">' +
-          p('<b>调查链、证据链与分析链是一体化结构。</b>它们不是相互独立的清单，' +
-            '而是同一「待证事实」从发现、核验、证明到论证的连续记录。调查链只决定「怎样查」，' +
-            '证据链只说明「事实能否被证明」，分析链只论证「事实意味着什么」。') +
-          p('调查链须给出：' + inlineList(((framework.chain_contracts || {}).clue || {}).required_fields) +
-            '。证据链须给出：' + inlineList(((framework.chain_contracts || {}).evidence || {}).required_fields) +
-            '。分析链须给出：' + inlineList(((framework.chain_contracts || {}).analysis || {}).required_fields) + '。') +
-          p('<b>证据原则。</b>' + inlineList((framework.evidence_model || {}).rules)) +
+        // ═══ 第四章 资料接收与解析 ═══
+        '<section id="m3-parsing">' +
+          '<h2>资料接收与解析</h2>' +
+          p('<b>异构资料的统一映射。</b>不同银行流水、财务软件导出、税务平台导出、非标准 Excel 与' +
+            '非结构化扫描件，对外来资料而言是异构的；对税务稽查而言，它们必须被映射到同一组稳定的财税对象上，' +
+            '并保留原始来源定位，以便调查核验、复算复盘、外部取证均可回溯到具体文件、具体行、具体字段。') +
+          canonicalModelProse(canonicalModel) +
         '</section>' +
 
-        // 10 报告移交
-        '<section id="m3-report">' +
-          p('<b>报告移交接口的边界。</b>方法论只向报告编制移交通过门禁的事实、证据、测算、依据、限制和人工复核记录。' +
-            '不能移交的：评分（不应作为结论）、未经独立验证的假设、口径不清的口径选择、未经核验的"经验"。') +
-          p('<b>事实包</b>交给报告时，须写明主体、事项、期间、业务主键、原始来源、事实时间线、差异复算与未取得资料；' +
-            '<b>证据包</b>须写明证明对象、支持与反向证据、取得方式、证据三性、来源谱系、矛盾处理与证据成熟度；' +
-            '<b>专业复核包</b>须写明会计处理、税费要件、金额底稿、竞争解释、政策期间、程序状态与结论边界。') +
-        '</section>' +
+        // ═══ 第五~十一章：七个稽查阶段（顺序执行+执行对账） ═══
+        AUDIT_STAGES.map(function (stage) {
+          return '<section id="' + stage.id + '">' +
+            '<h2>' + stage.no + ' ' + stage.name + '</h2>' +
+            p('<b>' + esc(stage.lead) + '</b>') +
+            stageAccount(stage) +
+          '</section>';
+        }).join('') +
 
-        // 11 执行成果
-        '<section id="m3-results">' + latestResultProse(latest) + '</section>' +
-
-        // 12 质量与进化
-        '<section id="m3-quality">' +
-          p('<b>放行控制。</b>反馈用于发现缺口与提出变更；' +
-            '没有经过来源核验、正反样本覆盖、审批流程、回归测试与可回退发布的变更，不进入正式方法论。' +
-            '本系统对放行有下列硬性约束：' +
+        // ═══ 第十二章 交叉验证与综合定性 ═══
+        '<section id="m3-crosscheck">' +
+          '<h2>交叉验证与综合定性</h2>' +
+          p('<b>任何结论都必须经过对抗性检验。</b>系统在输出发现后执行四道交叉验证：' +
+            '红队对抗（主动寻找反例）、盲测（用独立样本检验规则稳定性）、幻觉检查（防止编造数字）、' +
+            '一致性重跑（同一资料复算结果必须一致）。经交叉验证后进入假设裁决——' +
+            '风险假设与正常假设竞争，证据充分才升级为风险，证据不足一律转置疑清单由企业自证。') +
+          validationBlueprintProse(validationBlueprint) +
+          '<h4>放行控制与已知缺口</h4>' +
+          p('反馈用于发现缺口与提出变更；没有经过来源核验、正反样本覆盖、审批流程、回归测试与可回退发布的变更，' +
+            '不进入正式方法论。本系统对放行有下列硬性约束：' +
             inlineList(coverage.quality_controls || []) + '。') +
           p('<b>持续验证与已知缺口。</b>' + inlineList((coverage.known_gaps || []).map(function (item) {
             return item.priority + '｜' + item.gap + '（控制：' + item.control + '）';
@@ -491,16 +545,40 @@
               }).join('；')))
             : '') +
         '</section>' +
+
+        // ═══ 第十三章 报告编制与移交 ═══
+        '<section id="m3-report">' +
+          '<h2>报告编制与移交</h2>' +
+          p('<b>报告移交接口的边界。</b>方法论只向报告编制移交通过门禁的事实、证据、测算、依据、限制和人工复核记录。' +
+            '不能移交的：评分（不应作为结论）、未经独立验证的假设、口径不清的口径选择、未经核验的"经验"。') +
+          p('<b>事实包</b>交给报告时，须写明主体、事项、期间、业务主键、原始来源、事实时间线、差异复算与未取得资料；' +
+            '<b>证据包</b>须写明证明对象、支持与反向证据、取得方式、证据三性、来源谱系、矛盾处理与证据成熟度；' +
+            '<b>专业复核包</b>须写明会计处理、税费要件、金额底稿、竞争解释、政策期间、程序状态与结论边界。') +
+          '<h4>调查链、证据链与分析链</h4>' +
+          p('它们不是相互独立的清单，而是同一「待证事实」从发现、核验、证明到论证的连续记录。' +
+            '调查链只决定「怎样查」，证据链只说明「事实能否被证明」，分析链只论证「事实意味着什么」。') +
+          p('调查链须给出：' + inlineList(((framework.chain_contracts || {}).clue || {}).required_fields) +
+            '。证据链须给出：' + inlineList(((framework.chain_contracts || {}).evidence || {}).required_fields) +
+            '。分析链须给出：' + inlineList(((framework.chain_contracts || {}).analysis || {}).required_fields) + '。') +
+          p('<b>证据原则。</b>' + inlineList((framework.evidence_model || {}).rules)) +
+          '<h4>最近执行成果</h4>' + latestResultProse(latest) +
+        '</section>' +
       '</article>';
 
     container.innerHTML = html;
 
     var requested = window._methodologySection || '';
     window._methodologySection = null;
-    var map = { overview: 'm3-overview', coverage: 'm3-coverage', ledger: 'm3-ledger',
-      model: 'm3-data-model', validation: 'm3-validation', guide: 'm3-workflow',
-      files: 'm3-workflow', rules: 'm3-common', domains: 'm3-domains',
-      results: 'm3-results', chains: 'm3-chains', handbook: 'm3-quality' };
+    var map = { overview: 'm3-overview', foundation: 'm3-foundation', prep: 'm3-prep',
+      parsing: 'm3-parsing', revenue: 'm3-revenue', cost: 'm3-cost',
+      invoice: 'm3-invoice', fund: 'm3-fund', payroll: 'm3-payroll',
+      substance: 'm3-substance', penetration: 'm3-penetration',
+      crosscheck: 'm3-crosscheck', report: 'm3-report',
+      coverage: 'm3-foundation', ledger: 'm3-foundation', model: 'm3-parsing',
+      validation: 'm3-crosscheck', guide: 'm3-prep', files: 'm3-prep',
+      rules: 'm3-foundation', domains: 'm3-prep', results: 'm3-report',
+      chains: 'm3-report', handbook: 'm3-crosscheck', quality: 'm3-crosscheck',
+      industries: 'm3-foundation', workflow: 'm3-prep', common: 'm3-foundation' };
     var targetId = map[requested] || requested;
     if (targetId) setTimeout(function () {
       var node = document.getElementById(targetId);
@@ -551,6 +629,11 @@
       // ── 引用盒：原则/边界陈述 ──
       '.m3-prose .m3-quote,.m3-prose .m3-coda{margin:16px 0 20px;padding:12px 20px;border-left:3px solid var(--brand);background:#fdf5f6;border-radius:0 8px 8px 0;font-size:15px;line-height:1.6;color:#3d4659;text-indent:0}',
       '.m3-prose .m3-quote>b{display:block;margin-bottom:6px;color:var(--brand);font-size:15px;font-weight:800;letter-spacing:.06em}',
+      '.m3-prose .m3-stage-account{margin:14px 0 22px;padding:12px 18px;border:1px solid #dbe3ee;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;background:#faf9f6;text-indent:0}',
+      '.m3-prose .m3-stage-account>b{display:block;margin-bottom:6px;color:var(--accent);font-size:15px;font-weight:800;letter-spacing:.05em}',
+      '.m3-prose .m3-stage-account>span{display:block;margin:4px 0;font-size:15px;line-height:1.75;color:#3d4659}',
+      '.m3-prose .m3-stage-account em{font-style:normal;color:var(--brand);font-weight:800}',
+      '.m3-prose h2{font-size:15px;font-weight:800;color:var(--ink);margin:0 0 14px;padding-bottom:8px;border-bottom:2px solid var(--brand);letter-spacing:.02em}',
       // ── 表格：自适应宽度、字号适中 ──
       '.m3-prose .m3-table-wrap{max-width:100%;overflow:auto;margin:16px 0 24px;border:1px solid var(--line);border-radius:12px;text-indent:0}',
       '.m3-prose .m3-table-wrap table{width:100%;border-collapse:collapse;font-size:15px}',

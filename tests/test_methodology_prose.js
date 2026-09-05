@@ -175,8 +175,7 @@ mChecks.forEach(([name, ok]) => {
 });
 
 if (failed === 0) {
-  console.log('\n=== 全部通过 ===');
-  process.exit(0);
+  console.log('\n=== 段落化断言全部通过 ===');
 } else {
   console.log(`\n=== 失败 ${failed} 项 ===`);
   // 同时打印场景 HTML 头 1500 字帮助诊断
@@ -184,3 +183,26 @@ if (failed === 0) {
   console.log(sceneHtml.slice(0, 1500));
   process.exit(1);
 }
+
+// ═══ 稽查顺序重排断言（2026-09-05）═══
+var orderSrc = fs.readFileSync(path.join(__dirname, '..', 'static', 'js', 'methodology-v3.js'), 'utf8');
+var orderChecks = [
+  ['稽查总纲章节', /id="m3-overview"/.test(orderSrc)],
+  ['稽查顺序总述（十一大步）', /①检查准备（资料调取）→ ②资料接收与解析/.test(orderSrc)],
+  ['收入完整性阶段', /id: 'm3-revenue'/.test(orderSrc)],
+  ['成本费用阶段', /id: 'm3-cost'/.test(orderSrc)],
+  ['发票真实性阶段', /id: 'm3-invoice'/.test(orderSrc)],
+  ['资金流阶段', /id: 'm3-fund'/.test(orderSrc)],
+  ['人员薪酬阶段', /id: 'm3-payroll'/.test(orderSrc)],
+  ['经营实质阶段', /id: 'm3-substance'/.test(orderSrc)],
+  ['穿透关联阶段', /id: 'm3-penetration'/.test(orderSrc)],
+  ['执行对账条（自动执行vs人工复核）', /stageAccount/.test(orderSrc) && /引擎自动执行/.test(orderSrc)],
+  ['规则分组覆盖69条', /'VR063'/.test(orderSrc) && /'VR070'/.test(orderSrc)],
+  ['导航按稽查顺序', /①收入完整性/.test(orderSrc)],
+];
+var orderFail = 0;
+orderChecks.forEach(function (c) {
+  if (c[1]) { console.log('  OK ', c[0]); } else { console.log('FAIL', c[0]); orderFail++; }
+});
+if (orderFail) process.exit(1);
+console.log('=== 稽查顺序断言全部通过 ===');
