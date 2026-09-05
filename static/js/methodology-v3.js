@@ -105,9 +105,10 @@
     });
     var entries = Object.keys(entities).map(function (code) {
       var item = entities[code] || {};
-      return '<article class="m3-entity"><b>' + esc(code) + '</b><h6>' + esc(item.name || '') +
-        '</h6><p>核心字段：' + esc((item.required_core_fields || []).join('、') || '按资料内容确认') +
-        '</p><small>来源类型：' + esc((item.source_types || []).join('、')) + '</small></article>';
+      return '<p class="m3-entity-prose"><b class="m3-entity-code">' + esc(code) + '</b>' +
+        '<b class="m3-entity-name">' + esc(item.name || '') + '</b>' +
+        '核心字段：' + esc((item.required_core_fields || []).join('、') || '按资料内容确认') + '；' +
+        '来源类型：' + esc((item.source_types || []).join('、')) + '。</p>';
     }).join('');
 
     return p('不同银行流水、财务软件导出、税务平台导出、非标准 Excel 与非结构化扫描件，对外来资料而言是异构的；' +
@@ -245,8 +246,8 @@
       '</em></summary><div class="m3-fold-body">' +
       p('<b>本合同的总体定位。</b>' + esc(contract.positioning || '')) +
       scenes.map(function (s) {
-        return '<article class="m3-scene"><header><b>' + esc(s.id) + '</b>' +
-          '<span>' + esc(s.name || '') + '</span></header>' + scenarioProse(s) + '</article>';
+        return '<section class="m3-scene"><h5 class="m3-scene-title"><b>' + esc(s.id) + '</b>' +
+          '<span>' + esc(s.name || '') + '</span></h5>' + scenarioProse(s) + '</section>';
       }).join('') +
       '</div></details>';
   }
@@ -513,70 +514,75 @@
 
   function methodologyCss() {
     return [
-      // 容器与衬线字体定义
-      '.m3-shell{--ink:#1a1a2e;--muted:#5b6b82;--line:#e2e6ed;--soft:#f7f8fa;--brand:#8b2332;--accent:#d4a574;display:flex;align-items:flex-start;gap:36px;width:calc(100% - 28px);max-width:1480px;margin:0 auto;padding:42px 14px 80px;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Source Han Serif SC","Noto Serif CJK SC",serif;font-size:16.5px;line-height:2.1;background:#fbfaf7}',
-      // 侧边导航（保持可读）
-      '.m3-nav{position:sticky;top:20px;width:176px;flex:none;padding:22px 0;border-right:1px solid var(--line);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}',
-      '.m3-nav>b{display:block;margin:0 18px 16px;color:var(--brand);font-size:14px;font-weight:800;letter-spacing:.06em}',
-      '.m3-nav a{display:block;padding:8px 18px;border-left:2px solid transparent;color:#5b6b82;text-decoration:none;font-size:13px;font-weight:500;transition:all .15s}',
+      // ── 页面整体：米白底、居中阅读栏、大方留白 ──
+      '.m3-shell{--ink:#1f2430;--muted:#5c6675;--line:#e3e7ee;--soft:#f6f7f9;--brand:#8b2332;--accent:#b98a5a;display:flex;align-items:flex-start;gap:40px;width:calc(100% - 28px);max-width:1440px;margin:0 auto;padding:44px 14px 84px;color:var(--ink);background:#faf9f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:16px;line-height:2}',
+      // ── 侧边导航：清爽、字大一级 ──
+      '.m3-nav{position:sticky;top:24px;width:188px;flex:none;padding:24px 0;border-right:1px solid var(--line)}',
+      '.m3-nav>b{display:block;margin:0 20px 18px;color:var(--brand);font-size:15px;font-weight:800;letter-spacing:.08em}',
+      '.m3-nav a{display:block;padding:10px 20px;border-left:3px solid transparent;color:#5c6675;text-decoration:none;font-size:14px;font-weight:500;transition:all .15s}',
       '.m3-nav a:hover{border-left-color:var(--brand);color:var(--brand);background:#fdf5f6}',
-      // 段落主样式
-      '.m3-prose{min-width:0;flex:1;max-width:920px;margin:0 auto;background:#fff;padding:50px 60px 60px;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 30px rgba(7,31,74,.05)}',
-      '.m3-prose section{margin:0 0 56px;padding-bottom:36px;border-bottom:1px dashed var(--line)}',
+      // ── 正文阅读区：白底居中、宽松内边距 ──
+      '.m3-prose{min-width:0;flex:1;max-width:880px;margin:0 auto;background:#fff;padding:56px 72px 72px;border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 32px rgba(7,31,74,.05)}',
+      '.m3-prose section{margin:0 0 64px;padding-bottom:40px;border-bottom:1px solid var(--line)}',
       '.m3-prose section:last-child{border-bottom:0;margin-bottom:0}',
-      '.m3-prose p{margin:0 0 20px;font-size:16.5px;line-height:2.1;color:#1c2233;text-align:justify;text-justify:inter-ideograph;text-indent:2em}',
+      // ── 章节大标题：层级第一级 ──
+      '.m3-prose h2{font-size:22px;font-weight:800;color:var(--ink);margin:0 0 22px;padding-bottom:12px;border-bottom:2px solid var(--brand);letter-spacing:.02em}',
+      '.m3-prose h2 small{display:block;margin-top:6px;font-size:14px;font-weight:500;color:var(--muted);letter-spacing:0}',
+      // ── 小节标题：层级第二级 ──
+      '.m3-prose h4{margin:32px 0 14px;padding-left:16px;border-left:4px solid var(--brand);font-size:17.5px;font-weight:700;color:var(--brand)}',
+      '.m3-prose h5.m3-scene-title{margin:0 0 14px;padding:0 0 10px;border-bottom:1px solid var(--line);font-size:16.5px;font-weight:700;color:var(--ink);display:flex;align-items:baseline;gap:12px;text-indent:0}',
+      '.m3-prose h5.m3-scene-title b{padding:3px 10px;border-radius:4px;background:#fdf5f6;color:var(--brand);font-size:13px;font-weight:800;letter-spacing:.05em}',
+      '.m3-prose h5.m3-scene-title span{flex:1;line-height:1.7}',
+      // ── 正文段落：首行缩进、两端对齐 ──
+      '.m3-prose p{margin:0 0 22px;font-size:16px;line-height:2.05;color:#242b3a;text-align:justify;text-justify:inter-ideograph;text-indent:2em}',
       '.m3-prose p:first-child{text-indent:0}',
-      // 章节内小标题（段落中的语义切换，不产生视觉割裂）
-      '.m3-prose h4{margin:28px 0 12px;padding-left:14px;border-left:4px solid var(--brand);font-size:17px;font-weight:700;color:var(--brand);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}',
-      '.m3-prose h6{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--brand)}',
-      // 段落中的"嵌入式引用"——数据指标嵌入段落，不单独成卡片
-      '.m3-prose .m3-ref{display:inline-block;margin:0 4px;padding:2px 10px;border:1px solid var(--line);border-radius:14px;background:var(--soft);font-size:13.5px;line-height:1.6;color:#334155;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}',
-      '.m3-prose .m3-ref>b{margin-right:6px;color:var(--brand);font-weight:800;font-size:14.5px}',
-      // 段落中的嵌入式列表
-      '.m3-prose .m3-inline-list{margin:8px 0 18px 24px;padding:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;text-indent:0}',
-      '.m3-prose .m3-inline-list li{position:relative;margin:6px 0;font-size:15px;line-height:1.9;color:#334155;list-style:none}',
-      '.m3-prose .m3-inline-list li:before{content:"·";position:absolute;left:-14px;color:var(--brand);font-weight:800}',
-      // 嵌入"引用盒"——原则陈述、边界陈述
-      '.m3-prose .m3-quote,.m3-prose .m3-coda{margin:18px 0 22px;padding:14px 20px;border-left:4px solid var(--brand);background:#fdf5f6;border-radius:0 8px 8px 0;font-size:15px;line-height:2;color:#3d4659;text-indent:0}',
-      '.m3-prose .m3-quote>b{display:block;margin-bottom:6px;color:var(--brand);font-size:13px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}',
-      // 段落中的"表格"——窄列、专业排版，前后由段落串联
-      '.m3-prose .m3-table-wrap{max-width:100%;overflow:auto;margin:14px 0 22px;border:1px solid var(--line);border-radius:10px;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;text-indent:0}',
-      '.m3-prose .m3-table-wrap table{width:100%;min-width:680px;border-collapse:collapse;font-size:13px}',
-      '.m3-prose .m3-table-wrap th{padding:11px 14px;background:var(--soft);color:#475569;text-align:left;white-space:nowrap;font-weight:700;font-size:12px;letter-spacing:.03em}',
-      '.m3-prose .m3-table-wrap td{padding:11px 14px;border-top:1px solid #eef1f5;vertical-align:top;font-size:13px;line-height:1.8}',
+      '.m3-prose p b{color:#8b2332;font-weight:700}',
+      // ── 段落式实体（原实体卡改段落）：编号+名称+描述连续成段 ──
+      '.m3-prose p.m3-entity-prose{margin:0 0 14px;padding:0 0 14px;border-bottom:1px dashed var(--line);font-size:15.5px;line-height:2;text-indent:0}',
+      '.m3-prose .m3-entity-code{display:inline-block;min-width:86px;margin-right:10px;padding:2px 10px;border-radius:4px;background:var(--soft);color:var(--brand);font-size:13px;font-weight:800;text-align:center}',
+      '.m3-prose .m3-entity-name{margin-right:10px;font-size:15.5px;color:var(--ink)}',
+      // ── 嵌入式引用指标 ──
+      '.m3-prose .m3-ref{display:inline-block;margin:0 4px;padding:2px 12px;border:1px solid var(--line);border-radius:16px;background:var(--soft);font-size:14px;line-height:1.7;color:#3a4561}',
+      '.m3-prose .m3-ref>b{margin-right:6px;color:var(--brand);font-weight:800;font-size:15px}',
+      // ── 嵌入式列表：段落内要点 ──
+      '.m3-prose .m3-inline-list{margin:10px 0 20px 26px;padding:0;text-indent:0}',
+      '.m3-prose .m3-inline-list li{position:relative;margin:7px 0;font-size:15.5px;line-height:1.95;color:#39404f;list-style:none}',
+      '.m3-prose .m3-inline-list li:before{content:"·";position:absolute;left:-16px;color:var(--brand);font-weight:800}',
+      // ── 引用盒：原则/边界陈述 ──
+      '.m3-prose .m3-quote,.m3-prose .m3-coda{margin:20px 0 24px;padding:16px 24px;border-left:4px solid var(--brand);background:#fdf5f6;border-radius:0 10px 10px 0;font-size:15.5px;line-height:2.05;color:#3d4659;text-indent:0}',
+      '.m3-prose .m3-quote>b{display:block;margin-bottom:8px;color:var(--brand);font-size:13.5px;font-weight:800;letter-spacing:.06em}',
+      // ── 表格：自适应宽度、字号适中 ──
+      '.m3-prose .m3-table-wrap{max-width:100%;overflow:auto;margin:16px 0 24px;border:1px solid var(--line);border-radius:12px;text-indent:0}',
+      '.m3-prose .m3-table-wrap table{width:100%;border-collapse:collapse;font-size:14px}',
+      '.m3-prose .m3-table-wrap th{padding:13px 16px;background:var(--soft);color:#475569;text-align:left;font-weight:700;font-size:13.5px;letter-spacing:.03em}',
+      '.m3-prose .m3-table-wrap td{padding:13px 16px;border-top:1px solid #eef1f5;vertical-align:top;font-size:14px;line-height:1.85}',
       '.m3-prose .m3-table-wrap tr:hover td{background:#fafbfc}',
-      // 折叠容器（场景库与能力账本专用）
-      '.m3-prose .m3-fold{margin:20px 0;border:1px solid var(--line);border-radius:10px;background:#fbfaf7;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;text-indent:0}',
-      '.m3-prose .m3-fold>summary{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:14px 20px;cursor:pointer;list-style:none;font-size:15px;font-weight:600;color:#1c2233}',
+      // ── 折叠容器：素净可查（场景库/能力账本） ──
+      '.m3-prose .m3-fold{margin:22px 0;border:1px solid var(--line);border-radius:12px;background:#fbfaf7;text-indent:0}',
+      '.m3-prose .m3-fold>summary{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:16px 24px;cursor:pointer;list-style:none;font-size:15.5px;font-weight:600;color:var(--ink)}',
       '.m3-prose .m3-fold>summary::-webkit-details-marker{display:none}',
-      '.m3-prose .m3-fold>summary b{display:inline-block;min-width:60px;margin-right:10px;padding:2px 8px;border-radius:4px;background:#fdf5f6;color:var(--brand);font-size:12px;font-weight:800;letter-spacing:.04em;text-align:center}',
-      '.m3-prose .m3-fold>summary em{color:var(--muted);font-size:12px;font-style:normal;text-align:right}',
+      '.m3-prose .m3-fold>summary b{display:inline-block;min-width:64px;margin-right:12px;padding:3px 10px;border-radius:4px;background:#fdf5f6;color:var(--brand);font-size:13px;font-weight:800;letter-spacing:.05em;text-align:center}',
+      '.m3-prose .m3-fold>summary em{color:var(--muted);font-size:13px;font-style:normal;text-align:right}',
       '.m3-prose .m3-fold[open]>summary{background:#fff;border-bottom:1px solid var(--line)}',
-      '.m3-prose .m3-fold-body{padding:18px 24px}',
-      // 场景内的样式修正（继承父段落样式）
-      '.m3-prose .m3-scene{margin:18px 0;padding:18px 22px;border:1px solid #e8ecf1;border-radius:10px;background:#fff;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;text-indent:0}',
-      '.m3-prose .m3-scene>header{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #eef1f5}',
-      '.m3-prose .m3-scene>header b{padding:2px 8px;border-radius:4px;background:#fdf5f6;color:var(--brand);font-size:12px;font-weight:800}',
-      '.m3-prose .m3-scene>header span{font-size:15px;font-weight:600;color:#1c2233}',
-      '.m3-prose .m3-scene p{margin:0 0 14px;font-size:15.5px;line-height:2;text-align:justify}',
+      '.m3-prose .m3-fold-body{padding:22px 28px}',
+      // ── 场景：纯段落流（无边框无卡片感） ──
+      '.m3-prose .m3-scene{margin:0 0 28px;padding:0;text-indent:0}',
+      '.m3-prose .m3-scene p{margin:0 0 16px;font-size:15.5px;line-height:2.05;text-align:justify}',
       '.m3-prose .m3-scene p:first-child{text-indent:0}',
-      // 数据模型实体卡
-      '.m3-prose .m3-entity{padding:14px 18px;border:1px solid var(--line);border-radius:8px;background:#fff;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;text-indent:0}',
-      '.m3-prose .m3-entity b{padding:2px 8px;border-radius:4px;background:#fdf5f6;color:var(--brand);font-size:11px;font-weight:800}',
-      '.m3-prose .m3-entity p{font-size:13.5px;line-height:1.85;color:#475569;margin:6px 0;text-align:left;text-indent:0}',
-      '.m3-prose .m3-domain-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}',
-      // 执行成果观测列表
-      '.m3-prose .m3-obs{margin:14px 0 24px;padding:18px 22px;list-style:none;background:#fbfaf7;border:1px solid var(--line);border-radius:10px;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;text-indent:0}',
-      '.m3-prose .m3-obs li{display:flex;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14.5px;color:#3d4659}',
+      // ── 数据模型容器：单列段落流 ──
+      '.m3-prose .m3-domain-grid{display:block;margin:14px 0}',
+      // ── 执行成果观测：段落式列表（去边框背景） ──
+      '.m3-prose .m3-obs{margin:16px 0 26px;padding:0;list-style:none;text-indent:0}',
+      '.m3-prose .m3-obs li{display:flex;align-items:baseline;gap:14px;padding:11px 0;border-bottom:1px dashed var(--line);font-size:15px;color:#39404f}',
       '.m3-prose .m3-obs li:last-child{border-bottom:0}',
-      '.m3-prose .m3-obs li>b{flex:none;color:var(--brand);font-size:18px;font-weight:800;min-width:60px;text-align:right}',
-      '.m3-prose .m3-obs li>span{flex:1;line-height:1.7}',
-      // 空状态
-      '.m3-prose .m3-empty{margin:18px 0;padding:32px;border:1px dashed #bdc6d1;border-radius:10px;background:#fbfaf7;text-align:center;text-indent:0}',
-      '.m3-prose .m3-empty p{margin:8px 0 0;color:var(--muted);font-size:14px;text-align:center;text-indent:0}',
-      // 响应式
-      '@media(max-width:1100px){.m3-nav{display:none}.m3-prose{padding:36px 32px}.m3-prose .m3-domain-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}',
-      '@media(max-width:720px){.m3-prose{padding:24px 18px;font-size:15px}.m3-prose section{margin-bottom:36px;padding-bottom:24px}.m3-prose p{font-size:15px;text-indent:0}.m3-prose .m3-table-wrap{min-width:540px}.m3-prose .m3-fold>summary{display:block}.m3-prose .m3-fold>summary em{display:block;margin-top:6px;text-align:left}.m3-prose .m3-domain-grid{grid-template-columns:1fr}}'
+      '.m3-prose .m3-obs li>b{flex:none;color:var(--brand);font-size:19px;font-weight:800;min-width:70px;text-align:right}',
+      '.m3-prose .m3-obs li>span{flex:1;line-height:1.8}',
+      // ── 空状态 ──
+      '.m3-prose .m3-empty{margin:20px 0;padding:36px;border:1px dashed #bdc6d1;border-radius:12px;background:#fbfaf7;text-align:center;text-indent:0}',
+      '.m3-prose .m3-empty p{margin:10px 0 0;color:var(--muted);font-size:14.5px;text-align:center;text-indent:0}',
+      // ── 响应式 ──
+      '@media(max-width:1100px){.m3-nav{display:none}.m3-prose{padding:40px 36px}}',
+      '@media(max-width:720px){.m3-prose{padding:28px 20px;font-size:15.5px}.m3-prose section{margin-bottom:44px;padding-bottom:28px}.m3-prose p{font-size:15.5px;text-indent:0}.m3-prose .m3-fold>summary{display:block}.m3-prose .m3-fold>summary em{display:block;margin-top:8px;text-align:left}}'
     ].join('');
   }
 
