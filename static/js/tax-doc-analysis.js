@@ -725,6 +725,26 @@ function renderAnalyzeHeader(report) {
     + '</div>'
 
 
+    // ═══ 报告编制信息条（2026-09-05）：每次分析都是新一次编制 ═══
+    // 显示本次编制时间、受控轮次号与报告指纹，证明报告是重新分析重新编制的。
+    var badge = report.compilation_badge || {};
+    var esT = report.engine_status || {};
+    var cr = report.compliance_round || {};
+    var analyzedAt = badge.analyzed_at || esT.analyzed_at || '';
+    var roundId = badge.round_id || cr.round_id || '';
+    var fp = badge.report_fingerprint || cr.report_fingerprint || '';
+    var freshSrc = ((report.enterprise_readable_report || {}).summary || {}).headline_source;
+    h += '<div id="compilation-badge" style="margin:14px 0 4px;padding:10px 14px;background:linear-gradient(90deg,#f8fafc,#eff6ff);border:1px solid #dbeafe;border-radius:6px;font-size:12px;color:#475569;line-height:1.9">'
+      + '<div style="font-weight:700;color:#1e40af;font-size:13px">📝 本次报告编制信息</div>'
+      + '<div>编制时间：<strong style="color:#0f172a">' + (analyzedAt || '—') + '</strong>'
+      + (roundId ? '　·　轮次编号：<strong style="color:#0f172a">' + roundId + '</strong>' : '')
+      + (fp ? '　·　报告指纹：<strong style="color:#0f172a;font-family:monospace">' + fp.slice(0, 16) + '</strong>' : '')
+      + (freshSrc === 'llm' ? '　·　叙述编制：<strong style="color:#16a34a">智能重编</strong>' : '　·　叙述编制：<strong style="color:#0f172a">按轮次重编</strong>')
+      + '</div>'
+      + '<div style="color:#94a3b8">本报告由分析引擎对当前上传资料重新读取、重新计算、重新编制而成；数字与结论来自本轮复算，叙述文字随轮次重新组织。</div>'
+      + '</div>';
+
+
     + '<div id="tax-doc-result" style="margin-top:16px"></div>';
 
 
