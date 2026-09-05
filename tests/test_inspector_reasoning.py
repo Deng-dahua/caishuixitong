@@ -58,8 +58,8 @@ class TestIndustryBenchmark(unittest.TestCase):
     def test_low_margin(self):
         bench, text = _build_industry_benchmark("广告传媒", "服务业", {"gross_margin_pct": 13.3})
         obs = bench["observations"]
-        self.assertEqual(obs[0]["direction"], "显著偏低")
-        self.assertIn("隐匿收入", obs[0]["why"])
+        self.assertEqual(obs[0]["direction"], "明显偏低")
+        self.assertIn("隐瞒不报的收入", obs[0]["why"])
 
     def test_normal_margin(self):
         bench, _ = _build_industry_benchmark("纺织制造", "制造业", {"gross_margin_pct": 15.0})
@@ -124,9 +124,9 @@ class TestBuildInspectorReasoning(unittest.TestCase):
             ],
         }
         r = build_inspector_reasoning(rd)
-        self.assertIn("企业画像", r["narrative"])
-        self.assertIn("行业对标", r["narrative"])
-        self.assertIn("核查路线", r["narrative"])
+        self.assertIn("这是一家什么样的企业", r["narrative"])
+        self.assertIn("跟同行业比，哪里不对劲", r["narrative"])
+        self.assertIn("按什么顺序查", r["narrative"])
         self.assertEqual(r["entity_profile"]["scale"], "小型")
 
 

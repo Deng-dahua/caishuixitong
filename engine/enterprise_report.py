@@ -626,12 +626,13 @@ def _build_materials(report_data):
 
 
 def _problem_paragraphs(f):
-    """从 finding 生成六段式问题说明"""
-    detail = _norm_text(str(f.get("detail") or f.get("description") or ""))
-    how = _norm_text(str(f.get("how_found") or ""))
-    reasons = f.get("reasonable_explanations") or f.get("alternative_explanations") or []
-    suggestion = _norm_text(str(f.get("suggestion") or ""))
-    steps = f.get("investigation_steps") or []
+    """从 finding 生成六段式问题说明（大白话叙述，2026-09-05）"""
+    from engine.plain_language import to_plain, to_plain_list
+    detail = to_plain(_norm_text(str(f.get("detail") or f.get("description") or "")))
+    how = to_plain(_norm_text(str(f.get("how_found") or "")))
+    reasons = to_plain_list(f.get("reasonable_explanations") or f.get("alternative_explanations") or [])
+    suggestion = to_plain(_norm_text(str(f.get("suggestion") or "")))
+    steps = to_plain_list(f.get("investigation_steps") or [])
     src_files = f.get("source_files") or []
     scope_names = set()
     for s in src_files:
@@ -655,14 +656,14 @@ def _problem_paragraphs(f):
         {"heading": "结论状态",
          "text": _conclusion_statement(f)},
         {"heading": "代表性明细（可回查）",
-         "text": ("以下为本项涉及的逐笔/代表明细（已脱敏行号与金额，原始数据见工作底稿）：" if detail_rows
-                  else "本项明细已留存于内部风险检查底稿，可按上述资料范围逐笔回查。")},
+         "text": ("以下为本项涉及的逐笔/代表明细（已隐去行号与金额，原始数据见工作底稿）：" if detail_rows
+                  else "本项明细已留存在内部检查底稿里，可以按上述资料范围逐笔回查。")},
         {"heading": "检查范围、方法和资料依据",
-         "text": "本项使用的资料范围为" + scope + "。风险检查人员直接读取企业上传的资料，按照同一口径逐项重新计算，并将计算结果与资料中的记录进行比较。原始文件指纹、读取回执、复算指标、代表性明细和可用的原文件行号已保存在内部风险检查底稿中；专业人员可在工作底稿中回查。"},
+         "text": "本项使用的资料范围是" + scope + "。检查人员直接读取企业上传的资料，按照同一口径逐项重新计算，并把计算结果与资料中的记录进行比较。原始文件指纹、读取回执、复算指标、代表性明细和可用的原文件行号已保存在内部检查底稿里；专业人员可以在工作底稿中回查。"},
         {"heading": "这件事对企业意味着什么",
          "text": "本轮确认资料中存在能够重复计算的数据差异。企业应先修复资料完整性和计算口径，再开展账、票、表、税和资金用途核对。仅凭这一数据差异，不能认定企业少缴税款或违反税收规定。" + tax_impact},
         {"heading": "应当同时核对的正常业务原因",
-         "text": "出现上述情况不当然等于发生税务违法。企业应按同一证据标准核对：" + _seq(reasons, "正常业务原因和对企业有利的原始资料。")},
+         "text": "出现上述情况不等于一定发生了税务违法。企业应按同一证据标准核对：" + _seq(reasons, "正常业务原因和对企业有利的原始资料。")},
         {"heading": "企业应当怎样处理",
          "text": "具体处理顺序为：" + _seq(steps or [suggestion], "按真实业务和原始资料查明原因并作真实处理。")},
         {"heading": "怎样才算处理完成",
@@ -678,20 +679,21 @@ def _problem_paragraphs(f):
 
 
 def _conclusion_statement(f):
-    """两级结论文本：可核定→最终答案；待核→建议与补证要求"""
+    """两级结论文本：可核定→最终答案；待核→建议与补证要求（大白话，2026-09-05）"""
+    from engine.plain_language import to_plain
     grade = str(f.get("conclusion_grade") or "")
     if grade == "已核定":
         answer = _norm_text(str(f.get("final_answer") or "").strip())
         scope_note = _norm_text(str(f.get("conclusion_scope_note") or "").strip())
-        return (
+        return to_plain(
             (answer or "本项结论已由本轮所报资料直接计算核定。")
             + (" " + scope_note if scope_note else "")
-            + " 本项无须补充核实即可作为定案事实引用；行政处理决定仍由风险检查人员依程序作出。"
+            + " 本项不需要再补充核实就可以作为定案事实引用；行政处理决定仍由检查人员依程序作出。"
         )
     suggestion = _norm_text(str(f.get("suggestion") or "").strip())
-    return (
-        "本项为待核事项：现有资料只能确认疑点信号，尚不足以作出最终认定。"
-        "须补充外部证据（合同、物流单据、盘点表、权属证明等）后方可定性。"
+    return to_plain(
+        "本项为待核实事项：现有资料只能确认可疑信号，还不足以作出最终认定。"
+        "需要补充外部证据（合同、物流单据、盘点表、权属证明等）后才能定性。"
         + (f"本轮建议：{suggestion}" if suggestion else "请按报告『企业应当怎样处理』一节逐项补证。")
     )
 
@@ -741,7 +743,7 @@ def _build_completed_checks(report_data):
         completed.append({
             "seq": seq,
             "title": (f.get("type") or "检查").replace("待核事实：", "").replace("待核事实:", ""),
-            "narrative": "风险检查人员对本项执行了本轮规定的检查程序，按照该检查项目规定的字段、口径和计算条件完成筛查，并记录本轮唯一执行状态。检查结果为：本轮已经取得该项检查所需资料并执行规则，未发现达到该规则检查条件的异常。",
+            "narrative": "检查人员对本项执行了本轮规定的检查程序，按这项检查规定的字段、口径和计算条件完成筛查，并记录了本轮唯一的执行状态。检查结果：本轮已经拿到这项检查所需的资料并执行了规则，没有发现达到该规则检查条件的不正常情况。",
         })
         seq += 1
     return completed
@@ -795,19 +797,20 @@ def _build_further_checks(report_data):
             "title": f"未收到“{cat}”导致相关检查未完成",
             "narrative_paragraphs": [
                 {"heading": "本轮检查结论",
-                 "text": f"经检查，本轮未收到该项资料，无法取得完成相关检查所需的完整事实。资料缺失只表示检查范围受限，不表示企业已经存在违法或少缴税问题。本轮相关检查未完成，所列风险方向目前无法排除，但不作违法、少缴税款或处罚认定。"},
+                 "text": f"经检查，本轮没有收到这项资料，没法取得完成相关检查所需的完整事实。资料缺失只表示检查范围受限，不表示企业已经存在违法或少缴税的问题。本轮相关检查没有做完，所列风险方向目前没法排除，但不作违法、少缴税款或处罚认定。"},
                 {"heading": "被阻断的检查和风险影响",
-                 "text": f"由于资料条件不具备，本轮无法完成与“{cat}”相关的账、票、表、税、款交叉核对。目前仍无法排除相应的风险方向。涉及{cat}的检查结论不得显示为无异常或已经合规。"},
+                 "text": f"由于资料条件不具备，本轮没法完成与“{cat}”相关的账、票、表、税、款交叉核对。目前仍无法排除相应的风险方向。涉及{cat}的检查结论不得显示为无异常或已经合规。"},
                 {"heading": "补充资料要求",
                  "text": f"企业应补充{cat}。如原资料客观上无法取得，可以提供能够证明同一事实的替代资料。"},
                 {"heading": "下一轮复查程序",
-                 "text": f"资料补齐后，风险检查人员将重新执行受影响的全部检查程序。本项完成标准为：资料能够覆盖本轮检查期间，来源、形成时间、原始版本和具体业务可以回查；补齐后重新运行受影响的全部检查程序。"},
+                 "text": f"资料补齐后，检查人员将重新执行受影响的全部检查程序。本项完成标准为：资料能够覆盖本轮检查期间，来源、形成时间、原始版本和具体业务可以回查；补齐后重新运行受影响的全部检查程序。"},
             ],
         })
     return further
 
 
 def _build_summary(report_data, problems, completed, further):
+    from engine.plain_language import to_plain
     findings = report_data.get("all_findings", []) or []
     file_results = report_data.get("file_results", []) or []
     files_count = report_data.get("files_count", len(file_results)) or len(file_results)
@@ -825,9 +828,11 @@ def _build_summary(report_data, problems, completed, further):
         if _striking:
             _o = _striking[0]
             key_points.append(
-                f"【行业对标】对照{(_reasoning.get('industry_benchmark') or {}).get('benchmark_name', '行业')}"
-                f"基准，本企业{_o['metric']}{_o['actual']}%（行业{_o['benchmark']}），{_o['direction']}。"
-                f"{_o['why']}"
+                to_plain(
+                    f"【行业对标】对照{(_reasoning.get('industry_benchmark') or {}).get('benchmark_name', '行业')}"
+                    f"基准，本企业{_o['metric']}{_o['actual']}%（行业{_o['benchmark']}），{_o['direction']}。"
+                    f"{_o['why']}"
+                )
             )
     except Exception:
         pass
@@ -837,7 +842,7 @@ def _build_summary(report_data, problems, completed, further):
         grade = p.get("conclusion_grade") or "待核"
         grade_tag = "（已核定）" if grade == "已核定" else "（待核）"
         # 重点摘要不加固定字数截断：直接输出完整首段，报告内容随数据动态呈现（不固定、不丢确定性数字串）
-        key_points.append(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{first}")
+        key_points.append(to_plain(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{first}"))
     if len(problems) > 5:
         key_points.append(f"另有{len(problems) - 5}项具体问题见第四章及本章『本轮全部发现一览』。")
     if further:
@@ -848,20 +853,20 @@ def _build_summary(report_data, problems, completed, further):
     grade_phrase = ""
     if problems:
         if verified_cnt and pending_cnt:
-            grade_phrase = (f"其中{verified_cnt}项为账面勾稽已核定事项，已直接给出最终结论；"
-                            f"{pending_cnt}项为待核事项，须补充外部证据后定性，本轮已随附检查建议。")
+            grade_phrase = (f"其中{verified_cnt}项是账面对账已核定事项，已直接给出最终结论；"
+                            f"{pending_cnt}项是待核实事项，需要补充外部证据后定性，本轮已附上检查建议。")
         elif verified_cnt:
-            grade_phrase = f"全部{verified_cnt}项为账面勾稽已核定事项，已直接给出最终结论。"
+            grade_phrase = f"全部{verified_cnt}项是账面对账已核定事项，已直接给出最终结论。"
         else:
-            grade_phrase = f"全部{pending_cnt}项为待核事项，须补充外部证据后定性，本轮已随附检查建议。"
+            grade_phrase = f"全部{pending_cnt}项是待核实事项，需要补充外部证据后定性，本轮已附上检查建议。"
 
-    headline = (f"本次税务风险检查共接收{files_count}个文件，归并为{len(types)}类资料。风险检查人员经逐项读取、复算和交叉核对，"
-                f"确认{len(problems)}项已有资料能够证明的具体问题。{grade_phrase}"
-                f"另有{len(completed)}项检查已执行且本轮未发现达到条件的异常；"
-                f"{len(further)}项因资料不足或影响范围尚未查清，本轮不作问题认定，补充资料后再检查。")
+    headline = (f"本次税务风险检查共收到{files_count}个文件，归为{len(types)}类资料。检查人员逐项读取、重新计算、交叉核对后，"
+                f"确认{len(problems)}项用现有资料能够证明的具体问题。{grade_phrase}"
+                f"另有{len(completed)}项检查已经做完、本轮没有发现达到条件的异常；"
+                f"{len(further)}项因为资料不足或影响范围还没查清，本轮不下结论，等补充资料后再检查。")
 
     owner_message = (f"请企业负责人先组织处理本报告列明的具体问题，并按要求补齐资料。"
-                     f"完成真实更正和资料补充后，应发起新一轮全量复查，由风险检查人员继续核对原问题是否处理完成，以及补充资料是否带出新的关联问题。")
+                     f"完成真实更正和资料补充后，应发起新一轮全量复查，由检查人员继续核对原问题是否处理完成，以及补充资料是否带出新的关联问题。")
 
     return {
         "headline": headline,

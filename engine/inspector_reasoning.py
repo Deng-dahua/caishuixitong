@@ -158,8 +158,8 @@ def _build_entity_profile(target_entity, fin_snap, stats):
     }
     text = (
         f"{name}是一家{industry}企业（经营模式：{biz_model}），{nature}。"
-        f"按本轮资料，销项{sales:,.0f}元、进项{purchases:,.0f}元，"
-        f"销项发票{sale_count}张、进项发票{pur_count}张，属{scale}企业。"
+        f"按本轮资料，开出去的发票收入{sales:,.0f}元、进货发票{purchases:,.0f}元，"
+        f"开票{sale_count}张、收进进货发票{pur_count}张，属{scale}企业。"
     )
     if registered_capital:
         text += f"注册资本{registered_capital}。"
@@ -195,28 +195,29 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
                 "actual": round(gm, 1),
                 "benchmark": f"{lo:.0f}%~{hi:.0f}%（中位{mid:.0f}%）",
                 "direction": "购销倒挂",
-                "why": ("销项小于进项成本，呈购销倒挂。这通常不是正常经营形态，须核实：①销项发票是否完整上传"
-                        "（缺漏销项会人为放大倒挂）；②是否存在账外销售、隐匿收入；③是否虚列进项、虚抵进项。"
-                        "先排除销项资料缺失，再判断是否为真实倒挂。"),
+                "why": ("开出去的发票金额比进货成本还少，收入盖不住成本，属于购销倒挂。正常做生意不会长期这样，"
+                        "需要核实三件事：①开出去的发票是不是全都上传了（少报收入会人为放大倒挂）；"
+                        "②有没有隐瞒不报的收入；③进货发票里是不是虚列了成本、虚抵了税。"
+                        "先把资料缺漏排除掉，再判断是不是真的倒挂。"),
             })
         elif gm < lo:
             observations.append({
                 "metric": "毛利率",
                 "actual": round(gm, 1),
                 "benchmark": f"{lo:.0f}%~{hi:.0f}%（中位{mid:.0f}%）",
-                "direction": "显著偏低",
-                "why": ("毛利率显著低于行业下限，通常指向三种可能：①销售收入未足额申报（隐匿收入）；"
-                        "②成本/进项虚高（虚列成本、虚抵进项）；③采购结构中混入了大量非主营服务或费用，"
-                        "把真实毛利率拉低了。须剥离非主营进项后复算真实毛利率，再逐项排除。"),
+                "direction": "明显偏低",
+                "why": ("毛利率明显低于同行业的下限，通常指向三种可能：①销售收入没报足（有隐瞒不报的收入）；"
+                        "②成本或进货发票虚高（虚列成本、多抵税）；③进货里混进了大量跟主业无关的服务或费用，"
+                        "把真实毛利率拉低了。需要把无关进项剥出来，重新算一遍真实毛利率，再逐项排除。"),
             })
         elif gm > hi:
             observations.append({
                 "metric": "毛利率",
                 "actual": round(gm, 1),
                 "benchmark": f"{lo:.0f}%~{hi:.0f}%（中位{mid:.0f}%）",
-                "direction": "显著偏高",
-                "why": ("毛利率显著高于行业上限，可能指向：①成本/进项人为压低（少计成本、进项发票缺失）；"
-                        "②高附加值业务集中（需核实是否真实）；③会计口径差异。须核实成本完整性。"),
+                "direction": "明显偏高",
+                "why": ("毛利率明显高于同行业的上限，可能指向：①成本或进货发票被压低了（少记成本、进货发票缺失）；"
+                        "②高附加值业务集中（需要核实是不是真的）；③记账口径差异。需要核实成本是不是记全了。"),
             })
         else:
             observations.append({
@@ -224,7 +225,7 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
                 "actual": round(gm, 1),
                 "benchmark": f"{lo:.0f}%~{hi:.0f}%（中位{mid:.0f}%）",
                 "direction": "处于合理区间",
-                "why": "毛利率落在行业合理区间内，收入与成本配比基本正常。",
+                "why": "毛利率落在行业正常区间里，收入和成本基本配比正常。",
             })
 
     # 人均产值对标（销售额 / 用工人数）
@@ -239,7 +240,7 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
             observations.append({
                 "metric": "人均产值", "actual": round(per_capita, 1),
                 "benchmark": f"{lo}~{hi}万（中位{mid}万）", "direction": "偏低",
-                "why": "人均产值偏低，提示用工规模与收入规模不匹配，须核实用工真实性或收入完整性。",
+                "why": "平均每人创造的收入偏低，说明用工人数和收入规模对不上，需要核实用工是不是真的、收入是不是记全了。",
             })
 
     result = {"benchmark_name": bench_name, "observations": observations}
@@ -339,16 +340,16 @@ def _build_investigation_route(key_clues, biz_model):
     c = [c for c in key_clues if c["tier"] == "C"]
     route = []
     if a:
-        route.append(f"第一步·资金与票证硬线索（{len(a)}项）：先查证据最硬、定性最直接的——"
-                     + "、".join(c["type"] for c in a[:3]) + "等，这类线索能直接锁定资金回流、虚开或账实不符。")
+        route.append(f"第一步·资金和发票硬线索（{len(a)}项）：先查证据最硬、最容易定性的——"
+                     + "、".join(c["type"] for c in a[:3]) + "等，这类线索能直接锁定资金回流、虚开发票或账实不符。")
     if b:
-        route.append(f"第二步·实质交易线索（{len(b)}项）：核验供应商/客户资质、关联关系与用工身份等"
-                     "需外部证据的事项——" + "、".join(c["type"] for c in b[:3]) + "等。")
+        route.append(f"第二步·实质交易线索（{len(b)}项）：核实供应商/客户资质、关联关系和用工身份这些"
+                     "需要外部证据的事项——" + "、".join(c["type"] for c in b[:3]) + "等。")
     if c:
-        route.append(f"第三步·数据质量与资料缺口（{len(c)}项）：补齐品名、发票号、借贷平衡等资料质量问题后重跑——"
+        route.append(f"第三步·数据质量和资料缺口（{len(c)}项）：补齐品名、发票号、借贷平衡等资料质量问题后重新跑一遍——"
                      + "、".join(c["type"] for c in c[:3]) + "等。")
     if not route:
-        route.append("本轮资料有限，未形成可排序的重点线索，补充核心资料后再研判。")
+        route.append("本轮资料有限，还没有形成可以排序的重点线索，补充核心资料后再研判。")
     return route
 
 
@@ -373,27 +374,31 @@ def build_inspector_reasoning(report_data):
     key_clues = _build_key_clues(all_findings, biz_model)
     route = _build_investigation_route(key_clues, biz_model)
 
-    # 组装连贯文本（专家口吻）
-    parts = ["一、企业画像", profile_text]
+    # 组装连贯文本（专家口吻·大白话）
+    parts = ["一、这是一家什么样的企业", profile_text]
     if bench_text:
-        parts.append("二、行业对标")
+        parts.append("二、跟同行业比，哪里不对劲")
         parts.append(bench_text)
-    parts.append("三、重点线索研判")
+    parts.append("三、哪些线索最要紧")
     if key_clues:
         for i, c in enumerate(key_clues[:8], 1):
-            seg = f"{i}. {c['type']}（{c['level'] or '待核'}）"
+            seg = f"{i}. {c['type']}（{c['level'] or '待核实'}）"
             if c["opposing"]:
-                seg += f"——可能合理解释：{'、'.join(c['opposing'][:3])}"
+                seg += f"——可能的正常解释：{'、'.join(c['opposing'][:3])}"
             parts.append(seg)
     else:
-        parts.append("本轮未形成重点线索。")
-    parts.append("四、核查路线")
+        parts.append("本轮没有形成重点线索。")
+    parts.append("四、按什么顺序查")
     parts.extend(route)
+
+    # 统一过一遍大白话翻译层（幂等：已白话的文本不受影响）
+    from engine.plain_language import to_plain
+    narrative = to_plain("\n\n".join(parts))
 
     return {
         "entity_profile": profile,
         "industry_benchmark": bench_result,
         "key_clues": key_clues,
         "investigation_route": route,
-        "narrative": "\n\n".join(parts),
+        "narrative": narrative,
     }
