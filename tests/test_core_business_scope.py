@@ -102,3 +102,104 @@ class SupplierGeoCoreScopeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FundMatchingTests(unittest.TestCase):
+    """发票↔银行流水匹配引擎（客户级聚合）单测。"""
+
+    def test_name_normalization(self):
+        from engine.fund_matching import normalize_entity_name
+        self.assertEqual(normalize_entity_name("河南省郑州市XX纺织原料有限公司"), "郑州市XX纺织原料")
+        self.assertEqual(normalize_entity_name("厦门旻刘服装有限公司"), "厦门旻刘服装")
+        self.assertEqual(normalize_entity_name("王小明"), "王小明")
+
+    def test_multi_invoice_same_customer_customer_level_match(self):
+        # 同一客户多张发票、多笔流水（分批收款）→ 客户级聚合匹配
+        from engine.fund_matching import match_invoices_to_flows
+        sal = [
+            {"buyer": "厦门旻刘服装有限公司", "amount": 294571},
+            {"buyer": "厦门旻刘服装有限公司", "amount": 292191},
+            {"buyer": "厦门旻刘服装有限公司", "amount": 276956},
+        ]
+        bank = [
+            {"counterparty": "厦门旻刘服装有限公司", "credit": 400000, "debit": 0},
+            {"counterparty": "厦门旻刘服装有限公司", "credit": 300000, "debit": 0},
+        ]
+        r = match_invoices_to_flows(sal, bank, side="sale", name_field="buyer")
+        # 发票合计863718 vs 流水700000 → 偏差18.9% ≤25% → 客户级匹配
+        self.assertGreater(r["match_ratio"], 0.9)
+
+    def test_huge_gap_stays_unmatched(self):
+        # 开票1500万 vs 流水285万 → 客户级偏差巨大 → 正确判未匹配（真实账外信号）
+        from engine.fund_matching import match_invoices_to_flows
+        sal = [{"buyer": "厦门旻刘服装有限公司", "amount": 5000000},
+               {"buyer": "厦门旻刘服装有限公司", "amount": 5000000},
+               {"buyer": "厦门旻刘服装有限公司", "amount": 5000000}]
+        bank = [{"counterparty": "厦门旻刘服装有限公司", "credit": 2855260, "debit": 0}]
+        r = match_invoices_to_flows(sal, bank, side="sale", name_field="buyer")
+        self.assertEqual(r["match_ratio"], 0.0)
+
+    def test_purchase_side_debit_only(self):
+        # 采购匹配只看支出流水：同名但只有收入流水的不能算支付
+        from engine.fund_matching import match_invoices_to_flows
+        pur = [{"seller": "河南原料公司", "amount": 100000}]
+        bank = [{"counterparty": "河南原料公司", "credit": 100000, "debit": 0}]
+        r = match_invoices_to_flows(pur, bank, side="purchase", name_field="seller")
+        self.assertEqual(r["match_ratio"], 0.0)
+
+    def test_person_paid_detection(self):
+        from engine.fund_matching import classify_core_cost_payment
+        pur = [{"seller": "王小明", "amount": 50000}]
+        bank = [{"counterparty": "王小明", "debit": 50000, "credit": 0}]
+        cls = classify_core_cost_payment(pur, bank)
+        self.assertGreater(cls["totals"]["person_paid"], 0)
+        self.assertEqual(cls["totals"]["company_paid"], 0)
+
+
+class VRFundEvidenceRulesTests(unittest.TestCase):
+    """VR060/VR061 资金证据链规则单测。"""
+
+    def _spec(self, rid):
+        return {"id": rid, "name": "资金证据链", "required_sources": ["pur_invs", "bank_txs"]}
+
+    def test_vr060_core_cost_unpaid_triggered(self):
+        from engine.verified_rule_engine import _scan_core_cost_fund_evidence
+        pur = [{"seller": "河南纺织原料有限公司", "goods": "*纺织产品*纱线", "amount": 500000}]
+        bank = []  # 无流水 → 不触发（诚实：不能凭空说无支付）
+        findings = _scan_core_cost_fund_evidence({"pur_invs": pur, "bank_txs": bank}, self._spec("VR060"))
+        self.assertEqual(findings, [])
+
+        bank2 = [{"counterparty": "某无关公司", "debit": 1000, "credit": 0}]
+        findings = _scan_core_cost_fund_evidence({"pur_invs": pur, "bank_txs": bank2}, self._spec("VR060"))
+        self.assertTrue(findings, "大额主营成本无支付流水应触发")
+        self.assertIn("未匹配到任何对公支付流水", findings[0]["detail"])
+
+    def test_vr060_person_paid_large_triggered(self):
+        from engine.verified_rule_engine import _scan_core_cost_fund_evidence
+        pur = [
+            {"seller": "河南纺织原料有限公司", "goods": "*纺织产品*纱线", "amount": 600000},
+            {"seller": "王小明", "goods": "*劳务*加工费", "amount": 150000},
+        ]
+        bank = [
+            {"counterparty": "河南纺织原料有限公司", "debit": 600000, "credit": 0},
+            {"counterparty": "王小明", "debit": 150000, "credit": 0},
+        ]
+        findings = _scan_core_cost_fund_evidence({"pur_invs": pur, "bank_txs": bank}, self._spec("VR060"))
+        person_hits = [f for f in findings if "个人账户垫付" in f["detail"]]
+        self.assertTrue(person_hits, "大额个人垫付应触发三流不一致风险")
+
+    def test_vr061_person_inflow_evidence(self):
+        from engine.verified_rule_engine import _scan_revenue_receipt_evidence
+        sal = [{"buyer": "厦门旻刘服装有限公司", "amount": 5000000}]
+        bank = [
+            {"counterparty": "厦门旻刘服装有限公司", "credit": 200000, "debit": 0},
+            {"counterparty": "范善茂", "credit": 1000000, "debit": 0},
+        ]
+        findings = _scan_revenue_receipt_evidence({"sal_invs": sal, "bank_txs": bank}, self._spec("VR061"))
+        self.assertTrue(findings)
+        self.assertIn("个人账户", findings[0]["detail"], "个人流入应写入收款印证发现")
+
+    def test_vr060_vr061_no_bank_no_trigger(self):
+        from engine.verified_rule_engine import _scan_core_cost_fund_evidence, _scan_revenue_receipt_evidence
+        self.assertEqual(_scan_core_cost_fund_evidence({"pur_invs": [{"amount": 100}], "bank_txs": []}, self._spec("VR060")), [])
+        self.assertEqual(_scan_revenue_receipt_evidence({"sal_invs": [{"amount": 100}], "bank_txs": []}, self._spec("VR061")), [])

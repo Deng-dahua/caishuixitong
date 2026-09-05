@@ -819,6 +819,48 @@ VERIFIED_RULE_CATALOG = [
              "materials": "补证责令单（现金日记账+取现流水）"},
         ],
     },
+    {
+        "id": "VR060",
+        "name": "主营业务成本资金证据链核验",
+        "layer": "资金证据链规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["采购与取得", "收付款与资金结算"],
+        "required_sources": ["pur_invs", "bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "主营业务成本必须有真实的资金支付印证：对公流水匹配为强证据；个人垫付后报销发票流与资金流分离须核验；无任何支付记录指向挂账未付、虚开发票或发票未入账三种现实情形。无银行流水数据时不触发本规则（资料缺失由受阻检查章节覆盖）。",
+        "derives_to": [
+            {"child": "VR051", "link": "主营成本无资金印证 → 下达补证责令单",
+             "analyze": "逐笔核验无支付记录的主营成本发票：应付账款账龄、后续付款、报销凭证、供应商真实收款",
+             "evidence": "调取应付账款明细、银行流水、员工报销凭证、供应商对账单",
+             "materials": "应付账款账龄表、银行流水、报销凭证、供应商对账单"},
+            {"child": "VR021", "link": "个人垫付大额采购 → 核验借用个人主体走票",
+             "analyze": "个人垫付金额大且集中，须核验供应商资质与个人与供应商的关联关系",
+             "evidence": "调取个人垫付明细、供应商资质证明、关联关系排查",
+             "materials": "报销明细、供应商资质证明、关联方清单"},
+        ],
+    },
+    {
+        "id": "VR061",
+        "name": "主营业务收入收款印证核验",
+        "layer": "资金证据链规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["销售与收入确认", "收付款与资金结算"],
+        "required_sources": ["sal_invs", "bank_txs"],
+        "status": "verified_executable_screening",
+        "limitation": "销项发票即主营业务收入，必须有银行流水或第三方平台（财付通/支付宝等）收款对应。无收款记录指向应收账款挂账、账外收款或虚构收入三种现实情形。无银行流水数据时不触发本规则。",
+        "derives_to": [
+            {"child": "VR051", "link": "收入无收款印证 → 下达补证责令单",
+             "analyze": "逐笔核验无收款记录的销项发票：应收账款账龄、期后回款、收款账户归属",
+             "evidence": "调取应收账款明细、银行流水、回款凭证、开户清单",
+             "materials": "应收账款账龄表、银行流水、回款凭证"},
+            {"child": "VR028", "link": "收入无收款且应收长期挂账 → 疑虚构收入或账外收款",
+             "analyze": "应收长期未回款的开票收入，核验合同履行与货物交付真实性",
+             "evidence": "调取合同、出库单、物流单据、期后回款流水",
+             "materials": "销售合同、出库单、物流单据、银行流水"},
+        ],
+    },
 ]
 
 
@@ -5069,6 +5111,198 @@ def _scan_cash_vouchers(vouchers):
     return rows, amount
 
 
+def _scan_core_cost_fund_evidence(data, spec):
+    """VR060 主营业务成本资金证据链核验（2026-09-05）。
+
+    税务稽查员的证据链思维：主营业务成本必须有真实的资金支付印证。
+      - 对公流水匹配（含平台代付）→ 交易真实性强 ✓
+      - 个人垫付后报销         → 发票流与资金流分离，三流不一致（大额即风险）
+      - 没有任何支付记录       → 挂账未付 / 虚开发票 / 发票未入账三种现实情形
+
+    铁律：没有银行流水数据时不触发（"无支付记录"必须基于流水数据的比对，
+    流水缺失本身是资料缺失问题，由受阻检查章节覆盖，绝不凭空说"无支付"）。
+    """
+    pur = data.get("pur_invs", []) or []
+    bank = data.get("bank_txs", []) or []
+    if not pur or not bank:
+        return []
+    from engine.main_biz_cost import identify_main_biz_cost
+    from engine.fund_matching import classify_core_cost_payment
+    _cls = identify_main_biz_cost(pur, data.get("sal_invs") or [])
+    core_invs = _cls.get("core_cost_invs") or []
+    if not core_invs:
+        return []
+    evid = classify_core_cost_payment(core_invs, bank)
+    totals = evid.get("totals") or {}
+    total = totals.get("total") or 0
+    unpaid = totals.get("unpaid") or 0
+    person = totals.get("person_paid") or 0
+    company = totals.get("company_paid") or 0
+    mismatch = totals.get("amount_mismatch") or 0
+    if total <= 0:
+        return []
+    ratio = evid.get("evidence_ratio") or 0
+
+    findings = []
+    # ── 信号一：主营成本无支付记录（挂账/虚开/未入账）──
+    if unpaid >= 50000 or (unpaid / total >= 0.10):
+        unpaid_rows = [e["row"] for e in evid["unpaid"]]
+        examples = "、".join(
+            f"{str(r.get('seller') or '未知供应商')}({_number(r.get('amount')):,.0f}元)"
+            for r in sorted(unpaid_rows, key=lambda x: -_number(x.get("amount")))[:5]
+        )
+        findings.append(_finding(
+            spec,
+            f"主营业务成本中有{unpaid:,.2f}元（占主营成本{unpaid / total * 100:.1f}%）未匹配到任何对公支付流水"
+            f"（含银行转账与第三方平台代付），如{examples}。"
+            "现实中存在三种可能：①货已收但款未付（挂账应付，须核验应付账款账龄与后续付款）；"
+            "②员工个人垫付后报销（发票流与资金流分离，须核验报销凭证与供应商真实收款记录）；"
+            "③发票与真实交易不符（虚开发票或发票未入账）。须逐笔核验资金去向。",
+            {
+                "core_cost_total": round(total, 2),
+                "unpaid_amount": round(unpaid, 2),
+                "unpaid_ratio": round(unpaid / total, 4),
+                "person_paid_amount": round(person, 2),
+                "company_paid_amount": round(company, 2),
+                "amount_mismatch_amount": round(mismatch, 2),
+                "evidence_ratio": ratio,
+                "unpaid_examples": examples,
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        ))
+    # ── 信号二：主营成本经个人垫付（三流不一致，大额即风险）──
+    if person >= 100000 or (person / total >= 0.10 if total else False):
+        person_rows = [e["row"] for e in evid["person_paid"]]
+        examples = "、".join(
+            f"{str(r.get('seller') or '未知')}({_number(r.get('amount')):,.0f}元)"
+            for r in sorted(person_rows, key=lambda x: -_number(x.get("amount")))[:5]
+        )
+        findings.append(_finding(
+            spec,
+            f"主营业务成本中{person:,.2f}元（占主营成本{person / total * 100:.1f}%）经个人账户垫付支付，如{examples}。"
+            "发票开给企业、款项由个人支付，发票流与资金流分离，不符合三流一致要求。"
+            "须核验：①报销凭证是否完整、②供应商是否真实收到款项、③是否存在借用个人主体虚开发票或虚列成本。",
+            {
+                "person_paid_amount": round(person, 2),
+                "person_paid_ratio": round(person / total, 4) if total else 0.0,
+                "person_paid_examples": examples,
+                "evidence_ratio": ratio,
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        ))
+    # ── 小额零星：资金印证正常，输出信息级说明（有资金印证率的数据事实）──
+    if not findings and ratio < 0.5:
+        findings.append(_finding(
+            spec,
+            f"主营业务成本中仅{ratio * 100:.0f}%匹配到对公或平台支付流水（{company + person:,.2f}元/共{total:,.2f}元），"
+            f"其余{total - company - person:,.2f}元缺乏资金印证（未支付记录{unpaid:,.2f}元、同名流水金额不符{mismatch:,.2f}元）。"
+            "资金印证率偏低提示发票与真实付款的对应关系须进一步核验，暂列为待核实事项。",
+            {
+                "evidence_ratio": ratio,
+                "core_cost_total": round(total, 2),
+                "unpaid_amount": round(unpaid, 2),
+                "amount_mismatch_amount": round(mismatch, 2),
+            },
+            spec["required_sources"],
+            level="待核验",
+            priority="中",
+        ))
+    return findings
+
+
+def _scan_revenue_receipt_evidence(data, spec):
+    """VR061 主营业务收入收款印证核验（2026-09-05）。
+
+    用户定义：销项发票肯定就是主营业务收入（未开票收入由 VR018 申报-开票差额覆盖）。
+    收入侧证据链：销项发票必须有银行流水或第三方平台收款对应。
+      - 有收款（含财付通/支付宝等平台归集）→ 收入真实性强 ✓
+      - 无收款记录 → 应收账款长期挂账（收入可能虚构）或资金未入企业账户（账外风险）
+      - 银行流入来自个人账户 → 收入经个人账户归集的账外风险铁证
+    """
+    sal = data.get("sal_invs", []) or []
+    bank = data.get("bank_txs", []) or []
+    if not sal or not bank:
+        return []
+    from engine.fund_matching import classify_revenue_receipt, is_individual_name, is_platform_counterparty
+    rec = classify_revenue_receipt(sal, bank)
+    totals = rec.get("totals") or {}
+    total = totals.get("total") or 0
+    matched = totals.get("matched") or 0
+    unmatched = totals.get("unmatched") or 0
+    if total <= 0:
+        return []
+    ratio = rec.get("receipt_ratio") or 0
+
+    # ── 个人账户流入检测：收入经个人账户归集是账外风险的直接铁证 ──
+    person_in = 0.0
+    person_names = set()
+    bank_in_total = 0.0
+    for tx in bank:
+        credit = _number(tx.get("credit"))
+        if credit > 0:
+            bank_in_total += credit
+            cp = str(tx.get("counterparty") or "").strip()
+            if cp and is_individual_name(cp) and not is_platform_counterparty(cp):
+                person_in += credit
+                person_names.add(cp)
+
+    findings = []
+    if unmatched >= 50000 or (unmatched / total >= 0.10):
+        unmatched_rows = [e["row"] for e in rec["unmatched"]]
+        examples = "、".join(
+            f"{str(r.get('buyer') or '未知客户')}({_number(r.get('amount')):,.0f}元)"
+            for r in sorted(unmatched_rows, key=lambda x: -_number(x.get("amount")))[:5]
+        )
+        detail = (
+            f"开票收入中有{unmatched:,.2f}元（占开票收入{unmatched / total * 100:.1f}%）未匹配到银行流水或第三方平台"
+            f"（财付通/支付宝等）收款记录，如{examples}。"
+            "现实中存在三种可能：①客户赊账未付（应收账款挂账，须核验账龄与期后回款）；"
+            "②收款进入个人账户或未入账账户（账外收款风险）；③收入凭证与真实交易不符（虚构收入）。"
+            "须逐笔核验收款去向与回款时间。"
+        )
+        if person_in >= 50000 or (bank_in_total > 0 and person_in / bank_in_total >= 0.10):
+            detail += (
+                f"特别提示：银行流入中有{person_in:,.2f}元来自个人账户"
+                f"（{sorted(person_names, key=len)[0] if person_names else '未知个人'}等{len(person_names)}个自然人，"
+                f"占银行流入{person_in / bank_in_total * 100:.1f}%），收入经个人账户归集，"
+                "是账外收款/资金滞留个人账户的直接证据，须逐一核验个人账户收款的性质与去向。"
+            )
+        findings.append(_finding(
+            spec,
+            detail,
+            {
+                "revenue_total": round(total, 2),
+                "matched_amount": round(matched, 2),
+                "unmatched_amount": round(unmatched, 2),
+                "receipt_ratio": ratio,
+                "unmatched_examples": examples,
+                "person_inflow_amount": round(person_in, 2),
+                "person_inflow_names": sorted(person_names)[:10],
+                "bank_in_total": round(bank_in_total, 2),
+            },
+            spec["required_sources"],
+            priority="调查优先级",
+        ))
+    elif ratio < 0.5:
+        findings.append(_finding(
+            spec,
+            f"开票收入中仅{ratio * 100:.0f}%匹配到银行或平台收款记录（{matched:,.2f}元/共{total:,.2f}元），"
+            "收款印证率偏低，其余收入缺乏资金回笼记录，暂列为待核实事项（客户赊账或收款渠道未覆盖均可能）。",
+            {
+                "revenue_total": round(total, 2),
+                "matched_amount": round(matched, 2),
+                "unmatched_amount": round(unmatched, 2),
+                "receipt_ratio": ratio,
+            },
+            spec["required_sources"],
+            level="待核验",
+            priority="中",
+        ))
+    return findings
+
+
 def _scan_cash_blindspot(data, spec):
     """VR059 现金交易监管盲区（账外收入·现金侧完全不可见线索）。
 
@@ -5209,6 +5443,8 @@ _SCANNERS = {
     "VR057": _scan_thirdparty_blindspot,
     "VR058": _scan_personal_collection_blindspot,
     "VR059": _scan_cash_blindspot,
+    "VR060": _scan_core_cost_fund_evidence,
+    "VR061": _scan_revenue_receipt_evidence,
 }
 
 
