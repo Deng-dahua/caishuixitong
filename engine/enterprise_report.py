@@ -774,8 +774,152 @@ def _conclusion_statement(f):
     )
 
 
+def _build_redline_problems(suspicions):
+    """
+    按「税务红线疑点」组装报告主体（2026-09-06 新方法论）
+
+    每条疑点回答五个问题：
+      ① 触碰了哪条红线、涉嫌什么、法定依据是什么
+      ② 线索链：这个疑点是怎么从资料里发现的（每环落到具体数字）
+      ③ 证据链：现在手上有什么证据、还缺什么、闭合到什么程度
+      ④ 论证过程：主张 → 论据 → 反证 → 裁决
+      ⑤ 需要补充什么资料或解释才能定性
+    """
+    problems = []
+    for i, s in enumerate(suspicions, 1):
+        arg = s.get("argumentation") or {}
+        clue = s.get("clue_chain") or {}
+        ev = s.get("evidence_chain") or {}
+        rid = s.get("redline_id", "")
+        rname = s.get("redline_name", "")
+        grade = s.get("conclusion_grade") or arg.get("conclusion_grade") or "待核"
+
+        # ① 红线与法条
+        constituents = [c for c in (s.get("constituents") or []) if c]
+        legal = [l for l in (s.get("legal_basis") or []) if l]
+        _suspect = str(s.get("suspect") or "税务风险")
+        _suspect_txt = _suspect if _suspect.startswith("涉嫌") else f"涉嫌{_suspect}"
+        p1 = (
+            f"经检查，本企业触碰税务红线 {rid}「{rname}」，{_suspect_txt}。"
+            "该红线不因行业而变，凡符合下列构成要件即属触红："
+            + _seq(constituents, "见红线库列明的构成要件。")
+            + (f"法定依据：{'；'.join(legal)}。" if legal else "")
+        )
+
+        # ② 线索链
+        chain_desc = _clue_narrative(clue)
+        p2 = (
+            "这个疑点不是估计出来的，是从资料里一步步算出来的："
+            + (chain_desc or "本轮资料未能形成完整的量化线索链。")
+        )
+        if clue.get("data_gaps"):
+            p2 += "其中" + "、".join(
+                f"第{g['step']}环" for g in clue.get("data_gaps", [])
+            ) + "因缺少资料未取得数据，已计入检查受限范围。"
+
+        # ③ 证据链
+        have = [e for e in (ev.get("elements") or []) if e.get("status") == "已有"]
+        lack = [e for e in (ev.get("elements") or []) if e.get("status") != "已有"]
+        p3 = (
+            f"要定性本条红线，需要组织{len(ev.get('elements') or [])}项证据。"
+            + (f"现已有{len(have)}项：" + "、".join(e["name"] for e in have[:6]) + "。" if have else "现尚无一项证据在案。")
+            + (f"尚缺{len(lack)}项：" + "、".join(e["name"] for e in lack[:6]) + "。" if lack else "")
+            + f"证据链闭合度{int(float(ev.get('closure', 0)) * 100)}%，{ev.get('verdict', '')}。"
+            + (f"{ev.get('rebuttal_status', '')}。" if ev.get("rebuttal_status") else "")
+        )
+
+        # ④ 论证与裁决
+        p4 = arg.get("reasoning") or ""
+
+        # ⑤ 补证要求
+        actions = [a for a in (arg.get("next_actions") or []) if a]
+        p5 = (
+            "为对本条红线作出定性，需要：" + _seq(actions, "由企业就本条红线提交书面说明。")
+            + (f"补救要求：{ev.get('remedy', '')}" if ev.get("remedy") else "")
+        )
+
+        paragraphs = [
+            {"heading": "一、触碰的税务红线", "text": p1},
+            {"heading": "二、线索链：这个疑点是怎么发现的", "text": p2,
+             "detail_table": _clue_table(clue)},
+            {"heading": "三、证据链：现在有什么、还缺什么", "text": p3,
+             "detail_table": _evidence_table(ev)},
+            {"heading": "四、论证过程与裁决", "text": p4},
+            {"heading": "五、需要补充的资料与解释", "text": p5},
+        ]
+
+        problems.append({
+            "seq": i,
+            "title": f"{rid} {rname}".strip(),
+            "redline_id": rid,
+            "conclusion_grade": grade,
+            "verdict": s.get("verdict", ""),
+            "confidence": s.get("confidence", 0.0),
+            "closure": s.get("closure", 0.0),
+            "risk_level": s.get("level", ""),
+            "suspect": s.get("suspect", ""),
+            "taxes": s.get("taxes", []),
+            "final_answer": (arg.get("claim", "") if grade == "已核定" else ""),
+            "suggestion": _seq(actions, ""),
+            "narrative_paragraphs": paragraphs,
+            "detail_table": _evidence_table(ev),
+            "finding_count": s.get("finding_count", 1),
+            "missing_materials": s.get("missing_materials", []),
+            "trace_id": (clue.get("nodes") or [{}])[0].get("trace_ref", ""),
+        })
+    return problems
+
+
+def _clue_narrative(clue):
+    """把线索链讲成大白话，每环带实际数字"""
+    nodes = clue.get("nodes") or []
+    if not nodes:
+        return ""
+    parts = []
+    for n in nodes:
+        seg = f"第{n.get('step')}步从「{n.get('source') or '—'}」{n.get('action') or ''}"
+        if n.get("observed"):
+            seg += f"，看到{n['observed']}"
+        parts.append(seg)
+    return "；".join(parts) + "。"
+
+
+def _clue_table(clue):
+    """线索链明细表：环/资料/动作/实际看到"""
+    nodes = clue.get("nodes") or []
+    if not nodes:
+        return None
+    return {
+        "columns": ["环节", "使用资料", "做了什么", "实际看到的数据"],
+        "rows": [
+            {"环节": f"第{n.get('step')}环", "使用资料": n.get("source", ""),
+             "做了什么": n.get("action", ""), "实际看到的数据": n.get("observed", "")}
+            for n in nodes
+        ],
+    }
+
+
+def _evidence_table(ev):
+    """证据链明细表：角色/证据名称/证明目的/现状"""
+    els = ev.get("elements") or []
+    if not els:
+        return None
+    return {
+        "columns": ["证据角色", "证据名称", "证明目的", "现状"],
+        "rows": [
+            {"证据角色": e.get("role", ""), "证据名称": e.get("name", ""),
+             "证明目的": e.get("purpose", ""), "现状": e.get("status", "")}
+            for e in els
+        ],
+    }
+
+
 def _build_confirmed_problems(report_data):
     """从 findings 组装『确认的具体问题』（level 非待核验/信息的）"""
+    # ═══ 新方法论：以「税务红线疑点」为主干（2026-09-06）═══
+    _rd = (report_data.get("comprehensive", {}) or {}).get("redline_detection") or {}
+    if _rd.get("suspicions"):
+        return _build_redline_problems(_rd["suspicions"])
     findings = report_data.get("all_findings", []) or []
     # 缺失型（该有的没有）经竞争假设裁决后仍为"证据不足"的，转「待企业澄清事项」抛企业自证，
     # 不列为已确认问题（避免同一发现既"已核定"又"待证"的矛盾）。
@@ -1567,6 +1711,8 @@ def build_enterprise_readable_report(report_data):
         "inspector_perspective": _build_inspector_perspective(),
         "inspector_reasoning": inspector_reasoning,
         "material_readiness": material_readiness,
+        # 红线判定汇总：本轮触碰多少条税务红线、各结论层级数量（报告抬头展示）
+        "redline_summary": ((report_data.get("comprehensive", {}) or {}).get("redline_detection") or {}).get("summary", {}),
         "summary": summary,
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,

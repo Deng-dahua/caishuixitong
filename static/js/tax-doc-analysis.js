@@ -4712,14 +4712,37 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     }
   }
 
-  html += '<h2 id="company-problems">二、本轮风险检查确认的具体问题</h2>' +
-    '<p class="i2">本部分只写本轮资料能够直接证明的具体问题。没有达到这一标准的事项，不在这里写成企业已经存在的问题。</p>';
+  html += '<h2 id="company-problems">二、本轮风险检查确认的具体问题（税务红线疑点）</h2>' +
+    '<p class="i2">本部分按<strong>税务红线</strong>组织，不按行业罗列。每一条说明：触碰了哪条红线、'
+    + '涉嫌什么、线索是怎么从资料里发现的、要定性还需要哪些证据、论证后如何裁决、需要补充什么资料。'
+    + '红线成立只表示存在法定情形须核实，不等于已经定性违法。</p>';
+  var rlSummary = (report.redline_summary || {});
+  if (rlSummary.suspicion_total) {
+    html += '<p class="i2"><strong>本轮共触碰 ' + esc(rlSummary.suspicion_total) + ' 条税务红线</strong>：'
+      + '可定性 ' + esc(rlSummary.confirmed || 0) + ' 条、待补证后定性 ' + esc(rlSummary.unconfirmed || 0) + ' 条'
+      + (rlSummary.excluded ? ('、已排除 ' + esc(rlSummary.excluded) + ' 条') : '') + '。'
+      + '共比照红线库 ' + esc(rlSummary.redline_total || 0) + ' 条（行业无关）。</p>';
+  }
   if (!problems.length) {
     html += '<p class="i2">本轮没有发现能够由现有资料直接证明的具体问题。请继续处理第七部分列明的资料缺口事项。</p>';
   }
   problems.forEach(function(item){
-    html += '<section class="fact-sec"><div class="ftitle">问题' + esc(item.seq || '') + '：' + esc(item.title || '具体资料问题') + '</div>' +
-      _renderNarrativeParagraphs(_enterpriseProblemParagraphs(item), '本项尚未形成完整的段落式检查记录。') +
+    var meta = '';
+    if (item.redline_id) {
+      var pct = function(v){ return (typeof v === 'number' ? Math.round(v * 100) : 0) + '%'; };
+      meta = '<p class="i2" style="margin:6px 0 10px;padding:8px 12px;background:#f8fafc;'
+        + 'border-left:3px solid #2563eb;font-size:13px;line-height:1.9">'
+        + '红线编号：<strong>' + esc(item.redline_id) + '</strong>'
+        + (item.suspect ? '｜涉嫌：' + esc(item.suspect) : '')
+        + (item.verdict ? '｜裁决：<strong>' + esc(item.verdict) + '</strong>' : '')
+        + (item.confidence ? '｜置信度：' + pct(item.confidence) : '')
+        + (item.closure !== undefined ? '｜证据链闭合度：' + pct(item.closure) : '')
+        + (item.taxes && item.taxes.length ? '｜涉及税种：' + esc((item.taxes || []).join('、')) : '')
+        + '</p>';
+    }
+    html += '<section class="fact-sec"><div class="ftitle">疑点' + esc(item.seq || '') + '：' + esc(item.title || '具体资料问题') + '</div>'
+      + meta
+      + _renderNarrativeParagraphs(_enterpriseProblemParagraphs(item), '本项尚未形成完整的段落式检查记录。') +
       '</section>';
   });
 

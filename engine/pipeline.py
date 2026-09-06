@@ -3829,6 +3829,28 @@ def _run_analyze(company_id, db, progress_callback=None):
         domain_summary = _scenario_execution.get("domain_summary", [])
         comprehensive["scenario_execution"] = _scenario_execution
         comprehensive["scenario_methodology"] = scenario_methodology
+        # ═══ 红线判定：把场景发现归并为「税务红线疑点」（行业无关）═══
+        # 方法论主线：确定税务疑点（触碰哪条红线）→ 线索链（怎么发现的）
+        #           → 证据链（要组织什么证据）→ 论证链（主张/反证/裁决）
+        try:
+            from engine.redline_engine import run_redline_detection
+            from engine.enterprise_report import _DOC_TYPE_TO_CATEGORY
+            _provided_mats = []
+            for _fr in (file_results or []):
+                if not isinstance(_fr, dict):
+                    continue
+                _c = _DOC_TYPE_TO_CATEGORY.get(str(_fr.get("type") or "").strip())
+                if _c and _c not in _provided_mats:
+                    _provided_mats.append(_c)
+            _redline_detection = run_redline_detection(
+                all_findings,
+                engine_data={"file_results": file_results},
+                material_readiness={"provided": _provided_mats},
+                pipeline_log=pipeline_log,
+            )
+            comprehensive["redline_detection"] = _redline_detection
+        except Exception as _rl_err:  # 红线判定失败不阻断主流程，仅记录
+            pipeline_log.append(f"[红线判定] 未执行：{_rl_err}")
         pipeline_log.append(
             f"[场景执行核心] 已隔离{_pre_scenario_candidate_count}项旧式候选输出；"
             f"运行{_scenario_execution.get('atomic_rule_count', 0)}项已验证原子计算，"
