@@ -13,7 +13,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine import verified_rule_engine as V
-from engine import scenario_execution as SE
+from engine import output_governance as OG
 from engine import domain_analysis as DA
 from engine import false_invoice as FI
 from engine import business_model as BM
@@ -250,24 +250,24 @@ class TestVR059CashBlindspot(unittest.TestCase):
 class TestScenarioSurfacing(unittest.TestCase):
     """端到端：三条规则经共同事实门落到 scenario_execution.findings。"""
     def test_surfaced_via_common_gate(self):
-        se = SE.execute_scenario_methodology("宠物用品零售", file_results=None, engine_data=_company3_data())
+        se = OG.run_output_governance("宠物用品零售", file_results=None, engine_data=_company3_data())
         ids = _rule_ids_from_findings(se)
         self.assertIn("VR055", ids, "VR055 应经共同事实门进入 findings")
         self.assertIn("VR056", ids, "VR056 应经共同事实门进入 findings")
         self.assertIn("VR057", ids, "VR057 应进入 findings")
 
     def test_vr058_surfaced_via_common_gate(self):
-        se = SE.execute_scenario_methodology("餐饮零售", file_results=None, engine_data=_personal_data())
+        se = OG.run_output_governance("餐饮零售", file_results=None, engine_data=_personal_data())
         ids = _rule_ids_from_findings(se)
         self.assertIn("VR058", ids, "VR058 应经共同事实门进入 findings")
 
     def test_vr059_surfaced_via_common_gate(self):
-        se = SE.execute_scenario_methodology("农贸零售", file_results=None, engine_data=_cash_data())
+        se = OG.run_output_governance("农贸零售", file_results=None, engine_data=_cash_data())
         ids = _rule_ids_from_findings(se)
         self.assertIn("VR059", ids, "VR059 应经共同事实门进入 findings")
 
     def test_b2b_control_not_flagged(self):
-        se = SE.execute_scenario_methodology("通用设备制造", file_results=None, engine_data=_b2b_data())
+        se = OG.run_output_governance("通用设备制造", file_results=None, engine_data=_b2b_data())
         ids = _rule_ids_from_findings(se)
         self.assertNotIn("VR055", ids)
         self.assertNotIn("VR057", ids)
