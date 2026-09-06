@@ -3693,30 +3693,11 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 明细注入：为每条发现附加结构化明细数据 ═══
     all_findings = _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs)
 
-    # ═══ 场景驱动执行核心：原子观察→共同事实门→行业场景→待核事实 ═══
+    # ═══ 正式输出治理核心（行业无关）：原子观察→共同事实门→待核事实 ═══
     # 旧域分析、评分和经验模型的输出不得越过本边界进入正式报告。
     try:
-        from engine.scenario_execution import execute_scenario_methodology
-        from engine.methodology_portfolio import resolve_industry_code
+        from engine.output_governance import run_output_governance
         _scenario_industry = _target_industry
-        if not resolve_industry_code(_scenario_industry):
-            _industry_candidates = [
-                target_entity.get("industry_online", ""),
-                (ctx.company_profile or {}).get("industry", "") if ctx else "",
-            ]
-            try:
-                _scenario_company = db.query(Company).filter(Company.id == company_id).first()
-                if _scenario_company:
-                    _industry_candidates.extend([
-                        _scenario_company.industry_code or "",
-                        _scenario_company.business_scope or "",
-                    ])
-            except Exception:
-                pass
-            for _industry_candidate in _industry_candidates:
-                if resolve_industry_code(_industry_candidate):
-                    _scenario_industry = _industry_candidate
-                    break
         _scenario_engine_data = {
             "bank_txs": bank_txs,
             "sal_invs": sal_invs,
@@ -3731,7 +3712,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             "target_entity": target_entity,
         }
         _pre_scenario_candidate_count = len(all_findings)
-        _scenario_execution = execute_scenario_methodology(
+        _scenario_execution = run_output_governance(
             _scenario_industry,
             file_results=file_results,
             engine_data=_scenario_engine_data,
@@ -3818,7 +3799,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             all_findings = _scenario_execution["findings"]
             # 注入后重算域汇总，使 BOM/仓储/运输/存货勾稽域进入报告 domain_summary
             try:
-                from engine.scenario_execution import _domain_summary as _recompute_domain_summary
+                from engine.output_governance import _domain_summary as _recompute_domain_summary
                 _scenario_execution["domain_summary"] = _recompute_domain_summary(_scenario_execution["findings"])
             except Exception:
                 pass
@@ -3855,7 +3836,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             f"[场景执行核心] 已隔离{_pre_scenario_candidate_count}项旧式候选输出；"
             f"运行{_scenario_execution.get('atomic_rule_count', 0)}项已验证原子计算，"
             f"形成{_scenario_execution.get('trusted_observation_count', 0)}项客观观察；"
-            f"{_scenario_execution.get('industry_scenes_assessed', 0)}个完整行业场景已生成核验计划，"
+            f"{_scenario_execution.get('common_fact_findings', 0)}项共同事实门待核事实已纳入，"
             f"输出{len(all_findings)}项待核事实。全部输出须人工复核且禁止自动定性。"
         )
     except Exception as _scene_methodology_error:
@@ -5130,11 +5111,11 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _he:
         result["self_healing"] = {"error": str(_he)}
     
-    # ═══ 正式输出封印：仅允许场景执行器的规范待核事实进入报告 ═══
+    # ═══ 正式输出封印：仅允许输出治理核心的规范待核事实进入报告 ═══
     if '_scenario_execution' not in locals():
         raise RuntimeError("场景驱动执行结果缺失，禁止生成报告")
-    from engine.scenario_execution import seal_scenario_findings
-    all_findings = seal_scenario_findings(_scenario_execution)
+    from engine.output_governance import seal_governed_findings
+    all_findings = seal_governed_findings(_scenario_execution)
     result["report"]["all_findings"] = all_findings
     result["report"]["scenario_execution"] = _scenario_execution
     result["report"]["scenario_methodology"] = _scenario_execution.get("review_plan", {})
@@ -5169,7 +5150,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         f"已核定{_verified_cnt}项/待核{_pending_cnt}项" if all_findings else "未形成待核事实"
     )
     result["report"]["summary_text"] = (
-        f"场景驱动分析完成：{_scenario_execution.get('industry_scenes_assessed', 0)}个行业场景已评估，"
+        f"正式输出治理完成：{_scenario_execution.get('common_fact_findings', 0)}项共同事实门待核事实已纳入，"
         f"{_scenario_execution.get('trusted_observation_count', 0)}项客观观察形成{len(all_findings)}项结论。"
         f"其中{_verified_cnt}项为账面勾稽可核定事项，已基于所报资料给出最终答案（推翻须更正资料本身）；"
         f"{_pending_cnt}项待核事项须补充外部证据后方可定性，报告已附检查建议。"
@@ -5886,7 +5867,7 @@ def _build_doubt_library_summary(all_findings):
     if total_rules:
         lines.append(
             f"事实合同: {total_rules}项（跨行业共同事实{common_rules}项，"
-            f"行业场景事实{industry_rules}项）；全部要求人工复核且不设置自动定性阈值"
+            f"红线驱动事实{industry_rules}项）；全部要求人工复核且不设置自动定性阈值"
         )
     lines.append(
         f"合同关联: {len(hit)}/{len(all_findings)}项待核事项关联现行事实合同"

@@ -98,12 +98,12 @@ MODULE_REGISTRY = {
         }
     },
     "M009_rule_engine": {
-        "name": "场景执行核心",
-        "description": "运行已验证原子计算，并将客观观察交给共同事实门和适用行业场景",
+        "name": "正式输出治理核心（行业无关）",
+        "description": "运行已验证原子计算，并将客观观察交给共同事实门（行业无关，红线驱动）",
         "requires": {"data": ["file_results"], "condition": "len(file_results) > 0"},
         "depends_on": ["M002_data_normalize"],
         "priority": 9,
-        "produces": ["scenario_execution", "pending_facts"],
+        "produces": ["output_governance", "pending_facts"],
         "domain": "分析"
     },
     "M010_chain_engine": {
