@@ -16,7 +16,7 @@ def _load_rules():
     if _RULES is not None:
         return
     try:
-        from engine.methodology_catalog import load_flat_rules
+        from engine.fact_rules import load_flat_rules
         _RULES = load_flat_rules()
         for r in _RULES:
             rid = str(r.get("id", ""))

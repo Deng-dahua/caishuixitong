@@ -481,7 +481,7 @@ class ComplianceGate:
 
         # 动态加载标准覆盖配置（配置文件优先，内置默认兜底）
         try:
-            from engine.methodology_loader import get_filter_rules
+            from engine.framework_config import get_filter_rules
             _overrides = get_filter_rules().get("standard_overrides") or {}
         except Exception:
             _overrides = {}

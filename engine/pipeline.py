@@ -45,7 +45,7 @@ def _auto_assign_rule_ids(all_findings, pipeline_log=None):
         return all_findings
     
     try:
-        from engine.methodology_catalog import load_flat_rules
+        from engine.fact_rules import load_flat_rules
         rules = load_flat_rules()
     except Exception:
         return all_findings
@@ -2123,7 +2123,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             # 读取实际规则数
             _real_rule_count = 0
             try:
-                from engine.methodology_catalog import load_flat_rules
+                from engine.fact_rules import load_flat_rules
                 _real_rule_count = len(load_flat_rules())
             except: pass
 
@@ -2224,7 +2224,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         from engine.chain_executor import run_chains_for_rule, _build_chain_index
         import json as _json, os as _os
         
-        from engine.methodology_catalog import load_flat_analysis, load_flat_clues, load_flat_evidence
+        from engine.fact_rules import load_flat_analysis, load_flat_clues, load_flat_evidence
         _clue_data = load_flat_clues()
         _evid_data = load_flat_evidence()
         _anal_data = load_flat_analysis()
@@ -3157,7 +3157,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 raw = json.load(cf)
                 chains_data = raw if isinstance(raw, dict) else {}
-        from engine.methodology_catalog import load_flat_rules
+        from engine.fact_rules import load_flat_rules
         rules_data = load_flat_rules()
         # 自动发现信号不进入证据链匹配。
         
@@ -3868,7 +3868,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             build_rule_context_for_llm, build_report_context_from_rule,
             build_rule_match_index, match_rule_semantic,
         )
-        from engine.methodology_catalog import load_flat_rules
+        from engine.fact_rules import load_flat_rules
         _all_rules = load_flat_rules()
         _rule_by_item = {}
         _rule_by_id = {}
@@ -4161,7 +4161,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         from engine.rule_gate import apply_all_gates, scan_extended_thresholds
         import json as _json2, os as _os2
         # 加载规则数据
-        from engine.methodology_catalog import load_flat_rules
+        from engine.fact_rules import load_flat_rules
         _rules_data = load_flat_rules()
         # 构建企业数据
         _co_data = {}
@@ -5024,8 +5024,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             except: pass
             
             # ⑤ 税务合规方法论学习
-            from engine.methodology_loader import METHODOLOGY_KNOWLEDGE
-            methodologies = METHODOLOGY_KNOWLEDGE.get("methodologies", [])
+            from engine.framework_config import PIPELINE_KNOWLEDGE
+            methodologies = PIPELINE_KNOWLEDGE.get("methodologies", [])
             agi_pipeline.ingest_methodologies(methodologies, domain_results, analysis_trace_id)
             
             # ⑨⑩⑪ 跨域线索/分析/证据链学习
@@ -5342,7 +5342,7 @@ _BOILERPLATE_SUFFIXES = [
 def _load_boilerplate_rules():
     """P1进化(2026-07-17)：模板句规则动态加载，配置文件优先，内置默认兜底"""
     try:
-        from engine.methodology_loader import get_filter_rules, seed_filter_rules
+        from engine.framework_config import get_filter_rules, seed_filter_rules
         seed_filter_rules({
             "boilerplate_prefixes": list(_BOILERPLATE_PREFIXES),
             "boilerplate_suffixes": list(_BOILERPLATE_SUFFIXES),
@@ -5866,7 +5866,7 @@ def _build_doubt_library_summary(all_findings):
     """构建现行事实合同的消费摘要，不运行无来源的固定阈值。"""
     lines = []
     try:
-        from engine.methodology_catalog import load_flat_rules
+        from engine.fact_rules import load_flat_rules
         _rules = load_flat_rules()
         total_rules = len(_rules)
         common_rules = sum(x.get("type") == "authoritative_review_contract" for x in _rules)
@@ -7914,7 +7914,7 @@ def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, sa
 
     # ── 动态加载：配置文件优先，内置默认兜底（首次运行自动播种到配置文件）──
     try:
-        from engine.methodology_loader import get_filter_rules, seed_filter_rules
+        from engine.framework_config import get_filter_rules, seed_filter_rules
         seed_filter_rules({
             "hard_ban": list(_DEFAULT_HARD_BAN),
             "cond_ban": {k: list(v) for k, v in _DEFAULT_COND_BAN.items()},

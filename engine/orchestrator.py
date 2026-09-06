@@ -311,9 +311,9 @@ def build_orchestration_plan(data_profile):
     
     # 4. 方法论匹配合适的方法论
     try:
-        from engine.methodology_loader import METHODOLOGY_KNOWLEDGE
-        applicable_methods = _match_methodologies(data_profile, METHODOLOGY_KNOWLEDGE)
-        relevant_laws = _match_laws(data_profile, METHODOLOGY_KNOWLEDGE)
+        from engine.framework_config import PIPELINE_KNOWLEDGE
+        applicable_methods = _match_methodologies(data_profile, PIPELINE_KNOWLEDGE)
+        relevant_laws = _match_laws(data_profile, PIPELINE_KNOWLEDGE)
     except Exception:
         applicable_methods = []
         relevant_laws = []

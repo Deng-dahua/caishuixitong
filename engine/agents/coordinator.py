@@ -131,7 +131,7 @@ class DialogAgent(BaseAgent):
         
         # 知识库
         self._tax_knowledge = self._init_tax_knowledge()
-        from engine.methodology_catalog import load_flat_analysis, load_flat_evidence, load_flat_rules
+        from engine.fact_rules import load_flat_analysis, load_flat_evidence, load_flat_rules
         self._analysis_chains = load_flat_analysis()
         self._evidence_chains = load_flat_evidence()
         self._rules = load_flat_rules()
@@ -784,14 +784,14 @@ class RuleReasonerAgent(BaseAgent):
         )
         
         # 加载权威事实核验合同
-        from engine.methodology_catalog import load_flat_analysis, load_flat_clues, load_flat_evidence
+        from engine.fact_rules import load_flat_analysis, load_flat_clues, load_flat_evidence
         self._rules = self._load_rules()
         self._evidence = load_flat_evidence()
         self._clues = load_flat_clues()
         self._analysis = load_flat_analysis()
     
     def _load_rules(self) -> List[Dict]:
-        from engine.methodology_catalog import load_flat_rules
+        from engine.fact_rules import load_flat_rules
         return load_flat_rules()
     
     def _load_json(self, path: str) -> List[Dict]:

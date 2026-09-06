@@ -174,11 +174,11 @@ def update_methodology_suggestions(pipeline_log, all_findings):
     """
     summary = {"untriggered": [], "new_suggestions": 0}
     try:
-        from engine.methodology_loader import (
-            load_methodology_config, save_methodology_config, validate_execution,
-            METHODOLOGY_KNOWLEDGE,
+        from engine.framework_config import (
+            load_pipeline_config, save_pipeline_config, validate_execution,
+            PIPELINE_KNOWLEDGE,
         )
-        config = load_methodology_config()
+        config = load_pipeline_config()
 
         # ① 七层执行完整性
         validation = validate_execution(pipeline_log or [])
@@ -194,7 +194,7 @@ def update_methodology_suggestions(pipeline_log, all_findings):
 
         # ② 新模式发现：高风险发现类型未被秘笈方法论覆盖 → 补充建议
         known_text = json.dumps(config.get("layers", []), ensure_ascii=False) + json.dumps(
-            [m.get("name", "") + m.get("description", "") for m in METHODOLOGY_KNOWLEDGE.get("methodologies", [])],
+            [m.get("name", "") + m.get("description", "") for m in PIPELINE_KNOWLEDGE.get("methodologies", [])],
             ensure_ascii=False,
         )
         existing_sugs = {s.get("type", "") for s in su.get("pending_suggestions", [])}
@@ -218,7 +218,7 @@ def update_methodology_suggestions(pipeline_log, all_findings):
         # 建议上限：只保留最近51720条，防止无限增长
         su["pending_suggestions"] = (su.get("pending_suggestions") or [])[-50:]
         config["self_update"] = su
-        save_methodology_config(config)
+        save_pipeline_config(config)
 
         if pipeline_log is not None:
             if summary["untriggered"]:

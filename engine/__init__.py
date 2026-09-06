@@ -19,7 +19,7 @@ from .financial_analyzer import analyze_financial_statements
 from .tax_incentive_analyzer import analyze_tax_incentives, check_policy, POLICY_VALIDITY
 from .orchestrator import MODULE_REGISTRY, build_orchestration_plan, build_data_profile, get_module_registry_summary
 from .self_learning import ModuleLearner, ComplianceGate, record_module_run, run_compliance_gate, get_learner_report
-from .methodology_loader import METHODOLOGY_KNOWLEDGE, match_methodology, get_relevant_laws
+from .framework_config import PIPELINE_KNOWLEDGE, match_pipeline_method, get_relevant_laws
 from .hypothesis_engine import run_hypothesis_verification, HYPOTHESIS_TEMPLATES
 from .rule_discovery import run_auto_rule_discovery, RuleDiscoveryEngine, get_discovered_rules
 from .legal_reasoner import LegalReasoner, run_legal_reasoning, _LEGAL_RULES_DB

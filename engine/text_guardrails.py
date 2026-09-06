@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""风险检查方法论输出门禁。
+"""风险检查输出门禁（文本净化 / 不自动定性；原 methodology_guardrails 重命名）。
 
 统一把规则、模型和链路输出限制在“筛查—调查—证据复核—人工审理”边界内。
 该模块不删除原始资料，也不判断最终法律责任。
@@ -314,3 +314,8 @@ def review_report_methodology(report_data):
             assessment["assessment_status"] = "pending_human_review"
             assessment["score_usage"] = "仅用于安排资料核验顺序，不决定违法性质、处理处罚或纳税信用。"
     return report_data
+
+
+# 向后兼容别名（旧名含 methodology，已弃用）
+neutralise_output_text = neutralise_methodology_text
+review_report_text = review_report_methodology

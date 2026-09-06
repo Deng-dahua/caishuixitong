@@ -3093,7 +3093,7 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
     findings = []
     
     # ═══ 加载跨域证据链定义（JSON驱动） ═══
-    from engine.methodology_catalog import load_flat_evidence
+    from engine.fact_rules import load_flat_evidence
     chain_defs = load_flat_evidence()
     
     # 只执行 executable=True 且非 legacy 的链（旧证据链仅用于UI展示）
@@ -3220,7 +3220,7 @@ def _domain_cross_domain_clues(all_findings):
     """加载跨域线索链，匹配发现并记录触发状态到报告中。
     增强：调用 narratives_builder 生成结构化叙事 detail（含分步叙事+交叉验证表+证据链闭环）。
     """
-    from engine.methodology_catalog import load_flat_clues
+    from engine.fact_rules import load_flat_clues
     chain_defs = load_flat_clues()
     if not chain_defs:
         return []
@@ -3294,7 +3294,7 @@ def _domain_cross_domain_clues(all_findings):
 
 def _domain_cross_domain_analysis(all_findings):
     """加载跨域分析链，匹配触发信号并产生结构化推理发现"""
-    from engine.methodology_catalog import load_flat_analysis
+    from engine.fact_rules import load_flat_analysis
     chain_defs = load_flat_analysis()
     if not chain_defs:
         return []
@@ -5129,7 +5129,7 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
     findings = []
     
     # 读取规则库
-    from engine.methodology_catalog import load_flat_rules
+    from engine.fact_rules import load_flat_rules
     all_rules = load_flat_rules()
     
     # 已触发的规则ID集合

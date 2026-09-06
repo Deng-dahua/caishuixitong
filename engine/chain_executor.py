@@ -650,7 +650,7 @@ def run_chains_for_rule(rule_id, clues_data, evidence_data, analysis_data, engin
     # ═══ 规则增强：为每条链的发现注入23字段规则数据 ═══
     try:
         from engine.rule_enricher import enrich_finding
-        from engine.methodology_guardrails import review_finding
+        from engine.text_guardrails import review_finding
         for key in ("clue", "evidence", "analysis"):
             r = results.get(key)
             if r and isinstance(r, dict) and r.get("findings"):

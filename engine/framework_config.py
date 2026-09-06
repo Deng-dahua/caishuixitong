@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════
-# 方法论加载器 — 让前端说明、后台匹配和质量门禁共用同一框架
+# 流程框架配置加载器（原 methodology_loader 重命名）
 # ══════════════════════════════════════════════════════════════
 
 import json
@@ -9,7 +9,7 @@ _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "methodol
 _FRAMEWORK_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "methodology_framework.json")
 
 
-def load_methodology_framework():
+def load_pipeline_framework():
     """加载只读的方法论权威框架；运行期个性化配置仍由 config 单独管理。"""
     try:
         with open(_FRAMEWORK_PATH, "r", encoding="utf-8") as framework_file:
@@ -27,7 +27,7 @@ def load_methodology_framework():
     }
 
 
-def load_methodology_config():
+def load_pipeline_config():
     """加载运行配置；核心流程和边界始终以只读 v4 框架为准。"""
     if os.path.exists(_CONFIG_PATH):
         try:
@@ -80,7 +80,7 @@ def _default_config():
     }
 
 
-def save_methodology_config(config):
+def save_pipeline_config(config):
     """保存方法论配置（风险检查员在线编辑后持久化）"""
     try:
         os.makedirs(os.path.dirname(_CONFIG_PATH), exist_ok=True)
@@ -93,7 +93,7 @@ def save_methodology_config(config):
 
 def get_layer_by_name(name):
     """按名称获取某一层配置"""
-    config = load_methodology_config()
+    config = load_pipeline_config()
     for layer in config.get("layers", []):
         if layer["name"] == name:
             return layer
@@ -102,7 +102,7 @@ def get_layer_by_name(name):
 
 def validate_execution(pipeline_log, layer_names=None):
     """验证十一环节执行完整性：检查 pipeline_log 是否覆盖了全部必经环节。"""
-    config = load_methodology_config()
+    config = load_pipeline_config()
     if layer_names is None:
         layer_names = [layer["name"] for layer in config["layers"]]
     executed = []
@@ -125,7 +125,7 @@ def get_filter_rules():
       boilerplate_suffixes  — 模板句后缀
       standard_overrides    — 12项质量标准分级覆盖 {S01: {score_min, enabled}}
     """
-    config = load_methodology_config()
+    config = load_pipeline_config()
     return config.get("filter_rules", {})
 
 
@@ -135,7 +135,7 @@ def seed_filter_rules(defaults):
     引擎不再"背"规则而是"读"规则——写入后风险检查员可直接编辑
     static/methodology_config.json 的 filter_rules 节点，修改即生效。
     """
-    config = load_methodology_config()
+    config = load_pipeline_config()
     fr = config.get("filter_rules") or {}
     changed = False
     for key, val in (defaults or {}).items():
@@ -144,13 +144,13 @@ def seed_filter_rules(defaults):
             changed = True
     if changed:
         config["filter_rules"] = fr
-        save_methodology_config(config)
+        save_pipeline_config(config)
     return fr
 
 
 def set_filter_rule(rule_type, rule_value, enabled=True):
     """动态添加/更新过滤规则"""
-    config = load_methodology_config()
+    config = load_pipeline_config()
     if "filter_rules" not in config:
         config["filter_rules"] = {}
     if rule_type not in config["filter_rules"]:
@@ -159,14 +159,14 @@ def set_filter_rule(rule_type, rule_value, enabled=True):
         config["filter_rules"][rule_type].append(rule_value)
     elif not enabled and rule_value in config["filter_rules"][rule_type]:
         config["filter_rules"][rule_type].remove(rule_value)
-    return save_methodology_config(config)
+    return save_pipeline_config(config)
 
 
 # ═══════════ 兼容旧接口（orchestrator.py / pipeline.py / __init__.py 依赖） ═══════════
 
-_FRAMEWORK = load_methodology_framework()
+_FRAMEWORK = load_pipeline_framework()
 
-METHODOLOGY_KNOWLEDGE = {
+PIPELINE_KNOWLEDGE = {
     "version": _FRAMEWORK.get("version", "fallback"),
     "methodologies": [
         {
@@ -209,10 +209,10 @@ def _normalise_profile(data_profile):
     return {"text": str(data_profile or "")}
 
 
-def match_methodology(data_profile, knowledge=None):
+def match_pipeline_method(data_profile, knowledge=None):
     """根据发现或数据画像匹配流程与业务域；不会因字符串输入而降级失败。"""
     if knowledge is None:
-        knowledge = METHODOLOGY_KNOWLEDGE
+        knowledge = PIPELINE_KNOWLEDGE
     profile = _normalise_profile(data_profile)
     text = profile.get("text", "")
     methods = knowledge.get("methodologies", [])
@@ -256,7 +256,7 @@ def match_methodology(data_profile, knowledge=None):
 def get_relevant_laws(data_profile, knowledge=None):
     """按事项匹配官方依据类别；具体条款仍须按期间和事实人工核验。"""
     if knowledge is None:
-        knowledge = METHODOLOGY_KNOWLEDGE
+        knowledge = PIPELINE_KNOWLEDGE
     profile = _normalise_profile(data_profile)
     text = profile.get("text", "")
     laws = knowledge.get("law_references", knowledge.get("laws", []))
