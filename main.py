@@ -1288,7 +1288,7 @@ _tax_risk_rules_display_cache = {}
 @app.get("/api/tax-risk-rules/data")
 def get_tax_risk_rules_data():
     """返回现行权威核验规则；不包含已退役候选规则。"""
-    from engine.methodology_catalog import load_flat_rules
+    from engine.fact_rules import load_flat_rules
 
     return load_flat_rules()
 
@@ -1550,7 +1550,7 @@ def _extract_structured_data(text, filename):
 
 def _load_tax_risk_rules():
     """加载现行权威事实核验规则。"""
-    from engine.methodology_catalog import load_flat_rules
+    from engine.fact_rules import load_flat_rules
 
     return load_flat_rules()
 
@@ -7457,7 +7457,7 @@ def get_system_stats():
                     return items
         return []
     try:
-        from engine.methodology_catalog import methodology_inventory
+        from engine.fact_rules import methodology_inventory
         methodology = methodology_inventory()
         stats["rules_count"] = methodology["rules"]
         stats["clue_chains"] = methodology["clue_paths"]
@@ -7630,19 +7630,11 @@ def _build_validation_blueprint():
     不再硬编码（历史硬编码值 23/153/834/1530 与实况 765 单元格不符，见 legacy_declared）。"""
     evidence_states = ["supported", "rebutted", "partial", "contradictory", "insufficient"]
     minimum_cases_per_scene = 10
-    try:
-        from engine.methodology_portfolio import load_methodology_portfolio
-        portfolio = load_methodology_portfolio() or {}
-        contracts = portfolio.get("contracts", []) or []
-        industry_contract_count = len(contracts)
-        scene_count = sum(len(c.get("scenarios", []) or []) for c in contracts)
-        blueprint_source = "portfolio_live"
-        blueprint_error = None
-    except Exception as exc:  # 统计失败时如实标注，不回落到历史假数字
-        industry_contract_count = None
-        scene_count = None
-        blueprint_source = "unavailable"
-        blueprint_error = str(exc)
+    # 行业场景方法论已退役，验证蓝图不再依赖 portfolio 实时统计。
+    blueprint_source = "decommissioned"
+    blueprint_error = "行业场景方法论已退役，验证蓝图停用"
+    industry_contract_count = None
+    scene_count = None
     required_cells = (scene_count * len(evidence_states)) if isinstance(scene_count, int) else None
     minimum_cases = (scene_count * minimum_cases_per_scene) if isinstance(scene_count, int) else None
     return {
@@ -7670,26 +7662,37 @@ def _build_validation_blueprint():
     }
 
 
+def _neutralise_methodology_asset_text(value):
+    """对已加载的静态方法论资产做文字净化（去定性化），替代已退役的 prepare_methodology_asset。"""
+    from engine.text_guardrails import neutralise_output_text
+    if isinstance(value, str):
+        return neutralise_output_text(value)
+    if isinstance(value, list):
+        return [_neutralise_methodology_asset_text(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _neutralise_methodology_asset_text(v) for k, v in value.items()}
+    return value
+
+
 @app.get("/api/methodology/assets/{asset_name}")
 def get_methodology_asset(asset_name: str):
     """向已登录用户提供只读方法论数据，不暴露受保护的静态目录。"""
     import os as _os
 
     normalized_asset = str(asset_name or "").strip().lower()
-    from engine.methodology_catalog import (
+    from engine.fact_rules import (
         load_canonical_catalog, load_flat_analysis, load_flat_clues,
         load_flat_evidence, load_flat_rules,
     )
-    from engine.methodology_acceptance import run_portfolio_acceptance
-    from engine.methodology_portfolio import load_methodology_portfolio
+    if normalized_asset in ("portfolio", "acceptance"):
+        # 行业场景投资组合/验收资产已由行业无关输出治理替代，正式退役
+        raise HTTPException(status_code=410, detail="该方法论资产已退役（行业无关输出治理已替代）")
     virtual_assets = {
         "rules": load_flat_rules,
         "clues": load_flat_clues,
         "evidence": lambda: {"evidence_chains": load_flat_evidence()},
         "analysis": lambda: {"analysis_chains": load_flat_analysis()},
         "canonical_catalog": load_canonical_catalog,
-        "portfolio": load_methodology_portfolio,
-        "acceptance": run_portfolio_acceptance,
         "capability_ledger": lambda: _build_capability_ledger(),
         "canonical_tax_model": _build_canonical_tax_model,
         "validation_blueprint": _build_validation_blueprint,
@@ -7699,27 +7702,7 @@ def get_methodology_asset(asset_name: str):
 
     filenames = {
         "framework": "methodology_framework.json",
-        "industry_profiles": "industry_audit_profiles.json",
         "playbooks": "methodology_chain_playbooks.json",
-        "industry_packs": "industry_methodology_packs.json",
-        "agriculture_scenario_contracts": "agriculture_scenario_contracts.json",
-        "mining_scenario_contracts": "mining_scenario_contracts.json",
-        "manufacturing_scenario_contracts": "manufacturing_scenario_contracts.json",
-        "construction_scenario_contracts": "construction_scenario_contracts.json",
-        "real_estate_scenario_contracts": "real_estate_scenario_contracts.json",
-        "wholesale_retail_scenario_contracts": "wholesale_retail_scenario_contracts.json",
-        "platform_scenario_contracts": "platform_scenario_contracts.json",
-        # 2026-08-26 审计修复（P1-4）：补齐 9 个 V2 行业场景文件白名单，
-        # 此前缺失导致 /api/methodology/assets/{name} 对这些行业返回 404。
-        "transportation_scenario_contracts": "transportation_scenario_contracts.json",
-        "catering_scenario_contracts": "catering_scenario_contracts.json",
-        "it_software_scenario_contracts": "it_software_scenario_contracts.json",
-        "finance_scenario_contracts": "finance_scenario_contracts.json",
-        "education_scenario_contracts": "education_scenario_contracts.json",
-        "medical_scenario_contracts": "medical_scenario_contracts.json",
-        "culture_scenario_contracts": "culture_scenario_contracts.json",
-        "energy_scenario_contracts": "energy_scenario_contracts.json",
-        "cross_border_ecommerce_scenario_contracts": "cross_border_ecommerce_scenario_contracts.json",
     }
     filename = filenames.get(normalized_asset)
     if not filename:
@@ -7735,8 +7718,7 @@ def get_methodology_asset(asset_name: str):
             return cached
         with open(asset_path, "r", encoding="utf-8") as asset_file:
             payload = _json.load(asset_file)
-        from engine.methodology_assets import prepare_methodology_asset
-        prepared = prepare_methodology_asset(str(asset_name or "").strip().lower(), payload)
+        prepared = _neutralise_methodology_asset_text(payload)
         for old_key in list(_methodology_asset_cache):
             if old_key[0] == asset_path and old_key != cache_key:
                 del _methodology_asset_cache[old_key]
@@ -7785,43 +7767,57 @@ def get_knowledge_asset(asset_name: str):
 
 @app.get("/api/methodology/coverage")
 def get_methodology_coverage():
-    """返回权威方法论、行业场景深度和已知空白的真实覆盖矩阵。"""
-    static_root = os.path.join(os.path.dirname(__file__), "static")
-    filenames = (
-        "methodology_canonical_catalog.json",
-        "methodology_framework.json",
-        "industry_audit_profiles.json",
-        "industry_methodology_packs.json",
-        "agriculture_scenario_contracts.json",
-        "mining_scenario_contracts.json",
-        "manufacturing_scenario_contracts.json",
-        "construction_scenario_contracts.json",
-        "real_estate_scenario_contracts.json",
-        "wholesale_retail_scenario_contracts.json",
-        "platform_scenario_contracts.json",
-        "transportation_scenario_contracts.json",
-        "medical_scenario_contracts.json",
-        "catering_scenario_contracts.json",
-        "it_software_scenario_contracts.json",
-        "culture_scenario_contracts.json",
-        "cross_border_ecommerce_scenario_contracts.json",
-        "education_scenario_contracts.json",
-        "finance_scenario_contracts.json",
-        "energy_scenario_contracts.json",
-    )
+    """返回权威横向目录与红线驱动方法论的真实覆盖矩阵（行业场景方法论已退役）。"""
+    from engine.fact_rules import load_canonical_catalog, methodology_inventory
     try:
-        cache_key = tuple(
-            (os.path.getmtime(os.path.join(static_root, name)), os.path.getsize(os.path.join(static_root, name)))
-            for name in filenames
-        )
-        cached = _methodology_coverage_cache.get(cache_key)
-        if cached is not None:
-            return cached
-        from engine.methodology_coverage import build_methodology_coverage
-        report = build_methodology_coverage(static_root)
-        _methodology_coverage_cache.clear()
-        _methodology_coverage_cache[cache_key] = report
-        return report
+        catalog = load_canonical_catalog()
+        inventory = methodology_inventory()
+        modules = [{
+            "id": m.get("id"),
+            "name": m.get("name"),
+            "purpose": m.get("purpose"),
+            "rule_count": len(m.get("rules", [])),
+            "clue_path_count": len(m.get("clue_paths", [])),
+            "analysis_test_count": len(m.get("analysis_tests", [])),
+            "validation_case_count": len(m.get("validation_cases", [])),
+            "source_refs": list(m.get("source_refs", [])),
+            "report_boundary": m.get("report_boundary"),
+        } for m in catalog.get("modules", [])]
+        return {
+            "version": catalog.get("version", "3.0.0"),
+            "positioning": (
+                "行业无关·红线驱动：确定税务疑点（触碰哪条红线）→线索链"
+                "→证据链→论证链；触红即命中。行业场景契约已退役。"
+            ),
+            "governance": {
+                "count_policy": "以权威横向目录为唯一事实来源，不再按行业叠加场景计数。",
+                "coverage_basis": (
+                    "methodology_canonical_catalog.json（权威横向规则）"
+                    " + engine/tax_redlines.py（行业无关红线）"
+                ),
+                "common_boundaries": [
+                    "原子计算与输出治理只形成待核事实，不替代行政认定。",
+                    "指标缺失型疑点须经竞争假设裁决，证据不足转置疑清单，系统绝不自动定罪。",
+                ],
+            },
+            "inventory": inventory,
+            "canonical_modules": modules,
+            "industry_matrix": [],
+            "depth_distribution": {},
+            "quality_controls": [
+                "跨行业共同规则与红线判定分层，行业名称本身不触发结论",
+                "每条红线规定线索链、证据链与论证链（主张/反证/裁决）",
+                "调查路径必须能够回到原始资料、源行、经办过程和法定取得程序",
+                "一键分析只能生成待核事项、资料缺口、核验底稿和报告移交包",
+                "事实、会计处理、金额测算、法律评价、审理决定和报告表达分层",
+                "政策依据必须按事实期间、地区、纳税人身份和程序阶段核验，异常或失效引用不得进入报告",
+            ],
+            "known_gaps": [
+                {"priority": "持续门禁", "gap": "脱敏真实案件验证", "control": "未经样本验证不得升级为自动结论能力；缺失型疑点一律转置疑清单。"},
+                {"priority": "逐案门禁", "gap": "地方政策及历史期间", "control": "涉及地方授权、过渡政策或历史期间时，取得业务期间有效全文并完成人工复核。"},
+                {"priority": "数据门禁", "gap": "外部和第三方资料权限", "control": "只有权限、来源、对象、期间、取得方式和保全过程明确的数据才进入证据评价。"},
+            ],
+        }
     except (OSError, ValueError, TypeError) as exc:
         raise HTTPException(status_code=500, detail="方法论覆盖矩阵生成失败") from exc
 
@@ -8396,7 +8392,7 @@ def _append_one_click_log(report_data, message):
 
 def _enforce_scenario_execution_boundary(report_data):
     """一键分析硬门禁：正式发现只能来自场景执行核心。"""
-    from engine.scenario_execution import seal_scenario_findings
+    from engine.output_governance import seal_governed_findings
 
     if not isinstance(report_data, dict):
         raise RuntimeError("报告数据无效，无法执行场景门禁")
@@ -8407,7 +8403,7 @@ def _enforce_scenario_execution_boundary(report_data):
     if not isinstance(execution, dict):
         raise RuntimeError("场景执行结果缺失，禁止进入报告编制")
 
-    findings = seal_scenario_findings(execution)
+    findings = seal_governed_findings(execution)
     report_data["scenario_execution"] = execution
     report_data["scenario_methodology"] = execution.get("review_plan", {})
     report_data["all_findings"] = findings
@@ -8460,13 +8456,12 @@ def _apply_engine_hub_stage(report_data, result=None):
 
 def _apply_methodology_stage(report_data):
     """对全部发现执行方法论门禁，并匹配流程、业务域和官方依据类别。"""
-    from engine.methodology_acceptance import run_portfolio_acceptance
-    from engine.methodology_loader import (
-        METHODOLOGY_KNOWLEDGE,
+    from engine.framework_config import (
+        PIPELINE_KNOWLEDGE,
         get_relevant_laws,
-        match_methodology,
+        match_pipeline_method,
     )
-    from engine.methodology_guardrails import review_finding, review_report_methodology
+    from engine.text_guardrails import review_finding, review_report_methodology
     from datetime import datetime as _dt_meth
     now = _dt_meth.now().isoformat(timespec="seconds")
 
@@ -8483,7 +8478,7 @@ def _apply_methodology_stage(report_data):
             "description": finding.get("description", ""),
             "tax_type": finding.get("tax_type", ""),
         }
-        matched = match_methodology(profile)
+        matched = match_pipeline_method(profile)
         laws = get_relevant_laws(profile)
         if matched:
             finding["_methodology"] = matched[:6]
@@ -8494,24 +8489,8 @@ def _apply_methodology_stage(report_data):
 
     review_report_methodology(report_data)
 
-    acceptance = run_portfolio_acceptance()
-    # ═══ 方法论门禁：失败场景阻断自动定性/评分/报告引用 ═══
-    if acceptance.get("status") == "failed":
-        failed_scene_count = acceptance.get("failed_scene_count", 0)
-        failed_scene_ids = set()
-        for fs in acceptance.get("failed_scenes", []):
-            failed_scene_ids.add(fs.get("scene_id", ""))
-        degraded = 0
-        for f in findings:
-            sid = f.get("scene_id") or f.get("fact_id") or f.get("scene_fact_id") or ""
-            if sid in failed_scene_ids:
-                f["level"] = "待核验（方法论未验收）"
-                f["score"] = 0
-                f["_methodology_blocked"] = True
-                degraded += 1
-        if degraded > 0:
-            pipeline_log.append(f"[门禁] 阻断{degraded}条来自{len(failed_scene_ids)}个失败场景的发现")
-    
+    # 行业场景投资组合验收已退役：不再按场景做通过/失败门禁；全部发现统一走输出治理封印与人工复核
+
     # ═══ 法律引用校验：标注法规版本和核验日期 ═══
     for _fnd3 in findings:
         pr = _fnd3.get("policy_ref") or _fnd3.get("law_ref") or ""
@@ -8547,16 +8526,16 @@ def _apply_methodology_stage(report_data):
         f"已核定{_vf_final}项/待核{len(findings) - _vf_final}项" if findings else "未形成待核事实"
     )
     summary = {
-        "total_methods": len(METHODOLOGY_KNOWLEDGE.get("methodologies", [])),
-        "total_laws": len(METHODOLOGY_KNOWLEDGE.get("law_references", [])),
+        "total_methods": len(PIPELINE_KNOWLEDGE.get("methodologies", [])),
+        "total_laws": len(PIPELINE_KNOWLEDGE.get("law_references", [])),
         "findings_reviewed": len(findings),
         "findings_enriched": enriched,
-        "portfolio_version": acceptance.get("portfolio_version"),
-        "portfolio_acceptance_status": acceptance.get("status"),
-        "portfolio_scenes_validated": acceptance.get("passed_scene_count", 0),
-        "portfolio_acceptance_cases": acceptance.get("acceptance_case_count", 0),
-        "portfolio_failed_scenes": acceptance.get("failed_scene_count", 0),
-        "methodology_gate_enforced": acceptance.get("status") == "failed",
+        "portfolio_version": None,
+        "portfolio_acceptance_status": "decommissioned",
+        "portfolio_scenes_validated": 0,
+        "portfolio_acceptance_cases": 0,
+        "portfolio_failed_scenes": 0,
+        "methodology_gate_enforced": False,
         "decision_boundary": "方法论验收不通过时，失败场景的发现已降级为'待核验'，不得自动定性、打分或引用至正式报告。无论是否标记为'已核定'，全部发现均不视为系统作出的行政认定——本系统的'已核定'仅表示'证据充分、待人工复核确认后方可发布'，并不自动生成最终定性。系统不自动作出任何行政认定，所有结论须由有权人员复核确认。",
     }
     report_data["_methodology_applied"] = summary
@@ -10613,7 +10592,7 @@ def get_engine_rules():
     }
 
     # Phase 3 权威调查、证据和分析合同
-    from engine.methodology_catalog import load_flat_analysis, load_flat_clues, load_flat_evidence
+    from engine.fact_rules import load_flat_analysis, load_flat_clues, load_flat_evidence
     analysis_contracts = load_flat_analysis()
     clue_contracts = load_flat_clues()
     evidence_contracts = load_flat_evidence()
@@ -12470,7 +12449,7 @@ def get_brain_status():
 
 @app.get("/api/tax-risk-rules/validate-v3")
 def validate_rules_v3(rule_id: str = None):
-    from engine.methodology_catalog import load_flat_rules
+    from engine.fact_rules import load_flat_rules
 
     rules = load_flat_rules()
     selected = [rule for rule in rules if not rule_id or str(rule.get("id")) == str(rule_id)]

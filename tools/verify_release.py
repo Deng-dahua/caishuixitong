@@ -22,11 +22,10 @@ PRODUCTION_PYTHON = [
     "manage_users.py", "database.py", "main.py", "chat.py", "archives.py",
     "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
     "engine/agi_pipeline.py", "engine/rule_discovery.py",
-    "engine/scenario_methodology.py", "engine/scenario_execution.py",
-    "engine/orchestrator.py", "engine/methodology_coverage.py",
-    "engine/methodology_catalog.py", "engine/methodology_portfolio.py",
-    "engine/methodology_acceptance.py", "engine/methodology_assets.py",
-    "engine/report_standards.py",
+    "engine/orchestrator.py", "engine/report_standards.py",
+    "engine/verified_rule_engine.py", "engine/redline_engine.py",
+    "engine/fact_rules.py", "engine/text_guardrails.py",
+    "engine/framework_config.py", "engine/output_governance.py",
     "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",
 ]
@@ -77,7 +76,6 @@ def main() -> int:
     request_context_source = (ROOT / "request_context.py").read_text(encoding="utf-8")
     main_source = (ROOT / "main.py").read_text(encoding="utf-8")
     pipeline_source = (ROOT / "engine" / "pipeline.py").read_text(encoding="utf-8")
-    scenario_execution_source = (ROOT / "engine" / "scenario_execution.py").read_text(encoding="utf-8")
     report_standard_source = (ROOT / "engine" / "report_standards.py").read_text(encoding="utf-8")
     chat_source = (ROOT / "chat.py").read_text(encoding="utf-8")
     llm_client_source = (ROOT / "engine" / "llm_client.py").read_text(encoding="utf-8")
@@ -102,13 +100,14 @@ def main() -> int:
         "report gate blocks malformed law references and automatic determination",
         failures,
     )
+    output_governance_source = (ROOT / "engine" / "output_governance.py").read_text(encoding="utf-8")
     check(
-        "execute_scenario_methodology" in pipeline_source
-        and "seal_scenario_findings" in pipeline_source
+        "run_output_governance" in pipeline_source
+        and "seal_governed_findings" in pipeline_source
         and "_enforce_scenario_execution_boundary" in main_source
-        and 'GOVERNANCE_STATUS = "scenario_contract_governed"' in scenario_execution_source
-        and 'automatic_determination_allowed"] = False' in scenario_execution_source,
-        "one-click findings are sealed by the scenario execution core",
+        and 'GOVERNANCE_STATUS = "output_governed"' in output_governance_source
+        and 'automatic_determination_allowed"] = False' in output_governance_source,
+        "one-click findings are sealed by the output-governance core (industry-neutral)",
         failures,
     )
     check("csrf_is_valid" in web_source, "unsafe requests enforce CSRF", failures)
@@ -214,6 +213,11 @@ def main() -> int:
         "static/cross_domain_evidence.json",
         "static/cross_domain_analysis.json",
         "engine/candidate_rule_governance.py",
+        "engine/scenario_execution.py", "engine/scenario_methodology.py",
+        "engine/methodology_catalog.py", "engine/methodology_portfolio.py",
+        "engine/methodology_acceptance.py", "engine/methodology_assets.py",
+        "engine/methodology_guardrails.py", "engine/methodology_loader.py",
+        "engine/methodology_coverage.py",
     ]
     check(
         not any((ROOT / relative).exists() for relative in retired_assets),
@@ -223,64 +227,31 @@ def main() -> int:
 
     sys.path.insert(0, str(ROOT))
     try:
-        from engine.methodology_catalog import (
-            SCENARIO_FILES,
+        from engine.fact_rules import (
             load_canonical_catalog,
-            load_reviewed_scenario_contracts,
             methodology_inventory,
         )
-        from engine.methodology_acceptance import run_portfolio_acceptance
-        from engine.methodology_portfolio import load_methodology_portfolio
 
         catalog = load_canonical_catalog()
         inventory = methodology_inventory()
         modules = catalog.get("modules", [])
         rules = [rule for module in modules for rule in module.get("rules", [])]
-        portfolio = load_methodology_portfolio()
-        acceptance = run_portfolio_acceptance()
-        scenarios = [
-            scene
-            for code in SCENARIO_FILES
-            for scene in load_reviewed_scenario_contracts(code).get("scenarios", [])
-        ]
         catalog_valid = (
             catalog.get("version") == "3.0.0"
-            and len(modules) == 20
-            and len(rules) == 67
+            and len(modules) == 25
+            and len(rules) == 89
             and len({rule.get("id") for rule in rules}) == len(rules)
             and all(rule.get("fact_hypothesis") for rule in rules)
             and all(rule.get("required_fields") for rule in rules)
             and all("excludes" in rule for rule in rules)
         )
-        scene_valid = (
-            portfolio.get("version") == "3.1.0"
-            and len(portfolio.get("contracts", [])) == 23
-            and len(scenarios) == 161
-            and all("legacy_absorption" not in scene for scene in scenarios)
-            and all("已吸收" not in json.dumps(scene, ensure_ascii=False) for scene in scenarios)
-            and all("1720条" not in json.dumps(scene, ensure_ascii=False) for scene in scenarios)
-            and all((scene.get("clue_chain") or {}).get("steps") for scene in scenarios)
-            and all((scene.get("evidence_chain") or {}).get("supporting_sources") for scene in scenarios)
-            and all((scene.get("evidence_chain") or {}).get("opposing_sources") for scene in scenarios)
-            and all((scene.get("analysis_chain") or {}).get("reasoning") for scene in scenarios)
-            and all(scene.get("validation_cases") for scene in scenarios)
-            and all(len(scene.get("acceptance_cases") or []) == 5 for scene in scenarios)
-            and all((scene.get("policy_applicability") or {}).get("status") == "case_time_verification_required" for scene in scenarios)
-            and acceptance.get("status") == "passed"
-            and acceptance.get("passed_scene_count") == 161
-            and acceptance.get("acceptance_case_count") == 805
-            and inventory.get("rules") == 228
-            and inventory.get("clue_paths") == 188
-            and inventory.get("evidence_plans") == 181
-            and inventory.get("analysis_plans") == 181
-            and len(inventory.get("clue_depths", [])) >= 5
-            and len(inventory.get("validation_depths", [])) >= 4
-        )
+        # 行业场景契约与 portfolio 验收已退役；仅校验权威横向目录与红线驱动方法论。
+        scene_valid = True
     except Exception:
         catalog_valid = False
         scene_valid = False
-    check(catalog_valid, "canonical methodology catalog passes structural review", failures)
-    check(scene_valid, "industry scenarios use complete variable-depth contracts", failures)
+    check(catalog_valid, "canonical methodology catalog passes structural review (25 modules / 89 rules)", failures)
+    check(scene_valid, "industry scenario contracts are decommissioned", failures)
 
     if failures:
         print(f"\n{len(failures)} check(s) failed.")
