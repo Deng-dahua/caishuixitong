@@ -137,6 +137,8 @@ def _cash_intensive_no_ledger_data():
 def _rule_ids_from_findings(se_result):
     ids = set()
     for f in (se_result.get("findings") or []):
+        if isinstance(f, dict) and f.get("rule_id"):
+            ids.add(f["rule_id"])
         for o in (f.get("observations") or []):
             if isinstance(o, dict):
                 ids.add(o.get("rule_id"))
@@ -284,12 +286,11 @@ class TestConfiguration(unittest.TestCase):
             self.assertTrue(callable(V._SCANNERS[rid]))
 
     def test_wired_into_common_fact_contracts(self):
-        contracts = SE.COMMON_FACT_CONTRACTS
-        self.assertIn("VR055", contracts["COMMON-EMPLOYMENT-COVERAGE"]["rule_ids"])
-        self.assertIn("VR056", contracts["COMMON-PERSONNEL-FUND-FLOW"]["rule_ids"])
-        self.assertIn("VR057", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
-        self.assertIn("VR058", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
-        self.assertIn("VR059", contracts["COMMON-REVENUE-RECONCILIATION"]["rule_ids"])
+        # 行业场景契约已退役（行业场景方法论整体下线）；VR 规则由红线驱动方法论串接，
+        # 不再通过 COMMON_FACT_CONTRACTS 合同表登记。校验改为：规则出现在 VERIFIED_RULE_CATALOG 且
+        # 由对应扫描器可调用（test_registered_in_catalog_and_scanners 已覆盖），这里仅确认没有残留
+        # 旧合同键名挂在 OG 上。
+        self.assertFalse(hasattr(OG, "COMMON_FACT_CONTRACTS"))
 
 
 class TestPlatformServiceFeeClassification(unittest.TestCase):
