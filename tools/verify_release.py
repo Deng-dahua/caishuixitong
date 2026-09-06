@@ -19,7 +19,7 @@ SENSITIVE_NAMES = {
 PRODUCTION_PYTHON = [
     "security.py", "security_web.py", "runtime_storage.py", "llm_config.py",
     "llm_credentials.py", "llm_providers.py", "request_context.py",
-    "manage_users.py", "database.py", "main.py", "chat.py", "archives.py",
+    "manage_users.py", "database.py", "main.py",
     "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
     "engine/agi_pipeline.py", "engine/rule_discovery.py",
     "engine/orchestrator.py", "engine/report_standards.py",
@@ -77,7 +77,6 @@ def main() -> int:
     main_source = (ROOT / "main.py").read_text(encoding="utf-8")
     pipeline_source = (ROOT / "engine" / "pipeline.py").read_text(encoding="utf-8")
     report_standard_source = (ROOT / "engine" / "report_standards.py").read_text(encoding="utf-8")
-    chat_source = (ROOT / "chat.py").read_text(encoding="utf-8")
     llm_client_source = (ROOT / "engine" / "llm_client.py").read_text(encoding="utf-8")
     core_source = (ROOT / "static" / "js" / "core.js").read_text(encoding="utf-8")
     index_source = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
@@ -151,7 +150,7 @@ def main() -> int:
         failures,
     )
     check(
-        "LLM_CONFIG =" not in chat_source
+        "LLM_CONFIG =" not in main_source
         and "llm = LLMClient()" not in llm_client_source
         and "return LLMClient()" in llm_client_source,
         "model clients do not retain another user's credential",
