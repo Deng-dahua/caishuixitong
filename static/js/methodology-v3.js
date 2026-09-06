@@ -694,7 +694,7 @@
     container.innerHTML = '<div style="padding:50px;text-align:center;color:#637083">正在装载现行风险检查方法论...</div>';
     Promise.all([
       fetch('/api/methodology/coverage?_t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('覆盖矩阵读取失败'); return r.json(); }),
-      fetch('/api/methodology/assets/portfolio?_t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('行业场景读取失败'); return r.json(); }),
+      fetch('/api/methodology/assets/portfolio?_t=' + Date.now()).then(function (r) { if (r.status === 410) return {}; if (!r.ok) throw new Error('行业场景读取失败'); return r.json(); }),
       fetch('/api/methodology/assets/canonical_catalog?_t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('共同事实目录读取失败'); return r.json(); }),
       fetch('/api/methodology/assets/framework?_t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('作业框架读取失败'); return r.json(); }),
       fetch('/api/methodology/assets/capability_ledger?_t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('能力账本读取失败'); return r.json(); }),
