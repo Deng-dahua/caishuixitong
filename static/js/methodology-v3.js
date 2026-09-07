@@ -432,10 +432,19 @@
       }).join('') +
       '</aside>' +
       '<article class="m3-prose">' +
+        // ═══ 顶部公示：行业场景方法论已整体下线 ═══
+        '<div class="m3-decommission-banner">' +
+          '<b>⚠ 行业场景方法论已整体下线（2026-09 退役）</b>' +
+          '本页框架由「<b>权威横向事实目录 25 模块 / 89 规则</b>（engine/fact_rules）' +
+          '+ <b>行业无关税务红线 42 条</b>（engine/tax_redlines.py）」双层驱动；' +
+          '行业场景合同、行业代码解析、投资组合验收与场景核验已退役，相关接口返回 410；' +
+          '下方「全行业完整场景合同」「行业与叠加业务覆盖」为历史归档占位，不再有数据，' +
+          '发现触发与定性统一走红线驱动·三链论证。' +
+        '</div>' +
         // ═══ 第一章 稽查总纲：来源边界 + 稽查作业顺序总述 ═══
         '<section id="m3-overview">' +
           '<h2>稽查总纲</h2>' +
-          p('<b>本方法的来源与适用边界。</b>' + esc(portfolio.positioning ||
+          p('<b>本方法的来源与适用边界。</b>' + esc(coverage.positioning || catalog.positioning ||
             '本系统的方法论源自税务稽查一线工作经验与公开稽查规范，结合金融、税法与会计领域的方法论汇编而成。' +
             '它不替代有权人员的法定职责，而是为有权人员提供可复核的待核事实、调查路径与证据组织结构。')) +
           p('<b>稽查作业顺序（本页内容按此顺序排列）。</b>税务稽查不是把规则清单从头跑到尾，' +
@@ -444,9 +453,10 @@
             '⑨穿透与关联 → ⑩交叉验证与综合定性 → ⑪报告编制与移交</b>。' +
             '收入与成本先行（证据最硬、定性最直接），穿透与关联殿后（依赖外部数据），' +
             '每一步通过后进入下一步，任何一步证据不足即转置疑清单要求补证，不可跨越。') +
-          p('<small>现行方法论版本 ' + esc(portfolio.version || '') + '。' +
-            '本页内容由系统从权威方法论目录、行业场景合同、统一数据模型、独立验证蓝图、能力账本与执行结果汇总生成，' +
-            '并随方法论变更而自动更新。</small>') +
+          p('<small>现行方法论版本 ' + esc(coverage.version || catalog.version || '3.0.0') +
+            '（红线驱动·行业无关）。' +
+            '本页内容由系统从权威方法论目录、统一数据模型、独立验证蓝图、能力账本与执行结果汇总生成，' +
+            '行业场景合同与场景核验已下线（不再注入发现/疑点/评分），并随方法论变更而自动更新。</small>') +
         '</section>' +
 
         // ═══ 第二章 能力底座：覆盖体系+能力账本+共同事实+行业场景 ═══
@@ -455,19 +465,26 @@
           p('<b>覆盖的范围与边界。</b>覆盖体系由三层组成：跨行业共同事实（用于一切企业的通用底座）、' +
             '行业场景合同（按实际经营活动选择）、叠加业务层（平台、跨境、集团关联等特殊情形）。' +
             '数量不是越多越好，而是必须按真实业务需要决定——任何一项方法在被独立案例验证之前都不进入正式覆盖。') +
-          p('当前登记：跨行业共同事实 <b>' + esc(inventory.canonical_rules || 0) + '</b> 项、' +
-            '完整行业场景 <b>' + esc(inventory.industry_scenarios || 0) + '</b> 个、' +
-            '行业门类 <b>' + esc(industries.length) + '</b> 个、' +
-            '叠加业务层 <b>' + esc(overlays.length) + '</b> 个、' +
+          p('当前登记：权威横向事实 <b>' + esc(inventory.canonical_modules || 0) + '</b> 模块 / ' +
+            '<b>' + esc(inventory.canonical_rules || 0) + '</b> 项规则、' +
             '调查路径 <b>' + esc(inventory.clue_paths || 0) + '</b> 类、' +
             '证据方案 <b>' + esc(inventory.evidence_plans || 0) + '</b> 类、' +
-            '证据状态验收 <b>' + esc(acceptance.acceptance_case_count || 0) + '</b> 例。' +
-            '数量原则是：' + esc(portfolio.count_policy || '') + '。') +
+            '分析方案 <b>' + esc(inventory.analysis_plans || 0) + '</b> 类、' +
+            '行业无关税务红线 <b>42</b> 条（触红即命中·行业名称不触发结论）。' +
+            '行业场景合同/场景核验已退役，<b>0</b> 个行业门类、<b>0</b> 个叠加业务层、<b>0</b> 个场景合同。' +
+            '数量原则是：' + esc((coverage.governance && coverage.governance.count_policy) ||
+                                (catalog.governance && catalog.governance.count_policy) || '') + '。') +
           '<h4>能力账本（与引擎实时对账）</h4>' + capabilityLedgerProse(ledger) +
           '<h4>税费事项覆盖</h4>' +
           '<div class="m3-table-wrap"><table>' +
           '<thead><tr><th>税费组</th><th>覆盖事项</th><th>核验重点</th></tr></thead><tbody>' + taxRows + '</tbody></table></div>' +
-          '<h4>行业与叠加业务覆盖</h4>' +
+          '<h4>行业与叠加业务覆盖（已退役·历史归档）</h4>' +
+          '<div class="m3-quote">' +
+            '<b>行业场景合同 / 行业代码 / 叠加业务已整体下线。</b>' +
+            '行业经营差异不再由「按行业套场景合同」承担，' +
+            '统一由行业无关 42 条税务红线 + 25 模块 / 89 规则权威横向事实目录' +
+            '通过线索链→证据链→论证链识别。下表保留为历史归档占位，无数据。' +
+          '</div>' +
           '<div class="m3-table-wrap"><table>' +
           '<thead><tr><th>代码</th><th>合同</th><th>场景</th><th>调查深度</th><th>边界样本深度</th></tr></thead><tbody>' +
           industryRows + '</tbody></table></div>' +
@@ -475,11 +492,13 @@
           p('先把一切企业都会涉及的身份、期间、资料、交易、资金、发票、税会与程序性问题解决掉，' +
             '再叠加行业经营事实。把绝大多数通用异常在第一阶段识别，企业特定场景只在剩余空间内展开。') +
           (catalog.modules || []).map(canonicalModuleProse).join('') +
-          '<h4>全行业完整场景合同</h4>' +
-          p('每个行业的真实业务都有自身的常态（季节、人员、产能、客户类型）。' +
-            '本节提供的是「场景合同」——一组按场景拆解的调查与证据要求，而不是按企业拆解的固定清单。' +
-            '在执行时按企业实际经营活动匹配场景、按匹配场景展开调查路径。' +
-            '下列合同涵盖 <b>' + esc(industries.length) + '</b> 个行业门类与 <b>' + esc(overlays.length) + '</b> 个叠加业务层。') +
+          '<h4>全行业完整场景合同（已退役·历史归档）</h4>' +
+          p('原"按行业套场景合同"的方法论已下线：行业场景核验合同、投资组合验收门禁、' +
+            '行业代码解析与场景分配已整体退役，相关接口（/api/methodology/assets/portfolio、' +
+            '/assets/acceptance、/api/methodology/coverage 的 industry_matrix 字段）已返回 410 或为空数组。' +
+            '行业经营差异改由 <b>行业无关 42 条税务红线</b> 通过线索链→证据链→论证链统一识别；' +
+            '权威横向事实目录 25 模块 / 89 规则承载通用底座。' +
+            '下列表格与上方一致保留为历史归档占位，不再有数据。') +
           contracts.map(contractProse).join('') +
         '</section>' +
 
@@ -539,12 +558,10 @@
           p('<b>持续验证与已知缺口。</b>' + inlineList((coverage.known_gaps || []).map(function (item) {
             return item.priority + '｜' + item.gap + '（控制：' + item.control + '）';
           }))) +
-          p('当前验收状态汇总：' +
-            '通过结构验收场景 <b>' + esc(acceptance.passed_scene_count || 0) + '</b> / ' + esc(acceptance.scene_count || 0) + '、' +
-            '未通过场景 <b>' + esc(acceptance.failed_scene_count || 0) + '</b>（必须为 0 才允许发布）、' +
-            '已执行边界样本 <b>' + esc(acceptance.acceptance_case_count || 0) + '</b> 例、' +
-            '组合验收状态 <b>' + esc(acceptance.status || '待执行') + '</b>——' +
-            esc(acceptance.decision_boundary || '') + '。') +
+          p('当前验收状态汇总：行业场景投资组合验收已退役——<b>通过结构验收场景 0 / 0、未通过场景 0' +
+            '（行业场景合同已下线，不再统计）、已执行边界样本 0 例、组合验收状态 <b>已下线</b></b>——' +
+            '行业无关输出治理（governance_status="output_governed"）承担新门禁，' +
+            '全部待核事实必经人工复核且不设置自动定性阈值，证据不足一律转置疑清单由企业自证。') +
           ((framework.quality_metrics || []).length
             ? p('<b>持续观测指标。</b>' + ((framework.quality_metrics || []).map(function (item) {
                 return esc(item.name) + '（目标：' + esc(item.target || '持续观测') +
@@ -640,6 +657,9 @@
       '.m3-prose .m3-stage-account>b{display:block;margin-bottom:6px;color:var(--accent);font-size:15px;font-weight:800;letter-spacing:.05em}',
       '.m3-prose .m3-stage-account>span{display:block;margin:4px 0;font-size:15px;line-height:1.75;color:#3d4659}',
       '.m3-prose .m3-stage-account em{font-style:normal;color:var(--brand);font-weight:800}',
+      // ── 退役公示横幅：行业场景方法论下线提示（醒目红框 + 浅黄底） ──
+      '.m3-decommission-banner{margin:0 0 28px;padding:16px 22px;border:2px solid var(--brand);border-left:6px solid var(--brand);border-radius:0 12px 12px 0;background:#fdf5f6;color:#5b1a23;font-size:15px;line-height:1.7;text-indent:0}',
+      '.m3-decommission-banner>b{display:block;margin-bottom:6px;color:var(--brand);font-size:16px;font-weight:800;letter-spacing:.04em}',
       '.m3-prose h2{font-size:15px;font-weight:800;color:var(--ink);margin:0 0 14px;padding-bottom:8px;border-bottom:2px solid var(--brand);letter-spacing:.02em}',
       // ── 表格：自适应宽度、字号适中 ──
       '.m3-prose .m3-table-wrap{max-width:100%;overflow:auto;margin:16px 0 24px;border:1px solid var(--line);border-radius:12px;text-indent:0}',
