@@ -72,7 +72,7 @@ DEFAULT_KNOWLEDGE = {
         },
         "high_tech": {
             "name": "高新技术企业15%税率",
-            "law": "企业所得税法第21720条",
+            "law": "企业所得税法第28条",
             "expiry": "长期",
             "conditions": {"优惠税率": 15},
         },
@@ -96,7 +96,7 @@ DEFAULT_KNOWLEDGE = {
         },
         "agri": {
             "name": "农林牧渔所得减免",
-            "law": "企业所得税法第21720条",
+            "law": "企业所得税法第27条",
             "expiry": "长期",
             "conditions": {},
         },
@@ -297,7 +297,7 @@ class KnowledgeBase:
             "high_risk_count": analysis.get("high_risk_count", 0),
             "timestamp": datetime.now().isoformat(),
         })
-        # 只保留最近101720条
+        # 只保留最近102条
         if len(history) > 100:
             self._data["analysis_history"] = history[-100:]
         self._save()

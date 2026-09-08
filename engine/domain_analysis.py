@@ -2837,7 +2837,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
 # ═══════════ 域16: 扩展规则引擎 ═══════════
 
 def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_security, vouchers, inventory):
-    """扩展审查规则：覆盖211720条之外的风险维度"""
+    """扩展审查规则：覆盖217条之外的风险维度"""
     from collections import defaultdict
     findings = []
 
@@ -3911,7 +3911,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
                 f"④ 预付账款 → 低风险——查看前期付款记录或预付账款明细账\n"
                 f"⑤ 应付账款 → 中风险——尚未付款的进项税额需确认是否已抵扣（已抵扣存疑）\n"
                 f"⑥ 非对公/代付 → 中高风险——进项税额抵扣在税务合规中可能被否定\n"
-                f"虚开发票 → 刑事责任（《刑法》第201720条）+行政罚款+纳税信用降级\n"
+                f"虚开发票 → 刑事责任（《刑法》第205条）+行政罚款+纳税信用降级\n"
                 f"核心逻辑：发票与付款天然不是1:1关系，未匹配≠虚开，但需要逐笔厘清以排除；虚开嫌疑。",
             "policy_ref": "《发票管理办法》第二十二条（禁止虚开）；《国家税务总局关于加强增值税征收管理若干问题的通知》（三流一致要求）；《刑法》第二百零五条（虚开增值税专用发票罪）",
             "suggestion": f"要求被查单位对{amt_mismatch}张\u201c未匹配\u201d发票逐笔标注属于哪种付款模式：\n"
@@ -6522,7 +6522,7 @@ class ConfidenceAssessor:
                       and not f.get("type", "").startswith("事前预警-")]
         
         scores = []
-        for finding in candidates[:15]:  # 最多评估11720条
+        for finding in candidates[:15]:  # 最多评估15条
             assessment = self._assess_one(finding)
             if assessment:
                 report["assessments"].append(assessment)
@@ -7451,7 +7451,7 @@ _SIGNAL_PATTERNS = [
             "交叉比对前几大供应商和前几大客户的工商注册信息（股东/法人/地址）",
             "核查供应商和客户之间是否存在直接或间接的股权关联",
             "核查是否有真实的货物物流记录（运输合同+运单+过磅单）",
-            "对开环开→虚开增值税专用发票罪（刑法第201720条）"
+            "对开环开→虚开增值税专用发票罪（刑法第205条）"
         ]
     },
 ]
@@ -7902,7 +7902,7 @@ CONTRADICTION_RULES = [
         ),
         "priority": "P0",
     },
-    # ═══ 2026-06-26 扩展至51720条：覆盖8大类矛盾 ═══
+    # ═══ 2026-06-26 扩展至52条：覆盖8大类矛盾 ═══
     # ── Ⅰ. 行业/身份矛盾 (CONTR_008~012) ──
     {
         "id": "CONTR_008",
@@ -9014,7 +9014,7 @@ def _save_analysis_memory(company_id, company_name, industry, backtrack_report, 
                     "after": vf.get("after", ""),
                 })
         
-        # 追加并保存（保留最近101720条）
+        # 追加并保存（保留最近102条）
         mem.append(entry)
         if len(mem) > 100:
             mem = mem[-100:]
@@ -13476,7 +13476,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                         "level": "中风险", "score": 6,
                         "detail": f"业务招待费{entertainment:,.0f}元，扣除限额{limit:,.0f}元，超限{entertainment-limit:,.0f}元需纳税调增。",
                         "description": "业务招待费扣除限额为发生额60%与收入5‰的孰低值。",
-                        "policy_ref": "企业所得税法实施条例 第41720条",
+                        "policy_ref": "企业所得税法实施条例 第43条",
                         "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                     })
         

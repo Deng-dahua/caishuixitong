@@ -38,7 +38,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   本系统具备六项核心智能能力，全部为可运行代码而非纸上设计。
   系统（memory.py中的硬逻辑）= 系统做什么 | 智哥（AI行为准则页面）= 怎么写代码
 
-  🧠【有记忆】知识库系统 → static/audit_memory.json，上限501720条，12维加权检索
+  🧠【有记忆】知识库系统 → static/audit_memory.json，上限502条，12维加权检索
   📚【能学习】审核反馈闭环 → 私有候选池 → 复核批准 → 限定场景应用
   🔬【懂思考】四阶段推理管线 → Phase1初查→Phase2深挖→Phase3交叉验证→Phase4综合定性
   ⚖️【会判断】七层判定体系 → 文件识别/身份锚定/发票方向/进项分类/服务闸门/品名过滤/存疑排除
@@ -143,7 +143,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   🔬 懂思考 —— Phase1-4是否完整执行？因果叙事链是否触发？假设验证是否运行？
      自省: phase4_completed AND (causal_chains > 0 OR hypothesis_verified)
 
-  ⚖️ 会判断 —— 21720条判定规则是否逐条校验？
+  ⚖️ 会判断 —— 27条判定规则是否逐条校验？
      自省: (规则一 至 规则十一、规则十六、规则二十五、规则二十六、规则二十七) ALL_PASSED
 
   🎯 懂决策 —— 风险评分是否生成？审计策略是否推荐？报告是否合规输出？
@@ -422,12 +422,12 @@ domain_functions = _CFG.get("domain_functions", 39)
   调用位置: main.py ~22383行（方法论过滤后、明细注入前）
 ══════════════════════════════════════════════════════════════
 
-═════ 跨域协商系统（2026-07-01 更新为21720条）═════
+═════ 跨域协商系统（2026-07-01 更新为29条）═════
   域分析独立运行后，42个域产生的发现可能存在逻辑矛盾。
   跨域协商系统在 all_findings 生成后、进入过滤管线前自动执行。
   代码: engine/cross_domain_negotiation.py → run_negotiation()
 
-  【四层协商 — 21720条协商规则】
+  【四层协商 — 29条协商规则】
   一、消解层（NEG-001~005 + NEG-050~052 + NEG-020/062，1720条）
     触发：域A的结论直接否定域B的结论
     NEG-001: 进销存匹配异常 → 消解（服务行业无实物商品）
@@ -457,7 +457,7 @@ domain_functions = _CFG.get("domain_functions", 39)
     NEG-030: 收款含非经营项 → 标注"含非经营收款"
     NEG-040: 任意缺资料 → 全局标注"资料受限结论"
 
-  四、联合增强层（NEG-AUG-001~010，11720条）
+  四、联合增强层（NEG-AUG-001~010，12条）
     触发：多域异常信号同时触发 → 合成更高级别新发现
     NEG-AUG-001: 经营费用缺失+运输缺失+场所异常 → "空壳企业预警"
     NEG-AUG-002: 个人收款+收款待分析+个人交易 → "隐匿收入预警"
@@ -650,7 +650,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   行业对标→综合评分→报告生成→纯净度检查→输出交付
 
 ═════ 知识库系统（2026-06-30 补录）═════
-  存储历史分析经验，支持12维度加权相似度检索，上限501720条记忆。
+  存储历史分析经验，支持12维度加权相似度检索，上限502条记忆。
   代码: engine/knowledge_base.py / static/audit_memory.json
   调用位置: pipeline.py → 每次分析结束后自动提取指纹存入知识库
 
@@ -749,7 +749,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   【#2 规则库】1720条税务合规指令按分类浏览/搜索/详情查看
   【#3 质量保障】1720条质量标准逐条检查/合规报告生成
   【#4 方法论对账】1266条方法论与audit_chains.json的实时核对
-  【#5 跨域协商】21720条协商规则四层场景的可视化矩阵
+  【#5 跨域协商】29条协商规则四层场景的可视化矩阵
   【#6 智能大脑】调度中枢进度/学习事件/纠正规则库/渐进学习曲线
 
 ═════ 前端页面体系（2026-06-30 补录）═════
@@ -807,9 +807,9 @@ domain_functions = _CFG.get("domain_functions", 39)
   ═══ 规则篇 ═══
   01 系统核心能力宣言与角色边界
   02 行业推断铁律 —— 销项品名=唯一依据
-  03 系统税务合规判定规则 —— 31720条判定规则逐条代码化
+  03 系统税务合规判定规则 —— 33条判定规则逐条代码化
   04 缺失的关键信息 —— 回退与推定策略
-  05 收款分类规则 —— 11720条分类规则+个人识别
+  05 收款分类规则 —— 12条分类规则+个人识别
   06 账务处理系统铁律 —— 铁律一至铁律六（1720条）
   07 系统核心铁律 —— 铁律七至铁律十一（1720条）
   08 跨模块内容一致性铁律 —— 铁律十二·共享内容映射+四触发同步（新增）
@@ -818,14 +818,14 @@ domain_functions = _CFG.get("domain_functions", 39)
 
   ═══ 架构篇 ═══
   11 假设-验证推理系统 —— 竞争假设+证据验证+加权判决
-  12 跨域协商系统 —— 21720条协商规则四层场景
+  12 跨域协商系统 —— 29条协商规则四层场景
   13 审核反馈闭环 —— 候选记录+重复验证+显式批准+可回退标记
   14 联动修改与数据一致性 —— 三种运行模式
   15 方法论过滤器体系 —— 七类过滤规则
   16 模块联动关系矩阵 —— 文档联动+数据联动
   17 四阶段推理管线 —— Phase1-4
   18 调度中枢 —— 16模块/7域/16级管线
-  19 知识库系统 —— 501720条记忆/12维检索
+  19 知识库系统 —— 502条记忆/12维检索
   20 法律推理系统 —— 税法条文库+自动化匹配
   21 财务分析系统 —— 5维度比率分析
   22 文件解析系统 —— 34类指纹/三层递进
@@ -855,10 +855,10 @@ domain_functions = _CFG.get("domain_functions", 39)
   static/system_config.json（权威数据源）
   static/audit_chains.json（线索链/证据链/方法论）
   data/user_corrections.json（私有纠正规则存储）
-  static/industry_data.json（25行业产品链词典+11720条收款分类规则）
+  static/industry_data.json（25行业产品链词典+12条收款分类规则）
   static/methodology_canonical_catalog.json（权威主题目录）
   static/industry_scenario_review.json（行业场景复审与扩展）
-  static/audit_memory.json（501720条分析记忆）
+  static/audit_memory.json（502条分析记忆）
   audit_consistency.py（数据一致性自检+联动修改）
 
   【前端页面（JS文件）】
@@ -939,7 +939,7 @@ def save_analysis_memory(ctx, synthesis):
     
     memory.append(fingerprint)
     
-    # 限制记忆数量（保留最近501720条）
+    # 限制记忆数量（保留最近502条）
     if len(memory) > 500:
         memory = memory[-500:]
     
@@ -1061,7 +1061,7 @@ def _calibrate_thresholds_from_history(memory, industry, biz_model):
     if len(industry_cases) < 3:
         industry_cases = [m for m in memory if m.get("biz_model") == biz_model and biz_model]
     if len(industry_cases) < 3:
-        industry_cases = memory[-50:]  # 兜底用最近51720条
+        industry_cases = memory[-50:]  # 兜底用最近52条
     
     # 提取财务快照
     snapshots = [(m.get("snapshot") or {}) for m in industry_cases]
@@ -1130,7 +1130,7 @@ def record_user_feedback(feedback):
     feedback["timestamp"] = feedback.get("timestamp") or datetime.now().isoformat()
     feedbacks.append(feedback)
     
-    # 限制1001720条
+    # 限制1002条
     if len(feedbacks) > 1000:
         feedbacks = feedbacks[-1000:]
     
@@ -1162,7 +1162,7 @@ def _adjust_signal_weights_from_feedback(feedbacks):
     
     weight_deltas = defaultdict(float)
     
-    for fb in feedbacks[-50:]:  # 只看最近51720条反馈
+    for fb in feedbacks[-50:]:  # 只看最近52条反馈
         ftype = fb.get("finding_type", "")
         action = fb.get("action", "")
         

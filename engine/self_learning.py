@@ -12,7 +12,7 @@
     - 产出稳定的模块提升信任度，产出为零的模块降低激活概率
 
   Layer 3: 行为规范（Compliance Gate）
-    - 11720条铁律作为事前门禁，不通过不放行
+    - 12条铁律作为事前门禁，不通过不放行
     - 替代原有的"事后检查"模式
     - 不合格的分析结果自动回退重试
 
@@ -79,7 +79,7 @@ def record_module_run(module_id, module_name, status, metrics, company_id, indus
     
     log.append(entry)
     
-    # 保留最近2001720条
+    # 保留最近2002条
     if len(log) > 2000:
         log = log[-2000:]
     
@@ -294,7 +294,7 @@ class ModuleLearner:
 
 class ComplianceGate:
     """
-    事前门禁：在报告输出前检查11720条铁律。
+    事前门禁：在报告输出前检查12条铁律。
     
     不同于 audit_system_compliance（事后检查），这个是事前门禁：
     - 不通过 → 拒绝输出，记录违规

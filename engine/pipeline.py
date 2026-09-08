@@ -1980,7 +1980,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"轻量跨结论串联: {light_cross}项")
     
     _step_timing["step4"] = round(time.time() - _step_timing.get("step4_start", time.time()), 2)
-    pipeline_log.append(f"[TIMING] 步骤④规则引擎+链驱动(Phase3+290规则): {_step_timing['step4']}秒")
+    pipeline_log.append(f"[TIMING] 步骤④规则引擎+链驱动(Phase3+89规则): {_step_timing['step4']}秒")
     _step_timing["step6_start"] = time.time()
     _report(99, "步骤⑥行业对标与申报比对 — Phase4综合定性开始...", step=6)
     # ── Phase 4：综合定性 ──
@@ -2055,7 +2055,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         
         pipeline_log.append(f"[Phase4] 综合定性: {synthesis['overall_risk']} (评分{synthesis['risk_score']})")
     
-    # ═══════ 290规则引擎: 将17文件数据完整导入空DB，跑全量规则后彻底清理 ═══════
+    # ═══════ 89规则引擎: 将17文件数据完整导入空DB，跑全量规则后彻底清理 ═══════
     engine_results = []
     bk_ids, bt_ids, sr_ids = [], [], []
     if total_parsed > 0:  # 守卫: 无数据跳过，避免空DB触发误报规则
