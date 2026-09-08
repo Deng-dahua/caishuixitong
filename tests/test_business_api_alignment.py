@@ -29,7 +29,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             "result = _run_analyze(",
             "_inject_agi_into_report(report_data, company_id)",
             "_apply_engine_hub_stage(",
-            "_apply_methodology_stage(report_data)",
+            "_apply_output_governance_stage(report_data)",
             "_apply_report_compilation_stage(report_data)",
             "_persist_one_click_result(company_id, result)",
         )
@@ -130,7 +130,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             ), patch.object(
                 main, "_apply_engine_hub_stage", side_effect=engine_hub
             ), patch.object(
-                main, "_apply_methodology_stage", side_effect=methodology
+                main, "_apply_output_governance_stage", side_effect=methodology
             ), patch.object(
                 main,
                 "_apply_report_compilation_stage",
@@ -169,7 +169,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             ), patch.object(
                 main, "_apply_engine_hub_stage", side_effect=engine_hub
             ), patch.object(
-                main, "_apply_methodology_stage", side_effect=methodology
+                main, "_apply_output_governance_stage", side_effect=methodology
             ), patch.object(
                 main,
                 "_apply_report_compilation_stage",

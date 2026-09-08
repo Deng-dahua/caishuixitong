@@ -197,7 +197,6 @@ const pages = {
   'feedback-template': '审核内容模板',
   'brain': '智能大脑（已迁移至智能分析系统中枢）',
   'engine-hub': '智能分析系统中枢',
-  'methodology': '风险检查方法论',
   'rs-pipeline': '质量保障管线',
   'report-standards': '报告编制要求',
   'rs-negotiation': '跨域协商标记展示规范',
@@ -205,11 +204,7 @@ const pages = {
   'rs-ironlaw': '系统铁律与报告质量映射',
   'rs-iterate': '审核反馈→报告迭代闭环',
   'rs-negoflow': '跨域协商详细工作流程',
-  'file-parsing': '文件解析',
   'agi-schedule': '调度中枢',
-  'analysis-page': '分析链',
-  'chains-page': '线索链',
-  'evidence-page': '证据链',
   // 以下6个缺标题的页面（2026-07-23 补齐）
   'company-overview': '企业概览',
   'compliance-workbench': '企业持续合规工作台',
@@ -217,7 +212,6 @@ const pages = {
   '文化事业建设费': '文化事业建设费',
   'correction-rules': '纠正规则中心',
   'report-spec': '报告编制要求',
-  'auditor-handbook': '风险检查员手册',
   // 以下6个新独立路由（2026-07-23 补齐）
   'engine-dashboard': '引擎仪表盘',
   'quality-system': '质量保障体系',
@@ -856,15 +850,6 @@ function navigateTo(page) {
       window._engineHubSection = 'corrections';
       navigateTo('engine-hub');
       return;
-    case 'methodology':
-      // 2026-08-26 审计修复（P1-2）：现行方法论页仅由 methodology-v3.js 渲染，
-      // 旧版 renderMethodologyPage 已移除，故仅以加载标记 + 函数存在判定就绪。
-      if (window.__METHODOLOGY_V3_LOADED__ && typeof renderMethodologyPage === 'function') { renderMethodologyPage(container); }
-      else {
-        container.innerHTML = '<div style="max-width:760px;margin:40px auto;padding:24px;border:1px solid #fecaca;border-radius:10px;background:#fff7f7;color:#991b1b">'
-          + '<b>风险检查方法论页面装载失败</b><br>现行渲染器（methodology-v3.js）未加载完成。请刷新页面重试；若持续失败请检查网络与脚本加载。</div>';
-      }
-      break;
     case 'rs-pipeline':
       window._engineHubSection = 'quality';
       navigateTo('engine-hub');
@@ -890,33 +875,10 @@ function navigateTo(page) {
       window._reportSection = 'rpt-10';
       navigateTo('report-standards');
       return;
-    case 'chains-page':
-      window._methodologySection = 'chains';
-      window._methodologyChainView = 'clues';
-      navigateTo('methodology');
-      return;
-    case 'evidence-page':
-      window._methodologySection = 'chains';
-      window._methodologyChainView = 'evidence';
-      navigateTo('methodology');
-      return;
-    case 'analysis-page':
-      window._methodologySection = 'chains';
-      window._methodologyChainView = 'analysis';
-      navigateTo('methodology');
-      return;
     case 'rs-negoflow':    _sR(container, 'renderCrossDomainNego'); break;
-    case 'file-parsing':
-      window._methodologySection = 'files';
-      navigateTo('methodology');
-      return;
     case 'agi-schedule':
       window._engineHubSection = 'agi';
       navigateTo('engine-hub');
-      return;
-    case 'auditor-handbook':
-      window._methodologySection = 'handbook';
-      navigateTo('methodology');
       return;
     case 'engine-dashboard':
       window._engineHubSection = 'dashboard';

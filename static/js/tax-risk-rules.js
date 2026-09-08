@@ -2,7 +2,7 @@
 function renderTaxRiskRules(container) {
   if (!container) return;
   container.innerHTML = '<div style="padding:22px;color:#64748b">正在载入权威方法论目录...</div>';
-  return fetch('/api/methodology/assets/canonical_catalog?_t=' + Date.now())
+  return fetch('/api/tax-assets/canonical_catalog?_t=' + Date.now())
     .then(function(response){
       if (!response.ok) throw new Error('权威方法论目录加载失败');
       return response.json();

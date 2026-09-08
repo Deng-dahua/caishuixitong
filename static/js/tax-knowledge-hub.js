@@ -27,7 +27,7 @@ var KNOWLEDGE_HUB_GROUPS = [
   {id:'discovered', icon:'🔍', name:'发现规则库', purpose:'自动发现与人工确认后的新规则', files:['discovered_rules.json','auto_discovered_rules.json']},
   {id:'cross-memory', icon:'🔗', name:'跨企业关联记忆', purpose:'跨企业模式、行业共性与经验迁移', file:'cross_analysis_memory.json'},
   {id:'hypotheses', icon:'💡', name:'创造性假说', purpose:'竞争性解释、验证结果与反事实线索', file:'creative_hypotheses.json'},
-  {id:'rule-adjust', icon:'📋', name:'规则修正记录', purpose:'规则、方法论与冲突裁决的调整历史', files:['rule_adjustments.json','methodology_adjustments.json','conflict_rules.json']},
+  {id:'rule-adjust', icon:'📋', name:'规则修正记录', purpose:'规则、方法论与冲突裁决的调整历史', files:['rule_adjustments.json','conflict_rules.json']},
   {id:'rectifications', icon:'📝', name:'整改记录', purpose:'整改任务、责任状态与期限跟踪', file:'rectifications.json'},
   {id:'report-audits', icon:'📊', name:'报告审计历史', purpose:'历次报告评分、问题数量与质量维度', file:'report_audits.json'},
   {id:'chain-adjust', icon:'🔧', name:'链修正记录', purpose:'线索链、证据链和分析链的调整历史', files:['analysis_chain_adjustments.json','clue_chain_adjustments.json','evidence_chain_adjustments.json']},
@@ -600,9 +600,8 @@ function _khLoadAgiMemory(body) {
 
 // ======== 规则修正记录 ========
 function _khLoadRuleAdjustments(body) {
-  _khFetchAll(['rule_adjustments.json','methodology_adjustments.json','conflict_rules.json'], function(results) {
+  _khFetchAll(['rule_adjustments.json','conflict_rules.json'], function(results) {
     var radj = results['rule_adjustments.json'] || [];
-    var madj = results['methodology_adjustments.json'] || [];
     var confl = results['conflict_rules.json'] || {};
 
     var h = '';
@@ -626,17 +625,6 @@ function _khLoadRuleAdjustments(body) {
       if (radj.length > 50) h += '<div style="padding:10px;color:#2563eb">...共'+radj.length+'条，仅显示前50条</div>';
     }
 
-    // 方法论修正
-    if (Array.isArray(madj) && madj.length > 0) {
-      h += '<div class="kh-card"><h4>方法论修正记录 · '+madj.length+'条</h4>';
-      madj.slice(0,20).forEach(function(m) {
-        h += '<div class="kh-detail"><b>'+_khEsc(String(m.timestamp||'').substring(0,10))+'</b>: 调整'+_khEsc(String(m.adjusted_count||''))+'项';
-        if (m.top_types) h += ' · 主要类型: '+_khEsc(String(m.top_types).substring(0,150));
-        if (m.insight) h += ' · 洞察: '+_khEsc(String(m.insight).substring(0,200));
-        h += '</div>';
-      });
-      h += '</div>';
-    }
 
     // 规则冲突
     if (confl && confl.rules && confl.rules.length > 0) {

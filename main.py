@@ -7458,13 +7458,13 @@ def get_system_stats():
         return []
     try:
         from engine.fact_rules import methodology_inventory
-        methodology = methodology_inventory()
-        stats["rules_count"] = methodology["rules"]
-        stats["clue_chains"] = methodology["clue_paths"]
-        stats["clue_chains_total"] = methodology["clue_paths"]
-        stats["evidence_chains"] = methodology["evidence_plans"]
-        stats["analysis_chains"] = methodology["analysis_plans"]
-        stats["methodology_scenarios"] = methodology["industry_scenarios"]
+        inventory = methodology_inventory()
+        stats["rules_count"] = inventory["rules"]
+        stats["clue_chains"] = inventory["clue_paths"]
+        stats["clue_chains_total"] = inventory["clue_paths"]
+        stats["evidence_chains"] = inventory["evidence_plans"]
+        stats["analysis_chains"] = inventory["analysis_plans"]
+        stats["methodology_scenarios"] = inventory["industry_scenarios"]
     except Exception:
         stats.update({"rules_count": 0, "clue_chains": 0, "clue_chains_total": 0, "evidence_chains": 0, "analysis_chains": 0, "methodology_scenarios": 0})
     try:
@@ -7532,9 +7532,7 @@ def get_system_stats():
     return stats
 
 
-_methodology_asset_cache = {}
-_methodology_coverage_cache = {}
-_methodology_rewrite_cache = {}
+_tax_asset_cache = {}
 
 
 def _build_canonical_tax_model():
@@ -7662,21 +7660,26 @@ def _build_validation_blueprint():
     }
 
 
-def _neutralise_methodology_asset_text(value):
-    """对已加载的静态方法论资产做文字净化（去定性化），替代已退役的 prepare_methodology_asset。"""
+def _neutralise_asset_text(value):
+    """对已加载的静态税务资产做文字净化（去定性化），替代已退役的方法论资产预处理。"""
     from engine.text_guardrails import neutralise_output_text
     if isinstance(value, str):
         return neutralise_output_text(value)
     if isinstance(value, list):
-        return [_neutralise_methodology_asset_text(v) for v in value]
+        return [_neutralise_asset_text(v) for v in value]
     if isinstance(value, dict):
-        return {k: _neutralise_methodology_asset_text(v) for k, v in value.items()}
+        return {k: _neutralise_asset_text(v) for k, v in value.items()}
     return value
 
 
-@app.get("/api/methodology/assets/{asset_name}")
-def get_methodology_asset(asset_name: str):
-    """向已登录用户提供只读方法论数据，不暴露受保护的静态目录。"""
+@app.get("/api/tax-assets/{asset_name}")
+def get_tax_asset(asset_name: str):
+    """向已登录用户提供只读税务资产数据（规则/线索/证据/分析链、能力账本等），不暴露受保护的静态目录。
+
+    2026-09-08：原 /api/methodology/assets/* 随风险检查方法论整体下线改为本中性路由，
+    数据仍来自 engine/fact_rules.py（权威横向目录）与静态作业框架，供税务稽查流水线、
+    风险规则库与引擎仪表盘消费。
+    """
     import os as _os
 
     normalized_asset = str(asset_name or "").strip().lower()
@@ -7684,9 +7687,6 @@ def get_methodology_asset(asset_name: str):
         load_canonical_catalog, load_flat_analysis, load_flat_clues,
         load_flat_evidence, load_flat_rules,
     )
-    if normalized_asset in ("portfolio", "acceptance"):
-        # 行业场景投资组合/验收资产已由行业无关输出治理替代，正式退役
-        raise HTTPException(status_code=410, detail="该方法论资产已退役（行业无关输出治理已替代）")
     virtual_assets = {
         "rules": load_flat_rules,
         "clues": load_flat_clues,
@@ -7706,26 +7706,26 @@ def get_methodology_asset(asset_name: str):
     }
     filename = filenames.get(normalized_asset)
     if not filename:
-        raise HTTPException(status_code=404, detail="未知的方法论数据类型")
+        raise HTTPException(status_code=404, detail="未知的税务资产类型")
     asset_path = _os.path.join(_os.path.dirname(__file__), "static", filename)
     if not _os.path.isfile(asset_path):
-        raise HTTPException(status_code=404, detail="方法论数据不存在")
+        raise HTTPException(status_code=404, detail="税务资产数据不存在")
     try:
         stat = _os.stat(asset_path)
         cache_key = (asset_path, stat.st_mtime_ns, stat.st_size)
-        cached = _methodology_asset_cache.get(cache_key)
+        cached = _tax_asset_cache.get(cache_key)
         if cached is not None:
             return cached
         with open(asset_path, "r", encoding="utf-8") as asset_file:
             payload = _json.load(asset_file)
-        prepared = _neutralise_methodology_asset_text(payload)
-        for old_key in list(_methodology_asset_cache):
+        prepared = _neutralise_asset_text(payload)
+        for old_key in list(_tax_asset_cache):
             if old_key[0] == asset_path and old_key != cache_key:
-                del _methodology_asset_cache[old_key]
-        _methodology_asset_cache[cache_key] = prepared
+                del _tax_asset_cache[old_key]
+        _tax_asset_cache[cache_key] = prepared
         return prepared
     except (OSError, ValueError) as exc:
-        raise HTTPException(status_code=500, detail="方法论数据读取失败") from exc
+        raise HTTPException(status_code=500, detail="税务资产数据读取失败") from exc
 
 
 @app.get("/api/knowledge/assets")
@@ -7763,72 +7763,6 @@ def get_knowledge_asset(asset_name: str):
     except (OSError, ValueError) as exc:
         raise HTTPException(status_code=500, detail="知识资产读取失败") from exc
     return data
-
-
-@app.get("/api/methodology/coverage")
-def get_methodology_coverage():
-    """返回权威横向目录与红线驱动方法论的真实覆盖矩阵（行业场景方法论已退役）。"""
-    from engine.fact_rules import load_canonical_catalog, methodology_inventory
-    try:
-        catalog = load_canonical_catalog()
-        inventory = methodology_inventory()
-        modules = [{
-            "id": m.get("id"),
-            "name": m.get("name"),
-            "purpose": m.get("purpose"),
-            "rule_count": len(m.get("rules", [])),
-            "clue_path_count": len(m.get("clue_paths", [])),
-            "analysis_test_count": len(m.get("analysis_tests", [])),
-            "validation_case_count": len(m.get("validation_cases", [])),
-            "source_refs": list(m.get("source_refs", [])),
-            "report_boundary": m.get("report_boundary"),
-        } for m in catalog.get("modules", [])]
-        return {
-            "version": catalog.get("version", "3.0.0"),
-            "positioning": (
-                "行业无关·红线驱动：确定税务疑点（触碰哪条红线）→线索链"
-                "→证据链→论证链；触红即命中。行业场景契约已退役。"
-            ),
-            "governance": {
-                "count_policy": "以权威横向目录为唯一事实来源，不再按行业叠加场景计数。",
-                "coverage_basis": (
-                    "methodology_canonical_catalog.json（权威横向规则）"
-                    " + engine/tax_redlines.py（行业无关红线）"
-                ),
-                "common_boundaries": [
-                    "原子计算与输出治理只形成待核事实，不替代行政认定。",
-                    "指标缺失型疑点须经竞争假设裁决，证据不足转置疑清单，系统绝不自动定罪。",
-                ],
-            },
-            "inventory": inventory,
-            "canonical_modules": modules,
-            "industry_matrix": [],
-            "depth_distribution": {},
-            "quality_controls": [
-                "跨行业共同规则与红线判定分层，行业名称本身不触发结论",
-                "每条红线规定线索链、证据链与论证链（主张/反证/裁决）",
-                "调查路径必须能够回到原始资料、源行、经办过程和法定取得程序",
-                "一键分析只能生成待核事项、资料缺口、核验底稿和报告移交包",
-                "事实、会计处理、金额测算、法律评价、审理决定和报告表达分层",
-                "政策依据必须按事实期间、地区、纳税人身份和程序阶段核验，异常或失效引用不得进入报告",
-            ],
-            "known_gaps": [
-                {"priority": "持续门禁", "gap": "脱敏真实案件验证", "control": "未经样本验证不得升级为自动结论能力；缺失型疑点一律转置疑清单。"},
-                {"priority": "逐案门禁", "gap": "地方政策及历史期间", "control": "涉及地方授权、过渡政策或历史期间时，取得业务期间有效全文并完成人工复核。"},
-                {"priority": "数据门禁", "gap": "外部和第三方资料权限", "control": "只有权限、来源、对象、期间、取得方式和保全过程明确的数据才进入证据评价。"},
-            ],
-        }
-    except (OSError, ValueError, TypeError) as exc:
-        raise HTTPException(status_code=500, detail="方法论覆盖矩阵生成失败") from exc
-
-
-@app.get("/api/methodology/rewrite-ledger")
-def get_methodology_rewrite_ledger(
-    offset: int = Query(0, ge=0),
-    limit: int = Query(40, ge=1, le=200),
-):
-    """旧候选迁移账册已经退役，不再属于现行系统。"""
-    raise HTTPException(status_code=410, detail="旧候选迁移账册已退役；请使用权威方法论目录和行业场景复审数据。")
 
 
 def patrol_status_v2():
@@ -8241,84 +8175,6 @@ def audit_status(company_id: int = Query(...)):
     except Exception as e:
         return {"ok": False, "error": str(e), "score": 0, "level": "未知", "items": []}
 
-@app.get("/api/methodology-audit")
-def methodology_audit():
-    """方法论文档↔执行代码对账——以 methodology_items.json 为权威文档源，扫描 engine/ + main.py 中的代码实现"""
-    import re, json
-    base_dir = os.path.dirname(__file__) or "."
-    
-    # ── 1. 从 methodology_items.json 读取方法论文档声明 ──
-    json_path = os.path.join(base_dir, "static", "methodology_items.json")
-    declared = {}
-    if os.path.exists(json_path):
-        with open(json_path, "r", encoding="utf-8") as f:
-            items = json.load(f)
-        for item in items:
-            declared[item["id"]] = item["name"]
-    else:
-        return {"ok": False, "error": "methodology_items.json 不存在"}
-    
-    # ── 2. 扫描 engine/ + main.py + static/js/ 找代码引用 ──
-    all_code = ""
-    engine_dir = os.path.join(base_dir, "engine")
-    for root, dirs, files in os.walk(engine_dir):
-        dirs[:] = [d for d in dirs if d != '__pycache__']
-        for fn in files:
-            if fn.endswith(".py"):
-                try:
-                    with open(os.path.join(root, fn), "r", encoding="utf-8") as f:
-                        all_code += f.read()
-                except: pass
-    # 加 main.py
-    try:
-        with open(os.path.join(base_dir, "main.py"), "r", encoding="utf-8") as f:
-            all_code += f.read()
-    except: pass
-    # Also scan JS files
-    js_dir = os.path.join(base_dir, "static", "js")
-    if os.path.exists(js_dir):
-        for fn in os.listdir(js_dir):
-            if fn.endswith(".js"):
-                try:
-                    with open(os.path.join(js_dir, fn), "r", encoding="utf-8") as f:
-                        all_code += f.read()
-                except: pass
-    
-    # ── 3. 对账：每个方法论名称是否被代码引用 ──
-    results = []
-    for mid, mname in declared.items():
-        in_doc = True  # methodology_items.json 本身就是文档
-        # 检查代码中是否出现方法论名称（取前4个字符模糊匹配）
-        short = mname[:4]
-        in_code = mname in all_code or short in all_code
-        status = "aligned" if in_doc and in_code else "code_only"
-        results.append({
-            "id": mid,
-            "name": mname,
-            "status": status,
-            "in_doc": in_doc,
-            "in_code": in_code,
-        })
-    
-    aligned = sum(1 for r in results if r["status"] == "aligned")
-    doc_only = sum(1 for r in results if r["status"] == "doc_only")
-    code_only = sum(1 for r in results if r["status"] == "code_only")
-    total_methods = len(results)
-    coverage = round(aligned / max(total_methods, 1) * 100)
-    
-    return {
-        "ok": True,
-        "total_methods": total_methods,
-        "aligned": aligned,
-        "doc_only": doc_only,
-        "code_only": code_only,
-        "coverage_pct": coverage,
-        "methods": results,
-        "verdict": "全部对齐" if doc_only == 0 and code_only == 0 else (
-            f"需修复: {doc_only}条文档声明无代码, {code_only}条代码实现无文档"
-        ),
-    }
-
 # ═══════════════════════════════════════════════════════════
 # 一键分析：异步任务机制
 # ═══════════════════════════════════════════════════════════
@@ -8454,7 +8310,7 @@ def _apply_engine_hub_stage(report_data, result=None):
     }
 
 
-def _apply_methodology_stage(report_data):
+def _apply_output_governance_stage(report_data):
     """对全部发现执行方法论门禁，并匹配流程、业务域和官方依据类别。"""
     from engine.framework_config import (
         PIPELINE_KNOWLEDGE,
@@ -9453,7 +9309,7 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         # 方法论复核是发布前的强制安全门禁，异常时必须由外层统一失败处理；
         # 不允许绕过证据成熟度、人工复核和程序边界继续编制或持久化报告。
         execution["stages"]["methodology_enrichment"] = (
-            _apply_methodology_stage(report_data)
+            _apply_output_governance_stage(report_data)
         )
 
         report_data, report_stage = _apply_report_compilation_stage(report_data)
@@ -11813,7 +11669,6 @@ def propagate_corrections_to_chains():
             "线索链": _update_clue_chains(rules, summary),
             "证据链": _update_evidence_chains(rules, summary),
             "分析链": _update_analysis_chains(rules, summary),
-            "税务合规方法论": _update_methodology(rules, summary),
         }
         
         return {
@@ -11910,26 +11765,6 @@ def _update_analysis_chains(rules, summary):
     })
     with open(ac_path, "w", encoding="utf-8") as f:
         json.dump(acs[-50:], f, ensure_ascii=False, indent=2)
-    return count
-
-
-def _update_methodology(rules, summary):
-    """根据纠正规则更新税务合规方法论文档"""
-    meth_path = os.path.join("static", "methodology_adjustments.json")
-    count = len([r for r in rules[-30:] if r.get("count", 1) >= 2])
-    try:
-        with open(meth_path, encoding="utf-8") as f:
-            meths = json.load(f)
-    except:
-        meths = []
-    meths.append({
-        "timestamp": datetime.now().isoformat(),
-        "adjusted_count": count,
-        "top_types": summary.get("top_types", [])[:5],
-        "insight": f"从{len(rules)}条纠正规则提炼: {summary.get('summary','')}",
-    })
-    with open(meth_path, "w", encoding="utf-8") as f:
-        json.dump(meths[-50:], f, ensure_ascii=False, indent=2)
     return count
 
 

@@ -1176,7 +1176,7 @@ function renderDomainAnalysisResult(report) {
 
 function loadCrossDomainStatic() {
   var target = document.getElementById('cde-static');
-  fetch('/api/methodology/assets/evidence?_t=' + Date.now())
+  fetch('/api/tax-assets/evidence?_t=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(chains) {
       window._allCrossChains = chains;
@@ -1243,7 +1243,7 @@ function renderChainsPage(container) {
 async function loadChainsData() {
   var target = document.getElementById('chains-list-view');
   try {
-    var resp = await fetch('/api/methodology/assets/clues?_t=' + Date.now());
+    var resp = await fetch('/api/tax-assets/clues?_t=' + Date.now());
     var clueChains = await resp.json();
 
     // 加载动态触发状态
@@ -1406,7 +1406,7 @@ function renderEvidencePage(container) {
 async function loadEvidenceData() {
   var target = document.getElementById('evidence-list-view');
   try {
-    var resp = await fetch('/api/methodology/assets/evidence?_t=' + Date.now());
+    var resp = await fetch('/api/tax-assets/evidence?_t=' + Date.now());
     var data = await resp.json();
     var evChains = data.evidence_chains || data.chains || data;
     _allEvidenceChains = evChains;
@@ -1550,7 +1550,7 @@ function collapseAllDomains() {
 
 function loadCrossDomainClues() {
   var target = document.getElementById('cdc-body');
-  fetch('/api/methodology/assets/clues?_t=' + Date.now())
+  fetch('/api/tax-assets/clues?_t=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(clues) {
       var html = '';
@@ -1638,7 +1638,7 @@ function loadCrossDomainClues() {
 
 function loadCrossDomainAnalysis() {
   var target = document.getElementById('cda-body');
-  fetch('/api/methodology/assets/analysis?_t=' + Date.now())
+  fetch('/api/tax-assets/analysis?_t=' + Date.now())
     .then(function(r) { return r.json(); })
     .then(function(chains) {
       var html = '';
@@ -2434,41 +2434,6 @@ function renderQualitySystem(container) {
   }
 }
 
-function loadMethodologies() {
-  var target = document.getElementById('methods-body');
-  if (!target) return;
-  
-  fetch('/static/methodology_items.json?_t=' + Date.now())
-    .then(function(r) { return r.json(); })
-    .then(function(methods) {
-      if (!methods.length) {
-        target.innerHTML = '<div style="color:#64748b;padding:20px">方法论数据为空</div>';
-        return;
-      }
-      
-      var html = '';
-      methods.forEach(function(m, i) {
-        var id = m.id || ('#' + (i+1));
-        var name = m.name || '未命名';
-        var desc = m.desc || m.short || '';
-        var codePos = m.code || '';
-        
-        html += '<div style="margin-bottom:10px;padding:16px 20px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;border-left:3px solid #2563eb">'
-          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'
-          + '<div style="font-size:10px;font-weight:700;color:#16233a">' + escHtml(id) + ' ' + escHtml(name) + '</div>'
-          + '</div>'
-          + '<div style="font-size:10px;color:#059669;line-height:20px">' + escHtml(desc) + '</div>'
-          + (codePos ? '<div style="margin-top:8px;font-size:10px;color:#64748b">代码位置: <code style="font-size:10px;background:#f1f5f9;padding:2px 6px;border-radius:4px">' + escHtml(codePos) + '</code></div>' : '')
-          + '</div>';
-      });
-      
-      target.innerHTML = html;
-      loadAnalysisChains();
-    })
-    .catch(function(e) {
-      target.innerHTML = '<div style="color:#dc2626;padding:20px">加载方法论失败：' + e.message + '</div>';
-    });
-}
 
 
 
@@ -2476,7 +2441,7 @@ async function loadAnalysisChains() {
   var container = document.getElementById('al-chains-list');
   if (!container) return;
   try {
-    var resp = await fetch('/api/methodology/assets/analysis');
+    var resp = await fetch('/api/tax-assets/analysis');
     var chains = await resp.json();
     var execChains = chains.filter(function(c) { return c.executable && !c.legacy; });
     var html = '';
@@ -5679,7 +5644,7 @@ function renderAnalysisChainsPage(container) {
 async function loadAnalysisChainsData() {
   var target = document.getElementById('alc-list-view');
   try {
-    var resp = await fetch('/api/methodology/assets/analysis?_t=' + Date.now());
+    var resp = await fetch('/api/tax-assets/analysis?_t=' + Date.now());
     var data = await resp.json();
     var chains = data.analysis_chains || data.chains || data;
     _allAnalysisChains = chains;

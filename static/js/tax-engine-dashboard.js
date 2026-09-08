@@ -66,7 +66,6 @@ async function renderEngineDashboardIntegrated(container) {
     {id:'rules', icon:'📋', title:'规则触发与学习反馈', desc:'查看本次分析真正触发的信号规则、资料缺失规则及其调查建议。', render:'renderRulesTab'},
     {id:'brain', icon:'🧠', title:'AGI 运行态', desc:'查看调度中枢、成长阶段、累计运行、信任模型和已学习行业。', render:'renderBrainTab'},
     {id:'quality', icon:'✅', title:'本次分析质量', desc:'查看资料完整度、合规门禁、自愈修复、证据闭环和元认知审核。', render:'renderQualityTab'},
-    {id:'methods', icon:'🔬', title:'方法—实现对账', desc:'逐项检查方法论是否同时存在于文档和代码，识别有文档无实现或有实现无说明。', render:'renderMethodsTab'},
     {id:'details', icon:'🔧', title:'引擎组件详情', desc:'查看财务、法律、成本、假设、覆盖、趋势、阈值、因果和证据闭环等组件的实际输出。', render:'renderDetailsTab'}
   ];
   var toc = panels.map(function(panel) {
@@ -155,7 +154,6 @@ function renderEngineDashboard(rpt) {
     {id:'rules',icon:'📋',name:'学习反馈',color:'#7c3aed'},
     {id:'brain',icon:'🧠',name:'AGI核心',color:'#dc2626'},
     {id:'quality',icon:'✅',name:'质量保障',color:'#059669'},
-    {id:'methods',icon:'🔬',name:'推理引擎',color:'#f59e0b'},
     {id:'details',icon:'🔧',name:'引擎详情',color:'#8b5cf6'}
   ];
 
@@ -186,7 +184,6 @@ function switchEngineTab(tab) {
   if (tab==='status') renderStatusTab();
   else if (tab==='rules') renderRulesTab();
   else if (tab==='quality') renderQualityTab();
-  else if (tab==='methods') renderMethodsTab();
   else if (tab==='negotiation') renderNegotiationTab();
   else if (tab==='brain') renderBrainTab();
   else if (tab==='details') renderDetailsTab();
@@ -621,20 +618,6 @@ function loadEngineDashboard() {
   } catch(e) {}
   
   // ── 检查URL参数：手册联动跳转（#4：手册↔仪表盘）──
-  try {
-    var params = new URLSearchParams(window.location.search);
-    var focusMethod = params.get('focus');
-    if (focusMethod) {
-      window._dashboardFocusMethod = focusMethod;
-      // 延迟切换到对应标签（等渲染完成）
-      setTimeout(function() {
-        switchEngineTab('methods');
-        if (window._methodsData) {
-          highlightMethodInDashboard(focusMethod);
-        }
-      }, 500);
-    }
-  } catch(e) {}
   
   fetch('/api/tax-risk-docs/last-analysis?company_id=' + cid)
     .then(function(r) { return r.json(); })
@@ -867,71 +850,6 @@ function qualityCard(name, value, color, desc) {
     '</div>';
 }
 
-// ═══════════════════════════════════════════════════
-// #3: 方法论对账标签页（文档声明 vs 代码实现）
-// ═══════════════════════════════════════════════════
-function renderMethodsTab() {
-  var area = document.getElementById('eng-tab-content');
-  if (!area) return;
-  area.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8"><span class="spinner"></span> 正在分析方法论覆盖...</div>';
-  
-  fetch('/api/methodology-audit')
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (!d.ok) { area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">对账失败: ' + esc(d.error || '') + '</div>'; return; }
-      window._methodsData = d;
-      
-      var h = '';
-      h += '<div style="background:#f8fafc;padding:10px 14px;border-radius:6px;font-size:12px;color:#64748b;margin-bottom:16px;border-left:3px solid #f59e0b">🔬 推理引擎：逐条核对方法论在文档和代码中是否同时存在——\"代码即承诺\"验证。</div>';
-      var covColor = d.coverage_pct === 100 ? '#059669' : d.coverage_pct >= 70 ? '#f59e0b' : '#dc2626';
-      h += '<div style="background:#eff6ff;border:2px solid #3b82f6;padding:20px 24px;border-radius:12px;margin-bottom:20px">';
-      h += '<div style="display:flex;justify-content:space-around;text-align:center">';
-      h += '<div><div style="font-size:36px;font-weight:700;color:' + covColor + '">' + d.coverage_pct + '%</div><div style="font-size:12px;color:#64748b">覆盖率</div></div>';
-      h += '<div><div style="font-size:36px;font-weight:700;color:#059669">' + d.aligned + '</div><div style="font-size:12px;color:#64748b">已对齐</div></div>';
-      h += '<div><div style="font-size:36px;font-weight:700;color:#dc2626">' + d.doc_only + '</div><div style="font-size:12px;color:#64748b">有文档无代码</div></div>';
-      h += '<div><div style="font-size:36px;font-weight:700;color:#f59e0b">' + d.code_only + '</div><div style="font-size:12px;color:#64748b">有代码无文档</div></div>';
-      h += '</div>';
-      h += '<div style="text-align:center;margin-top:12px;font-size:14px;font-weight:600;color:' + (d.doc_only === 0 && d.code_only === 0 ? '#059669' : '#dc2626') + '">' + esc(d.verdict) + '</div>';
-      h += '</div>';
-      
-      h += '<div style="display:grid;grid-template-columns:1fr;gap:8px">';
-      (d.methods || []).forEach(function(m, i) {
-        var mid = 'method-item-' + i;
-        var bg, border, label, labelColor;
-        if (m.status === 'aligned') { bg = '#ecfdf5'; border = '#059669'; label = '已对齐'; labelColor = '#059669'; }
-        else if (m.status === 'doc_only') { bg = '#fef2f2'; border = '#dc2626'; label = '缺代码'; labelColor = '#dc2626'; }
-        else if (m.status === 'code_only') { bg = '#fffbeb'; border = '#f59e0b'; label = '缺文档'; labelColor = '#f59e0b'; }
-        else { bg = '#f8fafc'; border = '#94a3b8'; label = '缺失'; labelColor = '#94a3b8'; }
-        
-        h += '<div id="' + mid + '" style="background:' + bg + ';border:1px solid ' + border + ';padding:12px 16px;border-radius:8px;display:flex;align-items:center;justify-content:space-between">';
-        h += '<div style="flex:1"><span style="font-weight:600;font-size:14px">' + esc(m.id) + '</span>';
-        h += '<span style="font-size:13px;color:#475569;margin-left:10px">' + esc(m.name) + '</span></div>';
-        h += '<div style="display:flex;gap:16px;align-items:center">';
-        h += '<span style="font-size:11px;color:#64748b">文档:' + (m.in_doc ? 'V' : 'X') + '</span>';
-        h += '<span style="font-size:11px;color:#64748b">代码:' + (m.in_code ? 'V' : 'X') + '</span>';
-        h += '<span style="padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;background:' + labelColor + ';color:#fff">' + label + '</span>';
-        h += '</div></div>';
-        
-        if (window._dashboardFocusMethod && m.id === window._dashboardFocusMethod) {
-          setTimeout(function() {
-            var el = document.getElementById(mid);
-            if (el) { el.style.boxShadow = '0 0 0 3px #3b82f6'; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-          }, 100);
-        }
-      });
-      h += '</div>';
-      
-      area.innerHTML = h;
-    })
-    .catch(function() {
-      area.innerHTML = '<div style="padding:40px;text-align:center;color:#dc2626">方法论对账服务不可用</div>';
-    });
-}
-
-function highlightMethodInDashboard(methodId) {
-  if (!window._methodsData) return;
-  renderMethodsTab();
-}
 
 // ═══════════════════════════════════════════════════
 // #5: 跨域协商标签页 — 域间对话/消解/降级/增强
@@ -1366,7 +1284,6 @@ function renderSubTabContent(tabId) {
   else if (tabId === 'rules') renderRulesTab();
   else if (tabId === 'brain') renderBrainTab();
   else if (tabId === 'quality') renderQualityTab();
-  else if (tabId === 'methods') renderMethodsTab();
   else if (tabId === 'details') renderDetailsTab();
 }
 
