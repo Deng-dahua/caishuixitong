@@ -3839,9 +3839,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             f"{_scenario_execution.get('common_fact_findings', 0)}项共同事实门待核事实已纳入，"
             f"输出{len(all_findings)}项待核事实。全部输出须人工复核且禁止自动定性。"
         )
-    except Exception as _scene_methodology_error:
+    except Exception as _governance_stage_error:
         # 场景主流程是正式输出的强制边界，不允许退回旧式发现。
-        raise RuntimeError(f"场景驱动执行核心失败: {_scene_methodology_error}") from _scene_methodology_error
+        raise RuntimeError(f"正式输出治理核心失败: {_governance_stage_error}") from _governance_stage_error
     
     # ═══ 规则深度字段消费：把税务疑点库的 direction/drill_questions/determination 等注入每条发现 ═══
     try:

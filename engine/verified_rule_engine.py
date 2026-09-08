@@ -1100,7 +1100,7 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
         "to_prove": to_prove,
         "enterprise_rights": enterprise_rights,
         "limitations": spec.get("limitation", "该原子规则只形成可复算的数据事实或资料质量事项，不作税务处理、处罚或移送判断。"),
-        "methodology_controls": {
+        "governance_controls": {
             "applicability_review_required": True,
             "supporting_and_opposing_evidence_required": True,
             "amount_and_legal_characterisation_separate": True,

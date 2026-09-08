@@ -249,7 +249,7 @@ def review_finding(finding):
         else "不自动定性；按证据成熟度移交人工复核"))
     )
     finding["alternative_explanations"] = finding.get("alternative_explanations") or _alternative_explanations(combined)
-    finding["methodology_controls"] = {
+    finding["governance_controls"] = {
         "source_trace_required": True,
         "applicability_review_required": True,
         "supporting_and_opposing_evidence_required": True,
@@ -301,7 +301,7 @@ def review_report_methodology(report_data):
         return report_data
     for key in (
         "all_findings", "domain_results", "comprehensive", "overall_assessment",
-        "methodology_summary", "core_issues", "prioritized_actions",
+        "governance_summary", "core_issues", "prioritized_actions",
     ):
         if key in report_data:
             report_data[key] = _clean_review_section(report_data[key])

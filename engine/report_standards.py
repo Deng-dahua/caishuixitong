@@ -77,7 +77,7 @@ def _has_amount_workpaper(finding):
     )
 
 
-def _methodology_handoff_present(report_data):
+def _governance_handoff_present(report_data):
     if report_data.get("_methodology_applied") or report_data.get("output_governance"):
         return True
     comprehensive = report_data.get("comprehensive") or {}
@@ -122,7 +122,7 @@ def _quality_checks(report_data):
         "RQ9": not any(term in all_text for term in _AUTOMATIC_CONCLUSION_TERMS),
         "RQ10": bool(target.get("name") or report_data.get("company_name")),
         "RQ11": len(nonempty_identities) == len(set(nonempty_identities)),
-        "RQ12": _methodology_handoff_present(report_data),
+        "RQ12": _governance_handoff_present(report_data),
     }
     return checks
 
