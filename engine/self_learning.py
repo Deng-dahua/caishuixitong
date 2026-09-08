@@ -519,7 +519,7 @@ class ComplianceGate:
                 except Exception:
                     pass
         
-        # 合并同类违规：每标准只记1720条"X条发现违反SXX"
+        # 合并同类违规：每标准只记2条"X条发现违反SXX"
         from collections import Counter
         id_counts = Counter()
         for i in issues:

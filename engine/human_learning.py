@@ -208,7 +208,7 @@ class HumanLearner:
     def abstract_generalize(self, correction_texts: list):
         """多条纠正合并为一条通用规则"""
         if len(correction_texts) < 2:
-            return {"ok": False, "message": "至少需要1720条纠正才能归纳"}
+            return {"ok": False, "message": "至少需要2条纠正才能归纳"}
 
         # 找共同关键词
         all_words = []

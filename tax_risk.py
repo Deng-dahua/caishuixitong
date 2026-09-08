@@ -10818,7 +10818,7 @@ def _analyze_invoice_time_concentration(db, company_id, ps, pe, results):
     if not results_found:
         return
 
-    # 只报告最显著的（按张数排序，最多1720条）
+    # 只报告最显著的（按张数排序，最多3条）
     results_found.sort(key=lambda x: -x[1])
     for seller, cnt, span, total, density, dates in results_found:
         date_range = f"{dates[0]}~{dates[-1]}"

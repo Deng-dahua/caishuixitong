@@ -3255,7 +3255,7 @@ def _domain_cross_domain_clues(all_findings):
             for s in chain_def.get("investigation_path", []):
                 path_steps.append(f"Step{s.get('step','')}: {s.get('domain','')} → {s.get('action','')}")
             
-            # ── 叙事增强：触发发现≥1720条时生成结构化叙事 ──
+            # ── 叙事增强：触发发现≥2条时生成结构化叙事 ──
             narrative_obj = None
             if _has_narrative and len(triggered_findings) >= 1:
                 try:
@@ -6531,7 +6531,7 @@ class ConfidenceAssessor:
         if scores:
             report["overall_credibility"] = sum(scores) / len(scores)
             
-            # 找出最薄弱的1720条结论
+            # 找出最薄弱的3条结论
             sorted_assess = sorted(report["assessments"], key=lambda a: a["credibility"])
             report["weakest_conclusions"] = sorted_assess[:3]
         
@@ -9898,7 +9898,7 @@ def _ema_self_learning(ctx, all_findings):
         base = 1.0
         base += confirmed_types[ftype] * 0.1
         base -= dismissed_types[ftype] * 0.2
-        # 长时间未出现的信号衰减（1720条反馈中0确认 → 降权）
+        # 长时间未出现的信号衰减（2条反馈中0确认 → 降权）
         if confirmed_types[ftype] == 0 and dismissed_types[ftype] >= 3:
             base *= 0.7
         decayed_weights[ftype] = round(max(0.2, min(2.0, base)), 2)
@@ -10550,7 +10550,7 @@ def _cross_period_compare(ctx, company_id, db):
                     m.get("biz_model") == cp.get("biz_model", "") and
                     m.get("scale") == cp.get("scale", "")):
                     prev_records.append(m)
-            # 最近1720条
+            # 最近3条
             prev_records = sorted(prev_records, key=lambda x: x.get("timestamp", ""), reverse=True)[:3]
     except Exception:
         pass
@@ -13380,7 +13380,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                     "detail": f"发票总额{total_inv_amount:,.0f}元，推算印花税{expected_stamp:,.0f}元，实际缴纳{stamp_paid:,.0f}元。偏差>50%→可能漏缴购销合同印花税。",
                     "description": "以发票金额为税基推算购销合同印花税（0.03%），对比银行实际缴纳。",
                     "suggestion": "核查购销合同印花税申报，补缴差额。购销合同印花税率0.03%。",
-                    "policy_ref": "印花税法 第1720条、第1720条",
+                    "policy_ref": "印花税法 第5条、第8条",
                     "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
                 })
         
@@ -13409,7 +13409,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                 "level": "注意", "score": 4,
                 "detail": f"检测到{len(large_loans)}笔疑似借款交易，合计{sum(large_loans):,.0f}元。借款合同印花税率0.005%。",
                 "suggestion": "核查借款合同印花税缴纳情况。",
-                "policy_ref": "印花税法 第1720条",
+                "policy_ref": "印花税法 第5条",
                 "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
             })
         
@@ -13444,7 +13444,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                     "detail": f"发票收入{inv_revenue:,.0f}元 vs 凭证收入{vch_revenue:,.0f}元，差异{diff_pct:.1f}%→可能存在跨期收入。",
                     "description": "发票流与凭证流收入差异反映收入确认时点不一致，需在汇算清缴中调整。",
                     "suggestion": "核实收入确认时点差异，确认纳税调增/调减。",
-                    "policy_ref": "企业所得税法实施条例 第1720条",
+                    "policy_ref": "企业所得税法实施条例 第9条",
                     "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                 })
         
@@ -13458,7 +13458,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                     "detail": f"银行采购支出{bank_pur:,.0f}元 > 进项发票{pur_total:,.0f}元，差额{bank_pur-pur_total:,.0f}元→可能无票支出，税前不得扣除。",
                     "description": "无票采购支出企业所得税前不得扣除，需纳税调增。",
                     "suggestion": "核查无票采购真实性，确认纳税调增金额。",
-                    "policy_ref": "企业所得税法 第1720条；国家税务总局公告2018年第28号",
+                    "policy_ref": "企业所得税法 第8条；国家税务总局公告2018年第28号",
                     "category": "企业所得税汇算", "domain": "CIT汇算清缴", "rule_id": 999670,
                 })
         

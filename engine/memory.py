@@ -109,7 +109,7 @@ domain_functions = _CFG.get("domain_functions", 39)
 【规则八：只读有效信息，空白全部忽略】
   解析Excel/文件时，跳过所有空白行、小计行、合计行、重复表头行
   只统计有实际数据的有效记录
-  140行Excel→可能只有1720条有效，不能把空行计入分析
+  140行Excel→可能只有7条有效，不能把空行计入分析
   代码: main.py _is_summary_row() / engine/pipeline.py 有效行过滤
 
 【规则九：文件类型识别体系（13类）】
@@ -227,7 +227,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   代码: engine/pipeline.py 发票明细数据注入 / static/js/tax-doc-analysis.js 附件渲染
 
 ═════ 系统核心铁律（2026-06-29 从AI行为准则迁移至系统记忆）═════
-  以下1720条是系统层面的硬性规范——不是对智哥编码行为的约束，而是系统本身的不可违反原则。
+  以下5条是系统层面的硬性规范——不是对智哥编码行为的约束，而是系统本身的不可违反原则。
   每条铁律在代码中有对应的实现机制或检查工具。
 
 【系统铁律七：规则=代码】
@@ -330,7 +330,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   ⑤ 合并后的标题显示"N项同类风险合并"标签
   ⑥ 每条子项独立展示：子项标题、细节描述、税务影响、处理建议
   代码位置: static/js/tax-doc-analysis.js _renderReportFallback() 同类风险合并段
-  示例: 1720条"知识图谱-供应商客户重叠"→1720条，显示子项1(中风险)+子项2(中风险)
+  示例: 2条"知识图谱-供应商客户重叠"→2条，显示子项1(中风险)+子项2(中风险)
 
 【规则二十六：报告段落格式规范】
   报告每一段必须独立、舒展，禁止以下五大反模式：
@@ -428,7 +428,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   代码: engine/cross_domain_negotiation.py → run_negotiation()
 
   【四层协商 — 29条协商规则】
-  一、消解层（NEG-001~005 + NEG-050~052 + NEG-020/062，1720条）
+  一、消解层（NEG-001~005 + NEG-050~052 + NEG-020/062，8条）
     触发：域A的结论直接否定域B的结论
     NEG-001: 进销存匹配异常 → 消解（服务行业无实物商品）
     NEG-002: BOM表需求判定 → 消解（服务产品无物料清单）
@@ -441,7 +441,7 @@ domain_functions = _CFG.get("domain_functions", 39)
     NEG-052: 小规模纳税人 → 消解进项税额异常
     NEG-062: 经营实质检测到经营费用 → 消解"无实际经营"
 
-  二、降级层（NEG-004/005/021 + NEG-060~063，1720条）
+  二、降级层（NEG-004/005/021 + NEG-060~063，6条）
     触发：域A的结论削弱域B的结论
     NEG-004/005: 服务行业 → 进销比/毛利率降为提示
     NEG-021: 检测到运输费用 → "运输成本缺失"降为低风险
@@ -449,7 +449,7 @@ domain_functions = _CFG.get("domain_functions", 39)
     NEG-061: 付款偏差可能含非经营付款 → "虚列成本"降为中风险
     NEG-063: 银行流水与应税收入口径不同 → 申报偏差降为低风险
 
-  三、标记层（NEG-010~012 + NEG-030/040，1720条）
+  三、标记层（NEG-010~012 + NEG-030/040，5条）
     触发：资料缺失 → 给依赖该资料的域结论打标签
     NEG-010: 缺合同 → 合同分层/合同比对 → 降为提示级
     NEG-011: 缺关联方资料 → 关联交易检测不完整
@@ -503,15 +503,20 @@ domain_functions = _CFG.get("domain_functions", 39)
   启动集成: start.bat 在启动前执行 python audit_consistency.py
   检测范围: 所有 JS/PY 文件中的硬编码数字 vs 权威配置
 
-  【三种运行模式】
-  python audit_consistency.py          → 审计模式：扫描并报告不一致
-  python audit_consistency.py --sync   → 同步模式：自动修正所有不一致
-  python audit_consistency.py --calibrate → 校准模式：重新统计权威数据源
+  【数字校准】
+  原 audit_consistency.py（--sync / --calibrate）已于 4074d4cf 随安全整改移除，
+  故下列数字此后无法自动同步，历史上逐渐失真。2026-09-08 已按权威源实测重算。
+  现行权威源：engine/fact_rules.py（规则/线索链/证据链/分析链）、
+              engine/tax_redlines.py（红线 42 条）、engine/verified_rule_engine.py。
+  改动规则库后须同步更新本段，勿再手写声明值。
 
-  【当前权威数据（2026-07-23）】
-  rules_count=1720 | clue_chains=2 | evidence_chains=2 | analysis_chains=2
+  【当前权威数据（2026-09-08 实测）】
+  rules_count=89 | clue_chains=38 | evidence_chains=25 | analysis_chains=25
+  （以上四项来自 fact_rules.governance_inventory()，为唯一权威源）
+  engine_modules=88
+  其余为历史声明值，尚未校准，引用前须实测：
   governance_count=33 | total_chains=6 | domain_functions=39
-  cross_domain_clues=1215 (41 executable + 1250 legacy) | cross_domain_evidence=22 | engine_modules=28
+  cross_domain_clues=1215 (41 executable + 1250 legacy) | cross_domain_evidence=22
   file_fingerprints=34 | quality_standards=12 | noise_filter_rate=97
 
 ═════ 跨模块内容一致性铁律（2026-06-30 新增·系统铁律第七条）═════
@@ -583,7 +588,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   含"一致/正常/无异常/OK/通过/合规"等词→删除。有转折词→保留。
 
   第五步 — 资料缺口限流
-  资料缺失类 >1720条 → 只保留score最高的1720条。
+  资料缺失类 >5条 → 只保留score最高的5条。
 
   第六步 — 行业不匹配过滤
   行业特定关键词与企业行业不匹配 → 删除。
@@ -746,8 +751,8 @@ domain_functions = _CFG.get("domain_functions", 39)
   代码: static/js/tax-engine-dashboard.js
 
   【#1 运行状态】系统实时状态/内存使用/缓存命中率/最近分析记录
-  【#2 规则库】1720条税务合规指令按分类浏览/搜索/详情查看
-  【#3 质量保障】1720条质量标准逐条检查/合规报告生成
+  【#2 规则库】89条税务合规指令按分类浏览/搜索/详情查看
+  【#3 质量保障】4条质量标准逐条检查/合规报告生成
   【#4 方法论对账】1266条方法论与audit_chains.json的实时核对
   【#5 跨域协商】29条协商规则四层场景的可视化矩阵
   【#6 智能大脑】调度中枢进度/学习事件/纠正规则库/渐进学习曲线
@@ -773,7 +778,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   系统铁律与AI行为准则的完整对应关系。系统铁律在本文档中（规则篇），
   AI行为准则在前端页面中（static/js/tax-pipeline-pages.js → renderAiRules）。
 
-  【AI行为准则页面（1720条，约束智哥编码行为）】
+  【AI行为准则页面（7条，约束智哥编码行为）】
   #1 做事要狠 | #2 自作主张 | #3 主动进攻
   #4 自行验证 | #8 变更影响分析 | #15 提交前自查 | #16 交付前输出自检
 
@@ -810,8 +815,8 @@ domain_functions = _CFG.get("domain_functions", 39)
   03 系统税务合规判定规则 —— 33条判定规则逐条代码化
   04 缺失的关键信息 —— 回退与推定策略
   05 收款分类规则 —— 12条分类规则+个人识别
-  06 账务处理系统铁律 —— 铁律一至铁律六（1720条）
-  07 系统核心铁律 —— 铁律七至铁律十一（1720条）
+  06 账务处理系统铁律 —— 铁律一至铁律六（6条）
+  07 系统核心铁律 —— 铁律七至铁律十一（5条）
   08 跨模块内容一致性铁律 —— 铁律十二·共享内容映射+四触发同步（新增）
   09 报告呈现规则 —— 12类呈现规范
   10 报告后四章规则 —— 第四到第七章
@@ -1782,7 +1787,7 @@ TAX_BURDEN_RULES = {
 
     # ═══════════════════════════════════════════════════════
     # 监控点分类体系（13大类·老邓 2026-07-18 确立·金税四期"以数治税"监控逻辑）
-    # 权威源：1720条规则全部带 monitor_category 字段，取值必须来自以下13类。
+    # 权威源：89条规则全部带 monitor_category 字段，取值必须来自以下13类。
     # 内在逻辑：企业全量经营数据（票/账/钱/税/产/物/人）解构为数据点→两两比对、
     # 三源交叉、四流合一，任一数据点与其他维度矛盾即触发疑点规则。
     "monitor_point_taxonomy": {

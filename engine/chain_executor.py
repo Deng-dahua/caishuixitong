@@ -663,7 +663,7 @@ def run_chains_for_rule(rule_id, clues_data, evidence_data, analysis_data, engin
     return results
 
 
-# ═══ 全局链索引缓存 (rule_id→chain) — 避免每次分析O(n)扫描1720条链 ═══
+# ═══ 全局链索引缓存 (rule_id→chain) — 避免每次分析O(n)扫描38条线索链 ═══
 _chain_index = {}  # key: (clue|evid|alc), value: {rule_id: chain}
 
 def _build_chain_index(clues_data, evidence_data, analysis_data):

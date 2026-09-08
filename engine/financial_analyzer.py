@@ -322,7 +322,7 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                     "level": "高风险", "score": 8,
                     "detail": f"进项发票{pur_total:,.0f}仅为报表成本{cost:,.0f}的{ratio:.0%}",
                     "tax_impact": "大量无票成本→不得税前扣除→可能虚构成本→补缴企业所得税",
-                    "law_ref": "企业所得税法第1720条",
+                    "law_ref": "企业所得税法第8条",
                 })
     
     # ── 资产负债率 ──

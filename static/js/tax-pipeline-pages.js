@@ -2251,7 +2251,7 @@ function _renderLegacyQualitySystem(container) {
   h+='<p style="font-size:10px;color:#64748b;margin:0 0 10px">六大层次 · '+totalItems+'个组件 · 从规则触发到报告输出，每条发现可追溯可验证可复核</p>';
 
   h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">';
-  [{n:'1720',l:'税务合规规则'},{n:'2',l:'线索链'},{n:'2',l:'证据链'},{n:'33',l:'方法论'},{n:'6',l:'总链数'},{n:'39',l:'域分析'}].forEach(function(s){
+  [{n:'89',l:'税务合规规则'},{n:'38',l:'线索链'},{n:'25',l:'证据链'},{n:'25',l:'分析链'},{n:'88',l:'总链数'},{n:'35',l:'域分析'}].forEach(function(s){
     h+='<div class="qs-stat" style="flex:1;min-width:100px"><div style="font-size:10px;font-weight:700;color:#16233a">'+s.n+'</div><div style="font-size:10px;color:#64748b">'+s.l+'</div></div>';
   });
   h+='</div>';
