@@ -124,7 +124,7 @@ MODULE_REGISTRY = {
         "produces": ["hypothesis_summary", "enhanced_findings"],
         "domain": "推理"
     },
-    "M012_methodology_filter": {
+    "M012_output_governance_filter": {
         "name": "方法论噪声过滤器",
         "description": "97%噪声过滤+同质发现去重+税务合规重点强制等级",
         "requires": {"data": ["all_findings"], "condition": "len(all_findings) > 0"},
@@ -137,7 +137,7 @@ MODULE_REGISTRY = {
         "name": "交叉验证(Phase3)",
         "description": "信号叠加检测+冲突消解+矛盾发现",
         "requires": {"data": ["filtered_findings"], "condition": "len(filtered_findings) > 0"},
-        "depends_on": ["M012_methodology_filter"],
+        "depends_on": ["M012_output_governance_filter"],
         "priority": 13,
         "produces": ["cross_validated_findings"],
         "domain": "质量控制"

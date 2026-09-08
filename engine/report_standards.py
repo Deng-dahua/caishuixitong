@@ -78,10 +78,10 @@ def _has_amount_workpaper(finding):
 
 
 def _methodology_handoff_present(report_data):
-    if report_data.get("_methodology_applied") or report_data.get("scenario_methodology"):
+    if report_data.get("_methodology_applied") or report_data.get("output_governance"):
         return True
     comprehensive = report_data.get("comprehensive") or {}
-    return bool(comprehensive.get("scenario_methodology") or comprehensive.get("methodology_summary"))
+    return bool(comprehensive.get("output_governance") or comprehensive.get("governance_summary"))
 
 
 def _quality_checks(report_data):

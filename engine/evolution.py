@@ -165,7 +165,7 @@ def get_verified_patterns():
 _UNTRIGGERED_THRESHOLD = 10  # 连续N次分析未触发 → 标记待验证
 
 
-def update_methodology_suggestions(pipeline_log, all_findings):
+def update_governance_suggestions(pipeline_log, all_findings):
     """秘笈自更新：分析结果反向写入方法论配置。
 
     ① 七层执行完整性对比 → 未触发层累计计数 → 达阈值标记"待验证"

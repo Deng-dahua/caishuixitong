@@ -372,7 +372,7 @@ def audit_system_compliance(all_findings, pipeline_log, file_results):
     返回: compliance_report (dict)
     """
     report = {
-        "methodology_checks": [],
+        "governance_checks": [],
         "philosophy_checks": [],
         "overall_pass": True,
     }
@@ -382,7 +382,7 @@ def audit_system_compliance(all_findings, pipeline_log, file_results):
         if (f.get("score", 0) or 0) >= 8:
             sources = len(f.get("source_files", []))
             if sources < 2:
-                report["methodology_checks"].append({
+                report["governance_checks"].append({
                     "rule": "M03-交叉推断",
                     "finding": f.get("type", "")[:50],
                     "issue": f"高风险发现仅{sources}个数据源支撑",
@@ -394,7 +394,7 @@ def audit_system_compliance(all_findings, pipeline_log, file_results):
     for f in all_findings:
         if (f.get("score", 0) or 0) >= 8:
             if not f.get("law_ref"):
-                report["methodology_checks"].append({
+                report["governance_checks"].append({
                     "rule": "M06-法条引用",
                     "finding": f.get("type", "")[:50],
                     "issue": "高风险发现缺少法律依据引用",
@@ -405,7 +405,7 @@ def audit_system_compliance(all_findings, pipeline_log, file_results):
     # 检查M11: 自行解决
     for fr in file_results:
         if fr.get("type") == "unparsable" and not fr.get("error_detail"):
-            report["methodology_checks"].append({
+            report["governance_checks"].append({
                 "rule": "M11-自行解决",
                 "file": fr.get("filename", "")[:40],
                 "issue": "解析失败但未记录error_detail",
@@ -413,8 +413,8 @@ def audit_system_compliance(all_findings, pipeline_log, file_results):
             })
             report["overall_pass"] = False
     
-    if not report["methodology_checks"]:
-        report["methodology_checks"].append({"rule": "ALL", "pass": True, "note": "11720条铁律全部通过"})
+    if not report["governance_checks"]:
+        report["governance_checks"].append({"rule": "ALL", "pass": True, "note": "11720条铁律全部通过"})
     
     return report
 

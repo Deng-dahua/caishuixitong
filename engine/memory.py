@@ -18,7 +18,7 @@ _CFG = _load_config()
 rules_count = _CFG.get("rules_count", 1608)
 clue_chains = _CFG.get("executable_clues", _CFG.get("clue_chains", 437))
 evidence_chains = _CFG.get("evidence_chains", 781)
-methodology_count = _CFG.get("methodology_count", 0)
+governance_count = _CFG.get("governance_count", 0)
 total_chains = _CFG.get("total_chains", 1266)
 domain_functions = _CFG.get("domain_functions", 39)
 
@@ -510,7 +510,7 @@ domain_functions = _CFG.get("domain_functions", 39)
 
   【当前权威数据（2026-07-23）】
   rules_count=1720 | clue_chains=2 | evidence_chains=2 | analysis_chains=2
-  methodology_count=33 | total_chains=6 | domain_functions=39
+  governance_count=33 | total_chains=6 | domain_functions=39
   cross_domain_clues=1215 (41 executable + 1250 legacy) | cross_domain_evidence=22 | engine_modules=28
   file_fingerprints=34 | quality_standards=12 | noise_filter_rate=97
 
@@ -562,7 +562,7 @@ domain_functions = _CFG.get("domain_functions", 39)
 
 ═════ 方法论过滤器体系（2026-06-29 新增）═════
   七类过滤规则在分析管线中依次执行，噪声过滤率 97%。
-  执行位置: pipeline.py → _apply_methodology_filter()
+  执行位置: pipeline.py → _apply_output_governance_filter()
 
   【七类过滤规则执行顺序】
   第一步 — 23类）
@@ -628,7 +628,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   【Phase4 综合定性（synthesis）】
   汇总前三个阶段的所有发现→执行方法论过滤器（七类规则）→应用审核反馈规则→
   行业对标→生成最终的风险综合评分→输出正式报告JSON。
-  代码: engine/phase4_synthesis.py / pipeline.py → _apply_methodology_filter()
+  代码: engine/phase4_synthesis.py / pipeline.py → _apply_output_governance_filter()
 
 ═════ 调度中枢（2026-06-30 补录）═════
   系统的中央调度器，负责协调16个功能模块、7个数据域、16级处理管线。
@@ -848,7 +848,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   engine/knowledge_base.py（知识库）
   engine/legal_reasoner.py（法律推理）
   engine/financial_analyzer.py（财务分析）
-  engine/methodology_loader.py（方法论加载）
+  engine/framework_config.py（流程框架加载）
   engine/system_config.py（数据配置）
 
   【数据与配置】

@@ -71,7 +71,7 @@ def run_output_governance(industry=None, file_results=None, engine_data=None) ->
         findings.append(item)
     return {
         "version": EXECUTION_VERSION,
-        "methodology_version": None,
+        "governance_version": None,
         "executed_at": datetime.now().isoformat(),
         "governance_status": GOVERNANCE_STATUS,
         "industry_input": str(industry or ""),

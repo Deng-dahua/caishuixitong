@@ -2008,16 +2008,16 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     # ═══ P2进化引擎：经验直觉置信度进化 + 秘笈自更新（2026-07-17）═══
     try:
-        from engine.evolution import evolve_pattern_confidence, update_methodology_suggestions
+        from engine.evolution import evolve_pattern_confidence, update_governance_suggestions
         evolution_result = evolve_pattern_confidence(
             topology_pattern,
             (ctx.company_profile or {}).get("industry", "") if ctx else "",
             pipeline_log,
         )
-        methodology_update = update_methodology_suggestions(pipeline_log, all_findings)
+        governance_update = update_governance_suggestions(pipeline_log, all_findings)
     except Exception as _evo_err:
         evolution_result = {}
-        methodology_update = {}
+        governance_update = {}
         pipeline_log.append(f"[进化引擎] ERROR: {_evo_err}")
     
     _step_timing["step6"] = round(time.time() - _step_timing.get("step6_start", time.time()), 2)
@@ -2351,7 +2351,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         all_findings.extend(trend_findings_ext)
 
     
-    # ── 同类风险合并已移至 _apply_methodology_filter 的去重逻辑中 ──
+    # ── 同类风险合并已移至 _apply_output_governance_filter 的去重逻辑中 ──
     # (此处原有的 _normalize_type 合并过于激进，会误杀实质性发现)
     # merged_map 相关代码已禁用
     merged_count = 0
@@ -3656,7 +3656,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 方法论过滤：剔除不具备数据支撑的噪声发现 ═══
     # target_industry 传入（来自_detect_target_entity()的加权投票结果），全行业适用
     _target_industry = target_entity.get("industry", "")
-    all_findings, pipeline_log, filter_log = _apply_methodology_filter(
+    all_findings, pipeline_log, filter_log = _apply_output_governance_filter(
         all_findings, pipeline_log,
         bank_txs, invoices, salaries, social_security, vouchers, inventory, docs,
         target_industry=_target_industry)
@@ -3717,7 +3717,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             file_results=file_results,
             engine_data=_scenario_engine_data,
         )
-        scenario_methodology = _scenario_execution.get("review_plan", {})
+        output_governance = _scenario_execution.get("review_plan", {})
         all_findings = _scenario_execution.get("findings", [])
         # 委外加工地域分析是基于进项发票的直接事实，并入场景执行结果（带 _scenario_governed 标记，才能通过正式输出封印）
         if _outsourcing_finding:
@@ -3809,7 +3809,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             )
         domain_summary = _scenario_execution.get("domain_summary", [])
         comprehensive["scenario_execution"] = _scenario_execution
-        comprehensive["scenario_methodology"] = scenario_methodology
+        comprehensive["output_governance"] = output_governance
         # ═══ 红线判定：把场景发现归并为「税务红线疑点」（行业无关）═══
         # 方法论主线：确定税务疑点（触碰哪条红线）→ 线索链（怎么发现的）
         #           → 证据链（要组织什么证据）→ 论证链（主张/反证/裁决）
@@ -4558,15 +4558,15 @@ def _run_analyze(company_id, db, progress_callback=None):
         "hallucination_count": hallucination_count if 'hallucination_count' in dir() else 0,
         "topology_pattern": topology_pattern if 'topology_pattern' in dir() else {},
         "evolution": evolution_result if 'evolution_result' in dir() else {},
-        "methodology_update": methodology_update if 'methodology_update' in dir() else {},
+        "governance_update": governance_update if 'governance_update' in dir() else {},
         "engine_hub_summary": _build_engine_hub_summary(
             red_team_results if 'red_team_results' in dir() else {},
             blind_results if 'blind_results' in dir() else {},
             hallucination_count if 'hallucination_count' in dir() else 0,
             topology_pattern if 'topology_pattern' in dir() else {},
         ),
-        "methodology_summary": _build_methodology_summary(all_findings, quality_report, cross_verify_result if 'cross_verify_result' in dir() else {}, pipeline_log),
-        "scenario_methodology": comprehensive.get("scenario_methodology", {}),
+        "governance_summary": _build_governance_summary(all_findings, quality_report, cross_verify_result if 'cross_verify_result' in dir() else {}, pipeline_log),
+        "output_governance": comprehensive.get("output_governance", {}),
         "doubt_library_summary": _build_doubt_library_summary(all_findings),
         "rights_and_signature": _generate_rights_and_signature_chapters(target_entity),
         "case_source": case_source if 'case_source' in dir() else {},
@@ -5118,7 +5118,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     all_findings = seal_governed_findings(_scenario_execution)
     result["report"]["all_findings"] = all_findings
     result["report"]["scenario_execution"] = _scenario_execution
-    result["report"]["scenario_methodology"] = _scenario_execution.get("review_plan", {})
+    result["report"]["output_governance"] = _scenario_execution.get("review_plan", {})
     result["report"]["domain_summary"] = _scenario_execution.get("domain_summary", [])
     result["report"]["total_risks"] = len(all_findings)
     _lvl_high = _lvl_mid = _lvl_low = 0
@@ -5777,15 +5777,6 @@ def _build_engine_hub_summary(red_team, blind_test, hallucination, topology):
     return {"status": "五环路运行完成", "details": lines}
 
 
-def _build_methodology_summary_legacy(all_findings, quality_report, cross_verify, pipeline_log):
-    """构建风险检查方法论七层执行摘要（2026-08-26 审计修复前的原版实现，内容保留备查）。
-    历史问题（P0-2）：各层恒显 ✓、硬编码"42域"、"第五层·定案"使用定性措辞，
-    与真实执行状态无关。现由下方 _build_methodology_summary 动态版替代，本函数不再被调用。"""
-    lines = []
-    domains = len([f for f in all_findings if f.get("domain")])
-    finding_count = len(all_findings)
-    high_count = sum(1 for f in all_findings if str(f.get("level", "")) in ("高风险", "极高风险"))
-    
     lines.append(f"第一层·启动: 身份锚定 ✓ 行业穿透 ✓")
     lines.append(f"第二层·扫描: 文件识别 ✓ 情报提取 ✓")
     lines.append(f"第三层·布网: 42域并行发动 ✓ 多域信号汇聚 ✓")
@@ -5802,7 +5793,7 @@ def _build_methodology_summary_legacy(all_findings, quality_report, cross_verify
     return {"status": "七层执行完成", "details": lines}
 
 
-def _build_methodology_summary(all_findings, quality_report, cross_verify, pipeline_log):
+def _build_governance_summary(all_findings, quality_report, cross_verify, pipeline_log):
     """构建风险检查方法论七层执行摘要（一键分析可见语言）。
 
     2026-08-26 审计修复（P0-2）：
@@ -5810,7 +5801,7 @@ def _build_methodology_summary(all_findings, quality_report, cross_verify, pipel
     ② 无量化指标的层如实标注"无独立量化指标，详见执行日志"，不伪造完成标记；
     ③ 业务域数量按本次发现归属域去重统计，不再硬编码"42域"；
     ④ "定案"等定性措辞改为"专业复核"，符合发现者立场；
-    ⑤ 原版实现保留于上方 _build_methodology_summary_legacy 备查。"""
+    ⑤ 原版实现保留于上方 _build_governance_summary_legacy 备查。"""
     lines = []
     domain_set = {str(f.get("domain")) for f in all_findings if f.get("domain")}
     domain_count = len(domain_set)
@@ -7820,7 +7811,7 @@ def _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_lo
 
 # ═══════════ 税务合规方法论过滤器 —— 剔除无数据支撑的噪声发现 ═══════════
 
-def _apply_methodology_filter(all_findings, pipeline_log, bank_txs, invoices, salaries, social_security, vouchers, inventory, docs, target_industry=""):
+def _apply_output_governance_filter(all_findings, pipeline_log, bank_txs, invoices, salaries, social_security, vouchers, inventory, docs, target_industry=""):
     """过滤铁律：每条结论必须有上传资料中的实际数据支撑。target_industry: 由_caller传入，复用_detect_target_entity()的检测结果，避免重复造轮子。"""
     before = len(all_findings)
     

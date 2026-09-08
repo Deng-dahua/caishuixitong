@@ -283,8 +283,8 @@ def _check_system_consistency() -> list:
 
     # ═══ 1. 权威方法论目录核对 ═══
     try:
-        from engine.methodology_catalog import methodology_inventory
-        inventory = methodology_inventory()
+        from engine.fact_rules import governance_inventory
+        inventory = governance_inventory()
         if not inventory.get("rules") or not inventory.get("industry_scenarios"):
             errors.append("[系统一致性] 权威规则或行业场景为空")
         if len(inventory.get("clue_depths", [])) < 2 or len(inventory.get("validation_depths", [])) < 2:
@@ -294,7 +294,7 @@ def _check_system_consistency() -> list:
 
     # ═══ 2. 规则—线索—证据—分析合同字段完整性 ═══
     try:
-        from engine.methodology_catalog import load_canonical_catalog
+        from engine.fact_rules import load_canonical_catalog
         catalog = load_canonical_catalog()
         for module in catalog.get("modules", []):
             for field in ("rules", "clue_paths", "evidence_plan", "analysis_tests", "validation_cases", "report_boundary"):

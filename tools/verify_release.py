@@ -228,11 +228,11 @@ def main() -> int:
     try:
         from engine.fact_rules import (
             load_canonical_catalog,
-            methodology_inventory,
+            governance_inventory,
         )
 
         catalog = load_canonical_catalog()
-        inventory = methodology_inventory()
+        inventory = governance_inventory()
         modules = catalog.get("modules", [])
         rules = [rule for module in modules for rule in module.get("rules", [])]
         catalog_valid = (

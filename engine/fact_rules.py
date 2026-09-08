@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""权威事实核查规则库（原 methodology_catalog 的“纯横向目录”版本）。
+"""权威事实核查规则库（权威横向目录版本）。
 
 行业场景契约已由 engine/tax_redlines.py（红线驱动·线索链·证据链·论证链）
 替代；本模块只保留来自 methodology_canonical_catalog.json 的权威横向规则，
@@ -175,7 +175,7 @@ def load_flat_analysis() -> list:
     return output
 
 
-def methodology_inventory() -> dict:
+def governance_inventory() -> dict:
     catalog = load_canonical_catalog()
     canonical_rule_count = sum(len(module.get("rules", [])) for module in catalog.get("modules", []))
     canonical_clue_count = sum(len(module.get("clue_paths", [])) for module in catalog.get("modules", []))

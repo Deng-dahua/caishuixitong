@@ -7457,8 +7457,8 @@ def get_system_stats():
                     return items
         return []
     try:
-        from engine.fact_rules import methodology_inventory
-        inventory = methodology_inventory()
+        from engine.fact_rules import governance_inventory
+        inventory = governance_inventory()
         stats["rules_count"] = inventory["rules"]
         stats["clue_chains"] = inventory["clue_paths"]
         stats["clue_chains_total"] = inventory["clue_paths"]
@@ -8261,7 +8261,7 @@ def _enforce_scenario_execution_boundary(report_data):
 
     findings = seal_governed_findings(execution)
     report_data["scenario_execution"] = execution
-    report_data["scenario_methodology"] = execution.get("review_plan", {})
+    report_data["output_governance"] = execution.get("review_plan", {})
     report_data["all_findings"] = findings
     report_data["domain_summary"] = execution.get("domain_summary", [])
     report_data["total_risks"] = len(findings)
@@ -9223,7 +9223,7 @@ def _build_case_snapshot(result, company_id):
         "analysis": {
             "pipeline_version": report.get("_one_click_pipeline", {}).get("version", ""),
             "methodology_status": report.get("_methodology_applied", {}).get("portfolio_acceptance_status", ""),
-            "scenario_status": report.get("scenario_methodology", {}).get("status", ""),
+            "scenario_status": report.get("output_governance", {}).get("status", ""),
             "finding_count": len(findings),
             "findings_by_level": {
                 lv: sum(1 for f in findings if f.get("level","") == lv)
