@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import os
+import re
 from typing import Dict, List
 
 # ── 四份工作底稿 ──────────────────────────────────────────────────────
@@ -140,8 +141,12 @@ def export_worksheets_xlsx(sheets: List[Dict], output_path: str) -> str:
 
     wb = Workbook()
     wb.remove(wb.active)
-    for s in sheets:
-        ws = wb.create_sheet(title=f"{s['worksheet_id']} {s['topic']}"[:31])
+    for idx, s in enumerate(sheets, 1):
+        # Excel 工作表名禁止 \ / ? * [ ] : 等字符，且长度上限 31
+        # （历史踩坑：主题"账外经营/私户收款"含斜杠，直接建表会 ValueError）
+        raw = f"{s['worksheet_id']} {s['topic']}"
+        title = re.sub(r"[\\/\?\*\[\]:]", "-", raw).strip()[:31] or f"底稿{idx}"
+        ws = wb.create_sheet(title=title)
         ws["A1"] = f"{s['worksheet_id']} {s['topic']}（人工兜底工作底稿）"
         ws["A1"].font = Font(bold=True, size=13)
         row = 3
