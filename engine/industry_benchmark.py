@@ -56,6 +56,65 @@ def benchmark_source(industry: str) -> str:
     """返回该行业当前使用的区间来源：'实测校准' / '通用参考'。"""
     return "实测校准" if industry in _load_calibrated() else "通用参考"
 
+
+# 系统既有的权威行业档案（audit_enhancements.get_industry_benchmark 同源），
+# 含 8 个行业的毛利率区间与进销比等基准。优先于本文件的通用参考表，
+# 避免与系统其他模块出现两套口径。
+_PROFILES_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "static", "industry_profiles.json"
+)
+_PROFILES: Dict[str, Dict[str, Tuple[float, float]]] = {}
+
+
+def _load_profiles() -> Dict[str, Dict[str, Tuple[float, float]]]:
+    """从 static/industry_profiles.json 读取行业档案基准。"""
+    global _PROFILES
+    if _PROFILES:
+        return _PROFILES
+    out: Dict[str, Dict[str, Tuple[float, float]]] = {}
+    try:
+        if os.path.exists(_PROFILES_PATH):
+            with open(_PROFILES_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            for ind, prof in (data.get("industries") or {}).items():
+                if not isinstance(prof, dict):
+                    continue
+                bm = prof.get("benchmarks") or {}
+                gp = bm.get("gross_margin_pct") or {}
+                entry: Dict[str, Tuple[float, float]] = {}
+                if isinstance(gp, dict) and gp.get("low") is not None:
+                    entry["gross_margin"] = (float(gp.get("low")), float(gp.get("high")))
+                psr = bm.get("purchase_sales_ratio")
+                if isinstance(psr, (list, tuple)) and len(psr) == 2:
+                    entry["purchase_sales"] = (float(psr[0]), float(psr[1]))
+                if entry:
+                    out[ind] = entry
+                    # 同时也登记 label 名，便于按 label 命中
+                    label = str(prof.get("label", "") or "").strip()
+                    if label and label not in out:
+                        out[label] = entry
+    except Exception:
+        out = {}
+    _PROFILES = out
+    return out
+
+
+def resolve_benchmark(industry: str):
+    """按优先级解析区间：实测校准 > 行业档案 industry_profiles > 通用参考表 > 宽松兜底。
+
+    返回 (区间dict, 来源说明)。
+    """
+    matched = match_industry(industry) if industry else ""
+    cal = _load_calibrated()
+    prof = _load_profiles()
+    if matched and cal.get(matched):
+        return matched, cal[matched], "实测校准"
+    if matched and prof.get(matched):
+        return matched, prof[matched], "行业档案(industry_profiles)"
+    if matched and INDUSTRY_BENCHMARKS.get(matched):
+        return matched, INDUSTRY_BENCHMARKS[matched], "通用参考"
+    return matched, _GENERIC, "通用宽松区间(未匹配到行业)"
+
 # ── 行业参考预警区间（下限, 上限），单位：百分比 ──────────────────────────
 # vat_burden     增值税税负率 = 应纳增值税 / 销售收入
 # gross_margin   毛利率       = (收入 - 成本) / 收入
@@ -72,6 +131,25 @@ INDUSTRY_BENCHMARKS: Dict[str, Dict[str, Tuple[float, float]]] = {
     "租赁和商务服务业":  {"vat_burden": (1.5, 4.0), "gross_margin": (20.0, 50.0), "expense_ratio": (0.0, 30.0), "purchase_sales": (0.15, 0.70)},
     "农、林、牧、渔业":  {"vat_burden": (0.5, 2.0), "gross_margin": (10.0, 30.0), "expense_ratio": (0.0, 20.0), "purchase_sales": (0.30, 0.90)},
     "电力热力燃气及水生产供应业": {"vat_burden": (1.5, 3.0), "gross_margin": (10.0, 25.0), "expense_ratio": (0.0, 12.0), "purchase_sales": (0.40, 0.90)},
+    # ── 以下行业名与 audit_enhancements.detect_industry() 的分类输出对齐 ──
+    # 该分类器实际产出「广告传媒/信息技术/咨询服务/建筑工程/纺织制造/餐饮服务/
+    # 物流运输/医药健康/商贸」，若不覆盖这些名字，分类器判出的行业在本模块会全部
+    # 落空（实测：深圳某数字传媒公司毛利率7.2%未被本模块报警，即因缺"广告传媒"）。
+    # 毛利率区间与 static/industry_profiles.json 及系统既有口径保持一致，避免两套数字。
+    "广告传媒":      {"vat_burden": (1.0, 3.5), "gross_margin": (30.0, 65.0), "expense_ratio": (0.0, 40.0), "purchase_sales": (0.15, 0.75)},
+    "信息技术":      {"vat_burden": (1.0, 3.0), "gross_margin": (30.0, 90.0), "expense_ratio": (0.0, 40.0), "purchase_sales": (0.10, 0.60)},
+    "咨询服务":      {"vat_burden": (1.5, 4.0), "gross_margin": (20.0, 75.0), "expense_ratio": (0.0, 45.0), "purchase_sales": (0.10, 0.60)},
+    "建筑工程":      {"vat_burden": (2.0, 3.5), "gross_margin": (5.0, 35.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.50, 0.95)},
+    "纺织制造":      {"vat_burden": (1.5, 3.5), "gross_margin": (8.0, 40.0),  "expense_ratio": (0.0, 15.0), "purchase_sales": (0.40, 0.95)},
+    "餐饮服务":      {"vat_burden": (1.0, 3.0), "gross_margin": (40.0, 65.0), "expense_ratio": (0.0, 45.0), "purchase_sales": (0.20, 0.70)},
+    "物流运输":      {"vat_burden": (2.0, 3.5), "gross_margin": (5.0, 40.0),  "expense_ratio": (0.0, 15.0), "purchase_sales": (0.30, 0.85)},
+    "医药健康":      {"vat_burden": (1.5, 4.0), "gross_margin": (20.0, 60.0), "expense_ratio": (0.0, 35.0), "purchase_sales": (0.20, 0.80)},
+    "商贸":          {"vat_burden": (0.5, 1.5), "gross_margin": (3.0, 30.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.60, 0.98)},
+    "制造业":        {"vat_burden": (1.5, 3.5), "gross_margin": (8.0, 40.0),  "expense_ratio": (0.0, 15.0), "purchase_sales": (0.40, 0.95)},
+    "贸易批发":      {"vat_burden": (0.5, 1.5), "gross_margin": (3.0, 30.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.60, 0.98)},
+    "建筑装饰":      {"vat_burden": (2.0, 3.5), "gross_margin": (5.0, 35.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.50, 0.95)},
+    "服务业":        {"vat_burden": (1.5, 4.0), "gross_margin": (20.0, 75.0), "expense_ratio": (0.0, 45.0), "purchase_sales": (0.10, 0.60)},
+    "科技互联网":    {"vat_burden": (1.0, 3.0), "gross_margin": (30.0, 90.0), "expense_ratio": (0.0, 40.0), "purchase_sales": (0.10, 0.60)},
 }
 
 # 未匹配到具体行业时的通用宽松区间（避免无行业信息时误报）
@@ -167,11 +245,8 @@ def run_industry_benchmark_check(
     if not indicators:
         return []
 
-    matched = match_industry(industry) if industry else ""
-    cal = _load_calibrated()
-    # 实测校准表优先，其次通用参考区间，最后宽松通用区间
-    bench = cal.get(matched) or INDUSTRY_BENCHMARKS.get(matched) or _GENERIC
-    source = benchmark_source(matched)
+    # 优先级：实测校准 > 行业档案(industry_profiles) > 通用参考表 > 宽松兜底
+    matched, bench, source = resolve_benchmark(industry)
     if not matched and pipeline_log is not None:
         pipeline_log.append("[行业对标] 未匹配到具体行业，按通用宽松区间比对（降低误报）")
 
