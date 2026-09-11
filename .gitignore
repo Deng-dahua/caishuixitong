@@ -25,3 +25,18 @@ htmlcov/
 
 # 分析验证产物（大文件，非源码）
 scripts/four_reports/
+
+# 运行期自学习/记忆/日志状态文件（机器本地、可重生成，不进版本库）
+static/audit_memory.json
+static/cross_analysis_memory.json
+static/discovered_rules.json
+static/event_log.json
+static/knowledge_graph.json
+static/metacognition_log.json
+static/module_run_log.json
+static/pattern_confidence.json
+static/report_audits.json
+static/rule_adjustments.json
+static/self_heal_rules.json
+# 注：static/methodology_config.json 为框架权威配置（framework_config._CONFIG_PATH 读取），
+#     不属于运行期状态，保持进版本库；其运行期漂移须 git checkout 还原，切勿提交。
