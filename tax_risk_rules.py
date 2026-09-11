@@ -7,7 +7,7 @@ CONFLICT_ANSWERS_FILE = os.path.join(os.path.dirname(__file__), 'tax_risk_confli
 def _load_saved_rules():
     """加载现行权威事实核验规则。"""
     try:
-        from engine.methodology_catalog import load_flat_rules
+        from engine.fact_rules import load_flat_rules
         rules = load_flat_rules()
         if isinstance(rules, list) and len(rules) > 0:
             return rules
