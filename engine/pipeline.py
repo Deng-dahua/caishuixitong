@@ -5113,6 +5113,26 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _he:
         result["self_healing"] = {"error": str(_he)}
     
+    # ═══ 缺口风险域探测器（RL-CIT-005/006、RL-PAY-005/006、RL-OTH-004/005）═══
+    # 覆盖度自检中原先自认「待实现」的 6 个风险域，现已具备可执行识别方法：
+    #   有数据 → 交叉验证产出待核疑点；无数据 → 降级为置疑清单，列明需补资料后复核。
+    # 产出写入 _scenario_execution["findings"]（场景执行核心），随后由 P0-2 防误判复核闸门
+    # 与正式输出封印一并处理，确保新能力同样受防误判与去定性化约束，绝不自动定罪。
+    try:
+        from engine.gap_risk_detectors import run_gap_risk_detection
+        _gap_data = {
+            "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
+            "vouchers": vouchers, "salaries": salaries, "inventory": inventory,
+            "tax_declarations": locals().get("tax_declarations", []),
+        }
+        _gap_findings = run_gap_risk_detection(_gap_data, pipeline_log)
+        if _gap_findings:
+            _se_gap = locals().get("_scenario_execution")
+            if isinstance(_se_gap, dict):
+                _se_gap.setdefault("findings", []).extend(_gap_findings)
+    except Exception as _gap_err:
+        pipeline_log.append(f"[缺口探测器] 异常(不阻断): {_gap_err}")
+
     # ═══ P0-2 防误判复核闸门：输出治理之后、正式封印之前 ═══
     # 红队证伪 / 破坏性盲测 / 幻觉检测 / 一致性复查 / 跨域协商五道防线，此前全部跑在
     # 输出治理之前；而 run_output_governance 用全新 deepcopy 对象整体替换了发现列表，
