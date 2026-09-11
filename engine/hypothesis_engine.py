@@ -388,8 +388,8 @@ def run_hypothesis_verification(all_findings, ctx, bank_txs, invoices, sal_invs,
                 # 正常假设胜出 → 降分（判定为非风险）
                 verified_findings[i]["score"] = max(3, score - result["confidence_delta"])
                 verified_findings[i]["_hypothesis_note"] = "假设验证倾向正常解释，风险降级"
-            elif result["selected"] == 1 and (result["confidence"] > 0.6 or (is_missing and best_post >= 0.60)):
-                # 风险假设胜出：通用数值型需置信差>0.6；缺失型"该有的没有"风险假设后验≥0.60 即直接判定为风险
+            elif result["selected"] == 1 and (result["posterior_gap"] > 0.6 or (is_missing and best_post >= 0.60)):
+                # 风险假设胜出：通用数值型需后验差>0.6；缺失型"该有的没有"风险假设后验≥0.60 即直接判定为风险
                 # —— 无论行业：证据足以认定经营实质存疑的，直接判定为风险
                 verified_findings[i]["score"] = min(10, score + 1)
                 verified_findings[i]["_hypothesis_note"] = "假设验证确认风险，置信度" + str(int(best_post*100)) + "%"
@@ -403,6 +403,8 @@ def run_hypothesis_verification(all_findings, ctx, bank_txs, invoices, sal_invs,
             summaries.append({
                 "finding_type": ftype,
                 "hypothesis_selected": result["hypothesis_selected"],
+                "best_posterior": result["best_posterior"],
+                "posterior_gap": result["posterior_gap"],
                 "confidence": result["confidence"],
                 "evidence_for": result["evidence_for"],
                 "evidence_against": result["evidence_against"],
@@ -498,25 +500,35 @@ def _verify_hypothesis(finding, template, ctx, bank_txs, invoices, sal_invs, pur
     others = [s for i, s in enumerate(scores) if i != best_idx]
     second = others[0] if others else None
 
-    # 置信度 = 最佳假设后验 - 次佳假设后验（差距越大越确定）
-    confidence = best["posterior"]
-    if second:
-        confidence = best["posterior"] - second["posterior"]
-    
+    # ── 三个量语义互不相同，必须分列，禁止互相冒名顶替（P2-1）──
+    # posterior_gap : 后验差 = 最佳假设后验 - 次佳假设后验，衡量「领先幅度 / 裁决决定性」
+    #                 （通用型裁决阈值就用它：> 0.6）
+    # best_posterior: 胜出假设自身的后验概率 P(H_best|E)（缺失型裁决阈值用它：>= 0.60）
+    # confidence    : 置信度 = 归一化后验占比（信念份额），衡量「在全部候选解释中该假设占多少」
+    # 历史坑：旧代码把 posterior_gap 直接塞进 confidence 字段，并按"置信度 X%"渲染，
+    #         于是"领先 30 个百分点"被读成"只有三成把握"，语义完全颠倒。
+    posterior_gap = best["posterior"] - (second["posterior"] if second else 0.0)
+    posterior_mass = sum(s["posterior"] for s in scores)
+    confidence = (best["posterior"] / posterior_mass) if posterior_mass > 0 else 0.0
+
     # 待证判定：缺失型裁决中，风险假设(after best_idx==1)仅以微弱优势胜出、无法用现有资料直接断言时，转"待企业澄清事项"而非直接确认。
     is_missing = template.get("adjudication") == "missing"
     unconfirmed = bool(
         is_missing
         and best_idx == 1
-        and not (confidence > 0.6 or best["posterior"] >= 0.60)
+        and not (posterior_gap > 0.6 or best["posterior"] >= 0.60)
     )
     return {
         "hypothesis_selected": best["hypothesis"],
-        "confidence": round(confidence, 3),
         "best_posterior": round(best["posterior"], 3),  # 胜出假设后验概率（缺失型裁决用：≥0.60 即"能判定"）
+        "posterior_gap": round(posterior_gap, 3),       # 后验差 / 领先幅度（通用型裁决用：> 0.6）
+        "confidence": round(confidence, 3),             # 置信度 = 归一化后验占比（供展示，不参与裁决）
         "all_scores": scores,
         "selected": best_idx,  # 实际胜出假设的原始索引（0=正常, 1=风险…）
-        "confidence_delta": round(abs(best["evidence_weight"]) * 3),
+        # 降分幅度由「裁决决定性」决定，取代原先 abs(evidence_weight)*3 的近似：
+        # 后验差越大说明正常假设赢得越干脆，越有理由下调风险分；势均力敌(gap≈0)时不降分——
+        # 没有依据就不动风险信号，这是反误判的底线。
+        "confidence_delta": int(min(4, max(0, round(posterior_gap * 4)))),
         "evidence_for": best["supporting_hits"],
         "evidence_against": best["opposing_hits"],
         "unconfirmed": unconfirmed,  # 缺失型证据不足、两假设后验接近 → 转待证（不影响"缺失败象已被抓取"这一事实）
@@ -728,13 +740,18 @@ def _evaluate_evidence(evidence_desc, context):
 
 
 def _get_hypothesis_display(finding):
-    """提取假设验证结果的可显示文本"""
+    """提取假设验证结果的可显示文本。
+
+    后验概率 / 置信度 / 领先幅度 三项分列展示，不得再用「置信度」冒名顶替后验差。
+    """
     hyp = finding.get("_hypothesis")
     if not hyp:
         return None
     return {
         "假设": hyp["hypothesis_selected"],
+        "后验概率": f"{hyp['best_posterior']*100:.0f}%",
         "置信度": f"{hyp['confidence']*100:.0f}%",
+        "领先幅度": f"{hyp['posterior_gap']*100:.0f}%",
         "推理过程": hyp.get("reasoning", ""),
         "证据支持": hyp.get("evidence_for", []),
         "证据反对": hyp.get("evidence_against", []),

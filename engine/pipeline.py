@@ -1989,7 +1989,12 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 认知桥接：Phase4 完成广播 + 红队证伪 + 盲测 + 模式提取 ═══
     _high_risk_count = sum(1 for _f in all_findings if str(_f.get("level", "")) in ("高风险", "极高风险"))
     broadcast("phase4_synthesis", {"total_findings": len(all_findings), "high_risk": _high_risk_count}, pipeline_log)
-    red_team_results = red_team_falsification(all_findings, pipeline_log)
+    # P2-2：传入解析后的原始资料，证伪改为按证据源重算（缺资料时一律判"无法排除"）
+    _red_team_engine_data = {
+        "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
+        "vouchers": vouchers, "salaries": salaries, "inventory": inventory,
+    }
+    red_team_results = red_team_falsification(all_findings, pipeline_log, _red_team_engine_data)
     blind_results = blind_destruction_test(all_findings, pipeline_log)
     self_heal_from_blind_test(blind_results, all_findings, pipeline_log)
     hallucination_count = hallucination_check(all_findings, pipeline_log)
@@ -5118,7 +5123,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     try:
         _final_governed = _scenario_execution.get("findings", [])
         if _final_governed and all(isinstance(_f, dict) for _f in _final_governed):
-            _rt_post = red_team_falsification(_final_governed, pipeline_log)
+            _rt_post = red_team_falsification(_final_governed, pipeline_log, {
+                "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
+                "vouchers": vouchers, "salaries": salaries, "inventory": inventory,
+            })
             _bt_post = blind_destruction_test(_final_governed, pipeline_log)
             self_heal_from_blind_test(_bt_post, _final_governed, pipeline_log)
             _hc_post = hallucination_check(_final_governed, pipeline_log)
