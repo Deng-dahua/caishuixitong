@@ -7,6 +7,9 @@ import os
 
 _CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "methodology_config.json")
 _FRAMEWORK_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "methodology_framework.json")
+# 运行期自学习状态（秘笈自更新累积的机器本地、可重生成数据）。
+# 与 _CONFIG_PATH 的权威配置严格分离：本文件不进版本库，config 保持纯净。
+_RUNTIME_STATE_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "methodology_runtime_state.json")
 
 
 def load_pipeline_framework():
@@ -160,6 +163,39 @@ def set_filter_rule(rule_type, rule_value, enabled=True):
     elif not enabled and rule_value in config["filter_rules"][rule_type]:
         config["filter_rules"][rule_type].remove(rule_value)
     return save_pipeline_config(config)
+
+
+def load_runtime_state():
+    """加载运行期自学习状态（秘笈自更新写回的机器本地、可重生成数据）。
+
+    与 methodology_config.json 的权威配置严格隔离——本数据来自方法论_runtime_state.json，
+    不进版本库；若发现 methodology_config.json 被意外写入 self_update，应 git checkout 还原。
+    返回结构：{"untriggered_counts": {}, "pending_suggestions": []}
+    """
+    default = {"untriggered_counts": {}, "pending_suggestions": []}
+    if os.path.exists(_RUNTIME_STATE_PATH):
+        try:
+            with open(_RUNTIME_STATE_PATH, "r", encoding="utf-8") as f:
+                state = json.load(f)
+            if isinstance(state, dict):
+                state.setdefault("untriggered_counts", {})
+                state.setdefault("pending_suggestions", [])
+                return state
+        except (OSError, ValueError, TypeError):
+            pass
+    return default
+
+
+def save_runtime_state(state):
+    """保存运行期自学习状态到独立文件（绝不污染权威配置 methodology_config.json）。"""
+    try:
+        os.makedirs(os.path.dirname(_RUNTIME_STATE_PATH), exist_ok=True)
+        with open(_RUNTIME_STATE_PATH, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        return True
+    except Exception:
+        return False
 
 
 # ═══════════ 兼容旧接口（orchestrator.py / pipeline.py / __init__.py 依赖） ═══════════

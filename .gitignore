@@ -38,5 +38,7 @@ static/pattern_confidence.json
 static/report_audits.json
 static/rule_adjustments.json
 static/self_heal_rules.json
+# 运行期自学习状态（evolution.update_governance_suggestions 写回，机器本地、可重生成）
+static/methodology_runtime_state.json
 # 注：static/methodology_config.json 为框架权威配置（framework_config._CONFIG_PATH 读取），
 #     不属于运行期状态，保持进版本库；其运行期漂移须 git checkout 还原，切勿提交。

@@ -175,14 +175,14 @@ def update_governance_suggestions(pipeline_log, all_findings):
     summary = {"untriggered": [], "new_suggestions": 0}
     try:
         from engine.framework_config import (
-            load_pipeline_config, save_pipeline_config, validate_execution,
-            PIPELINE_KNOWLEDGE,
+            load_pipeline_config, load_runtime_state, save_runtime_state,
+            validate_execution, PIPELINE_KNOWLEDGE,
         )
-        config = load_pipeline_config()
+        config = load_pipeline_config()  # 仅读取 layers 等权威配置，不写回
 
         # ① 七层执行完整性
         validation = validate_execution(pipeline_log or [])
-        su = config.get("self_update") or {"untriggered_counts": {}, "pending_suggestions": []}
+        su = load_runtime_state()  # 运行期自学习状态（独立文件，不污染权威配置）
         counts = su.get("untriggered_counts") or {}
         for name in validation.get("missing", []):
             counts[name] = counts.get(name, 0) + 1
@@ -217,8 +217,7 @@ def update_governance_suggestions(pipeline_log, all_findings):
 
         # 建议上限：只保留最近52条，防止无限增长
         su["pending_suggestions"] = (su.get("pending_suggestions") or [])[-50:]
-        config["self_update"] = su
-        save_pipeline_config(config)
+        save_runtime_state(su)  # 只写运行期状态文件，不污染 methodology_config.json
 
         if pipeline_log is not None:
             if summary["untriggered"]:
