@@ -5133,6 +5133,55 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _gap_err:
         pipeline_log.append(f"[缺口探测器] 异常(不阻断): {_gap_err}")
 
+    # ═══ 金税四期式增强：行业指标对标 / 出口退税四单交叉 / 关联方穿透 ═══
+    # 三项均只产出待核线索，写入场景执行核心 findings，同样受防误判与输出封印约束。
+    try:
+        from engine.industry_benchmark import run_industry_benchmark_check
+        from engine.export_rebate_crosscheck import run_export_rebate_crosscheck
+        from engine.related_party_graph import run_related_party_detection
+        _enh_data = {
+            "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
+            "vouchers": vouchers, "salaries": salaries, "inventory": inventory,
+            "tax_declarations": locals().get("tax_declarations", []),
+            "declarations": locals().get("declarations", []),
+        }
+        _industry = ""
+        for _src in ("company_profile", "target_entity", "profile", "company"):
+            _v = locals().get(_src)
+            if isinstance(_v, dict):
+                _industry = str(_v.get("industry", "") or "")
+                if _industry:
+                    break
+        _enh_findings = []
+        _enh_findings += run_industry_benchmark_check(_enh_data, _industry, pipeline_log)
+        _enh_findings += run_export_rebate_crosscheck(_enh_data, pipeline_log)
+        _enh_findings += run_related_party_detection(_enh_data, pipeline_log)
+        if _enh_findings:
+            _se_enh = locals().get("_scenario_execution")
+            if isinstance(_se_enh, dict):
+                _se_enh.setdefault("findings", []).extend(_enh_findings)
+    except Exception as _enh_err:
+        pipeline_log.append(f"[金税四期式增强] 异常(不阻断): {_enh_err}")
+
+    # ═══ 本质盲区人工兜底工单 ═══
+    # 4 个本质不可数字化盲区不假装"系统能查"，改为生成可执行的稽查现场工作底稿。
+    try:
+        from engine.audit_coverage import RISK_DOMAIN_PANORAMA as _PAN
+        from engine.manual_inspection_worksheets import (
+            build_manual_worksheets, format_worksheets_text,
+        )
+        _inherent = [{"tax": _t, "topic": _p, "reason": _r}
+                     for _t, _p, _h, _v, _r in _PAN if _t == "风险检查本质盲区"]
+        _sheets = build_manual_worksheets(_inherent)
+        if _sheets and isinstance(result, dict):
+            _rep = result.get("report")
+            if isinstance(_rep, dict):
+                _rep["manual_worksheets"] = _sheets
+                _rep["manual_worksheets_text"] = format_worksheets_text(_sheets)
+                pipeline_log.append(f"[人工兜底] 已生成 {len(_sheets)} 份本质盲区现场工作底稿")
+    except Exception as _ws_err:
+        pipeline_log.append(f"[人工兜底工单] 异常(不阻断): {_ws_err}")
+
     # ═══ P0-2 防误判复核闸门：输出治理之后、正式封印之前 ═══
     # 红队证伪 / 破坏性盲测 / 幻觉检测 / 一致性复查 / 跨域协商五道防线，此前全部跑在
     # 输出治理之前；而 run_output_governance 用全新 deepcopy 对象整体替换了发现列表，
