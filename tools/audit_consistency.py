@@ -408,7 +408,9 @@ def sync_counts(authoritative: Dict[str, int]) -> int:
         original = text
 
         def _sub(m: re.Match) -> str:
-            global changed
+            # changed 定义在 sync_counts 作用域内，嵌套函数须用 nonlocal；
+            # 原写 global 会 NameError（--sync 模式从未真正跑通过，2026-09-12 修复）
+            nonlocal changed
             label = m.group("lbl1") or m.group("lbl2")
             num_raw = m.group("n1") or m.group("n2")
             key = COUNT_LABELS.get(label or "")
