@@ -37,6 +37,29 @@ def check(condition: bool, message: str, failures: list[str]) -> None:
         failures.append(message)
 
 
+def _tracked_sensitive() -> list[str]:
+    """版本库中已跟踪、且命中敏感名单的文件。
+
+    用 git ls-files 而非 rglob：发布拦截的是「进了版本库的东西」，
+    磁盘上的运行期产物（data/ 缓存、数据库、上传文件）不该算发布内容。
+    不在 git 仓库中时退化为文件系统扫描，避免在裸目录下静默放行。
+    """
+    import subprocess
+
+    try:
+        output = subprocess.run(
+            ["git", "ls-files", "-z"],
+            cwd=str(ROOT), capture_output=True, timeout=30,
+        )
+        if output.returncode == 0:
+            names = [n for n in output.stdout.decode("utf-8", "replace").split("\0") if n]
+        else:
+            names = [str(p.relative_to(ROOT)) for p in ROOT.rglob("*") if p.is_file()]
+    except Exception:
+        names = [str(p.relative_to(ROOT)) for p in ROOT.rglob("*") if p.is_file()]
+    return [n for n in names if Path(n).name.lower() in SENSITIVE_NAMES]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -46,17 +69,23 @@ def main() -> int:
     )
     args = parser.parse_args()
     failures: list[str] = []
-    present_sensitive = [
-        str(path.relative_to(ROOT))
-        for path in ROOT.rglob("*")
-        if path.is_file() and path.name.lower() in SENSITIVE_NAMES
-        and not (args.runtime and path.is_relative_to(ROOT / "data"))
-    ]
-    sensitive_message = (
-        "runtime contains no secrets/data outside the private data directory"
-        if args.runtime
-        else "release contains no runtime secrets/data"
-    )
+
+    # 发布口径（默认）判定的是「会被交付出去的东西」，即版本库已跟踪的文件；
+    # 本地运行期产生的 data/ 缓存、数据库、上传文件留在磁盘上属正常，不该拦截发布。
+    # 本地运行口径（--runtime）则按文件系统扫，且仅允许私有 data 目录内存在。
+    if args.runtime:
+        present_sensitive = [
+            str(path.relative_to(ROOT))
+            for path in ROOT.rglob("*")
+            if path.is_file() and path.name.lower() in SENSITIVE_NAMES
+            and not path.is_relative_to(ROOT / "data")
+        ]
+        sensitive_message = (
+            "runtime contains no secrets/data outside the private data directory"
+        )
+    else:
+        present_sensitive = _tracked_sensitive()
+        sensitive_message = "release contains no runtime secrets/data (git index is clean)"
     check(not present_sensitive, sensitive_message, failures)
 
     for relative in PRODUCTION_PYTHON:
@@ -251,6 +280,28 @@ def main() -> int:
         scene_valid = False
     check(catalog_valid, "canonical methodology catalog passes structural review (25 modules / 89 rules)", failures)
     check(scene_valid, "industry scenario contracts are decommissioned", failures)
+
+    # ── 跨模块数字与法条一致性闸门（P1-3）──
+    # 原 tools/audit_consistency.py 于 4074d4cf 被误删后，计数常量与法条条款号失去
+    # 自动校验，酿成历史上那次数字字符串污染。此处重建闸门：ERROR 即拦截发布。
+    # （本注释刻意不写出污染字面量，以便本文件仍受该闸门的污染检测覆盖）
+    try:
+        import audit_consistency as _ac  # 同目录，verify_release 已可被直接执行
+
+        _counts, _general = _ac.run_checks()
+        _n_err = (len([i for i in _counts if i[0] == "ERROR"])
+                  + len([i for i in _general if i[0] == "ERROR"]))
+        _detail = "; ".join(
+            f"{rel}: {msg}" for _lvl, rel, msg in _general if _lvl == "ERROR"
+        )[:300]
+        check(
+            _n_err == 0,
+            f"count constants and law references are consistent ({_n_err} error(s))"
+            + (f" — {_detail}" if _detail else ""),
+            failures,
+        )
+    except Exception as _ac_err:  # 校验器自身异常不得静默放行
+        check(False, f"consistency checker executable ({_ac_err})", failures)
 
     if failures:
         print(f"\n{len(failures)} check(s) failed.")

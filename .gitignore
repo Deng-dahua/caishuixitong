@@ -14,6 +14,7 @@ static/api_key.json
 static/last_analysis_cache.json
 static/analysis_history.json
 static/uploads/
+static/patterns/
 outputs/
 work/
 .pytest_cache/
