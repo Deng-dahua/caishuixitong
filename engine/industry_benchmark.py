@@ -17,7 +17,44 @@
 
 from __future__ import annotations
 
+import json
+import os
 from typing import Any, Dict, List, Tuple
+
+# 实测校准表（由 tools/calibrate_industry_benchmarks.py 用真实账套生成）。
+# 存在时**优先于**下方通用参考区间；不存在则回退参考区间。
+_CALIBRATED_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "static", "industry_benchmarks_calibrated.json"
+)
+_CALIBRATED: Dict[str, Dict[str, Tuple[float, float]]] = {}
+
+
+def _load_calibrated() -> Dict[str, Dict[str, Tuple[float, float]]]:
+    global _CALIBRATED
+    if _CALIBRATED:
+        return _CALIBRATED
+    try:
+        if os.path.exists(_CALIBRATED_PATH):
+            with open(_CALIBRATED_PATH, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            out = {}
+            for ind, vals in (raw or {}).items():
+                if not isinstance(vals, dict):
+                    continue
+                out[ind] = {
+                    k: (float(v[0]), float(v[1]))
+                    for k, v in vals.items()
+                    if isinstance(v, (list, tuple)) and len(v) == 2
+                }
+            _CALIBRATED = out
+    except Exception:
+        _CALIBRATED = {}
+    return _CALIBRATED
+
+
+def benchmark_source(industry: str) -> str:
+    """返回该行业当前使用的区间来源：'实测校准' / '通用参考'。"""
+    return "实测校准" if industry in _load_calibrated() else "通用参考"
 
 # ── 行业参考预警区间（下限, 上限），单位：百分比 ──────────────────────────
 # vat_burden     增值税税负率 = 应纳增值税 / 销售收入
@@ -131,7 +168,10 @@ def run_industry_benchmark_check(
         return []
 
     matched = match_industry(industry) if industry else ""
-    bench = INDUSTRY_BENCHMARKS.get(matched, _GENERIC)
+    cal = _load_calibrated()
+    # 实测校准表优先，其次通用参考区间，最后宽松通用区间
+    bench = cal.get(matched) or INDUSTRY_BENCHMARKS.get(matched) or _GENERIC
+    source = benchmark_source(matched)
     if not matched and pipeline_log is not None:
         pipeline_log.append("[行业对标] 未匹配到具体行业，按通用宽松区间比对（降低误报）")
 
@@ -173,6 +213,7 @@ def run_industry_benchmark_check(
             "_indicator": key,
             "_actual": value,
             "_range": [low, high],
+            "_benchmark_source": source,
             "_detection_method": "计算企业实际指标 → 与同行业参考预警区间比对 → 偏离即列为待核线索",
             "_unconfirmed": True,
         })

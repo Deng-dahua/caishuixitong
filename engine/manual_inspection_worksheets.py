@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import os
 from typing import Dict, List
 
 # ── 四份工作底稿 ──────────────────────────────────────────────────────
@@ -121,6 +122,50 @@ def build_manual_worksheets(gap_domains: List[Dict]) -> List[Dict]:
             "note": "该项为本质不可数字化事项，系统不产出结论，改由稽查人员按本底稿现场核查。",
         })
     return sheets
+
+
+def export_worksheets_xlsx(sheets: List[Dict], output_path: str) -> str:
+    """把人工兜底工单导出为 Excel（每份底稿一个工作表）。
+
+    表结构：核查目标 / 核查步骤(逐条) / 须调取资料 / 判定要点 / 系统说明。
+    稽查人员可直接打印带至现场填写。返回写入的文件路径；无 openpyxl 时返回空串。
+    """
+    if not sheets:
+        return ""
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment
+    except Exception:
+        return ""
+
+    wb = Workbook()
+    wb.remove(wb.active)
+    for s in sheets:
+        ws = wb.create_sheet(title=f"{s['worksheet_id']} {s['topic']}"[:31])
+        ws["A1"] = f"{s['worksheet_id']} {s['topic']}（人工兜底工作底稿）"
+        ws["A1"].font = Font(bold=True, size=13)
+        row = 3
+
+        def _section(title: str, lines: List[str]) -> None:
+            nonlocal row
+            ws.cell(row=row, column=1, value=title).font = Font(bold=True)
+            row += 1
+            for ln in lines:
+                c = ws.cell(row=row, column=1, value=ln)
+                c.alignment = Alignment(wrap_text=True, vertical="top")
+                row += 1
+            row += 1
+
+        _section("核查目标", [s["objective"]])
+        _section("核查步骤", [f"{i}. {st}" for i, st in enumerate(s["steps"], 1)])
+        _section("须调取资料", [f"· {m}" for m in s["materials"]])
+        _section("判定要点", [s["criteria"]])
+        _section("系统说明", [s["system_reason"], s["note"]])
+        ws.column_dimensions["A"].width = 100
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    wb.save(output_path)
+    return output_path
 
 
 def format_worksheets_text(sheets: List[Dict]) -> str:

@@ -1671,6 +1671,83 @@ def _build_inspection_questions_report(report_data):
     }
 
 
+def _build_industry_benchmark_report(report_data):
+    """行业指标对标章节：本企业指标 vs 同行业预警区间。
+
+    数据来源为 industry_benchmark 探测器产出的待核线索（带 _indicator 标记）。
+    区间来源会明确标注是"实测校准"还是"通用参考"，避免把经验值当作官方口径。
+    """
+    findings = [f for f in (report_data.get("all_findings") or [])
+                if isinstance(f, dict) and f.get("_indicator")]
+    if not findings:
+        return {
+            "available": False,
+            "title": "行业指标对标",
+            "summary": "本次未触发行业指标偏离线索。",
+            "body": "", "metrics": {}, "signals": [], "verdict": "未发现异常",
+            "recommendation": "", "note": "",
+        }
+    lines = ["本企业实际指标与同行业预警区间比对如下（偏离项列为待核线索）：", ""]
+    metrics = {}
+    for f in findings:
+        key = f.get("_indicator", "")
+        actual = f.get("_actual")
+        rng = f.get("_range") or []
+        src = f.get("_benchmark_source", "通用参考")
+        label = {"vat_burden": "增值税税负率", "gross_margin": "毛利率",
+                 "expense_ratio": "期间费用率", "purchase_sales": "进销比"}.get(key, key)
+        unit = "" if key == "purchase_sales" else "%"
+        lines.append(
+            f"· {label}：实际 {actual}{unit}，行业区间 {rng[0] if rng else '-'}~{rng[1] if len(rng)>1 else '-'}{unit}"
+            f"（区间来源：{src}）"
+        )
+        metrics[label] = f"{actual}{unit}"
+    body = "\n".join(lines)
+    return {
+        "available": True,
+        "title": "行业指标对标",
+        "summary": f"共 {len(findings)} 项指标偏离同行业预警区间，须结合经营模式核实是否存在合理原因。",
+        "body": body,
+        "metrics": metrics,
+        "signals": [{"signal": f.get("type", ""), "hint": f.get("suggestion", "")} for f in findings],
+        "verdict": "待证线索",
+        "recommendation": "请就偏离项说明原因，并提供行业可比资料与适用税收优惠备案资料。",
+        "note": "预警区间为通用参考值或本地实测校准值，非税务机关官方口径；"
+                "偏离区间仅构成待证线索，不作为定性依据。",
+    }
+
+
+def _build_related_party_report(report_data):
+    """关联方穿透章节：同源信号 + 人员穿透（法人/股东/董监高）。"""
+    findings = [f for f in (report_data.get("all_findings") or [])
+                if isinstance(f, dict) and (f.get("_related_party_graph") or f.get("_officer"))]
+    if not findings:
+        return {
+            "available": False,
+            "title": "关联方穿透分析",
+            "summary": "本次未发现关联方同源信号。",
+            "body": "", "metrics": {}, "signals": [], "verdict": "未发现异常",
+            "recommendation": "", "note": "",
+        }
+    lines = ["从交易数据与任职持股登记中识别到以下关联方线索：", ""]
+    for f in findings:
+        lines.append(f"· {f.get('type','')}（{f.get('level','')}）")
+        lines.append(f"  {f.get('detail','')}")
+        lines.append("")
+    return {
+        "available": True,
+        "title": "关联方穿透分析",
+        "summary": f"识别到 {len(findings)} 条关联方线索，须核实是否存在关联交易与转移定价。",
+        "body": "\n".join(lines),
+        "metrics": {"关联方线索数": len(findings)},
+        "signals": [{"signal": f.get("type", ""), "hint": f.get("suggestion", "")} for f in findings],
+        "verdict": "待证线索",
+        "recommendation": "请说明相关主体股权与人员关系，并提供关联交易定价政策与同期资料。",
+        "note": "本系统无外部工商数据库，关联关系依据账套内同源信号与任职登记推定，"
+                "仅作待证线索，不构成关联交易或转移利润的认定。",
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -1687,6 +1764,8 @@ def build_enterprise_readable_report(report_data):
     derivation_tree_report = _build_derivation_tree_report(report_data)
     capability_boundary = _build_capability_boundary(report_data)
     cross_enterprise_report = _build_cross_enterprise_report(report_data)
+    industry_benchmark_report = _build_industry_benchmark_report(report_data)
+    related_party_report = _build_related_party_report(report_data)
     external_verify_report = _build_external_verify_report(report_data)
     bank_flow_report = _build_bank_flow_report(report_data)
     two_tax_report = _build_two_tax_report(report_data)
@@ -1721,6 +1800,8 @@ def build_enterprise_readable_report(report_data):
         "completed_checks": completed,
         "derivation_tree_report": derivation_tree_report,
         "cross_enterprise_report": cross_enterprise_report,
+        "industry_benchmark_report": industry_benchmark_report,
+        "related_party_report": related_party_report,
         "external_verify_report": external_verify_report,
         "bank_flow_report": bank_flow_report,
         "two_tax_report": two_tax_report,

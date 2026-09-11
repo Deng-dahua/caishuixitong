@@ -6578,6 +6578,36 @@ def get_evidence_chain(company_id: int = Query(...)):
 # 税务合规底稿自动生成 —— 结构化审计工作底稿
 # ═══════════════════════════════════════════════════════════
 
+@app.get("/api/tax-risk-docs/manual-worksheets/export")
+def export_manual_worksheets(company_id: int = Query(...)):
+    """导出「本质盲区」人工兜底工作底稿（Excel，WS-01~04）。
+
+    这 4 类风险本质不可数字化，系统不产出结论，改由稽查人员按底稿现场核查。
+    """
+    try:
+        from fastapi.responses import FileResponse
+        from engine.audit_coverage import RISK_DOMAIN_PANORAMA as _PAN
+        from engine.manual_inspection_worksheets import (
+            build_manual_worksheets, export_worksheets_xlsx,
+        )
+        inherent = [{"tax": _t, "topic": _p, "reason": _r}
+                    for _t, _p, _h, _v, _r in _PAN if _t == "风险检查本质盲区"]
+        sheets = build_manual_worksheets(inherent)
+        if not sheets:
+            return {"ok": False, "message": "无本质盲区工单可导出"}
+        out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "exports")
+        fname = f"人工兜底工作底稿_{company_id}.xlsx"
+        path = export_worksheets_xlsx(sheets, os.path.join(out_dir, fname))
+        if not path:
+            return {"ok": False, "message": "Excel 生成失败：缺少 openpyxl"}
+        return FileResponse(
+            path, filename=fname,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    except Exception as _e:
+        return {"ok": False, "message": f"导出失败: {_e}"}
+
+
 @app.get("/api/tax-risk-docs/working-papers")
 def generate_working_papers(company_id: int = Query(...)):
     """基于最近一次分析结果自动生成税务合规底稿

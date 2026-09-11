@@ -19,6 +19,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 import re
 from collections import defaultdict
 from typing import Any, Dict, List, Set
@@ -110,6 +112,106 @@ def build_related_party_graph(engine_data: Dict) -> Dict:
     return graph
 
 
+# ── 人员穿透（法人 / 股东 / 董监高）──────────────────────────────────
+# 背景：cross_enterprise_graph.EnterpriseNode 已有 legal_rep/shareholders/directors
+# 字段，Relationship 也支持 same_legal_rep，但 database.py 无对应工商字段 → 恒空（死代码）。
+# 这里提供一条**可落地的外部数据接入路径**：从 static/company_officers.json 读取
+# 工商登记式的任职与持股信息，使"同一控制人/同一股东"类关联真正能被检出。
+_OFFICER_PATH = os.path.join(os.path.dirname(__file__), "..", "static", "company_officers.json")
+
+
+def load_officer_registry() -> Dict[str, Dict]:
+    """读取工商式任职登记表；文件不存在返回空（不误报）。
+
+    期望格式：
+      {"企业全称": {"legal_rep": "张三", "shareholders": ["张三","李四"],
+                    "directors": ["王五"], "supervisors": ["赵六"]}, ...}
+    """
+    try:
+        if os.path.exists(_OFFICER_PATH):
+            with open(_OFFICER_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                return data
+    except Exception:
+        pass
+    return {}
+
+
+def build_officer_index(registry: Dict[str, Dict]) -> Dict[str, Dict[str, set]]:
+    """人员 → {角色: 企业集合} 的反查索引。"""
+    index: Dict[str, Dict[str, set]] = defaultdict(lambda: defaultdict(set))
+    for company, info in (registry or {}).items():
+        if not isinstance(info, dict):
+            continue
+        rep = str(info.get("legal_rep", "") or "").strip()
+        if rep and len(rep) >= 2:
+            index[rep]["legal_rep"].add(company)
+        for role_key, role_name in (("shareholders", "shareholder"),
+                                    ("directors", "director"),
+                                    ("supervisors", "supervisor")):
+            for person in info.get(role_key) or []:
+                p = str(person).strip()
+                if p and len(p) >= 2:
+                    index[p][role_name].add(company)
+    return {k: dict(v) for k, v in index.items()}
+
+
+def detect_officer_relations(engine_data: Dict, registry: Dict[str, Dict]) -> List[Dict]:
+    """人员穿透：同一法人/股东/董监高控制多家企业，且其中与账套交易对手重合 → 关联交易疑点。"""
+    if not registry:
+        return []
+    index = build_officer_index(registry)
+    # 本账套的交易对手（供应商+客户）
+    counterparties = set(_names(engine_data.get("sal_invs"))) | set(_names(engine_data.get("pur_invs")))
+
+    findings: List[Dict] = []
+    for person, roles in index.items():
+        companies: set = set()
+        role_desc = []
+        for role, comps in roles.items():
+            companies |= comps
+            role_desc.append({"legal_rep": "法定代表人", "shareholder": "股东",
+                              "director": "董事/高管", "supervisor": "监事"}.get(role, role))
+        if len(companies) < 2:
+            continue
+        # 与本账套交易对手重合的部分
+        overlap = sorted(c for c in companies
+                         if any(c in cp or cp in c for cp in counterparties))
+        level = "高风险" if overlap else "中风险"
+        findings.append({
+            "type": ("同一控制人旗下企业与本账套存在交易（待核）" if overlap
+                     else "同一人员在多家企业任职或持股（待核）"),
+            "detail": (
+                f"{person}（{'/'.join(role_desc)}）同时关联 {len(companies)} 家企业："
+                f"{'、'.join(sorted(companies)[:5])}。"
+                + (f"其中 {len(overlap)} 家为本账套交易对手：{'、'.join(overlap[:5])}，"
+                   "存在关联交易、转移定价或分散收入的嫌疑，须按独立交易原则复核定价。"
+                   if overlap else
+                   "虽未见与本账套直接交易，但提示存在集团化架构，"
+                   "在核查关联方资金往来时应一并纳入穿透范围。")
+            ),
+            "level": level,
+            "score": 8 if overlap else 5,
+            "tax_type": "企业所得税/增值税",
+            "domain": "关联交易",
+            "policy_ref": "RL-CIT-001/RL-CIT-002",
+            "suggestion": "请说明上述企业间股权与人员关系，并提供关联交易定价政策、"
+                          "同期资料及资金往来明细。",
+            "items": [{"name": "股权与人员关系说明", "status": "待补充"},
+                      {"name": "关联交易定价政策与同期资料", "status": "待补充"}],
+            "evidence": [f"{person} 关联 {len(companies)} 家"] + sorted(companies)[:5]
+                        + ([f"交易对手重合 {len(overlap)} 家"] if overlap else []),
+            "needs_material": ["股权与人员关系说明", "关联交易定价政策", "同期资料"],
+            "_officer": person,
+            "_officer_companies": sorted(companies),
+            "_detection_method": "工商式任职/持股登记反查同一人员关联多家企业，"
+                                 "并与本账套交易对手求交集",
+            "_unconfirmed": True,
+        })
+    return findings
+
+
 def run_related_party_detection(engine_data: Dict, pipeline_log: List[str] = None) -> List[Dict]:
     """按图谱产出关联方类待核发现（全部 _unconfirmed，绝不认定关联交易）。"""
     graph = build_related_party_graph(engine_data)
@@ -189,6 +291,17 @@ def run_related_party_detection(engine_data: Dict, pipeline_log: List[str] = Non
             ["各主体经营场所租赁合同", "注册登记地址证明"],
             "按经营地址反查使用该地址的不同主体（≥2 个即可疑）",
         ))
+
+    # 人员穿透（法人/股东/董监高）——需 static/company_officers.json，
+    # 无该文件时自动跳过（不误报），并在日志中提示数据缺口。
+    _registry = load_officer_registry()
+    if _registry:
+        findings.extend(detect_officer_relations(engine_data, _registry))
+    elif pipeline_log is not None:
+        pipeline_log.append(
+            "[关联方穿透] 未提供工商任职登记(static/company_officers.json)，"
+            "法人/股东/董监高维度未穿透"
+        )
 
     if pipeline_log is not None and findings:
         pipeline_log.append(
