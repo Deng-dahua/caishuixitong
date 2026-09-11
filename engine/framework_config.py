@@ -1,6 +1,16 @@
-# ══════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
 # 流程框架配置加载器
-# ══════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
+#
+# ★ 架构红线：权威配置 ↔ 运行期状态 严格分离（2026-09-11 确立）
+#   - _CONFIG_PATH  (methodology_config.json) ＝ 权威配置，进版本库，跑应用不变脏。
+#     仅含 6 个顶层节点：version / layers / iron_rules / report_standards / six_steps / filter_rules。
+#     风险检查员在线编辑 filter_rules 后由 save_pipeline_config 持久化——这是合法的配置变更。
+#   - _RUNTIME_STATE_PATH (methodology_runtime_state.json) ＝ 运行期自学习状态，gitignored，
+#     机器本地、可重生成。由 evolution.update_governance_suggestions 经
+#     load_runtime_state / save_runtime_state 独占读写（untriggered_counts / pending_suggestions）。
+#   - 任何代码都不得把运行期数据写回 _CONFIG_PATH；新增运行期状态一律走 _RUNTIME_STATE_PATH。
+#     历史上 self_update 被误写回 config 导致其反复变脏（权重 262→382 漂移），拆分后根除。
 
 import json
 import os
@@ -84,7 +94,12 @@ def _default_config():
 
 
 def save_pipeline_config(config):
-    """保存方法论配置（风险检查员在线编辑后持久化）"""
+    """保存方法论配置（风险检查员在线编辑后持久化）。
+
+    仅持久化 _CONFIG_PATH 权威配置（filter_rules 等合法配置变更）。
+    严禁在此写入运行期自学习状态（untriggered_counts / pending_suggestions 等）——
+    运行期状态必须走 save_runtime_state，否则会污染进版本库的权威配置。
+    """
     try:
         os.makedirs(os.path.dirname(_CONFIG_PATH), exist_ok=True)
         with open(_CONFIG_PATH, "w", encoding="utf-8") as f:
