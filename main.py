@@ -9242,6 +9242,18 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
 
     同步、异步和兼容入口均必须调用本函数，不得绕过方法论、报告编制、
     智能引擎汇总或最终持久化阶段。
+
+    ★ 架构红线：所有分析入口收敛于本函数 → engine.pipeline._run_analyze（2026-09-11 核实）
+       - 入口清单（全部汇聚于此，无一绕过）：
+           /api/tax-risk-docs/analyze        (同步)  → 本函数
+           /api/tax-risk-docs/analyze-start  (异步)  → _run_analysis_thread → 本函数
+           /api/audit/analyze-async          (异步)  → run_analysis → analyze_tax_risk_docs → 本函数
+       - 引擎层全部功能增强（P0 三链索引 / P0-2 防误判复核闸门 / P1-1 跨域协商门控 /
+         P1-2 红线检测 / P2-1 假设置信语义 / P2-2 红队真实证伪 / P2-3 幻觉金额比对 /
+         运行期状态拆分）都写在 _run_analyze 内部，故点一键分析（及上述兄弟入口）即全部生效。
+       - 新增任何稽查能力，必须接入 _run_analyze；若只挂在独立端点而不经过本函数，
+         则该能力不会被一键分析触发——这是历史多起「增强未生效」坑的根因。
+       - 唯一例外 P1-3（audit_consistency / verify_release 发布门禁）刻意不进按钮，属 CI 质量门禁。
     """
     import traceback as _traceback
 
