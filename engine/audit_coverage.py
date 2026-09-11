@@ -26,7 +26,7 @@ RISK_DOMAIN_PANORAMA = [
     ("增值税", "变名开票/进销背离", True, "VR033", ""),
     ("增值税", "视同销售未计提销项", True, "VR036", ""),
     ("增值税", "虚开发票/资金回流", True, "VR012/VR013/VR025", ""),
-    ("增值税", "出口退税违规", False, "", "需出口退免税申报数据与海关报关单勾稽，待实现"),
+    ("增值税", "出口退税违规", True, "RL-SPT-008", "需报关单/收汇/产能数据方可定性；缺数据时按置疑清单要求补充"),
     # 企业所得税
     ("企业所得税", "收入确认时点", True, "VR001/VR002/VR018", ""),
     ("企业所得税", "业务招待费超限", True, "VR038", ""),
@@ -49,6 +49,17 @@ RISK_DOMAIN_PANORAMA = [
     ("城建税及附加", "随增值税附征", True, "VR043", ""),
     ("城镇土地使用税", "实际占用土地面积", False, "", "需土地权证与面积数据，待实现"),
     ("车船税", "自有车辆船舶", False, "", "需车辆船舶台账，待实现"),
+    # ── 特定税种（2026-09-10 P1-2 补齐 11 条红线 RL-SPT-001~011，2026-09-12 同步入全景）──
+    ("土地增值税", "未清算或扣除项目不实", True, "RL-SPT-001", ""),
+    ("消费税", "应税消费品未申报或计税价格偏低", True, "RL-SPT-002", ""),
+    ("资源税", "未申报或销售量与产量不符", True, "RL-SPT-003", ""),
+    ("环境保护税", "直接排放应税污染物未申报", True, "RL-SPT-004", ""),
+    ("关税", "进口货物完税价格申报不实", True, "RL-SPT-005", ""),
+    ("非居民企业所得税", "境内所得未履行源泉扣缴", True, "RL-SPT-006", ""),
+    ("契税", "承受土地房屋权属未申报", True, "RL-SPT-007", ""),
+    ("个人所得税", "股权转让价格明显偏低且无正当理由", True, "RL-SPT-009", ""),
+    ("住房公积金", "未开户/未全员缴存/缴存基数不实", True, "RL-SPT-010", ""),
+    ("征收管理", "不符合核定征收条件而适用核定征收", True, "RL-SPT-011", ""),
     # 数据质量与勾稽
     ("数据质量", "发票/存货/资金勾稽", True, "VR003-VR025", ""),
     ("生产实质", "能耗/投入产出/人员", True, "VR014/VR022/VR023", ""),
@@ -60,16 +71,23 @@ RISK_DOMAIN_PANORAMA = [
 ]
 
 
-def build_coverage_report(catalog, registered_ids, run_result, available_sources):
+def build_coverage_report(catalog, registered_ids, run_result, available_sources, redline_ids=None):
     """构建三段式覆盖报告。
 
     :param catalog: VERIFIED_RULE_CATALOG 全量条目
     :param registered_ids: _SCANNERS 已注册的规则 id 集合
     :param run_result: run_verified_rules 的返回（含 findings）
     :param available_sources: 本次输入数据包含的 source 键集合
+    :param redline_ids: 税务红线 id 集合（RL-* 前缀的域按红线库判定，缺省自动加载）
     """
     catalog_ids = {c["id"] for c in catalog}
     hit_ids = {f["rule_id"] for f in run_result.get("findings", [])}
+    if redline_ids is None:
+        try:
+            from engine.tax_redlines import REDLINES as _REDLINES
+            redline_ids = {str(r.get("id", "")) for r in _REDLINES}
+        except Exception:
+            redline_ids = set()
 
     executed = sorted(catalog_ids & registered_ids)
     no_hit = sorted((catalog_ids & registered_ids) - hit_ids)
@@ -81,9 +99,16 @@ def build_coverage_report(catalog, registered_ids, run_result, available_sources
     gap_domains = 0
     for tax, topic, has_rule, vr, reason in RISK_DOMAIN_PANORAMA:
         if has_rule:
-            # 该域对应VR是否都已注册
-            vr_ids = [v.strip() for v in vr.replace("VR", "VR").split("/") if v.strip()]
-            all_reg = all(any(rid in r for r in registered_ids) for rid in vr_ids) if vr_ids else False
+            # 分流：VR-* 按已注册扫描器判定，RL-* 按税务红线库判定
+            ids = [v.strip() for v in vr.split("/") if v.strip()]
+            vr_ids = [v for v in ids if v.upper().startswith("VR")]
+            rl_ids = [v for v in ids if v.upper().startswith("RL-")]
+            if not ids:
+                all_reg = False
+            else:
+                vr_ok = all(any(v in r for r in registered_ids) for v in vr_ids) if vr_ids else True
+                rl_ok = all(v in redline_ids for v in rl_ids) if rl_ids else True
+                all_reg = vr_ok and rl_ok
             status = "COVERED" if all_reg else "PARTIAL"
             if all_reg:
                 covered_domains += 1
@@ -153,8 +178,21 @@ def format_coverage_text(report):
         lines.append("\n【风险检查盲区清单（须人工/外部数据兜底）】")
         for g in report["gap_domains"]:
             lines.append(f"  · [{g['tax']}] {g['topic']}：{g['reason']}")
-    lines.append(
-        "\n结论：规则维度已实现可执行风险域全覆盖；上述盲区为本质不可数字化或待接入数据项，"
-        "须以人工风险检查/外部数据穿透兜底，方达无死角。"
-    )
+    # 结论按实际盲区动态表述：区分「待接入/待实现」与「本质不可数字化」，
+    # 杜绝无条件下「已实现全覆盖」的过度声明。
+    gaps = report.get("gap_domains", []) or []
+    inherent = [g for g in gaps if g.get("tax") == "风险检查本质盲区"]
+    pending = [g for g in gaps if g.get("tax") != "风险检查本质盲区"]
+    if not gaps:
+        lines.append("\n结论：规则维度已实现可执行风险域全覆盖，本次无盲区。")
+    else:
+        lines.append(
+            f"\n结论：规则维度覆盖 {s['risk_domains_covered']}/{s['risk_domains_total']}"
+            f"（{s['coverage_rate']}%）；尚有 {len(gaps)} 个盲区——"
+            f"{len(pending)} 个为待接入外部数据或待实现，{len(inherent)} 个为本质不可数字化。"
+        )
+        lines.append(
+            "「待接入/待实现」项须补数据或补规则方能覆盖；「本质不可数字化」项"
+            "须以人工风险检查/外部数据穿透兜底。当前未达无死角，不得对外宣称已覆盖全部税务风险。"
+        )
     return "\n".join(lines)
