@@ -81,6 +81,7 @@ def load_flat_rules() -> list:
                 rule_score = min(10, base_score + 2)
             output.append({
                 "id": rule["id"],
+                "module_id": module["id"],
                 "item": rule["fact_hypothesis"],
                 "name": rule["fact_hypothesis"],
                 "category": module["name"],
@@ -117,6 +118,7 @@ def load_flat_clues() -> list:
         for path in module.get("clue_paths", []):
             output.append({
                 "id": path["id"],
+                "module_id": module["id"],
                 "name": f"{module['name']}调查路径",
                 "chain_type": "线索链",
                 "sub_topic": module["name"],
@@ -139,6 +141,7 @@ def load_flat_evidence() -> list:
         plan = module.get("evidence_plan", {})
         output.append({
             "id": f"{module['id']}-E01",
+            "module_id": module["id"],
             "name": f"{module['name']}证据要求",
             "chain_type": "证据链",
             "sub_topic": module["name"],
@@ -159,6 +162,7 @@ def load_flat_analysis() -> list:
     for module in load_canonical_catalog().get("modules", []):
         output.append({
             "id": f"{module['id']}-A01",
+            "module_id": module["id"],
             "name": f"{module['name']}分析检验",
             "chain_type": "分析链",
             "sub_topic": module["name"],

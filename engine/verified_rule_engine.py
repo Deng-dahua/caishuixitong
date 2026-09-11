@@ -1050,7 +1050,7 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
              level=None, score=None, cleared_reason=None):
     """统一的风险检查发现底盘。
 
-    全系统 51 条规则的 finding 均经此构造，强制携带「三件套」：
+    全系统 69 条规则的 finding 均经此构造，强制携带「三件套」：
     1) finding_disposition —— 处置定性（明确非已认定违法，仅待证线索）
     2) verified_facts / to_prove —— 已核实事实 / 待企业举证事项（规则可自填，未填给诚实兜底）
     3) enterprise_rights —— 企业权利告知（复议/诉讼防御的统一底线）

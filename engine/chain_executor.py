@@ -433,6 +433,30 @@ def _normalise_rule_id(rule_id):
         return str(rule_id or "").strip()
 
 
+_MODULE_PREFIX_RE = re.compile(r"^([A-Za-z]+-\d+)")
+
+
+def _module_prefix(identifier):
+    """从链 / 规则 id 提取模块前缀。
+
+    目录 id 形如 CAN-01（模块）、CAN-01-R01（规则）、CAN-01-C01 / -E01 / -A01（链），
+    三者共享同一模块前缀 CAN-01。整数 id 属已验证原子规则，无目录模块，返回 None。
+    """
+    if identifier is None:
+        return None
+    s = str(identifier).strip()
+    if not s:
+        return None
+    if s.isdigit():
+        # 已验证原子规则使用整数 id，不映射到目录链
+        return None
+    m = _MODULE_PREFIX_RE.match(s)
+    if m:
+        return m.group(1)
+    # 退化：无 "-数字" 段时取首段，尽量保留可辨识前缀
+    return s.split("-")[0] if "-" in s else s
+
+
 def _has_material_value(value):
     if value is None:
         return False
@@ -663,37 +687,69 @@ def run_chains_for_rule(rule_id, clues_data, evidence_data, analysis_data, engin
     return results
 
 
-# ═══ 全局链索引缓存 (rule_id→chain) — 避免每次分析O(n)扫描38条线索链 ═══
-_chain_index = {}  # key: (clue|evid|alc), value: {rule_id: chain}
+# ═══ 全局链索引缓存 — 避免每次分析 O(n) 扫描 38 条线索链 ═══
+# 结构: { "clue"|"evid"|"alc": {"by_module": {module_prefix: [chain, ...]}, "by_id": {chain_id: [chain, ...]}} }
+_chain_index = {}
 
 def _build_chain_index(clues_data, evidence_data, analysis_data):
-    """一次性将所有链数据按 rule_id 建立索引"""
+    """一次性将所有链数据按「模块前缀 + 链 id」建立索引。
+
+    目录链（CAN-01-C01 / -E01 / -A01）没有 rule_id 字段，只有 id；规则（CAN-01-R01）
+    与链共享同一模块前缀。这里按模块前缀建索引，使 run_chains_for_rule 能以规则 id
+    找回所属模块的线索 / 证据 / 分析链。同一模块的多条线索链按列表保留，避免覆盖丢失。
+    """
     global _chain_index
     _chain_index = {}
     for key, data in [("clue", clues_data), ("evid", evidence_data), ("alc", analysis_data)]:
-        idx = {}
+        by_module = {}
+        by_id = {}
         if isinstance(data, list):
-            for item in data:
-                rid = _normalise_rule_id(item.get("rule_id"))
-                if rid is not None: idx[rid] = item
+            items = data
         elif isinstance(data, dict):
-            items = data.get("evidence_chains", data.get("analysis_chains", []))
-            for item in items:
-                rid = _normalise_rule_id(item.get("rule_id"))
-                if rid is not None: idx[rid] = item
-        _chain_index[key] = idx
+            items = data.get("evidence_chains", data.get("analysis_chains", [])) or []
+        else:
+            items = []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            mid = _module_prefix(item.get("module_id") or item.get("id") or item.get("rule_id"))
+            cid = str(item.get("id") or item.get("rule_id") or "").strip()
+            if mid:
+                by_module.setdefault(mid, []).append(item)
+            if cid:
+                by_id.setdefault(cid, []).append(item)
+        _chain_index[key] = {"by_module": by_module, "by_id": by_id}
 
 def _find_chain(chains_data, rule_id, chain_type=None):
-    """只在指定链类型中查找，防止证据链或分析链误取线索链。"""
-    normalised_id = _normalise_rule_id(rule_id)
+    """在指定链类型中查找规则所属模块的链，防止证据链或分析链误取线索链。
+
+    查找优先级：
+    1) 链 id 直接命中（rule_id 本身就是链 id，如 CAN-01-C01）
+    2) 模块前缀命中（rule_id 是规则 id，如 CAN-01-R01 → 模块 CAN-01）
+    3) 降级线性扫描（按模块前缀 / 全 id 比对）
+    """
     index_key = CHAIN_TYPE_KEYS.get(chain_type or "")
-    if index_key:
-        item = _chain_index.get(index_key, {}).get(normalised_id)
-        if item is not None:
-            return item
-    # 降级: 线性扫描
+    if index_key and index_key in _chain_index:
+        store = _chain_index[index_key]
+        rule_id_str = str(rule_id or "").strip()
+        # 1) 链 id 直接命中
+        by_id = store.get("by_id", {})
+        if rule_id_str and rule_id_str in by_id and by_id[rule_id_str]:
+            return by_id[rule_id_str][0]
+        # 2) 模块前缀命中
+        mid = _module_prefix(rule_id)
+        by_module = store.get("by_module", {})
+        if mid and mid in by_module and by_module[mid]:
+            return by_module[mid][0]
+    # 降级: 线性扫描（按模块前缀或全 id 比对）
     items = chains_data if isinstance(chains_data, list) else chains_data.get("evidence_chains", chains_data.get("analysis_chains", []))
+    mid = _module_prefix(rule_id)
+    rule_id_str = str(rule_id or "").strip()
     for item in items:
-        if isinstance(item, dict) and _normalise_rule_id(item.get("rule_id")) == normalised_id:
+        if not isinstance(item, dict):
+            continue
+        if mid and _module_prefix(item.get("module_id") or item.get("id") or item.get("rule_id")) == mid:
+            return item
+        if rule_id_str and str(item.get("id") or "").strip() == rule_id_str:
             return item
     return None

@@ -2257,15 +2257,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                     _sal_buyers.add(_b)
             _eng_data["sales_invoice_buyers"] = _sal_buyers
             
-            # 获取已触发的规则ID列表
+            # 获取已触发的规则ID列表（整数原子规则 id 与字符串目录规则 id 并存）
             _triggered_rule_ids = set()
             for _f in all_findings:
                 _rid = _f.get("rule_id") or _f.get("id")
                 if _rid:
-                    try:
-                        _triggered_rule_ids.add(int(_rid))
-                    except:
-                        pass
+                    _triggered_rule_ids.add(_rid)
             
             # 对每个已触发且有链的规则，执行三链
             _exec_findings = []
@@ -2358,12 +2355,12 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     # ═══════════════════════════════════════════════════
     # 跨域协商引擎：域间自动对话，消解/降级/增强
+    # P0-2 时序修正：此处已不再执行。run_output_governance（第3712行）会用
+    # 全新 deepcopy 对象整体替换 all_findings，治理前跑协商所打的所有
+    # finding 级标记（_negotiated_drop / 降级 / 标记）全部落空。
+    # 协商已移至「正式输出封印」之前，对最终受治理发现执行（见 _apply_anti_misjudgment_gate）。
     # ═══════════════════════════════════════════════════
-    try:
-        from engine.cross_domain_negotiation import run_negotiation
-        all_findings, _neg_log = run_negotiation(all_findings, pipeline_log)
-    except Exception as _ne:
-        pipeline_log.append(f"[协商引擎] 异常: {_ne}")
+    _neg_log = []
 
     # ── 防御：过滤 all_findings 中非 dict 元素 ──
     all_findings = [f for f in all_findings if isinstance(f, dict)]
@@ -5111,6 +5108,50 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _he:
         result["self_healing"] = {"error": str(_he)}
     
+    # ═══ P0-2 防误判复核闸门：输出治理之后、正式封印之前 ═══
+    # 红队证伪 / 破坏性盲测 / 幻觉检测 / 一致性复查 / 跨域协商五道防线，此前全部跑在
+    # 输出治理之前；而 run_output_governance 用全新 deepcopy 对象整体替换了发现列表，
+    # 导致这五道防线打在旧对象上的 finding 级标记（_red_team_warning / _blind_test /
+    # _hallucination / _negotiated_drop / 等级降级）全部落空、对最终报告零生效。
+    # 此处对「最终受治理发现」重跑一遍，使防线真正落地。
+    # 边界：只允许打标与降级，不允许新增、删除发现或改写定性——最终裁决权仍在人工复核。
+    try:
+        _final_governed = _scenario_execution.get("findings", [])
+        if _final_governed and all(isinstance(_f, dict) for _f in _final_governed):
+            _rt_post = red_team_falsification(_final_governed, pipeline_log)
+            _bt_post = blind_destruction_test(_final_governed, pipeline_log)
+            self_heal_from_blind_test(_bt_post, _final_governed, pipeline_log)
+            _hc_post = hallucination_check(_final_governed, pipeline_log)
+            _cc_post = consistency_rerun_check(_final_governed, pipeline_log)
+            try:
+                from engine.cross_domain_negotiation import run_negotiation
+                _final_governed, _neg_log = run_negotiation(_final_governed, pipeline_log)
+            except Exception as _ne2:
+                pipeline_log.append(f"[协商引擎] 异常: {_ne2}")
+            # run_negotiation 为原地改写，回写一次以防其返回新列表
+            _scenario_execution["findings"] = _final_governed
+            # 诊断汇总以「最终发现」为准，覆盖治理前的统计
+            red_team_results = _rt_post
+            blind_results = _bt_post
+            hallucination_count = _hc_post
+            consistency_result = _cc_post
+            if isinstance(result, dict) and isinstance(result.get("report"), dict):
+                result["report"]["red_team"] = _rt_post
+                result["report"]["blind_test"] = _bt_post
+                result["report"]["consistency"] = _cc_post
+                result["report"]["hallucination_count"] = _hc_post
+                result["report"]["engine_hub_summary"] = _build_engine_hub_summary(
+                    _rt_post, _bt_post, _hc_post,
+                    topology_pattern if 'topology_pattern' in dir() else {},
+                )
+            pipeline_log.append(
+                f"[防误判复核] 已在输出治理后对最终{len(_final_governed)}条受治理发现重跑："
+                f"红队证伪未通过{_rt_post.get('falsified', 0)}条、盲测崩塌{_bt_post.get('collapsed', 0)}条、"
+                f"幻觉{_hc_post}处、一致性{_cc_post.get('status', '')}"
+            )
+    except Exception as _amg_err:
+        pipeline_log.append(f"[防误判复核] 异常(不阻断封印): {_amg_err}")
+
     # ═══ 正式输出封印：仅允许输出治理核心的规范待核事实进入报告 ═══
     if '_scenario_execution' not in locals():
         raise RuntimeError("场景驱动执行结果缺失，禁止生成报告")

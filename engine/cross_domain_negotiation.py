@@ -423,7 +423,21 @@ def run_negotiation(all_findings, pipeline_log=None):
         matched_a = _find_matching_findings(all_findings, rule.get("match_a", {}), type_index, domain_index)
         if not matched_a and "match_a" in rule:
             continue
-        
+
+        # 步骤1b：has_finding 门控 —— 条件A 所在域必须「确实存在」满足子条件的发现。
+        # 例如 NEG-020：经营实质域须真的检出「经营费用」发现，才允许消解「无经营场所」。
+        # 缺此门控时规则退化为「域内只要有任何一条发现就触发」，会误杀真实疑点。
+        if "has_finding" in rule:
+            if not _resolve_has_finding(all_findings, matched_a, rule["has_finding"],
+                                        type_index, domain_index):
+                continue
+
+        # 步骤1c：has_item 门控 —— 条件A 发现本身须携带指定条目（如「缺失资料」）才生效。
+        # 缺此门控时 NEG-040 会无条件给所有含「缺少」字样的发现打「资料受限结论」标记。
+        if "has_item" in rule:
+            if not any(_has_item_keyword(all_findings[i], rule["has_item"]) for i in matched_a):
+                continue
+
         # 步骤2：对于增强层，检查所有触发器
         if action == "synthesize":
             triggers = [rule.get("trigger_a"), rule.get("trigger_b")]
@@ -598,6 +612,36 @@ def _find_matching_findings(all_findings, match_rule, type_index, domain_index):
             valid.append(i)
     
     return valid
+
+
+def _domain_of(finding):
+    """取发现所属域（与 run_negotiation 建索引口径一致：_domain 优先，其次 category）"""
+    return finding.get("_domain", "") or finding.get("category", "") or ""
+
+
+def _resolve_has_finding(all_findings, matched_a, sub_rule, type_index, domain_index):
+    """在「条件A 命中的发现」所在域内，检索是否存在满足子条件的发现。
+
+    语义：has_finding 是对 match_a 的**存在性加强条件**——域内必须确实存在该子发现，
+    才允许拿域A的结论去消解 / 降级 / 标记域B。
+
+    缺失此门控的后果（P1-1）：NEG-020 会退化为「经营实质域只要有任何一条发现，就 drop
+    「无经营场所」，无视「该发现必须是经营费用」这一前提，误杀真实疑点。
+
+    域可解析时严格取同域交集；域不可解析时退化为「全集中存在即通过」——即便如此，
+    也比原先「完全不校验」收紧一档。
+    """
+    if not sub_rule:
+        return []
+    sub = _find_matching_findings(all_findings, dict(sub_rule), type_index, domain_index)
+    if not sub:
+        return []
+    if not matched_a:
+        return sub
+    domains_a = {_domain_of(all_findings[i]) for i in matched_a if _domain_of(all_findings[i])}
+    if not domains_a:
+        return sub
+    return [i for i in sub if _domain_of(all_findings[i]) in domains_a]
 
 
 def _has_field(finding, field_name):
