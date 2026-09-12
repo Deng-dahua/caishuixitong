@@ -387,7 +387,7 @@ def _phase3_cross_validate(ctx, all_findings, pipeline_log):
             "domain": "Phase3-交叉验证",
             "detail": f"多域信号叠加触发：{' + '.join(pattern['triggers']['must_have'])} + {any_hits}个关联信号",
             "description": (
-                f"【Phase 3 — 交叉验证】\n\n"
+                f"交叉验证环节的结论如下。\n\n"
                 f"触发模式：{pattern['name']}\n"
                 f"必须信号：{' / '.join(pattern['triggers']['must_have'])}\n"
                 f"关联信号（{any_hits}/{len(pattern['triggers']['any_of'])}）："
@@ -439,7 +439,7 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
             "domain": "Phase3-冲突消解",
             "detail": "毛利率正常与进销数量偏差同时存在，表面矛盾但可解释",
             "description": (
-                "【冲突消解】毛利率正常，但进销数量存在严重偏差——这两个结论看似矛盾，"
+                "两项信号综合来看：毛利率正常，但进销数量存在严重偏差——这两个结论看似矛盾，"
                 "实际上可以共存：\n\n"
                 "可能原因①：库存结转差异。上期库存量大→本期销售中部分来自上期库存→"
                 "进项数量<销项数量，但进价和售价之间的价差正常（毛利不变）。\n"
@@ -496,7 +496,7 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
             "domain": "Phase3-冲突消解",
             "detail": "进销数量偏差+供应商集中→采购端异常可能解释数量偏差",
             "description": (
-                "【冲突消解升级】进销数量存在严重偏差，同时供应商高度集中。"
+                "两项信号叠加后风险上调：进销数量存在严重偏差，同时供应商高度集中。"
                 "两个结论不是冲突而是互证：\n\n"
                 "供应商集中意味着采购端存在'通道型'供应商——"
                 "可能与供应商之间有发票流转但无实际货物交付。"
@@ -524,7 +524,7 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
             "domain": "Phase3-冲突消解",
             "detail": "毛利为负但企业持续经营→存在未开票收入或体外资金",
             "description": (
-                "【冲突消解】毛利为负（售价低于成本）但企业仍在持续经营。"
+                "两项信号综合来看：毛利为负（售价低于成本）但企业仍在持续经营。"
                 "正常商业逻辑下，持续亏损的企业会停产或退出市场。"
                 "企业持续经营且还有日常费用支出，说明一定有其他收入来源：\n\n"
                 "① 存在大量未开票销售（账外经营）——有真实收入但未计入账面\n"
@@ -553,7 +553,7 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
             "domain": "Phase3-冲突消解",
             "detail": "有销无进+加工费存在→制造业加工链条可解释品名差异",
             "description": (
-                "【冲突消解】有销无进（卖出但未采购同名商品）+加工费存在。"
+                "两项信号综合来看：有销无进（卖出但未采购同名商品）+加工费存在。"
                 "这两个结论不是矛盾，而是互证：\n\n"
                 "有销无进的真实含义不是'没有采购'，而是'没有采购同名商品'——"
                 "这恰恰是制造业的特征：采购的是原材料，"
@@ -582,7 +582,7 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
             "domain": "Phase3-冲突消解",
             "detail": "银行付款未匹配+日常费用报销存在→部分未匹配源于员工报销模式",
             "description": (
-                "【冲突消解】银行付款未匹配+日常费用报销存在。"
+                "两项信号综合来看：银行付款未匹配+日常费用报销存在。"
                 "日常费用报销（餐饮/住宿/汽油/差旅等）的支付模式是："
                 "员工先垫付→凭发票报销→企业对公付款给员工（而非开票商家）。"
                 "因此在银行流水中，付款对象是员工姓名而非发票上的供应商名称，"
@@ -613,7 +613,7 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
                     "domain": "Phase3-冲突消解",
                     "detail": f"有进无销被评为高风险，但加工费存在→制造业加工链条可解释品名差异",
                     "description": (
-                        "【冲突消解→建议重新评估】有进无销被评为高风险，但系统同时检测到加工费存在。"
+                        "两项信号综合后建议重新评估：有进无销被评为高风险，但系统同时检测到加工费存在。"
                         "制造业中，采购原材料（不直接销售）→委托加工→销售成品（品名不同）"
                         "是正常经营模式。有进无销的品名差异源于加工链条而非隐匿收入。"
                         "建议将评级从高风险调整为中风险，核查焦点从'隐匿收入'转移到'加工链条真实性'。"
@@ -639,7 +639,7 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
             "domain": "Phase3-冲突消解",
             "detail": "发票连号+贸易模式正常→可能是同批次购票，需进一步验证",
             "description": (
-                "【冲突消解】发票连号 + 贸易模式正常（进销品名匹配度高）。"
+                "两项信号综合来看：发票连号 + 贸易模式正常（进销品名匹配度高）。"
                 "如果企业的进销品名匹配、毛利率正常、供应商分散，"
                 "连续的发票号可能只是因为企业一次性购买了同一卷/同批次发票——"
                 "这是税务机关正常配票的结果，不代表交易造假。\n\n"

@@ -173,20 +173,20 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     risk_advice = _get_risk_advice(overall_risk)
     
     lines.append(
-        f"【综合税务合规结论】\n\n"
+        f"综合各方面情况，本企业的税务合规状况如下：\n\n"
         f"经对{scale_desc}{model}企业（{industry}行业）的多域全量分析——"
         f"涵盖{fs['bank_tx_count']}笔银行流水、{fs['sale_count']}张销项发票、{fs['pur_count']}张进项发票"
         f"{'、'+str(fs['salary_count'])+'条工资记录' if fs['salary_count'] > 0 else ''}——"
-        f"综合风险评级为【{overall_risk}】（评分{score:.0f}/100）。\n\n"
+        f"综合的风险评级为{overall_risk}（评分{score:.0f}/100）。\n\n"
         f"{risk_advice}"
     )
     
     # ═══ 第二段：经营模式诊断 ═══
-    lines.append(f"\n【经营模式诊断】")
+    lines.append(f"\n经营模式方面，")
     lines.append(_get_detailed_mode_analysis(model, industry, ctx))
     
     # ═══ 第三段：核心风险画像 ═══
-    lines.append(f"\n【核心风险画像】")
+    lines.append(f"\n主要风险集中在以下几点：")
     
     # 按风险类别聚合
     fraud_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["虚开","造假","编造","对开","走票"])]
@@ -214,7 +214,7 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     
     # ═══ 第四段：交叉验证洞察 ═══
     if cross_findings:
-        lines.append(f"\n【交叉验证洞察】")
+        lines.append(f"\n交叉验证后发现，")
         lines.append(f"Phase 3 交叉验证引擎触发{len(cross_findings)}个信号叠加模式，")
         lines.append(f"意味着多个独立分析域的结论互相印证——不是孤立的异常，而是系统性风险。")
         for cf in cross_findings[:3]:
@@ -223,7 +223,7 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
             lines.append(f"  • {name} ({level})")
     
     # ═══ 第五段：核查优先级 ═══
-    lines.append(f"\n【核查优先级】")
+    lines.append(f"\n下一步核查的先后顺序建议为：")
     lines.append(f"  共有{p0_count}项P0立即行动、{p1_count}项P1重点关注。")
     
     # 根据风险等级给出下一步具体建议
@@ -243,7 +243,7 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     
     # ═══ 第六段：质量声明 ═══
     if ctx.data_quality_score < 70:
-        lines.append(f"\n【资料质量声明】")
+        lines.append(f"\n关于本次资料的完整性，需要说明：")
         lines.append(f"  当前资料质量评分{ctx.data_quality_score}/100。")
         if ctx.missing_critical_docs:
             lines.append(f"  缺失关键资料：{'、'.join(ctx.missing_critical_docs)}。")

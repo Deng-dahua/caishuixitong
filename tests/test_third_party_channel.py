@@ -137,7 +137,10 @@ def test_vr057_hard_rule_and_wage_split_linkage():
     assert findings, "VR057 应触发"
     f = findings[0]
     d = f["detail"]
-    assert "硬规定" in d, "应体现『提交平台后台真实记录』的硬规定"
+    # 用户要求报告自然表述：不再保留『硬规定』这类内部标签，
+    # 改为断言该硬性要求本身（提交平台后台真实记录）已落入正文。
+    assert "第三方平台后台真实记录" in d, "应体现『提交平台后台真实记录』的硬性要求"
+    assert "平台" in d and "后台" in d, "应责令企业提交平台后台真实记录"
     assert "个税" in d and "私户" in d, "应打通平台资金→私户另付工资→个税逃漏链条"
     assert f["observed_metrics"]["wage_split_linkage"] is True
     dd = f["observed_metrics"]["demand_docs"]
@@ -147,7 +150,7 @@ def test_vr057_hard_rule_and_wage_split_linkage():
 
 
 def test_vr057_settlement_provided_no_hard_blindspot():
-    """已提供平台结算资料 → 不触发『硬规定』盲区责令文案。"""
+    """已提供平台结算资料 → 不触发平台后台记录责令文案。"""
     data = {
         "sal_invs": [{"buyer": "张1（个人）", "amount": 380.0}],
         "vouchers": _alipay_vouchers(1),
@@ -158,7 +161,7 @@ def test_vr057_settlement_provided_no_hard_blindspot():
     assert findings, "VR057 应触发"
     f = findings[0]
     assert f["observed_metrics"]["settlement_provided"] is True
-    assert "硬规定" not in f["detail"]
+    assert "第三方平台后台真实记录" not in f["detail"]
 
 
 if __name__ == "__main__":

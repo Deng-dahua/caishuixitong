@@ -526,7 +526,7 @@ def _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_rev=None):
         context = ""
         if vr_total > 0 and vr_total > s_total * 1.1:
             vr_ratio = p_total / vr_total
-            context = (f"\n\n【收入口径说明】本次审核区分两种收入口径：\n"
+            context = (f"\n\n关于收入口径，本次审核区分两种口径：本次审核区分两种收入口径：\n"
                       f"① 进销发票对比：进项发票{p_total:,.2f}元 vs 销项发票{s_total:,.2f}元（开票收入），进项是销项的{ratio:.2f}倍。\n"
                       f"② 进项发票 vs 主营业务收入：进项发票{p_total:,.2f}元 vs 主营业务收入{vr_total:,.2f}元（含未开票收入），进项是主营收入的{vr_ratio:.2f}倍。\n"
                       f"因该公司存在大量未开票收入（{voucher_rev.get('uninvoiced',0):,.2f}元），发票口径与总收入口径差异巨大，本结论以发票对比(①)为准。")
@@ -2081,13 +2081,13 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
          lambda: (
              f"合同需求分层分析（行业无关，基于发票品名+金额+类型四层自动分类）：\n"
              f"总供应商{contract_tiers.get('total_suppliers', 0)}家，销项客户{len(set(str(i.get('buyer',''))[:15] for i in sal_invs if i.get('buyer'))) if sal_invs else 0}家。\n\n"
-             f"【必签合同·主营业务】{len(mc_list)}家，交易额{must_total:,.2f}元：\n"
+             f"必须签订合同的主营业务：{len(mc_list)}家，交易额{must_total:,.2f}元：\n"
              f"{mc_text}{mc_more}\n"
              f"  → 判断依据：品名含原料/材料/加工/配件/零件/包装等主营业务关键词\n\n"
-             f"【应签合同·重要费用】{len(sc_list)}家，交易额{should_total:,.2f}元：\n"
+             f"应当签订合同的重要费用：{len(sc_list)}家，交易额{should_total:,.2f}元：\n"
              f"{sc_text}\n"
              f"  → 判断依据：设备/服务/维修/咨询/广告/物流等重要费用支出\n\n"
-             f"【可免合同·日常消费】{len(ms_list)}家，交易额{may_total:,.2f}元：\n"
+             f"可以免签合同的日常消费：{len(ms_list)}家，交易额{may_total:,.2f}元：\n"
              f"{ms_text}{ms_more}\n"
              f"  → 判断依据：加油/餐饮/差旅/办公/通讯/快递等日常消费\n\n"
              f"四层自动分类：①主营业务采购→必签 ②重要费用(设备/服务/维修等)→应签 ③日常消费→发票即可 ④小额杂项→可免。"
@@ -3144,7 +3144,7 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
                 "level": chain_def.get("level", "高风险"),
                 "score": min(avg_score, 10),
                 "detail": f"{len(evidence_collected)}条相互印证的发现指向同一结论：{chain_name}。证据链维度：{', '.join(e[0] for e in evidence_collected)}。",
-                "description": f"以下{len(evidence_collected)}条来自不同域、不同数据源的发现，从不同角度指向同一个结论——【{chain_name}】：\n\n{evidence_text}\n{chain_def.get('description', '')}",
+                "description": f"以下{len(evidence_collected)}条来自不同域、不同数据源的发现，从不同角度指向同一个结论——{chain_name}，这些发现相互印证：\n\n{evidence_text}\n{chain_def.get('description', '')}",
                 "how_found": chain_def.get("how_found", f"对{len(evidence_collected)}个独立维度的数据进行交叉验证，各方证据互相印证形成证据链闭环"),
                 "tax_impact": chain_def.get("tax_impact", ""),
                 "policy_ref": chain_def.get("policy_ref", ""),
@@ -3348,7 +3348,7 @@ def _domain_cross_domain_analysis(all_findings):
                 "level": chain_def.get("level", "中风险"),
                 "score": min(len(reasoning) * 2, 9),
                 "detail": f"检测到{len(trigger_kws)}个触发关键词——经{len(reasoning)}步推理分析，发现{len(reasoning)}条异常线索。",
-                "description": f"【推理路径】\n{reasoning_desc}\n\n{desc}\n\n{suggestion}",
+                "description": f"推理过程如下：\n{reasoning_desc}\n\n{desc}\n\n{suggestion}",
                 "how_found": f"自动监测到'{', '.join(trigger_kws[:5])}'等关键词，启动'{chain_def.get('name','')}'推理链进行{len(reasoning)}步因果推导",
                 "suggestion": suggestion or f"按{len(reasoning)}步推理链逐步验证。",
                 "category": "跨域推理分析",
@@ -3575,7 +3575,7 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity=None):
                     + f"· 法定代表人打款：{legal_rep_payments:,.2f}元（{'已确认' if legal_rep_payments > 0 else '零'}）\n"
                     + f"· 股东打款：{sum(shareholder_payments.values()):,.2f}元（覆盖{len(shareholder_payments)}位股东）\n"
                     + f"· 其他个人：{sum(other_personal.values() if other_personal else [0]):,.2f}元（{len(other_personal) if other_personal else 0}人）\n\n"
-                    + f"【核查要点】\n"
+                    + f"核查时应重点看：\n"
                     + f"1. 法定代表人/股东个人打款 → 要求提供出资证明/借款合同/往来款说明，区分注资（资本公积）和经营收款（隐匿收入）\n"
                     + f"2. 其他个人打款 → 逐笔核实身份和交易背景，防止未开票的个人客户收款\n"
                     + f"3. 大额整数的个人打款 → 重点怀疑未开票货款"
@@ -3645,7 +3645,7 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity=None):
             "type": "付款流向与进项发票供应商严重不匹配",
             "level": "高风险", "score": 8,
             "detail": f"银行支出{total_expense:,.2f}元中仅{expense_to_sellers/total_expense*100:.2f}%流向进项供应商，其余资金需逐笔阐明去向。\n\n"
-                f"【现实认知】注意：付款与进项发票天然不是一一对应关系。企业付款除了采购货款外，还包括："
+                f"需要说明的是，注意：付款与进项发票天然不是一一对应关系。企业付款除了采购货款外，还包括："
                 f"①工资薪金支出 ②固定资产购置 ③日常费用（租金/水电/差旅/办公）④税费缴纳 ⑤往来款/借款/还款 ⑥关联方资金调拨。"
                 f"因此付款不流向供应商≠资金异常，但需要明确去向。",
             "description": f"银行流水中总共支出{total_expense:,.2f}元，但只有{expense_to_sellers:,.2f}元（{expense_to_sellers/total_expense*100:.2f}%）能匹配到进项发票上的销方名称。\n\n"
@@ -3876,14 +3876,14 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
             "type": "进项发票与银行付款未匹配——资金去向不明",
             "level": "高风险", "score": 8,
             "detail": (
-                f"【分层分析结果】我将{len(pur_invs)}张进项发票按品名分为三层——主营业务成本/重大费用/日常报销。\n"
+                f"分析过程如下：我把我将{len(pur_invs)}张进项发票按品名分为三层——主营业务成本/重大费用/日常报销。\n"
                 f"已排除{reimb_count}张日常费用报销发票（餐饮住宿汽油等，合计{reimb_total:,.2f}元）——这些发票属于员工报销模式，付款对象是员工而非开票单位，不参与供应商名称匹配。\n"
                 f"对剩余{len(biz_cost_invs)}张业务成本类发票做名称匹配：{amt_mismatch}张" +
                 (f"（占业务成本类发票的{amt_mismatch/max(len(biz_cost_invs),1)*100:.2f}%）" if len(biz_cost_invs)>0 else "") +
                 f"的供应商在银行流水付款记录中找不到对应付款，涉及采购金额{total_unmatched:,.2f}元，占业务成本采购总额{total_biz_cost:,.2f}元的{pct:.2f}%。"
             ),
             "description": f"将进项发票的销方名称与银行付款的对方户名进行双向比对。\n\n"
-                + f"【现实认知】实际经营中发票与付款天然不是一一对应关系，而是以下六种模式之一：\n"
+                + f"需要说明的是，实际经营中发票与付款天然不是一一对应关系，而是以下六种模式之一：\n"
                 + f"  ① 自然跨期——发票期末开、付款下期发生，或付款上期完成、发票后到（最常见）\n"
                 + f"  ② 合并付款——一笔银行付款对应多张发票（供应商按月汇总结算，一次付清多月货款）\n"
                 + f"  ③ 分期付款——一张发票对应多笔银行付款（大额采购分期支付，每次付一部分）\n"
@@ -3891,14 +3891,14 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
                 + f"  ⑤ 应付账款——发票在先、付款在后（货到票到，但按账期约定如60天后付款）\n"
                 + f"  ⑥ 非对公/代付——通过现金、微信、支付宝、个人账户或第三方支付（商业上属实但银行流水无记录）\n\n"
                 + f"发票名称与付款记录不匹配≠交易不真实。未匹配只是分析起点，需要逐笔核实属于上述哪种情况。\n\n"
-                + f"【比对结果】被查单位{len(pur_invs)}张进项发票中，{amt_mismatch}张（{amt_mismatch/len(pur_invs)*100:.2f}%）的销方名称在当前银行付款记录中找不到名称匹配的付款。涉及采购金额{total_unmatched:,.2f}元，占进项采购总额{pct:.2f}%。\n\n"
-                + f"【可能原因分析】\n"
+                + f"比对结果是：被查单位{len(pur_invs)}张进项发票中，{amt_mismatch}张（{amt_mismatch/len(pur_invs)*100:.2f}%）的销方名称在当前银行付款记录中找不到名称匹配的付款。涉及采购金额{total_unmatched:,.2f}元，占进项采购总额{pct:.2f}%。\n\n"
+                + f"出现这种情况通常有以下几种原因：\n"
                 + f"· 自然跨期：发票已开但付款在分析期外——拉长银行流水期间或核对应付账款明细验证\n"
                 + f"· 合并/分期：多票一次付或多笔付一票——名称对不上但交易属实，需对账明细佐证\n"
                 + f"· 预付/应付：付款与开票有时间差——正常商业行为，需预付/应付账款明细支撑\n"
                 + f"· 非对公/代付：通过个人或第三方付款——商业可能属实，但进项税抵扣在税务合规中面临被否定\n"
                 + f"· 虚开发票：无真实交易只走票——最需排除但占比通常最低的情况\n\n"
-                + f"【关键供应商明细】{examples}等。",
+                + f"其中金额较大的几家是：{examples}等。",
             "how_found": (
                 f"我先将{len(pur_invs)}张进项发票按品名做三层分类——识别出{reimb_count}张为日常费用报销（餐饮住宿汽油差旅等，合计{reimb_total:,.2f}元）并排除。"
                 f"然后对剩余{len(biz_cost_invs)}张业务成本类发票做名称匹配——"
@@ -4149,7 +4149,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
                 f"三组地址互不重叠+零运输成本→货物流物证链断裂，全链条经营实质存疑。"
             ),
             "description": (
-                f"【点→面推理分析】\n\n"
+                f"由此可以进一步推测：\n\n"
                 f"起点（单点发现）：{'发现' + str(len(processors)) + '家加工费供应商不在' + company_city + '市' if processors else '发现供应商地址分布异常'}。\n\n"
                 f"扩展（关联维度）：\n"
                 f"┌ 维度A-原材料供应链：{remote_sellers}家供应商分布在{len(remote_seller_cities)}个城市"
@@ -4184,13 +4184,13 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
             ),
             "suggestion": (
                 f"这是全链条经营实质的核心问题，需要从以下路径提供证据：\n"
-                f"【路径A——提供全链条物流单据】\n"
+                f"第一种方式是提供全链条物流单据：\n"
                 f"①原材料从{', '.join(sorted(remote_seller_cities))}等地到{company_city}的运输单据（运单、签收单、运费发票）；\n"
                 f"②委托加工物资往返{company_city}↔{'/'.join(sorted(proc_cities)) if proc_cities else '外地'}的物流记录；\n"
                 f"③成品从{company_city}到客户的发货记录和物流单据。\n\n"
-                f"【路径B——提供合同中的运费条款】\n"
+                f"第二种方式是提供合同中的运费条款：\n"
                 f"如为供应商承担运费→提供采购合同中'到货价'条款+供应商的运费发票复印件。\n\n"
-                f"【路径C——无法提供】\n"
+                f"第三种情形是企业无法提供相关资料：\n"
                 f"如果确实无法提供任何运输证明→企业的全链条经营在物理上无法成立→"
                 f"所有跨省交易的发票应视为虚开或交易不真实→进项税额全部转出+成本费用全部不得税前扣除。"
             ),
@@ -5214,7 +5214,7 @@ def _domain_rule_coverage(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
         
         missing_list = []
         for m in missing_data:
-            missing_list.append(f"【规则{m['id']}】{m['item']}：缺少{m['required']}，{m['fallback']}")
+            missing_list.append(f"{m['item']}：缺少{m['required']}，{m['fallback']}")
         
         verification_text = "\n".join(missing_list)
         
@@ -6850,7 +6850,7 @@ class TrendDetector:
         # 构建年份序列描述
         year_range = f"{years[0]}-{years[-1]}"
         detail = (
-            f"【{label}趋势】{year_range}年: "
+            f"{label}的变化趋势为，{year_range}年："
             + " → ".join(f"{y}年{label}={v:.2f}{unit}" for y, v in values)
             + f"\n总变化: {change_pct:+.1f}% ({first_val:.2f}→{last_val:.2f}{unit})"
             + f"\n趋势判定: {trend} ({direction_hint})"
@@ -7524,19 +7524,19 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
         
         if risk_action == "升级":
             description = (
-                f"【冲突消解→风险升级】{signal_a} + {signal_b}——"
+                f"两项信号叠加后风险上调：{signal_a} + {signal_b}——"
                 f"两个信号不是矛盾而是互证：{resolution}。\n"
                 f"核查建议：{note}"
             )
         elif risk_action == "降级":
             description = (
-                f"【冲突消解→风险降级】{signal_a} + {signal_b}——"
+                f"两项信号叠加后风险下调：{signal_a} + {signal_b}——"
                 f"{resolution}。应将核查焦点调整，原高风险标记可能过于激进。\n"
                 f"核查建议：{note}"
             )
         else:
             description = (
-                f"【冲突消解】{signal_a} + {signal_b}——"
+                f"两项信号综合来看：{signal_a} + {signal_b}——"
                 f"{resolution}。\n"
                 f"核查建议：{note}"
             )
@@ -7738,7 +7738,7 @@ def _trigger_missing_consequences(all_items, missing_doc_keys=None, industry_pro
             "type": f"资料缺失触发-{t['risk']}",
             "level": t["level"],
             "score": score_map.get(t["level"], 5),
-            "detail": f"【缺失触发】因未提交对应资料，系统依据税务合规实战经验自动触发风险结论：{t['consequence']}",
+            "detail": f"由于该项资料未提交，系统依据税务合规实战经验提示：因未提交对应资料，系统依据税务合规实战经验自动触发风险结论：{t['consequence']}",
             "description": f"因关键资料缺失，系统自动触发该风险结论——这是税务合规实战中的标准逻辑推导。{t['consequence']}",
             "how_found": f"系统检测到关键资料缺失，自动触发'{t['risk']}'风险结论（叙事增强层·缺失后果自动触发）",
             "tax_impact": t["consequence"],
@@ -10509,8 +10509,8 @@ def _multi_hypothesis_check(ctx, all_findings, bank_txs, invoices):
             "level": "中风险",
             "score": 5,
             "detail": (
-                f"【{winner['name']}】得分最高({winner['score']}分): {winner['explanation']}\n"
-                + (f"【{runner_up['name']}】次选({runner_up['score']}分): {runner_up['explanation']}" if runner_up else "")
+                f"可能性最大的是{winner['name']}（{winner['score']}分）：{winner['explanation']}\n"
+                + (f"其次是{runner_up['name']}（{runner_up['score']}分）：{runner_up['explanation']}" if runner_up else "")
             ),
             "description": (
                 f"对进销严重不匹配，同时考虑3种竞争假设并行推理：\n"
@@ -11655,11 +11655,11 @@ def _build_early_warnings(all_findings, ctx):
             continue
         
         warning_detail = (
-            f"【事前预警·风险升级路径】\n\n"
+            f"以下是事前的预警提示，以及风险可能升级的路径：\n\n"
             f"当前状态：检测到'{matched[0]}'信号\n\n"
             f"演变推演：{rule['forward_projection']}\n\n"
             f"预计时间窗口：{rule['timeframe']}\n\n"
-            f"【立即应对清单】\n{rule['checklist']}\n\n"
+            f"建议立即着手的事项：\n{rule['checklist']}\n\n"
             f"提醒：以上推演基于税务合规实战经验——"
             f"这些不是杞人忧天，而是同类案例中真实发生过的升级路径。"
             f"现在处理是'自查补税'，等税务合规来了就是'立案处罚'——性质完全不同。"
@@ -11836,22 +11836,22 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     risk_advice = _get_risk_advice(overall_risk)
     
     lines.append(
-        f"【综合税务合规结论】\n\n"
+        f"综合各方面情况，本企业的税务合规状况如下：\n\n"
         f"经对{scale_desc}{model}企业（{industry}行业）的多域全量分析——"
         f"涵盖{fs['bank_tx_count']}笔银行流水、{fs['sale_count']}张销项发票、{fs['pur_count']}张进项发票"
         f"{'、'+str(fs['salary_count'])+'条工资记录' if fs['salary_count'] > 0 else ''}——"
-        f"综合风险评级为【{overall_risk}】（评分{score:.2f}/100）。\n\n"
+        f"综合的风险评级为{overall_risk}（评分{score:.2f}/100）。\n\n"
         f"{risk_advice}"
     )
     
     # ═══ 第二段：经营模式诊断 ═══
-    lines.append(f"\n【经营模式诊断】")
+    lines.append(f"\n经营模式方面，")
     lines.append(_get_detailed_mode_analysis(model, industry, ctx))
     # ── 行业自适应基准对比 ──
     lines.append(_get_industry_benchmark_comparison(ctx))
     
     # ═══ 第三段：核心风险画像 ═══
-    lines.append(f"\n【核心风险画像】")
+    lines.append(f"\n主要风险集中在以下几点：")
     
     # 按风险类别聚合
     fraud_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["虚开","造假","编造","对开","走票"])]
@@ -11941,7 +11941,7 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     
     # ═══ 第四段：交叉验证洞察 ═══
     if cross_findings:
-        lines.append(f"\n【交叉验证洞察】")
+        lines.append(f"\n交叉验证后发现，")
         lines.append(f"Phase 3 交叉验证引擎触发{len(cross_findings)}个信号叠加模式，")
         lines.append(f"意味着多个独立分析域的结论互相印证——不是孤立的异常，而是系统性风险。")
         for cf in cross_findings[:3]:
@@ -11950,7 +11950,7 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
             lines.append(f"  • {name} ({level})")
     
     # ═══ 第五段：核查优先级 ═══
-    lines.append(f"\n【核查优先级】")
+    lines.append(f"\n下一步核查的先后顺序建议为：")
     lines.append(f"  共有{p0_count}项P0立即行动、{p1_count}项P1重点关注。")
     
     # 根据风险等级给出下一步具体建议
@@ -11974,17 +11974,17 @@ def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, 
     if learner and learner.is_loaded:
         learner_insight = learner.get_industry_memory_insight(ctx)
         if learner_insight:
-            lines.append(f"\n【记忆学习洞察】")
+            lines.append(f"\n结合以往案例经验，")
             lines.append(f"  {learner_insight}")
     else:
         memory_insight = getattr(ctx, '_memory_insight', '')
         if memory_insight:
-            lines.append(f"\n【历史记忆洞察】")
+            lines.append(f"\n结合以往案例经验，")
             lines.append(f"  {memory_insight}")
     
     # ═══ 第七段：质量声明 ═══
     if ctx.data_quality_score < 70:
-        lines.append(f"\n【资料质量声明】")
+        lines.append(f"\n关于本次资料的完整性，需要说明：")
         lines.append(f"  当前资料质量评分{ctx.data_quality_score}/100。")
         if ctx.missing_critical_docs:
             lines.append(f"  缺失关键资料：{'、'.join(ctx.missing_critical_docs)}。")

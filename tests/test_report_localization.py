@@ -196,5 +196,81 @@ class MetricKeyLocalizationTests(unittest.TestCase):
         self.assertIn("已申报口径", nested[0])
 
 
+class TestNaturalizeReportText(unittest.TestCase):
+    """报告正文自然化契约（2026-09-12 用户要求）：
+
+    给企业看的报告不出现【主张】【线索】【依据】等内部字段标记，
+    也不出现 RL-PAY-001 这类红线编号，一律自然表述。
+    """
+
+    def test_internal_field_tags_removed(self):
+        from engine.enterprise_report import _naturalize_report_text
+        cases = [
+            "【主张】本企业触碰红线。",
+            "【线索】从工资表读到人数。",
+            "【依据】构成要件是……",
+            "【证据】已有3项。",
+            "【反证】企业可申辩。",
+            "【裁决】本项成立。",
+            "【线索链】怎么发现的。",
+            "【证据链】要什么证据。",
+        ]
+        for c in cases:
+            got = _naturalize_report_text(c)
+            self.assertNotIn("【", got, f"未净化：{c} → {got}")
+            self.assertNotIn("】", got, f"未净化：{c} → {got}")
+
+    def test_redline_id_stripped_from_text(self):
+        from engine.enterprise_report import _naturalize_report_text
+        got = _naturalize_report_text("RL-PAY-001 工资表人数与社保参保人数不符")
+        self.assertNotRegex(got, r"RL-[A-Z]+-\d+")
+        self.assertIn("工资表人数与社保参保人数不符", got)
+
+    def test_inline_redline_id_in_sentence_stripped(self):
+        from engine.enterprise_report import _naturalize_report_text
+        got = _naturalize_report_text(
+            "经检查，本企业触碰税务红线 RL-PTY-001「采购成本无对公付款资金证据」，涉嫌虚列成本。"
+        )
+        self.assertNotRegex(got, r"RL-[A-Z]+-\d+")
+        # 不得出现「税务红线红线」这类叠加重复
+        self.assertNotIn("税务红线红线", got)
+        self.assertIn("触碰税务红线「采购成本无对公付款资金证据」", got)
+
+    def test_redline_name_without_id_preserved(self):
+        from engine.enterprise_report import _naturalize_report_text
+        # 标题形式（红线名本身不含编号）必须原样保留
+        self.assertEqual(
+            _naturalize_report_text("工资表人数与社保参保人数不符"),
+            "工资表人数与社保参保人数不符",
+        )
+
+    def test_output_gate_neutralizes_whole_report(self):
+        from engine.enterprise_report import _zh_normalize_obj
+        rep = {
+            "confirmed_problems": [{
+                "title": "RL-PAY-001 工资表人数与社保参保人数不符",
+                "narrative_paragraphs": [{"text": "【主张】本企业触碰红线 RL-PAY-001。"}],
+            }],
+        }
+        out = _zh_normalize_obj(rep)
+        blob = str(out)
+        self.assertNotIn("【", blob)
+        self.assertNotRegex(blob, r"RL-[A-Z]+-\d+")
+
+    def test_numeric_thousand_separator_preserved(self):
+        from engine.enterprise_report import _humanize_observed
+        got = _humanize_observed("涉及金额7,747,329.31元")
+        self.assertIn("7,747,329.31", got, f"千分位逗号被破坏：{got}")
+
+    def test_source_alias_localized_no_empty_duns(self):
+        from engine.enterprise_report import _humanize_observed
+        got = _humanize_observed(
+            "已读取资料：人员薪酬、voucher、salary、purchase_invoice、sales_invoice、social_security"
+        )
+        self.assertNotIn("、、", got, f"残留空顿号：{got}")
+        for zh in ("记账凭证", "工资表", "进项发票", "销项发票", "社保明细"):
+            self.assertIn(zh, got, f"{zh} 未译出：{got}")
+
+
 if __name__ == "__main__":
     unittest.main()

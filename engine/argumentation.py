@@ -24,6 +24,7 @@
 3. 证据不足一律转置疑清单，系统绝不自动定罪，也绝不自动免责。
 """
 
+import re
 from typing import Any, Dict, List, Optional
 
 # 四个裁决层级：「触红」与「定性」是两个层次，不可混为一谈
@@ -220,39 +221,50 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
 
 def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
                        rebuttals: List[str], verdict: str, confidence: float) -> str:
-    """把论证过程写成一段大白话（稽查员口吻）"""
+    """把论证过程写成一段自然叙述（检查人员口吻，不出现字段标记与编号）。
+
+    报告是给人看的文书，不保留【主张】【依据】这类内部字段标记，
+    也不出现 RL-XXX 这样的红线编号（编号只在系统内部用于追溯）。
+    叙述按「查到了什么 → 凭什么这样判断 → 现在能定到什么程度 → 企业可以怎么解释」
+    的自然逻辑展开。
+    """
     parts = []
-    parts.append(f"【主张】{claim}。")
-    parts.append(
-        f"【依据】本条红线的构成要件是：{_join(redline.get('constituents') or [], '；')}。"
-    )
+    # 去掉 claim 里的红线编号（「本企业触碰红线 RL-PAY-001「名称」，涉嫌…」→ 自然表述）
+    claim_text = re.sub(r"红线\s*RL-[A-Z]+-\d+\s*", "红线", claim or "")
+    claim_text = re.sub(r"RL-[A-Z]+-\d+\s*", "", claim_text).strip()
+    parts.append(f"{claim_text}。")
+    constituents = redline.get("constituents") or []
+    if constituents:
+        parts.append(f"这样判断的依据是：{_join(constituents, '；')}。")
     if clue.get("terminal_signal"):
-        parts.append(f"【线索】{clue.get('terminal_signal')}。")
+        parts.append(f"本轮从资料中直接读到的事实是：{clue.get('terminal_signal')}。")
     chain_desc = "→".join(
         f"{_zh_source(n.get('source','?').split('、')[0])}" for n in (clue.get("nodes") or [])
     )
     if chain_desc:
-        parts.append(f"【线索链】{chain_desc}。")
+        parts.append(f"这些事实是从{chain_desc}这几类资料里逐层核对出来的。")
+    _v = evidence.get('verdict', '')
+    _closure = int(float(evidence.get('closure', 0)) * 100)
     parts.append(
-        f"【证据】{evidence.get('verdict','')}，闭合度{int(float(evidence.get('closure',0))*100)}%"
-        f"（已有{evidence.get('available_count',0)}项、缺失{evidence.get('missing_count',0)}项）；"
-        f"{evidence.get('rebuttal_status','')}。"
+        f"就证据来说，{_v}，目前闭合到{_closure}%"
+        f"（手上已有{evidence.get('available_count',0)}项，还缺{evidence.get('missing_count',0)}项）"
+        f"{'；' + evidence.get('rebuttal_status', '') if evidence.get('rebuttal_status') else ''}。"
     )
     if rebuttals:
         parts.append(
-            f"【反证】企业可能主张：{_join(rebuttals[:3], '；')}。"
-            "上述理由成立与否，须以书面协议与原始单据为准，不以口头说明认定。"
+            f"企业如果认为这不成立，通常可以说明：{_join(rebuttals[:3], '；')}。"
+            "但这些说明能不能采信，要看有没有书面协议和原始单据，口头解释不能作为认定依据。"
         )
     if verdict == _VERDICT_CONFIRMED:
-        tail = "证据链已闭合，本疑点可直接定性；若企业有异议，须更正所报资料本身或提出相反证据。"
+        tail = "证据已经闭合，这一项可以直接认定；企业如有异议，需要更正所报资料本身或者提出相反证据。"
     elif verdict == _VERDICT_HIT_PENDING:
-        tail = ("已触碰税务红线，但证据链尚未闭合，暂不定性——转置疑清单，"
-                "由企业补充上述证据后重新检查；在补证前既不认定违法，也不予排除。")
+        tail = ("已经触碰税务红线，但证据还不够齐全，本轮暂不下结论，"
+                "转由企业补充上述材料后重新检查；补证之前既不认定违法，也不予排除。")
     elif verdict == _VERDICT_EXCLUDED:
-        tail = "已有合理解释并有证据支撑，本条红线予以排除。"
+        tail = "企业给出的解释合理且有证据支撑，这一项予以排除。"
     else:
-        tail = "现有资料不足以形成税务疑点，仅作观察记录，待资料补充后重新判定。"
-    parts.append(f"【裁决】{verdict}，置信度{int(confidence * 100)}%。{tail}")
+        tail = "现有资料还不足以形成税务疑点，本轮只作观察记录，等资料补充后再判断。"
+    parts.append(f"综合以上，本项结论是{verdict}，把握程度{int(confidence * 100)}%。{tail}")
     return "".join(parts)
 
 

@@ -4730,13 +4730,13 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     var meta = '';
     if (item.redline_id) {
       var pct = function(v){ return (typeof v === 'number' ? Math.round(v * 100) : 0) + '%'; };
+      // 用户要求：不出现 RL-XXX 编号与「裁决/置信度」等术语，改用自然表述。
       meta = '<p class="i2" style="margin:6px 0 10px;padding:8px 12px;background:#f8fafc;'
         + 'border-left:3px solid #2563eb;font-size:13px;line-height:1.9">'
-        + '红线编号：<strong>' + esc(item.redline_id) + '</strong>'
-        + (item.suspect ? '｜涉嫌：' + esc(item.suspect) : '')
-        + (item.verdict ? '｜裁决：<strong>' + esc(item.verdict) + '</strong>' : '')
-        + (item.confidence ? '｜置信度：' + pct(item.confidence) : '')
-        + (item.closure !== undefined ? '｜证据链闭合度：' + pct(item.closure) : '')
+        + (item.suspect ? '性质：' + esc(item.suspect) : '')
+        + (item.verdict ? (item.suspect ? '｜' : '') + '本项结论：<strong>' + esc(item.verdict) + '</strong>' : '')
+        + (item.confidence ? '｜把握程度：' + pct(item.confidence) : '')
+        + (item.closure !== undefined ? '｜证据齐全程度：' + pct(item.closure) : '')
         + (item.taxes && item.taxes.length ? '｜涉及税种：' + esc((item.taxes || []).join('、')) : '')
         + '</p>';
     }

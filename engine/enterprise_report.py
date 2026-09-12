@@ -80,9 +80,15 @@ def _zh_normalize(text):
 
 
 def _zh_normalize_obj(o):
-    """递归对报告字典的全部字符串值做中文化归一（键名/非字符串值原样保留）。"""
+    """递归对报告字典的全部字符串值做中文化归一 + 正文自然化（键名/非字符串值原样保留）。
+
+    这是企业易读报告输出前的**全量净化闸门**：
+      ① 中文化：英文键名/标识转中文（_zh_normalize）
+      ② 自然化：剥除【主张】【线索】【依据】等内部字段标记与 RL-XXX 红线编号
+         （用户要求：给企业看的报告一律自然表述，不出现内部标记）
+    """
     if isinstance(o, str):
-        return _zh_normalize(o)
+        return _naturalize_report_text(_zh_normalize(o))
     if isinstance(o, list):
         return [_zh_normalize_obj(x) for x in o]
     if isinstance(o, dict):
@@ -817,6 +823,71 @@ def _conclusion_statement(f):
     )
 
 
+def _naturalize_report_text(text):
+    """报告正文自然化：去掉内部字段标记与红线编号，改为自然表述。
+
+    用户要求：给企业看的报告里不要出现「【主张】【线索】【依据】」「RL-PAY-001」
+    这类内部标记，一律改为自然语言。此函数是报告输出前的最后一道兜底，
+    即使上游（引擎/历史缓存/其他生成路径）带出这些标记，也不会流到企业手上。
+
+    注意：红线编号本身仍保留在 title 之外的 redline_id 字段，供系统内部追溯。
+    """
+    if not text:
+        return text
+    import re as _re
+    s = str(text)
+    # 1) 方头括号字段标记 → 自然表述（长标记优先，避免短标记吃掉长标记前缀）
+    for tag, plain in _TAG_PLAIN:
+        if tag in s:
+            s = s.replace(tag, plain)
+    # 2) 残留的其他方头括号标记：直接去掉括号保留内容
+    s = _re.sub(r"【([^】]{1,20})】", r"\1：", s)
+    # 3) 剥除红线编号（如「触碰税务红线 RL-PTY-001「名称」」→「触碰税务红线「名称」」）
+    s = _re.sub(r"红线\s*RL-[A-Z]+-\d+\s*", "红线", s)
+    # 4) 其余位置的裸编号一律剥除（如 "RL-PTY-001 采购成本…" → "采购成本…"）
+    s = _re.sub(r"RL-[A-Z]+-\d+\s*", "", s)
+    # 5) 清理因剥除产生的空括号、重复词与多余空格
+    s = _re.sub(r"「\s*」", "", s)
+    s = _re.sub(r"税务红线红线", "税务红线", s)   # 防上游已含「税务红线」时叠加
+    s = _re.sub(r"([\u4e00-\u9fa5]{2,4})\1", r"\1", s)  # 相邻重复词（如「税务税务」）
+    s = _re.sub(r"[，。；：]{2,}", lambda m: m.group(0)[0], s)
+    s = _re.sub(r"  +", " ", s)
+    return s
+
+
+# 方头括号内部标记 → 自然表述（长标记在前，避免前缀误替换）
+_TAG_PLAIN = [
+    ("【为何值得查·具体理由】", "之所以值得查，"),
+    ("【需企业举证排除的事项】", "需要企业举证说明："),
+    ("【需企业补充/系统待接入】", "还需企业补充或系统后续接入的资料："),
+    ("【已核实事实·地理背离】", "已经核实："),
+    ("【已核实事实·物流缺位】", "已经核实："),
+    ("【已核实事实·合同缺位】", "已经核实："),
+    ("【已核实事实】", "已经核实的事实是："),
+    ("【综合税务合规结论】", "综合各方面情况，税务合规状况如下："),
+    ("【经营模式诊断】", "经营模式方面，"),
+    ("【核心风险画像】", "主要风险集中在："),
+    ("【交叉验证洞察】", "交叉验证后发现，"),
+    ("【核查优先级】", "核查的先后顺序建议为："),
+    ("【资料质量声明】", "关于资料完整性，需要说明："),
+    ("【线索定性】", "本项目前的性质是："),
+    ("【企业权利告知】", "需要告知企业的是："),
+    ("【主张】", "本项主张是："),
+    ("【线索】", "线索方面，"),
+    ("【线索链】", "发现过程是，"),
+    ("【依据】", "判断依据是："),
+    ("【证据】", "证据方面，"),
+    ("【反证】", "企业可以申辩的是："),
+    ("【裁决】", "本项结论是："),
+    ("【编制声明】", "编制说明："),
+    ("【本轮报告说明】", "本报告说明："),
+    ("【行业对标】", "行业基准方面，"),
+    ("【说明】", "说明："),
+    ("【短板】", "不足之处是："),
+    ("【底线】", "不得突破的底线是："),
+]
+
+
 def _build_redline_problems(suspicions):
     """
     按「税务红线疑点」组装报告主体（2026-09-06 新方法论）
@@ -843,7 +914,7 @@ def _build_redline_problems(suspicions):
         _suspect = str(s.get("suspect") or "税务风险")
         _suspect_txt = _suspect if _suspect.startswith("涉嫌") else f"涉嫌{_suspect}"
         p1 = (
-            f"经检查，本企业触碰税务红线 {rid}「{rname}」，{_suspect_txt}。"
+            f"经检查，本企业触碰税务红线「{rname}」，{_suspect_txt}。"
             "该红线不因行业而变，凡符合下列构成要件即属触红："
             + _seq(constituents, "见红线库列明的构成要件。")
             + (f"法定依据：{'；'.join(legal)}。" if legal else "")
@@ -864,36 +935,38 @@ def _build_redline_problems(suspicions):
         have = [e for e in (ev.get("elements") or []) if e.get("status") == "已有"]
         lack = [e for e in (ev.get("elements") or []) if e.get("status") != "已有"]
         p3 = (
-            f"要定性本条红线，需要组织{len(ev.get('elements') or [])}项证据。"
-            + (f"现已有{len(have)}项：" + "、".join(e["name"] for e in have[:6]) + "。" if have else "现尚无一项证据在案。")
-            + (f"尚缺{len(lack)}项：" + "、".join(e["name"] for e in lack[:6]) + "。" if lack else "")
-            + f"证据链闭合度{int(float(ev.get('closure', 0)) * 100)}%，{ev.get('verdict', '')}。"
+            f"要把这一项定下来，需要{len(ev.get('elements') or [])}项材料。"
+            + (f"目前已经拿到{len(have)}项：" + "、".join(e["name"] for e in have[:6]) + "。" if have else "目前还没有一项材料在手上。")
+            + (f"还差{len(lack)}项：" + "、".join(e["name"] for e in lack[:6]) + "。" if lack else "")
+            + f"材料齐全程度{int(float(ev.get('closure', 0)) * 100)}%，{ev.get('verdict', '')}。"
             + (f"{ev.get('rebuttal_status', '')}。" if ev.get("rebuttal_status") else "")
         )
 
-        # ④ 论证与裁决
-        p4 = arg.get("reasoning") or ""
+        # ④ 论证与裁决（上游可能带出内部标记或编号，此处做正文净化兜底）
+        p4 = _naturalize_report_text(arg.get("reasoning") or "")
 
         # ⑤ 补证要求
         actions = [a for a in (arg.get("next_actions") or []) if a]
         p5 = (
-            "为对本条红线作出定性，需要：" + _seq(actions, "由企业就本条红线提交书面说明。")
+            "要把这一项查清楚，需要：" + _seq(actions, "由企业就该项提交书面说明。")
             + (f"补救要求：{ev.get('remedy', '')}" if ev.get("remedy") else "")
         )
 
         paragraphs = [
-            {"heading": "一、触碰的税务红线", "text": p1},
-            {"heading": "二、线索链：这个疑点是怎么发现的", "text": p2,
+            {"heading": "一、触碰的税务红线", "text": _naturalize_report_text(p1)},
+            {"heading": "二、这个问题是怎么发现的", "text": _naturalize_report_text(p2),
              "detail_table": _clue_table(clue)},
-            {"heading": "三、证据链：现在有什么、还缺什么", "text": p3,
+            {"heading": "三、手上已有哪些材料、还缺什么", "text": _naturalize_report_text(p3),
              "detail_table": _evidence_table(ev)},
-            {"heading": "四、论证过程与裁决", "text": p4},
-            {"heading": "五、需要补充的资料与解释", "text": p5},
+            {"heading": "四、本项结论是怎么得出的", "text": p4},
+            {"heading": "五、需要补充的资料与解释", "text": _naturalize_report_text(p5)},
         ]
 
         problems.append({
             "seq": i,
-            "title": f"{rid} {rname}".strip(),
+            # 报告标题只写红线名（用户要求：正文不出现 RL-XXX 编号）；
+            # 编号仍通过 redline_id 字段透传，供系统内部追溯与前端可选展示。
+            "title": _naturalize_report_text(rname.strip() or rid),
             "redline_id": rid,
             "conclusion_grade": grade,
             "verdict": s.get("verdict", ""),
@@ -929,6 +1002,12 @@ _SOURCE_LABELS = [
     ("trial_balance", "科目余额表"), ("fixed_assets", "固定资产台账"),
     ("bom", "物料清单"), ("declaration", "纳税申报表"),
     ("target_entity", "目标企业信息"),
+    # 2026-09-12 补齐：引擎在「已读取资料」类观测值中输出的单数/别名形式，
+    # 缺失会在报告中留下「、、、、、」空顿号（英文标识被清洗后只剩分隔符）。
+    ("purchase_invoice", "进项发票"), ("purchase_invoices", "进项发票"),
+    ("sales_invoice", "销项发票"), ("sales_invoices", "销项发票"),
+    ("salary", "工资表"), ("voucher", "记账凭证"), ("bank_tx", "银行流水"),
+    ("sal_inv", "销项发票"), ("pur_inv", "进项发票"), ("contract", "合同台账"),
 ]
 # ── 通用词元翻译（兜底）：映射表之外的 snake_case 指标键按词元拆开翻译 ──
 # 整键每个词元都可译才翻译；遇到未知词元则连「键=」一起剔除、只保留数值。
@@ -1100,9 +1179,18 @@ def _humanize_observed(text):
     while segs and not re.search(r"\d", segs[-1]) and len(segs[-1]) <= 4:
         segs.pop()
     # 逐段规整：去掉段尾残留逗号，段内半角逗号统一为顿号
-    segs = [re.sub(r"[,，;；]+$", "", x).replace(",", "、") for x in segs]
-    s = "；".join([x for x in segs if x])
+    # （注意：数字千分位逗号「7,747,329.31」必须保留，否则金额被读错）
+    def _comma_to_dun(x):
+        x = re.sub(r"[,，;；]+$", "", x)
+        return re.sub(r"(?<=\D),(?=\D)", "、", x)
+    segs = [_comma_to_dun(x) for x in segs]
+    # 剔除被清洗后只剩分隔符的空段与空顿号（如「人员薪酬、、、、、社保明细」）
+    segs = [re.sub(r"[、，；]{2,}", "、", x).strip("、，；") for x in segs]
+    s = "；".join([x for x in segs if x and re.search(r"[\u4e00-\u9fa5\d]", x)])
     s = s.replace("…", "").strip("，；。 ")
+    # 观测值里可能夹带上游 finding 的方头括号标记（如「【主营业务成本识别后】…」），
+    # 用户要求正文不出现这类内部标记，统一自然化。
+    s = _naturalize_report_text(s)
     return s
 
 
@@ -1484,9 +1572,9 @@ def _build_derivation_tree_report(report_data):
         name = n.get("name", rid)
         state = n.get("terminal_state", "")
         if n.get("cycle_ref"):
-            lines.append(f"{pad}↺ [{rid}] {name} ——（已在上方展开，详见前序节点；防止循环展开）")
+            lines.append(f"{pad}↺ {name}——（已在上方展开，详见前序节点；防止循环展开）")
             return lines
-        lines.append(f"{pad}● [{rid}] {name}")
+        lines.append(f"{pad}● {name}")
         lines.append(f"{pad}  终态：{state}")
         if n.get("layer"):
             lines.append(f"{pad}  所属层：{n.get('layer')}")

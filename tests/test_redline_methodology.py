@@ -174,9 +174,22 @@ class TestArgumentation(unittest.TestCase):
                                 "触红后置信度不得低于 0.60")
 
     def test_reasoning_has_five_parts(self):
+        """论证叙述按「查到了什么→凭什么判断→能定到什么程度→企业怎么解释」自然展开。
+
+        2026-09-13 用户要求：报告不得出现【主张】【依据】等字段标记与 RL-XXX 编号，
+        改为自然表述。本测试由「断言标记存在」反转为「断言标记不存在」。
+        """
         arg = self._run("前三大供应商占比51%", ["银行流水"])
-        for marker in ("【主张】", "【依据】", "【证据】", "【裁决】"):
-            self.assertIn(marker, arg["reasoning"])
+        reasoning = arg["reasoning"]
+        self.assertTrue(reasoning.strip(), "论证叙述不得为空")
+        for marker in ("【主张】", "【依据】", "【线索】", "【线索链】",
+                       "【证据】", "【反证】", "【裁决】"):
+            self.assertNotIn(marker, reasoning, f"报告不得出现字段标记 {marker}")
+        self.assertNotRegex(reasoning, r"RL-[A-Z]+-\d+", "报告不得出现红线编号")
+        # 自然叙述应覆盖四个环节
+        self.assertIn("依据", reasoning)
+        self.assertIn("证据", reasoning)
+        self.assertIn("结论", reasoning)
 
 
 class TestReportIntegration(unittest.TestCase):
@@ -195,14 +208,19 @@ class TestReportIntegration(unittest.TestCase):
         self.assertTrue(problems)
         for p in problems:
             self.assertNotIn("待核事实", p["title"], "标题不得再出现「待核事实」")
-            self.assertTrue(p["redline_id"])
+            # 2026-09-13：标题只写红线名，不得前缀 RL-XXX 编号
+            self.assertNotRegex(p["title"], r"RL-[A-Z]+-\d+",
+                                f"标题不得出现红线编号：{p['title']}")
+            self.assertTrue(p["redline_id"], "编号仍须在字段层保留，供系统追溯")
             self.assertTrue(p["suspect"])
-            # 五段式
+            # 五段式（小标题改为自然表述，不得出现内部术语）
             heads = [x["heading"] for x in p["narrative_paragraphs"]]
             self.assertEqual(len(heads), 5)
-            self.assertIn("线索链", "".join(heads))
-            self.assertIn("证据链", "".join(heads))
-            self.assertIn("论证", "".join(heads))
+            joined = "".join(heads)
+            for jargon in ("线索链", "证据链", "论证", "裁决"):
+                self.assertNotIn(jargon, joined, f"小标题不得出现术语「{jargon}」")
+            self.assertIn("怎么发现", joined)
+            self.assertIn("还缺什么", joined)
 
     def test_suspect_not_duplicated(self):
         from engine.enterprise_report import _build_redline_problems

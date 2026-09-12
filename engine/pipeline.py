@@ -1236,7 +1236,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 processing = [g for g in core_only_buy if "加工" in g]
                 only_sell_goods = [g for g in sale_by_goods if g not in pur_core_by_goods]
             
-                desc = f"【主营业务成本识别后分析】将核心成本{len(pur_core_by_goods)}种商品与销项{len(sale_by_goods)}种商品逐票交叉比对。{excluded_note}\n\n"
+                desc = f"在识别出主营业务成本之后，进一步分析：将核心成本{len(pur_core_by_goods)}种商品与销项{len(sale_by_goods)}种商品逐票交叉比对。{excluded_note}\n\n"
                 desc += f"核心成本中发现{len(core_only_buy)}种商品仅采购无销售——"
                 desc += f"采购了{'、'.join(pur_raw_list[:5])}等{len(core_only_buy)}种（金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%），但销项发票中未发现同名产品的销售记录。\n\n"
             
@@ -1258,7 +1258,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 inv_match_findings.append({
                     "type": "有进无销风险",
                     "level": "中风险", "score": 5,
-                    "detail": f"【主营业务成本识别后】核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
+                    "detail": f"在识别出主营业务成本之后，核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
                     "description": desc,
                     "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），排除{len(minor_expense_invs)}张日常报销+{len(major_expense_invs)}张重大费用后，对{len(core_cost_invs)}张核心成本发票逐品名与销项比对。发现{len(core_only_buy)}类进项商品从未出现在销项中。进一步检索进项中是否存在加工费——发现{has_processing}，同时存在{len(raw_like)}类非费用类原材料采购——判定为制造业加工链条而非隐匿收入。",
                     "tax_impact": "制造业加工链条导致进销品名不匹配属正常现象。但BOM表缺失则无法证明投入产出逻辑，加工费发票真实性无法验证，风险仍存在。",
@@ -1280,9 +1280,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                 inv_match_findings.append({
                     "type": "有进无销风险",
                     "level": "高风险", "score": 8,
-                    "detail": f"【主营业务成本识别后】核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
+                    "detail": f"在识别出主营业务成本之后，核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
                     "description": f"先对{len(pur_invs)}张进项发票做主营业务成本识别，排除费用类后对{len(core_cost_invs)}张核心成本发票做进销比对。被查单位采购了{'、'.join(core_only_buy[:3])}等{len(core_only_buy)}种核心商品（金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%），但销项发票中未发现对应产品的销售记录。\n\n"
-                        + f"【人类税务合规员行为判断】{'(常规经营必有零星费用报销，已排除' + str(len(expense_only_buy)) + '类费用发票）' if expense_only_buy else ''}对主营业务成本的'有进无销'，可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
+                        + f"从实务经验判断，{'(常规经营必有零星费用报销，已排除' + str(len(expense_only_buy)) + '类费用发票）' if expense_only_buy else ''}对主营业务成本的'有进无销'，可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
                     "how_found": f"对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），排除费用类后对{len(core_cost_invs)}张核心成本发票逐品名与销项比对。发现{len(core_only_buy)}类核心进项的品名从未出现在销项中。",
                     "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。",
                     "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《中华人民共和国增值税法》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
@@ -1344,7 +1344,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 proc_items = [g for g in pur_core_by_goods if "加工" in g]
                 proc_total = sum(pur_core_by_goods[g]["amount"] for g in proc_items)
             
-                desc = f"【主营业务成本识别后分析】将核心成本{len(pur_core_by_goods)}种商品与销项{len(sale_core_related)}种商品逐票交叉比对。{bom_exempt_note}\n\n"
+                desc = f"在识别出主营业务成本之后，进一步分析：将核心成本{len(pur_core_by_goods)}种商品与销项{len(sale_core_related)}种商品逐票交叉比对。{bom_exempt_note}\n\n"
                 desc += f"发现{len(only_sell)}种商品仅销售无直接采购——"
                 desc += f"销售了{'、'.join(sell_list[:3])}（金额{sell_amount_only:,.2f}元，占核心销项{pct:.2f}%），但核心进项中未发现同名商品的采购记录。\n\n"
             
@@ -1365,7 +1365,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 inv_match_findings.append({
                     "type": "有销无进风险",
                     "level": "中风险", "score": 5,
-                    "detail": f"【主营业务成本识别后】{len(only_sell)}类核心商品仅销售无直接采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
+                    "detail": f"在识别出主营业务成本之后，{len(only_sell)}类核心商品仅销售无直接采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
                     "description": desc,
                     "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），对核心成本发票与销项逐品名交叉比对。发现{len(only_sell)}类销项商品从未出现在核心进项中。进一步检索进项中是否存在加工费（{has_processing}）和原材料采购（{len(pur_raw)}类），判定为制造业加工后产出成品——销项品名不匹配源于加工链条。",
                     "tax_impact": "制造业加工链条导致销项品名与进项品名不同属正常现象。但BOM表缺失则投入产出逻辑无法验证，加工费真实性无法判断。",
@@ -1385,7 +1385,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 inv_match_findings.append({
                     "type": "有销无进待核事实",
                     "level": "中风险", "score": 5,
-                    "detail": f"【主营业务成本识别后】{len(only_sell)}类核心商品仅销售无采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
+                    "detail": f"在识别出主营业务成本之后，{len(only_sell)}类核心商品仅销售无采购记录，涉及金额{sell_amount_only:,.2f}元{bom_exempt_note}。",
                     "description": f"对进项做主营业务成本识别后，发现被查单位对外销售了{'、'.join(only_sell[:3])}等{len(only_sell)}种核心商品（金额{sell_amount_only:,.2f}元），但现有进项核心成本中未找到对应采购记录。该差异可能由期初存货、自产加工、客户供料、受托代销、调拨在途、资料缺失或其他正常业务形成，须逐项核验。",
                     "how_found": f"先对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），对核心成本发票与销项逐品名交叉比对。发现{len(only_sell)}类销项商品的品名从未出现在核心进项中。",
                     "tax_impact": "现阶段不测算税费或法律后果；只有交易事实、货权来源、实际履行、票款物流和业务期间均经合法证据复核后，才能分别评价税费影响。",
@@ -1423,8 +1423,8 @@ def _run_analyze(company_id, db, progress_callback=None):
         
             inv_match_findings.append({
                 "type": "进销数量严重偏差", "level": "中风险", "score": 6,
-                "detail": f"【主营业务成本识别后】{len(big_diff)}类核心商品进销数量偏差超过100。典型：{'；'.join(detail_parts)}",
-                "description": f"【主营业务成本识别后分析】{excluded_qty_note}\n\n"
+                "detail": f"在识别出主营业务成本之后，{len(big_diff)}类核心商品进销数量偏差超过100。典型：{'；'.join(detail_parts)}",
+                "description": f"在识别出主营业务成本之后，进一步分析：{excluded_qty_note}\n\n"
                     + f"进销数量偏差分析：将{len(core_goods_in_both)}种核心成本品名的进销数量逐品名配对。"
                     + f"以'{top_diff[0][0]}'为例，销项开票数量{sale_by_goods[top_diff[0][0]]['qty']:.2f}但进项采购数量{pur_core_by_goods[top_diff[0][0]]['qty']:.2f}，差额{abs(top_diff[0][1]):.2f}。"
                     + f"如果销项数量>进项数量，可能存在：(1)未开票采购（原材料来源不明）；(2)上期库存结转未计入。"
@@ -1957,21 +1957,21 @@ def _run_analyze(company_id, db, progress_callback=None):
         
         if "有销无进" in ftype and _bom_missing and "跨结论串联" not in desc:
             f["description"] = desc + (
-                f"\n\n【跨结论串联验证】BOM缺失→非核心销售已豁免'有销无进'标记。核查焦点转移至加工链条。"
+                f"\n\n结合其他结论一并看，BOM缺失→非核心销售已豁免'有销无进'标记。核查焦点转移至加工链条。"
             )
             f["_cross_linked"] = True
             light_cross += 1
         
         if "有进无销" in ftype and _bom_missing and "跨结论串联" not in desc:
             f["description"] = desc + (
-                f"\n\n【跨结论串联验证】BOM缺失→有进无销品名差异聚焦加工链条验证。"
+                f"\n\n结合其他结论一并看，BOM缺失→有进无销品名差异聚焦加工链条验证。"
             )
             f["_cross_linked"] = True
             light_cross += 1
         
         if "银行付款未匹配" in ftype and _has_expense_excluded and "跨结论串联" not in desc:
             f["description"] = desc + (
-                f"\n\n【跨结论串联验证】日常费用报销已排除→未匹配统计仅含核心成本+重大费用。"
+                f"\n\n结合其他结论一并看，日常费用报销已排除→未匹配统计仅含核心成本+重大费用。"
             )
             f["_cross_linked"] = True
             light_cross += 1
@@ -2045,9 +2045,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             ),
             "tax_impact": f"综合风险等级{synthesis['overall_risk']}。{synthesis['data_quality_note']}",
             "suggestion": "\n".join(
-                [f"【P0 立即行动】{a}" for a in synthesis.get("prioritized_actions", {}).get("P0_立即行动", [])] +
-                [f"【P1 重点关注】{a}" for a in synthesis.get("prioritized_actions", {}).get("P1_重点关注", [])] +
-                [f"【P2 持续监控】{a}" for a in synthesis.get("prioritized_actions", {}).get("P2_持续监控", [])]
+                [f"立即处理：{a}" for a in synthesis.get("prioritized_actions", {}).get("P0_立即行动", [])] +
+                [f"重点关注：{a}" for a in synthesis.get("prioritized_actions", {}).get("P1_重点关注", [])] +
+                [f"持续监控：{a}" for a in synthesis.get("prioritized_actions", {}).get("P2_持续监控", [])]
             ),
             "category": "综合定性",
             "_phase4_synthesis": True,
