@@ -644,7 +644,7 @@ function renderAnalyzeHeader(report) {
     { title: '第三阶段：Phase2 定向深挖——信号驱动+行业自适应', desc: '⑬ 信号→域映射（16个初查信号驱动5域深挖） → ⑭ 发票实质性审计（五层：合规/同品单价/加工费/金额合理性/BOM） → ⑮ 经营实质分析（工商登记↔发票数据↔加工信号三层穿透） → ⑯ 资金流向追踪（付款→供应商比对/收款→客户比对） → ⑰ 个人交易风险检测 → ⑱ 关联交易穿透检测 → ⑲ 税收优惠分析 → ⑳ 行业自适应知识库注入（8行业画像+{{industries}}行业基准值）' },
 
 
-    { title: '第四阶段：Phase3 交叉验证——冲突消解与证据闭环', desc: '㉑ 冲突消解引擎（信号互斥检测→自动降级/升级） → ㉒ 规则引擎（具体条款待从官方有效文本核验逐条匹配） → ㉓ 线索链驱动（具体条款待从官方有效文本核验链驱动发现） → ㉔ 证据链匹配（具体条款待从官方有效文本核验跨域证据闭环） → ㉕ 轻量跨结论串联 → ㉖ 证伪检查（30+规则覆盖） → ㉗ 联网核查（DB缓存→API→搜索引擎三层降级） → ㉘ 经营实质五步核查法 → ㉙ 知识图谱（49实体/5异常关系检测）' },
+    { title: '第四阶段：Phase3 交叉验证——冲突消解与多源印证', desc: '㉑ 冲突消解引擎（信号互斥检测→自动降级/升级） → ㉒ 规则引擎（具体条款待从官方有效文本核验逐条匹配） → ㉓ 发现过程驱动（具体条款待从官方有效文本核验链驱动发现） → ㉔ 支撑材料匹配（具体条款待从官方有效文本核验跨域印证） → ㉕ 轻量跨结论串联 → ㉖ 证伪检查（30+规则覆盖） → ㉗ 联网核查（DB缓存→API→搜索引擎三层降级） → ㉘ 经营实质五步核查法 → ㉙ 知识图谱（49实体/5异常关系检测）' },
 
 
     { title: '第五阶段：方法论过滤——噪声剔除97%', desc: '㉚ 禁止词硬删除（40+） → ㉛ 无资料条件过滤 → ㉜ 行业不匹配过滤 → ㉝ 服务行业进销存过滤（三层闸门） → ㉞ 重复发现去重 → ㉟ 正常结论排除 → ㊱ 具体条款待从官方有效文本核验→具体条款待从官方有效文本核验，剔除具体条款待从官方有效文本核验噪声' },
@@ -689,7 +689,7 @@ function renderAnalyzeHeader(report) {
     + '线索链 <strong style="color:#0f172a">' + (comp.chain_count || '396') + '</strong> 条 · '
 
 
-    + '证据链 <strong style="color:#0f172a">' + (comp.evidence_count || '745') + '</strong> 条 · '
+    + '支撑材料 <strong style="color:#0f172a">' + (comp.evidence_count || '745') + '</strong> 条 · '
 
 
     + '文件 <strong style="color:#0f172a">' + (report.files_count || 0) + '</strong> 个'
@@ -1498,10 +1498,10 @@ function renderChainUsage(cc) {
   var h = '<div style="margin:16px 0;padding:16px 20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:13px;line-height:2">';
 
 
-  h += '<div style="font-weight:700;color:#166534;margin-bottom:8px">🔗 税务合规线索链激活统计</div>';
+  h += '<div style="font-weight:700;color:#166534;margin-bottom:8px">🔗 发现路径激活统计</div>';
 
 
-  h += '<table class="tbl2"><tr><th>线索链</th><th>类型</th><th>命中步数</th><th>总步数</th></tr>';
+  h += '<table class="tbl2"><tr><th>发现路径</th><th>类型</th><th>命中步数</th><th>总步数</th></tr>';
 
 
   for (var i = 0; i < Math.min(keys.length, 15); i++) {
@@ -4713,8 +4713,8 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   }
 
   html += '<h2 id="company-problems">二、本轮风险检查确认的具体问题（税务红线疑点）</h2>' +
-    '<p class="i2">本部分按<strong>税务红线</strong>组织，不按行业罗列。每一条说明：触碰了哪条红线、'
-    + '涉嫌什么、线索是怎么从资料里发现的、要定性还需要哪些证据、论证后如何裁决、需要补充什么资料。'
+    '<p class="i2">本部分按<strong>税务红线</strong>组织。每一条说明：涉及的风险事项、发现的依据、'
+    + '已取得的资料与待补充的资料、本项结论及理由，以及需企业提供的资料与说明。'
     + '红线成立只表示存在法定情形须核实，不等于已经定性违法。</p>';
   var rlSummary = (report.redline_summary || {});
   if (rlSummary.suspicion_total) {
@@ -6320,10 +6320,8 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   
 
 
-  // 证据链完整性
-
-
-  h += '<p class="i2"><strong>证据链状态：</strong>本轮仅在已上传且可解析的资料范围内形成待核事实和资料缺口。证据编号用于内部溯源，不代表真实性、合法性、关联性或来源独立性已经完成复核；单一来源、资料缺失和反向解释均须在后续任务中逐项处理。</p>';
+  // 支撑资料完整性
+  h += '<p class="i2"><strong>支撑资料状态：</strong>本轮仅在已上传且可解析的资料范围内形成待核事实和资料缺口。材料编号用于内部溯源，不代表真实性、合法性、关联性或来源独立性已经完成复核；单一来源、资料缺失和反向解释均须在后续任务中逐项处理。</p>';
 
 
   

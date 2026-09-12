@@ -272,5 +272,71 @@ class TestNaturalizeReportText(unittest.TestCase):
             self.assertIn(zh, got, f"{zh} 未译出：{got}")
 
 
+class TestInternalTermsNeverLeak(unittest.TestCase):
+    """契约（2026-09-13 用户要求）：内部术语与核查过程不得进入企业报告。
+
+    用户明确指出两类表述不该出现：
+      1. 「（已核身份证号230828199201073526：出生于1992年，女性，当前约34岁，
+         未达法定退休年龄下限（女50/男60），『退休返聘』客观不成立，已从候选清单中剔除）」
+         —— 系统内部推理过程；
+      2. 「这个疑点是怎么发现的」「现在有什么、还缺什么」—— 提问式小标题。
+    以下测试锁死这两条边界，防止后续改动回退。
+    """
+
+    def test_internal_reasoning_stripped(self):
+        from engine.enterprise_report import _naturalize_report_text
+        src = ("杨莹——存在工资表列名但社保未参保的待证线索"
+               "（已核身份证号230828199201073526：出生于1992年，女性，当前约34岁，"
+               "未达法定退休年龄下限（女50/男60），『退休返聘』客观不成立，"
+               "已从候选清单中剔除）。")
+        got = _naturalize_report_text(src)
+        for bad in ("已核身份证号", "230828199201073526", "未达法定退休年龄",
+                    "客观不成立", "已从候选清单中剔除", "出生于", "当前约"):
+            self.assertNotIn(bad, got, f"内部推理泄露：{bad} → {got}")
+        # 业务事实本身必须保留
+        self.assertIn("杨莹", got)
+        self.assertIn("社保未参保", got)
+
+    def test_internal_terms_replaced_with_business_words(self):
+        from engine.enterprise_report import _naturalize_report_text
+        cases = {
+            "线索链": "发现过程",
+            "证据链": "支撑材料",
+            "闭合度": "齐全程度",
+            "裁决": "结论",
+        }
+        for jargon, plain in cases.items():
+            got = _naturalize_report_text(f"本项{jargon}已完成。")
+            self.assertNotIn(jargon, got, f"内部术语未净化：{jargon} → {got}")
+            self.assertIn(plain, got, f"未替换为业务语言：{jargon} → {got}")
+
+    def test_legacy_five_section_headings_normalized(self):
+        from engine.enterprise_report import _naturalize_report_text
+        for legacy in ("四、论证过程与裁决", "四、论证与裁决", "三、证据链：现在有什么、还缺什么"):
+            got = _naturalize_report_text(legacy)
+            for jargon in ("线索链", "证据链", "裁决", "论证过程"):
+                self.assertNotIn(jargon, got, f"旧标题未净化：{legacy} → {got}")
+
+    def test_system_self_narration_stripped(self):
+        from engine.enterprise_report import _naturalize_report_text
+        src = "系统已自动做伪误判排除了该项；系统已核实无现金支付；我已逐户核对完毕。"
+        got = _naturalize_report_text(src)
+        for bad in ("系统已自动", "系统已核实", "我已逐"):
+            self.assertNotIn(bad, got, f"系统自述泄露：{bad} → {got}")
+
+    def test_verdict_wording_has_no_internal_terms(self):
+        from engine.evidence_chain import evidence_text
+        chain = {
+            "elements": [{"name": "采购合同", "status": "已有"},
+                         {"name": "付款流水", "status": "缺失"}],
+            "closure": 0.25,
+            "verdict": "支撑材料严重不足，核心材料缺失",
+        }
+        got = evidence_text(chain)
+        for jargon in ("线索链", "证据链", "闭合度"):
+            self.assertNotIn(jargon, got, f"内部术语进入报告：{got}")
+        self.assertIn("支撑材料", got)
+
+
 if __name__ == "__main__":
     unittest.main()

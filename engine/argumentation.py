@@ -30,8 +30,8 @@ from typing import Any, Dict, List, Optional
 # 四个裁决层级：「触红」与「定性」是两个层次，不可混为一谈
 #   —— 符合红线的构成要件即已触红（客观判断，与行业无关）；
 #   —— 证据链是否闭合只决定能否「定性」，不决定「是否触红」。
-_VERDICT_CONFIRMED = "红线成立（证据闭合，可定性）"      # 触红 + 证据闭合 → 可定性
-_VERDICT_HIT_PENDING = "红线成立（待补证后定性）"        # 触红 + 证据未闭合 → 置疑清单
+_VERDICT_CONFIRMED = "红线成立（材料齐全，可定性）"         # 触红 + 材料齐全 → 可定性
+_VERDICT_HIT_PENDING = "红线成立（待补材料后定性）"         # 触红 + 材料未齐 → 置疑清单
 _VERDICT_EXCLUDED = "红线不成立（有合理解释）"           # 反证成立 → 排除
 _VERDICT_WEAK = "线索不足，未形成税务疑点"               # 无线索支撑 → 仅作观察
 
@@ -246,7 +246,7 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
     _v = evidence.get('verdict', '')
     _closure = int(float(evidence.get('closure', 0)) * 100)
     parts.append(
-        f"就证据来说，{_v}，目前闭合到{_closure}%"
+        f"就材料来说，{_v}，目前齐全程度{_closure}%"
         f"（手上已有{evidence.get('available_count',0)}项，还缺{evidence.get('missing_count',0)}项）"
         f"{'；' + evidence.get('rebuttal_status', '') if evidence.get('rebuttal_status') else ''}。"
     )
@@ -256,9 +256,9 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
             "但这些说明能不能采信，要看有没有书面协议和原始单据，口头解释不能作为认定依据。"
         )
     if verdict == _VERDICT_CONFIRMED:
-        tail = "证据已经闭合，这一项可以直接认定；企业如有异议，需要更正所报资料本身或者提出相反证据。"
+        tail = "支撑材料已经齐全，这一项可以直接认定；企业如有异议，需要更正所报资料本身或者提出相反证据。"
     elif verdict == _VERDICT_HIT_PENDING:
-        tail = ("已经触碰税务红线，但证据还不够齐全，本轮暂不下结论，"
+        tail = ("已经触碰税务红线，但材料还不够齐全，本轮暂不下结论，"
                 "转由企业补充上述材料后重新检查；补证之前既不认定违法，也不予排除。")
     elif verdict == _VERDICT_EXCLUDED:
         tail = "企业给出的解释合理且有证据支撑，这一项予以排除。"

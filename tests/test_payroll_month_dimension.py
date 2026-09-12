@@ -191,7 +191,12 @@ class TestPayrollSocialMatching(unittest.TestCase):
         self.assertTrue(fs, "『有工资无社保』属实质违规线索，仅 1 人也不得因比例阈值放过")
         metrics = fs[0].get("observed_metrics") or fs[0]
         self.assertIn("杨莹", metrics.get("salary_only_examples") or [])
-        self.assertIn("未依法参保", fs[0].get("detail", "") or "")
+        detail = fs[0].get("detail", "") or ""
+        # 报告须点名要求说明未参保原因（2026-09-13 起改为自然表述，
+        # 不再使用内部术语「未依法参保」与身份核验过程）
+        self.assertIn("未参保原因", detail)
+        self.assertIn("杨莹", detail)
+        self.assertNotIn("已核身份证号", detail)
 
 
 if __name__ == "__main__":

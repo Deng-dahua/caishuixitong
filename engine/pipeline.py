@@ -2795,15 +2795,15 @@ def _run_analyze(company_id, db, progress_callback=None):
                             policy_items = list(set(s.get("policy_ref","") for step in chain.get("investigation_path",[]) for s in [step] if s.get("rule_id") in triggered_rule_ids_for_evidence))
                             
                             all_findings.append({
-                                "type": f"证据链闭环：{chain['name'][:30]}",
+                                "type": f"多源交叉印证：{chain['name'][:30]}",
                                 "level": "高风险",
                                 "score": 9,
-                                "detail": f"证据链[{chain['name']}]中{triggered_in_chain}/{total_steps}条规则触发({round(ratio*100)}%)，跨{len(source_domains)}域交叉验证，构成违法事实闭环。命中规则：{'、'.join(step_items)}",
-                                "description": f"该证据链覆盖{total_steps}条关联规则，其中{triggered_in_chain}条被{len(source_domains)}个数据域验证命中，触发率{round(ratio*100)}%。根据《税务合规工作规程》，多源交叉互证形成完整证据闭环，应启动正式税务合规程序。",
-                                "how_found": f"证据链闭环检测：{chain['name']} → {triggered_in_chain}/{total_steps}规则命中({len(source_domains)}域交叉) → 自动判定违法事实闭环",
+                                "detail": f"「{chain['name']}」链条中{triggered_in_chain}/{total_steps}项要点触发（{round(ratio*100)}%），涉及{len(source_domains)}类资料交叉印证。命中要点：{'、'.join(step_items)}",
+                                "description": f"该链条覆盖{total_steps}项关联要点，其中{triggered_in_chain}项被{len(source_domains)}类资料印证命中，触发率{round(ratio*100)}%。根据《税务稽查案件办理程序规定》，多源资料相互印证形成完整链条的，应启动正式检查程序进一步核实。",
+                                "how_found": f"多源交叉印证：{chain['name']} → {triggered_in_chain}/{total_steps}项要点命中（{len(source_domains)}类资料交叉）",
                                 "tax_impact": "补税+0.5-5倍罚款+滞纳金+移送公安",
-                                "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务合规工作规程》",
-                                "suggestion": f"该证据链已闭环，建议：(1)启动正式税务合规立案程序 (2)调取完整账簿资料 (3)对{'、'.join(step_items)}进行重点核实",
+                                "policy_ref": ";".join(policy_items) if policy_items else "《税收征收管理法》《税务稽查案件办理程序规定》",
+                                "suggestion": f"该链条已形成相互印证，建议：(1)启动正式检查程序 (2)调取完整账簿资料 (3)对{'、'.join(step_items)}进行重点核实",
                                 "category": chain.get("sub_topic", "综合"),
                                 "chain_closure": True,
                                 "source_chain": chain["name"],
@@ -2897,7 +2897,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             existing_types.add(f.get("type", ""))
     for f in all_findings:
         if f.get("chain_closure") and f["type"] not in existing_types:
-            cat = "证据链闭环"
+            cat = "多源交叉印证"
             if cat not in extra_by_cat: extra_by_cat[cat] = []
             extra_by_cat[cat].append(f)
             existing_types.add(f["type"])
@@ -8044,9 +8044,13 @@ def _apply_output_governance_filter(all_findings, pipeline_log, bank_txs, invoic
             filtered.append(f)
             continue
         
-        # 规则0：证据链自动生成结论 → 删除（检查type和detail）
-        if f_type.startswith("证据链闭环") or "证据链" in f_type or "证据链[" in f_detail:
-            skip = True; reason = "自动生成证据链"
+        # 规则0：链条自动生成结论 → 删除（检查type和detail）
+        # （2026-09-13 更名：type 由「证据链闭环：X」改为「多源交叉印证：X」，
+        #  过滤口径同步放宽为兼容新旧两种写法，避免旧缓存漏过滤）
+        if (f_type.startswith("多源交叉印证") or "多源交叉印证" in f_type
+                or f_type.startswith("证据链闭环") or "证据链" in f_type
+                or "证据链[" in f_detail or "多源交叉印证" in f_detail):
+            skip = True; reason = "自动生成的多源交叉印证结论"
         
         # 规则1：硬删除
         if not skip:

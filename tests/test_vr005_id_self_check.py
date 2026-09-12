@@ -1,9 +1,13 @@
 """VR005 报告叙述自检：身份证号核验用工身份 + 通俗化叙述。
 
 回归缺陷A：报告盲列『退休返聘』而不回查身份证号；
-回归缺陷B：『人员-月份』术语不通俗。
+回归缺陷B：『人员-月份』术语不通俗；
+回归缺陷C（2026-09-13 用户要求）：核验过程被写进报告正文——
+  「（已核身份证号…未达法定退休年龄下限（女50/男60），『退休返聘』客观不成立，
+  已从候选清单中剔除）」这类系统内部推理记录不该出现在给企业的对外文书里。
 
-来源：本会话上下文 2026-09-04 用户对杨莹（230828199201073526，1992年生，女）的反馈。
+★ 分工：核验逻辑保留（`cands` 仍按年龄剔除『退休返聘』），
+   但报告正文只写「需企业说明什么」，不写「系统怎么排除的」。
 """
 import unittest
 
@@ -73,34 +77,59 @@ class TestIdCardParse(unittest.TestCase):
 
 
 class TestEmploymentCandidatesSelfCheck(unittest.TestCase):
-    """用工身份候选自检：身份证号存在时按年龄/性别约束，无时声明数据缺口。"""
+    """用工身份候选自检：身份证号存在时按年龄/性别约束，无时保留全部候选。
+
+    ★ 注意：本类只断言**逻辑**（候选清单是否被正确约束），
+      不断言 note 文案包含身份证号/年龄等信息——那些是内部核查记录，不进报告。
+    """
 
     def test_yang_ying_34_female_removes_retire(self):
         cands, note = _employment_candidates_and_note(
             "杨莹", {"杨莹": "230828199201073526"}, cur_year=2026)
+        # 逻辑：34 岁女性，未达退休年龄下限 → 候选清单不得含『退休返聘』
         self.assertNotIn("退休返聘", cands)
         self.assertIn("在职", cands)
         self.assertIn("劳务派遣", cands)
-        self.assertIn("1992", note)
-        self.assertIn("女", note)
-        self.assertIn("34", note)
-        self.assertIn("未达法定退休年龄", note)
+        # 文案：只写需企业说明的事项，不得暴露核验过程与身份证号
+        self.assertNotIn("已核身份证号", note)
+        self.assertNotIn("未达法定退休年龄", note)
+        self.assertNotIn("230828199201073526", note)
+        self.assertNotIn("客观不成立", note)
+        self.assertIn("用工身份", note)
+        self.assertIn("未参保原因", note)
 
     def test_60_year_old_male_keeps_all(self):
-        # 1966 年生，男，60 岁——已达退休下限，保留全部候选并透明披露
+        # 1966 年生，男，60 岁——已达退休下限，候选清单保留全部（含退休返聘）
         cands, note = _employment_candidates_and_note(
             "老张", {"老张": "11010119660101001X"}, cur_year=2026)
         self.assertIn("退休返聘", cands)
-        self.assertIn("已核身份证号", note)
-        self.assertIn("60", note)
+        self.assertIn("用工身份", note)
+        self.assertNotIn("已核身份证号", note)
 
-    def test_no_id_card_explicit_gap(self):
+    def test_no_id_card_keeps_all_candidates(self):
         cands, note = _employment_candidates_and_note(
             "某员工", {}, cur_year=2026)
-        self.assertIn("退休返聘", cands)  # 缺数据时保留全部，标注为排查清单
-        self.assertIn("系统未获取到", note)
-        self.assertIn("排查清单", note)
-        self.assertIn("劳动合同", note)
+        # 缺身份证号时无从约束，保留全部候选，由企业说明
+        self.assertIn("退休返聘", cands)
+        self.assertIn("身份证号", note)
+        self.assertIn("用工身份", note)
+        self.assertNotIn("系统未获取到", note)
+
+    def test_note_never_leaks_internal_reasoning(self):
+        """任何情况下 note 都不得出现系统内部推理与筛查动作的措辞。"""
+        forbidden = ["已核身份证号", "已从候选清单中剔除", "客观不成立",
+                     "系统未获取到", "系统已", "系统未",
+                     "出生", "岁，", "法定退休年龄下限"]
+        cases = [
+            ("杨莹", {"杨莹": "230828199201073526"}, 2026),   # 未达退休线
+            ("老张", {"老张": "11010119660101001X"}, 2026),   # 已达退休线
+            ("某员工", {}, 2026),                              # 无身份证号
+            ("错号", {"错号": "123"}, 2026),                   # 格式无法解析
+        ]
+        for name, ids, yr in cases:
+            _, note = _employment_candidates_and_note(name, ids, cur_year=yr)
+            for f in forbidden:
+                self.assertNotIn(f, note, f"note 泄露内部推理「{f}」：{note}")
 
 
 class TestVR005SelfCheckNarrative(unittest.TestCase):
@@ -141,26 +170,26 @@ class TestVR005SelfCheckNarrative(unittest.TestCase):
             self._spec())
         self.assertEqual(len(result), 1)
         detail = result[0]["detail"]
-        # 杨莹叙述必须出现身份证号、年龄、性别，且『退休返聘』不再作为候选
+        # 杨莹必须被点名要求说明（这是报告该有的内容）
         self.assertIn("杨莹", detail)
-        self.assertIn("230828199201073526", detail)
-        self.assertIn("1992", detail)
-        self.assertIn("女", detail)
-        self.assertIn("34", detail)
-        self.assertIn("未达法定退休年龄", detail)
-        self.assertIn("退休返聘", detail)  # 文档总体仍提及，但要带『客观不成立』标注
-        self.assertIn("客观不成立", detail)
-        # 杨莹的候选清单应是『在职、劳务派遣、兼职、非雇员劳务』（已剔除『退休返聘』）
-        # 出现的『退休返聘』只应作为「已剔除」陈述，不应作为并列候选
-        self.assertIn("用工身份（在职、劳务派遣、兼职、非雇员劳务）", detail)
-        self.assertNotIn("用工身份（在职、退休返聘、劳务派遣、兼职、非雇员劳务）", detail)
-        # 文档总体仍提及『退休返聘』，但必须带「客观不成立」或类似剔除标注
-        self.assertIn("客观不成立", detail)
+        self.assertIn("用工身份", detail)
+        self.assertIn("未参保原因", detail)
+        # ★ 但身份核验过程不得出现在报告正文（2026-09-13 用户要求）
+        self.assertNotIn("已核身份证号", detail)
+        self.assertNotIn("230828199201073526", detail)
+        self.assertNotIn("未达法定退休年龄", detail)
+        self.assertNotIn("客观不成立", detail)
+        self.assertNotIn("已从候选清单中剔除", detail)
+        self.assertNotIn("出生于", detail)
+        self.assertNotIn("当前约", detail)
+        # 杨莹的候选清单不含『退休返聘』（逻辑生效），但报告不解释为什么剔除
+        self.assertIn("用工身份", detail)
+        self.assertNotIn("退休返聘", detail)
         # 开篇叙述必须是通俗表达，不再出现『人员-月份组合』
         self.assertNotIn("『人员-月份』组合", detail)
         self.assertIn("姓名+月份", detail)
 
-    def test_unknown_id_explicit_data_gap(self):
+    def test_unknown_id_no_internal_narration(self):
         salaries = [self._salary(n, "")  # 无身份证号
                     for n in ["张三", "李四", "王五", "赵六", "钱七", "杨莹"]]
         social = [self._social(n) for n in ["张三", "李四", "王五", "赵六", "钱七"]]
@@ -168,10 +197,13 @@ class TestVR005SelfCheckNarrative(unittest.TestCase):
             {"salaries": salaries, "social_security": social},
             self._spec())
         detail = result[0]["detail"]
-        # 未获取身份证号：必须显式声明数据缺口，且仍含全部候选但标注为『排查清单』
-        self.assertIn("系统未获取到", detail)
-        self.assertIn("排查清单", detail)
-        self.assertIn("劳动合同", detail)
+        # 无身份证号时仍要点名要求说明身份
+        self.assertIn("杨莹", detail)
+        self.assertIn("用工身份", detail)
+        # 但不得出现系统内部动作的自述
+        self.assertNotIn("系统未获取到", detail)
+        self.assertNotIn("系统已", detail)
+        self.assertNotIn("排查清单而非认定结论", detail)
 
 
 if __name__ == "__main__":

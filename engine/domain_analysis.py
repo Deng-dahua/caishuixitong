@@ -266,8 +266,8 @@ def _domain_bank_tracking(txs, business_model=None):
         else:
             findings.append({"type": "第三方收款占比过高", "level": "高风险", "score": 9,
             "how_found": f"通道1(银行): 扫描{total_txs}笔流水raw字段，命中'支付宝/微信/财付通'关键词{third_party_count}笔、金额{cats['third_party']:,.2f}元÷总贷方{income:,.2f}元={pct:.2f}%。通道2(发票): 比对销项发票购方名称与银行收款对方，验证三流一致性。两条通道独立运行后交叉确认结论。",
-                "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元（{third_party_count}笔），占总收入{pct:.2f}%。[系统已自动做伪误判排查: 如企业属于电商/平台型行业则第三方收款比例高属正常现象，但需确认每笔第三方收款均有对应开票和订单记录。]",
-                "description": f"通道1(资金流): 银行流水中{third_party_count}笔第三方收款，合计{cats['third_party']:,.2f}元，占总收入{pct:.2f}%。通道2(发票流): 已同时验证销项发票的开票对象是否与收款来源一致。\n\n伪误判排除: 如果贵公司属于电商、直播带货、社交电商等新业态，第三方收款占比高本身不是问题——问题是每一笔收款能否对应到真实订单和合规发票。系统已做双通道验证，结论经交叉确认后输出。\n\n根因分析: 第三方收款过大通常意味着: ①行业特性(如电商); ②未规范使用对公账户; ③存在账外经营。需结合行业和经营模式综合判断。",
+                "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元（{third_party_count}笔），占总收入{pct:.2f}%。电商、平台型企业经营中第三方收款比例高属常见现象，但仍需确认每笔第三方收款均有对应的开票和订单记录。",
+                "description": f"资金流方面：银行流水中{third_party_count}笔第三方收款，合计{cats['third_party']:,.2f}元，占总收入{pct:.2f}%。发票流方面：销项发票的开票对象已与收款来源一并核对。\n\n需说明的是：如果贵公司属于电商、直播带货、社交电商等新业态，第三方收款占比高本身不是问题——关键在于每一笔收款能否对应到真实订单和合规发票。\n\n第三方收款占比较高通常有三种成因：一是行业特性（如电商）；二是未规范使用对公账户；三是存在账外经营。需结合行业和经营模式综合判断。",
                 "tax_impact": "若无法逐笔匹配第三方收款与销售订单/发票，税务机关可能认定存在隐匿收入、账外经营的风险，要求补缴增值税及企业所得税，并加收滞纳金和罚款。",
                 "policy_ref": "《国家税务总局关于纳税人对外开具增值税专用发票有关问题的公告》（2014年第39号）要求货物流、资金流、发票流三流一致。",
                 "suggestion": "1）建立第三方收款与销售订单的逐笔匹配台账；2）每笔第三方收款确保开具相应发票；3）定期将第三方平台余额提现至对公账户；4）考虑逐步引导客户通过对公转账结算。",
@@ -2675,9 +2675,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
             "score": 9,
             "detail": f"逐客户匹配后，{len(gap_customers)}个客户的开票金额与银行收款偏差>30%：\n" + "\n".join(gap_lines),
             "description": (
-                f"我将销项发票和银行流水做了逐客户匹配——不是看总额，是穿透到每个客户维度：\n\n"
-                f"匹配算法：提取{len(inv_by_buyer)}个发票客户×{len(bank_by_payer)}个银行收款方 → "
-                f"前程匹配+全文包含+去后缀 → 逐对匹配。\n\n"
+                f"比对范围：{len(inv_by_buyer)}个发票客户与{len(bank_by_payer)}个银行收款方逐一对账。\n\n"
                 f"结果：{len(gap_customers)}个客户偏差>30%（平均{avg_gap_pct:.2f}%）。\n\n"
                 f"⚠ 这是关键信号——逐客户偏差比总额偏差更有税务合规价值。"
                 f"总额偏差可能相互抵消，逐客户偏差暴露真实问题：\n"
@@ -3145,7 +3143,7 @@ def _domain_cross_domain_reasoning(all_findings, bank_txs, sal_invs, pur_invs, v
                 "score": min(avg_score, 10),
                 "detail": f"{len(evidence_collected)}条相互印证的发现指向同一结论：{chain_name}。证据链维度：{', '.join(e[0] for e in evidence_collected)}。",
                 "description": f"以下{len(evidence_collected)}条来自不同域、不同数据源的发现，从不同角度指向同一个结论——{chain_name}，这些发现相互印证：\n\n{evidence_text}\n{chain_def.get('description', '')}",
-                "how_found": chain_def.get("how_found", f"对{len(evidence_collected)}个独立维度的数据进行交叉验证，各方证据互相印证形成证据链闭环"),
+                "how_found": chain_def.get("how_found", f"对{len(evidence_collected)}个独立维度的数据进行交叉验证，各方发现互相印证形成完整链条"),
                 "tax_impact": chain_def.get("tax_impact", ""),
                 "policy_ref": chain_def.get("policy_ref", ""),
                 "suggestion": chain_def.get("suggestion", ""),
@@ -3876,7 +3874,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
             "type": "进项发票与银行付款未匹配——资金去向不明",
             "level": "高风险", "score": 8,
             "detail": (
-                f"分析过程如下：我把我将{len(pur_invs)}张进项发票按品名分为三层——主营业务成本/重大费用/日常报销。\n"
+                f"分析过程如下：将{len(pur_invs)}张进项发票按品名分为三层——主营业务成本、重大费用、日常报销。\n"
                 f"已排除{reimb_count}张日常费用报销发票（餐饮住宿汽油等，合计{reimb_total:,.2f}元）——这些发票属于员工报销模式，付款对象是员工而非开票单位，不参与供应商名称匹配。\n"
                 f"对剩余{len(biz_cost_invs)}张业务成本类发票做名称匹配：{amt_mismatch}张" +
                 (f"（占业务成本类发票的{amt_mismatch/max(len(biz_cost_invs),1)*100:.2f}%）" if len(biz_cost_invs)>0 else "") +
@@ -3900,7 +3898,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
                 + f"· 虚开发票：无真实交易只走票——最需排除但占比通常最低的情况\n\n"
                 + f"其中金额较大的几家是：{examples}等。",
             "how_found": (
-                f"我先将{len(pur_invs)}张进项发票按品名做三层分类——识别出{reimb_count}张为日常费用报销（餐饮住宿汽油差旅等，合计{reimb_total:,.2f}元）并排除。"
+                f"先将{len(pur_invs)}张进项发票按品名做三层分类——识别出{reimb_count}张为日常费用报销（餐饮住宿汽油差旅等，合计{reimb_total:,.2f}元）并排除。"
                 f"然后对剩余{len(biz_cost_invs)}张业务成本类发票做名称匹配——"
                 f"将销方名称与银行付款对方户名逐条比对，发现{amt_mismatch}张发票的供应商名称在当前银行付款记录中无法匹配。"
                 f"（若包含日常费用报销，共{len(pur_invs)}张中{amt_mismatch + reimb_count}张未匹配，但日常报销本就不应参与匹配。）"
@@ -4092,7 +4090,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
             desc += f"更值得警惕的是：加工费供应商（{proc_city_names}）、原材料供应商（{', '.join(sorted(remote_seller_cities - proc_cities))}等{len(remote_seller_cities)}城）、"
             desc += f"销售客户（{', '.join(sorted(remote_buyer_cities))}等{len(remote_buyer_cities)}城）三者分布在完全不同的城市——"
             desc += f"这意味着货物要在{len(remote_seller_cities)}+{len(proc_cities)}+{len(remote_buyer_cities)}个城市之间反复运输，"
-            desc += f"而系统未检测到任何运输成本记录。这是一个从单点（加工费）扩展到面（全链条）的交叉异常："
+            desc += f"而这些交易均未见对应的运输成本记录。这是一个从单点（加工费）扩展到面（全链条）的交叉异常："
             desc += f"加工费不本地+供应商不本地+客户不本地+零运输成本=整个经营链条在物流层面缺乏物证支撑。\n\n"
         
         desc += f"存疑点：①为何选择外地加工商而非本地加工商？②外地加工的真实性（加工过程是否有证据）？"
@@ -7738,9 +7736,9 @@ def _trigger_missing_consequences(all_items, missing_doc_keys=None, industry_pro
             "type": f"资料缺失触发-{t['risk']}",
             "level": t["level"],
             "score": score_map.get(t["level"], 5),
-            "detail": f"由于该项资料未提交，系统依据税务合规实战经验提示：因未提交对应资料，系统依据税务合规实战经验自动触发风险结论：{t['consequence']}",
-            "description": f"因关键资料缺失，系统自动触发该风险结论——这是税务合规实战中的标准逻辑推导。{t['consequence']}",
-            "how_found": f"系统检测到关键资料缺失，自动触发'{t['risk']}'风险结论（叙事增强层·缺失后果自动触发）",
+            "detail": f"该项资料本轮未提交，相关事项暂无法核实。需说明的是：{t['consequence']}",
+            "description": f"关键资料缺失时，以下后果通常难以排除：{t['consequence']}",
+            "how_found": f"核对上传资料清单后，确认该项资料本轮未提交，无法开展「{t['risk']}」相关核查。",
             "tax_impact": t["consequence"],
             "policy_ref": t["law"],
             "suggestion": t["action"],

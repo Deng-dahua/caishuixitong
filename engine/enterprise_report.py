@@ -850,6 +850,39 @@ def _naturalize_report_text(text):
     s = _re.sub(r"「\s*」", "", s)
     s = _re.sub(r"税务红线红线", "税务红线", s)   # 防上游已含「税务红线」时叠加
     s = _re.sub(r"([\u4e00-\u9fa5]{2,4})\1", r"\1", s)  # 相邻重复词（如「税务税务」）
+    # 6) 去掉系统内部动作 / 推理过程的自述（2026-09-13 用户要求）：报告是给企业的
+    #    对外文书，只写「需企业说明什么」，不写「系统做了什么、怎么排除的」。
+    #    注意括号内可能再嵌括号（如「（…未达法定退休年龄下限（女50/男60），…）」），
+    #    故用「最多一层嵌套」的贪婪式匹配，而非简单的 [^）]* 。
+    _nest = r"(?:[^（）]|（[^（）]*）)*"
+    s = _re.sub(
+        r"（\s*(?:已核|已核实|已比对|已排除|经核|经比对)" + _nest + r"?"
+        r"(?:剔除|不成立|已排除|已核|已比对)" + _nest + r"?）", "", s)
+    s = _re.sub(
+        r"[（(\[【]?\s*系统(?:已|未|将|会|自动)" + _nest + r"?"
+        r"(?:剔除|排除|标注|识别|检测|命中|校验|触发)" + _nest + r"?[）)\]】]?", "", s)
+    # 7) 内嵌在行内的方括号说明块（如「[系统已自动做伪误判排查: …]」）
+    s = _re.sub(r"\[(?:系统|已核)[^\]]{0,200}?\]", "", s)
+    # 8) 客观化主语：把「我」开头的自述改为陈述句
+    s = _re.sub(r"(?<=[。；\n])我(?:将|已|先|把|对|做|逐|按)", "报告", s)
+    s = _re.sub(r"^我(?:将|已|先|把|对|做|逐|按)", "本报告", s)
+    s = _re.sub(r"系统(?:已|未|自动)", "", s)
+    # 9) 内部术语兜底（2026-09-13）：即使上游或历史缓存仍带出「线索链/证据链/裁决」，
+    #    也不得出现在企业报告里，统一改为业务语言。
+    s = s.replace("证据链未闭合", "支撑材料不足")
+    s = s.replace("证据链闭合度", "材料齐全程度")
+    s = s.replace("证据链基本闭合", "支撑材料已基本齐全")
+    s = s.replace("证据链部分闭合", "支撑材料尚不齐全")
+    s = s.replace("证据链未闭合", "支撑材料严重不足")
+    s = s.replace("证据链", "支撑材料")
+    s = s.replace("线索链终端信号", "资料中直接读到的事实")
+    s = s.replace("线索链", "发现过程")
+    s = s.replace("闭合度", "齐全程度")
+    # 10) 旧版五段小标题兜底（历史缓存可能仍带「论证过程与裁决」等写法）
+    s = s.replace("论证过程与裁决", "结论及理由")
+    s = s.replace("论证与裁决", "结论及理由")
+    s = s.replace("论证过程", "判断理由")
+    s = s.replace("裁决", "结论")
     s = _re.sub(r"[，。；：]{2,}", lambda m: m.group(0)[0], s)
     s = _re.sub(r"  +", " ", s)
     return s
@@ -894,9 +927,9 @@ def _build_redline_problems(suspicions):
 
     每条疑点回答五个问题：
       ① 触碰了哪条红线、涉嫌什么、法定依据是什么
-      ② 线索链：这个疑点是怎么从资料里发现的（每环落到具体数字）
-      ③ 证据链：现在手上有什么证据、还缺什么、闭合到什么程度
-      ④ 论证过程：主张 → 论据 → 反证 → 裁决
+      ② 这个疑点是怎么从资料里发现的（每环落到具体数字）
+      ③ 现在手上已经有哪些材料、还缺哪些材料、齐全到什么程度
+      ④ 本项结论及其理由
       ⑤ 需要补充什么资料或解释才能定性
     """
     problems = []
@@ -920,18 +953,18 @@ def _build_redline_problems(suspicions):
             + (f"法定依据：{'；'.join(legal)}。" if legal else "")
         )
 
-        # ② 线索链
+        # ② 发现过程
         chain_desc = _clue_narrative(clue)
         p2 = (
             "这个疑点不是估计出来的，是从资料里一步步算出来的："
-            + (chain_desc or "本轮资料未能形成完整的量化线索链。")
+            + (chain_desc or "本轮资料不足以还原完整的发现过程。")
         )
         if clue.get("data_gaps"):
             p2 += "其中" + "、".join(
                 f"第{g['step']}环" for g in clue.get("data_gaps", [])
             ) + "因缺少资料未取得数据，已计入检查受限范围。"
 
-        # ③ 证据链
+        # ③ 已有材料与待补材料
         have = [e for e in (ev.get("elements") or []) if e.get("status") == "已有"]
         lack = [e for e in (ev.get("elements") or []) if e.get("status") != "已有"]
         p3 = (
@@ -942,10 +975,10 @@ def _build_redline_problems(suspicions):
             + (f"{ev.get('rebuttal_status', '')}。" if ev.get("rebuttal_status") else "")
         )
 
-        # ④ 论证与裁决（上游可能带出内部标记或编号，此处做正文净化兜底）
+        # ④ 论证与理由（上游可能带出内部标记或编号，此处做正文净化兜底）
         p4 = _naturalize_report_text(arg.get("reasoning") or "")
 
-        # ⑤ 补证要求
+        # ⑤ 需企业补充的资料与说明
         actions = [a for a in (arg.get("next_actions") or []) if a]
         p5 = (
             "要把这一项查清楚，需要：" + _seq(actions, "由企业就该项提交书面说明。")
@@ -953,13 +986,13 @@ def _build_redline_problems(suspicions):
         )
 
         paragraphs = [
-            {"heading": "一、触碰的税务红线", "text": _naturalize_report_text(p1)},
-            {"heading": "二、这个问题是怎么发现的", "text": _naturalize_report_text(p2),
+            {"heading": "一、涉及的风险事项", "text": _naturalize_report_text(p1)},
+            {"heading": "二、发现的依据", "text": _naturalize_report_text(p2),
              "detail_table": _clue_table(clue)},
-            {"heading": "三、手上已有哪些材料、还缺什么", "text": _naturalize_report_text(p3),
+            {"heading": "三、已取得的资料与待补充的资料", "text": _naturalize_report_text(p3),
              "detail_table": _evidence_table(ev)},
-            {"heading": "四、本项结论是怎么得出的", "text": p4},
-            {"heading": "五、需要补充的资料与解释", "text": _naturalize_report_text(p5)},
+            {"heading": "四、本项结论及理由", "text": p4},
+            {"heading": "五、需企业提供的资料与说明", "text": _naturalize_report_text(p5)},
         ]
 
         problems.append({
@@ -986,7 +1019,7 @@ def _build_redline_problems(suspicions):
     return problems
 
 
-# ── 线索链「实际看到的数据」中文化与降噪（2026-09-12）──────────────────
+# ── 发现过程「实际看到的数据」中文化与降噪（2026-09-12）──────────────────
 # 背景：引擎输出的 observed 常带英文字段名与残缺 JSON 碎片
 # （如 salary_person_count=6、province_breakdown={广东:{'count': 29, 'amou…），
 # 直接进报告既不专业，也把关键数字淹没在噪音里。此处统一转为中文可读表述。
@@ -996,7 +1029,7 @@ _SOURCE_LABELS = [
     ("bank_txs", "银行流水"), ("sal_invs", "销项发票"),
     ("pur_invs", "进项发票"), ("vouchers", "记账凭证"),
     ("inventory", "进销存台账"), ("invoices", "发票"),
-    # 2026-09-12 补齐：线索链 source 全集对齐（required_sources 实测 17 种标识）
+    # 2026-09-12 补齐：发现过程 source 全集对齐（required_sources 实测 17 种标识）
     ("inventory_ledger", "进销存台账"), ("company_profile", "企业基础信息"),
     ("contracts", "合同台账"), ("transport_contracts", "运输合同"),
     ("trial_balance", "科目余额表"), ("fixed_assets", "固定资产台账"),
@@ -1195,7 +1228,7 @@ def _humanize_observed(text):
 
 
 def _label_source(src):
-    """把线索链的数据源标识（salaries 等）转为中文名称，未知原样返回。"""
+    """把发现过程的数据源标识（salaries 等）转为中文名称，未知原样返回。"""
     if not src:
         return ""
     s = str(src)
@@ -1222,7 +1255,7 @@ def _dedup_observed(values):
 
 
 def _clue_narrative(clue):
-    """把线索链讲成大白话，每环带实际数字（中文表述、剔除英文与 JSON 碎片）"""
+    """把发现过程讲成大白话，每环带实际数字（中文表述、剔除英文与 JSON 碎片）"""
     nodes = clue.get("nodes") or []
     if not nodes:
         return ""
@@ -1239,7 +1272,7 @@ def _clue_narrative(clue):
 
 
 def _clue_table(clue):
-    """线索链明细表：环/资料/动作/实际看到（中文表述、相邻重复标注同上）"""
+    """发现过程明细表：环/资料/动作/实际看到（中文表述、相邻重复标注同上）"""
     nodes = clue.get("nodes") or []
     if not nodes:
         return None
@@ -1256,7 +1289,7 @@ def _clue_table(clue):
 
 
 def _evidence_table(ev):
-    """证据链明细表：角色/证据名称/证明目的/现状"""
+    """材料清单：角色/材料名称/证明目的/现状"""
     els = ev.get("elements") or []
     if not els:
         return None

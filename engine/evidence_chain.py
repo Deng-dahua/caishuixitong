@@ -98,7 +98,7 @@ def build_evidence_chain(finding: Dict, redline: Dict,
           "elements": [ {role, name, purpose, status, basis, weight} ],
           "available_count", "missing_count",
           "closure": 0~1,
-          "verdict": "证据链基本闭合/部分闭合/未闭合",
+          "verdict": "支撑材料已基本齐全/尚不齐全/严重不足",
           "missing_materials": [...],
           "remedy": "...",
           "rebuttal_status": "反证未提交/反证已有/反证待核"
@@ -168,12 +168,14 @@ def build_evidence_chain(finding: Dict, redline: Dict,
     direct_missing = [e["name"] for e in elements
                       if e["role"] == "直接证据" and e["status"] != "已有"]
 
+    # 2026-09-13：verdict 文案不得出现「证据链」等内部术语，改为资料完备程度的
+    # 自然表述（本字段直接进入报告正文，见 enterprise_report._build_redline_problems 的 p3 与 p4）。
     if closure >= 0.80 and not direct_missing:
-        verdict = "证据链基本闭合"
+        verdict = "支撑材料已基本齐全，可以作出确定性判断"
     elif closure >= 0.50:
-        verdict = "证据链部分闭合，需补充证据后定性"
+        verdict = "支撑材料尚不齐全，需补充材料后才能定性"
     else:
-        verdict = "证据链未闭合，核心证据缺失"
+        verdict = "支撑材料严重不足，核心材料缺失"
 
     missing_materials = []
     for e in elements:
@@ -208,7 +210,7 @@ def build_evidence_chain(finding: Dict, redline: Dict,
 
 
 def evidence_text(chain: Dict) -> str:
-    """把证据链压成一段可直读的话"""
+    """把材料清单压成一段可直读的话"""
     els = chain.get("elements") or []
     if not els:
         return ""
@@ -219,5 +221,5 @@ def evidence_text(chain: Dict) -> str:
         seg.append("现已有证据：" + "、".join(have[:6]))
     if lack:
         seg.append("尚缺证据：" + "、".join(lack[:6]))
-    seg.append(f"闭合度{int(chain.get('closure', 0) * 100)}%，{chain.get('verdict', '')}")
+    seg.append(f"资料齐全程度{int(chain.get('closure', 0) * 100)}%，{chain.get('verdict', '')}")
     return "；".join(seg) + "。"

@@ -186,10 +186,13 @@ class TestArgumentation(unittest.TestCase):
                        "【证据】", "【反证】", "【裁决】"):
             self.assertNotIn(marker, reasoning, f"报告不得出现字段标记 {marker}")
         self.assertNotRegex(reasoning, r"RL-[A-Z]+-\d+", "报告不得出现红线编号")
-        # 自然叙述应覆盖四个环节
+        # 自然叙述应覆盖四个环节（用业务语言，不出现「证据链/裁决」等内部术语）
         self.assertIn("依据", reasoning)
-        self.assertIn("证据", reasoning)
+        self.assertIn("材料", reasoning)
         self.assertIn("结论", reasoning)
+        # 2026-09-13：内部术语一律不得进入报告正文
+        for jargon in ("线索链", "证据链", "闭合度", "裁决"):
+            self.assertNotIn(jargon, reasoning, f"报告不得出现内部术语「{jargon}」")
 
 
 class TestReportIntegration(unittest.TestCase):
@@ -213,14 +216,15 @@ class TestReportIntegration(unittest.TestCase):
                                 f"标题不得出现红线编号：{p['title']}")
             self.assertTrue(p["redline_id"], "编号仍须在字段层保留，供系统追溯")
             self.assertTrue(p["suspect"])
-            # 五段式（小标题改为自然表述，不得出现内部术语）
+            # 五段式（小标题为正式文书式表述，不得出现内部术语与提问腔）
             heads = [x["heading"] for x in p["narrative_paragraphs"]]
             self.assertEqual(len(heads), 5)
             joined = "".join(heads)
-            for jargon in ("线索链", "证据链", "论证", "裁决"):
-                self.assertNotIn(jargon, joined, f"小标题不得出现术语「{jargon}」")
-            self.assertIn("怎么发现", joined)
-            self.assertIn("还缺什么", joined)
+            for jargon in ("线索链", "证据链", "论证", "裁决",
+                           "是怎么发现的", "还缺什么", "手上已有"):
+                self.assertNotIn(jargon, joined, f"小标题不得出现「{jargon}」")
+            self.assertIn("发现的依据", joined)
+            self.assertIn("待补充的资料", joined)
 
     def test_suspect_not_duplicated(self):
         from engine.enterprise_report import _build_redline_problems

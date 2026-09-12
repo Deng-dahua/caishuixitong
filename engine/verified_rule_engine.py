@@ -1067,7 +1067,7 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
     to_prove = metrics.pop("to_prove", None)
     if verified_facts is None:
         verified_facts = [
-            "本线索所依据的数据事实均来自企业上传的资料，系统已按可复算口径提取并标注，企业可逐笔核对。",
+            "本线索所依据的数据事实均来自企业上传的资料，已按可复算口径提取并标注，企业可逐笔核对。",
         ]
     if to_prove is None:
         to_prove = [
@@ -1327,13 +1327,20 @@ def _parse_id_card(idcard):
 
 def _employment_candidates_and_note(name, id_by_name, cur_year=None):
     """按姓名查 → 报告叙述自检用工身份候选。
+
     逻辑：
-      - 已核身份证号 + 年龄明显低于法定退休年龄下限（女 50 / 男 60）→ 移除『退休返聘』
-        并附身份证核验信息，避免对一名 34 岁女性等远未到退休年龄的人员盲列该选项；
-      - 已核身份证号 + 已达退休线 → 保留全部候选，附核验信息（透明披露而非定性）；
+      - 已核身份证号 + 年龄明显低于法定退休年龄下限（女 50 / 男 60）→ 移除『退休返聘』；
+      - 已核身份证号 + 已达退休线 → 保留全部候选；
       - 未获取身份证号 → 显式声明数据缺口，候选清单标注为「排查清单而非认定结论」，
         须由企业逐人提供佐证材料闭环。
-    返回 (候选列表, 身份证核验附注字符串)。"""
+
+    ★ 报告措辞铁律（2026-09-13 用户要求）：本函数返回的 note 会进入企业看到的报告，
+    因此**只写企业需要说明的事项**，不得暴露系统的推理过程与筛查动作
+    （如「已核身份证号…」「未达法定退休年龄下限」「客观不成立」「已从候选清单中剔除」）。
+    系统做了什么排除、依据什么排除，是内部核查记录，不进对外文书。
+
+    返回 (候选列表, 需企业说明的事项字符串)。
+    """
     if cur_year is None:
         cur_year = datetime.now().year
     all_candidates = ["在职", "退休返聘", "劳务派遣", "兼职", "非雇员劳务"]
@@ -1345,22 +1352,17 @@ def _employment_candidates_and_note(name, id_by_name, cur_year=None):
             retire_floor = 50 if gender == "女" else (60 if gender == "男" else 50)
             if gender in ("男", "女") and age < retire_floor:
                 cands = [c for c in all_candidates if c != "退休返聘"]
-                note = ("已核身份证号 {0}：出生于{1}年，{2}性，当前约{3}岁，"
-                        "未达法定退休年龄下限（女 50/男 60），"
-                        "『退休返聘』客观不成立，已从候选清单中剔除").format(
-                    ic, birth_year, gender, age)
+                note = "请说明该人员的实际用工身份及未参保原因"
             else:
                 cands = list(all_candidates)
-                note = "已核身份证号 {0}：出生于{1}年，{2}性，当前约{3}岁".format(
-                    ic, birth_year, gender or "未知", age)
+                note = "请说明该人员的实际用工身份及未参保原因（如属退休返聘，请一并提供退休证明）"
         else:
             cands = list(all_candidates)
-            note = "已记录身份证号 {0}（格式无法解析出生年份，未能据此校验年龄）".format(ic)
+            note = "请说明该人员的实际用工身份及未参保原因"
     else:
         cands = list(all_candidates)
-        note = ("系统未获取到{0}的身份证号（工资名册/社保清单/人员档案中均无该人员的身份证号字段），"
-                "无法据此校验其年龄与退休状态；下列用工身份选项为排查清单而非认定结论，"
-                "须由企业逐人提供劳动合同、参保凭证或异地参保证明等佐证材料闭环").format(name)
+        note = ("工资名册、社保清单与人员档案中均无该人员的身份证号，"
+                "请补充身份信息，并说明实际用工身份及未参保原因")
     return cands, note
 
 
@@ -1471,7 +1473,7 @@ def _scan_payroll_social(data, spec):
     detail = (
         "将工资名册中的每一位员工、每一个月的工资，与社保清单中同人同月的参保记录逐一配对，"
         "共{0}名员工、{1}组『姓名+月份』配对记录纳入比对（每个配对项即『某员工某月』的工资与社保对应关系）；"
-        "人员级未能双向匹配{2}人，占合并人员范围{3:.1%}（已剔除『合计/姓名/小计』等表头合计行，"
+        "人员级未能双向匹配{2}人，占合并人员范围{3:.1%}（表头合计行『合计/姓名/小计』不参与人员比对，"
         "不参与人员比对）。".format(len(salary_names | social_names),
                                     len(person_month_detail), mismatch, mismatch_ratio)
     )
@@ -1482,11 +1484,10 @@ def _scan_payroll_social(data, spec):
             cands, note = _employment_candidates_and_note(nm, id_by_name)
             cands_txt = "、".join(cands)
             person_lines.append(
-                "{0}（{1}）——存在『有工资发放但未依法参保』待证线索，"
-                "须说明用工身份（{2}）及未参保原因，"
-                "并提供劳动合同、参保凭证或异地参保证明。".format(nm, note, cands_txt)
+                "{0}：{1}（可能的身份为{2}），并提供劳动合同、参保凭证或异地参保证明。".format(
+                    nm, note, cands_txt)
             )
-        detail += ("仅在工资名册、未出现在社保清单的人员共{0}人，须按人说明并自证："
+        detail += ("以下{0}人只在工资名册中出现、社保清单中没有记录，需逐人说明："
                    "{1}").format(len(only_salary), "；".join(person_lines))
     if only_social:
         detail += "仅在社保清单（未出现在工资名册）的人员：{0}。".format("、".join(only_social))
@@ -3227,8 +3228,8 @@ def _scan_expense_fabrication(data, spec):
         verified_facts = [
             f"上述{len(suspicious)}笔费用合计 {susp_total:,.2f}元，占凭证费用总额（{expense_total:,.2f}元）的"
             f"{ (susp_total/expense_total*100) if expense_total else 0:.1f}%；",
-            "两笔结算方式均为「转账」——系统已核实无现金支付，故暂未发现现金套取的直接痕迹"
-            "（现金维度不构成疑点，已排除，不列入待证事项）；",
+            "两笔结算方式均为「转账」，无现金支付，故暂未发现现金套取的直接痕迹"
+            "（现金维度不构成疑点，不列入待证事项）；",
             "凭证仅记载「科目+摘要+金额」，未附合同、成果物、收款方全称与统一社会信用代码——"
             "这是费用真实性无法在账面自证的直接原因，而非已认定虚列。",
         ]
@@ -3243,7 +3244,7 @@ def _scan_expense_fabrication(data, spec):
         ]
         detail = (
             f"本项目前的性质是：成本费用真实性待证事项（非已认定违法）。\n"
-            f"已经核实的事实是：系统从记账凭证中检出{len(suspicious)}笔大额（单笔≥10万元）咨询/广告/服务类费用：\n"
+            f"已经核实的事实是：记账凭证中检出{len(suspicious)}笔大额（单笔≥10万元）咨询、广告、服务类费用：\n"
             + "\n".join(lines) + "\n"
             + "\n".join(verified_facts) + "\n"
             f"之所以值得查，具体理由是：咨询费、广告费、服务费是虚开发票与虚列成本费用的高发载体，"
@@ -3562,7 +3563,7 @@ def _scan_related_party_pricing(data, spec):
     if not related:
         findings.append(_finding(
             spec,
-            "已经核实的事实是：系统未检测到工商股权穿透/关联方清单数据，故仅能完成价格离散度探针，无法做关联定性。\n"
+            "已经核实的事实是：本轮资料中未见工商股权穿透与关联方清单数据，故仅能完成价格离散度分析，无法就关联关系作出定性。\n"
             "说明：转让定价违规的认定前提是「交易双方构成关联方」。在缺股权穿透数据时，系统不臆测关联关系，"
             "仅保留价格离散线索并提示补充资料。\n"
             "还需要企业补充、或系统后续接入的资料是：工商股权穿透数据（股东/对外投资/人员任职交叉），以识别隐性关联方。",
@@ -3820,11 +3821,11 @@ def _scan_city_constr_tax(data, spec):
         detail = (
             f"已经核实的事实是：实缴增值税 {paid_vat:,.2f}元，按法定附征率测算应随征城建税及附加约 {est_total:,.2f}元"
             f"（城建7%={est_city:,.2f}+教育费附加3%={est_edu:,.2f}+地方教育附加2%={est_local:,.2f}），"
-            "但系统未检索到对应的城建税及附加申报记录。\n"
+            "但未见对应的城建税及附加申报记录。\n"
             "之所以值得查，具体理由是：城建税及教育费附加依《城市维护建设税法》《征收教育费附加的暂行规定》"
             "须随增值税附征，二者存在法定勾稽关系。触发门槛的具体事实是：有实缴增值税、却无附加税申报——"
             "该勾稽缺口可复算，构成待证疑点。可能成因亦包括：企业适用县城/乡村税率（5%/1%低于市区7%）、"
-            "或附加税在合并申报表中未单独列示致系统未识别。\n"
+            "或附加税在合并申报表中未单独列示，故未单独列示于申报数据中。\n"
             "需要企业举证说明的事项如下：请提供：城建税及附加的申报表或合并申报明细；"
             "企业实际注册地区（据以核定适用城建税率）；如确已申报，说明申报路径以便系统核验。"
         )
@@ -4159,7 +4160,7 @@ def _scan_cross_border_penetration(data, spec):
     has_customs = bool(customs) or bool(data.get("customs_declarations"))
     if not has_customs:
         detail = (
-            "跨境交易穿透筛查：检出{0}笔涉及境外对手方或外币结算的交易，但系统未获取到报关单、"
+            "跨境交易穿透筛查：检出{0}笔涉及境外对手方或外币结算的交易，但本轮未获取到报关单、"
             "海关进口增值税专用缴款书、外汇收付款凭证等跨境业务必备资料，无法穿透境外实控与真实交易背景。"
             "依据风险检查规程，应责令补充：①报关单及海关缴款书；②涉外收付款凭证（跨境人民币/外币）；"
             "③境外关联方股权穿透与同期资料。".format(len(foreign_deals))
@@ -4445,7 +4446,7 @@ def _scan_void_invoice_fund_return(data, spec):
             "income_gap": round(income_gap, 2) if income_gap is not None else None,
             "matched_examples": matched[:10],
             "verified_facts": [
-                f"系统已从销项发票提取作废/红冲发票{len(void_sal)}张，金额合计{_fmt_yuan(sum(v['amount'] for v in void_sal))}（数据可逐票复算）。",
+                f"已从销项发票中提取作废、红冲发票{len(void_sal)}张，金额合计{_fmt_yuan(sum(v['amount'] for v in void_sal))}（可逐票复算）。",
                 f"已从对公收款流水匹配到{len(matched)}张作废发票的受票方与金额同额/接近收款，吻合金额{_fmt_yuan(matched_void_total)}（付款方户名与受票方一致，金额吻合度≥90%）。",
                 ("对公收款总额较申报收入存在正缺口，说明存在已收未申报资金。" if (income_gap is not None and income_gap > 0) else "资金流与申报收入缺口需结合完整账套进一步核实。"),
             ],
