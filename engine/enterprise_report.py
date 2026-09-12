@@ -819,7 +819,7 @@ def _conclusion_statement(f):
     return to_plain(
         "本项为待核实事项：现有资料只能确认可疑信号，还不足以作出最终认定。"
         "需要补充外部证据（合同、物流单据、盘点表、权属证明等）后才能定性。"
-        + (f"本轮建议：{suggestion}" if suggestion else "请按报告『企业应当怎样处理』一节逐项补证。")
+        + (f"本轮建议：{suggestion}" if suggestion else "请按本报告关于企业应当怎样处理的说明逐项补证。")
     )
 
 
@@ -883,8 +883,40 @@ def _naturalize_report_text(text):
     s = s.replace("论证与裁决", "结论及理由")
     s = s.replace("论证过程", "判断理由")
     s = s.replace("裁决", "结论")
+    # 11) 符号自然化（2026-09-13 用户要求）：报告读起来是正常句子，
+    #     不用直角引号、段落符号与箭头。明细一律走列表，不在正文里堆符号。
+    s = _strip_symbol_noise(s)
     s = _re.sub(r"[，。；：]{2,}", lambda m: m.group(0)[0], s)
     s = _re.sub(r"  +", " ", s)
+    return s
+
+
+def _strip_symbol_noise(s):
+    """把「」『』·●→ 与 markdown 星号等符号改成正常句子里的标点。
+
+    用户要求「就正常的句子」：资料名、清单名不该带直角引号；查证路径里的
+    箭头应写成并列；段落里的中点、圆点是列表符号，应换成句读。
+    """
+    import re as _re
+    # 11.1 红线名：去引号后会与「红线」二字粘连，用「，即」衔接保持通顺
+    s = _re.sub(r"红线[「『]([^」』]{1,60})[」』]", r"红线，即\1", s)
+    # 11.2 章节/表名引用（『…』）：改成书名号外的自然衔接，直接去引号
+    s = s.replace("『", "").replace("』", "")
+    # 11.3 其余直角引号：一律去引号保内容（资料名/清单名/字段名）
+    s = s.replace("「", "").replace("」", "")
+    # 11.4 列表圆点/中点/实心点 → 句读（明细由前端渲染成列表，正文不留符号）
+    s = _re.sub(r"\s*[●•‣▪■□○]\s*", "；", s)
+    s = s.replace("·", "，")
+    # 11.5 箭头：查证路径与流程本是并列关系，改成顿号
+    s = s.replace("→", "、")
+    s = s.replace("<-", "来自")
+    # 11.6 markdown 强调（*纺织产品*）与标题井号：正文里一律去掉
+    s = _re.sub(r"\*([^*\n]{1,40})\*", r"\1", s)
+    s = _re.sub(r"^\s*#{1,6}\s*", "", s, flags=_re.M)
+    # 11.7 清理因替换产生的重复/多余顿号逗号与空括号
+    s = _re.sub(r"[、，]{2,}", "、", s)
+    s = _re.sub(r"[；；]{2,}", "；", s)
+    s = s.strip()
     return s
 
 
@@ -946,12 +978,15 @@ def _build_redline_problems(suspicions):
         legal = [l for l in (s.get("legal_basis") or []) if l]
         _suspect = str(s.get("suspect") or "税务风险")
         _suspect_txt = _suspect if _suspect.startswith("涉嫌") else f"涉嫌{_suspect}"
+        # 构成要件属明细，走列表（用户要求：涉及明细的就列表）
         p1 = (
-            f"经检查，本企业触碰税务红线「{rname}」，{_suspect_txt}。"
-            "该红线不因行业而变，凡符合下列构成要件即属触红："
-            + _seq(constituents, "见红线库列明的构成要件。")
-            + (f"法定依据：{'；'.join(legal)}。" if legal else "")
+            f"经检查，本企业触碰税务红线，即{rname}，{_suspect_txt}。"
+            + ("该红线不因行业而变，凡符合下列构成要件即属触红：" if constituents
+               else "具体构成要件见红线库列明的口径。")
         )
+        bullets1 = [_naturalize_report_text(str(c).rstrip("。；"))
+                    for c in constituents if str(c).strip()]
+        tail1 = _naturalize_report_text(f"法定依据：{'；'.join(legal)}。") if legal else ""
 
         # ② 发现过程
         chain_desc = _clue_narrative(clue)
@@ -969,8 +1004,8 @@ def _build_redline_problems(suspicions):
         lack = [e for e in (ev.get("elements") or []) if e.get("status") != "已有"]
         p3 = (
             f"要把这一项定下来，需要{len(ev.get('elements') or [])}项材料。"
-            + (f"目前已经拿到{len(have)}项：" + "、".join(e["name"] for e in have[:6]) + "。" if have else "目前还没有一项材料在手上。")
-            + (f"还差{len(lack)}项：" + "、".join(e["name"] for e in lack[:6]) + "。" if lack else "")
+            + (f"目前已经拿到{len(have)}项。" if have else "目前还没有一项材料在手上。")
+            + (f"还差{len(lack)}项。" if lack else "")
             + f"材料齐全程度{int(float(ev.get('closure', 0)) * 100)}%，{ev.get('verdict', '')}。"
             + (f"{ev.get('rebuttal_status', '')}。" if ev.get("rebuttal_status") else "")
         )
@@ -979,20 +1014,25 @@ def _build_redline_problems(suspicions):
         p4 = _naturalize_report_text(arg.get("reasoning") or "")
 
         # ⑤ 需企业补充的资料与说明
+        # 2026-09-13 用户要求：涉及明细的一律走列表，正文只留引导句，
+        # 不再把「第一，…；第二，…」塞进段落里。明细通过 bullets 字段传出。
         actions = [a for a in (arg.get("next_actions") or []) if a]
-        p5 = (
-            "要把这一项查清楚，需要：" + _seq(actions, "由企业就该项提交书面说明。")
-            + (f"补救要求：{ev.get('remedy', '')}" if ev.get("remedy") else "")
-        )
+        p5_lead = "要把这一项查清楚，需要：" if actions else "需要由企业就该项提交书面说明。"
+        bullets5 = [_naturalize_report_text(str(a).rstrip("。；"))
+                    for a in actions if str(a).strip()]
+        tail5 = _naturalize_report_text(f"补救要求：{ev['remedy']}") if ev.get("remedy") else ""
 
         paragraphs = [
-            {"heading": "一、涉及的风险事项", "text": _naturalize_report_text(p1)},
+            {"heading": "一、涉及的风险事项", "text": _naturalize_report_text(p1),
+             "bullets": bullets1 or None, "tail": tail1},
             {"heading": "二、发现的依据", "text": _naturalize_report_text(p2),
              "detail_table": _clue_table(clue)},
+            # 本段明细由 detail_table 承载，不再另出 bullets，避免同一信息重复两遍
             {"heading": "三、已取得的资料与待补充的资料", "text": _naturalize_report_text(p3),
              "detail_table": _evidence_table(ev)},
             {"heading": "四、本项结论及理由", "text": p4},
-            {"heading": "五、需企业提供的资料与说明", "text": _naturalize_report_text(p5)},
+            {"heading": "五、需企业提供的资料与说明", "text": _naturalize_report_text(p5_lead),
+             "bullets": bullets5 or None, "tail": tail5},
         ]
 
         problems.append({
@@ -1262,7 +1302,7 @@ def _clue_narrative(clue):
     observed_list = _dedup_observed([n.get("observed") for n in nodes])
     parts = []
     for i, n in enumerate(nodes):
-        seg = f"第{n.get('step')}步从「{_label_source(n.get('source')) or '—'}」{n.get('action') or ''}"
+        seg = f"第{n.get('step')}步从{_label_source(n.get('source')) or '相关资料'}中{n.get('action') or ''}"
         obs = observed_list[i] if i < len(observed_list) else ""
         if obs:
             # 观测值内部的「；」改为「，」，避免与步骤之间的分隔符混淆

@@ -234,7 +234,11 @@ class TestNaturalizeReportText(unittest.TestCase):
         self.assertNotRegex(got, r"RL-[A-Z]+-\d+")
         # 不得出现「税务红线红线」这类叠加重复
         self.assertNotIn("税务红线红线", got)
-        self.assertIn("触碰税务红线「采购成本无对公付款资金证据」", got)
+        # 2026-09-13：直角引号已取消，红线名用「，即」衔接
+        self.assertIn("触碰税务红线", got)
+        self.assertIn("采购成本无对公付款资金证据", got)
+        self.assertNotIn("「", got)
+        self.assertNotIn("」", got)
 
     def test_redline_name_without_id_preserved(self):
         from engine.enterprise_report import _naturalize_report_text
@@ -336,6 +340,90 @@ class TestInternalTermsNeverLeak(unittest.TestCase):
         for jargon in ("线索链", "证据链", "闭合度"):
             self.assertNotIn(jargon, got, f"内部术语进入报告：{got}")
         self.assertIn("支撑材料", got)
+
+
+class TestSymbolFreeNarrative(unittest.TestCase):
+    """契约（2026-09-13 用户要求）：叙事式句子，不用直角引号与段落符号。
+
+    用户原话：「报告内容的呈现形式还是要调整成叙事式的段落，涉及明细的就列表，
+    不要出现段落符号，『「供应商名称与地区信息」』也不要有「」这样的符号，
+    就正常的句子。」
+    """
+
+    FORBIDDEN = ["「", "」", "『", "』", "·", "●", "•", "→", "§", "¶"]
+
+    def _clean(self, src):
+        from engine.enterprise_report import _naturalize_report_text
+        return _naturalize_report_text(src)
+
+    def test_corner_brackets_removed(self):
+        got = self._clean("「进销存台账」与「合同文件」均已取得。")
+        for ch in ("「", "」"):
+            self.assertNotIn(ch, got, f"直角引号未清：{got}")
+        self.assertIn("进销存台账", got)
+        self.assertIn("合同文件", got)
+
+    def test_arrow_path_becomes_natural_sentence(self):
+        """用户点名的那句：进项发票→供应商名称与地区信息→… 应变成正常句子。"""
+        got = self._clean(
+            "这些事实是从进项发票→供应商名称与地区信息→地域分布→物流单据"
+            "这几类资料里逐层核对出来的。"
+        )
+        self.assertNotIn("→", got, f"箭头未清：{got}")
+        self.assertNotIn("「", got)
+        self.assertEqual(
+            got,
+            "这些事实是从进项发票、供应商名称与地区信息、地域分布、物流单据"
+            "这几类资料里逐层核对出来的。",
+        )
+
+    def test_redline_name_keeps_readable(self):
+        got = self._clean("本企业触碰税务红线「资金回流：付款后经个人账户回流」，涉嫌隐匿收入。")
+        self.assertNotIn("「", got)
+        self.assertIn("触碰税务红线", got)
+        self.assertIn("资金回流", got)
+
+    def test_paragraph_bullet_symbols_removed(self):
+        got = self._clean("第一步·资金和发票硬线索（9项）：先查证据最硬的事项。")
+        self.assertNotIn("·", got, f"段落符号未清：{got}")
+        got2 = self._clean("外部核验通道：A ● 国家企业信用信息公示系统：未知 ● 搜索引擎：无")
+        self.assertNotIn("●", got2, f"圆点未清：{got2}")
+
+    def test_markdown_emphasis_removed(self):
+        got = self._clean("典型：*纺织产品*针织布（销105773.05）")
+        self.assertNotIn("*", got, f"markdown 星号未清：{got}")
+        self.assertIn("纺织产品针织布", got)
+
+    def test_no_forbidden_symbols_in_whole_report(self):
+        """端到端：真实报告过净化闸门后不得残留任何禁用符号。"""
+        import io, json, os, re, sys
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cache = os.path.join(root, "data", "cache", "last_analysis_cache.json")
+        if not os.path.exists(cache):
+            self.skipTest("无分析缓存，跳过端到端检查")
+        from engine.enterprise_report import _zh_normalize_obj
+        raw = json.load(io.open(cache, encoding="utf-8"))
+        reps = []
+
+        def walk(o):
+            if isinstance(o, dict):
+                for k, v in o.items():
+                    if k == "enterprise_readable_report" and isinstance(v, dict):
+                        reps.append(v)
+                    walk(v)
+            elif isinstance(o, list):
+                for v in o:
+                    walk(v)
+
+        for rec in raw.values():
+            if isinstance(rec, dict):
+                walk(rec.get("result") or rec)
+        if not reps:
+            self.skipTest("缓存中无企业易读报告")
+        for rep in reps:
+            blob = json.dumps(_zh_normalize_obj(rep), ensure_ascii=False)
+            for ch in self.FORBIDDEN:
+                self.assertNotIn(ch, blob, f"报告残留符号 {ch}")
 
 
 if __name__ == "__main__":

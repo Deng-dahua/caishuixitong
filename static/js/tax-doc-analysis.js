@@ -4556,13 +4556,66 @@ function _renderDetailTable(table) {
   return '<table class="fact-detail-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
 }
 
+/* 把「第一，…；第二，…。」这类枚举文本拆成列表项；非枚举返回 null。
+   用户要求：涉及明细的一律走列表，不堆在段落里。 */
+function _reportListItems(value) {
+  var s = String(value == null ? '' : value).trim();
+  if (!s) return null;
+  var NUM = '第[一二三四五六七八九十百零\\d]+，';
+  if (!(new RegExp('^' + NUM)).test(s)) return null;
+  var parts = s.split(new RegExp('；(?=' + NUM + ')'));
+  if (parts.length < 2) return null;
+  var items = parts.map(function (p) {
+    return p.replace(new RegExp('^' + NUM), '').replace(/[。；]+$/, '').trim();
+  }).filter(function (x) { return x; });
+  return items.length >= 2 ? items : null;
+}
+
+function _renderBullets(items) {
+  if (!Array.isArray(items) || !items.length) return '';
+  var lis = items.map(function (x) {
+    var t = String(x == null ? '' : x).trim();
+    return t ? '<li style="margin:3px 0">' + esc(t) + '</li>' : '';
+  }).join('');
+  return lis ? '<ul style="margin:6px 0 6px 24px;padding:0;line-height:1.95;list-style:disc">' + lis + '</ul>' : '';
+}
+
+/* 叙事式段落：标题独立成行，正文成段，明细成列表（2026-09-13 用户要求） */
+function _renderNarrativeBody(text, bullets) {
+  var s = String(text == null ? '' : text).trim();
+  var list = Array.isArray(bullets) && bullets.length ? bullets : null;
+  var lead = s;
+  if (!list) {
+    // 兜底：正文里若夹着「第一，…；第二，…」的枚举，自动拆成列表
+    var m = s.match(/^([\s\S]*?[：:])\s*(第[一二三四五六七八九十百零\d]+，[\s\S]*)$/);
+    var got = null;
+    if (m) {
+      got = _reportListItems(m[2]);
+      if (got) lead = m[1].trim();
+    }
+    if (!got) {
+      var got2 = _reportListItems(s);
+      if (got2) { lead = ''; got = got2; }
+    }
+    if (got) list = got;
+  }
+  var html = '';
+  if (lead) html += '<p style="margin:6px 0;text-align:justify;line-height:2">' + esc(lead) + '</p>';
+  html += _renderBullets(list);
+  if (!html) html = '<p style="margin:6px 0;text-align:justify;line-height:2"></p>';
+  return html;
+}
+
 function _renderNarrativeParagraphs(rows, emptyText) {
   rows = Array.isArray(rows) ? rows : [];
   if (!rows.length) return '<p class="i2">' + esc(emptyText || '本轮未形成可展示的段落内容。') + '</p>';
   return rows.map(function(row){
-    var heading = row && row.heading ? '<strong>' + esc(row.heading) + '。</strong>' : '';
+    var heading = row && row.heading
+      ? '<div style="font-weight:700;margin:12px 0 4px">' + esc(row.heading) + '</div>' : '';
     var table = row && row.detail_table ? _renderDetailTable(row.detail_table) : '';
-    return '<p class="i2" style="margin:10px 0;text-align:justify;line-height:2">' + heading + esc((row && row.text) || '') + '</p>' + table;
+    var body = _renderNarrativeBody((row && row.text) || '', row && row.bullets);
+    var tail = (row && row.tail) ? '<p style="margin:6px 0;text-align:justify;line-height:2">' + esc(row.tail) + '</p>' : '';
+    return '<div class="i2" style="margin:10px 0">' + heading + body + tail + '</div>' + table;
   }).join('');
 }
 
