@@ -883,7 +883,14 @@ def _naturalize_report_text(text):
     s = s.replace("论证与裁决", "结论及理由")
     s = s.replace("论证过程", "判断理由")
     s = s.replace("裁决", "结论")
-    # 11) 符号自然化（2026-09-13 用户要求）：报告读起来是正常句子，
+    # 11) 无异常检查的套话整段删除（2026-09-13 用户要求）：十几项检查原样
+    #     复制同一段「检查人员对本项执行了…没有发现…不正常情况」，属无效篇幅。
+    #     本节改为只列检查项名称，说明统一在章节导言出现一次。
+    if "检查人员对本项执行了本轮规定的检查程序" in s:
+        # 非贪婪匹配到本段结束，避免把后文一起吃掉
+        s = _re.sub(
+            r"检查人员对本项执行了.*?没有发现达到该规则检查条件的不正常情况。", "", s)
+    # 12) 符号自然化（2026-09-13 用户要求）：报告读起来是正常句子，
     #     不用直角引号、段落符号与箭头。明细一律走列表，不在正文里堆符号。
     s = _strip_symbol_noise(s)
     s = _re.sub(r"[，。；：]{2,}", lambda m: m.group(0)[0], s)
@@ -1380,19 +1387,31 @@ def _build_confirmed_problems(report_data):
 
 
 def _build_completed_checks(report_data):
-    """已执行且本轮未发现达到条件异常的检查（level 待核验的）"""
+    """已执行且本轮未发现达到条件异常的检查（level 待核验的）
+
+    2026-09-13 用户要求：没有异常的检查，就不需要表述了。
+    原先每条都原样复制同一段「检查人员对本项执行了…没有发现达到该规则检查
+    条件的不正常情况」，十几项检查就是同一段话重复十几遍，属无效篇幅。
+    现改为：每条只留检查项名称，说明统一放在章节导言；同名检查去重。
+    """
     findings = report_data.get("all_findings", []) or []
     completed = []
+    seen = set()
     seq = 1
     for f in findings:
         if not isinstance(f, dict):
             continue
         if f.get("level") != "待核验":
             continue
+        title = str(f.get("type") or "检查").replace("待核事实：", "").replace("待核事实:", "").strip()
+        if not title or title in seen:
+            continue
+        seen.add(title)
         completed.append({
             "seq": seq,
-            "title": (f.get("type") or "检查").replace("待核事实：", "").replace("待核事实:", ""),
-            "narrative": "检查人员对本项执行了本轮规定的检查程序，按这项检查规定的字段、口径和计算条件完成筛查，并记录了本轮唯一的执行状态。检查结果：本轮已经拿到这项检查所需的资料并执行了规则，没有发现达到该规则检查条件的不正常情况。",
+            "title": title,
+            # 无异常即不逐条表述；前端据此渲染为名称清单
+            "narrative": "",
         })
         seq += 1
     return completed

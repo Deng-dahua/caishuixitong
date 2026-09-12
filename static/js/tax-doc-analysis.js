@@ -4802,10 +4802,24 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   html += '<h2 id="company-completed">三、已经执行且本轮未发现达到条件异常的检查</h2>' +
     '<p class="i2">本部分只列示资料条件满足且规则已经实际执行的项目。“本轮未发现达到条件的异常”不等于企业在其他资料、期间或事项上完全没有风险。</p>';
   if (!completed.length) html += '<p class="i2">本轮没有可单独列示为已经完成且未发现达到检查条件异常的项目。</p>';
-  completed.forEach(function(item){
-    html += '<section class="fact-sec"><div class="ftitle">检查' + esc(item.seq || '') + '：' + esc(item.title || '') + '</div>' +
-      '<p class="i2" style="line-height:2">' + esc(item.narrative || ((item.method || '') + (item.result || '') + (item.boundary || ''))) + '</p></section>';
+  // 用户要求：没有异常的检查不需要逐条表述，只列检查项名称。
+  // 若条目自带说明（method/result/boundary）则仍按条目渲染，否则只出名称清单。
+  var completedVerbose = completed.some(function (item) {
+    return item && (item.narrative || item.method || item.result || item.boundary);
   });
+  if (!completedVerbose) {
+    html += '<p class="i2">本轮已执行且未发现达到条件异常的检查共 ' + completed.length + ' 项，分别为：</p>'
+      + '<ul style="margin:6px 0 6px 24px;padding:0;line-height:1.95;list-style:disc">'
+      + completed.map(function (item) {
+        return '<li style="margin:3px 0">' + esc(item.title || '') + '</li>';
+      }).join('')
+      + '</ul>';
+  } else {
+    completed.forEach(function(item){
+      html += '<section class="fact-sec"><div class="ftitle">检查' + esc(item.seq || '') + '：' + esc(item.title || '') + '</div>' +
+        '<p class="i2" style="line-height:2">' + esc(item.narrative || ((item.method || '') + (item.result || '') + (item.boundary || ''))) + '</p></section>';
+    });
+  }
 
   html += '<h2 id="company-actions">四、风险检查处理意见和整改验收标准</h2>' +
     '<p class="i2">请按照下列顺序办理。所有处理必须建立在真实业务和原始资料基础上，不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';

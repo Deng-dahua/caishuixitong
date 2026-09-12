@@ -342,6 +342,50 @@ class TestInternalTermsNeverLeak(unittest.TestCase):
         self.assertIn("支撑材料", got)
 
 
+class TestNoBoilerplateForCleanChecks(unittest.TestCase):
+    """契约（2026-09-13 用户要求）：没有异常的检查，就不需要表述了。
+
+    原先「已执行且本轮未发现达到条件异常的检查」每条都原样复制同一段
+    「检查人员对本项执行了本轮规定的检查程序…没有发现达到该规则检查条件的不
+    正常情况」，十几项检查即同一段话重复十几遍。现只列检查项名称。
+    """
+
+    BOILER = "检查人员对本项执行了本轮规定的检查程序"
+
+    def test_completed_checks_carry_no_narrative(self):
+        from engine.enterprise_report import _build_completed_checks
+        data = {"all_findings": [
+            {"level": "待核验", "type": "银行流水余额滚动关系不一致"},
+            {"level": "待核验", "type": "个人或个体工商户供应商客户交易核验"},
+        ]}
+        out = _build_completed_checks(data)
+        self.assertEqual(len(out), 2)
+        for c in out:
+            self.assertEqual(c.get("narrative"), "", f"无异常检查不应带表述：{c}")
+            self.assertNotIn(self.BOILER, str(c))
+
+    def test_completed_checks_dedup_and_filter(self):
+        from engine.enterprise_report import _build_completed_checks
+        data = {"all_findings": [
+            {"level": "待核验", "type": "同名检查"},
+            {"level": "待核验", "type": "同名检查"},          # 重复，应去重
+            {"level": "高风险", "type": "不该进本节的疑点"},   # 非待核验，应排除
+        ]}
+        out = _build_completed_checks(data)
+        self.assertEqual(len(out), 1, f"应去重且只保留待核验：{out}")
+        self.assertEqual(out[0]["title"], "同名检查")
+
+    def test_boilerplate_stripped_by_gate(self):
+        """兜底：历史缓存里的套话过净化闸门后必须消失。"""
+        from engine.enterprise_report import _naturalize_report_text
+        src = ("检查人员对本项执行了本轮规定的检查程序，按这项检查规定的字段、口径和"
+               "计算条件完成筛查，并记录了本轮唯一的执行状态。检查结果：本轮已经拿到"
+               "这项检查所需的资料并执行了规则，没有发现达到该规则检查条件的不正常情况。")
+        got = _naturalize_report_text(src)
+        self.assertNotIn(self.BOILER, got)
+        self.assertEqual(got.strip(), "", f"套话应整段清空，实得：{got!r}")
+
+
 class TestSymbolFreeNarrative(unittest.TestCase):
     """契约（2026-09-13 用户要求）：叙事式句子，不用直角引号与段落符号。
 
