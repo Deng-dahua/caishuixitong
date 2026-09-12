@@ -870,31 +870,256 @@ def _build_redline_problems(suspicions):
     return problems
 
 
+# ── 线索链「实际看到的数据」中文化与降噪（2026-09-12）──────────────────
+# 背景：引擎输出的 observed 常带英文字段名与残缺 JSON 碎片
+# （如 salary_person_count=6、province_breakdown={广东:{'count': 29, 'amou…），
+# 直接进报告既不专业，也把关键数字淹没在噪音里。此处统一转为中文可读表述。
+_SOURCE_LABELS = [
+    ("social_security", "社保明细"), ("salaries", "工资表"),
+    ("tax_declarations", "纳税申报表"), ("declarations", "报关单"),
+    ("bank_txs", "银行流水"), ("sal_invs", "销项发票"),
+    ("pur_invs", "进项发票"), ("vouchers", "记账凭证"),
+    ("inventory", "进销存台账"), ("invoices", "发票"),
+    # 2026-09-12 补齐：线索链 source 全集对齐（required_sources 实测 17 种标识）
+    ("inventory_ledger", "进销存台账"), ("company_profile", "企业基础信息"),
+    ("contracts", "合同台账"), ("transport_contracts", "运输合同"),
+    ("trial_balance", "科目余额表"), ("fixed_assets", "固定资产台账"),
+    ("bom", "物料清单"), ("declaration", "纳税申报表"),
+    ("target_entity", "目标企业信息"),
+]
+# ── 通用词元翻译（兜底）：映射表之外的 snake_case 指标键按词元拆开翻译 ──
+# 整键每个词元都可译才翻译；遇到未知词元则连「键=」一起剔除、只保留数值。
+_TOKEN_ZH = {
+    "invoice": "发票", "count": "数量", "amount": "金额", "total": "合计",
+    "ratio": "占比", "pct": "比例", "rate": "比率", "salary": "工资",
+    "social": "社保", "bank": "银行", "cash": "现金", "purchase": "采购",
+    "sales": "销售", "sale": "销售", "revenue": "收入", "cost": "成本",
+    "supplier": "供应商", "customer": "客户", "person": "人员",
+    "month": "月份", "months": "月份", "void": "作废", "red": "红字",
+    "matched": "匹配", "unmatched": "未匹配", "input": "进项",
+    "output": "销项", "tax": "税款", "declared": "申报", "voucher": "凭证",
+    "inventory": "存货", "freight": "运费", "rent": "租金", "welfare": "福利",
+    "travel": "差旅", "entertainment": "业务招待", "energy": "能耗",
+    "personal": "个人", "collection": "收款", "payment": "付款",
+    "paid": "已付", "unpaid": "未付", "examples": "示例",
+    "breakdown": "分布", "gap": "差异", "detail": "明细", "names": "名单",
+    "list": "清单", "pur": "采购", "sal": "销售", "inv": "发票",
+    "num": "数量", "rows": "笔数", "buy": "买入", "sell": "卖出",
+    "in": "流入", "out": "流出", "big": "大额", "zero": "零",
+    "top": "前列", "avg": "平均", "max": "最大", "min": "最小",
+    "receipt": "收款", "wage": "工资", "staff": "员工", "employee": "员工",
+    "insured": "参保", "uninsured": "未参保", "cross": "跨",
+    "province": "省份", "region": "地区", "processing": "加工",
+    "production": "生产", "material": "材料", "raw": "原材料",
+    "goods": "品名", "fixed": "固定", "asset": "资产", "dep": "折旧摊销",
+    "cit": "企业所得税", "vat": "增值税", "base": "基数",
+    "only": "仅在", "duplicate": "重复", "mismatch": "不一致",
+    "match": "匹配", "flow": "流水", "tx": "交易", "transfer": "转账",
+    "gift": "礼品", "balance": "余额", "profit": "利润", "loss": "亏损",
+    "gross": "毛利", "margin": "利润率", "net": "净", "income": "所得",
+    "expense": "费用", "subsidy": "补贴", "bonus": "奖金",
+    "labor": "劳务", "contract": "合同", "platform": "平台",
+    "counterparty": "交易对手", "third": "第三方", "party": "方",
+    "near": "临近", "period": "期末", "end": "期末", "abnormal": "异常",
+    "anomaly": "异常", "missing": "缺失", "required": "必备",
+    "used": "已使用", "usage": "使用", "book": "账面", "actual": "实际",
+    "estimated": "估算", "est": "估算", "history": "历史",
+    "transport": "运输", "transportation": "运输", "circular": "循环",
+    "fund": "资金", "loop": "回流", "top3": "前三",
+    "declaration": "申报", "reimbursement": "报销", "rebate": "退税",
+    "export": "出口", "import": "进口", "customs": "报关",
+    "foreign": "跨境", "exchange": "外汇", "related": "关联",
+    # 2026-09-12 二批：findings 观测指标常见词元
+    "ad": "广告", "promo": "推广", "added": "新增", "affected": "受影响",
+    "after": "之后", "before": "之前", "applied": "已应用", "available": "可用",
+    "credit": "贷方", "deal": "交易", "diff": "差异", "violations": "违规",
+    "payroll": "工资", "burden": "税负", "change": "变动", "closing": "期末",
+    "occurrence": "发生", "company": "公司", "comparable": "可比",
+    "completion": "完成", "concentration": "集中度", "confirmed": "已确认",
+    "conflict": "冲突", "consumer": "消费", "core": "主营", "correction": "更正",
+    "coverage": "覆盖", "critical": "严重", "date": "日期", "declare": "申报",
+    "deductible": "可抵扣", "demand": "需求", "item": "项目", "amort": "摊销",
+    "deviation": "偏离", "dimension": "维度", "direct": "直接",
+    "directional": "方向", "divergence": "背离", "domain": "域",
+    "dual": "双重", "role": "角色", "empty": "空值", "evidence": "证据",
+    "exact": "精确", "expected": "预期", "file": "文件", "files": "文件",
+    "filtered": "过滤后", "finding": "发现", "findings": "发现",
+    "four": "四", "star": "星", "further": "进一步", "check": "核查",
+    "generic": "通用", "hallucination": "幻觉", "has": "有无",
+    "healing": "自愈", "rules": "规则", "rule": "规则", "high": "高",
+    "quality": "质量", "risk": "风险", "hit": "命中", "hypothesis": "假设",
+    "imbalance": "失衡", "independent": "独立", "source": "来源",
+    "indirect": "间接", "industry": "行业", "scene": "场景",
+    "insufficient": "不足", "rev": "收入", "issue": "问题", "issues": "问题",
+    "major": "主要", "minor": "次要", "markup": "加价", "buyer": "购买方",
+    "signals": "信号", "signal": "信号", "category": "类别",
+    "memories": "记忆", "meta": "元", "misfire": "误触发", "module": "模块",
+    "negative": "负数", "new": "新增", "old": "旧", "no": "无",
+    "reissue": "换开", "noise": "噪声", "non": "非", "numeric": "数值",
+    "opposing": "对立", "other": "其他", "overlap": "重叠",
+    "patterns": "模式", "pending": "待定", "problem": "问题",
+    "personnel": "人员", "policies": "政策", "portfolio": "组合",
+    "post": "后验", "pre": "先验", "product": "产品", "provided": "已提供",
+    "without": "无", "received": "已收到", "reversal": "冲销", "root": "根因",
+    "row": "行", "sample": "抽样", "self": "自", "use": "用途",
+    "severe": "严重", "shared": "共用", "similar": "相似", "pair": "对",
+    "stagnant": "呆滞", "step": "步骤", "submit": "提交", "success": "成功",
+    "supporting": "佐证", "suspicion": "疑点", "suspicious": "可疑",
+    "system": "系统", "text": "文本", "their": "对方", "three": "三",
+    "trace": "追踪", "trigger": "触发", "triggered": "已触发",
+    "trusted": "可信", "observation": "观测", "typical": "典型",
+    "unbalanced": "失衡", "unbilled": "未开票", "unexplained": "未解释",
+    "uniform": "统一", "uninvoiced": "未开票", "unique": "唯一",
+    "vals": "取值", "unreported": "未申报", "valid": "有效",
+    "verification": "核验", "verified": "已核实", "verify": "核验",
+    "warning": "预警", "liability": "负债", "assets": "资产",
+    "unexplained_gap": "未解释差异", "co": "共同", "lessons": "教训",
+}
+
+
+def _generic_key_zh(key):
+    """把 snake_case 指标键按词元翻译为中文；任一词元未知则返回 None（整键剔除）。"""
+    out = []
+    for t in key.split("_"):
+        if not t:
+            continue
+        zh = _TOKEN_ZH.get(t)
+        if zh:
+            out.append(zh)
+        elif t.isdigit():
+            out.append(t)
+        else:
+            return None
+    return "".join(out) if out else None
+
+_OBSERVED_KEY_LABELS = [
+    ("salary_person_count", "工资表人数"),
+    ("social_person_count", "社保参保人数"),
+    ("salary_only_count", "有工资无社保人数"),
+    ("social_only_count", "有社保无工资人数"),
+    ("person_account_count", "涉及个人账户数"),
+    ("core_cost_total", "主营成本总额"),
+    ("unpaid_amount", "未匹配付款金额"),
+    ("unpaid_ratio", "未付款占比"),
+    ("supplier_count", "供应商家数"),
+    ("province_count", "涉及省份数"),
+    ("province_breakdown", "地区分布"),
+    ("discount_amount", "折扣折让金额"),
+    ("discount_rows", "折扣折让笔数"),
+    ("individual_supplier_count", "个人/个体户供应商家数"),
+    ("avg_amount_per_individual_supplier", "户均金额"),
+    ("supplier_amount", "涉及金额"),
+    ("related_party_data", "关联方数据"),
+    ("matches", "匹配明细"), ("examples", "示例"),
+    ("goods", "品名"), ("count", "家数"), ("amount", "金额"),
+    ("name", "姓名"), ("note", "说明"),
+    # 高频财务指标整键（避免词元拼接出「毛利利润率比例」这类拗口表述）
+    ("gross_margin_pct", "毛利率"), ("purchase_sales_ratio", "购销比"),
+    ("customer_top3_ratio", "前三大客户占比"), ("supplier_top3_ratio", "前三大供应商占比"),
+    ("bank_in_ratio", "银行流入占收款比"), ("bank_out_ratio", "银行流出占付款比"),
+]
+
+
+def _humanize_observed(text):
+    """把引擎原始观测值转为用户可读的中文表述，并剔除 JSON 碎片。"""
+    if not text:
+        return ""
+    s = str(text)
+    # ① 先做「键=」整键翻译（必须最先做：后续按子串替换短词会把长键拦腰截断）
+    #    精确映射优先，映射表之外的 snake_case 键按词元翻译；
+    #    含未知词元的键连「键=」一并剔除、只保留数值，避免英文残留。
+    _key_map = dict(_OBSERVED_KEY_LABELS)
+    def _gk(m):
+        k = m.group(1)
+        if k in _key_map:
+            return _key_map[k] + "="
+        zh = _generic_key_zh(k)
+        return zh + "=" if zh else ""
+    s = re.sub(r"\b([A-Za-z_][A-Za-z0-9_]*)=", _gk, s)
+    # ② 数据源标识（如「已读取资料：salaries」）转中文
+    for en, zh in sorted(_SOURCE_LABELS, key=lambda x: -len(x[0])):
+        s = s.replace(en, zh)
+    # ③ 值域里的短标识（JSON 内部 name:/count:/goods: 等）转中文，长键优先
+    for en, zh in sorted(_OBSERVED_KEY_LABELS, key=lambda x: -len(x[0])):
+        s = s.replace(en, zh)
+    # 去掉 JSON 结构符与引号
+    s = re.sub(r"[{}[\]]", "", s)
+    s = s.replace("'", "").replace('"', "")
+    # 清理残缺标点与空白
+    s = re.sub(r"[,，]{2,}", "，", s)
+    s = re.sub(r"[:：]\s*(?=[，。；]|$)", "", s)
+    s = re.sub(r"\s+", "", s)
+    s = re.sub(r"[，；。]{2,}", "，", s)
+    # 去掉孤立英文单词（长度>=3 的纯字母片段，多为残留标识）
+    s = re.sub(r"\b[A-Za-z_]{3,}\b", "", s)
+    # 去掉末尾被截断的碎片（无数字且过短的尾段，如 "金额…"）
+    segs = [x for x in re.split(r"[，；]", s) if x]
+    while segs and not re.search(r"\d", segs[-1]) and len(segs[-1]) <= 4:
+        segs.pop()
+    # 逐段规整：去掉段尾残留逗号，段内半角逗号统一为顿号
+    segs = [re.sub(r"[,，;；]+$", "", x).replace(",", "、") for x in segs]
+    s = "；".join([x for x in segs if x])
+    s = s.replace("…", "").strip("，；。 ")
+    return s
+
+
+def _label_source(src):
+    """把线索链的数据源标识（salaries 等）转为中文名称，未知原样返回。"""
+    if not src:
+        return ""
+    s = str(src)
+    for en, zh in sorted(_SOURCE_LABELS, key=lambda x: -len(x[0])):
+        if s == en:
+            return zh
+        s = s.replace(en, zh)
+    return s
+
+
+def _dedup_observed(values):
+    """相邻环节观测值完全相同时只保留首次，后续标注「同上」，突出差异而非重复。"""
+    out = []
+    prev = None
+    for v in values:
+        cur = _humanize_observed(v)
+        if cur and prev is not None and cur == prev:
+            out.append("同上")
+        else:
+            out.append(cur)
+        if cur:
+            prev = cur
+    return out
+
+
 def _clue_narrative(clue):
-    """把线索链讲成大白话，每环带实际数字"""
+    """把线索链讲成大白话，每环带实际数字（中文表述、剔除英文与 JSON 碎片）"""
     nodes = clue.get("nodes") or []
     if not nodes:
         return ""
+    observed_list = _dedup_observed([n.get("observed") for n in nodes])
     parts = []
-    for n in nodes:
-        seg = f"第{n.get('step')}步从「{n.get('source') or '—'}」{n.get('action') or ''}"
-        if n.get("observed"):
-            seg += f"，看到{n['observed']}"
+    for i, n in enumerate(nodes):
+        seg = f"第{n.get('step')}步从「{_label_source(n.get('source')) or '—'}」{n.get('action') or ''}"
+        obs = observed_list[i] if i < len(observed_list) else ""
+        if obs:
+            # 观测值内部的「；」改为「，」，避免与步骤之间的分隔符混淆
+            seg += f"，看到{obs.replace('；', '，')}" if obs != "同上" else "，数据与上一环一致"
         parts.append(seg)
     return "；".join(parts) + "。"
 
 
 def _clue_table(clue):
-    """线索链明细表：环/资料/动作/实际看到"""
+    """线索链明细表：环/资料/动作/实际看到（中文表述、相邻重复标注同上）"""
     nodes = clue.get("nodes") or []
     if not nodes:
         return None
+    observed_list = _dedup_observed([n.get("observed") for n in nodes])
     return {
         "columns": ["环节", "使用资料", "做了什么", "实际看到的数据"],
         "rows": [
-            {"环节": f"第{n.get('step')}环", "使用资料": n.get("source", ""),
-             "做了什么": n.get("action", ""), "实际看到的数据": n.get("observed", "")}
-            for n in nodes
+            {"环节": f"第{n.get('step')}环", "使用资料": _label_source(n.get("source", "")),
+             "做了什么": n.get("action", ""),
+             "实际看到的数据": (observed_list[i] if i < len(observed_list) else "")}
+            for i, n in enumerate(nodes)
         ],
     }
 

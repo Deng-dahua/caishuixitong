@@ -39,6 +39,30 @@ GRADE_CONFIRMED = "已核定"
 GRADE_PENDING = "待核"
 GRADE_EXCLUDED = "已排除"
 
+# 数据源标识 → 中文名（论证叙述「线索链」用，避免 salaries 等英文标识进入报告正文）
+# 与 enterprise_report._SOURCE_LABELS 保持一致；长键在前，避免 inventory 抢先命中 inventory_ledger。
+_SOURCE_ZH = [
+    ("tax_declarations", "纳税申报表"), ("social_security", "社保明细"),
+    ("transport_contracts", "运输合同"), ("inventory_ledger", "进销存台账"),
+    ("company_profile", "企业基础信息"), ("target_entity", "目标企业信息"),
+    ("fixed_assets", "固定资产台账"), ("trial_balance", "科目余额表"),
+    ("declaration", "纳税申报表"), ("salaries", "工资表"),
+    ("bank_txs", "银行流水"), ("sal_invs", "销项发票"),
+    ("pur_invs", "进项发票"), ("vouchers", "记账凭证"),
+    ("inventory", "进销存台账"), ("contracts", "合同台账"),
+    ("bom", "物料清单"),
+]
+
+
+def _zh_source(src: Any) -> str:
+    """把数据源标识（salaries 或「salaries、social_security」复合串）转为中文。"""
+    s = str(src or "")
+    if not s:
+        return ""
+    for en, zh in sorted(_SOURCE_ZH, key=lambda x: -len(x[0])):
+        s = s.replace(en, zh)
+    return s
+
 
 def _justifications(finding: Dict, redline: Dict) -> List[str]:
     """汇总正当理由（反证）：红线库定义 + 发现自带的合理解释"""
@@ -205,7 +229,7 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
     if clue.get("terminal_signal"):
         parts.append(f"【线索】{clue.get('terminal_signal')}。")
     chain_desc = "→".join(
-        f"{n.get('source','?').split('、')[0]}" for n in (clue.get("nodes") or [])
+        f"{_zh_source(n.get('source','?').split('、')[0])}" for n in (clue.get("nodes") or [])
     )
     if chain_desc:
         parts.append(f"【线索链】{chain_desc}。")

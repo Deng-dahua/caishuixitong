@@ -256,7 +256,7 @@ def run_inspection_questions(comprehensive=None, company_name="", data_overview=
                 "企业尽早自比，可把风险消除在自查阶段。",
                 ["增值税及附加税费申报表（各期）", "企业所得税年度/季度申报表", "未开票收入与视同销售明细"],
                 "两税差异/申报比对未激活",
-                "系统无申报数据无法做头牌勾稽；真风险检查员直接提取申报。请企业上传，让系统完成 P0 比对。")
+                "系统无申报数据无法做申报勾稽；真风险检查员直接提取申报。请企业上传，让系统完成申报数据比对。")
         # 盘货补偿：缺存货/余额表
         if any(("存货" in str(x) or "余额表" in str(x) or "资产负债表" in str(x) or "进销存" in str(x)) for x in missing):
             add("资料·存货与余额表缺失（补偿下户盘货）", "中",
@@ -273,7 +273,7 @@ def run_inspection_questions(comprehensive=None, company_name="", data_overview=
                 "风险检查要点：资金流是风险检查的『总开关』；无流水则资金类风险全部盲区。",
                 ["全部银行账户流水（含已销户期）", "个人代收付账户说明"],
                 "资金流/资金闭环未激活",
-                "系统依赖流水做资金类勾稽；请企业上传完整流水激活 P0。")
+                "系统依赖流水做资金类勾稽；请企业上传完整流水，激活资金流比对。")
         # 通用：其他缺失资料
         other_missing = [x for x in missing if not any(k in str(x) for k in
                         ("申报", "增值税", "所得税", "存货", "余额表", "资产负债", "进销存", "银行", "流水"))]
