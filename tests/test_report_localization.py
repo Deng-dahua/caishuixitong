@@ -24,6 +24,8 @@ from engine.enterprise_report import (
     _dedup_observed,
     _clue_narrative,
     _clue_table,
+    _translate_key,
+    _translate_metric_keys,
 )
 from engine.argumentation import _zh_source
 
@@ -138,6 +140,60 @@ class DedupTests(unittest.TestCase):
     def test_adjacent_dup_collapsed(self):
         out = _dedup_observed(["salary_person_count=6", "salary_person_count=6", "salary_person_count=7"])
         self.assertEqual(out, ["工资表人数=6", "同上", "工资表人数=7"])
+
+
+class MetricKeyLocalizationTests(unittest.TestCase):
+    """专项能力章节 metrics 键中文化（bank_flow/fund_loop 实测暴露的缺口）。
+
+    背景：引擎产出规范 snake_case 键（corporate_receipt 等），但 _WORD_CN
+    词表缺词元时会译出「corporate收款」这类半中半英键名进报告。
+    """
+
+    def test_bank_flow_keys_fully_localized(self):
+        for en, zh in [
+            ("flow_receipt", "流收款"), ("flow_pay", "流付款"),
+            ("corporate_receipt", "对公收款"), ("personal_receipt", "个人收款"),
+            ("third_party_receipt", "第三方收款"), ("nonsales_receipt", "非销售收款"),
+            ("reported_income", "申报收入"), ("declared_side", "已申报口径"),
+            ("declared_value", "已申报值"), ("uninvoiced_gap", "未开票缺口"),
+            ("uninvoiced_gap_after_nonsales", "未开票缺口后非销售"),
+            ("unmatched_corporate_receipt", "未匹配对公收款"),
+        ]:
+            got = _translate_key(en)
+            self.assertEqual(got, zh, f"{en} 译错")
+            self.assertFalse(
+                any("a" <= c.lower() <= "z" for c in got),
+                f"{en} 翻译后仍含英文：{got}",
+            )
+
+    def test_fund_loop_keys(self):
+        for en in ["direct回流金额", "indirect回流金额", "direct回流parties", "related组"]:
+            got = _translate_key(en)
+            self.assertFalse(
+                any("a" <= c.lower() <= "z" for c in got),
+                f"{en} 翻译后仍含英文：{got}",
+            )
+
+    def test_short_tokens_do_not_pollute_chinese(self):
+        # 短词元（in/out/al/s/e）不得污染中文键（曾把 personal 打成「个人al」）
+        for k in ["进合计", "销合计", "进出率", "前三大客户占比", "银行流水收款", "流收款"]:
+            self.assertEqual(_translate_key(k), k, f"{k} 被误改")
+
+    def test_null_metric_dropped(self):
+        # None/空串指标无信息量，剔除而非渲染成 "null"
+        out = _translate_metric_keys({"申报收入": None, "销项": 100, "空串": "", "零": 0})
+        self.assertNotIn("申报收入", out)
+        self.assertNotIn("空串", out)
+        self.assertEqual(out["销项"], 100)
+        self.assertEqual(out["零"], 0)
+
+    def test_metric_key_localized_recursively(self):
+        out = _translate_metric_keys({"corporate_receipt": 1, "rows": [{"declared_side": "x"}]})
+        self.assertIn("对公收款", out)
+        # 嵌套 dict 的键同样中文化（rows 键自身也译作「行」）
+        nested = out.get("行") or out.get("rows")
+        self.assertIsNotNone(nested, f"未找到嵌套列表，实际键：{list(out)}")
+        self.assertIn("已申报口径", nested[0])
 
 
 if __name__ == "__main__":

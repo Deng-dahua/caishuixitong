@@ -4659,7 +4659,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   if (!administrativeBoundary || administrativeBoundary.indexOf('企业内部自查文书') >= 0) {
     administrativeBoundary = '本报告由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务风险检查程序并开展合规整改，不具有税务机关行政执法文书效力；税务机关实际检查结论应以依法送达的正式文书为准。';
   }
-  var html = '';
+  var html = _capabilityStyles();
 
   html += '<div class="cover"><h1>涉税风险检查工作报告</h1><div class="sub">' +
     '报告送达对象：' + esc(displayedAddressee) + '<br>' +
@@ -4679,8 +4679,8 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '<a href="#company-completed">三、已经执行且本轮未发现达到条件异常的检查</a><br>' +
     '<a href="#company-actions">四、风险检查处理意见和整改验收标准</a><br>' +
     '<a href="#company-further">五、因资料缺失或不完整而无法完成的检查</a><br>' +
+    '<span style="font-size:13px;color:#64748b;padding-left:16px">└ 专项能力比对（行业对标 / 关联方穿透 / 两税差异 / 虚开网络 / 资金回流等）</span><br>' +
     '<a href="#company-statement">六、报告性质和使用说明</a></div>';
-
   html += '<h2 id="company-conclusion">一、本轮检查总体结论</h2>' +
     '<p class="i2">' + esc(headlineText) + '</p>' +
     '<p class="i2">' + esc(summary.owner_message || '') + '</p>' +
@@ -4815,16 +4815,193 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     if (iqSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(iqSec.verdict) + '</p>';
   }
 
+  // ═══ 专项能力章节（数据层早已产出，此前前端无渲染入口）═══
+  // 用 <h3> 置于第五章之内：这些是第五部分的延伸——「资料够时已查到什么」与
+  // 「资料不够时缺口在哪」，与业务界面的「系统能力边界」同一层级。
+  // 铁律：全部为待证线索，不作定性依据。
+  var _capOrder = [
+    ['derivation_tree_report', 'cap-derivation', '五之一、疑点派生树（逐层展开的连带疑点）'],
+    ['industry_benchmark_report', 'cap-industry', '五之二、行业指标对标（与同行业预警区间比对）'],
+    ['related_party_report', 'cap-related-party', '五之三、关联方穿透（同源信号与人员穿透）'],
+    ['two_tax_report', 'cap-two-tax', '五之四、增值税收入与企业所得税收入差异比对'],
+    ['input_voucher_report', 'cap-input-voucher', '五之五、进项异常凭证与应转出未转出比对'],
+    ['false_invoice_report', 'cap-false-invoice', '五之六、虚开风险网络比对'],
+    ['fund_loop_report', 'cap-fund-loop', '五之七、跨企业资金回流闭环比对'],
+    ['cross_enterprise_report', 'cap-cross-enterprise', '五之八、跨企业关联图谱比对'],
+    ['external_verify_report', 'cap-external-verify', '五之九、外部数据源核验'],
+    ['bank_flow_report', 'cap-bank-flow', '五之十、银行流水比对'],
+  ];
+  var _capRendered = [];
+  window._tdaCapRenderedSections = _capRendered;
+  var _capHtml = '';
+  _capOrder.forEach(function(item){
+    var sec = report[item[0]];
+    if (!sec || typeof sec !== 'object') return;
+    // 无内容且无缺口说明的章节不渲染，避免空壳占位
+    var hasContent = sec.available !== false
+      ? !!(sec.summary || sec.body || (sec.metrics && Object.keys(sec.metrics).length) || (sec.signals && sec.signals.length))
+      : !!(sec.summary || sec.body || sec.recommendation);
+    if (!hasContent) return;
+    var rendered = (item[1] === 'cap-derivation')
+      ? _renderDerivationTree(sec)
+      : _renderCapabilitySection(sec, item[1], { heading: item[2] });
+    if (rendered) {
+      // 派生树用 <h2>，此处统一降为 <h3> 以归入第五部分
+      rendered = rendered.replace(/^<h2 /, '<h3 ').replace(/<\/h2>/, '</h3>');
+      _capHtml += rendered;
+      _capRendered.push(item[2]);
+    }
+  });
+  if (_capHtml) {
+    html += '<h3>专项能力比对（全部为待证线索，不作定性依据）</h3>' +
+      '<p class="i2">以下比对建立在数据可触达范围内：资料齐全的给出量化结果，' +
+      '资料缺失的明示缺口与所需材料。所有结论均属待核线索，须由企业自证或补充资料后重新检查，系统不作违法认定。</p>' +
+      _capHtml;
+  }
+
   html += '<h2 id="company-statement">六、报告性质和使用说明</h2>' +
     '<p class="i2"><strong>文书性质说明。</strong>' + esc(administrativeBoundary) + '</p>';
   statements.forEach(function(item, index){ html += '<p class="i2"><strong>说明' + (index + 1) + '。</strong>' + esc(item || '') + '</p>'; });
-
 
 
   html += '<div class="seal"><p>风险检查报告编制人：_______________　日期：_______________</p>' +
     '<p>被检查企业负责人签收：_______________　日期：_______________</p>' +
     '<p>整改负责人：_______________　复核人员：_______________</p></div>';
   return html;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  专项能力章节渲染（数据层早已产出，此前前端无渲染入口）
+//  统一数据结构：{title, available, summary, body, metrics{}, signals[], verdict, recommendation, note}
+//  铁律：所有专项结论均属「待证线索」，不作定性依据；未提供资料时明示缺口而非隐藏章节。
+// ═══════════════════════════════════════════════════════════════
+
+function _capVer(cls, text) {
+  return '<span class="cap-flag ' + cls + '">' + esc(text) + '</span>';
+}
+
+/** 指标卡：metrics 为 {中文指标名: 值} */
+function _renderCapMetrics(metrics) {
+  var keys = Object.keys(metrics || {});
+  if (!keys.length) return '';
+  return '<div class="cap-metrics">' + keys.map(function(k){
+    return '<div class="cap-metric"><div class="cap-metric-k">' + esc(k) + '</div>' +
+      '<div class="cap-metric-v">' + esc(String(metrics[k])) + '</div></div>';
+  }).join('') + '</div>';
+}
+
+/** 信号表：signals 为 [{signal, hint}] */
+function _renderCapSignals(signals) {
+  var rows = (signals || []).filter(function(s){ return s && (s.signal || s.hint); });
+  if (!rows.length) return '';
+  return '<table class="tbl"><thead><tr><th>识别到的信号</th><th>说明与核实方向</th></tr></thead><tbody>' +
+    rows.map(function(s){
+      return '<tr><td>' + esc(s.signal || '') + '</td><td>' + esc(s.hint || '') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+/** body 为后端拼好的多行纯文本（· 开头为条目行） */
+function _renderCapBody(body) {
+  var text = String(body || '');
+  if (!text) return '';
+  return text.split(/\n{2,}/).filter(function(p){ return p.trim(); }).map(function(para){
+    var lines = para.split('\n').filter(function(l){ return l.trim(); });
+    var isList = lines.length > 1 || /^\s*[·•\-]/.test(lines[0] || '');
+    if (isList) {
+      return '<ul class="cap-list">' + lines.map(function(l){
+        return '<li>' + esc(l.replace(/^\s*[·•\-]\s*/, '')) + '</li>';
+      }).join('') + '</ul>';
+    }
+    return '<p class="i2" style="line-height:2;text-align:justify">' + esc(lines[0]) + '</p>';
+  }).join('');
+}
+
+/**
+ * 渲染一个专项能力章节。
+ * @param {Object} sec   后端专项报告对象
+ * @param {string} anchor 章节锚点 id
+ * @param {Object} opt   {heading: 自定义标题}
+ */
+function _renderCapabilitySection(sec, anchor, opt) {
+  opt = opt || {};
+  if (!sec || typeof sec !== 'object') return '';
+  var title = opt.heading || sec.title || '';
+  if (!title) return '';
+  var available = sec.available !== false;
+  var h = '<h2 id="' + esc(anchor) + '">' + esc(title) + '</h2>';
+  if (!available) {
+    // 未提供资料：不隐藏章节，明示缺口与所需资料（「发现≠确认」铁律的镜像要求）
+    h += '<div class="cap-gap"><strong>' + esc(sec.verdict || '本轮未执行该项比对') + '</strong>' +
+      (sec.summary ? '——' + esc(sec.summary) : '') + '</div>';
+    if (sec.body) h += _renderCapBody(sec.body);
+    if (sec.recommendation) h += '<p class="i2"><strong>需补充资料：</strong>' + esc(sec.recommendation) + '</p>';
+    return h;
+  }
+  if (sec.summary) {
+    h += '<p class="i2" style="line-height:2"><strong>' + esc(sec.summary) + '</strong></p>';
+  }
+  h += _renderCapMetrics(sec.metrics);
+  if (sec.body) h += _renderCapBody(sec.body);
+  h += _renderCapSignals(sec.signals);
+  if (sec.verdict || sec.recommendation) {
+    h += '<p class="i2" style="margin:10px 0;padding:8px 12px;background:#f8fafc;border-left:3px solid #2563eb;line-height:1.9">' +
+      (sec.verdict ? '比对结论：<strong>' + esc(sec.verdict) + '</strong>　' : '') +
+      (sec.recommendation ? '核实要求：' + esc(sec.recommendation) : '') + '</p>';
+  }
+  if (sec.note) h += '<p class="cap-note">' + esc(sec.note) + '</p>';
+  return h;
+}
+
+/** 疑点派生树：把后端缩进文本还原为可折叠的嵌套列表 */
+function _renderDerivationTree(sec) {
+  if (!sec || typeof sec !== 'object' || !sec.body) return '';
+  var h = '<h2 id="cap-derivation">' + esc(sec.title || '疑点派生树') + '</h2>';
+  if (sec.summary) h += '<p class="i2" style="line-height:2"><strong>' + esc(sec.summary) + '</strong></p>';
+  if (sec.principle) h += '<p class="i2">' + esc(sec.principle) + '</p>';
+  h += '<div class="cap-tree">';
+  sec.body.split('\n').forEach(function(line){
+    if (!line.trim()) return;
+    var m = line.match(/^(\s*)/);
+    var depth = Math.floor((m ? m[1].length : 0) / 4);
+    var text = line.trim();
+    var cls = /^●/.test(text) ? 'cap-tree-node' : (/^↺/.test(text) ? 'cap-tree-cycle' : 'cap-tree-detail');
+    h += '<div class="' + cls + '" style="padding-left:' + (depth * 18 + 12) + 'px">' +
+      esc(text.replace(/^[●↺]\s*/, '')) + '</div>';
+  });
+  h += '</div>';
+  if (sec.note) h += '<p class="cap-note">' + esc(sec.note) + '</p>';
+  return h;
+}
+
+/** 行业指标对标：表头即「指标 / 本企业 / 行业区间 / 区间来源」 */
+function _renderIndustryBenchmark(sec) {
+  var h = _renderCapabilitySection(sec, 'cap-industry');
+  return h;
+}
+
+/** 关联方穿透 */
+function _renderRelatedParty(sec) {
+  return _renderCapabilitySection(sec, 'cap-related-party');
+}
+
+/** 专项能力章节的统一样式 */
+function _capabilityStyles() {
+  return '<style>' +
+    '.cap-metrics{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 16px}' +
+    '.cap-metric{min-width:132px;flex:1 1 132px;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;background:#f8fafc}' +
+    '.cap-metric-k{font-size:12px;color:#475569;margin-bottom:4px}' +
+    '.cap-metric-v{font-size:16px;font-weight:600;color:#1e3a8a;word-break:break-all}' +
+    '.cap-list{margin:6px 0 14px;padding-left:22px;line-height:2}' +
+    '.cap-list li{margin:2px 0}' +
+    '.cap-gap{margin:12px 0;padding:10px 14px;border:1px dashed #cbd5e1;background:#f8fafc;color:#475569;line-height:1.9}' +
+    '.cap-note{margin:10px 0 20px;font-size:12px;color:#64748b;line-height:1.9;border-top:1px dashed #e2e8f0;padding-top:8px}' +
+    '.cap-tree{margin:12px 0 18px;border-left:2px solid #e2e8f0;padding-left:4px}' +
+    '.cap-tree-node{font-weight:600;color:#1e3a8a;padding:6px 0 2px;line-height:1.9}' +
+    '.cap-tree-detail{font-size:13px;color:#475569;padding:2px 0;line-height:1.9}' +
+    '.cap-tree-cycle{font-size:13px;color:#92400e;padding:2px 0;line-height:1.9}' +
+    '.cap-flag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px}' +
+    '</style>';
 }
 
 
@@ -5164,10 +5341,10 @@ function _renderReportFallback(r, allF) {
     h += '</div>';
     return {
       html: h,
-      renderedModules: ['风险检查任务与总体结论','中文资料清单','风险检查程序','风险检查确认问题','处理意见与验收','受阻检查','下一轮复查','报告说明'],
+      renderedModules: ['风险检查任务与总体结论','中文资料清单','风险检查程序','风险检查确认问题','处理意见与验收','受阻检查','下一轮复查','报告说明']
+        .concat(window._tdaCapRenderedSections || []),
       skippedModules: []
-    };
-  }
+    };  }
 
   // 旧缓存没有企业版时展示原过程报告，保证历史轮次可回看。
   if (r.inspection_process_report && r.inspection_process_report.compilation_style === 'inspection_work_process') {

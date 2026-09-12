@@ -258,9 +258,19 @@ _METRIC_CN = {
 }
 
 def _translate_metric_keys(o):
-    """递归把字典（含嵌套列表/字典）的英文键汉化为中文标签（供报告透传字段使用）。"""
+    """递归把字典（含嵌套列表/字典）的英文键汉化为中文标签（供报告透传字段使用）。
+
+    值侧同时做空值净化：None/null 不保留占位（前端若渲染会显示字符串 "null"）。
+    """
     if isinstance(o, dict):
-        return {_translate_key(k): _translate_metric_keys(v) for k, v in o.items()}
+        out = {}
+        for k, v in o.items():
+            v = _translate_metric_keys(v)
+            # 键值同为空的指标无信息量，剔除；避免前端渲染出「申报收入: null」
+            if v is None or v == "":
+                continue
+            out[_translate_key(k)] = v
+        return out
     if isinstance(o, list):
         return [_translate_metric_keys(x) for x in o]
     return o
@@ -303,7 +313,7 @@ _WORD_CN = {
     "plan": "计划", "action": "行动", "procedure": "程序", "inspection": "检查",
     "coverage": "覆盖", "identity": "身份", "subject": "主体", "taxpayer": "纳税人",
     "analysis": "分析", "round": "轮次", "generated": "生成", "headline": "标题",
-    "owner": "负责人", "message": "说明", "statement": "声明", "compilation": "编制",
+    "owner": "负责人", "message": "说明", "compilation": "编制",
     "style": "风格", "checked": "已核", "pending": "待办", "further": "进一步",
     "check": "核验", "risk": "风险", "link": "关联", "cross": "跨", "enterprise": "企业",
     "derivation": "派生", "tree": "树", "recheck": "复查", "must": "必须",
@@ -319,6 +329,18 @@ _WORD_CN = {
     "should": "应", "transfer": "转", "same": "同", "groups": "组", "sales": "销",
     "breakdown": "分布", "links": "关联", "top1": "第一大", "top3": "前三大",
     "completed": "完成", "confirmed": "确认", "circular": "环开", "relationship": "关联",
+    # 2026-09-12 补：专项能力章节 metrics 实测暴露的未覆盖词元
+    # （此前产生「流pay」「corporate收款」「declared值」这类半中半英键名）
+    # 注意：不得重复定义本表已存在的键（sale/sales/invoice/flow/statement 等），
+    # 否则后值静默覆盖前值、语义随 dict 顺序漂移。
+    "pay": "付款", "corporate": "对公", "thirdparty": "第三方",
+    "third": "第三", "party": "方",
+    "nonsales": "非销售", "declared": "已申报", "uninvoiced": "未开票",
+    "unmatched": "未匹配", "matched": "已匹配",
+    "direct": "直接", "indirect": "间接", "parties": "对方",
+    "related": "关联",
+    # 2026-09-12 二批：实测仍漏译的词元（个人收款/申报收入/申报口径/非销售后）
+    "personal": "个人", "income": "收入", "side": "口径", "after": "后",
 }
 
 
@@ -326,6 +348,10 @@ def _translate_key(key):
     """把英文键名翻译为中文：精确映射(_METRIC_CN)优先，否则按单词词表逐词翻译。
 
     纯中文或无英文的键原样返回（幂等）；无法翻译的词保留原样，避免破坏数据。
+
+    2026-09-12 补：引擎里存在「中英连写」键（corporate收款、declared值、
+    uninvoiced缺口afternonsales）——按下划线分词后整段是混合词，词表查不到，
+    导致报告出现半中半英。此处增加英文片段兜底替换（长词优先）。
     """
     s = str(key)
     if not s or not re.search(r"[A-Za-z]", s):
@@ -341,7 +367,24 @@ def _translate_key(key):
             hit = True
         else:
             out.append(w)
-    return "".join(out) if hit else s
+    result = "".join(out) if hit else s
+    # 二次兜底：对仍含英文的片段做子串替换（长词优先）。
+    # 约束：① 只替换长度 ≥3 的英文词，避免 in/out/al/s/e 等短词元污染中文
+    #       （曾把 personal 打成「个人al」、declared_side 打成「已申报s编号e」）；
+    #       ② 仅在词边界替换，不切断更长的英文单词。
+    if re.search(r"[A-Za-z]{3,}", result):
+        for en, zh in sorted(_WORD_CN.items(), key=lambda x: -len(x[0])):
+            if len(en) < 3 or en not in result:
+                continue
+            result = re.sub(r"(?<![A-Za-z])%s(?![A-Za-z])" % re.escape(en), zh, result)
+    # 三次兜底：仍残留的英文串多为「中文+英文连写」（旧缓存遗留的已污染键），
+    # 逐段消化可识别的词元；实在无法识别则整段剔除，保证报告不出现英文。
+    if re.search(r"[A-Za-z]{3,}", result):
+        for en, zh in sorted(_WORD_CN.items(), key=lambda x: -len(x[0])):
+            if len(en) >= 3:
+                result = result.replace(en, zh)
+        result = re.sub(r"[A-Za-z]+", "", result)
+    return result
 
 
 def _build_detail_table(f):
