@@ -662,7 +662,7 @@ def _build_procedures(report_data):
         ("逐份读取资料并检查数据质量",
          f"逐份检查资料能否读取、字段是否可定位、金额是否能够重新计算。可完整用于本轮核对{full_read}份，部分读取{partial}份，读取阻断{blocked}份。本轮程序结果为：每份资料均形成明确使用范围；部分读取和阻断内容已经转入补件，不用空结果代替检查。"),
         ("执行单份资料内部复算",
-         f"分别检查银行余额连续性、发票号码及金额税额、工资人员和月份、社会保险与住房公积金、账簿借贷及其他已具备字段的内部关系。本轮程序结果为：现有资料能够直接证明的具体问题{len(confirmed)}项；已执行且本轮未发现达到检查条件异常的项目见第五章。"),
+         f"分别检查银行余额连续性、发票号码及金额税额、工资人员和月份、社会保险与住房公积金、账簿借贷及其他已具备字段的内部关系。本轮程序结果为：现有资料能够直接证明的具体问题{len(confirmed)}项，具体见第二部分。"),
         ("执行账、票、表、税、款、货、合同和人员交叉核对",
          "按照实际可用资料，把交易主体、业务期间、合同履约、发票、资金、会计处理和纳税申报连接起来；资料链条缺少节点时停止该项外推。本轮程序结果为：完整具备资料节点的交叉核对链条以实际可用资料为准；仍有资料需要补充识别或修复。"),
         ("检查正常解释、反向证据和税务影响",
@@ -1387,34 +1387,16 @@ def _build_confirmed_problems(report_data):
 
 
 def _build_completed_checks(report_data):
-    """已执行且本轮未发现达到条件异常的检查（level 待核验的）
+    """（本章已下线）2026-09-13 用户要求：整节不再列示。
 
-    2026-09-13 用户要求：没有异常的检查，就不需要表述了。
-    原先每条都原样复制同一段「检查人员对本项执行了…没有发现达到该规则检查
-    条件的不正常情况」，十几项检查就是同一段话重复十几遍，属无效篇幅。
-    现改为：每条只留检查项名称，说明统一放在章节导言；同名检查去重。
+    原「三、已经执行且本轮未发现达到条件异常的检查」：先是把同一段 104 字套话
+    复制给每一条检查，改成只列名称清单后，用户仍认为这一节整体不需要——
+    没有异常本来就没有可说的内容。故整节下线，报告不再出现。
+
+    保留本函数仅为兼容既有调用方（enterprise_report 组装与 scripts/ 导出脚本），
+    恒返回空列表；前端亦不再渲染该章节。
     """
-    findings = report_data.get("all_findings", []) or []
-    completed = []
-    seen = set()
-    seq = 1
-    for f in findings:
-        if not isinstance(f, dict):
-            continue
-        if f.get("level") != "待核验":
-            continue
-        title = str(f.get("type") or "检查").replace("待核事实：", "").replace("待核事实:", "").strip()
-        if not title or title in seen:
-            continue
-        seen.add(title)
-        completed.append({
-            "seq": seq,
-            "title": title,
-            # 无异常即不逐条表述；前端据此渲染为名称清单
-            "narrative": "",
-        })
-        seq += 1
-    return completed
+    return []
 
 
 def _build_action_plan(problems):
@@ -1570,7 +1552,7 @@ def _build_summary(report_data, problems, completed, further):
         core_line = _core_sentence(first)
         key_points.append(to_plain(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{core_line}"))
     if len(problems) > 5:
-        key_points.append(f"另有{len(problems) - 5}项具体问题见第四章及本章『本轮全部发现一览』。")
+        key_points.append(f"另有{len(problems) - 5}项具体问题见第二部分及本章的本轮全部发现一览。")
     if further:
         key_points.append(f"还有{len(further)}项检查尚未完成，优先补齐资料。这些事项表示检查范围受限，不表示已经发生相应违法。")
 
@@ -1588,7 +1570,6 @@ def _build_summary(report_data, problems, completed, further):
 
     headline = (f"本次税务风险检查共收到{files_count}个文件，归为{len(types)}类资料。检查人员逐项读取、重新计算、交叉核对后，"
                 f"确认{len(problems)}项用现有资料能够证明的具体问题。{grade_phrase}"
-                f"另有{len(completed)}项检查已经做完、本轮没有发现达到条件的异常；"
                 f"{len(further)}项因为资料不足或影响范围还没查清，本轮不下结论，等补充资料后再检查。")
 
     owner_message = (f"请企业负责人先组织处理本报告列明的具体问题，并按要求补齐资料。"

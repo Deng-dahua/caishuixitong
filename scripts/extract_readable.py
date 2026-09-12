@@ -8,10 +8,12 @@ ROOT = r"c:/Users/Administrator/WorkBuddy/2026-08-04-21-37-33/caishuixitong"
 OUT = os.path.join(ROOT, "scripts", "four_reports")
 SYS = os.path.join(OUT, "readable")
 
-# 只保留四类内容：确认问题 / 已执行无异常 / 处理意见+验收 / 资料缺失未完成
+# 只保留三类内容：确认问题 / 处理意见+验收 / 资料缺失未完成
+# 注：原「已经执行且本轮未发现达到条件异常的检查」一章自 2026-09-13 起整章下线，
+# 引擎 _build_completed_checks 恒返回空，此处同步移除。
 CHAPTER_ORDER = [
     "identity", "summary",
-    "confirmed_problems", "completed_checks",
+    "confirmed_problems",
     "action_plan", "recheck",
     "further_checks", "capability_boundary", "inspection_questions_report",
     "report_statement",
@@ -21,13 +23,12 @@ TITLE_MAP = {
     "identity": "一、企业信息",
     "summary": "二、本轮检查总体结论",
     "confirmed_problems": "三、本轮风险检查确认的具体问题",
-    "completed_checks": "四、已经执行且本轮未发现达到条件异常的检查",
-    "action_plan": "五、风险检查处理意见和整改验收标准",
-    "recheck": "五（续）、下一轮复查安排",
-    "further_checks": "六、因资料缺失或不完整而无法完成的检查",
-    "capability_boundary": "六（续）、系统能力边界",
-    "inspection_questions_report": "六（续）、待企业澄清事项（风险检查询问清单）",
-    "report_statement": "七、报告性质和使用说明",
+    "action_plan": "四、风险检查处理意见和整改验收标准",
+    "recheck": "四（续）、下一轮复查安排",
+    "further_checks": "五、因资料缺失或不完整而无法完成的检查",
+    "capability_boundary": "五（续）、系统能力边界",
+    "inspection_questions_report": "五（续）、待企业澄清事项（风险检查询问清单）",
+    "report_statement": "六、报告性质和使用说明",
 }
 
 PER_CHAPTER_CAP = 5000
@@ -60,7 +61,7 @@ def extract(cid):
     s = er.get("summary") or {}
     if s:
         lines.append(f"- 接收文件 {s.get('received_material_count', '—')} 个，归并 {s.get('material_category_count', '—')} 类资料")
-        lines.append(f"- 确认具体问题 {s.get('confirmed_problem_count', '—')} 项；已执行无异常检查 {s.get('completed_check_count', '—')} 项；资料缺失需补件 {s.get('further_check_count', '—')} 项")
+        lines.append(f"- 确认具体问题 {s.get('confirmed_problem_count', '—')} 项；资料缺失需补件 {s.get('further_check_count', '—')} 项")
     lines.append("")
 
     total = sum(len(x) for x in lines)

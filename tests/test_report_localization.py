@@ -342,38 +342,34 @@ class TestInternalTermsNeverLeak(unittest.TestCase):
         self.assertIn("支撑材料", got)
 
 
-class TestNoBoilerplateForCleanChecks(unittest.TestCase):
-    """契约（2026-09-13 用户要求）：没有异常的检查，就不需要表述了。
+class TestCompletedChecksSectionRemoved(unittest.TestCase):
+    """契约（2026-09-13 用户要求）：「已经执行且本轮未发现达到条件异常的检查」
+    整章下线，不再列示。
 
-    原先「已执行且本轮未发现达到条件异常的检查」每条都原样复制同一段
-    「检查人员对本项执行了本轮规定的检查程序…没有发现达到该规则检查条件的不
-    正常情况」，十几项检查即同一段话重复十几遍。现只列检查项名称。
+    演进：先是把该章每条复制的 104 字套话删掉只留名称清单，用户随后明确
+    「我认为还是不需要这部分的内容了」——整章删除。
     """
 
     BOILER = "检查人员对本项执行了本轮规定的检查程序"
 
-    def test_completed_checks_carry_no_narrative(self):
+    def test_build_completed_checks_always_empty(self):
         from engine.enterprise_report import _build_completed_checks
         data = {"all_findings": [
             {"level": "待核验", "type": "银行流水余额滚动关系不一致"},
             {"level": "待核验", "type": "个人或个体工商户供应商客户交易核验"},
+            {"level": "高风险", "type": "某项疑点"},
         ]}
-        out = _build_completed_checks(data)
-        self.assertEqual(len(out), 2)
-        for c in out:
-            self.assertEqual(c.get("narrative"), "", f"无异常检查不应带表述：{c}")
-            self.assertNotIn(self.BOILER, str(c))
+        self.assertEqual(_build_completed_checks(data), [])
+        self.assertEqual(_build_completed_checks({}), [])
 
-    def test_completed_checks_dedup_and_filter(self):
-        from engine.enterprise_report import _build_completed_checks
-        data = {"all_findings": [
-            {"level": "待核验", "type": "同名检查"},
-            {"level": "待核验", "type": "同名检查"},          # 重复，应去重
-            {"level": "高风险", "type": "不该进本节的疑点"},   # 非待核验，应排除
-        ]}
-        out = _build_completed_checks(data)
-        self.assertEqual(len(out), 1, f"应去重且只保留待核验：{out}")
-        self.assertEqual(out[0]["title"], "同名检查")
+    def test_summary_has_no_completed_phrase(self):
+        """总体结论不再出现「已执行且本轮未发现达到条件异常」的表述。"""
+        from engine.enterprise_report import _build_summary
+        out = _build_summary(
+            {"all_findings": [], "file_results": []}, [], [], [])
+        self.assertNotIn("已经做完、本轮没有发现达到条件的异常",
+                         out.get("headline", ""))
+        self.assertEqual(out.get("completed_check_count"), 0)
 
     def test_boilerplate_stripped_by_gate(self):
         """兜底：历史缓存里的套话过净化闸门后必须消失。"""

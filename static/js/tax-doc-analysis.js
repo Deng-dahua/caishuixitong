@@ -4689,7 +4689,6 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   var procedures = report.inspection_procedures || [];
   var materials = report.materials || [];
   var problems = report.confirmed_problems || [];
-  var completed = report.completed_checks || [];
   var plans = report.action_plan || [];
   var further = report.further_checks || [];
   var recheck = report.recheck || {};
@@ -4708,6 +4707,9 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     openingText = '根据本轮税务风险检查工作安排，现对被检查企业提交并成功读取的财税资料实施检查，并将检查范围、实施程序、查明事实、税务影响、处理意见及后续复查要求报告如下。';
   }
   var headlineText = String(summary.headline || '').replace(/本次内部税务风险检查/g, '本次税务风险检查');
+  // 2026-09-13：旧缓存的总体结论里仍带「另有N项检查已经做完、本轮没有发现达到条件的异常」，
+  // 该章已整章下线，此处一并抹去，避免历史缓存继续显示已删除章节的口径。
+  headlineText = headlineText.replace(/另有\s*\d+\s*项检查已经做完、本轮没有发现达到条件的异常[；;]?/g, '');
   var administrativeBoundary = String(inspector.administrative_boundary || '');
   if (!administrativeBoundary || administrativeBoundary.indexOf('企业内部自查文书') >= 0) {
     administrativeBoundary = '本报告由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务风险检查程序并开展合规整改，不具有税务机关行政执法文书效力；税务机关实际检查结论应以依法送达的正式文书为准。';
@@ -4729,15 +4731,14 @@ function _buildEnterpriseReadableBody(r, dateStr) {
 
   html += '<div class="toc"><a href="#company-conclusion">一、本轮检查总体结论</a><br>' +
     '<a href="#company-problems">二、本轮风险检查确认的具体问题</a><br>' +
-    '<a href="#company-completed">三、已经执行且本轮未发现达到条件异常的检查</a><br>' +
-    '<a href="#company-actions">四、风险检查处理意见和整改验收标准</a><br>' +
-    '<a href="#company-further">五、因资料缺失或不完整而无法完成的检查</a><br>' +
+    '<a href="#company-actions">三、风险检查处理意见和整改验收标准</a><br>' +
+    '<a href="#company-further">四、因资料缺失或不完整而无法完成的检查</a><br>' +
     '<span style="font-size:13px;color:#64748b;padding-left:16px">└ 专项能力比对（行业对标 / 关联方穿透 / 两税差异 / 虚开网络 / 资金回流等）</span><br>' +
-    '<a href="#company-statement">六、报告性质和使用说明</a></div>';
+    '<a href="#company-statement">五、报告性质和使用说明</a></div>';
   html += '<h2 id="company-conclusion">一、本轮检查总体结论</h2>' +
     '<p class="i2">' + esc(headlineText) + '</p>' +
     '<p class="i2">' + esc(summary.owner_message || '') + '</p>' +
-    '<p class="i2">本轮共收到<strong>' + (summary.received_material_count || 0) + '个文件</strong>，归并为<strong>' + (summary.material_category_count || materials.length || 0) + '类资料</strong>。其中，已有资料能够证明的具体问题<strong>' + (summary.confirmed_problem_count || 0) + '项</strong>；已经执行且本轮未发现达到条件异常的检查<strong>' + (summary.completed_check_count || 0) + '项</strong>；因资料缺失、资料不完整或者影响范围尚未查清，需要补充资料后再检查的事项<strong>' + (summary.further_check_count || 0) + '项</strong>。</p>';
+    '<p class="i2">本轮共收到<strong>' + (summary.received_material_count || 0) + '个文件</strong>，归并为<strong>' + (summary.material_category_count || materials.length || 0) + '类资料</strong>。其中，已有资料能够证明的具体问题<strong>' + (summary.confirmed_problem_count || 0) + '项</strong>；因资料缺失、资料不完整或者影响范围尚未查清，需要补充资料后再检查的事项<strong>' + (summary.further_check_count || 0) + '项</strong>。</p>';
   if (keyPoints.length) {
     html += '<h3>本轮最需要负责人关注的内容</h3>' + keyPoints.map(function(item){
       return '<p class="i2" style="line-height:2">' + esc(item) + '</p>';
@@ -4777,7 +4778,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       + '共比照红线库 ' + esc(rlSummary.redline_total || 0) + ' 条（行业无关）。</p>';
   }
   if (!problems.length) {
-    html += '<p class="i2">本轮没有发现能够由现有资料直接证明的具体问题。请继续处理第七部分列明的资料缺口事项。</p>';
+    html += '<p class="i2">本轮没有发现能够由现有资料直接证明的具体问题。请继续处理第四部分列明的资料缺口事项。</p>';
   }
   problems.forEach(function(item){
     var meta = '';
@@ -4799,31 +4800,12 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       '</section>';
   });
 
-  html += '<h2 id="company-completed">三、已经执行且本轮未发现达到条件异常的检查</h2>' +
-    '<p class="i2">本部分只列示资料条件满足且规则已经实际执行的项目。“本轮未发现达到条件的异常”不等于企业在其他资料、期间或事项上完全没有风险。</p>';
-  if (!completed.length) html += '<p class="i2">本轮没有可单独列示为已经完成且未发现达到检查条件异常的项目。</p>';
-  // 用户要求：没有异常的检查不需要逐条表述，只列检查项名称。
-  // 若条目自带说明（method/result/boundary）则仍按条目渲染，否则只出名称清单。
-  var completedVerbose = completed.some(function (item) {
-    return item && (item.narrative || item.method || item.result || item.boundary);
-  });
-  if (!completedVerbose) {
-    html += '<p class="i2">本轮已执行且未发现达到条件异常的检查共 ' + completed.length + ' 项，分别为：</p>'
-      + '<ul style="margin:6px 0 6px 24px;padding:0;line-height:1.95;list-style:disc">'
-      + completed.map(function (item) {
-        return '<li style="margin:3px 0">' + esc(item.title || '') + '</li>';
-      }).join('')
-      + '</ul>';
-  } else {
-    completed.forEach(function(item){
-      html += '<section class="fact-sec"><div class="ftitle">检查' + esc(item.seq || '') + '：' + esc(item.title || '') + '</div>' +
-        '<p class="i2" style="line-height:2">' + esc(item.narrative || ((item.method || '') + (item.result || '') + (item.boundary || ''))) + '</p></section>';
-    });
-  }
+  // 注：原「已经执行且本轮未发现达到条件异常的检查」一章自 2026-09-13 起整章下线，
+  // 不再列示（引擎 _build_completed_checks 亦恒返回空）。
 
-  html += '<h2 id="company-actions">四、风险检查处理意见和整改验收标准</h2>' +
+  html += '<h2 id="company-actions">三、风险检查处理意见和整改验收标准</h2>' +
     '<p class="i2">请按照下列顺序办理。所有处理必须建立在真实业务和原始资料基础上，不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';
-  if (!plans.length) html += '<p class="i2">本轮没有需要立即处理的已证实具体问题，企业应先按第五部分补充资料。</p>';
+  if (!plans.length) html += '<p class="i2">本轮没有需要立即处理的已证实具体问题，企业应先按第四部分补充资料。</p>';
   plans.forEach(function(item){
     html += '<h3>' + esc(item.seq || '') + '、先处理“' + esc(item.problem || '') + '”</h3>' +
       '<p class="i2" style="line-height:2">' + esc(item.narrative || ('风险检查人员提出的第一项处理动作是：' + (item.first_action || '') + '责任安排为：' + (item.responsibility || '') + '本项整改不能以口头说明作为完成依据，必须达到以下验收条件：' + _narrativeSequence(item.completion_standard, '完成后能够用原始资料重新核对。'))) + '</p>';
@@ -4834,7 +4816,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '<p class="i2"><strong>重新检查什么：</strong>' + esc(recheck.work || '') + '</p>' +
     '<p class="i2"><strong>怎样判断企业正在趋于合规：</strong>' + esc(recheck.convergence || '') + '</p>';
 
-  html += '<h2 id="company-further">五、因资料缺失或不完整而无法完成的检查</h2>' +
+  html += '<h2 id="company-further">四、因资料缺失或不完整而无法完成的检查</h2>' +
     '<p class="i2">本部分不是问题认定。系统逐项说明缺少什么、阻断了什么检查、哪些风险目前无法排除、可以提供什么替代资料，以及补齐后下一轮具体重新检查什么。</p>';
   if (!further.length) html += '<p class="i2">本轮没有单独列明的补充资料事项。</p>';
   further.forEach(function(item){
@@ -4883,20 +4865,20 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   }
 
   // ═══ 专项能力章节（数据层早已产出，此前前端无渲染入口）═══
-  // 用 <h3> 置于第五章之内：这些是第五部分的延伸——「资料够时已查到什么」与
+  // 用 <h3> 置于第四章之内：这些是第四部分的延伸——「资料够时已查到什么」与
   // 「资料不够时缺口在哪」，与业务界面的「系统能力边界」同一层级。
   // 铁律：全部为待证线索，不作定性依据。
   var _capOrder = [
-    ['derivation_tree_report', 'cap-derivation', '五之一、疑点派生树（逐层展开的连带疑点）'],
-    ['industry_benchmark_report', 'cap-industry', '五之二、行业指标对标（与同行业预警区间比对）'],
-    ['related_party_report', 'cap-related-party', '五之三、关联方穿透（同源信号与人员穿透）'],
-    ['two_tax_report', 'cap-two-tax', '五之四、增值税收入与企业所得税收入差异比对'],
-    ['input_voucher_report', 'cap-input-voucher', '五之五、进项异常凭证与应转出未转出比对'],
-    ['false_invoice_report', 'cap-false-invoice', '五之六、虚开风险网络比对'],
-    ['fund_loop_report', 'cap-fund-loop', '五之七、跨企业资金回流闭环比对'],
-    ['cross_enterprise_report', 'cap-cross-enterprise', '五之八、跨企业关联图谱比对'],
-    ['external_verify_report', 'cap-external-verify', '五之九、外部数据源核验'],
-    ['bank_flow_report', 'cap-bank-flow', '五之十、银行流水比对'],
+    ['derivation_tree_report', 'cap-derivation', '四之一、疑点派生树（逐层展开的连带疑点）'],
+    ['industry_benchmark_report', 'cap-industry', '四之二、行业指标对标（与同行业预警区间比对）'],
+    ['related_party_report', 'cap-related-party', '四之三、关联方穿透（同源信号与人员穿透）'],
+    ['two_tax_report', 'cap-two-tax', '四之四、增值税收入与企业所得税收入差异比对'],
+    ['input_voucher_report', 'cap-input-voucher', '四之五、进项异常凭证与应转出未转出比对'],
+    ['false_invoice_report', 'cap-false-invoice', '四之六、虚开风险网络比对'],
+    ['fund_loop_report', 'cap-fund-loop', '四之七、跨企业资金回流闭环比对'],
+    ['cross_enterprise_report', 'cap-cross-enterprise', '四之八、跨企业关联图谱比对'],
+    ['external_verify_report', 'cap-external-verify', '四之九、外部数据源核验'],
+    ['bank_flow_report', 'cap-bank-flow', '四之十、银行流水比对'],
   ];
   var _capRendered = [];
   window._tdaCapRenderedSections = _capRendered;
@@ -4913,7 +4895,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       ? _renderDerivationTree(sec)
       : _renderCapabilitySection(sec, item[1], { heading: item[2] });
     if (rendered) {
-      // 派生树用 <h2>，此处统一降为 <h3> 以归入第五部分
+      // 派生树用 <h2>，此处统一降为 <h3> 以归入第四部分
       rendered = rendered.replace(/^<h2 /, '<h3 ').replace(/<\/h2>/, '</h3>');
       _capHtml += rendered;
       _capRendered.push(item[2]);
@@ -4926,7 +4908,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       _capHtml;
   }
 
-  html += '<h2 id="company-statement">六、报告性质和使用说明</h2>' +
+  html += '<h2 id="company-statement">五、报告性质和使用说明</h2>' +
     '<p class="i2"><strong>文书性质说明。</strong>' + esc(administrativeBoundary) + '</p>';
   statements.forEach(function(item, index){ html += '<p class="i2"><strong>说明' + (index + 1) + '。</strong>' + esc(item || '') + '</p>'; });
 
