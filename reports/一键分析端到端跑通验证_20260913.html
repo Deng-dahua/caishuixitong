@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一键分析端到端跑通验证</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1f2329;--sub:#5b6472;--line:#e5e8ec;
+    --brand:#1a5fb4;--brand-soft:#eaf1fb;--ok:#1a7f37;--warn:#b25e00;--chip:#f0f2f5;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.7;font-size:14.5px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:920px;margin:0 auto;padding:38px 22px 72px}
+  header{border-bottom:2px solid var(--brand);padding-bottom:16px;margin-bottom:22px}
+  h1{font-size:22px;margin:0 0 8px}
+  .meta{color:var(--sub);font-size:13px}
+  .meta code{background:var(--chip);padding:1px 6px;border-radius:4px;font-size:12px}
+  .banner{background:#e6f4ea;border:1px solid #b7e0c2;border-left:5px solid var(--ok);
+    border-radius:10px;padding:14px 18px;margin:16px 0;font-size:15px}
+  .banner b{color:var(--ok);font-size:16px}
+  h2{font-size:17px;margin:30px 0 10px;padding-left:10px;border-left:4px solid var(--brand)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--brand-soft);font-weight:600;color:#123a6b}
+  tbody tr:nth-child(even){background:#fafbfc}
+  code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px;
+    font-family:"SFMono-Regular",Consolas,monospace}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px;margin:12px 0}
+  ul{margin:8px 0;padding-left:22px}li{margin:4px 0}
+  .ok{color:var(--ok);font-weight:600}.warn{color:var(--warn);font-weight:600}
+  pre{background:#0f172a;color:#e2e8f0;padding:12px 14px;border-radius:8px;overflow:auto;font-size:12.5px;line-height:1.55}
+  .foot{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);color:var(--sub);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>一键分析端到端跑通验证</h1>
+  <div class="meta">
+    项目：财税风险防控系统 <code>caishuixitong</code> &nbsp;·&nbsp;
+    验证时间：2026-09-13 &nbsp;·&nbsp; 相关提交：<code>8c9788b0</code>（新能力）、<code>f0353b41</code>（加固）
+  </div>
+</header>
+
+<div class="banner">
+  <b>结论：一键分析核心链路已跑通。</b><br>
+  在项目虚拟环境（<code>.venv</code>）中对真实上传数据做了全量实测：<b>4 家账套全部跑完、报告全部产出、无异常</b>；
+  按钮真实线程入口返回 <b>done</b>；本轮新增能力在真实发票上产出发现并进入最终报告与红线判定。
+</div>
+
+<h2>一、验证方法与证据</h2>
+<table>
+<thead><tr><th style="width:26%">验证项</th><th>结果</th><th style="width:34%">证据</th></tr></thead>
+<tbody>
+<tr>
+  <td>4 家账套全量分析</td>
+  <td class="ok">全部成功（EXIT=0）</td>
+  <td><code>scripts/run_four_companies.py</code>（venv 运行 4分11秒）：公司1/2/3/4 各输出
+      <code>[OK] …full.json</code>，日志含 <code>ALL DONE</code>，<b>无 ERROR / Traceback</b>。</td>
+</tr>
+<tr>
+  <td>按钮真实线程入口</td>
+  <td class="ok">status=done</td>
+  <td><code>_run_analysis_thread(task, company 1)</code> →
+      <code>{status:"done", progress:100, message:"分析完成", patrol_enrolled:true, result_ok:true, error:null}</code></td>
+</tr>
+<tr>
+  <td>新能力是否真被调用</td>
+  <td class="ok">已调用</td>
+  <td>插桩 <code>detect_invoice_patterns</code>：公司1 <code>sal=70 pur=2026</code> → 1 条；
+      公司3 <code>sal=228 pur=858</code> → 3 条。</td>
+</tr>
+<tr>
+  <td>发现是否进最终报告</td>
+  <td class="ok">已进入</td>
+  <td>报告文本命中："同一客户存在多张同额发票"、"开票日期高度集中"、"进项税额长期大于销项税额"；
+      <code>redline_detection</code> 内 <code>RL-VAT-002</code> 归并 6 处。</td>
+</tr>
+</tbody>
+</table>
+
+<div class="card">
+<b>关键日志片段</b>
+<pre>[PROBE] detect_invoice_patterns: sal=70  pur=2026 date=70  type=0   -> findings=1 ['same_pair_amount_groups']
+[PROBE] detect_invoice_patterns: sal=228 pur=858  date=205 type=209 -> findings=3
+        ['date_concentration_top1_share','input_output_tax_ratio','same_pair_amount_groups']
+[THREAD-RESULT] {"status":"done","progress":100,"message":"分析完成","patrol_enrolled":true,"error":null}
+===== ALL DONE =====   (无 ERROR / Traceback)</pre>
+</div>
+
+<h2>二、本轮修复的真实隐患</h2>
+<div class="card">
+<p><b>问题</b>：按钮线程 <code>_run_analysis_thread</code> 在分析成功后，会执行"巡逻登记 / 跨企业巡逻 /
+写检查点"三个后置动作，但它们<b>没有单独兜底</b>，且处于同一个 <code>try</code> 内——
+任一后置动作抛错都会被外层 <code>except</code> 捕获，把<b>已经成功的分析标记为 error</b>，
+用户在页面上就会看到"一键分析失败/跑不通"。</p>
+<p><b>修复</b>（提交 <code>f0353b41</code>）：三个后置动作逐个 <code>try/except</code> 兜底，
+异常仅打印日志，<b>任务状态保持 done</b>。分析结果不再被后置动作拖崩。</p>
+</div>
+
+<h2>三、边界与说明（诚实口径）</h2>
+<ul>
+  <li><b>服务仍需你本机会话启动</b>：本环境里由助手启动的 Web 服务无法存活到回合结束，
+      因此"点按钮"这一步需要你双击桌面 <code>start8001.bat</code> 启动服务后自己操作；
+      助手已完成的是<b>按钮背后的整条分析引擎 + 线程路径</b>的实测跑通。</li>
+  <li><b>部分场景"数据未触发"≠"未实现"</b>：如公司1/2 的发票文件<b>没有"发票类型"列</b>
+      （插桩显示 <code>type=0</code>），作废/红冲类判定拿不到标志位故不触发；
+      公司3 提供了该列（<code>type=209</code>）即正常参与。系统按铁律"无数据→不误报"。</li>
+  <li>本轮动到的代码：<code>engine/invoice_pattern_detector.py</code>（新）、
+      <code>engine/pipeline.py</code>（接入新域）、<code>main.py</code>（后置动作加固）；
+      契约测试 <code>tests/test_redline_methodology.py</code> 18 passed / 65 subtests 无回归。</li>
+</ul>
+
+<div class="foot">
+生成于 2026-09-13 · 本报告为端到端跑通验证记录 · 系统输出一律为待核线索 / 置疑清单，不构成税务定性结论。
+</div>
+
+</div>
+</body>
+</html>
