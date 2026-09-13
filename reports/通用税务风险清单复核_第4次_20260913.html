@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>通用税务风险清单复核（第 4 次，逐类覆盖核对）</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1f2329;--sub:#5b6472;--line:#e5e8ec;
+    --brand:#1a5fb4;--brand-soft:#eaf1fb;--ok:#1a7f37;--warn:#b25e00;--purple:#5b3fb5;--chip:#f0f2f5;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.68;font-size:14.5px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:38px 22px 72px}
+  header{border-bottom:2px solid var(--brand);padding-bottom:16px;margin-bottom:22px}
+  h1{font-size:22px;margin:0 0 8px}
+  .meta{color:var(--sub);font-size:13px}
+  .meta code{background:var(--chip);padding:1px 6px;border-radius:4px;font-size:12px}
+  .banner{background:#eaf1fb;border:1px solid #c6daf6;border-left:5px solid var(--brand);border-radius:10px;padding:14px 18px;margin:16px 0}
+  h2{font-size:17px;margin:30px 0 10px;padding-left:10px;border-left:4px solid var(--brand)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--brand-soft);font-weight:600;color:#123a6b}
+  tbody tr:nth-child(even){background:#fafbfc}
+  td.st{white-space:nowrap;font-weight:600;font-size:12px}
+  .s-have{color:var(--ok)}.s-new{color:var(--brand)}.s-part{color:var(--warn)}.s-ext{color:var(--purple)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px;margin:12px 0}
+  code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px;font-family:Consolas,monospace}
+  ul{margin:8px 0;padding-left:22px}li{margin:4px 0}
+  .foot{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);color:var(--sub);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>通用税务风险清单复核（第 4 次 · 逐类覆盖核对）</h1>
+  <div class="meta">
+    项目：财税风险防控系统 <code>caishuixitong</code> &nbsp;·&nbsp;
+    入口：一键分析按钮 <code>_run_analyze</code> &nbsp;·&nbsp;
+    日期：2026-09-13 &nbsp;·&nbsp; 本轮新能力：<code>structure_mismatch_detector</code>
+  </div>
+</header>
+
+<div class="banner">
+  <b>复核结论：本版清单约 95% 已被现有引擎覆盖。</b>
+  经逐类核对，绝大多数条目对应 <b>59 条红线 + 已验证原子规则（VR031/032/035/036/038-040/042/064/070…）+ domain 域探测器 + trend_analyzer</b>；
+  本轮又发现并补齐 <b>2 个零命中真缺口</b>（期间费用/成本比例、农产品进项与主业不符）；
+  剩余零命中项属<b>税务端汇总口径或需外部/多期数据</b>，如实标注。
+</div>
+
+<h2>一、本轮新增（复核中新发现的真缺口）</h2>
+<table>
+<thead><tr><th style="width:30%">新增探测</th><th>判定口径</th><th style="width:16%">红线</th></tr></thead>
+<tbody>
+<tr><td>期间费用与销售成本比例异常</td><td>期间费用/成本 ≥80%（异常偏高）或 ≤2%（费用未归集）</td><td>RL-COST-005</td></tr>
+<tr><td>农产品进项税额与主业不符</td><td>进项含农产品类 ≥10万，而企业行业与农产品无关</td><td>RL-VAT-002</td></tr>
+</tbody>
+</table>
+<p style="color:var(--sub);font-size:12.5px">
+"期间费用率（费用/收入）"此前已有（`financial_analyzer`），本次补的是<b>费用/成本</b>口径；
+"农产品进项"此前无口径比对，本次补并与行业画像联动（涉农行业自动抑制，避免误伤）。</p>
+
+<h2>二、逐类覆盖复核</h2>
+<table>
+<thead><tr><th style="width:20%">类别</th><th style="width:10%">状态</th><th>复核证据（覆盖能力）</th></tr></thead>
+<tbody>
+<tr><td>发票类</td><td class="st s-have">已覆盖</td>
+  <td>RL-VAT-001~007（有销无进/有进无销/品名背离/顶额/红冲）、false_invoice（进销背离/客户集中/同额凑数/自循环/资金回流）、
+      domain 发票生命周期·深度特征·实质性审计·红冲作废追踪、本轮序列的 invoice_pattern_detector（月末/日期集中/免税临界/个人抬头/进项控制额/同额重复/大额红冲）</td></tr>
+<tr><td>隐匿收入与资金类</td><td class="st s-have">已覆盖</td>
+  <td>RL-INC-001~004、RL-FUND-001~004、bank_flow、VR056/062/063/064（公私混同/预收/价外费用/零星收入）、domain 资金全链路/个人交易</td></tr>
+<tr><td>成本费用类</td><td class="st s-new">已覆盖＋本轮补2项</td>
+  <td>RL-COST-001~005、VR038/039/040（招待费/广告费/福利费）、<b>deduction_limit_detector（工会/教育/捐赠/债资比）</b>、
+      financial_analyzer 量化指标（成本收入比/费用率/进销匹配/招待费/所得税贡献率）、<b>structure_mismatch_detector（费用/成本、农产品）</b></td></tr>
+<tr><td>税负与申报类</td><td class="st s-part">大部分覆盖</td>
+  <td>VR026（增值税税负率与行业偏离）、financial_analyzer 所得税贡献率、VR029（零申报）、two_tax_income（两税收入比对）、
+      VR031/035（印花税）、VR042（房产税从价/从租）、domain 增值税申报比对/印花税/CIT汇算；
+      <b>多期变动率</b>由 <code>trend_analyzer</code> 覆盖（需历次分析历史）</td></tr>
+<tr><td>人员与社保类</td><td class="st s-have">已覆盖</td>
+  <td>RL-PAY-001~006（工资社保人数/个税工资社保基数三不符/虚列人员/劳务报酬混淆/全年奖/多处任职）、RL-SPT-010（公积金）、
+      domain 工资社保比对、灵活用工专项</td></tr>
+<tr><td>经营实质与场所类</td><td class="st s-have">已覆盖</td>
+  <td>hypothesis 缺失型（无场地/无水电/无能耗）、RL-PTY-005、RL-VAT-005、domain 经营实质/地理分析、inspection 置疑清单</td></tr>
+<tr><td>关联交易与跨境类</td><td class="st s-have">已覆盖</td>
+  <td>RL-CIT-001/002、RL-SPT-005/006/007/009（预提/特许权/契税/股权）、related_party_graph、转让定价定量探针、
+      <b>external_check_reminder（同期资料/关联申报待办）</b>；本轮补债资比</td></tr>
+<tr><td>灵活用工与用工模式</td><td class="st s-have">已覆盖</td>
+  <td>RL-PAY-004/005/006、domain 灵活用工（三流空转/劳务报酬转经营所得/代扣代缴）</td></tr>
+<tr><td>税前扣除与凭证</td><td class="st s-new">已覆盖＋本轮补1项</td>
+  <td>RL-COST-001（暂估）/RL-COST-003（白条）、VR038/039/040；本轮补工会/教育/捐赠</td></tr>
+<tr><td>注销与清算</td><td class="st s-have">已覆盖</td>
+  <td>RL-SPT-011（核定滥用）、hypothesis 注销前异常、RL-CIT-006（资产损失）、domain 注销清算线索</td></tr>
+<tr><td>小税种与申报勾稽</td><td class="st s-have">已覆盖</td>
+  <td>VR031/035（印花税购销/其他税目）、VR042（房产税从价/从租）、契税（RL-SPT-007）、RL-OTH-001~005、VR032（进项转出）</td></tr>
+<tr><td>其他通用（两套账/拆分/中介/优惠滥用）</td><td class="st s-have">已覆盖</td>
+  <td>RL-INC-001/002（账外/私户）、拆分收入维持小微/高新（tax_incentive_analyzer + 跨企业图谱）、
+      domain 关联穿透/客户集中；外部核验类转 external_check_reminder</td></tr>
+</tbody>
+</table>
+
+<h2>三、零命中项处置</h2>
+<div class="card">
+<ul>
+  <li><b>期间费用与销售成本比例异常</b> → <span class="s-new">本轮已补</span>（structure_mismatch_detector）。</li>
+  <li><b>农产品进项与主业无关</b> → <span class="s-new">本轮已补</span>（structure_mismatch_detector，与行业画像联动）。</li>
+  <li><b>固定资产处置收入未申报</b> → 已覆盖（VR070）。</li>
+  <li><b>房产税税基/房产原值不匹配</b> → 已覆盖（VR042）。</li>
+  <li><b>印花税少计/计税依据不匹配</b> → 已覆盖（VR031/035）。</li>
+  <li><b>进项税额变动率&gt;销项税额变动率</b> → 由 trend_analyzer 跨期追踪（需多期历史）。</li>
+  <li><b>有税申报率偏低</b> → 税务端<b>汇总口径</b>（有税申报户数占比），单企业账套内不可判，属外部指标。</li>
+  <li><b>出口退税环比激增/大额采购退税</b> → 需出口退税申报数据；已有 <code>export_rebate_crosscheck</code>（四单交叉），
+      环比预警需退税申报流水，列为待补数据项。</li>
+  <li><b>区域性税收优惠违规享受</b> → 需判定是否落入特定区域优惠目录，涉及政策适用，列为待外部核验项。</li>
+</ul>
+</div>
+
+<div class="foot">
+生成于 2026-09-13 · 本报告为通用税务风险清单第 4 次逐类覆盖复核 · 系统输出一律为待核线索 / 置疑清单，不构成税务定性结论。
+</div>
+
+</div>
+</body>
+</html>

@@ -1906,6 +1906,16 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _ee:
         pipeline_log.append(f"外部数据核验待办异常: {_ee}")
 
+    # ═══ 结构错配（期间费用/成本比例、农产品进项与主业匹配） ═══
+    try:
+        from engine.structure_mismatch_detector import detect_structure_mismatch
+        _sm_findings = detect_structure_mismatch(pur_invs, fin_is, ctx)
+        if _sm_findings:
+            domain_results.append({"domain": "结构错配分析", "findings": _sm_findings})
+            pipeline_log.append(f"结构错配分析: {len(_sm_findings)}项发现")
+    except Exception as _sme:
+        pipeline_log.append(f"结构错配分析异常: {_sme}")
+
     # ═══ 税收优惠智能分析 ═══
     try:
         from engine.tax_incentive_analyzer import analyze_tax_incentives
