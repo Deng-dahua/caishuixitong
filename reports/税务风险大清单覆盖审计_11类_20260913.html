@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>税务风险大清单覆盖度审计（11 大类）</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1f2329;--sub:#5b6472;--line:#e5e8ec;
+    --brand:#1a5fb4;--brand-soft:#eaf1fb;--ok:#1a7f37;--warn:#b25e00;--purple:#5b3fb5;--chip:#f0f2f5;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.68;font-size:14.5px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:38px 22px 72px}
+  header{border-bottom:2px solid var(--brand);padding-bottom:16px;margin-bottom:22px}
+  h1{font-size:22px;margin:0 0 8px}
+  .meta{color:var(--sub);font-size:13px}
+  .meta code{background:var(--chip);padding:1px 6px;border-radius:4px;font-size:12px}
+  .banner{background:#eaf1fb;border:1px solid #c6daf6;border-left:5px solid var(--brand);
+    border-radius:10px;padding:14px 18px;margin:16px 0}
+  h2{font-size:17px;margin:30px 0 10px;padding-left:10px;border-left:4px solid var(--brand)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--brand-soft);font-weight:600;color:#123a6b}
+  tbody tr:nth-child(even){background:#fafbfc}
+  td.st{white-space:nowrap;font-weight:600;font-size:12px}
+  .s-have{color:var(--ok)}.s-new{color:var(--brand)}.s-part{color:var(--warn)}.s-ext{color:var(--purple)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px;margin:12px 0}
+  code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px;font-family:Consolas,monospace}
+  ul{margin:8px 0;padding-left:22px}li{margin:4px 0}
+  .foot{margin-top:36px;padding-top:14px;border-top:1px solid var(--line);color:var(--sub);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>税务风险大清单覆盖度审计（11 大类）</h1>
+  <div class="meta">
+    项目：财税风险防控系统 <code>caishuixitong</code> &nbsp;·&nbsp;
+    入口：一键分析按钮 <code>_run_analyze</code> &nbsp;·&nbsp;
+    日期：2026-09-13 &nbsp;·&nbsp; 新能力提交：<code>deduction_limit_detector</code>
+  </div>
+</header>
+
+<div class="banner">
+  <b>核心结论：本清单约 90%+ 已被现有引擎覆盖。</b>
+  系统为这些场景构建的 <b>59 条红线 + 已验证原子规则（VR038/039/040/026/036/064…）+
+  domain 域探测器 + false_invoice/related_party_graph/bank_flow</b> 已覆盖绝大多数条目；
+  本轮仅需补齐 <b>4 项税前扣除限额</b> 真缺口；剩余少数项<b>依赖多期或外部数据</b>，如实标注不虚称覆盖。
+</div>
+
+<h2>一、本轮新增（唯一可算真缺口：税前扣除限额家族补充）</h2>
+<table>
+<thead><tr><th style="width:30%">新增探测</th><th>阈值/口径</th><th style="width:16%">红线</th></tr></thead>
+<tbody>
+<tr><td>工会经费超限</td><td>工资薪金总额 2%，超支纳税调增</td><td>RL-COST-005</td></tr>
+<tr><td>职工教育经费超限</td><td>工资薪金总额 8%，超支可结转</td><td>RL-COST-005</td></tr>
+<tr><td>公益性捐赠超限</td><td>年度利润总额 12%，超支可结转三年</td><td>RL-COST-005</td></tr>
+<tr><td>关联方债资比超限</td><td>非金融企业 2:1，超标准利息不得扣除</td><td>RL-CIT-002</td></tr>
+</tbody>
+</table>
+<p style="color:var(--sub);font-size:12.5px">
+已存在的同族规则：<code>VR038</code> 业务招待费、<code>VR039</code> 广告费与业务宣传费、
+<code>VR040</code> 职工福利费——本轮只补它们未覆盖的 4 项，避免重复。</p>
+
+<h2>二、11 大类覆盖矩阵</h2>
+<table>
+<thead><tr><th style="width:24%">类别</th><th style="width:11%">状态</th><th>主要覆盖能力</th></tr></thead>
+<tbody>
+<tr><td>一、隐匿收入与资金类</td><td class="st s-have">已覆盖</td>
+  <td>RL-INC-001~004、RL-FUND-001~004、bank_flow、false_invoice（资金回流）、
+      VR056/062/063/064（公私混同/预收/价外费用/零星收入）、domain 资金全链路/个人交易</td></tr>
+<tr><td>二、成本费用类</td><td class="st s-new">已覆盖＋本轮补4项</td>
+  <td>RL-COST-001~005、VR038/039/040、financial_analyzer 金税四期量化指标（成本收入比/费用率/招待费/进销匹配）、
+      domain 进销毛利/存货周转；<b>本轮新增工会/教育/捐赠/债资比</b></td></tr>
+<tr><td>三、税负与申报类</td><td class="st s-part">大部分覆盖</td>
+  <td>VR026 增值税税负率与行业偏离、financial_analyzer 所得税贡献率、VR029 零申报、
+      two_tax_income 两税收入比对、domain 增值税申报比对/印花税/CIT汇算；
+      <b>变动率类（税负率/进销/收入环比同比）需多期数据</b></td></tr>
+<tr><td>四、人员与社保类</td><td class="st s-have">已覆盖</td>
+  <td>RL-PAY-001~006（工资社保人数/个税工资社保基数三不符/虚列人员/劳务报酬混淆/奖金/多处任职）、
+      domain 工资社保比对、灵活用工专项</td></tr>
+<tr><td>五、经营实质与场所类</td><td class="st s-have">已覆盖</td>
+  <td>hypothesis 缺失型（无场地/无水电/无能耗）、RL-PTY-005、RL-VAT-005、
+      domain 经营实质/地理分析、inspection 置疑清单</td></tr>
+<tr><td>六、关联交易与跨境类</td><td class="st s-new">已覆盖＋本轮补1项</td>
+  <td>RL-CIT-001/002、RL-SPT-005/006/007/009（预提/特许权/契税/股权）、related_party_graph、
+      转让定价定量探针（同品名单价离散度）、同期资料作为反证材料；
+      <b>本轮新增关联方债资比</b></td></tr>
+<tr><td>七、灵活用工与用工模式</td><td class="st s-have">已覆盖</td>
+  <td>RL-PAY-004/005/006、domain 灵活用工（三流空转/劳务报酬转经营所得/代扣代缴）</td></tr>
+<tr><td>八、税前扣除与凭证</td><td class="st s-new">已覆盖＋本轮补4项</td>
+  <td>RL-COST-001（暂估）/RL-COST-003（白条）、VR038/039/040；<b>本轮新增工会/教育/捐赠</b></td></tr>
+<tr><td>九、注销与清算</td><td class="st s-have">已覆盖</td>
+  <td>RL-SPT-011（核定征收滥用）、hypothesis 注销前异常、domain 注销清算线索</td></tr>
+<tr><td>十、其他通用（两套账/拆分/中介）</td><td class="st s-have">已覆盖</td>
+  <td>RL-INC-001/002（账外/私户）、拆分收入维持小微/高新（tax_incentive_analyzer + 跨企业图谱）、
+      domain 关联穿透/客户集中</td></tr>
+<tr><td>十一、外部/跨部门类</td><td class="st s-ext">外部数据</td>
+  <td>空壳个体户注册/同一团伙/购买公民信息/地下钱庄/提单报关/收汇与报关不符等，
+      需工商/海关/公安/银行外部数据，单账套不可判</td></tr>
+</tbody>
+</table>
+
+<h2>三、尚未覆盖的残留（诚实口径）</h2>
+<div class="card">
+<ul>
+  <li><b>多期时序变动率</b>（税负率变动超30%、进销项税额变动率、成本费用率环比剧变、收入/成本变动率异常）：
+      需<b>多期财务报表与申报表</b>；系统已在"无法检测"清单中明示"缺少多期数据"，并转置疑清单，
+      不虚假出结论。若账套提供多期数据即可激活。</li>
+  <li><b>外部/跨部门数据项</b>：开票 IP/MAC、企业注册注销时间、实缴资本、员工参保数、
+      法人户籍、实名办税、领票增量走逃、海关报关/收汇、地下钱庄等——金税四期靠税务端全国数据池 + 跨部门共享，
+      本系统（企业/稽查端、单账套）无该数据源，如实标注。</li>
+  <li><b>形式合规/资料类</b>：同期资料是否准备、关联申报是否完成、发票保管是否规范——
+      属"是否提供某项资料"的判断，非数据推理可判，系统以"需企业提供的资料与说明"呈现。</li>
+</ul>
+</div>
+
+<div class="foot">
+生成于 2026-09-13 · 本报告为 11 大类税务风险清单覆盖度审计 · 系统输出一律为待核线索 / 置疑清单，不构成税务定性结论。
+</div>
+
+</div>
+</body>
+</html>

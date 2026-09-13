@@ -1884,6 +1884,17 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _fe:
         pipeline_log.append(f"财务报表分析异常: {_fe}")
 
+    # ═══ 税前扣除限额补充（工会经费2%/职工教育经费8%/公益性捐赠12%/关联方债资比2:1） ═══
+    # 补齐 verified_rule_engine 未覆盖的扣除限额家族（VR038/039/040 已覆盖招待费/广告费/福利费）
+    try:
+        from engine.deduction_limit_detector import detect_deduction_limits
+        _dl_findings = detect_deduction_limits(vouchers or [], fin_is, fin_bs, ctx)
+        if _dl_findings:
+            domain_results.append({"domain": "税前扣除限额补充", "findings": _dl_findings})
+            pipeline_log.append(f"税前扣除限额补充: {len(_dl_findings)}项发现")
+    except Exception as _dle:
+        pipeline_log.append(f"税前扣除限额补充异常: {_dle}")
+
     # ═══ 税收优惠智能分析 ═══
     try:
         from engine.tax_incentive_analyzer import analyze_tax_incentives
