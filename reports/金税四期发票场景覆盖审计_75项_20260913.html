@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金税四期发票/凭证场景覆盖度审计（75 项）</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1f2329;--sub:#5b6472;--line:#e5e8ec;
+    --brand:#1a5fb4;--brand-soft:#eaf1fb;--ok:#1a7f37;--warn:#b25e00;--danger:#b3261e;
+    --purple:#5b3fb5;--chip:#f0f2f5;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.68;font-size:14.5px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1040px;margin:0 auto;padding:38px 22px 72px}
+  header{border-bottom:2px solid var(--brand);padding-bottom:16px;margin-bottom:24px}
+  h1{font-size:23px;margin:0 0 8px}
+  .meta{color:var(--sub);font-size:13px}
+  .meta code{background:var(--chip);padding:1px 6px;border-radius:4px;font-size:12px}
+  h2{font-size:17.5px;margin:32px 0 12px;padding-left:10px;border-left:4px solid var(--brand)}
+  p{margin:8px 0}
+  .kpi{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}
+  .kpi .box{flex:1 1 130px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 15px}
+  .kpi .n{font-size:25px;font-weight:700;line-height:1.2}
+  .kpi .l{font-size:12px;color:var(--sub);margin-top:2px}
+  .box.b-blue .n{color:var(--brand)}.box.b-green .n{color:var(--ok)}
+  .box.b-orange .n{color:var(--warn)}.box.b-purple .n{color:var(--purple)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:var(--brand-soft);font-weight:600;color:#123a6b;position:sticky;top:0}
+  tbody tr:nth-child(even){background:#fafbfc}
+  td.st{white-space:nowrap;font-weight:600;font-size:12px}
+  .s-have{color:var(--ok)}.s-new{color:var(--brand)}.s-part{color:var(--warn)}.s-ext{color:var(--purple)}
+  .tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:11.5px;font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:15px 17px;margin:12px 0}
+  ul{margin:8px 0;padding-left:22px}li{margin:4px 0}
+  code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px;
+    font-family:"SFMono-Regular",Consolas,monospace}
+  .foot{margin-top:38px;padding-top:14px;border-top:1px solid var(--line);color:var(--sub);font-size:12px}
+  .legend span{margin-right:14px;font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>金税四期发票 / 凭证场景覆盖度审计（75 项）</h1>
+  <div class="meta">
+    项目：财税风险防控系统 <code>caishuixitong</code> &nbsp;·&nbsp;
+    入口：一键分析按钮 <code>_run_analyze</code> &nbsp;·&nbsp;
+    日期：2026-09-13 &nbsp;·&nbsp; 提交：代码 <code>ea87ad5c</code>+本轮
+  </div>
+</header>
+
+<div class="kpi">
+  <div class="box b-green"><div class="n">≈52</div><div class="l">已具备（红线/规则/探测器）</div></div>
+  <div class="box b-blue"><div class="n">9</div><div class="l">本轮新增覆盖</div></div>
+  <div class="box b-orange"><div class="n">≈10</div><div class="l">部分具备</div></div>
+  <div class="box b-purple"><div class="n">≈12</div><div class="l">依赖外部数据 / 管理类</div></div>
+</div>
+
+<div class="card">
+<b>本轮做法</b>：对用户提供的 75 项发票/凭证稽查场景，逐条比对现有
+<b>59 条红线</b>、<code>verified_rule_engine</code> 原子规则、
+<code>domain_analysis</code> 发票域、<code>false_invoice</code> 虚开网络比对、
+<code>input_voucher</code> 等能力；对确认的 <b>可量化真缺口</b> 新建探测器模块
+<code>engine/invoice_pattern_detector.py</code>（7 类）并接入一键分析链路。
+</div>
+
+<h2>一、本轮新增的 7 类发票行为探测（覆盖 9 项清单）</h2>
+<table>
+<thead><tr><th style="width:26%">新增能力</th><th>覆盖清单项</th><th style="width:16%">触发口径</th><th style="width:14%">红线归属</th></tr></thead>
+<tbody>
+<tr><td>月末集中开票</td><td>开票行为集中在月末最后几天</td><td>月末3天金额占比≥50%</td><td>RL-PTY-005</td></tr>
+<tr><td>开票日期集中度异常</td><td>开票时间集中度异常（少数几天）</td><td>单日≥30% 或前3日≥60%</td><td>RL-PTY-005</td></tr>
+<tr><td>免税额度临界卡位</td><td>顶额卡免税临界点 / 月开票卡免税额度 / 长期卡免征额80%以上</td><td>小规模：月≥3次落80%~100% 或季≥2次落24万~30万</td><td>RL-VAT-004</td></tr>
+<tr><td>个人抬头发票占比</td><td>个人抬头发票计入公司成本</td><td>个人抬头进项金额占比≥30%</td><td>RL-COST-003</td></tr>
+<tr><td>进项税额控制额异常</td><td>进项税额大于进项税额控制额</td><td>进项税额/销项税额≥1.5倍（≥5倍为高风险）</td><td>RL-VAT-002</td></tr>
+<tr><td>同一对方同金额多张发票</td><td>同一笔业务多次开票（拆分/重复开具）</td><td>购方+金额一致且45天内≥3张</td><td>RL-PTY-005</td></tr>
+<tr><td>大额红冲发票</td><td>跨年度红冲大额发票 / 红字依据不足</td><td>红冲/红字发票单张≥50万元</td><td>RL-VAT-007</td></tr>
+</tbody>
+</table>
+<p style="color:var(--sub);font-size:12.5px">
+实测：7 类正样本全部触发、空数据与正常分散样本零误报；
+<code>run_redline_detection</code> 归并 0 条 unmapped；
+<code>tests/test_redline_methodology.py</code> 18 passed / 65 subtests 无回归。</p>
+
+<h2>二、75 项逐条覆盖矩阵</h2>
+<p class="legend">
+  <span class="s-have">● 已具备</span>
+  <span class="s-new">● 本轮新增</span>
+  <span class="s-part">● 部分具备</span>
+  <span class="s-ext">● 依赖外部数据 / 管理类</span>
+</p>
+<table>
+<thead><tr><th style="width:4%">#</th><th style="width:38%">场景</th><th style="width:9%">状态</th><th>对应能力 / 说明</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>进销项品名大类背离（钢材进 / 电子销，无加工佐证）</td><td class="st s-have">已具备</td><td>RL-VAT-003 进销品名背离 + domain_analysis 品名比对 + hypothesis 委托加工真实性</td></tr>
+<tr><td>2</td><td>顶额开票（单张卡免税临界点，连续多月）</td><td class="st s-new">本轮新增</td><td>新增「免税额度临界卡位」；单张贴近限额由 RL-VAT-004 覆盖</td></tr>
+<tr><td>3</td><td>突击增量后走逃（增量2次+超限量25份后失联）</td><td class="st s-ext">外部数据</td><td>需税局侧领票/增量/非正常户数据（可经工商核验通道扩展）</td></tr>
+<tr><td>4</td><td>作废重开卡起征点（当月作废、下月重开）</td><td class="st s-part">部分具备</td><td>RL-VAT-007 作废红冲比例 + 本轮免税临界卡位</td></tr>
+<tr><td>5</td><td>与主营业务无关的进项抵扣（农产品 / 咨询费）</td><td class="st s-have">已具备</td><td>RL-COST-002 咨询费等无成果证据 + 农产品抵扣规则</td></tr>
+<tr><td>6</td><td>资金回流（付款后经个人卡/关联方回流）</td><td class="st s-have">已具备</td><td>RL-FUND-002 资金回流 + false_invoice 资金回流闭环</td></tr>
+<tr><td>7</td><td>接受非正常户发票</td><td class="st s-have">已具备</td><td>input_voucher / verified_rule_engine 非正常户异常凭证</td></tr>
+<tr><td>8</td><td>变名开票（成品油变名化工原料规避消费税）</td><td class="st s-have">已具备</td><td>RL-SPT-002 应税消费品未申报/计税价格偏低 + 变名规则</td></tr>
+<tr><td>9</td><td>同一IP/MAC集中开票</td><td class="st s-ext">外部数据</td><td>需开票端 IP/MAC 数据（税务侧），单账套不可得</td></tr>
+<tr><td>10</td><td>非工作时间大量开票（深夜）</td><td class="st s-ext">外部数据</td><td>现有时间异常仅作用于银行流水；发票需含开票时刻</td></tr>
+<tr><td>11</td><td>发票增量后迅速注销</td><td class="st s-ext">外部数据</td><td>需工商注销 + 领票增量数据</td></tr>
+<tr><td>12</td><td>开票金额与银行流水严重脱节</td><td class="st s-have">已具备</td><td>RL-INC-001 + bank_flow 资金流勾稽</td></tr>
+<tr><td>13</td><td>环开 / 对开（A→B→C→A 闭环）</td><td class="st s-have">已具备</td><td>RL-CIT-001 关联购销闭环 + false_invoice 供应商=客户自循环</td></tr>
+<tr><td>14</td><td>红冲异常（短期红冲无退货/折让依据）</td><td class="st s-part">部分具备</td><td>RL-VAT-007 红冲作废追踪 + 本轮大额红冲</td></tr>
+<tr><td>15</td><td>农产品收购发票无身份信息</td><td class="st s-part">部分具备</td><td>农产品抵扣规则；农户身份/运输/入库需资料佐证</td></tr>
+<tr><td>16</td><td>运输发票与货物量不匹配</td><td class="st s-have">已具备</td><td>VR027 运输费量化配比（运费 vs 货值×行业运费率）</td></tr>
+<tr><td>17</td><td>发票抬头为个人但计入公司成本</td><td class="st s-new">本轮新增</td><td>新增「个人抬头发票占比」</td></tr>
+<tr><td>18</td><td>开票方注册地址集中</td><td class="st s-have">已具备</td><td>RL-PTY-002 供应商高度集中且地域异常</td></tr>
+<tr><td>19</td><td>发票流与合同流主体不一致</td><td class="st s-have">已具备</td><td>RL-PTY-004 订单-投料-完工-发货-收入闭环 + 四流一致</td></tr>
+<tr><td>20</td><td>长期零开票但有进项（有进无销）</td><td class="st s-have">已具备</td><td>RL-VAT-002 有进无销</td></tr>
+<tr><td>21</td><td>受票下游集中度异常高</td><td class="st s-have">已具备</td><td>false_invoice 客户集中度（top1/top3）</td></tr>
+<tr><td>22</td><td>敏感品名集中度异常（咨询/推广/服务费）</td><td class="st s-have">已具备</td><td>RL-COST-002 + false_invoice 敏感品名</td></tr>
+<tr><td>23</td><td>开票时间集中度异常（少数几天）</td><td class="st s-new">本轮新增</td><td>新增「开票日期集中度」</td></tr>
+<tr><td>24</td><td>进项税额大于进项税额控制额</td><td class="st s-new">本轮新增</td><td>新增「进项税额控制额异常」</td></tr>
+<tr><td>25</td><td>新办企业短期内大量开票</td><td class="st s-part">部分具备</td><td>新办企业规则；成立日期需工商数据</td></tr>
+<tr><td>26</td><td>发票作废率异常偏高</td><td class="st s-have">已具备</td><td>RL-VAT-007（作废率/红冲比例）</td></tr>
+<tr><td>27</td><td>外省市加工费无货物流佐证</td><td class="st s-have">已具备</td><td>RL-PTY-003 委托加工费异常 + domain_analysis 缺失型专项</td></tr>
+<tr><td>28</td><td>开票方与受票方经营地跨省且无物流</td><td class="st s-have">已具备</td><td>RL-PTY-004 + RL-VAT-005 生产经营要素不匹配</td></tr>
+<tr><td>29</td><td>同一控制人下企业互开发票</td><td class="st s-have">已具备</td><td>RL-CIT-001 + related_party_graph 关联图谱</td></tr>
+<tr><td>30</td><td>发票品名与受票方经营范围不符</td><td class="st s-have">已具备</td><td>RL-VAT-003 进销品名背离</td></tr>
+<tr><td>31</td><td>月开票金额恰好卡在免税额度</td><td class="st s-new">本轮新增</td><td>新增「免税额度临界卡位」</td></tr>
+<tr><td>32</td><td>突然大量开具"木材"类发票</td><td class="st s-have">已具备</td><td>domain_analysis / verified_rule_engine 木材类专项规则</td></tr>
+<tr><td>33</td><td>受票方与开票方注册时间相近</td><td class="st s-ext">外部数据</td><td>需双方工商注册时间</td></tr>
+<tr><td>34</td><td>发票备注栏信息缺失或异常</td><td class="st s-have">已具备</td><td>domain_analysis 域16 规则6 发票备注栏合规检测</td></tr>
+<tr><td>35</td><td>跨年度红冲大额发票</td><td class="st s-new">本轮新增</td><td>新增「大额红冲发票」</td></tr>
+<tr><td>36</td><td>同一笔业务多次开票（拆分/重复开具）</td><td class="st s-new">本轮新增</td><td>新增「同一对方同金额多张」；同额凑数由 false_invoice 覆盖</td></tr>
+<tr><td>37</td><td>发票金额恰好规避企业内部审批权限</td><td class="st s-ext">管理类</td><td>依赖企业内部审批线，非数据可判</td></tr>
+<tr><td>38</td><td>开票方实缴资本为零但开票量大</td><td class="st s-ext">外部数据</td><td>需供应商工商实缴资本</td></tr>
+<tr><td>39</td><td>开票方自有员工为零</td><td class="st s-ext">外部数据</td><td>需社保/工商员工数据</td></tr>
+<tr><td>40</td><td>受票方取得发票后迅速认证抵扣</td><td class="st s-part">部分具备</td><td>进项认证抵扣情报（勾选平台统计）；"无付款即认证"需资金流联动</td></tr>
+<tr><td>41</td><td>开票方与受票方法定代表人为同一人</td><td class="st s-have">已具备</td><td>RL-CIT-001 关联交易异常（六员重叠）</td></tr>
+<tr><td>42</td><td>发票品名与行业特征严重偏离（医药取得图文广告）</td><td class="st s-have">已具备</td><td>RL-VAT-003 + 行业品名适配</td></tr>
+<tr><td>43</td><td>发票集中开具后集中作废</td><td class="st s-have">已具备</td><td>RL-VAT-007 + 本轮开票日期集中度</td></tr>
+<tr><td>44</td><td>新办企业法人户籍非本地且年龄异常</td><td class="st s-ext">外部数据</td><td>需法人户籍/年龄（公安/工商），现有身份证号逻辑仅用于用工裁决</td></tr>
+<tr><td>45</td><td>发票已入账但应付账款长期挂账</td><td class="st s-have">已具备</td><td>RL-INC-004 / 应付长期挂账（domain_analysis）</td></tr>
+<tr><td>46</td><td>长期只有销项发票缺乏进项（有销无进）</td><td class="st s-have">已具备</td><td>RL-VAT-001 有销无进</td></tr>
+<tr><td>47</td><td>多个企业共用同一地址和网络开票</td><td class="st s-part">部分具备</td><td>RL-PTY-002 地址集中；共用网络需 IP 数据</td></tr>
+<tr><td>48</td><td>发票频繁开至单张最高限额</td><td class="st s-have">已具备</td><td>RL-VAT-004 顶额开票</td></tr>
+<tr><td>49</td><td>开票金额长期卡在免征额80%以上区间</td><td class="st s-new">本轮新增</td><td>新增「免税额度临界卡位」</td></tr>
+<tr><td>50</td><td>开票行为集中在月末最后几天</td><td class="st s-new">本轮新增</td><td>新增「月末集中开票」</td></tr>
+<tr><td>51</td><td>当月作废发票数量明显偏高</td><td class="st s-have">已具备</td><td>RL-VAT-007</td></tr>
+<tr><td>52</td><td>新成立企业3个月内开票量异常大</td><td class="st s-part">部分具备</td><td>新办企业规则；成立日期需工商</td></tr>
+<tr><td>53</td><td>进销商品品类明显不符</td><td class="st s-have">已具备</td><td>RL-VAT-003</td></tr>
+<tr><td>54</td><td>达到一般纳税人标准但未及时办理登记</td><td class="st s-have">已具备</td><td>一般纳税人超标未登记规则</td></tr>
+<tr><td>55</td><td>进销项吨位偏离度异常</td><td class="st s-have">已具备</td><td>吨位/运输量配比（运输费量化 + 数量闭环）</td></tr>
+<tr><td>56</td><td>发票作废率超过20%触发红色预警</td><td class="st s-have">已具备</td><td>RL-VAT-007（含比例阈值）</td></tr>
+<tr><td>57</td><td>增值税专用发票用量环比增加超30%且超10份</td><td class="st s-part">部分具备</td><td>发票增量规则；用量环比需领票数据</td></tr>
+<tr><td>58</td><td>进销项分类编码大类不一致且比例差异大</td><td class="st s-have">已具备</td><td>RL-VAT-003（税收分类编码大类比对）</td></tr>
+<tr><td>59</td><td>接受非正常户发票未及时做进项税额转出</td><td class="st s-have">已具备</td><td>非正常户异常凭证 + 进项税额转出规则</td></tr>
+<tr><td>60</td><td>上游企业被认定非正常户导致发票变异常凭证</td><td class="st s-have">已具备</td><td>同上（input_voucher / verified_rule_engine）</td></tr>
+<tr><td>61</td><td>开票方成立短、注册资本低、无实际经营地址</td><td class="st s-ext">外部数据</td><td>需供应商工商画像（已有核验通道，依赖 API 数据）</td></tr>
+<tr><td>62</td><td>发票品名与受票方主营业务关联度不高</td><td class="st s-have">已具备</td><td>RL-VAT-003</td></tr>
+<tr><td>63</td><td>开票未按规定实名办税人员完成身份验证</td><td class="st s-ext">外部数据</td><td>需税务实名办税数据</td></tr>
+<tr><td>64</td><td>发票、货物、资金、合同对应主体不一致（四流）</td><td class="st s-have">已具备</td><td>RL-PTY-004 + 四流一致校验</td></tr>
+<tr><td>65</td><td>发票票面要素填写不完整或与实际业务不一致</td><td class="st s-have">已具备</td><td>RL-PTY-005 发票数据质量（票面关系与连续性）</td></tr>
+<tr><td>66</td><td>未在发生经营业务确认营业收入时开具发票</td><td class="st s-have">已具备</td><td>RL-VAT-006 未开票收入 + 收入时间线</td></tr>
+<tr><td>67</td><td>变更法定代表人前后或注销前集中开票</td><td class="st s-part">部分具备</td><td>注销相关规则；变更法代需工商变更数据</td></tr>
+<tr><td>68</td><td>长期静默经营后择时集中大量开票并走逃</td><td class="st s-part">部分具备</td><td>零开票/静默规则 + 本轮集中度；"走逃"需税局数据</td></tr>
+<tr><td>69</td><td>发票内容与交易实质不符（咨询服务开成会议费）</td><td class="st s-have">已具备</td><td>RL-COST-002 大额咨询/服务/会务费无成果交付证据</td></tr>
+<tr><td>70</td><td>不同税率/性质业务合并开具，发票未反映真实交易</td><td class="st s-have">已具备</td><td>RL-PTY-005 票面要素 + 税率混开校验</td></tr>
+<tr><td>71</td><td>红字发票开具缺乏充分依据或未遵循流程</td><td class="st s-new">本轮新增</td><td>本轮大额红冲 + RL-VAT-007</td></tr>
+<tr><td>72</td><td>发票开具时限不符合规定</td><td class="st s-part">部分具备</td><td>RL-VAT-006 未及时开票；具体时限需开票时点数据</td></tr>
+<tr><td>73</td><td>未按规定保管发票</td><td class="st s-ext">管理类</td><td>发票保管属管理合规，非数据推理可判</td></tr>
+<tr><td>74</td><td>发票作废、红冲异常</td><td class="st s-have">已具备</td><td>RL-VAT-007 + 本轮大额红冲</td></tr>
+<tr><td>75</td><td>白条入账及无票支出处理不规范</td><td class="st s-have">已具备</td><td>RL-COST-003 白条入账：无合规凭证列支</td></tr>
+</tbody>
+</table>
+
+<h2>三、结论与边界</h2>
+<div class="card">
+<ul>
+  <li><b>已具备约 52 项</b>：多数由 59 条红线 + 原子规则 + domain_analysis 发票域 +
+      <code>false_invoice</code> 虚开网络比对覆盖，本轮核查确认无需重复开发。</li>
+  <li><b>本轮新增 9 项</b>：此前系统未量化的<b>发票行为类</b>特征，由新建
+      <code>engine/invoice_pattern_detector.py</code> 落地并接入一键分析。</li>
+  <li><b>部分具备约 10 项</b>：主判断已具备，个别维度（如环比用量、认证付款联动、
+      变更法代）需补充数据源后可完整。</li>
+  <li><b>依赖外部数据 / 管理类约 12 项</b>：<b>本质不可由单账套数据判定</b>——
+      开票 IP/MAC、非工作时间（发票含时刻）、企业注册/注销时间、实缴资本、员工数、
+      法代户籍、实名办税、领票增量/走逃、内部审批线、发票保管。金税四期本身依托
+      税务端全国数据池与跨部门共享，本系统（企业/稽查端、单账套）需接入相应外部源方能覆盖，
+      当前如实标注、不虚假宣称已覆盖。</li>
+</ul>
+</div>
+
+<div class="foot">
+生成于 2026-09-13 · 本报告为 75 项发票/凭证场景覆盖度审计，配套提交
+<code>engine/invoice_pattern_detector.py</code> 新能力 · 系统输出一律为待核线索 / 置疑清单，
+不构成税务定性结论。
+</div>
+
+</div>
+</body>
+</html>

@@ -1824,6 +1824,17 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "发票存货付款三角验证", "findings": []})
     if clean_invs: domain_results.append({"domain": "红冲作废发票追踪", "findings": _domain_red_void_invoice(clean_invs)})
     else: domain_results.append({"domain": "红冲作废发票追踪", "findings": []})
+    # 发票开票行为分析（金税四期行为类缺口：月末集中/日期集中/免税临界/个人抬头/
+    # 进项税额控制额/同额重复开票/大额红冲）—— 7 类待核线索，均带 redline_id
+    if sal_invs or pur_invs:
+        try:
+            from engine.invoice_pattern_detector import detect_invoice_patterns
+            domain_results.append({
+                "domain": "发票开票行为分析",
+                "findings": detect_invoice_patterns(sal_invs, pur_invs, ctx, tax_declarations),
+            })
+        except Exception as _e:
+            pipeline_log.append(f"[发票开票行为分析] 执行异常(不影响主分析): {_e}")
     # 经营实质地理分析
     if invoices and bank_txs: domain_results.append({"domain": "经营实质地理分析", "findings": _domain_business_premise_geo(bank_txs, invoices, docs, _target_industry)})
     else: domain_results.append({"domain": "经营实质地理分析", "findings": []})
