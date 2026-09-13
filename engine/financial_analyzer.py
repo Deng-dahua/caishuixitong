@@ -165,7 +165,223 @@ def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers
     findings.extend(_check_tax_indicators(balance_sheet, income_stmt, cash_flow, sal_invs, pur_invs, biz_model))
     findings.extend(_check_voucher_statement_gap(vouchers, income_stmt, sal_invs))
     findings.extend(analyze_balance_sheet_items(balance_sheet, income_stmt, vouchers, ctx))
+    # 金税四期核心量化监控指标（消费 TAX_AUDIT_INDICATORS：进项发票vs成本匹配度、
+    # 成本收入比、期间费用率、企业所得税贡献率、业务招待费占比）
+    findings.extend(_check_tax_audit_indicators(balance_sheet, income_stmt, vouchers, sal_invs, pur_invs, ctx))
     
+    return findings
+
+
+def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx):
+    """金税四期核心量化监控指标 —— 消费 TAX_AUDIT_INDICATORS 并产出待核疑点。
+
+    ★ 背景（重要）：TAX_AUDIT_INDICATORS 此前**仅被定义、全项目零消费点**，
+    导致「进项发票 vs 主营业务成本匹配度」等一批金税四期核心量化指标实际未生效。
+    本函数将其真正计算并输出，补上"账面主营成本有票支撑不足""所得税贡献率偏低"等缺口。
+
+    铁律：只输出可复算的数量事实与待核疑点，不自动定性；无数据(成本/收入为0)不输出。
+    """
+    findings = []
+    if not income:
+        return findings
+
+    revenue = float(income.get("revenue", 0) or 0)
+    cost = float(income.get("cost", 0) or 0)
+    selling = float(income.get("selling_expense", 0) or 0)
+    admin = float(income.get("admin_expense", 0) or 0)
+    finance = float(income.get("finance_expense", 0) or 0)
+    net_profit = float(income.get("net_profit", 0) or 0)
+
+    def _inv_amount(inv):
+        if not isinstance(inv, dict):
+            return 0.0
+        for k in ("amount", "金额", "价税合计", "total", "total_amount"):
+            v = inv.get(k)
+            if v not in (None, ""):
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    pass
+        return 0.0
+
+    # ── ① 进项发票 vs 主营业务成本匹配度（金税四期：无票成本 / 白条入账）──
+    # 对应 TAX_AUDIT_INDICATORS["purchase_invoice_match"]，risk_high < 0.6
+    if cost > 0 and pur_invs:
+        pur_total = sum(_inv_amount(i) for i in pur_invs)
+        if pur_total > 0:
+            ratio = pur_total / cost
+            # ★ 匹配度 <0.6 的高风险档由 _check_tax_indicators 的「进项发票远低于报表成本」覆盖，
+            #   此处只补 0.6~0.8 的偏低提示档，避免同一事实被重复输出两条不同的结论。
+            if ratio < 0.6:
+                pass
+            elif ratio < 0.8:
+                findings.append({
+                    "type": "待核事实：主营业务成本有票支撑偏低",
+                    "description": (
+                        "主营业务成本应当有对应的采购发票支撑。当账面列支的成本高于取得的发票金额时，"
+                        "差额部分通常表现为暂估入库、跨期取得发票或无票采购，需逐项核实。"
+                        "注：分子含费用类进项发票，实际用于主营成本的发票匹配度只会更低。"
+                    ),
+                    "level": "中风险", "score": 6,
+                    "detail": (
+                        f"账面主营业务成本{cost:,.2f}元，进项发票金额合计{pur_total:,.2f}元，"
+                        f"匹配度{ratio:.0%}，低于正常区间下限80%。"
+                    ),
+                    "description": "成本与进项发票存在缺口，可能由暂估入库、跨期取得发票或无票采购形成，需核实。",
+                    "how_found": "进项发票金额 / 主营业务成本 = {:.0%}，低于正常区间0.8~1.0。".format(ratio),
+                    "tax_impact": "缺口部分若无合规凭证，面临企业所得税税前不得扣除的纳税调增风险。",
+                    "policy_ref": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）",
+                    "suggestion": "核实成本缺口构成（暂估/跨期/无票采购），补充取得发票或准备真实性证明材料。",
+                    "category": "成本费用",
+                    "source_chain": "财务报表-进项发票与成本匹配度",
+                    "redline_id": "RL-COST-003",
+                    "indicator": "purchase_invoice_match",
+                    "indicator_value": round(ratio, 4),
+                })
+
+    # ── ② 成本收入比极端异常（金税四期：成本率/毛利率背离）──
+    if revenue > 0 and cost > 0:
+        cost_rate = cost / revenue
+        if cost_rate >= 1.0:
+            findings.append({
+                "type": "待核事实：主营业务成本已超过主营业务收入",
+                "level": "高风险", "score": 8,
+                "detail": f"主营业务成本{cost:,.2f}元已不低于主营业务收入{revenue:,.2f}元（成本率{cost_rate:.0%}），毛利为负。",
+                "description": "长期成本不低于收入（购销倒挂、负毛利经营）不符合商业常理，需核实成本归集是否准确、是否存在多转成本或收入未足额入账。",
+                "how_found": "利润表主营业务成本 / 主营业务收入 = {:.0%}。".format(cost_rate),
+                "tax_impact": "多转成本将少缴企业所得税；若同时存在收入未足额确认，构成少缴税款。",
+                "policy_ref": "《企业所得税法》第八条（实际发生且与取得收入有关的支出准予扣除）",
+                "suggestion": "①说明负毛利的商业合理性（促销/清库/新业务投入）；②提供成本结转方法与存货计价说明；③核实收入是否足额确认。",
+                "category": "成本费用",
+                "source_chain": "财务报表-成本收入比",
+                "redline_id": "RL-COST-004",
+                "indicator": "cost_income_ratio",
+                "indicator_value": round(cost_rate, 4),
+            })
+        elif cost_rate <= 0.05:
+            findings.append({
+                "type": "待核事实：主营业务成本率极低",
+                "level": "中风险", "score": 6,
+                "detail": f"主营业务成本{cost:,.2f}元仅占主营业务收入{revenue:,.2f}元的{cost_rate:.0%}。",
+                "description": "成本率极低可能源于收入与成本不配比（成本挂账未结转），或企业实质为无经营的开票主体，需核实。",
+                "how_found": "利润表主营业务成本 / 主营业务收入 = {:.0%}。".format(cost_rate),
+                "tax_impact": "成本未及时结转将虚增利润；如业务不真实则涉嫌虚开发票。",
+                "policy_ref": "《企业所得税法》第八条；《发票管理办法》第二十二条",
+                "suggestion": "说明成本核算方法与结转时点，核实是否存在已发生成本未结转或业务实质不符。",
+                "category": "成本费用",
+                "source_chain": "财务报表-成本收入比",
+                "redline_id": "RL-COST-004",
+                "indicator": "cost_income_ratio",
+                "indicator_value": round(cost_rate, 4),
+            })
+
+    # ── ③ 期间费用率过高（金税四期：费用率异常）──
+    if revenue > 0:
+        period_expense = selling + admin + finance
+        if period_expense > 0:
+            exp_rate = period_expense / revenue
+            if exp_rate > 0.5:
+                findings.append({
+                    "type": "待核事实：期间费用率明显偏高",
+                    "level": "中风险", "score": 6,
+                    "detail": (
+                        f"期间费用合计{period_expense:,.2f}元（销售{selling:,.2f}+管理{admin:,.2f}"
+                        f"+财务{finance:,.2f}），占主营业务收入{revenue:,.2f}元的{exp_rate:.0%}。"
+                    ),
+                    "description": "期间费用率显著高于常规水平，需核实是否存在多列费用、资本性支出费用化或无关支出入账。",
+                    "how_found": "（销售费用+管理费用+财务费用）/ 主营业务收入 = {:.0%}。".format(exp_rate),
+                    "tax_impact": "多列费用将少缴企业所得税；与经营无关的支出不得税前扣除。",
+                    "policy_ref": "《企业所得税法》第八条、第十条（与取得收入无关的支出不得扣除）",
+                    "suggestion": "提供费用明细构成说明，核实大额费用凭证真实性及是否与经营相关。",
+                    "category": "成本费用",
+                    "source_chain": "财务报表-期间费用率",
+                    "redline_id": "RL-COST-005",
+                    "indicator": "expense_revenue_ratio",
+                    "indicator_value": round(exp_rate, 4),
+                })
+
+    # ── ④ 企业所得税税负率/贡献率偏低（金税四期核心指标，本次新增）──
+    # 优先取账面所得税费用；取不到时以净利润×25%作估算口径，并在结论中明示为估算。
+    if revenue > 0:
+        cit_expense = 0.0
+        for v in (vouchers or []):
+            if not isinstance(v, dict):
+                continue
+            acct = str(v.get("account_name", v.get("科目", "")) or "")
+            if "所得税费用" in acct:
+                cit_expense += float(v.get("debit", v.get("借方", 0)) or 0)
+
+        if cit_expense > 0:
+            cit_rate = cit_expense / revenue
+            _basis = "账面所得税费用 / 主营业务收入"
+        elif net_profit > 0:
+            cit_rate = net_profit * 0.25 / revenue
+            _basis = "按净利润×25%法定税率估算所得税 / 主营业务收入（未取到所得税费用科目，为估算口径）"
+        else:
+            cit_rate = None
+            _basis = ""
+
+        if cit_rate is not None and cit_rate < 0.01:
+            _lvl = "高风险" if cit_rate < 0.005 else "中风险"
+            findings.append({
+                "type": "待核事实：企业所得税贡献率偏低",
+                "level": _lvl, "score": 8 if _lvl == "高风险" else 6,
+                "detail": (
+                    f"企业所得税贡献率约{cit_rate:.2%}（{_basis}），"
+                    f"低于常规水平。主营业务收入{revenue:,.2f}元，净利润{net_profit:,.2f}元。"
+                ),
+                "description": (
+                    "企业所得税贡献率（所得税费用占收入的比重）是金税四期横向比对的常用指标。"
+                    "该指标偏低可能来自行业特性、享受税收优惠、前期亏损弥补，"
+                    "也可能指向成本费用虚增或收入未足额申报，须结合行业与优惠情况核验。"
+                ),
+                "how_found": f"计算口径：{_basis}；结果{cit_rate:.2%}，低于1%参照线。",
+                "tax_impact": "如因虚增成本费用或隐匿收入导致少缴企业所得税，需补缴税款、滞纳金并可能处罚。",
+                "policy_ref": "《企业所得税法》第四条、第二十八条（税率与优惠）；《税收征收管理法》第六十三条",
+                "suggestion": (
+                    "①说明适用的税收优惠政策及备案情况；②提供同期行业可比资料与经营模式说明；"
+                    "③说明亏损弥补、研发费用加计扣除等影响因素。"
+                ),
+                "category": "税负",
+                "source_chain": "财务报表-企业所得税贡献率",
+                "redline_id": "RL-CIT-004",
+                "indicator": "cit_contribution_ratio",
+                "indicator_value": round(cit_rate, 6),
+            })
+
+    # ── ⑤ 业务招待费占比（限额扣除，超标须纳税调增）──
+    if revenue > 0:
+        ent = 0.0
+        for v in (vouchers or []):
+            if not isinstance(v, dict):
+                continue
+            acct = str(v.get("account_name", v.get("科目", "")) or "")
+            if "招待" in acct:
+                ent += float(v.get("debit", v.get("借方", 0)) or 0)
+        if ent > 0:
+            ent_rate = ent / revenue
+            if ent_rate > 0.005:  # 超过收入0.5%（法定扣除限额为发生额60%与收入5‰孰低）
+                _limit = min(ent * 0.6, revenue * 0.005)
+                findings.append({
+                    "type": "待核事实：业务招待费超过税前扣除限额",
+                    "level": "中风险", "score": 6,
+                    "detail": (
+                        f"业务招待费{ent:,.2f}元，占主营业务收入{revenue:,.2f}元的{ent_rate:.2%}，"
+                        f"超过收入5‰的法定参照线；按孰低法可扣除约{_limit:,.2f}元，"
+                        f"超额部分约{ent - _limit:,.2f}元需纳税调增。"
+                    ),
+                    "description": "业务招待费按发生额的60%扣除，且不得超过当年销售收入的5‰，两者取其低。",
+                    "how_found": f"凭证中业务招待费合计{ent:,.2f}元 / 主营业务收入{revenue:,.2f}元 = {ent_rate:.2%}。",
+                    "tax_impact": "超标部分不得税前扣除，应在汇算清缴时纳税调增，补缴企业所得税。",
+                    "policy_ref": "《企业所得税法实施条例》第四十三条（业务招待费扣除标准为发生额60%且不超过销售收入5‰）",
+                    "suggestion": "核实业务招待费归集是否准确，汇算清缴时按孰低法作纳税调增。",
+                    "category": "成本费用",
+                    "source_chain": "财务报表-业务招待费占比",
+                    "redline_id": "RL-COST-005",
+                    "indicator": "travel_entertainment_ratio",
+                    "indicator_value": round(ent_rate, 6),
+                })
+
     return findings
 
 
@@ -385,7 +601,13 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                 })
     
     if pur_invs:
-        pur_total = sum(float(i.get("amount", 0) or 0) for i in pur_invs)
+        # ★ 修复：原实现仅读取 amount 字段，当发票数据以「金额」或「价税合计」为键时会被漏算，
+        #   导致匹配度被严重低估（实测 30% 被算成 15%），进而误报"进项发票远低于报表成本"。
+        #   此处兼容多字段取值，与 _check_tax_audit_indicators 口径保持一致。
+        pur_total = sum(
+            float(i.get("amount", i.get("金额", i.get("价税合计", 0))) or 0)
+            for i in pur_invs if isinstance(i, dict)
+        )
         if pur_total > 0 and cost > 0:
             ratio = pur_total / cost
             if ratio < 0.6:
@@ -395,6 +617,11 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                     "detail": f"进项发票{pur_total:,.0f}仅为报表成本{cost:,.0f}的{ratio:.0%}",
                     "tax_impact": "大量无票成本→不得税前扣除→可能虚构成本→补缴企业所得税",
                     "law_ref": "企业所得税法第8条",
+                    "policy_ref": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）第九条",
+                    "suggestion": "提供差额部分的采购合同、入库单与付款记录；属暂估的请说明期后取得发票情况。",
+                    "redline_id": "RL-COST-003",
+                    "indicator": "purchase_invoice_match",
+                    "indicator_value": round(ratio, 4),
                 })
     
     # ── 资产负债率 ──
