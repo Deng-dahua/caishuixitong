@@ -1895,6 +1895,17 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _dle:
         pipeline_log.append(f"税前扣除限额补充异常: {_dle}")
 
+    # ═══ 外部数据核验待办（单账套判不了、需工商/税务/海关/公安/银行外部数据的项） ═══
+    # 遵循"无数据→置疑清单并列明需补资料"：有在账信号才输出，明确列出需补什么
+    try:
+        from engine.external_check_reminder import detect_external_checks
+        _ext_findings = detect_external_checks(sal_invs, pur_invs, bank_txs, fin_bs, fin_is, ctx)
+        if _ext_findings:
+            domain_results.append({"domain": "外部数据核验待办", "findings": _ext_findings})
+            pipeline_log.append(f"外部数据核验待办: {len(_ext_findings)}项")
+    except Exception as _ee:
+        pipeline_log.append(f"外部数据核验待办异常: {_ee}")
+
     # ═══ 税收优惠智能分析 ═══
     try:
         from engine.tax_incentive_analyzer import analyze_tax_incentives
