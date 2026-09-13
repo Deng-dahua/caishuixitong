@@ -212,6 +212,64 @@ def _build_target_entity_snapshot(company_id, db, ctx=None):
     return snapshot
 
 
+def _apply_human_feedback_priors(redline_detection, pipeline_log, company_id):
+    """⑥ 编辑反馈闭环：将 HumanLearner.active_rules 作为分析先验，加载进本轮红线判定。
+
+    规则（仅调整置信度展示与人工复核标注，绝不自动改裁决/自动定罪，遵守铁律）：
+      - 用户曾将某 finding_type 标记为 disputed（质疑）→ 命中疑点降权（×0.7）并标注「需人工复核」；
+      - 用户已确认的高置信规则（confidence>=0.8 且 auto_apply）→ 命中疑点置信度轻微提权（+0.05）；
+      - 无任何活跃规则或均无命中时为空操作（不影响正常分析）。
+    """
+    try:
+        from engine.human_learning import HumanLearner
+        learner = HumanLearner()
+        rules = learner.state.get("active_rules", {})
+        if not rules:
+            return
+        # 建立匹配键（finding_type / target_fact）→ 规则列表
+        by_key = {}
+        for rid, rule in rules.items():
+            for key in (str(rule.get("finding_type") or ""), str(rule.get("target_fact") or "")):
+                key = key.strip()
+                if key:
+                    by_key.setdefault(key, []).append(rule)
+        if not by_key:
+            return
+
+        adjusted = 0
+        for s in (redline_detection.get("suspicions") or []):
+            # 该红线疑点涉及的文本（红线名 + 支撑发现类型）
+            texts = [str(s.get("redline_name", ""))]
+            for sf in (s.get("supporting_findings") or []):
+                if isinstance(sf, dict):
+                    texts.append(str(sf.get("type", "")))
+                    texts.append(str(sf.get("target_fact", "") or sf.get("domain", "")))
+            blob = " ".join(texts)
+            hit_rules = []
+            for key, rs in by_key.items():
+                if key and key in blob:
+                    hit_rules.extend(rs)
+            if not hit_rules:
+                continue
+            for rule in hit_rules:
+                conf = float(rule.get("confidence", 0.5))
+                if rule.get("disputed"):
+                    s["confidence"] = max(0.0, float(s.get("confidence", 0.0)) * 0.7)
+                    s.setdefault("human_review", []).append(
+                        f"用户此前将此类发现标记为质疑（规则{rule.get('id', '')}），建议人工复核"
+                    )
+                    adjusted += 1
+                elif conf >= 0.8 and rule.get("auto_apply"):
+                    s["confidence"] = min(1.0, float(s.get("confidence", 0.0)) + 0.05 * conf)
+                    adjusted += 1
+        if adjusted:
+            pipeline_log.append(
+                f"[编辑反馈闭环] 据此前人工纠正，{adjusted}条红线疑点调整置信度/标注人工复核"
+            )
+    except Exception as _e:
+        pipeline_log.append(f"[编辑反馈闭环] 未生效：{_e}")
+
+
 def _run_analyze(company_id, db, progress_callback=None):
     import sys as _sys
     _sys.setrecursionlimit(5000)  # 88文件分析需更高递归上限（2026-07-25 修复RecursionError）
@@ -248,13 +306,25 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ═══ 实时进度：current_step 字段用于前端七步状态追踪 ═══
     _pipeline_current_step = 0  # 0=未开始, 1-7=对应七步
+    _pipeline_current_module = ""  # 当前正在执行的引擎模块名（模块级实时进度）
 
-    def _report(progress, msg, step=None):
-        """报告进度 — step参数用于前端七步timeline实时追踪"""
+    def _report(progress, msg, step=None, module=None):
+        """报告进度 — step参数用于前端七步timeline实时追踪；module用于模块级实时进度"""
+        nonlocal _pipeline_current_step, _pipeline_current_module
         if step is not None:
             _pipeline_current_step = step
+        if module is not None:
+            _pipeline_current_module = module
         if progress_callback:
-            try: progress_callback(progress, msg, step)
+            try: progress_callback(progress, msg, step, _pipeline_current_module)
+            except: pass
+
+    def _module(name):
+        """标注当前正在执行的引擎模块，供前端展示模块级实时进度。"""
+        nonlocal _pipeline_current_module
+        _pipeline_current_module = name
+        if progress_callback:
+            try: progress_callback(_pipeline_current_step, "正在执行：" + name, _pipeline_current_step, name)
             except: pass
 
     # ── NEW ENGINE MARKER: 2026-06-23 Phase 1-4 Reasoning Engine ──
@@ -1784,13 +1854,22 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     # ═══ 财务报表税务合规分析（新增） ═══
     try:
-        from engine.financial_analyzer import analyze_financial_statements
-        tri_bal = next((d for d in (file_results or []) if d.get("type") == "trial_balance"), {})
-        fin_findings = analyze_financial_statements({}, {}, {},
+        from engine.financial_analyzer import (
+            analyze_financial_statements,
+            build_statements_from_trial_balance,
+        )
+        # 修复接线浪费：此前传入空的 profit/balance/cash dict，财务报表分析域
+        # 实际只从凭证派生、未做三表勾稽。现从科目余额表构造真实三表数据传入。
+        fin_bs, fin_is, fin_cf = ({}, {}, {})
+        if trial_balance_data:
+            fin_bs, fin_is, fin_cf = build_statements_from_trial_balance(trial_balance_data)
+        fin_findings = analyze_financial_statements(
+            fin_bs, fin_is, fin_cf,
             vouchers or [], sal_invs or [], pur_invs or [], ctx)
         if fin_findings:
             domain_results.append({"domain": "财务报表分析", "findings": fin_findings})
-            pipeline_log.append(f"财务报表分析: {len(fin_findings)}项发现")
+            pipeline_log.append(f"财务报表分析: {len(fin_findings)}项发现"
+                                 f"（资产{int(fin_bs.get('total_assets', 0)):,} 负债{int(fin_bs.get('total_liabilities', 0)):,} 权益{int(fin_bs.get('total_equity', 0)):,}）")
     except Exception as _fe:
         pipeline_log.append(f"财务报表分析异常: {_fe}")
 
@@ -3570,6 +3649,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     if target_entity.get("_online_lookup") and (sal_invs or pur_invs):
         try:
             from collections import defaultdict
+            _module("供应链联网核查")
             supply_chain_risk = _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs)
             sc_findings = supply_chain_risk.get("findings", [])
             if sc_findings:
@@ -3832,6 +3912,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                 pipeline_log=pipeline_log,
             )
             comprehensive["redline_detection"] = _redline_detection
+            # ⑥ 编辑反馈闭环：将人工纠正作为先验载入本轮红线判定
+            _apply_human_feedback_priors(_redline_detection, pipeline_log, company_id)
         except Exception as _rl_err:  # 红线判定失败不阻断主流程，仅记录
             pipeline_log.append(f"[红线判定] 未执行：{_rl_err}")
         pipeline_log.append(
@@ -7835,6 +7917,73 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
                 "supply_name": name,
             })
     
+    # ========== Step 5: 工商状态异常信号 → 红线证据链 ==========
+    # 交易对方（供应商/客户）工商状态为注销/吊销/经营异常/失信等，属接受异常凭证、
+    # 虚开发票的高危信号，作为强信号直接喂入红线证据链（经 redline_id 精确归并）。
+    _NORMAL_STATUSES = ("存续", "在业", "开业", "正常")
+    for lr in results["lookup_results"]:
+        st = (lr.get("status") or "").strip()
+        if not st or st in _NORMAL_STATUSES:
+            continue
+        sname = lr["name"]
+        relation = lr["relation"]
+        amt = lr.get("amount", 0) or 0
+        # 供应商侧（进项）→ 异常供应商虚开通道红线(RL-PTY-002)；客户侧（销项）→ 虚开发票红线(RL-VAT-001)
+        is_supplier = ("供应商" in relation)
+        rid = "RL-PTY-002" if is_supplier else "RL-VAT-001"
+        results["findings"].append({
+            "fact_id": "SUPPLY-CHAIN-STATUS-ANOMALY",
+            "scene_fact_id": "SUPPLY-CHAIN-STATUS-ANOMALY",
+            "scenario_scope": "common_fact_gate",
+            "_scenario_governed": True,
+            "type": f"待核事实：交易对方工商状态异常（{relation}）",
+            "level": "高风险",
+            "score": 8,
+            "detail": (
+                f"{relation}{sname}（交易金额{amt:,.2f}元）当前工商登记状态为「{st}」，"
+                f"疑似走逃（失联）企业或非正常户。其向本企业开具的发票存在被认定为异常增值税扣税凭证、"
+                f"对应进项税额需作转出处理的风险；若核查无真实货物交易，涉嫌接受虚开发票。"
+            ),
+            "description": (
+                f"通过联网核查（{lr.get('source', '') or '工商公示系统'}），发现{relation}{sname}"
+                f"工商登记状态为「{st}」。根据《国家税务总局关于走逃（失联）企业开具增值税专用发票"
+                f"认定处理有关问题的公告》（国家税务总局公告2016年第76号），走逃（失联）企业存续经营期间"
+                f"开具的增值税专用发票，将被认定为异常增值税扣税凭证。"
+                + (f"该企业为本企业进项发票供应商，相关进项发票抵扣面临被追缴风险。"
+                   if is_supplier else
+                   f"该企业为本企业销项发票客户，若无真实交易，本企业向其开具发票涉嫌为他人虚开。")
+            ),
+            "how_found": (
+                f"①从进销发票提取{relation}名称；②联网核查其工商登记状态；"
+                f"③状态为「{st}」（非存续/在业/正常）→判定为工商状态异常信号。"
+            ),
+            "tax_impact": (
+                "异常增值税扣税凭证对应进项税额不得抵扣，已抵扣的需作进项转出并补缴增值税及附加；"
+                "经查无真实交易的，按虚开发票处理，涉及补税、罚款乃至刑事责任。"
+            ),
+            "policy_ref": (
+                "《国家税务总局关于走逃（失联）企业开具增值税专用发票认定处理有关问题的公告》"
+                "（国家税务总局公告2016年第76号）；"
+                "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）第十四条；"
+                "《发票管理办法》第二十二条"
+            ),
+            "suggestion": (
+                f"①核实在与{sname}交易期间其工商状态是否已异常，并取得交易合同、物流单据、付款流水证明交易真实性；"
+                f"②如该企业已注销/吊销，按28号公告提供证实支出真实性的资料；"
+                f"③配合税务机关对异常凭证的核查，必要时作进项转出。"
+            ),
+            "category": "发票合规",
+            "rule_id": 1530,
+            "source_chain": "供应链-工商状态异常",
+            "cross_domain": True,
+            "cross_domains": ["发票数据", "工商登记"],
+            "redline_id": rid,
+            "supply_name": sname,
+            "supply_status": st,
+            "supply_relation": relation,
+            "amount": amt,
+        })
+
     return results
 
 

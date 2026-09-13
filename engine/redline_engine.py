@@ -64,7 +64,16 @@ def _available_materials(engine_data: Optional[Dict],
 
 
 def _map_finding(finding: Dict) -> Optional[Dict]:
-    """为单条发现匹配红线"""
+    """为单条发现匹配红线
+
+    优先路径：发现显式声明 redline_id（供应链/专项模块直接指定其支撑的红线），
+    保证该发现必然进入对应红线的证据链；否则走文本关键词匹配。
+    """
+    rid = finding.get("redline_id")
+    if rid:
+        rl = get_redline(rid)
+        if rl:
+            return rl
     text = " ".join(str(finding.get(k) or "") for k in
                     ("type", "domain", "detail", "description", "target_fact"))
     cands = match_redlines(text, domain=finding.get("domain"), limit=3)

@@ -169,6 +169,78 @@ def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers
     return findings
 
 
+def build_statements_from_trial_balance(rows):
+    """
+    从科目余额表构造 资产负债表/利润表/现金流量表 三套 dict，
+    供 analyze_financial_statements 做真正的表内/跨表勾稽校验。
+
+    此前 pipeline 调用 analyze_financial_statements 时传入空的 profit/balance/cash dict，
+    导致「财务报表分析」域实际只从凭证派生、未做勾稽。本函数补齐真实三表数据。
+
+    Args: rows: 科目余额表行列表（含 code / close_debit / close_credit）
+    Returns: (balance_sheet, income_stmt, cash_flow)
+    """
+    balance_sheet = {}
+    income_stmt = {}
+    cash_flow = {}  # 现金流量表不在科目余额表内，留空
+
+    def _net(code_prefix, debit_positive=True):
+        """汇总某类科目的期末净额。资产类(1)借方为正，负债/权益类(2/4)贷方为正。"""
+        total = 0.0
+        for r in rows or []:
+            code = str(r.get("code", r.get("科目编码", "")) or "").strip()
+            if not code.startswith(code_prefix):
+                continue
+            d = float(r.get("close_debit", r.get("期末借方", 0)) or 0)
+            c = float(r.get("close_credit", r.get("期末贷方", 0)) or 0)
+            total += (d - c) if debit_positive else (c - d)
+        return round(total, 2)
+
+    def _item(code, debit_positive=True):
+        for r in rows or []:
+            code_r = str(r.get("code", r.get("科目编码", "")) or "").strip()
+            if code_r == code:
+                d = float(r.get("close_debit", r.get("期末借方", 0)) or 0)
+                c = float(r.get("close_credit", r.get("期末贷方", 0)) or 0)
+                return round((d - c) if debit_positive else (c - d), 2)
+        return 0.0
+
+    # ── 资产负债表 ──
+    total_assets = _net("1", debit_positive=True)
+    total_liabilities = _net("2", debit_positive=False)
+    total_equity = _net("4", debit_positive=False)
+    balance_sheet["total_assets"] = total_assets
+    balance_sheet["total_liabilities"] = total_liabilities
+    balance_sheet["total_equity"] = total_equity
+
+    # 关键科目（净额）
+    balance_sheet["accounts_receivable"] = _item("1122") - _item("1231", debit_positive=False)  # 应收-坏账准备
+    balance_sheet["advance_payments"] = _item("1123")                                         # 预付账款
+    balance_sheet["other_receivables"] = _item("1221")                                         # 其他应收款
+    # 存货：1401~1411 净借方 - 存货跌价准备1471 贷方
+    inv = _net("14", debit_positive=True) - _item("1471", debit_positive=False)
+    balance_sheet["inventory"] = round(inv, 2)
+    balance_sheet["advance_receipts"] = _item("2203", debit_positive=False)                    # 预收账款
+    balance_sheet["other_payables"] = _item("2241", debit_positive=False)                      # 其他应付款
+    balance_sheet["salary_payable"] = _item("2211", debit_positive=False)                     # 应付职工薪酬
+
+    # ── 利润表 ──
+    revenue = _item("6001", debit_positive=False)       # 主营业务收入(贷)
+    cost = _item("6401", debit_positive=True)          # 主营业务成本(借)
+    selling = _item("6601", debit_positive=True)        # 销售费用
+    admin = _item("6602", debit_positive=True)          # 管理费用
+    finance = _item("6603", debit_positive=True)        # 财务费用
+    income_stmt["revenue"] = revenue
+    income_stmt["cost"] = cost
+    income_stmt["selling_expense"] = selling
+    income_stmt["admin_expense"] = admin
+    income_stmt["finance_expense"] = finance
+    income_stmt["entertainment_expense"] = 0  # 科目余额表无法区分招待费明细，留 0
+    income_stmt["net_profit"] = round(revenue - cost - selling - admin - finance, 2)
+
+    return balance_sheet, income_stmt, cash_flow
+
+
 def _check_balance_sheet_balance(bs):
     """Layer A: 资产负债表自身平衡检查"""
     findings = []

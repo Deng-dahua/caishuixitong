@@ -1975,9 +1975,10 @@ async function analyzeTaxDocs() {
 
 
       var msg = statusData.message || '';
+      var mod = statusData.current_module || '';
 
 
-      btn.textContent = '⏳ ' + pct + '% ' + msg.substring(0, 20);
+      btn.textContent = '⏳ ' + pct + '% ' + (mod ? ('[' + mod + '] ') : '') + msg.substring(0, 16);
 
 
       
@@ -1986,6 +1987,12 @@ async function analyzeTaxDocs() {
       if (statusData.status === 'done') {
         window._currentAnalysisTaskId = null; // 清除全局task_id
         btn.textContent = '✅ 分析完成，正在加载报告...';
+        if (statusData.patrol_enrolled) {
+          toast('✅ 本次分析已纳入自动巡逻监控：当知识库因果边/模式达阈值时将自动重分析该企业', 'success');
+        }
+        if (statusData.incremental) {
+          toast('♻️ 数据未变化，已增量复用上次分析结果（免全量重算）', 'info');
+        }
         break;
 
 

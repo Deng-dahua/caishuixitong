@@ -1311,6 +1311,114 @@ def _get_company_upload_dir(company_id):
     所有文件操作必须经过此函数，确保不同公司数据不会串混"""
     return str(company_upload_dir(int(company_id)))
 
+
+# 增量分析：数据指纹有效期（超过则强制全量重算，避免规则引擎更新后长期复用旧结论）
+_INCREMENT_CACHE_TTL_HOURS = 24
+
+
+def _compute_data_fingerprint(company_id):
+    """② 增量/差异分析 — 数据指纹。
+
+    由两部分构成，任一方变化都使指纹改变、触发全量重算：
+      1) 公司上传目录内文件的 名称+大小+修改时间（数据是否变化）；
+      2) 人工学习引擎 active_rules 的摘要（编辑反馈闭环后必须重算以应用先验）。
+    """
+    try:
+        import hashlib as _hl
+        parts = []
+        try:
+            d = _get_company_upload_dir(company_id)
+            if os.path.isdir(d):
+                for root, _, files in os.walk(d):
+                    for fn in sorted(files):
+                        fp = os.path.join(root, fn)
+                        try:
+                            st = os.stat(fp)
+                            parts.append(f"F{fn}:{st.st_size}:{int(st.st_mtime)}")
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+        try:
+            from engine.human_learning import HumanLearner
+            lr = HumanLearner().state.get("active_rules", {})
+            parts.append("L" + json.dumps(lr, ensure_ascii=False, sort_keys=True)[:2000])
+        except Exception:
+            pass
+        return _hl.sha256("|".join(parts).encode("utf-8")).hexdigest()
+    except Exception:
+        return ""
+
+
+# ═══ ③ 失败断点续跑：阶段检查点 ═══
+CHECKPOINT_DIR = os.path.join(str(RUNTIME_UPLOAD_DIR), "checkpoints")
+os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
+
+def _write_analysis_checkpoint(company_id, stage, status, error=None):
+    """③ 失败断点续跑 — 记录分析阶段检查点（成功/失败），供失败诊断与续跑。
+
+    stage 取当前正在执行的引擎模块名（即 current_module），失败时可定位到具体阶段。
+    """
+    try:
+        payload = {
+            "company_id": company_id,
+            "stage": stage,
+            "status": status,
+            "error": (str(error)[:2000]) if error else None,
+            "timestamp": datetime.now().isoformat(),
+        }
+        atomic_write_json(os.path.join(CHECKPOINT_DIR, f"{company_id}.json"), payload)
+    except Exception:
+        pass
+
+
+def _launch_analysis_task(company_id, user_id):
+    """启动一次完整分析任务（运行态检查 + 建 task + 后台线程）。
+
+    供 analyze-start 与 analyze-resume 复用，避免启动逻辑重复。
+    """
+    import uuid as _uuid, time as _time_
+    with _analysis_lock:
+        for existing_id, existing in _analysis_tasks.items():
+            if (
+                existing.get("company_id") == company_id
+                and existing.get("status") == "running"
+            ):
+                if existing.get("user_id") == user_id:
+                    return {
+                        "ok": True,
+                        "task_id": existing_id,
+                        "message": "该账套正在分析，已返回现有任务",
+                        "reused": True,
+                    }
+                return {
+                    "ok": False,
+                    "message": "该账套正在执行分析，请稍后再试",
+                }
+    _task_id = _uuid.uuid4().hex[:12]
+    with _analysis_lock:
+        _analysis_tasks[_task_id] = {
+            "status": "running",
+            "progress": 0,
+            "message": "准备中...",
+            "result": None,
+            "error": None,
+            "company_id": company_id,
+            "user_id": user_id,
+            "started_at": _time_.time(),
+            "current_step": 0,
+            "current_module": "",
+            "patrol_enrolled": False,
+        }
+    _t = threading.Thread(
+        target=_run_analysis_thread,
+        args=(_task_id, company_id, user_id),
+        daemon=True,
+    )
+    _t.start()
+    return {"ok": True, "task_id": _task_id, "message": "分析已启动"}
+
 # ═══════════════ 资料中转站 ═══════════════
 TRANSFER_DIR = os.path.join(str(RUNTIME_UPLOAD_DIR), "transfer")
 os.makedirs(TRANSFER_DIR, exist_ok=True)
@@ -8996,6 +9104,7 @@ def _persist_one_click_result(company_id, result):
         "report": result,
         "timestamp": datetime.now().isoformat(),
         "snapshot": snapshot,
+        "_data_fp": _compute_data_fingerprint(company_id),
     }
     disk_cache = {
         str(key): {
@@ -9437,14 +9546,98 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
             "traceback": _traceback.format_exc()[:2000],
         }
 
-def _analysis_progress(task_id, progress, msg, step=None):
-    """进度回调（在线程中被调用）— step参数用于前端七步实时追踪"""
+def _analysis_progress(task_id, progress, msg, step=None, module=None):
+    """进度回调（在线程中被调用）— step参数用于前端七步实时追踪；module为模块级进度"""
     with _analysis_lock:
         if task_id in _analysis_tasks:
             _analysis_tasks[task_id]["progress"] = progress
             _analysis_tasks[task_id]["message"] = msg
             if step is not None:
                 _analysis_tasks[task_id]["current_step"] = step
+            if module is not None:
+                _analysis_tasks[task_id]["current_module"] = module
+
+def _enroll_patrol_snapshot(company_id, result):
+    """① 自动巡逻后置触发 — 分析完成后登记巡逻快照，使自动巡逻/手动巡逻具备基线。
+
+    将本次分析的结论签名写入 cross_analysis_memory.json 的 patrol_snapshots[str(company_id)]，
+    逻辑与 engine/auto_patrol.py::run_patrol 内部一致（保证手动/自动巡逻可对比前后结论）。
+    """
+    try:
+        from engine.auto_patrol import (
+            _load_cross_memory, _save_cross_memory,
+            _extract_finding_sigs, _count_risk_levels,
+        )
+        import datetime as _dt
+        findings = result.get("findings", []) if isinstance(result, dict) else []
+        cross_memory = _load_cross_memory()
+        snapshots = cross_memory.setdefault("patrol_snapshots", {})
+        snapshots[str(company_id)] = {
+            "timestamp": _dt.datetime.now().isoformat(),
+            "findings": _extract_finding_sigs(findings),
+            "risk_counts": _count_risk_levels(findings),
+            "total_findings": len(findings),
+        }
+        cross_memory["patrol_snapshots"] = snapshots
+        _save_cross_memory(cross_memory)
+        return True
+    except Exception:
+        return False
+
+
+def _maybe_cross_patrol(current_company_id, kb_before, db):
+    """① 自动巡逻后置触发 — 知识库增量达阈值且冷却期内未巡逻时，对『其他』企业后台巡逻。
+
+    护栏（防覆盖/死循环/资源失控）：
+      - 仅在因果边或模式增量 >= significant_change_threshold 时触发（should_trigger_patrol）；
+      - patrol_interval_hours 冷却期内不重复触发；
+      - 绝不重跑 current_company_id（避免覆盖刚生成的报告、避免自触发死循环）；
+      - 后台守护线程执行，使用独立 db 会话（主线程 db 随后会关闭）；
+      - 单次最多 max_companies_per_patrol 家企业。
+    """
+    try:
+        import threading as _th
+        import time as _time
+        from engine.knowledge_base import get_kb
+        from engine.auto_patrol import (
+            should_trigger_patrol, run_patrol, get_companies_to_patrol,
+            PATROL_CONFIG, _load_cross_memory, _save_cross_memory,
+        )
+        kb_after = get_kb().get_full_knowledge()
+        cross_memory = _load_cross_memory()
+        kb_before = kb_before or cross_memory.get(
+            "last_kb_stats", {"causal_edges_count": 0, "patterns_count": 0}
+        )
+        if not should_trigger_patrol(kb_before, kb_after):
+            return
+        # 冷却护栏：最短巡逻间隔
+        last_run = cross_memory.get("last_patrol_run")
+        now_ts = _time.time()
+        cooldown = PATROL_CONFIG["patrol_interval_hours"] * 3600
+        if last_run and (now_ts - float(last_run)) < cooldown:
+            return
+        others = [c for c in get_companies_to_patrol(db) if c != current_company_id]
+        if not others:
+            return
+        # 先置位冷却，避免并发重复触发
+        cross_memory["last_patrol_run"] = now_ts
+        cross_memory["last_kb_stats"] = kb_after
+        _save_cross_memory(cross_memory)
+        # 后台线程巡逻（独立 db 会话）
+        def _patrol_worker():
+            try:
+                from database import SessionLocal
+                db2 = SessionLocal()
+                try:
+                    run_patrol(others, db2, kb_after)
+                finally:
+                    db2.close()
+            except Exception:
+                pass
+        _th.Thread(target=_patrol_worker, daemon=True).start()
+    except Exception:
+        pass
+
 
 def _run_analysis_thread(task_id, company_id, user_id):
     """在后台线程中运行分析"""
@@ -9456,11 +9649,18 @@ def _run_analysis_thread(task_id, company_id, user_id):
         from database import SessionLocal
         db = SessionLocal()
         try:
+            # ① 巡逻触发判定基线：分析前知识库统计（因果边/模式）
+            kb_before = None
+            try:
+                from engine.knowledge_base import get_kb
+                kb_before = get_kb().get_full_knowledge()
+            except Exception:
+                pass
             result = _execute_tax_risk_analysis(
                 company_id,
                 db,
-                progress_callback=lambda p, m, s=None: _analysis_progress(
-                    task_id, p, m, s
+                progress_callback=lambda p, m, s=None, module=None: _analysis_progress(
+                    task_id, p, m, s, module
                 ),
             )
             with _analysis_lock:
@@ -9470,6 +9670,12 @@ def _run_analysis_thread(task_id, company_id, user_id):
                         _analysis_tasks[task_id]["status"] = "done"
                         _analysis_tasks[task_id]["progress"] = 100
                         _analysis_tasks[task_id]["message"] = "分析完成"
+                        # ① 自动巡逻后置触发 + ⑧ 巡逻登记
+                        _analysis_tasks[task_id]["patrol_enrolled"] = True
+                        _enroll_patrol_snapshot(company_id, result)
+                        _maybe_cross_patrol(company_id, kb_before, db)
+                        # ③ 失败断点续跑 — 记录成功检查点
+                        _write_analysis_checkpoint(company_id, "done", "ok")
                     else:
                         message = (result or {}).get("message", "分析失败")
                         _analysis_tasks[task_id]["status"] = "error"
@@ -9483,6 +9689,13 @@ def _run_analysis_thread(task_id, company_id, user_id):
                 _analysis_tasks[task_id]["status"] = "error"
                 _analysis_tasks[task_id]["error"] = f"{_e}"
                 _analysis_tasks[task_id]["traceback"] = _tb.format_exc()[:3000]
+                # ③ 失败断点续跑 — 记录失败阶段（current_module=最后执行的引擎模块）
+                _write_analysis_checkpoint(
+                    company_id,
+                    _analysis_tasks[task_id].get("current_module", ""),
+                    "failed",
+                    _e,
+                )
     finally:
         reset_current_user_id(user_context_token)
 
@@ -9493,6 +9706,7 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...)):
     if company_id <= 0:
         return {"ok": False, "message": "请先选择账套（公司），再执行一键分析"}
     import uuid as _uuid, time as _time_
+    from datetime import datetime as _dt
     request_user_id = request.state.auth.user_id
     with _analysis_lock:
         for existing_id, existing in _analysis_tasks.items():
@@ -9511,26 +9725,65 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...)):
                     "ok": False,
                     "message": "该账套正在执行分析，请稍后再试",
                 }
-    task_id = _uuid.uuid4().hex[:12]
-    with _analysis_lock:
-        _analysis_tasks[task_id] = {
-            "status": "running",
-            "progress": 0,
-            "message": "准备中...",
-            "result": None,
-            "error": None,
-            "company_id": company_id,
-            "user_id": request_user_id,
-            "started_at": _time_.time(),
-            "current_step": 0,
-        }
-    t = threading.Thread(
-        target=_run_analysis_thread,
-        args=(task_id, company_id, request_user_id),
-        daemon=True,
-    )
-    t.start()
-    return {"ok": True, "task_id": task_id, "message": "分析已启动"}
+    # ② 增量分析：数据指纹未变化且未过期 → 直接复用上次结果（免全量重算）
+    try:
+        _fp = _compute_data_fingerprint(company_id)
+        _cached = _last_analysis_cache.get(company_id)
+        if _fp and _cached:
+            _cached_fp = _cached.get("_data_fp", "")
+            _fresh = True
+            try:
+                _ts = _cached.get("timestamp", "")
+                if _ts:
+                    _age_h = (_time_.time() - _time_.mktime(_dt.fromisoformat(_ts).timetuple())) / 3600
+                    if _age_h > _INCREMENT_CACHE_TTL_HOURS:
+                        _fresh = False
+            except Exception:
+                pass
+            if _cached_fp == _fp and _fresh:
+                _inc_id = _uuid.uuid4().hex[:12]
+                with _analysis_lock:
+                    _analysis_tasks[_inc_id] = {
+                        "status": "done",
+                        "progress": 100,
+                        "message": "分析结果未变化（增量复用）",
+                        "result": _cached.get("report"),
+                        "error": None,
+                        "company_id": company_id,
+                        "user_id": request_user_id,
+                        "started_at": _time_.time(),
+                        "current_step": 7,
+                        "current_module": "",
+                        "patrol_enrolled": True,
+                        "incremental": True,
+                    }
+                return {"ok": True, "task_id": _inc_id,
+                        "message": "数据未变化，直接返回上次分析结果", "incremental": True}
+    except Exception:
+        pass
+    return _launch_analysis_task(company_id, request_user_id)
+
+
+@app.post("/api/tax-risk-docs/analyze-resume")
+def analyze_tax_risk_docs_resume(request: Request, company_id: int = Query(...)):
+    """③ 失败断点续跑：清除失败检查点并重新启动分析。
+
+    本系统引擎为单体长流程，无法在函数内部精确恢复到失败语句；续跑=从失败阶段之后
+    重新完整执行（失败阶段由检查点记录，便于定位与诊断）。常用于：修复上游数据/配置后，
+    对上次失败的企业重新分析。
+    """
+    if company_id <= 0:
+        return {"ok": False, "message": "请先选择账套（公司），再执行一键分析"}
+    # 清除失败检查点，避免续跑被旧状态干扰
+    try:
+        _cp = os.path.join(CHECKPOINT_DIR, f"{company_id}.json")
+        if os.path.exists(_cp):
+            os.remove(_cp)
+    except Exception:
+        pass
+    request_user_id = request.state.auth.user_id
+    return _launch_analysis_task(company_id, request_user_id)
+
 
 @app.get("/api/tax-risk-docs/analyze-status/{task_id}")
 def analyze_tax_risk_docs_status(task_id: str, request: Request):
@@ -9546,6 +9799,9 @@ def analyze_tax_risk_docs_status(task_id: str, request: Request):
             "progress": task["progress"],
             "message": task["message"],
             "current_step": task.get("current_step", 0),
+            "current_module": task.get("current_module", ""),
+            "patrol_enrolled": task.get("patrol_enrolled", False),
+            "incremental": task.get("incremental", False),
         }
         # 2026-06-26 修复：error状态下同时返回真正的错误信息，避免前端展示进度消息当错误
         if task["status"] == "error":
@@ -9585,6 +9841,9 @@ async def ws_pipeline_progress(websocket: WebSocket, task_id: str):
                         "progress": task["progress"],
                         "message": task["message"],
                         "current_step": task.get("current_step", 0),
+                        "current_module": task.get("current_module", ""),
+                        "patrol_enrolled": task.get("patrol_enrolled", False),
+                        "incremental": task.get("incremental", False),
                     }
                     if task["status"] == "error":
                         frame["error"] = task.get("error", task["message"])

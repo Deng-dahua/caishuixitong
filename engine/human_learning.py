@@ -297,8 +297,11 @@ class HumanLearner:
     # ════════════════════════════════════════════════════
     # 7. 容错机制 — 纠正次数不足时不采纳
     # ════════════════════════════════════════════════════
-    def verify_before_adopt(self, correction_text: str, source: str = "编辑"):
-        """纠正先标记为待验证，满足条件后才采纳"""
+    def verify_before_adopt(self, correction_text: str, source: str = "编辑", context: dict = None):
+        """纠正先标记为待验证，满足条件后才采纳
+
+        context 可携带 finding_type / target_fact，写入活跃规则以支持分析时作为先验匹配。
+        """
         verify = {
             "id": hashlib.md5(f"{correction_text}{time.time()}".encode()).hexdigest()[:12],
             "content": correction_text[:200],
@@ -324,6 +327,8 @@ class HumanLearner:
                         "maturity": "M1_structured_candidate",
                         "release_status": "candidate_not_executable",
                         "auto_apply": False,
+                        "finding_type": (context or {}).get("finding_type", "") if context else "",
+                        "target_fact": (context or {}).get("target_fact", "") if context else "",
                         "created_at": self._now(),
                         "last_used": "", "usage_count": 0,
                     }
@@ -545,7 +550,7 @@ class HumanLearner:
         )
 
         # 2. 容错：先验证后采纳
-        results["verify"] = self.verify_before_adopt(correction, source)
+        results["verify"] = self.verify_before_adopt(correction, source, ctx)
 
         # 3. 主动提问：纠正模糊时反问
         clarification = self.ask_if_unclear(correction)
