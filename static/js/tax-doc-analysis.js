@@ -4741,7 +4741,8 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '<p class="i2">本轮共收到<strong>' + (summary.received_material_count || 0) + '个文件</strong>，归并为<strong>' + (summary.material_category_count || materials.length || 0) + '类资料</strong>。其中，已有资料能够证明的具体问题<strong>' + (summary.confirmed_problem_count || 0) + '项</strong>；因资料缺失、资料不完整或者影响范围尚未查清，需要补充资料后再检查的事项<strong>' + (summary.further_check_count || 0) + '项</strong>。</p>';
   if (keyPoints.length) {
     html += '<h3>本轮最需要负责人关注的内容</h3>' + keyPoints.map(function(item){
-      return '<p class="i2" style="line-height:2">' + esc(item) + '</p>';
+      // 2026-09-13：历史缓存的要点里写死了「见第四章」，现章节已重编号为第二部分。
+      return '<p class="i2" style="line-height:2">' + esc(String(item || '').replace(/见第四章/g, '见第二部分')) + '</p>';
     }).join('');
   }
 
