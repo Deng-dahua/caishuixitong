@@ -507,13 +507,13 @@ domain_functions = _CFG.get("domain_functions", 39)
   原 audit_consistency.py（--sync / --calibrate）已于 4074d4cf 随安全整改移除，
   故下列数字此后无法自动同步，历史上逐渐失真。2026-09-08 已按权威源实测重算。
   现行权威源：engine/fact_rules.py（规则/线索链/证据链/分析链）、
-              engine/tax_redlines.py（红线 59 条）、engine/verified_rule_engine.py。
+              engine/tax_redlines.py（红线 65 条）、engine/verified_rule_engine.py。
   改动规则库后须同步更新本段，勿再手写声明值。
 
   【当前权威数据（2026-09-08 实测）】
   rules_count=89 | clue_chains=38 | evidence_chains=25 | analysis_chains=25
   （以上四项来自 fact_rules.governance_inventory()，为唯一权威源）
-  redlines=53（来自 tax_redlines.stats()，2026-09-08 补齐特定税种域 11 条后实测）
+  redlines=65（来自 tax_redlines.stats()，2026-09-13 补 6 条：视同销售/价外费用/扣除限额/零申报/进项转出/折扣折让）
   engine_modules=88
   其余为历史声明值，尚未校准，引用前须实测：
   governance_count=33 | total_chains=6 | domain_functions=39
