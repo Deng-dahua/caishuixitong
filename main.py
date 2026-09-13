@@ -9671,11 +9671,21 @@ def _run_analysis_thread(task_id, company_id, user_id):
                         _analysis_tasks[task_id]["progress"] = 100
                         _analysis_tasks[task_id]["message"] = "分析完成"
                         # ① 自动巡逻后置触发 + ⑧ 巡逻登记
+                        # 后置动作异常不得把"分析已完成"的任务误判为失败（逐个兜底）
                         _analysis_tasks[task_id]["patrol_enrolled"] = True
-                        _enroll_patrol_snapshot(company_id, result)
-                        _maybe_cross_patrol(company_id, kb_before, db)
+                        try:
+                            _enroll_patrol_snapshot(company_id, result)
+                        except Exception as _pe:
+                            print(f"[post-analysis] 巡逻登记异常(不影响分析结果): {_pe}", flush=True)
+                        try:
+                            _maybe_cross_patrol(company_id, kb_before, db)
+                        except Exception as _pe:
+                            print(f"[post-analysis] 跨企业巡逻异常(不影响分析结果): {_pe}", flush=True)
                         # ③ 失败断点续跑 — 记录成功检查点
-                        _write_analysis_checkpoint(company_id, "done", "ok")
+                        try:
+                            _write_analysis_checkpoint(company_id, "done", "ok")
+                        except Exception as _pe:
+                            print(f"[post-analysis] 检查点写入异常(不影响分析结果): {_pe}", flush=True)
                     else:
                         message = (result or {}).get("message", "分析失败")
                         _analysis_tasks[task_id]["status"] = "error"
