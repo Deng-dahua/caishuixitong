@@ -13,6 +13,10 @@ import json, os, re
 from datetime import datetime
 from collections import defaultdict
 
+# 申报收入勾稽：复用 two_tax_income 的申报表解析（增值税申报销售额），避免重复解析口径。
+# two_tax_income 不反向依赖本模块，顶层导入安全。
+from engine.two_tax_income import _extract_from_tax_declarations  # noqa: E402
+
 
 # ═══════════════ 税务合规专项分析指标 ═══════════════
 TAX_AUDIT_INDICATORS = {
@@ -138,7 +142,7 @@ TAX_AUDIT_INDICATORS = {
 }
 
 
-def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers, sal_invs, pur_invs, ctx):
+def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers, sal_invs, pur_invs, ctx, tax_declarations=None):
     """
     财务报表税务合规分析主入口
     
@@ -166,18 +170,25 @@ def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers
     findings.extend(_check_voucher_statement_gap(vouchers, income_stmt, sal_invs))
     findings.extend(analyze_balance_sheet_items(balance_sheet, income_stmt, vouchers, ctx))
     # 金税四期核心量化监控指标（消费 TAX_AUDIT_INDICATORS：进项发票vs成本匹配度、
-    # 成本收入比、期间费用率、企业所得税贡献率、业务招待费占比）
-    findings.extend(_check_tax_audit_indicators(balance_sheet, income_stmt, vouchers, sal_invs, pur_invs, ctx))
+    # 成本收入比、期间费用率、企业所得税贡献率、业务招待费占比、申报收入vs开票勾稽、
+    # 未开票收入占比、应收账款周转率）
+    findings.extend(_check_tax_audit_indicators(balance_sheet, income_stmt, vouchers, sal_invs, pur_invs, ctx, tax_declarations))
     
     return findings
 
 
-def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx):
+def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, tax_declarations=None):
     """金税四期核心量化监控指标 —— 消费 TAX_AUDIT_INDICATORS 并产出待核疑点。
 
     ★ 背景（重要）：TAX_AUDIT_INDICATORS 此前**仅被定义、全项目零消费点**，
     导致「进项发票 vs 主营业务成本匹配度」等一批金税四期核心量化指标实际未生效。
     本函数将其真正计算并输出，补上"账面主营成本有票支撑不足""所得税贡献率偏低"等缺口。
+
+    本轮（第 4 轮升级）再激活三个此前仍为死代码、且单期路径下确属"未实现"而非"数据未触发"
+    的真缺口：申报收入 vs 销项发票勾稽（revenue_declaration_ratio）、未开票收入占比
+    （unbilled_revenue_ratio）、应收账款周转过快（receivable_turnover，>20 次分支）。
+    其余死代码（如资产负债率、应收周转过慢、存货周转、现金流质量、销售收现率、
+    所有者权益变动、收入/成本暴增）的取舍理由见函数尾部注释。
 
     铁律：只输出可复算的数量事实与待核疑点，不自动定性；无数据(成本/收入为0)不输出。
     """
@@ -203,6 +214,27 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx):
                 except (TypeError, ValueError):
                     pass
         return 0.0
+
+    def _inv_excl_tax(inv):
+        """销项/进项发票的**不含税金额**，与申报表「销售额（不含税）」口径对齐。
+
+        优先取"金额/不含税金额"；仅有"价税合计"时按 13% 标准税率倒算（口径估算）。
+        """
+        if not isinstance(inv, dict):
+            return 0.0
+        for k in ("金额", "不含税金额", "excl_tax_amount", "amount_excl_tax"):
+            v = inv.get(k)
+            if v not in (None, ""):
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    pass
+        tot = inv.get("价税合计", inv.get("total_amount", inv.get("total", 0)))
+        try:
+            tot = float(tot or 0)
+        except (TypeError, ValueError):
+            tot = 0.0
+        return tot / 1.13 if tot > 0 else 0.0
 
     # ── ① 进项发票 vs 主营业务成本匹配度（金税四期：无票成本 / 白条入账）──
     # 对应 TAX_AUDIT_INDICATORS["purchase_invoice_match"]，risk_high < 0.6
@@ -381,6 +413,105 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx):
                     "indicator": "travel_entertainment_ratio",
                     "indicator_value": round(ent_rate, 6),
                 })
+
+    # ── ⑥⑦ 申报收入 vs 销项发票勾稽（金税四期：申报销售额与开票规模背离）──
+    # 申报销售额取自增值税申报表（不含税），销项发票取"金额"（不含税），口径一致。
+    # 正常关系：申报销售额 ≥ 开票金额（申报额含未开票收入）。
+    if sal_invs and tax_declarations:
+        try:
+            vat_sales, _vp, _ci, _cf = _extract_from_tax_declarations(tax_declarations)
+        except Exception:
+            vat_sales = 0.0
+        if vat_sales > 0:
+            sal_excl = sum(_inv_excl_tax(i) for i in sal_invs)
+            if sal_excl > 0:
+                decl_ratio = vat_sales / sal_excl
+                # ⑥ 申报销售额明显低于开票金额（已开票却未足额申报）→ 隐匿/未申报收入方向
+                if decl_ratio < 0.9:
+                    _lvl = "高风险" if decl_ratio < 0.8 else "中风险"
+                    findings.append({
+                        "type": "待核事实：增值税申报销售额明显低于开票金额",
+                        "level": _lvl, "score": 8 if decl_ratio < 0.8 else 6,
+                        "detail": (
+                            f"增值税申报销售额约{vat_sales:,.2f}元，销项发票不含税金额约{sal_excl:,.2f}元，"
+                            f"申报/开票比约{decl_ratio:.0%}。"
+                        ),
+                        "description": (
+                            "增值税申报销售额应当覆盖本期全部开票收入（含未开票收入）。"
+                            "若申报销售额明显低于销项发票金额，可能指向已开票收入未足额申报，"
+                            "需核对申报表销项合计与发票汇总金额是否一致。"
+                        ),
+                        "how_found": f"增值税申报销售额 / 销项发票不含税金额 = {decl_ratio:.0%}（低于90%参照线）。",
+                        "tax_impact": "已开票未申报将少缴增值税及附加税费，并可能引发企业所得税收入少计。",
+                        "policy_ref": "《增值税暂行条例》第十九条（纳税义务发生时间）；《税收征收管理法》第六十三条",
+                        "suggestion": "核对增值税申报表销项合计与发票汇总平台金额，说明差异原因（如销货退回、以前年度补开、红冲等）。",
+                        "category": "收入",
+                        "source_chain": "财务报表-申报收入与开票勾稽",
+                        "redline_id": "RL-INC-001",
+                        "indicator": "revenue_declaration_ratio",
+                        "indicator_value": round(decl_ratio, 4),
+                    })
+                # ⑦ 未开票收入占比偏高（申报销售额远高于开票金额）
+                unbilled = (vat_sales - sal_excl) / vat_sales
+                if unbilled > 0.3:
+                    findings.append({
+                        "type": "待核事实：未开票收入占比偏高",
+                        "level": "中风险", "score": 6,
+                        "detail": (
+                            f"增值税申报销售额约{vat_sales:,.2f}元，销项发票不含税金额约{sal_excl:,.2f}元，"
+                            f"未开票收入占比约{unbilled:.0%}。"
+                        ),
+                        "description": (
+                            "未开票收入本身合法（如面向个人客户的销售），但占比过高时需核实"
+                            "是否存在应开票未开票、账外经营或收入确认不完整的情形。"
+                        ),
+                        "how_found": f"(申报销售额 - 销项发票不含税金额) / 申报销售额 = {unbilled:.0%}（高于30%参照线）。",
+                        "tax_impact": "如存在应确认未确认收入，将少缴增值税及企业所得税。",
+                        "policy_ref": "《增值税暂行条例》第十九条；《企业所得税法》第六条（收入总额）",
+                        "suggestion": "说明未开票收入的业务构成与客户类型，核实是否均按纳税义务发生时间申报。",
+                        "category": "收入",
+                        "source_chain": "财务报表-未开票收入占比",
+                        "redline_id": "RL-INC-001",
+                        "indicator": "unbilled_revenue_ratio",
+                        "indicator_value": round(unbilled, 4),
+                    })
+
+    # ── ⑧ 应收账款周转过快（金税四期：应收与收入规模背离→虚增收入/突击开票）──
+    # 仅取"周转过快"方向；"周转过慢"与既有「应收账款占比过高」规则重叠，此处不重复输出。
+    ar = float(bs.get("accounts_receivable", bs.get("应收账款", 0)) or 0)
+    if revenue > 0 and ar > 0:
+        rt = revenue / ar  # 单期以期末应收账款近似平均余额
+        if rt > 20:
+            findings.append({
+                "type": "待核事实：应收账款周转率异常偏高",
+                "level": "中风险", "score": 6,
+                "detail": (
+                    f"主营业务收入{revenue:,.2f}元，应收账款{ar:,.2f}元，"
+                    f"应收账款周转率约{rt:.1f}次。"
+                ),
+                "description": (
+                    "应收账款周转率异常偏高（收入相对应收账款过大）可能源于收入确认与回款不匹配、"
+                    "期末突击开票冲收入，或存在虚构收入/虚构应收账款，需核实收入真实性与回款记录。"
+                    "注：以期末应收账款近似平均余额，口径为估算。"
+                ),
+                "how_found": f"主营业务收入 / 应收账款 = {rt:.1f}次（高于20次参照线）。",
+                "tax_impact": "收入不实将少缴增值税与企业所得税；虚增收入亦影响利润与所得税计缴。",
+                "policy_ref": "《企业所得税法》第六条（收入总额）；《发票管理办法》第二十二条",
+                "suggestion": "提供主要客户账期、开票与回款台账，核实收入确认时点及业务真实性。",
+                "category": "收入",
+                "source_chain": "财务报表-应收账款周转率",
+                "redline_id": "RL-INC-001",
+                "indicator": "receivable_turnover",
+                "indicator_value": round(rt, 2),
+            })
+
+    # ── 未采纳的 TAX_AUDIT_INDICATORS 项及原因（供后续维护者判断，避免重复造轮子）──
+    # · asset_liability_ratio：analyze_balance_sheet_items 已输出「资产负债率过高」。
+    # · receivable_turnover（<3 周转过慢）：analyze_balance_sheet_items 已输出「应收账款占比过高」。
+    # · inventory_turnover：domain_analysis._domain_inventory_turnover 已覆盖存货周转域分析。
+    # · operating_cashflow_quality / cash_sales_match：需现金流量表，本路径 fin_cf 恒为空。
+    # · owner_equity_change：需期初所有者权益，科目余额表仅提供期末数。
+    # · revenue_growth_surge / cost_surge_detect：需去年同期数据，单期路径不可得。
 
     return findings
 

@@ -1865,7 +1865,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             fin_bs, fin_is, fin_cf = build_statements_from_trial_balance(trial_balance_data)
         fin_findings = analyze_financial_statements(
             fin_bs, fin_is, fin_cf,
-            vouchers or [], sal_invs or [], pur_invs or [], ctx)
+            vouchers or [], sal_invs or [], pur_invs or [], ctx, tax_declarations)
         if fin_findings:
             domain_results.append({"domain": "财务报表分析", "findings": fin_findings})
             pipeline_log.append(f"财务报表分析: {len(fin_findings)}项发现"
