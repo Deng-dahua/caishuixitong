@@ -168,6 +168,13 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
     else:
         verdict, grade = _VERDICT_WEAK, GRADE_PENDING
 
+    # 勾稽异常类红线（借贷不平 / 余额滚动关系断裂等）：仅揭示数据勾稽断裂，
+    # 本身不足以证明隐瞒收入或账外资金循环，须有正面隐瞒 / 账外证据方可定性。
+    # 证据链齐全只说明异常「可读出」，不说明「已定性」；故即使闭合度达标也不自动确认
+    # （遵守铁律：发现不等于确认，证据不足一律转置疑清单）。
+    if redline.get("disposition") == "reconciliation_anomaly" and verdict == _VERDICT_CONFIRMED:
+        verdict, grade = _VERDICT_HIT_PENDING, GRADE_PENDING
+
     # 反证成立条件检验
     rebuttal_tests = []
     for r in rebuttals[:5]:
@@ -258,8 +265,13 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
     if verdict == _VERDICT_CONFIRMED:
         tail = "支撑材料已经齐全，这一项可以直接认定；企业如有异议，需要更正所报资料本身或者提出相反证据。"
     elif verdict == _VERDICT_HIT_PENDING:
-        tail = ("已经触碰税务红线，但材料还不够齐全，本轮暂不下结论，"
-                "转由企业补充上述材料后重新检查；补证之前既不认定违法，也不予排除。")
+        if redline.get("disposition") == "reconciliation_anomaly":
+            tail = ("该项属于数据勾稽异常（借贷不平或余额滚动关系断裂），本身不足以认定违法；"
+                    "需企业说明原因（如红字冲销、补记凭证、在途未达账项等），"
+                    "无法合理解释且存在账外资金或隐瞒收入线索的，转进一步核查。")
+        else:
+            tail = ("已经触碰税务红线，但材料还不够齐全，本轮暂不下结论，"
+                    "转由企业补充上述材料后重新检查；补证之前既不认定违法，也不予排除。")
     elif verdict == _VERDICT_EXCLUDED:
         tail = "企业给出的解释合理且有证据支撑，这一项予以排除。"
     else:
