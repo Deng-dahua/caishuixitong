@@ -77,6 +77,19 @@
   <td>报告文本命中："同一客户存在多张同额发票"、"开票日期高度集中"、"进项税额长期大于销项税额"；
       <code>redline_detection</code> 内 <code>RL-VAT-002</code> 归并 6 处。</td>
 </tr>
+<tr>
+  <td>按钮 HTTP 往返（进程内）</td>
+  <td class="ok">全链路通过</td>
+  <td>TestClient：login→<code>analyze-start</code>→轮询<code>analyze-status</code>→
+      <code>analyze-result</code>→<code>last-analysis</code> 均 200；终态 <code>done/100</code>。</td>
+</tr>
+<tr>
+  <td>按钮 HTTP 往返（真实网络）</td>
+  <td class="ok">全链路通过</td>
+  <td>自起 uvicorn(127.0.0.1:8001)+urllib 真网络（禁代理）：<code>analyze-start</code> 返回 task_id →
+      进度 0→17→51→…→99→<code>done/100</code> → <code>analyze-result</code> 200（total_risks=13）→
+      <code>last-analysis</code> 200（3.3MB，含发票行为发现）。</td>
+</tr>
 </tbody>
 </table>
 
