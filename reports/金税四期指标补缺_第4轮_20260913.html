@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金税四期指标补缺说明（第 4 轮）</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1f2329; --sub:#5b6472;
+    --line:#e5e8ec; --brand:#1a5fb4; --brand-soft:#eaf1fb;
+    --ok:#1a7f37; --warn:#b25e00; --danger:#b3261e; --chip:#f0f2f5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.7;font-size:15px}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 72px}
+  header{border-bottom:2px solid var(--brand);padding-bottom:18px;margin-bottom:28px}
+  h1{font-size:24px;margin:0 0 8px}
+  .meta{color:var(--sub);font-size:13.5px}
+  .meta code{background:var(--chip);padding:1px 6px;border-radius:4px;font-size:12.5px}
+  h2{font-size:18px;margin:34px 0 12px;padding-left:10px;border-left:4px solid var(--brand)}
+  h3{font-size:15.5px;margin:20px 0 8px;color:var(--ink)}
+  p{margin:8px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:16px 18px;margin:12px 0}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+  th{background:var(--brand-soft);font-weight:600;color:#123a6b}
+  tbody tr:nth-child(even){background:#fafbfc}
+  .tag{display:inline-block;padding:1px 8px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+  .t-add{background:#e6f4ea;color:var(--ok)}
+  .t-skip{background:#fdf0e0;color:var(--warn)}
+  .t-nodata{background:#f1eefc;color:#5b3fb5}
+  .t-dup{background:#eef1f4;color:var(--sub)}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0}
+  .kpi .box{flex:1 1 150px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px}
+  .kpi .n{font-size:26px;font-weight:700;color:var(--brand);line-height:1.2}
+  .kpi .l{font-size:12.5px;color:var(--sub);margin-top:2px}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:4px 0}
+  code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12.5px;
+    font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace}
+  .ok{color:var(--ok);font-weight:600}
+  .foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);
+    color:var(--sub);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>金税四期监控指标补缺说明（第 4 轮）</h1>
+  <div class="meta">
+    项目：财税风险防控系统 <code>caishuixitong</code> &nbsp;·&nbsp;
+    入口：一键分析按钮 <code>_run_analyze</code> &nbsp;·&nbsp;
+    日期：2026-09-13 &nbsp;·&nbsp; 提交：<code>ea87ad5c</code>
+  </div>
+</header>
+
+<div class="kpi">
+  <div class="box"><div class="n">22</div><div class="l">TAX_AUDIT_INDICATORS 定义键</div></div>
+  <div class="box"><div class="n">3</div><div class="l">本轮新增真缺口</div></div>
+  <div class="box"><div class="n">19</div><div class="l">已覆盖 / 数据不可得（未补）</div></div>
+  <div class="box"><div class="n">18</div><div class="l">契约测试通过（无回归）</div></div>
+</div>
+
+<h2>一、本轮目标与方法</h2>
+<p>用户要求"再增加更多的真缺口给到一键分析按钮"。本轮不改规则数量、不加新红线，
+而是对 <code>TAX_AUDIT_INDICATORS</code> 的 <b>22 个已定义指标键</b>逐键核查其
+"是否真正被消费、是否他处已实现"，把<b>仅定义却零消费（死代码）</b>的指标
+真正计算并接入 <code>_run_analyze</code> 链路，使一键分析按钮实际覆盖到这些金税四期量化口径。</p>
+<div class="card">
+<b>核查判据（三选一）</b>
+<ul>
+  <li><b>真缺口</b>：仅在本字典中定义，全项目无消费点，且单期路径下数据可得 → 本轮补。</li>
+  <li><b>已覆盖</b>：其它模块已有等价计算（如资产负债率、应收占比）→ 不重复补，避免同一事实出两条结论。</li>
+  <li><b>数据不可得</b>：需要现金流量表 / 期初权益 / 去年同期等本路径不提供的数据 → 不"假算"，注释列明。</li>
+</ul>
+</div>
+
+<h2>二、本轮新增的 3 个真缺口</h2>
+<table>
+<thead>
+<tr><th style="width:22%">指标键</th><th style="width:30%">含义</th>
+<th style="width:22%">触发条件</th><th>红线归属</th><th style="width:9%">状态</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>revenue_declaration_ratio</code></td>
+  <td>增值税申报销售额 ÷ 销项发票不含税金额</td>
+  <td>&lt;0.9（高风险 &lt;0.8）</td>
+  <td>RL-INC-001（收入真实性 / 隐匿收入方向）</td>
+  <td><span class="tag t-add">新增</span></td>
+</tr>
+<tr>
+  <td><code>unbilled_revenue_ratio</code></td>
+  <td>(申报销售额 − 销项发票不含税) ÷ 申报销售额</td>
+  <td>&gt;0.3（未开票收入占比偏高）</td>
+  <td>RL-INC-001</td>
+  <td><span class="tag t-add">新增</span></td>
+</tr>
+<tr>
+  <td><code>receivable_turnover</code></td>
+  <td>主营业务收入 ÷ 应收账款（期末近似平均）</td>
+  <td>&gt;20 次（<b>仅取周转过快方向</b>）</td>
+  <td>RL-INC-001</td>
+  <td><span class="tag t-add">新增</span></td>
+</tr>
+</tbody>
+</table>
+<div class="card">
+<b>实现落点</b>
+<ul>
+  <li><code>engine/financial_analyzer.py</code>：<code>_check_tax_audit_indicators</code> 新增 ⑥⑦⑧ 段；
+    <code>analyze_financial_statements</code> 增 <code>tax_declarations=None</code> 形参（向后兼容）；
+    新增 <code>_inv_excl_tax</code> 统一销项发票不含税口径。</li>
+  <li><code>engine/pipeline.py</code>：<code>_run_analyze</code> 调用点透传 <code>tax_declarations</code>
+    （该变量在第 741 行由上传的申报表填充，早于调用点）。</li>
+  <li>复用 <code>two_tax_income._extract_from_tax_declarations</code> 解析申报销售额，口径与既有两税比对一致。</li>
+</ul>
+</div>
+
+<h2>三、刻意未采纳项及原因</h2>
+<table>
+<thead>
+<tr><th style="width:30%">指标键</th><th style="width:14%">判定</th><th>原因</th></tr>
+</thead>
+<tbody>
+<tr><td><code>asset_liability_ratio</code></td><td><span class="tag t-dup">已覆盖</span></td>
+  <td><code>analyze_balance_sheet_items</code> 已输出「资产负债率过高」（&gt;0.9 接近资不抵债）。</td></tr>
+<tr><td><code>receivable_turnover</code>(&lt;3 过慢)</td><td><span class="tag t-dup">已覆盖</span></td>
+  <td>既有「应收账款占比过高」（应收/收入 &gt;0.5）已覆盖该方向，仅保留"过快"分支。</td></tr>
+<tr><td><code>inventory_turnover</code></td><td><span class="tag t-dup">已覆盖</span></td>
+  <td><code>domain_analysis._domain_inventory_turnover</code> 已做存货周转域分析。</td></tr>
+<tr><td><code>operating_cashflow_quality</code></td><td><span class="tag t-nodata">数据不可得</span></td>
+  <td>需"经营活动现金净流量"，而 <code>build_statements_from_trial_balance</code> 返回的
+      现金流量表恒为空。</td></tr>
+<tr><td><code>cash_sales_match</code></td><td><span class="tag t-nodata">数据不可得</span></td>
+  <td>需"销售商品收到的现金"，同上无现金流量表。</td></tr>
+<tr><td><code>owner_equity_change</code></td><td><span class="tag t-nodata">数据不可得</span></td>
+  <td>需期初所有者权益，科目余额表仅提供期末数。</td></tr>
+<tr><td><code>revenue_growth_surge</code></td><td><span class="tag t-nodata">数据不可得</span></td>
+  <td>需去年同期收入，单期路径不可得。</td></tr>
+<tr><td><code>cost_surge_detect</code></td><td><span class="tag t-nodata">数据不可得</span></td>
+  <td>需去年同期成本，单期路径不可得。</td></tr>
+</tbody>
+</table>
+<p style="color:var(--sub);font-size:13px">
+以上未采纳项已在 <code>_check_tax_audit_indicators</code> 函数尾部注释中逐条列明，
+供后续维护者判断，避免重复造轮子。</p>
+
+<h2>四、验证结果</h2>
+<div class="card">
+<b>功能实测（5 场景，全部符合预期）</b>
+<table>
+<thead><tr><th>场景</th><th>构造</th><th>预期</th><th>实测</th></tr></thead>
+<tbody>
+<tr><td>申报 &lt; 开票</td><td>申报 80 万 / 开票 100 万</td><td>触发（中风险）</td><td class="ok">✔ 触发 revenue_declaration_ratio=0.80</td></tr>
+<tr><td>未开票占比高</td><td>申报 100 万 / 开票 50 万</td><td>触发（中风险）</td><td class="ok">✔ 触发 unbilled_revenue_ratio=0.50</td></tr>
+<tr><td>应收周转过快</td><td>收入 150 万 / 应收 5 万</td><td>触发（中风险）</td><td class="ok">✔ 触发 receivable_turnover=30.0</td></tr>
+<tr><td>应收周转过慢</td><td>收入 100 万 / 应收 60 万</td><td>不触发（防重复）</td><td class="ok">✔ 未触发</td></tr>
+<tr><td>未上传申报表</td><td>仅发票无申报表</td><td>不触发（非误报）</td><td class="ok">✔ 未触发</td></tr>
+</tbody>
+</table>
+<b>其它</b>
+<ul>
+  <li>集成校验：新发现经 <code>run_redline_detection</code> 正确归入 <code>RL-INC-001</code>，未落入 unmapped。</li>
+  <li>兼容性：<code>analyze_financial_statements</code> 旧 7 参调用正常（新参默认 None）。</li>
+  <li>契约测试：<code>tests/test_redline_methodology.py</code> <b class="ok">18 passed / 65 subtests</b>，无回归。</li>
+  <li>编译：<code>py_compile</code> 两文件通过。</li>
+</ul>
+</div>
+
+<h2>五、边界与后续</h2>
+<ul>
+  <li><b>不自动定性</b>：以上均为"待核事实"线索，是否定性取决于企业能否提供合规证明（沿用铁律）。</li>
+  <li><b>口径提示</b>：应收周转以期末余额近似平均；销项发票仅在无"金额/不含税金额"键时按 13% 倒算，
+      结论中均注明为估算口径。</li>
+  <li><b>后续可补</b>：现金流类、跨年趋势类指标需先接入现金流量表 / 上期数据源；
+      若后期打通现金流量表或历史期间数据，可再激活 <code>cash_sales_match</code>、
+      <code>operating_cashflow_quality</code>、<code>revenue_growth_surge</code> 等。</li>
+</ul>
+
+<div class="foot">
+生成于 2026-09-13 · 本说明为第 4 轮补缺记录，与代码提交 <code>ea87ad5c</code> 对应 ·
+系统输出一律为待核线索 / 置疑清单，不构成税务定性结论。
+</div>
+
+</div>
+</body>
+</html>
