@@ -157,10 +157,47 @@ def run_false_invoice_check(sal_invs, pur_invs, cross_enterprise=None,
     pur_sellers = set(_seller(i) for i in pur)
     circ_names = sal_buyers & pur_sellers
     circ_names.discard("")
+    # 2026-09-14 纠偏：互为供需本身完全正常（委托加工/售后回购/集团内购销/商贸双向贸易/
+    # 传媒·广告·IT·咨询业互采服务资源）。只有**同额对开**或**购销品名无关且金额重大**
+    # 才列为对开嫌疑，其余仅作双向往来名单列示，不作定性。
+    circ_mirror, circ_unrelated = [], []
+    try:
+        from engine.domain_analysis import classify_cross_direction as _ccd
+        _cd_invs = []
+        for i in (pur or []):
+            _n = _seller(i)
+            if _n:
+                _cd_invs.append({"direction": "进项", "seller": _n,
+                                 "goods": i.get("goods", i.get("货物或应税劳务名称", "")),
+                                 "amount": i.get("amount")})
+        for i in (sal or []):
+            _n = _buyer(i)
+            if _n:
+                _cd_invs.append({"direction": "销项", "buyer": _n,
+                                 "goods": i.get("goods", i.get("货物或应税劳务名称", "")),
+                                 "amount": i.get("amount")})
+        _cd = _ccd(_cd_invs)
+        circ_mirror = _cd["mirror"]
+        circ_unrelated = _cd["unrelated"]
+    except Exception:
+        pass
     circular_supplier_signal = None
-    if circ_names:
-        circular_supplier_signal = ("供应商=客户自循环", f"既是客户又是供应商：{'、'.join(list(circ_names)[:4])}",
-                                     "同一主体既采购又销售，疑似对开/环开发票；结合资金流核实是否闭环回流。")
+    if circ_mirror:
+        circular_supplier_signal = (
+            "供应商=客户且双向金额高度对称（疑似同额对开）",
+            "既能采购又能销售且金额接近："
+            + "、".join(f"{i['name']}（采购{i['purchase']:,.2f}元/销售{i['sale']:,.2f}元）"
+                       for i in circ_mirror[:4]),
+            "同一主体既采购又销售且双向金额接近（小额占大额≥90%），疑似对开/环开发票；"
+            "结合合同、交付成果与资金流核实是否闭环回流。亦可能为委托加工、售后回购、"
+            "集团内购销或互换媒体/流量资源，须先排除正常商业背景。")
+    elif circ_unrelated:
+        circular_supplier_signal = (
+            "供应商=客户且购销品名无关",
+            "既是客户又是供应商，但购销品名类别无交集："
+            + "、".join(f"{i['name']}（采购{'、'.join(i['purchase_cats']) or '—'}"
+                       f"/销售{'、'.join(i['sale_cats']) or '—'}）" for i in circ_unrelated[:4]),
+            "双向交易缺乏商业链条上的对应关系，须核实是否为以对开方式走票。")
 
     # ── 5) 资金回流闭环 ──
     loop_amt, loop_parties = _simple_fund_loop(bank_txs)
@@ -231,6 +268,9 @@ def run_false_invoice_check(sal_invs, pur_invs, cross_enterprise=None,
         "top3_customer_share": round(top3_share, 4),
         "same_amount_groups": len(same_amount_groups),
         "circular_supplier_count": len(circ_names),
+        # 2026-09-14 新增：双向主体的对开分级计数（与 input_voucher 同口径）
+        "circular_mirror_count": len(circ_mirror),
+        "circular_unrelated_count": len(circ_unrelated),
         "fund_loop_amount": round(loop_amt, 2),
         "high_risk_relationships": high_risk_rel,
     }
@@ -243,7 +283,12 @@ def run_false_invoice_check(sal_invs, pur_invs, cross_enterprise=None,
     if same_amount_groups:
         lines.append("同额发票：" + "、".join(f"{a:,.0f}元×{c}张" for a, c in same_amount_groups[:3]))
     if circ_names:
-        lines.append(f"供应商=客户自循环：{'、'.join(list(circ_names)[:4])}")
+        if circ_mirror or circ_unrelated:
+            lines.append(f"供应商=客户（具备对开特征 {len(circ_mirror) + len(circ_unrelated)} 家）："
+                         + "、".join(i["name"] for i in (circ_mirror + circ_unrelated)[:4]))
+        else:
+            lines.append(f"供应商=客户双向往来 {len(circ_names)} 家（金额与品名不具备对开特征，"
+                         f"按互为供需的行业常态列示）：{'、'.join(list(circ_names)[:4])}")
     if loop_amt > 0:
         lines.append(f"资金回流闭环：{loop_amt:,.2f}元")
         for p in loop_parties[:4]:

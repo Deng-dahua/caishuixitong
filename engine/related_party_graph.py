@@ -226,6 +226,34 @@ def detect_officer_relations(engine_data: Dict, registry: Dict[str, Dict]) -> Li
     return findings
 
 
+def _classify_overlap(engine_data: Dict, overlap: List[str]):
+    """把双向交易主体按"对开风险"分级，复用 domain_analysis 的统一判据。
+
+    返回 (mirror, unrelated)：
+      mirror    —— 同额对开（两侧金额均≥10万 且 小额/大额≥90%）；
+      unrelated —— 购销品名类别无交集且两侧金额均≥5万。
+    导入失败或无金额信息时退回旧口径（全部按 unrelated 提示），不静默丢信号。
+    """
+    try:
+        from engine.domain_analysis import classify_cross_direction
+    except Exception:  # pragma: no cover
+        return [], [{"name": n, "purchase": 0.0, "sale": 0.0,
+                     "purchase_cats": [], "sale_cats": []} for n in overlap]
+    invs = []
+    for r in (engine_data.get("pur_invs") or []):
+        if isinstance(r, dict):
+            n = _get(r, _NAME_KEYS)
+            if n:
+                invs.append(dict(r, direction="进项", seller=n))
+    for r in (engine_data.get("sal_invs") or []):
+        if isinstance(r, dict):
+            n = _get(r, _NAME_KEYS)
+            if n:
+                invs.append(dict(r, direction="销项", buyer=n))
+    res = classify_cross_direction(invs)
+    return res["mirror"], res["unrelated"]
+
+
 def run_related_party_detection(engine_data: Dict, pipeline_log: List[str] = None) -> List[Dict]:
     """按图谱产出关联方类待核发现（全部 _unconfirmed，绝不认定关联交易）。"""
     graph = build_related_party_graph(engine_data)
@@ -248,16 +276,40 @@ def run_related_party_detection(engine_data: Dict, pipeline_log: List[str] = Non
             },
         }
 
-    if graph["overlap"]:
+    # 双向交易分级（2026-09-14 纠偏）：
+    # 「互为供需」本身完全正常——委托加工、售后回购、集团内购销、商贸双向贸易，
+    # 以及传媒·广告·IT·咨询业互相采购服务资源。旧逻辑只要有交集就报「高风险」，
+    # 实测公司1 的两家均属行业常态（采购信息服务 50.17 万 / 销售信息服务 30.19 万；
+    # 采购信息服务 16.98 万 / 销售设计服务 0.34 万），不具备对开虚增的动机。
+    # 改为只对**同额对开**或**购销品名无关且金额重大**的主体出结论，其余不报。
+    _mirror, _unrelated = _classify_overlap(engine_data, graph["overlap"])
+    if _mirror:
         findings.append(_mk(
-            "同一交易对手既是供应商又是客户（待核）",
-            f"存在 {len(graph['overlap'])} 个主体同时出现在供应商与客户名单中："
-            f"{'、'.join(graph['overlap'][:5])}。该情形可能具有真实商业背景（如委托加工、"
-            "售后回购），也可能指向循环开票、虚增收入与成本。请核实交易实质与商业目的。",
-            7, "高风险",
-            [f"重叠主体 {len(graph['overlap'])} 个"] + graph["overlap"][:5],
-            ["购销合同与商业目的说明", "物流与资金流水", "定价政策说明"],
-            "供应商名单与客户名单求交集，识别双向交易主体",
+            "同一交易对手双向金额高度对称——疑似同额对开（待核）",
+            f"{len(_mirror)} 个主体同时在供应商与客户名单中，且**双向金额高度接近**"
+            f"（小额占大额≥90%、两侧均≥10万元）："
+            + "；".join(f"{i['name']}（采购{i['purchase']:,.2f}元/销售{i['sale']:,.2f}元）"
+                       for i in _mirror[:5])
+            + "。该形态可能指向对开（环开）虚增收入与成本，但也可能是委托加工、售后回购、"
+              "集团内购销、总代理与返销或互换媒体/流量资源，须核实合同、交付成果与资金流后定性。",
+            9, "高风险",
+            [f"对称主体 {len(_mirror)} 个"] + [i["name"] for i in _mirror[:5]],
+            ["购销合同与商业目的说明", "交付成果或入库验收单", "物流与资金流水", "定价政策说明"],
+            "供应商名单与客户名单求交集后，逐户比对双向金额（小额/大额≥90% 且两侧均≥10万元）",
+        ))
+    if _unrelated:
+        findings.append(_mk(
+            "同一交易对手购销品名无关（待核）",
+            f"{len(_unrelated)} 个主体既为供应商又为客户，但采购与销售的**品名类别毫无交集**，"
+            f"且双向金额均达 5 万元以上："
+            + "；".join(f"{i['name']}（采购{i['purchase_cats'] or '—'}/销售{i['sale_cats'] or '—'}）"
+                       for i in _unrelated[:5])
+            + "。缺乏商业链条上的对应关系，可能指向以对开方式走票；"
+              "亦可能为集团内多业态往来或偶发交易，须结合合同与交付核实。",
+            6, "待核验",
+            [f"品名无关主体 {len(_unrelated)} 个"] + [i["name"] for i in _unrelated[:5]],
+            ["购销合同与商业目的说明", "交付成果或入库验收单", "资金流水"],
+            "双向主体的进项与销项品名类别集合求交集为空，且两侧金额均≥5万元",
         ))
 
     for brand, members in list(graph["clusters"].items())[:5]:

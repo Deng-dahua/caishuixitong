@@ -327,6 +327,10 @@ SIGNAL_TO_TEMPLATE = {
     "customer_concentration": "customer_concentration",
     "购销闭环": "cross_entity_trading",
     "进销双向交易": "cross_entity_trading",
+    # 2026-09-14：供应链穿透的双向结论已按"对开度"分级改名为
+    # 「进销双向且金额高度对称…」「进销双向且购销品名无关…」，本表是**子串匹配**
+    # （_match_template），故补最短键"进销双向"以覆盖所有分级变体。
+    "进销双向": "cross_entity_trading",
     "cross_entity": "cross_entity_trading",
     "个人账户收款": "personal_receipts",
     "个人收款": "personal_receipts",

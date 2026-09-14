@@ -74,4 +74,27 @@ for cid in (sys.argv[1:] or list(COMPANIES)):
         print("      detail:", str(f.get("detail"))[:300])
     if not hit:
         print("  → 未触发（集中度家数不足 / 群集落在本市或低于门槛）")
+
+    # ③ 进销双向（循环开票）分级：只有"同额对开"或"品名无关且金额重大"才出结论
+    from engine.domain_analysis import classify_cross_direction
+    cd = classify_cross_direction(invs)
+    print("-" * 78)
+    print("【进销双向·对开分级】mirror=%d unrelated=%d normal=%d"
+          % (len(cd["mirror"]), len(cd["unrelated"]), len(cd["normal"])))
+    for k in ("mirror", "unrelated", "normal"):
+        for i in cd[k]:
+            print("  [%s] %s 采购%.2f/销售%.2f 比值%.0f%% 进%s 销%s"
+                  % (k, i["name"][:24], i["purchase"], i["sale"], i["ratio"] * 100,
+                     i["purchase_cats"], i["sale_cats"]))
+
+    # ④ 关联方图谱（overlap / 字号群集）
+    try:
+        from engine.related_party_graph import run_related_party_detection
+        rpf = run_related_party_detection({"sal_invs": sal, "pur_invs": pur})
+        print("-" * 78)
+        print("【关联方图谱】findings:", len(rpf))
+        for f in rpf:
+            print("  [%s] %s" % (f.get("level"), f.get("type")))
+    except Exception as e:
+        print("【关联方图谱】跳过:", e)
 print("=" * 78)

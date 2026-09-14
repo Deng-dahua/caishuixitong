@@ -150,6 +150,30 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
     for nm, d in sup.items():
         if nm and nm in sal_buyers:
             circular_suppliers.append(f"{nm}（既是供应商{d['amount']:,.2f}元，又是客户）")
+    # 2026-09-14 纠偏：互为供需本身完全正常（委托加工/售后回购/集团内购销/商贸双向贸易/
+    # 传媒·广告·IT·咨询业互采服务资源）。只有**同额对开**或**购销品名无关且金额重大**
+    # 才构成对开嫌疑，其余仅作名单列示，不得据此判"自循环/对开"并抬高整体结论等级。
+    circular_mirror, circular_unrelated = [], []
+    try:
+        from engine.domain_analysis import classify_cross_direction as _ccd
+        _cd_invs = []
+        for i in (pur_invs or []):
+            _n = str(i.get("seller", i.get("销方名称", "")) or "").strip()
+            if _n:
+                _cd_invs.append({"direction": "进项", "seller": _n,
+                                 "goods": i.get("goods", i.get("货物或应税劳务名称", "")),
+                                 "amount": i.get("amount")})
+        for i in (sal_invs or []):
+            _n = str(i.get("buyer", i.get("购方名称", i.get("购买方名称", ""))) or "").strip()
+            if _n:
+                _cd_invs.append({"direction": "销项", "buyer": _n,
+                                 "goods": i.get("goods", i.get("货物或应税劳务名称", "")),
+                                 "amount": i.get("amount")})
+        _cd = _ccd(_cd_invs)
+        circular_mirror = _cd["mirror"]
+        circular_unrelated = _cd["unrelated"]
+    except Exception:
+        pass
 
     # ── 信号与结论 ──
     signals = []
@@ -184,11 +208,33 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
                     f"需结合用途明细账核实是否已转出。涉及：{'；'.join(targets)}。",
         })
 
-    if circular_suppliers:
+    if circular_mirror:
         sev_high = True
         signals.append({
-            "signal": f"供应商同时为客户（自循环/对开嫌疑）：{'、'.join(circular_suppliers[:4])}",
-            "hint": "同一主体既向本企业销售又采购，疑似资金空转、对开/环开发票；结合资金流核实是否闭环回流。",
+            "signal": "供应商同时为客户且双向金额高度对称（疑似同额对开）："
+                      + "、".join(f"{i['name']}（采购{i['purchase']:,.2f}元/销售{i['sale']:,.2f}元）"
+                                 for i in circular_mirror[:4]),
+            "hint": "同一主体既向本企业销售又采购，且双向金额接近（小额占大额≥90%），"
+                    "疑似资金空转、对开/环开发票；结合合同、交付成果与资金流核实是否闭环回流。"
+                    "亦可能为委托加工、售后回购、集团内购销或互换媒体/流量资源，须核实商业实质。",
+        })
+    if circular_unrelated:
+        sev_mid = True
+        signals.append({
+            "signal": "供应商同时为客户且购销品名无关："
+                      + "、".join(f"{i['name']}（采购{'、'.join(i['purchase_cats']) or '—'}"
+                                 f"/销售{'、'.join(i['sale_cats']) or '—'}）"
+                                 for i in circular_unrelated[:4]),
+            "hint": "双向交易但购销品名类别毫无交集且金额均达 5 万元以上，缺乏正常商业链条对应关系，"
+                    "须核实是否为以对开方式走票。",
+        })
+    # 行业常态的双向往来（同类业务互采、金额不成比例、金额极小）→ 只列名单，不抬等级、不定性
+    if circular_suppliers and not circular_mirror and not circular_unrelated:
+        signals.append({
+            "signal": f"{len(circular_suppliers)} 家主体既是供应商又是客户，"
+                      f"但双向金额与品名不具备对开特征（{'、'.join(circular_suppliers[:2])}）",
+            "hint": "互为供需在委托加工、售后回购、集团内购销、商贸双向贸易，以及传媒·广告·IT·咨询业"
+                    "互采服务资源等情形下均属正常，本项仅列示名单，不作为对开嫌疑。",
         })
 
     if sev_high:
@@ -208,6 +254,10 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
         "concentration_ratio": round(concentration_ratio, 4),
         "should_transfer_out_tax": round(non_deductible_tax, 2),
         "circular_supplier_count": len(circular_suppliers),
+        # 2026-09-14 新增：双向主体的对开分级计数（供询问提纲与报告按级取用，
+        # 避免"只要有双向往来就定对开嫌疑"的误报）
+        "circular_mirror_count": len(circular_mirror),
+        "circular_unrelated_count": len(circular_unrelated),
     }
 
     lines = []
@@ -221,9 +271,17 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
     if non_deductible_tax > 0:
         lines.append(f"应进项转出未转出（不得抵扣用途）税额：{non_deductible_tax:,.2f}元")
     if circular_suppliers:
-        lines.append("供应商=客户（自循环）名单：")
+        lines.append("供应商=客户（双向往来）名单：")
         for s in circular_suppliers[:4]:
             lines.append(f"  - {s}")
+        if circular_mirror:
+            lines.append(f"  其中 {len(circular_mirror)} 家双向金额高度对称（疑似同额对开）："
+                         + "、".join(i["name"] for i in circular_mirror[:3]))
+        if circular_unrelated:
+            lines.append(f"  其中 {len(circular_unrelated)} 家购销品名无关："
+                         + "、".join(i["name"] for i in circular_unrelated[:3]))
+        if not circular_mirror and not circular_unrelated:
+            lines.append("  上述主体双向金额与品名不具备对开特征，属互为供需的行业常态，未列为对开嫌疑。")
     body = "\n".join(lines)
 
     recommendation = ("系统已量化上述进项侧敞口。下一步：①取得上游异常凭证清单逐票核对，"

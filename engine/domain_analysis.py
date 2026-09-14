@@ -4703,6 +4703,93 @@ def _cities_in(name):
     return {c for c in _CITY_BY_LEN if c in str(name or "")}
 
 
+# ── 进销双向（循环开票）分级（2026-09-14）──────────────────────────────────
+# 旧逻辑：供应商名单 ∩ 客户名单 非空 → 一律「循环开票嫌疑 / 高风险」。
+# 但**互为供需本身完全正常**：委托加工、售后回购、集团内购销、商贸企业双向贸易，
+# 以及传媒·广告·IT·咨询业互相采购服务资源（实测：A 向 B 采购信息服务 16.98 万、
+# 同时向 B 销售设计服务 0.34 万——金额完全不成比例，不存在对开虚增收入的动机）。
+# 真循环开票（对开/环开）的核心特征是**同额对开**：进销金额接近、品名无关、
+# 无实质交付。故按"对开度"分级，只对具备对开特征的主体出结论。
+_MIRROR_MIN_AMOUNT = 100000.0   # 认定同额对开的金额下限（两侧均须达到）
+_MIRROR_RATIO = 0.90            # 小额/大额 ≥ 90% 视为同额对开
+_UNRELATED_MIN_AMOUNT = 50000.0  # 品名无关且金额重大才列待核
+
+
+def _goods_category(row):
+    """取发票品名的税收分类（*类别* 内文字），无类别标记时取前 4 字。"""
+    g = str((row or {}).get("goods") or (row or {}).get("货物或应税劳务名称") or "")
+    m = re.search(r"\*([^*]+)\*", g)
+    return m.group(1).strip() if m else g[:4].strip()
+
+
+def _goods_is_service(row):
+    """是否服务类（税码 3 开头，或品名含"服务"）。"""
+    tc = str((row or {}).get("tax_code") or (row or {}).get("税收分类编码") or "")
+    g = str((row or {}).get("goods") or (row or {}).get("货物或应税劳务名称") or "")
+    return tc.startswith("3") or ("服务" in g)
+
+
+def _amount_of(row):
+    try:
+        return abs(float((row or {}).get("amount") or 0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def classify_cross_direction(invoices, mirror_min=None, mirror_ratio=None,
+                             unrelated_min=None):
+    """对"既是供应商又是客户"的主体按对开风险分级。
+
+    返回 {"mirror": [...], "unrelated": [...], "normal": [...]}，每项为 dict：
+
+        {name, purchase, sale, purchase_cats, sale_cats, both_service,
+         ratio（小额/大额）, pur_count, sal_count}
+
+    - mirror    ：**同额对开**——两侧金额均达门槛且小额/大额≥90%，对开虚增的典型形态；
+    - unrelated ：品名类别无交集、非"双方均服务类"、且两侧金额均达 5 万——走票对开可能；
+    - normal    ：行业常态（同类业务、服务类互采）或金额极小——**不报**。
+    """
+    _mm = _MIRROR_MIN_AMOUNT if mirror_min is None else mirror_min
+    _mr = _MIRROR_RATIO if mirror_ratio is None else mirror_ratio
+    _um = _UNRELATED_MIN_AMOUNT if unrelated_min is None else unrelated_min
+
+    by_sup, by_cus = defaultdict(list), defaultdict(list)
+    for r in invoices or []:
+        if not isinstance(r, dict):
+            continue
+        d = str(r.get("direction") or "")
+        if d == "进项":
+            n = str(r.get("seller") or r.get("销方名称") or "").strip()
+            if n:
+                by_sup[n].append(r)
+        elif d == "销项":
+            n = str(r.get("buyer") or r.get("购方名称") or "").strip()
+            if n:
+                by_cus[n].append(r)
+
+    out = {"mirror": [], "unrelated": [], "normal": []}
+    for name in sorted(set(by_sup) & set(by_cus)):
+        pi, si = by_sup[name], by_cus[name]
+        pa = sum(_amount_of(r) for r in pi)
+        sa = sum(_amount_of(r) for r in si)
+        lo, hi = min(pa, sa), max(pa, sa)
+        cats_p = {c for c in (_goods_category(r) for r in pi) if c}
+        cats_s = {c for c in (_goods_category(r) for r in si) if c}
+        both_service = bool(pi) and bool(si) and all(_goods_is_service(r) for r in pi) \
+            and all(_goods_is_service(r) for r in si)
+        item = {"name": name, "purchase": round(pa, 2), "sale": round(sa, 2),
+                "purchase_cats": sorted(cats_p)[:5], "sale_cats": sorted(cats_s)[:5],
+                "both_service": both_service, "ratio": round(lo / hi, 4) if hi else 0.0,
+                "pur_count": len(pi), "sal_count": len(si)}
+        if hi > 0 and lo >= _mm and (lo / hi) >= _mr:
+            out["mirror"].append(item)
+        elif not (cats_p & cats_s) and not both_service and lo >= _um:
+            out["unrelated"].append(item)
+        else:
+            out["normal"].append(item)
+    return out
+
+
 def _domain_supply_chain_deep(invoices, bank_txs, target_entity=None):
     """供应商/客户多级穿透——虚开识别的核心武器。
 
@@ -4828,17 +4915,50 @@ def _domain_supply_chain_deep(invoices, bank_txs, target_entity=None):
                 "category": "上下游穿透"
             })
     
-    # 进销双向交易 → 循环开票
-    cross_entities = set(suppliers.keys()) & set(customers.keys())
-    if cross_entities:
-        cross_list = [f"{e}(供{suppliers[e]}张/销{customers[e]}张)" for e in list(cross_entities)]
+    # 进销双向交易（2026-09-14 纠偏）：
+    # 旧逻辑「有交集即循环开票嫌疑 + 高风险」把**互为供需的行业常态**一并打成虚开——
+    # 委托加工、售后回购、集团内购销、商贸双向贸易，以及传媒·广告·IT·咨询业互相采购
+    # 服务资源（实测公司1：向华美博扬采购信息服务 50.17 万、销售信息服务 30.19 万；
+    # 向世纪联想采购信息服务 16.98 万、销售设计服务 0.34 万——金额完全不成比例，
+    # 不具备对开虚增收入的动机）。改为按**同额对开度**分级，只对具备对开特征的主体出结论。
+    _cross = classify_cross_direction(invoices)
+    if _cross["mirror"]:
+        _lst = "；".join(
+            f"{i['name']}（采购{i['purchase']:,.2f}元/销售{i['sale']:,.2f}元，"
+            f"小额占大额{i['ratio']:.0%}，进{i['pur_count']}笔·销{i['sal_count']}笔）"
+            for i in _cross["mirror"][:5])
         findings.append({
-            "type": f"进销双向交易——{len(cross_entities)}家既是供应商又是客户（循环开票嫌疑）",
-            "level": "高风险", "score": 10,
-            "detail": f"{len(cross_entities)}家企业同时出现在进项供应商和销项客户中：{'; '.join(cross_list)}。",
-            "description": "同一企业既是供应商又是客户是税务总局明确的虚开特征：A给B开票→B给A开票→双方虚增收入成本，无真实货物交易。",
-            "how_found": f"进项销方名单 ∩ 销项购方名单 = {len(cross_entities)}家。",
-            "suggestion": f"立即对{len(cross_entities)}家双向交易企业穿透税务合规：核实每笔交易的合同/物流/资金流/入库单四流一致。",
+            "type": f"进销双向且金额高度对称——{len(_cross['mirror'])}家疑似同额对开（待核）",
+            "level": "高风险", "score": 9,
+            "detail": f"{len(_cross['mirror'])}家企业同时出现在进项供应商与销项客户名单中，"
+                      f"且**双向金额高度接近**（小额占大额≥90%、两侧均≥10万元）：{_lst}。"
+                      f"另有 {len(_cross['normal'])} 家双向主体金额或品名不具备对开特征，未列入本项。",
+            "description": "同一主体既大额采购又大额销售、且双向金额高度对称，是对开（环开）虚增收入与成本"
+                           "的典型形态：A给B开票→B给A开票，双方同步虚增，往往无真实货物或服务交付。"
+                           "但仍存在真实商业解释（委托加工、售后回购、集团内购销、总代理与返销、"
+                           "互换媒体/流量资源），须以合同、交付成果、物流与资金流印证后方可定性。",
+            "how_found": "供应商名单 ∩ 客户名单求交集，逐户比对双向金额：小额/大额≥90% 且两侧均≥10万元。",
+            "suggestion": "对下列主体核实：①双向交易是否基于同一份合同或关联合同；②是否有真实交付成果"
+                          "（货物入库/服务成果/验收单）；③资金是否形成闭环回流；④定价是否偏离公允。",
+            "category": "上下游穿透"
+        })
+    if _cross["unrelated"]:
+        _lst2 = "；".join(
+            f"{i['name']}（采购{i['purchase_cats'] or '—'}合计{i['purchase']:,.2f}元/"
+            f"销售{i['sale_cats'] or '—'}合计{i['sale']:,.2f}元）"
+            for i in _cross["unrelated"][:5])
+        findings.append({
+            "type": f"进销双向且购销品名无关——{len(_cross['unrelated'])}家（待核）",
+            "level": "待核验", "score": 6,
+            "detail": f"{len(_cross['unrelated'])}家企业既为供应商又为客户，但**采购与销售的品名类别毫无交集**，"
+                      f"且双向金额均达 5 万元以上：{_lst2}。",
+            "description": "双向交易而购销品名完全不相关（如向其采购钢材、却向其销售咨询服务），"
+                           "缺乏正常商业链条上的对应关系，可能指向以对开方式走票。"
+                           "但也可能为集团内多业态往来或历史上的偶发交易，须结合合同与交付核实。",
+            "how_found": "双向主体的进项品名类别集合 ∩ 销项品名类别集合 = 空，且两侧金额均≥5万元"
+                         "（双方均为服务类的行业互采不计入）。",
+            "suggestion": "核实在该主体处的采购与销售是否各自独立、有无真实合同与交付成果，"
+                          "并比对资金流是否存在闭环回流。",
             "category": "上下游穿透"
         })
     

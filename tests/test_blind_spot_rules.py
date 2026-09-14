@@ -494,6 +494,94 @@ class TestSupplierBrandCluster(unittest.TestCase):
         self.assertEqual(c[0]["level"], "待核验", "字号相同属待核线索，须工商穿透印证")
 
 
+class TestCrossDirectionTrades(unittest.TestCase):
+    """回归：进销双向（循环开票）分级（2026-09-14）。
+
+    旧逻辑：供应商名单 ∩ 客户名单 非空 → 一律「循环开票嫌疑 / 高风险」。
+    但互为供需本身完全正常（委托加工、售后回购、集团内购销、商贸双向贸易、
+    传媒·广告·IT·咨询业互采服务资源）。真循环开票的核心特征是**同额对开**。
+    故须：①同额对开仍报高风险 ②品名无关且金额重大报待核验
+    ③行业常态/金额极小/金额不成比例 → 不报。
+    """
+
+    def _cross(self, invs, name="深圳市某某数字传媒有限公司"):
+        fs = DA._domain_supply_chain_deep(invs, [], {"name": name})
+        return [f for f in fs if "进销双向" in f.get("type", "")]
+
+    def test_mirror_amount_still_triggers(self):
+        """双向金额高度对称（同额对开）→ 仍须正确报出高风险（防矫枉过正）。"""
+        invs = [
+            {"direction": "进项", "seller": "甲贸易有限公司",
+             "goods": "*钢材*螺纹钢", "amount": 1000000.0},
+            {"direction": "销项", "buyer": "甲贸易有限公司",
+             "goods": "*钢材*螺纹钢", "amount": 960000.0},
+        ]
+        f = self._cross(invs)
+        self.assertEqual(len(f), 1, "同额对开应触发")
+        self.assertIn("同额对开", f[0]["type"])
+        self.assertEqual(f[0]["level"], "高风险")
+
+    def test_same_industry_mutual_service_not_reported(self):
+        """同行业互采服务、金额不成比例（50.17万 vs 30.19万）→ 行业常态。"""
+        invs = [
+            {"direction": "进项", "seller": "乙数字科技有限公司",
+             "goods": "*信息技术服务*信息服务费", "amount": 501660.38},
+            {"direction": "销项", "buyer": "乙数字科技有限公司",
+             "goods": "*信息技术服务*信息服务费", "amount": 301886.79},
+        ]
+        self.assertEqual(len(self._cross(invs)), 0, "同行业互采服务属常态，不得报对开")
+
+    def test_tiny_reverse_side_not_reported(self):
+        """采购 16.98 万、销售仅 0.34 万 → 金额完全不成比例，无对开动机。"""
+        invs = [
+            {"direction": "进项", "seller": "丙广告有限公司",
+             "goods": "*信息系统服务*信息服务费", "amount": 169811.32},
+            {"direction": "销项", "buyer": "丙广告有限公司",
+             "goods": "*设计服务*设计服务费", "amount": 3388.0},
+        ]
+        self.assertEqual(len(self._cross(invs)), 0)
+
+    def test_unrelated_goods_triggers(self):
+        """向其采购钢材、却向其销售咨询服务，双向均≥5万 → 待核验。"""
+        invs = [
+            {"direction": "进项", "seller": "丁贸易有限公司",
+             "goods": "*钢材*螺纹钢", "amount": 800000.0},
+            {"direction": "销项", "buyer": "丁贸易有限公司",
+             "goods": "*咨询服务*咨询费", "amount": 600000.0},
+        ]
+        f = self._cross(invs)
+        self.assertEqual(len(f), 1, "购销品名无关且金额重大应触发")
+        self.assertIn("品名无关", f[0]["type"])
+        self.assertEqual(f[0]["level"], "待核验")
+
+    def test_small_both_sides_not_reported(self):
+        """小额偶发双向（各几千元）→ 未达对开门槛。"""
+        invs = [
+            {"direction": "进项", "seller": "戊商行", "goods": "*办公用品*文具", "amount": 5000.0},
+            {"direction": "销项", "buyer": "戊商行", "goods": "*办公用品*文具", "amount": 4800.0},
+        ]
+        self.assertEqual(len(self._cross(invs)), 0, "未达 10 万元对开门槛")
+
+    def test_related_party_overlap_uses_same_grading(self):
+        """关联方图谱须与供应链穿透同口径：真对开报、行业互采不报。"""
+        from engine.related_party_graph import run_related_party_detection
+        mirror_ed = {
+            "pur_invs": [{"销方名称": "甲贸易有限公司", "goods": "*钢材*螺纹钢", "amount": 1000000.0}],
+            "sal_invs": [{"购方名称": "甲贸易有限公司", "goods": "*钢材*螺纹钢", "amount": 960000.0}],
+        }
+        fs = run_related_party_detection(mirror_ed)
+        self.assertTrue(any("对开" in f["type"] for f in fs), "同额对开应报")
+        normal_ed = {
+            "pur_invs": [{"销方名称": "乙数字科技有限公司",
+                          "goods": "*信息技术服务*信息服务费", "amount": 501660.38}],
+            "sal_invs": [{"购方名称": "乙数字科技有限公司",
+                          "goods": "*信息技术服务*信息服务费", "amount": 301886.79}],
+        }
+        fs2 = run_related_party_detection(normal_ed)
+        hit = [f for f in fs2 if ("对开" in f["type"] or "品名无关" in f["type"])]
+        self.assertEqual(hit, [], "行业互采服务不得报对开")
+
+
 class TestFalseInvoiceConcentration(unittest.TestCase):
     """回归：虚开引擎『集中顶额开票』客户集中度须剔除平台服务商（天猫/阿里妈妈），
     服务费发票收款方不得当『前3大客户』计入占比——同源矛盾信息误标的最后一环。"""
