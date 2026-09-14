@@ -620,43 +620,104 @@ def _domain_personal_transactions(sal_invs, company_profile=None, target_entity=
             "category": "域3 个人交易"})
     return findings
 
-def _domain_supplier_deep(pur_invs):
-    """域4: 供应商穿透"""
+def _domain_supplier_deep(pur_invs, target_entity=None):
+    """域4: 供应商穿透。
+
+    target_entity（可选，2026-09-15 新增）：用于识别本企业所在城市——同城供应商集中
+    若落在本市，属正常采购半径，不得计入「同城供应商群集」。
+    """
     from collections import defaultdict
+    from engine.verified_rule_engine import _is_platform_operator
     findings, by_supplier, by_city = [], defaultdict(float), defaultdict(set)
     import re
     for i in pur_invs:
-        name = i.get("seller", ""); by_supplier[name] += float(i.get("total", i.get("amount", 0)) or 0)
+        # 2026-09-15：空名称/过短名称不得归为一个"供应商"——实测公司3 有大批无销方名称的进项
+        # 被聚合成单户 363.99 万元，直接虚增集中度（detail 出现「(3,639,911.05元)」这种空名条目）。
+        # 与 _domain_supply_chain_deep 口径一致：名称无效的行不参与按户归集。
+        name = str(i.get("seller", "") or "").strip()
+        if len(name) >= 4:
+            by_supplier[name] += float(i.get("total", i.get("amount", 0)) or 0)
         m = _CHINA_CITY_REGEX.search(name)
-        if m: by_city[m.group(1)].add(name)
+        if m and len(name) >= 4:
+            by_city[m.group(1)].add(name)
     total_pur = sum(by_supplier.values())
     top3 = sorted(by_supplier.items(), key=lambda x: -x[1])
-    if top3 and sum(v for _, v in top3) / max(total_pur, 1) > T.industry_thresholds.concentration_high:
-        top3_pct = sum(v for _,v in top3)/total_pur*100
-        top3_names = '、'.join([f"{n[:12]}({v:,.2f}元)" for n,v in top3])
-        findings.append({"type": "供应商高度集中", "level": "中风险", "score": 6,
-        "how_found": f"通道1(采购集中度): 从{len(pur_invs)}张进项发票中按销方名称汇总，前3大供应商占总采购额{top3_pct:.2f}%。通道2(银行): 验证前3大供应商的银行付款记录是否齐备、金额是否匹配——有真实的资金流出可佐证交易真实。双通道交叉确认后输出结论。",
+    # 2026-09-15 根治：原代码 `sum(v for _, v in top3)` 未做 `[:3]` 切片，top3 是**完整**
+    # 排序列表 → 求和恒等于全部采购额 → **任何企业都必报"前3大供应商占比100.00%"**，
+    # 且 detail 会把全部供应商塞进"前3大"名下（实测公司1 374 家仍报 100.00%、公司3 同理）。
+    # 修复：①前3名切片 ②剔除平台/全国性服务商 ③家数下限（仅 3~5 家时前3大占比天然接近 100%）。
+    _MIN_SUPPLIERS_FOR_CR3 = 8
+    _real_sup = {n: a for n, a in by_supplier.items() if not _is_platform_operator(n)}
+    _real_total = sum(_real_sup.values())
+    _real_top3 = sorted(_real_sup.items(), key=lambda x: -x[1])[:3]
+    _top3_sum = sum(v for _, v in _real_top3)
+    if (_real_top3 and _real_total > 0
+            and _top3_sum / max(_real_total, 1) > T.industry_thresholds.concentration_high
+            and len(_real_sup) >= _MIN_SUPPLIERS_FOR_CR3):
+        top3_pct = _top3_sum / _real_total * 100
+        top3_names = '、'.join([f"{n[:12]}({v:,.2f}元)" for n, v in _real_top3])
+        # type 保留"供应商高度集中"子串：全系统联动（domain_analysis 证据链/phase2/phase3/
+        # main.py 英文映射）均按 **子串** 匹配该词，改名会静默断链；后缀"（待核）"体现定级。
+        findings.append({"type": "供应商高度集中（待核）", "level": "待核验", "score": 4,
+        "how_found": f"通道1(采购集中度): 从{len(pur_invs)}张进项发票中按销方名称汇总（已剔除京东/淘宝/电信/"
+                     f"电网等平台与全国性服务商），前3大供应商占真实采购额{top3_pct:.2f}%；"
+                     f"真实供应商{len(_real_sup)}家≥{_MIN_SUPPLIERS_FOR_CR3}家（家数过少时前3大占比天然接近100%，"
+                     f"不作结论）。通道2(银行): 验证前3大供应商的银行付款记录是否齐备、金额是否匹配——"
+                     f"有真实的资金流出可佐证交易真实。双通道交叉确认后输出结论。",
             "detail": f"前3大供应商占比{top3_pct:.2f}%：{top3_names}。",
-            "description": f"贵公司采购高度集中在少数几家供应商：前3大供应商合计采购额{sum(v for _,v in top3):,.2f}元，占总采购额的{top3_pct:.2f}%。供应商过于集中会带来以下风险：一是对单一供应商依赖过大，商业谈判能力弱；二是若供应商出现经营异常或税务问题，可能牵连本公司进项发票被协查；三是容易引发税务机关对关联交易或虚开风险的关注。",
+            "description": f"贵公司采购相对集中在少数几家供应商：前3大供应商合计采购额{_top3_sum:,.2f}元，"
+                           f"占真实采购额的{top3_pct:.2f}%。采购集中在独家代理、长期协议、行业原料产地集中、"
+                           f"集团统一采购等情形下均属正常商业安排，本身不构成违规；请结合供应商的"
+                           f"工商状态、关联关系与交易实质（合同、物流、资金、入库）判断是否异常。",
             "tax_impact": "税务机关在纳税评估中将供应商集中度作为风险指标。若供应商出现走逃失联或虚开发票，本公司取得的进项发票将被要求做进项税额转出，补缴税款并加收滞纳金。",
             "policy_ref": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（2019年第38号）关于异常凭证的处理规定。",
-            "suggestion": "1）开发新的备选供应商，分散采购来源；2）定期核实主要供应商的经营状态和纳税信用等级；3）保留与主要供应商的真实交易证据（合同、付款凭证、物流单据等）；4）避免与纳税信用D级或列入经营异常名录的供应商交易。",
+            "suggestion": "1）如属独家代理、长期协议或集团统采，请提供协议与商业合理性说明；"
+                          "2）定期核实主要供应商的经营状态和纳税信用等级；"
+                          "3）保留与主要供应商的真实交易证据（合同、付款凭证、物流单据等）；"
+                          "4）避免与纳税信用D级或列入经营异常名录的供应商交易。",
             "category": "域4 供应商穿透"})
+    # 同城群集：2026-09-15 纠偏——①**剔除本企业所在城市**（深圳企业向深圳供应商采购 78 家
+    # 属正常本地半径，实测被误报）②门槛由「≥3家」提高到「≥5家且占真实供应商30%以上」
+    # （实测把"长沙3家共486元""大连3家共1,546元"都报成中风险）③定级降为待核验、文案中性。
+    _local_city = ""
+    _te = target_entity or {}
+    for _src in (_te.get("name"), _te.get("company_name"),
+                 _te.get("registered_address"), _te.get("地址")):
+        _m = _CHINA_CITY_REGEX.search(str(_src or ""))
+        if _m:
+            _local_city = _m.group(1)
+            break
+    _real_sup_names = set(_real_sup.keys())
     for city, sellers in sorted(by_city.items(), key=lambda x: -len(x[1])):
-        if len(sellers) >= 3:
+        if city == _local_city:
+            continue
+        real_sellers = {s for s in sellers if s in _real_sup_names}
+        if len(real_sellers) >= 5 and _real_sup_names and \
+                len(real_sellers) >= len(_real_sup_names) * 0.30:
             # 构建供应商明细表
             seller_items = []
-            for sname in sorted(sellers):
+            for sname in sorted(real_sellers):
                 amt = by_supplier.get(sname, 0)
                 seller_items.append({"供应商名称": sname, "采购金额(元)": int(amt), "所在城市": city})
-            findings.append({"type": "同城供应商群集", "level": "中风险", "score": 5,
-            "how_found": f"通道1(地理): 从{len(pur_invs)}张进项发票中提取销方名称，按城市关键词分组，发现{len(by_city)}个城市有群集供应商。通道2(行业): 同城市但不同行业属于正常集聚，双通道交叉确认后输出结论。",
-                "detail": f"{city}地区集中{len(sellers)}家同类供应商，采购额合计{sum(v for _,v in top3 if _ in sellers):,.2f}元。",
+            _city_amt = sum(by_supplier.get(s, 0) for s in real_sellers)
+            findings.append({"type": f"同城供应商群集——{city}（待核）", "level": "待核验", "score": 4,
+            "how_found": f"通道1(地理): 从{len(pur_invs)}张进项发票中提取销方名称，按城市关键词分组（已剔除平台与"
+                         f"全国性服务商、并排除本企业所在城市{_local_city or '（未识别）'}），{city}有"
+                         f"{len(real_sellers)}家真实供应商，占真实供应商{len(_real_sup_names)}家的"
+                         f"{len(real_sellers) / max(len(_real_sup_names), 1) * 100:.2f}%（门槛：≥5家且≥30%）。"
+                         f"通道2(行业): 同城市但不同行业属于正常集聚，双通道交叉确认后输出结论。",
+                "detail": f"{city}地区集中{len(real_sellers)}家供应商，采购额合计{_city_amt:,.2f}元。",
                 "items": seller_items,
-                "description": f"贵公司在{city}地区有{len(sellers)}家同类供应商。同一城市存在多家同类型供应商，可能引发税务机关对以下问题的关注：是否存在同一控制人注册多家公司分散开票、是否有注册空壳公司虚开发票、是否存在利用不同纳税人身份（一般纳税人/小规模纳税人）调节税负的情况。",
-                "tax_impact": "若同城多家供应商存在关联关系或被认定为虚开团伙，则本公司取得的进项发票将面临进项税额转出风险。",
+                "description": f"贵公司在{city}地区有{len(real_sellers)}家供应商。同城供应商较多在产业集群"
+                               f"（如义乌小商品、深圳电子、绍兴纺织）、区域经销体系或服务商聚集地等情形下"
+                               f"均属正常；仅在同时出现名称近似、同一注册地址或同一代办机构、新设即大额开票"
+                               f"等特征时，才指向同一控制人注册的空壳公司群。本项须以工商登记与交易实质印证，"
+                               f"不因同城聚集本身作出定性。",
+                "tax_impact": "若同城多家供应商经核实存在关联关系或被认定为虚开团伙，则本公司取得的进项发票将面临进项税额转出风险。",
                 "policy_ref": "《国家税务总局关于走逃（失联）企业开具增值税专用发票认定处理有关问题的公告》（2016年第76号）。",
-                "suggestion": f"1）排查{city}地区{len(sellers)}家供应商是否存在关联关系；2）核实每家供应商是否具有实际经营场所和经营能力；3）保留各供应商的资质文件、对公付款记录等证明材料。",
+                "suggestion": f"1）核实{city}是否存在该产业集群或区域经销体系；2）排查{city}地区{len(real_sellers)}家"
+                              f"供应商的工商登记（股东/法定代表人/注册地址）是否重合；3）保留各供应商的资质文件、"
+                              f"对公付款记录等证明材料。",
                 "category": "域4 供应商穿透"})
     return findings
 

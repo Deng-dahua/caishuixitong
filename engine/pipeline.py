@@ -1846,7 +1846,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             company_profile=(ctx.company_profile if ctx else {}) or {},
             target_entity=_target_snapshot,
         )})
-    if pur_invs: domain_results.append({"domain": "供应商穿透分析", "findings": _domain_supplier_deep(pur_invs)})
+    if pur_invs: domain_results.append({"domain": "供应商穿透分析",
+                                        "findings": _domain_supplier_deep(pur_invs, target_entity)})
     if vouchers: domain_results.append({"domain": "凭证科目异常", "findings": _domain_voucher_anomaly(vouchers)})
     if inventory: domain_results.append({"domain": "存货周转预警", "findings": _domain_inventory_turnover(inventory, sal_invs, pur_invs, bank_txs)})
     if bank_txs: domain_results.append({"domain": "税务缴纳一致性", "findings": _domain_tax_consistency(bank_txs, db, company_id)})

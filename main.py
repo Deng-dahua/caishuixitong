@@ -10362,6 +10362,9 @@ _ZH_EN_MAP = {
     "无工资记录": "No Payroll Records",
     "存在加工费": "Processing Fees Detected",
     "供应商高度集中": "High Supplier Concentration",
+    # 2026-09-15：本表是**精确键**映射，域4 的 type 改为「供应商高度集中（待核）」后须补键，
+    # 否则英文报告会查不到译名（其余联动按子串匹配，不受影响）。
+    "供应商高度集中（待核）": "High Supplier Concentration (to be verified)",
     "客户高度集中": "High Customer Concentration",
     "个人交易占比过高": "Excessive Personal Transactions",
     "隐匿收入": "Concealed Revenue",

@@ -1666,7 +1666,12 @@ var ReportEngine = (function() {
       if (eg.dual_role_count > 0) {
         h += '<div class="fact-sec" style="border-left:4px solid #f59e0b;margin-bottom:12px">';
         h += '<div class="ftitle">⚠️ 多重角色实体（' + eg.dual_role_count + '个）</div>';
-        h += '<div class="frow">以下实体在交易中同时扮演多个角色（如既是供应商又是客户），可能存在关联交易或资金回流嫌疑。</div>';
+        h += '<div class="frow">以下实体在交易中同时扮演多个角色（如既是供应商又是客户）。'
+          + '<strong>互为供需本身并不违规</strong>——委托加工、售后回购、集团内购销、商贸双向贸易，'
+          + '以及传媒·广告·IT·咨询业互相采购服务资源，都会形成同一主体既是供应商又是客户。'
+          + '只有在<strong>双向金额高度对称</strong>（小额占大额≥90%、两侧均≥10万元，即同额对开）'
+          + '或<strong>购销品名毫无关联</strong>（两侧均≥5万元）时，才指向对开、环开或资金回流嫌疑；'
+          + '其余情形按行业常态列示，需结合合同、交付成果与资金流核实商业实质。</div>';
         h += '</div>';
       }
 

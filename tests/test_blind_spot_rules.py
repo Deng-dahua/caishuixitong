@@ -582,6 +582,80 @@ class TestCrossDirectionTrades(unittest.TestCase):
         self.assertEqual(hit, [], "行业互采服务不得报对开")
 
 
+class TestSupplierDeepDomain(unittest.TestCase):
+    """回归：域4 _domain_supplier_deep（2026-09-15 根治）。
+
+    P0 bug：`sum(v for _, v in top3)` 未做 `[:3]` 切片，而 top3 是**完整**排序列表 →
+    求和恒等于全部采购额 → **任何企业都必报"前3大供应商占比100.00%"**，且 detail 会把
+    全部供应商塞进"前3大"名下（公司1 374 家仍报 100%）。同城群集则把"长沙3家共486元"
+    都报成中风险，且未剔除本企业所在城市（深圳企业"深圳集中78家"）。
+    """
+
+    def _run(self, pur, name="深圳市某某科技有限公司"):
+        return DA._domain_supplier_deep(pur, {"name": name})
+
+    def _conc(self, fs):
+        return [f for f in fs if "供应商高度集中" in str(f.get("type", ""))]
+
+    def _clu(self, fs):
+        return [f for f in fs if "同城供应商群集" in str(f.get("type", ""))]
+
+    def test_top3_slice_not_always_100(self):
+        """10 家供应商、前3大占 81.08%：须报 81.08%，不得报 100%。"""
+        pur = [{"seller": f"供应商{i}有限公司", "amount": 25000.0} for i in range(7)]
+        pur += [{"seller": "供应商A有限公司", "amount": 250000.0},
+                {"seller": "供应商B有限公司", "amount": 250000.0},
+                {"seller": "供应商C有限公司", "amount": 250000.0}]
+        c = self._conc(self._run(pur))
+        self.assertEqual(len(c), 1)
+        self.assertIn("81.08%", c[0]["detail"])
+        self.assertEqual(c[0]["level"], "待核验")
+
+    def test_few_suppliers_not_reported(self):
+        """仅 4 家供应商时前3大占比天然接近 100% → 不报（家数下限）。"""
+        pur = [{"seller": "供应商A有限公司", "amount": 120000.0},
+               {"seller": "供应商B有限公司", "amount": 30000.0},
+               {"seller": "供应商C有限公司", "amount": 20000.0},
+               {"seller": "供应商D有限公司", "amount": 15000.0}]
+        self.assertEqual(self._conc(self._run(pur)), [])
+
+    def test_platform_supplier_excluded(self):
+        """京东等平台/全国性服务商须剔除，否则集中度被虚增。"""
+        pur = [{"seller": "江苏京东信息技术有限公司", "amount": 800000.0}]
+        pur += [{"seller": f"真实供应商{i}有限公司", "amount": 50000.0} for i in range(9)]
+        self.assertEqual(self._conc(self._run(pur)), [],
+                         "剔除京东后真实采购45万、前3仅占33%")
+
+    def test_blank_seller_name_not_grouped(self):
+        """无销方名称的进项不得被聚合成一个"供应商"而虚增集中度。"""
+        pur = [{"seller": "", "amount": 3639911.05}]
+        pur += [{"seller": f"供应商{i}有限公司", "amount": 50000.0} for i in range(9)]
+        self.assertEqual(self._conc(self._run(pur)), [],
+                         "空名称发票（实测公司3 达 363.99 万）不得计入按户归集")
+
+    def test_local_city_cluster_not_reported(self):
+        """供应商集中在本企业所在城市 → 正常采购半径，不报。"""
+        pur = [{"seller": f"深圳供应商{i}有限公司", "amount": 100000.0} for i in range(10)]
+        self.assertEqual(self._clu(self._run(pur, "深圳市某某科技有限公司")), [])
+
+    def test_remote_city_cluster_reported_as_pending(self):
+        """非本市集中 6 家（占 75%）→ 报待核验。"""
+        pur = [{"seller": f"北京供应商{i}有限公司", "amount": 100000.0} for i in range(6)]
+        pur += [{"seller": f"上海供应商{i}有限公司", "amount": 100000.0} for i in range(2)]
+        cl = self._clu(self._run(pur, "深圳市某某科技有限公司"))
+        self.assertEqual(len(cl), 1)
+        self.assertEqual(cl[0]["level"], "待核验")
+        self.assertIn("北京", cl[0]["type"])
+
+    def test_tiny_city_cluster_not_reported(self):
+        """异地城市均不足 5 家 → 不报（实测"长沙3家共486元"曾被报中风险）。"""
+        pur = [{"seller": f"长沙供应商{i}有限公司", "amount": 200.0} for i in range(3)]
+        pur += [{"seller": f"广州供应商{i}有限公司", "amount": 100000.0} for i in range(4)]
+        pur += [{"seller": f"深圳供应商{i}有限公司", "amount": 100000.0} for i in range(10)]
+        self.assertEqual(self._clu(self._run(pur, "深圳市某某科技有限公司")), [],
+                         "3~4 家未达 5 家门槛，且深圳属本市")
+
+
 class TestFalseInvoiceConcentration(unittest.TestCase):
     """回归：虚开引擎『集中顶额开票』客户集中度须剔除平台服务商（天猫/阿里妈妈），
     服务费发票收款方不得当『前3大客户』计入占比——同源矛盾信息误标的最后一环。"""
