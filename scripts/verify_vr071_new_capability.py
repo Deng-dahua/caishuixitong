@@ -77,4 +77,16 @@ print(f"[7] run_verified_rules 执行 VR071: {ex}")
 assert ex and ex[0]["status"] == "triggered", ex
 assert any(f.get("rule_id") == "VR071" for f in res.get("findings", []))
 
+# (8) 红线归并：VR071 的发现应显式收编进 RL-VAT-007「红字冲销与作废发票比例异常」
+from engine.redline_engine import run_redline_detection
+f71 = run([{"buyer": "乙", "goods": "*服务*服务费", "amount": -200000},
+           {"buyer": "乙", "goods": "*服务*服务费", "amount": 200000}])[0]
+assert f71.get("redline_id") == "RL-VAT-007", f71.get("redline_id")
+det = run_redline_detection([f71], material_readiness={"provided": []})
+ids = [s["redline_id"] for s in det.get("suspicions", [])]
+print(f"[8] 红线归并 -> suspicions={ids}   (expect 含 RL-VAT-007)")
+assert "RL-VAT-007" in ids, ids
+entry = [s for s in det["suspicions"] if s["redline_id"] == "RL-VAT-007"][0]
+print(f"    RL-VAT-007 名称={entry['redline_name']}  支持发现数={entry.get('finding_count')}")
+
 print("\nALL PASS")

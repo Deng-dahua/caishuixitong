@@ -5949,7 +5949,7 @@ def _scan_reversal_compliance(data, spec):
     example_text = "；".join(
         f"{i['buyer']} {i['date']} {_fmt_yuan(i['amount'])}（{'、'.join(i['missing'])}）" for i in top
     )
-    return [_finding(
+    finding = _finding(
         spec,
         f"销项红字发票（红冲）共{reversal_rows}笔合计{_fmt_yuan(reversal_total)}，"
         f"其中{len(issues)}笔合计{_fmt_yuan(issue_amount)}未满足红冲合规要件："
@@ -5961,7 +5961,11 @@ def _scan_reversal_compliance(data, spec):
          "issues": issues[:8]},
         spec["required_sources"],
         priority="中",
-    )]
+    )
+    # 显式收编进 RL-VAT-007「红字冲销与作废发票比例异常」：
+    # 红线判定（redline_engine._map_finding）优先取发现自声明的 redline_id，保证必然归入该红线。
+    finding["redline_id"] = "RL-VAT-007"
+    return [finding]
 
 
 def _scan_interest_income_unreported(data, spec):
