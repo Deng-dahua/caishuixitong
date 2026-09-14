@@ -4930,6 +4930,7 @@ def _parse_invoice_sheet(sheet, direction):
     header = _get_row_values(sheet, header_row)
     cols = _find_cols_semantic(header, {
         "发票类型": "inv_type", "发票号码": "inv_no", "发票代码": "inv_code",
+        "数电发票号码": "digital_inv_no", "数电票号码": "digital_inv_no",
         "购方名称": "buyer", "购方税号": "buyer_tax", "购买方名称": "buyer", "购买方纳税人识别号": "buyer_tax",
         "销方名称": "seller", "销方税号": "seller_tax", "销售方名称": "seller", "销售方纳税人识别号": "seller_tax",
         "开票项目": "goods", "货物或应税劳务名称": "goods",
@@ -4958,6 +4959,10 @@ def _parse_invoice_sheet(sheet, direction):
                     v = str(raw_vals[col] or '') if col < len(raw_vals) else ''
                 vals[field] = v
             except: vals[field] = ""
+        # 数电票：纸质票'发票号码'列为空，票号实际在'数电发票号码'列 → 回填 inv_no
+        # （供 pipeline 按票号聚合去重、重复开票检测与资金勾稽；2026-09-14）
+        if not vals.get("inv_no") and vals.get("digital_inv_no"):
+            vals["inv_no"] = vals["digital_inv_no"]
         if not vals.get("inv_no") and not vals.get("inv_code") and not vals.get("buyer") and not vals.get("seller") and not vals.get("goods"):
             continue
         try: vals["amount"] = float(vals.get("amount", 0) or 0)

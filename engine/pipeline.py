@@ -138,8 +138,16 @@ def _aggregate_invoices_by_no(rows, direction, extra=None):
             continue
         if inv not in groups:
             groups[inv] = {"_first": dict(r), "amount": 0.0, "tax": 0.0,
-                           "total": 0.0, "goods": []}
+                           "total": 0.0, "goods": [], "_seen": set()}
         g = groups[inv]
+        # 同一发票号内，完全相同的明细行只计一次（2026-09-14）：
+        # 相邻月份导出的取票文件常互相重叠（实测取票11 覆盖 11-01~12-31、取票12 覆盖 12-01~12-31，
+        # 12 月整月重复），若仍逐行求和会把同一张票放大成两倍。
+        sig = (str(r.get("goods") or ""), str(r.get("amount")), str(r.get("tax")),
+               str(r.get("total")), str(r.get("qty") or ""), str(r.get("price") or ""))
+        if sig in g["_seen"]:
+            continue
+        g["_seen"].add(sig)
         for key in ("amount", "tax", "total"):
             try:
                 g[key] += float(r.get(key) or 0)
