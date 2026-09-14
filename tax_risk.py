@@ -2705,7 +2705,9 @@ def _analyze_customer_penetration(db, company_id, ps, pe, results):
         })
 
     if total_customer_sales > 0 and len(top_sorted) >= 3:
-        top3_pct = sum(x[1] for x in top_sorted) / total_customer_sales * 100
+        # 2026-09-15：top_sorted 是 sorted() 的**完整**列表，必须取前 3 名切片；
+        # 否则求和恒等于全部销售额 → top3_pct 恒为 100%（"客户分布合理"永不出结论）。
+        top3_pct = sum(x[1] for x in top_sorted[:3]) / total_customer_sales * 100
         if top3_pct < 80:
             results.append({
                 "category": "客户穿透", "category_icon": "🏢", "risk_score": 0, "risk_level": "良好",
@@ -2768,7 +2770,8 @@ def _analyze_supplier_penetration(db, company_id, ps, pe, results):
         })
 
     if total_purchase > 0 and len(top_sorted) >= 3:
-        top3_pct = sum(x[1] for x in top_sorted) / total_purchase * 100
+        # 2026-09-15：同 _analyze_customer_penetration，须取前 3 名切片，否则恒为 100%。
+        top3_pct = sum(x[1] for x in top_sorted[:3]) / total_purchase * 100
         if top3_pct < 80:
             results.append({
                 "category": "供应商穿透", "category_icon": "🏭", "risk_score": 0, "risk_level": "良好",

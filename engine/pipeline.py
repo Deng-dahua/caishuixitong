@@ -1837,6 +1837,12 @@ def _run_analyze(company_id, db, progress_callback=None):
         _cp = (ctx.company_profile if ctx else {}) or {}
         _bm = detect_business_model({"sal_invs": sal_invs or [], "company_profile": _cp})
         domain_results.append({"domain": "资金全链路追踪", "findings": _domain_bank_tracking(bank_txs, _bm)})
+    # 主体快照（2026-09-15）：各域须据此识别本企业所在城市/行业等。
+    # 此前 _target_snapshot 只在 `if sal_invs:` 块内定义，且 `target_entity` 从未作为变量存在
+    # （它只是上一段字典字面量里的**键名**）——域调用若写 target_entity 会直接
+    # UnboundLocalError 导致整轮分析崩溃。故在此无条件兜底构建一次（幂等）。
+    if "_target_snapshot" not in dir():
+        _target_snapshot = _build_target_entity_snapshot(company_id, db, ctx)
     if sal_invs and pur_invs: domain_results.append({"domain": "进销毛利率分析", "findings": _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_revenue)})
     # 个人交易须按经营模式裁决：零售/电商企业面向个人消费者销售属正常，不得仅凭占比判高风险
     if sal_invs:
@@ -1847,7 +1853,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             target_entity=_target_snapshot,
         )})
     if pur_invs: domain_results.append({"domain": "供应商穿透分析",
-                                        "findings": _domain_supplier_deep(pur_invs, target_entity)})
+                                        "findings": _domain_supplier_deep(pur_invs, _target_snapshot)})
     if vouchers: domain_results.append({"domain": "凭证科目异常", "findings": _domain_voucher_anomaly(vouchers)})
     if inventory: domain_results.append({"domain": "存货周转预警", "findings": _domain_inventory_turnover(inventory, sal_invs, pur_invs, bank_txs)})
     if bank_txs: domain_results.append({"domain": "税务缴纳一致性", "findings": _domain_tax_consistency(bank_txs, db, company_id)})
@@ -2061,7 +2067,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 新增税务合规域：上下游穿透分析 ═══
     if invoices:
         domain_results.append({"domain": "上下游穿透分析",
-                               "findings": _domain_supply_chain_deep(clean_invs, bank_txs, target_entity)})
+                               "findings": _domain_supply_chain_deep(clean_invs, bank_txs, _target_snapshot)})
     else:
         domain_results.append({"domain": "上下游穿透分析", "findings": []})
     
