@@ -1018,6 +1018,23 @@ VERIFIED_RULE_CATALOG = [
              "materials": "资产清单、处置合同、发票、折旧明细、申报表"},
         ],
     },
+    {
+        "id": "VR071",
+        "name": "红字发票（红冲）合规性异常",
+        "layer": "发票真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["开票、红冲与用途确认", "销售与收入确认"],
+        "required_sources": ["sal_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "红冲是数电票下合法的冲减机制，但须：① 有红字发票信息确认单编号；② 被冲减的蓝字发票真实存在（同购方、同金额，一正一负配平）。规则只输出缺失项的统计事实；合规红冲不影响，缺失项企业可举证补正。",
+        "derives_to": [
+            {"child": "VR051", "link": "红冲合规性异常 → 下达补证责令单",
+             "analyze": "核验红冲确认单、被冲蓝票与重开票闭环",
+             "evidence": "调取红字发票信息确认单、被冲减蓝字发票、重开发票、业务说明",
+             "materials": "红字发票信息确认单、蓝字发票、重开发票、业务说明"},
+        ],
+    },
 ]
 
 
@@ -1050,7 +1067,7 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
              level=None, score=None, cleared_reason=None):
     """统一的风险检查发现底盘。
 
-    全系统 69 条规则的 finding 均经此构造，强制携带「三件套」：
+    全系统 70 条原子规则的 finding 均经此构造，强制携带「三件套」：
     1) finding_disposition —— 处置定性（明确非已认定违法，仅待证线索）
     2) verified_facts / to_prove —— 已核实事实 / 待企业举证事项（规则可自填，未填给诚实兜底）
     3) enterprise_rights —— 企业权利告知（复议/诉讼防御的统一底线）
@@ -5865,6 +5882,88 @@ def _scan_discount_anomaly(data, spec):
     )]
 
 
+def _scan_reversal_compliance(data, spec):
+    """VR071 红字发票（红冲）合规性——红冲须有红字发票信息确认单且与被冲蓝票配平（2026-09-14 新增）。
+
+    与 VR067 的分工：VR067 只对"未标红冲、未配平"的孤立负数行按折扣折让待核；
+    本规则把"确实属于红冲"的负数行单独管起来，校验其合规要件：
+      ① 有红字发票信息确认单编号（数电票红冲的法定要件）；
+      ② 被冲减的蓝字发票真实存在 —— 同一购方 + 同金额（精确到分）存在正数蓝票，一正一负配平。
+    缺任一者即为异常红冲（可能借红冲调节销售额 / 跨期 / 冲减无对应业务的收入），列为待核线索。
+    合规红冲（两要件齐备）不产生任何输出，符合"未发现异常不写套话"的报告纪律。
+    """
+    sal = data.get("sal_invs") or []
+    if not sal:
+        return []
+    _CONFIRM_MARKERS = ("红字发票信息确认单", "确认单编号")
+    _REVERSAL_MARKERS = ("被红冲蓝字数电发票号码", "红字发票信息确认单编号", "红字发票", "红冲")
+
+    def _buyer(row):
+        return str(row.get("buyer") or row.get("购方") or row.get("购买方") or "").strip()
+
+    def _text(row):
+        return " ".join(str(row.get(k) or "") for k in
+                        ("remark", "备注", "summary", "摘要", "invoice_no", "发票号码"))
+
+    # 正数蓝票池：同一购方 + 同额（精确到分）
+    positives = set()
+    for row in sal:
+        if not isinstance(row, dict):
+            continue
+        amt = _number(row.get("amount"))
+        if amt > 0:
+            positives.add((_buyer(row), round(amt, 2)))
+
+    reversal_total = 0.0
+    reversal_rows = 0
+    issues = []
+    for row in sal:
+        if not isinstance(row, dict):
+            continue
+        amt = _number(row.get("amount"))
+        if amt >= 0 or abs(amt) < 1000:      # 只看有实质金额的负数发票行
+            continue
+        goods = str(row.get("goods") or row.get("货物或应税劳务名称") or "")
+        paired = (_buyer(row), round(abs(amt), 2)) in positives
+        has_confirm = any(m in _text(row) for m in _CONFIRM_MARKERS)
+        # 仅当确属红冲（带红冲标识 或 有同额蓝票配平）才纳入本规则
+        if not (any(m in _text(row) for m in _REVERSAL_MARKERS) or paired):
+            continue
+        reversal_total += abs(amt)
+        reversal_rows += 1
+        missing = []
+        if not has_confirm:
+            missing.append("无红字发票信息确认单编号")
+        if not paired:
+            missing.append("无同购方同额蓝票配平")
+        if missing:
+            issues.append({
+                "buyer": _buyer(row)[:24], "amount": round(amt, 2),
+                "goods": goods[:24], "date": str(row.get("date") or "")[:10],
+                "missing": missing,
+            })
+    if not issues:
+        return []
+    issue_amount = sum(abs(i["amount"]) for i in issues)
+    top = sorted(issues, key=lambda i: -abs(i["amount"]))[:3]
+    example_text = "；".join(
+        f"{i['buyer']} {i['date']} {_fmt_yuan(i['amount'])}（{'、'.join(i['missing'])}）" for i in top
+    )
+    return [_finding(
+        spec,
+        f"销项红字发票（红冲）共{reversal_rows}笔合计{_fmt_yuan(reversal_total)}，"
+        f"其中{len(issues)}笔合计{_fmt_yuan(issue_amount)}未满足红冲合规要件："
+        f"{example_text}。数电票红冲须经红字发票信息确认单确认，且应冲减真实存在的蓝字发票"
+        "（同购方、同金额，一正一负配平）；缺确认单或无对应蓝票的负数发票，可能是以红冲手段"
+        "调节销售额、跨期冲减或冲减无真实业务基础的收入，须核实红冲的确认单、被冲减蓝票及重开票闭环。",
+        {"reversal_total": round(reversal_total, 2), "reversal_rows": reversal_rows,
+         "issue_rows": len(issues), "issue_amount": round(issue_amount, 2),
+         "issues": issues[:8]},
+        spec["required_sources"],
+        priority="中",
+    )]
+
+
 def _scan_interest_income_unreported(data, spec):
     """VR068 银行存款利息收入未申报（2026-09-05）。"""
     bank = data.get("bank_txs") or []
@@ -6202,6 +6301,7 @@ _SCANNERS = {
     "VR068": _scan_interest_income_unreported,
     "VR069": _scan_subsidy_income_unreported,
     "VR070": _scan_fixed_asset_disposal,
+    "VR071": _scan_reversal_compliance,
 }
 
 
