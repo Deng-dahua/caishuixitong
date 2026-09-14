@@ -1639,11 +1639,13 @@ def _scan_bank_balance_rollforward(data, spec):
     健壮性修正（2026-09-13，根因：VR009 误报“银行流水余额滚动关系不一致”）：
     原始实现按 account 分组后直接相邻比较，存在两类误报：
       1) 同一份银行流水被多次导入，产生完全重复的行，重复比对边被误判为断裂；
-      2) 银行流水解析时 account 字段常写入“对方账户”而非本户账号，导致同一户
-         的连续流水被打散到多个 account 分组，相邻比较跨越了缺失的中间行而虚构断裂。
+      2) 银行流水解析时 account 字段写入的是“对方账户”而非本户账号，导致同一份
+         对账单的连续流水被打散到多个 account 分组，相邻比较跨越了缺失的中间行而虚构断裂。
     修正策略：
-      a) 先按 (日期,余额,借贷,流水号) 对组内行去重，消除重复导入造成的放大；
-      b) 仅当某处断裂是“被两侧均正确的滚动所包围的孤立断裂”时才计为疑点。
+      a) 分组键改为 来源对账单(statement_id) > 本户账号(holder_account) > 对方账号(旧数据兜底)，
+         使同一份对账单的连续流水归入同一组，从根上消除“按对方账号打散”造成的虚构断裂；
+      b) 先按 (日期,余额,借贷,流水号) 对组内行去重，消除重复导入造成的放大；
+      c) 仅当某处断裂是“被两侧均正确的滚动所包围的孤立断裂”时才计为疑点。
          重复导入 / 跨分组边界造成的断裂总是成对出现（前后均不正确），不计入，
          从而只保留真正落在连续流水内部的异常，杜绝误报。
     """
@@ -1651,7 +1653,9 @@ def _scan_bank_balance_rollforward(data, spec):
     for index, row in enumerate(data.get("bank_txs", []) or []):
         if row.get("balance") in (None, ""):
             continue
-        account = str(row.get("account") or row.get("account_no") or "未区分账户")
+        # 分组键优先级：来源对账单(statement_id) > 本户账号(holder_account) > 对方账号(旧数据兜底)
+        account = str(row.get("statement_id") or row.get("holder_account")
+                      or row.get("account") or row.get("account_no") or "未区分账户")
         accounts[account].append((str(row.get("date") or ""), index, row))
     mismatches = []
     comparable_pairs = 0
@@ -1671,6 +1675,13 @@ def _scan_bank_balance_rollforward(data, spec):
         n = len(dedup)
         if n < 3:
             continue
+        # 展示标签：优先本户账号尾号，其次对账单标识（statement_id / 旧数据用对方账号）
+        _holder_label = ""
+        for _it in dedup:
+            _ha = str(_it[2].get("holder_account") or "")
+            if _ha:
+                _holder_label = _ha[-8:]
+                break
         # 逐对计算滚动是否正确
         roll_ok = []
         for previous, current in zip(dedup, dedup[1:]):
@@ -1718,7 +1729,9 @@ def _scan_bank_balance_rollforward(data, spec):
                     if worst is None or abs(diff) > abs(worst[1]):
                         worst = (diff, expected, actual, current)
                 mismatches.append({
-                    "account": account[-8:],
+                    "account": _holder_label or (account[-8:] if len(account) > 8 else account),
+                    "holder_tail": _holder_label,
+                    "statement": "" if _holder_label else account,
                     "date": worst[3][0],
                     "expected_balance": round(worst[1], 2),
                     "reported_balance": round(worst[2], 2),
@@ -1729,7 +1742,8 @@ def _scan_bank_balance_rollforward(data, spec):
         return []
     top = sorted(mismatches, key=lambda m: -abs(m["difference"]))[:3]
     example_text = "；".join(
-        f"账户尾号{m['account']}，{m['date']}，应为{_fmt_yuan(m['expected_balance'])}而账面为{_fmt_yuan(m['reported_balance'])}，差{_fmt_yuan(m['difference'])}"
+        (f"账户尾号{m['holder_tail']}" if m.get("holder_tail") else f"对账单「{m.get('statement','')}」")
+        + f"，{m['date']}，应为{_fmt_yuan(m['expected_balance'])}而账面为{_fmt_yuan(m['reported_balance'])}，差{_fmt_yuan(m['difference'])}"
         for m in top
     )
     return [_finding(

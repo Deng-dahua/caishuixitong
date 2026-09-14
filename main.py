@@ -3229,6 +3229,72 @@ def _parse_vat_declaration_sheet(sheet, header=None):
     return {"type": "vat_declaration", "rows": [record], "declaration": record}
 
 
+# 本户（本方/我方）账号识别关键字 —— 与"对方账号"严格区分
+_HOLDER_ACCT_KEYS = ("本方账号", "我方账号", "本户账号", "本公司账号", "本单位账号",
+                     "本方账户", "我方账户", "本方帐号", "我方帐号",
+                     "银行账号", "银行帐号", "银行账户", "银行帐户")
+_HOLDER_ACCT_EXACT = ("账号", "帐号", "账户", "帐户", "银行账号", "银行帐号", "银行账户", "银行帐户")
+_HOLDER_NAME_KEYS = ("本方户名", "我方户名", "本方名称", "我方名称", "账户名称", "帐户名称",
+                     "本单位名称", "本公司名称")
+_HOLDER_BANK_KEYS = ("本方行名", "我方行名", "本方开户行", "我方开户行", "本方开户银行",
+                     "我方开户银行", "本方银行", "我方银行")
+
+
+def _extract_holder_account_from_banner(sheet, header_row):
+    """从表头行上方的标题/抬头区提取本户账号（对账单常在标题注明"账号：xxxx"）。
+
+    这是"识别文件"能力的一部分：一些银行流水把本户账号放在标题而非数据列，
+    仅靠列名映射会漏掉，导致后续无法按对账单归属归集余额滚动。
+    """
+    import re as _re
+    acct_ctx = _re.compile(r"(?<!\d)(\d[\d\s\-]{7,30}\d)(?!\d)")
+    scan_to = max(0, min(header_row, 8))
+    # ① 有"账号/账户/卡号"上下文 → 取该行数字
+    for r in range(0, scan_to):
+        try:
+            text = " ".join(str(v) for v in _get_row_values(sheet, r) if v)
+        except Exception:
+            continue
+        if not text.strip():
+            continue
+        if any(k in text for k in ("账号", "帐号", "账户", "帐户", "卡号")):
+            m = acct_ctx.search(text)
+            if m:
+                digits = _re.sub(r"\D", "", m.group(1))
+                if 8 <= len(digits) <= 32:
+                    return digits
+    # ② 兜底：标题区独立的长数字单元格（≥10 位，排除 8 位日期/金额）
+    for r in range(0, scan_to):
+        try:
+            vals = _get_row_values(sheet, r)
+        except Exception:
+            continue
+        for v in vals:
+            s = str(v).strip()
+            d = _re.sub(r"\D", "", s)
+            if s and s == d and 10 <= len(d) <= 32:
+                return d
+    return ""
+
+
+def _detect_holder_columns(header):
+    """在表头中识别本户账号/户名/行名列；排除含"对方/收付/往来"的表头，避免误认对方账号。"""
+    def _pick(keys, exact_names=()):
+        hdr = [str(x).strip() for x in header]
+        for i, hs in enumerate(hdr):
+            if hs and hs in exact_names:
+                return i
+        for i, hs in enumerate(hdr):
+            if not hs or "对方" in hs or "收付" in hs or "往来" in hs:
+                continue
+            if any(k in hs for k in keys):
+                return i
+        return None
+    return (_pick(_HOLDER_ACCT_KEYS, _HOLDER_ACCT_EXACT),
+            _pick(_HOLDER_NAME_KEYS),
+            _pick(_HOLDER_BANK_KEYS))
+
+
 def _parse_bank_sheet(sheet):
     """解析银行流水：自适应表头+提取交易记录"""
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
@@ -3261,7 +3327,34 @@ def _parse_bank_sheet(sheet):
         "Opposite Account No.": "account", "Opposite Account": "account",
     })
     if not cols: return None
-    
+
+    # ── 本户账号识别（根治 VR009 误报：本户账号 ≠ 对方账号）──
+    # 旧映射只把"对方账号"识别为 account，导致同一份对账单的连续流水被按"对方账号"
+    # 打散、余额滚动校验凭空造出断裂。这里额外识别本户（本方/我方）账号/户名/行名，
+    # 作为对账单归属标识；列内没有时再从标题抬头区提取。account 语义保持不变（仍是对方账号）。
+    _ha_col, _hn_col, _hb_col = _detect_holder_columns(header)
+
+    def _col_mode(col_idx):
+        if col_idx is None:
+            return ""
+        from collections import Counter
+        cnt = Counter()
+        for _r in range(header_row + 1, min(nrows, header_row + 60)):
+            try:
+                _v = str(sheet.cell_value(_r, col_idx)).strip() if hasattr(sheet, 'cell_value') \
+                    else str((_get_row_values(sheet, _r) or [""] * (col_idx + 1))[col_idx] or "").strip()
+            except Exception:
+                _v = ""
+            if _v and _v not in ("-", "--", "0", "0.0"):
+                cnt[_v] += 1
+        return cnt.most_common(1)[0][0] if cnt else ""
+
+    _holder_account = _col_mode(_ha_col)
+    _holder_name = _col_mode(_hn_col)
+    _holder_bank = _col_mode(_hb_col)
+    if not _holder_account:
+        _holder_account = _extract_holder_account_from_banner(sheet, header_row)
+
     rows = []
     for r in range(header_row + 1, min(nrows, 5000)):
         raw_vals = _get_row_values(sheet, r)
@@ -3303,10 +3396,23 @@ def _parse_bank_sheet(sheet):
             d = d.replace("-", "").replace("/", "").replace(".", "").replace("年", "").replace("月", "").replace("日", "")
             if len(d) == 8: vals["date"] = d
         
+        # 附加对账单归属标识（本户账号/户名/行名）——仅作分组标识，不改动 account(对方账号)语义
+        if _holder_account:
+            vals["holder_account"] = _holder_account
+        if _holder_name:
+            vals["holder_name"] = _holder_name
+        if _holder_bank:
+            vals["holder_bank"] = _holder_bank
+
         rows.append(vals)
-    
+
     if not rows: return None
-    return {"type": "bank_statement", "rows": rows}
+    result = {"type": "bank_statement", "rows": rows}
+    if _holder_account:
+        result["holder_account"] = _holder_account
+    if _holder_name:
+        result["holder_name"] = _holder_name
+    return result
 
 def _parse_housing_fund_sheet(sheet, header):
     """解析住房公积金明细"""
@@ -3368,6 +3474,27 @@ def _trace_diag(msg, level="info"):
 def _get_last_trace():
     """获取最近一次解析的完整追踪"""
     return _LAST_PARSE_TRACE
+
+
+def _tag_bank_source(parsed, original_name):
+    """给银行流水行打上"来源对账单"标识(statement_id)，供余额滚动校验按对账单分组。
+
+    根治背景：同一份对账单被重复导入、且行内 account 记录的是"对方账号"，
+    若按 account 分组会把连续流水打散。按来源对账单分组才是正确口径。
+    """
+    if not isinstance(parsed, dict):
+        return parsed
+    if parsed.get("type") not in ("bank_statement", "bank", "bank_transaction"):
+        return parsed
+    sid = (original_name or "").strip()
+    if not sid:
+        return parsed
+    for _r in parsed.get("rows", []) or []:
+        if isinstance(_r, dict):
+            _r.setdefault("statement_id", sid)
+    parsed.setdefault("statement_id", sid)
+    return parsed
+
 
 def _parse_by_content(names, get_sheet, original_name=""):
     """智能识别: 扫描所有Sheet的表头和数据行，按特征库打分，选最高分类型。
@@ -3681,6 +3808,7 @@ def _parse_by_content(names, get_sheet, original_name=""):
         fd["source"] = "keyword"
         fd["confidence"] = min(1.0, best_score / max(10, best_score + 2))
         fd["reason"] = cv["reason"]
+        result = _tag_bank_source(result, original_name)
         result["_trace"] = _LAST_PARSE_TRACE  # 附加追踪信息
         return result
     
@@ -3689,6 +3817,7 @@ def _parse_by_content(names, get_sheet, original_name=""):
         fd["source"] = "structure"
         fd["confidence"] = best_struct_conf
         fd["reason"] = cv["reason"]
+        best_struct = _tag_bank_source(best_struct, original_name)
         best_struct["_trace"] = _LAST_PARSE_TRACE
         return best_struct
     

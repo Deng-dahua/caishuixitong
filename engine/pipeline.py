@@ -683,6 +683,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                         for r in parsed["rows"]:
                             try:
                                 tx = dict(r)
+                                # 来源对账单标识（文档级唯一）：余额滚动校验按对账单分组，
+                                # 避免把同一份连续流水按"对方账号"拆散而虚构断裂（根治 VR009 误报）
+                                if doc.get("id") is not None:
+                                    tx["statement_id"] = f"{company_id}-{doc['id']}"
+                                elif not tx.get("statement_id"):
+                                    tx["statement_id"] = fname
                                 # 标准化日期（兼容 date / tx_time / 交易日期 / 交易时间 / 记账日期 五种命名）
                                 tx["date"] = str(tx.get("date") or tx.get("tx_time") or tx.get("交易日期") or tx.get("交易时间") or tx.get("记账日期") or "").strip()[:10]
                                 # 标准化对方
@@ -754,14 +760,24 @@ def _run_analyze(company_id, db, progress_callback=None):
                     ftype = parsed.get("type", "unknown")
                     n = len(parsed.get("rows", []))
                     fr["type"] = ftype
-                    if ftype == "bank_statement": bank_txs.extend(parsed["rows"]); fr["actions"].append(f"PDF通用解析: {n}条流水")
+                    if ftype == "bank_statement":
+                        _sid_pdf = f"{company_id}-{doc['id']}" if doc.get("id") is not None else fname
+                        for _t in parsed["rows"]:
+                            if isinstance(_t, dict):
+                                _t.setdefault("statement_id", _sid_pdf)
+                        bank_txs.extend(parsed["rows"]); fr["actions"].append(f"PDF通用解析: {n}条流水")
                     elif ftype == "invoice_universal": invoice_data.extend(parsed["rows"]); fr["actions"].append(f"PDF通用解析: {n}张发票")
                     else: fr["actions"].append(f"PDF通用解析: {ftype}({n}条)")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条 (PDF通用)")
                 else:
                     # 回退旧解析器
                     txs = _parse_pdf_bank_statement(fpath)
-                    if txs: bank_txs.extend(txs); fr["type"] = "bank"; fr["actions"].append(f"PDF旧解析: {len(txs)}条流水")
+                    if txs:
+                        _sid_old = f"{company_id}-{doc['id']}" if doc.get("id") is not None else fname
+                        for _t in txs:
+                            if isinstance(_t, dict):
+                                _t.setdefault("statement_id", _sid_old)
+                        bank_txs.extend(txs); fr["type"] = "bank"; fr["actions"].append(f"PDF旧解析: {len(txs)}条流水")
             elif ext == ".docx":
                 parsed = _parse_docx(fpath, fname)
                 if isinstance(parsed, dict) and parsed.get("rows"):
