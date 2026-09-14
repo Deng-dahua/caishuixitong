@@ -477,7 +477,10 @@ function renderFileParsingStatic() {
       '每个解析器负责将原始表格转换为字段标准化的结构化数据：' +
       '银行流水\u2192_parse_bank_sheet、发票\u2192_parse_invoice_sheet、' +
       '工资\u2192_parse_salary_sheet、合同\u2192_parse_contract_sheet等。' +
-      '解析器内部完成：列名映射归一化（82+变体\u2192标准字段名）、数据类型转换（字符串\u2192float/date）、无效行过滤。'},
+      '解析器内部完成：列名映射归一化（82+变体\u2192标准字段名）、数据类型转换（字符串\u2192float/date）、无效行过滤。' +
+      '银行流水解析器额外识别\u201c本户账号/本方户名/本方行名\u201d（严格排除\u201c对方\u201d前缀列），' +
+      '列内没有时从标题抬头区提取，并为每行标注来源对账单标识（statement_id）——' +
+      '供余额滚动等勾稽校验按\u201c对账单\u201d而非\u201c对方账号\u201d归集。'},
     {num:'7', title:'标准化输出', detail:'' +
       '统一字段命名规范：date（日期）、amount（金额）、counterparty（对方）、' +
       'seller（销售方）、buyer（购买方）、goods（品名）、quantity（数量）、' +
@@ -513,7 +516,7 @@ function renderFileParsingStatic() {
 function fpFingerprints() {
   return [
     // 第一梯队
-    {icon:'🏧', name:'银行流水', sig:'对方户名 | 交易日期 | 收入金额 | 支出金额 | 借贷标志 | 余额 (23个关键词 阈值3分)', threshold:'≥3', parser:'_parse_bank_sheet'},
+    {icon:'🏧', name:'银行流水', sig:'对方户名 | 交易日期 | 收入金额 | 支出金额 | 借贷标志 | 余额 (23个关键词 阈值3分)｜另识别本方/本户账号及抬头区账号', threshold:'≥3', parser:'_parse_bank_sheet'},
     {icon:'💰', name:'工资表', sig:'本期收入 | 应发工资 | 代扣个税 | 社保 | 公积金 | 实发合计 (60+关键词 阈值2分)', threshold:'≥2', parser:'_parse_salary_sheet'},
     {icon:'🧾', name:'销项发票', sig:'购方名称 | 购方税号 | 购买方纳税人识别号 (10个关键词 阈值2分)', threshold:'≥2', parser:'_parse_invoice_sheet(销项)'},
     {icon:'📥', name:'进项发票', sig:'销方名称 | 销方税号 | 销售方名称 | 供应商名称 (11个关键词 阈值2分)', threshold:'≥2', parser:'_parse_invoice_sheet(进项)'},
