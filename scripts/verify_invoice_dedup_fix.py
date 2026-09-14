@@ -43,4 +43,14 @@ for r in rows:
 dups = sum(v - 1 for v in c.values() if v > 1)
 print(f"\n完全重复的明细行（同票号+同货物+同额）: {dups} 行，涉及金额 "
       f"{sum(abs(float(k[2])) * (v-1) for k, v in c.items() if v > 1):,.2f}")
+
+# ── 跨文件去重（逐文件聚合去不掉的）：真实 12 份取票文件合并后应剔除重复明细 ──
+from engine.pipeline import _dedupe_cross_file_invoices
+before = len(rows)
+deduped, removed = _dedupe_cross_file_invoices(rows)
+print(f"\n跨文件去重：{before} -> {len(deduped)}（剔除 {removed} 行）")
+assert removed > 0, "跨文件去重未生效"
+sg2 = [r for r in deduped if "三顾行" in str(r.get("seller") or "")]
+assert len(sg2) == 1, sg2
+print(f"三顾行跨文件去重后: {len(sg2)} 条  amount={sg2[0].get('amount')}")
 print("ALL PASS")

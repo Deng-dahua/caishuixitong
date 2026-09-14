@@ -172,6 +172,37 @@ def _aggregate_invoices_by_no(rows, direction, extra=None):
     return out + standalone
 
 
+def _dedupe_cross_file_invoices(rows):
+    """跨文件发票去重（2026-09-14）。
+
+    取票/开票文件常按月导出且**导出窗口重叠**（实测：取票11 覆盖 11-01~12-31、取票12 覆盖
+    12-01~12-31，12 月整月重复），同一张票会在相邻文件里各出现一次；而
+    `_aggregate_invoices_by_no` 是**逐文件**调用的，去不掉跨文件重复。
+
+    按 (方向, 票号, 明细签名) 保留首次出现的一条。仅对**有票号**的行去重——无票号无法证明
+    是同一张票，保持原样以免误合并不同交易。
+
+    返回 (去重后列表, 被剔除条数)。
+    """
+    seen, out = set(), []
+    for r in rows or []:
+        if not isinstance(r, dict):
+            out.append(r)
+            continue
+        no = str(r.get("inv_no") or r.get("invoice_no") or "").strip()
+        if not no:
+            out.append(r)
+            continue
+        key = (str(r.get("direction") or ""), no,
+               str(r.get("goods") or ""), str(r.get("amount")), str(r.get("tax")),
+               str(r.get("total")), str(r.get("qty") or ""), str(r.get("price") or ""))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(r)
+    return out, (len(rows or []) - len(out))
+
+
 def _build_target_entity_snapshot(company_id, db, ctx=None):
     """构建企业主体快照，供原子规则引擎判断经营模式。
 
@@ -1099,6 +1130,15 @@ def _run_analyze(company_id, db, progress_callback=None):
                 fr_actions.append(f"[复核修正] 原误判→现确认为银行流水({_added}条)")
             else:
                 fr_actions.append(f"[复核修正] 原误判→现确认为{_new_type}({_n}条，已记录待交叉验证)")
+
+    # ── 跨文件发票去重（2026-09-14）──
+    # 取票/开票文件常按月导出且**导出窗口重叠**（实测：取票11 覆盖 11-01~12-31、取票12 覆盖 12-01~12-31，
+    # 12 月整月重复），同一张票会在相邻文件里各出现一次；而 _aggregate_invoices_by_no 是**逐文件**调用的，
+    # 去不掉跨文件重复。故在合并后的 invoices 上再去重一次。
+    _deduped_invs, _dup_n = _dedupe_cross_file_invoices(invoices)
+    if _dup_n:
+        pipeline_log.append(f"[发票去重] 跨文件重复明细 {_dup_n} 行已剔除（同票号+同明细）")
+    invoices = _deduped_invs
 
     sal_invs = [i for i in invoices if i["direction"] == "销项"]
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
