@@ -1035,6 +1035,57 @@ VERIFIED_RULE_CATALOG = [
              "materials": "红字发票信息确认单、蓝字发票、重开发票、业务说明"},
         ],
     },
+    {
+        "id": "VR072",
+        "name": "农产品收购发票抵扣凭证合规",
+        "layer": "发票真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["采购与取得", "税费申报与缴纳"],
+        "required_sources": ["pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "农产品收购发票自开自抵、扣除率固定（9%/10%），是虚假抵扣高发领域。规则只输出票额、税额与计算抵扣率的统计事实及货物流佐证缺失提示；真实收购（有农户身份、过磅单、付款记录）企业可举证。",
+        "derives_to": [
+            {"child": "VR051", "link": "收购发票抵扣 → 下达补证责令单",
+             "analyze": "核验收购事实、农户身份与计算抵扣率适用",
+             "evidence": "调取收购发票、农户身份信息、过磅/入库单、付款记录",
+             "materials": "收购发票、农户身份信息、过磅单、付款记录"},
+        ],
+    },
+    {
+        "id": "VR073",
+        "name": "通行费与旅客运输进项抵扣核定异常",
+        "layer": "发票真实性规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["采购与取得", "税费申报与缴纳"],
+        "required_sources": ["pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "旅客运输按票面金额9%（航空/铁路）或3%（公路水路）计算抵扣、通行费按3%，税额应可复算。规则只输出税额与法定计算率不符的统计事实；计算口径特殊的（如行程单含税外费用）企业可举证。",
+        "derives_to": [
+            {"child": "VR051", "link": "运输/通行费抵扣 → 下达补证责令单",
+             "analyze": "核验抵扣凭证类型与计算依据",
+             "evidence": "调取旅客运输电子发票/铁路票/行程单、通行费电子发票、抵扣台账",
+             "materials": "旅客运输凭证、通行费电子发票、进项抵扣台账"},
+        ],
+    },
+    {
+        "id": "VR074",
+        "name": "银行存款账实勾稽异常",
+        "layer": "账实勾稽规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税", "企业所得税"],
+        "lifecycle": ["收付款与资金结算", "账务处理与结账"],
+        "required_sources": ["bank_txs", "trial_balance"],
+        "status": "verified_executable_screening",
+        "limitation": "银行流水期末余额应与账面『银行存款』科目期末余额相符。规则输出两侧期末余额与差异；若银行流水未覆盖完整期间或漏账户，差异属资料完整性问题，企业补齐后可复核。",
+        "derives_to": [
+            {"child": "VR051", "link": "账实不符 → 下达补证责令单",
+             "analyze": "逐年逐账户勾稽银行流水与账面银行存款",
+             "evidence": "调取全部银行对账单/余额调节表、科目余额表、明细账",
+             "materials": "银行对账单、余额调节表、科目余额表、明细账"},
+        ],
+    },
 ]
 
 
@@ -1067,7 +1118,7 @@ def _finding(spec, detail, metrics, sources, status="clue_pending_investigation"
              level=None, score=None, cleared_reason=None):
     """统一的风险检查发现底盘。
 
-    全系统 70 条原子规则的 finding 均经此构造，强制携带「三件套」：
+    全系统 73 条原子规则的 finding 均经此构造，强制携带「三件套」：
     1) finding_disposition —— 处置定性（明确非已认定违法，仅待证线索）
     2) verified_facts / to_prove —— 已核实事实 / 待企业举证事项（规则可自填，未填给诚实兜底）
     3) enterprise_rights —— 企业权利告知（复议/诉讼防御的统一底线）
@@ -5968,6 +6019,160 @@ def _scan_reversal_compliance(data, spec):
     return [finding]
 
 
+def _scan_agri_purchase_deduction(data, spec):
+    """VR072 农产品收购发票抵扣凭证合规（2026-09-14 新增）。
+
+    农产品收购发票由购买方自行开具、无销方监管，允许按买价×扣除率计算抵扣进项（现行 9%/10%），
+    是虚开与虚假抵扣的高发领域。与既有"农产品进项与主业不符"（structure_mismatch_detector）不同，
+    本规则聚焦**抵扣凭证自身**：计算抵扣率是否落在法定口径、是否只见票额不见税额、
+    以及收购业务有无运输/入库/存货佐证（缺则按盲区待核）。
+    """
+    pur = data.get("pur_invs") or []
+    if not pur:
+        return []
+    _AGRI_KW = ("农产品", "*农业", "初级农产品", "粮食", "稻谷", "小麦", "玉米", "棉花",
+                "苗木", "中药材", "蔬菜", "水果", "水产品", "畜禽", "鲜", "收购")
+    amt_total = tax_total = 0.0
+    rows = []
+    for r in pur:
+        if not isinstance(r, dict):
+            continue
+        blob = " ".join(str(r.get(k) or "") for k in
+                        ("goods", "货物或应税劳务名称", "summary", "摘要", "category", "品名"))
+        if not any(k in blob for k in _AGRI_KW):
+            continue
+        amt = abs(_number(r.get("amount")))
+        if amt < 1000:
+            continue
+        tax = abs(_number(r.get("tax") or r.get("tax_amount") or r.get("税额")))
+        amt_total += amt
+        tax_total += tax
+        rows.append({"goods": blob[:24], "amount": round(amt, 2), "tax": round(tax, 2),
+                     "date": str(r.get("date") or r.get("开票日期") or "")[:10]})
+    if amt_total < 500000:
+        return []
+    notes = []
+    rate = tax_total / amt_total if amt_total else 0.0
+    if tax_total <= 0:
+        notes.append("有农产品收购票额但未体现进项税额，须核实是否应抵未抵或凭证不合规")
+    elif abs(rate - 0.09) > 0.02 and abs(rate - 0.10) > 0.02:
+        notes.append(f"农产品收购发票计算抵扣率{rate:.1%}，偏离 9%/10% 的法定口径")
+    if not (data.get("transport_contracts") or data.get("inventory_ledger") or data.get("inventory")):
+        notes.append("未提供运输/入库/存货佐证，收购业务的货物流无法印证（须责令补证）")
+    if not notes:
+        return []
+    return [_finding(
+        spec,
+        f"检出农产品类进项发票{len(rows)}张、合计{_fmt_yuan(amt_total)}（进项税额{_fmt_yuan(tax_total)}）。"
+        + "；".join(notes) + "。农产品收购发票自开自抵、易被用于虚假抵扣，"
+        "须逐笔核实收购事实（农户身份、收购数量与付款）、计算抵扣率适用及货物流佐证。",
+        {"agri_amount": round(amt_total, 2), "agri_tax": round(tax_total, 2),
+         "agri_rows": len(rows), "implied_rate": round(rate, 4), "notes": notes,
+         "examples": rows[:5]},
+        spec["required_sources"],
+        priority="中",
+    )]
+
+
+def _scan_travel_toll_input_tax(data, spec):
+    """VR073 通行费/旅客运输进项抵扣税额核定异常（2026-09-14 新增）。
+
+    旅客运输（航空/铁路 9%、公路水路 3%）与通行费（3%）的进项抵扣税额由票面金额按法定计算率算出；
+    凡已申报抵扣但税额与法定计算率明显不符（多抵或少抵），须核实凭证类型与计算口径。
+    """
+    pur = data.get("pur_invs") or []
+    if not pur:
+        return []
+    _KW = ("通行费", "过路费", "过桥费", "旅客运输", "客运", "高铁", "火车", "动车",
+           "机票", "航空", "民航", "车票", "出租车", "网约车", "公路", "水路")
+    _RATES = (0.03, 0.06, 0.09)      # 通行费3% / 部分现代服务6% / 旅客运输9%（公路水路3%）
+    total_amt = total_tax = 0.0
+    bad = []
+    for r in pur:
+        if not isinstance(r, dict):
+            continue
+        blob = " ".join(str(r.get(k) or "") for k in
+                        ("goods", "货物或应税劳务名称", "summary", "摘要", "category", "品名"))
+        if not any(k in blob for k in _KW):
+            continue
+        amt = abs(_number(r.get("amount")))
+        tax = abs(_number(r.get("tax") or r.get("tax_amount") or r.get("税额")))
+        if amt < 1000 or tax <= 0:      # 只核已抵扣的票（未抵扣不属本规则）
+            continue
+        total_amt += amt
+        total_tax += tax
+        rate = tax / amt
+        if not any(abs(rate - x) <= 0.012 for x in _RATES):
+            bad.append({"goods": blob[:24], "amount": round(amt, 2), "tax": round(tax, 2),
+                        "implied_rate": round(rate, 4),
+                        "date": str(r.get("date") or r.get("开票日期") or "")[:10]})
+    if not bad:
+        return []
+    bad_amt = sum(b["amount"] for b in bad)
+    return [_finding(
+        spec,
+        f"检出通行费/旅客运输类已抵扣进项发票{len(bad)}张（合计{_fmt_yuan(bad_amt)}）的抵扣税额与法定计算率不符："
+        "旅客运输（航空/铁路）按票面金额9%计算抵扣、公路水路按3%，通行费按3%；"
+        "税额偏离口径的，可能多抵或少抵进项税额，须核实凭证类型（电子发票/行程单/铁路票）与计算依据。",
+        {"mismatch_rows": len(bad), "mismatch_amount": round(bad_amt, 2),
+         "reversal_total": round(total_amt, 2), "deducted_total": round(total_tax, 2),
+         "examples": bad[:8]},
+        spec["required_sources"],
+        priority="中",
+    )]
+
+
+def _scan_bank_book_consistency(data, spec):
+    """VR074 银行存款账实勾稽：银行流水期末余额 vs 科目余额表"银行存款"期末余额（2026-09-14 新增）。
+
+    银行流水期末余额合计应与账面"银行存款"科目期末余额相符；两者明显背离，说明银行流水未完整提供
+    或账面未如实反映资金（漏记/账外资金），列为待核线索。
+    """
+    bank = data.get("bank_txs") or []
+    tb = data.get("trial_balance") or []
+    if not bank or not tb:
+        return []
+    # 银行侧：按来源对账单(statement_id)取日期最大一行的余额，汇总为期末余额合计
+    last = {}
+    for i, r in enumerate(bank):
+        if not isinstance(r, dict) or r.get("balance") in (None, ""):
+            continue
+        sid = str(r.get("statement_id") or r.get("holder_account") or "单表")
+        key = (sid, str(r.get("date") or ""), i)
+        if sid not in last or key[:2] >= last[sid][:2]:
+            last[sid] = (key[0], key[1], _number(r.get("balance")))
+    bank_balance = sum(v[2] for v in last.values())
+    if not last or bank_balance <= 0:
+        return []
+    # 账侧：科目余额表中"银行存款"科目期末余额
+    book_balance = 0.0
+    for r in tb:
+        if not isinstance(r, dict):
+            continue
+        name = str(r.get("科目名称") or r.get("科目") or r.get("account_name") or r.get("account") or "")
+        if "银行存款" not in name and "1002" not in name:
+            continue
+        book_balance += _number(r.get("期末余额") or r.get("期末数") or r.get("ending")
+                                or r.get("closing") or r.get("余额"))
+    if book_balance <= 0:
+        return []
+    diff = bank_balance - book_balance
+    tol = max(10000.0, abs(book_balance) * 0.05)
+    if abs(diff) <= tol:
+        return []
+    return [_finding(
+        spec,
+        f"银行流水期末余额合计{_fmt_yuan(bank_balance)}（{len(last)}个账户/对账单），"
+        f"账面『银行存款』科目期末余额{_fmt_yuan(book_balance)}，差异{_fmt_yuan(diff)}，"
+        "超出 5% 且超过 1 万元。两者不符通常意味着银行流水未完整提供（漏账户/漏期间），"
+        "或账面未如实反映资金往来（漏记收付、账外资金），须逐年逐账户勾稽核实。",
+        {"bank_balance": round(bank_balance, 2), "book_balance": round(book_balance, 2),
+         "difference": round(diff, 2), "statements": len(last), "tolerance": round(tol, 2)},
+        spec["required_sources"],
+        priority="中",
+    )]
+
+
 def _scan_interest_income_unreported(data, spec):
     """VR068 银行存款利息收入未申报（2026-09-05）。"""
     bank = data.get("bank_txs") or []
@@ -6306,6 +6511,9 @@ _SCANNERS = {
     "VR069": _scan_subsidy_income_unreported,
     "VR070": _scan_fixed_asset_disposal,
     "VR071": _scan_reversal_compliance,
+    "VR072": _scan_agri_purchase_deduction,
+    "VR073": _scan_travel_toll_input_tax,
+    "VR074": _scan_bank_book_consistency,
 }
 
 
