@@ -602,30 +602,25 @@ def _detect_conflicts(all_findings, cross_findings, pipeline_log):
     has_buy_no_sell_high = any("有进无销" in f.get("type","") and f.get("level") == "高风险" for f in all_findings)
     
     if has_buy_no_sell_high and has_processing:
-        # 降级：有进无销+加工费 → 制造业正常加工链条，不应该是高风险
+        # 降级（2026-09-14 体检查出）：原实现只追加一条"建议降级"说明，原结论仍显示高风险，
+        # 报告"确认问题"章据此把制造业(有加工费/委外加工)的进销品名差异误报为高风险隐匿收入。
+        # 修正：直接把原发现的等级从「高风险」降为「中风险」（加工链条可解释品名差异），
+        # 并在 detail/description 中保留降级理由，使报告呈现中风险而非高风险。
         for f in all_findings:
             if "有进无销" in f.get("type","") and f.get("level") == "高风险":
-                # 不直接修改原结论，而是生成一个降级说明
-                cross_findings.append({
-                    "type": "交叉验证-冲突消解：有进无销降级",
-                    "level": "中风险",
-                    "score": 5,
-                    "domain": "Phase3-冲突消解",
-                    "detail": f"有进无销被评为高风险，但加工费存在→制造业加工链条可解释品名差异",
-                    "description": (
-                        "两项信号综合后建议重新评估：有进无销被评为高风险，但系统同时检测到加工费存在。"
-                        "制造业中，采购原材料（不直接销售）→委托加工→销售成品（品名不同）"
-                        "是正常经营模式。有进无销的品名差异源于加工链条而非隐匿收入。"
-                        "建议将评级从高风险调整为中风险，核查焦点从'隐匿收入'转移到'加工链条真实性'。"
-                    ),
-                    "how_found": "Phase 3 冲突检测：有进无销(高风险)+加工费→制造业加工链条可解释",
-                    "tax_impact": "有进无销+加工费→不建议直接判定为隐匿收入。应先验证加工链条真实性。",
-                    "suggestion": "①提供BOM表验证加工投入产出 ②提供加工合同+出入库记录 ③验证通过后可排除隐匿收入嫌疑",
-                    "category": "冲突消解",
-                    "_phase3_conflict_resolved": True,
-                })
-                pipeline_log.append("[Phase3] 冲突消解: 有进无销(高风险)+加工费 → 建议降级")
-                break  # 只生成一条降级说明
+                f["level"] = "中风险"
+                f["score"] = min(int(f.get("score", 8) or 8), 5)
+                f["_phase3_conflict_resolved"] = True
+                _adj = ("\n\n【Phase3 冲突消解】原评高风险，但系统检测到加工费/委外加工信号→制造业"
+                        "『采购原料→委托加工→销售成品』加工链条可解释进销品名差异，评级已下调为中风险；"
+                        "核查焦点从『隐匿收入』转移到『加工链条真实性（BOM表/加工合同/出入库记录）』。"
+                        "验证通过后可排除隐匿收入嫌疑。")
+                if f.get("detail"):
+                    f["detail"] = str(f.get("detail")) + _adj
+                if f.get("description"):
+                    f["description"] = str(f.get("description")) + _adj
+                pipeline_log.append("[Phase3] 冲突消解: 有进无销(高风险)+加工费 → 降级为中风险")
+                break  # 只处理第一条高风险有进无销
     
     # ── 冲突8：发票连号+正常经营信号 → 可能只是同批次领票 ──
     has_consecutive = any("发票连号" in f.get("type","") for f in all_findings)

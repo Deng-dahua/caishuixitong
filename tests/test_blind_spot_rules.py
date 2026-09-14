@@ -146,10 +146,28 @@ def _rule_ids_from_findings(se_result):
 
 
 class TestVR055WageSplitting(unittest.TestCase):
-    def test_vr055_fires_on_uniform_wages(self):
+    def test_vr055_skips_when_month_missing(self):
+        """回归（2026-09-14 修复 #①）：月份缺失的工资记录不得触发 VR055。
+
+        猩猩织光式数据 4 人工资同为 7000、但工资表未标注月份——月份未知根本无法证明"同月"，
+        旧逻辑把 4 人误归并到同一"未标注月份"桶，误报"同月多人同额"个税规避。修复后缺月份记录
+        直接跳过，VR055 不应触发（属待证线索而非确认事实）。
+        """
         res = V.run_verified_rules(_company3_data())
         hits = [f for f in res["findings"] if f["rule_id"] == "VR055"]
-        self.assertEqual(len(hits), 1, "猩猩织光式均额工资应触发 VR055")
+        self.assertEqual(len(hits), 0, "月份缺失的均额工资不得触发 VR055（误报已消除）")
+
+    def test_vr055_fires_on_same_month_uniform_wages(self):
+        """对照：当工资表真实标注同一月份、且多人同领整数整额工资时，VR055 仍须正确触发。
+
+        验证修复未矫枉过正——合法的"同月多人同额"拆分痕迹路径保持有效。
+        """
+        data = _company3_data()
+        for s in data["salaries"]:
+            s["month"] = "2026-01"  # 真实标注月份 → 同月多人同额可证
+        res = V.run_verified_rules(data)
+        hits = [f for f in res["findings"] if f["rule_id"] == "VR055"]
+        self.assertEqual(len(hits), 1, "同月多人同领整数整额工资应触发 VR055")
         f = hits[0]
         self.assertEqual(f["finding_status"], "clue_pending_investigation")
         self.assertIn("demand_docs", f["observed_metrics"])
@@ -254,7 +272,8 @@ class TestScenarioSurfacing(unittest.TestCase):
     def test_surfaced_via_common_gate(self):
         se = OG.run_output_governance("宠物用品零售", file_results=None, engine_data=_company3_data())
         ids = _rule_ids_from_findings(se)
-        self.assertIn("VR055", ids, "VR055 应经共同事实门进入 findings")
+        # 修复 #①：月份缺失数据不再误触发 VR055（见 test_vr055_skips_when_month_missing）
+        self.assertNotIn("VR055", ids, "月份缺失的猩猩织光式数据不应经共同事实门进入 findings（误报已消除）")
         self.assertIn("VR056", ids, "VR056 应经共同事实门进入 findings")
         self.assertIn("VR057", ids, "VR057 应进入 findings")
 

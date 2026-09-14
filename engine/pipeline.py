@@ -225,6 +225,62 @@ def _dedupe_cross_file_invoices(rows):
     return out, (len(rows or []) - len(out))
 
 
+def _merge_same_type_findings(all_findings):
+    """合并同一 type 的多条发现为一条，消除「同标题重复」（如 VR060 内部多子发现各占一条）。
+
+    背景（2026-09-14 体检）：VR060 扫描器会产出 ①无付款无挂账 + ③缺应付账款明细 等多条
+    **同 type（主营业务成本资金与负债证据链核验）+ 同 redline_id（RL-PTY-001）** 的子发现，
+    报告"确认问题"章直接读 scenario_execution.findings（原始 N 条），于是显示成"同标题 N 条"。
+    seal_governed_findings 虽按 type 去重，但仅当 fact_id 缺失时生效，且去重是"保留首条丢弃其余"
+    ——会丢掉 187,473 元那条的子事实。
+
+    本函数按 type 分组、组内有>1 条时合并为 1 条：detail/description 拼接保留全部子事实、
+    取最高严重度 level、合并 observed_metrics、任一子发现有 redline_id 则保留。这样既消除重复，
+    又不丢失任何子事实。单条或不同 type 原样返回（type 在系统内基本唯一对应一条规则，安全）。
+    """
+    if not isinstance(all_findings, list):
+        return all_findings
+    groups, order = {}, []
+    for f in all_findings:
+        if not isinstance(f, dict):
+            continue
+        key = f.get("type") or ""
+        if key not in groups:
+            groups[key] = []
+            order.append(key)
+        groups[key].append(f)
+    merged = []
+    _sev = {"极高风险": 5, "高风险": 4, "中风险": 3, "待核验": 2, "信息": 1, "低风险": 0}
+    for key in order:
+        items = groups[key]
+        if len(items) == 1:
+            merged.append(items[0])
+            continue
+        base = dict(items[0])
+        parts, metrics, redline = [], {}, None
+        best = max(items, key=lambda x: _sev.get(str(x.get("level", "")), 0))
+        for it in items:
+            d = it.get("detail") or it.get("description") or ""
+            if d:
+                parts.append(d)
+            if isinstance(it.get("observed_metrics"), dict):
+                metrics.update(it["observed_metrics"])
+            if it.get("redline_id"):
+                redline = it["redline_id"]
+        if parts:
+            base["detail"] = "\n\n".join(parts)
+            if "description" in base:
+                base["description"] = "\n\n".join(parts)
+        if metrics:
+            base["observed_metrics"] = metrics
+        if redline and not base.get("redline_id"):
+            base["redline_id"] = redline
+        base["level"] = best.get("level", base.get("level"))
+        base["_merged_from"] = len(items)
+        merged.append(base)
+    return merged
+
+
 def _build_target_entity_snapshot(company_id, db, ctx=None):
     """构建企业主体快照，供原子规则引擎判断经营模式。
 
@@ -1435,16 +1491,30 @@ def _run_analyze(company_id, db, progress_callback=None):
                     }
                 })
             else:
+                # 口径纠偏（2026-09-14 体检查出）：非制造业场景下「有进无销」一律评中风险（待核），
+                # 严禁以高风险直接推定隐匿收入/偷税——违反"发现≠确认、证据不足转置疑清单"红线。
+                # 两类解释：①采购侧存在加工费/委外加工信号→加工链条解释；②商贸企业进销品名因
+                # 品牌/规格/包装口径不一致而看似有进无销，属常见非违法情形，须品名归一化+出入库核对。
+                _proc_sig = any(("加工" in g or "加工费" in g) for g in pur_by_goods)
+                if _proc_sig:
+                    _tail = ("【加工链条提示】采购侧检测到加工费/委外加工信号，进销品名差异可由『采购原料→委托加工→销售成品』加工链条解释，评级定中风险；核查焦点从『隐匿收入』转移到『加工链条真实性（BOM表/加工合同/出入库记录）』。")
+                    _desc_extra = ("采购侧存在加工费/委外加工发票，进销品名差异可由加工链条（采购原料→委托加工→销售成品）解释，属制造业正常现象，不应直接推定隐匿收入。")
+                    _sug = ("① 提供BOM表验证原材料→加工→成品完整链条；② 提供加工合同、送料单、收货单；③ 费用类进项提供报销凭证。以上齐全可排除隐匿收入嫌疑。")
+                else:
+                    _tail = ("【商贸企业提示】被查单位为商贸/零售经营主体，采购与销售商品常因开票品名口径（品牌/规格/包装差异）不一致而看似“有进无销”，该现象不等同于隐匿收入。评级定中风险（待核），核查焦点放在“采购商品是否以其他品名实现销售”及“是否存在真实未开票销售”上。")
+                    _desc_extra = ("商贸企业采购与销售品名常因品牌、规格、包装差异而不一致，该“有进无销”可能源于开票品名口径差异、未开票销售、非应税项目耗用或真实隐匿收入等多种情形，须通过品名归一化比对与出入库记录核实，不宜直接推定隐匿收入。")
+                    _sug = ("① 对采购与销售品名做归一化比对（按品牌/规格/品类映射），确认是否同一商品不同开票名称；② 要求提供对应销售合同、出库单、物流单据以证明已售；③ 提供库存台账与盘点表核对采购量与结存量。经核对确已销售或正常耗用的，排除隐匿收入嫌疑。")
                 inv_match_findings.append({
                     "type": "有进无销风险",
-                    "level": "高风险", "score": 8,
-                    "detail": f"在识别出主营业务成本之后，核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。",
+                    "level": "中风险",
+                    "score": 5,
+                    "detail": (f"在识别出主营业务成本之后，核心成本中{len(core_only_buy)}类商品仅采购无销售记录，涉及金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%{excluded_note}。" + _tail),
                     "description": f"先对{len(pur_invs)}张进项发票做主营业务成本识别，排除费用类后对{len(core_cost_invs)}张核心成本发票做进销比对。被查单位采购了{'、'.join(core_only_buy[:3])}等{len(core_only_buy)}种核心商品（金额{pur_amount_only:,.2f}元，占核心成本{pct:.2f}%），但销项发票中未发现对应产品的销售记录。\n\n"
-                        + f"从实务经验判断，{'(常规经营必有零星费用报销，已排除' + str(len(expense_only_buy)) + '类费用发票）' if expense_only_buy else ''}对主营业务成本的'有进无销'，可能存在以下情况：①账外经营，隐匿销售收入（货物已售但未申报）；②未开票销售，未确认收入；③货物用于非应税项目、集体福利或个人消费但未作进项税额转出；④货物发生非正常损失、盘亏或去向不明。",
+                        + f"从实务经验判断，{'(常规经营必有零星费用报销，已排除' + str(len(expense_only_buy)) + '类费用发票）' if expense_only_buy else ''}{_desc_extra}",
                     "how_found": f"对{len(pur_invs)}张进项发票做主营业务成本识别（三层分类），排除费用类后对{len(core_cost_invs)}张核心成本发票逐品名与销项比对。发现{len(core_only_buy)}类核心进项的品名从未出现在销项中。",
-                    "tax_impact": "涉及隐匿销售收入→补缴增值税（货物适用税率）+企业所得税+滞纳金+0.5-5倍罚款；情节严重的移送公安。",
-                    "policy_ref": "《税收征收管理法》第六十三条（偷税认定）；《中华人民共和国增值税法》第十条（进项税额转出情形）；《刑法》第二百零一条（逃税罪）",
-                    "suggestion": f"要求被查单位逐项说明{len(core_only_buy)}种核心商品的去向：1)提供对应销售合同、出库单、物流单据以证明已售；2)若用于生产，提供生产投料记录和产成品入库单以证明产出；3)若发生损失，提供损失清单及内部审批记录。无法说明去向的，按隐匿收入处理。",
+                    "tax_impact": "当前证据不足，列为待核线索。若经品名归一化与出入库核对，采购商品确已以其他品名销售或正常耗用，则无风险；若查实为未开票/账外销售，则涉及补缴增值税+企业所得税+滞纳金+罚款。",
+                    "policy_ref": "《中华人民共和国增值税法》第十条（进项税额转出情形）；企业所得税关于成本费用扣除真实性的规定。",
+                    "suggestion": _sug,
                     "category": "进销存匹配",
                     "rule_id": 338,
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
@@ -5477,6 +5547,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     if '_scenario_execution' not in locals():
         raise RuntimeError("场景驱动执行结果缺失，禁止生成报告")
     from engine.output_governance import seal_governed_findings
+    # 同 type 多子发现合并（消除 VR060 等"同标题重复"）：须在封印前、且位于防误判 try 之外
+    # 执行——防误判 try 内若协商引擎异常会跳过合并。合并后 scenario_execution 与 sealed 两层都只剩一条。
+    _scenario_execution["findings"] = _merge_same_type_findings(_scenario_execution["findings"])
     all_findings = seal_governed_findings(_scenario_execution)
     result["report"]["all_findings"] = all_findings
     result["report"]["scenario_execution"] = _scenario_execution

@@ -4953,6 +4953,11 @@ def _scan_wage_splitting(data, spec):
     # ── 同月多人同薪：同一月份内多个不同人领取相同整数整额工资 → 拆分痕迹 ──
     by_month_amt = defaultdict(list)
     for v in person_month.values():
+        # 关键修复（2026-09-14 体检查出）：月份缺失（"未标注月份"）的记录不能参与"同一月份内
+        # 多人同额"判定——月份未知根本无法证明"同月"。否则 4 名员工月份全缺、各领 7000 整数整额
+        # 会被错误归并到同一"未标注月份"桶，误判为"同月多人同额"个税规避。缺月份时该记录直接跳过。
+        if v["month"] == "未标注月份":
+            continue
         by_month_amt[(v["month"], round(v["salary"], 2))].append(v)
     uniform = []
     for (m, a), vs in sorted(by_month_amt.items()):
@@ -5114,11 +5119,19 @@ def _scan_mixed_payroll(data, spec):
     # 2a 已发现私户直接支付痕迹 → 强嫌疑
     if private_paid:
         pp_txt = "；".join("{0}{1}".format(p["counterparty"], _fmt_yuan(p["amount"])) for p in private_paid[:10])
+        # 口径纠偏（2026-09-14 体检查出）："公户工资支出 vs 账面应发"的背离只在该差额指向
+        # **私户敞口**时有意义——即公户支出远小于账面（差额=私户支付缺口）。若公户支出≥账面
+        # （公户代发充分甚至超额），则不构成"背离"，更不暗示私户；此处的真实私户坐实信号是
+        # 下面"员工个人账户直接支付的工资记录"。两段口径必须区分，避免把"公户发得多"误读为拆分嫌疑。
+        if public_payroll >= total_payroll:
+            rel = "对公账户工资类支出{1}已覆盖并超过账面应发工资合计{0}，说明公户代发充分；"
+        else:
+            rel = "账面应发工资合计{0}，对公账户工资类支出仅{1}，二者存在背离（差额=私户支付敞口）；"
         detail = (
-            "账面应发工资合计{0}，对公账户工资类支出{1}，二者存在重大背离。更关键的是，银行流水显示以员工个人账户"
-            "直接支付的工资/薪酬记录：{2}，坐实『公账+私账拆分支付薪酬』的操作模式，存在未通过企业账户、"
-            "未如实扣缴个人所得税的敞口。".format(_fmt_yuan(total_payroll), _fmt_yuan(public_payroll), pp_txt)
-        )
+            rel + "更关键的是，银行流水显示以员工个人账户直接支付的工资/薪酬记录：{2}，"
+            "坐实『公账+私账拆分支付薪酬』的操作模式，存在未通过企业账户、"
+            "未如实扣缴个人所得税的敞口。"
+        ).format(_fmt_yuan(total_payroll), _fmt_yuan(public_payroll), pp_txt)
         demand_docs = [
             "实际控制人、股东、财务负责人等个人银行账户完整流水（固定私户支付薪酬、奖金、补贴的全貌）",
             "个人所得税扣缴申报表（核验上述私户支付是否已并入全员全额扣缴）",
