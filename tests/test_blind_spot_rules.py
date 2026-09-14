@@ -389,7 +389,11 @@ class TestSupplyChainConcentration(unittest.TestCase):
         self.assertIn("前3大客户占比99.17%", cust[0]["type"])
 
     def test_supplier_concentration_uses_top3_slice(self):
-        """供应商侧旧代码 sum 全部 → 恒为100%；修复后取前3切片。"""
+        """供应商侧旧代码 sum 全部 → 恒为100%；修复后取前3切片。
+
+        2026-09-14 追加判据：供应商仅 4 家时前3大占比天然接近 100%（3 家即恒等 100%），
+        不构成"高度集中"，须真实供应商≥8 家才下结论——否则"少而稳"的长期合作供应链必被误报。
+        """
         invs = [
             {"direction": "进项", "seller": "供应商A", "amount": 120000.0},
             {"direction": "进项", "seller": "供应商B", "amount": 30000.0},
@@ -397,9 +401,97 @@ class TestSupplyChainConcentration(unittest.TestCase):
             {"direction": "进项", "seller": "供应商D", "amount": 15000.0},
         ]
         sup = self._sup_findings(invs)
-        self.assertEqual(len(sup), 1, "前3供应商占91.89%应触发供应商高度集中")
-        self.assertIn("前3大供应商占比91.89%", sup[0]["type"],
+        self.assertEqual(len(sup), 0, "仅4家供应商时前3大占比天然偏高，不得据此判高度集中")
+
+    def test_supplier_concentration_excludes_platform_operators(self):
+        """平台/全国性服务商（京东）须剔除——与客户侧口径一致，否则集中度被虚增。"""
+        invs = [{"direction": "进项", "seller": "江苏京东信息技术有限公司", "amount": 800000.0}]
+        for i in range(9):
+            invs.append({"direction": "进项", "seller": f"真实供应商{i}", "amount": 50000.0})
+        sup = self._sup_findings(invs)
+        self.assertEqual(len(sup), 0,
+            "剔除京东后真实采购45万、前3仅占33%；若不剔除则虚增至72%而误报")
+
+    def test_supplier_concentration_fires_with_enough_suppliers(self):
+        """供应商≥8 家且前3大占比>70% → 正确触发，且取前3切片（非100%）。"""
+        invs = [
+            {"direction": "进项", "seller": "供应商A", "amount": 250000.0},
+            {"direction": "进项", "seller": "供应商B", "amount": 250000.0},
+            {"direction": "进项", "seller": "供应商C", "amount": 250000.0},
+        ]
+        for i in range(7):
+            invs.append({"direction": "进项", "seller": f"供应商{i}", "amount": 25000.0})
+        sup = self._sup_findings(invs)
+        self.assertEqual(len(sup), 1, "10家供应商前3占81.08%应触发")
+        self.assertIn("前3大供应商占比81.08%", sup[0]["type"],
             "应取前3切片而非全部100%；旧代码会误报100%")
+        self.assertEqual(sup[0]["level"], "待核验", "集中度属待核线索，不得直接定中风险")
+
+    def test_geo_cluster_excludes_local_city(self):
+        """供应商集中在企业所在城市属正常本地采购半径，不得报「地域群集」。"""
+        invs = [{"direction": "进项", "seller": f"深圳供应商{i}有限公司", "amount": 100000.0}
+                for i in range(8)]
+        fs = DA._domain_supply_chain_deep(invs, [], {"name": "深圳市某某科技有限公司"})
+        geo = [f for f in fs if "地域群集" in f.get("type", "")]
+        self.assertEqual(len(geo), 0, "本地城市集中属正常采购半径，不得报群集")
+
+    def test_geo_cluster_fires_for_remote_city(self):
+        """非本地城市集中且达门槛 → 报「待核验」级别的群集线索。"""
+        invs = [{"direction": "进项", "seller": f"北京供应商{i}有限公司", "amount": 100000.0}
+                for i in range(8)]
+        invs += [{"direction": "进项", "seller": f"上海供应商{i}有限公司", "amount": 100000.0}
+                 for i in range(4)]
+        fs = DA._domain_supply_chain_deep(invs, [], {"name": "深圳市某某科技有限公司"})
+        geo = [f for f in fs if "地域群集" in f.get("type", "")]
+        self.assertTrue(geo, "非本地城市集中8家（占67%）应触发")
+        self.assertEqual(geo[0]["level"], "待核验")
+        self.assertIn("北京", geo[0]["type"])
+        sh = [f for f in geo if "上海" in f["type"]]
+        self.assertEqual(len(sh), 0, "上海仅4家未达5家门槛")
+
+
+class TestSupplierBrandCluster(unittest.TestCase):
+    """回归：供应商字号群集去噪（2026-09-14）。
+
+    旧逻辑「名称前4字聚类」在真实数据上命中率 0、误报率 100%：
+    深圳市福=福田区大排档、深圳市龙=龙华/龙岗餐馆、中国铁路=各局车站（火车票）。
+    修正后须：①行政区划巧合不报 ②分支站点不报 ③跨城集团分支不报
+    ④同城同字号不同行业**仍须报出**（不能超额抑制）。
+    """
+
+    def _cluster(self, invs, name="深圳市某某科技有限公司"):
+        fs = DA._domain_supply_chain_deep(invs, [], {"name": name})
+        return [f for f in fs if "字号群集" in f.get("type", "")]
+
+    def test_district_restaurants_not_a_cluster(self):
+        """福田区几家大排档（差旅餐饮）不得被判为关联壳公司群。"""
+        invs = [{"direction": "进项", "seller": n, "amount": 500.0} for n in (
+            "深圳市福田区味道佳烧烤店", "深圳市福田区堂纪大排档店（个体工商户）",
+            "深圳市福田区大渔铁板烧卓悦汇店", "深圳市福田区新钟记小食店")]
+        self.assertEqual(len(self._cluster(invs)), 0, "同城同区不同字号属行政区划巧合")
+
+    def test_railway_stations_not_a_cluster(self):
+        """铁路局下属车站/车务段（火车票）不得被判为壳公司群。"""
+        invs = [{"direction": "进项", "seller": n, "amount": 300.0} for n in (
+            "中国铁路上海局集团有限公司上海站", "中国铁路上海局集团有限公司南京站",
+            "中国铁路北京局集团有限公司北京站", "中国铁路南昌局集团有限公司厦门车站")]
+        self.assertEqual(len(self._cluster(invs)), 0, "同一法人主体的分支站点非壳公司群")
+
+    def test_cross_city_group_branches_not_a_cluster(self):
+        """同一集团的跨城子公司（上海滴滴/北京滴滴…）不得被判为壳公司群。"""
+        invs = [{"direction": "进项", "seller": n, "amount": 300.0} for n in (
+            "上海滴滴畅行科技有限公司", "北京滴滴出行科技有限公司",
+            "南京滴滴出行科技有限公司", "厦门滴滴出行科技有限公司")]
+        self.assertEqual(len(self._cluster(invs)), 0, "跨城集团分支属正常经营布局")
+
+    def test_same_brand_different_trade_still_fires(self):
+        """同城同字号、不同行业的三家公司——真实同族形态，仍须正确报出（待核验）。"""
+        invs = [{"direction": "进项", "seller": n, "amount": 100000.0} for n in (
+            "郑州鑫源贸易有限公司", "郑州鑫源物资有限公司", "郑州鑫源建材有限公司")]
+        c = self._cluster(invs)
+        self.assertEqual(len(c), 1, "同城同字号不同行业应触发")
+        self.assertIn("鑫源", c[0]["type"])
+        self.assertEqual(c[0]["level"], "待核验", "字号相同属待核线索，须工商穿透印证")
 
 
 class TestFalseInvoiceConcentration(unittest.TestCase):

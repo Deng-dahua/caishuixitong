@@ -172,6 +172,28 @@ def _aggregate_invoices_by_no(rows, direction, extra=None):
     return out + standalone
 
 
+# 工商登记状态判定（2026-09-14 新增）。
+# 历史缺陷：原实现用 **精确相等** 比对白名单（`st in ("存续","在业","开业","正常")`），
+# 而联网核查返回的状态常带后缀（如「存续（在营、开业、在册）」）→ 不相等 → 正常企业被判为
+# 「疑似走逃（失联）企业或非正常户」，并挂上 RL-PTY-002「供应商高度集中且地域异常：涉嫌虚开通道」。
+# 改为「黑名单优先 → 白名单包含 → 未知不判」：只有能明确判定为异常时才出信号。
+_NORMAL_BIZ_STATUSES = ("存续", "在业", "开业", "在营", "正常")
+_ABNORMAL_BIZ_MARKERS = ("注销", "吊销", "经营异常", "异常经营", "失信", "非正常", "责令关闭",
+                         "撤销", "清算", "停业", "破产", "迁出", "失联", "走逃")
+
+
+def is_abnormal_business_status(status) -> bool:
+    """工商登记状态是否**明确异常**。未知状态返回 False（不凭空定罪）。"""
+    st = str(status or "").strip()
+    if not st:
+        return False
+    if any(k in st for k in _ABNORMAL_BIZ_MARKERS):
+        return True
+    if any(k in st for k in _NORMAL_BIZ_STATUSES):
+        return False
+    return False
+
+
 def _dedupe_cross_file_invoices(rows):
     """跨文件发票去重（2026-09-14）。
 
@@ -2037,7 +2059,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     
     # ═══ 新增税务合规域：上下游穿透分析 ═══
     if invoices:
-        domain_results.append({"domain": "上下游穿透分析", "findings": _domain_supply_chain_deep(clean_invs, bank_txs)})
+        domain_results.append({"domain": "上下游穿透分析",
+                               "findings": _domain_supply_chain_deep(clean_invs, bank_txs, target_entity)})
     else:
         domain_results.append({"domain": "上下游穿透分析", "findings": []})
     
@@ -8052,10 +8075,11 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
     # ========== Step 5: 工商状态异常信号 → 红线证据链 ==========
     # 交易对方（供应商/客户）工商状态为注销/吊销/经营异常/失信等，属接受异常凭证、
     # 虚开发票的高危信号，作为强信号直接喂入红线证据链（经 redline_id 精确归并）。
-    _NORMAL_STATUSES = ("存续", "在业", "开业", "正常")
+    # 状态判定改用 is_abnormal_business_status()：
+    # 原「精确相等白名单」把带后缀的正常状态（存续（在营、开业、在册））误判为异常（2026-09-14 修）
     for lr in results["lookup_results"]:
         st = (lr.get("status") or "").strip()
-        if not st or st in _NORMAL_STATUSES:
+        if not is_abnormal_business_status(st):
             continue
         sname = lr["name"]
         relation = lr["relation"]

@@ -4635,8 +4635,80 @@ def _domain_vat_declaration_compare(invoices, bank_txs, db, company_id):
 
 # ═══════════ 上下游穿透分析 ═══════════
 
-def _domain_supply_chain_deep(invoices, bank_txs):
-    """供应商/客户多级穿透——虚开识别的核心武器"""
+# ── 字号群集去噪（2026-09-14）────────────────────────────────────────────────
+# 旧逻辑直接取供应商名称前 4 字聚类，实测真实数据命中率 0、误报率 100%：
+#   「中国铁路」x14 → 各铁路局下属车站/车务段（火车票）
+#   「深圳市福」x6  → 福田区 6 家大排档/小餐馆（差旅餐饮）
+#   「深圳市龙」x6  → 龙华区/龙岗区餐馆、篮球协会、百货店
+#   「深圳市宝」x5  → 宝安区 5 家餐饮个体户
+# 即"前4字相同"绝大多数来自 ①行政区划巧合 ②同一法人主体的分支站点，而非同一控制人的壳公司群。
+# 修正：先剥行政区划（省/市/区/县/街道）→ 去组织形式与行业后缀 → 取 2 字字号；
+# 再剔除泛化字号（中国/华南/国际…）、分支站点群、跨城集团分支（上海滴滴/北京滴滴…）。
+_PROVINCES = ("北京", "天津", "上海", "重庆", "河北", "山西", "辽宁", "吉林", "黑龙江",
+              "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南",
+              "广东", "海南", "四川", "贵州", "云南", "陕西", "甘肃", "青海", "台湾",
+              "内蒙古", "广西", "西藏", "宁夏", "新疆", "香港", "澳门")
+_CITY_BY_LEN = tuple(sorted(set(list(_CHINA_CITIES_UNIFIED) + list(_PROVINCES)),
+                            key=len, reverse=True))
+_ADMIN_TAIL = ("自治区", "自治州", "办事处", "街道", "地区", "省", "市", "区", "县", "旗",
+               "镇", "乡")
+_ORG_SUFFIX_RE = re.compile(
+    r"(股份有限公司|有限责任公司|有限公司|集团公司|集团有限公司|个体户|个体工商户|"
+    r"经营部|商行|服务中心|中心|工厂|厂|店|部|馆)")
+_BRACKET_RE = re.compile(r"[（(].*?[)）]")
+# 泛化字号：央企/全国性机构/方位词，相同不代表同一控制人
+_GENERIC_BRANDS = {"中国", "中华", "华南", "华东", "华北", "华中", "西南", "西北", "东北",
+                   "南方", "北方", "国际", "集团"}
+# 分支站点：同一法人主体的下属网点，非"多家壳公司"
+_BRANCH_HINTS = ("分公司", "支公司", "营业部", "营业厅", "分行", "支行", "分店", "门店",
+                 "网点", "售票处", "车务段", "客运段", "机务段", "工务段", "电务段",
+                 "车站", "服务区", "收费站", "管理局", "铁路局", "专线")
+
+
+def _strip_admin_prefix(name):
+    """剥离名称开头的行政区划（省/市/区/县/旗/镇/乡/街道），用于提取真实字号。"""
+    s = _BRACKET_RE.sub("", str(name or "").strip())
+    for _ in range(4):
+        moved = False
+        for c in _CITY_BY_LEN:
+            if s.startswith(c):
+                s = s[len(c):]
+                moved = True
+                break
+        if not moved:
+            m = re.match(r"^[\u4e00-\u9fa5]{1,4}(区|县|旗|镇|乡|街道)", s)
+            if m:
+                s = s[m.end():]
+                moved = True
+        while s:  # 去掉紧随的行政层级后缀（自治区/市/区/县…）
+            for t in _ADMIN_TAIL:
+                if s.startswith(t) and len(s) > len(t) + 1:
+                    s = s[len(t):]
+                    moved = True
+                    break
+            else:
+                break
+        if not moved:
+            break
+    return s
+
+
+def _brand_of(name):
+    """取 2 字字号（剥离行政区划与组织形式后）。"""
+    return _ORG_SUFFIX_RE.sub("", _strip_admin_prefix(name))[:2]
+
+
+def _cities_in(name):
+    """名称中出现的城市/省份集合（用于识别跨城集团分支）。"""
+    return {c for c in _CITY_BY_LEN if c in str(name or "")}
+
+
+def _domain_supply_chain_deep(invoices, bank_txs, target_entity=None):
+    """供应商/客户多级穿透——虚开识别的核心武器。
+
+    target_entity（可选，2026-09-14 新增）：被检查企业主体信息，用于识别**本地城市**——
+    供应商集中在企业所在城市属正常本地采购半径，不得计入「地域群集」异常。
+    """
     findings = []
     if not invoices:
         findings.append({"type": "资料缺失-发票数据", "level": "中风险", "score": 7,
@@ -4667,38 +4739,77 @@ def _domain_supply_chain_deep(invoices, bank_txs):
             customers[buyer] += 1
             customer_amounts[buyer] += amt
     
-    # 供应商集中度（修正：仅取前3名切片，避免恒等于100%的计算错误）
+    # 供应商集中度（2026-09-14 纠偏）：
+    # ① 剔除平台/全国性服务商（京东、淘宝、电信、电网等）——它们不是"采购依赖对象"，
+    #    与**客户侧已剔除平台服务商**口径保持一致（此前仅客户侧剔除，供应商侧未剔除，口径不一）；
+    # ② 供应商家数过少时前3大占比天然接近 100%（3 家即恒等 100%），不构成"高度集中"，
+    #    故要求真实供应商≥8 家才下集中度结论——与 VR016 同一判据，避免两处口径打架；
+    # ③ 集中度本身不是违规，定级「待核验」并列出正常解释（独家代理/长协/产地集中/集团统采）。
+    _MIN_SUPPLIERS_FOR_CR3 = 8
     if suppliers:
-        total_pur = sum(supplier_amounts.values())
-        top3_ratio = sum(a for _, a in sorted(supplier_amounts.items(), key=lambda x: -x[1])[:3]) / max(total_pur, 1)
-        if top3_ratio > T.industry_thresholds.concentration_high:
+        sup_real = {n: a for n, a in supplier_amounts.items() if not _is_platform_operator(n)}
+        total_pur = sum(sup_real.values())
+        top3_ratio = sum(a for _, a in sorted(sup_real.items(), key=lambda x: -x[1])[:3]) / max(total_pur, 1)
+        if (top3_ratio > T.industry_thresholds.concentration_high
+                and len(sup_real) >= _MIN_SUPPLIERS_FOR_CR3):
             findings.append({
-                "type": f"前3大供应商占比{top3_ratio*100:.2f}%——高度集中",
-                "level": "中风险", "score": 6,
-                "detail": f"共{len(suppliers)}家供应商，前3家占采购额{top3_ratio*100:.2f}%。",
-                "description": "供应商高度集中增加单一依赖风险，如果主要供应商为空壳公司或关联方则风险巨大。",
-                "how_found": f"top3供应商金额÷总采购={top3_ratio*100:.2f}%>70%。",
-                "suggestion": "对前3大供应商做穿透：工商登记/纳税信用/关联关系/物流入库记录。",
+                "type": f"前3大供应商占比{top3_ratio*100:.2f}%——集中度待核",
+                "level": "待核验", "score": 4,
+                "detail": f"共{len(sup_real)}家真实供应商（已剔除京东/淘宝/电信/电网等平台与全国性服务商），"
+                          f"前3家占采购额{top3_ratio*100:.2f}%。",
+                "description": "采购集中于少数供应商在独家代理、长期协议、行业原料产地集中、集团统一采购等情形下"
+                               "均属正常商业安排，本身不构成违规；须结合供应商工商状态、关联关系、"
+                               "合同与货物流判断是否为空壳公司或关联方。",
+                "how_found": f"top3真实供应商金额÷真实采购总额={top3_ratio*100:.2f}%>"
+                             f"{T.industry_thresholds.concentration_high*100:.0f}%，"
+                             f"且供应商家数{len(sup_real)}≥{_MIN_SUPPLIERS_FOR_CR3}（家数过少时前3大占比天然偏高，不作结论）。",
+                "suggestion": "对前3大供应商做穿透：工商登记/纳税信用/关联关系/物流入库记录；"
+                              "如属独家代理或长期协议，请提供协议与商业合理性说明。",
                 "category": "上下游穿透"
             })
         
         # 名称相似度
         from collections import Counter as _c2
         name_prefixes = _c2()
-        for s in suppliers.keys():
-            if len(s) >= 4:
-                name_prefixes[s[:4]] += 1
+        # 平台/全国性服务商的多个主体（如"京东XX"）同属一个集团，不是"空壳公司群"，
+        # 与集中度口径一致地剔除（2026-09-14）。
+        for s in sup_real.keys():
+            br = _brand_of(s)
+            if len(br) >= 2:
+                name_prefixes[br] += 1
         for prefix, cnt in name_prefixes.most_common(5):
-            if cnt >= 3:
-                findings.append({
-                    "type": f"供应商名称群集'{prefix}'——{cnt}家疑似关联壳公司",
-                    "level": "高风险", "score": 8,
-                    "detail": f"{cnt}家供应商共享前缀'{prefix}'（共{len(suppliers)}家）。疑似同一控制人注册的空壳公司群。",
-                    "description": f"供应商名称高度相似是虚开发票典型特征——控制人注册多家空壳公司轮流向受票企业开票。",
-                    "how_found": f"供应商名称前4字聚类：'{prefix}'={cnt}次。",
-                    "suggestion": f"立即对以'{prefix}'开头的{cnt}家供应商做关联穿透：工商股东/注册地址/银行账户关联。",
-                    "category": "上下游穿透"
-                })
+            if cnt < 3:
+                continue
+            members = [s for s in sup_real if _brand_of(s) == prefix]
+            # ① 泛化字号（中国/华南/国际…）：央企与全国性机构共用，非同一控制人
+            if prefix in _GENERIC_BRANDS:
+                continue
+            # ② 分支站点群：同一法人主体的车站/营业部/分公司
+            tails = [str(s).split(prefix, 1)[-1] for s in members]
+            if all(any(h in t for h in _BRANCH_HINTS) for t in tails):
+                continue
+            # ③ 跨城集团分支：成员名称中城市互不相同（上海滴滴/北京滴滴/南京滴滴…）
+            cities = set()
+            for s in members:
+                cities |= _cities_in(s)
+            if len(cities) >= max(3, int(cnt * 0.6)):
+                continue
+            findings.append({
+                "type": f"供应商字号群集'{prefix}'——{cnt}家字号相同（待核）",
+                "level": "待核验", "score": 7,
+                "detail": f"{cnt}家供应商字号同为'{prefix}'（共{len(sup_real)}家真实供应商）："
+                          f"{'、'.join(str(m)[:20] for m in members[:5])}。",
+                "description": "多家供应商字号相同可能是同一控制人注册的关联公司（虚开发票的典型手法之一），"
+                               "也可能是同一企业集团的正常分支或同字号的不同经营主体。"
+                               "名称相似本身不构成结论，须以工商登记（股东/法定代表人/注册地址/代办机构）"
+                               "与交易实质（合同/物流/资金/入库）印证后方可定性。",
+                "how_found": f"供应商名称剥离行政区划与组织形式后取字号，'{prefix}'出现{cnt}次"
+                             f"（已剔除平台服务商、泛化字号、分支站点群与跨城集团分支）。",
+                "suggestion": f"对字号'{prefix}'的{cnt}家供应商做工商穿透："
+                              f"股东/法定代表人/注册地址/联系电话是否重合，是否同一代办机构注册；"
+                              f"并核对合同、物流与付款是否真实对应。",
+                "category": "上下游穿透"
+            })
     
     # 客户集中度（修正：剔除平台服务商后仅取前3名真实客户切片）
     # 平台运营商（天猫/阿里妈妈等）本质是非客户的服务费收款方，计入集中度会虚增占比并误标核心客户
@@ -4731,23 +4842,43 @@ def _domain_supply_chain_deep(invoices, bank_txs):
             "category": "上下游穿透"
         })
     
-    # 供应商地域群集
+    # 供应商地域群集（2026-09-14 纠偏）：
+    # ① **剔除企业所在城市**——供应商集中在本地是正常的采购半径，把"深圳企业向深圳供应商采购
+    #    73 家"当成空壳公司群是明显误报（同类错误也见于公司2「中山集中11家」）；
+    # ② 提高门槛至「同城≥5家且占真实供应商30%以上」——3 家即报会让任何稍有聚集的采购都中招；
+    # ③ 定级「待核验」：同城集中首先指向产业集群/区域经销体系，须先核实再定性。
     if suppliers:
-        import re as _sr
+        # 本企业所在城市（名称或注册地址中首个匹配到的城市）
+        _local_city = ""
+        _te = target_entity or {}
+        for _src in (_te.get("name"), _te.get("company_name"),
+                     _te.get("registered_address"), _te.get("地址")):
+            _m = _CHINA_CITY_REGEX.search(str(_src or ""))
+            if _m:
+                _local_city = _m.group(1)
+                break
         city_clusters = _c2()
-        for s in suppliers.keys():
+        for s in sup_real.keys():
             m = _CHINA_CITY_REGEX.match(s)
             if m:
                 city_clusters[m.group(1)] += 1
         for city, cnt in city_clusters.most_common(5):
-            if cnt >= 3 and cnt >= len(suppliers) * 0.15:
+            if city == _local_city:
+                continue  # 本地采购半径内的集中属正常
+            if cnt >= 5 and cnt >= len(sup_real) * 0.30:
                 findings.append({
-                    "type": f"供应商地域群集——{city}集中{cnt}家供应商",
-                    "level": "中风险", "score": 7 if cnt >= 5 else 5,
-                    "detail": f"{city}地区供应商{cnt}家，占{len(suppliers)}家的{cnt/len(suppliers)*100:.2f}%。",
-                    "description": f"供应商同城集中可能正常（产业集群）也可能是同一注册代办机构的空壳公司群。",
-                    "how_found": f"供应商企业名称城市关键词聚类：{city}={cnt}家。",
-                    "suggestion": f"核实{city}是否有该产业集群。如否，对{city}供应商做工商穿透。",
+                    "type": f"供应商地域群集——{city}集中{cnt}家供应商（待核）",
+                    "level": "待核验", "score": 4,
+                    "detail": f"{city}地区供应商{cnt}家，占{len(sup_real)}家真实供应商的{cnt/len(sup_real)*100:.2f}%"
+                              + (f"（已剔除本地{_local_city}供应商）" if _local_city else "") + "。",
+                    "description": f"供应商同城集中在产业集群（如义乌小商品、深圳电子、绍兴纺织）、"
+                                   f"区域经销体系或行业服务商聚集地等情形下均属正常；"
+                                   f"仅在同时出现名称近似、同一注册地址/代办机构、新设即大额开票等特征时，"
+                                   f"才指向同一控制人的空壳公司群。",
+                    "how_found": f"供应商企业名称城市关键词聚类：{city}={cnt}家，占{cnt/len(sup_real)*100:.0f}%"
+                                 f"（门槛：同城≥5家且占比≥30%，且不含本企业所在城市）。",
+                    "suggestion": f"核实{city}是否存在该产业集群或区域经销体系；"
+                                  f"如无合理解释，对{city}供应商做工商穿透（股东/注册地址/纳税信用）。",
                     "category": "上下游穿透"
                 })
     

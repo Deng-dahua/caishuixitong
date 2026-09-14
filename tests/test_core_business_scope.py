@@ -70,26 +70,56 @@ class SupplierGeoCoreScopeTests(unittest.TestCase):
         return {"id": "VR016", "name": "供应商地域分布与跨省核验", "required_sources": ["pur_invs"]}
 
     def test_expense_invoices_excluded_from_geo(self):
-        # 主营采购集中 2 省 + 大量遍布全国的差旅报销发票
+        """2026-09-14 重编：差旅报销类费用发票不得计入「采购来源地」统计。
+
+        用例设计要点：酒店发票每户 2 万元（已超过 1 万元小额门槛），若口径未剔除，
+        会把供应商户数从 3 拉到 23、地区从 2 个拉到 22 个——据此可判定剔除是否生效。
+        """
         pur = []
-        for i in range(5):
-            pur.append(_inv("*纺织产品*纱线", 100000, seller=f"河南纺织原料{i}公司"))
-        for i in range(3):
-            pur.append(_inv("*纺织产品*棉纱", 80000, seller=f"浙江纱线{i}公司"))
-        # 差旅报销：20 家不同省份的酒店/餐饮
+        for nm in ("浙江纱线甲有限公司", "浙江纱线乙有限公司", "广东布行丙有限公司"):
+            pur.append(_inv("*纺织产品*纱线", 400000, seller=nm))
         cities = ["北京", "上海", "广州", "深圳", "杭州", "南京", "武汉", "成都", "西安", "天津",
                   "重庆", "青岛", "大连", "厦门", "福州", "长沙", "郑州", "合肥", "昆明", "贵阳"]
-        for i, c in enumerate(cities):
-            pur.append(_inv("*住宿服务*房费", 300, seller=f"{c}大酒店"))
-        data = {"pur_invs": pur, "sal_invs": []}
+        for c in cities:
+            pur.append(_inv("*住宿服务*房费", 20000, seller=f"{c}大酒店"))
+        data = {"pur_invs": pur, "sal_invs": [],
+                "target_entity": {"name": "河南某某纺织有限公司"}}
         findings = _scan_supplier_geo(data, self._spec())
         self.assertTrue(findings, "应产生供应商地域分布发现")
-        detail = findings[0]["detail"]
-        self.assertIn("主营业务成本口径", detail)
-        # 主营口径下只应统计 2 个省份（河南+浙江），而非 22 个
-        self.assertIn("分布在2个省份", detail)
-        metrics = findings[0]["observed_metrics"]
-        self.assertEqual(metrics.get("scope"), "core_cost")
+        m = findings[0]["observed_metrics"]
+        self.assertEqual(m.get("scope"), "core_cost")
+        self.assertEqual(m.get("supplier_count"), 3, "酒店报销不得计入供应商户数")
+        self.assertEqual(m.get("province_count"), 2, "20 个城市的报销发票不得计入地域分布")
+        self.assertAlmostEqual(m.get("total_amount"), 1200000.0, places=2)
+        self.assertEqual(findings[0]["level"], "待核验")
+
+    def test_few_suppliers_cross_province_is_normal(self):
+        """2026-09-14 重编：供应商本就 3 家时 CR3 恒为 100%，不得据此判「高度集中」。
+
+        场景：河南纺织厂，本地 1 家 + 浙江/江苏各 1 家（异地 60%），有入库佐证。
+        这是「少而稳」的长期合作供应链，完全正常。
+        """
+        pur = [_inv("*纺织产品*纱线", 400000, seller="河南本地纺织有限公司"),
+               _inv("*纺织产品*棉纱", 300000, seller="浙江纱线有限公司"),
+               _inv("*纺织产品*布匹", 300000, seller="江苏布行有限公司")]
+        data = {"pur_invs": pur, "sal_invs": [],
+                "target_entity": {"name": "河南某某纺织有限公司"},
+                "inventory": [{"品名": "纱线", "数量": 10}]}
+        findings = _scan_supplier_geo(data, self._spec())
+        self.assertEqual(findings, [], "少供应商 + 异地 60% + 有入库佐证 → 正常，不得报")
+
+    def test_many_suppliers_high_cr3_remote_triggers(self):
+        """2026-09-14 重编：供应商≥8 家且前三大占 70% 以上又全部异地 → 才构成集中度异常。"""
+        pur = [_inv("*纺织产品*纱线", 300000, seller="浙江纱线甲有限公司"),
+               _inv("*纺织产品*纱线", 300000, seller="浙江纱线乙有限公司"),
+               _inv("*纺织产品*布匹", 250000, seller="广东布行丙有限公司")]
+        for i in range(7):
+            pur.append(_inv("*纺织产品*辅料", 30000, seller=f"广东辅料{i}有限公司"))
+        data = {"pur_invs": pur, "sal_invs": [],
+                "target_entity": {"name": "河南某某纺织有限公司"}}
+        findings = _scan_supplier_geo(data, self._spec())
+        self.assertTrue(findings, "多供应商 + 高度集中 + 全异地应触发")
+        self.assertIn("采购高度集中", findings[0]["detail"])
 
     def test_fallback_when_core_insufficient(self):
         # 主营识别不充分（费用类占大头）→ 降级全量并声明口径

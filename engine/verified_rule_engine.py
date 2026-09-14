@@ -184,14 +184,18 @@ VERIFIED_RULE_CATALOG = [
     },
     {
         "id": "VR016",
-        "name": "供应商地域分布与跨省核验",
+        "name": "供应商集中度与地域分布核验",
         "layer": "交易关系交叉规则",
         "industries": ["ALL"],
         "taxes": ["增值税", "企业所得税"],
         "lifecycle": ["采购与取得"],
         "required_sources": ["pur_invs"],
         "status": "verified_executable_screening",
-        "limitation": "跨省采购在原料产地集中、大宗采购或集团协同中可能正常；须按合同、物流和实际交付核验业务真实性。",
+        "limitation": "供应商集中（独家代理、长期协议、集团统采）与地域分散（全国采购、电商平台、行业产地）"
+                      "本身均属正常经营形态，不构成违规；本规则仅在「采购金额重大 + 异地占比高 + 至少一项异常特征」"
+                      "同时成立时输出待核线索，定级「待核验」而非「中风险」。已剔除全国性平台供应商（京东/淘宝/电信/电网等）"
+                      "与单户不足1万元的小额零星；服务类采购本无运输与入库，不以「无物流」为异常特征；"
+                      "无法判定本省时不下地域结论。须按合同、物流、入库验收与实际交付核验业务真实性。",
     },
     {
         "id": "VR017",
@@ -2037,63 +2041,169 @@ def _scan_invoice_goods_missing(data, spec):
 
 
 def _scan_supplier_geo(data, spec):
+    """VR016 供应商集中度与地域分布核验（2026-09-14 重编）。
+
+    判据纠偏：原实现只要「主营成本供应商≥3家且涉及≥2个省份」就判「调查优先级」，
+    等于把**任何跨省采购**（电商下单、全国招标、行业产地集中）都当成虚开通道嫌疑。
+    但现实是：供应商集中是正常的（议价能力、长期协议、独家代理）；地域分散也是正常的
+    （全国性采购、电商平台、行业产地分布）。**两者本身都不是问题**。
+
+    真正的通道特征是**组合 + 实质缺失**：
+      ① 剔除**全国性/平台类**供应商（京东/淘宝/电信/电网/顺丰等）——它们不代表"产地"；
+      ② 剔除**小额零星**供应商——办公通讯差旅不构成"采购来源地"；
+      ③ 计算 集中度（CR3）与 异地金额占比（须有本省可比）；
+      ④ 触发须同时满足：金额够大（≥100万）+ 异地占比高（≥60%）+ 至少一项异常特征
+         （CR3≥70% 的"集中且异地" / 单一外省≤3家却占≥50% / 异地且无运输·入库佐证）；
+      ⑤ 未命中组合条件 → **不报**（正常跨省经营）。
+    文案同时给出**正常解释清单**（独家代理、行业产地集中、集团统采、电商平台），供企业举证。
+    """
     pur = data.get("pur_invs", []) or []
     if not pur:
         return []
-    # ── 主营成本口径（2026-09-05）：税务稽查员只对主营业务成本做地域与集中度分析，
-    #    日常报销（餐饮/住宿/汽油）与重大费用（房租/咨询）发票不应混入供应商统计，
-    #    否则会把费用发票供应商误计入"采购来源地"，导致地域分布失真。 ──
     from engine.main_biz_cost import identify_main_biz_cost
     _cls = identify_main_biz_cost(pur, data.get("sal_invs") or [])
     core_invs = _cls.get("core_cost_invs") or []
     all_total = sum(_number(r.get("amount")) for r in pur)
     core_total = sum(_number(r.get("amount")) for r in core_invs)
     if core_invs and all_total > 0 and core_total / all_total >= 0.5:
-        scope = core_invs
-        scope_note = "（按主营业务成本口径，已剔除日常报销与费用类发票）"
+        scope, scope_note = core_invs, "（按主营业务成本口径，已剔除日常报销与费用类发票）"
     else:
-        scope = pur
-        scope_note = "（主营业务成本识别不充分，暂按全部进项发票统计）"
-    suppliers = defaultdict(lambda: {"amount": 0.0, "count": 0, "province": None})
+        scope, scope_note = pur, "（主营业务成本识别不充分，暂按全部进项发票统计）"
+
+    # 全国性/平台类供应商：不代表"采购产地"，剔除后不计入地域分布
+    _PLATFORM_SUPPLIER_KWS = (
+        "京东", "天猫", "淘宝", "阿里巴巴", "阿里", "苏宁", "国美", "拼多多", "唯品会",
+        "亚马逊", "美团", "饿了么", "滴滴", "携程", "同程", "去哪儿", "飞猪", "字节跳动",
+        "腾讯", "百度", "网易", "中国移动", "中国联通", "中国电信", "国家电网", "南方电网",
+        "顺丰", "中通", "圆通", "申通", "韵达", "邮政", "中国铁路", "12306", "石化", "石油",
+    )
+    # 小额零星供应商不构成"采购来源地"（阈值为单供应商累计 1 万元）
+    MIN_SUPPLIER_AMOUNT = 10000.0
+    # 触发下限：采购金额太小无核验价值
+    MIN_TOTAL_AMOUNT = 1000000.0
+
+    suppliers = defaultdict(lambda: {"amount": 0.0, "count": 0, "province": ""})
+    excluded_platform = 0
     for row in scope:
         name = str(row.get("seller") or row.get("销方名称") or "").strip()
         if not name:
             continue
+        if any(k in name for k in _PLATFORM_SUPPLIER_KWS):
+            excluded_platform += 1
+            continue
         entry = suppliers[name]
         entry["amount"] += _number(row.get("amount"))
         entry["count"] += 1
-        if entry["province"] is None:
+        if not entry["province"]:
             entry["province"] = _province_of(name)
+    # 剔除小额零星
+    suppliers = {n: e for n, e in suppliers.items() if e["amount"] >= MIN_SUPPLIER_AMOUNT}
     if len(suppliers) < 3:
         return []
-    provinces = defaultdict(lambda: {"amount": 0.0, "count": 0})
-    for name, entry in suppliers.items():
-        province = entry["province"] or "未知"
-        provinces[province]["amount"] += entry["amount"]
-        provinces[province]["count"] += 1
-    cross_province = [p for p in provinces if p != "未知"]
-    if len(cross_province) < 2:
+    total_amount = sum(e["amount"] for e in suppliers.values())
+    if total_amount < MIN_TOTAL_AMOUNT:
         return []
-    total_amount = sum(entry["amount"] for entry in suppliers.values())
-    top_provinces = sorted(provinces.items(), key=lambda item: -item[1]["amount"])
-    detail_parts = []
-    for province, agg in top_provinces[:5]:
-        ratio = (agg["amount"] / total_amount * 100) if total_amount else 0
-        detail_parts.append(f"{province}{agg['count']}家{agg['amount']:,.0f}元({ratio:.0f}%)")
+
+    # 本省：优先取被检查企业自身名称/地址所在省
+    target = data.get("target_entity") or {}
+    local_province = _province_of(target.get("name") or target.get("company_name")
+                                 or target.get("地址") or target.get("registered_address") or "")
+
+    by_province = defaultdict(lambda: {"amount": 0.0, "count": 0})
+    for name, e in suppliers.items():
+        p = e["province"] or "未知"
+        by_province[p]["amount"] += e["amount"]
+        by_province[p]["count"] += 1
+
+    ranked = sorted(suppliers.items(), key=lambda kv: -kv[1]["amount"])
+    cr3 = sum(e["amount"] for _, e in ranked[:3]) / total_amount
+    top1_name, top1 = ranked[0]
+
+    # 异地（本省可比时才计算；无法判定本省 → 只报集中度，不下地域结论）
+    cross = {p: v for p, v in by_province.items() if p not in ("未知",) and p != local_province}
+    cross_amount = sum(v["amount"] for v in cross.values())
+    cross_ratio = cross_amount / total_amount if total_amount else 0.0
+
+    top_cross = sorted(cross.items(), key=lambda kv: -kv[1]["amount"])
+    top_cross_name, top_cross_agg = (top_cross[0] if top_cross else ("", {"amount": 0, "count": 0}))
+    top_cross_ratio = top_cross_agg["amount"] / total_amount if total_amount else 0.0
+
+    breakdown = "、".join(
+        f"{p}{v['count']}家{v['amount']:,.0f}元({v['amount'] / total_amount * 100:.0f}%)"
+        for p, v in sorted(by_province.items(), key=lambda kv: -kv[1]["amount"])[:6]
+    )
+    has_logistics = bool(data.get("transport_contracts")) or bool(
+        data.get("inventory_ledger") or data.get("inventory"))
+    # 货物 vs 服务：服务类采购（广告/咨询/信息/租赁等，税收分类编码 3 开头）本就没有运输与入库，
+    # 不能用"无物流"作为异常特征——否则对服务业企业系统性误报（2026-09-14）。
+    _svc_rows = _goods_rows = 0
+    for _r in scope:
+        _nm = str(_r.get("seller") or "").strip()
+        if not _nm or any(k in _nm for k in _PLATFORM_SUPPLIER_KWS):
+            continue
+        _tc = str(_r.get("tax_code") or _r.get("税收分类编码") or "")
+        _g = str(_r.get("goods") or _r.get("货物或应税劳务名称") or "")
+        if _tc.startswith("3") or any(k in _g for k in
+                                      ("服务", "费", "租赁", "咨询", "广告", "策划",
+                                       "技术", "信息", "设计", "推广", "会展", "佣金")):
+            _svc_rows += 1
+        else:
+            _goods_rows += 1
+    goods_like = _goods_rows >= _svc_rows
+
+    # ── 组合触发：金额够大 + 异地占比高 + 至少一项异常特征 ──
+    reasons = []
+    if local_province and cross_ratio >= 0.6:
+        # 集中度只有在**供应商家数足够多**时才有意义：仅 3~5 家长期合作供应商时
+        # 前三大占比天然接近 100%（CR3 恒高），此时"集中"是正常的议价与协议结果，
+        # 不能当作异常特征——否则任何"少而稳"的供应链都会被误判（2026-09-14）。
+        if cr3 >= 0.70 and len(suppliers) >= 8:
+            reasons.append(f"采购高度集中（{len(suppliers)}家供应商中前三大占{cr3:.0%}）**且**以异地为主"
+                           f"（异地占{cross_ratio:.0%}）——在多供应商前提下仍高度集中且异地，"
+                           "是通道企业的典型形态（集中却无地缘合理性）")
+        if top_cross_ratio >= 0.50 and top_cross_agg["count"] <= 3:
+            reasons.append(f"单一外省「{top_cross_name}」由{top_cross_agg['count']}家供应商占{top_cross_ratio:.0%}，"
+                           "明显缺少真实产业分布的支撑")
+        if not has_logistics and goods_like:
+            reasons.append(f"异地采购占{cross_ratio:.0%}却未提供任何运输合同与入库记录，货物流无从印证")
+    if not reasons:
+        return []
+
+    detail = (f"主营成本供应商（已剔除京东/淘宝/电信/电网等全国性平台供应商{excluded_platform}笔、"
+              f"及单户累计不足1万元的小额零星）共{len(suppliers)}家、涉及{len(by_province)}个地区，"
+              f"采购金额合计{total_amount:,.2f}元{scope_note}。分布：" + breakdown + "。"
+              f"其中前三大供应商占{cr3:.0%}（最大「{top1_name[:20]}」占{top1['amount'] / total_amount:.0%}）"
+              + (f"，异地采购占{cross_ratio:.0%}" if local_province else "")
+              + "。须核查：" + "；".join(reasons) + "。"
+              "正常解释包括：独家代理或长期协议采购、行业原料产地本就集中、集团统一采购后分配、"
+              "电商平台或全国性服务商采购——请提供采购合同、物流单据、入库验收与资金流水予以印证。")
+
     return [_finding(
         spec,
-        f"进项发票供应商分布在{len(cross_province)}个省份{scope_note}，前几大采购来源地：" + "、".join(detail_parts) + "。跨省分散采购需要核实各供应商资质、合同、物流和实际交付，识别是否存在无实质交易的票据流转。",
+        detail,
         {
             "supplier_count": len(suppliers),
-            "province_count": len(cross_province),
-            "province_breakdown": {p: {"count": v["count"], "amount": round(v["amount"], 2)} for p, v in top_provinces[:8]},
+            "province_count": len(by_province),
+            "excluded_platform_rows": excluded_platform,
+            "total_amount": round(total_amount, 2),
+            "cr3": round(cr3, 4),
+            "top1_ratio": round(top1["amount"] / total_amount, 4),
+            "local_province": local_province,
+            "cross_ratio": round(cross_ratio, 4),
+            "top_cross_province": top_cross_name,
+            "top_cross_ratio": round(top_cross_ratio, 4),
+            "province_breakdown": {p: {"count": v["count"], "amount": round(v["amount"], 2)}
+                                   for p, v in sorted(by_province.items(),
+                                                      key=lambda kv: -kv[1]["amount"])[:8]},
+            "has_logistics_evidence": has_logistics,
+            "reasons": reasons,
             "scope": "core_cost" if scope is core_invs else "all",
-            "core_cost_ratio": round(core_total / all_total, 4) if all_total else 0.0,
         },
         spec["required_sources"],
-        priority="调查优先级",
+        # 结构性特征不等于违法：集中度与地域分布均有多种正常解释（独家代理、产地集中、
+        # 集团统采、电商平台），故定级「待核验」而非「中风险」，交由企业举证后裁决。
+        level="待核验", priority="中",
     )]
-
 
 def _scan_concentration(data, spec):
     sal = data.get("sal_invs", []) or []
