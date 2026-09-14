@@ -418,7 +418,7 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     bank_txs, invoices, salaries, social_security, vouchers, inventory, bom_data, export_data, rd_data = [], [], [], [], [], [], [], {}, {}
     input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
-    contract_data, related_party_data, trial_balance_data, fixed_assets = [], [], [], []
+    contract_data, related_party_data, trial_balance_data, fixed_assets, accounts_payable = [], [], [], [], []
     warehouse_contracts, transport_contracts = [], []  # 仓库租赁/运输合同台账（VR026/VR027证据源）
     tax_declarations = []  # 纳税申报表（增值税/企业所得税等），供票税账表勾稽
 
@@ -780,6 +780,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     elif ftype == "related_party": related_party_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条关联交易")
                     elif ftype == "trial_balance": trial_balance_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条科目余额")
                     elif ftype == "fixed_assets": fixed_assets.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条固定资产")
+                    elif ftype == "accounts_payable": accounts_payable.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条应付账款明细")
                     elif ftype in ("vat_declaration", "cit_declaration", "tax_declaration", "individual_tax", "stamp_duty", "tax_payment"):
                         # 纳税申报表：优先取 declaration 结构化字段，否则用通用 rows
                         decl = parsed.get("declaration")
@@ -2445,6 +2446,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "bom": bom_data,                       # 规则层声明 bom（BOM 物料清单）
                 "transport_contracts": transport_contracts,
                 "fixed_assets": fixed_assets,          # 固定资产（原缺上游路由）
+                "accounts_payable": accounts_payable,  # 应付账款明细（VR060 资金/负债双要件核验）
                 # 企业主体快照：名称/行业/经营范围/六员，供规则层作经营模式裁决
                 "target_entity": _target_snapshot,
                 "company_profile": (ctx.company_profile if ctx else {}) or {},
@@ -2510,6 +2512,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             ("bom", bom_data),                   # 规则层声明 bom（BOM 物料清单）
             ("transport_contracts", transport_contracts),
             ("fixed_assets", fixed_assets),      # 固定资产（原缺上游路由）
+            ("accounts_payable", accounts_payable),  # 应付账款明细（VR060）
+            ("trial_balance", trial_balance_data),   # 科目余额表（A/P 汇总兜底）
         ):
             _verified_data.setdefault(_k, _v)
         _verified_result = run_verified_rules(_verified_data)

@@ -171,8 +171,38 @@ class VRFundEvidenceRulesTests(unittest.TestCase):
 
         bank2 = [{"counterparty": "某无关公司", "debit": 1000, "credit": 0}]
         findings = _scan_core_cost_fund_evidence({"pur_invs": pur, "bank_txs": bank2}, self._spec("VR060"))
-        self.assertTrue(findings, "大额主营成本无支付流水应触发")
-        self.assertIn("未匹配到任何对公支付流水", findings[0]["detail"])
+        self.assertTrue(findings, "大额主营成本无任何支付渠道痕迹应触发")
+        # 2026-09-14 重编：成本不必须银行支付；未提供应付账款明细时列待核线索并要求补正，
+        # 不作"成本真实性存疑"的定性。
+        self.assertIn("未匹配到任何支付渠道", findings[0]["detail"])
+        self.assertIn("应付账款明细", findings[0]["detail"])
+        self.assertNotIn("成本真实性存疑", findings[0]["detail"])
+
+    def test_vr060_ap_mounted_is_normal(self):
+        """2026-09-14 重编：已挂应付账款（赊购）属正常闭环，不得仅凭"无付款"出结论。"""
+        from engine.verified_rule_engine import _scan_core_cost_fund_evidence
+        # 数据期末(2026-03-31)距发票日 284 天：已超账期窗口、但未超 1 年 → 既非"资料未覆盖"也非"长期挂账"
+        pur = [{"seller": "河南纺织原料有限公司", "goods": "*纺织产品*纱线",
+                "amount": 500000, "date": "2025-06-20"}]
+        bank = [{"counterparty": "某无关公司", "debit": 1000, "credit": 0, "date": "2026-03-31"}]
+        ap = [{"供应商": "河南纺织原料有限公司", "应付金额": 500000, "账期": "账期90天"}]
+        findings = _scan_core_cost_fund_evidence(
+            {"pur_invs": pur, "bank_txs": bank, "accounts_payable": ap}, self._spec("VR060"))
+        self.assertEqual(findings, [], "已挂应付账款的赊购不应触发")
+
+    def test_vr060_no_ap_balance_is_true_gap(self):
+        """2026-09-14 重编：提供了应付明细但无该供应商挂账 → 真异常（调查优先级）。"""
+        from engine.verified_rule_engine import _scan_core_cost_fund_evidence
+        pur = [{"seller": "虚构供应商有限公司", "goods": "*纺织产品*纱线",
+                "amount": 500000, "date": "2025-06-20"}]
+        bank = [{"counterparty": "某无关公司", "debit": 1000, "credit": 0, "date": "2026-03-31"}]
+        ap = [{"供应商": "另一家供应商", "应付金额": 88888, "账期": "账期90天"}]
+        findings = _scan_core_cost_fund_evidence(
+            {"pur_invs": pur, "bank_txs": bank, "accounts_payable": ap}, self._spec("VR060"))
+        gap = [f for f in findings if f.get("priority") == "调查优先级"]
+        self.assertTrue(gap, "既无付款又无挂账应列调查优先级")
+        self.assertIn("无对应挂账", gap[0]["detail"])
+        self.assertEqual(gap[0].get("redline_id"), "RL-PTY-001")
 
     def test_vr060_person_paid_large_triggered(self):
         from engine.verified_rule_engine import _scan_core_cost_fund_evidence
@@ -185,8 +215,8 @@ class VRFundEvidenceRulesTests(unittest.TestCase):
             {"counterparty": "王小明", "debit": 150000, "credit": 0},
         ]
         findings = _scan_core_cost_fund_evidence({"pur_invs": pur, "bank_txs": bank}, self._spec("VR060"))
-        person_hits = [f for f in findings if "个人账户垫付" in f["detail"]]
-        self.assertTrue(person_hits, "大额个人垫付应触发三流不一致风险")
+        person_hits = [f for f in findings if "个人账户支付" in f["detail"]]
+        self.assertTrue(person_hits, "大额个人垫付应提示三流分离与五项约束")
 
     def test_vr061_person_inflow_evidence(self):
         from engine.verified_rule_engine import _scan_revenue_receipt_evidence

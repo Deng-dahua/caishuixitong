@@ -821,14 +821,14 @@ VERIFIED_RULE_CATALOG = [
     },
     {
         "id": "VR060",
-        "name": "主营业务成本资金证据链核验",
+        "name": "主营业务成本资金与负债证据链核验",
         "layer": "资金证据链规则",
         "industries": ["ALL"],
         "taxes": ["增值税", "企业所得税"],
         "lifecycle": ["采购与取得", "收付款与资金结算"],
         "required_sources": ["pur_invs", "bank_txs"],
         "status": "verified_executable_screening",
-        "limitation": "主营业务成本必须有真实的资金支付印证：对公流水匹配为强证据；个人垫付后报销发票流与资金流分离须核验；无任何支付记录指向挂账未付、虚开发票或发票未入账三种现实情形。无银行流水数据时不触发本规则（资料缺失由受阻检查章节覆盖）。",
+        "limitation": "成本**不必须银行支付**（票据、平台代付、个人垫付、现金、债务抵销均属合法渠道）；赊购是常态，年末开票次年付款极普遍。故判据为双要件：每笔成本「有付款」或「有应付账款挂账」二者至少其一；二者皆无（且已放宽跨期窗口、排除票据与抵销后）才列为待核。未提供应付账款明细时降级为资料质量提示，不凭空定罪。无银行流水数据时不触发本规则（资料缺失由受阻检查章节覆盖）。",
         "derives_to": [
             {"child": "VR051", "link": "主营成本无资金印证 → 下达补证责令单",
              "analyze": "逐笔核验无支付记录的主营成本发票：应付账款账龄、后续付款、报销凭证、供应商真实收款",
@@ -5422,15 +5422,21 @@ def _scan_cash_vouchers(vouchers):
 
 
 def _scan_core_cost_fund_evidence(data, spec):
-    """VR060 主营业务成本资金证据链核验（2026-09-05）。
+    """VR060 主营成本资金/负债证据链核验（2026-09-14 重编）。
 
-    税务稽查员的证据链思维：主营业务成本必须有真实的资金支付印证。
-      - 对公流水匹配（含平台代付）→ 交易真实性强 ✓
-      - 个人垫付后报销         → 发票流与资金流分离，三流不一致（大额即风险）
-      - 没有任何支付记录       → 挂账未付 / 虚开发票 / 发票未入账三种现实情形
+    判据纠偏（原实现只做「对公流水匹配」，与红线 RL-PTY-001 的构成要件脱节）：
+      · 成本**不必须银行支付**——票据、平台代付、个人垫付、现金、债务抵销均属合法渠道；
+      · 赊购是常态，年末开票次年付款极普遍 → 「无付款」必须有「应付账款挂账」兜底；
+      · 二者皆无 → 成本凭空列支（虚列成本 / 票未入账 / 已用其他资金支付）→ 待核。
 
-    铁律：没有银行流水数据时不触发（"无支付记录"必须基于流水数据的比对，
-    流水缺失本身是资料缺失问题，由受阻检查章节覆盖，绝不凭空说"无支付"）。
+    四层判据链：
+      L0 主体识别：identify_main_biz_cost 三层分类，本规则只看主营业务成本；
+      L1 支付渠道：对公转账/平台代付/个人垫付（fund_matching）+ 票据/抵销/现金/跨期
+                   （payment_channel，窗口 = 发票日 −30 ~ +180 天）；
+      L2 账面负债：应付账款明细（ap_aging）；未提供明细时降级为资料质量提示，不凭空定罪；
+      L3 分层输出：资料质量 / 待核线索（无付款且无挂账）/ 长期挂账 / 渠道合规；
+                   不再输出「成本真实性存疑」这类定性措辞。
+    铁律：没有银行流水数据时不触发——「无付款」必须基于流水比对，缺流水本身是资料问题。
     """
     pur = data.get("pur_invs", []) or []
     bank = data.get("bank_txs", []) or []
@@ -5438,6 +5444,9 @@ def _scan_core_cost_fund_evidence(data, spec):
         return []
     from engine.main_biz_cost import identify_main_biz_cost
     from engine.fund_matching import classify_core_cost_payment
+    from engine.ap_aging import build_ap_index, evaluate_ap
+    from engine.payment_channel import find_payment_evidence, window_exceeds_data
+
     _cls = identify_main_biz_cost(pur, data.get("sal_invs") or [])
     core_invs = _cls.get("core_cost_invs") or []
     if not core_invs:
@@ -5445,80 +5454,188 @@ def _scan_core_cost_fund_evidence(data, spec):
     evid = classify_core_cost_payment(core_invs, bank)
     totals = evid.get("totals") or {}
     total = totals.get("total") or 0
+    if total <= 0:
+        return []
     unpaid = totals.get("unpaid") or 0
     person = totals.get("person_paid") or 0
     company = totals.get("company_paid") or 0
     mismatch = totals.get("amount_mismatch") or 0
-    if total <= 0:
-        return []
     ratio = evid.get("evidence_ratio") or 0
+    vouchers = data.get("vouchers") or []
+
+    # 分析基准日（数据期末）：取银行流水日期最大值
+    _dates = sorted(str(tx.get("date") or "")[:10] for tx in bank if isinstance(tx, dict))
+    base_date = _dates[-1] if _dates else ""
+    base_label = base_date or "数据期末"
+
+    # ── L1：对「无任何流水」的发票做跨期 + 多渠道二次取证 ──
+    channel_stat = {}
+    covered, out_of_window, no_trace, beyond = [], [], [], []
+    for entry in evid.get("unpaid") or []:
+        row = entry.get("row") or {}
+        seller = str(row.get("seller") or row.get("销方名称") or "")
+        inv_date = str(row.get("date") or row.get("开票日期") or "")[:10]
+        amt = abs(_number(row.get("amount")))
+        # 账期窗口超出数据期末 → 付款可能发生在未提供的期间，属"资料未覆盖"，不归入"无付款"
+        if window_exceeds_data(inv_date, base_date):
+            beyond.append({"seller": seller[:24], "amount": round(amt, 2), "date": inv_date})
+            continue
+        pe = find_payment_evidence(seller, inv_date, bank, vouchers, invoice_amount=amt)
+        if pe.get("channels"):
+            for ch, n in pe["channels"].items():
+                channel_stat[ch] = channel_stat.get(ch, 0) + n
+            covered.append({"seller": seller[:24], "amount": round(amt, 2), "date": inv_date,
+                            "channels": sorted(pe["channels"].keys())})
+        elif pe.get("same_name_out_of_window"):
+            out_of_window.append({"seller": seller[:24], "amount": round(amt, 2), "date": inv_date,
+                                  "note": "同名付款但超出账期窗口"})
+        else:
+            no_trace.append({"row": row, "seller": seller, "amount": amt, "date": inv_date})
+
+    # ── L2：对「无任何痕迹」的发票核应付账款挂账 ──
+    ap_index = build_ap_index(data.get("accounts_payable") or [],
+                              data.get("trial_balance") or [])
+    true_gap, long_aging, no_detail = [], [], []
+    for it in no_trace:
+        st = evaluate_ap(it["seller"], it["date"], base_date, ap_index)
+        it["ap"] = st
+        if st["status"] == "有挂账":
+            if st["long_aging"]:
+                long_aging.append(it)
+        elif st["status"] == "无挂账":
+            true_gap.append(it)
+        else:
+            no_detail.append(it)
+
+    def _sum(items):
+        return round(sum(i["amount"] for i in items), 2)
+
+    def _examples(items, n=5):
+        return "、".join("%s(%s元)" % (i["seller"][:20], format(i["amount"], ",.0f"))
+                         for i in sorted(items, key=lambda x: -x["amount"])[:n])
 
     findings = []
-    # ── 信号一：主营成本无支付记录（挂账/虚开/未入账）──
-    if unpaid >= 50000 or (unpaid / total >= 0.10):
-        unpaid_rows = [e["row"] for e in evid["unpaid"]]
-        examples = "、".join(
-            f"{str(r.get('seller') or '未知供应商')}({_number(r.get('amount')):,.0f}元)"
-            for r in sorted(unpaid_rows, key=lambda x: -_number(x.get("amount")))[:5]
-        )
+    common = {
+        "core_cost_total": round(total, 2),
+        "company_paid_amount": round(company, 2),
+        "person_paid_amount": round(person, 2),
+        "amount_mismatch_amount": round(mismatch, 2),
+        "no_flow_amount": round(unpaid, 2),
+        "evidence_ratio": ratio,
+        "covered_by_other_channel_amount": _sum(covered),
+        "out_of_window_amount": _sum(out_of_window),
+        "channel_stat": channel_stat,
+        "ap_detail_provided": bool(ap_index.get("has_detail")),
+        "analysis_base_date": base_date,
+    }
+
+    # ── ① 待核线索：既无付款、又无应付挂账（真异常）──
+    if true_gap:
+        gap_amt = _sum(true_gap)
         findings.append(_finding(
             spec,
-            f"主营业务成本中有{unpaid:,.2f}元（占主营成本{unpaid / total * 100:.1f}%）未匹配到任何对公支付流水"
-            f"（含银行转账与第三方平台代付），如{examples}。"
-            "现实中存在三种可能：①货已收但款未付（挂账应付，须核验应付账款账龄与后续付款）；"
-            "②员工个人垫付后报销（发票流与资金流分离，须核验报销凭证与供应商真实收款记录）；"
-            "③发票与真实交易不符（虚开发票或发票未入账）。须逐笔核验资金去向。",
-            {
-                "core_cost_total": round(total, 2),
-                "unpaid_amount": round(unpaid, 2),
-                "unpaid_ratio": round(unpaid / total, 4),
-                "person_paid_amount": round(person, 2),
-                "company_paid_amount": round(company, 2),
-                "amount_mismatch_amount": round(mismatch, 2),
-                "evidence_ratio": ratio,
-                "unpaid_examples": examples,
-            },
+            "主营业务成本中有%s元（%d笔）既未匹配到任何支付渠道（对公转账/平台代付/票据结算/"
+            "个人垫付/现金/债务抵销，且已放宽至发票日后180天跨期窗口），账面应付账款明细中"
+            "也无对应挂账，如%s。成本列支的正常闭环是「有付款」或「有负债」二者至少其一；"
+            "两者皆无，可能为：① 成本无真实业务支撑（虚列）；② 发票未入账（账外列支）；"
+            "③ 已用其他资金支付但未在账面体现。须逐笔核验采购合同、入库/验收与资金去向。"
+            % (format(gap_amt, ",.2f"), len(true_gap), _examples(true_gap)),
+            dict(common, true_gap_amount=round(gap_amt, 2), true_gap_rows=len(true_gap),
+                 true_gap_examples=_examples(true_gap, 8),
+                 items=[{k: i[k] for k in ("seller", "amount", "date")}
+                        for i in sorted(true_gap, key=lambda x: -x["amount"])[:20]]),
             spec["required_sources"],
             priority="调查优先级",
         ))
-    # ── 信号二：主营成本经个人垫付（三流不一致，大额即风险）──
-    if person >= 100000 or (person / total >= 0.10 if total else False):
-        person_rows = [e["row"] for e in evid["person_paid"]]
-        examples = "、".join(
-            f"{str(r.get('seller') or '未知')}({_number(r.get('amount')):,.0f}元)"
-            for r in sorted(person_rows, key=lambda x: -_number(x.get("amount")))[:5]
-        )
+
+    # ── ② 长期挂账：有应付挂账但账龄超 1 年 ──
+    if long_aging:
+        la_amt = _sum(long_aging)
         findings.append(_finding(
             spec,
-            f"主营业务成本中{person:,.2f}元（占主营成本{person / total * 100:.1f}%）经个人账户垫付支付，如{examples}。"
-            "发票开给企业、款项由个人支付，发票流与资金流分离，不符合三流一致要求。"
-            "须核验：①报销凭证是否完整、②供应商是否真实收到款项、③是否存在借用个人主体虚开发票或虚列成本。",
-            {
-                "person_paid_amount": round(person, 2),
-                "person_paid_ratio": round(person / total, 4) if total else 0.0,
-                "person_paid_examples": examples,
-                "evidence_ratio": ratio,
-            },
+            "主营业务成本中有%s元（%d笔）未付款、账面已挂应付账款但账龄已超过一年"
+            "（基准日 %s），如%s。长期挂账须核实原因：① 资金紧张或账期未到；"
+            "② 质量争议、退货未决；③ 对方已注销或无法支付（依法应转营业外收入，否则少计"
+            "应纳税所得额）；④ 已以抵账协议、以货抵款等方式抵销但未销账。"
+            "请提供应付账款账龄表与后续付款、结算记录。"
+            % (format(la_amt, ",.2f"), len(long_aging), base_label, _examples(long_aging)),
+            dict(common, long_aging_amount=round(la_amt, 2), long_aging_rows=len(long_aging),
+                 long_aging_examples=_examples(long_aging, 8)),
             spec["required_sources"],
-            priority="调查优先级",
+            level="待核验", priority="中",
         ))
-    # ── 小额零星：资金印证正常，输出信息级说明（有资金印证率的数据事实）──
-    if not findings and ratio < 0.5:
+
+    # ── ③ 待核线索：未提供应付账款明细，无法排除（缺佐证不放过）──
+    # 依「缺失败象一律作待证信号」原则：缺 A/P 明细不构成"已解释"，
+    # 但仍按中优先级、并明确列出须补正的资料，不升级为调查优先级。
+    if no_detail:
+        nd_amt = _sum(no_detail)
         findings.append(_finding(
             spec,
-            f"主营业务成本中仅{ratio * 100:.0f}%匹配到对公或平台支付流水（{company + person:,.2f}元/共{total:,.2f}元），"
-            f"其余{total - company - person:,.2f}元缺乏资金印证（未支付记录{unpaid:,.2f}元、同名流水金额不符{mismatch:,.2f}元）。"
-            "资金印证率偏低提示发票与真实付款的对应关系须进一步核验，暂列为待核实事项。",
-            {
-                "evidence_ratio": ratio,
-                "core_cost_total": round(total, 2),
-                "unpaid_amount": round(unpaid, 2),
-                "amount_mismatch_amount": round(mismatch, 2),
-            },
+            "主营业务成本中有%s元（%d笔）未匹配到任何支付渠道，且本次未提供应付账款明细"
+            "（账面应付账款汇总余额%s元），无法逐户核验其是否已挂应付账款。"
+            "成本列支的正常闭环是「有付款」或「有负债」二者至少其一；在补充资料前本项无法排除。"
+            "请提供应付账款明细账（含供应商、未付金额、账龄或账期）、采购合同与入库验收单，"
+            "以区分「正常赊购（挂账）」与「既无付款亦无负债」两种情形。"
+            % (format(nd_amt, ",.2f"), len(no_detail),
+               format(ap_index.get("aggregate_balance", 0) or 0, ",.2f")),
+            dict(common, no_detail_amount=round(nd_amt, 2), no_detail_rows=len(no_detail),
+                 no_detail_examples=_examples(no_detail, 8)),
             spec["required_sources"],
-            level="待核验",
-            priority="中",
+            level="待核验", priority="中",
         ))
+
+    # ── ④ 渠道合规提示：个人垫付（三流分离，但属合法渠道，须核五重约束）──
+    if person >= 100000 or (total and person / total >= 0.10):
+        person_rows = [e["row"] for e in evid.get("person_paid") or []]
+        person_ex = "、".join(
+            "%s(%s元)" % (str(r.get("seller") or "未知")[:20],
+                          format(_number(r.get("amount")), ",.0f"))
+            for r in sorted(person_rows, key=lambda x: -_number(x.get("amount")))[:5])
+        findings.append(_finding(
+            spec,
+            "主营业务成本中有%s元（占%.1f%%）由个人账户支付，如%s。企业对员工报销日常经营费用"
+            "并无金额上限（真实、与经营相关、凭证合规即可扣除），但须满足五项约束："
+            "① 发票须开给公司（个人抬头或个人消费不得扣除，差旅个人票除外）；"
+            "② 若实质是向个人支付劳务或货款，须按劳务报酬代扣个人所得税并取得代开发票；"
+            "③ 向自然人支付通常无专用发票，多数不得抵扣进项；"
+            "④ 大额现金支付受现金管理规定约束；⑤ 不得以报销替代工资发放。"
+            "请提供报销单、费用发票与付款凭证，核实是否满足上述约束。"
+            % (format(person, ",.2f"), (person / total * 100) if total else 0.0, person_ex),
+            dict(common, person_paid_ratio=round(person / total, 4) if total else 0.0,
+                 person_paid_examples=person_ex),
+            spec["required_sources"],
+            level="待核验", priority="中",
+        ))
+
+    # ── ④ 资料未覆盖：发票日距数据期末不足一个账期，付款可能发生在未提供的期间 ──
+    # 年末开票、次年付款是常态；此时"未匹配到付款"是**资料未覆盖**，不是未付款。
+    # 属资料完整性问题（不指向企业过错），故为信息级且不挂红线嫌疑。
+    if beyond:
+        b_amt = _sum(beyond)
+        findings.append(_finding(
+            spec,
+            "主营业务成本中有%s元（%d笔）发票日距数据期末（%s）不足一个账期（180天），"
+            "付款可能发生在数据期末之后，本次无法判断是否已付，如%s。"
+            "请补充该期间之后的银行流水（含次年）或应付账款明细，以便完成核验。"
+            % (format(b_amt, ",.2f"), len(beyond), base_label,
+               _examples(beyond)),
+            dict(common, beyond_data_amount=round(b_amt, 2), beyond_data_rows=len(beyond),
+                 beyond_data_examples=_examples(beyond, 8)),
+            spec["required_sources"],
+            status="data_quality_limitation",
+            level="信息", priority="低",
+        ))
+
+    # 注：不再输出「整体资金印证率偏低」兜底提示——凡未匹配项都已被挂账/其他渠道/跨期/资料覆盖
+    # 解释时属正常（赊购、票据、跨年付款），依报告纪律「未发现异常不写套话」，不应输出。
+    # 金额不符（amount_mismatch）保留在 observed_metrics 供人工复核。
+
+    # 显式收编进 RL-PTY-001：红线判定（redline_engine._map_finding）优先取发现自声明的 redline_id；
+    # 资料完整性类（data_quality_limitation）不挂红线——它不是风险嫌疑，而是资料覆盖问题。
+    for _f in findings:
+        if _f.get("finding_status") != "data_quality_limitation":
+            _f["redline_id"] = "RL-PTY-001"
     return findings
 
 
