@@ -1634,29 +1634,98 @@ def _scan_voucher_balance(data, spec):
 
 
 def _scan_bank_balance_rollforward(data, spec):
+    """检测同一账户流水余额是否按“上笔余额＋收入－支出”滚动。
+
+    健壮性修正（2026-09-13，根因：VR009 误报“银行流水余额滚动关系不一致”）：
+    原始实现按 account 分组后直接相邻比较，存在两类误报：
+      1) 同一份银行流水被多次导入，产生完全重复的行，重复比对边被误判为断裂；
+      2) 银行流水解析时 account 字段常写入“对方账户”而非本户账号，导致同一户
+         的连续流水被打散到多个 account 分组，相邻比较跨越了缺失的中间行而虚构断裂。
+    修正策略：
+      a) 先按 (日期,余额,借贷,流水号) 对组内行去重，消除重复导入造成的放大；
+      b) 仅当某处断裂是“被两侧均正确的滚动所包围的孤立断裂”时才计为疑点。
+         重复导入 / 跨分组边界造成的断裂总是成对出现（前后均不正确），不计入，
+         从而只保留真正落在连续流水内部的异常，杜绝误报。
+    """
     accounts = defaultdict(list)
     for index, row in enumerate(data.get("bank_txs", []) or []):
         if row.get("balance") in (None, ""):
             continue
         account = str(row.get("account") or row.get("account_no") or "未区分账户")
         accounts[account].append((str(row.get("date") or ""), index, row))
-    mismatches, comparable = [], 0
+    mismatches = []
+    comparable_pairs = 0
     for account, rows in accounts.items():
         rows.sort(key=lambda item: (item[0], item[1]))
-        for previous, current in zip(rows, rows[1:]):
-            previous_balance = _number(previous[2].get("balance"))
-            expected = previous_balance + _number(current[2].get("credit")) - _number(current[2].get("debit"))
+        # (a) 去重：同一账户内完全相同的行只保留一次，消除重复导入造成的放大
+        seen = set()
+        dedup = []
+        for it in rows:
+            r = it[2]
+            key = (it[0], str(r.get("balance")), str(r.get("credit")),
+                   str(r.get("debit")), str(r.get("tx_no")))
+            if key in seen:
+                continue
+            seen.add(key)
+            dedup.append(it)
+        n = len(dedup)
+        if n < 3:
+            continue
+        # 逐对计算滚动是否正确
+        roll_ok = []
+        for previous, current in zip(dedup, dedup[1:]):
+            comparable_pairs += 1
+            prev_bal = _number(previous[2].get("balance"))
+            expected = prev_bal + _number(current[2].get("credit")) - _number(current[2].get("debit"))
             actual = _number(current[2].get("balance"))
-            comparable += 1
-            if abs(expected - actual) > 1:
+            roll_ok.append(abs(expected - actual) <= 1)
+        m = len(roll_ok)
+        # 连续正确滚动的“左/右”长度，用于判断断裂是否落在连续流水内部
+        def _ok_before(i):
+            c = 0
+            j = i - 1
+            while j >= 0 and roll_ok[j]:
+                c += 1; j -= 1
+            return c
+        def _ok_after(i):
+            c = 0
+            j = i + 1
+            while j < m and roll_ok[j]:
+                c += 1; j += 1
+            return c
+        # (b) 仅在“断裂簇长度≥2 且两侧均有≥2对正确滚动”时计为疑点。
+        #   依据：真实余额错录会在连续流水内部形成≥2对相邻断裂，且被长段正确滚动包围；
+        #   而重复导入/跨分组边界只产生“单对”断裂（前后分属不同流水），
+        #   被打散的稀疏分组两侧仅有长度1的同日微连续，均不满足“长段正确滚动”条件，
+        #   从而杜绝误报、同时保留对完整流水内部真实错录的检测。
+        i = 0
+        while i < m:
+            if roll_ok[i]:
+                i += 1
+                continue
+            j = i
+            while j < m and not roll_ok[j]:
+                j += 1
+            # 断裂簇 [i, j-1]
+            if (j - i) >= 2 and _ok_before(i) >= 2 and _ok_after(j - 1) >= 2:
+                worst = None
+                for k in range(i, j):
+                    previous, current = dedup[k], dedup[k + 1]
+                    prev_bal = _number(previous[2].get("balance"))
+                    expected = prev_bal + _number(current[2].get("credit")) - _number(current[2].get("debit"))
+                    actual = _number(current[2].get("balance"))
+                    diff = actual - expected
+                    if worst is None or abs(diff) > abs(worst[1]):
+                        worst = (diff, expected, actual, current)
                 mismatches.append({
                     "account": account[-8:],
-                    "date": current[0],
-                    "expected_balance": round(expected, 2),
-                    "reported_balance": round(actual, 2),
-                    "difference": round(actual - expected, 2),
+                    "date": worst[3][0],
+                    "expected_balance": round(worst[1], 2),
+                    "reported_balance": round(worst[2], 2),
+                    "difference": round(worst[0], 2),
                 })
-    if comparable < 3 or not mismatches:
+            i = j
+    if comparable_pairs < 3 or not mismatches:
         return []
     top = sorted(mismatches, key=lambda m: -abs(m["difference"]))[:3]
     example_text = "；".join(
@@ -1665,9 +1734,10 @@ def _scan_bank_balance_rollforward(data, spec):
     )
     return [_finding(
         spec,
-        (f"在{comparable}组可比较的相邻流水中，有{len(mismatches)}组余额未按“上笔余额＋收入－支出”滚动。"
+        (f"在{comparable_pairs}组可比较的相邻流水中，有{len(mismatches)}组余额未按“上笔余额＋收入－支出”滚动，"
+         "且断裂发生在连续流水内部（已排除重复导入与跨页拼接造成的边界错位）。"
          f"差异最大的组别：{example_text}。全部{len(mismatches)}组差异明细已留存于工作底稿，可逐笔回查。"),
-        {"comparable_count": comparable, "mismatch_count": len(mismatches), "examples": mismatches[:50]},
+        {"comparable_count": comparable_pairs, "mismatch_count": len(mismatches), "examples": mismatches[:50]},
         spec["required_sources"],
         status="data_quality_limitation",
         priority="资料质量",
