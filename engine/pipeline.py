@@ -379,7 +379,7 @@ def _run_analyze(company_id, db, progress_callback=None):
 
     bank_txs, invoices, salaries, social_security, vouchers, inventory, bom_data, export_data, rd_data = [], [], [], [], [], [], [], {}, {}
     input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
-    contract_data, related_party_data, trial_balance_data = [], [], []
+    contract_data, related_party_data, trial_balance_data, fixed_assets = [], [], [], []
     warehouse_contracts, transport_contracts = [], []  # 仓库租赁/运输合同台账（VR026/VR027证据源）
     tax_declarations = []  # 纳税申报表（增值税/企业所得税等），供票税账表勾稽
 
@@ -740,6 +740,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                         transport_contracts.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份运输合同(含运费承担条款)")
                     elif ftype == "related_party": related_party_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条关联交易")
                     elif ftype == "trial_balance": trial_balance_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条科目余额")
+                    elif ftype == "fixed_assets": fixed_assets.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条固定资产")
                     elif ftype in ("vat_declaration", "cit_declaration", "tax_declaration", "individual_tax", "stamp_duty", "tax_payment"):
                         # 纳税申报表：优先取 declaration 结构化字段，否则用通用 rows
                         decl = parsed.get("declaration")
@@ -2388,6 +2389,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "social_security": social_security,
                 "inventory": inventory,
                 "trial_balance": trial_balance_data,
+                # ── 接线补齐（2026-09-14）：规则声明的键与上游数据键名对齐，唤醒沉睡原子规则 ──
+                "tax_declarations": tax_declarations,
+                "declaration": tax_declarations,       # 规则层按 declaration 读取申报表（同源）
+                "inventory_ledger": inventory,         # 规则层声明 inventory_ledger（进销存台账）
+                "contracts": contract_data,            # 规则层声明 contracts（合同台账）
+                "bom": bom_data,                       # 规则层声明 bom（BOM 物料清单）
+                "transport_contracts": transport_contracts,
+                "fixed_assets": fixed_assets,          # 固定资产（原缺上游路由）
                 # 企业主体快照：名称/行业/经营范围/六员，供规则层作经营模式裁决
                 "target_entity": _target_snapshot,
                 "company_profile": (ctx.company_profile if ctx else {}) or {},
@@ -2443,6 +2452,18 @@ def _run_analyze(company_id, db, progress_callback=None):
         # 无论走哪条分支，都必须带上企业主体快照，否则规则无法判断经营模式
         _verified_data.setdefault("target_entity", _target_snapshot)
         _verified_data.setdefault("company_profile", (ctx.company_profile if ctx else {}) or {})
+        # ── 接线补齐（2026-09-14）：规则声明的键与上游数据键名对齐，唤醒沉睡原子规则 ──
+        # （_eng_data 分支已在字面量中带上；此处保证 else 兜底分支同样带上）
+        for _k, _v in (
+            ("tax_declarations", tax_declarations),
+            ("declaration", tax_declarations),   # 规则层按 declaration 读取申报表（同源）
+            ("inventory_ledger", inventory),     # 规则层声明 inventory_ledger（进销存台账）
+            ("contracts", contract_data),        # 规则层声明 contracts（合同台账）
+            ("bom", bom_data),                   # 规则层声明 bom（BOM 物料清单）
+            ("transport_contracts", transport_contracts),
+            ("fixed_assets", fixed_assets),      # 固定资产（原缺上游路由）
+        ):
+            _verified_data.setdefault(_k, _v)
         _verified_result = run_verified_rules(_verified_data)
         _verified_findings = _verified_result.get("findings", [])
         if _verified_findings:
