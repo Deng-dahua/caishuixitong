@@ -5790,12 +5790,42 @@ def _scan_supplier_invoice_pattern(data, spec):
 
 
 def _scan_discount_anomaly(data, spec):
-    """VR067 销售折扣与折让异常——折扣未同一发票注明（2026-09-05）。"""
+    """VR067 销售折扣与折让异常——折扣未同一发票注明（2026-09-05）。
+
+    2026-09-14 修正：原先把所有 amount<0 的销项行一律计为"折扣/折让"，导致**红字发票（红冲）**
+    被误判为折扣折让（实测公司1 有 4 笔红冲共 95.84 万元被误报成「已核定」重点）。
+    红冲 ≠ 折扣折让：红冲有红字发票信息确认单、与正数蓝票配平、税额对冲，不适用
+    「折扣须同票注明」的计税口径。修正：
+      ① 负数行带红冲/作废标识（被红冲蓝字数电发票号码、红字发票信息确认单编号、红字发票、红冲、作废）→ 排除；
+      ② 负数行与**同一购方同额正数蓝票**配平（一正一负）→ 判红冲/重开，排除；
+      ③ 其余负数行（无红冲标识且无配平）才按折扣/折让待核；品名含"折扣/折让"的行照旧计入。
+    """
     sal = data.get("sal_invs") or []
     if not sal:
         return []
+    _REVERSAL_MARKERS = ("被红冲蓝字数电发票号码", "红字发票信息确认单编号",
+                         "红字发票", "红冲", "作废")
+
+    def _buyer(row):
+        return str(row.get("buyer") or row.get("购方") or row.get("购买方") or "").strip()
+
+    def _is_reversal(row):
+        blob = " ".join(str(row.get(k) or "") for k in
+                        ("remark", "备注", "summary", "摘要", "goods", "货物或应税劳务名称"))
+        return any(m in blob for m in _REVERSAL_MARKERS)
+
+    # 正数蓝票配平池：同一购方 + 同额（精确到分）→ 视为红冲/重开的对端
+    positives = set()
+    for row in sal:
+        if not isinstance(row, dict):
+            continue
+        amt = _number(row.get("amount"))
+        if amt > 0:
+            positives.add((_buyer(row), round(amt, 2)))
+
     discount_total = 0.0
     discount_rows = 0
+    excluded_reversal = 0
     examples = []
     for row in sal:
         if not isinstance(row, dict):
@@ -5803,6 +5833,15 @@ def _scan_discount_anomaly(data, spec):
         goods = str(row.get("goods") or row.get("货物或应税劳务名称") or "")
         amt = _number(row.get("amount"))
         if amt < 0:
+            # ① 红冲/作废标识 → 排除
+            if _is_reversal(row):
+                excluded_reversal += 1
+                continue
+            # ② 同一购方同额正票配平 → 红冲/重开，排除
+            if (_buyer(row), round(abs(amt), 2)) in positives:
+                excluded_reversal += 1
+                continue
+            # ③ 其余负数行 → 折扣/折让待核
             discount_total += abs(amt)
             discount_rows += 1
             examples.append({"goods": goods[:24], "amount": round(amt, 2)})
@@ -5814,13 +5853,13 @@ def _scan_discount_anomaly(data, spec):
         return []
     return [_finding(
         spec,
-        f"销项发票中折扣/折让/负数金额行合计{discount_total:,.2f}元（{discount_rows}笔），"
-        f"如{examples[0]['goods'] if examples else ''}等。"
+        f"销项发票中折扣/折让行合计{discount_total:,.2f}元（{discount_rows}笔），"
+        f"如{examples[0]['goods'] if examples else ''}等（已剔除红字发票红冲行{excluded_reversal}笔）。"
         "商业折扣只有与销售额在同一张发票的金额栏注明，才能按折扣后金额计税；"
         "折扣单独开票、事后返利或以负数发票冲减的，不得扣减销售额，须按折扣前金额全额计税。"
         "需要核实折扣的开具方式与计税口径是否符合规定。",
         {"discount_amount": round(discount_total, 2), "discount_rows": discount_rows,
-         "examples": examples[:5]},
+         "excluded_reversal_rows": excluded_reversal, "examples": examples[:5]},
         spec["required_sources"],
         priority="中",
     )]
