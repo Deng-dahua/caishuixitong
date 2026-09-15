@@ -6,13 +6,16 @@
 # 每个共享内容块有且仅有一个权威源，其他模块为依赖副本。
 # 权威源变更后，--sync 自动将依赖副本更新为与权威源一致。
 #
-# 使用方式：
+# 使用方式（2026-09-15 更正：原说明指向的 audit_consistency.py --sync 实为「计数常量」
+# 同步，与本模块无关，属错误文档；现按下列方式调用）：
 #   1. 定义共享块：static/shared_content_map.json
-#   2. 运行同步：python audit_consistency.py --sync
-#   3. 每次start.bat启动时自动执行
-#   4. git pre-commit hook 自动执行
+#   2. 校验（只读，每次 audit_consistency.py 默认运行都会执行）：
+#        python tools/audit_consistency.py
+#   3. 同步（显式开启，会改写依赖文件正文）：
+#        python tools/audit_consistency.py --sync-content
 #
-# 代码位置：audit_consistency.py → sync_shared_content()
+# 代码位置：tools/audit_consistency.py → _shared_content_check() / _sync_content_flow()
+#           （2026-09-15 接线，此前本模块从未被调用）
 # 数据位置：static/shared_content_map.json
 
 import json

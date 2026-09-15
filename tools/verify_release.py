@@ -44,20 +44,53 @@ def _tracked_sensitive() -> list[str]:
     磁盘上的运行期产物（data/ 缓存、数据库、上传文件）不该算发布内容。
     不在 git 仓库中时退化为文件系统扫描，避免在裸目录下静默放行。
     """
+    import shutil
     import subprocess
 
-    try:
-        output = subprocess.run(
-            ["git", "ls-files", "-z"],
-            cwd=str(ROOT), capture_output=True, timeout=30,
+    # 2026-09-15：本机 PATH 常无 git（须用 PortableGit 全路径），裸 "git" 会抛
+    # FileNotFoundError → 旧逻辑退化为全盘扫描，而 data/ 按设计本就存放这些运行期文件，
+    # 结果必然命中敏感名单 → 恒定假失败并阻断发布。现先稳健定位 git；
+    # 实在拿不到 git 时，退回扫描但**排除私有 data 目录**（与 --runtime 口径一致）。
+    git_bin = shutil.which("git") or shutil.which("git.exe")
+    if not git_bin:
+        _candidate = Path(
+            r"C:/Users/Administrator/.workbuddy/binaries/PortableGit/versions/1.2.0/cmd/git.exe"
         )
-        if output.returncode == 0:
-            names = [n for n in output.stdout.decode("utf-8", "replace").split("\0") if n]
+        if _candidate.exists():
+            git_bin = str(_candidate)
+
+    try:
+        if git_bin:
+            output = subprocess.run(
+                [git_bin, "ls-files", "-z"],
+                cwd=str(ROOT), capture_output=True, timeout=30,
+            )
+            if output.returncode == 0:
+                names = [n for n in output.stdout.decode("utf-8", "replace").split("\0") if n]
+            else:
+                names = _nonsensitive_runtime_names(ROOT)
         else:
-            names = [str(p.relative_to(ROOT)) for p in ROOT.rglob("*") if p.is_file()]
+            names = _nonsensitive_runtime_names(ROOT)
     except Exception:
-        names = [str(p.relative_to(ROOT)) for p in ROOT.rglob("*") if p.is_file()]
+        names = _nonsensitive_runtime_names(ROOT)
     return [n for n in names if Path(n).name.lower() in SENSITIVE_NAMES]
+
+
+def _nonsensitive_runtime_names(root: Path) -> list:
+    """git 不可用时的退化扫描：排除私有 data 目录（运行期缓存/库/上传本就不属发布内容）。"""
+    data_dir = root / "data"
+    names = []
+    for p in root.rglob("*"):
+        if not p.is_file():
+            continue
+        try:
+            if p.is_relative_to(data_dir):
+                continue
+        except AttributeError:  # Python < 3.9 兼容
+            if str(p).startswith(str(data_dir)):
+                continue
+        names.append(str(p.relative_to(root)))
+    return names
 
 
 def main() -> int:

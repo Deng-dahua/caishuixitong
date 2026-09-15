@@ -8,9 +8,10 @@
       "title": "职责、文种与法律边界",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "306d9e3b44b4dfba891a4b11c44ec928",
-      "content_length": 813
+      "content_length": 813,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-2",
@@ -18,9 +19,10 @@
       "title": "编制启动与输入门禁",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "4d3fee1e3d1bb5de4011b6ea84a58105",
-      "content_length": 621
+      "content_length": 621,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-3",
@@ -28,9 +30,10 @@
       "title": "单项发现的七联单",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "1c7a0e8be426c50c654106705626f57b",
-      "content_length": 996
+      "content_length": 996,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-4",
@@ -38,9 +41,10 @@
       "title": "证据组织与全链路溯源",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "08e6d06ba0fe3782f2a6dd255877af79",
-      "content_length": 695
+      "content_length": 695,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-5",
@@ -48,9 +52,10 @@
       "title": "法律适用与时效核验",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "5361a02efcbc5b2ed5073c25786a9bbf",
-      "content_length": 813
+      "content_length": 813,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-6",
@@ -58,9 +63,10 @@
       "title": "金额测算、时间轴与勾稽",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "d1ed6fec36bb9381ed9be428d6fa83c2",
-      "content_length": 602
+      "content_length": 602,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-7",
@@ -68,9 +74,10 @@
       "title": "成稿结构、叙事与呈现",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "0372e01c2aefab2f5b7235785c549dfb",
-      "content_length": 828
+      "content_length": 828,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-8",
@@ -78,9 +85,10 @@
       "title": "编制全过程审核",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "1a16e80af128fd2ac74c98b88571a298",
-      "content_length": 1114
+      "content_length": 1114,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-9",
@@ -88,9 +96,10 @@
       "title": "常见误判的归因与复核矩阵",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "51cd2bc8cf03eb8a3ab1b9adcc3f55cd",
-      "content_length": 950
+      "content_length": 950,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     },
     {
       "id": "report_section_rpt-10",
@@ -98,9 +107,10 @@
       "title": "质量放行、版本交付与受控反馈",
       "source_file": "static/js/tax-report-standards.js",
       "dependent_files": [],
-      "status": "no_dependent",
+      "status": "legacy_unmapped",
       "content_hash": "f9256af83baec2ca97b0c776657ada3a",
-      "content_length": 1104
+      "content_length": 1104,
+      "note": "权威源文件已不存在（方法论整体下线时随 tax-report-standards.js 删除），映射作废，保留备查；不计入通过，也不计入失败"
     }
   ],
   "legacy_text_sync_blocks": [

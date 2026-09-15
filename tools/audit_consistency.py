@@ -16,15 +16,22 @@
     python tools/audit_consistency.py                 # 报告模式：列出全部不一致
     python tools/audit_consistency.py --calibrate     # 只输出权威值（供人工抄录）
     python tools/audit_consistency.py --sync          # 自动修正「计数常量」类不一致
+    python tools/audit_consistency.py --sync-content  # 自动同步跨模块共享内容文本
     python tools/audit_consistency.py --strict        # 警告也计入失败（CI / 发布用）
 
-四类检查
+五类检查
 --------
     COUNT   计数常量：扫描「N 条规则 / 红线 / 线索链 / 证据链 / 分析链」硬编码，
             与引擎权威源比对，杜绝「规则库改了、数字没跟上」。
     LAW     法条条款号：扫描「第N条」，检出超范围（>1260 或 =0）、含污染串的畸形号。
     POLLUTE 1720 污染：检出 X1720 / 1720X / 纯 1720 三类污染形态（第205→201720 型）。
     TAX     税种名：税种名与标准税目表比对，检出错别字、乱码与不统一写法。
+    SHARED  共享内容（文本维度）：跨模块共享块逐字哈希比对 + 概念关联存在性验证，
+            由 engine/shared_content_sync.verify_shared_content() 执行。
+            2026-09-15 接线——此前该模块从未被调用，而前端宣传「双维度自检」，
+            文本维度长期形同虚设；现每次运行都执行，失败计入 ERROR。
+            注：权威源文件随「方法论整体下线」被删的块须标记 legacy_unmapped，
+            显式披露为历史遗留，既不计通过也不计失败，不得静默跳过。
 
 设计纪律
 --------
@@ -432,10 +439,38 @@ def sync_counts(authoritative: Dict[str, int]) -> int:
     return 0
 
 
+def _shared_content_check() -> Tuple[bool, List[str]]:
+    """文本维度：跨模块共享内容逐字一致性（engine/shared_content_sync）。
+
+    2026-09-15 接线：此前 shared_content_sync 定义完备却从未被调用，而前端
+    static/js/core.js 宣传「双维度自检（数字维度 + 文本维度）」，导致文本维度形同虚设。
+    现由本校验器每次运行都执行，失败计入 ERROR。
+    """
+    try:
+        from engine.shared_content_sync import verify_shared_content
+    except Exception as exc:  # pragma: no cover - 防御：模块缺失不得静默通过
+        return False, [f"❌ 无法加载共享内容校验模块: {exc}"]
+    return verify_shared_content()
+
+
+def _sync_content_flow() -> int:
+    """显式同步跨模块共享内容文本（--sync-content，默认不执行，避免自动改文件）。"""
+    try:
+        from engine.shared_content_sync import sync_shared_content
+    except Exception as exc:
+        print(f"❌ 无法加载共享内容同步模块: {exc}")
+        return 1
+    for line in sync_shared_content():
+        print("  " + line)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="跨模块数字与法条一致性校验")
     parser.add_argument("--calibrate", action="store_true", help="只输出权威值")
     parser.add_argument("--sync", action="store_true", help="自动修正计数常量（仅白名单文件）")
+    parser.add_argument("--sync-content", action="store_true",
+                        help="自动同步跨模块共享内容文本（默认仅校验，不改文件）")
     parser.add_argument("--strict", action="store_true", help="警告也计入失败")
     args = parser.parse_args()
 
@@ -446,6 +481,9 @@ def main() -> int:
             print(f"{k}={v}")
         return 0
 
+    if args.sync_content:
+        return _sync_content_flow()
+
     counts, general = run_checks()
 
     if args.sync:
@@ -453,6 +491,15 @@ def main() -> int:
 
     n_errors = len([i for i in counts if i[0] == "ERROR"]) + len([i for i in general if i[0] == "ERROR"])
     print_report(counts, general, authoritative)
+
+    # ── 文本维度：跨模块共享内容逐字一致性（2026-09-15 接线，此前从未执行）──
+    sc_ok, sc_log = _shared_content_check()
+    print("")
+    print("── 文本维度：跨模块共享内容一致性 ──")
+    for _line in sc_log:
+        print("  " + _line)
+    if not sc_ok:
+        n_errors += 1
     n_warns = (len([i for i in counts if i[0] == "WARN"])
                + len([i for i in general if i[0] == "WARN"]))
     if n_errors:
