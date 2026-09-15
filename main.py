@@ -5225,8 +5225,13 @@ def _parse_voucher_sheet(sheet):
         "日期", "凭证字号", "凭证号", "摘要", "科目", "借方", "贷方"
     ])
     header = _get_row_values(sheet, header_row)
-    cols = _find_cols_semantic(header, {"日期": "date", "凭证字号": "voucher_no", "摘要": "summary",
-        "科目": "account", "借方": "debit", "贷方": "credit"})
+    cols = _find_cols_semantic(header, {
+        # 序时账常见表头：记账月份｜凭证号｜序号｜摘要｜科目编码｜科目名称｜借方金额｜贷方金额
+        "记账月份": "month_no", "会计期间": "month_no", "月份": "month_no", "所属期": "month_no",
+        "日期": "date", "记账日期": "date", "凭证日期": "date",
+        "凭证字号": "voucher_no", "凭证号": "voucher_no", "摘要": "summary",
+        "科目名称": "account_name", "科目编码": "account", "科目代码": "account", "科目": "account",
+        "借方金额": "debit", "贷方金额": "credit", "借方": "debit", "贷方": "credit"})
     if not cols: return None
     rows = []
     start_row = header_row + 1

@@ -56,6 +56,35 @@ def _agg_period(month: str, kind: str) -> str:
     return y
 
 
+def _bare_month(v) -> Optional[int]:
+    """序时账"记账月份"常只有月序（如 1/2/…12），返回 1..12；否则 None。"""
+    s = "".join(ch for ch in str(v or "") if ch.isdigit())
+    if s and len(s) <= 2:
+        n = int(s)
+        if 1 <= n <= 12:
+            return n
+    return None
+
+
+def _infer_year(data: Dict[str, Any]) -> Optional[str]:
+    """从其他来源（开具发票/申报表/工资表）推断年份，供"只有月序"的序时账对齐。"""
+    from collections import Counter
+    c = Counter()
+
+    def _scan(rows, keys):
+        for r in rows or []:
+            if isinstance(r, dict):
+                for k in keys:
+                    m = _month_of(r.get(k))
+                    if m:
+                        c[m[:4]] += 1
+
+    _scan(data.get("sal_invs"), ("date", "invoice_date", "开票日期"))
+    _scan(data.get("tax_declarations"), ("period", "税款所属期", "期间"))
+    _scan(data.get("salaries"), ("period_start", "period_end", "所属期", "month"))
+    return c.most_common(1)[0][0] if c else None
+
+
 def _first(row: Dict, keys) -> Any:
     for k in keys:
         v = row.get(k)
@@ -65,16 +94,24 @@ def _first(row: Dict, keys) -> Any:
 
 
 # ── 各方序列构建（返回 {month: amount}）────────────────────────────────
-def _voucher_series(vouchers: List[Dict], acct_kws) -> Dict[str, float]:
-    """序时账按科目关键词取贷方发生额，按月份汇总。"""
+def _voucher_series(vouchers: List[Dict], acct_kws, year: Optional[str] = None) -> Dict[str, float]:
+    """序时账按科目（编码或名称）关键词取贷方发生额，按月份汇总。
+
+    序时账常见表头为"记账月份｜…｜科目编码｜科目名称｜借方金额｜贷方金额"：
+    科目可能只给编码（如 600102），月份可能只有月序（如 1）→ 用 year 补全年月。
+    """
     out: Dict[str, float] = {}
     for v in vouchers or []:
         if not isinstance(v, dict):
             continue
-        acct = str(v.get("account") or v.get("科目") or v.get("科目名称") or "")
-        if not acct or not any(k in acct for k in acct_kws):
+        acct = " ".join(str(v.get(k) or "") for k in ("account", "account_name", "科目", "科目名称"))
+        if not acct.strip() or not any(k in acct for k in acct_kws):
             continue
         m = _month_of(v.get("date") or v.get("凭证日期") or v.get("发生日期"))
+        if not m:
+            bm = _bare_month(v.get("month_no") or v.get("记账月份") or v.get("月份"))
+            if bm and year:
+                m = f"{year}-{bm:02d}"
         if not m:
             continue
         out[m] = out.get(m, 0.0) + _num(v.get("credit", v.get("贷方")))
@@ -126,7 +163,8 @@ def _salary_series(salaries: List[Dict]):
         m = _month_of(_first(s, ("month", "所属期", "period", "period_start", "period_end", "税款所属期")))
         if not m:
             continue
-        g = _num(_first(s, ("gross", "应发合计", "应发工资", "应发", "salary", "本期收入")))
+        g = _num(_first(s, ("salary", "本期收入", "acc_income", "累计收入",
+                            "gross", "应发合计", "应发工资", "应发")))
         t = _num(_first(s, ("tax", "代扣个税", "个税", "个人所得税")))
         gross[m] = gross.get(m, 0.0) + g
         tax[m] = tax.get(m, 0.0) + t
@@ -248,10 +286,11 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
         return []
 
     findings: List[Dict] = []
+    year = _infer_year(data)   # 序时账"记账月份"常只有月序，用其他来源的年份补齐
 
     # ── 家族一：收入（申报表 / 序时账主营收入 / 开具发票）──
     rev_sources = {
-        "voucher_rev": _voucher_series(vouchers, _REV_ACCT_KWS),
+        "voucher_rev": _voucher_series(vouchers, _REV_ACCT_KWS, year),
         "sal_inv": _invoice_series(sal_invs),
         "vat_decl": _vat_decl_series(decls),
     }
@@ -269,7 +308,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     wage_sources = {
         "salary_gross": sal_gross,
         "ind_tax_income": iit_income,
-        "voucher_wage": _voucher_series(vouchers, _WAGE_ACCT_KWS),
+        "voucher_wage": _voucher_series(vouchers, _WAGE_ACCT_KWS, year),
     }
     if sum(1 for s in wage_sources.values() if s) >= 2:
         for _kind in ("month", "year"):
@@ -284,7 +323,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     iit_sources = {
         "salary_tax": sal_tax,
         "ind_tax_tax": iit_tax,
-        "voucher_iit": _voucher_series(vouchers, _IIT_ACCT_KWS),
+        "voucher_iit": _voucher_series(vouchers, _IIT_ACCT_KWS, year),
     }
     if sum(1 for s in iit_sources.values() if s) >= 2:
         for _kind in ("month", "year"):
