@@ -8,6 +8,8 @@
   - 个税三方：工资表代扣个税 ↔ 个税申报个税 ↔ 序时账计提个税(应交个人所得税贷方)
   - 应收发生额：开具发票(不含税) ↔ 序时账应收账款(借方)  —— 开票是否全部挂账
   - 应付发生额：取得发票(不含税) ↔ 序时账应付账款(贷方)  —— 采购发票是否全部挂账
+  - 收入税价配比：序时账主营业务收入(贷方) × 适用税率 ↔ 销项税额(贷方) —— 税率适用/含税误记
+  - 采购税价配比：取得发票(不含税) × 适用税率 ↔ 序时账进项税额(借方) —— 进项税率/价税分离
 
 铁律：只输出可复算事实与待核线索，绝不自动定性；不足两方数据或无法归月时不输出。
 口径提示：申报表销售额与开具发票取**不含税**；序时账收入取贷方发生额（会计口径通常为不含税）。
@@ -84,6 +86,7 @@ def _infer_year(data: Dict[str, Any]) -> Optional[str]:
     _scan(data.get("sal_invs"), ("date", "invoice_date", "开票日期"))
     _scan(data.get("pur_invs"), ("date", "invoice_date", "开票日期"))
     _scan(data.get("input_vat_deductions"), ("date", "开票日期", "勾选时间", "所属期"))
+    _scan(data.get("vouchers"), ("date", "凭证日期", "发生日期"))
     _scan(data.get("tax_declarations"), ("period", "税款所属期", "期间"))
     _scan(data.get("salaries"), ("period_start", "period_end", "所属期", "month"))
     return c.most_common(1)[0][0] if c else None
@@ -337,6 +340,12 @@ _LABELS = {
 _AR_ACCT_KWS = ("应收账款", "1122")
 _AP_ACCT_KWS = ("应付账款", "2202")
 
+# 常见增值税征收率（不含税口径）及其含税等价率（税额÷含税金额 = c/(1+c)），
+# 用于"税价配比"勾稽：收入/采购若按含税金额入账，隐含率会落在含税等价区间。
+_CANON_RATES = (0.01, 0.03, 0.05, 0.06, 0.09, 0.13)
+_CANON_RATES_INCL = tuple(round(c / (1 + c), 4) for c in _CANON_RATES)
+_RATE_TOL = 0.015  # 1.5 个百分点
+
 
 def _fmt(v: float) -> str:
     return f"{v:,.2f}"
@@ -402,6 +411,62 @@ def _reconcile(sources: Dict[str, Dict[str, float]], kind: str,
             "suggestion": "编制该期间差异调节表，逐笔说明差异原因（含税口径/跨期/未同步/漏记），必要时补充申报或更正账务。",
             "category": category, "source_chain": f"逐{kind}勾稽-差异",
             "redline_id": redline_id, "indicator": f"reconcile_gap_{kind}", "indicator_value": round(spread, 2),
+        })
+    return findings
+
+
+def _rate_consistency(base: Dict[str, float], tax: Dict[str, float],
+                       title: str, category: str, redline_id: str,
+                       policy_ref: str, tax_impact: str) -> List[Dict]:
+    """税价配比（派生对等）：逐月 税额 ÷ 计税基础 = 隐含征收率，与常见税率(含/不含税口径)比对。
+
+    用于发现：收入/成本按含税金额入账、税率适用错误、小规模与一般纳税人混淆、进项票未按规则抵扣。
+    仅对"两方同月均非零"的月份判定；偏差 ≤1.5pp 视为一致。返回 findings。
+    """
+    monthly: Dict[str, float] = {}
+    for m in set(base) | set(tax):
+        b = base.get(m, 0.0)
+        t = tax.get(m, 0.0)
+        if b > 0 and t > 0:
+            monthly[m] = t / b
+    if not monthly:
+        return []
+    ok, bad = [], []
+    for m, r in sorted(monthly.items()):
+        if any(abs(r - c) <= _RATE_TOL for c in _CANON_RATES) or \
+           any(abs(r - c) <= _RATE_TOL for c in _CANON_RATES_INCL):
+            ok.append((m, r))
+        else:
+            bad.append((m, r))
+    findings: List[Dict] = []
+    if ok and not bad:
+        findings.append({
+            "type": f"对等勾稽一致：{title}",
+            "level": "信息", "score": 1,
+            "detail": f"逐月按税额÷计税基础计算隐含征收率，均在常见税率区间："
+                      + "；".join(f"{m}≈{r*100:.1f}%" for m, r in ok[:12]) + "。",
+            "description": f"{title} 各月税价配比合理，无明显税率错配或收入含税误记。",
+            "how_found": "逐月计算 销项(进项)税额 ÷ 主营业务收入(取得发票不含税)，与 1%/3%/5%/6%/9%/13% "
+                         "及其含税等价率比对，偏差≤1.5pp 视为一致。",
+            "tax_impact": "税价配比一致可降低税率适用错误与收入含税误记风险。",
+            "policy_ref": policy_ref,
+            "suggestion": "保持税率适用与价税分离准确。",
+            "category": category, "source_chain": "税价配比-一致",
+            "redline_id": redline_id, "indicator": "rate_consistent", "indicator_value": len(ok),
+        })
+    for m, r in bad:
+        findings.append({
+            "type": f"待核事实：{title}异常（{m}）",
+            "level": "待核验", "score": 5,
+            "detail": f"{m} 隐含征收率 {r*100:.1f}%，偏离常见税率区间。",
+            "description": "税额与计税基础的配比应落在适用税率附近；明显偏离可能源于收入/成本按含税金额入账、"
+                          "税率适用错误、小规模与一般纳税人混淆，或进项税票未按规则抵扣，须核实。",
+            "how_found": f"逐月计算税额÷计税基础，{m} 结果 {r*100:.1f}% 与所有常见税率(含含税等价)偏差>1.5pp。",
+            "tax_impact": tax_impact,
+            "policy_ref": policy_ref,
+            "suggestion": "核对该月凭证的价税分离与税率适用，必要时调整账务或补充申报。",
+            "category": category, "source_chain": "税价配比-异常",
+            "redline_id": redline_id, "indicator": "rate_anomaly", "indicator_value": round(r, 4),
         })
     return findings
 
@@ -565,6 +630,26 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
                 "取得发票与账面应付账款贷方不一致，可能发票未入账、暂估差异或取得虚开发票挂账，"
                 "影响成本列支与进项税额抵扣的真实性。",
             ))
+
+    # ── 家族十：收入税价配比（序时账 主营业务收入 ↔ 销项税额）──
+    _rev_base = _voucher_series(vouchers, _REV_ACCT_KWS, year)
+    _out_tax = _voucher_series(vouchers, _OUTPUT_VAT_KWS, year, side="credit")
+    if _rev_base and _out_tax:
+        findings.extend(_rate_consistency(
+            _rev_base, _out_tax, "收入税价配比", "增值税", "RL-VAT-001",
+            "《增值税暂行条例》关于销售额与销项税额的规定",
+            "收入与销项税额配比异常，可能收入含税误记或税率适用错误，影响增值税申报准确性。",
+        ))
+
+    # ── 家族十一：采购税价配比（取得发票不含税 ↔ 序时账 进项税额）──
+    _pur_base = _invoice_series(pur_invs)
+    _in_tax = _voucher_series(vouchers, _INPUT_VAT_KWS, year, side="debit")
+    if _pur_base and _in_tax:
+        findings.extend(_rate_consistency(
+            _pur_base, _in_tax, "采购税价配比", "增值税", "RL-VAT-002",
+            "《增值税暂行条例》第八条关于进项税额抵扣的规定",
+            "采购与进项税额配比异常，可能取得发票未分离价税、税率适用错误或违规抵扣。",
+        ))
     return findings
 
 

@@ -112,5 +112,47 @@ class ARAPReconcileTest(unittest.TestCase):
         self.assertEqual(run_cross_period_reconcile(data), [])
 
 
+class RateConsistencyTest(unittest.TestCase):
+    def test_revenue_rate_consistent(self):
+        # 主营业务收入 1000000，销项税额 130000 → 13% 一致
+        data = {
+            "sal_invs": [{"date": "2025-01-20", "amount": 1000000}],
+            "vouchers": [
+                {"month_no": "1", "account": "6001", "account_name": "主营业务收入",
+                 "debit": 0, "credit": 1000000},
+                {"month_no": "1", "account": "22210102",
+                 "account_name": "应交税费/应交增值税/销项税额", "debit": 0, "credit": 130000},
+            ],
+        }
+        types = [f["type"] for f in run_cross_period_reconcile(data)]
+        self.assertTrue(any("收入税价配比" in t for t in types))
+        self.assertFalse(any("异常" in t for t in types))
+
+    def test_revenue_rate_anomaly_flagged(self):
+        # 主营业务收入 1000000，销项税额 170000 → 17% 偏离常见税率 → 待核
+        data = {
+            "sal_invs": [{"date": "2025-01-20", "amount": 1000000}],
+            "vouchers": [
+                {"month_no": "1", "account": "6001", "account_name": "主营业务收入",
+                 "debit": 0, "credit": 1000000},
+                {"month_no": "1", "account": "22210102",
+                 "account_name": "应交税费/应交增值税/销项税额", "debit": 0, "credit": 170000},
+            ],
+        }
+        types = [f["type"] for f in run_cross_period_reconcile(data)]
+        self.assertTrue(any("收入税价配比" in t and "异常" in t for t in types))
+
+    def test_purchase_rate_consistent(self):
+        # 取得发票不含税 800000，进项税额 104000 → 13% 一致
+        data = {
+            "pur_invs": [{"date": "2025-01-10", "amount": 800000}],
+            "vouchers": [{"month_no": "1", "account": "22210101",
+                          "account_name": "应交税费/应交增值税/进项税额",
+                          "debit": 104000, "credit": 0}],
+        }
+        types = [f["type"] for f in run_cross_period_reconcile(data)]
+        self.assertTrue(any("采购税价配比" in t for t in types))
+
+
 if __name__ == "__main__":
     unittest.main()
