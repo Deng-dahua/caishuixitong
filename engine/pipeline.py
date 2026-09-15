@@ -498,6 +498,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
     contract_data, related_party_data, trial_balance_data, fixed_assets, accounts_payable = [], [], [], [], []
     accounts_receivable = []  # 应收账款明细（维度3 应收账龄·收入真实性）
+    housing_fund_data = []    # 住房公积金明细（此前只记日志、未收集 → 勾稽拿不到）
     warehouse_contracts, transport_contracts = [], []  # 仓库租赁/运输合同台账（VR026/VR027证据源）
     tax_declarations = []  # 纳税申报表（增值税/企业所得税等），供票税账表勾稽
 
@@ -850,7 +851,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                             except Exception:
                                 pass
                         fr["actions"].append(f"提取{success_count}条流水（共{n}行）")
-                    elif ftype == "housing_fund": fr["actions"].append(f"提取{n}条公积金")
+                    elif ftype == "housing_fund": housing_fund_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条公积金")
                     elif ftype == "contract": contract_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份合同")
                     elif ftype == "warehouse_lease":
                         warehouse_contracts.extend(parsed["rows"]); fr["actions"].append(f"提取{n}份仓库租赁合同(含面积条款)")
@@ -2087,13 +2088,19 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 补齐"多份文件的同一口径应逐期对等相等"这一缺口：申报表销售额 ↔ 序时账主营业务收入 ↔ 开具发票
     # ／ 工资表应发 ↔ 个税申报本月收入 ↔ 序时账计提工资 ／ 工资表个税 ↔ 个税申报个税 ↔ 序时账计提个税。
     try:
-        from engine.monthly_reconcile import run_cross_period_reconcile
+        from engine.monthly_reconcile import run_cross_period_reconcile, run_ledger_reconcile
         _mr_findings = run_cross_period_reconcile({
             "vouchers": vouchers,
             "sal_invs": sal_invs,
+            "pur_invs": pur_invs,
             "tax_declarations": tax_declarations,
             "salaries": salaries,
+            "input_vat_deductions": input_vat_deductions,
+            "bank_txs": bank_txs,
+            "social_security": social_security,
+            "housing_fund": housing_fund_data,
         })
+        _mr_findings += run_ledger_reconcile(vouchers, trial_balance_data)
         if _mr_findings:
             domain_results.append({"domain": "跨文件逐月勾稽", "findings": _mr_findings})
             pipeline_log.append(f"跨文件逐月勾稽: {len(_mr_findings)}项发现")

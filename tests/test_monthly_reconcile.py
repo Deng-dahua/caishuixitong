@@ -56,5 +56,32 @@ class WageReconcileTest(unittest.TestCase):
         self.assertEqual(run_cross_period_reconcile({}), [])
 
 
+class VATAndLedgerReconcileTest(unittest.TestCase):
+    def test_input_vat_reconcile(self):
+        # 进项发票税额 / 抵扣认证税额 / 序时账进项税额(借方) 三方一致
+        data = {
+            "pur_invs": [{"date": "2025-01-10", "tax": 1000}],
+            "input_vat_deductions": [{"date": "2025-01-10", "deductible_tax": 1000}],
+            "vouchers": [{"month_no": "1", "account": "22210105",
+                          "account_name": "应交税费/应交增值税/进项税额", "debit": 1000, "credit": 0}],
+        }
+        types = [f["type"] for f in run_cross_period_reconcile(data)]
+        self.assertTrue(any("进项税额对等" in t for t in types))
+
+    def test_ledger_reconcile_flag(self):
+        from engine.monthly_reconcile import run_ledger_reconcile
+        vouchers = [{"account": "600102", "debit": 0, "credit": 100000}]
+        tb = [{"code": "6001", "name": "主营业务收入", "current_debit": 0, "current_credit": 90000}]
+        f = run_ledger_reconcile(vouchers, tb)
+        self.assertEqual(len(f), 1)
+        self.assertIn("账账不符", f[0]["type"])
+
+    def test_ledger_reconcile_equal_no_output(self):
+        from engine.monthly_reconcile import run_ledger_reconcile
+        vouchers = [{"account": "600102", "debit": 0, "credit": 1000}]
+        tb = [{"code": "6001", "name": "主营业务收入", "current_debit": 0, "current_credit": 1000}]
+        self.assertEqual(run_ledger_reconcile(vouchers, tb), [])
+
+
 if __name__ == "__main__":
     unittest.main()
