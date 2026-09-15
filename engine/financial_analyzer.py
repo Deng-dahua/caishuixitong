@@ -271,6 +271,36 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                     "indicator_value": round(ratio, 4),
                 })
 
+            # ── ①-2 进项发票 vs 成本费用合计（成本+管理费用+销售费用）匹配度（用户口径）──
+            # 与①去重：仅当「成本口径尚可(≥0.8)」而「合计口径不足」时输出，避免同一事实两条结论。
+            cost_expense = cost + selling + admin
+            if cost_expense > 0:
+                ratio_ce = pur_total / cost_expense
+                if ratio_ce < 0.8 and ratio >= 0.8:
+                    findings.append({
+                        "type": "待核事实：取得发票对成本费用合计的支撑不足",
+                        "level": "中风险", "score": 6,
+                        "detail": (
+                            f"主营业务成本{cost:,.2f}元、管理费用{admin:,.2f}元、销售费用{selling:,.2f}元，"
+                            f"合计{cost_expense:,.2f}元；取得进项发票金额合计{pur_total:,.2f}元，"
+                            f"有票覆盖率{ratio_ce:.0%}，低于正常区间下限80%。"
+                        ),
+                        "description": (
+                            "成本费用（主营业务成本+管理费用+销售费用）应当有对应的取得发票支撑。"
+                            "账面列支的成本费用高于取得的发票金额时，差额部分通常表现为暂估入库、"
+                            "跨期取得发票、无票采购或无票费用，须逐项核实。"
+                        ),
+                        "how_found": "进项发票金额 / （主营业务成本+管理费用+销售费用） = {:.0%}，低于正常区间0.8~1.0。".format(ratio_ce),
+                        "tax_impact": "缺口部分若无合规凭证，面临企业所得税税前不得扣除的纳税调增风险。",
+                        "policy_ref": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）",
+                        "suggestion": "核实成本费用缺口构成（暂估/跨期/无票采购或无票费用），补充取得发票或准备真实性证明材料。",
+                        "category": "成本费用",
+                        "source_chain": "财务报表-取得发票与成本费用合计匹配度",
+                        "redline_id": "RL-COST-003",
+                        "indicator": "purchase_invoice_match_total",
+                        "indicator_value": round(ratio_ce, 4),
+                    })
+
     # ── ② 成本收入比极端异常（金税四期：成本率/毛利率背离）──
     if revenue > 0 and cost > 0:
         cost_rate = cost / revenue
