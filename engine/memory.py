@@ -178,6 +178,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   叙事基于finding实际字段，每段必须通俗易懂让被查单位也能理解
   代码: static/js/tax-doc-analysis.js _renderReportFallback() 税务合规过程叙事段
   规范: static/js/tax-report-standards.js 第三章·附
+  （2026-09-15 注：该文件已由 8bfbe5c9「回归税务稽查唯一功能」瘦身删除，此规范来源已失效）
 
 【规则二十一：第三章六要素+叙事标准】
   第三章每条发现的标准呈现结构：
@@ -201,6 +202,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   禁止使用简化版或内部调试版格式（如blocks渲染器）
   代码: static/js/tax-doc-analysis.js _renderReportFallback()
   规范: static/js/tax-report-standards.js
+  （2026-09-15 注：该文件已由 8bfbe5c9 瘦身删除，此规范来源已失效）
 
 【规则十五：报告纯净度】
   正式报告中禁止出现以下内容：
@@ -526,11 +528,13 @@ domain_functions = _CFG.get("domain_functions", 39)
 
   【标准定义】
   报告编制、审核、法律核验、金额复算和交付标准曾在多个页面重复维护，
-  导致结构、措辞和放行门槛发生漂移。因此将 tax-report-standards.js
+  导致结构、措辞和放行门槛发生漂移。因此曾将 tax-report-standards.js
   作为编审一体的唯一权威页面，其他模块只保留入口和职责边界。
+  （2026-09-15 注：tax-report-standards.js 已由 8bfbe5c9「回归税务稽查唯一功能」瘦身删除，
+  该"唯一权威页面"已不存在，本条标准不再有对应权威源，勿再据此建立同步关系。）
 
   【权威源规则】
-  - 报告编审交付标准 → 权威源：tax-report-standards.js
+  - 报告编审交付标准 → 权威源：tax-report-standards.js（已随 8bfbe5c9 删除，权威源失效）
   - 系统数据数字 → 权威源：system_config.json
   - 方法论定义 → 权威源：audit_chains.json
   - 系统规则 → 权威源：engine/memory.py
@@ -872,6 +876,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   static/js/tax-doc-analysis.js（资料风险分析报告）
   static/js/tax-auditor-handbook.js（税务合规员手册·12章）
   static/js/tax-report-standards.js（编制、审核、误判复核与交付融合单页·10节）
+    ↑ 2026-09-15：该文件已由 8bfbe5c9 瘦身删除，不再属于现行前端页面
   static/js/tax-engine-dashboard.js（推理系统仪表盘·6标签页）
   static/js/core.js（全局路由+税务AGI页面）
   static/js/report-block-renderer.js（报告六要素渲染+审核按钮）
