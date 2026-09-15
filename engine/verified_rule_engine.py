@@ -1108,6 +1108,36 @@ def _month(value):
     return digits[:6] if len(digits) >= 6 else ""
 
 
+def _voucher_month(row):
+    """凭证所属月份（供按凭证分组用）。
+
+    2026-09-15 修复：原直接用 `_month(row["date"])`，而 `_month` 需≥6位数字、
+    取不到返回空串。部分序时账只有"记账月份"（纯月序 1~12，无完整日期）→ 分组键退化为
+    ("", 凭证号)，**跨月同号凭证被合并**，导致 VR008 既可能凭空造出不平、也可能
+    正负相抵掩盖真实不平（公司1 实测：文案渲染成"月记-3号凭证"，月份缺失）。
+    现优先取完整日期，缺失时依次回退 month_no/记账月份/月份/期间，纯月序补零为 MM。
+    """
+    month = _month(row.get("date"))
+    if month:
+        return month
+    for key in ("month_no", "记账月份", "月份", "月", "period", "期间"):
+        raw = str(row.get(key) or "").strip()
+        if not raw:
+            continue
+        full = _month(raw)  # 形如 2025-01 / 202501 的完整月份
+        if full:
+            return full
+        digits = "".join(ch for ch in raw if ch.isdigit())
+        if digits:
+            try:
+                n = int(digits)
+            except ValueError:
+                continue
+            if 1 <= n <= 12:
+                return f"{n:02d}"
+    return ""
+
+
 def _invoice_amount(row, pretax=False):
     if pretax:
         amount = _number(row.get("amount"))
@@ -1671,7 +1701,7 @@ def _scan_voucher_balance(data, spec):
         number = str(row.get("voucher_no") or "").strip()
         if not number:
             continue
-        key = (_month(row.get("date")), number)
+        key = (_voucher_month(row), number)
         groups[key]["debit"] += _number(row.get("debit"))
         groups[key]["credit"] += _number(row.get("credit"))
         groups[key]["rows"].append(index + 1)
