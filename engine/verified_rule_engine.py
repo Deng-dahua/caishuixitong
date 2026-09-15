@@ -1108,18 +1108,24 @@ def _month(value):
     return digits[:6] if len(digits) >= 6 else ""
 
 
-def _voucher_month(row):
-    """凭证所属月份（供按凭证分组用）。
+def _row_month(row, year_hint=""):
+    """行记录所属月份（YYYYMM / MM），2026-09-15 收敛修复。
 
-    2026-09-15 修复：原直接用 `_month(row["date"])`，而 `_month` 需≥6位数字、
-    取不到返回空串。部分序时账只有"记账月份"（纯月序 1~12，无完整日期）→ 分组键退化为
-    ("", 凭证号)，**跨月同号凭证被合并**，导致 VR008 既可能凭空造出不平、也可能
-    正负相抵掩盖真实不平（公司1 实测：文案渲染成"月记-3号凭证"，月份缺失）。
-    现优先取完整日期，缺失时依次回退 month_no/记账月份/月份/期间，纯月序补零为 MM。
+    背景：`_month()` 需 ≥6 位数字、取不到返回空串。而序时账常只有"记账月份"
+    （纯月序 1~12，无完整日期）→ 月份为空，后果有二：
+      ① 按月聚合时该行被静默丢弃（整月数据丢失）；
+      ② 与申报表/发票的 YYYYMM 对不上，跨源比对空转（VR008 还因此跨月同号合并）。
+
+    取值顺序：
+      1) 完整日期字段（date/invoice_date/开票日期/交易日期…）→ YYYYMM
+      2) 记账月份类字段（month_no/记账月份/月份/月/期间）→ 纯月序补零：
+         · 有 year_hint → 展开为 YYYYMM（与申报表/发票对齐，跨源比对可用）
+         · 无 year_hint → 返回 MM（至少保证同源按月聚合不丢数据）
     """
-    month = _month(row.get("date"))
-    if month:
-        return month
+    for key in ("date", "invoice_date", "开票日期", "交易日期", "transaction_date", "voucher_date"):
+        month = _month(row.get(key))
+        if month:
+            return month
     for key in ("month_no", "记账月份", "月份", "月", "period", "期间"):
         raw = str(row.get(key) or "").strip()
         if not raw:
@@ -1134,8 +1140,26 @@ def _voucher_month(row):
             except ValueError:
                 continue
             if 1 <= n <= 12:
-                return f"{n:02d}"
+                return f"{year_hint}{n:02d}" if year_hint else f"{n:02d}"
     return ""
+
+
+def _voucher_month(row):
+    """兼容旧名：不提供年份提示的月份兜底（供 _scan_voucher_balance 分组用）。"""
+    return _row_month(row)
+
+
+def _infer_year_from_months(months) -> str:
+    """从一组 YYYYMM 月份键推断年份（取出现最多的前 4 位）。
+
+    用于把"只有记账月份"的序时账/银行流水，按同批发票或申报表的年份展开成 YYYYMM，
+    使其与发票/申报表月份真正对齐（否则跨源比对因月份格式不同而空转）。
+    """
+    from collections import Counter
+
+    counter = Counter(str(m)[:4] for m in (months or [])
+                     if len(str(m)) >= 4 and str(m)[:4].isdigit())
+    return counter.most_common(1)[0][0] if counter else ""
 
 
 def _invoice_amount(row, pretax=False):
@@ -1223,12 +1247,12 @@ def _fmt_yuan(value):
         return str(value)
 
 
-def _monthly_amount(rows, value_fn, predicate=None):
+def _monthly_amount(rows, value_fn, predicate=None, year_hint=""):
     totals = defaultdict(float)
     for row in rows or []:
         if predicate and not predicate(row):
             continue
-        month = _month(row.get("date") or row.get("invoice_date"))
+        month = _row_month(row, year_hint)
         if month:
             totals[month] += value_fn(row)
     return totals
@@ -1252,12 +1276,16 @@ def _two_series_gap(left, right, ratio_threshold, amount_threshold):
 
 
 def _scan_bank_invoice_gap(data, spec):
+    # 先用有完整日期的发票推断年份，再聚合银行流水：
+    # 银行/序时账若只有"记账月份"(纯月序)，需按该年份展开成 YYYYMM 才能与发票月份对齐。
+    invoices = _monthly_amount(data.get("sal_invs", []), _invoice_amount)
+    year_hint = _infer_year_from_months(invoices.keys())
     bank = _monthly_amount(
         data.get("bank_txs", []),
         lambda row: _number(row.get("credit")),
         lambda row: _number(row.get("credit")) > 0,
+        year_hint=year_hint,
     )
-    invoices = _monthly_amount(data.get("sal_invs", []), _invoice_amount)
     gaps = _two_series_gap(bank, invoices, 0.25, 100000)
     if len(gaps) < 2:
         return []
@@ -1275,12 +1303,15 @@ def _scan_voucher_invoice_gap(data, spec):
         account = str(row.get("account_name") or row.get("account") or "")
         return "主营业务收入" in account or "其他业务收入" in account
 
+    # 序时账常只有"记账月份"(纯月序)，先由发票推断年份再聚合，方能与之对齐
+    invoices = _monthly_amount(data.get("sal_invs", []), lambda row: _invoice_amount(row, pretax=True))
+    year_hint = _infer_year_from_months(invoices.keys())
     vouchers = _monthly_amount(
         data.get("vouchers", []),
         lambda row: _number(row.get("credit")),
         lambda row: is_revenue(row) and _number(row.get("credit")) > 0,
+        year_hint=year_hint,
     )
-    invoices = _monthly_amount(data.get("sal_invs", []), lambda row: _invoice_amount(row, pretax=True))
     gaps = _two_series_gap(vouchers, invoices, 0.15, 100000)
     if len(gaps) < 2:
         return []
@@ -2317,9 +2348,11 @@ def _scan_vat_declaration_sales_gap(data, spec):
             decl_by_month[month] += sales
     if not decl_by_month:
         return []
+    # 用申报表所属期推断年份，供只有"记账月份"类字段的开票/账载数据对齐到 YYYYMM
+    _year_hint = _infer_year_from_months(decl_by_month.keys())
     inv_by_month = defaultdict(float)
     for row in sal:
-        month = _month(row.get("date") or row.get("invoice_date") or row.get("开票日期"))
+        month = _row_month(row, _year_hint)
         if month:
             inv_by_month[month] += _number(row.get("amount"))
     total_declared = sum(decl_by_month.values())
@@ -2380,9 +2413,11 @@ def _scan_vat_declaration_input_gap(data, spec):
             decl_by_month[month] += input_tax
     if not decl_by_month:
         return []
+    # 用申报表所属期推断年份，供只有"记账月份"类字段的开票/账载数据对齐到 YYYYMM
+    _year_hint = _infer_year_from_months(decl_by_month.keys())
     inv_tax_by_month = defaultdict(float)
     for row in pur:
-        month = _month(row.get("date") or row.get("invoice_date") or row.get("开票日期"))
+        month = _row_month(row, _year_hint)
         if month:
             inv_tax_by_month[month] += _number(row.get("tax"))
     total_declared = sum(decl_by_month.values())
@@ -4675,7 +4710,7 @@ def _scan_void_invoice_fund_return(data, spec):
             continue
         buyer = str(r.get("buyer") or r.get("购方名称") or r.get("customer") or "").strip()
         amt = _number(r.get("total")) or _invoice_amount(r)  # 以价税合计为勾稽基准（企业收款多为含税总额）
-        month = _month(r.get("date") or r.get("invoice_date") or r.get("开票日期"))
+        month = _row_month(r)
         if amt <= 0:
             continue
         void_sal.append({
@@ -4696,7 +4731,7 @@ def _scan_void_invoice_fund_return(data, spec):
         party = str(b.get("counterparty") or b.get("对方户名") or b.get("对方名称") or "").strip()
         summary = str(b.get("summary") or b.get("摘要") or "")
         date = str(b.get("date") or b.get("交易日期") or b.get("记账日期") or "")
-        bmonth = _month(date)
+        bmonth = _row_month(b)
         # 排除明显是企业自身内部户/工资/费用报销等非销售收入收款
         receipts.append({
             "party": party, "amount": credit, "month": bmonth, "date": date[:10],
