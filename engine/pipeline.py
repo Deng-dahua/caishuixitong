@@ -497,6 +497,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     bank_txs, invoices, salaries, social_security, vouchers, inventory, bom_data, export_data, rd_data = [], [], [], [], [], [], [], {}, {}
     input_vat_deductions = []  # 进项认证抵扣独立于进项发票（取票≠认证抵扣）
     contract_data, related_party_data, trial_balance_data, fixed_assets, accounts_payable = [], [], [], [], []
+    accounts_receivable = []  # 应收账款明细（维度3 应收账龄·收入真实性）
     warehouse_contracts, transport_contracts = [], []  # 仓库租赁/运输合同台账（VR026/VR027证据源）
     tax_declarations = []  # 纳税申报表（增值税/企业所得税等），供票税账表勾稽
 
@@ -859,6 +860,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     elif ftype == "trial_balance": trial_balance_data.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条科目余额")
                     elif ftype == "fixed_assets": fixed_assets.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条固定资产")
                     elif ftype == "accounts_payable": accounts_payable.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条应付账款明细")
+                    elif ftype == "accounts_receivable": accounts_receivable.extend(parsed["rows"]); fr["actions"].append(f"提取{n}条应收账款明细")
                     elif ftype in ("vat_declaration", "cit_declaration", "tax_declaration", "individual_tax", "stamp_duty", "tax_payment"):
                         # 纳税申报表：优先取 declaration 结构化字段，否则用通用 rows
                         decl = parsed.get("declaration")
@@ -2547,6 +2549,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 "transport_contracts": transport_contracts,
                 "fixed_assets": fixed_assets,          # 固定资产（原缺上游路由）
                 "accounts_payable": accounts_payable,  # 应付账款明细（VR060 资金/负债双要件核验）
+                "accounts_receivable": accounts_receivable,  # 应收账款明细（收入真实性·维度3 应收账龄）
                 # 企业主体快照：名称/行业/经营范围/六员，供规则层作经营模式裁决
                 "target_entity": _target_snapshot,
                 "company_profile": (ctx.company_profile if ctx else {}) or {},
@@ -2613,6 +2616,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             ("transport_contracts", transport_contracts),
             ("fixed_assets", fixed_assets),      # 固定资产（原缺上游路由）
             ("accounts_payable", accounts_payable),  # 应付账款明细（VR060）
+            ("accounts_receivable", accounts_receivable),  # 应收账款明细（收入真实性·维度3）
             ("trial_balance", trial_balance_data),   # 科目余额表（A/P 汇总兜底）
         ):
             _verified_data.setdefault(_k, _v)
@@ -4788,6 +4792,31 @@ def _run_analyze(company_id, db, progress_callback=None):
             pipeline_log.append(f"[两税差异] 未取得两税申报表，跳过")
     except Exception as e:
         pipeline_log.append(f"[两税差异] 执行异常(不影响主分析): {e}")
+
+    # ── ⑥-② 收入真实性（账外收入嫌疑）三维度三角验证（2026-09-14 新增）──
+    # 把"银行收款>申报收入→账外收入"从单点规则升级为 维度1发票↔申报 / 维度2发票↔银行 /
+    # 维度3应收账龄 的三角验证，综合裁定三态。与 ④⑤⑥ 同构，失败仅记录日志、不阻断主分析。
+    try:
+        from engine.revenue_authenticity import run_revenue_authenticity_check
+        from database import Company as _RA_Company
+        _ra_co = db.query(_RA_Company).filter(_RA_Company.id == company_id).first()
+        _ra_name = _ra_co.name if _ra_co else ""
+        _ra = run_revenue_authenticity_check(
+            {
+                "sal_invs": sal_invs,
+                "bank_txs": bank_txs,
+                "tax_declarations": tax_declarations,
+                "accounts_receivable": accounts_receivable,
+                "trial_balance": trial_balance_data,
+            },
+            company_name=_ra_name,
+        )
+        comprehensive["revenue_authenticity"] = _ra
+        _ra_m = _ra.get("metrics", {}) or {}
+        pipeline_log.append(f"[收入真实性] 起点信号={_ra_m.get('start_signal')} 未收={_ra_m.get('unmatched_amount')} "
+                            f"应收未收={_ra_m.get('ar_unreceived_total')} 长期挂账={_ra_m.get('ar_long_aging_count')} 结论={_ra.get('verdict','')}")
+    except Exception as e:
+        pipeline_log.append(f"[收入真实性] 执行异常(不影响主分析): {e}")
 
     # ── ⑦ 进项异常凭证 / 应转出未转出（第四阶 P1：票表比对自动放行的进项侧盲区）──
     # 走逃失联/非正常户开具的异常抵扣凭证、购进用于免税/福利/个人消费的应转出未转出。

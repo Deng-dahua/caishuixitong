@@ -2301,17 +2301,37 @@ def _scan_vat_declaration_sales_gap(data, spec):
         invoiced = inv_by_month.get(m, 0.0)
         g = declared - invoiced
         if declared > 0 and abs(g) > max(declared * 0.05, 10000):
-            gaps.append({"month": m, "declared_sales": round(declared, 2), "invoice_sales": round(invoiced, 2), "gap": round(g, 2)})
+            gaps.append({"month": m, "declared_sales": round(declared, 2),
+                         "invoice_sales": round(invoiced, 2), "gap": round(g, 2),
+                         "direction": "申报>开票" if g > 0 else "开票>申报"})
     if not gaps:
         return []
-    detail = f"增值税申报表销售额合计{total_declared:,.2f}元，同期销项发票金额合计{total_invoice:,.2f}元，差异{gap:,.2f}元，有{len(gaps)}个月度差异超过5%或1万元："
-    detail += "；".join(f"{g['month']}申报{g['declared_sales']:,.0f}vs开票{g['invoice_sales']:,.0f}(差{g['gap']:,.0f})" for g in gaps[:6])
+    over_invoiced = [x for x in gaps if x["gap"] < 0]   # 开票>申报：已开票未申报方向（真实待核）
+    over_declared = [x for x in gaps if x["gap"] > 0]   # 申报>开票：未开票收入已申报（合法）
+    _gaps_txt = "；".join(
+        f"{g['month']}申报{g['declared_sales']:,.0f}vs开票{g['invoice_sales']:,.0f}"
+        f"({g['direction']}差{g['gap']:,.0f})" for g in gaps[:6])
+    if over_invoiced:
+        # 存在「开票>申报」方向：已开票未申报嫌疑，指向漏报，须核验
+        detail = (f"增值税申报表销售额合计{total_declared:,.2f}元，同期销项发票金额合计{total_invoice:,.2f}元，"
+                  f"差异{gap:,.2f}元；其中 {len(over_invoiced)} 个月存在「开票>申报」方向（已开票未申报嫌疑），"
+                  f"须核验是否漏报：{_gaps_txt}。")
+        _priority, _level = "调查优先级", None
+    else:
+        # 仅「申报>开票」：未开票收入已依法申报，属正常经营，不构成账外收入嫌疑
+        detail = (f"增值税申报表销售额合计{total_declared:,.2f}元，同期销项发票金额合计{total_invoice:,.2f}元，"
+                  f"差异{gap:,.2f}元；全部为「申报>开票」方向（未开票收入已依法申报），属正常经营，"
+                  f"不构成账外收入嫌疑，本差异仅作提示：{_gaps_txt}。")
+        _priority, _level = "中", "信息"
     return [_finding(
         spec,
         detail,
-        {"declared_sales_total": round(total_declared, 2), "invoice_sales_total": round(total_invoice, 2), "gap_months": len(gaps), "gaps": gaps[:12]},
+        {"declared_sales_total": round(total_declared, 2), "invoice_sales_total": round(total_invoice, 2),
+         "gap_months": len(gaps), "over_invoiced_months": len(over_invoiced),
+         "over_declared_months": len(over_declared), "gaps": gaps[:12]},
         spec["required_sources"],
-        priority="调查优先级",
+        priority=_priority,
+        **({"level": _level} if _level else {}),
     )]
 
 
@@ -6544,6 +6564,16 @@ def _scan_revenue_receipt_evidence(data, spec):
                 person_in += credit
                 person_names.add(cp)
 
+    # ── 维度3 账龄补充：账面应收账款挂账时长（复用 ar_aging，仅作背景印证）──
+    _ar_metrics = {}
+    if data.get("accounts_receivable"):
+        try:
+            from engine.ar_aging import run_ar_aging_check
+            _ar_summary = run_ar_aging_check(data, base_date=None)
+            _ar_metrics = (_ar_summary or {}).get("metrics", {}) or {}
+        except Exception:
+            _ar_metrics = {}
+
     findings = []
     if unmatched >= 50000 or (unmatched / total >= 0.10):
         unmatched_rows = [e["row"] for e in rec["unmatched"]]
@@ -6558,6 +6588,10 @@ def _scan_revenue_receipt_evidence(data, spec):
             "②收款进入个人账户或未入账账户（账外收款风险）；③收入凭证与真实交易不符（虚构收入）。"
             "须逐笔核验收款去向与回款时间。"
         )
+        if _ar_metrics.get("ar_long_aging_count"):
+            detail += (f"账面应收账款另有 {_ar_metrics.get('ar_long_aging_count')} 个客户挂账超 1 年"
+                       f"（最长 {_ar_metrics.get('ar_max_aging_days', 0)} 天、未收合计 {_ar_metrics.get('ar_unreceived_total', 0):,.0f} 元），"
+                       f"与未匹配收款相互印证，须重点核验该部分收入真实性与期后回款。")
         if person_in >= 50000 or (bank_in_total > 0 and person_in / bank_in_total >= 0.10):
             detail += (
                 f"特别提示：银行流入中有{person_in:,.2f}元来自个人账户"
@@ -6577,6 +6611,9 @@ def _scan_revenue_receipt_evidence(data, spec):
                 "person_inflow_amount": round(person_in, 2),
                 "person_inflow_names": sorted(person_names)[:10],
                 "bank_in_total": round(bank_in_total, 2),
+                "ar_unreceived_total": round(_ar_metrics.get("ar_unreceived_total", 0) or 0, 2),
+                "ar_long_aging_count": int(_ar_metrics.get("ar_long_aging_count", 0) or 0),
+                "ar_max_aging_days": int(_ar_metrics.get("ar_max_aging_days", 0) or 0),
             },
             spec["required_sources"],
             priority="调查优先级",
@@ -6591,6 +6628,9 @@ def _scan_revenue_receipt_evidence(data, spec):
                 "matched_amount": round(matched, 2),
                 "unmatched_amount": round(unmatched, 2),
                 "receipt_ratio": ratio,
+                "ar_unreceived_total": round(_ar_metrics.get("ar_unreceived_total", 0) or 0, 2),
+                "ar_long_aging_count": int(_ar_metrics.get("ar_long_aging_count", 0) or 0),
+                "ar_max_aging_days": int(_ar_metrics.get("ar_max_aging_days", 0) or 0),
             },
             spec["required_sources"],
             level="待核验",

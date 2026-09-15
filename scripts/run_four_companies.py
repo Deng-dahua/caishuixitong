@@ -16,7 +16,8 @@ OUT = os.path.join(ROOT, "scripts", "four_reports")
 os.makedirs(OUT, exist_ok=True)
 
 COMPANY_IDS = [1, 2, 3, 4]
-CAP_KEYS = ["two_tax_income", "bank_flow", "input_voucher", "false_invoice", "fund_loop", "cross_enterprise"]
+CAP_KEYS = ["two_tax_income", "bank_flow", "input_voucher", "false_invoice", "fund_loop", "cross_enterprise",
+            "revenue_authenticity"]
 
 
 def _str(v, n=400):

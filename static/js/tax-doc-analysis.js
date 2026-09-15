@@ -4887,6 +4887,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     ['cross_enterprise_report', 'cap-cross-enterprise', '四之八、跨企业关联图谱比对'],
     ['external_verify_report', 'cap-external-verify', '四之九、外部数据源核验'],
     ['bank_flow_report', 'cap-bank-flow', '四之十、银行流水比对'],
+    ['revenue_authenticity_report', 'cap-revenue-auth', '四之十一、收入真实性（账外收入嫌疑）三维度验证'],
   ];
   var _capRendered = [];
   window._tdaCapRenderedSections = _capRendered;

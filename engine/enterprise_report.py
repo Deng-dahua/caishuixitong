@@ -1975,6 +1975,48 @@ def _build_two_tax_report(report_data):
     }
 
 
+def _build_revenue_authenticity_report(report_data):
+    """收入真实性（账外收入嫌疑）三维度三角验证章节（2026-09-14 新增）。
+
+    数据来自 report_data["comprehensive"]["revenue_authenticity"]
+    （engine/revenue_authenticity.run_revenue_authenticity_check 输出）。
+    把"银行收款>申报收入→账外收入"拆为 维度1发票↔申报 / 维度2发票↔银行 /
+    维度3应收账龄 三路并行验证，综合裁定三态。
+    """
+    ra = (report_data.get("comprehensive") or {}).get("revenue_authenticity") or {}
+    if not ra:
+        return {
+            "title": "收入真实性（账外收入嫌疑）",
+            "available": False,
+            "summary": "本轮未提供销项发票、银行流水或申报表，未做收入真实性三维度验证。",
+            "body": "收入真实性（账外收入嫌疑）以「银行收款>申报收入」为起点信号，经发票↔申报、发票↔银行、"
+                    "应收账龄三维度交叉验证后出综合裁定。缺少任一基础数据均无法量化，须补证后复核。",
+            "signals": [],
+            "verdict": "未提供基础数据",
+            "recommendation": "上传销项发票、银行收款流水与增值税申报表，并尽量提供应收账款明细表（含账龄）。",
+            "note": "结论属待证线索，不作为定性依据；银行收款大于申报收入本身不构成确认。",
+        }
+
+    metrics = ra.get("metrics") or {}
+    signals = ra.get("signals") or []
+    verdict = ra.get("verdict", "")
+    body = ra.get("body", "") or ""
+    dims = ra.get("dimensions") or {}
+
+    return {
+        "title": "收入真实性（账外收入嫌疑）",
+        "available": True,
+        "summary": ra.get("summary", ""),
+        "body": body,
+        "metrics": metrics,
+        "signals": signals,
+        "verdict": verdict,
+        "recommendation": ra.get("recommendation", ""),
+        "note": ra.get("note", "结论属待证线索，不作为定性依据；银行收款大于申报收入本身不构成确认，须三维交叉验证后出嫌疑结论。"),
+        "dimensions": dims,
+    }
+
+
 def _build_input_voucher_report(report_data):
     """第四阶 P1：进项异常凭证 / 应转出未转出比对章节。"""
     iv = (report_data.get("comprehensive") or {}).get("input_voucher") or {}
@@ -2198,6 +2240,7 @@ def build_enterprise_readable_report(report_data):
     external_verify_report = _build_external_verify_report(report_data)
     bank_flow_report = _build_bank_flow_report(report_data)
     two_tax_report = _build_two_tax_report(report_data)
+    revenue_authenticity_report = _build_revenue_authenticity_report(report_data)
     input_voucher_report = _build_input_voucher_report(report_data)
     false_invoice_report = _build_false_invoice_report(report_data)
     fund_loop_report = _build_fund_loop_report(report_data)
@@ -2208,7 +2251,7 @@ def build_enterprise_readable_report(report_data):
     # 专项报告的 metrics 指标键统一中文化（独立于 observed_metrics 的另一处英文键来源）
     for _sec in (two_tax_report, input_voucher_report, false_invoice_report,
                  fund_loop_report, external_verify_report, bank_flow_report,
-                 cross_enterprise_report, derivation_tree_report):
+                 cross_enterprise_report, derivation_tree_report, revenue_authenticity_report):
         if isinstance(_sec, dict) and isinstance(_sec.get("metrics"), dict):
             _sec["metrics"] = _translate_metric_keys(_sec["metrics"])
 
@@ -2234,6 +2277,7 @@ def build_enterprise_readable_report(report_data):
         "external_verify_report": external_verify_report,
         "bank_flow_report": bank_flow_report,
         "two_tax_report": two_tax_report,
+        "revenue_authenticity_report": revenue_authenticity_report,
         "input_voucher_report": input_voucher_report,
         "false_invoice_report": false_invoice_report,
         "fund_loop_report": fund_loop_report,
