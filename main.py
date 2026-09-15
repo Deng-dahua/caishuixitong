@@ -2288,10 +2288,13 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 2,
         "parser": lambda s, h: _parse_transport_contract_sheet(s, h)
     },
-    # 科目余额表
+    # 科目余额表（关键词为两处历史定义的并集，避免再次重复键覆盖）
     "trial_balance": {
-        "keywords": ["科目编码", "科目名称", "期初余额", "本期发生额", "本年累计发生额",
-                     "期末余额", "借方", "贷方", "一级科目", "明细科目"],
+        "keywords": ["科目余额表", "科目编码", "科目代码", "科目名称", "科目级次", "一级科目", "明细科目",
+                     "期初余额", "期初借方", "期初贷方", "本期发生额", "本期借方", "本期贷方",
+                     "本年累计发生额", "累计借方", "累计贷方", "期末余额", "期末借方", "期末贷方",
+                     "借方", "贷方", "余额方向", "总账", "明细账",
+                     "核算维度", "辅助核算", "部门核算", "项目核算", "客户核算", "供应商核算", "个人核算"],
         "score_threshold": 2,
         "parser": lambda s, h: {"type": "trial_balance", "rows": _parse_trial_balance_sheet(s, h)}
     },
@@ -2321,14 +2324,8 @@ _FILE_FINGERPRINTS = {
         "score_threshold": 3,
         "parser": lambda s, h: {"type": "financial_statements", "rows": _parse_generic_table(s, h)}
     },
-    "trial_balance": {
-        "keywords": ["科目余额表", "总账", "明细账", "期初借方", "期初贷方",
-                     "本期借方", "本期贷方", "期末借方", "期末贷方", "累计借方",
-                     "累计贷方", "余额方向", "核算维度", "辅助核算", "部门核算",
-                     "项目核算", "客户核算", "供应商核算", "个人核算"],
-        "score_threshold": 3,
-        "parser": lambda s, h: {"type": "trial_balance", "rows": _parse_generic_table(s, h)}
-    },
+    # 注：trial_balance 的注册统一在"第一梯队"处（重复键会相互覆盖，已合并）；
+    # 原此处的重复定义已删除，其"科目余额表/总账/明细账/期初借方/本期借方"等关键词已并入该处。
     "vat_declaration": {
         "keywords": ["增值税纳税申报表", "销项税额", "进项税额", "应纳税额", "未开具发票",
                      "即征即退", "免抵退税", "期末留抵税额", "本期应补(退)税额",
@@ -4976,31 +4973,101 @@ def _parse_invoice_sheet(sheet, direction):
     return {"type": atype, "rows": rows}
 
 def _parse_trial_balance_sheet(sheet, header):
-    """解析科目余额表"""
-    cols = _find_cols_semantic(header, {
-        "科目编码": "code", "科目名称": "name",
-        "期初余额": "open", "期初借方": "open_debit", "期初贷方": "open_credit",
-        "本期发生额": "current", "本期借方": "current_debit", "本期贷方": "current_credit",
-        "本年累计发生额": "year", "本年借方": "year_debit", "本年贷方": "year_credit",
-        "期末余额": "close", "期末借方": "close_debit", "期末贷方": "close_credit",
-        "借方": "debit", "贷方": "credit",
-    })
-    if not cols: return None
-    rows = []
+    """解析科目余额表。
+
+    兼容两类表头：
+      ① 单行表头：科目编码｜科目名称｜期初余额｜本期发生额｜期末余额…
+      ② **两行合并表头**：首行为"期初余额/本期发生额/期末余额"等组名（合并单元格），
+         次行为"借方/贷方"子名。此前只按首行取列 → 映射到借方列、贷方丢失，勾稽全错。
+    统一输出：code/name/open_debit/open_credit/current_debit/current_credit/
+    close_debit/close_credit（并保留 科目编码/科目名称/期末借方/期末贷方 供财务报表分析）。
+    若存在"科目级次"列，仅保留一级科目行，避免上下级科目被重复汇总。
+    """
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
-    for r in range(1, min(nrows, 500)):
-        vals = {}
-        for field, col in cols.items():
-            try:
-                v = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(_get_row_values(sheet, r)[col] or '')
-                vals[field] = v
-            except: vals[field] = ""
-        if not vals.get("code") and not vals.get("name"): continue
-        for k in ["open_debit","open_credit","current_debit","current_credit","year_debit","year_credit","close_debit","close_credit"]:
-            try: vals[k] = float(vals.get(k, 0) or 0)
-            except: vals[k] = 0
-        rows.append(vals)
-    return rows
+    ncols = sheet.ncols if hasattr(sheet, 'ncols') else sheet.max_column
+
+    def _row(r):
+        try:
+            return [str(v).strip() if v not in (None, "") else "" for v in _get_row_values(sheet, r)]
+        except Exception:
+            return []
+
+    def _f(v):
+        try:
+            return float(str(v).replace(",", "").replace("￥", "").replace("¥", "").strip() or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    hdr0 = None
+    for r in range(min(nrows, 12)):
+        vals = _row(r)
+        if any(any(k in v for k in ("科目编码", "科目代码", "科目名称")) for v in vals):
+            hdr0 = r
+            break
+    if hdr0 is None:
+        return _parse_generic_table(sheet, header or [])   # 退回通用解析，避免丢数据
+
+    top = _row(hdr0)
+    nxt = _row(hdr0 + 1) if hdr0 + 1 < nrows else []
+    has_sub = any(v in ("借方", "贷方", "借", "贷") for v in nxt)
+    start = hdr0 + (2 if has_sub else 1)
+
+    # 组名向右传播，拼出"期初余额借方"这类有效列名
+    eff, last = [], ""
+    for c in range(min(ncols, 60)):
+        t = top[c] if c < len(top) else ""
+        if t:
+            last = t
+        s = nxt[c] if (has_sub and c < len(nxt)) else ""
+        eff.append((last + s) if (last or s) else "")
+
+    def _find(pred):
+        for c, nm in enumerate(eff):
+            if nm and pred(nm):
+                return c
+        return None
+
+    idx = {}
+    for key, pred in (
+        ("code", lambda n: "科目编码" in n or "科目代码" in n),
+        ("name", lambda n: "科目名称" in n),
+        ("level", lambda n: "级次" in n),
+        ("open_debit", lambda n: "期初" in n and "借" in n),
+        ("open_credit", lambda n: "期初" in n and "贷" in n),
+        ("current_debit", lambda n: "本期" in n and "借" in n),
+        ("current_credit", lambda n: "本期" in n and "贷" in n),
+        ("close_debit", lambda n: "期末" in n and "借" in n),
+        ("close_credit", lambda n: "期末" in n and "贷" in n),
+    ):
+        c = _find(pred)
+        if c is not None:
+            idx[key] = c
+    if "code" not in idx:
+        return _parse_generic_table(sheet, header or [])
+
+    rows = []
+    for r in range(start, min(nrows, 3000)):
+        vals = _row(r)
+
+        def g(k):
+            c = idx.get(k)
+            return vals[c] if (c is not None and c < len(vals)) else ""
+
+        code, name = g("code"), g("name")
+        if not code and not name:
+            continue
+        if "level" in idx and g("level") not in ("", "1", "1.0"):
+            continue   # 仅保留一级科目，避免上下级重复汇总
+        rec = {
+            "code": code, "name": name, "科目编码": code, "科目名称": name,
+            "open_debit": _f(g("open_debit")), "open_credit": _f(g("open_credit")),
+            "current_debit": _f(g("current_debit")), "current_credit": _f(g("current_credit")),
+            "close_debit": _f(g("close_debit")), "close_credit": _f(g("close_credit")),
+        }
+        rec["期末借方"] = rec["close_debit"]
+        rec["期末贷方"] = rec["close_credit"]
+        rows.append(rec)
+    return rows or _parse_generic_table(sheet, header or [])
 
 def _parse_contract_sheet(sheet, header):
     """解析合同台账（合并合同清单+台账字段）"""

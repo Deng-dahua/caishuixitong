@@ -2083,6 +2083,23 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _sme:
         pipeline_log.append(f"结构错配分析异常: {_sme}")
 
+    # ═══ 跨文件逐月对等勾稽（收入四方 / 工资四方 / 个税三方，按 月·季·年 粒度） ═══
+    # 补齐"多份文件的同一口径应逐期对等相等"这一缺口：申报表销售额 ↔ 序时账主营业务收入 ↔ 开具发票
+    # ／ 工资表应发 ↔ 个税申报本月收入 ↔ 序时账计提工资 ／ 工资表个税 ↔ 个税申报个税 ↔ 序时账计提个税。
+    try:
+        from engine.monthly_reconcile import run_cross_period_reconcile
+        _mr_findings = run_cross_period_reconcile({
+            "vouchers": vouchers,
+            "sal_invs": sal_invs,
+            "tax_declarations": tax_declarations,
+            "salaries": salaries,
+        })
+        if _mr_findings:
+            domain_results.append({"domain": "跨文件逐月勾稽", "findings": _mr_findings})
+            pipeline_log.append(f"跨文件逐月勾稽: {len(_mr_findings)}项发现")
+    except Exception as _mre:
+        pipeline_log.append(f"跨文件逐月勾稽异常: {_mre}")
+
     # ═══ 税收优惠智能分析 ═══
     try:
         from engine.tax_incentive_analyzer import analyze_tax_incentives
