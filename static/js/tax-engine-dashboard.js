@@ -2338,8 +2338,6 @@ async function renderLearnFeedback(container) {
   h += '<div class="lf-flow-box" style="background:#f0f9ff;border:1px solid #bae6fd">';
   h += '<h4 style="color:#0369a1;border-bottom:1px solid #bae6fd">⬆ 上游 · 输入方</h4>';
   h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'chat\')" style="color:#2563eb">智能问答</a><div class="desc">用户纠正和追问通过聊天界面提交</div></div>';
-  h += '<div class="lf-flow-item"><a href="javascript:window._reportSection=\'rpt-8\';navigateTo(\'report-standards\')" style="color:#2563eb">报告编制与复核闭环</a><div class="desc">审核字段、复核层级和修改责任链已嵌入统一编制页面</div></div>';
-  h += '<div class="lf-flow-item"><a href="javascript:window._reportSection=\'rpt-9\';navigateTo(\'report-standards\')" style="color:#2563eb">常见误判复核矩阵</a><div class="desc">按误判根因组织反向核验，不固化个案结论</div></div>';
   h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'pipeline-rules\')" style="color:#2563eb">税务合规指令</a><div class="desc">规则匹配结果供学习引擎分析空跑率</div></div>';
   h += '<div class="lf-flow-item"><a href="javascript:navigateTo(\'system-logs\')" style="color:#2563eb">系统日志</a><div class="desc">分析日志中提取信号模式用于规则发现</div></div>';
   h += '</div>';

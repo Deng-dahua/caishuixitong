@@ -2926,7 +2926,6 @@ function renderLegalRefs(container) {
       h += '<div style="font-size:10px;color:#3a4048;line-height:20px">';
       h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'aly-result\')" style="color:#2563eb">本次分析结果</a><br><span style="color:#64748b">每项发现须引用具体法条</span></div>';
       h += '<div style="margin-bottom:6px"><a href="javascript:navigateTo(\'eng-think\')" style="color:#2563eb">推理系统</a><br><span style="color:#64748b">法律推理系统自动匹配法条</span></div>';
-      h += '<div><a href="javascript:navigateTo(\'report-standards\')" style="color:#2563eb">报告编制要求</a><br><span style="color:#64748b">报告法律依据字段引用法条</span></div>';
       h += '</div></div></div>';
 
       // ── 段落说明 ──
@@ -3542,8 +3541,8 @@ function renderFileAssociation() {
       "#7c3aed"
     ],
     [
-      "前端页面（9个JS）",
-      "tax-pipeline-pages.js、tax-doc-analysis.js、tax-auditor-handbook.js、tax-report-standards.js、tax-engine-dashboard.js、core.js、report-block-renderer.js、tax-risk-rules.js",
+      "前端页面（7个JS）",
+      "tax-pipeline-pages.js、tax-doc-analysis.js、tax-auditor-handbook.js、tax-engine-dashboard.js、core.js、report-block-renderer.js、tax-risk-rules.js",
       "#059669"
     ],
     [
@@ -5429,8 +5428,10 @@ function renderAGIKnowledgeConfig() {
 
 // 风险检查方法论（老风险检查员办案心法·6部16章·靛蓝配色）
 // 【2026-08-26 审计修复标记（P1-2）】renderReportSpecPage 为旧九节版报告规范（rs-1~rs-9），
-// 现行报告编制要求页由 tax-report-standards.js 的 renderReportStandards（rpt-1~rpt-10）承担，
-// core.js 的 report-spec 路由已直接跳转 report-standards，本函数全库无调用。内容保留备查，禁止新增调用。
+// 本函数全库无调用。内容保留备查，禁止新增调用。
+// 【2026-09-15 更正】原注释称"现行报告编制要求页由 tax-report-standards.js 的
+// renderReportStandards 承担"已失效：该文件已随方法论整体下线删除，renderReportStandards 全仓无定义。
+// core.js 的 report-standards 路由已改为显式下线提示（原为等待 5 秒后报红色加载超时）。
 function renderReportSpecPage(container) {
   if (!container) return;
   if (typeof renderReportStandards === 'function') {

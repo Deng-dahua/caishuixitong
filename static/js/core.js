@@ -858,7 +858,16 @@ function navigateTo(page) {
       window._reportSection = 'rpt-7';
       navigateTo('report-standards');
       return;
-    case 'report-standards': _sR(container, 'renderReportStandards'); break;
+    case 'report-standards':
+      // 2026-09-15：报告编制要求单页（static/js/tax-report-standards.js 的 renderReportStandards）
+      // 已随方法论整体下线被删除，但 feedback-template / report-spec / rs-negotiation /
+      // rs-review / rs-ironlaw / rs-iterate 六个深链入口仍跳向此处。
+      // 原逻辑调用已删除的 renderReportStandards → _sR 轮询 5 秒后报红色「模块加载超时」，
+      // 属误导性报错。现改为显式下线提示，避免死链。
+      container.innerHTML = '<div style="padding:60px;text-align:center;color:#64748b">'
+        + '<div style="font-size:14px;font-weight:600;color:#334155;margin-bottom:8px">报告编制要求页已下线</div>'
+        + '<div>该页已随方法论整体下线移除，相关内容不再维护。</div></div>';
+      break;
     case 'rs-negotiation':
       window._reportSection = 'rpt-4';
       navigateTo('report-standards');
