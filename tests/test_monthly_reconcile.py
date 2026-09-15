@@ -154,5 +154,45 @@ class RateConsistencyTest(unittest.TestCase):
         self.assertTrue(any("采购税价配比" in t for t in types))
 
 
+class FixedAssetReconcileTest(unittest.TestCase):
+    def _tb(self, fa_debit, dep_credit):
+        return [
+            {"code": "1601", "name": "固定资产", "close_debit": fa_debit, "close_credit": 0},
+            {"code": "1602", "name": "累计折旧", "close_debit": 0, "close_credit": dep_credit},
+        ]
+
+    def test_fa_equal(self):
+        # 清单原值 1000000 / 累计折旧 200000 ↔ 余额表 1601借1000000 / 1602贷200000
+        data = {
+            "fixed_assets": [
+                {"资产原值": 600000, "累计折旧": 120000},
+                {"原值": 400000, "累计折旧": 80000},
+            ],
+            "trial_balance": self._tb(1000000, 200000),
+        }
+        types = [f["type"] for f in run_cross_period_reconcile(data)]
+        self.assertTrue(any("固定资产原值勾稽" in t for t in types))
+        self.assertTrue(any("累计折旧勾稽" in t for t in types))
+
+    def test_fa_mismatch_flagged(self):
+        # 清单原值 1000000 ↔ 余额表 1601借 900000 → 待核
+        data = {
+            "fixed_assets": [{"原值": 1000000, "累计折旧": 200000}],
+            "trial_balance": self._tb(900000, 200000),
+        }
+        types = [f["type"] for f in run_cross_period_reconcile(data)]
+        self.assertTrue(any("固定资产原值勾稽" in t and "不一致" in t for t in types))
+
+    def test_fa_net_plus_dep_fallback(self):
+        # 仅给净值+累计折旧（无原值列）→ 回推原值 = 净值+折旧
+        from engine.monthly_reconcile import _fixed_asset_series
+        gross, accum = _fixed_asset_series([
+            {"净值": 480000, "累计折旧": 120000},
+            {"净值": 320000, "累计折旧": 80000},
+        ])
+        self.assertAlmostEqual(gross, 1000000.0)
+        self.assertAlmostEqual(accum, 200000.0)
+
+
 if __name__ == "__main__":
     unittest.main()

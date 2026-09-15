@@ -10,6 +10,7 @@
   - 应付发生额：取得发票(不含税) ↔ 序时账应付账款(贷方)  —— 采购发票是否全部挂账
   - 收入税价配比：序时账主营业务收入(贷方) × 适用税率 ↔ 销项税额(贷方) —— 税率适用/含税误记
   - 采购税价配比：取得发票(不含税) × 适用税率 ↔ 序时账进项税额(借方) —— 进项税率/价税分离
+  - 固定资产：固定资产清单(原值/累计折旧) ↔ 科目余额表(1601/1602) —— 清单与账面账实相符
 
 铁律：只输出可复算事实与待核线索，绝不自动定性；不足两方数据或无法归月时不输出。
 口径提示：申报表销售额与开具发票取**不含税**；序时账收入取贷方发生额（会计口径通常为不含税）。
@@ -297,6 +298,51 @@ def _social_series(rows: List[Dict]) -> Dict[str, float]:
     return out
 
 
+def _fixed_asset_series(rows: List[Dict]):
+    """固定资产清单（通用表，字段随企业格式变）→ (原值合计, 累计折旧合计)。
+
+    按关键词匹配列，做到格式无关：原值优先取「原值/资产原值/入账价值/购置价值」，
+    缺失时用「净值+累计折旧」回推；累计折旧取「累计折旧/折旧额」。
+    """
+    gross = 0.0
+    accum = 0.0
+    for r in rows or []:
+        if not isinstance(r, dict):
+            continue
+        g = _num(_first(r, ("原值", "资产原值", "入账价值", "购置价值", "资产价值", "原值金额")))
+        if g <= 0:
+            net = _num(_first(r, ("净值", "资产净值", "账面净值")))
+            dep = _num(_first(r, ("累计折旧", "折旧额")))
+            if net > 0 and dep > 0:
+                g = net + dep
+        accum += _num(_first(r, ("累计折旧", "折旧额", "累计折旧额")))
+        gross += g
+    return gross, accum
+
+
+def _tb_balance(trial_balance: List[Dict], code_prefix: str):
+    """科目余额表按一级科目前缀（如 "1601"）汇总期末借/贷余额。返回 (close_debit, close_credit)。"""
+    d = c = 0.0
+    for r in trial_balance or []:
+        if not isinstance(r, dict):
+            continue
+        digits = "".join(ch for ch in str(r.get("code") or r.get("科目编码") or "") if ch.isdigit())
+        if not digits.startswith(code_prefix):
+            continue
+        cd = _num(r.get("close_debit", r.get("期末借方")))
+        cc = _num(r.get("close_credit", r.get("期末贷方")))
+        if cd == 0 and cc == 0:
+            bal = _num(r.get("close_balance", r.get("期末余额")))
+            if str(r.get("direction") or r.get("余额方向") or "").startswith(("借", "dr", "D")):
+                d += bal
+            else:
+                c += bal
+        else:
+            d += cd
+            c += cc
+    return d, c
+
+
 _OUTPUT_VAT_KWS = ("销项税额",)
 _INPUT_VAT_KWS = ("进项税额",)
 _BANK_ACCT_KWS = ("银行存款", "1002")
@@ -415,6 +461,41 @@ def _reconcile(sources: Dict[str, Dict[str, float]], kind: str,
     return findings
 
 
+def _point_reconcile(val_a: float, val_b: float, label_a: str, label_b: str,
+                     title: str, category: str, redline_id: str,
+                     policy_ref: str, tax_impact: str) -> List[Dict]:
+    """单点（时点）对等：两方总额比对，容差内出一致、超容差出待核。用于固定资产清单 vs 账面等。"""
+    if val_a <= 0 or val_b <= 0:
+        return []
+    spread = abs(val_a - val_b)
+    if spread <= max(_TOL_ABS, _TOL_REL * max(abs(val_a), abs(val_b))):
+        return [{
+            "type": f"对等勾稽一致：{title}",
+            "level": "信息", "score": 1,
+            "detail": f"{label_a}{_fmt(val_a)} 与 {label_b}{_fmt(val_b)} 一致（差异{_fmt(spread)}）。",
+            "description": f"{title} 两来源金额对等一致。",
+            "how_found": f"将 {label_a} 与 {label_b} 直接比对，差额≤容差。",
+            "tax_impact": "两来源一致可降低资产/折旧不实的风险。",
+            "policy_ref": policy_ref,
+            "suggestion": "保持资产台账与账面同步。",
+            "category": category, "source_chain": "时点勾稽-一致",
+            "redline_id": redline_id, "indicator": "point_equal", "indicator_value": round(spread, 2),
+        }]
+    return [{
+        "type": f"待核事实：{title}不一致",
+        "level": "待核验", "score": 6,
+        "detail": f"{label_a}{_fmt(val_a)} 与 {label_b}{_fmt(val_b)} 不一致，差异{_fmt(spread)}元（{spread / max(abs(val_a), abs(val_b)) * 100:.1f}%）。",
+        "description": "固定资产清单与科目余额表应一致。不一致可能源于漏记资产、折旧计提差异、"
+                       "资产类别归集错误或账外资产，须逐卡核对。",
+        "how_found": f"将 {label_a} 与 {label_b} 直接比对，差额超容差。",
+        "tax_impact": tax_impact,
+        "policy_ref": policy_ref,
+        "suggestion": "编制固定资产台账与科目余额表的差异调节表，逐卡说明差异原因。",
+        "category": category, "source_chain": "时点勾稽-差异",
+        "redline_id": redline_id, "indicator": "point_gap", "indicator_value": round(spread, 2),
+    }]
+
+
 def _rate_consistency(base: Dict[str, float], tax: Dict[str, float],
                        title: str, category: str, redline_id: str,
                        policy_ref: str, tax_impact: str) -> List[Dict]:
@@ -482,8 +563,11 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     bank_txs = data.get("bank_txs") or []
     social = data.get("social_security") or []
     fund = data.get("housing_fund") or []
+    fixed_assets = data.get("fixed_assets") or []
+    trial_balance = data.get("trial_balance") or []
 
-    if not (vouchers or sal_invs or decls or salaries or pur_invs or bank_txs):
+    if not (vouchers or sal_invs or decls or salaries or pur_invs or bank_txs
+            or fixed_assets or trial_balance):
         return []
 
     findings: List[Dict] = []
@@ -647,9 +731,29 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     if _pur_base and _in_tax:
         findings.extend(_rate_consistency(
             _pur_base, _in_tax, "采购税价配比", "增值税", "RL-VAT-002",
-            "《增值税暂行条例》第八条关于进项税额抵扣的规定",
+            "《增值税暂行条例》第八条关于进项税额抵扣的原则规定",
             "采购与进项税额配比异常，可能取得发票未分离价税、税率适用错误或违规抵扣。",
         ))
+
+    # ── 家族十二：固定资产清单 ↔ 科目余额表（原值 / 累计折旧，时点勾稽）──
+    if fixed_assets and trial_balance:
+        fa_gross, fa_accum = _fixed_asset_series(fixed_assets)
+        tb_fa_d, _ = _tb_balance(trial_balance, "1601")       # 固定资产(1601) 借方余额=原值
+        _, tb_dep_c = _tb_balance(trial_balance, "1602")       # 累计折旧(1602) 贷方余额
+        if fa_gross > 0 and tb_fa_d > 0:
+            findings.extend(_point_reconcile(
+                fa_gross, tb_fa_d, "固定资产清单原值合计", "科目余额表固定资产(1601)借方余额",
+                "固定资产原值勾稽", "资产账实", "RL-COST-003",
+                "《企业会计准则》关于固定资产核算的规定；《会计法》关于账实相符的规定",
+                "固定资产账实不符将影响折旧、资产税务处理与企业所得税扣除基数。",
+            ))
+        if fa_accum > 0 and tb_dep_c > 0:
+            findings.extend(_point_reconcile(
+                fa_accum, tb_dep_c, "固定资产清单累计折旧合计", "科目余额表累计折旧(1602)贷方余额",
+                "累计折旧勾稽", "资产账实", "RL-COST-003",
+                "《企业会计准则》关于固定资产折旧的规定",
+                "累计折旧账实不符将影响折旧费用与企业所得税扣除。",
+            ))
     return findings
 
 

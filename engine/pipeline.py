@@ -2099,6 +2099,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             "bank_txs": bank_txs,
             "social_security": social_security,
             "housing_fund": housing_fund_data,
+            "fixed_assets": fixed_assets,
+            "trial_balance": trial_balance_data,
         })
         _mr_findings += run_ledger_reconcile(vouchers, trial_balance_data)
         if _mr_findings:
