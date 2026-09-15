@@ -794,43 +794,9 @@ function navigateTo(page) {
 
   // ═══ 安全派发：所有页面渲染走 _sR/_sRX，函数未就绪时降级不抛异常 ═══
   switch (page) {
-    case 'dashboard':            _sR(container, 'renderDashboard'); break;
     case 'company-overview':    _sR(container, 'renderCompanyOverview'); break;
     case 'compliance-workbench': _sR(container, 'renderComplianceWorkbench'); break;
-    case 'journal':                _sR(container, 'renderJournal'); break;
-    case 'general-ledger':         _sR(container, 'renderGeneralLedger'); break;
-    case 'detail-ledger':          _sR(container, 'renderDetailLedger'); break;
-    case 'employee-ledger':        _sR(container, 'renderEmployeeLedger'); break;
-    case 'customer-ledger':        _sR(container, 'renderCustomerLedger'); break;
-    case 'supplier-ledger':        _sR(container, 'renderSupplierLedger'); break;
-    case 'profit-loss':            _sR(container, 'renderProfitLoss'); break;
-    case 'balance-sheet':          _sR(container, 'renderBalanceSheet'); break;
-    case 'cash-flow':              _sR(container, 'renderCashFlow'); break;
-    case 'equity-changes':         _sR(container, 'renderEquityChanges'); break;
-    case 'account-balance':        _sR(container, 'renderAccountBalance'); break;
-    case 'accounts':               _sR(container, 'renderAccounts'); break;
-    case 'periods':                _sR(container, 'renderPeriods'); break;
     case 'company':                window.location.href = '/select-company'; break;
-    case 'departments':            _sR(container, 'renderDepartments'); break;
-    case 'employees':              _sR(container, 'renderEmployees'); break;
-    case 'customers':              _sR(container, 'renderCustomers'); break;
-    case 'suppliers':              _sR(container, 'renderSuppliers'); break;
-    case 'fixed-assets':           _sR(container, 'renderFixedAssets'); break;
-    case 'intangible-assets':      _sR(container, 'renderIntangibleAssets'); break;
-    case 'inventory':              _sR(container, 'renderInventory'); break;
-    case 'contracts':              _sR(container, 'renderContracts'); break;
-    case 'payments':               _sR(container, 'renderPayments'); break;
-    case 'sales-invoices':         _sR(container, 'renderSalesInvoices'); break;
-    case 'purchase-invoices':      _sR(container, 'renderPurchaseInvoices'); break;
-    case 'bookkeeping-invoices':   _sR(container, 'renderBookkeepingInvoices'); break;
-    case '未记账发票':              _sR(container, 'renderUnbookkeptInvoices'); break;
-    case 'input-vat-deductions':   _sR(container, 'renderInputVATDeductions'); break;
-    case 'bank-transactions':      _sR(container, 'renderBankTransactions'); break;
-    case 'vat-declaration':        _sR(container, 'renderVATDeclaration'); break;
-    case 'salary':                 _sR(container, 'showSalaryPage'); break;
-    case 'social-security':        _sR(container, 'renderSocialSecurity'); break;
-    case 'housing-fund':           _sR(container, 'renderHousingFund'); break;
-    case '文化事业建设费':          _sR(container, 'renderCulturalConstructionFee'); break;
     case 'tax-risk-report':        _sR(container, 'renderTaxRiskReport'); break;
     case 'tax-doc-analysis':       _sR(container, 'renderTaxDocAnalysis'); break;
     case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
