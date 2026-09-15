@@ -767,8 +767,8 @@ def _problem_paragraphs(f):
     if not tax_impact or "尚未形成" in tax_impact:
         tax_impact = "税额影响以完成资料更正、账税核对和重新计算后的结果为准，本项不直接给出应补税额。"
 
-    # 代表性明细：有真明细才挂表
-    detail_rows, detail_cols = _build_detail_table(f)
+    # 代表性明细：规则显式给的多表优先（detail_tables），否则自动推断单表
+    _detail_tables = f.get("detail_tables") or []
 
     # ── 段1：发现了什么（核心段，数字与事实）──
     fact_text = "经查，" + detail
@@ -797,9 +797,14 @@ def _problem_paragraphs(f):
         {"heading": "怎么查", "text": how_text},
         {"heading": "什么时候算完", "text": done_text},
     ]
-    if detail_rows:
-        # 把明细表挂在第一段对象上，供前端渲染；同时保留文本回退
-        paragraphs[0]["detail_table"] = {"columns": detail_cols, "rows": detail_rows}
+    if _detail_tables:
+        # 规则显式给出的多张下钻表（如 VR060 的成本/付款/应付逐笔溯源）
+        paragraphs[0]["detail_tables"] = _detail_tables
+    else:
+        detail_rows, detail_cols = _build_detail_table(f)
+        if detail_rows:
+            # 把明细表挂在第一段对象上，供前端渲染；同时保留文本回退
+            paragraphs[0]["detail_table"] = {"columns": detail_cols, "rows": detail_rows}
     return paragraphs
 
 
@@ -960,7 +965,7 @@ _TAG_PLAIN = [
 ]
 
 
-def _build_redline_problems(suspicions):
+def _build_redline_problems(suspicions, findings=None):
     """
     按「税务红线疑点」组装报告主体（2026-09-06 新方法论）
 
@@ -972,6 +977,12 @@ def _build_redline_problems(suspicions):
       ⑤ 需要补充什么资料或解释才能定性
     """
     problems = []
+    # 从原始发现里取规则显式给出的多表下钻（如 VR060 成本/付款/应付逐笔溯源），
+    # 按 redline_id 关联到对应疑点，挂到「发现的依据」段，让企业看到聚合数背后的明细。
+    _dt_lookup = {}
+    for _f in (findings or []):
+        if isinstance(_f, dict) and _f.get("detail_tables") and _f.get("redline_id"):
+            _dt_lookup.setdefault(_f["redline_id"], _f["detail_tables"])
     for i, s in enumerate(suspicions, 1):
         arg = s.get("argumentation") or {}
         clue = s.get("clue_chain") or {}
@@ -1041,6 +1052,10 @@ def _build_redline_problems(suspicions):
             {"heading": "五、需企业提供的资料与说明", "text": _naturalize_report_text(p5_lead),
              "bullets": bullets5 or None, "tail": tail5},
         ]
+
+        # 规则显式下钻表（如 VR060 成本/付款/应付逐笔溯源）挂到「发现的依据」段
+        if s.get("redline_id") in _dt_lookup:
+            paragraphs[1]["detail_tables"] = _dt_lookup[s["redline_id"]]
 
         problems.append({
             "seq": i,
@@ -1201,6 +1216,12 @@ _OBSERVED_KEY_LABELS = [
     ("social_only_count", "有社保无工资人数"),
     ("person_account_count", "涉及个人账户数"),
     ("core_cost_total", "主营成本总额"),
+    ("ap_summary_balance", "应付账款汇总余额"),
+    ("uncovered_amount", "既无付款亦无挂账金额"),
+    ("ap_from_trial_balance", "应付来源是否科目余额表"),
+    ("core_cost_supplier_breakdown", "主营成本按供应商"),
+    ("company_paid_supplier_breakdown", "已付金额按供应商"),
+    ("source_documents", "资料来源映射"),
     ("unpaid_amount", "未匹配付款金额"),
     ("unpaid_ratio", "未付款占比"),
     ("supplier_count", "供应商家数"),
@@ -1355,7 +1376,9 @@ def _build_confirmed_problems(report_data):
     # ═══ 新方法论：以「税务红线疑点」为主干（2026-09-06）═══
     _rd = (report_data.get("comprehensive", {}) or {}).get("redline_detection") or {}
     if _rd.get("suspicions"):
-        return _build_redline_problems(_rd["suspicions"])
+        _findings = ((report_data.get("scenario_execution", {}) or {}).get("findings")
+                     or report_data.get("all_findings", []) or [])
+        return _build_redline_problems(_rd["suspicions"], _findings)
     findings = report_data.get("all_findings", []) or []
     # 缺失型（该有的没有）经竞争假设裁决后仍为"证据不足"的，转「待企业澄清事项」抛企业自证，
     # 不列为已确认问题（避免同一发现既"已核定"又"待证"的矛盾）。

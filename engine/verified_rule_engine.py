@@ -5715,6 +5715,43 @@ def _scan_core_cost_fund_evidence(data, spec):
         else:
             no_detail.append(it)
 
+    # ── 明细溯源：为四个 headline 金额构建逐笔/按供应商下钻 ──
+    # 教给一键分析：每一类资料提供什么佐证 —— 采购发票给「成本+已付」、银行流水给「付款印证」、
+    # 科目余额表给「应付汇总」、应付账款明细账给「供应商级挂账」（本次未上传）。
+    def _seller_of(row):
+        return str(row.get("seller") or row.get("销方名称") or row.get("销售方名称") or "").strip()
+    def _amt_of(row):
+        return abs(_number(row.get("amount") or row.get("价税合计") or row.get("金额") or 0))
+    def _invno_of(row):
+        return str(row.get("invoice_no") or row.get("发票号码") or row.get("invoice_number") or "")
+
+    def _supplier_breakdown(rows):
+        acc = {}
+        for r in rows:
+            if not isinstance(r, dict):
+                continue
+            s = _seller_of(r)
+            if not s:
+                continue
+            k = s[:24]
+            it = acc.setdefault(k, {"count": 0, "amount": 0.0})
+            it["count"] += 1
+            it["amount"] += _amt_of(r)
+        for it in acc.values():
+            it["amount"] = round(it["amount"], 2)
+        return dict(sorted(acc.items(), key=lambda kv: -kv[1]["amount"]))
+
+    core_break = _supplier_breakdown(core_invs)
+    _paid_rows = [e.get("row") for e in (evid.get("company_paid") or []) if isinstance(e, dict)]
+    paid_break = _supplier_breakdown(_paid_rows)
+    no_detail_full = [it for it in no_trace if (it.get("ap") or {}).get("status") == "无明细"]
+    no_detail_items = [{"供应商": it["seller"][:24], "金额": round(it["amount"], 2),
+                        "日期": it["date"], "发票号": _invno_of(it["row"])}
+                       for it in sorted(no_detail_full, key=lambda x: -x["amount"])]
+    ap_agg = float(ap_index.get("aggregate_balance", 0) or 0)
+    ap_from_tb = bool(ap_index.get("from_trial_balance"))
+    uncovered = round(total - company - person - ap_agg, 2)
+
     def _sum(items):
         return round(sum(i["amount"] for i in items), 2)
 
@@ -5735,6 +5772,19 @@ def _scan_core_cost_fund_evidence(data, spec):
         "channel_stat": channel_stat,
         "ap_detail_provided": bool(ap_index.get("has_detail")),
         "analysis_base_date": base_date,
+        # ── 下钻明细（教给一键分析：每一类资料提供什么佐证）──
+        "core_cost_supplier_breakdown": core_break,
+        "company_paid_supplier_breakdown": paid_break,
+        "ap_summary_balance": round(ap_agg, 2),
+        "ap_from_trial_balance": ap_from_tb,
+        "uncovered_amount": uncovered,
+        "source_documents": {
+            "主营成本总额": "采购发票（主营业务成本类）",
+            "公司已付金额": "银行流水（对公转账/平台代付匹配）",
+            "未匹配付款成本": "采购发票中无同名流水匹配者",
+            "应付账款汇总余额": "科目余额表·应付账款（一级期末贷方）" if ap_from_tb else "应付账款明细账",
+            "供应商级应付明细": "应付账款明细账/辅助核算（本次未上传）",
+        },
     }
 
     # ── ① 待核线索：既无付款、又无应付挂账（真异常）──
@@ -5780,13 +5830,18 @@ def _scan_core_cost_fund_evidence(data, spec):
         nd_amt = _sum(no_detail)
         findings.append(_finding(
             spec,
-            "主营业务成本中有%s元（%d笔）未匹配到任何支付渠道，且本次未提供应付账款明细"
-            "（账面应付账款汇总余额%s元），无法逐户核验其是否已挂应付账款。"
-            "成本列支的正常闭环是「有付款」或「有负债」二者至少其一；在补充资料前本项无法排除。"
-            "请提供应付账款明细账（含供应商、未付金额、账龄或账期）、采购合同与入库验收单，"
-            "以区分「正常赊购（挂账）」与「既无付款亦无负债」两种情形。"
+            "主营业务成本中有%s元（%d笔）未匹配到任何支付渠道。已核实：科目余额表「应付账款」"
+            "一级期末贷方余额为%s元（即账面已挂账总额），但科目余额表不提供供应商级明细，"
+            "无法逐户确认这%s元中哪些供应商已挂账、哪些既无付款亦无挂账。按全量双要件核验："
+            "主营成本总额%s元 − 公司已付%s元 − 个人垫付%s元 − 账面应付%s元 = %s元，"
+            "该部分既无付款印证、亦无账面应付挂账，属待核。请提供应付账款明细账（含供应商、未付金额、账龄）"
+            "或辅助核算，以逐户区分「正常赊购挂账」与「既无付款亦无负债」。"
             % (format(nd_amt, ",.2f"), len(no_detail),
-               format(ap_index.get("aggregate_balance", 0) or 0, ",.2f")),
+               format(ap_agg, ",.2f"),
+               format(nd_amt, ",.2f"),
+               format(total, ",.2f"), format(company, ",.2f"),
+               format(person, ",.2f"), format(ap_agg, ",.2f"),
+               format(uncovered, ",.2f")),
             dict(common, no_detail_amount=round(nd_amt, 2), no_detail_rows=len(no_detail),
                  no_detail_examples=_examples(no_detail, 8)),
             spec["required_sources"],
@@ -5838,6 +5893,48 @@ def _scan_core_cost_fund_evidence(data, spec):
     # 注：不再输出「整体资金印证率偏低」兜底提示——凡未匹配项都已被挂账/其他渠道/跨期/资料覆盖
     # 解释时属正常（赊购、票据、跨年付款），依报告纪律「未发现异常不写套话」，不应输出。
     # 金额不符（amount_mismatch）保留在 observed_metrics 供人工复核。
+
+    # ── 显式下钻明细表：四条 headline 金额的逐笔/按供应商溯源 ──
+    # 挂到每条子发现（合并后保留），让企业能在报告里直接看到每个聚合数背后是哪些供应商/发票。
+    _vr060_detail_tables = []
+    if core_break:
+        _vr060_detail_tables.append({
+            "title": "表1 主营成本总额·按供应商分布（合计 %s 元，来源：采购发票·主营业务成本类）"
+                     % format(total, ",.2f"),
+            "columns": ["供应商", "笔数", "金额"],
+            "rows": [{"供应商": k, "笔数": v["count"], "金额": v["amount"]}
+                     for k, v in list(core_break.items())[:40]],
+        })
+    if paid_break:
+        _vr060_detail_tables.append({
+            "title": "表2 公司已付金额·按供应商分布（合计 %s 元，来源：银行流水·对公/平台代付匹配）"
+                     % format(company, ",.2f"),
+            "columns": ["供应商", "笔数", "金额"],
+            "rows": [{"供应商": k, "笔数": v["count"], "金额": v["amount"]}
+                     for k, v in list(paid_break.items())[:40]],
+        })
+    if no_detail_items:
+        _vr060_detail_tables.append({
+            "title": "表3 未匹配付款成本·逐笔（共 %d 笔，合计 %s 元）"
+                     % (len(no_detail_items), format(_sum(no_detail_full), ",.2f")),
+            "columns": ["供应商", "金额", "日期", "发票号"],
+            "rows": no_detail_items,
+        })
+    if ap_from_tb or ap_index.get("has_detail"):
+        _vr060_detail_tables.append({
+            "title": "表4 应付账款核对（账面汇总 %s 元，来源：%s）"
+                     % (format(ap_agg, ",.2f"), "科目余额表" if ap_from_tb else "应付账款明细账"),
+            "columns": ["项目", "金额"],
+            "rows": [
+                {"项目": "主营成本总额", "金额": round(total, 2)},
+                {"项目": "公司已付印证", "金额": round(company, 2)},
+                {"项目": "个人垫付印证", "金额": round(person, 2)},
+                {"项目": "账面应付挂账", "金额": round(ap_agg, 2)},
+                {"项目": "既无付款亦无挂账（待核）", "金额": uncovered},
+            ],
+        })
+    for _f in findings:
+        _f["detail_tables"] = _vr060_detail_tables
 
     # 显式收编进 RL-PTY-001：红线判定（redline_engine._map_finding）优先取发现自声明的 redline_id；
     # 资料完整性类（data_quality_limitation）不挂红线——它不是风险嫌疑，而是资料覆盖问题。

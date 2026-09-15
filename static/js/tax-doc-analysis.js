@@ -4619,7 +4619,14 @@ function _renderNarrativeParagraphs(rows, emptyText) {
   return rows.map(function(row){
     var heading = row && row.heading
       ? '<div style="font-weight:700;margin:12px 0 4px">' + esc(row.heading) + '</div>' : '';
-    var table = row && row.detail_table ? _renderDetailTable(row.detail_table) : '';
+    var table = '';
+    if (row && row.detail_tables && row.detail_tables.length) {
+      table = row.detail_tables.map(function(t){
+        return (t.title ? '<div style="font-weight:700;margin:12px 0 4px">' + esc(t.title) + '</div>' : '') + _renderDetailTable(t);
+      }).join('');
+    } else if (row && row.detail_table) {
+      table = _renderDetailTable(row.detail_table);
+    }
     var body = _renderNarrativeBody((row && row.text) || '', row && row.bullets);
     var tail = (row && row.tail) ? '<p style="margin:6px 0;text-align:justify;line-height:2">' + esc(row.tail) + '</p>' : '';
     return '<div class="i2" style="margin:10px 0">' + heading + body + tail + '</div>' + table;
