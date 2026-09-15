@@ -83,5 +83,34 @@ class VATAndLedgerReconcileTest(unittest.TestCase):
         self.assertEqual(run_ledger_reconcile(vouchers, tb), [])
 
 
+class ARAPReconcileTest(unittest.TestCase):
+    def test_ar_equal(self):
+        # 开具发票不含税 = 序时账应收账款借方 → 一致
+        data = {
+            "sal_invs": [{"date": "2025-01-20", "amount": 500000}],
+            "vouchers": [{"month_no": "1", "account": "1122",
+                          "account_name": "应收账款", "debit": 500000, "credit": 0}],
+        }
+        types = [f["type"] for f in run_cross_period_reconcile(data)]
+        self.assertTrue(any("应收账款发生额对等" in t for t in types))
+        self.assertFalse(any("不匹配" in t for t in types))
+
+    def test_ap_mismatch_flagged(self):
+        # 取得发票 300000 ≠ 应付账款贷方 280000 → 待核
+        data = {
+            "pur_invs": [{"date": "2025-02-10", "amount": 300000}],
+            "vouchers": [{"month_no": "2", "account": "2202",
+                          "account_name": "应付账款", "debit": 0, "credit": 280000}],
+        }
+        types = [f["type"] for f in run_cross_period_reconcile(data)]
+        self.assertTrue(any("应付账款发生额对等" in t and "不匹配" in t and "2025-02" in t
+                            for t in types))
+
+    def test_ar_single_source_no_output(self):
+        # 只有开票、无序时账 → 不足两方不报
+        data = {"sal_invs": [{"date": "2025-01-20", "amount": 500000}]}
+        self.assertEqual(run_cross_period_reconcile(data), [])
+
+
 if __name__ == "__main__":
     unittest.main()

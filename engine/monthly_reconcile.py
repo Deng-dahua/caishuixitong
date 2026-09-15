@@ -6,6 +6,8 @@
   - 收入四方：增值税申报表销售额 ↔ 序时账主营业务收入(贷方) ↔ 开具发票金额(不含税) ↔ 利润表收入
   - 工资四方：工资表应发 ↔ 个税申报本月收入 ↔ 序时账计提工资(应付职工薪酬贷方)
   - 个税三方：工资表代扣个税 ↔ 个税申报个税 ↔ 序时账计提个税(应交个人所得税贷方)
+  - 应收发生额：开具发票(不含税) ↔ 序时账应收账款(借方)  —— 开票是否全部挂账
+  - 应付发生额：取得发票(不含税) ↔ 序时账应付账款(贷方)  —— 采购发票是否全部挂账
 
 铁律：只输出可复算事实与待核线索，绝不自动定性；不足两方数据或无法归月时不输出。
 口径提示：申报表销售额与开具发票取**不含税**；序时账收入取贷方发生额（会计口径通常为不含税）。
@@ -80,6 +82,8 @@ def _infer_year(data: Dict[str, Any]) -> Optional[str]:
                         c[m[:4]] += 1
 
     _scan(data.get("sal_invs"), ("date", "invoice_date", "开票日期"))
+    _scan(data.get("pur_invs"), ("date", "invoice_date", "开票日期"))
+    _scan(data.get("input_vat_deductions"), ("date", "开票日期", "勾选时间", "所属期"))
     _scan(data.get("tax_declarations"), ("period", "税款所属期", "期间"))
     _scan(data.get("salaries"), ("period_start", "period_end", "所属期", "month"))
     return c.most_common(1)[0][0] if c else None
@@ -324,7 +328,14 @@ _LABELS = {
     "voucher_social": "序时账社保",
     "fund": "公积金缴存合计",
     "voucher_fund": "序时账住房公积金",
+    "sal_inv_ar": "开具发票金额(不含税)",
+    "voucher_ar": "序时账应收账款(借方)",
+    "pur_inv_ap": "取得发票金额(不含税)",
+    "voucher_ap": "序时账应付账款(贷方)",
 }
+
+_AR_ACCT_KWS = ("应收账款", "1122")
+_AP_ACCT_KWS = ("应付账款", "2202")
 
 
 def _fmt(v: float) -> str:
@@ -525,6 +536,34 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
                 f_src, "month", "公积金缴存对等", "住房公积金", "RL-PAY-005",
                 "《住房公积金管理条例》关于缴存的规定",
                 "公积金缴存与账面不一致，可能存在少缴或口径差异。",
+            ))
+
+    # ── 家族八：应收账款发生额（开具发票不含税 ↔ 序时账 应收账款 借方）──
+    ar_sources = {
+        "sal_inv_ar": _invoice_series(sal_invs),
+        "voucher_ar": _voucher_series(vouchers, _AR_ACCT_KWS, year, side="debit"),
+    }
+    if sum(1 for s in ar_sources.values() if s) >= 2:
+        for _kind in ("month", "year"):
+            findings.extend(_reconcile(
+                ar_sources, _kind, "应收账款发生额对等", "收入真实性", "RL-INC-001",
+                "《企业会计准则》关于应收账款核算的规定；《增值税暂行条例》关于销售额申报的规定",
+                "开票金额与账面应收账款借方不一致，可能开票未入账、挂错科目，或存在未开票收入/无票销售，"
+                "进而影响收入确认与增值税申报完整性。",
+            ))
+
+    # ── 家族九：应付账款发生额（取得发票不含税 ↔ 序时账 应付账款 贷方）──
+    ap_sources = {
+        "pur_inv_ap": _invoice_series(pur_invs),
+        "voucher_ap": _voucher_series(vouchers, _AP_ACCT_KWS, year, side="credit"),
+    }
+    if sum(1 for s in ap_sources.values() if s) >= 2:
+        for _kind in ("month", "year"):
+            findings.extend(_reconcile(
+                ap_sources, _kind, "应付账款发生额对等", "成本费用", "RL-COST-003",
+                "《企业会计准则》关于应付账款核算的规定；《增值税暂行条例》关于进项税额抵扣的规定",
+                "取得发票与账面应付账款贷方不一致，可能发票未入账、暂估差异或取得虚开发票挂账，"
+                "影响成本列支与进项税额抵扣的真实性。",
             ))
     return findings
 
