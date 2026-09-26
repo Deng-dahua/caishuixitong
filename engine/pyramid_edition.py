@@ -161,7 +161,9 @@ def build_pyramid_edition(er: Dict) -> Dict[str, Any]:
                             summary.get("confirmed_problem_count", 0),
                             summary.get("further_check_count", 0))),
         "question": "本次检查查明的税务风险有哪些？应怎样逐项解除并自证？",
-        "answer": (answered[:300] if answered else headline),
+        # ★ 2026-09-26：不限制结论字数（用户要求结论部分高精准归纳、通俗易懂、不限字数）。
+        #   此前 answered[:300] 会把"本轮核心结论"从中间截断，违背金字塔"结论先行"的完整性。
+        "answer": (answered if answered else headline),
     }
 
     # ── 行动标题：完全由现有字段组合（[等级] + title），不改事实 ──

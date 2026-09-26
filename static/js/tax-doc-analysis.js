@@ -5099,7 +5099,8 @@ function _buildPyramidBody(r, dateStr) {
         + _lvBadge(p ? p.risk_level : '')
         + ' ' + esc(title);
       if (p && p.suspect) {
-        html += ' <span style="color:#64748b;font-size:12.5px">— ' + esc(String(p.suspect).slice(0, 120)) + '</span>';
+        // ★ 2026-09-26：结论部分不限制字数（用户要求），去掉 120 字截断，展示完整涉嫌描述。
+        html += ' <span style="color:#64748b;font-size:12.5px">— ' + esc(String(p.suspect)) + '</span>';
       }
       html += ' <a href="#company-ledger" style="font-size:12px;color:#2563eb">查台账原文 ↩</a></li>';
     });

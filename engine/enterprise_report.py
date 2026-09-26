@@ -2009,16 +2009,16 @@ def _build_summary(report_data, problems, completed, further):
     except Exception:
         pass
 
-    for p in problems[:5]:
+    # ★ 2026-09-26：结论部分不限制字数（用户要求）。逐条列出全部已确认问题，
+    #   每条仍保持「标题 + 核心一句（大白话）」的讲重点风格，但不强行截断为前 5 条、
+    #   也不再折叠成"另有 N 项"——覆盖完整、可读、通顺。
+    for p in problems:
         first = p.get("narrative_paragraphs", [{}])[0].get("text", "") if p.get("narrative_paragraphs") else ""
         grade = p.get("conclusion_grade") or "待核"
         grade_tag = "（已核定）" if grade == "已核定" else "（待核）"
-        # 2026-09-05 重构：摘要只写「标题 + 核心一句」（第一个含数字的分句），
-        # 不再把整段 detail 抄进摘要——同一内容在报告里出现三遍是"啰嗦"的最大来源。
+        # 摘要只写「标题 + 核心一句」（第一个含数字的分句），不把整段 detail 抄进摘要。
         core_line = _core_sentence(first)
         key_points.append(to_plain(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{core_line}"))
-    if len(problems) > 5:
-        key_points.append(f"另有{len(problems) - 5}项具体问题见第二部分及本章的本轮全部发现一览。")
     if further:
         key_points.append(f"还有{len(further)}项检查尚未完成，优先补齐资料。这些事项表示检查范围受限，不表示已经发生相应违法。")
 
