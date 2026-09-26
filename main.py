@@ -11238,7 +11238,24 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                             _fresh = False
                 except Exception:
                     _fresh = False
-                if _cached_fp == _fp and _fresh:
+                # ★ 2026-09-26 缓存结构一致性闸门：增量复用只认"含正确企业报告"的结果。
+                # 根因：报告渲染结构随代码回退/升级而变化，但增量复用仅按"资料+规则指纹"
+                # 判断，导致回退前内存里那份缺 enterprise_readable_report 或旧版式的旧缓存
+                # 被原样复用，前端于是渲染出与上轮不符的报告。故复用前必须先校验缓存结果
+                # 确实含目标企业报告（compilation_style 命中），否则视为脏缓存、强制全量重算。
+                _cached_report_ok = False
+                try:
+                    _cr = (_cached.get("report") or {}).get("report") or {}
+                    _cer = _cr.get("enterprise_readable_report") or {}
+                    _cached_report_ok = isinstance(_cer, dict) and _cer.get("compilation_style") in (
+                        "涉税风险检查工作报告（风险检查文书式）",
+                        "税务风险检查文书式报告",
+                        "内部税务风险检查员报告",
+                        "企业易读检查结果",
+                    )
+                except Exception:
+                    _cached_report_ok = False
+                if _cached_fp == _fp and _fresh and _cached_report_ok:
                     _inc_id = _uuid.uuid4().hex[:12]
                     with _analysis_lock:
                         _analysis_tasks[_inc_id] = {
