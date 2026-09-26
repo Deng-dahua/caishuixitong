@@ -65,6 +65,51 @@ def _collect_directions(problems: List[dict], limit: int = 6) -> List[str]:
     return [d for d, _ in c.most_common(limit)]
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# 风险主题归纳表（数据驱动：新增主题只需加一行，不改逻辑）
+# ═══════════════════════════════════════════════════════════════════════════
+# 用途：把逐条发现**归纳**为稽查主题，回答"风险集中在哪些方面"，
+#       而不是只按等级平铺列举（用户要求：突出重点结果、总结归纳风险情况）。
+_RISK_THEMES = [
+    # ⚠ 顺序即优先级：越**具体/定性越重**的主题排越前。
+    #   反例（已修）：原「成本费用真实性」排在「发票与交易真实性」之前，
+    #   导致"有进无销"（涉嫌虚开+虚增成本）被成本主题先截走——虚开是更具体的定性，应优先。
+    ("收入完整性", ["隐匿收入", "隐瞒收入", "不入账", "未开票", "账外", "少计收入",
+                    "银行收款大于", "私户", "个人账户收取", "未纳入"]),
+    ("发票与交易真实性", ["虚开发票", "接受虚开", "为他人代开", "红字冲销", "作废发票",
+                          "有进无销", "有销无进", "开票额", "票面", "品名"]),
+    ("成本费用真实性", ["虚列成本", "虚增成本", "虚列费用", "白条", "成本列支", "期间费用",
+                        "无真实业务", "虚增税前扣除", "成本费用", "列支费用", "调节"]),
+    ("资金流向", ["资金回流", "资金空转", "公转私", "公私混同", "回流", "循环"]),
+    ("工资社保与个税", ["工资", "社保", "个税", "劳务报酬", "代扣代缴", "虚列人员", "用工"]),
+    ("税费申报", ["申报", "印花税", "附加", "计税依据", "税负", "少缴"]),
+    ("关联交易", ["关联", "六员", "转移利润", "利益输送"]),
+    ("经营合理性", ["长期亏损", "数字特征", "持续经营", "毛利率", "异常"]),
+]
+
+
+def _group_by_theme(problems: List[dict]) -> List[Dict[str, Any]]:
+    """按**风险性质**归纳（每条归入首个命中主题；未命中归"其他"）。"""
+    buckets: Dict[str, list] = {}
+    order = [t[0] for t in _RISK_THEMES] + ["其他"]
+    for name in order:
+        buckets[name] = []
+    for p in problems:
+        text = " ".join(str(p.get(k) or "") for k in ("title", "suspect"))
+        hit = "其他"
+        for name, kws in _RISK_THEMES:
+            if any(kw in text for kw in kws):
+                hit = name
+                break
+        buckets[hit].append(_short_title(p.get("title")))
+    out = []
+    for name in order:
+        items = buckets.get(name) or []
+        if items:
+            out.append({"theme": name, "count": len(items), "items": items})
+    return out
+
+
 def _cost_reconciliation(rd: Dict[str, Any]) -> Dict[str, Any]:
     """★ 2026-09-26 三方闭环：发票类目口径 / 账面口径 / 差异待核。
 
@@ -246,6 +291,23 @@ def build_overall_conclusion(report_data: Any,
         f"以下为本轮复算结论，独立于此前任何一轮报告。"
     )
 
+    # ★ 开篇总括（用户要求：先给整体情况与重点结果，再展开细节）
+    _lv = {t["level"]: t["count"] for t in tiers}
+    _pv = int(_lv.get("待核验", 0) or 0)
+    _themes = _group_by_theme(problems)
+    _top = "、".join("%s（%d 项）" % (g["theme"], g["count"]) for g in _themes[:3])
+    _lv_txt = ""
+    if any(_lv.get(k) for k in ("高风险", "中风险", "低风险")):
+        _lv_txt = ("，其中高风险 %d 项、中风险 %d 项、低风险 %d 项"
+                   % (int(_lv.get("高风险", 0)), int(_lv.get("中风险", 0)), int(_lv.get("低风险", 0))))
+    P.append(
+        "检查范围与结果概览：本轮依据已上传的 %d 类资料（%d 份）实施检查，共识别并列示 %d 项待核实风险事项%s%s。"
+        "风险主要集中在：%s。"
+        % (cats, files_count, len(problems), _lv_txt,
+           ("，另有 %d 项因证据不足暂列待核验" % _pv) if _pv else "",
+           _top or "（本轮未形成可归纳的风险主题）")
+    )
+
     # 行业与对标
     # ★ 2026-09-26 用户口径：**行业认定不能写得太确定**。区分两件事——
     #   ①「测算口径」可以用销项发票品名（用户认可其贴近实际经营），但必须写明是"初步按…口径测算"；
@@ -282,6 +344,15 @@ def build_overall_conclusion(report_data: Any,
             f"本轮识别并列示 {len(problems)} 项待核实风险事项，均存在资料层面的差异或异常线索，"
             f"尚不构成违法定性。{tax_txt}{dir_txt}"
         )
+
+    # ★ 按**风险性质**归纳（用户要求：总结归纳风险情况，而非只按等级平铺列举）
+    if _themes:
+        _parts = []
+        for g in _themes:
+            _rep = "、".join(g["items"][:3])
+            _suffix = "等" if len(g["items"]) > 3 else ""
+            _parts.append("%s %d 项（%s%s）" % (g["theme"], g["count"], _rep, _suffix))
+        P.append("按风险性质归纳：" + "；".join(_parts) + "。")
 
     # 分层点名
     # ★ 2026-09-26 用户口径：**"待核验"不是风险等级**。等级只有 高/中/低，
@@ -350,6 +421,8 @@ def build_overall_conclusion(report_data: Any,
         "directions": directions,
         "industry": ind,
         "conflict": conflict,
+        # ★ 按风险性质归纳（供第一章台账/前端按主题展示）
+        "risk_themes": _themes,
         # ★ 三方闭环：发票类目口径 / 账面口径 / 差异待核（供第一章台账渲染三列）
         "cost_reconciliation": cost_recon,
         "counts": {
