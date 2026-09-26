@@ -2685,10 +2685,9 @@ def _build_related_party_report(report_data):
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# 管理层决策版（boss_decision_report）—— 2026-09-26 按用户点评重构
-# 原则：先结论、先重大、先量化、先决策、先行动；后事实、后依据、后明细、后附录。
-# 缺数据字段处理：责任人用角色占位“待填”，概率按证据成熟度给定性评估标“评估”，
-# 不编造任何数字；金额只给“潜在最大敞口”并注明最佳/最小估计需概率输入未提供。
+# 风险敞口（潜在最大损失）抽取工具 —— 供企业报告通用复用
+# 取数铁律：取不到金额时返回 {amount:None, confidence:"未量化"}，绝不编造数字；
+# 金额只给“潜在最大敞口”，最佳/最小估计需概率输入（未提供时不臆造）。
 # ════════════════════════════════════════════════════════════════════════════
 
 # 暴露金额（敞口）相关键提示（中英双语，匹配 observed_metrics 顶层键）。
@@ -2898,192 +2897,6 @@ def _extract_amount_from_text(text):
     return None
 
 
-def _build_boss_decision_report(report_data):
-    """管理层决策版：结论先行 + 量化敞口 + TOP5 + 整改路线图 + 需决策事项 + 检查受限。
-
-    与执行版共用同一套“确认的具体问题”（本轮税务红线疑点，_build_confirmed_problems 产出），
-    保证两版“确认 N 项”口径一致；金额按 backing finding（redline_id 关联）或叙述文本尽力提取，
-    明确标注待财务测算，绝不编造。
-    """
-    # 执行版同源的“具体问题”（本轮税务红线疑点，已按等级×金额排序）
-    confirmed = _build_confirmed_problems(report_data)
-    findings = [f for f in (report_data.get("all_findings") or []) if isinstance(f, dict)]
-    pending = [f for f in findings if f.get("level") == "待核验"]
-
-    # backing finding 金额（按 redline_id 关联）
-    _expo_by_rid = {}
-    _maturity_by_rid = {}
-    for f in findings:
-        rid = f.get("redline_id")
-        if rid and rid not in _expo_by_rid:
-            _expo_by_rid[rid] = _extract_finding_exposure(f)
-            _maturity_by_rid[rid] = f.get("evidence_maturity") or f.get("_evidence_maturity") or ""
-
-    rows = []
-    total_exposure = 0.0
-    exposure_items = 0
-    for p in confirmed:
-        rid = p.get("redline_id") or ""
-        exp = _expo_by_rid.get(rid)
-        if not exp or exp.get("amount") is None:
-            txt_amt = _extract_amount_from_text(_problem_narrative_text(p))
-            if txt_amt is not None:
-                exp = {"amount": txt_amt, "source": "叙述文本", "key": "narrative",
-                       "confidence": "需财务确认"}
-        if not exp or exp.get("amount") is None:
-            exp = {"amount": None, "source": "未提取", "key": "", "confidence": "未量化"}
-        grade = p.get("conclusion_grade") or "待核"
-        maturity = _maturity_by_rid.get(rid) or ""
-        level = p.get("risk_level") or p.get("level") or "待核"
-        amt = abs(exp["amount"]) if exp["amount"] is not None else None
-        rows.append({
-            "type": p.get("title") or "具体资料问题",
-            "level": level,
-            "grade": grade,
-            "exposure_amount": amt,
-            "exposure_text": (f"{amt:,.2f}元" if amt is not None
-                              else "未量化（待财务测算）"),
-            "exposure_source": exp["source"],
-            "owner": "待填（请指定责任部门/人）",
-            "probability": _maturity_assessment(maturity),
-            "triggered_redline": "是（触发预警规则）" if rid else "否",
-        })
-        if amt is not None:
-            total_exposure += amt
-            exposure_items += 1
-
-    rows.sort(key=lambda r: (_level_rank(r["level"]), r["exposure_amount"] or 0),
-              reverse=True)
-
-    # 重大风险 TOP5：等级 × 金额
-    top5 = []
-    for r in rows[:5]:
-        why = []
-        if _level_rank(r["level"]) >= 4:
-            why.append("高等级风险")
-        elif _level_rank(r["level"]) >= 3:
-            why.append("中等级风险")
-        if r["exposure_amount"]:
-            why.append(f"涉及金额{r['exposure_text']}")
-        if r["triggered_redline"] == "是（触发预警规则）":
-            why.append("触发税务预警规则")
-        if r["grade"] == "已核定":
-            why.append("已核定事实")
-        top5.append({
-            "type": r["type"], "level": r["level"], "grade": r["grade"],
-            "exposure_text": r["exposure_text"], "probability": r["probability"],
-            "why": "；".join(why) or "综合等级与影响",
-        })
-
-    # 整改路线图（按等级/金额/是否核定分时限）
-    roadmap = {"d7": [], "d30": [], "d60": [], "d90": []}
-    for r in rows:
-        lr = _level_rank(r["level"])
-        if lr >= 4 or r["grade"] == "已核定":
-            bucket = "d7"
-        elif lr >= 3 and r["exposure_amount"]:
-            bucket = "d30"
-        elif lr >= 3:
-            bucket = "d60"
-        else:
-            bucket = "d90"
-        roadmap[bucket].append(r["type"])
-
-    # 需老板决策事项
-    mr = _build_material_readiness(report_data)
-    missing_docs = (mr.get("missing") or []) if mr else []
-    decisions = []
-    if missing_docs:
-        decisions.append({
-            "item": "补齐受限检查所需资料",
-            "context": f"本轮有{len(missing_docs)}类必查资料未提供，相应风险方向无法检查、不能排除。",
-            "ask": "请决策：是否授权财务/相关部门限期补齐——" +
-                   "、".join(d.get("doc", "") for d in missing_docs[:8]) + "。",
-        })
-    if exposure_items:
-        decisions.append({
-            "item": "重大税务敞口处置授权",
-            "context": f"本轮可量化风险敞口合计约{total_exposure:,.2f}元（潜在最大敞口），"
-                       f"其中{exposure_items}项已提取金额。",
-            "ask": "请决策：是否授权成立专项整改小组、聘请税务顾问，并按金额优先级安排资金与申报更正。",
-        })
-    decisions.append({
-        "item": "接受“待核实”状态而非急于定性",
-        "context": f"另有{len(pending)}项待核实疑点，因资料或外部证据不足本轮不量化、不处罚定性。",
-        "ask": "请决策：是否接受“先列疑点、补证后定性”的节奏，避免倒签/补造资料。",
-    })
-
-    # 检查受限
-    limitations = {
-        "missing_doc_count": len(missing_docs),
-        "missing_docs": [d.get("doc", "") for d in missing_docs],
-        "read_failures": report_data.get("read_failures") or [],
-        "pending_suspicion_count": len(pending),
-        "note": "资料缺失与来源链路未验证只表示检查范围受限，不表示企业已存在违法或少缴税。",
-    }
-
-    # 一句话结论 + 执行摘要
-    verified = sum(1 for f in confirmed if (f.get("conclusion_grade") or "") == "已核定")
-    pending_cnt = len(confirmed) - verified
-    if exposure_items:
-        expo_txt = (f"可量化风险敞口合计约{total_exposure:,.2f}元"
-                    f"（潜在最大敞口，最佳/最小估计需概率输入未提供）。")
-    else:
-        expo_txt = "本轮多数风险事项金额未能从现有资料直接提取，敞口待财务逐笔测算。"
-    one_line = (f"本轮确认{len(confirmed)}项具体问题（已核定{verified}项、待核实{pending_cnt}项），"
-                f"另有{len(pending)}项待核实疑点；{expo_txt}")
-    headline = (f"本次税务风险检查收到资料并逐项核对后，确认{len(confirmed)}项具体问题，"
-                f"其中{verified}项已核定、{pending_cnt}项待核实；另有{len(pending)}项因资料或外部"
-                f"证据不足列为待核实疑点，本轮不量化、不处罚定性。")
-
-    return {
-        "variant": "管理层决策版",
-        "one_line_conclusion": one_line,
-        "executive_summary": {
-            "headline": headline,
-            "key_points": [
-                f"确认具体问题：{len(confirmed)}项（已核定{verified}/待核实{pending_cnt}）",
-                f"待核实疑点：{len(pending)}项",
-                "可量化敞口：" + (f"约{total_exposure:,.2f}元（潜在最大）"
-                                 if exposure_items else "待财务测算"),
-            ],
-            "counts": {
-                "confirmed": len(confirmed), "verified": verified, "pending": pending_cnt,
-                "pending_suspicions": len(pending), "exposure_items": exposure_items,
-                "total_exposure_max": total_exposure if exposure_items else None,
-            },
-        },
-        "risk_overview": {
-            "columns": ["风险事项", "等级", "定性", "涉及金额（潜在最大）",
-                        "证据成熟度/概率评估", "是否触发预警规则", "责任部门/人"],
-            "rows": rows,
-            "total_exposure_max": total_exposure if exposure_items else None,
-            "exposure_note": ("以上“涉及金额”为按现有资料可提取的最大可识别金额合计；"
-                              "最佳估计/最小估计需概率输入，本轮未提供，故仅列潜在最大敞口。"
-                              "标“未量化”的项需财务逐笔测算。"),
-        },
-        "top5": top5,
-        "remediation_roadmap": {
-            "columns": ["时限", "风险事项", "说明"],
-            "d7": {"label": "7日内（立即）", "items": roadmap["d7"]},
-            "d30": {"label": "30日内（短期）", "items": roadmap["d30"]},
-            "d60": {"label": "60日内（中期）", "items": roadmap["d60"]},
-            "d90": {"label": "90日内（长期/持续）", "items": roadmap["d90"]},
-        },
-        "decisions_needed": decisions,
-        "audit_limitations": limitations,
-        "report_nature": [
-            "本报告为管理层决策版，只给结论、量化、决策与行动，不含检查程序与原始证据；细节见执行版与底稿版。",
-            "结论均基于本轮已上传且可读取的资料；未上传资料不在本轮具体问题认定范围内。",
-            "“待核实”事项不得作为违法、少缴税款或处罚认定；须补证后定性。",
-        ],
-        "appendix_index": [
-            {"chapter": "执行版·整改任务清单", "desc": "逐项问题的处理意见与负责人/复核要求"},
-            {"chapter": "执行版·逐项底稿（风险台账）", "desc": "全部发现的解除方式/自证资料/终局方向"},
-            {"chapter": "执行版·补证模板与询问清单", "desc": "需补充资料模板与稽查询问清单"},
-            {"chapter": "底稿版·检查组工作底稿", "desc": "全部原始证据、法规、计算过程与抽样说明"},
-        ],
-    }
 
 
 def _working_paper_item(f):
@@ -3172,8 +2985,6 @@ def build_enterprise_readable_report(report_data):
     # ★ 2026-09-25 宗旨三件套：已上传资料查了什么 / 每项风险怎么解除与自证 / 终局两态
     one_sided_digest = _build_one_sided_digest(report_data)
     resolution_ledger = _build_resolution_ledger(report_data)
-    # ★ 2026-09-26 三版重构：管理层决策版
-    boss_decision_report = _build_boss_decision_report(report_data)
     # ★ 2026-09-26 三版重构：底稿版（检查组工作底稿）
     working_paper_report = _build_working_paper_report(report_data)
 
@@ -3192,9 +3003,6 @@ def build_enterprise_readable_report(report_data):
 
     return _zh_normalize_obj({
         "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
-        # ★ 2026-09-26 三版重构：本字典即“执行版（企业整改执行版）”；
-        #   另增 boss_decision_report（管理层决策版）与 working_paper_report（底稿版）。
-        "report_variant": "执行版（企业整改执行版）",
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
         "identity": _identity_from_report_data(report_data),
         "inspector_perspective": _build_inspector_perspective(),
@@ -3228,8 +3036,6 @@ def build_enterprise_readable_report(report_data):
         "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,
-        # ★ 2026-09-26 三版重构：管理层决策版（结论先行/量化/决策/行动）
-        "boss_decision_report": boss_decision_report,
         # ★ 2026-09-26 三版重构：底稿版（检查组工作底稿，全部原始证据）
         "working_paper_report": working_paper_report,
         "recheck": {
