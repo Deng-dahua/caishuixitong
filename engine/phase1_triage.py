@@ -37,14 +37,19 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
     
     pipeline_log.append(f"[Phase1] 财务快照: 销{sales_total:,.0f}/进{pur_total:,.0f}/银行{ctx.financial_snapshot['bank_tx_count']}笔")
     
-    # ── 1.2 主营业务成本识别（共享函数）──
-    if pur_invs:
-        ctx.biz_cost_classification = identify_main_biz_cost(pur_invs, sal_invs)
-        pipeline_log.append(f"[Phase1] 主营成本识别: 核心{len(ctx.biz_cost_classification['core_cost_invs'])}张/重大费用{len(ctx.biz_cost_classification['major_expense_invs'])}张/日常报销{len(ctx.biz_cost_classification['minor_expense_invs'])}张")
-    
-    # ── 1.3 企业画像推断 ──
+    # ── 1.2 企业画像推断（★ 2026-09-26 提到成本识别**之前**：成本归属判断需要行业口径）──
     _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries)
     pipeline_log.append(f"[Phase1] 企业画像: 行业={ctx.company_profile['industry']} 模式={ctx.company_profile['biz_model']}")
+
+    # ── 1.3 主营业务成本识别（共享函数；按该行业「核心投入」区分 主营成本 / 期间费用）──
+    if pur_invs:
+        _ind = str((ctx.company_profile or {}).get("industry") or "")
+        ctx.biz_cost_classification = identify_main_biz_cost(pur_invs, sal_invs, industry=_ind)
+        _bcc = ctx.biz_cost_classification
+        pipeline_log.append(
+            f"[Phase1] 主营成本识别(行业口径={_ind or '未确定'}): "
+            f"核心{len(_bcc['core_cost_invs'])}张/重大费用{len(_bcc['major_expense_invs'])}张/"
+            f"日常报销{len(_bcc['minor_expense_invs'])}张/待核{len(_bcc.get('pending_cost_invs') or [])}张")
     
     # ── 1.4 初查信号检测 ──
     _detect_triage_signals(ctx, pur_invs, sal_invs, bank_txs, invoices)

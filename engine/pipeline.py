@@ -7728,6 +7728,13 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline
         pipeline_log=pipeline_log,
     )
     entity["industry"] = _ires.get("industry", "") or ""
+    # ★ 2026-09-26：把行业口径注入成本识别模块（唯一注入点），
+    #   使"主营业务成本 vs 期间费用"的区分全系统使用同一行业口径（销项发票品名推断为主口径）。
+    try:
+        from engine.main_biz_cost import set_active_industry as _set_ind
+        _set_ind(entity["industry"])
+    except Exception:
+        pass
     entity["_industry_source"] = _ires.get("source", "")
     entity["_industry_confidence"] = _ires.get("confidence", "")
     entity["industry_inferred"] = _ires.get("inferred", "")
@@ -8997,6 +9004,12 @@ def _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_lo
                     pipeline_log=pipeline_log,
                 )
                 target_entity["industry"] = _r.get("industry", "") or ""
+                # ★ 2026-09-26：外部工商核验后重解析 → 同步刷新成本识别的行业口径
+                try:
+                    from engine.main_biz_cost import set_active_industry as _set_ind2
+                    _set_ind2(target_entity["industry"])
+                except Exception:
+                    pass
                 target_entity["_industry_source"] = _r.get("source", "")
                 target_entity["_industry_confidence"] = _r.get("confidence", "")
                 target_entity["_industry_candidates"] = _r.get("candidates", {})

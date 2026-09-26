@@ -101,44 +101,85 @@ _MAJOR_EXPENSE_KWS = [
     '招聘','猎头','人力资源',
 ]
 
-def identify_main_biz_cost(pur_invs, sal_invs=None):
+# ★ 2026-09-26：当前生效的行业口径（由管道在解析出行业后注入一次）。
+#   为什么用注入而不是逐调用点透传：`identify_main_biz_cost` 有 3 处调用点
+#   （phase1_triage / pipeline 进销存 / domain_analysis 三角验证），后者多为深层函数、
+#   签名里没有 target_entity；逐处透传要改一串签名。注入一次保证**全系统同口径**，
+#   且显式参数优先（调用点若能拿到行业，仍可用 industry= 覆盖）。
+_ACTIVE_INDUSTRY = ""
+
+
+def set_active_industry(industry: str) -> None:
+    """由管道在解析出行业口径后注入（唯一注入点）。空串表示未确定。"""
+    global _ACTIVE_INDUSTRY
+    _ACTIVE_INDUSTRY = str(industry or "")
+
+
+def get_active_industry() -> str:
+    return _ACTIVE_INDUSTRY
+
+
+def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
     """
-    识别主营业务成本，将进项发票分为三层。
-    
+    识别主营业务成本，将进项发票分为四层。
+
     参数:
         pur_invs: 进项发票列表
         sal_invs: 销项发票列表（可选，用于品名重合判断）
-    
+        industry: 行业口径（由销项发票品名推断，**主口径**）。用于取该行业的「核心投入」定义，
+                  把进项发票区分为「主营业务成本」与「期间费用」。传空则退回旧的关键词＋金额兜底。
+
     返回:
         {
-            "core_cost_invs": [...],      # 主营业务成本
+            "core_cost_invs": [...],      # 主营业务成本（有判定依据）
             "major_expense_invs": [...],  # 重大费用
             "minor_expense_invs": [...],  # 日常报销
+            "pending_cost_invs": [...],   # ★ 有行业口径但判不出归属 → 待核（**不再默认判成本**）
             "pur_core_goods": set(),      # 主营业务品名集合
             "pur_expense_goods": set(),   # 费用类品名集合
+            "core_cost_basis": {},        # 品名 → 判定依据（可自证来源）
+            "industry_basis": "",         # 本轮所用的行业口径（空=未启用行业核心投入）
         }
-    
+
     识别逻辑（像人类税务合规员一样思考）:
     1. 日常报销关键词 → minor_expense（员工垫付后报销，付款对象非开票单位）
     2. 重大费用关键词 → major_expense（需对公付款，但不是主营成本）
     3. 加工费 → core_cost（制造业核心成本）
-    4. 进销品名重合项 → core_cost（买什么卖什么=主营业务）
-    5. 大额采购（>=总采购额5%）→ core_cost
-    6. 余额 → 按关键词倾向判断
+    4. ★ 命中本行业「核心投入」→ core_cost（行业口径，最强依据）
+    5. 进销品名重合项 → core_cost（买什么卖什么=主营业务）
+    6. 大额采购（>=总采购额5%）→ core_cost
+    7. 其余：**有行业口径 → pending_cost_invs（待核，不默认判成本）**；
+            无行业口径 → core_cost（旧兜底，basis 中如实标注）
     """
     core_cost_invs = []
     major_expense_invs = []
     minor_expense_invs = []
+    pending_cost_invs = []
     pur_core_goods = set()
     pur_expense_goods = set()
-    
+    core_cost_basis = {}
+
+    # ★ 2026-09-26：取该行业的「核心投入」关键词（数据驱动；见 industry_resolver.core_inputs_for）
+    #   显式 industry 优先；未传则用管道注入的当前口径。
+    industry = str(industry or "").strip() or _ACTIVE_INDUSTRY
+    core_kws = []
+    try:
+        from engine.industry_resolver import core_inputs_for
+        core_kws = core_inputs_for(industry)
+    except Exception:
+        core_kws = []
+    has_industry_basis = bool(core_kws)
+
     if not pur_invs:
         return {
             "core_cost_invs": core_cost_invs,
             "major_expense_invs": major_expense_invs,
             "minor_expense_invs": minor_expense_invs,
+            "pending_cost_invs": pending_cost_invs,
             "pur_core_goods": pur_core_goods,
             "pur_expense_goods": pur_expense_goods,
+            "core_cost_basis": core_cost_basis,
+            "industry_basis": str(industry or ""),
         }
     
     # 提取销项品名集合（用于进销品名重合判断）
@@ -155,7 +196,18 @@ def identify_main_biz_cost(pur_invs, sal_invs=None):
     for inv in pur_invs:
         goods = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
         amount = float(inv.get("amount", inv.get("total", 0)) or 0)
-        
+
+        # ★ 规则0（最高优先，2026-09-26 新增）：命中**本行业「核心投入」** → 主营业务成本。
+        #   必须排在通用费用关键词**之前**：否则广告公司的「广告发布/媒体投放」会被
+        #   `_MAJOR_EXPENSE_KWS` 的 '广告/推广/宣传/发布' 当成"重大费用"截走 —— 这正是
+        #   "用通用费用表判断行业性成本"的行业盲区（实测已复现）。
+        #   行业口径优先于通用关键词表：行业说自己卖什么/投入什么，才最贴近真实成本构成。
+        if has_industry_basis and any(kw in goods for kw in core_kws):
+            core_cost_invs.append(inv)
+            pur_core_goods.add(goods)
+            core_cost_basis[goods] = "行业核心投入（%s）" % (industry or "")
+            continue
+
         # 规则1: 日常报销关键词 → 员工垫付报销模式
         if any(kw in goods for kw in _REIMBURSEMENT_KWS_GLOBAL):
             minor_expense_invs.append(inv)
@@ -185,31 +237,43 @@ def identify_main_biz_cost(pur_invs, sal_invs=None):
         if _is_real_fee:
             core_cost_invs.append(inv)
             pur_core_goods.add(goods)
+            core_cost_basis[goods] = "加工费（制造业核心成本）"
             continue
-        
+
         # 规则4: 进销品名重合 → 买什么卖什么=主营业务
         if goods in sale_goods_set:
             core_cost_invs.append(inv)
             pur_core_goods.add(goods)
+            core_cost_basis[goods] = "进销品名重合"
             continue
-        
-        # 规则5: 大额采购（>=5%总额）→ 大概率是主营业务
+
+        # 规则6: 大额采购（>=5%总额）→ 大概率是主营业务
         if amount >= big_amount_threshold and amount > 0:
             core_cost_invs.append(inv)
             pur_core_goods.add(goods)
+            core_cost_basis[goods] = "单品类≥总采购额5%"
             continue
-        
-        # 规则6: 余额 → 默认归入主营业务成本（保守策略）
-        # 企业正常经营中，采购的大头是主营成本，小杂项后续可由关键词持续完善
-        core_cost_invs.append(inv)
-        pur_core_goods.add(goods)
-    
+
+        # ★ 规则7（2026-09-26 关键修正）：**判不出来不得默认判成本**。
+        #   有行业口径 → 归入 pending_cost_invs（待核），如实说明"未能确认成本归属"；
+        #   无行业口径 → 保留旧兜底（归入主营成本），但在 basis 中如实标注为兜底。
+        if has_industry_basis:
+            pending_cost_invs.append(inv)
+            core_cost_basis[goods] = "未命中行业核心投入（待核）"
+        else:
+            core_cost_invs.append(inv)
+            pur_core_goods.add(goods)
+            core_cost_basis[goods] = "无行业口径·旧兜底"
+
     return {
         "core_cost_invs": core_cost_invs,
         "major_expense_invs": major_expense_invs,
         "minor_expense_invs": minor_expense_invs,
+        "pending_cost_invs": pending_cost_invs,
         "pur_core_goods": pur_core_goods,
         "pur_expense_goods": pur_expense_goods,
+        "core_cost_basis": core_cost_basis,
+        "industry_basis": str(industry or ""),
     }
 
 

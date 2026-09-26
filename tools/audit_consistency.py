@@ -2288,6 +2288,92 @@ def check_industry_source_integrity() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_cost_industry_basis() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-26：主营业务成本识别必须**用行业口径**，且"判不出来不得默认判成本"。
+
+    真实动机（用户指令）：`identify_main_biz_cost` 原先只用品名关键词＋金额大小，**完全没用行业**，
+    且"其余一律默认判主营业务成本"——把判不出来的一律当成本，既虚增成本又掩盖问题；
+    更隐蔽的是 `_MAJOR_EXPENSE_KWS` 里有 '广告/推广/宣传/发布'，于是**广告公司的核心成本
+    「广告发布/媒体投放」被当成"重大费用"截走**（实测已复现）——即"用通用费用表判断行业性成本"。
+    落地要求：
+      ① static/industry_data.json 必须有 core_inputs（服务/流通类显式登记）；
+      ② industry_resolver 必须提供 core_inputs_for（制造/加工/贸易类复用 product_chains）；
+      ③ identify_main_biz_cost 必须接受 industry 参数，且返回 pending_cost_invs（待核）与
+         core_cost_basis（依据可自证）；
+      ④ **行业核心投入判定必须排在通用费用关键词之前**（否则行业性成本被截走）；
+      ⑤ 管道必须注入行业口径（set_active_industry），保证全系统同口径。
+    """
+    import ast as _ast
+
+    issues: List[Tuple[str, str, str]] = []
+
+    def _read(rel: str) -> str:
+        p = ROOT / rel
+        if not p.exists():
+            return ""
+        try:
+            return p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    # ① 数据表
+    import json as _json
+    try:
+        with open(ROOT / "static" / "industry_data.json", encoding="utf-8") as f:
+            data = _json.load(f)
+        ci = data.get("core_inputs") or {}
+        if not ci:
+            issues.append(("ERROR", "static/industry_data.json",
+                           "缺少 core_inputs（行业核心投入表）"))
+        if not (data.get("product_chains") or {}):
+            issues.append(("ERROR", "static/industry_data.json",
+                           "缺少 product_chains（制造/加工/贸易类的核心投入来源）"))
+    except Exception as e:
+        issues.append(("ERROR", "static/industry_data.json", "读取失败: %s" % e))
+
+    # ② 解析器
+    res_rel = "engine/industry_resolver.py"
+    res_src = _read(res_rel)
+    if "def core_inputs_for" not in res_src:
+        issues.append(("ERROR", res_rel, "缺少 core_inputs_for（行业→核心投入）"))
+
+    # ③ 成本识别模块
+    mbc_rel = "engine/main_biz_cost.py"
+    mbc_src = _read(mbc_rel)
+    has_industry_arg = False
+    try:
+        for node in _ast.walk(_ast.parse(mbc_src)):
+            if isinstance(node, _ast.FunctionDef) and node.name == "identify_main_biz_cost":
+                has_industry_arg = any(a.arg == "industry" for a in node.args.args)
+    except SyntaxError:
+        issues.append(("ERROR", mbc_rel, "无法解析（语法错误）"))
+    if not has_industry_arg:
+        issues.append(("ERROR", mbc_rel, "identify_main_biz_cost 未接受 industry 参数"))
+    for key, why in (("pending_cost_invs", "未返回待核桶（判不出来会默认判成本）"),
+                     ("core_cost_basis", "未返回判定依据（无法自证来源）"),
+                     ("has_industry_basis", "未区分有无行业口径")):
+        if key not in mbc_src:
+            issues.append(("ERROR", mbc_rel, why))
+
+    # ④ 顺序：行业核心投入必须排在通用费用关键词之前
+    idx_core = mbc_src.find("行业核心投入（%s）")
+    if idx_core < 0:
+        issues.append(("ERROR", mbc_rel, "缺少「行业核心投入」判定"))
+    else:
+        for pat, label in (("in _REIMBURSEMENT_KWS_GLOBAL", "日常报销关键词"),
+                           ("in _MAJOR_EXPENSE_KWS", "重大费用关键词")):
+            i = mbc_src.find(pat)
+            if i >= 0 and idx_core > i:
+                issues.append(("ERROR", mbc_rel,
+                               "「行业核心投入」判定必须排在%s之前，否则行业性成本被截走" % label))
+
+    # ⑤ 注入点
+    pipe_rel = "engine/pipeline.py"
+    if "set_active_industry" not in _read(pipe_rel):
+        issues.append(("ERROR", pipe_rel, "管道未注入行业口径（set_active_industry）"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -2302,7 +2388,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_indicator_coverage() + check_delete_semantics()
                + check_excel_handle_leak() + check_audit_doctrine()
                + check_missing_as_violation() + check_pyramid_edition_preserves_content()
-               + check_overall_conclusion_derivation() + check_industry_source_integrity())
+               + check_overall_conclusion_derivation() + check_industry_source_integrity()
+               + check_cost_industry_basis())
     return counts, general
 
 

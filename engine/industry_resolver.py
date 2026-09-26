@@ -265,6 +265,48 @@ _WEIGHT = {SRC_INVOICE: 6, SRC_ONLINE: 5, SRC_REGISTERED: 4, SRC_NAME: 3,
            SRC_SCOPE: 2, SRC_BIZMODEL: 1, SRC_UNKNOWN: 0}
 
 
+def core_inputs_for(industry: str) -> List[str]:
+    """该行业的「核心投入」关键词 —— 用于把**进项发票**区分为「主营业务成本」与「期间费用」。
+
+    为什么需要（2026-09-26 用户指令）：`main_biz_cost.identify_main_biz_cost` 原先只用
+    品名关键词 + 金额大小，且"其余一律默认判主营业务成本"；**没有用行业**。而"什么算该行业的
+    成本性投入"本就是**行业相关**的（商贸是所售商品、服务业是外购服务、制造是原料与加工费）。
+
+    数据来源（全部是**已有的单一权威数据**，不新增重复表）：
+      ① `core_inputs[行业]`：服务/流通类行业的外购投入（显式登记，见 static/industry_data.json）
+      ② `product_chains[行业].raw_materials / .finished_goods`：制造·加工·贸易类行业的投入与产出品名
+
+    新增同类行业只需在对应数据表加一行，不改本函数逻辑。
+    """
+    ind = str(industry or "").strip()
+    if not ind:
+        return []
+    data = load_industry_data()
+    # 容忍把发票分类名传进来（"广告服务" → "广告传媒"）
+    key = normalize_industry_name(ind) or ind
+
+    out: List[str] = []
+
+    def _add(kw: Any) -> None:
+        s = str(kw or "").strip()
+        if s and s not in out:
+            out.append(s)
+
+    ci = data.get("core_inputs") or {}
+    for k in (key, ind):
+        for kw in (ci.get(k) or []):
+            _add(kw)
+
+    pc = data.get("product_chains") or {}
+    for k in (key, ind):
+        chain = pc.get(k) or {}
+        if isinstance(chain, dict):
+            for field in ("raw_materials", "finished_goods"):
+                for kw in (chain.get(field) or []):
+                    _add(kw)
+    return out
+
+
 def infer_from_goods(sales_goods: List[str]) -> Tuple[str, Dict[str, int]]:
     """③ 从**销项**发票品名推断行业（META-001）。
 
