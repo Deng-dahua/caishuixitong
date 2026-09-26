@@ -492,6 +492,87 @@ DOMAIN_MATERIALS: Dict[str, List[str]] = {
 }
 
 
+# ══════════════════════════════════════════════════════════════════════════
+# 报告编辑标准（两份系统级标准，2026-09-26 用户定调）
+# ══════════════════════════════════════════════════════════════════════════
+# 用户原话：「把目前这个报告编辑标准定义为税务稽查专家工作底稿版。按选项 C 执行，
+# 定义为金字塔原理编辑版。」→ 报告编辑标准从此分为**两份、对所有企业通用**：
+#
+#   ① 税务稽查专家工作底稿版（基线）：当前报告（六章文书式）内容 + 结构原样，
+#      是所有派生编辑版的唯一内容基线，任何派生版都不得反向改写它。
+#   ② 金字塔原理编辑版（选项 C，派生）：结论先行 / MECE 分组 / 行动标题 /
+#      SCQA 开篇 / 严重度排序 / 台账为基座——只对工作底稿版做**只读结构化重组**，
+#      不改任何风险事实。
+#
+# 关键边界（用户 2026-09-26 澄清「选项 C 会改变内容吗？」）：
+#   * 风险事实层（疑点五段式 / 159 项台账 / 金额 / 判定 / 等级）——不改；
+#   * 呈现文字层（章节标题改观点式、第一章加统领句、每类加 umbrella 归纳句、
+#     疑点排序）——会改，但 umbrella / 统领句 / 行动标题必须**完全由现有字段组合**，
+#     严禁引入新事实、新定性。
+# ══════════════════════════════════════════════════════════════════════════
+REPORT_EDITING_STANDARDS: Dict[str, Dict[str, Any]] = {
+    "税务稽查专家工作底稿版": {
+        "code": "working_paper",
+        "is_baseline": True,
+        "derived_from": "",
+        "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
+        "principle": "检查组工作底稿：六章文书式，按税务红线疑点逐条列示原始证据与判定。"
+                     "内容（风险事实层）与结构（章节顺序）均原样保留，不作任何重组或改写。",
+        "constraints": [
+            "内容（风险事实层）与结构（章节顺序）均原样保留，不作任何重组或改写。",
+            "任何派生编辑版都不得反向改写本版的任何字段。",
+        ],
+    },
+    "金字塔原理编辑版": {
+        "code": "pyramid",
+        "is_baseline": False,
+        "derived_from": "税务稽查专家工作底稿版",
+        "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
+        "principle": "结论先行 / MECE 分组 / 行动标题 / SCQA 开篇 / 严重度排序 / 台账为基座。",
+        "constraints": [
+            "只读转换：绝不增删发现；不改金额、结论、判定、等级。",
+            "新增的 umbrella（归纳句）/ 统领句 / 行动标题必须完全由现有字段组合，"
+            "禁引新事实、新定性。",
+            "可逆：从工作底稿版 + pyramid_edition 派生字段可无损还原工作底稿版。",
+            "通用：分组键从已有字段（title / suspect / risk_level / taxes / trace_id）"
+            "派生，不按企业硬编码。",
+        ],
+    },
+}
+
+# 报告编辑版代码（与 REPORT_EDITING_STANDARDS[].code 一一对应）
+REPORT_EDITION_CODES = ("working_paper", "pyramid")
+# 报告编辑版中文名（与 REPORT_EDITING_STANDARDS 的键一一对应）
+REPORT_EDITION_NAMES = ("税务稽查专家工作底稿版", "金字塔原理编辑版")
+# 默认编辑版：工作底稿版（基线，内容 + 结构原样）
+DEFAULT_REPORT_EDITION = "税务稽查专家工作底稿版"
+# 缓存一致性闸门允许复用的 report_edition 取值
+VALID_REPORT_EDITIONS = set(REPORT_EDITION_NAMES)
+
+
+def is_valid_edition(name: Any) -> bool:
+    """报告编辑版名是否合法（中文名）。"""
+    return str(name or "") in VALID_REPORT_EDITIONS
+
+
+def edition_to_code(name: Any) -> str:
+    """中文编辑版名 → 代码；非法值回退默认。"""
+    s = str(name or "")
+    for std_name, meta in REPORT_EDITING_STANDARDS.items():
+        if std_name == s:
+            return meta["code"]
+    return REPORT_EDITING_STANDARDS[DEFAULT_REPORT_EDITION]["code"]
+
+
+def code_to_edition(code: Any) -> str:
+    """代码 → 中文编辑版名；非法值回退默认。"""
+    s = str(code or "")
+    for std_name, meta in REPORT_EDITING_STANDARDS.items():
+        if meta["code"] == s:
+            return std_name
+    return DEFAULT_REPORT_EDITION
+
+
 def summarise_doctrine(findings: List[Dict]) -> Dict[str, Any]:
     """汇总本轮"宗旨执行情况"，供报告直接引用。
 

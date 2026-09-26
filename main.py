@@ -11242,16 +11242,25 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                 # 根因：报告渲染结构随代码回退/升级而变化，但增量复用仅按"资料+规则指纹"
                 # 判断，导致回退前内存里那份缺 enterprise_readable_report 或旧版式的旧缓存
                 # 被原样复用，前端于是渲染出与上轮不符的报告。故复用前必须先校验缓存结果
-                # 确实含目标企业报告（compilation_style 命中），否则视为脏缓存、强制全量重算。
+                # 确实含目标企业报告（compilation_style 命中 + 含金字塔原理编辑版派生结构），
+                # 否则视为脏缓存、强制全量重算。
                 _cached_report_ok = False
                 try:
                     _cr = (_cached.get("report") or {}).get("report") or {}
                     _cer = _cr.get("enterprise_readable_report") or {}
-                    _cached_report_ok = isinstance(_cer, dict) and _cer.get("compilation_style") in (
-                        "涉税风险检查工作报告（风险检查文书式）",
-                        "税务风险检查文书式报告",
-                        "内部税务风险检查员报告",
-                        "企业易读检查结果",
+                    _cached_report_ok = (
+                        isinstance(_cer, dict)
+                        and _cer.get("compilation_style") in (
+                            "涉税风险检查工作报告（风险检查文书式）",
+                            "税务风险检查文书式报告",
+                            "内部税务风险检查员报告",
+                            "企业易读检查结果",
+                        )
+                        # 2026-09-26：新代码始终附加 pyramid_edition 与 report_edition；
+                        # 旧缓存不含此结构，复用会导致前端金字塔版切换时字段缺失 → 视为脏缓存。
+                        and isinstance(_cer.get("pyramid_edition"), dict)
+                        and _cer.get("report_edition") in (
+                            "税务稽查专家工作底稿版", "金字塔原理编辑版")
                     )
                 except Exception:
                     _cached_report_ok = False

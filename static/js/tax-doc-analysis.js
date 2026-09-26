@@ -4998,6 +4998,131 @@ function _renderResolutionLedger(ledger) {
 }
 
 
+/**
+ * 报告编辑版切换条（2026-09-26）。
+ * 纯前端切换：两种编辑版的数据都在同一份企业报告载荷里，切换只重渲染、不重算。
+ */
+function _renderEditionToggle() {
+  var cur = (window._tdaReportEdition === 'pyramid') ? 'pyramid' : 'working_paper';
+  function _btn(code, label, sub) {
+    var active = (cur === code);
+    return '<button type="button" data-edition="' + code + '" onclick="_tdaSwitchEdition(\'' + code + '\')" '
+      + 'style="cursor:pointer;text-align:left;border:1px solid ' + (active ? '#1d4ed8' : '#d1d5db')
+      + ';background:' + (active ? '#eff6ff' : '#fff') + ';color:' + (active ? '#1d4ed8' : '#374151')
+      + ';border-radius:8px;padding:7px 13px;margin-right:8px;font-size:13px;line-height:1.5">'
+      + '<strong>' + esc(label) + '</strong><br><span style="font-size:11.5px;color:#64748b">' + esc(sub) + '</span></button>';
+  }
+  var html = '<div id="tda-edition-toggle" style="margin:0 0 18px;padding:12px 14px;border:1px dashed #cbd5e1;border-radius:10px;background:#fbfdff">'
+    + '<div style="font-size:12.5px;color:#475569;margin-bottom:8px">报告编辑版（同一份检查结论的两种组织方式，切换不重新计算）：</div>'
+    + _btn('working_paper', '税务稽查专家工作底稿版', '检查组工作底稿·六章文书式')
+    + _btn('pyramid', '金字塔原理编辑版', '结论先行·MECE分组·SCQA')
+    + '</div>';
+  return html;
+}
+
+
+/** 前端编辑版切换：仅改状态并重渲染，不重新计算。 */
+function _tdaSwitchEdition(code) {
+  window._tdaReportEdition = (code === 'pyramid') ? 'pyramid' : 'working_paper';
+  if (window._reportData) renderTaxDocReport(window._reportData);
+}
+
+
+/**
+ * 渲染「金字塔原理编辑版」正文（2026-09-26）。
+ * 数据来源：report.pyramid_edition（后端只读派生）+ report 基线字段（台账/疑点原文）。
+ * 这是对工作底稿版的**只读结构化重组**：结论先行、按风险维度 MECE 分组、行动标题、
+ * SCQA 开篇、严重度排序，并以 resolution_ledger（全部风险事项台账）为基座。
+ * 不新增任何发现，不改金额/结论/判定/等级——改写只发生在「怎么组织呈现」。
+ */
+function _buildPyramidBody(r, dateStr) {
+  var report = r.enterprise_readable_report || {};
+  var pe = report.pyramid_edition || {};
+  // 防御：若后端未派生金字塔版（极旧缓存），回退工作底稿版渲染
+  if (!pe || !pe.groups) {
+    return _buildEnterpriseReadableBody(r, dateStr);
+  }
+  var identity = report.identity || {};
+  var summary = report.summary || {};
+  var problems = report.confirmed_problems || [];
+  var ledger = report.resolution_ledger || {};
+  var statements = report.report_statement || [];
+
+  // seq → 疑点原文（用于分组内引用疑点事实，不改写）
+  var probBySeq = {};
+  problems.forEach(function(p){ probBySeq[String(p.seq)] = p; });
+
+  function _lvBadge(lv) {
+    var s = String(lv || '');
+    var cls = (s.indexOf('高') >= 0) ? 'lv-high' : (s.indexOf('中') >= 0 ? 'lv-mid'
+      : (s.indexOf('低') >= 0 ? 'lv-low' : 'lv-pend'));
+    return '<span class="lv-badge ' + cls + '">' + esc(s || '未分级') + '</span>';
+  }
+
+  var html = _capabilityStyles();
+
+  // ── 封面（标注编辑版）──
+  html += '<div class="cover"><h1>涉税风险检查工作报告</h1><div class="sub">'
+    + '（金字塔原理编辑版 · 同一检查结论的结构化重组）<br>'
+    + '报告送达对象：被检查企业及其负责人<br>'
+    + '被检查企业：' + esc(identity.subject_name || '未填写企业名称') + '<br>'
+    + '统一社会信用代码：' + esc(identity.taxpayer_id || '未填写') + '<br>'
+    + '检查期间：' + esc(identity.period || '以本轮资料记载期间为准') + '<br>'
+    + '检查轮次：第' + esc(identity.analysis_round || 1) + '轮<br>'
+    + '报告日期：' + esc(report.generated_date || dateStr)
+    + '</div></div>';
+
+  // ── SCQA 开篇（结论先行）──
+  var scqa = pe.scqa || {};
+  html += '<h2>开篇：结论先行（SCQA）</h2>';
+  html += '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px;background:#fff;line-height:1.9">';
+  html += '<p class="i2"><strong>情境（S）：</strong>' + esc(scqa.situation || '') + '</p>';
+  html += '<p class="i2"><strong>冲突（C）：</strong>' + esc(scqa.complication || '') + '</p>';
+  html += '<p class="i2"><strong>问题（Q）：</strong>' + esc(scqa.question || '') + '</p>';
+  html += '<p class="i2"><strong>回答（A · 本轮核心结论）：</strong>' + esc(scqa.answer || '') + '</p>';
+  html += '</div>';
+
+  // ── 一、按风险维度 MECE 分组（umbrella + 行动标题，严重度排序）──
+  html += '<h2 id="pyramid-groups">一、风险分组结论（按维度 MECE 分组）</h2>';
+  html += '<p class="i2">下列分组为对同一批税务红线疑点的结构化重组：每组先给归纳句（umbrella），'
+    + '再按严重度列出行动标题；各项的原文事实、金额、结论与解除方式以「全部风险事项台账」为基座（见下文）。</p>';
+  (pe.groups || []).forEach(function(g, gi){
+    html += '<h3>' + (gi + 1) + '、' + esc(g.dimension)
+      + ' <span style="font-size:12px;color:#64748b">（最高等级：' + _lvBadge(g.max_level) + '）</span></h3>';
+    html += '<p class="i2" style="background:#f8fafc;border-left:3px solid #2563eb;padding:8px 12px;font-size:13px;line-height:1.9">'
+      + esc(g.umbrella) + '</p>';
+    html += '<ul style="margin:8px 0 8px 20px;padding:0">';
+    (g.seqs || []).forEach(function(s){
+      var p = probBySeq[String(s)];
+      var title = (pe.action_titles && pe.action_titles[String(s)]) || (p ? p.title : ('第' + s + '项'));
+      html += '<li style="margin:6px 0">'
+        + _lvBadge(p ? p.risk_level : '')
+        + ' ' + esc(title);
+      if (p && p.suspect) {
+        html += ' <span style="color:#64748b;font-size:12.5px">— ' + esc(String(p.suspect).slice(0, 120)) + '</span>';
+      }
+      html += ' <a href="#company-ledger" style="font-size:12px;color:#2563eb">查台账原文 ↩</a></li>';
+    });
+    html += '</ul>';
+  });
+
+  // ── 二、全部风险事项台账（基座，复用工作底稿版台账）──
+  html += _renderResolutionLedger(ledger);
+
+  // ── 三、报告说明 ──
+  if (statements.length) {
+    html += '<h2>二、报告性质和使用说明</h2><ul style="margin:8px 0 8px 20px;padding:0">';
+    statements.forEach(function(s){ html += '<li style="margin:4px 0;line-height:1.8">' + esc(s) + '</li>'; });
+    html += '</ul>';
+  }
+
+  html += '<div class="foot" style="color:#64748b;font-size:12.5px;margin-top:22px;line-height:1.9">'
+    + '本「金字塔原理编辑版」与「税务稽查专家工作底稿版」基于同一份检查结论生成；'
+    + '分组与排序仅改变呈现方式，未增删任何风险事项，也未改变金额、结论、判定与等级。</div>';
+  return html;
+}
+
+
 function _buildEnterpriseReadableBody(r, dateStr) {
   var report = r.enterprise_readable_report || {};
   var identity = report.identity || {};
@@ -5725,7 +5850,14 @@ function _renderReportFallback(r, allF) {
 
   // 企业版是主文书；专业过程底稿继续保留在后台，供内部复查和历史轮次追溯。
   if (r.enterprise_readable_report && ['涉税风险检查工作报告（风险检查文书式）', '税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
-    h += _buildEnterpriseReadableBody(r, dateStr);
+    // 2026-09-26：报告编辑版切换条（纯前端重渲染，不重算）。
+    h += _renderEditionToggle();
+    // 按当前编辑版分支：金字塔原理编辑版走结构化重组渲染，否则工作底稿版。
+    if (window._tdaReportEdition === 'pyramid' && r.enterprise_readable_report.pyramid_edition) {
+      h += _buildPyramidBody(r, dateStr);
+    } else {
+      h += _buildEnterpriseReadableBody(r, dateStr);
+    }
     h += '</div>';
     return {
       html: h,

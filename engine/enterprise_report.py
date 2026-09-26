@@ -14,6 +14,7 @@ from datetime import datetime
 from collections import Counter, OrderedDict
 
 from engine.inspector_reasoning import build_inspector_reasoning
+from engine.pyramid_edition import build_pyramid_edition
 
 
 def _norm_text(text):
@@ -2953,10 +2954,19 @@ def _build_working_paper_report(report_data):
     }
 
 
-def build_enterprise_readable_report(report_data):
-    """主入口：从分析结果组装 enterprise_readable_report"""
+def build_enterprise_readable_report(report_data, edition=None):
+    """主入口：从分析结果组装 enterprise_readable_report。
+
+    `edition`：报告编辑版（"税务稽查专家工作底稿版" 基线 / "金字塔原理编辑版" 派生）。
+    两版**共享同一份内容基线**——本函数始终构建工作底稿版全部章节（内容逐字不变），
+    并额外派生 `pyramid_edition`（只读结构化重组）附加于顶层；`report_edition`
+    记录当前所选编辑版。无论选哪种 edition，工作底稿版内容均不被改写。
+    """
     if not isinstance(report_data, dict):
         return {}
+    if edition is None:
+        from engine.audit_doctrine import DEFAULT_REPORT_EDITION
+        edition = DEFAULT_REPORT_EDITION
 
     problems = _build_confirmed_problems(report_data)
     completed = _build_completed_checks(report_data)
@@ -3001,9 +3011,22 @@ def build_enterprise_readable_report(report_data):
                  industry_benchmark_report, related_party_report, inspection_questions_report):
         _translate_all_metric_dicts(_sec)
 
-    return _zh_normalize_obj({
+    # ★ 2026-09-26 金字塔原理编辑版：对工作底稿版的只读结构化重组（不改写任何内容）。
+    #   始终派生并附加，使前端可在两种编辑版间纯客户端切换，无需重算。
+    _identity = _identity_from_report_data(report_data)
+    pyramid_edition = build_pyramid_edition({
+        "confirmed_problems": problems,
+        "summary": summary,
+        "identity": _identity,
+        "resolution_ledger": resolution_ledger,
+    })
+
+    out = _zh_normalize_obj({
         "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
+        # ★ 2026-09-26 报告编辑版：基线=税务稽查专家工作底稿版；派生=金字塔原理编辑版。
+        #   二者共用下方同一内容基线；pyramid_edition 为只读派生视图。
+        "report_edition": edition,
         "identity": _identity_from_report_data(report_data),
         "inspector_perspective": _build_inspector_perspective(),
         "inspector_reasoning": inspector_reasoning,
@@ -3051,3 +3074,9 @@ def build_enterprise_readable_report(report_data):
             "系统能力存在边界：账外经营、私户收款、主观故意定性等须依赖外部数据源与人工下户取证，详见「能力边界与彻底风险检查路线」章节。",
         ],
     })
+    # ★ 2026-09-26 金字塔原理编辑版 = 纯派生结构性视图，**刻意不经过** _zh_normalize_obj：
+    #   否则 _naturalize_report_text 会把行动标题的「【等级】」标记改写为「等级：」，
+    #   既破坏前端可读性，又使 pyramid_preserves_content 闸门（按【等级】格式自校验）失效、
+    #   并损害「工作底稿版 + pyramid_edition 可无损还原」的可逆性。
+    out["pyramid_edition"] = pyramid_edition
+    return out

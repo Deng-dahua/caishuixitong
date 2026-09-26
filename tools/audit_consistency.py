@@ -43,11 +43,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -2075,6 +2076,84 @@ def check_missing_as_violation() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def _load_fixture_enterprise_report() -> Optional[Dict]:
+    """取一份真实的企业报告（工作底稿版基线）作为金字塔闸门校验样本。"""
+    candidates = [
+        ROOT / "scripts" / "four_reports" / "company_1_full.json",
+        ROOT / "data" / "cache" / "last_analysis_cache.json",
+    ]
+    for p in candidates:
+        if not p.exists():
+            continue
+        try:
+            d = json.loads(_read(p))
+        except Exception:
+            continue
+        er = d.get("enterprise_readable_report")
+        if not er and "1" in d and d["1"].get("report"):
+            er = d["1"]["report"]["report"].get("enterprise_readable_report")
+        if er and er.get("confirmed_problems"):
+            return er
+    return None
+
+
+def check_pyramid_edition_preserves_content() -> List[Tuple[str, str, str]]:
+    """金字塔原理编辑版内容保真闸门（2026-09-26）。
+
+    防回退铁律：金字塔版是工作底稿版的只读结构化重组，不得：
+      · 增删发现 / 改金额 / 改结论 / 改判定 / 改等级；
+      · 在 umbrella / 行动标题里引入新事实、新定性；
+      · 污染输入对象（build 必须纯只读）。
+    校验：对一份真实企业报告跑 build_pyramid_edition + pyramid_preserves_content，
+    并核对 engine/audit_doctrine.REPORT_EDITING_STANDARDS 两份标准齐备、含「只读/禁引新事实」约束。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.audit_doctrine import REPORT_EDITING_STANDARDS
+        from engine.pyramid_edition import build_pyramid_edition, pyramid_preserves_content
+    except Exception as exc:
+        return [("ERROR", "engine/pyramid_edition.py",
+                 f"无法导入金字塔模块（闸门本身不可用）: {exc}")]
+
+    # ① 两份系统级编辑标准齐备 + 含只读/禁引新事实约束
+    if set(REPORT_EDITING_STANDARDS.keys()) != {"税务稽查专家工作底稿版", "金字塔原理编辑版"}:
+        issues.append(("ERROR", "engine/audit_doctrine.py",
+                       "REPORT_EDITING_STANDARDS 必须恰好包含两份标准"
+                       "（税务稽查专家工作底稿版 / 金字塔原理编辑版）"))
+    _pyr = REPORT_EDITING_STANDARDS.get("金字塔原理编辑版", {})
+    _joined = " ".join(_pyr.get("constraints") or [])
+    if "只读转换" not in _joined or "禁引新事实" not in _joined:
+        issues.append(("ERROR", "engine/audit_doctrine.py",
+                       "金字塔原理编辑版约束必须写明「只读转换」与「禁引新事实」"))
+
+    er = _load_fixture_enterprise_report()
+    if not er:
+        return issues + [("WARN", "engine/pyramid_edition.py",
+                          "未找到可用企业报告样本，跳过金字塔内容保真行为校验")]
+    # ② 输入对象在 build 前后不得被污染（纯只读）
+    _before_keys = set(er.keys())
+    try:
+        pe = build_pyramid_edition(er)
+    except Exception as exc:
+        return issues + [("ERROR", "engine/pyramid_edition.py",
+                         f"build_pyramid_edition 抛出异常: {exc}")]
+    if "pyramid_edition" in er or set(er.keys()) != _before_keys:
+        issues.append(("ERROR", "engine/pyramid_edition.py",
+                       "build_pyramid_edition 污染了输入对象（非只读）"))
+
+    # ③ 内容保真（不增删发现 / MECE / umbrella 仅现有字段 / 行动标题仅[等级]+title）
+    ok, reasons = pyramid_preserves_content(er, pe)
+    if not ok:
+        for rs in reasons:
+            issues.append(("ERROR", "engine/pyramid_edition.py",
+                           "金字塔版越界：" + rs))
+    # ④ 派生计数自洽
+    if pe.get("preserved_counts", {}).get("confirmed_problems") != len(er.get("confirmed_problems") or []):
+        issues.append(("ERROR", "engine/pyramid_edition.py",
+                       "preserved_counts.confirmed_problems 与基线不一致"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -2088,7 +2167,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_report_credibility() + check_statement_derivation()
                + check_indicator_coverage() + check_delete_semantics()
                + check_excel_handle_leak() + check_audit_doctrine()
-               + check_missing_as_violation())
+               + check_missing_as_violation() + check_pyramid_edition_preserves_content())
     return counts, general
 
 

@@ -8,6 +8,9 @@ import json, os, sys, html, datetime
 
 REPO = r"c:/Users/Administrator/WorkBuddy/2026-08-04-21-37-33/caishuixitong"
 os.chdir(REPO)
+import sys as _sys
+if REPO not in _sys.path:
+    _sys.path.insert(0, REPO)
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "scripts/four_reports/company_1_api_result.json"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "scripts/four_reports/company_1_report.html"
@@ -36,7 +39,7 @@ def money(v):
 raw = json.load(open(SRC, encoding="utf-8"))
 rep = raw.get("report") or {}
 te = rep.get("target_entity") or {}
-err = rep.get("enterprise_readable_report") or {}
+err = rep.get("enterprise_readable_report") or raw.get("enterprise_readable_report") or {}
 sc = rep.get("subject_check") or {}
 rm = rep.get("reconciliation_matrix") or {}
 dr = rep.get("document_requests") or []
@@ -310,3 +313,74 @@ os.makedirs(os.path.dirname(OUT), exist_ok=True)
 with open(OUT, "w", encoding="utf-8") as f:
     f.write("\n".join(P))
 print("已生成:", OUT, os.path.getsize(OUT), "bytes")
+
+# ══════════════════════════════════════════════════════════════════════════
+# 金字塔原理编辑版（2026-09-26）：对工作底稿版的只读结构化重组离线渲染。
+# 仅当企业报告载荷含 pyramid_edition 时产出第二份 HTML（不改写基线那份）。
+# ══════════════════════════════════════════════════════════════════════════
+_pe = err.get("pyramid_edition") or {}
+if not _pe:
+    # 离线样本若未含派生结构，则现场只读重算（不改写输入），保证两种版式都可离线导出。
+    try:
+        from engine.pyramid_edition import build_pyramid_edition
+        _pe = build_pyramid_edition(err) or {}
+    except Exception:
+        _pe = {}
+if _pe and _pe.get("groups"):
+    _co2 = E(te.get("name") or "未知主体")
+    _id2 = err.get("identity") or {}
+    _scqa = _pe.get("scqa") or {}
+    _Q = []
+    _Q.append('<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+              '<meta name="viewport" content="width=device-width,initial-scale=1">'
+              '<title>金字塔原理编辑版 - ' + _co2 + '</title>'
+              '<style>' + P[0].split("<style>", 1)[-1].split("</style>")[0] +
+              '</style></head><body><div class="wrap">')
+    _Q.append('<div class="cover"><h1>涉税风险检查工作报告</h1><div class="sub">'
+              '（金字塔原理编辑版 · 同一检查结论的结构化重组）<br>'
+              '被检查企业：' + E(_id2.get("subject_name") or "未填写") + '<br>'
+              '统一社会信用代码：' + E(_id2.get("taxpayer_id") or "未填写") + '<br>'
+              '检查期间：' + E(_id2.get("period") or "以本轮资料记载期间为准") + '<br>'
+              '检查轮次：第' + E(_id2.get("analysis_round") or 1) + '轮<br>生成时间：' + E(gen) + '</div></div>')
+    # SCQA
+    _Q.append('<section><h2>开篇：结论先行（SCQA）</h2>'
+              '<p><strong>情境（S）：</strong>' + E(_scqa.get("situation") or "") + '</p>'
+              '<p><strong>冲突（C）：</strong>' + E(_scqa.get("complication") or "") + '</p>'
+              '<p><strong>问题（Q）：</strong>' + E(_scqa.get("question") or "") + '</p>'
+              '<p><strong>回答（A · 本轮核心结论）：</strong>' + E(_scqa.get("answer") or "") + '</p></section>')
+    # 分组
+    _Q.append('<section><h2>一、风险分组结论（按维度 MECE 分组）</h2>')
+    _prob_by_seq = {str(p.get("seq")): p for p in (err.get("confirmed_problems") or [])}
+    for gi, g in enumerate(_pe.get("groups") or []):
+        _Q.append('<h3>%d、%s（最高等级：%s）</h3>' % (gi + 1, E(g.get("dimension")), E(g.get("max_level") or "")))
+        _Q.append('<p style="background:#f8fafc;border-left:3px solid #2563eb;padding:8px 12px">%s</p>'
+                  % E(g.get("umbrella") or ""))
+        _Q.append("<ul>")
+        for s in (g.get("seqs") or []):
+            p = _prob_by_seq.get(str(s)) or {}
+            _title = (_pe.get("action_titles") or {}).get(str(s)) or p.get("title") or ("第%s项" % s)
+            _sus = tr(p.get("suspect"), 120)
+            _Q.append("<li><strong>【%s】%s</strong>%s</li>"
+                      % (E(p.get("risk_level") or "未分级"), E(_title),
+                         (" — " + _sus) if _sus else ""))
+        _Q.append("</ul>")
+    _Q.append("</section>")
+    # 台账基座
+    _led = err.get("resolution_ledger") or {}
+    if _led.get("rows"):
+        _Q.append('<section><h2>二、全部风险事项台账与解除/自证清单（基座）</h2>'
+                  '<p>本台账逐条列示系统依据本轮资料分析出的全部风险事项（共 %s 项），'
+                  '证据地位仅表示结论取得方式，不代表风险大小。</p>'
+                  % E(_led.get("total") or len(_led.get("rows") or [])))
+        _led_cols = _led.get("columns") or ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料"]
+        _Q.append("<table><tr><th>%s</th></tr>" % "</th><th>".join(E(c) for c in _led_cols))
+        for row in _led.get("rows") or []:
+            _Q.append("<tr>" + "".join("<td>%s</td>" % E(row.get(c) or "—") for c in _led_cols) + "</tr>")
+        _Q.append("</table></section>")
+    _Q.append('<div class="foot">本「金字塔原理编辑版」与「税务稽查专家工作底稿版」基于同一份检查结论生成，'
+              '分组与排序仅改变呈现方式，未增删任何风险事项，也未改变金额、结论、判定与等级。</div>')
+    _Q.append("</div></body></html>")
+    _OUT2 = OUT.replace(".html", "_pyramid.html")
+    with open(_OUT2, "w", encoding="utf-8") as f:
+        f.write("\n".join(_Q))
+    print("已生成(金字塔版):", _OUT2, os.path.getsize(_OUT2), "bytes")
