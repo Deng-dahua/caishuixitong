@@ -116,6 +116,40 @@ class TestRevenueCategoryMapping(unittest.TestCase):
         self.assertEqual(len(r["minor_expense_invs"]), 0)
 
 
+class TestCompanySelfCalibration(unittest.TestCase):
+    """★ #1-b 本企业校准：用销项↔进项类目**共现**补全/收紧对应表。"""
+
+    def test_long_tail_industry_is_completed_by_own_cooccurrence(self):
+        """行业表覆盖不到时，本企业"买什么卖什么"的同品类应被自动补全为核心投入。"""
+        sal = [_inv("*甲设备*整机")] * 4
+        pur = [_inv("*甲设备*整机", 90000), _inv("*乙杂项*小件", 100)]
+        r = identify_main_biz_cost(pur, sal, industry="绝无此行业XYZ")
+        self.assertIn("甲设备", r["core_input_calibration"]["added"])
+        self.assertEqual(len(r["core_cost_invs"]), 1)
+        self.assertIn("收入类目对应", r["core_cost_basis"]["*甲设备*整机"])
+
+    def test_calibration_is_self_documenting(self):
+        sal = [_inv("*甲设备*整机")] * 3
+        pur = [_inv("*甲设备*整机", 5000)]
+        r = identify_main_biz_cost(pur, sal, industry="")
+        self.assertIn("销项↔进项类目共现", r["core_input_calibration"]["basis"])
+        self.assertIn("甲设备", r["core_input_calibration"]["sale_cats"])
+
+    def test_unmatched_still_goes_pending_not_cost(self):
+        """校准只做补全/收紧，**不改变**"判不出来不默认判成本"的红线。"""
+        sal = [_inv("*甲设备*整机")] * 4
+        pur = [_inv("*甲设备*整机", 90000), _inv("*乙杂项*小件", 10), _inv("*丙杂项*小件", 10)]
+        r = identify_main_biz_cost(pur, sal, industry="广告传媒")
+        self.assertEqual(len(r["pending_cost_invs"]), 2)
+
+    def test_unseen_industry_keywords_recorded(self):
+        """行业表给了但本企业进项里完全没出现的词 → 记为 unseen（便于复核覆盖是否过头）。"""
+        sal = [_inv("*甲设备*整机")] * 4
+        pur = [_inv("*甲设备*整机", 90000)]
+        r = identify_main_biz_cost(pur, sal, industry="广告传媒")
+        self.assertTrue(r["core_input_calibration"]["unseen"])
+
+
 class TestActiveIndustryInjection(unittest.TestCase):
     """单一注入点：管道解析出行业后注入，调用点无需逐个透传。"""
 

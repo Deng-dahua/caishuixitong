@@ -135,6 +135,72 @@ def get_active_industries():
     return list(_ACTIVE_INDUSTRIES)
 
 
+def calibrate_core_inputs(sal_invs, pur_invs, industry_kws=None,
+                          min_count=2, min_ratio=0.005):
+    """★ 2026-09-26 本企业校准：用**销项类目 ↔ 进项类目共现**补全/收紧对应表。
+
+    为什么需要：行业表（core_inputs / product_chains）是**先验**，覆盖不到的长尾行业
+    （或该企业经营品类特殊）会导致核心投入缺失，进项被误判为"非成本"。
+    故再用**本企业自己的数据**校准：
+
+      · **补全（add）**：进项类目 == 销项类目（买什么卖什么），且达到最小频次或金额占比
+        → 自动补进**该企业**的成本类目，不依赖行业表覆盖；
+      · **收紧（unseen）**：行业表给出的关键词在本企业进项中**完全未出现**
+        → 记为"未出现"，不参与匹配（自然失效）并如实记录，便于复核行业表是否覆盖过头。
+
+    返回 {"added", "sale_cats", "unseen", "basis"}，全部可自证来源。
+    """
+    def _cat(g):
+        m = re.search(r"\*([^*]+)\*", str(g or ""))
+        return m.group(1).strip() if m else ""
+
+    sale_cats = set()
+    for inv in sal_invs or []:
+        c = _cat((inv or {}).get("goods", (inv or {}).get("货物或应税劳务名称", "")))
+        if c:
+            sale_cats.add(c)
+
+    stats = {}
+    total = 0.0
+    for inv in pur_invs or []:
+        inv = inv or {}
+        c = _cat(inv.get("goods", inv.get("货物或应税劳务名称", "")))
+        try:
+            amt = float(inv.get("amount", inv.get("total", 0)) or 0)
+        except Exception:
+            amt = 0.0
+        total += amt
+        if not c:
+            continue
+        s = stats.setdefault(c, {"count": 0, "amount": 0.0})
+        s["count"] += 1
+        s["amount"] += amt
+
+    # 补全：进项类目与销项类目**同品类**（买什么卖什么）
+    added = []
+    for c, s in stats.items():
+        if c in sale_cats and (s["count"] >= min_count
+                               or (total and s["amount"] / total >= min_ratio)):
+            added.append(c)
+
+    # 收紧：行业表关键词在本企业进项中完全未出现
+    unseen = []
+    for kw in (industry_kws or []):
+        kw = str(kw or "")
+        if not kw:
+            continue
+        if kw not in stats and not any(kw in c for c in stats):
+            unseen.append(kw)
+
+    return {
+        "added": sorted(set(added)),
+        "sale_cats": sorted(sale_cats),
+        "unseen": sorted(set(unseen)),
+        "basis": "本企业销项↔进项类目共现（销项 %d 张 / 进项 %d 张）"
+                 % (len(sal_invs or []), len(pur_invs or [])),
+    }
+
+
 def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
     """
     识别主营业务成本，将进项发票分为四层。
@@ -193,6 +259,12 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
         except Exception:
             core_kws = []
     industries_used = [industry] + [i for i in _ACTIVE_INDUSTRIES if i and i != industry]
+    # ★ 2026-09-26 本企业校准：先验（行业表）+ 本企业销项↔进项类目共现
+    calibration = calibrate_core_inputs(sal_invs, pur_invs, industry_kws=core_kws)
+    if calibration["added"]:
+        for kw in calibration["added"]:
+            if kw not in core_kws:
+                core_kws.append(kw)
     has_industry_basis = bool(core_kws)
 
     if not pur_invs:
@@ -206,6 +278,7 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
             "core_cost_basis": core_cost_basis,
             "industry_basis": str(industry or ""),
             "industries_basis": industries_used,
+            "core_input_calibration": calibration,
         }
     
     # 提取销项品名与**金税分类类目** —— 用于"**以收入的类目确定成本的类目**"
@@ -314,6 +387,8 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
         "pur_expense_goods": pur_expense_goods,
         "core_cost_basis": core_cost_basis,
         "industry_basis": str(industry or ""),
+        "industries_basis": industries_used,
+        "core_input_calibration": calibration,
     }
 
 
