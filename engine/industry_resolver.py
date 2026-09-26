@@ -286,6 +286,14 @@ def infer_industries_from_goods(sales_goods: List[str], min_share: float = 0.2) 
                 cats[cat] += 1
     if not cats:
         return []
+    _min_share = 0.2
+    try:
+        from engine.numparse import to_number as _ton
+        _v = _ton(min_share)
+        if _v is not None and _v > 0:
+            _min_share = _v
+    except Exception:
+        pass
     total = sum(cats.values()) or 1
     merged = _C()
     for cat, n in cats.items():
@@ -295,7 +303,8 @@ def infer_industries_from_goods(sales_goods: List[str], min_share: float = 0.2) 
     for key, n in merged.most_common():
         if n < 2 and len(merged) > 1:
             continue
-        if (n / total) >= float(min_share or 0):
+        # ⚠ 数值解析走 numparse 单一来源（裸 float 转换遇千分位或货币符会静默变 0）
+        if (n / total) >= _min_share:
             out.append(key)
     # 至少保留主类目，避免空集
     if not out and merged:
