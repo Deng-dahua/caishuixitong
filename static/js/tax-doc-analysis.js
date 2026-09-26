@@ -90,23 +90,26 @@ function renderTaxDocAnalysis(container) {
     + '<button class="btn-toolbar" onclick="document.getElementById(\'tda-file-input\').click()" style="cursor:pointer">上传资料</button>'
 
 
-    + '<button class="btn-toolbar" onclick="batchDelTdaDocs()">删除选中资料</button>'
 
 
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析并生成过程报告</button>'
 
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs(true)" id="tda-reanalyze-btn" title="忽略缓存，强制全量重新计算并覆盖旧报告">重新计算（强制）</button>'
 
-    + '<button class="btn-toolbar" onclick="purgeDeletedDocs()" id="tda-purge-btn" title="彻底清理此前因文件被占用而未能物理删除的残留">清理删除残留</button>'
 
 
     + '<button class="btn-toolbar" id="tda-export-pdf-btn" onclick="exportTaxDocReportPdf()">导出PDF</button>'
 
 
-    + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
 
 
     + '<button class="btn-toolbar" onclick="showCacheInfo()" id="tda-cache-btn" style="color:#6b7280;border-color:#d1d5db;background:#f9fafb;font-size:11px">缓存</button>'
+
+    // 2026-09-26 布局：危险操作**右对齐**并与次操作用弹性占位隔开，避免误触
+    + '<span style="flex:1 1 auto"></span>'
+    + '<button class="btn-toolbar" onclick="batchDelTdaDocs()">删除选中资料</button>'
+    + '<button class="btn-toolbar" onclick="purgeDeletedDocs()" id="tda-purge-btn" title="彻底清理此前因文件被占用而未能物理删除的残留">清理删除残留</button>'
+    + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn" style="color:#dc2626;border-color:#fca5a5;background:#fef2f2">删除报告</button>'
 
 
     + '</div></div>'
