@@ -2296,7 +2296,7 @@ async function analyzeTaxDocs(force) {
 
     var closeInfo = (data.report||{}).coverage_closure || {};
     toast(
-      '分析完成：' + data.report.total_risks + '项待核事项，' +
+      '分析完成：' + data.report.total_risks + '项风险点（涉嫌违法违规），' +
       (closeInfo.total_items||0) + '项规则/场景已记账，未决' +
       (closeInfo.unresolved_items||0) + '项',
       'success'
@@ -2601,6 +2601,26 @@ function renderTaxDocReport(r) {
 
 
   window._reportData = r;
+
+  // ★ 2026-09-26 表达升级：上游发现的 type/category 沿用旧的「待核事实：」前缀，会让已确认
+  //   的差异听起来不像风险；呈现层递归归一整个 report 为「风险点（涉嫌违法违规）：」，
+  //   与总体结论 / 红线口径一致（仅动呈现层，不改引擎数据源、不破测试）。
+  (function _normalizeRiskLabels(){
+    function _fix(s){
+      if (typeof s !== 'string') return s;
+      return s.replace(/待核事实：/g, '风险点（涉嫌违法违规）：')
+              .replace(/待核事实:/g, '风险点（涉嫌违法违规）：')
+              .replace(/待核事实/g, '风险点（涉嫌违法违规）');
+    }
+    function _walk(o){
+      if (o == null) return;
+      if (Array.isArray(o)) { for (var i = 0; i < o.length; i++) o[i] = _walk(o[i]); return; }
+      if (typeof o === 'object') { for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) o[k] = _walk(o[k]); return; }
+      if (typeof o === 'string') return _fix(o);
+      return o;
+    }
+    _walk(r);
+  })();
 
 
   window._reportFileRows = {};
@@ -5390,9 +5410,9 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     }
   });
   if (_capHtml) {
-    html += '<h3>专项能力比对（全部为待证线索，不作定性依据）</h3>' +
+    html += '<h3>专项能力比对（全部为风险线索（待业务解释），不作定性依据）</h3>' +
       '<p class="i2">以下比对建立在数据可触达范围内：资料齐全的给出量化结果，' +
-      '资料缺失的明示缺口与所需材料。所有结论均属待核线索，须由企业自证或补充资料后重新检查，系统不作违法认定。</p>' +
+      '资料缺失的明示缺口与所需材料。所有结论均属风险线索（待业务解释），须由企业自证或补充资料排除疑点，系统不作违法成立认定。</p>' +
       _capHtml;
   }
 
@@ -5623,9 +5643,9 @@ function _buildInspectionProcessBody(r, allF, dateStr) {
   html += '</tbody></table>';
 
   html += '<h2 id="ch4">第四章 逐项检查工作记录</h2>';
-  if (!workItems.length) html += '<p class="i2">本轮未形成具体待核风险事项；这只表示已上传资料未触发可记录事项，不表示企业全部事项无风险。资料缺口和未执行场景仍见第二、三章。</p>';
+  if (!workItems.length) html += '<p class="i2">本轮未形成具体风险事项；这只表示已上传资料未触发可记录事项，不表示企业全部事项无风险。资料缺口和未执行场景仍见第二、三章。</p>';
   workItems.forEach(function(item){
-    html += '<section class="fact-sec" id="risk-' + esc(item.risk_id || item.seq) + '"><div class="ftitle">' + (item.seq || '') + '. ' + esc(item.title || '待核事项') + '　' + _prStatus(item.work_status) + '</div>' +
+    html += '<section class="fact-sec" id="risk-' + esc(item.risk_id || item.seq) + '"><div class="ftitle">' + (item.seq || '') + '. ' + esc(item.title || '风险事项（涉嫌违法违规）') + '　' + _prStatus(item.work_status) + '</div>' +
       '<table class="tbl2"><tr><th style="width:20%">工作项目</th><th>过程记录</th></tr>' +
       '<tr><td>事项编号与检查范围</td><td>' + esc(item.risk_id || '') + '；' + esc(_prValue(item.inspection_scope, '待按业务主键定位')) + '</td></tr>' +
       '<tr><td>观察事实</td><td>' + _prList(item.observed_facts, '尚无可定位观察事实') + '</td></tr>' +
@@ -6206,7 +6226,7 @@ function _renderReportFallback(r, allF) {
   h += '<h2 id="ch1">第一章 公司和基本情况</h2>';
 
 
-  h += '<p class="i2">本系统根据企业上传的' + (r.files_count || 0) + '份经营资料执行涉税风险辅助分析。观察信号只用于形成待核事项和补充资料清单，不构成税务机关立案、检查、审理、处罚或执行决定。以下列示主体情况和本次分析范围。</p>';
+  h += '<p class="i2">本系统根据企业上传的' + (r.files_count || 0) + '份经营资料执行涉税风险辅助分析。观察信号只用于形成风险点（涉嫌违法违规）和补充资料清单，不构成税务机关立案、检查、审理、处罚或执行决定。以下列示主体情况和本次分析范围。</p>';
 
 
   h += '<table class="tbl">';
@@ -6393,7 +6413,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
     });
     h += '</tbody></table></details>';
   }
-  h += '<p class="i2">经分析，共形成<strong>' + allF.length + '</strong>项待核事项。风险等级和分数仅用于安排核验顺序，不代表违法定性、确定税额、处罚或移送结论。</p>';
+  h += '<p class="i2">经分析，共形成<strong>' + allF.length + '</strong>项风险点（涉嫌违法违规）。风险等级和分数仅用于安排核验顺序，不代表违法定性、确定税额、处罚或移送结论。</p>';
 
 
   
@@ -6407,7 +6427,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
       var cp = card.policy || {};
       var csteps = cim.steps || [];
       h += '<div style="border:1px solid #cbd5e1;border-radius:8px;padding:14px;margin:12px 0;background:#fff">';
-      h += '<p class="i2" style="margin:0 0 8px"><strong>【风险卡' + (rci+1) + '】' + (card.title||'待核涉税事项') + '</strong></p>';
+      h += '<p class="i2" style="margin:0 0 8px"><strong>【风险卡' + (rci+1) + '】' + (card.title||'涉嫌违法违规风险事项') + '</strong></p>';
       h += '<p class="i2"><strong>编号：</strong>' + (card.risk_id||'') + '　<strong>核验优先级：</strong>' + (card.priority_level||'待核验') + '　<strong>当前状态：</strong>' + (card.conclusion_state||'待人工复核') + '</p>';
       h += '<p class="i2"><strong>完整表述：</strong>' + (card.statement||'') + '</p>';
       h += '<p class="i2"><strong>待证事实：</strong>' + (card.target_fact||'') + '</p>';
@@ -6777,7 +6797,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
     var methodSummary = r._methodology_applied || {};
     h += '<div style="margin:0 0 18px;padding:18px;background:#eff6ff;border:1px solid #93c5fd;border-radius:10px">';
     h += '<p class="i2" style="margin:0 0 8px"><strong>报告状态：</strong>' + (r.release_status||'草稿_待人工复核') + '</p>';
-    h += '<p class="i2"><strong>本轮结论：</strong>系统在已上传资料范围内形成' + reportCards.length + '项待核风险卡。优先级只用于安排核验顺序；资料缺失、模型评分和行业对标不得单独作为违法事实。</p>';
+    h += '<p class="i2"><strong>本轮结论：</strong>系统在已上传资料范围内形成' + reportCards.length + '项风险卡（涉嫌违法违规）。优先级只用于安排核验顺序；资料缺失、模型评分和行业对标不得单独作为违法事实。</p>';
     h += '<p class="i2"><strong>方法论门禁：</strong>' + (methodSummary.portfolio_acceptance_status||'待核验') + '；失败场景' + (methodSummary.portfolio_failed_scenes||0) + '个。<strong>内部草稿门禁：</strong>' + (qgateSummary.draft_gate_passed?'通过':'未通过') + '。<strong>正式发布：</strong>' + (qgateSummary.formal_release_eligible?'可发布':'不可发布/待独立复核') + '。</p>';
     if ((qgateSummary.formal_release_blockers||[]).length) {
       h += '<p class="i2" style="color:#b91c1c"><strong>正式发布待办：</strong>' + (qgateSummary.formal_release_blockers||[]).map(function(item){return item.message||item.code||'';}).join('；') + '</p>';
@@ -6886,7 +6906,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
 
 
   // 支撑资料完整性
-  h += '<p class="i2"><strong>支撑资料状态：</strong>本轮仅在已上传且可解析的资料范围内形成待核事实和资料缺口。材料编号用于内部溯源，不代表真实性、合法性、关联性或来源独立性已经完成复核；单一来源、资料缺失和反向解释均须在后续任务中逐项处理。</p>';
+  h += '<p class="i2"><strong>支撑资料状态：</strong>本轮仅在已上传且可解析的资料范围内形成风险事实（涉嫌违法违规）和资料缺口。材料编号用于内部溯源，不代表真实性、合法性、关联性或来源独立性已经完成复核；单一来源、资料缺失和反向解释均须在后续任务中逐项处理。</p>';
 
 
   
@@ -6916,7 +6936,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
   } else if (overall === '中风险') {
 
 
-    h += '本轮形成若干待核事项，须结合真实业务、原始资料和业务期间有效政策逐项复核。风险数量和等级仅用于排序，不自动影响纳税信用，也不代表违法事实。';
+    h += '本轮形成若干风险点（涉嫌违法违规），须结合真实业务、原始资料和业务期间有效政策逐项复核。风险数量和等级仅用于排序，不自动影响纳税信用，也不代表违法事实。';
 
 
   } else {
@@ -7107,7 +7127,7 @@ h += '<h2 id="ch5">第五章 合规改进与复查任务</h2>';
   h += '<p class="i2">1. <strong>高优先级事项：</strong>企业应结合申报期限、法定程序期限和事项重要性确定内部完成时间；资料未补齐时保留为未决事项，系统不得依据现有数据直接作出处理决定。</p>';
 
 
-  h += '<p class="i2">2. <strong>一般待核事项：</strong>按事实和有效依据决定是否更正账务、申报或内部流程；无事实依据时不得为了降低系统分数而调整。</p>';
+  h += '<p class="i2">2. <strong>一般风险事项（涉嫌违法违规）：</strong>按事实和有效依据决定是否更正账务、申报或内部流程；无事实依据时不得为了降低系统分数而调整。</p>';
 
 
   h += '<p class="i2">3. <strong>持续改进事项：</strong>完成资料、底稿和内部控制改进后上传完成证据，发起新一轮全量分析并保留轮次比较。</p>';

@@ -6232,13 +6232,13 @@ def _run_analyze(company_id, db, progress_callback=None):
     result["report"]["verified_count"] = _verified_cnt
     result["report"]["pending_count"] = _pending_cnt
     result["report"]["overall_level"] = (
-        f"已核定{_verified_cnt}项/待核{_pending_cnt}项" if all_findings else "未形成待核事实"
+        f"已核定{_verified_cnt}项/涉嫌违法违规{_pending_cnt}项" if all_findings else "未形成风险事实（涉嫌违法违规）"
     )
     result["report"]["summary_text"] = (
-        f"正式输出治理完成：{_scenario_execution.get('common_fact_findings', 0)}项共同事实门待核事实已纳入，"
+        f"正式输出治理完成：{_scenario_execution.get('common_fact_findings', 0)}项共同事实门风险事实（涉嫌违法违规）已纳入，"
         f"{_scenario_execution.get('trusted_observation_count', 0)}项客观观察形成{len(all_findings)}项结论。"
         f"其中{_verified_cnt}项为账面勾稽可核定事项，已基于所报资料给出最终答案（推翻须更正资料本身）；"
-        f"{_pending_cnt}项待核事项须补充外部证据后方可定性，报告已附检查建议。"
+        f"{_pending_cnt}项风险点（涉嫌违法违规）须补充外部资料排除疑点，报告已附解除方式与自证资料。"
         "行政定性权保留于人工，系统不替代有权机关作出处罚决定。"
     )
     pipeline_log.append(

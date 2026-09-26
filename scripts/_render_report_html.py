@@ -83,6 +83,19 @@ def _ledger_table(led, threshold=16):
 
 raw = json.load(open(SRC, encoding="utf-8"))
 rep = raw.get("report") or {}
+# ★ 2026-09-26 表达升级：发现 type/category 沿用旧「待核事实：」前缀，会让已确认的差异
+#   听起来不像风险；呈现层递归归一整个 report 为「风险点（涉嫌违法违规）：」（仅动呈现层，不改数据源）。
+def _norm_risk_label(o):
+    if isinstance(o, dict):
+        return {k: _norm_risk_label(v) for k, v in o.items()}
+    if isinstance(o, list):
+        return [_norm_risk_label(v) for v in o]
+    if isinstance(o, str):
+        return (o.replace("待核事实：", "风险点（涉嫌违法违规）：")
+                  .replace("待核事实:", "风险点（涉嫌违法违规）：")
+                  .replace("待核事实", "风险点（涉嫌违法违规）"))
+    return o
+rep = _norm_risk_label(rep)
 te = rep.get("target_entity") or {}
 err = rep.get("enterprise_readable_report") or raw.get("enterprise_readable_report") or {}
 sc = rep.get("subject_check") or {}
@@ -171,7 +184,7 @@ P.append("</dl></div>")
 
 # ── 一、总体结论 ──
 P.append('<section><h2><span class="n">一</span>总体结论</h2>')
-lvl = rep.get("overall_level") or "未形成待核事实"
+lvl = rep.get("overall_level") or "未形成风险事实（涉嫌违法违规）"
 _lv = "ok" if ("未形成" in str(lvl) or "无" in str(lvl)) else ("danger" if rep.get("high_risk") else "warn")
 P.append('<p><span class="pill %s">%s</span>'
          '<span class="pill info">共 %s 项</span>'
@@ -275,13 +288,18 @@ if _led_rows:
         P.append('<p class="muted">%s</p>' % E(_led["evidence_tier_note"]))
     P.append("</section>")
 
-# ── 五、待核事实与发现 ──
-P.append('<section><h2><span class="n">五</span>待核事实与发现</h2>')
+# ── 五、风险事实（涉嫌违法违规）与发现 ──
+# 2026-09-26 表达升级：域分析发现的 type 沿用旧「待核事实：」前缀，已确认的差异
+# 听起来不像风险；呈现层统一改为「风险点（涉嫌违法违规）：」（不改引擎数据源）。
+_ftype = lambda s: (str(s)
+                    .replace("待核事实：", "风险点（涉嫌违法违规）：")
+                    .replace("待核事实:", "风险点（涉嫌违法违规）："))
+P.append('<section><h2><span class="n">五</span>风险事实（涉嫌违法违规）与发现</h2>')
 if findings:
     lv_order = {"极高风险": 0, "高风险": 1, "中风险": 2, "低风险": 3}
     for f in sorted(findings, key=lambda x: lv_order.get(str(x.get("level")), 9))[:60]:
         P.append('<div class="card"><div class="t">【%s】%s</div>'
-                 % (E(f.get("level") or "未分级"), E(f.get("type") or "")))
+                 % (E(f.get("level") or "未分级"), E(_ftype(f.get("type") or ""))))
         for lab, key in (("事实", "detail"), ("描述", "description"), ("依据", "policy_ref"),
                          ("发现方式", "how_found"), ("解除方式", "resolve_steps")):
             v = f.get(key)
@@ -291,7 +309,7 @@ if findings:
                 P.append("<div><strong>%s：</strong>%s</div>" % (E(lab), tr(v, 700)))
         P.append("</div>")
 else:
-    P.append('<div class="empty">本期<b>未形成任何待核事实或风险发现</b>。'
+    P.append('<div class="empty">本期<b>未形成任何风险事实（涉嫌违法违规）或风险发现</b>。'
              '原因：当前账套仅有增值税申报表，缺少发票、银行流水、工资、社保、凭证等可比对资料，'
              '域分析无交叉验证数据源。补充上述资料后重新分析即可产出结论。</div>')
 P.append("</section>")
