@@ -65,6 +65,91 @@ def _collect_directions(problems: List[dict], limit: int = 6) -> List[str]:
     return [d for d, _ in c.most_common(limit)]
 
 
+def _cost_reconciliation(rd: Dict[str, Any]) -> Dict[str, Any]:
+    """★ 2026-09-26 三方闭环：发票类目口径 / 账面口径 / 差异待核。
+
+    为什么需要（用户指令）："取得发票中哪些属于主营业务成本"只解决了**分子挑得准**，
+    但发票口径天然偏小（人工成本、制造费用不在进项发票里）→ 若只用它当主营成本会
+    得出毛利率虚高，反而**掩盖风险**。故必须与账面口径勾稽，差额如实列"待核"。
+
+    铁律：账面口径只认**发生额**（序时账借方发生额 / 科目余额表本期发生额）。
+    **损益类科目期末余额恒为 0，绝不可用**；检测到"期末余额"来源一律拒收。
+    取不到就明说"未取得"，不得用默认值静默顶替。
+    """
+    out: Dict[str, Any] = {
+        "invoice_cost": None, "invoice_cost_count": 0,
+        "book_cost": None, "book_cost_source": "",
+        "diff": None, "diff_pct": None, "status": "未取得", "note": "",
+    }
+    # ── ① 发票类目口径（成本类进项合计）──
+    try:
+        bcc = ((rd.get("engine_status") or {}).get("biz_cost_classification")) or {}
+        # 注意：落盘的 engine_status 里只存**汇总值**（core_cost_amount / core_cost_count），
+        # 不发票明细列表（core_cost_invs 未序列化）。故优先取汇总值，明细仅在存在时兜底累加。
+        from engine.numparse import to_number as _ton
+        _amt = _ton(bcc.get("core_cost_amount"))
+        if _amt is not None:
+            out["invoice_cost"] = round(float(_amt), 2)
+            _n = _ton(bcc.get("core_cost_count"))
+            out["invoice_cost_count"] = int(_n) if _n is not None else 0
+        else:
+            core = bcc.get("core_cost_invs") or []
+            if core:
+                _s = 0.0
+                for inv in core:
+                    _v = _ton((inv or {}).get("amount", (inv or {}).get("total")))
+                    if _v:
+                        _s += float(_v)
+                out["invoice_cost"] = round(_s, 2)
+                out["invoice_cost_count"] = len(core)
+    except Exception:
+        pass
+
+    # ── ② 账面口径（只认发生额）──
+    try:
+        from engine.numparse import to_number as _ton
+        for f in (rd.get("all_findings") or []):
+            om = (f or {}).get("observed_metrics") or {}
+            if not isinstance(om, dict) or om.get("book_cost_total") is None:
+                continue
+            src = str(om.get("book_cost_source") or "")
+            if "期末余额" in src:        # 损益类科目期末为 0，拒收
+                continue
+            _v = _ton(om.get("book_cost_total"))
+            if _v is None:
+                continue
+            out["book_cost"] = round(float(_v), 2)
+            out["book_cost_source"] = src or "未标注来源"
+            break
+    except Exception:
+        pass
+
+    inv, book = out["invoice_cost"], out["book_cost"]
+    if inv is not None and book is not None:
+        d = round(float(inv) - float(book), 2)
+        out["diff"] = d
+        out["diff_pct"] = (round(d / float(book) * 100, 2) if book else None)
+        # 阈值：相对 >10% 且绝对 >1 万（与 VR060 双口径同一阈值口径）
+        if book and abs(d) > 10000 and abs(d / float(book)) > 0.10:
+            out["status"] = "差异超阈值（待核）"
+            out["note"] = ("两口径差异已超阈值（相对>10% 且绝对>1万元）。可能成因：未开票采购、"
+                           "暂估入账、人工与制造费用不在进项发票、票货不符、虚列成本；"
+                           "须逐项核对后方可定性。")
+        else:
+            out["status"] = "两口径基本吻合"
+            out["note"] = "两口径差异在阈值内（相对≤10% 或绝对≤1万元），属正常暂估或不开票采购范围。"
+    elif inv is not None:
+        out["status"] = "账面口径未取得"
+        out["note"] = "本轮未取得可确认的账面主营业务成本（需序时账借方发生额或科目余额表本期发生额），无法完成勾稽。"
+    elif book is not None:
+        out["status"] = "发票口径未取得"
+        out["note"] = "本轮未取得成本类进项发票口径，无法完成勾稽。"
+    else:
+        out["status"] = "两口径均未取得"
+        out["note"] = "本轮未取得发票类目口径与账面口径，主营成本勾稽未参与。"
+    return out
+
+
 def build_overall_conclusion(report_data: Any,
                              problems: Optional[List[dict]] = None,
                              further: Optional[List[dict]] = None,
@@ -217,6 +302,22 @@ def build_overall_conclusion(report_data: Any,
             P.append(f"另有 {t['count']} 项为{t['label']}（非风险等级），供参考："
                      + "；".join(t["items"]) + "。")
 
+    # ★ 三方闭环：发票类目口径 / 账面口径 / 差异待核
+    cost_recon = _cost_reconciliation(rd)
+    _cr_txt = ""
+    if cost_recon["invoice_cost"] is not None or cost_recon["book_cost"] is not None:
+        _inv_txt = (f"{cost_recon['invoice_cost']:,.2f} 元（{cost_recon['invoice_cost_count']} 张）"
+                    if cost_recon["invoice_cost"] is not None else "未取得")
+        _bk_txt = (f"{cost_recon['book_cost']:,.2f} 元（来源：{cost_recon['book_cost_source']}）"
+                   if cost_recon["book_cost"] is not None else "未取得")
+        _cr_txt = f"主营业务成本三方勾稽：发票类目口径 {_inv_txt}；账面口径 {_bk_txt}。"
+        if cost_recon["diff"] is not None:
+            _cr_txt += f"差异 {cost_recon['diff']:,.2f} 元（{cost_recon['diff_pct']}%），{cost_recon['status']}。"
+        else:
+            _cr_txt += f"{cost_recon['status']}。"
+        _cr_txt += cost_recon["note"]
+        P.append(_cr_txt)
+
     # 法律边界（与上文的"待核实风险事项"同一口径，不再重复"已确认"式强断言）
     if problems:
         if verified > 0:
@@ -249,6 +350,8 @@ def build_overall_conclusion(report_data: Any,
         "directions": directions,
         "industry": ind,
         "conflict": conflict,
+        # ★ 三方闭环：发票类目口径 / 账面口径 / 差异待核（供第一章台账渲染三列）
+        "cost_reconciliation": cost_recon,
         "counts": {
             "files": files_count,
             "categories": cats,
