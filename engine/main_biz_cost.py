@@ -8,6 +8,7 @@
 # ═══════════════════════════════════════════════════════════
 
 from collections import defaultdict
+import re
 
 # ├─ 日常报销关键词（全行业通用）
 # │  员工先行垫付后凭发票报销，对公付款对象是员工而非开票单位
@@ -142,13 +143,14 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
         }
 
     识别逻辑（像人类税务合规员一样思考）:
+    0. ★ 行业/类目口径优先（排在通用费用关键词之前）：
+       (a) **以收入的类目确定成本的类目**：进项类目 = 销项类目 → core_cost（最直接）
+       (b) 命中本行业「核心投入」→ core_cost（补偿类目不同的情形，如制造：原料 vs 成品）
     1. 日常报销关键词 → minor_expense（员工垫付后报销，付款对象非开票单位）
     2. 重大费用关键词 → major_expense（需对公付款，但不是主营成本）
     3. 加工费 → core_cost（制造业核心成本）
-    4. ★ 命中本行业「核心投入」→ core_cost（行业口径，最强依据）
-    5. 进销品名重合项 → core_cost（买什么卖什么=主营业务）
-    6. 大额采购（>=总采购额5%）→ core_cost
-    7. 其余：**有行业口径 → pending_cost_invs（待核，不默认判成本）**；
+    4. 大额采购（>=总采购额5%）→ core_cost
+    5. 其余：**有行业口径 → pending_cost_invs（待核，不默认判成本）**；
             无行业口径 → core_cost（旧兜底，basis 中如实标注）
     """
     core_cost_invs = []
@@ -182,12 +184,24 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
             "industry_basis": str(industry or ""),
         }
     
-    # 提取销项品名集合（用于进销品名重合判断）
+    # 提取销项品名与**金税分类类目** —— 用于"**以收入的类目确定成本的类目**"
+    # ★ 2026-09-26：原来只做整串严格相等（`goods in sale_goods_set`），
+    #   而"*广告服务*推广费"与"*广告服务*媒体投放"字面不同 → 永远匹配不上，
+    #   等于"以收入类目定成本类目"这条逻辑实际不生效。改为**类目级**（`*分类*`）比对。
+    def _cat_of(g):
+        m = re.search(r"\*([^*]+)\*", str(g or ""))
+        return m.group(1).strip() if m else ""
+
     sale_goods_set = set()
+    sale_cats = set()
     if sal_invs:
         for inv in sal_invs:
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-            if g: sale_goods_set.add(g)
+            if g:
+                sale_goods_set.add(g)
+                _c = _cat_of(g)
+                if _c:
+                    sale_cats.add(_c)
     
     # 计算总采购额（用于大额判断）
     total_pur_amount = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in pur_invs)
@@ -197,11 +211,18 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
         goods = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
         amount = float(inv.get("amount", inv.get("total", 0)) or 0)
 
-        # ★ 规则0（最高优先，2026-09-26 新增）：命中**本行业「核心投入」** → 主营业务成本。
-        #   必须排在通用费用关键词**之前**：否则广告公司的「广告发布/媒体投放」会被
-        #   `_MAJOR_EXPENSE_KWS` 的 '广告/推广/宣传/发布' 当成"重大费用"截走 —— 这正是
-        #   "用通用费用表判断行业性成本"的行业盲区（实测已复现）。
-        #   行业口径优先于通用关键词表：行业说自己卖什么/投入什么，才最贴近真实成本构成。
+        # ★ 规则0（最高优先，2026-09-26）：**行业/类目口径优先于通用费用关键词表**。
+        #   (a) 命中本行业「核心投入」→ 主营业务成本；
+        #   (b) **以收入的类目确定成本的类目**：进项类目 = 销项类目 → 主营业务成本。
+        #   为什么必须排在通用关键词之前：通用费用表里"费用"的词（广告/推广/宣传/发布/餐饮…）
+        #   对另一个行业恰恰是"成本"（实证：广告公司的「广告发布/媒体投放」被判成重大费用）；
+        #   而"以收入的类目反推成本的类目"比任何通用关键词表都更贴近真实成本构成。
+        _cat = _cat_of(goods)
+        if goods in sale_goods_set or (_cat and _cat in sale_cats):
+            core_cost_invs.append(inv)
+            pur_core_goods.add(goods)
+            core_cost_basis[goods] = "收入类目对应（销项同品类：%s）" % (_cat or goods)
+            continue
         if has_industry_basis and any(kw in goods for kw in core_kws):
             core_cost_invs.append(inv)
             pur_core_goods.add(goods)
@@ -240,12 +261,7 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
             core_cost_basis[goods] = "加工费（制造业核心成本）"
             continue
 
-        # 规则4: 进销品名重合 → 买什么卖什么=主营业务
-        if goods in sale_goods_set:
-            core_cost_invs.append(inv)
-            pur_core_goods.add(goods)
-            core_cost_basis[goods] = "进销品名重合"
-            continue
+        # 规则4: 进销品名重合（已被上面「以收入类目确定成本类目」覆盖，此处不再重复）
 
         # 规则6: 大额采购（>=5%总额）→ 大概率是主营业务
         if amount >= big_amount_threshold and amount > 0:

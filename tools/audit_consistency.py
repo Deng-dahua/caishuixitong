@@ -2355,7 +2355,10 @@ def check_cost_industry_basis() -> List[Tuple[str, str, str]]:
         if key not in mbc_src:
             issues.append(("ERROR", mbc_rel, why))
 
-    # ④ 顺序：行业核心投入必须排在通用费用关键词之前
+    # ④ 顺序：行业/类目口径必须排在通用费用关键词之前
+    idx_cat = mbc_src.find("收入类目对应")
+    if idx_cat < 0:
+        issues.append(("ERROR", mbc_rel, "缺少「以收入类目确定成本类目」判定"))
     idx_core = mbc_src.find("行业核心投入（%s）")
     if idx_core < 0:
         issues.append(("ERROR", mbc_rel, "缺少「行业核心投入」判定"))
@@ -2363,9 +2366,15 @@ def check_cost_industry_basis() -> List[Tuple[str, str, str]]:
         for pat, label in (("in _REIMBURSEMENT_KWS_GLOBAL", "日常报销关键词"),
                            ("in _MAJOR_EXPENSE_KWS", "重大费用关键词")):
             i = mbc_src.find(pat)
-            if i >= 0 and idx_core > i:
+            if i >= 0 and min(idx_core, idx_cat) > i:
                 issues.append(("ERROR", mbc_rel,
-                               "「行业核心投入」判定必须排在%s之前，否则行业性成本被截走" % label))
+                               "「行业/类目口径」判定必须排在%s之前，否则行业性成本被截走" % label))
+    # 类目级匹配（不是整串严格相等）：必须用 `*分类*` 类目比对。
+    # ⚠ 用**词边界**正则而非裸子串：`sale_catsZZ` 仍包含 `sale_cats`，裸子串会造成假阴性
+    #   （反向验证时实测漏报）。
+    if not re.search(r"\b_cat_of\b", mbc_src) or not re.search(r"\bsale_cats\b", mbc_src):
+        issues.append(("ERROR", mbc_rel,
+                       "「以收入类目确定成本类目」未做类目级比对（整串严格相等会漏配）"))
 
     # ⑤ 注入点
     pipe_rel = "engine/pipeline.py"

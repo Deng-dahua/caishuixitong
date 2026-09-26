@@ -87,6 +87,35 @@ class TestIndustryAwareClassification(unittest.TestCase):
             self.assertIn(k, r)
 
 
+class TestRevenueCategoryMapping(unittest.TestCase):
+    """★ 用户原意：**以收入的类目确定成本的类目**（不是用收入数值反推成本）。"""
+
+    def test_same_category_as_sales_is_core_cost(self):
+        """进项与销项**同品类**（字面不同的品名）→ 主营业务成本。"""
+        sal = [_inv("*广告服务*推广费")]
+        pur = [_inv("*广告服务*媒体投放", 30000),
+               _inv("*其他甲*杂项", 10),
+               _inv("*其他乙*杂项", 10)]
+        r = identify_main_biz_cost(pur, sal, industry="广告传媒")
+        self.assertEqual(len(r["core_cost_invs"]), 1)
+        self.assertIn("收入类目对应", r["core_cost_basis"]["*广告服务*媒体投放"])
+        self.assertEqual(len(r["pending_cost_invs"]), 2)
+
+    def test_exact_goods_still_matched(self):
+        sal = [_inv("*甲材料*采购")]
+        pur = [_inv("*甲材料*采购", 1000), _inv("*乙*杂", 10), _inv("*丙*杂", 10)]
+        r = identify_main_biz_cost(pur, sal, industry="")
+        self.assertIn("收入类目对应", r["core_cost_basis"]["*甲材料*采购"])
+
+    def test_category_mapping_beats_generic_expense_keywords(self):
+        """销项类目 = 餐饮服务 → 进项"餐饮服务/餐费"是主营成本，不是日常报销。"""
+        sal = [_inv("*餐饮服务*餐费")]
+        pur = [_inv("*餐饮服务*餐费", 5000), _inv("*其他*杂", 10), _inv("*另一*杂", 10)]
+        r = identify_main_biz_cost(pur, sal, industry="餐饮服务")
+        self.assertEqual(len(r["core_cost_invs"]), 1)
+        self.assertEqual(len(r["minor_expense_invs"]), 0)
+
+
 class TestActiveIndustryInjection(unittest.TestCase):
     """单一注入点：管道解析出行业后注入，调用点无需逐个透传。"""
 
