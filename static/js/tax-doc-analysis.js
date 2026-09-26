@@ -4988,9 +4988,9 @@ function _renderResolutionLedger(ledger) {
   var shortCols = {};
   cols.forEach(function(c){ shortCols[c] = _colShort(c, rows, 16); });
   var h = '<h2 id="company-ledger">三、全部风险事项台账与解除/自证清单</h2>' +
-    '<p class="i2">本台账逐条列示系统依据本轮上传资料分析出的<strong>全部风险事项（共 ' + total + ' 项）</strong>，' +
-    '不分是否已固化为已验证规则。每一项均给出：风险等级、证据地位、终局方向，以及企业应如何解除风险、' +
-    '需补充哪些自证资料。<strong>证据地位仅表示结论的取得方式（可信度来源），不代表风险大小。</strong></p>';
+    '<p class="i2">本台账依据本轮上传资料，逐条列示经分析查出的<strong>全部风险事项（共 ' + total + ' 项）</strong>，' +
+    '无论其是否已固化为已验证规则。对每一项均载明：风险等级、证据地位、终局方向，以及企业解除风险的路径与' +
+    '应补充的自证资料。<strong>证据地位仅表示结论的取得方式（即可信度来源），不代表风险本身的大小。</strong></p>';
   if (tierHtml) {
     h += '<p class="i2" style="line-height:2.4">' + tierHtml + '</p>';
   }

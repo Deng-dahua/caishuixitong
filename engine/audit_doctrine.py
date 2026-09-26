@@ -111,6 +111,9 @@ ONE_SIDED_CHECKS: Dict[str, List[Dict[str, str]]] = {
 
 
 # 数据源标识 → 中文资料名（报告展示用；与 enterprise_report._SOURCE_LABELS 口径一致）
+#   ⚠ 这是「原始源字段键 → 中文资料名」的唯一权威映射：default_self_proof_for 依赖它
+#     把 sal_invs/bank_txs/vouchers/target_entity 等原始键归一后再查 _PROVES，
+#     否则报告中会泄漏原始变量名（表达硬伤）。新增数据源时须在此登记。
 SOURCE_LABEL: Dict[str, str] = {
     "salaries": "工资表",
     "social_security": "社保明细",
@@ -122,6 +125,8 @@ SOURCE_LABEL: Dict[str, str] = {
     "vouchers": "记账凭证/序时账",
     "inventory_ledger": "进销存台账",
     "contracts": "合同文件",
+    "target_entity": "企业基本信息",
+    "company_profile": "企业基本信息",
 }
 
 
@@ -278,6 +283,14 @@ def attach_three_piece(
     return finding
 
 
+def _looks_like_raw_key(s: str) -> bool:
+    """判断一个资料键是否为未经登记的原始变量名（如 all_findings / sal_invs）。
+
+    用于防御性兜底：任何未登记到 SOURCE_LABEL 的纯 ASCII 标识符都不应泄漏进报告。
+    """
+    return bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(s).strip()))
+
+
 def default_self_proof_for(missing: Iterable[str]) -> List[Dict[str, str]]:
     """按缺失资料名生成标准自证要求（材料名 → 能证明什么）。
 
@@ -302,8 +315,25 @@ def default_self_proof_for(missing: Iterable[str]) -> List[Dict[str, str]]:
     }
     out = []
     for m in (missing or []):
-        m = str(m)
-        out.append(self_proof_item(m, _PROVES.get(m, f"用以核对本事项所涉及的{m}相关事实")))
+        m = str(m).strip()
+        if not m:
+            continue
+        # ★ 根因修复（2026-09-26 表达升级）：资料键可能是原始源字段键
+        #   （sal_invs / bank_txs / vouchers / target_entity …），须经权威映射
+        #   SOURCE_LABEL 归一为中文资料名再查 _PROVES，否则会泄漏原始变量名
+        #   （如 "sal_invs——用以核对本事项所涉及的sal_invs相关事实"）。
+        #   两版报告共享 resolution_ledger，此处归一即同时修复两版。
+        cn = SOURCE_LABEL.get(m, m)
+        if cn in _PROVES:
+            proves = _PROVES[cn]
+        elif _looks_like_raw_key(cn):
+            # 防御性兜底：任何未登记的原始变量名都不得泄漏进报告，
+            # 改用中性、如实的通用自证要求（不假装具体）。
+            cn = "本轮检查相关佐证资料"
+            proves = "证明本事项所涉业务的真实性与账务处理依据"
+        else:
+            proves = _PROVES.get(m, f"用以核对本事项所涉及的{m}相关事实")
+        out.append(self_proof_item(cn, proves))
     return out
 
 
@@ -383,6 +413,94 @@ def _guess_missing_materials(finding: Dict) -> List[str]:
     return out
 
 
+def _derive_materials(f: Dict) -> List[str]:
+    """汇总一条发现「需要企业补充的自证资料」名称（资料名口径，已归一为中文）。
+
+    取值顺序与 apply_three_piece_to_all ③ 一致：发现文本推断 → 独立资料源 →
+    域→资料映射。返回的均为中文资料名（sal_invs 等原始键经 SOURCE_LABEL 归一）。
+    """
+    mats: List[str] = list(_guess_missing_materials(f))
+    for src in (f.get("independent_sources") or []):
+        s = str(src).strip()
+        if s and s not in mats:
+            mats.append(s)
+    dom = str(f.get("domain") or f.get("category") or "")
+    for key, vals in DOMAIN_MATERIALS.items():
+        if key in dom:
+            for v in vals:
+                if v not in mats:
+                    mats.append(v)
+    # 原始源字段键归一为中文资料名（与 default_self_proof_for 口径一致）
+    return [SOURCE_LABEL.get(m, m) for m in mats]
+
+
+def _build_default_resolve_steps(f: Dict, mats: List[str]) -> List[str]:
+    """无具体做法时的差异化兜底解除方式（2026-09-26 表达升级）。
+
+    旧兜底为千篇一律的"请提供与「X」相关的合同、单据、凭证等业务佐证材料"
+    （158 行雷同，信息量低）。改为围绕该事项实际涉及的资料类型与税种生成，
+    既去雷同又有信息量；纯模板连接词，不引入新事实、不改定性。
+    """
+    title = str(f.get("title") or f.get("type") or "本事项")
+    taxes = f.get("taxes")
+    tax_txt = ""
+    if taxes:
+        txs = [t.strip() for t in re.split(r"[、/，,]", str(taxes)) if t.strip()]
+        if txs:
+            tax_txt = "（涉及税种：" + "、".join(txs[:4]) + "）"
+    clean = [m for m in mats if m and not _looks_like_raw_key(m)]
+    if clean:
+        mat_txt = "、".join(clean[:4])
+        head = (f"围绕「{title}」，核对其所涉及的{mat_txt}等资料的真实性与"
+                f"账务、申报处理口径{tax_txt}；")
+    else:
+        head = (f"围绕「{title}」，核对其所依据的原始凭证与账务、申报处理口径{tax_txt}；")
+    return [
+        head,
+        "对确认存在的差错，完成账务更正或申报更正，并留存更正凭证与情况说明；",
+        "补齐上述资料后重新执行一键分析，由系统复查本事项是否已消除。",
+    ]
+
+
+# 通用套话建议的识别标记（pipeline 兜底会把 suggestion 写成千篇一律的
+# "请提供与「X」相关的合同、单据、凭证等业务佐证材料"）。这些话信息量低、
+#各行雷同，不是具体做法，须由权威 resolve_steps 兜底替换。
+_GENERIC_SUGGESTION_HINTS = (
+    "请提供与", "相关的合同、单据、凭证等业务佐证材料",
+    "请按本报告关于企业应当怎样处理的说明",
+)
+
+
+def _is_generic_suggestion(s: Any) -> bool:
+    """判断一条 suggestion 是否只是套话/空话（不具信息量）。"""
+    s = (s or "").strip()
+    if not s:
+        return True
+    if len(s) < 30:
+        return True
+    if any(h in s for h in _GENERIC_SUGGESTION_HINTS):
+        return True
+    return False
+
+
+def _clean_suggestion(f: Dict) -> str:
+    """把 suggestion 收敛为权威、非套话的「解除方式」单行表述（单一权威出口）。
+
+    根因：pipeline 的兜底会把 suggestion 写成千篇一律的
+    "请提供与「X」相关的合同、单据、凭证等业务佐证材料"，而权威的差异化
+    解除方式已落在 resolve_steps。本函数在唯一权威出口处把套话 suggestion
+    替换为 resolve_steps 的首句（已含资料类型/税种，信息量足够），既去雷同
+    又有信息量；pipeline 给出的具体建议（收款与开票/供应商等分支）予以保留。
+    """
+    sug = (f.get("suggestion") or "").strip()
+    if not _is_generic_suggestion(sug):
+        return sug  # 保留 pipeline 给出的具体建议
+    steps = f.get("resolve_steps") or []
+    if steps:
+        return str(steps[0]).strip()
+    return "请按本报告『企业应当怎样处理』一节，结合本事项涉及的资料逐条补证。"
+
+
 def apply_three_piece_to_all(findings: List[Dict]) -> Dict[str, int]:
     """**保证报告里每一条发现都有出口**（宗旨 D3/D4 的最终兜底，幂等）。
 
@@ -405,39 +523,30 @@ def apply_three_piece_to_all(findings: List[Dict]) -> Dict[str, int]:
     for f in (findings or []):
         if not isinstance(f, dict):
             continue
+        # 先推导需补资料（② 解除方式差异化兜底与 ③ 自证资料共用同一口径）
+        mats = _derive_materials(f)
         # ① 终局方向
         if not f.get("terminal_state"):
             attach_three_piece(f)
             terminal_filled += 1
-        # ② 解除方式：优先用发现自己写的做法
+        # ② 解除方式：优先用发现自己写的做法；通用套话不算具体做法
         if not f.get("resolve_steps"):
             sug = (f.get("suggestion") or f.get("remedy") or f.get("action")
                    or f.get("drill_questions") or "")
             steps = []
             if isinstance(sug, str) and sug.strip():
                 steps = [s.strip() for s in re.split(r"[；;]\s*|[①②③④⑤]", sug) if s.strip()]
-            if not steps:
-                ft = str(f.get("type") or "本事项")
-                steps = [
-                    f"核实「{ft}」所依据的原始资料与账务/申报处理，确认事实与口径；",
-                    "如存在差错，完成账务更正或申报更正，并留存更正凭证与说明；",
-                    "补齐佐证资料后重新执行一键分析，由系统复查本事项是否消除。",
-                ]
+            # 通用套话（pipeline 兜底"请提供与「X」相关的合同、单据、凭证等业务佐证材料"
+            # 等）信息量低、各行雷同，不视为具体做法，改用语料差异化的兜底。
+            if not steps or any(h in steps[0] for h in _GENERIC_SUGGESTION_HINTS):
+                steps = _build_default_resolve_steps(f, mats)
             attach_three_piece(f, resolve_steps=steps)
             resolve_filled += 1
+        # ④ 收敛 suggestion：套话不进报告，统一用权威 resolve_steps 首句兜底
+        #    （单一权威出口，web ⑥建议 / 整改建议章节 / 离线处理意见 / 离线待核节同步生效）
+        f["suggestion"] = _clean_suggestion(f)
         # ③ 自证资料
         if not f.get("self_proof_materials"):
-            mats = list(_guess_missing_materials(f))
-            for src in (f.get("independent_sources") or []):
-                s = str(src)
-                if s and s not in mats:
-                    mats.append(s)
-            dom = str(f.get("domain") or f.get("category") or "")
-            for key, vals in DOMAIN_MATERIALS.items():
-                if key in dom:
-                    for v in vals:
-                        if v not in mats:
-                            mats.append(v)
             if mats:
                 attach_three_piece(f, self_proof=default_self_proof_for(mats))
             else:

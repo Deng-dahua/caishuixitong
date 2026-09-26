@@ -4896,10 +4896,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 enhanced += 1
                 
             else:
-                # 无明细数据的兜底——至少给出具体方向而非空话
-                f["suggestion"] = (
-                    f"请提供与「{ftype[:40]}」相关的合同、单据、凭证等业务佐证材料。"
-                )
+                # 无明细数据的兜底：不写千篇一律的"请提供与X相关的合同…"套话
+                # （那类话信息量低、各行雷同）。具体、按资料类型差异化的解除方式
+                # 由封印阶段 apply_three_piece_to_all 统一兜底生成，此处留给权威出口。
+                f["suggestion"] = ""
                 enhanced += 1
     
     if enhanced:

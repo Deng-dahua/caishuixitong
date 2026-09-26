@@ -1026,7 +1026,7 @@ def _problem_paragraphs(f):
     how = to_plain(_norm_text(str(f.get("how_found") or "")))
     reasons = to_plain_list(f.get("reasonable_explanations") or f.get("alternative_explanations") or [])
     suggestion = to_plain(_norm_text(str(f.get("suggestion") or "")))
-    steps = to_plain_list(f.get("investigation_steps") or [])
+    steps = to_plain_list(f.get("resolve_steps") or f.get("investigation_steps") or [])
     src_files = f.get("source_files") or []
     scope_names = set()
     for s in src_files:

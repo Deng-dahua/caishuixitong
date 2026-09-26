@@ -47,8 +47,8 @@ _LEVEL_RANK = {"极高风险": 5, "高风险": 4, "中风险": 3, "待核验": 2
 
 # umbrella 模板的固定连接词（非事实，仅用于组合现有数据）
 _UMBRELLA_TEMPLATE = (
-    "本组共 {n} 项风险：高风险 {hi} 项、中风险 {mid} 项、其他 {low} 项；"
-    "主要涉及税种为{taxes}。各项事实、金额、结论与解除方式见下方台账。"
+    "本组归集风险 {n} 项（其中高风险 {hi} 项、中风险 {mid} 项、其余 {low} 项），"
+    "主要涉及税种：{taxes}。各事项的事实、金额、定性及解除路径详见下方台账。"
 )
 
 
@@ -71,7 +71,19 @@ def _assign_dimension(p: Dict) -> str:
 def _split_taxes(taxes: Any) -> List[str]:
     if not taxes:
         return []
-    parts = str(taxes).replace("、", "/").replace("，", "/").split("/")
+    s = str(taxes).strip()
+    # 兼容字段值本身是 Python list 的 repr（如 "['增值税','企业所得税']"）
+    if s.startswith("[") and s.endswith("]"):
+        try:
+            import ast
+            parsed = ast.literal_eval(s)
+            if isinstance(parsed, (list, tuple)):
+                s = "、".join(str(x) for x in parsed)
+        except Exception:
+            pass
+    # 去除残留的引号/方括号
+    s = s.replace("'", "").replace('"', "").replace("[", "").replace("]", "")
+    parts = s.replace("、", "/").replace("，", "/").replace(",", "/").split("/")
     out = []
     for tx in parts:
         tx = tx.strip()
@@ -151,16 +163,16 @@ def build_pyramid_edition(er: Dict) -> Dict[str, Any]:
     kps = summary.get("key_points") or []
     answered = "；".join(str(k) for k in kps) if kps else headline
     scqa = {
-        "situation": ("被检查企业：%s（统一社会信用代码 %s），检查期间 %s，第 %s 轮。"
+        "situation": ("被查单位：%s（统一社会信用代码 %s）。检查所属期 %s，本轮为第 %s 次涉税风险分析。"
                       % (identity.get("subject_name", ""), identity.get("taxpayer_id", ""),
                          identity.get("period", ""), identity.get("analysis_round", 1))),
-        "complication": ("本轮共收到 %s 个文件、归并为 %s 类资料；已确认具体问题 %s 项，"
-                         "需补充资料后再检查 %s 项。"
+        "complication": ("本轮分析共接收涉税资料 %s 份，归并为 %s 类；经核查确认具体涉税风险 %s 项，"
+                         "另有 %s 项因资料不完整暂无法判定，需补充资料后进一步检查。"
                          % (summary.get("received_material_count", 0),
                             summary.get("material_category_count", 0),
                             summary.get("confirmed_problem_count", 0),
                             summary.get("further_check_count", 0))),
-        "question": "本次检查查明的税务风险有哪些？应怎样逐项解除并自证？",
+        "question": "上述已确认风险的事实依据、涉税金额与法定处理方向为何？企业应如何逐项解除风险并完成自证？",
         # ★ 2026-09-26：不限制结论字数（用户要求结论部分高精准归纳、通俗易懂、不限字数）。
         #   此前 answered[:300] 会把"本轮核心结论"从中间截断，违背金字塔"结论先行"的完整性。
         "answer": (answered if answered else headline),

@@ -4991,7 +4991,7 @@ def _scan_evidence_demand_order(data, spec, all_findings=None):
         "triggered_finding_count": len(triggered),
         "demand_order": order_lines,
         "triggered_findings": triggered[:20],
-    }, ["all_findings"], priority="责令补充资料")]
+    }, list(demand_map.keys()), priority="责令补充资料")]
 
 
 # ── VR055/056/057：工资拆分·公私混同发薪·第三方平台盲区（监管盲区清扫三规则）──

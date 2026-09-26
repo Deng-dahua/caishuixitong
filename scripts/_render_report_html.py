@@ -189,7 +189,11 @@ if sc.get("mismatched_count"):
              % (E(sc["mismatched_count"]),
                 "<br>".join("· " + E(m.get("file")) + "　" + E(m.get("reason")) for m in (sc.get("mismatched") or [])[:10])))
 else:
-    P.append('<p><span class="pill ok">主体一致</span>本账套「%s」的资料主体校验通过。</p>' % E(sc.get("account_subject") or te.get("name")))
+    _subj = sc.get("account_subject") or te.get("name") or ""
+    if _subj:
+        P.append('<p><span class="pill ok">主体一致</span>本账套「%s」的资料主体校验通过。</p>' % E(_subj))
+    else:
+        P.append('<p><span class="pill ok">主体一致</span>已上传资料的归属主体校验通过（主体名称未提供）。</p>')
 if sc.get("note"):
     P.append('<p class="muted">%s</p>' % E(sc["note"]))
 P.append("</section>")
@@ -263,8 +267,8 @@ if _led_rows:
         _th = " ".join('<span class="pill info">%s：%s 项</span>' % (E(k), E(v))
                        for k, v in _tiers.items() if v)
         P.append("<p>%s</p>" % _th)
-    P.append('<p class="muted">本台账逐条列示系统依据本轮上传资料分析出的全部风险事项'
-             '（共 %s 项），证据地位仅表示结论的取得方式，不代表风险大小。</p>'
+    P.append('<p class="muted">本台账依据本轮上传资料，逐条列示经分析查出的全部风险事项'
+             '（共 %s 项）。证据地位仅表示结论的取得方式（即可信度来源），不代表风险本身的大小。</p>'
              % E(_led.get("total") or len(_led_rows)))
     P.append(_ledger_table(_led))
     if _led.get("evidence_tier_note"):
@@ -279,8 +283,10 @@ if findings:
         P.append('<div class="card"><div class="t">【%s】%s</div>'
                  % (E(f.get("level") or "未分级"), E(f.get("type") or "")))
         for lab, key in (("事实", "detail"), ("描述", "description"), ("依据", "policy_ref"),
-                         ("发现方式", "how_found"), ("建议", "suggestion")):
+                         ("发现方式", "how_found"), ("解除方式", "resolve_steps")):
             v = f.get(key)
+            if isinstance(v, list):
+                v = "；".join(str(x) for x in v)
             if v:
                 P.append("<div><strong>%s：</strong>%s</div>" % (E(lab), tr(v, 700)))
         P.append("</div>")
@@ -401,8 +407,8 @@ if _pe and _pe.get("groups"):
     _led = err.get("resolution_ledger") or {}
     if _led.get("rows"):
         _Q.append('<section><h2>二、全部风险事项台账与解除/自证清单（基座）</h2>'
-                  '<p>本台账逐条列示系统依据本轮资料分析出的全部风险事项（共 %s 项），'
-                  '证据地位仅表示结论取得方式，不代表风险大小。</p>'
+                  '<p>本台账依据本轮上传资料，逐条列示经分析查出的全部风险事项（共 %s 项），'
+                  '证据地位仅表示结论的取得方式（即可信度来源），不代表风险本身的大小。</p>'
                   % E(_led.get("total") or len(_led.get("rows") or [])))
         _Q.append(_ledger_table(_led))
         _Q.append("</section>")
