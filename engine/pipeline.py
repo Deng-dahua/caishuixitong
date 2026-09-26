@@ -7732,7 +7732,10 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline
     #   使"主营业务成本 vs 期间费用"的区分全系统使用同一行业口径（销项发票品名推断为主口径）。
     try:
         from engine.main_biz_cost import set_active_industry as _set_ind
+        from engine.main_biz_cost import set_active_industries as _set_inds
         _set_ind(entity["industry"])
+        # ★ 多业态：一并注入次类目，成本识别按主+次的**并集**取核心投入
+        _set_inds([entity["industry"]] + list(_ires.get("secondary") or []))
     except Exception:
         pass
     entity["_industry_source"] = _ires.get("source", "")

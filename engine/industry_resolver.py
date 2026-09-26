@@ -265,6 +265,54 @@ _WEIGHT = {SRC_INVOICE: 6, SRC_ONLINE: 5, SRC_REGISTERED: 4, SRC_NAME: 3,
            SRC_SCOPE: 2, SRC_BIZMODEL: 1, SRC_UNKNOWN: 0}
 
 
+def infer_industries_from_goods(sales_goods: List[str], min_share: float = 0.2) -> List[str]:
+    """从销项发票品名推断**多个**行业口径（主类目 + 次类目）。
+
+    为什么需要（2026-09-26 用户指令"多业态"）：`infer_from_goods` 只取**单众数**，
+    对**混合经营**（既卖货又提供服务、既做制造又做贸易）必然失真——
+    众数之外的那部分业务会被整个行业口径丢掉，进而其对应的进项被误判成"非成本"。
+
+    做法：与 `infer_from_goods` 同一套类目抽取与归一，但**按票数占比保留次类目**
+    （占比 ≥ min_share 且至少 2 票），返回按票数降序的行业键列表；第一项即主类目。
+    """
+    import re
+    from collections import Counter as _C
+    cats = _C()
+    for g in sales_goods or []:
+        m = re.search(r"\*([^*]+)\*", str(g))
+        if m:
+            cat = m.group(1).strip()
+            if len(cat) >= 2 and not cat.isdigit():
+                cats[cat] += 1
+    if not cats:
+        return []
+    total = sum(cats.values()) or 1
+    merged = _C()
+    for cat, n in cats.items():
+        key = normalize_industry_name(cat) or cat
+        merged[key] += n
+    out = []
+    for key, n in merged.most_common():
+        if n < 2 and len(merged) > 1:
+            continue
+        if (n / total) >= float(min_share or 0):
+            out.append(key)
+    # 至少保留主类目，避免空集
+    if not out and merged:
+        out = [merged.most_common(1)[0][0]]
+    return out
+
+
+def core_inputs_for_many(industries) -> List[str]:
+    """多个行业口径的「核心投入」**并集**（多业态企业：各类业务的成本投入都要算）。"""
+    out: List[str] = []
+    for ind in (industries or []):
+        for kw in core_inputs_for(ind):
+            if kw and kw not in out:
+                out.append(kw)
+    return out
+
+
 def core_inputs_for(industry: str) -> List[str]:
     """该行业的「核心投入」关键词 —— 用于把**进项发票**区分为「主营业务成本」与「期间费用」。
 
@@ -415,6 +463,14 @@ def resolve_industry(company_name: str = "", registered_industry: str = "",
                    + f"；本轮采用「{industry}」（来源：{source}）。"
                      "两者不一致可能指向超范围经营/变名开票，建议列入核查事项。")
 
+    # ★ 2026-09-26 多业态：除主类目外，一并给出**次类目**（占比达标的其他经营类目），
+    #   供成本识别按并集匹配——否则混合经营企业众数之外的业务其进项会被误判为"非成本"。
+    secondary: List[str] = []
+    try:
+        secondary = [k for k in infer_industries_from_goods(sales_goods) if k and k != industry]
+    except Exception:
+        secondary = []
+
     return {
         "industry": industry,
         "source": source,
@@ -423,6 +479,7 @@ def resolve_industry(company_name: str = "", registered_industry: str = "",
         "conflicts": conflicts,
         "registered": registered_industry,
         "inferred": inferred,
+        "secondary": secondary,
         "votes": votes,
         "unknown": not industry,
     }

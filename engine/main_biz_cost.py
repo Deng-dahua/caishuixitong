@@ -120,6 +120,21 @@ def get_active_industry() -> str:
     return _ACTIVE_INDUSTRY
 
 
+# ★ 2026-09-26 多业态：次类目列表（主类目 + 占比达标的其他经营类目）。
+#   成本识别按**并集**取核心投入——混合经营企业众数之外的业务，其进项也须能判成成本。
+_ACTIVE_INDUSTRIES = []
+
+
+def set_active_industries(industries) -> None:
+    """由管道注入多业态口径（含主类目）。空列表表示未确定。"""
+    global _ACTIVE_INDUSTRIES
+    _ACTIVE_INDUSTRIES = [str(i or "").strip() for i in (industries or []) if str(i or "").strip()]
+
+
+def get_active_industries():
+    return list(_ACTIVE_INDUSTRIES)
+
+
 def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
     """
     识别主营业务成本，将进项发票分为四层。
@@ -166,10 +181,18 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
     industry = str(industry or "").strip() or _ACTIVE_INDUSTRY
     core_kws = []
     try:
-        from engine.industry_resolver import core_inputs_for
-        core_kws = core_inputs_for(industry)
+        from engine.industry_resolver import core_inputs_for, core_inputs_for_many
+        # ★ 多业态：核心投入按**主类目 + 次类目**的并集取，
+        #   否则混合经营企业众数之外的业务，其进项会被误判为"非成本"。
+        _inds = [industry] + [i for i in _ACTIVE_INDUSTRIES if i and i != industry]
+        core_kws = core_inputs_for_many(_inds) if len(_inds) > 1 else core_inputs_for(industry)
     except Exception:
-        core_kws = []
+        try:
+            from engine.industry_resolver import core_inputs_for
+            core_kws = core_inputs_for(industry)
+        except Exception:
+            core_kws = []
+    industries_used = [industry] + [i for i in _ACTIVE_INDUSTRIES if i and i != industry]
     has_industry_basis = bool(core_kws)
 
     if not pur_invs:
@@ -182,6 +205,7 @@ def identify_main_biz_cost(pur_invs, sal_invs=None, industry=""):
             "pur_expense_goods": pur_expense_goods,
             "core_cost_basis": core_cost_basis,
             "industry_basis": str(industry or ""),
+            "industries_basis": industries_used,
         }
     
     # 提取销项品名与**金税分类类目** —— 用于"**以收入的类目确定成本的类目**"
