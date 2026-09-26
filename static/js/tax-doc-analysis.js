@@ -64,7 +64,8 @@ function renderTaxDocAnalysis(container) {
     + '<div id="tda-upload-section" style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:10px;padding:20px 24px;margin-bottom:20px">'
 
 
-    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    // 2026-09-26 布局：标题行改为「基线对齐 + 自动换行」，避免说明文字被 8 个按钮挤压换行错位
+    + '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px">'
 
 
     + '<div>'
@@ -79,7 +80,8 @@ function renderTaxDocAnalysis(container) {
     + '</div>'
 
 
-    + '<div style="display:flex;gap:10px">'
+    // 2026-09-26 布局：按钮组允许换行（102 份资料时按钮不再溢出容器）
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
 
 
     + '<input type="file" id="tda-file-input" multiple accept=".xlsx,.xls,.csv,.pdf,.txt,.docx,.doc,.jpg,.jpeg,.png,.bmp,.tiff,.xml,.ofd,.zip" style="display:none" onchange="uploadTaxDocs()">'
@@ -116,6 +118,8 @@ function renderTaxDocAnalysis(container) {
     // ── 文件列表 ──
 
 
+    // 2026-09-26 布局：资料清单与按钮区用分隔线断开，形成独立区块
+    + '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #cbd5e1"></div>'
     + '<div id="tda-file-list" style="font-size:13px;color:var(--gray-500);min-height:40px">暂无上传资料</div>'
 
 
