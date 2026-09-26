@@ -5213,15 +5213,26 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '<a href="#company-further">五、因资料缺失或不完整而无法完成的检查</a><br>' +
     '<span style="font-size:13px;color:#64748b;padding-left:16px">└ 专项能力比对（行业对标 / 关联方穿透 / 两税差异 / 虚开网络 / 资金回流等）</span><br>' +
     '<a href="#company-statement">六、报告性质和使用说明</a></div>';
-  html += '<h2 id="company-conclusion">一、本轮检查总体结论</h2>' +
-    '<p class="i2">' + esc(headlineText) + '</p>' +
-    '<p class="i2">' + esc(summary.owner_message || '') + '</p>' +
-    '<p class="i2">本轮共收到<strong>' + (summary.received_material_count || 0) + '个文件</strong>，归并为<strong>' + (summary.material_category_count || materials.length || 0) + '类资料</strong>。其中，已有资料能够证明的具体问题<strong>' + (summary.confirmed_problem_count || 0) + '项</strong>；因资料缺失、资料不完整或者影响范围尚未查清，需要补充资料后再检查的事项<strong>' + (summary.further_check_count || 0) + '项</strong>。</p>';
-  if (keyPoints.length) {
-    html += '<h3>本轮最需要负责人关注的内容</h3>' + keyPoints.map(function(item){
-      // 2026-09-13：历史缓存的要点里写死了「见第四章」，现章节已重编号为第二部分。
-      return '<p class="i2" style="line-height:2">' + esc(String(item || '').replace(/见第四章/g, '见第二部分')) + '</p>';
+  html += '<h2 id="company-conclusion">一、本轮检查总体结论</h2>';
+  // ★ 2026-09-26：第一章改为渲染**从 findings 实测派生**的总体结论（唯一权威）。
+  //   数字/点名清单/涉及税种/行业口径均由后端 overall_conclusion 生成，前端只负责呈现，
+  //   不再由前端拼数字或写死文案（否则会与正文脱节）。旧缓存无该字段时回退旧版式。
+  var oc = report.overall_conclusion || {};
+  var ocParas = oc.paragraphs || [];
+  if (ocParas.length) {
+    html += ocParas.map(function(t, i){
+      return '<p class="i2"' + (i === 0 ? ' style="color:#64748b"' : '') + '>' + esc(t) + '</p>';
     }).join('');
+  } else {
+    html += '<p class="i2">' + esc(headlineText) + '</p>' +
+      '<p class="i2">' + esc(summary.owner_message || '') + '</p>' +
+      '<p class="i2">本轮共收到<strong>' + (summary.received_material_count || 0) + '个文件</strong>，归并为<strong>' + (summary.material_category_count || materials.length || 0) + '类资料</strong>。其中，已有资料能够证明的具体问题<strong>' + (summary.confirmed_problem_count || 0) + '项</strong>；因资料缺失、资料不完整或者影响范围尚未查清，需要补充资料后再检查的事项<strong>' + (summary.further_check_count || 0) + '项</strong>。</p>';
+    if (keyPoints.length) {
+      html += '<h3>本轮最需要负责人关注的内容</h3>' + keyPoints.map(function(item){
+        // 2026-09-13：历史缓存的要点里写死了「见第四章」，现章节已重编号为第二部分。
+        return '<p class="i2" style="line-height:2">' + esc(String(item || '').replace(/见第四章/g, '见第二部分')) + '</p>';
+      }).join('');
+    }
   }
 
   // ═══ 资料齐备性总览（2026-09-05）：必查资料是否齐全，缺失项映射风险盲区 ═══

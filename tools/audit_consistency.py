@@ -48,7 +48,7 @@ import os
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -2154,6 +2154,140 @@ def check_pyramid_edition_preserves_content() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_overall_conclusion_derivation() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-26：报告第一章「本轮检查总体结论」必须**从 findings 派生**，不得手写模板。
+
+    真实动机：用户曾手写一版总体结论，其中行业数字（毛利率 2.1%）与报告实测
+    （19.8%、处于合理区间）方向相反、分层与正文 risk_level 打架 —— 手写文案必然与数据脱节。
+    落地要求：
+      ① `engine/overall_conclusion.py` 必须存在，且只从 report_data 读实测（含 confirmed_problems）；
+      ② `build_enterprise_readable_report` 必须调用 `build_overall_conclusion`；
+      ③ Web 端与离线导出两条渲染路径都必须消费 `overall_conclusion`（否则"生成了却看不见"）。
+    """
+    import ast as _ast
+
+    issues: List[Tuple[str, str, str]] = []
+
+    def _read(rel: str) -> str:
+        p = ROOT / rel
+        if not p.exists():
+            return ""
+        try:
+            return p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    mod_rel = "engine/overall_conclusion.py"
+    mod_src = _read(mod_rel)
+    if not mod_src:
+        issues.append(("ERROR", mod_rel, "缺少总体结论生成器（第一章必须由 findings 派生）"))
+    else:
+        if "confirmed_problems" not in mod_src:
+            issues.append(("ERROR", mod_rel, "生成器未从 confirmed_problems 读取实测发现"))
+        if "risk_level" not in mod_src:
+            issues.append(("ERROR", mod_rel, "生成器未按实测 risk_level 分层"))
+
+    er_rel = "engine/enterprise_report.py"
+    er_src = _read(er_rel)
+    called = False
+    try:
+        for node in _ast.walk(_ast.parse(er_src)):
+            if isinstance(node, _ast.Call):
+                fn = node.func
+                name = fn.id if isinstance(fn, _ast.Name) else (
+                    fn.attr if isinstance(fn, _ast.Attribute) else "")
+                if name == "build_overall_conclusion":
+                    called = True
+    except SyntaxError:
+        issues.append(("ERROR", er_rel, "无法解析（语法错误）"))
+    if not called:
+        issues.append(("ERROR", er_rel,
+                       "build_enterprise_readable_report 未调用 build_overall_conclusion"))
+
+    for rel, why in (("static/js/tax-doc-analysis.js", "Web 端未渲染 overall_conclusion"),
+                     ("scripts/_render_report_html.py", "离线导出未渲染 overall_conclusion")):
+        src = _read(rel)
+        if not src:
+            issues.append(("ERROR", rel, "文件不存在"))
+        elif "overall_conclusion" not in src:
+            issues.append(("ERROR", rel, why))
+    return issues
+
+
+def check_industry_source_integrity() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-26：行业口径三铁律（防"冒名抬高权威"与"销项口径失效"）。
+
+    真实事故（深圳海更）：`_online_company_lookup` 把**从经营范围推断**的行业直接写进
+    `result["industry"]`，被 pipeline 当作「外部工商核验」（最高权威）消费 ——
+    等于让"经营范围"绕道拿到最高权，R1（不得用经营范围里的商品名当行业）形同虚设；
+    同时销项发票品名给出的「广告服务」因不在基准库命名空间而**匹配不到**，销项口径失效。
+    落地要求：
+      ① `_online_company_lookup` 必须标注 `industry_source`，不得让经营范围推断冒充外部核验；
+      ② pipeline 只在来源确为「外部工商核验」时才按 online 口径传参；
+      ③ 行业解析器里 **销项发票品名（SRC_INVOICE）权重必须最高**（税务风险以实际经营产出为主口径）；
+      ④ 发票分类名必须经 `normalize_industry_name` 归一到基准库键（否则下游对标匹配不到）。
+    """
+    import ast as _ast
+
+    issues: List[Tuple[str, str, str]] = []
+
+    def _read(rel: str) -> str:
+        p = ROOT / rel
+        if not p.exists():
+            return ""
+        try:
+            return p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    pipe_rel = "engine/pipeline.py"
+    pipe_src = _read(pipe_rel)
+    if 'result["industry_source"]' not in pipe_src:
+        issues.append(("ERROR", pipe_rel,
+                       "_online_company_lookup 未标注 industry_source"
+                       "（经营范围推断会冒充外部工商核验）"))
+    if 'lookup.get("industry_source")' not in pipe_src:
+        issues.append(("ERROR", pipe_rel,
+                       "pipeline 未按 industry_source 过滤，经营范围推断可冒充「外部工商核验」"))
+
+    res_rel = "engine/industry_resolver.py"
+    res_src = _read(res_rel)
+    weights: Dict[str, Any] = {}
+    try:
+        for node in _ast.walk(_ast.parse(res_src)):
+            if isinstance(node, _ast.Assign) and any(
+                    isinstance(t, _ast.Name) and t.id == "_WEIGHT" for t in node.targets):
+                if isinstance(node.value, _ast.Dict):
+                    for k, v in zip(node.value.keys, node.value.values):
+                        if isinstance(k, _ast.Name) and isinstance(v, _ast.Constant):
+                            weights[k.id] = v.value
+    except SyntaxError:
+        issues.append(("ERROR", res_rel, "无法解析（语法错误）"))
+
+    if not weights:
+        issues.append(("ERROR", res_rel, "未取到 _WEIGHT 权重表"))
+    else:
+        inv = weights.get("SRC_INVOICE")
+        online = weights.get("SRC_ONLINE")
+        if inv is None:
+            issues.append(("ERROR", res_rel, "_WEIGHT 缺少 SRC_INVOICE"))
+        elif inv < max(weights.values()):
+            issues.append(("ERROR", res_rel,
+                           f"销项发票品名权重({inv})不是最高"
+                           " —— 税务风险应以实际经营产出为主口径"))
+        if inv is not None and online is not None and inv <= online:
+            issues.append(("ERROR", res_rel,
+                           f"销项品名权重({inv})未高于外部工商核验({online})"))
+
+    if "normalize_industry_name" not in res_src:
+        issues.append(("ERROR", res_rel,
+                       "缺少 normalize_industry_name（发票分类名未归一到基准库键）"))
+    elif "normalize_industry_name(best)" not in res_src:
+        issues.append(("ERROR", res_rel,
+                       "infer_from_goods 未对金税分类名做归一（销项口径会失效）"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -2167,7 +2301,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_report_credibility() + check_statement_derivation()
                + check_indicator_coverage() + check_delete_semantics()
                + check_excel_handle_leak() + check_audit_doctrine()
-               + check_missing_as_violation() + check_pyramid_edition_preserves_content())
+               + check_missing_as_violation() + check_pyramid_edition_preserves_content()
+               + check_overall_conclusion_derivation() + check_industry_source_integrity())
     return counts, general
 
 

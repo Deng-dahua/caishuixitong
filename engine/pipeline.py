@@ -8211,6 +8211,7 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
         "registered_address": "",
         "insured_count": "",
         "industry": "",
+        "industry_source": "",
         "company_type": "",
         "uscc": uscc or "",
         "status": "",
@@ -8243,6 +8244,8 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
                     result["company_type"] = company.company_type or ""
                     result["uscc"] = company.uscc or (uscc or "")
                     result["industry"] = company.industry_code or ""
+                    # 来自账套档案里的登记行业码 → 口径是"工商登记"，不是"外部工商核验"
+                    result["industry_source"] = "工商登记" if result["industry"] else ""
                     result["source"] = "数据库缓存"
                     # 查股东
                     try:
@@ -8324,11 +8327,16 @@ def _online_company_lookup(company_name, uscc=None, db=None, company_id=None):
         result["raw_data"] = online_info
         
         # 从经营范围推断行业
+        # ★ 2026-09-26：这里是**从经营范围推断**，并不是工商核验页面上的行业字段。
+        #   此前直接写进 result["industry"]，被 pipeline 当成"外部工商核验"（最高权威）消费，
+        #   等于让经营范围绕道拿到最高权，R1（不得用经营范围里的商品名当行业）形同虚设。
+        #   现在明确标注来源；pipeline 只在来源确为"外部工商核验"时才按 online 口径传参。
         if result["business_scope"]:
             from audit_enhancements import detect_industry as _detect_ind
             try:
                 result["industry"] = _detect_ind(result["business_scope"])
-            except:
+                result["industry_source"] = "经营范围推断"
+            except Exception:
                 pass
     
     # 第四步：更新数据库（持久化）
@@ -8969,6 +8977,11 @@ def _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_lo
         #   但实现里**从未给 industry 赋值** —— 承诺的兜底一直是空的）：
         #   外部工商核验是最高权威口径，取到后重新走一遍统一行业解析器。
         _online_ind = str(lookup.get("industry") or "").strip()
+        # ★ 2026-09-26：只有来源确为"外部工商核验"（真实工商页面行业字段）时才作为 online 口径传入；
+        #   若该值实为从经营范围推断而来，回去走解析器自身的 ⑤ 经营范围 分支（低权威），
+        #   不得冒充"外部工商核验"这一最高权威（否则等于让经营范围绕过 R1 拿到最高权）。
+        if _online_ind and str(lookup.get("industry_source") or "") != "外部工商核验":
+            _online_ind = ""
         if _online_ind:
             target_entity["_industry_online"] = _online_ind
             try:

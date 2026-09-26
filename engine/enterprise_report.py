@@ -3016,6 +3016,11 @@ def build_enterprise_readable_report(report_data, edition=None):
     resolution_ledger = _build_resolution_ledger(report_data)
     # ★ 2026-09-26 三版重构：底稿版（检查组工作底稿）
     working_paper_report = _build_working_paper_report(report_data)
+    # ★ 2026-09-26 用户要求：「一、本轮检查总体结论」必须从 findings 实测派生（不得手写模板）。
+    #   数字/点名清单/涉及税种/行业口径全部取实测，新增或减少发现无需改代码。
+    from engine.overall_conclusion import build_overall_conclusion
+    overall_conclusion = build_overall_conclusion(
+        report_data, problems, further, inspector_reasoning)
 
     # 专项报告的 metrics 指标键统一中文化（独立于 observed_metrics 的另一处英文键来源）
     # ★ 2026-09-25：**递归**汉化所有 `metrics` 字典的键 —— 旧写法只处理**顶层** `metrics`，
@@ -3057,6 +3062,8 @@ def build_enterprise_readable_report(report_data, edition=None):
         # 红线判定汇总：本轮触碰多少条税务红线、各结论层级数量（报告抬头展示）
         "redline_summary": ((report_data.get("comprehensive", {}) or {}).get("redline_detection") or {}).get("summary", {}),
         "summary": summary,
+        # ★ 2026-09-26：第一章「本轮检查总体结论」——从 findings 实测派生（唯一权威）
+        "overall_conclusion": overall_conclusion,
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
         "materials": materials,

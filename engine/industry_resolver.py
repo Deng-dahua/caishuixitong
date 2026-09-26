@@ -18,9 +18,13 @@
 设计原则（行业无关，适用于所有行业与企业）
 ═══════════════════════════════════════════════════════════════════════════════
 优先级（高 → 低）：
-  ① 外部工商核验（官方登记口径，最权威）
-  ② 工商登记行业字段（账套档案）
-  ③ 销项发票品名推断（金税 `*分类*` 编码，META-001；反映**实际经营产出**）
+  ① 销项发票品名推断（金税 `*分类*` 编码，META-001；反映**实际经营产出**）
+     —— 本报告是**税务风险检查**，"企业实际卖什么"比"登记为何"更能决定税务风险，
+        故销项口径置为 **主口径**（权重最高 6）。
+  ② 外部工商核验（**真实**工商核验页面上的行业字段，官方登记口径）
+     ⚠ 铁律：若该值实为**从经营范围推断**而来，**不得**标注为"外部工商核验"，
+        必须降级为"经营范围推断"（低权威）——否则等于让经营范围绕道拿到最高权，R1 形同虚设。
+  ③ 工商登记行业字段（账套档案）
   ④ 企业名称中的行业词（企业设立时对主营的自我标识）
   ⑤ 经营范围（**必须先定业态**：制造 / 购销 / 服务）
   ⑥ 经营模式 → 粗粒度兜底
@@ -102,6 +106,45 @@ def _longest_hit(text: str, keys: List[str]) -> Optional[str]:
     """取 text 中最长的命中键（长短优先，避免通用短词压过专业长词）。"""
     hits = [k for k in keys if k and k in text]
     return max(hits, key=len) if hits else None
+
+
+def normalize_industry_name(name: str, _depth: int = 0) -> str:
+    """把"发票分类名 / 外部来源的行业名"**归一到行业基准库的键**。
+
+    为什么需要（真事故）：销项发票金税分类给的是「广告服务」，而基准库的键是
+    「广告传媒」；字面不同 → `match_benchmark` 匹配不到 → 一路回退到经营范围 → 商贸，
+    于是"以销项发票为准"**根本落不了地**（口径设了却无效）。
+
+    通用做法（新增同类只需在 `industry_map` 加一行，不改逻辑）：
+      1) 名称本身已是基准库键 → 直接用；
+      2) 基准库键出现在名称中（如 "xx广告传媒xx" ⊇ "广告传媒"）→ 取最长者；
+      3) 名称出现在基准库键中（如 "文化" ⊂ "文化传媒"）→ 取最长者；
+      4) 用 `industry_map` 关键词映射（"广告" → "广告传媒"）→ 递归归一。
+    都命中不了则原样返回（交给调用方按未匹配处理，**不静默套默认档**）。
+    """
+    n = str(name or "").strip()
+    if not n or _depth >= 3:
+        return n
+    keys = benchmark_keys()
+    if n in keys:
+        return n
+    hit = _longest_hit(n, keys)
+    if hit:
+        return hit
+    # 名称是某个基准库键的一部分（最长优先，结果确定）
+    contains = [k for k in keys if n in k]
+    if contains:
+        return max(contains, key=len)
+    # industry_map 关键词映射（取最长命中词，结果确定）
+    im = load_industry_data().get("industry_map") or {}
+    best_kw, best_ind = "", ""
+    for kw, ind in im.items():
+        if kw and kw in n and len(str(kw)) > len(best_kw):
+            best_kw, best_ind = str(kw), str(ind)
+    if best_ind:
+        mapped = normalize_industry_name(best_ind, _depth + 1)
+        return mapped or best_ind
+    return n
 
 
 def _trade_benchmark(scope_text: str) -> Optional[str]:
@@ -216,7 +259,9 @@ CONFIDENCE = {
     SRC_NAME: "中", SRC_SCOPE: "低", SRC_BIZMODEL: "低", SRC_UNKNOWN: "无",
 }
 # 数值化权重，便于排序比较
-_WEIGHT = {SRC_ONLINE: 5, SRC_REGISTERED: 4, SRC_INVOICE: 5, SRC_NAME: 3,
+# ★ 2026-09-26：销项发票品名（实际经营产出）提到最高权重 6，作为**税务风险对标主口径**；
+#   外部工商核验（仅限真实工商页面行业字段）次之。理由与边界见模块 docstring。
+_WEIGHT = {SRC_INVOICE: 6, SRC_ONLINE: 5, SRC_REGISTERED: 4, SRC_NAME: 3,
            SRC_SCOPE: 2, SRC_BIZMODEL: 1, SRC_UNKNOWN: 0}
 
 
@@ -226,6 +271,9 @@ def infer_from_goods(sales_goods: List[str]) -> Tuple[str, Dict[str, int]]:
     唯一依据为销项品名，不参考进项：
       销项＝企业实际经营产出（卖什么就是什么行业）；进项＝采购投入/成本结构。
     做法：优先取金税发票 `*分类*` 编码的出现次数众数；无编码时回退 industry_map 关键词加权投票。
+    ★ 返回前统一经 `normalize_industry_name` 归一到**行业基准库的键**，
+      否则「广告服务」这类金税分类名与基准库键「广告传媒」字面不符 → 下游对标匹配不到 →
+      回退经营范围 → 销项口径失效（真事故）。
     """
     import re
     from collections import Counter
@@ -238,8 +286,8 @@ def infer_from_goods(sales_goods: List[str]) -> Tuple[str, Dict[str, int]]:
                 cats[cat] += 1
     if cats:
         best = cats.most_common(1)[0][0]
-        # 金税分类名可能不等于基准库键，交给 match_benchmark 做互含匹配
-        return best, dict(cats.most_common(5))
+        # 金税分类名可能不等于基准库键，交给 normalize_industry_name 做通用归一
+        return normalize_industry_name(best), dict(cats.most_common(5))
 
     industry_map = load_industry_data().get("industry_map") or {}
     text = " ".join(str(g) for g in (sales_goods or []))
@@ -248,7 +296,7 @@ def infer_from_goods(sales_goods: List[str]) -> Tuple[str, Dict[str, int]]:
         if kw and kw in text:
             votes[ind] += 1
     if votes:
-        return votes.most_common(1)[0][0], dict(votes.most_common(5))
+        return normalize_industry_name(votes.most_common(1)[0][0]), dict(votes.most_common(5))
     return "", {}
 
 

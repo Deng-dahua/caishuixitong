@@ -15,8 +15,9 @@
 import unittest
 
 from engine.industry_resolver import (
-    benchmark_keys, business_category, generalization_note, infer_from_goods,
-    is_in_benchmark_base, load_industry_data, match_benchmark, resolve_industry,
+    SRC_INVOICE, benchmark_keys, business_category, generalization_note,
+    infer_from_goods, is_in_benchmark_base, load_industry_data, match_benchmark,
+    normalize_industry_name, resolve_industry,
 )
 
 
@@ -88,14 +89,33 @@ class TestResolveIndustry(unittest.TestCase):
         r = resolve_industry(registered_industry="商贸",
                              sales_goods=["*广告服务*广告发布费"])
         self.assertIn("商贸", r["candidates"].values())
-        self.assertIn("广告服务", r["candidates"].values())
+        # ★ 2026-09-26：销项发票金税分类「广告服务」会先归一到基准库键「广告传媒」，
+        #   否则与基准库字面不符 → 下游对标匹配不到 → 回退经营范围（真事故）。
+        self.assertIn("广告传媒", r["candidates"].values())
         self.assertTrue(r["conflicts"], "登记口径≠实际口径时应记录冲突")
         # 实际经营口径（销项品名）权威度高于登记口径
-        self.assertEqual(r["industry"], "广告服务")
+        self.assertEqual(r["industry"], "广告传媒")
+        self.assertEqual(r["source"], SRC_INVOICE)
+
+    def test_sales_invoice_outranks_registered_and_online(self):
+        """★ 2026-09-26：销项发票品名（实际经营产出）为**主口径**，高于外部工商核验与工商登记。"""
+        r = resolve_industry(company_name="某某商贸有限公司",
+                             registered_industry="商贸",
+                             online_industry="商贸",
+                             sales_goods=["*广告服务*推广费", "*广告服务*设计费"])
+        self.assertEqual(r["industry"], "广告传媒")
+        self.assertEqual(r["source"], SRC_INVOICE)
+
+    def test_normalize_industry_name_maps_invoice_category_to_benchmark_key(self):
+        """金税分类名 → 基准库键的通用归一（新增同类只需在 industry_map 加一行）。"""
+        self.assertEqual(normalize_industry_name("广告服务"), "广告传媒")
+        self.assertEqual(normalize_industry_name("广告传媒"), "广告传媒")   # 已是键
+        self.assertEqual(normalize_industry_name("商贸零售"), "商贸零售")   # 已是键
 
     def test_inferred_from_goods_uses_sales_only(self):
         ind, votes = infer_from_goods(["*纺织*坯布", "*纺织*坯布", "*食品*零食"])
-        self.assertEqual(ind, "纺织")
+        # 返回前归一到基准库键；原始金税分类仍保留在 votes 里作为证据
+        self.assertEqual(ind, "纺织制造")
         self.assertEqual(votes.get("纺织"), 2)
 
 

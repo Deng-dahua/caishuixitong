@@ -170,15 +170,22 @@ P.append("<dt>资料份数</dt><dd>%s 份（%s）</dd>" % (E(rep.get("files_coun
 P.append("</dl></div>")
 
 # ── 一、总体结论 ──
-P.append('<section><h2><span class="n">一</span>总体结论</h2>')
-lvl = rep.get("overall_level") or "未形成待核事实"
+P.append('<section><h2><span class="n">一</span>本轮检查总体结论</h2>')
+lvl = rep.get("overall_level") or "未形成风险事项"
 _lv = "ok" if ("未形成" in str(lvl) or "无" in str(lvl)) else ("danger" if rep.get("high_risk") else "warn")
 P.append('<p><span class="pill %s">%s</span>'
          '<span class="pill info">共 %s 项</span>'
          '<span class="pill info">高 %s / 中 %s / 低 %s</span></p>'
          % (_lv, E(lvl), E(rep.get("total_risks")), E(rep.get("high_risk")),
             E(rep.get("mid_risk")), E(rep.get("low_risk"))))
-if rep.get("summary_text"):
+# ★ 2026-09-26：第一章改为渲染**从 findings 实测派生**的总体结论（唯一权威）。
+#   有 overall_conclusion 用它；否则回退 summary_text（兼容旧缓存）。
+_oc = err.get("overall_conclusion") or {}
+_ocp = _oc.get("paragraphs") or []
+if _ocp:
+    for _t in _ocp:
+        P.append("<p>%s</p>" % E(_t))
+elif rep.get("summary_text"):
     P.append("<p>%s</p>" % esc_lines(rep["summary_text"]))
 P.append("</section>")
 
