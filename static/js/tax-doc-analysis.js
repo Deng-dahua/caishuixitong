@@ -5149,6 +5149,14 @@ function _buildPyramidBody(r, dateStr) {
   html += '<p class="i2"><strong>回答（A · 本轮核心结论）：</strong>' + esc(scqa.answer || '') + '</p>';
   html += '</div>';
 
+  // ★ 2026-09-27：检查情况总述（与工作底稿版同源，仅呈现，不改写）。
+  var ioP = report.inspection_overview || {};
+  var ioPParas = ioP.paragraphs || [];
+  if (ioPParas.length) {
+    html += '<h2>检查情况总述（总览）</h2>';
+    html += ioPParas.map(function(t){ return '<p class="i2">' + esc(t) + '</p>'; }).join('');
+  }
+
   // ── 一、按风险维度 MECE 分组（umbrella + 行动标题，严重度排序）──
   html += '<h2 id="pyramid-groups">一、风险分组结论（按维度 MECE 分组）</h2>';
   html += '<p class="i2">下列分组为对同一批税务红线疑点的结构化重组：每组先给归纳句（umbrella），'
@@ -5237,16 +5245,29 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '</div></div>';
 
   html += '<div style="padding:16px 18px;border:2px solid #1e3a8a;background:#eff6ff;margin:0 0 24px;line-height:1.9">' +
-    esc(openingText) + '<br>检查范围、总体结论和给企业负责人的整改要求，详见本报告第一章。' +
+    esc(openingText) + '<br>检查范围、检查情况总述、总体结论和整改要求，详见本报告检查情况总述部分及第一章。' +
     '</div>';
 
-  html += '<div class="toc"><a href="#company-conclusion">一、本轮检查总体结论</a><br>' +
+  html += '<div class="toc"><a href="#company-overview">检查情况总述（总览）</a><br>' +
+    '<a href="#company-conclusion">一、本轮检查总体结论</a><br>' +
     '<a href="#company-problems">二、本轮风险检查确认的具体问题</a><br>' +
     '<a href="#company-ledger">三、全部风险事项台账与解除/自证清单</a><br>' +
     '<a href="#company-actions">四、风险检查处理意见和整改验收标准</a><br>' +
     '<a href="#company-further">五、因资料缺失或不完整而无法完成的检查</a><br>' +
     '<span style="font-size:13px;color:#64748b;padding-left:16px">└ 专项能力比对（行业对标 / 关联方穿透 / 两税差异 / 虚开网络 / 资金回流等）</span><br>' +
     '<a href="#company-statement">六、报告性质和使用说明</a></div>';
+
+  // ★ 2026-09-27：工作底稿版「检查情况总述」（风险类型/程度/总体看法/监管态度），
+  //   在「总体结论」之前整体呈现，作为报告第一章之前的引子总览。内容由后端 inspection_overview 生成，前端只负责呈现。
+  var io = report.inspection_overview || {};
+  var ioParas = io.paragraphs || [];
+  if (ioParas.length) {
+    html += '<h2 id="company-overview">检查情况总述</h2>';
+    html += ioParas.map(function(t, i){
+      return '<p class="i2"' + (i === 0 ? ' style="color:#64748b"' : '') + '>' + esc(t) + '</p>';
+    }).join('');
+  }
+
   html += '<h2 id="company-conclusion">一、本轮检查总体结论</h2>';
   // ★ 2026-09-26：第一章改为渲染**从 findings 实测派生**的总体结论（唯一权威）。
   //   数字/点名清单/涉及税种/行业口径均由后端 overall_conclusion 生成，前端只负责呈现，
