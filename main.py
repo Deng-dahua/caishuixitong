@@ -7796,9 +7796,9 @@ th{{background:#f4f6f8;font-weight:600;}}
 <h1>税务合规风险分析报告</h1>
 <div class="sub">{name}</div>
 <h2>一、报告性质</h2>
-<p>本报告由系统依据企业上传的经营资料自动生成风险点（涉嫌违法违规），仅用于内部税务合规辅助复核。所有发现均为风险事实（涉嫌违法违规），不代表违法定性、税额确定、处罚或移送结论，最终结论须由有权人员依法复核。</p>
-<h2>二、风险事项（涉嫌违法违规）（{len(rows)}项）</h2>
-<table><tr><th style="width:70px">等级</th><th>风险事实（涉嫌违法违规）与说明</th></tr>{''.join(rows) or '<tr><td colspan="2">暂无风险事项</td></tr>'}</table>
+<p>本报告由系统依据企业上传的经营资料自动生成待核事项，仅用于内部税务合规辅助复核。所有发现均为待核事实，不代表违法定性、税额确定、处罚或移送结论，最终结论须由有权人员依法复核。</p>
+<h2>二、待核事项（{len(rows)}项）</h2>
+<table><tr><th style="width:70px">等级</th><th>待核事实与说明</th></tr>{''.join(rows) or '<tr><td colspan="2">暂无待核事项</td></tr>'}</table>
 <h2>三、五流调取资料清单</h2>
 <table><tr><th style="width:80px">数据流</th><th style="width:70px">状态</th><th>缺失资料</th></tr>{''.join(flow_rows) or '<tr><td colspan="3">—</td></tr>'}</table>
 <p class="note">报告指纹：{fingerprint} &nbsp;|&nbsp; 报告性质：{'内部草稿' if is_draft else '正式报告'} &nbsp;|&nbsp; 生成方式：系统自动生成，人工复核后生效。</p>
@@ -9823,7 +9823,7 @@ def _enforce_scenario_execution_boundary(report_data):
     report_data["mid_risk"] = 0
     report_data["low_risk"] = 0
     report_data["overall_level"] = (
-        f"已核定{_vf_cnt}项/涉嫌违法违规{len(findings) - _vf_cnt}项" if findings else "未形成风险事实（涉嫌违法违规）"
+        f"已核定{_vf_cnt}项/待核{len(findings) - _vf_cnt}项" if findings else "未形成待核事实"
     )
     report_data["release_status"] = "草稿_待人工复核"
     report_data["automatic_determination_allowed"] = False
@@ -9929,7 +9929,7 @@ def _apply_output_governance_stage(report_data):
     report_data["verified_count"] = _vf_final
     report_data["pending_count"] = len(findings) - _vf_final
     report_data["overall_level"] = (
-        f"已核定{_vf_final}项/涉嫌违法违规{len(findings) - _vf_final}项" if findings else "未形成风险事实（涉嫌违法违规）"
+        f"已核定{_vf_final}项/待核{len(findings) - _vf_final}项" if findings else "未形成待核事实"
     )
     summary = {
         "total_methods": len(PIPELINE_KNOWLEDGE.get("methodologies", [])),
