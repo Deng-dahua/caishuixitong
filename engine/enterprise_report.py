@@ -1364,6 +1364,13 @@ def _build_redline_problems(suspicions, findings=None):
         if _tables:
             paragraphs[1]["detail_tables"] = _tables
 
+        # ★ 2026-09-26：按**证据强度**重排等级（仅覆盖已逐项论证的红线，见 tax_redlines.RISK_LEVEL_BASIS）
+        _lb = None
+        try:
+            from engine.tax_redlines import risk_level_basis as _rlb
+            _lb = _rlb(rid)
+        except Exception:
+            _lb = None
         problems.append({
             "seq": i,
             # 报告标题只写红线名（用户要求：正文不出现 RL-XXX 编号）；
@@ -1374,7 +1381,8 @@ def _build_redline_problems(suspicions, findings=None):
             "verdict": s.get("verdict", ""),
             "confidence": s.get("confidence", 0.0),
             "closure": s.get("closure", 0.0),
-            "risk_level": s.get("level", ""),
+            "risk_level": ((_lb or {}).get("level") or s.get("level", "")),
+            "risk_level_basis": (_lb or {}).get("basis", ""),
             "suspect": s.get("suspect", ""),
             "taxes": s.get("taxes", []),
             "final_answer": (arg.get("claim", "") if grade == "已核定" else ""),
