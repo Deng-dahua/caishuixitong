@@ -3029,6 +3029,11 @@ def build_enterprise_readable_report(report_data, edition=None):
     from engine.overall_conclusion import build_overall_conclusion
     overall_conclusion = build_overall_conclusion(
         report_data, problems, further, inspector_reasoning)
+    # ★ 2026-09-26 工作底稿版「检查情况总述」：基本情况 / 风险类型 / 风险程度 /
+    #   对企业总体看法 / 监管态度（分级建议）/ 边界声明
+    from engine.inspection_overview import build_inspection_overview
+    inspection_overview = build_inspection_overview(
+        report_data, problems, further, overall_conclusion)
 
     # 专项报告的 metrics 指标键统一中文化（独立于 observed_metrics 的另一处英文键来源）
     # ★ 2026-09-25：**递归**汉化所有 `metrics` 字典的键 —— 旧写法只处理**顶层** `metrics`，
@@ -3072,6 +3077,8 @@ def build_enterprise_readable_report(report_data, edition=None):
         "summary": summary,
         # ★ 2026-09-26：第一章「本轮检查总体结论」——从 findings 实测派生（唯一权威）
         "overall_conclusion": overall_conclusion,
+        # ★ 2026-09-26：工作底稿版「检查情况总述」（风险类型 / 风险程度 / 总体看法 / 监管态度）
+        "inspection_overview": inspection_overview,
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
         "materials": materials,
