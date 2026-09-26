@@ -36,6 +36,51 @@ def money(v):
         return E(v)
 
 
+def _ledger_table(led, threshold=16):
+    """全部风险事项台账表格：自动隐藏整列为空的列；短列（最长内容<=阈值）不换行。
+    与前端 tax-doc-analysis._renderResolutionLedger 的两条规则一致。"""
+    rows = led.get("rows") or []
+    if not rows:
+        return ""
+    cols = list(led.get("columns") or ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料"])
+    # 隐藏整列为空的列（用户要求：每列都要有信息，否则不显示）
+    def _has_content(c):
+        for r in rows:
+            v = r.get(c)
+            if v is not None and str(v).strip():
+                return True
+        return False
+    cols = [c for c in cols if _has_content(c)]
+    if not cols:
+        return ""
+    # 短列（最长内容<=阈值）不换行；长列允许换行
+    def _short(c):
+        mx = 0
+        for r in rows:
+            L = len(str(r.get(c) or ""))
+            if L > mx:
+                mx = L
+        return mx <= threshold
+    short = {c: _short(c) for c in cols}
+    head = "<tr>" + "".join(
+        "<th%s>%s</th>" % ((' style="white-space:nowrap"' if short[c] else ''), E(c)) for c in cols
+    ) + "</tr>"
+    parts = []
+    for r in rows:
+        tds = []
+        for c in cols:
+            v = r.get(c)
+            if c == "证据地位":
+                sv = str(v or "")
+                cls = "info" if "已验原子规则" in sv else ("warn" if "域分析结论" in sv else "")
+                tds.append('<td><span class="pill %s">%s</span></td>' % (cls, E(sv or "—")))
+            else:
+                nw = ' style="white-space:nowrap"' if short[c] else ''
+                tds.append("<td%s>%s</td>" % (nw, E(v or "—")))
+        parts.append("<tr>" + "".join(tds) + "</tr>")
+    return "<table>" + head + "".join(parts) + "</table>"
+
+
 raw = json.load(open(SRC, encoding="utf-8"))
 rep = raw.get("report") or {}
 te = rep.get("target_entity") or {}
@@ -218,23 +263,10 @@ if _led_rows:
         _th = " ".join('<span class="pill info">%s：%s 项</span>' % (E(k), E(v))
                        for k, v in _tiers.items() if v)
         P.append("<p>%s</p>" % _th)
-    _led_cols = _led.get("columns") or ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料"]
     P.append('<p class="muted">本台账逐条列示系统依据本轮上传资料分析出的全部风险事项'
              '（共 %s 项），证据地位仅表示结论的取得方式，不代表风险大小。</p>'
              % E(_led.get("total") or len(_led_rows)))
-    P.append("<table><tr><th>%s</th></tr>" % "</th><th>".join(E(c) for c in _led_cols))
-    for r in _led_rows:
-        P.append("<tr>")
-        for c in _led_cols:
-            v = r.get(c)
-            if c == "证据地位":
-                sv = str(v or "")
-                cls = "info" if "已验原子规则" in sv else ("warn" if "域分析结论" in sv else "")
-                P.append('<td><span class="pill %s">%s</span></td>' % (cls, E(sv or "—")))
-            else:
-                P.append("<td>%s</td>" % E(v or "—"))
-        P.append("</tr>")
-    P.append("</table>")
+    P.append(_ledger_table(_led))
     if _led.get("evidence_tier_note"):
         P.append('<p class="muted">%s</p>' % E(_led["evidence_tier_note"]))
     P.append("</section>")
@@ -372,11 +404,8 @@ if _pe and _pe.get("groups"):
                   '<p>本台账逐条列示系统依据本轮资料分析出的全部风险事项（共 %s 项），'
                   '证据地位仅表示结论取得方式，不代表风险大小。</p>'
                   % E(_led.get("total") or len(_led.get("rows") or [])))
-        _led_cols = _led.get("columns") or ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料"]
-        _Q.append("<table><tr><th>%s</th></tr>" % "</th><th>".join(E(c) for c in _led_cols))
-        for row in _led.get("rows") or []:
-            _Q.append("<tr>" + "".join("<td>%s</td>" % E(row.get(c) or "—") for c in _led_cols) + "</tr>")
-        _Q.append("</table></section>")
+        _Q.append(_ledger_table(_led))
+        _Q.append("</section>")
     _Q.append('<div class="foot">本「金字塔原理编辑版」与「税务稽查专家工作底稿版」基于同一份检查结论生成，'
               '分组与排序仅改变呈现方式，未增删任何风险事项，也未改变金额、结论、判定与等级。</div>')
     _Q.append("</div></body></html>")

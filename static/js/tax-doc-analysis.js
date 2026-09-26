@@ -4792,13 +4792,19 @@ function _renderProcessInvoiceAppendix(r) {
 function _renderDetailTable(table) {
   if (!table || !Array.isArray(table.rows) || !table.rows.length) return '';
   var cols = Array.isArray(table.columns) ? table.columns : [];
+  // ★ 2026-09-26：自动隐藏整列为空的列；短列（内容可在单行放下）不换行
+  cols = _colsWithContent(cols, table.rows);
+  if (!cols.length) return '';
+  var shortCols = {};
+  cols.forEach(function(c){ shortCols[c] = _colShort(c, table.rows, 20); });
   var head = '<tr>' + cols.map(function(c){ return '<th>' + esc(String(c)) + '</th>'; }).join('') + '</tr>';
   var body = table.rows.map(function(r){
     var tds = cols.map(function(c){
       var v = r[c];
       if (v === undefined || v === null) v = '';
       if (typeof v === 'object') v = JSON.stringify(v);
-      return '<td>' + esc(String(v)) + '</td>';
+      var nw = shortCols[c] ? ' style="white-space:nowrap"' : '';
+      return '<td' + nw + '>' + esc(String(v)) + '</td>';
     });
     return '<tr>' + tds.join('') + '</tr>';
   }).join('');
@@ -4943,6 +4949,27 @@ function _enterpriseFollowUpParagraphs(item) {
  * 把后端已并入 all_findings 的全部发现（含域分析结论）一次性以台账形式列全，
  * 并用徽章区分「证据地位」（已验原子规则 / 域分析结论）与「等级」。
  */
+// 通用：返回有内容的列（隐藏整列为空的列——用户要求：每列都要有信息，否则不显示）
+function _colsWithContent(cols, rows) {
+  return cols.filter(function(c){
+    for (var i=0;i<rows.length;i++){
+      var v = rows[i] ? rows[i][c] : null;
+      if (v != null && String(v).trim()) return true;
+    }
+    return false;
+  });
+}
+// 通用：某列最长内容是否能在单行放下（短列不换行，长列允许换行）
+function _colShort(c, rows, threshold) {
+  var maxLen = 0;
+  for (var i=0;i<rows.length;i++){
+    var v = rows[i] ? rows[i][c] : null;
+    var s = (v == null) ? '' : String(v);
+    if (s.length > maxLen) maxLen = s.length;
+  }
+  return maxLen <= (threshold || 16);
+}
+
 function _renderResolutionLedger(ledger) {
   var rows = (ledger && ledger.rows) || [];
   if (!rows.length) return '';
@@ -4955,6 +4982,11 @@ function _renderResolutionLedger(ledger) {
     tierHtml += '<span class="tier-badge ' + tcls + '">' + esc(tk) + '：' + tiers[tk] + ' 项</span> ';
   }
   var cols = ledger.columns || ['风险事项', '等级', '证据地位', '终局方向', '解除方式', '需补自证资料'];
+  // ★ 2026-09-26：自动隐藏整列为空的列；短列（内容可在单行放下）不换行
+  cols = _colsWithContent(cols, rows);
+  if (!cols.length) return '';
+  var shortCols = {};
+  cols.forEach(function(c){ shortCols[c] = _colShort(c, rows, 16); });
   var h = '<h2 id="company-ledger">三、全部风险事项台账与解除/自证清单</h2>' +
     '<p class="i2">本台账逐条列示系统依据本轮上传资料分析出的<strong>全部风险事项（共 ' + total + ' 项）</strong>，' +
     '不分是否已固化为已验证规则。每一项均给出：风险等级、证据地位、终局方向，以及企业应如何解除风险、' +
@@ -4969,19 +5001,20 @@ function _renderResolutionLedger(ledger) {
     h += '<tr>';
     cols.forEach(function(c){
       var v = r[c];
+      var nw = shortCols[c] ? ' style="white-space:nowrap"' : '';
       if (c === '证据地位') {
         var sv = String(v || '');
         var cls = (sv.indexOf('已验原子规则') >= 0) ? 'tier-verified'
           : (sv.indexOf('域分析结论') >= 0 ? 'tier-domain' : 'tier-other');
-        h += '<td><span class="tier-badge ' + cls + '">' + esc(sv || '—') + '</span></td>';
+        h += '<td' + nw + '><span class="tier-badge ' + cls + '">' + esc(sv || '—') + '</span></td>';
       } else if (c === '等级') {
         var lv = String(v || '');
         var lcls = (lv.indexOf('高') >= 0) ? 'lv-high'
           : (lv.indexOf('中') >= 0 ? 'lv-mid'
             : (lv.indexOf('低') >= 0 ? 'lv-low' : 'lv-pend'));
-        h += '<td><span class="lv-badge ' + lcls + '">' + esc(lv || '—') + '</span></td>';
+        h += '<td' + nw + '><span class="lv-badge ' + lcls + '">' + esc(lv || '—') + '</span></td>';
       } else {
-        h += '<td>' + esc(v || '—') + '</td>';
+        h += '<td' + nw + '>' + esc(v || '—') + '</td>';
       }
     });
     h += '</tr>';
