@@ -10,6 +10,7 @@
 - social_security: [{name, personal_amount(float), company_amount(float), salary_base(float), ...}]
 - inventory: [{code, name, in_qty(float), out_qty(float), end_qty(float), total_amount(float), ...}]
 """
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 import json, os, math, re
 from datetime import datetime
 from collections import defaultdict
@@ -38,16 +39,23 @@ DECISION_LANGUAGE = (
 
 
 def _safe_float(v, default=0.0):
-    try:
-        return float(v) if v not in (None, "", "None") else default
-    except (ValueError, TypeError):
-        return default
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v, default)
 
 
 def _month_key(date_str):
-    """'20250115' or '2025-01-15' -> '202501'"""
-    d = str(date_str).replace("-", "").replace("/", "").strip()
-    return d[:6] if len(d) >= 6 else d
+    """期间键取 YYYYMM（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/findingkit.py（唯一权威）。
+    """
+    from engine.findingkit import month_key as _month_key_impl
+    return _month_key_impl(date_str)
 
 
 # ════════════════ 操作函数 ════════════════
@@ -466,12 +474,20 @@ def _has_material_value(value):
 
 
 def _strip_decision_language(text):
-    """保留可复核的事实描述，移除模板中的自动定性、处罚和移送语句。"""
+    """保留可复核的事实描述，移除模板中的自动定性、处罚和移送语句。
+
+    ★ 2026-09-25：切句改用 `sentencekit.split_sentences(keep_delims=True)`
+      （**括号感知**）。旧实现 `re.split(r"(?<=[。；;\n])", text)` 会在括号内部
+      也切开，使「（…；…）」被拆成两段，其中含定性词的半段被删除后
+      **括号就永久不闭合**，残句直接进报告。
+    """
     text = str(text or "").strip()
     if not text:
         return ""
-    parts = re.split(r"(?<=[。；;\n])", text)
-    kept = [part.strip() for part in parts if part.strip() and not any(token in part for token in DECISION_LANGUAGE)]
+    from engine.sentencekit import split_sentences
+    parts = split_sentences(text, keep_delims=True)
+    kept = [part.strip() for part in parts
+            if part.strip() and not any(token in part for token in DECISION_LANGUAGE)]
     return "".join(kept).strip()
 
 

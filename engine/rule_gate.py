@@ -176,8 +176,12 @@ def _safe_f(v, d=0.0):
     except: return d
 
 def _month_key(d):
-    s = str(d).replace('-','').replace('/','').strip()
-    return s[:6] if len(s)>=6 else s
+    """期间键取 YYYYMM（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/findingkit.py（唯一权威）。
+    """
+    from engine.findingkit import month_key as _month_key_impl
+    return _month_key_impl(d)
 
 def scan_extended_thresholds(engine_data, rules_data, company_data):
     """

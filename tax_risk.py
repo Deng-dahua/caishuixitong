@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, case, extract, and_, or_
 from datetime import date, timedelta, datetime
 from typing import Optional, List, Tuple, Dict, Any
+from engine.numparse import to_number as _to_number  # ★ 2026-09-25 唯一数值解析
 from tax_risk_utils import _get_account_balance, _get_account_sum, _get_periods_between, _monthly_account_balance, _normalize_period, _period_to_date_range, _risk_color, _safe_float, _vat_payable_sum  # 2026-07-18: import * 不导入下划线名——显式补全，修复规则引擎静默NameError
 from collections import defaultdict
 import json
@@ -59,12 +60,13 @@ from tax_risk_utils import *
 import os
 
 # 兜底：确保 _normalize_period 始终可用
+# ★ 2026-09-25：此兜底原先自带一份"正则+补零"的正确实现，而 tax_risk_utils 的
+#   `ym[:7]` 版本恒被先导入 → 正确实现永远不执行（同一概念三份实现、活的恰是错的那份）。
+#   现统一委托给唯一权威 engine.findingkit.normalize_month。
 if '_normalize_period' not in dir():
-    import re as _np_re
     def _normalize_period(ym):
-        ym = str(ym).strip()
-        m = _np_re.match(r'(\d{4})[/-]?(\d{1,2})', ym)
-        return f"{m.group(1)}-{m.group(2):0>2}" if m else ym
+        from engine.findingkit import normalize_month
+        return normalize_month(ym)
 
 
 def _check_premise_expenses_from_invoices(db: Session, company_id: int, ps: str, pe: str):
@@ -206,7 +208,7 @@ def _check_premise_contracts(db: Session, company_id: int):
             "contract_no": c.contract_no,
             "name": c.name,
             "type": c.contract_type,
-            "amount": float(c.amount or 0),
+            "amount": _to_number(c.amount),
             "status": c.status,
             "is_free": is_free,
         })
@@ -452,7 +454,7 @@ def _check_expense_evidence(db: Session, company_id: int, ps: str, pe: str,
                     is_free = any(fkw in combined_lower for fkw in ["免费", "免租", "无偿", "0元", "0.00"])
                     contracts_detail.append({
                         "contract_no": c.contract_no, "name": c.name,
-                        "type": c.contract_type, "amount": float(c.amount or 0),
+                        "type": c.contract_type, "amount": _to_number(c.amount),
                         "status": c.status, "is_free": is_free,
                     })
                     if is_free:
@@ -462,7 +464,7 @@ def _check_expense_evidence(db: Session, company_id: int, ps: str, pe: str,
                 is_free = any(fkw in combined_lower for fkw in ["免费", "免租", "无偿", "0元", "0.00"])
                 contracts_detail.append({
                     "contract_no": c.contract_no, "name": c.name,
-                    "type": c.contract_type, "amount": float(c.amount or 0),
+                    "type": c.contract_type, "amount": _to_number(c.amount),
                     "status": c.status, "is_free": is_free,
                 })
                 if is_free:
@@ -641,7 +643,11 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
         detail_text = raw_detail
         if not description_text and len(raw_detail) > 120:
             # 尝试按句号或换行拆第一句做结论
-            first_sentence = raw_detail.split("。")[0].split("\n")[0].strip()
+            # ★ 2026-09-25：改用括号感知切句（朴素 `split("。")` 会切在括号内部，
+            #   产出「…（取销项发票不含税金额」这类不闭合残句并进入企业报告）
+            from engine.sentencekit import first_sentence as _first_sentence_fn
+            _head = _first_sentence_fn(raw_detail) or ""
+            first_sentence = _head.split("\n")[0].strip()
             if len(first_sentence) > 10:
                 detail_text = first_sentence + "（详见税务合规要点）"
                 description_text = raw_detail
@@ -5208,7 +5214,7 @@ def _analyze_unpaid_capital_interest(db, company_id, ps, pe, results):
     # 检查实缴vs认缴
     paid_capital = _get_account_balance(db, company_id, "4001", pe)  # 实收资本
     # 从公司表获取注册资本
-    registered_capital = _safe_float(company.registered_capital or 0)
+    registered_capital = _to_number(company.registered_capital)
     if registered_capital <= 0:
         return
 
@@ -5361,7 +5367,7 @@ def _analyze_social_security_match(db, company_id, ps, pe, results):
         # 简化的社保基数检查
         low_base = 0
         for sd in ss_decls:
-            base = _safe_float(sd.salary_base or 0)
+            base = _to_number(sd.salary_base)
             if base > 0 and base < avg_salary * 0.8:  # 基数低于平均工资80%
                 low_base += 1
 
@@ -5900,7 +5906,7 @@ def _analyze_invoice_revenue_cross_period(db, company_id, ps, pe, results):
     for inv in sales_invs:
         inv_date = inv.invoice_date
         if isinstance(inv_date, str):
-            period = inv_date[:7]
+            period = _normalize_period(inv_date)
         else:
             period = inv_date.strftime("%Y-%m") if inv_date else ""
         if period:
@@ -6212,7 +6218,7 @@ def _analyze_seller_spike_invoicing(db, company_id, ps, pe, results):
         if seller not in seller_data:
             seller_data[seller] = []
         seller_data[seller].append({
-            "date": inv.invoice_date[:7] if isinstance(inv.invoice_date, str) else inv.invoice_date.strftime("%Y-%m"),
+            "date": _normalize_period(inv.invoice_date) if isinstance(inv.invoice_date, str) else inv.invoice_date.strftime("%Y-%m"),
             "amount": _safe_float(inv.total_amount)
         })
     
@@ -7374,7 +7380,8 @@ def _analyze_pre_cancellation_spike(db, company_id, ps, pe, results):
         SalesInvoice.invoice_date >= ps_date,
         SalesInvoice.invoice_date <= pe_date
     ).all():
-        inv_date = str(inv.invoice_date)[:7]
+        inv_date = _normalize_period(inv.invoice_date)
+        if not inv_date: continue
         if inv_date not in monthly_sales:
             monthly_sales[inv_date] = {"cnt": 0, "amt": 0.0}
         monthly_sales[inv_date]["cnt"] += 1
@@ -7403,7 +7410,8 @@ def _analyze_pre_cancellation_spike(db, company_id, ps, pe, results):
         PurchaseInvoice.invoice_date >= ps_date,
         PurchaseInvoice.invoice_date <= pe_date
     ).all():
-        inv_date = str(inv.invoice_date)[:7]
+        inv_date = _normalize_period(inv.invoice_date)
+        if not inv_date: continue
         if inv_date not in monthly_purchase:
             monthly_purchase[inv_date] = {"cnt": 0, "amt": 0.0}
         monthly_purchase[inv_date]["cnt"] += 1
@@ -7825,6 +7833,8 @@ def _date_to_str(d):
     if hasattr(d, 'strftime'):
         return d.strftime("%Y-%m-%d")
     s = str(d)
+    # 注：此处输出 YYYY-MM-DD 供**日期比较**用（如 `sd_str <= pe`），不是月份键；
+    # 月份键一律由 `_normalize_period`（唯一权威 engine.findingkit.normalize_month）产出。
     return s[:10] if len(s) >= 10 else s
 
 
@@ -8828,12 +8838,13 @@ def _analyze_contract_risks(db, company_id, ps, pe, results):
     for c in all_contracts:
         if c.signing_date:
             sd_str = _date_to_str(c.signing_date)
-            if sd_str[:7] == ps[:7] or (pe and sd_str <= pe):
+            sd_month = _normalize_period(sd_str)
+            if sd_month == ps or (pe and sd_str <= pe):
                 for party_name in [c.party_a, c.party_b]:
                     if party_name:
                         nn = _normalize_entity_name(party_name.strip())
                         if len(nn) >= 2:
-                            party_contracts[(nn, sd_str[:7])].append(c)
+                            party_contracts[(nn, sd_month)].append(c)
 
     split_suspect = []
     for (party, month), cts in party_contracts.items():
@@ -10977,7 +10988,7 @@ def _analyze_multi_source_cross(db, company_id, ps, pe, results):
 
     # 收入三源
     if bts and sis:
-        bank_income = sum(float(bt.credit_amount or 0) for bt in bts)
+        bank_income = sum(_to_number(bt.credit_amount) for bt in bts)
         inv_income = sum(_safe_float(si.total_amount) for si in sis)
         if inv_income > 0 and bank_income > 0:
             gap_pct = abs(bank_income - inv_income) / max(inv_income, 1)

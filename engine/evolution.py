@@ -221,7 +221,10 @@ def update_governance_suggestions(pipeline_log, all_findings):
 
         if pipeline_log is not None:
             if summary["untriggered"]:
-                pipeline_log.append(f"[秘笈自更新] {len(summary['untriggered'])}层连续未触发已标记待验证: {summary['untriggered']}")
+                from engine.sentencekit import render_value as _rv3
+                pipeline_log.append(
+                    f"[秘笈自更新] {len(summary['untriggered'])}层连续未触发已标记待验证："
+                    + _rv3(summary['untriggered'], max_len=200))
             if summary["new_suggestions"]:
                 pipeline_log.append(f"[秘笈自更新] {summary['new_suggestions']}条新模式补充建议已写入，等待风险检查员审核")
     except Exception as e:

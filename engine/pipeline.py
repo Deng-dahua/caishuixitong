@@ -2,6 +2,9 @@
 税务合规分析管道 — _run_analyze 核心引擎 + 辅助函数
 从 main.py 提取，所有函数为纯分析逻辑
 """
+from engine.numparse import to_number, amount_of  # ★ 2026-09-25 统一数值解析（唯一实现）
+from engine.sentencekit import humanise_log_lines  # ★ 2026-09-25 日志出口净化（唯一实现）
+from engine.workbook import close_workbook  # ★ 2026-09-25 工作簿句柄唯一管理者（必须显式关闭）
 from collections import defaultdict, Counter
 from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
@@ -150,7 +153,7 @@ def _aggregate_invoices_by_no(rows, direction, extra=None):
         g["_seen"].add(sig)
         for key in ("amount", "tax", "total"):
             try:
-                g[key] += float(r.get(key) or 0)
+                g[key] += to_number(r.get(key))
             except (TypeError, ValueError):
                 pass
         gs = str(r.get("goods") or "").strip()
@@ -387,7 +390,57 @@ def _apply_human_feedback_priors(redline_detection, pipeline_log, company_id):
         pipeline_log.append(f"[编辑反馈闭环] 未生效：{_e}")
 
 
+def _collect_read_failures(file_results) -> list:
+    """列出**未读取到任何数据**的文件（唯一实现）。
+
+    ★ 2026-09-25 新增（真实事故暴露的静默缺口）：实测某轮 `data/uploads/{cid}/` 只剩
+      3 个文件、而 12 个银行 + 12 个社保 + 取票12 **已不在上传目录**（被移到 data/trash）→
+      这些文件解析 0 行、银行流水缺失 → 发现数从 13 **静默降到 7**，而报告里
+      `files_count` 仍写 102、**没有任何一句说明这些文件没读到**。
+      使用者会把"资料不完整导致的少报"当成"这家企业没问题" —— 静默少报比误报更危险。
+
+    排除项（不是读取失败）：
+      · 主体不符被闸门主动排除的文件（`subject_mismatch` / `_from_filename` 不算）
+      · `archive` 类档案（人员/客户/供应商档案，本身无明细行）
+    """
+    out = []
+    for fr in (file_results or []):
+        if not isinstance(fr, dict):
+            continue
+        if fr.get("subject_mismatch") or str(fr.get("type")) == "subject_mismatch":
+            continue
+        if str(fr.get("type")) in ("archive", "subject_mismatch"):
+            continue
+        if not (fr.get("_rows") or []):
+            name = str(fr.get("file") or fr.get("filename") or "")
+            if name:
+                out.append(name)
+    return out
+
+
+def _one_sided_digest(sources) -> list:
+    """把「本轮实际有数据的资料」交给宗旨模块，列出各自**单独可查**的检查项。
+
+    宗旨原话：「上传了什么资料就查什么资料」。这份摘要回答使用者最直接的问题：
+    **我给了这些东西，你到底都查了哪些**。未提供数据的资料不出现。
+    """
+    try:
+        from engine.audit_doctrine import one_sided_digest
+        present = []
+        for key, val in (sources or {}).items():
+            try:
+                if len(val or []) > 0:
+                    present.append(key)
+            except TypeError:
+                if val:
+                    present.append(key)
+        return one_sided_digest(present)
+    except Exception:
+        return []
+
+
 def _run_analyze(company_id, db, progress_callback=None):
+
     import sys as _sys
     _sys.setrecursionlimit(5000)  # 88文件分析需更高递归上限（2026-07-25 修复RecursionError）
     from database import VATDeclaration
@@ -397,6 +450,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         _get_company_upload_dir, _get_row_values, _infer_columns_from_data,
         _parse_excel_structured, _parse_pdf_bank_statement, _parse_pdf_generic, _parse_docx, _parse_image_ocr, _save_to_transfer,
         _score_tax_relevance,
+        _check_file_subject,  # 2026-09-25 主体一致性校验（上传资料必须与账套主体匹配）
     )
     from engine.main_biz_cost import identify_main_biz_cost
     # 工资/社保人员名噪声过滤（合计/姓名/小计等表头行）——与 verified_rule_engine 同源一致
@@ -535,6 +589,157 @@ def _run_analyze(company_id, db, progress_callback=None):
     _total_docs = len(docs)
     _step_timing["step1_start"] = time.time()
     _report(0, f"步骤①资料扫描 — 开始解析 {_total_docs} 个文件...", step=1)
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ★ 统一类型路由（2026-09-25）
+    #   背景：xls 分支原本路由 ~20 类，而 PDF/DOCX 分支各自**只路由 3 类**
+    #   （bank_statement / invoice_universal / 申报表）→ 发票型、合同型、科目余额型、
+    #   工资型 PDF 被识别出类型却**被丢弃**（只写日志、不进任何集合），
+    #   用户看到的现象就是"PDF 根本读不了"。
+    #   现把路由抽成单一函数，供 PDF / DOCX 共用（xls 分支保持原逻辑不动，避免回归）。
+    #   原则：**识别出什么就收进什么；识别不出是什么的，内容也照样保留，绝不丢。**
+    # ═══════════════════════════════════════════════════════════════════════════
+    generic_docs = []   # 已成功提取内容、但类型不属于任何专用集合 → 保留备用
+
+    def _route_parsed(ftype, parsed, fr, tag="PDF", sid=None):
+        """把已识别的解析结果路由到对应数据集合。返回收件箱名（便于日志）。"""
+        nonlocal rd_data
+        rows = parsed.get("rows") or []
+        n = len(rows)
+        r = ""
+        if ftype == "salary":
+            salaries.extend(rows); r = "工资"
+        elif ftype == "social_security":
+            social_security.extend(rows); r = "社保"
+        elif ftype == "housing_fund":
+            housing_fund_data.extend(rows); r = "公积金"
+        elif ftype == "sales_invoice":
+            invoices.extend(_aggregate_invoices_by_no(rows, "销项")); r = "销项发票(聚合)"
+        elif ftype == "purchase_invoice":
+            invoices.extend(_aggregate_invoices_by_no(rows, "进项")); r = "进项发票(聚合)"
+        elif ftype == "input_vat_deduction":
+            input_vat_deductions.extend(_aggregate_invoices_by_no(
+                rows, "进项", {"_file_type": "input_vat_deduction", "_has_deduction_columns": True}))
+            r = "进项认证抵扣(聚合)"
+        elif ftype in ("invoice", "invoice_universal"):
+            # 通用发票 → 按买卖双方与当前账套比对判定进销方向
+            company = db.query(Company).filter(Company.id == company_id).first()
+            co_name = (company.name or "") if company else ""
+            co_uscc = (company.uscc or "") if company else ""
+            gen = []
+            for x in rows:
+                seller_name = str(x.get("seller", "")).strip()
+                buyer_name = str(x.get("buyer", "")).strip()
+                seller_tax = str(x.get("seller_tax", "")).strip()
+                buyer_tax = str(x.get("buyer_tax", "")).strip()
+                buyer_match = (buyer_name and co_name and buyer_name in co_name) or (buyer_tax and co_uscc and buyer_tax == co_uscc)
+                seller_match = (seller_name and co_name and seller_name in co_name) or (seller_tax and co_uscc and seller_tax == co_uscc)
+                if buyer_match and not seller_match: x["direction"] = "进项"
+                elif seller_match and not buyer_match: x["direction"] = "销项"
+                elif buyer_match and seller_match: x["direction"] = "进项"
+                elif not buyer_match and not seller_match and seller_name and buyer_name:
+                    x["direction"] = "存疑"
+                    fr.setdefault("_mismatch_warnings", []).append(
+                        f"发票买卖双方均不匹配当前公司'{co_name}'，可能误传了其他公司的资料")
+                elif seller_name and seller_tax: x["direction"] = "进项"
+                elif buyer_name and buyer_tax: x["direction"] = "销项"
+                elif seller_name: x["direction"] = "进项"
+                elif buyer_name: x["direction"] = "销项"
+                else: x["direction"] = "存疑"
+                gen.append(x)
+            invoices.extend(_aggregate_invoices_by_no(gen, "存疑")); r = "通用发票(按方向判定)"
+        elif ftype == "voucher":
+            vouchers.extend(rows); r = "凭证"
+        elif ftype == "inventory":
+            inventory.extend(rows); r = "进销存"
+        elif ftype == "bom":
+            bom_data.append({
+                "products": parsed.get("products", []),
+                "product_count": parsed.get("product_count", 0),
+                "total_materials": parsed.get("total_materials", 0),
+                "rows": rows,
+            }); r = "BOM表"
+        elif ftype == "customs_declaration":
+            export_data.setdefault("declarations", [])
+            export_data["declarations"].extend(parsed.get("declarations", []))
+            export_data["total_usd"] = export_data.get("total_usd", 0) + parsed.get("total_usd", 0)
+            export_data["total_rmb"] = export_data.get("total_rmb", 0) + parsed.get("total_rmb", 0)
+            r = "报关单"
+        elif ftype == "export_invoice":
+            export_data.setdefault("export_invoices", [])
+            export_data["export_invoices"].extend(rows)
+            export_data["export_inv_total"] = export_data.get("export_inv_total", 0) + parsed.get("total_amount", 0)
+            r = "出口发票"
+        elif ftype == "forex_collection":
+            export_data.setdefault("forex_records", [])
+            export_data["forex_records"].extend(rows)
+            export_data["forex_total"] = export_data.get("forex_total", 0) + parsed.get("total_forex", 0)
+            export_data["forex_verified"] = export_data.get("forex_verified", 0) + parsed.get("verified_count", 0)
+            r = "收汇核销"
+        elif ftype == "audit_notice":
+            fr["audit_notice"] = parsed; r = "稽查通知书"
+        elif ftype == "rd_aux_ledger":
+            rd_data = parsed; r = "研发辅助账"
+        elif ftype in ("bank", "bank_statement", "bank_transaction"):
+            if sid:
+                for _t in rows:
+                    if isinstance(_t, dict):
+                        _t.setdefault("statement_id", sid)
+            bank_txs.extend(rows); r = "银行流水"
+        elif ftype in ("contract", "contract_list"):
+            contract_data.extend(rows); r = "合同"
+        elif ftype == "warehouse_lease":
+            warehouse_contracts.extend(rows); r = "仓库租赁合同"
+        elif ftype == "transport_contract":
+            transport_contracts.extend(rows); r = "运输合同"
+        elif ftype == "related_party":
+            related_party_data.extend(rows); r = "关联交易"
+        elif ftype == "trial_balance":
+            trial_balance_data.extend(rows); r = "科目余额"
+        elif ftype == "fixed_assets":
+            fixed_assets.extend(rows); r = "固定资产"
+        elif ftype == "accounts_payable":
+            accounts_payable.extend(rows); r = "应付账款明细"
+        elif ftype == "accounts_receivable":
+            accounts_receivable.extend(rows); r = "应收账款明细"
+        elif ftype in ("vat_declaration", "cit_declaration", "tax_declaration",
+                       "individual_tax", "stamp_duty", "tax_payment"):
+            decl = parsed.get("declaration")
+            if decl:
+                tax_declarations.append(decl)
+                r = (f"申报表(销售额{decl.get('sales_amount', 0):,.0f}"
+                     f"/销项税{decl.get('sales_tax', 0):,.0f}"
+                     f"/进项税{decl.get('input_tax', 0):,.0f})")
+            else:
+                for _row in rows:
+                    tax_declarations.append({**(_row if isinstance(_row, dict) else {}),
+                                             "_declaration_type": ftype})
+                r = f"申报表({n}行)"
+        else:
+            # ★ 兜底：类型不属于任何专用集合（如 financial_statements / employee_list /
+            #   generic_data / 未来新增类型）→ **保留内容**，绝不静默丢弃
+            if rows:
+                generic_docs.append({"file_type": ftype, "rows": rows})
+            r = f"{ftype}(已保留)"
+        fr["actions"].append(f"{tag}解析: {r} {n}条" if n else f"{tag}解析: {r}")
+        return r
+
+    # ★ 主体一致性闸门（2026-09-25）：上传资料必须与账套主体相匹配
+    #   背景：把「猩猩织光」的资料上传到「深圳海更」账套，系统照常出报告 ——
+    #   主体错了，报告里每一条结论都失去意义，必须在下结论前拦住。
+    #   规则见 main.py `_check_file_subject`：只在文件**明确声明本方主体**且与之矛盾时判不符；
+    #   文件无本方主体线索（发票只含对方/社保只含人员/流水只含对手方）时一律不作判断，避免误杀。
+    _acct_name, _acct_uscc = "", ""
+    try:
+        _acct = db.query(Company).filter(Company.id == company_id).first()
+        if _acct:
+            _acct_name = (_acct.name or "").strip()
+            _acct_uscc = (_acct.uscc or "").strip()
+    except Exception:
+        pass
+    subject_mismatch_files = []   # 主体不符的文件（已被排除在分析之外）
+    subject_unknown_files = []    # 未提供本方主体线索的文件（不作判断）
+
     _doc_idx = 0
     for doc in docs:
         _doc_idx += 1
@@ -542,7 +747,30 @@ def _run_analyze(company_id, db, progress_callback=None):
         if _doc_idx % 5 == 0 or _doc_idx == _total_docs:
             _report(int(_doc_idx * 100 / _total_docs), f"解析文件 {_doc_idx}/{_total_docs}")
         fr = {"file": fname, "type": "unknown", "actions": []}
+
+        # ═══ 主体预检：不符的文件直接排除，不进入任何数据集合 ═══
+        if _acct_name:
+            try:
+                _sub = _check_file_subject(fpath, fname, _acct_name, _acct_uscc)
+            except Exception as _se:
+                _sub = {"verdict": "unknown", "reason": f"主体校验异常跳过: {_se}",
+                        "clue_level": None, "names": [], "usccs": []}
+            fr["subject_check"] = _sub
+            if _sub.get("verdict") == "mismatch":
+                fr["type"] = "subject_mismatch"
+                fr["subject_mismatch"] = True
+                fr["actions"].append(f"主体不符，已排除：{_sub.get('reason')}")
+                subject_mismatch_files.append({"file": fname, "reason": _sub.get("reason"),
+                                               "clue_level": _sub.get("clue_level"),
+                                               "names": _sub.get("names"), "usccs": _sub.get("usccs")})
+                pipeline_log.append(f"{fname} -> 主体不符，已排除（{_sub.get('reason')}）")
+                file_results.append(fr)
+                continue
+            if _sub.get("verdict") == "unknown":
+                subject_unknown_files.append(fname)
+
         parsed = None
+        _cached_wb = None   # ★ 每文件重置：非 Excel 分支下也必须有定义，且不得沿用上一个文件的工作簿
         try:
             if ext in (".xls", ".xlsx", ".csv"):
                 parsed, _cached_wb = _parse_excel_structured(fpath, ext, fname, return_wb=True)
@@ -695,6 +923,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                     except Exception as _ie:
                         fr["actions"].append(f"推断失败: {_ie}")
                 
+                if not parsed:
+                    # ★ 2026-09-25：parsed 为空 → 本文件不再需要工作簿，立即回收句柄。
+                    #   原实现 return_wb=True 拿到工作簿后从不关闭，read_only 模式下
+                    #   openpyxl 的 zip 句柄会一直占着该文件（对象图有引用环，函数返回
+                    #   也不会被立即回收）→ 用户删除该资料时 WinError 32，
+                    #   被误认为"Excel/WPS 占用"。占用者实为本服务自身。
+                    close_workbook(_cached_wb)
+                    _cached_wb = None
                 if parsed and parsed.get("rows"): 
                     _save_to_transfer(company_id, doc["id"], fname, parsed)
                 if parsed:
@@ -713,6 +949,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                             fr["_header_row"] = " ".join(str(v) for v in _hdr_row if v)
                         except Exception:
                             fr["_header_row"] = ""
+                        finally:
+                            # ★ 此后 _cached_wb 再无使用点（已核对全文件），立即关闭释放句柄
+                            close_workbook(_cached_wb)
+                            _cached_wb = None
                     else:
                         fr["_header_row"] = ""
                     n = len(parsed.get("rows", []))
@@ -875,31 +1115,31 @@ def _run_analyze(company_id, db, progress_callback=None):
                     else: fr["actions"].append(f"识别为{ftype}({n}条)——已记录，用于交叉验证")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条")
             elif ext == ".pdf":
-                # 优先用通用PDF解析（pdfplumber表格提取），回退旧格式解析
+                # ★ 2026-09-25 起 _parse_pdf_generic 是「PDF 摄入唯一权威入口」：
+                #   不论内容是什么都返回结果——表格型按 45 类指纹分类；未识别类型保留为
+                #   generic_data；无表格走文本行（银行流水）；扫描件走 OCR。
                 parsed = _parse_pdf_generic(fpath, fname)
-                if isinstance(parsed, dict) and parsed.get("rows"):
-                    # 通用解析成功 → 按类型路由
-                    ftype = parsed.get("type", "unknown")
-                    n = len(parsed.get("rows", []))
+                _sid_pdf = f"{company_id}-{doc['id']}" if doc.get("id") is not None else fname
+                if isinstance(parsed, list):
+                    # 银行流水专用解析器返回 list（无表格的对账单走这里）——沿用既有语义
+                    for _t in parsed:
+                        if isinstance(_t, dict):
+                            _t.setdefault("statement_id", _sid_pdf)
+                    bank_txs.extend(parsed)
+                    fr["type"] = "bank"
+                    fr["actions"].append(f"PDF解析: 银行流水 {len(parsed)}条")
+                    pipeline_log.append(f"{fname} -> bank: {len(parsed)}条 (PDF文本行)")
+                elif isinstance(parsed, dict) and parsed.get("rows"):
+                    ftype = parsed.get("type") or "generic_data"
+                    n = len(parsed["rows"])
                     fr["type"] = ftype
-                    if ftype == "bank_statement":
-                        _sid_pdf = f"{company_id}-{doc['id']}" if doc.get("id") is not None else fname
-                        for _t in parsed["rows"]:
-                            if isinstance(_t, dict):
-                                _t.setdefault("statement_id", _sid_pdf)
-                        bank_txs.extend(parsed["rows"]); fr["actions"].append(f"PDF通用解析: {n}条流水")
-                    elif ftype == "invoice_universal": invoice_data.extend(parsed["rows"]); fr["actions"].append(f"PDF通用解析: {n}张发票")
-                    else: fr["actions"].append(f"PDF通用解析: {ftype}({n}条)")
-                    pipeline_log.append(f"{fname} -> {ftype}: {n}条 (PDF通用)")
+                    fr["_rows"] = parsed.get("rows", [])
+                    # ★ 走与 xls 同一套路由（20 类），发票/合同/科目余额/工资型 PDF 不再被丢弃
+                    _route_parsed(ftype, parsed, fr, tag="PDF", sid=_sid_pdf)
+                    pipeline_log.append(f"{fname} -> {ftype}: {n}条 (PDF)")
                 else:
-                    # 回退旧解析器
-                    txs = _parse_pdf_bank_statement(fpath)
-                    if txs:
-                        _sid_old = f"{company_id}-{doc['id']}" if doc.get("id") is not None else fname
-                        for _t in txs:
-                            if isinstance(_t, dict):
-                                _t.setdefault("statement_id", _sid_old)
-                        bank_txs.extend(txs); fr["type"] = "bank"; fr["actions"].append(f"PDF旧解析: {len(txs)}条流水")
+                    fr["actions"].append("PDF解析: 未提取到任何内容（可能为加密/损坏/纯空白）")
+                    pipeline_log.append(f"{fname} -> 未提取到内容 (PDF)")
             elif ext == ".docx":
                 parsed = _parse_docx(fpath, fname)
                 if isinstance(parsed, dict) and parsed.get("rows"):
@@ -908,9 +1148,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                     fr["type"] = ftype
                     if isinstance(parsed["rows"][0], str):
                         fr["actions"].append(f"DOCX文本: {n}段")
-                    elif ftype == "contract": contract_data.extend(parsed["rows"]); fr["actions"].append(f"DOCX解析: {n}份合同")
-                    elif ftype == "invoice_universal": invoice_data.extend(parsed["rows"]); fr["actions"].append(f"DOCX解析: {n}张发票")
-                    else: fr["actions"].append(f"DOCX解析: {ftype}({n}条)")
+                    else:
+                        # ★ 与 PDF/xls 共用同一套路由
+                        _route_parsed(ftype, parsed, fr, tag="DOCX")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条 (DOCX)")
                 else:
                     fr["actions"].append("DOCX无有效表格数据")
@@ -928,6 +1168,9 @@ def _run_analyze(company_id, db, progress_callback=None):
                         fr["actions"].append(f"OCR识别: {n}条，提取发票号={inv_fields.get('invoice_no','?')}，金额={inv_fields.get('amount','?')}")
                     else:
                         fr["actions"].append(f"OCR识别: {n}个文本块")
+                    # ★ 2026-09-25：扫描件/拍照件识别出的类型同样进路由（此前只写日志不进集合）
+                    if not isinstance(parsed["rows"][0], str):
+                        _route_parsed(ftype, parsed, fr, tag="OCR")
                     pipeline_log.append(f"{fname} -> OCR: {n}块")
                 else:
                     fr["actions"].append("OCR无有效文字")
@@ -955,6 +1198,13 @@ def _run_analyze(company_id, db, progress_callback=None):
         except Exception: pass
         
         file_results.append(fr)
+        # 2026-09-16 修正：把解析出的真实类型写回 doc 记录（上传接口不写 type，恒为空），
+        # 供后续完备性/治理等任何查 doc.get("type") 的消费方使用，避免"已解析却误判缺失/误删"。
+        try:
+            if fr.get("type"):
+                doc["type"] = fr["type"]
+        except Exception:
+            pass
 
     # ═══════════════════════════════════════════════════════
     # 2026-06-26 资料智能复核：自行验证文件分类准确性
@@ -1021,6 +1271,11 @@ def _run_analyze(company_id, db, progress_callback=None):
             (["档案"], "archive"),
         ]
     for _fr in file_results:
+        # ★ 2026-09-25：主体与账套不符的文件已被主体闸门排除（数据未进任何集合），
+        #   其 type 必须保持 "subject_mismatch"，不得被文件名纠偏改写回正常类型 ——
+        #   否则前端会把"已被排除的资料"显示成正常文件，掩盖数据缺失的原因。
+        if _fr.get("subject_mismatch") or _fr.get("type") == "subject_mismatch":
+            continue
         _fn = _fr.get("file", "").lower()
         _cur_type = _fr.get("type", "unknown")
         for _kws, _target_type in _FN_TYPE_MAP:
@@ -1037,8 +1292,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 _tx["date"] = str(_tx.get("date") or _tx.get("tx_time") or _tx.get("交易日期") or _tx.get("交易时间") or _tx.get("记账日期") or _tx.get("会计期间") or "").strip()[:10]
                                 _tx["counterparty"] = str(_tx.get("counterparty", _tx.get("对方名称", _tx.get("对方户名", "")))).strip()
                                 _tx["summary"] = str(_tx.get("summary", _tx.get("摘要", ""))).strip()
-                                _tx["debit"] = float(_tx.get("debit", 0) or 0)
-                                _tx["credit"] = float(_tx.get("credit", 0) or 0)
+                                _tx["debit"] = to_number(_tx.get("debit", 0))
+                                _tx["credit"] = to_number(_tx.get("credit", 0))
                                 bank_txs.append(_tx)
                             except: pass
                 break
@@ -1081,6 +1336,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══════════════════════════════════════════════════════════
     pipeline_log.append("[综合判断] 开始三方证据交叉验证")
     for _fr in file_results:
+        # 主体不符（已被主体闸门排除）的文件不参与类型判定，type 保持 subject_mismatch
+        if _fr.get("subject_mismatch") or _fr.get("type") == "subject_mismatch":
+            continue
         _fn = _fr.get("file", "")
         _type = _fr.get("type", "unknown")
         _actions = _fr.get("actions", [])
@@ -1226,7 +1484,15 @@ def _run_analyze(company_id, db, progress_callback=None):
     pur_invs = [i for i in invoices if i["direction"] == "进项"]
     suspect_invs = [i for i in invoices if i["direction"] == "存疑"]
     clean_invs = sal_invs + pur_invs  # 只含已确认公司身份的发票，存疑发票绝对排除
-    _report(95, f"步骤①完成 — 文件解析完成 → 销项{len(sal_invs)}张 进项{len(pur_invs)}张", step=1)
+    # ── ★ 2026-09-25：资料读取失败必须显式暴露，绝不让"部分资料"冒充完整分析 ──
+    _read_failed = _collect_read_failures(file_results)
+    if _read_failed:
+        pipeline_log.append(
+            f"[资料读取失败] {len(_read_failed)} 个文件未读取到任何数据；"
+            f"本次结论基于**不完整资料**，相关风险方向无法检查："
+            + "、".join(_read_failed[:10]) + ("等" if len(_read_failed) > 10 else ""))
+    _report(95, f"步骤①完成 — 文件解析完成 → 销项{len(sal_invs)}张 进项{len(pur_invs)}张"
+                + (f"｜{len(_read_failed)}个文件未读到数据" if _read_failed else ""), step=1)
     
     # 存疑发票不参与分析，但记录在案
     if suspect_invs:
@@ -1385,8 +1651,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             if _inv_is_service(inv): continue
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
             if not g: g = "未命名商品"
-            q = float(inv.get("qty", inv.get("数量", 0)) or 0)
-            a = float(inv.get("amount", inv.get("金额", 0)) or 0)
+            q = to_number(inv.get("qty", inv.get("数量", 0)))
+            a = amount_of(inv)   # ★ 行内取金额唯一权威（numparse.amount_of）
             sale_by_goods[g]["qty"] += q
             sale_by_goods[g]["amount"] += a
             sale_by_goods[g]["count"] += 1
@@ -1395,8 +1661,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             if _inv_is_service(inv): continue
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
             if not g: g = "未命名商品"
-            q = float(inv.get("qty", inv.get("数量", 0)) or 0)
-            a = float(inv.get("amount", inv.get("金额", 0)) or 0)
+            q = to_number(inv.get("qty", inv.get("数量", 0)))
+            a = amount_of(inv)   # ★ 行内取金额唯一权威（numparse.amount_of）
             pur_by_goods[g]["qty"] += q
             pur_by_goods[g]["amount"] += a
             pur_by_goods[g]["count"] += 1
@@ -1405,8 +1671,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             if _inv_is_service(inv): continue
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
             if not g: g = "未命名商品"
-            q = float(inv.get("qty", inv.get("数量", 0)) or 0)
-            a = float(inv.get("amount", inv.get("金额", 0)) or 0)
+            q = to_number(inv.get("qty", inv.get("数量", 0)))
+            a = amount_of(inv)   # ★ 行内取金额唯一权威（numparse.amount_of）
             pur_core_by_goods[g]["qty"] += q
             pur_core_by_goods[g]["amount"] += a
             pur_core_by_goods[g]["count"] += 1
@@ -1678,9 +1944,9 @@ def _run_analyze(company_id, db, progress_callback=None):
         _phys_sal = [i for i in sal_invs if not _inv_is_service(i)]
         _phys_pur = [i for i in pur_invs if not _inv_is_service(i)]
         _phys_core = [i for i in core_cost_invs if not _inv_is_service(i)]
-        sale_total = sum(float(inv.get("amount", 0) or 0) for inv in _phys_sal)
-        pur_total = sum(float(inv.get("amount", 0) or 0) for inv in _phys_pur)
-        pur_core_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in _phys_core)
+        sale_total = sum(to_number(inv.get("amount", 0)) for inv in _phys_sal)
+        pur_total = sum(to_number(inv.get("amount", 0)) for inv in _phys_pur)
+        pur_core_total = sum(to_number(inv.get("amount", inv.get("total", 0))) for inv in _phys_core)
         if _no_physical_sales:
             # 服务业：销项经剔除后无实物货物，不构建"货物进销存"比对
             inv_match_findings.insert(0, {
@@ -1702,8 +1968,65 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"虚拟进销存分析: {len(inv_match_findings)}项发现")
     # ═══════════════════════════════════════════════════
     
+    # ═══════════════════════════════════════════════════════════════════════
+    # ★ 主体一致性阻断闸门（2026-09-25）
+    #   判据：**凡是有主体线索的文件，全部与账套主体不符** → 直接停止分析。
+    #   理由：主体错了，任何结论都无意义；宁可不出报告，也不能出一份"张冠李戴"的报告。
+    #   注意：只有"有线索"的文件参与判定。若全部文件都无主体线索（发票只含对方、
+    #   社保只含人员、流水只含对手方…），则 `_clue_files` 为空，不触发阻断（不误杀）。
+    # ═══════════════════════════════════════════════════════════════════════
+    _clue_files = [f for f in file_results
+                   if (f.get("subject_check") or {}).get("clue_level")]
+    if subject_mismatch_files and len(subject_mismatch_files) == len(_clue_files):
+        _mnames = []
+        for _m in subject_mismatch_files:
+            _mnames.extend(_m.get("names") or [])
+        _mnames = list(dict.fromkeys(_mnames))[:3]
+        return {
+            "ok": False,
+            "message": (f"资料主体与账套不一致，已停止分析。"
+                        f"当前账套为「{_acct_name}」，但上传的资料归属"
+                        f"「{'、'.join(_mnames) or '另一家企业'}」。"
+                        f"请切换到（或新建）该企业的账套后重新分析，或删除不属于本账套的资料。"),
+            "detail": "；".join(m["reason"] for m in subject_mismatch_files[:6]),
+            "subject_mismatch": True,
+            "mismatched_files": subject_mismatch_files,
+            "files_count": len(docs),
+            "pipeline_log": humanise_log_lines(pipeline_log),
+            "file_results": file_results,
+            "suggestion": ("①确认左上角账套是否选错；②删除不属于本账套的资料；"
+                           "③或切换到资料所属企业的账套，再重新上传分析。"),
+        }
+
     # ═══ 数据充分性守卫：全量解析失败时拒绝生成报告 ═══
-    total_parsed = len(bank_txs) + len(invoices) + len(salaries) + len(social_security) + len(vouchers) + len(inventory)
+    # ⚠ 2026-09-25 修正（"只上传申报表 PDF 就报所有文件解析失败"的根因）：
+    #   原公式只统计 bank/invoice/salary/social_security/voucher/inventory 六类，
+    #   **未计入 tax_declarations**（及合同/关联交易/科目余额/固定资产/应收应付/公积金/
+    #   进项抵扣/仓租运输合同/BOM/出口/研发等其它同样已成功解析的数据源）。
+    #   后果：用户只上传增值税申报表 PDF 时，申报表其实已正确解析进 tax_declarations，
+    #   但 total_parsed 仍为 0 → 命中下面的 `total_parsed == 0` 守卫 →
+    #   按钮直接报"所有文件解析失败，无法生成分析报告"。
+    #   用户看到的现象就是"PDF 根本读不了"，而真实原因是统计口径漏项。
+    #   现把全部已收集的数据源纳入统计（len() 对 list/dict 均可用）。
+    def _cnt(x):
+        """安全取长度：非序列/None 一律记 0，绝不让统计环节抛异常打断整条分析。"""
+        try:
+            return len(x)
+        except Exception:
+            return 0
+
+    total_parsed = (
+        _cnt(bank_txs) + _cnt(invoices) + _cnt(salaries) + _cnt(social_security)
+        + _cnt(vouchers) + _cnt(inventory)
+        + _cnt(tax_declarations) + _cnt(contract_data) + _cnt(related_party_data)
+        + _cnt(trial_balance_data) + _cnt(fixed_assets) + _cnt(accounts_payable)
+        + _cnt(accounts_receivable) + _cnt(housing_fund_data) + _cnt(input_vat_deductions)
+        + _cnt(warehouse_contracts) + _cnt(transport_contracts)
+        + _cnt(bom_data) + _cnt(export_data) + _cnt(rd_data)
+        # ★ 2026-09-25：类型不属于任何专用集合、但**内容已成功提取**的文件（generic_docs），
+        #   同样计入数据量——否则"上传了内容但类型陌生的 PDF"会被误判为"全部解析失败"。
+        + _cnt(generic_docs)
+    )
     # 统计识别为unknown的文件数
     unknown_count = sum(1 for fr in file_results if fr["type"] == "unknown")
     zero_record_count = sum(1 for fr in file_results if fr["type"] != "unknown" and fr["type"] != "bank" and "提取0条" in str(fr.get("actions", [])))
@@ -1716,15 +2039,19 @@ def _run_analyze(company_id, db, progress_callback=None):
             doc_obj = next((d for d in docs if d["original_name"] == fr["file"]), None)
             if doc_obj:
                 try:
-                    import xlrd as _xr, openpyxl as _ox
+                    from engine.workbook import workbook_scope
                     _ep = doc_obj["path"]
                     _ext = os.path.splitext(_ep)[1].lower()
-                    if _ext == ".xls":
-                        _wb = _xr.open_workbook(_ep); _s = _wb.sheet_by_index(0); _nr = _s.nrows
-                    elif _ext == ".xlsx":
-                        _wb = _ox.load_workbook(_ep, data_only=True); _s = _wb[_wb.sheetnames[0]]; _nr = _s.max_row
-                    else: continue
-                    _score = _score_tax_relevance(_s, _nr)
+                    if _ext not in (".xls", ".xlsx"):
+                        continue
+                    # ★ 2026-09-25：经唯一权威打开并关闭；原写法两处 load_workbook
+                    #   均未 close()，句柄占用文件直到进程结束（删除资料 WinError 32 的真因）
+                    with workbook_scope(_ep, **_({"data_only": True} if _ext == ".xlsx" else {})) as _wb:
+                        if _ext == ".xls":
+                            _s = _wb.sheet_by_index(0); _nr = _s.nrows
+                        else:
+                            _s = _wb[_wb.sheetnames[0]]; _nr = _s.max_row
+                        _score = _score_tax_relevance(_s, _nr)
                     fr["tax_relevance"] = _score
                     if _score < 20:
                         fr["non_tax"] = True
@@ -1748,7 +2075,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         
         return {"ok": False, "message": "所有文件解析失败，无法生成分析报告",
                 "detail": "；".join(fail_reasons) if fail_reasons else "未提取到任何结构化数据",
-                "files_count": len(docs), "pipeline_log": pipeline_log, "file_results": file_results,
+                "files_count": len(docs), "pipeline_log": humanise_log_lines(pipeline_log), "file_results": file_results,
                 "suggestion": "请检查文件格式：1)确认Excel文件包含表头行 2)确认文件内容是财税相关数据(发票/工资/银行流水/凭证/社保等) 3)尝试用标准模板格式重新导出"}
     
     # _ 数据不足警告（少量数据，报告标注）
@@ -1759,7 +2086,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     for v in vouchers:
         acct = str(v.get("account", ""))
         if "主营业务收入" in acct:
-            credit = float(v.get("credit", 0) or 0)
+            credit = to_number(v.get("credit", 0))
             summary = str(v.get("summary", ""))
             if credit <= 0: continue  # 结转行
             if "未开票" in summary or "无票" in summary:
@@ -1862,6 +2189,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     # Phase 2 — 定向深挖：基于 Phase 1 信号选择性分析
     # 信号→域映射表驱动，只深挖触发了信号的域
     # ═══════════════════════════════════════════════════════════
+    # 2026-09-22：显式传入 tax_declarations，供 Phase2 的「增值税申报比对」域使用
+    # （该域旧逻辑只查 VATDeclaration 表，而一键分析从不落库 → 误报"缺少增值税申报表"）
+    ctx.tax_declarations = tax_declarations
     phase2_results = _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs,
                                         salaries, social_security, vouchers, inventory, docs, file_results,
                                         contract_data, voucher_revenue, total_parsed, pipeline_log)
@@ -2044,7 +2374,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             fin_bs, fin_is, fin_cf = build_statements_from_trial_balance(trial_balance_data)
         fin_findings = analyze_financial_statements(
             fin_bs, fin_is, fin_cf,
-            vouchers or [], sal_invs or [], pur_invs or [], ctx, tax_declarations)
+            vouchers or [], sal_invs or [], pur_invs or [], ctx, tax_declarations,
+            bank_txs=bank_txs or [])   # ★ 销售收现率/现金流质量指标需要银行流水
         if fin_findings:
             domain_results.append({"domain": "财务报表分析", "findings": fin_findings})
             pipeline_log.append(f"财务报表分析: {len(fin_findings)}项发现"
@@ -2121,7 +2452,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             for row in trial_balance_data:
                 acct_code = str(row.get("code", row.get("科目编码", "")))[:4]
                 if acct_code.startswith(("1",)):  # 1开头=资产类
-                    _total_assets += float(row.get("close_debit", 0) or 0)
+                    _total_assets += to_number(row.get("close_debit", 0))
             if _total_assets > 0:
                 _balance_sheet["total_assets"] = _total_assets
             # 从科目余额表提取收入/利润
@@ -2130,9 +2461,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             for row in trial_balance_data:
                 acct_code = str(row.get("code", row.get("科目编码", "")))[:4]
                 if acct_code == "6001":  # 主营业务收入
-                    _total_revenue += float(row.get("close_credit", 0) or 0)
+                    _total_revenue += to_number(row.get("close_credit", 0))
                 elif acct_code.startswith(("640", "6401", "6402", "5401")):  # 主营业务成本
-                    _total_cost += float(row.get("close_debit", 0) or 0)
+                    _total_cost += to_number(row.get("close_debit", 0))
             if _total_revenue > 0:
                 _income_stmt["revenue"] = _total_revenue
             if _total_cost > 0:
@@ -2140,8 +2471,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                 _income_stmt["net_profit"] = _total_revenue - _total_cost
         if not _income_stmt and vouchers:
             # 从凭证推算
-            _rev = sum(float(v.get("credit", 0) or 0) for v in vouchers if "主营业务收入" in str(v.get("account_name", v.get("科目", ""))))
-            _cost = sum(float(v.get("debit", 0) or 0) for v in vouchers if "主营业务成本" in str(v.get("account_name", v.get("科目", ""))))
+            _rev = sum(to_number(v.get("credit", 0)) for v in vouchers if "主营业务收入" in str(v.get("account_name", v.get("科目", ""))))
+            _cost = sum(to_number(v.get("debit", 0)) for v in vouchers if "主营业务成本" in str(v.get("account_name", v.get("科目", ""))))
             if _rev > 0: _income_stmt["revenue"] = _rev
             if _cost > 0: _income_stmt["total_cost"] = _cost
             if _rev > 0 and _cost > 0: _income_stmt["net_profit"] = _rev - _cost
@@ -2157,8 +2488,10 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"税收优惠分析异常: {_ie}")
 
     # ═══ 新增税务合规域：增值税申报比对 ═══
+    # 2026-09-22：必须传 tax_declarations（解析出的申报表）——该域旧逻辑只查 VATDeclaration
+    # 数据库表，而一键分析从不落库，导致用户已上传申报表仍误报"缺少增值税申报表"。
     if _has_inv_or_bank:
-        domain_results.append({"domain": "增值税申报比对", "findings": _domain_vat_declaration_compare(clean_invs, bank_txs, db, company_id)})
+        domain_results.append({"domain": "增值税申报比对", "findings": _domain_vat_declaration_compare(clean_invs, bank_txs, db, company_id, tax_declarations)})
     else:
         domain_results.append({"domain": "增值税申报比对", "findings": []})
     
@@ -2386,8 +2719,11 @@ def _run_analyze(company_id, db, progress_callback=None):
             from database import BookkeepingInvoice, BankTransaction, SalaryRecord as SR
             
             # ═══ 金额转换: 统一转Decimal，避免Decimal+float类型错误 ═══
+            # ★ 2026-09-25 收敛：原为 `to_number(v)`，遇 "12,000.00"/"￥1,234.56" 会静默变 0，
+            #   导致入库金额与域分析（已去千分位）不一致。现统一走 engine/numparse。
+            from engine.numparse import to_number as _to_number
             def _to_dec(v):
-                try: return D(str(float(v or 0)))
+                try: return D(str(_to_number(v)))
                 except: return D("0")
             
             # ═══ 临时导入: 全量导入 ═══
@@ -2790,8 +3126,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             # 提取数据中的数值特征
             bank_total_in = sum(tx.get("credit", 0) for tx in bank_txs)
             bank_total_out = sum(tx.get("debit", 0) for tx in bank_txs)
-            inv_total = sum(float(inv.get("amount", 0) or 0) for inv in clean_invs)
-            sal_total = sum(float(sal.get("salary", sal.get("本期收入", 0)) or 0)
+            inv_total = sum(to_number(inv.get("amount", 0)) for inv in clean_invs)
+            sal_total = sum(to_number(sal.get("salary", sal.get("本期收入", 0)))
                             for sal in salaries if not _sal_noise_name(str(sal.get("name", ""))))
             # 第三方收款检测
             third_party_keywords = ["支付宝","微信","财付通","个人","张三","李四","王五"]
@@ -2936,14 +3272,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                                 bank_by_counterparty = _dd2(float)
                                 for tx in bank_txs:
                                     cp = str(tx.get("counterparty", tx.get("counterparty_name", ""))).strip()
-                                    credit = float(tx.get("credit", 0) or 0)
+                                    credit = to_number(tx.get("credit", 0))
                                     if cp and credit > 0:
                                         bank_by_counterparty[cp] += credit
                                 # 销项发票按购买方分组
                                 inv_by_buyer = _dd2(float)
                                 for inv in sal_invs:
                                     buyer = str(inv.get("buyer", inv.get("购买方名称", ""))).strip()
-                                    amt = float(inv.get("amount", inv.get("total", 0)) or 0)
+                                    amt = to_number(inv.get("amount", inv.get("total", 0)))
                                     if buyer and amt > 0:
                                         inv_by_buyer[buyer] += amt
                                 
@@ -3285,8 +3621,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             else:
                 continue
             if m and len(m) == 7:
-                debit = float(tx.get("debit", 0) or 0)
-                credit = float(tx.get("credit", 0) or 0)
+                debit = to_number(tx.get("debit", 0))
+                credit = to_number(tx.get("credit", 0))
                 summ = str(tx.get("summary", ""))
                 if debit > 0:
                     if any(k in summ for k in ("税", "国税", "地税", "金库", "纳税")):
@@ -3313,8 +3649,8 @@ def _run_analyze(company_id, db, progress_callback=None):
         for tx in bank_txs:
             name = str(tx.get("counterparty_name") or tx.get("counterparty", "")).strip()
             if not name or name == "无" or len(name) < 2: continue
-            credit = float(tx.get("credit", 0) or 0)
-            debit = float(tx.get("debit", 0) or 0)
+            credit = to_number(tx.get("credit", 0))
+            debit = to_number(tx.get("debit", 0))
             if credit > 0: receivers[name] += credit
             if debit > 0: payers[name] += debit
         
@@ -3730,7 +4066,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         if common_goods:
             def _get_qty(inv):
                 try:
-                    return float(inv.get("qty", 0) or inv.get("quantity", 0) or inv.get("数量", 0) or 0)
+                    return to_number(inv.get("qty", 0) or inv.get("quantity", 0) or inv.get("数量", 0))
                 except:
                     return 0.0
             for g in common_goods:
@@ -3759,7 +4095,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             "_processing_confidence": "high" if processing_score >= T.ratios.substantial else ("low" if processing_applicable else "none"),
             "_processing_applicable": processing_applicable,
         }
-        pipeline_log.append(f"加工信号评分: {processing_score:.2f}, signals={processing_signals}, applicable={processing_applicable}")
+        from engine.sentencekit import render_value as _rv2
+        pipeline_log.append(f"加工信号评分 {processing_score:.2f}；信号={_rv2(processing_signals)}；"
+                            f"是否适用={_rv2(processing_applicable)}")
         
         # ═══ 委外加工供应商地域分析：跨省委外加工疑点 ═══
         if has_processing_fee and pur_invs:
@@ -3808,7 +4146,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     if not _s:
                         continue
                     try:
-                        _amt = float(_i.get("amount", 0) or 0)
+                        _amt = to_number(_i.get("amount", 0))
                     except Exception:
                         _amt = 0.0
                     _d = _proc_sellers.setdefault(_s, {"amount": 0.0, "count": 0, "province": _seller_province(_s)})
@@ -4003,7 +4341,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     all_findings, pipeline_log, filter_log = _apply_output_governance_filter(
         all_findings, pipeline_log,
         bank_txs, invoices, salaries, social_security, vouchers, inventory, docs,
-        target_industry=_target_industry)
+        target_industry=_target_industry,
+        file_results=file_results, tax_declarations=tax_declarations, contract_data=contract_data)
     _step_timing["step5"] = round(time.time() - _step_timing.get("step5_start", time.time()), 2)
     pipeline_log.append(f"[TIMING] 步骤⑤方法论噪声过滤: {_step_timing['step5']}秒")
     comprehensive["filter_log"] = filter_log  # 方法论过滤详情
@@ -4055,6 +4394,30 @@ def _run_analyze(company_id, db, progress_callback=None):
             "tax_declarations": tax_declarations,
             "target_entity": target_entity,
         }
+        # ★ 2026-09-25 宗旨兜底（**必须在此处提前执行**）：
+        #   下一步 `_pre_scenario_candidate_count = len(all_findings)` 之后，
+        #   `all_findings` 会被 `_scenario_execution["findings"]` **整体替换**，
+        #   域产出（实测 65 项）随即被隔离。若等到报告组装前才做"缺资料降级"，
+        #   兜底逻辑根本看不到这些域发现（它们已经不在 all_findings 里了）。
+        #   因此"缺资料 ≠ 违规"的降级必须在**丢弃之前**完成，
+        #   以保证：① 无论是否进报告，都不允许把"资料没交"写成企业风险等级；
+        #   ② 后续任何消费 these findings 的环节（证据链/询问提纲/统计）看到的都是已校正的等级。
+        try:
+            from engine.audit_doctrine import enforce_no_missing_driven_accusation
+            _cand = [f for f in all_findings if isinstance(f, dict)]
+            _hi_before = sum(1 for f in _cand if str(f.get("level")) in ("高风险", "极高风险"))
+            enforce_no_missing_driven_accusation(all_findings)
+            _hi_after = sum(1 for f in _cand if str(f.get("level")) in ("高风险", "极高风险"))
+            if _hi_after < _hi_before:
+                pipeline_log.append(
+                    f"[宗旨·域层] {_hi_before - _hi_after}项以「资料未上传/数据为空」为依据的"
+                    f"高等级认定已降级为待核验（缺资料不等于违规）"
+                )
+        except Exception as _de:
+            pipeline_log.append(f"[宗旨·域层] 缺资料降级失败: {_de}")
+
+        # 治理前候选数：仅用于留档（本项目中域分析结论现已全部并入正式输出，
+        # 该差值不再代表"被丢弃"，只说明"候选数与经治理后的规范事实数"的规模对比）
         _pre_scenario_candidate_count = len(all_findings)
         _scenario_execution = run_output_governance(
             _scenario_industry,
@@ -4073,17 +4436,28 @@ def _run_analyze(company_id, db, progress_callback=None):
             _scenario_execution.setdefault("findings", []).extend(_supply_chain_findings)
             all_findings = _scenario_execution["findings"]
             pipeline_log.append(f"[供应链联网核查] 已并入正式输出：{len(_supply_chain_findings)}项六员重叠/关联交易发现")
-        # BOM投入产出/仓储容量/运输费/存货勾稽等客观域发现是基于台账与发票的直接事实，
-        # 并入场景执行结果并赋予规范事实编号（scene_fact_id），否则会被正式输出封印吞掉
+        # 客观域发现（基于已上传资料直接算得的事实）必须并入场景执行结果并赋予规范事实编号
+        # （scene_fact_id），否则会被**正式输出封印**吞掉（报告最后一步用
+        #  seal_governed_findings 覆盖 all_findings，只保留 _scenario_governed=True 的条目）。
+        # ★ 2026-09-25 补入「工资社保比对」：该域此前不在清单里 → 域发现的工资社保结论
+        #   （含"有工资无社保"）算出来了却进不了报告，使用者看到的是"工资社保分析不出来"。
+        # ⚠ 键按**子串**匹配 domain_results[].domain —— 必须与真实域名对得上，
+        #   否则白名单键永远不生效（实测 `进销存数量勾稽` 匹配不到任何域，已成死键）。
+        #   真实域名见 `domain_results.append({"domain": ...})` 处。
+        #   注：原先还列了「进销存数量勾稽」——实测无此域名（数量勾稽类发现由
+        #   「进销存匹配分析」域的 findings 承载），属永不生效的死键，已移除。
         _objective_domain_keys = ("BOM投入产出验证", "仓储容量匹配", "运输费量化配比",
-                                  "存货周转预警", "进销存匹配", "进销存数量勾稽")
+                                  "存货周转预警", "进销存匹配分析",
+                                  "工资社保比对")
         _objective_domain_sources = {
             "BOM投入产出验证": ["BOM物料清单", "进项发票", "进销存台账"],
             "仓储容量匹配": ["银行流水", "进销存台账", "仓库租赁合同"],
             "运输费量化配比": ["销项发票", "进项发票", "银行流水"],
             "存货周转预警": ["进销存台账"],
-            "进销存匹配": ["销项发票", "进项发票"],
-            "进销存数量勾稽": ["进销存台账"],
+            "进销存匹配分析": ["销项发票", "进项发票"],
+            "进销存数量勾稽": ["进销存台账"],   # 供 findings 级引用（域名为"进销存匹配分析"）
+            # 单人单侧即可成立（单向可查）；两侧齐备时为交叉核验
+            "工资社保比对": ["工资表", "社保明细"],
         }
         _existing_fact_ids = {
             str(_f.get("scene_fact_id") or _f.get("fact_id") or "").strip()
@@ -4098,6 +4472,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             "仓储容量匹配-经营真实", "仓库租赁合同缺面积条款",
             "零运输费", "无运输费记录", "到货价含运", "合同约定运费与账面零运费矛盾",
             "运输费占比", "运输费与货值匹配",
+            # 工资社保：全部基于企业本轮所报工资表/社保明细的确定性比对
+            "有工资无社保", "社保低基数参保", "社保缴费基数异常",
+            "工资表已单独核验", "社保明细已单独核验",
         )
         _objective_injected = 0
         _verified_injected = 0
@@ -4151,6 +4528,44 @@ def _run_analyze(company_id, db, progress_callback=None):
                 f"[客观域发现] 已并入正式输出：{_objective_injected}项BOM/仓储/运输/存货勾稽发现"
                 f"（其中{_verified_injected}项为账面勾稽可核定，已给出最终答案；其余待核并保留建议）"
             )
+        # ═══════════════════════════════════════════════════════════════════
+        # ★ 2026-09-25 用户决策：**已分析到的风险必须全部呈现在报告中**
+        #   原设计只把 7 个"客观域"并入正式输出，其余 40+ 个域
+        #   （财务报表分析／跨文件逐月勾稽／发票实质性审计／印花税／CIT汇算清缴…）
+        #   的结论被整体隔离 —— 实测 **86 项"算了但看不到"**，这正是使用者长期
+        #   感到"很多风险查不出来"的机制性原因。
+        #   现改为：**剩余全部域发现一律并入正式输出**。
+        #   同时保留「证据地位」标注，避免与已验原子规则（VR）混为一谈：
+        #     · VR 可信观察      → EVIDENCE_TIER_VERIFIED_RULE
+        #     · 域分析结论       → EVIDENCE_TIER_DOMAIN
+        #   等级与降级规则不变（缺资料驱动的发现只能停在"待核验"）；
+        #   全部输出仍须人工复核、禁止自动定性。
+        # ═══════════════════════════════════════════════════════════════════
+        _promoted_domain = 0
+        _promoted_by_domain = {}
+        try:
+            # 唯一实现见 engine.output_governance.promote_domain_findings
+            from engine.output_governance import promote_domain_findings as _promote
+            _pr = _promote(_scenario_execution, domain_results, _existing_fact_ids)
+            _promoted_domain = int(_pr.get("promoted") or 0)
+            _promoted_by_domain = dict(_pr.get("by_domain") or {})
+            # 任何进入正式输出的发现都必须带证据地位标注（否则无法区分可信度）
+            from engine.output_governance import stamp_evidence_tiers as _stamp
+            _stamped = _stamp(_scenario_execution.get("findings", []))
+            if _promoted_domain:
+                all_findings = _scenario_execution["findings"]
+                _top = "、".join(f"{d}（{n}项）" for d, n in
+                                sorted(_promoted_by_domain.items(), key=lambda kv: -kv[1])[:6])
+                pipeline_log.append(
+                    f"[域分析结论] 已全部并入正式输出：{_promoted_domain}项"
+                    f"（证据地位：域分析结论，基于上传资料计算；均须人工复核）。主要来源：{_top}"
+                    + ("…" if len(_promoted_by_domain) > 6 else "")
+                )
+            if _stamped:
+                pipeline_log.append(f"[证据地位] 为 {_stamped} 项发现补标注证据地位")
+        except Exception as _pe:
+            pipeline_log.append(f"[域分析结论] 并入失败: {_pe}")
+
         domain_summary = _scenario_execution.get("domain_summary", [])
         comprehensive["scenario_execution"] = _scenario_execution
         comprehensive["output_governance"] = output_governance
@@ -4159,14 +4574,11 @@ def _run_analyze(company_id, db, progress_callback=None):
         #           → 证据链（要组织什么证据）→ 论证链（主张/反证/裁决）
         try:
             from engine.redline_engine import run_redline_detection
-            from engine.enterprise_report import _DOC_TYPE_TO_CATEGORY
-            _provided_mats = []
-            for _fr in (file_results or []):
-                if not isinstance(_fr, dict):
-                    continue
-                _c = _DOC_TYPE_TO_CATEGORY.get(str(_fr.get("type") or "").strip())
-                if _c and _c not in _provided_mats:
-                    _provided_mats.append(_c)
+            from engine.enterprise_report import _doc_covered_categories
+            # ⚠ 2026-09-25：原实现直接取 _DOC_TYPE_TO_CATEGORY 的值拼成列表，而该映射的键
+            #   与解析器实际类型名不一致（如 vat_declaration 查不到），导致红线判定拿到的
+            #   "已提供资料"清单同样是错的。统一改用 _doc_covered_categories（唯一实现）。
+            _provided_mats = sorted(_doc_covered_categories({"file_results": file_results or []}))
             _redline_detection = run_redline_detection(
                 all_findings,
                 engine_data={"file_results": file_results},
@@ -4178,13 +4590,67 @@ def _run_analyze(company_id, db, progress_callback=None):
             _apply_human_feedback_priors(_redline_detection, pipeline_log, company_id)
         except Exception as _rl_err:  # 红线判定失败不阻断主流程，仅记录
             pipeline_log.append(f"[红线判定] 未执行：{_rl_err}")
+        # ★ 2026-09-25：输出范围必须**逐项可见**。
+        #   用户决策后，域分析结论已全部并入正式输出；此处仍保留逐域核对，
+        #   用于回答"是否还有分析结论没进报告"——若仍有遗漏，必须逐域点名说明原因。
+        _quarantined_domains = []
+        try:
+            _kept_types = {str(_f.get("type") or "") for _f in all_findings if isinstance(_f, dict)}
+            _dom_produced = {}
+            for _dr in domain_results:
+                if not isinstance(_dr, dict):
+                    continue
+                # 只统计**风险级**发现（"信息"级本就不进风险清单）
+                _fs = [f for f in (_dr.get("findings") or [])
+                       if isinstance(f, dict) and f.get("level") not in ("信息", None, "")]
+                if not _fs:
+                    continue
+                _kept = [f for f in _fs if str(f.get("type") or "") in _kept_types]
+                _lost = len(_fs) - len(_kept)
+                if _lost > 0:
+                    _dom_produced[str(_dr.get("domain") or "")] = _lost
+            _quarantined_domains = sorted(_dom_produced.items(), key=lambda kv: -kv[1])
+        except Exception:
+            _quarantined_domains = []
+        _tier_stat = {}
+        try:
+            from collections import Counter as _Ctr
+            _tier_stat = dict(_Ctr(str(_f.get("evidence_tier") or "未标注") for _f in all_findings
+                                  if isinstance(_f, dict)))
+        except Exception:
+            _tier_stat = {}
         pipeline_log.append(
-            f"[场景执行核心] 已隔离{_pre_scenario_candidate_count}项旧式候选输出；"
-            f"运行{_scenario_execution.get('atomic_rule_count', 0)}项已验证原子计算，"
-            f"形成{_scenario_execution.get('trusted_observation_count', 0)}项客观观察；"
-            f"{_scenario_execution.get('common_fact_findings', 0)}项共同事实门待核事实已纳入，"
-            f"输出{len(all_findings)}项待核事实。全部输出须人工复核且禁止自动定性。"
+            f"[场景执行核心] 运行{_scenario_execution.get('atomic_rule_count', 0)}项已验证原子计算，"
+            f"形成{_scenario_execution.get('trusted_observation_count', 0)}项可信观察；"
+            f"输出{len(all_findings)}项待核事实（证据地位：{_tier_stat}）。"
+            f"全部输出须人工复核且禁止自动定性。"
         )
+        if _quarantined_domains:
+            _q_total = sum(n for _, n in _quarantined_domains)
+            _q_top = "、".join(f"{d}（{n}项）" for d, n in _quarantined_domains[:8])
+            # 已决策"全部呈现"，此处出现即为**新缺口**，必须显式告警而非静默
+            pipeline_log.append(
+                f"[正式输出范围·缺口] 仍有 {_q_total} 项分析结论未进入报告，"
+                f"请核查并补齐（不得静默丢弃）：{_q_top}"
+                + ("…" if len(_quarantined_domains) > 8 else "")
+            )
+            _quarantine_summary = {
+                "total": _q_total,
+                "by_domain": [{"domain": d, "count": n} for d, n in _quarantined_domains],
+                "promoted_total": _promoted_domain,
+                "evidence_tiers": _tier_stat,
+                "note": ("按「分析到的风险必须全部呈现」的要求，此处应为 0。"
+                         "若非 0，说明存在未接入正式输出的分析结论，须逐域补齐。"),
+            }
+        else:
+            _quarantine_summary = {
+                "total": 0, "by_domain": [],
+                "promoted_total": _promoted_domain,
+                "evidence_tiers": _tier_stat,
+                "note": ("本轮全部分析结论均已进入报告。证据地位分两类："
+                         "「已验原子规则（可信观察）」与「域分析结论（基于上传资料计算）」；"
+                         "两者均为待核事实，须人工复核，禁止自动定性。"),
+            }
     except Exception as _governance_stage_error:
         # 场景主流程是正式输出的强制边界，不允许退回旧式发现。
         raise RuntimeError(f"正式输出治理核心失败: {_governance_stage_error}") from _governance_stage_error
@@ -4209,7 +4675,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             _f["_monitor_category"] = _rule.get("monitor_category", "")
             _ph = str(_rule.get("phenomena", "") or "")
             if _ph.startswith("数据矛盾点"):
-                _f["_contradiction"] = _ph.split("。")[0][:150]
+                from engine.sentencekit import first_sentence
+                _f["_contradiction"] = first_sentence(_ph)[:150]
             elif _ph:
                 _f["_contradiction"] = _ph[:80]
             _nr = str(_rule.get("normal_reason", "") or "")
@@ -4577,7 +5044,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         
         biz_cost_summary = {
             "core_cost_count": len(bcc.get("core_cost_invs", [])),
-            "core_cost_amount": sum(float(inv.get("amount", 0) or 0) for inv in bcc.get("core_cost_invs", [])),
+            "core_cost_amount": sum(to_number(inv.get("amount", 0)) for inv in bcc.get("core_cost_invs", [])),
             "major_expense_count": len(bcc.get("major_expense_invs", [])),
             "minor_expense_count": len(bcc.get("minor_expense_invs", [])),
             "core_goods": list(bcc.get("pur_core_goods", []))[:20],
@@ -4763,7 +5230,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             _ext = _verifier.verify(_co_name, _co_tax, use_premium=False)
             comprehensive["external_verify"] = _ext
             _ext_ass = _ext.get("assessment", {})
-            pipeline_log.append(f"[AGI-外部核验] {_co_name}: 通道={_ext.get('channels_used')}, 结论={_ext_ass.get('verdict','')}")
+            from engine.sentencekit import render_value as _rv
+            pipeline_log.append(f"[AGI-外部核验] {_co_name}: 通道={_rv(_ext.get('channels_used'))}；"
+                                f"结论={_ext_ass.get('verdict','')}")
         else:
             pipeline_log.append(f"[AGI-外部核验] 未取到企业名称(company_id={company_id})，跳过")
     except Exception as e:
@@ -4781,7 +5250,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             _sa = (_d.get("sales_amount") or (_d.get("declaration") or {}).get("sales_amount")
                    or (_d.get("rows") or [{}])[0].get("sales_amount") or 0)
             try:
-                _bf_reported += float(_sa or 0)
+                _bf_reported += to_number(_sa)
             except Exception:
                 pass
         if bank_txs:
@@ -4913,14 +5382,116 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ── ⑩ 风险检查询问与质疑清单：已移至下方「假设-验证推理」之后，
     #    以便消费经竞争假设裁决后仍为「证据不足」的缺失型待证发现（unconfirmed），转化为企业自证询问。──
 
+    # ── ★ 2026-09-25：生成**分析覆盖清单**（应查 N 项 / 可执行 M / 缺资料 K）──
+    #   一键分析要当"稽查替身"，就必须能回答"该查的都查了吗、没查的为什么"。
+    _coverage = {}
+    _cov_materials = []
+    try:
+        from engine.enterprise_report import _doc_covered_categories
+        _cov_materials = sorted(_doc_covered_categories({"file_results": file_results}))
+    except Exception:
+        _cov_materials = []
+    try:
+        from engine.analysis_coverage import build_coverage
+        _coverage = build_coverage({
+            "sal_invs": sal_invs, "pur_invs": pur_invs, "bank_txs": bank_txs,
+            "vouchers": vouchers, "tax_declarations": tax_declarations,
+            "salaries": salaries, "social_security": social_security,
+            "inventory_ledger": inventory, "invoices": invoices,
+            "target_entity": target_entity,
+            # ★ 2026-09-26：以下 5 项此前**完全没传**，而 `_SOURCE_ZH` 明明把它们登记为依赖
+            #   → `_has()` 查不到键即判"缺资料"，把用户**已上传**的科目余额表/固定资产/合同/
+            #     BOM/运输合同谎报成缺失，进而把本可判定的检查项错误地标为"需补资料"。
+            #   实测谎报：科目余额表 13 项、采购合同 6 项。变量名与本模块的依赖键不同名，务必对齐。
+            "trial_balance": trial_balance_data,
+            "fixed_assets": fixed_assets,
+            "contracts": contract_data,
+            "bom": bom_data,
+            "transport_contracts": transport_contracts,
+            # 已提供的**资料类别**用唯一实现现算（红线按 required_materials 判定可判定性）
+            "_available_materials": _cov_materials,
+        })
+        if _coverage.get("summary_text"):
+            pipeline_log.append("[分析覆盖] " + str(_coverage["summary_text"]))
+    except Exception as _ce:
+        pipeline_log.append(f"[分析覆盖] 生成失败: {_ce}")
+
+    # ── ★ 2026-09-25 宗旨兜底：缺资料驱动的发现不得升级为违规（D2）──
+    _doctrine_summary = {}
+    try:
+        from engine.audit_doctrine import (
+            enforce_no_missing_driven_accusation, summarise_doctrine,
+        )
+        _before = [f for f in all_findings
+                   if isinstance(f, dict) and str(f.get("level")) in ("高风险", "极高风险")]
+        all_findings = enforce_no_missing_driven_accusation(all_findings)
+        _after = [f for f in all_findings
+                  if isinstance(f, dict) and str(f.get("level")) in ("高风险", "极高风险")]
+        if len(_after) < len(_before):
+            _dn = len(_before) - len(_after)
+            pipeline_log.append(
+                f"[宗旨] {_dn}项以「资料未提供」为依据的认定已降级为待核"
+                f"（缺资料不等于违规，须补资料后再判定）"
+            )
+        # 宗旨 D3：每条发现都必须给出「解除方式 + 需补自证资料」这两个出口。
+        # 各域自行声明的优先；未声明的在此按发现正文推导补上（推导不出就不硬编，
+        # 绝不塞空列表充数 —— 空出口等于没有出口）。
+        from engine.audit_doctrine import default_self_proof_for, _guess_missing_materials
+        _filled = 0
+        for _f in all_findings:
+            if not isinstance(_f, dict):
+                continue
+            if _f.get("self_proof_materials"):
+                continue
+            _mats = _guess_missing_materials(_f)
+            if _mats:
+                _f["self_proof_materials"] = default_self_proof_for(_mats)
+                _filled += 1
+        if _filled:
+            pipeline_log.append(f"[宗旨] 为 {_filled} 项发现补齐自证资料清单")
+        _doctrine_summary = summarise_doctrine(all_findings)
+    except Exception as _de:
+        pipeline_log.append(f"[宗旨] 执行情况汇总失败: {_de}")
+
     _step_timing["step7_start"] = time.time()
     _report(99, "步骤⑦正式报告输出 — 开始...", step=7)
     result = {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
-        "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": pipeline_log, "file_results": file_results,
+        "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": humanise_log_lines(pipeline_log), "file_results": file_results,
+        # ★ 未读取到数据的文件清单（空表示资料完整）——报告须据此声明"结论基于不完整资料"
+        "read_failures": list(_read_failed),
+        # ★ 分析覆盖清单：现有资料能查多少、需补什么才能判定（"该查的都查了吗"）
+        "analysis_coverage": _coverage,
+        # ★ 2026-09-25 宗旨执行情况：已查出的风险的解除方式与自证清单、终局两态
+        "audit_doctrine": _doctrine_summary,
+        # ★ 正式输出范围：哪些域结论未纳入报告（逐域可见，不再静默）
+        "output_scope": _quarantine_summary,
+        # ★ 每份已上传资料**单独可查**的项目（宗旨："有什么资料就查什么资料"）
+        "one_sided_checks": _one_sided_digest({
+            "sal_invs": sal_invs, "pur_invs": pur_invs, "bank_txs": bank_txs,
+            "vouchers": vouchers, "tax_declarations": tax_declarations,
+            "salaries": salaries, "social_security": social_security,
+            "inventory_ledger": inventory,
+        }),
+        "partial_data": bool(_read_failed),
         "stats": stats, "domain_summary": domain_summary, "comprehensive": comprehensive,
+        # ★ 2026-09-25：把已解析的申报表带入报告。此前报告不含该字段，导致
+        #   `_build_reconciliation_matrix` 永远算 declared_sales=0 → 即使 12 份增值税申报表
+        #   已成功解析，报告仍写"缺增值税申报表，须调取申报表"，严重损害报告可信度。
+        "tax_declarations": tax_declarations,
         "target_entity": target_entity,
         "low_data_warning": low_data_warning,
+        # ★ 主体一致性（2026-09-25）：部分资料主体不符时，报告必须显式披露，
+        #   让阅读者知道"本报告的数据范围已剔除不属于本账套的资料"。
+        "subject_check": {
+            "account_subject": _acct_name,
+            "mismatched": subject_mismatch_files,
+            "mismatched_count": len(subject_mismatch_files),
+            "unknown_subject_count": len(subject_unknown_files),
+            "note": ("已剔除 %d 个主体不符的资料；另有 %d 个文件未提供本方主体线索（无法判断，已按原样纳入）。"
+                     % (len(subject_mismatch_files), len(subject_unknown_files)))
+                    if subject_mismatch_files or subject_unknown_files else "全部资料主体与账套一致。",
+        },
         "quality_report": quality_report,
         "cross_verify": cross_verify_result if 'cross_verify_result' in dir() else {},
         "red_team": red_team_results if 'red_team_results' in dir() else {},
@@ -5606,9 +6177,33 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 执行——防误判 try 内若协商引擎异常会跳过合并。合并后 scenario_execution 与 sealed 两层都只剩一条。
     _scenario_execution["findings"] = _merge_same_type_findings(_scenario_execution["findings"])
     all_findings = seal_governed_findings(_scenario_execution)
+    # ★ 2026-09-25：**报告里每一条发现都必须有出口**（怎么解除 + 需补什么自证 + 终局方向）。
+    #   用户决策"全部呈现"后，入报告的发现由 ~15 条涨到 ~90 条；实测其中 92 条无解除方式、
+    #   45 条无自证清单、85 条无终局 —— 只列风险不给做法等于没用。
+    #   必须在**封印之后**执行，确保覆盖最终报告里的每一条。
+    try:
+        from engine.audit_doctrine import apply_three_piece_to_all as _fill_exits
+        _exits = _fill_exits(all_findings)
+        _filled = sum(int(v or 0) for v in _exits.values())
+        if _filled:
+            pipeline_log.append(
+                f"[宗旨·出口] 为报告发现补齐出口：解除方式 {_exits.get('resolve_filled', 0)} 条、"
+                f"自证资料清单 {_exits.get('proof_filled', 0)} 条、"
+                f"终局方向 {_exits.get('terminal_filled', 0)} 条"
+            )
+    except Exception as _ee:
+        pipeline_log.append(f"[宗旨·出口] 补齐失败: {_ee}")
     result["report"]["all_findings"] = all_findings
     result["report"]["scenario_execution"] = _scenario_execution
     result["report"]["output_governance"] = _scenario_execution.get("review_plan", {})
+    # ★ 2026-09-25：域汇总必须由**封印后的最终发现**重算。
+    #   否则 all_findings 里已并入的域结论与 domain_summary 不一致
+    #   （domain_summary 是并入/封印前算的），使用者会看到两处口径不同。
+    try:
+        from engine.output_governance import _domain_summary as _rds_final
+        _scenario_execution["domain_summary"] = _rds_final(all_findings)
+    except Exception:
+        pass
     result["report"]["domain_summary"] = _scenario_execution.get("domain_summary", [])
     result["report"]["total_risks"] = len(all_findings)
     _lvl_high = _lvl_mid = _lvl_low = 0
@@ -5670,7 +6265,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "spec": str(inv.get("spec", inv.get("规格",""))),
                     "unit": str(inv.get("unit", inv.get("单位",""))),
                     "qty": inv.get("qty", inv.get("数量", "")),
-                    "amount": inv.get("amount", inv.get("金额", "")),
+                    "amount": amount_of(inv),   # ★ 唯一权威
                     "tax": inv.get("tax", inv.get("税额", "")),
                     "total": inv.get("total", inv.get("价税合计", "")),
                     "date": str(inv.get("date", inv.get("开票日期",""))),
@@ -5685,7 +6280,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "spec": str(inv.get("spec", inv.get("规格",""))),
                     "unit": str(inv.get("unit", inv.get("单位",""))),
                     "qty": inv.get("qty", inv.get("数量", "")),
-                    "amount": inv.get("amount", inv.get("金额", "")),
+                    "amount": amount_of(inv),   # ★ 唯一权威
                     "tax": inv.get("tax", inv.get("税额", "")),
                     "total": inv.get("total", inv.get("价税合计", "")),
                     "date": str(inv.get("date", inv.get("开票日期",""))),
@@ -5699,7 +6294,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     invoice_tables["core_cost"].append({
                         "counterparty": str(inv.get("seller", inv.get("销售方",""))),
                         "goods": str(inv.get("goods", inv.get("货物或应税劳务名称",""))),
-                        "amount": inv.get("amount", inv.get("金额", "")),
+                        "amount": amount_of(inv),   # ★ 唯一权威
                         "total": str(inv.get("total", inv.get("价税合计", ""))),
                         "date": str(inv.get("date", inv.get("开票日期",""))),
                     })
@@ -5709,7 +6304,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                     invoice_tables["major_expense"].append({
                         "counterparty": str(inv.get("seller", inv.get("销售方",""))),
                         "goods": str(inv.get("goods", inv.get("货物或应税劳务名称",""))),
-                        "amount": inv.get("amount", inv.get("金额", "")),
+                        "amount": amount_of(inv),   # ★ 唯一权威
                         "total": str(inv.get("total", inv.get("价税合计", ""))),
                         "date": str(inv.get("date", inv.get("开票日期",""))),
                     })
@@ -6230,8 +6825,8 @@ def _four_way_cross_verify(invoices, bank_txs, pipeline_log):
         result["conflicts"].append(f"⚠️ 资料缺失：缺少{'、'.join(missing)}数据，无法执行发票-资金双向交叉验证。缺失{'、'.join(missing)}意味着发票流与资金流的比对无法完成；四流一致（合同流/发票流/货物流/资金流）的完整验证由五流勾稽矩阵承担，本初筛仅覆盖发票↔资金两方。")
         pipeline_log.append(f"发票-资金双向交叉验证: 资料不足跳过(缺少{'、'.join(missing)})")
         return result
-    inv_amt = sum(float(i.get("amount", 0) or i.get("金额", 0) or 0) for i in invoices)
-    bank_amt = sum(float(t.get("amount", 0) or t.get("金额", 0) or 0) for t in bank_txs)
+    inv_amt = sum(amount_of(i) for i in invoices)   # ★ 行内取金额唯一权威
+    bank_amt = sum(amount_of(t) for t in bank_txs)
     if inv_amt > 0 and bank_amt > 0:
         ratio = bank_amt / max(inv_amt, 1)
         if ratio < 0.3 or ratio > 3.0:
@@ -6561,7 +7156,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
                 g = str(i.get("goods", "")).strip()
                 if g and g not in sal_goods:
                     pur_by_goods[g] = pur_by_goods.get(g, {"amount": 0, "suppliers": set(), "count": 0})
-                    pur_by_goods[g]["amount"] += float(i.get("amount", 0) or 0)
+                    pur_by_goods[g]["amount"] += to_number(i.get("amount", 0))
                     pur_by_goods[g]["suppliers"].add(str(i.get("seller", ""))[:20])
                     pur_by_goods[g]["count"] += 1
             sorted_goods = sorted(pur_by_goods.items(), key=lambda x: -x[1]["amount"])
@@ -6579,7 +7174,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
                 g = str(i.get("goods", "")).strip()
                 if g and g not in pur_goods:
                     sal_by_goods[g] = sal_by_goods.get(g, {"amount": 0, "buyers": set(), "count": 0})
-                    sal_by_goods[g]["amount"] += float(i.get("amount", 0) or 0)
+                    sal_by_goods[g]["amount"] += to_number(i.get("amount", 0))
                     sal_by_goods[g]["buyers"].add(str(i.get("buyer", ""))[:20])
                     sal_by_goods[g]["count"] += 1
             sorted_goods = sorted(sal_by_goods.items(), key=lambda x: -x[1]["amount"])
@@ -6595,7 +7190,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
             bank_payees = set()
             bank_payees_lower = set()
             for tx in bank_txs:
-                debit = float(tx.get("debit", 0) or 0)
+                debit = to_number(tx.get("debit", 0))
                 if debit > 0:
                     cp = str(tx.get("counterparty", "")).strip()
                     if cp:
@@ -6619,7 +7214,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
                         continue
                     unmatched.append({
                         "供应商": seller[:30],
-                        "金额": f"{float(i.get('amount', 0) or 0):,.2f}",
+                        "金额": f"{to_number(i.get('amount', 0)):,.2f}",
                         "货物": str(i.get("goods", ""))[:20],
                         "发票号": str(i.get("inv_no", ""))[:20] or "-"
                     })
@@ -6638,7 +7233,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
             # 按收款对方统计
             payer_totals = {}
             for tx in bank_txs:
-                credit = float(tx.get("credit", 0) or 0)
+                credit = to_number(tx.get("credit", 0))
                 if credit > 0:
                     cp = str(tx.get("counterparty", "")).strip()
                     if cp and len(cp) > 1:
@@ -6648,7 +7243,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
             for i in sal_invs:
                 b = str(i.get("buyer", "")).strip()
                 if b and b in payer_totals:
-                    payer_totals[b] = payer_totals[b] - float(i.get("amount", 0) or 0)
+                    payer_totals[b] = payer_totals[b] - to_number(i.get("amount", 0))
             
             sorted_payers = sorted(payer_totals.items(), key=lambda x: -x[1])
             for cp, amt in sorted_payers:
@@ -6666,7 +7261,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
         elif ("发票缺少数量" in ftype or "发票缺少计量" in ftype or "加工费发票缺少" in ftype) and invoices:
             is_proc_fee = "加工费" in ftype
             for i in invoices:
-                amt = float(i.get("amount", 0) or 0)
+                amt = to_number(i.get("amount", 0))
                 qty = i.get("qty", "")
                 unit = i.get("unit", "")
                 goods = str(i.get("goods", ""))
@@ -6697,7 +7292,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
             for i in invoices:
                 g = str(i.get("goods", ""))
                 if "加工" in g:
-                    amt = float(i.get("amount", 0) or 0)
+                    amt = to_number(i.get("amount", 0))
                     if amt > 0:
                         qty = i.get("qty", "")
                         unit = i.get("unit", "")
@@ -6777,16 +7372,17 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
         elif "收款与开票金额偏差" in ftype and bank_txs and sal_invs:
             # Create items by rough period
             from collections import defaultdict
+            from engine.findingkit import normalize_month as _norm_month
             period_bank = defaultdict(float)
             period_inv = defaultdict(float)
             for tx in bank_txs:
-                credit = float(tx.get("credit", 0) or 0)
+                credit = to_number(tx.get("credit", 0))
                 if credit > 0:
-                    d = str(tx.get("date", ""))[:7]
-                    period_bank[d] += credit
+                    d = _norm_month(tx.get("date"))
+                    if d: period_bank[d] += credit
             for i in sal_invs:
-                d = str(i.get("date", ""))[:7]
-                period_inv[d] += float(i.get("amount", 0) or 0)
+                d = _norm_month(i.get("date"))
+                if d: period_inv[d] += to_number(i.get("amount", 0))
             all_periods = sorted(set(list(period_bank.keys()) + list(period_inv.keys())))
             for p in all_periods:
                 b = period_bank.get(p, 0)
@@ -6803,8 +7399,8 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
         elif "周末交易" in ftype or "非工作日" in ftype:
             for tx in bank_txs:
                 d = str(tx.get("date", ""))[:10]
-                debit = float(tx.get("debit", 0) or 0)
-                credit = float(tx.get("credit", 0) or 0)
+                debit = to_number(tx.get("debit", 0))
+                credit = to_number(tx.get("credit", 0))
                 amt = max(debit, credit)
                 if amt > 0:
                     from datetime import datetime
@@ -6831,7 +7427,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
                         if dt.weekday() >= 5:
                             items.append({
                                 "日期": d, "发票号": str(i.get("inv_no", ""))[:20] or "-",
-                                "客户": str(i.get("buyer", ""))[:20], "金额": f"{float(i.get('amount', 0) or 0):,.2f}",
+                                "客户": str(i.get("buyer", ""))[:20], "金额": f"{to_number(i.get('amount', 0)):,.2f}",
                                 "货物": str(i.get("goods", ""))[:20]
                             })
                             if len(items) >= 10: break
@@ -6845,7 +7441,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
                 if s:
                     seller_counts[s] = seller_counts.get(s, {"count": 0, "amount": 0})
                     seller_counts[s]["count"] += 1
-                    seller_counts[s]["amount"] += float(i.get("amount", 0) or 0)
+                    seller_counts[s]["amount"] += to_number(i.get("amount", 0))
             for s, v in seller_counts.items():
                 if v["count"] >= 10:
                     avg = v["amount"] / v["count"] if v["count"] > 0 else 0
@@ -6857,7 +7453,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
         
         elif "交易时间与金额模式" in ftype and bank_txs:
             for tx in bank_txs:
-                amt = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+                amt = max(to_number(tx.get("debit", 0)), to_number(tx.get("credit", 0)))
                 if amt >= 10000 and amt == int(amt):
                     items.append({
                         "日期": str(tx.get("date", ""))[:10],
@@ -6892,15 +7488,15 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
             "source": label,
             "ref_id": str(inv.get("inv_no", inv.get("发票号码", "")))[:25] or "-",
             "ref_label": str(inv.get("goods", inv.get("货物或应税劳务名称", "")))[:30],
-            "amount": float(inv.get("amount", inv.get("total", 0)) or 0),
+            "amount": to_number(inv.get("amount", inv.get("total", 0))),
             "counterparty": str(inv.get("seller", inv.get("buyer", inv.get("销方名称", inv.get("购方名称", "")))))[:25],
             "date": str(inv.get("date", inv.get("inv_date", inv.get("开票日期", ""))))[:10],
             "note": str(inv.get("direction", ""))
         }
     
     def _bank_row(tx, label="银行流水"):
-        debit = float(tx.get("debit", 0) or 0)
-        credit = float(tx.get("credit", 0) or 0)
+        debit = to_number(tx.get("debit", 0))
+        credit = to_number(tx.get("credit", 0))
         return {
             "source": label,
             "ref_id": str(tx.get("transaction_serial_no", tx.get("流水号", "")))[:25] or str(tx.get("date", ""))[:10],
@@ -6916,7 +7512,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
             "source": label,
             "ref_id": str(v.get("voucher_no", v.get("凭证号", "")))[:25] or "-",
             "ref_label": str(v.get("summary", v.get("摘要", "")))[:30],
-            "amount": float(v.get("credit", v.get("debit", 0)) or 0),
+            "amount": to_number(v.get("credit", v.get("debit", 0))),
             "counterparty": str(v.get("account_name", v.get("科目", "")))[:25],
             "date": str(v.get("entry_date", v.get("period", v.get("日期", ""))))[:10],
             "note": ""
@@ -6927,13 +7523,19 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
             "source": label,
             "ref_id": str(s.get("姓名", s.get("name", "")))[:15] or "-",
             "ref_label": str(s.get("部门", s.get("dept", "")))[:20],
-            "amount": float(s.get("实发金额", s.get("实发", s.get("amount", 0))) or 0),
+            "amount": to_number(s.get("实发金额", s.get("实发", s.get("amount", 0)))),
             "counterparty": "",
             "date": str(s.get("period", s.get("月份", s.get("date", ""))))[:10],
             "note": ""
         }
     
     for f in all_findings:
+        # ★ 2026-09-26：作者已显式构建的证据行（如「红冲/作废发票」的逐笔明细 13 行）
+        #   必须保留，不得被通用 top-N 采样覆盖。否则「共13张红冲发票」的明细会被
+        #   压成 5 行「高频交易对方」汇总，用户要看的逐笔明细直接消失。
+        #   通用采样只作为「作者未提供证据行」时的兜底。
+        if f.get("evidence_rows"):
+            continue
         ftype = f.get("type", "")
         combined = ftype + " " + str(f.get("detail", "")) + " " + str(f.get("description", ""))
         evidence_rows = []
@@ -6943,8 +7545,8 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
         # 进销相关 → 采样销项/进项发票
         if any(kw in combined for kw in ["购销", "进销", "毛利", "有进无销", "有销无进", "数量偏差"]):
             # 按金额从大到小取top发票
-            sorted_sal = sorted(sal_invs, key=lambda x: float(x.get("amount", 0) or 0), reverse=True)[:3]
-            sorted_pur = sorted(pur_invs, key=lambda x: float(x.get("amount", 0) or 0), reverse=True)[:3]
+            sorted_sal = sorted(sal_invs, key=lambda x: to_number(x.get("amount", 0)), reverse=True)[:3]
+            sorted_pur = sorted(pur_invs, key=lambda x: to_number(x.get("amount", 0)), reverse=True)[:3]
             for inv in sorted_sal:
                 evidence_rows.append(_inv_row(inv, "销项发票"))
             for inv in sorted_pur:
@@ -6952,20 +7554,20 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
         
         # 银行/资金相关 → 采样银行流水
         if any(kw in combined for kw in ["银行", "收款", "付款", "资金", "流水", "个人交易"]):
-            sorted_bank = sorted(bank_txs, key=lambda x: max(float(x.get("debit",0) or 0), float(x.get("credit",0) or 0)), reverse=True)[:5]
+            sorted_bank = sorted(bank_txs, key=lambda x: max(to_number(x.get("debit",0)), to_number(x.get("credit",0))), reverse=True)[:5]
             for tx in sorted_bank:
                 evidence_rows.append(_bank_row(tx, "银行流水"))
         
         # 凭证相关 → 采样凭证
         if any(kw in combined for kw in ["凭证", "分录", "记账", "科目", "收入三源"]):
-            sorted_v = sorted(vouchers, key=lambda x: float(x.get("credit", x.get("debit", 0)) or 0), reverse=True)[:5]
+            sorted_v = sorted(vouchers, key=lambda x: to_number(x.get("credit", x.get("debit", 0))), reverse=True)[:5]
             for v in sorted_v:
                 evidence_rows.append(_voucher_row(v, "记账凭证"))
         
         # 发票行为 → 采样可疑发票
         if any(kw in combined for kw in ["发票连号", "整十整百", "季度末", "金额分布"]):
             # 对金额整十整百的采样
-            round_invs = [i for i in invoices if float(i.get("amount", 0) or 0) >= 1000 and (float(i.get("amount", 0)) % 1000 == 0 or float(i.get("amount", 0)) % 10000 == 0)]
+            round_invs = [i for i in invoices if to_number(i.get("amount", 0)) >= 1000 and (float(i.get("amount", 0)) % 1000 == 0 or float(i.get("amount", 0)) % 10000 == 0)]
             for inv in round_invs[:5]:
                 evidence_rows.append(_inv_row(inv, "可疑发票"))
         
@@ -6989,7 +7591,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
         
         # 工资相关 → 采样工资记录
         if any(kw in combined for kw in ["工资", "薪金", "人员"]):
-            sorted_sal = sorted(salaries, key=lambda x: float(x.get("实发金额", x.get("实发", x.get("amount", 0))) or 0), reverse=True)[:5]
+            sorted_sal = sorted(salaries, key=lambda x: to_number(x.get("实发金额", x.get("实发", x.get("amount", 0)))), reverse=True)[:5]
             for s in sorted_sal:
                 evidence_rows.append(_salary_row(s, "工资表"))
         
@@ -7034,6 +7636,17 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline
             entity["registered_capital"] = str(_c.registered_capital or "")
             entity["legal_representative"] = _c.legal_representative or ""
             entity["legal_representative_id"] = _c.legal_representative_id or ""
+            # ★ 2026-09-25 修正（"报告里凭空出现橡胶制品行业"的根因）：
+            #   本 Step 原先读了名称/税号/经营范围/公司类型/地址/成立日期/注册资本/法人，
+            #   **独独漏了工商登记的行业字段** → 报告 target_entity.industry 恒为空
+            #   → 行业对标只能退到"拿经营范围里的商品名当行业"，把一家商贸/传媒企业
+            #     判成"橡胶制品"制造业，再用制造业毛利率区间报"毛利率明显偏低"（纯误报）。
+            #   现补读登记行业作为基线；若后续销项发票品名推断出不同结果，以推断口径为准，
+            #   并保留登记值以便识别"登记与实际不符"（超范围经营/变名开票是有价值的线索）。
+            entity["industry"] = _c.industry_code or ""
+            entity["industry_registered"] = _c.industry_code or ""
+            if _c.industry_code:
+                entity["_industry_source"] = "工商登记"
             if _c.legal_representative:
                 entity["legal_person"] = _c.legal_representative
     except Exception as _ce_err:
@@ -7085,33 +7698,43 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline
     if not entity["name"]:
         for tx in bank_txs:
             cp = str(tx.get("counterparty", ""))
-            credit = float(tx.get("credit", 0) or 0)
+            credit = to_number(tx.get("credit", 0))
             if credit > 100000:  # 大额收款
                 entity["name"] = cp
                 entity["source"].append("银行大额收款方")
                 break
     
-    # 5. 推断行业类型（仅以销项发票品名为依据，不参考进项）
+    # 5. 行业口径解析（★ 2026-09-25：收敛到 engine.industry_resolver，本处不再自建投票）
+    #    统一解析器按"外部工商 → 工商登记 → 销项品名 → 企业名称 → 经营范围(先定业态) → 经营模式"
+    #    的优先级给出**带来源与置信度**的行业，并保留各候选与冲突（登记≠实际 = 有效核查线索）。
+    #    这一步就是为了根治"行业判定多头维护、各处兜底不一致、结果依赖字典顺序"的根本原因。
     goods_list = []
     for inv in invoices:
-        if inv.get("direction", "") != "销项": continue
+        if inv.get("direction", "") != "销项":
+            continue
         g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
-        if g: goods_list.append(g)
-    
-    if goods_list:
-        goods_text = " ".join(goods_list)
-        industry_map = _load_industry_data().get("industry_map", {})
-        # 改进行业检测：加权投票制——统计各行业命中的关键词次数，取最高分
-        # 避免单一通用词（如"设备"）覆盖多个专业词（如"软件""技术"）
-        from collections import Counter as _ctr
-        industry_votes = _ctr()
-        for kw, industry in industry_map.items():
-            if kw in goods_text:
-                industry_votes[industry] += 1
-        if industry_votes:
-            entity["industry"] = industry_votes.most_common(1)[0][0]
-            entity["_industry_votes"] = dict(industry_votes.most_common(3))
-    
+        if g:
+            goods_list.append(g)
+    entity["_industry_goods"] = goods_list
+
+    from engine.industry_resolver import resolve_industry as _resolve_industry
+    _ires = _resolve_industry(
+        company_name=entity.get("name", ""),
+        registered_industry=entity.get("industry_registered", ""),
+        online_industry=entity.get("_industry_online", ""),
+        sales_goods=goods_list,
+        business_scope=entity.get("business_scope", ""),
+        biz_model="",                      # biz_model 在 Step 7 才判定，此处先不定
+        pipeline_log=pipeline_log,
+    )
+    entity["industry"] = _ires.get("industry", "") or ""
+    entity["_industry_source"] = _ires.get("source", "")
+    entity["_industry_confidence"] = _ires.get("confidence", "")
+    entity["industry_inferred"] = _ires.get("inferred", "")
+    entity["_industry_votes"] = _ires.get("votes", {})
+    entity["_industry_candidates"] = _ires.get("candidates", {})
+    entity["_industry_conflicts"] = _ires.get("conflicts", [])
+
     # 6. 提取期间范围（智能解析多种日期格式，避免硬截取Bug）
     import re as _dre
     dates = []
@@ -7169,6 +7792,25 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline
         if not entity.get("biz_model"):
             entity["biz_model"] = "贸易业"
     
+    # 7b. 行业兜底补齐（★ 统一解析器：仅在前面所有来源都取不到行业时，
+    #     用"经营模式 → 粗粒度门类"兜底，并**明确标注为低置信度兜底**，绝不静默套默认档）
+    if not entity.get("industry"):
+        _ires2 = _resolve_industry(
+            company_name=entity.get("name", ""),
+            registered_industry=entity.get("industry_registered", ""),
+            online_industry=entity.get("_industry_online", ""),
+            sales_goods=entity.get("_industry_goods") or [],
+            business_scope=entity.get("business_scope", ""),
+            biz_model=entity.get("biz_model", ""),
+            pipeline_log=pipeline_log,
+        )
+        entity["industry"] = _ires2.get("industry", "") or ""
+        entity["_industry_source"] = _ires2.get("source", "")
+        entity["_industry_confidence"] = _ires2.get("confidence", "")
+        if not entity["industry"] and pipeline_log is not None:
+            pipeline_log.append("[行业口径] 未能确定行业（无外部工商/登记/发票品名/名称/经营范围线索），"
+                                "行业对标与行业门控将按通用口径放宽处理。")
+
     return entity
 
 
@@ -7410,7 +8052,7 @@ def _extract_company_from_html(html_text, source_name):
 # 天眼查开放平台: https://open.tianyancha.com
 # 企查查开放平台: https://openapi.qcc.com
 
-def _load_api_config():
+def _load_thirdparty_api_config():
     """加载天眼查/企查查 API 配置。完全防崩，出错返回空配置。"""
     config = {"tyc_appkey": "", "tyc_token": "", "qcc_appkey": "", "qcc_secret_key": ""}
     try:
@@ -7445,7 +8087,7 @@ def _load_api_config():
 
 def _try_tyc_api(company_name):
     """天眼查工商信息查询。需要 TYC_APPKEY + TYC_TOKEN 环境变量或 api_config.json"""
-    cfg = _load_api_config()
+    cfg = _load_thirdparty_api_config()
     if not cfg["tyc_appkey"] or not cfg["tyc_token"]:
         return None
     try:
@@ -7491,7 +8133,7 @@ def _try_tyc_api(company_name):
 
 def _try_qcc_api(company_name):
     """企查查工商信息查询。需要 QCC_APPKEY + QCC_SECRET_KEY 环境变量或 api_config.json"""
-    cfg = _load_api_config()
+    cfg = _load_thirdparty_api_config()
     if not cfg["qcc_appkey"] or not cfg["qcc_secret_key"]:
         return None
     try:
@@ -7913,7 +8555,7 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
         sname = str(inv.get("seller", inv.get("销方名称", inv.get("supplier", "")))).strip()
         if not sname or len(sname) < 4 or sname == target_name:
             continue
-        amt = float(inv.get("amount", inv.get("金额", 0)) or 0)
+        amt = amount_of(inv)   # ★ 行内取金额唯一权威（numparse.amount_of）
         supplier_amounts[sname] += amt
         supplier_invs[sname].append(inv)
     
@@ -7924,7 +8566,7 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
         cname = str(inv.get("buyer", inv.get("购买方名称", inv.get("customer", "")))).strip()
         if not cname or len(cname) < 4 or cname == target_name:
             continue
-        amt = float(inv.get("amount", inv.get("金额", 0)) or 0)
+        amt = amount_of(inv)   # ★ 行内取金额唯一权威（numparse.amount_of）
         customer_amounts[cname] += amt
         customer_invs[cname].append(inv)
     
@@ -8322,6 +8964,36 @@ def _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_lo
         target_entity["supervisors"] = lookup.get("supervisors", [])
         target_entity["finance_contacts"] = lookup.get("finance_contacts", [])
         target_entity["lookup_source"] = lookup.get("source", "")
+
+        # ★ 2026-09-25 补齐（本函数文档承诺 "industry → 覆盖发票关键词推断结果（更准确）"，
+        #   但实现里**从未给 industry 赋值** —— 承诺的兜底一直是空的）：
+        #   外部工商核验是最高权威口径，取到后重新走一遍统一行业解析器。
+        _online_ind = str(lookup.get("industry") or "").strip()
+        if _online_ind:
+            target_entity["_industry_online"] = _online_ind
+            try:
+                from engine.industry_resolver import resolve_industry as _ri
+                _old_ind = str(target_entity.get("industry") or "")
+                _r = _ri(
+                    company_name=target_entity.get("name", ""),
+                    registered_industry=target_entity.get("industry_registered", ""),
+                    online_industry=_online_ind,
+                    sales_goods=target_entity.get("_industry_goods") or [],
+                    business_scope=target_entity.get("business_scope", ""),
+                    biz_model=target_entity.get("biz_model", ""),
+                    pipeline_log=pipeline_log,
+                )
+                target_entity["industry"] = _r.get("industry", "") or ""
+                target_entity["_industry_source"] = _r.get("source", "")
+                target_entity["_industry_confidence"] = _r.get("confidence", "")
+                target_entity["_industry_candidates"] = _r.get("candidates", {})
+                target_entity["_industry_conflicts"] = _r.get("conflicts", [])
+                if _old_ind != target_entity["industry"]:
+                    pipeline_log.append(
+                        f"[行业口径] 外部工商核验后重解析：'{_old_ind}' → "
+                        f"'{target_entity['industry']}'（来源：{target_entity['_industry_source']}）")
+            except Exception as _rie:
+                pipeline_log.append(f"[行业口径] 外部口径重解析失败（保留原值）: {_rie}")
     else:
         pipeline_log.append(f"联网核查未成功，六员信息从本地数据库获取")
     
@@ -8369,8 +9041,10 @@ def _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_lo
 
 # ═══════════ 税务合规方法论过滤器 —— 剔除无数据支撑的噪声发现 ═══════════
 
-def _apply_output_governance_filter(all_findings, pipeline_log, bank_txs, invoices, salaries, social_security, vouchers, inventory, docs, target_industry=""):
-    """过滤铁律：每条结论必须有上传资料中的实际数据支撑。target_industry: 由_caller传入，复用_detect_target_entity()的检测结果，避免重复造轮子。"""
+def _apply_output_governance_filter(all_findings, pipeline_log, bank_txs, invoices, salaries, social_security, vouchers, inventory, docs, target_industry="", file_results=None, tax_declarations=None, contract_data=None):
+    """过滤铁律：每条结论必须有上传资料中的实际数据支撑。target_industry: 由_caller传入，复用_detect_target_entity()的检测结果，避免重复造轮子。
+    file_results/tax_declarations/contract_data: 解析后的实际数据，用于判断"申报表/合同"是否真实存在（2026-09-16 修正：
+    不能查上传记录的 type 字段——上传接口从不写 type，恒为空，会导致已正确解析的申报表/合同结论被误删）。"""
     before = len(all_findings)
     
     has_bank = len(bank_txs) > 0
@@ -8379,8 +9053,14 @@ def _apply_output_governance_filter(all_findings, pipeline_log, bank_txs, invoic
     has_voucher = len(vouchers) > 0
     has_inventory = len(inventory) > 0
     
-    has_declaration = any("vat" in str(doc.get("type","")).lower() or "declaration" in str(doc.get("type","")).lower() for doc in docs)
-    has_contract = any("contract" in str(doc.get("type","")).lower() for doc in docs)
+    # ═══ 修正(2026-09-16)：申报表/合同是否存在必须以"解析后的实际数据"为准，
+    # 不能查上传记录的 type 字段——上传接口从不写 type（恒为空），会导致：
+    # ① 已正确解析的申报表/合同分析结论被治理过滤器误删（"一键分析不懂得分析PDF申报表"）；
+    # ② 完备性误判缺失。改用 file_results 解析类型 / 实际数据容器判断。
+    _fr_types = {str(fr.get("type", "")).lower() for fr in (file_results or [])}
+    _decl_types = ("vat_declaration", "cit_declaration", "tax_declaration", "individual_tax", "stamp_duty", "tax_payment")
+    has_declaration = bool(tax_declarations) or any(t in _fr_types for t in _decl_types) or any("declaration" in t for t in _fr_types)
+    has_contract = ("contract" in _fr_types) or bool(contract_data)
     
     # target_industry 由调用方传入（来自_detect_target_entity()的加权投票结果），全行业适用
     
@@ -8658,8 +9338,8 @@ def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouc
     # ═══ 规则0(最高优先): 多链路矛盾检测 ═══
     has_voucher_unbalanced = any("借贷不平" in str(f.get("type","")) for f in all_findings if "252张" in str(f.get("detail","")))
     if has_voucher_unbalanced and vouchers:
-        total_d = sum(float(v.get("debit",0) or 0) for v in vouchers)
-        total_c = sum(float(v.get("credit",0) or 0) for v in vouchers)
+        total_d = sum(to_number(v.get("debit",0)) for v in vouchers)
+        total_c = sum(to_number(v.get("credit",0)) for v in vouchers)
         if abs(total_d - total_c) <= 1:
             issues.append({
                 "level": "错误", "item": "多链路矛盾: 凭证借贷不平 vs 总账平衡",
@@ -8680,7 +9360,7 @@ def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouc
     vr_total = 0.0; vr_invoiced = 0.0; vr_uninvoiced = 0.0
     for v in vouchers:
         if "主营业务收入" in str(v.get("account", "")):
-            credit = float(v.get("credit", 0) or 0)
+            credit = to_number(v.get("credit", 0))
             summary = str(v.get("summary", ""))
             if credit <= 0: continue
             vr_total += credit
@@ -8704,8 +9384,8 @@ def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouc
                 })
     
     # 复核进销比
-    sal_total = sum(float(i.get("total", 0) or 0) for i in invoices if i.get("direction") == "销项")
-    pur_total = sum(float(i.get("total", 0) or 0) for i in invoices if i.get("direction") == "进项")
+    sal_total = sum(to_number(i.get("total", 0)) for i in invoices if i.get("direction") == "销项")
+    pur_total = sum(to_number(i.get("total", 0)) for i in invoices if i.get("direction") == "进项")
     for f in all_findings:
         if "进销严重倒挂" in str(f.get("type", "")):
             for num_text in str(f.get("detail", "")).split():

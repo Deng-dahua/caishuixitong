@@ -6,20 +6,29 @@
 
 本模块从规则JSON的threshold字段提取数值条件，对引擎已解析的数据做检查。
 """
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 import re, json, os
 from collections import defaultdict
 
 
 def _safe_float(v, default=0.0):
-    try:
-        return float(v) if v not in (None, "", "None") else default
-    except (ValueError, TypeError):
-        return default
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v, default)
 
 
 def _month_key(date_str):
-    d = str(date_str).replace("-", "").replace("/", "").strip()
-    return d[:6] if len(d) >= 6 else d
+    """期间键取 YYYYMM（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/findingkit.py（唯一权威）。
+    """
+    from engine.findingkit import month_key as _month_key_impl
+    return _month_key_impl(date_str)
 
 
 def scan_balance_equation(vouchers, trial_balance_data):

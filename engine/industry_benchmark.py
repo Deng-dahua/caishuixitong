@@ -16,6 +16,7 @@
 """
 
 from __future__ import annotations
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 
 import json
 import os
@@ -115,74 +116,168 @@ def resolve_benchmark(industry: str):
         return matched, INDUSTRY_BENCHMARKS[matched], "通用参考"
     return matched, _GENERIC, "通用宽松区间(未匹配到行业)"
 
-# ── 行业参考预警区间（下限, 上限），单位：百分比 ──────────────────────────
-# vat_burden     增值税税负率 = 应纳增值税 / 销售收入
-# gross_margin   毛利率       = (收入 - 成本) / 收入
-# expense_ratio  期间费用率   = (销售+管理+财务费用) / 收入（仅给上限）
-# purchase_sales 进销比       = 进项金额 / 销项金额
-INDUSTRY_BENCHMARKS: Dict[str, Dict[str, Tuple[float, float]]] = {
-    "制造业":            {"vat_burden": (1.5, 3.5), "gross_margin": (10.0, 30.0), "expense_ratio": (0.0, 15.0), "purchase_sales": (0.40, 0.95)},
-    "批发和零售业":      {"vat_burden": (0.5, 1.5), "gross_margin": (5.0, 20.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.60, 0.98)},
-    "建筑业":            {"vat_burden": (2.0, 3.5), "gross_margin": (8.0, 20.0),  "expense_ratio": (0.0, 10.0), "purchase_sales": (0.50, 0.95)},
-    "软件和信息技术服务业": {"vat_burden": (1.0, 3.0), "gross_margin": (25.0, 60.0), "expense_ratio": (0.0, 35.0), "purchase_sales": (0.10, 0.60)},
-    "住宿和餐饮业":      {"vat_burden": (1.0, 3.0), "gross_margin": (40.0, 65.0), "expense_ratio": (0.0, 45.0), "purchase_sales": (0.20, 0.70)},
-    "交通运输仓储和邮政业": {"vat_burden": (2.0, 3.5), "gross_margin": (12.0, 28.0), "expense_ratio": (0.0, 15.0), "purchase_sales": (0.30, 0.85)},
-    "房地产业":          {"vat_burden": (2.5, 5.0), "gross_margin": (20.0, 40.0), "expense_ratio": (0.0, 15.0), "purchase_sales": (0.30, 0.90)},
-    "租赁和商务服务业":  {"vat_burden": (1.5, 4.0), "gross_margin": (20.0, 50.0), "expense_ratio": (0.0, 30.0), "purchase_sales": (0.15, 0.70)},
-    "农、林、牧、渔业":  {"vat_burden": (0.5, 2.0), "gross_margin": (10.0, 30.0), "expense_ratio": (0.0, 20.0), "purchase_sales": (0.30, 0.90)},
-    "电力热力燃气及水生产供应业": {"vat_burden": (1.5, 3.0), "gross_margin": (10.0, 25.0), "expense_ratio": (0.0, 12.0), "purchase_sales": (0.40, 0.90)},
-    # ── 以下行业名与 audit_enhancements.detect_industry() 的分类输出对齐 ──
-    # 该分类器实际产出「广告传媒/信息技术/咨询服务/建筑工程/纺织制造/餐饮服务/
-    # 物流运输/医药健康/商贸」，若不覆盖这些名字，分类器判出的行业在本模块会全部
-    # 落空（实测：深圳某数字传媒公司毛利率7.2%未被本模块报警，即因缺"广告传媒"）。
-    # 毛利率区间与 static/industry_profiles.json 及系统既有口径保持一致，避免两套数字。
-    "广告传媒":      {"vat_burden": (1.0, 3.5), "gross_margin": (30.0, 65.0), "expense_ratio": (0.0, 40.0), "purchase_sales": (0.15, 0.75)},
-    "信息技术":      {"vat_burden": (1.0, 3.0), "gross_margin": (30.0, 90.0), "expense_ratio": (0.0, 40.0), "purchase_sales": (0.10, 0.60)},
-    "咨询服务":      {"vat_burden": (1.5, 4.0), "gross_margin": (20.0, 75.0), "expense_ratio": (0.0, 45.0), "purchase_sales": (0.10, 0.60)},
-    "建筑工程":      {"vat_burden": (2.0, 3.5), "gross_margin": (5.0, 35.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.50, 0.95)},
-    "纺织制造":      {"vat_burden": (1.5, 3.5), "gross_margin": (8.0, 40.0),  "expense_ratio": (0.0, 15.0), "purchase_sales": (0.40, 0.95)},
-    "餐饮服务":      {"vat_burden": (1.0, 3.0), "gross_margin": (40.0, 65.0), "expense_ratio": (0.0, 45.0), "purchase_sales": (0.20, 0.70)},
-    "物流运输":      {"vat_burden": (2.0, 3.5), "gross_margin": (5.0, 40.0),  "expense_ratio": (0.0, 15.0), "purchase_sales": (0.30, 0.85)},
-    "医药健康":      {"vat_burden": (1.5, 4.0), "gross_margin": (20.0, 60.0), "expense_ratio": (0.0, 35.0), "purchase_sales": (0.20, 0.80)},
-    "商贸":          {"vat_burden": (0.5, 1.5), "gross_margin": (3.0, 30.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.60, 0.98)},
-    "制造业":        {"vat_burden": (1.5, 3.5), "gross_margin": (8.0, 40.0),  "expense_ratio": (0.0, 15.0), "purchase_sales": (0.40, 0.95)},
-    "贸易批发":      {"vat_burden": (0.5, 1.5), "gross_margin": (3.0, 30.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.60, 0.98)},
-    "建筑装饰":      {"vat_burden": (2.0, 3.5), "gross_margin": (5.0, 35.0),  "expense_ratio": (0.0, 12.0), "purchase_sales": (0.50, 0.95)},
-    "服务业":        {"vat_burden": (1.5, 4.0), "gross_margin": (20.0, 75.0), "expense_ratio": (0.0, 45.0), "purchase_sales": (0.10, 0.60)},
-    "科技互联网":    {"vat_burden": (1.0, 3.0), "gross_margin": (30.0, 90.0), "expense_ratio": (0.0, 40.0), "purchase_sales": (0.10, 0.60)},
+# ═══════════════════════════════════════════════════════════════════════════
+# 行业名 → 本区间库键名 的**对齐表**（唯一维护处）
+# ═══════════════════════════════════════════════════════════════════════════
+# ★ 2026-09-25 新增：本模块的 `INDUSTRY_BENCHMARKS` 使用的是**国民经济行业门类**口径
+#   （"批发和零售业""租赁和商务服务业"…），而 `static/industry_data.json` 的
+#   `benchmarks` 用的是**细分行业**口径（"商贸""纺织制造""广告传媒"…）。
+#   两套口径不同名，导致细分行业名在本库"全部落空"→ 静默退到通用宽松区间，
+#   读者却以为是"行业区间"（实测：某数字传媒公司毛利率 7.2% 因缺"广告传媒"键而未报警）。
+#   这里集中登记口径对应关系（新增行业只需在此加一行，不散落到各处）：
+_INDUSTRY_ALIAS = {
+    # 细分行业 → 本库门类
+    "商贸": "批发零售", "商贸批发": "批发零售", "商贸零售": "批发零售",
+    "外贸": "批发零售", "电子商务": "批发零售", "建材销售": "批发零售",
+    "广告传媒": "租赁商务", "文化传媒": "租赁商务",
+    "咨询服务": "租赁商务", "设计服务": "租赁商务",
+    "租赁服务": "租赁商务", "法律服务": "租赁商务",
+    "财税服务": "租赁商务", "投资管理": "租赁商务",
+    "信息技术": "软件信息服务", "互联网": "软件信息服务",
+    "技术服务": "软件信息服务", "研发服务": "软件信息服务",
+    "检测服务": "软件信息服务",
+    "餐饮服务": "住宿餐饮", "酒店服务": "住宿餐饮",
+    "物流运输": "交通运输", "物流仓储": "交通运输",
+    "停车服务": "交通运输",
+    "建筑工程": "建筑业", "装修装饰": "建筑业", "房地产": "房地产业",
+    "纺织制造": "制造业", "服装制造": "制造业", "印染加工": "制造业",
+    "染整加工": "制造业", "机械制造": "制造业", "设备制造": "制造业",
+    "模具制造": "制造业", "五金加工": "制造业", "电子制造": "制造业",
+    "电子元器件": "制造业", "电器制造": "制造业", "仪器仪表": "制造业",
+    "汽车制造": "制造业", "汽车零部件": "制造业", "化工": "制造业",
+    "塑料制品": "制造业", "橡胶制品": "制造业", "钢铁": "制造业",
+    "金属加工": "制造业", "木材加工": "制造业", "家具制造": "制造业",
+    "食品加工": "制造业", "医药健康": "制造业", "医疗器械": "制造业",
+    "生物医药": "制造业", "新能源": "制造业", "半导体": "制造业",
+    "农业生产": "农林牧渔", "畜牧养殖": "农林牧渔", "水产养殖": "农林牧渔",
+    "能源": "电力热力燃气水", "环保": "电力热力燃气水",
 }
 
-# 未匹配到具体行业时的通用宽松区间（避免无行业信息时误报）
-_GENERIC = {"vat_burden": (0.3, 6.0), "gross_margin": (2.0, 70.0),
-            "expense_ratio": (0.0, 50.0), "purchase_sales": (0.05, 1.20)}
 
-_LABEL = {
-    "vat_burden": "增值税税负率",
-    "gross_margin": "毛利率",
-    "expense_ratio": "期间费用率",
-    "purchase_sales": "进销比",
+# ── 行业参考预警区间 —— ★ 全部从唯一数据源派生，本文件不再硬编码任何数字 ──────
+# ★ 2026-09-25 合并（消除"两套数字"）：
+#   原先本模块自带 23 条硬编码区间 + 一条 _GENERIC，与
+#   `static/industry_data.json → benchmarks`（65 个细分行业）并存，同一概念两套数字，
+#   本模块注释自己也写着"避免两套数字"。现全部改为从唯一数据源派生：
+#     · 细分行业层 benchmarks  + 门类层 benchmarks_coarse，**同一套指标名与结构**；
+#     · 缺 期间费用率 的细分行业，**按门类继承**（见 _INDUSTRY_ALIAS）；
+#     · 对外键名与单位保持不变（vat_burden/gross_margin/expense_ratio/purchase_sales，百分比），
+#       以兼容既有调用方；换算在本文件内一次完成。
+_METRIC_ZH_TO_EN = {
+    "毛利率": "gross_margin",
+    "税负率": "vat_burden",
+    "期间费用率": "expense_ratio",
+    "进销比": "purchase_sales",
 }
+# ★ 各指标的换算系数（**必须按指标分别换算**）：
+#   毛利率/税负率/期间费用率 在数据源里是**比例**（0.12）→ ×100 得百分比；
+#   进销比本身就是**比值**（进项/销项，0.4~1.0），**不得**再乘 100。
+#   （首版统一 ×100 曾把 进销比 0.4~0.95 变成 40~95，属单位错误。）
+_METRIC_SCALE = {"毛利率": 100.0, "税负率": 100.0, "期间费用率": 100.0, "进销比": 1.0}
 
+
+def _build_industry_benchmarks() -> Dict[str, Dict[str, Tuple[float, float]]]:
+    """从唯一数据源（static/industry_data.json）派生区间表。"""
+    from engine.industry_resolver import load_industry_data
+    data = load_industry_data() or {}
+    out: Dict[str, Dict[str, Tuple[float, float]]] = {}
+    coarse_rows: Dict[str, Dict[str, Tuple[float, float]]] = {}
+
+    def _row(src: dict) -> Dict[str, Tuple[float, float]]:
+        row = {}
+        for zh, en in _METRIC_ZH_TO_EN.items():
+            tri = (src or {}).get(zh)
+            if isinstance(tri, (list, tuple)) and len(tri) >= 2:
+                k = _METRIC_SCALE[zh]
+                try:
+                    row[en] = (round(float(tri[0]) * k, 4), round(float(tri[1]) * k, 4))
+                except (TypeError, ValueError):
+                    continue
+        return row
+
+    for k, v in (data.get("benchmarks_coarse") or {}).items():
+        row = _row(v)
+        if row:
+            coarse_rows[k] = row
+    for k, v in (data.get("benchmarks") or {}).items():
+        if k == "_default":
+            continue
+        row = _row(v)
+        if row:
+            out[k] = row
+    # 细分行业缺 期间费用率 → 按其所属门类继承（门类归属见 _INDUSTRY_ALIAS）
+    for k, row in out.items():
+        if "expense_ratio" in row:
+            continue
+        coarse_key = _INDUSTRY_ALIAS.get(k)
+        inherited = coarse_rows.get(coarse_key or "", {}).get("expense_ratio")
+        if inherited:
+            row["expense_ratio"] = inherited
+    # 门类层同样对外可用（原先只认"门类名"的调用方继续工作）
+    for k, row in coarse_rows.items():
+        out.setdefault(k, row)
+    return out
+
+
+def _build_generic() -> Dict[str, Tuple[float, float]]:
+    """宽松兜底区间 —— 同样从数据源 `benchmarks._default` 派生。"""
+    from engine.industry_resolver import load_industry_data
+    dflt = (load_industry_data() or {}).get("benchmarks", {}).get("_default") or {}
+    row = {}
+    for zh, en in _METRIC_ZH_TO_EN.items():
+        tri = dflt.get(zh)
+        if isinstance(tri, (list, tuple)) and len(tri) >= 2:
+            k = _METRIC_SCALE[zh]
+            try:
+                row[en] = (round(float(tri[0]) * k, 4), round(float(tri[1]) * k, 4))
+            except (TypeError, ValueError):
+                continue
+    # 数据源不可读时返回空字典：下游 `bench.get(k, (None, None))` 会跳过该指标，
+    # **绝不在本文件里再写一套兜底数字**（那正是"两套数字"的来源）。
+    return row
+
+
+INDUSTRY_BENCHMARKS: Dict[str, Dict[str, Tuple[float, float]]] = _build_industry_benchmarks()
+_GENERIC: Dict[str, Tuple[float, float]] = _build_generic()
 
 def match_industry(name: str) -> str:
-    """按企业名称/行业描述模糊匹配库内行业，匹配不到返回空串。"""
+    """按行业名/企业描述匹配本库行业键，匹配不到返回空串。
+
+    ★ 2026-09-25 重写（消除两个通用缺陷）：
+      ① 先查**显式对齐表** `_INDUSTRY_ALIAS`（细分行业名 → 本库门类），
+         解决"两套口径不同名导致细分行业全部落空、静默退通用区间"；
+      ② 再按**键长从长到短**精确包含匹配（原先按字典顺序取"键前 4 字"做包含，
+         结果依赖键的书写顺序，且短片段易误命中断言）。
+    """
     text = str(name or "")
-    for key in INDUSTRY_BENCHMARKS:
-        # 用行业名中的关键片段做包含匹配
-        frag = key.replace("、", "").replace("和", "")[:4]
-        if frag and frag in text:
+    if not text:
+        return ""
+    # ① 显式对齐（细分行业名或门类名本身）
+    if text in INDUSTRY_BENCHMARKS:
+        return text
+    for frag, key in _INDUSTRY_ALIAS.items():
+        if frag in text:
             return key
-    for key in INDUSTRY_BENCHMARKS:
+    # ② 键长优先的包含匹配（确定、可解释）
+    for key in sorted(INDUSTRY_BENCHMARKS, key=len, reverse=True):
         if key in text:
+            return key
+    for key in sorted(INDUSTRY_BENCHMARKS, key=len, reverse=True):
+        frag = key.replace("、", "").replace("和", "")
+        if len(frag) >= 3 and frag in text:
             return key
     return ""
 
 
 def _num(v: Any) -> float:
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
 def _sum_field(records: Any, keys: List[str]) -> float:

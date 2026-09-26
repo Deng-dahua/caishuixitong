@@ -19,6 +19,7 @@
 """
 
 from __future__ import annotations
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 
 from collections import defaultdict
 
@@ -110,10 +111,14 @@ def is_individual_name(name: str) -> bool:
 
 
 def _amount_of(row) -> float:
-    try:
-        return float(row.get("amount") or row.get("total") or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import first_amount as _first_amount
+    return _first_amount(row, absolute=True)
 
 
 def match_invoices_to_flows(inv_rows, bank_txs, side="purchase", name_field=None):
@@ -311,7 +316,9 @@ def classify_revenue_receipt(sal_invs, bank_txs):
 
 
 def _number_of(value) -> float:
-    try:
-        return float(value or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：原为 `to_number(value)`，遇 "12,000.00" 会静默返回 0。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(value)

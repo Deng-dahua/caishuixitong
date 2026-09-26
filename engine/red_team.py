@@ -5,6 +5,7 @@
 # 2026-09-11 P2-3：补全幻觉检测的金额矛盾比对（此前只提取不比对）
 # ══════════════════════════════════════════════════════════════
 
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 import re
 
 def red_team_falsification(all_findings, pipeline_log=None, engine_data=None):
@@ -116,25 +117,34 @@ def _generate_innocence_hypotheses(ftype, detail):
 
 
 def _num(value):
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(value)
 
 
 def _monthly_totals(rows, keys=("total", "amount", "credit")):
-    """按月汇总金额 → {'202501': 1234.5, ...}"""
+    """按月汇总金额 → {'202501': 1234.5, ...}
+
+    ★ 2026-09-25 收敛：期间键唯一权威在 engine/findingkit.py。
+    （原实现"去 -/ 后取前 6 位"会把 '2025/1/15' 算成 '202511'、把同一月拆成多个桶。）
+    """
+    from engine.findingkit import month_key_strict as _month_key
     out = {}
     for row in rows or []:
-        date = str(row.get("date") or row.get("invoice_date") or "").replace("-", "").replace("/", "")
-        if len(date) < 6:
+        key = _month_key(row.get("date") or row.get("invoice_date"))
+        if not key:
             continue
         amount = 0.0
-        for key in keys:
-            amount = _num(row.get(key))
+        for field in keys:
+            amount = _num(row.get(field))
             if amount:
                 break
-        out[date[:6]] = out.get(date[:6], 0.0) + amount
+        out[key] = out.get(key, 0.0) + amount
     return out
 
 

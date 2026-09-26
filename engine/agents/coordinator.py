@@ -340,7 +340,7 @@ class DialogAgent(BaseAgent):
             ev = f.get("evidence_rows") or f.get("items") or []
             for ei in ev[:3]:
                 if isinstance(ei, dict):
-                    amt = ei.get("amount", ei.get("金额", ei.get("invoice_amount", "")))
+                    amt = amount_of(ei)   # ★ 行内取金额唯一权威（numparse.amount_of）
                     cp = ei.get("counterparty", ei.get("对方", ""))
                     src = ei.get("source", ei.get("来源", ""))
                     line = f"• [{f.get('level','')}] {f.get('type','')[:30]}"
@@ -385,7 +385,8 @@ class DialogAgent(BaseAgent):
         for tax, desc in self._tax_knowledge["税种触发"].items():
             if tax in q:
                 # 提取法条引用
-                law_text = desc.split("。")[0] if "。" in desc else desc[:100]
+                from engine.sentencekit import first_sentence
+                law_text = first_sentence(desc)[:200] or desc[:100]
                 blocks.append({"title": f"📜 {tax}法律原文", "content": law_text})
         
         if not law_lines:
@@ -451,7 +452,7 @@ class DialogAgent(BaseAgent):
             max_amt = 0
             for ei in ev:
                 try:
-                    amt = float(str(ei.get("amount", ei.get("金额","0"))).replace(",",""))
+                    amt = amount_of(ei)   # ★ 行内取金额唯一权威（numparse.amount_of）
                     max_amt = max(max_amt, amt)
                 except: pass
             domain_count = 1 if f.get("domain") or f.get("category") else 0

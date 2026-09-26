@@ -30,7 +30,7 @@
   remedy       补证要求
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 KNOWLEDGE_VERSION = "1.0.0"
 
@@ -3371,39 +3371,141 @@ def domains() -> List[str]:
     return out
 
 
-def match_redlines(text: str, domain: Optional[str] = None, limit: int = 3) -> List[Dict]:
-    """
-    依据发现文本匹配红线。
+# ── 红线配对打分（**唯一实现**，2026-09-25 根因修复）─────────────────────────
+# 旧版把"税种名相同"也算 1 分，且**没有最低分数线**，于是只要得分为正就取第一名：
+# 一条「增值税申报进项税额与进项发票税额月度差异」的发现，因为文本里含"增值税"，
+# 而「固定资产取得、投用与折旧不匹配」红线的 taxes 里也有"增值税" → 得 1 分 → 被采纳为
+# 该发现所属红线 → 报告随即用**固定资产折旧的构成要件**去论证一个增值税差异，
+# 并写出"这些事实是从固定资产明细账、试生产记录、折旧计算表…核对出来的"（该企业
+# 一份都没提交）。实测 13 条发现里 7 条配错红线。
+# 现按**信号具体度**加权，并要求"必须命中名称主词或足够具体的提示词"才算对得上。
+_MATCH_NAME_TITLE = 12        # 红线名称主词命中**发现标题**（最可靠）
+_MATCH_NAME_TEXT = 8          # 名称主词命中全文
+_MATCH_HINT_TITLE = 10        # 提示词命中标题
+_MATCH_HINT_TEXT_LONG = 10    # 长提示词（≥4 字）命中全文
+_MATCH_HINT_TEXT_SHORT = 3    # 短提示词（<4 字）命中全文——通用词，只作辅助
+_MATCH_TAX = 1                # 税种名相同——极弱信号，**不可单独构成配对**
+_MATCH_DOMAIN = 3             # 同域
+# 可构成"对得上"的原因（其余分数只能作辅助，不能单独配对）
+_STRONG_REASONS = ("name@title", "name@text", "hint@title", "hint@textL")
 
-    匹配优先级：
-      1) 命中红线的 match_hints 关键词；
-      2) 命中红线名称中的核心词；
-      3) 命中涉嫌描述（suspect）中的核心词。
-    同域优先。
+
+def score_redline(redline: Dict, title: str = "", text: str = "",
+                  domain: Optional[str] = None) -> Tuple[int, List[str]]:
+    """给"发现 ↔ 红线"打分，返回 `(分数, 命中原因列表)`。
+
+    **唯一打分实现**：`match_redlines` 与 `match_redline_grounded` 都调它，
+    避免"配对打分"在各处各写一套导致口径不一致。
+
+    `title` 传发现的标题（`finding["type"]`）——标题命中比正文命中更可靠，
+    故同一信号在标题里命中给更高分。
     """
     t = str(text or "")
-    if not t:
+    ti = str(title or "")
+    s = 0
+    why: List[str] = []
+    main_word = (str(redline.get("name") or "").split("：")[0] or "").strip()
+    if len(main_word) >= 3:
+        if main_word in ti:
+            s += _MATCH_NAME_TITLE
+            why.append("name@title")
+        elif main_word in t:
+            s += _MATCH_NAME_TEXT
+            why.append("name@text")
+    for hint in (redline.get("match_hints") or []):
+        hint = str(hint or "")
+        if not hint:
+            continue
+        if hint in ti:
+            s += _MATCH_HINT_TITLE
+            why.append("hint@title")
+        elif hint in t:
+            if len(hint) >= 4:
+                s += _MATCH_HINT_TEXT_LONG
+                why.append("hint@textL")
+            else:
+                s += _MATCH_HINT_TEXT_SHORT
+                why.append("hint@textS")
+    for tax in (redline.get("taxes") or []):
+        if tax and tax in t:
+            s += _MATCH_TAX
+    if domain and redline.get("domain") == domain:
+        s += _MATCH_DOMAIN
+    return s, why
+
+
+def match_redlines(text: str, domain: Optional[str] = None, limit: int = 3,
+                   title: str = "") -> List[Dict]:
+    """
+    依据发现文本匹配红线（按分数降序）。
+
+    ⚠ 本函数**只做排序、不做采纳判断**。调用方若要用匹配结果去组织"红线级"结论
+      （构成要件、证据链、定性），必须用 `match_redline_grounded()` —— 它会额外要求
+      "信号足够具体"且"该红线所需资料本轮确实提供过"，否则返回未配对，
+      以免把发现硬套到不相干的红线上。
+    """
+    t = str(text or "")
+    if not t and not title:
         return []
-    scored = []
+    scored: List[Tuple[int, List[str], Dict]] = []
     for r in REDLINES:
-        score = 0
-        for hint in (r.get("match_hints") or []):
-            if hint and hint in t:
-                score += 10
-        name = r.get("name", "")
-        # 名称中的「：」前主词
-        main_word = name.split("：")[0]
-        if main_word and len(main_word) >= 3 and main_word in t:
-            score += 8
-        for kw in (r.get("taxes") or []):
-            if kw and kw in t:
-                score += 1
-        if domain and r.get("domain") == domain:
-            score += 3
-        if score > 0:
-            scored.append((score, r))
-    scored.sort(key=lambda x: (-x[0], x[1]["id"]))
-    return [dict(r) for _, r in scored[:limit]]
+        s, why = score_redline(r, title, t, domain)
+        if s > 0:
+            scored.append((s, why, r))
+    scored.sort(key=lambda x: (-x[0], x[2]["id"]))
+    out = []
+    for s, why, r in scored[:limit]:
+        d = dict(r)
+        d["_score"] = s
+        d["_reasons"] = list(why)
+        out.append(d)
+    return out
+
+
+def match_redline_grounded(title: str, text: str,
+                           available_materials: Optional[List[str]] = None,
+                           domain: Optional[str] = None) -> Tuple[Optional[Dict], Dict]:
+    """**可采纳**的红线配对：返回 `(红线或 None, 配对说明)`。
+
+    两条硬条件（缺一不可）：
+      ① **信号具体**：命中名称主词、或命中 ≥4 字的提示词、或提示词命中标题
+         （仅靠"税种名相同/同域"不足以配对）；
+      ② **资料可查**：该红线声明的 `required_materials` 与本轮**实际已提供**的资料
+         有交集 —— 若一条红线所需的资料本轮一份都没有，就没有任何依据把它列为疑点，
+         强行配上去只会让报告用不相干的构成要件去论证。
+
+    不满足任一条 → `(None, {...})`，调用方应把该发现列为"未归入已知风险情形"，
+    **不得**改挂到次优红线上。
+    """
+    avail = [str(a) for a in (available_materials or []) if a]
+    t = str(text or "")
+    ti = str(title or "")
+    best: Optional[Tuple[int, List[str], Dict, List[str]]] = None
+    for r in REDLINES:
+        s, why = score_redline(r, ti, t, domain)
+        if not any(w in _STRONG_REASONS for w in why):
+            continue
+        mats = [m for m in (r.get("required_materials") or []) if m in avail]
+        if not mats:
+            continue
+        if best is None or s > best[0]:
+            best = (s, why, r, mats)
+    if best is None:
+        return None, {
+            "mode": "unmatched",
+            "score": 0,
+            "reasons": [],
+            "materials": [],
+            "note": "无信号足够具体且所需资料本轮有提供的红线",
+        }
+    s, why, r, mats = best
+    return dict(r), {
+        "mode": "matched",
+        "score": s,
+        "reasons": list(why),
+        "materials": mats,
+        "note": "按名称主词/具体提示词命中，且该红线所需资料本轮有提供",
+    }
 
 
 def stats() -> Dict:

@@ -27,74 +27,42 @@
 import json
 import os
 
-# 行业基准库路径（相对本文件定位到 static/industry_data.json）
-_IND_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                         "static", "industry_data.json")
+# ★ 2026-09-25：行业口径统一收敛到 engine/industry_resolver.py（唯一权威）。
+#   本模块不再自建加载器与粗粒度映射 —— `_load_industry_data` 曾被**重复定义 3 次**
+#   （2 份无缓存、3 份兜底形状各异），正是"行业判定多头维护"的根源。
+from engine.industry_resolver import (  # noqa: E402
+    load_industry_data as _load_industry_data,
+    match_benchmark as _match_benchmark_impl,
+    BIZ_TO_COARSE as _BIZ_TO_COARSE,
+    SERVICE_FINE_TO_COARSE as _SERVICE_FINE_TO_COARSE,
+    SCOPE_MFG_HINTS as _SCOPE_MFG_HINTS,
+    SCOPE_TRADE_HINTS as _SCOPE_TRADE_HINTS,
+)
+
+from engine.sentencekit import clamp_text  # noqa: E402  ★ 2026-09-25 报告文本安全截断
+
+# 经营范围里的"业态"提示词 —— 决定该按制造口径还是购销口径取基准。
+# ★ 2026-09-25 新增（真实误报事故）：经营范围表述的是"**可以**做什么"，不是"**实际在**做什么"。
+#   原实现（Step 3）把 `business_scope + entity_name` 拼成一串，遍历 65 个行业基准键，
+#   **哪个键是这串的子串就用哪个**（且取插入顺序最靠前者，结果不可解释）。
+#   实例：深圳海更数字传媒有限公司的经营范围含"橡胶制品销售" → 命中基准键"橡胶制品"
+#   → 用橡胶制品业毛利率区间（12%~30%）判一家传媒/商贸公司"毛利率明显偏低"，
+#   还附上"可能隐瞒收入/虚列成本"的方向。这是纯误报，严重损害报告可信度。
+#   修法：先判业态 —— 只有"制造/生产/加工"类经营范围才允许落到制造业细分基准；
+#   纯"销售/零售/批发"必须走商贸口径（卖橡胶制品的商贸企业 ≠ 橡胶制品制造企业）。
+_SCOPE_MFG_HINTS = ("制造", "生产", "加工", "组装", "冶炼", "铸造", "研发生产")
+_SCOPE_TRADE_HINTS = ("销售", "零售", "批发", "贸易", "购销", "经销")
 
 
-def _load_industry_data():
-    try:
-        with open(_IND_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+def _match_benchmark(industry, biz_model, entity_name="", business_scope="", industry_source=""):
+    """按企业画像匹配行业基准，返回 (基准名, 基准dict)。匹配不到返回 (None, None)。
 
-
-# ── 业务模式 → 粗粒度行业（用于行业基准兜底）──
-_BIZ_TO_COARSE = {
-    "制造业": "制造业",
-    "贸易业": "批发零售",
-    "服务业": "居民服务",
-}
-
-# 服务业细分行业名 → 粗粒度基准（更贴切的兜底）
-_SERVICE_FINE_TO_COARSE = {
-    "餐饮": "住宿餐饮", "酒店": "住宿餐饮", "住宿": "住宿餐饮",
-    "广告": "租赁商务", "传媒": "租赁商务", "咨询": "租赁商务", "设计": "租赁商务",
-    "信息": "信息技术", "软件": "信息技术", "互联网": "信息技术", "网络": "信息技术",
-    "文化": "文化体育", "影视": "文化体育", "娱乐": "文化体育",
-}
-
-
-def _match_benchmark(industry, biz_model, entity_name="", business_scope=""):
-    """按企业画像匹配行业基准，返回 (基准名, 基准dict)。匹配不到返回 (None, None)。"""
-    data = _load_industry_data()
-    benchmarks = data.get("benchmarks", {}) or {}
-    coarse = data.get("benchmarks_coarse", {}) or {}
-
-    ind = str(industry or "").strip()
-    # 1. 精确匹配细分行业
-    if ind and ind in benchmarks:
-        return ind, benchmarks[ind]
-    # 2. 细分行业名互含匹配（"文化传媒" vs "广告传媒"）
-    if ind:
-        for k in benchmarks:
-            if k == "_default":
-                continue
-            if k in ind or ind in k:
-                return k, benchmarks[k]
-    # 3. 从企业名称/经营范围推断细分行业
-    scope_name = str(business_scope or "") + str(entity_name or "")
-    if scope_name:
-        for k in benchmarks:
-            if k == "_default":
-                continue
-            if k in scope_name:
-                return k, benchmarks[k]
-    # 4. 服务业细分 → 粗粒度
-    if biz_model == "服务业" and scope_name:
-        for kw, coarse_key in _SERVICE_FINE_TO_COARSE.items():
-            if kw in scope_name:
-                return coarse_key, coarse.get(coarse_key)
-    # 5. 业务模式 → 粗粒度
-    bm = str(biz_model or "").strip()
-    coarse_key = _BIZ_TO_COARSE.get(bm)
-    if coarse_key and coarse.get(coarse_key):
-        return coarse_key, coarse.get(coarse_key)
-    # 6. 兜底
-    if benchmarks.get("_default"):
-        return "_default", benchmarks["_default"]
-    return None, None
+    ★ 2026-09-25：实现已收敛到 `engine.industry_resolver.match_benchmark`（唯一权威），
+    本函数仅作兼容转发。原实现把 `business_scope + entity_name` 当子串遍历 65 个基准键、
+    取"字典插入顺序最先者"，导致经营范围含某个商品名（如"橡胶制品销售"）就被判成
+    该商品的制造业 —— 对任何行业都会发生，属通用缺陷，已在统一实现中修正为"先定业态"。
+    """
+    return _match_benchmark_impl(industry, biz_model, entity_name, business_scope, industry_source)
 
 
 def _build_entity_profile(target_entity, fin_snap, stats, core_biz=None):
@@ -179,7 +147,8 @@ def _build_entity_profile(target_entity, fin_snap, stats, core_biz=None):
     return profile, text
 
 
-def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", business_scope="", core_biz=None):
+def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", business_scope="",
+                              core_biz=None, industry_source=""):
     """第 2 步：行业对标——毛利率/人均产值 vs 行业基准，给出专家式相对判断。
     优先用主营业务毛利率对标（2026-09-05：稽查员只对标主营业务的赚钱能力）。"""
     bench_name, bench = _match_benchmark(industry, biz_model, entity_name, business_scope)
@@ -191,6 +160,20 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
     purchases = fs.get("total_purchases") or 0
 
     # 实际毛利率：优先主营业务口径，缺省用财务快照（gross_margin_pct 是百分比）
+    # ★ 2026-09-25 修正（"毛利率 0.0% → 明显偏低"的误报）：
+    #   `financial_snapshot.gross_margin_pct` 的初始值就是 0（见 engine/context.py），
+    #   未上传发票/账面数据时不会被填充。旧逻辑直接把它当成"真实毛利率"去对标 →
+    #   触发"明显偏低"并附上"可能隐瞒收入/虚列成本"的方向。**没有收入数据就没有毛利率，
+    #   更谈不上偏离。** 判据（三者任一）：
+    #     ①主营业务口径有收入 ②财务快照销售总额 > 0 ③快照毛利率是**非零**值（确实算过）
+    #   第③条说明：`gross_margin_pct` 的默认 0 与"真实 0% 毛利率"无法区分，但真实的
+    #   0% 毛利率必然伴随 total_sales > 0（由②覆盖）；因此"全零"即视为无数据。
+    _gm_raw = fs.get("gross_margin_pct")
+    _has_revenue_data = bool(
+        (core_biz and (core_biz.get("core_revenue_amount") or 0) > 0)
+        or (sales or 0) > 0
+        or (_gm_raw not in (None, 0, 0.0))
+    )
     gm_pct = None
     gm_scope_note = ""
     if core_biz and core_biz.get("core_revenue_amount"):
@@ -199,7 +182,7 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
         if _cr > 0:
             gm_pct = (_cr - _cc) / _cr * 100
             gm_scope_note = "（主营业务口径）"
-    if gm_pct is None:
+    if gm_pct is None and _has_revenue_data:
         gm_pct = fs.get("gross_margin_pct")
         if gm_pct is None and sales > 0:
             gm_pct = (sales - purchases) / sales * 100
@@ -252,6 +235,18 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
                 "why": "毛利率落在行业正常区间里，收入和成本基本配比正常。",
             })
 
+    # 数据不足时**明确说明未参与对标**，而不是拿 0% 当真实值去判"偏离"
+    if gm_range and gm_pct is None:
+        observations.append({
+            "metric": "毛利率",
+            "actual": "—",
+            "benchmark": f"{gm_range[0] * 100:.0f}%~{gm_range[1] * 100:.0f}%（中位{gm_range[2] * 100:.0f}%）",
+            "direction": "未参与对标",
+            "why": ("本轮没有可用于计算毛利率的收入与成本数据（未提供销项发票、进项发票或账面数据），"
+                    "因此本企业**没有**可比的毛利率，本轮也不对毛利率是否偏离行业区间作任何判断。"
+                    "补齐销项发票、进项发票（或序时账/科目余额表）后即可完成该对标。"),
+        })
+
     # 人均产值对标（销售额 / 用工人数）
     # 用工人数从 stats 工资/社保记录推断，取工资记录条数去重不易，此处用 bench 的人均营收区间做粗判
     # （若财务快照无 headcount，跳过，避免编造）
@@ -267,12 +262,18 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
                 "why": "平均每人创造的收入偏低，说明用工人数和收入规模对不上，需要核实用工是不是真的、收入是不是记全了。",
             })
 
-    result = {"benchmark_name": bench_name, "observations": observations}
+    result = {"benchmark_name": bench_name, "observations": observations,
+              "industry_input": str(industry or ""), "industry_source": str(industry_source or "")}
     if not observations:
         return result, ""
-    lines = [f"对照『{bench_name}』行业基准："]
+    # 标注行业口径，让读者能判断"这个对标基准是怎么来的"（登记行业 / 销项品名推断）
+    _src_txt = f"（行业口径：{industry_source}）" if industry_source else ""
+    lines = [f"对照『{bench_name}』行业基准{_src_txt}："]
     for o in observations:
-        lines.append(f"· {o['metric']}{o['actual']}%，行业{o['benchmark']}，{o['direction']}。{o['why']}")
+        if o.get("direction") == "未参与对标":
+            lines.append(f"· {o['metric']}未参与对标。{o['why']}")
+        else:
+            lines.append(f"· {o['metric']}{o['actual']}%，行业{o['benchmark']}，{o['direction']}。{o['why']}")
     return result, "\n".join(lines)
 
 
@@ -347,7 +348,8 @@ def _build_key_clues(all_findings, biz_model):
             "type": ftype,
             "level": f.get("level") or "",
             "score": f.get("score") or 0,
-            "detail": (f.get("detail") or "")[:200],
+            # ★ 2026-09-25：安全截断（不切括号内；超出优先在句读处收尾）
+            "detail": clamp_text(f.get("detail") or "", 200),
             "opposing": opposing,
             "steps": (f.get("investigation_steps") or [])[:4],
             "tier": tier,
@@ -402,7 +404,10 @@ def _build_core_biz(report_data):
         "core_revenue_amount": rev.get("core_revenue_amount"),
         "core_revenue_ratio": rev.get("core_revenue_ratio"),
         "core_cost_amount": round(core_cost_amount, 2) if core_cost_amount is not None else None,
-        "core_goods_sale": rev.get("core_goods_sale") or set(),
+        # ★ 2026-09-25：**不得把 set 放进报告字典** —— 序列化时会变成
+        #   `{'*设计服务*设计服务费', '…'}` 这种 **Python 集合 repr** 直接进企业报告。
+        #   改为排序列表（JSON 安全、可读、顺序确定）。
+        "core_goods_sale": sorted(str(x) for x in (rev.get("core_goods_sale") or []) if x),
         "core_cost_count": bcc.get("core_cost_count") or len(core_cost_rows),
     }
 
@@ -425,7 +430,8 @@ def build_inspector_reasoning(report_data):
     core_biz = _build_core_biz(report_data)
     profile, profile_text = _build_entity_profile(te, fin_snap, stats, core_biz)
     bench_result, bench_text = _build_industry_benchmark(
-        industry, biz_model, fin_snap, name, scope, core_biz)
+        industry, biz_model, fin_snap, name, scope, core_biz,
+        te.get("_industry_source") or "")
     key_clues = _build_key_clues(all_findings, biz_model)
     route = _build_investigation_route(key_clues, biz_model)
 

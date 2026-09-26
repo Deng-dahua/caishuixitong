@@ -17,6 +17,7 @@
 """
 
 from __future__ import annotations
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 
 from typing import Any, Dict, List, Optional
 
@@ -29,27 +30,24 @@ _IIT_ACCT_KWS = ("个人所得税", "应交个人所得税", "代扣代缴个人
 
 
 def _num(v) -> float:
-    try:
-        return float(str(v).replace(",", "").replace("￥", "").replace("¥", "").strip() or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
 def _month_of(text) -> Optional[str]:
-    """从任意日期/期间文本提取 YYYY-MM。容错：2026-01-15 / 20260115 / 2026/1/15 / 2026年1月 / 2026-01。"""
-    import re
-    s = str(text or "")
-    m = re.search(r"(20\d{2})\s*[-年/.]\s*(\d{1,2})", s)
-    if m:
-        mm = int(m.group(2))
-        if 1 <= mm <= 12:
-            return f"{m.group(1)}-{mm:02d}"
-    digits = "".join(ch for ch in s if ch.isdigit())
-    if len(digits) >= 6:
-        y, mm = int(digits[:4]), int(digits[4:6])
-        if 2000 <= y <= 2099 and 1 <= mm <= 12:
-            return f"{y}-{mm:02d}"
-    return None
+    """从任意日期/期间文本提取 `YYYY-MM`（唯一权威在 engine/findingkit.py）。
+
+    ★ 2026-09-25 收敛：`YYYY-MM` 口径此前在本文件与 findingkit 各写一份，
+    现已统一到 `findingkit.normalize_month`（本函数仅保留 `None` 的返回约定）。
+    """
+    from engine.findingkit import normalize_month
+    return normalize_month(text) or None
 
 
 def _agg_period(month: str, kind: str) -> str:
@@ -93,7 +91,7 @@ def _infer_year(data: Dict[str, Any]) -> Optional[str]:
     return c.most_common(1)[0][0] if c else None
 
 
-def _first(row: Dict, keys) -> Any:
+def _first_raw(row: Dict, keys) -> Any:
     for k in keys:
         v = row.get(k)
         if v not in (None, ""):
@@ -135,12 +133,12 @@ def _invoice_series(invs: List[Dict]) -> Dict[str, float]:
     for i in invs or []:
         if not isinstance(i, dict):
             continue
-        m = _month_of(_first(i, ("date", "invoice_date", "开票日期")))
+        m = _month_of(_first_raw(i, ("date", "invoice_date", "开票日期")))
         if not m:
             continue
-        amt = _num(_first(i, ("amount", "金额", "不含税金额")))
+        amt = _num(_first_raw(i, ("amount", "金额", "不含税金额")))
         if amt == 0:
-            tot = _num(_first(i, ("total", "价税合计", "total_amount")))
+            tot = _num(_first_raw(i, ("total", "价税合计", "total_amount")))
             amt = tot / 1.13 if tot else 0.0
         out[m] = out.get(m, 0.0) + amt
     return out
@@ -171,12 +169,12 @@ def _salary_series(salaries: List[Dict]):
     for s in salaries or []:
         if not isinstance(s, dict):
             continue
-        m = _month_of(_first(s, ("month", "所属期", "period", "period_start", "period_end", "税款所属期")))
+        m = _month_of(_first_raw(s, ("month", "所属期", "period", "period_start", "period_end", "税款所属期")))
         if not m:
             continue
-        g = _num(_first(s, ("salary", "本期收入", "acc_income", "累计收入",
+        g = _num(_first_raw(s, ("salary", "本期收入", "acc_income", "累计收入",
                             "gross", "应发合计", "应发工资", "应发")))
-        t = _num(_first(s, ("tax", "代扣个税", "个税", "个人所得税")))
+        t = _num(_first_raw(s, ("tax", "代扣个税", "个税", "个人所得税")))
         gross[m] = gross.get(m, 0.0) + g
         tax[m] = tax.get(m, 0.0) + t
     return gross, tax
@@ -191,11 +189,11 @@ def _ind_tax_decl_series(decls: List[Dict]):
             continue
         if str(d.get("_declaration_type") or "").lower() not in ("individual_tax", "iit", "ind_tax", ""):
             continue
-        m = _month_of(_first(d, ("税款所属期", "所属期", "period", "期间", "月份", "period_start", "period_end")))
+        m = _month_of(_first_raw(d, ("税款所属期", "所属期", "period", "期间", "月份", "period_start", "period_end")))
         if not m:
             continue
-        inc = _num(_first(d, ("本月收入", "本期收入", "收入额", "收入", "工资薪金", "应纳税所得额")))
-        t = _num(_first(d, ("本月个税", "个税", "应纳税额", "已缴税额", "本期应补(退)税额", "应补退税额", "税额")))
+        inc = _num(_first_raw(d, ("本月收入", "本期收入", "收入额", "收入", "工资薪金", "应纳税所得额")))
+        t = _num(_first_raw(d, ("本月个税", "个税", "应纳税额", "已缴税额", "本期应补(退)税额", "应补退税额", "税额")))
         if inc:
             income[m] = income.get(m, 0.0) + inc
         if t:
@@ -227,10 +225,10 @@ def _invoice_tax_series(invs: List[Dict]) -> Dict[str, float]:
     for i in invs or []:
         if not isinstance(i, dict):
             continue
-        m = _month_of(_first(i, ("date", "invoice_date", "开票日期")))
+        m = _month_of(_first_raw(i, ("date", "invoice_date", "开票日期")))
         if not m:
             continue
-        out[m] = out.get(m, 0.0) + _num(_first(i, ("tax", "税额")))
+        out[m] = out.get(m, 0.0) + _num(_first_raw(i, ("tax", "税额")))
     return out
 
 
@@ -240,10 +238,10 @@ def _deduction_tax_series(rows: List[Dict]) -> Dict[str, float]:
     for r in rows or []:
         if not isinstance(r, dict):
             continue
-        m = _month_of(_first(r, ("date", "开票日期", "勾选时间", "所属期")))
+        m = _month_of(_first_raw(r, ("date", "开票日期", "勾选时间", "所属期")))
         if not m:
             continue
-        out[m] = out.get(m, 0.0) + _num(_first(r, ("deductible_tax", "有效抵扣税额", "tax", "税额")))
+        out[m] = out.get(m, 0.0) + _num(_first_raw(r, ("deductible_tax", "有效抵扣税额", "tax", "税额")))
     return out
 
 
@@ -254,11 +252,11 @@ def _bank_series(bank: List[Dict]):
     for t in bank or []:
         if not isinstance(t, dict):
             continue
-        m = _month_of(_first(t, ("date", "交易日期", "记账日期", "发生日期")))
+        m = _month_of(_first_raw(t, ("date", "交易日期", "记账日期", "发生日期")))
         if not m:
             continue
-        c = _num(_first(t, ("credit", "贷方金额", "收入金额", "贷方")))
-        d = _num(_first(t, ("debit", "借方金额", "支出金额", "借方")))
+        c = _num(_first_raw(t, ("credit", "贷方金额", "收入金额", "贷方")))
+        d = _num(_first_raw(t, ("debit", "借方金额", "支出金额", "借方")))
         if c:
             credit[m] = credit.get(m, 0.0) + c
         if d:
@@ -272,10 +270,10 @@ def _fund_series(rows: List[Dict]) -> Dict[str, float]:
     for r in rows or []:
         if not isinstance(r, dict):
             continue
-        m = _month_of(_first(r, ("counterparty", "缴存月份", "period", "月份", "所属期")))
+        m = _month_of(_first_raw(r, ("counterparty", "缴存月份", "period", "月份", "所属期")))
         if not m:
             continue
-        out[m] = out.get(m, 0.0) + _num(_first(r, ("amount_col", "单位缴存额", "单位缴存", "total", "amount")))
+        out[m] = out.get(m, 0.0) + _num(_first_raw(r, ("amount_col", "单位缴存额", "单位缴存", "total", "amount")))
     return out
 
 
@@ -288,10 +286,10 @@ def _social_series(rows: List[Dict]) -> Dict[str, float]:
         nm = str(r.get("name") or "")
         if not nm or nm in ("姓名", "合计", "小计", "总计"):
             continue
-        m = _month_of(_first(r, ("period_start", "period_end", "费款所属期起", "所属期")))
+        m = _month_of(_first_raw(r, ("period_start", "period_end", "费款所属期起", "所属期")))
         if not m:
             continue
-        amt = _num(_first(r, ("due_amount", "应缴费额", "应缴金额")))
+        amt = _num(_first_raw(r, ("due_amount", "应缴费额", "应缴金额")))
         if amt <= 0:
             amt = _num(r.get("company_pay")) + _num(r.get("personal_pay"))
         out[m] = out.get(m, 0.0) + amt
@@ -309,13 +307,13 @@ def _fixed_asset_series(rows: List[Dict]):
     for r in rows or []:
         if not isinstance(r, dict):
             continue
-        g = _num(_first(r, ("原值", "资产原值", "入账价值", "购置价值", "资产价值", "原值金额")))
+        g = _num(_first_raw(r, ("原值", "资产原值", "入账价值", "购置价值", "资产价值", "原值金额")))
         if g <= 0:
-            net = _num(_first(r, ("净值", "资产净值", "账面净值")))
-            dep = _num(_first(r, ("累计折旧", "折旧额")))
+            net = _num(_first_raw(r, ("净值", "资产净值", "账面净值")))
+            dep = _num(_first_raw(r, ("累计折旧", "折旧额")))
             if net > 0 and dep > 0:
                 g = net + dep
-        accum += _num(_first(r, ("累计折旧", "折旧额", "累计折旧额")))
+        accum += _num(_first_raw(r, ("累计折旧", "折旧额", "累计折旧额")))
         gross += g
     return gross, accum
 
@@ -393,7 +391,7 @@ _CANON_RATES_INCL = tuple(round(c / (1 + c), 4) for c in _CANON_RATES)
 _RATE_TOL = 0.015  # 1.5 个百分点
 
 
-def _fmt(v: float) -> str:
+def _money_fmt(v: float) -> str:
     return f"{v:,.2f}"
 
 
@@ -424,9 +422,9 @@ def _reconcile(sources: Dict[str, Dict[str, float]], kind: str,
             continue
         amounts = [vals[n] for n in names]
         spread = max(amounts) - min(amounts)
-        desc = "；".join(f"{_LABELS.get(n, n)}{_fmt(vals[n])}" for n in names)
+        desc = "；".join(f"{_LABELS.get(n, n)}{_money_fmt(vals[n])}" for n in names)
         if spread <= max(_TOL_ABS, _TOL_REL * max(abs(x) for x in amounts)):
-            equal_lines.append(f"{p}：" + "＝".join(_fmt(v) for v in amounts))
+            equal_lines.append(f"{p}：" + "＝".join(_money_fmt(v) for v in amounts))
         else:
             mismatch_lines.append((p, desc, spread, spread / max(abs(x) for x in amounts)))
 
@@ -448,7 +446,7 @@ def _reconcile(sources: Dict[str, Dict[str, float]], kind: str,
         findings.append({
             "type": f"待核事实：{title}逐{kind == 'month' and '月' or ('季' if kind == 'quarter' else '年')}不匹配（{p}）",
             "level": "待核验", "score": 5,
-            "detail": f"{p} 各来源金额不一致：{desc}；差异{_fmt(spread)}元（{rel * 100:.1f}%）。",
+            "detail": f"{p} 各来源金额不一致：{desc}；差异{_money_fmt(spread)}元（{rel * 100:.1f}%）。",
             "description": f"同一口径在多个来源之间应相互对等；出现差异可能是口径（含税/不含税）、期间归属、"
                           f"跨期确认、或数据未同步所致，也可能指向申报/记账不实，须逐笔核实并编制差异调节表。",
             "how_found": f"按月份归集各方后聚合到" + ("月" if kind == "month" else ("季" if kind == "quarter" else "年")) + f"，{p} 各方差额超容差。",
@@ -472,7 +470,7 @@ def _point_reconcile(val_a: float, val_b: float, label_a: str, label_b: str,
         return [{
             "type": f"对等勾稽一致：{title}",
             "level": "信息", "score": 1,
-            "detail": f"{label_a}{_fmt(val_a)} 与 {label_b}{_fmt(val_b)} 一致（差异{_fmt(spread)}）。",
+            "detail": f"{label_a}{_money_fmt(val_a)} 与 {label_b}{_money_fmt(val_b)} 一致（差异{_money_fmt(spread)}）。",
             "description": f"{title} 两来源金额对等一致。",
             "how_found": f"将 {label_a} 与 {label_b} 直接比对，差额≤容差。",
             "tax_impact": "两来源一致可降低资产/折旧不实的风险。",
@@ -484,7 +482,7 @@ def _point_reconcile(val_a: float, val_b: float, label_a: str, label_b: str,
     return [{
         "type": f"待核事实：{title}不一致",
         "level": "待核验", "score": 6,
-        "detail": f"{label_a}{_fmt(val_a)} 与 {label_b}{_fmt(val_b)} 不一致，差异{_fmt(spread)}元（{spread / max(abs(val_a), abs(val_b)) * 100:.1f}%）。",
+        "detail": f"{label_a}{_money_fmt(val_a)} 与 {label_b}{_money_fmt(val_b)} 不一致，差异{_money_fmt(spread)}元（{spread / max(abs(val_a), abs(val_b)) * 100:.1f}%）。",
         "description": "固定资产清单与科目余额表应一致。不一致可能源于漏记资产、折旧计提差异、"
                        "资产类别归集错误或账外资产，须逐卡核对。",
         "how_found": f"将 {label_a} 与 {label_b} 直接比对，差额超容差。",

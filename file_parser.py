@@ -103,20 +103,27 @@ async def analyze_file_headers(
         preview_rows = []
 
         if ext in (".xlsx", ".xls"):
-            wb = openpyxl.load_workbook(io.BytesIO(content_bytes), data_only=True)
-            ws = wb.active
-            # 第一行作为表头
-            for col in range(1, ws.max_column + 1):
-                cell = ws.cell(row=1, column=col)
-                headers.append(str(cell.value).strip() if cell.value is not None else f"列{col}")
-            # 预览前3行
-            for row in range(2, min(ws.max_row + 1, 5)):
-                vals = {}
+            # ★ 2026-09-25：经 engine.workbook 统一打开并显式 close()。
+            #   原写法 openpyxl.load_workbook(BytesIO) 后从不 close()，
+            #   工作簿对象因引用环不被立即回收，句柄随进程长期保留。
+            from engine.workbook import load_workbook, close_workbook
+            wb = load_workbook(io.BytesIO(content_bytes), data_only=True)
+            try:
+                ws = wb.active
+                # 第一行作为表头
                 for col in range(1, ws.max_column + 1):
-                    cell = ws.cell(row=row, column=col)
-                    vals[headers[col - 1]] = str(cell.value) if cell.value is not None else ""
-                preview_rows.append(vals)
-            total_rows = ws.max_row - 1
+                    cell = ws.cell(row=1, column=col)
+                    headers.append(str(cell.value).strip() if cell.value is not None else f"列{col}")
+                # 预览前3行
+                for row in range(2, min(ws.max_row + 1, 5)):
+                    vals = {}
+                    for col in range(1, ws.max_column + 1):
+                        cell = ws.cell(row=row, column=col)
+                        vals[headers[col - 1]] = str(cell.value) if cell.value is not None else ""
+                    preview_rows.append(vals)
+                total_rows = ws.max_row - 1
+            finally:
+                close_workbook(wb)
         elif ext == ".csv":
             text = content_bytes.decode("utf-8-sig")
             reader = csv.reader(io.StringIO(text))
@@ -247,29 +254,34 @@ async def import_file_with_mapping(  # v2026-06-04-simplify: 进项发票改为�
         # 读取数据行
         rows_data = []
         if ext in (".xlsx", ".xls"):
-            wb = openpyxl.load_workbook(io.BytesIO(content_bytes), data_only=True)
-            ws = wb.active
-            headers_file = []
-            for col in range(1, ws.max_column + 1):
-                cell = ws.cell(row=1, column=col)
-                headers_file.append(str(cell.value).strip() if cell.value is not None else f"列{col}")
-            for row in range(2, ws.max_row + 1):
-                row_dict = {}
+            # ★ 2026-09-25：经 engine.workbook 统一打开并显式 close()（同前，防句柄泄漏）
+            from engine.workbook import load_workbook, close_workbook
+            wb = load_workbook(io.BytesIO(content_bytes), data_only=True)
+            try:
+                ws = wb.active
+                headers_file = []
                 for col in range(1, ws.max_column + 1):
-                    cell = ws.cell(row=row, column=col)
-                    if cell.value is None:
-                        row_dict[headers_file[col - 1]] = ""
-                    elif isinstance(cell.value, datetime):
-                        row_dict[headers_file[col - 1]] = cell.value.strftime("%Y-%m-%d %H:%M:%S")
-                    elif isinstance(cell.value, (int, float)):
-                        # 数字直接转字符串（openpyxl data_only=True 已自动把真正的日期转 datetime，
-                        # 此处 int/float 就是纯数字如金额、数量，误当日期序列号会销毁金额数据）
-                        row_dict[headers_file[col - 1]] = str(cell.value)
-                    else:
-                        row_dict[headers_file[col - 1]] = str(cell.value).strip()
-                # 跳过完全空行
-                if any(v.strip() for v in row_dict.values()):
-                    rows_data.append(row_dict)
+                    cell = ws.cell(row=1, column=col)
+                    headers_file.append(str(cell.value).strip() if cell.value is not None else f"列{col}")
+                for row in range(2, ws.max_row + 1):
+                    row_dict = {}
+                    for col in range(1, ws.max_column + 1):
+                        cell = ws.cell(row=row, column=col)
+                        if cell.value is None:
+                            row_dict[headers_file[col - 1]] = ""
+                        elif isinstance(cell.value, datetime):
+                            row_dict[headers_file[col - 1]] = cell.value.strftime("%Y-%m-%d %H:%M:%S")
+                        elif isinstance(cell.value, (int, float)):
+                            # 数字直接转字符串（openpyxl data_only=True 已自动把真正的日期转 datetime，
+                            # 此处 int/float 就是纯数字如金额、数量，误当日期序列号会销毁金额数据）
+                            row_dict[headers_file[col - 1]] = str(cell.value)
+                        else:
+                            row_dict[headers_file[col - 1]] = str(cell.value).strip()
+                    # 跳过完全空行
+                    if any(v.strip() for v in row_dict.values()):
+                        rows_data.append(row_dict)
+            finally:
+                close_workbook(wb)
         elif ext == ".csv":
             text = content_bytes.decode("utf-8-sig")
             reader = csv.reader(io.StringIO(text))

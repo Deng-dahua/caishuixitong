@@ -128,7 +128,8 @@ def audit_rd_deduction(
     if not rd_data or not rd_data.get("projects"):
         findings.append({
             "type": "研发费用加计扣除-无辅助账数据",
-            "level": "待补资料", "score": 0,
+            # 等级原为未登记值"待补资料"（会被静默丢弃）；本义即"待核验 + 需补资料"
+            "level": "待核验", "score": 0,
             "detail": "未上传研发费用辅助账（A107012表或等效数据），无法执行的研发费用审计。",
             "description": "企业可能享受了研发加计扣除但未提供辅助账数据。建议上传研发费用辅助账或A107012表以进行合规审计。",
             "suggestion": "上传研发辅助账（含项目名称、费用类别、金额、人员等信息）。",

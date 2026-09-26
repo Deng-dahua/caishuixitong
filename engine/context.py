@@ -65,6 +65,7 @@ class AuditContext:
         self.missing_doc_keys = []      # 缺失的14类资料key列表（供Phase 4缺失后果触发用）
         self.all_findings = []          # 所有阶段的发现汇总
         self.file_results = []          # 文件解析结果
+        self.tax_declarations = []      # 解析出的纳税申报表（增值税/企业所得税等）
         self.industry_profile = None    # 行业画像（_load_industry_profile返回值）
         self.memory_learner = None      # 记忆学习器
         self.trend_data = None          # 趋势数据

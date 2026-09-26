@@ -15,6 +15,7 @@
 铁律：仅输出可复算的数量事实与待核线索，不自动定性；无数据 / 数据不足一律不输出。
 """
 
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 import re
 from collections import defaultdict
 
@@ -39,23 +40,25 @@ _VAT_FREE_QUARTER = 300000.0  # 小规模季免税额度（元）
 
 
 def _safe(v):
-    try:
-        return float(v or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
 def _amt(inv):
-    """发票金额：优先不含税'金额'，退而价税合计。"""
-    if not isinstance(inv, dict):
-        return 0.0
-    for k in ("amount", "金额"):
-        v = inv.get(k)
-        if v not in (None, ""):
-            a = _safe(v)
-            if a:
-                return abs(a)
-    return abs(_safe(inv.get("total", inv.get("价税合计", 0))))
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import first_amount as _first_amount
+    return _first_amount(inv, absolute=True)
 
 
 def _tax(inv):
@@ -64,16 +67,24 @@ def _tax(inv):
     return abs(_safe(inv.get("tax", inv.get("税额", 0))))
 
 
-def _buyer(inv):
-    if not isinstance(inv, dict):
-        return ""
-    return str(inv.get("buyer", inv.get("购方名称", inv.get("购买方名称", ""))) or "").strip()
+def _buyer(inv) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import buyer_name as _fk
+    return _fk(inv)
 
 
-def _seller(inv):
-    if not isinstance(inv, dict):
-        return ""
-    return str(inv.get("seller", inv.get("销方名称", inv.get("销售方名称", ""))) or "").strip()
+def _seller(inv) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import seller_name as _fk
+    return _fk(inv)
 
 
 def _buyer_tax(inv):
@@ -82,15 +93,24 @@ def _buyer_tax(inv):
     return str(inv.get("buyer_tax", inv.get("购方税号", inv.get("购买方纳税人识别号", ""))) or "").strip()
 
 
-def _inv_type(inv):
-    if not isinstance(inv, dict):
-        return ""
-    return str(inv.get("inv_type", inv.get("发票类型", "")) or "").strip()
+def _inv_type(inv) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import invoice_type as _fk
+    return _fk(inv)
 
 
-def _is_void_or_red(inv):
-    t = _inv_type(inv)
-    return ("作废" in t) or ("红冲" in t) or ("红字" in t)
+def _is_void_or_red(inv) -> bool:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import is_void_or_red as _fk
+    return _fk(inv)
 
 
 def _rate(inv):
@@ -138,13 +158,13 @@ def _days_in_month(y, m):
 
 def _mk(type_, level, score, detail, description, how_found, tax_impact,
         policy_ref, suggestion, category, source_chain, redline_id, indicator, value):
-    return {
-        "type": type_, "level": level, "score": score,
-        "detail": detail, "description": description, "how_found": how_found,
-        "tax_impact": tax_impact, "policy_ref": policy_ref, "suggestion": suggestion,
-        "category": category, "source_chain": source_chain,
-        "redline_id": redline_id, "indicator": indicator, "indicator_value": value,
-    }
+    """finding 构造（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/findingkit.py（唯一权威）。
+      原先三个模块各有一份**逐字节相同**的副本，只改一份就会导致字段集不一致。
+    """
+    from engine.findingkit import make_finding as _make_finding
+    return _make_finding(type_, level, score, detail, description, how_found, tax_impact, policy_ref, suggestion, category, source_chain, redline_id, indicator, value)
 
 
 # ── 1) 月末集中开票 ──

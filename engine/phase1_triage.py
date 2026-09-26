@@ -148,38 +148,17 @@ def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
 
 
 def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
-    """从发票品名推断行业——全行业自适应，不硬编码任何行业关键词
-    
-    ═══ 行业推断铁律 ═══
-    仅以销项发票品名为依据，不参考进项发票品名。
-    WHY: 销项=企业实际经营产出（卖什么就是什么行业）
-         进项=采购投入/成本结构（买什么不代表行业，如传媒公司也会买餐饮服务）
-    
-    方法：利用中国金税发票的税收分类编码前缀（*XX*格式）
-    例如：*广告服务*广告发布费 → 行业=广告服务
-    无分类编码时用"综合"兜底
+    """从**销项**发票品名推断行业（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/industry_resolver.infer_from_goods（唯一权威）。
+      原先本模块与 domain_analysis 各有一份，规则虽近似但会漂移；
+      且统一实现比原版多一层 industry_map 关键词兜底（原版无 `*分类*` 时直接落"综合"）。
+    铁律 META-001：仅以销项品名为依据（销项=实际经营产出），不参考进项。
     """
+    from engine.industry_resolver import infer_from_goods as _infer
     cp = ctx.company_profile
-    
-    # ═══ 仅从销项发票品名中提取行业分类编码 ═══
-    import re
-    cat_counts = {}
-    
-    for goods in sal_goods:
-        # 匹配 *分类名称* 格式（金税发票标准格式）
-        match = re.search(r'\*([^*]+)\*', str(goods))
-        if match:
-            cat = match.group(1).strip()
-            # 过滤掉明显不是行业分类的模式（如纯数字、单字）
-            if len(cat) >= 2 and not cat.isdigit():
-                cat_counts[cat] = cat_counts.get(cat, 0) + 1
-    
-    if cat_counts:
-        # 取出现最多的分类编码作为行业
-        best_cat = max(cat_counts, key=cat_counts.get)
-        cp["industry"] = best_cat
-    else:
-        cp["industry"] = "综合"
+    _industry, _votes = _infer(list(sal_goods or []))
+    cp["industry"] = _industry or "综合"
 
 
 def _load_industry_profile(ctx):
@@ -416,14 +395,14 @@ def _detect_consecutive_invoices(ctx, invoices, direction):
 
 
 def _detect_quarter_end_spike(ctx, invoices, direction):
+    from engine.findingkit import normalize_month as _norm_month  # ★ 2026-09-25 期间键唯一实现
     """季度末集中开票检测"""
     from collections import Counter
     
     month_counts = Counter()
     for inv in invoices:
-        date_str = str(inv.get("date", inv.get("inv_date", inv.get("开票日期", "")))).strip()
-        if date_str and len(date_str) >= 7:
-            month = date_str[:7]  # YYYY-MM
+        month = _norm_month(inv.get("date") or inv.get("inv_date") or inv.get("开票日期"))
+        if month:
             month_counts[month] += 1
     
     if len(month_counts) < 3:
@@ -531,6 +510,7 @@ def _detect_bank_pattern_signals(ctx, bank_txs):
 
 
 def _detect_trend_signals(ctx, bank_txs, invoices):
+    from engine.findingkit import normalize_month as _norm_month  # ★ 2026-09-25 期间键唯一实现
     """趋势/升频信号检测 —— 从时间序列中发现动态异常。
     
     检测维度：
@@ -547,9 +527,8 @@ def _detect_trend_signals(ctx, bank_txs, invoices):
         month_amounts = defaultdict(float)
         month_counts = defaultdict(int)
         for inv in invoices:
-            d = str(inv.get("date", inv.get("inv_date", ""))).strip()
-            if len(d) >= 7:
-                month = d[:7]
+            month = _norm_month(inv.get("date") or inv.get("inv_date"))
+            if month:
                 month_amounts[month] += float(inv.get("amount", inv.get("total", 0)) or 0)
                 month_counts[month] += 1
         

@@ -247,7 +247,7 @@ def identify_core_revenue(sal_invs, core_goods=None):
         return {
             "core_revenue_invs": [], "other_revenue_invs": [],
             "core_revenue_amount": 0.0, "other_revenue_amount": 0.0,
-            "core_revenue_ratio": 0.0, "core_goods_sale": set(),
+            "core_revenue_ratio": 0.0, "core_goods_sale": [],
         }
 
     core_goods = core_goods or set()

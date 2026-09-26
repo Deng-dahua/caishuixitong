@@ -19,6 +19,7 @@
 
 输出：与 external_verifier 对齐的 dict（available/summary/body/metrics/signals/verdict...）。
 """
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 import time
 from collections import defaultdict
 
@@ -72,10 +73,14 @@ def _is_personal(name):
 
 
 def _safe(v):
-    try:
-        return float(v or 0)
-    except Exception:
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
 def _invoice_total(sal_invs):

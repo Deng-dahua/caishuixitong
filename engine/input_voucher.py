@@ -19,6 +19,7 @@
 输出：与 external_verifier / bank_flow 对齐的 dict。
 """
 
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 import time
 from collections import defaultdict
 
@@ -33,10 +34,14 @@ _CONCENTRATION_THRESHOLD = 0.70
 
 
 def _safe(v):
-    try:
-        return float(v or 0)
-    except Exception:
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
 def _name(inv):
@@ -47,8 +52,14 @@ def _taxid(inv):
     return str(inv.get("seller_tax", inv.get("销方税号", inv.get("销售方纳税人识别号", ""))) or "").strip()
 
 
-def _goods(inv):
-    return str(inv.get("goods", inv.get("货物或应税劳务名称", inv.get("开票项目", ""))) or "").strip()
+def _goods(inv) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import goods_name as _fk
+    return _fk(inv)
 
 
 def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,

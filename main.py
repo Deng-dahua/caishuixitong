@@ -1,3 +1,4 @@
+from engine.numparse import to_number, amount_of  # ★ 2026-09-25 统一数值解析
 """
 全行业财税风险防控系统 - 后端 API
 """
@@ -76,6 +77,8 @@ from runtime_storage import (
     CONTENT_FEEDBACK, CORRECTION_RULES, UPLOAD_DIR as RUNTIME_UPLOAD_DIR,
     atomic_write_json, company_upload_dir, read_json, safe_filename,
     move_to_trash, empty_trash_batch,
+    DELETED_DOCS, add_doc_tombstone, clear_doc_tombstone, doc_tombstone_key,
+    load_doc_tombstones, purge_file, save_doc_tombstones,
 )
 from security import (
     COOKIE_SECURE, authenticate, create_session, csrf_is_valid, get_session,
@@ -633,8 +636,12 @@ def get_system_logs(limit: int = 200, company_id: int = None):
         return JSONResponse([], status_code=500)
 
 # ==================== 开发模式：强制无缓存 ====================
+# ★ 2026-09-25 改名（原 add_cache_headers）：main.py 底部另有一个同名中间件，
+#   后定义会静默覆盖前定义 —— 两个中间件都已被 app.middleware 注册并生效，
+#   但 Python 名字只指向后者，源码与实际行为不符。改名后两者各自可指称，
+#   路由/中间件注册顺序与行为完全不变（同文件重复定义由审计闸门强制拦截）。
 @app.middleware("http")
-async def add_cache_headers(request, call_next):
+async def add_no_cache_headers(request, call_next):
     """给所有响应加 no-cache 头，强制浏览器不用本地缓存。"""
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -1219,7 +1226,18 @@ async def tax_risk_rules_upload_report(request: Request):
 
     elif filename.endswith('.pdf'):
         try:
-            from PyPDF2 import PdfReader as _PdfReader
+            # 2026-09-23 修正：原只用 PyPDF2（本环境未安装）→ 直接返回"PDF解析失败"。
+            # 改为优先 pypdf，再退 PyPDF2 兼容旧环境。
+            _PdfReader = None
+            _imp_err = None
+            for _mod in ("pypdf", "PyPDF2"):
+                try:
+                    _PdfReader = __import__(_mod).PdfReader
+                    break
+                except Exception as _e:
+                    _imp_err = _e
+            if _PdfReader is None:
+                raise RuntimeError(f"未安装 PDF 解析库(pypdf/PyPDF2): {_imp_err}")
             reader = _PdfReader(_io.BytesIO(content_bytes))
             pages_text = []
             for page in reader.pages:
@@ -1460,6 +1478,7 @@ def _init_tax_docs_from_disk():
     global _TAX_DOC_SCANNED, _tax_risk_docs, _tax_doc_counter
     if _TAX_DOC_SCANNED: return
     _TAX_DOC_SCANNED = True
+    tombstones = load_doc_tombstones()      # 已删除资料：永久排除，避免"删了又回来"
     if os.path.exists(UPLOAD_DIR):
         for subdir in os.listdir(UPLOAD_DIR):
             subpath = os.path.join(UPLOAD_DIR, subdir)
@@ -1474,6 +1493,8 @@ def _init_tax_docs_from_disk():
                     fname_clean = os.fsdecode(os.fsencode(fname))
                 except:
                     fname_clean = fname
+                if doc_tombstone_key(company_id, fname_clean) in tombstones:
+                    continue
                 parts = fname_clean.split("_", 2)  # 分割最多2次：公司ID_文件ID_原文件名
                 if len(parts) < 3: continue
                 try: f_cid, f_doc_id = int(parts[0]), int(parts[1])
@@ -1547,21 +1568,190 @@ def _recover_tax_risk_docs():
 _recover_tax_risk_docs()
 
 
+def _ocr_png_bytes(images):
+    """对一批 PNG 字节做 OCR，按 rapidocr → easyocr → pytesseract 依次尝试。
+
+    ⚠ 2026-09-24：本函数是**唯一**的 OCR 引擎收敛点，供三处入口复用：
+        _ocr_pdf_pages()（内部 PDF 解析兜底）、_try_ocr_pdf()、_try_ocr_image()。
+    背景：原 _try_ocr_pdf/_try_ocr_image 直接用 pytesseract + pdf2image，
+    而本机既没有 tesseract.exe 也没有 poppler → OCR 接口恒返回空字符串（静默失效）。
+    rapidocr-onnxruntime 是纯 pip、离线、无系统依赖的替代方案，故置为首选。
+    返回提取到的文本；全部引擎不可用时返回空字符串（不抛异常）。
+    """
+    if not images:
+        return ""
+    chunks = []
+
+    # 引擎0：rapidocr-onnxruntime（首选：纯 pip、离线、无系统依赖）
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        import io as _io
+        from PIL import Image
+        import numpy as _np
+        if not hasattr(_ocr_png_bytes, "_rapid"):
+            _ocr_png_bytes._rapid = RapidOCR()
+        _engine = _ocr_png_bytes._rapid
+        # 逐页调用：传 list 时 rapidocr 的返回结构随版本变化，逐页调用结构恒定
+        for b in images:
+            res, _ = _engine(_np.array(Image.open(_io.BytesIO(b)).convert("RGB")))
+            for item in (res or []):
+                try:
+                    t = item[1]
+                except Exception:
+                    continue
+                if t and str(t).strip():
+                    chunks.append(str(t).strip())
+        if chunks:
+            print(f"[OCR] rapidocr 提取 {len(chunks)} 段", flush=True)
+            return "\n".join(chunks)
+    except Exception as e:
+        print(f"[OCR] rapidocr 不可用: {type(e).__name__}: {e}", flush=True)
+
+    # 引擎1：easyocr（依赖 torch，约 2.5GB，通常不安装）
+    try:
+        import easyocr
+        import io as _io
+        from PIL import Image
+        import numpy as _np
+        if not hasattr(_ocr_png_bytes, "_easy"):
+            _ocr_png_bytes._easy = easyocr.Reader(["ch_sim", "en"], gpu=False)
+        _reader = _ocr_png_bytes._easy
+        for b in images:
+            arr = _np.array(Image.open(_io.BytesIO(b)).convert("RGB"))
+            for _bbox, txt, conf in _reader.readtext(arr):
+                if conf and conf > 0.3 and txt and str(txt).strip():
+                    chunks.append(str(txt).strip())
+        if chunks:
+            print(f"[OCR] easyocr 提取 {len(chunks)} 段", flush=True)
+            return "\n".join(chunks)
+    except Exception:
+        pass
+
+    # 引擎2：pytesseract（需系统安装 tesseract.exe）
+    try:
+        import pytesseract
+        import io as _io
+        from PIL import Image
+        import shutil as _sh
+        if not _sh.which("tesseract"):
+            for _p in (r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                       r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe"):
+                if os.path.exists(_p):
+                    pytesseract.pytesseract.tesseract_cmd = _p
+                    break
+        for b in images:
+            t = pytesseract.image_to_string(Image.open(_io.BytesIO(b)), lang="chi_sim+eng")
+            if t and t.strip():
+                chunks.append(t.strip())
+        if chunks:
+            print(f"[OCR] tesseract 提取 {len(chunks)} 段", flush=True)
+    except Exception as e:
+        print(f"[OCR] 无可用 OCR 引擎: {type(e).__name__}: {e}", flush=True)
+
+    return "\n".join(chunks)
+
+
+def _ocr_pdf_pages(filepath, max_pages=20, dpi=300):
+    """扫描件/图片型PDF的OCR兜底：把每页渲染为位图后走 _ocr_png_bytes。
+
+    返回提取到的文本（可能为空字符串）。不抛异常。
+    """
+    try:
+        import fitz  # pymupdf
+        doc = fitz.open(filepath)
+        n = min(doc.page_count, max_pages)
+        images = []
+        for i in range(n):
+            pix = doc[i].get_pixmap(dpi=dpi)
+            images.append(pix.tobytes("png"))
+        doc.close()
+    except Exception as _e:
+        print(f"[PDF-OCR] 页面渲染失败: {_e}", flush=True)
+        return ""
+
+    return _ocr_png_bytes(images)
+
+
+def _extract_pdf_text(filepath, original_name=""):
+    """PDF文本提取统一入口 —— 四级降级链，绝不返回二进制垃圾。
+
+    ① pymupdf(fitz)  最强，文本层+布局最好
+    ② pypdf          纯Python，兼容性好
+    ③ PyPDF2         老版本兼容
+    ④ pdfplumber     表格型PDF补充
+    ⑤ OCR            以上都提不出文字时（扫描件/图片型PDF）兜底
+    全失败返回 None（调用方按"无有效文字"处理）。
+    """
+    _name = os.path.basename(original_name or filepath)
+    errs = []
+
+    # ⓪ 先判断是否"图片型PDF"：无文本层则直接OCR，避免白跑4个库
+    _need_ocr = False
+    try:
+        import fitz
+        _d = fitz.open(filepath)
+        _raw = "".join(_d[i].get_text() for i in range(min(_d.page_count, 3)))
+        _d.close()
+        if len(_raw.strip()) < 50:
+            _need_ocr = True
+    except Exception:
+        pass
+
+    # ① pymupdf
+    if not _need_ocr:
+        try:
+            import fitz
+            d = fitz.open(filepath)
+            text = "".join(d[i].get_text() for i in range(d.page_count))
+            d.close()
+            if text.strip():
+                return text
+        except Exception as e:
+            errs.append(f"pymupdf:{e}")
+
+    # ② pypdf / ③ PyPDF2
+    for _mod in ("pypdf", "PyPDF2"):
+        try:
+            _m = __import__(_mod)
+            reader = _m.PdfReader(filepath)
+            parts = [(pg.extract_text() or "") for pg in reader.pages]
+            text = "\n".join(p for p in parts if p)
+            if text.strip():
+                return text
+        except Exception as e:
+            errs.append(f"{_mod}:{e}")
+
+    # ④ pdfplumber
+    try:
+        import pdfplumber
+        with pdfplumber.open(filepath) as pdf:
+            parts = [(pg.extract_text() or "") for pg in pdf.pages]
+        text = "\n".join(p for p in parts if p.strip())
+        if text.strip():
+            return text
+    except Exception as e:
+        errs.append(f"pdfplumber:{e}")
+
+    # ⑤ OCR 兜底（扫描件/图片型PDF）
+    ocr_text = _ocr_pdf_pages(filepath)
+    if ocr_text.strip():
+        return ocr_text
+
+    _err_brief = ("; ".join(errs))[:200] or "无文本层且OCR不可用"
+    print(f"[PDF] {_name} 文本提取失败（{_err_brief}）", flush=True)
+    return None
+
+
 def _read_file_text(filepath, original_name):
     """读取文件文本内容，支持全格式"""
     ext = os.path.splitext(original_name)[1].lower()
     # PDF
     if ext == ".pdf":
-        try:
-            import PyPDF2
-            text = []
-            with open(filepath, "rb") as f:
-                reader = PyPDF2.PdfReader(f)
-                for page in reader.pages:
-                    t = page.extract_text()
-                    if t: text.append(t)
-            return "\n".join(text)
-        except: pass
+        # 2026-09-23 修正二：原代码 `except: pass` 静默吞掉 ImportError → 落到下面的
+        # "按文本读二进制"兜底分支 → 把 PDF 原始字节当正文（实测 "%PDF-1.6 %..."），
+        # 导致 PDF 被判为 unknown/垃圾数据。
+        # 现统一走 _extract_pdf_text：pymupdf → pypdf → PyPDF2 → pdfplumber → OCR。
+        return _extract_pdf_text(filepath, original_name)
     # Word (.docx)
     if ext == ".docx":
         try:
@@ -1571,28 +1761,32 @@ def _read_file_text(filepath, original_name):
         except: pass
     # Excel (.xlsx)
     if ext == ".xlsx":
+        # ★ 2026-09-25：必须经 engine.workbook 打开并 close()。
+        #   原写法 read_only=True 后从不 close()，openpyxl 底层 zip 句柄的
+        #   对象图存在引用环，函数返回后不被立即回收 → 长驻服务进程一直占着
+        #   文件 → 用户删除该资料时 WinError 32，误以为是 Excel/WPS 占用。
+        from engine.workbook import workbook_scope
         try:
-            import openpyxl
-            wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
-            rows = []
-            for sheet in wb.worksheets:
-                for row in sheet.iter_rows(values_only=True):
-                    rows.append(" ".join(str(c) for c in row if c is not None))
-                if len(rows) > 2000: break
-            if rows: return "\n".join(rows)
+            with workbook_scope(filepath, read_only=True, data_only=True) as wb:
+                rows = []
+                for sheet in wb.worksheets:
+                    for row in sheet.iter_rows(values_only=True):
+                        rows.append(" ".join(str(c) for c in row if c is not None))
+                    if len(rows) > 2000: break
+                if rows: return "\n".join(rows)
         except: pass
     # Excel (.xls)
     if ext == ".xls":
+        from engine.workbook import workbook_scope
         try:
-            import xlrd
-            wb = xlrd.open_workbook(filepath)
-            rows = []
-            for sheet in wb.sheets():
-                for row_idx in range(sheet.nrows):
-                    rows.append(" ".join(str(sheet.cell_value(row_idx, c)) for c in range(sheet.ncols) if sheet.cell_value(row_idx, c)))
+            with workbook_scope(filepath) as wb:
+                rows = []
+                for sheet in wb.sheets():
+                    for row_idx in range(sheet.nrows):
+                        rows.append(" ".join(str(sheet.cell_value(row_idx, c)) for c in range(sheet.ncols) if sheet.cell_value(row_idx, c)))
+                        if len(rows) > 2000: break
                     if len(rows) > 2000: break
-                if len(rows) > 2000: break
-            if rows: return "\n".join(rows)
+                if rows: return "\n".join(rows)
         except: pass
     # Text files
     TEXT_EXTS = {".txt", ".html", ".htm", ".json", ".xml", ".log", ".md", ".csv"}
@@ -1713,14 +1907,14 @@ def _run_three_way_matching(db, company_id, cross):
     si_buyers = {}
     for si in db.query(SalesInvoice).filter(SalesInvoice.company_id == company_id).all():
         n = _normalize_customer_name(si.buyer_name or "")
-        if n: si_buyers[n] = si_buyers.get(n, 0) + float(si.total_amount or 0)
+        if n: si_buyers[n] = si_buyers.get(n, 0) + to_number(si.total_amount)
 
     bt_receivers = {}
     for tx in db.query(BankTransaction).filter(
         BankTransaction.company_id == company_id, BankTransaction.credit_amount > 0
     ).all():
         n = _normalize_customer_name(tx.counterparty_name or "")
-        if n: bt_receivers[n] = bt_receivers.get(n, 0) + float(tx.credit_amount or 0)
+        if n: bt_receivers[n] = bt_receivers.get(n, 0) + to_number(tx.credit_amount)
 
     invoiced_no_pay = set(si_buyers.keys()) - set(bt_receivers.keys())
     paid_no_invoice = set(bt_receivers.keys()) - set(si_buyers.keys())
@@ -1743,14 +1937,14 @@ def _run_three_way_matching(db, company_id, cross):
     pi_sellers = {}
     for pi in db.query(PurchaseInvoice).filter(PurchaseInvoice.company_id == company_id).all():
         n = _normalize_customer_name(pi.seller_name or "")
-        if n: pi_sellers[n] = pi_sellers.get(n, 0) + float(pi.total_amount or 0)
+        if n: pi_sellers[n] = pi_sellers.get(n, 0) + to_number(pi.total_amount)
 
     bt_payers = {}
     for tx in db.query(BankTransaction).filter(
         BankTransaction.company_id == company_id, BankTransaction.debit_amount > 0
     ).all():
         n = _normalize_customer_name(tx.counterparty_name or "")
-        if n: bt_payers[n] = bt_payers.get(n, 0) + float(tx.debit_amount or 0)
+        if n: bt_payers[n] = bt_payers.get(n, 0) + to_number(tx.debit_amount)
 
     invoiced_no_payment = set(pi_sellers.keys()) - set(bt_payers.keys())
     paid_no_purchase = set(bt_payers.keys()) - set(pi_sellers.keys())
@@ -1798,7 +1992,7 @@ def _run_purchase_sales_match(db, company_id, cross):
     si_total = 0
     for si in db.query(SalesInvoice).filter(SalesInvoice.company_id == company_id).all():
         cat = get_cat(si)
-        amt = float(si.total_amount or 0)
+        amt = to_number(si.total_amount)
         si_cats[cat] = si_cats.get(cat, 0) + amt
         si_total += amt
 
@@ -1806,7 +2000,7 @@ def _run_purchase_sales_match(db, company_id, cross):
     pi_total = 0
     for pi in db.query(PurchaseInvoice).filter(PurchaseInvoice.company_id == company_id).all():
         cat = get_cat(pi)
-        amt = float(pi.total_amount or 0)
+        amt = to_number(pi.total_amount)
         pi_cats[cat] = pi_cats.get(cat, 0) + amt
         pi_total += amt
 
@@ -1846,8 +2040,8 @@ def _run_declaration_consistency(db, company_id, cross):
 
     if vat:
         main = json.loads(vat.form_main or '{}') if isinstance(vat.form_main, str) else (vat.form_main or {})
-        declared_output = float(main.get("row11_tax_output", 0) or 0)
-        actual_output = sum(float(si.tax_amount or 0) for si in db.query(SalesInvoice).filter(
+        declared_output = to_number(main.get("row11_tax_output", 0))
+        actual_output = sum(to_number(si.tax_amount) for si in db.query(SalesInvoice).filter(
             SalesInvoice.company_id == company_id).all())
         if actual_output > 0 and declared_output > 0:
             diff = abs(declared_output - actual_output)
@@ -1857,8 +2051,8 @@ def _run_declaration_consistency(db, company_id, cross):
                     "detail": f"申报销项税{declared_output:,.2f} vs 发票销项{actual_output:,.2f}，差异{diff:,.2f}元。",
                     "suggestion": "申报销项税额与发票系统不一致。", "category": "申报一致性"})
 
-        declared_input = float(main.get("row12_tax_input", 0) or 0)
-        actual_input = sum(float(d.deduction_amount or 0) for d in db.query(InputVATDeduction).filter(
+        declared_input = to_number(main.get("row12_tax_input", 0))
+        actual_input = sum(to_number(d.deduction_amount) for d in db.query(InputVATDeduction).filter(
             InputVATDeduction.company_id == company_id).all())
         if actual_input > 0 and declared_input > 0:
             diff = abs(declared_input - actual_input)
@@ -1975,7 +2169,39 @@ async def upload_tax_risk_docs(
     msg = f"已上传 {len(uploaded)} 个文件"
     if skipped > 0: msg += f"，跳过 {skipped} 个重复文件"
     if rejected: msg += f"，拒绝 {len(rejected)} 个无效文件"
-    return {"ok": True, "uploaded": uploaded, "skipped": skipped, "rejected": rejected, "total": len(_tax_risk_docs), "message": msg}
+
+    # ★ 主体一致性即时提示（2026-09-25）：上传时就告诉用户"这份资料不属于本账套"，
+    #   避免等到一键分析才发现。此处**只提示不拦截**（拦截在分析入口做，更安全：
+    #   分析入口能掌握全部文件、可判断"是否所有资料都不符"）。
+    subject_warnings = []
+    try:
+        from database import Company as _Company
+        _sdb = SessionLocal()
+        try:
+            _co = _sdb.query(_Company).filter(_Company.id == company_id).first()
+            _co_name = (_co.name or "").strip() if _co else ""
+            _co_uscc = (_co.uscc or "").strip() if _co else ""
+        finally:
+            _sdb.close()
+        if _co_name:
+            for _u in uploaded:
+                _rel = os.path.join(_get_company_upload_dir(company_id),
+                                   f"{company_id}_{_u['id']}_{_u['filename']}")
+                try:
+                    _sub = _check_file_subject(_rel if os.path.exists(_rel) else "", _u["filename"],
+                                               _co_name, _co_uscc)
+                except Exception:
+                    _sub = {"verdict": "unknown", "reason": "", "clue_level": None}
+                if _sub.get("verdict") == "mismatch":
+                    subject_warnings.append({"filename": _u["filename"], "reason": _sub.get("reason")})
+            if subject_warnings:
+                msg += f"，其中 {len(subject_warnings)} 个文件主体与账套「{_co_name}」不一致"
+    except Exception:
+        pass
+
+    return {"ok": True, "uploaded": uploaded, "skipped": skipped, "rejected": rejected,
+            "total": len(_tax_risk_docs), "message": msg,
+            "subject_warnings": subject_warnings}
 
 
 @app.get("/api/tax-risk-docs/list")
@@ -1985,25 +2211,30 @@ def list_tax_risk_docs(company_id: int = Query(...)):
     _init_tax_docs_from_disk()
     docs = [d for d in _tax_risk_docs if d["company_id"] == company_id]
     # 去重 + 验证磁盘文件实际存在（用户可能手动删除了文件）
+    tombstones = load_doc_tombstones()
     seen = set()
     valid = []
-    stale_indices = []
-    for i, d in enumerate(docs):
+    stale = []
+    for d in docs:
         key = (d["id"], d["original_name"])
         if key in seen:
-            stale_indices.append(i)
+            stale.append(d)
             continue
         seen.add(key)
-        if not os.path.exists(d["path"]):
-            stale_indices.append(i)
+        if doc_tombstone_key(company_id, d.get("filename", "")) in tombstones:
+            stale.append(d)
+            continue
+        if not os.path.exists(d.get("path", "")):
+            stale.append(d)
             continue
         valid.append(d)
-    # 清理无效条目（文件已被外部删除）
-    if stale_indices:
-        for i in sorted(stale_indices, reverse=True):
-            _tax_risk_docs.remove(docs[i])
+    # 清理无效条目（已被删除 / 文件已被外部删除）
+    for d in stale:
+        if d in _tax_risk_docs:
+            _tax_risk_docs.remove(d)
     return [{"id": d["id"], "original_name": d["original_name"], "size": d["size"],
-             "uploaded_at": d["uploaded_at"]} for d in valid]
+             "uploaded_at": d["uploaded_at"], "filename": d.get("filename", "")}
+            for d in valid]
 
 @app.get("/api/tax-risk-docs/debug")
 def debug_tax_risk_docs(company_id: int = Query(...)):
@@ -2038,46 +2269,302 @@ def clear_transfer_cache(company_id: int = Query(...)):
 
 @app.delete("/api/tax-risk-docs/report")
 def delete_tax_risk_report(company_id: int = Query(...)):
-    """删除指定账套的分析报告（清内存缓存 + 磁盘缓存）"""
-    removed = company_id in _last_analysis_cache
-    _last_analysis_cache.pop(company_id, None)
-    # 同步磁盘缓存，避免刷新后报告又被恢复
+    """删除指定账套的分析报告 —— 清除**全部副本**并逐项校验。
+
+    2026-09-25 用户反馈"删了报告感觉后台还有备份、重新生成还是旧报告"。
+    根因：旧实现只清 last_analysis_cache 一处，报告在另外 5 处仍留存：
+      ① _analysis_tasks[task_id]["result"] —— 已完成任务的结果仍在内存，
+         /analyze-result/{task_id} 仍能返回完整旧报告；
+      ② _analysis_history（内存 + ANALYSIS_HISTORY 磁盘）—— 历史列表仍可见；
+      ③ data/uploads/checkpoints/{cid}.json —— 分析状态标记仍是 done；
+      ④ data/uploads/transfer/{cid}_*.json —— 解析后的明细仍在；
+      ⑤ 磁盘 last_analysis_cache.json —— 旧实现 except 吞异常且**不回读校验**，
+         写入失败时 key 仍在，服务器重启后报告"复活"。
+    现在：逐项清理 → 回读校验 → 如实返回 cleared/leftovers，绝不谎报。
+    """
+    cleared, leftovers = [], []
+
+    # ① 内存缓存
+    try:
+        if company_id in _last_analysis_cache:
+            _last_analysis_cache.pop(company_id, None)
+            cleared.append("内存分析缓存")
+    except Exception as exc:
+        leftovers.append(f"内存分析缓存: {exc}")
+
+    # ② 磁盘分析缓存（写入后回读校验，避免"以为删了其实还在"）
     try:
         disk = read_json(LAST_ANALYSIS_CACHE, {})
         key = str(company_id)
         if isinstance(disk, dict) and key in disk:
             del disk[key]
             atomic_write_json(LAST_ANALYSIS_CACHE, disk)
+        verify = read_json(LAST_ANALYSIS_CACHE, {})
+        if isinstance(verify, dict) and key in verify:
+            leftovers.append("磁盘分析缓存（写入后仍存在）")
+        else:
+            cleared.append("磁盘分析缓存")
+    except Exception as exc:
+        leftovers.append(f"磁盘分析缓存: {exc}")
+
+    # ③ 已完成任务的结果（否则 /analyze-result 仍能取到旧报告）
+    try:
+        hit = 0
+        with _analysis_lock:
+            for _tid, _task in list(_analysis_tasks.items()):
+                if _task.get("company_id") == company_id:
+                    _task["result"] = None
+                    _task["status"] = "deleted"
+                    _task["message"] = "报告已删除"
+                    _task["incremental"] = False
+                    hit += 1
+        if hit:
+            cleared.append(f"分析任务结果({hit}个)")
+    except Exception as exc:
+        leftovers.append(f"分析任务结果: {exc}")
+
+    # ④ 分析历史（内存 + 磁盘）
+    try:
+        if _analysis_history.pop(company_id, None) is not None:
+            _save_analysis_history_disk()
+            _verify = read_json(ANALYSIS_HISTORY, {})
+            if isinstance(_verify, dict) and str(company_id) in _verify:
+                leftovers.append("分析历史（磁盘仍存在）")
+            else:
+                cleared.append("分析历史")
+    except Exception as exc:
+        leftovers.append(f"分析历史: {exc}")
+
+    # ⑤ 失败检查点
+    try:
+        _cp = os.path.join(CHECKPOINT_DIR, f"{company_id}.json")
+        if os.path.exists(_cp):
+            purge_file(_cp)
+            if os.path.exists(_cp):
+                leftovers.append("分析检查点")
+            else:
+                cleared.append("分析检查点")
+    except Exception as exc:
+        leftovers.append(f"分析检查点: {exc}")
+
+    # ⑥ 中转站解析缓存（{cid}_{docid}.json）
+    try:
+        _moved = 0
+        if os.path.isdir(TRANSFER_DIR):
+            for _fn in os.listdir(TRANSFER_DIR):
+                if _fn.startswith(f"{company_id}_"):
+                    purge_file(os.path.join(TRANSFER_DIR, _fn))
+                    _moved += 1
+        if _moved:
+            cleared.append(f"中转站解析缓存({_moved}个)")
+    except Exception as exc:
+        leftovers.append(f"中转站解析缓存: {exc}")
+
+    ok = not leftovers
+    return {
+        "ok": ok,
+        "removed": bool(cleared),
+        "cleared": cleared,
+        "leftovers": leftovers,
+        "message": (
+            f"报告已彻底删除（清理 {len(cleared)} 处：{'、'.join(cleared)}）"
+            if ok and cleared else
+            ("该账套暂无分析报告" if not cleared else
+             f"已清理 {len(cleared)} 处，仍残留：{'、'.join(leftovers)}")
+        ),
+    }
+
+
+def _delete_tax_risk_docs(doc_ids, company_id):
+    """真实删除涉税资料（删单条与批量删除共用的唯一实现）。
+
+    2026-09-25 用户反馈"删除选中资料删不干净、重启后资料又回来"。
+    旧实现三处缺陷：
+      ① move_to_trash 的 bool 返回值被丢弃，无条件 removed_file=True →
+         文件被 Excel/WPS 占用时仍返回"删除成功"；
+      ② 只 pop 掉第一条 (id, company_id) 命中项，同 id 多版本会残留；
+      ③ 删除失败后没有任何记事，服务器重启 _init_tax_docs_from_disk
+         会把磁盘上残留的文件重新扫回列表。
+    现约定：删除 = 物理移除成功 或 登记墓碑（列表/分析永久排除）二者之一；
+    两者都不成立则如实报告失败，绝不向用户谎报"删除成功"。
+    """
+    global _tax_risk_docs
+    wanted = {int(x) for x in (doc_ids or [])}
+    result = {
+        "requested": len(wanted), "removed": 0, "disk_removed": 0,
+        "tombstoned": 0, "left_on_disk": 0, "failures": [], "not_found": [],
+    }
+    if not wanted:
+        return result
+
+    # ★ 2026-09-25：先释放**本服务自身**可能仍持有工作簿句柄。
+    #   实测占用者是本服务（openpyxl read_only 工作簿未 close，对象图有引用环，
+    #   函数返回后不被立即回收），而不是用户以为的 Excel/WPS。
+    #   不先收干净自家句柄，删除必然失败，还会把原因错报给用户。
+    from engine.workbook import release_all as _release_wb, is_file_locked as _locked
+    try:
+        _released = _release_wb()
+        if _released:
+            result["released_own_handles"] = _released
     except Exception:
         pass
-    return {
-        "ok": True,
-        "removed": removed,
-        "message": "报告已删除" if removed else "该账套暂无分析报告",
-    }
+
+    hits = [d for d in _tax_risk_docs
+            if d.get("company_id") == company_id and d.get("id") in wanted]
+    hit_ids = {d.get("id") for d in hits}
+    result["not_found"] = sorted(wanted - hit_ids)
+
+    for d in hits:
+        doc_id = d.get("id")
+        fpath = d.get("path", "")
+        fname = d.get("filename") or os.path.basename(str(fpath))
+        # 解除只读属性（部分只读属性文件 os.replace 会失败）
+        try:
+            import stat as _stat
+            os.chmod(fpath, _stat.S_IWUSR | _stat.S_IRUSR | _stat.S_IWGRP)
+        except Exception:
+            pass
+        removed, reason = purge_file(fpath)
+        if removed and not os.path.exists(fpath):
+            result["disk_removed"] += 1
+            add_doc_tombstone(company_id, fname, fpath, reason, purged=True)
+        else:
+            # 物理移除失败：登记墓碑保证"至少不再出现在列表与分析中"，并如实报告
+            # 探测是否**真的**被占用，据此给出可信的原因（不替用户猜）
+            still_locked = _locked(fpath)
+            holder = ("文件确被其它程序占用（已释放本服务句柄后仍无法移动，"
+                      "多为 Excel/WPS/杀毒/同步盘在读取）"
+                      if still_locked else
+                      "文件未被占用，失败原因是权限或路径问题")
+            result["left_on_disk"] += 1
+            result["tombstoned"] += 1
+            add_doc_tombstone(company_id, fname, fpath, f"{holder}｜底层原因：{reason}", purged=False)
+            result["failures"].append({
+                "id": doc_id, "file": d.get("original_name", fname),
+                "reason": reason, "locked": still_locked, "hint": holder,
+                "disk_left": os.path.exists(fpath),
+            })
+        # 同步清理该资料的中转站解析缓存
+        try:
+            _tpath = os.path.join(TRANSFER_DIR, f"{company_id}_{doc_id}.json")
+            if os.path.exists(_tpath):
+                purge_file(_tpath)
+        except Exception:
+            pass
+        if d in _tax_risk_docs:
+            _tax_risk_docs.remove(d)
+        result["removed"] += 1
+
+    return result
+
+
+@app.post("/api/tax-risk-docs/batch-delete")
+async def batch_delete_tax_risk_docs(request: Request):
+    """批量删除涉税资料（服务端一次处理，替代前端逐条 DELETE）。
+
+    前端逐条 DELETE 的两个问题：① fetch 对 4xx/5xx 不 reject，前端把失败
+    也计入"已删除"；② 大批量逐条请求会撞上环境批量删除守护，中途被中断后
+    用户看到的仍是"部分成功"。服务端批量接口返回逐条明细，成败可核对。
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    company_id = int(body.get("company_id") or 0)
+    doc_ids = body.get("doc_ids") or []
+    if company_id <= 0:
+        return {"ok": False, "message": "缺少账套 company_id"}
+    if not isinstance(doc_ids, list) or not doc_ids:
+        return {"ok": False, "message": "未选择要删除的资料"}
+
+    res = _delete_tax_risk_docs(doc_ids, company_id)
+    left = res["left_on_disk"]
+    parts = [f"已删除 {res['removed']} 个资料"]
+    if res["tombstoned"]:
+        parts.append(f"其中 {left} 个文件被占用未能物理移除，已登记删除记事并永久排除出分析")
+    if res["not_found"]:
+        parts.append(f"{len(res['not_found'])} 个未找到")
+    res["ok"] = res["removed"] > 0
+    res["message"] = "；".join(parts)
+    return res
 
 
 @app.delete("/api/tax-risk-docs/{doc_id}")
 def delete_tax_risk_doc(doc_id: int, company_id: int = Query(...)):
-    """删除单条涉税资料"""
-    global _tax_risk_docs
-    for i, d in enumerate(_tax_risk_docs):
-        if d["id"] == doc_id and d["company_id"] == company_id:
-            removed_file = False
-            # 尝试多种方式确保文件被删除
-            fpath = d.get("path", "")
-            try: import stat; os.chmod(fpath, stat.S_IWUSR | stat.S_IRUSR | stat.S_IWGRP)
-            except: pass
-            try:
-                # 移入回收站而非直接删除（规避批量删除守护，2026-09-05）
-                move_to_trash(fpath)
-                removed_file = True
-            except Exception:
-                pass
-            # 无论磁盘删除是否成功，从内存列表移除
-            _tax_risk_docs.pop(i)
-            return {"ok": True, "message": "删除成功" if removed_file else "已从列表移除（磁盘残留将在下次分析时自动跳过）"}
-    raise HTTPException(404, "文件不存在")
+    """删除单条涉税资料（与批量删除共用唯一实现）。"""
+    res = _delete_tax_risk_docs([doc_id], company_id)
+    if res["removed"] == 0:
+        raise HTTPException(404, "文件不存在")
+    if res["left_on_disk"]:
+        res["message"] = ("已从资料列表移除（文件被占用未能物理移入回收站，"
+                          "已登记删除记事，不会再参与分析）")
+    else:
+        res["message"] = "删除成功"
+    return res
+
+
+@app.post("/api/tax-risk-docs/purge-pending")
+def purge_pending_deletions(company_id: int = Query(...)):
+    """清理历史删除遗留：把墓碑中"文件仍在磁盘"的残留再清一次。
+
+    场景：删除时文件被占用无法移入回收站 → 用户希望事后能补清理。
+    ★ 2026-09-25：实测占用者常是**本服务自身**（openpyxl 工作簿句柄未关闭），
+      所以本接口**先释放本服务持有的一切工作簿句柄并强制 GC**，再尝试移除；
+      仍然失败时才提示"确被其它程序占用（Excel/WPS/杀毒/同步盘）"，
+      并逐条给出**真实的底层原因**，不替用户猜一个原因。
+    """
+    from engine.workbook import release_all as _release_wb, is_file_locked as _locked
+    released = 0
+    try:
+        released = _release_wb()
+    except Exception:
+        pass
+
+    tombstones = load_doc_tombstones()
+    done, still, missing = 0, [], []
+    for key, meta in list(tombstones.items()):
+        if meta.get("company_id") != company_id:
+            continue
+        fpath = meta.get("path", "")
+        if not fpath:
+            continue
+        if not os.path.exists(fpath):
+            missing.append(fpath)
+            continue
+        removed, reason = purge_file(fpath)
+        if removed and not os.path.exists(fpath):
+            done += 1
+        else:
+            locked = _locked(fpath)
+            still.append({
+                "file": meta.get("filename", ""),
+                "locked": locked,
+                "reason": reason,
+                "hint": ("文件确被其它程序占用：请关闭正在打开它的 Excel/WPS/杀毒/网盘同步客户端"
+                         if locked else
+                         "文件未被占用：失败原因是权限不足或路径异常，请检查该目录写权限"),
+            })
+    # 已不存在的墓碑移交回收站删除（回读确认后清空）
+    if missing:
+        for key, meta in list(tombstones.items()):
+            if meta.get("company_id") == company_id and not os.path.exists(meta.get("path", "")):
+                tombstones.pop(key, None)
+        save_doc_tombstones(tombstones)
+
+    msg = f"已彻底清理 {done} 个文件"
+    if released:
+        msg += f"（其中先释放了本服务自身持有的 {released} 个工作簿句柄）"
+    if still:
+        msg += f"；{len(still)} 个未能清理"
+    return {
+        "ok": True,
+        "purged": done,
+        "released_own_handles": released,
+        "still_locked": still,
+        "registered": len(tombstones),
+        "message": msg,
+    }
+
 
 
 def _classify_file_type(text, filename):
@@ -2120,11 +2607,17 @@ from datetime import timedelta
 
 def _parse_excel_structured(filepath, ext, original_name="", return_wb=False):
     """智能识别Excel/CSV内容——不依赖Sheet名，纯靠表头和数据推断
-    
+
     当 return_wb=True 时，返回 (result, wb) 元组，避免调用方重复打开文件。
+    ★ 此时**工作簿所有权移交调用方**，调用方必须在 finally 里
+      `engine.workbook.close_workbook(wb)`；否则 read_only 模式下的
+      zip 句柄会一直占着该文件（2026-09-25 实测：这就是"删除资料提示
+      文件被占用"的真实原因，占用者是本服务自身而非 Excel）。
     """
     fname = os.path.basename(filepath)
     _init_trace(fname)  # 初始化诊断追踪
+    from engine.workbook import load_workbook, close_workbook
+    wb = None
     try:
         if ext == ".csv":
             import csv, io
@@ -2156,12 +2649,10 @@ def _parse_excel_structured(filepath, ext, original_name="", return_wb=False):
                 return (result, sheet)
             return result
         elif ext == ".xls":
-            import xlrd
-            wb = xlrd.open_workbook(filepath)
+            wb = load_workbook(filepath)
             result = _parse_by_content(wb.sheet_names(), lambda i: wb.sheet_by_index(i), original_name)
         else:
-            import openpyxl
-            wb = openpyxl.load_workbook(filepath, read_only=True, data_only=True)
+            wb = load_workbook(filepath, read_only=True, data_only=True)
             result = _parse_by_content(wb.sheetnames, lambda i: wb[wb.sheetnames[i]], original_name)
         if result is None:
             _trace_diag("三层递进全部失败: 关键词匹配→结构分析→通用解析 均未通过", "error")
@@ -2170,9 +2661,16 @@ def _parse_excel_structured(filepath, ext, original_name="", return_wb=False):
         return result
     except Exception as e:
         _trace_diag(f"Excel/CSV解析异常: {e}", "error")
+        # 异常路径下所有权不转移，必须在此关闭，否则句柄泄漏到进程结束
+        close_workbook(wb)
+        wb = None
         if return_wb:
             return (None, None)
         return None
+    finally:
+        # return_wb=True 表示所有权已移交调用方，本层不关闭
+        if wb is not None and not return_wb:
+            close_workbook(wb)
 
 # ── 资料类型特征库（列名关键词+得分）──
 # 覆盖税务合规所需的所有资料类型，纯内容识别，不依赖Sheet名
@@ -2234,8 +2732,14 @@ _FILE_FINGERPRINTS = {
                      "明细科目", "记账凭证", "凭证日期", "制单人", "审核人", "记账人"],
         "score_threshold": 2,
         "parser": lambda s, h: _parse_voucher_sheet(s),
-        "secondary": ["借方金额", "借方", "贷方金额", "贷方", "借方合计", "贷方合计",
-                      "金额", "附件", "结算方式", "结算号", "票号", "发生日期"],
+        # ⚠ 2026-09-23 修正（误判为凭证 P0）：
+        #   原 secondary = ["借方金额","借方","贷方金额","贷方","借方合计","贷方合计","金额",...]
+        #   其中 "借方金额"/"贷方金额"/"金额"/"借方"/"贷方" 是**银行流水/科目余额表共有的列名**，
+        #   并非凭证独有。招行对账单表头（...借方金额 贷方金额 摘要...）会让这些词全部命中，
+        #   白送 5×2=10 分，使 voucher(11分) 反超真正的 bank_statement(9分) → 银行流水被错判成凭证。
+        #   修正：剔除与银行流水/余额表混淆的通用词，只保留凭证真正独有的结构词。
+        "secondary": ["借方合计", "贷方合计", "附件", "结算方式", "结算号", "票号",
+                      "发生日期", "记账凭证号", "附单据", "过账", "出纳"],
     },
     "social_security": {
         "keywords": ["缴费基数", "单位缴纳", "个人缴纳", "养老保险", "医疗保险", "工伤保险",
@@ -3156,24 +3660,86 @@ def _parse_vat_declaration_sheet(sheet, header=None):
     ncols = sheet.ncols if hasattr(sheet, 'ncols') else sheet.max_column
 
     FIELDS = {
-        "sales_amount": ["按适用税率计税销售额", "计税销售额", "应税销售额", "销售额"],
+        # 注意：不用泛化"销售额"，否则会命中附列资料(一)的"销售额"列标题与免税/简易销售额行
+        "sales_amount": ["按适用税率计税销售额", "计税销售额", "应税销售额"],
         "sales_tax": ["销项税额"],
         "input_tax": ["进项税额"],
         "payable_tax": ["本期应补（退）税额", "本期应补(退)税额", "本期应补退税额", "应纳税额合计", "应纳税额"],
     }
     extracted = {k: 0.0 for k in FIELDS}
+    # 2026-09-23 修正（附表污染 P0）：
+    #   原实现「最后一个命中覆盖前面」→ 主表在前、附列资料在后，导致附表栏次号
+    #   （如 12/22/23）覆盖主表真实金额（245,827.02 / 14,749.62 …）。
+    #   现改为按「可信度打分」保留最优：主表(一般项目·本月数)优先，附表降权。
+    _best_score = {k: None for k in FIELDS}   # None = 尚未命中任何候选
+
+    # ── 定位「一般项目·本月数」列 ──
+    # 主表表头是两行合并结构：
+    #   行A：  栏次 | 一般项目        | 即征即退项目
+    #   行B：        | 本月数 | 本年累计 | 本月数 | 本年累计
+    # 取文档中**第一处**出现的 "本月数" 单元格所在列作为金额取值列。
+    # 实测：2025-01 在 [7,6]、2025-09 在 [24,6]，均为 col6，且与数据行一致。
+    _month_col = None
+    for _r in range(min(nrows, 120)):
+        for _c in range(min(ncols, 60)):
+            if str(_declaration_cell(sheet, _r, _c) or "").strip() == "本月数":
+                _month_col = _c
+                break
+        if _month_col is not None:
+            break
+
+    _DASHES = ("——", "—", "－", "-", "/", "\\", "无", "***", "— －", "--")
 
     def _right_value(r, c):
-        # 申报表布局通常是「项目名｜栏次｜金额…」，向右取绝对值最大的数值（金额远大于栏次号）
-        best = None
-        best_abs = 0.0
+        """取该行「一般项目·本月数」的金额。
+
+        ⚠ 2026-09-24 修正（P0，把全年累计当单月金额）：
+           原实现是"向右最多扫12列、取绝对值最大者"。但本年累计在数值上**永远 ≥**
+           本月数，取最大必然命中累计列 → 把"全年累计销售额"当"单月销售额"交给分析
+           引擎，系统性扭曲税负率、银行流水vs开票差异等所有勾稽。
+           实证 2025-09：销项税额 本月数=12,390.17 / 本年累计=325,222.26，
+           原实现返回 325,222.26；而 9月本月销售额 206,502.83×6% = 12,390.17 才正确。
+           注意本函数 docstring 一直写的是"向右取第一个数值"，是实现偏离了文档。
+           现改为：① 优先直读已定位的「本月数」列；② 定位失败才回退按位扫描。
+        """
+        # ① 直读「本月数」列（最可靠）
+        if _month_col is not None:
+            s = str(_declaration_cell(sheet, r, _month_col) or "").strip()
+            if s and s not in _DASHES and re.fullmatch(r"-?[\d,，.]+", s):
+                return _declaration_num(s)
+        # ② 回退：跳过栏次列，取其后第一个可解析数值
+        #    栏次列的值可能是裸数字（"11"）或带公式（"34＝24-28-29"），两者都要跳过
+        _skipped_col = False
         for cc in range(c + 1, min(ncols, c + 12)):
-            v = _declaration_cell(sheet, r, cc)
-            nv = _declaration_num(v)
-            if nv != 0.0 and abs(nv) > best_abs:
-                best_abs = abs(nv)
-                best = nv
-        return best
+            s = str(_declaration_cell(sheet, r, cc) or "").strip()
+            if not s or s in _DASHES:
+                continue
+            # 形如 "11" / "19=11-18" / "34＝24-28-29" → 判定为栏次列，跳过（只跳一次）
+            if not _skipped_col and re.fullmatch(r"\d{1,2}(\s*[=＝].*)?", s):
+                _skipped_col = True
+                continue
+            if re.fullmatch(r"-?[\d,，.]+", s):
+                # "0.00" 是**有效值**（如本期因留抵无应纳税额），必须原样返回
+                return _declaration_num(s)
+        return None
+
+    def _match_score(r, c, field, val):
+        """给一次命中打可信度分：主表优先、金额≥1000 加分（栏次号通常 <100）、
+        附表特征词（附列资料/税额抵减/附加税费）重罚。"""
+        s = 0
+        # 附表区域：主表没有这些标签
+        row_text = " ".join(str(_declaration_cell(sheet, r, x) or "") for x in range(min(ncols, 40)))
+        if any(x in row_text for x in ("附列资料", "税额抵减", "附加税费", "本期入库", "预缴")):
+            s -= 50
+        else:
+            s += 20          # 非附表（≈主表）区域
+        if r <= 80:
+            s += 10          # 主表通常靠前
+        if val and abs(val) >= 1000:
+            s += 15          # 真实金额一般 ≥1000
+        elif val and abs(val) < 100:
+            s -= 30          # 极可能取到了栏次号
+        return s
 
     for r in range(min(nrows, 200)):
         for c in range(min(ncols, 60)):
@@ -3184,14 +3750,21 @@ def _parse_vat_declaration_sheet(sheet, header=None):
                 for kw in keywords:
                     if kw not in cell:
                         continue
-                    # 精确排除：进项税额的主栏不含"转出/留抵/加计/上期"，销项税额不含"进项"
-                    if field == "input_tax" and ("转出" in cell or "留抵" in cell or "加计" in cell or "上期" in cell or "免抵退" in cell):
+                    # 精确排除：避免命中"进项税额转出/调减/红字/申报抵扣合计/外贸抵扣证明"等明细行（其右侧栏次号或小计会污染取值）
+                    if field == "input_tax" and any(x in cell for x in ("转出", "留抵", "加计", "上期", "免抵退", "调减", "红字", "信息表", "异常", "申报抵扣", "抵扣证明", "外贸")):
                         continue
-                    if field == "sales_amount" and "销项税额" in cell:
+                    # 精确排除：销售额只取主表"(一)按适用税率计税销售额"，排除简易/免税/免抵退出口销售额行
+                    if field == "sales_amount" and ("销项税额" in cell or "简易" in cell or "免税" in cell or "免、抵、退" in cell):
+                        continue
+                    # 精确排除：应纳税额/本期应补(退)税额 不能命中附加税费行（城建税/教育费附加/地方教育附加）及简易/减征/上期缴纳行
+                    if field == "payable_tax" and any(x in cell for x in ("附加", "城市维护", "教育费", "地方教育", "简易计税", "减征", "缴纳上期", "上期缴纳")):
                         continue
                     val = _right_value(r, c)
                     if val is not None and val != 0.0:
-                        extracted[field] = val
+                        _sc = _match_score(r, c, field, val)
+                        if _best_score[field] is None or _sc > _best_score[field]:
+                            _best_score[field] = _sc
+                            extracted[field] = val
                     break
                 else:
                     continue
@@ -3373,7 +3946,7 @@ def _parse_bank_sheet(sheet):
         # 额外检查：无日期+无对方+金额很大 → 可能是汇总行（收入合计/支出合计等）
         if not has_date and not has_counterparty:
             try:
-                amt_val = abs(float(vals.get("credit", 0) or 0)) or abs(float(vals.get("debit", 0) or 0))
+                amt_val = abs(to_number(vals.get("credit", 0))) or abs(to_number(vals.get("debit", 0)))
                 if amt_val > 100000: continue  # 10万以上无日期无对方→汇总行
             except: pass
         
@@ -3381,7 +3954,7 @@ def _parse_bank_sheet(sheet):
         if "amount" not in vals:
             amt = 0
             for k in ["income", "expense", "credit", "debit"]:
-                try: amt = max(amt, abs(float(vals.get(k, 0) or 0)))
+                try: amt = max(amt, abs(to_number(vals.get(k, 0))))
                 except: pass
             vals["amount"] = str(amt)
         # 统一日期格式（优先用date，其次tx_time，支持datetime带时间组件的格式）
@@ -3437,7 +4010,7 @@ def _parse_housing_fund_sheet(sheet, header):
             except: vals[field] = ""
         if not vals.get("name") and not vals.get("base"): continue
         for k in ["base", "company_pay", "personal_pay", "total_pay"]:
-            try: vals[k] = float(vals.get(k, 0) or 0)
+            try: vals[k] = to_number(vals.get(k, 0))
             except: vals[k] = 0
         rows.append(vals)
     return {"type": "housing_fund", "rows": rows}
@@ -3493,19 +4066,28 @@ def _tag_bank_source(parsed, original_name):
     return parsed
 
 
-def _parse_by_content(names, get_sheet, original_name=""):
+def _parse_by_content(names, get_sheet, original_name="", extra_text=None):
     """智能识别: 扫描所有Sheet的表头和数据行，按特征库打分，选最高分类型。
-    同时运行结构分析做交叉验证，记录完整决策过程。"""
+    同时运行结构分析做交叉验证，记录完整决策过程。
+
+    extra_text: 可选。额外的全量文本，参与关键词与标题打分（不参与结构分析）。
+                ★ 2026-09-25 新增，给"无表格的 PDF / 扫描件 OCR 文本"用：
+                这类文件的特征词（增值税纳税申报表/销项税额/资产负债表…）散落在整篇
+                文本里，而下方只扫前 3 行做表头识别，必然匹配不到 → 类型识别失败。
+                传入全文即可让 45 类指纹正常打分，从而"扫描件也能识别出是什么文件"。
+    """
     best_score = 0
     best_type = None
     best_sheet_idx = 0
     kw_trace_matches = []  # 记录所有达标的关键词匹配
+    _extra = (" " + str(extra_text)) if extra_text else ""
     
     for i in range(len(names)):  # 扫描全部Sheet，不限于前3个
         try:
             s = get_sheet(i)
             # ═══ 扫前3行做表头识别（第0行常是标题，第1行才是列名） ═══
-            all_text = ""
+            # 起始即带上 extra_text（无表格 PDF / 扫描件 OCR 全文），使关键词语义可用
+            all_text = _extra
             # 行0单独扫描：检测文件标题（含进项/销项/台账等方向标识）
             row0_text = ""
             _nrows = s.nrows if hasattr(s, 'nrows') else (s.max_row or 1)
@@ -3569,12 +4151,50 @@ def _parse_by_content(names, get_sheet, original_name=""):
                         score += 1
                         kw_hits.append(kw)
                 # 加分：次级关键词
+                # ⚠ 2026-09-23 修正（子串污染 P0）：
+                #   旧逻辑对 secondary 裸判 `kw in all_text` +2 分。
+                #   当表头是"借方金额/贷方金额"时，"借方"/"贷方"/"金额"三个
+                #   secondary 词全部命中 → 白送 6 分，使 voucher(11) 反超
+                #   真正的 bank_statement(9)，招行对账单被错判成凭证。
+                #   修正：若该 secondary 词的**所有**出现位置都被某个更长的
+                #   命中关键词完整覆盖（即它只是更长词的子串），则降权为 +0.5。
+                def _is_substring_only(needle, longer_hits):
+                    """needle 是否只作为更长命中词的子串出现（无独立出现）"""
+                    if not needle:
+                        return False
+                    has_standalone = False
+                    start = all_text.find(needle)
+                    while start >= 0:
+                        covered = False
+                        for lk in longer_hits:
+                            if len(lk) <= len(needle):
+                                continue
+                            # 找出覆盖该位置的 lk 出现
+                            p = all_text.find(lk)
+                            while p >= 0:
+                                if p <= start and start + len(needle) <= p + len(lk):
+                                    covered = True
+                                    break
+                                p = all_text.find(lk, p + 1)
+                            if covered:
+                                break
+                        if not covered:
+                            has_standalone = True
+                            break
+                        start = all_text.find(needle, start + 1)
+                    return not has_standalone
+
+                all_hit_kws = list(kw_hits)  # 已命中的主关键词，作为"更长词"参照
                 sec_hits = []
                 if "secondary" in fp:
                     for kw in fp["secondary"]:
                         if kw in all_text:
-                            score += 2
-                            sec_hits.append(kw)
+                            if _is_substring_only(kw, all_hit_kws):
+                                score += 0.5
+                                sec_hits.append(kw + "(子串)")
+                            else:
+                                score += 2
+                                sec_hits.append(kw)
                 
                 threshold = fp["score_threshold"]
                 # 标题行加分：如有标题方向匹配，额外加分
@@ -4911,7 +5531,7 @@ def _parse_input_vat_sheet(sheet):
             except: vals[field] = ""
         if not vals.get("invoice_no") and not vals.get("digital_invoice_no"): continue
         for k in ["amount", "tax", "deductible_tax"]:
-            try: vals[k] = float(vals.get(k, 0) or 0)
+            try: vals[k] = to_number(vals.get(k, 0))
             except: vals[k] = 0
         vals["direction"] = "进项"
         rows.append(vals)
@@ -4962,11 +5582,11 @@ def _parse_invoice_sheet(sheet, direction):
             vals["inv_no"] = vals["digital_inv_no"]
         if not vals.get("inv_no") and not vals.get("inv_code") and not vals.get("buyer") and not vals.get("seller") and not vals.get("goods"):
             continue
-        try: vals["amount"] = float(vals.get("amount", 0) or 0)
+        try: vals["amount"] = to_number(vals.get("amount", 0))
         except: vals["amount"] = 0
-        try: vals["tax"] = float(vals.get("tax", 0) or 0)
+        try: vals["tax"] = to_number(vals.get("tax", 0))
         except: vals["tax"] = 0
-        try: vals["total"] = float(vals.get("total", 0) or 0)
+        try: vals["total"] = to_number(vals.get("total", 0))
         except: vals["total"] = vals["amount"] + vals["tax"]
         rows.append(vals)
     atype = "sales_invoice" if direction == "销项" else "purchase_invoice"
@@ -4994,7 +5614,7 @@ def _parse_trial_balance_sheet(sheet, header):
 
     def _f(v):
         try:
-            return float(str(v).replace(",", "").replace("￥", "").replace("¥", "").strip() or 0)
+            return to_number(str(v).replace(",", "").replace("￥", "").replace("¥", "").strip())
         except (TypeError, ValueError):
             return 0.0
 
@@ -5092,7 +5712,7 @@ def _parse_contract_sheet(sheet, header):
             try: vals[field] = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(_get_row_values(sheet, r)[col] or '')
             except: vals[field] = ""
         if not vals.get("name") and not vals.get("party_a"): continue
-        try: vals["amount"] = float(vals.get("amount", 0) or 0)
+        try: vals["amount"] = to_number(vals.get("amount", 0))
         except: vals["amount"] = 0
         rows.append(vals)
     return {"type": "contract", "rows": rows}
@@ -5115,7 +5735,7 @@ def _parse_related_party_sheet(sheet, header):
             try: vals[field] = str(sheet.cell_value(r, col)).strip() if hasattr(sheet, 'cell_value') else str(_get_row_values(sheet, r)[col] or '')
             except: vals[field] = ""
         if not vals.get("name") and not vals.get("content"): continue
-        try: vals["amount"] = float(vals.get("amount", 0) or 0)
+        try: vals["amount"] = to_number(vals.get("amount", 0))
         except: vals["amount"] = 0
         rows.append(vals)
     return rows
@@ -5166,7 +5786,7 @@ def _parse_salary_sheet(sheet):
             except: vals[field] = ""
         if not vals.get("name"): continue
         for k in ["salary","ss_deduct","hf_deduct","tax","net","gross"]:
-            try: vals[k] = float(vals.get(k, 0) or 0)
+            try: vals[k] = to_number(vals.get(k, 0))
             except: vals[k] = 0
         rows.append(vals)
     return {"type": "salary", "rows": rows}
@@ -5214,7 +5834,7 @@ def _parse_social_sheet(sheet, header):
             except: vals[field] = ""
         if not vals.get("name"): continue
         for k in ["base","company_pay","personal_pay"]:
-            try: vals[k] = float(vals.get(k, 0) or 0)
+            try: vals[k] = to_number(vals.get(k, 0))
             except: vals[k] = 0
         rows.append(vals)
     return rows
@@ -5245,7 +5865,7 @@ def _parse_voucher_sheet(sheet):
             except: vals[field] = ""
         if not vals.get("account") and not vals.get("summary"): continue
         for k in ["debit","credit"]:
-            try: vals[k] = float(vals.get(k, 0) or 0)
+            try: vals[k] = to_number(vals.get(k, 0))
             except: vals[k] = 0
         rows.append(vals)
     return {"type": "voucher", "rows": rows}
@@ -5278,7 +5898,7 @@ def _parse_inventory_sheet(sheet):
             except: vals[field] = ""
         if not vals.get("date") and not vals.get("item"): continue
         for k in ["in_qty","out_qty","begin_qty","end_qty","amount"]:
-            try: vals[k] = float(vals.get(k, 0) or 0)
+            try: vals[k] = to_number(vals.get(k, 0))
             except: vals[k] = 0
         rows.append(vals)
     return {"type": "inventory", "rows": rows}
@@ -5519,18 +6139,56 @@ def _parse_transport_contract_sheet(sheet, header=None):
 
 # ═══════════ PDF 银行流水解析 ═══════════
 
-def _parse_pdf_bank_statement(filepath):
-    """解析招行银行流水PDF：合并多行记录，提取日期/对方/金额"""
-    import re
+def _extract_pdf_text_lines(filepath, text=None):
+    """为"按行解析"的解析器提供文本 —— pypdf 优先。
+
+    ⚠ 不能给 pymupdf：pymupdf 会把每个单元格拆成独立行
+      （`1\n招商银行…\n大兴支行\n20260101\n人民币\n131.40`），
+      使 `^\\d+\\s` 这种"序号+空格"的行首识别全部失效 → 银行流水 0 条。
+      pypdf 的行结构（`1 招商银行… 215500690 20260101 人民币 31,150.94 …`）
+      才是 `_parse_pdf_bank_statement` 需要的。
+
+    text: 可选。调用方已抽好的文本，直接复用（避免扫描件场景重复 OCR，OCR 很慢）。
+    """
+    if text and str(text).strip():
+        return text
+    for _mod in ("pypdf", "PyPDF2"):
+        try:
+            _m = __import__(_mod)
+            reader = _m.PdfReader(filepath)
+            parts = [(pg.extract_text() or "") for pg in reader.pages]
+            text = "\n".join(p for p in parts if p)
+            if text.strip():
+                return text
+        except Exception:
+            continue
+    # pdfplumber 兜底
     try:
-        import PyPDF2
-        with open(filepath, "rb") as f:
-            reader = PyPDF2.PdfReader(f)
-            text = ""
-            for page in reader.pages:
-                t = page.extract_text() or ""
-                text += t + "\n"
-    except: return []
+        import pdfplumber
+        with pdfplumber.open(filepath) as pdf:
+            parts = [(pg.extract_text() or "") for pg in pdf.pages]
+        text = "\n".join(p for p in parts if p.strip())
+        if text.strip():
+            return text
+    except Exception:
+        pass
+    # 最后 OCR
+    return _ocr_pdf_pages(filepath)
+
+
+def _parse_pdf_bank_statement(filepath, text=None):
+    """解析招行/通用银行对账单PDF：合并多行记录，提取日期/对方/金额
+
+    text: 可选，已抽好的文本（扫描件场景避免重复 OCR）。
+    """
+    import re
+    # 2026-09-23 修正：原为 `import PyPDF2`，本环境未安装该库 → except 静默返回 []
+    # → 银行流水 PDF 永远解析为空。
+    # 现走 _extract_pdf_text_lines（pypdf → PyPDF2 → pdfplumber → OCR），
+    # **刻意不用 pymupdf**——它逐单元格换行，会破坏本解析器的"序号+空格"行首识别。
+    text = _extract_pdf_text_lines(filepath, text) or ""
+    if not text.strip():
+        return []
 
     lines = text.split("\n")
     # Step 1: merge multi-line records (lines starting with number+space are begin, continue until next number+space)
@@ -5595,37 +6253,463 @@ def _parse_pdf_bank_statement(filepath):
 
 # ═══════════ 通用PDF表格解析（pdfplumber） ═══════════
 
-def _parse_pdf_generic(filepath, original_name=""):
-    """通用PDF解析——用pdfplumber提取表格，适配任意银行/报表PDF格式
-    
-    策略：逐页提取表格 → 取最大表格 → 表头走_FINGERPRINT匹配
-    兜底：无表格时提取纯文本 → 尝试按行解析
+def _extract_pdf_tables(filepath):
+    """PDF表格提取统一入口 —— 返回 (headers, rows)。
+
+    ① pymupdf 的 find_tables()：对新式/矢量PDF表格识别更好
+    ② pdfplumber extract_tables()：对复杂合并单元格更稳
+    两个引擎都拿不到时返回 ([], [])，由调用方回退银行流水解析器。
     """
+    # ① pymupdf
+    try:
+        import fitz
+        d = fitz.open(filepath)
+        headers, rows = [], []
+        for pg in d:
+            try:
+                tabs = pg.find_tables()
+            except Exception:
+                tabs = None
+            if not tabs:
+                continue
+            for t in getattr(tabs, "tables", []) or []:
+                try:
+                    data = t.extract()
+                except Exception:
+                    continue
+                if not data or len(data) < 2:
+                    continue
+                if not headers and data[0]:
+                    headers = [str(c or "").strip() for c in data[0]]
+                for r in data[1:]:
+                    clean = [str(c or "").strip() for c in r]
+                    if any(clean):
+                        rows.append(clean)
+        d.close()
+        if rows:
+            return headers, rows
+    except Exception:
+        pass
+
+    # ② pdfplumber
     try:
         import pdfplumber
-    except ImportError:
-        return _parse_pdf_bank_statement(filepath)
-    
-    try:
-        all_rows = []
-        headers = []
+        headers, rows = [], []
         with pdfplumber.open(filepath) as pdf:
             for page in pdf.pages:
-                tables = page.extract_tables()
-                for tbl in tables:
+                for tbl in (page.extract_tables() or []):
                     if tbl and len(tbl) > 1:
                         if not headers and tbl[0]:
-                            headers = [str(c or '').strip() for c in tbl[0]]
-                        for row in tbl[1:]:
-                            clean = [str(c or '').strip() for c in row]
+                            headers = [str(c or "").strip() for c in tbl[0]]
+                        for r in tbl[1:]:
+                            clean = [str(c or "").strip() for c in r]
                             if any(clean):
-                                all_rows.append(clean)
-        
-        if not all_rows:
-            # 兜底：用pypdf提取文本行
-            return _parse_pdf_bank_statement(filepath)
-        
-        # 组装成类Sheet结构走指纹匹配
+                                rows.append(clean)
+        if rows:
+            return headers, rows
+    except Exception:
+        pass
+
+    return [], []
+
+
+# ═══════════ 纯文本 / 扫描件 PDF 的结构化兜底 ═══════════
+
+class _TextSheet:
+    """把纯文本行包装成类 Sheet 结构，供 _parse_by_content 与表单解析器复用。
+
+    每个物理行按「制表符 / 竖线 / 2个以上空格」切分为单元格。
+    扫描件 OCR 后的申报表文本形如：
+        `销项税额 11 12,390.17 325,222.26 0.00 0.00`
+    切分后即可被 `_right_value`「跳过栏次列再取第一个数值」正确取值，
+    从而让扫描件也能走到与矢量版式同样的解析逻辑。
+    """
+    def __init__(self, rows):
+        self.data = rows or []
+        self.nrows = len(self.data)
+        self.max_row = self.nrows
+        self.ncols = max((len(r) for r in self.data), default=0)
+
+    def cell_value(self, r, c):
+        if 0 <= r < len(self.data) and 0 <= c < len(self.data[r]):
+            return self.data[r][c]
+        return ''
+
+
+def _split_text_line(line):
+    """把一行文本切成单元格；优先按制表符/竖线/2+空格，退化到单空格。"""
+    s = str(line or "").replace("\u3000", " ").rstrip()
+    if not s.strip():
+        return []
+    parts = [p.strip() for p in re.split(r"\t|\||  +", s)]
+    parts = [p for p in parts if p != ""]
+    if len(parts) <= 1:
+        parts = [p for p in s.split(" ") if p.strip()]
+    return parts
+
+
+def _text_to_sheet(text, max_lines=4000):
+    """纯文本 → 类 Sheet（每行一个 data 行）。"""
+    rows = []
+    for ln in str(text or "").split("\n"):
+        cells = _split_text_line(ln)
+        if cells:
+            rows.append(cells)
+        if len(rows) >= max_lines:
+            break
+    return _TextSheet(rows)
+
+
+def _rows_from_sheet(sheet, max_rows=5000):
+    """把类 Sheet 转成 list[dict]。列名取"前 8 行里文本单元格最多"的一行，取不到用 col_N。"""
+    try:
+        nrows = getattr(sheet, "nrows", 0) or 0
+    except Exception:
+        return []
+    if nrows <= 0:
+        return []
+    header_row, best_txt = -1, 0
+    for r in range(min(8, nrows)):
+        txt = 0
+        for v in _get_row_values(sheet, r):
+            s = str(v if v is not None else "").strip()
+            if not s:
+                continue
+            if re.fullmatch(r"-?[\d,，.]+", s) or re.fullmatch(r"\d{4}[-/年]\d{1,2}.*", s):
+                continue
+            txt += 1
+        if txt > best_txt:
+            best_txt, header_row = txt, r
+    header = _get_row_values(sheet, header_row) if (header_row >= 0 and best_txt >= 2) else []
+    out = []
+    for r in range(nrows):
+        if r == header_row:
+            continue
+        vals = _get_row_values(sheet, r)
+        if not any(str(v if v is not None else "").strip() for v in vals):
+            continue
+        row_dict = {}
+        for i, v in enumerate(vals):
+            key = (str(header[i]).strip()
+                   if i < len(header) and str(header[i]).strip() else f"col_{i}")
+            row_dict[key] = v
+        out.append(row_dict)
+        if len(out) >= max_rows:
+            break
+    return out
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ★ 主体一致性校验（2026-09-25）：上传的资料必须与账套主体相匹配
+# ═══════════════════════════════════════════════════════════════════════════════
+# 背景：用户把「猩猩织光（北京）商贸有限公司」的资料上传到「深圳海更数字传媒有限公司」
+#   账套，系统照常出报告。**主体错了，报告里每一条结论都失去意义** —— 这比误报更严重，
+#   必须在下结论之前拦住。
+#
+# 设计原则（沿用"发现≠确认"铁律：只认明确矛盾，绝不误杀）：
+#   ① 只有在**文件明确声明了本方主体**、且与账套主体不一致时才判"主体不符"；
+#   ② 文件没有本方主体线索时 → **不作判断**（不拦不杀）。实测各类文件的线索分布：
+#        有本方主体：申报表 PDF(纳税人名称+USCC)、工资表(企业名称:)、科目余额表(核算单位:)
+#        无本方主体：进项发票列表(仅销方)、销项发票列表(仅购方)、社保明细(仅人员/单位编号)、
+#                    银行对账单(仅对方户名)、凭证(仅摘要里的对手方)
+#      —— 这些"只有对方"的文件若拿交易对手当本方主体去比对，会把正常资料全判成不符。
+#   ③ 判定必须带可核验的证据（命中的标签原文 / 文件名 / USCC 值）。
+
+# 指向"本方主体"的标签（其后紧跟公司名）
+# 标签与主体名之间的"噪声"：空白/标点，以及**括号注解**（如「（公章）」「(盖章)」）。
+# ★ 2026-09-25 根因修复：旧写法是 `re.sub(r"^[\s:：\-—=_（）()]+", "", seg)` ——
+#   它把「（」当标点先剥掉，剩下「公章）：深圳海更数字传媒有限公司」，
+#   于是"括号注解"再也匹配不上，`_COMPANY_RE` 连「公章）：」一起吃进主体名 →
+#   企业报告与主体一致性闸门里出现 `公章）深圳海更数字传媒有限公司`（实测）。
+#   ⚠ 顺序要紧：**先整体剥掉括号注解，再剥标点**（合并成一个可重复的模式，循环剥尽）。
+_SUBJECT_LEAD_NOISE_RE = re.compile(r"^(?:[\s:：\-—=_·、]+|[（(][^）)]{0,12}[）)])+")
+
+# 主体名中的**印章/落款噪声词**：出现即说明"这不是一个干净的公司名"
+_SUBJECT_STAMP_WORDS = ("公章", "发票专用章", "财务专用章", "法人章", "签章", "盖章", "印鉴", "纳税人")
+
+
+def _clean_subject_name(name):
+    """净化主体名：剥前置噪声与括号注解，含印章/落款噪声词的片段丢弃。
+
+    宁可少认一个主体名（漏判），也不要把「公章）XX公司」这种脏值当成企业名称
+    写进报告或用去做主体一致性匹配（**错判主体不符**比漏判更伤可信度）。
+    """
+    s = _SUBJECT_LEAD_NOISE_RE.sub("", str(name or "").strip())
+    # 尾部括号注解也剥掉（如「XX有限公司（公章）」）
+    s = re.sub(r"[（(][^）)]{0,12}[）)]$", "", s).strip()
+    if not s:
+        return ""
+    if any(w in s for w in _SUBJECT_STAMP_WORDS):
+        return ""
+    return s
+
+
+_SUBJECT_NAME_LABELS = (
+    "企业名称", "单位名称", "单位全称", "公司名称", "纳税人名称", "纳税人全称",
+    "核算单位", "缴费单位", "扣缴义务人名称", "扣缴义务人", "开户名称", "账户名称",
+    "付款单位名称", "付款单位", "付款方名称", "本方名称", "本单位名称",
+)
+# 指向"本方统一社会信用代码"的标签（**不含**裸"税号"，否则会命中 销方税号/购方税号）
+_SUBJECT_USCC_LABELS = (
+    "统一社会信用代码", "社会信用代码", "纳税人识别号",
+)
+# 统一社会信用代码：18 位（数字 + 大写字母，去 I O S V Z）
+_USCC_RE = re.compile(r"(?<![0-9A-Za-z])[0-9A-HJ-NPQRTUWXY]{2}\d{6}[0-9A-HJ-NPQRTUWXY]{10}(?![0-9A-Za-z])")
+# 中文公司名（含括号行政区划，如 猩猩织光（北京）商贸有限公司）
+_COMPANY_RE = re.compile(
+    r"[\u4e00-\u9fa5（）()]{2,30}?"
+    r"(?:股份有限公司|有限责任公司|有限公司|个体工商户|合伙企业|个人独资企业)")
+# 行政区划前缀（归一化时剥离）
+_ADMIN_REGION = (
+    "北京市", "北京", "上海市", "上海", "天津市", "天津", "重庆市", "重庆",
+    "深圳市", "深圳", "广州市", "广州", "东莞市", "东莞", "中山市", "中山",
+    "佛山市", "佛山", "珠海市", "珠海", "惠州市", "惠州",
+    "广东", "浙江", "江苏", "山东", "河北", "河南", "四川", "湖北", "湖南",
+    "福建", "安徽", "江西", "陕西", "山西", "辽宁", "吉林", "黑龙江",
+    "云南", "贵州", "广西", "内蒙古", "甘肃", "青海", "宁夏", "新疆", "西藏", "海南",
+)
+_ORG_SUFFIX = ("股份有限公司", "有限责任公司", "有限公司", "个体工商户", "合伙企业", "个人独资企业")
+
+
+def _norm_company_core(name):
+    """把公司名归一化成"字号核心"，用于主体比对。
+
+    ①全角括号→半角 ②去空白与分隔符 ③剥离括注行政区划（如"（北京）"）
+    ④剥离行政区划前缀 ⑤剥离组织形式后缀 ⑥去 股份/集团/控股 尾字
+    例：`猩猩织光（北京）商贸有限公司` → `猩猩织光商贸`
+        `深圳海更数字传媒有限公司`   → `海更数字传媒`
+    """
+    if not name:
+        return ""
+    s = str(name)
+    for a, b in (("（", "("), ("）", ")"), ("　", " ")):
+        s = s.replace(a, b)
+    s = re.sub(r"[\s_\-—·、,，./\\|:：;；\"'“”‘’]+", "", s)
+    s = re.sub(r"\([^()]{1,10}?(?:省|市|区|县|自治区|新区)\)", "", s)
+    for p in sorted(_ADMIN_REGION, key=len, reverse=True):
+        if s.startswith(p):
+            s = s[len(p):]
+            break
+    for suf in _ORG_SUFFIX:
+        if s.endswith(suf):
+            s = s[:-len(suf)]
+            break
+    s = re.sub(r"(股份|集团|控股)$", "", s)
+    return s.strip()
+
+
+def _name_similarity(a, b):
+    """字符二元组 Dice 相似度，用于识别简称/别名（如 海更传媒 vs 深圳海更数字传媒）。"""
+    if not a or not b:
+        return 0.0
+    if a == b:
+        return 1.0
+    def _grams(s):
+        return {s[i:i + 2] for i in range(len(s) - 1)} or {s}
+    ga, gb = _grams(a), _grams(b)
+    return 2 * len(ga & gb) / (len(ga) + len(gb))
+
+
+def _subject_matches(account_name, account_uscc, clue_names, clue_usccs):
+    """判断线索主体与账套主体是否一致。返回 (matched, reason)。
+
+    matched: True=一致 / False=明确不一致 / None=无线索
+    """
+    ac_uscc = re.sub(r"[^0-9A-Za-z]", "", str(account_uscc or "")).upper()
+    ac_core = _norm_company_core(account_name)
+    _us = [re.sub(r"[^0-9A-Za-z]", "", str(u)).upper() for u in (clue_usccs or []) if u]
+    # ① 统一社会信用代码（最强证据）
+    if ac_uscc and _us:
+        if ac_uscc in _us:
+            return True, f"统一社会信用代码与账套一致（{ac_uscc}）"
+        return False, (f"统一社会信用代码不一致：资料为 {_us[0]}，"
+                       f"账套「{account_name}」为 {ac_uscc}")
+    # ② 公司名核心比对
+    names = [n for n in (clue_names or []) if n]
+    if not names:
+        return None, ""
+    ac_full = re.sub(r"[\s_\-—·、,，./\\|:：;；]+", "", str(account_name or ""))
+    for n in names:
+        core = _norm_company_core(n)
+        n_full = re.sub(r"[\s_\-—·、,，./\\|:：;；]+", "", str(n))
+        if core and ac_core and (
+            core == ac_core
+            or (len(core) >= 3 and (core in ac_core or ac_core in core))
+            or _name_similarity(core, ac_core) >= 0.5
+        ):
+            return True, f"资料主体「{n}」与账套主体「{account_name}」一致"
+        if ac_full and (ac_full in n_full or n_full in ac_full):
+            return True, f"资料主体「{n}」与账套主体「{account_name}」一致"
+    return False, f"资料主体为「{names[0]}」，与账套主体「{account_name}」不一致"
+
+
+def _subject_clues_from_text(text):
+    """从一段文本中提取"本方主体"线索（标签紧邻式），返回 (names, usccs)。
+
+    ⚠ 只认**标签紧邻**的主体信息：发票/流水正文里的交易对手名与税号一律不算，
+    否则会把正常资料判成主体不符。
+    """
+    names, usccs = [], []
+    if not text:
+        return names, usccs
+    t = str(text).replace("\u3000", " ").replace("\u00a0", " ")
+    for lab in _SUBJECT_NAME_LABELS:
+        for m in re.finditer(re.escape(lab), t):
+            seg = _SUBJECT_LEAD_NOISE_RE.sub("", t[m.end(): m.end() + 40])
+            cm = _COMPANY_RE.match(seg)
+            if cm and len(cm.group()) >= 6:
+                nm = _clean_subject_name(cm.group())
+                if nm and len(nm) >= 6:
+                    names.append(nm)
+    for lab in _SUBJECT_USCC_LABELS:
+        for m in re.finditer(re.escape(lab), t):
+            # 排除 购方/销方/购买方/销售方 的税号（那是交易对手，不是本方）
+            _pre = t[max(0, m.start() - 4): m.start()]
+            if any(x in _pre for x in ("购方", "销方", "购买", "销售", "对方")):
+                continue
+            um = _USCC_RE.search(t[m.end(): m.end() + 40])
+            if um:
+                usccs.append(um.group())
+    # 申报表落款"（公章）XXX"
+    for m in re.finditer(r"[（(]公章[）)]\s*([\u4e00-\u9fa5（）()]{2,30}?(?:股份有限公司|有限责任公司|有限公司))", t):
+        nm = _clean_subject_name(m.group(1).strip())
+        if nm:
+            names.append(nm)
+    return list(dict.fromkeys(names)), list(dict.fromkeys(usccs))
+
+
+def _subject_clues_from_filename(original_name):
+    """从文件名提取企业名（用户按主体命名文件，是可靠的中等强度线索）。"""
+    s = re.sub(r"[\s_\-—·、,，./\\|:：;；]+", "", str(original_name or ""))
+    out = [m.group().strip() for m in _COMPANY_RE.finditer(s)]
+    return [n for n in dict.fromkeys(out) if len(n) >= 6]
+
+
+def _subject_header_text(filepath, ext):
+    """只读文件的"抬头区"文本用于主体识别（轻量，不整表加载）。"""
+    chunks = []
+    from engine.workbook import workbook_scope
+    try:
+        if ext in (".xlsx", ".xls"):
+            if ext == ".xlsx":
+                with workbook_scope(filepath, data_only=True, read_only=True) as wb:
+                    for sn in wb.sheetnames[:3]:
+                        ws = wb[sn]
+                        for i, row in enumerate(ws.iter_rows(values_only=True)):
+                            if i >= 6:
+                                break
+                            chunks.append(" ".join(str(v) for v in row if v is not None))
+            else:
+                with workbook_scope(filepath) as wb:
+                    for sn in wb.sheet_names()[:3]:
+                        sh = wb.sheet_by_name(sn)
+                        for i in range(min(sh.nrows, 6)):
+                            chunks.append(" ".join(str(sh.cell_value(i, c)) for c in range(sh.ncols)))
+        elif ext == ".pdf":
+            # 只读前 2 页（抬头/纳税人信息都在首页）
+            for _mod in ("pymupdf", "fitz", "pypdf", "PyPDF2"):
+                try:
+                    _m = __import__(_mod)
+                    if _mod in ("pymupdf", "fitz"):
+                        d = _m.open(filepath)
+                        chunks = [d[i].get_text() for i in range(min(2, d.page_count))]
+                        d.close()
+                    else:
+                        rd = _m.PdfReader(filepath)
+                        chunks = [(pg.extract_text() or "") for pg in rd.pages[:2]]
+                    break
+                except Exception:
+                    continue
+        elif ext == ".docx":
+            from docx import Document
+            doc = Document(filepath)
+            chunks = [p.text for p in doc.paragraphs[:20]]
+            for tb in doc.tables[:2]:
+                for row in tb.rows[:4]:
+                    chunks.append(" ".join(c.text for c in row.cells))
+        elif ext == ".csv":
+            with open(filepath, "r", encoding="utf-8-sig", errors="ignore") as f:
+                chunks = [f.readline() for _ in range(6)]
+        else:
+            chunks = [( _read_file_text(filepath, os.path.basename(filepath)) or "")[:2000]]
+    except Exception:
+        pass
+    return "\n".join(c for c in chunks if c)
+
+
+def _check_file_subject(filepath, original_name, account_name, account_uscc):
+    """检查单个文件声明的经营主体是否与账套主体一致。
+
+    返回 dict：{"verdict": "match"|"mismatch"|"unknown", "reason": str,
+                "clue_level": "strong"|"filename"|None,
+                "names": [...], "usccs": [...]}
+    """
+    ext = os.path.splitext(str(original_name or filepath))[1].lower()
+    strong_names, strong_usccs = _subject_clues_from_text(_subject_header_text(filepath, ext))
+    if strong_names or strong_usccs:
+        m, why = _subject_matches(account_name, account_uscc, strong_names, strong_usccs)
+        if m is None:
+            return {"verdict": "unknown", "reason": "文件未声明本方主体", "clue_level": None,
+                    "names": [], "usccs": []}
+        return {"verdict": "match" if m else "mismatch", "reason": why,
+                "clue_level": "strong", "names": strong_names, "usccs": strong_usccs}
+    fn_names = _subject_clues_from_filename(original_name)
+    if fn_names:
+        m, why = _subject_matches(account_name, account_uscc, fn_names, [])
+        if m is None:
+            return {"verdict": "unknown", "reason": "文件名未含可识别主体", "clue_level": None,
+                    "names": [], "usccs": []}
+        return {"verdict": "match" if m else "mismatch",
+                "reason": why + "（依据：文件名标注）",
+                "clue_level": "filename", "names": fn_names, "usccs": []}
+    return {"verdict": "unknown", "reason": "文件未提供本方主体线索", "clue_level": None,
+            "names": [], "usccs": []}
+
+
+# ═══════════ 统一 PDF 摄入入口 ═══════════
+
+def _parse_pdf_generic(filepath, original_name=""):
+    """★ PDF 摄入唯一权威入口（2026-09-25 重构）。
+
+    **设计目标：不管 PDF 里是什么内容，都要能识别并保留数据，绝不静默丢弃。**
+
+    四级策略：
+      ① 表格型（矢量表格/带边框）：pymupdf → pdfplumber 提表 → 45 类指纹分类
+      ② ①存在表格但类型未识别 → 保留内容为 generic_data（不再错标成银行流水）
+      ③ 无表格：先按文本行走银行流水解析器（对账单类最准；返回 list 以沿用既有
+          pipeline 回退路径，保持 fr["type"]="bank" 的历史行为不变）
+      ④ 仍无结果：取全文（**无文本层的扫描件会走 OCR**）→ 全文指纹分类 → 文本行结构化；
+                  类型仍未知则标 generic_data，但内容照样返回
+
+    返回：dict（含 type/rows）或 list（仅银行流水情形）。
+    """
+    _init_trace(original_name)  # 初始化诊断追踪（_parse_by_content 依赖此全局，缺失会 KeyError 崩溃）
+
+    # ═══ ① / ②：表格型 PDF ═══
+    # ⚠ 2026-09-24 修正（VAT 申报表读出栏次号 12/22/23 的 P0 根因）：
+    #   _extract_pdf_tables 的返回值是 **(headers, rows)**，但这里原先写成
+    #   `all_rows, headers = _extract_pdf_tables(filepath)` —— 变量名与返回顺序正好互换。
+    #   后果：headers 变量实际拿到 193 行数据、all_rows 拿到 10 个表头，
+    #   于是 PdfSheet.data = [193行数据] + 10个表头 → 变成 11 行 × 193 列，
+    #   且每个"单元格"是 str(list) 的字符串（如 "['（一般纳税人适用）', ''..."）。
+    #   表单式解析器在这样的垃圾结构上"向右取最大值"，只能扫到栏次号列
+    #   → 销售额被读成 12.00、销项 22.00、进项 23.00。
+    #   各 PDF 单独调 _extract_pdf_tables 时顺序是对的，所以直接调用测试全部正常，
+    #   只有走 _parse_pdf_generic 全链路才复现 —— 典型的"测试通过、链路错误"。
+    headers, all_rows = _extract_pdf_tables(filepath)
+
+    # ⚠ 2026-09-25：**退化表格防护**。
+    #   pymupdf 的 find_tables 对"无边框的文本型 PDF"（如招行对账单）会给出
+    #   "1 列 N 行"的假表格——整页文字被塞进单个单元格，例如
+    #   `序号 银行名称 对方户名 … \nOrder Bank Name …`。这种表结构毫无意义，
+    #   却会让本函数误入"表格分支"，从而**抢走银行流水解析路径 → 流水全部丢失**。
+    #   判据：单列（ncols<=1）即视为未识别出真实表格结构，按"无表格"处理。
+    _tbl_ncols = max((len(r) for r in all_rows), default=0) if all_rows else 0
+    _degenerate_table = bool(all_rows) and _tbl_ncols <= 1
+    if _degenerate_table:
+        _trace_diag(f"PDF 表格退化为 {_tbl_ncols} 列（find_tables 未识别出真实结构）→ 改走文本行路径", "warn")
+
+    if all_rows and not _degenerate_table:
         class PdfSheet:
             def __init__(self, headers, rows):
                 self.data = [headers] + rows
@@ -5636,25 +6720,68 @@ def _parse_pdf_generic(filepath, original_name=""):
                 if r < len(self.data) and c < len(self.data[r]):
                     return self.data[r][c]
                 return ''
-        
+
         sheet = PdfSheet(headers, all_rows)
-        result = _parse_by_content(["PDF表格"], lambda i: sheet, original_name)
-        if result is None:
-            # 指纹匹配失败，回退到旧解析器
-            return _parse_pdf_bank_statement(filepath)
-        return result
-    except Exception as e:
-        # pdfplumber失败 → 回退旧解析器
-        return _parse_pdf_bank_statement(filepath)
+        # ★ 全量表格文本一并参与关键词打分：大标题常在第 0 行的合并单元格里
+        _full_tbl_text = " ".join(str(c) for row in (all_rows or [])[:200] for c in row if c)
+        result = _parse_by_content(["PDF表格"], lambda i: sheet, original_name, extra_text=_full_tbl_text)
+        if result is not None:
+            return result
+        # ② 表格在但类型未识别 → **先试银行流水**（对账单类常被误提成表格但指纹不匹配），
+        #    银行解析器有结果就沿用既有 list 返回路径；否则才保留为 generic_data（绝不错标 bank）。
+        _tx_bank_tbl = _parse_pdf_bank_statement(filepath)
+        if _tx_bank_tbl:
+            return _tx_bank_tbl
+        _trace_diag("PDF 表格已提取但 45 类指纹均未达阈值 → 保留为 generic_data", "warn")
+        return {
+            "type": "generic_data",
+            "rows": _rows_from_sheet(sheet),
+            "declaration": None,
+            "source": "pdf_table_generic",
+        }
+
+    # ═══ ③ 无表格：按文本行尝试银行流水（招行对账单这类"非标准表格"走这里最准）═══
+    # ⚠ 绝不给银行解析器传 _extract_pdf_text 的文本！
+    #   _extract_pdf_text 首选 pymupdf，而 pymupdf 会把**每个单元格拆成独立行**
+    #   （`1\n招商银行…\n大兴支行\n20260101\n人民币\n131.40`），
+    #   使 `^\d+\s`（序号+空格）的行首识别全部失效 → 银行流水 0 条。
+    #   银行解析器内部走 _extract_pdf_text_lines（pypdf 优先）才是正确行结构，
+    #   因此这里**不传 text**，让它自己抽。
+    txs = _parse_pdf_bank_statement(filepath)
+    if txs:
+        # 保持返回 list：pipeline 走既有回退路径 → fr["type"]="bank"（历史行为，不改基线）
+        return txs
+
+    # ═══ ④ 全文（含扫描件 OCR）指纹分类 + 文本行结构化 ═══
+    text = _extract_pdf_text(filepath, original_name) or ""
+    if text.strip():
+        sheet = _text_to_sheet(text)
+        result = _parse_by_content(["PDF文本"], lambda i: sheet, original_name, extra_text=text)
+        if isinstance(result, dict) and result.get("rows"):
+            result.setdefault("source", "pdf_text")
+            return result
+        # 类型识别不出也要保留内容：整篇文本按行结构化，标 generic_data
+        _trace_diag("PDF 无表格且文本未匹配到已知类型 → 保留为 generic_data", "warn")
+        return {
+            "type": "generic_data",
+            "rows": _rows_from_sheet(sheet),
+            "declaration": None,
+            "source": "pdf_text_generic",
+        }
+
+    # 连文本层和 OCR 都拿不到（例如加密/损坏/纯空白 PDF）：返回 None，由调用方降级
+    _trace_diag("PDF 既无表格也无文本层，且 OCR 不可用", "error")
+    return None
 
 # ═══════════ DOCX文档解析（python-docx） ═══════════
 
 def _parse_docx(filepath, original_name=""):
     """解析Word文档——提取表格，适配合同/申报表等结构化文档
-    
+
     策略：提取所有表格 → 取最大表格 → 表头走_FINGERPRINT匹配
     兜底：无表格时提取段落文本
     """
+    _init_trace(original_name)  # 初始化诊断追踪（_parse_by_content 依赖此全局，缺失会 KeyError 崩溃）
     try:
         from docx import Document
     except ImportError:
@@ -5719,9 +6846,54 @@ def _parse_image_ocr(filepath, original_name=""):
         from PIL import Image
     except ImportError:
         return None
-    
+
+    # ⚠ 2026-09-24 修正（P0，与 2026-09-16「PDF 一键分析漏申报表」同一根因）：
+    #   本函数末尾会调用 _parse_by_content(...)，而 _parse_by_content 在收尾时写回
+    #   `_LAST_PARSE_TRACE["keyword_phase"]`。若未先 _init_trace() 建立该全局结构，
+    #   会抛 KeyError 并**被外层静默吞掉** → 图片/扫描件解析永远返回 None，
+    #   表现为"上传了扫描件但一键分析里完全没有它"。
+    #   审计结论：_parse_excel_structured / _parse_pdf_generic / _parse_docx 均已调用，
+    #   唯独本函数遗漏 —— 现补齐。
+    _init_trace(original_name)
+
     text_blocks = []
-    
+
+    # ═══ 引擎0: rapidocr-onnxruntime（纯 pip、离线、无系统依赖，首选） ═══
+    # ⚠ 2026-09-24 新增：原函数只有 easyocr + tesseract 两个引擎，而本机两者皆无
+    #   （easyocr 需 torch ~2.5GB；tesseract 需系统安装 exe）→ 图片上传后 OCR 恒为空、
+    #   扫描件永远识别不出内容。rapidocr 免系统依赖，作为首选引擎补上。
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+        import numpy as np
+        if not hasattr(_parse_image_ocr, "_rapid_reader"):
+            _parse_image_ocr._rapid_reader = RapidOCR()
+        _img = Image.open(filepath)
+        _w, _h = _img.size
+        if max(_w, _h) > 2000:      # 控制长边 2000px，兼顾精度与速度（与 easyocr 分支一致）
+            _ratio = 2000 / max(_w, _h)
+            _img = _img.resize((int(_w * _ratio), int(_h * _ratio)), Image.LANCZOS)
+        _res, _ = _parse_image_ocr._rapid_reader(np.array(_img.convert("RGB")))
+        for _item in (_res or []):
+            try:
+                _box, _txt, _conf = _item[0], _item[1], _item[2]
+            except Exception:
+                continue
+            if not _txt or not str(_txt).strip():
+                continue
+            try:
+                _ys = [p[1] for p in _box]
+                _xs = [p[0] for p in _box]
+                _yc = sum(_ys) / len(_ys)
+                _xl = min(_xs)
+            except Exception:
+                _yc, _xl = len(text_blocks) * 20, 0
+            text_blocks.append({"text": str(_txt).strip(), "y": _yc, "x": _xl,
+                                "conf": float(_conf) if _conf is not None else 0.9})
+        if text_blocks:
+            print(f"[图片OCR] rapidocr 提取 {len(text_blocks)} 个文字块", flush=True)
+    except Exception as _e:
+        print(f"[图片OCR] rapidocr 不可用: {type(_e).__name__}: {_e}", flush=True)
+
     # ═══ 引擎1: EasyOCR（中文优化，首次使用自动下载模型~200MB） ═══
     easyocr_reader = None
     try:
@@ -5741,6 +6913,9 @@ def _parse_image_ocr(filepath, original_name=""):
         easyocr_reader = _parse_image_ocr._easyocr_reader
     except Exception:
         pass
+    # 引擎0(rapidocr) 已有结果 → 短路后续引擎，避免无谓导入/加载
+    if text_blocks:
+        easyocr_reader = None
     
     if easyocr_reader is not None:
         try:
@@ -5911,8 +7086,24 @@ async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depen
                     elif ftype == "voucher": vouchers = rows
                     elif ftype == "inventory": inventory = rows
             elif ext == ".pdf":
-                txs = _parse_pdf_bank_statement(fpath)
-                if txs: bank_txs = txs
+                # ⚠ 2026-09-25：原实现只把 PDF 当**银行流水**解析（_parse_pdf_bank_statement），
+                #   发票型/申报表型/工资型 PDF 在此复核路径里被完全忽略。
+                #   现统一走 _parse_pdf_generic（45 类指纹识别），再按类型归入对应集合。
+                _p = _parse_pdf_generic(fpath, fname)
+                if isinstance(_p, list):
+                    if _p: bank_txs = _p
+                elif isinstance(_p, dict):
+                    _pf = _p.get("type") or ""
+                    _pr = _p.get("rows") or []
+                    if _pf in ("bank", "bank_statement", "bank_transaction"): bank_txs.extend(_pr)
+                    elif _pf == "salary": salaries.extend(_pr)
+                    elif _pf == "voucher": vouchers.extend(_pr)
+                    elif _pf in ("sales_invoice", "purchase_invoice", "invoice", "invoice_universal"):
+                        invoices.extend([
+                            {**x, "direction": ("销项" if _pf == "sales_invoice"
+                                                else ("进项" if _pf == "purchase_invoice" else "存疑"))}
+                            if isinstance(x, dict) else x for x in _pr
+                        ])
         except: pass
     
     review_issues = _review_report(
@@ -5962,8 +7153,23 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
                     elif ft in ("sales_invoice", "purchase_invoice"):
                         raw_inv.extend([{**r, "direction": "销项" if ft == "sales_invoice" else "进项"} for r in rows])
                 elif ext == ".pdf":
-                    txs = _parse_pdf_bank_statement(fpath)
-                    if txs: raw_bank.extend(txs)
+                    # ⚠ 2026-09-25：同 review-report，原实现只当银行流水解析，
+                    #   现走统一入口按类型归集，保证复核时发票/工资/凭证型 PDF 也能参与核对。
+                    _p2 = _parse_pdf_generic(fpath, fname)
+                    if isinstance(_p2, list):
+                        if _p2: raw_bank.extend(_p2)
+                    elif isinstance(_p2, dict):
+                        _pf2 = _p2.get("type") or ""
+                        _pr2 = _p2.get("rows") or []
+                        if _pf2 in ("bank", "bank_statement", "bank_transaction"): raw_bank.extend(_pr2)
+                        elif _pf2 == "voucher": raw_vouchers = _pr2
+                        elif _pf2 == "salary": raw_salaries = _pr2
+                        elif _pf2 in ("sales_invoice", "purchase_invoice", "invoice", "invoice_universal"):
+                            raw_inv.extend([
+                                {**x, "direction": ("销项" if _pf2 == "sales_invoice"
+                                                    else ("进项" if _pf2 == "purchase_invoice" else "存疑"))}
+                                if isinstance(x, dict) else x for x in _pr2
+                            ])
             except: pass
     
     # ═══ 检查项1: 数据源实际数值验证 ═══
@@ -5995,8 +7201,8 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
                         vn = str(v.get("voucher_no", "")).strip()
                         if not vn: continue
                         vn_balanced.setdefault(vn, {"d": 0, "c": 0})
-                        vn_balanced[vn]["d"] += float(v.get("debit", 0) or 0)
-                        vn_balanced[vn]["c"] += float(v.get("credit", 0) or 0)
+                        vn_balanced[vn]["d"] += to_number(v.get("debit", 0))
+                        vn_balanced[vn]["c"] += to_number(v.get("credit", 0))
                     unbal = [(vn, b) for vn, b in vn_balanced.items() if abs(b["d"]-b["c"]) > 1]
                     gap = sum(abs(b["d"]-b["c"]) for _,b in unbal)
                     issues.append({
@@ -6006,7 +7212,7 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
         
         # 收入数据验证
         if "主营业务收入" in detail or "主营收入" in "".join([ftype, detail]):
-            vr_total = sum(float(v.get("credit", 0) or 0) for v in raw_vouchers if "主营业务收入" in str(v.get("account", "")))
+            vr_total = sum(to_number(v.get("credit", 0)) for v in raw_vouchers if "主营业务收入" in str(v.get("account", "")))
             issues.append({
                 "check": "收入原始数据复核",
                 "result": f"凭证中主营业务收入贷方合计{vr_total:,.2f}元" + ("，与结论一致" if abs(vr_total - max(amounts, default=0)) < 1000 else f"，与结论差异{abs(vr_total - max(amounts, default=0)):,.2f}元")
@@ -6014,8 +7220,8 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
         
         # 进项/销项数据验证
         if "进项" in ftype or "销项" in "".join([ftype, detail]):
-            sal_total = sum(float(i.get("total", 0) or 0) for i in raw_inv if i.get("direction") == "销项")
-            pur_total = sum(float(i.get("total", 0) or 0) for i in raw_inv if i.get("direction") == "进项")
+            sal_total = sum(to_number(i.get("total", 0)) for i in raw_inv if i.get("direction") == "销项")
+            pur_total = sum(to_number(i.get("total", 0)) for i in raw_inv if i.get("direction") == "进项")
             sal_count = sum(1 for i in raw_inv if i.get("direction") == "销项")
             pur_count = sum(1 for i in raw_inv if i.get("direction") == "进项")
             issues.append({
@@ -6163,7 +7369,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
             if inv_code and inv_no:
                 key = (inv_code, inv_no)
             else:
-                amt = str(item.get("amount", item.get("金额", "0")))
+                amt = str(amount_of(item))   # ★ 行内取金额唯一权威（numparse.amount_of）
                 cp = str(item.get("counterparty", item.get("对方名称", "")))
                 key = (amt, cp, "no_code")
             
@@ -6172,7 +7378,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
             seen_invoices.add(key)
             
             try:
-                amt = float(str(item.get("amount", item.get("金额", item.get("invoice_amount", "0"))).replace(",","")))
+                amt = amount_of(item)   # ★ 行内取金额唯一权威（numparse.amount_of）
             except:
                 amt = 0
             
@@ -6656,8 +7862,8 @@ async def api_company_overview(request: Request, company_id: int = Query(...)):
         for row in report.get("trial_balance_data", []) or []:
             name = row.get("account_name", "") or row.get("name", "") or ""
             if any(k in name for k in keywords):
-                total += float(row.get("ending_debit", 0) or 0)
-                total += float(row.get("debit", 0) or 0)
+                total += to_number(row.get("ending_debit", 0))
+                total += to_number(row.get("debit", 0))
         return round(total, 2)
     
     def _co_money(v):
@@ -7173,14 +8379,14 @@ def get_relation_graph(company_id: int = Query(...)):
     for inv in sal_detail:
         cname = inv.get("对方公司名称", "").strip()
         if cname and cname != entity_name:
-            customer_amounts[cname] = customer_amounts.get(cname, 0) + float(inv.get("价税合计", 0) or 0)
+            customer_amounts[cname] = customer_amounts.get(cname, 0) + to_number(inv.get("价税合计", 0))
     
     # 进项发票 → 供应商
     supplier_amounts = {}
     for inv in pur_detail:
         sname = inv.get("对方公司名称", "").strip()
         if sname and sname != entity_name:
-            supplier_amounts[sname] = supplier_amounts.get(sname, 0) + float(inv.get("价税合计", 0) or 0)
+            supplier_amounts[sname] = supplier_amounts.get(sname, 0) + to_number(inv.get("价税合计", 0))
     
     # 检测供应商=客户的重叠（购销闭环风险）
     overlap_names = set(customer_amounts.keys()) & set(supplier_amounts.keys())
@@ -7318,7 +8524,7 @@ def smart_sampling(company_id: int = Query(...), sample_size: int = Query(10)):
     supplier_risk = {}
     for inv in pur_detail:
         sname = inv.get("对方公司名称", "").strip()
-        amt = float(inv.get("价税合计", 0) or 0)
+        amt = to_number(inv.get("价税合计", 0))
         if sname not in supplier_risk:
             supplier_risk[sname] = {"total": 0, "count": 0, "risk_mentions": 0}
         supplier_risk[sname]["total"] += amt
@@ -7353,7 +8559,7 @@ def smart_sampling(company_id: int = Query(...), sample_size: int = Query(10)):
         cname = inv.get("对方公司名称", "").strip()
         # 平台运营商（天猫/阿里妈妈等）是服务费收款方，本质非客户，排除出客户列表
         if cname and not _is_platform_operator(cname):
-            amt = float(inv.get("价税合计", 0) or 0)
+            amt = to_number(inv.get("价税合计", 0))
             customer_amt[cname] = customer_amt.get(cname, 0) + amt
     
     top_customers = sorted(customer_amt.items(), key=lambda x: -x[1])[:sample_size]
@@ -7373,7 +8579,7 @@ def smart_sampling(company_id: int = Query(...), sample_size: int = Query(10)):
             anomaly_patterns.append({
                 "type": "加工费交易",
                 "supplier": inv.get("对方公司名称", ""),
-                "amount": float(inv.get("价税合计", 0) or 0),
+                "amount": to_number(inv.get("价税合计", 0)),
                 "invoice_no": inv.get("发票号", ""),
                 "concern": "需核实委托加工真实性",
             })
@@ -7699,7 +8905,7 @@ def agi_query(company_id: int = Query(...), query: str = Query(...)):
         supplier_amt = {}
         for inv in pur_detail:
             sname = inv.get("对方公司名称", "").strip()
-            amt = float(inv.get("价税合计", 0) or 0)
+            amt = to_number(inv.get("价税合计", 0))
             supplier_amt[sname] = supplier_amt.get(sname, 0) + amt
         total_pur = sum(supplier_amt.values())
         top3 = sorted(supplier_amt.items(), key=lambda x: -x[1])[:3]
@@ -7748,7 +8954,7 @@ def agi_query(company_id: int = Query(...), query: str = Query(...)):
             sdb = SessionLocal()
             bms = sdb.query(IndustryBenchmark).filter(IndustryBenchmark.metric_name == "invoice_match_ratio").order_by(IndustryBenchmark.sample_count.desc()).limit(5).all()
             if bms:
-                benchmarks = "行业基准值（进销比）：" + " / ".join(f"{b.industry}(样本{b.sample_count})均值{(float(b.running_mean or 0)):.2f}" for b in bms)
+                benchmarks = "行业基准值（进销比）：" + " / ".join(f"{b.industry}(样本{b.sample_count})均值{(to_number(b.running_mean)):.2f}" for b in bms)
             sdb.close()
         except: pass
         answer = f"当前企业行业：{report.get('target_entity',{}).get('industry','未知')}。{benchmarks}"
@@ -8280,7 +9486,7 @@ def check_policy_impact(company_id: int = Query(...)):
 # ═══════════════════════════════════════════════════════════
 
 @app.get("/api/risk/predict")
-def predict_risk(company_id: int = Query(...)):
+def predict_risk_by_company(company_id: int = Query(...)):
     """基于行业累积数据预测企业风险等级
     使用加权评分模型：行业基准偏离度 + 历史风险密度 + 指标异常度
     """
@@ -8920,7 +10126,17 @@ def _build_reconciliation_matrix(report_data):
 
     tax_declarations = report_data.get("tax_declarations", []) or []
     declared_sales = sum(_parse_amount_str(d.get("sales_amount")) for d in tax_declarations if isinstance(d, dict)) if tax_declarations else 0.0
-    has_declaration = declared_sales > 0
+    # ⚠ 2026-09-25 修正：原判据是 `declared_sales > 0`，于是"已上传申报表但销售额未提取到/为 0"
+    #   会被误报成"缺增值税申报表，须调取申报表"——报告与事实相反，直接损害可信度。
+    #   现改为两层判据：① 报告里带有已解析的申报表记录；② 文件识别结果里存在申报表类型。
+    #   两者任一成立即视为"申报表已提供"，金额缺失时单列说明而非谎报缺失。
+    _DECL_TYPES = {"vat_declaration", "cit_declaration", "tax_declaration",
+                   "individual_tax", "stamp_duty", "tax_payment"}
+    _decl_file_count = sum(
+        1 for _f in (report_data.get("file_results") or [])
+        if isinstance(_f, dict) and str(_f.get("type") or "") in _DECL_TYPES
+    )
+    has_declaration = bool(tax_declarations) or _decl_file_count > 0
 
     flow_status = {r.get("flow"): r.get("status") for r in doc_requests if isinstance(r, dict)}
     has_contract = flow_status.get("合同流") not in ("缺失",)
@@ -8948,10 +10164,25 @@ def _build_reconciliation_matrix(report_data):
                   purchase_amount, bank_out, "VR001",
                   "取得大于付款须核验应付账款、赊购或虚开发票；付款大于取得须核验预付款、借款或资金回流")
 
-    if has_declaration:
+    if has_declaration and declared_sales > 0 and sales_amount > 0:
         _gap_pair("发票流·销项", "税流·申报", "销项开票 vs 申报销售额",
                   sales_amount, declared_sales, "VR018",
                   "开票与申报差异须核验未开票收入、纳税义务发生时间与红字发票")
+    elif has_declaration:
+        # 申报表已提供，但缺销项发票（或金额未提取到）→ 不得谎报"缺申报表"，也不得凭空值判"差异"。
+        pairs.append({
+            "left": "发票流·销项", "right": "税流·申报", "name": "销项开票 vs 申报销售额",
+            "status": "缺数据",
+            "left_amount": round(sales_amount, 2) if sales_amount else None,
+            "right_amount": round(declared_sales, 2) if declared_sales > 0 else None,
+            "gap": None, "gap_ratio": None,
+            "note": ("已提供 %d 份申报表（申报销售额 %s），但缺销项发票，无法完成票税勾稽"
+                     % (len(tax_declarations) or _decl_file_count,
+                        ("{:,.2f}".format(declared_sales) if declared_sales > 0 else "未提取到"))
+                     if sales_amount == 0 else
+                     "已提供申报表，但未能从中提取到销售额金额，暂无法完成票税勾稽"),
+            "source_rule": "VR018",
+        })
     else:
         pairs.append({
             "left": "发票流·销项", "right": "税流·申报", "name": "销项开票 vs 申报销售额",
@@ -8984,7 +10215,9 @@ def _build_reconciliation_matrix(report_data):
         "purchase_invoice_amount": round(purchase_amount, 2),
         "bank_in_amount": round(bank_in, 2),
         "bank_out_amount": round(bank_out, 2),
-        "declared_sales_amount": round(declared_sales, 2) if has_declaration else None,
+        "declared_sales_amount": round(declared_sales, 2) if declared_sales > 0 else None,
+        "declaration_count": len(tax_declarations) or _decl_file_count,
+        "declaration_provided": bool(has_declaration),
         "diff_count": diff_count,
         "missing_count": missing_count,
         "pairs": pairs,
@@ -9219,7 +10452,7 @@ def _build_invoice_network_graph(report_data):
             core = _goods_core(row.get("goods") or row.get("货物或应税劳务名称") or "")
             if not core:
                 continue
-            amt = float(row.get("amount", 0) or 0)
+            amt = to_number(row.get("amount", 0))
             if ftype == "purchase_invoice":
                 pur_goods[core] = pur_goods.get(core, 0.0) + amt
             elif ftype == "sales_invoice":
@@ -9306,11 +10539,33 @@ def _persist_one_click_result(company_id, result):
         report_data.setdefault("pipeline_log", []).append("[隔离] 检测到跨账套数据串混风险，已标记")
     result["_isolation_check"] = {"passed": isolation_ok, "checked_at": now}
     
+    # ═══ 结果新鲜度标识 ═══
+    # 用户反馈"重新生成报告，感觉都是旧报告"。报告是**确定性**重算的：资料没变，
+    # 结论自然逐字相同。所以必须把"这份结果什么时候算的、依据哪些资料算的"
+    # 写进报告本身，用户才能自证拿到的是新结果而不是缓存。
+    _fp_now = _compute_data_fingerprint(company_id)
+    try:
+        _src_docs = [
+            d.get("original_name") or d.get("filename", "")
+            for d in _tax_risk_docs
+            if d.get("company_id") == company_id and d.get("path") and os.path.exists(d["path"])
+        ]
+    except Exception:
+        _src_docs = []
+    report_data["_freshness"] = {
+        "computed_at": now,
+        "data_fingerprint": (_fp_now or "")[:12],
+        "source_doc_count": len(_src_docs),
+        "source_docs": sorted(_src_docs)[:50],
+        "reused_cached_result": False,
+        "note": "本次结果的实际计算时间与依据资料清单；重新分析后此处时间会更新。",
+    }
+
     _last_analysis_cache[company_id] = {
         "report": result,
         "timestamp": datetime.now().isoformat(),
         "snapshot": snapshot,
-        "_data_fp": _compute_data_fingerprint(company_id),
+        "_data_fp": _fp_now,
     }
     disk_cache = {
         str(key): {
@@ -9897,6 +11152,13 @@ def _run_analysis_thread(task_id, company_id, user_id):
                         _analysis_tasks[task_id]["status"] = "error"
                         _analysis_tasks[task_id]["error"] = message
                         _analysis_tasks[task_id]["message"] = message
+                        # ★ 2026-09-25 主体一致性拦截：这不是"分析失败"，而是**主动拒绝出报告**，
+                        #   需要把原因/证据/建议透传给前端，让用户知道该怎么改。
+                        if (result or {}).get("subject_mismatch"):
+                            _analysis_tasks[task_id]["blocked"] = True
+                            _analysis_tasks[task_id]["block_detail"] = (result or {}).get("detail", "")
+                            _analysis_tasks[task_id]["block_files"] = (result or {}).get("mismatched_files", [])
+                            _analysis_tasks[task_id]["block_suggestion"] = (result or {}).get("suggestion", "")
         finally:
             db.close()
     except Exception as _e:
@@ -9914,10 +11176,28 @@ def _run_analysis_thread(task_id, company_id, user_id):
                 )
     finally:
         reset_current_user_id(user_context_token)
+        # ★ 2026-09-25：分析结束统一回收工作簿句柄。
+        #   句柄泄漏会让用户删除自己上传的资料时遇到 WinError 32
+        #   （占用者是本服务自身，而非 Excel），这里做兜底收敛，
+        #   保证"分析结束后，上传目录里的文件都可自由重命名/删除"。
+        try:
+            from engine.workbook import release_all as _release_wb
+            _n = _release_wb()
+            if _n:
+                print(f"[句柄回收] 分析结束释放 {_n} 个工作簿句柄", flush=True)
+        except Exception:
+            pass
 
 @app.post("/api/tax-risk-docs/analyze-start")
-def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...)):
-    """启动异步分析，立即返回task_id"""
+def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
+                                force: int = Query(0)):
+    """启动异步分析，立即返回task_id。
+
+    force=1 时跳过"数据指纹未变化则复用上次结果"的增量短路，强制全量重算。
+    用户反馈"删了资料/删了报告，再生成还是旧报告"：增量复用只在**资料与规则
+    均未变化**时命中，此时引擎是确定性重算，逐字结果本就相同；但用户需要
+    一个可感知的"我这次是真的重算了"的手段，故提供显式强制重算。
+    """
     # 2026-06-26 账套隔离防护：拒绝未选择公司的分析请求
     if company_id <= 0:
         return {"ok": False, "message": "请先选择账套（公司），再执行一键分析"}
@@ -9942,39 +11222,46 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...)):
                     "message": "该账套正在执行分析，请稍后再试",
                 }
     # ② 增量分析：数据指纹未变化且未过期 → 直接复用上次结果（免全量重算）
+    #    force=1 时不走此分支（用户明确要求重新计算）
     try:
-        _fp = _compute_data_fingerprint(company_id)
-        _cached = _last_analysis_cache.get(company_id)
-        if _fp and _cached:
-            _cached_fp = _cached.get("_data_fp", "")
-            _fresh = True
-            try:
+        if not force:
+            _fp = _compute_data_fingerprint(company_id)
+            _cached = _last_analysis_cache.get(company_id)
+            if _fp and _cached:
+                _cached_fp = _cached.get("_data_fp", "")
+                _fresh = True
                 _ts = _cached.get("timestamp", "")
-                if _ts:
-                    _age_h = (_time_.time() - _time_.mktime(_dt.fromisoformat(_ts).timetuple())) / 3600
-                    if _age_h > _INCREMENT_CACHE_TTL_HOURS:
-                        _fresh = False
-            except Exception:
-                pass
-            if _cached_fp == _fp and _fresh:
-                _inc_id = _uuid.uuid4().hex[:12]
-                with _analysis_lock:
-                    _analysis_tasks[_inc_id] = {
-                        "status": "done",
-                        "progress": 100,
-                        "message": "分析结果未变化（增量复用）",
-                        "result": _cached.get("report"),
-                        "error": None,
-                        "company_id": company_id,
-                        "user_id": request_user_id,
-                        "started_at": _time_.time(),
-                        "current_step": 7,
-                        "current_module": "",
-                        "patrol_enrolled": True,
-                        "incremental": True,
-                    }
-                return {"ok": True, "task_id": _inc_id,
-                        "message": "数据未变化，直接返回上次分析结果", "incremental": True}
+                try:
+                    if _ts:
+                        _age_h = (_time_.time() - _time_.mktime(_dt.fromisoformat(_ts).timetuple())) / 3600
+                        if _age_h > _INCREMENT_CACHE_TTL_HOURS:
+                            _fresh = False
+                except Exception:
+                    _fresh = False
+                if _cached_fp == _fp and _fresh:
+                    _inc_id = _uuid.uuid4().hex[:12]
+                    with _analysis_lock:
+                        _analysis_tasks[_inc_id] = {
+                            "status": "done",
+                            "progress": 100,
+                            "message": "分析结果未变化（增量复用）",
+                            "result": _cached.get("report"),
+                            "error": None,
+                            "company_id": company_id,
+                            "user_id": request_user_id,
+                            "started_at": _time_.time(),
+                            "current_step": 7,
+                            "current_module": "",
+                            "patrol_enrolled": True,
+                            "incremental": True,
+                            "reused": True,
+                            "result_computed_at": _ts,
+                        }
+                    return {"ok": True, "task_id": _inc_id,
+                            "message": "上传资料与上次分析完全一致，已复用上次结果"
+                                       "（如需强制重算，请点“重新计算”）",
+                            "incremental": True, "reused": True,
+                            "result_computed_at": _ts}
     except Exception:
         pass
     return _launch_analysis_task(company_id, request_user_id)
@@ -10093,6 +11380,17 @@ def analyze_tax_risk_docs_result(task_id: str, request: Request):
         if task["status"] == "running":
             return {"ok": False, "message": "分析还在进行中", "progress": task["progress"]}
         if task["status"] == "error":
+            # ★ 主体一致性拦截：明确告知"为什么不分析"，并给出可操作的下一步
+            if task.get("blocked"):
+                return {
+                    "ok": False,
+                    "blocked": True,
+                    "subject_mismatch": True,
+                    "message": task.get("error", ""),
+                    "detail": task.get("block_detail", ""),
+                    "mismatched_files": task.get("block_files", []),
+                    "suggestion": task.get("block_suggestion", ""),
+                }
             return {"ok": False, "message": f"分析失败: {task['error']}", "traceback": task.get("traceback", "")}
         # 安全序列化：防止分析结果中的循环引用导致jsonable_encoder递归爆栈
         import json as _json
@@ -10800,7 +12098,7 @@ def get_patrol_status():
         return {"ok": False, "error": str(e)}
 
 @app.post("/api/agi/patrol/trigger")
-def trigger_patrol(company_id: int = None, db: Session = Depends(get_db)):
+def trigger_patrol_now(company_id: int = None, db: Session = Depends(get_db)):
     """手动触发巡逻：对最近分析的企业重新分析并对比"""
     try:
         from engine.auto_patrol import get_companies_to_patrol
@@ -11185,33 +12483,48 @@ async def ocr_scan_document(
 
 
 def _try_ocr_pdf(content: bytes) -> str:
-    """尝试对PDF进行OCR"""
+    """对 PDF 字节做 OCR（扫描件）。
+
+    ⚠ 2026-09-24 修正：原实现用 `pdf2image.convert_from_bytes` + pytesseract，
+    前者依赖系统 poppler、后者依赖系统 tesseract.exe，本机两者都没有 →
+    该接口恒返回 ""（OCR 功能静默失效）。现改为 pymupdf 渲染 + _ocr_png_bytes，
+    与内部解析链路共用同一套 OCR 引擎，无需任何系统级依赖。
+    """
     try:
-        import pytesseract
-        from pdf2image import convert_from_bytes
-        from PIL import Image
-        images = convert_from_bytes(content, dpi=200, first_page=1, last_page=5)  # 限制前5页
-        text = ""
-        for img in images:
-            text += pytesseract.image_to_string(img, lang='chi_sim+eng') + "\n"
-        return text
+        import pymupdf  # pymupdf 1.24+ 的正名（fitz 为兼容别名）
     except ImportError:
-        return ""
+        try:
+            import fitz as pymupdf
+        except ImportError:
+            return ""
+    try:
+        doc = pymupdf.open(stream=content, filetype="pdf")
     except Exception:
+        return ""
+    try:
+        images = []
+        for i in range(min(doc.page_count, 5)):   # 限制前5页，避免超大文件拖垮请求
+            try:
+                images.append(doc[i].get_pixmap(dpi=200).tobytes("png"))
+            except Exception:
+                continue
+        doc.close()
+        return _ocr_png_bytes(images)
+    except Exception:
+        try:
+            doc.close()
+        except Exception:
+            pass
         return ""
 
 
 def _try_ocr_image(content: bytes) -> str:
-    """尝试对图片进行OCR"""
-    try:
-        import pytesseract
-        from PIL import Image
-        img = Image.open(io.BytesIO(content))
-        return pytesseract.image_to_string(img, lang='chi_sim+eng')
-    except ImportError:
-        return ""
-    except Exception:
-        return ""
+    """对图片字节做 OCR。
+
+    ⚠ 2026-09-24 修正：同 _try_ocr_pdf，原用 pytesseract（本机无 tesseract.exe）
+    → 恒返回 ""。现统一走 _ocr_png_bytes（rapidocr 首选，PIL 可直接读 jpg/png/bmp/tiff）。
+    """
+    return _ocr_png_bytes([content])
 
 
 def _extract_word_text(content: bytes, ext: str) -> str:
@@ -11637,7 +12950,6 @@ def start_patrol(company_id: int = Query(...)):
 
 # ═══════════ 报告导出 + 移动端 ═══════════
 
-@app.get("/api/agi/report/export")
 def _get_rights_notice():
     """纳税人权利告知书"""
     return {
@@ -11657,6 +12969,18 @@ def _get_rights_notice():
         "note": "本告知书仅为系统生成的辅助参考。正式权利告知以税务机关出具的文书为准。",
     }
 
+
+@app.get("/api/agi/rights-notice")
+def get_rights_notice_api():
+    """纳税人权利告知书（原误挂在 /api/agi/report/export 上，2026-09-25 拆出独立路由）"""
+    return _get_rights_notice()
+
+
+# ⚠ 2026-09-25 修正（导出接口一直是死的）：原代码把 `@app.get("/api/agi/report/export")`
+#   装饰在了 `_get_rights_notice`（权利告知书）上，紧接着定义的 `export_report` **从未注册路由**
+#   → 访问 /api/agi/report/export 返回的是权利告知书，真正的报告导出功能完全不可用。
+#   现把装饰器移到 `export_report` 上，权利告知书另开 /api/agi/rights-notice。
+@app.get("/api/agi/report/export")
 def export_report(company_id: int = Query(...), format: str = "txt"):
     """导出税务合规报告（txt/json/html/package）
     
@@ -12474,9 +13798,9 @@ def update_correction_rule(data: dict):
 @app.post("/api/feedback/sync-modules")
 def sync_corrections_to_modules():
     """手动触发纠正规则→源模块同步"""
-    from engine.self_learning import manual_sync_corrections_to_modules, get_sync_status
+    from engine.self_learning import manual_sync_corrections_to_modules, get_sync_status_api
     result = manual_sync_corrections_to_modules()
-    status = get_sync_status()
+    status = get_sync_status_api()
     return {"ok": True, "sync_result": result, "status": status}
 
 
@@ -12741,9 +14065,9 @@ def get_content_feedback_logs():
     return {"ok": True, "logs": logs[-100:], "count": len(logs)}
 
 @app.get("/api/feedback/sync-status")
-def get_sync_status():
+def get_sync_status_api():
     """查看当前纠正→模块同步状态和待同步规则"""
-    from engine.self_learning import get_sync_status as gss
+    from engine.self_learning import get_sync_status_api as gss
     return {"ok": True, **gss()}
 
 

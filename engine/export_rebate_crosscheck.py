@@ -16,6 +16,7 @@
 """
 
 from __future__ import annotations
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 
 from typing import Any, Dict, List
 
@@ -26,10 +27,14 @@ _CAPACITY_MULTIPLE = 3.0    # 出口额相对采购/产能支撑的倍数异常�
 
 
 def _num(v: Any) -> float:
-    try:
-        return float(v)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
 def _sum(records: Any, keys: List[str]) -> float:

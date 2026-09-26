@@ -1,3 +1,4 @@
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 """结构错配探测器 —— 补齐金税四期"费用/成本结构 + 进项属性与主业匹配"类缺口。
 
 背景：`verified_rule_engine` 已覆盖 VR031/035 印花税、VR042 房产税、VR070 固定资产处置、
@@ -44,16 +45,24 @@ _STRUCT_MARGIN = 0.10          # 结构偏离容差（±10 个百分点内不算
 
 
 def _safe(v):
-    try:
-        return float(v or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
-def _goods(inv):
-    if not isinstance(inv, dict):
-        return ""
-    return str(inv.get("goods", inv.get("货物或应税劳务名称", inv.get("商品名称", ""))) or "")
+def _goods(inv) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import goods_name as _fk
+    return _fk(inv)
 
 
 def _cat_of(goods):
@@ -66,15 +75,14 @@ def _cat_of(goods):
 
 
 def _amt(inv):
-    if not isinstance(inv, dict):
-        return 0.0
-    for k in ("amount", "金额", "价税合计", "total"):
-        v = inv.get(k)
-        if v not in (None, ""):
-            a = abs(_safe(v))
-            if a:
-                return a
-    return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import first_amount as _first_amount
+    return _first_amount(inv, absolute=True)
 
 
 def _industry(ctx):
@@ -91,13 +99,13 @@ def _industry(ctx):
 
 def _mk(type_, level, score, detail, description, how_found, tax_impact,
         policy_ref, suggestion, category, source_chain, redline_id, indicator, value):
-    return {
-        "type": type_, "level": level, "score": score,
-        "detail": detail, "description": description, "how_found": how_found,
-        "tax_impact": tax_impact, "policy_ref": policy_ref, "suggestion": suggestion,
-        "category": category, "source_chain": source_chain,
-        "redline_id": redline_id, "indicator": indicator, "indicator_value": value,
-    }
+    """finding 构造（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/findingkit.py（唯一权威）。
+      原先三个模块各有一份**逐字节相同**的副本，只改一份就会导致字段集不一致。
+    """
+    from engine.findingkit import make_finding as _make_finding
+    return _make_finding(type_, level, score, detail, description, how_found, tax_impact, policy_ref, suggestion, category, source_chain, redline_id, indicator, value)
 
 
 def _check_expense_cost_ratio(income):

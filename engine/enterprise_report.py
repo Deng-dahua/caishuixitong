@@ -80,15 +80,26 @@ def _zh_normalize(text):
 
 
 def _zh_normalize_obj(o):
-    """递归对报告字典的全部字符串值做中文化归一 + 正文自然化（键名/非字符串值原样保留）。
+    """递归对报告字典的全部字符串值做中文化归一 + 正文自然化 + **定性边界净化**。
 
     这是企业易读报告输出前的**全量净化闸门**：
       ① 中文化：英文键名/标识转中文（_zh_normalize）
       ② 自然化：剥除【主张】【线索】【依据】等内部字段标记与 RL-XXX 红线编号
          （用户要求：给企业看的报告一律自然表述，不出现内部标记）
+      ③ **定性边界净化**（2026-09-25 补）：调用 `text_guardrails` 的规则式护栏，
+         把"把线索直接断言为已成立的违法事实"降为待核表述。
+
+    ★ 为什么③必须加在这里（根因）：项目原有**两条净化路径** ——
+      `text_guardrails.review_report_methodology` 只净化
+      `all_findings/domain_results/comprehensive/...` 等键，且**在报告生成之前**执行；
+      而本函数是报告输出前的最后一道闸门。晚生成的文本（如红线论证链 `argumentation.reasoning`
+      是在 `redline_engine` 里、在护栏之后才拼出来的）此前**绕过了定性护栏**，
+      于是「部分收入经个人账户归集，**是账外收款的直接证据**」这类越界断言能直接进报告。
+      两条路径不共享同一套护栏 = 有缝的闸门；现由本函数统一补上，使"最后一道闸门"名副其实。
     """
     if isinstance(o, str):
-        return _naturalize_report_text(_zh_normalize(o))
+        from engine.text_guardrails import neutralise_output_text
+        return neutralise_output_text(_naturalize_report_text(_zh_normalize(o)))
     if isinstance(o, list):
         return [_zh_normalize_obj(x) for x in o]
     if isinstance(o, dict):
@@ -261,7 +272,72 @@ _METRIC_CN = {
     "big_diff_count": "大额差异笔数", "quantity_diffs": "数量差异明细",
     # 责令单
     "triggered_findings": "触发发现明细",
+    # ★ 2026-09-25 补齐：这些键按词表逐词翻译会产出**语义错误或残破**的中文标签
+    #   （实测 `ar_unreceived_total` → "已接收合计"，意思正好相反；
+    #    `ar_max_aging_days` → "___日"）。逐词兜底对领域缩写无能为力，必须显式映射。
+    #   应收账款账龄（revenue_authenticity 三维度之 ar_aging）
+    "ar_customers": "应收账款客户数",
+    "ar_unreceived_total": "应收账款未收合计",
+    "ar_long_aging_count": "长账龄笔数",
+    "ar_max_aging_days": "最长账龄天数",
+    "ar_from_trial_balance": "账龄取自科目余额表",
+    # 循环对开（false_invoice / input_voucher）
+    "circular_mirror_count": "同额对开笔数",
+    "circular_unrelated_count": "品名无关且金额重大笔数",
+    # 两税差异（two_tax_income）
+    "vat_over_cit": "增值税收入减企业所得税收入",
+    "cit_income": "企业所得税口径收入",
+    "only_one_side": "仅单边存在",
+    # 收入真实性 / 其它
+    "invoiced_total": "已开票合计",
+    "person_inflow_amount": "个人账户流入金额",
+    "start_signal": "起点信号成立",
+    "base_date": "基准日",
+    "themes": "主题",
 }
+
+# ★ 2026-09-25：引擎实际产出的 metrics 键**唯一清单**（前端 `_renderCapMetrics`
+#   是直接打印键名的）。闸门与测试均引用本清单；新增指标键时必须同步补
+#   `_METRIC_CN`/`_WORD_CN`，否则会报 ERROR —— 这是故意的。
+KNOWN_ENGINE_METRIC_KEYS = (
+    "abnormal_deduction_tax", "abnormal_supplier_count", "ar_customers",
+    "ar_from_trial_balance", "ar_long_aging_count", "ar_max_aging_days", "ar_unreceived_total",
+    "bank_in_total", "base_date", "circular_amount", "circular_mirror_count",
+    "circular_supplier_count", "circular_unrelated_count", "cit_income", "concentration_ratio",
+    "concentration_supplier", "corporate_receipt", "declared_side", "declared_total",
+    "declared_value", "diff", "diff_pct", "direct_loop_amount", "direct_loop_parties",
+    "flow_pay", "flow_receipt", "fund_loop_amount", "high_risk_relationships", "in_out_ratio",
+    "indirect_loop_amount", "input_amount_total", "input_invoice_count", "input_tax_total",
+    "invoice_total", "invoiced_total", "nonsales_receipt", "only_one_side",
+    "person_inflow_amount", "personal_receipt", "purchase_total", "related_groups",
+    "reported_income", "sales_total", "same_amount_groups", "should_transfer_out_tax",
+    "start_signal", "themes", "third_party_receipt", "top1_customer_share",
+    "top3_customer_share", "total_questions", "uninvoiced_gap", "uninvoiced_gap_after_nonsales",
+    "unmatched_amount", "unmatched_corporate_receipt", "vat_over_cit", "vat_sales"
+)
+
+
+def _translate_all_metric_dicts(obj):
+    """递归把**任意层级**下名为 `metrics` 的字典的键汉化（原地修改）。
+
+    ★ 2026-09-25：只汉化顶层 `metrics` 会漏掉嵌套的（如
+      `revenue_authenticity_report.dimensions.ar_aging.metrics`）。
+      前端 `_renderCapMetrics` 是**直接打印键名**的（`esc(k)`），
+      所以任何一处 `metrics` 的英文键都可能被用户看到。
+
+    ⚠ 只改名为 `metrics` 的字典的**键**，不动其他键名 —— 其余键名（summary/body/verdict…）
+      是前端渲染契约的一部分，翻译它们会破坏接口。
+    """
+    if isinstance(obj, dict):
+        if isinstance(obj.get("metrics"), dict):
+            obj["metrics"] = _translate_metric_keys(obj["metrics"])
+        for v in obj.values():
+            _translate_all_metric_dicts(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            _translate_all_metric_dicts(v)
+    return obj
+
 
 def _translate_metric_keys(o):
     """递归把字典（含嵌套列表/字典）的英文键汉化为中文标签（供报告透传字段使用）。
@@ -365,7 +441,7 @@ def _translate_key(key):
     if s in _METRIC_CN:
         return _METRIC_CN[s]
     words = re.split(r"[_\-]", s)
-    out, hit = [], False
+    out, hit, miss = [], False, False
     for w in words:
         low = w.lower()
         if low in _WORD_CN:
@@ -373,7 +449,17 @@ def _translate_key(key):
             hit = True
         else:
             out.append(w)
-    result = "".join(out) if hit else s
+            miss = True
+    # ★ 2026-09-25 加固：**不得再做"半翻译"** —— 只要还存在译不出的片段，
+    #   最终就**返回原键**，绝不用"把残留英文整段剔除"来凑出中文。
+    #   理由：整段剔除会**静默丢失词元、甚至语义反转** ——
+    #   实测 `ar_unreceived_total`（应收账款**未**收合计）被剔成「已接收合计」
+    #   （`un` 未知被丢、`received`→已接收），成了给企业报告里的一句**假话**。
+    #   宁可露出英文键（一眼看出未汉化、可补映射，且闸门会逼出该补的映射），
+    #   也不产出**看起来像中文的错误标签**。
+    #   注：`miss` 不再提前返回 —— 仍要让下面两层的**已知词元**替换生效
+    #   （中英连写键如 `direct回流金额` 必须能译成「直接回流金额」）。
+    result = "".join(out) if (hit and not miss) else s
     # 二次兜底：对仍含英文的片段做子串替换（长词优先）。
     # 约束：① 只替换长度 ≥3 的英文词，避免 in/out/al/s/e 等短词元污染中文
     #       （曾把 personal 打成「个人al」、declared_side 打成「已申报s编号e」）；
@@ -383,13 +469,16 @@ def _translate_key(key):
             if len(en) < 3 or en not in result:
                 continue
             result = re.sub(r"(?<![A-Za-z])%s(?![A-Za-z])" % re.escape(en), zh, result)
-    # 三次兜底：仍残留的英文串多为「中文+英文连写」（旧缓存遗留的已污染键），
-    # 逐段消化可识别的词元；实在无法识别则整段剔除，保证报告不出现英文。
+    # 三次兜底：中英连写键（如 direct回流金额）——已知词元紧邻中文时也替换。
     if re.search(r"[A-Za-z]{3,}", result):
         for en, zh in sorted(_WORD_CN.items(), key=lambda x: -len(x[0])):
             if len(en) >= 3:
                 result = result.replace(en, zh)
-        result = re.sub(r"[A-Za-z]+", "", result)
+    # 终检：仍有**任何**未知英文 → 返回**原键**（不静默剔除，避免语义反转）
+    # ⚠ 用 `[A-Za-z]` 而非 `{3,}`：1~2 字母的残留（如 `ar_un已接收_合计_x` 里的 `un`）
+    #   同样是"半翻译"，同样可能已丢词元。
+    if re.search(r"[A-Za-z]", result):
+        return s
     return result
 
 
@@ -482,6 +571,12 @@ def _build_detail_table(f):
         if scalar_rows and not rows:
             rows = scalar_rows
             columns = ["指标", "数值"]
+    # ★ 2026-09-26：兜底——发现自带的逐笔证据 evidence_rows 也作为明细表来源
+    if not rows:
+        ev = (f.get("evidence_rows") if isinstance(f, dict) else None) or []
+        tbl = _evidence_rows_to_detail_table(ev)
+        if tbl:
+            return tbl["rows"], tbl["columns"]
     if not rows:
         return [], []
     # 统一汉化列名与行键：保证 columns 与 rows 键一致（前端按 columns 取值）。
@@ -489,6 +584,113 @@ def _build_detail_table(f):
     columns = [_translate_key(c) for c in columns]
     rows = [{_translate_key(k): v for k, v in row.items()} for row in rows]
     return rows, columns
+
+
+# ── evidence_rows → 明细表（2026-09-26 根因修复）────────────────────────
+# 根因：引擎产出的「逐笔证据」统一挂在 finding.evidence_rows（本轮 167 条发现中 138 条带此字段），
+# 但企业报告此前只渲染 finding.detail_tables（按 redline_id 关联），而 detail_tables 全库仅 1 条发现带。
+# 结果：138 条发现的逐笔明细被静默吞掉（如红冲/作废发票 13 张逐笔清单不显示）。
+# 此处把 evidence_rows 也当作明细表来源：凡带 evidence_rows 的发现（能关联到红线疑点）都会在企业报告
+# 「发现的依据」段列出逐笔明细。这是通用规则，新增任何带 evidence_rows 的发现都无需改报告渲染代码。
+_EV_COLUMN_CN = {
+    "ref_label": "发票/凭证号", "invoice_no": "发票号", "inv_no": "发票号",
+    "counterparty": "对方单位", "party": "对方单位",
+    "amount": "金额(元)", "total": "金额(元)", "money": "金额(元)",
+    "date": "日期", "bill_date": "开票日期",
+    "source": "来源资料", "file": "来源资料",
+    "note": "说明", "remark": "说明", "kind": "类型", "type": "类型",
+}
+_EV_COLUMN_ORDER = ["ref_label", "counterparty", "amount", "date", "source", "note"]
+# 红线/疑点名里高频但无区分度的词，按类型兜底关联时降权，避免误挂
+_MATCH_STOP = {"异常", "发票", "数量", "风险", "比例", "事项", "检查", "核查", "疑点"}
+
+
+def _cjk_bigrams(text):
+    """取中文字符的相邻 2-gram 集合，用于「发现类型 ↔ 疑点名称」关键词重叠匹配。"""
+    text = "".join(re.findall(r"[一-鿿]", str(text or "")))
+    return set(text[i:i + 2] for i in range(len(text) - 1))
+
+
+def _norm_type_key(type_str):
+    """发现类型去标点规整键（用于按类型兜底关联疑点）。"""
+    return "".join(re.findall(r"[一-鿿A-Za-z0-9]", str(type_str or "")))
+
+
+def _evidence_rows_to_detail_table(ev_rows, title="逐笔明细"):
+    """把 finding.evidence_rows（list[dict]）转成前端可渲染的明细表。
+
+    自动识别常见字段并汉化列名（发票号/对方单位/金额/日期/来源/说明），
+    识别不了的字段也透传，保证不丢信息。返回 {title, columns, rows} 或 None。
+    """
+    if not isinstance(ev_rows, list) or not ev_rows:
+        return None
+    rows = []
+    for idx, r in enumerate(ev_rows, 1):
+        if not isinstance(r, dict):
+            rows.append({"序号": idx, "说明": str(r)})
+            continue
+        row = {"序号": idx}
+        used = set()
+        for key in _EV_COLUMN_ORDER:
+            if key in r:
+                cn = _EV_COLUMN_CN.get(key, key)
+                v = r.get(key)
+                if key in ("amount", "total", "money") and isinstance(v, (int, float)):
+                    v = f"{v:,.2f}"
+                row[cn] = v
+                used.add(key)
+        # 其余未识别字段也带上（避免丢信息，如来源文件、备注原文）
+        for k, v in r.items():
+            if k in used or k in _EV_COLUMN_ORDER:
+                continue
+            row[_EV_COLUMN_CN.get(k, str(k))] = v
+        rows.append(row)
+    if not rows:
+        return None
+    return {"title": title, "columns": list(rows[0].keys()), "rows": rows}
+
+
+def _finding_detail_tables(f):
+    """取发现的可渲染明细表：优先用显式 detail_tables，否则把 evidence_rows 转成明细表。
+    返回 list[dict]（每个 {title, columns, rows}）。"""
+    if not isinstance(f, dict):
+        return []
+    dts = f.get("detail_tables") or []
+    out = [t for t in dts if isinstance(t, dict) and t.get("rows")]
+    if out:
+        return out
+    ev = f.get("evidence_rows") or []
+    title = str(f.get("type") or "逐笔明细")
+    if ev:
+        title = f"{title}（共{len(ev)}笔）"
+    tbl = _evidence_rows_to_detail_table(ev, title=title)
+    if tbl:
+        return [tbl]
+    return []
+
+
+def _match_suspicion_detail(s, dt_by_type):
+    """按「发现类型 ↔ 疑点名称/涉嫌」关键词重叠，把未打 redline_id 的域发现兜底关联到疑点。
+    返回匹配到的明细表 list 或 None；重叠 2-gram 数 >=3 才命中，避免误挂。"""
+    if not isinstance(s, dict) or not dt_by_type:
+        return None
+    name = " ".join([
+        str(s.get("redline_name") or ""),
+        str(s.get("suspect") or ""),
+        str(s.get("redline_id") or ""),
+    ])
+    s_bigrams = _cjk_bigrams(name)
+    if not s_bigrams:
+        return None
+    best, best_score = None, 0
+    for tkey, tables in dt_by_type.items():
+        overlap = s_bigrams & _cjk_bigrams(tkey)
+        # 去掉高频无区分度词，按有效重叠计数
+        effective = overlap - _MATCH_STOP
+        score = len(effective)
+        if score > best_score:
+            best, best_score = tables, score
+    return best if best_score >= 3 else None
 
 
 # ── 14 类税务合规必查资料（与 domain_analysis.py 保持一致）──
@@ -560,18 +762,91 @@ _DOC_TYPE_NAME = {
 }
 
 # type → 已覆盖的"必查资料类别"
+# ⚠ 2026-09-25 重写（P0，"已上传申报表却报缺增值税申报表"的根因）：
+#   原映射表的键是**凭想象写的**，与解析器实际产出的类型名大量不符：
+#     · 9 个死键（`bank`/`vat`/`journal`/`ledger`/`order`/`payroll`/`financial`/
+#       `financial_statement`/`bank_transaction`）—— `_FILE_FINGERPRINTS` 从不产出这些；
+#     · 35 个实际类型未覆盖（含 `vat_declaration`、`cit_declaration`、`individual_tax`、
+#       `stamp_duty`、`tax_payment`、`contract_list`、`input_vat_deduction`、
+#       `financial_statements`(复数) 等）；
+#     · 值里的"财务报表"不在 `_REQUIRED_DOC_CATEGORIES` 中，导致"资产负债表""利润表"
+#       **永远被判缺失**（必查 15 类中有 5 类永远无法覆盖）。
+#   后果：即使 12 份增值税申报表已成功解析，报告首章"发现一览"仍写
+#   「缺资料：“增值税申报表”」，前端报告区直接显示"缺少增值税申报表"。
+#   → 键必须严格对齐 `main._FILE_FINGERPRINTS` 的实际类型；一份资料可覆盖多个必查类别，
+#     故值统一改为 **tuple**。
 _DOC_TYPE_TO_CATEGORY = {
-    "bank": "银行流水", "bank_statement": "银行流水", "bank_transaction": "银行流水",
-    "sales_invoice": "销项发票", "purchase_invoice": "进项发票",
-    "salary": "工资表", "payroll": "工资表",
-    "social_security": "社保明细", "housing_fund": "社保明细",
-    "voucher": "记账凭证", "journal": "记账凭证",
-    "trial_balance": "科目余额表", "ledger": "科目余额表",
-    "contract": "合同文件", "order": "合同文件",
-    "inventory": "进销存台账",
-    "vat": "增值税申报表",
-    "financial": "财务报表", "financial_statement": "财务报表",
+    # 资金流
+    "bank_statement": ("银行流水",), "bank": ("银行流水",), "bank_transaction": ("银行流水",),
+    # 发票流
+    "sales_invoice": ("销项发票",), "purchase_invoice": ("进项发票",),
+    "input_vat_deduction": ("进项发票",),
+    "invoice_universal": ("销项发票", "进项发票"), "invoice": ("销项发票", "进项发票"),
+    # 人员流
+    "salary": ("工资表",), "employee_list": ("工资表",), "attendance": ("工资表",),
+    "social_security": ("社保明细",), "housing_fund": ("社保明细",),
+    "salary_tax": ("个税申报表",),
+    # 账务
+    "voucher": ("记账凭证",),
+    "trial_balance": ("科目余额表",),
+    "accounts_receivable": ("科目余额表",), "accounts_payable": ("科目余额表",),
+    "prepaid_advance": ("科目余额表",), "other_receivables": ("科目余额表",),
+    "fixed_assets": ("科目余额表",), "intangible_assets": ("科目余额表",),
+    "asset_impairment": ("科目余额表",), "expense_detail": ("记账凭证",),
+    "rd_expense": ("记账凭证",), "rd_aux_ledger": ("记账凭证",),
+    "expense_report": ("记账凭证",),
+    "equity_transaction": ("科目余额表",),
+    # 货物流 / 合同流
+    "inventory": ("进销存台账",), "bom": ("进销存台账",),
+    "contract": ("合同文件",), "contract_list": ("合同文件",), "order": ("合同文件",),
+    "warehouse_lease": ("合同文件",), "transport_contract": ("合同文件",),
+    "loan_borrowing": ("合同文件",), "related_party": ("合同文件",),
+    # 税流 —— ★ 关键修正：解析器产出的是 vat_declaration，不是 vat
+    "vat_declaration": ("增值税申报表",), "vat": ("增值税申报表",),
+    "cit_declaration": ("企业所得税申报表",),
+    "individual_tax": ("个税申报表",),
+    "stamp_duty": ("其他税种申报表",), "tax_payment": ("其他税种申报表",),
+    # 通用申报表：内容无法细分时，按"至少已提供申报表"计入全部税种申报类别
+    "tax_declaration": ("增值税申报表", "企业所得税申报表", "个税申报表", "其他税种申报表"),
+    # 财务报表：一份报表通常同时含资产负债表与利润表 → 同时覆盖两个必查类别
+    "financial_statements": ("资产负债表", "利润表"),
+    "financial_statement": ("资产负债表", "利润表"),
+    "financial": ("资产负债表", "利润表"),
+    # 进出口 / 其他
+    "customs_declaration": ("合同文件",), "export_invoice": ("销项发票",),
+    "forex_collection": ("银行流水",), "import_export": ("合同文件",),
+    "audit_notice": ("合同文件",), "contact_list": (),
+    "generic_data": (),
 }
+
+
+def _doc_covered_categories(report_data):
+    """已提供的必查资料类别集合（唯一实现，供 further_checks / material_readiness 共用）。
+
+    判据 = ① `file_results` 里每个文件的 `type` 经 `_DOC_TYPE_TO_CATEGORY` 映射；
+           ② `comprehensive.material_intel` 里出现的键（可能是类别名本身）。
+    """
+    covered = set()
+    for fr in (report_data.get("file_results") or []):
+        if not isinstance(fr, dict):
+            continue
+        cats = _DOC_TYPE_TO_CATEGORY.get(str(fr.get("type") or "").strip())
+        # 主体不符被排除的文件不算"已提供"（其数据未参与分析）
+        if fr.get("subject_mismatch") or fr.get("type") == "subject_mismatch":
+            continue
+        if not cats:
+            continue
+        if isinstance(cats, str):
+            cats = (cats,)
+        covered.update(cats)
+    _comp = report_data.get("comprehensive")
+    mi = (_comp.get("material_intel") if isinstance(_comp, dict) else None) or {}
+    if isinstance(mi, dict):
+        for k in mi.keys():
+            if k in _REQUIRED_DOC_CATEGORIES:
+                covered.add(str(k))
+    return covered
+
 
 
 def _cn_num(n):
@@ -596,19 +871,18 @@ def _core_sentence(text, max_len=90):
     text = _norm_text(str(text or "")).replace("经查，", "").replace("经查,", "").strip()
     if not text:
         return ""
-    import re
-    # 按句号/分号切分句
-    clauses = re.split(r"[。；]", text)
-    clauses = [c.strip() for c in clauses if c.strip()]
+    # 按句号/分号切分句 —— 用 sentencekit（**括号感知**，不在（）「」《》内部切）
+    from engine.sentencekit import split_sentences
+    clauses = [c.strip() for c in split_sentences(text) if c.strip()]
     if not clauses:
         return text[:max_len] + ("…" if len(text) > max_len else "")
-    # 优先：含数字的分句（数字=事实的锚点）
+    # 优先：含数字的分句（数字=事实的锚点）；截断用 clamp_text（不切括号内）
+    from engine.sentencekit import clamp_text
     for c in clauses:
         if re.search(r"[0-9]", c):
-            return c[:max_len] + ("…" if len(c) > max_len else "")
+            return clamp_text(c, max_len)
     # 兜底：第一句
-    first = clauses[0]
-    return first[:max_len] + ("…" if len(first) > max_len else "")
+    return clamp_text(clauses[0], max_len)
 
 
 def _seq(items, empty="能够证明相关业务事实的原始资料。"):
@@ -626,7 +900,7 @@ def _seq(items, empty="能够证明相关业务事实的原始资料。"):
     return "；".join(parts) + "。"
 
 
-def _build_identity(report_data):
+def _identity_from_report_data(report_data):
     te = report_data.get("target_entity", {}) or {}
     snap = report_data.get("_case_snapshot", {}) or {}
     return {
@@ -872,22 +1146,14 @@ def _naturalize_report_text(text):
     s = _re.sub(r"(?<=[。；\n])我(?:将|已|先|把|对|做|逐|按)", "报告", s)
     s = _re.sub(r"^我(?:将|已|先|把|对|做|逐|按)", "本报告", s)
     s = _re.sub(r"系统(?:已|未|自动)", "", s)
-    # 9) 内部术语兜底（2026-09-13）：即使上游或历史缓存仍带出「线索链/证据链/裁决」，
-    #    也不得出现在企业报告里，统一改为业务语言。
-    s = s.replace("证据链未闭合", "支撑材料不足")
-    s = s.replace("证据链闭合度", "材料齐全程度")
-    s = s.replace("证据链基本闭合", "支撑材料已基本齐全")
-    s = s.replace("证据链部分闭合", "支撑材料尚不齐全")
-    s = s.replace("证据链未闭合", "支撑材料严重不足")
-    s = s.replace("证据链", "支撑材料")
-    s = s.replace("线索链终端信号", "资料中直接读到的事实")
-    s = s.replace("线索链", "发现过程")
-    s = s.replace("闭合度", "齐全程度")
-    # 10) 旧版五段小标题兜底（历史缓存可能仍带「论证过程与裁决」等写法）
-    s = s.replace("论证过程与裁决", "结论及理由")
-    s = s.replace("论证与裁决", "结论及理由")
-    s = s.replace("论证过程", "判断理由")
-    s = s.replace("裁决", "结论")
+    # 9) 内部术语 → 业务语言的映射**已收敛到 `text_guardrails._DIRECT_REPLACEMENTS`**
+    #    （唯一出处；报告闸门 `_zh_normalize_obj` 已接入护栏，故此处不再重复一份）。
+    #    收敛原因：原先只在本函数做，而 findings 走的是 `review_finding` 那条路径
+    #    → `all_findings[].type` 带着「证据链」进了前端（实测）。
+    # ★ 2026-09-25：`裁决` 的映射**已收敛到 `text_guardrails._DIRECT_REPLACEMENTS`**
+    #   （唯一出处，改「认定」）。此处原来另有一份 `裁决→结论`，属同一概念两处实现、
+    #   且两处口径不同（结论 vs 认定）→ 同一句话在不同渲染路径下说法不一致。
+    #   报告净化闸门 `_zh_normalize_obj` 已接入文字护栏，故删掉本地这份。
     # 11) 无异常检查的套话整段删除（2026-09-13 用户要求）：十几项检查原样
     #     复制同一段「检查人员对本项执行了…没有发现…不正常情况」，属无效篇幅。
     #     本节改为只列检查项名称，说明统一在章节导言出现一次。
@@ -977,12 +1243,25 @@ def _build_redline_problems(suspicions, findings=None):
       ⑤ 需要补充什么资料或解释才能定性
     """
     problems = []
-    # 从原始发现里取规则显式给出的多表下钻（如 VR060 成本/付款/应付逐笔溯源），
-    # 按 redline_id 关联到对应疑点，挂到「发现的依据」段，让企业看到聚合数背后的明细。
-    _dt_lookup = {}
+    # 从原始发现里取规则显式给出的多表下钻，或把逐笔证据 evidence_rows 转成明细表，
+    # 挂到「发现的依据」段，让企业看到聚合数背后的明细。
+    # ★ 2026-09-26 根因修复：此前只认 detail_tables（全库仅 1 条发现带），
+    #   导致 138 条带 evidence_rows 的发现的逐笔明细被静默吞掉；
+    #   现统一把 evidence_rows 也视为明细表来源，并支持按 redline_id / 发现类型 关联到疑点。
+    _dt_by_rid = {}
+    _dt_by_type = {}
     for _f in (findings or []):
-        if isinstance(_f, dict) and _f.get("detail_tables") and _f.get("redline_id"):
-            _dt_lookup.setdefault(_f["redline_id"], _f["detail_tables"])
+        if not isinstance(_f, dict):
+            continue
+        _tables = _finding_detail_tables(_f)
+        if not _tables:
+            continue
+        _rid = _f.get("redline_id")
+        if _rid:
+            _dt_by_rid.setdefault(_rid, _tables)
+        _tkey = _norm_type_key(_f.get("type") or "")
+        if _tkey:
+            _dt_by_type.setdefault(_tkey, _tables)
     for i, s in enumerate(suspicions, 1):
         arg = s.get("argumentation") or {}
         clue = s.get("clue_chain") or {}
@@ -997,10 +1276,12 @@ def _build_redline_problems(suspicions, findings=None):
         _suspect = str(s.get("suspect") or "税务风险")
         _suspect_txt = _suspect if _suspect.startswith("涉嫌") else f"涉嫌{_suspect}"
         # 构成要件属明细，走列表（用户要求：涉及明细的就列表）
+        # ★ 2026-09-26 三层术语重标：执行版不写“触碰税务红线/触红成立”（易读成已定性违法），
+        #   改为“触发税务风险指标（待核实）”，与决策版口径一致。
         p1 = (
-            f"经检查，本企业触碰税务红线，即{rname}，{_suspect_txt}。"
-            + ("该红线不因行业而变，凡符合下列构成要件即属触红：" if constituents
-               else "具体构成要件见红线库列明的口径。")
+            f"经检查，本企业触发税务风险指标（待核实），即{rname}，{_suspect_txt}。"
+            + ("该风险指标不因行业而变，凡符合下列构成要件即属待核实疑点：" if constituents
+               else "具体构成要件见风险指标库列明的口径。")
         )
         bullets1 = [_naturalize_report_text(str(c).rstrip("。；"))
                     for c in constituents if str(c).strip()]
@@ -1018,12 +1299,20 @@ def _build_redline_problems(suspicions, findings=None):
             ) + "因缺少资料未取得数据，已计入检查受限范围。"
 
         # ③ 已有材料与待补材料
-        have = [e for e in (ev.get("elements") or []) if e.get("status") == "已有"]
-        lack = [e for e in (ev.get("elements") or []) if e.get("status") != "已有"]
+        # ★ 2026-09-25：三态须分开说。「已有」= 名称逐字对应的材料已提交；
+        #   「待核」= 清单里有相关类别但未必含本项所需（不得混入"已拿到"）；
+        #   「缺失」= 确未提供。旧版把"待核"也写成"已在案"，导致
+        #   "企业只交了工资表"被报告写成"劳动合同等材料已在案"。
+        _els = ev.get("elements") or []
+        have = [e for e in _els if e.get("status") == "已有"]
+        verify = [e for e in _els if e.get("status") == "待核"]
+        lack = [e for e in _els if e.get("status") == "缺失"]
         p3 = (
-            f"要把这一项定下来，需要{len(ev.get('elements') or [])}项材料。"
-            + (f"目前已经拿到{len(have)}项。" if have else "目前还没有一项材料在手上。")
-            + (f"还差{len(lack)}项。" if lack else "")
+            f"要把这一项定下来，需要{len(_els)}项材料。"
+            + (f"名称逐字对应、已确在手上的有{len(have)}项。" if have
+               else "目前还没有一项材料与要求逐字对应。")
+            + (f"另有{len(verify)}项须确认已提供资料中是否含该内容。" if verify else "")
+            + (f"确未提供的有{len(lack)}项。" if lack else "")
             + f"材料齐全程度{int(float(ev.get('closure', 0)) * 100)}%，{ev.get('verdict', '')}。"
             + (f"{ev.get('rebuttal_status', '')}。" if ev.get("rebuttal_status") else "")
         )
@@ -1053,9 +1342,15 @@ def _build_redline_problems(suspicions, findings=None):
              "bullets": bullets5 or None, "tail": tail5},
         ]
 
-        # 规则显式下钻表（如 VR060 成本/付款/应付逐笔溯源）挂到「发现的依据」段
-        if s.get("redline_id") in _dt_lookup:
-            paragraphs[1]["detail_tables"] = _dt_lookup[s["redline_id"]]
+        # 规则显式下钻表 / 逐笔证据表 挂到「发现的依据」段：
+        # 先按红线编号精确关联，未命中再按「发现类型 ↔ 疑点名称」关键词重叠兜底关联
+        # （覆盖带 evidence_rows 但未打 redline_id 的域发现，如红冲/作废发票）。
+        _rid = s.get("redline_id", "")
+        _tables = _dt_by_rid.get(_rid) if _rid else None
+        if not _tables:
+            _tables = _match_suspicion_detail(s, _dt_by_type)
+        if _tables:
+            paragraphs[1]["detail_tables"] = _tables
 
         problems.append({
             "seq": i,
@@ -1076,6 +1371,7 @@ def _build_redline_problems(suspicions, findings=None):
             "detail_table": _evidence_table(ev),
             "finding_count": s.get("finding_count", 1),
             "missing_materials": s.get("missing_materials", []),
+            "verify_materials": s.get("verify_materials", []),
             "trace_id": (clue.get("nodes") or [{}])[0].get("trace_ref", ""),
         })
     return problems
@@ -1340,15 +1636,22 @@ def _clue_narrative(clue):
 
 
 def _clue_table(clue):
-    """发现过程明细表：环/资料/动作/实际看到（中文表述、相邻重复标注同上）"""
+    """发现过程明细表：环/资料/动作/实际看到（中文表述、相邻重复标注同上）
+
+    ★ 2026-09-25：列名由「使用资料」改为「**对应资料**」。
+      该列填的是红线模板声明的**应查资料**（检查路径上"这一环要看什么"），
+      不是"本轮实际读了什么" —— 旧列名会让读者误以为这些资料都已读取。
+      本轮**实际读取**的资料另在正文中列明，未取得数据的环在「实际看到的数据」列
+      会明确写"本轮未取得该环节可量化数据"。
+    """
     nodes = clue.get("nodes") or []
     if not nodes:
         return None
     observed_list = _dedup_observed([n.get("observed") for n in nodes])
     return {
-        "columns": ["环节", "使用资料", "做了什么", "实际看到的数据"],
+        "columns": ["环节", "对应资料", "做了什么", "实际看到的数据"],
         "rows": [
-            {"环节": f"第{n.get('step')}环", "使用资料": _label_source(n.get("source", "")),
+            {"环节": f"第{n.get('step')}环", "对应资料": _label_source(n.get("source", "")),
              "做了什么": n.get("action", ""),
              "实际看到的数据": (observed_list[i] if i < len(observed_list) else "")}
             for i, n in enumerate(nodes)
@@ -1357,15 +1660,23 @@ def _clue_table(clue):
 
 
 def _evidence_table(ev):
-    """材料清单：角色/材料名称/证明目的/现状"""
+    """材料清单：角色/材料名称/证明目的/现状/依据。
+
+    ★ 2026-09-25：新增「依据」列。用户要求「报告每一个字都要能确定可以这么写」——
+      只写「已有/缺失/待核」而不写依据，读者无法核验该断言是否成立；
+      加上依据后，每个现状都能回指到"哪份已提供材料的哪个称谓"或"哪份材料确未提供"。
+      现状三态语义见 engine/evidence_chain.build_evidence_chain 的 docstring：
+        已有 = 名称逐字对应；待核 = 有相关类别但须人工确认；缺失 = 确未提供。
+    """
     els = ev.get("elements") or []
     if not els:
         return None
     return {
-        "columns": ["证据角色", "证据名称", "证明目的", "现状"],
+        "columns": ["证据角色", "证据名称", "证明目的", "现状", "依据"],
         "rows": [
             {"证据角色": e.get("role", ""), "证据名称": e.get("name", ""),
-             "证明目的": e.get("purpose", ""), "现状": e.get("status", "")}
+             "证明目的": e.get("purpose", ""), "现状": e.get("status", ""),
+             "依据": _naturalize_report_text(e.get("basis", ""))}
             for e in els
         ],
     }
@@ -1386,7 +1697,6 @@ def _build_confirmed_problems(report_data):
     _hv = (report_data.get("comprehensive", {}) or {}).get("hypothesis_verification", {}) or {}
     _unconfirmed_types = {d.get("finding_type") for d in (_hv.get("details") or []) if d.get("unconfirmed")}
     problems = []
-    seq = 1
     for f in findings:
         if not isinstance(f, dict):
             continue
@@ -1395,8 +1705,7 @@ def _build_confirmed_problems(report_data):
         if f.get("_hypothesis_unconfirmed") is True or (f.get("type") in _unconfirmed_types):
             continue
         ev = f.get("_evidence_ref", {}) or {}
-        problems.append({
-            "seq": seq,
+        problems.append((f, {
             "title": (f.get("type") or "具体资料问题").replace("待核事实：", "").replace("待核事实:", ""),
             "conclusion_grade": f.get("conclusion_grade") or "待核",
             "final_answer": str(f.get("final_answer") or ""),
@@ -1404,9 +1713,18 @@ def _build_confirmed_problems(report_data):
             "observed_metrics": _translate_metric_keys(f.get("observed_metrics") or {}),
             "narrative_paragraphs": _problem_paragraphs(f),
             "trace_id": ev.get("trace_id", ""),
-        })
-        seq += 1
-    return problems
+        }))
+    # ★ 2026-09-26 三版重构：执行版确认问题按「等级 × 金额」排序（重大优先），
+    #   TOP5 先呈现，其余保持逐项底稿（前端可折叠）。
+    problems.sort(key=lambda fp: (_level_rank(fp[0].get("level")),
+                                  (_extract_finding_exposure(fp[0])["amount"] or 0)),
+                  reverse=True)
+    out = []
+    for seq, (f, p) in enumerate(problems, start=1):
+        p = dict(p)
+        p["seq"] = seq
+        out.append(p)
+    return out
 
 
 def _build_completed_checks(report_data):
@@ -1447,19 +1765,7 @@ def _build_action_plan(problems):
 
 def _build_further_checks(report_data):
     """受阻检查：14 类必查资料中未提交的类别"""
-    file_results = report_data.get("file_results", []) or []
-    covered = set()
-    for fr in file_results:
-        if not isinstance(fr, dict):
-            continue
-        cat = _DOC_TYPE_TO_CATEGORY.get(fr.get("type", ""))
-        if cat:
-            covered.add(cat)
-    # 从 target_entity / material_intel 补充已识别类别
-    mi = report_data.get("comprehensive", {}).get("material_intel", {}) if isinstance(report_data.get("comprehensive"), dict) else {}
-    if isinstance(mi, dict):
-        for k in mi.keys():
-            covered.add(str(k))
+    covered = _doc_covered_categories(report_data)
 
     missing = [c for c in _REQUIRED_DOC_CATEGORIES if c not in covered]
 
@@ -1490,17 +1796,7 @@ def _build_material_readiness(report_data):
     资料不齐全时显式提醒，让检查范围受限的原因透明可查。
     """
     file_results = report_data.get("file_results", []) or []
-    covered = set()
-    for fr in file_results:
-        if not isinstance(fr, dict):
-            continue
-        cat = _DOC_TYPE_TO_CATEGORY.get(fr.get("type", ""))
-        if cat:
-            covered.add(cat)
-    mi = report_data.get("comprehensive", {}).get("material_intel", {}) if isinstance(report_data.get("comprehensive"), dict) else {}
-    if isinstance(mi, dict):
-        for k in mi.keys():
-            covered.add(str(k))
+    covered = _doc_covered_categories(report_data)
 
     provided = []
     missing = []
@@ -1523,6 +1819,18 @@ def _build_material_readiness(report_data):
                 })
     total = len(_REQUIRED_DOC_CATEGORIES)
     complete = total - len(missing)
+    # ★ 2026-09-25：**文件级**读取失败也要交代 —— 与"整类资料缺失"不同，
+    #   这指"文件在清单里、但内容一行都没读到"（路径失效/格式不支持）。
+    #   实测事故：24 个文件（12 银行 + 12 社保）内容读不到 → 发现数从 13 静默降到 7，
+    #   而报告只说"已提供 8 类"，使用者会把少报当成企业没问题。静默少报比误报更危险。
+    read_failures = list(report_data.get("read_failures") or [])
+    _rf_note = ""
+    if read_failures:
+        _rf_note = (
+            f"另有 {len(read_failures)} 个文件**未读取到任何数据**（"
+            + "、".join(read_failures[:5]) + ("等" if len(read_failures) > 5 else "")
+            + "），相关风险方向本轮无法检查，本次结论基于**不完整资料**。"
+        )
     return {
         "required_total": total,
         "provided_count": complete,
@@ -1530,11 +1838,137 @@ def _build_material_readiness(report_data):
         "complete": len(missing) == 0,
         "provided": provided,
         "missing": missing,
+        "read_failures": read_failures,
+        "partial_data": bool(read_failures),
         "summary_text": (
             f"稽查必查资料共 {total} 类，本轮已提供 {complete} 类、缺失 {len(missing)} 类。"
             + ("资料齐全，全部检查程序可执行。" if not missing
                else "资料不齐全：以下缺失将导致相应风险方向无法检查（详见缺失清单）。")
+            + _rf_note
         ),
+    }
+
+
+def _build_analysis_coverage(report_data):
+    """本轮**分析覆盖清单**（现有资料能查多少 / 需补什么才能判定，逐项列明）。
+
+    ★ 2026-09-25 新增：一键分析要当"稽查替身"，就必须能回答"该查的都查了吗、
+      没查的为什么"。此前答不出来，出现三类静默：登记了但从不执行（14 项指标中 7 项）、
+      整域静态跳过（利润表全 0）、少报被当成没问题。本段把覆盖情况作为一等输出。
+
+    ★ 同日语义纠正（用户宗旨）：本段**不是**"因为缺资料所以没查"的清单，
+      而是"现有资料已查尽 + 其余需补充资料方可判定"的**待补自证事项**清单。
+      措辞与字段名都按此调整，避免读者误以为系统在等资料齐全才排查。
+    """
+    cov = report_data.get("analysis_coverage") or {}
+    if not isinstance(cov, dict) or not cov.get("total"):
+        return {}
+    blocked = cov.get("blocked_items") or []
+    rows = [{
+        "类别": str(it.get("kind") or ""),
+        "检查项": str(it.get("name") or ""),
+        "需补充的资料": "、".join(it.get("missing") or []),
+        "补充后方可判定": str(it.get("effect") or "")[:120],
+    } for it in blocked[:200]]
+    return {
+        "total": cov.get("total", 0),
+        "executed": cov.get("executed", 0),
+        "awaiting_self_proof": cov.get("awaiting_self_proof", cov.get("blocked", 0)),
+        "executed_ratio": cov.get("executed_ratio", 0),
+        "summary": str(cov.get("summary_text") or ""),
+        "missing_sources": cov.get("missing_sources") or {},
+        "columns": ["类别", "检查项", "需补充的资料", "补充后方可判定"],
+        "rows": rows,
+    }
+
+
+def _build_one_sided_digest(report_data):
+    """「我给了这些资料，你到底都查了哪些」——按已上传资料列出的可独立执行检查。
+
+    ★ 2026-09-25 新增（用户宗旨 D1）：一键分析必须"上传了什么资料就查什么资料"。
+      本段逐份资料列出其**单独存在时**即可完成的检查项，让使用者能直接核对
+      "我上传的每一份资料是否都被用尽"，而不是只能看到"缺什么"。
+    """
+    items = report_data.get("one_sided_checks") or []
+    if not items:
+        return {}
+    rows = []
+    for it in items:
+        for c in (it.get("checks") or []):
+            rows.append({
+                "已上传资料": str(it.get("source") or ""),
+                "可独立完成的检查": str(c.get("name") or ""),
+                "查法": str(c.get("how") or "")[:140],
+            })
+    return {
+        "source_count": len(items),
+        "check_count": len(rows),
+        "columns": ["已上传资料", "可独立完成的检查", "查法"],
+        "rows": rows,
+    }
+
+
+def _build_resolution_ledger(report_data):
+    """逐项风险的**解除路径与自证清单**（宗旨 D3 + D4）。
+
+    ★ 2026-09-25 新增。用户宗旨原话：
+      「反映已查出的税务风险，也反映就已查出的税务风险需要怎样解除风险，
+        是否有自证的资料需要补充，最终就是铁证如山或是自证清白。」
+    所以每条风险必须同时带出三样东西，缺一不可：
+      ① 怎么解除（resolve_steps）；② 需要补什么自证资料（self_proof_materials）；
+      ③ 终局方向（terminal_state：铁证如山 / 可自证清白 / 待补自证）。
+    没有出口的风险清单对使用者毫无用处 —— 他不知道下一步该做什么。
+    """
+    findings = [f for f in (report_data.get("all_findings") or []) if isinstance(f, dict)]
+    if not findings:
+        return {}
+    from engine.audit_doctrine import (
+        TERMINAL_IRONCLAD, TERMINAL_PENDING, TERMINAL_SELF_PROOF,
+        normalize_terminal_state,
+    )
+    by_state = {TERMINAL_IRONCLAD: [], TERMINAL_SELF_PROOF: [], TERMINAL_PENDING: []}
+    rows = []
+    tier_stat = {}
+    for f in findings:
+        state = normalize_terminal_state(f.get("terminal_state"))
+        if state in by_state:
+            by_state[state].append(f)
+        tier = str(f.get("evidence_tier") or "")
+        if tier:
+            tier_stat[tier] = tier_stat.get(tier, 0) + 1
+        resolve = f.get("resolve_steps") or []
+        proof = f.get("self_proof_materials") or []
+        rows.append({
+            "风险事项": str(f.get("type") or ""),
+            "等级": str(f.get("level") or ""),
+            "证据地位": tier or "未标注",
+            "终局方向": state or str(f.get("terminal_state") or "待核"),
+            "解除方式": "；".join(str(x) for x in resolve[:6]) or "（待补充资料后由系统给出）",
+            "需补自证资料": "；".join(
+                "{0}——{1}".format(p.get("material", ""), p.get("proves", ""))
+                for p in proof[:6] if isinstance(p, dict)
+            ) or "（本项尚需的资料见「分析覆盖」章节）",
+        })
+    summary = report_data.get("audit_doctrine") or {}
+    scope = report_data.get("output_scope") or {}
+    # ★ 2026-09-25：这两项必须由**最终报告里的发现**现算。
+    #   audit_doctrine 汇总是在管道中段生成的（封印/补齐出口之前），
+    #   拿它的计数会低估（实测报告 22 条全有出口，汇总里却只写 8 条）。
+    with_resolve = sum(1 for f in findings if f.get("resolve_steps"))
+    with_proof = sum(1 for f in findings if f.get("self_proof_materials"))
+    return {
+        "total": len(rows),
+        "ironclad": len(by_state[TERMINAL_IRONCLAD]),
+        "self_provable": len(by_state[TERMINAL_SELF_PROOF]),
+        "pending": len(by_state[TERMINAL_PENDING]),
+        "with_resolve": with_resolve,
+        "with_self_proof": with_proof,
+        # ★ 证据地位分布：报告中所有风险已全部呈现，此处标注各结论的取得方式
+        "evidence_tiers": tier_stat,
+        "evidence_tier_note": (scope.get("note") or ""),
+        "statement": str(summary.get("statement") or ""),
+        "columns": ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料"],
+        "rows": rows,
     }
 
 
@@ -1553,13 +1987,21 @@ def _build_summary(report_data, problems, completed, further):
     try:
         _reasoning = build_inspector_reasoning(report_data)
         _bench = (_reasoning.get("industry_benchmark") or {}).get("observations") or []
-        _striking = [o for o in _bench if o.get("direction") not in ("处于合理区间",)]
+        # "未参与对标"（无收入数据时）不得作为开篇的重点异常，它只是数据缺口说明
+        _striking = [o for o in _bench
+                     if o.get("direction") not in ("处于合理区间", "未参与对标")]
         if _striking:
             _o = _striking[0]
+            _ib = _reasoning.get("industry_benchmark") or {}
+            # ★ 2026-09-25：标注行业口径。此前只写"对照XX基准"，读者无法判断这个 XX
+            #   是工商登记行业、还是从销项发票品名推断的，出现过"商贸企业被拿橡胶制品
+            #   基准判毛利率偏低"这类无法自证来源的表述。
+            _src = str(_ib.get("industry_source") or "").strip()
+            _src_txt = f"（行业口径：{_src}）" if _src else ""
             key_points.append(
                 to_plain(
-                    f"【行业对标】对照{(_reasoning.get('industry_benchmark') or {}).get('benchmark_name', '行业')}"
-                    f"基准，本企业{_o['metric']}{_o['actual']}%（行业{_o['benchmark']}），{_o['direction']}。"
+                    f"【行业对标】对照{_ib.get('benchmark_name', '行业')}基准{_src_txt}，"
+                    f"本企业{_o['metric']}{_o['actual']}%（行业{_o['benchmark']}），{_o['direction']}。"
                     f"{_o['why']}"
                 )
             )
@@ -2242,6 +2684,462 @@ def _build_related_party_report(report_data):
     }
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# 管理层决策版（boss_decision_report）—— 2026-09-26 按用户点评重构
+# 原则：先结论、先重大、先量化、先决策、先行动；后事实、后依据、后明细、后附录。
+# 缺数据字段处理：责任人用角色占位“待填”，概率按证据成熟度给定性评估标“评估”，
+# 不编造任何数字；金额只给“潜在最大敞口”并注明最佳/最小估计需概率输入未提供。
+# ════════════════════════════════════════════════════════════════════════════
+
+# 暴露金额（敞口）相关键提示（中英双语，匹配 observed_metrics 顶层键）。
+# 用“具体前缀”避免 over→cover、red→declared 的贪婪误命中；计数/上下文先排除再判敞口。
+_BOSS_EXPO_PREFIX = ("gap", "mismatch", "unmatched", "short", "deficit", "excess",
+                     "violation", "false", "refund", "late", "exposure", "risk",
+                     "penalty", "diff", "void", "over_limit", "over_amount",
+                     "over_declared", "under_paid", "under_declared", "under_amount",
+                     "redline", "uncovered")
+_BOSS_EXPO_CN = ("差额", "差异", "缺口", "未匹配", "少缴", "应补", "补缴", "违规",
+                 "虚列", "多列", "超限额", "未计提", "未转出", "未申报", "退税",
+                 "滞纳", "敞口", "风险金额", "潜在", "红冲", "作废")
+# 列表型字段名若出现这些 token，则其内部 amount 可汇总为敞口（如 private_paid_records）
+_BOSS_LIST_EXPO_TOKEN = ("paid", "private", "void", "red", "unmatched", "mismatch",
+                         "penalty", "refund", "late", "false", "over_limit", "short",
+                         "deficit", "uncovered", "underpaid", "under_declared")
+# 顶层键后缀黑名单（计数/率/示例类，绝不是金额）
+_BOSS_KEY_EXCLUDE_SUFFIX = ("_months", "_days", "_count", "_ratio", "_rate", "_pct",
+                            "_num", "_examples", "_detail", "_list", "_name",
+                            "_status", "_type", "_note", "_ids")
+# 顶层键黑名单（明显是背景总量/收款/已付/计数，不是敞口）
+_BOSS_KEY_EXCLUDE_TOKEN = ("total", "合计", "总额", "收入", "成本", "revenue", "cost",
+                           "payroll", "工资", "人数", "笔数", "次数", "ratio", "率",
+                           "month", "day", "name", "examples", "状态", "类别",
+                           "比例", "total_", "summary", "收款", "收金额",
+                           "count", "_num", "月数", "月份")
+
+
+def _is_expo_key(k):
+    """是否为“敞口型金额”键。先排除计数/上下文，再判敞口前缀（避免贪婪误命中）。"""
+    kl = k.lower()
+    if any(kl.endswith(s) for s in _BOSS_KEY_EXCLUDE_SUFFIX):
+        return False
+    if any(t in kl for t in _BOSS_KEY_EXCLUDE_TOKEN):
+        return False
+    if any(h in kl for h in _BOSS_EXPO_PREFIX):
+        return True
+    if any(h in k for h in _BOSS_EXPO_CN):
+        return True
+    return False
+
+
+def _is_context_key(k):
+    """是否为明显背景量（总额/收入/成本/人数/计数），不作为敞口。"""
+    kl = k.lower()
+    # “matched”是已匹配背景量（unmatched 才是敞口，须排除前排除 matched 但保留 unmatched）
+    if "matched" in kl and "unmatched" not in kl:
+        return True
+    if any(kl.endswith(s) for s in _BOSS_KEY_EXCLUDE_SUFFIX):
+        return True
+    if any(t in kl for t in _BOSS_KEY_EXCLUDE_TOKEN):
+        return True
+    return False
+
+_LEVEL_RANK = {"极高风险": 5, "高风险": 4, "中风险": 3, "低风险": 0,
+               "待核验": 1, "待核": 1, "信息": 1}
+
+
+def _coerce_amount(v):
+    """尽量把任意值转成 float 金额；失败返回 None。"""
+    if isinstance(v, bool):
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        s = v.replace(",", "").replace("元", "").replace("￥", "").replace("¥", "").strip()
+        try:
+            return float(s)
+        except ValueError:
+            return None
+    return None
+
+
+def _extract_finding_exposure(f):
+    """尽力从 finding 提取一条“代表敞口金额”。
+
+    数据现实：finding 没有标准化“补税额/敞口”字段，金额散落在 observed_metrics
+    （顶层数值键）、evidence_rows、detail 文本。本函数按可信度降序取：
+      ① observed_metrics 顶层“敞口型”键的最大值（_is_expo_key 判定）；
+      ② 退而求其次取 observed_metrics 顶层非上下文数值键；
+      ③ detail 文本里“差额/缺口/…”后的首个金额；
+      ④ 都取不到 → 返回 None（前端标“未量化（待财务测算）”），绝不编造。
+    """
+    om = f.get("observed_metrics") or {}
+    cands = []
+    if isinstance(om, dict):
+        for k, v in om.items():
+            n = _coerce_amount(v)
+            if n is not None and abs(n) > 0:
+                cands.append((str(k), n))
+    # ① 敞口型键优先
+    expo = None
+    for k, v in cands:
+        if _is_expo_key(k):
+            if expo is None or abs(v) > abs(expo[1]):
+                expo = (k, v)
+    if expo is not None:
+        return {"amount": expo[1], "source": "observed_metrics", "key": expo[0],
+                "confidence": "系统量化"}
+    # ①b 列表型字段：字段名含暴露 token 且其元素为带 amount 的 dict → 汇总（如私户支付记录）
+    om = f.get("observed_metrics") or {}
+    if isinstance(om, dict):
+        for lk, lv in om.items():
+            if not isinstance(lv, list) or not any(t in lk.lower() for t in _BOSS_LIST_EXPO_TOKEN):
+                continue
+            s = 0.0
+            for it in lv:
+                if isinstance(it, dict):
+                    a = _coerce_amount(it.get("amount"))
+                    if a is not None and abs(a) > 0:
+                        s += abs(a)
+            if s > 0:
+                return {"amount": s, "source": "observed_metrics(列表汇总)",
+                        "key": lk, "confidence": "系统量化"}
+    # ② 非上下文数值键（兜底，标“需财务确认”）
+    fb = None
+    for k, v in cands:
+        if _is_context_key(k):
+            continue
+        if fb is None or abs(v) > abs(fb[1]):
+            fb = (k, v)
+    if fb is not None:
+        return {"amount": fb[1], "source": "observed_metrics(上下文指标)", "key": fb[0],
+                "confidence": "需财务确认"}
+    # ③ detail 文本
+    det = f.get("detail") or ""
+    m = re.search(r"(差额|缺口|差异|未匹配|少缴|应补|补缴|风险金额|违规金额|未印证|未收|未付|敞口)"
+                  r"[^0-9]{0,12}([0-9][0-9,]{2,}(?:\.[0-9]+)?)\s*元?", det)
+    if m:
+        n = _coerce_amount(m.group(2))
+        if n is not None:
+            return {"amount": n, "source": "detail文本", "key": m.group(1),
+                    "confidence": "需财务确认"}
+    return {"amount": None, "source": "未提取", "key": "", "confidence": "未量化"}
+
+
+def _maturity_assessment(maturity):
+    """把 evidence_maturity 映射为“概率评估”定性标签（不编造数值概率）。"""
+    m = maturity or ""
+    if "multi_source" in m:
+        return "需评估（多源线索·待人工复核）"
+    if "single_source" in m:
+        return "需评估（单源·可初步确认）"
+    if "unverified" in m:
+        return "需评估（来源链路待验证·待核）"
+    return "需评估（证据成熟度未标注）"
+
+
+def _level_rank(level):
+    return _LEVEL_RANK.get(level, 1)
+
+
+def _raw_confirmed_findings(report_data):
+    """与 _build_confirmed_problems 同口径取出“已查明风险事项”的原始 finding。"""
+    _hv = (report_data.get("comprehensive", {}) or {}).get("hypothesis_verification", {}) or {}
+    _unconfirmed_types = {d.get("finding_type") for d in (_hv.get("details") or [])
+                          if d.get("unconfirmed")}
+    out = []
+    for f in (report_data.get("all_findings", []) or []):
+        if not isinstance(f, dict):
+            continue
+        if f.get("level") in ("待核验", "信息", "低风险"):
+            continue
+        if f.get("_hypothesis_unconfirmed") is True or (f.get("type") in _unconfirmed_types):
+            continue
+        out.append(f)
+    return out
+
+
+def _problem_narrative_text(p):
+    """拼接 problem 的全部叙述文本，用于金额抽取。"""
+    parts = []
+    for para in (p.get("narrative_paragraphs") or []):
+        if isinstance(para, dict):
+            parts.append(str(para.get("text") or ""))
+            if para.get("bullets"):
+                parts.append(" ".join(str(b) for b in para["bullets"]))
+            if para.get("tail"):
+                parts.append(str(para.get("tail") or ""))
+    return "\n".join(parts)
+
+
+def _extract_amount_from_text(text):
+    """从叙述文本抽代表金额：仅在‘敞口型词’附近出现金额时才取（避免把收入/工资等背景总量当敞口）。
+
+    防误绑：若金额前后 24 字内出现背景总量词（合同/收入/开票/申报/工资/成本/销售额），
+    视为“基数”而非“敞口”，跳过（如“差额…看到发票总额11,747,476元”应驳回）。
+    取不到 → 返回 None（上层标‘未量化（待财务测算）’），绝不把背景数字当敞口。
+    """
+    if not text:
+        return None
+    _BASE_TOTAL = ("合同", "收入", "开票", "发票", "申报", "工资", "成本", "销售额",
+                   "营收", "采购", "结算金额")
+    _pat = re.compile(r"(差额|缺口|差异|未匹配|少缴|应补|补缴|风险金额|违规金额|未印证|未收|未付|敞口|"
+                      r"比例异常|超限额|超限|未申报|未计提|未转出|价税合计|合计金额|红冲|作废|冲销|"
+                      r"回流|缺口金额|少缴税款|应补缴)"
+                      r"[^0-9\-]{0,16}[-−]?([0-9][0-9,]{2,}(?:\.[0-9]+)?)\s*元?")
+    for m in _pat.finditer(text):
+        num = _coerce_amount(m.group(2))
+        if num is None or num == 0:
+            continue
+        start = max(0, m.start(2) - 24)
+        ctx = text[start:m.start(2)]
+        if any(b in ctx for b in _BASE_TOTAL):
+            continue
+        return num
+    return None
+
+
+def _build_boss_decision_report(report_data):
+    """管理层决策版：结论先行 + 量化敞口 + TOP5 + 整改路线图 + 需决策事项 + 检查受限。
+
+    与执行版共用同一套“确认的具体问题”（本轮税务红线疑点，_build_confirmed_problems 产出），
+    保证两版“确认 N 项”口径一致；金额按 backing finding（redline_id 关联）或叙述文本尽力提取，
+    明确标注待财务测算，绝不编造。
+    """
+    # 执行版同源的“具体问题”（本轮税务红线疑点，已按等级×金额排序）
+    confirmed = _build_confirmed_problems(report_data)
+    findings = [f for f in (report_data.get("all_findings") or []) if isinstance(f, dict)]
+    pending = [f for f in findings if f.get("level") == "待核验"]
+
+    # backing finding 金额（按 redline_id 关联）
+    _expo_by_rid = {}
+    _maturity_by_rid = {}
+    for f in findings:
+        rid = f.get("redline_id")
+        if rid and rid not in _expo_by_rid:
+            _expo_by_rid[rid] = _extract_finding_exposure(f)
+            _maturity_by_rid[rid] = f.get("evidence_maturity") or f.get("_evidence_maturity") or ""
+
+    rows = []
+    total_exposure = 0.0
+    exposure_items = 0
+    for p in confirmed:
+        rid = p.get("redline_id") or ""
+        exp = _expo_by_rid.get(rid)
+        if not exp or exp.get("amount") is None:
+            txt_amt = _extract_amount_from_text(_problem_narrative_text(p))
+            if txt_amt is not None:
+                exp = {"amount": txt_amt, "source": "叙述文本", "key": "narrative",
+                       "confidence": "需财务确认"}
+        if not exp or exp.get("amount") is None:
+            exp = {"amount": None, "source": "未提取", "key": "", "confidence": "未量化"}
+        grade = p.get("conclusion_grade") or "待核"
+        maturity = _maturity_by_rid.get(rid) or ""
+        level = p.get("risk_level") or p.get("level") or "待核"
+        amt = abs(exp["amount"]) if exp["amount"] is not None else None
+        rows.append({
+            "type": p.get("title") or "具体资料问题",
+            "level": level,
+            "grade": grade,
+            "exposure_amount": amt,
+            "exposure_text": (f"{amt:,.2f}元" if amt is not None
+                              else "未量化（待财务测算）"),
+            "exposure_source": exp["source"],
+            "owner": "待填（请指定责任部门/人）",
+            "probability": _maturity_assessment(maturity),
+            "triggered_redline": "是（触发预警规则）" if rid else "否",
+        })
+        if amt is not None:
+            total_exposure += amt
+            exposure_items += 1
+
+    rows.sort(key=lambda r: (_level_rank(r["level"]), r["exposure_amount"] or 0),
+              reverse=True)
+
+    # 重大风险 TOP5：等级 × 金额
+    top5 = []
+    for r in rows[:5]:
+        why = []
+        if _level_rank(r["level"]) >= 4:
+            why.append("高等级风险")
+        elif _level_rank(r["level"]) >= 3:
+            why.append("中等级风险")
+        if r["exposure_amount"]:
+            why.append(f"涉及金额{r['exposure_text']}")
+        if r["triggered_redline"] == "是（触发预警规则）":
+            why.append("触发税务预警规则")
+        if r["grade"] == "已核定":
+            why.append("已核定事实")
+        top5.append({
+            "type": r["type"], "level": r["level"], "grade": r["grade"],
+            "exposure_text": r["exposure_text"], "probability": r["probability"],
+            "why": "；".join(why) or "综合等级与影响",
+        })
+
+    # 整改路线图（按等级/金额/是否核定分时限）
+    roadmap = {"d7": [], "d30": [], "d60": [], "d90": []}
+    for r in rows:
+        lr = _level_rank(r["level"])
+        if lr >= 4 or r["grade"] == "已核定":
+            bucket = "d7"
+        elif lr >= 3 and r["exposure_amount"]:
+            bucket = "d30"
+        elif lr >= 3:
+            bucket = "d60"
+        else:
+            bucket = "d90"
+        roadmap[bucket].append(r["type"])
+
+    # 需老板决策事项
+    mr = _build_material_readiness(report_data)
+    missing_docs = (mr.get("missing") or []) if mr else []
+    decisions = []
+    if missing_docs:
+        decisions.append({
+            "item": "补齐受限检查所需资料",
+            "context": f"本轮有{len(missing_docs)}类必查资料未提供，相应风险方向无法检查、不能排除。",
+            "ask": "请决策：是否授权财务/相关部门限期补齐——" +
+                   "、".join(d.get("doc", "") for d in missing_docs[:8]) + "。",
+        })
+    if exposure_items:
+        decisions.append({
+            "item": "重大税务敞口处置授权",
+            "context": f"本轮可量化风险敞口合计约{total_exposure:,.2f}元（潜在最大敞口），"
+                       f"其中{exposure_items}项已提取金额。",
+            "ask": "请决策：是否授权成立专项整改小组、聘请税务顾问，并按金额优先级安排资金与申报更正。",
+        })
+    decisions.append({
+        "item": "接受“待核实”状态而非急于定性",
+        "context": f"另有{len(pending)}项待核实疑点，因资料或外部证据不足本轮不量化、不处罚定性。",
+        "ask": "请决策：是否接受“先列疑点、补证后定性”的节奏，避免倒签/补造资料。",
+    })
+
+    # 检查受限
+    limitations = {
+        "missing_doc_count": len(missing_docs),
+        "missing_docs": [d.get("doc", "") for d in missing_docs],
+        "read_failures": report_data.get("read_failures") or [],
+        "pending_suspicion_count": len(pending),
+        "note": "资料缺失与来源链路未验证只表示检查范围受限，不表示企业已存在违法或少缴税。",
+    }
+
+    # 一句话结论 + 执行摘要
+    verified = sum(1 for f in confirmed if (f.get("conclusion_grade") or "") == "已核定")
+    pending_cnt = len(confirmed) - verified
+    if exposure_items:
+        expo_txt = (f"可量化风险敞口合计约{total_exposure:,.2f}元"
+                    f"（潜在最大敞口，最佳/最小估计需概率输入未提供）。")
+    else:
+        expo_txt = "本轮多数风险事项金额未能从现有资料直接提取，敞口待财务逐笔测算。"
+    one_line = (f"本轮确认{len(confirmed)}项具体问题（已核定{verified}项、待核实{pending_cnt}项），"
+                f"另有{len(pending)}项待核实疑点；{expo_txt}")
+    headline = (f"本次税务风险检查收到资料并逐项核对后，确认{len(confirmed)}项具体问题，"
+                f"其中{verified}项已核定、{pending_cnt}项待核实；另有{len(pending)}项因资料或外部"
+                f"证据不足列为待核实疑点，本轮不量化、不处罚定性。")
+
+    return {
+        "variant": "管理层决策版",
+        "one_line_conclusion": one_line,
+        "executive_summary": {
+            "headline": headline,
+            "key_points": [
+                f"确认具体问题：{len(confirmed)}项（已核定{verified}/待核实{pending_cnt}）",
+                f"待核实疑点：{len(pending)}项",
+                "可量化敞口：" + (f"约{total_exposure:,.2f}元（潜在最大）"
+                                 if exposure_items else "待财务测算"),
+            ],
+            "counts": {
+                "confirmed": len(confirmed), "verified": verified, "pending": pending_cnt,
+                "pending_suspicions": len(pending), "exposure_items": exposure_items,
+                "total_exposure_max": total_exposure if exposure_items else None,
+            },
+        },
+        "risk_overview": {
+            "columns": ["风险事项", "等级", "定性", "涉及金额（潜在最大）",
+                        "证据成熟度/概率评估", "是否触发预警规则", "责任部门/人"],
+            "rows": rows,
+            "total_exposure_max": total_exposure if exposure_items else None,
+            "exposure_note": ("以上“涉及金额”为按现有资料可提取的最大可识别金额合计；"
+                              "最佳估计/最小估计需概率输入，本轮未提供，故仅列潜在最大敞口。"
+                              "标“未量化”的项需财务逐笔测算。"),
+        },
+        "top5": top5,
+        "remediation_roadmap": {
+            "columns": ["时限", "风险事项", "说明"],
+            "d7": {"label": "7日内（立即）", "items": roadmap["d7"]},
+            "d30": {"label": "30日内（短期）", "items": roadmap["d30"]},
+            "d60": {"label": "60日内（中期）", "items": roadmap["d60"]},
+            "d90": {"label": "90日内（长期/持续）", "items": roadmap["d90"]},
+        },
+        "decisions_needed": decisions,
+        "audit_limitations": limitations,
+        "report_nature": [
+            "本报告为管理层决策版，只给结论、量化、决策与行动，不含检查程序与原始证据；细节见执行版与底稿版。",
+            "结论均基于本轮已上传且可读取的资料；未上传资料不在本轮具体问题认定范围内。",
+            "“待核实”事项不得作为违法、少缴税款或处罚认定；须补证后定性。",
+        ],
+        "appendix_index": [
+            {"chapter": "执行版·整改任务清单", "desc": "逐项问题的处理意见与负责人/复核要求"},
+            {"chapter": "执行版·逐项底稿（风险台账）", "desc": "全部发现的解除方式/自证资料/终局方向"},
+            {"chapter": "执行版·补证模板与询问清单", "desc": "需补充资料模板与稽查询问清单"},
+            {"chapter": "底稿版·检查组工作底稿", "desc": "全部原始证据、法规、计算过程与抽样说明"},
+        ],
+    }
+
+
+def _working_paper_item(f):
+    """底稿版单条：保留全部原始证据、法规、计算过程与抽样说明。"""
+    laws = f.get("_methodology_laws") or f.get("provenance") or []
+    if isinstance(laws, dict):
+        laws = list(laws.values())
+    return {
+        "type": f.get("type"),
+        "category": f.get("category"),
+        "level": f.get("level"),
+        "conclusion_grade": f.get("conclusion_grade"),
+        "terminal_state": f.get("terminal_state"),
+        "evidence_tier": f.get("evidence_tier"),
+        "evidence_maturity": f.get("evidence_maturity") or f.get("_evidence_maturity"),
+        "redline_id": f.get("redline_id"),
+        "detail": f.get("detail"),
+        "observed_metrics": f.get("observed_metrics"),
+        "evidence_rows": f.get("evidence_rows"),
+        "self_proof_materials": f.get("self_proof_materials"),
+        "resolve_steps": f.get("resolve_steps"),
+        "laws": laws,
+        "how_found": f.get("how_found"),
+        "trace_id": (f.get("_evidence_ref") or {}).get("trace_id"),
+    }
+
+
+def _build_working_paper_report(report_data):
+    """底稿版（检查组工作底稿）：全部 159 项发现的原始证据、法规、计算过程、抽样说明。
+
+    与决策版（结论先行）、执行版（整改清单）分离，供检查组与企业财务逐笔核对，
+    不与管理结论混排；不另行生成“定性结论”，只陈列可追溯的事实与依据。
+    """
+    findings = [f for f in (report_data.get("all_findings") or []) if isinstance(f, dict)]
+    by_cat = {}
+    for f in findings:
+        cat = f.get("category") or "未分类"
+        by_cat.setdefault(cat, []).append(f)
+    cats = []
+    for cat, items in by_cat.items():
+        cats.append({
+            "category": cat,
+            "count": len(items),
+            "items": [_working_paper_item(f) for f in items],
+        })
+    return {
+        "variant": "底稿版（检查组工作底稿）",
+        "note": ("本版含全部发现的原始证据、法规、计算过程与抽样说明，供检查组与企业财务逐笔核对；"
+                 "不与决策版/执行版混排，不另行生成管理结论。"),
+        "all_findings_count": len(findings),
+        "by_category": cats,
+        "inspection_questions_ref": "专项询问清单见执行版「风险检查询问清单」章节",
+        "reconciliation_ref": "勾稽矩阵见执行版「勾稽矩阵」章节",
+    }
+
+
 def build_enterprise_readable_report(report_data):
     """主入口：从分析结果组装 enterprise_readable_report"""
     if not isinstance(report_data, dict):
@@ -2256,6 +3154,7 @@ def build_enterprise_readable_report(report_data):
     plans = _build_action_plan(problems)
     discovery_overview = _build_discovery_overview(report_data, problems, completed, further)
     derivation_tree_report = _build_derivation_tree_report(report_data)
+    analysis_coverage = _build_analysis_coverage(report_data)
     capability_boundary = _build_capability_boundary(report_data)
     cross_enterprise_report = _build_cross_enterprise_report(report_data)
     industry_benchmark_report = _build_industry_benchmark_report(report_data)
@@ -2270,21 +3169,41 @@ def build_enterprise_readable_report(report_data):
     inspection_questions_report = _build_inspection_questions_report(report_data)
     inspector_reasoning = build_inspector_reasoning(report_data)
     material_readiness = _build_material_readiness(report_data)
+    # ★ 2026-09-25 宗旨三件套：已上传资料查了什么 / 每项风险怎么解除与自证 / 终局两态
+    one_sided_digest = _build_one_sided_digest(report_data)
+    resolution_ledger = _build_resolution_ledger(report_data)
+    # ★ 2026-09-26 三版重构：管理层决策版
+    boss_decision_report = _build_boss_decision_report(report_data)
+    # ★ 2026-09-26 三版重构：底稿版（检查组工作底稿）
+    working_paper_report = _build_working_paper_report(report_data)
 
     # 专项报告的 metrics 指标键统一中文化（独立于 observed_metrics 的另一处英文键来源）
+    # ★ 2026-09-25：**递归**汉化所有 `metrics` 字典的键 —— 旧写法只处理**顶层** `metrics`，
+    #   于是 `revenue_authenticity_report.dimensions.ar_aging.metrics` 里的
+    #   `ar_customers / ar_unreceived_total / ar_long_aging_count / ar_max_aging_days /
+    #   ar_from_trial_balance` 等 5 个英文键原样留在企业报告里（实测）。
+    #   前端 `_renderCapMetrics` 会**直接把键名打印**给用户，一旦某条渲染/导出路径触到
+    #   这些嵌套 metrics，用户就会看到英文键名。
     for _sec in (two_tax_report, input_voucher_report, false_invoice_report,
                  fund_loop_report, external_verify_report, bank_flow_report,
-                 cross_enterprise_report, derivation_tree_report, revenue_authenticity_report):
-        if isinstance(_sec, dict) and isinstance(_sec.get("metrics"), dict):
-            _sec["metrics"] = _translate_metric_keys(_sec["metrics"])
+                 cross_enterprise_report, derivation_tree_report, revenue_authenticity_report,
+                 industry_benchmark_report, related_party_report, inspection_questions_report):
+        _translate_all_metric_dicts(_sec)
 
     return _zh_normalize_obj({
         "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
+        # ★ 2026-09-26 三版重构：本字典即“执行版（企业整改执行版）”；
+        #   另增 boss_decision_report（管理层决策版）与 working_paper_report（底稿版）。
+        "report_variant": "执行版（企业整改执行版）",
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
-        "identity": _build_identity(report_data),
+        "identity": _identity_from_report_data(report_data),
         "inspector_perspective": _build_inspector_perspective(),
         "inspector_reasoning": inspector_reasoning,
         "material_readiness": material_readiness,
+        # ★ 已上传资料各自"单独可查"的项目：直接回答"我给了这些，你查了哪些"（宗旨 D1）
+        "one_sided_digest": one_sided_digest,
+        # ★ 逐项风险的解除方式与自证清单 + 终局两态（宗旨 D3/D4）
+        "resolution_ledger": resolution_ledger,
         # 红线判定汇总：本轮触碰多少条税务红线、各结论层级数量（报告抬头展示）
         "redline_summary": ((report_data.get("comprehensive", {}) or {}).get("redline_detection") or {}).get("summary", {}),
         "summary": summary,
@@ -2294,6 +3213,7 @@ def build_enterprise_readable_report(report_data):
         "confirmed_problems": problems,
         "completed_checks": completed,
         "derivation_tree_report": derivation_tree_report,
+        "analysis_coverage": analysis_coverage,
         "cross_enterprise_report": cross_enterprise_report,
         "industry_benchmark_report": industry_benchmark_report,
         "related_party_report": related_party_report,
@@ -2308,6 +3228,10 @@ def build_enterprise_readable_report(report_data):
         "capability_boundary": capability_boundary,
         "action_plan": plans,
         "further_checks": further,
+        # ★ 2026-09-26 三版重构：管理层决策版（结论先行/量化/决策/行动）
+        "boss_decision_report": boss_decision_report,
+        # ★ 2026-09-26 三版重构：底稿版（检查组工作底稿，全部原始证据）
+        "working_paper_report": working_paper_report,
         "recheck": {
             "trigger": "企业完成真实整改或补充资料后，重新点击一键分析。",
             "work": "下一轮将重新读取全部资料，复查本轮问题，检查补充资料带出的关联事项，并比较前后两轮变化。",

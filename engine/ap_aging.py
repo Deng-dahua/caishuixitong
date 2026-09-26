@@ -21,6 +21,7 @@
 """
 
 from __future__ import annotations
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 
 from typing import Any, Dict, List, Optional
 
@@ -60,10 +61,14 @@ def _first(row: Dict, keys) -> str:
 
 
 def _to_float(value) -> float:
-    try:
-        return float(str(value).replace(",", "").replace("￥", "").replace("¥", "").strip() or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(value)
 
 
 def _parse_terms_days(text: str) -> Optional[int]:

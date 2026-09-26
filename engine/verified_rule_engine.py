@@ -6,6 +6,7 @@
 """
 
 from __future__ import annotations
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 
 from collections import defaultdict
 from datetime import datetime
@@ -1094,18 +1095,23 @@ VERIFIED_RULE_CATALOG = [
 
 
 def _number(value, default=0.0):
-    try:
-        return float(value) if value not in (None, "", "None") else default
-    except (TypeError, ValueError):
-        return default
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(value, default)
 
 
 def _month(value):
-    text = str(value or "").strip().replace("/", "-").replace(".", "-")
-    if not text:
-        return ""
-    digits = "".join(character for character in text if character.isdigit())
-    return digits[:6] if len(digits) >= 6 else ""
+    """期间键取 YYYYMM —— 唯一权威在 engine/findingkit.py。
+
+    取不到可信 6 位期间时返回空串（本模块按"月份必须可信"使用，见 month_key_strict）。
+    """
+    from engine.findingkit import month_key_strict as _impl
+    return _impl(value)
 
 
 def _row_month(row, year_hint=""):
@@ -1172,7 +1178,7 @@ def _invoice_amount(row, pretax=False):
     return total if total else _number(row.get("amount")) + _number(row.get("tax"))
 
 
-def _finding(spec, detail, metrics, sources, status="clue_pending_investigation", priority="中",
+def _rule_finding(spec, detail, metrics, sources, status="clue_pending_investigation", priority="中",
              level=None, score=None, cleared_reason=None):
     """统一的风险检查发现底盘。
 
@@ -1290,7 +1296,7 @@ def _scan_bank_invoice_gap(data, spec):
     if len(gaps) < 2:
         return []
     total_gap = sum(item["gap"] for item in gaps)
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"在{len(gaps)}个月中，银行贷方收款与销项发票价税合计的差异同时超过25%和10万元；累计方向性差额{total_gap:,.2f}元。该结果只说明两个数据口径需要逐月对账。",
         {"anomaly_months": gaps[:24], "directional_total_gap": round(total_gap, 2)},
@@ -1315,7 +1321,7 @@ def _scan_voucher_invoice_gap(data, spec):
     gaps = _two_series_gap(vouchers, invoices, 0.15, 100000)
     if len(gaps) < 2:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"在{len(gaps)}个月中，会计收入贷方发生额与销项发票不含税金额的差异同时超过15%和10万元，需要统一税会确认期间及金额口径。",
         {"anomaly_months": gaps[:24]},
@@ -1347,7 +1353,7 @@ def _scan_duplicate_invoices(data, spec, source):
         f"发票号{d['invoice_number'] or d['invoice_code']}（出现{len(d['rows'])}次，第{'、'.join(str(r) for r in d['rows'][:4])}行）"
         for d in duplicates[:5]
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         (f"上传资料中有{len(duplicates)}个发票号码出现多次，应先核对是否为重复上传、多行明细或解析拆分，再决定是否进入交易核验。"
          f"重复发票号举例：{example_text}。全部明细已留存于工作底稿，可逐笔回查。"),
@@ -1364,48 +1370,27 @@ def _person_name(row):
 
 # Excel 解析时「合计」「姓名」「小计」等表头/合计行常被当作数据行落入人员明细，
 # 混入后会被误报成「仅在社保清单的人员」（实测出现过『仅在社保清单的人员：合计、姓名、小计』）。
-_NOISE_PERSON_NAMES = {
-    "合计", "小计", "总计", "姓名", "人员", "职工姓名", "员工姓名", "序号", "本月合计",
-    "本年累计", "平均", "人数", "单位", "部门", "备注", "说明", "员工", "职工",
-    "合计金额", "本页合计", "累计", "总人数", "应发合计", "实发合计", "个人合计",
-    "单位合计", "缴费基数合计", "小写", "大写", "社保", "公积金",
-}
+from engine.fieldkit import NOISE_PERSON_NAMES as _NOISE_PERSON_NAMES  # ★ 2026-09-25 唯一来源（原先两处重复定义）
 
 
-def _is_noise_name(name):
-    """判断名称是否为表头/合计行等非人员文本（非真实员工姓名）。"""
-    n = str(name or "").strip()
-    if not n:
-        return True
-    n_compact = n.replace(" ", "").replace("\u3000", "")
-    if n in _NOISE_PERSON_NAMES:
-        return True
-    if n_compact in {x.replace(" ", "") for x in _NOISE_PERSON_NAMES}:
-        return True
-    # 纯数字（序号行）视为噪声
-    return bool(n_compact) and n_compact.isdigit()
+def _is_noise_name(name) -> bool:
+    """字段读取/语义判定（统一实现）。
 
-
-def _row_period(row):
-    """从工资/社保记录提取所属月份（YYYY-MM）。
-
-    工资表/社保表每行自带费款所属期（period_start / period_end / 所属期…），这是「按月份分析」
-    的唯一可靠依据。**逐行聚合而忽略月份，会把「同一人 12 个月的记录」误算成「12 名员工」**
-    （实测把 6 名员工报成「51 名员工工资高度均一」）。凡涉及工资/社保的人员统计与均额判定，
-    必须先按 (姓名, 月份) 归位。
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
     """
-    import re as _re
-    for k in ("period_start", "period_end", "所属期", "费款所属期", "期间",
-              "月份", "month", "所属月份", "账期", "缴费所属期", "税款所属期"):
-        v = str(row.get(k) or "").strip()
-        if not v:
-            continue
-        m = _re.search(r"(\d{4})\s*[-/年.]?\s*(\d{1,2})", v)
-        if m:
-            mm = int(m.group(2))
-            if 1 <= mm <= 12:
-                return "{0}-{1:02d}".format(m.group(1), mm)
-    return ""
+    from engine.fieldkit import is_noise_name as _fk
+    return _fk(name)
+
+
+def _row_period(row) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import row_period as _fk
+    return _fk(row)
 
 
 # 报告叙述自检：工资/社保记录中常含身份证号（个税申报明细、社保清单、人员档案等），
@@ -1634,7 +1619,7 @@ def _scan_payroll_social(data, spec):
                    "还是未依法参保。").format(len(month_gaps), gap_txt)
     detail += "明细表已逐行列出每位员工每个月的工资与社保基数对应关系，可据此逐人逐月核对。"
 
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail,
         {
@@ -1676,7 +1661,7 @@ def _scan_negative_inventory(data, spec):
         f"{it['name'] or it['code'] or '第' + str(it['row']) + '行'}（期末数量{it['end_qty']:g}）"
         for it in items[:5]
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         (f"进销存资料中有{len(items)}项期末数量为负，应先核对单据时点、跨仓调拨、单位换算和解析完整性。"
          f"涉及品项：{example_text}。"),
@@ -1715,7 +1700,7 @@ def _scan_inventory_rollforward(data, spec):
         f"{m['name'] or m['code'] or '第' + str(m['row']) + '行'}（期初＋入库－出库应为{m['expected_end_qty']:g}，账面期末为{m['reported_end_qty']:g}，差{m['difference']:+g}）"
         for m in mismatches[:5]
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         (f"{comparable}项具有完整数量字段的存货中，{len(mismatches)}项不满足“期初＋入库－出库＝期末”的滚动关系。"
          f"涉及品项：{example_text}。"),
@@ -1755,7 +1740,7 @@ def _scan_voucher_balance(data, spec):
         f"{m['month']}月{m['voucher_no']}号凭证：借方{_fmt_yuan(m['debit'])}、贷方{_fmt_yuan(m['credit'])}，差{_fmt_yuan(m['difference'])}"
         for m in top
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         (f"按月份和凭证号汇总后，有{len(mismatches)}张凭证借贷差额超过1元；应优先检查上传是否缺行或解析失败。"
          f"差额最大的凭证：{example_text}。"),
@@ -1879,7 +1864,7 @@ def _scan_bank_balance_rollforward(data, spec):
         + f"，{m['date']}，应为{_fmt_yuan(m['expected_balance'])}而账面为{_fmt_yuan(m['reported_balance'])}，差{_fmt_yuan(m['difference'])}"
         for m in top
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         (f"在{comparable_pairs}组可比较的相邻流水中，有{len(mismatches)}组余额未按“上笔余额＋收入－支出”滚动，"
          "且断裂发生在连续流水内部（已排除重复导入与跨页拼接造成的边界错位）。"
@@ -1916,7 +1901,7 @@ def _scan_invoice_arithmetic(data, spec, source):
         f"{'发票号' + m['invoice_number'] if m['invoice_number'] else '第' + str(m['row']) + '行'}：金额{_fmt_yuan(m['amount'])}＋税额{_fmt_yuan(m['tax'])}≠价税合计{_fmt_yuan(m['total'])}，差{_fmt_yuan(m['difference'])}"
         for m in top
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         (f"{comparable}条字段齐全的发票记录中，有{len(mismatches)}条不满足“金额＋税额＝价税合计”（容差1元）。"
          f"差异最大的记录：{example_text}。"),
@@ -1954,7 +1939,7 @@ def _scan_customer_supplier_overlap(data, spec):
         return []
     examples = [sorted(customers[key] | suppliers[key])[0] for key in overlaps[:50]]
     example_text = "、".join(examples[:5])
-    return [_finding(
+    return [_rule_finding(
         spec,
         (f"进销项发票中有{len(overlaps)}个标准化交易对手名称同时出现在客户和供应商范围，应按业务合同和实际履约判断双向交易性质。"
          f"涉及的对手方举例：{example_text}。"),
@@ -1991,7 +1976,7 @@ def _scan_bidirectional_bank(data, spec):
         f"{m['counterparty']}（累计收款{_fmt_yuan(m['receipts'])}、付款{_fmt_yuan(m['payments'])}，共{m['transaction_count']}笔）"
         for m in matches[:3]
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         (f"有{len(matches)}个资金对手方同时存在累计不低于10万元的收款和付款，且较小方向达到较大方向的20%。"
          f"涉及的对手方：{example_text}。全部对手方累计收付明细已留存于工作底稿，可逐笔回查。"),
@@ -2071,7 +2056,7 @@ def _scan_production_energy(data, spec):
             energy_count += 1
     # 仅当存在明显原材料/生产物资采购时，才按制造业口径核验能源消耗，避免贸易企业误触发
     if raw_material_amount >= 1000000 and energy_amount < raw_material_amount * 0.001:
-        return [_finding(
+        return [_rule_finding(
             spec,
             f"进项发票中原材料及生产物资采购{raw_material_amount:,.0f}元，但未识别到生产用能源（电/水/燃气/蒸汽）发票（能源发票{energy_count}张、{energy_amount:,.0f}元），能源消耗与生产规模不匹配，须核验生产场地、设备及实际生产实质。",
             {
@@ -2092,7 +2077,7 @@ def _scan_invoice_goods_missing(data, spec):
     missing = [row for row in pur if not _invoice_goods_text(row)]
     missing_amount = sum(_number(row.get("amount")) for row in missing)
     if missing and (len(missing) >= 30 or missing_amount >= 500000):
-        return [_finding(
+        return [_rule_finding(
             spec,
             f"进项发票中有{len(missing)}张品名为空，合计金额{missing_amount:,.2f}元，无法识别购进业务性质，须回查原始票面并补充品名后再进入交易核验。",
             {"missing_count": len(missing), "missing_amount": round(missing_amount, 2), "total_count": len(pur)},
@@ -2239,7 +2224,7 @@ def _scan_supplier_geo(data, spec):
               "正常解释包括：独家代理或长期协议采购、行业原料产地本就集中、集团统一采购后分配、"
               "电商平台或全国性服务商采购——请提供采购合同、物流单据、入库验收与资金流水予以印证。")
 
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail,
         {
@@ -2310,7 +2295,7 @@ def _scan_concentration(data, spec):
         signals.append(f"前3大客户占主营销售额{customer_ratio*100:.1f}%（最大客户{top_customer}）")
     if not signals:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         "；".join(signals) + "。购销集中度偏高，需要核实交易真实性、定价独立性、是否存在关联关系或对单一渠道的异常依赖。",
         {
@@ -2326,11 +2311,9 @@ def _scan_concentration(data, spec):
 
 
 def _declaration_month(value):
-    text = str(value or "").strip().replace("/", "-").replace(".", "-").replace("年", "-").replace("月", "")
-    if not text:
-        return ""
-    digits = "".join(ch for ch in text if ch.isdigit())
-    return digits[:6] if len(digits) >= 6 else ""
+    """申报期间键取 YYYYMM —— 唯一权威在 engine/findingkit.py（个位月必须补零）。"""
+    from engine.findingkit import month_key_strict as _impl
+    return _impl(value)
 
 
 def _scan_vat_declaration_sales_gap(data, spec):
@@ -2386,7 +2369,7 @@ def _scan_vat_declaration_sales_gap(data, spec):
                   f"差异{gap:,.2f}元；全部为「申报>开票」方向（未开票收入已依法申报），属正常经营，"
                   f"不构成账外收入嫌疑，本差异仅作提示：{_gaps_txt}。")
         _priority, _level = "中", "信息"
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail,
         {"declared_sales_total": round(total_declared, 2), "invoice_sales_total": round(total_invoice, 2),
@@ -2434,7 +2417,7 @@ def _scan_vat_declaration_input_gap(data, spec):
         return []
     detail = f"增值税申报表进项税额合计{total_declared:,.2f}元，同期进项发票税额合计{total_invoice:,.2f}元，差异{gap:,.2f}元，有{len(gaps)}个月度差异超过5%或5千元："
     detail += "；".join(f"{g['month']}申报{g['declared_input_tax']:,.0f}vs发票{g['invoice_input_tax']:,.0f}(差{g['gap']:,.0f})" for g in gaps[:6])
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail,
         {"declared_input_tax_total": round(total_declared, 2), "invoice_input_tax_total": round(total_invoice, 2), "gap_months": len(gaps), "gaps": gaps[:12]},
@@ -2491,7 +2474,7 @@ def _scan_personnel_fund_flow(data, spec):
     detail_parts = []
     for name, agg in sorted(matches.items(), key=lambda item: -(item[1]["credit"] + item[1]["debit"])):
         detail_parts.append(f"{name}往来{agg['count']}笔(收{agg['credit']:,.0f}/付{agg['debit']:,.0f})")
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"法定代表人、股东、董事等六员个人账户出现在银行流水对手方：" + "、".join(detail_parts) + "。个人账户与公司经营资金往来须核验是否为代收代付、资金回流、隐匿收入或账外经营。",
         {
@@ -2546,7 +2529,7 @@ def _scan_name_similarity(data, spec):
     if not similar_pairs:
         return []
     examples = [{"supplier": s, "customer": c} for s, c in similar_pairs[:10]]
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"有{len(similar_pairs)}对供应商与客户名称高度近似：" + "；".join(f"{s}≈{c}" for s, c in similar_pairs[:5]) + "。同字号分设购销公司是虚开、对开和关联交易闭环的常见形态，须核验股权、注册地址、人员重叠和业务实质。",
         {"similar_pair_count": len(similar_pairs), "examples": examples},
@@ -2581,7 +2564,7 @@ def _scan_workforce_revenue(data, spec):
     per_capita = revenue / headcount
     if per_capita > 5000000 or per_capita < 50000:
         direction = "异常偏高" if per_capita > 5000000 else "异常偏低"
-        return [_finding(
+        return [_rule_finding(
             spec,
             f"销项收入合计{revenue:,.2f}元，估算用工人数{headcount}人（工资表{salary_count}人/社保{social_count}人），人均产值{per_capita:,.0f}元，{direction}，须核验用工真实性、业务外包情况和收入完整性。",
             {
@@ -2675,7 +2658,7 @@ def _scan_material_output_ratio(data, spec):
     ratio = output_amount / raw_amount
     if ratio > 5.0 or ratio < 0.8:
         direction = "加价倍数异常高" if ratio > 5.0 else "购销倒挂"
-        return [_finding(
+        return [_rule_finding(
             spec,
             f"进项原材料及生产物资{raw_amount:,.2f}元，销项成品{output_amount:,.2f}元，加价倍数{ratio:.2f}倍，{direction}，须核验是否存在虚开、空壳、隐匿收入或虚抵进项，并结合BOM、存货和产能逐项复核。",
             {
@@ -2827,7 +2810,7 @@ def _adjudicate_individual_customers(spec, customers, cus_total, model, model_te
 
     # ── 情形一：存在异常子特征 —— 无论何种经营模式一律暴露 ──
     if anomalies:
-        return [_finding(
+        return [_rule_finding(
             spec,
             f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
             + "经按经营模式裁决，本项虽存在零售经营背景，但仍检出下列异常特征："
@@ -2841,7 +2824,7 @@ def _adjudicate_individual_customers(spec, customers, cus_total, model, model_te
 
     # ── 情形二：证据充分支持零售/B2C —— 正常经营假设胜出，判非风险 ──
     if model.get("is_b2c_retail"):
-        return [_finding(
+        return [_rule_finding(
             spec,
             f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
             + (model_text if model_text else "")
@@ -2863,7 +2846,7 @@ def _adjudicate_individual_customers(spec, customers, cus_total, model, model_te
 
     # ── 情形三：证据不足 —— 转置疑清单，要求企业说明经营模式 ──
     if model.get("needs_clarification"):
-        return [_finding(
+        return [_rule_finding(
             spec,
             f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
             "现有资料不足以判定企业是否为面向终端消费者的零售经营模式"
@@ -2878,7 +2861,7 @@ def _adjudicate_individual_customers(spec, customers, cus_total, model, model_te
         )]
 
     # ── 情形四：不支持零售假设 —— 维持原风险口径 ──
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"个人/个体户客户{len(customers)}家，合计{cus_total:,.2f}元，户均{avg_per_customer:,.2f}元。"
         "现有销项结构未呈现面向终端消费者的零售特征"
@@ -2911,7 +2894,7 @@ def _adjudicate_individual_suppliers(spec, suppliers, sup_total, pur, model, pur
     )
     # 采购侧规模极小且占比很低时，属常规零星采购，列为须核验事项而非异常
     if sup_total <= 100000 and share <= 0.10:
-        return [_finding(
+        return [_rule_finding(
             spec,
             detail_head + "向个人采购金额与占比均处于零星水平，属常规经营中的小额采购。"
             "仍需要核实是否取得合法有效的代开发票或税务代开凭证，"
@@ -2927,7 +2910,7 @@ def _adjudicate_individual_suppliers(spec, suppliers, sup_total, pur, model, pur
                 "属零星小额采购规模，正常经营假设胜出；代开发票与个税扣缴义务仍列为常规核验事项。"
             ),
         )]
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail_head + "向个人/个体户采购涉及发票取得与个人所得税扣缴两项法定义务，"
         "需要核实业务真实性、是否取得合法有效的代开发票、是否履行个人所得税扣缴义务，"
@@ -3001,7 +2984,7 @@ def _scan_fund_recirculation(data, spec):
         "如为借款，提供借款协议与利息处理；如为分红，说明是否已履行「利息、股息、红利所得」20%个税代扣代缴；"
         "如为报销/代垫，提供对应业务凭证。资料充分则本项排除。"
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail,
         {
@@ -3072,14 +3055,44 @@ def _scan_vat_burden_rate(data, spec):
 
     burden = paid_vat / revenue_base * 100.0
 
-    industry_code = str((data.get("target_entity") or {}).get("industry_code") or "C")
-    ref = _INDUSTRY_VAT_BURDEN.get(industry_code) or _INDUSTRY_VAT_BURDEN.get(industry_code[0]) or (2.0, 4.0)
-    low, high = ref
+    # ★ 2026-09-25 修正（R2/R4：不得静默套默认档，且必须能自报口径）：
+    #   原实现 `industry_code = target_entity.industry_code or "C"` 再 `.get() or (2.0,4.0)`
+    #   是**双重静默兜底** —— 账套未填行业、或字段值不是门类代码（实测常为中文标签如"商贸"）时，
+    #   都会无声无息地落到通用区间 (2.0,4.0)，而报告却按"行业参考区间"表述，读者无法察觉。
+    #   现统一走 industry_resolver：优先按**行业名**取该行业的税负率区间（自报口径），
+    #   取不到才退门类代码表，全都取不到则明确标注"未匹配到行业区间，按通用宽松区间比对"。
+    _te = data.get("target_entity") or {}
+    _ind_name = str(_te.get("industry") or "").strip()
+    _ind_code = str(_te.get("industry_code") or "").strip()
+    low = high = None
+    ref_source = ""
+    if _ind_name:
+        try:
+            from engine.industry_resolver import match_benchmark
+            _bm_name, _bm = match_benchmark(_ind_name, str(_te.get("biz_model") or ""),
+                                            str(_te.get("name") or ""),
+                                            str(_te.get("business_scope") or ""))
+            _rng = (_bm or {}).get("税负率")
+            if _rng and len(_rng) >= 2:
+                low, high = float(_rng[0]) * 100, float(_rng[1]) * 100
+                ref_source = f"行业基准库·{_bm_name}"
+        except Exception:
+            pass
+    if low is None and _ind_code:
+        _ref = _INDUSTRY_VAT_BURDEN.get(_ind_code) or _INDUSTRY_VAT_BURDEN.get(_ind_code[:1])
+        if _ref:
+            low, high = _ref
+            ref_source = f"行业门类代码表·{_ind_code}"
+    if low is None:
+        low, high = 2.0, 4.0
+        ref_source = "通用宽松区间（未匹配到具体行业，结论强度已下调）"
+    # 通用兜底区间下不产生"显著偏离"结论（避免无行业依据时误报）
+    _generic_ref = ref_source.startswith("通用宽松区间")
 
-    if burden < low - 0.5 and paid_vat >= 0:
+    if burden < low - 0.5 and paid_vat >= 0 and not _generic_ref:
         direction = "显著低于行业参考区间"
         flag = burden < 1.0  # 极低税负（如 <1%）属高危
-    elif burden > high + 1.0:
+    elif burden > high + 1.0 and not _generic_ref:
         direction = "显著高于行业参考区间"
         flag = False
     else:
@@ -3087,12 +3100,12 @@ def _scan_vat_burden_rate(data, spec):
 
     detail = (
         f"测算增值税税负率约{burden:.2f}%（实缴增值税{paid_vat:,.2f}元 / 应税销售收入{revenue_base:,.2f}元），"
-        f"{direction}（行业参考区间{low:.1f}%–{high:.1f}%）。"
+        f"{direction}（行业参考区间{low:.1f}%–{high:.1f}%；口径：{ref_source}）。"
         + ("该极低税负率是隐匿收入、虚抵进项或空壳经营的高发信号，须逐期核验进销项结构与未开票收入。"
            if flag else
            "税负率偏高可能源于进项税额不足、简易计税或行业特性，须结合进销项结构解释。")
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail,
         {
@@ -3108,21 +3121,14 @@ def _scan_vat_burden_rate(data, spec):
     )]
 
 
-def _is_void_or_red(row):
-    """判断发票行是否为作废/红冲。支持字段：is_void/作废、is_red/红字/负数。"""
-    status = str(row.get("status") or row.get("发票状态") or "").strip()
-    if "作废" in status or "红" in status or "负数" in status:
-        return True
-    if str(row.get("is_void") or "").strip().lower() in ("1", "true", "y", "是"):
-        return True
-    if str(row.get("is_red") or "").strip().lower() in ("1", "true", "y", "是"):
-        return True
-    try:
-        if _number(row.get("amount")) < 0 or _number(row.get("total")) < 0:
-            return True
-    except (TypeError, ValueError):
-        pass
-    return False
+def _is_void_or_red(row) -> bool:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import is_void_or_red as _fk
+    return _fk(row)
 
 
 def _scan_void_red_invoice(data, spec):
@@ -3162,7 +3168,7 @@ def _scan_void_red_invoice(data, spec):
             + (f"其中{near_period_end}张集中在月末/季末，存在临近申报期调节税基嫌疑；" if near_period_end else "")
             + "作废红冲须逐票核验原交易是否真实履行、是否退货折让或变相隐匿收入。"
         )
-        return [_finding(
+        return [_rule_finding(
             spec,
             detail,
             {
@@ -3211,7 +3217,7 @@ def _scan_uninvoiced_income(data, spec):
                 f"差额{gap_decl:,.2f}元（{ratio_decl:.1%}）。开票规模显著高于申报销售额，"
                 "存在少列收入或未开票收入未申报的典型隐匿线索，须逐月核对未开票收入、预收款及视同销售。"
             )
-            return [_finding(
+            return [_rule_finding(
                 spec,
                 detail,
                 {
@@ -3235,7 +3241,7 @@ def _scan_uninvoiced_income(data, spec):
                 f"差额{gap:,.2f}元（{ratio:.1%}）。收款持续、大幅超过开票且无合理解释，"
                 "是隐匿未开票收入的典型线索，须按预收款、借款、代收代付逐笔排除后核实。"
             )
-            return [_finding(
+            return [_rule_finding(
                 spec,
                 detail,
                 {
@@ -3274,7 +3280,7 @@ def _scan_long_zero_filing(data, spec):
             f"在{total}个申报期中，有{zero_count}期销售额与应纳税额均为零（零申报）。"
             "长期零申报与持续经营迹象（银行流水、发票、工资）冲突时，是空壳或账外经营的预警，须结合经营实质核对。"
         )
-        return [_finding(
+        return [_rule_finding(
             spec,
             detail,
             {"declaration_count": total, "zero_count": zero_count, "periods": periods[:12]},
@@ -3329,7 +3335,7 @@ def _scan_shareholder_loan(data, spec):
               "国税发〔2005〕120号可视同红利分配按“利息、股息、红利所得”征20%个税，企业须履行代扣代缴义务；"
               "大额挂账亦触发金税四期其他应收款预警，须核验借款协议、用途及归还时点。"
         )
-        return [_finding(
+        return [_rule_finding(
             spec,
             detail,
             {
@@ -3376,7 +3382,7 @@ def _scan_stamp_tax(data, spec):
             f"申报印花税计税依据{declared_base:,.2f}元，差额{gap:,.2f}元（{ratio:.1%}）。"
             "购销合同印花税计税依据通常不低于购销金额合计，差额较大须核是否仅按部分合同申报或未申报，排除小微企业免征后处理。"
         )
-        return [_finding(
+        return [_rule_finding(
             spec,
             detail,
             {
@@ -3442,7 +3448,7 @@ def _scan_input_tax_reversal(data, spec):
             "即使取得专票也须做进项税额转出。已结合企业画像与会计科目做上下文豁免排除生产经营用途，"
             "仍命中的须逐张核对用途与对应成本费用科目处理。"
         )
-        return [_finding(
+        return [_rule_finding(
             spec,
             detail,
             {
@@ -3468,7 +3474,7 @@ _GOODS_CATEGORY_MAP = {
 }
 
 
-def _goods_category(name):
+def _goods_category_by_keyword(name):
     if not name:
         return "未知"
     for kw, cat in _GOODS_CATEGORY_MAP.items():
@@ -3490,8 +3496,8 @@ def _scan_goods_name_divergence(data, spec):
     pur_goods = [r for r in pur if not _invoice_is_service_fee(r)]
     if not sal_goods or not pur_goods:
         return []
-    pur_cats = {_goods_category(r.get("goods")) for r in pur_goods if _goods_category(r.get("goods")) not in ("未知",)}
-    sal_cats = {_goods_category(r.get("goods")) for r in sal_goods if _goods_category(r.get("goods")) not in ("未知",)}
+    pur_cats = {_goods_category_by_keyword(r.get("goods")) for r in pur_goods if _goods_category_by_keyword(r.get("goods")) not in ("未知",)}
+    sal_cats = {_goods_category_by_keyword(r.get("goods")) for r in sal_goods if _goods_category_by_keyword(r.get("goods")) not in ("未知",)}
     if not pur_cats or not sal_cats:
         return []
     # 合理产业链：原料→成品、加工服务不构成背离
@@ -3506,7 +3512,7 @@ def _scan_goods_name_divergence(data, spec):
             "存在进销品名严重背离。若伴随资金回流、富余票或异常票流向，是『变名开票』（如煤炭变建材、废钢变设备）"
             "掩饰虚开的高频线索。须结合生产工艺、BOM与物流核验交易实质。"
         )
-        return [_finding(
+        return [_rule_finding(
             spec,
             detail,
             {
@@ -3527,6 +3533,43 @@ _SUSPICIOUS_EXPENSE_KW = ["咨询", "顾问", "会议", "会务", "广告", "推
 # 行业参考费用率（费用/收入），超过即预警（分行业粗口径）
 _EXPENSE_RATE_WARN = 0.40
 
+# ── 期间费用口径（会计口径：管理费用 / 销售费用(营业费用) / 财务费用 及其明细科目）──
+# ★ 2026-09-26 根因修复：原实现把**每一张凭证的借方金额**一律累加成"凭证费用合计"，
+#   而凭证借方除费用外还有资产购置、存货采购、往来款、银行存款等。
+#   实测：某账套序时账借方合计 43,378,566.71 元 → 被当成"费用合计" 44,394,561.24 元，
+#   对收入 6,636,800.57 元算出"费用率 668.9%" —— 那不是费用率，是"全部借方发生额/收入"。
+#   此类虚增会炮制并不存在的疑点（"费用率畸高"），直接损害报告可信度。
+_PERIOD_EXPENSE_SUBJECTS = ("管理费用", "销售费用", "营业费用", "财务费用")
+# 费用细目（上级科目名缺失时的兜底；**不含**工资/社保/折旧等可能计入成本的项目，
+# 以免又把成本当费用——那只是把错误换个方向）
+_EXPENSE_DETAIL_KWS = (
+    "办公费", "差旅费", "业务招待费", "招待费", "广告费", "宣传费", "推广费",
+    "咨询费", "顾问费", "审计费", "评估费", "诉讼费", "律师费", "修理费", "维修费",
+    "水电费", "租赁费", "物业费", "运输费", "保险费", "会议费", "培训费", "通讯费",
+    "车辆费", "低值易耗", "中介费", "佣金", "手续费", "利息", "汇兑", "研发费",
+    "印花税", "车船税", "房产税", "土地使用税", "残保金", "排污费",
+)
+_EXPENSE_SUBJ_FIELDS = ("subject", "科目", "科目名称", "会计科目",
+                        "account", "account_name", "acct")
+
+
+def _voucher_is_period_expense(v):
+    """该凭证/分录是否属于**期间费用**（管理费用/销售费用/财务费用）。
+
+    ★ 判不出来一律返回 False：**宁可少计，绝不把资产购置、存货采购、往来款、
+      银行存款等借方金额当成费用**——那会虚增费用率、炮制并不存在的疑点。
+    """
+    if not isinstance(v, dict):
+        return False
+    subj = " ".join(str(v.get(k) or "") for k in _EXPENSE_SUBJ_FIELDS)
+    summary = str(v.get("summary") or v.get("摘要") or "")
+    text = (subj + " " + summary).strip()
+    if not text:
+        return False
+    if any(k in text for k in _PERIOD_EXPENSE_SUBJECTS):
+        return True
+    return any(k in text for k in _EXPENSE_DETAIL_KWS)
+
 
 def _scan_expense_fabrication(data, spec):
     vs = data.get("vouchers", []) or []
@@ -3543,7 +3586,9 @@ def _scan_expense_fabrication(data, spec):
         if amount <= 0:
             continue
         summary = str(v.get("summary") or v.get("摘要") or v.get("subject") or "")
-        expense_total += amount
+        # ★ 只累加**期间费用**：原写法无条件累加，把全序时账借方发生额当成了费用
+        if _voucher_is_period_expense(v):
+            expense_total += amount
         if "现金" in summary or str(v.get("settle") or "").find("现金") >= 0:
             cash_total += amount
         if any(kw in summary for kw in _SUSPICIOUS_EXPENSE_KW) and amount >= 100000:
@@ -3605,7 +3650,7 @@ def _scan_expense_fabrication(data, spec):
             "需要告知企业的是：上述事项在贵方提供充分举证前，仅作为待核实线索，不作为税务处理、"
             "处罚或移送依据；贵方有权就任一事项陈述申辩并提交反证。"
         )
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec, detail,
             {"suspicious_count": len(suspicious), "suspicious_total": susp_total,
              "suspicious_ratio_of_expense": round(susp_total / expense_total, 4) if expense_total else 0,
@@ -3630,7 +3675,7 @@ def _scan_expense_fabrication(data, spec):
             "需要告知企业的是：费用率高于同业可能源于商业模式差异（如新品牌前期投放），贵方提供充分举证后本项疑点排除；"
             "在举证前仅作为待核实线索，不作为税务处理、处罚或移送依据。"
         )
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec, detail,
             {"expense_total": round(expense_total, 2), "revenue_total": round(revenue_total, 2),
              "expense_rate": round(expense_rate, 4), "cash_total": round(cash_total, 2),
@@ -3687,7 +3732,7 @@ def _scan_stamp_tax_other_items(data, spec):
             f"申报计税依据{declared_base:,.2f}元，差额{gap:,.2f}元（{ratio:.1%}）。"
             "借款合同、租赁合同等分属不同印花税税目，须逐税目核对贴花，排除金融机构借款合同免征、小微免征后处理。"
         )
-        return [_finding(
+        return [_rule_finding(
             spec, detail,
             {"loan_base": round(loan_base, 2), "lease_base": round(lease_base, 2),
              "other_base": round(other_base, 2), "declared_stamp_base": round(declared_base, 2),
@@ -3768,7 +3813,7 @@ def _scan_deemed_sales(data, spec):
             "需要企业举证说明的事项如下：请逐笔提供：受赠对象与用途说明；该笔是否已作销售费用-促销（账务已含视同销售处理）；"
             "如确属视同销售，是否按组成计税价格（成本×(1+成本利润率)）申报销项。资料充分则本项排除。"
         )
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec, detail,
             {"gift_count": len(gifts), "gift_total": round(g_total, 2),
              "examples": gifts[:10],
@@ -3793,7 +3838,7 @@ def _scan_deemed_sales(data, spec):
             "需要企业举证说明的事项如下：请逐笔提供：领用物资的生产来源（自产/委托加工/外购）；"
             "如为自产或委托加工，是否按组成计税价格计提销项；如为外购，说明不触发视同销售的依据。"
         )
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec, detail,
             {"self_use_count": len(self_use), "self_use_total": round(s_total, 2),
              "examples": self_use[:10],
@@ -3893,7 +3938,7 @@ def _scan_related_party_pricing(data, spec):
             "如为非关联方，说明价差合理的商业理由（批量、账期、质量等级、运费承担等）；"
             "如为关联方，准备同期资料举证定价符合独立交易原则。"
         )
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec, detail,
             {"deviation_count": len(deviations), "threshold": _PRICE_DEVIATION_RATIO,
              "examples": deviations[:10],
@@ -3908,7 +3953,7 @@ def _scan_related_party_pricing(data, spec):
         ))
     # 数据完整性提示：若未提供股权穿透，无法做关联定性
     if not related:
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "已经核实的事实是：本轮资料中未见工商股权穿透与关联方清单数据，故仅能完成价格离散度分析，无法就关联关系作出定性。\n"
             "说明：转让定价违规的认定前提是「交易双方构成关联方」。在缺股权穿透数据时，系统不臆测关联关系，"
@@ -3954,7 +3999,7 @@ def _annual_revenue(data):
     return rev
 
 
-def _wage_total(data):
+def _wage_total_with_source(data):
     """工资薪金总额：优先 payroll 合计，其次应付职工薪酬贷方/工资凭证。"""
     payroll = data.get("payroll")
     if isinstance(payroll, list) and payroll:
@@ -3986,7 +4031,7 @@ def _scan_biz_entertainment_limit(data, spec):
         f"业务招待费账面发生额{occ:,.2f}元，按税法规定限额为 min(发生额×60%, 营业收入×5‰)="
         f"{deduct_cap:,.2f}元，超限{over:,.2f}元须作纳税调增。若汇算清缴未做调整，存在少缴企业所得税风险。"
     )
-    return [_finding(spec, detail,
+    return [_rule_finding(spec, detail,
                      {"entertainment_total": round(occ, 2), "deduct_cap": round(deduct_cap, 2),
                       "over_limit": round(over, 2), "annual_revenue": round(rev, 2),
                       "examples": rows[:10]},
@@ -4013,7 +4058,7 @@ def _scan_ad_promo_limit(data, spec):
         f"超限{over:,.2f}元（可在以后纳税年度结转扣除）。若当年未正确区分资本性支出与费用化支出，"
         "或超限部分未作纳税调增，存在所得税风险。"
     )
-    return [_finding(spec, detail,
+    return [_rule_finding(spec, detail,
                      {"ad_promo_total": round(occ, 2), "deduct_cap": round(cap, 2),
                       "over_limit": round(over, 2), "annual_revenue": round(rev, 2),
                       "examples": rows[:10]},
@@ -4028,10 +4073,10 @@ def _scan_welfare_limit(data, spec):
     occ, rows = _sum_voucher_by_keywords(vouchers, ["福利", "职工福利", "工会经费", "职工教育"])
     if occ <= 0:
         return []
-    wage, src = _wage_total(data)
+    wage, src = _wage_total_with_source(data)
     if wage <= 0:
         # 工资总额缺失：仅提示绝对值，无法精确限额
-        return [_finding(spec,
+        return [_rule_finding(spec,
                          f"检出职工福利费等相关支出{occ:,.2f}元，但未获取到工资薪金总额数据，"
                          "无法核对14%扣除限额。须补充工资总额（payroll或应付职工薪酬）以完成限额比对。",
                          {"welfare_total": round(occ, 2), "wage_total": 0, "note": "工资总额缺失"},
@@ -4044,7 +4089,7 @@ def _scan_welfare_limit(data, spec):
         f"职工福利费等相关支出{occ:,.2f}元，工资薪金总额{wage:,.2f}元，扣除限额为工资总额×14%="
         f"{cap:,.2f}元，超限{over:,.2f}元须纳税调增（工会经费2%、职工教育经费8%另有专项限额）。"
     )
-    return [_finding(spec, detail,
+    return [_rule_finding(spec, detail,
                      {"welfare_total": round(occ, 2), "wage_total": round(wage, 2),
                       "deduct_cap": round(cap, 2), "over_limit": round(over, 2),
                       "wage_source": src, "examples": rows[:10]},
@@ -4075,7 +4120,7 @@ def _scan_depreciation_anomaly(data, spec):
         f"检出折旧/摊销/长期待摊费用合计{dep:,.2f}元。" + "；".join(notes) +
         "。须核对资产计税基础、折旧年限与一次性税前扣除政策适用条件（如单价≤500万元设备器具）。"
     )
-    return [_finding(spec, detail,
+    return [_rule_finding(spec, detail,
                      {"dep_amort_total": round(dep, 2), "fixed_assets_total": round(fa_total, 2),
                       "notes": notes, "examples": dep_rows[:10]},
                      spec["required_sources"], priority="提示")]
@@ -4127,13 +4172,13 @@ def _scan_property_tax(data, spec):
             f"据租赁合同租金{rent_total:,.2f}元测算从租房产税约{from_rent_tax:,.2f}元，"
             f"合计应缴约{est_total:,.2f}元，但未检出房产税申报记录。须确认是否已申报缴纳，避免漏报。"
         )
-        findings.append(_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级"))
+        findings.append(_rule_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级"))
     elif declared_property < est_total * 0.9:
         detail = (
             f"测算房产税应缴约{est_total:,.2f}元（从价{from_price_tax:,.2f}+从租{from_rent_tax:,.2f}），"
             f"申报仅{declared_property:,.2f}元，存在少报风险。须核对计税依据（原值扣除比例、租金口径）。"
         )
-        findings.append(_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级"))
+        findings.append(_rule_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级"))
     return findings
 
 
@@ -4176,13 +4221,13 @@ def _scan_city_constr_tax(data, spec):
             "需要企业举证说明的事项如下：请提供：城建税及附加的申报表或合并申报明细；"
             "企业实际注册地区（据以核定适用城建税率）；如确已申报，说明申报路径以便系统核验。"
         )
-        return [_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
+        return [_rule_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
     if declared_supp < est_total * 0.8:
         detail = (
             f"测算随征附加税约{est_total:,.2f}元，申报仅{declared_supp:,.2f}元，存在少报风险"
             "（注意：县城/乡村城建税率低于市区，须按实际地区核对）。"
         )
-        return [_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
+        return [_rule_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
     return []
 
 
@@ -4248,7 +4293,7 @@ def _scan_inventory_revenue_divergence(data, spec):
             "依据《税收征管法》及风险检查规程，应责令企业提供：①期末存货实物盘点表（含库位、数量、金额）；"
             "②出入库原始凭证与对应资金流水；③产成品发出与收入确认的衔接说明。"
         ).format(ca=closing_amt, rv=rev, rt=ratio)
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "closing_inventory_amount": round(closing_amt, 2),
             "annual_revenue": round(rev, 2),
             "inv_rev_ratio": round(ratio, 2),
@@ -4292,7 +4337,7 @@ def _scan_transport_revenue_divergence(data, spec):
             "购销必有物流，物流资料缺失或运费显著偏低，是账外经营的高频间接证据（货已发出但绕过账面）。"
             "应责令补充：①运输合同与运费增值税专用发票；②物流轨迹/提货单/磅单；③到货价结算的运费承担证明。"
         ).format(out=out_qty, cw=contract_weight, fr=freight_voucher)
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "out_qty": round(out_qty, 2),
             "contract_weight": round(contract_weight, 2),
             "freight_voucher_amount": round(freight_voucher, 2),
@@ -4330,7 +4375,7 @@ def _scan_stagnant_inventory(data, spec):
             "违反正常经营逻辑，提示虚假入库、账外调拨或已售未减账。应责令提供该存货实物盘点表、"
             "库龄分析及出入库原始凭证，必要时实施监盘。".format(len(stagnant))
         )
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "stagnant_count": len(stagnant),
             "examples": stagnant[:10],
             "demand_docs": ["实物盘点表", "库龄分析", "出入库原始凭证", "监盘记录"],
@@ -4368,7 +4413,7 @@ def _scan_inventory_roll_mismatch(data, spec):
             "库存滚动关系不一致是盘点缺失与账外领用的直接信号。应责令提供期末存货盘点表与盘盈盘亏审批记录，"
             "并说明差异原因。".format(len(anomalies))
         )
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "mismatch_count": len(anomalies),
             "examples": anomalies[:10],
             "demand_docs": ["期末存货盘点表", "盘盈盘亏审批记录", "差异说明"],
@@ -4419,7 +4464,7 @@ def _scan_spec_inconsistency(data, spec):
             "（如进项为32S棉纱、销项却为40S针织布且无对应工艺转换），违背BOM工艺逻辑，"
             "提示变名开票或虚假交易。应责令提供物料规格书、质检报告与生产工单以核实真实品名规格。".format(len(conflicts))
         )
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "conflict_count": len(conflicts),
             "examples": conflicts[:10],
             "demand_docs": ["物料规格书", "质检报告", "生产工单", "BOM工艺路线"],
@@ -4476,7 +4521,7 @@ def _scan_logistics_loss_anomaly(data, spec):
         if loss_anomalies:
             detail_parts.append("实际损耗率与BOM定额损耗显著偏离{0}项（含负损耗/盘盈异常或远超定额），提示出入库计量不实".format(len(loss_anomalies)))
         detail = "业务真实性核查：" + "；".join(detail_parts) + "。应责令补充运输合同、运费发票、磅单与损耗计算表，并说明异常损耗原因。"
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "big_deal_count": len(big_deals),
             "missing_logistics": missing_logistics,
             "loss_anomaly_count": len(loss_anomalies),
@@ -4512,7 +4557,7 @@ def _scan_cross_border_penetration(data, spec):
             "依据风险检查规程，应责令补充：①报关单及海关缴款书；②涉外收付款凭证（跨境人民币/外币）；"
             "③境外关联方股权穿透与同期资料。".format(len(foreign_deals))
         )
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "foreign_deal_count": len(foreign_deals),
             "examples": foreign_deals[:10],
             "customs_data_provided": False,
@@ -4646,7 +4691,7 @@ def _scan_processing_business_authenticity(data, spec):
             )
 
         detail = "\n".join(detail_parts) + "\n" + verdict
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec, detail,
             {
                 "registered_province": reg_province,
@@ -4778,7 +4823,7 @@ def _scan_void_invoice_fund_return(data, spec):
         + "「开票—收款—作废」三环节闭合，证明业务真实、款项已收却作废，构成隐匿已收收入的高危证据链。"
         + "须逐票核验：作废是否真实退货/折让、收款项是否对应其他合法业务、作废后是否重开并申报。"
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail,
         {
@@ -4881,7 +4926,7 @@ def _scan_void_no_reissue_no_declare(data, spec):
         + "这与「因未收款作废、收款后重开核算」的常见辩解相悖，指向系统性隐匿已发生业务的收入。"
         + "须逐户核验：每笔作废是否真实退货/折让、作废后是否已重开蓝字发票并申报、申报收入是否如实反映。"
     )
-    return [_finding(
+    return [_rule_finding(
         spec,
         detail,
         {
@@ -4941,7 +4986,7 @@ def _scan_evidence_demand_order(data, spec, all_findings=None):
         + "\n\n企业应在收到本责令单之日起十五日内报送上述资料；逾期不报或资料不足以排除嫌疑的，"
         "风险检查部门将依法采取进一步风险检查措施。本单为风险检查取证程序性文书，不作为税务处理决定。"
     )
-    return [_finding(spec, detail, {
+    return [_rule_finding(spec, detail, {
         "demand_item_count": len(demand_map),
         "triggered_finding_count": len(triggered),
         "demand_order": order_lines,
@@ -5123,7 +5168,7 @@ def _scan_wage_splitting(data, spec):
         })
     detail_rows = ([x for x in detail_rows if x["状态"] != "正常"]
                    + [x for x in detail_rows if x["状态"] == "正常"])[:30]
-    return [_finding(spec, detail, {
+    return [_rule_finding(spec, detail, {
         "uniform_salary_groups": [
             {"month": g["month"], "amount": g["amount"], "count": g["count"],
              "people": [p["name"] for p in g["people"]]}
@@ -5193,7 +5238,7 @@ def _scan_mixed_payroll(data, spec):
             "个人所得税扣缴申报表（全员全额扣缴明细）",
             "工资发放明细表与员工签收记录",
         ]
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "book_payroll_total": round(total_payroll, 2),
             "employee_count": employee_count,
             "blind_spot": "未提供银行流水，支付来源不可见",
@@ -5222,7 +5267,7 @@ def _scan_mixed_payroll(data, spec):
             "个人所得税扣缴申报表（核验上述私户支付是否已并入全员全额扣缴）",
             "工资发放明细与员工签收记录",
         ]
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "book_payroll_total": round(total_payroll, 2),
             "public_account_payroll": round(public_payroll, 2),
             "private_paid_records": private_paid[:20],
@@ -5244,7 +5289,7 @@ def _scan_mixed_payroll(data, spec):
             "个人所得税扣缴申报表（全员全额扣缴明细，核验私户支付是否已如实申报）",
             "工资发放明细表与员工签收记录",
         ]
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "book_payroll_total": round(total_payroll, 2),
             "public_account_payroll": round(public_payroll, 2),
             "unexplained_gap": round(gap, 2),
@@ -5457,7 +5502,7 @@ def _scan_thirdparty_blindspot(data, spec):
         )
 
     priority = "调查优先级" if (divergence or not has_settlement or wage_sig) else "中"
-    return [_finding(spec, detail, {
+    return [_rule_finding(spec, detail, {
         "platform_sales_count": len(platform_sales),
         "platform_sales_amount": round(platform_amount, 2),
         "third_party_collection_rows": third_party_rows,
@@ -5595,7 +5640,7 @@ def _scan_personal_collection_blindspot(data, spec):
         )
 
     priority = "调查优先级" if (divergence or not has_settlement or wage_sig) else "中"
-    return [_finding(spec, detail, {
+    return [_rule_finding(spec, detail, {
         "personal_collection_rows": personal_rows,
         "personal_collection_amount": round(personal_amount, 2),
         "voucher_collection_rows": v_rows,
@@ -5627,6 +5672,13 @@ def _scan_cash_vouchers(vouchers):
             amount += amt
             rows += 1
     return rows, amount
+
+
+# 主营成本双口径勾稽的提示阈值（2026-09-26）
+#   账面口径（科目余额表 6401）与发票口径（进项发票归集）本就可能不同（暂估/不开票/跨期/费用混入），
+#   故须**同时**满足相对差异与绝对额门槛，避免小额账套被噪音刷屏。
+_COST_BASIS_GAP_RATIO = 0.10    # 相对发票口径差异 >10%
+_COST_BASIS_GAP_ABS = 10000.0   # 且绝对差异 >1 万元
 
 
 def _scan_core_cost_fund_evidence(data, spec):
@@ -5748,9 +5800,59 @@ def _scan_core_cost_fund_evidence(data, spec):
     no_detail_items = [{"供应商": it["seller"][:24], "金额": round(it["amount"], 2),
                         "日期": it["date"], "发票号": _invno_of(it["row"])}
                        for it in sorted(no_detail_full, key=lambda x: -x["amount"])]
-    ap_agg = float(ap_index.get("aggregate_balance", 0) or 0)
+    ap_agg = to_number(ap_index.get("aggregate_balance", 0))
     ap_from_tb = bool(ap_index.get("from_trial_balance"))
     uncovered = round(total - company - person - ap_agg, 2)
+
+    # ── ★ 2026-09-26 主营成本**双口径勾稽** ──
+    #   口径A（权威）：账面主营业务成本 = 科目余额表 6401 / 名称含"主营业务成本"（借−贷），
+    #                  科目余额表无该科目时以序时账按科目名兜底。
+    #   口径B（佐证）：按进项发票归集的主营业务成本（identify_main_biz_cost 三层分类后）。
+    #   此前两者**各自为政、从不互相校验**：发票口径说 389 万，却无人拿账面对照，
+    #   于是"发票分类把期间费用算进了成本"这一类偏差永远不被发现。
+    book_cost = 0.0
+    book_cost_rows = []
+    book_cost_source = None
+    # ⚠ 会计口径铁律：**主营业务成本(6401) 是损益类科目，期末已结转至本年利润，
+    #   科目余额表只有 close_debit/期末借方 这类"期末余额"列时，d − c 恒等于 0**
+    #   （实测某账套即因此算出账面成本 0.00，与发票口径 389 万"差异 100%"，纯属口径错误）。
+    #   故账面成本**必须取自序时账（凭证）的借方发生额**；科目余额表仅在提供
+    #   "本期发生额"列（year_debit / 本期借方发生额）时才可用。
+    for _v in (data.get("vouchers") or []):
+        if not isinstance(_v, dict):
+            continue
+        _acc = " ".join(str(_v.get(k) or "") for k in
+                        ("account_name", "科目", "科目名称", "col_1", "account"))
+        if not _acc.strip():
+            continue
+        if ("主营业务成本" in _acc) or _acc.strip().startswith("6401"):
+            _d = _number(_v.get("debit") or _v.get("借方"))
+            if _d:
+                book_cost += _d
+                book_cost_rows.append((_acc.strip(), _d))
+    if book_cost_rows:
+        book_cost_source = "序时账·主营业务成本借方发生额"
+    else:
+        # 回退：科目余额表**发生额**列（无此列时不回退，避免把期末余额0当成本）
+        for _row in (data.get("trial_balance") or []):
+            if not isinstance(_row, dict):
+                continue
+            _code = str(_row.get("code") or _row.get("科目编码") or _row.get("col_0") or "")
+            _name = str(_row.get("name") or _row.get("col_1") or "")
+            if not _name and not _code:
+                continue
+            if not (("主营业务成本" in _name) or (_code and _code.startswith("6401"))):
+                continue
+            _yd = _number(_row.get("year_debit") or _row.get("本期借方发生额")
+                          or _row.get("本期发生借方") or _row.get("period_debit"))
+            if _yd:
+                book_cost += _yd
+                book_cost_rows.append((_code or _name, _yd))
+        if book_cost_rows:
+            book_cost_source = "科目余额表·主营业务成本本期借方发生额"
+    book_cost = round(book_cost, 2)
+    _has_book_cost = bool(book_cost_rows)
+    cost_basis_gap = round(total - book_cost, 2) if _has_book_cost else None
 
     def _sum(items):
         return round(sum(i["amount"] for i in items), 2)
@@ -5778,10 +5880,19 @@ def _scan_core_cost_fund_evidence(data, spec):
         "ap_summary_balance": round(ap_agg, 2),
         "ap_from_trial_balance": ap_from_tb,
         "uncovered_amount": uncovered,
+        # ── 双口径勾稽（账面权威口径 vs 发票归集口径）──
+        "book_cost_total": book_cost if _has_book_cost else None,
+        "book_cost_source": book_cost_source,
+        "cost_basis_gap": cost_basis_gap,
+        "cost_basis_gap_ratio": (round(abs(cost_basis_gap) / total, 4)
+                                 if (cost_basis_gap is not None and total) else None),
         "source_documents": {
-            "主营成本总额": "采购发票（主营业务成本类）",
+            "主营成本总额（发票口径）": "采购发票（主营业务成本类）",
+            "主营成本总额（账面口径）": ("科目余额表·主营业务成本(6401)"
+                                 if book_cost_rows else "序时账·主营业务成本科目"),
             "公司已付金额": "银行流水（对公转账/平台代付匹配）",
-            "未匹配付款成本": "采购发票中无同名流水匹配者",
+            # 原名「未匹配付款成本」易被读成"没付的钱"，实为无供应商级明细可核对
+            "无供应商级明细可核对的成本": "采购发票中无同名流水匹配者",
             "应付账款汇总余额": "科目余额表·应付账款（一级期末贷方）" if ap_from_tb else "应付账款明细账",
             "供应商级应付明细": "应付账款明细账/辅助核算（本次未上传）",
         },
@@ -5790,7 +5901,7 @@ def _scan_core_cost_fund_evidence(data, spec):
     # ── ① 待核线索：既无付款、又无应付挂账（真异常）──
     if true_gap:
         gap_amt = _sum(true_gap)
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "主营业务成本中有%s元（%d笔）既未匹配到任何支付渠道（对公转账/平台代付/票据结算/"
             "个人垫付/现金/债务抵销，且已放宽至发票日后180天跨期窗口），账面应付账款明细中"
@@ -5806,10 +5917,34 @@ def _scan_core_cost_fund_evidence(data, spec):
             priority="调查优先级",
         ))
 
+    # ── ③ 双口径勾稽：账面主营成本 vs 进项发票归集口径（2026-09-26 新增）──
+    #    铁律：只陈述两个口径及其差异与可能成因，**不作定性**（发现≠确认）。
+    if cost_basis_gap is not None and total > 0:
+        _gr = abs(cost_basis_gap) / total
+        if _gr > _COST_BASIS_GAP_RATIO and abs(cost_basis_gap) > _COST_BASIS_GAP_ABS:
+            findings.append(_rule_finding(
+                spec,
+                "主营业务成本存在两个口径：账面口径（%s）%s元，进项发票归集口径 %s元，"
+                "两者差异 %s元（占发票口径 %.1f%%）。本项仅陈述口径差异、不作定性，"
+                "两个口径本就可能因下列原因不同而不同：① 发票按品名分类，可能把期间费用类"
+                "发票归入成本；② 暂估入账（货到票未到）已计入账面但无进项发票；"
+                "③ 不开票采购（小额零星、个体户等）有账面成本而无发票；"
+                "④ 上期发票本期入账、或成本与发票跨期确认；⑤ 发票已收但当期未入账。"
+                "请以账面主营业务成本科目明细为准，逐项核对差异来源；"
+                "如差异源于费用混入成本，将同时影响毛利率与所得税税前扣除口径。"
+                % (book_cost_source or "账面",
+                   format(book_cost, ",.2f"), format(total, ",.2f"),
+                   format(cost_basis_gap, ",.2f"), _gr * 100),
+                dict(common, book_cost_total=book_cost,
+                     cost_basis_gap=cost_basis_gap, cost_basis_gap_ratio=round(_gr, 4)),
+                spec["required_sources"],
+                level="待核验", priority="中",
+            ))
+
     # ── ② 长期挂账：有应付挂账但账龄超 1 年 ──
     if long_aging:
         la_amt = _sum(long_aging)
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "主营业务成本中有%s元（%d笔）未付款、账面已挂应付账款但账龄已超过一年"
             "（基准日 %s），如%s。长期挂账须核实原因：① 资金紧张或账期未到；"
@@ -5828,7 +5963,7 @@ def _scan_core_cost_fund_evidence(data, spec):
     # 但仍按中优先级、并明确列出须补正的资料，不升级为调查优先级。
     if no_detail:
         nd_amt = _sum(no_detail)
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "主营业务成本中有%s元（%d笔）未匹配到任何支付渠道。已核实：科目余额表「应付账款」"
             "一级期末贷方余额为%s元（即账面已挂账总额），但科目余额表不提供供应商级明细，"
@@ -5855,7 +5990,7 @@ def _scan_core_cost_fund_evidence(data, spec):
             "%s(%s元)" % (str(r.get("seller") or "未知")[:20],
                           format(_number(r.get("amount")), ",.0f"))
             for r in sorted(person_rows, key=lambda x: -_number(x.get("amount")))[:5])
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "主营业务成本中有%s元（占%.1f%%）由个人账户支付，如%s。企业对员工报销日常经营费用"
             "并无金额上限（真实、与经营相关、凭证合规即可扣除），但须满足五项约束："
@@ -5876,7 +6011,7 @@ def _scan_core_cost_fund_evidence(data, spec):
     # 属资料完整性问题（不指向企业过错），故为信息级且不挂红线嫌疑。
     if beyond:
         b_amt = _sum(beyond)
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "主营业务成本中有%s元（%d笔）发票日距数据期末（%s）不足一个账期（180天），"
             "付款可能发生在数据期末之后，本次无法判断是否已付，如%s。"
@@ -5915,7 +6050,9 @@ def _scan_core_cost_fund_evidence(data, spec):
         })
     if no_detail_items:
         _vr060_detail_tables.append({
-            "title": "表3 未匹配付款成本·逐笔（共 %d 笔，合计 %s 元）"
+            # ★ 2026-09-26 改名：原名「未匹配付款成本」易被读成"没付的钱"，
+            #   实为"无供应商级应付明细可核对"（未付款的部分另有 uncovered_amount 表述）。
+            "title": "表3 无供应商级明细可核对的成本·逐笔（共 %d 笔，合计 %s 元）"
                      % (len(no_detail_items), format(_sum(no_detail_full), ",.2f")),
             "columns": ["供应商", "金额", "日期", "发票号"],
             "rows": no_detail_items,
@@ -6083,7 +6220,7 @@ def _scan_provisional_cost_fund_loop(data, spec):
             loop_matched = True
 
     if loop_matched and signals:
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "发现「暂估成本—其他应付款—公转私」闭环证据链："
             + "；".join(signals)
@@ -6097,7 +6234,7 @@ def _scan_provisional_cost_fund_loop(data, spec):
             priority="调查优先级",
         ))
     elif len(signals) >= 2:
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "暂估成本与其他应付款、公转私付款存在关联疑点："
             + "；".join(signals)
@@ -6108,7 +6245,7 @@ def _scan_provisional_cost_fund_loop(data, spec):
             priority="中",
         ))
     elif len(signals) == 1 and provisional >= 50000:
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             "；".join(signals)
             + "。账面成本超出进项发票支持部分须核实暂估依据与期后结算，"
@@ -6146,7 +6283,7 @@ def _scan_prepaid_income_aging(data, spec):
                 prepaid += _number(v.get("credit") or v.get("贷方")) - _number(v.get("debit") or v.get("借方"))
     if not found or prepaid < 100000:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"预收账款/合同负债期末贷方余额{prepaid:,.2f}元，长期未结转收入。"
         "企业收到货款后长期挂预收账款不确认收入，会推迟增值税纳税义务发生时间、"
@@ -6180,7 +6317,7 @@ def _scan_extra_price_income(data, spec):
                          "amount": round(credit, 2)})
     if total < 50000:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"银行流入中摘要含『违约金/赔偿/利息/手续费』等性质的收入合计{total:,.2f}元（{len(hits)}笔）。"
         "价外费用与零星收入属于增值税应税收入，也是企业所得税收入总额的组成部分，"
@@ -6215,7 +6352,7 @@ def _scan_personal_service_withholding(data, spec):
                          "summary": summary[:20], "amount": round(debit, 2)})
     if total < 50000:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"银行支出中向个人支付劳务性质款项合计{total:,.2f}元（{len(persons)}个自然人，{len(hits)}笔），"
         f"如{sorted(persons)[0] if persons else ''}等，摘要含『劳务/咨询/佣金/服务费』等。"
@@ -6267,7 +6404,7 @@ def _scan_supplier_invoice_pattern(data, spec):
             signals.append(f"供应商「{name}」集中开票{n}张、合计{agg['amount']:,.0f}元，户均{avg:,.0f}元（集中开票特征）")
     if not signals:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         "；".join(signals[:5]) + "。"
         "顶额开票与集中开票是虚开团伙上游的典型特征（新办企业短期大量顶格开票后走逃），"
@@ -6341,7 +6478,7 @@ def _scan_discount_anomaly(data, spec):
             examples.append({"goods": goods[:24], "amount": round(amt, 2)})
     if discount_total < 50000:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"销项发票中折扣/折让行合计{discount_total:,.2f}元（{discount_rows}笔），"
         f"如{examples[0]['goods'] if examples else ''}等（已剔除红字发票红冲行{excluded_reversal}笔）。"
@@ -6422,7 +6559,7 @@ def _scan_reversal_compliance(data, spec):
     example_text = "；".join(
         f"{i['buyer']} {i['date']} {_fmt_yuan(i['amount'])}（{'、'.join(i['missing'])}）" for i in top
     )
-    finding = _finding(
+    finding = _rule_finding(
         spec,
         f"销项红字发票（红冲）共{reversal_rows}笔合计{_fmt_yuan(reversal_total)}，"
         f"其中{len(issues)}笔合计{_fmt_yuan(issue_amount)}未满足红冲合规要件："
@@ -6483,7 +6620,7 @@ def _scan_agri_purchase_deduction(data, spec):
         notes.append("未提供运输/入库/存货佐证，收购业务的货物流无法印证（须责令补证）")
     if not notes:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"检出农产品类进项发票{len(rows)}张、合计{_fmt_yuan(amt_total)}（进项税额{_fmt_yuan(tax_total)}）。"
         + "；".join(notes) + "。农产品收购发票自开自抵、易被用于虚假抵扣，"
@@ -6531,7 +6668,7 @@ def _scan_travel_toll_input_tax(data, spec):
     if not bad:
         return []
     bad_amt = sum(b["amount"] for b in bad)
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"检出通行费/旅客运输类已抵扣进项发票{len(bad)}张（合计{_fmt_yuan(bad_amt)}）的抵扣税额与法定计算率不符："
         "旅客运输（航空/铁路）按票面金额9%计算抵扣、公路水路按3%，通行费按3%；"
@@ -6582,7 +6719,7 @@ def _scan_bank_book_consistency(data, spec):
     tol = max(10000.0, abs(book_balance) * 0.05)
     if abs(diff) <= tol:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"银行流水期末余额合计{_fmt_yuan(bank_balance)}（{len(last)}个账户/对账单），"
         f"账面『银行存款』科目期末余额{_fmt_yuan(book_balance)}，差异{_fmt_yuan(diff)}，"
@@ -6614,7 +6751,7 @@ def _scan_interest_income_unreported(data, spec):
                          "amount": round(credit, 2)})
     if interest_total < 10000:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"银行流水摘要含『利息/结息』的贷方流入合计{interest_total:,.2f}元（{len(hits)}笔）。"
         "存款利息收入应计入财务费用并全额并入企业所得税应纳税所得额，"
@@ -6646,7 +6783,7 @@ def _scan_subsidy_income_unreported(data, spec):
                          "counterparty": cp[:20], "amount": round(credit, 2)})
     if total < 50000:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"银行流入中来自财政/政府部门的款项合计{total:,.2f}元（{len(hits)}笔），摘要含"
         f"『补贴/补助/扶持资金』等。财政补贴原则上并入收入总额缴纳企业所得税；"
@@ -6677,7 +6814,7 @@ def _scan_fixed_asset_disposal(data, spec):
                          "counterparty": str(tx.get("counterparty") or "")[:20], "amount": round(credit, 2)})
     if total < 50000:
         return []
-    return [_finding(
+    return [_rule_finding(
         spec,
         f"银行流入中摘要含『设备款/车辆款/处置款』等性质的收款合计{total:,.2f}元（{len(hits)}笔）。"
         "销售使用过的固定资产属于增值税应税行为（可依规适用简易计税），处置净损益并入"
@@ -6761,7 +6898,7 @@ def _scan_revenue_receipt_evidence(data, spec):
                 f"占银行流入{person_in / bank_in_total * 100:.1f}%），收入经个人账户归集，"
                 "是账外收款/资金滞留个人账户的直接证据，须逐一核验个人账户收款的性质与去向。"
             )
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             detail,
             {
@@ -6781,7 +6918,7 @@ def _scan_revenue_receipt_evidence(data, spec):
             priority="调查优先级",
         ))
     elif ratio < 0.5:
-        findings.append(_finding(
+        findings.append(_rule_finding(
             spec,
             f"开票收入中仅{ratio * 100:.0f}%匹配到银行或平台收款记录（{matched:,.2f}元/共{total:,.2f}元），"
             "收款印证率偏低，其余收入缺乏资金回笼记录，暂列为待核实事项（客户赊账或收款渠道未覆盖均可能）。",
@@ -6809,7 +6946,7 @@ def _scan_cash_blindspot(data, spec):
     (A) 序时账直接证据——出现『库存现金』入账腿或『收现/现金收款』摘要，证明企业确有现金收款，且现金侧无银行印证；
     (B) 盲区提示——企业属现金密集型行业（农贸/零售/餐饮等）但上传资料无任何现金记录、亦未提供现金日记账，
         现金交易完全不可见，须强制责令补证（呼应 VR056/057 缺佐证即盲区提示，杜绝逃逸）。
-    核心硬规定：凡现金收款，企业必须提交现金日记账与银行取现流水勾稽。复用 _finding 底盘与『发现≠确认』基调。
+    核心硬规定：凡现金收款，企业必须提交现金日记账与银行取现流水勾稽。复用 _rule_finding 底盘与『发现≠确认』基调。
     """
     vouchers = data.get("vouchers") or []
     target = data.get("target_entity") or {}
@@ -6845,7 +6982,7 @@ def _scan_cash_blindspot(data, spec):
             "增值税及企业所得税申报收入与现金收款的勾稽说明",
         ]
         priority = "调查优先级" if (not has_cash_ledger or v_amount >= 100000) else "中"
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "cash_voucher_rows": v_rows,
             "cash_voucher_amount": round(v_amount, 2),
             "cash_ledger_provided": bool(has_cash_ledger),
@@ -6870,7 +7007,7 @@ def _scan_cash_blindspot(data, spec):
             "增值税及企业所得税申报收入与现金收款的勾稽说明",
         ]
         # 盲区提示：data_quality_limitation（信息级），仍须责令补证
-        return [_finding(spec, detail, {
+        return [_rule_finding(spec, detail, {
             "cash_voucher_rows": 0,
             "cash_voucher_amount": 0.0,
             "cash_ledger_provided": False,

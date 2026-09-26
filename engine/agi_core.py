@@ -583,59 +583,30 @@ class IndustryGeneralizer:
     """行业泛化引擎 — 从未见过的行业也能基于通用原则推理"""
     
     # 行业通用分类（任何行业都可归入）
-    UNIVERSAL_CATEGORIES = {
-        "生产型": {
-            "indicators": ["制造", "生产", "加工", "装配", "冶炼", "化工", "纺织", "印染"],
-            "risk_focus": ["原材料消耗与产出匹配", "水电能耗与产能对应", "进项税额合理性"],
-            "skip_domains": [],
-            "enable_domains": ["进销存分析", "BOM映射", "加工费专项"],
-        },
-        "贸易型": {
-            "indicators": ["贸易", "经销", "批发", "零售", "进出口", "商贸"],
-            "risk_focus": ["进销品名匹配", "供应商/客户集中度", "购销价格合理性"],
-            "skip_domains": ["BOM映射", "加工费专项"],
-            "enable_domains": ["进销存分析", "购销品名映射"],
-        },
-        "服务型": {
-            "indicators": ["服务", "咨询", "设计", "软件", "科技", "信息", "互联网", "广告", "传媒", "文化", "教育", "培训"],
-            "risk_focus": ["人均产值合理性", "经营费用完整性", "工资社保合规性"],
-            "skip_domains": ["进销存分析", "BOM映射", "加工费专项", "水电能耗分析", "存货周转"],
-            "enable_domains": ["人均产值分析", "费用完整性分析"],
-        },
-        "建筑型": {
-            "indicators": ["建筑", "工程", "施工", "装修", "装饰", "园林", "市政"],
-            "risk_focus": ["项目成本归集", "分包合规性", "甲供材处理"],
-            "skip_domains": ["BOM映射", "加工费专项", "进销存分析"],
-            "enable_domains": ["工程项目分析"],
-        },
-        "混合型": {
-            "indicators": [],
-            "risk_focus": ["同时具备生产和服务的特征，需分别分析"],
-            "skip_domains": [],
-            "enable_domains": ["全量分析域"],
-        },
-    }
-    
-    def classify(self, company_name: str, industry: str) -> Dict:
-        """根据企业名称和行业分类到通用类别"""
-        text = company_name + industry
-        
-        best_match = "混合型"
-        best_score = 0
-        
-        for category, config in self.UNIVERSAL_CATEGORIES.items():
-            score = sum(1 for ind in config["indicators"] if ind in text)
-            if score > best_score:
-                best_score = score
-                best_match = category
-        
+    # ★ 2026-09-25：五类经营模式词表 **唯一来源** = engine.industry_resolver.UNIVERSAL_CATEGORIES。
+    #   原先本模块自持一份，与解析器各存一份，易漂移；现直接引用。
+    from engine.industry_resolver import UNIVERSAL_CATEGORIES
+
+    def classify(self, company_name: str, industry: str, business_scope: str = "") -> Dict:
+        """把企业归入五类通用经营模式（决定启用/跳过哪些分析域）。
+
+        ★ 2026-09-25：原实现把 `company_name + industry` 拼成一串数关键词命中数，
+        且**平局由字典插入顺序决定** —— 例如"数字传媒"（服务型）与登记行业"商贸"（贸易型）
+        各命中 1 次，谁写在前面谁赢，与业务实质无关。现统一委托
+        `engine.industry_resolver.business_category`：按"企业名称 > 登记行业 > 经营范围"
+        加权计分，平局按"具体业态优先"的固定顺序解决（贸易型最宽泛，故排在最后）。
+        """
+        from engine.industry_resolver import business_category
+        r = business_category(industry=industry, company_name=company_name,
+                              business_scope=business_scope)
         return {
-            "category": best_match,
-            "config": self.UNIVERSAL_CATEGORIES[best_match],
-            "is_known_industry": best_score > 0,
-            "confidence": "高" if best_score >= 2 else ("中" if best_score >= 1 else "低"),
+            "category": r["category"],
+            "config": r["config"],
+            "is_known_industry": r["is_known_industry"],
+            "confidence": r["confidence"],
+            "category_scores": r.get("scores", {}),
         }
-    
+
     def generalize(self, findings: List[Dict], company_name: str, industry: str) -> Dict:
         """
         泛化推理：即使行业不在66行业库中，也能基于通用原则推理
@@ -683,18 +654,24 @@ class IndustryGeneralizer:
             "applies": True,
         })
         
+        # ★ 2026-09-25：行业口径与"是否在基准库中"的判断统一走 industry_resolver（唯一权威），
+        #   本处不再自建判定。
+        #   历史缺陷：原实现为 `industry in classification.get("known_industries", [])`，
+        #   而 `classify()` 返回的键是 `is_known_industry` → 永远取不到 → 恒为 False
+        #   → 界面对**本来就已在** 66 行业基准库中的行业也显示"不在66行业基准库中"，
+        #     **系统自述与事实相反**。
+        from engine.industry_resolver import is_in_benchmark_base, generalization_note
+        _in_66 = is_in_benchmark_base(industry)
+
         return {
             "classification": classification,
             "industry": industry,
-            "is_in_66_base": industry in classification.get("known_industries", []),
+            "is_in_66_base": _in_66,
             "risk_focus": config["risk_focus"],
             "skip_domains": config["skip_domains"],
             "enable_domains": config["enable_domains"],
             "universal_principles": universal_principles,
-            "generalization_logic": (
-                f"行业「{industry}」不在66行业基准库中，但基于名称和特征自动归类为「{category}」。"
-                f"适配该类型的通用风险模型进行分析。"
-            ),
+            "generalization_logic": generalization_note(industry, category),
             "recommendation": (
                 f"重点关注{'、'.join(config['risk_focus'][:3])}。"
                 + (f"跳过{'、'.join(config['skip_domains'][:3])}分析（{category}通常不需要）。" if config["skip_domains"] else "")

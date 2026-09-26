@@ -22,6 +22,7 @@
   仍然必须暴露**，绝不因模式认定而屏蔽任何信号。
 """
 
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 from collections import defaultdict
 
 # ══════════════════════════════════════════════════════════════
@@ -85,10 +86,14 @@ DISGUISED_WHOLESALE_MAX_COUNT = 5
 
 
 def _number(value, default=0.0):
-    try:
-        return float(value) if value not in (None, "", "None") else default
-    except (TypeError, ValueError):
-        return default
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(value, default)
 
 
 def _buyer_name(row):

@@ -207,7 +207,11 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
         "经营实质分析": lambda: _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries),
         "行业对标分析": lambda: _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory, ctx.company_profile.get("industry", "")),
         "凭证发票收入对比": lambda: _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs),
-        "增值税申报比对": lambda: _domain_vat_declaration_compare(invoices, bank_txs, db, company_id),
+        # 2026-09-22：传入解析出的申报表（ctx.tax_declarations），避免该域只查
+        # VATDeclaration 数据库表而误报"缺少增值税申报表"。
+        "增值税申报比对": lambda: _domain_vat_declaration_compare(
+            invoices, bank_txs, db, company_id,
+            getattr(ctx, "tax_declarations", None) or []),
         "发票实质性审计": lambda: _domain_invoice_audit(invoices, ctx.company_profile.get("industry", "")),
         "供应商画像分析": lambda: _domain_supplier_profiling(pur_invs, bank_txs),
         "上下游穿透分析": lambda: _domain_supply_chain_deep(invoices, bank_txs),

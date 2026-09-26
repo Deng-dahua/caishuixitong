@@ -16,6 +16,7 @@ from collections import defaultdict
 # 申报收入勾稽：复用 two_tax_income 的申报表解析（增值税申报销售额），避免重复解析口径。
 # two_tax_income 不反向依赖本模块，顶层导入安全。
 from engine.two_tax_income import _extract_from_tax_declarations  # noqa: E402
+from engine.numparse import to_number, amount_of  # ★ 2026-09-25 统一数值解析/取值
 
 
 # ═══════════════ 税务合规专项分析指标 ═══════════════
@@ -142,7 +143,29 @@ TAX_AUDIT_INDICATORS = {
 }
 
 
-def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers, sal_invs, pur_invs, ctx, tax_declarations=None):
+def invoice_excl_tax(inv) -> float:
+    """发票**不含税金额**，与申报表「销售额（不含税）」口径对齐（本模块唯一实现）。
+
+    优先取"金额/不含税金额"；仅有"价税合计"时按 13% 标准税率倒算（口径估算）。
+    """
+    if not isinstance(inv, dict):
+        return 0.0
+    for k in ("金额", "不含税金额", "excl_tax_amount", "amount_excl_tax", "amount"):
+        v = inv.get(k)
+        if v not in (None, ""):
+            try:
+                return float(str(v).replace(",", "").replace("，", ""))
+            except (TypeError, ValueError):
+                continue
+    tot = inv.get("价税合计", inv.get("total_amount", inv.get("total", 0)))
+    try:
+        tot = to_number(tot)
+    except (TypeError, ValueError):
+        tot = 0.0
+    return tot / 1.13 if tot > 0 else 0.0
+
+
+def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers, sal_invs, pur_invs, ctx, tax_declarations=None, bank_txs=None):
     """
     财务报表税务合规分析主入口
     
@@ -166,7 +189,7 @@ def analyze_financial_statements(balance_sheet, income_stmt, cash_flow, vouchers
     # ═══ Layer A+B+C+D 逐层分析 ═══
     findings.extend(_check_balance_sheet_balance(balance_sheet))
     findings.extend(_check_cross_statement(balance_sheet, income_stmt, cash_flow))
-    findings.extend(_check_tax_indicators(balance_sheet, income_stmt, cash_flow, sal_invs, pur_invs, biz_model))
+    findings.extend(_check_tax_indicators(balance_sheet, income_stmt, cash_flow, sal_invs, pur_invs, biz_model, bank_txs))
     findings.extend(_check_voucher_statement_gap(vouchers, income_stmt, sal_invs))
     findings.extend(analyze_balance_sheet_items(balance_sheet, income_stmt, vouchers, ctx))
     # 金税四期核心量化监控指标（消费 TAX_AUDIT_INDICATORS：进项发票vs成本匹配度、
@@ -196,45 +219,16 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
     if not income:
         return findings
 
-    revenue = float(income.get("revenue", 0) or 0)
-    cost = float(income.get("cost", 0) or 0)
-    selling = float(income.get("selling_expense", 0) or 0)
-    admin = float(income.get("admin_expense", 0) or 0)
-    finance = float(income.get("finance_expense", 0) or 0)
-    net_profit = float(income.get("net_profit", 0) or 0)
+    revenue = to_number(income.get("revenue", 0))
+    cost = to_number(income.get("cost", 0))
+    selling = to_number(income.get("selling_expense", 0))
+    admin = to_number(income.get("admin_expense", 0))
+    finance = to_number(income.get("finance_expense", 0))
+    net_profit = to_number(income.get("net_profit", 0))
 
-    def _inv_amount(inv):
-        if not isinstance(inv, dict):
-            return 0.0
-        for k in ("amount", "金额", "价税合计", "total", "total_amount"):
-            v = inv.get(k)
-            if v not in (None, ""):
-                try:
-                    return float(v)
-                except (TypeError, ValueError):
-                    pass
-        return 0.0
+    from engine.numparse import amount_of as _inv_amount  # ★ 行内取金额唯一权威
 
-    def _inv_excl_tax(inv):
-        """销项/进项发票的**不含税金额**，与申报表「销售额（不含税）」口径对齐。
-
-        优先取"金额/不含税金额"；仅有"价税合计"时按 13% 标准税率倒算（口径估算）。
-        """
-        if not isinstance(inv, dict):
-            return 0.0
-        for k in ("金额", "不含税金额", "excl_tax_amount", "amount_excl_tax"):
-            v = inv.get(k)
-            if v not in (None, ""):
-                try:
-                    return float(v)
-                except (TypeError, ValueError):
-                    pass
-        tot = inv.get("价税合计", inv.get("total_amount", inv.get("total", 0)))
-        try:
-            tot = float(tot or 0)
-        except (TypeError, ValueError):
-            tot = 0.0
-        return tot / 1.13 if tot > 0 else 0.0
+    _inv_excl_tax = invoice_excl_tax  # ★ 统一到模块级唯一实现
 
     # ── ① 进项发票 vs 主营业务成本匹配度（金税四期：无票成本 / 白条入账）──
     # 对应 TAX_AUDIT_INDICATORS["purchase_invoice_match"]，risk_high < 0.6
@@ -271,29 +265,52 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                     "indicator_value": round(ratio, 4),
                 })
 
-            # ── ①-2 进项发票 vs 成本费用合计（成本+管理费用+销售费用）匹配度（用户口径）──
-            # 与①去重：仅当「成本口径尚可(≥0.8)」而「合计口径不足」时输出，避免同一事实两条结论。
-            cost_expense = cost + selling + admin
-            if cost_expense > 0:
+            # ── ①-2 进项发票 vs 成本费用合计（成本+管理费用+销售费用+财务费用）匹配度 ──
+            # ★ 2026-09-25 根因修复（用户报的疑点）：
+            #   「主营业务成本和期间费用的合计金额与取得发票总金额差异很大 —— 取得发票占
+            #     成本费用合计的比例特别小」。该结论**此前已实现，但被去重条件永久抑制**：
+            #     旧条件是 `ratio_ce < 0.8 and ratio >= 0.8`，即"成本口径尚可"时才报。
+            #     而企业只要**成本侧也缺票**（最常见情形），本条就永不输出 →
+            #     "期间费用无票"这一**独立事实**完全看不到；用户只能看到成本口径的结论。
+            #   现改为：本条**独立成立即报**，并在 detail 中同时给出**两个口径**
+            #     （成本口径 / 成本+期间费用口径）与本条自己的分母，使两条结论各自指名分母、
+            #     不是"同一事实两条结论"。`<0.6` 的高风险档仍由 `_check_tax_indicators` 承担。
+            cost_expense = cost + (selling or 0) + (admin or 0) + (finance or 0)
+            if cost_expense > 0 and cost_expense > cost:
                 ratio_ce = pur_total / cost_expense
-                if ratio_ce < 0.8 and ratio >= 0.8:
+                if ratio_ce < 0.8:
+                    gap_ce = cost_expense - pur_total
                     findings.append({
                         "type": "待核事实：取得发票对成本费用合计的支撑不足",
                         "level": "中风险", "score": 6,
                         "detail": (
-                            f"主营业务成本{cost:,.2f}元、管理费用{admin:,.2f}元、销售费用{selling:,.2f}元，"
-                            f"合计{cost_expense:,.2f}元；取得进项发票金额合计{pur_total:,.2f}元，"
-                            f"有票覆盖率{ratio_ce:.0%}，低于正常区间下限80%。"
+                            f"账面主营业务成本{cost:,.2f}元、销售费用{selling:,.2f}元、"
+                            f"管理费用{admin:,.2f}元、财务费用{finance:,.2f}元，"
+                            f"成本费用合计{cost_expense:,.2f}元；同期取得进项发票金额合计"
+                            f"{pur_total:,.2f}元，对成本费用合计的有票覆盖率仅{ratio_ce:.0%}"
+                            f"（成本单侧口径{ratio:.0%}），缺口{gap_ce:,.2f}元。"
                         ),
                         "description": (
-                            "成本费用（主营业务成本+管理费用+销售费用）应当有对应的取得发票支撑。"
-                            "账面列支的成本费用高于取得的发票金额时，差额部分通常表现为暂估入库、"
-                            "跨期取得发票、无票采购或无票费用，须逐项核实。"
+                            "成本与期间费用的列支，原则上都应有取得的发票或其他合规外部凭证支撑"
+                            "（《企业所得税税前扣除凭证管理办法》）。本项以"
+                            "「取得进项发票金额 ÷（主营业务成本＋期间费用）」计算覆盖率："
+                            "覆盖率显著偏低说明账面列支的成本费用有较大比例没有取得发票，"
+                            "差额通常表现为暂估入库、跨期取得发票、无票采购或无票费用。"
+                            "须逐项说明该部分成本费用的凭证形式与真实性依据。"
+                            "注：进项发票不标注用途，无法从票面判断其对应成本还是费用，"
+                            "故本项只给「合计口径」结论，不作成本/费用的归属拆分。"
                         ),
-                        "how_found": "进项发票金额 / （主营业务成本+管理费用+销售费用） = {:.0%}，低于正常区间0.8~1.0。".format(ratio_ce),
+                        "how_found": (
+                            f"进项发票金额÷（主营业务成本+销售费用+管理费用+财务费用）"
+                            f"={ratio_ce:.0%}（成本单侧口径{ratio:.0%}），低于正常区间下限80%。"
+                        ),
                         "tax_impact": "缺口部分若无合规凭证，面临企业所得税税前不得扣除的纳税调增风险。",
                         "policy_ref": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）",
-                        "suggestion": "核实成本费用缺口构成（暂估/跨期/无票采购或无票费用），补充取得发票或准备真实性证明材料。",
+                        "suggestion": (
+                            "①提供成本费用与取得发票的对应关系表（逐项标明是否有票及票号）；"
+                            "②说明无票部分的构成（暂估/跨期/小额零星/无票采购或无票费用）；"
+                            "③确实无法取得发票的，准备真实性证明材料以备核验。"
+                        ),
                         "category": "成本费用",
                         "source_chain": "财务报表-取得发票与成本费用合计匹配度",
                         "redline_id": "RL-COST-003",
@@ -371,7 +388,7 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                 continue
             acct = str(v.get("account_name", v.get("科目", "")) or "")
             if "所得税费用" in acct:
-                cit_expense += float(v.get("debit", v.get("借方", 0)) or 0)
+                cit_expense += to_number(v.get("debit", v.get("借方", 0)))
 
         if cit_expense > 0:
             cit_rate = cit_expense / revenue
@@ -419,7 +436,7 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                 continue
             acct = str(v.get("account_name", v.get("科目", "")) or "")
             if "招待" in acct:
-                ent += float(v.get("debit", v.get("借方", 0)) or 0)
+                ent += to_number(v.get("debit", v.get("借方", 0)))
         if ent > 0:
             ent_rate = ent / revenue
             if ent_rate > 0.005:  # 超过收入0.5%（法定扣除限额为发生额60%与收入5‰孰低）
@@ -508,7 +525,7 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
 
     # ── ⑧ 应收账款周转过快（金税四期：应收与收入规模背离→虚增收入/突击开票）──
     # 仅取"周转过快"方向；"周转过慢"与既有「应收账款占比过高」规则重叠，此处不重复输出。
-    ar = float(bs.get("accounts_receivable", bs.get("应收账款", 0)) or 0)
+    ar = to_number(bs.get("accounts_receivable", bs.get("应收账款", 0)))
     if revenue > 0 and ar > 0:
         rt = revenue / ar  # 单期以期末应收账款近似平均余额
         if rt > 20:
@@ -568,8 +585,8 @@ def build_statements_from_trial_balance(rows):
             code = str(r.get("code", r.get("科目编码", "")) or "").strip()
             if not code.startswith(code_prefix):
                 continue
-            d = float(r.get("close_debit", r.get("期末借方", 0)) or 0)
-            c = float(r.get("close_credit", r.get("期末贷方", 0)) or 0)
+            d = to_number(r.get("close_debit", r.get("期末借方", 0)))
+            c = to_number(r.get("close_credit", r.get("期末贷方", 0)))
             total += (d - c) if debit_positive else (c - d)
         return round(total, 2)
 
@@ -577,8 +594,8 @@ def build_statements_from_trial_balance(rows):
         for r in rows or []:
             code_r = str(r.get("code", r.get("科目编码", "")) or "").strip()
             if code_r == code:
-                d = float(r.get("close_debit", r.get("期末借方", 0)) or 0)
-                c = float(r.get("close_credit", r.get("期末贷方", 0)) or 0)
+                d = to_number(r.get("close_debit", r.get("期末借方", 0)))
+                c = to_number(r.get("close_credit", r.get("期末贷方", 0)))
                 return round((d - c) if debit_positive else (c - d), 2)
         return 0.0
 
@@ -601,19 +618,65 @@ def build_statements_from_trial_balance(rows):
     balance_sheet["other_payables"] = _item("2241", debit_positive=False)                      # 其他应付款
     balance_sheet["salary_payable"] = _item("2211", debit_positive=False)                     # 应付职工薪酬
 
+    # ★ 2026-09-25：补**期初**口径 —— "所有者权益异常变动""存货周转率"等指标需要期初数，
+    #   此前只导出了期末余额，导致这些已登记的指标无法计算（登记了但从未实现）。
+    def _net_opening(code_prefix, debit_positive=True):
+        total = 0.0
+        for r in rows or []:
+            code = str(r.get("code", r.get("科目编码", "")) or "").strip()
+            if not code.startswith(code_prefix):
+                continue
+            d = to_number(r.get("open_debit", r.get("期初借方", 0)))
+            c = to_number(r.get("open_credit", r.get("期初贷方", 0)))
+            total += (d - c) if debit_positive else (c - d)
+        return round(total, 2)
+
+    balance_sheet["total_equity_opening"] = _net_opening("4", debit_positive=False)
+    balance_sheet["inventory_opening"] = round(
+        _net_opening("14", debit_positive=True) - _item("1471", debit_positive=False), 2)
+
     # ── 利润表 ──
-    revenue = _item("6001", debit_positive=False)       # 主营业务收入(贷)
-    cost = _item("6401", debit_positive=True)          # 主营业务成本(借)
-    selling = _item("6601", debit_positive=True)        # 销售费用
-    admin = _item("6602", debit_positive=True)          # 管理费用
-    finance = _item("6603", debit_positive=True)        # 财务费用
+    # ★ 2026-09-25 根因修复：损益类科目**必须取发生额总侧**，不能取期末余额、也不能取净发生额。
+    #   实测（企业1 科目余额表）：6401 主营业务成本 本期借 4,187,220.84 / 本期贷 4,187,220.84 /
+    #   期末借 0 / 期末贷 0 ——
+    #     ① 取期末余额 → 0：损益类期末已**结转本年利润**，余额恒为 0；
+    #     ② 取"借−贷"净额 → 0：多数科目余额表把**结转额也计入当期发生额**，借贷两侧相等。
+    #   旧实现用 `_item()`（期末余额）取 6001/6401/6601/6602/6603 → 利润表恒为全 0 →
+    #   `analyze_financial_statements` 与 `_check_tax_indicators` 开头都是 `if not income/revenue<=0: return`
+    #   → **整个"财务报表分析"域静默不产出**（用户报的"取得发票对成本费用合计支撑不足"因此
+    #   一次都没运行过，报告只字未提，而资料清单里也没说为什么没查）。
+    #   故新增 `_pnl()`：费用类取借方发生额、收入类取贷方发生额（总额侧），
+    #   并在本期发生额缺失时退回期末余额（兼容未结转的科目余额表）。
+    def _pnl(code, debit_positive=True):
+        for r in rows or []:
+            code_r = str(r.get("code", r.get("科目编码", "")) or "").strip()
+            if code_r != code:
+                continue
+            cd = to_number(r.get("current_debit", r.get("本期借方", 0)))
+            cc = to_number(r.get("current_credit", r.get("本期贷方", 0)))
+            if cd or cc:
+                return round(cd if debit_positive else cc, 2)
+            d = to_number(r.get("close_debit", r.get("期末借方", 0)))
+            c = to_number(r.get("close_credit", r.get("期末贷方", 0)))
+            return round((d - c) if debit_positive else (c - d), 2)
+        return 0.0
+
+    revenue = _pnl("6001", debit_positive=False)       # 主营业务收入（贷方发生额）
+    cost = _pnl("6401", debit_positive=True)           # 主营业务成本（借方发生额）
+    selling = _pnl("6601", debit_positive=True)        # 销售费用
+    admin = _pnl("6602", debit_positive=True)          # 管理费用
+    finance = _pnl("6603", debit_positive=True)        # 财务费用
+    taxes_surcharges = _pnl("6403", debit_positive=True)  # 税金及附加
     income_stmt["revenue"] = revenue
     income_stmt["cost"] = cost
     income_stmt["selling_expense"] = selling
     income_stmt["admin_expense"] = admin
     income_stmt["finance_expense"] = finance
+    income_stmt["taxes_and_surcharges"] = taxes_surcharges
     income_stmt["entertainment_expense"] = 0  # 科目余额表无法区分招待费明细，留 0
-    income_stmt["net_profit"] = round(revenue - cost - selling - admin - finance, 2)
+    # 利润总额 = 收入 − 成本 − 税金及附加 − 期间费用（三费）
+    income_stmt["net_profit"] = round(
+        revenue - cost - taxes_surcharges - selling - admin - finance, 2)
 
     return balance_sheet, income_stmt, cash_flow
 
@@ -681,7 +744,7 @@ def _check_cross_statement(bs, income, cf):
     return findings
 
 
-def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
+def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model, bank_txs=None):
     """Layer C+D: 税务合规指标分析"""
     findings = []
     
@@ -743,7 +806,12 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
     
     # ── 发票vs报表对比 ──
     if sal_invs:
-        sal_total = sum(float(i.get("amount", 0) or 0) for i in sal_invs)
+        # ★ 2026-09-25：销项侧同样兼容多字段取值 —— 进项侧早已修过同一缺陷
+        #   （"原实现仅读取 amount 字段…导致匹配度被严重低估，进而误报"），
+        #   销项侧当时**漏修**：企业导出模板若用「金额／价税合计」列名，
+        #   销项合计会被读成 0 或极小值 → 直接误报"开票收入低于报表收入"
+        #   →（高风险方向）进而被误挂到账外收入类红线。同一类缺陷不能只修一半。
+        sal_total = sum(amount_of(i) for i in sal_invs)
         if sal_total > 0 and revenue > 0:
             ratio = sal_total / revenue
             if ratio < 0.85:
@@ -761,14 +829,122 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                     "tax_impact": "开票多于申报→可能虚开发票/提前开票确认收入",
                 })
     
+    # ── 存货周转率（inventory_turnover：成本 / 平均存货）──
+    if bs and cost > 0:
+        inv_close = bs.get("inventory", 0) or 0
+        inv_open = bs.get("inventory_opening", 0) or 0
+        avg_inv = ((inv_open + inv_close) / 2) if (inv_open > 0 and inv_close > 0) else inv_close
+        if avg_inv > 0:
+            turn = cost / avg_inv
+            if turn < 2:
+                findings.append({
+                    "type": "待核事实：存货周转率过低",
+                    "level": "中风险", "score": 6,
+                    "indicator": "inventory_turnover", "indicator_value": round(turn, 2),
+                    "detail": (f"营业成本{cost:,.2f}元 ÷ 平均存货{avg_inv:,.2f}元 = 周转率{turn:.2f}次，"
+                               f"低于正常区间下限3次（期末存货{inv_close:,.2f}元）"),
+                    "description": ("存货周转率过低说明存货沉淀时间长、或成本结转与存货变动不匹配，"
+                                    "可能对应存货积压、账外销售、或多转成本少计存货。"),
+                    "how_found": "主营业务成本 / 平均存货 = {:.2f} 次，低于正常区间 3~12。".format(turn),
+                    "tax_impact": "存货异常→可能多转成本（少计存货）或隐藏存货（账外资产）",
+                    "suggestion": "提供存货收发存台账与期末盘点表，说明存货周转偏慢的业务原因。",
+                    "category": "资产负债", "source_chain": "财务报表-存货周转率",
+                })
+
+    # ── 所有者权益异常变动（owner_equity_change）──
+    if bs and net_profit is not None:
+        eq_open = bs.get("total_equity_opening", 0) or 0
+        eq_close = bs.get("total_equity", 0) or 0
+        if eq_open > 0:
+            eq_delta = eq_close - eq_open
+            eq_rate = eq_delta / eq_open
+            if eq_rate > 1.0 or eq_rate < -0.5:
+                findings.append({
+                    "type": "待核事实：所有者权益异常变动",
+                    "level": "中风险", "score": 6,
+                    "indicator": "owner_equity_change", "indicator_value": round(eq_rate, 4),
+                    "detail": (f"期初所有者权益{eq_open:,.2f}元、期末{eq_close:,.2f}元，"
+                               f"变动{eq_delta:,.2f}元（{eq_rate:+.1%}），超出正常区间 -30%~+50%"),
+                    "description": ("所有者权益出现大幅变动，可能对应增资/减资、利润分配、资本公积转增、"
+                                    "其他综合收益或账外权益调整，须核实是否履行了相应的税务处理。"),
+                    "how_found": "（期末权益 − 期初权益）/ 期初权益 = {:+.1%}，超出正常区间。".format(eq_rate),
+                    "tax_impact": "权益异常变动→可能存在未入账的利润分配/资本公积转增未缴税",
+                    "suggestion": "提供期初、期末所有者权益构成明细及本期权益变动的决议与凭证。",
+                    "category": "资产负债", "source_chain": "财务报表-所有者权益变动",
+                })
+            else:
+                # 变动幅度正常时，仍核对"变动是否由当期利润解释"
+                gap = eq_delta - net_profit
+                if abs(gap) > max(10000.0, abs(net_profit) * 0.5):
+                    findings.append({
+                        "type": "待核事实：所有者权益变动未由当期利润解释",
+                        "level": "中风险", "score": 6,
+                        "indicator": "owner_equity_change", "indicator_value": round(gap, 2),
+                        "detail": (f"本期净利润{net_profit:,.2f}元，但所有者权益变动{eq_delta:,.2f}元，"
+                                   f"差额{gap:,.2f}元未由经营利润形成"),
+                        "description": ("除当期净利润外，所有者权益还会因增资、减资、利润分配、"
+                                        "资本公积转增等变动。差额部分须核实其性质与税务处理，"
+                                        "尤其是股东分红是否履行代扣代缴。"),
+                        "how_found": "权益变动 − 净利润 = {:,.2f} 元，超过净利润的 50%。".format(gap),
+                        "tax_impact": "未由利润解释的权益变动→可能存在未入账的利润分配或资本性调整",
+                        "suggestion": "说明差额构成（增资/减资/分红/其他综合收益）并提供相应决议与完税凭证。",
+                        "category": "资产负债", "source_chain": "财务报表-所有者权益变动",
+                    })
+
+    # ── 销售收现率（cash_sales_match：销售收现 / 主营业务收入）──
+    if bank_txs and revenue > 0:
+        receipts = sum(amount_of(t) for t in bank_txs if isinstance(t, dict)
+                       and to_number(t.get("credit", t.get("贷方金额", 0))) > 0)
+        if receipts > 0:
+            cr_ratio = receipts / revenue
+            if cr_ratio < 0.8:
+                findings.append({
+                    "type": "待核事实：销售收现率偏低",
+                    "level": "中风险", "score": 6,
+                    "indicator": "cash_sales_match", "indicator_value": round(cr_ratio, 4),
+                    "detail": (f"银行贷方收款合计{receipts:,.2f}元 ÷ 主营业务收入{revenue:,.2f}元 "
+                               f"= 收现率{cr_ratio:.0%}，低于正常区间下限80%"),
+                    "description": ("销售收现率过低，说明收入大部分未通过银行账户收现，"
+                                    "可能是大量应收账款、账外收款、第三方平台/个人账户收款，"
+                                    "或存在无真实资金流的开票。须逐项说明收款方式与去向。"),
+                    "how_found": "银行贷方收款 / 主营业务收入 = {:.0%}，低于正常区间 90%~115%。".format(cr_ratio),
+                    "tax_impact": "收现率过低→应收账款质量存疑/可能虚开发票/可能存在账外收款",
+                    "suggestion": "提供与收入对应的银行进账明细（含第三方平台/个人账户）；无法对应的说明收款方式。",
+                    "category": "收入", "source_chain": "财务报表-销售收现率",
+                })
+
+    # ── 经营现金流质量（operating_cashflow_quality）──
+    #   口径：现金流量表不在科目余额表内，故以**银行流水净流入**近似经营活动现金净流量，
+    #   并在 detail 中明示该口径（避免把近似值当成报表数）。
+    if bank_txs and net_profit and net_profit > 0:
+        inflow = sum(to_number(t.get("credit", t.get("贷方金额", 0))) for t in bank_txs
+                     if isinstance(t, dict))
+        outflow = sum(to_number(t.get("debit", t.get("借方金额", 0))) for t in bank_txs
+                      if isinstance(t, dict))
+        net_cash = inflow - outflow
+        quality = net_cash / net_profit
+        if quality < 0.3:
+            findings.append({
+                "type": "待核事实：利润与现金流严重背离",
+                "level": "中风险", "score": 6,
+                "indicator": "operating_cashflow_quality", "indicator_value": round(quality, 4),
+                "detail": (f"本期净利润{net_profit:,.2f}元，银行流水净流入{net_cash:,.2f}元"
+                           f"（收{inflow:,.2f}−支{outflow:,.2f}），比值{quality:.2f}，低于正常下限0.3"
+                           f"（口径：银行流水净额近似经营活动现金净流量）"),
+                "description": ("利润与现金流严重背离，可能是大量利润挂账未收款、"
+                                "或存在虚增收入/虚构利润，也可能资金被大额对外支付占用。"
+                                "须核对利润的形成过程与实际资金去向。"),
+                "how_found": "银行流水净流入 / 净利润 = {:.2f}，低于正常区间 0.8~2.0（近似口径）。".format(quality),
+                "tax_impact": "利润与现金流背离→可能虚增收入/虚构利润→粉饰报表",
+                "suggestion": "提供利润构成明细与对应收付款记录，说明利润未转化为现金的原因。",
+                "category": "资金", "source_chain": "财务报表-经营现金流质量（近似口径）",
+            })
+
     if pur_invs:
         # ★ 修复：原实现仅读取 amount 字段，当发票数据以「金额」或「价税合计」为键时会被漏算，
         #   导致匹配度被严重低估（实测 30% 被算成 15%），进而误报"进项发票远低于报表成本"。
         #   此处兼容多字段取值，与 _check_tax_audit_indicators 口径保持一致。
-        pur_total = sum(
-            float(i.get("amount", i.get("金额", i.get("价税合计", 0))) or 0)
-            for i in pur_invs if isinstance(i, dict)
-        )
+        pur_total = sum(amount_of(i) for i in pur_invs)
         if pur_total > 0 and cost > 0:
             ratio = pur_total / cost
             if ratio < 0.6:
@@ -785,7 +961,16 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                     "indicator_value": round(ratio, 4),
                 })
     
-    # ── 资产负债率 ──
+    # ══════════════════════════════════════════════════════════════════════════
+    # ★ 2026-09-25：补齐**已登记但从未实现**的金税四期量化指标
+    #   背景：`TAX_AUDIT_INDICATORS` 共 14 项，其中 7 项只在目录里登记、全项目零消费点
+    #   （存货周转率/资产负债率/经营现金流质量/销售收现率/所有者权益异常变动/
+    #     收入暴增/成本暴增）→ 一键分析"看着有这项、实际从不检查"。
+    #   阈值一律取自 TAX_AUDIT_INDICATORS（不自造标准）；无法计算的项**必须说明原因**
+    #   （见 analysis_coverage），不得静默跳过。
+    # ══════════════════════════════════════════════════════════════════════════
+
+    # ── 资产负债率（asset_liability_ratio；已有逻辑，补齐 indicator 键以便覆盖统计）──
     if bs:
         total_assets = bs.get("total_assets", 0) or 0
         total_liabilities = bs.get("total_liabilities", 0) or 0
@@ -795,6 +980,7 @@ def _check_tax_indicators(bs, income, cf, sal_invs, pur_invs, biz_model):
                 findings.append({
                     "type": "资产负债率过高",
                     "level": "中风险", "score": 6,
+                    "indicator": "asset_liability_ratio", "indicator_value": round(al_ratio, 4),
                     "detail": f"资产负债率{al_ratio:.0%}，接近资不抵债",
                     "tax_impact": "高负债企业→可能存在隐性债务/关联方借款→利息扣除需核实资本弱化",
                     "law_ref": "企业所得税法第46条(资本弱化)",
@@ -835,7 +1021,7 @@ def _check_voucher_statement_gap(vouchers, income_stmt, sal_invs):
     
     # 凭证中的主营业务收入合计 vs 报表收入
     voucher_revenue = sum(
-        float(v.get("credit", 0) or 0) 
+        to_number(v.get("credit", 0)) 
         for v in vouchers 
         if "主营业务收入" in str(v.get("account_name", v.get("科目", "")))
     )

@@ -3,6 +3,9 @@
 所有函数均为纯函数：输入数据 → 输出发现列表
 不依赖任何全局状态或 main.py 上下文
 """
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
+from engine.findingkit import month_key_strict as _month_key  # ★ 2026-09-25 期间键唯一实现（YYYYMM）
+from engine.findingkit import normalize_month as _norm_month  # ★ 2026-09-25 期间键唯一实现（YYYY-MM）
 from collections import defaultdict, Counter
 from datetime import date, datetime, timedelta
 from sqlalchemy.orm import Session
@@ -20,56 +23,38 @@ from engine.geo_infer import invoice_region as _invoice_region, collect_regions 
 # Excel 解析时「合计」「姓名」「小计」等表头/合计行常被当作数据行落入人员明细，
 # 不过滤会把标题行误报成「仅在社保清单的人员」（实测出现过『仅在社保清单的人员：合计、姓名、小计』）。
 # 工资/社保每行自带费款所属期，凡涉及人员统计与均额判定必须先按 (姓名, 月份) 归位。
-_NOISE_PERSON_NAMES = {
-    "合计", "小计", "总计", "姓名", "人员", "职工姓名", "员工姓名", "序号", "本月合计",
-    "本年累计", "平均", "人数", "单位", "部门", "备注", "说明", "员工", "职工",
-    "合计金额", "本页合计", "累计", "总人数", "应发合计", "实发合计", "个人合计",
-    "单位合计", "缴费基数合计", "小写", "大写", "社保", "公积金",
-}
+from engine.fieldkit import NOISE_PERSON_NAMES as _NOISE_PERSON_NAMES  # ★ 2026-09-25 唯一来源（原先两处重复定义）
 
 
-def _is_noise_name(name):
-    """判断名称是否为表头/合计行等非人员文本（非真实员工姓名）。"""
-    n = str(name or "").strip()
-    if not n:
-        return True
-    n_compact = n.replace(" ", "").replace("\u3000", "")
-    if n in _NOISE_PERSON_NAMES:
-        return True
-    if n_compact in {x.replace(" ", "") for x in _NOISE_PERSON_NAMES}:
-        return True
-    return bool(n_compact) and n_compact.isdigit()
+def _is_noise_name(name) -> bool:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import is_noise_name as _fk
+    return _fk(name)
 
 
-def _row_period(row):
-    """从工资/社保记录提取所属月份（YYYY-MM）。"""
-    for k in ("period_start", "period_end", "所属期", "费款所属期", "期间",
-              "月份", "month", "所属月份", "账期", "缴费所属期", "税款所属期"):
-        v = str((row or {}).get(k) or "").strip()
-        if not v:
-            continue
-        m = re.search(r"(\d{4})\s*[-/年.]?\s*(\d{1,2})", v)
-        if m:
-            mm = int(m.group(2))
-            if 1 <= mm <= 12:
-                return "{0}-{1:02d}".format(m.group(1), mm)
-    return ""
+def _row_period(row) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import row_period as _fk
+    return _fk(row)
 
 
 def _number(v):
-    """容错数值解析：处理 '12,000.00' / '¥' / None / 空串。"""
-    if v is None:
-        return 0.0
-    if isinstance(v, (int, float)):
-        return float(v)
-    s = str(v).replace(",", "").replace("￥", "").replace("¥", "").strip()
-    if not s:
-        return 0.0
-    try:
-        return float(s)
-    except ValueError:
-        mm = re.search(r"-?\d+(?:\.\d+)?", s)
-        return float(mm.group(0)) if mm else 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
 def _clean_emp_names(rows):
@@ -177,14 +162,9 @@ __all__ = [
     "_four_step_audit_framework",
     "_generate_alternatives",
     "_generate_biz_substance_findings",
-    "_generate_executive_summary",
     "_get_action_paths",
-    "_get_detailed_mode_analysis",
-    "_get_industry_benchmark_comparison",
-    "_get_mode_note",
     "_get_processing_keywords",
     "_get_product_keywords",
-    "_get_risk_advice",
     "_get_root_causes",
     "_infer_causal_direction",
     "_infer_industry_from_goods",
@@ -203,7 +183,6 @@ __all__ = [
     "_multimodal_support_check",
     "_run_fix_verification",
     "_save_analysis_memory",
-    "_summarize_evidence",
     "_trigger_missing_consequences",
     "_update_industry_benchmarks",
     "_verify_rule_against_data",
@@ -346,8 +325,8 @@ def _classify_voucher_deductibility(invoice_dict):
         signals.append("文件类型=purchase_invoice(普票)")
     
     # 信号4：税率与税额综合判断
-    tax_rate = float(invoice_dict.get("tax_rate", 0) or invoice_dict.get("税率", 0) or 0)
-    tax_amount = float(invoice_dict.get("tax_amount", 0) or invoice_dict.get("税额", 0) or 0)
+    tax_rate = to_number(invoice_dict.get("tax_rate", 0) or invoice_dict.get("税率", 0))
+    tax_amount = to_number(invoice_dict.get("tax_amount", 0) or invoice_dict.get("税额", 0))
     if tax_rate > 0 and tax_amount > 0 and not inv_code:
         is_deductible = True
         voucher_type = "增值税专用发票"
@@ -512,8 +491,8 @@ def _domain_profit_analysis(sal_invs, pur_invs, inventory, voucher_rev=None):
             "category": "进销存匹配"})
         return findings
     
-    s_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in sal_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
-    p_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in pur_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
+    s_total = sum(to_number(i.get("total", i.get("amount", 0))) for i in sal_invs if (to_number(i.get("total", i.get("amount", 0))) > 0))
+    p_total = sum(to_number(i.get("total", i.get("amount", 0))) for i in pur_invs if (to_number(i.get("total", i.get("amount", 0))) > 0))
     s_count, p_count = len(sal_invs), len(pur_invs)
     
     # 获取主营业务收入(凭证)作为总收入口径
@@ -558,8 +537,8 @@ def _domain_personal_transactions(sal_invs, company_profile=None, target_entity=
     findings = []
     personal = [i for i in sal_invs if "个人" in str(i.get("buyer", ""))]
     if personal:
-        p_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in personal if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
-        all_total = sum(float(i.get("total", i.get("amount", 0)) or 0) for i in sal_invs if (float(i.get("total", i.get("amount", 0)) or 0) > 0))
+        p_total = sum(to_number(i.get("total", i.get("amount", 0))) for i in personal if (to_number(i.get("total", i.get("amount", 0))) > 0))
+        all_total = sum(to_number(i.get("total", i.get("amount", 0))) for i in sal_invs if (to_number(i.get("total", i.get("amount", 0))) > 0))
         pct = p_total / all_total * 100 if all_total > 0 else 0
         if pct > 30:
             # ── 经营模式裁决：零售 B2C 企业的个人客户占比高属正常 ──
@@ -636,7 +615,7 @@ def _domain_supplier_deep(pur_invs, target_entity=None):
         # 与 _domain_supply_chain_deep 口径一致：名称无效的行不参与按户归集。
         name = str(i.get("seller", "") or "").strip()
         if len(name) >= 4:
-            by_supplier[name] += float(i.get("total", i.get("amount", 0)) or 0)
+            by_supplier[name] += to_number(i.get("total", i.get("amount", 0)))
         m = _CHINA_CITY_REGEX.search(name)
         if m and len(name) >= 4:
             by_city[m.group(1)].add(name)
@@ -725,7 +704,7 @@ def _domain_voucher_anomaly(vouchers):
     """域5: 凭证科目异常 — 双通道复核：总账平衡 + 逐张校验"""
     findings = []
     if not vouchers:
-        findings.append({"type": "资料缺失-凭证数据", "level": "中风险", "score": 6,
+        findings.append({"type": "资料缺失-凭证数据", "level": "待核验", "score": 6,
             "detail": "未提供会计凭证数据，无法进行域5(凭证科目异常)分析。",
             "description": "缺少会计凭证数据，导致无法进行总账借贷平衡复核和逐张凭证校验。凭证是企业会计核算的基础，缺失意味着无法验证科目余额的真实性和准确性。可能原因：未上传凭证文件、文件格式不支持解析。",
             "tax_impact": "无法验证会计凭证的合规性，存在科目错记、借贷不平、虚增成本费用等风险无法识别。",
@@ -736,8 +715,8 @@ def _domain_voucher_anomaly(vouchers):
     total_rows = len(vouchers)
     
     # ══════ 通道1(主): 总账借贷平衡 — 最基础的审计手段 ══════
-    total_debit = sum(float(v.get("debit", 0) or 0) for v in vouchers)
-    total_credit = sum(float(v.get("credit", 0) or 0) for v in vouchers)
+    total_debit = sum(to_number(v.get("debit", 0)) for v in vouchers)
+    total_credit = sum(to_number(v.get("credit", 0)) for v in vouchers)
     balance_diff = abs(total_debit - total_credit)
     is_balanced = balance_diff <= 1
     
@@ -776,8 +755,8 @@ def _domain_voucher_anomaly(vouchers):
         vn = str(v.get("voucher_no", "")).strip()
         if not vn: skipped += 1; continue
         by_vn.setdefault(vn, {"d": 0, "c": 0})
-        by_vn[vn]["d"] += float(v.get("debit", 0) or 0)
-        by_vn[vn]["c"] += float(v.get("credit", 0) or 0)
+        by_vn[vn]["d"] += to_number(v.get("debit", 0))
+        by_vn[vn]["c"] += to_number(v.get("credit", 0))
     
     unbalanced = [(vn, b) for vn, b in by_vn.items() if abs(b["d"] - b["c"]) > 1]
     unbal_pct = len(unbalanced) / max(len(by_vn), 1) * 100
@@ -806,8 +785,8 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
     findings = []
     total_in = sum(i.get("in_qty", 0) for i in inventory if i.get("in_qty", 0) > 0)
     total_out = sum(i.get("out_qty", 0) for i in inventory if i.get("out_qty", 0) > 0)
-    total_in_val = sum(float(i.get("in_amount", 0) or 0) for i in inventory)
-    total_out_val = sum(float(i.get("out_amount", 0) or 0) for i in inventory)
+    total_in_val = sum(to_number(i.get("in_amount", 0)) for i in inventory)
+    total_out_val = sum(to_number(i.get("out_amount", 0)) for i in inventory)
     stock_val = total_in_val - total_out_val
     out_rate = total_out / max(total_in, 1) * 100
 
@@ -815,10 +794,10 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
     if inventory:
         imbalances = []
         for inv in inventory:
-            begin = float(inv.get("begin_qty", 0) or 0)
-            inq = float(inv.get("in_qty", 0) or 0)
-            outq = float(inv.get("out_qty", 0) or 0)
-            end = float(inv.get("end_qty", 0) or 0)
+            begin = to_number(inv.get("begin_qty", 0))
+            inq = to_number(inv.get("in_qty", 0))
+            outq = to_number(inv.get("out_qty", 0))
+            end = to_number(inv.get("end_qty", 0))
             # 仅当四项齐备且期末>0时做勾稽（避免无期初期末的流水式台账误报）
             if end > 0 and (begin or inq or outq):
                 expected = begin + inq - outq
@@ -906,7 +885,7 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
     
     # ── CEO视角2: 采购合理性分析 ──
     if total_in > total_out * 5 and pur_invs:
-        pur_total = sum(float(i.get("total", 0) or 0) for i in pur_invs)
+        pur_total = sum(to_number(i.get("total", 0)) for i in pur_invs)
         monthly_in = total_in / 3  # 假定3个月期间
         monthly_out = total_out / 3
         
@@ -922,9 +901,9 @@ def _domain_inventory_turnover(inventory, sal_invs, pur_invs=None, bank_txs=None
         purchase_months = set()
         for inv in pur_invs:
             dt = inv.get("date") or inv.get("invoice_date", "")
-            if dt and len(str(dt)) >= 6:
-                m = str(dt)[:6]
-                purchase_months.add(m)
+            _mk = _month_key(dt)
+            if _mk:
+                purchase_months.add(_mk)
         
         if len(purchase_months) >= 2:
             reason += f"采购分布在{len(purchase_months)}个月，非集中突击采购。"
@@ -1091,9 +1070,9 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
             item = str(inv.get("item", "")).strip()
             if not item:
                 continue
-            out_qty = float(inv.get("out_qty", 0) or 0)
-            begin = float(inv.get("begin_qty", 0) or 0)
-            end = float(inv.get("end_qty", 0) or 0)
+            out_qty = to_number(inv.get("out_qty", 0))
+            begin = to_number(inv.get("begin_qty", 0))
+            end = to_number(inv.get("end_qty", 0))
             # 期间成为可用的成品总量（自产+委外收回）≈ 出库 + (期末-期初)
             output = out_qty + (end - begin) if (begin or end) else out_qty
             if output <= 0:
@@ -1107,7 +1086,7 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
             g = str(inv.get("goods", "")).strip()
             if not g:
                 continue
-            qty = float(inv.get("qty", inv.get("数量", 0) or 0) or 0)
+            qty = to_number(inv.get("qty", inv.get("数量", 0) or 0))
             if qty <= 0:
                 continue
             for prod_name, recipe in product_recipes.items():
@@ -1126,8 +1105,8 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
                 m_name = mat.get("material_name", mat.get("material_code", ""))
                 if not m_name:
                     continue
-                unit_qty = float(mat.get("unit_qty", 0) or 0)
-                scrap_rate = float(mat.get("scrap_rate", 0) or 0)
+                unit_qty = to_number(mat.get("unit_qty", 0))
+                scrap_rate = to_number(mat.get("scrap_rate", 0))
                 if unit_qty <= 0:
                     continue
                 theoretical[m_name] = theoretical.get(m_name, 0.0) + output * unit_qty * (1 + scrap_rate)
@@ -1139,9 +1118,9 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
                 item = str(inv.get("item", "")).strip()
                 if not item:
                     continue
-                begin = float(inv.get("begin_qty", 0) or 0)
-                inq = float(inv.get("in_qty", 0) or 0)
-                end = float(inv.get("end_qty", 0) or 0)
+                begin = to_number(inv.get("begin_qty", 0))
+                inq = to_number(inv.get("in_qty", 0))
+                end = to_number(inv.get("end_qty", 0))
                 cons = begin + inq - end
                 for m_name in theoretical:
                     if _bom_goods_match(item, m_name):
@@ -1154,7 +1133,7 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
                 for inv in pur_invs:
                     g = str(inv.get("goods", "")).strip()
                     if g and _bom_goods_match(g, m_name):
-                        q += float(inv.get("qty", inv.get("数量", 0) or 0) or 0)
+                        q += to_number(inv.get("qty", inv.get("数量", 0) or 0))
                 if q > 0:
                     actual[m_name] = q
         # 3d. 比较
@@ -1199,7 +1178,7 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
         g = str(inv.get("goods", "")).strip()
         if any(k in g for k in ("加工费", "委外", "外协", "受托加工", "加工劳务", "加工服务")):
             sup = str(inv.get("seller", inv.get("supplier", inv.get("name", "")) or ""))
-            amt = float(inv.get("amount", 0) or 0)
+            amt = to_number(inv.get("amount", 0))
             processing.append((sup, amt, g, _is_cross_region(sup)))
     if processing and all_products:
         total_amt = sum(p[1] for p in processing)
@@ -1249,10 +1228,10 @@ def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs
     total_qty = 0.0
     total_amt = 0.0
     for inv in inventory:
-        ev = float(inv.get("end_amount", inv.get("end_amt", 0) or 0) or 0)
-        eq = float(inv.get("end_qty", 0) or 0)
-        iq = float(inv.get("in_qty", 0) or 0)
-        ia = float(inv.get("in_amount", inv.get("in_amt", 0) or 0) or 0)
+        ev = to_number(inv.get("end_amount", inv.get("end_amt", 0) or 0))
+        eq = to_number(inv.get("end_qty", 0))
+        iq = to_number(inv.get("in_qty", 0))
+        ia = to_number(inv.get("in_amount", inv.get("in_amt", 0) or 0))
         total_end_val += ev
         total_end_qty += eq
         total_qty += iq
@@ -1276,7 +1255,7 @@ def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs
     contracts_no_area = []
     for c in contracts:
         try:
-            a = float(c.get("area", 0) or 0)
+            a = to_number(c.get("area", 0))
         except (TypeError, ValueError):
             a = 0.0
         if a > 0:
@@ -1317,7 +1296,7 @@ def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs
         for t in bank_txs:
             raw = str(t.get("raw", "")) + str(t.get("summary", "")) + str(t.get("desc", "")) + str(t.get("remark", ""))
             if any(k in raw for k in rent_kws):
-                amt = float(t.get("amount", t.get("debit", 0) or 0) or 0)
+                amt = to_number(t.get("amount", t.get("debit", 0) or 0))
                 if amt > 0:
                     annual_rent += amt
     # 市场租金（元/㎡/年）：中山等珠三角仓储约 200~360 元/㎡/年
@@ -1401,14 +1380,14 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
         for t in bank_txs:
             raw = str(t.get("raw", "")) + str(t.get("summary", "")) + str(t.get("desc", "")) + str(t.get("remark", ""))
             if any(k in raw for k in transport_kws):
-                amt = float(t.get("amount", t.get("debit", 0) or 0) or 0)
+                amt = to_number(t.get("amount", t.get("debit", 0) or 0))
                 if amt > 0:
                     actual_transport += amt
     # 进项运输类发票
     for inv in (pur_invs or []):
         g = str(inv.get("goods", "")).strip()
         if any(k in g for k in ("运输", "物流", "货运", "运费", "装卸", "承运")):
-            actual_transport += float(inv.get("amount", 0) or 0)
+            actual_transport += to_number(inv.get("amount", 0))
 
     # ── 2. 货值（仅实物购销，排除纯服务） ──
     service_kws = ["加工费", "委外", "咨询", "服务费", "广告", "利息", "工资", "租赁", "物业", "水电", "会务", "培训", "研发"]
@@ -1426,7 +1405,7 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
                 continue
             if any(s in g for s in service_kws):
                 continue
-            amt = float(inv.get("amount", 0) or 0)
+            amt = to_number(inv.get("amount", 0))
             if amt <= 0:
                 continue
             goods_value += amt
@@ -1454,7 +1433,7 @@ def _domain_transport_necessity(bank_txs, sal_invs, pur_invs, target_industry=""
     contract_freight = 0.0
     for c in tc:
         try:
-            contract_freight += float(c.get("freight", 0) or 0)
+            contract_freight += to_number(c.get("freight", 0))
         except (TypeError, ValueError):
             pass
     bearer_str = "；".join(
@@ -1554,7 +1533,7 @@ def _domain_tax_consistency(bank_txs, db, company_id):
     vat = db.query(VATDeclaration).filter(VATDeclaration.company_id == company_id).order_by(VATDeclaration.period.desc()).first()
     if vat:
         main = json.loads(vat.form_main or '{}') if isinstance(vat.form_main, str) else (vat.form_main or {})
-        payable = float(main.get("row19_tax_payable", 0) or 0)
+        payable = to_number(main.get("row19_tax_payable", 0))
         if payable > 0 and tax_paid > 0 and abs(payable - tax_paid) > 100:
             diff = abs(payable - tax_paid)
             findings.append({"type": "缴税与申报不一致", "level": "高风险" if diff>T.amount_thresholds.micro_transaction else "中风险",
@@ -1569,33 +1548,49 @@ def _domain_tax_consistency(bank_txs, db, company_id):
     return findings
 
 def _domain_salary_ss_hf_compare(salaries, social_security):
-    """域8: 工资社保比对（按月归位 + 过滤表头合计行）。
+    """域8: 工资社保比对（按月归位 + 过滤表头合计行 + **单向可查**）。
 
     修复要点（2026-09-04 同源排查）：
     1. 工资/社保名单均过滤表头合计行噪声名（合计/姓名/小计…），避免把标题行当成人员；
     2. 按 (姓名, 所属月份) 归位，『有工资无社保』以『姓名+月份』粒度输出（即把每位员工每个月的
        工资与社保记录逐一对应），满足『按人员身份和所属月份逐人解释』要求，并附逐人逐月
        明细表（observed_metrics.person_month_detail）。
+
+    ★ 2026-09-25 单向可查改造（用户宗旨：「上传了什么资料就查什么资料，而不是等资料齐全才排查」）
+    原实现有两处严重违背宗旨：
+      ① 开头 `if not salaries: return findings` → **只上传社保明细时整域零产出**，
+         使用者会误以为"这家企业工资社保没问题"；
+      ② 只上传工资表、未上传社保明细时，社保名单为空 → 差集＝全部工资人员 →
+         系统直接报出「N 名员工有工资无社保（高风险）」，**把"资料没交"升级成"全员未依法参保"**。
+         这是最危险的一类错误：缺资料被反向读成了违法事实。
+    现在三分支处理：
+      · 两侧都有 → 原差集比对（真正的交叉核验）；
+      · 只有工资表 → 输出**工资侧独立结论**（在册人数/发放总额/人均异常/月份断档），
+        社保部分只列「待补自证」，绝不产出未参保认定；
+      · 只有社保明细 → 输出**社保侧独立结论**（参保人数/基数分布/低于下限），
+        工资部分只列「待补自证」。
     """
     from collections import defaultdict
+    from engine.audit_doctrine import (
+        TERMINAL_IRONCLAD, TERMINAL_SELF_PROOF,
+        attach_three_piece, self_proof_item,
+    )
     findings = []
-    if not salaries:
+    sal_rows = [r for r in (salaries or []) if isinstance(r, dict)]
+    ss_rows = [r for r in (social_security or []) if isinstance(r, dict)]
+    if not sal_rows and not ss_rows:
         return findings
     # ── 按月归位（过滤表头/合计行噪声名）──
     sal_pm, ss_pm = set(), set()
     sal_amt = {}
-    for r in salaries:
-        if not isinstance(r, dict):
-            continue
+    for r in sal_rows:
         n = str(r.get("name", "")).strip()
         if not n or _is_noise_name(n):
             continue
         m = _row_period(r) or "未标注月份"
         sal_pm.add((n, m))
         sal_amt[(n, m)] = _number(r.get("salary") or r.get("wage") or r.get("应发") or r.get("gross"))
-    for r in (social_security or []):
-        if not isinstance(r, dict):
-            continue
+    for r in ss_rows:
         n = str(r.get("name", "")).strip()
         if not n or _is_noise_name(n):
             continue
@@ -1603,6 +1598,131 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
         ss_pm.add((n, m))
     sal_names = {n for n, _ in sal_pm}
     ss_names = {n for n, _ in ss_pm}
+
+    # ══════════ 分支A：只有工资表（无社保明细）—— 单向查工资，社保转待补自证 ══════════
+    if sal_pm and not ss_pm:
+        months = sorted({m for _, m in sal_pm if m != "未标注月份"})
+        total = sum(to_number(v) for v in sal_amt.values())
+        avg = total / len(sal_pm) if sal_pm else 0.0
+        monthly = defaultdict(float)
+        for (n, m), v in sal_amt.items():
+            if m != "未标注月份":
+                monthly[m] += to_number(v)
+        findings.append(attach_three_piece({
+            "type": "工资表已单独核验（社保参保情况待补证）",
+            "level": "待核验", "score": 3,
+            "how_found": "本轮仅提供工资表、未提供社保明细。已对工资表做自身可独立完成的核验："
+                         "按人员去重计在册人数（剔除合计/小计等表头噪声名）、按费款所属期归位汇总"
+                         "发放总额与人均，并检查发放月份是否存在断档。",
+            "detail": f"工资表核验：在册人员 {len(sal_names)} 人、共 {len(sal_pm)} 组『姓名+月份』记录，"
+                      f"发放总额 {total:,.2f} 元、人均 {avg:,.2f} 元，覆盖月份 "
+                      f"{'、'.join(months) if months else '未标注'}（{len(months)} 个月）。"
+                      f"该结果可与个税扣缴申报人数、企业所得税工资薪金税前扣除额进一步核对。",
+            "description": "工资表本身已按现有资料核验完毕，未发现内部矛盾。"
+                           "需要说明的是：**是否依法参保属于「工资表 × 社保明细」的交叉判断**，"
+                           "本轮未提供社保明细，因此系统不会、也不应据此推断任何未参保事实 —— "
+                           "社保名单为空只代表资料未提交，不构成违规证据。",
+            "tax_impact": "本项为已核验事实，尚不产生税务影响；若后续提供的社保明细显示"
+                          "参保人员/基数与工资表不符，再按届时事实另行判定。",
+            "policy_ref": "《个人所得税法》关于扣缴申报的规定；《企业所得税法实施条例》第三十四条。",
+            "category": "域8 工资社保",
+            "observed_metrics": {
+                "salary_person_count": len(sal_names),
+                "salary_person_month_count": len(sal_pm),
+                "salary_total": round(total, 2),
+                "salary_avg": round(avg, 2),
+                "salary_months": months,
+                "cross_check_blocked": "social_security",
+            },
+        },
+            resolve_steps=[
+                "提供本轮工资表所属期间的社保参保缴费明细，由系统完成『工资人数 vs 参保人数』『工资额 vs 缴费基数』交叉比对；",
+                "若存在未参保人员，请同时提供对应身份依据（退休返聘协议/劳务派遣协议/非全日制用工说明/实习协议等），用于证明用工关系性质；",
+                "比对一致即可自证清白；比对不一致时系统再按补充后的事实另行出具结论。",
+            ],
+            self_proof=[
+                self_proof_item("社保明细", "证明参保人员名单、缴费基数与缴存月份，核对与工资表人数、金额是否一致", "社保经办机构·单位参保缴费明细/税务社保费申报表"),
+                self_proof_item("劳动合同", "证明用工关系与人员身份（退休返聘、劳务派遣、非全日制等特殊情形）", "人事档案留存"),
+                self_proof_item("银行流水", "证明工资实际发放的对方、金额与时间（工资表真实性佐证）", "开户行导出"),
+            ],
+            terminal_state=TERMINAL_SELF_PROOF,
+        ))
+        return findings
+
+    # ══════════ 分支B：只有社保明细（无工资表）—— 单向查社保，工资侧转待补自证 ══════════
+    if ss_pm and not sal_pm:
+        bases = []
+        for r in ss_rows:
+            b = _number(r.get("base") or r.get("缴费基数") or r.get("base_amount"))
+            if b > 0:
+                bases.append(b)
+        months = sorted({m for _, m in ss_pm if m != "未标注月份"})
+        low = [b for b in bases if b <= 0]
+        findings.append(attach_three_piece({
+            "type": "社保明细已单独核验（工资发放情况待补证）",
+            "level": "待核验", "score": 3,
+            "how_found": "本轮仅提供社保明细、未提供工资表。已对社保明细做自身可独立完成的核验："
+                         "按人员去重计参保人数、统计缴费基数分布与缴存月份，并检查缴存月份是否断档。",
+            "detail": f"社保明细核验：参保人员 {len(ss_names)} 人、共 {len(ss_pm)} 组『姓名+月份』记录，"
+                      f"有缴费基数记录 {len(bases)} 条"
+                      + (f"（区间 {min(bases):,.2f}~{max(bases):,.2f} 元，"
+                         f"其中低于当地社平下限的记录 {len(low)} 条）" if bases else "（未见缴费基数字段）")
+                      + f"，覆盖月份 {'、'.join(months) if months else '未标注'}。"
+                      + "该结果可与工资表人数、个税扣缴申报人数进一步核对。",
+            "description": "社保明细本身已按现有资料核验完毕，未发现内部矛盾。"
+                           "**「参保基数是否低于实际工资」属于「社保 × 工资表」的交叉判断**，"
+                           "本轮未提供工资表，因此系统不会、也不应据社保基数单独推断低基数参保。",
+            "tax_impact": "本项为已核验事实，尚不产生税务影响；须与工资表比对后方能判定基数合规性。",
+            "policy_ref": "《社会保险法》第十二条、第三十五条、第五十八条。",
+            "category": "域8 工资社保",
+            "observed_metrics": {
+                "ss_person_count": len(ss_names),
+                "ss_person_month_count": len(ss_pm),
+                "ss_base_count": len(bases),
+                "ss_base_min": round(min(bases), 2) if bases else None,
+                "ss_base_max": round(max(bases), 2) if bases else None,
+                "ss_months": months,
+                "cross_check_blocked": "salaries",
+            },
+        },
+            resolve_steps=[
+                "提供本轮社保所属期间的工资表（含人员姓名与所属月份），由系统完成『参保人数 vs 发薪人数』『缴费基数 vs 实发工资』交叉比对；",
+                "若参保人数少于发薪人数，请提供未参保人员的身份依据（退休返聘/劳务派遣/非全日制/实习）以说明性质；",
+                "比对一致即可自证清白。",
+            ],
+            self_proof=[
+                self_proof_item("工资表", "证明实际发放工资的人员、金额与所属月份，核对参保人数与缴费基数是否匹配", "财务/人事工资册"),
+                self_proof_item("劳动合同", "证明参保人员与用工关系（判断是否属应保未保）", "人事档案留存"),
+                self_proof_item("纳税申报表", "证明个税扣缴申报人数，核对与参保人数是否一致", "电子税务局·扣缴申报明细"),
+            ],
+            terminal_state=TERMINAL_SELF_PROOF,
+        ))
+        # 社保基数下限以下：社保侧单边即可发现（无需工资表），但仍须与工资表比对后才能定性
+        for r in ss_rows:
+            n = str(r.get("name", "")).strip()
+            if not n or _is_noise_name(n):
+                continue
+            b = _number(r.get("base") or r.get("缴费基数") or r.get("base_amount"))
+            if 0 < b:
+                continue
+            m = _row_period(r)
+            findings.append(attach_three_piece({
+                "type": "社保缴费基数异常或缺失", "level": "待核验", "score": 3,
+                "how_found": "扫描社保明细的缴费基数字段，筛出基数缺失或非正数的记录（社保明细单侧即可完成）。",
+                "detail": f"{n}（{m or '未标注月份'}）的缴费基数缺失或为 0，无法核验其基数合规性。",
+                "description": "该记录缺缴费基数，属资料本身不完整；**缺字段不等于低基数参保**，"
+                               "需企业提供完整明细后方可判定。",
+                "tax_impact": "待补全数据后另行判定。",
+                "policy_ref": "《社会保险法》第十二条、第三十五条。",
+                "category": "域8 工资社保",
+                "observed_metrics": {"person": n, "month": m},
+            },
+                resolve_steps=["提供含完整缴费基数（及上下限比对口径）的社保缴费明细后重新分析。"],
+                self_proof=[self_proof_item("社保明细", "证明缴费基数的完整取值，用于核验是否低于下限", "社保经办机构导出")],
+                terminal_state=TERMINAL_SELF_PROOF,
+            ))
+            break
+        return findings
     # 社保是否含月份维度：决定「有工资无社保」以人员级还是人月级判定
     ss_has_month = any(m != "未标注月份" for _, m in ss_pm)
     if ss_has_month:
@@ -1620,7 +1740,7 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
                 person_months[n].append(m)
         month_txt = "；".join("{0}（{1}）".format(n, "、".join(ms)) for n, ms in person_months.items()) \
             or "（社保清单未标注月份，无法按月核验，仅按人员级判定）"
-        findings.append({
+        findings.append(attach_three_piece({
             "type": "有工资无社保", "level": "高风险", "score": 8,
             "how_found": "将工资表与社保明细按 (姓名, 所属月份) 归位后做集合差集，找出『有工资但对应月份无社保记录』的姓名+月份配对项（即『某员工某月有工资无社保』的组合，已剔除合计/姓名/小计等表头行）。",
             "detail": f"{len(uninsured_persons)}名员工存在『有工资发放但对应月份无社保记录』：{month_txt}。根据《社会保险法》用人单位应自用工之日起三十日内为职工办理社保登记，属典型的未依法参保待证线索。",
@@ -1634,8 +1754,22 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
                 "uninsured_person_month_count": len(uninsured),
                 "person_month_detail": detail_rows,
             },
-        })
+        },
+            resolve_steps=[
+                f"核实这 {len(uninsured_persons)} 名人员未参保的原因并分情形处理：应保未保的立即补缴社保并加收滞纳金；属特殊用工身份的备齐佐证材料后不认定为未参保。",
+                "补齐「用工身份」证据链：劳动合同 + 工资发放银行流水 + 个税扣缴申报明细，三者人员名单须一致。",
+                "在申报口径上完成更正：个税扣缴申报人数、工资表人数、社保参保人数三方对齐；更正后重新执行一键分析，由系统复查原差异是否消除。",
+            ],
+            self_proof=[
+                self_proof_item("劳动合同", "证明用工关系成立与性质（判断是否属应保未保；退休返聘/劳务派遣/非全日制不适用单位参保）", "人事档案留存"),
+                self_proof_item("社保明细", "证明这些人员在其他主体或参保地已参保（避免重复认定）", "社保经办机构参保证明/个人权益记录单"),
+                self_proof_item("银行流水", "证明工资实际发放的对方、金额与时间（核对人员真实性）", "开户行导出"),
+                self_proof_item("纳税申报表", "证明个税扣缴申报的人数与金额口径", "电子税务局·扣缴申报明细"),
+            ],
+            terminal_state=TERMINAL_IRONCLAD,
+        ))
     # 社保低基数参保（逐人按月比对，过滤噪声名）
+
     for r in (social_security or []):
         if not isinstance(r, dict):
             continue
@@ -1653,7 +1787,7 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
                     salary = v
                     break
         if salary and base < salary * 0.6:
-            findings.append({
+            findings.append(attach_three_piece({
                 "type": "社保低基数参保", "level": "中风险", "score": 6,
                 "how_found": "逐人按月比对工资表的工资金额与社保明细的缴费基数，缴费基数<实际工资60%触发预警。",
                 "detail": f"{n}：工资{salary:,.2f}元，社保缴费基数仅{base:,.2f}元（{base/salary*100:.2f}%）。",
@@ -1661,7 +1795,19 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
                 "tax_impact": "低基数参保被查处后需补缴差额及滞纳金，并可能被认定为恶意规避社保义务面临罚款。",
                 "policy_ref": "《社会保险法》第十二条、第三十五条关于缴费基数的规定。",
                 "suggestion": f"1）按员工实际工资调整{n}的社保缴费基数；2）全面排查其他员工是否存在类似低基数问题；3）建立工资变动与社保基数联动的内控制度。",
-                "category": "域8 工资社保"})
+                "category": "域8 工资社保"},
+                resolve_steps=[
+                    f"核实{n}的社保缴费基数核定口径：若上年度月平均工资确实低于本月发放额，提供上年度工资台账即可解释该差异。",
+                    "若确属低基数：按实际工资申报调整缴费基数并补缴差额及滞纳金，留存调整凭证。",
+                    "建立「工资变动 → 社保基数联动」的内控动作，并在下一轮分析中复查是否仍存在偏离。",
+                ],
+                self_proof=[
+                    self_proof_item("工资表", "证明实际发放工资的金额与所属月份（基数核定基准）", "财务/人事工资册"),
+                    self_proof_item("社保明细", "证明缴费基数的实际取值与调整记录", "社保经办机构导出"),
+                    self_proof_item("纳税申报表", "证明个税扣缴申报的工资口径，与社保基数核定口径对照", "电子税务局·扣缴申报明细"),
+                ],
+                terminal_state=TERMINAL_IRONCLAD,
+            ))
     return findings
 
 def _domain_invoice_lifecycle(invoices):
@@ -1722,7 +1868,7 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
 
     # ═══ 守卫: 进项发票和银行流水全空 → 无法判断费用是否真实缺失（可能是文件解析失败） ═══
     if not pur_invs and not bank_txs:
-        findings.append({"type": "资料缺失-无法执行经营实质分析", "level": "高风险", "score": 8,
+        findings.append({"type": "资料缺失-无法执行经营实质分析", "level": "待核验", "score": 8,
             "detail": "进项发票和银行流水数据均为空，无法验证六项基础经营费用和业务真实性。",
             "description": "经营实质分析依赖进项发票（检测采购、租赁、水电、物流等基础费用）和银行流水（验证资金流向真实性）。两项数据同时缺失意味着：无法判断企业是否实际发生经营费用、无法验证是否存在真实经营场所、无法排除空壳企业或账外经营的可能。税务风险检查中，无法提供经营费用凭证是企业缺乏实际经营能力的最强信号之一。",
             "tax_impact": "无法验证经营实质是税务机关认定虚开发票或空壳企业的关键依据。一般纳税人资格可能被取消，已抵扣进项税额需转出。",
@@ -1839,7 +1985,7 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
             if any(k in g for k in ("加工费", "委外", "外协", "受托加工")):
                 r = invoice_region(inv)
                 if r and _outside and r in _outside:
-                    _out_proc.append((r, float(inv.get("amount", 0) or 0)))
+                    _out_proc.append((r, to_number(inv.get("amount", 0))))
         _out_proc_amount = sum(a for _, a in _out_proc)
         _out_proc_provs = sorted({r for r, _ in _out_proc})
     except Exception:
@@ -1882,8 +2028,8 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
             "category": "域12 经营实质"})
 
     # ═══════ 维度2: 收入-费用弹性系数检测 ═══════
-    total_sales = sum(float(i.get("total", 0) or 0) for i in sal_invs) if sal_invs else 0
-    total_purchases = sum(float(i.get("total", 0) or 0) for i in pur_invs) if pur_invs else 0
+    total_sales = sum(to_number(i.get("total", 0)) for i in sal_invs) if sal_invs else 0
+    total_purchases = sum(to_number(i.get("total", 0)) for i in pur_invs) if pur_invs else 0
     bank_in = sum(tx["credit"] for tx in bank_txs) if bank_txs else 0
     bank_out = sum(tx["debit"] for tx in bank_txs) if bank_txs else 0
 
@@ -2025,7 +2171,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
     if total_parsed_docs == 0 and docs_list:
         findings.append({
             "type": "文件解析失败",
-            "level": "高风险", "score": 10,
+            "level": "待核验", "score": 10,
             "detail": f"{len(docs_list)}个文件全部解析失败，无法评估资料完备度。",
             "description": "所有上传的文件均未能提取到结构化数据。这通常是因为：(1)文件格式不是财税标准模板——如简单的记账表格、非标准报表、截图嵌入Excel等；(2)表头列名与系统识别的关键词不匹配；(3)数据行在Sheet中的位置异常。注意：系统已识别到文件并进行了分析尝试，但无法提取有效数据。这不意味着企业真实缺失这些资料，而是系统无法解析当前文件格式。",
             "how_found": f"读取了被查单位提交的{len(docs_list)}个文件，但所有文件均无法提取到结构化数据——文件格式与系统预期模板不匹配，不是企业缺资料。",
@@ -2077,7 +2223,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
         _goods_amount = 0.0
         for inv in pur_invs:
             g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
-            amt = float(inv.get("amount", inv.get("total", 0)) or 0)
+            amt = to_number(inv.get("amount", inv.get("total", 0)))
             # 排除消费品
             if any(kw in g for kw in _REIMBURSEMENT_KWS_GLOBAL):
                 continue
@@ -2087,7 +2233,7 @@ def _domain_document_completeness(docs_list, bank_txs, sal_invs, pur_invs, salar
             # 剩余的=实物商品
             _goods_count += 1
             _goods_amount += amt
-        total_amount = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in pur_invs)
+        total_amount = sum(to_number(inv.get("amount", inv.get("total", 0))) for inv in pur_invs)
         _goods_ratio = _goods_amount / total_amount if total_amount > 0 else 0
         # 实物商品占比>10%且金额>5000→需要进销存台账
         _needs_inventory = _goods_count >= 3 and _goods_ratio > 0.10
@@ -2331,7 +2477,7 @@ def _analyze_contract_tiers(pur_invs, sal_invs):
     for inv in pur_invs:
         seller = str(inv.get('seller','') or inv.get('销方名称','')).strip()
         goods = str(inv.get('goods','') or inv.get('货物或应税劳务名称','')).strip()
-        amt = float(inv.get('amount', 0) or 0)
+        amt = to_number(inv.get('amount', 0))
         if seller and len(seller) >= 4:
             supplier_goods[seller].add(goods)
             supplier_amt[seller] += amt
@@ -2399,7 +2545,7 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
         inv_sellers = defaultdict(float)
         for inv in pur_invs:
             s = str(inv.get("seller", ""))[:20]
-            if s: inv_sellers[s] += float(inv.get("total", 0) or 0)
+            if s: inv_sellers[s] += to_number(inv.get("total", 0))
 
         # 找出：银行有付款但无进项发票 或 有进项发票但银行无付款
         pay_no_inv = []
@@ -2447,11 +2593,11 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
         inv_buyers = defaultdict(float)
         for inv in sal_invs:
             b = str(inv.get("buyer", ""))[:20]
-            if b: inv_buyers[b] += float(inv.get("total", 0) or 0)
+            if b: inv_buyers[b] += to_number(inv.get("total", 0))
 
         # 银行收款 vs 销项开票
         bank_income = sum(tx["credit"] for tx in bank_txs)
-        inv_income = sum(float(inv.get("total", 0) or 0) for inv in sal_invs)
+        inv_income = sum(to_number(inv.get("total", 0)) for inv in sal_invs)
         if inv_income > 0 and bank_income > 0:
             gap = abs(bank_income - inv_income)
             gap_pct = gap / max(inv_income, 1) * 100
@@ -2500,14 +2646,14 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
     if bank_txs and sal_invs:
         import json
         tax_from_bank = sum(tx["debit"] for tx in bank_txs if "税务" in tx.get("raw", ""))
-        vat_output = sum(float(inv.get("tax", 0) or 0) for inv in sal_invs)
-        vat_input = sum(float(inv.get("tax", 0) or 0) for inv in pur_invs)
+        vat_output = sum(to_number(inv.get("tax", 0)) for inv in sal_invs)
+        vat_input = sum(to_number(inv.get("tax", 0)) for inv in pur_invs)
         vat_net = vat_output - vat_input
         vat_rec = db.query(VATDeclaration).filter(VATDeclaration.company_id == company_id).order_by(VATDeclaration.period.desc()).first()
         vat_payable = 0
         if vat_rec:
             main = json.loads(vat_rec.form_main or '{}') if isinstance(vat_rec.form_main, str) else (vat_rec.form_main or {})
-            vat_payable = float(main.get("row19_tax_payable", 0) or 0)
+            vat_payable = to_number(main.get("row19_tax_payable", 0))
         if tax_from_bank > 0 and vat_payable > 0:
             findings.append({
                 "type": "税务四源交叉比对",
@@ -2543,7 +2689,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
         missing = []
         if not bank_txs: missing.append("银行流水")
         if not sal_invs: missing.append("销项发票")
-        findings.append({"type": "资料缺失-无法执行客户收入穿透分析", "level": "中风险", "score": 6,
+        findings.append({"type": "资料缺失-无法执行客户收入穿透分析", "level": "待核验", "score": 6,
             "detail": f"缺少{'、'.join(missing)}数据，无法进行逐客户收入-收款三源交叉验证。",
             "description": f"客户收入穿透分析需要同时具备销项发票（获取开票金额和买方名称）和银行流水（获取实际收款金额和付款方名称），以实现逐客户维度的三源交叉验证（开票金额 vs 银行收款金额 vs 合同金额）。缺少{'、'.join(missing)}将导致无法识别：客户少收款/多收款、付款方与开票对象不匹配（代付/两套账嫌疑）、未开票大额收款（隐匿收入）。",
             "tax_impact": "客户维度的收入-收款不匹配是隐匿收入和两套账的核心识别手段。跳过此分析可能导致重大收入隐匿未被发现。",
@@ -2559,7 +2705,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
         if not buyer or len(buyer) < 2:
             continue
         key = buyer[:30]  # 取前30字作为匹配键
-        amt = float(inv.get("total", 0) or inv.get("amount", 0) or 0)
+        amt = to_number(inv.get("total", 0) or inv.get("amount", 0))
         inv_by_buyer[key]["total"] += amt
         inv_by_buyer[key]["count"] += 1
         inv_by_buyer[key]["goods"].add(str(inv.get("goods", "")).strip()[:30])
@@ -2574,8 +2720,8 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
         if not cp or len(cp) < 2:
             continue
         key = cp[:30]
-        credit = float(tx.get("credit", 0) or 0)
-        debit = float(tx.get("debit", 0) or 0)
+        credit = to_number(tx.get("credit", 0))
+        debit = to_number(tx.get("debit", 0))
         bank_by_payer[key]["credit"] += credit
         bank_by_payer[key]["debit"] += debit
         bank_by_payer[key]["count"] += 1
@@ -2594,7 +2740,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
             party = str(ct.get("counterparty", "")).strip()
             if not party: continue
             key = party[:30]
-            amt = float(ct.get("amount", 0) or 0)
+            amt = to_number(ct.get("amount", 0))
             contract_by_party[key]["amount"] += amt
             contract_by_party[key]["count"] += 1
     
@@ -3013,7 +3159,7 @@ def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_securi
     # ── 规则5: 员工人均效能检测 ──
     if salaries and sal_invs:
         emp_count = len(set(s.get("name", "") for s in salaries))
-        total_revenue = sum(float(inv.get("total", 0) or 0) for inv in sal_invs)
+        total_revenue = sum(to_number(inv.get("total", 0)) for inv in sal_invs)
         if emp_count > 0 and total_revenue > 0:
             rev_per_person = total_revenue / emp_count
             findings.append({
@@ -3074,7 +3220,7 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
     """对比凭证中主营业务收入（区分开票/未开票）与销项发票收入、银行入账"""
     findings = []
     
-    inv_total = sum(float(i.get("total", 0) or 0) for i in sal_invs)
+    inv_total = sum(to_number(i.get("total", 0)) for i in sal_invs)
     bank_income = sum(tx["credit"] for tx in bank_txs) if bank_txs else 0
     
     vr_total = voucher_rev["total"]
@@ -3441,10 +3587,10 @@ def _domain_revenue_timeline(vouchers, sal_invs, bank_txs):
     for v in vouchers:
         if "主营业务收入" in str(v.get("account", "")):
             date_str = str(v.get("date", ""))
-            credit = float(v.get("credit", 0) or 0)
-            if credit > 0 and len(date_str) >= 6:
-                month = date_str[:6]
-                rev_by_month[month] += credit
+            credit = to_number(v.get("credit", 0))
+            _mk = _month_key(date_str)
+            if credit > 0 and _mk:
+                rev_by_month[_mk] += credit
     
     if len(rev_by_month) >= 2:
         months = sorted(rev_by_month.keys())
@@ -3465,9 +3611,9 @@ def _domain_revenue_timeline(vouchers, sal_invs, bank_txs):
     # 销项发票时间分布
     inv_by_month = defaultdict(float)
     for inv in sal_invs:
-        dt = str(inv.get("date", "") or inv.get("invoice_date", ""))
-        if len(dt) >= 6:
-            inv_by_month[dt[:6]] += float(inv.get("total", 0) or 0)
+        _mk = _month_key(inv.get("date", "") or inv.get("invoice_date", ""))
+        if _mk:
+            inv_by_month[_mk] += to_number(inv.get("total", 0))
     
     if inv_by_month and rev_by_month:
         # 对比开票收入与主营业务收入的月度差异
@@ -3500,7 +3646,7 @@ def _domain_supplier_profiling(pur_invs, bank_txs):
     """对核心供应商做深度画像: 交易频率/金额/时间/资金匹配"""
     findings = []
     if not pur_invs:
-        findings.append({"type": "资料缺失-进项发票", "level": "中风险", "score": 6,
+        findings.append({"type": "资料缺失-进项发票", "level": "待核验", "score": 6,
             "detail": "未提供进项发票数据，无法进行供应商深度画像分析。",
             "description": "缺少进项发票数据，导致无法进行供应商交易频率、金额分布、时间模式和资金匹配分析。进项发票是验证采购真实性和供应商合规性的核心依据。缺失原因可能包括：未上传发票文件、进项数据为空（全部为无票采购）。",
             "tax_impact": "无法验证供应商的真实性和交易合理性，存在虚开发票、无票采购、成本虚增等风险无法识别。",
@@ -3514,9 +3660,10 @@ def _domain_supplier_profiling(pur_invs, bank_txs):
         name = str(inv.get("seller", ""))[:30].strip()
         if not name: continue
         supplier_stats[name]["count"] += 1
-        supplier_stats[name]["total"] += float(inv.get("total", 0) or 0)
-        dt = str(inv.get("date", "") or inv.get("invoice_date", ""))
-        if len(dt) >= 6: supplier_stats[name]["months"].add(dt[:6])
+        supplier_stats[name]["total"] += to_number(inv.get("total", 0))
+        _mk = _month_key(inv.get("date", "") or inv.get("invoice_date", ""))
+        if _mk:
+            supplier_stats[name]["months"].add(_mk)
     
     # 画像1: 高频低额供应商（刷票嫌疑）
     for name, s in supplier_stats.items():
@@ -3556,7 +3703,7 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity=None):
     """绘制资金流向图: 谁在给企业钱→企业把钱给了谁"""
     findings = []
     if not bank_txs:
-        findings.append({"type": "资料缺失-银行流水", "level": "中风险", "score": 6,
+        findings.append({"type": "资料缺失-银行流水", "level": "待核验", "score": 6,
             "detail": "未提供银行流水数据，无法进行资金流向追踪分析。",
             "description": "缺少银行账户交易流水，导致无法绘制资金流向图、无法核实付款方身份是否为企业法定代表人或关联方、无法验证资金回流风险。银行流水是税务风险检查中验证资金真实性的核心依据。",
             "tax_impact": "无法识别资金回流、账外资金循环、个人账户收款等高风险行为。资金流向不透明是税务机关认定偷逃税的重要线索。",
@@ -3585,8 +3732,8 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity=None):
         cp = str(tx.get("counterparty", "")).strip()
         cp = _normalize_counterparty_name(cp)
         if not cp: continue
-        credit = float(tx.get("credit", 0) or 0)
-        debit = float(tx.get("debit", 0) or 0)
+        credit = to_number(tx.get("credit", 0))
+        debit = to_number(tx.get("debit", 0))
         if credit > 0: payers[cp] += credit
         if debit > 0: payees[cp] += debit
         
@@ -3723,7 +3870,7 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
     """人员画像: 人数规模与业务量匹配、薪酬结构合理性"""
     findings = []
     if not salaries:
-        findings.append({"type": "资料缺失-工资表", "level": "中风险", "score": 5,
+        findings.append({"type": "资料缺失-工资表", "level": "待核验", "score": 5,
             "detail": "未提供工资表/薪酬数据，无法进行人员画像分析。",
             "description": "缺少员工工资数据，导致无法分析人数规模与业务量的匹配度、薪酬结构合理性（高管/普通员工比例）、人均产出等关键指标。工资表是验证企业真实用工规模和社保缴纳情况的基础。",
             "tax_impact": "无法识别虚列人员工资、少缴社保、个税申报不实等风险。",
@@ -3733,7 +3880,7 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
     
     # 提取员工姓名和薪资（过滤表头/合计行噪声名，避免把合计/姓名/小计算作人员）
     emp_count = len(_clean_emp_names(salaries))
-    total_salary = sum(float(s.get("salary", 0) or 0) for s in salaries)
+    total_salary = sum(to_number(s.get("salary", 0)) for s in salaries)
     avg_salary = total_salary / max(emp_count, 1)
     
     # 人均营收
@@ -3788,7 +3935,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
         missing = []
         if not pur_invs: missing.append("进项发票")
         if not bank_txs: missing.append("银行流水")
-        findings.append({"type": "资料缺失-无法执行三角链验证", "level": "中风险", "score": 7,
+        findings.append({"type": "资料缺失-无法执行三角链验证", "level": "待核验", "score": 7,
             "detail": f"缺少{'、'.join(missing)}数据，无法进行发票→入库→付款三角链时间一致性验证。",
             "description": f"三角链验证需要同时具备进项发票、存货台账和银行流水三方数据才能验证采购时间→入库时间→付款时间的逻辑一致性。缺少{'、'.join(missing)}将导致无法识别以下风险：先入库后开票的时间倒挂、无采购发票却有库存入库（虚增存货）、有付款无入库（虚假采购）。",
             "tax_impact": "三角链不一致是虚开发票和虚假交易的重要识别手段，缺失此分析将大幅降低风险检查深度。",
@@ -3803,7 +3950,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
         cp = str(tx.get("counterparty", "")).strip()
         cp = _normalize_counterparty_name(cp)
         if not cp: continue
-        debit = float(tx.get("debit", 0) or 0)
+        debit = to_number(tx.get("debit", 0))
         dt = str(tx.get("date", ""))
         if debit > 0 and len(dt) >= 8: pay_timeline[cp].append(dt)
     
@@ -3854,7 +4001,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
     biz_cost_invs = core_invs + major_invs  # 需匹配：核心成本+重大费用
     reimb_invs = minor_invs                  # 无需匹配：日常报销
     reimb_count = len(reimb_invs)
-    reimb_total = sum(float(inv.get("total", 0) or 0) for inv in reimb_invs)
+    reimb_total = sum(to_number(inv.get("total", 0)) for inv in reimb_invs)
     
     if reimb_count > 0:
         findings.append({
@@ -3894,7 +4041,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
     amt_mismatch = 0
     for inv in biz_cost_invs:
         seller = str(inv.get("seller", ""))[:30].strip()
-        inv_total = float(inv.get("total", 0) or 0)
+        inv_total = to_number(inv.get("total", 0))
         if not seller or inv_total <= 0: continue
         found = False
         for cp, dates in pay_timeline.items():
@@ -3907,7 +4054,7 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
         unmatched_invs = []
         for inv in biz_cost_invs:
             seller = str(inv.get("seller", ""))[:30].strip()
-            inv_total = float(inv.get("total", 0) or 0)
+            inv_total = to_number(inv.get("total", 0))
             if not seller or inv_total <= 0: continue
             found = False
             for cp, dates in pay_timeline.items():
@@ -3921,8 +4068,8 @@ def _domain_triangle_invoice_inventory_payment(pur_invs, inventory, bank_txs):
                 })
         
         total_unmatched = sum(inv["amount"] for inv in unmatched_invs)
-        total_biz_cost = sum(float(inv.get("total", 0) or 0) for inv in biz_cost_invs)
-        total_pur = sum(float(inv.get("total", 0) or 0) for inv in pur_invs)
+        total_biz_cost = sum(to_number(inv.get("total", 0)) for inv in biz_cost_invs)
+        total_pur = sum(to_number(inv.get("total", 0)) for inv in pur_invs)
         pct = total_unmatched / max(total_biz_cost, 1) * 100
         reimb_excluded_note = f"（已排除日常费用报销{reimb_count}张{reimb_total:,.2f}元——餐饮住宿汽油等以报销形式支付，不参与供应商名称匹配）" if reimb_count > 0 else ""
         
@@ -4006,7 +4153,7 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
         missing = []
         if not invoices: missing.append("发票")
         if not bank_txs: missing.append("银行流水")
-        findings.append({"type": "资料缺失-经营实质地理分析无法执行", "level": "中风险", "score": 7,
+        findings.append({"type": "资料缺失-经营实质地理分析无法执行", "level": "待核验", "score": 7,
             "detail": f"缺少{'、'.join(missing)}数据，无法进行经营实质地理分布分析。",
             "description": f"经营实质地理分析需要发票（提取客户/供应商/加工商所在地）和银行流水（验证资金流向）双重数据。缺少{'、'.join(missing)}将导致无法检测：供应商集中度过高、客户与供应商地理分布不合理、物流成本缺失、经营链条地理异常等核心风险。",
             "tax_impact": "经营实质地理分析是识别虚开发票、空壳企业、无实际经营场所的重要手段。跳过此分析可能导致严重的虚开风险未被发现。",
@@ -4264,24 +4411,88 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
 # ═══════════ 税务合规队: 红冲作废发票追踪 ═══════════
 
 def _domain_red_void_invoice(invoices):
-    """追踪红冲/作废发票——是正常冲销还是销毁证据"""
+    """追踪红冲/作废发票——区分法定红冲更正、作废与折扣折让，附逐笔明细与判定标准。"""
     findings = []
-    red_void = [i for i in invoices if any(kw in str(i.get("status",""))+str(i.get("remark","")) 
+    red_void = [i for i in invoices if any(kw in str(i.get("status",""))+str(i.get("remark",""))
                 for kw in ["红冲","作废","红色","冲红"])]
-    
+
     if len(red_void) >= 3:
-        total_red = sum(float(i.get("total",0) or 0) for i in red_void)
+        total_red = sum(to_number(i.get("total",0)) for i in red_void)
+        # 拆分：作废 vs 红冲（红字发票）。作废以"作废"关键词识别；其余红冲关键词归红字发票。
+        void_ids = {id(i) for i in red_void
+                    if "作废" in str(i.get("status",""))+str(i.get("remark",""))}
+        red_list = [i for i in red_void if id(i) not in void_ids]
+        n_red, n_void = len(red_list), len(void_ids)
+        # 判定依据：红字发票须附《红字发票信息确认单》（数电票）/《红字增值税专用发票信息表》（专票）；
+        # 折扣折让不另开红票，而是在同一张蓝票上"折扣额紧邻原价款列示"实现。
+        has_confirm = any("红字发票信息确认单" in str(i.get("remark",""))
+                          or "红字增值税专用发票信息表" in str(i.get("remark",""))
+                          or "红字增值税专用发票信息" in str(i.get("remark",""))
+                          for i in red_void)
+        confirm_note = ("本批红字发票备注均含『红字发票信息确认单编号』，"
+                        "判定为凭确认单开具的法定红冲更正，非作废、非折扣折让。") if has_confirm \
+                       else "未检到红字发票信息确认单编号，红冲合规性须逐张核验。"
+
+        detail = (f"共{len(red_void)}张发票涉及红冲/作废：其中红字发票（红冲）{n_red}张、作废{n_void}张，"
+                  f"合计价税合计{total_red:,.2f}元。{confirm_note}")
+
+        # 逐笔明细（按开票日期升序，供报告列示）
+        evidence_rows = []
+        for inv in sorted(red_void, key=lambda x: str(x.get("date",""))):
+            kind = "作废" if id(inv) in void_ids else "红冲"
+            direction = str(inv.get("direction",""))
+            party = inv.get("buyer") if direction == "销项" else inv.get("seller")
+            t = to_number(inv.get("total",0))
+            inv_no = inv.get("inv_no") or inv.get("digital_inv_no") or ""
+            evidence_rows.append({
+                "source": inv.get("file") or ("销项发票" if direction == "销项" else "进项发票"),
+                "counterparty": party or "",
+                "amount": t,
+                "date": str(inv.get("date","")).split(" ")[0] if inv.get("date") else "",
+                "note": f"发票号{inv_no}｜{kind}｜价税合计{t:,.2f}元｜{str(inv.get('remark',''))[:48]}",
+                "ref_label": f"发票号{inv_no}",
+            })
+
         findings.append({
             "type": "红冲/作废发票数量异常",
             "level": "高风险", "score": 8,
-            "detail": f"{len(red_void)}张发票被红冲或作废，涉及金额{total_red:,.2f}元。可能为虚开后销毁证据。",
-            "description": f"发现{len(red_void)}张红冲或作废发票，涉及金额{total_red:,.2f}元。正常经营中红冲和作废率应控制在5%以内。高频红冲/作废是税务机关重点关注的异常信号:\n\n① 虚开发票后红冲——开票给客户后对方不需要发票，己方做红冲注销\n② 当期红冲跨期发票——调节收入跨期分摊\n③ 集中红冲某客户发票——交易纠纷或关系破裂\n④ 作废率异常高于行业水平——内部管理混乱或刻意操作",
-            "how_found": "从发票状态、备注、类型字段搜索'红冲''作废'等关键词，统计数量和金额。>=3张触发。",
+            "detail": detail,
+            "description": (
+                f"检出{len(red_void)}张涉及红冲/作废的发票（红冲{n_red}张、作废{n_void}张），"
+                f"合计价税合计{total_red:,.2f}元。\n\n"
+                f"【红冲 vs 折扣折让 判定标准】\n"
+                f"· 红冲（红字发票）：因开票有误、销货退回、销售折让等，开具红字发票冲销原蓝票；"
+                f"数电票须凭《红字发票信息确认单》、增值税专用发票须凭《红字增值税专用发票信息表》，属法定更正机制，"
+                f"在『备注栏』标注被红冲蓝票号码与确认单编号。\n"
+                f"· 折扣/折让：不另开红票，而是在同一张蓝票上以『折扣额紧邻原价款列示』实现（税控系统按净额计税），"
+                f"不出现红字发票，也不产生确认单编号。\n"
+                f"· 作废：发票开具当月、购方未认证前，在开票系统作废原票（票面标注『作废』）。\n"
+                f"{confirm_note}\n\n"
+                f"【风险提示】红冲/作废本身不等于违法；但集中红冲、跨期红冲、"
+                f"无对应业务终止（无退货/无合同解除）的红冲，是虚开发票与调节收入跨期的重点核查信号，"
+                f"须逐张核验红冲原因与业务终止证据。"
+            ),
+            "how_found": "从发票状态、备注、类型字段搜索'红冲''作废'等关键词，统计数量与金额（>=3张触发）。",
             "tax_impact": "高频红冲→可能被认定为恶意拖延纳税或虚开发票→从严处理。",
-            "suggestion": "逐张核实红冲原因并保留完整的红冲申请单和审批记录。",
-            "category": "发票生命周期"
+            "suggestion": ("逐张核实红冲原因，保留完整的红字发票信息确认单、红冲申请单与审批记录、"
+                          "以及对应的业务终止/退货凭证；作废发票须说明作废时点与原因。"),
+            "evidence_rows": evidence_rows,
+            # ★ 结构化金额（通用改进，非 boss 特例）：使「红冲作废金额」能被企业报告
+            # 的 _extract_finding_exposure（_is_expo_key 命中「红冲/作废」中文字样且不含
+            # total/合计 等上下文排除 token）捕获，进入决策版潜在最大敞口。
+            # 计数键用「_笔数」后缀（落入 _BOSS_KEY_EXCLUDE_TOKEN）避免被误判为金额。
+            "observed_metrics": {
+                "红字发票_笔数": n_red,
+                "作废发票_笔数": n_void,
+                "红冲作废金额": abs(total_red),
+            },
+            "category": "发票生命周期",
+            # ★ 2026-09-26：本域发现即对应红线「红字冲销与作废发票比例异常」，
+            # 显式打上 redline_id 使其与企业报告「发现的依据」段的逐笔明细正确关联
+            # （与 verified_rule_engine 对 VR 发现打 RL-VAT-007 的口径一致，非特例）。
+            "redline_id": "RL-VAT-007"
         })
-    
+
     return findings
 
 
@@ -4291,7 +4502,7 @@ def _domain_profit_cashflow_gap(voucher_rev, bank_txs, pur_invs):
     """账面有利润但银行没钱=虚假利润"""
     findings = []
     if not bank_txs:
-        findings.append({"type": "资料缺失-银行流水", "level": "中风险", "score": 6,
+        findings.append({"type": "资料缺失-银行流水", "level": "待核验", "score": 6,
             "detail": "未提供银行流水数据，无法进行利润-现金流缺口分析。",
             "description": "缺少银行流水数据，无法验证账面利润是否有对应的现金流入支撑。利润-现金流缺口分析是识别虚假收入、应收账款虚增、关联方资金占用等问题的核心手段。缺少此分析意味着无法判断企业经营是否产生真实的现金回报。",
             "tax_impact": "无法识别账面盈利但实际无现金流入的异常情况——这是虚增收入和利润造假的典型特征。",
@@ -4299,12 +4510,12 @@ def _domain_profit_cashflow_gap(voucher_rev, bank_txs, pur_invs):
             "category": "域12 经营实质"})
         return findings
     
-    bank_in = sum(float(b.get("credit",0) or 0) for b in bank_txs)
-    bank_out = sum(float(b.get("debit",0) or 0) for b in bank_txs)
+    bank_in = sum(to_number(b.get("credit",0)) for b in bank_txs)
+    bank_out = sum(to_number(b.get("debit",0)) for b in bank_txs)
     net_flow = bank_in - bank_out
     
     vr_total = voucher_rev.get("total", 0) if voucher_rev else 0
-    pur_total = sum(float(i.get("total",0) or 0) for i in pur_invs) if pur_invs else 0
+    pur_total = sum(to_number(i.get("total",0)) for i in pur_invs) if pur_invs else 0
     gross_profit = vr_total - pur_total
     
     if vr_total > 0 and net_flow < 0 and abs(net_flow) > vr_total * 0.3:
@@ -4328,7 +4539,7 @@ def _domain_temporal_anomaly(bank_txs):
     """检测非正常交易时间: 周末/深夜/节假日/整数金额"""
     findings = []
     if not bank_txs:
-        findings.append({"type": "资料缺失-银行流水", "level": "中风险", "score": 5,
+        findings.append({"type": "资料缺失-银行流水", "level": "待核验", "score": 5,
             "detail": "未提供银行流水数据，无法进行时间异常检测分析。",
             "description": "缺少银行流水数据，无法检测以下交易异常：非工作时间交易（周末/深夜/节假日）、整数金额交易（可能为虚假交易）、同一时段密集交易（可能为拆分交易规避监控）。这些是税务风险检查中识别异常交易的经典指标。",
             "tax_impact": "无法识别异常交易时间模式——这是虚开发票和洗钱活动的重要信号。",
@@ -4340,7 +4551,7 @@ def _domain_temporal_anomaly(bank_txs):
     weekend_count = 0; round_count = 0; round_total = 0.0
     for tx in bank_txs:
         d_str = str(tx.get("date", ""))
-        amt = float(tx.get("debit",0) or tx.get("credit",0) or 0)
+        amt = to_number(tx.get("debit",0) or tx.get("credit",0))
         if len(d_str) >= 8:
             try:
                 dt = datetime.date(int(d_str[:4]), int(d_str[4:6]), int(d_str[6:8]))
@@ -4379,7 +4590,7 @@ def _domain_related_party_check(sal_invs, pur_invs, bank_txs):
         missing = []
         if not sal_invs: missing.append("销项发票")
         if not pur_invs: missing.append("进项发票")
-        findings.append({"type": "资料缺失-无法执行关联方检测", "level": "中风险", "score": 6,
+        findings.append({"type": "资料缺失-无法执行关联方检测", "level": "待核验", "score": 6,
             "detail": f"缺少{'、'.join(missing)}数据，无法进行关联方名称交叉比对。",
             "description": f"关联方检测需要对销项发票的买方名称和进项发票的卖方名称进行交叉比对。缺少{'、'.join(missing)}将导致无法识别：供应商与客户为同一主体（循环开票）、同一控制人名下多家公司间交易（关联交易未披露）、主要交易对手方名称异常（名称过短/异常字符）等风险。",
             "tax_impact": "关联交易未披露可能导致转让定价调整、补缴税款及滞纳金。循环开票是虚开发票的典型模式。",
@@ -4420,7 +4631,7 @@ def _domain_depreciation_match(bank_txs, pur_invs):
     """从支付记录反推固定资产→应存在对应的折旧费用"""
     findings = []
     if not bank_txs:
-        findings.append({"type": "资料缺失-银行流水", "level": "中风险", "score": 5,
+        findings.append({"type": "资料缺失-银行流水", "level": "待核验", "score": 5,
             "detail": "未提供银行流水数据，无法进行固定资产折旧匹配分析。",
             "description": "缺少银行流水数据，无法从支付记录中识别固定资产采购（如设备、车辆、装修等），从而无法反推应存在的折旧费用。固定资产采购与折旧费用的匹配是验证资产真实性和折旧计提准确性的重要手段。",
             "tax_impact": "无法识别虚增固定资产以多提折旧、固定资产已处置但仍计提折旧等风险。",
@@ -4439,7 +4650,7 @@ def _domain_depreciation_match(bank_txs, pur_invs):
                 break
     
     if asset_payments:
-        asset_total = sum(float(tx.get("debit",0) or 0) for tx in asset_payments)
+        asset_total = sum(to_number(tx.get("debit",0)) for tx in asset_payments)
         findings.append({
             "type": "固定资产采购与折旧匹配提示",
             "level": "低风险", "score": 3,
@@ -4508,8 +4719,8 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
     bm = _load_industry_data().get("benchmarks", {}).get(target_industry, _load_industry_data()["benchmarks"]["_default"])
     
     vr_total = voucher_rev.get("total", 0) if voucher_rev else 0
-    pur_total = sum(float(i.get("amount", 0) or 0) for i in pur_invs) if pur_invs else 0
-    sal_total = sum(float(i.get("amount", 0) or 0) for i in sal_invs) if sal_invs else 0
+    pur_total = sum(to_number(i.get("amount", 0)) for i in pur_invs) if pur_invs else 0
+    sal_total = sum(to_number(i.get("amount", 0)) for i in sal_invs) if sal_invs else 0
     emp_count = len(set(str(s.get("name","")).strip() for s in salaries if str(s.get("name","")).strip())) if salaries else 0
     actual_rev = max(vr_total, sal_total)
     
@@ -4596,61 +4807,91 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
 
 # ═══════════ 增值税申报表自动比对 ═══════════
 
-def _domain_vat_declaration_compare(invoices, bank_txs, db, company_id):
-    """增值税申报表 vs 发票/银行流水实际数据自动比对"""
+def _domain_vat_declaration_compare(invoices, bank_txs, db, company_id, tax_declarations=None):
+    """增值税申报表 vs 发票/银行流水实际数据自动比对
+
+    数据来源（2026-09-22 修正）：一键分析把上传的申报表（PDF/Excel）解析为内存
+    ``tax_declarations``，**从不写入 VATDeclaration 表**；旧逻辑只查该表 → 永远为空
+    → 无论用户上传多少申报表都误报"缺少增值税申报表"。现改为**优先用解析出的
+    tax_declarations**，仅在完全没有解析数据时才回退数据库表（兼容既有填报入口）。
+    """
     findings = []
-    
+
+    # ── 数据源①：一键分析解析出的申报表（内存列表，主数据源）──
+    _decls_parsed = []
+    for _d in (tax_declarations or []):
+        if not isinstance(_d, dict):
+            continue
+        _sales = _d.get("sales_amount")
+        try:
+            _sales = float(_sales) if _sales not in (None, "", "-") else 0.0
+        except (TypeError, ValueError):
+            _sales = 0.0
+        _period = _norm_month(_d.get("period") or _d.get("税款所属期"))
+        if _period:
+            _decls_parsed.append({"period": _period, "sales_amount": _sales})
+    # 仅保留至少有一期有效销售额的记录（避免把无字段噪音当申报表）
+    _decls_parsed = [d for d in _decls_parsed if d["period"]]
+
+    # ── 数据源②：数据库表（兼容人工填报入口）──
+    _decls_db = []
     try:
         from database import VATDeclaration
-        decls = db.query(VATDeclaration).filter(VATDeclaration.company_id == company_id).order_by(VATDeclaration.period).all()
-    except:
-        findings.append({
-            "type": "数据库异常-无法读取增值税申报表",
-            "level": "中风险", "score": 5,
-            "detail": "读取增值税申报表数据时发生数据库异常，无法进行申报表vs发票/银行流水实际数据比对。",
-            "description": "增值税申报表比对需要从数据库读取已保存的申报表数据。当前数据库查询失败，可能原因：数据库连接异常、表结构不兼容或申报表数据已损坏。这不代表企业没有申报表数据，而是系统内部数据读取失败。",
-            "tax_impact": "无法验证企业申报收入与实际开票收入是否一致——这是税务风险检查中最基础的比对项之一。",
-            "suggestion": "检查数据库连接状态，确认增值税申报表数据表结构完整。",
-            "category": "域7 税务一致性"})
-        return findings
-    
+        _decls_db = db.query(VATDeclaration).filter(
+            VATDeclaration.company_id == company_id).order_by(VATDeclaration.period).all()
+    except Exception:
+        _decls_db = []
+
+    # 统一成 [{period, sales_amount}] 视图
+    decls = [{"period": _norm_month(getattr(d, "period", "")), "sales_amount": to_number(getattr(d, "sales_amount", 0))}
+             for d in _decls_db]
+    if not decls:
+        decls = _decls_parsed
+
     if not decls:
         findings.append({
             "type": "缺少增值税申报表——无法进行申报vs实际比对",
             "level": "中风险", "score": 5,
             "detail": "无增值税申报表数据，无法验证企业申报收入是否与实际开票收入一致。",
             "description": "增值税申报表是税务合规第一步必查资料。缺少申报表意味着无法判断企业是否存在少报、漏报。",
-            "how_found": "数据库中无VATDeclaration记录。",
-            "suggestion": "从电子税务局调取企业增值税申报表数据。",
+            "how_found": "上传资料中未解析出增值税申报表，数据库中亦无VATDeclaration记录。",
+            "suggestion": "从电子税务局导出增值税申报表（主表+附表），上传后重新分析。",
             "category": "申报比对"
         })
         return findings
-    
+
     from collections import defaultdict
     period_inv = defaultdict(lambda: {"sales": 0, "sales_tax": 0, "purchases": 0, "purchases_tax": 0})
     for inv in invoices:
-        d = str(inv.get("date", ""))[:10]
-        if not d or len(d) < 7: continue
-        period = d[:7]
+        d = str(inv.get("date", ""))
+        period = _norm_month(d)
+        if not period: continue
         direction = inv.get("direction", "")
-        amt = float(inv.get("amount", 0) or 0)
-        tax = float(inv.get("tax", 0) or 0)
+        amt = to_number(inv.get("amount", 0))
+        tax = to_number(inv.get("tax", 0))
         if direction == "销项":
             period_inv[period]["sales"] += amt
             period_inv[period]["sales_tax"] += tax
         elif direction == "进项":
             period_inv[period]["purchases"] += amt
             period_inv[period]["purchases_tax"] += tax
-    
+
     total_gap = 0
     gap_count = 0
+    # 逐期比对的前提是**销项侧有数据**。若只有进项发票（或完全没有发票），
+    # 销项合计恒为 0 → 逐期差异等于"申报额-0"，会伪造出 N 条"开票收入vs申报收入
+    # 差异-100%…直接逃税证据/高风险"。故仅在确有销项数据时才做逐期比对，
+    # 否则不做定性（交由银行流水侧判断），符合"发现≠确认、证据不足不定性"红线。
+    _has_sales_data = any(to_number(inv.get("amount", 0)) != 0
+                          and str(inv.get("direction", "")) == "销项"
+                          for inv in invoices)
     for decl in decls:
-        period = str(decl.period)[:7]
+        period = decl["period"]
         inv_data = period_inv.get(period, {})
         inv_sales = inv_data.get("sales", 0)
-        decl_sales = float(decl.sales_amount or 0)
-        
-        if decl_sales > 0:
+        decl_sales = decl["sales_amount"]
+
+        if decl_sales > 0 and _has_sales_data:
             gap = inv_sales - decl_sales
             if abs(gap) > max(decl_sales * T.ratios.threshold_5pct, T.amount_thresholds.mini_transaction):
                 gap_count += 1
@@ -4665,10 +4906,10 @@ def _domain_vat_declaration_compare(invoices, bank_txs, db, company_id):
                     "suggestion": "核实差异原因：1)是否有未开票收入冲减 2)是否红字发票未处理 3)如无合理解释应启动税务合规补税。",
                     "category": "申报比对"
                 })
-    
+
     if bank_txs and not findings:
-        bank_income = sum(float(tx.get("credit", 0) or 0) for tx in bank_txs)
-        total_decl = sum(float(d.sales_amount or 0) for d in decls)
+        bank_income = sum(to_number(tx.get("credit", 0)) for tx in bank_txs)
+        total_decl = sum(to_number(d["sales_amount"]) for d in decls)
         if total_decl > 0 and bank_income > total_decl * 2:
             findings.append({
                 "type": f"银行收款{bank_income:,.2f}远超申报收入{total_decl:,.2f}元",
@@ -4679,18 +4920,30 @@ def _domain_vat_declaration_compare(invoices, bank_txs, db, company_id):
                 "suggestion": "调取全部银行账户流水（含个人账户），逐笔比对资金来源。",
                 "category": "申报比对"
             })
-    
+
     if gap_count == 0 and decls:
-        findings.append({
-            "type": "申报收入与发票收入基本一致",
-            "level": "低风险", "score": 1,
-            "detail": f"共{len(decls)}期申报表，开票收入与申报收入差异在正常范围。",
-            "description": "初步比对通过。但仍需注意：一致不代表合规——可能存在未开票收入漏报、进项虚抵等问题。",
-            "how_found": "各期申报表销售额 vs 各期发票销项合计。",
-            "suggestion": "继续核查未开票收入、进项抵扣合理性、关联交易定价。",
-            "category": "申报比对"
-        })
-    
+        if not _has_sales_data:
+            # 申报表已解析但销项侧无数据：不做"一致/差异"定性，仅记录待补资料
+            findings.append({
+                "type": "已解析增值税申报表待与发票侧比对",
+                "level": "低风险", "score": 1,
+                "detail": f"共{len(decls)}期申报表已解析，但本次未取得销项开票数据，无法执行开票收入vs申报收入逐期比对。",
+                "description": "申报表数据已就绪，需补齐销项发票明细后才能验证申报收入与开票收入是否一致。",
+                "how_found": f"解析出{len(decls)}期申报表（销售额合计{sum(to_number(d['sales_amount']) for d in decls):,.2f}元），销项开票明细为空。",
+                "suggestion": "上传销项发票明细（或销项发票清单）后重新分析，完成申报收入四方位比对。",
+                "category": "申报比对"
+            })
+        else:
+            findings.append({
+                "type": "申报收入与发票收入基本一致",
+                "level": "低风险", "score": 1,
+                "detail": f"共{len(decls)}期申报表，开票收入与申报收入差异在正常范围。",
+                "description": "初步比对通过。但仍需注意：一致不代表合规——可能存在未开票收入漏报、进项虚抵等问题。",
+                "how_found": "各期申报表销售额 vs 各期发票销项合计。",
+                "suggestion": "继续核查未开票收入、进项抵扣合理性、关联交易定价。",
+                "category": "申报比对"
+            })
+
     return findings
 
 
@@ -4791,10 +5044,14 @@ def _goods_is_service(row):
 
 
 def _amount_of(row):
-    try:
-        return abs(float((row or {}).get("amount") or 0))
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import first_amount as _first_amount
+    return _first_amount(row, absolute=True)
 
 
 def classify_cross_direction(invoices, mirror_min=None, mirror_ratio=None,
@@ -4859,7 +5116,7 @@ def _domain_supply_chain_deep(invoices, bank_txs, target_entity=None):
     """
     findings = []
     if not invoices:
-        findings.append({"type": "资料缺失-发票数据", "level": "中风险", "score": 7,
+        findings.append({"type": "资料缺失-发票数据", "level": "待核验", "score": 7,
             "detail": "未提供发票数据，无法进行供应链穿透分析（虚开识别核心模块）。",
             "description": "供应链穿透分析是虚开发票识别的核心模块，需要发票数据来构建供应商-客户多级关系图谱。缺少发票数据将导致无法进行：供应商集中度分析、客户集中度分析、同一控制人识别、上下游产业合理性判断、发票流向与货物流向一致性验证。",
             "tax_impact": "供应链穿透是识别虚开发票团伙作案的核心手段。跳过此分析意味着虚开风险几乎无法被系统发现。",
@@ -4879,7 +5136,7 @@ def _domain_supply_chain_deep(invoices, bank_txs, target_entity=None):
         direction = inv.get("direction", "")
         seller = str(inv.get("seller", "")).strip()
         buyer = str(inv.get("buyer", "")).strip()
-        amt = float(inv.get("amount", 0) or 0)
+        amt = to_number(inv.get("amount", 0))
         if direction == "进项" and seller:
             suppliers[seller] += 1
             supplier_amounts[seller] += amt
@@ -5589,14 +5846,14 @@ def _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
 
     # L2: 原始数据驱动增强
     if bank_txs:
-        total_in = sum(float(tx.get("credit",0) or 0) for tx in bank_txs)
+        total_in = sum(to_number(tx.get("credit",0)) for tx in bank_txs)
         oil_cost = pub2pri = cash_n = 0
         wx_alipay_in = 0
         for tx in bank_txs:
             cp = str(tx.get("counterparty_name", tx.get("counterparty","")))
             sm = str(tx.get("summary",""))
-            dr = float(tx.get("debit",0) or 0)
-            cr = float(tx.get("credit",0) or 0)
+            dr = to_number(tx.get("debit",0))
+            cr = to_number(tx.get("credit",0))
             if any(k in sm for k in ["油","加油"]) or "石化" in cp: oil_cost += dr
             if any(k in cp for k in ["支付宝","微信","财付通"]): wx_alipay_in += cr
             if re.match(r'^[\u4e00-\u9fff]{2,3}$', cp) and dr > 0: pub2pri += dr
@@ -5620,8 +5877,8 @@ def _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
 
     # 进销比分析
     if sal_invs and pur_invs:
-        s_tot = sum(float(i.get("total_amount",i.get("amount",0)) or 0) for i in sal_invs)
-        p_tot = sum(float(i.get("total_amount",i.get("amount",0)) or 0) for i in pur_invs)
+        s_tot = sum(to_number(i.get("total_amount",i.get("amount",0))) for i in sal_invs)
+        p_tot = sum(to_number(i.get("total_amount",i.get("amount",0))) for i in pur_invs)
         if s_tot > 0 and p_tot / s_tot > 10:
             dim_scores["发票合规度"]["score"] = min(100, dim_scores["发票合规度"]["score"] + 10)
             dim_scores["发票合规度"]["boost"] += f"进销比{p_tot/s_tot:.2f}:1; "
@@ -5660,8 +5917,9 @@ def _compute_risk_profile(all_findings, bank_txs, sal_invs, pur_invs, vouchers, 
             if not ds: continue
             try:
                 d = dt_cls.fromisoformat(ds[:10])
-                m = ds[:7]
-                cr = float(tx.get("credit",0) or 0)
+                m = _norm_month(ds)
+                if not m: continue
+                cr = to_number(tx.get("credit",0))
                 if cr > 0: monthly_inc[m] += cr
                 if d.weekday() >= 5: wkend += 1
             except: pass
@@ -5890,7 +6148,7 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
             if invoices:
                 big_invs = []
                 for inv in invoices:
-                    amt = float(inv.get("amount", 0) or 0)
+                    amt = to_number(inv.get("amount", 0))
                     if amt > 0:
                         for th in thresholds:
                             if th > 1 and amt >= th:
@@ -5910,8 +6168,8 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
             if bank_txs:
                 big_txs = []
                 for tx in bank_txs:
-                    debit = float(tx.get("debit", 0) or 0)
-                    credit = float(tx.get("credit", 0) or 0)
+                    debit = to_number(tx.get("debit", 0))
+                    credit = to_number(tx.get("credit", 0))
                     max_amt = max(debit, credit)
                     if max_amt > 0:
                         for th in thresholds:
@@ -5930,7 +6188,7 @@ def _verify_rule_against_data(rule, bank_txs, invoices, salaries, social_securit
         # 检查工资相关
         if any(k in rule_text for k in ("工资", "薪酬", "个税", "薪金")):
             if salaries:
-                total_salary = sum(float(s.get("amount", 0) or 0) for s in salaries)
+                total_salary = sum(to_number(s.get("amount", 0)) for s in salaries)
                 for th in thresholds:
                     if th > 1 and total_salary > th:
                         evidence["总工资"] = total_salary
@@ -5993,20 +6251,20 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
     
     # ── 银行流水情报 ──
     if bank_txs:
-        total_in = sum(float(tx.get("credit", 0) or 0) for tx in bank_txs)
-        total_out = sum(float(tx.get("debit", 0) or 0) for tx in bank_txs)
+        total_in = sum(to_number(tx.get("credit", 0)) for tx in bank_txs)
+        total_out = sum(to_number(tx.get("debit", 0)) for tx in bank_txs)
         tax_payments = []
         large_txs = []
         counterparties = Counter()
         months = set()
         
         for tx in bank_txs:
-            d = str(tx.get("date", "") or tx.get("transaction_date", ""))[:10]
-            if d and len(d) >= 7: months.add(d[:7])
+            _m = _norm_month(tx.get("date") or tx.get("transaction_date"))
+            if _m: months.add(_m)
             cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
             cp = _normalize_counterparty_name(cp)
-            debit = float(tx.get("debit", 0) or 0)
-            credit = float(tx.get("credit", 0) or 0)
+            debit = to_number(tx.get("debit", 0))
+            credit = to_number(tx.get("credit", 0))
             summary = str(tx.get("summary", "") or "")
             
             # 大额交易（>50万）
@@ -6055,7 +6313,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         pay_cats["个人待分析"] = defaultdict(float)  # 兜底默认分类，标注"待分析"提示税务合规员关注
         
         for tx in bank_txs:
-            credit = float(tx.get("credit", 0) or 0)
+            credit = to_number(tx.get("credit", 0))
             if credit <= 0: continue
             cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
             cp = _normalize_counterparty_name(cp)
@@ -6096,7 +6354,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         import re as _re
         corrections = []
         for tx in bank_txs:
-            credit = float(tx.get("credit", 0) or 0)
+            credit = to_number(tx.get("credit", 0))
             if credit <= 0: continue
             cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
             cp = _normalize_counterparty_name(cp)
@@ -6162,7 +6420,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         enterprise_payee = defaultdict(float); individual_payee = defaultdict(float)
         tax_payee = defaultdict(float); bank_payee = defaultdict(float)
         for tx in bank_txs:
-            debit = float(tx.get("debit", 0) or 0)
+            debit = to_number(tx.get("debit", 0))
             if debit <= 0: continue
             cp = str(tx.get("counterparty", "")).strip()
             cp = _normalize_counterparty_name(cp)
@@ -6193,10 +6451,10 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         sal_invs = [i for i in invoices if i.get("direction") == "销项"]
         pur_invs = [i for i in invoices if i.get("direction") == "进项"]
         
-        sal_total = sum(float(i.get("amount", 0) or 0) for i in sal_invs)
-        sal_tax = sum(float(i.get("tax", 0) or 0) for i in sal_invs)
-        pur_total = sum(float(i.get("amount", 0) or 0) for i in pur_invs)
-        pur_tax = sum(float(i.get("tax", 0) or 0) for i in pur_invs)
+        sal_total = sum(to_number(i.get("amount", 0)) for i in sal_invs)
+        sal_tax = sum(to_number(i.get("tax", 0)) for i in sal_invs)
+        pur_total = sum(to_number(i.get("amount", 0)) for i in pur_invs)
+        pur_tax = sum(to_number(i.get("tax", 0)) for i in pur_invs)
         
         # 货物/服务分类（通用化：直接使用货物名称前4字作为分类，不依赖行业关键词）
         categories = Counter()
@@ -6237,7 +6495,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                      or inv.get("buyer_name", "") or inv.get("purchaser", "")).strip()
             seller = str(inv.get("seller", "") or inv.get("销方名称", "") or inv.get("销方", "") or inv.get("销售方名称", "")).strip()
             direction = str(inv.get("direction", "")).strip()
-            amt = float(inv.get("total", 0) or inv.get("amount", 0) or 0)
+            amt = to_number(inv.get("total", 0) or inv.get("amount", 0))
             if buyer and len(buyer) >= 2: buyers[buyer] += 1
             if seller and len(seller) >= 2: sellers[seller] += 1
             # 按金额汇总：销项→买方的购买总额，进项→供应商的供货总额
@@ -6273,8 +6531,8 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         ded_by_status = defaultdict(lambda: {"count": 0, "amount": 0.0, "tax": 0.0})
         for d in deds:
             status = str(d.get("status", "") or d.get("勾选状态", "")).strip()
-            amt = float(d.get("amount", 0) or 0)
-            tax = float(d.get("tax", 0) or 0)
+            amt = to_number(d.get("amount", 0))
+            tax = to_number(d.get("tax", 0))
             ded_by_status[status]["count"] += 1
             ded_by_status[status]["amount"] += amt
             ded_by_status[status]["tax"] += tax
@@ -6294,7 +6552,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
 
     # ── 工资情报 ──
     if salaries:
-        total_salary = sum(float(s.get("amount", 0) or s.get("实发工资", 0) or 0) for s in salaries)
+        total_salary = sum(to_number(s.get("amount", 0) or s.get("实发工资", 0)) for s in salaries)
         emp_count = len(set(str(s.get("name", "") or s.get("姓名", "") or s.get("id", "")) for s in salaries))
         intel["工资"] = {
             "exists": True,
@@ -6306,7 +6564,7 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
     
     # ── 社保情报 ──
     if social_security:
-        ss_total = sum(float(s.get("amount", 0) or 0) for s in social_security)
+        ss_total = sum(to_number(s.get("amount", 0)) for s in social_security)
         ss_count = len(social_security)
         intel["社保"] = {
             "exists": True,
@@ -7058,18 +7316,18 @@ class TrendDetector:
         for y in years:
             # 销项
             y_sales = [inv for inv in sal_invs if TrendDetector._match_year(inv, "inv_date", y)]
-            y_sales_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in y_sales)
+            y_sales_total = sum(to_number(inv.get("amount", inv.get("total", 0))) for inv in y_sales)
             y_sales_count = len(y_sales)
             
             # 进项
             y_purchases = [inv for inv in pur_invs if TrendDetector._match_year(inv, "inv_date", y)]
-            y_pur_total = sum(float(inv.get("amount", inv.get("total", 0)) or 0) for inv in y_purchases)
+            y_pur_total = sum(to_number(inv.get("amount", inv.get("total", 0))) for inv in y_purchases)
             y_pur_count = len(y_purchases)
             
             # 银行
             y_bank = [tx for tx in bank_txs if TrendDetector._match_year(tx, "tx_date", y)]
-            y_bank_in = sum(float(tx.get("credit", tx.get("income", 0)) or 0) for tx in y_bank)
-            y_bank_out = sum(float(tx.get("debit", tx.get("expense", 0)) or 0) for tx in y_bank)
+            y_bank_in = sum(to_number(tx.get("credit", tx.get("income", 0))) for tx in y_bank)
+            y_bank_out = sum(to_number(tx.get("debit", tx.get("expense", 0))) for tx in y_bank)
             y_bank_count = len(y_bank)
             
             # 计算指标
@@ -7397,374 +7655,33 @@ class AuditContext:
 
 
 def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
-    """从发票品名推断行业——全行业自适应，不硬编码任何行业关键词
-    
-    方法：利用中国金税发票的税收分类编码前缀（*XX*格式）
-    例如：*纺织产品*棉布 → 行业=纺织产品
-    无分类编码时用"综合"兜底
+    """从**销项**发票品名推断行业（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/industry_resolver.infer_from_goods（唯一权威）。
+      原先本模块与另一模块各有一份，规则虽近似但会漂移；
+      且统一实现比原版多一层 industry_map 关键词兜底（原版无 `*分类*` 时直接落"综合"）。
+    铁律 META-001：仅以销项品名为依据（销项=实际经营产出），不参考进项。
     """
+    from engine.industry_resolver import infer_from_goods as _infer
     cp = ctx.company_profile
-    
-    # ═══ 行业推断铁律：仅以销项发票品名为依据，不参考进项 ═══
-    # WHY: 销项=企业实际经营产出（卖什么就是什么行业）
-    #      进项=采购投入/成本结构（买什么不代表行业，如传媒公司也会买餐饮服务）
-    import re
-    all_goods_list = list(sal_goods)
-    cat_counts = {}
-    
-    for goods in all_goods_list:
-        # 匹配 *分类名称* 格式（金税发票标准格式）
-        match = re.search(r'\*([^*]+)\*', str(goods))
-        if match:
-            cat = match.group(1).strip()
-            # 过滤掉明显不是行业分类的模式（如纯数字、单字）
-            if len(cat) >= 2 and not cat.isdigit():
-                cat_counts[cat] = cat_counts.get(cat, 0) + 1
-    
-    if cat_counts:
-        # 取出现最多的分类编码作为行业
-        best_cat = max(cat_counts, key=cat_counts.get)
-        cp["industry"] = best_cat
-    else:
-        cp["industry"] = "综合"
-    
-    # ── 加载行业自适应画像 ──
-    _load_industry_profile(ctx)
+    _industry, _votes = _infer(list(sal_goods or []))
+    cp["industry"] = _industry or "综合"
+    _load_industry_profile(ctx)   # 本模块特有副作用：加载行业自适应画像
 
 
 # ── 行业数据外部化加载器：从 industry_data.json 加载所有行业字典 ──
 _INDUSTRY_DATA_CACHE = None
 
 def _load_industry_data():
-    """加载行业数据（基准值、产品链、关键词映射等），从JSON文件外部化加载，支持全行业扩展"""
-    global _INDUSTRY_DATA_CACHE
-    if _INDUSTRY_DATA_CACHE is not None:
-        return _INDUSTRY_DATA_CACHE
-    
-    # 从 engine/ 往上跳一级到项目根目录
-    json_path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
-    try:
-        with open(json_path, "r", encoding="utf-8") as f:
-            _INDUSTRY_DATA_CACHE = json.load(f)
-    except Exception:
-        # 兜底：JSON加载失败时返回空字典（后续代码会做空值守卫）
-        _INDUSTRY_DATA_CACHE = {}
-    return _INDUSTRY_DATA_CACHE
+    """行业数据加载（唯一权威）。
 
-
-# ═══════════════════════════════════════════════════════════
-# Phase 2 — 定向深挖（Signal-Driven Deep Dive）
-#
-# 设计理念：不是29域全量盲跑，而是基于 Phase 1 的信号，
-# 像人类税务合规员一样定向选择深挖方向和深度。
-#
-# 信号→域映射表驱动：
-#   看到"购销倒挂"→深挖毛利率+供应商+资金流向+经营实质
-#   看到"加工费"→深挖BOM+供应商画像+经营实质地理+上下游
-#   多个信号叠加→域组合策略
-#   绿灯信号→证明某方面正常，跳过相关深挖
-#
-# 三级深度：
-#   shallow（浅查）：快速比率计算，确认信号
-#   normal（常规）：标准分析流程
-#   deep（深挖）：多源交叉+关联穿透+证据链串联
-# ═══════════════════════════════════════════════════════════
-
-# ├─ 信号→域映射表
-# │  每个信号定义了应深挖的域及深度
-
-# ═══════════════════════════════════════════════════════════
-# Phase 3 — 交叉验证（Cross-Validation）
-#
-# 核心能力：
-#   1. 信号叠加检测 — 多个独立结论组合意味着更大的风险模式
-#   2. 冲突消解 — 两个表面矛盾的结论互相验证
-#   3. 风险提级/降级 — 基于交叉证据自动调整评级
-#   4. 综合结论生成 — 从孤立发现中提炼出模式
-#
-# 设计理念：
-#   人类税务合规员不会只看单条结论，而是看"模式"。
-#   比如"购销倒挂+加工费+BOM缺失"三个结论分别看都是中风险，
-#   但三者同时出现→加工链条造假=极高风险。
-#   这就是"1+1+1>3"的交叉验证价值。
-# ═══════════════════════════════════════════════════════════
-
-# ├─ 信号叠加模式库
-# │  每个模式定义：触发信号组合→综合结论+风险调整+行动建议
-_SIGNAL_PATTERNS = [
-    {
-        "id": "PATTERN_FRAUD_CHAIN",
-        "name": "加工链条造假高嫌疑",
-        "triggers": {
-            "must_have": ["购销严重倒挂", "存在加工费"],
-            "any_of": ["有进无销", "有销无进", "缺少BOM"],
-            "at_least": 1  # any_of中至少命中1个
-        },
-        "conclusion": (
-            "多域交叉验证发现：购销倒挂（进项远超销项）+ 加工费存在"
-            " + 进销品名不匹配或BOM缺失。三个信号叠加指向同一方向——"
-            "加工链条的真实性存疑。进项发票可能是为获取进项抵扣而虚开，"
-            "加工费可能是虚构的外包加工，BOM缺失则无法验证投入产出逻辑。"
-        ),
-        "risk_override": "极高风险",
-        "priority": "P0",
-        "actions": [
-            "立即调取全部加工合同、出入库单、物流单据",
-            "要求企业提供每种成品的BOM表（原材料→产成品的投入产出比+损耗率）",
-            "逐供应商核实加工费发票的真实性（电话+实地核查）",
-            "如无法提供→按虚开增值税专用发票立案"
-        ]
-    },
-    {
-        "id": "PATTERN_REVENUE_HIDING",
-        "name": "隐匿销售收入高嫌疑",
-        "triggers": {
-            "must_have": ["购销严重倒挂"],
-            "any_of": ["有进无销", "进销数量严重偏差", "个人交易占比过高"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "购销严重倒挂 + 进销不匹配/数量偏差/个人收款，形成'隐匿销售收入'的完整证据链："
-            "采购了货物（有进项）→没有开票销售（无销项/数量偏差）→但资金仍然流入（个人收款）。"
-            "进项采购的货物去向不明，大概率未开票销售体外循环。"
-        ),
-        "risk_override": "极高风险",
-        "priority": "P0",
-        "actions": [
-            "核对全部银行个人收款方的身份（是否为员工/关联方/疑似客户）",
-            "要求企业提供进项货物的完整去向说明（已售/库存/损耗）",
-            "逐项比对进项数量与销项数量+库存变动，找出差额",
-            "涉及偷税→移送税务合规局"
-        ]
-    },
-    {
-        "id": "PATTERN_FAKE_INVOICE_NO_BANK",
-        "name": "进项发票真实性存疑（无资金流佐证）",
-        "triggers": {
-            "must_have": ["银行付款未匹配"],
-            "any_of": ["购销严重倒挂", "供应商高度集中", "缺少银行流水"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "进项发票与银行付款不匹配 + 购销倒挂/供应商集中/缺少流水。"
-            "多域证据交叉指向同一结论：部分进项发票可能没有对应的真实资金流出，"
-            "存在'走票不走钱'的虚开发票嫌疑。供应商高度集中进一步增加了'对开环开'的可能。"
-        ),
-        "risk_override": "高风险",
-        "priority": "P0",
-        "actions": [
-            "逐笔核查未匹配供应商的工商信息（是否存在关联关系）",
-            "要求提供对账明细+分期付款计划+预付/应付账款明细账",
-            "实地核实前3大供应商是否存在+是否有真实办公场所",
-            "资金流断裂的发票→进项税额转出+补税"
-        ]
-    },
-    {
-        "id": "PATTERN_GHOST_WORKFORCE",
-        "name": "虚列人员/吃空饷嫌疑",
-        "triggers": {
-            "must_have": ["无工资记录"],
-            "any_of": ["有销无进", "购销严重倒挂"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "无工资记录 + 存在进销异常（有销无进或购销倒挂）。"
-            "企业有大量经营收入但无工资支出，可能：(1)虚开发票+无真实经营（无人员需求）；"
-            "(2)隐匿人员工资（现金发放未入账）。两种情况都指向经营实质存疑。"
-        ),
-        "risk_override": "高风险",
-        "priority": "P1",
-        "actions": [
-            "现场核查经营场所是否有实际生产经营活动",
-            "比对电费/水费/物业费与申报收入是否匹配",
-            "核查是否有现金工资发放记录或微信/支付宝转账记录"
-        ]
-    },
-    {
-        "id": "PATTERN_TRANSFER_PRICING",
-        "name": "关联交易定价不公允嫌疑",
-        "triggers": {
-            "must_have": ["毛利率异常高"],
-            "any_of": ["供应商高度集中", "关联交易"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "毛利率异常高（>80%）+ 供应商/客户集中或关联交易信号。"
-            "这种情况通常不是真正的核心竞争力，而是通过关联交易将利润转移至低税率环节，"
-            "或将成本转移至其他主体。需要特别核查关联交易的定价是否公允。"
-        ),
-        "risk_override": "高风险",
-        "priority": "P1",
-        "actions": [
-            "获取全部关联方清单及关联交易明细",
-            "对关联交易做转让定价可比性分析（可比非受控价格法）",
-            "要求企业提供关联交易的商业目的说明和定价依据"
-        ]
-    },
-    {
-        "id": "PATTERN_LOW_QUALITY_DATA",
-        "name": "资料质量不足→结论置信度降低",
-        "triggers": {
-            "must_have": [],
-            "any_of": ["银行流水数据量少", "发票数据量少", "缺少银行流水"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "资料质量评分偏低。银行流水或发票数据量不足，部分分析域无法运行或置信度下降。"
-            "当前报告中的结论应在资料补充后复核验证。建议要求企业补充完整资料后重新分析。"
-        ),
-        "risk_override": None,  # 不改变评级，只降低置信度
-        "priority": "P2",
-        "actions": [
-            "要求企业补充完整的银行流水（至少覆盖分析期前3个月至后1个月）",
-            "要求企业补充完整的进销项发票明细",
-            "补充后重新运行一键分析"
-        ]
-    },
-    # ── 新增：供应商/资金双异常 → 虚开嫌疑升级 ──
-    {
-        "id": "PATTERN_SUPPLIER_BANK_DUAL",
-        "name": "供应商高度集中+付款未匹配→虚开嫌疑升级",
-        "triggers": {
-            "must_have": ["供应商高度集中"],
-            "any_of": ["银行付款未匹配", "购销严重倒挂", "缺少银行流水"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "供应商高度集中 + 付款未匹配/购销倒挂/无银行流水。"
-            "两个信号形成'供应商-资金流'双重异常：采购集中在一两家供应商，"
-            "但银行付款记录无法与供应商匹配。这种模式下，集中采购更像是"
-            "为了获取进项发票的'通道'，而非真实的分散采购行为。"
-            "如果同时购销倒挂——进项发票大量而销售极少——则虚开嫌疑进一步升级。"
-        ),
-        "risk_override": "极高风险",
-        "priority": "P0",
-        "actions": [
-            "逐供应商核查工商信息（是否同一控制人/同一地址/同一电话）",
-            "核实供应商是否有实际生产能力（厂房/设备/人员）",
-            "核查银行付款记录中是否有向供应商实际付款（拉长期间、扩大匹配范围）",
-            "对无法提供真实交易的供应商→进项税额转出"
-        ]
-    },
-    {
-        "id": "PATTERN_FAKE_INVOICE_PATTERN",
-        "name": "发票连号+金额均匀→人工编造高嫌疑",
-        "triggers": {
-            "must_have": ["发票连号"],
-            "any_of": ["金额整十整百", "金额分布异常均匀"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "发票连号 + 金额整十整百或分布均匀。真实交易中，"
-            "不同客户的订单金额天然有零有整、有大有小，发票号也不会完全连续。"
-            "这两个信号同时出现，表明发票可能是按固定模板批量生成，"
-            "而非逐笔真实交易后开具。"
-        ),
-        "risk_override": "极高风险",
-        "priority": "P0",
-        "actions": [
-            "要求提供每张连号发票对应的销售合同/订单/出库单",
-            "逐笔电话核实客户是否真实存在、是否真的有交易",
-            "核查银行流水是否收到对应的客户付款",
-            "无法提供真实交易证明→按虚开发票立案"
-        ]
-    },
-    {
-        "id": "PATTERN_QUARTER_END_MANIPULATION",
-        "name": "季度末突击开票+毛利异常→收入操纵嫌疑",
-        "triggers": {
-            "must_have": ["季度末集中开票"],
-            "any_of": ["毛利为负", "毛利率异常高", "购销严重倒挂"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "季度末集中开票 + 毛利/购销异常。季度末突击开票是典型的"
-            "'粉饰报表'或'冲业绩'行为——平时不开或少开，到季度最后一个月"
-            "集中补开。如果同时毛利为负或购销倒挂，则突击开票的目的"
-            "不是为了真实销售，而是为了虚增收入或获取进项抵扣。"
-        ),
-        "risk_override": "高风险",
-        "priority": "P0",
-        "actions": [
-            "拉取季度末开票明细，逐笔核查对应销售合同的签订日期",
-            "比对季度末开票客户的回款时间（真实交易通常在开票后30-60天回款）",
-            "核查季度末开票对应的出库单/物流单日期是否匹配",
-            "如开票日期远早于合同/发货日期→突击开票嫌疑成立"
-        ]
-    },
-    {
-        "id": "PATTERN_CUSTOMER_TRANSFER_PRICING",
-        "name": "客户高度集中+毛利异常→关联交易定价不公允",
-        "triggers": {
-            "must_have": ["客户高度集中"],
-            "any_of": ["毛利率异常高", "毛利为负"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "客户高度集中 + 毛利异常。当前几大客户的交易占比超过80%时，"
-            "定价权已经不掌握在企业手中——要么被客户压价（毛利为负），"
-            "要么通过关联交易转移利润（毛利异常高）。"
-            "无论哪种情况，都说明企业与客户之间存在非市场化的定价关系，"
-            "关联交易的可能性极高。"
-        ),
-        "risk_override": "高风险",
-        "priority": "P1",
-        "actions": [
-            "核查前几大客户的工商股权结构（是否与本公司有关联关系）",
-            "对比同类产品的市场公允价格与向这些客户的销售价格",
-            "如有关联关系→做转让定价可比性分析",
-            "要求企业提供关联交易的商业目的说明"
-        ]
-    },
-    {
-        "id": "PATTERN_PERSONAL_INCOME_HIDING",
-        "name": "个人付款占比高+无工资→隐匿经营收入",
-        "triggers": {
-            "must_have": ["个人交易占比过高"],
-            "any_of": ["无工资记录", "购销严重倒挂"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "个人付款方占比高 + 无工资记录/购销倒挂。"
-            "大量个人向对公账户付款——正常的解释是零售经营（面向个人消费者），"
-            "但无工资记录说明企业没有足够的员工来支撑零售规模，"
-            "或者购销倒挂说明进项远大于开票销项。"
-            "这种情况下，个人付款大概率是'未开票销售收入'通过个人账户归集后再转入对公账户，"
-            "目的就是隐匿经营收入、不开发票。"
-        ),
-        "risk_override": "极高风险",
-        "priority": "P0",
-        "actions": [
-            "核实个人付款方的身份（是否为疑似客户/经销商/员工）",
-            "比对个人付款金额与未开票收入的匹配程度",
-            "核查是否有对应的发货记录/物流单据",
-            "属于隐匿销售收入→补缴增值税+企业所得税+滞纳金+罚款"
-        ]
-    },
-    {
-        "id": "PATTERN_SUPPLIER_CUSTOMER_OVERLAP",
-        "name": "供应商与客户重叠→对开环开虚开发票",
-        "triggers": {
-            "must_have": ["供应商高度集中"],
-            "any_of": ["客户高度集中", "购销严重倒挂"],
-            "at_least": 1
-        },
-        "conclusion": (
-            "供应商集中 + 客户集中/购销倒挂。当供应商和客户同时高度集中时，"
-            "需要警惕是否存在'对开环开'——A公司给B公司开票（进项），"
-            "B公司给A公司开票（销项），双方都获得了进项抵扣而没有任何真实货物流动。"
-            "如果同时购销倒挂，则说明进项和销项的金额/品名不对等，进一步印证对开环开。"
-        ),
-        "risk_override": "极高风险",
-        "priority": "P0",
-        "actions": [
-            "交叉比对前几大供应商和前几大客户的工商注册信息（股东/法人/地址）",
-            "核查供应商和客户之间是否存在直接或间接的股权关联",
-            "核查是否有真实的货物物流记录（运输合同+运单+过磅单）",
-            "对开环开→虚开增值税专用发票罪（刑法第205条）"
-        ]
-    },
-]
+    ★ 2026-09-25：原为本模块自建加载器 —— `_load_industry_data` 曾在 domain_analysis /
+    enterprise_profile / inspector_reasoning **三处重复定义**（2 份无缓存、3 份兜底形状各异），
+    导致同一份 industry_data.json 在不同模块里表现不一致。现统一委托
+    `engine.industry_resolver.load_industry_data()`（单例缓存 + 统一兜底形状）。
+    """
+    from engine.industry_resolver import load_industry_data as _ld
+    return _ld()
 
 
 def _detect_conflicts(all_findings, cross_findings, pipeline_log):
@@ -9220,7 +9137,9 @@ def _run_fix_verification(auto_fixes, all_findings, bank_txs, sal_invs, pur_invs
             result["after"] = f"行业推断规则已修正（2026-06-26），本次分析仅用销项品名: {list(goods_cats)[:3]}"
             result["verified"] = True
             result["action_required"] = "auto_fixed"
-            pipeline_log.append(f"[修正验证] {cid}: 行业推断已修正为仅用销项品名 {list(goods_cats)[:3]}")
+            from engine.sentencekit import render_value as _rv4
+            pipeline_log.append(f"[修正验证] {cid}: 行业推断已修正为仅用销项品名 "
+                                + _rv4(sorted(str(x) for x in goods_cats)[:3]))
         
         # ── CONTR_001: 高毛利+成本虚列 ──
         elif verification == "check_cost_classification":
@@ -9238,7 +9157,7 @@ def _run_fix_verification(auto_fixes, all_findings, bank_txs, sal_invs, pur_invs
             small_fees = []
             for inv in pur_invs:
                 g = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
-                amt = float(inv.get("amount", 0) or 0)
+                amt = to_number(inv.get("amount", 0))
                 if amt > 0 and amt < 500:
                     if any(kw in g for kw in fee_kw):
                         small_fees.append({"goods": g[:30], "amount": amt})
@@ -10353,11 +10272,11 @@ def _multi_dim_benford_check(invoices, bank_txs):
     
     amounts = []
     for inv in (invoices or []):
-        a = float(inv.get("amount", inv.get("total", 0)) or 0)
+        a = to_number(inv.get("amount", inv.get("total", 0)))
         if a >= 10:
             amounts.append(a)
     for tx in (bank_txs or []):
-        a = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+        a = max(to_number(tx.get("debit", 0)), to_number(tx.get("credit", 0)))
         if a >= 10:
             amounts.append(a)
     
@@ -10814,22 +10733,42 @@ def _multi_hypothesis_check(ctx, all_findings, bank_txs, invoices):
         winner = hypotheses[0]
         runner_up = hypotheses[1] if len(hypotheses) > 1 else None
         
+        # ★ 2026-09-25：报告字段只写**业务语言**，不写系统内部推理机制。
+        #   旧写法把内部竞争的原始转储塞进 description：
+        #     「对进销严重不匹配，同时考虑3种竞争假设并行推理：\n  假设B: 隐匿销项(125分):
+        #       … 支持信号: 甲, 乙, 丙」
+        #   ——带"假设A/B"内部标签、内部分数、以及 `", ".join` 产生的**半角逗号**，
+        #   直接进了报告数据（前端会渲染发现明细）。
+        #   现改为：讲清"核对了哪几种可能解释 + 各自的支持/反向线索"，不暴露机制与打分。
+        def _plain_name(nm):
+            """去掉"假设A: "这类内部标号，只留解释名。"""
+            return re.sub(r"^假设[A-Za-z]\s*[:：]\s*", "", str(nm or "")).strip() or str(nm or "")
+
+        def _hypo_line(h):
+            seg = f"{_plain_name(h.get('name'))}——{h.get('explanation', '')}"
+            if h.get("signals_for"):
+                seg += "（支持线索：" + "、".join(map(str, h["signals_for"][:3])) + "）"
+            if h.get("signals_against"):
+                seg += "（反向线索：" + "、".join(map(str, h["signals_against"][:3])) + "）"
+            return seg
+
         multi_hypo_results.append({
             "type": "多假设并行推理-进销异常",
             "level": "中风险",
             "score": 5,
             "detail": (
-                f"可能性最大的是{winner['name']}（{winner['score']}分）：{winner['explanation']}\n"
-                + (f"其次是{runner_up['name']}（{runner_up['score']}分）：{runner_up['explanation']}" if runner_up else "")
+                f"可能性最大的是{_plain_name(winner['name'])}：{winner['explanation']}"
+                + (f"；其次是{_plain_name(runner_up['name'])}：{runner_up['explanation']}" if runner_up else "")
             ),
             "description": (
-                f"对进销严重不匹配，同时考虑3种竞争假设并行推理：\n"
-                + "\n".join([f"  {h['name']}({h['score']}分): {h['explanation']}"
-                           + (f" 支持信号: {', '.join(h['signals_for'][:3])}" if h['signals_for'] else "")
-                           + (f" 反对信号: {', '.join(h['signals_against'][:3])}" if h['signals_against'] else "")
-                           for h in hypotheses])
+                "对进销严重不匹配，本轮并列核对了以下"
+                + str(len(hypotheses))
+                + "种可能解释：" + "；".join(_hypo_line(h) for h in hypotheses)
             ),
-            "how_found": f"多假设引擎: 并行维护3个假设 → 证据收窄 → {winner['name']}胜出(得分{winner['score']})",
+            "how_found": (
+                "针对进销不匹配并列核对%d种可能解释，按现有资料与反向线索逐项比对，得出可能性排序。"
+                % len(hypotheses)
+            ),
             "category": "多假设推理",
             "_multi_hypothesis": True,
             "_hypotheses": hypotheses,
@@ -10883,7 +10822,8 @@ def _cross_period_compare(ctx, company_id, db):
             direction = "下降" if gm_change < 0 else "上升"
             findings.append({
                 "type": f"跨期对比-毛利率{direction}",
-                "level": "黄灯" if abs(gm_change) > 20 else "中风险",
+                # 等级原为未登记值"黄灯"（会被后续环节静默丢弃），按权威词表改为 中风险
+                "level": "中风险",
                 "score": 6 if abs(gm_change) > 20 else 4,
                 "detail": f"毛利率从{prev_gm:.2f}%{direction}至{curr_gm:.2f}%，变化{abs(gm_change):.2f}个百分点",
                 "description": f"与上次分析({most_recent.get('timestamp','')[:10]})对比，毛利率大幅{direction}，需关注经营实质是否发生变化",
@@ -10931,7 +10871,7 @@ def _build_entity_graph(bank_txs, invoices, salaries):
     for inv in invoices:
         seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
         buyer = str(inv.get("buyer", inv.get("购方名称", ""))).strip()
-        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
+        amount = to_number(inv.get("amount", inv.get("total", 0)))
         
         if seller:
             entities[seller]["roles"].add("供应商")
@@ -10947,8 +10887,8 @@ def _build_entity_graph(bank_txs, invoices, salaries):
     # 从银行流水提取实体
     for tx in bank_txs:
         cp = str(tx.get("counterparty", tx.get("对方户名", ""))).strip()
-        debit = float(tx.get("debit", 0) or 0)
-        credit = float(tx.get("credit", 0) or 0)
+        debit = to_number(tx.get("debit", 0))
+        credit = to_number(tx.get("credit", 0))
         amount = max(debit, credit)
         
         if cp:
@@ -10997,7 +10937,9 @@ def _build_entity_graph(bank_txs, invoices, salaries):
                 "entity": name,
                 "roles": list(info["roles"]),
                 "total_amount": info["total_amount"],
-                "detail": f"{name}既是员工又有其他角色({', '.join(other_roles)})，可能涉及利益输送",
+                # ★ 2026-09-25：中文表述用全角括号与顿号 —— 旧写法 `({', '.join(...)})`
+                #   产出「(收款方, 付款方)」这种半角逗号括号，混在中文明细里（实测进了报告）。
+                "detail": f"{name}既是员工又有其他角色（{'、'.join(sorted(map(str, other_roles)))}），可能涉及利益输送",
             })
     
     # 3. 二层穿透：员工收款金额与工资对比（资金流向深度分析）
@@ -11005,7 +10947,7 @@ def _build_entity_graph(bank_txs, invoices, salaries):
         salary_map = {}
         for s in salaries:
             sn = str(s.get("姓名", s.get("name", ""))).strip()
-            sa = float(s.get("实发金额", s.get("应发金额", s.get("amount", 0))) or 0)
+            sa = to_number(s.get("实发金额", s.get("应发金额", s.get("amount", 0))))
             if sn and sa > 0:
                 salary_map[sn] = salary_map.get(sn, 0) + sa
         
@@ -11032,7 +10974,8 @@ def _build_entity_graph(bank_txs, invoices, salaries):
             "score": 7,
             "detail": a["detail"],
             "description": f"知识图谱分析: 实体'{a['entity'][:20]}'具有多重角色({', '.join(a['roles'])}), 涉及金额{a['total_amount']:,.2f}元",
-            "how_found": f"知识图谱引擎: 从{len(entities)}个实体中检测到{len(anomalies)}个异常关系 → {a['type']}",
+            # ★ 2026-09-25：去掉引擎自述与箭头（报告写"发现了什么"，不写"哪个引擎怎么发现的"）
+            "how_found": f"从{len(entities)}个实体关系中比对出{len(anomalies)}项异常关联。",
             "category": "知识图谱",
             "_entity_graph": True,
             "_entity": a["entity"],
@@ -11053,268 +10996,12 @@ def _build_entity_graph(bank_txs, invoices, salaries):
     return findings, graph_summary
 
 
-def _adversarial_robustness_check(all_findings, invoices, bank_txs):
-    """对抗鲁棒性检测 —— 识别人为编造数据的痕迹。
-    
-    方法：
-    1. 本福特定律（Benford's Law）：真实财务数据的首位数字服从对数分布
-    2. 重复金额检测：完全相同金额出现频率
-    3. 数字偏好检测：避开4/喜欢8等人为心理特征
-    """
-    import math
-    from collections import Counter
-    
-    findings = []
-    
-    # ── 本福特定律检测 ──
-    amounts = []
-    if invoices:
-        for inv in invoices:
-            a = float(inv.get("amount", inv.get("total", 0)) or 0)
-            if a >= 10:
-                amounts.append(a)
-    
-    if bank_txs:
-        for tx in bank_txs:
-            a = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
-            if a >= 10:
-                amounts.append(a)
-    
-    if len(amounts) >= 30:
-        # 统计首位数字分布
-        first_digit_counts = Counter()
-        for a in amounts:
-            first = int(str(abs(a)).strip('0.')[0]) if abs(a) >= 1 else 0
-            if 1 <= first <= 9:
-                first_digit_counts[first] += 1
-        
-        total = sum(first_digit_counts.values())
-        if total >= 20:
-            # 本福特理论分布: P(d) = log10(1 + 1/d)
-            benford_expected = {d: math.log10(1 + 1/d) * total for d in range(1, 10)}
-            
-            # 卡方检验
-            chi_square = 0
-            max_deviation = 0
-            max_dev_digit = 0
-            for d in range(1, 10):
-                observed = first_digit_counts.get(d, 0)
-                expected = benford_expected[d]
-                if expected > 0:
-                    dev = (observed - expected) ** 2 / expected
-                    chi_square += dev
-                    deviation_pct = abs(observed - expected) / expected * 100
-                    if deviation_pct > max_deviation:
-                        max_deviation = deviation_pct
-                        max_dev_digit = d
-            
-            # 卡方>15.5 (8自由度, p<0.05) → 显著偏离本福特
-            if chi_square > 15.5:
-                findings.append({
-                    "type": "对抗鲁棒性-本福特定律偏离",
-                    "level": "中风险",
-                    "score": 7,
-                    "detail": f"金额首位数字分布显著偏离本福特定律（卡方={chi_square:.2f}, p<0.05）→数据可能经过人为干预",
-                    "how_found": f"对抗引擎: {total}个金额的首位分布vs本福特理论→卡方{chi_square:.2f}>临界值15.5",
-                    "suggestion": "重点核查偏离最大的数字{max_dev_digit}（偏差{max_deviation:.2f}%），对比原始凭证",
-                    "category": "对抗鲁棒性"
-                })
-    
-    # ── 重复金额检测 ──
-    if len(amounts) >= 10:
-        amount_counter = Counter(amounts)
-        exact_dupes = {a: c for a, c in amount_counter.items() if c >= 3 and a >= 1000}
-        if len(exact_dupes) >= 3:
-            top_dupe = max(exact_dupes, key=exact_dupes.get)
-            findings.append({
-                "type": "对抗鲁棒性-重复金额异常",
-                "level": "黄灯",
-                "score": 5,
-                "detail": f"发现{len(exact_dupes)}个金额重复>=3次（如{top_dupe:,.2f}元出现{exact_dupes[top_dupe]}次）→可能批量编造",
-                "category": "对抗鲁棒性"
-            })
-    
-    return findings
 
 
-def _auto_rule_discovery(all_findings):
-    """自动规则发现 —— 从反馈和共现模式中挖掘新规则。
-    
-    不依赖人工预定义，自动发现"信号X+信号Y几乎总是同时出现且都是高风险"的模式。
-    """
-    from collections import defaultdict, Counter
-    
-    new_rules = []
-    
-    # ── 从当前发现的信号共现中学习 ──
-    signal_cooccur = defaultdict(list)
-    for f in all_findings:
-        sigs = f.get("_signal_types", [])
-        level = f.get("level", "")
-        score = f.get("score", 0) or 0
-        
-        if score >= 7 and len(sigs) >= 2:
-            for i in range(len(sigs)):
-                for j in range(i+1, len(sigs)):
-                    pair = tuple(sorted([sigs[i], sigs[j]]))
-                    signal_cooccur[pair].append(score)
-    
-    # 高频高风险的共现模式
-    for pair, scores in signal_cooccur.items():
-        if len(scores) >= 2 and sum(scores)/len(scores) >= 7:
-            new_rules.append({
-                "signals": list(pair),
-                "avg_score": round(sum(scores)/len(scores), 1),
-                "frequency": len(scores),
-                "auto_discovered": True,
-            })
-    
-    # ── 加载历史反馈中学习的模式 ──
-    learned = []
-    feedback_path = os.path.join(_PROJECT_ROOT, "static", 'audit_feedback.json')
-    try:
-        if os.path.exists(feedback_path):
-            with open(feedback_path, 'r', encoding='utf-8') as f:
-                feedbacks = json.load(f)
-            confirmed_types = Counter()
-            for fb in feedbacks:
-                if fb.get("action") == "confirm" and fb.get("finding_type"):
-                    confirmed_types[fb["finding_type"]] += 1
-            for ftype, count in confirmed_types.most_common(10):
-                if count >= 2:
-                    learned.append({
-                        "finding_type": ftype,
-                        "confirmations": count,
-                        "learned_weight": min(1.5, 1.0 + count * 0.1),
-                    })
-    except:
-        pass
-    
-    return {
-        "discovered_rules": new_rules[:5],
-        "learned_weights": learned[:10],
-        "total_learned": len(learned),
-    }
 
 
-def _audit_strategy_recommend(ctx, all_findings):
-    """审计策略推荐 —— 基于发现自动推荐下一步取证动作。
-    
-    从"发现问题"升级到"告诉你怎么查"。
-    每条策略包含：优先级/动作/依据/预期结果。
-    """
-    strategies = []
-    high_risk_count = sum(1 for f in all_findings if f.get("level") in ("高风险", "极高风险"))
-    has_bank_issues = any("银行" in f.get("type", "") or "资金" in f.get("type", "") or "收款" in f.get("type", "") for f in all_findings)
-    has_invoice_issues = any("发票" in f.get("type", "") or "虚开" in f.get("type", "") for f in all_findings)
-    has_personal = any("个人" in f.get("type", "") for f in all_findings)
-    
-    # 策略模板
-    if has_bank_issues:
-        strategies.append({
-            "priority": "P0",
-            "action": "调取全部银行账户流水",
-            "basis": f"发现{high_risk_count}项高风险资金异常",
-            "detail": "向开户银行发函调取被查单位及法定代表人、财务负责人名下全部账户的完整流水（含已销户），覆盖分析期前后各6个月",
-            "expected": "获取完整资金链路，确认收款来源和付款去向"
-        })
-    
-    if has_invoice_issues:
-        strategies.append({
-            "priority": "P0",
-            "action": "发函协查上游供应商",
-            "basis": "发现发票真实性存疑",
-            "detail": "向供应商所在地税务机关发函协查，核实供应商是否真实经营、是否正常申报纳税、是否存在走逃/注销",
-            "expected": "确认进项发票真实性，锁定虚开证据链"
-        })
-    
-    if has_personal:
-        strategies.append({
-            "priority": "P0",
-            "action": "核查个人账户资金性质",
-            "basis": "发现个人付款方占比异常",
-            "detail": "逐笔核实大额个人付款方身份（是否为员工/股东/关联方），追踪收款后资金去向",
-            "expected": "区分经营收入、股东注资、关联方拆借，确认是否有隐匿收入"
-        })
-    
-    # 通用策略
-    strategies.append({
-        "priority": "P1",
-        "action": "实地核查经营场所",
-        "basis": "需要验证经营实质",
-        "detail": "实地查看生产/办公场所、机器设备、存货情况，拍照固定证据，制作现场笔录",
-        "expected": "确认产能是否匹配产出，是否存在'空壳经营'"
-    })
-    
-    strategies.append({
-        "priority": "P1",
-        "action": "约谈法定代表人及财务负责人",
-        "basis": "需要就异常情况取得当事人陈述",
-        "detail": "制作询问笔录，重点询问：经营模式、供应商/客户关系、资金往来性质、加工流程",
-        "expected": "取得当事人对异常情况的解释说明，固定口供证据"
-    })
-    
-    # 补充证据策略
-    missing_evidence = []
-    if not any("BOM" in f.get("type", "") for f in all_findings):
-        missing_evidence.append({
-            "priority": "P2",
-            "action": "要求提供BOM表（物料清单）",
-            "basis": "制造业/加工企业应能提供投入产出单耗数据",
-            "detail": "要求提供主要产品的BOM表，列明单位产品耗用原材料/辅料/人工/能耗的定额，用于验证发票品名差异的合理性",
-            "expected": "验证加工链条真实性或揭露虚开发票"
-        })
-    strategies.extend(missing_evidence)
-    
-    return {
-        "strategies": strategies,
-        "total": len(strategies),
-        "p0_count": sum(1 for s in strategies if s["priority"] == "P0"),
-    }
 
 
-def _multimodal_support_check(docs, file_results):
-    """多模态支持 —— 检测需要OCR/图像分析的文件并给出处理建议。
-    
-    当前阶段：识别需要OCR的文件类型，标记待处理。
-    远期：接入OCR引擎自动提取合同/图片中的关键信息。
-    """
-    multimodal_files = []
-    
-    image_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.gif', '.webp', '.pdf'}
-    ocr_needed = []
-    
-    for fr in (file_results or []):
-        fname = fr.get("file", fr.get("file_name", fr.get("original_name", "")))
-        ftype = fr.get("type", "unknown")
-        
-        # 检测图片/PDF
-        ext = os.path.splitext(fname)[1].lower() if '.' in str(fname) else ''
-        if ext in image_exts or ftype == 'unknown':
-            ocr_needed.append({
-                "file": fname,
-                "reason": "PDF/图片格式" if ext == '.pdf' else ("图片格式" if ext in image_exts else "未识别格式"),
-                "suggested_action": "上传至OCR引擎提取文本/表格数据",
-            })
-    
-    contract_kws = ["合同", "协议", "contract", "agreement"]
-    has_contracts = any(
-        any(kw in str(fr.get("file", "")).lower() for kw in contract_kws)
-        for fr in (file_results or [])
-    )
-    
-    status = "active" if ocr_needed else "idle"
-    
-    return {
-        "status": status,
-        "ocr_files_count": len(ocr_needed),
-        "ocr_files": ocr_needed[:5],
-        "has_contracts": has_contracts,
-        "recommendation": (
-            f"检测到{len(ocr_needed)}个需要OCR处理的文件" if ocr_needed
-            else "当前上传文件均为结构化数据（Excel/CSV），无需OCR处理"
-        )
-    }
 
 def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
     """经营实质深挖 —— 虚开发票的终极克星。
@@ -11348,7 +11035,7 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
             summary = str(tx.get("summary", tx.get("用途", "")))
             counterparty = str(tx.get("counterparty", tx.get("对方户名", "")))
             text = summary + counterparty
-            amt = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+            amt = max(to_number(tx.get("debit", 0)), to_number(tx.get("credit", 0)))
             
             if any(kw in text for kw in utility_kws):
                 has_utility = True
@@ -11362,10 +11049,10 @@ def _deep_biz_substance_check(ctx, bank_txs, invoices, salaries):
             goods = str(inv.get("goods", inv.get("货物或应税劳务名称", "")))
             if any(kw in goods for kw in utility_kws):
                 has_utility = True
-                utility_total += float(inv.get("amount", 0) or 0)
+                utility_total += to_number(inv.get("amount", 0))
             if any(kw in goods for kw in transport_kws):
                 has_transport = True
-                transport_total += float(inv.get("amount", 0) or 0)
+                transport_total += to_number(inv.get("amount", 0))
     
     total_sales = fs.get("total_sales", 0)
     total_purchases = fs.get("total_purchases", 0)
@@ -11451,13 +11138,13 @@ def _adversarial_robustness_check(all_findings, invoices, bank_txs):
     amounts = []
     if invoices:
         for inv in invoices:
-            a = float(inv.get("amount", inv.get("total", 0)) or 0)
+            a = to_number(inv.get("amount", inv.get("total", 0)))
             if a >= 10:
                 amounts.append(a)
     
     if bank_txs:
         for tx in bank_txs:
-            a = max(float(tx.get("debit", 0) or 0), float(tx.get("credit", 0) or 0))
+            a = max(to_number(tx.get("debit", 0)), to_number(tx.get("credit", 0)))
             if a >= 10:
                 amounts.append(a)
     
@@ -11496,7 +11183,9 @@ def _adversarial_robustness_check(all_findings, invoices, bank_txs):
                     "level": "中风险",
                     "score": 7,
                     "detail": f"金额首位数字分布显著偏离本福特定律（卡方={chi_square:.2f}, p<0.05）→数据可能经过人为干预",
-                    "how_found": f"对抗引擎: {total}个金额的首位分布vs本福特理论→卡方{chi_square:.2f}>临界值15.5",
+                    # ★ 2026-09-25：去掉引擎自述与箭头
+                    "how_found": (f"对{total}笔金额作首位数字分布检验，卡方值{chi_square:.2f}"
+                                  f"超过临界值15.5，分布偏离自然规律。"),
                     "suggestion": "重点核查偏离最大的数字{max_dev_digit}（偏差{max_deviation:.2f}%），对比原始凭证",
                     "category": "对抗鲁棒性"
                 })
@@ -11509,7 +11198,7 @@ def _adversarial_robustness_check(all_findings, invoices, bank_txs):
             top_dupe = max(exact_dupes, key=exact_dupes.get)
             findings.append({
                 "type": "对抗鲁棒性-重复金额异常",
-                "level": "黄灯",
+                "level": "中风险",
                 "score": 5,
                 "detail": f"发现{len(exact_dupes)}个金额重复>=3次（如{top_dupe:,.2f}元出现{exact_dupes[top_dupe]}次）→可能批量编造",
                 "category": "对抗鲁棒性"
@@ -12132,369 +11821,6 @@ def _enrich_evidence_trace(ctx, all_findings, file_results):
     return all_findings
 
 
-def _generate_executive_summary(overall_risk, core_issues, cross_findings, ctx, score, p0_count, p1_count):
-    """生成综合结论文本——带行业洞察和经营模式分析"""
-    lines = []
-    
-    model = ctx.company_profile.get("biz_model", "未知")
-    industry = ctx.company_profile.get("industry", "未知行业")
-    fs = ctx.financial_snapshot
-    cp = ctx.company_profile
-    
-    # ═══ 第一段：定调+全景 ═══
-    scale_desc = {"大": "大型", "中": "中型", "小": "小型", "微": "微型"}.get(cp.get("scale", ""), "")
-    risk_advice = _get_risk_advice(overall_risk)
-    
-    lines.append(
-        f"综合各方面情况，本企业的税务合规状况如下：\n\n"
-        f"经对{scale_desc}{model}企业（{industry}行业）的多域全量分析——"
-        f"涵盖{fs['bank_tx_count']}笔银行流水、{fs['sale_count']}张销项发票、{fs['pur_count']}张进项发票"
-        f"{'、'+str(fs['salary_count'])+'条工资记录' if fs['salary_count'] > 0 else ''}——"
-        f"综合的风险评级为{overall_risk}（评分{score:.2f}/100）。\n\n"
-        f"{risk_advice}"
-    )
-    
-    # ═══ 第二段：经营模式诊断 ═══
-    lines.append(f"\n经营模式方面，")
-    lines.append(_get_detailed_mode_analysis(model, industry, ctx))
-    # ── 行业自适应基准对比 ──
-    lines.append(_get_industry_benchmark_comparison(ctx))
-    
-    # ═══ 第三段：核心风险画像 ═══
-    lines.append(f"\n主要风险集中在以下几点：")
-    
-    # 按风险类别聚合
-    fraud_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["虚开","造假","编造","对开","走票"])]
-    revenue_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["隐匿","未开票","账外","体外","少记"])]
-    structure_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["关联","集中","控制","依赖"])]
-    invoice_signals = [i for i in core_issues if any(k in i.get("type","") for k in ["发票","连号","开票","品名","进销"])]
-    
-    if fraud_signals:
-        lines.append(f"  ▸ 虚开发票风险：{len(fraud_signals)}项信号（{'、'.join(i['type'][:20] for i in fraud_signals[:2])}等）")
-    if revenue_signals:
-        lines.append(f"  ▸ 隐匿收入风险：{len(revenue_signals)}项信号")
-    if structure_signals:
-        lines.append(f"  ▸ 关联交易风险：{len(structure_signals)}项信号")
-    if invoice_signals:
-        lines.append(f"  ▸ 发票异常风险：{len(invoice_signals)}项信号")
-    
-    # ═══ 资料缺失触发风险（叙事增强层）═══
-    missing_risk_signals = [i for i in core_issues if i.get("type", "").startswith("资料缺失触发-")]
-    if missing_risk_signals:
-        lines.append(f"  ▸ 资料缺失触发风险：{len(missing_risk_signals)}类关键资料缺失，已自动触发以下风险结论——")
-        for mr in missing_risk_signals[:5]:
-            risk_name = mr['type'].replace('资料缺失触发-', '')
-            lines.append(f"    → {risk_name}")
-    
-    # ═══ 结论自洽性检查：矛盾信号 ═══
-    contradiction_signals = [i for i in core_issues if i.get("type", "").startswith("结论自洽-")]
-    if contradiction_signals:
-        lines.append(f"  ▸ 结论自洽性警报：检测到{len(contradiction_signals)}个逻辑矛盾——")
-        for cs in contradiction_signals[:5]:
-            name = cs['type'].replace('结论自洽-', '')
-            lines.append(f"    ⚠ {name}")
-    
-    # ═══ 因果叙事链：多信号叠加→涉税故事 ═══
-    causal_signals = [i for i in core_issues if i.get("type", "").startswith("因果叙事-")]
-    if causal_signals:
-        lines.append(f"  ▸ 跨域因果链：{len(causal_signals)}条涉税故事被推理还原——")
-        for cs in causal_signals[:5]:
-            name = cs['type'].replace('因果叙事-', '')
-            lines.append(f"    → {name}")
-    
-    # ═══ 事前预警：风险升级路径 ═══
-    warning_signals = [i for i in core_issues if i.get("type", "").startswith("事前预警-")]
-    if warning_signals:
-        lines.append(f"  ▸ 事前预警：{len(warning_signals)}条风险升级路径被推演——")
-        for ws in warning_signals[:5]:
-            eid = ws['type'].replace('事前预警-', '')
-            lines.append(f"    ⏰ {eid}")
-    
-    # ═══ 时间趋势洞察 ═══
-    trend_items = [i for i in core_issues if i.get("type", "").startswith("趋势-")]
-    if trend_items:
-        lines.append(f"  ▸ 时间趋势：{len(trend_items)}个指标出现明显变化——")
-        for ti in trend_items[:5]:
-            name = ti['type'].replace('趋势-', '')
-            lines.append(f"    → {name}")
-    
-    # ═══ 假设敏感性：预估补税金额 ═══
-    sr = getattr(ctx, '_sensitivity_report', {})
-    if sr and sr.get("scenarios"):
-        lines.append(f"  ▸ 假设敏感性分析（中假设下）：")
-        for sc in sr["scenarios"][:3]:
-            mid = sc["levels"].get("中", {})
-            if mid:
-                lines.append(f"    {sc['risk']}: 补税{mid['total_tax']:,.2f}元 "
-                           f"(罚{mid['penalty_range']}元)")
-        lines.append(f"    → {sr['summary']}")
-    
-    # ═══ 结论可信度评估 ═══
-    cr = getattr(ctx, '_credibility_report', {})
-    if cr and cr.get("overall_credibility", 0) > 0:
-        oc = cr["overall_credibility"]
-        wc = cr.get("weakest_conclusions", [])
-        lines.append(f"  ▸ 结论可信度：整体{oc:.2f}分——")
-        lines.append(f"    {cr.get('summary', '').split(chr(10))[0][:100]}")
-        if wc:
-            for w in wc[:2]:
-                lines.append(f"    ⚠ {w['type'][:40]} → 仅{w['credibility']:.2f}分（需补充资料增强）")
-    
-    # 高风险项 TOP3
-    if core_issues:
-        high_items = [i for i in core_issues if i["level"] in ("极高风险", "高风险")]
-        if high_items:
-            lines.append(f"\n  前{min(3, len(high_items))}大高风险项：")
-            for i, issue in enumerate(high_items[:3], 1):
-                xv = "★交叉验证" if issue["is_cross_validated"] else ""
-                lines.append(f"  {i}. {issue['type']} (评分{issue['score']}) {xv}")
-    
-    # ═══ 第四段：交叉验证洞察 ═══
-    if cross_findings:
-        lines.append(f"\n交叉验证后发现，")
-        lines.append(f"Phase 3 交叉验证引擎触发{len(cross_findings)}个信号叠加模式，")
-        lines.append(f"意味着多个独立分析域的结论互相印证——不是孤立的异常，而是系统性风险。")
-        for cf in cross_findings[:3]:
-            name = cf.get('type','').replace('交叉验证-','')
-            level = cf.get('level','')
-            lines.append(f"  • {name} ({level})")
-    
-    # ═══ 第五段：核查优先级 ═══
-    lines.append(f"\n下一步核查的先后顺序建议为：")
-    lines.append(f"  共有{p0_count}项P0立即行动、{p1_count}项P1重点关注。")
-    
-    # 根据风险等级给出下一步具体建议
-    if overall_risk in ("极高风险", "高风险"):
-        lines.append(f"  鉴于风险等级为{overall_risk}，建议：")
-        lines.append(f"  1. 立即暂停与该企业的非必要业务往来")
-        lines.append(f"  2. 启动实地核查程序（核查经营场所+库存+产能匹配）")
-        lines.append(f"  3. 调取银行流水+发票台账+合同台账做全量比对")
-        if model == "制造业":
-            lines.append(f"  4. 要求提供BOM表+加工合同+出入库记录验证加工链条")
-        elif model == "贸易":
-            lines.append(f"  4. 要求提供进销存台账+物流单据验证货物流")
-    elif overall_risk == "中风险":
-        lines.append(f"  建议企业限期补充资料，重点核查以上P0/P1项。")
-    else:
-        lines.append(f"  企业整体风险可控，建议按常规流程处理。")
-    
-    # ═══ 第六段：记忆学习洞察 ═══
-    # 优先使用MemoryLearner的行业记忆洞察（更丰富）
-    learner = getattr(ctx, 'memory_learner', None)
-    if learner and learner.is_loaded:
-        learner_insight = learner.get_industry_memory_insight(ctx)
-        if learner_insight:
-            lines.append(f"\n结合以往案例经验，")
-            lines.append(f"  {learner_insight}")
-    else:
-        memory_insight = getattr(ctx, '_memory_insight', '')
-        if memory_insight:
-            lines.append(f"\n结合以往案例经验，")
-            lines.append(f"  {memory_insight}")
-    
-    # ═══ 第七段：质量声明 ═══
-    if ctx.data_quality_score < 70:
-        lines.append(f"\n关于本次资料的完整性，需要说明：")
-        lines.append(f"  当前资料质量评分{ctx.data_quality_score}/100。")
-        if ctx.missing_critical_docs:
-            lines.append(f"  缺失关键资料：{'、'.join(ctx.missing_critical_docs)}。")
-        lines.append(f"  部分结论置信度受限，建议补充完整资料后重新分析。")
-    
-    return "\n".join(lines)
-
-
-def _get_risk_advice(level):
-    """根据风险等级给出行动建议"""
-    if level == "极高风险":
-        return (
-            "该企业的涉税风险已达到'极高'级别——多个独立证据源互相印证，"
-            "存在系统性、组织性的涉税违法嫌疑。建议立即启动税务合规程序，"
-            "对企业的资金流、发票流、货物流做全方位穿透核查。"
-        )
-    elif level == "高风险":
-        return (
-            "该企业存在多项高风险涉税问题，虽未达到系统性的'极高风险'程度，"
-            "但多项异常信号的叠加表明涉税违法的主观意图明显。"
-            "建议优先安排税务合规力量，逐项核实重点问题。"
-        )
-    elif level == "中风险":
-        return (
-            "该企业存在若干中期风险信号，需要进一步核实。"
-            "部分问题可能是正常的商业行为或核算偏差，"
-            "建议要求企业限期提供补充资料以澄清疑点。"
-        )
-    else:
-        return (
-            "该企业整体涉税风险较低，现有资料未发现重大异常。"
-            "建议按常规管理流程处理，保持定期监控。"
-        )
-
-
-def _get_industry_benchmark_comparison(ctx):
-    """行业自适应基准对比：当前指标 vs 行业典型范围"""
-    ip = ctx.industry_profile
-    fs = ctx.financial_snapshot
-    cp = ctx.company_profile
-    if not ip or not ip.get("benchmarks"):
-        return ""
-    
-    bm = ip["benchmarks"]
-    label = ip.get("label", cp.get("biz_model", "未知行业"))
-    lines = []
-    lines.append(f"\n{label}行业基准对比（基于行业知识库）：")
-    
-    # 毛利率对比
-    gm_bm = bm.get("gross_margin_pct")
-    gm_actual = fs.get("gross_margin_pct", 0)
-    if gm_bm and gm_actual:
-        deviation = ""
-        if gm_actual < gm_bm.get("low", 0):
-            deviation = f"← 低于{label}行业正常下限({gm_bm['low']}%)，成本控制或收入确认存疑"
-        elif gm_actual > gm_bm.get("high", 100):
-            deviation = f"← 高于{label}行业正常上限({gm_bm['high']}%)，毛利率异常偏高"
-        elif gm_actual < gm_bm.get("normal_low", 0):
-            deviation = f"（偏低但仍在{label}行业可接受范围边缘）"
-        elif gm_actual > gm_bm.get("normal_high", 100):
-            deviation = f"（偏高，但{label}行业部分细分领域可行）"
-        
-        if deviation:
-            lines.append(f"  • 毛利率: 当前{gm_actual:.2f}% {deviation}")
-    
-    # 进销比对比  (converted to purchase/sales ratio for comparison)
-    sales = fs.get("total_sales", 1)
-    purchases = fs.get("total_purchases", 0)
-    ps_bm = bm.get("purchase_sales_ratio")
-    if ps_bm and sales > 0:
-        ps_actual = purchases / sales
-        if ps_actual < ps_bm.get("normal_low", 0) or ps_actual > ps_bm.get("normal_high", 2):
-            lines.append(f"  • 进销比: 当前{ps_actual:.2f}（{label}正常{ps_bm['normal_low']}-{ps_bm['normal_high']}）")
-    
-    # 供应商集中度
-    sc_bm = bm.get("supplier_concentration_warn")
-    if sc_bm and ctx.supplier_concentration > sc_bm:
-        lines.append(f"  • 供应商集中度: {ctx.supplier_concentration:.2f}%（{label}预警线{sc_bm}%）")
-    
-    # 客户集中度
-    cc_bm = bm.get("customer_concentration_warn")
-    if cc_bm and ctx.customer_concentration > cc_bm:
-        lines.append(f"  • 客户集中度: {ctx.customer_concentration:.2f}%（{label}预警线{cc_bm}%）")
-    
-    # 行业特有风险模式
-    risk_patterns = ip.get("risk_patterns", [])
-    if risk_patterns:
-        # 检查是否有关键模式被触发
-        triggered_patterns = []
-        for rp in risk_patterns:
-            sigs = rp.get("signals", [])
-            # 简单检查是否有至少2个信号在现有发现中出现
-            matches = 0
-            for sig in sigs:
-                # 检查是否在ctx的红黄旗信号中
-                for flag in ctx.red_flags + ctx.yellow_flags:
-                    if sig in str(flag.get("type", "")):
-                        matches += 1
-                        break
-            if matches >= 2:
-                triggered_patterns.append(rp)
-        
-        if triggered_patterns:
-            lines.append(f"\n  {label}行业特有风险模式（已触发）：")
-            for tp in triggered_patterns[:3]:
-                lines.append(f"    ▸ {tp['name']}: {tp['explanation'][:100]}")
-    
-    if len(lines) > 1:  # 超过标题行
-        return "\n".join(lines)
-    return ""
-
-
-def _get_detailed_mode_analysis(model, industry, ctx):
-    """根据经营模式+行业给出深入诊断"""
-    fs = ctx.financial_snapshot
-    cp = ctx.company_profile
-    
-    if model == "制造业":
-        analysis = (
-            f"  该企业被识别为{industry}制造业企业。"
-            f"制造业的税务合规重点是加工链条真实性——"
-            f"原材料→加工→成品的投入产出逻辑是否成立。\n"
-        )
-        if ctx.has_processing_fee:
-            analysis += (
-                f"  系统已检测到加工费发票信号，确认存在外包加工环节。"
-                f"外包加工模式下，BOM表是最核心的证据——"
-                f"只有在BOM表验证通过后，进销品名差异才能被合理解释为加工链条转换，"
-                f"否则'有进无销/有销无进'的虚开嫌疑无法排除。\n"
-            )
-        else:
-            analysis += (
-                f"  未检测到加工费——可能是自产自销的全流程制造模式。"
-                f"此模式下应能提供完整的生产成本核算和进销存台账验证。\n"
-            )
-        analysis += f"  建议核查方向：{ctx.supplier_concentration:.2f}%的供应商集中度——"
-        if ctx.supplier_concentration > 50:
-            analysis += "供应商过度集中，需核实是否存在关联交易或供应商依赖。"
-        else:
-            analysis += "供应商结构合理分散。"
-        return analysis
-    
-    elif model == "贸易":
-        return (
-            f"  该企业被识别为贸易企业。贸易模式的税务合规重点是进销品名一致性——"
-            f"买什么就卖什么，品名应当高度匹配。"
-            f"品名不匹配的差异需要逐一解释（是否为加工转换、是否为变名开票）。\n"
-            f"  建议核查：进销品名重合度、供应商与客户的工商关联、物流单据真实性。"
-        )
-    
-    elif model in ("服务/劳务",):
-        return (
-            f"  该企业被识别为服务/劳务企业。服务业的税务合规重点是收入完整性——"
-            f"因为服务不像货物有实物形态，更容易出现账外收入。\n"
-            f"  建议核查：银行收款与开票收入的全量比对、员工人数与业务量的匹配度、"
-            f"主要客户合同的签约时间与金额分布。"
-        )
-    
-    else:
-        return (
-            f"  经营模式未明确识别（{industry}行业）。"
-            f"建议补充营业执照经营范围+主营业务说明，以进行更精准的分析。"
-        )
-
-
-def _get_mode_note(model, ctx):
-    """根据经营模式给出针对性说明"""
-    if model == "制造业":
-        return "重点关注加工链条真实性（BOM表+加工合同+出入库记录）。"
-    elif model == "贸易":
-        return "重点关注进销品名一致性和供应商/客户匹配度。"
-    elif model in ("服务/劳务",):
-        return "重点关注收入完整性和人工成本匹配度（工资社保比对）。"
-    else:
-        return "建议补充公司经营范围和主营业务说明以完善分析。"
-
-
-def _summarize_evidence(all_items):
-    """汇总证据链"""
-    high_findings = [f for f in all_items if f.get("level") in ("极高风险", "高风险")]
-    evidence_domains = set(f.get("domain", "") for f in high_findings)
-    
-    lines = []
-    lines.append(f"共{len(all_items)}项发现，其中高风险{len(high_findings)}项，涉及{len(evidence_domains)}个税务合规域。")
-    
-    if evidence_domains:
-        lines.append(f"关键证据域：{' / '.join(sorted(evidence_domains))}")
-    
-    # 提取证据来源
-    sources = set()
-    for f in high_findings:
-        src = f.get("source_chain", "") or f.get("how_found", "")
-        if src and len(src) < 80:
-            sources.add(src[:60])
-    if sources:
-        lines.append(f"证据源：{' / '.join(list(sources)[:5])}")
-    
-    return "\n".join(lines)
-
-
 def _update_industry_benchmarks(company_id, report, ctx):
     """每次分析完成后自动更新行业基准值统计池。
     使用在线Welford算法增量计算均值/标准差。
@@ -12539,11 +11865,11 @@ def _update_industry_benchmarks(company_id, report, ctx):
             if existing:
                 # Welford在线更新
                 n = (existing.sample_count or 0) + 1
-                old_mean = float(existing.running_mean or 0)
+                old_mean = to_number(existing.running_mean)
                 delta = metric_value - old_mean
                 new_mean = old_mean + delta / n
                 new_delta2 = (metric_value - new_mean) * (metric_value - old_mean)
-                old_std = float(existing.running_std or 0)
+                old_std = to_number(existing.running_std)
                 # 增量方差
                 if n > 1:
                     new_variance = ((n - 2) * old_std**2 + new_delta2) / (n - 1) if n > 2 else new_delta2 / 2
@@ -13227,6 +12553,11 @@ def _auto_verify_file_types(file_results, pipeline_log):
         rows = fr.get("_rows", [])
         if fr.get("_from_filename"):
             continue  # 文件名直接分类的文件不参与验证
+        # ★ 2026-09-25：主体与账套不符的文件已被主体闸门排除（数据未进任何集合），
+        #   其 type 标记必须保持 "subject_mismatch" 以免被改写回正常类型 ——
+        #   否则前端会把"已被排除的资料"显示成正常文件，掩盖数据缺失原因。
+        if fr.get("subject_mismatch") or fr.get("type") == "subject_mismatch":
+            continue
         file_fingerprints[fname] = _extract_structural_fingerprint(rows)
     
     if len(file_fingerprints) < 5:
@@ -13580,7 +12911,7 @@ def _build_material_intel_findings(material_intel, bank_txs, invoices):
         if large_txs:
             findings.append({
                 "type": "资料情报摘要 — 大额交易",
-                "level": "注意",
+                "level": "待核验",
                 "score": 4,
                 "detail": f"检测到{len(large_txs)}笔大额交易（>50万元），合计{sum(t.get('amount',0) for t in large_txs):,.0f}元。需逐笔核查交易背景和对方身份。",
                 "description": "大额交易列表——单笔>50万需重点核查",
@@ -13673,8 +13004,8 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
     findings = []
     try:
         total_inv_amount = 0.0
-        if sal_invs: total_inv_amount += sum(float(inv.get("amount", 0) or 0) for inv in sal_invs)
-        if pur_invs: total_inv_amount += sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
+        if sal_invs: total_inv_amount += sum(to_number(inv.get("amount", 0)) for inv in sal_invs)
+        if pur_invs: total_inv_amount += sum(to_number(inv.get("amount", 0)) for inv in pur_invs)
         
         if total_inv_amount > 0:
             expected_stamp = total_inv_amount * 0.0003
@@ -13682,7 +13013,7 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
             if bank_txs:
                 for tx in bank_txs:
                     if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["印花税","印花","贴花"]):
-                        stamp_paid += abs(float(tx.get("amount", 0) or 0))
+                        stamp_paid += abs(to_number(tx.get("amount", 0)))
             if stamp_paid < expected_stamp * 0.5:
                 findings.append({
                     "type": "印花税 — 购销合同税负不足",
@@ -13709,14 +13040,14 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
         large_loans = []
         if bank_txs:
             for tx in bank_txs:
-                amt = abs(float(tx.get("amount", 0) or 0))
+                amt = abs(to_number(tx.get("amount", 0)))
                 summary = str(tx.get("summary", tx.get("raw", "")))
                 if amt > T.amount_thresholds.micro_transaction and any(k in summary for k in ["借款","贷款","融资","授信"]):
                     large_loans.append(amt)
         if large_loans:
             findings.append({
                 "type": "印花税 — 借款合同税负提醒",
-                "level": "注意", "score": 4,
+                "level": "待核验", "score": 4,
                 "detail": f"检测到{len(large_loans)}笔疑似借款交易，合计{sum(large_loans):,.0f}元。借款合同印花税率0.005%。",
                 "suggestion": "核查借款合同印花税缴纳情况。",
                 "policy_ref": "印花税法 第5条",
@@ -13738,12 +13069,12 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
     """企业所得税汇算清缴分析——纳税调整项目检测"""
     findings = []
     try:
-        inv_revenue = sum(float(inv.get("amount", 0) or 0) for inv in (sal_invs or []))
+        inv_revenue = sum(to_number(inv.get("amount", 0)) for inv in (sal_invs or []))
         vch_revenue = 0.0
         if vouchers:
             for v in vouchers:
                 if any(k in str(v.get("account_name", v.get("科目名称", ""))) for k in ["主营业务收入","营业收入","销售收入"]):
-                    vch_revenue += abs(float(v.get("credit_amount", v.get("贷方金额", 0)) or 0))
+                    vch_revenue += abs(to_number(v.get("credit_amount", v.get("贷方金额", 0))))
         
         if inv_revenue > 0 and vch_revenue > 0:
             diff_pct = abs(inv_revenue - vch_revenue) / max(inv_revenue, 1) * 100
@@ -13759,8 +13090,8 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
                 })
         
         if bank_txs and pur_invs:
-            pur_total = sum(float(inv.get("amount", 0) or 0) for inv in pur_invs)
-            bank_pur = sum(abs(float(tx.get("amount", 0) or 0)) for tx in bank_txs if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["货款","采购","材料","货"]))
+            pur_total = sum(to_number(inv.get("amount", 0)) for inv in pur_invs)
+            bank_pur = sum(abs(to_number(tx.get("amount", 0))) for tx in bank_txs if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["货款","采购","材料","货"]))
             if bank_pur > pur_total * 1.3:
                 findings.append({
                     "type": "CIT汇算 — 大额无票采购支出",
@@ -13777,7 +13108,7 @@ def _domain_cit_reconciliation(bank_txs=None, invoices=None, vouchers=None,
             for v in vouchers:
                 text = str(v.get("account_name", "")) + str(v.get("summary", ""))
                 if any(k in text for k in ["招待费","业务招待","应酬","餐饮"]):
-                    entertainment += abs(float(v.get("debit_amount", v.get("借方金额", 0)) or 0))
+                    entertainment += abs(to_number(v.get("debit_amount", v.get("借方金额", 0))))
             if entertainment > 0:
                 limit = min(entertainment*0.6, inv_revenue*0.005)
                 if entertainment > limit:
@@ -13821,13 +13152,13 @@ def _domain_export_vat_verification(bank_txs=None, invoices=None, sal_invs=None,
                 goods = str(inv.get("goods", ""))
                 buyer = str(inv.get("buyer", ""))
                 if any(k in goods + buyer for k in ["出口", "外销", "EXPORT", "境外", "海外"]):
-                    export_revenue += float(inv.get("amount", 0) or inv.get("total", 0) or 0)
+                    export_revenue += to_number(inv.get("amount", 0) or inv.get("total", 0))
                     export_inv_count += 1
         if not export_revenue and vouchers:
             for v in vouchers:
                 text = str(v.get("account_name", "")) + str(v.get("summary", ""))
                 if any(k in text for k in ["出口", "外销", "出口退税", "应收出口退税"]):
-                    export_revenue += abs(float(v.get("credit_amount", v.get("贷方金额", 0)) or 0))
+                    export_revenue += abs(to_number(v.get("credit_amount", v.get("贷方金额", 0))))
         
         # 从出口发票/报关单直接获取
         export_inv_data = export_data.get("export_invoices", []) if export_data else []
@@ -13905,8 +13236,10 @@ def _domain_export_vat_verification(bank_txs=None, invoices=None, sal_invs=None,
         elif customs_usd > 0 and not forex_data:
             findings.append({
                 "type": "出口退税 — 缺少收汇核销数据",
-                "level": "中风险", "score": 5,
-                "detail": f"有报关出口{customs_usd:,.0f}USD但未上传收汇核销单，无法验证外汇是否已收妥。",
+                # 本项由「未上传收汇核销单」驱动 → 按宗旨只能是待核验，不得写成企业风险等级
+                "level": "待核验", "score": 5,
+                "detail": f"有报关出口{customs_usd:,.0f}USD但未上传收汇核销单，无法验证外汇是否已收妥；"
+                          f"缺资料不等于违规，补齐收汇核销单后即可判定。",
                 "description": "出口退税的核心条件之一是外汇已经收妥。缺少收汇核销数据意味着无法判断该出口业务是否真实收到外汇。这是税务机关重点核查的事项。",
                 "tax_impact": "无法证明已收汇→不得申报退税或需追缴已退税款。",
                 "suggestion": "上传收汇核销单或涉外收入申报表。",
@@ -13917,9 +13250,9 @@ def _domain_export_vat_verification(bank_txs=None, invoices=None, sal_invs=None,
         if base_export > 0 and pur_invs:
             # 估算进项税额
             total_input_tax = sum(
-                float(inv.get("tax", 0) or 0)
+                to_number(inv.get("tax", 0))
                 for inv in pur_invs
-                if (float(inv.get("tax", 0) or 0) > 0)
+                if (to_number(inv.get("tax", 0)) > 0)
             )
             
             # 根据HS编码匹配退税率（简化版：按常见大类）
@@ -13958,7 +13291,7 @@ def _domain_export_vat_verification(bank_txs=None, invoices=None, sal_invs=None,
             if bank_txs:
                 for tx in bank_txs:
                     if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["出口退税", "退税", "出口退"]):
-                        refund_received += float(tx.get("credit", tx.get("收入金额", 0)) or 0)
+                        refund_received += to_number(tx.get("credit", tx.get("收入金额", 0)))
             
             findings.append({
                 "type": "出口退税 — 免抵退公式验证",

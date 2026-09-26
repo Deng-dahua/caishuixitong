@@ -25,7 +25,9 @@
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from engine.tax_redlines import match_redlines, get_redline, stats as redline_stats
+from engine.tax_redlines import (
+    match_redlines, match_redline_grounded, get_redline, stats as redline_stats,
+)
 from engine.clue_chain import build_clue_chain
 from engine.evidence_chain import build_evidence_chain
 from engine.argumentation import (
@@ -63,21 +65,42 @@ def _available_materials(engine_data: Optional[Dict],
     return mats
 
 
-def _map_finding(finding: Dict) -> Optional[Dict]:
-    """为单条发现匹配红线
+def _map_finding(finding: Dict, available_materials: Optional[List[str]] = None
+                 ) -> Tuple[Optional[Dict], Dict]:
+    """为单条发现匹配红线 → `(红线或 None, 配对说明)`。
 
-    优先路径：发现显式声明 redline_id（供应链/专项模块直接指定其支撑的红线），
-    保证该发现必然进入对应红线的证据链；否则走文本关键词匹配。
+    ★ 2026-09-25 根因修复：旧版是
+        `cands = match_redlines(text, domain=..., limit=3); return cands[0] if cands else None`
+      —— **只要得分为正就取第一名**。后果：一条"增值税申报进项税额与进项发票税额月度差异"
+      因为文本含"增值税"、而「固定资产取得、投用与折旧不匹配」红线的 taxes 里也有"增值税"
+      （得 1 分）→ 被采纳 → 报告随即用**固定资产折旧的构成要件**论证一个增值税差异，
+      并写出"这些事实是从固定资产明细账、试生产记录、折旧计算表…核对出来的"。
+      实测 13 条发现里 7 条配错红线。
+
+    现分两条路径：
+      ① 发现**显式声明** `redline_id`（扫描器前置认领）→ 直接采用，`mode="declared"`；
+      ② 否则走 `match_redline_grounded()` —— 要求信号足够具体**且**该红线所需资料本轮有提供；
+         不满足则返回 `(None, mode="unmatched")`，由调用方列为"未归入已知风险情形"，
+         **绝不改挂次优红线**（宁可不归类，也不可套错构成要件）。
     """
     rid = finding.get("redline_id")
     if rid:
         rl = get_redline(rid)
         if rl:
-            return rl
+            mats = [m for m in (rl.get("required_materials") or [])
+                    if m in (available_materials or [])]
+            return rl, {
+                "mode": "declared",
+                "score": None,
+                "reasons": ["declared_by_scanner"],
+                "materials": mats,
+                "note": "发现自身声明了所属红线（扫描器前置认领）",
+            }
+    title = str(finding.get("type") or "")
     text = " ".join(str(finding.get(k) or "") for k in
                     ("type", "domain", "detail", "description", "target_fact"))
-    cands = match_redlines(text, domain=finding.get("domain"), limit=3)
-    return cands[0] if cands else None
+    return match_redline_grounded(title, text, available_materials,
+                                  domain=finding.get("domain"))
 
 
 def run_redline_detection(findings: List[Dict],
@@ -103,13 +126,20 @@ def run_redline_detection(findings: List[Dict],
     grouped: Dict[str, Dict] = {}
     unmapped: List[Dict] = []
 
+    # 本轮实际已提供的资料类别对所有发现都一样 → 只算一次
+    _mats_all = _available_materials(engine_data, material_readiness, {})
+
     for f in findings:
-        rl = _map_finding(f)
+        rl, minfo = _map_finding(f, _mats_all)
         if not rl:
+            # 未能与任何红线可靠配对：如实列为"未归入已知风险情形"，
+            # **不**改挂次优红线（否则报告会用不相干的构成要件去论证本发现）
             unmapped.append({
                 "type": f.get("type", ""),
                 "domain": f.get("domain", ""),
                 "level": f.get("level", ""),
+                "detail": f.get("detail", ""),
+                "match_note": minfo.get("note", ""),
             })
             continue
         rid = rl["id"]
@@ -139,6 +169,15 @@ def run_redline_detection(findings: List[Dict],
                 "redline_hit": bool(arg.get("redline_hit")),
                 "remedy": ev.get("remedy", ""),
                 "missing_materials": list(ev.get("missing_materials") or []),
+                # ★ 2026-09-25：「待核」（有相关类别但须人工确认）必须与「缺失」分开上报，
+                #   否则报告要么漏掉该确认动作，要么把企业其实已交的资料说成"缺"。
+                "verify_materials": list(ev.get("verify_materials") or []),
+                # ★ 2026-09-25：配对方式与依据必须随结论一起留给报告/审计核对，
+                #   使"为什么这条发现被归到这条红线"可被复核。
+                "match_mode": minfo.get("mode", ""),
+                "match_score": minfo.get("score"),
+                "match_reasons": list(minfo.get("reasons") or []),
+                "match_materials": list(minfo.get("materials") or []),
             }
             grouped[rid] = entry
         else:
@@ -166,6 +205,9 @@ def run_redline_detection(findings: List[Dict],
             for m in (ev.get("missing_materials") or []):
                 if m not in entry["missing_materials"]:
                     entry["missing_materials"].append(m)
+            for m in (ev.get("verify_materials") or []):
+                if m not in entry.get("verify_materials", []):
+                    entry.setdefault("verify_materials", []).append(m)
 
     # 主 findings 也要进 supporting（第一条）
     suspicions = sorted(

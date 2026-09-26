@@ -2,7 +2,7 @@
 # [合并自system_config.py] · 2026-07-08: 改为从 system_config.json 动态加载
 import json, os
 
-def _load_config():
+def _load_system_config():
     """从 system_config.json 加载权威数据——不再硬编码"""
     cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static', 'system_config.json')
     try:
@@ -14,7 +14,7 @@ def _load_config():
         return {"rules_count": 1608, "clue_chains": 437, "evidence_chains": 781,
                 "analysis_chains": 48, "total_chains": 1266, "domain_functions": 39}
 
-_CFG = _load_config()
+_CFG = _load_system_config()
 rules_count = _CFG.get("rules_count", 1608)
 clue_chains = _CFG.get("executable_clues", _CFG.get("clue_chains", 437))
 evidence_chains = _CFG.get("evidence_chains", 781)

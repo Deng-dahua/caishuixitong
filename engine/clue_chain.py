@@ -24,6 +24,11 @@
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+from engine.sentencekit import (  # ★ 报告文本唯一实现
+    split_sentences, strip_meta_prefix, pick_best,
+    render_value, translate_key, clamp_text,
+)
+
 # 金额/占比/数量/人次的数字提取（保留原始写法，不改写、不换算）
 _NUM_PATTERNS = [
     r"[-+]?\d[\d,]*(?:\.\d+)?\s*万元",
@@ -37,6 +42,28 @@ _NUM_PATTERNS = [
     r"[-+]?\d[\d,]*(?:\.\d+)?\s*家",
     r"[-+]?\d[\d,]*(?:\.\d+)?\s*次",
 ]
+
+
+# 报告增强时拼入的方法论后缀标记（税务合规方法/影响/建议/法规依据）。
+# 这些不是「核对到的事实」，其中的阈值文字（如「>=3张触发」）若被抽进 numbers 会污染线索链。
+_METHODOLOGY_MARKERS = ("税务合规方法", "税务影响", "处理建议", "法规依据")
+
+
+def _strip_methodology(detail: str) -> str:
+    """剥掉报告增强（_enrich_short_findings）拼入的方法论后缀。
+
+    ★ 2026-09-26 修复：短 finding 的 how_found（含「>=3张触发」阈值文字）会被拼进 detail，
+       `extract_numbers(detail + " " + how)` 据此抽出了伪数字「3张」，导致线索链
+       numbers 出现「-1,285,450.57元、13张、3张」三值，其中「3张」纯属方法论阈值而非事实。
+       现只从**事实原文**抽数，方法论后缀一律丢弃。
+    """
+    s = str(detail or "")
+    for mk in _METHODOLOGY_MARKERS:
+        idx = s.find(mk)
+        # 仅当标记出现在字段**中部**（idx>0）才剥——开头出现的视为事实原文，保留
+        if idx > 0:
+            s = s[:idx].rstrip("。；; ").rstrip()
+    return s
 
 
 def extract_numbers(text: str, limit: int = 8) -> List[str]:
@@ -63,29 +90,30 @@ def extract_numbers(text: str, limit: int = 8) -> List[str]:
 
 
 def _metric_rows(metrics: Any) -> List[Tuple[str, str]]:
-    """把 observed_metrics 摊平成 (指标名, 值)"""
+    """把 observed_metrics 摊平成 (指标名, 值)
+
+    ★ 2026-09-25 根因修复：值一律经 `sentencekit.render_value` 渲染（**禁止 Python repr**）。
+      旧实现对"值为 list[dict]"的指标用 `str(x)[:16]`，把内部结构截断后写进企业报告：
+
+          「…—counterparty_count=2；examples=[{'counterparty':，{'counterparty'」
+
+      企业内部数据结构泄漏给企业，且 `[`/`{` 被截断成**括号不闭合**的残句。
+      现由 render_value 统一渲染：键名汉化、用中文分隔符、超出写「等N项」，绝不出现 { [ ' 等 repr 记号。
+    """
     rows: List[Tuple[str, str]] = []
     if isinstance(metrics, dict):
         for k, v in metrics.items():
-            if isinstance(v, dict):
-                # 只取前 3 个键，值压缩为紧凑串，避免整段 dict 泄进报告
-                parts = []
-                for kk, vv in list(v.items())[:3]:
-                    parts.append(f"{kk}:{str(vv)[:20]}")
-                v = "{" + "，".join(parts) + ("…}" if len(v) > 3 else "}")
-            elif isinstance(v, list):
-                v = "[" + "，".join(str(x)[:16] for x in v[:3]) + ("…]" if len(v) > 3 else "]")
-            vs = str(v)
-            if len(vs) > 90:
-                vs = vs[:90] + "…"
-            rows.append((str(k), vs))
+            vs = render_value(v, max_len=90)
+            if vs:
+                rows.append((translate_key(k), vs))
     elif isinstance(metrics, list):
         for i, v in enumerate(metrics[:8]):
             if isinstance(v, dict):
-                k = str(v.get("name") or v.get("metric") or v.get("key") or f"指标{i+1}")
-                rows.append((k, str(v.get("value") if "value" in v else v)[:80]))
+                k = v.get("name") or v.get("metric") or v.get("key") or f"指标{i+1}"
+                rows.append((translate_key(k),
+                             render_value(v.get("value") if "value" in v else v, max_len=80)))
             else:
-                rows.append((f"指标{i+1}", str(v)[:80]))
+                rows.append((f"指标{i+1}", render_value(v, max_len=80)))
     return rows
 
 
@@ -110,15 +138,18 @@ def _sources_of(finding: Dict) -> List[str]:
 
 
 def _sample_rows(finding: Dict, limit: int = 5) -> List[str]:
-    """取代表性明细样本（逐笔/逐人）"""
+    """取代表性明细样本（逐笔/逐人）
+
+    ★ 2026-09-25：改用 `sentencekit.render_value`（键名汉化、中文分隔符、禁止 repr）。
+      旧实现 `"、".join(f"{k}={v}")` 对嵌套值会 `str(dict)` → 报告里出现
+      `examples={'counterparty': '…'}` 这类内部结构。
+    """
     rows = finding.get("evidence_rows") or finding.get("detail_rows") or []
-    out = []
+    out: List[str] = []
     for r in rows[:limit]:
-        if isinstance(r, dict):
-            parts = [f"{k}={v}" for k, v in list(r.items())[:4]]
-            out.append("，".join(str(p) for p in parts))
-        else:
-            out.append(str(r)[:80])
+        s = render_value(r, max_len=120)
+        if s:
+            out.append(s)
     return out
 
 
@@ -142,7 +173,8 @@ def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] =
     how = str(finding.get("how_found") or "")
     metrics = finding.get("observed_metrics")
     sources = _sources_of(finding)
-    numbers = extract_numbers(detail + " " + how)
+    # ★ 2026-09-26：只从事实原文抽数，剥掉方法论后缀（避免「>=3张触发」等阈值被当事实数字）
+    numbers = extract_numbers(_strip_methodology(detail))
     samples = _sample_rows(finding)
 
     nodes: List[Dict] = []
@@ -234,18 +266,19 @@ def _terminal_signal(detail: str, numbers: List[str], finding: Dict) -> str:
     """
     终端信号：把「触红的具体数值」说清楚。
     优先取叙述中第一段带数字的句子（通常是结论句）。
+
+    ★ 2026-09-25 修复：切句改用 `sentencekit.split_sentences`（**括号感知**）。
+      旧实现 `re.split(r"[。；\n]", detail)` 会把括号内的分号当句末切点，
+      切出「…（取销项发票不含税金额」这种**括号不闭合**的残句，
+      而该残句会原样进企业报告（实测），一句话读不通即损害报告可信度。
+      同时剥离源文本自带的前置语（"已经核实的事实是："），避免与报告引导语叠加。
     """
     if not detail:
         return ""
-    # 取前 2 句中含数字的最长一句
-    sentences = re.split(r"[。；\n]", str(detail))
-    best = ""
-    for s in sentences[:4]:
-        s = s.strip()
-        if s and re.search(r"\d", s) and len(s) > len(best):
-            best = s
+    sentences = split_sentences(str(detail))
+    best = pick_best(sentences[:4]) or ""
     if best:
-        return best[:180]
+        return clamp_text(strip_meta_prefix(best), 180)
     if numbers:
         return "涉及金额与占比：" + "、".join(numbers[:4])
     return ""

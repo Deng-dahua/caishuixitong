@@ -1,3 +1,4 @@
+from engine.numparse import to_number, amount_of  # ★ 2026-09-25 统一数值解析（唯一实现）
 """外部数据核验待办探测器 —— 把"单账套判不了、需外部数据"的风险项转化为可执行待核清单。
 
 背景：金税四期的一批能力（开票 IP/MAC、企业注册/注销时间、实缴资本、参保人数、
@@ -21,24 +22,41 @@ _RID_INCENTIVE = "RL-SPT-011"  # 核定/优惠资格
 
 
 def _safe(v):
-    try:
-        return float(v or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
-def _buyer(inv):
-    return str((inv or {}).get("buyer", (inv or {}).get("购方名称", "")) or "").strip()
+def _buyer(inv) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import buyer_name as _fk
+    return _fk(inv)
 
 
-def _seller(inv):
-    return str((inv or {}).get("seller", (inv or {}).get("销方名称", "")) or "").strip()
+def _seller(inv) -> str:
+    """字段读取/语义判定（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/fieldkit.py（唯一权威）。
+      原多份私有实现互相不一致，导致同一张发票在不同检测器里结论不同。
+    """
+    from engine.fieldkit import seller_name as _fk
+    return _fk(inv)
 
 
 def _reminder(name, detail, why, materials, redline_id, indicator, value):
     return {
         "type": f"需外部数据核验：{name}",
-        "level": "提示",
+        # 等级原为未登记值"提示"（会被静默丢弃）；权威词表的"待核验"才是本义
+        "level": "待核验",
         "score": 3,
         "detail": detail,
         "description": why + " 本项依赖外部数据（工商/税务/海关/公安/银行等），系统在单账套内无法单独判定，"
@@ -67,7 +85,7 @@ def build_external_check_reminders(sal_invs, pur_invs, bank_txs, bs, income, ctx
     for i in pur:
         s = _seller(i)
         if s:
-            sellers[s] = sellers.get(s, 0.0) + abs(_safe((i or {}).get("amount", (i or {}).get("金额", 0))))
+            sellers[s] = sellers.get(s, 0.0) + abs(amount_of(i or {}))   # ★ 唯一权威
     pur_total = sum(sellers.values())
     if pur_total > 0 and sellers:
         top = max(sellers.values()) / pur_total

@@ -9,6 +9,10 @@
   3. 反证（正当理由）不得由关键词猜测，只认企业是否提交
   4. 证据链的「已有/缺失」判定必须对齐资料类别，禁止模糊命中
   5. 报告标题必须是红线名称，禁止再出现「待核事实：XXX核验」空壳
+  6. **「已有」必须有逐字依据**（2026-09-25 新增）：报告写出的每个"已有"
+     都必须能回指到证据项名里具体的字词；**禁止**以"资料类别相同"推断为已有
+     （真实事故：企业只交了「工资表」，报告却写"直接证据「劳动合同与用工名册」现状=已有，
+     根据=本轮已提供「工资表」"，并据此把该疑点闭合度算成 1.0、错误升级为"已确认"）。
 """
 
 import unittest
@@ -140,6 +144,116 @@ class TestEvidenceChain(unittest.TestCase):
         ev = build_evidence_chain(self.finding, self.redline,
                                   available_materials=["财务报表"])
         self.assertIsInstance(ev["elements"], list)
+
+
+class TestEvidenceStatusGrounded(unittest.TestCase):
+    """契约 6：「已有」必须有逐字依据，不得以资料类别相同推断。
+
+    真实事故（用户 2026-09-25 报）：疑点「工资表人数与社保参保人数不符」的证据表里，
+    企业只提交了工资名册与社保清单，报告却写：
+        直接证据「劳动合同与用工名册」  现状=已有  根据=本轮已提供「工资表」
+        直接证据「劳务派遣协议及派遣单位资质」现状=已有  根据=本轮已提供「工资表」
+        间接证据「考勤记录与门禁记录」  现状=已有  根据=本轮已提供「工资表」
+    —— 用工资表证明劳动合同、劳务派遣协议、考勤记录，全是无据断言；
+    并据此把闭合度算成 1.0、结论升级为"可以作出确定性判断"（错误定性）。
+    """
+
+    # 报告里 8 个已提供类别（真实场景）
+    AVAIL = ["银行流水", "销项发票", "进项发票", "记账凭证",
+             "工资表", "社保明细", "科目余额表", "增值税申报表"]
+
+    def _status(self, item, avail=None):
+        ev = build_evidence_chain(
+            {"type": "x"},
+            {"evidence_chain": [{"role": "直接证据", "name": item, "purpose": ""}]},
+            avail if avail is not None else self.AVAIL)
+        return ev["elements"][0]
+
+    def test_wage_roster_cannot_prove_contract(self):
+        """★ 核心回归：有工资表 ≠ 有劳动合同"""
+        e = self._status("劳动合同与用工名册", ["工资表"])
+        self.assertNotEqual(e["status"], "已有", "工资表不能证明劳动合同已在案")
+        self.assertNotIn("工资表", e["basis"] + e["status"])
+
+    def test_wage_roster_cannot_prove_attendance(self):
+        e = self._status("考勤记录与门禁记录", ["工资表"])
+        self.assertNotEqual(e["status"], "已有")
+
+    def test_wage_roster_cannot_prove_dispatch_agreement(self):
+        e = self._status("劳务派遣协议及派遣单位资质", ["工资表"])
+        self.assertNotEqual(e["status"], "已有")
+
+    def test_direction_not_confused(self):
+        """采购类证据不得由「销项发票」证明（方向相反）"""
+        e = self._status("设备采购合同、发票与验收单", ["销项发票"])
+        self.assertNotEqual(e["status"], "已有")
+
+    def test_personal_account_flow_not_proven_by_company_statement(self):
+        """「六员个人账户流水」不能由企业自身银行流水证明"""
+        e = self._status("六员个人账户完整流水", ["银行流水"])
+        self.assertNotEqual(e["status"], "已有")
+
+    def test_aged_payables_not_proven_by_bank_statement(self):
+        e = self._status("应付账款明细账及账龄分析", ["银行流水"])
+        self.assertNotEqual(e["status"], "已有")
+
+    def test_genuine_match_still_available(self):
+        """反向保护：真正逐字对应的材料必须仍判「已有」，不能一棍子打死"""
+        for item, avail in (
+            ("工资表", ["工资表"]),
+            ("社保明细", ["社保明细"]),
+            ("增值税申报表", ["增值税申报表"]),
+            ("进项发票", ["进项发票"]),
+            ("付款银行流水或第三方支付凭证", ["银行流水"]),
+            ("科目余额表与明细账", ["科目余额表"]),          # 已声明的等价类别
+            ("社保明细与参保缴费记录", ["社保明细"]),        # 同一材料的不同叫法
+        ):
+            e = self._status(item, avail)
+            self.assertEqual(e["status"], "已有", "%s + %s 应判已有" % (item, avail))
+            self.assertTrue(e.get("matched_detail"), "判「已有」必须给出逐字依据")
+
+    def test_partial_match_is_pending_not_available(self):
+        """只满足一部分（进项发票有、采购台账没有）→ 待核，不得整项判「已有」"""
+        e = self._status("进项发票与采购台账", ["进项发票"])
+        self.assertEqual(e["status"], "待核")
+        self.assertIn("采购台账", e["basis"])
+
+    def test_every_available_claim_is_traceable(self):
+        """★ 全量不变式：68 条红线、279 个证据项，凡判「已有」必有逐字依据。"""
+        bad = []
+        for rl in all_redlines():
+            ev = build_evidence_chain({"type": "x"}, rl, self.AVAIL)
+            for e in ev["elements"]:
+                if e["status"] != "已有":
+                    continue
+                name = e["name"]
+                det = e.get("matched_detail") or []
+                if not any(d.get("form") and (d["form"] in name or name in d["form"])
+                           for d in det):
+                    bad.append((rl.get("id"), name, det))
+        self.assertEqual(bad, [], f"判「已有」但无逐字依据：{bad}")
+
+    def test_verify_not_counted_as_obtained(self):
+        """「待核」不得计入已取得：否则闭合度虚高会把疑点错误升级为已确认"""
+        rl = get_redline("RL-PAY-001")
+        ev = build_evidence_chain({"type": "工资名册与社会保险人员范围差异"}, rl, self.AVAIL)
+        self.assertEqual(ev["available_count"], 0)
+        self.assertLess(ev["closure"], 0.80, "未逐字取得直接证据时闭合度不得达标")
+        self.assertNotIn("可以作出确定性判断", ev["verdict"],
+                         "未逐字取得直接证据时不得输出'可以作出确定性判断'")
+        self.assertTrue(ev["direct_missing"], "未逐字取得的直接证据必须进 direct_missing")
+
+    def test_verify_and_missing_separated(self):
+        """「待核」（须确认是否已含）与「缺失」（确未提供）必须在报告里分开说"""
+        rl = get_redline("RL-PAY-001")
+        ev = build_evidence_chain({"type": "工资名册与社会保险人员范围差异"}, rl, self.AVAIL)
+        self.assertGreater(ev["verify_count"], 0)
+        # 已提供的类别不得出现在 missing_materials（否则会出现"社保明细缺失"而清单里有社保明细）
+        for m in ev["missing_materials"]:
+            self.assertNotIn(m, self.AVAIL, f"已提供的「{m}」不应列为缺失")
+        self.assertNotIn("合同文件", self.AVAIL)
+        self.assertIn("合同文件", ev["missing_materials"],
+                      "劳动合同未提供 → 应报该类别缺失")
 
 
 class TestArgumentation(unittest.TestCase):

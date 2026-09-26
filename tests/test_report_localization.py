@@ -131,9 +131,12 @@ class ClueRenderTests(unittest.TestCase):
 
     def test_table_source_localized(self):
         t = _clue_table(self._clue())
+        # 列名 2026-09-25 由「使用资料」改为「对应资料」（该列是红线模板声明的应查资料，
+        # 不是本轮实际读取的资料；旧列名会让人误以为这些资料都已读取）
+        self.assertEqual(t["columns"][1], "对应资料")
         for row in t["rows"]:
-            self.assertNotIn("salaries", row["使用资料"])
-            self.assertNotIn("social_security", row["使用资料"])
+            self.assertNotIn("salaries", row["对应资料"])
+            self.assertNotIn("social_security", row["对应资料"])
 
 
 class DedupTests(unittest.TestCase):
@@ -302,22 +305,31 @@ class TestInternalTermsNeverLeak(unittest.TestCase):
         self.assertIn("社保未参保", got)
 
     def test_internal_terms_replaced_with_business_words(self):
-        from engine.enterprise_report import _naturalize_report_text
+        """内部术语不得进入企业报告。
+
+        ★ 2026-09-25：断言的**层**从"中间函数 `_naturalize_report_text`"上移到
+          **报告净化闸门 `_zh_normalize_obj`** —— 后者才是"内部术语不进报告"的真正保证。
+          原因：`裁决` 的映射原在本函数与 `text_guardrails._DIRECT_REPLACEMENTS`
+          **各有一份且口径不同**（结论 vs 认定），属同一概念两处实现；
+          现收敛到护栏唯一出处，闸门已接入护栏，故在此断言闸门行为。
+        """
+        from engine.enterprise_report import _zh_normalize_obj
         cases = {
             "线索链": "发现过程",
             "证据链": "支撑材料",
             "闭合度": "齐全程度",
-            "裁决": "结论",
+            "裁决": "认定",
         }
         for jargon, plain in cases.items():
-            got = _naturalize_report_text(f"本项{jargon}已完成。")
+            got = _zh_normalize_obj(f"本项{jargon}已完成。")
             self.assertNotIn(jargon, got, f"内部术语未净化：{jargon} → {got}")
             self.assertIn(plain, got, f"未替换为业务语言：{jargon} → {got}")
 
     def test_legacy_five_section_headings_normalized(self):
-        from engine.enterprise_report import _naturalize_report_text
+        """旧标题兜底 —— 断言**报告闸门**（内部术语映射已收敛到护栏，闸门已接入）。"""
+        from engine.enterprise_report import _zh_normalize_obj
         for legacy in ("四、论证过程与裁决", "四、论证与裁决", "三、证据链：现在有什么、还缺什么"):
-            got = _naturalize_report_text(legacy)
+            got = _zh_normalize_obj(legacy)
             for jargon in ("线索链", "证据链", "裁决", "论证过程"):
                 self.assertNotIn(jargon, got, f"旧标题未净化：{legacy} → {got}")
 

@@ -12,6 +12,7 @@
 这是系统从"规则引擎"进化到"自进化的智能体"的关键一步。
 """
 import json, os, time, re
+from engine.findingkit import normalize_month as _norm_month  # ★ 2026-09-25 期间键唯一实现
 from datetime import datetime
 from collections import defaultdict, Counter
 from typing import List, Dict, Any, Optional
@@ -289,7 +290,7 @@ def _detect_revenue_smoothing(invoices):
     for inv in invoices:
         if inv.get("direction") not in ("销项", "sales"):
             continue
-        date_str = str(inv.get("date", "")).strip()[:7]
+        date_str = _norm_month(inv.get("date"))
         amount = float(inv.get("amount", 0) or 0)
         if date_str and amount > 0:
             monthly[date_str] += amount

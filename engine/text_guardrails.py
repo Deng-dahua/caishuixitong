@@ -8,9 +8,44 @@
 from __future__ import annotations
 
 import re
+from typing import List
 
 
 _DIRECT_REPLACEMENTS = (
+    # ★ 2026-09-25：**系统内部推理过程自述**的自然化（长句优先，故置于表首）。
+    #   报告是给企业的对外文书，只写"需企业说明什么 / 本轮核对到什么"，
+    #   不写"系统用了什么方法、怎么竞争的、怎么裁决的"。
+    #   实测漏网句（`all_findings[].limitations / cleared_reason / adjudication`，
+    #   这三字段原先不在 review_finding 的字段清单里，绕过了文字门禁）：
+    #     「竞争假设裁决：个人采购金额8.68元…，正常经营假设胜出；」
+    #     「销售侧须先作经营模式裁决：…」
+    #     「正常经营假设胜出（经竞争假设裁决后排除）」
+    ("正常经营假设胜出（经竞争假设裁决后排除）", "经核对两种可能后，采信正常经营解释，不作为风险事项"),
+    ("经竞争假设裁决后排除", "经核对两种可能后排除"),
+    ("竞争假设裁决：", "经核对两种可能："),
+    ("竞争假设裁决", "两种可能的核对"),
+    ("竞争假设", "可能解释"),
+    ("经营模式裁决", "经营模式认定"),
+    ("正常经营假设胜出", "采信正常经营解释"),
+    ("假设胜出", "该解释被采信"),
+    # ★ 2026-09-25：**内部术语 → 业务语言** 的映射收敛到本表（唯一出处）。
+    #   原先它们只写在 `enterprise_report._naturalize_report_text` 里，而该函数
+    #   只在报告闸门与少数调用点执行 → **findings（走 review_finding）不受约束**：
+    #   实测 `all_findings[].type` 带着「主营业务成本资金与负债**证据链**核验」进前端。
+    #   顺序要紧：**先长后短**（「证据链未闭合」必须先于「证据链」）。
+    ("证据链未闭合", "支撑材料不足"),
+    ("证据链闭合度", "材料齐全程度"),
+    ("证据链基本闭合", "支撑材料已基本齐全"),
+    ("证据链部分闭合", "支撑材料尚不齐全"),
+    ("证据链", "支撑材料"),
+    ("线索链终端信号", "资料中直接读到的事实"),
+    ("线索链", "发现过程"),
+    ("闭合度", "齐全程度"),
+    ("论证过程与裁决", "结论及理由"),
+    ("论证与裁决", "结论及理由"),
+    ("论证过程", "判断理由"),
+    # 通用兜底：-内部术语，统一改「认定」
+    ("裁决", "认定"),
     ("封存手机和电脑防止串供", "依法固定与待证事实相关且经批准取得的电子数据，并完整记录提取、校验和交接程序"),
     ("扣押所有开票设备(电脑、税控盘、UKey)、账务资料、银行U盾，并对现场人员进行控制", "经权限、批准和必要性审查后，依法固定与待证事实相关的开票、账务及电子数据；涉及人员的措施由有权机关依法决定"),
     ("查封所有企业的财务资料、电脑、服务器", "经权限、批准和必要性审查后，依法固定与待证事实相关的资料和电子数据"),
@@ -59,6 +94,44 @@ _PENALTY_SENTENCE = re.compile(
     r"[^。；\n]*(?:罚款|刑事追诉|追缴少缴|补缴[^。；\n]*滞纳金|立即立案)[^。；\n]*[。；]?"
 )
 
+# ── 定性越界拦截（**规则式**，2026-09-25 补）──────────────────────────────────
+# 上面 `_DIRECT_REPLACEMENTS` 是**黑名单**：只能挡住已逐条列举的说法，
+# 任何新写法都能原样流进企业报告。实测漏网的真实句子：
+#   「部分收入经个人账户归集，**是账外收款的直接证据**，须逐一核验个人账户性质与去向」
+#   「…**是账外收款/资金滞留个人账户的直接证据**」
+# 这类句式把"筛查到的线索"直接断言为"已成立的违法事实"，越过「发现≠确认」的边界。
+# 故此处按**句式**（而非词条）拦截：凡把线索称作"证据/铁证/定罪依据"，
+# 或直接断言"构成<罪名>"、"已认定违法"、"必然/一定 违法"，一律降为待核表述。
+# ⚠ 量词用**贪婪**（`{0,N}`）不用惰性（`{0,N}?`）：惰性会在最早的罪名词处收尾，
+#   把「构成逃税罪」切成「构成逃税」+ 残留「罪」（实测）。贪婪会让罪名整体吃掉。
+# 与处罚句规则一致：命中片段所在句子若含《》视为法规引文，不改（避免误伤法条原文）。
+_EVIDENCE_WORD = r"的(?:直接)?(?:证据|铁证|确凿证据|认定依据|定罪依据|定案依据)"
+# 罪名/违法性词的**完整搭配**（长词在前：正则取最先匹配的选项，
+# 若把"逃税"排在"逃税罪"前，贪婪回溯会在"逃税"处收尾、残留一个"罪"）。
+_OFFENCE_WORD = (r"(?:违法行为|发票行为|账外行为|逃税罪|偷税罪|虚开发票罪|"
+                 r"骗取出口退税罪|虚开增值税专用发票罪|罪|偷税|逃税|虚开|骗税|走私|"
+                 r"隐瞒收入|账外收入)")
+_OVERCLAIM_RULES = (
+    # ① X（是|属于|构成|即为）… 的证据/铁证/定罪依据
+    (re.compile(r"(?:是|属于|构成|即为|成为)[^。；，、\n]{0,26}" + _EVIDENCE_WORD),
+     "可作为待核线索"),
+    # ② 构成<罪名/违法>
+    (re.compile(r"构成[^。；，、\n]{0,16}" + _OFFENCE_WORD),
+     "是否涉及相关法律责任尚待依法复核"),
+    # ③ 已（证实|认定|确认|坐实）<违法性>
+    (re.compile(r"(?:已|业已)(?:证实|认定|确认|坐实)[^。；，、\n]{0,16}" + _OFFENCE_WORD),
+     "相关法律性质须由有权人员依法复核"),
+    # ④ 必然/一定/肯定/无疑 <违法>
+    (re.compile(r"(?:必然|一定|肯定|无疑|势必)[^。；，、\n]{0,12}" + _OFFENCE_WORD),
+     "需由有权人员依法复核"),
+    # ⑤ X（即是|即为|已是|已经构成）账外收入/隐匿收入
+    (re.compile(r"(?:即是|即为|已是|已经构成|已经形成)[^。；，、\n]{0,10}(?:账外收入|账外收款|隐匿收入|隐瞒收入)"),
+     "存在收入完整性待核事项"),
+    # ⑥ 定性成立 / 证据闭环成立 / 已形成完整证据链
+    (re.compile(r"(?:定性|举证|证明|证据链)[^。；，、\n]{0,8}?成立"),
+     "达到提交人工复核条件"),
+)
+
 
 def _clean_text(value):
     if not isinstance(value, str) or not value:
@@ -77,7 +150,31 @@ def _clean_text(value):
         return "具体税款、滞纳金、处罚或移送后果须依据适用期间、完整事实、证据和法定程序由有权人员复核。"
 
     cleaned = _PENALTY_SENTENCE.sub(_penalty_repl, cleaned)
-    return cleaned
+    # 2026-09-25：定性越界（规则式，见 _OVERCLAIM_RULES 注释）
+    return _apply_overclaim_rules(cleaned)
+
+
+def _apply_overclaim_rules(text: str) -> str:
+    """逐句应用定性越界规则。
+
+    ⚠ 必须**逐句**判断豁免：法条引文的《》可能在匹配片段之外
+      （如「依据《税收征收管理法》第六十三条，构成偷税的可处…」——
+       命中片段只有"构成偷税"，但其所在句子是法条引文，不得改）。
+    ⚠ 同时逐句切分也天然阻止规则跨越「。」「；」误匹配整段。
+    """
+    if not text:
+        return text
+    from engine.sentencekit import split_sentences
+    pieces = split_sentences(text, keep_delims=True)
+    out: List[str] = []
+    for seg in pieces:
+        if not seg or seg in ("。", "；", "\n") or "《" in seg or "》" in seg:
+            out.append(seg)
+            continue
+        for pattern, repl in _OVERCLAIM_RULES:
+            seg = pattern.sub(repl, seg)
+        out.append(seg)
+    return "".join(out)
 
 
 def neutralise_methodology_text(value):
@@ -130,6 +227,32 @@ def review_finding(finding):
     ):
         if field in finding:
             finding[field] = _clean_text(finding.get(field))
+    # ★ 2026-09-25：**兜底覆盖其余所有字符串字段** —— 上面的字段清单是"白名单"，
+    #   任何新增字段（如 `adjudication` / `limitations` / `cleared_reason`）都会**绕过文字门禁**，
+    #   实测这三个字段带着「竞争假设裁决」原样进了报告数据（前端会渲染发现明细）。
+    #   改为白名单 + 兜底：已列字段按原顺序处理（保持既有语义），其余字符串字段一并净化。
+    _KNOWN = {
+        "type", "detail", "description", "how_found", "tax_impact", "suggestion",
+        "policy_ref", "determination", "action", "remedy", "focus", "normal_reason",
+        "drill_questions", "evidence", "risk_table", "direction", "phenomena",
+        "threshold", "applicable_condition",
+    }
+    # ★ 2026-09-25：**机器枚举字段豁免**。
+    #   这些字段的值是程序约定的枚举标识（用于分组/统计/放行判断），不是给人读的散文。
+    #   文案门禁对它们做词条替换会**破坏程序语义**：实测 `terminal_state="铁证如山"`
+    #   被黑名单把「铁证」替换成「经来源谱系去重的多源材料」，于是终局值变成
+    #   「经来源谱系去重的多源材料如山」——报告里按终局分组的统计随之全部落空。
+    #   枚举值的"措辞"由定义处负责（已避开黑名单词），此处不得二次改写。
+    _ENUM_FIELDS = {
+        "level", "risk_level", "severity", "terminal_state", "conclusion_grade",
+        "release_status", "direction", "verdict", "status", "analysis_status",
+        "grade", "state", "source_type", "doc_type", "file_type",
+    }
+    for field, value in list(finding.items()):
+        if (field in _KNOWN or field in _ENUM_FIELDS
+                or not isinstance(value, str) or field.startswith("_")):
+            continue
+        finding[field] = _clean_text(value)
     for field, value in list(finding.items()):
         if field.startswith("_rule_") and isinstance(value, str):
             finding[field] = _clean_text(value)
@@ -139,16 +262,22 @@ def review_finding(finding):
     if not how:
         ftype = finding.get("type", "未命名")
         fdomain = finding.get("domain", finding.get("category", ""))
-        fdetail = finding.get("detail", finding.get("description", ""))[:80]
+        # ★ 2026-09-25：安全截断（朴素 [:80] 会切在括号内部，产出不闭合残句）
+        from engine.sentencekit import clamp_text as _clamp
+        fdetail = _clamp(finding.get("detail", finding.get("description", "")), 80)
         ev_count = 0
         ev = finding.get("evidence", []) or finding.get("evidence_rows", []) or finding.get("items", []) or []
         if isinstance(ev, list):
             ev_count = len(ev)
-        how = f"系统分析: 对{fdomain}执行{ftype}检测"
+        # ★ 2026-09-25：① 去掉「系统分析:」这类**系统自述**——报告是给企业的对外文书，
+        #   只写"发现了什么、依据什么"，不写"系统做了什么"（报告纪律）；
+        #   ② 冒号改全角 —— 半角冒号+空格混在中文里（实测 `系统分析: 对…检测`）。
+        _scope = f"对{fdomain}执行{ftype}检测" if fdomain else f"对{ftype}执行检测"
+        how = _scope
         if ev_count:
             how += f"，基于{ev_count}条证据记录"
         if fdetail:
-            how += f"。详情: {fdetail}"
+            how += f"。详情：{fdetail}"
         finding["how_found"] = how
 
     combined = " ".join(str(finding.get(field, "")) for field in (

@@ -11,6 +11,7 @@ VR040 职工福利费 三项扣除限额规则；本模块补齐同属"税前扣
 铁律：仅输出可复算的数量事实，不自动定性；无数据（取不到工资/利润等基数）不输出。
 """
 
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 from collections import defaultdict
 
 # ── 阈值 ──
@@ -22,10 +23,14 @@ _MIN_BASE = 10000.0         # 基数下限（元），低于此不判定，避�
 
 
 def _safe(v):
-    try:
-        return float(v or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    """数值解析（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/numparse.py（唯一权威）。
+      原私有实现遇 "12,000.00" / "￥1,234.56" 等会静默返回 0，
+      导致同一金额在不同模块被算成不同值（报告自相矛盾 / 规则漏触发）。
+    """
+    from engine.numparse import to_number as _to_number
+    return _to_number(v)
 
 
 def _acct(v):
@@ -73,13 +78,13 @@ def _profit_total(income):
 
 def _mk(type_, level, score, detail, description, how_found, tax_impact,
         policy_ref, suggestion, category, source_chain, redline_id, indicator, value):
-    return {
-        "type": type_, "level": level, "score": score,
-        "detail": detail, "description": description, "how_found": how_found,
-        "tax_impact": tax_impact, "policy_ref": policy_ref, "suggestion": suggestion,
-        "category": category, "source_chain": source_chain,
-        "redline_id": redline_id, "indicator": indicator, "indicator_value": value,
-    }
+    """finding 构造（统一实现）。
+
+    ★ 2026-09-25 收敛：实现已统一到 engine/findingkit.py（唯一权威）。
+      原先三个模块各有一份**逐字节相同**的副本，只改一份就会导致字段集不一致。
+    """
+    from engine.findingkit import make_finding as _make_finding
+    return _make_finding(type_, level, score, detail, description, how_found, tax_impact, policy_ref, suggestion, category, source_chain, redline_id, indicator, value)
 
 
 def _check_union_and_edu(vouchers):

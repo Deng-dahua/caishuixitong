@@ -124,7 +124,10 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
     _suspect = str(redline.get('suspect') or '税务风险')
     # suspect 已含「涉嫌」字样，不得重复叠加
     _suspect_txt = _suspect if _suspect.startswith("涉嫌") else f"涉嫌{_suspect}"
-    claim = (f"本企业触碰红线 {redline.get('id','')}「{redline.get('name','')}」，{_suspect_txt}")
+    # ★ 2026-09-25：claim 文本**不带红线编号** —— 编号是内部追溯标识，已在条目
+    #   `redline_id` 字段中透传；写进面向读者的表述里，一旦某条渲染路径没过净化闸门
+    #   就会泄漏给企业（实测内部树里 16 处 claim 仍带 RL-XXX）。
+    claim = (f"本企业触碰红线「{redline.get('name','')}」，{_suspect_txt}")
     grounds = _grounds(finding, clue, evidence)
     rebuttals = _justifications(finding, redline)
 
@@ -189,6 +192,10 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
     next_actions: List[str] = []
     for m in (evidence.get("missing_materials") or [])[:5]:
         next_actions.append(f"补充提供「{m}」")
+    # ★ 2026-09-25：「待核」项不是"缺材料"，而是"已有相关资料但未必含本项所需"，
+    #   动作应为"确认"而非"补充提供" —— 否则报告会让企业去补一份其实已经交了的资料。
+    for m in (evidence.get("verify_materials") or [])[:5]:
+        next_actions.append(f"确认已提供的「{m}」中是否包含本项所需内容")
     for e in (evidence.get("direct_missing") or [])[:3]:
         next_actions.append(f"取得直接证据：{e}")
     if rebuttals:
@@ -240,16 +247,36 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
     claim_text = re.sub(r"红线\s*RL-[A-Z]+-\d+\s*", "红线", claim or "")
     claim_text = re.sub(r"RL-[A-Z]+-\d+\s*", "", claim_text).strip()
     parts.append(f"{claim_text}。")
+    # ★ 2026-09-25：构成要件是**待核对的判断标准**，不是已成立的事实。
+    #   旧文案写"这样判断的依据是：…"，读起来像这些要件已经成立 ——
+    #   用户无法分辨哪些是"标准"、哪些是"本轮核对到的事实"。
     constituents = redline.get("constituents") or []
     if constituents:
-        parts.append(f"这样判断的依据是：{_join(constituents, '；')}。")
+        parts.append(f"判断本项是否成立，要看这几项标准是否同时满足：{_join(constituents, '；')}。")
     if clue.get("terminal_signal"):
-        parts.append(f"本轮从资料中直接读到的事实是：{clue.get('terminal_signal')}。")
-    chain_desc = "→".join(
-        f"{_zh_source(n.get('source','?').split('、')[0])}" for n in (clue.get("nodes") or [])
-    )
-    if chain_desc:
-        parts.append(f"这些事实是从{chain_desc}这几类资料里逐层核对出来的。")
+        parts.append(f"本轮从所报资料中直接核对到的事实是：{clue.get('terminal_signal')}。")
+
+    # ★ 2026-09-25 根因修复：资料归属必须按**实际取得情况**陈述。
+    #   旧文案把红线模板声明的"应查资料路径"当成"已核对路径"，写出
+    #   "这些事实是从固定资产明细账、试生产记录、折旧计算表、设备产能这几类资料里
+    #     逐层核对出来的" —— 而该企业这几类资料**一份都没提交**（证据表里全是缺失）。
+    #   现改为：只说本轮**实际读取到**的资料（可核验），并把未取得数据的环节显式点出。
+    real_sources = [_zh_source(s) for s in (clue.get("sources_used") or []) if s]
+    if real_sources:
+        parts.append("本轮实际读取到的资料是：" + "、".join(real_sources[:6]) + "。")
+    nodes = clue.get("nodes") or []
+    gap_nodes = [n for n in nodes if not n.get("has_data")]
+    if gap_nodes:
+        parts.append(
+            "本项核查共%d环，其中" % len(nodes)
+            + "、".join("第%s环" % n.get("step") for n in gap_nodes)
+            + "因本轮未取得该环节所需资料，未取得数据（各环实际读到的数据见上一段明细表）。"
+        )
+    elif nodes:
+        # ★ 不写"全部取得数据"：各环有数据只代表该环节取得了可量化数据，
+        #   不代表"该环对应资料已提供/已读取"（环的对应资料是检查路径上的应查项）。
+        #   可证的表述是"各环数据见明细表"，读什么、读到什么由表逐环列示。
+        parts.append("本项核查共%d环，各环实际读到的数据见上一段明细表。" % len(nodes))
     _v = evidence.get('verdict', '')
     _closure = int(float(evidence.get('closure', 0)) * 100)
     parts.append(

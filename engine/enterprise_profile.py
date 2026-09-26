@@ -549,11 +549,10 @@ def _extract_field(text: str, keywords: List[str]) -> str:
 
 
 def _load_industry_data():
-    """加载行业基准数据"""
-    import json, os
-    path = os.path.join(os.path.dirname(os.path.dirname(__file__)) or ".", "static", "industry_data.json")
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {"benchmarks": {"_default": {}}}
+    """行业数据加载（唯一权威）。
+
+    ★ 2026-09-25：原为本模块自建加载器（**无缓存**，每次调用都重新读 JSON，且兜底形状
+    与其它模块不一致）。现统一委托 `engine.industry_resolver.load_industry_data()`。
+    """
+    from engine.industry_resolver import load_industry_data as _ld
+    return _ld()

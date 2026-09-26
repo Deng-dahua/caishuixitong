@@ -11,23 +11,41 @@ import json, os, calendar
 
 # ============ 期间格式工具函数 ============
 def _normalize_period(ym: str) -> str:
-    """将各种格式的时期统一为 YYYY-MM（财税系统标准格式）"""
+    """将各种格式的时期统一为 `YYYY-MM`（财税系统标准格式）。
+
+    ★ 2026-09-25 根因修复：旧实现是 `ym[:7]`，**名为归一化、实则只截断**：
+
+        '2025/1/15' → '2025/1/'   → `_period_to_date_range` 抛 ValueError（崩溃）
+        '2025年1月'  → '2025年1月'  → 同上崩溃
+        '2025.1.5'  → '2025.1.'   → 同上崩溃
+        '2025-1'    → '2025-1'    → 长度<7 → 日期区间 ('','')，**整段期间静默无数据**
+
+    凡用户或导入数据传入带分隔符/个位月份的期间（Excel 导出普遍如此），
+    要么直接崩溃、要么静默分析空数据 —— 与行业无关，对所有企业都成立。
+    现唯一权威为 `engine.findingkit.normalize_month`。
+    """
+    from engine.findingkit import normalize_month
     if not ym:
         return ''
-    ym = ym.strip()
-    if len(ym) >= 7:
-        return ym[:7]
-    return ym
+    return normalize_month(ym)
 
 
 def _period_to_date_range(ym: str) -> Tuple[str, str]:
     """
     将 YYYY-MM 转换为当月第一天和最后一天（财税严谨格式）
     如 2025-01 → ('2025-01-01', '2025-01-31')
+
+    ★ 2026-09-25：入参一律先经唯一权威归一化，且**月份非法时返回 ('','')** 而非崩溃
+      （旧实现直接 `int(ym[5:7])` / `calendar.monthrange(y, m)`，
+       遇 '2025/1/' 或 13 月会抛 ValueError 把整条分析链打断）。
     """
-    if not ym or len(ym) < 7:
+    from engine.findingkit import normalize_month
+    ym = normalize_month(ym)
+    if not ym:
         return ('', '')
     y, m = int(ym[:4]), int(ym[5:7])
+    if not (1 <= m <= 12):
+        return ('', '')
     first_day = f'{y}-{m:02d}-01'
     last_day_num = calendar.monthrange(y, m)[1]
     last_day = f'{y}-{m:02d}-{last_day_num:02d}'
@@ -36,8 +54,14 @@ def _period_to_date_range(ym: str) -> Tuple[str, str]:
 # ── 工具函数 ──
 
 def _safe_float(val, default=0.0):
-    if val is None: return default
-    return float(val)
+    """安全转数值 —— 唯一权威 engine.numparse.to_number。
+
+    ★ 2026-09-25 根因修复：旧实现 `float(val)` **名为 safe、实则不安全** ——
+    遇千分位 `"1,234.00"`、空串 `""`、非数字文本会直接抛 ValueError 打断分析链
+    （而调用方都以为它"安全"，不会兜住异常）。现统一委托 numparse（含千分位/￥/全角/会计式负数）。
+    """
+    from engine.numparse import to_number
+    return to_number(val, default)
 
 def _risk_level(score: int) -> str:
     if score >= 7: return "高风险"
@@ -90,16 +114,30 @@ def _get_account_sum(db: Session, company_id: int, account_code: str, ps: str, p
     ).scalar())
 
 def _get_periods_between(ps: str, pe: str) -> list:
-    """生成两个 YYYY-MM 之间的所有月份"""
+    """生成两个 `YYYY-MM` 之间的所有月份。
+
+    ★ 2026-09-25：入参先经唯一权威归一化；任一端不可解析时返回 **[]**，
+      不再靠 `int(ps[5:7])` 硬切（旧实现遇 `''` 抛 IndexError、遇非数字抛 ValueError，
+      把整条分析链打断；现在退化为"无月份序列"，可被上层稳健处理）。
+    """
+    ps = _normalize_period(ps)
+    pe = _normalize_period(pe)
+    if not ps or not pe:
+        return []
     result = []
     y1, m1 = int(ps[:4]), int(ps[5:7])
     y2, m2 = int(pe[:4]), int(pe[5:7])
     y, m = y1, m1
+    if (y1, m1) > (y2, m2):
+        return []
     while True:
         result.append(f"{y}-{m:02d}")
-        if y == y2 and m == m2: break
+        if y == y2 and m == m2:
+            break
         m += 1
-        if m > 12: m = 1; y += 1
+        if m > 12:
+            m = 1
+            y += 1
     return result
 
 def _monthly_account_balance(db: Session, company_id: int, account_code: str, ps: str, pe: str) -> dict:

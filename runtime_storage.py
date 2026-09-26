@@ -10,6 +10,7 @@ import os
 import re
 import tempfile
 import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,11 @@ for _directory in (DATA_DIR, CACHE_DIR, UPLOAD_DIR, LOG_DIR, TRASH_DIR):
 LAST_ANALYSIS_CACHE = CACHE_DIR / "last_analysis_cache.json"
 ANALYSIS_HISTORY = CACHE_DIR / "analysis_history.json"
 ACCESS_LOG = LOG_DIR / "access.jsonl"
+# 删除墓碑：记录"用户已删除、但磁盘文件未能物理移除"的资料。
+# 作用有两层：① 列表/分析永不再收录该文件（否则重启后 _init_tax_docs_from_disk
+# 会把文件重新扫回列表，表现为"删了又回来"）；② 保留待清理清单，等文件句柄
+# 释放后（如 Excel 关闭）可一键彻底清空。
+DELETED_DOCS = DATA_DIR / "deleted_docs.json"
 
 _json_lock = threading.RLock()
 _unsafe_filename = re.compile(r"[^A-Za-z0-9._\-\u4e00-\u9fff]+")
@@ -97,6 +103,83 @@ def empty_trash_batch(max_files: int = 20) -> int:
         except Exception:
             pass
     return removed
+
+
+# ═══════════ 资料删除：真实移除 + 墓碑（2026-09-25） ═══════════
+# 背景（用户报"删除选中资料删不干净、重启后资料又回来"）：
+#   旧实现 move_to_trash 返回 False（文件被 Excel/WPS 占用、权限不足、已被外部
+#   删除）时仍向用户返回"删除成功"；且内存列表删了、磁盘文件还在，
+#   服务器重启后 _init_tax_docs_from_disk 会把文件重新扫回列表。
+# 现约定：删除必须是"可验证的真实删除"，做不到就如实告知并留墓碑。
+
+def doc_tombstone_key(company_id: int, filename: str) -> str:
+    """墓碑主键：公司 + 文件名（文件名内含 doc_id，是磁盘上的唯一标识）。"""
+    return f"{int(company_id)}:{filename}"
+
+
+def load_doc_tombstones() -> dict:
+    """读取删除墓碑：{key: {"company_id","filename","path","reason","at","purged"}}"""
+    data = read_json(DELETED_DOCS, {})
+    return data if isinstance(data, dict) else {}
+
+
+def save_doc_tombstones(tombstones: dict) -> None:
+    atomic_write_json(DELETED_DOCS, tombstones)
+
+
+def add_doc_tombstone(company_id: int, filename: str, path: str = "",
+                      reason: str = "", purged: bool = False) -> None:
+    """登记墓碑（幂等）。purged=True 表示磁盘文件确已移除，仅是"已删除"记事；
+    purged=False 表示磁盘文件仍在，需等待句柄释放后清理。"""
+    try:
+        key = doc_tombstone_key(company_id, filename)
+        tombstones = load_doc_tombstones()
+        tombstones[key] = {
+            "company_id": int(company_id),
+            "filename": filename,
+            "path": path or "",
+            "reason": reason or "",
+            "purged": bool(purged),
+            "at": datetime.now().isoformat(),
+        }
+        save_doc_tombstones(tombstones)
+    except Exception:
+        pass
+
+
+def clear_doc_tombstone(company_id: int, filename: str) -> None:
+    try:
+        key = doc_tombstone_key(company_id, filename)
+        tombstones = load_doc_tombstones()
+        if key in tombstones:
+            del tombstones[key]
+            save_doc_tombstones(tombstones)
+    except Exception:
+        pass
+
+
+def purge_file(file_path) -> tuple:
+    """尽力物理移除单个文件，返回 (removed: bool, reason: str)。
+
+    顺序：① 移入项目回收站（不触发环境批量删除守护）；② 若失败（同目录同名
+    冲突等），改用带微秒时间戳的唯一名再移一次；③ 仍失败则保留原文件并说明
+    原因，绝不删除、绝不谎报。调用方必须依据返回值决定是否告知用户"删除成功"。
+    """
+    src = Path(str(file_path))
+    if not src.exists():
+        return True, "文件已不存在"
+    if not src.is_file():
+        return False, "目标不是文件"
+    if move_to_trash(src):
+        return True, "已移入回收站"
+    try:
+        TRASH_DIR.mkdir(parents=True, exist_ok=True)
+        unique = TRASH_DIR / f"{src.name}.{datetime.now().strftime('%H%M%S%f')}.purge"
+        os.replace(src, unique)
+        return True, "已移入回收站（唯一名）"
+    except Exception as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+
 
 
 _move_legacy_private_file(

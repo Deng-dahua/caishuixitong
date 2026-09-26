@@ -332,23 +332,30 @@ function toggleAllRiskDocs(cb) {
 async function batchDelRiskDocs() {
   var boxes = document.querySelectorAll('.risk-doc-check:checked');
   if (boxes.length === 0) { toast('请先选择要删除的资料', 'warning'); return; }
-  var ids = Array.from(boxes).map(function(b) { return b.getAttribute('data-id'); });
+  var ids = Array.from(boxes).map(function(b) { return parseInt(b.getAttribute('data-id'), 10); })
+                              .filter(function(x) { return !isNaN(x); });
   if (!confirm('确定删除选中的 ' + ids.length + ' 个文件？')) return;
-  var fail = 0;
-  for (var i = 0; i < ids.length; i++) {
-    try {
-      await api('/api/tax-risk-docs/' + ids[i], { method: 'DELETE' });
-    } catch(e) { fail++; }
+  // 2026-09-25 收敛到唯一删除实现：旧写法逐条 DELETE，无法区分"文件已真正
+  // 移出磁盘"与"文件被占用、仅登记删除记事"，也无法如实回报逐条失败原因。
+  try {
+    var r = await api('POST', '/api/tax-risk-docs/batch-delete', { doc_ids: ids });
+    if (!r.ok) { toast(r.message || '删除失败', 'error'); }
+    else if (r.left_on_disk > 0) { toast(r.message + '。请关闭 Excel/WPS 后点「清理删除残留」。', 'warning'); }
+    else { toast(r.message, 'success'); }
+  } catch (e) {
+    toast('删除失败：' + (e.message || e), 'error');
   }
-  toast('已删除 ' + (ids.length - fail) + ' 个文件' + (fail > 0 ? '，' + fail + '个失败' : ''), 'success');
   refreshRiskDocsList();
 }
 
 function delRiskDoc(id) {
   if (!confirm('确定删除此文件？')) return;
-  api('/api/tax-risk-docs/' + id, { method: 'DELETE' }).then(function(r) {
-    if (r.ok) { toast('已删除', 'success'); refreshRiskDocsList(); }
-  });
+  api('POST', '/api/tax-risk-docs/batch-delete', { doc_ids: [parseInt(id, 10)] }).then(function(r) {
+    if (!r.ok) { toast(r.message || '删除失败', 'error'); return; }
+    if (r.left_on_disk > 0) { toast(r.message + '。请关闭 Excel/WPS 后点「清理删除残留」。', 'warning'); }
+    else { toast(r.message || '已删除', 'success'); }
+    refreshRiskDocsList();
+  }).catch(function(e) { toast('删除失败：' + (e.message || e), 'error'); });
 }
 
 function analyzeAllRiskDocs() {

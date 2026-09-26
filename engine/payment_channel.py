@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析
 
 try:
     from engine.fund_matching import _core_of
@@ -115,7 +116,7 @@ def find_payment_evidence(supplier: str, invoice_date: str,
     """
     inv_d = _norm_date(invoice_date)
     core = _core_of(supplier)
-    amt_inv = abs(float(invoice_amount or 0))
+    amt_inv = abs(to_number(invoice_amount))
     result = {"window_days": window_days, "channels": {}, "hits": [],
               "same_name_out_of_window": 0}
     if not core:
@@ -129,7 +130,7 @@ def find_payment_evidence(supplier: str, invoice_date: str,
         if not isinstance(tx, dict):
             continue
         try:
-            amt = float(str(tx.get("debit") or 0).replace(",", "") or 0)
+            amt = to_number(str(tx.get("debit") or 0).replace(",", ""))
         except (TypeError, ValueError):
             amt = 0.0
         if amt <= 0:
