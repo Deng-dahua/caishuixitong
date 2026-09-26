@@ -5263,7 +5263,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   // ═══ 资料齐备性总览（2026-09-05）：必查资料是否齐全，缺失项映射风险盲区 ═══
   var readiness = report.material_readiness || {};
   if (readiness.summary_text) {
-    html += '<h3>稽查必查资料齐备性</h3>' +
+    html += '<h3>本轮检查必查资料齐备性</h3>' +
       '<p class="i2"><strong>' + esc(readiness.summary_text) + '</strong></p>';
     if (readiness.provided && readiness.provided.length) {
       html += '<p class="i2">已提供资料：' + esc(readiness.provided.join('、')) + '。</p>';
@@ -5271,7 +5271,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     if (readiness.missing && readiness.missing.length) {
       html += '<div class="table-wrap" style="margin:10px 0 18px"><table style="width:100%;border-collapse:collapse;font-size:13px">' +
         '<thead><tr><th style="border:1px solid #e2e8f0;padding:8px 10px;background:#f8fafc;text-align:left">缺失资料</th>' +
-        '<th style="border:1px solid #e2e8f0;padding:8px 10px;background:#f8fafc;text-align:left">无法检查的风险方面</th>' +
+        '<th style="border:1px solid #e2e8f0;padding:8px 10px;background:#f8fafc;text-align:left">将影响的风险检查方面</th>' +
         '<th style="border:1px solid #e2e8f0;padding:8px 10px;background:#f8fafc;text-align:left">补救要求</th></tr></thead><tbody>' +
         readiness.missing.map(function(m){
           return '<tr><td style="border:1px solid #e2e8f0;padding:8px 10px;color:#991b1b;font-weight:600">' + esc(m.doc) + '</td>' +

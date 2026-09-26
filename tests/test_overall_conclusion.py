@@ -116,5 +116,56 @@ class TestOverallConclusionDerivation(unittest.TestCase):
         self.assertNotIn("None", "".join(oc["paragraphs"]))
 
 
+class TestEditorialStandard(unittest.TestCase):
+    """用户 2026-09-26 复核意见 → 固化为编辑标准（防回退）。"""
+
+    def _oc(self):
+        probs = [_p(1, "甲", "高风险", ["增值税", "企业所得税"]),
+                 _p(2, "乙", "中风险", ["增值税"]),
+                 _p(3, "丙", "待核验", ["印花税"], suspect="涉嫌隐匿收入"),
+                 _p(4, "丁", "低风险", [])]
+        te = {"industry": "广告传媒", "_industry_source": "销项发票品名推断",
+              "industry_registered": "商贸",
+              "_industry_candidates": {"工商登记": "商贸", "销项发票品名推断": "广告传媒"}}
+        return build_overall_conclusion(_rd(probs, te=te))
+
+    def test_industry_is_only_a_measure_basis_not_a_finding(self):
+        j = "".join(self._oc()["paragraphs"])
+        self.assertIn("初步按销项发票品名指向", j)
+        self.assertIn("待核实", j)
+        self.assertIn("登记口径「商贸」", j)
+        self.assertNotIn("按「广告传媒」认定", j)
+
+    def test_no_heavy_qualifier_wording(self):
+        oc = self._oc()
+        j = "".join(oc["paragraphs"]) + oc["conflict"]
+        self.assertNotIn("变名开票", j)
+        self.assertIn("开票品名与实际经营是否一致", j)
+
+    def test_pending_verify_is_status_not_level(self):
+        j = "".join(self._oc()["paragraphs"])
+        self.assertIn("不参与风险等级排序", j)
+        self.assertIn("风险等级按", j)              # 分级依据必须写明
+
+    def test_tax_stats_labeled_as_relation_count(self):
+        self.assertIn("事项—税种关联次数", "".join(self._oc()["paragraphs"]))
+
+    def test_directions_are_softened(self):
+        j = "".join(self._oc()["paragraphs"])
+        self.assertIn("可能涉及的涉嫌方向（待核实）", j)
+        self.assertNotIn("已指向的", j)
+
+    def test_items_are_pending_risk_items_with_disclaimer(self):
+        j = "".join(self._oc()["paragraphs"])
+        self.assertIn("待核实风险事项", j)
+        self.assertIn("尚不构成违法定性", j)
+        self.assertNotIn("共确认", j)
+
+
+    def test_no_markdown_asterisks_in_any_paragraph(self):
+        """纯文本段落不得含 Markdown 记号（曾漏出 `**加粗**` 的星号）。"""
+        self.assertNotIn("*", "".join(self._oc()["paragraphs"]))
+
+
 if __name__ == "__main__":
     unittest.main()

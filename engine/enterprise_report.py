@@ -1855,7 +1855,7 @@ def _build_material_readiness(report_data):
         "summary_text": (
             f"稽查必查资料共 {total} 类，本轮已提供 {complete} 类、缺失 {len(missing)} 类。"
             + ("资料齐全，全部检查程序可执行。" if not missing
-               else "资料不齐全：以下缺失将导致相应风险方向无法检查（详见缺失清单）。")
+               else "资料不齐全：以下缺失将影响相应风险方向的检查（详见缺失清单）。")
             + _rf_note
         ),
     }
