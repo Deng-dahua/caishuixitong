@@ -287,6 +287,20 @@ function downloadTaxRiskReport(format) {
 
 // ── 涉税资料上传与分析 ──
 
+// ★ 2026-09-26 用户要求：上传经营资料可折叠/展开，避免资料一多占满页面。
+function toggleRiskDocsList() {
+  var rows = document.getElementById('risk-docs-rows');
+  if (!rows) return;
+  var willShow = (rows.style.display === 'none');
+  rows.style.display = willShow ? 'block' : 'none';
+  window._riskDocsCollapsed = !willShow;
+  var btn = document.getElementById('risk-docs-toggle');
+  if (btn) {
+    var n = rows.querySelectorAll('.risk-doc-check').length;
+    btn.textContent = willShow ? '▾ 折叠资料清单' : ('▸ 展开资料清单（' + n + '）');
+  }
+}
+
 function refreshRiskDocsList() {
   api('/api/tax-risk-docs/list').then(function(docs) {
     var el = document.getElementById('risk-docs-list');
@@ -295,7 +309,16 @@ function refreshRiskDocsList() {
       el.innerHTML = '暂无上传资料';
       return;
     }
-    el.innerHTML = '<div style="margin-bottom:4px"><label><input type="checkbox" onchange="toggleAllRiskDocs(this)" style="margin-right:4px">全选</label></div>'
+    // ★ 2026-09-26 用户要求：资料一多很占页面 → 清单可折叠/展开（超过 8 份默认折叠）。
+    if (typeof window._riskDocsCollapsed !== 'boolean') {
+      window._riskDocsCollapsed = docs.length > 8;
+    }
+    var _rc = window._riskDocsCollapsed;
+    el.innerHTML = '<div style="margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+      + '<button type="button" id="risk-docs-toggle" class="btn-toolbar" style="font-size:11px;padding:2px 8px;cursor:pointer" onclick="toggleRiskDocsList()">'
+      + (_rc ? ('▸ 展开资料清单（' + docs.length + '）') : '▾ 折叠资料清单') + '</button>'
+      + '<label><input type="checkbox" onchange="toggleAllRiskDocs(this)" style="margin-right:4px">全选</label></div>'
+      + '<div id="risk-docs-rows" style="display:' + (_rc ? 'none' : 'block') + '">'
       + docs.map(function(d) {
       var size = d.size > 1024 ? (d.size/1024).toFixed(1)+'KB' : d.size+'B';
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f1f5f9">'
@@ -303,7 +326,7 @@ function refreshRiskDocsList() {
         + '<span style="color:var(--gray-400);font-size:11px">' + (d.uploaded_at || '').substring(0,10) + '</span>'
         + '<span style="color:#dc2626;cursor:pointer;font-size:11px" onclick="delRiskDoc(' + d.id + ')">删除</span>'
         + '</div>';
-    }).join('');
+    }).join('') + '</div>';
   }).catch(function(e) { console.error(e); });
 }
 

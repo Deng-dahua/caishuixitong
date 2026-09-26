@@ -383,7 +383,17 @@ async function refreshTaxDocList() {
     }
 
 
-    var html = '<div style="margin-bottom:4px"><label><input type="checkbox" onchange="toggleAllTdaDocs(this)" style="margin-right:4px">全选</label> <span style="color:#94a3b8;font-size:10px">共 ' + docs.length + ' 个</span></div>';
+    // ★ 2026-09-26 用户要求：资料一多很占页面 → 清单可折叠/展开（超过 8 份默认折叠）。
+    if (typeof window._tdaListCollapsed !== 'boolean') {
+      window._tdaListCollapsed = docs.length > 8;
+    }
+    var _tdaCollapsed = window._tdaListCollapsed;
+    var html = '<div style="margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+      + '<button type="button" id="tda-list-toggle" class="btn-toolbar" style="font-size:11px;padding:2px 8px;cursor:pointer" onclick="toggleTdaFileList()">'
+      + (_tdaCollapsed ? ('▸ 展开资料清单（' + docs.length + '）') : '▾ 折叠资料清单') + '</button>'
+      + '<label><input type="checkbox" onchange="toggleAllTdaDocs(this)" style="margin-right:4px">全选</label>'
+      + ' <span style="color:#94a3b8;font-size:10px">共 ' + docs.length + ' 个</span></div>'
+      + '<div id="tda-file-rows" style="display:' + (_tdaCollapsed ? 'none' : 'block') + '">';
 
 
     try {
@@ -473,6 +483,21 @@ async function refreshTaxDocList() {
   }
 
 
+}
+
+
+// ★ 2026-09-26 用户要求：上传经营资料可折叠/展开，避免资料一多占满页面。
+function toggleTdaFileList() {
+  var rows = document.getElementById('tda-file-rows');
+  if (!rows) return;
+  var willShow = (rows.style.display === 'none');
+  rows.style.display = willShow ? 'block' : 'none';
+  window._tdaListCollapsed = !willShow;
+  var btn = document.getElementById('tda-list-toggle');
+  if (btn) {
+    var n = rows.querySelectorAll('.tda-doc-check').length;
+    btn.textContent = willShow ? '▾ 折叠资料清单' : ('▸ 展开资料清单（' + n + '）');
+  }
 }
 
 
