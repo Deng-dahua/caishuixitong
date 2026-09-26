@@ -886,6 +886,17 @@ def _core_sentence(text, max_len=90):
     return clamp_text(clauses[0], max_len)
 
 
+def _strip_redline_prefix(text):
+    """key_points 每条只索引「标题 + 实质一句」，剥掉红线正文首句里
+    '经检查，本企业触发税务风险指标（待核实），即<指标名>，' 的全局框架前缀。
+
+    该框架（"待核实 / 触发指标"）在 headline 已统一陈述一次；若逐条重复，
+    26 条重点会变成同一句机械模板（与"解除方式套话"同类雷同病）。剥掉后
+    指标名只在标题出现一次，key_points 每条只留"涉嫌…"实质一句，信息密度更高。
+    """
+    return re.sub(r"^经检查，本企业触发税务风险指标（待核实），即[^，]+，", "", str(text or "")).strip()
+
+
 def _seq(items, empty="能够证明相关业务事实的原始资料。"):
     """把 list 转成『第一，…；第二，…。』序列"""
     if not items:
@@ -2012,12 +2023,20 @@ def _build_summary(report_data, problems, completed, further):
     # ★ 2026-09-26：结论部分不限制字数（用户要求）。逐条列出全部已确认问题，
     #   每条仍保持「标题 + 核心一句（大白话）」的讲重点风格，但不强行截断为前 5 条、
     #   也不再折叠成"另有 N 项"——覆盖完整、可读、通顺。
+    #   ★ 2026-09-26 表达升级：红线正文首句的"经检查，本企业触发税务风险指标（待核实），
+    #     即<指标名>，"是全局框架（headline 已统一陈述），逐条重复即雷同套话；此处剥掉，
+    #     每条只留"涉嫌…"实质一句。另用一句导语一次性说明"待核实 + 详见台账"，不重复 26 次。
+    if problems:
+        key_points.append(
+            "以下疑点均须补充外部证据后方可定性（待核实）；每一项的事实、涉嫌方向与需补资料，"
+            "见本报告『红线疑点』各章与『全部风险事项台账』，本节省复。"
+        )
     for p in problems:
         first = p.get("narrative_paragraphs", [{}])[0].get("text", "") if p.get("narrative_paragraphs") else ""
         grade = p.get("conclusion_grade") or "待核"
         grade_tag = "（已核定）" if grade == "已核定" else "（待核）"
         # 摘要只写「标题 + 核心一句」（第一个含数字的分句），不把整段 detail 抄进摘要。
-        core_line = _core_sentence(first)
+        core_line = _strip_redline_prefix(_core_sentence(first))
         key_points.append(to_plain(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{core_line}"))
     if further:
         key_points.append(f"还有{len(further)}项检查尚未完成，优先补齐资料。这些事项表示检查范围受限，不表示已经发生相应违法。")
