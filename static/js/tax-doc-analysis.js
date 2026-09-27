@@ -5474,7 +5474,13 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   html += '<h2 id="company-problems">二、本轮风险检查确认的具体问题（税务红线疑点）</h2>' +
     '<p class="i2">本部分按<strong>税务红线</strong>组织。每一条说明：涉及的风险事项、发现的依据、'
     + '已取得的资料与待补充的资料、本项结论及理由，以及需企业提供的资料与说明。'
-    + '红线成立只表示存在法定情形须核实，不等于已经定性违法。</p>';
+    + '「触碰税务违规红线」只表示出现法定情形须核实，不等于已经定性违法。</p>';
+  // ★ 2026-09-27（用户要求通俗化）：给非财税背景的负责人一份"阅读提示"，解释最易看不懂的术语
+  html += '<p class="i2" style="background:#fffbeb;border-left:3px solid #d97706;padding:9px 12px;line-height:2;font-size:13px">'
+    + '<strong>阅读提示：</strong>①「触碰税务违规红线」＝该项出现了税法明文禁止的情形，需要核实，'
+    + '但<strong>不等于已经被认定为违法</strong>；②「判断可信度」＝我们分析认为该结论成立的可能性'
+    + '（很高／较高／中等／偏低／低）；③「资料情况」＝已提供、还缺哪些材料；④「等级依据」＝风险高低按哪几项综合评定。'
+    + '本报告所有结论均须以税务机关最终认定为准。</p>';
   var rlSummary = (report.redline_summary || {});
   if (rlSummary.suspicion_total) {
     html += '<p class="i2"><strong>本轮共触碰 ' + esc(rlSummary.suspicion_total) + ' 条税务红线</strong>：'
@@ -5495,19 +5501,31 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   }
   problems.forEach(function(item){
     // ★ 2026-09-27：不再以 `redline_id` 为渲染门槛——实测该字段为空，导致
-    //   「性质/本项结论/把握程度/材料项数/等级依据/潜在税额影响」全部不渲染
+    //   「涉嫌方向/本项结论/判断可信度/资料情况/等级依据/潜在税额影响」全部不渲染
     //   （幽灵字段）。改为"只要有任一字段就渲染该行"。
     var pct = function(v){ return (typeof v === 'number' ? Math.round(v * 100) : 0) + '%'; };
     // ★ 2026-09-27（用户要求）：材料齐全程度**不以比例/百分比**表述，改以项数
     //   「已有X项、还缺Y项」呈现（evidence_have / evidence_need 由后端给出）。
     var _evNeed = (typeof item.evidence_need === 'number' ? item.evidence_need : 0);
     var _evHave = (typeof item.evidence_have === 'number' ? item.evidence_have : 0);
+    // 用户要求（通俗化）：让老板/非财税背景负责人也能看懂每条疑点的关键标记
+    var _conf = (typeof item.confidence === 'number' ? item.confidence : 0);
+    var _confBand = _conf >= 0.85 ? '很高' : _conf >= 0.70 ? '较高' : _conf >= 0.55 ? '中等' : _conf >= 0.40 ? '偏低' : '低';
+    var _missNames = (item.missing_materials && item.missing_materials.length) ? item.missing_materials.slice(0, 6) : [];
+    var _lackN = Math.max(0, _evNeed - _evHave);
+    var _matCell = '';
+    if (_evHave > 0 || _missNames.length || _lackN > 0) {
+      _matCell = '资料情况：已提供' + _evHave + '项';
+      if (_missNames.length) _matCell += '；尚缺「' + _missNames.join('、') + '」';
+      else if (_lackN > 0) _matCell += '；还缺' + _lackN + '项（缺什么见上方"必查资料齐备性"表）';
+      else _matCell += '，所需资料已齐备';
+    }
     // 用户要求：不出现 RL-XXX 编号与「裁决/置信度」等术语，改用自然表述。
     var _metaCells = ''
-      + (item.suspect ? '性质：' + esc(item.suspect) : '')
+      + (item.suspect ? '涉嫌方向：' + esc(item.suspect) : '')
       + (item.verdict ? (item.suspect ? '｜' : '') + '本项结论：<strong>' + esc(item.verdict) + '</strong>' : '')
-      + (item.confidence ? '｜把握程度：' + pct(item.confidence) : '')
-      + (_evNeed > 0 ? '｜材料：已有' + _evHave + '项、还缺' + Math.max(0, _evNeed - _evHave) + '项' : '')
+      + (_conf > 0 ? '｜判断可信度：约' + Math.round(_conf * 100) + '%（' + _confBand + '）' : '')
+      + (_matCell ? '｜' + _matCell : '')
       + (item.risk_level_basis ? '｜等级依据：' + esc(item.risk_level_basis) : '')
       + (item.taxes && item.taxes.length ? '｜涉及税种：' + esc((item.taxes || []).join('、')) : '')
       + _taxImpactMeta(item);

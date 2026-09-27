@@ -30,10 +30,13 @@ from typing import Any, Dict, List, Optional
 # 四个裁决层级：「触红」与「定性」是两个层次，不可混为一谈
 #   —— 符合红线的构成要件即已触红（客观判断，与行业无关）；
 #   —— 证据链是否闭合只决定能否「定性」，不决定「是否触红」。
-_VERDICT_CONFIRMED = "红线成立（材料齐全，可定性）"         # 触红 + 材料齐全 → 可定性
-_VERDICT_HIT_PENDING = "红线成立（待补材料后定性）"         # 触红 + 材料未齐 → 置疑清单
-_VERDICT_EXCLUDED = "红线不成立（有合理解释）"           # 反证成立 → 排除
-_VERDICT_WEAK = "线索不足，未形成税务疑点"               # 无线索支撑 → 仅作观察
+# ★ 2026-09-27（用户要求通俗化）：把"红线成立"等内部裁定词改为老板也能看懂的说法。
+#   语义不变：仍严格区分「触红（出现法定禁止情形）」与「定性（证据链是否闭合）」，
+#   且绝不写"已认定违法"——系统只作初步判断，以税务机关最终认定为准。
+_VERDICT_CONFIRMED = "已触碰税务违规红线（资料齐全，可作初步判断）"   # 触红 + 材料齐全 → 可初步判断
+_VERDICT_HIT_PENDING = "已触碰税务违规红线（资料不足，待补证后判断）" # 触红 + 材料未齐 → 置疑清单
+_VERDICT_EXCLUDED = "经核查未触碰违规红线（已有合理解释）"       # 反证成立 → 排除
+_VERDICT_WEAK = "现有资料不足以形成税务疑点"                   # 无线索支撑 → 仅作观察
 
 # 报告用的结论分级
 GRADE_CONFIRMED = "已核定"
@@ -302,12 +305,20 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
         #   可证的表述是"各环数据见明细表"，读什么、读到什么由表逐环列示。
         parts.append("本项核查共%d环，各环实际读到的数据见上一段明细表。" % len(nodes))
     _v = evidence.get('verdict', '')
-    # ★ 2026-09-27（用户要求）：不以比例表述材料齐全程度，改为项数（已有几项/还缺几项）。
-    parts.append(
-        f"就材料来说，{_v}"
-        f"（手上已有{evidence.get('available_count',0)}项，还缺{evidence.get('missing_count',0)}项）"
-        f"{'；' + evidence.get('rebuttal_status', '') if evidence.get('rebuttal_status') else ''}。"
-    )
+    # ★ 2026-09-27（用户要求通俗化）：材料齐全程度用项数，并补列「还缺的具体材料名」，
+    #   让非财税背景的负责人知道缺的是哪几样（仅列前 6 样，避免过长）。
+    _av = int(evidence.get('available_count', 0) or 0)
+    _mc = int(evidence.get('missing_count', 0) or 0)
+    _mm = evidence.get('missing_materials') or []
+    _mat_txt = f"就资料来说，{_v}（已提供{_av}项"
+    if _mm:
+        _mat_txt += "；尚缺：" + "、".join(str(m) for m in _mm[:6])
+    elif _mc:
+        _mat_txt += f"；还缺{_mc}项"
+    else:
+        _mat_txt += "，所需资料已齐备"
+    _mat_txt += f"{'；' + evidence.get('rebuttal_status', '') if evidence.get('rebuttal_status') else ''}。"
+    parts.append(_mat_txt)
     if rebuttals:
         parts.append(
             f"企业如果认为这不成立，通常可以说明：{_join(rebuttals[:3], '；')}。"
@@ -327,9 +338,30 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
         tail = "企业给出的解释合理且有证据支撑，这一项予以排除。"
     else:
         tail = "现有资料还不足以形成税务疑点，本轮只作观察记录，等资料补充后再判断。"
-    parts.append(f"综合以上，本项结论是{verdict}，把握程度{int(confidence * 100)}%。{tail}")
+    # ★ 2026-09-27（用户要求通俗化）："把握程度"改为"判断可信度"并附通俗档位
+    #   （很高/较高/中等/偏低/低），让老板一眼知道我们分析有多有把握。
+    _band = _conf_band(confidence)
+    _conf_txt = f"判断可信度约{int(confidence * 100)}%（{_band}）" if _band else f"判断可信度约{int(confidence * 100)}%"
+    parts.append(f"综合以上，本项结论是{verdict}，{_conf_txt}。{tail}")
     return "".join(parts)
 
 
 def _join(items: List[Any], sep: str) -> str:
     return sep.join(str(i).strip() for i in items if str(i).strip())
+
+
+def _conf_band(confidence: Any) -> str:
+    """把 0~1 的可信度映射为通俗档位（供报告正文展示，便于非财税背景负责人理解）。"""
+    try:
+        c = float(confidence)
+    except (TypeError, ValueError):
+        return ""
+    if c >= 0.85:
+        return "很高"
+    if c >= 0.70:
+        return "较高"
+    if c >= 0.55:
+        return "中等"
+    if c >= 0.40:
+        return "偏低"
+    return "低"
