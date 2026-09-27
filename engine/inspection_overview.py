@@ -14,16 +14,15 @@
   · 主观故意不作认定：是否属故意偷逃税，须经补证与核实，本轮不下结论；
   · 等级与状态分离：高/中/低是等级，"待核验"是证据状态，不参与排序；
   · 行业认定待核实：销项品名只作"初步测算口径"，须并列登记口径；
-  · 边界声明：本底稿为企业内部风险检查形成，不具税务机关文书效力。
+  · 边界声明归属：文书性质说明统一在第六章「报告性质和使用说明」给出，本章不再重复（2026-09-27）。
+  · 本章只写**检查分析的事实与由此提出的观点**：不写"待核实"式免责语，不写"见某章/本章不展开"式引导。
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from engine.overall_conclusion import (
-    _cost_reconciliation, _group_by_theme, _short_title,
-)
+from engine.overall_conclusion import _group_by_theme
 
 
 def _lvl_counts(tiers: List[Dict[str, Any]]) -> Dict[str, int]:
@@ -61,7 +60,6 @@ def build_inspection_overview(report_data: Any,
     ind_src = str(te.get("_industry_source") or "")
     ind_reg = str(te.get("industry_registered") or "")
     fs = ((rd.get("engine_status") or {}).get("financial_snapshot")) or {}
-    cost_recon = oc.get("cost_reconciliation") or _cost_reconciliation(rd)
 
     P: List[str] = []
 
@@ -88,31 +86,23 @@ def build_inspection_overview(report_data: Any,
         _scale.append("进项 %d 张" % int(fs.get("pur_count") or 0))
     _ind_seg = ""
     if ind_name:
-        _ind_seg = ("行业口径：本轮初步按销项发票品名指向的「%s」口径测算（来源：%s）"
+        # ★ 2026-09-27 用户口径：只给事实与观点，不写"待核实"、不写引导说明。
+        _ind_seg = ("行业口径：本轮按销项发票品名指向的「%s」口径测算（来源：%s）"
                     % (ind_name, ind_src or "未标注"))
         if ind_reg and ind_reg != ind_name:
-            _ind_seg += "，同时列示登记口径「%s」" % ind_reg
-        _ind_seg += "；行业认定应以登记经营范围、实际主营业务收入构成、合同和发票品名为准，待核实。"
+            _ind_seg += "；登记经营范围为「%s」，与销项发票品名口径不一致。" % ind_reg
     P.append(
         "二、企业与经营特征：%s经营规模：%s。%s"
         % (_ind_seg, ("；".join(_scale) if _scale else "本轮未取得完整财务快照"),
            "其中收入口径取自销项发票不含税金额，成本与费用须区分主营成本与期间费用后分别判断。")
     )
 
-    # ── 三、风险类型分布 ──
-    if themes:
-        _parts = []
-        for g in themes:
-            _rep = "、".join((g.get("items") or [])[:3])
-            _suffix = "等" if len(g.get("items") or []) > 3 else ""
-            _parts.append("%s %d 项（%s%s）" % (g.get("theme"), g.get("count"), _rep, _suffix))
-        P.append("三、发现问题的类型分布：本轮共识别并列示 %d 项待核实风险事项，按风险性质归纳为——%s。"
-                 % (len(problems), "；".join(_parts)))
-    else:
-        P.append("三、发现问题的类型分布：本轮识别并列示 %d 项待核实风险事项，暂无可归纳的风险主题。"
-                 % len(problems))
+    # ── 三、风险类型分布（执行摘要：只给计数，主题明细见总体结论，避免与下文重复）──
+    P.append("三、发现问题的类型分布：本轮共识别并列示 %d 项涉嫌风险事项，"
+             "按风险性质归纳的主题分布（各主题项数及代表事项）详见下文「本轮检查总体结论」。"
+             % len(problems))
 
-    # ── 四、风险程度评定 ──
+    # ── 四、风险程度评定（执行摘要：只给整体等级与依据，各等级项数与待核验清单见总体结论，避免与下文重复）──
     _grade = "低"
     if n_high >= 3:
         _grade = "高"
@@ -120,16 +110,12 @@ def build_inspection_overview(report_data: Any,
         _grade = "较高"
     elif n_mid >= 1 or len(problems) > 0:
         _grade = "中等"
-    _grade_txt = (
-        "四、风险程度评定：本轮风险程度评定为「%s」。其中风险等级为高风险 %d 项、中风险 %d 项、"
-        "低风险 %d 项；另有 %d 项因证据不足暂列为待核验事项（属证据状态，不参与风险等级排序）。"
-        "评定依据为：潜在税额影响、涉及金额、证据缺口、是否涉及虚开或偷税、补证紧迫性五项综合排序，仅供参考。"
-        % (_grade, n_high, n_mid, n_low, n_pend)
+    P.append(
+        "四、风险程度评定：本轮整体风险程度评定为「%s」。评定依据为：潜在税额影响、涉及金额、证据缺口、"
+        "是否涉及虚开或偷税、补证紧迫性五项综合排序，仅供参考；各风险等级（高/中/低）项数、"
+        "待核验事项清单，详见下文「本轮检查总体结论」；主营业务成本两口径勾稽见第三章台账后的专项明细。"
+        % _grade
     )
-    if cost_recon.get("status") == "差异超阈值（待核）":
-        _grade_txt += ("另，主营业务成本两口径差异已超阈值（发票类目口径与账面口径相差 %.2f 元），"
-                       "成本真实性本身即构成本轮重点核实事项。" % float(cost_recon.get("diff") or 0))
-    P.append(_grade_txt)
 
     # ── 五、企业整体风险综合评价（定调句：等级 + 主要风险领域 + 遵从评价）──
     _top = sorted(themes, key=lambda g: -int(g.get("count") or 0))[:2]
@@ -137,11 +123,11 @@ def build_inspection_overview(report_data: Any,
     _sum_top = sum(int(g.get("count") or 0) for g in _top)
     _share = (_sum_top / _total_p * 100) if _total_p else 0.0
     if len(_top) >= 2:
-        _top_clause = "风险高度集中于「%s」与「%s」两个领域，二者合计 %d 项、占全部 %d 项待核实事项的 %.0f%%" % (
+        _top_clause = "风险高度集中于「%s」与「%s」两个领域，二者合计 %d 项、占全部 %d 项涉嫌风险事项的 %.0f%%" % (
             _top[0].get("theme"), _top[1].get("theme"), _sum_top, _total_p, _share)
     elif _top:
         g0 = _top[0]
-        _top_clause = "主要风险领域为%s（%d 项，占全部 %d 项待核实事项的 %.0f%%）" % (
+        _top_clause = "主要风险领域为%s（%d 项，占全部 %d 项涉嫌风险事项的 %.0f%%）" % (
             g0.get("theme"), g0.get("count"), _total_p,
             (g0.get("count") / _total_p * 100 if _total_p else 0.0))
     else:
@@ -188,10 +174,8 @@ def build_inspection_overview(report_data: Any,
     P.append("需要说明：本部分为工作建议，不构成税务处理、行政处罚或移送决定；"
              "是否达到移送标准，应在证据补齐并依法核实后另行判断。")
 
-    # ── 八、边界声明 ──
-    P.append("八、边界声明：本工作底稿由企业使用的财税风险防控系统依据已提交资料生成，"
-             "用于模拟税务风险检查程序并开展合规整改，不具有税务机关行政执法文书效力；"
-             "所列事项均为待核实事项，不代表已经认定违法；税务机关实际检查结论应以依法送达的正式文书为准。")
+    # ★ 2026-09-27 用户口径：删去本章末「边界声明」——第六章「报告性质和使用说明」已由
+    #   `inspector_perspective.administrative_boundary`（文书性质说明）承载，避免两处重复。
 
     return {
         "paragraphs": P,

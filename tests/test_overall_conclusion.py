@@ -129,11 +129,15 @@ class TestEditorialStandard(unittest.TestCase):
               "_industry_candidates": {"工商登记": "商贸", "销项发票品名推断": "广告传媒"}}
         return build_overall_conclusion(_rd(probs, te=te))
 
-    def test_industry_is_only_a_measure_basis_not_a_finding(self):
+    def test_industry_is_measure_basis_with_fact_and_view(self):
+        """★ 2026-09-27 用户口径：总述只给"检查分析的事实 + 由此提出的观点"，
+        不再写"待核实"式免责语，也不写"见某章/本章不展开"式引导。"""
         j = "".join(self._oc()["paragraphs"])
-        self.assertIn("初步按销项发票品名指向", j)
-        self.assertIn("待核实", j)
-        self.assertIn("登记口径「商贸」", j)
+        self.assertIn("按销项发票品名指向", j)
+        self.assertIn("来源：", j)                 # 事实：口径 + 来源
+        self.assertIn("不一致", j)                 # 观点：两口径不一致
+        self.assertNotIn("待核实", j)
+        self.assertNotIn("本章不展开", j)
         self.assertNotIn("按「广告传媒」认定", j)
 
     def test_no_heavy_qualifier_wording(self):
@@ -152,19 +156,75 @@ class TestEditorialStandard(unittest.TestCase):
 
     def test_directions_are_softened(self):
         j = "".join(self._oc()["paragraphs"])
-        self.assertIn("可能涉及的涉嫌方向（待核实）", j)
+        # ★ 2026-09-27 用户口径："涉嫌"已含待核实，不再写"（待核实）"
+        self.assertIn("可能涉及的涉嫌方向", j)
+        self.assertNotIn("涉嫌方向（待核实）", j)
         self.assertNotIn("已指向的", j)
 
     def test_items_are_pending_risk_items_with_disclaimer(self):
         j = "".join(self._oc()["paragraphs"])
-        self.assertIn("待核实风险事项", j)
+        # ★ 2026-09-27 用户口径：用「涉嫌风险事项」，"涉嫌"本身即含待核实
+        self.assertIn("涉嫌风险事项", j)
         self.assertIn("尚不构成违法定性", j)
         self.assertNotIn("共确认", j)
+        self.assertNotIn("待核实风险事项", j)
 
 
     def test_no_markdown_asterisks_in_any_paragraph(self):
         """纯文本段落不得含 Markdown 记号（曾漏出 `**加粗**` 的星号）。"""
         self.assertNotIn("*", "".join(self._oc()["paragraphs"]))
+
+
+class TestChapterNoDuplication(unittest.TestCase):
+    """★ 2026-09-27：单章内部**同一事实只说一遍**（防回退成"摘要+详情"两段拼接）。
+
+    用户两次驳回的正是"同类事实章内说两三遍"（份数/类数、各等级项数、类型分布、
+    税种、行业口径）。此处把"不重复"固化为**可执行不变式**，改坏即红。
+    """
+
+    def _oc(self):
+        probs = [
+            _p(1, "红字冲销与作废发票比例异常", "高风险", ["增值税", "企业所得税"]),
+            _p(2, "个人账户收取经营性款项", "高风险", ["增值税"]),
+            _p(3, "资金回流", "高风险", ["企业所得税"]),
+            _p(4, "工资表人数与社保参保人数不符", "中风险", ["个人所得税"]),
+            _p(5, "数字特征异常", "中风险", ["企业所得税"]),
+            _p(6, "有进无销", "待核验", [], suspect="涉嫌隐匿收入"),
+            _p(7, "固定资产取得、投用与折旧不匹配", "低风险", []),
+        ]
+        return build_overall_conclusion(_rd(probs, further=[{"seq": 8}]))
+
+    def test_total_count_stated_once(self):
+        j = "".join(self._oc()["paragraphs"])
+        self.assertEqual(j.count("识别并列示"), 1,
+                         "事项总数只应在「检查范围与结果概览」出现一次")
+
+    def test_risk_total_not_standalone(self):
+        P = self._oc()["paragraphs"]
+        standalone = [p for p in P if p.startswith("本轮识别并列示")]
+        self.assertEqual(standalone, [], "「风险总量」应并入概览，不得再单列一段")
+
+    def test_each_level_count_heading_once(self):
+        P = self._oc()["paragraphs"]
+        for lvl in ("高风险", "中风险", "低风险"):
+            heads = [p for p in P if p.startswith(lvl + " ") and "项：" in p]
+            self.assertEqual(len(heads), 1,
+                             "%s 清单标题应只出现一次（各级项数不得重复报）" % lvl)
+
+    def test_no_bare_pending_phrase(self):
+        j = "".join(self._oc()["paragraphs"])
+        self.assertNotIn("待核实事项", j)
+        self.assertNotIn("待核实风险事项", j)   # ★ 2026-09-27 改用「涉嫌风险事项」
+        self.assertIn("涉嫌风险事项", j)
+
+    def test_section_markers_present(self):
+        j = "".join(self._oc()["paragraphs"])
+        for marker in ("检查范围与结果概览", "按风险性质归纳", "风险等级评定",
+                       "企业整体风险综合评价", "对企业纳税遵从情况的总体看法",
+                       "监管态度与后续处理建议"):
+            self.assertIn(marker, j)
+        # ★ 2026-09-27：边界声明已归第六章「报告性质和使用说明」，本章不再重复
+        self.assertNotIn("边界声明", j)
 
 
 if __name__ == "__main__":

@@ -380,12 +380,14 @@ def check_doc_type_category_map() -> List[Tuple[str, str, str]]:
     """
     from main import _FILE_FINGERPRINTS
     from engine.enterprise_report import _DOC_TYPE_TO_CATEGORY, _REQUIRED_DOC_CATEGORIES
+    from engine.material_recognition import _SUPPLEMENTARY_CATEGORIES
 
     issues: List[Tuple[str, str, str]] = []
     rel = "engine/enterprise_report.py"
     real_types = set(_FILE_FINGERPRINTS.keys())
     mapped = set(_DOC_TYPE_TO_CATEGORY.keys())
-    valid_cats = set(_REQUIRED_DOC_CATEGORIES)
+    # 合法类别 = 15 必查 + 补充自证资料类别（P3.5，红线需求名的独立类别）
+    valid_cats = set(_REQUIRED_DOC_CATEGORIES) | set(_SUPPLEMENTARY_CATEGORIES)
 
     def _cats(v):
         return tuple(v) if isinstance(v, (tuple, list)) else (v,)
@@ -1388,13 +1390,22 @@ def check_coverage_source_wiring() -> List[Tuple[str, str, str]]:
     for _rl in all_redlines():
         for _m in (_rl.get("required_materials") or []):
             redline_needs.add(str(_m))
-    known = real_cats | set(_MATERIAL_SUPERCLASS) | set(_SOURCE_ZH.values())
+    # P3.5：补充自证资料识别表（material_recognition）也是"已知"集合的一部分——
+    # 登记于此的红线需求名，企业上传后即被识别为对应类别、可逐字闭合，不算漂移。
+    from engine.material_recognition import (
+        _SUPPLEMENTARY_CATEGORIES as _SUPP_CATS,
+        _SUPPLEMENTARY_RECOGNITION as _SUPP_REC,
+    )
+    known = (real_cats | set(_MATERIAL_SUPERCLASS) | set(_SOURCE_ZH.values())
+             | set(_SUPP_CATS) | set(_SUPP_REC.keys()))
     drift = sorted(n for n in redline_needs if n not in known)
     if drift:
-        issues.append(("WARN", cov_rel,
-                       f"{len(drift)} 条红线声明的所需资料名，与系统资料类别名、超类表均不对齐"
-                       f"（可能是写法漂移，也可能是系统确无该类资料）；"
-                       f"它们会被永久判为「缺资料」，建议逐条核对：{drift[:12]}"))
+        # 漂移收口机制已建立（超类表 + 补充自证资料识别表），未登记的红线需求名
+        # 即真实缺口：既无法被上传识别，又会被永久判"缺资料"，须 ERROR 拦截，防再漏。
+        issues.append(("ERROR", cov_rel,
+                       f"{len(drift)} 条红线声明的所需资料名既非 15 类必查、也非超类表变体、"
+                       f"更未在补充自证资料识别表登记，会被永久判为「缺资料」且无法被上传识别："
+                       f"{drift[:12]}"))
     return issues
 
 
@@ -2214,6 +2225,238 @@ def check_overall_conclusion_derivation() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_report_chapter_integrity() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-27：报告第一章「检查情况总述与总体结论」的**去重与命名口径**闸门。
+
+    真实动机（用户两次驳回）：
+      · 把「检查情况总述」与「总体结论」合并时，先做成"一段摘要 + 一段详情"的并排拼接
+        → 同一事实（份数/类数、各等级项数、类型分布、税种、行业口径）在章内说了两三遍；
+      · 并残留「稽查必查资料」命名（违反"系统报告非税务机关稽查文书、不得用'稽查'字样"的编辑标准）。
+
+    落地要求（防复发）：
+      ① 生产源码不得出现「稽查必查资料共」（应写「本轮检查必查资料共」）；
+      ② 前端工作底稿版 `_buildEnterpriseReadableBody`（单章）**不得再渲染
+         `inspection_overview`** —— 该章必须只由 `overall_conclusion` 一段构成，
+         不得把总述与结论并排贴回；
+      ③ 离线导出 `_render_report_html.py` 同样不得渲染 `inspection_overview`。
+
+    （去重的**运行时**不变式见 tests/test_overall_conclusion.py::TestChapterNoDuplication。）
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    def _read(rel: str) -> str:
+        p = ROOT / rel
+        if not p.exists():
+            return ""
+        try:
+            return p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    # ① 命名口径：生产源码不得出现「稽查必查资料共」
+    for p in sorted(list((ROOT / "engine").glob("*.py")) + list(ROOT.glob("*.py"))):
+        rel = str(p.relative_to(ROOT)).replace("\\", "/")
+        try:
+            src = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if "稽查必查资料共" in src:
+            issues.append(("ERROR", rel,
+                           "出现「稽查必查资料共」——系统报告非税务机关稽查文书，"
+                           "须写「本轮检查必查资料共」"))
+
+    # ② 前端工作底稿版单章不得再渲染 inspection_overview（防止两段并排贴回）
+    js_rel = "static/js/tax-doc-analysis.js"
+    js = _read(js_rel)
+    if not js:
+        issues.append(("ERROR", js_rel, "文件不存在"))
+    else:
+        marker = "function _buildEnterpriseReadableBody"
+        idx = js.find(marker)
+        if idx < 0:
+            issues.append(("ERROR", js_rel,
+                           "找不到 _buildEnterpriseReadableBody（工作底稿版渲染入口）"))
+        else:
+            nxt = js.find("\nfunction ", idx + len(marker))
+            body = js[idx: nxt if nxt > 0 else len(js)]
+            if "inspection_overview" in body:
+                issues.append(("ERROR", js_rel,
+                               "工作底稿版 _buildEnterpriseReadableBody 又渲染了 inspection_overview——"
+                               "单章必须只由 overall_conclusion 构成（不得把总述与结论并排贴回）"))
+        # ④ 用户 2026-09-27：工作底稿版要有「总—分—总」结构呈现（逐条小标签 + 目录结构说明）
+        for _tok in ("_narrativeGroup", "总—分—总"):
+            if _tok not in js:
+                issues.append(("ERROR", js_rel,
+                               "工作底稿版缺少「总—分—总」结构呈现（%s）" % _tok))
+
+    # ③ 离线导出不得渲染 inspection_overview
+    off_rel = "scripts/_render_report_html.py"
+    off = _read(off_rel)
+    if not off:
+        issues.append(("ERROR", off_rel, "文件不存在"))
+    elif "inspection_overview" in off:
+        issues.append(("ERROR", off_rel,
+                       "离线导出仍在渲染 inspection_overview——该章须只渲染 overall_conclusion"))
+
+    return issues
+
+
+def check_overall_conclusion_no_dup() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-27：第一章「检查情况总述与总体结论」的**运行时去重不变式**。
+
+    与 tests/test_overall_conclusion.py::TestChapterNoDuplication 同源，但可被
+    `audit_consistency`（含 --strict）与 `tools/verify_release.py` 直接调用——
+    让"同一事实章内只说一遍"这条不变式同样在**发布校验**里拦得住（不能只靠手跑 pytest）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.overall_conclusion import build_overall_conclusion
+    except Exception as exc:  # 生成器导入失败不得静默放行
+        return [("ERROR", "engine/overall_conclusion.py",
+                 "无法导入总体结论生成器：%s" % exc)]
+
+    probs = [
+        {"seq": 1, "title": "红字冲销与作废发票比例异常", "risk_level": "高风险",
+         "taxes": ["增值税"], "suspect": "涉嫌隐匿收入", "conclusion_grade": "待核"},
+        {"seq": 2, "title": "工资表人数与社保参保人数不符", "risk_level": "中风险",
+         "taxes": ["个人所得税"], "suspect": "", "conclusion_grade": "待核"},
+        {"seq": 3, "title": "有进无销", "risk_level": "待核验",
+         "taxes": [], "suspect": "", "conclusion_grade": "待核"},
+        {"seq": 4, "title": "固定资产取得、投用与折旧不匹配", "risk_level": "低风险",
+         "taxes": [], "suspect": "", "conclusion_grade": "待核"},
+    ]
+    rd = {
+        "files_count": 3,
+        "file_results": [{"type": "t%d" % i} for i in range(2)],
+        "target_entity": {},
+        "enterprise_readable_report": {
+            "confirmed_problems": probs, "further_checks": [{"seq": 5}],
+        },
+    }
+    try:
+        oc = build_overall_conclusion(rd)
+    except Exception as exc:  # noqa: BLE001
+        return [("ERROR", "engine/overall_conclusion.py", "生成总体结论抛错：%s" % exc)]
+
+    P = [str(p) for p in (oc.get("paragraphs") or [])]
+    joined = "".join(P)
+    if joined.count("识别并列示") != 1:
+        issues.append(("ERROR", "engine/overall_conclusion.py",
+                       "事项总数应只出现一次，实测 %d 次（章内重复）"
+                       % joined.count("识别并列示")))
+    if any(p.startswith("本轮识别并列示") for p in P):
+        issues.append(("ERROR", "engine/overall_conclusion.py",
+                       "「风险总量」不得单列一段（应并入「检查范围与结果概览」）"))
+    for lvl in ("高风险", "中风险", "低风险"):
+        n = len([p for p in P if p.startswith(lvl + " ") and "项：" in p])
+        if n != 1:
+            issues.append(("ERROR", "engine/overall_conclusion.py",
+                           "%s 清单标题应只出现一次，实测 %d 次" % (lvl, n)))
+    if "待核实事项" in joined:
+        issues.append(("ERROR", "engine/overall_conclusion.py",
+                       "出现裸「待核实事项」（应写「涉嫌风险事项」；涉嫌已含待核实，不再叠加）"))
+    return issues
+
+
+def check_cost_recon_render() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-27：主营成本「两口径勾稽明细」必须三处齐备（防幽灵段落）。
+
+    用户要求：这一明细必须**无论是否超阈值都照出**（合规留痕），三处渲染目标都要画，
+    否则又会退化成"数据有、网页没有"。落地要求：
+      ① engine/cost_recon_detail.py 存在且只读 report_data；
+      ② enterprise_report 调用 build_cost_recon_detail 并写入 out 字典 "cost_recon_detail"；
+      ③ Web(tax-doc-analysis.js) 与离线(_render_report_html.py) 都消费 cost_recon_detail。
+    另：发票类目构成须取自 pipeline 已算好的 core 拆分（单一权威），本模块不得重跑 classify。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    def _read(rel: str) -> str:
+        p = ROOT / rel
+        if not p.exists():
+            return ""
+        try:
+            return p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    mod_rel = "engine/cost_recon_detail.py"
+    mod = _read(mod_rel)
+    if not mod:
+        issues.append(("ERROR", mod_rel, "缺少两口径勾稽明细生成器"))
+    else:
+        if "report_data" not in mod:
+            issues.append(("ERROR", mod_rel, "生成器未从 report_data 读取"))
+        if "core_goods_breakdown" not in mod:
+            issues.append(("ERROR", mod_rel,
+                           "发票类目构成未取 pipeline 的 core_goods_breakdown（可能重跑 classify 导致口径分叉）"))
+
+    er = _read("engine/enterprise_report.py")
+    if "build_cost_recon_detail" not in er or '"cost_recon_detail"' not in er:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "未调用 build_cost_recon_detail 或未写入 cost_recon_detail"))
+
+    for rel, why in (("static/js/tax-doc-analysis.js", "Web 端未渲染 cost_recon_detail"),
+                     ("scripts/_render_report_html.py", "离线导出未渲染 cost_recon_detail")):
+        src = _read(rel)
+        if not src:
+            issues.append(("ERROR", rel, "文件不存在"))
+            continue
+        if "cost_recon_detail" not in src:
+            issues.append(("ERROR", rel, why))
+        # 逐张/逐笔清单（导出附件）必须三处可导出/可展示
+        for _tok in ("invoice_rows", "book_rows"):
+            if _tok not in src:
+                issues.append(("ERROR", rel,
+                               "未渲染逐张/逐笔清单字段 %s（导出附件缺失）" % _tok))
+    return issues
+
+
+def check_tax_impact_render() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-27（P1）：潜在税额影响必须三处齐备（防幽灵段落）+ 铁律齐备。
+
+    铁律：取不到金额 → 必须是"未量化"，不得用默认值顶数。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    def _read(rel: str) -> str:
+        p = ROOT / rel
+        if not p.exists():
+            return ""
+        try:
+            return p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return ""
+
+    mod_rel = "engine/tax_impact.py"
+    mod = _read(mod_rel)
+    if not mod:
+        issues.append(("ERROR", mod_rel, "缺少潜在税额测算模块"))
+    else:
+        for tok in ("estimate_tax", "未量化"):
+            if tok not in mod:
+                issues.append(("ERROR", mod_rel, "测算模块缺少关键项：%s" % tok))
+
+    er = _read("engine/enterprise_report.py")
+    if "build_tax_impact_summary" not in er or '"tax_impact_summary"' not in er:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "未调用 build_tax_impact_summary 或未写入 tax_impact_summary"))
+
+    for rel, who in (("static/js/tax-doc-analysis.js", "Web 端"),
+                     ("scripts/_render_report_html.py", "离线导出")):
+        src = _read(rel)
+        if not src:
+            issues.append(("ERROR", rel, "文件不存在"))
+            continue
+        for _tok in ("tax_impact", "main_assessment"):
+            if _tok not in src:
+                issues.append(("ERROR", rel, "%s未渲染 %s" % (who, _tok)))
+    _er2 = _read("engine/enterprise_report.py")
+    if "_build_main_assessment" not in _er2 or '"main_assessment"' not in _er2:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "未调用 _build_main_assessment 或未写入 main_assessment"))
+    return issues
+
+
 def check_industry_source_integrity() -> List[Tuple[str, str, str]]:
     """★ 2026-09-26：行业口径三铁律（防"冒名抬高权威"与"销项口径失效"）。
 
@@ -2397,7 +2640,11 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_indicator_coverage() + check_delete_semantics()
                + check_excel_handle_leak() + check_audit_doctrine()
                + check_missing_as_violation() + check_pyramid_edition_preserves_content()
-               + check_overall_conclusion_derivation() + check_industry_source_integrity()
+               + check_overall_conclusion_derivation() + check_report_chapter_integrity()
+               + check_overall_conclusion_no_dup()
+               + check_cost_recon_render()
+               + check_tax_impact_render()
+               + check_industry_source_integrity()
                + check_cost_industry_basis())
     return counts, general
 

@@ -4081,7 +4081,20 @@ def _parse_by_content(names, get_sheet, original_name="", extra_text=None):
     best_sheet_idx = 0
     kw_trace_matches = []  # 记录所有达标的关键词匹配
     _extra = (" " + str(extra_text)) if extra_text else ""
-    
+
+    # ── P3.5 补充自证资料：文件名优先识别（不依赖内容指纹）──
+    # 红线库 required_materials 中既非 15 类、也非超类表变体的资料（完税凭证/出口报关单/
+    # 不动产权证…），企业上传后须被识别为对应 doc_type 并计入"已提供"，否则"传了也白传"、
+    # 红线的"需补充提供"永远翻不成"已提供"。命中即早返回，普通资料交还下方指纹链路。
+    try:
+        from engine.material_recognition import _recognize_supplementary
+        _sup = _recognize_supplementary(original_name or "", _extra)
+        if _sup:
+            _trace_diag(f"补充自证资料识别(文件名): {_sup}", "info")
+            return {"type": _sup, "rows": [], "recognized_only": True, "supplementary": True}
+    except Exception as _sup_e:
+        _trace_diag(f"补充自证资料识别异常(跳过): {_sup_e}", "warn")
+
     for i in range(len(names)):  # 扫描全部Sheet，不限于前3个
         try:
             s = get_sheet(i)
@@ -6685,6 +6698,19 @@ def _parse_pdf_generic(filepath, original_name=""):
     """
     _init_trace(original_name)  # 初始化诊断追踪（_parse_by_content 依赖此全局，缺失会 KeyError 崩溃）
 
+    # ── P3.5 补充自证资料：文件名优先识别（所有格式统一拦截，不依赖内容指纹）──
+    # 红线库 required_materials 中既非 15 类、也非超类表变体的资料（完税凭证/出口报关单/
+    # 不动产权证…），企业上传后须在此被识别为对应 sup_* doc_type 并计入"已提供"，否则
+    # "传了也白传"、红线"需补充提供"永远翻不成"已提供"。命中即早返回（证书无需解析内容）。
+    try:
+        from engine.material_recognition import _recognize_supplementary
+        _sup = _recognize_supplementary(original_name or "", "")
+        if _sup:
+            _trace_diag(f"补充自证资料识别(文件名): {_sup}", "info")
+            return {"type": _sup, "rows": [], "recognized_only": True, "supplementary": True}
+    except Exception as _sup_e:
+        _trace_diag(f"补充自证资料识别异常(跳过): {_sup_e}", "warn")
+
     # ═══ ① / ②：表格型 PDF ═══
     # ⚠ 2026-09-24 修正（VAT 申报表读出栏次号 12/22/23 的 P0 根因）：
     #   _extract_pdf_tables 的返回值是 **(headers, rows)**，但这里原先写成
@@ -6782,6 +6808,17 @@ def _parse_docx(filepath, original_name=""):
     兜底：无表格时提取段落文本
     """
     _init_trace(original_name)  # 初始化诊断追踪（_parse_by_content 依赖此全局，缺失会 KeyError 崩溃）
+
+    # ── P3.5 补充自证资料：文件名优先识别（不依赖内容指纹）──
+    try:
+        from engine.material_recognition import _recognize_supplementary
+        _sup = _recognize_supplementary(original_name or "", "")
+        if _sup:
+            _trace_diag(f"补充自证资料识别(文件名): {_sup}", "info")
+            return {"type": _sup, "rows": [], "recognized_only": True, "supplementary": True}
+    except Exception as _sup_e:
+        _trace_diag(f"补充自证资料识别异常(跳过): {_sup_e}", "warn")
+
     try:
         from docx import Document
     except ImportError:
@@ -6855,6 +6892,16 @@ def _parse_image_ocr(filepath, original_name=""):
     #   审计结论：_parse_excel_structured / _parse_pdf_generic / _parse_docx 均已调用，
     #   唯独本函数遗漏 —— 现补齐。
     _init_trace(original_name)
+
+    # ── P3.5 补充自证资料：文件名优先识别（不依赖内容指纹、也不依赖 OCR 结果）──
+    try:
+        from engine.material_recognition import _recognize_supplementary
+        _sup = _recognize_supplementary(original_name or "", "")
+        if _sup:
+            _trace_diag(f"补充自证资料识别(文件名): {_sup}", "info")
+            return {"type": _sup, "rows": [], "recognized_only": True, "supplementary": True}
+    except Exception as _sup_e:
+        _trace_diag(f"补充自证资料识别异常(跳过): {_sup_e}", "warn")
 
     text_blocks = []
 

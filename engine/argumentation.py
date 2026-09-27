@@ -189,6 +189,18 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
 
     reasoning = _compose_reasoning(redline, claim, clue, evidence, rebuttals, verdict, confidence)
 
+    # ★ 2026-09-27（P3）：优先补"本项文本真正提到的资料"（红线库 required_sources 偏宽，
+    #   会出现"同一凭证借贷不平"却先要"合同文件"）。做法=把文本命中的资料**前置**，不删任何需求。
+    _ftext = " ".join(str(finding.get(k) or "") for k in ("type", "detail", "description", "title"))
+    _mat_hits: List[str] = []
+    for _kw, _mat in (("记账凭证", "记账凭证"), ("凭证", "记账凭证"), ("序时账", "序时账"),
+                      ("科目余额表", "科目余额表"), ("银行流水", "银行流水"),
+                      ("销项发票", "销项发票"), ("进项发票", "进项发票"),
+                      ("工资表", "工资表"), ("社保", "社保明细"), ("劳动合同", "劳动合同"),
+                      ("进销存", "进销存台账"), ("运输合同", "运输合同"), ("合同", "合同文件"),
+                      ("固定资产", "固定资产清单"), ("申报表", "纳税申报表")):
+        if _kw in _ftext and _mat not in _mat_hits:
+            _mat_hits.append(_mat)
     next_actions: List[str] = []
     for m in (evidence.get("missing_materials") or [])[:5]:
         next_actions.append(f"补充提供「{m}」")
@@ -212,6 +224,18 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
     if redline_hit:
         confidence = round(max(0.60, min(0.95, confidence)), 2)
 
+    # 把"本项文本命中的资料"前置（去重，不删既有需求）
+    _pre = [f"补充提供「{_m}」" for _m in _mat_hits]
+    next_actions = _pre + [a for a in next_actions if a not in _pre]
+
+    # ★ 2026-09-27（P3）：next_actions 相关性排序键（资料名出现在本项文本里 → 0，排前）
+    def _na_rel_rank(a):
+        t = str(a)
+        for _p in ("补充提供「", "确认已提供的「", "取得直接证据："):
+            t = t.replace(_p, "")
+        t = t.split("」")[0].split("：")[-1].strip()
+        return 0 if (t and t in _ftext) else 1
+
     return {
         "claim": claim,
         "redline_id": redline.get("id", ""),
@@ -228,7 +252,7 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
         "confidence": confidence,
         "closure": closure,
         "reasoning": reasoning,
-        "next_actions": next_actions[:8],
+        "next_actions": sorted(next_actions, key=_na_rel_rank)[:8],
         "remedy": evidence.get("remedy", ""),
     }
 

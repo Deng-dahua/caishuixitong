@@ -4895,10 +4895,31 @@ function _renderNarrativeBody(text, bullets) {
   return html;
 }
 
+/* ★ 2026-09-27：把一条疑点的现有段落按「总述—分述—总结」分组（**只加标签，不改内容**）。
+   映射依据是现有 heading 语义；判定顺序：先"总结"关键词，再"总述"，其余归"分述"。 */
+function _narrativeGroup(heading){
+  var h = String(heading || '');
+  if (/需企业提供|怎样处理|处理完成|结论及理由|本项结论|本轮检查结论|补充资料要求|下一轮复查|意味着/.test(h)) return '总结';
+  if (/风险事项|主要事实|结论先行/.test(h)) return '总述';
+  return '分述';
+}
+function _narrativeTag(group){
+  if (!group) return '';
+  var c = group === '总述' ? ['#eef2ff', '#1d4ed8', '#c7d2fe']
+        : (group === '总结' ? ['#fff7ed', '#b45309', '#fed7aa'] : ['#f1f5f9', '#475569', '#e2e8f0']);
+  return '<div style="margin:14px 0 2px"><span style="display:inline-block;font-size:12px;'
+    + 'padding:1px 9px;border-radius:10px;background:' + c[0] + ';color:' + c[1]
+    + ';border:1px solid ' + c[2] + '">' + group + '</span></div>';
+}
+
 function _renderNarrativeParagraphs(rows, emptyText) {
   rows = Array.isArray(rows) ? rows : [];
   if (!rows.length) return '<p class="i2">' + esc(emptyText || '本轮未形成可展示的段落内容。') + '</p>';
+  var lastGroup = '';
   return rows.map(function(row){
+    var group = _narrativeGroup(row && row.heading);
+    var tag = (group && group !== lastGroup) ? _narrativeTag(group) : '';
+    lastGroup = group || lastGroup;
     var heading = row && row.heading
       ? '<div style="font-weight:700;margin:12px 0 4px">' + esc(row.heading) + '</div>' : '';
     var table = '';
@@ -4911,7 +4932,7 @@ function _renderNarrativeParagraphs(rows, emptyText) {
     }
     var body = _renderNarrativeBody((row && row.text) || '', row && row.bullets);
     var tail = (row && row.tail) ? '<p style="margin:6px 0;text-align:justify;line-height:2">' + esc(row.tail) + '</p>' : '';
-    return '<div class="i2" style="margin:10px 0">' + heading + body + tail + '</div>' + table;
+    return tag + '<div class="i2" style="margin:10px 0">' + heading + body + tail + '</div>' + table;
   }).join('');
 }
 
@@ -5003,6 +5024,149 @@ function _colShort(c, rows, threshold) {
   }
   return maxLen <= (threshold || 16);
 }
+
+function _crdMoney(v){
+  if (v === null || v === undefined || v === '' || isNaN(v)) return '—';
+  return Number(v).toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+/* ★ 2026-09-27（P1）：潜在税额影响（测算）——单条疑点的元信息 */
+function _taxImpactMeta(item){
+  var ti = item && item.tax_impact;
+  if (!ti) return '';
+  if (!ti.available) return '｜潜在税额影响：未量化（缺明确金额，须补资料后测算）';
+  var parts = (ti.items || []).map(function(x){ return esc(x.tax) + '≈' + _crdMoney(x.amount) + '元'; });
+  return '｜潜在税额影响（测算）：' + parts.join('、') + '，合计≈' + _crdMoney(ti.total) + '元';
+}
+
+/* ★ 2026-09-27（P1）：本轮潜在税额敞口汇总块 */
+function _renderTaxImpactSummary(s){
+  if (!s || (!s.total && !s.total_items)) return '';
+  var h = '<p class="i2" style="background:#fff7ed;border-left:3px solid #f59e0b;padding:8px 12px;line-height:2">'
+    + '<strong>本轮潜在税额敞口（测算）</strong>：';
+  if (s.total) {
+    h += '合计约 <strong>' + _crdMoney(s.total) + ' 元</strong>（'
+      + (s.by_tax || []).map(function(x){ return esc(x.tax) + ' ' + _crdMoney(x.amount) + ' 元'; }).join('；')
+      + '）。';
+  }
+  h += '已量化 ' + esc(s.quantified || 0) + ' / ' + esc(s.total_items || 0) + ' 项'
+    + (s.quantified < s.total_items ? '，其余项检查记录中尚无明确金额、暂不能量化。' : '。')
+    + '<br><span style="color:#64748b;font-size:12.5px">' + esc(s.note || '') + '</span></p>';
+  return h;
+}
+
+/* ★ 2026-09-27：主营业务成本两口径勾稽明细（阈值内也照出，合规留痕）。
+   数据由后端 enterprise_readable_report.cost_recon_detail 生成，前端只呈现；
+   逐张/逐笔清单支持**浏览器端导出 CSV**（Blob 下载，无需后端接口）。 */
+var _CRD_CACHE = null;
+
+function _crdDownloadCsv(kind){
+  var crd = _CRD_CACHE || {};
+  var header, rows, name;
+  if (kind === 'goods') {
+    header = ['品名/类目', '张数', '金额'];
+    rows = (crd.by_goods || []).map(function(r){ return [r.goods, r.count, r.amount]; });
+    name = '主营业务成本发票类目构成.csv';
+  } else if (kind === 'invoice') {
+    header = ['发票号码', '开票日期', '销售方', '品名', '金额', '税额'];
+    rows = (crd.invoice_rows || []).map(function(r){
+      return [r.inv_no, r.date, r.seller, r.goods, r.amount, r.tax]; });
+    name = '主营业务成本类发票逐张清单.csv';
+  } else if (kind === 'voucher') {
+    header = ['凭证号', '摘要', '金额'];
+    rows = (crd.by_voucher || []).map(function(r){ return [r.voucher_no, r.summary, r.amount]; });
+    name = '主营业务成本账面按凭证归集.csv';
+  } else if (kind === 'batch') {
+    header = ['月份', '凭证号', '摘要', '借方金额'];
+    rows = (crd.book_rows || []).map(function(r){
+      return [r.month, r.voucher_no, r.summary, r.amount]; });
+    name = '主营业务成本账面凭证逐笔清单.csv';
+  } else { return; }
+  var csv = '\ufeff' + header.join(',') + '\n' + rows.map(function(r){
+    return r.map(function(v){
+      var s = (v === null || v === undefined) ? '' : String(v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',');
+  }).join('\n');
+  try {
+    var blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) { /* 非浏览器环境（如验证桩）静默跳过 */ }
+}
+
+function _crdBtn(kind, label){
+  return ' <button type="button" onclick="_crdDownloadCsv(\'' + kind + '\')" '
+    + 'style="margin-left:8px;font-size:12px;padding:1px 8px;cursor:pointer;border:1px solid #93c5fd;'
+    + 'background:#eff6ff;color:#1d4ed8;border-radius:4px">' + (label || '下载 CSV') + '</button>';
+}
+
+function _renderCostReconDetail(crd){
+  if (!crd || !crd.available) return '';
+  _CRD_CACHE = crd;
+  var h = '<h3>主营业务成本两口径勾稽明细</h3>';
+  (crd.paragraphs || []).forEach(function(t){ h += '<p class="i2">' + esc(t) + '</p>'; });
+  var g = crd.by_goods || [];
+  if (g.length) {
+    h += '<p class="i2" style="color:#64748b">① 发票类目口径构成（按品名/类目，逐类小计）' + _crdBtn('goods') + '</p>';
+    h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+      + '<th>品名/类目</th><th>张数</th><th>金额(元)</th></tr></thead><tbody>';
+    g.slice(0, 30).forEach(function(r){
+      h += '<tr><td>' + esc(r.goods) + '</td><td>' + esc(r.count) + '</td>'
+        + '<td style="white-space:nowrap">' + _crdMoney(r.amount) + '</td></tr>';
+    });
+    h += '<tr><td><strong>合计</strong></td><td><strong>' + esc(crd.invoice_count || 0)
+      + '</strong></td><td><strong>' + _crdMoney(crd.invoice_total) + '</strong></td></tr></tbody></table></div>';
+  }
+  var ir = crd.invoice_rows || [];
+  if (ir.length) {
+    h += '<details style="margin:6px 0 12px"><summary style="cursor:pointer;color:#1d4ed8;font-size:13px">'
+      + '① 发票逐张清单（' + ir.length + ' 张，点击展开）</summary>'
+      + '<div style="overflow-x:auto;margin-top:6px"><table class="tbl"><thead><tr>'
+      + '<th>发票号码</th><th>开票日期</th><th>销售方</th><th>品名</th><th>金额(元)</th><th>税额(元)</th>'
+      + '</tr></thead><tbody>';
+    ir.slice(0, 500).forEach(function(r){
+      h += '<tr><td class="mono">' + esc(r.inv_no || '') + '</td><td>' + esc(r.date || '') + '</td><td>'
+        + esc(r.seller || '') + '</td><td>' + esc(r.goods || '') + '</td>'
+        + '<td style="white-space:nowrap">' + _crdMoney(r.amount) + '</td>'
+        + '<td style="white-space:nowrap">' + _crdMoney(r.tax) + '</td></tr>';
+    });
+    h += '</tbody></table></div></details>'
+      + '<p class="i2" style="font-size:12px;color:#64748b">导出：' + _crdBtn('invoice', '下载发票逐张清单 CSV') + '</p>';
+  }
+  var v = crd.by_voucher || [];
+  if (v.length) {
+    h += '<p class="i2" style="color:#64748b">② 账面口径构成（序时账 6401 本期借方发生额，按凭证号归集）' + _crdBtn('voucher') + '</p>';
+    h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+      + '<th>凭证号</th><th>摘要</th><th>金额(元)</th></tr></thead><tbody>';
+    v.slice(0, 60).forEach(function(r){
+      h += '<tr><td>' + esc(r.voucher_no || '') + '</td><td>' + esc(r.summary || '') + '</td>'
+        + '<td style="white-space:nowrap">' + _crdMoney(r.amount) + '</td></tr>';
+    });
+    h += '<tr><td><strong>合计</strong></td><td></td><td><strong>'
+      + _crdMoney(crd.book_total) + '</strong></td></tr></tbody></table></div>';
+  }
+  var br = crd.book_rows || [];
+  if (br.length) {
+    h += '<details style="margin:6px 0 12px"><summary style="cursor:pointer;color:#1d4ed8;font-size:13px">'
+      + '② 凭证逐笔清单（' + br.length + ' 笔，点击展开）</summary>'
+      + '<div style="overflow-x:auto;margin-top:6px"><table class="tbl"><thead><tr>'
+      + '<th>月份</th><th>凭证号</th><th>摘要</th><th>借方金额(元)</th></tr></thead><tbody>';
+    br.slice(0, 1000).forEach(function(r){
+      h += '<tr><td>' + esc(r.month || '') + '</td><td>' + esc(r.voucher_no || '') + '</td><td>'
+        + esc(r.summary || '') + '</td><td style="white-space:nowrap">' + _crdMoney(r.amount) + '</td></tr>';
+    });
+    h += '</tbody></table></div></details>'
+      + '<p class="i2" style="font-size:12px;color:#64748b">导出：' + _crdBtn('batch', '下载凭证逐笔清单 CSV') + '</p>';
+  }
+  return h;
+}
+
+if (typeof window !== 'undefined') { window._crdDownloadCsv = _crdDownloadCsv; }
 
 function _renderResolutionLedger(ledger) {
   var rows = (ledger && ledger.rows) || [];
@@ -5184,6 +5348,8 @@ function _buildPyramidBody(r, dateStr) {
 
   // ── 二、全部风险事项台账（基座，复用工作底稿版台账）──
   html += _renderResolutionLedger(ledger);
+  // ★ 2026-09-27：主营业务成本两口径勾稽明细（阈值内也照出，合规留痕）
+  html += _renderCostReconDetail(report.cost_recon_detail);
 
   // ── 三、报告说明 ──
   if (statements.length) {
@@ -5245,11 +5411,10 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '</div></div>';
 
   html += '<div style="padding:16px 18px;border:2px solid #1e3a8a;background:#eff6ff;margin:0 0 24px;line-height:1.9">' +
-    esc(openingText) + '<br>检查范围、检查情况总述、总体结论和整改要求，详见本报告检查情况总述部分及第一章。' +
+    esc(openingText) + '<br>检查范围、检查情况总述与总体结论、整改要求，详见本报告第一章。' +
     '</div>';
 
-  html += '<div class="toc"><a href="#company-overview">检查情况总述（总览）</a><br>' +
-    '<a href="#company-conclusion">一、本轮检查总体结论</a><br>' +
+  html += '<div class="toc"><a href="#company-conclusion">一、检查情况总述与总体结论</a><br>' +
     '<a href="#company-problems">二、本轮风险检查确认的具体问题</a><br>' +
     '<a href="#company-ledger">三、全部风险事项台账与解除/自证清单</a><br>' +
     '<a href="#company-actions">四、风险检查处理意见和整改验收标准</a><br>' +
@@ -5257,21 +5422,16 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '<span style="font-size:13px;color:#64748b;padding-left:16px">└ 专项能力比对（行业对标 / 关联方穿透 / 两税差异 / 虚开网络 / 资金回流等）</span><br>' +
     '<a href="#company-statement">六、报告性质和使用说明</a></div>';
 
-  // ★ 2026-09-27：工作底稿版「检查情况总述」（风险类型/程度/总体看法/监管态度），
-  //   在「总体结论」之前整体呈现，作为报告第一章之前的引子总览。内容由后端 inspection_overview 生成，前端只负责呈现。
-  var io = report.inspection_overview || {};
-  var ioParas = io.paragraphs || [];
-  if (ioParas.length) {
-    html += '<h2 id="company-overview">检查情况总述</h2>';
-    html += ioParas.map(function(t, i){
-      return '<p class="i2"' + (i === 0 ? ' style="color:#64748b"' : '') + '>' + esc(t) + '</p>';
-    }).join('');
-  }
+  // ★ 2026-09-27：报告级「总—分—总」结构说明（放在**目录处**，不进入总述正文，避免"引导说明"混入总述）
+  html += '<p class="i2" style="color:#64748b;font-size:12.5px;margin:6px 0 20px;line-height:2">'
+    + '本报告按「总—分—总」组织：第一章为<span style="color:#1d4ed8">总述</span>（结论先行）；'
+    + '第二章为<span style="color:#475569">分述</span>（逐条论证，每条疑点内部亦为 总述—分述—总结）；'
+    + '第三、四、六章为<span style="color:#b45309">总结</span>（台账、处理与整改、报告性质）。</p>';
 
-  html += '<h2 id="company-conclusion">一、本轮检查总体结论</h2>';
-  // ★ 2026-09-26：第一章改为渲染**从 findings 实测派生**的总体结论（唯一权威）。
-  //   数字/点名清单/涉及税种/行业口径均由后端 overall_conclusion 生成，前端只负责呈现，
-  //   不再由前端拼数字或写死文案（否则会与正文脱节）。旧缓存无该字段时回退旧版式。
+  // ★ 2026-09-27：工作底稿版「检查情况总述与总体结论」为**单章**，由后端 overall_conclusion
+  //   统一生成（已吸收原「检查情况总述」的定调句 / 纳税遵从看法 / 监管态度 / 边界声明，每件事只说一遍，
+  //   不再把两段并排贴造成重复）。前端只渲染这一章，数字/点名清单/涉及税种/行业口径均由后端派生。
+  html += '<h2 id="company-conclusion">一、检查情况总述与总体结论</h2>';
   var oc = report.overall_conclusion || {};
   var ocParas = oc.paragraphs || [];
   if (ocParas.length) {
@@ -5322,23 +5482,35 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       + (rlSummary.excluded ? ('、已排除 ' + esc(rlSummary.excluded) + ' 条') : '') + '。'
       + '共比照红线库 ' + esc(rlSummary.redline_total || 0) + ' 条（行业无关）。</p>';
   }
+  // ★ 2026-09-27（P2）：章首**主线研判**（最可能的 2–3 个方向及依据，结论先行）
+  var ma = report.main_assessment || {};
+  if (ma.available && ma.paragraph) {
+    html += '<p class="i2" style="background:#eef2ff;border-left:3px solid #1d4ed8;padding:9px 12px;line-height:2">'
+      + esc(ma.paragraph) + '</p>';
+  }
+  // ★ 2026-09-27（P1）：本轮潜在税额敞口汇总（测算）
+  html += _renderTaxImpactSummary(report.tax_impact_summary);
   if (!problems.length) {
     html += '<p class="i2">本轮没有发现能够由现有资料直接证明的具体问题。请继续处理第四部分列明的资料缺口事项。</p>';
   }
   problems.forEach(function(item){
-    var meta = '';
-    if (item.redline_id) {
-      var pct = function(v){ return (typeof v === 'number' ? Math.round(v * 100) : 0) + '%'; };
-      // 用户要求：不出现 RL-XXX 编号与「裁决/置信度」等术语，改用自然表述。
-      meta = '<p class="i2" style="margin:6px 0 10px;padding:8px 12px;background:#f8fafc;'
-        + 'border-left:3px solid #2563eb;font-size:13px;line-height:1.9">'
-        + (item.suspect ? '性质：' + esc(item.suspect) : '')
-        + (item.verdict ? (item.suspect ? '｜' : '') + '本项结论：<strong>' + esc(item.verdict) + '</strong>' : '')
-        + (item.confidence ? '｜把握程度：' + pct(item.confidence) : '')
-        + (item.closure !== undefined ? '｜证据齐全程度：' + pct(item.closure) : '')
-        + (item.taxes && item.taxes.length ? '｜涉及税种：' + esc((item.taxes || []).join('、')) : '')
-        + '</p>';
-    }
+    // ★ 2026-09-27：不再以 `redline_id` 为渲染门槛——实测该字段为空，导致
+    //   「性质/本项结论/把握程度/证据齐全程度/等级依据/潜在税额影响」全部不渲染
+    //   （幽灵字段）。改为"只要有任一字段就渲染该行"。
+    var pct = function(v){ return (typeof v === 'number' ? Math.round(v * 100) : 0) + '%'; };
+    // 用户要求：不出现 RL-XXX 编号与「裁决/置信度」等术语，改用自然表述。
+    var _metaCells = ''
+      + (item.suspect ? '性质：' + esc(item.suspect) : '')
+      + (item.verdict ? (item.suspect ? '｜' : '') + '本项结论：<strong>' + esc(item.verdict) + '</strong>' : '')
+      + (item.confidence ? '｜把握程度：' + pct(item.confidence) : '')
+      + (typeof item.closure === 'number' ? '｜证据齐全程度：' + pct(item.closure) : '')
+      + (item.risk_level_basis ? '｜等级依据：' + esc(item.risk_level_basis) : '')
+      + (item.taxes && item.taxes.length ? '｜涉及税种：' + esc((item.taxes || []).join('、')) : '')
+      + _taxImpactMeta(item);
+    var meta = _metaCells
+      ? ('<p class="i2" style="margin:6px 0 10px;padding:8px 12px;background:#f8fafc;'
+         + 'border-left:3px solid #2563eb;font-size:13px;line-height:1.9">' + _metaCells + '</p>')
+      : '';
     html += '<section class="fact-sec"><div class="ftitle">疑点' + esc(item.seq || '') + '：' + esc(item.title || '具体资料问题') + '</div>'
       + meta
       + _renderNarrativeParagraphs(_enterpriseProblemParagraphs(item), '本项尚未形成完整的段落式检查记录。') +
@@ -5353,6 +5525,8 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   if (ledger && ledger.rows && ledger.rows.length) {
     html += _renderResolutionLedger(ledger);
   }
+  // ★ 2026-09-27：主营业务成本两口径勾稽明细（阈值内也照出，合规留痕）
+  html += _renderCostReconDetail(report.cost_recon_detail);
 
   html += '<h2 id="company-actions">四、风险检查处理意见和整改验收标准</h2>' +
     '<p class="i2">请按照下列顺序办理。所有处理必须建立在真实业务和原始资料基础上，不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';

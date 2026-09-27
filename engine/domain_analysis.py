@@ -4733,7 +4733,7 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
             findings.append({
                 "type": f"毛利率{gm_pct:.2f}%低于{target_industry}行业下限{low*100:.2f}%",
                 "level": "高风险", "score": 9,
-                "detail": f"被查单位毛利率{gm_pct:.2f}%（=（销售收入{actual_rev:,.2f}元-进项采购成本{pur_total:,.2f}元）/销售收入{actual_rev:,.2f}元）。{target_industry}行业毛利率正常区间为{low*100:.2f}%~{high*100:.2f}%，典型值{typical*100:.2f}%。被查单位毛利率已低于行业下限{low*100:.2f}%，偏离度{gross_margin/low-1:.0%}。",
+                "detail": f"被查单位毛利率{gm_pct:.2f}%（=（销售收入{actual_rev:,.2f}元-进项采购成本{pur_total:,.2f}元）/销售收入{actual_rev:,.2f}元）。{target_industry}行业毛利率正常区间为{low*100:.2f}%~{high*100:.2f}%，典型值{typical*100:.2f}%。被查单位毛利率已低于行业下限{low*100:.2f}%，偏离度{gross_margin/low-1:.0%}。对标的行业口径为「{target_industry}」；该区间为系统内置的行业通用参考值，非税务机关官方口径（行业周期、经营模式、出口占比、政策优惠等均可造成合理偏离），偏离仅构成待核线索，不表示已认定少缴税款。",
                 "description": f"毛利率低于行业基准下限{low*100:.2f}%，这一偏差在税务合规中有明确的指向意义：①进项发票可能存在虚增——采购成本被人为做高以虚抵进项税、虚列成本少缴企业所得税；②销售收入可能被隐匿——部分收入未入账、未开票，导致收入端偏低、毛利率被拉低。{target_industry}行业毛利率典型值为{typical*100:.2f}%，被查单位{gm_pct:.2f}%已处于行业尾部。需结合产能、能耗、人工投入等经营数据做交叉验证。",
                 "how_found": f"计算出被查单位的毛利率：销售收入{actual_rev:,.2f}元减去进项采购成本{pur_total:,.2f}元，除以销售收入，得出{gm_pct:.2f}%。然后查阅了{target_industry}行业的毛利率基准数据（下限{low*100:.2f}%、典型{typical*100:.2f}%、上限{high*100:.2f}%），发现被查单位毛利率已低于行业下限。",
                 "tax_impact": f"若进项虚增：补缴增值税+企业所得税+滞纳金+罚款；若收入隐匿：补缴增值税+企业所得税+滞纳金+0.5-5倍罚款，情节严重移送公安。",
@@ -4769,7 +4769,7 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
             findings.append({
                 "type": f"进销比{io_ratio:.2f}高于{target_industry}行业上限{high}",
                 "level": "高风险", "score": 9,
-                "detail": f"被查单位进销比{io_ratio:.2f}（=进项采购{pur_total:,.2f}元/销项开票{sal_total:,.2f}元），{target_industry}行业正常进销比区间为{low}~{high}，典型值{typical}。被查单位进销比高于行业上限{high}，偏离度{(io_ratio-typical)/typical*100:.2f}%。",
+                "detail": f"被查单位进销比{io_ratio:.2f}（=进项采购{pur_total:,.2f}元/销项开票{sal_total:,.2f}元），{target_industry}行业正常进销比区间为{low}~{high}，典型值{typical}。被查单位进销比高于行业上限{high}，偏离度{(io_ratio-typical)/typical*100:.2f}%。对标的行业口径为「{target_industry}」；该区间为系统内置的行业通用参考值，非税务机关官方口径，偏离仅构成待核线索。",
                 "description": f"进销比={io_ratio:.2f}的含义：被查单位每对外开具1元销项发票，对应取得了{io_ratio:.2f}元进项发票。{target_industry}行业典型进销比为{typical}（每1元销项对应约{typical}元进项采购），合理区间{low}~{high}。被查单位的进销比{io_ratio:.2f}已超出行业上限{high}，偏差{(io_ratio-typical)/typical*100:.2f}%。进销比偏高有两种税务合规解释：①存在未开票销售收入——实际销售>开票销售，拉高了进项/销项的比值；②进项发票存在虚开——采购端被人为做高。两者都涉及纳税义务的不当减少。",
                 "how_found": f"进项采购{pur_total:,.2f}÷销项开票{sal_total:,.2f}={io_ratio:.2f}。{target_industry}行业进销比参考值：下限{low}、典型值{typical}、上限{high}。被查单位={io_ratio:.2f} > 上限{high}。",
                 "tax_impact": "若隐匿收入→补缴增值税（货物税率）+企业所得税+滞纳金+罚款。若虚增进项→补缴增值税（已抵扣税额）+企业所得税+罚款+刑事责任。",

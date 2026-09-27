@@ -9,13 +9,16 @@
   ① 行业认定**不得写得太确定**：销项发票品名只作「**初步测算口径**」，须并列登记口径，
      并声明"行业认定应以登记经营范围、实际主营业务收入构成、合同和发票品名为准，待核实"。
      禁用"变名开票"等重定性词，改中性表述（"开票品名与实际经营是否一致，需核实…"）。
-  ② 事项措辞用「**待核实风险事项**」——名词核心是"风险事项"（肯定它是风险），
-     "待核实"只作定语；紧跟"尚不构成违法定性"。禁用"已确认 N 项风险事项"式强断言。
+  ② 事项措辞用「**涉嫌风险事项**」——"涉嫌"本身即含待核实之意（**不再叠加"待核实"**，用户 2026-09-27），
+     名词核心是"风险事项"；紧跟"尚不构成违法定性"。禁用"已确认 N 项风险事项"式强断言。
   ③ **等级与状态分离**：风险等级只有 高/中/低；「待核验」是**证据状态**，
      必须单列并声明"不参与风险等级排序"，不得与"低风险"并列（分类不统一）。
   ④ 须写明**分级依据**（潜在税额 / 涉及金额 / 证据缺口 / 是否涉及虚开或偷税 / 补证紧迫性）。
   ⑤ 税种统计须注明是「**事项—税种关联次数**，非事项数」（一项可涉多个税种）。
-  ⑥ 涉嫌方向须写「**可能**涉及的涉嫌方向（**待核实**）」，不得写"已指向"。
+  ⑥ 涉嫌方向写「**可能**涉及的涉嫌方向」（"涉嫌"已含待核实，**不再写"（待核实）"**，用户 2026-09-27），
+     不得写"已指向"。
+  ⑧ 本章是**总述与总体结论**，只作概论：行业对标偏离、成本两口径勾稽等**细节分析归专项章节/风险事项台账**，
+     本章不展开（用户 2026-09-27）。
   ⑦ 资料缺口措辞用"**将影响**……的检查"，不用"无法检查"；
      "稽查必查资料"改为"本轮检查必查资料"（系统报告非税务机关稽查文书）。
 
@@ -276,8 +279,9 @@ def build_overall_conclusion(report_data: Any,
     conflict = ""
     if reg and inv and reg != inv:
         # ★ 2026-09-26 用户口径：「变名开票」是重定性词，改为中性表述（只提出问题，不定性）。
-        conflict = (f"登记口径为「{reg}」，而销项发票品名指向「{inv}」，两者不一致；"
-                    f"开票品名与实际经营是否一致，需核实是否存在超范围经营、开票品名不实等情形。")
+        # ★ 2026-09-27 用户口径：这是**事实 + 观点**，不写"需核实"式免责语（观点用"指向…的可能"）。
+        conflict = (f"登记经营范围为「{reg}」，销项发票品名指向「{inv}」，两者不一致；"
+                    f"开票品名与实际经营是否一致，指向超范围经营或开票品名不实的可能。")
 
     # ── 已核定 / 待定性 ──
     verified = sum(1 for p in problems if str(p.get("conclusion_grade") or "") == "已核定")
@@ -287,26 +291,43 @@ def build_overall_conclusion(report_data: Any,
     P: List[str] = []
 
     P.append(
-        f"编制声明：本轮已重新读取全部资料（{files_count} 份，归为 {cats} 类）并重新计算，"
-        f"以下为本轮复算结论，独立于此前任何一轮报告。"
+        "编制声明：本轮已重新读取全部资料并重新计算，按“资料合规性核验 → 多源交叉比对 → "
+        "资金流向穿透 → 行业基准对标 → 规则与红线扫描 → 证据链闭合度评估”六步程序实施检查，"
+        "以下为本轮复算结论，独立于此前任何一轮报告。"
     )
 
     # ★ 开篇总括（用户要求：先给整体情况与重点结果，再展开细节）
     _lv = {t["level"]: t["count"] for t in tiers}
-    _pv = int(_lv.get("待核验", 0) or 0)
+    _high = int(_lv.get("高风险", 0) or 0)
+    _mid = int(_lv.get("中风险", 0) or 0)
+    _low = int(_lv.get("低风险", 0) or 0)
+    _pend = int(_lv.get("待核验", 0) or 0)
+    _grade = "低"
+    if _high >= 3:
+        _grade = "高"
+    elif _high >= 1 or _mid >= 5:
+        _grade = "较高"
+    elif _mid >= 1 or len(problems) > 0:
+        _grade = "中等"
     _themes = _group_by_theme(problems)
-    _top = "、".join("%s（%d 项）" % (g["theme"], g["count"]) for g in _themes[:3])
-    _lv_txt = ""
-    if any(_lv.get(k) for k in ("高风险", "中风险", "低风险")):
-        _lv_txt = ("，其中高风险 %d 项、中风险 %d 项、低风险 %d 项"
-                   % (int(_lv.get("高风险", 0)), int(_lv.get("中风险", 0)), int(_lv.get("低风险", 0))))
-    P.append(
-        "检查范围与结果概览：本轮依据已上传的 %d 类资料（%d 份）实施检查，共识别并列示 %d 项待核实风险事项%s%s。"
-        "风险主要集中在：%s。"
-        % (cats, files_count, len(problems), _lv_txt,
-           ("，另有 %d 项因证据不足暂列待核验" % _pv) if _pv else "",
-           _top or "（本轮未形成可归纳的风险主题）")
-    )
+    tax_txt = ""
+    if tax_types:
+        tax_txt = ("涉及税种：" + "、".join(f"{t['name']}{t['count']}项" for t in tax_types[:6])
+                   + "（上述为「事项—税种关联次数」，一项可涉及多个税种，非事项数）。")
+    dir_txt = ""
+    if directions:
+        dir_txt = "可能涉及的涉嫌方向包括：" + "、".join(directions) + "等。"
+    if problems:
+        P.append(
+            "检查范围与结果概览：本轮依据已上传的 %d 类资料（%d 份）实施检查，共识别并列示 %d 项涉嫌风险事项，"
+            "均存在资料层面的差异或异常线索，尚不构成违法定性。%s%s"
+            % (cats, files_count, len(problems), tax_txt, dir_txt)
+        )
+    else:
+        P.append(
+            "检查范围与结果概览：本轮依据已上传的 %d 类资料（%d 份）实施检查，未识别到涉嫌风险事项。"
+            % (cats, files_count)
+        )
 
     # 行业与对标
     # ★ 2026-09-26 用户口径：**行业认定不能写得太确定**。区分两件事——
@@ -314,36 +335,15 @@ def build_overall_conclusion(report_data: Any,
     #   ②「行业认定」应以登记经营范围、实际收入构成、合同与发票品名为准，**待核实**。
     #   同时并列登记口径，不把推断包装成已认定。
     if ind["name"]:
-        seg = (f"行业口径：本轮初步按销项发票品名指向的「{ind['name']}」口径测算"
+        # ★ 2026-09-27 用户口径：总述**只给检查分析的事实与由此提出的观点**——
+        #   不写"待核实"式免责语，也不写"见某章/本章不展开"式引导说明。
+        seg = (f"行业口径：本轮按销项发票品名指向的「{ind['name']}」口径测算"
                f"（来源：{ind['source'] or '未标注'}）。")
-        if ind["registered"] and ind["registered"] != ind["name"]:
-            seg += f"同时列示登记口径「{ind['registered']}」。"
-        seg += "行业认定应以登记经营范围、实际主营业务收入构成、合同和发票品名为准，待核实。"
-        obs = ind["observations"]
-        if obs:
-            o = obs[0] or {}
-            seg += (f"据该测算口径对照行业基准，本企业{o.get('metric', '')}{o.get('actual', '')}%"
-                    f"（行业{o.get('benchmark', '')}），{o.get('direction', '')}。{o.get('why', '')}")
         if conflict:
             seg += conflict
         P.append(seg)
 
-    # 风险总量与税种分布
-    # ★ 2026-09-26 用户口径："确认 N 项风险事项"措辞太强且与后文"均需补证后定性"互相矛盾；
-    #   统一为「识别并列示 N 项**待核实风险事项**」+「尚不构成违法定性」——
-    #   名词核心仍是"风险事项"（肯定它是风险），"待核实"只作定语。
-    if problems:
-        tax_txt = ""
-        if tax_types:
-            tax_txt = ("涉及税种：" + "、".join(f"{t['name']}{t['count']}项" for t in tax_types[:6])
-                       + "（上述为「事项—税种关联次数」，一项可涉及多个税种，非事项数）。")
-        dir_txt = ""
-        if directions:
-            dir_txt = "可能涉及的涉嫌方向（待核实）包括：" + "、".join(directions) + "等。"
-        P.append(
-            f"本轮识别并列示 {len(problems)} 项待核实风险事项，均存在资料层面的差异或异常线索，"
-            f"尚不构成违法定性。{tax_txt}{dir_txt}"
-        )
+    # 风险总量与税种、涉嫌方向已并入上文「检查范围与结果概览」，不再单列（避免同一件事说两遍）。
 
     # ★ 按**风险性质**归纳（用户要求：总结归纳风险情况，而非只按等级平铺列举）
     if _themes:
@@ -361,43 +361,61 @@ def build_overall_conclusion(report_data: Any,
     lv_tiers = [t for t in tiers if t["level"] in _LEVELS]
     st_tiers = [t for t in tiers if t["level"] not in _LEVELS]
     if lv_tiers:
-        P.append("风险等级暂分为" + "、".join(f"{t['label']}{t['count']}项" for t in lv_tiers) + "。")
-        P.append("风险等级按潜在税额、涉及金额、证据缺口、是否涉及虚开或偷税、补证紧迫性综合排序，仅供参考。")
+        P.append(
+            "风险等级评定：本轮整体风险程度评定为「%s」。风险等级按潜在税额、涉及金额、证据缺口、"
+            "是否涉及虚开或偷税、补证紧迫性综合排序，仅供参考；各风险等级事项列示如下。"
+            % _grade
+        )
         for t in lv_tiers:
-            P.append(f"{t['label']}{t['count']}项：" + "；".join(t["items"]) + "。")
+            P.append(f"{t['label']} {t['count']} 项：" + "；".join(t["items"]) + "。")
     for t in st_tiers:
         if t["level"] == "待核验":
-            P.append(f"另有 {t['count']} 项因证据不足，暂列为待核验事项，不参与风险等级排序："
+            P.append(f"待核验（证据不足，不参与风险等级排序）{t['count']} 项："
                      + "；".join(t["items"]) + "。")
         else:
-            P.append(f"另有 {t['count']} 项为{t['label']}（非风险等级），供参考："
+            P.append(f"{t['label']}（非风险等级，供参考）{t['count']} 项："
                      + "；".join(t["items"]) + "。")
 
-    # ★ 三方闭环：发票类目口径 / 账面口径 / 差异待核
+    # ★ 企业整体风险综合评价（定调句：整体等级 + 主要风险领域 + 遵从评价，合成一段结论）
+    _top = sorted(_themes, key=lambda g: -int(g.get("count") or 0))[:2]
+    _total_p = len(problems)
+    _sum_top = sum(int(g.get("count") or 0) for g in _top)
+    _share = (_sum_top / _total_p * 100) if _total_p else 0.0
+    if len(_top) >= 2:
+        _top_clause = "风险高度集中于「%s」与「%s」两个领域，二者合计 %d 项、占全部涉嫌风险事项的 %.0f%%" % (
+            _top[0].get("theme"), _top[1].get("theme"), _sum_top, _share)
+    elif _top:
+        g0 = _top[0]
+        _top_clause = "主要风险领域为%s（%d 项，占全部涉嫌风险事项的 %.0f%%）" % (
+            g0.get("theme"), g0.get("count"),
+            (g0.get("count") / _total_p * 100 if _total_p else 0.0))
+    else:
+        _top_clause = "本轮暂无可归纳的主要风险领域"
+    P.append(
+        "企业整体风险综合评价：综合风险程度评定与问题类型分布，该企业整体税务风险等级为「%s」；%s。"
+        "结合资料与核算管理尚不完备、多项异常线索指向具体涉嫌方向的实际情况，"
+        "本轮对该企业纳税遵从的总体评价为：在已提交资料范围内呈现较高风险敞口，"
+        "但主观故意性质尚不能认定，须以补证与核实为前提，再行判断其纳税义务履行的真实状况。"
+        % (_grade, _top_clause)
+    )
+
+    # ★ 2026-09-27（用户要求）：主营业务成本三方勾稽**不在总述展开**——它是细节分析，
+    #   归「主营业务成本两口径勾稽明细」（第三章台账后）与风险事项台账（VR060 / 行业对标）。
+    #   此处仍计算 cost_recon，供返回字段（cost_reconciliation）与台账消费，只是不再输出段落。
     cost_recon = _cost_reconciliation(rd)
-    _cr_txt = ""
-    if cost_recon["invoice_cost"] is not None or cost_recon["book_cost"] is not None:
-        _inv_txt = (f"{cost_recon['invoice_cost']:,.2f} 元（{cost_recon['invoice_cost_count']} 张）"
-                    if cost_recon["invoice_cost"] is not None else "未取得")
-        _bk_txt = (f"{cost_recon['book_cost']:,.2f} 元（来源：{cost_recon['book_cost_source']}）"
-                   if cost_recon["book_cost"] is not None else "未取得")
-        _cr_txt = f"主营业务成本三方勾稽：发票类目口径 {_inv_txt}；账面口径 {_bk_txt}。"
-        if cost_recon["diff"] is not None:
-            _cr_txt += f"差异 {cost_recon['diff']:,.2f} 元（{cost_recon['diff_pct']}%），{cost_recon['status']}。"
-        else:
-            _cr_txt += f"{cost_recon['status']}。"
-        _cr_txt += cost_recon["note"]
-        P.append(_cr_txt)
 
-    # 法律边界（与上文的"待核实风险事项"同一口径，不再重复"已确认"式强断言）
+    # 对企业纳税遵从情况的总体看法（分层：合规定性 / 主观故意；不得定性）
     if problems:
         if verified > 0:
-            grade_txt = f"其中账面对账可即时核定的 {verified} 项已直接给出结论，其余 {pending} 项需补充外部证据后方可定性。"
+            grade_txt = f"其中账面对账可即时核定的 {verified} 项已直接给出结论，其余 {pending} 项需补充外部证据后方可定性；"
         else:
-            grade_txt = "本轮各项均需补充外部证据后方可定性。"
+            grade_txt = "本轮各项均需补充外部证据后方可定性；"
         P.append(
-            f"本轮已逐项列明检查依据、可能涉及的涉嫌方向与需补资料；{grade_txt}"
-            f"风险等级与优先顺序仅表示补证紧迫性与潜在税务影响，不表示已经认定违法。"
+            "对企业纳税遵从情况的总体看法：本轮已逐项列明检查依据、可能涉及的涉嫌方向与需补资料；"
+            + grade_txt
+            + "风险等级与优先顺序仅表示补证紧迫性与潜在税务影响，不表示已经认定违法。"
+            + "主观故意方面：本轮不作认定——现有资料不足以判断上述差异系管理疏漏、核算差错，"
+            "还是存在主观故意；须经补证与核实后另行判断。"
         )
 
     # 未完成
@@ -413,6 +431,25 @@ def build_overall_conclusion(report_data: Any,
         "完成真实更正和资料补充后，发起新一轮全量复查，继续核对原问题是否处理完成，"
         "以及补充资料是否带出新的关联问题。"
     )
+
+    # ★ 监管态度与后续处理建议（分级分类；各类项数已在上文列明，此处不再重复数字）
+    _pos = []
+    if _low:
+        _pos.append("提示提醒：对低风险事项，建议以提示提醒方式要求企业自行规范与整改")
+    if _mid:
+        _pos.append("补证核实：对中风险事项，建议限期要求企业补充合同、物流、资金、入库等外部证据，逐项排除疑点")
+    if _high:
+        _pos.append("重点关注：对高风险事项（证据相对集中、涉及隐匿收入或虚开发票方向），建议列为后续优先检查事项")
+    if _pend:
+        _pos.append("待核验事项：对证据不足事项，建议先行补证，不宜在证据补齐前作出处理结论")
+    if further:
+        _pos.append("限期补正资料：对因资料缺失未能实施的检查，建议限期要求企业补齐后再行检查")
+    P.append("监管态度与后续处理建议（分级分类）：" + "；".join(_pos) + "。")
+    P.append("需要说明：本部分为工作建议，不构成税务处理、行政处罚或移送决定；"
+             "是否达到移送标准，应在证据补齐并依法核实后另行判断。")
+    # ★ 2026-09-27 用户口径：**删去本章末的「边界声明」**——该声明是"说明"性质，
+    #   第六章「报告性质和使用说明」已由 `inspector_perspective.administrative_boundary`
+    #   （文书性质说明）承载，两处重复；本章只留事实与观点。
 
     return {
         "paragraphs": P,

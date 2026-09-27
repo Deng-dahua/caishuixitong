@@ -169,8 +169,8 @@ for label, val in (("被查单位", te.get("name")), ("统一社会信用代码"
 P.append("<dt>资料份数</dt><dd>%s 份（%s）</dd>" % (E(rep.get("files_count")), E(dist_txt)))
 P.append("</dl></div>")
 
-# ── 一、总体结论 ──
-P.append('<section><h2><span class="n">一</span>本轮检查总体结论</h2>')
+# ── 一、检查情况总述与总体结论（单章：由 overall_conclusion 统一生成，每件事只说一遍）──
+P.append('<section><h2><span class="n">一</span>本轮检查情况总述与总体结论</h2>')
 lvl = rep.get("overall_level") or "未形成风险事项"
 _lv = "ok" if ("未形成" in str(lvl) or "无" in str(lvl)) else ("danger" if rep.get("high_risk") else "warn")
 P.append('<p><span class="pill %s">%s</span>'
@@ -178,13 +178,8 @@ P.append('<p><span class="pill %s">%s</span>'
          '<span class="pill info">高 %s / 中 %s / 低 %s</span></p>'
          % (_lv, E(lvl), E(rep.get("total_risks")), E(rep.get("high_risk")),
             E(rep.get("mid_risk")), E(rep.get("low_risk"))))
-# ★ 2026-09-26：工作底稿版先渲染「检查情况总述」（风险类型/程度/总体看法/监管态度），
-#   再渲染从 findings 实测派生的总体结论。
-_io = err.get("inspection_overview") or {}
-for _t in (_io.get("paragraphs") or []):
-    P.append("<p>%s</p>" % E(_t))
-
-# ★ 2026-09-26：第一章改为渲染**从 findings 实测派生**的总体结论（唯一权威）。
+# ★ 2026-09-27：单章只渲染从 findings 实测派生的「总体结论」（已吸收原检查情况总述的
+#   定调句 / 纳税遵从看法 / 监管态度 / 边界声明），不再并排贴两段。
 #   有 overall_conclusion 用它；否则回退 summary_text（兼容旧缓存）。
 _oc = err.get("overall_conclusion") or {}
 _ocp = _oc.get("paragraphs") or []
@@ -270,6 +265,62 @@ if _decls:
     P.append("</table>")
 P.append("</section>")
 
+def _cost_recon_block(crd):
+    """主营业务成本两口径勾稽明细（阈值内也照出，合规留痕；含逐张/逐笔清单）。"""
+    if not isinstance(crd, dict) or not crd.get("available"):
+        return ""
+    out = ['<h3>主营业务成本两口径勾稽明细</h3>']
+    for _p in (crd.get("paragraphs") or []):
+        out.append("<p>%s</p>" % E(_p))
+    _g = crd.get("by_goods") or []
+    if _g:
+        out.append('<p class="muted">① 发票类目口径构成（按品名/类目，逐类小计）</p>')
+        out.append("<table><tr><th>品名/类目</th><th>张数</th><th>金额(元)</th></tr>")
+        for _r in _g[:30]:
+            out.append("<tr><td>%s</td><td>%s</td><td>%s</td></tr>"
+                       % (E(tr(_r.get("goods"), 60)), E(_r.get("count")),
+                          E("{:,.2f}".format(float(_r.get("amount") or 0)))))
+        out.append("<tr><td><strong>合计</strong></td><td><strong>%s</strong></td>"
+                   "<td><strong>%s</strong></td></tr>"
+                   % (E(crd.get("invoice_count") or 0),
+                      E("{:,.2f}".format(float(crd.get("invoice_total") or 0)))))
+        out.append("</table>")
+    _ir = crd.get("invoice_rows") or []
+    if _ir:
+        out.append('<p class="muted">① 附：主营业务成本类发票逐张清单（%d 张）</p>' % len(_ir))
+        out.append("<table><tr><th>发票号码</th><th>开票日期</th><th>销售方</th><th>品名</th>"
+                   "<th>金额(元)</th><th>税额(元)</th></tr>")
+        for _r in _ir[:500]:
+            out.append("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
+                       % (E(_r.get("inv_no")), E(_r.get("date")), E(tr(_r.get("seller"), 40)),
+                          E(tr(_r.get("goods"), 60)),
+                          E("{:,.2f}".format(float(_r.get("amount") or 0))),
+                          E("{:,.2f}".format(float(_r.get("tax") or 0)))))
+        out.append("</table>")
+    _v = crd.get("by_voucher") or []
+    if _v:
+        out.append('<p class="muted">② 账面口径构成（序时账 6401 本期借方发生额，按凭证号归集）</p>')
+        out.append("<table><tr><th>凭证号</th><th>摘要</th><th>金额(元)</th></tr>")
+        for _r in _v[:60]:
+            out.append("<tr><td>%s</td><td>%s</td><td>%s</td></tr>"
+                       % (E(_r.get("voucher_no")), E(tr(_r.get("summary"), 40)),
+                          E("{:,.2f}".format(float(_r.get("amount") or 0)))))
+        out.append("<tr><td><strong>合计</strong></td><td></td>"
+                   "<td><strong>%s</strong></td></tr>"
+                   % E("{:,.2f}".format(float(crd.get("book_total") or 0))))
+        out.append("</table>")
+    _br = crd.get("book_rows") or []
+    if _br:
+        out.append('<p class="muted">② 附：主营业务成本账面凭证逐笔清单（%d 笔）</p>' % len(_br))
+        out.append("<table><tr><th>月份</th><th>凭证号</th><th>摘要</th><th>借方金额(元)</th></tr>")
+        for _r in _br[:1000]:
+            out.append("<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
+                       % (E(_r.get("month")), E(_r.get("voucher_no")), E(tr(_r.get("summary"), 40)),
+                          E("{:,.2f}".format(float(_r.get("amount") or 0)))))
+        out.append("</table>")
+    return "".join(out)
+
+
 # ── 四、全部风险事项台账（含证据地位）──
 _led = err.get("resolution_ledger") or {}
 _led_rows = _led.get("rows") or []
@@ -286,10 +337,26 @@ if _led_rows:
     P.append(_ledger_table(_led))
     if _led.get("evidence_tier_note"):
         P.append('<p class="muted">%s</p>' % E(_led["evidence_tier_note"]))
+    # ★ 2026-09-27：主营业务成本两口径勾稽明细（阈值内也照出，合规留痕）
+    P.append(_cost_recon_block(err.get("cost_recon_detail") or {}))
     P.append("</section>")
 
 # ── 五、待核事实与发现 ──
 P.append('<section><h2><span class="n">五</span>待核事实与发现</h2>')
+# ★ 2026-09-27（P2）：章首主线研判（最可能的 2–3 个方向，结论先行）
+_ma = err.get("main_assessment") or {}
+if _ma.get("available") and _ma.get("paragraph"):
+    P.append('<div class="note">%s</div>' % E(_ma["paragraph"]))
+# ★ 2026-09-27（P1）：本轮潜在税额敞口汇总（测算）
+_ts = err.get("tax_impact_summary") or {}
+if _ts.get("total_items"):
+    _bt = "；".join("%s %s 元" % (E(x.get("tax")), E("{:,.2f}".format(float(x.get("amount") or 0))))
+                    for x in (_ts.get("by_tax") or []))
+    P.append('<div class="note"><strong>本轮潜在税额敞口（测算）</strong>：%s<br>已量化 %s / %s 项。%s</div>'
+             % ((E("合计约 {:,.2f} 元（{}）".format(float(_ts.get("total") or 0), _bt))
+                 if _ts.get("total") else E("暂无可量化金额")),
+                E(_ts.get("quantified") or 0), E(_ts.get("total_items") or 0),
+                E(_ts.get("note") or "")))
 if findings:
     lv_order = {"极高风险": 0, "高风险": 1, "中风险": 2, "低风险": 3}
     for f in sorted(findings, key=lambda x: lv_order.get(str(x.get("level")), 9))[:60]:

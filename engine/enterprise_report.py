@@ -820,6 +820,24 @@ _DOC_TYPE_TO_CATEGORY = {
     "generic_data": (),
 }
 
+# ── P3.5 补充自证资料类别映射（单一权威来源：engine/material_recognition）──
+# 红线库 required_materials 中既非 15 类必查、也非超类表变体的资料名（审计漂移 WARN），
+# 在此登记为独立补充类别：上传→识别 doc_type→映射到与红线需求名完全一致的类别名→
+# 证据链逐字命中判定"已有"，翻转"需补充提供"为"已提供"（绝不冒充某 15 类）。
+try:
+    from engine.material_recognition import _SUPPLEMENTARY_RECOGNITION as _SUPP_REC
+    for _n, _info in _SUPP_REC.items():
+        _DOC_TYPE_TO_CATEGORY[_info["doc_type"]] = (_n,) + tuple(_info.get("extra_cats") or ())
+    # "发票"由发票类 doc_type 双映射提供（避免 early-return 误吞正常发票，同时让
+    # 红线需求名"发票"在上传任意发票时即逐字命中"已有"）。
+    for _dt in ("sales_invoice", "purchase_invoice", "invoice_universal", "input_vat_deduction"):
+        _cur = _DOC_TYPE_TO_CATEGORY.get(_dt) or ()
+        if "发票" not in _cur:
+            _DOC_TYPE_TO_CATEGORY[_dt] = tuple(_cur) + ("发票",)
+except Exception as _e:  # pragma: no cover - 依赖缺失不静默放行
+    import sys
+    print("WARN engine.material_recognition 加载失败，补充自证资料识别不可用:", _e, file=sys.stderr)
+
 
 def _doc_covered_categories(report_data):
     """已提供的必查资料类别集合（唯一实现，供 further_checks / material_readiness 共用）。
@@ -894,7 +912,7 @@ def _strip_redline_prefix(text):
     26 条重点会变成同一句机械模板（与"解除方式套话"同类雷同病）。剥掉后
     指标名只在标题出现一次，key_points 每条只留"涉嫌…"实质一句，信息密度更高。
     """
-    return re.sub(r"^经检查，本企业触发税务风险指标（待核实），即[^，]+，", "", str(text or "")).strip()
+    return re.sub(r"^经检查，本企业触发税务风险指标，即[^，]+，", "", str(text or "")).strip()
 
 
 def _seq(items, empty="能够证明相关业务事实的原始资料。"):
@@ -1108,7 +1126,7 @@ def _conclusion_statement(f):
         )
     suggestion = _norm_text(str(f.get("suggestion") or "").strip())
     return to_plain(
-        "本项为待核实事项：现有资料只能确认可疑信号，还不足以作出最终认定。"
+        "本项为涉嫌事项：现有资料只能确认可疑信号，还不足以作出最终认定。"
         "需要补充外部证据（合同、物流单据、盘点表、权属证明等）后才能定性。"
         + (f"本轮建议：{suggestion}" if suggestion else "请按本报告关于企业应当怎样处理的说明逐项补证。")
     )
@@ -1274,6 +1292,16 @@ def _build_redline_problems(suspicions, findings=None):
         _tkey = _norm_type_key(_f.get("type") or "")
         if _tkey:
             _dt_by_type.setdefault(_tkey, _tables)
+    # ★ 2026-09-27（用户要求）：无线索支撑 / 已排除的结论**不得进「具体问题」**——
+    #   否则出现"线索不足，未形成税务疑点"却列为问题的自相矛盾。此处统一滤除，
+    #   并使 seq 保持连续（不跳号）。弱结论集来自 argumentation（单一出处）。
+    try:
+        from engine.argumentation import _VERDICT_WEAK as _VW, _VERDICT_EXCLUDED as _VE
+        _weak_verdicts = {str(_VW), str(_VE)}
+    except Exception:
+        _weak_verdicts = {"线索不足，未形成税务疑点"}
+    suspicions = [s for s in suspicions
+                  if str((s or {}).get("verdict") or "") not in _weak_verdicts]
     for i, s in enumerate(suspicions, 1):
         arg = s.get("argumentation") or {}
         clue = s.get("clue_chain") or {}
@@ -1291,8 +1319,8 @@ def _build_redline_problems(suspicions, findings=None):
         # ★ 2026-09-26 三层术语重标：执行版不写“触碰税务红线/触红成立”（易读成已定性违法），
         #   改为“触发税务风险指标（待核实）”，与决策版口径一致。
         p1 = (
-            f"经检查，本企业触发税务风险指标（待核实），即{rname}，{_suspect_txt}。"
-            + ("该风险指标不因行业而变，凡符合下列构成要件即属待核实疑点：" if constituents
+            f"经检查，本企业触发税务风险指标，即{rname}，{_suspect_txt}。"
+            + ("该风险指标不因行业而变，凡符合下列构成要件即属涉嫌疑点：" if constituents
                else "具体构成要件见风险指标库列明的口径。")
         )
         bullets1 = [_naturalize_report_text(str(c).rstrip("。；"))
@@ -1371,6 +1399,22 @@ def _build_redline_problems(suspicions, findings=None):
             _lb = _rlb(rid)
         except Exception:
             _lb = None
+        # ★ 2026-09-27（用户要求）：**分级依据不得缺失**（原仅 4/26 有专属依据）。
+        #   无专属依据时给统一口径兜底，并说明该等级是五项综合排序得出。
+        _lb_basis = str((_lb or {}).get("basis") or "").strip()
+        if not _lb_basis:
+            _lb_basis = ("按潜在税额影响、涉及金额、证据缺口、是否涉及虚开或偷税、补证紧迫性五项综合排序"
+                         "（该项未单列专属分级依据，采用全库统一口径）")
+        # ★ 2026-09-27（用户要求）：**证据齐全程度不得留空成"0%"**（原 21/26 为空）。
+        #   优先取本项证据链的闭合度；确实取不到 → 置 None，由前端**整段省略**该指标，
+        #   绝不用 0% 冒充"未评估"。
+        _clo = s.get("closure")
+        if _clo in (None, ""):
+            _clo = ev.get("closure")
+        try:
+            _clo = round(float(_clo), 4) if _clo not in (None, "") else None
+        except (TypeError, ValueError):
+            _clo = None
         problems.append({
             "seq": i,
             # 报告标题只写红线名（用户要求：正文不出现 RL-XXX 编号）；
@@ -1380,9 +1424,9 @@ def _build_redline_problems(suspicions, findings=None):
             "conclusion_grade": grade,
             "verdict": s.get("verdict", ""),
             "confidence": s.get("confidence", 0.0),
-            "closure": s.get("closure", 0.0),
+            "closure": _clo,
             "risk_level": ((_lb or {}).get("level") or s.get("level", "")),
-            "risk_level_basis": (_lb or {}).get("basis", ""),
+            "risk_level_basis": _lb_basis,
             "suspect": s.get("suspect", ""),
             "taxes": s.get("taxes", []),
             "final_answer": (arg.get("claim", "") if grade == "已核定" else ""),
@@ -1394,6 +1438,17 @@ def _build_redline_problems(suspicions, findings=None):
             "verify_materials": s.get("verify_materials", []),
             "trace_id": (clue.get("nodes") or [{}])[0].get("trace_ref", ""),
         })
+    # ★ 2026-09-27（P1）：逐项测算**潜在税额影响**。只认关键词锚定的明确金额，
+    #   取不到 → 未量化（绝不猜）；税率与假设见 engine/tax_impact.py。
+    try:
+        from engine.tax_impact import extract_amount_from_problem, estimate_tax
+        for _p in problems:
+            _am = extract_amount_from_problem(_p)
+            _p["tax_impact"] = estimate_tax((_am or {}).get("amount"), _p.get("taxes"))
+            if _am:
+                _p["tax_impact"]["amount_context"] = _am.get("context", "")
+    except Exception:
+        pass
     return problems
 
 
@@ -1811,7 +1866,7 @@ def _build_further_checks(report_data):
 def _build_material_readiness(report_data):
     """资料齐备性总览（2026-09-05，用户要求）。
 
-    稽查必查资料是否齐全：每类资料给出「已提供/缺失」状态；
+    本轮检查必查资料是否齐全：每类资料给出「已提供/缺失」状态；
     缺失项逐一说明「缺这份资料 → 无法检查哪几方面风险 → 补什么能查清」，
     资料不齐全时显式提醒，让检查范围受限的原因透明可查。
     """
@@ -1861,7 +1916,7 @@ def _build_material_readiness(report_data):
         "read_failures": read_failures,
         "partial_data": bool(read_failures),
         "summary_text": (
-            f"稽查必查资料共 {total} 类，本轮已提供 {complete} 类、缺失 {len(missing)} 类。"
+            f"本轮检查必查资料共 {total} 类，本轮已提供 {complete} 类、缺失 {len(missing)} 类。"
             + ("资料齐全，全部检查程序可执行。" if not missing
                else "资料不齐全：以下缺失将影响相应风险方向的检查（详见缺失清单）。")
             + _rf_note
@@ -2036,13 +2091,15 @@ def _build_summary(report_data, problems, completed, further):
     #     每条只留"涉嫌…"实质一句。另用一句导语一次性说明"待核实 + 详见台账"，不重复 26 次。
     if problems:
         key_points.append(
-            "以下疑点均须补充外部证据后方可定性（待核实）；每一项的事实、涉嫌方向与需补资料，"
+            "以下疑点均须补充外部证据后方可定性；每一项的事实、涉嫌方向与需补资料，"
             "见本报告『红线疑点』各章与『全部风险事项台账』，本节省复。"
         )
     for p in problems:
         first = p.get("narrative_paragraphs", [{}])[0].get("text", "") if p.get("narrative_paragraphs") else ""
         grade = p.get("conclusion_grade") or "待核"
-        grade_tag = "（已核定）" if grade == "已核定" else "（待核）"
+        # ★ 2026-09-27：待核项不再挂"（待核）"——经大白话层会被改写成"（待核实）"，
+        #   与"涉嫌"口径重复；仅保留"（已核定）"以区分已给结论的项，全部待核的口径由导语统一说明。
+        grade_tag = "（已核定）" if grade == "已核定" else ""
         # 摘要只写「标题 + 核心一句」（第一个含数字的分句），不把整段 detail 抄进摘要。
         core_line = _strip_redline_prefix(_core_sentence(first))
         key_points.append(to_plain(f"重点{p['seq']}{grade_tag}：{p.get('title', '')}。{core_line}"))
@@ -2055,11 +2112,11 @@ def _build_summary(report_data, problems, completed, further):
     if problems:
         if verified_cnt and pending_cnt:
             grade_phrase = (f"其中{verified_cnt}项是账面对账已核定事项，已直接给出最终结论；"
-                            f"{pending_cnt}项是待核实事项，需要补充外部证据后定性，本轮已附上检查建议。")
+                            f"{pending_cnt}项是涉嫌风险事项，需要补充外部证据后定性，本轮已附上检查建议。")
         elif verified_cnt:
             grade_phrase = f"全部{verified_cnt}项是账面对账已核定事项，已直接给出最终结论。"
         else:
-            grade_phrase = f"全部{pending_cnt}项是待核实事项，需要补充外部证据后定性，本轮已附上检查建议。"
+            grade_phrase = f"全部{pending_cnt}项是涉嫌风险事项，需要补充外部证据后定性，本轮已附上检查建议。"
 
     headline = (f"本次税务风险检查共收到{files_count}个文件，归为{len(types)}类资料。检查人员逐项读取、重新计算、交叉核对后，"
                 f"确认{len(problems)}项用现有资料能够证明的具体问题。{grade_phrase}"
@@ -2635,6 +2692,64 @@ def _build_inspection_questions_report(report_data):
     }
 
 
+def _build_main_assessment(problems):
+    """★ 2026-09-27（P2）：具体问题章首的**主线研判**——最可能的 2–3 个问题方向及依据。
+
+    数据驱动：复用 `overall_conclusion._group_by_theme`（按风险性质归纳，单一出处）
+    与 `_collect_directions`（真实 suspect 扫描），再按"项数 × 等级权重"排序取前三。
+    不引入任何新素材，只把已有事项**收敛成一句判断**，避免平铺 26 条。
+    """
+    problems = [p for p in (problems or []) if isinstance(p, dict)]
+    if not problems:
+        return {}
+    try:
+        from engine.overall_conclusion import _group_by_theme, _collect_directions
+        themes = _group_by_theme(problems)
+        dirs = _collect_directions(problems)
+    except Exception:
+        themes, dirs = [], []
+    _rank = {"极高风险": 5, "高风险": 4, "中风险": 3, "待核验": 2, "低风险": 0, "信息": 0}
+
+    def _lv(p):
+        return str(p.get("risk_level") or p.get("level") or "")
+    lv_counts = {}
+    for p in problems:
+        lv_counts[_lv(p)] = lv_counts.get(_lv(p), 0) + 1
+    # 主题 → 高风险项数（用于排序）
+    _high_by_theme = {}
+    for p in problems:
+        if _lv(p) != "高风险":
+            continue
+        for g in themes:
+            if p.get("title") in (g.get("items") or []):
+                _high_by_theme[g["theme"]] = _high_by_theme.get(g["theme"], 0) + 1
+                break
+    top = sorted(themes, key=lambda g: (-(int(g.get("count") or 0) * 2 + _high_by_theme.get(g["theme"], 0))))[:3]
+    if not top:
+        return {}
+    _parts = []
+    nums = ["①", "②", "③"]
+    for i, g in enumerate(top):
+        _reps = "、".join((g.get("items") or [])[:1])
+        _hi = _high_by_theme.get(g["theme"], 0)
+        _parts.append("%s「%s」%d 项%s%s" % (
+            nums[i] if i < len(nums) else "·", g.get("theme"), g.get("count"),
+            ("（含高风险 %d 项）" % _hi) if _hi else "",
+            ("，代表事项：%s" % _reps) if _reps else ""))
+    _lv_txt = "、".join("%s %d 项" % (k, v) for k, v in lv_counts.items() if v)
+    seg = ("主线研判：本轮共 %d 项风险事项（%s）。按事项数量、风险等级、证据地位与潜在税额影响"
+           "综合排序，本轮最可能的问题方向为：%s。" % (len(problems), _lv_txt, "；".join(_parts)))
+    if dirs:
+        seg += "可能涉及的涉嫌方向包括：" + "、".join(dirs) + "等。"
+    seg += "据此，建议按上述顺序优先组织核实与整改。"
+    return {
+        "available": True,
+        "directions": [{"theme": g["theme"], "count": g.get("count"),
+                        "high": _high_by_theme.get(g["theme"], 0)} for g in top],
+        "paragraph": seg,
+    }
+
+
 def _build_industry_benchmark_report(report_data):
     """行业指标对标章节：本企业指标 vs 同行业预警区间。
 
@@ -2651,7 +2766,16 @@ def _build_industry_benchmark_report(report_data):
             "body": "", "metrics": {}, "signals": [], "verdict": "未发现异常",
             "recommendation": "", "note": "",
         }
-    lines = ["本企业实际指标与同行业预警区间比对如下（偏离项列为待核线索）：", ""]
+    # ★ 2026-09-27（用户要求）：必须写清**对标的行业口径**与**区间来源**，
+    #   否则读者无法判断这个区间是哪个行业的、是否可靠。
+    _te = report_data.get("target_entity") or {}
+    _ind_name = str(_te.get("industry") or "").strip()
+    _ind_src = str(_te.get("_industry_source") or "").strip()
+    _scope = ""
+    if _ind_name:
+        _scope = ("本企业对标的行业口径为「%s」%s。"
+                  % (_ind_name, ("（来源：%s）" % _ind_src) if _ind_src else ""))
+    lines = [_scope + "本企业实际指标与同行业预警区间比对如下（偏离项列为待核线索）：", ""]
     metrics = {}
     for f in findings:
         key = f.get("_indicator", "")
@@ -3034,6 +3158,19 @@ def build_enterprise_readable_report(report_data, edition=None):
     from engine.inspection_overview import build_inspection_overview
     inspection_overview = build_inspection_overview(
         report_data, problems, further, overall_conclusion)
+    # ★ 2026-09-27：主营业务成本「两口径勾稽明细」（发票类目构成 / 账面构成 / 差异归因），
+    #   无论是否超阈值都产出（合规留痕）。发票构成取自 pipeline 已算好的 core_cost 拆分（单一权威），
+    #   本模块不重跑 classify，避免口径分叉。
+    from engine.cost_recon_detail import build_cost_recon_detail
+    cost_recon_detail = build_cost_recon_detail(report_data)
+    # ★ 2026-09-27（P1）：本轮潜在税额敞口汇总（分税种 + 已量化/未量化覆盖度）
+    try:
+        from engine.tax_impact import build_tax_impact_summary as _btis
+        _tax_impact_summary = _btis(problems)
+    except Exception:
+        _tax_impact_summary = {}
+    # ★ 2026-09-27（P2）：具体问题章首的**主线研判**（最可能的 2–3 个方向）
+    main_assessment = _build_main_assessment(problems)
 
     # 专项报告的 metrics 指标键统一中文化（独立于 observed_metrics 的另一处英文键来源）
     # ★ 2026-09-25：**递归**汉化所有 `metrics` 字典的键 —— 旧写法只处理**顶层** `metrics`，
@@ -3079,6 +3216,12 @@ def build_enterprise_readable_report(report_data, edition=None):
         "overall_conclusion": overall_conclusion,
         # ★ 2026-09-26：工作底稿版「检查情况总述」（风险类型 / 风险程度 / 总体看法 / 监管态度）
         "inspection_overview": inspection_overview,
+        # ★ 2026-09-27：主营业务成本「两口径勾稽明细」（阈值内也照出，合规留痕）
+        "cost_recon_detail": cost_recon_detail,
+        # ★ 2026-09-27（P1）：本轮潜在税额敞口汇总（分税种 + 已量化/未量化覆盖度）
+        "tax_impact_summary": _tax_impact_summary,
+        # ★ 2026-09-27（P2）：具体问题章首主线研判
+        "main_assessment": main_assessment,
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
         "materials": materials,

@@ -5041,14 +5041,53 @@ def _run_analyze(company_id, db, progress_callback=None):
         cp = ctx.company_profile
         fs = ctx.financial_snapshot
         bcc = ctx.biz_cost_classification or {}
-        
+
+        # ★ 2026-09-27：主营业务成本**发票类目口径构成**（按品名 / 供应商逐类小计），
+        #   在此处一次算清（此处有 core_cost_invs 明细），供报告「两口径勾稽明细」直接消费——
+        #   避免报告层重跑 classify 造成口径分叉（单一权威）。
+        def _agg_invs(invs, key):
+            _m = {}
+            for _iv in (invs or []):
+                if not isinstance(_iv, dict):
+                    continue
+                _k = str(_iv.get(key) or "").strip() or "（未标注）"
+                _v = to_number(_iv.get("amount", _iv.get("total", 0))) or 0.0
+                _b = _m.setdefault(_k, {"count": 0, "amount": 0.0})
+                _b["count"] += 1
+                _b["amount"] += float(_v)
+            return sorted(
+                [{key: _k, "count": _v["count"], "amount": round(_v["amount"], 2)}
+                 for _k, _v in _m.items()],
+                key=lambda _x: -_x["amount"])
+
+        _core_invs = bcc.get("core_cost_invs", []) or []
+
+        # ★ 逐张清单（供报告「两口径勾稽明细」导出附件；限量，字段来自既有解析数据）
+        _core_inv_rows = []
+        for _iv in _core_invs[:500]:
+            if not isinstance(_iv, dict):
+                continue
+            _core_inv_rows.append({
+                "inv_no": str(_iv.get("inv_no") or _iv.get("digital_inv_no") or _iv.get("发票号") or ""),
+                "date": str(_iv.get("date") or _iv.get("开票日期") or ""),
+                "seller": str(_iv.get("seller") or _iv.get("销售方") or ""),
+                "goods": str(_iv.get("goods") or _iv.get("货物或应税劳务名称") or ""),
+                "amount": round(float(to_number(_iv.get("amount", _iv.get("total", 0))) or 0), 2),
+                "tax": round(float(to_number(_iv.get("tax", _iv.get("税额", 0))) or 0), 2),
+            })
+
         biz_cost_summary = {
             "core_cost_count": len(bcc.get("core_cost_invs", [])),
             "core_cost_amount": sum(to_number(inv.get("amount", 0)) for inv in bcc.get("core_cost_invs", [])),
             "major_expense_count": len(bcc.get("major_expense_invs", [])),
             "minor_expense_count": len(bcc.get("minor_expense_invs", [])),
+            "pending_cost_count": len(bcc.get("pending_cost_invs", [])),
             "core_goods": list(bcc.get("pur_core_goods", []))[:20],
             "expense_goods": list(bcc.get("pur_expense_goods", []))[:20],
+            "core_goods_breakdown": _agg_invs(_core_invs, "goods"),
+            "core_cost_supplier_breakdown": _agg_invs(_core_invs, "seller"),
+            "core_cost_invoices": _core_inv_rows,
+            "industry_basis": str(bcc.get("industry_basis") or ""),
         }
 
         try:
