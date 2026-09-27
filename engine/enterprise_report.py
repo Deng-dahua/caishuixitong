@@ -1352,13 +1352,19 @@ def _build_redline_problems(suspicions, findings=None):
         have = [e for e in _els if e.get("status") == "已有"]
         verify = [e for e in _els if e.get("status") == "待核"]
         lack = [e for e in _els if e.get("status") == "缺失"]
+        # ★ 2026-09-27（用户要求）：材料齐全程度**不得用比例/百分比**表述，
+        #   只表述"已有几项、还缺几项"（项数）。closure 仍内部计算（决定能否定性），
+        #   但不再进入正文 —— 杜绝"材料齐全程度40%"这类比例表述。
+        _need_n = len(_els)
+        _have_n = len(have)
+        _lack_n = _need_n - _have_n   # 还缺 = 待核 + 缺失（凡未逐字取得的都算还缺）
         p3 = (
-            f"要把这一项定下来，需要{len(_els)}项材料。"
-            + (f"名称逐字对应、已确在手上的有{len(have)}项。" if have
+            f"要把这一项定下来，需要{_need_n}项材料。"
+            + (f"名称逐字对应、已确在手上的有{_have_n}项。" if have
                else "目前还没有一项材料与要求逐字对应。")
             + (f"另有{len(verify)}项须确认已提供资料中是否含该内容。" if verify else "")
             + (f"确未提供的有{len(lack)}项。" if lack else "")
-            + f"材料齐全程度{int(float(ev.get('closure', 0)) * 100)}%，{ev.get('verdict', '')}。"
+            + f"合计已有{_have_n}项、还缺{_lack_n}项，{ev.get('verdict', '')}。"
             + (f"{ev.get('rebuttal_status', '')}。" if ev.get("rebuttal_status") else "")
         )
 
@@ -1430,6 +1436,11 @@ def _build_redline_problems(suspicions, findings=None):
             "verdict": s.get("verdict", ""),
             "confidence": s.get("confidence", 0.0),
             "closure": _clo,
+            # ★ 2026-09-27（用户要求）：前端也以项数（已有/还缺）呈现材料齐全程度，
+            #   不再显示百分比。closure 仅内部使用（决定能否定性）。
+            "evidence_have": int(ev.get("available_count", 0) or 0),
+            "evidence_need": int(ev.get("available_count", 0) or 0)
+                             + int(ev.get("missing_count", 0) or 0),
             "risk_level": ((_lb or {}).get("level") or s.get("level", "")),
             "risk_level_basis": _lb_basis,
             "suspect": s.get("suspect", ""),

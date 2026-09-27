@@ -2087,6 +2087,72 @@ def check_missing_as_violation() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def _strip_comments_keep_lines(src: str) -> str:
+    """去掉注释、**保留行结构**（供"必须不存在"类文本反模式扫描）。
+
+    掩码视图只可用于"必须不存在"的反模式（闸门铁律）；本处正是该类：
+    注释里出现"齐全程度…百分比"属说明性文字（允许），而**输出代码**里出现即违规。
+    故用保留行号的方式剥离注释，避免注释误报。
+    """
+    try:
+        import io as _io
+        import tokenize as _tk
+        out = list(src.splitlines(keepends=True))
+        for tok in _tk.generate_tokens(_io.StringIO(src).readline):
+            if tok.type != _tk.COMMENT:
+                continue
+            srow, scol = tok.start
+            erow, ecol = tok.end
+            if srow == erow and 1 <= srow <= len(out):
+                ln = out[srow - 1]
+                out[srow - 1] = ln[:scol] + ln[ecol:]
+        return "".join(out)
+    except Exception:
+        return src
+
+
+def check_material_completeness_no_ratio() -> List[Tuple[str, str, str]]:
+    """材料齐全程度**不得以比例/百分比表述**（★ 2026-09-27 用户要求）。
+
+    用户口径：材料齐全程度只表述"已有几项、还缺几项"（**项数**），
+    不允许出现"材料齐全程度40%"这类**比例/百分比**表述。
+    `closure`（证据链加权闭合度）仍内部计算，用于判定"能否定性"，但**不得进入正文**。
+
+    判据（"必须不存在"反模式，故用去注释视图 + 项数白名单）：
+      生产代码/前端脚本的**同一行**中同时出现「齐全程度」与百分比特征
+      （Python：`%` 或 `* 100`；JS：`%` 或 `pct(` 或 `*100`）→ ERROR。
+      "齐全程度{_have_n}项"这种**项数**写法不含百分比特征，不误报。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import glob as _glob
+    targets: List[Tuple[str, str, bool]] = []   # (rel, text, is_js)
+    for f in _iter_prod_py_files():
+        rel = os.path.relpath(f, ROOT).replace("\\", "/")
+        targets.append((rel, _strip_comments_keep_lines(_read(Path(f)) or ""), False))
+    for f in _glob.glob(str(ROOT / "static" / "js" / "*.js")):
+        try:
+            txt = Path(f).read_text(encoding="utf-8", errors="ignore")
+        except Exception:
+            continue
+        rel = os.path.relpath(f, ROOT).replace("\\", "/")
+        targets.append((rel, txt, True))
+
+    for rel, text, is_js in targets:
+        for i, raw in enumerate(text.splitlines(), 1):
+            line = raw.split("//", 1)[0] if is_js else raw   # JS 行注释剥离（避免误报）
+            if "齐全程度" not in line:
+                continue
+            pct_feature = ("%" in line) or ("* 100" in line) or ("*100" in line)
+            if is_js:
+                pct_feature = pct_feature or ("pct(" in line)
+            if pct_feature:
+                issues.append((
+                    "ERROR", rel,
+                    f"第{i}行：材料齐全程度仍以百分比/比例表述（不得出现「齐全程度N%」）；"
+                    "请改为「已有X项、还缺Y项」的项数表述"))
+    return issues
+
+
 def _load_fixture_enterprise_report() -> Optional[Dict]:
     """取一份真实的企业报告（工作底稿版基线）作为金字塔闸门校验样本。"""
     candidates = [
@@ -2141,25 +2207,35 @@ def check_pyramid_edition_preserves_content() -> List[Tuple[str, str, str]]:
     if not er:
         return issues + [("WARN", "engine/pyramid_edition.py",
                           "未找到可用企业报告样本，跳过金字塔内容保真行为校验")]
-    # ② 输入对象在 build 前后不得被污染（纯只读）
-    _before_keys = set(er.keys())
+    # ② 输入对象在 build 前后不得被污染（纯只读）。
+    #    ★ 2026-09-27 修正（闸门自身缺陷，非被测代码问题）：真实报告在组装时会
+    #    **内嵌** pyramid_edition（engine/enterprise_report.py `out["pyramid_edition"]=...`），
+    #    故夹具 er 本就含该键；若仍断言"输入不得含 pyramid_edition"，闸门必然误报 ERROR
+    #    （实测 2026-09-27 重生成 company_1_full.json 后暴露）。正解：在**去掉内嵌产物**的
+    #    深拷贝上测纯度 —— 既不误报，也不改动夹具本身。
+    import copy as _copy
+    _base = _copy.deepcopy(er)
+    _base.pop("pyramid_edition", None)
+    _before_keys = set(_base.keys())
+    _before_snapshot = _copy.deepcopy(_base)
     try:
-        pe = build_pyramid_edition(er)
+        pe = build_pyramid_edition(_base)
     except Exception as exc:
         return issues + [("ERROR", "engine/pyramid_edition.py",
                          f"build_pyramid_edition 抛出异常: {exc}")]
-    if "pyramid_edition" in er or set(er.keys()) != _before_keys:
+    if ("pyramid_edition" in _base or set(_base.keys()) != _before_keys
+            or _base != _before_snapshot):
         issues.append(("ERROR", "engine/pyramid_edition.py",
                        "build_pyramid_edition 污染了输入对象（非只读）"))
 
     # ③ 内容保真（不增删发现 / MECE / umbrella 仅现有字段 / 行动标题仅[等级]+title）
-    ok, reasons = pyramid_preserves_content(er, pe)
+    ok, reasons = pyramid_preserves_content(_base, pe)
     if not ok:
         for rs in reasons:
             issues.append(("ERROR", "engine/pyramid_edition.py",
                            "金字塔版越界：" + rs))
     # ④ 派生计数自洽
-    if pe.get("preserved_counts", {}).get("confirmed_problems") != len(er.get("confirmed_problems") or []):
+    if pe.get("preserved_counts", {}).get("confirmed_problems") != len(_base.get("confirmed_problems") or []):
         issues.append(("ERROR", "engine/pyramid_edition.py",
                        "preserved_counts.confirmed_problems 与基线不一致"))
     return issues
@@ -2645,7 +2721,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_cost_recon_render()
                + check_tax_impact_render()
                + check_industry_source_integrity()
-               + check_cost_industry_basis())
+               + check_cost_industry_basis()
+               + check_material_completeness_no_ratio())
     return counts, general
 
 

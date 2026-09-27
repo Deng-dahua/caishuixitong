@@ -302,9 +302,9 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
         #   可证的表述是"各环数据见明细表"，读什么、读到什么由表逐环列示。
         parts.append("本项核查共%d环，各环实际读到的数据见上一段明细表。" % len(nodes))
     _v = evidence.get('verdict', '')
-    _closure = int(float(evidence.get('closure', 0)) * 100)
+    # ★ 2026-09-27（用户要求）：不以比例表述材料齐全程度，改为项数（已有几项/还缺几项）。
     parts.append(
-        f"就材料来说，{_v}，目前齐全程度{_closure}%"
+        f"就材料来说，{_v}"
         f"（手上已有{evidence.get('available_count',0)}项，还缺{evidence.get('missing_count',0)}项）"
         f"{'；' + evidence.get('rebuttal_status', '') if evidence.get('rebuttal_status') else ''}。"
     )

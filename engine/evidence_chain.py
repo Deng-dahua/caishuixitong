@@ -461,5 +461,8 @@ def evidence_text(chain: Dict) -> str:
         seg.append("须确认是否已含：" + "、".join(verify[:6]))
     if lack:
         seg.append("确未提供：" + "、".join(lack[:6]))
-    seg.append(f"资料齐全程度{int(chain.get('closure', 0) * 100)}%，{chain.get('verdict', '')}")
+    # ★ 2026-09-27（用户要求）：不以比例表述材料齐全程度，改为项数（已有几项/还缺几项）。
+    _have_n = int(chain.get("available_count", 0) or 0)
+    _miss_n = int(chain.get("missing_count", 0) or 0)   # missing_count = 待核 + 缺失
+    seg.append(f"共需{_have_n + _miss_n}项材料，已有{_have_n}项、还缺{_miss_n}项，{chain.get('verdict', '')}")
     return "；".join(seg) + "。"

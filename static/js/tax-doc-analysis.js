@@ -5495,15 +5495,19 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   }
   problems.forEach(function(item){
     // ★ 2026-09-27：不再以 `redline_id` 为渲染门槛——实测该字段为空，导致
-    //   「性质/本项结论/把握程度/证据齐全程度/等级依据/潜在税额影响」全部不渲染
+    //   「性质/本项结论/把握程度/材料项数/等级依据/潜在税额影响」全部不渲染
     //   （幽灵字段）。改为"只要有任一字段就渲染该行"。
     var pct = function(v){ return (typeof v === 'number' ? Math.round(v * 100) : 0) + '%'; };
+    // ★ 2026-09-27（用户要求）：材料齐全程度**不以比例/百分比**表述，改以项数
+    //   「已有X项、还缺Y项」呈现（evidence_have / evidence_need 由后端给出）。
+    var _evNeed = (typeof item.evidence_need === 'number' ? item.evidence_need : 0);
+    var _evHave = (typeof item.evidence_have === 'number' ? item.evidence_have : 0);
     // 用户要求：不出现 RL-XXX 编号与「裁决/置信度」等术语，改用自然表述。
     var _metaCells = ''
       + (item.suspect ? '性质：' + esc(item.suspect) : '')
       + (item.verdict ? (item.suspect ? '｜' : '') + '本项结论：<strong>' + esc(item.verdict) + '</strong>' : '')
       + (item.confidence ? '｜把握程度：' + pct(item.confidence) : '')
-      + (typeof item.closure === 'number' ? '｜证据齐全程度：' + pct(item.closure) : '')
+      + (_evNeed > 0 ? '｜材料：已有' + _evHave + '项、还缺' + Math.max(0, _evNeed - _evHave) + '项' : '')
       + (item.risk_level_basis ? '｜等级依据：' + esc(item.risk_level_basis) : '')
       + (item.taxes && item.taxes.length ? '｜涉及税种：' + esc((item.taxes || []).join('、')) : '')
       + _taxImpactMeta(item);
