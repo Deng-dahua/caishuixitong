@@ -43,3 +43,4 @@ pipeline 场景执行后接入，结果入 `comprehensive.redline_detection`；
 
 ## ★ 报告表述口径（用户约定）
 - **材料齐全程度不得以比例/百分比表述**（严禁"材料齐全程度40%"），只表述**项数**——"已有几项、还缺几项"（还缺 = 待核 + 缺失）。`closure`（证据链加权闭合度）仅内部用于判定能否定性，**不进正文**。落地：`enterprise_report`(p3 + `evidence_have`/`evidence_need`)、`evidence_chain.evidence_text`、`argumentation`、`tax-doc-analysis.js`。闸门 `audit_consistency.check_material_completeness_no_ratio`（ERROR 0）。
+- **标点规范化（中文语境半角→全角）**：权威 `engine/sentencekit.normalize_cjk_punct`；必须在**两个输出收敛点**生效——① `enterprise_report._zh_normalize_obj`（企业易读报告）② `main._execute_tax_risk_analysis` **最终出口**（覆盖 `all_findings`/`domain_summary`/`_engine_hub` 等前端直接消费字段）。保护小数 `0.00` 与扩展名 `.xlsx`。闸门 `check_report_punctuation`（ERROR 0）。
