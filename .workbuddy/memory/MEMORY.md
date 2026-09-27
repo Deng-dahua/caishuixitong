@@ -40,3 +40,6 @@ pipeline 场景执行后接入，结果入 `comprehensive.redline_detection`；
 
 ## 报告四类呈现（2026-08-26 重构）
 确认问题 / 已执行无异常 / 处理意见+复查标准 / 资料缺失+能力边界+置疑清单。前端 `tax-doc-analysis.js` 收敛四类；`capb`/`iqSec` 变量声明勿随删除块消失（否则 ReferenceError）。
+
+## ★ 报告表述口径（用户约定）
+- **材料齐全程度不得以比例/百分比表述**（严禁"材料齐全程度40%"），只表述**项数**——"已有几项、还缺几项"（还缺 = 待核 + 缺失）。`closure`（证据链加权闭合度）仅内部用于判定能否定性，**不进正文**。落地：`enterprise_report`(p3 + `evidence_have`/`evidence_need`)、`evidence_chain.evidence_text`、`argumentation`、`tax-doc-analysis.js`。闸门 `audit_consistency.check_material_completeness_no_ratio`（ERROR 0）。
