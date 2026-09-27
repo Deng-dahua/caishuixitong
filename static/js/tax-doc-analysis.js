@@ -8712,7 +8712,7 @@ function _initReportTTS() {
     '<select id="tts-speed" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff;cursor:pointer">' +
 
 
-    '<option value="0.85">0.85x 新闻联播</option><option value="1.0" selected>1.0x 标准</option><option value="1.15">1.15x 略快</option><option value="1.3">1.3x 快速</option>' +
+    '<option value="0.85">0.85x 新闻联播</option><option value="1.0" selected>1.0x 标准</option><option value="1.15">1.15x 略快</option><option value="1.3">1.3x 快速</option><option value="1.5">1.5x 较快</option><option value="1.8">1.8x 高速</option><option value="2.0">2.0x 最快</option>' +
 
 
     '</select>' +
