@@ -849,15 +849,20 @@ def _doc_covered_categories(report_data):
     for fr in (report_data.get("file_results") or []):
         if not isinstance(fr, dict):
             continue
+        # 双重利用：type 是内容真实类别；补充自证资料的 sup_* 挂在 supplementary_category 上
         cats = _DOC_TYPE_TO_CATEGORY.get(str(fr.get("type") or "").strip())
+        _sup_cat = _DOC_TYPE_TO_CATEGORY.get(str(fr.get("supplementary_category") or "").strip())
         # 主体不符被排除的文件不算"已提供"（其数据未参与分析）
         if fr.get("subject_mismatch") or fr.get("type") == "subject_mismatch":
             continue
-        if not cats:
+        if not cats and not _sup_cat:
             continue
         if isinstance(cats, str):
             cats = (cats,)
-        covered.update(cats)
+        if isinstance(_sup_cat, str):
+            _sup_cat = (_sup_cat,)
+        covered.update(cats or ())
+        covered.update(_sup_cat or ())
     _comp = report_data.get("comprehensive")
     mi = (_comp.get("material_intel") if isinstance(_comp, dict) else None) or {}
     if isinstance(mi, dict):

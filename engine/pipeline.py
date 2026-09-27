@@ -769,6 +769,22 @@ def _run_analyze(company_id, db, progress_callback=None):
             if _sub.get("verdict") == "unknown":
                 subject_unknown_files.append(fname)
 
+        # ── P3.5 双重利用：补充自证资料识别（文件名优先，绝不早返回）──
+        # 目的：补充资料「既当自证又解析内容」——
+        #   ① 挂 supplementary_category = sup_* → 计入 material_readiness["provided"]、翻转证据链"需补充提供"→"已提供"；
+        #   ② 绝不改写 fr["type"]（内容真实类别仍由下方解析器判定并参与分析），丢弃内容=旧方案缺陷，已根除。
+        # 识别权威唯一收敛在 engine.material_recognition._recognize_supplementary（文件名最长关键词命中；普通文件返回 None）。
+        try:
+            from engine.material_recognition import _recognize_supplementary as _rec_sup
+            _sup = _rec_sup(fname or "", "")
+            if _sup:
+                fr["supplementary_category"] = _sup
+                fr["supplementary"] = True
+                fr["actions"].append(f"补充自证资料识别(文件名): {_sup}")
+                pipeline_log.append(f"{fname} -> 补充自证资料识别: {_sup}（双重利用：既计已提供，内容仍解析）")
+        except Exception as _sup_e:
+            pipeline_log.append(f"[补充自证资料] 识别异常(跳过): {_sup_e}")
+
         parsed = None
         _cached_wb = None   # ★ 每文件重置：非 Excel 分支下也必须有定义，且不得沿用上一个文件的工作簿
         try:
