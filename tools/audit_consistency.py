@@ -2153,6 +2153,92 @@ def check_material_completeness_no_ratio() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_report_punctuation() -> List[Tuple[str, str, str]]:
+    """报告正文不得出现中文语境下的半角标点（标点规范化必须接入输出收敛点）。
+
+    ★ 2026-09-27 新增（真实缺陷，用户要求「标点符号技能要加强」）：报告净化收敛点
+      `enterprise_report._zh_normalize_obj` 只做中文化/自然化/定性净化，**未做标点规范化**，
+      实测报告正文残留 1315 处中文语境半角括号、11 处半角冒号等。
+    判据：
+      ① 行为——`_zh_normalize_obj` 必须把中文语境半角标点转全角；
+      ② 端到端——企业易读报告 + 前端/离线**直接消费**的 `all_findings`/`domain_summary`
+         不得再含中文紧邻的半角 `, ; : . ! ?` 与半角圆括号对
+         （输出边界 `main._enforce_scenario_execution_boundary` 已统一规范化）。
+    """
+    import re as _re
+    issues: List[Tuple[str, str, str]] = []
+    # ① 行为探针：收敛点必须做标点规范化
+    try:
+        from engine.enterprise_report import _zh_normalize_obj
+        probe = _zh_normalize_obj("名单中: 中文(内容)")
+        if ("：" not in probe) or ("（内容）" not in probe):
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "_zh_normalize_obj 未做中文标点规范化（半角未转全角）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       f"标点规范化行为探针异常: {exc}"))
+
+    _CJK = r"\u4e00-\u9fa5"
+    _pats = [
+        _re.compile(rf"[{_CJK}]\s*[,;:]\s*(?=[{_CJK}\d])"),
+        _re.compile(rf"[{_CJK}]\.(?![0-9A-Za-z])"),
+        _re.compile(rf"[{_CJK}][!?]"),
+        _re.compile(rf"[{_CJK}]\s*\([^()]{{1,80}}\)"),   # 中文后紧跟的半角圆括号对
+    ]
+
+    def _scan_punct(obj):
+        acc = {"n": 0, "sample": ""}
+
+        def _walk(o):
+            if isinstance(o, str):
+                for p in _pats:
+                    m = p.search(o)
+                    if m:
+                        acc["n"] += 1
+                        if not acc["sample"]:
+                            acc["sample"] = o[max(0, m.start() - 12):m.end() + 12]
+                        break
+            elif isinstance(o, list):
+                for x in o:
+                    _walk(x)
+            elif isinstance(o, dict):
+                for v in o.values():
+                    _walk(v)
+
+        _walk(obj)
+        return acc
+
+    # ② 端到端：企业易读报告
+    er = _load_fixture_enterprise_report()
+    if er:
+        a = _scan_punct(er)
+        if a["n"]:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           f"企业易读报告仍有 {a['n']} 处中文紧邻半角标点"
+                           f"（标点规范化未生效）。示例：{a['sample']!r}"))
+
+    # ②b 端到端：前端/离线直接消费的原始发现字段
+    full = None
+    for _p in (ROOT / "scripts" / "four_reports" / "company_1_full.json",
+               ROOT / "data" / "cache" / "last_analysis_cache.json"):
+        if _p.exists():
+            try:
+                full = json.loads(_read(_p))
+            except Exception:
+                full = None
+            if full:
+                break
+    if isinstance(full, dict):
+        for _sec in ("all_findings", "domain_summary"):
+            a = _scan_punct(full.get(_sec))
+            if a["n"]:
+                issues.append(("ERROR", "main.py",
+                               f"报告字段 {_sec} 仍有 {a['n']} 处中文紧邻半角标点"
+                               f"（前端/离线直接消费该字段，输出边界未规范化）。"
+                               f"示例：{a['sample']!r}"))
+    return issues
+
+
 def _load_fixture_enterprise_report() -> Optional[Dict]:
     """取一份真实的企业报告（工作底稿版基线）作为金字塔闸门校验样本。"""
     candidates = [
@@ -2722,7 +2808,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_tax_impact_render()
                + check_industry_source_integrity()
                + check_cost_industry_basis()
-               + check_material_completeness_no_ratio())
+               + check_material_completeness_no_ratio()
+               + check_report_punctuation())
     return counts, general
 
 

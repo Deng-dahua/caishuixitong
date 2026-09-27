@@ -9838,6 +9838,7 @@ def _enforce_scenario_execution_boundary(report_data):
         report_data,
         f"[统一主流程] 场景执行门禁通过：{len(findings)}项结论进入后续阶段（已核定{_vf_cnt}项/待核{len(findings)-_vf_cnt}项）",
     )
+
     return {
         "status": "completed",
         "governance_status": execution.get("governance_status"),
@@ -11000,6 +11001,32 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
             report_data["compilation_badge"] = build_compilation_badge(report_data)
         except Exception as _fresh_exc:
             _append_one_click_log(report_data, f"[编制新鲜感] 重编失败(降级为原文): {_fresh_exc}")
+
+        # ═══ 报告**最终出口**：统一做中文标点规范化（半角→全角）═══
+        # ★ 2026-09-27（用户要求「标点符号技能要加强」）：前端 `tax-doc-analysis.js`
+        #   与离线 `_render_report_html.py` 直接消费 `all_findings`/`domain_summary`/
+        #   `_engine_hub` 等**原文**；这些字段分布在 `_enforce_scenario_execution_boundary`
+        #   **之后**追加的多个阶段（智能引擎中枢、五流清单、各图谱、编制新鲜感…），
+        #   故必须在**最后一刻**对整份报告原文递归规范化，才能覆盖全部用户可见字段。
+        #   收敛在唯一权威 `engine.sentencekit.normalize_cjk_punct`（幂等；保护小数与扩展名）。
+        try:
+            from engine.sentencekit import normalize_cjk_punct as _np
+
+            def _norm_punct(o):
+                if isinstance(o, str):
+                    return _np(o)
+                if isinstance(o, list):
+                    return [_norm_punct(x) for x in o]
+                if isinstance(o, dict):
+                    return {k: _norm_punct(v) for k, v in o.items()}
+                return o
+
+            _normalized = _norm_punct(report_data)
+            if isinstance(_normalized, dict):
+                report_data.clear()          # 原地替换，保持 result["report"] 同一对象
+                report_data.update(_normalized)
+        except Exception as _pe:  # pragma: no cover - 标点规范化失败不得阻断报告
+            _append_one_click_log(report_data, f"[标点规范化] 跳过：{_pe}")
 
         result["report"] = report_data
 

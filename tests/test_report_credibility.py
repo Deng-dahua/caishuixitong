@@ -327,6 +327,38 @@ class TestTransientNoiseCleanup(unittest.TestCase):
         self.assertEqual(normalize_cjk_punct("完成: 0个集群"), "完成：0个集群")
         # ASCII 语境不得被改
         self.assertEqual(normalize_cjk_punct("16/21 SKU:ABC 0.00"), "16/21 SKU:ABC 0.00")
+        # ★ 2026-09-27 增强：半角圆括号（含中文内容）**成对**转全角
+        self.assertEqual(normalize_cjk_punct("沙暴文化传播（北京）有限公司(396,887元)"),
+                         "沙暴文化传播（北京）有限公司（396,887元）")
+        self.assertEqual(normalize_cjk_punct("按 (姓名, 所属月份) 归位"),
+                         "按（姓名，所属月份） 归位")
+        # 中文后紧跟的括号（内容为纯数字/百分号）也整对转全角
+        self.assertEqual(normalize_cjk_punct("452张(41.70%)金额>0"),
+                         "452张（41.70%）金额>0")
+        # 非中文内容括号不得改动（否则会造出 `(…）` 半对）
+        self.assertEqual(normalize_cjk_punct("ABC(1) 0.00"), "ABC(1) 0.00")
+        # 半角分号 / 冒号 / 句点 / 叹问号
+        self.assertEqual(normalize_cjk_punct("异常; 整数金额"), "异常；整数金额")
+        self.assertEqual(normalize_cjk_punct("名单中: 深圳市"), "名单中：深圳市")
+        self.assertEqual(normalize_cjk_punct("结束."), "结束。")
+        # 文件扩展名 / 小数不得被当作句末句点
+        self.assertEqual(normalize_cjk_punct("2025年序时账.xlsx"), "2025年序时账.xlsx")
+        self.assertEqual(normalize_cjk_punct("合计0.00元"), "合计0.00元")
+        self.assertEqual(normalize_cjk_punct("异常!注意?"), "异常！注意？")
+        # 悬空顿号 / 重复句读
+        self.assertEqual(normalize_cjk_punct("杨莹、；第3步"), "杨莹；第3步")
+        self.assertEqual(normalize_cjk_punct("已核实。。"), "已核实。")
+
+    def test_report_normalize_applies_punct(self):
+        """报告净化收敛点 `_zh_normalize_obj` 必须做标点规范化。
+
+        （此前该收敛点只做中文化/自然化/定性净化，未做标点规范化 →
+          报告正文残留大量中文语境半角标点。）
+        """
+        from engine.enterprise_report import _zh_normalize_obj
+        out = _zh_normalize_obj("名单中: 沙暴文化传播（北京）有限公司(396,887元)")
+        self.assertNotIn("中: ", out, out)
+        self.assertIn("（396,887元）", out, out)
 
     def test_guard_covers_all_string_fields(self):
         """文字护栏必须覆盖**全部字符串字段** —— 白名单式字段清单会漏掉新字段。

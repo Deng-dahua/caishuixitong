@@ -100,7 +100,11 @@ def _zh_normalize_obj(o):
     """
     if isinstance(o, str):
         from engine.text_guardrails import neutralise_output_text
-        return neutralise_output_text(_naturalize_report_text(_zh_normalize(o)))
+        from engine.sentencekit import normalize_cjk_punct as _np
+        # ★ 2026-09-27（用户要求「标点符号技能要加强」）：报告正文标点规范化
+        #   （中文语境半角→全角）接入本收敛点。此前本函数只做中文化/自然化/定性净化，
+        #   **未做标点规范化** → 报告正文残留 1315 处中文语境半角括号、11 处半角冒号等。
+        return neutralise_output_text(_np(_naturalize_report_text(_zh_normalize(o))))
     if isinstance(o, list):
         return [_zh_normalize_obj(x) for x in o]
     if isinstance(o, dict):
