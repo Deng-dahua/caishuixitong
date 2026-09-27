@@ -38,9 +38,20 @@ def mk_pdf(target, text=None):
     pg.insert_text((50, 50), text or (os.path.basename(target) + " 测试内容"))
     doc.save(target); doc.close(); return target
 
-from PIL import Image
-def mk_png(target):
-    Image.new("RGB", (40, 40), (120, 80, 40)).save(target); return target
+from PIL import Image, ImageDraw, ImageFont
+def mk_png(target, text="不动产权证 编号2024 权利人张三 面积120平米 金额100万"):
+    img = Image.new("RGB", (800, 400), (255, 255, 255))
+    d = ImageDraw.Draw(img)
+    font = None
+    for fp in ("C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simhei.ttf",
+               "C:/Windows/Fonts/simsun.ttc", "C:/Windows/Fonts/arial.ttf"):
+        if os.path.exists(fp):
+            try:
+                font = ImageFont.truetype(fp, 36); break
+            except Exception:
+                pass
+    d.text((20, 60), text, fill=(0, 0, 0), font=font)
+    img.save(target); return target
 
 def mk_csv(target, header="报关单号,境内收发货人,货名,数量,总价", row="C2024,A公司,钢材,10,5000"):
     with open(target, "w", encoding="utf-8") as f:
@@ -91,10 +102,16 @@ for name, exp_sup, _g in CASES:
     ctype = fr.get("type")
     tag_ok = (sup == exp_sup)                       # ① 识别为 sup_*（计已提供）
     no_clobber = (str(ctype) != str(exp_sup) and not str(ctype).startswith("sup_"))  # ② 未改写 content type
-    line_ok = tag_ok and no_clobber
-    ok &= line_ok
+    # 图片类：必须经 OCR 提取到文字内容（证明 OCR 真正接入一键分析，非静默丢弃）
+    content_ok = True
+    if name.endswith(".png"):
+        content_ok = (str(ctype or "") not in ("unknown", ""))
+        ok &= content_ok
+    line_ok = tag_ok and no_clobber and content_ok
+    ok &= (tag_ok and no_clobber)
     print(f"  {name:24} → type={str(ctype):22} sup_cat={str(sup):22} "
-          f"标记={'OK' if tag_ok else 'FAIL'} 未改写={'OK' if no_clobber else 'FAIL'} {'OK' if line_ok else 'FAIL'}")
+          f"标记={'OK' if tag_ok else 'FAIL'} 未改写={'OK' if no_clobber else 'FAIL'} "
+          f"OCR内容={'OK' if content_ok else 'FAIL'} {'OK' if line_ok else 'FAIL'}")
 
 print("="*74)
 print("B. 红线 evidence 翻转：补充类别进入「已提供」集合（_doc_covered_categories）")

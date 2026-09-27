@@ -6869,7 +6869,13 @@ def _parse_image_ocr(filepath, original_name=""):
         if not hasattr(_parse_image_ocr, "_rapid_reader"):
             _parse_image_ocr._rapid_reader = RapidOCR()
         _img = Image.open(filepath)
+        _img.load()  # 强制完整解码：避免延迟解码在中文路径/特殊编码文件上抛 UnidentifiedImageError
         _w, _h = _img.size
+        _min_side = min(_w, _h)
+        if _min_side < 32:      # 极小图放大到最小边≥32，保证检测模型可工作（防 tiny 图静默失败）
+            _ratio = 32.0 / _min_side
+            _img = _img.resize((int(_w * _ratio), int(_h * _ratio)), Image.LANCZOS)
+            _w, _h = _img.size
         if max(_w, _h) > 2000:      # 控制长边 2000px，兼顾精度与速度（与 easyocr 分支一致）
             _ratio = 2000 / max(_w, _h)
             _img = _img.resize((int(_w * _ratio), int(_h * _ratio)), Image.LANCZOS)

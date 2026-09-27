@@ -38,9 +38,18 @@ def mk_pdf(name, text=None):
     p = new(name); doc = fitz.open(); pg = doc.new_page()
     pg.insert_text((50, 50), text or (name + " 测试内容")); doc.save(p); doc.close(); return p
 
-from PIL import Image
-def mk_png(name):
-    p = new(name); Image.new("RGB", (40, 40), (120, 80, 40)).save(p); return p
+from PIL import Image, ImageDraw, ImageFont
+def mk_png(name, text="不动产权证 编号2024 权利人张三 面积120平米"):
+    p = new(name); img = Image.new("RGB", (800, 400), (255, 255, 255)); d = ImageDraw.Draw(img)
+    font = None
+    for fp in ("C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simhei.ttf",
+               "C:/Windows/Fonts/simsun.ttc", "C:/Windows/Fonts/arial.ttf"):
+        if os.path.exists(fp):
+            try:
+                font = ImageFont.truetype(fp, 36); break
+            except Exception:
+                pass
+    d.text((20, 60), text, fill=(0, 0, 0), font=font); img.save(p); return p
 
 def mk_csv(name, header="报关单号,境内收发货人,货名,数量,总价", row="C2024,A公司,钢材,10,5000"):
     p = new(name)
