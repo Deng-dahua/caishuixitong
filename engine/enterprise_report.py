@@ -1511,6 +1511,13 @@ def _build_redline_problems(suspicions, findings=None):
         _bm_txt = _bm.get("text") if isinstance(_bm, dict) else ""
         if _bm_txt:
             p4 = ((p4 + " " if p4 else "") + _naturalize_report_text(_bm_txt))
+        # ★ 2026-09-29（B1 闭环）：把「本企业实际值 vs 行业区间」的真实比对结论并入论证段。
+        #   此前只有静态区间文本，读者无法判断本企业是否越界 → 要件说"对照"却没对照（名实不符）。
+        #   取不到实际值时 compare 返回 resolved=False，此处不追加任何文字（不编造比对结论）。
+        _cmp = arg.get("benchmark_compare") or {}
+        _cmp_txt = _cmp.get("text") if isinstance(_cmp, dict) else ""
+        if _cmp_txt:
+            p4 = ((p4 + " " if p4 else "") + _naturalize_report_text(_cmp_txt))
 
         # ⑤ 需企业补充的资料与说明
         # 2026-09-13 用户要求：涉及明细的一律走列表，正文只留引导句，

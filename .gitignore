@@ -21,6 +21,9 @@ work/
 .coverage
 htmlcov/
 *.bak
+# 形如 industry_data.json.bak-20260925141545 的带时间戳备份
+# （注意：.gitignore 的 # 注释只能独占一行，不能写在规则行尾，否则会被当字面量）
+*.bak-*
 *.tmp
 
 # 分析验证产物（大文件，非源码）
@@ -42,3 +45,18 @@ static/self_heal_rules.json
 static/methodology_runtime_state.json
 # 注：static/methodology_config.json 为框架权威配置（framework_config._CONFIG_PATH 读取），
 #     不属于运行期状态，保持进版本库；其运行期漂移须 git checkout 还原，切勿提交。
+
+# ── 临时/调试脚本与一次性验证产物（非源码，可重生成，不进版本库）──────────────
+# 2026-09-29：这些文件每次 git status 都显示未跟踪、长期污染工作树，
+# 且均为可重生成产物（脚本可重跑、HTML 可重新导出），故统一忽略。
+.pytmp/
+report_smart_out.json
+scripts/_dbg_stamp*.py
+scripts/_t.py
+scripts/_verify_*.html
+scripts/_gap_constituent_hits.json
+scripts/_redline_coverage.json
+scripts/_polish_constituents_diff.md
+scripts/_review_constituents.md
+# 由 scripts/_gen_constituent_html.py 一键生成的要件/反证明细清单（可重生成）
+/红线构成要件明细清单.html

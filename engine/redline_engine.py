@@ -34,7 +34,13 @@ from engine.argumentation import (
     build_argumentation, _VERDICT_CONFIRMED, _VERDICT_HIT_PENDING,
     _VERDICT_EXCLUDED, _VERDICT_WEAK,
 )
-from engine.redline_benchmark import benchmark_note, benchmark_refs
+from engine.redline_benchmark import (
+    benchmark_note,
+    benchmark_refs,
+    compare_redline_benchmark,
+)
+# 本企业实际指标的**唯一测算来源**（B1 接线：红线判定要用到实际值，禁止另起炉灶重算）
+from engine.industry_benchmark import compute_indicators as _ib_compute_indicators
 
 # 裁决优先级：成立可定性 > 成立待补证 > 线索不足 > 排除
 _VERDICT_RANK = {
@@ -363,6 +369,15 @@ def run_redline_detection(findings: List[Dict],
 
     # 把累计的要件命中写回 argumentation（供企业报告"一、涉及的风险事项"采用）
     _industry = str((engine_data or {}).get("industry") or "").strip()
+    # ★ B1 接线（2026-09-29）：本企业实际指标（唯一来源 compute_indicators）。
+    #   取不到即空字典 —— 由 compare_redline_benchmark 如实回「未取得实际值」，
+    #   绝不用默认值静默顶替后照常出比对结论。
+    _actual_ind: Dict[str, float] = {}
+    if engine_data:
+        try:
+            _actual_ind = _ib_compute_indicators(engine_data) or {}
+        except Exception:
+            _actual_ind = {}
     for _s in grouped.values():
         _acc = _s.pop("_constituent_hits", None)
         if _acc:
@@ -374,6 +389,13 @@ def run_redline_detection(findings: List[Dict],
         if _bm.get("metric"):
             _s["benchmark_ref"] = _bm
             _s.setdefault("argumentation", {})["benchmark_ref"] = _bm
+            # ★ 2026-09-29（B1 接线）：补上「实际值 vs 行业区间」的真实比对，
+            #   使"对照行业基准区间"这类要件名实相符——此前只挂静态区间文本、从未计算实际值。
+            #   偏离仅作待核线索，不改裁决（发现≠确认）。
+            _cmp = compare_redline_benchmark(_s.get("redline_id", ""),
+                                             _industry or None, _actual_ind)
+            _s["benchmark_compare"] = _cmp
+            _s.setdefault("argumentation", {})["benchmark_compare"] = _cmp
 
     # 主 findings 也要进 supporting（第一条）
     suspicions = sorted(

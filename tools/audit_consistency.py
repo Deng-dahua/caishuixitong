@@ -3499,6 +3499,128 @@ def check_blind_redline_coverage() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_benchmark_actual_compare() -> List[Tuple[str, str, str]]:
+    """B1 实际比对接线锁定（2026-09-29）。
+
+    红线构成要件写「对照行业基准区间上沿」之类，必须**真的算过**本企业实际值是否越界
+    （名实相符）。此前只挂静态区间文本、从未计算 → "说了要对照、实际没对照"。
+
+    违反即 ERROR：
+      ① 比对判定收敛到单一权威 evaluate_indicator，domain 层不得自写比较式（防口径分歧）；
+      ② compare_redline_benchmark 必须委托 resolve_redline_benchmark + evaluate_indicator；
+      ③ 实际值缺失时**不得编造**比对结论：resolved=False 且 reason 非空；
+      ④ redline_engine 必须调用该函数并把结果挂进 argumentation；
+      ⑤ enterprise_report 必须消费 benchmark_compare（算出却不进报告 = 断点）；
+      ⑥ 端到端行为：偏离 / 落在区间内 / 无实际值 三种情形判定正确。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def _src(rel: str) -> str:
+        try:
+            with open(os.path.join(_root, rel), encoding="utf-8") as fh:
+                return fh.read()
+        except Exception:
+            return ""
+
+    try:
+        from engine.redline_benchmark import (
+            compare_redline_benchmark, resolve_redline_benchmark,
+        )
+    except Exception as exc:
+        return [("ERROR", "engine/redline_benchmark.py", f"B1 模块加载失败: {exc}")]
+
+    # ① domain 层不得自写比较式（已统一委托 evaluate_indicator）
+    _ib = _src("engine/industry_benchmark.py")
+    if "def evaluate_indicator(" not in _ib:
+        issues.append(("ERROR", "engine/industry_benchmark.py",
+                       "缺少单一权威比对函数 evaluate_indicator"))
+    _ib_fn = _ib.split("def run_industry_benchmark_check(", 1)[-1].split("\ndef ", 1)[0]
+    if _ib_fn:
+        if "evaluate_indicator(" not in _ib_fn:
+            issues.append(("ERROR", "engine/industry_benchmark.py",
+                           "run_industry_benchmark_check 未委托 evaluate_indicator，"
+                           "会与红线注解口径分歧（禁止各处自写比较式）"))
+        if "actual / 100 if key" in _ib_fn:
+            issues.append(("ERROR", "engine/industry_benchmark.py",
+                           "run_industry_benchmark_check 仍保留内联进销比换算，应走 normalize_actual"))
+
+    # ② compare_redline_benchmark 必须委托两大单一权威
+    _rb = _src("engine/redline_benchmark.py")
+    _rb_fn = _rb.split("def compare_redline_benchmark(", 1)[-1].split("\ndef ", 1)[0]
+    if not _rb_fn:
+        issues.append(("ERROR", "engine/redline_benchmark.py",
+                       "缺少 compare_redline_benchmark（B1 实际比对入口）"))
+    else:
+        if "resolve_redline_benchmark(" not in _rb_fn:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "compare_redline_benchmark 未委托 resolve_redline_benchmark 取区间"))
+        if "_ib_evaluate(" not in _rb_fn:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "compare_redline_benchmark 未委托 evaluate_indicator 做比对"))
+
+    # ③⑥ 找一个能解析毛利率基准的行业，做端到端行为验证
+    _rid = "RL-INV-001"          # 毛利率
+    _ind = None
+    try:
+        from engine.industry_resolver import load_industry_data
+        for _k in ((load_industry_data() or {}).get("benchmarks") or {}):
+            if resolve_redline_benchmark(_k, "毛利率") is not None:
+                _ind = _k
+                break
+    except Exception:
+        _ind = None
+    if not _ind:
+        issues.append(("ERROR", "engine/redline_benchmark.py",
+                       "找不到可解析毛利率基准的行业，行业基准数据异常（B1 无法验证）"))
+    else:
+        # 无实际值 → 不得编造
+        _c_none = compare_redline_benchmark(_rid, _ind, {})
+        if _c_none.get("resolved") is not False:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "无实际值时 compare 仍返回 resolved=True（编造比对结论）"))
+        if not str(_c_none.get("reason") or "").strip():
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "无实际值时未给出 reason（须如实说明未取得，不得静默）"))
+        # 落在区间内
+        _bmv = resolve_redline_benchmark(_ind, "毛利率") or {}
+        _lo, _hi = float(_bmv.get("lo", 0)), float(_bmv.get("hi", 0))
+        _c_in = compare_redline_benchmark(_rid, _ind, {"gross_margin": (_lo + _hi) / 2})
+        if _c_in.get("resolved") is not True or _c_in.get("in_range") is not True:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           f"实际值落在区间内应判 in_range=True，实为 {_c_in.get('in_range')}"))
+        # 高于上沿
+        _c_out = compare_redline_benchmark(_rid, _ind,
+                                           {"gross_margin": _hi * 10 + 1000})
+        if _c_out.get("resolved") is not True or _c_out.get("in_range") is not False:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           f"实际值高于上沿应判 in_range=False，实为 {_c_out.get('in_range')}"))
+        if "待核" not in str(_c_out.get("text") or ""):
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "偏离结论未标注「待核」（偏离≠定性，须明示不作定性依据）"))
+        # 人均营收不参与自动测算 → 不得编造
+        _c_nom = compare_redline_benchmark("RL-PAY-001", _ind, {"gross_margin": 20.0})
+        if _c_nom.get("resolved") is not False:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "人均营收类指标无实际值却返回 resolved=True（编造）"))
+
+    # ④ redline_engine 接线
+    _re = _src("engine/redline_engine.py")
+    if "compare_redline_benchmark(" not in _re:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "redline_engine 未调用 compare_redline_benchmark（B1 未接线）"))
+    if "benchmark_compare" not in _re:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "redline_engine 未挂载 benchmark_compare（算了也不进报告）"))
+
+    # ⑤ 报告层必须消费（否则引擎→报告断点）
+    if "benchmark_compare" not in _src("engine/enterprise_report.py"):
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "enterprise_report 未消费 benchmark_compare（B1 产出不进报告）"))
+
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -3535,7 +3657,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_rebuttal_coverage()            # C2 反证对齐
                + check_redline_admission()            # D 红线准入 + 盲区审计
                + check_combo_profile_logic()         # C3 风险组合画像逻辑锁定
-               + check_blind_redline_coverage())      # C4 盲区红线软匹配可达性锁定
+               + check_blind_redline_coverage()      # C4 盲区红线软匹配可达性锁定
+               + check_benchmark_actual_compare())   # B1 实际比对（名实相符）锁定
     return counts, general
 
 

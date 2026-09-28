@@ -27,6 +27,7 @@ from typing import Dict, List, Optional, Tuple
 # ★ 复用行业基准单一权威（数值/口径均来自此处，不重复实现）
 from engine.industry_benchmark import (
     resolve_benchmark as _ib_resolve,
+    evaluate_indicator as _ib_evaluate,
     _METRIC_ZH_TO_EN,
 )
 from engine.industry_resolver import load_industry_data
@@ -147,6 +148,66 @@ def benchmark_note(rid: str, industry: Optional[str] = None) -> Dict[str, object
             f"（来源 {b['source']}，{b['reliable']}）")
     return {"rid": rid, "metric": metric, "resolved": True,
             "text": text, "range": [b["lo"], b["hi"], b["mid"]]}
+
+
+def compare_redline_benchmark(rid: str, industry: Optional[str] = None,
+                              actual_indicators: Optional[Dict[str, float]] = None
+                              ) -> Dict[str, object]:
+    """红线口径下的「实际值 vs 行业区间」**真实比对**（B1 接线，2026-09-29）。
+
+    ★ 解决的名实不符（用户指出）：构成要件写「对照行业基准区间上沿」之类，
+      此前只有 `benchmark_note` 挂一段**静态区间文本**，从未计算本企业实际值是否越界，
+      等于"说了要对照、实际没对照"。本函数把真实比对补上，使该表述可核验。
+
+    参数
+      actual_indicators —— `industry_benchmark.compute_indicators()` 的产物，
+        **唯一实际值来源**（禁止另起炉灶重算，避免多头维护与口径分歧）。
+
+    返回 {"resolved","metric","actual","low","high","in_range","direction",
+          "bound","text","reason"}：
+      resolved=False 时**绝不编造**比对结论，reason 如实说明为何无法比对
+      （未登记指标 / 行业未确定 / 本轮未取得该指标实际值）。
+    ★ 偏离仅属「待核线索」，不作定性依据（发现≠确认，偏离≠违法）。
+    """
+    metric = BENCHMARK_REFS.get(rid)
+    if not metric:
+        return {"resolved": False, "metric": None, "text": "",
+                "reason": "该红线未登记行业对标指标"}
+
+    b = resolve_redline_benchmark(industry, metric)
+    if b is None:
+        return {"resolved": False, "metric": metric, "text": "",
+                "reason": "行业未确定或行业基准库中无该指标"}
+
+    en = _METRIC_ZH_TO_EN.get(metric)
+    if not en:
+        # 人均营收等 compute_indicators 不产出的指标：如实说明未取得，绝不推算
+        return {"resolved": False, "metric": metric, "text": "",
+                "reason": f"本轮未取得「{metric}」实际值（该指标不参与自动测算）"}
+
+    actual = (actual_indicators or {}).get(en)
+    if actual is None:
+        return {"resolved": False, "metric": metric, "text": "",
+                "reason": f"本轮未取得「{metric}」实际值"}
+
+    ev = _ib_evaluate(en, float(actual), float(b["lo"]), float(b["hi"]))
+    lo_t, hi_t = _fmt(metric, b["lo"]), _fmt(metric, b["hi"])
+    act_t = _fmt(metric, ev["value"])
+    src = f"来源 {b['source']}，{b['reliable']}"
+
+    if ev["in_range"]:
+        text = (f"本企业{metric}实测 {act_t}，落在行业参考区间[{lo_t}~{hi_t}]内，"
+                f"未见偏离（{src}）")
+    else:
+        bound_t = _fmt(metric, ev["bound"])
+        text = (f"本企业{metric}实测 {act_t}，{ev['direction']}行业参考区间"
+                f"[{lo_t}~{hi_t}]（边界 {bound_t}）；该偏离属待核线索，"
+                f"可能由经营模式、行业周期、税收优惠等合理因素造成，不作定性依据（{src}）")
+
+    return {"resolved": True, "metric": metric, "actual": ev["value"],
+            "low": b["lo"], "high": b["hi"], "in_range": ev["in_range"],
+            "direction": ev["direction"], "bound": ev["bound"],
+            "text": text, "reason": ""}
 
 
 def benchmark_refs() -> Dict[str, str]:

@@ -4617,14 +4617,21 @@ def _run_analyze(company_id, db, progress_callback=None):
         try:
             from engine.redline_engine import run_redline_detection
             from engine.enterprise_report import _doc_covered_categories
+            from engine.industry_benchmark import build_benchmark_input as _build_ind_input
             # ⚠ 2026-09-25：原实现直接取 _DOC_TYPE_TO_CATEGORY 的值拼成列表，而该映射的键
             #   与解析器实际类型名不一致（如 vat_declaration 查不到），导致红线判定拿到的
             #   "已提供资料"清单同样是错的。统一改用 _doc_covered_categories（唯一实现）。
             _provided_mats = sorted(_doc_covered_categories({"file_results": file_results or []}))
             _redline_detection = run_redline_detection(
                 all_findings,
-                engine_data={"file_results": file_results,
-                             "industry": detected_ind},
+                             # ★ B1（2026-09-29）：红线判定要用到**本企业实际指标**，
+                             #   必须与行业对标取同一份输入（唯一构造点 build_benchmark_input），
+                             #   否则 compute_indicators 恒空 → 比对永远"未取得实际值"。
+                engine_data=dict(
+                    {"file_results": file_results, "industry": detected_ind},
+                    **_build_ind_input(sal_invs=locals().get("sal_invs"),
+                                       pur_invs=locals().get("pur_invs"),
+                                       vouchers=locals().get("vouchers"))),
                 material_readiness={"provided": _provided_mats},
                 pipeline_log=pipeline_log,
             )
@@ -6158,15 +6165,18 @@ def _run_analyze(company_id, db, progress_callback=None):
     # ═══ 金税四期式增强：行业指标对标 / 出口退税四单交叉 / 关联方穿透 ═══
     # 三项均只产出待核线索，写入场景执行核心 findings，同样受防误判与输出封印约束。
     try:
-        from engine.industry_benchmark import run_industry_benchmark_check
+        from engine.industry_benchmark import (
+            run_industry_benchmark_check, build_benchmark_input as _build_ind_input,
+        )
         from engine.export_rebate_crosscheck import run_export_rebate_crosscheck
         from engine.related_party_graph import run_related_party_detection
-        _enh_data = {
-            "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
-            "vouchers": vouchers, "salaries": salaries, "inventory": inventory,
-            "tax_declarations": locals().get("tax_declarations", []),
-            "declarations": locals().get("declarations", []),
-        }
+        # ★ 与红线判定共用同一构造点（唯一来源），避免两处各拼一份导致口径/字段分歧
+        _enh_data = _build_ind_input(
+            bank_txs=bank_txs, sal_invs=sal_invs, pur_invs=pur_invs,
+            vouchers=vouchers, salaries=salaries, inventory=inventory,
+            tax_declarations=locals().get("tax_declarations", []),
+            declarations=locals().get("declarations", []),
+        )
         _industry = ""
         for _src in ("company_profile", "target_entity", "profile", "company"):
             _v = locals().get(_src)

@@ -330,6 +330,58 @@ def compute_indicators(engine_data: Dict) -> Dict[str, float]:
     return out
 
 
+def build_benchmark_input(bank_txs=None, sal_invs=None, pur_invs=None,
+                          vouchers=None, salaries=None, inventory=None,
+                          tax_declarations=None, declarations=None) -> Dict:
+    """指标测算输入的**唯一构造点**（2026-09-29 B1 收敛）。
+
+    ★ 为什么必须有它：domain 层行业对标与红线注解要的是**同一份输入**，此前两处各拼一份
+      dict —— 红线侧漏传 sal_invs/pur_invs/vouchers，导致 compute_indicators 恒返回空，
+      「实际值 vs 区间」比对永远落到"未取得实际值"（B1 名实不符的真正根因）。
+    收敛后：新增/改名输入字段只改这一处，两处消费方自动一致。
+    """
+    return {
+        "bank_txs": bank_txs or [],
+        "sal_invs": sal_invs or [],
+        "pur_invs": pur_invs or [],
+        "vouchers": vouchers or [],
+        "salaries": salaries or [],
+        "inventory": inventory or [],
+        "tax_declarations": tax_declarations or [],
+        "declarations": declarations or [],
+    }
+
+
+def normalize_actual(key: str, actual: float) -> float:
+    """实际值归一化 —— **单一权威**（domain 检查与红线注解共用，禁止各处自写换算）。
+
+    进销比在数据源里是比值（0.4~1.0）；若历史数据以百分比形式给出（>1.5）则换算回比值，
+    避免与区间口径不一致。（首版曾统一 ×100，把 0.4~0.95 变成 40~95，属单位错误。）
+    """
+    if key == "purchase_sales" and actual > 1.5:
+        return actual / 100.0
+    return actual
+
+
+def evaluate_indicator(key: str, actual: float, low: float,
+                       high: float) -> Dict[str, object]:
+    """实际值 vs 行业区间的比对判定 —— **单一权威**（禁止各处自写比较式）。
+
+    ★ B1 接线（2026-09-29）：此前红线构成要件写「对照行业基准区间上沿」却从不计算，
+      只有 domain 层在比对，两处若各写一套比较式必然口径分歧，故收敛到本函数共用。
+
+    返回 {"value","low","high","in_range","direction","bound"}：
+      in_range=True  → direction=""、bound=None；
+      in_range=False → direction ∈ {"低于","高于"}、bound 为被突破的边界值。
+    """
+    value = normalize_actual(key, actual)
+    in_range = bool(low <= value <= high)
+    direction = "" if in_range else ("低于" if value < low else "高于")
+    bound = None if in_range else (low if value < low else high)
+    return {"value": value, "low": low, "high": high,
+            "in_range": in_range, "direction": direction, "bound": bound}
+
+
 def run_industry_benchmark_check(
     engine_data: Dict,
     industry: str = "",
@@ -350,15 +402,15 @@ def run_industry_benchmark_check(
         low, high = bench.get(key, (None, None))
         if low is None:
             continue
-        # 进销比是比值不是百分比
-        value = actual / 100 if key == "purchase_sales" and actual > 1.5 else actual
-        if low <= value <= high:
+        # ★ 比对判定统一委托 evaluate_indicator（单一权威，避免与红线注解口径分歧）
+        ev = evaluate_indicator(key, actual, low, high)
+        if ev["in_range"]:
             continue
-        direction = "低于" if value < low else "高于"
+        value = ev["value"]
+        direction = ev["direction"]
         unit = "" if key == "purchase_sales" else "%"
         detail_value = round(value, 3) if key == "purchase_sales" else value
-        bound = low if value < low else high
-        bound_disp = round(bound, 3) if key == "purchase_sales" else bound
+        bound_disp = round(ev["bound"], 3) if key == "purchase_sales" else ev["bound"]
 
         findings.append({
             "type": f"{_LABEL[key]}偏离行业预警区间（待核）",
