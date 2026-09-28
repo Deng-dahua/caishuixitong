@@ -770,13 +770,41 @@ def _domain_voucher_anomaly(vouchers):
             "category": "域5 凭证异常"})
     elif unbalanced:
         gap_total = sum(abs(b["d"]-b["c"]) for _, b in unbalanced)
+        # ★ 2026-09-27（用户要求推广）：逐条判定本企业**是否涉及** RL-FUND-006 的构成要件。
+        #   原则与 RL-VAT-007 完全一致：**存在即命中、无阈值**；幅度只作证据。
+        #     ① 存在借贷不平的凭证 → 命中
+        #     ② 不平凭证涉及资金/收入/成本类科目 → 命中
+        #     ③ 未见以红字冲销或补记凭证更正 → 命中（**有分寸**：缺资料≠已认定，须企业举证）
+        _ch = [{"index": 1, "evidence":
+                f"{len(unbalanced)} 张凭证借贷不平（共 {len(by_vn)} 张），差额合计 {gap_total:,.2f} 元"}]
+        _SENS_ACCT = ("银行存款", "库存现金", "现金", "资金", "主营业务收入",
+                      "主营业务成本", "收入", "成本", "费用")
+        _hit_accts = set()
+        for _vn, _b in unbalanced:
+            for _v in vouchers:
+                if str(_v.get("voucher_no", "")).strip() != _vn:
+                    continue
+                _an = str(_v.get("account_name", "") or _v.get("account", "") or "")
+                if any(_k in _an for _k in _SENS_ACCT):
+                    _hit_accts.add(_an)
+        if _hit_accts:
+            _ch.append({"index": 2, "evidence":
+                        "不平凭证涉及 " + "、".join(sorted(_hit_accts)[:5]) + " 等资金/收入/成本类科目"})
+        _has_fix = any(("红冲" in str(_v.get("summary", "")) or "红字" in str(_v.get("summary", ""))
+                        or "补记" in str(_v.get("summary", ""))) for _v in vouchers)
+        if not _has_fix:
+            _ch.append({"index": 3, "evidence":
+                        "本轮凭证摘要中未见以红字冲销或补记凭证更正的说明（待企业举证，不作认定）"})
         findings.append({"type": "凭证借贷不平", "level": "高风险", "score": 9,
             "detail": f"{len(unbalanced)}张凭证借贷不平衡（共{len(by_vn)}张），差额合计{gap_total:,.2f}元。",
             "description": f"通道1总账平衡({total_debit:,.2f}={total_credit:,.2f})，但通道2逐张校验发现{len(unbalanced)}张凭证借贷不平。这可能是跨凭证的分录错误导致总账轧差平衡，建议逐笔核查。" + (f"另有{skipped}条分录凭证号为空已跳过。" if skipped else ""),
             "how_found": f"双通道: 通道1总账={total_debit:,.2f}={total_credit:,.2f}→平衡; 通道2逐张={len(by_vn)}个有效凭证号分组，{len(unbalanced)}张({unbal_pct:.2f}%)不平。差额>1元触发。" + (f"跳过{skipped}条空凭证号。" if skipped else ""),
             "tax_impact": "总账虽平衡但个别凭证不平，可能影响科目明细准确性。",
             "suggestion": "逐笔核查不平凭证，做更正分录。",
-            "category": "域5 凭证异常"})
+            "category": "域5 凭证异常",
+            # ★ 本企业**实际涉及**的构成要件（逐条判定，只列命中的；供报告"一、涉及的风险事项"采用）
+            "constituent_hits": _ch,
+            "redline_id": "RL-FUND-006"})
     
     return findings
 
@@ -1740,6 +1768,40 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
                 person_months[n].append(m)
         month_txt = "；".join("{0}（{1}）".format(n, "、".join(ms)) for n, ms in person_months.items()) \
             or "（社保清单未标注月份，无法按月核验，仅按人员级判定）"
+        # ★ 2026-09-27（用户要求推广）：逐条判定「本企业是否涉及」RL-PAY-001 的构成要件。
+        #   原则与 RL-VAT-007 / RL-FUND-006 一致：**存在即命中、无阈值**；幅度只作证据。
+        #     ① 工资表人数与社保参保人数存在差异 → 命中
+        #     ② 差异人员未见合法豁免身份证明 → 命中（**有分寸**：缺资料≠已认定，须企业举证）
+        #     ③ 涉及工资列支金额 → 命中（金额只作证据，不设门槛）
+        _id_markers = ("劳务派遣", "退休返聘", "实习生", "非全日制", "劳务")
+        _has_id_proof = False
+        for _r in (sal_rows + ss_rows):
+            _blob = " ".join(str(_v) for _v in (_r or {}).values() if _v is not None)
+            if any(_k in _blob for _k in _id_markers):
+                _has_id_proof = True
+                break
+        _ch = [{
+            "index": 1,
+            "evidence": f"工资表 {len(sal_names)} 人、社保参保 {len(ss_names)} 人；"
+                        f"有工资无社保 {len(uninsured_persons)} 人"
+                        f"（{len(uninsured)} 组『姓名+月份』）",
+        }]
+        if not _has_id_proof:
+            _ch.append({
+                "index": 2,
+                "evidence": "本轮资料未见差异人员属劳务派遣、退休返聘、实习生、非全日制等"
+                            "合法豁免身份的证明（须企业举证，不作认定）",
+            })
+        _unins_amt = 0.0
+        for _pair in (uninsured or []):
+            try:
+                _n, _m = _pair[0], _pair[1]
+            except Exception:
+                continue
+            _unins_amt += to_number(sal_amt.get((_n, _m), sal_amt.get((_n, "未标注月份"), 0)))
+        if _unins_amt:
+            _ch.append({"index": 3, "evidence": f"差异人员涉及工资列支 {_unins_amt:,.2f} 元（金额需评估）"})
+
         findings.append(attach_three_piece({
             "type": "有工资无社保", "level": "高风险", "score": 8,
             "how_found": "将工资表与社保明细按 (姓名, 所属月份) 归位后做集合差集，找出『有工资但对应月份无社保记录』的姓名+月份配对项（即『某员工某月有工资无社保』的组合，已剔除合计/姓名/小计等表头行）。",
@@ -1754,6 +1816,9 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
                 "uninsured_person_month_count": len(uninsured),
                 "person_month_detail": detail_rows,
             },
+            # ★ 本企业**实际涉及**的构成要件（逐条判定，只列命中的）
+            "constituent_hits": _ch,
+            "redline_id": "RL-PAY-001",
         },
             resolve_steps=[
                 f"核实这 {len(uninsured_persons)} 名人员未参保的原因并分情形处理：应保未保的立即补缴社保并加收滞纳金；属特殊用工身份的备齐佐证材料后不认定为未参保。",
@@ -2044,6 +2109,11 @@ def _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, sal
                 "tax_impact": "此指标是税务合规最高优先级重点关注项。差额部分将被推定为隐匿收入或虚增进项，面临补税+罚款+滞纳金。",
                 "policy_ref": "《税收征收管理法》第三十五条（核定应纳税额）；《中华人民共和国增值税法》关于销售额的规定。",
                 "suggestion": "1）立即核实所有已发货未开票的销售，补开发票或申报未开票收入；2）检查进项发票是否与实际采购量匹配；3）进行存货盘点，核实库存真实性。",
+                # ★ 2026-09-28：显式认领 RL-VAT-005 + 逐条判定第①条要件（开票规模与经营要素不匹配）。
+                "redline_id": "RL-VAT-005",
+                "constituent_hits": [
+                    {"index": 1, "evidence": f"销项开票 {total_sales:,.2f} 元与进项采购 {total_purchases:,.2f} 元严重不匹配（进项是销项的 {purchase_ratio:.2f} 倍）——开票规模缺乏对应的采购与产能支撑"},
+                ],
                 "category": "域12 经营实质"})
 
     # ═══════ 维度3: 人均产值合理性检测 ═══════
@@ -2977,6 +3047,11 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
             "category": "域15.5 客户维度穿透",
             "rule_id": 311,
             "source_chain": "客户维度-零开票收款-隐匿收入",
+            # ★ 2026-09-28：显式认领 RL-VAT-006 + 逐条判定第③条要件（经营相关收款未计入申报）。
+            "redline_id": "RL-VAT-006",
+            "constituent_hits": [
+                {"index": 3, "evidence": f"{len(payment_no_inv)} 个付款方支付大额款项（合计 {total_uninvoiced:,.2f} 元）却在销项发票中无任何对应开票记录（是否属经营性收款、是否已申报，须企业举证）"},
+            ],
         })
     
     # 5.3 大额整数收款特征
@@ -3234,6 +3309,15 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
         "detail": f"凭证主营业务收入{vr_total:,.2f}元（开票{vr_invoiced:,.2f} + 未开票{vr_uninvoiced:,.2f}） vs 销项发票{inv_total:,.2f}元 vs 银行入账{bank_income:,.2f}元。",
         "description": f"这是税务合规中最核心的三源收入对比。凭证记录的主营业务收入为{vr_total:,.2f}元，其中明确标注开票收入{vr_invoiced:,.2f}元、未开票收入{vr_uninvoiced:,.2f}元（占比{vr_uninvoiced/max(vr_total,1)*100:.2f}%）。销项发票价税合计{inv_total:,.2f}元，银行流水入账{bank_income:,.2f}元。",
         "how_found": f"①凭证端: {voucher_rev['rows']}条主营收入分录，按摘要(普票/专票/无票)分类求和→开票{vr_invoiced:,.2f}+未开票{vr_uninvoiced:,.2f}={vr_total:,.2f}元; ②发票端: {len(sal_invs)}张销项发票汇总{inv_total:,.2f}元; ③银行端: {len(bank_txs)}条流水贷方合计{bank_income:,.2f}元。三源对比出差异。",
+        # ★ 2026-09-28：显式认领 RL-VAT-006 + 逐条判定第①条要件（申报收入=开票收入、未开票收入为零）。
+        "redline_id": "RL-VAT-006",
+        "constituent_hits": (
+            [
+                {"index": 1, "evidence": f"凭证主营业务收入 {vr_total:,.2f} 元全部为开票收入，未开票收入 0.00 元（申报口径与开票口径无差异）"}
+            ]
+            if vr_total > 0 and vr_uninvoiced == 0
+            else []
+        ),
         "category": "域17 凭证发票收入对比"
     })
     
@@ -4433,6 +4517,105 @@ def _domain_red_void_invoice(invoices):
                         "判定为凭确认单开具的法定红冲更正，非作废、非折扣折让。") if has_confirm \
                        else "未检到红字发票信息确认单编号，红冲合规性须逐张核验。"
 
+        # ★ 2026-09-27（用户选 A + 用户口径「**不要阈值，存在即触发**」）：
+        #   以红线库 `RL-VAT-007.constituents` 为**唯一要件表**；域逐条判定并回填 `index`（命中第几条）
+        #   + 本企业 `evidence`；报告只列"本企业涉及的那几条"。
+        #   **判定原则：只要该情形存在（≥1 次）即命中；幅度（占比/张数/金额）只作证据、不设门槛** ——
+        #   系统只管"有没有这种情况、情况多大"，够不够格由人工判断（与"触红≠定性"一致）。
+        constituent_hits = []
+        try:
+            # ① 存在红冲（红字/作废）即命中；占比只作证据（无门槛）
+            _sales_total = sum(abs(to_number(i.get("total", 0))) for i in invoices
+                               if str(i.get("direction", "")) == "销项")
+            if red_void:
+                if _sales_total > 0:
+                    _ratio = abs(total_red) / _sales_total * 100.0
+                    _ev1 = (f"{abs(total_red):,.2f} 元，占同期销项开票额 {_ratio:.1f}%"
+                            f"（÷ {_sales_total:,.2f} 元）")
+                else:
+                    _ev1 = f"{abs(total_red):,.2f} 元（同期销项开票额未取得，占比无法计算）"
+                constituent_hits.append({"index": 1, "evidence": _ev1})
+            # ② 只要有红冲落在敏感时点即命中（**无门槛**）：
+            #    月末 日≥28 ／ 季末月 3·6·9·12 ／ 申报期窗口（当月 1–15 日，即次月申报期前后的口径）
+            #    注："是否集中"由人工看 n/m 判断，系统只报"有几张落在敏感时点"。
+            _sens = []
+            for _inv in red_void:
+                _parts = [p for p in str(_inv.get("date", "")).split(" ")[0]
+                          .replace("/", "-").split("-") if p]
+                if len(_parts) >= 3:
+                    try:
+                        _mm, _dd = int(_parts[1]), int(_parts[2])
+                    except Exception:
+                        continue
+                    if _dd >= 28:
+                        _sens.append("月末")
+                    elif _mm in (3, 6, 9, 12):
+                        _sens.append("季末月")
+                    elif _dd <= 15:
+                        _sens.append("申报期窗口")
+            if _sens:
+                constituent_hits.append({
+                    "index": 2,
+                    "evidence": f"{len(red_void)} 张中 {len(_sens)} 张落在敏感时点"
+                                f"（{'、'.join(sorted(set(_sens)))}）",
+                })
+            # ③ 无合法事由（仅据发票备注/状态中可见信息）
+            _has_reason = any(("退货" in str(_i.get("remark", "")) or "折让" in str(_i.get("remark", ""))
+                               or "退货" in str(_i.get("status", "")) or "折让" in str(_i.get("status", "")))
+                              for _i in red_void)
+            if not _has_reason:
+                constituent_hits.append({
+                    "index": 3,
+                    "evidence": "红字发票备注/状态中未见退货、折让等合法事由",
+                })
+            # ④ 确认单 + 与蓝票配平
+            #    ⚠ 有分寸（S3）：被红冲的蓝票常属**上期**、不在本轮资料 → "找不到"**不等于**"不配平"，
+            #    故只在"同购方本轮**有**蓝票、但金额对不上"这种**正**信号时才判（缺资料≠不配平）。
+            if red_list:
+                _ev4 = []
+                if not has_confirm:
+                    _ev4.append("未检到《红字发票信息确认单》编号")
+                _blue_amt = {}
+                for _b in invoices:
+                    if str(_b.get("direction", "")) != "销项":
+                        continue
+                    _btype = str(_b.get("status", "")) + str(_b.get("remark", ""))
+                    if any(_k in _btype for _k in ("红冲", "作废", "红色", "冲红")):
+                        continue
+                    _blue_amt.setdefault(str(_b.get("buyer", "")), []).append(
+                        round(abs(to_number(_b.get("total", 0))), 2))
+                _mismatch = 0
+                for _r in red_list:
+                    _amts = _blue_amt.get(str(_r.get("buyer", "")))
+                    if _amts and round(abs(to_number(_r.get("total", 0))), 2) not in _amts:
+                        _mismatch += 1
+                if _mismatch:
+                    _ev4.append(f"{_mismatch} 张与同购方蓝字发票金额对不上（配平待核实）")
+                if _ev4:
+                    constituent_hits.append({"index": 4, "evidence": "；".join(_ev4)})
+            # ⑤ 存在跨年度红冲，或金额显著偏大
+            #    **无绝对门槛**："偏大"以同期单张蓝票最大值为参照（相对口径，非拍脑袋的固定金额）。
+            _years = sorted({p[0] for p in
+                             ([x for x in str(_i.get("date", "")).split(" ")[0]
+                               .replace("/", "-").split("-") if x] for _i in red_void) if p})
+            _max_red = max([abs(to_number(_i.get("total", 0))) for _i in red_void] or [0])
+            _blue_max = max([abs(to_number(_b.get("total", 0))) for _b in invoices
+                             if str(_b.get("direction", "")) == "销项"
+                             and not any(_k in (str(_b.get("status", "")) + str(_b.get("remark", "")))
+                                         for _k in ("红冲", "作废", "红色", "冲红"))] or [0])
+            if len(_years) > 1:
+                constituent_hits.append({
+                    "index": 5,
+                    "evidence": f"红冲发票跨 {'、'.join(_years)} 年度（可能跨期冲减上年度发票）",
+                })
+            elif _max_red and _blue_max and _max_red > _blue_max:
+                constituent_hits.append({
+                    "index": 5,
+                    "evidence": f"最大单张 {_max_red:,.2f} 元，高于同期单张蓝票最大值 {_blue_max:,.2f} 元",
+                })
+        except Exception:
+            constituent_hits = []
+
         detail = (f"共{len(red_void)}张发票涉及红冲/作废：其中红字发票（红冲）{n_red}张、作废{n_void}张，"
                   f"合计价税合计{total_red:,.2f}元。{confirm_note}")
 
@@ -4486,6 +4669,9 @@ def _domain_red_void_invoice(invoices):
                 "作废发票_笔数": n_void,
                 "红冲作废金额": abs(total_red),
             },
+            # ★ 2026-09-27：本企业**实际涉及**的构成要件（逐条判定，只列命中的），
+            #   供企业报告「一、涉及的风险事项」直接采用（不再罗列通用要件清单）。
+            "constituent_hits": constituent_hits,
             "category": "发票生命周期",
             # ★ 2026-09-26：本域发现即对应红线「红字冲销与作废发票比例异常」，
             # 显式打上 redline_id 使其与企业报告「发现的依据」段的逐笔明细正确关联
@@ -4738,6 +4924,15 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
                 "how_found": f"计算出被查单位的毛利率：销售收入{actual_rev:,.2f}元减去进项采购成本{pur_total:,.2f}元，除以销售收入，得出{gm_pct:.2f}%。然后查阅了{target_industry}行业的毛利率基准数据（下限{low*100:.2f}%、典型{typical*100:.2f}%、上限{high*100:.2f}%），发现被查单位毛利率已低于行业下限。",
                 "tax_impact": f"若进项虚增：补缴增值税+企业所得税+滞纳金+罚款；若收入隐匿：补缴增值税+企业所得税+滞纳金+0.5-5倍罚款，情节严重移送公安。",
                 "suggestion": f"核查方向：1)逐笔核实大额进项发票的真实性（与物流单、入库单、银行付款单三单比对）——重点核查偏离度最大的品类；2)将银行流水贷方发生额与销项发票总额做逐月比对，找出银行收款＞开票收入的月份，追查未开票收入；3)要求企业提供成本核算明细和BOM表，核实料工费配比是否合理。",
+                # ★ 2026-09-28：显式认领 RL-COST-004（毛利率显著背离）——此前靠文本匹配被
+                #   错配到 RL-COST-002（大额咨询费），违反「不套错构成要件」铁律。
+                "redline_id": "RL-COST-004",
+                "constituent_hits": [
+                    {"index": 1, "evidence": f"毛利率 {gm_pct:.2f}%（销售收入 {actual_rev:,.2f} 元 − 进项采购成本 {pur_total:,.2f} 元）"
+                                             f"已低于{target_industry}行业下限 {low * 100:.2f}%（典型值 {typical * 100:.2f}%）"},
+                    {"index": 2, "evidence": f"偏离幅度：低于行业下限 {abs(gross_margin / low - 1) * 100:.0f}%"
+                                             "（行业口径为系统内置通用参考值，非税务机关官方口径）"},
+                ],
                 "category": "行业对标"
             })
         elif gross_margin < typical * 0.85:
@@ -4748,6 +4943,11 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
                 "description": f"毛利率虽未跌破行业下限，但已低于典型值{typical*100:.2f}%的85%。可能存在成本偏高或收入偏低的情况，建议结合产能数据做进一步核实。",
                 "how_found": f"毛利率={gm_pct:.2f}%，{target_industry}行业典型值{typical*100:.2f}%×0.85={(typical*0.85*100):.2f}%。",
                 "suggestion": "核实毛利率偏低的品类，检查是否有低价销售、成本虚增或收入少记的情况。",
+                "redline_id": "RL-COST-004",
+                "constituent_hits": [
+                    {"index": 1, "evidence": f"毛利率 {gm_pct:.2f}% 低于{target_industry}行业典型值 {typical * 100:.2f}% 的 85%（尚未跌破下限 {low * 100:.2f}%）"},
+                    {"index": 2, "evidence": f"偏离幅度：低于典型值 {(1 - gross_margin / typical) * 100:.0f}%（行业口径为系统内置通用参考值）"},
+                ],
                 "category": "行业对标"
             })
         elif gross_margin > high * 1.3:
@@ -4758,6 +4958,11 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
                 "description": f"毛利率超出行业上限30%以上，可能原因：①虚开销售发票（没有真实交易）；②收入确认跨期不当；③隐藏成本费用；④具有特殊技术或品牌溢价（需提供佐证）。",
                 "how_found": f"毛利率={gm_pct:.2f}% > {target_industry}行业上限{high*100:.2f}%×1.3={(high*1.3*100):.2f}%。",
                 "suggestion": "核实收入确认的合规性，检查每笔销售对应的采购成本和费用是否完整入账。",
+                "redline_id": "RL-COST-004",
+                "constituent_hits": [
+                    {"index": 1, "evidence": f"毛利率 {gm_pct:.2f}% 超出{target_industry}行业上限 {high * 100:.2f}% 的 30% 以上"},
+                    {"index": 2, "evidence": f"偏离幅度：高于上限 {(gross_margin / high - 1) * 100:.0f}%（行业口径为系统内置通用参考值）"},
+                ],
                 "category": "行业对标"
             })
     
@@ -13022,6 +13227,13 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                     "description": "以发票金额为税基推算购销合同印花税（0.03%），对比银行实际缴纳。",
                     "suggestion": "核查购销合同印花税申报，补缴差额。购销合同印花税率0.03%。",
                     "policy_ref": "印花税法 第5条、第8条",
+                    # ★ 2026-09-28：显式认领 RL-OTH-001 + 逐条判定构成要件。
+                    "redline_id": "RL-OTH-001",
+                    "constituent_hits": [
+                        {"index": 1, "evidence": f"按购销发票金额推算的印花税税基 {total_inv_amount:,.0f} 元与实际缴纳 {stamp_paid:,.0f} 元存在差异（推算应缴 {expected_stamp:,.0f} 元）"},
+                        {"index": 2, "evidence": "银行流水未见（或明显不足）购销合同印花税缴纳记录" if stamp_paid == 0 else f"印花税实际缴纳 {stamp_paid:,.0f} 元，不足推算应缴额的一半"},
+                        {"index": 3, "evidence": f"按推算口径差额约 {expected_stamp - stamp_paid:,.0f} 元（是否属于免税凭证或已按核定征收申报，须企业举证）"},
+                    ],
                     "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
                 })
         

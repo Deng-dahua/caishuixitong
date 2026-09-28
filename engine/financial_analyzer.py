@@ -261,6 +261,11 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                     "category": "成本费用",
                     "source_chain": "财务报表-进项发票与成本匹配度",
                     "redline_id": "RL-COST-003",
+                    # ★ 2026-09-28：逐条判定 RL-COST-003 第①条要件（列支无发票等合规外部凭证）。
+                    "constituent_hits": [
+                        {"index": 1, "evidence": f"账面主营业务成本 {cost:,.2f} 元，同期取得进项发票合计 {pur_total:,.2f} 元，"
+                                                 f"有票覆盖率仅 {ratio:.0%}，缺口部分无发票等外部凭证支撑对应"},
+                    ],
                     "indicator": "purchase_invoice_match",
                     "indicator_value": round(ratio, 4),
                 })
@@ -314,6 +319,11 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                         "category": "成本费用",
                         "source_chain": "财务报表-取得发票与成本费用合计匹配度",
                         "redline_id": "RL-COST-003",
+                        # ★ 2026-09-28：逐条判定 RL-COST-003 第①条要件（成本+期间费用口径）。
+                        "constituent_hits": [
+                            {"index": 1, "evidence": f"成本费用合计 {cost_expense:,.2f} 元中，取得进项发票仅覆盖 {ratio_ce:.0%}，"
+                                                     f"缺口 {gap_ce:,.2f} 元无发票等外部凭证支撑对应"},
+                        ],
                         "indicator": "purchase_invoice_match_total",
                         "indicator_value": round(ratio_ce, 4),
                     })
@@ -375,6 +385,11 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                     "category": "成本费用",
                     "source_chain": "财务报表-期间费用率",
                     "redline_id": "RL-COST-005",
+                    # ★ 2026-09-28：逐条判定 RL-COST-005 第②条要件（费用集中在酌量性费用）。
+                    "constituent_hits": [
+                        {"index": 2, "evidence": f"费用集中在管理/销售等酌量性费用：期间费用合计 {period_expense:,.2f} 元"
+                                                 f"（销售 {selling:,.2f}＋管理 {admin:,.2f}＋财务 {finance:,.2f}），占收入 {exp_rate:.0%}"},
+                    ],
                     "indicator": "expense_revenue_ratio",
                     "indicator_value": round(exp_rate, 4),
                 })
@@ -424,6 +439,12 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                 "category": "税负",
                 "source_chain": "财务报表-企业所得税贡献率",
                 "redline_id": "RL-CIT-004",
+                # ★ 2026-09-28：逐条判定 RL-CIT-004 第②条要件（亏损/贡献与经营规模不匹配）。
+                "constituent_hits": [
+                    {"index": 2, "evidence": f"主营业务收入 {revenue:,.2f} 元而企业所得税贡献率仅 {cit_rate:.2%}"
+                                             f"（净利润 {net_profit:,.2f} 元），税负贡献与经营规模明显不匹配"
+                                             "（是否属税收优惠、亏损弥补等正当情形，须企业说明）"},
+                ],
                 "indicator": "cit_contribution_ratio",
                 "indicator_value": round(cit_rate, 6),
             })
@@ -457,6 +478,11 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                     "category": "成本费用",
                     "source_chain": "财务报表-业务招待费占比",
                     "redline_id": "RL-COST-005",
+                    # ★ 2026-09-28：逐条判定 RL-COST-005 第②条要件（酌量性费用集中）。
+                    "constituent_hits": [
+                        {"index": 2, "evidence": f"费用集中在业务招待费等酌量性支出：业务招待费 {ent:,.2f} 元，"
+                                                 f"占主营业务收入 {revenue:,.2f} 元的 {ent_rate:.2%}"},
+                    ],
                     "indicator": "travel_entertainment_ratio",
                     "indicator_value": round(ent_rate, 6),
                 })

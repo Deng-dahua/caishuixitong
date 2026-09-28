@@ -34,6 +34,7 @@ from engine.argumentation import (
     build_argumentation, _VERDICT_CONFIRMED, _VERDICT_HIT_PENDING,
     _VERDICT_EXCLUDED, _VERDICT_WEAK,
 )
+from engine.redline_benchmark import benchmark_note, benchmark_refs
 
 # 裁决优先级：成立可定性 > 成立待补证 > 线索不足 > 排除
 _VERDICT_RANK = {
@@ -103,6 +104,135 @@ def _map_finding(finding: Dict, available_materials: Optional[List[str]] = None
                                   domain=finding.get("domain"))
 
 
+# ★ 2026-09-28 逐条判定中枢兜底：未显式附 constituent_hits 的红线，按"检测信号→要件"映射补齐，
+#   证据取自发现自身的 detail/how_found（即账内实际命中的事实），保证报告 (A)+(B) 闭环。
+#   仅对"明确建立"的构成要件序号兜底；显式注入的 constituent_hits（16+ 条红线各检测器）优先，不被覆盖。
+#   索引严格对应 engine/tax_redlines.REDLINES 中各红线的 constituents 顺序。
+_DEFAULT_HIT_INDEX = {
+    # —— 原兜底（外部核验待办 + 关键字匹配型红线），序号对应 constituents 顺序 ——
+    "RL-PTY-002": [2, 5],
+    "RL-FUND-001": [1, 4],
+    "RL-CIT-001": [1, 4],
+    "RL-PTY-004": [1, 2, 4],
+    "RL-SPT-008": [1, 5],
+    "RL-SPT-011": [1, 4],
+    "RL-PAY-005": [2, 3, 4],
+    "RL-PTY-003": [1, 3, 4],
+    "RL-INC-002": [1, 3, 4],
+    "RL-AST-003": [1, 2, 4],
+    "RL-PAY-002": [1, 2, 4],
+    "RL-PAY-003": [1, 4],
+    "RL-AST-001": [1, 2, 3, 4],
+    "RL-FUND-002": [1, 2, 3, 4],
+    "RL-OTH-003": [1, 2, 3],
+    "RL-VAT-002": [1, 2, 3, 4, 5],
+    "RL-VAT-006": [1, 2, 3, 4],
+    "RL-COST-003": [1, 2, 3],
+    # —— 本轮新增场景追加（逐条判定兜底，序号按 constituents 顺序计算）——
+    # ★ 2026-09-29 A 类新增 6 条：均指向客观构成要件（非末项出罪要件）。
+    "RL-CIT-008": [1, 2, 3, 4],
+    "RL-CIT-009": [1, 2, 3, 4],
+    "RL-INV-004": [1, 2, 3, 4],
+    "RL-VAT-012": [1, 2, 3, 4],
+    "RL-SPT-012": [1, 2, 3, 4],
+    "RL-SPT-013": [1, 2, 3, 4],
+}
+
+
+# ★ 2026-09-29（C3 风险组合画像）：四类业务轴（单一权威映射）。
+#   红线 ID 前缀即其所属业务轴；组合画像在「≥2 个轴同时出现未排除疑点」时触发，
+#   提示多税种联动稽查（业务闭环任一环节异常都可能是孤立的，但多个环节同时异常
+#   往往指向系统性账务失真，单一税种核查难以还原事实）。
+#   新增红线时只需在 REDLINES 加一条 + 此处前缀已覆盖（PTY/INC/FUND/COST 四族），
+#   无需改组合逻辑。
+_COMBO_AXES = {
+    "PTY":  {"label": "票账差异", "prefix": "RL-PTY-"},
+    "INC":  {"label": "收入",     "prefix": "RL-INC-"},
+    "FUND": {"label": "资金",     "prefix": "RL-FUND-"},
+    "COST": {"label": "成本",     "prefix": "RL-COST-"},
+}
+_COMBO_AXIS_PREFIX = {v["prefix"]: k for k, v in _COMBO_AXES.items()}
+
+
+def _combo_axis_of(rid: str) -> Optional[str]:
+    """红线 ID → 所属业务轴（PTY/INC/FUND/COST）；非四族红线返回 None。"""
+    rid = str(rid or "")
+    for _p, _k in _COMBO_AXIS_PREFIX.items():
+        if rid.startswith(_p):
+            return _k
+    return None
+
+
+def _build_combo_profiles(suspicions: List[Dict]) -> List[Dict]:
+    """C3：当 ≥2 个业务轴（票账差异/收入/资金/成本）同时出现「未排除」疑点时，
+    生成组合风险画像，提示多税种联动稽查。
+
+    入参 suspicions：已归并的红线疑点（含 verdict/confidence/redline_id/redline_name/taxes）。
+    返回：组合画像列表（0 或 1 条；0 条表示未达组合触发条件）。
+    注意：组合画像**不是**一条独立红线，不计入红线库总数（RL-COMBO 不存在于 REDLINES）。
+    """
+    _by_axis: Dict[str, List[Dict]] = {}
+    for s in (suspicions or []):
+        if not isinstance(s, dict):
+            continue
+        # ★ 排除情形（已有合理解释）不计入组合信号——它们已被论证为未触碰红线。
+        if s.get("verdict") == _VERDICT_EXCLUDED:
+            continue
+        _ax = _combo_axis_of(s.get("redline_id", ""))
+        if not _ax:
+            continue
+        _by_axis.setdefault(_ax, []).append(s)
+
+    _hit_axes = [k for k, v in _by_axis.items() if v]
+    if len(_hit_axes) < 2:
+        return []
+
+    # 汇总贡献红线与跨税种
+    _contrib: List[Dict] = []
+    _taxes: set = set()
+    _max_conf = 0.0
+    _any_confirmed = False
+    for _ax in _hit_axes:
+        for s in _by_axis[_ax]:
+            _contrib.append({
+                "redline_id": s.get("redline_id", ""),
+                "redline_name": s.get("redline_name", ""),
+                "axis": _ax,
+                "axis_label": _COMBO_AXES[_ax]["label"],
+                "verdict": s.get("verdict", ""),
+                "confidence": float(s.get("confidence") or 0.0),
+            })
+            for t in (s.get("taxes") or []):
+                _taxes.add(str(t))
+            _max_conf = max(_max_conf, float(s.get("confidence") or 0.0))
+            if s.get("verdict") == _VERDICT_CONFIRMED:
+                _any_confirmed = True
+
+    _axis_labels = [_COMBO_AXES[a]["label"] for a in _hit_axes]
+    _n = len(_hit_axes)
+    # 等级：三轴及以上、或任一已定性 → 高风险；否则中风险。
+    _level = "高风险" if (_n >= 3 or _any_confirmed) else "中风险"
+    _signal = ("经分析，本企业在「{axes}」等多个业务环节同时触发税务风险指标（共 {n} 个环节），"
+               "呈现业务全链条勾稽断裂的系统性异常信号，而非孤立的单点问题；"
+               "上述各环节疑点均未经合理解释排除。"
+               .format(axes="、".join(_axis_labels), n=_n))
+    _rec = ("建议启动多税种联动稽查：上述疑点指向收入—成本—资金—票据全链条勾稽断裂，"
+            "单一税种核查难以还原事实，应统筹增值税、企业所得税、个人所得税及印花税等"
+            "跨税种联动核查，并重点追查「票流—资金流—货物流—账簿」四流是否一致。")
+    return [{
+        "combo_id": "RL-COMBO",
+        "axes": _hit_axes,
+        "axis_labels": _axis_labels,
+        "axis_count": _n,
+        "contributing_redlines": _contrib,
+        "combined_taxes": sorted(_taxes),
+        "combined_confidence": round(_max_conf, 2),
+        "level": _level,
+        "signal": _signal,
+        "recommendation": _rec,
+    }]
+
+
 def run_redline_detection(findings: List[Dict],
                           engine_data: Optional[Dict] = None,
                           material_readiness: Optional[Dict] = None,
@@ -147,6 +277,18 @@ def run_redline_detection(findings: List[Dict],
         clue = build_clue_chain(f, rl, engine_data)
         ev = build_evidence_chain(f, rl, mats, engine_data)
         arg = build_argumentation(f, rl, clue, ev, engine_data)
+        # ★ 2026-09-28 逐条判定兜底：显式 constituent_hits 优先；未附时按"检测信号→要件"映射补齐，
+        #   证据取自发现自身的 detail/how_found（账内实际命中的事实），保证报告 (A)+(B) 闭环。
+        if not arg.get("constituent_hits"):
+            _di = _DEFAULT_HIT_INDEX.get(rid)
+            if _di:
+                _ev_src = f.get("detail") or f.get("how_found") or f.get("description") or ""
+                if isinstance(_ev_src, str):
+                    _ev_src = _ev_src.strip().replace("\n", " ")[:240]
+                if _ev_src:
+                    arg["constituent_hits"] = [
+                        {"index": _i, "evidence": f"账内检测到：{_ev_src}"} for _i in _di
+                    ]
         entry = grouped.get(rid)
         if not entry:
             entry = {
@@ -179,6 +321,8 @@ def run_redline_detection(findings: List[Dict],
                 "match_reasons": list(minfo.get("reasons") or []),
                 "match_materials": list(minfo.get("materials") or []),
             }
+            # ★ 2026-09-27（A 收敛）：累计各来源判定的"要件命中"（域/模式检测器/VR 规则）。
+            entry["_constituent_hits"] = list(arg.get("constituent_hits") or [])
             grouped[rid] = entry
         else:
             entry["supporting_findings"].append({
@@ -208,6 +352,28 @@ def run_redline_detection(findings: List[Dict],
             for m in (ev.get("verify_materials") or []):
                 if m not in entry.get("verify_materials", []):
                     entry.setdefault("verify_materials", []).append(m)
+            # ★ 2026-09-27（A 收敛）：合并本条红线各来源的要件命中（按 index 去重）
+            _acc = entry.setdefault("_constituent_hits", [])
+            _seen = {(h.get("index") if isinstance(h, dict) else h) for h in _acc}
+            for _h in (arg.get("constituent_hits") or []):
+                _k = _h.get("index") if isinstance(_h, dict) else _h
+                if _k not in _seen:
+                    _acc.append(_h)
+                    _seen.add(_k)
+
+    # 把累计的要件命中写回 argumentation（供企业报告"一、涉及的风险事项"采用）
+    _industry = str((engine_data or {}).get("industry") or "").strip()
+    for _s in grouped.values():
+        _acc = _s.pop("_constituent_hits", None)
+        if _acc:
+            _s.setdefault("argumentation", {})["constituent_hits"] = _acc
+        # ★ 2026-09-28（B2 行业基准动态化）：对"以行业基准为判定口径"的红线，
+        #   注入按实际行业解析出的基准区间与口径声明（来源 industry_data.json，非税务机关官方口径）。
+        #   不在此写死任何数字；缺行业时只说明"须按实际行业取值"，绝不编造区间。
+        _bm = benchmark_note(_s.get("redline_id", ""), _industry or None)
+        if _bm.get("metric"):
+            _s["benchmark_ref"] = _bm
+            _s.setdefault("argumentation", {})["benchmark_ref"] = _bm
 
     # 主 findings 也要进 supporting（第一条）
     suspicions = sorted(
@@ -222,6 +388,10 @@ def run_redline_detection(findings: List[Dict],
     unconfirmed = [s for s in suspicions
                    if s.get("verdict") in (_VERDICT_HIT_PENDING, _VERDICT_WEAK)]
 
+    # ★ 2026-09-29（C3 风险组合画像）：基于「未排除」疑点跨业务轴聚合，
+    #   生成 0/1 条组合信号（不计入红线总数，仅作多税种联动稽查提示）。
+    combo_profiles = _build_combo_profiles(suspicions)
+
     summary = {
         "version": ENGINE_VERSION,
         "knowlege_version": redline_stats().get("version"),
@@ -232,6 +402,7 @@ def run_redline_detection(findings: List[Dict],
         "excluded": len(excluded),
         "unconfirmed": len(unconfirmed),
         "unmapped": len(unmapped),
+        "combo_profiles": combo_profiles,
     }
     if pipeline_log is not None:
         pipeline_log.append(

@@ -1767,6 +1767,14 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "rule_id": 338,
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
                     "_cross_refs": ["缺少BOM表"],  # 跨结论引用标记
+                    # ★ 2026-09-28：显式认领 RL-VAT-002 + 逐条判定构成要件（存在即命中、无阈值）。
+                    #   此前该发现靠文本匹配，曾被错配到 RL-PTY-003（委托加工费）——违反
+                    #   「不套错构成要件」铁律，现按红线引擎 declared 模式前置认领。
+                    "redline_id": "RL-VAT-002",
+                    "constituent_hits": [
+                        {"index": 1, "evidence": f"{len(core_only_buy)} 类进项实物品名（{'、'.join(core_only_buy[:4])}等）在同期销项发票中无同类或加工后品名"},
+                        {"index": 2, "evidence": f"无对应销项实现的进项金额 {pur_amount_only:,.2f} 元，占核心成本 {pct:.2f}%"},
+                    ],
                     "observed_metrics": {
                         "only_buy_goods": core_only_buy[:20],
                         "only_buy_count": len(core_only_buy),
@@ -1803,6 +1811,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "category": "进销存匹配",
                     "rule_id": 338,
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
+                    # ★ 2026-09-28：显式认领 RL-VAT-002 + 逐条判定（同上，防错配到 RL-PTY-003）。
+                    "redline_id": "RL-VAT-002",
+                    "constituent_hits": [
+                        {"index": 1, "evidence": f"{len(core_only_buy)} 类进项实物品名（{'、'.join(core_only_buy[:4])}等）在同期销项发票中无同类或加工后品名"},
+                        {"index": 2, "evidence": f"无对应销项实现的进项金额 {pur_amount_only:,.2f} 元，占核心成本 {pct:.2f}%"},
+                    ],
                     "observed_metrics": {
                         "only_buy_goods": core_only_buy[:20],
                         "only_buy_count": len(core_only_buy),
@@ -1888,6 +1902,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "rule_id": 337,
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
                     "_cross_refs": ["缺少BOM表"],
+                    # ★ 2026-09-28：显式认领 RL-VAT-001 + 逐条判定构成要件。
+                    "redline_id": "RL-VAT-001",
+                    "constituent_hits": [
+                        {"index": 1, "evidence": f"{len(only_sell)} 类销项实物品名（{'、'.join(only_sell[:4])}等）在同期核心进项中无同名采购；进项侧虽有加工费与原材料信号，加工关系未经 BOM 表验证"},
+                        {"index": 2, "evidence": f"无对应进项来源的销售额 {sell_amount_only:,.2f} 元，占核心销项 {pct:.2f}%"},
+                    ],
                     "observed_metrics": {
                         "only_sell_goods": only_sell[:20],
                         "only_sell_count": len(only_sell),
@@ -1909,6 +1929,12 @@ def _run_analyze(company_id, db, progress_callback=None):
                     "source_chain": "进销存-主营业务成本识别-进销品名匹配",
                     "required_human_review": True,
                     "automatic_determination_allowed": False,
+                    # ★ 2026-09-28：显式认领 RL-VAT-001 + 逐条判定构成要件。
+                    "redline_id": "RL-VAT-001",
+                    "constituent_hits": [
+                        {"index": 1, "evidence": f"{len(only_sell)} 类销项实物品名（{'、'.join(only_sell[:4])}等）在同期核心进项中无同类品名"},
+                        {"index": 2, "evidence": f"无对应进项来源的销售额 {sell_amount_only:,.2f} 元，占核心销项 {pct:.2f}%"},
+                    ],
                     "observed_metrics": {
                         "only_sell_goods": only_sell[:20],
                         "only_sell_count": len(only_sell),
@@ -4597,7 +4623,8 @@ def _run_analyze(company_id, db, progress_callback=None):
             _provided_mats = sorted(_doc_covered_categories({"file_results": file_results or []}))
             _redline_detection = run_redline_detection(
                 all_findings,
-                engine_data={"file_results": file_results},
+                engine_data={"file_results": file_results,
+                             "industry": detected_ind},
                 material_readiness={"provided": _provided_mats},
                 pipeline_log=pipeline_log,
             )

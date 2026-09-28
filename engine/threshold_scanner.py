@@ -114,10 +114,17 @@ def scan_bank_vs_revenue(bank_txs, sal_invs):
         findings.append({
             "type": "银行收款与申报收入不匹配",
             "rule_id": 21,
-            "severity": "高风险",
+            "level": "高风险",
             "detail": f"{anomaly_months}个月银行收款>申报销售额10%以上，累计差额{total_gap:.0f}元",
             "score": 9,
-            "threshold_met": True
+            "threshold_met": True,
+            # ★ 2026-09-28：补 level 键（原仅 severity，等级闸门认 level，致本发现从未进报告）；
+            #   显式认领 RL-INC-001 + 逐条判定第①②条要件。
+            "redline_id": "RL-INC-001",
+            "constituent_hits": [
+                {"index": 1, "evidence": f"{anomaly_months} 个月银行贷方收款高于同期申报销售额 10% 以上"},
+                {"index": 2, "evidence": f"累计差额 {total_gap:,.0f} 元（是否属往来款、借款、退款等非收入项目，须逐笔核验）"},
+            ],
         })
 
     return findings

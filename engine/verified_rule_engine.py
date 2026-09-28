@@ -1296,12 +1296,21 @@ def _scan_bank_invoice_gap(data, spec):
     if len(gaps) < 2:
         return []
     total_gap = sum(item["gap"] for item in gaps)
-    return [_rule_finding(
+    _f = _rule_finding(
         spec,
         f"在{len(gaps)}个月中，银行贷方收款与销项发票价税合计的差异同时超过25%和10万元；累计方向性差额{total_gap:,.2f}元。该结果只说明两个数据口径需要逐月对账。",
         {"anomaly_months": gaps[:24], "directional_total_gap": round(total_gap, 2)},
         spec["required_sources"],
-    )]
+    )
+    # ★ 2026-09-28：显式认领 RL-INC-001 + 逐条判定第①②条要件（收款与申报/开票收入存在差异）。
+    #   此前该发现凭 match_hints 同时挂在 RL-VAT-006 与 RL-INC-001 两线，现按数据本义认领：
+    #   银行收款 vs 开票收入的月度差异正是「银行收款大于申报收入」红线的核心证据源。
+    _f["redline_id"] = "RL-INC-001"
+    _f["constituent_hits"] = [
+        {"index": 1, "evidence": f"{len(gaps)} 个月银行贷方收款与销项发票金额存在差异（同时超过25%和10万元）"},
+        {"index": 2, "evidence": f"累计方向性差额 {total_gap:,.2f} 元（占申报收入比例须逐月评估）"},
+    ]
+    return [_f]
 
 
 def _scan_voucher_invoice_gap(data, spec):
@@ -3650,7 +3659,7 @@ def _scan_expense_fabrication(data, spec):
             "需要告知企业的是：上述事项在贵方提供充分举证前，仅作为待核实线索，不作为税务处理、"
             "处罚或移送依据；贵方有权就任一事项陈述申辩并提交反证。"
         )
-        findings.append(_rule_finding(
+        _f034a = _rule_finding(
             spec, detail,
             {"suspicious_count": len(suspicious), "suspicious_total": susp_total,
              "suspicious_ratio_of_expense": round(susp_total / expense_total, 4) if expense_total else 0,
@@ -3658,7 +3667,18 @@ def _scan_expense_fabrication(data, spec):
              "verified_facts": verified_facts, "to_prove": to_prove,
              "conclusion_type": "待证线索（非定性）"},
             spec["required_sources"], priority="中",
-        ))
+        )
+        # ★ 2026-09-28：本发现的主体是「咨询/广告/服务类费用无成果物」——显式认领 RL-COST-002
+        #   并逐条判定（此前凭文本匹配错挂 RL-COST-006，致使疑点9/17 共用一套错位证据）。
+        _f034a["redline_id"] = "RL-COST-002"
+        _ch034a = [
+            {"index": 1, "evidence": f"咨询、广告、服务类无形服务支出 {len(suspicious)} 笔、合计 {susp_total:,.2f} 元"
+                                     + (f"，占期间费用总额 {susp_total / expense_total * 100:.1f}%" if expense_total else "")
+                                     + "（单笔均达 10 万元级）"},
+            {"index": 2, "evidence": "记账凭证未承载服务合同与成果交付物（报告/方案/会议纪要等），费用真实性无法在账面自证（须企业举证，不作认定）"},
+        ]
+        _f034a["constituent_hits"] = _ch034a
+        findings.append(_f034a)
     if expense_rate >= _EXPENSE_RATE_WARN and revenue_total > 0:
         detail = (
             f"本项目前的性质是：费用率畸高待证事项（非已认定违法）。\n"
@@ -3675,13 +3695,27 @@ def _scan_expense_fabrication(data, spec):
             "需要告知企业的是：费用率高于同业可能源于商业模式差异（如新品牌前期投放），贵方提供充分举证后本项疑点排除；"
             "在举证前仅作为待核实线索，不作为税务处理、处罚或移送依据。"
         )
-        findings.append(_rule_finding(
+        _f034b = _rule_finding(
             spec, detail,
             {"expense_total": round(expense_total, 2), "revenue_total": round(revenue_total, 2),
              "expense_rate": round(expense_rate, 4), "cash_total": round(cash_total, 2),
              "warn_line": _EXPENSE_RATE_WARN, "conclusion_type": "待证线索（非定性）"},
             spec["required_sources"], priority="中",
-        ))
+        )
+        # ★ 2026-09-28：费用率畸高路径显式认领 RL-COST-006 并逐条判定。
+        _f034b["redline_id"] = "RL-COST-006"
+        _ch034b = [
+            {"index": 2, "evidence": f"凭证期间费用合计 {expense_total:,.2f} 元 ÷ 收入口径 {revenue_total:,.2f} 元"
+                                     f" = 费用率 {expense_rate:.1%}，与收入规模明显背离（超过预警线 {_EXPENSE_RATE_WARN:.0%}）"},
+        ]
+        if suspicious:
+            _ch034b.insert(0, {
+                "index": 1,
+                "evidence": f"其中 {len(suspicious)} 笔大额服务类费用（合计 "
+                            f"{round(sum(x['amount'] for x in suspicious), 2):,.2f} 元）的凭证未承载合同与成果交付物等核心证据",
+            })
+        _f034b["constituent_hits"] = _ch034b
+        findings.append(_f034b)
     return findings
 
 
@@ -6073,11 +6107,23 @@ def _scan_core_cost_fund_evidence(data, spec):
     for _f in findings:
         _f["detail_tables"] = _vr060_detail_tables
 
+    # ★ 2026-09-28：逐条判定 RL-PTY-001 构成要件（企业级勾稽结果，随本规则各子发现带出）。
+    #   要件①②③在「既无付款亦无挂账」金额 > 0 时同时成立（勾稽口径见上表4）。
+    _pty1_hits = []
+    if uncovered > 0 and total > 0:
+        _pty1_hits = [
+            {"index": 1, "evidence": f"主营成本 {total:,.2f} 元中，{uncovered:,.2f} 元未匹配到任何支付渠道"
+                                     f"（已放宽至发票日后合理账期与跨年付款窗口）"},
+            {"index": 2, "evidence": f"存在未付款金额 {uncovered:,.2f} 元，占主营成本 {uncovered / total * 100:.1f}%"},
+            {"index": 3, "evidence": f"账面应付账款挂账仅 {ap_agg:,.2f} 元，未能覆盖上述差额（挂账、票据结算、债务抵销等非现款结算已先行排除）"},
+        ]
     # 显式收编进 RL-PTY-001：红线判定（redline_engine._map_finding）优先取发现自声明的 redline_id；
     # 资料完整性类（data_quality_limitation）不挂红线——它不是风险嫌疑，而是资料覆盖问题。
     for _f in findings:
         if _f.get("finding_status") != "data_quality_limitation":
             _f["redline_id"] = "RL-PTY-001"
+            if _pty1_hits:
+                _f["constituent_hits"] = list(_pty1_hits)
     return findings
 
 
@@ -6575,6 +6621,11 @@ def _scan_reversal_compliance(data, spec):
     # 显式收编进 RL-VAT-007「红字冲销与作废发票比例异常」：
     # 红线判定（redline_engine._map_finding）优先取发现自声明的 redline_id，保证必然归入该红线。
     finding["redline_id"] = "RL-VAT-007"
+    # ★ 2026-09-27（A 收敛）：本判定归属 RL-VAT-007 第 ④ 条要件（缺确认单／与蓝票不配平）
+    finding["constituent_hits"] = [{
+        "index": 4,
+        "evidence": f"{len(issues)} 笔未满足红冲合规要件（{example_text}）",
+    }]
     return [finding]
 
 
@@ -6898,7 +6949,7 @@ def _scan_revenue_receipt_evidence(data, spec):
                 f"占银行流入{person_in / bank_in_total * 100:.1f}%），收入经个人账户归集，"
                 "是账外收款/资金滞留个人账户的直接证据，须逐一核验个人账户收款的性质与去向。"
             )
-        findings.append(_rule_finding(
+        _f061 = _rule_finding(
             spec,
             detail,
             {
@@ -6916,7 +6967,15 @@ def _scan_revenue_receipt_evidence(data, spec):
             },
             spec["required_sources"],
             priority="调查优先级",
-        ))
+        )
+        # ★ 2026-09-28：显式认领 RL-INC-001 + 逐条判定第①条要件（收款与开票收入存在差异）。
+        _f061["redline_id"] = "RL-INC-001"
+        _f061["constituent_hits"] = [
+            {"index": 1, "evidence": f"开票收入 {total:,.2f} 元中 {unmatched:,.2f} 元"
+                                     f"（{unmatched / total * 100:.1f}%）未匹配到银行或第三方平台收款——"
+                                     "收款与开票收入存在差异（方向为收款少于开票；属赊账、账外收款或收入不实，须逐笔核验）"},
+        ]
+        findings.append(_f061)
     elif ratio < 0.5:
         findings.append(_rule_finding(
             spec,

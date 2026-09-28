@@ -2788,6 +2788,717 @@ def check_cost_industry_basis() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_report_plain_language() -> List[Tuple[str, str, str]]:
+    """报告「说人话」收敛点 + 最终出口必须**迭代去环**（2026-09-27）。
+
+    ★ 真实缺陷背景（本闸门锁死，防复发）：`main._execute_tax_risk_analysis` 的最终
+      出口原用**递归**遍历整份 report_data，遇到报告里的**循环引用/深层嵌套**抛
+      `maximum recursion depth exceeded`，被 except 静默跳过 → 不仅"说人话"替换没生效，
+      连此前加的标点规范化在最终出口**也从未真正生效**（产出日志可见
+      `[标点规范化] 跳过：maximum recursion depth exceeded`，正文半角逗号仍在）。
+    判据：
+      ① 唯一权威 `engine.plain_language` 必须提供 `to_plain` 与 `walk_strings_inplace`；
+      ② 报告最终出口必须调用 `walk_strings_inplace`（不得回退到递归遍历）；
+      ③ 行为——`walk_strings_inplace` 对**含循环引用**的对象必须能完成并替换（不爆栈）；
+      ④ 行为——键黑名单保护前端枚举/标签（level / verdict 的值不得被替换）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.plain_language import to_plain_obj, walk_strings_inplace  # noqa: F401
+    except Exception as exc:
+        issues.append(("ERROR", "engine/plain_language.py", f"说人话收敛点缺失: {exc}"))
+        return issues
+
+    try:
+        main_src = _read(ROOT / "main.py")
+    except Exception:
+        main_src = ""
+    # 要求是**调用**（`walk_strings_inplace(`）而非注释里的提及
+    if "walk_strings_inplace(" not in main_src:
+        issues.append(("ERROR", "main.py",
+                       "报告最终出口未调用 walk_strings_inplace（迭代去环版）；"
+                       "递归遍历遇循环引用会 max recursion depth exceeded 而被静默跳过"))
+
+    # ③ 行为：含循环引用也能完成并替换（用**系统语言**词，非行业术语）
+    a = {"t": "监管盲区"}
+    b = {"p": a}
+    a["c"] = b                       # a -> b -> a 循环
+    try:
+        walk_strings_inplace({"x": a, "y": [b]}, lambda s, k: to_plain_obj(s, k))
+        if "看不到的死角" not in a["t"]:
+            issues.append(("ERROR", "engine/plain_language.py",
+                           "walk_strings_inplace 在循环引用场景未完成替换"))
+    except RecursionError as exc:  # pragma: no cover
+        issues.append(("ERROR", "engine/plain_language.py",
+                       f"walk_strings_inplace 仍会爆栈: {exc}"))
+
+    # ④ 行为：键黑名单保护枚举/标签；系统语言文本照常替换；行业术语**不被改**
+    probe = {"level": "高风险", "verdict": "触碰税务违规红线",
+             "detail": "须核查监管盲区", "term": "销项发票与进项发票勾稽不平衡"}
+    walk_strings_inplace(probe, lambda s, k: to_plain_obj(s, k))
+    if probe["level"] != "高风险":
+        issues.append(("ERROR", "engine/plain_language.py", "键黑名单未保护 level"))
+    if "红线" not in probe["verdict"]:
+        issues.append(("ERROR", "engine/plain_language.py", "键黑名单未保护 verdict"))
+    if ("看不到的死角" not in probe["detail"]) or ("需要" not in probe["detail"]):
+        issues.append(("ERROR", "engine/plain_language.py", "系统语言文本未被说人话替换"))
+    if probe["term"] != "销项发票与进项发票勾稽不平衡":
+        issues.append(("ERROR", "engine/plain_language.py",
+                       "行业专有名词被误改（用户口径：行业术语保持原样直接用）"))
+    return issues
+
+
+def check_finding_meta_wording() -> List[Tuple[str, str, str]]:
+    """疑点 meta 行必须是**自然句**（用户 2026-09-27 改写口径）。
+
+    用户明确要求：该行不再用「字段：值｜字段：值」式罗列，改为自然句三段——
+    ① 涉嫌方向成句；② 本项结论："…的可能性{档位}，但能补全尚缺的 N 项资料来排除此项税务风险嫌疑"；
+    ③ "本项涉税嫌疑，涉及税种：…；潜在税额影响（测算）：…"。
+    「等级依据」是**全库统一口径**的通用模板（每项都一样），不在每条疑点重复，
+    改在章首"阅读提示"里说明一次——本闸门同时锁死"分级口径仍有说明"。
+    """
+    rel = "static/js/tax-doc-analysis.js"
+    p = ROOT / rel
+    if not p.exists():
+        return [("WARN", rel, "前端文件不存在，跳过疑点 meta 措辞检查")]
+    src = _read(p)
+    issues: List[Tuple[str, str, str]] = []
+    for bad, why in (
+        ("'涉嫌方向：'", "「涉嫌方向：」字段前缀"),
+        ("｜判断可信度", "「｜判断可信度」字段罗列"),
+        ("｜等级依据", "「｜等级依据」逐条重复通用模板"),
+        ("资料情况：已提供", "「资料情况：已提供」字段罗列"),
+        ("risk_level_basis", "逐条渲染 risk_level_basis"),
+    ):
+        if bad in src:
+            issues.append(("ERROR", rel, f"疑点 meta 回退为字段罗列（出现 {why}），应为自然句"))
+    for good in ("本项涉税嫌疑，", "来排除此项税务风险嫌疑"):
+        if good not in src:
+            issues.append(("ERROR", rel, f"疑点 meta 缺少自然句表述「{good}」"))
+    if "按以下5项综合评定" not in src:
+        issues.append(("ERROR", rel, "章首阅读提示未说明风险等级分级口径（5项综合评定）"))
+    return issues
+
+
+def check_risk_item_section_wording() -> List[Tuple[str, str, str]]:
+    """「一、涉及的风险事项」必须**同时**呈现（用户 2026-09-28 反转 09-27 决策）：
+
+    - (A) 本红线的**抽象构成要件清单**（「凡符合下列构成要件即属涉嫌疑点」）——红线定义，
+          与企业无关，让企业知道"什么情形算涉嫌"；09-27 曾把它整个禁掉，已判定为理解错误，现锁定必须保留；
+    - (B) 本企业**实际命中哪几条**的逐条判定（`_enterprise_situations` 取域判定证据）；
+    - (C) 法定依据写到**具体条款内容**（`format_legal_basis`）。
+    三者缺一不可：只列抽象清单不列本企业命中 → 企业无从知道踩了哪条；只列本企业命中不列抽象清单
+    → 企业无从知道"什么情形算涉嫌"（用户 09-28 明确要求恢复）。
+    """
+    rel = "engine/enterprise_report.py"
+    p = ROOT / rel
+    if not p.exists():
+        return [("WARN", rel, "文件不存在，跳过风险事项段落措辞检查")]
+    src = _read(p)
+    issues: List[Tuple[str, str, str]] = []
+    # (A) 抽象构成要件清单必须呈现（锁定，防止再次被"收敛"掉）
+    for _req in ("凡符合下列构成要件即属涉嫌疑点", "该风险指标不因行业而变"):
+        if _req not in src:
+            issues.append(("ERROR", rel,
+                           f"「一、涉及的风险事项」未呈现抽象构成要件清单（缺「{_req}」），"
+                           "应保留本红线的抽象构成要件清单"))
+    # (B) 逐条判定能力必须保留（本企业命中哪几条 + 证据）
+    for good in ("_enterprise_situations", "constituent_hits", "format_legal_basis"):
+        if good not in src:
+            issues.append(("ERROR", rel, f"缺少「{good}」（本企业逐条判定 / 法条补全条款内容）"))
+    # (C) 行为：法条补全必须能带回条款内容
+    try:
+        from engine.legal_citation import format_legal_basis
+        probe = format_legal_basis(["《发票管理办法》第二十七条"])
+        if ("：" not in probe) or ("红字发票" not in probe):
+            issues.append(("ERROR", "engine/legal_citation.py",
+                           "法定依据未补全条款内容（《发票管理办法》第二十七条）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/legal_citation.py", f"法条解析异常: {exc}"))
+    return issues
+
+
+def check_report_expression_standard() -> List[Tuple[str, str, str]]:
+    """报告表达风格标准（用户 2026-09-28 反转 09-27）：唯一权威 + 接入一键分析 + 自检行为正确。
+
+    - S1（09-28 新口径）：抽象构成要件清单「凡符合下列构成要件即属涉嫌疑点」**必须**出现，
+      不再视为违规模板；仅 S2（字段罗列）保留黑名单检测。
+    - 唯一权威 `engine.report_style`（EXPRESSION_PRINCIPLES S1–S6 + check_report_expression）；
+      接入一键分析 `main._apply_report_style_stage`；自检须能抓反例、不误报合规正文。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.report_style import EXPRESSION_PRINCIPLES, check_report_expression
+    except Exception as exc:
+        return [("ERROR", "engine/report_style.py", f"表达风格唯一权威缺失: {exc}")]
+    keys = {p.get("key") for p in EXPRESSION_PRINCIPLES}
+    for k in ("S1", "S2", "S3", "S4", "S5", "S6"):
+        if k not in keys:
+            issues.append(("ERROR", "engine/report_style.py", f"表达特点缺少 {k}"))
+    try:
+        main_src = _read(ROOT / "main.py")
+    except Exception:
+        main_src = ""
+    if "_apply_report_style_stage" not in main_src:
+        issues.append(("ERROR", "main.py", "一键分析未接入报告表达风格自检（_apply_report_style_stage）"))
+    # 行为：反例必抓（S2 字段罗列仍须捕获；抽象构成要件清单已不再视为违规）
+    bad2 = check_report_expression({"a": "涉嫌方向：x｜本项结论：y｜判断可信度：z"})
+    if not any(v["severity"] == "ERROR" and v["principle"] == "S2" for v in bad2):
+        issues.append(("ERROR", "engine/report_style.py", "自检未捕获字段罗列（S2）"))
+    # 行为：合规正文不得误报（含抽象构成要件清单 + 本企业事实均不应被标记）
+    good = check_report_expression({"a": "经检查，本企业触发税务风险指标，涉嫌通过红冲调节销项税额。"
+                                         "该风险指标不因行业而变，凡符合下列构成要件即属涉嫌疑点："
+                                         "① 大额红冲发票未按规定冲减销项税额。"})
+    if any(v["severity"] == "ERROR" for v in good):
+        issues.append(("ERROR", "engine/report_style.py", "自检误报合规正文（含抽象要件清单）"))
+    # 行为：含循环引用也必须能完成（报告对象含环，遍历一律不得递归）
+    try:
+        _a = {"t": "涉嫌方向：p｜本项结论：q｜判断可信度：r"}
+        _b = {"p": _a}
+        _a["c"] = _b
+        _v = check_report_expression({"x": _a, "y": [_b]})
+        if not any(v["severity"] == "ERROR" and v["principle"] == "S2" for v in _v):
+            issues.append(("ERROR", "engine/report_style.py", "自检在循环引用场景未完成（或未捕获反例）"))
+    except RecursionError as exc:  # pragma: no cover
+        issues.append(("ERROR", "engine/report_style.py", f"自检遍历仍会爆栈: {exc}"))
+    return issues
+
+
+def check_constituent_traceability() -> List[Tuple[str, str, str]]:
+    """「构成要件」必须可被各判定来源追溯（用户 2026-09-27 选 A：收敛为单一权威）。
+
+    - 红线库 `tax_redlines` 是**唯一要件表**（要件齐全，如 RL-VAT-007 须含"大额红冲"第⑤条）；
+    - 各判定来源（域 / 发票模式检测器 / VR 规则）必须声明 `constituent_hits[].index`（命中第几条）；
+    - 红线归并处必须**合并**各来源命中；报告只列命中要件（见 `check_risk_item_section_wording`）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    for rel, why in (("engine/domain_analysis.py", "域判定"),
+                     ("engine/invoice_pattern_detector.py", "发票模式检测器"),
+                     ("engine/verified_rule_engine.py", "VR 规则")):
+        try:
+            src = _read(ROOT / rel)
+        except Exception:
+            src = ""
+        if "constituent_hits" not in src:
+            issues.append(("ERROR", rel, f"{why}未声明 constituent_hits（要件命中不可追溯）"))
+    try:
+        re_src = _read(ROOT / "engine/redline_engine.py")
+    except Exception:
+        re_src = ""
+    if "_constituent_hits" not in re_src:
+        issues.append(("ERROR", "engine/redline_engine.py", "红线归并处未合并各来源的要件命中"))
+    try:
+        from engine.tax_redlines import REDLINES
+        _rl = [r for r in REDLINES if r.get("id") == "RL-VAT-007"]
+        _cons = list((_rl[0].get("constituents") or [])) if _rl else []
+        if len(_cons) < 5 or not any(("偏大" in str(c) or "跨年度" in str(c)) for c in _cons):
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           "RL-VAT-007 要件表未补全（应含「跨年度/显著偏大红冲」第⑤条）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/tax_redlines.py", f"要件表检查异常: {exc}"))
+    return issues
+
+
+def check_constituent_no_threshold() -> List[Tuple[str, str, str]]:
+    """构成要件**不得含自设数值阈值**（用户 2026-09-27：不要阈值，存在即触发）。
+
+    区分两类（这点很重要）：
+      - **自设阈值**（"达到X万元以上""占比X%以上""X家以上""70%以上""连续6个月及以上"等）→ **必须清零**；
+      - **法定标准**（法定扣除限额、法定结转年限、2:1 债资比、1000 元结算起点、可清算标准、查账征收标准）→
+        **必须保留**（那是法律规定，不是系统拍脑袋），故含"法定/规定/限额/结转年限/结算起点/…"者豁免。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import REDLINES
+    except Exception as exc:
+        return [("ERROR", "engine/tax_redlines.py", f"红线库加载失败: {exc}")]
+    num = re.compile(
+        r"(?:\d+(?:\.\d+)?\s*(?:万元|亿元|元|%|家|个月|年|张|笔)?\s*(?:以上|以下))"
+        r"|(?:达到|超过|大于|小于)\s*\d+(?:\.\d+)?\s*(?:万元|亿元|元|%)"
+    )
+    legal = ("法定", "规定", "限额", "结转年限", "结算起点", "可清算标准",
+             "查账征收", "扣除限额", "2:1", "起征点")
+    for r in REDLINES:
+        for i, c in enumerate((r.get("constituents") or []), 1):
+            cs = str(c)
+            if num.search(cs) and not any(k in cs for k in legal):
+                issues.append(("ERROR", "engine/tax_redlines.py",
+                               f"{r.get('id')} #{i} 仍含**自设**数值阈值：{cs[:70]}"))
+    return issues
+
+
+def check_constituent_exemption_coverage() -> List[Tuple[str, str, str]]:
+    """每条红线都必须有"豁免/正当理由"类要件（否则只有入罪口、没有出罪口，易误判）。
+
+    ★ 豁免要件**不得套空话模板**（"无合理解释"），应取该红线自带的 `justifications`
+      （正当理由清单）生成具体条目——见 `scripts/_add_constituent_exemptions.py`。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import REDLINES
+    except Exception as exc:
+        return [("ERROR", "engine/tax_redlines.py", f"红线库加载失败: {exc}")]
+    keys = ("解释", "豁免", "合理", "正当", "无合理", "无法", "不属于", "非个人", "合法")
+    miss = [r.get("id") for r in REDLINES
+            if not any(any(k in str(c) for k in keys) for c in (r.get("constituents") or []))]
+    for rid in miss:
+        issues.append(("ERROR", "engine/tax_redlines.py",
+                       f"{rid} 缺少「豁免/正当理由」类要件（须用其 justifications 生成）"))
+    return issues
+
+
+def check_default_hit_index_valid() -> List[Tuple[str, str, str]]:
+    """逐条判定兜底映射 `_DEFAULT_HIT_INDEX`（engine/redline_engine.py）完整性自检。
+
+    该映射把"未显式附 constituent_hits 的红线"按 constituents 序号兜底补齐，使报告 (A)+(B) 闭环。
+    若 constituents 被重排号、增删，或映射指向「豁免/正当」出罪要件（命中位点不能是出罪口），
+    则该兜底会产出错误证据。本检查静态锁死：① 红线 id 必须存在 ② 序号在 [1, len(constituents)]
+    ③ 序号不得指向豁免/正当类出罪要件。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import REDLINES
+        from engine.redline_engine import _DEFAULT_HIT_INDEX
+    except Exception as exc:
+        return [("ERROR", "engine/redline_engine.py", f"_DEFAULT_HIT_INDEX 加载失败: {exc}")]
+    by_id = {r["id"]: r for r in REDLINES}
+    exempt_keys = ("不属于", "豁免", "正当情形", "非个人", "合法")
+    for rid, idxs in _DEFAULT_HIT_INDEX.items():
+        if rid not in by_id:
+            issues.append(("ERROR", "engine/redline_engine.py",
+                           f"_DEFAULT_HIT_INDEX 含不存在的红线 id: {rid}"))
+            continue
+        cons = by_id[rid].get("constituents") or []
+        n = len(cons)
+        if not isinstance(idxs, list) or not idxs:
+            issues.append(("ERROR", "engine/redline_engine.py",
+                           f"{rid} 的兜底序号非法（须为非负整数列表）: {idxs!r}"))
+            continue
+        for i in idxs:
+            if not isinstance(i, int) or i < 1 or i > n:
+                issues.append(("ERROR", "engine/redline_engine.py",
+                               f"{rid} 兜底序号越界: 第{i}项（constituents 共 {n} 项）"))
+                continue
+            c_text = str(cons[i - 1])
+            if any(k in c_text for k in exempt_keys):
+                issues.append(("ERROR", "engine/redline_engine.py",
+                               f"{rid} 兜底序号指向出罪要件（不得作为命中证据）: 第{i}项「{c_text}」"))
+    return issues
+
+
+def check_justification_scenario_coverage() -> List[Tuple[str, str, str]]:
+    """justifications（正当理由/反证，论证链 rebuttals 维度）与 constituents 新场景「对称扩充」锁。
+
+    上一轮为 constituents 追加了 70 个「新涉嫌场景」（_enrich_constituents），但 justifications 未动；
+    随后 _enrich_justifications 为每条新场景补了一条对应出证反证，使 justifications 总数 228 -> 298。
+    本检查静态锁死：① 每条红线的 justifications 条数 = 基线(ORIG_J) + 该线新增数；② 全局 298；
+    ③ 任何红线 justifications 不得为空。反向验证：临时把某红线 justifications 删一条 -> 报 ERROR。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import REDLINES
+    except Exception as exc:
+        return [("ERROR", "engine/tax_redlines.py", f"红线库加载失败: {exc}")]
+    # 基线：_enrich_justifications 扩充前每条红线 justifications 条数
+    ORIG_J = {"RL-VAT-001": 4, "RL-VAT-002": 4, "RL-VAT-003": 3, "RL-VAT-004": 3,
+              "RL-VAT-005": 3, "RL-VAT-006": 3, "RL-VAT-007": 3, "RL-INC-001": 4,
+              "RL-INC-002": 3, "RL-INC-003": 3, "RL-INC-004": 3, "RL-COST-001": 3,
+              "RL-COST-002": 3, "RL-COST-003": 3, "RL-COST-004": 4, "RL-COST-005": 3,
+              "RL-FUND-001": 3, "RL-FUND-002": 3, "RL-FUND-003": 3, "RL-FUND-004": 2,
+              "RL-FUND-005": 3, "RL-FUND-006": 3, "RL-INV-001": 3, "RL-INV-002": 3,
+              "RL-INV-003": 3, "RL-PAY-001": 5, "RL-PAY-002": 3, "RL-PAY-003": 3,
+              "RL-PAY-004": 3, "RL-CIT-001": 3, "RL-CIT-002": 3, "RL-CIT-003": 3,
+              "RL-CIT-004": 3, "RL-PTY-001": 5, "RL-PTY-002": 7, "RL-PTY-003": 3,
+              "RL-PTY-004": 3, "RL-PTY-005": 3, "RL-AST-001": 3, "RL-AST-002": 3,
+              "RL-AST-003": 3, "RL-OTH-001": 3, "RL-OTH-002": 3, "RL-OTH-003": 2,
+              "RL-SPT-001": 4, "RL-SPT-002": 4, "RL-SPT-003": 4, "RL-SPT-004": 4,
+              "RL-SPT-005": 4, "RL-SPT-006": 5, "RL-SPT-007": 5, "RL-SPT-008": 4,
+              "RL-SPT-009": 5, "RL-SPT-010": 4, "RL-SPT-011": 4, "RL-CIT-005": 3,
+              "RL-CIT-006": 3, "RL-PAY-005": 3, "RL-PAY-006": 3, "RL-OTH-004": 3,
+              "RL-OTH-005": 3, "RL-VAT-008": 3, "RL-VAT-009": 3, "RL-COST-006": 3,
+              "RL-CIT-007": 3, "RL-VAT-010": 3, "RL-VAT-011": 3, "RL-OTH-006": 3}
+    # 各红线新增反证数（与 _enrich_constituents.EXTRA 一一对应；VAT-001/002 各 2，其余 1）
+    def _new(rid):
+        return 2 if rid in ("RL-VAT-001", "RL-VAT-002") else 1
+    by_id = {r["id"]: r for r in REDLINES}
+    total = 0
+    for rid in ORIG_J:
+        if rid not in by_id:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           f"check_justification_scenario_coverage 基线含不存在红线: {rid}"))
+            continue
+        jl = by_id[rid].get("justifications") or []
+        total += len(jl)
+        exp = ORIG_J[rid] + _new(rid)
+        if len(jl) != exp:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           f"{rid} justifications 期望 {exp} 条（基线 {ORIG_J[rid]} + 新增 {_new(rid)}），实际 {len(jl)} 条"))
+    for r in REDLINES:
+        if not (r.get("justifications") or []):
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           f"{r.get('id')} justifications 为空"))
+    if total != 298:
+        issues.append(("ERROR", "engine/tax_redlines.py",
+                       f"justifications 总条数期望 298，实际 {total}"))
+    return issues
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# B3 法条时效闸门：红线引用的法律依据必须落在「有效文件清单」内；
+#     引用已废止文件 → ERROR；引用清单外未核验文件 → WARN（强制新引用先入清单）。
+# ─────────────────────────────────────────────────────────────────────────────
+def check_legal_basis_freshness() -> List[Tuple[str, str, str]]:
+    """法律依据时效自检（B3，2026-09-28）。
+
+    单一权威：KNOWN_VALID_DOCS 是经人工核验仍有效的文件清单（含 3 个较旧但仍有效文件：
+    国税发〔2006〕187号 土增清算、国税发〔2008〕30号 核定征收、公告2011年第25号 资产损失）。
+    REPEALED_DOCS 是确认已废止文件（引用即误用法律，ERROR）。
+    新增红线若引用清单外文件 → WARN，强制先把它加入 KNOWN_VALID_DOCS（防退化）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import REDLINES
+    except Exception as exc:
+        return [("ERROR", "engine/tax_redlines.py", f"红线库加载失败: {exc}")]
+    # ★ 有效文件清单（单一权威，新增引用须先入此表）
+    KNOWN_VALID_DOCS = {
+        "个人所得税法", "个人所得税法实施条例", "中华人民共和国企业所得税法",
+        "中华人民共和国企业所得税法实施条例", "中华人民共和国发票管理办法",
+        "中华人民共和国土地增值税暂行条例", "中华人民共和国增值税暂行条例",
+        "中华人民共和国契税法", "中华人民共和国海关法", "中华人民共和国消费税暂行条例",
+        "中华人民共和国环境保护税法", "中华人民共和国税收征收管理法",
+        "中华人民共和国资源税法", "中华人民共和国进出口关税条例",
+        "人民币银行结算账户管理办法", "企业会计准则——基本准则", "企业所得税核定征收办法",
+        "企业所得税法", "企业所得税法实施条例", "企业所得税税前扣除凭证管理办法",
+        "会计法", "住房公积金管理条例", "关于规范个人投资者个人所得税征收管理的通知",
+        "出口货物退（免）税管理办法", "印花税法", "发票管理办法",
+        "国家税务总局公告2011年第25号", "国家税务总局公告2014年第39号",
+        "国家税务总局公告2014年第67号", "国家税务总局公告2018年第28号",
+        "国家税务总局公告2019年第38号", "财税〔2008〕121号",
+        "国家税务总局关于房地产开发企业土地增值税清算管理有关问题的通知",
+        "国税发〔2006〕187号", "国税发〔2008〕30号", "城市维护建设税法",
+        "城镇土地使用税暂行条例", "增值税专用发票使用规定", "增值税暂行条例",
+        "增值税暂行条例实施细则", "征收教育费附加的暂行规定", "房产税暂行条例",
+        "现金管理暂行条例", "社会保险法", "税收征收管理法", "税目税率表",
+        "股权转让所得个人所得税管理办法（试行）", "营业税改征增值税试点实施办法",
+        "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知",
+        "财政部 税务总局公告2023年第7号", "车船税法", "车船税法实施条例",
+    }
+    # ★ 已废止文件（引用即 ERROR）
+    REPEALED_DOCS = {
+        "《中华人民共和国农业税条例》",  # 2006-01-01 起废止
+    }
+    import re as _re
+    pat = _re.compile(
+        r'《([^》]+)》|'
+        r'(国家税务总局公告\d{4}年第\d+号)|(国税发〔\d{4}〕\d+号)|'
+        r'(国税函〔\d{4}〕\d+号)|(财政部 税务总局公告\d{4}年第\d+号)|'
+        r'(中华人民共和国\w+法\w*)')
+    for r in REDLINES:
+        rid = r.get("id")
+        for lb in (r.get("legal_basis") or []):
+            found = set()
+            for m in pat.findall(str(lb)):
+                for g in m:
+                    if g:
+                        found.add(g)
+            if not found:
+                continue
+            for d in found:
+                if d in REPEALED_DOCS:
+                    issues.append(("ERROR", "engine/tax_redlines.py",
+                                   f"{rid} 引用已废止文件：{d}"))
+                elif d not in KNOWN_VALID_DOCS:
+                    issues.append(("WARN", "engine/tax_redlines.py",
+                                   f"{rid} 引用清单外未核验文件「{d}」，须先加入 KNOWN_VALID_DOCS"))
+    return issues
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# B2 行业基准可解析闸门：BENCHMARK_REFS 登记的指标必须在 industry_data.json 中真实存在。
+# ─────────────────────────────────────────────────────────────────────────────
+def check_benchmark_refs_resolvable() -> List[Tuple[str, str, str]]:
+    """红线→行业基准指标登记可解析自检（B2，2026-09-28）。
+
+    凡在 engine/redline_benchmark.BENCHMARK_REFS 登记的红线，其指标必须落在
+    industry_data.json 的 6 个基准指标键内，否则运行时解析会落空、报告出现空基准。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.redline_benchmark import BENCHMARK_REFS, metric_keys
+        from engine.tax_redlines import REDLINES
+    except Exception as exc:
+        return [("ERROR", "engine/redline_benchmark.py", f"基准模块加载失败: {exc}")]
+    valid = set(metric_keys())
+    by_id = {r["id"]: r for r in REDLINES}
+    for rid, metric in BENCHMARK_REFS.items():
+        if rid not in by_id:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           f"BENCHMARK_REFS 含不存在的红线: {rid}"))
+        if metric not in valid:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           f"{rid} 登记的指标「{metric}」不在 industry_data.json 指标键内（合法: {sorted(valid)}）"))
+    return issues
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# C2 反证对齐闸门：论证链 justifications（反证）须与证据链 evidence_chain 的
+#     role=="反证" 条目对齐，否则置信度不会被正当理由正确调整（误判风险）。
+# ─────────────────────────────────────────────────────────────────────────────
+def check_rebuttal_coverage() -> List[Tuple[str, str, str]]:
+    """反证（正当理由）双链对齐自检（C2，2026-09-28）。
+
+    论证链 rebuttals 来自 redline['justifications']；置信度修正
+    `confidence -= 0.20 * rebuttal_ratio` 来自 evidence_chain 的 role=='反证' 元素。
+    二者必须对得上：justifications 非空却无 evidence_chain 反证条目 → 反证永不"已提交"，
+    置信度被错误抬高（漏调）。反之 evidence_chain 有反证但 justifications 空 → 自相矛盾。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import REDLINES
+    except Exception as exc:
+        return [("ERROR", "engine/tax_redlines.py", f"红线库加载失败: {exc}")]
+    for r in REDLINES:
+        rid = r.get("id")
+        jn = len(r.get("justifications") or [])
+        ev_rebut = sum(1 for e in (r.get("evidence_chain") or [])
+                       if isinstance(e, dict) and e.get("role") == "反证")
+        if jn > 0 and ev_rebut == 0:
+            issues.append(("WARN", "engine/tax_redlines.py",
+                           f"{rid} 有 {jn} 条 justifications（反证）但 evidence_chain 无 role='反证' 条目"
+                           f"——置信度不会被正当理由下调，存在误判偏高风险"))
+        elif jn == 0 and ev_rebut > 0:
+            issues.append(("WARN", "engine/tax_redlines.py",
+                           f"{rid} evidence_chain 有 {ev_rebut} 条反证但 justifications 为空——双链不一致"))
+    return issues
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# D 红线准入闸门 + 盲区审计：新增红线必须字段齐全、末项出罪、且可达（有检测器或登记兜底）。
+# ─────────────────────────────────────────────────────────────────────────────
+def _scan_declared_detectors() -> set:
+    """扫描 engine/ + scripts/ + main.py，找出源码中显式声明 redline_id 的红线（真实检测器）。"""
+    import os as _os, ast as _ast
+    _root = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    _files = []
+    for _base in (_os.path.join(_root, "engine"), _os.path.join(_root, "scripts")):
+        if _os.path.isdir(_base):
+            for _fn in _os.listdir(_base):
+                if _fn.endswith(".py"):
+                    _files.append(_os.path.join(_base, _fn))
+    _mp = _os.path.join(_root, "main.py")
+    if _os.path.isfile(_mp):
+        _files.append(_mp)
+    _ids = set()
+    _pat = re.compile(r'redline_id["\']?\s*[:=]\s*["\'](RL-[A-Z0-9-]+)["\']')
+    for _fp in _files:
+        try:
+            _txt = open(_fp, encoding="utf-8").read()
+        except Exception:
+            continue
+        for _m in _pat.finditer(_txt):
+            _ids.add(_m.group(1))
+    return _ids
+
+
+def check_redline_admission() -> List[Tuple[str, str, str]]:
+    """红线准入 + 盲区审计（D，2026-09-28）。
+
+    红线准入模板（新增红线必须逐项满足，否则 ERROR）：
+      ① constituents 非空，且末项为「出罪/豁免/正当」要件（与 check_constituent_exemption_coverage 同源）；
+      ② justifications 非空（出证口/反证）；
+      ③ required_materials / legal_basis / remedy / match_hints 均非空。
+    可达性（防退化，盲区审计）：
+      ④ 红线须「可达」：有源码检测器（redline_id 声明）或登记于 _DEFAULT_HIT_INDEX 兜底；
+         二者皆无且 match_hints 为空 → ERROR（不可达，永远死红线）；
+         二者皆无但有 match_hints → WARN（依赖 match_redline_grounded 软匹配，盲区待核）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import REDLINES
+        from engine.redline_engine import _DEFAULT_HIT_INDEX
+    except Exception as exc:
+        return [("ERROR", "engine/tax_redlines.py", f"红线库/引擎加载失败: {exc}")]
+    detectors = _scan_declared_detectors()
+    exempt_keys = ("不属于", "豁免", "正当情形", "非个人", "合法", "无合理", "无法")
+    blind = []
+    for r in REDLINES:
+        rid = r.get("id")
+        cons = r.get("constituents") or []
+        if not cons:
+            issues.append(("ERROR", "engine/tax_redlines.py", f"{rid} constituents 为空"))
+        elif not any(k in str(cons[-1]) for k in exempt_keys):
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           f"{rid} 末项构成要件非出罪要件：{str(cons[-1])[:60]}"))
+        if not (r.get("justifications") or []):
+            issues.append(("ERROR", "engine/tax_redlines.py", f"{rid} justifications 为空"))
+        for f in ("required_materials", "legal_basis", "remedy", "match_hints"):
+            if not (r.get(f) or []):
+                issues.append(("ERROR", "engine/tax_redlines.py", f"{rid} 字段 {f} 为空"))
+        # 可达性
+        has_det = rid in detectors
+        has_fallback = rid in _DEFAULT_HIT_INDEX
+        has_hints = bool(r.get("match_hints") or [])
+        if not has_det and not has_fallback:
+            if not has_hints:
+                issues.append(("ERROR", "engine/tax_redlines.py",
+                               f"{rid} 不可达：既无检测器也未登记兜底且无 match_hints（死红线）"))
+            else:
+                blind.append(rid)
+    if blind:
+        issues.append(("WARN", "engine/redline_engine.py",
+                       f"盲区红线（无检测器/兜底，依赖 match_redline_grounded 软匹配，须实测确认能命中）"
+                       f"共 {len(blind)} 条：{', '.join(blind)}"))
+    return issues
+
+
+def check_combo_profile_logic() -> List[Tuple[str, str, str]]:
+    """C3 风险组合画像逻辑锁定（2026-09-29）。
+
+    组合画像机制约束（违反即 ERROR）：
+      ① 四类业务轴映射（PTY/INC/FUND/COST）存在且前缀非空、唯一；
+      ② 轴映射仅覆盖四族红线前缀，非四族红线（如 RL-VAT-*/RL-INV-*）不计入组合；
+      ③ 触发条件：≥2 个业务轴同时出现「未排除」疑点才生成画像；单轴、或全排除 → 不生成；
+      ④ 等级推导：三轴及以上、或任一已定性 → 高风险；否则中风险；
+      ⑤ 组合画像不是独立红线：combo_id「RL-COMBO」不得存在于红线库，
+         不得虚增 redline_total（否则会污染「68→74」等权威计数）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.redline_engine import (
+            _COMBO_AXES, _combo_axis_of, _build_combo_profiles,
+            _VERDICT_EXCLUDED, _VERDICT_CONFIRMED, _VERDICT_HIT_PENDING,
+        )
+        from engine.tax_redlines import get_redline, stats as redline_stats
+    except Exception as exc:
+        return [("ERROR", "engine/redline_engine.py", f"组合画像模块加载失败: {exc}")]
+
+    # ① 四轴完整性 + 前缀唯一
+    _expected_axes = {"PTY", "INC", "FUND", "COST"}
+    if set(_COMBO_AXES.keys()) != _expected_axes:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       f"_COMBO_AXES 轴集合应为 {_expected_axes}，实为 {set(_COMBO_AXES.keys())}"))
+    _prefixes = [v.get("prefix") for v in _COMBO_AXES.values()]
+    if any(not p for p in _prefixes):
+        issues.append(("ERROR", "engine/redline_engine.py", "_COMBO_AXES 存在空前缀"))
+    if len(_prefixes) != len(set(_prefixes)):
+        issues.append(("ERROR", "engine/redline_engine.py", "_COMBO_AXES 前缀重复"))
+
+    # ② 轴映射仅覆盖四族；取一条非四族红线验证返回 None
+    if _combo_axis_of("RL-VAT-001") is not None:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "_combo_axis_of 误将非四族红线(RL-VAT-001)归入业务轴"))
+    for _ax, _meta in _COMBO_AXES.items():
+        if _combo_axis_of(_meta["prefix"] + "X") != _ax:
+            issues.append(("ERROR", "engine/redline_engine.py",
+                           f"_combo_axis_of 未将 {_meta['prefix']} 归入 {_ax}"))
+
+    def _sus(rid, verdict, conf=0.6):
+        return {"redline_id": rid, "redline_name": rid,
+                "verdict": verdict, "confidence": conf, "taxes": ["增值税"]}
+
+    # ③ 触发条件
+    if _build_combo_profiles([]) != []:
+        issues.append(("ERROR", "engine/redline_engine.py", "空疑点应返回空组合画像"))
+    if _build_combo_profiles([_sus("RL-PTY-002", _VERDICT_HIT_PENDING)]) != []:
+        issues.append(("ERROR", "engine/redline_engine.py", "单业务轴疑点不应触发组合画像"))
+    _two_excluded = _build_combo_profiles([
+        _sus("RL-PTY-002", _VERDICT_EXCLUDED), _sus("RL-FUND-001", _VERDICT_EXCLUDED)])
+    if _two_excluded != []:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "两轴但全部排除不应触发组合画像"))
+
+    _two = _build_combo_profiles([
+        _sus("RL-PTY-002", _VERDICT_HIT_PENDING), _sus("RL-FUND-001", _VERDICT_HIT_PENDING)])
+    if len(_two) != 1 or set(_two[0]["axes"]) != {"PTY", "FUND"}:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "两轴未排除疑点应生成 1 条且含 PTY/FUND 的组合画像"))
+
+    # ④ 等级推导
+    _three = _build_combo_profiles([
+        _sus("RL-PTY-002", _VERDICT_HIT_PENDING), _sus("RL-FUND-001", _VERDICT_HIT_PENDING),
+        _sus("RL-COST-001", _VERDICT_HIT_PENDING)])
+    if _three[0]["level"] != "高风险" or _three[0]["axis_count"] != 3:
+        issues.append(("ERROR", "engine/redline_engine.py", "三轴组合应判为高风险"))
+    _confirmed_combo = _build_combo_profiles([
+        _sus("RL-PTY-002", _VERDICT_CONFIRMED), _sus("RL-INC-001", _VERDICT_HIT_PENDING)])
+    if _confirmed_combo[0]["level"] != "高风险":
+        issues.append(("ERROR", "engine/redline_engine.py", "含已定性红线的组合应判为高风险"))
+    if _two[0]["level"] != "中风险":
+        issues.append(("ERROR", "engine/redline_engine.py", "两轴无已定性应判为中风险"))
+
+    # 排除项不计入贡献红线
+    _mix = _build_combo_profiles([
+        _sus("RL-PTY-002", _VERDICT_HIT_PENDING), _sus("RL-FUND-001", _VERDICT_EXCLUDED),
+        _sus("RL-COST-001", _VERDICT_HIT_PENDING)])
+    if len(_mix) != 1 or set(_mix[0]["axes"]) != {"PTY", "COST"}:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "组合应包含未排除轴、剔除已排除轴"))
+
+    # ⑤ 组合画像不是独立红线，不得虚增红线库
+    if get_redline("RL-COMBO") is not None:
+        issues.append(("ERROR", "engine/tax_redlines.py",
+                       "RL-COMBO 不应存在于红线库（组合画像非独立红线）"))
+    _pre = redline_stats().get("total")
+    # 端到端：run_redline_detection 不应改变红线总数、且 summary 含 combo_profiles
+    try:
+        from engine.redline_engine import run_redline_detection
+        _res = run_redline_detection(
+            [{"redline_id": "RL-PTY-002", "type": "x", "level": "中风险", "detail": "d"},
+             {"redline_id": "RL-FUND-001", "type": "y", "level": "中风险", "detail": "d"},
+             {"redline_id": "RL-COST-003", "type": "z", "level": "中风险", "detail": "d"}],
+            engine_data={},
+            material_readiness={"provided": [
+                "银行流水", "进项发票", "销项发票", "记账凭证", "科目余额表", "资产负债表",
+                "利润表", "增值税申报表", "企业所得税申报表", "个税申报表", "工资表",
+                "社保明细", "进销存台账", "合同文件", "其他税种申报表"]})
+        if "combo_profiles" not in _res.get("summary", {}):
+            issues.append(("ERROR", "engine/redline_engine.py",
+                           "run_redline_detection.summary 缺少 combo_profiles 字段"))
+        if _res["summary"].get("redline_total") != _pre:
+            issues.append(("ERROR", "engine/redline_engine.py",
+                           "组合画像导致 redline_total 漂移（虚增红线计数）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/redline_engine.py", f"run_redline_detection 组合集成异常: {exc}"))
+    return issues
+
+
+def check_blind_redline_coverage() -> List[Tuple[str, str, str]]:
+    """C4 盲区红线软匹配可达性锁定（2026-09-29）。
+
+    40 条盲区红线（无源码检测器、未登记 _DEFAULT_HIT_INDEX 兜底）只能依赖
+    match_redline_grounded 软匹配命中。本闸门逐一验证：当一条发现携带该红线的
+    名称主词信号、且本轮提供了其 required_materials 时，match_redline_grounded
+    必须命中它。不可达 → 该红线永远是死红线（ERROR），须补检测器/兜底/提示词或剔除。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import REDLINES, match_redline_grounded
+        from engine.redline_engine import _DEFAULT_HIT_INDEX
+        det = _scan_declared_detectors()
+    except Exception as exc:
+        return [("ERROR", "engine/tax_redlines.py", f"盲区可达性校验加载失败: {exc}")]
+
+    for r in REDLINES:
+        rid = r.get("id")
+        if rid in det or rid in _DEFAULT_HIT_INDEX:
+            continue  # 非盲区（有检测器或兜底）
+        hints = r.get("match_hints") or []
+        if not hints:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           f"{rid} 盲区红线无 match_hints（永远不可达，死红线）"))
+            continue
+        title = r.get("name", "")
+        text = title + " " + " ".join(str(h) for h in hints)
+        avail = list(r.get("required_materials") or [])
+        got, info = match_redline_grounded(title, text, avail, domain=r.get("domain"))
+        if got is None or got.get("id") != rid:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           f"{rid} 盲区红线软匹配不可达（命中 {got.get('id') if got else None}）："
+                           f"{info.get('note', '')}"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -2809,7 +3520,22 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_industry_source_integrity()
                + check_cost_industry_basis()
                + check_material_completeness_no_ratio()
-               + check_report_punctuation())
+               + check_report_plain_language()
+               + check_finding_meta_wording()
+               + check_risk_item_section_wording()
+               + check_constituent_traceability()
+               + check_constituent_no_threshold()
+               + check_constituent_exemption_coverage()
+               + check_default_hit_index_valid()
+               + check_justification_scenario_coverage()
+               + check_report_expression_standard()
+               + check_report_punctuation()
+               + check_legal_basis_freshness()        # B3 法条时效
+               + check_benchmark_refs_resolvable()    # B2 行业基准可解析
+               + check_rebuttal_coverage()            # C2 反证对齐
+               + check_redline_admission()            # D 红线准入 + 盲区审计
+               + check_combo_profile_logic()         # C3 风险组合画像逻辑锁定
+               + check_blind_redline_coverage())      # C4 盲区红线软匹配可达性锁定
     return counts, general
 
 

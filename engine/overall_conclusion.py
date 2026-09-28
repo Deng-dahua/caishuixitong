@@ -329,6 +329,22 @@ def build_overall_conclusion(report_data: Any,
             % (cats, files_count)
         )
 
+    # ★ 2026-09-29（C3 风险组合画像）：跨业务轴组合信号 → 总述显式提示多税种联动稽查。
+    _cp_src = ((rd.get("comprehensive", {}) or {})
+               .get("redline_detection", {}) or {}).get("summary", {}) or {}
+    for _cp in (_cp_src.get("combo_profiles") or []):
+        if not isinstance(_cp, dict):
+            continue
+        _labels = "、".join(_cp.get("axis_labels") or [])
+        P.append(
+            "【多税种联动稽查信号】本企业在「%s」等多个业务环节同时触发税务风险指标"
+            "（共 %d 个环节），呈现业务全链条勾稽断裂的系统性异常，而非孤立单点问题。"
+            "建议启动多税种联动稽查：上述疑点指向收入—成本—资金—票据全链条勾稽断裂，"
+            "单一税种核查难以还原事实，应统筹增值税、企业所得税、个人所得税及印花税等"
+            "跨税种联动核查，并重点追查「票流—资金流—货物流—账簿」四流是否一致。"
+            % (_labels, int(_cp.get("axis_count") or 0))
+        )
+
     # 行业与对标
     # ★ 2026-09-26 用户口径：**行业认定不能写得太确定**。区分两件事——
     #   ①「测算口径」可以用销项发票品名（用户认可其贴近实际经营），但必须写明是"初步按…口径测算"；

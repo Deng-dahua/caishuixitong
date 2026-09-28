@@ -20,6 +20,18 @@ _RID_EXPORT = "RL-SPT-008"     # 出口退税四单匹配
 _RID_RELATED = "RL-CIT-001"    # 关联交易异常
 _RID_INCENTIVE = "RL-SPT-011"  # 核定/优惠资格
 
+# ★ 逐条判定：每个外部核验待办对应的「触发要件」序号（命中红线定义的第几条构成要件）。
+#   外部核验项本身只确认"账内出现了需外部数据佐证的信号"，该信号即对应红线的某一构成要件；
+#   指标值随证据一并回传，供报告"一、涉及的风险事项"标注（本企业：证据）。
+_REMINDER_HIT_INDEX = {
+    _RID_SUPPLIER: 2,    # RL-PTY-002 ② 前三大供应商占比较高/单一外省供应商占比较高
+    _RID_FUND: 1,        # RL-FUND-001 ① 公司账户向股东/法定代表人/其亲属个人账户转账情形
+    _RID_RELATED: 1,     # RL-CIT-001  ① 人员/地址/电话/账户重叠的上下游企业
+    _RID_CROSS: 1,       # RL-PTY-004  ① 订单-投料-完工-发货-收入数量闭环断裂
+    _RID_EXPORT: 1,      # RL-SPT-008  ① 报关单/提单/收汇/生产四单未匹配
+    _RID_INCENTIVE: 1,   # RL-SPT-011  ① 核定/优惠资格缺少支撑资料
+}
+
 
 def _safe(v):
     """数值解析（统一实现）。
@@ -53,7 +65,7 @@ def _seller(inv) -> str:
 
 
 def _reminder(name, detail, why, materials, redline_id, indicator, value):
-    return {
+    _d = {
         "type": f"需外部数据核验：{name}",
         # 等级原为未登记值"提示"（会被静默丢弃）；权威词表的"待核验"才是本义
         "level": "待核验",
@@ -71,6 +83,14 @@ def _reminder(name, detail, why, materials, redline_id, indicator, value):
         "indicator": indicator,
         "indicator_value": value,
     }
+    # ★ 逐条判定：把"账内出现的触发信号"对应到红线第几条构成要件，作为（本企业：证据）回传
+    _idx = _REMINDER_HIT_INDEX.get(redline_id)
+    if _idx:
+        _ev = detail
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            _ev = f"{detail}（指标值：{value}）"
+        _d["constituent_hits"] = [{"index": _idx, "evidence": _ev}]
+    return _d
 
 
 def build_external_check_reminders(sal_invs, pur_invs, bank_txs, bs, income, ctx=None):

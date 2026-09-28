@@ -184,7 +184,7 @@ def _check_month_end(sal):
             end_cnt += 1
     share = end_amt / total
     if share >= _MONTH_END_SHARE and end_cnt >= 5:
-        return [_mk(
+        _f = _mk(
             "待核事实：开票金额异常集中在月末",
             "中风险", 6,
             f"{len(dated)}张已开票中，有{end_cnt}张（金额{end_amt:,.2f}元）开具在月末最后{_MONTH_END_DAYS}天，"
@@ -196,7 +196,14 @@ def _check_month_end(sal):
             "《发票管理办法》关于按实际经营业务如实、及时开具发票的规定；《增值税暂行条例》第十九条",
             "核对月末集中开票对应的合同、发货与收款时点，说明开票节奏的业务合理性。",
             "发票行为", "发票-月末集中开票", "RL-PTY-005", "month_end_invoice_share", round(share, 4),
-        )]
+        )
+        # ★ 2026-09-28：逐条判定 RL-PTY-005 第③条要件（开票日期时点异常）
+        _f["constituent_hits"] = [{
+            "index": 3,
+            "evidence": f"{end_cnt} 张已开票（金额 {end_amt:,.2f} 元）集中在月末最后 {_MONTH_END_DAYS} 天，"
+                        f"占可归属开票总额的 {share:.0%}——开票时点异常（是否与业务实际发生期矛盾须核对出库/收款单据）",
+        }]
+        return [_f]
     return []
 
 
@@ -216,7 +223,7 @@ def _check_date_concentration(sal):
     top1 = ordered[0] / total if ordered else 0
     top3 = sum(ordered[:3]) / total if ordered else 0
     if top1 >= _DATE_TOP1_SHARE or top3 >= _DATE_TOP3_SHARE:
-        return [_mk(
+        _f = _mk(
             "待核事实：开票日期高度集中",
             "中风险", 6,
             f"{len(dated)}张已开票分布在{len(by_day)}个开票日，金额最大的1天占{top1:.0%}、"
@@ -228,7 +235,14 @@ def _check_date_concentration(sal):
             "《发票管理办法》关于如实、及时开具发票的规定",
             "提供主要开票日的合同、出库单与收款记录，说明集中开票的业务实质。",
             "发票行为", "发票-开票日期集中度", "RL-PTY-005", "date_concentration_top1_share", round(top1, 4),
-        )]
+        )
+        # ★ 2026-09-28：逐条判定 RL-PTY-005 第③条要件（开票日期时点异常）
+        _f["constituent_hits"] = [{
+            "index": 3,
+            "evidence": f"{len(dated)} 张已开票分布在 {len(by_day)} 个开票日，金额最大的 1 天占 {top1:.0%}、"
+                        f"前 3 天占 {top3:.0%}——开票时点与正常业务节奏不符（是否与业务单据日期矛盾须进一步核对）",
+        }]
+        return [_f]
     return []
 
 
@@ -350,7 +364,7 @@ def _check_input_tax_control(sal, pur):
     ratio = pur_tax / sal_tax
     if ratio >= _INPUT_TAX_RATIO:
         lvl = "高风险" if ratio >= _MIN_MATCH_RATIO else "中风险"
-        return [_mk(
+        _f = _mk(
             "待核事实：进项税额长期大于销项税额",
             lvl, 8 if lvl == "高风险" else 6,
             f"进项税额合计{pur_tax:,.2f}元，销项税额合计{sal_tax:,.2f}元，"
@@ -362,7 +376,14 @@ def _check_input_tax_control(sal, pur):
             "《增值税暂行条例》第八条、第九条（进项税额抵扣与不得抵扣情形）",
             "核实大额留抵的成因（存货积压/在建工程/出口），提供存货与销售台账佐证进销匹配。",
             "增值税", "发票-进项税额控制额", "RL-VAT-002", "input_output_tax_ratio", round(ratio, 4),
-        )]
+        )
+        # ★ 2026-09-28：逐条判定 RL-VAT-002 第②条要件（无对应销项实现的进项税额）
+        _f["constituent_hits"] = [{
+            "index": 2,
+            "evidence": f"进项税额 {pur_tax:,.2f} 元持续大于销项税额 {sal_tax:,.2f} 元（{ratio:.2f} 倍），"
+                        f"形成大额留抵——是否存在对应销项实现须结合存货与销售台账核实",
+        }]
+        return [_f]
     return []
 
 
@@ -430,7 +451,7 @@ def _check_cross_year_red(sal, pur):
     if not hits:
         return []
     total = sum(a for _, a, _ in hits)
-    return [_mk(
+    _f = _mk(
         "待核事实：存在大额红冲/红字发票",
         "中风险", 6,
         f"检测到{len(hits)}张金额较大的红冲/红字发票，合计红冲金额约{total:,.2f}元。",
@@ -441,7 +462,13 @@ def _check_cross_year_red(sal, pur):
         "《发票管理办法》及红字发票开具相关规定；《企业所得税法》关于收入确认期间的规定",
         "逐笔提供红冲原因（退货/折让/开票有误）、原发票信息及对应会计处理，核实红冲依据充分性。",
         "发票行为", "发票-大额红冲", "RL-VAT-007", "large_red_invoice_count", len(hits),
-    )]
+    )
+    # ★ 2026-09-27（A 收敛）：本判定归属 RL-VAT-007 第 ⑤ 条要件（大额红冲）
+    _f["constituent_hits"] = [{
+        "index": 5,
+        "evidence": f"大额红冲 {len(hits)} 张、合计 {total:,.2f} 元（单张 ≥ {_CROSS_YEAR_AMT:,.0f} 元）",
+    }]
+    return [_f]
 
 
 def detect_invoice_patterns(sal_invs, pur_invs, ctx=None, tax_declarations=None):

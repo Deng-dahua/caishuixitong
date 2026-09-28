@@ -43,6 +43,28 @@ GRADE_CONFIRMED = "已核定"
 GRADE_PENDING = "待核"
 GRADE_EXCLUDED = "已排除"
 
+
+# ── 置信度模型权重（2026-09-29 外置可配）──────────────────────────────────────
+# 原硬编码于 build_argumentation 内（0.50/0.25/0.10/±0.08/±0.05/−0.20），现统一收敛为
+# 单一权威配置，便于回测调参、避免散落多处导致同一模型两套权重。
+# 语义（逐项可解释，不靠拍脑袋）：
+#   base                —— 触红即有的基础置信（有法定情形需核实）；
+#   closure             —— 证据链闭合度每提升 1.0 的加权（材料越齐越可信）；
+#   data_completeness   —— 线索链数据完整度每提升 1.0 的加权；
+#   high_risk / low_risk—— 风险等级对置信的微调（高则+ / 低则−）；
+#   rebuttal_ratio      —— 反证提交比例每提升 1.0 的加权（**为负**：企业提交正当理由
+#                          证据越充分，疑点置信越应下调，防误判偏高风险）。
+# 设计约束：base + closure(=1) + data(=1) ≈ 1.0（证据与数据全齐时接近满置信），
+#          高风险的 +0.08 不应突破 0.95 上界（下方 clamp）。
+CONFIDENCE_WEIGHTS: Dict[str, float] = {
+    "base": 0.50,
+    "closure": 0.25,
+    "data_completeness": 0.10,
+    "high_risk": 0.08,
+    "low_risk": -0.05,
+    "rebuttal_ratio": -0.20,
+}
+
 # 数据源标识 → 中文名（论证叙述「线索链」用，避免 salaries 等英文标识进入报告正文）
 # 与 enterprise_report._SOURCE_LABELS 保持一致；长键在前，避免 inventory 抢先命中 inventory_ledger。
 _SOURCE_ZH = [
@@ -146,15 +168,16 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
     rebuttal_supported = sum(1 for e in rebuttal_elements if e.get("status") == "已提交")
     rebuttal_ratio = (rebuttal_supported / len(rebuttal_elements)) if rebuttal_elements else 0.0
 
-    # 置信度模型（不靠拍脑袋，逐项可解释）
-    confidence = 0.50
-    confidence += 0.25 * closure
-    confidence += 0.10 * data_completeness
+    # 置信度模型（不靠拍脑袋，逐项可解释；权重外置，见 CONFIDENCE_WEIGHTS 可配）
+    w = CONFIDENCE_WEIGHTS
+    confidence = w["base"]
+    confidence += w["closure"] * closure
+    confidence += w["data_completeness"] * data_completeness
     if "高风险" in level:
-        confidence += 0.08
+        confidence += w["high_risk"]
     elif "低风险" in level:
-        confidence -= 0.05
-    confidence -= 0.20 * rebuttal_ratio
+        confidence += w["low_risk"]
+    confidence += w["rebuttal_ratio"] * rebuttal_ratio
     confidence = round(max(0.05, min(0.95, confidence)), 2)
 
     # ── 第一层：是否触红（客观判断） ──
@@ -223,8 +246,10 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
         if s and s not in next_actions:
             next_actions.append(s)
 
-    # 触红后置信度下限 0.60：既然符合构成要件，就不能因证据未齐而说成「没把握」
-    if redline_hit:
+    # 触红后置信度下限 0.60：既然符合构成要件，就不能因证据未齐而说成「没把握」。
+    # ★ 但被有效反证排除（rebuttal_ratio≥0.5 且闭合度不足 → 已判 EXCLUDED）的红线，
+    #   其低置信是"正当理由成立"的真实反映，不得被地板顶回 0.60，否则反证机制被掩盖。
+    if redline_hit and verdict != _VERDICT_EXCLUDED:
         confidence = round(max(0.60, min(0.95, confidence)), 2)
 
     # 把"本项文本命中的资料"前置（去重，不删既有需求）
@@ -246,6 +271,9 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
         "suspect": redline.get("suspect", ""),
         "legal_basis": list(redline.get("legal_basis") or []),
         "constituents": list(redline.get("constituents") or []),
+        # ★ 2026-09-27：本企业**实际涉及**的构成要件（由域逐条判定后带出；只列命中的）。
+        #   企业报告「一、涉及的风险事项」优先采用它（不再罗列通用要件清单）。
+        "constituent_hits": list(finding.get("constituent_hits") or []),
         "grounds": grounds,
         "rebuttals": rebuttals,
         "rebuttal_tests": rebuttal_tests,

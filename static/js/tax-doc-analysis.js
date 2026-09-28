@@ -5031,12 +5031,14 @@ function _crdMoney(v){
 }
 
 /* ★ 2026-09-27（P1）：潜在税额影响（测算）——单条疑点的元信息 */
-function _taxImpactMeta(item){
+/* ★ 2026-09-27（用户改写口径）：返回**不带前缀分隔符**的潜在税额影响语句，
+   供自然句式拼接（原「｜潜在税额影响…」的逐字段罗列已废弃）。 */
+function _taxImpactText(item){
   var ti = item && item.tax_impact;
   if (!ti) return '';
-  if (!ti.available) return '｜潜在税额影响：未量化（缺明确金额，须补资料后测算）';
+  if (!ti.available) return '潜在税额影响：未量化（缺明确金额，须补资料后测算）';
   var parts = (ti.items || []).map(function(x){ return esc(x.tax) + '≈' + _crdMoney(x.amount) + '元'; });
-  return '｜潜在税额影响（测算）：' + parts.join('、') + '，合计≈' + _crdMoney(ti.total) + '元';
+  return '潜在税额影响（测算）：' + parts.join('、') + '，合计≈' + _crdMoney(ti.total) + '元';
 }
 
 /* ★ 2026-09-27（P1）：本轮潜在税额敞口汇总块 */
@@ -5478,8 +5480,10 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   // ★ 2026-09-27（用户要求通俗化）：给非财税背景的负责人一份"阅读提示"，解释最易看不懂的术语
   html += '<p class="i2" style="background:#fffbeb;border-left:3px solid #d97706;padding:9px 12px;line-height:2;font-size:13px">'
     + '<strong>阅读提示：</strong>①「触碰税务违规红线」＝该项出现了税法明文禁止的情形，需要核实，'
-    + '但<strong>不等于已经被认定为违法</strong>；②「判断可信度」＝我们分析认为该结论成立的可能性'
-    + '（很高／较高／中等／偏低／低）；③「资料情况」＝已提供、还缺哪些材料；④「等级依据」＝风险高低按哪几项综合评定。'
+    + '但<strong>不等于已经被认定为违法</strong>；②「可能性很高／较高／中等／偏低」＝我们分析认为该结论成立的可能性；'
+    + '③「补全N项资料即可排除嫌疑」＝把尚缺的资料补齐后即可复核排除此项疑点；'
+    + '④风险等级（高／中／低）按以下5项综合评定：可能少缴的税款多少、涉及金额大小、还缺哪些证据、'
+    + '是否涉嫌虚开发票或偷税、需要补资料的紧急程度——全库统一口径，非本项单独标准。'
     + '本报告所有结论均须以税务机关最终认定为准。</p>';
   var rlSummary = (report.redline_summary || {});
   if (rlSummary.suspicion_total) {
@@ -5501,8 +5505,8 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   }
   problems.forEach(function(item){
     // ★ 2026-09-27：不再以 `redline_id` 为渲染门槛——实测该字段为空，导致
-    //   「涉嫌方向/本项结论/判断可信度/资料情况/等级依据/潜在税额影响」全部不渲染
-    //   （幽灵字段）。改为"只要有任一字段就渲染该行"。
+    //   「涉嫌方向/本项结论/涉税与税额」整行不渲染（幽灵字段）。
+    //   改为"只要有任一字段就渲染该行"（见下方 _lines 组装）。
     var pct = function(v){ return (typeof v === 'number' ? Math.round(v * 100) : 0) + '%'; };
     // ★ 2026-09-27（用户要求）：材料齐全程度**不以比例/百分比**表述，改以项数
     //   「已有X项、还缺Y项」呈现（evidence_have / evidence_need 由后端给出）。
@@ -5513,22 +5517,43 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     var _confBand = _conf >= 0.85 ? '很高' : _conf >= 0.70 ? '较高' : _conf >= 0.55 ? '中等' : _conf >= 0.40 ? '偏低' : '低';
     var _missNames = (item.missing_materials && item.missing_materials.length) ? item.missing_materials.slice(0, 6) : [];
     var _lackN = Math.max(0, _evNeed - _evHave);
-    var _matCell = '';
-    if (_evHave > 0 || _missNames.length || _lackN > 0) {
-      _matCell = '资料情况：已提供' + _evHave + '项';
-      if (_missNames.length) _matCell += '；尚缺「' + _missNames.join('、') + '」';
-      else if (_lackN > 0) _matCell += '；还缺' + _lackN + '项（缺什么见上方"必查资料齐备性"表）';
-      else _matCell += '，所需资料已齐备';
+    // ★★ 2026-09-27（用户改写口径）：本行改为**自然句三段**，不再用「字段：值｜字段：值」式罗列：
+    //   ① 涉嫌方向：直接成句（去掉与"涉嫌方向："重复的"涉嫌"前缀）
+    //   ② 本项结论：结论主干 + 可能性档位 + "补全N项资料即可排除嫌疑"（把原"资料情况/判断可信度"融入句内）
+    //   ③ 涉税与税额："本项涉税嫌疑，涉及税种：…；潜在税额影响（测算）：…"
+    //   注：「等级依据」是**全库统一口径**的通用模板（每项都一样），不在每条疑点重复，
+    //       改在章首"阅读提示"里说明一次。不出现 RL-XXX 编号与「裁决」等术语。
+    var _lines = [];
+    var _sus = item.suspect ? String(item.suspect).trim().replace(/^涉嫌/, '') : '';
+    if (_sus) _lines.push('涉嫌' + esc(_sus) + '。');
+    var _vhead = item.verdict ? String(item.verdict).split(/[（(]/)[0].trim() : '';
+    var _excluded = _vhead ? (/未触碰|未发现|排除/.test(_vhead)) : false;
+    if (_vhead) {
+      if (_excluded) {
+        _lines.push('经核查，本企业未触碰税务违规红线，且已有合理解释。');
+      } else if (/不足以形成税务疑点/.test(_vhead)) {
+        _lines.push('从本次上传资料来看，现有资料还不足以形成税务疑点。');
+      } else {
+        var _lackForWord = (_lackN > 0) ? _lackN : _missNames.length;
+        if (_lackForWord > 0) {
+          // 主语用"本企业"（与"说本企业自己的事"一致），比无主语句更好读
+          _lines.push('从本次上传资料来看，本企业' + esc(_vhead) + '的可能性' + _confBand
+            + '，但能补全尚缺的' + _lackForWord + '项资料来排除此项税务风险嫌疑。');
+        } else {
+          _lines.push('从本次上传资料来看，本企业' + esc(_vhead) + '的可能性' + _confBand
+            + '，且所需资料已齐备，可作初步判断。');
+        }
+      }
     }
-    // 用户要求：不出现 RL-XXX 编号与「裁决/置信度」等术语，改用自然表述。
-    var _metaCells = ''
-      + (item.suspect ? '涉嫌方向：' + esc(item.suspect) : '')
-      + (item.verdict ? (item.suspect ? '｜' : '') + '本项结论：<strong>' + esc(item.verdict) + '</strong>' : '')
-      + (_conf > 0 ? '｜判断可信度：约' + Math.round(_conf * 100) + '%（' + _confBand + '）' : '')
-      + (_matCell ? '｜' + _matCell : '')
-      + (item.risk_level_basis ? '｜等级依据：' + esc(item.risk_level_basis) : '')
-      + (item.taxes && item.taxes.length ? '｜涉及税种：' + esc((item.taxes || []).join('、')) : '')
-      + _taxImpactMeta(item);
+    var _taxSeg = (item.taxes && item.taxes.length) ? ('涉及' + esc((item.taxes || []).join('、'))) : '';
+    var _tiSeg = _taxImpactText(item);
+    if (_taxSeg || _tiSeg) {
+      // 已排除项不应说"涉税嫌疑"（防自相矛盾）；正常疑点用"本项涉税嫌疑，"
+      _lines.push((_excluded ? '本项涉税情况，' : '本项涉税嫌疑，')
+        + [_taxSeg, _tiSeg].filter(Boolean).join('；') + '。');
+    }
+    // ★ 用户口径（2026-09-27）：三段**连成一段**——不换行、不再用"本项结论：""涉及税种："等字段前缀
+    var _metaCells = _lines.join('');
     var meta = _metaCells
       ? ('<p class="i2" style="margin:6px 0 10px;padding:8px 12px;background:#f8fafc;'
          + 'border-left:3px solid #2563eb;font-size:13px;line-height:1.9">' + _metaCells + '</p>')

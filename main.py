@@ -10006,6 +10006,35 @@ def _apply_report_compilation_stage(report_data):
     }
 
 
+def _apply_report_style_stage(report_data):
+    """报告表达风格·常驻自检（用户 2026-09-27 表达特点，接入一键分析）。
+
+    每次一键分析都对**已生成报告**自检：说本企业自己的事（不说通用模板）／成句叙述（不堆字段）／
+    依据可核实（写到条款+内容）。结论记入一键分析日志与执行阶段（非阻断——风格问题不该拦住报告，
+    但要让人一眼看到）。唯一权威：`engine.report_style`。
+    """
+    try:
+        from engine.report_style import check_report_expression
+        vios = check_report_expression(report_data)
+    except Exception as exc:  # pragma: no cover - 自检失败不得阻断报告
+        return {"status": "degraded", "message": str(exc)}
+    errs = [v for v in vios if v.get("severity") == "ERROR"]
+    warns = [v for v in vios if v.get("severity") == "WARN"]
+    if errs:
+        _append_one_click_log(
+            report_data,
+            f"[报告表达风格] 发现 {len(errs)} 项需修正：{str(errs[0].get('message', ''))[:90]}",
+        )
+    elif warns:
+        _append_one_click_log(
+            report_data,
+            f"[报告表达风格] 通过（仅 {len(warns)} 项待办）：{str(warns[0].get('message', ''))[:90]}",
+        )
+    else:
+        _append_one_click_log(report_data, "[报告表达风格] 通过（本企业事实／成句叙述／依据可核实）")
+    return {"status": "completed", "errors": len(errs), "warnings": len(warns)}
+
+
 def _build_five_flow_document_requests(report_data):
     """按五流生成调取资料清单：识别每流已提供/缺失的资料，缺失说明影响。
 
@@ -11002,6 +11031,14 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         except Exception as _fresh_exc:
             _append_one_click_log(report_data, f"[编制新鲜感] 重编失败(降级为原文): {_fresh_exc}")
 
+        # ═══ 报告表达风格·常驻自检（用户 2026-09-27 表达特点）═══
+        #   每次一键分析都对已生成报告自检"说本企业自己的事／成句叙述／依据可核实"，
+        #   结论记入日志与执行阶段（非阻断）。唯一权威 engine.report_style。
+        try:
+            execution["stages"]["report_style"] = _apply_report_style_stage(report_data)
+        except Exception as _rs_exc:  # pragma: no cover
+            execution["stages"]["report_style"] = {"status": "degraded", "message": str(_rs_exc)}
+
         # ═══ 报告**最终出口**：统一做中文标点规范化（半角→全角）═══
         # ★ 2026-09-27（用户要求「标点符号技能要加强」）：前端 `tax-doc-analysis.js`
         #   与离线 `_render_report_html.py` 直接消费 `all_findings`/`domain_summary`/
@@ -11011,20 +11048,17 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         #   收敛在唯一权威 `engine.sentencekit.normalize_cjk_punct`（幂等；保护小数与扩展名）。
         try:
             from engine.sentencekit import normalize_cjk_punct as _np
+            from engine.plain_language import to_plain_obj, walk_strings_inplace
 
-            def _norm_punct(o):
-                if isinstance(o, str):
-                    return _np(o)
-                if isinstance(o, list):
-                    return [_norm_punct(x) for x in o]
-                if isinstance(o, dict):
-                    return {k: _norm_punct(v) for k, v in o.items()}
-                return o
-
-            _normalized = _norm_punct(report_data)
-            if isinstance(_normalized, dict):
-                report_data.clear()          # 原地替换，保持 result["report"] 同一对象
-                report_data.update(_normalized)
+            # ★ 2026-09-27：改为**迭代 + 去环**的原地遍历（唯一权威 walk_strings_inplace）。
+            #   原递归版遇到报告里的循环引用/深层嵌套会抛 max recursion depth exceeded，
+            #   被下方 except 静默跳过 → 标点规范化与"说人话"替换**从未真正生效**
+            #   （实测产出含 `[标点规范化] 跳过：maximum recursion depth exceeded`，
+            #    正文半角逗号仍在）。现覆盖全部可达文本、不重复处理共享子树、不陷入环，
+            #   且原地归一保持 result["report"] 同一对象。
+            #   字符串处理：先标点规范化，再术语"说人话"（键黑名单保护枚举/标签，
+            #   不动数字、键、redline 编号）。
+            walk_strings_inplace(report_data, lambda s, k: to_plain_obj(_np(s), k))
         except Exception as _pe:  # pragma: no cover - 标点规范化失败不得阻断报告
             _append_one_click_log(report_data, f"[标点规范化] 跳过：{_pe}")
 

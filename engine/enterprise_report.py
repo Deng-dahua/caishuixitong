@@ -1270,6 +1270,115 @@ _TAG_PLAIN = [
 ]
 
 
+_SIT_PREFIX_RES = (
+    re.compile(r"^资料中直接读到的事实[：:]\s*"),
+    re.compile(r"^本轮从所报资料中直接核对到的事实是[：:]\s*"),
+    re.compile(r"^第\d+环[：:]\s*"),
+)
+
+
+def _enterprise_situations(arg, clue, cap=8, constituents=None):
+    """section 一「涉及的风险事项」bullets 的**单一权威**产出函数。
+
+    返回 (条目列表, 来源)：
+      - 有抽象构成要件（_cons 非空）：
+          · 有逐条命中（constituent_hits）→ 返回**合并清单**：先一行"本企业涉及上述第 X 条
+            构成要件，已核对到的情况见各条括号内标注"，再逐条列出全部抽象要件，命中的在
+            括号内标注"本企业：证据"（来源 'constituents'）；
+          · 无命中（未取得逐条判定数据）→ 列出全部抽象要件 + 一句说明（来源 'constituents_no_hit'）。
+      - 无抽象构成要件（不应发生，68 条红线均≥3 条）→ 回退到本企业**已核对到的具体事实**
+        （来源 'facts'）。
+
+    ★ 2026-09-28（用户反转 09-27）：抽象构成要件清单（"凡符合下列构成要件即属涉嫌疑点"）
+      与本企业逐条命中**合并进同一清单**，既不互相取代、也不重复罗列——命中的要件直接在其
+      括号内标注证据，未命中的照列。这样企业既能看到"什么情形算涉嫌"，又能看到"本企业踩了哪条"。
+    facts 的来源优先级：论证 ground（系统实际读到/算出的事实）→ 线索链**已取得数据**的环节 →
+    线索链终局信号；做轻量清洗、归一化去重（含"被更长条目包含"的近似重复）、限量。
+
+    cap 必须 ≥ 单条红线可能命中的最大要件数（现行最多 5 条）——过小会**静默截掉**后面的命中要件。
+    """
+    # ★ 2026-09-28（用户反转 09-27）：优先采用**域逐条判定命中的构成要件**，
+    #   按**条款序号**呈现："① 要件原文（本企业：证据）"——要件原文取自红线库（唯一权威），
+    #   证据取自域判定。结果作为抽象构成要件清单之后的"本企业实际命中情况"呈现，
+    #   不再取代抽象清单。无命中判定时，回退到"本企业实际核对到的事实"（grounds）。
+    _hits = arg.get("constituent_hits") or []
+    # ★ 要件文本来自**红线定义**（suspicion.constituents），不在 argumentation 里；
+    #   调用方必须透传 constituents，否则命中 bullet 会退化成只剩"（本企业：…）"、丢失「① 要件原文」。
+    _cons = [str(c).strip() for c in (constituents or arg.get("constituents") or []) if str(c).strip()]
+    _circled = "①②③④⑤⑥⑦⑧⑨⑩"
+    # ── (A)+(B) 合并为 section 一 的单一 bullet 清单（单一权威产出，消除"抽象清单 vs 本企业命中"重复）──
+    if _cons:
+        _hit_map = {}
+        for h in _hits:
+            if isinstance(h, dict) and h.get("index"):
+                try:
+                    _hit_map[int(h["index"])] = str(h.get("evidence") or "").strip()
+                except (TypeError, ValueError):
+                    pass
+        if _hit_map:
+            # 既有抽象要件、又有本企业命中 → 每条要件均列出，命中的在括号内标注本企业证据
+            _hit_marks = "".join(_circled[i - 1] for i in sorted(_hit_map)
+                                 if 1 <= i <= len(_circled))
+            out = [_naturalize_report_text(
+                f"经核对，本企业涉及上述第 {_hit_marks or '相关'} 条构成要件，"
+                f"已核对到的情况见各条括号内标注：")]
+            for i, c in enumerate(_cons, 1):
+                mark = _circled[i - 1] if i <= len(_circled) else f"第{i}条"
+                if i in _hit_map and _hit_map[i]:
+                    out.append(_naturalize_report_text(
+                        f"{mark} {c}（本企业：{_hit_map[i]}）".rstrip("。；")))
+                else:
+                    out.append(_naturalize_report_text(f"{mark} {c}".rstrip("。；")))
+            return out, "constituents"
+        # 有抽象清单但本轮未取得逐条判定数据 → 仍列抽象清单，并说明
+        return ([_naturalize_report_text(c.rstrip("。；")) for c in _cons]
+                + [_naturalize_report_text(
+                    "（本轮已对该红线逐条核对，尚未取得足以判定各要件的完整数据；"
+                    "上列为本红线涉嫌构成要件）")]), "constituents_no_hit"
+    # —— 无抽象清单（不应发生，68 条红线均≥3 条）：回退到本企业实际核对到的事实 ——
+    raw_items = []
+
+    def _clean(raw):
+        s = str(raw or "").strip()
+        if not s:
+            return ""
+        for rx in _SIT_PREFIX_RES:
+            s = rx.sub("", s)
+        s = s.replace("——", "：").replace("_", "").replace("=", "为").strip()
+        return s
+
+    def _key(s):
+        return re.sub(r"[\s0-9,.\-—（）()\[\]【】：:；;、，。/％%_=]", "", s)
+
+    for g in (arg.get("grounds") or []):
+        c = _clean(g)
+        if c:
+            raw_items.append(c)
+    if not raw_items:
+        for n in (clue.get("nodes") or []):
+            if n.get("has_data") and n.get("observed"):
+                c = _clean(f"{n.get('source') or ''}：{n.get('observed')}")
+                if c:
+                    raw_items.append(c)
+    if not raw_items:
+        c = _clean(clue.get("terminal_signal"))
+        if c:
+            raw_items.append(c)
+    keys = [_key(x) for x in raw_items]
+    keep, kept_keys = [], []
+    for i, x in enumerate(raw_items):
+        k = keys[i]
+        if not k:
+            continue
+        if any(i != j and k != keys[j] and keys[j] in k for j in range(len(keys))):
+            continue                       # 包含更短条目（是"更啰嗦的同一事实"）→ 丢弃，留干净的短句
+        if k in kept_keys:
+            continue                       # 完全重复
+        keep.append(i)
+        kept_keys.append(k)
+    return [_naturalize_report_text(raw_items[i]) for i in keep[:cap]], "facts"
+
+
 def _build_redline_problems(suspicions, findings=None):
     """
     按「税务红线疑点」组装报告主体（2026-09-06 新方法论）
@@ -1320,21 +1429,42 @@ def _build_redline_problems(suspicions, findings=None):
         grade = s.get("conclusion_grade") or arg.get("conclusion_grade") or "待核"
 
         # ① 红线与法条
-        constituents = [c for c in (s.get("constituents") or []) if c]
         legal = [l for l in (s.get("legal_basis") or []) if l]
         _suspect = str(s.get("suspect") or "税务风险")
         _suspect_txt = _suspect if _suspect.startswith("涉嫌") else f"涉嫌{_suspect}"
-        # 构成要件属明细，走列表（用户要求：涉及明细的就列表）
-        # ★ 2026-09-26 三层术语重标：执行版不写“触碰税务红线/触红成立”（易读成已定性违法），
-        #   改为“触发税务风险指标（待核实）”，与决策版口径一致。
-        p1 = (
-            f"经检查，本企业触发税务风险指标，即{rname}，{_suspect_txt}。"
-            + ("该风险指标不因行业而变，凡符合下列构成要件即属涉嫌疑点：" if constituents
-               else "具体构成要件见风险指标库列明的口径。")
-        )
-        bullets1 = [_naturalize_report_text(str(c).rstrip("。；"))
-                    for c in constituents if str(c).strip()]
-        tail1 = _naturalize_report_text(f"法定依据：{'；'.join(legal)}。") if legal else ""
+        # ★ 2026-09-28（用户反转 09-27 决策）：报告必须**同时**呈现两类信息，二者不可互相替代：
+        #   (A) 本红线的**抽象构成要件清单**（「凡符合下列构成要件即属涉嫌疑点」，
+        #       红线定义、与具体企业无关）——让企业知道"什么情形算涉嫌"；
+        #   (B) 本企业**实际命中哪几条**的逐条判定（_enterprise_situations 取域判定证据）——
+        #       让企业知道"本企业踩了哪几条、证据是什么"。
+        #   09-27 那版把(A)整个禁掉、只输出(B)，被用户判定为理解错误，现恢复(A)，
+        #   且把(B)合并进(A)的同一清单（命中要件在括号内标注证据），不再新增段落、不重复罗列。
+        # ★ 2026-09-26 三层术语重标：执行版不写"触碰税务红线/触红成立"（易读成已定性违法），
+        #   改为"触发税务风险指标（待核实）"，与决策版口径一致。
+        _cons_all = [str(c).strip() for c in (s.get("constituents") or []) if str(c).strip()]
+        # _enterprise_situations 是 section 一 bullets 的**单一权威**：有抽象要件时返回
+        # 「抽象要件全列 + 命中项括号内标注证据」的合并清单；无抽象要件（不应发生）回退事实。
+        _sits, _sit_src = _enterprise_situations(arg, clue, constituents=_cons_all)
+        if _cons_all:
+            p1 = (
+                f"经检查，本企业触发税务风险指标，即{rname}，{_suspect_txt}。"
+                f"该风险指标不因行业而变，凡符合下列构成要件即属涉嫌疑点："
+            )
+            bullets1 = _sits
+        else:
+            # 防御：红线未定义构成要件（不应发生，68 条均≥3 条），退回旧版单句口径
+            p1 = (
+                f"经检查，本企业触发税务风险指标，即{rname}，{_suspect_txt}。"
+                "经核对，本企业已符合构成此项风险的涉嫌要件。"
+            )
+            bullets1 = _sits or None
+        # ★ 2026-09-27（用户口径）：法定依据须写到**具体哪一条、什么内容**（唯一权威 legal_citation）。
+        try:
+            from engine.legal_citation import format_legal_basis as _flb
+            _legal_txt = _flb(legal)
+        except Exception:
+            _legal_txt = "；".join(str(x) for x in legal)
+        tail1 = _naturalize_report_text(f"法定依据：{_legal_txt}。") if _legal_txt else ""
 
         # ② 发现过程
         chain_desc = _clue_narrative(clue)
@@ -1374,6 +1504,13 @@ def _build_redline_problems(suspicions, findings=None):
 
         # ④ 论证与理由（上游可能带出内部标记或编号，此处做正文净化兜底）
         p4 = _naturalize_report_text(arg.get("reasoning") or "")
+        # ★ 2026-09-29（B2 闭环）：对"以行业基准为判定口径"的红线，论证段补出
+        #   按实际行业解析出的基准区间与口径声明（来源 industry_benchmark / industry_data.json，
+        #   非税务机关官方口径），使"对照行业基准区间上沿"这类硬化要件真正可核验、不自说自话。
+        _bm = arg.get("benchmark_ref") or {}
+        _bm_txt = _bm.get("text") if isinstance(_bm, dict) else ""
+        if _bm_txt:
+            p4 = ((p4 + " " if p4 else "") + _naturalize_report_text(_bm_txt))
 
         # ⑤ 需企业补充的资料与说明
         # 2026-09-13 用户要求：涉及明细的一律走列表，正文只留引导句，
@@ -2048,7 +2185,25 @@ def _build_resolution_ledger(report_data):
         })
     summary = report_data.get("audit_doctrine") or {}
     scope = report_data.get("output_scope") or {}
-    # ★ 2026-09-25：这两项必须由**最终报告里的发现**现算。
+    # ★ 2026-09-29（C3 风险组合画像）：把跨业务轴组合信号作为一条合成风险事项追加进台账，
+    #   使其不被静默丢弃（"查得出来"）；它来自 redline_detection.summary.combo_profiles，
+    #   不来自封印后的 all_findings，故不影响封印治理。
+    _cp_src = ((report_data.get("comprehensive", {}) or {})
+               .get("redline_detection", {}) or {}).get("summary", {}) or {}
+    for _cp in (_cp_src.get("combo_profiles") or []):
+        if not isinstance(_cp, dict):
+            continue
+        _labels = "、".join(_cp.get("axis_labels") or [])
+        rows.append({
+            "风险事项": "多税种联动稽查风险画像（%s）" % _labels,
+            "等级": str(_cp.get("level") or "中风险"),
+            "证据地位": "组合风险信号（跨%d个业务环节）" % int(_cp.get("axis_count") or 0),
+            "终局方向": "待联动核查（多税种）",
+            "解除方式": str(_cp.get("recommendation") or "（待联动核查后由系统给出）"),
+            "需补自证资料": "；".join("跨税种联动核查：%s" % t
+                                  for t in (_cp.get("combined_taxes") or []))
+                              or "（本项详见总体结论章及各项贡献红线台账行）",
+        })    # ★ 2026-09-25：这两项必须由**最终报告里的发现**现算。
     #   audit_doctrine 汇总是在管道中段生成的（封印/补齐出口之前），
     #   拿它的计数会低估（实测报告 22 条全有出口，汇总里却只写 8 条）。
     with_resolve = sum(1 for f in findings if f.get("resolve_steps"))

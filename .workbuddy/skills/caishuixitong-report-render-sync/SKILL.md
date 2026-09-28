@@ -124,6 +124,38 @@ node --check static/js/tax-doc-analysis.js   # confirm no syntax break
   该明细的导出附件（发票逐张 / 凭证逐笔）走**浏览器端 CSV**（`_crdDownloadCsv` + Blob，无需后端接口），
   数据来自 `pipeline.biz_cost_summary.core_cost_invoices` 与序时账 6401 逐笔。
 
+## 疑点 meta 行措辞（自然句）— 2026-09-27 用户口径
+
+工作底稿版每条疑点的 meta 行（`_buildEnterpriseReadableBody` 内 `problems.forEach` 的 `_metaCells`）
+**不得用「字段：值｜字段：值」罗列**，必须是自然句三段：
+
+1. `涉嫌{方向}。`（去重"涉嫌"前缀）
+2. `本项结论：从本次上传资料来看，已触碰税务违规红的可能性{很高/较高/中等/偏低}，但能补全尚缺的N项资料来排除此项税务风险嫌疑。`
+   （`N = max(0, evidence_need − evidence_have)`；"判断可信度/资料情况"并入此句，**不单列**）
+3. `本项涉税嫌疑，涉及税种：…；潜在税额影响（测算）：…。`
+
+- **「等级依据」不再逐条渲染**（它是全库统一口径的通用模板，每项一样）→ 改在章首"阅读提示"说明一次。
+- 税额句由 `_taxImpactText(item)` 生成（旧 `_taxImpactMeta` 的 `｜` 前缀已去除）。
+- **闸门** `tools/audit_consistency.py::check_finding_meta_wording()`：断言 JS 不得出现
+  `'涉嫌方向：'` / `｜判断可信度` / `｜等级依据` / `资料情况：已提供` / `risk_level_basis`；
+  必须出现 `本项涉税嫌疑，` / `来排除此项税务风险嫌疑`；章首须说明分级口径。**已反向验证**。
+- **验证命令**：`CAISHUI_ROOT=$PWD node .workbuddy/skills/caishuixitong-report-render-sync/scripts/verify_frontend_render.js scripts/four_reports/_fresh_result.json "本项涉税嫌疑，"` → `ALL_FRONTEND_CHECKS_PASS`。
+- 改完 JS 记得**升级 `static/index.html` 里的 `tax-doc-analysis.js?v=`**（强制浏览器刷新；纯 JS 改动无需重启服务）。
+
+## 「一、涉及的风险事项」段（2026-09-27 用户口径）
+
+- **不得罗列抽象构成要件**（旧文案「该风险指标不因行业而变，凡符合下列构成要件即属涉嫌疑点：」+ 通用 4 条）。
+  改为：「…**该企业的以下 N 种情况，符合构成此项风险的涉嫌要件：**」+ **本企业实际核对到的事实**（bullets）。
+- 落地：`engine/enterprise_report.py::_enterprise_situations(arg, clue)`（源优先级：`argumentation.grounds` →
+  线索链 `has_data` 环 → `terminal_signal`；去内部前缀/`_`/`=`、归一化去重、限量 4）。构成要件仍留 `tax_redlines` 库。
+- **法定依据写到「具体哪一条 + 什么内容」**：唯一权威 `engine/legal_citation.py::format_legal_basis`；
+  内容库 `static/legal_library.json`（新建）+ 红线库已内嵌条文自动抽取复用 + `static/legal_refs.json`。
+  `resolve_citation` 支持「《法名》（公告号）第X条[、第Y条][第Z款]（括注）：内容」，多条款逐条拼；**查不到内容 → 原样保留，绝不臆造**。
+- **闸门** `tools/audit_consistency.py::check_risk_item_section_wording()`（已接 `run_checks`，已反向验证）：
+  不得出现旧输出原文（精确匹配 `凡符合下列构成要件即属涉嫌疑点` / `该风险指标不因行业而变`），必须含
+  `_enterprise_situations` / `该企业的以下` / `format_legal_basis`；行为验证 `format_legal_basis(["《发票管理办法》第二十七条"])` 带出条文内容。
+  ⚠ 这类"必须不存在"检查要**精确匹配旧输出原文**；用泛词会误报源码里解释该改动的注释。
+
 ## Resources
 
 - `scripts/verify_frontend_render.js` — parameterized Node harness that proves a section is

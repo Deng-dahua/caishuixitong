@@ -126,8 +126,8 @@ def _build_entity_profile(target_entity, fin_snap, stats, core_biz=None):
     }
     text = (
         f"{name}是一家{industry}企业（经营模式：{biz_model}），{nature}。"
-        f"按本轮资料，开出去的发票收入{sales:,.0f}元、进货发票{purchases:,.0f}元，"
-        f"开票{sale_count}张、收进进货发票{pur_count}张，属{scale}企业。"
+        f"按本轮资料，销项发票收入{sales:,.0f}元、进项发票{purchases:,.0f}元，"
+        f"销项发票{sale_count}张、进项发票{pur_count}张，属{scale}企业。"
     )
     if registered_capital:
         text += f"注册资本{registered_capital}。"
@@ -202,9 +202,9 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
                 "actual": round(gm, 1),
                 "benchmark": f"{lo:.0f}%~{hi:.0f}%（中位{mid:.0f}%）",
                 "direction": "购销倒挂",
-                "why": ("开出去的发票金额比进货成本还少，收入盖不住成本，属于购销倒挂。正常做生意不会长期这样，"
-                        "需要核实三件事：①开出去的发票是不是全都上传了（少报收入会人为放大倒挂）；"
-                        "②有没有隐瞒不报的收入；③进货发票里是不是虚列了成本、虚抵了税。"
+                "why": ("销项发票金额比进项成本还少，收入盖不住成本，属于购销倒挂。正常做生意不会长期这样，"
+                        "需要核实三件事：①销项发票是不是全都上传了（少报收入会人为放大倒挂）；"
+                        "②有没有隐瞒不报的收入；③进项发票里是不是虚列了成本、虚抵了税。"
                         "先把资料缺漏排除掉，再判断是不是真的倒挂。"),
             })
         elif gm < lo:
