@@ -191,6 +191,12 @@ def compare_redline_benchmark(rid: str, industry: Optional[str] = None,
                 "reason": f"本轮未取得「{metric}」实际值"}
 
     ev = _ib_evaluate(en, float(actual), float(b["lo"]), float(b["hi"]))
+    # ★ 数据完整性护栏：实际值超出合理值域（如销售极小、采购极大导致的 -9451%、-683%）
+    #   说明本轮数据不完整，此时"偏离行业区间"是数据假象；如实说明不参与比对，绝不编造结论。
+    if not ev.get("comparable", True):
+        return {"resolved": False, "metric": metric, "text": "",
+                "reason": f"本轮「{metric}」实测值超出合理值域，"
+                          f"疑数据不完整（如收入或成本口径不全），不参与行业比对"}
     lo_t, hi_t = _fmt(metric, b["lo"]), _fmt(metric, b["hi"])
     act_t = _fmt(metric, ev["value"])
     src = f"来源 {b['source']}，{b['reliable']}"

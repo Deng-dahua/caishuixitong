@@ -195,6 +195,11 @@ def _build_industry_benchmark(industry, biz_model, fin_snap, entity_name="", bus
         lo, hi, mid = gm_range[0] * 100, gm_range[1] * 100, gm_range[2] * 100
         gm = float(gm_pct)
         _m = f"毛利率{gm_scope_note}" if gm_scope_note else "毛利率"
+        # ★ 2026-09-29：**刻意不在此加"合理值域"护栏**。
+        #   tests/test_inspector_reasoning.py::test_inverted_margin 以 -5232% 断言
+        #   "毛利率为负 → 购销倒挂"，即极端负毛利是本模块**有意为之**的信号：
+        #   销项远小于进项，方向本身有意义（报告还会提示"销项发票是不是全都上传了"）。
+        #   数据完整性护栏只作用于 industry_benchmark（domain 对标）与红线注解两条路径。
         if gm < 0:
             # 销项 < 进项成本 → 购销倒挂，不是普通"毛利率偏低"
             observations.append({

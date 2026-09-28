@@ -363,6 +363,35 @@ def normalize_actual(key: str, actual: float) -> float:
     return actual
 
 
+# ★ 参与行业比对的**合理值域**（数据完整性护栏，2026-09-29）
+#   用途：区分「真的偏离」与「本轮数据不全算出来的荒谬值」。
+#   实测事故：临时账套 销售收入 26,482 元 vs 采购成本 2,529,450 元 → 毛利率 -9451%、
+#   税负率 -683%；这类值并非企业真实经营信号，而是**分母过小/数据不完整**的产物，
+#   若照常与行业区间比对并写进报告，会误导读者、损害报告可信度。
+#   ⚠ 这是"可否参与比对"的门槛，**不是**行业基准区间，也非税务机关口径；
+#      新增/调整指标只改这张表，不改逻辑分支。
+_SANE_RANGE: Dict[str, Tuple[float, float]] = {
+    "gross_margin": (-200.0, 100.0),    # 上界 100%（成本≥0）；下界 -200%（成本>3倍收入即疑数据不全）
+    "vat_burden": (-100.0, 100.0),      # 税负率绝对值超过营收规模即不合理
+    "expense_ratio": (0.0, 300.0),      # 期间费用率上限放宽（亏损企业可 >100%）
+    "purchase_sales": (0.0, 20.0),      # 进销比（比值）
+}
+
+
+def is_indicator_comparable(key: str, actual: float) -> bool:
+    """该指标本轮实际值**可否参与行业比对**（数据完整性护栏，单一权威）。
+
+    超出 `_SANE_RANGE` 即判为「本轮数据异常」，调用方应如实说明不参与比对，
+    **绝不能**用它算出"低于/高于行业区间"的结论（那是拿残缺数据冒充发现）。
+    未登记值域的指标默认可比（不因护栏漏登记而静默吞掉真实指标）。
+    """
+    rng = _SANE_RANGE.get(key)
+    if not rng:
+        return True
+    value = normalize_actual(key, actual)
+    return bool(rng[0] <= value <= rng[1])
+
+
 def evaluate_indicator(key: str, actual: float, low: float,
                        high: float) -> Dict[str, object]:
     """实际值 vs 行业区间的比对判定 —— **单一权威**（禁止各处自写比较式）。
@@ -375,11 +404,13 @@ def evaluate_indicator(key: str, actual: float, low: float,
       in_range=False → direction ∈ {"低于","高于"}、bound 为被突破的边界值。
     """
     value = normalize_actual(key, actual)
+    comparable = is_indicator_comparable(key, actual)
     in_range = bool(low <= value <= high)
     direction = "" if in_range else ("低于" if value < low else "高于")
     bound = None if in_range else (low if value < low else high)
     return {"value": value, "low": low, "high": high,
-            "in_range": in_range, "direction": direction, "bound": bound}
+            "in_range": in_range, "direction": direction, "bound": bound,
+            "comparable": comparable}
 
 
 def run_industry_benchmark_check(
@@ -404,6 +435,14 @@ def run_industry_benchmark_check(
             continue
         # ★ 比对判定统一委托 evaluate_indicator（单一权威，避免与红线注解口径分歧）
         ev = evaluate_indicator(key, actual, low, high)
+        # ★ 数据完整性护栏：超出合理值域说明本轮数据不完整（如销售极小、采购极大），
+        #   此时"偏离行业区间"是数据假象而非经营信号，照常产出会误导读者。
+        if not ev.get("comparable", True):
+            if pipeline_log is not None:
+                pipeline_log.append(
+                    f"[行业对标] {_LABEL[key]}实测 {actual} 超出合理值域，"
+                    f"疑本轮数据不完整，不参与行业区间比对")
+            continue
         if ev["in_range"]:
             continue
         value = ev["value"]

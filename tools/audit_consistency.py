@@ -1482,6 +1482,10 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
         "_buyer", "_seller", "_goods", "_inv_type", "_is_void_or_red",
         "_row_period", "_is_noise_name", "_load_industry_data",
         "_infer_industry_from_goods",
+        # 2026-09-29：曾在 domain_analysis(100行 JSON 驱动版) 与 phase3_cross_validate
+        # (223行硬编码版) 各写一套，JSON 版全仓无调用、且两者行为不等价（冲突7 硬编码版是
+        # "降级既有高风险发现"，JSON 版只能追加低风险备注）→ 已删死实现，此处上锁防复发。
+        "_detect_conflicts",
     }
     _files = [str(ROOT / "main.py")] + sorted(_glob.glob(str(ROOT / "engine" / "**" / "*.py"), recursive=True))
     defs: Dict[str, List[str]] = {}
@@ -3590,8 +3594,10 @@ def check_benchmark_actual_compare() -> List[Tuple[str, str, str]]:
             issues.append(("ERROR", "engine/redline_benchmark.py",
                            f"实际值落在区间内应判 in_range=True，实为 {_c_in.get('in_range')}"))
         # 高于上沿
-        _c_out = compare_redline_benchmark(_rid, _ind,
-                                           {"gross_margin": _hi * 10 + 1000})
+        # 高于上沿、但**仍在合理值域内**（若用 _hi*10+1000 这类荒谬值，会被数据完整性
+        # 护栏正确拦下并返回 resolved=False —— 那是护栏生效，不是比对判定出错）
+        _out_val = _hi + (100.0 - _hi) / 2.0
+        _c_out = compare_redline_benchmark(_rid, _ind, {"gross_margin": _out_val})
         if _c_out.get("resolved") is not True or _c_out.get("in_range") is not False:
             issues.append(("ERROR", "engine/redline_benchmark.py",
                            f"实际值高于上沿应判 in_range=False，实为 {_c_out.get('in_range')}"))
@@ -3603,6 +3609,48 @@ def check_benchmark_actual_compare() -> List[Tuple[str, str, str]]:
         if _c_nom.get("resolved") is not False:
             issues.append(("ERROR", "engine/redline_benchmark.py",
                            "人均营收类指标无实际值却返回 resolved=True（编造）"))
+
+    # ③b 数据完整性护栏：荒谬值不得参与比对（2026-09-29）
+    try:
+        from engine.industry_benchmark import (
+            is_indicator_comparable, _SANE_RANGE,
+        )
+    except Exception as exc:
+        issues.append(("ERROR", "engine/industry_benchmark.py",
+                       f"缺少数据完整性护栏（_SANE_RANGE/is_indicator_comparable）: {exc}"))
+        is_indicator_comparable, _SANE_RANGE = None, {}
+    if is_indicator_comparable is not None:
+        if not _SANE_RANGE:
+            issues.append(("ERROR", "engine/industry_benchmark.py",
+                           "_SANE_RANGE 为空（护栏形同虚设）"))
+        # 数据假象必须被拦下
+        for _k, _v in (("gross_margin", -9451.51), ("vat_burden", -683.47)):
+            if is_indicator_comparable(_k, _v):
+                issues.append(("ERROR", "engine/industry_benchmark.py",
+                               f"{_k}={_v} 属数据假象，应判不可比（护栏失效）"))
+        # 正常值不得被误伤
+        for _k, _v in (("gross_margin", 20.0), ("purchase_sales", 0.9),
+                       ("vat_burden", 1.3)):
+            if not is_indicator_comparable(_k, _v):
+                issues.append(("ERROR", "engine/industry_benchmark.py",
+                               f"{_k}={_v} 是正常值却被判不可比（护栏过严，会吞掉真实指标）"))
+        # domain 层也必须拦（否则荒谬值仍从行业对标章进报告）
+        if "comparable" not in _ib_fn:
+            issues.append(("ERROR", "engine/industry_benchmark.py",
+                           "run_industry_benchmark_check 未做数据完整性护栏，"
+                           "荒谬值仍会产出行业偏离发现"))
+        # 注：第三条路径 inspector_reasoning（专家研判·行业对标）**刻意不加**该护栏——
+        # tests/test_inspector_reasoning.py::test_inverted_margin 以 -5232% 断言
+        # "毛利率为负 → 购销倒挂"，属有意保留的信号；此处若加护栏会直接打破该测试。
+        # 红线侧：不可比时不得产出比对结论
+        if _ind:
+            _c_bad = compare_redline_benchmark(_rid, _ind, {"gross_margin": -9451.51})
+            if _c_bad.get("resolved") is not False:
+                issues.append(("ERROR", "engine/redline_benchmark.py",
+                               "实际值超出合理值域时仍给出比对结论（拿残缺数据冒充发现）"))
+            if "合理值域" not in str(_c_bad.get("reason") or ""):
+                issues.append(("ERROR", "engine/redline_benchmark.py",
+                               "不可比时未如实说明原因（须写明不参与比对）"))
 
     # ④ redline_engine 接线
     _re = _src("engine/redline_engine.py")

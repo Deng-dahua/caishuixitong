@@ -107,7 +107,6 @@ __all__ = [
     "_cross_period_compare",
     "_ctx",
     "_deep_biz_substance_check",
-    "_detect_conflicts",
     "_domain_advanced_rules",
     "_domain_bank_tracking",
     "_domain_bom_verify",
@@ -7889,106 +7888,6 @@ def _load_industry_data():
     return _ld()
 
 
-def _detect_conflicts(all_findings, cross_findings, pipeline_log):
-    """JSON 驱动的冲突消解引擎——规则从 conflict_rules.json 加载"""
-    
-    # 构建全量文本索引（用于关键词匹配）
-    all_text = "|".join(
-        f.get("type", "") + "|" + f.get("description", "") + "|" + f.get("detail", "")
-        for f in all_findings
-    )
-    
-    def _has_signal(keyword):
-        """检查 all_findings 中是否存在某关键词信号"""
-        return keyword in all_text
-    
-    def _has_signal_in_type(keyword):
-        """只检查 finding type 字段"""
-        return any(keyword in f.get("type", "") for f in all_findings)
-    
-    # ── 加载冲突规则 ──
-    rules = []
-    json_path = os.path.join(os.path.dirname(__file__), 'static', 'conflict_rules.json')
-    try:
-        if os.path.exists(json_path):
-            with open(json_path, 'r', encoding='utf-8') as f:
-                rules = json.load(f).get('rules', [])
-    except Exception as e:
-        pipeline_log.append(f"[Phase3] 冲突规则加载失败: {e}")
-        return  # JSON 加载失败时静默跳过（硬编码规则仍可用）
-    
-    if not rules:
-        return
-    
-    # ── 通用匹配引擎 ──
-    triggered_ids = set()  # 去重
-    for rule in rules:
-        signal_a = rule.get('signal_a', '')
-        signal_b = rule.get('signal_b', '')
-        
-        if not signal_a or not signal_b:
-            continue
-        
-        # 匹配：两个信号都要存在（任一字段中）
-        if not _has_signal(signal_a) or not _has_signal(signal_b):
-            continue
-        
-        # ── 命中 → 生成冲突消解结论 ──
-        resolution = rule.get('resolution', '')
-        risk_action = rule.get('risk_action', '保持')
-        note = rule.get('note', '')
-        rule_id = rule.get('id', '')
-        if rule_id in triggered_ids:
-            continue
-        triggered_ids.add(rule_id)
-        rule_name = rule.get('name', f'{signal_a} vs {signal_b}')
-        
-        # 根据 risk_action 确定级别
-        if risk_action == "升级":
-            level, score = "高风险", 7
-        elif risk_action == "降级":
-            level, score = "低风险", 2
-        else:
-            level, score = "中风险", 4
-        
-        # 生成详细描述
-        detail = f"{signal_a} + {signal_b}同时存在 → {resolution}"
-        
-        if risk_action == "升级":
-            description = (
-                f"两项信号叠加后风险上调：{signal_a} + {signal_b}——"
-                f"两个信号不是矛盾而是互证：{resolution}。\n"
-                f"核查建议：{note}"
-            )
-        elif risk_action == "降级":
-            description = (
-                f"两项信号叠加后风险下调：{signal_a} + {signal_b}——"
-                f"{resolution}。应将核查焦点调整，原高风险标记可能过于激进。\n"
-                f"核查建议：{note}"
-            )
-        else:
-            description = (
-                f"两项信号综合来看：{signal_a} + {signal_b}——"
-                f"{resolution}。\n"
-                f"核查建议：{note}"
-            )
-        
-        cross_findings.append({
-            "type": f"交叉验证-冲突消解：{rule_name}",
-            "level": level,
-            "score": score,
-            "domain": "Phase3-冲突消解",
-            "detail": detail,
-            "description": description,
-            "how_found": f"Phase 3 冲突消解引擎(JSON规则{rule_id})：检测到{signal_a}和{signal_b}同时存在",
-            "tax_impact": f"冲突消解：{resolution}",
-            "suggestion": note,
-            "category": "冲突消解",
-            "_phase3_conflict_resolved": True,
-            "_conflict_rule_id": rule_id,
-        })
-        
-        pipeline_log.append(f"[Phase3] 冲突消解: {rule_name} → {risk_action}")
 
 
 # ═══════════════════════════════════════════════════════════
