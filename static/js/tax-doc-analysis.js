@@ -5412,8 +5412,13 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '报告日期：' + esc(report.generated_date || dateStr) +
     '</div></div>';
 
+  // ★ 2026-09-29：此处原附一句「检查范围、检查情况总述与总体结论、整改要求，详见本报告第一章。」
+  //   已删除，理由：① openingText 本身已列举「检查范围、实施程序、查明事实、税务影响、处理意见及
+  //   后续复查要求报告如下」，再列一遍属重复；② 该句将「整改要求」指向第一章，但整改要求实为
+  //   第四章「风险检查处理意见和整改验收标准」，指向错误；③ 紧随其后的目录与「总—分—总」结构
+  //   说明已完整承担导航作用，无需在开篇块再写引导句（避免"引导说明"混入正文，每件事只说一遍）。
   html += '<div style="padding:16px 18px;border:2px solid #1e3a8a;background:#eff6ff;margin:0 0 24px;line-height:1.9">' +
-    esc(openingText) + '<br>检查范围、检查情况总述与总体结论、整改要求，详见本报告第一章。' +
+    esc(openingText) +
     '</div>';
 
   html += '<div class="toc"><a href="#company-conclusion">一、检查情况总述与总体结论</a><br>' +
