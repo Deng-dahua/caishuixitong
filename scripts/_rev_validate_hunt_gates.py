@@ -119,5 +119,46 @@ _CHECK = check_chapter_template_dedup()
 _check("复原后模板去重闸门归零", len(_CHECK) == 0)
 
 print("═" * 70)
+print("反向验证 5：逐要件独立数据源闸门（#448）")
+print("═" * 70)
+import importlib
+from tools.audit_consistency import check_constituent_sources_wiring
+TR = os.path.join(ROOT, "engine", "tax_redlines.py")
+RE = os.path.join(ROOT, "engine", "redline_engine.py")
+
+
+def _fresh_gate():
+    """闸门用 import 读 tax_redlines → 文件改动后须清缓存，否则读到的是旧模块。"""
+    sys.modules.pop("engine.tax_redlines", None)
+    return check_constituent_sources_wiring()
+
+
+tr0 = open(TR, encoding="utf-8").read()
+# 5a 注入长度错配：给 RL-VAT-007 的 constituent_sources 末尾多塞一项
+try:
+    broken = tr0.replace(
+        '            "开票错误更正说明",    # ⑦ 正当情形（开票错误更正）\n        ],',
+        '            "开票错误更正说明",    # ⑦ 正当情形（开票错误更正）\n            "多余项",\n        ],', 1)
+    assert broken != tr0, "未能注入长度错配"
+    open(TR, "w", encoding="utf-8").write(broken)
+    res = _fresh_gate()
+    _check("注入长度错配后闸门报错", any("长度" in m for _, _, m in res))
+finally:
+    open(TR, "w", encoding="utf-8").write(tr0)
+# 5b 注入接线断裂：移除 redline_engine 里的 constituent_sources 传递（注入串不得含原串）
+re0 = open(RE, encoding="utf-8").read()
+try:
+    broken2 = re0.replace('"constituent_sources": list(rl.get("constituent_sources") or []),',
+                          "# ELIDED", 1)
+    assert broken2 != re0, "未能注入接线断裂"
+    open(RE, "w", encoding="utf-8").write(broken2)
+    res = _fresh_gate()
+    _check("注入接线断裂后闸门报错", any("redline_engine" in rel for _, rel, _ in res))
+finally:
+    open(RE, "w", encoding="utf-8").write(re0)
+res2 = _fresh_gate()
+_check("复原后数据源闸门归零", len(res2) == 0)
+
+print("═" * 70)
 print("总体:", "ALL PASS ✅" if ok else "HAS FAILURE ❌")
 sys.exit(0 if ok else 1)

@@ -138,11 +138,38 @@ def build_constituent_checkpoints(suspicion: Dict[str, Any]) -> List[Dict[str, A
         if nm:
             _cands.append((nm, "已有" if n.get("has_data") else "未取得"))
 
+    # ★ 2026-09-29（#448）：优先采用**红线显式声明的要件数据源** `constituent_sources`
+    #   （与 constituents 按序对齐）。声明了就用单一权威 `evidence_chain._match_material`
+    #   判定该材料本轮是否已取得；未声明才退回文字模糊匹配（原行为，兼容存量）。
+    #   目的：把"未定义独立数据源"(占 not_checked 七成) 逐要件补成可自证的独立数据源。
+    _avail: List[str] = []
+    _ec = s.get("evidence_chain") or {}
+    if isinstance(_ec, dict):
+        _avail = [str(a) for a in (_ec.get("available_materials") or []) if a]
+    _declared = s.get("constituent_sources") or []
+    try:
+        from engine.evidence_chain import _match_material as _material_match  # 单一权威
+    except Exception:  # pragma: no cover
+        _material_match = None
+
     for i, c in enumerate(cons, 1):
-        # ① 独立数据源：与要件文字最匹配的那一项（匹配不上 → 未定义，如实说明）
-        src_name, src_status, _r = _match_source(c, _cands)
-        if not src_name:
-            src_name, src_status = "（红线定义未标注该要件的独立数据源）", "未定义"
+        _decl = ""
+        if i - 1 < len(_declared):
+            _e = _declared[i - 1]
+            _decl = _norm(_e if isinstance(_e, str) else (_e.get("name") if isinstance(_e, dict) else ""))
+        if _decl and _material_match is not None:
+            # ① 明文声明的独立数据源：判定该材料是否已取得
+            src_name = _decl
+            try:
+                _m = _material_match(_decl, "", _avail) or {}
+                src_status = _norm(_m.get("status")) or "未知"
+            except Exception:
+                src_status = "未知"
+        else:
+            # ① 回退：与要件文字最匹配的那一项（匹配不上 → 未定义，如实说明）
+            src_name, src_status, _r = _match_source(c, _cands)
+            if not src_name:
+                src_name, src_status = "（红线定义未标注该要件的独立数据源）", "未定义"
 
         _provided = any(w in src_status for w in _PROVIDED_STATUS)
         _hit_ev = hits.get(i, "")

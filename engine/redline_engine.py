@@ -313,6 +313,9 @@ def run_redline_detection(findings: List[Dict],
                 "domain": rl.get("domain", ""),
                 "legal_basis": list(rl.get("legal_basis") or []),
                 "constituents": list(rl.get("constituents") or []),
+                # ★ 2026-09-29（#448）：逐要件独立数据源（与 constituents 按序对齐），
+                #   供 constituent_checkpoint 解析"该要件的数据源本轮是否已取得"。
+                "constituent_sources": list(rl.get("constituent_sources") or []),
                 "clue_chain": clue,
                 "evidence_chain": ev,
                 "argumentation": arg,

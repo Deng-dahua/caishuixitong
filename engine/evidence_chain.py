@@ -439,6 +439,10 @@ def build_evidence_chain(finding: Dict, redline: Dict,
         "remedy": redline.get("remedy", ""),
         "rebuttal_status": rebuttal_status,
         "required_materials": list(redline.get("required_materials") or []),
+        # ★ 2026-09-29（#448）：本轮**实际取得**的材料名（与需求侧 required/missing 互补）。
+        #   用途：逐要件独立核对（constituent_checkpoint）据此解析「该要件的独立数据源是否已取得」。
+        #   不改任何闭合度/结论逻辑，仅作为"已取得"的权威清单向下游透出。
+        "available_materials": list(available),
     }
 
 

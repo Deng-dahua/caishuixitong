@@ -5019,6 +5019,70 @@ def check_finding_level_legality() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_constituent_sources_wiring() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-29（#448）：逐要件独立数据源 `constituent_sources` 的对齐 + 行为 + 接线不变式。
+
+    背景：`not_checked` 中约七成来自「红线定义未标注该要件的独立数据源」。修法是给红线补
+    `constituent_sources`（与 `constituents` 按序对齐），由 `constituent_checkpoint` 据此判定
+    「该要件的独立数据源本轮是否已取得」。本闸门锁死三件事，防"补了数据却不生效"：
+      ① 对齐：凡声明 constituent_sources 的红线，长度必须 == constituents 长度；
+      ② 行为：声明了数据源的要件必须采用该数据源、且不再落「未定义」；
+      ③ 接线：`evidence_chain` 透出 `available_materials`；`redline_engine` 把
+         `constituent_sources` 传到疑点（否则数据源声明到不了 checkpoint）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    # ① 对齐
+    try:
+        from engine.tax_redlines import REDLINES
+        for r in REDLINES:
+            cs = r.get("constituent_sources")
+            if not cs:
+                continue
+            cons = r.get("constituents") or []
+            if len(cs) != len(cons):
+                issues.append(("ERROR", "engine/tax_redlines.py",
+                               f"{r.get('id')} constituent_sources 长度({len(cs)})"
+                               f"≠constituents({len(cons)})，按序对齐被破坏"))
+    except Exception as exc:  # noqa: BLE001
+        issues.append(("ERROR", "engine/tax_redlines.py", "读取红线定义失败：%s" % exc))
+    # ② 行为
+    try:
+        from engine.constituent_checkpoint import build_constituent_checkpoints
+        s = {"constituents": ["测试要件A", "测试要件B"],
+             "constituent_sources": ["销项发票", "红字发票信息确认单"],
+             "evidence_chain": {"elements": [], "available_materials": ["销项发票"]},
+             "clue_chain": {"nodes": []}, "argumentation": {"constituent_hits": []}}
+        cps = build_constituent_checkpoints(s)
+        if len(cps) != 2:
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           "声明 constituent_sources 后要件数不符（%d≠2）" % len(cps)))
+        elif str(cps[0].get("独立数据源") or "") != "销项发票":
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           "已声明数据源的要件未采用该数据源（仍落未定义）："
+                           f"{cps[0].get('独立数据源')!r}"))
+        elif cps[0].get("_conclusion") not in ("checked_hit", "checked_miss"):
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           "已取得数据源的要件未判为已核对（%s）" % cps[0].get("_conclusion")))
+    except Exception as exc:  # noqa: BLE001
+        issues.append(("ERROR", "engine/constituent_checkpoint.py", "行为断言失败：%s" % exc))
+    # ③ 接线
+    try:
+        ev = (ROOT / "engine" / "evidence_chain.py").read_text(encoding="utf-8")
+        if "available_materials" not in ev:
+            issues.append(("ERROR", "engine/evidence_chain.py",
+                           "未透出 available_materials（checkpoint 无法判「已取得」，要件落未定义）"))
+    except Exception as exc:  # noqa: BLE001
+        issues.append(("ERROR", "engine/evidence_chain.py", "读取失败：%s" % exc))
+    try:
+        re_src = (ROOT / "engine" / "redline_engine.py").read_text(encoding="utf-8")
+        if "constituent_sources" not in re_src:
+            issues.append(("ERROR", "engine/redline_engine.py",
+                           "未传递 constituent_sources 到疑点（数据源声明不生效）"))
+    except Exception as exc:  # noqa: BLE001
+        issues.append(("ERROR", "engine/redline_engine.py", "读取失败：%s" % exc))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -5060,6 +5124,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_domain_missing_material_emits_finding()  # A 缺主资料须产出资料缺失发现
                + check_finding_level_legality()      # D 风险发现 level 必须合法词表
                + check_chapter_template_dedup()      # P2-7 章节模板去重锁定
+               + check_constituent_sources_wiring()  # #448 逐要件独立数据源接线锁定
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 
