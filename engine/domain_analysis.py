@@ -1024,6 +1024,12 @@ def _domain_bom_verify(bom_data, inventory, pur_invs, sal_invs):
     findings = []
 
     if not bom_data:
+        findings.append({"type": "资料缺失-BOM配方", "level": "待核验", "score": 6,
+            "detail": "未提供BOM配方数据，无法进行域6-B(BOM投入产出验证)分析。",
+            "description": "缺少BOM配方表（产品、原材料、单位用量、损耗率），导致无法将标准配方与实际采购/生产数据进行交叉比对，无法识别虚列原材料采购（进项虚抵）、隐匿成品销售（账外收入）或BOM表不真实等风险。",
+            "tax_impact": "无法进行投入产出偏离分析，虚开与账外收入风险难以被系统发现。",
+            "suggestion": "上传BOM配方表（含产品名称、原材料名称、单位用量、损耗率字段）。",
+            "category": "域6 存货"})
         return findings
 
     # 汇总BOM信息
@@ -1248,6 +1254,12 @@ def _domain_warehouse_capacity(inventory, bank_txs=None, sal_invs=None, pur_invs
     """
     findings = []
     if not inventory:
+        findings.append({"type": "资料缺失-存货台账", "level": "待核验", "score": 6,
+            "detail": "未提供存货台账数据，无法进行VR026(仓储容量匹配)分析。",
+            "description": "缺少存货台账（产品名称、入库/出库数量、期初/期末库存），导致无法测算期末存货所需仓储面积，无法与仓库租赁合同面积或租金倒推面积比对，无法识别虚增存货或账外存货（已销未入账）风险。",
+            "tax_impact": "无法验证存货物理存放合理性，虚增存货/账外存货风险难以被系统发现。",
+            "suggestion": "上传进销存台账（含产品名称、入库数量、出库数量、期初/期末库存字段）。",
+            "category": "域6 存货"})
         return findings
 
     total_end_val = 0.0

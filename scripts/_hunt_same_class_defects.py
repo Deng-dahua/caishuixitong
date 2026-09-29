@@ -43,8 +43,32 @@ def _mask_comments(text: str) -> str:
     return "\n".join(lines)
 
 
+def _domain_emits_missing_material(node) -> bool:
+    """函数体内是否存在 findings.append({"type": "资料缺失-..."})。
+
+    有则属「缺资料→产出 资料缺失 待核验 发现」的合规有痕行为（与项目统一行为一致），
+    不应判为 D1 缺陷；无则属静默零产出（报告无痕），才是真缺陷。
+    """
+    for n in ast.walk(node):
+        if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call):
+            func = n.value.func
+            if isinstance(func, ast.Attribute) and func.attr == "append" \
+                    and isinstance(func.value, ast.Name) and func.value.id == "findings":
+                if n.value.args and isinstance(n.value.args[0], ast.Dict):
+                    for k, v in zip(n.value.args[0].keys, n.value.args[0].values):
+                        if isinstance(k, ast.Constant) and k.value == "type" \
+                                and isinstance(v, ast.Constant) and isinstance(v.value, str) \
+                                and v.value.startswith("资料缺失"):
+                            return True
+    return False
+
+
 def scan_A_hard_gates():
-    """A：域函数开头的硬门禁（缺一份资料就整域返回空）。"""
+    """A：域函数开头的硬门禁（缺一份资料就整域返回空）。
+
+    2026-09-30 精确化：仅当该域缺主资料时**未产出 资料缺失 待核验 发现**（静默零产出）
+    才判为缺陷；已 append 资料缺失发现的域属合规有痕行为，跳过。
+    """
     hits = []
     for f in sorted(glob.glob(os.path.join(ROOT, "engine", "*.py"))):
         rel = os.path.relpath(f, ROOT).replace("\\", "/")
@@ -70,7 +94,10 @@ def scan_A_hard_gates():
                     continue
                 var = txt[4:].strip()
                 if var in mats and "return" in ast.unparse(st.body):
-                    # 该域是否只依赖这一份资料？若形参里有 ≥2 份资料，则缺一份跳过属 D1 违反
+                    # 缺主资料时已产出 资料缺失 待核验 发现 → 合规有痕，跳过
+                    if _domain_emits_missing_material(node):
+                        continue
+                    # 否则属静默零产出（报告无痕），才是 D1 类真缺陷
                     hits.append((rel, node.name, node.lineno, var, sorted(mats)))
     return hits
 
@@ -108,14 +135,21 @@ def scan_B_missing_reads_as_violation():
 
 
 def scan_C_domain_not_sealed():
-    """C：产出域 vs 可并入报告的域白名单（其余域的产出进不了报告）。"""
+    """C（2026-09-30 重写）：原设计只用 _objective_domain_keys 白名单并入 7 个客观域，
+    其余 40+ 域被输出封印整体隔离（实测 86 项「算了但看不到」）。
+
+    2026-09-26「全部提升」决策改为由 engine.output_governance.promote_domain_findings
+    把**全部**域风险级发现并入正式输出（pipeline.py 调用
+    `_promote(_scenario_execution, domain_results, ...)`，传入完整 domain_results）。
+    本检查验证新机制已接线，不再依赖旧白名单——旧白名单即便存在也不再是唯一闸门。
+    """
     pipe = open(os.path.join(ROOT, "engine", "pipeline.py"), encoding="utf-8").read()
     doms = sorted(set(re.findall(r'domain_results\.append\(\{"domain":\s*"([^"]+)"', pipe)))
-    m = re.search(r"_objective_domain_keys = \(([^)]*)\)", pipe, re.S)
-    keys = re.findall(r'"([^"]+)"', m.group(1)) if m else []
-    unmatched_keys = [k for k in keys if not any(k in d for d in doms)]
-    not_sealed = [d for d in doms if not any(k in d for k in keys)]
-    return doms, keys, not_sealed, unmatched_keys
+    # 新机制接线判据：promote_domain_findings 被引入，且以 domain_results 调用
+    wired = ("promote_domain_findings" in pipe) and ("_promote(" in pipe) \
+        and ("domain_results" in pipe)
+    has_old_whitelist = bool(re.search(r"_objective_domain_keys\s*=\s*\(", pipe))
+    return doms, wired, has_old_whitelist
 
 
 def scan_D_illegal_levels():
@@ -164,21 +198,27 @@ def main():
     print("\n" + "=" * 78)
     print("C. 产出进不了报告（未并入场景执行 → 被输出封印吞掉）")
     print("=" * 78)
-    doms, keys, not_sealed, unmatched = scan_C_domain_not_sealed()
-    print(f"  产出的分析域共 {len(doms)} 个；可并入报告的域键 {len(keys)} 个：{keys}")
-    if unmatched:
-        print(f"  ⚠ 白名单里匹配不到任何域的键（永远不生效）：{unmatched}")
-    print(f"  未在白名单内的域 {len(not_sealed)} 个：")
-    for d in not_sealed:
-        print(f"      · {d}")
+    doms, wired, has_old = scan_C_domain_not_sealed()
+    print(f"  产出的分析域共 {len(doms)} 个。")
+    if wired:
+        print("  ✓ 「全部提升」已接线：promote_domain_findings 以完整 domain_results 调用，")
+        print("    所有域风险级发现一律并入正式输出（旧 _objective_domain_keys 白名单已非唯一闸门）。")
+    else:
+        print("  ⚠ 未检测到 promote_domain_findings 以 domain_results 调用——域产出可能再次被隔离！")
+    if has_old:
+        print("  （注：旧 _objective_domain_keys 白名单仍存在于 pipeline.py，但已非唯一闸门，可后续清理。）")
 
     print("\n" + "=" * 78)
-    print("D. 非法等级（会被后续环节静默丢弃）")
+    print("D. 非权威词表 level（风险发现才会被静默丢弃；下列多为非风险 vocabulary）")
     print("=" * 78)
     d = scan_D_illegal_levels()
     print(f"  共 {len(d)} 处 level 取值不在权威词表 {sorted(LEGAL_LEVELS)}：")
     for rel, ln, v in d:
         print(f"      {rel}:{ln}  level={v!r}")
+    print("  说明：上述取值多为「置信度(高可信/中等可信/低可信) / 评审(错误·警告·注意) /")
+    print("        标签(层级) / 机会流(优惠机会·提醒·提示) / 维度评分(未触发) / 自检(未知)」等")
+    print("        非风险 vocabulary，不进入风险发现流，不会被静默丢弃。风险发现 level 合法性")
+    print("        已由审计闸门 check_finding_level_legality 强制（六键风险发现形状 + 非法 level → ERROR）。")
 
 
 if __name__ == "__main__":

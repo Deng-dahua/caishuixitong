@@ -43,6 +43,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -4829,6 +4830,129 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     return issues
 
 
+# ═══════════════════════════════════════════════════════════════════
+# 同源排查闸门（2026-09-30 新增，对应 _hunt_same_class_defects A / D 类）
+# ═══════════════════════════════════════════════════════════════════
+
+_LEGAL_FINDING_LEVELS = {"极高风险", "高风险", "中风险", "待核验", "信息", "低风险"}
+_RISK_FINDING_KEYS = ("type", "detail", "description", "tax_impact", "suggestion", "category")
+_MISSING_MATERIAL_TYPE_PREFIX = "资料缺失"
+
+
+def _is_empty_findings_assign(stmt: "ast.AST") -> bool:
+    if not isinstance(stmt, ast.Assign) or len(stmt.targets) != 1:
+        return False
+    tg = stmt.targets[0]
+    if not isinstance(tg, ast.Name) or tg.id != "findings":
+        return False
+    return isinstance(stmt.value, ast.List) and len(stmt.value.elts) == 0
+
+
+def _is_guard_return(stmt: "ast.AST", params: set) -> bool:
+    if not isinstance(stmt, ast.If):
+        return False
+    t = stmt.test
+    if not (isinstance(t, ast.UnaryOp) and isinstance(t.op, ast.Not)
+            and isinstance(t.operand, ast.Name)):
+        return False
+    if t.operand.id not in params:
+        return False
+    for b in stmt.body:
+        if isinstance(b, ast.Return) and isinstance(b.value, ast.Name) \
+                and b.value.id == "findings":
+            return True
+    return False
+
+
+def check_domain_missing_material_emits_finding() -> List[Tuple[str, str, str]]:
+    """域函数「缺主资料」必须产出 资料缺失 待核验 发现，不得静默零产出。
+
+    ★ 2026-09-30 同源收敛：salary/social_security 事件根因之一是「缺一份资料 → 整域
+      零产出、报告无痕」。本项目已确立统一行为：域函数主资料缺失时，先 append 一条
+      `{"type": "资料缺失-...", "level": "待核验", ...}` 发现再 return，使报告能看到
+      「该项检查因缺资料未执行」。但 _domain_bom_verify / _domain_warehouse_capacity
+      曾 `if not <主资料>: return findings`（findings 为空），与其他 8 个域不一致，
+      构成复发隐患。本闸门强制：任何 `_domain_*` 函数若 `findings = []` 后紧跟
+      `if not <形参>: return findings`（且函数内从未 append 任何发现）→ 报错。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    target = ROOT / "engine" / "domain_analysis.py"
+    if not target.exists():
+        return issues
+    try:
+        tree = ast.parse(target.read_text(encoding="utf-8"))
+    except Exception:
+        return issues
+
+    for node in tree.body:
+        if not (isinstance(node, ast.FunctionDef) and node.name.startswith("_domain_")):
+            continue
+        params = {a.arg for a in node.args.args}
+        emitted_types = set()
+        for n in ast.walk(node):
+            if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call):
+                func = n.value.func
+                if isinstance(func, ast.Attribute) and func.attr == "append" \
+                        and isinstance(func.value, ast.Name) and func.value.id == "findings":
+                    if n.value.args and isinstance(n.value.args[0], ast.Dict):
+                        for k, v in zip(n.value.args[0].keys, n.value.args[0].values):
+                            if isinstance(k, ast.Constant) and k.value == "type" \
+                                    and isinstance(v, ast.Constant) and isinstance(v.value, str):
+                                emitted_types.add(v.value)
+        silent = False
+        for i, stmt in enumerate(node.body):
+            if _is_empty_findings_assign(stmt):
+                nxt = node.body[i + 1] if i + 1 < len(node.body) else None
+                if nxt is not None and _is_guard_return(nxt, params):
+                    silent = True
+        if silent and not any(t.startswith(_MISSING_MATERIAL_TYPE_PREFIX)
+                               for t in emitted_types):
+            issues.append((
+                "ERROR", "domain_missing_material_emits_finding",
+                f"engine/domain_analysis.py::{node.name} 主资料缺失时静默 return 空 "
+                f"findings，未 append 资料缺失 待核验 发现（与其他域不一致，缺资料检查在报告中无痕）。"
+            ))
+    return issues
+
+
+def check_finding_level_legality() -> List[Tuple[str, str, str]]:
+    """报告风险发现的 level 必须是权威词表，否则被输出封印静默丢弃。
+
+    ★ 2026-09-30 同源收敛：记忆「等级合法性」机制——词表外 level 被后续环节静默丢弃。
+      本闸门做正向校验：任何**风险发现形态**的字典字面量（同时含 type/detail/description/
+      tax_impact/suggestion/category 六键，即域/VR 产出的标准风险发现形状）若其 `level`
+      为字符串字面量且不在权威词表 → 报错。
+      注：下列非风险词汇（优惠机会/提醒/提示、高可信/中等可信/低可信、错误/警告/注意、
+      未知、未触发、层级）属置信度/评审/标签/机会流 vocabulary，不具六键形状，不予误报。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    for f in _iter_prod_py_files():
+        rel = os.path.relpath(f, ROOT).replace("\\", "/")
+        if rel.startswith("scripts/"):
+            continue
+        try:
+            tree = ast.parse(Path(f).read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Dict):
+                continue
+            keys = [k.value for k in node.keys if isinstance(k, ast.Constant)]
+            if not all(k in keys for k in _RISK_FINDING_KEYS):
+                continue
+            for k, v in zip(node.keys, node.values):
+                if isinstance(k, ast.Constant) and k.value == "level":
+                    if isinstance(v, ast.Constant) and isinstance(v.value, str):
+                        if v.value not in _LEGAL_FINDING_LEVELS:
+                            issues.append((
+                                "ERROR", "finding_level_legality",
+                                f"{rel} 风险发现 level='{v.value}' 不在权威词表"
+                                f"{sorted(_LEGAL_FINDING_LEVELS)}，将被输出封印静默丢弃。"
+                            ))
+                    break
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -4867,6 +4991,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_combo_profile_logic()         # C3 风险组合画像逻辑锁定
                + check_blind_redline_coverage()      # C4 盲区红线软匹配可达性锁定
                + check_benchmark_actual_compare()   # B1 实际比对（名实相符）锁定
+               + check_domain_missing_material_emits_finding()  # A 缺主资料须产出资料缺失发现
+               + check_finding_level_legality()      # D 风险发现 level 必须合法词表
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 
