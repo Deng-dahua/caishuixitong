@@ -2436,6 +2436,16 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _dle:
         pipeline_log.append(f"税前扣除限额补充异常: {_dle}")
 
+    # ═══ 顶额开票（RL-VAT-004）：单张金额贴近发票版本上限（检出能力补齐，原属盲区） ═══
+    try:
+        from engine.invoice_limit_detector import detect_invoice_limit_top
+        _lt_findings = detect_invoice_limit_top(sal_invs, ctx)
+        if _lt_findings:
+            domain_results.append({"domain": "顶额开票检测", "findings": _lt_findings})
+            pipeline_log.append(f"顶额开票检测: {len(_lt_findings)}项发现")
+    except Exception as _lte:
+        pipeline_log.append(f"顶额开票检测异常: {_lte}")
+
     # ═══ 外部数据核验待办（单账套判不了、需工商/税务/海关/公安/银行外部数据的项） ═══
     # 遵循"无数据→置疑清单并列明需补资料"：有在账信号才输出，明确列出需补什么
     try:
