@@ -153,9 +153,34 @@ def _sample_rows(finding: Dict, limit: int = 5) -> List[str]:
     return out
 
 
-def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] = None) -> Dict:
+def _materials_in_text(source_text: str, provided: Optional[List[str]]) -> bool:
+    """判断环节声明的资料中是否有任一类别在本轮已提供清单中。
+
+    source_text 形如 "工资表" 或 "考勤记录、门禁记录、社保、个税、银行流水"；
+    provided 为 material_readiness["provided"] 的中文 15 类名单。
+    """
+    if not provided or not source_text:
+        return False
+    prov = {str(p).strip() for p in provided if p}
+    for piece in re.split(r"[、，,;；]", str(source_text)):
+        p = piece.strip()
+        if p and p in prov:
+            return True
+    return False
+
+
+def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] = None,
+                     provided_materials: Optional[List[str]] = None) -> Dict:
     """
     构建单条发现的线索链。
+
+    ★ 2026-09-29（点评整改 P0-1②/P1-4 三态化）：环节无数据时区分两种性质——
+      · material_missing：环节所需资料本轮确未提供 → "因缺少资料未取得数据"（计入检查受限）；
+      · engine_gap：所需资料**已提供**但该环节未产出可展示数据 → 属检查程序待完善项，
+        **不计入资料缺失**（旧版把此类写成"本轮未取得该项资料"，与资料清单"已提供"
+        直接矛盾——实测"工资表已提供、疑点16 第1环却写未取得"）。
+      判据只能来自 provided_materials（资料齐备性唯一权威 material_readiness），
+      不得以"发现是否声明了取数来源"判断资料是否存在。
 
     返回结构：
         {
@@ -165,7 +190,7 @@ def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] =
           "terminal_signal": "...",              # 终端信号（触红的具体数值）
           "numbers": [...],                      # 链路上出现的确定性数字
           "samples": [...],                      # 代表性明细
-          "data_gaps": [...]                     # 本条线索想查但没资料的环节
+          "data_gaps": [...]                     # 无数据环节（含 reason: material_missing / engine_gap）
         }
     """
     engine_data = engine_data or {}
@@ -179,6 +204,9 @@ def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] =
 
     nodes: List[Dict] = []
     template = list(redline.get("clue_chain") or [])
+
+    def _gap_reason(source_text: str) -> str:
+        return "engine_gap" if _materials_in_text(source_text, provided_materials) else "material_missing"
 
     if template:
         # 有红线模板：按模板骨架逐环落地，并把实际观察值填进去
@@ -194,7 +222,11 @@ def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] =
                     if len(sources) > 6:
                         observed += f" 等{len(sources)}类"
                 else:
-                    observed = "本轮未取得该项资料"
+                    _r = _gap_reason(tpl.get("source", ""))
+                    observed = ("该环节未取得可展示数据；所需资料（"
+                                + str(tpl.get("source") or "—") + "）已在本轮提供，"
+                                "属检查程序待完善项，不计入资料缺失"
+                                if _r == "engine_gap" else "本轮未取得该项资料")
                     has_data = False
             elif step_no == total:
                 # 末环：终端信号（触红值）
@@ -209,7 +241,10 @@ def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] =
                 elif numbers:
                     observed = "计算得到：" + "、".join(numbers[:3])
                 else:
-                    observed = "本轮未取得该环节可量化数据"
+                    _r = _gap_reason(tpl.get("source", ""))
+                    observed = ("该环节未产出可展示数据；所需资料已在本轮提供，"
+                                "属检查程序待完善项，不计入资料缺失"
+                                if _r == "engine_gap" else "本轮未取得该环节可量化数据")
                     has_data = False
             nodes.append({
                 "step": step_no,
@@ -245,10 +280,14 @@ def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] =
              "has_data": bool(_terminal_signal(detail, numbers, finding))},
         ]
 
-    data_gaps = [
-        {"step": n["step"], "gap": n["source"] or n["output"]}
-        for n in nodes if not n.get("has_data")
-    ]
+    data_gaps = []
+    for n in nodes:
+        if n.get("has_data"):
+            continue
+        data_gaps.append({
+            "step": n["step"], "gap": n["source"] or n["output"],
+            "reason": _gap_reason(n.get("source", "")),
+        })
 
     return {
         "redline_id": redline.get("id", ""),

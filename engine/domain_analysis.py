@@ -13119,18 +13119,29 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
                     if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["印花税","印花","贴花"]):
                         stamp_paid += abs(to_number(tx.get("amount", 0)))
             if stamp_paid < expected_stamp * 0.5:
+                # ★ 2026-09-29（点评整改 P0-3）：银行流水按摘要关键词识别缴款，摘要不含
+                #   "印花税"字样（如三方协议划款"银税"类摘要）即识别不到；且印花税申报表
+                #   本轮未取得。故 stamp_paid=0 只能表述为"银行流水口径未识别到"，
+                #   **不得**断言"实际缴纳 0 元"（缺失/未识别 ≠ 未发生）。
+                if stamp_paid == 0:
+                    _paid_txt = ("银行流水中未识别到含「印花税」字样的缴款记录；"
+                                 "因未取得印花税申报表，实际申报缴纳情况未能核实"
+                                 "（缴款可能经三方协议划款且摘要不含税种字样）")
+                else:
+                    _paid_txt = f"银行流水口径识别到印花税字样缴款 {stamp_paid:,.0f} 元，不足推算应缴额的一半"
                 findings.append({
                     "type": "印花税 — 购销合同税负不足",
                     "level": "中风险", "score": 6,
-                    "detail": f"发票总额{total_inv_amount:,.0f}元，推算印花税{expected_stamp:,.0f}元，实际缴纳{stamp_paid:,.0f}元。偏差>50%→可能漏缴购销合同印花税。",
-                    "description": "以发票金额为税基推算购销合同印花税（0.03%），对比银行实际缴纳。",
+                    "detail": f"按发票金额推算印花税税基{total_inv_amount:,.0f}元、推算应缴{expected_stamp:,.0f}元"
+                              f"（推算口径仅供筛查，实际计税依据以合同台账为准）；{_paid_txt}。偏差>50%→待核漏缴疑点。",
+                    "description": "以发票金额为税基推算购销合同印花税（0.03%），对比银行流水口径缴款记录；申报侧以印花税申报表为准。",
                     "suggestion": "核查购销合同印花税申报，补缴差额。购销合同印花税率0.03%。",
                     "policy_ref": "印花税法 第5条、第8条",
                     # ★ 2026-09-28：显式认领 RL-OTH-001 + 逐条判定构成要件。
                     "redline_id": "RL-OTH-001",
                     "constituent_hits": [
-                        {"index": 1, "evidence": f"按购销发票金额推算的印花税税基 {total_inv_amount:,.0f} 元与实际缴纳 {stamp_paid:,.0f} 元存在差异（推算应缴 {expected_stamp:,.0f} 元）"},
-                        {"index": 2, "evidence": "银行流水未见（或明显不足）购销合同印花税缴纳记录" if stamp_paid == 0 else f"印花税实际缴纳 {stamp_paid:,.0f} 元，不足推算应缴额的一半"},
+                        {"index": 1, "evidence": f"按购销发票金额推算的印花税税基 {total_inv_amount:,.0f} 元（推算应缴 {expected_stamp:,.0f} 元），与申报侧计税依据的差异须以合同台账与申报表核实"},
+                        {"index": 2, "evidence": _paid_txt},
                         {"index": 3, "evidence": f"按推算口径差额约 {expected_stamp - stamp_paid:,.0f} 元（是否属于免税凭证或已按核定征收申报，须企业举证）"},
                     ],
                     "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,

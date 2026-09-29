@@ -178,33 +178,47 @@ def run_two_tax_compare(tax_declarations=None, vat_sales=None, cit_income=None, 
                 "hint": "两税收入口径一致，结合资金流与未开票收入确认完整性。",
             })
     elif only_vat:
-        sev_mid = True
+        # ★ 2026-09-29（点评整改 P0-2）：单边存在时**不得**把缺失侧当 0 参与差额计算
+        #   （实测事故：所得税申报表未取得 → 营业收入记 0 → "差额 6,636,800.57 元"，
+        #   把检查受限包装成了事实差异）。只提示补充资料，不量化、不下"存在差异"结论。
         signals.append({
             "signal": f"仅取得增值税申报表（销售额{vat_sales:,.2f}元），未取得企业所得税申报表",
-            "hint": "无法做两税勾稽。所得税申报表是验证收入完整性的核心资料，请补充上传。",
+            "hint": "无法做两税勾稽。所得税申报表是验证收入完整性的核心资料，请补充上传。"
+                    "缺失侧收入按未取得处理（不按 0 参与差额计算）。",
         })
     elif only_cit:
-        sev_mid = True
         signals.append({
             "signal": f"仅取得企业所得税申报表（营业收入{cit_income:,.2f}元），未取得增值税申报表",
-            "hint": "无法做两税勾稽。增值税申报表是自动预填销项的基础，请补充上传。",
+            "hint": "无法做两税勾稽。增值税申报表是自动预填销项的基础，请补充上传。"
+                    "缺失侧收入按未取得处理（不按 0 参与差额计算）。",
         })
 
+    one_side = bool(only_vat or only_cit)
     if sev_high:
         verdict = "增值税销售额显著高于所得税营业收入，疑所得税少计收入"
     elif sev_mid:
         verdict = "两税收入存在差异，需核实口径"
+    elif one_side:
+        verdict = "两税勾稽未能比对（缺一张申报表，差额不予测算）"
     else:
         verdict = "两税收入基本一致"
 
-    metrics = {
-        "vat_sales": round(vat_sales, 2),
-        "cit_income": round(cit_income, 2),
-        "diff": round(vat_sales - cit_income, 2),
-        "diff_pct": round((vat_sales - cit_income) / cit_income * 100.0, 2) if cit_income else None,
-        "vat_over_cit": round(vat_sales - cit_income, 2),
-        "only_one_side": bool(only_vat or only_cit),
-    }
+    if one_side:
+        metrics = {
+            "vat_sales": round(vat_sales, 2) if vat_sales > 0 else None,
+            "cit_income": round(cit_income, 2) if cit_income > 0 else None,
+            "diff": None, "diff_pct": None, "vat_over_cit": None,
+            "only_one_side": True,
+        }
+    else:
+        metrics = {
+            "vat_sales": round(vat_sales, 2),
+            "cit_income": round(cit_income, 2),
+            "diff": round(vat_sales - cit_income, 2),
+            "diff_pct": round((vat_sales - cit_income) / cit_income * 100.0, 2) if cit_income else None,
+            "vat_over_cit": round(vat_sales - cit_income, 2),
+            "only_one_side": False,
+        }
 
     lines = []
     lines.append(f"增值税申报销售额合计：{vat_sales:,.2f}元" + ("（未取得）" if vat_sales <= 0 else ""))
@@ -216,12 +230,19 @@ def run_two_tax_compare(tax_declarations=None, vat_sales=None, cit_income=None, 
             lines.append("判定：增值税销售额 > 所得税营业收入 → 所得税少计收入风险（红线方向）。")
         else:
             lines.append("判定：所得税营业收入 > 增值税销售额 → 多为正常，需提供两税收入调节表。")
+    elif one_side:
+        lines.append("判定：因缺少一张申报表，两税收入差异**无法量化**——缺失侧按「未取得」处理，"
+                     "不按 0 参与差额计算；本项不构成差异结论，补充申报表后系统自动完成勾稽。")
     body = "\n".join(lines)
 
-    if only_vat or only_cit:
+    if one_side:
+        summary = (f"仅取得{'增值税' if only_vat else '企业所得税'}申报表，"
+                   f"{'企业所得税' if only_vat else '增值税'}申报表未取得，两税收入差异无法量化。")
         recommendation = ("系统已就取得的一张申报表给出提示。下一步：补充另一张申报表后重跑分析，"
                           "系统将自动完成两税收入勾稽并量化差异；差异>10%须附收入调节表。")
     else:
+        summary = f"增值税销售额{vat_sales:,.2f}元 vs 企业所得税营业收入{cit_income:,.2f}元，" \
+                  f"差额{vat_sales - cit_income:,.2f}元。"
         recommendation = ("系统已量化两税收入差异。下一步：①差异>10%须编制两税收入调节表，"
                           "逐项列明增值税应税但所得税不征/免税/以前年度/视同销售等来源；"
                           "②增值税>所得税方向须逐笔核实是否将应税收入在所得税申报时砍掉；"
@@ -233,8 +254,7 @@ def run_two_tax_compare(tax_declarations=None, vat_sales=None, cit_income=None, 
         "title": "增值税收入 vs 企业所得税收入差异比对",
         "company": company_name,
         "verified_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "summary": f"增值税销售额{vat_sales:,.2f}元 vs 企业所得税营业收入{cit_income:,.2f}元，"
-                   f"差额{vat_sales - cit_income:,.2f}元。",
+        "summary": summary,
         "body": body,
         "metrics": metrics,
         "signals": signals,

@@ -111,14 +111,20 @@ class SearchEngineVerifier(BaseVerifier):
                 pass
         
         risk_score = sum(checks.values()) / len(checks)
-        
+        found_any = any(checks.values())
+
         return {
             "ok": True,
             "company_name": company_name,
             "checks": checks,
             "risk_score": round(risk_score, 2),
             "details": details,
-            "assessment": "高风险" if risk_score > 0.5 else ("需关注" if risk_score > 0.2 else "正常"),
+            # ★ 2026-09-29（点评整改）：四个维度全部未检索到信息 ≠ "没问题"——
+            #   搜索不到可能只是企业太小或检索受限，只能如实写"未能核实"。
+            "assessment": ("高风险" if risk_score > 0.5
+                           else ("需关注" if risk_score > 0.2
+                                 else ("信息不足，未能核实" if not found_any else "正常"))),
+            "found_any": found_any,
             "source": self.name,
         }
     
@@ -210,28 +216,35 @@ class ExternalVerificationEngine:
         """AGI综合评估验证结果"""
         active_count = 0
         abnormal_count = 0
+        verified_any = 0
         risk_signals = []
-        
+
         for channel, result in results.items():
             if isinstance(result, dict) and result.get("ok"):
                 active_count += 1
                 if result.get("is_abnormal") or result.get("is_active") == False:
                     abnormal_count += 1
                     risk_signals.append(f"{channel}: 企业状态异常")
-                
+
                 assessment = result.get("assessment", "")
                 if assessment == "高风险":
                     risk_signals.append(f"{channel}: 高风险")
-        
+                # ★ 2026-09-29（点评整改）：只有"确实检索/核到了信息"的通道才能支撑
+                #   "正常"结论。"全部维度未检索到"的通道不构成无风险证据。
+                if assessment not in ("信息不足，未能核实",) and result.get("found_any", True):
+                    verified_any += 1
+
         return {
             "channels_responding": active_count,
+            "verified_channels": verified_any,
             "abnormal_signals": abnormal_count,
             "risk_signals": risk_signals,
-            "verdict": "需深入核实" if abnormal_count > 0 else ("正常" if active_count > 0 else "无法核实"),
+            "verdict": ("需深入核实" if abnormal_count > 0
+                        else ("正常" if verified_any > 0 else "无法核实（各通道均未检索到可核实信息）")),
             "recommendation": (
-                "建议通过天眼查/企查查进一步核实" if abnormal_count > 0 
-                else "企业工商信息正常" if active_count > 0
-                else "所有渠道均无法核实，建议人工查验"
+                "建议通过天眼查/企查查进一步核实" if abnormal_count > 0
+                else "企业工商信息正常" if verified_any > 0
+                else "所有渠道均未检索到可核实信息，本结论不构成无风险证明，建议人工查验或接通付费通道"
             ),
         }
     

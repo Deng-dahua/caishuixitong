@@ -1379,7 +1379,7 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None):
     return [_naturalize_report_text(raw_items[i]) for i in keep[:cap]], "facts"
 
 
-def _build_redline_problems(suspicions, findings=None):
+def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
     """
     按「税务红线疑点」组装报告主体（2026-09-06 新方法论）
 
@@ -1473,9 +1473,24 @@ def _build_redline_problems(suspicions, findings=None):
             + (chain_desc or "本轮资料不足以还原完整的发现过程。")
         )
         if clue.get("data_gaps"):
-            p2 += "其中" + "、".join(
-                f"第{g['step']}环" for g in clue.get("data_gaps", [])
-            ) + "因缺少资料未取得数据，已计入检查受限范围。"
+            # ★ 2026-09-29（点评整改 P0-1②）：按三态分别表述——资料缺失才"计入检查受限"；
+            #   所需资料已提供但环节未产出数据的，如实写"检查程序待完善项，不计入资料缺失"，
+            #   不得与第一章"已提供资料"清单自相矛盾。
+            _gaps = clue.get("data_gaps", [])
+            _mg = [g for g in _gaps if g.get("reason") == "material_missing"]
+            _eg = [g for g in _gaps if g.get("reason") != "material_missing"]
+            _parts = []
+            if _mg:
+                _parts.append("其中" + "、".join(
+                    f"第{g['step']}环" for g in _mg
+                ) + "因缺少资料未取得数据，已计入检查受限范围")
+            if _eg:
+                _parts.append("、".join(
+                    f"第{g['step']}环" for g in _eg
+                ) + "所需资料已在本轮提供、但该环节未产出可展示数据（属检查程序待完善项，"
+                    "不计入资料缺失，不影响资料齐备性判断）")
+            if _parts:
+                p2 += "；".join(_parts) + "。"
 
         # ③ 已有材料与待补材料
         # ★ 2026-09-25：三态须分开说。「已有」= 名称逐字对应的材料已提交；
@@ -1605,12 +1620,15 @@ def _build_redline_problems(suspicions, findings=None):
             "trace_id": (clue.get("nodes") or [{}])[0].get("trace_ref", ""),
         })
     # ★ 2026-09-27（P1）：逐项测算**潜在税额影响**。只认关键词锚定的明确金额，
-    #   取不到 → 未量化（绝不猜）；税率与假设见 engine/tax_impact.py。
+    #   取不到 → 未量化（绝不猜）。
+    # ★ 2026-09-29（点评整改 P0-4）：税率走 rate_ctx（pipeline 从销项有效税率/净利润
+    #   推断的语境），未提供时才落到 tax_impact._RATES 兜底口径。
     try:
         from engine.tax_impact import extract_amount_from_problem, estimate_tax
         for _p in problems:
             _am = extract_amount_from_problem(_p)
-            _p["tax_impact"] = estimate_tax((_am or {}).get("amount"), _p.get("taxes"))
+            _p["tax_impact"] = estimate_tax((_am or {}).get("amount"), _p.get("taxes"),
+                                            rate_ctx=rate_ctx)
             if _am:
                 _p["tax_impact"]["amount_context"] = _am.get("context", "")
     except Exception:
@@ -1930,7 +1948,8 @@ def _build_confirmed_problems(report_data):
     if _rd.get("suspicions"):
         _findings = ((report_data.get("scenario_execution", {}) or {}).get("findings")
                      or report_data.get("all_findings", []) or [])
-        return _build_redline_problems(_rd["suspicions"], _findings)
+        return _build_redline_problems(_rd["suspicions"], _findings,
+                                       rate_ctx=(report_data.get("comprehensive", {}) or {}).get("tax_rate_context"))
     findings = report_data.get("all_findings", []) or []
     # 缺失型（该有的没有）经竞争假设裁决后仍为"证据不足"的，转「待企业澄清事项」抛企业自证，
     # 不列为已确认问题（避免同一发现既"已核定"又"待证"的矛盾）。
@@ -2579,7 +2598,15 @@ def _build_external_verify_report(report_data):
             chan_summary.append(f"{ch}：付费通道（本次未启用）")
             continue
         if not res.get("ok"):
-            chan_summary.append(f"{ch}：未响应（{str(res.get('error',''))[:40]}）")
+            # ★ 2026-09-29（点评整改）：原始 HTTP 错误码不出正式文书，转业务语言
+            _err = str(res.get("error", ""))
+            if "403" in _err or "Forbidden" in _err:
+                _err = "访问被拒绝"
+            elif "timed out" in _err.lower() or "timeout" in _err.lower():
+                _err = "连接超时"
+            else:
+                _err = (_err[:24] or "未知原因")
+            chan_summary.append(f"{ch}：未响应（{_err}）")
             continue
         if ch == "国家企业信用信息公示系统":
             st = res.get("status", "未知")

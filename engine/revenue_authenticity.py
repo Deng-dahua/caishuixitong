@@ -221,7 +221,7 @@ def run_revenue_authenticity_check(data: Dict[str, Any], company_name: str = "",
     elif invoiced > declared * 1.02:
         signals.append({"signal": "开票>申报（漏报方向）", "hint": "已开票未申报，须核验"})
     if has_person_in:
-        signals.append({"signal": f"个人账户归集 {person_in:,.0f} 元", "hint": "账外收款直接证据"})
+        signals.append({"signal": f"个人账户归集 {person_in:,.0f} 元", "hint": "账外收款待核实线索（须逐笔核实款项性质，不构成认定依据）"})
     if ar_long > 0:
         signals.append({"signal": f"{ar_long} 个客户应收挂账超 1 年", "hint": "长期无回款，疑虚构收入"})
 

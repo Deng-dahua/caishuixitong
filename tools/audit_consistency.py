@@ -3669,6 +3669,231 @@ def check_benchmark_actual_compare() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_report_consistency() -> List[Tuple[str, str, str]]:
+    """报告级一致性闸门（2026-09-29 点评整改）。
+
+    背景：外部点评发现四类"单看是小缺陷、合起来否定全文可信度"的报告级硬伤：
+      ① 同一资料既在"已提供"清单、又在别处被写"未取得"（工资表/增值税申报表/科目余额表）；
+      ② "未取得"被当 0 参与计算（两税差异把缺失的所得税收入记 0 → 差额 6,636,800.57）；
+      ③ "未取得"被当"未发生"（印花税"实际缴纳 0 元"、附加"未见申报记录"——申报表均未上传）；
+      ④ 税额测算税率错配（服务企业按 13%/25% 测算，未适用小微优惠与个税免征额）。
+
+    本闸门用**行为断言**锁定修复（真实调用生产函数并断言产出），并校验接线存在。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    def _src(rel: str) -> str:
+        try:
+            with open(os.path.join(_root, rel), encoding="utf-8") as fh:
+                return fh.read()
+        except Exception:
+            return ""
+
+    # ①② 两税差异：单边存在时不得把缺失侧当 0 算差额
+    try:
+        from engine.two_tax_income import run_two_tax_compare
+        _tt = run_two_tax_compare(tax_declarations=[
+            {"_declaration_type": "vat_declaration", "sales_amount": 6636800.57}])
+        _tm = _tt.get("metrics") or {}
+        if _tm.get("diff") is not None:
+            issues.append(("ERROR", "engine/two_tax_income.py",
+                           "单边存在时 metrics.diff 仍参与计算（缺失当 0），必须为 None"))
+        if _tm.get("vat_over_cit") is not None:
+            issues.append(("ERROR", "engine/two_tax_income.py",
+                           "单边存在时 metrics.vat_over_cit 仍输出差额"))
+        if not _tm.get("only_one_side"):
+            issues.append(("ERROR", "engine/two_tax_income.py",
+                           "单边存在时 only_one_side 未置 True"))
+        if "未能比对" not in str(_tt.get("verdict", "")):
+            issues.append(("ERROR", "engine/two_tax_income.py",
+                           "单边存在时 verdict 未如实表述「未能比对」"))
+        if "0.00" in str(_tt.get("summary", "")):
+            issues.append(("ERROR", "engine/two_tax_income.py",
+                           "单边存在时 summary 仍把缺失侧渲染成 0.00"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/two_tax_income.py", f"两税差异行为断言执行失败: {exc}"))
+
+    # ④ 税额测算：税率语境 + 个税免征额 + 兜底保留
+    try:
+        from engine.tax_impact import estimate_tax, infer_rate_context
+        _ctx = {"vat_rate": 0.06, "vat_note": "按销项有效税率 6% 测算",
+                "cit_rate": 0.05, "cit_note": "小微优惠口径 5%"}
+        _est = estimate_tax(100000.0, ["增值税", "企业所得税"], rate_ctx=_ctx)
+        _by = {i["tax"]: i for i in _est.get("items") or []}
+        if abs((_by.get("增值税") or {}).get("amount", -1) - 6000.0) > 0.01:
+            issues.append(("ERROR", "engine/tax_impact.py",
+                           "rate_ctx 提供 6% 时增值税仍按兜底税率测算（语境未生效）"))
+        if abs((_by.get("企业所得税") or {}).get("amount", -1) - 5000.0) > 0.01:
+            issues.append(("ERROR", "engine/tax_impact.py",
+                           "rate_ctx 提供小微 5% 时企业所得税仍按 25% 测算"))
+        _est2 = estimate_tax(17000.0, ["个人所得税"], rate_ctx=_ctx)
+        _pit = [i for i in _est2.get("items") or [] if i["tax"] == "个人所得税"]
+        if not _pit or float((_pit[0] or {}).get("amount", -1)) != 0.0:
+            issues.append(("ERROR", "engine/tax_impact.py",
+                           "金额低于 6 万元基本减除费用时个税仍计税（应为 0 并注明）"))
+        if _est2.get("total") not in (0, 0.0):
+            issues.append(("ERROR", "engine/tax_impact.py",
+                           "个税 0 影响项不得计入敞口合计"))
+        _est3 = estimate_tax(100000.0, ["增值税"])
+        _vat3 = [i for i in _est3.get("items") or [] if i["tax"] == "增值税"]
+        if not _vat3 or abs(float(_vat3[0].get("amount", 0)) - 13000.0) > 0.01:
+            issues.append(("ERROR", "engine/tax_impact.py",
+                           "无 rate_ctx 时兜底 13% 口径被误改（兜底必须保留）"))
+        _irc = infer_rate_context(sal_invs=[{"amount": 100.0, "tax_amount": 6.0}],
+                                  net_profit=400000.0)
+        if _irc.get("vat_rate") != 0.06 or _irc.get("cit_rate") != 0.05:
+            issues.append(("ERROR", "engine/tax_impact.py",
+                           "infer_rate_context 未按销项有效税率/净利润推断出 6% 与小微 5%"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/tax_impact.py", f"税额测算行为断言执行失败: {exc}"))
+
+    # ① 线索链三态：资料已提供的环节不得写"本轮未取得该项资料"
+    try:
+        from engine.clue_chain import build_clue_chain
+        _rl = {"id": "RL-T", "name": "测试红线",
+               "clue_chain": [{"step": 1, "source": "工资表", "action": "a", "output": "o"}]}
+        _f = {"type": "t", "detail": "金额5万元，需核实"}
+        _c1 = build_clue_chain(_f, _rl, {}, provided_materials=["工资表"])
+        if "不计入资料缺失" not in str((_c1.get("nodes") or [{}])[0].get("observed", "")):
+            issues.append(("ERROR", "engine/clue_chain.py",
+                           "资料已提供但环节无数据时，仍写「本轮未取得该项资料」（与已提供清单矛盾）"))
+        if not _c1.get("data_gaps") or _c1["data_gaps"][0].get("reason") != "engine_gap":
+            issues.append(("ERROR", "engine/clue_chain.py",
+                           "engine_gap 三态标记缺失"))
+        _c2 = build_clue_chain(_f, _rl, {}, provided_materials=[])
+        if str((_c2.get("nodes") or [{}])[0].get("observed", "")) != "本轮未取得该项资料":
+            issues.append(("ERROR", "engine/clue_chain.py",
+                           "资料确未提供时应保留「本轮未取得该项资料」"))
+        if not _c2.get("data_gaps") or _c2["data_gaps"][0].get("reason") != "material_missing":
+            issues.append(("ERROR", "engine/clue_chain.py",
+                           "material_missing 三态标记缺失"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/clue_chain.py", f"线索链三态断言执行失败: {exc}"))
+
+    # ① redline_engine 必须把 material_readiness 的已提供清单传给线索链
+    _re_src = _src("engine/redline_engine.py")
+    if "provided_materials=_mats_all" not in _re_src:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "build_clue_chain 未接入 provided_materials（三态判定失去资料权威来源）"))
+    _er_src = _src("engine/enterprise_report.py")
+    if 'g.get("reason") == "material_missing"' not in _er_src:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "发现过程叙述未按 data_gaps.reason 区分「资料缺失/程序待完善」"))
+    if "rate_ctx=" not in _er_src:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "estimate_tax 未接入 rate_ctx（税率语境断路）"))
+
+    # ④ pipeline 必须构造税率语境
+    _pp_src = _src("engine/pipeline.py")
+    if "infer_rate_context(" not in _pp_src or '"tax_rate_context"' not in _pp_src:
+        issues.append(("ERROR", "engine/pipeline.py",
+                       "pipeline 未构造 comprehensive[tax_rate_context]（税率语境单一构造点缺失）"))
+
+    # ③ 附加税费：未取得申报表 ≠ 未申报
+    try:
+        from engine.verified_rule_engine import _scan_city_constr_tax
+        _f43 = _scan_city_constr_tax(
+            {"declaration": [{"payable_tax": 205744.69}]},
+            {"name": "城建税及附加随征勾稽", "id": "VR043", "required_sources": []})
+        if _f43:
+            _d43 = str(_f43[0].get("detail", ""))
+            if "未见对应的城建税及附加申报记录" in _d43:
+                issues.append(("ERROR", "engine/verified_rule_engine.py",
+                               "VR043 仍把「申报表未上传」写成「未见申报记录」（缺失≠未发生）"))
+            if "无法核实" not in _d43:
+                issues.append(("ERROR", "engine/verified_rule_engine.py",
+                               "VR043 未如实表述申报完整性无法核实"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/verified_rule_engine.py", f"VR043 断言执行失败: {exc}"))
+
+    # ③ 私户发薪：公户足额代发情形下不得"坐实"拆分（定性边界 + 论证自洽）
+    _vre_src = _src("engine/verified_rule_engine.py")
+    if "坐实『公账+私账拆分支付薪酬』" in _vre_src:
+        issues.append(("ERROR", "engine/verified_rule_engine.py",
+                       "VR056 仍含「坐实『公账+私账拆分支付薪酬』」定性表述（须改待证口径）"))
+    try:
+        from engine.verified_rule_engine import _scan_mixed_payroll
+        _f56 = _scan_mixed_payroll(
+            {"salaries": [{"姓名": "张三", "实发金额": 100000}],
+             "bank_txs": [
+                 {"summary": "代发工资", "借方": 150000, "counterparty": "开户银行"},
+                 {"summary": "工资", "借方": 25000, "counterparty": "张三"},
+             ]},
+            {"name": "公私混同发薪", "id": "VR056", "required_sources": ["salaries", "bank_txs"]})
+        if _f56:
+            _d56 = str(_f56[0].get("detail", ""))
+            if "坐实" in _d56:
+                issues.append(("ERROR", "engine/verified_rule_engine.py",
+                               "VR056 detail 仍输出「坐实」（定性边界）"))
+            if "不作认定" not in _d56:
+                issues.append(("ERROR", "engine/verified_rule_engine.py",
+                               "VR056 公户足额情形未声明「本轮不作认定」（论证须自洽）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/verified_rule_engine.py", f"VR056 断言执行失败: {exc}"))
+
+    # ③ 印花税：银行流水口径识别不到 ≠ 实际缴纳 0 元
+    _da_src = _src("engine/domain_analysis.py")
+    if "实际缴纳 {stamp_paid:,.0f} 元" in _da_src:
+        issues.append(("ERROR", "engine/domain_analysis.py",
+                       "印花税发现仍断言「实际缴纳 N 元」（申报表未取得时缺失≠未发生）"))
+    try:
+        from engine.domain_analysis import _domain_stamp_duty_check
+        _fST = _domain_stamp_duty_check(
+            bank_txs=[], sal_invs=[{"amount": 6000000.0}], pur_invs=[{"amount": 5000000.0}])
+        _st = [f for f in _fST if "购销合同税负不足" in str(f.get("type", ""))]
+        if _st:
+            _dst = str(_st[0].get("detail", ""))
+            if "实际缴纳 0 元" in _dst:
+                issues.append(("ERROR", "engine/domain_analysis.py",
+                               "印花税 detail 仍输出「实际缴纳 0 元」"))
+            if "未能核实" not in _dst:
+                issues.append(("ERROR", "engine/domain_analysis.py",
+                               "印花税发现未如实表述申报缴纳情况未能核实"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/domain_analysis.py", f"印花税断言执行失败: {exc}"))
+
+    # ① 询问清单：按实际缺失列示，不得把已提供的写成未取得
+    try:
+        from engine.inspection_questions import run_inspection_questions
+        _iq = run_inspection_questions(
+            comprehensive={}, company_name="测试公司",
+            data_overview={"present": ["增值税申报表", "科目余额表"],
+                           "missing": ["企业所得税申报表", "资产负债表"]})
+        _iq_txt = json.dumps(_iq, ensure_ascii=False, default=str)
+        if "本轮未取得增值税/企业所得税申报表" in _iq_txt:
+            issues.append(("ERROR", "engine/inspection_questions.py",
+                           "询问清单仍把已提供的增值税申报表写成未取得"))
+            # 不得断言"科目余额表未取得"（它在 present 清单里）
+        if "本轮未取得科目余额表" in _iq_txt:
+            issues.append(("ERROR", "engine/inspection_questions.py",
+                           "询问清单仍把已提供的科目余额表写成未取得"))
+        if "已提供，相应申报勾稽不受影响" not in _iq_txt:
+            issues.append(("ERROR", "engine/inspection_questions.py",
+                           "询问清单未按实际缺失列示（应注明已提供部分不受影响）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/inspection_questions.py", f"询问清单断言执行失败: {exc}"))
+
+    # ③ 外部核验：检索不到信息 ≠ 正常
+    try:
+        from engine.external_verifier import ExternalVerificationEngine
+        _as = ExternalVerificationEngine()._assess(
+            {"搜索引擎综合核实": {"ok": True, "assessment": "信息不足，未能核实", "found_any": False}})
+        if _as.get("verdict") == "正常":
+            issues.append(("ERROR", "engine/external_verifier.py",
+                           "各通道均未检索到信息时结论仍为「正常」（没能查≠查了没问题）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/external_verifier.py", f"外部核验断言执行失败: {exc}"))
+
+    # 定性词漏网回收：收入真实性 hint
+    _ra_src = _src("engine/revenue_authenticity.py")
+    if "账外收款直接证据" in _ra_src:
+        issues.append(("ERROR", "engine/revenue_authenticity.py",
+                       "仍把个人账户归集写成「直接证据」（待证线索不得定性）"))
+
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -3706,7 +3931,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_redline_admission()            # D 红线准入 + 盲区审计
                + check_combo_profile_logic()         # C3 风险组合画像逻辑锁定
                + check_blind_redline_coverage()      # C4 盲区红线软匹配可达性锁定
-               + check_benchmark_actual_compare())   # B1 实际比对（名实相符）锁定
+               + check_benchmark_actual_compare()   # B1 实际比对（名实相符）锁定
+               + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 
 

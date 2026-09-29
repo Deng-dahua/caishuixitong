@@ -5377,6 +5377,23 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as e:
         pipeline_log.append(f"[两税差异] 执行异常(不影响主分析): {e}")
 
+    # ── ⑥-③ 税率语境（2026-09-29 点评整改 P0-4：潜在税额测算的税率单一构造点）──
+    # 旧版对销项全为服务费的企业按 13% 测增值税、按 25% 测所得税，敞口虚高 2~3 倍。
+    # 此处按销项有效税率与净利润/人数/资产推断适用税率语境，供 enterprise_report 测算时选用。
+    try:
+        from engine.tax_impact import infer_rate_context
+        _np_v = fin_is.get("net_profit") if isinstance(fin_is, dict) else None
+        _emp_names = {str(s.get("姓名", s.get("name", ""))).strip()
+                      for s in (salaries or [])
+                      if str(s.get("姓名", s.get("name", ""))).strip()
+                      and "合计" not in str(s.get("姓名", s.get("name", "")))}
+        comprehensive["tax_rate_context"] = infer_rate_context(
+            sal_invs=sal_invs or [], net_profit=_np_v,
+            employee_count=(len(_emp_names) or None),
+            total_assets=(fin_bs.get("total_assets") if isinstance(fin_bs, dict) else None))
+    except Exception as _rc_e:
+        pipeline_log.append(f"[税率语境] 构造失败(不影响主分析): {_rc_e}")
+
     # ── ⑥-② 收入真实性（账外收入嫌疑）三维度三角验证（2026-09-14 新增）──
     # 把"银行收款>申报收入→账外收入"从单点规则升级为 维度1发票↔申报 / 维度2发票↔银行 /
     # 维度3应收账龄 的三角验证，综合裁定三态。与 ④⑤⑥ 同构，失败仅记录日志、不阻断主分析。
@@ -7664,11 +7681,17 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
                 evidence_rows.append(_inv_row(inv, "可疑发票"))
         
         # 供应商/客户相关 → 采样高频对方
+        # ★ 2026-09-29（点评整改）：进项按销方、销项按购方取对手方。旧版对两侧统一取
+        #   `seller`，导致本企业自身（销项的销方=本企业）被计入"高频交易对方"
+        #   （实测："交易70次 深圳海更数字传媒有限公司"），与"已剔除同名划转"的声明自相矛盾。
         if any(kw in combined for kw in ["供应商", "客户", "集中"]):
             from collections import Counter
             counterparty_counts = Counter()
-            for inv in pur_invs + sal_invs:
-                cp = str(inv.get("seller", inv.get("buyer", inv.get("销方名称", inv.get("购方名称", ""))))).strip()
+            for inv in pur_invs:
+                cp = str(inv.get("seller") or inv.get("销方名称") or "").strip()
+                if cp: counterparty_counts[cp] += 1
+            for inv in sal_invs:
+                cp = str(inv.get("buyer") or inv.get("购方名称") or "").strip()
                 if cp: counterparty_counts[cp] += 1
             for cp, cnt in counterparty_counts.most_common(5):
                 evidence_rows.append({

@@ -280,7 +280,9 @@ def run_redline_detection(findings: List[Dict],
             continue
         rid = rl["id"]
         mats = _available_materials(engine_data, material_readiness, f)
-        clue = build_clue_chain(f, rl, engine_data)
+        # ★ 2026-09-29（点评整改 P0-1②）：线索链的"资料缺失/程序待完善"三态判定，
+        #   只认资料齐备性唯一权威 material_readiness 的已提供清单。
+        clue = build_clue_chain(f, rl, engine_data, provided_materials=_mats_all)
         ev = build_evidence_chain(f, rl, mats, engine_data)
         arg = build_argumentation(f, rl, clue, ev, engine_data)
         # ★ 2026-09-28 逐条判定兜底：显式 constituent_hits 优先；未附时按"检测信号→要件"映射补齐，
