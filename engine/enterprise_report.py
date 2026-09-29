@@ -1376,7 +1376,7 @@ _SIT_PREFIX_RES = (
 )
 
 
-def _enterprise_situations(arg, clue, cap=8, constituents=None):
+def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None):
     """section 一「涉及的风险事项」bullets 的**单一权威**产出函数。
 
     返回 (条目列表, 来源)：
@@ -1405,6 +1405,35 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None):
     #   调用方必须透传 constituents，否则命中 bullet 会退化成只剩"（本企业：…）"、丢失「① 要件原文」。
     _cons = [str(c).strip() for c in (constituents or arg.get("constituents") or []) if str(c).strip()]
     _circled = "①②③④⑤⑥⑦⑧⑨⑩"
+    # ★ 2026-09-29（点评整改 P0-5 深层）：**要件级独立核对**优先。
+    #   点评验收标准：「每要件独立 checkpoint（独立数据源 + 独立结论）；无独立证据显示
+    #   '未单独核对'且**不计入**「涉及第X条要件」」。核对记录由 `constituent_checkpoint`
+    #   按**红线自身定义**逐要件生成（数据源按语义匹配、匹配不上则如实写"未定义"），
+    #   只有结论为 `checked_hit` 的要件才计入「涉及」—— 这是"不计入"的硬保证。
+    _cps = [c for c in (checkpoints or []) if isinstance(c, dict)]
+    if _cps:
+        try:
+            from engine.constituent_checkpoint import (
+                checkpoint_table as _ctbl, participating_indices as _pind,
+                summarize as _csum,
+            )
+            _part = _pind(_cps)
+            _marks = "".join(_circled[i - 1] for i in _part if 1 <= i <= len(_circled))
+            _head = ("经核对，本企业涉及上述第 %s 条构成要件（仅「已单独核对且符合情形」的要件计入）；"
+                     % (_marks or "无"))
+            _head += _csum(_cps)
+            out = [_naturalize_report_text(_head)]
+            for cp in _cps:
+                _mk = _circled[cp["index"] - 1] if 1 <= cp["index"] <= len(_circled) else "第%d条" % cp["index"]
+                _tail = ("（%s；独立数据源：%s｜%s）"
+                         % (cp.get("核对结论"), cp.get("独立数据源"), cp.get("数据源状态")))
+                if cp.get("证据") and cp.get("_conclusion") == "checked_hit":
+                    _tail = _tail[:-1] + "；核对证据：%s）" % str(cp.get("证据"))[:120]
+                out.append(_naturalize_report_text(("%s %s" % (_mk, cp.get("要件"))).rstrip("。；") + _tail))
+            _tb = _ctbl(_cps)
+            return out, "constituents_checkpointed", _tb
+        except Exception:
+            pass
     # ── (A)+(B) 合并为 section 一 的单一 bullet 清单（单一权威产出，消除"抽象清单 vs 本企业命中"重复）──
     if _cons:
         _hit_map = {}
@@ -1600,7 +1629,16 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
         _cons_all = [str(c).strip() for c in (s.get("constituents") or []) if str(c).strip()]
         # _enterprise_situations 是 section 一 bullets 的**单一权威**：有抽象要件时返回
         # 「抽象要件全列 + 命中项括号内标注证据」的合并清单；无抽象要件（不应发生）回退事实。
-        _sits, _sit_src = _enterprise_situations(arg, clue, constituents=_cons_all)
+        # ★ 2026-09-29（P0-5 深层）：逐要件独立核对——每要件一条（独立数据源+独立结论）。
+        #   放在标题裁剪之后、段落拼装之前：首段与"发现依据"段都要用它。
+        _cps_all = []
+        try:
+            from engine.constituent_checkpoint import build_constituent_checkpoints as _bcc
+            _cps_all = _bcc(s)
+        except Exception:
+            _cps_all = []
+        _sits, _sit_src, _cp_tbl = _enterprise_situations(
+            arg, clue, constituents=_cons_all, checkpoints=_cps_all)
         if _cons_all:
             p1 = (
                 f"经检查，本企业触发税务风险指标，即{rname}，{_suspect_txt}。"
@@ -1705,7 +1743,10 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
 
         paragraphs = [
             {"heading": "一、涉及的风险事项", "text": _naturalize_report_text(p1),
-             "bullets": bullets1 or None, "tail": tail1},
+             "bullets": bullets1 or None, "tail": tail1,
+             # ★ 2026-09-29（P0-5 深层）：要件级独立核对表（每要件一行：独立数据源 +
+             #   数据源状态 + 独立结论），使"哪条核过、哪条没核"可直接核验。
+             "detail_tables": ([_cp_tbl] if _cp_tbl else None)},
             {"heading": "二、发现的依据", "text": _naturalize_report_text(p2),
              "detail_table": _clue_table(clue)},
             # 本段明细由 detail_table 承载，不再另出 bullets，避免同一信息重复两遍
@@ -3576,6 +3617,20 @@ def build_enterprise_readable_report(report_data, edition=None):
     further = _build_further_checks(report_data)
     summary = _build_summary(report_data, problems, completed, further)
     plans = _build_action_plan(problems)
+    # ★ 2026-09-29（点评整改 P1-8 / P2-7）：**章节内模板句去重**（S6「通用口径只说一次」）。
+    #   实测「资料接收与保全」章 9 条 narrative、**「风险检查处理意见」章 25 条 narrative**
+    #   每条都以同一段通用说明结尾（后者 89 字 × 25 次）—— 即点评所说"模板重复约四成"。
+    #   现把各章共有的**结尾模板**抽到**章首说明一次**，条目内只留差异部分（不改任何事实）。
+    #   收敛在 `chapter_dedup.collapse_common_tail`（阈值外置；新增章节只加一个键名）。
+    _chapter_notes = {"materials_note": "", "action_plan_note": ""}
+    try:
+        from engine.chapter_dedup import collapse_common_tail as _cct
+        materials, _n1 = _cct(materials, "narrative")
+        _chapter_notes["materials_note"] = _n1
+        plans, _n2 = _cct(plans, "narrative")
+        _chapter_notes["action_plan_note"] = _n2
+    except Exception:
+        pass
     discovery_overview = _build_discovery_overview(report_data, problems, completed, further)
     derivation_tree_report = _build_derivation_tree_report(report_data)
     analysis_coverage = _build_analysis_coverage(report_data)
@@ -3728,6 +3783,10 @@ def build_enterprise_readable_report(report_data, edition=None):
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
         "materials": materials,
+        # ★ 2026-09-29（P1-8/P2-7）：被抽出的章节通用说明（章首渲染一次）
+        "materials_note": _chapter_notes.get("materials_note") or "",
+        # ★ 2026-09-29（P1-8/P2-7）：整改处理意见章被抽出的通用说明（章首一次）
+        "action_plan_note": _chapter_notes.get("action_plan_note") or "",
         "confirmed_problems": problems,
         "completed_checks": completed,
         "derivation_tree_report": derivation_tree_report,

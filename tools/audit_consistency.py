@@ -4580,6 +4580,142 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", "scripts/_render_report_html.py",
                        "离线渲染器未渲染决策层摘要（P2-1 只在 Web 可见即为缺口）"))
 
+    # ══════════════════════════════════════════════════════════════
+    # ★ 2026-09-29（点评整改收尾 P0-5 深层 / P1-8 / P2-7）
+    # ══════════════════════════════════════════════════════════════
+
+    # ── P0-5 深层：要件级独立核对（独立数据源 + 独立结论 + 未核对不计入"涉及"）──
+    try:
+        from engine.constituent_checkpoint import (
+            build_constituent_checkpoints as _bcc, checkpoint_table as _ctbl,
+            participating_indices as _pind, summarize as _csum,
+        )
+        # ① 数据源未取得 → 未单独核对，且**不计入**涉及
+        _s1 = {
+            "constituents": ["要件一：存在大额未付款", "要件二：未付款占比超过50%"],
+            "evidence_chain": {"elements": [
+                {"role": "直接证据", "name": "大额未付款明细、应付账款与付款记录", "status": "已有"},
+                {"role": "直接证据", "name": "合同与验收单", "status": "缺失"}]},
+            "clue_chain": {"nodes": [{"step": 1, "source": "大额未付款明细", "has_data": True}]},
+            "argumentation": {"constituent_hits": [{"index": 1, "evidence": "应付余额 120 万元"}]},
+        }
+        _cps = _bcc(_s1)
+        if not _cps or len(_cps) != 2:
+            issues.append(("ERROR", "engine/constituent_checkpoint.py", "要件核对记录数不对"))
+        _p1 = _pind(_cps)
+        if 2 in _p1:
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           "独立数据源未取得的要件被计入「涉及」（P0-5 硬要求：不得计入）"))
+        if 1 not in _p1:
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           "数据源已有且有证据的要件未计入「涉及」"))
+        if not all(c.get("独立数据源") for c in _cps):
+            issues.append(("ERROR", "engine/constituent_checkpoint.py", "要件缺独立数据源字段"))
+        if not _csum(_cps) or not _ctbl(_cps):
+            issues.append(("ERROR", "engine/constituent_checkpoint.py", "要件核对汇总/表缺失"))
+        # ② 阈值未达 → 不得计入涉及（与 P1-5 联动）
+        _s2 = {
+            "constituents": ["要件一：未付款占比超过50%"],
+            "evidence_chain": {"elements": [
+                {"role": "直接证据", "name": "未付款占比、应付余额", "status": "已有"}]},
+            "clue_chain": {"nodes": []},
+            "argumentation": {"constituent_hits": [{"index": 1, "evidence": "未付款占比 32.5%"}]},
+        }
+        _cps2 = _bcc(_s2)
+        if _pind(_cps2):
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           "未达数值门槛的要件仍计入「涉及」"))
+        # ③ **不得按位序错配数据源**（实测第一版把"红冲占比"配到"退货单"）：
+        #    要件与证据元素是不同轴，"按序对齐"会给出错误的数据源归属。
+        _s3 = {
+            "constituents": ["要件一：红字发票占同期开票额的比例异常"],
+            "evidence_chain": {"elements": [
+                {"role": "直接证据", "name": "退货单、折让协议、拒收证明", "status": "已有"}]},
+            "clue_chain": {"nodes": []}, "argumentation": {"constituent_hits": []},
+        }
+        _c3 = _bcc(_s3)
+        if _c3 and "退货单" in str(_c3[0].get("独立数据源")):
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           "数据源按位序错配（要件与证据元素是不同轴，应按语义匹配）"))
+        # ④ 独立数据源**状态为缺失** → 必须 not_checked 且**不计入**涉及。
+        #    ⚠ 用例必须让"匹配到的那个数据源"状态就是缺失：若要件被匹配到另一个"已有"的
+        #    数据源，就会走 checked_miss 分支，注入 `not_checked→checked_hit` 根本测不出来
+        #    （实测第一版就漏了）。
+        _s4 = {
+            "constituents": ["要件一：无法通过红字冲销、补记凭证合理解释"],
+            "evidence_chain": {"elements": [
+                {"role": "反证", "name": "红字冲销凭证、补记凭证与差错说明", "status": "缺失"}]},
+            "clue_chain": {"nodes": []},
+            "argumentation": {"constituent_hits": [{"index": 1, "evidence": "有信号但反证未提交"}]},
+        }
+        _c4 = _bcc(_s4)
+        if not _c4 or _c4[0].get("_conclusion") != "not_checked":
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           f"独立数据源缺失时未判为「未单独核对」（实得 {(_c4 or [{}])[0].get('_conclusion')}）"))
+        if _pind(_c4):
+            issues.append(("ERROR", "engine/constituent_checkpoint.py",
+                           "未单独核对的要件被计入「涉及」（P0-5 硬要求：不得计入）"))
+    except ImportError as exc:
+        issues.append(("ERROR", "engine/constituent_checkpoint.py", f"要件核对模块不可用: {exc}"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/constituent_checkpoint.py", f"要件核对断言执行失败: {exc}"))
+    # 接线：报告必须用核对记录驱动要件清单（否则"不计入涉及"只是空话）
+    if "_cps_all = _bcc(s)" not in _er6_code:
+        issues.append(("ERROR", "engine/enterprise_report.py", "要件级核对未接线（只 import 未调用）"))
+    if "checkpoints=_cps_all" not in _er6_code:
+        issues.append(("ERROR", "engine/enterprise_report.py", "要件级核对未传入要件清单渲染"))
+
+    # ── P1-8 / P2-7：章节内模板句去重（S6「通用口径只说一次」）──
+    try:
+        from engine.chapter_dedup import _longest_common_suffix, collapse_common_tail
+        _tail = "办理须指定熟悉该项业务和资料的负责人，并由另一名人员复核；验收时确认处理过程能够回查。"
+        _subjects = ["增值税进项发票与货物流不匹配", "工资薪金与社保人数不一致",
+                     "主营业务成本两口径差异较大", "银行收款大于申报收入",
+                     "关联方资金往来缺少合同支持"]
+        _items = [{"narrative": "本项处理意见：针对「%s」情形，应补齐该项业务的原始凭证与说明材料。" % _sj + _tail}
+                  for _sj in _subjects]
+        _new, _note = collapse_common_tail(_items, "narrative")
+        if not _note:
+            issues.append(("ERROR", "engine/chapter_dedup.py", "公共结尾模板未被抽出（P1-8 未生效）"))
+        if sum(1 for x in _new if x.get("_template_collapsed")) < 3:
+            issues.append(("ERROR", "engine/chapter_dedup.py",
+                           "模板抽出后条目未被剥离（说明抽出来了、正文还在重复）"))
+        if any(_tail in str(x.get("narrative")) for x in _new):
+            issues.append(("ERROR", "engine/chapter_dedup.py", "条目内仍残留通用模板"))
+        if "增值税进项发票与货物流不匹配" not in str(_new[0].get("narrative")):
+            issues.append(("ERROR", "engine/chapter_dedup.py", "剥离时误删了条目差异部分"))
+        # ★ 反向用例：各条只差数字（归一化后完全相同）→ **不得**把条目剥空
+        _same = [{"narrative": "第%d项处理意见：应补齐原始凭证。%s" % (i, _tail)} for i in range(1, 6)]
+        _s3, _n3 = collapse_common_tail(_same, "narrative")
+        if any(not str(x.get("narrative") or "").strip() for x in _s3):
+            issues.append(("ERROR", "engine/chapter_dedup.py",
+                           "把条目正文剥空（各条仅差数字时公共后缀=整条，须设折叠上限）"))
+        # 零误报：各条内容不同 → 不得抽出任何"模板"
+        _diff = [{"narrative": "完全不同的一段说明文字%d，用于验证不会误抽模板。" % i}
+                 for i in range(5)]
+        _d2, _n2 = collapse_common_tail(_diff, "narrative")
+        if _n2:
+            issues.append(("ERROR", "engine/chapter_dedup.py",
+                           "内容各异的条目被误判为共享模板（误抽会丢正文）"))
+        if _longest_common_suffix(["甲" * 40, "乙" * 40]) != 0:
+            issues.append(("ERROR", "engine/chapter_dedup.py", "公共后缀计算有误（不同文本应为 0）"))
+    except ImportError as exc:
+        issues.append(("ERROR", "engine/chapter_dedup.py", f"章节去重模块不可用: {exc}"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/chapter_dedup.py", f"章节去重断言执行失败: {exc}"))
+    if ('_cct(materials, "narrative")' not in _er6_code
+            or '_cct(plans, "narrative")' not in _er6_code):
+        issues.append(("ERROR", "engine/enterprise_report.py", "章节模板去重未接线（只 import 未调用）"))
+    if "action_plan_note" not in _er6_code:
+        issues.append(("ERROR", "engine/enterprise_report.py", "整改章通用说明未输出（章首说明缺）"))
+    _tda7 = _src("static/js/tax-doc-analysis.js")
+    # 两侧都要断言：只查"渲染语句在不在"会被"条件恒假"骗过（实测两版都踩过）：
+    #   `if (false) { ...esc(report.action_plan_note)... }` 里语句还在，但永远不会显示。
+    if ("esc(report.action_plan_note)" not in _tda7
+            or "if (report.action_plan_note)" not in _tda7):
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "整改章通用说明未渲染（抽出来了却没显示）"))
+
     return issues
 
 

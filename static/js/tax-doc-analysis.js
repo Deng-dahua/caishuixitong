@@ -5815,6 +5815,14 @@ function _buildEnterpriseReadableBody(r, dateStr) {
 
   html += '<h2 id="company-actions">四、风险检查处理意见和整改验收标准</h2>' +
     '<p class="i2">请按照下列顺序办理。所有处理必须建立在真实业务和原始资料基础上，不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';
+  // ★ 2026-09-29（点评整改 P1-8 / P2-7）：**本章通用说明只说一次**。
+  //   此前 25 条处理意见**每条都以同一段 89 字通用说明结尾**（"办理须指定熟悉该项业务的
+  //   负责人…验收时确认处理过程能够回查…"）→ 点评所说"模板重复约四成"。现由后端
+  //   `chapter_dedup.collapse_common_tail` 抽出到章首一次，条目内只留该条差异部分。
+  if (report.action_plan_note) {
+    html += '<p class="i2" style="background:#f8fafc;border-left:3px solid #94a3b8;padding:8px 12px;'
+      + 'font-size:12.5px;line-height:1.9;color:#475569">' + esc(report.action_plan_note) + '</p>';
+  }
   if (!plans.length) html += '<p class="i2">本轮没有需要立即处理的已证实具体问题，企业应先按第四部分补充资料。</p>';
   plans.forEach(function(item){
     html += '<h3>' + esc(item.seq || '') + '、先处理“' + esc(item.problem || '') + '”</h3>' +
