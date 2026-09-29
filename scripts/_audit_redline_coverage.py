@@ -25,7 +25,12 @@ for base in (ENGINE, os.path.join(ROOT, "scripts"), os.path.join(ROOT, "main.py"
     elif os.path.isfile(base):
         src_files.append(base)
 
-pat = re.compile(r'redline_id["\']?\s*[:=]\s*["\'](RL-[A-Z0-9-]+)["\']')
+# ★ 2026-09-29（#448 修复）：原正则只认 `redline_id="RL-X"` / `"redline_id": "RL-X"` 两种写法，
+#   漏掉 `_f["redline_id"] = "RL-PTY-001"`（verified_rule_engine 的赋值写法）→ 把有检测器的红线误判为"盲区"。
+#   放宽为：`redline_id` 后 8 字符内出现红线 id 字面量即算检测器。
+#   ⚠ 静态法仍有天然局限（redline_id=变量 / setdefault 变量形态无法静态识别）——
+#     **权威口径见 scripts/_gap_constituent_hits.py 的运行态 match_mode + 逐要件 checkpoint**。
+pat = re.compile(r'redline_id[^\n]{0,8}?(RL-[A-Z0-9-]+)')
 for fp in src_files:
     try:
         txt = open(fp, encoding="utf-8").read()

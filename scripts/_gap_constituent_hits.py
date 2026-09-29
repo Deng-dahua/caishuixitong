@@ -93,9 +93,48 @@ def main():
     for k, v in bc.items():
         print(f"  {k}: {v} 条")
 
+    # ★ 2026-09-29（#448）：真实接线真相 = 运行时 match_mode
+    #   declared = 有发现自声明 redline_id（真实检测器）
+    #   matched  = 仅靠 match_hints 软匹配触达（发现级信号，未逐要件独立核对）
+    mc = Counter(s.get("match_mode") for s in susps if isinstance(s, dict))
+    print("\n=== match_mode 分布（declared=真实检测器 / matched=仅软匹配）===")
+    print("  ", dict(mc))
+    _matched = [s for s in susps if isinstance(s, dict) and s.get("match_mode") == "matched"]
+    _mids = sorted({s.get("redline_id") for s in _matched if s.get("redline_id")})
+    print("\n=== 仅靠软匹配(matched)触发的红线（#448 优先接线目标，%d 条）===" % len(_mids))
+    for _s in sorted(_matched, key=lambda x: str(x.get("redline_id"))):
+        print(f"  {_s.get('redline_id'):<12} 域={_s.get('domain')} {_s.get('redline_name')}")
+    _declared_ids = sorted({s.get("redline_id") for s in susps
+                            if isinstance(s, dict) and s.get("match_mode") == "declared"
+                            and s.get("redline_id")})
+
+    # ★ 2026-09-29（#448）：逐要件「独立核对」三态统计 —— 这才是"未接线"的真相口径。
+    #   not_checked = 该要件的独立数据源本轮未取得（数据源状态非"已取得"）。
+    from engine.constituent_checkpoint import build_constituent_checkpoints
+    cc = Counter()
+    nc_by_redline = {}
+    nc_by_status = Counter()
+    for s in susps:
+        if not isinstance(s, dict):
+            continue
+        for cp in build_constituent_checkpoints(s):
+            concl = cp.get("_conclusion")
+            cc[concl] += 1
+            if concl == "not_checked":
+                rid = s.get("redline_id")
+                nc_by_redline[rid] = nc_by_redline.get(rid, 0) + 1
+                nc_by_status[cp.get("数据源状态") or "未知"] += 1
+    print("\n=== 逐要件独立核对三态（#448 真实口径）===")
+    print("  ", dict(cc))
+    print("  not_checked 按数据源状态:", dict(nc_by_status))
+    print("  未单独核对要件数 top:", sorted(nc_by_redline.items(), key=lambda kv: -kv[1])[:15])
+
     # 落盘
     out = {"wired": wired, "unwired": unwired, "not_detected": not_detected,
-           "bucket_counts": dict(bc)}
+           "bucket_counts": dict(bc),
+           "match_mode_counts": dict(mc),
+           "soft_matched_ids": _mids,
+           "declared_ids": _declared_ids}
     with open("scripts/_gap_constituent_hits.json", "w", encoding="utf-8") as fh:
         json.dump(out, fh, ensure_ascii=False, indent=2)
     print("\n[落盘] scripts/_gap_constituent_hits.json")
