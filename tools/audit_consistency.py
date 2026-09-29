@@ -3891,6 +3891,59 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", "engine/revenue_authenticity.py",
                        "仍把个人账户归集写成「直接证据」（待证线索不得定性）"))
 
+    # ── P0-5：兜底命中必须单索引（一段证据不得复制填多个要件）──
+    _re2_src = _src("engine/redline_engine.py")
+    if "for _i in _di" in _re2_src:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "兜底命中仍把发现级证据复制到全部序号（一段证据填多格），须只落首个序号"))
+    if "_di[0]" not in _re2_src:
+        issues.append(("ERROR", "engine/redline_engine.py",
+                       "兜底命中未收敛到 _di[0]（单索引）"))
+    _er2_src = _src("engine/enterprise_report.py")
+    if "未括注的要件为本轮未单独核对到的构成要件" not in _er2_src:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "要件清单头句缺「未括注=未单独核对」声明（读者会误读为逐条都核对过）"))
+
+    # ── P0-7：口径对照与时效提示必须存在 ──
+    _io_src = _src("engine/inspection_overview.py")
+    if "关键口径对照" not in _io_src:
+        issues.append(("ERROR", "engine/inspection_overview.py",
+                       "总述缺「关键口径对照」段（全文数字无口径索引可回指）"))
+    if "滞纳金" not in _io_src:
+        issues.append(("ERROR", "engine/inspection_overview.py",
+                       "总述缺「时效与滞纳金提示」（汇算期届满后的更正成本未告知）"))
+    if "cost_recon_detail" not in _io_src:
+        issues.append(("ERROR", "engine/inspection_overview.py",
+                       "口径对照未接入 cost_recon_detail（成本两口径无来源）"))
+
+    # ── P0-7：红冲占比分子分母同口径 ──
+    _da2_src = _src("engine/domain_analysis.py")
+    if "占同期销项开票额" in _da2_src and "销项蓝字开票额" not in _da2_src:
+        issues.append(("ERROR", "engine/domain_analysis.py",
+                       "红冲占比仍用混口径分母（须为销项蓝字开票额且分子分母同口径）"))
+
+    # ── 行为验证（dump 存在时）：任何疑点不得有两 条 evidence 完全相同的 constituent_hits ──
+    _dump = ROOT / "scripts" / "four_reports" / "_fresh_result.json"
+    if _dump.exists():
+        try:
+            _dd = json.loads(_dump.read_text(encoding="utf-8"))
+            _rd_d = (((_dd.get("report") or {}).get("comprehensive")) or {}).get("redline_detection") or {}
+            _bad = []
+            for _s in (_rd_d.get("suspicions") or []):
+                _evs = [str(h.get("evidence") or "") for h in (_s.get("argumentation") or {}).get("constituent_hits") or []
+                        if str(h.get("evidence") or "").strip()]
+                if len(_evs) != len(set(_evs)):
+                    _bad.append(str(_s.get("redline_name") or _s.get("name") or "?"))
+            if _bad:
+                issues.append(("ERROR", "engine/redline_engine.py",
+                               f"dump 中仍有疑点把同一段证据填进多个要件: {('、'.join(_bad[:5]))}"))
+        except Exception as exc:
+            issues.append(("WARN", "tools/audit_consistency.py",
+                           f"dump 行为验证跳过（读取失败）: {exc}"))
+    else:
+        issues.append(("WARN", "tools/audit_consistency.py",
+                       "未找到 scripts/four_reports/_fresh_result.json，dump 行为验证跳过（跑一次全量分析后自动生效）"))
+
     return issues
 
 

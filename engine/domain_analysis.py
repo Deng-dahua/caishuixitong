@@ -4523,16 +4523,32 @@ def _domain_red_void_invoice(invoices):
         #   系统只管"有没有这种情况、情况多大"，够不够格由人工判断（与"触红≠定性"一致）。
         constituent_hits = []
         try:
-            # ① 存在红冲（红字/作废）即命中；占比只作证据（无门槛）
-            _sales_total = sum(abs(to_number(i.get("total", 0))) for i in invoices
-                               if str(i.get("direction", "")) == "销项")
+            # ① 存在红冲（红字/作废）即命中；占比只作证据（无门槛）。
+            # ★ 2026-09-29（点评整改 P0-7）：分子分母**同口径**——
+            #   分子=销项红字/作废价税合计；分母=同期销项蓝字开票额（价税合计，剔除红字后净额）。
+            #   旧版分子混入取得侧（进项）红冲、分母用含红字绝对值的毛额（实测：
+            #   分子 1,285,450.57 含进项红冲 269,550.57、分母 9,066,808.58 为毛额），
+            #   把 11.2% 的销项侧占比放大成 14.2% 且口径无法回指。
+            _red_void_ids = {id(i) for i in red_void}
+            _sales_red = [i for i in red_void if str(i.get("direction", "")) == "销项"]
+            _pur_red = [i for i in red_void if str(i.get("direction", "")) != "销项"]
+            _red_sales_amt = sum(abs(to_number(i.get("total", 0))) for i in _sales_red)
+            _sales_blue_total = sum(abs(to_number(i.get("total", 0))) for i in invoices
+                                    if str(i.get("direction", "")) == "销项"
+                                    and id(i) not in _red_void_ids)
             if red_void:
-                if _sales_total > 0:
-                    _ratio = abs(total_red) / _sales_total * 100.0
-                    _ev1 = (f"{abs(total_red):,.2f} 元，占同期销项开票额 {_ratio:.1f}%"
-                            f"（÷ {_sales_total:,.2f} 元）")
+                if _sales_blue_total > 0:
+                    _ratio = _red_sales_amt / _sales_blue_total * 100.0
+                    _ev1 = (f"销项红字/作废 {_red_sales_amt:,.2f} 元，占同期销项蓝字开票额 {_ratio:.1f}%"
+                            f"（分子=销项红字/作废价税合计；分母=剔除红字后的销项价税合计 "
+                            f"{_sales_blue_total:,.2f} 元）")
                 else:
-                    _ev1 = f"{abs(total_red):,.2f} 元（同期销项开票额未取得，占比无法计算）"
+                    _ev1 = (f"销项红字/作废 {_red_sales_amt:,.2f} 元"
+                            f"（同期销项蓝字开票额未取得，占比无法计算）")
+                if _pur_red:
+                    _ev1 += (f"；另有取得侧（进项）红字/作废 {len(_pur_red)} 张合计 "
+                             f"{sum(abs(to_number(i.get('total', 0))) for i in _pur_red):,.2f} 元，"
+                             "属购方侧红冲，不参与销项占比")
                 constituent_hits.append({"index": 1, "evidence": _ev1})
             # ② 只要有红冲落在敏感时点即命中（**无门槛**）：
             #    月末 日≥28 ／ 季末月 3·6·9·12 ／ 申报期窗口（当月 1–15 日，即次月申报期前后的口径）

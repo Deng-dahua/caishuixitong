@@ -294,8 +294,14 @@ def run_redline_detection(findings: List[Dict],
                 if isinstance(_ev_src, str):
                     _ev_src = _ev_src.strip().replace("\n", " ")[:240]
                 if _ev_src:
+                    # ★ 2026-09-29（点评整改 P0-5）：兜底命中只落**首个**序号。
+                    #   旧版把同一段发现级证据复制进全部兜底序号（实测同一句话填 4~5 个
+                    #   要件括号），把"发现级证据"伪装成"逐要件核对"——专业读者一眼识破，
+                    #   是报告可信度最大的结构性风险。其余要件由报告统一标注
+                    #   "未括注=未单独核对"，绝不复制填充；逐要件独立判定留待后续
+                    #   按 _DEFAULT_HIT_INDEX 序号逐个接真实数据源。
                     arg["constituent_hits"] = [
-                        {"index": _i, "evidence": f"账内检测到：{_ev_src}"} for _i in _di
+                        {"index": _di[0], "evidence": f"账内检测到：{_ev_src}"}
                     ]
         entry = grouped.get(rid)
         if not entry:

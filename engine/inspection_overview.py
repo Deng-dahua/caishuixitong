@@ -32,7 +32,8 @@ def _lvl_counts(tiers: List[Dict[str, Any]]) -> Dict[str, int]:
 def build_inspection_overview(report_data: Any,
                               problems: Optional[List[dict]] = None,
                               further: Optional[List[dict]] = None,
-                              overall_conclusion: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                              overall_conclusion: Optional[Dict[str, Any]] = None,
+                              cost_recon_detail: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """生成「检查情况总述」。返回 {"paragraphs":[...], "grading":..., "posture":...}。"""
     rd = report_data if isinstance(report_data, dict) else {}
     err = rd.get("enterprise_readable_report") or {}
@@ -173,6 +174,58 @@ def build_inspection_overview(report_data: Any,
     P.append("七、监管态度与后续处理建议（分级分类）：" + "；".join(_pos) + "。")
     P.append("需要说明：本部分为工作建议，不构成税务处理、行政处罚或移送决定；"
              "是否达到移送标准，应在证据补齐并依法核实后另行判断。")
+
+    # ── 八、关键口径对照（2026-09-29 点评整改 P0-7）──
+    # 目的：全文同一指标可能出现多个口径（如"收入"有申报/开票/资金流三口径），本节把
+    # 各口径**编号列示**（定义+数值+来源），供全文数字回指；取不到的口径如实写"未取得"，
+    # 绝不用默认值顶替（缺失≠0）。数值只从既有计算块**转引**，不重算（防口径分叉）。
+    comp = rd.get("comprehensive") or {}
+    _bf = ((comp.get("bank_flow") or {}).get("metrics") or {})
+    _tt = ((comp.get("two_tax_income") or {}).get("metrics") or {})
+    _ra = ((comp.get("revenue_authenticity") or {}).get("metrics") or {})
+    _crd = cost_recon_detail if isinstance(cost_recon_detail, dict) else {}
+
+    def _fmt_amt(v) -> str:
+        if v is None:
+            return "未取得（缺失不按 0 参与比对）"
+        from engine.numparse import to_number_checked as _tc
+        val, ok = _tc(v)
+        if not ok:
+            return "未取得（缺失不按 0 参与比对）"
+        return "%.2f 元" % float(val)
+
+    _rows = [
+        ("增值税申报销售额（申报口径）", _fmt_amt(_tt.get("vat_sales")), "增值税申报表；两税差异章"),
+        ("企业所得税申报营业收入（申报口径）", _fmt_amt(_tt.get("cit_income")), "企业所得税申报表；两税差异章"),
+        ("销项开票不含税合计（发票口径）",
+         _fmt_amt(_bf.get("invoice_total") or _ra.get("invoiced_total")), "销项发票；资金流比对章"),
+        ("银行经营性入账合计（资金流口径）", _fmt_amt(_bf.get("flow_receipt") or _ra.get("bank_in_total")),
+         "银行流水；资金流比对章"),
+        ("其中：对公收款", _fmt_amt(_bf.get("corporate_receipt")), "银行流水；资金流比对章"),
+        ("其中：私户/个人收款", _fmt_amt(_bf.get("personal_receipt")), "银行流水；资金流比对章"),
+        ("收款−申报差额（未开票敞口·毛口径）", _fmt_amt(_bf.get("uninvoiced_gap")),
+         "银行收款−申报收入；资金流比对章"),
+        ("剔除明显非销售流入后敞口", _fmt_amt(_bf.get("uninvoiced_gap_after_nonsales")),
+         "毛口径−非销售收款；资金流比对章"),
+        ("主营业务成本·发票类目口径", _fmt_amt(_crd.get("invoice_total")), "进项发票按行业类目归集；第三章专项明细"),
+        ("主营业务成本·账面口径（序时账 6401 借方）", _fmt_amt(_crd.get("book_total")), "序时账；第三章专项明细"),
+        ("两口径差异", _fmt_amt(_crd.get("diff")), "发票口径−账面口径；第三章专项明细"),
+    ]
+    _cal = ["八、关键口径对照：本报告同一指标可能存在多个口径（申报/开票/资金流/账面），"
+            "各章数字以本对照为准回指；口径间差异本身即检查线索，详见对应章节。"]
+    for _i, (_nm, _val, _src) in enumerate(_rows, 1):
+        _cal.append("口径%d %s＝%s（来源：%s）" % (_i, _nm, _val, _src))
+    P.append(" ".join(_cal))
+
+    # ── 九、时效与滞纳金提示（2026-09-29 点评整改 P1-12）──
+    # 企业所得税年度汇算清缴截止次年 5 月 31 日；更正申报的滞纳金自期满次日起按日万分之五。
+    # 只写通用法定口径，不虚构检查期间的具体日期（期间以报告抬头为准）。
+    P.append(
+        "九、时效与滞纳金提示：企业所得税年度汇算清缴截止于年度终了之日起五个月内（次年 5 月 31 日）；"
+        "检查期间属年度汇算范围且汇算期已届满的，更正申报与补缴将依法自汇算期结束次日起按日加收"
+        "万分之五滞纳金。建议先逐项核实差异、确定应补口径后，再行更正申报，并在补缴资金安排中计入"
+        "滞纳金成本；印花税、附加税费等小税种的补缴同样自法定缴纳期限届满起计算滞纳金。"
+    )
 
     # ★ 2026-09-27 用户口径：删去本章末「边界声明」——第六章「报告性质和使用说明」已由
     #   `inspector_perspective.administrative_boundary`（文书性质说明）承载，避免两处重复。

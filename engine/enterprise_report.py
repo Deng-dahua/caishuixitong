@@ -1319,9 +1319,12 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None):
             # 既有抽象要件、又有本企业命中 → 每条要件均列出，命中的在括号内标注本企业证据
             _hit_marks = "".join(_circled[i - 1] for i in sorted(_hit_map)
                                  if 1 <= i <= len(_circled))
+            # ★ 2026-09-29（点评整改 P0-5）：头句显式声明"未括注=未单独核对"，
+            #   防止读者把"列出全部要件"误读为"逐条都核对过"（发现级证据只落首个命中位）。
             out = [_naturalize_report_text(
                 f"经核对，本企业涉及上述第 {_hit_marks or '相关'} 条构成要件，"
-                f"已核对到的情况见各条括号内标注：")]
+                f"已核对到的情况见各条括号内标注；未括注的要件为本轮未单独核对到的构成要件，"
+                f"不作为认定依据：")]
             for i, c in enumerate(_cons, 1):
                 mark = _circled[i - 1] if i <= len(_circled) else f"第{i}条"
                 if i in _hit_map and _hit_map[i]:
@@ -3364,16 +3367,19 @@ def build_enterprise_readable_report(report_data, edition=None):
     from engine.overall_conclusion import build_overall_conclusion
     overall_conclusion = build_overall_conclusion(
         report_data, problems, further, inspector_reasoning)
+    # ★ 2026-09-29（点评整改 P0-7）：成本两口径明细**先于**总述构建，
+    #   供「关键口径对照」直接引用同一数值（单一来源，不重算）。
+    from engine.cost_recon_detail import build_cost_recon_detail
+    cost_recon_detail = build_cost_recon_detail(report_data)
     # ★ 2026-09-26 工作底稿版「检查情况总述」：基本情况 / 风险类型 / 风险程度 /
     #   对企业总体看法 / 监管态度（分级建议）/ 边界声明
     from engine.inspection_overview import build_inspection_overview
     inspection_overview = build_inspection_overview(
-        report_data, problems, further, overall_conclusion)
+        report_data, problems, further, overall_conclusion,
+        cost_recon_detail=cost_recon_detail)
     # ★ 2026-09-27：主营业务成本「两口径勾稽明细」（发票类目构成 / 账面构成 / 差异归因），
     #   无论是否超阈值都产出（合规留痕）。发票构成取自 pipeline 已算好的 core_cost 拆分（单一权威），
     #   本模块不重跑 classify，避免口径分叉。
-    from engine.cost_recon_detail import build_cost_recon_detail
-    cost_recon_detail = build_cost_recon_detail(report_data)
     # ★ 2026-09-27（P1）：本轮潜在税额敞口汇总（分税种 + 已量化/未量化覆盖度）
     try:
         from engine.tax_impact import build_tax_impact_summary as _btis
