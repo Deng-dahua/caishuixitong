@@ -4136,6 +4136,137 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
             issues.append(("WARN", "tools/audit_consistency.py",
                            f"导出净化 dump 行为验证跳过（读取失败）: {exc}"))
 
+    # ══════════════════════════════════════════════════════════════
+    # ★ 2026-09-29（点评整改第四轮 P1-7 / P1-11 / P1-16）
+    # ══════════════════════════════════════════════════════════════
+
+    # ── P1-11 个人信息脱敏（唯一收敛点 + 不得有后门）──
+    # ⚠ 用「去注释」视图判定接线：本文件/被检查文件的**注释里会引用同一串**
+    #   （如"必须传 source=report_data"），在原文上匹配会被自己的说明文字骗过
+    #   ——实测：去掉调用里的 source 参数后闸门仍"通过"。
+    _er4_src = _src("engine/enterprise_report.py")
+    _er4_code = _strip_comments_keep_lines(_er4_src)
+    if "redact_enterprise_report" not in _er4_code:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "企业版报告未接入个人信息脱敏（员工姓名/私户金额会原样对外）"))
+    if "_rg(_zh_normalize_obj(_o), source=report_data)" not in _er4_code:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "脱敏未按约定传 source=report_data（人名清单只能从源数据收集，否则正文中的姓名漏脱敏）"))
+    #  Pyramid 必须从**已脱敏的 out** 派生（旧顺序 / 用未脱敏的 problems 都会成为后门）
+    if 'out["pyramid_edition"] = build_pyramid_edition' not in _er4_code:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "金字塔版未在脱敏后派生（会成为绕开个人信息脱敏的后门）"))
+    if 'out.get("confirmed_problems") or problems' not in _er4_code:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "金字塔版派生源不是已脱敏内容（用未脱敏的 problems → 真实姓名从金字塔版泄漏）"))
+    # P1-16/P1-7 接线：台账治理必须真的把治理结果写回 rows
+    if '_gov(rows, findings, problems=problems)' not in _er4_code or 'rows = _g["rows"]' not in _er4_code:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "台账治理未接线（准入过滤/聚合/统一ID 未生效，台账仍是原始平铺行）"))
+    try:
+        from engine.pii_guard import (mask_account, mask_id_no, mask_person_name,
+                                      mask_phone, redact_enterprise_report)
+        # ① 脱敏算法本身
+        if mask_person_name("杨莹") != "杨*":
+            issues.append(("ERROR", "engine/pii_guard.py", "姓名脱敏规则异常"))
+        if "*" not in mask_id_no("440301199001011234") or "4403011990" in mask_id_no("440301199001011234"):
+            issues.append(("ERROR", "engine/pii_guard.py", "证件号脱敏不足（保留了可识别片段）"))
+        if not mask_phone("13812345678").endswith("5678") or "*" not in mask_phone("13812345678"):
+            issues.append(("ERROR", "engine/pii_guard.py", "手机号脱敏规则异常"))
+        if "*" not in mask_account("6222021234567890123"):
+            issues.append(("ERROR", "engine/pii_guard.py", "银行账号脱敏规则异常"))
+        # ② 端到端：正文里的姓名（只在源数据出现的）也必须脱敏；企业名不得被改
+        _rep_p = {"identity": {"organization": {"名称": "深圳海更数字传媒有限公司"}},
+                  "p": [{"text": "收款人 杨莹 收到 670,000 元。"}]}
+        _src_p = {"rows": [{"counterparty": "杨莹"}, {"counterparty": "深圳海更数字传媒有限公司"}]}
+        _out_p = redact_enterprise_report(_rep_p, source=_src_p)
+        _blob_p = json.dumps(_out_p, ensure_ascii=False)
+        if "杨莹" in _blob_p:
+            issues.append(("ERROR", "engine/pii_guard.py", "正文中的姓名未脱敏（只在源数据出现的人名）"))
+        if "深圳海更数字传媒有限公司" not in _blob_p:
+            issues.append(("ERROR", "engine/pii_guard.py", "企业/单位名被误脱敏（姓名子串规则失效）"))
+        if not _out_p.get("_pii_notice"):
+            issues.append(("ERROR", "engine/pii_guard.py", "缺「内部资料」个人信息标识（_pii_notice）"))
+        # ③ 幂等
+        if redact_enterprise_report(_out_p, source=_src_p)["p"][0]["text"] != _out_p["p"][0]["text"]:
+            issues.append(("ERROR", "engine/pii_guard.py", "脱敏不幂等（重复调用会继续改写）"))
+        # ④ 循环引用不得导致静默失效（真实 report_data 含环，曾把脱敏整体吞掉）
+        _cyc = {"identity": {}, "姓名": "张三"}
+        _cyc["self"] = _cyc
+        _co = redact_enterprise_report(_cyc, source=_cyc)
+        if "*" not in str(_co.get("姓名")):
+            issues.append(("ERROR", "engine/pii_guard.py", "循环引用下脱敏失效（真实数据会静默跳过）"))
+    except ImportError as exc:
+        issues.append(("ERROR", "engine/pii_guard.py", f"个人信息脱敏模块不可用: {exc}"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/pii_guard.py", f"个人信息脱敏行为断言执行失败: {exc}"))
+
+    # ── P1-16 台账准入 + P1-7 聚合/统一 ID ──
+    try:
+        from engine.ledger_governance import (canonical_ledger_key, govern_ledger_rows,
+                                              is_enterprise_risk_item, make_finding_id)
+        if is_enterprise_risk_item({"type": "审计检查：系统一致性"})[0]:
+            issues.append(("ERROR", "engine/ledger_governance.py",
+                           "系统自查条目未剔除（内部工具条目混入企业台账）"))
+        if is_enterprise_risk_item({"type": "风险检查取证要求补充资料单"})[0]:
+            issues.append(("ERROR", "engine/ledger_governance.py",
+                           "资料请求单未剔除（内部工具条目混入企业台账）"))
+        _l = "；".join(["本事项所涉及的个人银行账户完整流水——用以核对本事项"] * 4)
+        if is_enterprise_risk_item({"type": "普通事项",
+                                    "self_proof_materials": [{"material": "a", "proves": _l}]})[0]:
+            issues.append(("ERROR", "engine/ledger_governance.py",
+                           "自引用循环的「需补自证资料」未剔除（模板套模板无行动指引）"))
+        if not is_enterprise_risk_item({"type": "有工资无社保"})[0]:
+            issues.append(("ERROR", "engine/ledger_governance.py",
+                           "真实风险事项被误剔除（准入过严）"))
+        if canonical_ledger_key("X（2025-01）") != canonical_ledger_key("X（2025-12）"):
+            issues.append(("ERROR", "engine/ledger_governance.py",
+                           "期间括注未归并（逐月展开不会被聚合）"))
+        if make_finding_id("K") != make_finding_id("K"):
+            issues.append(("ERROR", "engine/ledger_governance.py",
+                           "统一发现 ID 不可复算（同一输入得到不同编号）"))
+        _gr = govern_ledger_rows(
+            [{"风险事项": "X（2025-%02d）" % m, "等级": "中风险", "终局方向": "待补自证"}
+             for m in (1, 2, 3)],
+            [{"type": "X"} for _ in range(3)])
+        if len(_gr["rows"]) != 1 or len(_gr["rows"][0].get("明细") or []) != 3:
+            issues.append(("ERROR", "engine/ledger_governance.py",
+                           "同质行未聚合为一行并保留明细"))
+    except ImportError as exc:
+        issues.append(("ERROR", "engine/ledger_governance.py", f"台账治理模块不可用: {exc}"))
+
+    # ── dump 行为断言：台账不得含内部工具条目、不得有未聚合同质行、必须带发现 ID ──
+    if _dump.exists():
+        try:
+            _dd3 = json.loads(_dump.read_text(encoding="utf-8"))
+            _led_d = (((_dd3.get("report") or {}).get("enterprise_readable_report")) or {}).get("resolution_ledger") or {}
+            _rows_d = _led_d.get("rows") or []
+            _ledger_errors = []
+            if _rows_d:
+                for _r in _rows_d:
+                    _t = str(_r.get("风险事项") or "")
+                    if any(_k in _t for _k in ("审计检查", "系统一致性", "取证要求", "补充资料单")):
+                        _ledger_errors.append("内部工具条目「%s」" % _t[:30])
+                _seen_keys = {}
+                for _r in _rows_d:
+                    _ck = canonical_ledger_key(_r.get("风险事项"))
+                    _seen_keys[_ck] = _seen_keys.get(_ck, 0) + 1
+                _dup = [k for k, v in _seen_keys.items() if v > 1]
+                if _dup:
+                    _ledger_errors.append("未聚合同质行 %d 组（如「%s」）" % (len(_dup), _dup[0][:26]))
+                if not all(str(_r.get("发现ID") or "").startswith("R-") for _r in _rows_d):
+                    _ledger_errors.append("有台账行缺统一发现 ID")
+            if _ledger_errors:
+                issues.append(("ERROR", "engine/ledger_governance.py",
+                               "台账治理未生效: " + "；".join(_ledger_errors[:4])))
+            _er_d2 = ((_dd3.get("report") or {}).get("enterprise_readable_report")) or {}
+            if _er_d2 and not _er_d2.get("_pii_notice"):
+                issues.append(("ERROR", "engine/pii_guard.py",
+                               "企业报告缺「内部资料」个人信息标识（_pii_notice）"))
+        except Exception as exc:
+            issues.append(("WARN", "tools/audit_consistency.py",
+                           f"台账/脱敏 dump 行为验证跳过（读取失败）: {exc}"))
+
     return issues
 
 

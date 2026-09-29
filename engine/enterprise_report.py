@@ -2264,7 +2264,7 @@ def _build_one_sided_digest(report_data):
     }
 
 
-def _build_resolution_ledger(report_data):
+def _build_resolution_ledger(report_data, problems=None):
     """逐项风险的**解除路径与自证清单**（宗旨 D3 + D4）。
 
     ★ 2026-09-25 新增。用户宗旨原话：
@@ -2305,6 +2305,21 @@ def _build_resolution_ledger(report_data):
                 for p in proof[:6] if isinstance(p, dict)
             ) or "（本项尚需的资料见「分析覆盖」章节）",
         })
+    # ★ 2026-09-29（点评整改 P1-7 / P1-16）：**台账治理** —— 准入过滤（剔除系统自查/
+    #   资料请求单等内部工具条目）+ 类型级聚合（"XX逐月不匹配（2025-01）…（2025-12）"
+    #   归并为一行、期间落到明细）+ 统一发现 ID（可由规范键复算）+ 与「具体问题」章
+    #   的疑点映射。收敛在 `engine/ledger_governance.py`（唯一权威，数据表驱动）。
+    _excluded_internal: List[dict] = []
+    try:
+        from engine.ledger_governance import govern_ledger_rows as _gov
+        _g = _gov(rows, findings, problems=problems)
+        rows = _g["rows"]
+        _excluded_internal = _g["excluded"]
+    except Exception as _ge:  # noqa: BLE001
+        _excluded_internal = [{"风险事项": "〈台账治理未生效〉", "剔除原因": str(_ge)[:120]}]
+    # 台账专列（原 6 列 + 治理新增 3 列）；渲染层会自动隐藏整列为空的列
+    _LEDGER_COLUMNS = ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料",
+                       "发现ID", "聚合项数", "关联疑点"]
     summary = report_data.get("audit_doctrine") or {}
     scope = report_data.get("output_scope") or {}
     # ★ 2026-09-29（C3 风险组合画像）：把跨业务轴组合信号作为一条合成风险事项追加进台账，
@@ -2316,8 +2331,14 @@ def _build_resolution_ledger(report_data):
         if not isinstance(_cp, dict):
             continue
         _labels = "、".join(_cp.get("axis_labels") or [])
+        _cp_name = "多税种联动稽查风险画像（%s）" % _labels
+        try:
+            from engine.ledger_governance import make_finding_id as _mk_id
+            _cp_id = _mk_id(_cp_name)
+        except Exception:
+            _cp_id = ""
         rows.append({
-            "风险事项": "多税种联动稽查风险画像（%s）" % _labels,
+            "风险事项": _cp_name,
             "等级": str(_cp.get("level") or "中风险"),
             "证据地位": "组合风险信号（跨%d个业务环节）" % int(_cp.get("axis_count") or 0),
             "终局方向": "待联动核查（多税种）",
@@ -2325,6 +2346,10 @@ def _build_resolution_ledger(report_data):
             "需补自证资料": "；".join("跨税种联动核查：%s" % t
                                   for t in (_cp.get("combined_taxes") or []))
                               or "（本项详见总体结论章及各项贡献红线台账行）",
+            # ★ 2026-09-29（P1-7）：合成行同样要有统一发现 ID（台账内不得有"无名行"）
+            "发现ID": _cp_id,
+            "聚合项数": "",
+            "关联疑点": "",
         })    # ★ 2026-09-25：这两项必须由**最终报告里的发现**现算。
     #   audit_doctrine 汇总是在管道中段生成的（封印/补齐出口之前），
     #   拿它的计数会低估（实测报告 22 条全有出口，汇总里却只写 8 条）。
@@ -2341,7 +2366,12 @@ def _build_resolution_ledger(report_data):
         "evidence_tiers": tier_stat,
         "evidence_tier_note": (scope.get("note") or ""),
         "statement": str(summary.get("statement") or ""),
-        "columns": ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料"],
+        "columns": _LEDGER_COLUMNS,
+        # ★ 2026-09-29（P1-16）：被剔除的内部工具条目（不进企业台账，供内部改进清单）
+        "excluded_internal": _excluded_internal,
+        "excluded_internal_note": (
+            "本轮共 %d 项系统自查/资料请求类条目未列入企业台账（它们不是企业的涉税风险事项），"
+            "已转入内部改进清单。" % len(_excluded_internal) if _excluded_internal else ""),
         "rows": rows,
     }
 
@@ -3452,7 +3482,7 @@ def build_enterprise_readable_report(report_data, edition=None):
     material_readiness = _build_material_readiness(report_data)
     # ★ 2026-09-25 宗旨三件套：已上传资料查了什么 / 每项风险怎么解除与自证 / 终局两态
     one_sided_digest = _build_one_sided_digest(report_data)
-    resolution_ledger = _build_resolution_ledger(report_data)
+    resolution_ledger = _build_resolution_ledger(report_data, problems=problems)
     # ★ 2026-09-26 三版重构：底稿版（检查组工作底稿）
     working_paper_report = _build_working_paper_report(report_data)
     # ★ 2026-09-26 用户要求：「一、本轮检查总体结论」必须从 findings 实测派生（不得手写模板）。
@@ -3497,15 +3527,28 @@ def build_enterprise_readable_report(report_data, edition=None):
 
     # ★ 2026-09-26 金字塔原理编辑版：对工作底稿版的只读结构化重组（不改写任何内容）。
     #   始终派生并附加，使前端可在两种编辑版间纯客户端切换，无需重算。
+    #   ★ 2026-09-29（P1-11）：**必须在脱敏之后、用脱敏后的内容派生**——
+    #     旧顺序（先派生再脱敏）会让金字塔版成为"绕过脱敏的后门"（实测确认：
+    #     工作底稿版已脱敏、金字塔版仍带真实姓名）。故此处只留 `_identity`，
+    #     派生动作移到底部、以 `out` 的已脱敏内容为源。
     _identity = _identity_from_report_data(report_data)
-    pyramid_edition = build_pyramid_edition({
-        "confirmed_problems": problems,
-        "summary": summary,
-        "identity": _identity,
-        "resolution_ledger": resolution_ledger,
-    })
 
-    out = _zh_normalize_obj({
+    # ★ 2026-09-29（点评整改 P1-11）：**企业版报告对外输出前的个人信息脱敏**。
+    #   根因：本链路此前没有任何脱敏层 → 员工真实姓名与个人账户收付金额明细逐笔进正文
+    #   （外部点评实测「杨莹 670,000、初永伟 275,000、李昭阳 137,000」）。
+    #   收敛点选在这里（与 `_zh_normalize_obj` 同一道输出闸门）：Web / 离线 / 交付文件
+    #   三条渲染路径共用本函数产出，故只需此一处即全覆盖。
+    #   ⚠ 内部工作底稿（comprehensive / all_findings）**刻意不脱敏**——检查员要对得上人。
+    def _norm_and_redact(_o):
+        try:
+            from engine.pii_guard import redact_enterprise_report as _rg
+            # ★ 必须传 source=report_data：人名常只出现在正文句子里，
+            #   只能从源数据按人名/对手方字段预收集姓名集合（见 pii_guard 模块说明）。
+            return _rg(_zh_normalize_obj(_o), source=report_data)
+        except Exception:
+            return _zh_normalize_obj(_o)
+
+    out = _norm_and_redact({
         "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
         # ★ 2026-09-26 报告编辑版：基线=税务稽查专家工作底稿版；派生=金字塔原理编辑版。
@@ -3572,5 +3615,13 @@ def build_enterprise_readable_report(report_data, edition=None):
     #   否则 _naturalize_report_text 会把行动标题的「【等级】」标记改写为「等级：」，
     #   既破坏前端可读性，又使 pyramid_preserves_content 闸门（按【等级】格式自校验）失效、
     #   并损害「工作底稿版 + pyramid_edition 可无损还原」的可逆性。
-    out["pyramid_edition"] = pyramid_edition
+    #   ★ 2026-09-29（P1-11）：但派生源必须是**已脱敏的 `out`** —— 否则金字塔版会成为
+    #     绕开个人信息脱敏的后门（实测：工作底稿版已脱敏、金字塔版仍带真实姓名）。
+    #     故派生动作从函数中部移到这里，用 `out` 的已脱敏内容为源。
+    out["pyramid_edition"] = build_pyramid_edition({
+        "confirmed_problems": out.get("confirmed_problems") or problems,
+        "summary": out.get("summary") or summary,
+        "identity": out.get("identity") or _identity,
+        "resolution_ledger": out.get("resolution_ledger") or resolution_ledger,
+    })
     return out

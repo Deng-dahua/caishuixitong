@@ -225,7 +225,48 @@ class TestReportChapters:
         assert r["total"] == 1 and r["ironclad"] == 1
         assert r["rows"][0]["解除方式"] == "补缴社保"
         assert "劳动合同" in r["rows"][0]["需补自证资料"]
-        assert r["columns"] == ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料"]
+        # ★ 2026-09-29（点评整改 P1-7）：>6 列是**刻意的**——台账需要统一发现 ID、
+        #   聚合说明与「具体问题」章映射（外部点评：156 项台账与疑点无映射、无统一 ID）。
+        #   原 6 列为**必须仍然存在**的子集（不倒退）。
+        for _c in ("风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料"):
+            assert _c in r["columns"], _c
+        for _c in ("发现ID", "聚合项数", "关联疑点"):
+            assert _c in r["columns"], _c
+        assert r["rows"][0]["发现ID"].startswith("R-")
+
+    def test_ledger_governance(self):
+        """★ 2026-09-29（点评整改 P1-7 / P1-16）：准入过滤 + 类型级聚合 + 统一 ID + 疑点映射。"""
+        from engine.ledger_governance import (
+            canonical_ledger_key, govern_ledger_rows, is_enterprise_risk_item,
+            make_finding_id,
+        )
+        # ① 期间/批次括注被归并到同一规范键
+        assert canonical_ledger_key("X逐月不匹配（2025-01）") == canonical_ledger_key("X逐月不匹配（2025-12）")
+        assert canonical_ledger_key("Y（第3批）") == "Y"
+        # ② 内部工具条目不准入；真实风险准入
+        assert is_enterprise_risk_item({"type": "审计检查：系统一致性"})[0] is False
+        assert is_enterprise_risk_item({"type": "风险检查取证要求补充资料单"})[0] is False
+        assert is_enterprise_risk_item({"type": "有工资无社保"})[0] is True
+        # ③ 自引用循环的"需补自证资料"（模板套模板）不准入
+        _loop = "；".join(["本事项所涉及的个人银行账户完整流水——用以核对本事项"] * 4)
+        assert is_enterprise_risk_item(
+            {"type": "普通事项", "self_proof_materials": [{"material": "a", "proves": _loop}]})[0] is False
+        # ④ 同一发现 ID 可复算（与行序无关）
+        assert make_finding_id("工资多源对等逐月不匹配") == make_finding_id("工资多源对等逐月不匹配")
+        # ⑤ 月度展开被聚合为一行，且明细不丢
+        rows = [{"风险事项": "X逐月不匹配（2025-%02d）" % m, "等级": "中风险",
+                 "终局方向": "待补自证", "解除方式": "补资料", "需补自证资料": "明细账"}
+                for m in (1, 2, 3)]
+        findings = [{"type": "X逐月不匹配", "level": "中风险"} for _ in range(3)]
+        g = govern_ledger_rows(rows, findings)
+        assert len(g["rows"]) == 1, g["rows"]
+        assert g["rows"][0]["聚合项数"] and len(g["rows"][0]["明细"]) == 3
+        # ⑥ 疑点映射：红线编号对齐「具体问题」章
+        g2 = govern_ledger_rows(
+            [{"风险事项": "甲", "等级": "高风险", "终局方向": "待补自证"}],
+            [{"type": "甲", "redline_id": "RL-X"}],
+            problems=[{"seq": 7, "redline_id": "RL-X"}])
+        assert g2["rows"][0]["关联疑点"] == "具体问题第7项"
 
     def test_one_sided_digest_rows(self):
         from engine.enterprise_report import _build_one_sided_digest

@@ -74,6 +74,22 @@ def _ledger_table(led, threshold=16):
                 sv = str(v or "")
                 cls = "info" if "已验原子规则" in sv else ("warn" if "域分析结论" in sv else "")
                 tds.append('<td><span class="pill %s">%s</span></td>' % (cls, E(sv or "—")))
+            elif c == "风险事项":
+                # ★ 2026-09-29（P1-7）：聚合行在事项名下方给出**明细**（期间/批次逐条展开），
+                #   折叠块在导出时由净化逻辑展开（与前端一致）。
+                cell = E(v or "—")
+                _det = r.get("明细") or []
+                if _det:
+                    sub = "".join(
+                        "<tr><td>%s</td><td>%s</td><td>%s</td></tr>"
+                        % (E(d.get("期间/批次") or "—"), E(d.get("等级") or "—"),
+                           E(tr(d.get("解除方式") or "—", 80)))
+                        for d in _det)
+                    cell += ('<details style="margin-top:6px"><summary style="cursor:pointer;color:#1d4ed8;'
+                             'font-size:12px">明细（%d 项）</summary>'
+                             '<table style="margin-top:4px"><tr><th>期间/批次</th><th>等级</th>'
+                             '<th>解除方式</th></tr>%s</table></details>' % (len(_det), sub))
+                tds.append("<td>%s</td>" % cell)
             else:
                 nw = ' style="white-space:nowrap"' if short[c] else ''
                 tds.append("<td%s>%s</td>" % (nw, E(v or "—")))
@@ -159,6 +175,19 @@ summary{cursor:pointer;font-weight:600;font-size:13.5px}
 gen = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 P.append('<div class="cover"><h1>涉税风险分析报告</h1>'
          '<div class="sub">系统自动生成 · 分析与核验工作底稿 · %s</div>' % E(gen))
+# ★ 2026-09-29（点评整改 P2-5 / P1-11）：文书性质与个人信息保护标识必须**在封面出现**，
+#   不能只在文末写一句。外部点评指出原文书易被误当作税务机关文书，且个人信息脱敏无任何标识。
+P.append('<div class="docnotice" style="margin:10px 0 16px;padding:10px 14px;border:1px solid #f59e0b;'
+         'background:#fffbeb;border-radius:8px;font-size:12.5px;line-height:1.75;color:#7c2d12">'
+         '<div style="font-weight:700;margin-bottom:4px">文书性质声明</div>'
+         '本文书由企业税务风险检查系统自动生成，是**检查工作底稿与风险提示**，'
+         '不是税务机关出具的税务文书，不具备税务处理、行政处罚或强制执行效力；'
+         '所列事项均为待核实事实，任何处理决定须由有权机关依法作出。</div>'.replace('**', ''))
+if err.get("_pii_notice"):
+    P.append('<div class="piinotice" style="margin:0 0 16px;padding:10px 14px;border:1px solid #0ea5e9;'
+             'background:#f0f9ff;border-radius:8px;font-size:12.5px;line-height:1.75;color:#0c4a6e">'
+             '<div style="font-weight:700;margin-bottom:4px">个人信息保护标识 · 内部资料</div>%s</div>'
+             % E(err.get("_pii_notice")))
 P.append('<dl class="kv">')
 for label, val in (("被查单位", te.get("name")), ("统一社会信用代码", te.get("uscc")),
                    ("法定代表人", te.get("legal_person") or te.get("legal_representative")),
@@ -335,6 +364,8 @@ if _led_rows:
              '（共 %s 项）。证据地位仅表示结论的取得方式（即可信度来源），不代表风险本身的大小。</p>'
              % E(_led.get("total") or len(_led_rows)))
     P.append(_ledger_table(_led))
+    if _led.get("excluded_internal_note"):
+        P.append('<p class="muted">%s</p>' % E(_led["excluded_internal_note"]))
     if _led.get("evidence_tier_note"):
         P.append('<p class="muted">%s</p>' % E(_led["evidence_tier_note"]))
     # ★ 2026-09-27：主营业务成本两口径勾稽明细（阈值内也照出，合规留痕）
@@ -459,7 +490,19 @@ if _pe and _pe.get("groups"):
               '被检查企业：' + E(_id2.get("subject_name") or "未填写") + '<br>'
               '统一社会信用代码：' + E(_id2.get("taxpayer_id") or "未填写") + '<br>'
               '检查期间：' + E(_id2.get("period") or "以本轮资料记载期间为准") + '<br>'
-              '检查轮次：第' + E(_id2.get("analysis_round") or 1) + '轮<br>生成时间：' + E(gen) + '</div></div>')
+              '检查轮次：第' + E(_id2.get("analysis_round") or 1) + '轮<br>生成时间：' + E(gen) + '</div>')
+    # ★ 2026-09-29（P2-5 / P1-11）：两份编辑版都必须在封面出现文书性质与个人信息标识
+    _Q.append('<div style="margin:10px 0 16px;padding:10px 14px;border:1px solid #f59e0b;'
+              'background:#fffbeb;border-radius:8px;font-size:12.5px;line-height:1.75;color:#7c2d12">'
+              '<div style="font-weight:700;margin-bottom:4px">文书性质声明</div>'
+              '本文书由企业税务风险检查系统自动生成，是检查工作底稿与风险提示，'
+              '不是税务机关出具的税务文书，不具备税务处理、行政处罚或强制执行效力。</div>')
+    if err.get("_pii_notice"):
+        _Q.append('<div style="margin:0 0 16px;padding:10px 14px;border:1px solid #0ea5e9;'
+                  'background:#f0f9ff;border-radius:8px;font-size:12.5px;line-height:1.75;color:#0c4a6e">'
+                  '<div style="font-weight:700;margin-bottom:4px">个人信息保护标识 · 内部资料</div>%s</div>'
+                  % E(err.get("_pii_notice")))
+    _Q.append('</div>')          # 关闭封面 div（标识块嵌在封面内，随封面成一个区块）
     # SCQA
     _Q.append('<section><h2>开篇：结论先行（SCQA）</h2>'
               '<p><strong>情境（S）：</strong>' + E(_scqa.get("situation") or "") + '</p>'
