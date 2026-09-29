@@ -1,0 +1,665 @@
+{
+  "vr_rl_candidates": [
+    {
+      "vr": "VR001",
+      "vr_name": "银行收款与销项开票金额月度差异",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR002",
+      "vr_name": "会计收入与销项开票金额月度差异",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR003",
+      "vr_name": "销项发票号码重复记录",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR004",
+      "vr_name": "进项发票号码重复记录",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR005",
+      "vr_name": "工资名册与社会保险人员范围差异",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR006",
+      "vr_name": "库存期末数量为负",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR007",
+      "vr_name": "库存数量滚动关系不一致",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.375,
+          "RL-FUND-005",
+          "银行流水余额滚动关系不一致：资金流水勾稽断裂"
+        ]
+      ]
+    },
+    {
+      "vr": "VR008",
+      "vr_name": "同一凭证借贷不平",
+      "declared_rl": null,
+      "cands": [
+        [
+          1.0,
+          "RL-FUND-006",
+          "同一凭证借贷不平：会计分录借贷失衡"
+        ]
+      ]
+    },
+    {
+      "vr": "VR009",
+      "vr_name": "银行流水余额滚动关系不一致",
+      "declared_rl": null,
+      "cands": [
+        [
+          1.0,
+          "RL-FUND-005",
+          "银行流水余额滚动关系不一致：资金流水勾稽断裂"
+        ]
+      ]
+    },
+    {
+      "vr": "VR010",
+      "vr_name": "销项发票金额税额价税合计关系不一致",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR011",
+      "vr_name": "进项发票金额税额价税合计关系不一致",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR012",
+      "vr_name": "同一交易对手同时出现在客户与供应商清单",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR013",
+      "vr_name": "同一资金对手方存在大额双向收付",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR014",
+      "vr_name": "生产用能源消耗与制造业生产规模不匹配",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR015",
+      "vr_name": "进项发票品名缺失",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR016",
+      "vr_name": "供应商集中度与地域分布核验",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.526,
+          "RL-PTY-002",
+          "供应商集中度与地域分布缺乏商业合理性：采购来源真实性待核"
+        ]
+      ]
+    },
+    {
+      "vr": "VR017",
+      "vr_name": "购销双方集中度核验",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR018",
+      "vr_name": "增值税申报销售额与销项开票金额月度差异",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR019",
+      "vr_name": "增值税申报进项税额与进项发票税额月度差异",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR020",
+      "vr_name": "六员个人账户与经营资金往来核验",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR021",
+      "vr_name": "供应商与客户名称近似核验",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR022",
+      "vr_name": "用工人数与收入规模核验",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR023",
+      "vr_name": "进销物耗投入产出比核验",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR024",
+      "vr_name": "个人或个体工商户供应商客户交易核验",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR025",
+      "vr_name": "资金回流与公私混同检测",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.3,
+          "RL-FUND-002",
+          "资金回流：付款后经个人账户回流"
+        ]
+      ]
+    },
+    {
+      "vr": "VR026",
+      "vr_name": "增值税税负率与行业区间偏离",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR027",
+      "vr_name": "作废与红冲发票异常占比",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR028",
+      "vr_name": "银行收款显著大于销项开票（未开票收入隐匿线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR029",
+      "vr_name": "长期零申报或申报数据异常",
+      "declared_rl": null,
+      "cands": [
+        [
+          1.0,
+          "RL-VAT-010",
+          "长期零申报或申报数据异常"
+        ]
+      ]
+    },
+    {
+      "vr": "VR030",
+      "vr_name": "股东借款长期挂账与其他应收款异常",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR031",
+      "vr_name": "印花税计税依据与购销金额勾稽",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.4,
+          "RL-OTH-001",
+          "印花税计税依据不足：合同金额与开票不符"
+        ]
+      ]
+    },
+    {
+      "vr": "VR032",
+      "vr_name": "进项税额应转出未转出",
+      "declared_rl": null,
+      "cands": [
+        [
+          1.0,
+          "RL-VAT-011",
+          "进项税额应转出未转出"
+        ]
+      ]
+    },
+    {
+      "vr": "VR033",
+      "vr_name": "进销品名背离（变名开票）",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.556,
+          "RL-VAT-003",
+          "进销品名背离：购进与销售商品完全不相关"
+        ]
+      ]
+    },
+    {
+      "vr": "VR034",
+      "vr_name": "成本费用虚列异常",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.714,
+          "RL-COST-006",
+          "成本费用虚列：无真实业务支撑或凭证链断裂的虚构列支"
+        ]
+      ]
+    },
+    {
+      "vr": "VR035",
+      "vr_name": "印花税其他税目漏报",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR036",
+      "vr_name": "视同销售未计提销项税额",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.8,
+          "RL-VAT-012",
+          "视同销售未计提销项"
+        ],
+        [
+          0.692,
+          "RL-VAT-008",
+          "视同销售未按规计提销项税额"
+        ]
+      ]
+    },
+    {
+      "vr": "VR037",
+      "vr_name": "关联交易价格偏离（转让定价探针）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR038",
+      "vr_name": "业务招待费扣除超限未纳税调整",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.389,
+          "RL-CIT-007",
+          "税前扣除限额超限未纳税调整"
+        ]
+      ]
+    },
+    {
+      "vr": "VR039",
+      "vr_name": "广告费和业务宣传费扣除超限未纳税调整",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.318,
+          "RL-CIT-007",
+          "税前扣除限额超限未纳税调整"
+        ]
+      ]
+    },
+    {
+      "vr": "VR040",
+      "vr_name": "职工福利费扣除超限未纳税调整",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.389,
+          "RL-CIT-007",
+          "税前扣除限额超限未纳税调整"
+        ]
+      ]
+    },
+    {
+      "vr": "VR041",
+      "vr_name": "折旧摊销与长期待摊异常（加速/遗漏）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR042",
+      "vr_name": "房产税从价/从租计征勾稽",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR043",
+      "vr_name": "城建税及教育费附加随增值税附征勾稽",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR044",
+      "vr_name": "库存积压与收入背离（账外经营线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR045",
+      "vr_name": "运输费与产销规模背离（账外发货线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR046",
+      "vr_name": "长期滞销与呆滞库存（实物盘点线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR047",
+      "vr_name": "进销数量倒挂与滚动矛盾（盘点缺失线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR048",
+      "vr_name": "同名存货规格进销不一致（变名/虚假交易线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR049",
+      "vr_name": "购销缺物流或损耗率偏离（业务真实性线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR050",
+      "vr_name": "跨境交易穿透线索（需报关/外汇数据）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR052",
+      "vr_name": "委托加工业务真实性·地理-物流-合同三维勾稽",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR053",
+      "vr_name": "作废发票资金回流勾稽·开票收款后作废隐匿收入",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR054",
+      "vr_name": "作废发票后未重开未申报勾稽·系统性隐匿线索",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR055",
+      "vr_name": "工资薪酬均额/拆分疑点（个税规避线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR056",
+      "vr_name": "公私混同发薪/私户支付薪酬（支付来源不可见盲区）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR057",
+      "vr_name": "第三方支付平台收款监管盲区（账外收入线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR058",
+      "vr_name": "个人码/个人账户收款监管盲区（账外收入·资金回流个人线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR059",
+      "vr_name": "现金交易监管盲区（账外收入·现金侧完全不可见线索）",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR060",
+      "vr_name": "主营业务成本资金与负债证据链核验",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.333,
+          "RL-PTY-001",
+          "成本列支的资金与负债证据不足：真实性待核"
+        ]
+      ]
+    },
+    {
+      "vr": "VR061",
+      "vr_name": "主营业务收入收款印证核验",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR062",
+      "vr_name": "暂估成本·其他应付款·公转私闭环核验",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR063",
+      "vr_name": "预收账款合同负债长期挂账",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.733,
+          "RL-INC-003",
+          "预收账款、合同负债长期挂账不转收入"
+        ]
+      ]
+    },
+    {
+      "vr": "VR064",
+      "vr_name": "价外费用与零星收入未开票",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR065",
+      "vr_name": "个人劳务报酬支付未代扣个税",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR066",
+      "vr_name": "进项发票上游异常开票特征",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR067",
+      "vr_name": "销售折扣与折让异常",
+      "declared_rl": null,
+      "cands": [
+        [
+          0.667,
+          "RL-OTH-006",
+          "销售折扣折让异常"
+        ]
+      ]
+    },
+    {
+      "vr": "VR068",
+      "vr_name": "银行存款利息收入未申报",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR069",
+      "vr_name": "财政补贴政府补助未申报",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR070",
+      "vr_name": "固定资产处置收入未申报",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR071",
+      "vr_name": "红字发票（红冲）合规性异常",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR072",
+      "vr_name": "农产品收购发票抵扣凭证合规",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR073",
+      "vr_name": "通行费与旅客运输进项抵扣核定异常",
+      "declared_rl": null,
+      "cands": []
+    },
+    {
+      "vr": "VR074",
+      "vr_name": "银行存款账实勾稽异常",
+      "declared_rl": null,
+      "cands": []
+    }
+  ],
+  "blind": [
+    "RL-AST-002",
+    "RL-CIT-002",
+    "RL-CIT-003",
+    "RL-CIT-005",
+    "RL-CIT-006",
+    "RL-CIT-007",
+    "RL-COST-001",
+    "RL-FUND-003",
+    "RL-FUND-004",
+    "RL-FUND-005",
+    "RL-INC-003",
+    "RL-INC-004",
+    "RL-INV-001",
+    "RL-INV-002",
+    "RL-INV-003",
+    "RL-OTH-002",
+    "RL-OTH-004",
+    "RL-OTH-005",
+    "RL-OTH-006",
+    "RL-PAY-004",
+    "RL-PAY-006",
+    "RL-SPT-001",
+    "RL-SPT-002",
+    "RL-SPT-003",
+    "RL-SPT-004",
+    "RL-SPT-005",
+    "RL-SPT-006",
+    "RL-SPT-007",
+    "RL-SPT-009",
+    "RL-SPT-010",
+    "RL-VAT-003",
+    "RL-VAT-008",
+    "RL-VAT-009",
+    "RL-VAT-010",
+    "RL-VAT-011"
+  ],
+  "review": [
+    [
+      "VR007",
+      "库存数量滚动关系不一致",
+      0.375,
+      "RL-FUND-005",
+      "银行流水余额滚动关系不一致：资金流水勾稽断裂"
+    ],
+    [
+      "VR009",
+      "银行流水余额滚动关系不一致",
+      1.0,
+      "RL-FUND-005",
+      "银行流水余额滚动关系不一致：资金流水勾稽断裂"
+    ],
+    [
+      "VR029",
+      "长期零申报或申报数据异常",
+      1.0,
+      "RL-VAT-010",
+      "长期零申报或申报数据异常"
+    ],
+    [
+      "VR032",
+      "进项税额应转出未转出",
+      1.0,
+      "RL-VAT-011",
+      "进项税额应转出未转出"
+    ],
+    [
+      "VR033",
+      "进销品名背离（变名开票）",
+      0.556,
+      "RL-VAT-003",
+      "进销品名背离：购进与销售商品完全不相关"
+    ],
+    [
+      "VR036",
+      "视同销售未计提销项税额",
+      0.692,
+      "RL-VAT-008",
+      "视同销售未按规计提销项税额"
+    ],
+    [
+      "VR038",
+      "业务招待费扣除超限未纳税调整",
+      0.389,
+      "RL-CIT-007",
+      "税前扣除限额超限未纳税调整"
+    ],
+    [
+      "VR039",
+      "广告费和业务宣传费扣除超限未纳税调整",
+      0.318,
+      "RL-CIT-007",
+      "税前扣除限额超限未纳税调整"
+    ],
+    [
+      "VR040",
+      "职工福利费扣除超限未纳税调整",
+      0.389,
+      "RL-CIT-007",
+      "税前扣除限额超限未纳税调整"
+    ],
+    [
+      "VR063",
+      "预收账款合同负债长期挂账",
+      0.733,
+      "RL-INC-003",
+      "预收账款、合同负债长期挂账不转收入"
+    ],
+    [
+      "VR067",
+      "销售折扣与折让异常",
+      0.667,
+      "RL-OTH-006",
+      "销售折扣折让异常"
+    ]
+  ]
+}

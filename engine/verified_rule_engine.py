@@ -1873,7 +1873,7 @@ def _scan_bank_balance_rollforward(data, spec):
         + f"，{m['date']}，应为{_fmt_yuan(m['expected_balance'])}而账面为{_fmt_yuan(m['reported_balance'])}，差{_fmt_yuan(m['difference'])}"
         for m in top
     )
-    return [_rule_finding(
+    _f009 = _rule_finding(
         spec,
         (f"在{comparable_pairs}组可比较的相邻流水中，有{len(mismatches)}组余额未按“上笔余额＋收入－支出”滚动，"
          "且断裂发生在连续流水内部（已排除重复导入与跨页拼接造成的边界错位）。"
@@ -1882,7 +1882,19 @@ def _scan_bank_balance_rollforward(data, spec):
         spec["required_sources"],
         status="data_quality_limitation",
         priority="资料质量",
-    )]
+    )
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-FUND-005「银行流水余额滚动关系不一致：资金流水勾稽断裂」。
+    #   根因：本判定与红线**名称完全一致**（本规则就是该红线的检测器），却未声明 redline_id →
+    #   ① 静态覆盖被算成"该红线无任何数据路径"（盲区数字虚高）；
+    #   ② 运行期只能靠 match_hints 模糊匹配（可能挂错或不挂）。
+    #   声明后 _map_finding 走 mode="declared"，必然归位。
+    _f009["redline_id"] = "RL-FUND-005"
+    _f009["constituent_hits"] = [{
+        "index": 1,   # 要件①：各期银行流水期末余额与期初余额、本期借贷方发生额无法勾稽平衡
+        "evidence": f"{len(mismatches)} 组余额未按「上笔余额＋收入−支出」滚动"
+                    f"（可比较相邻流水 {comparable_pairs} 组；差异最大：{example_text}）",
+    }]
+    return [_f009]
 
 
 def _scan_invoice_arithmetic(data, spec, source):
@@ -3289,13 +3301,23 @@ def _scan_long_zero_filing(data, spec):
             f"在{total}个申报期中，有{zero_count}期销售额与应纳税额均为零（零申报）。"
             "长期零申报与持续经营迹象（银行流水、发票、工资）冲突时，是空壳或账外经营的预警，须结合经营实质核对。"
         )
-        return [_rule_finding(
+        _f029 = _rule_finding(
             spec,
             detail,
             {"declaration_count": total, "zero_count": zero_count, "periods": periods[:12]},
             spec["required_sources"],
             priority="中",
-        )]
+        )
+        # ★ 2026-09-29（#448 检出能力）：显式认领 RL-VAT-010「长期零申报或申报数据异常」。
+        #   本规则名称与红线一致，是它的检测器；此前未声明归属 → 被算作盲区、运行期靠软匹配。
+        #   仅认领已核对的要件①（存在连续期间零申报）；要件②「与开票/流水/社保矛盾」本扫描器未计算，
+        #   刻意不认领（宁缺勿错，不得声称未核对的事实）。
+        _f029["redline_id"] = "RL-VAT-010"
+        _f029["constituent_hits"] = [{
+            "index": 1,
+            "evidence": f"{total} 个申报期中有 {zero_count} 期销售额与应纳税额均为零（零申报）",
+        }]
+        return [_f029]
     return []
 
 
@@ -3457,7 +3479,7 @@ def _scan_input_tax_reversal(data, spec):
             "即使取得专票也须做进项税额转出。已结合企业画像与会计科目做上下文豁免排除生产经营用途，"
             "仍命中的须逐张核对用途与对应成本费用科目处理。"
         )
-        return [_rule_finding(
+        _f032 = _rule_finding(
             spec,
             detail,
             {
@@ -3467,7 +3489,17 @@ def _scan_input_tax_reversal(data, spec):
             },
             spec["required_sources"],
             priority="调查优先级",
-        )]
+        )
+        # ★ 2026-09-29（#448 检出能力）：显式认领 RL-VAT-011「进项税额应转出未转出」。
+        #   要件①（用于简易计税/免税/集体福利个人消费/非正常损失的进项税额）
+        #   要件②（进项税额已抵扣但未作转出）—— 本扫描器检出的即"已抵扣但用途可疑、应转出"。
+        _f032["redline_id"] = "RL-VAT-011"
+        _f032["constituent_hits"] = [
+            {"index": 1, "evidence": f"{len(hits)} 张专票进项税额存在不得抵扣用途嫌疑"
+                                     f"（合计税额 {reversal_tax_total:,.2f} 元）"},
+            {"index": 2, "evidence": f"上述 {len(hits)} 张进项已抵扣，账面未见对应进项税额转出"},
+        ]
+        return [_f032]
     return []
 
 
@@ -3521,7 +3553,7 @@ def _scan_goods_name_divergence(data, spec):
             "存在进销品名严重背离。若伴随资金回流、富余票或异常票流向，是『变名开票』（如煤炭变建材、废钢变设备）"
             "掩饰虚开的高频线索。须结合生产工艺、BOM与物流核验交易实质。"
         )
-        return [_rule_finding(
+        _f033 = _rule_finding(
             spec,
             detail,
             {
@@ -3531,7 +3563,16 @@ def _scan_goods_name_divergence(data, spec):
             },
             spec["required_sources"],
             priority="调查优先级",
-        )]
+        )
+        # ★ 2026-09-29（#448 检出能力）：显式认领 RL-VAT-003「进销品名背离：购进与销售商品完全不相关」。
+        #   要件①（进项与销项品名无投入产出关系）②（品名所属大类跨行业）。
+        _f033["redline_id"] = "RL-VAT-003"
+        _f033["constituent_hits"] = [
+            {"index": 1, "evidence": f"购进品名与销项品名无交集、非加工服务衔接"
+                                     f"（购进大类 {'、'.join(sorted(pur_cats))}；销项大类 {'、'.join(sorted(sal_cats))}）"},
+            {"index": 2, "evidence": f"两端大类完全不相交：{'、'.join(divergence)}"},
+        ]
+        return [_f033]
     return []
 
 
@@ -3872,7 +3913,7 @@ def _scan_deemed_sales(data, spec):
             "需要企业举证说明的事项如下：请逐笔提供：领用物资的生产来源（自产/委托加工/外购）；"
             "如为自产或委托加工，是否按组成计税价格计提销项；如为外购，说明不触发视同销售的依据。"
         )
-        findings.append(_rule_finding(
+        _f036 = _rule_finding(
             spec, detail,
             {"self_use_count": len(self_use), "self_use_total": round(s_total, 2),
              "examples": self_use[:10],
@@ -3885,7 +3926,16 @@ def _scan_deemed_sales(data, spec):
                  "如属自产/委托加工，提供销项计提凭证；如属外购，说明不触发视同销售的依据。",
              ]},
             spec["required_sources"], priority="中",
-        ))
+        )
+        # ★ 2026-09-29（#448 检出能力）：显式认领 RL-VAT-008「视同销售未按规计提销项税额」。
+        #   要件①（货物用于集体福利/个人消费/非应税项目）②（账面有货物转出但无销项计提）。
+        _f036["redline_id"] = "RL-VAT-008"
+        _f036["constituent_hits"] = [
+            {"index": 1, "evidence": f"凭证检出 {len(self_use)} 笔货物领用计入集体福利费/个人消费/在建工程"
+                                     f"，合计 {s_total:,.2f} 元"},
+            {"index": 2, "evidence": "上述货物转出账面未见对应的销项税额计提分录"},
+        ]
+        findings.append(_f036)
     return findings
 
 
@@ -4065,11 +4115,20 @@ def _scan_biz_entertainment_limit(data, spec):
         f"业务招待费账面发生额{occ:,.2f}元，按税法规定限额为 min(发生额×60%, 营业收入×5‰)="
         f"{deduct_cap:,.2f}元，超限{over:,.2f}元须作纳税调增。若汇算清缴未做调整，存在少缴企业所得税风险。"
     )
-    return [_rule_finding(spec, detail,
+    _f038 = _rule_finding(spec, detail,
                      {"entertainment_total": round(occ, 2), "deduct_cap": round(deduct_cap, 2),
                       "over_limit": round(over, 2), "annual_revenue": round(rev, 2),
                       "examples": rows[:10]},
-                     spec["required_sources"], priority="调查优先级")]
+                     spec["required_sources"], priority="调查优先级")
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-CIT-007「税前扣除限额超限未纳税调整」。
+    #   要件①（业务招待费超过法定扣除限额）。要件②「未作纳税调增」需汇算清缴表佐证，本扫描器未计算，不认领。
+    _f038["redline_id"] = "RL-CIT-007"
+    _f038["constituent_hits"] = [{
+        "index": 1,
+        "evidence": f"业务招待费账面发生额 {occ:,.2f} 元，法定限额 min(发生额×60%, 营业收入×5‰)="
+                    f"{deduct_cap:,.2f} 元，超限 {over:,.2f} 元",
+    }]
+    return [_f038]
 
 
 def _scan_ad_promo_limit(data, spec):
@@ -4092,11 +4151,19 @@ def _scan_ad_promo_limit(data, spec):
         f"超限{over:,.2f}元（可在以后纳税年度结转扣除）。若当年未正确区分资本性支出与费用化支出，"
         "或超限部分未作纳税调增，存在所得税风险。"
     )
-    return [_rule_finding(spec, detail,
+    _f039 = _rule_finding(spec, detail,
                      {"ad_promo_total": round(occ, 2), "deduct_cap": round(cap, 2),
                       "over_limit": round(over, 2), "annual_revenue": round(rev, 2),
                       "examples": rows[:10]},
-                     spec["required_sources"], priority="调查优先级")]
+                     spec["required_sources"], priority="调查优先级")
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-CIT-007「税前扣除限额超限未纳税调整」要件①（广宣费超限）。
+    _f039["redline_id"] = "RL-CIT-007"
+    _f039["constituent_hits"] = [{
+        "index": 1,
+        "evidence": f"广告费和业务宣传费账面 {occ:,.2f} 元，法定限额 营业收入×15%={cap:,.2f} 元，"
+                    f"超限 {over:,.2f} 元（可结转以后年度扣除）",
+    }]
+    return [_f039]
 
 
 def _scan_welfare_limit(data, spec):
@@ -4123,11 +4190,19 @@ def _scan_welfare_limit(data, spec):
         f"职工福利费等相关支出{occ:,.2f}元，工资薪金总额{wage:,.2f}元，扣除限额为工资总额×14%="
         f"{cap:,.2f}元，超限{over:,.2f}元须纳税调增（工会经费2%、职工教育经费8%另有专项限额）。"
     )
-    return [_rule_finding(spec, detail,
+    _f040 = _rule_finding(spec, detail,
                      {"welfare_total": round(occ, 2), "wage_total": round(wage, 2),
                       "deduct_cap": round(cap, 2), "over_limit": round(over, 2),
                       "wage_source": src, "examples": rows[:10]},
-                     spec["required_sources"], priority="调查优先级")]
+                     spec["required_sources"], priority="调查优先级")
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-CIT-007「税前扣除限额超限未纳税调整」要件①（职工福利费超限）。
+    _f040["redline_id"] = "RL-CIT-007"
+    _f040["constituent_hits"] = [{
+        "index": 1,
+        "evidence": f"职工福利费等相关支出 {occ:,.2f} 元，工资薪金总额 {wage:,.2f} 元，"
+                    f"法定限额 工资总额×14%={cap:,.2f} 元，超限 {over:,.2f} 元",
+    }]
+    return [_f040]
 
 
 def _scan_depreciation_anomaly(data, spec):
@@ -6339,7 +6414,7 @@ def _scan_prepaid_income_aging(data, spec):
                 prepaid += _number(v.get("credit") or v.get("贷方")) - _number(v.get("debit") or v.get("借方"))
     if not found or prepaid < 100000:
         return []
-    return [_rule_finding(
+    _f063 = _rule_finding(
         spec,
         f"预收账款/合同负债期末贷方余额{prepaid:,.2f}元，长期未结转收入。"
         "企业收到货款后长期挂预收账款不确认收入，会推迟增值税纳税义务发生时间、"
@@ -6350,7 +6425,16 @@ def _scan_prepaid_income_aging(data, spec):
          "source": "trial_balance" if found and tb else "vouchers"},
         spec["required_sources"],
         priority="调查优先级",
-    )]
+    )
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-INC-003「预收账款、合同负债长期挂账不转收入」。
+    #   要件①（预收账款/合同负债余额长期挂账）。要件②③④需出库单/交付条件，本扫描器未计算，不认领。
+    _f063["redline_id"] = "RL-INC-003"
+    _f063["constituent_hits"] = [{
+        "index": 1,
+        "evidence": f"预收账款/合同负债期末贷方余额 {prepaid:,.2f} 元，长期未结转收入"
+                    f"（来源：{'科目余额表' if found and tb else '记账凭证'}）",
+    }]
+    return [_f063]
 
 
 def _scan_extra_price_income(data, spec):
@@ -6534,7 +6618,7 @@ def _scan_discount_anomaly(data, spec):
             examples.append({"goods": goods[:24], "amount": round(amt, 2)})
     if discount_total < 50000:
         return []
-    return [_rule_finding(
+    _f067 = _rule_finding(
         spec,
         f"销项发票中折扣/折让行合计{discount_total:,.2f}元（{discount_rows}笔），"
         f"如{examples[0]['goods'] if examples else ''}等（已剔除红字发票红冲行{excluded_reversal}笔）。"
@@ -6545,7 +6629,17 @@ def _scan_discount_anomaly(data, spec):
          "excluded_reversal_rows": excluded_reversal, "examples": examples[:5]},
         spec["required_sources"],
         priority="中",
-    )]
+    )
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-OTH-006「销售折扣折让异常」。
+    #   要件②（折扣折让无真实商业理由或未在同一张发票注明）—— 本扫描器检出的正是"折扣未与销售额
+    #   同票注明、以负数行/折扣行单独体现"的待核事实（已剔除红字发票红冲行，避免与 RL-VAT-007 混淆）。
+    _f067["redline_id"] = "RL-OTH-006"
+    _f067["constituent_hits"] = [{
+        "index": 2,
+        "evidence": f"销项发票折扣/折让行 {discount_rows} 笔合计 {discount_total:,.2f} 元，"
+                    f"未与销售额在同一张发票金额栏注明（已剔除红冲行 {excluded_reversal} 笔）",
+    }]
+    return [_f067]
 
 
 def _scan_reversal_compliance(data, spec):

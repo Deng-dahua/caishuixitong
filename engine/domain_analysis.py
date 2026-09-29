@@ -6500,15 +6500,21 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             summary = str(tx.get("summary", "") or "")
             
             # 大额交易（>50万）
+            # ★ 2026-09-29 根因修复：原为 `d[:10]`，而本函数后方存在 `for _pm in ...`
+            #   （原写作 `for d in [...]`）→ `d` 被判定为**函数局部变量**，此处读取时尚未赋值
+            #   ⇒ 只要出现一笔大额/税费交易即抛 UnboundLocalError，被 pipeline 的 try/except **静默吞掉**
+            #   ⇒ material_intel 恒为 {}、「资料情报提取」整段从未生效（与"异常吞没"同族缺陷）。
+            #   现直接用交易日期字段（与上方 _m 同源），并消除同名循环变量。
             max_amt = max(debit, credit)
+            _tx_date = str(tx.get("date") or tx.get("transaction_date") or "")[:10]
             if max_amt > T.amount_thresholds.large_transaction:
-                large_txs.append({"date": d[:10], "amount": round(max_amt, 2), 
+                large_txs.append({"date": _tx_date, "amount": round(max_amt, 2), 
                                 "type": "支出" if debit > credit else "收款",
                                 "counterparty": cp[:30], "summary": summary[:30]})
             
             # 税费支付
             if any(k in summary for k in ("税", "金库", "国税", "地税", "纳税", "缴税")):
-                tax_payments.append({"date": d[:10], "amount": round(max_amt, 2), "summary": summary[:30]})
+                tax_payments.append({"date": _tx_date, "amount": round(max_amt, 2), "summary": summary[:30]})
             
             # 往来方
             if cp and len(cp) >= 2:
@@ -6674,8 +6680,8 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
                 individual_payee[cp] += debit
         
         all_payees = {}
-        for d in [enterprise_payee, tax_payee, bank_payee, individual_payee]:
-            for k, v in d.items(): all_payees[k[:30]] = v
+        for _pm in [enterprise_payee, tax_payee, bank_payee, individual_payee]:
+            for k, v in _pm.items(): all_payees[k[:30]] = v
         intel["银行流水"]["付款方全部"] = [{"名称": n, "金额": f"{a:,.2f}"} for n, a in sorted(all_payees.items(), key=lambda x: -x[1])]
     
     # ── 发票情报 ──
