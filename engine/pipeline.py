@@ -2446,6 +2446,16 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _lte:
         pipeline_log.append(f"顶额开票检测异常: {_lte}")
 
+    # ═══ 发票数据质量（RL-PTY-005）：票号重复 / 票面勾稽错误（检出能力补齐，原属盲区） ═══
+    try:
+        from engine.invoice_quality_detector import detect_invoice_quality
+        _iq_findings = detect_invoice_quality(sal_invs, pur_invs)
+        if _iq_findings:
+            domain_results.append({"domain": "发票数据质量", "findings": _iq_findings})
+            pipeline_log.append(f"发票数据质量: {len(_iq_findings)}项发现")
+    except Exception as _iqe:
+        pipeline_log.append(f"发票数据质量检测异常: {_iqe}")
+
     # ═══ 外部数据核验待办（单账套判不了、需工商/税务/海关/公安/银行外部数据的项） ═══
     # 遵循"无数据→置疑清单并列明需补资料"：有在账信号才输出，明确列出需补什么
     try:

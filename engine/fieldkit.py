@@ -186,3 +186,43 @@ def is_noise_name(name: Any) -> bool:
         return True
     # 纯数字（序号行）视为噪声
     return bool(n_compact) and n_compact.isdigit()
+
+
+# ── 发票金额 / 税额 / 价税合计 / 票号（F1：别名集中在此，禁止各检测器自写）──
+_AMOUNT_KEYS = ("amount", "金额", "je", "amount_excl_tax", "不含税金额", "金额(元)")
+_TAX_KEYS = ("tax", "税额", "se", "tax_amount")
+_TOTAL_KEYS = ("total", "价税合计", "jshj", "amount_with_tax", "价税合计金额", "金额合计")
+_INV_NO_KEYS = ("invoice_no", "发票号码", "inv_no", "发票号", "number", "invoice_number")
+
+
+def _num(row: Any, keys: Sequence[str]) -> float:
+    """按别名顺序取第一个非空值并转数值（统一数值解析）。缺字段返回 0.0。"""
+    from engine.numparse import to_number
+    if not isinstance(row, dict):
+        return 0.0
+    for k in keys:
+        v = row.get(k)
+        if v in (None, ""):
+            continue
+        return to_number(v)
+    return 0.0
+
+
+def amount(inv: Any) -> float:
+    """发票「金额」（不含税）。"""
+    return _num(inv, _AMOUNT_KEYS)
+
+
+def tax(inv: Any) -> float:
+    """发票「税额」。"""
+    return _num(inv, _TAX_KEYS)
+
+
+def total(inv: Any) -> float:
+    """发票「价税合计」。"""
+    return _num(inv, _TOTAL_KEYS)
+
+
+def invoice_no(inv: Any) -> str:
+    """发票号码。"""
+    return _txt(inv, _INV_NO_KEYS)
