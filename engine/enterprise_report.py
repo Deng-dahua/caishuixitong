@@ -544,6 +544,10 @@ def _build_detail_table(f):
     明细是让报告『详尽』的关键：把后台已经算出的逐笔差异落到正文，而不是只在 Detail 里写汇总数。
     """
     metrics = f.get("observed_metrics") or {}
+    # ★ 2026-09-29（点评整改 P1-14）：源明细**总数**。凡列示行数少于总数，
+    #   报告必须注明"仅列示前 N 笔"——否则读者会把列示的行当成全部的行，
+    #   从而与合计对不上（外部点评：「7 笔合计 1,320,000 只列 5 笔 800,000 未注明」）。
+    _rows_total = 0
     if not isinstance(metrics, dict):
         metrics = {}
     # 兼容直接挂在 finding 上的 examples 列表
@@ -553,6 +557,8 @@ def _build_detail_table(f):
     if isinstance(examples, list) and examples and isinstance(examples[0], dict):
         columns = list(examples[0].keys())
         rows = [dict(x) for x in examples[:30]]
+        if len(examples) > 30:
+            _rows_total = len(examples)
     # 2) 各类命名明细字段
     named = {
         "duplicate_invoice_examples": ["invoice_number", "invoice_code", "rows", "count"],
@@ -568,6 +574,8 @@ def _build_detail_table(f):
         if key in metrics and isinstance(metrics[key], list) and metrics[key]:
             rows = [dict(x) for x in metrics[key][:30]]
             columns = cols
+            if len(metrics[key]) > 30:
+                _rows_total = len(metrics[key])
             break
     # 3) 兜底：标量 observed_metrics（无逐笔列表时）按『指标/数值』两列渲染，
     #    让 BOM 投入产出、合同面积、到货价等所有带指标的发现都能落到明细表。
@@ -584,6 +592,8 @@ def _build_detail_table(f):
                     label = {"province_breakdown": "省份", "matches": "人员",
                              "supplier_breakdown": "供应商", "customer_breakdown": "客户"}.get(k, "项目")
                     rows = []
+                    if len(v) > 30:
+                        _rows_total = len(v)
                     for key, inner in list(v.items())[:30]:
                         row = {label: str(key)}
                         for ik in inner_keys:
@@ -601,6 +611,8 @@ def _build_detail_table(f):
                 columns = [_METRIC_CN.get(ik, str(ik)) for ik in inner_keys]
                 rows = [{_METRIC_CN.get(ik, str(ik)): _fmt_metric_val(item.get(ik)) for ik in inner_keys}
                         for item in v[:30]]
+                if len(v) > 30:
+                    _rows_total = len(v)
                 break
         scalar_rows = []
         for k, v in metrics.items():
@@ -615,7 +627,9 @@ def _build_detail_table(f):
                            "finished_products": "对应成品"}.get(k, "明细")
                     rows = [{col: str(x)} for x in v[:30]]
                     if rows:
-                        return rows, [col]
+                        if len(v) > 30:
+                            _rows_total = len(v)
+                        return rows, [col], _rows_total
                 continue
             if v in (None, ""):
                 continue
@@ -631,14 +645,15 @@ def _build_detail_table(f):
         ev = (f.get("evidence_rows") if isinstance(f, dict) else None) or []
         tbl = _evidence_rows_to_detail_table(ev)
         if tbl:
-            return tbl["rows"], tbl["columns"]
+            return tbl["rows"], tbl["columns"], len(ev)
     if not rows:
-        return [], []
+        return [], [], 0
     # 统一汉化列名与行键：保证 columns 与 rows 键一致（前端按 columns 取值）。
     # 精确映射优先，词表兜底，杜绝英文键名漏网。
     columns = [_translate_key(c) for c in columns]
     rows = [{_translate_key(k): v for k, v in row.items()} for row in rows]
-    return rows, columns
+    # ★ 2026-09-29（P1-14）：把源明细总数透传给渲染层（>列示行数时须注明"仅列示前 N 笔"）
+    return rows, columns, _rows_total
 
 
 # ── evidence_rows → 明细表（2026-09-26 根因修复）────────────────────────
@@ -648,7 +663,11 @@ def _build_detail_table(f):
 # 此处把 evidence_rows 也当作明细表来源：凡带 evidence_rows 的发现（能关联到红线疑点）都会在企业报告
 # 「发现的依据」段列出逐笔明细。这是通用规则，新增任何带 evidence_rows 的发现都无需改报告渲染代码。
 _EV_COLUMN_CN = {
-    "ref_label": "发票/凭证号", "invoice_no": "发票号", "inv_no": "发票号",
+    # ★ 2026-09-29（P1-14）：`ref_label` 实测承载的是**单据标签/摘要**（如"收到款项"），
+    #   旧标签「发票/凭证号」会把它当成凭证号 → 读者看到"凭证号"栏里是摘要，与合计对不上。
+    #   改名为「凭证/单据标识」；真正的凭证号来自 `ref_id`（见下）。
+    "ref_label": "凭证/单据标识", "ref_id": "凭证号",
+    "invoice_no": "发票号", "inv_no": "发票号",
     "counterparty": "对方单位", "party": "对方单位",
     "amount": "金额(元)", "total": "金额(元)", "money": "金额(元)",
     "date": "日期", "bill_date": "开票日期",
@@ -1164,10 +1183,12 @@ def _problem_paragraphs(f):
         # 规则显式给出的多张下钻表（如 VR060 的成本/付款/应付逐笔溯源）
         paragraphs[0]["detail_tables"] = _detail_tables
     else:
-        detail_rows, detail_cols = _build_detail_table(f)
+        detail_rows, detail_cols, detail_total = _build_detail_table(f)
         if detail_rows:
             # 把明细表挂在第一段对象上，供前端渲染；同时保留文本回退
-            paragraphs[0]["detail_table"] = {"columns": detail_cols, "rows": detail_rows}
+            # ★ 2026-09-29（P1-14）：带上源明细总数，供渲染层注明"仅列示前 N 笔"
+            paragraphs[0]["detail_table"] = {"columns": detail_cols, "rows": detail_rows,
+                                             "rows_total": detail_total}
     return paragraphs
 
 
@@ -1689,6 +1710,10 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
             "conclusion_grade": grade,
             "verdict": s.get("verdict", ""),
             "confidence": s.get("confidence", 0.0),
+            # ★ 2026-09-29（点评整改 P1-9）：可信度的**分项计算依据**与公式（可逐项复算）。
+            #   外部点评：全文 25 处「判断可信度约 N%」无任何口径披露，读者无法核验。
+            "confidence_breakdown": arg.get("confidence_breakdown") or [],
+            "confidence_formula": arg.get("confidence_formula") or "",
             "closure": _clo,
             # ★ 2026-09-27（用户要求）：前端也以项数（已有/还缺）呈现材料齐全程度，
             #   不再显示百分比。closure 仅内部使用（决定能否定性）。
@@ -3544,7 +3569,18 @@ def build_enterprise_readable_report(report_data, edition=None):
             from engine.pii_guard import redact_enterprise_report as _rg
             # ★ 必须传 source=report_data：人名常只出现在正文句子里，
             #   只能从源数据按人名/对手方字段预收集姓名集合（见 pii_guard 模块说明）。
-            return _rg(_zh_normalize_obj(_o), source=report_data)
+            _o = _zh_normalize_obj(_o)
+            # ★ 2026-09-29（点评整改 P1-14）：**明细表治理**（唯一规范化点）。
+            #   必须放在 `_zh_normalize_obj` **之后**：正因为它会把值里的半角括号
+            #   规范成全角、而**不动字典键**，才造成 columns='金额（元）' 与
+            #   行键 '金额(元)' 不一致、整列渲染为空（实测的静默数据丢失）。
+            #   此处统一对齐列名/行键、剔除内部列、注明截断。
+            try:
+                from engine.table_governance import govern_all_tables as _gt
+                _o = _gt(_o)
+            except Exception:
+                pass
+            return _rg(_o, source=report_data)
         except Exception:
             return _zh_normalize_obj(_o)
 

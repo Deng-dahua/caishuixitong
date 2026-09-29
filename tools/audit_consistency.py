@@ -4149,7 +4149,7 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     if "redact_enterprise_report" not in _er4_code:
         issues.append(("ERROR", "engine/enterprise_report.py",
                        "企业版报告未接入个人信息脱敏（员工姓名/私户金额会原样对外）"))
-    if "_rg(_zh_normalize_obj(_o), source=report_data)" not in _er4_code:
+    if "_rg(_o, source=report_data)" not in _er4_code:
         issues.append(("ERROR", "engine/enterprise_report.py",
                        "脱敏未按约定传 source=report_data（人名清单只能从源数据收集，否则正文中的姓名漏脱敏）"))
     #  Pyramid 必须从**已脱敏的 out** 派生（旧顺序 / 用未脱敏的 problems 都会成为后门）
@@ -4266,6 +4266,113 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         except Exception as exc:
             issues.append(("WARN", "tools/audit_consistency.py",
                            f"台账/脱敏 dump 行为验证跳过（读取失败）: {exc}"))
+
+    # ══════════════════════════════════════════════════════════════
+    # ★ 2026-09-29（点评整改第五轮 P1-9 / P1-14 / P2-3 / P2-4）
+    # ══════════════════════════════════════════════════════════════
+
+    # ── P1-14 明细表自洽（列名/行键一致、无内部列、截断注明）──
+    try:
+        from engine.table_governance import align_table, collect_table_violations, govern_all_tables
+        _t = {"title": "T", "columns": ["金额（元）", "ref_id"],
+              "rows": [{"金额(元)": 1.0, "ref_id": "记-2"}]}
+        _a = align_table(_t)
+        if _a["columns"] != ["金额（元）", "凭证号"]:
+            issues.append(("ERROR", "engine/table_governance.py",
+                           f"标点变体未对齐到列名/内部键未汉化: {_a['columns']}"))
+        if collect_table_violations({"t": _a}):
+            issues.append(("ERROR", "engine/table_governance.py",
+                           f"对齐后仍有违规: {collect_table_violations({'t': _a})[:2]}"))
+        _tt = align_table({"columns": ["金额"], "rows": [{"金额": i} for i in range(3)], "rows_total": 9})
+        if "仅列示前 3 笔" not in str(_tt.get("truncation_note") or ""):
+            issues.append(("ERROR", "engine/table_governance.py",
+                           "截断未注明「仅列示前 N 笔」（读者会把列示行当成全部行，与合计对不上）"))
+        # 反向用例①：**稀疏表**（不同行字段不同）不得被判违规，否则闸门误报
+        if collect_table_violations({"t": {"columns": ["A", "B"], "rows": [{"A": 1}, {"B": 2}]}}):
+            issues.append(("ERROR", "engine/table_governance.py",
+                           "稀疏明细表被误判违规（闸门误报会被绕过）"))
+        # 反向用例②：整列在行里**完全不存在**且不是标点变体 → 治理后该列已被丢弃，
+        #   不得再报违规（否则"零误报"不成立，闸门会被人绕过）。
+        if collect_table_violations({"t": {"columns": ["A", "C"], "rows": [{"A": 1}]}}):
+            issues.append(("ERROR", "engine/table_governance.py",
+                           "整列缺失（非标点变体）被判违规 → 误报（该列治理时已丢弃）"))
+        _cyc_t = {"columns": ["A"], "rows": [{"A": 1}]}
+        _cyc_t["self"] = _cyc_t
+        govern_all_tables(_cyc_t)
+    except ImportError as exc:
+        issues.append(("ERROR", "engine/table_governance.py", f"明细表治理模块不可用: {exc}"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/table_governance.py", f"明细表治理断言执行失败: {exc}"))
+    # 接线：明细表治理必须在报告输出闸门内、且在标点规范化之后
+    # ⚠ 顺序检查不能只比两个 find() 的位置：被比较的那一行可能**压根不存在**（find 返回 -1，
+    #   于是 `a < -1` 恒为假 → 顺序被改坏也检查不出来）。必须先断言两侧都在。
+    _er5_code = _strip_comments_keep_lines(_src("engine/enterprise_report.py"))
+    _i_norm5 = _er5_code.find("_o = _zh_normalize_obj(_o)")
+    _i_gov5 = _er5_code.find("govern_all_tables")
+    if _i_gov5 < 0:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "明细表治理未接线（列名/行键仅标点不同 → 整列渲染为空）"))
+    elif _i_norm5 < 0 or _i_gov5 < _i_norm5:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "明细表治理必须在标点规范化（_zh_normalize_obj）之后执行"
+                       "（顺序反了则列名/行键仍不一致）"))
+    if "rows_total" not in _er5_code:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "明细表未记录源总数（截断无法注明「仅列示前 N 笔」）"))
+
+    # ── P1-9 可信度口径披露 ──
+    try:
+        from engine.argumentation import CONFIDENCE_WEIGHTS, build_argumentation
+        _f = {"type": "T", "level": "高风险", "detail": "d", "redline_id": "RL-X",
+              "constituent_hits": [{"index": 1, "evidence": "e", "has_data": True}],
+              "evidence_rows": [{"ref_label": "a"}]}
+        _arg = build_argumentation(
+            _f, {"id": "RL-X", "name": "n", "suspect": "s", "constituents": ["c1"],
+                 "clue_chain": [{"step": 1, "source": "凭证", "action": "a", "output": "o"}],
+                 "legal_basis": ["《税收征收管理法》第三十五条"]},
+            {"nodes": [{"step": 1, "source": "凭证", "has_data": True, "observed": "x"}],
+             "terminal_signal": "sig"},
+            {"closure": 0.9, "elements": []}, [])
+        if not _arg.get("confidence_breakdown"):
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "可信度缺分项依据（点评：百分数无口径披露）"))
+        if "可信度 =" not in str(_arg.get("confidence_formula") or ""):
+            issues.append(("ERROR", "engine/argumentation.py", "可信度缺公式文本"))
+        if not CONFIDENCE_WEIGHTS.get("base"):
+            issues.append(("ERROR", "engine/argumentation.py", "可信度权重表缺失"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/argumentation.py", f"可信度口径断言执行失败: {exc}"))
+    if "反证已提交比例" not in _strip_comments_keep_lines(_src("engine/inspection_overview.py")):
+        issues.append(("ERROR", "engine/inspection_overview.py",
+                       "总述「关键口径对照」未披露可信度口径（全文百分数无公式可回指）"))
+
+    # ── P2-3 轮次措辞：第 1 轮不得称"独立于此前任何一轮" ──
+    try:
+        from engine.overall_conclusion import compilation_declaration as _cd
+        if "独立于此前任何一轮" in _cd({"compliance_round": {"round_no": 1}}):
+            issues.append(("ERROR", "engine/overall_conclusion.py",
+                           "第1轮仍写「独立于此前任何一轮报告」（第1轮无此前轮，自相矛盾）"))
+        if "独立于此前任何一轮" not in _cd({"compliance_round": {"round_no": 3}}):
+            issues.append(("ERROR", "engine/overall_conclusion.py",
+                           "第N(>1)轮缺「独立于此前任何一轮报告」声明"))
+        if not _cd({"compliance_round": {"round_no": 1}}).strip():
+            issues.append(("ERROR", "engine/overall_conclusion.py", "编制声明为空"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/overall_conclusion.py", f"编制声明断言执行失败: {exc}"))
+    for _rel in ("engine/inspection_overview.py", "engine/narrative_fresh.py"):
+        if "独立于此前任何一轮" in _strip_comments_keep_lines(_src(_rel)):
+            issues.append(("ERROR", _rel,
+                           "编制声明又出现一份本地实现（须走唯一权威 compilation_declaration）"))
+
+    # ── P2-4 署名栏不得仿真税务机关 ──
+    _pipe5 = _strip_comments_keep_lines(_src("engine/pipeline.py"))
+    for _bad in ("执法证件号", "税务机关公章", "报送上一级税务机关备案"):
+        if _bad in _pipe5:
+            issues.append(("ERROR", "engine/pipeline.py",
+                           f"署名栏仍出现仿真税务机关要素「{_bad}」（系统生成文书不得伪作执法文书）"))
+    if "非税务机关文书" not in _pipe5:
+        issues.append(("ERROR", "engine/pipeline.py",
+                       "署名栏未声明「非税务机关文书」（生成性质与署名不符）"))
 
     return issues
 

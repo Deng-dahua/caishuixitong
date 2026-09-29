@@ -198,6 +198,30 @@ def _cost_reconciliation(rd: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
+def compilation_declaration(report_data: Any) -> str:
+    """编制声明 —— **唯一权威**（按轮次条件化）。
+
+    ★ 2026-09-29（点评整改 P2-3）：外部点评实测「第1轮」的报告里写
+      「本轮结论独立于此前任何一轮报告」——第 1 轮**不存在**"此前轮"，
+      句子自相矛盾。同一句在 `overall_conclusion` / `inspection_overview` /
+      `narrative_fresh` 三处各写一份，故收敛到本函数（单一权威）。
+    """
+    rd = report_data if isinstance(report_data, dict) else {}
+    _cr = rd.get("compliance_round") or {}
+    n = rd.get("analysis_round") or ( _cr.get("round_no") if isinstance(_cr, dict) else None) or 1
+    try:
+        n = int(n)
+    except (TypeError, ValueError):
+        n = 1
+    tail = ("本轮为首次检查，不存在可与其比较的前序轮次。" if n <= 1
+            else "本轮结论独立于此前任何一轮报告。")
+    return (
+        "编制声明：本轮已重新读取全部资料并重新计算，按“资料合规性核验 → 多源交叉比对 → "
+        "资金流向穿透 → 行业基准对标 → 规则与红线扫描 → 证据链闭合度评估”六步程序实施检查，"
+        "以下为本轮复算结论。" + tail
+    )
+
+
 def build_overall_conclusion(report_data: Any,
                              problems: Optional[List[dict]] = None,
                              further: Optional[List[dict]] = None,
@@ -290,11 +314,8 @@ def build_overall_conclusion(report_data: Any,
     # ══════════ 组装段落 ══════════
     P: List[str] = []
 
-    P.append(
-        "编制声明：本轮已重新读取全部资料并重新计算，按“资料合规性核验 → 多源交叉比对 → "
-        "资金流向穿透 → 行业基准对标 → 规则与红线扫描 → 证据链闭合度评估”六步程序实施检查，"
-        "以下为本轮复算结论，独立于此前任何一轮报告。"
-    )
+    # ★ 2026-09-29（P2-3）：改走单一权威 `compilation_declaration`（按轮次条件化）
+    P.append(compilation_declaration(report_data))
 
     # ★ 开篇总括（用户要求：先给整体情况与重点结果，再展开细节）
     _lv = {t["level"]: t["count"] for t in tiers}

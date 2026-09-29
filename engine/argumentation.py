@@ -171,13 +171,27 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
     # 置信度模型（不靠拍脑袋，逐项可解释；权重外置，见 CONFIDENCE_WEIGHTS 可配）
     w = CONFIDENCE_WEIGHTS
     confidence = w["base"]
+    _conf_parts: List[Dict[str, Any]] = [{"项": "基准分", "权重": w["base"], "取值": 1.0,
+                                          "贡献": round(w["base"], 4)}]
     confidence += w["closure"] * closure
+    _conf_parts.append({"项": "证据链闭合度", "权重": w["closure"], "取值": round(closure, 4),
+                        "贡献": round(w["closure"] * closure, 4)})
     confidence += w["data_completeness"] * data_completeness
+    _conf_parts.append({"项": "环节数据完整度", "权重": w["data_completeness"],
+                        "取值": round(data_completeness, 4),
+                        "贡献": round(w["data_completeness"] * data_completeness, 4)})
     if "高风险" in level:
         confidence += w["high_risk"]
+        _conf_parts.append({"项": "风险等级为高", "权重": w["high_risk"], "取值": 1.0,
+                            "贡献": round(w["high_risk"], 4)})
     elif "低风险" in level:
         confidence += w["low_risk"]
+        _conf_parts.append({"项": "风险等级为低", "权重": w["low_risk"], "取值": 1.0,
+                            "贡献": round(w["low_risk"], 4)})
     confidence += w["rebuttal_ratio"] * rebuttal_ratio
+    _conf_parts.append({"项": "反证已提交比例（反向计分）", "权重": w["rebuttal_ratio"],
+                        "取值": round(rebuttal_ratio, 4),
+                        "贡献": round(w["rebuttal_ratio"] * rebuttal_ratio, 4)})
     confidence = round(max(0.05, min(0.95, confidence)), 2)
 
     # ── 第一层：是否触红（客观判断） ──
@@ -281,6 +295,13 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
         "conclusion_grade": grade,
         "redline_hit": redline_hit,
         "confidence": confidence,
+        # ★ 2026-09-29（点评整改 P1-9）：可信度的**分项计算依据**（可逐项复算）。
+        #   外部点评指出「判断可信度约75%（较高）」类表述无任何计算公式披露，
+        #   读者无法判断这个数是怎么来的 → 现随结论一并输出各分项权重与取值。
+        "confidence_breakdown": _conf_parts,
+        "confidence_formula": ("可信度 = 基准分 0.50 + 0.25×证据链闭合度 + 0.10×环节数据完整度 "
+                              "+ 0.08×（高风险）/ −0.05×（低风险）− 0.20×反证已提交比例，"
+                              "结果截断在 5%~95% 之间；各分项为加权和，权重固定、可复算。"),
         "closure": closure,
         "reasoning": reasoning,
         "next_actions": sorted(next_actions, key=_na_rel_rank)[:8],

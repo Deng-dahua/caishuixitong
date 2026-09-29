@@ -65,12 +65,18 @@ def build_inspection_overview(report_data: Any,
     P: List[str] = []
 
     # ── 一、检查基本情况 ──
+    # ★ 2026-09-29（P2-3）：末句「独立于此前任何一轮报告」按轮次条件化，
+    #   收敛到唯一权威 `overall_conclusion.compilation_declaration`（第1轮不得这么写）。
+    try:
+        from engine.overall_conclusion import compilation_declaration as _cd
+        _round_tail = _cd(rd).split("以下为本轮复算结论。")[-1] or "。"
+    except Exception:
+        _round_tail = "。"
     P.append(
         "一、检查基本情况：本轮对被检查企业提交并成功读取的 %d 类资料（%d 份）实施检查，"
         "按“资料合规性核验 → 多源交叉比对 → 资金流向穿透 → 行业基准对标 → 规则与红线扫描 → "
-        "证据链闭合度评估”的程序重新读取、重新计算，形成本轮复算结论；"
-        "本轮结论独立于此前任何一轮报告。"
-        % (cats, files_count)
+        "证据链闭合度评估”的程序重新读取、重新计算，形成本轮复算结论；%s"
+        % (cats, files_count, _round_tail)
     )
 
     # ── 二、企业与经营特征 ──
@@ -215,6 +221,19 @@ def build_inspection_overview(report_data: Any,
             "各章数字以本对照为准回指；口径间差异本身即检查线索，详见对应章节。"]
     for _i, (_nm, _val, _src) in enumerate(_rows, 1):
         _cal.append("口径%d %s＝%s（来源：%s）" % (_i, _nm, _val, _src))
+    # ★ 2026-09-29（点评整改 P1-9）：**可信度口径必须披露**（通用口径只说一次，符合 S6）。
+    #   外部点评指出全文 25 处「判断可信度约 75%（较高）」无任何公式披露，读者无法判断
+    #   这个数从哪来。公式与权重来自唯一权威 `argumentation.CONFIDENCE_WEIGHTS`（此处只转引）。
+    try:
+        from engine.argumentation import CONFIDENCE_WEIGHTS as _cw
+        _cal.append(
+            "口径%d 判断可信度＝基准分%.2f＋%.2f×证据链闭合度＋%.2f×环节数据完整度"
+            "＋%.2f×（高风险时）−%.2f×（低风险时）−%.2f×反证已提交比例，"
+            "结果截断在 5%%~95%% 之间；权重固定、可逐项复算（各分项权重与取值见该风险事项的明细）。"
+            % (len(_rows) + 1, _cw["base"], _cw["closure"], _cw["data_completeness"],
+               abs(_cw["high_risk"]), abs(_cw["low_risk"]), abs(_cw["rebuttal_ratio"])))
+    except Exception:
+        pass
     P.append(" ".join(_cal))
 
     # ── 九、时效与滞纳金提示（2026-09-29 点评整改 P1-12）──

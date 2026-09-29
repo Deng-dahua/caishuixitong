@@ -4865,7 +4865,20 @@ function _renderDetailTable(table) {
     });
     return '<tr>' + tds.join('') + '</tr>';
   }).join('');
-  return '<table class="fact-detail-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+  var out = '<table class="fact-detail-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+  // ★ 2026-09-29（点评整改 P1-14）：**列示截断必须注明**。
+  //   外部点评：「7 笔合计 1,320,000 只列 5 笔 800,000 未注明」——读者把列示的行
+  //   当成全部的行，于是"明细与合计对不上"。此处按 rows_total 如实标注。
+  var _total = Number(table.rows_total || 0);
+  var note = table.truncation_note
+    || (_total > table.rows.length
+        ? ('本表明细共 ' + _total + ' 笔，此处仅列示前 ' + table.rows.length + ' 笔；完整清单见内部工作底稿。')
+        : '');
+  if (note) {
+    out += '<p class="i2" style="font-size:12px;color:#b45309;margin:4px 0 0">'
+      + esc(note) + '</p>';
+  }
+  return out;
 }
 
 /* 把「第一，…；第二，…。」这类枚举文本拆成列表项；非枚举返回 null。
