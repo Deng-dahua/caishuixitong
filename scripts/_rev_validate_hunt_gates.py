@@ -101,5 +101,23 @@ finally:
         os.remove(TMP2)
 
 print("═" * 70)
+print("反向验证 4：章节模板去重闸门（P2-7）")
+print("═" * 70)
+from tools.audit_consistency import check_chapter_template_dedup
+JS = os.path.join(ROOT, "static", "js", "tax-doc-analysis.js")
+js0 = open(JS, encoding="utf-8").read()
+try:
+    # 注入反模式：移除前端对 action_plan_note 的渲染（模拟"抽出了却没显示"）
+    broken = js0.replace("action_plan_note", "ACTIONNOTE_TOK")  # 不得含原串，否则 substring 检查仍为真
+    open(JS, "w", encoding="utf-8").write(broken)
+    res = check_chapter_template_dedup()
+    _check("注入『未渲染 action_plan_note』后闸门报错",
+           any("action_plan_note" in m for _, _, m in res))
+finally:
+    open(JS, "w", encoding="utf-8").write(js0)  # 复原
+_CHECK = check_chapter_template_dedup()
+_check("复原后模板去重闸门归零", len(_CHECK) == 0)
+
+print("═" * 70)
 print("总体:", "ALL PASS ✅" if ok else "HAS FAILURE ❌")
 sys.exit(0 if ok else 1)

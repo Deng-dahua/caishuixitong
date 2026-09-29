@@ -2571,6 +2571,72 @@ def check_overall_conclusion_no_dup() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_chapter_template_dedup() -> List[Tuple[str, str, str]]:
+    """★ 2026-09-29（点评 P2-7）：章节内「通用说明」模板去重的不变式（锁定，防复发）。
+
+    历史：第二章(资料接收与保全) 9 条 narrative、第四章(风险检查处理意见) 25 条 narrative
+    每条都以**同一段通用说明**结尾（点评「模板重复约四成」）。收敛点
+    `engine/chapter_dedup.collapse_common_tail` 把公共后缀抽到章首说一次。
+
+    本闸门做**行为 + 接线 + 渲染**三层锁定（任一层缺失→ERROR），
+    避免"抽出了却没接线 / 接线了却没渲染 / 模块退化失效"三种退化：
+      ① 行为：collapse_common_tail 对合成重复尾确能抽出 note 且剥离条目模板；
+      ② 后端：enterprise_report 接线 collapse_common_tail 并暴露 materials_note/action_plan_note；
+      ③ 前端：tax-doc-analysis.js 在章首渲染 **action_plan_note**（风险检查处理意见章，正文渲染中）。
+    注：`report.materials`（资料接收与保全章的逐份 narrative）在当前 6 章式报告中**不进正文**
+    （第一章「资料齐备性总览」已概述），故 materials_note 不作前端渲染要求——
+    若将来该章恢复渲染，须同步渲染 materials_note（本注释与判定文档留存该前置条件）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    # ① 行为断言
+    try:
+        from engine.chapter_dedup import collapse_common_tail
+        _tail = "以上资料经逐份读取解析，读取完整，文件指纹与解析回执保留在内部资料底稿中，可按文件名回查。"
+        _cand = [
+            {"narrative": "第一份为销项发票明细，" + _tail},
+            {"narrative": "第二份为银行流水台账，" + _tail},
+            {"narrative": "第三份为工资表数据，" + _tail},
+            {"narrative": "第四份为成本发票清单，" + _tail},
+        ]
+        out, note = collapse_common_tail(_cand, "narrative")
+        if not note or len(note) < 20:
+            issues.append(("ERROR", "engine/chapter_dedup.py",
+                           "collapse_common_tail 未能抽出公共后缀（模板去重失效）"))
+        if isinstance(out, list) and out and isinstance(out[0], dict):
+            if len(str(out[0].get("narrative") or "")) >= len(_cand[0]["narrative"]):
+                issues.append(("ERROR", "engine/chapter_dedup.py",
+                               "collapse_common_tail 未剥离条目内模板（条目未变短）"))
+    except Exception as exc:  # noqa: BLE001
+        issues.append(("ERROR", "engine/chapter_dedup.py",
+                       "无法导入/运行 collapse_common_tail：%s" % exc))
+    # ② 后端接线与暴露
+    er = ROOT / "engine" / "enterprise_report.py"
+    try:
+        src = er.read_text(encoding="utf-8")
+    except Exception as exc:  # noqa: BLE001
+        src = ""
+        issues.append(("ERROR", "engine/enterprise_report.py", "读取失败：%s" % exc))
+    if src:
+        if "collapse_common_tail" not in src:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "未接线 collapse_common_tail（章节模板去重缺失）"))
+        for k in ("materials_note", "action_plan_note"):
+            if k not in src:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               "未暴露 %s（前端无法在章首渲染通用说明）" % k))
+    # ③ 前端渲染（只见于被渲染的章：风险检查处理意见章 action_plan_note）
+    js = ROOT / "static" / "js" / "tax-doc-analysis.js"
+    try:
+        jsrc = js.read_text(encoding="utf-8")
+    except Exception as exc:  # noqa: BLE001
+        jsrc = ""
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js", "读取失败：%s" % exc))
+    if jsrc and "action_plan_note" not in jsrc:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "未渲染 action_plan_note（风险检查处理意见章通用说明抽出了却没显示）"))
+    return issues
+
+
 def check_cost_recon_render() -> List[Tuple[str, str, str]]:
     """★ 2026-09-27：主营成本「两口径勾稽明细」必须三处齐备（防幽灵段落）。
 
@@ -4993,6 +5059,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_benchmark_actual_compare()   # B1 实际比对（名实相符）锁定
                + check_domain_missing_material_emits_finding()  # A 缺主资料须产出资料缺失发现
                + check_finding_level_legality()      # D 风险发现 level 必须合法词表
+               + check_chapter_template_dedup()      # P2-7 章节模板去重锁定
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 
