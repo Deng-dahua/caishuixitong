@@ -115,7 +115,20 @@ AMBIGUOUS_LABELS = {"规则"}
 # 全项目零引用，其中 1505/391/740/234 为已退役链资产的旧口径。
 COUNT_SKIP_FILES = {
     "static/js/rewrite_steps.py",
+    # 模块自动更新日志：每条记录的是「当次更新涉及的规则数」（如"共1条规则"），
+    # 属历史快照、非系统总量口径，且其值随更新内容变化，不应强制改为权威总量。
+    "static/module_auto_update_log.json",
 }
+
+# 计数豁免（上下文级）：匹配到「N 条规则」时，若其周围文本命中以下任一正则，
+# 说明该处是「阈值 / 采样 / 局部层」表述而非系统总量口径，跳过（不报 WARN/ERROR）。
+# 这类数字改不动（改成 89 反而语义错误：阈值本就是 ≥2 条触发）。
+# ★ 设计原则：新增同类豁免只需在此加一行正则；逻辑分支不变，零私有实现。
+COUNT_EXEMPT_CONTEXTS = [
+    re.compile(r"≥\s*\d+\s*条规则"),       # 阈值：中风险需 ≥2条规则触发 才形成闭环
+    re.compile(r"采样前\s*\d+\s*条规则"),   # 采样：for rule in self._rules[:200]  # 采样前200条规则
+    re.compile(r"原来\s*\d+\s*条规则外"),   # 局部层：覆盖原来15条规则外的常见矛盾
+]
 
 # ══════════════ 扫描范围 ══════════════
 
@@ -175,6 +188,10 @@ def check_counts(authoritative: Dict[str, int]) -> List[Tuple[str, str, str, int
         for m in COUNT_PATTERN.finditer(text):
             label = m.group("lbl1") or m.group("lbl2")
             num = int(m.group("n1") or m.group("n2"))
+            # 上下文豁免：阈值/采样/局部层表述中的「N 条规则」非总量口径，跳过
+            _ctx = text[max(0, m.start() - 30): m.end() + 15]
+            if any(p.search(_ctx) for p in COUNT_EXEMPT_CONTEXTS):
+                continue
             key = COUNT_LABELS.get(label or "")
             if not key:
                 continue
@@ -380,7 +397,7 @@ def check_doc_type_category_map() -> List[Tuple[str, str, str]]:
     """
     from main import _FILE_FINGERPRINTS
     from engine.enterprise_report import _DOC_TYPE_TO_CATEGORY, _REQUIRED_DOC_CATEGORIES
-    from engine.material_recognition import _SUPPLEMENTARY_CATEGORIES
+    from engine.material_recognition import _SUPPLEMENTARY_CATEGORIES, _SUPPLEMENTARY_RECOGNITION
 
     issues: List[Tuple[str, str, str]] = []
     rel = "engine/enterprise_report.py"
@@ -415,8 +432,16 @@ def check_doc_type_category_map() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", rel,
                        f"必查资料类别无法被任何解析类型覆盖（永远显示缺失）：{unreachable}"))
 
-    # ④ 映射键中既非实际类型、又不在对齐别名白名单内 → 疑似拼写错误
-    suspicious = sorted(mapped - real_types - _DOC_TYPE_ALIAS_KEYS)
+    # ④ 映射键中既非实际类型、又不在对齐别名白名单内、也非「补充自证资料」doc_type → 疑似拼写错误
+    #    —— 补充自证资料 doc_type 由 engine/material_recognition._SUPPLEMENTARY_RECOGNITION 动态注入
+    #       （见 enterprise_report._DOC_TYPE_TO_CATEGORY 的 P3.5 扩展块：键 = _info["doc_type"]，
+    #       而非该字典的键名 _n），故合法键集必须含这些 doc_type，否则会把 72 个合法补充键误报拼写错误。
+    _sup_doc_types = {
+        _info["doc_type"]
+        for _info in _SUPPLEMENTARY_RECOGNITION.values()
+        if isinstance(_info, dict) and "doc_type" in _info
+    }
+    suspicious = sorted(mapped - real_types - _DOC_TYPE_ALIAS_KEYS - _sup_doc_types)
     if suspicious:
         issues.append(("WARN", rel,
                        f"_DOC_TYPE_TO_CATEGORY 存在疑似拼写错误的键（既非解析器类型也非已知别名）："
@@ -1487,6 +1512,13 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
         # "降级既有高风险发现"，JSON 版只能追加低风险备注）→ 已删死实现，此处上锁防复发。
         "_detect_conflicts",
     }
+    # 这些名字允许跨模块存在「真实分歧」（各自独立实现、签名/语义不同，并非同一概念）：
+    #   _fmt          —— 各模块私有格式化助手，签名与用途不同（千分位 / 2位小数 / 指标百分比），
+    #                   非"同一格式化函数"的多头实现，收敛反而会破坏各自语义。
+    #   _norm         —— 各模块私有归一化助手，用途不同（长度保持归一化 vs 去空白），非同一概念。
+    #   parse_threshold —— 各模块私有阈值解析，输入形态不同（自由文本 vs 结构化字段），非同一概念。
+    # 新增同名真实分歧若不在本表 → 仍报 WARN，强制人工确认是否该收敛（防复发）。
+    _DIVERGENCE_OK = {"_fmt", "_norm", "parse_threshold"}
     _files = [str(ROOT / "main.py")] + sorted(_glob.glob(str(ROOT / "engine" / "**" / "*.py"), recursive=True))
     defs: Dict[str, List[str]] = {}
     srcs: Dict[str, str] = {}
@@ -1553,6 +1585,9 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
                                "后定义会静默覆盖前定义，行为与源码不符"))
 
     for name, items in sorted(defs.items()):
+        if name in _DIVERGENCE_OK:
+            # 已登记的"允许分歧"私有助手：跳过，不计入 real_divergent（避免误报）
+            continue
         files = sorted({i.split("@", 1)[1] for i in items})
         if len(files) < 2:
             continue
@@ -3198,6 +3233,10 @@ def check_legal_basis_freshness() -> List[Tuple[str, str, str]]:
         "股权转让所得个人所得税管理办法（试行）", "营业税改征增值税试点实施办法",
         "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知",
         "财政部 税务总局公告2023年第7号", "车船税法", "车船税法实施条例",
+        # 2026-09-29：红线库引用上述法律的**全称**写法（带"中华人民共和国"前缀），
+        # 与短名指向同一法律，登记全称避免误报"清单外"。
+        "中华人民共和国增值税暂行条例实施细则", "中华人民共和国个人所得税法",
+        "中华人民共和国个人所得税法实施条例",
     }
     # ★ 已废止文件（引用即 ERROR）
     REPEALED_DOCS = {
@@ -3316,6 +3355,20 @@ def _scan_declared_detectors() -> set:
     return _ids
 
 
+# 已知盲区红线（无源码检测器、未登记 _DEFAULT_HIT_INDEX 兜底，仅依赖 match_redline_grounded
+# 软匹配）。这批已在 C4（check_blind_redline_coverage）中逐条实测可达性（ERROR=0），
+# 故此处不再整体告警；但若有**新增**未登记的盲区红线出现 → 仍 WARN，强制登记并实测可达性。
+KNOWN_BLIND_REDLINES = {
+    "RL-VAT-003", "RL-VAT-004", "RL-INC-003", "RL-INC-004", "RL-COST-001", "RL-COST-002",
+    "RL-FUND-003", "RL-FUND-004", "RL-FUND-005", "RL-INV-001", "RL-INV-002", "RL-INV-003",
+    "RL-PAY-004", "RL-CIT-002", "RL-CIT-003", "RL-PTY-001", "RL-PTY-005", "RL-AST-002",
+    "RL-OTH-002", "RL-SPT-001", "RL-SPT-002", "RL-SPT-003", "RL-SPT-004", "RL-SPT-005",
+    "RL-SPT-006", "RL-SPT-007", "RL-SPT-009", "RL-SPT-010", "RL-CIT-005", "RL-CIT-006",
+    "RL-PAY-006", "RL-OTH-004", "RL-OTH-005", "RL-VAT-008", "RL-VAT-009", "RL-COST-006",
+    "RL-CIT-007", "RL-VAT-010", "RL-VAT-011", "RL-OTH-006",
+}
+
+
 def check_redline_admission() -> List[Tuple[str, str, str]]:
     """红线准入 + 盲区审计（D，2026-09-28）。
 
@@ -3361,9 +3414,13 @@ def check_redline_admission() -> List[Tuple[str, str, str]]:
             else:
                 blind.append(rid)
     if blind:
-        issues.append(("WARN", "engine/redline_engine.py",
-                       f"盲区红线（无检测器/兜底，依赖 match_redline_grounded 软匹配，须实测确认能命中）"
-                       f"共 {len(blind)} 条：{', '.join(blind)}"))
+        # 已知盲区红线（已在 KNOWN_BLIND_REDLINES，且 C4 实测可达）不再告警；
+        # 仅对**新增**未登记盲区红线告警，强制登记并实测可达性（保留退化信号）。
+        _new_blind = [r for r in blind if r not in KNOWN_BLIND_REDLINES]
+        if _new_blind:
+            issues.append(("WARN", "engine/redline_engine.py",
+                           f"新增 {len(_new_blind)} 条未登记盲区红线（无检测器/兜底，依赖软匹配，"
+                           f"须实测确认可达性并登记 KNOWN_BLIND_REDLINES）：{', '.join(_new_blind)}"))
     return issues
 
 
