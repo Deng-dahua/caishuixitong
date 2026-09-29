@@ -126,6 +126,20 @@ _PENALTY_SENTENCE = re.compile(
     r"[^。；\n]*(?:罚款|刑事追诉|追缴少缴|补缴[^。；\n]*滞纳金|立即立案)[^。；\n]*[。；]?"
 )
 
+# ★ 2026-09-29（点评复核发现的真缺陷）：**法定口径豁免**。
+#   实测事故：报告「九、时效与滞纳金提示」原文写"更正申报与补缴将依法自汇算期结束次日起
+#   按日加收万分之五滞纳金…在补缴资金安排中计入滞纳金成本…小税种的补缴同样自法定缴纳期限
+#   届满起计算滞纳金"，因**含"补缴…滞纳金"**被上面正则整句命中 → 三处全部替换为同一句
+#   中性模板（"具体税款、滞纳金、处罚或移送后果须依据…"），于是：
+#     ① 点评 P1-12 要求的**时效与滞纳金提示实际没能进入报告**（改完却看不见）；
+#     ② 同一模板句连续出现 3 次（读者看到复读）。
+#   根因：把**法定期限/滞纳金计算规则**的陈述，误当成"对本企业作出处罚断言"。
+#   判据：句中含法定口径词（期限/按日/万分之五/汇算清缴…）→ 属**规则陈述**，原样保留。
+_STATUTORY_RULE_HINTS = (
+    "汇算清缴", "法定缴纳期限", "申报期限", "缴纳期限届满", "按日加收", "按日万分之五",
+    "万分之五", "截止于", "计算滞纳金", "滞纳金成本", "起计算滞纳金",
+)
+
 # ── 定性越界拦截（**规则式**，2026-09-25 补）──────────────────────────────────
 # 上面 `_DIRECT_REPLACEMENTS` 是**黑名单**：只能挡住已逐条列举的说法，
 # 任何新写法都能原样流进企业报告。实测漏网的真实句子：
@@ -179,11 +193,41 @@ def _clean_text(value):
         seg = match.group(0)
         if "《" in seg:
             return seg
+        # ★ 法定口径豁免：期限/滞纳金计算规则的陈述不是"对本企业的处罚断言"，原样保留
+        #   （否则点评要求的时效与滞纳金提示会被整句替换掉、且连续重复）。
+        if any(_h in seg for _h in _STATUTORY_RULE_HINTS):
+            return seg
         return "具体税款、滞纳金、处罚或移送后果须依据适用期间、完整事实、证据和法定程序由有权人员复核。"
 
     cleaned = _PENALTY_SENTENCE.sub(_penalty_repl, cleaned)
+    # ★ 去复读：中性化可能把多处命中替换成**同一句**，连续重复对读者无意义（实测 3 连）。
+    cleaned = _collapse_duplicate_sentences(cleaned)
     # 2026-09-25：定性越界（规则式，见 _OVERCLAIM_RULES 注释）
     return _apply_overclaim_rules(cleaned)
+
+
+def _collapse_duplicate_sentences(text: str) -> str:
+    """把**连续重复**的句子压成一次（净化加工的收尾保险）。
+
+    真实事故：一处文本里 3 个片段命中同一条中性化规则 → 同一句模板连续出现 3 次。
+    判据只处理**相邻**重复（不跨句去重），避免误删正当的重复强调。
+    """
+    if not text or "。" not in text:
+        return text
+    try:
+        from engine.sentencekit import split_sentences
+        pieces = split_sentences(text, keep_delims=True)
+    except Exception:
+        return text
+    out = []
+    prev_key = None
+    for p in pieces:
+        key = re.sub(r"[\s，。；：、（）()【】\[\]「」“”\"'\-—_/|]", "", str(p))
+        if key and prev_key is not None and key == prev_key:
+            continue
+        out.append(p)
+        prev_key = key or prev_key
+    return "".join(out)
 
 
 def _apply_overclaim_rules(text: str) -> str:

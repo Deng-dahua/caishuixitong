@@ -4716,6 +4716,59 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", "static/js/tax-doc-analysis.js",
                        "整改章通用说明未渲染（抽出来了却没显示）"))
 
+    # ══════════════════════════════════════════════════════════════
+    # ★ 2026-09-29（点评复核发现的真缺陷：净化护栏把法定口径也中性化了）
+    # ══════════════════════════════════════════════════════════════
+    # 事故：报告「九、时效与滞纳金提示」因含"补缴…滞纳金"被 `_PENALTY_SENTENCE` 整句命中 →
+    # 三处全部替换成同一句中性模板 → ① 点评 P1-12 要求的时效与滞纳金提示**实际没进报告**
+    # （改完却看不见）；② 同一模板句连续出现 3 次。根因：把**法定期限/滞纳金计算规则**的
+    # 陈述误当成"对本企业的处罚断言"。
+    try:
+        from engine.text_guardrails import neutralise_output_text as _nt
+        _stat = ("九、时效与滞纳金提示：企业所得税年度汇算清缴截止于年度终了之日起五个月内"
+                 "（次年 5 月 31 日）；更正申报与补缴将依法自汇算期结束次日起按日加收万分之五滞纳金。"
+                 "建议在补缴资金安排中计入滞纳金成本；小税种的补缴同样自法定缴纳期限届满起计算滞纳金。")
+        _out_stat = _nt(_stat)
+        if "万分之五" not in _out_stat:
+            issues.append(("ERROR", "engine/text_guardrails.py",
+                           "法定口径（期限/滞纳金计算规则）被净化护栏中性化 —— 时效与滞纳金提示进不了报告"))
+        if "有权人员复核" in _out_stat and "万分之五" not in _out_stat:
+            issues.append(("ERROR", "engine/text_guardrails.py", "规则陈述被替换为处罚模板句"))
+        # 真正的处罚断言仍须被中性化（反向用例，防"一刀切放行"）
+        _pen = _nt("本企业少缴增值税 100 万元，应补缴税款并加收滞纳金，并处一倍罚款。")
+        if "有权人员复核" not in _pen:
+            issues.append(("ERROR", "engine/text_guardrails.py",
+                           "真实处罚断言未被中性化（豁免过宽，定性边界失守）"))
+        # 连续重复句必须被压成一次
+        _dup = _nt("同一句模板。同一句模板。同一句模板。另外一句。")
+        if _dup.count("同一句模板") != 1:
+            issues.append(("ERROR", "engine/text_guardrails.py",
+                           f"净化后连续重复句未去重: {_dup[:40]}"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/text_guardrails.py", f"净化护栏断言执行失败: {exc}"))
+    # 报告实测：时效提示必须真的带「万分之五」到达报告
+    # ⚠ 还需**源码级**断言：dump 是既有产物，改源码后不重跑查不出（实测注入删掉"万分之五"
+    #   后闸门仍 0 ERROR）。
+    _io8 = _strip_comments_keep_lines(_src("engine/inspection_overview.py"))
+    if "万分之五" not in _io8:
+        issues.append(("ERROR", "engine/inspection_overview.py",
+                       "总述「时效与滞纳金提示」未写明日万分之五滞纳金"))
+    if _dump.exists():
+        try:
+            _dd8 = json.loads(_dump.read_text(encoding="utf-8"))
+            _iv8 = (((_dd8.get("report") or {}).get("enterprise_readable_report"))
+                    or {}).get("inspection_overview") or {}
+            _ivtxt = " ".join(str(x) for x in (_iv8.get("paragraphs") or []))
+            if "时效与滞纳金提示" in _ivtxt and "万分之五" not in _ivtxt:
+                issues.append(("ERROR", "engine/inspection_overview.py",
+                               "报告中的时效提示缺「万分之五」（被护栏吞掉或未生成）"))
+            if _ivtxt.count("具体税款、滞纳金、处罚或移送后果须依据") > 1:
+                issues.append(("ERROR", "engine/text_guardrails.py",
+                               "报告中同一中性化模板句重复出现（净化加工复读）"))
+        except Exception as exc:
+            issues.append(("WARN", "tools/audit_consistency.py",
+                           f"净化护栏 dump 行为验证跳过: {exc}"))
+
     return issues
 
 
