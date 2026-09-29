@@ -2455,14 +2455,25 @@ def check_report_chapter_integrity() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", js_rel,
                                "工作底稿版缺少「总—分—总」结构呈现（%s）" % _tok))
 
-    # ③ 离线导出不得渲染 inspection_overview
+    # ③ 离线导出：总述章**只渲染 overall_conclusion**，不得整章渲染 inspection_overview
+    #   ★ 2026-09-29 口径细化：原判据是"文件里出现 inspection_overview 即 ERROR"，
+    #     目的是防"同一事实两段并排重复"。但 inspection_overview 的**八、九两节**
+    #     （关键口径对照 / 时效与滞纳金提示）是 overall_conclusion **没有**的内容，
+    #     离线完全不渲染会造成"口径索引与时效提示在离线导出中缺失"（点评 P1-9/P1-12 的验收面）。
+    #     故判据改为：**不得把 paragraphs 全量渲染**（那才是重复），只允许取八/九节。
+    #   ★ 2026-09-29 二次口径细化：判据不能是"哪个子串在不在"——**过滤表达式本身也含
+    #     `inspection_overview)` 与 `for _t in (`**，子串匹配会把自己的过滤器判成违规
+    #     （实测踩中）。改为检测**未过滤的直接赋值**这一形态。
     off_rel = "scripts/_render_report_html.py"
-    off = _read(off_rel)
+    off = _strip_comments_keep_lines(_read(off_rel) or "")
     if not off:
         issues.append(("ERROR", off_rel, "文件不存在"))
-    elif "inspection_overview" in off:
+    elif '_IVP = _iv.get("paragraphs")' in off or "_IVP = _iv.get('paragraphs')" in off:
         issues.append(("ERROR", off_rel,
-                       "离线导出仍在渲染 inspection_overview——该章须只渲染 overall_conclusion"))
+                       "离线导出整章渲染 inspection_overview（与「总述只渲染 overall_conclusion」冲突）"))
+    elif 'err.get("inspection_overview")' in off and "_IV_SECTIONS" not in off:
+        issues.append(("ERROR", off_rel,
+                       "离线导出去掉了八/九节的过滤条件（会整章重复渲染总述）"))
 
     return issues
 
@@ -4373,6 +4384,201 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     if "非税务机关文书" not in _pipe5:
         issues.append(("ERROR", "engine/pipeline.py",
                        "署名栏未声明「非税务机关文书」（生成性质与署名不符）"))
+
+    # ══════════════════════════════════════════════════════════════
+    # ★ 2026-09-29（点评整改第六轮：P2-1 / P2-6 / P2-2 / P1-1 / P1-2 / P1-3 / P1-5 / P1-13）
+    # ══════════════════════════════════════════════════════════════
+
+    # ── P2-1 决策层摘要 + P2-6 计数映射表 ──
+    try:
+        from engine.executive_brief import build_counts_map, build_executive_brief
+        _eb = build_executive_brief({
+            "enterprise_readable_report": {
+                "identity": {"subject_name": "测试企业", "period": "2025-01 至 2025-12"},
+                "summary": {"headline": "编制声明：x"},
+                "tax_impact_summary": {"total": 1000.0, "quantified": 1, "total_items": 3,
+                                       "by_tax": [{"tax": "增值税", "amount": 1000.0}]},
+                "resolution_ledger": {"total": 2, "rows": [{"风险事项": "A"}]},
+                "confirmed_problems": [{"seq": 1, "title": "T", "risk_level": "高风险",
+                                        "tax_impact": {"available": True, "total": 1000.0}}],
+                "redline_summary": {"suspicion_total": 1},
+            },
+            "overall_level": "待核1项",
+            "output_scope": {"evidence_tiers": {"域分析结论（基于上传资料计算）": 1,
+                                                "已验原子规则（可信观察）": 1}},
+        })
+        if not _eb.get("available") or not _eb.get("paragraphs"):
+            issues.append(("ERROR", "engine/executive_brief.py", "决策层摘要生成失败（P2-1）"))
+        if len(_eb.get("top_items") or []) > 5:
+            issues.append(("ERROR", "engine/executive_brief.py", "决策层摘要超量（应为 3~5 页口径）"))
+        _cm = _eb.get("counts_map") or []
+        if len(_cm) < 6:
+            issues.append(("ERROR", "engine/executive_brief.py",
+                           "计数映射表条目过少（P2-6：规则库/红线库/业务域/疑点/台账/敞口 至少 6 行）"))
+        _blob = json.dumps(_eb, ensure_ascii=False)
+        if "**" in _blob:
+            issues.append(("ERROR", "engine/executive_brief.py",
+                           "摘要文本含 Markdown 记号（不应进入报告）"))
+        # 业务域口径必须是**域分析目录**（35），不是红线分类（12）—— 混用即 P2-6 病根
+        _dom = [r for r in _cm if r.get("口径") == "业务域"]
+        if _dom and not _dom[0].get("数值", "").startswith(("35", "未取得")):
+            issues.append(("ERROR", "engine/executive_brief.py",
+                           f"业务域口径取错来源（应为 DOMAIN_DATA_MAP，实得 {_dom[0].get('数值')}）"))
+    except ImportError as exc:
+        issues.append(("ERROR", "engine/executive_brief.py", f"决策层摘要模块不可用: {exc}"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/executive_brief.py", f"决策层摘要断言执行失败: {exc}"))
+    _er6_code = _strip_comments_keep_lines(_src("engine/enterprise_report.py"))
+    if "build_executive_brief" not in _er6_code:
+        issues.append(("ERROR", "engine/enterprise_report.py", "决策层摘要未接入报告"))
+
+    # ── P2-2 表格内不得出现「同上」 ──
+    try:
+        from engine.enterprise_report import _clue_table
+        _ct = _clue_table({"nodes": [
+            {"step": 1, "source": "凭证", "action": "读取", "observed": "合计 100 元"},
+            {"step": 2, "source": "凭证", "action": "比对", "observed": "合计 100 元"},
+        ]})
+        for _r in (_ct or {}).get("rows") or []:
+            if str(_r.get("实际看到的数据") or "") == "同上":
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               "环节表仍出现「同上」（孤立阅读无意义，P2-2）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/enterprise_report.py", f"环节表断言执行失败: {exc}"))
+
+    # ── P1-1 表题计数必须等于实际行数 + 附表明细口径说明 ──
+    try:
+        from engine.table_governance import align_table
+        _t1 = align_table({"title": "X（共1笔）", "columns": ["A"],
+                           "rows": [{"A": i} for i in range(3)]})
+        if "共3笔" not in str(_t1.get("title")):
+            issues.append(("ERROR", "engine/table_governance.py",
+                           "表题计数未按实际行数校正（表题与内容矛盾，P1-1）"))
+        _t2 = align_table({"title": "Y（共9%）", "columns": ["A"], "rows": [{"A": 1}]})
+        if _t2.get("title") != "Y（共9%）":
+            issues.append(("ERROR", "engine/table_governance.py",
+                           "非计数括注被误改（应为零误报）"))
+        from engine.enterprise_report import _with_scope_note
+        _sn = _with_scope_note([{"title": "T", "columns": ["A"], "rows": [{"A": 1}, {"A": 2}]}])
+        if not (_sn and _sn[0].get("scope_note")):
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "附表缺口径说明（正文按要件筛选、附表为基础全量，须讲明差异）"))
+        if (_with_scope_note([{"columns": ["A"], "rows": [{"A": 1}]}])[0].get("scope_note")):
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "单行附表也加口径说明（噪声；应仅多行表加）"))
+        # 接线：`_with_scope_note` 必须在 `_finding_detail_tables` 的**返回路径**上被调用，
+        #   否则具体问题下的附表仍会"题文不符"（实测第一版只测函数本身 → 拆掉调用点查不出）。
+        _sn_calls = _strip_comments_keep_lines(_src("engine/enterprise_report.py")).count("_with_scope_note(")
+        if _sn_calls < 3:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           f"_with_scope_note 调用点不足（应 def+2 处返回路径，实得 {_sn_calls}）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/table_governance.py", f"表题/口径断言执行失败: {exc}"))
+
+    # ── P1-2 资金回流「闭环」按对称度分级 ──
+    try:
+        from engine.fund_loop import _loop_tier, run_fund_loop_check
+        if _loop_tier(20000.0, 20000.0)[0] is not True:
+            issues.append(("ERROR", "engine/fund_loop.py", "等额双向未判为闭环"))
+        if _loop_tier(1070000.0, 275000.0)[0] is not False:
+            issues.append(("ERROR", "engine/fund_loop.py",
+                           "金额悬殊的双向往来被判为闭环（P1-2：闭环定义过宽）"))
+        _r = run_fund_loop_check([
+            {"counterparty": "A", "credit": 20000.0, "debit": 0.0},
+            {"counterparty": "A", "credit": 0.0, "debit": 20000.0},
+            {"counterparty": "B", "credit": 1070000.0, "debit": 0.0},
+            {"counterparty": "B", "credit": 0.0, "debit": 275000.0},
+            {"counterparty": "C", "credit": 0.0, "debit": 600000.0},
+        ], company_name="测试企业")
+        _m = _r.get("metrics") or {}
+        if _m.get("asymmetric_parties") != 1:
+            issues.append(("ERROR", "engine/fund_loop.py", "不对称往来未被单列（P1-2）"))
+        if abs(float(_m.get("circular_amount") or 0) - 20000.0) > 0.01:
+            issues.append(("ERROR", "engine/fund_loop.py",
+                           f"闭环金额含入不对称往来: {_m.get('circular_amount')}"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/fund_loop.py", f"资金回流分级断言执行失败: {exc}"))
+
+    # ── P1-3 本企业自身不得出现在交易对手清单 ──
+    _pipe6 = _strip_comments_keep_lines(_src("engine/pipeline.py"))
+    if "_norm_entity_name" not in _pipe6 or "company_name=company_name" in _pipe6:
+        issues.append(("ERROR", "engine/pipeline.py",
+                       "缺本企业自身剔除的归一化判据（P1-3：本企业被列进交易对方清单）"))
+    if "_norm_entity_name(company_name)" not in _pipe6:
+        issues.append(("ERROR", "engine/pipeline.py", "本企业自身剔除未接线（P1-3）"))
+
+    # ── P1-5 构成要件阈值必须校验 ──
+    try:
+        from engine.constituent_threshold import check_constituent_hit as _cth
+        if _cth("未付款占比超过50%", "未付款占比 32.5%")[0] != "unmet":
+            issues.append(("ERROR", "engine/constituent_threshold.py",
+                           "未达门槛的要件仍判为命中（P1-5）"))
+        if _cth("未付款占比超过50%", "未付款占比 68%")[0] != "met":
+            issues.append(("ERROR", "engine/constituent_threshold.py", "达门槛未判命中"))
+        if _cth("占比超过50%", "仅有金额 1,000,000 元")[0] != "unknown":
+            issues.append(("ERROR", "engine/constituent_threshold.py",
+                           "取不到同量纲实际值时应放行（不得误杀）"))
+        if _cth("无阈值的要件", "任何证据")[0] != "unknown":
+            issues.append(("ERROR", "engine/constituent_threshold.py", "无阈值要件不应判 unmet"))
+        from engine.enterprise_report import _enterprise_situations
+        _s1, _src1 = _enterprise_situations(
+            {"constituent_hits": [{"index": 2, "evidence": "未付款占比 32.5%"}]}, {},
+            constituents=["要件一", "未付款占比超过50%", "要件三"])
+        if _src1 != "constituents_threshold_unmet":
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "未达门槛要件仍被标注为「涉及」（P1-5 未接线）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/constituent_threshold.py", f"要件阈值断言执行失败: {exc}"))
+
+    # ── P1-13 域间联动 ──
+    try:
+        from engine.domain_linkage import link_findings, linkage_text
+        _lf = link_findings([
+            {"type": "私户收款", "detail": "个人账户收款", "evidence_rows": [{"counterparty": "杨某"}],
+             "taxes": ["增值税"]},
+            {"type": "公户代发", "detail": "个人账户付款", "evidence_rows": [{"counterparty": "杨某"}],
+             "taxes": ["个人所得税"]},
+            {"type": "所得税贡献率偏低", "detail": "贡献率 0.01%", "taxes": ["企业所得税"]},
+            {"type": "小微优惠应享", "detail": "可享受减免", "taxes": ["企业所得税"]},
+            {"type": "综合定性结论", "detail": "汇总", "taxes": []},
+        ])
+        _rels = {l["relation"] for v in _lf.values() for l in v}
+        if "同主体反向资金" not in _rels or "同税种结论相向" not in _rels:
+            issues.append(("ERROR", "engine/domain_linkage.py",
+                           f"域间联动未识别两类关系（P1-13）: {_rels}"))
+        if any(l["type"] == "综合定性结论" for v in _lf.values() for l in v):
+            issues.append(("ERROR", "engine/domain_linkage.py",
+                           "方法论/汇总条目被当作联动对象（噪声，应复用台账准入判据）"))
+        if not linkage_text(list(_lf.values())[0]):
+            issues.append(("ERROR", "engine/domain_linkage.py", "联动文案为空"))
+        # 强化用例：把"方法论条目"造得**本来会命中联动**（同税种 + 优惠/偏低字样），
+        # 只有真正过滤掉它才会通过 —— 否则"不过滤"也能蒙混（实测第一版就漏了）。
+        _lf2 = link_findings([
+            {"type": "企业所得税贡献率偏低", "detail": "贡献率 0.01%", "taxes": ["企业所得税"]},
+            {"type": "综合定性结论", "detail": "优惠偏低汇总", "taxes": ["企业所得税"]},
+        ])
+        if any(l["type"] == "综合定性结论" for v in _lf2.values() for l in v):
+            issues.append(("ERROR", "engine/domain_linkage.py",
+                           "方法论条目未被过滤（强化用例：其本可命中同税种联动）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/domain_linkage.py", f"域间联动断言执行失败: {exc}"))
+    if "联动事项" not in _er6_code:
+        issues.append(("ERROR", "engine/enterprise_report.py", "台账未含「联动事项」列（P1-13）"))
+
+    # ── 离线渲染器覆盖面（上轮登记缺口）──
+    # ⚠ 与既有用户决定（2026-09-27：总述章**只渲染 overall_conclusion**）不冲突的写法：
+    #   离线只补渲染 inspection_overview 的**八、九两节增量**（口径对照 / 时效提示），
+    #   不整章渲染 —— 故这里断言的是"取该两节"的调用行，而不是整章。
+    _off_code = _strip_comments_keep_lines(_src("scripts/_render_report_html.py"))
+    if 'err.get("inspection_overview")' not in _off_code:
+        issues.append(("ERROR", "scripts/_render_report_html.py",
+                       "离线渲染器未取 inspection_overview 的八/九节（缺「关键口径对照」「时效提示」）"))
+    elif "_IV_SECTIONS" not in _off_code:
+        issues.append(("ERROR", "scripts/_render_report_html.py",
+                       "离线渲染器整章渲染 inspection_overview（与「总述只渲染 overall_conclusion」决定冲突）"))
+    if 'err.get("executive_brief")' not in _off_code:
+        issues.append(("ERROR", "scripts/_render_report_html.py",
+                       "离线渲染器未渲染决策层摘要（P2-1 只在 Web 可见即为缺口）"))
 
     return issues
 

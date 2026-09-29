@@ -4779,7 +4779,13 @@ def _run_analyze(company_id, db, progress_callback=None):
         pipeline_log.append(f"规则深度字段消费异常(降级继续): {_rc_err}")
     
     # ═══ 证据溯源：为每条发现附加原始数据行级引用（可点击溯源） ═══
-    all_findings = _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers)
+    _self_company = ""
+    try:
+        _self_company = str((ctx.target_entity or {}).get("name") or "")
+    except Exception:
+        _self_company = ""
+    all_findings = _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers,
+                                        company_name=_self_company)
     
     # ═══ 信号类型标注：为每条发现打上结构化信号标签（驱动因果推理） ═══
     all_findings = _enrich_signal_types(all_findings)
@@ -7634,7 +7640,7 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
     return all_findings
 
 
-def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
+def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, company_name=""):
     """为每条发现附加原始数据行级引用（evidence_rows），实现白盒可验证结论。
     
     每条 evidence_row 包含：数据来源类型、引用ID（发票号/流水号/凭证号）、
@@ -7647,6 +7653,35 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
     pur_invs = [i for i in invoices if i.get("direction") in ("进项", "purchase")]
     sal_invs = [i for i in invoices if i.get("direction") in ("销项", "sales")]
     
+    def _norm_entity_name(name):
+        """企业名归一（用于「同名划转/本企业自身」剔除）：去空白、括号注释、
+        常见组织形式后缀与行政区划前缀，使"深圳X有限公司(A)"与"深圳市X"可判同一。
+        归一后为空则视为不可判（返回空串，调用方不据此剔除任何对手方）。
+        """
+        import re as _re
+        t = str(name or "").strip()
+        if not t:
+            return ""
+        t = _re.sub(r"[（(][^）)]*[）)]", "", t)
+        t = _re.sub(r"[\s·、,，.。\-_—]", "", t)
+        for _suf in ("股份有限公司", "有限责任公司", "有限公司", "集团", "公司",
+                     "合伙企业", "事务所", "个体工商户", "分公司", "分厂"):
+            if t.endswith(_suf):
+                t = t[: -len(_suf)]
+        # 行政区划前缀：**带「市」与不带「市」都要剥**，否则「深圳X有限公司」与
+        # 「深圳市X」会判成两家（实测差异即出在这里）。
+        for _stem in ("深圳", "广州", "上海", "北京", "天津", "重庆", "东莞", "佛山",
+                      "珠海", "厦门", "杭州", "苏州"):
+            _hit = None
+            if t.startswith(_stem + "市"):
+                _hit = _stem + "市"
+            elif t.startswith(_stem):
+                _hit = _stem
+            if _hit:
+                t = t[len(_hit):]
+                break
+        return t.strip()
+
     # 证据行构建辅助
     def _inv_row(inv, label="发票"):
         return {
@@ -7749,6 +7784,15 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers):
             for inv in sal_invs:
                 cp = str(inv.get("buyer") or inv.get("购方名称") or "").strip()
                 if cp: counterparty_counts[cp] += 1
+            # ★ 2026-09-29（点评整改 P1-3）：**显式剔除本企业自身**。
+            #   仅靠"进项取销方、销项取购方"是**取数口径**上的规避，不是硬约束；
+            #   一旦某类资料的字段缺失回退到对方字段，本企业仍会被列进"交易对方"清单，
+            #   与"已剔除同名划转"的声明自相矛盾（外部点评实测该断言落空）。
+            #   故此处按**归一化企业名**再兜一道（同名异写一并命中）。
+            _self_key = _norm_entity_name(company_name)
+            if _self_key:
+                counterparty_counts = Counter({k: v for k, v in counterparty_counts.items()
+                                               if _norm_entity_name(k) != _self_key})
             for cp, cnt in counterparty_counts.most_common(5):
                 evidence_rows.append({
                     "source": "交易对方",

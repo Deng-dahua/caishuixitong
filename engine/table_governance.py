@@ -133,7 +133,7 @@ def align_table(table: Any) -> Dict[str, Any]:
     out["columns"] = final_cols
     out["rows"] = new_rows
 
-    # ⑤ 截断注明：生产者若记录了总数，且实际列示少于总数 → 明确写出"仅列示前 N 笔"
+    # ⑤ 截断：源明细总数（生产者声明）与实际列示行数的关系
     total = table.get("rows_total")
     try:
         total_n = int(total) if total is not None else 0
@@ -142,6 +142,27 @@ def align_table(table: Any) -> Dict[str, Any]:
     if total_n and total_n > len(new_rows):
         out["truncation_note"] = ("本表明细共 %d 笔，此处仅列示前 %d 笔；"
                                   "完整清单见内部工作底稿。" % (total_n, len(new_rows)))
+
+    # ★ 2026-09-29（点评整改 P1-1）：**表题里的计数必须等于该表实际列示的行数**。
+    #   外部点评实测：附表标题写「有工资无社保（共5笔）」，行里却是工资表**全员 5 人名单**，
+    #   而正文与要件都说「仅 1 人（杨莹）」—— 表题与内容矛盾，读者无法判断到底几个人。
+    #   根因：标题里的数字与表格行来自**两处各算一次**（两个口径各写一遍）。故在治理点统一：
+    #   标题尾部括注为「共N笔/项/条/家/张/个/份」时，一律以**实际列示行数**重写；
+    #   若源明细更多（rows_total 已声明），写成「共N（此处列示前M）」。
+    title = str(out.get("title") or "")
+    _m = re.search(r"[（(]\s*共\s*(\d+)\s*(笔|项|条|家|张|个|份)\s*[）)]\s*$", title)
+    if _m:
+        shown = len(new_rows)
+        try:
+            declared = int(_m.group(1))
+        except (TypeError, ValueError):
+            declared = shown
+        if total_n and total_n > shown:
+            out["title"] = title[:_m.start()] + "（共%d%s，此处列示前%d）" % (
+                total_n, _m.group(2), shown)
+        elif declared != shown:
+            out["title"] = title[:_m.start()] + "（共%d%s）" % (shown, _m.group(2))
+            out["count_fixed_from"] = declared
     return out
 
 

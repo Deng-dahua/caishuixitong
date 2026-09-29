@@ -198,6 +198,77 @@ for label, val in (("被查单位", te.get("name")), ("统一社会信用代码"
 P.append("<dt>资料份数</dt><dd>%s 份（%s）</dd>" % (E(rep.get("files_count")), E(dist_txt)))
 P.append("</dl></div>")
 
+# ── 决策层摘要（3 分钟版）+ 计数映射表（★ 2026-09-29 点评整改 P2-1 / P2-6）──
+#   与 Web 端 `_executiveBriefHtml` 同源（同一份 `executive_brief` 数据），只呈现不改写。
+_eb = err.get("executive_brief") or {}
+if _eb.get("available"):
+    P.append('<section><h2><span class="n">摘要</span>%s</h2>' % E(_eb.get("title") or "决策层摘要（3 分钟版）"))
+    P.append('<p class="muted">结论先行 · 只讲重点 · 不改结论（只做选择与重排，数值均转引正文）</p>')
+    if _eb.get("one_line"):
+        P.append('<p><strong>一句话结论：</strong>%s</p>' % E(_eb["one_line"]))
+    _mets = _eb.get("metrics") or []
+    if _mets:
+        P.append('<div style="display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px">')
+        for _m in _mets:
+            P.append('<div style="min-width:150px;flex:1 1 150px;border:1px solid #e2e8f0;'
+                     'border-radius:6px;padding:8px 12px;background:#f8fafc">'
+                     '<div style="font-size:12px;color:#475569;margin-bottom:4px">%s</div>'
+                     '<div style="font-size:14px;font-weight:700;color:#1e3a8a;word-break:break-all">%s</div>'
+                     '</div>' % (E(_m.get("名称")), E(_m.get("数值"))))
+        P.append('</div>')
+    _top = _eb.get("top_items") or []
+    if _top:
+        P.append('<p><strong>最需要先处理的事项</strong></p>')
+        P.append('<table><tr><th style="width:56px">项</th><th>风险事项</th>'
+                 '<th style="width:88px">等级</th><th style="width:150px">潜在敞口</th>'
+                 '<th>下一步（企业要做的事）</th></tr>')
+        for _t in _top:
+            P.append('<tr><td>第%s项</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>'
+                     % (E(_t.get("seq")), E(_t.get("标题")), E(_t.get("等级")),
+                        E(_t.get("敞口")), E(_t.get("企业要做的事"))))
+        P.append('</table>')
+    _cm = _eb.get("counts_map") or []
+    if _cm:
+        P.append('<p><strong>计数映射表（每个数字是什么口径、彼此什么关系）</strong></p>')
+        P.append('<table><tr><th style="width:190px">口径</th><th style="width:110px">数值</th>'
+                 '<th>来源</th><th>与其他数字的关系</th></tr>')
+        for _r in _cm:
+            P.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>'
+                     % (E(_r.get("口径")), E(_r.get("数值")), E(_r.get("来源")), E(_r.get("关系"))))
+        P.append('</table>')
+    _acts = _eb.get("actions") or []
+    if _acts:
+        P.append('<p><strong>下一步动作</strong></p><ul>')
+        for _a in _acts:
+            P.append('<li>%s</li>' % E(_a))
+        P.append('</ul>')
+    _bnd = _eb.get("boundary") or []
+    if _bnd:
+        P.append('<div style="font-size:12.5px;color:#7c2d12;background:#fffbeb;'
+                 'border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;line-height:1.9">')
+        for _b in _bnd:
+            P.append('<div>· %s</div>' % E(_b))
+        P.append('</div>')
+    if _eb.get("note"):
+        P.append('<p class="muted">%s</p>' % E(_eb["note"]))
+    P.append('</section>')
+
+# ── 检查情况总述的**增量节**：关键口径对照（八）/ 时效与滞纳金提示（九）──
+# ★ 2026-09-29：此处**只渲染 inspection_overview 的八、九两节**，不整章渲染。
+#   原因：用户 2026-09-27 已定「检查情况总述与总体结论」章**只渲染 overall_conclusion**
+#   （避免同一事实两段并排重复），该决定由 `check_report_structure` 闸门锁定。
+#   但八、九两节是 overall_conclusion 里**没有**的口径索引与时效提示，
+#   此前离线导出完全缺失（Web 正常）→ 属渲染器覆盖面缺口，故以"只补增量"的方式修复。
+_iv = err.get("inspection_overview") or {}
+# 只取八、九两节（`_IV_SECTIONS` 为闸门识别的"已过滤"标记，勿改名）
+_IV_SECTIONS = ("八、", "九、")
+_ivp = [_t for _t in (_iv.get("paragraphs") or []) if str(_t).startswith(_IV_SECTIONS)]
+if _ivp:
+    P.append('<section><h2><span class="n">附录</span>关键口径对照与时效提示</h2>')
+    for _t in _ivp:
+        P.append("<p>%s</p>" % E(_t))
+    P.append('</section>')
+
 # ── 一、检查情况总述与总体结论（单章：由 overall_conclusion 统一生成，每件事只说一遍）──
 P.append('<section><h2><span class="n">一</span>本轮检查情况总述与总体结论</h2>')
 lvl = rep.get("overall_level") or "未形成风险事项"

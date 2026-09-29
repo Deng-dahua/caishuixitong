@@ -724,6 +724,32 @@ def _evidence_rows_to_detail_table(ev_rows, title="逐笔明细"):
     return {"title": title, "columns": list(rows[0].keys()), "rows": rows}
 
 
+def _with_scope_note(tables):
+    """给「具体问题」所附明细表加**统一口径说明**（★ 2026-09-29 点评整改 P1-1）。
+
+    外部点评实测：附表标题「有工资无社保（共5笔）」，行里却是工资表**全员名单**，
+    而正文与构成要件都说「仅 1 人（杨莹）」——读者无法判断到底几个人、是谁。
+
+    根因：附在具体问题下的表是**该发现所依据的基础逐笔明细（全量）**，
+    而正文/要件里的人数笔数是**按构成要件筛选后**的结果 —— 两者本就不同口径，
+    但报告从未说明，于是看起来像自相矛盾。
+
+    这里不改任何数字、不重算，只**把口径说清**（每表一次，措辞统一）。
+    """
+    out = []
+    for t in (tables or []):
+        if not isinstance(t, dict):
+            continue
+        t = dict(t)
+        if len(t.get("rows") or []) >= 2 and not t.get("scope_note"):
+            t["scope_note"] = (
+                "口径说明：本表列出的是该风险事项所依据的基础逐笔明细（全量）；"
+                "正文与构成要件中写明的人数/笔数是按构成要件筛选后的结果，"
+                "两者口径不同，判断具体涉及范围时以正文数字为准。")
+        out.append(t)
+    return out
+
+
 def _finding_detail_tables(f):
     """取发现的可渲染明细表：优先用显式 detail_tables，否则把 evidence_rows 转成明细表。
     返回 list[dict]（每个 {title, columns, rows}）。"""
@@ -732,14 +758,16 @@ def _finding_detail_tables(f):
     dts = f.get("detail_tables") or []
     out = [t for t in dts if isinstance(t, dict) and t.get("rows")]
     if out:
-        return out
+        # ★ P1-1：附在具体问题下的表是"基础全量明细"，与正文按要件筛选后的人数/笔数
+        #   口径不同 —— 统一加口径说明（每表一次），避免"表题与内容矛盾"的观感。
+        return _with_scope_note(out)
     ev = f.get("evidence_rows") or []
     title = str(f.get("type") or "逐笔明细")
     if ev:
         title = f"{title}（共{len(ev)}笔）"
     tbl = _evidence_rows_to_detail_table(ev, title=title)
     if tbl:
-        return [tbl]
+        return _with_scope_note([tbl])
     return []
 
 
@@ -1387,8 +1415,34 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None):
                 except (TypeError, ValueError):
                     pass
         if _hit_map:
+            # ★ 2026-09-29（点评整改 P1-5）：**要件命中必须过阈值校验**。
+            #   外部点评实测：某要件写「未付款占比超过50%」，而本企业实际 32.5%，报告仍标
+            #   「涉及要件②」——要件清单（什么情形算涉嫌）与企业命中（踩了哪条）之间没有算术闭环，
+            #   读者一算就发现"没到门槛也算命中"。校验逻辑收敛在
+            #   `engine/constituent_threshold.py`（通用：只比同量纲；取不到实际值则放行不误杀）。
+            try:
+                from engine.constituent_threshold import check_constituent_hit as _cth
+            except Exception:
+                _cth = None
+            _unmet_notes = []
+            if _cth:
+                for _i in list(_hit_map.keys()):
+                    if not (1 <= _i <= len(_cons)):
+                        continue
+                    _verdict, _note = _cth(_cons[_i - 1], _hit_map[_i])
+                    if _verdict == "unmet":
+                        _unmet_notes.append("第%d条要件%s" % (_i, _note))
+                        _hit_map.pop(_i, None)
+            if _unmet_notes:
+                _hit_map["_unmet_note"] = "；".join(_unmet_notes)
+            if not any(isinstance(k, int) for k in _hit_map):
+                # 全部命中项都未达门槛 → 不得声称"涉及"，如实写"未达门槛"
+                return [_naturalize_report_text(
+                    "经核对，本企业本轮未达到上述构成要件的数值门槛，暂不计为涉及该项："
+                    + "；".join(_unmet_notes) + "。上述要件清单供对照，具体是否涉及须补资料后重新判断。"
+                )], "constituents_threshold_unmet"
             # 既有抽象要件、又有本企业命中 → 每条要件均列出，命中的在括号内标注本企业证据
-            _hit_marks = "".join(_circled[i - 1] for i in sorted(_hit_map)
+            _hit_marks = "".join(_circled[i - 1] for i in sorted(k for k in _hit_map if isinstance(k, int))
                                  if 1 <= i <= len(_circled))
             # ★ 2026-09-29（点评整改 P0-5）：头句显式声明"未括注=未单独核对"，
             #   防止读者把"列出全部要件"误读为"逐条都核对过"（发现级证据只落首个命中位）。
@@ -1403,6 +1457,11 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None):
                         f"{mark} {c}（本企业：{_hit_map[i]}）".rstrip("。；")))
                 else:
                     out.append(_naturalize_report_text(f"{mark} {c}".rstrip("。；")))
+            # ★ 2026-09-29（P1-5）：把"信号命中但未达数值门槛"的要件如实列出，
+            #   否则读者会看到"要件列了却没标命中"而不知原因（也不让门槛校验静默生效）。
+            if _hit_map.get("_unmet_note"):
+                out.append(_naturalize_report_text(
+                    "另有要件有信号但未达数值门槛，本轮不计为涉及：" + str(_hit_map["_unmet_note"])))
             return out, "constituents"
         # 有抽象清单但本轮未取得逐条判定数据 → 仍列抽象清单，并说明
         return ([_naturalize_report_text(c.rstrip("。；")) for c in _cons]
@@ -2028,12 +2087,28 @@ def _clue_table(clue):
     if not nodes:
         return None
     observed_list = _dedup_observed([n.get("observed") for n in nodes])
+    # ★ 2026-09-29（点评整改 P2-2）：**表格里不得出现「同上」**。
+    #   `_dedup_observed` 的"同上"是为**句子**服务的（避免连续两句重复）；放进表格后，
+    #   单看该行的读者不知道"上"指哪一行 —— 外部点评实测"多处环节表第３环同上，孤立阅读无意义"。
+    #   表格每行都自带「环节」列，故重复值**原样回填**（可独立阅读），不写"同上"。
+    def _cell(i: int, node: dict) -> str:
+        v = observed_list[i] if i < len(observed_list) else ""
+        if v == "同上":
+            cur = str(node.get("observed") or "").strip()
+            if cur:
+                return cur
+            for j in range(i - 1, -1, -1):
+                prev = str((nodes[j] or {}).get("observed") or "").strip()
+                if prev:
+                    return prev
+            return "与上一环节相同"
+        return v
     return {
         "columns": ["环节", "对应资料", "做了什么", "实际看到的数据"],
         "rows": [
             {"环节": f"第{n.get('step')}环", "对应资料": _label_source(n.get("source", "")),
              "做了什么": n.get("action", ""),
-             "实际看到的数据": (observed_list[i] if i < len(observed_list) else "")}
+             "实际看到的数据": _cell(i, n)}
             for i, n in enumerate(nodes)
         ],
     }
@@ -2307,10 +2382,21 @@ def _build_resolution_ledger(report_data, problems=None):
         TERMINAL_IRONCLAD, TERMINAL_PENDING, TERMINAL_SELF_PROOF,
         normalize_terminal_state,
     )
+    # ★ 2026-09-29（点评整改 P1-13）：**域间联动** —— 把互相印证的发现连起来。
+    #   外部点评：所得税贡献率与"小微优惠（应享）"互不引用、私户收款与公户超额代发
+    #   未做配对，读者看到两条对立/相关结论却不知须合并判断。判据是**两两结构关系**
+    #   （同主体反向资金 / 同税种结论相向 / 同指标不同口径），收敛在 `domain_linkage`。
+    _links: Dict[int, list] = {}
+    try:
+        from engine.domain_linkage import link_findings as _lf, linkage_text as _lt
+        _links = _lf(findings)
+        _link_txt = {i: _lt(v) for i, v in _links.items()}
+    except Exception:
+        _link_txt = {}
     by_state = {TERMINAL_IRONCLAD: [], TERMINAL_SELF_PROOF: [], TERMINAL_PENDING: []}
     rows = []
     tier_stat = {}
-    for f in findings:
+    for _fi, f in enumerate(findings):
         state = normalize_terminal_state(f.get("terminal_state"))
         if state in by_state:
             by_state[state].append(f)
@@ -2329,6 +2415,8 @@ def _build_resolution_ledger(report_data, problems=None):
                 "{0}——{1}".format(p.get("material", ""), p.get("proves", ""))
                 for p in proof[:6] if isinstance(p, dict)
             ) or "（本项尚需的资料见「分析覆盖」章节）",
+            # ★ 2026-09-29（P1-13）：域间联动（与哪些发现须合并/配对核实）
+            "联动事项": (_link_txt.get(_fi) or ""),
         })
     # ★ 2026-09-29（点评整改 P1-7 / P1-16）：**台账治理** —— 准入过滤（剔除系统自查/
     #   资料请求单等内部工具条目）+ 类型级聚合（"XX逐月不匹配（2025-01）…（2025-12）"
@@ -2344,7 +2432,7 @@ def _build_resolution_ledger(report_data, problems=None):
         _excluded_internal = [{"风险事项": "〈台账治理未生效〉", "剔除原因": str(_ge)[:120]}]
     # 台账专列（原 6 列 + 治理新增 3 列）；渲染层会自动隐藏整列为空的列
     _LEDGER_COLUMNS = ["风险事项", "等级", "证据地位", "终局方向", "解除方式", "需补自证资料",
-                       "发现ID", "聚合项数", "关联疑点"]
+                       "联动事项", "发现ID", "聚合项数", "关联疑点"]
     summary = report_data.get("audit_doctrine") or {}
     scope = report_data.get("output_scope") or {}
     # ★ 2026-09-29（C3 风险组合画像）：把跨业务轴组合信号作为一条合成风险事项追加进台账，
@@ -3584,6 +3672,30 @@ def build_enterprise_readable_report(report_data, edition=None):
         except Exception:
             return _zh_normalize_obj(_o)
 
+    # ★ 2026-09-29（点评整改 P2-1 / P2-6）：**决策层摘要版（3 分钟版）**。
+    #   外部点评：全文 11.3 万字、缺 3~5 页决策层摘要；且四套计数（规则/红线/台账/疑点）
+    #   无映射，读者以为互相矛盾。摘要与计数映射表在本函数**只读派生**，不改任何结论。
+    #   ⚠ 必须在 probles/ledger 等正文块就绪之后构建，故放在此处（紧随台账）。
+    try:
+        from engine.executive_brief import build_executive_brief as _beb
+        executive_brief = _beb({
+            "enterprise_readable_report": {
+                "identity": _identity,
+                "summary": summary,
+                "overall_conclusion": overall_conclusion,
+                "tax_impact_summary": _tax_impact_summary,
+                "resolution_ledger": resolution_ledger,
+                "confirmed_problems": problems,
+                "redline_summary": ((report_data.get("comprehensive", {}) or {})
+                                    .get("redline_detection") or {}).get("summary", {}),
+            },
+            "overall_level": report_data.get("overall_level"),
+            "files_count": report_data.get("files_count"),
+            "output_scope": report_data.get("output_scope"),
+        })
+    except Exception:
+        executive_brief = {}
+
     out = _norm_and_redact({
         "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
         "generated_date": datetime.now().strftime("%Y年%m月%d日 %H时%M分"),
@@ -3611,6 +3723,8 @@ def build_enterprise_readable_report(report_data, edition=None):
         "tax_impact_summary": _tax_impact_summary,
         # ★ 2026-09-27（P2）：具体问题章首主线研判
         "main_assessment": main_assessment,
+        # ★ 2026-09-29（P2-1 / P2-6）：决策层摘要（3 分钟版）+ 计数映射表
+        "executive_brief": executive_brief,
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
         "materials": materials,

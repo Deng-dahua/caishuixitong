@@ -2595,6 +2595,85 @@ function _freshnessStrip(r) {
 }
 
 
+// ★ 2026-09-29（点评整改 P2-1 / P2-6）：**决策层摘要（3 分钟版）+ 计数映射表** —— 唯一渲染点。
+//   外部点评：全文 11.3 万字、模板重复约四成，缺 3~5 页决策层摘要；且四套计数
+//   （规则库/红线库/台账/疑点）无映射，读者以为互相矛盾。数据由后端
+//   `engine/executive_brief.py` 只读派生（不新增风险事项、不改结论），前端只呈现。
+function _executiveBriefHtml(report) {
+  var er = (report && report.enterprise_readable_report) || {};
+  var eb = er.executive_brief || {};
+  if (!eb.available) return '';
+  var h = '<div class="exec-brief" style="margin:0 0 18px;padding:16px 18px;border:2px solid #1e3a8a;'
+    + 'border-radius:10px;background:#f8faff">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
+    + '<h2 style="font-size:16px;font-weight:800;color:#1e3a8a;margin:0">'
+    + esc(eb.title || '决策层摘要（3 分钟版）') + '</h2>'
+    + '<span style="font-size:12px;color:#64748b">结论先行 · 只讲重点 · 不改结论</span></div>';
+  h += '<p class="i2" style="margin:10px 0 8px;line-height:1.95"><strong>一句话结论：</strong>'
+    + esc(eb.one_line || '') + '</p>';
+  // 关键数字面板
+  var mets = eb.metrics || [];
+  if (mets.length) {
+    h += '<div class="cap-metrics" style="display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px">';
+    mets.forEach(function(m){
+      h += '<div style="min-width:150px;flex:1 1 150px;border:1px solid #e2e8f0;border-radius:6px;'
+        + 'padding:8px 12px;background:#fff">'
+        + '<div style="font-size:12px;color:#475569;margin-bottom:4px">' + esc(m['名称']) + '</div>'
+        + '<div style="font-size:14px;font-weight:700;color:#1e3a8a;word-break:break-all">'
+        + esc(m['数值']) + '</div></div>';
+    });
+    h += '</div>';
+  }
+  // 最要紧的 N 项
+  var top = eb.top_items || [];
+  if (top.length) {
+    h += '<div style="font-weight:700;margin:10px 0 6px">最需要先处理的事项</div>'
+      + '<table class="tbl"><thead><tr><th style="width:56px">项</th><th>风险事项</th>'
+      + '<th style="width:88px">等级</th><th style="width:150px">潜在敞口</th>'
+      + '<th>下一步（企业要做的事）</th></tr></thead><tbody>';
+    top.forEach(function(t){
+      h += '<tr><td>第' + esc(String(t.seq || '')) + '项</td><td>' + esc(t['标题'] || '') + '</td>'
+        + '<td>' + esc(t['等级'] || '') + '</td><td>' + esc(t['敞口'] || '') + '</td>'
+        + '<td>' + esc(t['企业要做的事'] || '') + '</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  // 计数映射表（P2-6）
+  var cm = eb.counts_map || [];
+  if (cm.length) {
+    h += '<details style="margin:12px 0 4px"><summary style="cursor:pointer;color:#1d4ed8;'
+      + 'font-size:13px;font-weight:600">计数映射表（每个数字是什么口径、彼此什么关系）'
+      + '<span class="on-screen-only">，点击展开</span></summary>'
+      + '<div style="overflow-x:auto;margin-top:6px"><table class="tbl"><thead><tr>'
+      + '<th style="width:190px">口径</th><th style="width:110px">数值</th><th>来源</th>'
+      + '<th>与其他数字的关系</th></tr></thead><tbody>';
+    cm.forEach(function(r){
+      h += '<tr><td>' + esc(r['口径'] || '') + '</td><td>' + esc(r['数值'] || '') + '</td>'
+        + '<td>' + esc(r['来源'] || '') + '</td><td>' + esc(r['关系'] || '') + '</td></tr>';
+    });
+    h += '</tbody></table></div></details>';
+  }
+  // 下一步动作 + 边界
+  var acts = eb.actions || [];
+  if (acts.length) {
+    h += '<div style="font-weight:700;margin:10px 0 4px">下一步动作</div><ul style="margin:0 0 8px;padding-left:22px;line-height:1.95">';
+    acts.forEach(function(a){ h += '<li>' + esc(a) + '</li>'; });
+    h += '</ul>';
+  }
+  var bnd = eb.boundary || [];
+  if (bnd.length) {
+    h += '<div style="font-size:12.5px;color:#7c2d12;background:#fffbeb;border:1px solid #f59e0b;'
+      + 'border-radius:6px;padding:8px 12px;line-height:1.9">';
+    bnd.forEach(function(b){ h += '<div>· ' + esc(b) + '</div>'; });
+    h += '</div>';
+  }
+  if (eb.note) {
+    h += '<p class="i2" style="font-size:12px;color:#64748b;margin:8px 0 0">' + esc(eb.note) + '</p>';
+  }
+  h += '</div>';
+  return h;
+}
+
 // ★ 2026-09-29（点评整改 P2-5 / P1-11）：文书性质声明 + 个人信息保护标识 —— 唯一渲染点。
 //   根因：此前只在文末写一句免责，正文开头无任何性质提示，读者易把系统输出误当作
 //   税务机关文书；个人信息脱敏也毫无标识（企业不知道报告已脱敏、也不知道属内部资料）。
@@ -2827,7 +2906,7 @@ function renderTaxDocReport(r) {
   }
 
 
-  html = _freshnessStrip(r) + _docNoticesHtml(r) + html;
+  html = _freshnessStrip(r) + _docNoticesHtml(r) + _executiveBriefHtml(r) + html;
 
   area.innerHTML = html;
 
@@ -4865,7 +4944,15 @@ function _renderDetailTable(table) {
     });
     return '<tr>' + tds.join('') + '</tr>';
   }).join('');
-  var out = '<table class="fact-detail-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+  var pre = '';
+  // ★ 2026-09-29（点评整改 P1-1）：口径说明 —— 说明本表是"基础全量明细"，
+  //   与正文按要件筛选后的人数/笔数口径不同（否则读者以为表题与正文矛盾）。
+  if (table.scope_note) {
+    pre = '<p class="i2" style="font-size:12px;color:#475569;background:#f8fafc;'
+      + 'border-left:3px solid #94a3b8;padding:6px 10px;margin:6px 0 2px">'
+      + esc(String(table.scope_note)) + '</p>';
+  }
+  var out = pre + '<table class="fact-detail-table"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
   // ★ 2026-09-29（点评整改 P1-14）：**列示截断必须注明**。
   //   外部点评：「7 笔合计 1,320,000 只列 5 笔 800,000 未注明」——读者把列示的行
   //   当成全部的行，于是"明细与合计对不上"。此处按 rows_total 如实标注。

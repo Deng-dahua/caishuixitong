@@ -22,6 +22,32 @@ _LINK_KW = (
     "供应链", "科技", "技术", "建材", "股份", "合伙", "中心", "物流", "超市",
 )
 
+# ★ 2026-09-29（点评整改 P1-2）：**"闭环"必须按特征分级，不能"互有收付即闭环"**。
+#   外部点评实测：`min(收,付)>0` 即判闭环，于是
+#     ·「河南林超攀 付600,000 / 收0」这类**单侧往来**被并进"回流要件"（实际不构成闭环）；
+#     · 等额双向（科沃斯 2 万/2 万、时趣 5.5 万/5.5 万）与悬殊双向（107 万/27.5 万）**同列**，
+#       读者无法区分"过账走账"与"正常业务往来"。
+#   分级口径（对称度 = |收−付| ÷ max(收,付)，**通用、与行业无关**）：
+#     · ≤5%   → 等额双向：典型"过账/代收代付"，最高关注；
+#     · ≤30%  → 近似双向：可能含部分回流，须核；
+#     · >30%  → **不对称·单侧往来：不构成回流闭环**，单独列示为普通资金往来。
+#   只有前两类计入"闭环金额"。
+_LOOP_SYMMETRY_TIGHT = 0.05
+_LOOP_SYMMETRY_LOOSE = 0.30
+
+
+def _loop_tier(recv: float, paid: float):
+    """按对称度给"互有收付"分级。返回 (是否构成闭环, 档位名, 对称度)。"""
+    hi = max(float(recv or 0.0), float(paid or 0.0))
+    if hi <= 0:
+        return False, "", 0.0
+    asym = abs(float(recv or 0.0) - float(paid or 0.0)) / hi
+    if asym <= _LOOP_SYMMETRY_TIGHT:
+        return True, "等额双向（疑似过账/代收代付）", asym
+    if asym <= _LOOP_SYMMETRY_LOOSE:
+        return True, "近似双向（可能含部分回流，须核）", asym
+    return False, "不对称·单侧往来（不构成回流闭环）", asym
+
 
 def _safe(v):
     """数值解析（统一实现）。
@@ -107,18 +133,29 @@ def run_fund_loop_check(bank_txs, cross_enterprise=None, company_name=""):
         if d > 0:
             paid[cp] += d
 
-    # ── 1) 直接闭环 ──
+    # ── 1) 直接闭环（★ P1-2：按对称度分级，只有等额/近似双向才计闭环）──
     direct_amount = 0.0
     direct_detail = []
     direct_parties = set()
+    asym_parties = []            # 不对称·单侧往来（不计入闭环，单列说明）
+    tight_n = loose_n = 0
     for cp, r in recv.items():
         p = paid.get(cp, 0.0)
         if r > 0 and p > 0:
+            _ok, _tier, _asym = _loop_tier(r, p)
+            if not _ok:
+                if len(asym_parties) < 10:
+                    asym_parties.append(f"{cp}：收{r:,.2f}/付{p:,.2f}（对称度{_asym:.0%}，{_tier}）")
+                continue
             loop = min(r, p)
             direct_amount += loop
             direct_parties.add(cp)
+            if _asym <= _LOOP_SYMMETRY_TIGHT:
+                tight_n += 1
+            else:
+                loose_n += 1
             if len(direct_detail) < 10:
-                direct_detail.append(f"{cp}：收{r:,.2f}/付{p:,.2f}（闭环{loop:,.2f}）")
+                direct_detail.append(f"{cp}：收{r:,.2f}/付{p:,.2f}（闭环{loop:,.2f}，{_tier}）")
 
     # ── 2) 三角/关联闭环（基于跨企业图谱）──
     groups = _related_groups(cross_enterprise)
@@ -129,11 +166,19 @@ def run_fund_loop_check(bank_txs, cross_enterprise=None, company_name=""):
         grp_recv = sum(recv.get(m, 0.0) for m in g if m not in direct_parties)
         grp_paid = sum(paid.get(m, 0.0) for m in g if m not in direct_parties)
         if grp_recv > 0 and grp_paid > 0:
+            _gok, _gtier, _gasym = _loop_tier(grp_recv, grp_paid)
+            if not _gok:
+                members_a = "、".join(sorted(g)[:4])
+                if len(asym_parties) < 10:
+                    asym_parties.append(f"关联组[{members_a}]：收{grp_recv:,.2f}/付{grp_paid:,.2f}"
+                                        f"（对称度{_gasym:.0%}，{_gtier}）")
+                continue
             loop = min(grp_recv, grp_paid)
             indirect_amount += loop
             members = "、".join(sorted(g)[:4])
             if len(indirect_detail) < 10:
-                indirect_detail.append(f"关联组[{members}]：企业收{grp_recv:,.2f}/付{grp_paid:,.2f}（闭环{loop:,.2f}）")
+                indirect_detail.append(f"关联组[{members}]：企业收{grp_recv:,.2f}/付{grp_paid:,.2f}"
+                                       f"（闭环{loop:,.2f}，{_gtier}）")
 
     circular_amount = direct_amount + indirect_amount
 
@@ -145,8 +190,9 @@ def run_fund_loop_check(bank_txs, cross_enterprise=None, company_name=""):
     if direct_amount > 0:
         sev_high = True
         signals.append({
-            "signal": f"直接资金回流闭环约{direct_amount:,.2f}元（{len(direct_parties)}个对手方既收又付）",
-            "hint": "企业与同一对手方互有收付款，货款疑似回流；结合合同与货物流转核实业务真实性。"
+            "signal": f"直接资金回流闭环约{direct_amount:,.2f}元（{len(direct_parties)}个对手方互有收付）",
+            "hint": ("其中等额双向（疑似过账/代收代付）%d 个、近似双向（可能含部分回流）%d 个；"
+                     "结合合同与货物流转核实业务真实性。" % (tight_n, loose_n))
                     + ("样例：" + "；".join(direct_detail[:3]) if direct_detail else ""),
         })
 
@@ -164,6 +210,16 @@ def run_fund_loop_check(bank_txs, cross_enterprise=None, company_name=""):
             "hint": "已构建关联网络，需补充完整流水（含关联企业账户）以检测跨账户回流；当前仅作结构提示。",
         })
 
+    # ★ P1-2：不对称·单侧往来**单列**为观察项（不计入闭环金额，避免"单侧往来被写成回流闭环"）
+    if asym_parties:
+        signals.append({
+            "signal": "另见 %d 个对手方互有收付但**金额悬殊**，不构成回流闭环（按普通资金往来列示）"
+                      % len(asym_parties),
+            "hint": "单侧收付远大于另一侧时，属正常业务往来特征，不宜按回流认定；"
+                    "如另有合同缺失、货物流无对应等情形，另行判断。样例："
+                    + "；".join(asym_parties[:3]),
+        })
+
     if sev_high:
         verdict = "存在跨企业资金回流闭环，须核实业务真实性"
     elif sev_mid:
@@ -176,18 +232,27 @@ def run_fund_loop_check(bank_txs, cross_enterprise=None, company_name=""):
         "indirect_loop_amount": round(indirect_amount, 2),
         "circular_amount": round(circular_amount, 2),
         "direct_loop_parties": len(direct_parties),
+        "even_two_way_parties": tight_n,          # 等额双向（疑似过账）
+        "near_two_way_parties": loose_n,          # 近似双向
+        "asymmetric_parties": len(asym_parties),  # 不对称·单侧往来（不计入闭环）
         "related_groups": len(groups),
     }
 
     lines = []
-    lines.append(f"资金回流闭环合计：{circular_amount:,.2f}元")
+    lines.append(f"资金回流闭环合计：{circular_amount:,.2f}元"
+                 f"（口径：仅计入收付金额相近的等额/近似双向；金额悬殊的单侧往来不计入）")
     if direct_amount > 0:
-        lines.append(f"直接闭环：{direct_amount:,.2f}元（{len(direct_parties)}个对手方）")
+        lines.append(f"直接闭环：{direct_amount:,.2f}元（{len(direct_parties)}个对手方；"
+                     f"等额双向{tight_n}个、近似双向{loose_n}个）")
         for d in direct_detail[:6]:
             lines.append(f"  - {d}")
     if indirect_amount > 0:
         lines.append(f"三角/关联闭环：{indirect_amount:,.2f}元（{len(groups)}个关联组）")
         for d in indirect_detail[:6]:
+            lines.append(f"  - {d}")
+    if asym_parties:
+        lines.append(f"不计入闭环的单侧往来：{len(asym_parties)}个对手方（互有收付但金额悬殊）")
+        for d in asym_parties[:6]:
             lines.append(f"  - {d}")
     if not direct_detail and not indirect_detail:
         lines.append("本轮流水未触发明显的收付款闭环；如有关联企业账户流水未纳入，闭环可能被低估。")
