@@ -4021,3 +4021,69 @@ RISK_LEVEL_BASIS = {
 def risk_level_basis(rid):
     """取该红线的**等级重排依据**（按证据强度逐项论证）；未登记则返回 None（保持原逻辑）。"""
     return RISK_LEVEL_BASIS.get(str(rid or "").strip()) or None
+
+
+# ══════════════════════════════════════════════════════════════════
+# ★ 2026-09-29（点评整改 P0-6）红线「名称断言要件」表（数据驱动，单行可扩）
+# ══════════════════════════════════════════════════════════════════
+# 问题：一条红线是一个**要件包**，其 `name` 只概括**命名要件**。
+#   例：RL-CIT-004 名称「长期亏损仍持续经营：收入或成本不实」，命名要件是"亏损"。
+#   引擎的「企业所得税贡献率偏低」发现（financial_analyzer ④）只证明了该红线的
+#   **第②项要件**（贡献率与经营规模不匹配），却把红线全名当标题 → 报告出现
+#   与企业自身数据相矛盾的前提。外部点评实测：疑点标题「长期亏损仍持续经营」，
+#   同项正文却写"净利润 402,368.09 元"（为正）、"申报亏损因申报表未取得未核对"。
+#
+# 通用规则（适用所有红线、所有行业、所有企业）：命中要件**不含命名要件**时，
+#   标题必须裁剪到"企业自有的发现名 + 对应的红线与所涉要件序号"，
+#   并显式声明**未就名称所断言的前提作出认定**。新增同类红线只需在此加一行。
+_REDLINE_NAMING_CONSTITUENT = {
+    # 红线编号: (命名要件序号元组, 名称所断言的前提短语)
+    "RL-CIT-004": ((1, 4), "亏损"),
+}
+
+
+def trim_redline_title(redline_id, finding_type, constituent_hits, redline_name):
+    """按实际成立的构成要件裁剪疑点标题（点评整改 P0-6）。
+
+    返回 `(title, premise_note)`：
+      · 命名要件已成立 / 该红线未登记命名要件 → 沿用红线名，`premise_note=""`；
+      · 命名要件未成立（本轮只证明了其它要件） → 标题改为
+        「<发现自有名称>（对应风险指标：<红线名>，本项仅涉及其第X项构成要件，
+        未就「<前提>」作出认定）」，并返回 premise_note 供正文说明。
+    判据只来自发现**自己的** constituent_hits（逐条判定证据），不额外推断。
+    """
+    rid = str(redline_id or "").strip()
+    rname = str(redline_name or "").strip() or rid
+    spec = _REDLINE_NAMING_CONSTITUENT.get(rid)
+    if not spec:
+        return rname, ""
+    naming_idx, premise = spec
+    hits = constituent_hits if isinstance(constituent_hits, list) else []
+    idxs = set()
+    for h in hits:
+        if isinstance(h, dict):
+            try:
+                idxs.add(int(h.get("index")))
+            except (TypeError, ValueError):
+                continue
+    if not idxs:
+        # 无逐条判定证据 → 不足以支撑"本企业具备该前提"，按最保守口径裁剪
+        pass
+    elif idxs & set(naming_idx):
+        return rname, ""
+    _own = str(finding_type or "").strip()
+    # 去掉"待核事实："等前缀，只留事实名，避免标题里出现两层标签
+    for _p in ("待核事实：", "待核事实:", "线索：", "线索:"):
+        if _own.startswith(_p):
+            _own = _own[len(_p):].strip()
+    _own = _own or rname
+    _listed = "、".join("第%d项" % i for i in sorted(idxs)) if idxs else "所列"
+    _clarify = (f"本项仅涉及该指标{_listed}构成要件，未就「{premise}」这一前提作出认定")
+    if _own == rname or (rname and rname.startswith(_own)):
+        # 发现自有名与红线名相同 → 不再重复一遍"对应风险指标"，只加认定范围括注
+        title = f"{rname}（{_clarify}）"
+    else:
+        title = f"{_own}（对应风险指标：{rname}；{_clarify}）"
+    note = (f"需要说明：本项认定范围仅限于上述构成要件，未就本风险指标名称中的"
+            f"「{premise}」前提本身作出认定（该前提是否成立须以企业申报与账面数据另行核对）。")
+    return title, note

@@ -142,6 +142,7 @@ def _collect_invoice(rd: Dict[str, Any]) -> Dict[str, Any]:
         "by_goods": bcc.get("core_goods_breakdown") or [],
         "by_supplier": bcc.get("core_cost_supplier_breakdown") or [],
         "rows": bcc.get("core_cost_invoices") or [],
+        "field_fill": bcc.get("core_cost_invoices_field_fill") or {},
         "pending_count": int(_pend) if _pend is not None else 0,
         "industry_basis": str(bcc.get("industry_basis") or ""),
     }
@@ -232,6 +233,28 @@ def build_cost_recon_detail(report_data: Any) -> Dict[str, Any]:
 
         if inv.get("industry_basis"):
             paragraphs.append("发票类目口径的分类依据：按「%s」行业核心投入认定主营业务成本类发票。" % inv["industry_basis"])
+
+        # ★ 2026-09-29（点评整改 P0-9a）：**空列必须被解释**，不得留白让人猜。
+        #   真实事故：导出的「发票逐张清单」是一张 95 行全空表——读者无法判断
+        #   是"企业本无此信息"还是"系统没解析出来"。此处按下游真实填充率如实披露。
+        _ff = inv.get("field_fill") or {}
+        _n = int(_ff.get("rows") or 0)
+        if _n:
+            _lack = []
+            for _k, _zh in (("inv_no", "发票号码"), ("date", "开票日期"), ("seller", "销售方")):
+                _got = int(_ff.get(_k) or 0)
+                if _got < _n:
+                    _lack.append("%s（%d/%d 张已有）" % (_zh, _got, _n))
+            if _lack:
+                paragraphs.append(
+                    "逐张清单字段说明：%s 未能从原始文件中解析取得（原始文件未含该列或列名未识别），"
+                    "相应单元格留空**不表示该发票无此项信息**，须回到原始发票文件核对；"
+                    "金额与税额口径取自解析结果，可作为逐张核对起点。" % "、".join(_lack))
+            if _ff.get("blank_rows_dropped"):
+                paragraphs.append("另有 %d 条发票记录因全部字段为空（未解析出任何可展示信息）未列入清单，"
+                                  "相应张数已计入上方发票张数，差异属解析未识别而非数据缺失。"
+                                  % int(_ff["blank_rows_dropped"]))
+
         if inv.get("pending_count"):
             paragraphs.append("尚有 %d 张进项发票按行业口径无法判定归属（待核），未计入上表成本类；"
                               "其归属确认后会改变发票类目口径。" % inv["pending_count"])
@@ -242,6 +265,7 @@ def build_cost_recon_detail(report_data: Any) -> Dict[str, Any]:
         "by_goods": inv.get("by_goods") or [],
         "by_supplier": inv.get("by_supplier") or [],
         "invoice_rows": inv.get("rows") or [],
+        "invoice_field_fill": inv.get("field_fill") or {},
         "book_total": bt, "book_source": book.get("source") or "",
         "book_row_count": book.get("row_count") or 0,
         "by_voucher": book.get("by_voucher") or [],

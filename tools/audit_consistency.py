@@ -3944,6 +3944,198 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         issues.append(("WARN", "tools/audit_consistency.py",
                        "未找到 scripts/four_reports/_fresh_result.json，dump 行为验证跳过（跑一次全量分析后自动生效）"))
 
+    # ══════════════════════════════════════════════════════════════
+    # ★ 2026-09-29（点评整改第三轮 P0-9 / P0-6）
+    # ══════════════════════════════════════════════════════════════
+
+    # ── P0-9c 截断：不得把数字/键值对从中间切开（"=260,5""=275,00" 类残句）──
+    _sk_src = _src("engine/sentencekit.py")
+    if "_join_parts" not in _sk_src:
+        issues.append(("ERROR", "engine/sentencekit.py",
+                       "render_value 缺 _join_parts（整项取舍）：截断会把金额切半截"))
+    if "elif ch in _CLOSERS" in _sk_src and "、｜" not in _sk_src:
+        issues.append(("ERROR", "engine/sentencekit.py",
+                       "clamp_text 句读集合缺顿号/竖线：键值对串会被切在千分位之间"))
+    try:
+        from engine.sentencekit import render_value as _rv
+        _nd = {"货物": "饲料", "销数量": 65.0, "进数量": 1680.0,
+               "差异": -1680.0, "结存数量": 1234.5}
+        _nested = _rv(_nd, max_len=30)
+        # 断言①：保留下来的一律是**完整键值对**，绝不出现被切半截的数字
+        if re.search(r"\d,\d{1,2}(?![\d])", _nested):
+            issues.append(("ERROR", "engine/sentencekit.py",
+                           f"截断后仍出现半截数字（金额被切）: {_nested}"))
+        # 断言②：截断必须**可见**（省略号或「等N项」），不得静默丢内容
+        if "…" not in _nested and "等" not in _nested:
+            issues.append(("ERROR", "engine/sentencekit.py",
+                           f"截断未标注（读者无法分辨是否被截）: {_nested}"))
+        # 断言③（关键）：**每一项都必须是完整键值对**——不得把某一项切成「差」这种残片。
+        #   这是"整项取舍"的真正判据：朴素切片会留下无「=」的碎尾。
+        for _seg in [x for x in _nested.split("、") if x]:
+            if "=" in _seg or re.fullmatch(r"(等|共)\d+项", _seg):
+                continue
+            issues.append(("ERROR", "engine/sentencekit.py",
+                           f"截断把键值对切成残片（未做整项取舍）: …{_seg}（整体: {_nested}）"))
+            break
+        # 断言④：短值不得被截（阈值内原样返回）
+        if _rv("正常文本", max_len=90) != "正常文本":
+            issues.append(("ERROR", "engine/sentencekit.py",
+                           "render_value 对阈值内文本做了多余截断"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/sentencekit.py", f"render_value 断言执行失败: {exc}"))
+
+    # 截断痕迹**不得被擦除**：企业报告里 `s.replace("…","")` 会把"已截断"伪装成"数据"
+    # ⚠ 用「去注释、保留字符串」视图判定：旧写法在本文件注释里被引用属正常，
+    #   直接原文匹配会自我误报；但**不能连字符串一起掩码** —— 要找的 `"…"`
+    #   本身就是字符串字面量，掩码后就永远搜不到了（闸门会变成空转）。
+    _er3_src = _src("engine/enterprise_report.py")
+    _er3_code = _strip_comments_keep_lines(_er3_src)
+    if 'replace("…"' in _er3_code:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "仍抹除省略号（把截断痕迹擦掉 → 「=260,5」式残句被当成真数字）"))
+
+    # ── P0-9d 变量名泄漏：键汉化必须唯一权威（含逐笔证据列名表）+ 计数器后缀 ──
+    if "_EV_COLUMN_CN" not in _er3_src:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "键汉化未合并 _EV_COLUMN_CN（逐笔证据列名表孤岛 → ref_label 等漏英文）"))
+    if "_COUNTER_SUFFIXES" not in _er3_src:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "缺计数器后缀规则（红字发票_笔数 类内部键会以变量名入文）"))
+    try:
+        from engine.enterprise_report import _translate_key as _tk
+        for _k, _must_not in (("ref_label", None), ("红字发票_笔数", None),
+                              ("作废发票_笔数", None), ("core_cost_total", None),
+                              ("company_paid_amount", None)):
+            _out = _tk(_k)
+            if _out == _k:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               f"键 {_k} 未汉化（会以变量名出现在报告里）"))
+            if re.search(r"[A-Za-z]", str(_out)) or "_" in str(_out):
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               f"键 {_k} 汉化结果仍像变量名: {_out}"))
+        # 真实企业名称（含下划线）不得被改写
+        if _tk("猩猩织光_北京") != "猩猩织光_北京":
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "键汉化误改真实数据名（含下划线的企业/品名）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/enterprise_report.py", f"键汉化断言执行失败: {exc}"))
+
+    # ── P0-6 标题按实际证据裁剪（红线名的命名要件未被证明时不得沿用全名）──
+    try:
+        from engine.tax_redlines import trim_redline_title as _tt, _REDLINE_NAMING_CONSTITUENT
+        if not _REDLINE_NAMING_CONSTITUENT:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           "缺「红线命名要件」表（标题无法按证据裁剪）"))
+        _rn = "长期亏损仍持续经营：收入或成本不实"
+        _t1, _n1 = _tt("RL-CIT-004", "待核事实：企业所得税贡献率偏低",
+                       [{"index": 2, "evidence": "x"}], _rn)
+        if _t1 == _rn:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           "只命中非命名要件时仍沿用红线全名（会与企业数据自相矛盾）"))
+        if "未就「亏损」" not in _t1 or not _n1:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           "裁剪后的标题未声明「未就前提作出认定」"))
+        _t2, _ = _tt("RL-CIT-004", "x", [{"index": 1, "evidence": "y"}], _rn)
+        if _t2 != _rn:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           "命中命名要件时不应裁剪标题（误裁会丢失红线名与法条关联）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/tax_redlines.py", f"标题裁剪断言执行失败: {exc}"))
+
+    # ── P0-9a 空表可解释：明细表字段填充率须披露，且全空行不得导出 ──
+    _crd_src = _src("engine/cost_recon_detail.py")
+    _pipe_src = _src("engine/pipeline.py")
+    if "core_cost_invoices_field_fill" not in _pipe_src:
+        issues.append(("ERROR", "engine/pipeline.py",
+                       "逐张清单未记录字段填充率（导出空表无从解释）"))
+    if "未能从原始文件中解析取得" not in _crd_src:
+        issues.append(("ERROR", "engine/cost_recon_detail.py",
+                       "空列未披露（读者无法分辨「本无此信息」与「没解析出来」）"))
+    if "_blank_dropped" not in _pipe_src:
+        issues.append(("ERROR", "engine/pipeline.py",
+                       "未剔除全空发票行（导出会出现有行无字的空表）"))
+
+    # ── P0-9b 导出净化（前端）：控件文案/折叠内容必须被单一净化点覆盖 ──
+    _tda_src = _src("static/js/tax-doc-analysis.js")
+    if "_sanitizeExportClone" not in _tda_src:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "缺导出净化唯一权威 _sanitizeExportClone（控件文案会入文）"))
+    if "_EXPORT_STRIP_SELECTOR" not in _tda_src:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "缺 _EXPORT_STRIP_SELECTOR（导出净化无统一口径）"))
+    if "beforeprint" not in _tda_src or "addEventListener('copy'" not in _tda_src:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "导出净化未接入打印/复制路径（导出的折叠表仍为空）"))
+    if "@media print" not in _tda_src or "details>div" not in _tda_src:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "@media print 未展开折叠块（导出「发票逐张清单」为全空表）"))
+    if "data-export-exclude" not in _tda_src:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "导出提示段落未标记 data-export-exclude（「导出：下载CSV」入文）"))
+    # 两处 CSV 导出提示**都**必须带标记（只查"存在与否"会漏掉其中一处被删）
+    for _kind, _zh in (("invoice", "发票逐张清单"), ("batch", "凭证逐笔清单")):
+        _i = _tda_src.find("_crdBtn('%s'" % _kind)
+        if _i < 0:
+            continue
+        _win = _tda_src[max(0, _i - 200):_i]
+        if 'data-export-exclude="1"' not in _win:
+            issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                           f"「{_zh}」的导出提示段未标记 data-export-exclude（控件文案会入文）"))
+    # 导出 PDF 必须打印**当前完整报告**，不得只打印三节摘要
+    _fn_i = _tda_src.find("async function exportTaxDocReportPdf")
+    _fn_j = _tda_src.find("function deleteTaxDocReport", _fn_i if _fn_i >= 0 else 0)
+    _pdf_seg = _tda_src[_fn_i:_fn_j] if (_fn_i >= 0 and _fn_j > _fn_i) else ""
+    if "_reportExportSource()" not in _tda_src:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "导出PDF未复用当前报告（只打印三节摘要，与屏幕报告不符）"))
+    elif "_reportExportSource()" not in _pdf_seg:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "导出PDF未取当前报告（只打印三节摘要，与屏幕报告不符）"))
+    elif "_sanitizeExportClone(clone)" not in _pdf_seg and "_sanitizeExportClone(clone0)" not in _pdf_seg:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "导出PDF未经导出净化（控件文案/折叠空表会进交付文件）"))
+
+    # ── dump 行为断言：企业报告内不得出现「英文变量名=值」，且截断必须可见 ──
+    if _dump.exists():
+        try:
+            _dd2 = json.loads(_dump.read_text(encoding="utf-8"))
+            _er_d = ((_dd2.get("report") or {}).get("enterprise_readable_report")) or {}
+            _leak = set()
+
+            def _scan_keys(_o):
+                if isinstance(_o, dict):
+                    for _k, _v in _o.items():
+                        _scan_keys(_v)
+                elif isinstance(_o, list):
+                    for _v in _o:
+                        _scan_keys(_v)
+                elif isinstance(_o, str):
+                    for _m in re.finditer(r"(?<![A-Za-z0-9_])([A-Za-z][A-Za-z0-9_]{2,})=", _o):
+                        _leak.add(_m.group(1))
+            _scan_keys(_er_d)
+            if _leak:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               f"企业报告内仍有英文变量名入文: {('、'.join(sorted(_leak)[:6]))}"))
+            _blob_d = json.dumps(_er_d, ensure_ascii=False)
+            _half = [m.group(0) for m in re.finditer(r".{0,18}\d,\d{1,2}(?![\d])(.{0,6})", _blob_d)
+                     if "…" not in m.group(0) and "等" not in m.group(1)]
+            if _half:
+                issues.append(("ERROR", "engine/sentencekit.py",
+                               f"企业报告内出现未标注截断的半截数字: {_half[:3]}"))
+            # 空列披露：字段填充率不足时必须已产出披露段（否则空表无解释）
+            _crd_d = (_er_d.get("cost_recon_detail") or {})
+            _ff_d = _crd_d.get("invoice_field_fill") or {}
+            if _ff_d.get("rows"):
+                _short = any(int(_ff_d.get(_f) or 0) < int(_ff_d.get("rows") or 0)
+                             for _f in ("inv_no", "date", "seller"))
+                _paras = " ".join(str(_x) for _x in (_crd_d.get("paragraphs") or []))
+                if _short and "未能从原始文件中解析取得" not in _paras:
+                    issues.append(("ERROR", "engine/cost_recon_detail.py",
+                                   "逐张清单存在整列未解析字段，但报告未披露（导出成无解释空表）"))
+        except Exception as exc:
+            issues.append(("WARN", "tools/audit_consistency.py",
+                           f"导出净化 dump 行为验证跳过（读取失败）: {exc}"))
+
     return issues
 
 

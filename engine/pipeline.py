@@ -5113,18 +5113,52 @@ def _run_analyze(company_id, db, progress_callback=None):
         _core_invs = bcc.get("core_cost_invs", []) or []
 
         # ★ 逐张清单（供报告「两口径勾稽明细」导出附件；限量，字段来自既有解析数据）
+        # ★ 2026-09-29（点评整改 P0-9a）：导出后出现「94 张→95 行全空表」的根因是
+        #   ① 取值只试 2~3 个键名，解析器换列名后**整列取空**；
+        #   ② 取不到就留空、也不剔除全空行 → 导出成一张有行无字的空表，读者无从判断
+        #      "本来没有" 还是 "没解析出来"。
+        #   现改为：候选键名成组兜底（与解析器字段名对齐）+ 剔除**全部字段皆空**的行
+        #   + 统计字段填充率供报告如实披露。新增解析器只需往候选键里加一个名字。
+        def _pick(_d, *keys):
+            for _k in keys:
+                _v = _d.get(_k)
+                if _v is None:
+                    continue
+                _s = str(_v).strip()
+                if _s:
+                    return _s
+            return ""
+
         _core_inv_rows = []
+        _blank_dropped = 0
         for _iv in _core_invs[:500]:
             if not isinstance(_iv, dict):
                 continue
+            _no = _pick(_iv, "inv_no", "digital_inv_no", "invoice_no", "发票号码", "发票号", "number")
+            _dt = _pick(_iv, "date", "bill_date", "开票日期", "issue_date")
+            _sl = _pick(_iv, "seller", "seller_name", "销售方", "销售方名称", "counterparty")
+            _gd = _pick(_iv, "goods", "货物或应税劳务名称", "item", "品名")
+            _am = amount_of(_iv)
+            _tx = to_number(_iv.get("tax", _iv.get("税额", _iv.get("tax_amount", 0)))) or 0.0
+            if not (_no or _dt or _sl or _gd) and not _am:
+                _blank_dropped += 1
+                continue
             _core_inv_rows.append({
-                "inv_no": str(_iv.get("inv_no") or _iv.get("digital_inv_no") or _iv.get("发票号") or ""),
-                "date": str(_iv.get("date") or _iv.get("开票日期") or ""),
-                "seller": str(_iv.get("seller") or _iv.get("销售方") or ""),
-                "goods": str(_iv.get("goods") or _iv.get("货物或应税劳务名称") or ""),
-                "amount": round(float(to_number(_iv.get("amount", _iv.get("total", 0))) or 0), 2),
-                "tax": round(float(to_number(_iv.get("tax", _iv.get("税额", 0))) or 0), 2),
+                "inv_no": _no, "date": _dt, "seller": _sl, "goods": _gd,
+                "amount": round(float(_am), 2), "tax": round(float(_tx), 2),
             })
+
+        # 字段填充率（供报告披露"空列"性质：原始文件未含该列 / 解析未识别）
+        _n_rows = len(_core_inv_rows) or 1
+        _field_fill = {
+            "rows": len(_core_inv_rows),
+            "inv_no": sum(1 for r in _core_inv_rows if r["inv_no"]),
+            "date": sum(1 for r in _core_inv_rows if r["date"]),
+            "seller": sum(1 for r in _core_inv_rows if r["seller"]),
+            "goods": sum(1 for r in _core_inv_rows if r["goods"]),
+            "amount": sum(1 for r in _core_inv_rows if r["amount"]),
+            "blank_rows_dropped": _blank_dropped,
+        }
 
         biz_cost_summary = {
             "core_cost_count": len(bcc.get("core_cost_invs", [])),
@@ -5137,6 +5171,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             "core_goods_breakdown": _agg_invs(_core_invs, "goods"),
             "core_cost_supplier_breakdown": _agg_invs(_core_invs, "seller"),
             "core_cost_invoices": _core_inv_rows,
+            "core_cost_invoices_field_fill": _field_fill,
             "industry_basis": str(bcc.get("industry_basis") or ""),
         }
 

@@ -185,6 +185,27 @@ def pick_best(sentences: Iterable[str], require_digit: bool = True,
 _MAX_DEPTH = 3
 
 
+def _join_parts(parts: List[str], max_len: int, sep: str = "、", overflow: str = "") -> str:
+    """按 `max_len` 拼装「键=值 / 元素」列表——**整项取舍，绝不把某一项从中间切开**。
+
+    ★ 2026-09-29（点评整改 P0-9c）真实事故：嵌套字典按 `max_len=min(90,30)` 拼装时
+      朴素切片产生「…进数量=1,680.00、差异=-2,3…」——**金额被切半截**，
+      读起来像真数字（外部点评实测 "=260,5" "=275,00"）。
+      规则：逐项累加，放不下即停；被省略的项用 `overflow` 如实标注（如「等5项」）。
+      这样"截断"丢的是**完整的一项**，保留下来的每一项都是完整键值对。
+    """
+    kept: List[str] = []
+    total = len(parts)
+    for p in parts:
+        if kept and len(sep.join(kept + [p])) > max_len:
+            break
+        kept.append(p)
+    s = sep.join(kept)
+    if len(kept) < total:
+        s = (s + (overflow or ("等%d项" % total))) if s else ("共%d项" % total)
+    return s
+
+
 def render_value(v: Any, max_len: int = 90, _depth: int = 0) -> str:
     """把内部值渲染成**可读中文串**：不出 repr、不出方括号/花括号、长度受限。
 
@@ -213,8 +234,7 @@ def render_value(v: Any, max_len: int = 90, _depth: int = 0) -> str:
             if not sv:
                 continue
             parts.append(f"{translate_key(k)}={sv}")
-        s = "、".join(parts)
-        return s if len(s) <= max_len else s[:max_len] + "…"
+        return _join_parts(parts, max_len)
     if isinstance(v, (list, tuple, set)):
         seq = list(v)
         # 同构 dict 列表（如 [{'name':'甲'},{'name':'乙'}]）→ 只取值并列，
@@ -228,17 +248,14 @@ def render_value(v: Any, max_len: int = 90, _depth: int = 0) -> str:
                     parts = [render_value(x.get(only), max_len=min(max_len, 40),
                                           _depth=_depth + 1) for x in seq[:3]]
                     parts = [p for p in parts if p]
-                    s = "、".join(parts)
-                    if len(seq) > 3:
-                        s += ("等%d项" % len(seq)) if s else ("共%d项" % len(seq))
-                    return s if len(s) <= max_len else s[:max_len] + "…"
+                    return _join_parts(parts, max_len,
+                                       overflow=("等%d项" % len(seq)) if len(seq) > 3 else "")
         parts = [render_value(x, max_len=min(max_len, 40), _depth=_depth + 1) for x in seq[:3]]
         parts = [p for p in parts if p]
-        s = "、".join(parts)
-        if len(seq) > 3:
-            s += ("等%d项" % len(seq)) if s else ("共%d项" % len(seq))
-        return s if len(s) <= max_len else s[:max_len] + "…"
-    return str(v)[:max_len]
+        return _join_parts(parts, max_len,
+                           overflow=("等%d项" % len(seq)) if len(seq) > 3 else "")
+    # ★ 2026-09-29：标量兜底同样不得朴素切片（数字被切半截 → 报告出现 "260,5"）。
+    return clamp_text(str(v), max_len)
 
 
 def clamp_text(text: Any, max_len: int = 200, ellipsis: str = "…") -> str:
@@ -251,12 +268,18 @@ def clamp_text(text: Any, max_len: int = 200, ellipsis: str = "…") -> str:
     策略：① 长度内 → 原样；
           ② `max_len` 之前最后一个句读处收尾（且收尾后括号须闭合）；
           ③ 都不行 → 在 `max_len` 处切，并**补上未闭合的右括号**。
+
+    ★ 2026-09-29（点评整改 P0-9c）：句读集合**加入顿号「、」与竖线「｜」**。
+      真实事故：键值对串「货物=饲料、销数量=65.00、进数量=1,680.00、差异=-1,680.00」
+      按 max_len=30 截断时，若不认顿号为句读，就会硬切在千分位之间 →
+      「…进数量=1,680.00、差异=-1,6」，报告里出现看似真数字的**残句**。
+      顿号/竖线是列表分隔符，在它们处收尾是自然且无损的（丢的是完整一项）。
     """
     s = str(text or "").strip()
     if not s or len(s) <= max_len:
         return s
     window = s[:max_len + 1]
-    for m in reversed(list(re.finditer(r"[。；!?！？\n]", window))):
+    for m in reversed(list(re.finditer(r"[。；!?！？\n、｜]", window))):
         cand = s[:m.start()]
         if cand.strip() and is_balanced(cand):
             return cand.strip() + ellipsis

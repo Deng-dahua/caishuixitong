@@ -10461,13 +10461,15 @@ def _multi_dim_benford_check(invoices, bank_txs):
         human_bias["four_avoidance"] = four_pct < 5      # 4占比<5%异常
     
     # 综合判断
+    # ★ 2026-09-29（点评整改 P0-9d）：统计量一律写中文名，不得把内部变量缩写
+    #   （`chi=29.13`）写进企业报告——企业看不到 "chi" 是什么。
     flags = []
     if chi_first > 15.5:
-        flags.append(f"首位数字显著偏离Benford(chi={chi_first:.2f})")
+        flags.append(f"首位数字显著偏离Benford（卡方统计量 {chi_first:.2f}）")
     if chi_second > 16.9:
-        flags.append(f"第二位数字分布异常(chi={chi_second:.2f})")
+        flags.append(f"第二位数字分布异常（卡方统计量 {chi_second:.2f}）")
     if chi_last > 16.9:
-        flags.append(f"末位数字不均匀(chi={chi_last:.2f})，可能人为取整")
+        flags.append(f"末位数字不均匀（卡方统计量 {chi_last:.2f}），可能人为取整")
     if human_bias.get("eight_preference"):
         flags.append("末位数偏好'8'（人为心理特征）")
     if human_bias.get("four_avoidance"):
@@ -10480,7 +10482,7 @@ def _multi_dim_benford_check(invoices, bank_txs):
         "chi_second": round(chi_second, 1),
         "chi_last": round(chi_last, 1),
         "flags": flags,
-        "conclusion": "数据分布自然" if not flags else f"发现{len(flags)}项编造痕迹: {'; '.join(flags)}",
+        "conclusion": "数据分布自然" if not flags else f"发现{len(flags)}项编造痕迹：{'；'.join(flags)}",
         "human_bias": human_bias,
     }
 def _enrich_reasoning_path(all_findings):

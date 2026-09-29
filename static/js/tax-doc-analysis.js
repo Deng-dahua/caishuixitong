@@ -5127,7 +5127,7 @@ function _renderCostReconDetail(crd){
   var ir = crd.invoice_rows || [];
   if (ir.length) {
     h += '<details style="margin:6px 0 12px"><summary style="cursor:pointer;color:#1d4ed8;font-size:13px">'
-      + '① 发票逐张清单（' + ir.length + ' 张，点击展开）</summary>'
+      + '① 发票逐张清单（' + ir.length + ' 张<span class="on-screen-only">，点击展开</span>）</summary>'
       + '<div style="overflow-x:auto;margin-top:6px"><table class="tbl"><thead><tr>'
       + '<th>发票号码</th><th>开票日期</th><th>销售方</th><th>品名</th><th>金额(元)</th><th>税额(元)</th>'
       + '</tr></thead><tbody>';
@@ -5138,7 +5138,7 @@ function _renderCostReconDetail(crd){
         + '<td style="white-space:nowrap">' + _crdMoney(r.tax) + '</td></tr>';
     });
     h += '</tbody></table></div></details>'
-      + '<p class="i2" style="font-size:12px;color:#64748b">导出：' + _crdBtn('invoice', '下载发票逐张清单 CSV') + '</p>';
+      + '<p class="i2" data-export-exclude="1" style="font-size:12px;color:#64748b">导出：' + _crdBtn('invoice', '下载发票逐张清单 CSV') + '</p>';
   }
   var v = crd.by_voucher || [];
   if (v.length) {
@@ -5155,7 +5155,7 @@ function _renderCostReconDetail(crd){
   var br = crd.book_rows || [];
   if (br.length) {
     h += '<details style="margin:6px 0 12px"><summary style="cursor:pointer;color:#1d4ed8;font-size:13px">'
-      + '② 凭证逐笔清单（' + br.length + ' 笔，点击展开）</summary>'
+      + '② 凭证逐笔清单（' + br.length + ' 笔<span class="on-screen-only">，点击展开</span>）</summary>'
       + '<div style="overflow-x:auto;margin-top:6px"><table class="tbl"><thead><tr>'
       + '<th>月份</th><th>凭证号</th><th>摘要</th><th>借方金额(元)</th></tr></thead><tbody>';
     br.slice(0, 1000).forEach(function(r){
@@ -5163,9 +5163,98 @@ function _renderCostReconDetail(crd){
         + esc(r.summary || '') + '</td><td style="white-space:nowrap">' + _crdMoney(r.amount) + '</td></tr>';
     });
     h += '</tbody></table></div></details>'
-      + '<p class="i2" style="font-size:12px;color:#64748b">导出：' + _crdBtn('batch', '下载凭证逐笔清单 CSV') + '</p>';
+      + '<p class="i2" data-export-exclude="1" style="font-size:12px;color:#64748b">导出：' + _crdBtn('batch', '下载凭证逐笔清单 CSV') + '</p>';
   }
   return h;
+}
+
+// ★ 2026-09-29（点评整改 P0-9b）：导出净化——**唯一权威**。
+//   真实事故：报告页面复制/打印进 Word 后，出现①控件文案入文（"下载 CSV""点击展开"）；
+//   ②折叠块（<details>）内容为空 → 导出的「发票逐张清单」成了有行无字的 95 行空表。
+//   根因：屏幕呈现与导出交付共用同一份 DOM，且**没有任何一处**负责把"只对屏幕有意义
+//   的东西"摘掉、把折叠内容展开。故此处收敛为单一净化点，屏幕不受影响：
+//     · _EXPORT_STRIP_SELECTOR —— 导出须移除的节点（控件/提示/脚本/样式）；
+//     · _sanitizeExportClone —— 在**克隆体**上净化（不改动屏幕上正在看的报告）；
+//     · _installExportGuards —— beforeprint 与 copy 时自动生效。
+//   新增任何控件，只需带 data-export-exclude="1" 或 class="on-screen-only" 即被覆盖。
+var _EXPORT_STRIP_SELECTOR = '[data-export-exclude="1"],.on-screen-only,.rpt-btn-bar,button,script,style';
+
+function _sanitizeExportClone(root) {
+  if (!root || !root.querySelectorAll) return root;
+  var kill = root.querySelectorAll(_EXPORT_STRIP_SELECTOR);
+  for (var i = 0; i < kill.length; i++) {
+    if (kill[i].parentNode) kill[i].parentNode.removeChild(kill[i]);
+  }
+  // 展开折叠块：否则 Word/PDF 里只剩标题，内容为空（"全空表"的直接成因）
+  var dets = root.querySelectorAll('details');
+  for (var j = 0; j < dets.length; j++) dets[j].setAttribute('open', 'open');
+  // 表格若整行皆空，剔除该行（导出不留空壳行；屏幕不受影响）
+  var tbls = root.querySelectorAll('table');
+  for (var t = 0; t < tbls.length; t++) {
+    var body = tbls[t].querySelector('tbody');
+    if (!body) continue;
+    var rows = body.querySelectorAll('tr');
+    for (var r = rows.length - 1; r >= 0; r--) {
+      var cells = rows[r].querySelectorAll('td');
+      if (!cells.length) continue;
+      var hasText = false;
+      for (var c = 0; c < cells.length; c++) {
+        if (String(cells[c].textContent || '').trim()) { hasText = true; break; }
+      }
+      if (!hasText) body.removeChild(rows[r]);
+    }
+  }
+  return root;
+}
+
+function _reportExportSource() {
+  return document.getElementById('tda-report-area') || document.getElementById('rr-report') || null;
+}
+
+function _installExportGuards() {
+  if (typeof window === 'undefined' || window._exportGuardsInstalled) return;
+  window._exportGuardsInstalled = true;
+  if (window.addEventListener) {
+    // ① 打印/另存为PDF：临时展开全部折叠块，打印后恢复
+    window.addEventListener('beforeprint', function () {
+      var area = _reportExportSource();
+      if (!area) return;
+      var closed = area.querySelectorAll('details:not([open])');
+      area._exportReopened = [];
+      for (var i = 0; i < closed.length; i++) {
+        closed[i].setAttribute('open', 'open');
+        area._exportReopened.push(closed[i]);
+      }
+    });
+    window.addEventListener('afterprint', function () {
+      var area = _reportExportSource();
+      if (!area || !area._exportReopened) return;
+      for (var i = 0; i < area._exportReopened.length; i++) {
+        area._exportReopened[i].removeAttribute('open');
+      }
+      area._exportReopened = null;
+    });
+    // ② 复制（用户最常用的"粘进 Word"路径）：改写剪贴板 HTML，摘控件 + 展开折叠
+    document.addEventListener('copy', function (e) {
+      try {
+        var sel = window.getSelection && window.getSelection();
+        if (!sel || sel.isCollapsed) return;
+        var area = _reportExportSource();
+        if (!area || !e.clipboardData) return;
+        var range = sel.getRangeAt(0);
+        if (!area.contains(range.commonAncestorContainer)) return;
+        var holder = document.createElement('div');
+        holder.appendChild(range.cloneContents());
+        _sanitizeExportClone(holder);
+        e.clipboardData.setData('text/html', holder.innerHTML);
+      } catch (err) { /* 复制净化失败不阻断用户复制 */ }
+    });
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window._sanitizeExportClone = _sanitizeExportClone;
+  _installExportGuards();
 }
 
 if (typeof window !== 'undefined') { window._crdDownloadCsv = _crdDownloadCsv; }
@@ -6170,6 +6259,16 @@ function _renderReportFallback(r, allF) {
 
     + '@media(max-width:768px){#tda-report-area{padding:16px 12px}}'
 
+    // ★ 2026-09-29（点评整改 P0-9b）：打印/导出（浏览器"另存为PDF"或复制进 Word）时，
+    //   ① 移除只对屏幕有意义的控件与提示（下载按钮、"点击展开"等）；
+    //   ② **展开全部折叠块**——否则 <details> 内容在 Word 里为空，
+    //      导出的「发票逐张清单」就成了一张有行无字的空表。
+    //   选择器与 JS 侧 _EXPORT_STRIP_SELECTOR 保持同一口径（单一权威）。
+    + '@media print{'
+    + '[data-export-exclude="1"],.on-screen-only,.rpt-btn-bar,button,script,style{display:none!important}'
+    + 'details>summary{list-style:none}details>summary::-webkit-details-marker{display:none}'
+    + 'details>div,details>p,details>table{display:block!important}'
+    + '}'
 
     + '</style><div id="rr-report">';
 
@@ -8163,7 +8262,31 @@ async function exportTaxDocReport() {
       var error = await response.json().catch(function(){return {detail:'报告交付失败'};});
       throw new Error(error.detail || error.message || '报告交付失败');
     }
-    var blob = await response.blob();
+    // ★ 2026-09-29（点评整改 P0-9）：交付文件内容 = 用户看到的**完整报告**。
+    //   /deliver 的三节摘要只作治理留痕（已记录接收对象/用途/指纹），
+    //   但作为"报告文件"交给企业是残缺的——故本地用净化后的完整报告替代文件内容。
+    var area = _reportExportSource();
+    var reportHtml = null;
+    if (area) {
+      var clone0 = area.cloneNode(true);
+      _sanitizeExportClone(clone0);
+      var wmHtml = isOfficial ? ''
+        : '<div class="wm">内部草稿 · 仅供内部复核 · 非正式结论</div>';
+      reportHtml = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+        + '<title>涉税风险检查工作报告</title>'
+        + '<style>body{font-family:"PingFang SC","Microsoft YaHei",serif;color:#1a1a1a;'
+        + 'margin:0;padding:32px 40px;line-height:1.85;position:relative}'
+        + 'table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}'
+        + 'th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}'
+        + 'th{background:#f4f6f8}'
+        + '.wm{position:fixed;top:42%;left:0;right:0;text-align:center;font-size:52px;'
+        + 'color:rgba(0,0,0,0.07);font-weight:700;transform:rotate(-24deg);'
+        + 'pointer-events:none;z-index:9}'
+        + 'details>summary{list-style:none}@page{margin:12mm}'
+        + '</style></head><body>' + wmHtml + clone0.innerHTML + '</body></html>';
+    }
+    var blob = reportHtml ? new Blob([reportHtml], {type: 'text/html;charset=utf-8'})
+                          : await response.blob();
     var disposition = response.headers.get('Content-Disposition') || '';
     var match = disposition.match(/filename="?([^";]+)"?/i);
     var filename = match ? match[1] : (isOfficial ? 'tax-compliance-official.html' : 'tax-compliance-draft.html');
@@ -8217,11 +8340,38 @@ async function exportTaxDocReportPdf() {
       var error = await response.json().catch(function(){return {detail:'报告交付失败'};});
       throw new Error(error.detail || error.message || '报告交付失败');
     }
-    var html = await response.text();
+    // ★ 2026-09-29（点评整改 P0-9）：**打印/另存为PDF 必须打印用户看到的完整报告**。
+    //   旧实现把 /deliver 返回的「三节摘要 HTML」（报告性质 / 待核事项 / 五流清单）
+    //   当成打印稿——用户点「导出PDF」得到的是摘要，与屏幕上的九章检查工作报告
+    //   完全不符（导出管线与呈现脱节）。
+    //   现改为：克隆屏幕上正在看的报告 → 经唯一净化点摘控件/展开折叠 → 打印。
+    //   水印仍按发布状态走治理（草稿带水印、正式无水印），不削弱交付约束。
+    var area = _reportExportSource();
+    var reportHtml;
+    if (area) {
+      var clone = area.cloneNode(true);
+      _sanitizeExportClone(clone);
+      var wm = isOfficial ? ''
+        : '<div class="wm">内部草稿 · 仅供内部复核 · 非正式结论</div>';
+      reportHtml = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
+        + '<title>涉税风险检查工作报告</title>'
+        + '<style>body{font-family:"PingFang SC","Microsoft YaHei",serif;color:#1a1a1a;'
+        + 'margin:0;padding:32px 40px;line-height:1.85;position:relative}'
+        + 'table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}'
+        + 'th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}'
+        + 'th{background:#f4f6f8}'
+        + '.wm{position:fixed;top:42%;left:0;right:0;text-align:center;font-size:52px;'
+        + 'color:rgba(0,0,0,0.07);font-weight:700;transform:rotate(-24deg);'
+        + 'pointer-events:none;z-index:9}'
+        + 'details>summary{list-style:none}@page{margin:12mm}'
+        + '</style></head><body>' + wm + clone.innerHTML + '</body></html>';
+    } else {
+      reportHtml = await response.text();
+    }
     var w = window.open('', '_blank');
     if (!w) throw new Error('浏览器拦截了弹出窗口，请允许本站弹出窗口后重试');
     w.document.open();
-    w.document.write(html);
+    w.document.write(reportHtml);
     w.document.close();
     w.focus();
     setTimeout(function(){ w.print(); }, 400);

@@ -125,6 +125,20 @@ def _fmt_metric_val(v):
     return str(v)
 
 
+# ★ 2026-09-29（点评整改 P0-9d）：**计数器/状态类内部键**的保留后缀。
+#   引擎为让计数键落入 `_BOSS_KEY_EXCLUDE_TOKEN`（不被当作金额）而用 `_笔数`/`_张数`
+#   后缀，但这类键是**纯中文+下划线**，`_translate_key` 原样返回 → 报告出现
+#   「红字发票_笔数=13」这种变量名。通用规则：保留后缀前的中文按下划线连接的部分
+#   一律去分隔符（新增同类计数器键**无需改代码**，只需沿用后缀）。
+_COUNTER_SUFFIXES = ("_笔数", "_张数", "_项数", "_人次", "_人月", "_笔", "_项")
+
+# ★ 2026-09-29：状态/等级类内部码（值即枚举名）也要写成中文可读形式。
+_ENUM_CODE_CN = {
+    "已核定_限于所报资料勾稽": "已核定（限于所报资料勾稽）",
+    "草稿_待人工复核": "草稿（待人工复核）",
+}
+
+
 _METRIC_CN = {
     "material": "原料", "issue": "问题", "theoretical": "理论耗用", "actual": "实际耗用",
     "deviation_ratio": "偏差率", "finished_products": "对应成品",
@@ -299,6 +313,20 @@ _METRIC_CN = {
     "start_signal": "起点信号成立",
     "base_date": "基准日",
     "themes": "主题",
+    # ★ 2026-09-29（点评整改 P0-9d）：实测漏进企业报告的英文键（键=值 形态）逐条汉化。
+    #   这些键来自 clue_chain 的 observed/samples 渲染，此前 `_METRIC_CN` 与 `_WORD_CN`
+    #   都查不到，`_translate_key` 按设计"宁可露英文也不假汉化"返回原键 → 报告出现
+    #   「core_cost_total=1,882,804.87；company_paid_amount=53,859.91」。
+    "core_cost_total": "主营业务成本类发票合计",
+    "company_paid_amount": "公户已付款金额",
+    "person_paid_amount": "个人账户已付款金额",
+    "book_payroll_total": "账面应付职工薪酬合计",
+    "public_account_payroll": "公户代发工资金额",
+    "private_paid_records": "个人账户付款记录",
+    "avg_amount_per_individual_customer": "个人客户人均开票金额",
+    "uninsured_person_count": "未参保人数",
+    "uninsured_person_month_count": "未参保人月数",
+    "company_id": "企业编号",
 }
 
 # ★ 2026-09-25：引擎实际产出的 metrics 键**唯一清单**（前端 `_renderCapMetrics`
@@ -439,12 +467,30 @@ def _translate_key(key):
     2026-09-12 补：引擎里存在「中英连写」键（corporate收款、declared值、
     uninvoiced缺口afternonsales）——按下划线分词后整段是混合词，词表查不到，
     导致报告出现半中半英。此处增加英文片段兜底替换（长词优先）。
+
+    ★ 2026-09-29（点评整改 P0-9d，多头维护收敛）：本函数是**键汉化的唯一权威**，
+      查表顺序 = `_ENUM_CODE_CN`（状态码，值即枚举名）→ `_METRIC_CN`（指标）
+      → `_EV_COLUMN_CN`（逐笔证据列名）→ `_WORD_CN`（单词分译）。
+      此前 `_EV_COLUMN_CN` 是**只在 evidence 明细表内部生效的独立孤岛**，
+      同一键（如 `ref_label`）在明细表里译得出、在 clue_chain 的
+      observed/samples 里却原样漏英文（实测 `ref_label=发票号…`）——
+      正是本项目"一个概念多份实现"的老病。现二者共用同一查表链。
+      另：**纯中文+保留后缀**的内部计数键（`红字发票_笔数`）与状态码，
+      在此统一去分隔符/加括号，避免变量名入文。
     """
     s = str(key)
-    if not s or not re.search(r"[A-Za-z]", s):
+    if not s:
         return s
+    if s in _ENUM_CODE_CN:
+        return _ENUM_CODE_CN[s]
     if s in _METRIC_CN:
         return _METRIC_CN[s]
+    # 纯中文（无 ASCII 字母）→ 处理内部保留后缀 / 下划线连写，再原样返回
+    if not re.search(r"[A-Za-z]", s):
+        for suf in _COUNTER_SUFFIXES:
+            if s.endswith(suf) and len(s) > len(suf):
+                return s[:-len(suf)].replace("_", "") + suf.lstrip("_")
+        return s
     words = re.split(r"[_\-]", s)
     out, hit, miss = [], False, False
     for w in words:
@@ -483,6 +529,10 @@ def _translate_key(key):
     # ⚠ 用 `[A-Za-z]` 而非 `{3,}`：1~2 字母的残留（如 `ar_un已接收_合计_x` 里的 `un`）
     #   同样是"半翻译"，同样可能已丢词元。
     if re.search(r"[A-Za-z]", result):
+        # ★ 2026-09-29：词表全无解 → 退到「逐笔证据列名表」（`ref_label` 等），
+        #   它此前只在 evidence 明细表内部生效，是同一概念的第二份实现。
+        if s in _EV_COLUMN_CN:
+            return _EV_COLUMN_CN[s]
         return s
     return result
 
@@ -1431,6 +1481,29 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
         rname = s.get("redline_name", "")
         grade = s.get("conclusion_grade") or arg.get("conclusion_grade") or "待核"
 
+        # ★ 2026-09-29（点评整改 P0-6）：**标题按实际证据裁剪**。
+        #   红线名是"要件包"的概括名（如 RL-CIT-004「长期亏损仍持续经营」以"亏损"
+        #   为命名前提）；若本轮只证明了该红线的其它要件（如"税负贡献与规模不匹配"）
+        #   却沿用全名，报告就写出与企业自身数据相矛盾的前提（实测：标题称长期亏损、
+        #   同项正文净利润为正）。裁剪逻辑收敛在 `tax_redlines.trim_redline_title`
+        #   （数据表驱动，新增红线只加一行）。
+        #   ⚠ 必须在此处先算：p1（首段）与 p4（结论段）都要用 `_premise_note`。
+        _title_raw, _premise_note = (rname.strip() or rid), ""
+        try:
+            from engine.tax_redlines import trim_redline_title as _trim_title
+            # 发现自有名称：优先疑点自带的 finding_type，其次支撑发现的第一条 type
+            # （报告标题须是"企业自有的发现名"，不是红线包名）
+            _own_type = s.get("finding_type") or ""
+            if not _own_type:
+                for _sf in (s.get("supporting_findings") or []):
+                    if isinstance(_sf, dict) and str(_sf.get("type") or "").strip():
+                        _own_type = str(_sf["type"]).strip()
+                        break
+            _title_raw, _premise_note = _trim_title(
+                rid, _own_type, arg.get("constituent_hits"), rname)
+        except Exception:
+            _title_raw, _premise_note = (rname.strip() or rid), ""
+
         # ① 红线与法条
         legal = [l for l in (s.get("legal_basis") or []) if l]
         _suspect = str(s.get("suspect") or "税务风险")
@@ -1536,6 +1609,10 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
         _cmp_txt = _cmp.get("text") if isinstance(_cmp, dict) else ""
         if _cmp_txt:
             p4 = ((p4 + " " if p4 else "") + _naturalize_report_text(_cmp_txt))
+        # ★ 2026-09-29（P0-6）：命名要件未成立时，在结论段明示认定范围，
+        #   避免"标题断言亏损、正文说盈利"式的自相矛盾。
+        if _premise_note:
+            p4 = ((p4 + " " if p4 else "") + _naturalize_report_text(_premise_note))
 
         # ⑤ 需企业补充的资料与说明
         # 2026-09-13 用户要求：涉及明细的一律走列表，正文只留引导句，
@@ -1594,11 +1671,20 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
             _clo = round(float(_clo), 4) if _clo not in (None, "") else None
         except (TypeError, ValueError):
             _clo = None
+        # ★ 2026-09-29（点评整改 P0-6）：**标题按实际证据裁剪**（计算见本循环前部
+        #   `_title_raw` / `_premise_note`，此处不再重复）。
+        # 前提未成立时，首段的"本企业触发…即<红线名>"同样须收窄，否则标题与正文不一致
+        if _premise_note:
+            p1 = (
+                f"经检查，本企业触发税务风险指标（对应：{rname}），{_suspect_txt}。"
+                f"本项认定范围见标题括注。该风险指标不因行业而变，凡符合下列构成要件即属涉嫌疑点："
+            )
         problems.append({
             "seq": i,
             # 报告标题只写红线名（用户要求：正文不出现 RL-XXX 编号）；
             # 编号仍通过 redline_id 字段透传，供系统内部追溯与前端可选展示。
-            "title": _naturalize_report_text(rname.strip() or rid),
+            "title": _naturalize_report_text(_title_raw),
+            "premise_note": _naturalize_report_text(_premise_note) if _premise_note else "",
             "redline_id": rid,
             "conclusion_grade": grade,
             "verdict": s.get("verdict", ""),
@@ -1846,7 +1932,14 @@ def _humanize_observed(text):
     # 剔除被清洗后只剩分隔符的空段与空顿号（如「人员薪酬、、、、、社保明细」）
     segs = [re.sub(r"[、，；]{2,}", "、", x).strip("、，；") for x in segs]
     s = "；".join([x for x in segs if x and re.search(r"[\u4e00-\u9fa5\d]", x)])
-    s = s.replace("…", "").strip("，；。 ")
+    # ★ 2026-09-29（点评整改 P0-9c）：**不要抹掉省略号**。
+    #   省略号是"此处已被截断"的**唯一信号**。旧实现 `s.replace("…", "")` 把
+    #   「差异=-1,6…」变成「差异=-1,6」——一个看起来像真数字的残句，读者无从分辨。
+    #   外部点评实测的 "=260,5" "=275,00" "（偏离 —）" "单笔）" 全部由此产生：
+    #   截断本身未必错，**把截断痕迹擦掉**才把"截断"伪装成了"数据"。
+    #   现保留省略号，仅去掉尾随分隔符；配合 clamp_text 的顿号边界
+    #   （切点落在「、」处），键值对不再被从中间切开。
+    s = s.strip("，；。 ")
     # 观测值里可能夹带上游 finding 的方头括号标记（如「【主营业务成本识别后】…」），
     # 用户要求正文不出现这类内部标记，统一自然化。
     s = _naturalize_report_text(s)
