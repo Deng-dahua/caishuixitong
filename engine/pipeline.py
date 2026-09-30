@@ -4564,6 +4564,44 @@ def _run_analyze(company_id, db, progress_callback=None):
         domain_summary = _scenario_execution.get("domain_summary", [])
         comprehensive["scenario_execution"] = _scenario_execution
         comprehensive["output_governance"] = output_governance
+        # ═══ 缺口风险域探测器（RL-CIT-005/006、RL-PAY-005/006、RL-OTH-004/005）═══
+        # 覆盖度自检中原先自认「待实现」的 6 个风险域，现已具备可执行识别方法：
+        #   有数据 → 交叉验证产出待核疑点；无数据 → 降级为置疑清单，列明需补资料后复核。
+        # 产出写入 _scenario_execution["findings"]（场景执行核心），随后由 P0-2 防误判复核闸门
+        # 与正式输出封印一并处理，确保新能力同样受防误判与去定性化约束，绝不自动定罪。
+        try:
+            from engine.gap_risk_detectors import run_gap_risk_detection
+            _gap_data = {
+                "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
+                "vouchers": vouchers, "salaries": salaries, "inventory": inventory,
+                "tax_declarations": locals().get("tax_declarations", []),
+                # 2026-09-30：补数据源，使专项探测器能读到科目余额表/固定资产/合同/社保/公积金
+                "balances": locals().get("trial_balance_data", []),
+                "fixed_assets": locals().get("fixed_assets", []),
+                "contracts": locals().get("contract_data", []),
+                "social_security": locals().get("social_security", []),
+                "housing_fund": locals().get("housing_fund_data", []),
+            }
+            _gap_findings = run_gap_risk_detection(_gap_data, pipeline_log)
+            if _gap_findings:
+                _se_gap = locals().get("_scenario_execution")
+                if isinstance(_se_gap, dict):
+                    _se_gap.setdefault("findings", []).extend(_gap_findings)
+        except Exception as _gap_err:
+            pipeline_log.append(f"[缺口探测器] 异常(不阻断): {_gap_err}")
+
+        # ═══ 特定/专项风险红线探测器（覆盖审计盲区红线：INC/COST/FUND/INV/PAY/CIT/AST/OTH/SPT/VAT）═══
+        try:
+            from engine.special_redline_detectors import run_special_redline_detection
+            _sp_findings = run_special_redline_detection(_gap_data, pipeline_log)
+            if _sp_findings:
+                _se_sp = locals().get("_scenario_execution")
+                if isinstance(_se_sp, dict):
+                    _se_sp.setdefault("findings", []).extend(_sp_findings)
+        except Exception as _sp_err:
+            pipeline_log.append(f"[专项探测器] 异常(不阻断): {_sp_err}")
+
+
         # ═══ 红线判定：把场景发现归并为「税务红线疑点」（行业无关）═══
         # 方法论主线：确定税务疑点（触碰哪条红线）→ 线索链（怎么发现的）
         #           → 证据链（要组织什么证据）→ 论证链（主张/反证/裁决）
@@ -5915,43 +5953,6 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _he:
         result["self_healing"] = {"error": str(_he)}
     
-    # ═══ 缺口风险域探测器（RL-CIT-005/006、RL-PAY-005/006、RL-OTH-004/005）═══
-    # 覆盖度自检中原先自认「待实现」的 6 个风险域，现已具备可执行识别方法：
-    #   有数据 → 交叉验证产出待核疑点；无数据 → 降级为置疑清单，列明需补资料后复核。
-    # 产出写入 _scenario_execution["findings"]（场景执行核心），随后由 P0-2 防误判复核闸门
-    # 与正式输出封印一并处理，确保新能力同样受防误判与去定性化约束，绝不自动定罪。
-    try:
-        from engine.gap_risk_detectors import run_gap_risk_detection
-        _gap_data = {
-            "bank_txs": bank_txs, "sal_invs": sal_invs, "pur_invs": pur_invs,
-            "vouchers": vouchers, "salaries": salaries, "inventory": inventory,
-            "tax_declarations": locals().get("tax_declarations", []),
-            # 2026-09-30：补数据源，使专项探测器能读到科目余额表/固定资产/合同/社保/公积金
-            "balances": locals().get("trial_balance_data", []),
-            "fixed_assets": locals().get("fixed_assets", []),
-            "contracts": locals().get("contract_data", []),
-            "social_security": locals().get("social_security", []),
-            "housing_fund": locals().get("housing_fund_data", []),
-        }
-        _gap_findings = run_gap_risk_detection(_gap_data, pipeline_log)
-        if _gap_findings:
-            _se_gap = locals().get("_scenario_execution")
-            if isinstance(_se_gap, dict):
-                _se_gap.setdefault("findings", []).extend(_gap_findings)
-    except Exception as _gap_err:
-        pipeline_log.append(f"[缺口探测器] 异常(不阻断): {_gap_err}")
-
-    # ═══ 特定/专项风险红线探测器（覆盖审计盲区红线：INC/COST/FUND/INV/PAY/CIT/AST/OTH/SPT/VAT）═══
-    try:
-        from engine.special_redline_detectors import run_special_redline_detection
-        _sp_findings = run_special_redline_detection(_gap_data, pipeline_log)
-        if _sp_findings:
-            _se_sp = locals().get("_scenario_execution")
-            if isinstance(_se_sp, dict):
-                _se_sp.setdefault("findings", []).extend(_sp_findings)
-    except Exception as _sp_err:
-        pipeline_log.append(f"[专项探测器] 异常(不阻断): {_sp_err}")
-
     # ═══ 金税四期式增强：行业指标对标 / 出口退税四单交叉 / 关联方穿透 ═══
     # 三项均只产出待核线索，写入场景执行核心 findings，同样受防误判与输出封印约束。
     try:
