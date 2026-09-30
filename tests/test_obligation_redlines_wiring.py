@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Task 460/461 接线固化测试：6 条义务红线 + 3 条费义务 + 20 条漂移资料。
+"""接线固化测试：义务红线 + 印花税税目 + 资本弱化 + 费用义务 + 漂移资料。
 
 锁死「单一权威来源」接线，防止未来改动悄无声息地破坏：
-  - REDLINES 权威计数 = 80
-  - 6 条新义务红线存在、要件/论证完整、domain 在 DOMAIN_ORDER
-  - gap_tax_obligations.SPECS 的 redline_id 全部映射到真实红线
-  - 20 条 sup_* 补充自证资料同时在识别表与报告分类表登记
+  - REDLINES 权威计数 = 86
+  - 11 条新增红线存在、要件/论证完整、domain 在 DOMAIN_ORDER
+  - gap/special SPECS 的 redline_id 全部映射到真实红线
+  - 25 条 sup_* 补充自证资料同时在识别表与报告分类表登记
 """
 import os
 import sys
@@ -26,6 +26,11 @@ NEW_REDLINE_IDS = [
     "RL-SPT-016",  # 船舶吨税
     "RL-VAT-013",  # 增值税留抵退税
     "RL-OTH-007",  # 营业账簿（资金账簿）印花税
+    "RL-OTH-008",  # 产权转移书据印花税
+    "RL-OTH-009",  # 借款合同印花税
+    "RL-OTH-010",  # 财产租赁合同印花税
+    "RL-OTH-011",  # 财产保险合同印花税
+    "RL-CIT-010",  # 资本弱化（关联债资比）
 ]
 
 NEW_MATERIAL_DTS = [
@@ -36,15 +41,18 @@ NEW_MATERIAL_DTS = [
     "sup_farmland_tax_decl", "sup_ship_ton_cert", "sup_ship_reg", "sup_ship_entry",
     "sup_vehicle_reg_cert", "sup_vehicle_purchase_cert", "sup_inout_bank_flow",
     "sup_input_invoice_detail",
+    "sup_equity_transfer_contract", "sup_realestate_transfer_contract",
+    "sup_property_insurance_contract", "sup_interest_expense_ledger",
+    "sup_contemporaneous_docs",
 ]
 
 FEE_OBLIGATION_TOPICS = {"残疾人就业保障金", "水利建设基金", "工会经费"}
 
 
 class ObligationRedlineWiringTests(unittest.TestCase):
-    def test_authoritative_redline_count_is_81(self):
-        # 权威计数必须实时等于 81（74 原 + 6 新义务红线 + 1 营业账簿印花税），杜绝硬编码漂移
-        self.assertEqual(len(REDLINES), 81)
+    def test_authoritative_redline_count_is_86(self):
+        # 权威计数必须实时等于 86（74 原 + 6 义务红线 + 1 营业账簿 + 4 印花税合同类 + 1 资本弱化），杜绝硬编码漂移
+        self.assertEqual(len(REDLINES), 86)
 
     def test_six_new_redlines_exist_and_well_formed(self):
         for rid in NEW_REDLINE_IDS:
