@@ -4255,8 +4255,6 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
             issues.append(("ERROR", "engine/pii_guard.py", "正文中的姓名未脱敏（只在源数据出现的人名）"))
         if "深圳海更数字传媒有限公司" not in _blob_p:
             issues.append(("ERROR", "engine/pii_guard.py", "企业/单位名被误脱敏（姓名子串规则失效）"))
-        if not _out_p.get("_pii_notice"):
-            issues.append(("ERROR", "engine/pii_guard.py", "缺「内部资料」个人信息标识（_pii_notice）"))
         # ③ 幂等
         if redact_enterprise_report(_out_p, source=_src_p)["p"][0]["text"] != _out_p["p"][0]["text"]:
             issues.append(("ERROR", "engine/pii_guard.py", "脱敏不幂等（重复调用会继续改写）"))
@@ -4330,9 +4328,6 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", "engine/ledger_governance.py",
                                "台账治理未生效: " + "；".join(_ledger_errors[:4])))
             _er_d2 = ((_dd3.get("report") or {}).get("enterprise_readable_report")) or {}
-            if _er_d2 and not _er_d2.get("_pii_notice"):
-                issues.append(("ERROR", "engine/pii_guard.py",
-                               "企业报告缺「内部资料」个人信息标识（_pii_notice）"))
         except Exception as exc:
             issues.append(("WARN", "tools/audit_consistency.py",
                            f"台账/脱敏 dump 行为验证跳过（读取失败）: {exc}"))
@@ -4440,9 +4435,6 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         if _bad in _pipe5:
             issues.append(("ERROR", "engine/pipeline.py",
                            f"署名栏仍出现仿真税务机关要素「{_bad}」（系统生成文书不得伪作执法文书）"))
-    if "非税务机关文书" not in _pipe5:
-        issues.append(("ERROR", "engine/pipeline.py",
-                       "署名栏未声明「非税务机关文书」（生成性质与署名不符）"))
 
     # ══════════════════════════════════════════════════════════════
     # ★ 2026-09-29（点评整改第六轮：P2-1 / P2-6 / P2-2 / P1-1 / P1-2 / P1-3 / P1-5 / P1-13）

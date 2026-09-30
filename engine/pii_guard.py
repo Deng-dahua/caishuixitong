@@ -78,10 +78,6 @@ _NON_PERSON_SUFFIX = ("省", "市", "区", "县", "镇", "乡", "村", "路", "�
                       "局", "署", "校", "站", "台", "社", "部", "所", "行", "院", "厂", "店")
 
 _CJK_RE = re.compile(r"[\u4e00-\u9fa5]")
-_NOTICE = ("个人信息保护说明：本报告涉及的自然人姓名、身份证件号码、手机号、银行账号等信息，"
-           "已按《中华人民共和国个人信息保护法》最小必要与去标识化要求脱敏处理；"
-           "本报告属内部资料，不得对外提供或公开传播。如需核对具体个人身份，"
-           "请在本机构内部工作底稿中查阅。")
 
 # 脱敏后的占位序号（保证同一姓名在同一份报告里映射到同一个占位符）
 _PERSON_PLACEHOLDER = "自然人"
@@ -248,7 +244,10 @@ def redact_enterprise_report(report: Any, source: Any = None) -> Any:
     再回报告全文做字面替换 —— 这是唯一可行的通用做法。
 
     幂等：已脱敏文本不含真实姓名，重复调用不再变化。
-    返回新结构并写入 `_pii_notice`（供渲染层显示"内部资料"标识）。
+    返回新结构（脱敏已就地改写文本）。
+    ★ 2026-09-30：原同时写入 `_pii_notice`「内部资料」公告文本，按用户定调删除——
+    报告立场是税务稽查专家对企业资料作风险分析并呈现结果，不承载出具方免责/公告类内容；
+    **脱敏本身（去标识化改写）保留不变**。
     """
     if not isinstance(report, dict):
         return report
@@ -278,7 +277,6 @@ def redact_enterprise_report(report: Any, source: Any = None) -> Any:
 
     if not mapping:
         out = dict(report)
-        out["_pii_notice"] = _NOTICE
         out["_pii_stats"] = {"person_names_found": stats.get("person_names_found", 0),
                              "names_masked": 0, "sensitive_masked": 0,
                              "note": "未发现需脱敏的自然人姓名/证件号/账号。"}
@@ -286,7 +284,6 @@ def redact_enterprise_report(report: Any, source: Any = None) -> Any:
 
     out = _redact(report, mapping, stats)
     if isinstance(out, dict):
-        out["_pii_notice"] = _NOTICE
         out["_pii_stats"] = {
             "person_names_found": len(mapping),
             "names_masked": stats.get("names_masked", 0),

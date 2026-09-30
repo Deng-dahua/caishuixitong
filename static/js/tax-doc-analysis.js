@@ -2586,29 +2586,6 @@ function _freshnessStrip(r) {
     + hint + '</div>';
 }
 
-// ★ 2026-09-29（点评整改 P2-5 / P1-11）：文书性质声明 + 个人信息保护标识 —— 唯一渲染点。
-//   根因：此前只在文末写一句免责，正文开头无任何性质提示，读者易把系统输出误当作
-//   税务机关文书；个人信息脱敏也毫无标识（企业不知道报告已脱敏、也不知道属内部资料）。
-//   两份编辑版、导出 HTML、打印/PDF 全部走这里（导出净化会保留本块，它不带 data-export-exclude）。
-function _docNoticesHtml(report) {
-  var er = (report && report.enterprise_readable_report) || {};
-  var h = '<div class="doc-notice" style="margin:0 0 14px;padding:10px 14px;'
-    + 'border:1px solid #f59e0b;background:#fffbeb;border-radius:8px;font-size:12.5px;'
-    + 'line-height:1.75;color:#7c2d12">'
-    + '<div style="font-weight:700;margin-bottom:4px">文书性质声明</div>'
-    + '本文书由企业税务风险检查系统自动生成，是<b>检查工作底稿与风险提示</b>，'
-    + '不是税务机关出具的税务文书，不具备税务处理、行政处罚或强制执行效力；'
-    + '所列事项均为待核实事实，任何处理决定须由有权机关依法作出。</div>';
-  if (er._pii_notice) {
-    h += '<div class="doc-notice" style="margin:0 0 14px;padding:10px 14px;'
-      + 'border:1px solid #0ea5e9;background:#f0f9ff;border-radius:8px;font-size:12.5px;'
-      + 'line-height:1.75;color:#0c4a6e">'
-      + '<div style="font-weight:700;margin-bottom:4px">个人信息保护标识 · 内部资料</div>'
-      + esc(String(er._pii_notice)) + '</div>';
-  }
-  return h;
-}
-
 function renderTaxDocReport(r) {
 
 
@@ -2818,7 +2795,7 @@ function renderTaxDocReport(r) {
   }
 
 
-  html = _freshnessStrip(r) + _docNoticesHtml(r) + html;
+  html = _freshnessStrip(r) + html;
 
   area.innerHTML = html;
 
