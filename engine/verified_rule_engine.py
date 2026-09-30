@@ -1628,7 +1628,7 @@ def _scan_payroll_social(data, spec):
                    "还是未依法参保。").format(len(month_gaps), gap_txt)
     detail += "明细表已逐行列出每位员工每个月的工资与社保基数对应关系，可据此逐人逐月核对。"
 
-    return [_rule_finding(
+    _fs = [_rule_finding(
         spec,
         detail,
         {
@@ -1644,6 +1644,16 @@ def _scan_payroll_social(data, spec):
         },
         spec["required_sources"],
     )]
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-PAY-001「工资表人数与社保参保人数不符」。
+    #   本扫描器即该红线的检测器（按姓名+月份逐人逐月双向匹配工资名册与社保清单）。
+    #   仅认领要件①（工资表列支人数与社保参保人数存在差异）；要件②③④需豁免身份/行业基准/离职核查佐证，本扫描器未计算，不认领（宁缺勿错）。
+    _fs[0]["redline_id"] = "RL-PAY-001"
+    _fs[0]["constituent_hits"] = [{
+        "index": 1,
+        "evidence": f"工资名册列支{len(salary_names)}人、社保参保{len(social_names)}人，人员级未能双向匹配{mismatch}人"
+                    f"（占合并人员范围{mismatch_ratio:.1%}），其中仅在工资名册{mismatch and len(only_salary) or 0}人",
+    }]
+    return _fs
 
 
 def _inventory_value(row, names):
@@ -2771,6 +2781,21 @@ def _scan_individual_counterparty(data, spec):
             spec, suppliers, sup_total, pur_scope, model,
             pur_scope_label=pur_scope_label,
         ))
+
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-FUND-001「公转私大额频繁支出：变相分配与个税风险」。
+    #   本扫描器即该红线的检测器之一（个人/个体户交易对手、尤其与六员/股东等关联自然人重合者，
+    #   构成公私账户资金混同与公转私嫌疑）。红线判定优先取发现自声明的 redline_id → 走 mode="declared" 必然归位。
+    #   仅对 genuine 风险发现（priority="调查优先级" 且非 normal_business_pattern）认领要件①；
+    #   正常经营模式判定/资料盲区/待澄清发现不认领红线（宁缺勿错，不声称未计算的事实）。
+    for _f in findings:
+        if _f.get("finding_status") == "normal_business_pattern":
+            continue
+        if _f.get("priority") == "调查优先级":
+            _f["redline_id"] = "RL-FUND-001"
+            _f["constituent_hits"] = [{
+                "index": 1,
+                "evidence": "检出个人/个体工商户交易对手，其中与六员/股东等关联自然人重合者构成公私账户资金混同与公转私嫌疑（详见发现正文）",
+            }]
     return findings
 
 
@@ -3005,7 +3030,7 @@ def _scan_fund_recirculation(data, spec):
         "如为借款，提供借款协议与利息处理；如为分红，说明是否已履行「利息、股息、红利所得」20%个税代扣代缴；"
         "如为报销/代垫，提供对应业务凭证。资料充分则本项排除。"
     )
-    return [_rule_finding(
+    _fs = [_rule_finding(
         spec,
         detail,
         {
@@ -3027,6 +3052,17 @@ def _scan_fund_recirculation(data, spec):
         spec["required_sources"],
         priority="调查优先级",
     )]
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-FUND-002「资金回流：付款后经个人账户回流」。
+    #   本扫描器即该红线的检测器（企业↔个人大额整数转存转取是资金回流/公私混同的可量化信号）；
+    #   此前未声明归属 → 被算作盲区、运行期靠软匹配。声明后 _map_finding 走 mode="declared" 必然归位。
+    #   仅认领已核对的要件①（企业账户与个人账户大额整数转存转取）；要件②③④需完整资金链条/合同物流佐证，本扫描器未计算，不认领（宁缺勿错）。
+    _fs[0]["redline_id"] = "RL-FUND-002"
+    _fs[0]["constituent_hits"] = [{
+        "index": 1,
+        "evidence": f"企业账户与{len(signals)}个个人账户发生大额（≥50万）整数转存转取（合计转出"
+                    f"{sum(agg['debit'] for agg in person_txs.values()):,.0f}元），资金流向由银行流水直接复算",
+    }]
+    return _fs
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -4011,6 +4047,7 @@ def _scan_related_party_pricing(data, spec):
                 })
 
     findings = []
+    _dev_f = None
     if deviations:
         detail = (
             f"已经核实的事实是：同一品名、同单位的交易中检出{len(deviations)}笔，其单价相对同批交易中位数偏离≥{_PRICE_DEVIATION_RATIO:.0%}"
@@ -4022,7 +4059,7 @@ def _scan_related_party_pricing(data, spec):
             "如为非关联方，说明价差合理的商业理由（批量、账期、质量等级、运费承担等）；"
             "如为关联方，准备同期资料举证定价符合独立交易原则。"
         )
-        findings.append(_rule_finding(
+        _dev_f = _rule_finding(
             spec, detail,
             {"deviation_count": len(deviations), "threshold": _PRICE_DEVIATION_RATIO,
              "examples": deviations[:10],
@@ -4034,7 +4071,8 @@ def _scan_related_party_pricing(data, spec):
                  "偏离交易对手方的关联关系说明；非关联则提供价差商业合理性证据；关联则提供同期资料。",
              ]},
             spec["required_sources"], priority="调查优先级",
-        ))
+        )
+        findings.append(_dev_f)
     # 数据完整性提示：若未提供股权穿透，无法做关联定性
     if not related:
         findings.append(_rule_finding(
@@ -4048,6 +4086,17 @@ def _scan_related_party_pricing(data, spec):
              "to_prove": ["请补充关联方清单或授权接入工商股权穿透数据。"]},
             spec["required_sources"], priority="提示",
         ))
+    # ★ 2026-09-29（#448 检出能力）：显式认领 RL-CIT-001「关联交易异常：购销闭环与六员重叠」。
+    #   本扫描器即该红线要件③（交易价格与市场价存在偏离/无合理商业目的）的检测器。
+    #   仅认领要件③；要件①②④需六员重叠/购销占比/同期资料佐证，本扫描器未计算，不认领（宁缺勿错）。
+    #   数据完整性提示（priority="提示"）不认领红线——它不是风险嫌疑，而是资料覆盖问题。
+    if _dev_f is not None:
+        _dev_f["redline_id"] = "RL-CIT-001"
+        _dev_f["constituent_hits"] = [{
+            "index": 3,
+            "evidence": f"同一品名同单位交易中检出{len(deviations)}笔单价偏离同批中位数≥{_PRICE_DEVIATION_RATIO:.0%}"
+                        f"（最大偏离{deviations[0]['deviation']:.0%}），价格离散度由发票单价直接复算",
+        }]
     return findings
 
 
@@ -4333,13 +4382,30 @@ def _scan_city_constr_tax(data, spec):
             "需要企业举证说明的事项如下：请提供：城建税及附加的申报表或合并申报明细、完税凭证；"
             "企业实际注册地区（据以核定适用城建税率）；如确已申报，说明申报路径以便系统核验。"
         )
-        return [_rule_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
+        _fs = [_rule_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
+        # ★ 2026-09-29（#448 检出能力）：显式认领 RL-OTH-003「附加税费计税依据与增值税不匹配」。
+        #   本扫描器即该红线的检测器（城建税及附加须随增值税附征，二者存在法定勾稽）。
+        #   仅认领要件①（附加税费计税依据与实缴增值税存在差异）；要件②③④需免抵退税/退库等佐证，本扫描器未计算，不认领（宁缺勿错）。
+        _fs[0]["redline_id"] = "RL-OTH-003"
+        _fs[0]["constituent_hits"] = [{
+            "index": 1,
+            "evidence": f"实缴增值税{paid_vat:,.2f}元，按法定附征率测算应随征城建税及附加约{est_total:,.2f}元"
+                        f"（本轮已取得的申报表中未含附加税费申报字段，差异无法核实）",
+        }]
+        return _fs
     if declared_supp < est_total * 0.8:
         detail = (
             f"测算随征附加税约{est_total:,.2f}元，申报仅{declared_supp:,.2f}元，存在少报风险"
             "（注意：县城/乡村城建税率低于市区，须按实际地区核对）。"
         )
-        return [_rule_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
+        _fs = [_rule_finding(spec, detail, metrics, spec["required_sources"], priority="调查优先级")]
+        # ★ 2026-09-29（#448 检出能力）：显式认领 RL-OTH-003「附加税费计税依据与增值税不匹配」要件①。
+        _fs[0]["redline_id"] = "RL-OTH-003"
+        _fs[0]["constituent_hits"] = [{
+            "index": 1,
+            "evidence": f"测算随征附加税约{est_total:,.2f}元，申报仅{declared_supp:,.2f}元，计税依据与实缴增值税存在差异",
+        }]
+        return _fs
     return []
 
 
@@ -5386,12 +5452,22 @@ def _scan_mixed_payroll(data, spec):
             "个人所得税扣缴申报表（核验上述私户支付是否已并入全员全额扣缴）",
             "工资发放明细与员工签收记录",
         ]
-        return [_rule_finding(spec, detail, {
+        _fs = [_rule_finding(spec, detail, {
             "book_payroll_total": round(total_payroll, 2),
             "public_account_payroll": round(public_payroll, 2),
             "private_paid_records": private_paid[:20],
             "demand_docs": demand_docs,
         }, sources, priority="调查优先级")]
+        # ★ 2026-09-29（#448 检出能力）：显式认领 RL-INC-002「个人账户收取经营性款项：公私混同隐匿收入」。
+        #   本扫描器即该红线要件①（六员/员工个人账户存在经营性收款）的检测器之一（私户直接支付薪酬）。
+        #   仅认领要件①；要件②③④需客户对应/未入账/微信支付宝等佐证，本路径未计算，不认领（宁缺勿错）。
+        _fs[0]["redline_id"] = "RL-INC-002"
+        _fs[0]["constituent_hits"] = [{
+            "index": 1,
+            "evidence": f"银行流水显示以员工个人账户直接支付的工资款项{len(private_paid)}笔、合计"
+                        f"{sum(p['amount'] for p in private_paid):,.2f}元（六员/员工个人账户存在经营性收款）",
+        }]
+        return _fs
 
     # 2b 公户工资支出明显小于账面 → 拆分盲区
     gap = total_payroll - public_payroll
@@ -5408,13 +5484,21 @@ def _scan_mixed_payroll(data, spec):
             "个人所得税扣缴申报表（全员全额扣缴明细，核验私户支付是否已如实申报）",
             "工资发放明细表与员工签收记录",
         ]
-        return [_rule_finding(spec, detail, {
+        _fs = [_rule_finding(spec, detail, {
             "book_payroll_total": round(total_payroll, 2),
             "public_account_payroll": round(public_payroll, 2),
             "unexplained_gap": round(gap, 2),
             "gap_ratio": round(gap / total_payroll, 4),
             "demand_docs": demand_docs,
         }, sources, priority="调查优先级")]
+        # ★ 2026-09-29（#448 检出能力）：显式认领 RL-INC-002「个人账户收取经营性款项：公私混同隐匿收入」要件①。
+        _fs[0]["redline_id"] = "RL-INC-002"
+        _fs[0]["constituent_hits"] = [{
+            "index": 1,
+            "evidence": f"账面应发工资{total_payroll:,.2f}元，对公账户工资类支出仅{public_payroll:,.2f}元，"
+                        f"差额{gap:,.2f}元（占账面工资{gap/total_payroll:.0%}）未见对公支付痕迹（私户支付敞口）",
+        }]
+        return _fs
     return []
 
 

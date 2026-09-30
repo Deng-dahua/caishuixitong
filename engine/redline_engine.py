@@ -350,6 +350,22 @@ def run_redline_detection(findings: List[Dict],
                 "numbers": clue.get("numbers", []),
                 "samples": clue.get("samples", []),
             })
+            # ★ 2026-09-29（#448 接线升级 / 违「静默吃掉发现」红线）：红线配对是 first-finder-wins，
+            #   match_mode 在建入口（L336）只取**首条**映射发现的配对方式。若先到的是模糊匹配
+            #   （mode="matched"，来自 match_redline_grounded 兜底），而本条发现是**声明型**
+            #   （VR 显式写了 redline_id → _map_finding 返回 mode="declared"，才是该红线的真实检测器），
+            #   必须把配对方式升为 declared，并以声明型发现的逐要件命中覆盖 _DEFAULT_HIT_INDEX 兜底
+            #   （兜底只填首个序号、论证更弱，留着会把"发现级证据"伪装成"逐要件核对"）。
+            #   否则声明型检测器虽已接好，运行期却仍被标成模糊匹配，① 检出能力被静默低估。
+            if minfo.get("mode") == "declared":
+                entry["match_mode"] = "declared"
+                if minfo.get("score") is not None:
+                    entry["match_score"] = minfo.get("score")
+                entry["match_reasons"] = list(minfo.get("reasons") or [])
+                entry["match_materials"] = list(minfo.get("materials") or [])
+                # 声明型发现是权威来源：以其 argumentation / 逐要件命中覆盖首条（模糊）发现的兜底命中
+                entry["argumentation"] = arg
+                entry["_constituent_hits"] = list(arg.get("constituent_hits") or [])
             # 归并时取更强的信号：闭合度更高者为主证据链，置信度取最高
             if ev.get("closure", 0) > entry["closure"]:
                 entry["evidence_chain"] = ev

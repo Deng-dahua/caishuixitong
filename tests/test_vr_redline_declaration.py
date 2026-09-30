@@ -42,6 +42,13 @@ DECLARED = [
     ("VR040", "RL-CIT-007"),    # 职工福利费扣除超限
     ("VR063", "RL-INC-003"),    # 预收账款、合同负债长期挂账
     ("VR067", "RL-OTH-006"),    # 销售折扣折让异常
+    # ── 第二批（2026-09-29 #448 运行期软匹配→声明确认）：先查"是否已有 VR 仅缺归属" ──
+    ("VR024", "RL-FUND-001"),   # 个人/个体户供应商客户交易核验
+    ("VR025", "RL-FUND-002"),   # 资金回流与公私混同检测
+    ("VR043", "RL-OTH-003"),    # 城建税及附加随增值税附征勾稽
+    ("VR005", "RL-PAY-001"),    # 工资名册与社会保险人员范围差异
+    ("VR037", "RL-CIT-001"),    # 关联交易价格偏离（转让定价探针）
+    ("VR056", "RL-INC-002"),    # 公私混同发薪/私户支付薪酬
 ]
 
 
@@ -118,3 +125,114 @@ def test_vr067_discount_anomaly():
     fs = _run("VR067", {"sal_invs": sal})
     assert fs, "折扣/折让 6 万（无红冲标识、无配平）应触发"
     _assert_declared(fs[0], "RL-OTH-006")
+
+
+# ───────────────────────── 第二批行为测试 ─────────────────────────
+def test_vr025_fund_recirculation():
+    """企业↔个人大额整数转存转取 → RL-FUND-002。"""
+    bank = [{"date": "20250101", "counterparty": "张三", "credit": 0, "debit": 600000,
+             "summary": "转存"}]
+    fs = _run("VR025", {"bank_txs": bank, "target_entity": {}})
+    assert fs, "企业向个人大额整数转出应触发"
+    _assert_declared(fs[0], "RL-FUND-002")
+    assert fs[0]["constituent_hits"][0]["index"] == 1
+
+
+def test_vr043_city_constr_tax():
+    """实缴增值税存在、附加税申报字段缺失 → RL-OTH-003 要件①。"""
+    decls = [{"period": "202501", "payable_tax": 100000}]
+    fs = _run("VR043", {"declaration": decls})
+    assert fs, "实缴增值税应随征附加税，差异无法核实应触发"
+    _assert_declared(fs[0], "RL-OTH-003")
+    assert fs[0]["constituent_hits"][0]["index"] == 1
+
+
+def test_vr005_payroll_social():
+    """工资名册与社保参保人数不符 → RL-PAY-001 要件①。"""
+    salaries = [{"name": f"A{i}", "salary": 10000} for i in range(1, 7)]
+    social = [{"name": f"B{i}", "base": 5000} for i in range(1, 6)]
+    fs = _run("VR005", {"salaries": salaries, "social_security": social})
+    assert fs, "工资名册 6 人、社保 5 人（无重叠）应触发"
+    _assert_declared(fs[0], "RL-PAY-001")
+    assert fs[0]["constituent_hits"][0]["index"] == 1
+
+
+def test_vr037_related_party_pricing():
+    """同品名同单位交易单价偏离 ≥40% → RL-CIT-001 要件③。"""
+    sal = [
+        {"goods": "A", "unit": "件", "price": 100, "buyer": "甲公司", "invoice_no": "I1"},
+        {"goods": "A", "unit": "件", "price": 200, "buyer": "甲公司", "invoice_no": "I2"},
+        {"goods": "A", "unit": "件", "price": 300, "buyer": "甲公司", "invoice_no": "I3"},
+    ]
+    fs = _run("VR037", {"sal_invs": sal, "pur_invs": [], "related_parties": [{"name": "甲公司"}]})
+    assert fs, "3 笔同品名同单位单价离散应触发"
+    _assert_declared(fs[0], "RL-CIT-001")
+    assert fs[0]["constituent_hits"][0]["index"] == 3
+
+
+def test_vr056_mixed_payroll():
+    """员工个人账户直接支付薪酬 → RL-INC-002 要件①。"""
+    salaries = [{"name": f"C{i}", "salary": 10000} for i in range(1, 7)]
+    bank = [{"date": "20250101", "counterparty": "C1", "credit": 0, "debit": 5000,
+             "summary": "工资"}]
+    fs = _run("VR056", {"salaries": salaries, "bank_txs": bank})
+    assert fs, "私户直接支付薪酬应触发"
+    _assert_declared(fs[0], "RL-INC-002")
+    assert fs[0]["constituent_hits"][0]["index"] == 1
+
+
+def test_vr024_individual_counterparty():
+    """个人客户累计金额异常巨大（非消费级）→ RL-FUND-001 要件①。"""
+    sal = [{"goods": "设备", "amount": 5000000, "buyer": "张三", "invoice_no": "X1"}]
+    fs = _run("VR024", {"sal_invs": sal, "pur_invs": []})
+    assert fs, "个人客户累计 500 万应触发"
+    declared = [f for f in fs if f.get("redline_id") == "RL-FUND-001"]
+    assert declared, "风险发现应认领 RL-FUND-001"
+    _assert_declared(declared[0], "RL-FUND-001")
+    assert declared[0]["constituent_hits"][0]["index"] == 1
+
+
+def test_run_redline_detection_declared_upgrades_matched():
+    """回归闸门（2026-09-29 #448 接线升级）：红线配对 first-finder-wins，
+    若模糊匹配（mode=matched）先到、声明型发现（mode=declared）后到同一红线，
+    match_mode 必须升为 declared，并以声明型发现的逐要件命中覆盖 _DEFAULT_HIT_INDEX 兜底。
+
+    若此断言被改回"matched"，则已声明归属的真实检测器虽接好，运行期仍被标成模糊匹配，
+    ① 检出能力被静默低估 —— 这正是本轮要修的根因。
+    """
+    mats = ["银行流水（含个人账户）"]
+    # 模糊匹配发现：无 redline_id，靠 match_hints（"公私混同"）命中 RL-INC-002 → mode=matched
+    fuzzy = {
+        "type": "个人账户收款核查",
+        "domain": "收入",
+        "level": "高风险",
+        "detail": "个人账户收取经营性款项，公私混同，款项未入公司账未申报纳税",
+        "description": "检出法定代表人个人账户收取经营性款项，公私混同",
+    }
+    # 声明型发现：VR56 已显式认领 RL-INC-002 → mode=declared（后到）
+    declared = {
+        "type": "公私混同发薪",
+        "domain": "收入",
+        "level": "高风险",
+        "detail": "银行流水显示以员工个人账户直接支付的工资款项",
+        "redline_id": "RL-INC-002",
+        "constituent_hits": [{
+            "index": 1,
+            "evidence": "以员工个人账户直接支付的工资款项合计X元（六员个人账户存在经营性收款）",
+        }],
+    }
+    out = redline_engine.run_redline_detection(
+        [fuzzy, declared],
+        engine_data=None,
+        material_readiness={"provided": mats},
+        pipeline_log=None,
+    )
+    susps = out.get("suspicions") or []
+    inc002 = [s for s in susps if s.get("redline_id") == "RL-INC-002"]
+    assert inc002, "RL-INC-002 应被触发"
+    s = inc002[0]
+    assert s["match_mode"] == "declared", (
+        f"声明型发现后到应升为 declared，实际={s['match_mode']}")
+    # 声明型发现的逐要件命中（index=1）应保留，而非仅兜底首序号
+    hits = [c.get("index") for c in (s.get("argumentation") or {}).get("constituent_hits") or []]
+    assert 1 in hits, f"声明型发现的逐要件命中应保留：{hits}"
