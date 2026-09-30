@@ -632,27 +632,12 @@ REPORT_EDITING_STANDARDS: Dict[str, Dict[str, Any]] = {
             "任何派生编辑版都不得反向改写本版的任何字段。",
         ],
     },
-    "金字塔原理编辑版": {
-        "code": "pyramid",
-        "is_baseline": False,
-        "derived_from": "税务稽查专家工作底稿版",
-        "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
-        "principle": "结论先行 / MECE 分组 / 行动标题 / SCQA 开篇 / 严重度排序 / 台账为基座。",
-        "constraints": [
-            "只读转换：绝不增删发现；不改金额、结论、判定、等级。",
-            "新增的 umbrella（归纳句）/ 统领句 / 行动标题必须完全由现有字段组合，"
-            "禁引新事实、新定性。",
-            "可逆：从工作底稿版 + pyramid_edition 派生字段可无损还原工作底稿版。",
-            "通用：分组键从已有字段（title / suspect / risk_level / taxes / trace_id）"
-            "派生，不按企业硬编码。",
-        ],
-    },
 }
 
 # 报告编辑版代码（与 REPORT_EDITING_STANDARDS[].code 一一对应）
-REPORT_EDITION_CODES = ("working_paper", "pyramid")
+REPORT_EDITION_CODES = ("working_paper",)
 # 报告编辑版中文名（与 REPORT_EDITING_STANDARDS 的键一一对应）
-REPORT_EDITION_NAMES = ("税务稽查专家工作底稿版", "金字塔原理编辑版")
+REPORT_EDITION_NAMES = ("税务稽查专家工作底稿版",)
 # 默认编辑版：工作底稿版（基线，内容 + 结构原样）
 DEFAULT_REPORT_EDITION = "税务稽查专家工作底稿版"
 # 缓存一致性闸门允许复用的 report_edition 取值

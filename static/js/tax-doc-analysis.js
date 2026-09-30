@@ -56,8 +56,6 @@ function renderTaxDocAnalysis(container) {
     
 
 
-
-
     // ── 资料上传区 ──
 
 
@@ -90,17 +88,12 @@ function renderTaxDocAnalysis(container) {
     + '<button class="btn-toolbar" onclick="document.getElementById(\'tda-file-input\').click()" style="cursor:pointer">上传资料</button>'
 
 
-
-
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析并生成过程报告</button>'
 
     + '<button class="btn-toolbar" onclick="analyzeTaxDocs(true)" id="tda-reanalyze-btn" title="忽略缓存，强制全量重新计算并覆盖旧报告">重新计算（强制）</button>'
 
 
-
     + '<button class="btn-toolbar" id="tda-export-pdf-btn" onclick="exportTaxDocReportPdf()">导出PDF</button>'
-
-
 
 
     // 2026-09-26 用户要求：所有按钮样式统一（原"缓存"为灰色小字，与其他不一致）
@@ -2070,7 +2063,6 @@ function renderQualityReport(qr, allF) {
 // ==================== 一键分析（异步任务机制） ====================
 
 
-
 // 安全JSON解析：处理服务器返回HTML错误页的情况
 async function _safeJson(response, context) {
   var text = await response.text();
@@ -2594,86 +2586,6 @@ function _freshnessStrip(r) {
     + hint + '</div>';
 }
 
-
-// ★ 2026-09-29（点评整改 P2-1 / P2-6）：**决策层摘要（3 分钟版）+ 计数映射表** —— 唯一渲染点。
-//   外部点评：全文 11.3 万字、模板重复约四成，缺 3~5 页决策层摘要；且四套计数
-//   （规则库/红线库/台账/疑点）无映射，读者以为互相矛盾。数据由后端
-//   `engine/executive_brief.py` 只读派生（不新增风险事项、不改结论），前端只呈现。
-function _executiveBriefHtml(report) {
-  var er = (report && report.enterprise_readable_report) || {};
-  var eb = er.executive_brief || {};
-  if (!eb.available) return '';
-  var h = '<div class="exec-brief" style="margin:0 0 18px;padding:16px 18px;border:2px solid #1e3a8a;'
-    + 'border-radius:10px;background:#f8faff">'
-    + '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">'
-    + '<h2 style="font-size:16px;font-weight:800;color:#1e3a8a;margin:0">'
-    + esc(eb.title || '决策层摘要（3 分钟版）') + '</h2>'
-    + '<span style="font-size:12px;color:#64748b">结论先行 · 只讲重点 · 不改结论</span></div>';
-  h += '<p class="i2" style="margin:10px 0 8px;line-height:1.95"><strong>一句话结论：</strong>'
-    + esc(eb.one_line || '') + '</p>';
-  // 关键数字面板
-  var mets = eb.metrics || [];
-  if (mets.length) {
-    h += '<div class="cap-metrics" style="display:flex;flex-wrap:wrap;gap:10px;margin:10px 0 14px">';
-    mets.forEach(function(m){
-      h += '<div style="min-width:150px;flex:1 1 150px;border:1px solid #e2e8f0;border-radius:6px;'
-        + 'padding:8px 12px;background:#fff">'
-        + '<div style="font-size:12px;color:#475569;margin-bottom:4px">' + esc(m['名称']) + '</div>'
-        + '<div style="font-size:14px;font-weight:700;color:#1e3a8a;word-break:break-all">'
-        + esc(m['数值']) + '</div></div>';
-    });
-    h += '</div>';
-  }
-  // 最要紧的 N 项
-  var top = eb.top_items || [];
-  if (top.length) {
-    h += '<div style="font-weight:700;margin:10px 0 6px">最需要先处理的事项</div>'
-      + '<table class="tbl"><thead><tr><th style="width:56px">项</th><th>风险事项</th>'
-      + '<th style="width:88px">等级</th><th style="width:150px">潜在敞口</th>'
-      + '<th>下一步（企业要做的事）</th></tr></thead><tbody>';
-    top.forEach(function(t){
-      h += '<tr><td>第' + esc(String(t.seq || '')) + '项</td><td>' + esc(t['标题'] || '') + '</td>'
-        + '<td>' + esc(t['等级'] || '') + '</td><td>' + esc(t['敞口'] || '') + '</td>'
-        + '<td>' + esc(t['企业要做的事'] || '') + '</td></tr>';
-    });
-    h += '</tbody></table>';
-  }
-  // 计数映射表（P2-6）
-  var cm = eb.counts_map || [];
-  if (cm.length) {
-    h += '<details style="margin:12px 0 4px"><summary style="cursor:pointer;color:#1d4ed8;'
-      + 'font-size:13px;font-weight:600">计数映射表（每个数字是什么口径、彼此什么关系）'
-      + '<span class="on-screen-only">，点击展开</span></summary>'
-      + '<div style="overflow-x:auto;margin-top:6px"><table class="tbl"><thead><tr>'
-      + '<th style="width:190px">口径</th><th style="width:110px">数值</th><th>来源</th>'
-      + '<th>与其他数字的关系</th></tr></thead><tbody>';
-    cm.forEach(function(r){
-      h += '<tr><td>' + esc(r['口径'] || '') + '</td><td>' + esc(r['数值'] || '') + '</td>'
-        + '<td>' + esc(r['来源'] || '') + '</td><td>' + esc(r['关系'] || '') + '</td></tr>';
-    });
-    h += '</tbody></table></div></details>';
-  }
-  // 下一步动作 + 边界
-  var acts = eb.actions || [];
-  if (acts.length) {
-    h += '<div style="font-weight:700;margin:10px 0 4px">下一步动作</div><ul style="margin:0 0 8px;padding-left:22px;line-height:1.95">';
-    acts.forEach(function(a){ h += '<li>' + esc(a) + '</li>'; });
-    h += '</ul>';
-  }
-  var bnd = eb.boundary || [];
-  if (bnd.length) {
-    h += '<div style="font-size:12.5px;color:#7c2d12;background:#fffbeb;border:1px solid #f59e0b;'
-      + 'border-radius:6px;padding:8px 12px;line-height:1.9">';
-    bnd.forEach(function(b){ h += '<div>· ' + esc(b) + '</div>'; });
-    h += '</div>';
-  }
-  if (eb.note) {
-    h += '<p class="i2" style="font-size:12px;color:#64748b;margin:8px 0 0">' + esc(eb.note) + '</p>';
-  }
-  h += '</div>';
-  return h;
-}
-
 // ★ 2026-09-29（点评整改 P2-5 / P1-11）：文书性质声明 + 个人信息保护标识 —— 唯一渲染点。
 //   根因：此前只在文末写一句免责，正文开头无任何性质提示，读者易把系统输出误当作
 //   税务机关文书；个人信息脱敏也毫无标识（企业不知道报告已脱敏、也不知道属内部资料）。
@@ -2906,7 +2818,7 @@ function renderTaxDocReport(r) {
   }
 
 
-  html = _freshnessStrip(r) + _docNoticesHtml(r) + _executiveBriefHtml(r) + html;
+  html = _freshnessStrip(r) + _docNoticesHtml(r) + html;
 
   area.innerHTML = html;
 
@@ -5464,142 +5376,6 @@ function _renderResolutionLedger(ledger) {
 }
 
 
-/**
- * 报告编辑版切换条（2026-09-26）。
- * 纯前端切换：两种编辑版的数据都在同一份企业报告载荷里，切换只重渲染、不重算。
- */
-function _renderEditionToggle() {
-  var cur = (window._tdaReportEdition === 'pyramid') ? 'pyramid' : 'working_paper';
-  function _btn(code, label, sub) {
-    var active = (cur === code);
-    return '<button type="button" data-edition="' + code + '" onclick="_tdaSwitchEdition(\'' + code + '\')" '
-      + 'style="cursor:pointer;text-align:left;border:1px solid ' + (active ? '#1d4ed8' : '#d1d5db')
-      + ';background:' + (active ? '#eff6ff' : '#fff') + ';color:' + (active ? '#1d4ed8' : '#374151')
-      + ';border-radius:8px;padding:7px 13px;margin-right:8px;font-size:13px;line-height:1.5">'
-      + '<strong>' + esc(label) + '</strong><br><span style="font-size:11.5px;color:#64748b">' + esc(sub) + '</span></button>';
-  }
-  var html = '<div id="tda-edition-toggle" style="margin:0 0 18px;padding:12px 14px;border:1px dashed #cbd5e1;border-radius:10px;background:#fbfdff">'
-    + '<div style="font-size:12.5px;color:#475569;margin-bottom:8px">报告编辑版（同一份检查结论的两种组织方式，切换不重新计算）：</div>'
-    + _btn('working_paper', '税务稽查专家工作底稿版', '检查组工作底稿·六章文书式')
-    + _btn('pyramid', '金字塔原理编辑版', '结论先行·MECE分组·SCQA')
-    + '</div>';
-  return html;
-}
-
-
-/** 前端编辑版切换：仅改状态并重渲染，不重新计算。 */
-function _tdaSwitchEdition(code) {
-  window._tdaReportEdition = (code === 'pyramid') ? 'pyramid' : 'working_paper';
-  if (window._reportData) renderTaxDocReport(window._reportData);
-}
-
-
-/**
- * 渲染「金字塔原理编辑版」正文（2026-09-26）。
- * 数据来源：report.pyramid_edition（后端只读派生）+ report 基线字段（台账/疑点原文）。
- * 这是对工作底稿版的**只读结构化重组**：结论先行、按风险维度 MECE 分组、行动标题、
- * SCQA 开篇、严重度排序，并以 resolution_ledger（全部风险事项台账）为基座。
- * 不新增任何发现，不改金额/结论/判定/等级——改写只发生在「怎么组织呈现」。
- */
-function _buildPyramidBody(r, dateStr) {
-  var report = r.enterprise_readable_report || {};
-  var pe = report.pyramid_edition || {};
-  // 防御：若后端未派生金字塔版（极旧缓存），回退工作底稿版渲染
-  if (!pe || !pe.groups) {
-    return _buildEnterpriseReadableBody(r, dateStr);
-  }
-  var identity = report.identity || {};
-  var summary = report.summary || {};
-  var problems = report.confirmed_problems || [];
-  var ledger = report.resolution_ledger || {};
-  var statements = report.report_statement || [];
-
-  // seq → 疑点原文（用于分组内引用疑点事实，不改写）
-  var probBySeq = {};
-  problems.forEach(function(p){ probBySeq[String(p.seq)] = p; });
-
-  function _lvBadge(lv) {
-    var s = String(lv || '');
-    var cls = (s.indexOf('高') >= 0) ? 'lv-high' : (s.indexOf('中') >= 0 ? 'lv-mid'
-      : (s.indexOf('低') >= 0 ? 'lv-low' : 'lv-pend'));
-    return '<span class="lv-badge ' + cls + '">' + esc(s || '未分级') + '</span>';
-  }
-
-  var html = _capabilityStyles();
-
-  // ── 封面（标注编辑版）──
-  html += '<div class="cover"><h1>涉税风险检查工作报告</h1><div class="sub">'
-    + '（金字塔原理编辑版 · 同一检查结论的结构化重组）<br>'
-    + '报告送达对象：被检查企业及其负责人<br>'
-    + '被检查企业：' + esc(identity.subject_name || '未填写企业名称') + '<br>'
-    + '统一社会信用代码：' + esc(identity.taxpayer_id || '未填写') + '<br>'
-    + '检查期间：' + esc(identity.period || '以本轮资料记载期间为准') + '<br>'
-    + '检查轮次：第' + esc(identity.analysis_round || 1) + '轮<br>'
-    + '报告日期：' + esc(report.generated_date || dateStr)
-    + '</div></div>';
-
-  // ── SCQA 开篇（结论先行）──
-  var scqa = pe.scqa || {};
-  html += '<h2>开篇：结论先行（SCQA）</h2>';
-  html += '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px 20px;background:#fff;line-height:1.9">';
-  html += '<p class="i2"><strong>情境（S）：</strong>' + esc(scqa.situation || '') + '</p>';
-  html += '<p class="i2"><strong>冲突（C）：</strong>' + esc(scqa.complication || '') + '</p>';
-  html += '<p class="i2"><strong>问题（Q）：</strong>' + esc(scqa.question || '') + '</p>';
-  html += '<p class="i2"><strong>回答（A · 本轮核心结论）：</strong>' + esc(scqa.answer || '') + '</p>';
-  html += '</div>';
-
-  // ★ 2026-09-27：检查情况总述（与工作底稿版同源，仅呈现，不改写）。
-  var ioP = report.inspection_overview || {};
-  var ioPParas = ioP.paragraphs || [];
-  if (ioPParas.length) {
-    html += '<h2>检查情况总述（总览）</h2>';
-    html += ioPParas.map(function(t){ return '<p class="i2">' + esc(t) + '</p>'; }).join('');
-  }
-
-  // ── 一、按风险维度 MECE 分组（umbrella + 行动标题，严重度排序）──
-  html += '<h2 id="pyramid-groups">一、风险分组结论（按维度 MECE 分组）</h2>';
-  html += '<p class="i2">下列分组为对同一批税务红线疑点的结构化重组：每组先给归纳句（umbrella），'
-    + '再按严重度列出行动标题；各项的原文事实、金额、结论与解除方式以「全部风险事项台账」为基座（见下文）。</p>';
-  (pe.groups || []).forEach(function(g, gi){
-    html += '<h3>' + (gi + 1) + '、' + esc(g.dimension)
-      + ' <span style="font-size:12px;color:#64748b">（最高等级：' + _lvBadge(g.max_level) + '）</span></h3>';
-    html += '<p class="i2" style="background:#f8fafc;border-left:3px solid #2563eb;padding:8px 12px;font-size:13px;line-height:1.9">'
-      + esc(g.umbrella) + '</p>';
-    html += '<ul style="margin:8px 0 8px 20px;padding:0">';
-    (g.seqs || []).forEach(function(s){
-      var p = probBySeq[String(s)];
-      var title = (pe.action_titles && pe.action_titles[String(s)]) || (p ? p.title : ('第' + s + '项'));
-      html += '<li style="margin:6px 0">'
-        + _lvBadge(p ? p.risk_level : '')
-        + ' ' + esc(title);
-      if (p && p.suspect) {
-        // ★ 2026-09-26：结论部分不限制字数（用户要求），去掉 120 字截断，展示完整涉嫌描述。
-        html += ' <span style="color:#64748b;font-size:12.5px">— ' + esc(String(p.suspect)) + '</span>';
-      }
-      html += ' <a href="#company-ledger" style="font-size:12px;color:#2563eb">查台账原文 ↩</a></li>';
-    });
-    html += '</ul>';
-  });
-
-  // ── 二、全部风险事项台账（基座，复用工作底稿版台账）──
-  html += _renderResolutionLedger(ledger);
-  // ★ 2026-09-27：主营业务成本两口径勾稽明细（阈值内也照出，合规留痕）
-  html += _renderCostReconDetail(report.cost_recon_detail);
-
-  // ── 三、报告说明 ──
-  if (statements.length) {
-    html += '<h2>二、报告性质和使用说明</h2><ul style="margin:8px 0 8px 20px;padding:0">';
-    statements.forEach(function(s){ html += '<li style="margin:4px 0;line-height:1.8">' + esc(s) + '</li>'; });
-    html += '</ul>';
-  }
-
-  html += '<div class="foot" style="color:#64748b;font-size:12.5px;margin-top:22px;line-height:1.9">'
-    + '本「金字塔原理编辑版」与「税务稽查专家工作底稿版」基于同一份检查结论生成；'
-    + '分组与排序仅改变呈现方式，未增删任何风险事项，也未改变金额、结论、判定与等级。</div>';
-  return html;
-}
-
-
 function _buildEnterpriseReadableBody(r, dateStr) {
   var report = r.enterprise_readable_report || {};
   var identity = report.identity || {};
@@ -6427,14 +6203,9 @@ function _renderReportFallback(r, allF) {
 
   // 企业版是主文书；专业过程底稿继续保留在后台，供内部复查和历史轮次追溯。
   if (r.enterprise_readable_report && ['涉税风险检查工作报告（风险检查文书式）', '税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
-    // 2026-09-26：报告编辑版切换条（纯前端重渲染，不重算）。
-    h += _renderEditionToggle();
-    // 按当前编辑版分支：金字塔原理编辑版走结构化重组渲染，否则工作底稿版。
-    if (window._tdaReportEdition === 'pyramid' && r.enterprise_readable_report.pyramid_edition) {
-      h += _buildPyramidBody(r, dateStr);
-    } else {
-      h += _buildEnterpriseReadableBody(r, dateStr);
-    }
+    // 2026-09-30：金字塔原理编辑版已下线（用户定调：对企业风险反馈与整改无价值），
+    // 报告仅保留「税务稽查专家工作底稿版」一种，不再有编辑版切换条。
+    h += _buildEnterpriseReadableBody(r, dateStr);
     h += '</div>';
     return {
       html: h,
@@ -7679,7 +7450,6 @@ h += '<h2 id="ch5">第五章 合规改进与复查任务</h2>';
   h += '<h3>三、委托代理权</h3>';
   h += '<p class="i2">有权委托税务师、律师或其他代理人代为办理涉税事宜。</p>';
   h += '<p class="i1" style="font-size:12px;color:#64748b">涉及法规：《税收征收管理法》第五十七条</p>';
-
 
 
   

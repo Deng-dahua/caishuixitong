@@ -2295,73 +2295,6 @@ def _load_fixture_enterprise_report() -> Optional[Dict]:
     return None
 
 
-def check_pyramid_edition_preserves_content() -> List[Tuple[str, str, str]]:
-    """金字塔原理编辑版内容保真闸门（2026-09-26）。
-
-    防回退铁律：金字塔版是工作底稿版的只读结构化重组，不得：
-      · 增删发现 / 改金额 / 改结论 / 改判定 / 改等级；
-      · 在 umbrella / 行动标题里引入新事实、新定性；
-      · 污染输入对象（build 必须纯只读）。
-    校验：对一份真实企业报告跑 build_pyramid_edition + pyramid_preserves_content，
-    并核对 engine/audit_doctrine.REPORT_EDITING_STANDARDS 两份标准齐备、含「只读/禁引新事实」约束。
-    """
-    issues: List[Tuple[str, str, str]] = []
-    try:
-        from engine.audit_doctrine import REPORT_EDITING_STANDARDS
-        from engine.pyramid_edition import build_pyramid_edition, pyramid_preserves_content
-    except Exception as exc:
-        return [("ERROR", "engine/pyramid_edition.py",
-                 f"无法导入金字塔模块（闸门本身不可用）: {exc}")]
-
-    # ① 两份系统级编辑标准齐备 + 含只读/禁引新事实约束
-    if set(REPORT_EDITING_STANDARDS.keys()) != {"税务稽查专家工作底稿版", "金字塔原理编辑版"}:
-        issues.append(("ERROR", "engine/audit_doctrine.py",
-                       "REPORT_EDITING_STANDARDS 必须恰好包含两份标准"
-                       "（税务稽查专家工作底稿版 / 金字塔原理编辑版）"))
-    _pyr = REPORT_EDITING_STANDARDS.get("金字塔原理编辑版", {})
-    _joined = " ".join(_pyr.get("constraints") or [])
-    if "只读转换" not in _joined or "禁引新事实" not in _joined:
-        issues.append(("ERROR", "engine/audit_doctrine.py",
-                       "金字塔原理编辑版约束必须写明「只读转换」与「禁引新事实」"))
-
-    er = _load_fixture_enterprise_report()
-    if not er:
-        return issues + [("WARN", "engine/pyramid_edition.py",
-                          "未找到可用企业报告样本，跳过金字塔内容保真行为校验")]
-    # ② 输入对象在 build 前后不得被污染（纯只读）。
-    #    ★ 2026-09-27 修正（闸门自身缺陷，非被测代码问题）：真实报告在组装时会
-    #    **内嵌** pyramid_edition（engine/enterprise_report.py `out["pyramid_edition"]=...`），
-    #    故夹具 er 本就含该键；若仍断言"输入不得含 pyramid_edition"，闸门必然误报 ERROR
-    #    （实测 2026-09-27 重生成 company_1_full.json 后暴露）。正解：在**去掉内嵌产物**的
-    #    深拷贝上测纯度 —— 既不误报，也不改动夹具本身。
-    import copy as _copy
-    _base = _copy.deepcopy(er)
-    _base.pop("pyramid_edition", None)
-    _before_keys = set(_base.keys())
-    _before_snapshot = _copy.deepcopy(_base)
-    try:
-        pe = build_pyramid_edition(_base)
-    except Exception as exc:
-        return issues + [("ERROR", "engine/pyramid_edition.py",
-                         f"build_pyramid_edition 抛出异常: {exc}")]
-    if ("pyramid_edition" in _base or set(_base.keys()) != _before_keys
-            or _base != _before_snapshot):
-        issues.append(("ERROR", "engine/pyramid_edition.py",
-                       "build_pyramid_edition 污染了输入对象（非只读）"))
-
-    # ③ 内容保真（不增删发现 / MECE / umbrella 仅现有字段 / 行动标题仅[等级]+title）
-    ok, reasons = pyramid_preserves_content(_base, pe)
-    if not ok:
-        for rs in reasons:
-            issues.append(("ERROR", "engine/pyramid_edition.py",
-                           "金字塔版越界：" + rs))
-    # ④ 派生计数自洽
-    if pe.get("preserved_counts", {}).get("confirmed_problems") != len(_base.get("confirmed_problems") or []):
-        issues.append(("ERROR", "engine/pyramid_edition.py",
-                       "preserved_counts.confirmed_problems 与基线不一致"))
-    return issues
-
-
 def check_overall_conclusion_derivation() -> List[Tuple[str, str, str]]:
     """★ 2026-09-26：报告第一章「本轮检查总体结论」必须**从 findings 派生**，不得手写模板。
 
@@ -4295,13 +4228,7 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     if "_rg(_o, source=report_data)" not in _er4_code:
         issues.append(("ERROR", "engine/enterprise_report.py",
                        "脱敏未按约定传 source=report_data（人名清单只能从源数据收集，否则正文中的姓名漏脱敏）"))
-    #  Pyramid 必须从**已脱敏的 out** 派生（旧顺序 / 用未脱敏的 problems 都会成为后门）
-    if 'out["pyramid_edition"] = build_pyramid_edition' not in _er4_code:
-        issues.append(("ERROR", "engine/enterprise_report.py",
-                       "金字塔版未在脱敏后派生（会成为绕开个人信息脱敏的后门）"))
-    if 'out.get("confirmed_problems") or problems' not in _er4_code:
-        issues.append(("ERROR", "engine/enterprise_report.py",
-                       "金字塔版派生源不是已脱敏内容（用未脱敏的 problems → 真实姓名从金字塔版泄漏）"))
+    #  2026-09-30：金字塔原理编辑版已整体下线（用户定调：对企业风险反馈与整改无价值），其两条脱敏时序断言随之移除。
     # P1-16/P1-7 接线：台账治理必须真的把治理结果写回 rows
     if '_gov(rows, findings, problems=problems)' not in _er4_code or 'rows = _g["rows"]' not in _er4_code:
         issues.append(("ERROR", "engine/enterprise_report.py",
@@ -4521,49 +4448,6 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     # ★ 2026-09-29（点评整改第六轮：P2-1 / P2-6 / P2-2 / P1-1 / P1-2 / P1-3 / P1-5 / P1-13）
     # ══════════════════════════════════════════════════════════════
 
-    # ── P2-1 决策层摘要 + P2-6 计数映射表 ──
-    try:
-        from engine.executive_brief import build_counts_map, build_executive_brief
-        _eb = build_executive_brief({
-            "enterprise_readable_report": {
-                "identity": {"subject_name": "测试企业", "period": "2025-01 至 2025-12"},
-                "summary": {"headline": "编制声明：x"},
-                "tax_impact_summary": {"total": 1000.0, "quantified": 1, "total_items": 3,
-                                       "by_tax": [{"tax": "增值税", "amount": 1000.0}]},
-                "resolution_ledger": {"total": 2, "rows": [{"风险事项": "A"}]},
-                "confirmed_problems": [{"seq": 1, "title": "T", "risk_level": "高风险",
-                                        "tax_impact": {"available": True, "total": 1000.0}}],
-                "redline_summary": {"suspicion_total": 1},
-            },
-            "overall_level": "待核1项",
-            "output_scope": {"evidence_tiers": {"域分析结论（基于上传资料计算）": 1,
-                                                "已验原子规则（可信观察）": 1}},
-        })
-        if not _eb.get("available") or not _eb.get("paragraphs"):
-            issues.append(("ERROR", "engine/executive_brief.py", "决策层摘要生成失败（P2-1）"))
-        if len(_eb.get("top_items") or []) > 5:
-            issues.append(("ERROR", "engine/executive_brief.py", "决策层摘要超量（应为 3~5 页口径）"))
-        _cm = _eb.get("counts_map") or []
-        if len(_cm) < 6:
-            issues.append(("ERROR", "engine/executive_brief.py",
-                           "计数映射表条目过少（P2-6：规则库/红线库/业务域/疑点/台账/敞口 至少 6 行）"))
-        _blob = json.dumps(_eb, ensure_ascii=False)
-        if "**" in _blob:
-            issues.append(("ERROR", "engine/executive_brief.py",
-                           "摘要文本含 Markdown 记号（不应进入报告）"))
-        # 业务域口径必须是**域分析目录**（35），不是红线分类（12）—— 混用即 P2-6 病根
-        _dom = [r for r in _cm if r.get("口径") == "业务域"]
-        if _dom and not _dom[0].get("数值", "").startswith(("35", "未取得")):
-            issues.append(("ERROR", "engine/executive_brief.py",
-                           f"业务域口径取错来源（应为 DOMAIN_DATA_MAP，实得 {_dom[0].get('数值')}）"))
-    except ImportError as exc:
-        issues.append(("ERROR", "engine/executive_brief.py", f"决策层摘要模块不可用: {exc}"))
-    except Exception as exc:
-        issues.append(("ERROR", "engine/executive_brief.py", f"决策层摘要断言执行失败: {exc}"))
-    _er6_code = _strip_comments_keep_lines(_src("engine/enterprise_report.py"))
-    if "build_executive_brief" not in _er6_code:
-        issues.append(("ERROR", "engine/enterprise_report.py", "决策层摘要未接入报告"))
-
     # ── P2-2 表格内不得出现「同上」 ──
     try:
         from engine.enterprise_report import _clue_table
@@ -4694,6 +4578,7 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
                            "方法论条目未被过滤（强化用例：其本可命中同税种联动）"))
     except Exception as exc:
         issues.append(("ERROR", "engine/domain_linkage.py", f"域间联动断言执行失败: {exc}"))
+    _er6_code = _strip_comments_keep_lines(_src("engine/enterprise_report.py"))
     if "联动事项" not in _er6_code:
         issues.append(("ERROR", "engine/enterprise_report.py", "台账未含「联动事项」列（P1-13）"))
 
@@ -4708,9 +4593,6 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     elif "_IV_SECTIONS" not in _off_code:
         issues.append(("ERROR", "scripts/_render_report_html.py",
                        "离线渲染器整章渲染 inspection_overview（与「总述只渲染 overall_conclusion」决定冲突）"))
-    if 'err.get("executive_brief")' not in _off_code:
-        issues.append(("ERROR", "scripts/_render_report_html.py",
-                       "离线渲染器未渲染决策层摘要（P2-1 只在 Web 可见即为缺口）"))
 
     # ══════════════════════════════════════════════════════════════
     # ★ 2026-09-29（点评整改收尾 P0-5 深层 / P1-8 / P2-7）
@@ -5104,7 +4986,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_report_credibility() + check_statement_derivation()
                + check_indicator_coverage() + check_delete_semantics()
                + check_excel_handle_leak() + check_audit_doctrine()
-               + check_missing_as_violation() + check_pyramid_edition_preserves_content()
+               + check_missing_as_violation()
                + check_overall_conclusion_derivation() + check_report_chapter_integrity()
                + check_overall_conclusion_no_dup()
                + check_cost_recon_render()

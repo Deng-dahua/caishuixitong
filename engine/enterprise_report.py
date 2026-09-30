@@ -14,7 +14,6 @@ from datetime import datetime
 from collections import Counter, OrderedDict
 
 from engine.inspector_reasoning import build_inspector_reasoning
-from engine.pyramid_edition import build_pyramid_edition
 
 
 def _norm_text(text):
@@ -3727,29 +3726,6 @@ def build_enterprise_readable_report(report_data, edition=None):
         except Exception:
             return _zh_normalize_obj(_o)
 
-    # ★ 2026-09-29（点评整改 P2-1 / P2-6）：**决策层摘要版（3 分钟版）**。
-    #   外部点评：全文 11.3 万字、缺 3~5 页决策层摘要；且四套计数（规则/红线/台账/疑点）
-    #   无映射，读者以为互相矛盾。摘要与计数映射表在本函数**只读派生**，不改任何结论。
-    #   ⚠ 必须在 probles/ledger 等正文块就绪之后构建，故放在此处（紧随台账）。
-    try:
-        from engine.executive_brief import build_executive_brief as _beb
-        executive_brief = _beb({
-            "enterprise_readable_report": {
-                "identity": _identity,
-                "summary": summary,
-                "overall_conclusion": overall_conclusion,
-                "tax_impact_summary": _tax_impact_summary,
-                "resolution_ledger": resolution_ledger,
-                "confirmed_problems": problems,
-                "redline_summary": ((report_data.get("comprehensive", {}) or {})
-                                    .get("redline_detection") or {}).get("summary", {}),
-            },
-            "overall_level": report_data.get("overall_level"),
-            "files_count": report_data.get("files_count"),
-            "output_scope": report_data.get("output_scope"),
-        })
-    except Exception:
-        executive_brief = {}
 
     out = _norm_and_redact({
         "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
@@ -3778,8 +3754,6 @@ def build_enterprise_readable_report(report_data, edition=None):
         "tax_impact_summary": _tax_impact_summary,
         # ★ 2026-09-27（P2）：具体问题章首主线研判
         "main_assessment": main_assessment,
-        # ★ 2026-09-29（P2-1 / P2-6）：决策层摘要（3 分钟版）+ 计数映射表
-        "executive_brief": executive_brief,
         "discovery_overview": discovery_overview,
         "inspection_procedures": procedures,
         "materials": materials,
@@ -3819,18 +3793,5 @@ def build_enterprise_readable_report(report_data, edition=None):
             "企业应依据真实业务和原始资料办理整改，不得倒签、补造、篡改、删除或隐匿资料。",
             "系统能力存在边界：账外经营、私户收款、主观故意定性等须依赖外部数据源与人工下户取证，详见「能力边界与彻底风险检查路线」章节。",
         ],
-    })
-    # ★ 2026-09-26 金字塔原理编辑版 = 纯派生结构性视图，**刻意不经过** _zh_normalize_obj：
-    #   否则 _naturalize_report_text 会把行动标题的「【等级】」标记改写为「等级：」，
-    #   既破坏前端可读性，又使 pyramid_preserves_content 闸门（按【等级】格式自校验）失效、
-    #   并损害「工作底稿版 + pyramid_edition 可无损还原」的可逆性。
-    #   ★ 2026-09-29（P1-11）：但派生源必须是**已脱敏的 `out`** —— 否则金字塔版会成为
-    #     绕开个人信息脱敏的后门（实测：工作底稿版已脱敏、金字塔版仍带真实姓名）。
-    #     故派生动作从函数中部移到这里，用 `out` 的已脱敏内容为源。
-    out["pyramid_edition"] = build_pyramid_edition({
-        "confirmed_problems": out.get("confirmed_problems") or problems,
-        "summary": out.get("summary") or summary,
-        "identity": out.get("identity") or _identity,
-        "resolution_ledger": out.get("resolution_ledger") or resolution_ledger,
     })
     return out

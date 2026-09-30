@@ -11175,11 +11175,9 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                             "内部税务风险检查员报告",
                             "企业易读检查结果",
                         )
-                        # 2026-09-26：新代码始终附加 pyramid_edition 与 report_edition；
-                        # 旧缓存不含此结构，复用会导致前端金字塔版切换时字段缺失 → 视为脏缓存。
-                        and isinstance(_cer.get("pyramid_edition"), dict)
-                        and _cer.get("report_edition") in (
-                            "税务稽查专家工作底稿版", "金字塔原理编辑版")
+                        # 2026-09-30：金字塔原理编辑版已下线（用户定调：该版对企业风险反馈与整改无价值），
+                        # 报告仅保留「税务稽查专家工作底稿版」一种。
+                        and _cer.get("report_edition") in ("税务稽查专家工作底稿版",)
                     )
                 except Exception:
                     _cached_report_ok = False
