@@ -65,18 +65,18 @@ def build_inspection_overview(report_data: Any,
     P: List[str] = []
 
     # ── 一、检查基本情况 ──
-    # ★ 2026-09-29（P2-3）：末句「独立于此前任何一轮报告」按轮次条件化，
-    #   收敛到唯一权威 `overall_conclusion.compilation_declaration`（第1轮不得这么写）。
+    # ★ 2026-10-01 用户定调：删除「独立于此前任何一轮报告」等**轮次元信息**（与报告本质无关），
+    #   故 `compilation_declaration` 的 tail 已置空；此处直接用句号收尾，避免出现「；。」残句。
     try:
         from engine.overall_conclusion import compilation_declaration as _cd
-        _round_tail = _cd(rd).split("以下为本轮复算结论。")[-1] or "。"
+        _round_tail = (_cd(rd).split("以下为本轮复算结论。")[-1] or "").strip()
     except Exception:
-        _round_tail = "。"
+        _round_tail = ""
     P.append(
-        "一、检查基本情况：本轮对被检查企业提交并成功读取的 %d 类资料（%d 份）实施检查，"
-        "按“资料合规性核验 → 多源交叉比对 → 资金流向穿透 → 行业基准对标 → 规则与红线扫描 → "
-        "证据链闭合度评估”的程序重新读取、重新计算，形成本轮复算结论；%s"
-        % (cats, files_count, _round_tail)
+        ("一、检查基本情况：本轮对被检查企业提交并成功读取的 %d 类资料（%d 份）实施检查，"
+         "按“资料合规性核验 → 多源交叉比对 → 资金流向穿透 → 行业基准对标 → 规则与红线扫描 → "
+         "证据链闭合度评估”的程序重新读取、重新计算，形成本轮复算结论。") % (cats, files_count)
+        + _round_tail
     )
 
     # ── 二、企业与经营特征 ──

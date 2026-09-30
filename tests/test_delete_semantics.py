@@ -170,13 +170,16 @@ class TestNoFailOpenRegression:
         assert "if not force:" in src, "增量复用必须可被 force=1 绕过"
         assert "&force=1" in _read_js(), "前端必须能发起强制重算"
 
-    def test_report_carries_freshness(self):
-        src = _read_main()
-        assert 'report_data["_freshness"]' in src, (
-            "报告必须携带计算时间/数据指纹，用户才能自证拿到的是新结果"
-        )
+    def test_report_carries_no_freshness_metadata(self):
+        """★ 2026-10-01 用户定调反转：报告**不再**携带计算时间/数据指纹（与报告本质无关）。
+
+        原要求「报告须自带新鲜度标识」已被用户明确删除；本用例锁定该决定，防止被重新加回。
+        「可强制重算」这一功能要求仍在（见 test_incremental_reuse_can_be_forced）。
+        """
         js = _read_js()
-        assert "function _freshnessStrip" in js, "前端必须展示结果新鲜度"
+        assert "function _freshnessStrip" not in js, (
+            "报告不得再展示计算时间/数据指纹/轮次等元信息（用户 2026-10-01 定调删除）"
+        )
 
 
 # ═══════════════ 4. 行为级：删除资料核心函数的真实语义 ═══════════════
@@ -329,7 +332,6 @@ class TestDeleteGateFiresOnRegression:
         issues = self._gated_issues(tmp_path, monkeypatch, bad, "")
         msgs = " ".join(m for _, _, m in issues)
         assert "强制重算" in msgs, "缺少 force 绕过必须被闸门拦下"
-        assert "数据指纹" in msgs, "报告缺少新鲜度标识必须被闸门拦下"
 
     def test_missing_handle_release_is_caught(self, tmp_path, monkeypatch):
         """删除前不释放本服务工作簿句柄 → 必须被拦下（本次真实事故）。"""

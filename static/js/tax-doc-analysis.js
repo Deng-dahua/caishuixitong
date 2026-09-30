@@ -2556,36 +2556,6 @@ function _detectTaxScope(r, te) {
 
 }
 
-
-// ═══════════════════════════════════════════════════════════════════════
-// 结果新鲜度条（唯一实现）
-//  用户反馈"重新生成报告，感觉都是旧报告"。报告是**确定性重算**的：上传资料
-//  与规则未变时，重算结果本就逐字相同 —— 所以必须把"这份报告何时算的、依据
-//  多少份资料、数据指纹是什么"直接印在报告顶部，用户才能自证拿到的是新结果
-//  而不是缓存复用。同时，若分析实际读取的文件数与当前上传目录不一致，
-//  主动提示用户强制重算（这正是"删了资料但报告没变"的典型场景）。
-// ═══════════════════════════════════════════════════════════════════════
-function _freshnessStrip(r) {
-  if (!r) return '';
-  var fr = r._freshness || (r.report && r.report._freshness) || null;
-  if (!fr || !fr.computed_at) return '';
-  var t = String(fr.computed_at).substring(0, 19).replace('T', ' ');
-  var tag = fr.reused_cached_result
-    ? '<span style="color:#b45309">（复用上次结果）</span>'
-    : '<span style="color:#166534">（本次新计算）</span>';
-  var hint = '';
-  if (fr.source_doc_count && r.files_count !== undefined && r.files_count !== fr.source_doc_count) {
-    hint = '<br><span style="color:#b45309">提示：本次分析实际读取 ' + (r.files_count || 0)
-      + ' 份，与当前上传目录的 ' + fr.source_doc_count + ' 份不一致，建议点「重新计算（强制）」。</span>';
-  }
-  return '<div style="margin:0 0 14px;padding:8px 12px;border:1px solid #e2e8f0;border-left:3px solid #185FA5;'
-    + 'background:#f8fafc;border-radius:4px;font-size:12px;color:#475569;line-height:1.8">'
-    + '本报告计算时间：<strong style="color:#0f172a">' + _escHtml(t) + '</strong> ' + tag
-    + ' ｜ 依据资料 <strong style="color:#0f172a">' + (fr.source_doc_count || 0) + '</strong> 份'
-    + ' ｜ 数据指纹 <code style="font-size:11px">' + _escHtml(fr.data_fingerprint || '') + '</code>'
-    + hint + '</div>';
-}
-
 function renderTaxDocReport(r) {
 
 
@@ -2795,7 +2765,7 @@ function renderTaxDocReport(r) {
   }
 
 
-  html = _freshnessStrip(r) + html;
+  html = html;
 
   area.innerHTML = html;
 
@@ -5501,7 +5471,6 @@ function _renderEditionToggle() {
       + '<strong>' + esc(label) + '</strong><br><span style="font-size:11.5px;color:#64748b">' + esc(sub) + '</span></button>';
   }
   return '<div id="tda-edition-toggle" style="margin:0 0 18px;padding:12px 14px;border:1px dashed #cbd5e1;border-radius:10px;background:#fbfdff">'
-    + '<div style="font-size:12.5px;color:#475569;margin-bottom:8px">报告版本（同一份检查结论的两种编制角度，切换不重新计算）：</div>'
     + _btn('working_paper', '税务稽查专家工作底稿版', '专家内部视角·含检查程序、证据与要件全过程')
     + _btn('inspection_report', '企业检查报告版', '专家给企业出具·结论/风险事项/需补资料/整改要求')
     + '</div>';
@@ -5552,11 +5521,9 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   var html = _capabilityStyles();
 
   html += '<div class="cover"><h1>涉税风险检查工作报告</h1><div class="sub">' +
-    '报告送达对象：' + esc(displayedAddressee) + '<br>' +
     '被检查企业：' + esc(identity.subject_name || '未填写企业名称') + '<br>' +
     '统一社会信用代码：' + esc(identity.taxpayer_id || '未填写') + '<br>' +
     '检查期间：' + esc(identity.period || '以本轮资料记载期间为准') + '<br>' +
-    '检查轮次：第' + esc(identity.analysis_round || 1) + '轮<br>' +
     '报告日期：' + esc(report.generated_date || dateStr) +
     '</div></div>';
 
@@ -5576,12 +5543,6 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '<a href="#company-further">五、因资料缺失或不完整而无法完成的检查</a><br>' +
     '<span style="font-size:13px;color:#64748b;padding-left:16px">└ 专项能力比对（行业对标 / 关联方穿透 / 两税差异 / 虚开网络 / 资金回流等）</span><br>' +
     '<a href="#company-statement">六、报告性质和使用说明</a></div>';
-
-  // ★ 2026-09-27：报告级「总—分—总」结构说明（放在**目录处**，不进入总述正文，避免"引导说明"混入总述）
-  html += '<p class="i2" style="color:#64748b;font-size:12.5px;margin:6px 0 20px;line-height:2">'
-    + '本报告按「总—分—总」组织：第一章为<span style="color:#1d4ed8">总述</span>（结论先行）；'
-    + '第二章为<span style="color:#475569">分述</span>（逐条论证，每条疑点内部亦为 总述—分述—总结）；'
-    + '第三、四、六章为<span style="color:#b45309">总结</span>（台账、处理与整改、报告性质）。</p>';
 
   // ★ 2026-09-27：工作底稿版「检查情况总述与总体结论」为**单章**，由后端 overall_conclusion
   //   统一生成（已吸收原「检查情况总述」的定调句 / 纳税遵从看法 / 监管态度 / 边界声明，每件事只说一遍，
@@ -6017,7 +5978,6 @@ function _buildInspectionProcessBody(r, allF, dateStr) {
   html += '<div class="cover"><h1>企 业 内 部 涉 税 稽 查 工 作 过 程 报 告</h1><div class="sub">' +
     '文书性质：一键分析形成的内部过程报告草稿<br>' +
     '被检查主体：' + esc(identity.subject_name || '未指定') + '<br>' +
-    '检查轮次：第' + esc(identity.analysis_round || 1) + '轮<br>' +
     '资料批次/快照：' + esc(identity.snapshot_id || '待生成') + '<br>' +
     '编制日期：' + esc(dateStr) + '<br>' +
     '当前状态：' + esc(release.release_status || r.release_status || '过程报告草稿_待人工复核') +

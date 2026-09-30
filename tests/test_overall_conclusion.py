@@ -165,7 +165,8 @@ class TestEditorialStandard(unittest.TestCase):
         j = "".join(self._oc()["paragraphs"])
         # ★ 2026-09-27 用户口径：用「涉嫌风险事项」，"涉嫌"本身即含待核实
         self.assertIn("涉嫌风险事项", j)
-        self.assertIn("尚不构成违法定性", j)
+        # ★ 2026-10-01 用户定调：删除「尚不构成违法定性」这类与报告本质无关的套话（本用例锁定该决定）
+        self.assertNotIn("尚不构成违法定性", j)
         self.assertNotIn("共确认", j)
         self.assertNotIn("待核实风险事项", j)
 

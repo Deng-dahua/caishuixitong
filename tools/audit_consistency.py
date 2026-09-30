@@ -1704,13 +1704,12 @@ def check_delete_semantics() -> List[Tuple[str, str, str]]:
             issues.append(("ERROR", "static/js/tax-doc-analysis.js",
                            "删除报告的网络异常分支仍谎报成功"))
 
-    # ⑥ 增量复用必须可被显式强制重算绕过，且报告须自带新鲜度标识
+    # ⑥ 增量复用必须可被显式强制重算绕过
+    #   ★ 2026-10-01 用户定调：报告不再携带「计算时间/数据指纹/轮次」等元信息（与报告本质无关），
+    #     故原「报告须自带新鲜度标识」断言已移除；仅保留「可被强制重算绕过」这一功能性要求。
     if "if not force:" not in main_raw:
         issues.append(("ERROR", "main.py",
                        "增量复用无法被强制重算绕过：用户会持续拿到缓存报告"))
-    if 'report_data["_freshness"]' not in main_raw:
-        issues.append(("ERROR", "main.py",
-                       "报告未携带计算时间/数据指纹，用户无法自证拿到的是新结果"))
 
     # ⑦ 删除前必须释放本服务自身的工作簿句柄，且失败原因须如实（不得替用户猜）
     if "release_all" not in main_code:
@@ -2413,11 +2412,12 @@ def check_report_chapter_integrity() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", js_rel,
                                "工作底稿版 _buildEnterpriseReadableBody 又渲染了 inspection_overview——"
                                "单章必须只由 overall_conclusion 构成（不得把总述与结论并排贴回）"))
-        # ④ 用户 2026-09-27：工作底稿版要有「总—分—总」结构呈现（逐条小标签 + 目录结构说明）
-        for _tok in ("_narrativeGroup", "总—分—总"):
-            if _tok not in js:
-                issues.append(("ERROR", js_rel,
-                               "工作底稿版缺少「总—分—总」结构呈现（%s）" % _tok))
+        # ④ 逐条小标签呈现（用户 2026-09-27 要求）
+        #   ★ 2026-10-01 用户定调：删除「总—分—总」结构说明等**编排元信息**（与报告本质无关），
+        #     故此处只保留「逐条小标签」这一实质呈现要求，不再要求目录结构说明。
+        if "_narrativeGroup" not in js:
+            issues.append(("ERROR", js_rel,
+                           "工作底稿版缺少逐条小标签呈现（_narrativeGroup）"))
 
     # ③ 离线导出：总述章**只渲染 overall_conclusion**，不得整章渲染 inspection_overview
     #   ★ 2026-09-29 口径细化：原判据是"文件里出现 inspection_overview 即 ERROR"，
@@ -4419,15 +4419,14 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", "engine/inspection_overview.py",
                        "总述「关键口径对照」未披露可信度口径（全文百分数无公式可回指）"))
 
-    # ── P2-3 轮次措辞：第 1 轮不得称"独立于此前任何一轮" ──
+    # ── P2-3 轮次措辞（★ 2026-10-01 用户定调：报告不再写任何「轮次」元信息）──
+    #   原断言要求「第 N(>1) 轮必须声明独立于此前任何一轮」；用户已明确该句与报告本质无关并删除，
+    #   故此处只保留「编制声明不得为空」这一底线检查，不再要求任何轮次措辞。
     try:
         from engine.overall_conclusion import compilation_declaration as _cd
-        if "独立于此前任何一轮" in _cd({"compliance_round": {"round_no": 1}}):
+        if "独立于此前任何一轮" in _cd({"compliance_round": {"round_no": 3}}):
             issues.append(("ERROR", "engine/overall_conclusion.py",
-                           "第1轮仍写「独立于此前任何一轮报告」（第1轮无此前轮，自相矛盾）"))
-        if "独立于此前任何一轮" not in _cd({"compliance_round": {"round_no": 3}}):
-            issues.append(("ERROR", "engine/overall_conclusion.py",
-                           "第N(>1)轮缺「独立于此前任何一轮报告」声明"))
+                           "报告又出现「独立于此前任何一轮报告」（用户 2026-10-01 已定调删除轮次元信息）"))
         if not _cd({"compliance_round": {"round_no": 1}}).strip():
             issues.append(("ERROR", "engine/overall_conclusion.py", "编制声明为空"))
     except Exception as exc:
