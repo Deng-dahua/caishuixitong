@@ -143,15 +143,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="财税风险防控系统", description="全行业通用财税风险防控与税务合规应对系统", version="1.0.0", lifespan=lifespan)
 
-# ═══ 启动初始化：知识库 + 巡检API ═══
-try:
-    from engine.knowledge_base import init_knowledge_base
-    init_knowledge_base()
-except: pass
-try:
-    from engine.auto_patrol import register_patrol_api
-    register_patrol_api(app)
-except: pass
+# 2026-09-30：AGI 子系统（knowledge_base / auto_patrol / agi_* / causal_* / human_learning 等 11 模块）已整体移除。
 
 # ═══════════════ 个人登录 ═══════════════
 @app.middleware("http")
@@ -504,13 +496,8 @@ def _track_code_changes():
             changes.append(f"文件删除: {os.path.basename(fpath)}")
     
     if changes:
-        try:
-            from engine.knowledge_base import get_kb
-            kb = get_kb()
-            for c in changes:
-                kb.add_lesson(c, "⑥代码变更")
-            print(f"[⑥代码] 检测到{len(changes)}个文件变更，已注入AGI知识库")
-        except: pass
+        # 2026-09-30：AGI knowledge_base 已移除，代码变更不再注入知识库。
+        pass
     
     # 保存当前状态
     try:
@@ -1357,12 +1344,7 @@ def _compute_data_fingerprint(company_id):
                             pass
         except Exception:
             pass
-        try:
-            from engine.human_learning import HumanLearner
-            lr = HumanLearner().state.get("active_rules", {})
-            parts.append("L" + json.dumps(lr, ensure_ascii=False, sort_keys=True)[:2000])
-        except Exception:
-            pass
+        # 2026-09-30：human_learning 状态已随 AGI 子系统移除，不再参与哈希。
         return _hl.sha256("|".join(parts).encode("utf-8")).hexdigest()
     except Exception:
         return ""
@@ -7329,8 +7311,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
     target_entity = report_data.get("target_entity", report.get("target_entity", {}))
     all_findings = report_data.get("all_findings", []) or report.get("all_findings", [])
     
-    # AGI和material_intel在report.report层上
-    agi_report = report.get("_agi_report_level", report.get("report", {}).get("_agi_report_level", {}))
+    # material_intel 在 report.report 层上
     outer_comprehensive = report.get("comprehensive", report.get("report", {}).get("comprehensive", {}))
     
     # 1. 风险叙事
@@ -7488,16 +7469,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
         "vat_total": round(vat_total, 2),
         "income_tax_total": round(inc_total, 2),
         "gap_chain": gap_chain[:7],
-        # AGI全量注入数据
-        "agi_enhanced": agi_report,
-        "agi_findings": [
-            {"index": i, "type": f.get("type","")[:40], "level": f.get("level",""), 
-             "confidence": (f.get("_agi_enhanced",{}).get("confidence",{}).get("confidence",0)),
-             "boundary": (f.get("_agi_enhanced",{}).get("boundary",{}).get("level","")),
-             "penetrated": bool(f.get("_agi_enhanced",{}).get("penetration")),
-            }
-            for i, f in enumerate(all_findings[:15])
-        ] if any(f.get("_agi_enhanced") for f in all_findings[:5]) else [],
+        # 2026-09-30：AGI 全量注入数据（agi_enhanced / agi_findings）已随 AGI 子系统移除。
         # 通知书应对
         "notice_response": notice_response,
     }
@@ -7648,39 +7620,8 @@ async def ask_report_question(request: Request, company_id: int = Query(...)):
         except: pass
         findings = all_findings[:20]
     
-    # ═══ AGI引擎调用（稽查核心追问，智能问答模块已下线）═══
-    try:
-        from engine.agi_engine import agi
-        result = agi.ask(question, findings, context, intent, history)
-        
-        # 附加上下文信息
-        ctx_parts = []
-        if target_entity.get("name"): ctx_parts.append(f"被查单位: {target_entity.get('name')}")
-        if target_entity.get("industry"): ctx_parts.append(f"行业: {target_entity.get('industry')}")
-        if comprehensive.get("overall_risk"): ctx_parts.append(f"综合风险: {comprehensive.get('overall_risk')}")
-        if ctx_parts:
-            result["analysis"].append({"title": "🏢 企业概况", "content": "；".join(ctx_parts)})
-        
-        # ═══ 闭环：追问也注入纠正规则库 ═══
-        try:
-            from engine.self_learning import record_correction
-            record_correction(
-                finding_type=finding.get("type", "资料完备度不足") if finding else "追问分析补充",
-                industry=target_entity.get("industry", "通用"),
-                biz_model=target_entity.get("biz_model", "通用"),
-                original_risk=finding.get("level", "中风险") if finding else "中风险",
-                corrected_risk=finding.get("level", "中风险") if finding else "中风险",
-                reason=f"追问: {question[:100]}\n回答: {str(result.get('analysis',[]))[:200]}",
-                finding_detail=str(finding.get('type','')) if finding else "段落追问",
-            )
-        except: pass
-        
-        return result
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return {"ok": False, "message": f"AGI引擎异常: {str(e)[:200]}"}
-
+    # 2026-09-30：AGI 引擎追问（agi_engine.ask）已随 AGI 子系统整体移除。
+    return {"ok": False, "message": "智能追问（AGI）已下线"}
 
 
 def _compare_policy(user_policy, engine_policy, finding_detail, finding_type):
@@ -8984,19 +8925,7 @@ def agi_query(company_id: int = Query(...), query: str = Query(...)):
 
 _patrol_config = {"enabled": False, "interval_hours": 24, "company_ids": [], "last_run": None, "runs": []}
 
-# ── AGI管道仪表盘 ──
-@app.get("/api/agi/pipeline/dashboard")
-def get_agi_pipeline_dashboard():
-    """税务AGI管道仪表盘——展示16模块知识注入状态"""
-    try:
-        global _agi_pipeline_instance
-        if '_agi_pipeline_instance' in globals() and _agi_pipeline_instance:
-            data = _agi_pipeline_instance.get_dashboard_data()
-            data["ok"] = True
-            return data
-    except: pass
-    return {"ok": True, "stats": {"modules_connected": 0, "events_collected": 0}, "total_events": 0, "modules_active": 0, "health": "idle", "message": "AGI管道尚未运行，请先执行一键分析"}
-
+# 2026-09-30：AGI 管道仪表盘已随 AGI 子系统整体移除。
 # ── 系统统计API ── 动态从数据源统计，数字永远与实际一致 ──
 @app.get("/api/system/stats")
 def get_system_stats():
@@ -9858,7 +9787,6 @@ def _apply_engine_hub_stage(report_data, result=None):
         "skipped_modules": orchestration.get("skipped_modules", []),
         "execution_order": orchestration.get("execution_order", []),
         "summary": orchestration.get("summary", ""),
-        "agi_pipeline": (result or {}).get("agi_pipeline", {}),
         "engine_status": report_data.get("engine_status", {}),
     }
     _append_one_click_log(report_data, "[统一主流程] 智能引擎中枢完成报告级调度汇总")
@@ -10641,7 +10569,7 @@ def _check_adverse_evidence(findings):
     """高影响事项反证处理率"""
     high_impact = [f for f in findings if f.get("score", 0) >= 5]
     if not high_impact: return 100
-    with_adverse = sum(1 for f in high_impact if f.get("_agi_enhanced", {}).get("red_team") or f.get("_methodology_blocked"))
+    with_adverse = sum(1 for f in high_impact if f.get("_methodology_blocked"))
     return round(with_adverse / len(high_impact) * 100)
 
 def _check_legal_validity(findings):
@@ -10942,8 +10870,8 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         }
 
         # 智能引擎贯穿核心分析；此处只补齐报告级能力，不重复运行核心管道。
-        result["report"] = _inject_agi_into_report(report_data, company_id)
-        report_data = result["report"]
+        # 2026-09-30：AGI 报告级注入(_inject_agi_into_report)已随 AGI 子系统移除。
+        result["report"] = report_data
         try:
             execution["stages"]["engine_hub"] = _apply_engine_hub_stage(
                 report_data,
@@ -11087,85 +11015,13 @@ def _analysis_progress(task_id, progress, msg, step=None, module=None):
                 _analysis_tasks[task_id]["current_module"] = module
 
 def _enroll_patrol_snapshot(company_id, result):
-    """① 自动巡逻后置触发 — 分析完成后登记巡逻快照，使自动巡逻/手动巡逻具备基线。
-
-    将本次分析的结论签名写入 cross_analysis_memory.json 的 patrol_snapshots[str(company_id)]，
-    逻辑与 engine/auto_patrol.py::run_patrol 内部一致（保证手动/自动巡逻可对比前后结论）。
-    """
-    try:
-        from engine.auto_patrol import (
-            _load_cross_memory, _save_cross_memory,
-            _extract_finding_sigs, _count_risk_levels,
-        )
-        import datetime as _dt
-        findings = result.get("findings", []) if isinstance(result, dict) else []
-        cross_memory = _load_cross_memory()
-        snapshots = cross_memory.setdefault("patrol_snapshots", {})
-        snapshots[str(company_id)] = {
-            "timestamp": _dt.datetime.now().isoformat(),
-            "findings": _extract_finding_sigs(findings),
-            "risk_counts": _count_risk_levels(findings),
-            "total_findings": len(findings),
-        }
-        cross_memory["patrol_snapshots"] = snapshots
-        _save_cross_memory(cross_memory)
-        return True
-    except Exception:
-        return False
+    # 2026-09-30：自动巡逻登记已随 AGI 子系统整体移除。
+    return False
 
 
 def _maybe_cross_patrol(current_company_id, kb_before, db):
-    """① 自动巡逻后置触发 — 知识库增量达阈值且冷却期内未巡逻时，对『其他』企业后台巡逻。
-
-    护栏（防覆盖/死循环/资源失控）：
-      - 仅在因果边或模式增量 >= significant_change_threshold 时触发（should_trigger_patrol）；
-      - patrol_interval_hours 冷却期内不重复触发；
-      - 绝不重跑 current_company_id（避免覆盖刚生成的报告、避免自触发死循环）；
-      - 后台守护线程执行，使用独立 db 会话（主线程 db 随后会关闭）；
-      - 单次最多 max_companies_per_patrol 家企业。
-    """
-    try:
-        import threading as _th
-        import time as _time
-        from engine.knowledge_base import get_kb
-        from engine.auto_patrol import (
-            should_trigger_patrol, run_patrol, get_companies_to_patrol,
-            PATROL_CONFIG, _load_cross_memory, _save_cross_memory,
-        )
-        kb_after = get_kb().get_full_knowledge()
-        cross_memory = _load_cross_memory()
-        kb_before = kb_before or cross_memory.get(
-            "last_kb_stats", {"causal_edges_count": 0, "patterns_count": 0}
-        )
-        if not should_trigger_patrol(kb_before, kb_after):
-            return
-        # 冷却护栏：最短巡逻间隔
-        last_run = cross_memory.get("last_patrol_run")
-        now_ts = _time.time()
-        cooldown = PATROL_CONFIG["patrol_interval_hours"] * 3600
-        if last_run and (now_ts - float(last_run)) < cooldown:
-            return
-        others = [c for c in get_companies_to_patrol(db) if c != current_company_id]
-        if not others:
-            return
-        # 先置位冷却，避免并发重复触发
-        cross_memory["last_patrol_run"] = now_ts
-        cross_memory["last_kb_stats"] = kb_after
-        _save_cross_memory(cross_memory)
-        # 后台线程巡逻（独立 db 会话）
-        def _patrol_worker():
-            try:
-                from database import SessionLocal
-                db2 = SessionLocal()
-                try:
-                    run_patrol(others, db2, kb_after)
-                finally:
-                    db2.close()
-            except Exception:
-                pass
-        _th.Thread(target=_patrol_worker, daemon=True).start()
-    except Exception:
-        pass
+    # 2026-09-30：跨企业自动巡逻已随 AGI 子系统整体移除。
+    return
 
 
 def _run_analysis_thread(task_id, company_id, user_id):
@@ -11178,13 +11034,8 @@ def _run_analysis_thread(task_id, company_id, user_id):
         from database import SessionLocal
         db = SessionLocal()
         try:
-            # ① 巡逻触发判定基线：分析前知识库统计（因果边/模式）
+            # ① 巡逻触发判定基线：分析前知识库统计（2026-09-30 已随 AGI 子系统移除）
             kb_before = None
-            try:
-                from engine.knowledge_base import get_kb
-                kb_before = get_kb().get_full_knowledge()
-            except Exception:
-                pass
             result = _execute_tax_risk_analysis(
                 company_id,
                 db,
@@ -11519,69 +11370,9 @@ def analyze_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(ge
     return _execute_tax_risk_analysis(company_id, db)
 
 
-def _inject_agi_into_report(report: dict, company_id: int) -> dict:
-    """把核心管道已产生的智能结果组织成报告级视图。"""
-    try:
-        from engine.director import get_director
-        from engine.agi_core import boundary
-        
-        director = get_director()
-        report_data = report.get("report", report)
-        all_findings = report_data.get("all_findings", []) or report.get("findings", [])
-        target = report_data.get("target_entity", {})
-        comprehensive = report.get("comprehensive", report_data.get("comprehensive", {}))
-        
-        if not all_findings:
-            return report
-        
-        # 为每条发现注入AGI分析
-        for f in all_findings[:20]:
-            uc = f.get("_agi_confidence")
-            if not uc:
-                uc = director.quantify_uncertainty(
-                    f,
-                    comprehensive.get("material_intel", {}),
-                )
-            pen = director.penetrate_essence(f)
-            ba = boundary.assess(f, {"industry": target.get("industry",""), "material_intel": comprehensive.get("material_intel", {})})
-
-            f["_agi_enhanced"] = {
-                "confidence": uc,
-                "penetration": pen if pen.get("flags") else None,
-                "boundary": ba,
-                "counterfactual": f.get("_counterfactual"),
-            }
-        
-        # 报告级AGI增强
-        ct = director.cross_tax_chain(all_findings)
-        gen = comprehensive.get("agi_generalization", {})
-        inv = director.generate_investigation_plan(all_findings, comprehensive.get("material_intel", {}))
-        lifecycle = director.get_lifecycle_context(report_data.get("company_age", 3))
-        
-        # 注入到报告顶层 — 展平agi_meta结构, JS端直接用meta_audit.grade/overall_score
-        agi_meta_raw = comprehensive.get("agi_meta", report_data.get("red_team", {}))
-        agi_audit = agi_meta_raw.get("audit", agi_meta_raw)  # 展平嵌套
-        report_data["_agi_report_level"] = {
-            "cross_tax": ct,
-            "generalization": gen,
-            "investigation_plan": inv,
-            "lifecycle": lifecycle,
-            "meta_audit": agi_audit,
-            "cross_industry_insight": _get_cross_industry_insight(all_findings),
-            "planning_advice": {
-                f.get("type","")[:40]: director.get_planning_advice(f)
-                for f in all_findings[:5] if director.get_planning_advice(f)
-            },
-        }
-        
-        return report
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return report
+# 2026-09-30：_inject_agi_into_report 已随 AGI 子系统整体移除。
 
 
-# ═══════════════════════════════════════════════════════════
 # 生产环境加固中间件
 # ═══════════════════════════════════════════════════════════
 
@@ -11955,105 +11746,7 @@ def submit_error_feedback(body: ErrorFeedbackInput, db: Session = Depends(get_db
 
 
 # ═══════════════════════════════════════════════════════════
-# 对话式税务合规 — AGI直接用中文回答税务问题
-# ═══════════════════════════════════════════════════════════
-
-@app.post("/api/agi/chat")
-async def agi_chat(request: Request, db: Session = Depends(get_db)):
-    """税务AGI对话接口
-    
-    body: {"question": "这家企业的虚开风险有多大？", "company_id": 1, "context": {}}
-    
-    AGI会基于知识库、历史分析、因果网络来回答。
-    """
-    try:
-        body = await request.json()
-    except:
-        return {"ok": False, "answer": "请提供有效的问题"}
-    
-    question = body.get("question", "").strip()
-    company_id = body.get("company_id", 0)
-    
-    if not question:
-        return {"ok": False, "answer": "请提出税务问题"}
-    
-    # 构建回答上下文
-    answer_parts = []
-    
-    # 1. 查知识库
-    try:
-        from engine.knowledge_base import get_kb
-        kb = get_kb()
-        
-        # 关键词匹配知识
-        policy_hits = []
-        for key, p in kb.get_all_policies().items():
-            if any(k in question for k in [p.get("name",""), key]):
-                conds = p.get("conditions", {})
-                policy_hits.append(f"{p['name']}: {p['law']}, 有效期至{p['expiry']}")
-        if policy_hits:
-            answer_parts.append("📋 **相关政策**:\n" + "\n".join(f"  · {h}" for h in policy_hits[:3]))
-        
-        # 语义匹配
-        for cat, words in kb.get_semantic_dict().items():
-            for w in words:
-                if w in question:
-                    answer_parts.append(f"🔍 **语义匹配**: 检测到关键品类'{cat}'(含{w}等)")
-                    break
-    except: pass
-    
-    # 2. 查历史分析
-    if company_id:
-        try:
-            from database import Company
-            company = db.query(Company).filter(Company.id == company_id).first()
-            if company:
-                # 查找最近分析结果
-                cached = _last_analysis_cache.get(company_id)
-                if cached:
-                    report = cached.get("report", {})
-                    stats = report.get("stats", report.get("report", {}).get("stats", {}))
-                    if stats:
-                        answer_parts.append(f"📊 **最近分析** ({company.name}): {stats.get('high_risk',0)}高风险/{stats.get('mid_risk',0)}中风险")
-        except: pass
-    
-    # 3. 因果网络推理
-    try:
-        from engine.causal_network import create_autonomous_reasoner
-        reasoner = create_autonomous_reasoner()
-        if reasoner.network.edges:
-            # 找相关因果边
-            related_edges = [e for e in reasoner.network.edges[:5] 
-                           if e.target_finding and any(k in question for k in e.target_finding.split())]
-            if related_edges:
-                answer_parts.append("🔗 **因果分析**:")
-                for e in related_edges[:3]:
-                    answer_parts.append(f"  · {', '.join(e.source_signals[:2])} → {e.target_finding} (置信度{e.confidence:.0%})")
-    except: pass
-    
-    # 4. 经验教训
-    try:
-        from engine.knowledge_base import get_kb
-        kb = get_kb()
-        lessons = kb.get_lessons()
-        if lessons:
-            related = [l for l in lessons[-5:] if any(k in l.get("lesson","") for k in question[:10].split())]
-            if related:
-                answer_parts.append("💡 **相关经验**:")
-                for l in related[:2]:
-                    answer_parts.append(f"  · {l['lesson'][:100]}")
-    except: pass
-    
-    # 组装回答
-    if answer_parts:
-        answer = "\n\n".join(answer_parts)
-    else:
-        answer = "我目前的知识库还没有覆盖这个问题的答案。建议：\n\n1. 上传更多企业资料进行分析，我会从数据中学习\n2. 在报告中发现错误后点击💬反馈，我会记住\n3. 更具体地描述你的问题"
-    
-    return {"ok": True, "question": question, "answer": answer, "sources_used": len(answer_parts)}
-
-
-# ═══════════════════════════════════════════════════════════
+# 2026-09-30：AGI 对话接口(/api/agi/chat)已随 AGI 子系统整体移除。
 # 闭环自检 — AGI分析完自我验证+自动修正
 # ═══════════════════════════════════════════════════════════
 
@@ -12179,32 +11872,8 @@ def toggle_parallel():
 
 
 
-# ═══ 自动巡逻 API ═══
-@app.get("/api/agi/patrol/status")
-def get_patrol_status():
-    """获取巡逻状态"""
-    try:
-        from engine.auto_patrol import PATROL_CONFIG
-        from engine.knowledge_base import get_kb
-        kb = get_kb()
-        return {"ok": True, "config": PATROL_CONFIG, "knowledge": kb.get_full_knowledge()}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
+# 2026-09-30：自动巡逻 API(/api/agi/patrol/*)已随 AGI 子系统整体移除。
 
-@app.post("/api/agi/patrol/trigger")
-def trigger_patrol_now(company_id: int = None, db: Session = Depends(get_db)):
-    """手动触发巡逻：对最近分析的企业重新分析并对比"""
-    try:
-        from engine.auto_patrol import get_companies_to_patrol
-        if company_id:
-            cids = [company_id]
-        else:
-            cids = get_companies_to_patrol(db)
-        if not cids:
-            return {"ok": False, "message": "没有可巡逻的企业，请先运行一键分析"}
-        return {"ok": True, "message": f"巡逻已触发，将分析{len(cids)}家企业", "company_ids": cids}
-    except Exception as e:
-        return {"ok": False, "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn, argparse
@@ -12922,17 +12591,7 @@ def submit_feedback(data: dict):
     
     return {"ok": True, "recorded": result["recorded"], "auto_rule": result.get("auto_apply", False), "count": result.get("correction_count", 0)}
 
-@app.post("/api/agi/learn")
-def agi_learn(data: dict):
-    """AGI学习端点：从纠正反馈中进化"""
-    from engine.agi_engine import agi
-    finding_type = data.get("finding_type", "")
-    industry = data.get("industry", "")
-    level = data.get("level", "中风险")
-    reason = data.get("reason", "")
-    
-    result = agi.learn(finding_type, industry, level, reason)
-    return {"ok": True, "result": result}
+# 2026-09-30：/api/agi/learn 已随 AGI 子系统整体移除。
 
 # ═══════════ 新增6模块API ═══════════
 
@@ -12969,19 +12628,7 @@ def predict_risk(data: dict):
     result = get_predictor().predict(profile, completeness)
     return {"ok": True, "prediction": result}
 
-@app.get("/api/agi/patrol")
-def trigger_patrol(company_id: int = Query(...)):
-    """自动巡逻"""
-    from engine.auto_patrol import should_trigger_patrol
-    from engine.agi_engine import agi
-    # 获取当前AGI状态作为对比基准
-    current_status = agi.status()
-    return {
-        "ok": True,
-        "patrol_enabled": True,
-        "agi_status": current_status,
-        "note": "巡逻引擎已就绪——当因果边或模式达到配置阈值时自动触发重新分析"
-    }
+# 2026-09-30：/api/agi/patrol 已随 AGI 子系统整体移除。
 
 @app.get("/api/agi/semantic")
 def test_semantic(a: str = "", b: str = ""):
@@ -13033,14 +12680,7 @@ def get_group_analysis(company: str = Query("")):
     anomalies = group_analyzer.detect_anomalies()
     return {"ok": True, "cluster": cluster, "anomalies": anomalies}
 
-@app.get("/api/agi/patrol/start")
-def start_patrol(company_id: int = Query(...)):
-    from engine.auto_patrol import PATROL_CONFIG
-    from engine.causal_discovery import get_discovery_engine
-    rules_count = len(get_discovery_engine().get_inference_rules(min_count=1))
-    return {"ok": True, "patrol_config": PATROL_CONFIG, "causal_rules": rules_count,
-            "trigger": rules_count >= PATROL_CONFIG.get("significant_change_threshold", 2),
-            "message": "巡逻触发条件已满足" if rules_count >= 2 else "需更多因果规则"}
+# 2026-09-30：/api/agi/patrol/start 已随 AGI 子系统整体移除。
 
 # ═══════════ 报告导出 + 移动端 ═══════════
 
@@ -13189,130 +12829,7 @@ def list_report_versions():
         ]
     }
 
-# ═══════════ AGI核心能力API：记忆+一次学会+反事实+自主运行 ═══════════
-
-@app.get("/api/agi/memory")
-def get_memory(company_id: int = Query(...)):
-    """持续记忆：该企业的历史分析摘要"""
-    from engine.agi_core import memory
-    return {"ok": True, "memory": memory.recall(company_id)}
-
-@app.post("/api/agi/learn-once")
-def learn_once(data: dict):
-    """一次学会：纠正1次就分析模式"""
-    from engine.agi_core import one_shot
-    return {"ok": True, "result": one_shot.learn_once(
-        data.get("finding_type", ""),
-        data.get("reason", ""),
-        data.get("findings", []),
-        data.get("industry", ""),
-    )}
-
-@app.get("/api/agi/counterfactual")
-def counterfactual_reason(finding_type: str = Query(""), detail: str = Query("")):
-    """反事实推理"""
-    from engine.agi_core import counterfactual
-    return {"ok": True, "result": counterfactual.reason(
-        {"type": finding_type, "detail": detail},
-        {},
-    )}
-
-@app.post("/api/agi/auto-schedule")
-def auto_schedule(data: dict):
-    """设置自动巡检"""
-    from engine.agi_core import autonomous
-    return {"ok": True, "result": autonomous.schedule(
-        data.get("company_id", 1),
-        data.get("interval_hours", 24),
-        data.get("notify", True),
-    )}
-
-@app.get("/api/agi/auto-status")
-def auto_status(company_id: int = Query(...)):
-    """自主运行状态"""
-    from engine.agi_core import autonomous, memory
-    should = autonomous.should_run(company_id)
-    mem = memory.recall(company_id)
-    return {"ok": True, "should_run": should, "memory": mem}
-
-# ═══════════ AGI终极能力API ═══════════
-
-@app.post("/api/agi/tools")
-def get_tool_decisions(data: dict):
-    """自主工具调用"""
-    from engine.agi_final import tools
-    return {"ok": True, "tools": tools.decide_tools(
-        data.get("question", ""),
-        data.get("findings", []),
-    )}
-
-@app.post("/api/agi/chain")
-def get_reasoning_chain(data: dict):
-    """多步推理链"""
-    from engine.agi_final import chains
-    return {"ok": True, "chain": chains.build_chain(
-        data.get("findings", []),
-        data.get("question", ""),
-    )}
-
-@app.get("/api/agi/causal-why")
-def deep_causal_why(topic: str = Query("")):
-    """因果理解"""
-    from engine.agi_final import causal_why
-    return {"ok": True, "explanation": causal_why.explain_deep_why(topic)}
-
-# ═══════════ 4大更好功能API ═══════════
-
-@app.post("/api/agi/report/full")
-def generate_full_report(data: dict):
-    """LLM生成完整税务合规报告(5000字)"""
-    from engine.agi_enhanced import report_writer
-    finding_list = data.get("findings", [])
-    report = report_writer.generate_report(finding_list, data.get("company", {}))
-    return {"ok": True, "report": report}
-
-@app.get("/api/agi/tianyancha")
-def check_tianyancha(name: str = Query("")):
-    """天眼查企业查询"""
-    from engine.agi_enhanced import tianyancha
-    return {"ok": True, "result": tianyancha.check_company(name)}
-
-@app.post("/api/agi/training-case")
-def generate_training_case(data: dict):
-    """生成培训案例"""
-    from engine.agi_enhanced import training_gen
-    case = training_gen.generate_case(
-        data.get("finding", {}),
-        data.get("company", {}),
-    )
-    return {"ok": True, "case": case}
-
-@app.post("/api/agi/group-analyze")
-def analyze_group(data: dict):
-    """集团多企业协同分析"""
-    from engine.agi_enhanced import group_analyzer
-    companies = data.get("companies", [])
-    findings_by_company = {c["id"]: data.get("findings_by_company", {}).get(str(c["id"]), []) for c in companies}
-    result = group_analyzer.analyze_group(companies, findings_by_company)
-    return {"ok": True, "result": result}
-
-# ═══════════ AGI元认知闭环：自审+规则调整 ═══════════
-
-@app.post("/api/agi/meta-audit")
-def run_meta_audit(data: dict):
-    """
-    AGI自审报告质量 → 发现问题 → 自动调整规则
-    
-    输入: {findings, company, materials}
-    输出: 自审评分(A-D) + 发现的问题 + 自动调整的规则
-    """
-    from engine.agi_meta import meta_loop
-    result = meta_loop.run(
-        data.get("findings", []),
-        data.get("company", {}),
-        data.get("materials", {}),
-    )
-    return {"ok": True, "result": result}
+# 2026-09-30：AGI 核心/终极/增强/元认知能力 API（memory/one_shot/counterfactual/autonomous/tools/chains/causal_why/report_writer/tianyancha/training_gen/group_analyzer/meta_loop）已随 AGI 子系统整体移除。
 
 
 def _get_cross_industry_insight(all_findings):
@@ -13400,14 +12917,8 @@ def _infer_finding_type_from_feedback(chapter: str, wrong: str, correct: str) ->
     return "资料完备度不足"
 
 
-@app.get("/api/agi/meta-status")
-def get_meta_status():
-    """AGI元认知状态"""
-    from engine.agi_meta import meta_loop
-    return {"ok": True, "status": meta_loop.get_status()}
+# 2026-09-30：/api/agi/meta-status 已随 AGI 子系统整体移除。
 
-
-# ═════════════════════════════════════════════════════════
 # 报告内容反馈（2026-07-02 老邓要求）
 # 报告表格/段落中具体数据有误时直接纠正
 # ═════════════════════════════════════════════════════════
@@ -14110,45 +13621,8 @@ def get_correction_rules():
     result["count"] = len(normalized)
     return result
 
-@app.get("/api/human-learning/status")
-def get_human_learning_status():
-    """获取人类学习引擎状态（12项认知能力）"""
-    try:
-        from engine.human_learning import HumanLearner
-        learner = HumanLearner()
-        return {"ok": True, "status": learner.status()}
-    except Exception as e:
-        return {"ok": False, "message": str(e)}
+# 2026-09-30：human-learning API(/api/human-learning/*)已随 AGI 子系统整体移除。
 
-@app.post("/api/human-learning/learn")
-async def trigger_human_learning(request: Request):
-    """触发人类学习引擎"""
-    try:
-        body = await request.json()
-    except:
-        return {"ok": False, "message": "无效请求"}
-    correction = body.get("correction", "")
-    source = body.get("source", "编辑")
-    context = body.get("context", {})
-    if not correction:
-        return {"ok": False, "message": "请提供纠正内容"}
-    from engine.human_learning import HumanLearner
-    learner = HumanLearner()
-    return learner.learn(correction, source, context)
-
-@app.post("/api/human-learning/decay")
-def trigger_decay():
-    """触发规则衰减（遗忘机制）"""
-    from engine.human_learning import HumanLearner
-    learner = HumanLearner()
-    return learner.decay_rules()
-
-@app.post("/api/human-learning/relationships")
-def trigger_relationships():
-    """触发规则关系发现"""
-    from engine.human_learning import HumanLearner
-    learner = HumanLearner()
-    return learner.discover_relationships()
 
 @app.get("/api/feedback/content-logs")
 def get_content_feedback_logs():

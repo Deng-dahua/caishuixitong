@@ -514,15 +514,7 @@ def check_industry_consistency() -> List[Tuple[str, str, str]]:
         except Exception:
             pass
 
-    # ⑤ AGI 五分类词表不得再自持一份（唯一来源＝industry_resolver.UNIVERSAL_CATEGORIES）
-    try:
-        import engine.agi_core as _ac
-        src = inspect.getsource(_ac)
-        if '"生产型": {' in src and "industry_resolver" not in src.split('"生产型": {')[0][-400:]:
-            issues.append(("ERROR", "engine/agi_core.py",
-                           "经营模式五分类词表出现第二份定义（应引用 industry_resolver.UNIVERSAL_CATEGORIES）"))
-    except Exception:
-        pass
+    # ⑤ （2026-09-30）原 AGI 五分类词表唯一性校验随 AGI 子系统整体移除（engine/agi_core.py 已删除）。
 
     # ⑥ 行业区间库必须**单一来源**：industry_benchmark 不得再硬编码区间数字
     try:

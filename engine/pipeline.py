@@ -340,54 +340,9 @@ def _apply_human_feedback_priors(redline_detection, pipeline_log, company_id):
       - 用户已确认的高置信规则（confidence>=0.8 且 auto_apply）→ 命中疑点置信度轻微提权（+0.05）；
       - 无任何活跃规则或均无命中时为空操作（不影响正常分析）。
     """
-    try:
-        from engine.human_learning import HumanLearner
-        learner = HumanLearner()
-        rules = learner.state.get("active_rules", {})
-        if not rules:
-            return
-        # 建立匹配键（finding_type / target_fact）→ 规则列表
-        by_key = {}
-        for rid, rule in rules.items():
-            for key in (str(rule.get("finding_type") or ""), str(rule.get("target_fact") or "")):
-                key = key.strip()
-                if key:
-                    by_key.setdefault(key, []).append(rule)
-        if not by_key:
-            return
-
-        adjusted = 0
-        for s in (redline_detection.get("suspicions") or []):
-            # 该红线疑点涉及的文本（红线名 + 支撑发现类型）
-            texts = [str(s.get("redline_name", ""))]
-            for sf in (s.get("supporting_findings") or []):
-                if isinstance(sf, dict):
-                    texts.append(str(sf.get("type", "")))
-                    texts.append(str(sf.get("target_fact", "") or sf.get("domain", "")))
-            blob = " ".join(texts)
-            hit_rules = []
-            for key, rs in by_key.items():
-                if key and key in blob:
-                    hit_rules.extend(rs)
-            if not hit_rules:
-                continue
-            for rule in hit_rules:
-                conf = float(rule.get("confidence", 0.5))
-                if rule.get("disputed"):
-                    s["confidence"] = max(0.0, float(s.get("confidence", 0.0)) * 0.7)
-                    s.setdefault("human_review", []).append(
-                        f"用户此前将此类发现标记为质疑（规则{rule.get('id', '')}），建议人工复核"
-                    )
-                    adjusted += 1
-                elif conf >= 0.8 and rule.get("auto_apply"):
-                    s["confidence"] = min(1.0, float(s.get("confidence", 0.0)) + 0.05 * conf)
-                    adjusted += 1
-        if adjusted:
-            pipeline_log.append(
-                f"[编辑反馈闭环] 据此前人工纠正，{adjusted}条红线疑点调整置信度/标注人工复核"
-            )
-    except Exception as _e:
-        pipeline_log.append(f"[编辑反馈闭环] 未生效：{_e}")
+    # 2026-09-30：AGI/human_learning 子系统已整体移除（对 ① 零增量，仅置信度展示/人工复核标注 overlay）。
+    # 编辑反馈先验无 human_learning 后端，直接返回原值，不影响正常红线判定。
+    return redline_detection
 
 
 def _collect_read_failures(file_results) -> list:
@@ -556,30 +511,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     warehouse_contracts, transport_contracts = [], []  # 仓库租赁/运输合同台账（VR026/VR027证据源）
     tax_declarations = []  # 纳税申报表（增值税/企业所得税等），供票税账表勾稽
 
-    # ── 🤖 财税智能体 + AGI管线统一初始化 ──
-    agent = None  # 保留兼容，由agi_pipeline内部管理
-    agent_status = None
-    agi_pipeline = None
-    agi_engine = None  # 统一大脑：合并agi_pipeline+agi_engine
-    agi_init_ok = False
-    try:
-        from engine.agi_pipeline import create_pipeline
-        agi_pipeline = create_pipeline()
-        _agi_pipeline_instance = agi_pipeline
-        agent = agi_pipeline.init_agent(db)
-        agi_init_ok = True
-        pipeline_log.append("[AGI] 智能体+34模块管线已统一连接")
-        # ═══ 合并大脑：agi_engine接入管道 ═══
-        try:
-            from engine.agi_engine import agi as agi_engine_instance
-            agi_engine = agi_engine_instance
-            pipeline_log.append("[AGI] 合并大脑：agi_pipeline + agi_engine 已统一")
-        except Exception as _ae:
-            pipeline_log.append(f"[AGI] 合并大脑接入失败→跳过推理增强: {_ae}")
-    except Exception as _pe:
-        pipeline_log.append(f"[AGI] 初始化失败→跳过反思/洞见/知识注入: {_pe}")
-        agi_pipeline = None
-
+    # 2026-09-30：AGI 自学习/推理子系统（agi_*/causal_*/human_learning/auto_patrol/knowledge_base，
+    # 11 模块/8,012 行）已整体移除——A/B 实测对 ① 风险结论零增量（仅置信度/边界 overlay 与叙事章节）。
     # ── NEW ENGINE VERSION CHECK ──
     # ═══ 七步耗时记录 ═══
     _step_timing = {}  # {step名: 耗时秒数}
@@ -5691,7 +5624,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         "bayesian": getattr(ctx, '_bayesian', None) or {},
         "ema_learning": getattr(ctx, '_ema_learning', None) or {},
         "benford": getattr(ctx, '_benford', None) or {},
-        "agi_initialized": agi_init_ok,
+        "agi_initialized": False,
         "trace_id": analysis_trace_id,
         "trace_count": len(_analysis_traces),
         "blocked": False,
@@ -5780,77 +5713,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as e:
         pipeline_log.append(f"[CORRECTION] 纠正规则应用失败: {e}")
     
-    # ═══ 合并大脑：agi_engine注入推理增强 ═══
-    if agi_engine:
-        try:
-            # 元认知自审
-            from engine.agi_meta import meta_loop
-            meta_result = meta_loop.run(all_findings, target_entity, {"files": len(file_results)})
-            # 将自审结果注入每条 finding 的 AGI 置信度
-            audit_scores = {}
-            if meta_result.get("ok") and meta_result.get("audit"):
-                per_finding = meta_result["audit"].get("per_finding_audits", [])
-                for pfa in per_finding:
-                    idx = pfa.get("index", 0) - 1
-                    if 0 <= idx < len(all_findings):
-                        all_findings[idx]["_agi_audit_score"] = pfa.get("score", 0)
-                        all_findings[idx]["_agi_audit_verdict"] = pfa.get("verdict", "")
-                        all_findings[idx]["_agi_audit_issues"] = pfa.get("issues", [])
-            grade = (meta_result.get("audit") or {}).get("grade", 
-                     (meta_result.get("meta_analysis") or {}).get("grade", "?"))
-            score = (meta_result.get("audit") or {}).get("overall_score",
-                     (meta_result.get("meta_analysis") or {}).get("score", 0))
-            pipeline_log.append(f"[AGI] 元认知自审完成: {grade}级 评分{score:.2f}")
-            comprehensive["_agi_meta"] = meta_result
-            comprehensive["agi_meta"] = meta_result
-        except Exception as _e:
-            pipeline_log.append(f"[AGI] 元认知自审失败→跳过: {_e}")
-        try:
-            # 处长不确定性量化（全量，不设条数上限）
-            from engine.director import get_director
-            director = get_director()
-            _mi = comprehensive.get("material_intel", {})
-            _ok = _fail = 0
-            for f in all_findings:
-                try:
-                    f["_agi_confidence"] = director.quantify_uncertainty(f, _mi)
-                    _ok += 1
-                except Exception:
-                    _fail += 1
-            pipeline_log.append(f"[AGI] 处长不确定性量化完成: {_ok}条" + (f"，{_fail}条失败" if _fail else ""))
-        except Exception as _e:
-            pipeline_log.append(f"[AGI] 处长不确定性量化失败→跳过: {_e}")
-        try:
-            # 反事实推理（全量，不设条数上限）
-            from engine.agi_core import counterfactual
-            counterfactual_results = []
-            _cf_mi = comprehensive.get("material_intel", {})
-            _fail = _skip = 0
-            for f in all_findings:
-                try:
-                    cf = counterfactual.reason(f, _cf_mi)
-                    if cf and cf.get("status") != "no_template":
-                        counterfactual_results.append(cf)
-                    else:
-                        _skip += 1
-                except Exception:
-                    _fail += 1
-            if counterfactual_results:
-                comprehensive["counterfactual_analysis"] = counterfactual_results
-            pipeline_log.append(f"[AGI] 反事实推理完成: {len(counterfactual_results)}条"
-                                + (f"，{_skip}条无模板" if _skip else "")
-                                + (f"，{_fail}条失败" if _fail else ""))
-        except Exception as _e:
-            pipeline_log.append(f"[AGI] 反事实推理失败→跳过: {_e}")
-        try:
-            # 泛化学习
-            from engine.agi_core import generalizer
-            gen = generalizer.generalize(all_findings, target_entity.get("name", ""), target_entity.get("industry", ""))
-            if gen: comprehensive["agi_generalization"] = gen
-            pipeline_log.append("[AGI] 泛化学习完成")
-        except Exception as _e:
-            pipeline_log.append(f"[AGI] 泛化学习失败→跳过: {_e}")
-    
+    # 2026-09-30：AGI 推理增强（元认知自审/不确定性量化/反事实/泛化）随 AGI 子系统整体移除。
     # ═══ 结论自洽性检查：CONTRADICTION_RULES 矛盾检测 ═══
     try:
         contradictions = _check_conclusion_consistency(all_findings)
@@ -6013,175 +5876,7 @@ def _run_analyze(company_id, db, progress_callback=None):
                 company_id, ind, bm)
     except Exception: pass
     
-    # ═══ 财税智能体：反思 + 洞见总结 + 经验积累 ═══
-    try:
-        target_name = target_entity.get("name","") if target_entity else ""
-        if agi_pipeline is not None and agi_pipeline.agent is not None:
-            agent_result = agi_pipeline.run_agent_cycle(
-                bank_txs, invoices, salaries, vouchers, ctx, company_id, target_name, db
-            )
-            if not agent_result.get("error"):
-                result["agent"] = {
-                    "insight_summary": agent_result.get("insight_summary", ""),
-                    "reflection": agent_result.get("reflection", {}),
-                    "memory": agent_result.get("memory", {}),
-                    "hypotheses": agent_result.get("hypotheses", []),
-                }
-                if agent_result.get("reflected_findings") and isinstance(agent_result["reflected_findings"], list) and len(agent_result["reflected_findings"]) > 0:
-                    # v3.0: 合并而非覆盖 — 保留未被反思的原始发现
-                    reflected = agent_result["reflected_findings"]
-                    reflected_types = set()
-                    for rf in reflected:
-                        t = rf.get("_original_type") or rf.get("type", "")
-                        if t: reflected_types.add(t)
-                    # 合并：反思过的用反思版本，未反思的保留原版
-                    merged = [f for f in all_findings if f.get("type", "") not in reflected_types]
-                    merged.extend(reflected)
-                    all_findings = merged
-                    pipeline_log.append(f"[AGI] 反思合并完成: {len(reflected)}条更新, {len(merged)-len(reflected)}条保留")
-                    result["report"]["all_findings"] = sorted(all_findings, key=lambda x: -(x.get("score") or 0))
-                    result["report"]["total_risks"] = len(all_findings)
-                    result["report"]["high_risk"] = sum(1 for f in all_findings if f.get("level") == "高风险")
-                    result["report"]["mid_risk"] = sum(1 for f in all_findings if f.get("level") == "中风险")
-                pipeline_log.append(f"[AGI] 智能体完成反思: {agent_result.get('reflection',{}).get('total_checked',0)}条结论")
-                
-                # ═══ 回路2: 反思证伪 → 自动降级结论 ═══
-                downgraded_count = 0
-                for f in all_findings:
-                    reflection = f.get("_self_reflection", {})
-                    verdict = reflection.get("verdict", "")
-                    if verdict == "refuted":
-                        old_level = f.get("level", "")
-                        old_score = f.get("score", 5) or 5
-                        # 高风险→中风险，中风险→低风险，分数减半
-                        if old_level == "高风险":
-                            f["level"] = "中风险"
-                            f["score"] = max(2, old_score * 0.4)
-                        elif old_level == "中风险":
-                            f["level"] = "低风险"
-                            f["score"] = max(1, old_score * 0.3)
-                        f["_reflection_downgraded"] = True
-                        f["_reflection_reason"] = reflection.get("reason", "")[:100]
-                        downgraded_count += 1
-                    elif verdict == "uncertain":
-                        old_score = f.get("score", 5) or 5
-                        f["score"] = max(3, old_score * 0.7)
-                        f["_reflection_uncertain"] = True
-                
-                if downgraded_count > 0:
-                    pipeline_log.append(f"[AGI] 反思证伪降级: {downgraded_count}条结论被证伪→自动降低风险等级")
-                    # 重新统计
-                    result["report"]["all_findings"] = sorted(all_findings, key=lambda x: -(x.get("score") or 0))
-                    result["report"]["total_risks"] = len(all_findings)
-                    result["report"]["high_risk"] = sum(1 for f in all_findings if f.get("level") == "高风险")
-                    result["report"]["mid_risk"] = sum(1 for f in all_findings if f.get("level") == "中风险")
-            else:
-                pipeline_log.append(f"[AGI] 智能体异常: {agent_result['error']}")
-    except Exception as _ag_err:
-        pipeline_log.append(f"[AGI] 统一处理异常: {_ag_err}")
-        result["agent"] = {"error": str(_ag_err)}
-    
-    # ═══ AGI管线：16模块知识注入 ═══
-    if agi_pipeline is not None:
-        try:
-            # ⑦ 文件解析学习
-            agi_pipeline.ingest_file_parsing(file_results, analysis_trace_id)
-            
-            # ⑧ 域分析学习
-            agi_pipeline.ingest_domain_results(domain_results, analysis_trace_id, company_id)
-            
-            # ①② 税务合规指令+线索链学习
-            rule_details_list = []
-            try:
-                from engine.verified_rule_engine import VERIFIED_RULE_CATALOG
-                rule_details_list = [dict(rule) for rule in VERIFIED_RULE_CATALOG]
-            except: pass
-            agi_pipeline.ingest_audit_rules(len(rule_details_list), rule_details_list, all_findings, analysis_trace_id, company_id)
-            
-            # ②③ 线索链+证据链学习（从comprehensive中提取触发记录）
-            try:
-                triggered = comprehensive.get("triggered_chains", [])
-                agi_pipeline.ingest_clue_chains(triggered, all_findings, analysis_trace_id)
-                agi_pipeline.ingest_evidence_chains(triggered, all_findings, analysis_trace_id)
-            except: pass
-            
-            # ④ 分析链+因果叙事链学习
-            try:
-                agi_pipeline.ingest_analysis_chains(
-                    triggered if 'triggered' in dir() else comprehensive.get("triggered_chains", []),
-                    analysis_trace_id
-                )
-            except: pass
-            
-            # ⑤ 税务合规方法论学习
-            from engine.framework_config import PIPELINE_KNOWLEDGE
-            methodologies = PIPELINE_KNOWLEDGE.get("methodologies", [])
-            agi_pipeline.ingest_methodologies(methodologies, domain_results, analysis_trace_id)
-            
-            # ⑨⑩⑪ 跨域线索/分析/证据链学习
-            try:
-                agi_pipeline.ingest_cross_domain(
-                    comprehensive.get("cross_clues", comprehensive.get("triggered_chains", [])),
-                    comprehensive.get("cross_analysis", []),
-                    comprehensive.get("cross_evidence", []),
-                    analysis_trace_id
-                )
-            except: pass
-            
-            # ⑫ 方法论过滤学习
-            pre_cnt = len(all_findings)
-            agi_pipeline.ingest_filter_results(
-                filter_log.get("reasons", []) if isinstance(filter_log, dict) else (filter_log or []),
-                pre_cnt, len(all_findings),
-                [], analysis_trace_id
-            )
-            
-            # ⑬⑭⑮ 质量体系学习
-            agi_pipeline.ingest_quality_data(
-                quality_report or {},
-                len(orchestration_plan.get("pipeline_stages", [])) if 'orchestration_plan' in dir() else 7,
-                result.get("compliance_gate", {}),
-                analysis_trace_id
-            )
-            
-            # 推理引擎仪表盘(A) 学习
-            agi_pipeline.ingest_engine_status(engine_status, ctx, analysis_trace_id)
-            
-            # 能力矩阵(B) 学习
-            agi_pipeline.ingest_capability_matrix(None, analysis_trace_id)
-            
-            # 覆盖层(D): AGI自主修正
-            try:
-                from engine.override_engine import get_override_engine
-                oe = get_override_engine()
-                auto_result = oe.agi_auto_correct(all_findings, domain_results)
-                if auto_result["corrections_proposed"] > 0:
-                    pipeline_log.append(f"[AGI] 自主提议{auto_result['corrections_proposed']}条修正({auto_result['auto_activated']}条自动激活)")
-                result["agi_overrides"] = auto_result
-            except: pass
-            
-            # 汇总持久化
-            try:
-                agi_result = agi_pipeline.finalize_learning(
-                    analysis_trace_id,
-                    target_entity.get("name", "") if target_entity else "",
-                    _target_industry or "",
-                    ctx=ctx,
-                )
-                result["agi_pipeline"] = agi_result
-                pipeline_log.append(f"[AGI] {agi_result.get('modules_covered',0)}/16模块已联通({agi_result.get('events_collected',0)}事件)")
-                # 收集新模块错误
-                if hasattr(agi_pipeline, 'errors') and agi_pipeline.errors:
-                    for err in agi_pipeline.errors:
-                        pipeline_log.append(f"[AGI] {err}")
-            except Exception as _agi_finalize_err:
-                import traceback as _tb_fl
-                _fl_loc = _tb_fl.format_exc().strip().splitlines()[-3:]
-                pipeline_log.append(f"[AGI] 汇总持久化异常: {_agi_finalize_err} @ {' | '.join(_fl_loc)}")
-                result["agi_pipeline"] = {"error": str(_agi_finalize_err), "modules_covered": 0, "events_collected": 0}
-        except Exception as _agi_err:
-            pipeline_log.append(f"[AGI] 管线异常: {_agi_err}")
-    
+    # 2026-09-30：财税智能体反思/洞见/AGI 16模块知识注入 随 AGI 子系统整体移除。
     # ═══ 回路4: 系统自愈引擎 — 应用从历史错误中学习的修正规则 ═══
     try:
         from engine.self_healing import apply_healing_rules, SelfHealingEngine

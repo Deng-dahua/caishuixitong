@@ -21,7 +21,7 @@ PRODUCTION_PYTHON = [
     "llm_credentials.py", "llm_providers.py", "request_context.py",
     "manage_users.py", "database.py", "main.py",
     "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
-    "engine/agi_pipeline.py", "engine/rule_discovery.py",
+    "engine/rule_discovery.py",
     "engine/orchestrator.py", "engine/report_standards.py",
     "engine/verified_rule_engine.py", "engine/redline_engine.py",
     "engine/fact_rules.py", "engine/text_guardrails.py",
@@ -144,7 +144,6 @@ def main() -> int:
     index_source = (ROOT / "static" / "index.html").read_text(encoding="utf-8")
     company_picker_source = (ROOT / "static" / "select-company.html").read_text(encoding="utf-8")
     new_company_source = (ROOT / "static" / "new-company.html").read_text(encoding="utf-8")
-    knowledge_source = (ROOT / "engine" / "knowledge_base.py").read_text(encoding="utf-8")
     check("hashlib.scrypt" in security_source, "passwords use scrypt", failures)
     check(
         "from engine.threshold_scanner import" not in pipeline_source
@@ -262,9 +261,8 @@ def main() -> int:
         failures,
     )
     check(
-        "DATA_DIR" in knowledge_source
-        and not (ROOT / "static" / "tax_agi_knowledge.json").exists(),
-        "mutable AGI knowledge is stored outside the static web root",
+        not (ROOT / "static" / "tax_agi_knowledge.json").exists(),
+        "mutable AGI knowledge is not stored in the static web root",
         failures,
     )
 

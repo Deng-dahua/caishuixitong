@@ -27,7 +27,6 @@ class BusinessApiAlignmentTests(unittest.TestCase):
         unified = main_source[unified_start:unified_end]
         ordered_calls = (
             "result = _run_analyze(",
-            "_inject_agi_into_report(report_data, company_id)",
             "_apply_engine_hub_stage(",
             "_apply_output_governance_stage(report_data)",
             "_apply_report_compilation_stage(report_data)",
@@ -52,7 +51,7 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             '\n@app.post("/api/tax-risk-docs/analyze")'
         )
         sync_end = main_source.index(
-            "\ndef _inject_agi_into_report", sync_start
+            "\n# 2026-09-30：_inject_agi_into_report", sync_start
         )
         sync_endpoint = main_source[sync_start:sync_end]
         self.assertIn(
@@ -91,10 +90,6 @@ class BusinessApiAlignmentTests(unittest.TestCase):
                 calls.append("analysis")
                 return raw_result
 
-            def inject(report, company_id):
-                calls.append("engine_report")
-                return report
-
             def scenario_boundary(report):
                 calls.append("scenario_boundary")
                 return {"status": "completed"}
@@ -126,8 +121,6 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             ), patch.object(
                 main, "_enforce_scenario_execution_boundary", side_effect=scenario_boundary
             ), patch.object(
-                main, "_inject_agi_into_report", side_effect=inject
-            ), patch.object(
                 main, "_apply_engine_hub_stage", side_effect=engine_hub
             ), patch.object(
                 main, "_apply_output_governance_stage", side_effect=methodology
@@ -146,7 +139,6 @@ class BusinessApiAlignmentTests(unittest.TestCase):
             assert calls == [
                 "analysis",
                 "scenario_boundary",
-                "engine_report",
                 "engine_hub",
                 "methodology",
                 "report_compilation",
@@ -164,8 +156,6 @@ class BusinessApiAlignmentTests(unittest.TestCase):
                 main, "_run_analyze", return_value=raw_result
             ), patch.object(
                 main, "_enforce_scenario_execution_boundary", side_effect=scenario_boundary
-            ), patch.object(
-                main, "_inject_agi_into_report", side_effect=inject
             ), patch.object(
                 main, "_apply_engine_hub_stage", side_effect=engine_hub
             ), patch.object(
