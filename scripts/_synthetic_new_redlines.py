@@ -80,6 +80,23 @@ cases.append(("VAT-009 销项侧『违约金』→ 触发", "RL-VAT-009" in sp_f
 cases.append(("VAT-009 采购侧『包装费』(噪声) → 不触发", "RL-VAT-009" not in sp_fire_purchase([{"goods": "*包装费* 采购包装材料"}])))
 cases.append(("VAT-009 销项侧无价外费用字样 → 不触发", "RL-VAT-009" not in sp_fire_sales([{"goods": "*饲料*猫粮"}])))
 
+def sp_fire_mixed(sal=None, pur=None, decl=None):
+    """同时给定销项/进项/申报，用于验证 source 侧向对齐与申报抑制。"""
+    data = {"sal_invs": sal or [], "pur_invs": pur or [], "tax_declarations": decl or []}
+    return [f.get("redline_id") for f in run_special_redline_detection(data, [])]
+
+
+# RL-VAT-014 异地预缴（source=sales：只认"提供建筑服务/不动产租赁销售"侧）
+cases.append(("VAT-014 销项侧『建筑服务—工程施工』→ 触发", "RL-VAT-014" in sp_fire_sales([{"goods": "*建筑服务*工程施工"}])))
+cases.append(("VAT-014 销项侧『不动产经营租赁』→ 触发", "RL-VAT-014" in sp_fire_sales([{"goods": "*不动产经营租赁*房屋"}])))
+cases.append(("VAT-014 进项侧『建筑服务』(采购，无预缴义务) → 不触发", "RL-VAT-014" not in sp_fire_purchase([{"goods": "*建筑服务*工程施工"}])))
+cases.append(("VAT-014 见《预缴税款表》申报 → 抑制", "RL-VAT-014" not in sp_fire_mixed(sal=[{"goods": "*建筑服务*工程施工"}], decl=[{"t": "预缴税款表"}])))
+
+# RL-VAT-015 农产品收购发票（source=purchase：收购发票由购买方自开并作进项抵扣）
+cases.append(("VAT-015 进项侧『农产品收购发票』→ 触发", "RL-VAT-015" in sp_fire_purchase([{"goods": "农产品收购发票 免税农产品"}])))
+cases.append(("VAT-015 销项侧出现同字样 → 不触发", "RL-VAT-015" not in sp_fire_sales([{"goods": "农产品收购发票"}])))
+cases.append(("VAT-015 无收购发票线索 → 不触发", "RL-VAT-015" not in sp_fire_purchase([{"goods": "*饲料*猫粮"}])))
+
 ok = 0
 for name, passed in cases:
     print(("PASS " if passed else "FAIL "), name)

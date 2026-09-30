@@ -2,8 +2,8 @@
 """接线固化测试：义务红线 + 印花税税目 + 资本弱化 + 费用义务 + 漂移资料。
 
 锁死「单一权威来源」接线，防止未来改动悄无声息地破坏：
-  - REDLINES 权威计数 = 89
-  - 14 条新增红线存在、要件/论证完整、domain 在 DOMAIN_ORDER
+  - REDLINES 权威计数 = 91
+  - 16 条新增红线存在、要件/论证完整、domain 在 DOMAIN_ORDER
   - gap/special SPECS 的 redline_id 全部映射到真实红线（含 3 条费类义务）
   - 32 条 sup_* 补充自证资料同时在识别表与报告分类表登记
 """
@@ -34,6 +34,8 @@ NEW_REDLINE_IDS = [
     "RL-SPT-019",  # 残疾人就业保障金
     "RL-SPT-020",  # 水利建设基金
     "RL-SPT-021",  # 工会经费
+    "RL-VAT-014",  # 异地预缴增值税
+    "RL-VAT-015",  # 农产品收购发票进项真实性
 ]
 
 NEW_MATERIAL_DTS = [
@@ -50,6 +52,8 @@ NEW_MATERIAL_DTS = [
     # 费类义务（RL-SPT-019/020/021）
     "sup_ldf_decl", "sup_ldf_exempt", "sup_water_fund_decl", "sup_payment_voucher",
     "sup_union_payment", "sup_union_receipt", "sup_union_org_proof",
+    # 场景红线（RL-VAT-014/015）
+    "sup_vat_prepay_decl", "sup_agri_purchase_invoice", "sup_purchase_ledger",
 ]
 
 FEE_OBLIGATION_TOPICS = {"残疾人就业保障金", "水利建设基金", "工会经费"}
@@ -57,9 +61,9 @@ FEE_OBLIGATION_TOPICS = {"残疾人就业保障金", "水利建设基金", "工�
 
 class ObligationRedlineWiringTests(unittest.TestCase):
     def test_authoritative_redline_count_is_89(self):
-        # 权威计数必须实时等于 89（74 原 + 6 义务红线 + 1 营业账簿 + 4 印花税合同类
-        #   + 1 资本弱化 + 3 费类义务），杜绝硬编码漂移
-        self.assertEqual(len(REDLINES), 89)
+        # 权威计数必须实时等于 91（74 原 + 6 义务红线 + 1 营业账簿 + 4 印花税合同类
+        #   + 1 资本弱化 + 3 费类义务 + 2 场景红线(异地预缴/农产品收购发票)），杜绝硬编码漂移
+        self.assertEqual(len(REDLINES), 91)
 
     def test_fourteen_new_redlines_exist_and_well_formed(self):
         for rid in NEW_REDLINE_IDS:

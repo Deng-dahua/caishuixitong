@@ -49,12 +49,44 @@ class TestRedlineLibrary(unittest.TestCase):
     def test_library_scale(self):
         self.assertGreaterEqual(len(REDLINES), 40, "红线库不应少于 40 条")
 
+    # 法定税目／应税行为／征税对象术语：与行业名同形，但**对所有行业通用**，不构成"绑定行业"。
+    # 例：「建筑服务」是财税〔2016〕36号附件1《销售服务、无形资产、不动产注释》的税目名；
+    #     「农产品」是征税对象名（农产品收购发票、农产品进项税额）。新增术语只在此加一行。
+    LEGAL_TAX_TERMS = (
+        "建筑服务", "建筑安装", "不动产经营租赁", "销售不动产",
+        "农产品", "金融机构", "餐饮服务", "金融服务", "文化体育",
+    )
+
     def test_no_industry_specific_redline(self):
-        """红线不得绑定具体行业（行业只影响线索形态，不影响红线本身）"""
+        """红线不得绑定具体行业（行业只影响线索形态，不影响红线本身）。
+
+        ★ 2026-10-01 判据细化：先剔除**法定税目/应税行为术语**（LEGAL_TAX_TERMS）再判行业绑定——
+        税目名与行业名同形（「建筑服务」「农产品」），但其适用范围本就跨所有行业，
+        若不清除会把"法定税目"误判为"绑定行业"（实测 RL-VAT-014 被误报）。
+        判定仍会抓住真正的行业绑定（如"纺织行业…"），见反向验证 test_still_catches_real_industry_binding。
+        """
         industries = ("纺织", "餐饮", "建筑", "农业", "金融", "制造")
         for r in REDLINES:
+            name = r["name"]
+            for term in self.LEGAL_TAX_TERMS:
+                name = name.replace(term, "")
             for word in industries:
-                self.assertNotIn(word, r["name"], f"{r['id']} 红线名称不应绑定行业")
+                self.assertNotIn(word, name, f"{r['id']} 红线名称不应绑定行业")
+
+    def test_still_catches_real_industry_binding(self):
+        """反向验证：剔除法定术语后，真正的行业绑定仍必须被判出（否则本检查形同虚设）。"""
+        industries = ("纺织", "餐饮", "建筑", "农业", "金融", "制造")
+
+        def _violates(name):
+            n = name
+            for term in self.LEGAL_TAX_TERMS:
+                n = n.replace(term, "")
+            return [w for w in industries if w in n]
+
+        self.assertTrue(_violates("纺织行业成本与收入不匹配"), "真行业绑定必须被判出")
+        self.assertTrue(_violates("农业企业免税收入未按规定核算"), "真行业绑定必须被判出")
+        self.assertEqual(_violates("异地建筑服务未在项目所在地预缴增值税"), [],
+                         "法定税目「建筑服务」不得误判为行业绑定")
 
     def test_match_typical_signals(self):
         cases = [
@@ -219,7 +251,7 @@ class TestEvidenceStatusGrounded(unittest.TestCase):
         self.assertIn("采购台账", e["basis"])
 
     def test_every_available_claim_is_traceable(self):
-        """★ 全量不变式：89 条红线、348 个证据项，凡判「已有」必有逐字依据。"""
+        """★ 全量不变式：91 条红线、354 个证据项，凡判「已有」必有逐字依据。"""
         bad = []
         for rl in all_redlines():
             ev = build_evidence_chain({"type": "x"}, rl, self.AVAIL)
