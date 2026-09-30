@@ -1895,6 +1895,9 @@ def _run_analyze(company_id, db, progress_callback=None):
         
             inv_match_findings.append({
                 "type": "进销数量严重偏差", "level": "中风险", "score": 6,
+                # ★ 2026-09-30：显式认领 RL-PTY-004（要件1＝数量链条断裂），把「仅兜底」升为 declared。
+                "redline_id": "RL-PTY-004",
+                "constituent_hits": [{"index": 1, "evidence": "逐品名配对进销数量：{n} 类核心商品进销数量偏差超阈值（典型：{ex}）（要件观察事实；是否为未开票采购/隐匿销售/正常库存变动须人工复核）".format(n=len(big_diff), ex="；".join(detail_parts[:2]))}],
                 "detail": f"在识别出主营业务成本之后，{len(big_diff)}类核心商品进销数量偏差超过100。典型：{'；'.join(detail_parts)}",
                 "description": f"在识别出主营业务成本之后，进一步分析：{excluded_qty_note}\n\n"
                     + f"进销数量偏差分析：将{len(core_goods_in_both)}种核心成本品名的进销数量逐品名配对。"

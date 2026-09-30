@@ -4405,6 +4405,9 @@ def _domain_business_premise_geo(bank_txs, invoices, docs, target_industry=""):
         
         findings.append({
             "type": "外地加工费存疑",
+            # ★ 2026-09-30：显式认领 RL-PTY-003（要件1＝受托方地域分散/与产能不匹配），把「仅兜底」升为 declared。
+            "redline_id": "RL-PTY-003",
+            "constituent_hits": [{"index": 1, "evidence": "加工费供应商 {n} 家均不在 {city} 市（{names}），与当地产业现状不符{extra}（要件观察事实；是否为合理外协须以加工协议/发料单/产能证明核实）".format(n=len(processors), city=company_city, names=proc_city_names, extra="；且全链条物流存疑（外地供应商/客户 + 零运输成本）" if (all_remote and remote_sellers>=3 and not has_transport) else "")}],
             "level": level, "score": score,
             "detail": f"发现{len(processors)}家加工费供应商不在{company_city}市（{proc_city_names}），与当地{_cluster}现状不符。{('同时存在' + str(remote_sellers) + '家外地原材料供应商、' + str(remote_buyers) + '家外地客户、零运输成本——全链条物流存疑') if (remote_sellers >= 3 and not has_transport) else ''}",
             "description": desc,
@@ -4783,6 +4786,9 @@ def _domain_temporal_anomaly(bank_txs):
     if issues:
         findings.append({
             "type": "交易时间与金额模式异常",
+            # ★ 2026-09-30：显式认领 RL-AST-003（要件2＝存在整数金额/重复金额），把「仅兜底」升为 declared。
+            "redline_id": "RL-AST-003",
+            "constituent_hits": [{"index": 2, "evidence": "流水口径检出整数金额交易 {n} 笔（合计 {amt:,.2f} 元）：{ev}（要件观察事实；须核实是否对应真实业务）".format(n=round_count, amt=round_total, ev="; ".join(issues[:2]))}],
             "level": "中风险", "score": 6 if len(issues)==1 else 7,
             "detail": "; ".join(issues),
             "description": "交易行为分析发现异常模式:\n\n" + "\n".join(f"• {i}" for i in issues) + "\n\n税务合规经验: 正常经营交易分散在工作日且金额零碎，周末交易和整数金额交易通常有特殊目的——过桥资金、关联方走账、或刻意构造的资金流水。",
@@ -5707,6 +5713,9 @@ def _domain_invoice_audit(invoices, target_industry=""):
             examples = [f"{r['goods'][:20]}({r['amount']:,.2f}元)" for r in big_round]
             findings.append({
                 "type": "发票金额为整数——缺少零头",
+                # ★ 2026-09-30：显式认领 RL-AST-003（要件4＝尾数高度集中于整数，疑似人为构造）。
+                "redline_id": "RL-AST-003",
+                "constituent_hits": [{"index": 4, "evidence": "检出 {n} 张金额为精确整数（≥1万元）的发票，示例：{ev}（要件观察事实；须以合同/入库单核实交易真实性）".format(n=len(big_round), ev="；".join(examples[:2]))}],
                 "level": "中风险", "score": 6,
                 "detail": f"发现{len(big_round)}张发票金额为精确整数（≥1万元），与正常商业交易习惯不符。",
                 "description": f"正常交易因数量×单价通常产生非整数金额（如1.25元×800kg=1,000元）。大量精确整万、整千金额可能为人为凑数，是虚开特征之一。涉及：{'；'.join(examples)}等。",

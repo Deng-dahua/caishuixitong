@@ -2255,7 +2255,7 @@ def _scan_supplier_geo(data, spec):
               "正常解释包括：独家代理或长期协议采购、行业原料产地本就集中、集团统一采购后分配、"
               "电商平台或全国性服务商采购——请提供采购合同、物流单据、入库验收与资金流水予以印证。")
 
-    return [_rule_finding(
+    _f016 = _rule_finding(
         spec,
         detail,
         {
@@ -2280,7 +2280,18 @@ def _scan_supplier_geo(data, spec):
         # 结构性特征不等于违法：集中度与地域分布均有多种正常解释（独家代理、产地集中、
         # 集团统采、电商平台），故定级「待核验」而非「中风险」，交由企业举证后裁决。
         level="待核验", priority="中",
-    )]
+    )
+    # ★ 2026-09-30：显式认领 RL-PTY-002（要件1＝异地采购金额占比高 / 要件2＝前三大供应商占比高），
+    #   把这条「仅兜底」红线升为运行期 declared（原先只有 match_redline_grounded 文本模糊匹配碰运气）。
+    _f016["redline_id"] = "RL-PTY-002"
+    _cross_ev = (f"异地采购占{cross_ratio:.0%}（{len(by_province)}个地区、共{len(suppliers)}家主营成本供应商，采购额{total_amount:,.2f}元）"
+                 if local_province else f"涉及{len(by_province)}个地区")
+    _f016["constituent_hits"] = [{
+        "index": (1 if (local_province and cross_ratio >= 0.6) else 2),
+        "evidence": _cross_ev + f"；前三大供应商占{cr3:.0%}，触发特征：" + "；".join(reasons[:2])
+                    + "（要件观察事实；独家代理/产地集中/集团统采/电商平台等正当解释须由企业举证）",
+    }]
+    return [_f016]
 
 def _scan_concentration(data, spec):
     sal = data.get("sal_invs", []) or []
