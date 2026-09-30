@@ -493,7 +493,7 @@ class TestEvidenceRequirementSplit(unittest.TestCase):
                          [["付款银行流水", "第三方支付凭证"]])
 
     def test_all_redline_evidence_basis_balanced(self):
-        """全量 68 红线 × 279 个证据项：basis 必须全部括号闭合"""
+        """全量 89 红线 × 348 个证据项：basis 必须全部括号闭合"""
         from engine.evidence_chain import build_evidence_chain
         from engine.tax_redlines import all_redlines
         bad = []

@@ -2,10 +2,10 @@
 """接线固化测试：义务红线 + 印花税税目 + 资本弱化 + 费用义务 + 漂移资料。
 
 锁死「单一权威来源」接线，防止未来改动悄无声息地破坏：
-  - REDLINES 权威计数 = 86
-  - 11 条新增红线存在、要件/论证完整、domain 在 DOMAIN_ORDER
-  - gap/special SPECS 的 redline_id 全部映射到真实红线
-  - 25 条 sup_* 补充自证资料同时在识别表与报告分类表登记
+  - REDLINES 权威计数 = 89
+  - 14 条新增红线存在、要件/论证完整、domain 在 DOMAIN_ORDER
+  - gap/special SPECS 的 redline_id 全部映射到真实红线（含 3 条费类义务）
+  - 32 条 sup_* 补充自证资料同时在识别表与报告分类表登记
 """
 import os
 import sys
@@ -31,6 +31,9 @@ NEW_REDLINE_IDS = [
     "RL-OTH-010",  # 财产租赁合同印花税
     "RL-OTH-011",  # 财产保险合同印花税
     "RL-CIT-010",  # 资本弱化（关联债资比）
+    "RL-SPT-019",  # 残疾人就业保障金
+    "RL-SPT-020",  # 水利建设基金
+    "RL-SPT-021",  # 工会经费
 ]
 
 NEW_MATERIAL_DTS = [
@@ -44,17 +47,21 @@ NEW_MATERIAL_DTS = [
     "sup_equity_transfer_contract", "sup_realestate_transfer_contract",
     "sup_property_insurance_contract", "sup_interest_expense_ledger",
     "sup_contemporaneous_docs",
+    # 费类义务（RL-SPT-019/020/021）
+    "sup_ldf_decl", "sup_ldf_exempt", "sup_water_fund_decl", "sup_payment_voucher",
+    "sup_union_payment", "sup_union_receipt", "sup_union_org_proof",
 ]
 
 FEE_OBLIGATION_TOPICS = {"残疾人就业保障金", "水利建设基金", "工会经费"}
 
 
 class ObligationRedlineWiringTests(unittest.TestCase):
-    def test_authoritative_redline_count_is_86(self):
-        # 权威计数必须实时等于 86（74 原 + 6 义务红线 + 1 营业账簿 + 4 印花税合同类 + 1 资本弱化），杜绝硬编码漂移
-        self.assertEqual(len(REDLINES), 86)
+    def test_authoritative_redline_count_is_89(self):
+        # 权威计数必须实时等于 89（74 原 + 6 义务红线 + 1 营业账簿 + 4 印花税合同类
+        #   + 1 资本弱化 + 3 费类义务），杜绝硬编码漂移
+        self.assertEqual(len(REDLINES), 89)
 
-    def test_six_new_redlines_exist_and_well_formed(self):
+    def test_fourteen_new_redlines_exist_and_well_formed(self):
         for rid in NEW_REDLINE_IDS:
             rl = get_redline(rid)
             self.assertIsNotNone(rl, f"{rid} 缺失")
@@ -78,13 +85,17 @@ class ObligationRedlineWiringTests(unittest.TestCase):
             self.assertIsNotNone(rl, f"SPECS {spec.get('topic')} 的 redline_id={rid} 无对应红线")
             self.assertIn(rl.get("domain"), DOMAIN_ORDER)
 
-    def test_fee_obligations_present_as_report_level(self):
-        topics = {s.get("topic") for s in gap.SPECS}
+    def test_fee_obligations_wired_to_redlines(self):
+        """3 条费类义务（残保金/水利基金/工会经费）必须已登记 redline_id 并联通真实红线。"""
+        topics = {s.get("topic"): s for s in gap.SPECS}
         for kw in FEE_OBLIGATION_TOPICS:
-            self.assertTrue(any(kw in t for t in topics),
-                            f"费义务 {kw} 未登记到 gap SPECS")
+            spec = next((s for t, s in topics.items() if kw in t), None)
+            self.assertIsNotNone(spec, f"费义务 {kw} 未登记到 gap SPECS")
+            rid = spec.get("redline_id")
+            self.assertTrue(rid, f"费义务 {kw} 未登记 redline_id（仍为报告级线索）")
+            self.assertIsNotNone(get_redline(rid), f"费义务 {kw} 的 redline_id={rid} 无对应红线")
 
-    def test_twenty_materials_registered_in_both_tables(self):
+    def test_all_supplementary_materials_registered_in_both_tables(self):
         # _SUPPLEMENTARY_RECOGNITION 以资料名为键，doc_type 在值内
         rec_dts = {v["doc_type"] for v in _SUPPLEMENTARY_RECOGNITION.values()}
         for dt in NEW_MATERIAL_DTS:
