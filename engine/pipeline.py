@@ -4601,6 +4601,17 @@ def _run_analyze(company_id, db, progress_callback=None):
         except Exception as _sp_err:
             pipeline_log.append(f"[专项探测器] 异常(不阻断): {_sp_err}")
 
+        # ═══ 小微税种/费义务探测器（文化事业建设费/车购税/耕地占用税/烟叶税/船舶吨税/留抵退税）═══
+        try:
+            from engine.gap_tax_obligations import run_gap_tax_obligation_detection
+            _ob_findings = run_gap_tax_obligation_detection(_gap_data, pipeline_log)
+            if _ob_findings:
+                _se_ob = locals().get("_scenario_execution")
+                if isinstance(_se_ob, dict):
+                    _se_ob.setdefault("findings", []).extend(_ob_findings)
+        except Exception as _ob_err:
+            pipeline_log.append(f"[税费义务探测器] 异常(不阻断): {_ob_err}")
+
 
         # ═══ 红线判定：把场景发现归并为「税务红线疑点」（行业无关）═══
         # 方法论主线：确定税务疑点（触碰哪条红线）→ 线索链（怎么发现的）
