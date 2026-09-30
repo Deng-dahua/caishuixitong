@@ -25,6 +25,7 @@ NEW_REDLINE_IDS = [
     "RL-SPT-015",  # 烟叶税
     "RL-SPT-016",  # 船舶吨税
     "RL-VAT-013",  # 增值税留抵退税
+    "RL-OTH-007",  # 营业账簿（资金账簿）印花税
 ]
 
 NEW_MATERIAL_DTS = [
@@ -41,9 +42,9 @@ FEE_OBLIGATION_TOPICS = {"残疾人就业保障金", "水利建设基金", "工�
 
 
 class ObligationRedlineWiringTests(unittest.TestCase):
-    def test_authoritative_redline_count_is_80(self):
-        # 权威计数必须实时等于 80（74 原 + 6 新义务红线），杜绝硬编码漂移
-        self.assertEqual(len(REDLINES), 80)
+    def test_authoritative_redline_count_is_81(self):
+        # 权威计数必须实时等于 81（74 原 + 6 新义务红线 + 1 营业账簿印花税），杜绝硬编码漂移
+        self.assertEqual(len(REDLINES), 81)
 
     def test_six_new_redlines_exist_and_well_formed(self):
         for rid in NEW_REDLINE_IDS:

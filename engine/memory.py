@@ -509,7 +509,7 @@ domain_functions = _CFG.get("domain_functions", 39)
   原 audit_consistency.py（--sync / --calibrate）已于 4074d4cf 随安全整改移除，
   故下列数字此后无法自动同步，历史上逐渐失真。2026-09-08 已按权威源实测重算。
   现行权威源：engine/fact_rules.py（规则/线索链/证据链/分析链）、
-              engine/tax_redlines.py（红线 80 条）、engine/verified_rule_engine.py。
+              engine/tax_redlines.py（红线 81 条）、engine/verified_rule_engine.py。
   改动规则库后须同步更新本段，勿再手写声明值。
 
   【当前权威数据（2026-09-08 实测）】

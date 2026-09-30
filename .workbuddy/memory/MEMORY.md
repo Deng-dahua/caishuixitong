@@ -5,7 +5,7 @@
 「红线是什么」。一旦符合某项风险情形即触碰红线；原架构按行业场景输出
 「待核事实：XXX核验」，从不回答「触碰了哪条红线」，已废弃。
 **主线**：红线判定 → 线索链（怎么发现的）→ 证据链（要什么证据）→ 论证链（主张/反证/裁决）。
-**模块**：`engine/tax_redlines.py`(红线库42条) / `clue_chain.py` / `evidence_chain.py` /
+**模块**：`engine/tax_redlines.py`(红线库81条，运行期 len(REDLINES) 实时计数) / `clue_chain.py` / `evidence_chain.py` /
 `argumentation.py` / `redline_engine.py`(按红线归并，不按 finding 罗列)；
 pipeline 场景执行后接入，结果入 `comprehensive.redline_detection`；
 报告 `enterprise_report._build_redline_problems` 五段式输出。

@@ -219,7 +219,7 @@ class TestEvidenceStatusGrounded(unittest.TestCase):
         self.assertIn("采购台账", e["basis"])
 
     def test_every_available_claim_is_traceable(self):
-        """★ 全量不变式：80 条红线、279 个证据项，凡判「已有」必有逐字依据。"""
+        """★ 全量不变式：81 条红线、279 个证据项，凡判「已有」必有逐字依据。"""
         bad = []
         for rl in all_redlines():
             ev = build_evidence_chain({"type": "x"}, rl, self.AVAIL)
