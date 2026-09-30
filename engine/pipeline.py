@@ -2324,7 +2324,15 @@ def _run_analyze(company_id, db, progress_callback=None):
     _report(98, f"步骤③域分析 — 已完成{len(domain_results)}个域(深度特征域)", step=3)
     
     # ═══ 补充域：印花税/CIT汇算/出口退税 ═══
-    if _has_any_data: domain_results.append({"domain": "印花税检查", "findings": _domain_stamp_duty_check(bank_txs=bank_txs, vouchers=vouchers, sal_invs=sal_invs, pur_invs=pur_invs)})
+    # ★ 2026-09-30：印花税改为「税目反推」（不依赖合同原件），须补传科目余额表/固定资产与
+    #   pipeline_log（原实现读不到实收资本＋资本公积，且 `except: pass` 静默吞异常）。
+    if _has_any_data:
+        domain_results.append({"domain": "印花税检查", "findings": _domain_stamp_duty_check(
+            bank_txs=bank_txs, vouchers=vouchers, sal_invs=sal_invs, pur_invs=pur_invs,
+            balances=locals().get("trial_balance_data", []),
+            fixed_assets=locals().get("fixed_assets", []),
+            contracts=locals().get("contract_data", []),
+            pipeline_log=pipeline_log)})
     else: domain_results.append({"domain": "印花税检查", "findings": []})
     if _has_any_data: domain_results.append({"domain": "CIT汇算清缴", "findings": _domain_cit_reconciliation(bank_txs=bank_txs, vouchers=vouchers, sal_invs=sal_invs, pur_invs=pur_invs)})
     else: domain_results.append({"domain": "CIT汇算清缴", "findings": []})

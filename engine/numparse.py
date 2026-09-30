@@ -41,6 +41,10 @@ AMOUNT_KEYS: Tuple[str, ...] = (
     "amount", "金额", "不含税金额", "tax_amount", "税额",
     "total", "价税合计", "含税金额", "total_amount", "金额合计",
     "debit", "借方金额", "credit", "贷方金额", "支出金额", "收入金额", "交易金额",
+    # ★ 2026-09-30：凭证/流水行的借贷金额字段（domain_analysis、pipeline、BankTransaction
+    #   均以 debit_amount/credit_amount 承载金额，此前未入表 → amount_of 对这类行恒返 0）。
+    #   追加在**末尾**（最低优先级），对已能取到金额的行零影响。
+    "debit_amount", "credit_amount",
 )
 
 

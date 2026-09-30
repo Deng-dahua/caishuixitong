@@ -22,16 +22,18 @@
     "high_tech": 0.15,
     "small_profit": 0.1
   },
+  "_stamp_duty_note": "2026-09-30 校准：按《印花税法》（2022-07-01施行）税目税率表逐项复核——产权转移书据 万分之五、运输合同 万分之三（原值有误，均为未使用键）；补登 营业账簿 万分之二点五（实收资本与资本公积合计，2018年起减半征收）。",
   "stamp_duty_rates": {
     "loan_contract": 5e-05,
-    "property_transfer": 0.0003,
+    "property_transfer": 0.0005,
     "technology_contract": 0.0003,
     "construction_contract": 0.0003,
     "sales_contract": 0.0003,
     "lease_contract": 0.001,
-    "freight_contract": 0.0005,
+    "freight_contract": 0.0003,
     "warehouse_contract": 0.001,
-    "insurance_contract": 0.001
+    "insurance_contract": 0.001,
+    "business_ledger": 0.00025
   },
   "property_tax_rates": {
     "self_use": 0.012,

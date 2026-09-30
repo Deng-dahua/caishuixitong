@@ -4,6 +4,7 @@
 不依赖任何全局状态或 main.py 上下文
 """
 from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
+from engine.numparse import amount_of  # ★ 2026-09-30 行内取金额唯一权威（禁多键行内 .get 链）
 from engine.findingkit import month_key_strict as _month_key  # ★ 2026-09-25 期间键唯一实现（YYYYMM）
 from engine.findingkit import normalize_month as _norm_month  # ★ 2026-09-25 期间键唯一实现（YYYY-MM）
 from collections import defaultdict, Counter
@@ -13137,87 +13138,230 @@ def _build_material_intel_findings(material_intel, bank_txs, invoices):
 #  补充域：印花税/CIT汇算清缴/出口退税
 # ═══════════════════════════════════════════════
 
+# ══════════════════════════════════════════════════════════════════════════
+# 印花税「税目反推」规格（单一权威；新增税目只需加一行数据，不改判定分支）
+#
+# 口径（严守系统铁律）：
+#   ① 反推不依赖合同原件：以发票/凭证/银行流水/科目余额表为线索推算应税凭据，
+#      企业未上传合同时仍可逐税目形成待核疑点——这正是「申报表反推」要补的能力。
+#   ② 存在即触发：命中应税凭据线索即产出「待核」，**不设"占比≥X%"触发门槛**；
+#      推算税基/推算应缴只作 evidence，够不够格由人工判。
+#   ③ 缺失≠0：银行流水未识别到印花税缴款 → 只表述为该口径"未识别到"，
+#      不得断言"实际缴纳0元"（缴款可能经三方协议划款且摘要不含税种字样）。
+#   ④ 出罪情形：已识别缴款 ≥ 全部税目推算应缴合计 → 视为已足额，不予置疑。
+#   ⑤ 认领纪律：constituent_hits 只认领「要件1＝存在该税目应税凭据」，
+#      未计算的要件一律不认领（宁缺勿错）。
+# ══════════════════════════════════════════════════════════════════════════
+_STAMP_DUTY_ITEMS: List[Dict[str, Any]] = [
+    {
+        "redline_id": "RL-OTH-001", "tax_item": "买卖合同", "rate_key": "sales_contract",
+        "base_kind": "invoices", "keywords": [], "level": "中风险", "score": 6,
+        "needs": ["合同台账", "印花税申报表"],
+        "policy": "《印花税法》税目税率表（买卖合同：价款 万分之三）",
+        "method": "以购销发票金额合计反推买卖合同印花税税基（0.03%），与银行流水口径缴款比对",
+        "verify": "核查购销合同印花税申报，排除小微企业免征后补缴差额。",
+    },
+    {
+        "redline_id": "RL-OTH-007", "tax_item": "营业账簿", "rate_key": "business_ledger",
+        "base_kind": "equity", "keywords": ["实收资本", "资本公积", "股本"],
+        "code_prefixes": ["4001", "4002"], "level": "低风险", "score": 3,
+        "needs": ["财务报表", "印花税申报表"],
+        "policy": "《印花税法》税目税率表（营业账簿：实收资本与资本公积合计 万分之二点五，2018年起减半征收）",
+        "method": "以科目余额表实收资本＋资本公积反推营业账簿印花税税基，与申报/缴款比对",
+        "verify": "核查营业账簿（资金账簿）印花税是否已按实收资本与资本公积合计申报缴纳。",
+    },
+    {
+        "redline_id": "RL-OTH-008", "tax_item": "产权转移书据", "rate_key": "property_transfer",
+        "base_kind": "text_amounts", "level": "待核验", "score": 4,
+        "keywords": ["股权转让", "不动产转让", "房屋转让", "土地使用权转让", "土地出让", "产权转移"],
+        "needs": ["股权转让协议", "不动产转让合同", "土地出让/转让合同", "印花税申报表"],
+        "policy": "《印花税法》税目税率表（产权转移书据：价款 万分之五）",
+        "method": "以涉股权/不动产/土地使用权转让的凭证金额反推产权转移书据印花税税基",
+        "verify": "核查股权/不动产/土地使用权转让书据印花税申报缴纳情况。",
+    },
+    {
+        "redline_id": "RL-OTH-009", "tax_item": "借款合同", "rate_key": "loan_contract",
+        "base_kind": "bank_amounts", "level": "待核验", "score": 4,
+        "keywords": ["借款", "贷款", "融资", "授信", "短期借款", "长期借款"],
+        "needs": ["借款合同", "印花税申报表"],
+        "policy": "《印花税法》税目税率表（借款合同：借款金额 万分之零点五，仅金融机构借款合同）",
+        "method": "以银行流水/账簿中的借款、贷款金额反推借款合同印花税税基（企业间借贷依法不征）",
+        "verify": "核查金融机构借款合同印花税申报缴纳情况；确属非金融机构借贷的提供依据予以排除。",
+    },
+    {
+        "redline_id": "RL-OTH-010", "tax_item": "租赁合同", "rate_key": "lease_contract",
+        "base_kind": "text_amounts", "level": "待核验", "score": 4,
+        "keywords": ["租赁费", "房租", "租金", "场地租赁", "设备租赁", "房屋租赁"],
+        "needs": ["租赁合同", "印花税申报表"],
+        "policy": "《印花税法》税目税率表（租赁合同：租金 千分之一；融资租赁按借款合同税目）",
+        "method": "以凭证/账簿中租赁费的借方发生额反推租赁合同印花税税基",
+        "verify": "核查房屋/设备/场地经营租赁合同印花税申报缴纳情况。",
+    },
+    {
+        "redline_id": "RL-OTH-011", "tax_item": "保险合同", "rate_key": "insurance_contract",
+        "base_kind": "text_amounts", "level": "待核验", "score": 4,
+        "keywords": ["保险费", "财产保险", "责任保险", "保证保险", "财产险"],
+        "needs": ["财产保险合同", "印花税申报表"],
+        "policy": "《印花税法》税目税率表（财产保险合同：保险费 千分之一；人身保险不属于征税范围）",
+        "method": "以凭证/账簿中财产保险费的借方发生额反推保险合同印花税税基",
+        "verify": "核查财产/责任/保证保险合同印花税申报缴纳情况。",
+    },
+]
+
+_STAMP_PAID_KEYS = ("印花税", "印花", "贴花")
+
+
+def _stamp_duty_rate(rate_key) -> float:
+    """税目税率（单一权威 engine/thresholds.json::stamp_duty_rates）。"""
+    try:
+        return float(getattr(T.stamp_duty_rates, str(rate_key)) or 0.0)
+    except Exception:
+        return 0.0
+
+
+def _stamp_duty_paid(bank_txs, vouchers) -> float:
+    """已识别印花税缴款合计（银行流水＋凭证口径）。识别不到≠未缴纳。"""
+    paid = 0.0
+    for rows in (bank_txs, vouchers):
+        for row in rows or []:
+            if not isinstance(row, dict):
+                continue
+            txt = " ".join(str(v) for v in row.values())
+            if any(k in txt for k in _STAMP_PAID_KEYS):
+                paid += amount_of(row, absolute=True)
+    return round(paid, 2)
+
+
+def _stamp_duty_base(item, src):
+    """反推某税目的印花税计税依据。返回 (base, 依据说明)；取不到返回 (0.0, "")。"""
+    kind = item.get("base_kind")
+    kws = item.get("keywords") or []
+    if kind == "invoices":
+        s = sum(amount_of(r, absolute=True) for r in (src.get("sal_invs") or [])
+                if isinstance(r, dict))
+        p = sum(amount_of(r, absolute=True) for r in (src.get("pur_invs") or [])
+                if isinstance(r, dict))
+        if s + p <= 0:
+            return 0.0, ""
+        return round(s + p, 2), "购销发票金额合计（销 %s ＋ 购 %s）" % (format(s, ",.2f"), format(p, ",.2f"))
+    if kind == "equity":
+        prefixes = item.get("code_prefixes") or []
+        tot = 0.0
+        for r in (src.get("balances") or []):
+            if not isinstance(r, dict):
+                continue
+            code = str(r.get("code", r.get("科目编码", "")) or "").strip()
+            hit = bool(code) and any(code.startswith(pf) for pf in prefixes)
+            if not hit:
+                txt = " ".join(str(v) for v in r.values())
+                hit = any(k in txt for k in kws)
+            if not hit:
+                continue
+            d = to_number(r.get("close_debit", r.get("期末借方", 0)))
+            cr = to_number(r.get("close_credit", r.get("期末贷方", 0)))
+            tot += (cr - d)
+        if tot <= 0:
+            return 0.0, ""
+        return round(tot, 2), "科目余额表「%s」科目贷方净额（科目编码 %s）" % (
+            "/".join(kws), ",".join(prefixes))
+    if kind == "bank_amounts":
+        tot = 0.0
+        for r in (src.get("bank_txs") or []):
+            if not isinstance(r, dict):
+                continue
+            txt = " ".join(str(v) for v in r.values())
+            if not any(k in txt for k in kws):
+                continue
+            tot += amount_of(r, absolute=True)
+        if tot <= 0:
+            return 0.0, ""
+        return round(tot, 2), "银行流水中借款/贷款类交易金额合计"
+    # text_amounts：凭证中出现该税目费用字样 → 取其借方发生额
+    tot = 0.0
+    for r in (src.get("vouchers") or []):
+        if not isinstance(r, dict):
+            continue
+        txt = " ".join(str(v) for v in r.values())
+        if not any(k in txt for k in kws):
+            continue
+        tot += amount_of(r, absolute=True)
+    if tot <= 0:
+        return 0.0, ""
+    return round(tot, 2), "凭证中「%s」类费用的借方发生额合计" % "/".join(kws)
+
+
 def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouchers=None,
-                              sal_invs=None, pur_invs=None, inventory=None, salaries=None,
-                              social_security=None, ctx=None, pipeline_log=None, **kwargs):
-    """印花税合规检查——应税凭证识别与税负偏差检测"""
+                             sal_invs=None, pur_invs=None, inventory=None, salaries=None,
+                             social_security=None, ctx=None, balances=None, fixed_assets=None,
+                             pipeline_log=None, **kwargs):
+    """印花税「税目反推」合规检查——不依赖合同原件的应税凭据识别与税负偏差检测（单一权威）。
+
+    以发票/凭证/银行流水/科目余额表为线索，逐税目反推应税凭据与推算应缴；企业未上传合同时
+    仍能形成待核疑点，合同原件仅用于最终核实与出罪举证。产出均带 redline_id（运行期 declared 归位）。
+    """
     findings = []
     try:
-        total_inv_amount = 0.0
-        if sal_invs: total_inv_amount += sum(to_number(inv.get("amount", 0)) for inv in sal_invs)
-        if pur_invs: total_inv_amount += sum(to_number(inv.get("amount", 0)) for inv in pur_invs)
-        
-        if total_inv_amount > 0:
-            expected_stamp = total_inv_amount * 0.0003
-            stamp_paid = 0.0
-            if bank_txs:
-                for tx in bank_txs:
-                    if any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["印花税","印花","贴花"]):
-                        stamp_paid += abs(to_number(tx.get("amount", 0)))
-            if stamp_paid < expected_stamp * 0.5:
-                # ★ 2026-09-29（点评整改 P0-3）：银行流水按摘要关键词识别缴款，摘要不含
-                #   "印花税"字样（如三方协议划款"银税"类摘要）即识别不到；且印花税申报表
-                #   本轮未取得。故 stamp_paid=0 只能表述为"银行流水口径未识别到"，
-                #   **不得**断言"实际缴纳 0 元"（缺失/未识别 ≠ 未发生）。
-                if stamp_paid == 0:
-                    _paid_txt = ("银行流水中未识别到含「印花税」字样的缴款记录；"
-                                 "因未取得印花税申报表，实际申报缴纳情况未能核实"
-                                 "（缴款可能经三方协议划款且摘要不含税种字样）")
-                else:
-                    _paid_txt = f"银行流水口径识别到印花税字样缴款 {stamp_paid:,.0f} 元，不足推算应缴额的一半"
-                findings.append({
-                    "type": "印花税 — 购销合同税负不足",
-                    "level": "中风险", "score": 6,
-                    "detail": f"按发票金额推算印花税税基{total_inv_amount:,.0f}元、推算应缴{expected_stamp:,.0f}元"
-                              f"（推算口径仅供筛查，实际计税依据以合同台账为准）；{_paid_txt}。偏差>50%→待核漏缴疑点。",
-                    "description": "以发票金额为税基推算购销合同印花税（0.03%），对比银行流水口径缴款记录；申报侧以印花税申报表为准。",
-                    "suggestion": "核查购销合同印花税申报，补缴差额。购销合同印花税率0.03%。",
-                    "policy_ref": "印花税法 第5条、第8条",
-                    # ★ 2026-09-28：显式认领 RL-OTH-001 + 逐条判定构成要件。
-                    "redline_id": "RL-OTH-001",
-                    "constituent_hits": [
-                        {"index": 1, "evidence": f"按购销发票金额推算的印花税税基 {total_inv_amount:,.0f} 元（推算应缴 {expected_stamp:,.0f} 元），与申报侧计税依据的差异须以合同台账与申报表核实"},
-                        {"index": 2, "evidence": _paid_txt},
-                        {"index": 3, "evidence": f"按推算口径差额约 {expected_stamp - stamp_paid:,.0f} 元（是否属于免税凭证或已按核定征收申报，须企业举证）"},
-                    ],
-                    "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
-                })
-        
-        if vouchers and len(vouchers) > 0:
-            has_book_stamp = any(any(k in str(tx.get("summary", tx.get("raw", ""))) for k in ["账簿","账本","营业账簿"]) for tx in (bank_txs or []))
-            if not has_book_stamp:
-                findings.append({
-                    "type": "印花税 — 营业账簿贴花缺失",
-                    "level": "低风险", "score": 3,
-                    "detail": f"存在{len(vouchers)}张凭证，未检测到营业账簿印花税支出。每本账簿贴花5元。",
-                    "suggestion": "确认营业账簿印花税已缴纳。",
-                    "policy_ref": "印花税法 税目税率表",
-                    "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
-                })
-        
-        large_loans = []
-        if bank_txs:
-            for tx in bank_txs:
-                amt = abs(to_number(tx.get("amount", 0)))
-                summary = str(tx.get("summary", tx.get("raw", "")))
-                if amt > T.amount_thresholds.micro_transaction and any(k in summary for k in ["借款","贷款","融资","授信"]):
-                    large_loans.append(amt)
-        if large_loans:
+        src = dict(sal_invs=sal_invs, pur_invs=pur_invs, vouchers=vouchers,
+                   bank_txs=bank_txs, balances=balances, fixed_assets=fixed_assets)
+        computed = []
+        for _item in _STAMP_DUTY_ITEMS:
+            try:
+                base, hint = _stamp_duty_base(_item, src)
+                if base <= 0:
+                    continue
+                rate = _stamp_duty_rate(_item.get("rate_key"))
+                if rate <= 0:
+                    continue
+                computed.append((_item, base, hint, round(base * rate, 2)))
+            except Exception as _ie:
+                if pipeline_log is not None:
+                    pipeline_log.append("[印花税检查] %s 反推异常: %s" % (_item.get("tax_item"), _ie))
+
+        _paid = _stamp_duty_paid(bank_txs, vouchers)
+        _total_expected = round(sum(x[3] for x in computed), 2)
+        if computed and _paid > 0 and _total_expected > 0 and _paid >= _total_expected:
+            computed = []  # 出罪情形：已识别缴款已覆盖全部税目推算应缴 → 视为已足额
+
+        if computed and _paid == 0:
+            _paid_txt = ("银行流水/账簿口径未识别到含「印花税」字样的缴款记录；"
+                         "因未取得印花税申报表，实际申报缴纳情况未能核实"
+                         "（缴款可能经三方协议划款且摘要不含税种字样）")
+        elif computed:
+            _paid_txt = ("银行流水/账簿口径识别到印花税字样缴款 %s 元，低于全部税目推算应缴合计 %s 元"
+                         % (format(_paid, ",.2f"), format(_total_expected, ",.2f")))
+        else:
+            _paid_txt = ""
+
+        for _item, base, hint, expected in computed:
             findings.append({
-                "type": "印花税 — 借款合同税负提醒",
-                "level": "待核验", "score": 4,
-                "detail": f"检测到{len(large_loans)}笔疑似借款交易，合计{sum(large_loans):,.0f}元。借款合同印花税率0.005%。",
-                "suggestion": "核查借款合同印花税缴纳情况。",
-                "policy_ref": "印花税法 第5条",
+                "type": "印花税 — %s税目税负待核" % _item["tax_item"],
+                "level": _item["level"], "score": _item["score"],
+                "detail": ("由%s应税凭据线索反推印花税计税依据 %s 元（%s），推算应缴 %s 元；%s。"
+                           "推算口径仅供筛查，实际计税依据以合同台账与印花税申报表为准。"
+                           % (_item["tax_item"], format(base, ",.2f"), hint,
+                              format(expected, ",.2f"), _paid_txt)),
+                "description": _item["method"] + "。",
+                "suggestion": _item["verify"],
+                "policy_ref": _item["policy"],
+                "redline_id": _item["redline_id"],
+                "constituent_hits": [{
+                    "index": 1,
+                    "evidence": ("反推依据：%s，推算印花税计税依据 %s 元、推算应缴 %s 元"
+                                 "（要件观察事实；是否构成该要件之情形须结合合同原件与申报表人工复核）"
+                                 % (hint, format(base, ",.2f"), format(expected, ",.2f"))),
+                }],
+                "needs_material": list(_item["needs"]),
                 "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660,
             })
-        
+
         if not findings:
             findings.append({"type": "印花税 — 检查通过", "level": "信息", "score": 0,
-                "detail": "印花税基本检查未发现明显异常。",
+                "detail": "印花税各税目反推检查未发现明显异常。",
                 "category": "印花税合规", "domain": "印花税检查", "rule_id": 999660})
-    except Exception:
-        pass
+    except Exception as exc:
+        # ★ 铁律：不得静默吞异常（本轮修复原 `except Exception: pass`）
+        if pipeline_log is not None:
+            pipeline_log.append("[印花税检查] 域执行异常（不阻断主分析）: %s" % exc)
     return findings
 
 
