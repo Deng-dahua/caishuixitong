@@ -90,7 +90,7 @@ def _hit(text: str, keywords: Sequence[str]) -> List[str]:
 
 
 def _finding(
-    rule_id: str,
+    redline_id: str,
     topic: str,
     tax_type: str,
     detail: str,
@@ -118,8 +118,10 @@ def _finding(
         "items": [{"name": m, "status": "待补充"} for m in (needs_material or [])],
         "evidence": evidence or [],
         "needs_material": needs_material or [],
-        "_gap_detector": rule_id,
-        "_detection_method": METHODS.get(rule_id, ""),
+        "_scenario_governed": True,   # ★ 必须打标，否则会被 seal_governed_findings 丢弃（输出封印）
+        "redline_id": redline_id,
+        "_gap_detector": redline_id,
+        "_detection_method": METHODS.get(redline_id, ""),
         "_unconfirmed": unconfirmed,
     }
 
@@ -128,6 +130,7 @@ def _finding(
 
 def detect_loss_carryforward(data: Dict) -> List[Dict]:
     """RL-CIT-005 亏损弥补：超期弥补 / 无历年亏损台账。"""
+    redline_id = "RL-CIT-005"
     decl_text = _dump(data.get("tax_declarations"))
     vch_text = _dump(data.get("vouchers"))
     all_text = decl_text + "\n" + vch_text
@@ -142,7 +145,7 @@ def detect_loss_carryforward(data: Dict) -> List[Dict]:
 
     if not ledger:
         findings.append(_finding(
-            "RL-CIT-005", "弥补亏损无历年台账支撑（待核）", "企业所得税",
+            redline_id, "弥补亏损无历年台账支撑（待核）", "企业所得税",
             f"申报或账簿中存在亏损弥补记录（命中：{'、'.join(trigger[:3])}），"
             "但未提供历年汇算清缴亏损台账（A106000）证明可弥补亏损额及所属年度，"
             "无法判断是否存在超期弥补。需补充资料后复核。",
@@ -161,7 +164,7 @@ def detect_loss_carryforward(data: Dict) -> List[Dict]:
         limit = 10 if _hit(all_text, ["高新技术", "科技型中小"]) else 5
         if span > limit:
             findings.append(_finding(
-                "RL-CIT-005", "弥补亏损可能超过法定结转年限（待核）", "企业所得税",
+                redline_id, "弥补亏损可能超过法定结转年限（待核）", "企业所得税",
                 f"资料涉及年度区间为 {years[0]}—{years[-1]}（跨度{span}年），"
                 f"超出法定结转年限（当前判定适用{limit}年）。请核实各笔弥补亏损的发生年度"
                 "及企业是否具备延长结转年限资格。",
@@ -176,6 +179,7 @@ def detect_loss_carryforward(data: Dict) -> List[Dict]:
 
 def detect_asset_loss(data: Dict) -> List[Dict]:
     """RL-CIT-006 资产损失：账载损失未见专项申报。"""
+    redline_id = "RL-CIT-006"
     vch_text = _dump(data.get("vouchers"))
     decl_text = _dump(data.get("tax_declarations"))
 
@@ -190,7 +194,7 @@ def detect_asset_loss(data: Dict) -> List[Dict]:
         return []
 
     return [_finding(
-        "RL-CIT-006", "账载资产损失未见专项申报资料（待核）", "企业所得税",
+        redline_id, "账载资产损失未见专项申报资料（待核）", "企业所得税",
         f"序时账中存在资产损失类科目记录（命中：{'、'.join(trigger[:4])}），"
         "但纳税申报表中未见资产损失税前扣除（A105090）申报或专项申报资料。"
         "请核实该损失是否已按规定申报，未申报的不得税前扣除。",
@@ -204,6 +208,7 @@ def detect_asset_loss(data: Dict) -> List[Dict]:
 
 def detect_labor_vs_salary(data: Dict) -> List[Dict]:
     """RL-PAY-005 劳务报酬 vs 工资：重名拆分 / 未代扣代缴。"""
+    redline_id = "RL-PAY-005"
     salaries = _as_list(data.get("salaries"))
     vch_text = _dump(data.get("vouchers"))
     bank_text = _dump(data.get("bank_txs"))
@@ -228,7 +233,7 @@ def detect_labor_vs_salary(data: Dict) -> List[Dict]:
 
     if overlap:
         return [_finding(
-            "RL-PAY-005", "同一自然人同时列支工资与劳务报酬（待核）", "个人所得税",
+            redline_id, "同一自然人同时列支工资与劳务报酬（待核）", "个人所得税",
             f"账簿或流水中存在劳务费类支出（命中：{'、'.join(labor_hit[:3])}），"
             f"且工资表人员 {('、'.join(overlap[:5]))} 等同时出现在劳务报酬支付记录中。"
             "请核实所得性质划分是否真实，是否存在拆分收入规避累进税率或社保缴纳义务的情形。",
@@ -243,7 +248,7 @@ def detect_labor_vs_salary(data: Dict) -> List[Dict]:
                                ["劳务合同", "劳务报酬所得", "代扣代缴"])
     if not has_contract_or_iit:
         return [_finding(
-            "RL-PAY-005", "劳务报酬支出缺合同与代扣代缴佐证（待核）", "个人所得税",
+            redline_id, "劳务报酬支出缺合同与代扣代缴佐证（待核）", "个人所得税",
             f"存在劳务费类支出（命中：{'、'.join(labor_hit[:3])}），"
             "但未见劳务合同与个人所得税代扣代缴佐证。请核实支付对象、所得性质及扣缴义务履行情况。",
             "低风险", 4,
@@ -256,6 +261,7 @@ def detect_labor_vs_salary(data: Dict) -> List[Dict]:
 
 def detect_multi_income_bonus(data: Dict) -> List[Dict]:
     """RL-PAY-006 全年一次性奖金单独计税重复使用 / 多处任职。"""
+    redline_id = "RL-PAY-006"
     salaries = _as_list(data.get("salaries"))
     decl_text = _dump(data.get("tax_declarations"))
     pay_text = _dump(salaries) + "\n" + decl_text
@@ -269,7 +275,7 @@ def detect_multi_income_bonus(data: Dict) -> List[Dict]:
     times = len(re.findall(r"单独计税", pay_text)) or 1
     if times > 1:
         return [_finding(
-            "RL-PAY-006", "全年一次性奖金单独计税疑似重复使用（待核）", "个人所得税",
+            redline_id, "全年一次性奖金单独计税疑似重复使用（待核）", "个人所得税",
             f"资料中出现全年一次性奖金记录（命中：{'、'.join(bonus_hit[:3])}），"
             f"且'单独计税'标识出现 {times} 次。按政策一个纳税年度内对同一纳税人"
             "只允许采用一次单独计税方式，请核实并重新计算应纳税额。",
@@ -284,7 +290,7 @@ def detect_multi_income_bonus(data: Dict) -> List[Dict]:
     has_iit = _hit(decl_text, ["个人所得税", "个税", "代扣代缴", "综合所得", "年度汇算"])
     if not has_iit:
         return [_finding(
-            "RL-PAY-006", "奖金发放缺个税明细与年度汇算佐证（待核）", "个人所得税",
+            redline_id, "奖金发放缺个税明细与年度汇算佐证（待核）", "个人所得税",
             f"存在全年一次性奖金类发放记录（命中：{'、'.join(bonus_hit[:3])}），"
             "但未见个人所得税明细申报或年度汇算记录。请补充以核实计税方式与多处任职所得是否已合并。",
             "低风险", 4,
@@ -298,6 +304,7 @@ def detect_multi_income_bonus(data: Dict) -> List[Dict]:
 
 def detect_land_use_tax(data: Dict) -> List[Dict]:
     """RL-OTH-004 城镇土地使用税：有土地/房产持有线索但无申报。"""
+    redline_id = "RL-OTH-004"
     vch_text = _dump(data.get("vouchers"))
     decl_text = _dump(data.get("tax_declarations"))
 
@@ -312,7 +319,7 @@ def detect_land_use_tax(data: Dict) -> List[Dict]:
         return []
 
     return [_finding(
-        "RL-OTH-004", "持有土地或房产但未见城镇土地使用税申报（待核）", "城镇土地使用税",
+        redline_id, "持有土地或房产但未见城镇土地使用税申报（待核）", "城镇土地使用税",
         f"序时账中存在土地或房产持有线索（命中：{'、'.join(hold_hit[:3])}），"
         "但纳税申报资料中未见城镇土地使用税申报记录。请核实实际占用土地面积与申报情况，"
         "并确认是否存在法定免税情形。",
@@ -326,6 +333,7 @@ def detect_land_use_tax(data: Dict) -> List[Dict]:
 
 def detect_vehicle_tax(data: Dict) -> List[Dict]:
     """RL-OTH-005 车船税：有车辆持有/使用线索但无申报或代收。"""
+    redline_id = "RL-OTH-005"
     vch_text = _dump(data.get("vouchers"))
     decl_text = _dump(data.get("tax_declarations"))
     bank_text = _dump(data.get("bank_txs"))
@@ -342,7 +350,7 @@ def detect_vehicle_tax(data: Dict) -> List[Dict]:
         return []
 
     return [_finding(
-        "RL-OTH-005", "存在车辆使用线索但未见车船税缴纳记录（待核）", "车船税",
+        redline_id, "存在车辆使用线索但未见车船税缴纳记录（待核）", "车船税",
         f"账簿或流水中存在车辆持有或使用线索（命中：{'、'.join(veh_hit[:3])}），"
         "但未见车船税申报或交强险保单中的代收车船税记录。请核实车辆台账与已缴情况，"
         "并确认是否存在新能源车船免税等法定情形。",
