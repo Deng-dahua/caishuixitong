@@ -56,6 +56,7 @@ SPECS: List[Dict[str, Any]] = [
     },
     {
         "redline_id": "RL-FUND-003", "topic": "股东借款年末未归还且未用于经营（待核）", "tax_type": "个人所得税",
+        "require": ["股东"],  # 须见"股东"上下文，其他应收款本身 != 股东借款
         "signals": ["其他应收款"],
         "decl_keywords": [],
         "needs": ["其他应收款明细", "银行流水", "个税申报表", "借款合同"],
@@ -146,6 +147,7 @@ SPECS: List[Dict[str, Any]] = [
     },
     {
         "redline_id": "RL-SPT-001", "topic": "土地增值税未清算或扣除项目不实（待核）", "tax_type": "土地增值税",
+        "source": "sales",
         "signals": ["土地增值税", "开发成本", "不动产销售", "土地出让"],
         "decl_keywords": ["土地增值税"],
         "needs": ["土地出让合同", "开发成本明细账", "建安发票", "竣工验收备案表", "销售明细表", "土地增值税申报表"],
@@ -155,6 +157,7 @@ SPECS: List[Dict[str, Any]] = [
     },
     {
         "redline_id": "RL-SPT-002", "topic": "应税消费品未申报消费税或计税价格偏低（待核）", "tax_type": "消费税",
+        "source": "sales",  # 消费税风险只看"销售/生产"侧；采购化妆品 != 生产销售应税消费品
         "signals": ["消费税", "应税消费品", "成品油", "化妆品", "贵重首饰", "高尔夫", "游艇"],
         "decl_keywords": ["消费税"],
         "needs": ["产成品明细账", "销售发票与台账", "委托加工合同", "消费税申报表"],
@@ -164,6 +167,7 @@ SPECS: List[Dict[str, Any]] = [
     },
     {
         "redline_id": "RL-SPT-003", "topic": "开采应税资源未申报资源税或销售量与产量不符（待核）", "tax_type": "资源税",
+        "source": "sales",
         "signals": ["资源税", "原矿", "选矿", "采矿"],
         "decl_keywords": ["资源税"],
         "needs": ["采矿许可证", "产量台账", "过磅单", "存货明细账", "资源税申报表"],
@@ -182,6 +186,7 @@ SPECS: List[Dict[str, Any]] = [
     },
     {
         "redline_id": "RL-SPT-005", "topic": "进口货物完税价格申报不实（待核）", "tax_type": "关税",
+        "source": "purchase", "require": ["报关"],  # 只有自身"进口报关"才是关税义务人
         "signals": ["进口", "报关", "海关", "完税价格"],
         "decl_keywords": ["关税"],
         "needs": ["进口报关单", "海关专用缴款书", "进口合同", "对外付汇凭证", "运输与保险单据"],
@@ -218,7 +223,11 @@ SPECS: List[Dict[str, Any]] = [
     },
     {
         "redline_id": "RL-SPT-010", "topic": "住房公积金未开户、未全员缴存或基数不实（待核）", "tax_type": "住房公积金",
-        "signals": ["住房公积金", "公积金"],
+        "mode": "absence",  # 风险＝"未"缴存：须见用工存在，且公积金资料缺失
+        "presence_signals": ["工资", "薪金", "社保", "职工", "人员"],
+        "absence_data_key": "housing_fund",
+        "absence_signals": ["缴存登记", "缴存基数"],
+        "signals": ["工资", "薪金", "社保", "职工"],
         "decl_keywords": [],
         "needs": ["工资表", "个税申报明细", "社保参保明细", "住房公积金缴存明细", "劳动合同"],
         "method": "比对工资表人数/社保参保人数与公积金缴存人数 → 未开户、人数或基数低于实际 → 命中即置疑",
@@ -227,7 +236,8 @@ SPECS: List[Dict[str, Any]] = [
     },
     {
         "redline_id": "RL-VAT-009", "topic": "价外费用未并入销售额申报（待核）", "tax_type": "增值税",
-        "signals": ["违约金", "赔偿金", "包装费", "价外费用", "滞纳金"],
+        "source": "sales",
+        "signals": ["违约金", "赔偿金", "价外费用"],  # 只看"向购买方收取"侧；去掉噪声词(包装费/滞纳金常见于采购)
         "decl_keywords": [],
         "needs": ["收款凭证与银行流水", "合同价外费用条款", "代收代付或返还证明"],
         "method": "检索向购买方收取的违约金/赔偿金/包装费等 → 未开票未并入销售额、混入往来科目 → 命中即置疑",
@@ -295,15 +305,42 @@ def run_special_redline_detection(engine_data: Dict, pipeline_log: List[str] = N
     hf = _dump(data.get("housing_fund"))       # 公积金明细
     text = "\n".join([vch, bal, bank, invs, sal, inv, decl, fa, ct, ss, hf])
 
+    # 精度关键：按"风险发生侧"分文本——销售/提供侧只看销项发票+合同，
+    # 避免把"采购/持有"信号误当成"销售/申报"风险（如传媒买化妆品 != 生产销售应税消费品）。
+    _NL = chr(10)
+    _sale = _dump(data.get("sal_invs"))
+    _pur = _dump(data.get("pur_invs"))
+    texts = {
+        "all": _NL.join([vch, bal, bank, _sale, _pur, sal, inv, decl, fa, ct, ss, hf]),
+        "sales": _NL.join([_sale, ct]),
+        "purchase": _NL.join([_pur, vch, bal, fa, ct]),
+    }
+
     results: List[Dict] = []
     for spec in SPECS:
         try:
-            hits = [k for k in spec["signals"] if k and k in text]
-            if not hits:
-                continue
+            t = texts.get(spec.get("source", "all"), texts["all"])
+            if spec.get("mode") == "absence":
+                # 缺席型：须见"用工存在"信号；且对应数据缺失 或 未见"已缴存"信号
+                pres = [k for k in spec.get("presence_signals", []) if k in t]
+                if not pres:
+                    continue
+                akey = spec.get("absence_data_key")
+                if akey and data.get(akey):
+                    continue  # 对应资料已提供 → 视为已缴存，不置疑
+                if any(k in t for k in spec.get("absence_signals", [])):
+                    continue
+                hits = pres
+            else:
+                hits = [k for k in spec.get("signals", []) if k and k in t]
+                if not hits:
+                    continue
+                req = spec.get("require") or []
+                if req and not all(k in t for k in req):
+                    continue  # 必需上下文未同时出现 → 不足以置疑（防误报）
             dl = spec.get("decl_keywords") or []
             if dl and any(k in decl for k in dl):
-                continue  # 已见对应税种申报/扣缴记录 → 不置疑
+                continue  # 已见对应税种申报/缴款记录 → 不置疑
             detail = (
                 f"在账簿/申报资料中检测到涉及「{spec['topic'].rstrip('（待核）')}」的相关线索"
                 f"（命中：{'、'.join(hits[:4])}）。本项为待核疑点：请补充下列资料后复核，"
@@ -314,7 +351,6 @@ def run_special_redline_detection(engine_data: Dict, pipeline_log: List[str] = N
                 spec["level"], spec["score"], needs_material=spec["needs"],
                 unconfirmed=True, policy_ref=spec.get("policy_ref", ""), evidence=hits[:4],
             )
-            # 要件级证据：认领该红线的**触发要件**（index 默认 1），证据＝扫描器实际算出的量
             n, amt = _match_stats(src_rows, hits)
             _ev = (f"命中「{'、'.join(hits[:3])}」相关记录 {n} 条"
                    + (f"，涉及金额 {amt:,.2f} 元" if amt else "")
