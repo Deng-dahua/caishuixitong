@@ -19,6 +19,18 @@ def sp_fire(rows):
     return [f.get("redline_id") for f in run_special_redline_detection(data, [])]
 
 
+def sp_fire_sales(rows):
+    """销项发票/合同侧（source=sales 的 spec 只看这一侧）。"""
+    data = {"sal_invs": rows}
+    return [f.get("redline_id") for f in run_special_redline_detection(data, [])]
+
+
+def sp_fire_purchase(rows):
+    """进项侧——用于验证「采购噪声不得误报为销售侧风险」。"""
+    data = {"pur_invs": rows}
+    return [f.get("redline_id") for f in run_special_redline_detection(data, [])]
+
+
 cases = []
 
 # RL-OTH-008 产权转移书据
@@ -61,6 +73,12 @@ cases.append(("SPT-020 无水利基金线索 → 不触发", "RL-SPT-020" not in
 cases.append(("SPT-021 账载工会经费 + 无拨缴申报 → 触发", "RL-SPT-021" in gap_fire([{"b": "应付职工薪酬—工会经费"}])))
 cases.append(("SPT-021 见工会经费申报/拨缴 → 抑制", "RL-SPT-021" not in gap_fire([{"b": "工会经费"}], [{"t": "工会经费"}])))
 cases.append(("SPT-021 无工会经费线索 → 不触发", "RL-SPT-021" not in gap_fire([{"b": "正常购销结算"}])))
+
+# RL-VAT-009 价外费用（source=sales：只看向购买方收取侧）
+cases.append(("VAT-009 销项侧『收取包装费』→ 触发", "RL-VAT-009" in sp_fire_sales([{"goods": "价外向购买方收取包装费"}])))
+cases.append(("VAT-009 销项侧『违约金』→ 触发", "RL-VAT-009" in sp_fire_sales([{"goods": "向购方收取违约金"}])))
+cases.append(("VAT-009 采购侧『包装费』(噪声) → 不触发", "RL-VAT-009" not in sp_fire_purchase([{"goods": "*包装费* 采购包装材料"}])))
+cases.append(("VAT-009 销项侧无价外费用字样 → 不触发", "RL-VAT-009" not in sp_fire_sales([{"goods": "*饲料*猫粮"}])))
 
 ok = 0
 for name, passed in cases:
