@@ -5404,8 +5404,10 @@ function _buildInspectionReportBody(r, dateStr) {
     if (String(p || '').trim()) h += '<p style="line-height:1.95">' + esc(p) + '</p>';
   });
   if (oc.counts) {
-    h += '<p style="line-height:1.9">本次共列示涉税风险事项 <strong>' + esc(String(oc.counts.total_items || problems.length))
-      + '</strong> 项，其中已量化潜在税额敞口 <strong>' + esc(String(oc.counts.quantified || 0)) + '</strong> 项。</p>';
+    var _tis = report.tax_impact_summary || {};
+    h += '<p style="line-height:1.9">本次共列示涉税风险事项 <strong>' + esc(String(oc.counts.total || problems.length))
+      + '</strong> 项，其中已量化潜在税额敞口 <strong>' + esc(String(_tis.quantified || 0))
+      + '</strong> 项（潜在税额敞口合计 ' + esc(String(_tis.total || 0)) + ' 元，为最坏情形上界）。</p>';
   }
 
   // ── 三、涉嫌风险事项（逐项）──
@@ -5424,11 +5426,13 @@ function _buildInspectionReportBody(r, dateStr) {
       if (_taxes) h += '<p style="margin:6px 0;line-height:1.9"><strong>涉及税种：</strong>' + esc(_taxes) + '</p>';
       h += '<p style="margin:6px 0;line-height:1.9"><strong>潜在税额：</strong>' + esc(_taxImpactText(p)) + '</p>';
       if (p.verdict) h += '<p style="margin:6px 0;line-height:1.9"><strong>认定方向：</strong>' + esc(p.verdict) + '</p>';
-      var _have = p.evidence_have || [], _need = p.evidence_need || [];
-      if (_have.length) h += '<p style="margin:6px 0;line-height:1.9"><strong>已取得资料：</strong>'
-        + _renderBullets(_have) + '</p>';
-      if (_need.length) h += '<p style="margin:6px 0;line-height:1.9"><strong>尚需补充：</strong>'
-        + _renderBullets(_need) + '</p>';
+      // 资料现状：evidence_have / evidence_need 是**项数**（非清单）；清单取 missing_materials / verify_materials。
+      var _mm = (p.missing_materials || []).concat(p.verify_materials || []);
+      var _closure = (typeof p.closure === 'number') ? Math.round(p.closure * 100) : null;
+      h += '<p style="margin:6px 0;line-height:1.9"><strong>资料现状：</strong>已取得 '
+        + esc(String(p.evidence_have || 0)) + ' 项资料；尚需 ' + esc(String(p.evidence_need || 0)) + ' 项'
+        + (_mm.length ? '（' + esc(_mm.join('、')) + '）' : '')
+        + (_closure === null ? '' : '；证据闭合度 ' + esc(String(_closure)) + '%') + '。</p>';
       if (p.suggestion) h += '<p style="margin:6px 0;line-height:1.9"><strong>处理建议：</strong>' + esc(p.suggestion) + '</p>';
       h += '</div>';
     });
