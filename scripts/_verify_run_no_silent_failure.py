@@ -56,7 +56,24 @@ def count_run_errors(plog, allowlist=None):
     return hits
 
 
+def _preflight_venv_parity():
+    """前置：托管 venv 能力对齐（缺读取/解析类依赖会让脚本侧静默漏读资料，
+    属与本闸门同源的「静默失效」，先挡住再跑全量，见 scripts/_check_venv_parity.py）。"""
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__))))
+        import _check_venv_parity as _p
+        rc = _p.main()
+    except Exception as e:  # 检查本身异常不阻断，但要留痕
+        print(f"[WARN] venv 能力对齐检查异常（跳过）：{type(e).__name__}: {e}")
+        return 0
+    return rc
+
+
 def main():
+    if _preflight_venv_parity() != 0:
+        print("\n[FAIL] 托管 venv 能力缺口未补齐 → 脚本侧分析与 App 口径不一致，先补装再跑。")
+        return 3
+
     import main
     from database import SessionLocal
 
