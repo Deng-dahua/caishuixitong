@@ -22,7 +22,7 @@ class SpecialRedlineDetectorTests(unittest.TestCase):
     def test_signals_produce_findings_with_valid_redline_id(self):
         data = {
             "vouchers": [{"摘要": "暂估入库 原材料", "科目": "原材料", "金额": 100}],
-            "bank_txs": [{"摘要": "境外付款 付汇 USD", "付款": 5000}],
+            "bank_txs": [{"摘要": "向非居民企业支付特许权使用费", "付款": 5000}],
             "balances": [{"科目名称": "其他应付款", "期末贷方": 80000}],
         }
         found = run_special_redline_detection(data)
@@ -43,6 +43,15 @@ class SpecialRedlineDetectorTests(unittest.TestCase):
         }
         found = run_special_redline_detection(data)
         self.assertNotIn("RL-OTH-002", {f["redline_id"] for f in found})
+
+    def test_forex_goods_import_not_false_positive(self):
+        """进口付汇（美元）≠ 向非居民支付境内所得，不应误报源泉扣缴义务。"""
+        data = {
+            "bank_txs": [{"摘要": "境外支付货款 付汇 USD", "付款": 9000}],
+            "pur_invs": [{"品名": "进口原材料", "价税合计": 9000}],
+        }
+        ids = {f["redline_id"] for f in run_special_redline_detection(data)}
+        self.assertNotIn("RL-SPT-006", ids)
 
     def test_every_spec_declares_existing_redline(self):
         valid = {r["id"] for r in tax_redlines.REDLINES}

@@ -191,7 +191,7 @@ def detect_asset_loss(data: Dict) -> List[Dict]:
     vch_text = _dump(data.get("vouchers"))
     decl_text = _dump(data.get("tax_declarations"))
 
-    loss_kw = ["营业外支出", "资产减值损失", "固定资产清理", "盘亏", "毁损",
+    loss_kw = ["资产减值损失", "固定资产清理", "盘亏", "毁损",
                "非常损失", "坏账损失", "存货损失"]
     trigger = _hit(vch_text, loss_kw)
     if not trigger:
@@ -348,7 +348,7 @@ def detect_vehicle_tax(data: Dict) -> List[Dict]:
     use_text = vch_text + "\n" + bank_text
 
     veh_kw = ["运输设备", "车辆", "汽车", "加油费", "过路过桥", "过路费",
-              "车辆保险", "交强险", "维修费", "洗车"]
+              "车辆保险", "交强险", "洗车"]
     veh_hit = _hit(use_text, veh_kw)
     if not veh_hit:
         return []
