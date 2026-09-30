@@ -11175,9 +11175,9 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                             "内部税务风险检查员报告",
                             "企业易读检查结果",
                         )
-                        # 2026-09-30：金字塔原理编辑版已下线（用户定调：该版对企业风险反馈与整改无价值），
-                        # 报告仅保留「税务稽查专家工作底稿版」一种。
-                        and _cer.get("report_edition") in ("税务稽查专家工作底稿版",)
+                        # 2026-09-30：报告分两版——税务稽查专家工作底稿版 / 企业检查报告版。
+                        and _cer.get("report_edition") in (
+                            "税务稽查专家工作底稿版", "企业检查报告版")
                     )
                 except Exception:
                     _cached_report_ok = False

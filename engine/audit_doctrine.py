@@ -632,12 +632,29 @@ REPORT_EDITING_STANDARDS: Dict[str, Dict[str, Any]] = {
             "任何派生编辑版都不得反向改写本版的任何字段。",
         ],
     },
+    # ★ 2026-09-30（用户定调）：报告要两份视角——工作底稿版（专家内部）与企业检查报告版（给企业出具）。
+    #   2026-09-26 曾有的「金字塔原理编辑版」已于 2026-09-30 整体下线（只做呈现重组、无风险价值），
+    #   本版取而代之：按「企业看得懂、可整改」重组章节，不改任何风险事实。
+    "企业检查报告版": {
+        "code": "inspection_report",
+        "is_baseline": False,
+        "derived_from": "税务稽查专家工作底稿版",
+        "compilation_style": "涉税风险检查报告（企业检查报告式）",
+        "principle": "税务稽查专家给企业出具的检查报告：结论先行，逐项列示涉嫌风险事项、需补充资料与整改要求；"
+                     "并保留「检查程序」与「资料完备度评估」两章，让企业知道查了什么、还缺什么。",
+        "constraints": [
+            "只读重组：绝不增删风险事项；不改金额、结论、判定、等级。",
+            "章节固定为七章：检查基本情况／检查结论／涉嫌风险事项／需补充资料清单／整改要求与期限／检查程序／资料完备度评估。",
+            "不含证据链明细、构成要件逐条、关键口径对照、能力边界与技术专项章节（这些留在工作底稿版）。",
+            "通用：章节与排序由固定模板定义，不按企业硬编码。",
+        ],
+    },
 }
 
 # 报告编辑版代码（与 REPORT_EDITING_STANDARDS[].code 一一对应）
-REPORT_EDITION_CODES = ("working_paper",)
+REPORT_EDITION_CODES = ("working_paper", "inspection_report")
 # 报告编辑版中文名（与 REPORT_EDITING_STANDARDS 的键一一对应）
-REPORT_EDITION_NAMES = ("税务稽查专家工作底稿版",)
+REPORT_EDITION_NAMES = ("税务稽查专家工作底稿版", "企业检查报告版")
 # 默认编辑版：工作底稿版（基线，内容 + 结构原样）
 DEFAULT_REPORT_EDITION = "税务稽查专家工作底稿版"
 # 缓存一致性闸门允许复用的 report_edition 取值

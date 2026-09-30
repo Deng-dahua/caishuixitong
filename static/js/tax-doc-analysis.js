@@ -5353,6 +5353,164 @@ function _renderResolutionLedger(ledger) {
 }
 
 
+/**
+ * 「企业检查报告版」（2026-09-30 用户定调）。
+ *
+ * 定位：税务稽查专家**给企业出具的检查报告**——结论先行、逐项风险事项与整改要求清晰，
+ * 让企业看得懂"我有什么风险、要补什么、怎么改"。
+ * 章节：一 检查基本情况 / 二 检查结论 / 三 涉嫌风险事项 / 四 需补充资料清单 /
+ *      五 整改要求与期限 / 六 检查程序 / 七 资料完备度评估。
+ * 不含（保留在工作底稿版）：证据链明细、构成要件逐条、关键口径对照、能力边界与技术专项章节。
+ * 数据全部取自同一份报告载荷，只做重组与呈现，不新增任何风险事项，不改金额/结论/判定/等级。
+ */
+function _buildInspectionReportBody(r, dateStr) {
+  var report = r.enterprise_readable_report || {};
+  var identity = report.identity || {};
+  var oc = report.overall_conclusion || {};
+  var problems = report.confirmed_problems || [];
+  var ledger = report.resolution_ledger || {};
+  var plans = report.action_plan || [];
+  var procs = report.inspection_procedures || [];
+  var mr = report.material_readiness || {};
+  var h = '';
+
+  // ── 封面 ──
+  h += '<div class="cover"><h1>涉税风险检查报告</h1><div class="sub">'
+    + '受检单位：' + esc(identity.subject_name || '未指定') + '<br>'
+    + '纳税人识别号：' + esc(identity.taxpayer_id || '未提供') + '<br>'
+    + '受检期间：' + esc(identity.period || '') + '<br>'
+    + '报告日期：' + esc(dateStr) + '<br>'
+    + '编制：税务稽查专家（涉税风险检查）</div></div>';
+
+  // ── 一、检查基本情况 ──
+  var _filesN = (r && r.files_count) ? r.files_count : 0;
+  var _scope = '共接收资料 ' + _filesN + ' 份；必查资料 ' + (mr.required_total || 0) + ' 类，'
+    + '已提供 ' + (mr.provided_count || 0) + ' 类、缺失 ' + (mr.missing_count || 0) + ' 类。';
+  h += '<h2>一、检查基本情况</h2>'
+    + '<table class="tbl2"><tr><th style="width:22%">项目</th><th>内容</th></tr>'
+    + '<tr><td>受检单位</td><td>' + esc(identity.subject_name || '') + '</td></tr>'
+    + '<tr><td>受检期间</td><td>' + esc(identity.period || '') + '</td></tr>'
+    + '<tr><td>资料范围</td><td>' + esc(_scope) + '</td></tr>'
+    + '<tr><td>检查方式</td><td>案头检查：对已上传资料实施「资料合规性核实、多源交叉比对、'
+    + '资金流向顺藤摸瓜追查、行业基准对标、规则与红线扫描、材料齐全程度评估」六步程序。</td></tr>'
+    + '</table>';
+
+  // ── 二、检查结论 ──
+  h += '<h2>二、检查结论</h2>';
+  h += '<p class="i2" style="background:#f8fafc;border-left:3px solid #2563eb;padding:10px 12px;font-size:13px;line-height:1.95">'
+    + '<strong>总体结论：</strong>' + esc(r.overall_level || '') + '</p>';
+  var _ocp = oc.paragraphs || [];
+  _ocp.forEach(function (p) {
+    if (String(p || '').trim()) h += '<p style="line-height:1.95">' + esc(p) + '</p>';
+  });
+  if (oc.counts) {
+    h += '<p style="line-height:1.9">本次共列示涉税风险事项 <strong>' + esc(String(oc.counts.total_items || problems.length))
+      + '</strong> 项，其中已量化潜在税额敞口 <strong>' + esc(String(oc.counts.quantified || 0)) + '</strong> 项。</p>';
+  }
+
+  // ── 三、涉嫌风险事项（逐项）──
+  h += '<h2>三、涉嫌风险事项</h2>';
+  if (!problems.length) {
+    h += '<p>本轮未识别出涉嫌风险事项。</p>';
+  } else {
+    problems.forEach(function (p) {
+      var _taxes = (p.taxes || []).join('、');
+      h += '<div class="pcard" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:0 0 14px">'
+        + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">'
+        + '<div style="font-weight:700;font-size:14px">第' + esc(String(p.seq || '')) + '项　' + esc(p.title || '') + '</div>'
+        + '<div style="white-space:nowrap;font-size:12.5px;color:#b91c1c;font-weight:700">' + esc(p.risk_level || '') + '</div>'
+        + '</div>';
+      if (p.suspect) h += '<p style="margin:6px 0;line-height:1.9"><strong>涉嫌情形：</strong>' + esc(p.suspect) + '</p>';
+      if (_taxes) h += '<p style="margin:6px 0;line-height:1.9"><strong>涉及税种：</strong>' + esc(_taxes) + '</p>';
+      h += '<p style="margin:6px 0;line-height:1.9"><strong>潜在税额：</strong>' + esc(_taxImpactText(p)) + '</p>';
+      if (p.verdict) h += '<p style="margin:6px 0;line-height:1.9"><strong>认定方向：</strong>' + esc(p.verdict) + '</p>';
+      var _have = p.evidence_have || [], _need = p.evidence_need || [];
+      if (_have.length) h += '<p style="margin:6px 0;line-height:1.9"><strong>已取得资料：</strong>'
+        + _renderBullets(_have) + '</p>';
+      if (_need.length) h += '<p style="margin:6px 0;line-height:1.9"><strong>尚需补充：</strong>'
+        + _renderBullets(_need) + '</p>';
+      if (p.suggestion) h += '<p style="margin:6px 0;line-height:1.9"><strong>处理建议：</strong>' + esc(p.suggestion) + '</p>';
+      h += '</div>';
+    });
+  }
+
+  // ── 四、需补充资料清单 ──
+  h += '<h2>四、需补充资料清单</h2>';
+  if (ledger && ledger.rows && ledger.rows.length) {
+    h += _renderResolutionLedger(ledger);
+  } else {
+    h += '<p>本轮无需补充资料的事项。</p>';
+  }
+
+  // ── 五、整改要求与期限 ──
+  h += '<h2>五、整改要求与期限</h2>';
+  if (plans.length) {
+    plans.forEach(function (pl) {
+      h += '<p style="line-height:1.95"><strong>' + esc(String(pl.seq || '')) + '　' + esc(pl.problem || '') + '</strong><br>'
+        + esc(pl.narrative || '') + '</p>';
+    });
+  } else {
+    h += '<p>本轮无整改要求事项。</p>';
+  }
+
+  // ── 六、检查程序（企业需知道"查了什么"）──
+  h += '<h2>六、检查程序</h2>';
+  if (procs.length) {
+    h += '<table class="tbl2"><tr><th style="width:60px">序号</th><th style="width:26%">检查程序</th><th>执行说明</th></tr>';
+    procs.forEach(function (pr) {
+      h += '<tr><td>' + esc(String(pr.seq || '')) + '</td><td>' + esc(pr.name || '') + '</td><td>'
+        + esc(pr.narrative || '') + '</td></tr>';
+    });
+    h += '</table>';
+  } else {
+    h += '<p>本轮未记录检查程序。</p>';
+  }
+
+  // ── 七、资料完备度评估 ──
+  h += '<h2>七、资料完备度评估</h2>';
+  if (mr.summary_text) h += '<p style="line-height:1.95">' + esc(mr.summary_text) + '</p>';
+  var _prov = mr.provided || [], _miss = mr.missing || [];
+  if (_prov.length) h += '<p style="line-height:1.9"><strong>已提供（' + _prov.length + '类）：</strong>'
+    + esc(_prov.join('、')) + '</p>';
+  if (_miss.length) h += '<p style="line-height:1.9"><strong>尚未提供（' + _miss.length + '类）：</strong>'
+    + esc(_miss.join('、')) + '——未提供资料对应的事项本轮无法核实，补齐后重新检查。</p>';
+
+  h += '<div class="foot" style="color:#64748b;font-size:12.5px;margin-top:24px;line-height:1.9">'
+    + '本报告由税务稽查专家基于企业提交资料作涉税风险分析后编制；所列事项均为待核实事实，'
+    + '具体处理以企业举证与依法核实结果为准。</div>';
+  return h;
+}
+
+
+/**
+ * 报告版本切换条（2026-09-30 起恢复为两版：工作底稿版 / 企业检查报告版）。
+ * 纯前端切换：两版数据都在同一份报告载荷里，切换只重渲染、不重算。
+ */
+function _renderEditionToggle() {
+  var cur = (window._tdaReportEdition === 'inspection_report') ? 'inspection_report' : 'working_paper';
+  function _btn(code, label, sub) {
+    var active = (cur === code);
+    return '<button type="button" data-edition="' + code + '" onclick="_tdaSwitchEdition(\'' + code + '\')" '
+      + 'style="cursor:pointer;text-align:left;border:1px solid ' + (active ? '#1d4ed8' : '#d1d5db')
+      + ';background:' + (active ? '#eff6ff' : '#fff') + ';color:' + (active ? '#1d4ed8' : '#374151')
+      + ';border-radius:8px;padding:7px 13px;margin-right:8px;font-size:13px;line-height:1.5">'
+      + '<strong>' + esc(label) + '</strong><br><span style="font-size:11.5px;color:#64748b">' + esc(sub) + '</span></button>';
+  }
+  return '<div id="tda-edition-toggle" style="margin:0 0 18px;padding:12px 14px;border:1px dashed #cbd5e1;border-radius:10px;background:#fbfdff">'
+    + '<div style="font-size:12.5px;color:#475569;margin-bottom:8px">报告版本（同一份检查结论的两种编制角度，切换不重新计算）：</div>'
+    + _btn('working_paper', '税务稽查专家工作底稿版', '专家内部视角·含检查程序、证据与要件全过程')
+    + _btn('inspection_report', '企业检查报告版', '专家给企业出具·结论/风险事项/需补资料/整改要求')
+    + '</div>';
+}
+
+
+/** 前端版本切换：仅改状态并重渲染，不重新计算。 */
+function _tdaSwitchEdition(code) {
+  window._tdaReportEdition = (code === 'inspection_report') ? 'inspection_report' : 'working_paper';
+  if (window._reportData) renderTaxDocReport(window._reportData);
+}
+
+
 function _buildEnterpriseReadableBody(r, dateStr) {
   var report = r.enterprise_readable_report || {};
   var identity = report.identity || {};
@@ -6180,9 +6338,14 @@ function _renderReportFallback(r, allF) {
 
   // 企业版是主文书；专业过程底稿继续保留在后台，供内部复查和历史轮次追溯。
   if (r.enterprise_readable_report && ['涉税风险检查工作报告（风险检查文书式）', '税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
-    // 2026-09-30：金字塔原理编辑版已下线（用户定调：对企业风险反馈与整改无价值），
-    // 报告仅保留「税务稽查专家工作底稿版」一种，不再有编辑版切换条。
-    h += _buildEnterpriseReadableBody(r, dateStr);
+    // 2026-09-30（用户定调）：报告分两版——工作底稿版（专家内部视角，含证据与要件全过程）
+    // 与企业检查报告版（专家给企业出具：结论/风险事项/需补资料/整改要求 + 检查程序 + 资料完备度）。
+    h += _renderEditionToggle();
+    if (window._tdaReportEdition === 'inspection_report') {
+      h += _buildInspectionReportBody(r, dateStr);
+    } else {
+      h += _buildEnterpriseReadableBody(r, dateStr);
+    }
     h += '</div>';
     return {
       html: h,
