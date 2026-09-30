@@ -1385,7 +1385,7 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
             构成要件，已核对到的情况见各条括号内标注"，再逐条列出全部抽象要件，命中的在
             括号内标注"本企业：证据"（来源 'constituents'）；
           · 无命中（未取得逐条判定数据）→ 列出全部抽象要件 + 一句说明（来源 'constituents_no_hit'）。
-      - 无抽象构成要件（不应发生，74 条红线均≥3 条）→ 回退到本企业**已核对到的具体事实**
+      - 无抽象构成要件（不应发生，80 条红线均≥3 条）→ 回退到本企业**已核对到的具体事实**
         （来源 'facts'）。
 
     ★ 2026-09-28（用户反转 09-27）：抽象构成要件清单（"凡符合下列构成要件即属涉嫌疑点"）
@@ -1497,7 +1497,7 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
                 + [_naturalize_report_text(
                     "（本轮已对该红线逐条核对，尚未取得足以判定各要件的完整数据；"
                     "上列为本红线涉嫌构成要件）")]), "constituents_no_hit"
-    # —— 无抽象清单（不应发生，74 条红线均≥3 条）：回退到本企业实际核对到的事实 ——
+    # —— 无抽象清单（不应发生，80 条红线均≥3 条）：回退到本企业实际核对到的事实 ——
     raw_items = []
 
     def _clean(raw):
