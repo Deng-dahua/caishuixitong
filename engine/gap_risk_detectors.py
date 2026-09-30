@@ -105,7 +105,7 @@ def _finding(
 
     措辞一律为待核/置疑口径，绝不使用定性表述（严守"绝不自动定罪"铁律）。
     """
-    return {
+    finding = {
         "type": topic,
         "detail": detail,
         "level": level,
@@ -124,6 +124,14 @@ def _finding(
         "_detection_method": METHODS.get(redline_id, ""),
         "_unconfirmed": unconfirmed,
     }
+    # 要件级证据：认领触发要件(index=1)，证据＝扫描器实际命中的信号（宁缺勿错：只认算过的）
+    if evidence:
+        finding["constituent_hits"] = [{
+            "index": 1,
+            "evidence": "命中线索：「" + "、".join(str(e) for e in evidence[:3])
+                        + "」（要件观察事实；是否构成该要件之情形须人工复核）",
+        }]
+    return finding
 
 
 # ── 六个探测器 ────────────────────────────────────────────────────────

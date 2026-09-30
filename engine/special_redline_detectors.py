@@ -239,13 +239,49 @@ SPECS: List[Dict[str, Any]] = [
 # 供覆盖审计识别的字面量已在 SPECS 的 "redline_id" 键中（见上）。
 
 
+# ── 要件级证据：只认领扫描器**真算过**的要件（记录数/金额），宁缺勿错 ──────────
+_AMOUNT_KEYS = ("金额", "本期发生额", "期末余额", "期末贷方", "期末借方", "余额",
+                "close_credit", "close_debit", "current_debit", "current_credit",
+                "amount", "借方", "贷方", "debit", "credit", "价税合计")
+
+
+def _to_amt(v: Any) -> float:
+    try:
+        s = str(v).replace(",", "").replace("￥", "").replace("¥", "").replace("元", "").strip()
+        return abs(float(s)) if s else 0.0
+    except Exception:
+        return 0.0
+
+
+def _match_stats(rows: List[Any], signals: Sequence[str]):
+    """统计命中信号的记录数及涉及金额（扫描器实际算出的量）。"""
+    n = 0
+    amt = 0.0
+    for row in rows:
+        if any(s in _dump(row) for s in signals):
+            n += 1
+            if isinstance(row, dict):
+                for k in _AMOUNT_KEYS:
+                    if k in row:
+                        amt += _to_amt(row.get(k))
+    return n, amt
+
+
 def run_special_redline_detection(engine_data: Dict, pipeline_log: List[str] = None) -> List[Dict]:
     """执行全部特定/专项风险探测器。
 
     返回待核发现列表（只含疑点或置疑请求，绝不含定性结论）。
+    每条发现带 redline_id（运行期 declared 归位）+ constituent_hits（要件级观察事实）。
     任何单条异常都不影响其余执行。
     """
     data = engine_data if isinstance(engine_data, dict) else {}
+    src_rows: List[Any] = []
+    for _k in ("vouchers", "balances", "bank_txs", "sal_invs", "pur_invs", "salaries",
+               "inventory", "tax_declarations", "fixed_assets", "contracts",
+               "social_security", "housing_fund"):
+        _v = data.get(_k)
+        if isinstance(_v, list):
+            src_rows.extend(_v)
     vch = _dump(data.get("vouchers"))
     bal = _dump(data.get("balances"))          # 科目余额表
     bank = _dump(data.get("bank_txs"))
@@ -278,6 +314,12 @@ def run_special_redline_detection(engine_data: Dict, pipeline_log: List[str] = N
                 spec["level"], spec["score"], needs_material=spec["needs"],
                 unconfirmed=True, policy_ref=spec.get("policy_ref", ""), evidence=hits[:4],
             )
+            # 要件级证据：认领该红线的**触发要件**（index 默认 1），证据＝扫描器实际算出的量
+            n, amt = _match_stats(src_rows, hits)
+            _ev = (f"命中「{'、'.join(hits[:3])}」相关记录 {n} 条"
+                   + (f"，涉及金额 {amt:,.2f} 元" if amt else "")
+                   + "（要件观察事实；是否构成该要件之情形须人工复核）")
+            f["constituent_hits"] = [{"index": int(spec.get("hit_index", 1)), "evidence": _ev}]
             f["_detection_method"] = spec.get("method", "")
             results.append(f)
         except Exception as exc:  # 单条异常不阻断整体
