@@ -806,7 +806,8 @@ function renderAnalyzeHeader(report) {
   h += '<div id="analyze-header">';
 
 
-  h += _freshnessStrip(report);
+  // ★ 2026-10-01 用户定调：删除「本报告计算时间/依据资料N份/数据指纹」新鲜度条
+  //   及其函数 `_freshnessStrip`（与报告本质无关）；此处调用一并移除，避免残留未定义引用。
 
 
   // 全链路执行流程（默认折叠）——基于实际运行的52个模块步骤
