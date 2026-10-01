@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""A/B 比对：定位「报告瘦身第二批」删除文案后 `all_findings` 少掉的条目。
+"""A/B 比对：定位两份报告 JSON 之间 `all_findings` 的差集。
 
-用法：python scripts/_ab_diff_findings.py
-读取 scripts/_ab_before_report.json（改前）与 scripts/_ab_after_report.json（改后），
-按 (type, detail) 生成指纹求差，输出「改前有、改后无」与「改后有、改前无」。
+用法：
+  python scripts/_ab_diff_findings.py                       # 默认 v1=改前 v2=改后（本目录固定文件名）
+  python scripts/_ab_diff_findings.py <a.json> <b.json>      # 任意两份（a=基准，b=对照）
+
+输出「只在 a 出现」「只在 b 出现」两组，按 (type, detail, level) 指纹比对。
 """
 import io
 import json
@@ -12,6 +14,9 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
+
+DEFAULT_A = "scripts/_ab_before_report.json"
+DEFAULT_B = "scripts/_ab_after_report.json"
 
 
 def load_findings(path):
@@ -29,9 +34,11 @@ def key(x):
 
 
 def main():
-    b = load_findings("scripts/_ab_before_report.json")
-    a = load_findings("scripts/_ab_after_report.json")
-    print("改前 all_findings:", len(b), "| 改后 all_findings:", len(a))
+    pa = sys.argv[1] if len(sys.argv) > 2 else DEFAULT_A
+    pb = sys.argv[2] if len(sys.argv) > 2 else DEFAULT_B
+    a = load_findings(pa)
+    b = load_findings(pb)
+    print("A(%s) all_findings: %d | B(%s) all_findings: %d" % (pa, len(a), pb, len(b)))
     kb, ka = {}, {}
     for x in b:
         kb.setdefault(key(x), []).append(x)

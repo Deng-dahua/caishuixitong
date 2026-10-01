@@ -5590,23 +5590,7 @@ function _buildEnterpriseReadableBody(r, dateStr) {
 
   html += '<h2 id="company-problems">二、本轮风险检查确认的具体问题（税务红线疑点）</h2>' +
     '<p class="i2">本部分按<strong>税务红线</strong>组织。每一条说明：涉及的风险事项、发现的依据、'
-    + '已取得的资料与待补充的资料、本项结论及理由，以及需企业提供的资料与说明。'
-    + '「触碰税务违规红线」只表示出现法定情形须核实，不等于已经定性违法。</p>';
-  // ★ 2026-09-27（用户要求通俗化）：给非财税背景的负责人一份"阅读提示"，解释最易看不懂的术语
-  html += '<p class="i2" style="background:#fffbeb;border-left:3px solid #d97706;padding:9px 12px;line-height:2;font-size:13px">'
-    + '<strong>阅读提示：</strong>①「触碰税务违规红线」＝该项出现了税法明文禁止的情形，需要核实，'
-    + '但<strong>不等于已经被认定为违法</strong>；②「可能性很高／较高／中等／偏低」＝我们分析认为该结论成立的可能性；'
-    + '③「补全N项资料即可排除嫌疑」＝把尚缺的资料补齐后即可复核排除此项疑点；'
-    + '④风险等级（高／中／低）按以下5项综合评定：可能少缴的税款多少、涉及金额大小、还缺哪些证据、'
-    + '是否涉嫌虚开发票或偷税、需要补资料的紧急程度——全库统一口径，非本项单独标准。'
-    + '本报告所有结论均须以税务机关最终认定为准。</p>';
-  var rlSummary = (report.redline_summary || {});
-  if (rlSummary.suspicion_total) {
-    html += '<p class="i2"><strong>本轮共触碰 ' + esc(rlSummary.suspicion_total) + ' 条税务红线</strong>：'
-      + '可定性 ' + esc(rlSummary.confirmed || 0) + ' 条、待补证后定性 ' + esc(rlSummary.unconfirmed || 0) + ' 条'
-      + (rlSummary.excluded ? ('、已排除 ' + esc(rlSummary.excluded) + ' 条') : '') + '。'
-      + '共比照红线库 ' + esc(rlSummary.redline_total || 0) + ' 条（行业无关）。</p>';
-  }
+    + '已取得的资料与待补充的资料、本项结论及理由，以及需企业提供的资料与说明。</p>';
   // ★ 2026-09-27（P2）：章首**主线研判**（最可能的 2–3 个方向及依据，结论先行）
   var ma = report.main_assessment || {};
   if (ma.available && ma.paragraph) {

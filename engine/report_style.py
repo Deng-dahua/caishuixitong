@@ -25,9 +25,9 @@
      落地：`engine/legal_citation.py::format_legal_basis` + `static/legal_library.json`。
 
   S6 通用口径只说一次
-     —— 与具体企业无关的通用说明（如风险等级的分级口径）在章首说明一次，不逐条重复。
-     落地：`static/js/tax-doc-analysis.js` 章首"阅读提示"。
-
+     —— 与具体企业无关的通用说明**不得逐条重复**（用户 2026-10-01 进一步定调：
+     连章首「阅读提示」这类通用说明也从报告中删除，报告只呈现本企业的风险分析）。
+     落地：`tools/audit_consistency.py::check_finding_meta_wording`（禁「｜等级依据」「risk_level_basis」逐条重复）。
 本模块是**唯一权威**：`EXPRESSION_PRINCIPLES` 是标准的唯一文本；`check_report_expression()`
 对**已生成报告**做自检，供一键分析"常驻自检"与发布闸门（`audit_consistency`）复用。
 """
@@ -54,7 +54,7 @@ EXPRESSION_PRINCIPLES: List[Dict[str, str]] = [
      "landing": "engine/legal_citation.py::format_legal_basis"},
     {"key": "S6", "name": "通用口径只说一次",
      "rule": "与具体企业无关的通用说明在章首说明一次，不逐条重复。",
-     "landing": "static/js/tax-doc-analysis.js（章首阅读提示）"},
+     "landing": "tools/audit_consistency.py::check_finding_meta_wording（禁逐条重复通用口径）"},
 ]
 
 # —— 自检规则（低误报：只认明确的、可判定的反例）——

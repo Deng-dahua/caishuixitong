@@ -2920,8 +2920,9 @@ def check_finding_meta_wording() -> List[Tuple[str, str, str]]:
     for good in ("本项涉税嫌疑，", "来排除此项税务风险嫌疑"):
         if good not in src:
             issues.append(("ERROR", rel, f"疑点 meta 缺少自然句表述「{good}」"))
-    if "按以下5项综合评定" not in src:
-        issues.append(("ERROR", rel, "章首阅读提示未说明风险等级分级口径（5项综合评定）"))
+    # ★ 2026-10-01 用户定调：删除章首「阅读提示」（含风险等级 5 项分级口径说明）——
+    #   属与报告本质无关的通用说明，故原「章首阅读提示须说明分级口径」断言移除。
+    #   「通用口径不得逐条重复」这一实质要求仍由上方 ｜等级依据/risk_level_basis 禁项锁定。
     return issues
 
 
