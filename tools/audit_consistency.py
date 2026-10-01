@@ -1927,6 +1927,7 @@ def check_audit_doctrine() -> List[Tuple[str, str, str]]:
     try:
         from engine.audit_doctrine import (
             SEVERITY_LEVELS, TERMINAL_IRONCLAD, TERMINAL_PENDING, TERMINAL_SELF_PROOF,
+            MISSING_DRIVEN_LEVEL_CAP,
         )
         from engine.domain_analysis import _domain_salary_ss_hf_compare as _cmp
         _pipe_src = _read_rel("engine/pipeline.py")
@@ -2080,6 +2081,49 @@ def check_audit_doctrine() -> List[Tuple[str, str, str]]:
         if not any(str(f.get("type") or "") == "有工资无社保" for f in _cmp(sal, ss)):
             issues.append(("ERROR", "engine/domain_analysis.py",
                            "[行为] 两侧资料齐备时未执行真正的工资社保交叉核验"))
+
+        # ── ⑤-b 兜底降级点必须**真的**降级（不能只查"函数名出现过"）──
+        #   2026-10-02 反向验证发现的真实缺口：② 只对
+        #   `enforce_no_missing_driven_accusation` 做「函数名在 pipeline 源码里出现过」
+        #   的静态检查。把它实现改成空函数、或把
+        #   `attach_three_piece(..., missing_driven=True)` 的 True 删掉，闸门全绿 ——
+        #   而"把资料缺失读成违法事实"正是宗旨 D2 红线。静态规则挡不住，必须行为断言。
+        try:
+            from engine.audit_doctrine import enforce_no_missing_driven_accusation
+            _probe = [
+                {"type": "有工资无社保", "level": "极高风险", "score": 9,
+                 "detail": "未提供社保明细，名单中未找到对应月份记录"},
+                {"type": "发票作废率偏高", "level": "中风险", "score": 6,
+                 "detail": "作废12张占全部100张的12%"},
+            ]
+            enforce_no_missing_driven_accusation(_probe)
+            _acc, _ok = _probe[0], _probe[1]
+            _rl = "engine/audit_doctrine.py"
+            if str(_acc.get("level")) != MISSING_DRIVEN_LEVEL_CAP:
+                issues.append(("ERROR", _rl,
+                               f"[行为] 兜底降级点未把缺资料驱动的「{_acc.get('type')}」"
+                               f"从{_acc.get('level')}降为{MISSING_DRIVEN_LEVEL_CAP}："
+                               "闸门若只做函数名静态检查，实现被改成空函数也无人察觉"))
+            if _acc.get("level_downgraded_from") != "极高风险":
+                issues.append(("ERROR", _rl,
+                               "[行为] 降级未留痕 level_downgraded_from：无法追溯该条是何时/为何被降的"))
+            if float(_acc.get("score") or 0) > 4:
+                issues.append(("ERROR", _rl,
+                               f"[行为] 缺资料驱动的发现 score={_acc.get('score')} 未压到 4 以内"))
+            if _acc.get("terminal_state") != TERMINAL_PENDING:
+                issues.append(("ERROR", _rl,
+                               f"[行为] 缺资料驱动的发现终局方向应为{TERMINAL_PENDING}，"
+                               f"实为{_acc.get('terminal_state')!r}"))
+            if not _acc.get("resolve_steps"):
+                issues.append(("ERROR", _rl,
+                               "[行为] 被降级的发现未补齐解除方式（宗旨 D3）"))
+            if str(_ok.get("level")) != "中风险":
+                issues.append(("ERROR", _rl,
+                               f"[行为] 有据的中风险发现被误降级为「{_ok.get('level')}」"
+                               "（零误伤要求：闸门不能把真风险一起降掉）"))
+        except Exception as exc:
+            issues.append(("ERROR", "engine/audit_doctrine.py",
+                           f"兜底降级点行为断言无法执行：{type(exc).__name__}: {exc}"))
     except Exception as exc:
         issues.append(("ERROR", "engine/domain_analysis.py",
                        f"宗旨行为断言无法执行：{type(exc).__name__}: {exc}"))

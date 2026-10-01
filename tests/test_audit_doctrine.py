@@ -118,6 +118,31 @@ class TestMissingIsNotViolation:
         enforce_no_missing_driven_accusation(fs)
         assert len(fs) == n0, "缺资料本身是有价值的信息，只能降级、不得静默删除"
 
+    def test_backstop_downgrades_very_high_risk_and_leaves_trail(self):
+        """兜底点必须把**极高风险**也压到待核，并留下可追溯痕迹。
+
+        2026-10-02 缺口回放：闸门原先只对 `enforce_no_missing_driven_accusation`
+        做「函数名在 pipeline 源码里出现过」的静态检查，把它的实现改成空函数
+        闸门全绿。本例锁死该兜底点的运行时行为。
+        """
+        fs = [{"type": "有工资无社保", "level": "极高风险", "score": 9,
+               "detail": "未提供社保明细，名单中未找到对应月份记录"}]
+        enforce_no_missing_driven_accusation(fs)
+        f = fs[0]
+        assert f["level"] == MISSING_DRIVEN_LEVEL_CAP
+        assert f["level_downgraded_from"] == "极高风险"
+        assert f["level_downgrade_reason"]
+        assert f["score"] <= 4
+        assert f["terminal_state"] == TERMINAL_PENDING
+        assert f["resolve_steps"]
+
+    def test_backstop_is_zero_noise_on_evidence_backed_finding(self):
+        """有据的发现不得被兜底点误伤（误伤＝静默吃掉真风险）。"""
+        fs = [{"type": "发票作废率偏高", "level": "高风险", "score": 6,
+               "detail": "作废12张占全部100张的12%"}]
+        enforce_no_missing_driven_accusation(fs)
+        assert fs[0]["level"] == "高风险", "有据发现被误降级会直接损失①"
+
 
 # ═══════════════ D3 每个发现都要给出口 ═══════════════
 
@@ -346,6 +371,17 @@ class TestDoctrineGateFiresOnRegression:
         src = inspect.getsource(ac.check_audit_doctrine)
         assert "[行为]" in src, "宗旨闸门必须含行为断言，而非只有文本规则"
         assert "_domain_salary_ss_hf_compare" in src
+
+    def test_backstop_point_has_behavior_assertion(self):
+        """兜底降级点不能只查'函数名出现过'——实现被改成空函数闸门也必须变红。"""
+        import inspect
+        import tools.audit_consistency as ac
+        src = inspect.getsource(ac.check_audit_doctrine)
+        assert "enforce_no_missing_driven_accusation" in src
+        assert "兜底降级点" in src, (
+            "兜底降级点缺少行为断言：静态名检查挡不住把 enforce_no_missing_driven_accusation "
+            "改成空实现（2026-10-02 反向验证实测该写法闸门全绿）"
+        )
 
 
 # ═══════════════ 同源缺陷排查：缺资料被写成违规（全项目闸门）═══════════════
