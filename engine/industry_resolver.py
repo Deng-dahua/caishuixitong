@@ -662,3 +662,162 @@ def generalization_note(industry: str, category: str) -> str:
         return f"行业「{industry}」已在行业基准库中，按其基准区间完成指标对标。"
     return (f"行业「{industry}」不在66行业基准库中，但基于名称与特征自动归类为「{category}」。"
             f"适配该类型的通用风险模型进行分析。")
+
+# ── 行业「随资料再判读」（industry_reassess）──────────────────────────────
+#    观点来源（用户 2026-10-02）：「对行业的判断应该是随着系统接收到的资料和
+#    信息后，经重新判读后再次确认或变更行业」。
+#
+#    现状（为什么需要）：行业过去只在 `_detect_target_entity` 里定一次，之后
+#    合同、进项票、资料清单陆续到位也不再回头看——于是"经营范围只写销售/贸易"
+#    的企业被购销兜底口径一次性钉死成「商贸」，全链（行业对标 / 成本费用口径 /
+#    行业门控）都跟着错，且**错得很静默**。
+#
+#    设计铁律：
+#      ★ 再判读**只能推翻、不能凭空定**：没有新证据一律 insufficient（不猜）。
+#      ★ 新行业必须是**具体行业**（`service_industries` 映射），购销兜底口径
+#        （商贸/商贸批发/商贸零售/外贸/电子商务）不算行业，不构成变更依据。
+#      ★ 商品/物料名不算行业（沿用铁律 R1，只采纳 service 侧映射）。
+#      ★ 决策三态 change / keep / insufficient，全部留痕进 pipeline_log。
+
+
+def industry_hints_from_text(text: str) -> Dict[str, int]:
+    """从任意一段文本抽「行业级线索」投票表（行业名 -> 命中次数）。
+
+    判据与 `scope_industry_hint` 同源：只采纳 `industry_map` 中映射到
+    `service_industries` 的关键词；排除购销兜底口径；归一化后同名合并。
+    """
+    text = str(text or "")
+    if not text.strip():
+        return {}
+    im = load_industry_data().get("industry_map") or {}
+    svc = set(load_industry_data().get("service_industries") or [])
+    raw = {}
+    for kw, ind in im.items():
+        k = str(kw or "").strip()
+        if not k or k not in text:
+            continue
+        v = str(ind or "")
+        if not v or v not in svc or v in _TRADE_FALLBACK_INDUSTRIES:
+            continue
+        raw[v] = raw.get(v, 0) + 1
+    if not raw:
+        return {}
+    merged = {}
+    for v, n in raw.items():
+        k = normalize_industry_name(v) or v
+        merged[k] = merged.get(k, 0) + n
+    if not merged:
+        return {}
+    # 票数降序、同票取名字更长的（更具体）——禁 hash 序，保证可复现
+    return dict(sorted(merged.items(), key=lambda kv: (-kv[1], -len(kv[0]), kv[0])))
+
+
+def _industry_reassess_log(pipeline_log, msg):
+    if pipeline_log is not None:
+        try:
+            pipeline_log.append(msg)
+        except Exception:
+            pass
+
+
+def reassess_industry(current_industry: str = "", *,
+                      purchase_goods=None,
+                      material_hints=None,
+                      contract_text: str = "",
+                      current_source: str = "",
+                      pipeline_log: Optional[List[str]] = None) -> Dict[str, Any]:
+    """资料收齐后，用**新增**证据对行业做一次再判读（唯一权威）。
+
+    证据三路，均为弱证据，不能单独定行业，只能推翻或确认：
+      ① `purchase_goods` 进项发票品名（采购侧实际买的东西）
+      ② `material_hints` 已上传资料的文件名 / 资料类型（如「广告设计合同.docx」）
+      ③ `contract_text` 合同 / 协议文本
+
+    决策规则（★ 只有「一致」才改，不一致一律 keep，绝不猜）：
+      · 新行业 == current            → keep（已一致，无需变更）
+      · current 是**购销兜底口径**
+        （商贸/商贸批发/商贸零售/外贸/电子商务）→ 只要有 ≥1 路证据指向某个具体行业，
+        就 change（兜底本就低置信，用户场景正是"先判商贸、后凭合同取证为广告传媒"）
+      · current 是**高权威口径**（销项品名 / 外部工商 / 工商登记）
+        → 须 ≥2 路证据**同时**指向同一个具体行业才 change，否则 keep
+      · 无任何新证据                  → insufficient
+
+    返回：{industry, decision, evidence, reason, from_fallback}
+    """
+    cur = normalize_industry_name(current_industry) or str(current_industry or "")
+    goods = purchase_goods or []
+    mats = material_hints or []
+
+    routes = [
+        ("进项票品名", " ".join(str(g or "") for g in goods)),
+        ("资料与文件名", " ".join(str(m or "") for m in mats)),
+        ("合同文本", str(contract_text or "")),
+    ]
+    evidence: Dict[str, Dict[str, int]] = {}
+    by_route: Dict[str, str] = {}
+    merged: Dict[str, int] = {}
+    for name, text in routes:
+        if not str(text or "").strip():
+            continue
+        hits = industry_hints_from_text(text)
+        if not hits:
+            continue
+        top = sorted(hits.items(), key=lambda kv: (-kv[1], -len(kv[0]), kv[0]))[0][0]
+        evidence[name] = hits
+        by_route[name] = top
+        merged[top] = merged.get(top, 0) + 1
+
+    if not evidence:
+        _industry_reassess_log(pipeline_log, "[行业再判读] 未取得任何新证据（进项品名/资料/合同均无行业级线索），"
+                          "保持原行业口径 '%s'" % cur)
+        return {"industry": cur, "decision": "insufficient", "evidence": {},
+                "from_fallback": cur in _TRADE_FALLBACK_INDUSTRIES,
+                "reason": "无新证据，不做变更"}
+
+    # ★ 只认「≥2 路证据同时指向同一行业」；单路证据不足以推翻高权威口径。
+    #   ★ 并列第一（多个行业同票）＝**没有共识**，一律不得据此变更——宁可 keep，
+    #     也不让弱证据在平局时任意挑一个（选谁都不本正，等于现场猜）。
+    order = sorted(merged.keys(), key=lambda k: (-merged[k], -len(k), k))
+    top_ind = order[0] if order else ""
+    top_routes = merged.get(top_ind, 0)
+    tied = [k for k in order if merged.get(k, 0) == top_routes]
+    if len(tied) > 1:
+        _industry_reassess_log(
+            pipeline_log,
+            "[行业再判读] 新证据在 %s 之间并票（各 %d 路），无共识，"
+            "不据此变更原口径 '%s'" % ("、".join(tied), top_routes, cur))
+        return {"industry": cur, "decision": "keep", "evidence": evidence,
+                "from_fallback": cur in _TRADE_FALLBACK_INDUSTRIES,
+                "reason": "新证据多行业并票，无共识"}
+
+    is_fallback = cur in _TRADE_FALLBACK_INDUSTRIES
+
+    # ★ 判定顺序：先问「证据够不够推翻」，再问「是不是同一行业」——
+    #   反过来的话，单路弱证据指向原行业会被说成"证据一致"，掩盖了"证据不足"这个事实。
+    enough = (top_routes >= 2) or (is_fallback and top_routes >= 1)
+    if not enough:
+        msg = ("新证据仅 %d 路指向 '%s'，未达推翻门槛" % (top_routes, top_ind))
+        if top_ind == cur:
+            msg += "（且仍与原口径一致），" + ("原口径属购销兜底，仍无强证据可确认" if is_fallback
+                                        else "维持原口径 '%s'" % cur)
+        else:
+            msg += "；原口径 '%s' 非购销兜底，弱证据不得推翻，维持原口径" % cur
+        _industry_reassess_log(pipeline_log, "[行业再判读] %s，不变更" % msg)
+        return {"industry": cur, "decision": "keep", "evidence": evidence,
+                "from_fallback": is_fallback, "reason": msg}
+
+    if top_ind == cur:
+        _industry_reassess_log(pipeline_log,
+                              "[行业再判读] 新证据 %d 路一致指向 '%s'，维持原口径不变更" % (top_routes, cur))
+        return {"industry": cur, "decision": "keep", "evidence": evidence,
+                "from_fallback": is_fallback, "reason": "新证据与原口径一致，维持"}
+
+    reason = ("原口径 '%s' 属购销兜底（低置信），新证据 %d 路一致指向 '%s'"
+              % (cur, top_routes, top_ind)) if is_fallback else \
+             ("新证据 %d 路一致指向 '%s'，超过原口径（来源 %s）" % (top_routes, top_ind, current_source))
+    _industry_reassess_log(pipeline_log, "[行业再判读] 行业口径变更：'%s' → '%s'；%s"
+                           % (cur, top_ind, reason))
+    return {"industry": top_ind, "decision": "change", "evidence": evidence,
+            "from_fallback": is_fallback, "reason": reason}
+
+
