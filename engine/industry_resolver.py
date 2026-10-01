@@ -98,6 +98,9 @@ def is_in_benchmark_base(industry: str) -> bool:
 SCOPE_MFG_HINTS = ("制造", "生产", "加工", "组装", "冶炼", "铸造", "研发生产", "加工制造")
 # "购销"类业态 —— 出现这些词而**无**制造类词时，只能落到商贸口径
 SCOPE_TRADE_HINTS = ("销售", "零售", "批发", "贸易", "购销", "经销", "进出口")
+# 「购销兜底口径」：这些行业本身就是**无具体指向**的兜底，不参与经营范围的「行业级线索」竞争
+# （仅由 `_trade_benchmark` 在找不到任何行业线索时启用）。来源：`service_industries` 子集。
+_TRADE_FALLBACK_INDUSTRIES = ("商贸", "商贸批发", "商贸零售", "外贸", "电子商务")
 # 商贸口径的细分键（按批发/零售进一步收窄）
 _TRADE_BENCH_ORDER = ("商贸批发", "商贸零售", "商贸")
 
@@ -199,6 +202,10 @@ def match_benchmark(industry: str, biz_model: str = "", entity_name: str = "",
     # 4. 经营范围 —— 必须先定业态（R1）
     scope_text = str(business_scope or "")
     if scope_text:
+        # ★ 2026-10-01：同 resolve_industry——先取「行业级线索」，找不到才走购销兜底。
+        _scope_hint = scope_industry_hint(scope_text, str(entity_name or ""))
+        if _scope_hint and benchmarks.get(_scope_hint):
+            return _scope_hint, benchmarks[_scope_hint]
         is_mfg = any(h in scope_text for h in SCOPE_MFG_HINTS)
         is_trade = any(h in scope_text for h in SCOPE_TRADE_HINTS)
         if is_trade and not is_mfg:
@@ -399,6 +406,52 @@ def infer_from_goods(sales_goods: List[str]) -> Tuple[str, Dict[str, int]]:
     return "", {}
 
 
+def scope_industry_hint(scope_text: str = "", company_name: str = "") -> Optional[str]:
+    """从**经营范围 / 企业名称**里取「行业级线索」→ 基准库键（找不到返回 None）。
+
+    为什么需要（2026-10-01 真事故）：原逻辑「经营范围含购销词 → 判商贸」把**所有**
+    服务型企业都拉成商贸——因为「销售/批发/零售/贸易」是中国公司经营范围的**万能尾巴**。
+    实证：深圳海更数字传媒，经营范围明写「广告设计、制作、代理、发布」+ 尾部「办公用品
+    销售」，仍被判「商贸」（销项品名一旦抽不到，就 100% 落商贸）。
+
+    判据（行业无关，靠**已有**单一数据源，不新增分类表）：
+      逐条查 `industry_map` 关键词是否出现在经营范围/名称里，只采纳那些映射到
+      `service_industries`（服务业态）的映射——即**行业级**线索；
+      映射到 `production_industries`（制造/商品级，如「服装→服装制造」「饲料→农业生产」）
+      的一律**不算**，因为按铁律 R1 商品/物料名不是行业。
+      命中多条时：关键词**长度优先**，等长取 `industry_map` 声明顺序靠前者（结果确定）。
+
+    注意：本函数是**弱证据**（来源 `SRC_SCOPE` 权重 2），只在销项品名/工商登记等
+    强证据缺席时才真正决定口径；有更强证据时它只是被保留在 `candidates` 里用于留痕
+    （登记口径 ≠ 经营范围口径 本身就是核查线索）。
+    """
+    text = "%s %s" % (str(scope_text or ""), str(company_name or ""))
+    if not text.strip():
+        return None
+    im = load_industry_data().get("industry_map") or {}
+    svc = set(load_industry_data().get("service_industries") or [])
+    best_kw, best_ind = "", ""
+    for kw, ind in im.items():
+        k = str(kw or "").strip()
+        if not k or k not in text:
+            continue
+        v = str(ind or "")
+        if not v or v not in svc:
+            continue
+        # 「商贸 / 商贸批发 / 商贸零售 / 外贸 / 电子商务」是**购销兜底口径**，不是具体行业。
+        # 它们由 `_trade_benchmark` 负责（只有经营范围里**没有**行业级线索时才走）。
+        # 这里必须跳过：否则通用购销词会按声明顺序压过真正的行业词 —— 等长关键词不覆盖时
+        # 保留先声明者，而「贸易」(industry_map 第 47 条) 声明早于「广告」(第 50 条)，
+        # 于是「广告设计…；办公用品销售；国内贸易」会被「贸易」判成商贸（真事故路径）。
+        if v in _TRADE_FALLBACK_INDUSTRIES:
+            continue
+        if len(k) > len(best_kw):
+            best_kw, best_ind = k, v
+    if not best_ind:
+        return None
+    return normalize_industry_name(best_ind) or best_ind
+
+
 def resolve_industry(company_name: str = "", registered_industry: str = "",
                      online_industry: str = "", sales_goods: Optional[List[str]] = None,
                      business_scope: str = "", biz_model: str = "",
@@ -439,16 +492,23 @@ def resolve_industry(company_name: str = "", registered_industry: str = "",
         candidates.setdefault(SRC_NAME, name_hit)
     scope_text = str(business_scope or "")
     if scope_text:
-        is_mfg = any(h in scope_text for h in SCOPE_MFG_HINTS)
-        is_trade = any(h in scope_text for h in SCOPE_TRADE_HINTS)
-        if is_trade and not is_mfg:
-            tk = _trade_benchmark(scope_text)
-            if tk:
-                candidates.setdefault(SRC_SCOPE, tk)
+        # ★ 2026-10-01：先找「行业级线索」（广告/咨询/设计/软件…）；只有找不到时，
+        #   才退回购销兜底（商贸/商贸批发/商贸零售）。原实现直接判商贸，导致
+        #   经营范围带万能"销售/贸易"尾巴的服务型企业 100% 被判成商贸（真事故）。
+        _scope_hint = scope_industry_hint(scope_text, str(company_name or ""))
+        if _scope_hint:
+            candidates.setdefault(SRC_SCOPE, _scope_hint)
         else:
-            sc_hit = _longest_hit(scope_text, bm_keys)
-            if sc_hit:
-                candidates.setdefault(SRC_SCOPE, sc_hit)
+            is_mfg = any(h in scope_text for h in SCOPE_MFG_HINTS)
+            is_trade = any(h in scope_text for h in SCOPE_TRADE_HINTS)
+            if is_trade and not is_mfg:
+                tk = _trade_benchmark(scope_text)
+                if tk:
+                    candidates.setdefault(SRC_SCOPE, tk)
+            else:
+                sc_hit = _longest_hit(scope_text, bm_keys)
+                if sc_hit:
+                    candidates.setdefault(SRC_SCOPE, sc_hit)
 
     # 最终采用：按来源权威度取最高（同权威度时按插入顺序，前面更权威）
     if candidates:

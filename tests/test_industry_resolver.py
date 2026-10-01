@@ -18,6 +18,7 @@ from engine.industry_resolver import (
     SRC_INVOICE, benchmark_keys, business_category, generalization_note,
     infer_from_goods, is_in_benchmark_base, load_industry_data, match_benchmark,
     normalize_industry_name, resolve_industry,
+    scope_industry_hint,
 )
 
 
@@ -301,3 +302,90 @@ class TestBenchmarkLibraryMerged(unittest.TestCase):
         self.assertTrue(matched)
         self.assertIn("gross_margin", bench)
         self.assertTrue(source)
+
+
+class TestScopeIndustryHint(unittest.TestCase):
+    """⑦ 经营范围「行业级线索」优先于购销兜底（2026-10-01 真事故修复）。
+
+    事故：`_trade_benchmark` 只要基准库存在「商贸」键就**无条件**返回「商贸」，
+    完全不看经营范围内容；而「销售/批发/零售/贸易/购销/经销/进出口」是中国公司
+    经营范围的**万能尾巴**（几乎每家企业都写）。于是销项品名抽不到时，
+    「广告设计、制作、代理、发布；…；办公用品销售」这类服务型企业 100% 被判成
+    「商贸」——行业对标基准全错（深圳海更数字传媒实证，报告口径也是"商贸"）。
+
+    修法（行业无关，加数据与一个函数，不改逻辑特例）：
+    经营范围先找**行业级线索**（industry_map 关键词映射到 service_industries，
+    即广告/咨询/设计/软件/物流…）；只有找不到时才走原「购销 → 商贸」兜底。
+    """
+
+    # 服务型经营范围，尾部必带购销尾巴（中国公司模板）
+    SERVICE_SCOPES = {
+        "广告传媒": "广告设计、制作、代理、发布；文化活动策划；企业形象策划；办公用品销售；国内贸易",
+        "信息技术": "软件开发；技术服务、技术开发、技术咨询；办公设备及耗材销售",
+        "咨询服务": "企业管理咨询；经济信息咨询；会议及展览服务；文化用品销售",
+        "餐饮服务": "餐饮服务；餐饮管理；食品经营；日用百货销售",
+        "物流运输": "物流服务；普通货物仓储服务；道路货物运输；装卸搬运；汽车销售",
+    }
+
+    def test_service_scope_with_trade_tail_is_not_trade(self):
+        """服务型经营范围即便尾部挂购销词，也不得判成商贸口径。"""
+        for expect, scope in self.SERVICE_SCOPES.items():
+            r = resolve_industry(company_name="某某有限公司", registered_industry="",
+                                 sales_goods=[], business_scope=scope)
+            self.assertEqual(r["industry"], expect,
+                             f"经营范围「{scope}」应判 {expect}，实际={r['industry']}（来源={r['source']}）")
+            self.assertNotIn("商贸", r["industry"] or "",
+                             f"购销尾巴不该把服务型企业拉成商贸：{r['industry']}")
+
+    def test_pure_trade_scope_still_trade(self):
+        """防回归：纯购销经营范围（无任何行业级线索）仍须落到商贸口径。"""
+        for scope in ("日用百货销售;塑料制品销售;五金产品零售;橡胶制品销售",
+                      "服装服饰批发；鞋帽批发；日用百货销售；工艺品销售",
+                      "建筑材料销售；五金产品销售；金属材料购销"):
+            picked, _ = match_benchmark("", "", "", scope)
+            self.assertIn("商贸", picked or "",
+                          f"纯购销经营范围应落商贸口径，实际={picked}：{scope}")
+
+    def test_commodity_name_still_not_industry(self):
+        """铁律 R1 在新流程下不破：经营范围里的商品名仍不得被当成行业。"""
+        picked, _ = match_benchmark("", "", "", "服装服饰批发；鞋帽批发；日用百货销售")
+        self.assertNotIn("服装", picked or "",
+                         f"商品名「服装」不得当行业（R1），实际={picked}")
+
+    def test_match_benchmark_also_avoids_trade_fallback(self):
+        """报告对标入口（`match_benchmark` 取行业区间）同样不能掉进商贸兜底。"""
+        scope = self.SERVICE_SCOPES["广告传媒"]
+        picked, bench = match_benchmark("", "", "", scope)
+        self.assertEqual(picked, "广告传媒")
+        self.assertIn("毛利率", bench or {})
+
+    def test_hint_is_the_effective_switch(self):
+        """★ 反向验证：摘掉新判据（即还原修复前行为）→ 必须退回「商贸」。
+
+        这条不是重复断言修复后的值，而是证明**这个判据就是真正起作用的开关**：
+        一旦有人把 `scope_industry_hint` 的调用删掉/短路，同一条经营范围立刻回到
+        事故状态、测试必须变红。闸门只有能被破坏时才算闸门。
+        """
+        import unittest.mock as _mock
+        scope = self.SERVICE_SCOPES["广告传媒"]
+        with _mock.patch("engine.industry_resolver.scope_industry_hint", return_value=None):
+            r = resolve_industry(company_name="某某有限公司", registered_industry="",
+                                 sales_goods=[], business_scope=scope)
+        self.assertIn("商贸", r["industry"] or "",
+                      "摘掉行业级线索后应回到旧的商贸兜底（证明该判据确实在兜底之前生效）")
+
+    def test_deterministic_same_input_same_output(self):
+        args = dict(company_name="某某数字传媒有限公司", registered_industry="",
+                    sales_goods=[], business_scope=self.SERVICE_SCOPES["广告传媒"])
+        self.assertEqual(resolve_industry(**args)["industry"],
+                         resolve_industry(**args)["industry"])
+
+    def test_both_call_sites_use_hint(self):
+        """源码级防回退：两个消费端都必须引用行业级线索，不得改回直接购销兜底。"""
+        import inspect
+        from engine import industry_resolver as ir
+        for fn_name in ("resolve_industry", "match_benchmark"):
+            src = inspect.getsource(getattr(ir, fn_name))
+            self.assertIn("scope_industry_hint", src,
+                          f"{fn_name} 不再调用 scope_industry_hint"
+                          f"（回退到旧逻辑会让经营范围购销尾巴重新把服务型企业判成商贸）")
