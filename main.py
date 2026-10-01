@@ -4664,7 +4664,15 @@ def _find_cols_semantic(header, mapping):
             cols[field] = best_i
     
     # Round 2: 语义角色兜底 —— 精确匹配没命中的字段
-    missing_fields = [f for f in set(mapping.values()) if f not in cols]
+    # ★★ 2026-10-01 修复「同一输入两次分析结果不同」的根因（P0 可复现性）：
+    #   原实现用 `set(mapping.values())` 决定字段处理顺序 —— set 迭代顺序随 **Python hash 随机化**
+    #   每进程不同；而本轮的落列规则是「先处理者占列、后来者跳过」（见下方 `if i in cols.values(): continue`）。
+    #   于是当两个字段竞争同一列时（实测：`tax`(代扣个税) 与 `gross`(应发) 竞争同一列），
+    #   归属随运行翻转 → 工资表里 tax/gross 取值互换 → 个税三源金额与差异随之变化 →
+    #   发现数在 159/162/163 之间波动（同代码同输入，违反「同一输入必得同一输出」）。
+    #   修复：改为**有序去重**（保留 mapping 的声明顺序 ⇒ 声明在前者优先占列），
+    #   使同一份资料在任何进程/任何 hash 种子下得到完全一致的列映射。
+    missing_fields = [f for f in dict.fromkeys(mapping.values()) if f not in cols]
     for field in missing_fields:
         # 找这个 field 对应的语义角色
         role = None
