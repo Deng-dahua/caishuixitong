@@ -4929,6 +4929,9 @@ def _get_product_keywords(industry_code, is_raw=True):
 # ═══════════ 域分析：行业对标 ═══════════
 
 def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, inventory, target_industry=""):
+    # ★ 2026-10-02：行业基准口径声明唯一出处（industry_benchmark），此处转调，不另写一套
+    from engine.industry_benchmark import (BENCHMARK_CAUTION as _CAUTION,
+                                          BENCHMARK_CAUTION_SHORT as _CAUTION_SHORT)
     """与行业基准值对比——基于国家税总局行业预警值"""
     findings = []
     
@@ -4958,7 +4961,7 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
             findings.append({
                 "type": f"毛利率{gm_pct:.2f}%低于{target_industry}行业下限{low*100:.2f}%",
                 "level": "高风险", "score": 9,
-                "detail": f"被查单位毛利率{gm_pct:.2f}%（=（销售收入{actual_rev:,.2f}元-进项采购成本{pur_total:,.2f}元）/销售收入{actual_rev:,.2f}元）。{target_industry}行业毛利率正常区间为{low*100:.2f}%~{high*100:.2f}%，典型值{typical*100:.2f}%。被查单位毛利率已低于行业下限{low*100:.2f}%，偏离度{gross_margin/low-1:.0%}。对标的行业口径为「{target_industry}」；该区间为系统内置的行业通用参考值，非税务机关官方口径（行业周期、经营模式、出口占比、政策优惠等均可造成合理偏离），偏离仅构成待核线索，不表示已认定少缴税款。",
+                "detail": f"被查单位毛利率{gm_pct:.2f}%（=（销售收入{actual_rev:,.2f}元-进项采购成本{pur_total:,.2f}元）/销售收入{actual_rev:,.2f}元）。{target_industry}行业毛利率正常区间为{low*100:.2f}%~{high*100:.2f}%，典型值{typical*100:.2f}%。被查单位毛利率已低于行业下限{low*100:.2f}%，偏离度{gross_margin/low-1:.0%}。对标的行业口径为「{target_industry}」；该区间为{_CAUTION}（行业周期、经营模式、出口占比、政策优惠等均可造成合理偏离），偏离仅构成待核线索，不表示已认定少缴税款。",
                 "description": f"毛利率低于行业基准下限{low*100:.2f}%，这一偏差在税务合规中有明确的指向意义：①进项发票可能存在虚增——采购成本被人为做高以虚抵进项税、虚列成本少缴企业所得税；②销售收入可能被隐匿——部分收入未入账、未开票，导致收入端偏低、毛利率被拉低。{target_industry}行业毛利率典型值为{typical*100:.2f}%，被查单位{gm_pct:.2f}%已处于行业尾部。需结合产能、能耗、人工投入等经营数据做交叉验证。",
                 "how_found": f"计算出被查单位的毛利率：销售收入{actual_rev:,.2f}元减去进项采购成本{pur_total:,.2f}元，除以销售收入，得出{gm_pct:.2f}%。然后查阅了{target_industry}行业的毛利率基准数据（下限{low*100:.2f}%、典型{typical*100:.2f}%、上限{high*100:.2f}%），发现被查单位毛利率已低于行业下限。",
                 "tax_impact": f"若进项虚增：补缴增值税+企业所得税+滞纳金+罚款；若收入隐匿：补缴增值税+企业所得税+滞纳金+0.5-5倍罚款，情节严重移送公安。",
@@ -4970,7 +4973,7 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
                     {"index": 1, "evidence": f"毛利率 {gm_pct:.2f}%（销售收入 {actual_rev:,.2f} 元 − 进项采购成本 {pur_total:,.2f} 元）"
                                              f"已低于{target_industry}行业下限 {low * 100:.2f}%（典型值 {typical * 100:.2f}%）"},
                     {"index": 2, "evidence": f"偏离幅度：低于行业下限 {abs(gross_margin / low - 1) * 100:.0f}%"
-                                             "（行业口径为系统内置通用参考值，非税务机关官方口径）"},
+                                             "（行业口径：{_CAUTION_SHORT}）"},
                 ],
                 "category": "行业对标"
             })
@@ -5013,7 +5016,7 @@ def _domain_industry_benchmark(sal_invs, pur_invs, voucher_rev, salaries, invent
             findings.append({
                 "type": f"进销比{io_ratio:.2f}高于{target_industry}行业上限{high}",
                 "level": "高风险", "score": 9,
-                "detail": f"被查单位进销比{io_ratio:.2f}（=进项采购{pur_total:,.2f}元/销项开票{sal_total:,.2f}元），{target_industry}行业正常进销比区间为{low}~{high}，典型值{typical}。被查单位进销比高于行业上限{high}，偏离度{(io_ratio-typical)/typical*100:.2f}%。对标的行业口径为「{target_industry}」；该区间为系统内置的行业通用参考值，非税务机关官方口径，偏离仅构成待核线索。",
+                "detail": f"被查单位进销比{io_ratio:.2f}（=进项采购{pur_total:,.2f}元/销项开票{sal_total:,.2f}元），{target_industry}行业正常进销比区间为{low}~{high}，典型值{typical}。被查单位进销比高于行业上限{high}，偏离度{(io_ratio-typical)/typical*100:.2f}%。对标的行业口径为「{target_industry}」；该区间为{_CAUTION}，偏离仅构成待核线索。",
                 "description": f"进销比={io_ratio:.2f}的含义：被查单位每对外开具1元销项发票，对应取得了{io_ratio:.2f}元进项发票。{target_industry}行业典型进销比为{typical}（每1元销项对应约{typical}元进项采购），合理区间{low}~{high}。被查单位的进销比{io_ratio:.2f}已超出行业上限{high}，偏差{(io_ratio-typical)/typical*100:.2f}%。进销比偏高有两种税务合规解释：①存在未开票销售收入——实际销售>开票销售，拉高了进项/销项的比值；②进项发票存在虚开——采购端被人为做高。两者都涉及纳税义务的不当减少。",
                 "how_found": f"进项采购{pur_total:,.2f}÷销项开票{sal_total:,.2f}={io_ratio:.2f}。{target_industry}行业进销比参考值：下限{low}、典型值{typical}、上限{high}。被查单位={io_ratio:.2f} > 上限{high}。",
                 "tax_impact": "若隐匿收入→补缴增值税（货物税率）+企业所得税+滞纳金+罚款。若虚增进项→补缴增值税（已抵扣税额）+企业所得税+罚款+刑事责任。",
@@ -7066,15 +7069,11 @@ _REIMBURSEMENT_KWS_GLOBAL = [
 ]
 
 # ├─ 重大费用关键词（需对公付款但非主营成本）
-_MAJOR_EXPENSE_KWS = [
-    '房租','租金','物业','物业管理',
-    '咨询','顾问','法律','审计','评估','检测','认证',
-    '广告','推广','宣传','展览','展会','发布',
-    '运输','物流','货运','搬运','配送',
-    '维修','保养','修缮','装修','装潢',
-    '保险','社保','托管','代账',
-    '招聘','猎头','人力资源',
-]
+# ★ 2026-10-02：本表与 main_biz_cost.py 里**同名**表各写一份且词不同（此处缺
+#   运费/装卸/承运/运送）⇒ 同一张「住宿费」发票两套结论。现统一**引用**唯一权威
+#   `engine.account_classifier`，表名保留以兼容既有引用。
+from engine import account_classifier as _account_classifier
+_MAJOR_EXPENSE_KWS = _account_classifier.major_expense_keywords()
 
 # ═══════════════════════════════════════════════════════════
 # 税务合规员推理引擎（Audit Reasoning Engine）
@@ -13188,7 +13187,7 @@ _STAMP_DUTY_ITEMS: List[Dict[str, Any]] = [
         "redline_id": "RL-OTH-008", "tax_item": "产权转移书据", "rate_key": "property_transfer",
         "base_kind": "text_amounts", "level": "待核验", "score": 4,
         "keywords": ["股权转让", "不动产转让", "房屋转让", "土地使用权转让", "土地出让", "产权转移"],
-        "needs": ["股权转让协议", "不动产转让合同", "土地出让/转让合同", "印花税申报表"],
+        "needs": ["股权转让协议", "不动产转让合同", "土地出让合同", "印花税申报表"],
         "policy": "《印花税法》税目税率表（产权转移书据：价款 万分之五）",
         "method": "以涉股权/不动产/土地使用权转让的凭证金额反推产权转移书据印花税税基",
         "verify": "核查股权/不动产/土地使用权转让书据印花税申报缴纳情况。",

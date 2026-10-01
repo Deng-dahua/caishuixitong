@@ -144,6 +144,26 @@ class TestOverclaimGuard(unittest.TestCase):
                     "该合同构成民事法律行为。"):
             self.assertEqual(self._clean(raw), raw, raw)
 
+    def test_pending_verdict_question_not_mangled(self):
+        """★ 2026-10-01 回归：待核/双向问句不得被 ⑥ 中性化。
+
+        真实事故：报告「三、已取得的资料与待补充的资料」写「本项要**定性为成立还是不成立**，
+        须先把材料补齐」，被 ⑥ 整段替换成「本项要**达到提交人工复核条件还是不成立**」——
+        护栏本意只拦"已定性成立"的**断言**，问句不在其列，改了反而读不懂。
+        新增同类问句须同步写进 `engine.text_guardrails._HEDGE_QUERY`，否则本测试会红。
+        """
+        for raw in ("本项要定性为成立还是不成立，须先把材料补齐。",
+                    "本项要定性为成立与否，须先把材料补齐。",
+                    "能否定性成立，尚待补充资料。",
+                    "现有资料是否足以定性，须先补齐材料。"):
+            self.assertEqual(self._clean(raw), raw,
+                             "待核问句被护栏误改：%s" % raw)
+
+    def test_factual_assertion_still_hedged(self):
+        """放行问句的同时，断言必须照旧被降为待核（防"整组跳过"式误修）。"""
+        out = self._clean("部分收入经个人账户归集，定性成立。")
+        self.assertNotIn("定性成立", out)
+
     def test_idempotent(self):
         """净化必须幂等：报告闸门可能对同一字符串多次净化"""
         from engine.enterprise_report import _zh_normalize_obj
@@ -202,6 +222,147 @@ class TestRedlineMatchGrounded(unittest.TestCase):
         self.assertIsNotNone(rl)
         self.assertEqual(rl["id"], "RL-PTY-001")
         self.assertEqual(info["mode"], "declared")
+
+
+class TestSuspicionDetailNoMismatch(unittest.TestCase):
+    """★ 2026-10-01 新增（用户复核疑点2 实测）：「二、发现的依据」所挂明细表不得张冠李戴。
+
+    两个真实事故：
+      ① 「企业所得税申报表缺失」（资料完备度结论）的 4 行记账凭证明细，
+         靠 suspect 里的"企业所得税"四个泛词被挂到「税前扣除限额超限未纳税调整」下；
+      ② 「主营业务成本资金与负债支撑材料核验」的表（实为另一条疑点的依据），
+         靠"营业/业务"两个字被挂到「营业账簿（资金账簿）印花税」下。
+    判据：① 资料缺失类发现不得进下钻表索引；② 兜底匹配只比对红线名，不得掺 suspect。
+    """
+
+    @staticmethod
+    def _render(suspicions, findings):
+        from engine.enterprise_report import _build_redline_problems
+        return _build_redline_problems(suspicions, findings)
+
+    @staticmethod
+    def _para2_tables(problems):
+        out = []
+        for p in (problems or []):
+            paras = p.get("narrative_paragraphs") or []
+            if len(paras) >= 2:
+                out.append([t.get("title") for t in (paras[1].get("detail_tables") or [])])
+        return out
+
+    def test_material_gap_finding_rows_never_borrowed(self):
+        """资料缺失类发现的 evidence_rows 是随手样本行，不得挂到别的疑点的「发现的依据」"""
+        suspicions = [{
+            "redline_id": "",
+            "redline_name": "税前扣除限额超限未纳税调整",
+            "suspect": "涉嫌超限额列支费用、少缴企业所得税",
+            "verdict": "待核实",
+            "constituents": ["测试要件"],
+        }]
+        findings = [{
+            "type": "企业所得税申报表缺失",
+            "level": "待核验",
+            "evidence_rows": [
+                {"source": "记账凭证", "ref_id": "记-2", "ref_label": "收到款项", "amount": 1611200.0},
+                {"source": "记账凭证", "ref_id": "记-1", "ref_label": "销售服务", "amount": 1494054.59},
+            ],
+        }]
+        tables = self._para2_tables(self._render(suspicions, findings))
+        self.assertEqual(tables, [[]], "资料缺失类发现的明细被外挂成别的疑点的依据（张冠李戴）")
+
+    def test_fallback_match_uses_redline_name_only(self):
+        """兜底匹配只用红线名比对：掺 suspect 会把不相干发现挂成本项依据"""
+        # 疑点本体（红线名）与发现类型只共享 2 个 2-gram，靠 suspect 里的泛税种词
+        # （「少缴企业所得税」→ 所得/得税）才凑到 3 → 不成立。这正是疑点2 的形态。
+        suspicions = [{
+            "redline_id": "",
+            "redline_name": "营业账簿印花税未申报",
+            "suspect": "涉嫌少缴企业所得税",
+            "verdict": "待核实",
+            "constituents": ["测试要件"],
+        }]
+        findings = [{
+            "type": "营业收入与所得税申报差异",
+            "level": "待核验",
+            "detail_tables": [{"title": "表1 主营成本总额·按供应商分布",
+                               "columns": ["序号", "金额"], "rows": [{"序号": 1, "金额": 100.0}]}],
+        }]
+        tables = self._para2_tables(self._render(suspicions, findings))
+        self.assertEqual(tables, [[]], "兜底匹配掺入 suspect 后把成本表挂到了印花税疑点下")
+
+    def test_legit_same_topic_table_still_attached(self):
+        """反向闸门：同一核查事项发现的表仍要挂上（防"一刀切不挂表"）"""
+        suspicions = [{
+            "redline_id": "",
+            "redline_name": "附加税费计税依据与增值税不匹配",
+            "suspect": "涉嫌少缴附加税费",
+            "verdict": "待核实",
+            "constituents": ["测试要件"],
+        }]
+        findings = [{
+            "type": "城建税及教育费附加随增值税附征勾稽",
+            "level": "待核验",
+            "evidence_rows": [
+                {"source": "销项发票", "ref_id": "1", "ref_label": "红冲", "amount": -9860.0},
+                {"source": "销项发票", "ref_id": "2", "ref_label": "作废", "amount": 5000.0},
+            ],
+        }]
+        tables = self._para2_tables(self._render(suspicions, findings))
+        self.assertEqual(len(tables), 1)
+        self.assertTrue(any("城建税" in (t or "") for t in tables[0]),
+                        f"同主题发现未挂上，疑似匹配口径被改死：{tables}")
+
+
+class TestLimitItemsTable(unittest.TestCase):
+    """★ 2026-10-01 新增：多费用项红线要把「分项扣除限额测算」摆出来，不得只报算出数的那一项。
+
+    事故：RL-CIT-007 静态 clue_chain 只填了业务招待费（超限 377,927.53），
+    而广告费和业务宣传费（超限 1,734,210.17，4.6 倍）已由 VR039 算出却没进该疑点任何表。
+    """
+
+    def _findings(self):
+        return [{
+            "type": "业务招待费扣除超限未纳税调整",
+            "redline_id": "RL-CIT-007",
+            "observed_metrics": {"entertainment_total": 411111.53, "deduct_cap": 33184.0,
+                                 "over_limit": 377927.53},
+        }, {
+            "type": "广告费和业务宣传费扣除超限未纳税调整",
+            "redline_id": "RL-CIT-007",
+            "observed_metrics": {"ad_promo_total": 2729730.26, "deduct_cap": 995520.09,
+                                 "over_limit": 1734210.17},
+        }]
+
+    def test_all_limit_items_rendered_with_own_numbers(self):
+        """两项费用都要出，且各自的限额/超限必须是**本项自己**的数（不得串项）"""
+        from engine.enterprise_report import _limit_items_table
+        tbl = _limit_items_table("RL-CIT-007", self._findings())
+        self.assertIsNotNone(tbl, "分项扣除限额测算表未产出")
+        self.assertEqual(len(tbl["rows"]), 2, "有数据却少出了一项（= 只报算出数的那一组）")
+        by_name = {r["费用项目"]: r for r in tbl["rows"]}
+        self.assertEqual(by_name["业务招待费"]["超限金额（元）"], "377,927.53")
+        # ★ 串项回归：早期实现分头"补齐"三字段，把业务招待费的 33,184.00 配给了广宣费
+        self.assertEqual(by_name["广告费和业务宣传费"]["账面发生额（元）"], "2,729,730.26")
+        self.assertEqual(by_name["广告费和业务宣传费"]["扣除限额（元）"], "995,520.09")
+        self.assertEqual(by_name["广告费和业务宣传费"]["超限金额（元）"], "1,734,210.17")
+
+    def test_missing_metric_row_dropped_not_faked(self):
+        """取不到发生额 → 整行不出；三项全缺 → 整表不出（缺失≠0，不得用默认值顶替）"""
+        from engine.enterprise_report import _limit_items_table
+        partial = [{"redline_id": "RL-CIT-007",
+                    "observed_metrics": {"entertainment_total": 411111.53, "deduct_cap": 33184.0,
+                                         "over_limit": 377927.53}}]
+        tbl = _limit_items_table("RL-CIT-007", partial)
+        self.assertEqual([r["费用项目"] for r in (tbl["rows"] or [])], ["业务招待费"],
+                         "广宣费本轮没算出数却出了（缺失被当成 0）")
+        self.assertIsNone(_limit_items_table("RL-CIT-007",
+                                             [{"redline_id": "RL-CIT-007", "observed_metrics": {}}]))
+        self.assertIsNone(_limit_items_table("RL-CIT-007", []), "无数据不得产出空表")
+
+    def test_no_limit_items_redline_produces_nothing(self):
+        """红线未登记 limit_items → 不出表（不给所有红线硬套）"""
+        from engine.enterprise_report import _limit_items_table
+        self.assertIsNone(_limit_items_table("RL-VAT-006", self._findings()))
+        self.assertIsNone(_limit_items_table("", self._findings()))
 
 
 class TestReasoningGrounded(unittest.TestCase):

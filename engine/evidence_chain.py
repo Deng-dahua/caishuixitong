@@ -424,7 +424,10 @@ def build_evidence_chain(finding: Dict, redline: Dict,
     elif any(e["status"] == "已提交" for e in rebuttals):
         rebuttal_status = "企业已提交部分正当理由，须逐项核验后认定"
     else:
-        rebuttal_status = "企业尚未提交正当理由的书面证明，现有资料不构成排除依据"
+        # ★ 2026-10-01（用户批注「排除依据」是排除了什么，看不懂）：旧文案
+        #   "现有资料不构成排除依据" 没有宾语、也没点明排除的是本项涉嫌风险，读者无从判断。
+        #   改为直述「不足以排除本项涉嫌风险」——排除对象、排除了多少，一次说清。
+        rebuttal_status = "企业尚未提交正当理由的书面证明，现有资料不足以排除本项涉嫌风险"
 
     return {
         "elements": elements,

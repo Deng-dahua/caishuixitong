@@ -679,9 +679,13 @@ _MATCH_STOP = {"异常", "发票", "数量", "风险", "比例", "事项", "检�
 
 
 def _cjk_bigrams(text):
-    """取中文字符的相邻 2-gram 集合，用于「发现类型 ↔ 疑点名称」关键词重叠匹配。"""
-    text = "".join(re.findall(r"[一-鿿]", str(text or "")))
-    return set(text[i:i + 2] for i in range(len(text) - 1))
+    """中文相邻 2-gram —— 唯一权威 `engine/findingkit.py:cjk_bigrams`（本名转调）。
+
+    ★ 2026-10-01 收敛：此前本模块与 `pipeline` 各写一份字面实现，`audit_consistency`
+      的跨模块分歧检查立刻报「真实分歧（非转发桩）」。现统一落 findingkit。
+    """
+    from engine.findingkit import cjk_bigrams as _fk
+    return _fk(text)
 
 
 def _norm_type_key(type_str):
@@ -721,6 +725,75 @@ def _evidence_rows_to_detail_table(ev_rows, title="逐笔明细"):
     if not rows:
         return None
     return {"title": title, "columns": list(rows[0].keys()), "rows": rows}
+
+
+# ── 分项扣除限额测算表（2026-10-01 事故修复）────────────────────────────
+# 事故：RL-CIT-007 静态 clue_chain 只填了业务招待费（超限 377,927.53），而广告费和业务
+#   宣传费（超限 1,734,210.17，是前者的 4.6 倍）已由 VR039 算出却没进该疑点**任何表**。
+#   根因：扣除限额是多分项红线，报告只渲染"算出数的那一项"的片段。
+# 口径（通用规则，新增同类只在本表加一行，不改逻辑分支）：
+#   · 红线要出本表，须在此登记它含哪些分项及各自指标键；未登记的红线**不出表**（不给所有红线硬套）；
+#   · 本轮没算出数的分项**整行不出**——缺失 ≠ 0，不得用默认值顶替；
+#   · 每分项的三个数必须取自**本分项自己的** observed_metrics（串项回归已锁，见测试）。
+_LIMIT_ITEMS: Dict[str, List[Dict[str, str]]] = {
+    "RL-CIT-007": [
+        {"费用项目": "业务招待费", "账面发生额": "entertainment_total",
+         "扣除限额": "deduct_cap", "超限金额": "over_limit"},
+        {"费用项目": "广告费和业务宣传费", "账面发生额": "ad_promo_total",
+         "扣除限额": "deduct_cap", "超限金额": "over_limit"},
+        {"费用项目": "职工福利费", "账面发生额": "welfare_total",
+         "扣除限额": "deduct_cap", "超限金额": "over_limit"},
+    ],
+}
+_LIMIT_COLUMNS = ["序号", "费用项目", "账面发生额（元）", "扣除限额（元）", "超限金额（元）"]
+
+
+def _limit_items_table(rid, findings):
+    """分项扣除限额测算表：把红线登记的各分项目（发生额/扣除限额/超限）一次摆全。
+
+    返回 {columns, rows} 或 None（红线未登记 / 本轮一个分项都没算出数）。
+    """
+    _rid = str(rid or "").strip()
+    items = _LIMIT_ITEMS.get(_rid)
+    if not items:
+        return None
+
+    # 收集该红线下所有带 observed_metrics 的发现（**每项各由一条发现算出**，
+    # 如 RL-CIT-007 下招待费来自 VR038、广宣费来自 VR039、福利费来自 VR040）。
+    _mts = []
+    for _f in (findings or []):
+        if isinstance(_f, dict) and str(_f.get("redline_id") or "").strip() == _rid:
+            _m = _f.get("observed_metrics")
+            if isinstance(_m, dict) and _m:
+                _mts.append(_m)
+    if not _mts:
+        return None
+
+    rows = []
+    for _i, _it in enumerate(items, 1):
+        _cells = {"序号": _i, "费用项目": _it["费用项目"]}
+        # ★ **本分项自己的三个键必须齐全**才出这一行。三者共用 `deduct_cap` 键名
+        #   （限额公式同类），早期实现"凑齐一个就出"会把业务招待费的 33,184.00
+        #   配给广宣费（串项回归，测试已锁）。
+        # 本分项的三个键必须在**同一条发现**里取齐（先按"本分项独有的发生额键"定位该分项的那条发现）
+        _src = next((m for m in _mts if m.get(_it["账面发生额"]) not in (None, "")), None)
+        _complete = True
+        for _col, _key in (("账面发生额（元）", _it["账面发生额"]),
+                           ("扣除限额（元）", _it["扣除限额"]),
+                           ("超限金额（元）", _it["超限金额"])):
+            _v = (_src or {}).get(_key)
+            if _v is None or _v == "":
+                _complete = False      # 缺失≠0：整行不出，绝不用 0 或别的分项的数顶替
+                break
+            try:
+                _cells[_col] = format(float(_v), ",.2f")
+            except (TypeError, ValueError):
+                _cells[_col] = str(_v)
+        if _complete:
+            rows.append(_cells)
+    if not rows:
+        return None
+    return {"title": "分项扣除限额测算", "columns": list(_LIMIT_COLUMNS), "rows": rows}
 
 
 def _with_scope_note(tables):
@@ -771,15 +844,18 @@ def _finding_detail_tables(f):
 
 
 def _match_suspicion_detail(s, dt_by_type):
-    """按「发现类型 ↔ 疑点名称/涉嫌」关键词重叠，把未打 redline_id 的域发现兜底关联到疑点。
-    返回匹配到的明细表 list 或 None；重叠 2-gram 数 >=3 才命中，避免误挂。"""
+    """按「发现类型 ↔ 疑点红线名」关键词重叠，把未打 redline_id 的域发现兜底关联到疑点。
+    返回匹配到的明细表 list 或 None；重叠 2-gram 数 >=3 才命中，避免误挂。
+
+    ★ 2026-10-01（用户复核疑点2 实测）：**只比对红线名，不得掺 `suspect`**。
+      原实现把 `suspect`（如「涉嫌少缴企业所得税」）也算进比对文本，而 suspect 是
+      **泛税种词**（所得/得税/企业…），几乎与任何发现都能凑到 3 个 2-gram →
+      实测把「表1 主营成本总额·按供应商分布」挂到了「营业账簿印花税未申报」名下（张冠李戴）。
+      红线名是本条疑点的**唯一身份标识**，比对只用红线名。
+    """
     if not isinstance(s, dict) or not dt_by_type:
         return None
-    name = " ".join([
-        str(s.get("redline_name") or ""),
-        str(s.get("suspect") or ""),
-        str(s.get("redline_id") or ""),
-    ])
+    name = str(s.get("redline_name") or "")
     s_bigrams = _cjk_bigrams(name)
     if not s_bigrams:
         return None
@@ -1562,6 +1638,11 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
     for _f in (findings or []):
         if not isinstance(_f, dict):
             continue
+        # ★ 2026-10-01（用户复核疑点2 实测）：**资料缺失类发现不得进下钻表索引**。
+        #   这类发现的 evidence_rows 是随手样本行（如「企业所得税申报表缺失」挂 2 张
+        #   与所得税无关的记账凭证），靠泛词就能挂到任意疑点名下，属张冠李戴。
+        if str(_f.get("type") or "").strip().startswith("资料缺失"):
+            continue
         _tables = _finding_detail_tables(_f)
         if not _tables:
             continue
@@ -1697,18 +1778,30 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
         # ★ 2026-09-27（用户要求）：材料齐全程度**不得用比例/百分比**表述，
         #   只表述"已有几项、还缺几项"（项数）。closure 仍内部计算（决定能否定性），
         #   但不再进入正文 —— 杜绝"材料齐全程度40%"这类比例表述。
+        # ★ 2026-10-01（用户批注「定什么下来/排除什么」）：p3 重写，三条硬要求——
+        #   ① 先说清**定性对象**（本项要定性为成立还是不成立）与**补料原因**（须先把材料补齐）；
+        #   ② 凡报「缺 N 项」必须点出**具体资料名**（`_name_brief`），不能只有五个数字；
+        #   ③ 判据说「可以作出确定性判断」时**不再追加**「暂不作定性/现有资料不足」类表述
+        #      ——旧逻辑会在已能定性时仍写"暂不作定性"，自相矛盾。
         _need_n = len(_els)
         _have_n = len(have)
-        _lack_n = _need_n - _have_n   # 还缺 = 待核 + 缺失（凡未逐字取得的都算还缺）
-        p3 = (
-            f"要把这一项定下来，需要{_need_n}项材料。"
-            + (f"名称逐字对应、已确在手上的有{_have_n}项。" if have
-               else "目前还没有一项材料与要求逐字对应。")
-            + (f"另有{len(verify)}项须确认已提供资料中是否含该内容。" if verify else "")
-            + (f"确未提供的有{len(lack)}项。" if lack else "")
-            + f"合计已有{_have_n}项、还缺{_lack_n}项，{ev.get('verdict', '')}。"
-            + (f"{ev.get('rebuttal_status', '')}。" if ev.get("rebuttal_status") else "")
-        )
+        _p3 = "本项要定性为成立还是不成立，须先把材料补齐：本项核查需要%d项材料" % _need_n
+        if have:
+            _p3 += "，其中名称逐字对应、已确在手上的有%d项（%s）" % (_have_n, _name_brief(have))
+        else:
+            _p3 += "，目前还没有一项材料与要求逐字对应"
+        if verify:
+            _p3 += "；另有%d项（%s）须确认已提供资料中是否含该内容" % (
+                len(verify), _name_brief(verify))
+        if lack:
+            _p3 += "；确未提供的有%d项（%s）" % (len(lack), _name_brief(lack))
+        _verdict3 = str(ev.get("verdict") or "").strip()
+        _p3 += "。" + _verdict3
+        if _verdict3 and "可以作出确定性判断" not in _verdict3:
+            _rs3 = str(ev.get("rebuttal_status") or "").strip()
+            if _rs3:
+                _p3 += "，" + _rs3.rstrip("。") + "。"
+        p3 = _p3
 
         # ④ 论证与理由（上游可能带出内部标记或编号，此处做正文净化兜底）
         p4 = _naturalize_report_text(arg.get("reasoning") or "")
@@ -1765,6 +1858,16 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
             _tables = _match_suspicion_detail(s, _dt_by_type)
         if _tables:
             paragraphs[1]["detail_tables"] = _tables
+
+        # ★ 2026-10-01：**分项扣除限额测算表**挂到「四、本项结论及理由」——
+        #   多分项红线（如 RL-CIT-007 招待费/广宣费/福利费）此前只渲染算出数的那一项，
+        #   其余分项的超限金额进了系统却进不了报告。
+        try:
+            _lit = _limit_items_table(rid, findings)
+        except Exception:
+            _lit = None
+        if _lit:
+            paragraphs[3]["detail_tables"] = [_lit]
 
         # ★ 2026-09-26：按**证据强度**重排等级（仅覆盖已逐项论证的红线，见 tax_redlines.RISK_LEVEL_BASIS）
         _lb = None
@@ -2154,6 +2257,24 @@ def _clue_table(clue):
     }
 
 
+def _name_brief(els, limit: int = 3) -> str:
+    """把材料清单压成一句**具体资料名**短列（禁模糊套话）。
+
+    ★ 2026-10-01（用户批注「定什么下来/排除什么」）：报告凡报「缺 N 项」，必须点出
+      具体资料名——只写「还缺 3 项」读者无从补件，只写「这一项」更无宾语无前指。
+      ≤ limit 个：顿号连写（「原始单据、合同与发票」）；
+      超过：报「N 项（详见下表）」并指向「三、已取得的资料与待补充的资料」的证据明细表。
+    """
+    names = [str((e or {}).get("name") or "").strip()
+             for e in (els or []) if isinstance(e, dict)]
+    names = [n for n in names if n]
+    if not names:
+        return ""
+    if len(names) <= limit:
+        return "、".join(names)
+    return "%d 项（详见下表）" % len(names)
+
+
 def _evidence_table(ev):
     """材料清单：角色/材料名称/证明目的/现状/依据。
 
@@ -2212,9 +2333,13 @@ def _build_confirmed_problems(report_data):
         }))
     # ★ 2026-09-26 三版重构：执行版确认问题按「等级 × 金额」排序（重大优先），
     #   TOP5 先呈现，其余保持逐项底稿（前端可折叠）。
-    problems.sort(key=lambda fp: (_level_rank(fp[0].get("level")),
-                                  (_extract_finding_exposure(fp[0])["amount"] or 0)),
-                  reverse=True)
+    # ★★ 2026-10-02（用户定调：一定是先说重要的信息）：顺序显式＝
+    #   极高→高→中→低→待核验（`_RISK_PRESENT_ORDER`），同级按潜在敞口金额降序。
+    #   正值升序（越大越靠前）+ 金额取负 = 金额大的在前；表外等级一律沉到最末（99），
+    #   不再混进高/中之间。
+    problems.sort(key=lambda fp: (_RISK_PRESENT_ORDER.get(
+                                      str(fp[0].get("level") or "").strip(), 99),
+                                  -(_extract_finding_exposure(fp[0])["amount"] or 0)))
     out = []
     for seq, (f, p) in enumerate(problems, start=1):
         p = dict(p)
@@ -3290,7 +3415,7 @@ def _build_industry_benchmark_report(report_data):
         "signals": [{"signal": f.get("type", ""), "hint": f.get("suggestion", "")} for f in findings],
         "verdict": "待证线索",
         "recommendation": "请就偏离项说明原因，并提供行业可比资料与适用税收优惠备案资料。",
-        "note": "预警区间为通用参考值或本地实测校准值，非税务机关官方口径；"
+        "note": f"预警区间为{_BENCH_CAUTION}；"
                 "偏离区间仅构成待证线索，不作为定性依据。",
     }
 
@@ -3386,6 +3511,15 @@ def _is_context_key(k):
 
 _LEVEL_RANK = {"极高风险": 5, "高风险": 4, "中风险": 3, "低风险": 0,
                "待核验": 1, "待核": 1, "信息": 1}
+
+# ★★ 2026-10-02（用户定调：一定是先说重要的信息）：**疑点呈现顺序**=风险由重到轻。
+#   0 极高 → 1 高 → 2 中 → 3 低 → 4 待核验/信息（证据状态，放最后）。
+#   ｜原实现的缺陷：① `_LEVEL_RANK` 里「低风险」=0 比「待核验」=1 还小，排序后待核验反而
+#   排到低风险前面；② 表外等级一律取 1，会插进高/中之间；③ `reverse=True` 把金额缺失(0)的项
+#   提到同级最前。三处合起来＝读者第一眼看到的不一定是最重要的事项。
+#   ★ 与 `_LEVEL_RANK` 的区别：本表是**呈现顺序**（越小越靠前），不是等级高低标度。
+_RISK_PRESENT_ORDER = {"极高风险": 0, "高风险": 1, "中风险": 2, "低风险": 3,
+                       "待核验": 4, "待核": 4, "信息": 4}
 
 
 def _coerce_amount(v):
@@ -3694,23 +3828,22 @@ def build_enterprise_readable_report(report_data, edition=None):
 
     # ★ 2026-09-26 金字塔原理编辑版：对工作底稿版的只读结构化重组（不改写任何内容）。
     #   始终派生并附加，使前端可在两种编辑版间纯客户端切换，无需重算。
-    #   ★ 2026-09-29（P1-11）：**必须在脱敏之后、用脱敏后的内容派生**——
-    #     旧顺序（先派生再脱敏）会让金字塔版成为"绕过脱敏的后门"（实测确认：
-    #     工作底稿版已脱敏、金字塔版仍带真实姓名）。故此处只留 `_identity`，
-    #     派生动作移到底部、以 `out` 的已脱敏内容为源。
+    #   ★ 2026-09-29（P1-11）：派生必须以**同一份已轴归一化 + 表治理的 `out`** 为源，
+    #     不能拿未经处理的 `report_data` 另开一路（旧顺序下派生视图会绕过输出闸门，
+    #     实测确认过「工作底稿版已脱敏、派生版仍带真实姓名」）。故此处只留 `_identity`，
+    #     派生动作移到底部、以 `out` 的归一化内容为源。
     _identity = _identity_from_report_data(report_data)
 
-    # ★ 2026-09-29（点评整改 P1-11）：**企业版报告对外输出前的个人信息脱敏**。
-    #   根因：本链路此前没有任何脱敏层 → 员工真实姓名与个人账户收付金额明细逐笔进正文
-    #   （外部点评实测「杨莹 670,000、初永伟 275,000、李昭阳 137,000」）。
-    #   收敛点选在这里（与 `_zh_normalize_obj` 同一道输出闸门）：Web / 离线 / 交付文件
-    #   三条渲染路径共用本函数产出，故只需此一处即全覆盖。
-    #   ⚠ 内部工作底稿（comprehensive / all_findings）**刻意不脱敏**——检查员要对得上人。
+    # ★ 2026-10-02（用户定调）：**企业版报告不做个人信息脱敏，且禁止任何隐藏/遮盖**。
+    #   原收敛点 `engine/pii_guard.py`（杨莹→杨*、初永伟→初**）已整体删除：本报告的
+    #   读者是**被查企业本身**，员工姓名、私户收付金额正是企业需要逐人核对的内容；
+    #   把姓名打成 `杨*` 只会让「逐人说明」这条核查要求无法落地（用户实测反馈：
+    #   疑点3 显示「需逐人说明：杨*」）。内部工作底稿（comprehensive / all_findings）
+    #   **本就不脱敏**，对外交付版同口径。
+    #   ⚠ 防复发闸门：`tools/audit_consistency.py` 的禁止脱敏检查
+    #   （模块缺失 + 全库 AST 禁引用脱敏符号 + 报告实测无「首字+等长星号」脱敏形态）。
     def _norm_and_redact(_o):
         try:
-            from engine.pii_guard import redact_enterprise_report as _rg
-            # ★ 必须传 source=report_data：人名常只出现在正文句子里，
-            #   只能从源数据按人名/对手方字段预收集姓名集合（见 pii_guard 模块说明）。
             _o = _zh_normalize_obj(_o)
             # ★ 2026-09-29（点评整改 P1-14）：**明细表治理**（唯一规范化点）。
             #   必须放在 `_zh_normalize_obj` **之后**：正因为它会把值里的半角括号
@@ -3722,7 +3855,7 @@ def build_enterprise_readable_report(report_data, edition=None):
                 _o = _gt(_o)
             except Exception:
                 pass
-            return _rg(_o, source=report_data)
+            return _o
         except Exception:
             return _zh_normalize_obj(_o)
 

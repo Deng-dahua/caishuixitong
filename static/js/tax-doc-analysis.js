@@ -5148,6 +5148,42 @@ function _renderCostReconDetail(crd){
     h += '</tbody></table></div></details>'
       + '<p class="i2" data-export-exclude="1" style="font-size:12px;color:#64748b">导出：' + _crdBtn('batch', '下载凭证逐笔清单 CSV') + '</p>';
   }
+  // ★ 2026-10-02：主营业务成本 **vs** 期间费用 三态归属（口径来自唯一权威 account_classifier）
+  var cea = crd.cost_expense_attribution || null;
+  if (cea && cea.available) {
+    h += '<p class="i2" style="color:#64748b">③ 主营业务成本与期间费用的区分（三态，按行业口径判定）</p>';
+    h += '<p class="i2">行业口径：<strong>' + esc(cea.industry || '') + '</strong>'
+      + (cea.industry_covered ? '' : '（未取到行业核心投入登记，仅通用口径）') + '</p>';
+    var LAYERS = [['主营业务成本', 'cost'], ['期间费用', 'expense'], ['待核（须项目/合同上下文）', 'pending']];
+    h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+      + '<th>归属</th><th>类别数</th><th>金额(元)</th></tr></thead><tbody>';
+    LAYERS.forEach(function(pair){
+      var b = cea[pair[1]] || {};
+      h += '<tr><td>' + esc(pair[0]) + '</td><td>' + esc(b.count || 0) + '</td>'
+        + '<td style="white-space:nowrap">' + _crdMoney(b.amount) + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+    LAYERS.forEach(function(pair){
+      var items = ((cea[pair[1]] || {}).items) || [];
+      if (!items.length) return;
+      h += '<p class="i2" style="color:#64748b">' + esc(pair[0]) + '逐类明细（' + items.length + ' 类）</p>';
+      h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+        + '<th>品名</th><th>金额(元)</th><th>判定依据</th></tr></thead><tbody>';
+      items.slice(0, 40).forEach(function(r){
+        h += '<tr><td>' + esc(r.goods || '') + '</td>'
+          + '<td style="white-space:nowrap">' + _crdMoney(r.amount) + '</td><td>'
+          + esc((r.evidence || '') + (r.expense_sub ? '（' + r.expense_sub + '）' : '')) + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    });
+    if (cea.missing_materials && cea.missing_materials.length) {
+      h += '<p class="i2">待核项须补充的资料：' + esc(cea.missing_materials.slice(0, 3).join('、')) + '。</p>';
+    }
+    (cea.contradictions || []).slice(0, 5).forEach(function(x){
+      h += '<p class="i2">口径差异：已计入成本桶的「' + esc(x.goods || '') + '」按权威口径应作「'
+        + esc(x.authority_class || '') + '」处理，' + esc(x.reason || '') + '</p>';
+    });
+  }
   return h;
 }
 

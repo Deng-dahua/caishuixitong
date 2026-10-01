@@ -1374,7 +1374,9 @@ def _scan_duplicate_invoices(data, spec, source):
 
 
 def _person_name(row):
-    return str(row.get("name") or row.get("employee_name") or row.get("姓名") or "").strip()
+    """字段读取（唯一权威 engine/fieldkit.py）。"""
+    from engine.fieldkit import person_name as _fk
+    return _fk(row)
 
 
 # Excel 解析时「合计」「姓名」「小计」等表头/合计行常被当作数据行落入人员明细，
@@ -1648,6 +1650,19 @@ def _scan_payroll_social(data, spec):
     #   本扫描器即该红线的检测器（按姓名+月份逐人逐月双向匹配工资名册与社保清单）。
     #   仅认领要件①（工资表列支人数与社保参保人数存在差异）；要件②③④需豁免身份/行业基准/离职核查佐证，本扫描器未计算，不认领（宁缺勿错）。
     _fs[0]["redline_id"] = "RL-PAY-001"
+    # ★ 2026-10-01 证据归属修复（用户复核「明细表与疑点不匹配」实测）：
+    #   本扫描器已经逐人逐月算出了逐笔配对明细（工资/社保基数/匹配状态），这**就是**
+    #   本疑点的逐笔证据，必须作为**自有 evidence_rows** 交出 ——
+    #   否则 `pipeline._enrich_evidence_rows` 的通用关键词兜底会插进来接管，
+    #   把「全公司金额最大的几张记账凭证」（应收账款收款 161 万、结转损益 152 万…）
+    #   和「工资表人员行」混在一起挂成本疑点的「逐笔明细」，与疑点语义完全无关。
+    #   交出自有证据后，通用兜底按 `if f.get("evidence_rows"): continue` 自动跳过。
+    _fs[0]["evidence_rows"] = [
+        {"姓名": d["姓名"], "月份": d["月份"], "工资": d["工资"],
+         "社保基数": d["社保基数"], "匹配状态": d["状态"],
+         "来源资料": "工资名册与社保清单"}
+        for d in detail_rows
+    ]
     _fs[0]["constituent_hits"] = [{
         "index": 1,
         "evidence": f"工资名册列支{len(salary_names)}人、社保参保{len(social_names)}人，人员级未能双向匹配{mismatch}人"
@@ -2117,6 +2132,29 @@ def _scan_invoice_goods_missing(data, spec):
     return []
 
 
+def _procurement_scope(pur, industry=""):
+    """「采购来源口径」：全部采购 − 确定费用类（成本类与待核类都算采购来源地）。
+
+    ★ 2026-10-02 抽出，供 VR016（供应商集中度/地域分布）与 VR066（顶额集中开票）
+      共用，杜绝各规则自行按「仅主营成本」收窄统计口径。
+
+    为什么不能只用「主营成本」收窄：成本识别口径一旦漂移（实证：辅料被判为费用），
+    供应商家数/发票张数随之缩水，会把规则自带的前置条件（VR016 要求供应商≥8 家）
+    静默堵死，同一样本从「应核查」变成「不报」。而「待核」品名（辅料、包装料、运输、
+    维修、水电…）同样是真实采购来源地；只有确定费用类（办公/餐饮/住宿/差旅/咨询/
+    利息…）才真正不代表采购渠道，故只剔除这一类。
+    """
+    from engine.account_classifier import classify_line, CLASS_EXPENSE
+    industry = str(industry or "").strip() or None
+    _expense_ids = set()
+    for _r in pur:
+        if not isinstance(_r, dict):
+            continue
+        _goods = str(_r.get("goods") or _r.get("货物或应税劳务名称") or "").strip()
+        if classify_line(_goods, industry=industry, require_context=True)["account_class"] == CLASS_EXPENSE:
+            _expense_ids.add(id(_r))
+    return [r for r in pur if id(r) not in _expense_ids], bool(_expense_ids)
+
 def _scan_supplier_geo(data, spec):
     """VR016 供应商集中度与地域分布核验（2026-09-14 重编）。
 
@@ -2128,7 +2166,7 @@ def _scan_supplier_geo(data, spec):
     真正的通道特征是**组合 + 实质缺失**：
       ① 剔除**全国性/平台类**供应商（京东/淘宝/电信/电网/顺丰等）——它们不代表"产地"；
       ② 剔除**小额零星**供应商——办公通讯差旅不构成"采购来源地"；
-      ③ 计算 集中度（CR3）与 异地金额占比（须有本省可比）；
+      ③ 计算 集中度（CR3）与 异地金额占比（须有本省可比）；统计口径＝全部采购 − 确定费用类（成本类与待核类都算采购来源地，2026-10-02 修正）；
       ④ 触发须同时满足：金额够大（≥100万）+ 异地占比高（≥60%）+ 至少一项异常特征
          （CR3≥70% 的"集中且异地" / 单一外省≤3家却占≥50% / 异地且无运输·入库佐证）；
       ⑤ 未命中组合条件 → **不报**（正常跨省经营）。
@@ -2137,15 +2175,14 @@ def _scan_supplier_geo(data, spec):
     pur = data.get("pur_invs", []) or []
     if not pur:
         return []
-    from engine.main_biz_cost import identify_main_biz_cost
-    _cls = identify_main_biz_cost(pur, data.get("sal_invs") or [])
-    core_invs = _cls.get("core_cost_invs") or []
-    all_total = sum(_number(r.get("amount")) for r in pur)
-    core_total = sum(_number(r.get("amount")) for r in core_invs)
-    if core_invs and all_total > 0 and core_total / all_total >= 0.5:
-        scope, scope_note = core_invs, "（按主营业务成本口径，已剔除日常报销与费用类发票）"
-    else:
-        scope, scope_note = pur, "（主营业务成本识别不充分，暂按全部进项发票统计）"
+    # ★ 2026-10-02 根因修复（2026-09-05「仅主营成本口径」留下的静默失效口子）：
+    #   统计口径统一为「全部采购 − 确定费用类」，待核类（辅料/包装料/运输/维修…）必须留下；
+    #   成本识别口径漂移不得影响本规则的前置条件（原按「仅主营成本」收窄，10 家供应商被
+    #   裁到 3 家后「≥8 家」永远不满足 → 静默漏报）。
+    _industry = str(spec.get("industry") or spec.get("industry_basis") or data.get("industry") or "").strip()
+    scope, _dropped = _procurement_scope(pur, _industry)
+    scope_note = ("（口径：全部采购中已剔除确定费用类发票；成本类与待核类仍计入采购来源地）"
+                  if _dropped else "（全部进项发票）")
 
     # 全国性/平台类供应商：不代表"采购产地"，剔除后不计入地域分布
     _PLATFORM_SUPPLIER_KWS = (
@@ -2246,7 +2283,7 @@ def _scan_supplier_geo(data, spec):
     if not reasons:
         return []
 
-    detail = (f"主营成本供应商（已剔除京东/淘宝/电信/电网等全国性平台供应商{excluded_platform}笔、"
+    detail = (f"采购供应商（已剔除确定费用类发票，以及京东/淘宝/电信/电网等全国性平台供应商{excluded_platform}笔、"
               f"及单户累计不足1万元的小额零星）共{len(suppliers)}家、涉及{len(by_province)}个地区，"
               f"采购金额合计{total_amount:,.2f}元{scope_note}。分布：" + breakdown + "。"
               f"其中前三大供应商占{cr3:.0%}（最大「{top1_name[:20]}」占{top1['amount'] / total_amount:.0%}）"
@@ -2274,7 +2311,7 @@ def _scan_supplier_geo(data, spec):
                                                       key=lambda kv: -kv[1]["amount"])[:8]},
             "has_logistics_evidence": has_logistics,
             "reasons": reasons,
-            "scope": "core_cost" if scope is core_invs else "all",
+            "scope": "procurement_minus_expense",
         },
         spec["required_sources"],
         # 结构性特征不等于违法：集中度与地域分布均有多种正常解释（独家代理、产地集中、
@@ -5230,7 +5267,13 @@ _CASH_INTENSIVE_KEYWORDS = (
 
 
 def _salary_amount(row):
-    return _number(row.get("salary") or row.get("wage") or row.get("应发") or row.get("gross"))
+    """工资金额（唯一权威 engine/fieldkit.py:salary_pay）。
+
+    ★ 2026-10-01：原实现用 `or` 链串联别名 —— `0` 会被当成假值继续往后取，
+      0 元工资会漂到下一个别名的金额上（静默漂移）。改为字段读取权威实现。
+    """
+    from engine.fieldkit import salary_pay as _fk
+    return _fk(row)
 
 
 def _scan_wage_splitting(data, spec):
@@ -6606,12 +6649,10 @@ def _scan_supplier_invoice_pattern(data, spec):
     pur = data.get("pur_invs") or []
     if not pur:
         return []
-    # 铁律：只统计主营业务成本口径（费用报销类发票如滴滴/京东/朴朴的
-    # 集中开票是正常消费特征，不构成虚开信号）
-    from engine.main_biz_cost import identify_main_biz_cost
-    _cls = identify_main_biz_cost(pur, data.get("sal_invs") or [])
-    core_invs = _cls.get("core_cost_invs") or []
-    scope = core_invs if core_invs else pur
+    # 铁律：只统计采购来源口径 —— 剔除确定费用类（滴滴/京东/朴朴等消费类集中开票是
+    # 正常消费特征，不构成虚开信号）；待核类（辅料/运输/维修…）同样计入，否则成本口径
+    # 一漂移就会把顶额开票信号静默吃掉（与 VR016 同源，2026-10-02 统一为共享口径）。
+    scope, _ = _procurement_scope(pur, data.get("industry"))
     from collections import defaultdict as _dd
     by_supplier = _dd(lambda: {"count": 0, "amount": 0.0, "top_amounts": []})
     for row in scope:

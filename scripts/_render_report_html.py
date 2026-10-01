@@ -175,19 +175,16 @@ summary{cursor:pointer;font-weight:600;font-size:13.5px}
 gen = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 P.append('<div class="cover"><h1>涉税风险分析报告</h1>'
          '<div class="sub">系统自动生成 · 分析与核验工作底稿 · %s</div>' % E(gen))
-# ★ 2026-09-29（点评整改 P2-5 / P1-11）：文书性质与个人信息保护标识必须**在封面出现**，
-#   不能只在文末写一句。外部点评指出原文书易被误当作税务机关文书，且个人信息脱敏无任何标识。
+# ★ 2026-09-29（点评整改 P2-5）：文书性质声明必须**在封面出现**，
+#   不能只在文末写一句。外部点评指出原文书易被误当作税务机关文书。
+#   （原同时渲染的"个人信息保护标识·内部资料"已于 2026-10-02 随 pii_guard 整体删除：
+#     用户定调本报告不做个人信息脱敏、禁止隐藏；封面只保留文书性质声明。）
 P.append('<div class="docnotice" style="margin:10px 0 16px;padding:10px 14px;border:1px solid #f59e0b;'
          'background:#fffbeb;border-radius:8px;font-size:12.5px;line-height:1.75;color:#7c2d12">'
          '<div style="font-weight:700;margin-bottom:4px">文书性质声明</div>'
          '本文书由企业税务风险检查系统自动生成，是**检查工作底稿与风险提示**，'
          '不是税务机关出具的税务文书，不具备税务处理、行政处罚或强制执行效力；'
          '所列事项均为待核实事实，任何处理决定须由有权机关依法作出。</div>'.replace('**', ''))
-if err.get("_pii_notice"):
-    P.append('<div class="piinotice" style="margin:0 0 16px;padding:10px 14px;border:1px solid #0ea5e9;'
-             'background:#f0f9ff;border-radius:8px;font-size:12.5px;line-height:1.75;color:#0c4a6e">'
-             '<div style="font-weight:700;margin-bottom:4px">个人信息保护标识 · 内部资料</div>%s</div>'
-             % E(err.get("_pii_notice")))
 P.append('<dl class="kv">')
 for label, val in (("被查单位", te.get("name")), ("统一社会信用代码", te.get("uscc")),
                    ("法定代表人", te.get("legal_person") or te.get("legal_representative")),
@@ -362,6 +359,41 @@ def _cost_recon_block(crd):
                        % (E(_r.get("month")), E(_r.get("voucher_no")), E(tr(_r.get("summary"), 40)),
                           E("{:,.2f}".format(float(_r.get("amount") or 0)))))
         out.append("</table>")
+    # ★ 2026-10-02：主营业务成本 **vs** 期间费用 三态归属（口径来自唯一权威 account_classifier）
+    _cea = crd.get("cost_expense_attribution") or {}
+    if _cea.get("available"):
+        out.append('<p class="muted">③ 主营业务成本与期间费用的区分（三态，按行业口径判定）</p>')
+        out.append("<p>行业口径：<strong>%s</strong>%s</p>"
+                   % (E(_cea.get("industry") or ""),
+                      "" if _cea.get("industry_covered") else "（未取到行业核心投入登记，仅通用口径）"))
+        out.append("<table><tr><th>归属</th><th>类别数</th><th>金额(元)</th></tr>")
+        for _lbl, _k in (("主营业务成本", "cost"), ("期间费用", "expense"), ("待核（须项目/合同上下文）", "pending")):
+            _b = _cea.get(_k) or {}
+            out.append("<tr><td>%s</td><td>%d</td><td>%s</td></tr>"
+                       % (E(_lbl), int(_b.get("count") or 0),
+                          E("{:,.2f}".format(float(_b.get("amount") or 0)))))
+        out.append("</table>")
+        for _lbl, _k in (("主营业务成本", "cost"), ("期间费用", "expense"), ("待核", "pending")):
+            _items = (_cea.get(_k) or {}).get("items") or []
+            if not _items:
+                continue
+            out.append('<p class="muted">%s逐类明细（%d 类）</p>' % (_lbl, len(_items)))
+            out.append("<table><tr><th>品名</th><th>金额(元)</th><th>判定依据</th></tr>")
+            for _r in _items[:40]:
+                _sub = _r.get("expense_sub") or ""
+                out.append("<tr><td>%s</td><td>%s</td><td>%s%s</td></tr>"
+                           % (E(tr(_r.get("goods"), 60)),
+                              E("{:,.2f}".format(float(_r.get("amount") or 0))),
+                              E(tr(_r.get("evidence"), 90)),
+                              E("（%s）" % _sub) if _sub else ""))
+            out.append("</table>")
+        if _cea.get("missing_materials"):
+            out.append("<p>待核项须补充的资料：%s。</p>"
+                       % E("、".join(str(x) for x in _cea["missing_materials"][:3])))
+        for _x in (_cea.get("contradictions") or [])[:5]:
+            out.append("<p>口径差异：已计入成本桶的「%s」按权威口径应作「%s」处理，%s</p>"
+                       % (E(tr(_x.get("goods"), 40)), E(str(_x.get("authority_class") or "")),
+                          E(tr(_x.get("reason"), 80))))
     return "".join(out)
 
 

@@ -1360,6 +1360,9 @@ def _write_analysis_checkpoint(company_id, stage, status, error=None):
 
     stage 取当前正在执行的引擎模块名（即 current_module），失败时可定位到具体阶段。
     """
+    # ★ 删除终局守卫：结果已删除的账套不得再写检查点（12:24:49 那次就是它写回 1.json）
+    if _is_result_deleted(company_id):
+        return
     try:
         payload = {
             "company_id": company_id,
@@ -2274,6 +2277,11 @@ def delete_tax_risk_report(company_id: int = Query(...)):
     except Exception as exc:
         leftovers.append(f"内存分析缓存: {exc}")
 
+    # ★ ①-b 删除终局登记（必须最先做）：此后该账套的任何分析结果写回路径
+    # （_persist_one_click_result / _append_analysis_history / _write_analysis_checkpoint）
+    # 都会因 _is_result_deleted 提前返回，避免"删除后被进行中的分析写回复活"。
+    _deleted_company_ids.add(company_id)
+
     # ② 磁盘分析缓存（写入后回读校验，避免"以为删了其实还在"）
     try:
         disk = read_json(LAST_ANALYSIS_CACHE, {})
@@ -2290,18 +2298,27 @@ def delete_tax_risk_report(company_id: int = Query(...)):
         leftovers.append(f"磁盘分析缓存: {exc}")
 
     # ③ 已完成任务的结果（否则 /analyze-result 仍能取到旧报告）
+    #    ★ 同时统计"正在跑"的任务：删除后若它跑完写回，删除就被静默撤销。
+    #      这里把在跑的任务也标记为 deleted（_is_result_deleted 的第二路判据），
+    #      并在返回里如实告知用户已取消几个。
+    _cancelled = 0
     try:
         hit = 0
         with _analysis_lock:
             for _tid, _task in list(_analysis_tasks.items()):
                 if _task.get("company_id") == company_id:
+                    if _task.get("status") == "running":
+                        _cancelled += 1
+                        _task["cancelled"] = True
                     _task["result"] = None
                     _task["status"] = "deleted"
-                    _task["message"] = "报告已删除"
+                    _task["message"] = "报告已删除（分析已取消）" if _cancelled else "报告已删除"
                     _task["incremental"] = False
                     hit += 1
         if hit:
             cleared.append(f"分析任务结果({hit}个)")
+        if _cancelled:
+            cleared.append(f"已取消进行中的分析({_cancelled}个，跑完也不写回)")
     except Exception as exc:
         leftovers.append(f"分析任务结果: {exc}")
 
@@ -2330,15 +2347,29 @@ def delete_tax_risk_report(company_id: int = Query(...)):
         leftovers.append(f"分析检查点: {exc}")
 
     # ⑥ 中转站解析缓存（{cid}_{docid}.json）
+    #    ★ 2026-10-01：旧实现丢弃 purge_file 的返回值、只按 os.listdir 命中数计数，
+    #      于是"文件其实没移走"也会报"清理 88 个"——谎报。现在按返回值逐文件判定。
+    #      注意：purge_file 成功只是"移入项目回收站 data/trash"，并非物理删除，
+    #      如实计入并通过返回文案告知用户（旧文案"彻底删除"不准确）。
     try:
-        _moved = 0
+        _moved = _not_moved = 0
+        _bad = ""
         if os.path.isdir(TRANSFER_DIR):
             for _fn in os.listdir(TRANSFER_DIR):
                 if _fn.startswith(f"{company_id}_"):
-                    purge_file(os.path.join(TRANSFER_DIR, _fn))
-                    _moved += 1
+                    _okp, _why = purge_file(os.path.join(TRANSFER_DIR, _fn))
+                    if _okp:
+                        _moved += 1
+                    else:
+                        _not_moved += 1
+                        if not _bad:
+                            _bad = f"{_fn}({_why})"
         if _moved:
-            cleared.append(f"中转站解析缓存({_moved}个)")
+            cleared.append(f"中转站解析缓存({_moved}个，已移入项目回收站)")
+        if _not_moved:
+            leftovers.append(
+                f"中转站解析缓存({_not_moved}个未移除，首例：{_bad})"
+            )
     except Exception as exc:
         leftovers.append(f"中转站解析缓存: {exc}")
 
@@ -2349,7 +2380,10 @@ def delete_tax_risk_report(company_id: int = Query(...)):
         "cleared": cleared,
         "leftovers": leftovers,
         "message": (
-            f"报告已彻底删除（清理 {len(cleared)} 处：{'、'.join(cleared)}）"
+            # ★ 文案如实：purge_file 只把文件移入 data/trash（项目回收站，文件仍在磁盘），
+            #   不是物理删除；2026-10-01 起不再用"彻底删除"这种无法兑现的措辞。
+            f"报告已清除（清理 {len(cleared)} 处：{'、'.join(cleared)}；"
+            f"文件已移至项目回收站 data/trash，如需物理删除须手动清空该目录）"
             if ok and cleared else
             ("该账套暂无分析报告" if not cleared else
              f"已清理 {len(cleared)} 处，仍残留：{'、'.join(leftovers)}")
@@ -9677,6 +9711,47 @@ import threading
 _analysis_tasks = {}
 _analysis_lock = threading.Lock()
 
+# ★★ 已删除结果的账套登记（2026-10-01 新增）
+# 事故实测：用户 12:22:35 删除报告，而 12:21 启动的那轮分析直到 12:24:49 才跑完，
+# 它把 last_analysis_cache / analysis_history / checkpoints 里的 "1" 全部重新写回
+# ——界面上表现为"删了又回来"，而删除接口当时**如期报了"清理 6 处"属实**。
+# 根因不是删除漏清，而是：① 删除不取消进行中的分析；② 写回路径没有终局守卫。
+_deleted_company_ids = set()
+
+
+def _is_result_deleted(company_id):
+    """该账套的分析结果是否已被用户删除 —— 删除终局状态的**单一权威判据**。
+
+    铁律：任何"分析结果"写回路径（最近结果缓存 / 分析历史 / 分析检查点）都必须先过
+    这一关。删除是终局状态，进行中的分析任务跑完也不得把结果写回，否则删除会被静默
+    撤销（2026-10-01 实测事故）。判据两路并行：内存中登记的删除集合，或该账套存在
+    status=deleted 的任务（删除端点③会把在跑的任务一并标记为 deleted）。
+    """
+    try:
+        if company_id in _deleted_company_ids:
+            return True
+    except Exception:
+        pass
+    try:
+        # ★ 2026-10-01 死锁修复：这里**故意不加锁**。
+        #   本函数是「写回路径守卫」，被 _write_analysis_checkpoint /
+        #   _append_analysis_history / _persist_one_click_result 调用，而这些调用点
+        #   常已处在 `with _analysis_lock:` 之内（例如 _run_analysis_thread 的成功分支）；
+        #   threading.Lock 不可重入，这里再 with 一次就同一线程自死锁 → 分析线程永久卡死、
+        #   状态恒 running、前端进度永远停在 99%（实测事故）。
+        #   下面遍历用的是 list(_analysis_tasks.values()) 快照，CPython 下单线程读原子，
+        #   宁可看到过期快照，也不能让整个分析任务卡死。
+        for _task_del in list(_analysis_tasks.values()):
+            if (
+                _task_del.get("company_id") == company_id
+                and _task_del.get("status") == "deleted"
+            ):
+                return True
+    except Exception:
+        pass
+    return False
+
+
 def _append_analysis_history(company_id, result):
     """追加分析历史摘要 + 完整回放快照，并落盘（同步/异步路径统一调用）
     字段路径已按真实report结构校准：
@@ -9684,6 +9759,9 @@ def _append_analysis_history(company_id, result):
       overall_risk/risk_score 在 engine_status.phase4_synthesis
       chain计数 在 comprehensive 层
     """
+    # ★ 删除终局守卫：本账套结果已被删除，不得再写历史（否则删除被静默撤销）
+    if _is_result_deleted(company_id):
+        return
     try:
         rpt = result.get("report", result)
         comp = rpt.get("comprehensive", {})
@@ -10471,6 +10549,15 @@ def _build_invoice_network_graph(report_data):
 
 def _persist_one_click_result(company_id, result):
     """只在全部必经阶段完成后写入最近结果和分析历史。"""
+    # ★ 删除终局守卫：本账套结果已被删除 → 不写内存、不落盘、不写历史。
+    # （进行中的分析任务跑完会走到这里；若无守卫，删除报告后 2 分钟会被写回复活）
+    if _is_result_deleted(company_id):
+        print(
+            f"[删除终局] 账套 {company_id} 的结果已被删除，跳过写回"
+            f"（最近结果缓存/分析历史/分析检查点均不写）",
+            flush=True,
+        )
+        return
     if company_id not in _last_analysis_cache and len(_last_analysis_cache) >= _MAX_ANALYSIS_CACHE:
         oldest = min(
             _last_analysis_cache,
@@ -11069,11 +11156,6 @@ def _run_analysis_thread(task_id, company_id, user_id):
                             _maybe_cross_patrol(company_id, kb_before, db)
                         except Exception as _pe:
                             print(f"[post-analysis] 跨企业巡逻异常(不影响分析结果): {_pe}", flush=True)
-                        # ③ 失败断点续跑 — 记录成功检查点
-                        try:
-                            _write_analysis_checkpoint(company_id, "done", "ok")
-                        except Exception as _pe:
-                            print(f"[post-analysis] 检查点写入异常(不影响分析结果): {_pe}", flush=True)
                     else:
                         message = (result or {}).get("message", "分析失败")
                         _analysis_tasks[task_id]["status"] = "error"
@@ -11086,6 +11168,14 @@ def _run_analysis_thread(task_id, company_id, user_id):
                             _analysis_tasks[task_id]["block_detail"] = (result or {}).get("detail", "")
                             _analysis_tasks[task_id]["block_files"] = (result or {}).get("mismatched_files", [])
                             _analysis_tasks[task_id]["block_suggestion"] = (result or {}).get("suggestion", "")
+            # ★ 2026-10-01 死锁修复：成功检查点必须在 `with _analysis_lock:` 块**之外**写。
+            #   _write_analysis_checkpoint → _is_result_deleted 会取同一把不可重入锁，
+            #   锁内调用＝同一线程自己等自己 → 分析跑完却永久卡死（2026-10-01 实测事故：
+            #   CPU 0%、状态恒 running、前端停在 99%、报告已落盘却取不到）。
+            try:
+                _write_analysis_checkpoint(company_id, "done", "ok")
+            except Exception as _ce:
+                print(f"[checkpoint] 成功检查点写入异常(不影响分析结果): {_ce}", flush=True)
         finally:
             db.close()
     except Exception as _e:

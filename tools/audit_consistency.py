@@ -1767,6 +1767,68 @@ def _mask_js_comments(text: str) -> str:
     return re.sub(r"//[^\n]*", lambda m: " " * len(m.group(0)), out)
 
 
+def check_delete_result_finality() -> List[Tuple[str, str, str]]:
+    """删除报告＝**终局状态**：任何进行中的分析跑完都不得把结果写回。
+
+    ★ 2026-10-01 新增（真实事故，与行业/企业无关，对所有账套成立）：
+      12:21 启动的一轮一键分析跑到 12:24:49 才完成，而用户 12:22:35 已点删除报告；
+      分析跑完把 last_analysis_cache / analysis_history / checkpoints 里的 "1"
+      全部重新写回 —— 界面上"删了又回来"。
+      ★ 关键事实：**删除接口当时如实报了"清理 6 处"，并非谎报**；真正的问题是
+      删除不取消进行中的分析，且三个写回路径没有终局守卫。
+      现状：唯一权威判据 `main._is_result_deleted`（判据 = `_deleted_company_ids`
+      已登记 + 该账套存在 status=deleted 的任务）；删除端点最先登记终局；
+      `_persist_one_click_result` / `_append_analysis_history` /
+      `_write_analysis_checkpoint` 三条写回路径必须先过这一关。
+      本闸门防止守卫被摘掉（含"删了 purge_file 返回值仍报清理"的谎报回潮）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    p = ROOT / "main.py"
+    if not p.exists():
+        return [("ERROR", "main.py", "main.py 不存在，删除终局检查不可执行")]
+    try:
+        raw = p.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return [("ERROR", "main.py", "main.py 读取失败，删除终局检查不可执行")]
+    # 纯代码视图（去注释/去字符串字面量），避免注释里引用反模式造成自我误报
+    code = _mask_py_comments_and_strings(raw)
+
+    # ① 三条分析结果写回路径都必须挂终局守卫
+    for marker in (
+        "def _persist_one_click_result(",
+        "def _append_analysis_history(",
+        "def _write_analysis_checkpoint(",
+    ):
+        start = code.find(marker)
+        if start < 0:
+            issues.append((
+                "ERROR", "main.py",
+                f"找不到分析结果写回路径 {marker}，删除终局守卫无处挂载"))
+            continue
+        nxt = code.find("\ndef ", start + len(marker))
+        body = code[start: nxt if nxt > 0 else len(code)]
+        if "_is_result_deleted(" not in body:
+            issues.append((
+                "ERROR", "main.py",
+                f"{marker} 未挂 _is_result_deleted 终局守卫：进行中的分析跑完会把"
+                f"已删除的结果写回（缓存/历史/检查点复活）"))
+
+    # ② 删除端点必须最先登记终局（之后到达的写回全部要被拦）
+    if "_deleted_company_ids.add(" not in code:
+        issues.append((
+            "ERROR", "main.py",
+            "删除端点未登记 _deleted_company_ids：删除先于终局登记到达时仍会被写回"))
+
+    # ③ ⑥ 丢弃 purge_file 返回值仍按命中数报"清理"＝谎报（2026-09-25 老病回潮）
+    if re.search(r"^\s+purge_file\(os\.path\.join\(TRANSFER_DIR, _fn\)\)\s*$",
+                 code, re.M):
+        issues.append((
+            "ERROR", "main.py",
+            "delete_tax_risk_report ⑥ 丢弃 purge_file 返回值：文件没移走也会报"
+            "「清理 N 个」，属谎报；须按 (removed, reason) 逐文件判定"))
+    return issues
+
+
 def check_excel_handle_leak() -> List[Tuple[str, str, str]]:
     """Excel 工作簿句柄泄漏闸门（★ 2026-09-25 接线）。
 
@@ -2156,6 +2218,9 @@ def check_material_completeness_no_ratio() -> List[Tuple[str, str, str]]:
       生产代码/前端脚本的**同一行**中同时出现「齐全程度」与百分比特征
       （Python：`%` 或 `* 100`；JS：`%` 或 `pct(` 或 `*100`）→ ERROR。
       "齐全程度{_have_n}项"这种**项数**写法不含百分比特征，不误报。
+
+    ②（2026-10-01 用户批注新增）资料段落**不得用无宾语/无前指的模糊结论句**：
+      「要把这一项定下来」「排除依据」一类套话 → ERROR（须写明定性/排除对象与具体资料名）。
     """
     issues: List[Tuple[str, str, str]] = []
     import glob as _glob
@@ -2184,6 +2249,78 @@ def check_material_completeness_no_ratio() -> List[Tuple[str, str, str]]:
                     "ERROR", rel,
                     f"第{i}行：材料齐全程度仍以百分比/比例表述（不得出现「齐全程度N%」）；"
                     "请改为「已有X项、还缺Y项」的项数表述"))
+
+    # ★★ 2026-10-01（用户批注：报告「三、已取得的资料与待补充的资料」根本读不懂）：
+    #   原正文「要把这一项定下来，需要N项材料」——定什么？「现有资料不构成排除依据」——排除什么？
+    #   且整段只有五个数字、没有一个具体资料名。锁死两类反模式：
+    #     ① 无宾语/无前指的模糊结论句（读者无从判断在说哪一件事）；
+    #     ② 资料口径表述里出现「排除依据」这类套话（必须直说排除的是本项涉嫌风险）。
+    #   判据同样走"必须不存在"，与上一判据共用一次文件扫描。
+    _VAGUE = ("要把这一项定下来", "排除依据", "这一项材料")
+    for rel, text, _is_js in targets:
+        for i, raw in enumerate(text.splitlines(), 1):
+            line = raw.split("//", 1)[0] if _is_js else raw
+            hit = next((w for w in _VAGUE if w in line), "")
+            if hit:
+                issues.append((
+                    "ERROR", rel,
+                    f"第{i}行：资料段落仍用无宾语/无前指的模糊表述「{hit}」——"
+                    "须写明①定性对象（本项涉嫌风险成立与否）、②排除对象（本项涉嫌风险）、"
+                    "③还缺的具体资料名，不能只报数字"))
+    return issues
+
+
+def check_benchmark_caution_single_source() -> List[Tuple[str, str, str]]:
+    """行业基准口径声明必须**单一权威**（2026-10-02，用户质询「哪个信息是非官方口径」）。
+
+    ★ 背景：报告里出现「（来源 industry_data.json，非税务机关官方口径）」——读者问：
+      到底哪个信息是非官方口径？非官方口径的数据能不能当判定依据？
+      根因是口径声明**散落多头**：18 处红线构成要件各写一份字面声明，措辞与
+      `redline_benchmark` 生成的说明句还不一致。已收敛为
+      `engine/industry_benchmark.py` 的 `BENCHMARK_CAUTION` / `BENCHMARK_CAUTION_SHORT`
+      两个常量（裁定：非官方基准**只有线索参照价值，不构成判定依据**）。
+
+    判据（红必须来自判据，不来自解析失败）：
+      ① 单一来源——除常量定义所在文件外，任何 `engine/*.py` 里都不得出现
+         **字符串字面量**「非税务机关官方口径」（AST `Constant` 判定，注释不算；
+         其余模块一律 import 常量引用）；
+      ② 行为——`redline_benchmark.benchmark_note()` 产出的说明句必须含完整声明，
+         且不得残留旧版「（来源 …，通用参考值（非税务机关官方口径））」的双括号写法。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    _CAUTION_FILE = ROOT / "engine" / "industry_benchmark.py"
+    _BARE = "非税务机关官方口径"
+    for _fp in sorted((ROOT / "engine").glob("*.py")):
+        if _fp.resolve() == _CAUTION_FILE.resolve():
+            continue
+        try:
+            _tree = ast.parse(Path(_fp).read_text(encoding="utf-8"))
+        except Exception:
+            continue      # 解析失败不算命中（避免"白捡的红"）
+        for _nd in ast.walk(_tree):
+            if isinstance(_nd, ast.Constant) and isinstance(_nd.value, str) and _BARE in _nd.value:
+                issues.append(("ERROR", str(_fp.relative_to(ROOT)).replace("\\", "/"),
+                               f"第{_nd.lineno}行：行业基准口径声明未引用唯一常量"
+                               f"（engine/industry_benchmark.py::BENCHMARK_CAUTION），"
+                               f"又写了一份字面声明"))
+    try:
+        from engine.industry_benchmark import BENCHMARK_CAUTION
+        from engine.redline_benchmark import benchmark_note
+        _note = str((benchmark_note("RL-PAY-001", "广告传媒") or {}).get("text") or "")
+        if not _note:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "benchmark_note 未产出基准说明句（行业基准口径无法落到报告）"))
+        if BENCHMARK_CAUTION not in _note:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "benchmark_note 的说明句未带完整口径声明"
+                           f"（缺「{BENCHMARK_CAUTION[:12]}…」）"))
+        if "通用参考值（非税务机关官方口径）" in _note:
+            issues.append(("ERROR", "engine/redline_benchmark.py",
+                           "基准说明句仍是旧版双括号写法（来源…，通用参考值（非官方口径）），"
+                           "读者无法判断哪一份是非官方数据"))
+    except Exception as exc:
+        issues.append(("WARN", "tools/audit_consistency.py",
+                       f"行业基准口径行为闸门执行失败: {exc}"))
     return issues
 
 
@@ -2496,6 +2633,112 @@ def check_overall_conclusion_no_dup() -> List[Tuple[str, str, str]]:
     if "待核实事项" in joined:
         issues.append(("ERROR", "engine/overall_conclusion.py",
                        "出现裸「待核实事项」（应写「涉嫌风险事项」；涉嫌已含待核实，不再叠加）"))
+    return issues
+
+
+def check_conclusion_and_suspicion_order() -> List[Tuple[str, str, str]]:
+    """★★ 2026-10-02（用户定调：一定是先说重要的信息）：**结论先行 + 重风险在前** 的不变式。
+
+    两条硬要求（都出过事故，必须锁死）：
+      ① 第一章总述**第一段结论**（企业整体风险综合评价）必须排在「检查范围与结果概览」之前；
+         监管态度分级条款必须按 **重点关注(高) → 补证核实(中) → 待核验 → 限期补正资料 →
+         提示提醒(低)** 由重到轻排列（原实现低风险排第一句）。
+      ② 疑点（confirmed_problems）呈现顺序必须 **极高 → 高 → 中 → 低 → 待核验**，
+         由 `engine/enterprise_report.py::_RISK_PRESENT_ORDER` 单一权威控制。
+
+    判据全部是**运行时实测段落下标/条款下标**或源码形态，不做宽泛字符串计数，
+    避免"闸门自己被自己的过滤器判红"的假红。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.overall_conclusion import build_overall_conclusion
+    except Exception as exc:  # 生成器导入失败不得静默放行
+        return [("ERROR", "engine/overall_conclusion.py",
+                 "无法导入总体结论生成器：%s" % exc)]
+
+    probs = [
+        {"seq": 1, "title": "红字冲销与作废发票比例异常", "risk_level": "高风险",
+         "taxes": ["增值税"], "suspect": "涉嫌隐匿收入", "conclusion_grade": "待核"},
+        {"seq": 2, "title": "工资表人数与社保参保人数不符", "risk_level": "中风险",
+         "taxes": ["个人所得税"], "suspect": "", "conclusion_grade": "待核"},
+        {"seq": 3, "title": "有进无销", "risk_level": "待核验",
+         "taxes": [], "suspect": "", "conclusion_grade": "待核"},
+        {"seq": 4, "title": "固定资产取得、投用与折旧不匹配", "risk_level": "低风险",
+         "taxes": [], "suspect": "", "conclusion_grade": "待核"},
+    ]
+    rd = {
+        "files_count": 3,
+        "file_results": [{"type": "t%d" % i} for i in range(2)],
+        "target_entity": {},
+        "enterprise_readable_report": {
+            "confirmed_problems": probs, "further_checks": [{"seq": 5}],
+        },
+    }
+    try:
+        P = [str(p) for p in (build_overall_conclusion(rd).get("paragraphs") or [])]
+    except Exception as exc:  # noqa: BLE001
+        return [("ERROR", "engine/overall_conclusion.py", "生成总体结论抛错：%s" % exc)]
+
+    def _idx(needle: str) -> int:
+        for i, p in enumerate(P):
+            if needle in p:
+                return i
+        return -1
+
+    # ① 结论先行：综合评价段不得晚于「检查范围与结果概览」
+    i_concl, i_overview = _idx("企业整体风险综合评价"), _idx("检查范围与结果概览")
+    if i_concl < 0:
+        issues.append(("ERROR", "engine/overall_conclusion.py",
+                       "总述缺「企业整体风险综合评价」段"))
+    elif i_overview < 0:
+        issues.append(("ERROR", "engine/overall_conclusion.py",
+                       "总述缺「检查范围与结果概览」段"))
+    elif i_concl > i_overview:
+        issues.append(("ERROR", "engine/overall_conclusion.py",
+                       "未结论先行：「企业整体风险综合评价」排在第 %d 段，晚于「检查范围与结果概览」（第 %d 段）"
+                       % (i_concl + 1, i_overview + 1)))
+
+    # ② 监管态度分级：由重到轻（关注→补证→待核验→限期→提示）
+    i_pos = _idx("监管态度与后续处理建议")
+    if i_pos >= 0:
+        body = P[i_pos]
+        _order = ["重点关注：", "补证核实：", "待核验事项：", "限期补正资料：", "提示提醒："]
+        _seen = [(k, body.find(k)) for k in _order]
+        _miss = [k for k, v in _seen if v < 0]
+        if _miss:
+            issues.append(("ERROR", "engine/overall_conclusion.py",
+                           "监管态度分级条款缺项：%s" % "、".join(_miss)))
+        else:
+            _pos_seq = [body.find(k) for k in _order]
+            if _pos_seq != sorted(_pos_seq):
+                issues.append(("ERROR", "engine/overall_conclusion.py",
+                               "监管态度分级条款未按风险由重到轻排列（应为 重点关注→补证核实→"
+                               "待核验事项→限期补正资料→提示提醒），实测下标序列 %s" % _pos_seq))
+
+    # ③ 疑点呈现顺序：唯一权威表 + 排序键必须引用该表（禁止再退回 `_LEVEL_RANK`）
+    try:
+        _er = (ROOT / "engine" / "enterprise_report.py").read_text(
+            encoding="utf-8", errors="replace")
+    except OSError:
+        _er = ""
+    if "_RISK_PRESENT_ORDER" not in _er:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "缺疑点呈现顺序唯一权威表 `_RISK_PRESENT_ORDER`（疑点顺序会随等级表漂移）"))
+    elif "_RISK_PRESENT_ORDER.get(" not in _er:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "疑点排序键未引用 `_RISK_PRESENT_ORDER`（疑点顺序未由单一权威控制）"))
+    if "problems.sort" in _er:
+        _sort_region = _er.split("problems.sort")[-1][:400]
+        if "_RISK_PRESENT_ORDER" not in _sort_region:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "疑点 `problems.sort` 未引用 `_RISK_PRESENT_ORDER`（疑点顺序未由单一权威控制）"))
+        if "_level_rank" in _sort_region:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "疑点 `problems.sort` 仍走 `_level_rank`（等级秩≠呈现序：低风险会排到"
+                           "待核验后面、表外等级会插进高/中之间）"))
+    else:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "找不到疑点 `problems.sort`（疑点呈现顺序失去唯一控制点）"))
     return issues
 
 
@@ -2819,6 +3062,12 @@ def check_cost_industry_basis() -> List[Tuple[str, str, str]]:
             if i >= 0 and min(idx_core, idx_cat) > i:
                 issues.append(("ERROR", mbc_rel,
                                "「行业/类目口径」判定必须排在%s之前，否则行业性成本被截走" % label))
+    # ★ 2026-10-02：`_MAJOR_EXPENSE_KWS` 已在 2026-10-02 收敛为引用唯一权威
+    #   `engine.account_classifier`，上面那段 `in _MAJOR_EXPENSE_KWS` 的位置判据会**静默失效**
+    #   （find 返回 -1 即视为通过）。补此判据守住"必须引用权威、不得自写词表"。
+    if "account_classifier" not in mbc_src:
+        issues.append(("ERROR", mbc_rel,
+                       "重大费用词表未引用唯一权威 account_classifier（重抄必然漂移）"))
     # 类目级匹配（不是整串严格相等）：必须用 `*分类*` 类目比对。
     # ⚠ 用**词边界**正则而非裸子串：`sale_catsZZ` 仍包含 `sale_cats`，裸子串会造成假阴性
     #   （反向验证时实测漏报）。
@@ -2830,6 +3079,211 @@ def check_cost_industry_basis() -> List[Tuple[str, str, str]]:
     pipe_rel = "engine/pipeline.py"
     if "set_active_industry" not in _read(pipe_rel):
         issues.append(("ERROR", pipe_rel, "管道未注入行业口径（set_active_industry）"))
+    return issues
+
+
+def check_account_classifier_single_source() -> List[Tuple[str, str, str]]:
+    """（已知**不**判重抄、但属不同概念的词表，勿擅自动它们：
+        `verified_rule_engine._EXPENSE_DETAIL_KWS` 费用明细科目字段（3/37=8%）；
+        `verified_rule_engine._SUSPICIOUS_EXPENSE_KW` 可疑/虚假发票线索（7/12≈58%，
+        低于 60% 阈值，且判定的是"可疑"不是"会计归属"）。）"""
+    """★ 2026-10-02：成本/费用归属词表**只能有一份**（`engine/account_classifier.py`）。
+
+    真实动机（同名字表互相打架，已造成错判）：
+      `domain_analysis._MAJOR_EXPENSE_KWS` 与 `main_biz_cost._MAJOR_EXPENSE_KWS`
+      **同名不同词**（后者多 运费/装卸/承运/运送），而 `pipeline._EXPENSE_KWS` 又是第三份。
+      同一张「住宿费」发票：pipeline 判费用、main_biz_cost 判不到重大费用 → 落「待核/默认成本」
+      ⇒ **虚增成本、压低毛利**。现统一为 account_classifier 派生出口，其余模块只许 import。
+
+    判据（扫描 engine/**.py 的**模块级字符串列表字面量**）：
+      ① 唯一权威模块必须存在，且导出 `all_authoritative_keywords()`；
+      ② 名称命中「成本/费用归属」概念（名含 EXPENSE+KW/COST+KW，或为历史 4 张表的名字）
+         的私有表，其词与权威词表**交集比例 ≥ 60% 且交集词数 ≥ 5** ⇒ 判定为「实质重抄」，ERROR。
+         （用比例而非「只要有交集就报」：bank_flow 的 _CORP_KW、input_voucher 的
+           _NON_DEDUCTIBLE_KW、monthly_reconcile 的 _SOCIAL_KWS 等词表本就是**另一个概念**
+           —银行流水主体/不得抵扣/社保科目—，与会计归属无关，误报会让闸门失去意义。）
+      ③ 已收敛的模块（main_biz_cost / domain_analysis / pipeline / memory）只保留
+         `_BIZ_ELEMENT_EXCLUSIVE_KWS` 这一个**书面命名的豁免名**——理由是概念不同
+         （经营要素完备性=空壳检测），且词值由权威层派生函数消费，不会漂移。
+    """
+    import ast as _ast
+
+    issues: List[Tuple[str, str, str]] = []
+
+    auth_rel = "engine/account_classifier.py"
+    if not (ROOT / auth_rel).exists():
+        return [("ERROR", "engine/", "缺少唯一权威 account_classifier（成本/费用归属）")]
+
+    # ① 权威模块必须导出权威词表
+    try:
+        src_auth = (ROOT / auth_rel).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        src_auth = ""
+    for marker, why in (
+        ("def all_authoritative_keywords", "未导出 all_authoritative_keywords（无法反扫重抄）"),
+        ("def classify_line", "未导出 classify_line（成本/费用判定入口）"),
+        ("ALLOWED_CLASSES", "未定义 ALLOWED_CLASSES（三态词表）"),
+    ):
+        if marker not in src_auth:
+            issues.append(("ERROR", auth_rel, why))
+
+    auth_words = set()
+    try:
+        sys.path.insert(0, str(ROOT))
+        for _m in ("engine.account_classifier",):
+            sys.modules.pop(_m, None)
+        import importlib
+        _ac = importlib.import_module("engine.account_classifier")
+        importlib.invalidate_caches()
+        auth_words = set(_ac.all_authoritative_keywords())
+    except Exception as e:  # pragma: no cover
+        issues.append(("ERROR", auth_rel, "无法导入权威模块: %s" % e))
+    if not auth_words:
+        return issues
+
+    # ② 扫全库重抄
+    HISTORY_NAMES = {"_MAJOR_EXPENSE_KWS", "_EXPENSE_KWS", "BIZ_EXPENSE_KEYWORDS",
+                     "_REIMBURSEMENT_KWS_GLOBAL"}
+    for p in sorted((ROOT / "engine").glob("*.py")):
+        if p.name == "account_classifier.py":
+            continue
+        try:
+            tree = _ast.parse(p.read_text(encoding="utf-8"))
+        except SyntaxError as e:
+            issues.append(("ERROR", "engine/%s" % p.name, "无法解析（语法错误）: %s" % e))
+            continue
+        for node in tree.body:
+            if not isinstance(node, _ast.Assign):
+                continue
+            for tg in node.targets:
+                if not isinstance(tg, _ast.Name):
+                    continue
+                name = tg.id
+                up = name.upper()
+                concept = ("EXPENSE" in up and "KW" in up) or ("COST" in up and "KW" in up) \
+                    or name in HISTORY_NAMES
+                if not concept:
+                    continue
+                val = node.value
+                if not isinstance(val, (_ast.List, _ast.Tuple)):
+                    continue  # 引用/派生赋值（= account_classifier.xxx()）→ 不算重抄
+                if not all(isinstance(e, _ast.Constant) and isinstance(e.value, str)
+                           for e in val.elts):
+                    continue
+                words = {e.value for e in val.elts}
+                if not words:
+                    continue
+                ov = words & auth_words
+                if len(ov) >= 5 and len(ov) / len(words) >= 0.6:
+                    issues.append((
+                        "ERROR", "engine/%s" % p.name,
+                        "「%s」与唯一权威 account_classifier 词表重叠 %d/%d（%.0f%%），"
+                        "属实质重抄必随时间漂移；改为引用 account_classifier 的派生出口"
+                        "（major_expense_keywords / operating_expense_keywords / "
+                        "expense_element_keywords）"
+                        % (name, len(ov), len(words), 100.0 * len(ov) / len(words))))
+    return issues
+
+
+def check_cost_expense_triad() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-02：成本/费用判定必须**三态可自证**（主营业务成本 / 期间费用 / 待核）。
+
+    为什么必须有这道闸门（机制性教训）：
+      分类若允许"判不出来就默认判成本"，等于**系统性虚增成本、压低毛利**，
+      而且**不会报错**——报告照样出、数字照样漂亮，只有专业复核才发现。
+      故把三态与「evidence/置信度不可少」写成结构性判据，由机器长期盯住。
+
+    判据：
+      ① 权威模块必须导出 `ALLOWED_CLASSES` 且**同时包含** 主营业务成本 / 期间费用 / 待核；
+      ② `classify_line()` 返回值必须含 account_class / confidence / evidence / needs_context /
+         missing_material 五个键，且 account_class ∈ ALLOWED_CLASSES；
+      ③ 返回项的 confidence 与 evidence **必须非空**（evidence 为空=判定不可自证来源）；
+      ④ `needs_context` 层的词（运输/水电/包装/维修/租赁/差旅/会议/检测…）在无项目上下文时
+         **必须落「待核」**，不得判成本（L2 铁律：用途决定归属）；
+      ⑤ 完全未命中的陌生品名 **必须落「待核」**，绝不允许默认成本；
+      ⑥ 行业核心投入命中 ⇒ 可判「主营业务成本」且置信度=高。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    auth_rel = "engine/account_classifier.py"
+
+    try:
+        sys.path.insert(0, str(ROOT))
+        sys.modules.pop("engine.account_classifier", None)
+        import importlib
+        ac = importlib.import_module("engine.account_classifier")
+        importlib.invalidate_caches()
+    except Exception as e:
+        return [("ERROR", auth_rel, "无法导入 account_classifier: %s" % e)]
+
+    # ① 三态词表
+    allowed = list(getattr(ac, "ALLOWED_CLASSES", ()) or ())
+    for need in ("主营业务成本", "期间费用", "待核"):
+        if need not in allowed:
+            issues.append(("ERROR", auth_rel,
+                           "ALLOWED_CLASSES 缺「%s」——不是三态（缺待核=会默认判成本）" % need))
+    if not callable(getattr(ac, "classify_line", None)):
+        return issues
+
+    # ②/③ 结构与非空
+    REQUIRED_KEYS = ("account_class", "confidence", "evidence", "needs_context",
+                     "missing_material", "matched_layer", "reason")
+    probes = [
+        ("*广告服务*广告发布费", dict(industry="广告传媒")),
+        ("办公用品 文具", dict(industry="广告传媒")),
+        ("*物流辅助服务*运输费", dict(industry="广告传媒")),
+        ("核查用途不明的全新品名abc123", dict(industry="广告传媒")),
+    ]
+    for goods, kw in probes:
+        try:
+            r = ac.classify_line(goods, **kw) or {}
+        except Exception as e:
+            issues.append(("ERROR", auth_rel, "classify_line(%r) 抛异常: %s" % (goods, e)))
+            continue
+        missing_keys = [k for k in REQUIRED_KEYS if k not in r]
+        if missing_keys:
+            issues.append(("ERROR", auth_rel,
+                           "classify_line(%.12s…) 缺字段 %s（判定必须可自证）"
+                           % (goods, missing_keys)))
+            continue
+        if r.get("account_class") not in allowed:
+            issues.append(("ERROR", auth_rel,
+                           "classify_line(%.12s…) 返回越界 account_class=%r（不在 %s）"
+                           % (goods, r.get("account_class"), allowed)))
+        if not str(r.get("evidence") or "").strip():
+            issues.append(("ERROR", auth_rel,
+                           "classify_line(%.12s…) evidence 为空（判定无依据）" % goods))
+        if not str(r.get("confidence") or "").strip():
+            issues.append(("ERROR", auth_rel,
+                           "classify_line(%.12s…) confidence 为空" % goods))
+
+    # ④ 需上下文词在无项目上下文时必须落待核
+    needs_ctx = [k for k in getattr(ac, "NEEDS_CONTEXT_KWS", ()) or ()]
+    if not needs_ctx:
+        issues.append(("ERROR", auth_rel, "未定义 NEEDS_CONTEXT_KWS（用途决定归属的词）"))
+    for probe in ("运输费", "水电费", "包装费", "维修费", "租赁费", "会议费", "检测费"):
+        hit = next((k for k in needs_ctx if k in probe), None)
+        if hit is None:
+            continue
+        r = ac.classify_line(probe, industry="广告传媒")
+        if r.get("account_class") != ac.CLASS_UNDETERMINED:
+            issues.append(("ERROR", auth_rel,
+                           "需上下文词「%s」在无项目上下文时落到了 %r，违反 L2 铁律（应落「待核」）"
+                           % (probe, r.get("account_class"))))
+
+    # ⑤ 陌生品名必须落待核，且绝不判成本
+    r = ac.classify_line("全新未登记品名zzq999", industry="广告传媒")
+    if r.get("account_class") == ac.CLASS_COST:
+        issues.append(("ERROR", auth_rel,
+                       "未命中任何口径的陌生品名被判「主营业务成本」（=默认判成本，会虚增成本）"))
+    if r.get("account_class") != ac.CLASS_UNDETERMINED:
+        issues.append(("ERROR", auth_rel, "陌生品名未落「待核」"))
+
+    # ⑥ 行业核心投入 ⇒ 成本且高置信
+    r = ac.classify_line("*广告服务*广告发布费", industry="广告传媒")
+    if r.get("account_class") != ac.CLASS_COST or r.get("confidence") != "高":
+        issues.append(("ERROR", auth_rel,
+                       "行业核心投入未判为「主营业务成本+高置信」（实际 %r/%r）"
+                       % (r.get("account_class"), r.get("confidence"))))
     return issues
 
 
@@ -2930,12 +3384,28 @@ def check_constituent_sources_consistency() -> List[Tuple[str, str, str]]:
     要件①/②/⑤/⑥ 只写「销项发票」，而红冲/作废**在进项侧同样存在**（样本中的红冲票即 direction=进项）；
     要件③ 漏「折让协议/拒收证明」；要件④ 漏「被冲减蓝字发票」；要件⑦ 漏退货/折让协议。
 
-    本闸门锁死两条判据（对**所有**声明了 `constituent_sources` 的红线生效，数据驱动、不写特例）：
-      (a) **可取得**：每个要件的数据源名必须落在「系统资料类别 ∪ 该红线 required_materials ∪ evidence_chain」内，
+    本闸门锁死三条判据（对**所有**红线生效，数据驱动、不写特例）：
+      (a) **必声明**：凡有 `constituents` 的红线必须给出等长的 `constituent_sources`
+          ——2026-10-01 实测全库 89/91 条红线未声明，导致报告的「构成要件独立核对表」
+          里 51.5% 的要件写「（红线定义未标注该要件的独立数据源）」；
+      (b) **可取得**：每个要件的数据源名必须落在「系统资料类别 ∪ 该红线 required_materials ∪ evidence_chain」内，
           否则该要件的“已有/缺失”状态无从判定（声明了拿不到的东西）；
-      (b) **完整**：要件文本中**提到**的已声明资料名，必须出现在该要件的独立数据源里。
-    ★ 覆盖面（如实声明，勿夸大）：本闸门可抓三类漂移——
-      (i) 数据源名不在已声明资料内；(ii) 要件正文提到的已声明资料未列入数据源；(iii) 条数不按序对齐。
+      (c) **完整**：要件文本中**提到**的、该红线 `required_materials` 内的资料名，
+          必须出现在该要件的独立数据源里。
+    ⚠ (c) 的比对范围**只取 required_materials、不取 evidence_chain 元素名**：
+      元素名是「核对口径描述」，其中含「在途资金」「居家办公」一类并非资料名的词，
+      纳入比对本会把它们误当作资料要求进数据源（实测 40 处噪音）。
+      （2026-10-01 收紧：原先切分符含「与／/和」，会把「供应商资质与代理协议」切碎成
+      「供应商资质」「代理协议」两个不存在的资料名 → 现只按顿号/逗号切分。）
+    ★ 覆盖面（如实声明，勿夸大）：本闸门可抓四类漂移——
+      (i) 红线声明缺失；(ii) 数据源名不在已声明资料内；(iii) 要件正文提到的已声明资料未列入数据源；(iv) 条数不按序对齐；
+      ★ (v) 同一红线内 `required_materials` 重复登记同一资料名（2026-10-01 本轮实测引入过：
+        曾同时在 RL-CIT-001 写「同期资料」与「转让定价文档」、RL-CIT-005 写「高新技术企业证书（若适用）」
+        与「高新技术企业证书」、RL-CIT-006 写「资产损失鉴证报告（达到标准时）」与「资产损失鉴证报告」——
+        同一资料两个名字会让企业按任一名字补资料却只闭合一半，故锁死）。
+      ⚠ 本闸门**不**做「前缀异名」自动判据：实测会误导（「固定资产明细」的前缀登记名是
+        「固定资产明细（车辆）」，属另一种对象，自动改写反而改错）。遗留的盘点表/固定资产明细/合同
+        等命名差异属领域判断，另行报告，不在此闸门自动处理。
     ⚠ **抓不到**「该要件本应两侧并取却只写一侧」这类**领域判断**（如红冲/作废在进项侧同样存在，
       但要件正文并未出现「进项发票」字样）—— 该判断须靠编写规范：
       **发票/账载类要件的数据源一律按「风险发生侧」并取，两侧共有的风险（红冲作废、进项转出、
@@ -2958,16 +3428,19 @@ def check_constituent_sources_consistency() -> List[Tuple[str, str, str]]:
             _cats.update(str(x) for x in _v)
 
     def _split(s):
-        return [x.strip() for x in _re.split(r"[、，,／/；;与和]", str(s or "")) if len(x.strip()) >= 2]
+        return [x.strip() for x in _re.split(r"[、，,；;]", str(s or "")) if len(x.strip()) >= 2]
 
     for r in REDLINES:
         cs = r.get("constituent_sources") or []
-        if not cs:
+        cc = r.get("constituents") or []
+        if cc and not cs:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           "%s 有 %d 条要件但未声明 constituent_sources，"
+                           "核对表会写「未标注独立数据源」" % (r.get("id"), len(cc))))
             continue
         legal = set(_cats) | set(r.get("required_materials") or [])
         for _e in (r.get("evidence_chain") or []):
             legal |= set(_split(_e.get("name")))
-        cc = r.get("constituents") or []
         if len(cs) != len(cc):
             issues.append(("ERROR", "engine/tax_redlines.py",
                            "%s constituent_sources %d 条与要件 %d 条不等（须按序对齐）" % (r.get("id"), len(cs), len(cc))))
@@ -2976,10 +3449,18 @@ def check_constituent_sources_consistency() -> List[Tuple[str, str, str]]:
             if miss:
                 issues.append(("ERROR", "engine/tax_redlines.py",
                                "%s 第%d条要件的数据源 %s 不在已声明资料内（状态无从判定）" % (r.get("id"), i, miss)))
-            mentioned = [m for m in sorted(legal) if m in con and m not in str(src)]
+            mentioned = [m for m in sorted(set(r.get("required_materials") or []))
+                         if m in con and m not in str(src)]
             if mentioned:
                 issues.append(("ERROR", "engine/tax_redlines.py",
                                "%s 第%d条要件正文提到的资料 %s 未列入独立数据源" % (r.get("id"), i, mentioned)))
+        # (d) 一物两名：同一红线内 required_materials 不得重复登记同一资料名
+        _rm = [str(x) for x in (r.get("required_materials") or [])]
+        _dup = sorted({x for x in _rm if _rm.count(x) > 1})
+        if _dup:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           "%s required_materials 内重复登记同一资料名 %s（一物两名，"
+                           "企业按任一名字补资料只会闭合一半）" % (r.get("id"), _dup)))
     return issues
 
 def check_finding_meta_wording() -> List[Tuple[str, str, str]]:
@@ -4314,58 +4795,97 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     # ★ 2026-09-29（点评整改第四轮 P1-7 / P1-11 / P1-16）
     # ══════════════════════════════════════════════════════════════
 
-    # ── P1-11 个人信息脱敏（唯一收敛点 + 不得有后门）──
-    # ⚠ 用「去注释」视图判定接线：本文件/被检查文件的**注释里会引用同一串**
-    #   （如"必须传 source=report_data"），在原文上匹配会被自己的说明文字骗过
-    #   ——实测：去掉调用里的 source 参数后闸门仍"通过"。
+    # ── ★ 2026-10-02（用户定调）：**报告禁止个人信息脱敏 / 禁止隐藏** ──
+    #   原收敛点 `engine/pii_guard.py`（杨莹→杨*、初永伟→初**）整体删除：本报告读者是
+    #   被查企业本身，员工姓名与私户收付金额正是企业需要逐人核对的内容；打成 `杨*`
+    #   会让「逐人说明」这条核查要求无法落地。**原闸门（要求"必须接脱敏"）已反向改造成
+    #   防复发闸门**——把脱敏接回去会立刻报错。
+    #   ⚠ 第三条用**AST**判定而非文本匹配：注释里会引用同一串（如"必须传 source=report_data"），
+    #   在原文上匹配会被自己的说明文字骗过（实测：去掉 source 参数后旧闸门仍"通过"）。
+    _DESENS_SYMS = ("pii_guard", "mask_person_name", "mask_id_no", "mask_phone",
+                    "mask_account", "redact_enterprise_report", "_pii_stats", "_pii_notice")
+    if os.path.exists(str(ROOT / "engine" / "pii_guard.py")):
+        issues.append(("ERROR", "engine/pii_guard.py",
+                       "个人信息脱敏模块仍存在（用户定调：报告禁止脱敏/隐藏）"))
+    _scan_files = [str(ROOT / "main.py")]
+    for _sub in ("engine", "tools"):
+        _sd = ROOT / _sub
+        if _sd.is_dir():
+            _scan_files.extend(str(p) for p in sorted(_sd.glob("*.py")))
+    for _fp in _scan_files:
+        try:
+            _tree = ast.parse(Path(_fp).read_text(encoding="utf-8"))
+        except Exception:
+            continue      # 解析失败不算脱敏（判据必须来自真正的行为检测）
+        _hit = set()
+        for _nd in ast.walk(_tree):
+            _syms: List[str] = []
+            if isinstance(_nd, ast.Import):
+                _syms = [a.name for a in _nd.names]
+            elif isinstance(_nd, ast.ImportFrom):
+                _syms = [(_nd.module or "")] + [a.name for a in _nd.names]
+            elif isinstance(_nd, ast.Name):
+                _syms = [_nd.id]
+            elif isinstance(_nd, ast.Attribute):
+                _syms = [_nd.attr]
+            for _s in _syms:
+                if any(_sym in str(_s) for _sym in _DESENS_SYMS):
+                    _hit.add(str(_s))
+        if _hit:
+            issues.append(("ERROR", str(Path(_fp).relative_to(ROOT)).replace("\\", "/"),
+                           f"出现个人信息脱敏符号 {sorted(_hit)}（用户定调：报告禁止脱敏/隐藏）"))
+    # ③ 报告实测：全量 dump 重建企业版报告 → 真实姓名必须原样保留、星号占位必须不在
+    try:
+        _dump_p = ROOT / "scripts" / "four_reports" / "company_1_full.json"
+        if not _dump_p.exists():
+            issues.append(("WARN", "tools/audit_consistency.py",
+                           "全量报告 dump 缺失，禁止脱敏行为闸门跳过（跑 scripts/_run_company1.py 后可复验）"))
+        else:
+            from engine.enterprise_report import build_enterprise_readable_report
+            _raw9 = json.loads(_dump_p.read_text(encoding="utf-8"))
+            _erp9 = build_enterprise_readable_report(_raw9)
+            _blob9 = json.dumps(_erp9, ensure_ascii=False)
+            _real9: List[str] = []
+            _seen9 = set()
+
+            def _walk_names9(_o) -> None:
+                if isinstance(_o, dict):
+                    for _k, _v in _o.items():
+                        _ks = str(_k)
+                        if isinstance(_v, str) and _v.strip() and _v not in _seen9 \
+                                and _ks in ("姓名", "员工姓名", "员工", "人员", "收款人",
+                                            "付款人", "客户姓名", "经办人", "负责人"):
+                            _seen9.add(_v.strip())
+                            _real9.append(_v.strip())
+                        _walk_names9(_v)
+                elif isinstance(_o, list):
+                    for _v in _o:
+                        _walk_names9(_v)
+
+            _walk_names9(_raw9)
+            # ★ 判据：脱敏的**唯一形态**就是「首字保留 + 等长星号」（杨莹→杨*、初永伟→初**）。
+            #   报告正文里自然出现这种形态的概率极低；而 glob/正则里的星号（如「属*」「款****」）
+            #   不会与某个自然人真名的首字+等长星号精确配对，故该判据噪声低、灵敏度高。
+            #   （不做"真实姓名必须出现在报告里"的反向要求——那会把闸门变成假闸门：
+            #     渲染侧本就会按领域分流，不是每条人名都必须进企业版报告。）
+            _masked9 = []
+            for _n in _real9:
+                _mf = _n[0] + "*" * (len(_n) - 1)
+                if _mf in _blob9:
+                    _masked9.append(_n)
+            if _masked9:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               f"企业版报告对个人姓名做了脱敏隐藏 {sorted(set(_masked9))[:6]}"
+                               f"（用户定调：禁止脱敏/隐藏）"))
+    except Exception as exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"禁止脱敏行为闸门执行失败: {exc}"))
+
+    # ── P1-16 台账治理接线（引擎侧，与报告实测分离）──
     _er4_src = _src("engine/enterprise_report.py")
     _er4_code = _strip_comments_keep_lines(_er4_src)
-    if "redact_enterprise_report" not in _er4_code:
-        issues.append(("ERROR", "engine/enterprise_report.py",
-                       "企业版报告未接入个人信息脱敏（员工姓名/私户金额会原样对外）"))
-    if "_rg(_o, source=report_data)" not in _er4_code:
-        issues.append(("ERROR", "engine/enterprise_report.py",
-                       "脱敏未按约定传 source=report_data（人名清单只能从源数据收集，否则正文中的姓名漏脱敏）"))
-    #  2026-09-30：金字塔原理编辑版已整体下线（用户定调：对企业风险反馈与整改无价值），其两条脱敏时序断言随之移除。
-    # P1-16/P1-7 接线：台账治理必须真的把治理结果写回 rows
     if '_gov(rows, findings, problems=problems)' not in _er4_code or 'rows = _g["rows"]' not in _er4_code:
         issues.append(("ERROR", "engine/enterprise_report.py",
                        "台账治理未接线（准入过滤/聚合/统一ID 未生效，台账仍是原始平铺行）"))
-    try:
-        from engine.pii_guard import (mask_account, mask_id_no, mask_person_name,
-                                      mask_phone, redact_enterprise_report)
-        # ① 脱敏算法本身
-        if mask_person_name("杨莹") != "杨*":
-            issues.append(("ERROR", "engine/pii_guard.py", "姓名脱敏规则异常"))
-        if "*" not in mask_id_no("440301199001011234") or "4403011990" in mask_id_no("440301199001011234"):
-            issues.append(("ERROR", "engine/pii_guard.py", "证件号脱敏不足（保留了可识别片段）"))
-        if not mask_phone("13812345678").endswith("5678") or "*" not in mask_phone("13812345678"):
-            issues.append(("ERROR", "engine/pii_guard.py", "手机号脱敏规则异常"))
-        if "*" not in mask_account("6222021234567890123"):
-            issues.append(("ERROR", "engine/pii_guard.py", "银行账号脱敏规则异常"))
-        # ② 端到端：正文里的姓名（只在源数据出现的）也必须脱敏；企业名不得被改
-        _rep_p = {"identity": {"organization": {"名称": "深圳海更数字传媒有限公司"}},
-                  "p": [{"text": "收款人 杨莹 收到 670,000 元。"}]}
-        _src_p = {"rows": [{"counterparty": "杨莹"}, {"counterparty": "深圳海更数字传媒有限公司"}]}
-        _out_p = redact_enterprise_report(_rep_p, source=_src_p)
-        _blob_p = json.dumps(_out_p, ensure_ascii=False)
-        if "杨莹" in _blob_p:
-            issues.append(("ERROR", "engine/pii_guard.py", "正文中的姓名未脱敏（只在源数据出现的人名）"))
-        if "深圳海更数字传媒有限公司" not in _blob_p:
-            issues.append(("ERROR", "engine/pii_guard.py", "企业/单位名被误脱敏（姓名子串规则失效）"))
-        # ③ 幂等
-        if redact_enterprise_report(_out_p, source=_src_p)["p"][0]["text"] != _out_p["p"][0]["text"]:
-            issues.append(("ERROR", "engine/pii_guard.py", "脱敏不幂等（重复调用会继续改写）"))
-        # ④ 循环引用不得导致静默失效（真实 report_data 含环，曾把脱敏整体吞掉）
-        _cyc = {"identity": {}, "姓名": "张三"}
-        _cyc["self"] = _cyc
-        _co = redact_enterprise_report(_cyc, source=_cyc)
-        if "*" not in str(_co.get("姓名")):
-            issues.append(("ERROR", "engine/pii_guard.py", "循环引用下脱敏失效（真实数据会静默跳过）"))
-    except ImportError as exc:
-        issues.append(("ERROR", "engine/pii_guard.py", f"个人信息脱敏模块不可用: {exc}"))
-    except Exception as exc:
-        issues.append(("ERROR", "engine/pii_guard.py", f"个人信息脱敏行为断言执行失败: {exc}"))
 
     # ── P1-16 台账准入 + P1-7 聚合/统一 ID ──
     try:
@@ -5062,6 +5582,343 @@ def check_constituent_sources_wiring() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_material_alias_drift() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-01 新增：红线 `required_materials` 的「异名漂移」闸门（照运行时真语义模拟）。
+
+    背景（真实事故族，直接掉①）：
+      `redline_engine._map_finding` 判定「红线所需资料是否齐备」时是**严格字符串相等**：
+          mats = [m for m in (rl.get("required_materials") or [])
+                  if m in (available_materials or [])]
+      而 `available_materials` 来自 `redline_engine._available_materials`，其内容是企业
+      **照着报告提示的名字上传文件后**，由 `material_recognition._recognize_supplementary`
+      做**最长关键词命中**得到的类别名。
+      于是：红线写「增值税申报表」、识别表登记的是「增值税纳税申报表（含留抵税额）」，
+      企业即使真的上传了增值税申报表，`「增值税申报表」 in [「增值税纳税申报表（含留抵税额）」]`
+      也是 False → 该红线判资料不齐 → `match_redline_grounded` 返回 unmatched
+      → **真实风险落进「未归入已知风险情形」，永远升不到已确认**。
+
+    判据（刻意照运行时真语义，**不用包含式启发式**——那会把「固定资产明细」误判成
+    「固定资产明细（车辆）」的异名；实测运行时最长关键词命中的是它自身）：
+      对每条红线、每个 required_materials 名 m，模拟上传《m.xlsx》：
+      `_recognize_supplementary` 若返回某类别且类别名 != m → ERROR。
+
+    本闸门**只报错、不改数**：改红线文案 vs 补登记别名 / `extra_cats` 并回，
+    属领域判断，由人工拍板（2026-10-01 用户决策：先只加闸门，不改数据）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.tax_redlines import all_redlines as _all_redlines
+        from engine.material_recognition import (_recognize_supplementary,
+                                                 supplementary_doc_type_to_category,
+                                                 _SUPP_ENTRIES)
+    except Exception as exc:  # noqa: BLE001
+        issues.append(("ERROR", "engine/tax_redlines.py",
+                       "读取红线或资料识别表失败，闸门无法校验：%s" % exc))
+        return issues
+
+    # ② 关键词撞车 / 重复登记：同一关键词被两条以上不同登记项共用时，
+    #    `_recognize_supplementary` 取所有命中里 len(_kw) 最大者，而长度相同则**谁赢
+    #    取决于 _SUPP_ENTRIES 的声明顺序**——与 PYTHONHASHSEED 那类可复现性坑同族。
+    #    副作用：同一份《完税凭证.xlsx》今天认成 A、改一行声明顺序就认成 B，
+    #    红线判定跟着时好时坏（严格相等匹配下直接体现为「资料时有时无」）。
+    _owner: Dict[str, List[str]] = {}
+    for _name, _dt, _kws, _extra in _SUPP_ENTRIES:
+        for _k in (_kws or []):
+            _owner.setdefault(str(_k), []).append(str(_name))
+    for _k, _ns in sorted(_owner.items()):
+        if len(set(_ns)) > 1:
+            issues.append(("ERROR", "engine/material_recognition.py",
+                           "关键词「%s」被 %d 条不同登记项共用（%s）：命中谁取决于声明顺序，"
+                           "同一份文件可能今天认成 A 明天认成 B → 红线判定随顺序漂移。须把关键词收窄到唯一"
+                           % (_k, len(set(_ns)), "、".join(sorted(set(_ns))))))
+        elif len(_ns) > 1:
+            issues.append(("ERROR", "engine/material_recognition.py",
+                           "规范名「%s」被登记了 %d 次（一物两名/重复登记）："
+                           "两条都会抢同一批文件，长词打平后按顺序定胜负" % (_k, len(_ns))))
+
+    # ③ 跨登记项等长打平（2026-10-01 反向验证自曝出的闸门盲区）。
+    #    ② 只抓「完全相同的关键词字符串」共用，下面的漂移判据只抓「打平后赢家门≠需求名」。
+    #    但还有第三种：两条例外——关键词是**不同字符串、长度相同、同时命中同一文件名**，
+    #    谁赢完全由 _SUPP_ENTRIES 声明顺序决定；若赢家恰好是需求名自身，两种判据**都不响**。
+    #    实测（scripts/_reverse_verify_alias.py C 组 + scripts/_scan_kw_ties.py）：
+    #    只挪一行声明顺序，《转让时点财务报表或评估报告.xlsx》就从「评估报告」翻成
+    #    「转让时点财务报表或评估报告」——判定靠侥幸成立，与 PYTHONHASHSEED 那类坑同族。
+    #    判据：对每条红线需求名模拟上传《m.xlsx》，若最长命中里出现两条以上
+    #    **不同登记项**的关键词 → ERROR（同登记项内多叫法打平是有意容错，不算）。
+    _need_names: List[str] = []
+    for _r2 in _all_redlines():
+        for _m2 in (_r2.get("required_materials") or []):
+            _m2 = str(_m2)
+            if _m2 not in _need_names:
+                _need_names.append(_m2)
+    for _need in _need_names:
+        _hits = []
+        for _name2, _dt2, _kws2, _extra2 in _SUPP_ENTRIES:
+            for _k2 in (_kws2 or []):
+                if str(_k2) and str(_k2) in _need:
+                    _hits.append((len(str(_k2)), str(_k2), str(_name2)))
+        if not _hits:
+            continue
+        _best_len = max(_h[0] for _h in _hits)
+        _tied = sorted({(_h[1], _h[2]) for _h in _hits if _h[0] == _best_len})
+        if len({_t[1] for _t in _tied}) > 1:
+            issues.append((
+                "ERROR", "engine/material_recognition.py",
+                "模拟上传《%s.xlsx》时，有 %d 条**不同登记项**的关键词等长命中（%s）："
+                "_recognize_supplementary 取最长命中，等长则谁赢由 _SUPP_ENTRIES 声明顺序"
+                "决定 → 同一份文件的资料归属随顺序漂移，而 redline_engine 按严格相等匹配，"
+                "实际表现就是「这份资料有时算已提供、有时算缺」。须把这些关键词拉开长度差"
+                "或改成独占关键词（同登记项内多叫法等长打平是有意容错，不计）。"
+                % (_need, len(_tied), "、".join("「%s」→%s" % _t for _t in _tied))))
+
+    for _r in _all_redlines():
+        for _m in (_r.get("required_materials") or []):
+            _m = str(_m)
+            _dt = _recognize_supplementary(_m + ".xlsx")
+            if _dt is None:
+                # 普通资料（银行流水/发票/合同…），走内容指纹链路，不归本闸门管
+                continue
+            _cat = supplementary_doc_type_to_category(_dt)
+            if _cat and str(_cat[0]) != _m:
+                issues.append((
+                    "ERROR", "engine/tax_redlines.py",
+                    "%s required_materials 写「%s」，但资料识别表登记的规范名是「%s」（识别关键词"
+                    "其实已含「%s」，识别层没问题）；mats 里存的是规范名，"
+                    "redline_engine 按严格相等匹配 → 这份资料该红线永远吃不到 → 发现落 unmatched。"
+                    "修法唯一有效：**红线文案改用规范名「%s」**（领域判断，人工拍板）。"
+                    "★ 补别名无效——_doc_covered_categories 返回的 mats 只装中文规范名，装不进别名"
+                    % (_r.get("id"), _m, _cat[0], _m, _cat[0])))
+    return issues
+
+
+def check_no_lock_reentrancy(_path=None) -> List[Tuple[str, str, str]]:
+    """★ 2026-10-01 新增：禁止「持 `_analysis_lock` 时又调用同样会取锁的函数」（自死锁闸门）。
+
+    事故（用户报「一键分析卡在 99%，生成不了报告」；py-spy 抓栈定位）：
+      `_run_analysis_thread` 在 `with _analysis_lock:` 块内调用 `_write_analysis_checkpoint`
+      → `_is_result_deleted` 里再 `with _analysis_lock:`；而 `threading.Lock` **不可重入**，
+      同一线程第二次 acquire 会自己等自己 → 分析线程永久卡死（实测 CPU 0%、跑 80 分钟不动）、
+      任务状态恒 running、前端只看到进度停在 99%；而报告其实早已落盘却永远取不到。
+    判据（AST 静态扫描，**不 import main**，避免为此拉起整个服务）：
+      1）取锁者 = 函数体内出现 `with *_analysis_lock*` 的函数；
+      2）**传递可达**：调用链上任何一跳出现过取锁的函数，都算「会取锁」（不动点迭代到
+         收敛）。★ 这一步是事故倒逼补的——事故链是**两跳**：锁块 → `_write_analysis_checkpoint`
+         → `_is_result_deleted` → 取锁。只传一层的初版闸门对这条链**完全不响**
+         （实测：坏副本 A/B 都跑成绿，等于假闸门）；
+      3）任一 `with _analysis_lock:` 块**体内**若出现对「传递可达取锁者」的调用 → ERROR。
+    规模说明：真实 main.py 上「传递可达取锁者」9 个、命中锁块 0 个 → 不误报。
+    修法（二选一）：把该调用挪到 with 块**之外**；或让被调用函数改成**无锁快照读**
+    （`_is_result_deleted` 现即为此法，故锁块内调用它是安全的）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        import ast as _ast
+        import os as _os
+        _p = _path or _os.path.join(_os.path.dirname(_os.path.abspath(__file__)),
+                                    "..", "main.py")
+        with open(_p, "r", encoding="utf-8") as _f:
+            _tree = _ast.parse(_f.read(), filename=_p)
+    except SyntaxError as _se:
+        issues.append(("ERROR", "main.py",
+                       "main.py 语法错误，锁重入闸门无法校验：第 %s 行 %s" % (_se.lineno, _se.msg)))
+        return issues
+    except Exception as exc:  # noqa: BLE001
+        issues.append(("ERROR", "main.py", "读取/解析失败，锁重入闸门无法校验：%s" % exc))
+        return issues
+
+    def _is_lock_with(_n):
+        """该 with 是否锁 `_analysis_lock`（兼容 `with X._analysis_lock:` 之类写法）。"""
+        if not isinstance(_n, (_ast.With, _ast.AsyncWith)):
+            return False
+        for _item in getattr(_n, "items", []) or []:
+            _c = _item.context_expr
+            while isinstance(_c, (_ast.Attribute, _ast.Call)):
+                _nxt = getattr(_c, "value", None) or getattr(_c, "func", None)
+                if _nxt is None:
+                    break
+                _c = _nxt
+            if _c is not None and "_analysis_lock" in _ast.dump(_c):
+                return True
+        return False
+
+    # ① 函数表（含嵌套函数；同一名字后者胜，与 Python 语义一致）
+    _funcs: Dict[str, object] = {}
+
+    def _collect(_node, _owner):
+        for _c in _ast.iter_child_nodes(_node):
+            if isinstance(_c, (_ast.FunctionDef, _ast.AsyncFunctionDef)):
+                _funcs[_c.name] = _c
+                _collect(_c, _c.name)
+            else:
+                _collect(_c, _owner)
+
+    _collect(_tree, "<module>")
+
+    # ② 传递可达取锁者集合
+    _reach = {_f for _f in _funcs
+              if any(_is_lock_with(_n) for _n in _ast.walk(_funcs[_f]))}
+    _changed = True
+    while _changed:
+        _changed = False
+        for _fname, _fnode in _funcs.items():
+            if _fname in _reach:
+                continue
+            for _c in _ast.walk(_fnode):
+                if (isinstance(_c, _ast.Call) and isinstance(_c.func, _ast.Name)
+                        and _c.func.id in _reach):
+                    _reach.add(_fname)
+                    _changed = True
+                    break
+
+    # ③ 锁块体内调用「传递可达取锁者」→ ERROR
+    for _n in _ast.walk(_tree):
+        if not _is_lock_with(_n):
+            continue
+        _called = set()
+        for _c in _ast.walk(_n):
+            if (isinstance(_c, _ast.Call) and isinstance(_c.func, _ast.Name)
+                    and _c.func.id in _reach):
+                _called.add(_c.func.id)
+        if _called:
+            issues.append((
+                "ERROR", "main.py",
+                "`with _analysis_lock:` 块内调用了会**再次取同一把锁**的函数（%s）："
+                "threading.Lock 不可重入 → 同一线程自死锁，表现为「分析跑完却永远卡在 99%%"
+                "（CPU 0%%、状态恒 running）、报告取不到」（2026-10-01 实测事故）。"
+                "修法：把该调用挪到 with 块**之外**，或让被调函数改成无锁快照读"
+                "（如 `_is_result_deleted` 现为无锁遍历 `_analysis_tasks.values()` 快照）。"
+                "（闸门 check_no_lock_reentrancy）" % "、".join(sorted(_called))))
+    return issues
+
+
+def check_evidence_rows_semantic_match(_path=None) -> List[Tuple[str, str, str]]:
+    """证据行 ↔ 发现语义匹配（防「明细表内容与疑点无关」复发）。
+
+    ═══ 事故（2026-10-01 用户复核实测）═══
+    疑点「工资名册与社会保险人员范围差异」的明细表（共 8 笔）里：
+      · 4 行是全公司**金额最大的记账凭证** —— 收到款项 1,611,200（应收账款/上海蕴世
+        广告传媒）、结转期间损益 1,524,325.98（主营业务成本）、销售服务 1,494,054.59
+        （主营业务收入/服务收入）、结转期间损益 1,494,054.59（本年利润）；
+      · 4 行是**金额恒 0** 的工资表人员行（杨*、徐*、黄**、李**，对方单位空）。
+    读者看到的是「工资社保差异」疑点下面挂着 161 万收款和 0 元工资，完全对不上。
+
+    ═══ 根因 ═══
+    1）`pipeline._enrich_evidence_rows` 是通用**关键词兜底**：发现没有自有 evidence_rows 时，
+       按 type/detail/description 里有没有「凭证」二字决定要不要采记账凭证。而「凭证」在
+       中文财税语境里有**两种含义**（记账凭证 / 参保凭证、原始凭证等资料名），
+       该疑点文案写了「提供劳动合同、参保**凭证**或异地参保证明」→ 误采无关凭证；
+    2）`_salary_row` 自己写了一份键表（姓名/部门/实发金额/period），与工资表实际结构
+       （name/salary/net/period_start…）对不上 → 55 行工资证据行**金额一行都取不到**，
+       恒显示 0.00 元（假证据：看起来像"这几个人没发工资"）。
+
+    ═══ 判据（在真实全量产物上判定，不 import 运行时）═══
+      (a) ERROR：带「记账凭证」证据行的发现，该凭证必须**与发现相关** ——
+          要么凭证自身的（摘要/科目）与发现正文有实义中文 2-gram 交集，
+          要么发现正文确实以记账凭证为对象（含「凭证号/会计分录/借贷/序时账/总账/
+          科目余额/凭证明细」这类实体词）。两条都不满足 → 无关凭证。
+          注：只看"文案里有没有『凭证』二字"是不够的 —— 「参保凭证」「账簿、凭证、
+          报表与申报」（方法论名）都会误命中。
+      (b) ERROR：带「工资表」证据行的发现，工资行金额不得**全部为 0**（静默返 0 的假证据）；
+      (c) 单纯「记账凭证 + 工资表」两类混装**不算错**：一条疑点的证据本来就可能在
+          多个资料之间（如「工资多源对等」同时引序时账的计提工资凭证与工资表人员行），
+          只要各自都相关。故此处不做独立告警（否则是假警报）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    path = _path or (ROOT / "scripts" / "four_reports" / "company_1_full.json")
+    if not os.path.exists(path):
+        issues.append(("WARN", "scripts/four_reports/company_1_full.json",
+                       "全量产物缺失，check_evidence_rows_semantic_match 跳过（请跑一次全量分析）"))
+        return issues
+    try:
+        with open(path, encoding="utf-8") as fh:
+            _d = json.load(fh)
+        if isinstance(_d, dict) and "report" in _d:
+            _d = _d["report"]
+        findings = (_d.get("all_findings") or []) if isinstance(_d, dict) else []
+    except Exception as e:  # noqa: BLE001
+        issues.append(("ERROR", "scripts/four_reports/company_1_full.json",
+                       "产物解析失败：%s" % e))
+        return issues
+
+    try:
+        from engine.pipeline import _is_ledger_voucher_context
+        from engine.pipeline import _voucher_relevant
+        from engine.pipeline import _cjk_bigrams as _cjk
+    except Exception:  # noqa: BLE001
+        _is_ledger_voucher_context = None
+        _voucher_relevant = None
+    # 发现正文"确实以记账凭证为对象"的实体词（有这些词即放行，不看凭证行相关性）
+    _VOUCHER_ENTITY = ("凭证号", "会计分录", "借贷", "序时账", "总账", "科目余额", "凭证明细")
+
+    n_a = n_b = 0
+    for f in findings:
+        if not isinstance(f, dict):
+            continue
+        ev = f.get("evidence_rows") or []
+        if not isinstance(ev, list) or not ev:
+            continue
+        ftype = str(f.get("type", ""))
+        combined = "%s %s %s" % (ftype, f.get("detail", ""), f.get("description", ""))
+
+        # (a) 凭证行必须真的与本发现相关
+        voucher_rows = [r for r in ev if isinstance(r, dict) and r.get("source") == "记账凭证"]
+        if voucher_rows and _voucher_relevant is not None:
+            _grams = _cjk(combined)
+            # 发现正文确实以记账凭证为对象时（凭证号/借贷/序时账…），相关性门槛放宽一档：
+            # 允许"粗交集"（不去停用词），但仍要求有交集 —— 不能只凭一句实体词就整条放行。
+            _ent = any(k in combined for k in _VOUCHER_ENTITY)
+            _unrel = []
+            for _r in voucher_rows:
+                _sum = _r.get("ref_label") or ""
+                _acc = _r.get("counterparty") or ""
+                _ok = _voucher_relevant({"summary": _sum, "account_name": _acc}, _grams)
+                if not _ok and _ent and (_sum or _acc):
+                    _ok = bool((_cjk("%s %s" % (_sum, _acc)) & _grams))
+                if not _ok:
+                    _unrel.append(_r)
+            if _unrel:
+                n_a += 1
+                _s = "; ".join(
+                    "凭证号%s 摘要%s 金额%s" % (r.get("ref_id"), r.get("ref_label"), r.get("amount"))
+                    for r in _unrel[:3])
+                issues.append((
+                    "ERROR", "engine/pipeline.py",
+                    "发现「%s」挂了 %d/%d 行**与本发现无关**的记账凭证证据（%s）。"
+                    '通用兜底采样若只按「凭证/序时账」这类词触发、并按金额取「全公司最大 TOP N」，'
+                    "读者在疑点下会看到 161 万的收款凭证却完全不知道它跟这个疑点有什么关系。"
+                    "修法：detector 交出自有 evidence_rows（通用兜底见 `if f.get(\"evidence_rows\")` 自动跳过）；"
+                    "通用采样须走 `pipeline._voucher_relevant` 做相关性守卫（宁缺毋错）。"
+                    "（闸门 check_evidence_rows_semantic_match）"
+                    % (ftype[:30], len(_unrel), len(voucher_rows), _s)))
+        elif voucher_rows and _is_ledger_voucher_context is not None:
+            if not _is_ledger_voucher_context(combined):
+                n_a += 1
+                issues.append((
+                    "ERROR", "engine/pipeline.py",
+                    "发现「%s」挂了记账凭证证据，但其文案并不在谈记账凭证语境。"
+                    "（闸门 check_evidence_rows_semantic_match）" % ftype[:30]))
+        # (b) 工资行金额不得全 0
+        sal_rows = [r for r in ev if isinstance(r, dict) and r.get("source") == "工资表"]
+        if sal_rows:
+            from engine.numparse import to_number
+            vals = [to_number(r.get("amount")) for r in sal_rows if r.get("amount") is not None]
+            if vals and all(v == 0 for v in vals):
+                n_b += 1
+                issues.append((
+                    "ERROR", "engine/fieldkit.py",
+                    "发现「%s」的 %d 行工资表证据金额**全部为 0**（%s）：这不是真没发工资，"
+                    "是证据行键表与工资表实际列名对不上 → 静默返 0 的假证据。"
+                    "修法：工资字段读取统一走 `engine.fieldkit`（唯一权威）。"
+                    "（闸门 check_evidence_rows_semantic_match）"
+                    % (ftype[:30], len(sal_rows),
+                       "、".join(str(r.get("ref_id")) for r in sal_rows[:3]))))
+    if n_a or n_b:
+        issues.append(("WARN", "engine/enterprise_report.py",
+                       "证据行语义体检：无关记账凭证 %d 处、假证据（工资金额全 0）%d 处。"
+                       "（闸门 check_evidence_rows_semantic_match）" % (n_a, n_b)))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -5074,6 +5931,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_period_key_single_source() + check_evidence_claim_grounded()
                + check_report_credibility() + check_statement_derivation()
                + check_indicator_coverage() + check_delete_semantics()
+               + check_delete_result_finality()
                + check_excel_handle_leak() + check_audit_doctrine()
                + check_missing_as_violation()
                + check_overall_conclusion_derivation() + check_report_chapter_integrity()
@@ -5082,6 +5940,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_tax_impact_render()
                + check_industry_source_integrity()
                + check_cost_industry_basis()
+               + check_account_classifier_single_source()
+               + check_cost_expense_triad()
                + check_material_completeness_no_ratio()
                + check_report_plain_language()
                + check_finding_meta_wording()
@@ -5095,8 +5955,11 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_justification_scenario_coverage()
                + check_report_expression_standard()
                + check_report_punctuation()
+               + check_no_lock_reentrancy()           # 锁重入自死锁
+               + check_evidence_rows_semantic_match()  # 证据行与发现语义匹配（防明细表挂无关凭证/假证据）
                + check_legal_basis_freshness()        # B3 法条时效
                + check_benchmark_refs_resolvable()    # B2 行业基准可解析
+               + check_benchmark_caution_single_source()  # 行业基准口径声明单一权威
                + check_rebuttal_coverage()            # C2 反证对齐
                + check_redline_admission()            # D 红线准入 + 盲区审计
                + check_combo_profile_logic()         # C3 风险组合画像逻辑锁定
@@ -5106,6 +5969,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_finding_level_legality()      # D 风险发现 level 必须合法词表
                + check_chapter_template_dedup()      # P2-7 章节模板去重锁定
                + check_constituent_sources_wiring()  # #448 逐要件独立数据源接线锁定
+               + check_material_alias_drift()       # 2026-10-01 红线资料名异名漂移（照运行时真语义模拟）
+               + check_conclusion_and_suspicion_order()  # 2026-10-02 结论先行 + 疑点/监管态度重→轻排序
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

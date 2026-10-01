@@ -246,7 +246,7 @@ def detect_labor_vs_salary(data: Dict) -> List[Dict]:
             f"且工资表人员 {('、'.join(overlap[:5]))} 等同时出现在劳务报酬支付记录中。"
             "请核实所得性质划分是否真实，是否存在拆分收入规避累进税率或社保缴纳义务的情形。",
             "中风险", 6,
-            needs_material=["劳务合同", "人员身份证与身份信息", "个税代扣代缴申报表（劳务报酬项目）"],
+            needs_material=["劳务合同", "人员身份证信息", "个税代扣代缴申报表（劳务报酬项目）"],
             policy_ref="《个人所得税法》第二条、第六条",
             evidence=labor_hit[:3] + [f"重叠人员 {len(overlap)} 人"],
         )]
@@ -260,7 +260,7 @@ def detect_labor_vs_salary(data: Dict) -> List[Dict]:
             f"存在劳务费类支出（命中：{'、'.join(labor_hit[:3])}），"
             "但未见劳务合同与个人所得税代扣代缴佐证。请核实支付对象、所得性质及扣缴义务履行情况。",
             "低风险", 4,
-            needs_material=["劳务合同", "人员身份证与身份信息", "个税代扣代缴申报表", "劳务费支付凭证"],
+            needs_material=["劳务合同", "人员身份证信息", "个税代扣代缴申报表", "劳务费支付凭证"],
             unconfirmed=True, policy_ref="《个人所得税法》第二条、第六条",
             evidence=labor_hit[:3],
         )]

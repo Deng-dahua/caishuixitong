@@ -180,6 +180,96 @@ def _attribution(diff: Optional[float], inv_total: Optional[float], book_total: 
     return out
 
 
+def _build_cost_expense_attribution(rd: Dict[str, Any]) -> Dict[str, Any]:
+    """★ 2026-10-02：主营业务成本 **vs** 期间费用的**三态归属**（成本构成 / 期间费用 / 待核）。
+
+    为什么必须有这一层（用户诉求原话）：「一键分析按钮要把主营业务成本和期间费用**准确区分**」。
+    此前报告只有「核心成本发票张数」，费用侧与待核侧**只报个数不报构成**——
+    读者只能看到"有多少钱是成本"，看不到"哪些是费用、哪些还没判出来"。
+
+    判据全部来自唯一权威 `engine.account_classifier`（本模块不重写任何词表、不重跑分类逻辑）：
+      · 成本构成   = 权威判定为「主营业务成本」的品名（含行业核心投入命中）
+      · 期间费用   = 权威判定为「期间费用」的品名（管理/销售/财务费用分项）
+      · 待核       = 权威判定「待核」的品名（需项目/合同上下文才能定性）
+      · 补证资料   = 待核项索要的具体资料（取自权威层给的 missing_material）
+
+    ★ 铁律复述：判不出来的**只报待核**，绝不默认计入成本（默认判成本=虚增成本、压低毛利）。
+    """
+    bcs = ((rd.get("engine_status") or {}).get("biz_cost_classification")) or {}
+    industry = str(bcs.get("industry_basis") or "")
+    core_rows = [r for r in (bcs.get("core_goods_breakdown") or []) if isinstance(r, dict)]
+    exp_rows = [r for r in (bcs.get("expense_goods_breakdown") or []) if isinstance(r, dict)]
+    pend_rows = [r for r in (bcs.get("pending_goods_breakdown") or []) if isinstance(r, dict)]
+    if not (core_rows or exp_rows or pend_rows):
+        return {"available": False, "industry": industry, "industry_covered": False,
+                "total_amount": 0.0, "cost": None, "expense": None, "pending": None,
+                "missing_materials": [], "contradictions": []}
+
+    try:
+        from engine import account_classifier as _ac
+    except Exception:  # pragma: no cover
+        return {"available": False, "industry": industry, "industry_covered": False,
+                "total_amount": 0.0, "cost": None, "expense": None, "pending": None,
+                "missing_materials": [], "contradictions": []}
+
+    # ① 三桶合并为待分类明细（同一品名在核心桶与费用桶同时出现时，**取权威层口径**）
+    lines: List[Dict[str, Any]] = []
+    seen: Dict[str, Dict[str, Any]] = {}
+    for rows in (core_rows, exp_rows, pend_rows):
+        for r in rows:
+            g = str(r.get("goods") or "").strip()
+            if not g:
+                continue
+            item = {"goods": g, "amount": float(r.get("amount") or 0),
+                    "count": int(r.get("count") or 0)}
+            if g in seen:
+                seen[g]["count"] += item["count"]
+                seen[g]["amount"] += item["amount"]
+            else:
+                seen[g] = item
+                lines.append(item)
+    for ln in lines:
+        ln["amount"] = round(ln["amount"], 2)
+
+    summary = _ac.classify_lines(lines, industry=industry)
+    by_cls = summary.get("by_class") or {}
+
+    def _block(cls) -> Optional[Dict[str, Any]]:
+        blk = by_cls.get(cls) or {}
+        items = [{"goods": it["goods"], "amount": it["amount"], "count": 0,
+                  "evidence": it["evidence"], "matched_kw": it.get("matched_kw", ""),
+                  "matched_layer": it.get("matched_layer", ""),
+                  "expense_sub": it.get("expense_sub", "")}
+                 for it in (blk.get("lines") or [])]
+        return {"amount": blk.get("amount", 0), "count": blk.get("count", 0), "items": items}
+
+    # ② 口径差异：管道「核心成本桶」里的品名，权威层判为费用/资本化 —— 必须显式披露，
+    #    不能让两套口径在报告里各自沉默（这正是本轮修复的 4 处词表打架的可视化）。
+    contradictions: List[Dict[str, Any]] = []
+    for r in core_rows:
+        g = str(r.get("goods") or "").strip()
+        if not g:
+            continue
+        cls = _ac.classify_line(g, industry=industry).get("account_class")
+        if cls and cls != _ac.CLASS_COST:
+            contradictions.append({"goods": g, "amount": float(r.get("amount") or 0),
+                                   "authority_class": cls,
+                                   "reason": _ac.classify_line(g, industry=industry).get("reason", "")})
+    contradictions.sort(key=lambda x: abs(x.get("amount") or 0), reverse=True)
+
+    return {
+        "available": True,
+        "industry": summary.get("industry") or industry or "未取得",
+        "industry_covered": bool(summary.get("industry_covered")),
+        "total_amount": summary.get("total_amount", 0),
+        "cost": _block(_ac.CLASS_COST),
+        "expense": _block(_ac.CLASS_EXPENSE),
+        "pending": _block(_ac.CLASS_UNDETERMINED),
+        "missing_materials": summary.get("missing_materials") or [],
+        "contradictions": contradictions,
+    }
+
+
 def build_cost_recon_detail(report_data: Any) -> Dict[str, Any]:
     """生成「主营业务成本两口径勾稽明细」。无论是否超阈值都产出（合规留痕）。"""
     rd = report_data if isinstance(report_data, dict) else {}
@@ -259,6 +349,37 @@ def build_cost_recon_detail(report_data: Any) -> Dict[str, Any]:
             paragraphs.append("尚有 %d 张进项发票按行业口径无法判定归属（待核），未计入上表成本类；"
                               "其归属确认后会改变发票类目口径。" % inv["pending_count"])
 
+        # ★ 2026-10-02：主营业务成本 vs 期间费用的三态归属（口径来自唯一权威 account_classifier）
+        cea = _build_cost_expense_attribution(rd)
+        assert cea is not None, "成本费用归属不得为 None（关键产出）"
+        if cea.get("available"):
+            _fmt = lambda _x: "0" if _x is None else format(float(_x), ",.2f")  # noqa: E731
+            _c, _e, _p = cea.get("cost") or {}, cea.get("expense") or {}, cea.get("pending") or {}
+            _seg = ("主营业务成本与期间费用的区分：按「%s」行业口径判定，"
+                    "计入主营业务成本 %s 元（%d 类），计入期间费用 %s 元（%d 类，其中管理费用 %s 元、"
+                    "销售费用 %d 元），尚待项目/合同上下文才能定性 %s 元（%d 类）。"
+                    % (cea.get("industry") or "未取得", _fmt(_c.get("amount")), _c.get("count", 0),
+                       _fmt(_e.get("amount")), _e.get("count", 0),
+                       _fmt(sum(i.get("amount", 0) for i in (_e.get("items") or [])
+                                if i.get("expense_sub") == "管理费用")),
+                       sum(1 for i in (_e.get("items") or []) if i.get("expense_sub") == "销售费用"),
+                       _fmt(_p.get("amount")), _p.get("count", 0)))
+            paragraphs.append(_seg + "判不出来的只列入待核，未默认计入成本。")
+            if not cea.get("industry_covered"):
+                paragraphs.append(
+                    "需说明：本轮未取到该行业的核心投入登记（industry_data.json 中无对应行业口径），"
+                    "上述划分因此采用**业态兜底**口径（购销/生产业态下未落入费用或资本化口径的进项"
+                    "计入存货），而非按行业核心投入逐项认定；若要精确到「哪些属于该行业的外购成本」，"
+                    "须补充登记该行业的核心投入品名。")
+            if cea.get("contradictions"):
+                _top = "；".join("「%s」%s 元" % (str(x["goods"])[:24], _fmt(x.get("amount")))
+                                for x in (cea["contradictions"] or [])[:3])
+                paragraphs.append(
+                    "口径差异提示：已计入成本桶的品名中，有 %d 类按权威口径应作「%s」处理（%s），"
+                    "两者差异须核对合同用途后确认。"
+                    % (len(cea["contradictions"]),
+                       (cea["contradictions"][0].get("authority_class") or ""), _top))
+
     return {
         "available": available,
         "invoice_total": it, "invoice_count": int(inv.get("count") or 0),
@@ -274,5 +395,7 @@ def build_cost_recon_detail(report_data: Any) -> Dict[str, Any]:
         "trial_balance_check": book.get("trial_balance_check"),
         "diff": diff, "diff_pct": diff_pct, "status": status,
         "attribution": attribution,
+        # ★ 2026-10-02：主营业务成本 vs 期间费用三态归属（唯一权威 account_classifier 产出）
+        "cost_expense_attribution": _build_cost_expense_attribution(rd),
         "paragraphs": paragraphs,
     }

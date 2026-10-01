@@ -87,7 +87,9 @@ class SupplierGeoCoreScopeTests(unittest.TestCase):
         findings = _scan_supplier_geo(data, self._spec())
         self.assertTrue(findings, "应产生供应商地域分布发现")
         m = findings[0]["observed_metrics"]
-        self.assertEqual(m.get("scope"), "core_cost")
+        # ★ 2026-10-02：口径标签由 core_cost 改为 procurement_minus_expense —— 集中度只剔除「确定费用类」，成本类与待核类（辅料/运输/维修…）都计入采购来源地；
+        #   实质判据（费用类不得计入供应商户数/地域/金额）仍由下面三行断言守住。
+        self.assertEqual(m.get("scope"), "procurement_minus_expense")
         self.assertEqual(m.get("supplier_count"), 3, "酒店报销不得计入供应商户数")
         self.assertEqual(m.get("province_count"), 2, "20 个城市的报销发票不得计入地域分布")
         self.assertAlmostEqual(m.get("total_amount"), 1200000.0, places=2)
@@ -120,6 +122,29 @@ class SupplierGeoCoreScopeTests(unittest.TestCase):
         findings = _scan_supplier_geo(data, self._spec())
         self.assertTrue(findings, "多供应商 + 高度集中 + 全异地应触发")
         self.assertIn("采购高度集中", findings[0]["detail"])
+
+    def test_pending_goods_must_not_shrink_supplier_count(self):
+        """2026-10-02 回归：待核类采购（辅料/包装料/运输）不得被收窄出集中度统计。
+
+        事故：VR016 原按「仅主营业务成本」收窄口径，成本识别口径一漂（辅料被判为费用）
+             供应商家数从 10 家掉到 3 家，规则自带的「多供应商≥8 家」前置条件被静默堵死，
+             同一样本从「应核查」变成「不报」。待核品名同样是真实采购来源地，必须留在口径内。
+        """
+        # 采购额合计须达 VR016 的 100 万门槛：80 万主力 + 7 家辅料 21 万 = 101 万
+        pur = [_inv("*纺织产品*纱线", 400000, seller="浙江纱线甲有限公司"),
+               _inv("*纺织产品*布匹", 400000, seller="广东布行丙有限公司")]
+        for i in range(7):
+            # 辅料＝「需上下文词」，account_classifier 判「待核」；既非确定费用，也未确认成本
+            pur.append(_inv("*纺织产品*辅料", 30000, seller=f"广东辅料{i}有限公司"))
+        data = {"pur_invs": pur, "sal_invs": [],
+                "target_entity": {"name": "河南某某纺织有限公司"}}
+        findings = _scan_supplier_geo(data, self._spec())
+        self.assertTrue(findings, "待核类被剔除后「多供应商」前置条件被静默堵死 → 漏报")
+        m = findings[0]["observed_metrics"]
+        self.assertEqual(m.get("supplier_count"), 9, "辅料（待核类）供应商必须计入户数")
+        # 前三大＝纱线40万＋布匹40万＋辅料1户3万＝83万 / 采购合计101万
+        self.assertAlmostEqual(m.get("cr3"), (830000.0 / 1010000.0), places=4)
+        self.assertNotEqual(m.get("scope"), "core_cost", "口径标签已改为全部采购减确定费用")
 
     def test_fallback_when_core_insufficient(self):
         # 主营识别不充分（费用类占大头）→ 降级全量并声明口径
@@ -401,6 +426,22 @@ class VR063to070NewScenariosTests(unittest.TestCase):
         f = _scan_supplier_invoice_pattern({"pur_invs": pur}, self._spec("VR066", ["pur_invs"]))
         self.assertTrue(f, "顶额开票应触发")
         self.assertIn("顶额开票", f[0]["detail"])
+
+    def test_vr066_pending_goods_not_dropped(self):
+        from engine.verified_rule_engine import _scan_supplier_invoice_pattern
+        """2026-10-02 回归：VR066 与 VR016 同源 —— 待核类（辅料）顶额开票不得被口径收窄吃掉。
+
+        事故：VR066 原按「仅主营业务成本」收窄，成本识别口径一漂（辅料被判为费用），
+             辅料发票被剔出统计，8 张顶额发票变成 0 张 → 顶额开票信号静默消失。
+        """
+        pur = [{"goods": "*纺织产品*纱线", "seller": "本地纱线商", "amount": 100000}]
+        # 辅料＝需上下文词，account_classifier 判「待核」；与纱线同属采购来源口径
+        pur += [{"goods": "*纺织产品*辅料", "seller": "广东辅料商", "amount": 99000}
+                for _ in range(8)]
+        f = _scan_supplier_invoice_pattern(
+            {"pur_invs": pur, "industry": "纺织业"}, self._spec("VR066", ["pur_invs"]))
+        self.assertTrue(f, "辅料（待核类）8 张顶额开票被剔出口径 → 静默漏报")
+        self.assertIn("广东辅料商", f[0]["detail"])
 
     def test_vr067_discount_anomaly(self):
         from engine.verified_rule_engine import _scan_discount_anomaly

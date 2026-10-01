@@ -174,8 +174,26 @@ _OVERCLAIM_RULES = (
     (re.compile(r"(?:即是|即为|已是|已经构成|已经形成)[^。；，、\n]{0,10}(?:账外收入|账外收款|隐匿收入|隐瞒收入)"),
      "存在收入完整性待核事项"),
     # ⑥ 定性成立 / 证据闭环成立 / 已形成完整证据链
+    #    ⚠ 2026-10-01 误伤修复：本规则**只拦断言**（"部分收入定性成立"）。
+    #      实测事故：报告「三、已取得的资料与待补充的资料」写的是
+    #      「本项要**定性为成立还是不成立**，须先把材料补齐」——这是**待核/双向问句**，
+    #      却被整段替换成「本项要**达到提交人工复核条件还是不成立**」，读者完全看不懂。
+    #      根因：正则里 `成立` 会把"成立还是不成立""成立与否"这类**否定向/选择式**一并吃掉。
+    #      故 ⑥ 拆到 `_OVERCLAIM_FACT_RULE`，由 `_HEDGE_QUERY` 先判句子是不是待核问句，
+    #      是则只应用 ①~⑤、跳过 ⑥；否则照旧拦截。
+    #      白名单是**声明式**的： future 新增同类问句须写进 `_HEDGE_QUERY`，否则仍会被改。
     (re.compile(r"(?:定性|举证|证明|证据链)[^。；，、\n]{0,8}?成立"),
      "达到提交人工复核条件"),
+)
+
+# ⑥ 单独成组：待核/双向问句**不适用** ⑥（见下方 `_HEDGE_QUERY`）
+_OVERCLAIM_FACT_RULE = _OVERCLAIM_RULES[-1:]
+
+# ★ 待核/双向表述的识别式：句中含有"成立还是不成立""成立与否""能否定性成立"等，
+#   说明这句话在问"能不能成立"，不是在断言"已经成立" → 跳过 ⑥，其余规则照常。
+_HEDGE_QUERY = re.compile(
+    r"成立还是不成立|成立与否|是否定性成立|能否定性成立|"
+    r"定性为成立(?:还是|与否)|是否足以(?:成立|定性)|是否构成(?:成立|违法)"
 )
 
 
@@ -247,7 +265,11 @@ def _apply_overclaim_rules(text: str) -> str:
         if not seg or seg in ("。", "；", "\n") or "《" in seg or "》" in seg:
             out.append(seg)
             continue
-        for pattern, repl in _OVERCLAIM_RULES:
+        # ★ 待核/双向问句（"成立还是不成立""成立与否"）不得被 ⑥ 中性化——
+        #   ⑥ 的成立是拦"已定性成立"的断言，问句不含该断言（2026-10-01 实测误伤事故）。
+        _rules = (_OVERCLAIM_RULES if not _HEDGE_QUERY.search(seg)
+                  else _OVERCLAIM_RULES[:-1])
+        for pattern, repl in _rules:
             seg = pattern.sub(repl, seg)
         out.append(seg)
     return "".join(out)

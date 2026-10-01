@@ -546,34 +546,6 @@
       "cands": []
     }
   ],
-  "blind": [
-    "RL-AST-002",
-    "RL-CIT-002",
-    "RL-CIT-003",
-    "RL-CIT-005",
-    "RL-CIT-006",
-    "RL-COST-001",
-    "RL-FUND-003",
-    "RL-FUND-004",
-    "RL-INC-004",
-    "RL-INV-001",
-    "RL-INV-002",
-    "RL-INV-003",
-    "RL-OTH-002",
-    "RL-OTH-004",
-    "RL-OTH-005",
-    "RL-PAY-004",
-    "RL-PAY-006",
-    "RL-SPT-001",
-    "RL-SPT-002",
-    "RL-SPT-003",
-    "RL-SPT-004",
-    "RL-SPT-005",
-    "RL-SPT-006",
-    "RL-SPT-007",
-    "RL-SPT-009",
-    "RL-SPT-010",
-    "RL-VAT-009"
-  ],
+  "blind": [],
   "review": []
 }

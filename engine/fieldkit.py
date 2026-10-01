@@ -49,11 +49,25 @@ INV_TYPE_KEYS: Tuple[str, ...] = ("inv_type", "invoice_type", "发票类型", "�
 STATUS_KEYS: Tuple[str, ...] = ("status", "发票状态", "票据状态", "状态")
 PERIOD_KEYS: Tuple[str, ...] = (
     "period_start", "period_end", "所属期", "费款所属期", "期间", "月份", "month",
-    "所属月份", "账期", "缴费所属期", "税款所属期", "所属期间",
+    "所属月份", "账期", "缴费所属期", "税款所属期", "所属期间", "记账月份", "凭证日期",
 )
 ACCOUNT_KEYS: Tuple[str, ...] = (
     "account", "科目", "科目名称", "会计科目", "acct", "account_name",
 )
+
+# ── 工资/社保人员行字段（2026-10-01 补充：原 detector 与「证据行」各写一份键表）──
+# 事故：pipeline._enrich_evidence_rows._salary_row 读 姓名/部门/实发金额/period，
+# 而工资表实际行结构是 {name, salary, net, gross, period_start, period_end, ...}
+# （实测 12 张工资表 55 行：旧键表**一行都读不到金额**，证据行金额恒 0.00 元、
+# 部门与日期恒空 —— 读者看到"这几个人 0 元"，是**假证据**，不是真没发工资）。
+PERSON_NAME_KEYS: Tuple[str, ...] = (
+    "name", "employee_name", "姓名", "员工姓名", "职工姓名", "人员姓名",
+)
+# 顺序＝取值优先级；0 元就是 0 元，不得因"0 是假值"继续往后取（旧实现用 `or` 链会跳过 0）
+SALARY_PAY_KEYS: Tuple[str, ...] = (
+    "salary", "wage", "应发", "gross", "net", "实发", "实发金额", "实发工资", "amount",
+)
+SALARY_DEPT_KEYS: Tuple[str, ...] = ("部门", "dept", "department", "所属部门")
 
 # 表头/合计行等非人员文本（唯一维护处）
 NOISE_PERSON_NAMES = {
@@ -107,6 +121,35 @@ def invoice_status(inv: Any) -> str:
 def account_name(voucher: Any) -> str:
     """记账凭证的科目名称。"""
     return _txt(voucher, ACCOUNT_KEYS)
+
+
+def person_name(row: Any) -> str:
+    """人员姓名（工资名册/社保清单/人员档案统一）。"""
+    return _txt(row, PERSON_NAME_KEYS)
+
+
+def salary_pay(row: Any) -> float:
+    """工资金额（应发/实发都要能取到）；取不到返回 0。
+
+    ★ 2026-10-01：旧实现用 `row.get("salary") or row.get("wage") or ...` 串，
+      `0` 会被当成假值继续往后取 —— 0 元工资会被读成下一个别名的金额，
+      属于"静默漂移"。现改为按别名顺序取第一个**键存在**的值（0 就返回 0）。
+    """
+    if not isinstance(row, dict):
+        return 0.0
+    for k in SALARY_PAY_KEYS:
+        if k not in row:
+            continue
+        try:
+            return float(_num(row, (k,)))
+        except Exception:  # noqa: BLE001  # 值非数值时继续下一个别名
+            continue
+    return 0.0
+
+
+def salary_dept(row: Any) -> str:
+    """工资/人员记录所属部门。"""
+    return _txt(row, SALARY_DEPT_KEYS)
 
 
 def tax_category(goods: Any) -> str:

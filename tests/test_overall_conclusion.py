@@ -218,6 +218,38 @@ class TestChapterNoDuplication(unittest.TestCase):
         self.assertNotIn("待核实风险事项", j)   # ★ 2026-09-27 改用「涉嫌风险事项」
         self.assertIn("涉嫌风险事项", j)
 
+    def test_conclusion_comes_first(self):
+        """★★ 2026-10-02 用户定调「一定是先说重要的信息」：结论段必须早于程序性铺垫段。
+
+        原实现把「企业整体风险综合评价」排在第 6 段（在概览/性质归纳/等级评定之后），
+        读者第 1 页看不到整体定调。本测试锁死"结论先行"。
+        """
+        P = self._oc()["paragraphs"]
+        i_concl = next((i for i, p in enumerate(P) if "企业整体风险综合评价" in p), -1)
+        i_overview = next((i for i, p in enumerate(P) if "检查范围与结果概览" in p), -1)
+        self.assertGreaterEqual(i_concl, 0, "总述缺「企业整体风险综合评价」段")
+        self.assertLess(i_concl, i_overview,
+                        "未结论先行：「企业整体风险综合评价」应早于「检查范围与结果概览」")
+
+    def test_posture_clauses_weight_desc(self):
+        """★★ 2026-10-02：监管态度分级条款必须由重到轻（关注→补证→待核验→限期→提示）。
+
+        原实现按「提示提醒(低) → 补证核实(中) → 重点关注(高)」排，把最轻的放最前。
+        """
+        P = self._oc()["paragraphs"]
+        pos = next((p for p in P if "监管态度与后续处理建议" in p), "")
+        self.assertTrue(pos, "总述缺「监管态度与后续处理建议」段")
+        order = ["重点关注：", "补证核实：", "待核验事项：", "限期补正资料：", "提示提醒："]
+        found = {}
+        for k in order:
+            if k in pos:
+                found[k] = pos.find(k)
+        self.assertTrue(found, "监管态度段一个分级条款都没有（判据失效，须修闸门/文案）")
+        seq = [found[k] for k in order if k in found]
+        self.assertEqual(seq, sorted(seq),
+                         "监管态度分级条款未按风险由重到轻排列（应为 重点关注→补证核实→"
+                         "待核验事项→限期补正资料→提示提醒）")
+
     def test_section_markers_present(self):
         j = "".join(self._oc()["paragraphs"])
         for marker in ("检查范围与结果概览", "按风险性质归纳", "风险等级评定",

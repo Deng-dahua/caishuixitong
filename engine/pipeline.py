@@ -12,6 +12,7 @@ from sqlalchemy import func, or_, and_
 from typing import Optional, List, Dict, Any, Tuple
 import json, os, re, math, uuid, hashlib, traceback, logging, io, time, ssl, urllib.request, urllib.parse
 from engine.thresholds import T  # 税率阈值统一配置
+from engine import account_classifier as _account_classifier  # ★ 2026-10-02 成本/费用归属唯一权威（禁在此处重抄词表）
 
 from database import (
     get_db, SessionLocal,
@@ -4002,11 +4003,11 @@ def _run_analyze(company_id, db, progress_callback=None):
         def _get_goods(inv):
             return str(inv.get("goods", "") or inv.get("goods_name", "") or "")
         
-        # 经营费用关键词——这些是日常运营支出，不是生产物资，不应混入原材料分析
-        _EXPENSE_KWS = ["住宿", "餐饮", "餐费", "房费", "汽油", "柴油", "加油",
-                        "旅游", "差旅", "租赁", "保险", "通讯", "电话", "办公",
-                        "快递", "广告", "咨询", "法律", "维修", "物业", "停车",
-                        "经纪代理", "代订"]
+        # 经营费用关键词——这些是日常运营支出，不是生产物资，不应混入原材料分析。
+        # ★ 2026-10-02：原为**此处私有重抄**，且与 main_biz_cost._MAJOR_EXPENSE_KWS 打架
+        #   （同为「住宿费」：这里判费用、那边判不到而落成本）。现**引用**唯一权威
+        #   `engine.account_classifier`，本表不再有第二份字面量（闸门会拦）。
+        _EXPENSE_KWS = _account_classifier.operating_expense_keywords()
         def _is_expense(goods_name):
             return any(kw in goods_name for kw in _EXPENSE_KWS)
         
@@ -5191,6 +5192,12 @@ def _run_analyze(company_id, db, progress_callback=None):
             "core_cost_supplier_breakdown": _agg_invs(_core_invs, "seller"),
             "core_cost_invoices": _core_inv_rows,
             "core_cost_invoices_field_fill": _field_fill,
+            # ★ 2026-10-02：费用侧与待核侧也**必须**带品名小计，否则报告层无法把
+            #   「主营业务成本 vs 期间费用」逐类区分（只剩一个张数，只能看不能核）。
+            #   三桶品名小计是 `account_classifier` 三态判定的输入（单一权威，不在此重算）。
+            "expense_goods_breakdown": _agg_invs(
+                (bcc.get("major_expense_invs") or []) + (bcc.get("minor_expense_invs") or []), "goods"),
+            "pending_goods_breakdown": _agg_invs(bcc.get("pending_cost_invs") or [], "goods"),
             "industry_basis": str(bcc.get("industry_basis") or ""),
         }
 
@@ -7399,6 +7406,54 @@ def _enrich_finding_details(all_findings, bank_txs, invoices, salaries, docs):
     return all_findings
 
 
+# ── 记账凭证语境判定（2026-10-01：唯一权威，审计闸门静态引用）──
+# 判据：必须命中「记账凭证专属词」；且不得命中「其它凭证类资料名」。
+# 新增同类凭证资料名时，只要往 _VOUCHER_NOT_CTX_KEYS 加一行即可（不改逻辑分支）。
+_VOUCHER_CTX_KEYS = (
+    "记账凭证", "会计分录", "序时账", "凭证明细", "凭证号", "转账凭证",
+    "收款凭证", "付款凭证", "总账", "明细账", "科目余额", "借贷", "收入三源",
+)
+_VOUCHER_NOT_CTX_KEYS = (
+    "参保凭证", "原始凭证", "发票凭证", "合同凭证", "开户凭证", "权属凭证",
+)
+
+
+def _is_ledger_voucher_context(text):
+    """`text` 是否真的在谈**记账凭证**（而非泛指某种"凭证"资料名）。"""
+    t = str(text or "")
+    if any(x in t for x in _VOUCHER_NOT_CTX_KEYS):
+        return False
+    return any(k in t for k in _VOUCHER_CTX_KEYS)
+
+
+# ── 通用兜底采样的「相关性」守卫（2026-10-01）──
+# 旧实现 `sorted(vouchers, key=金额, reverse=True)[:5]` = 给**每一条**发现都挂
+# "全公司金额最大的 5 张凭证"。触发词再准也救不了：读者在「工资多源对等」疑点下
+# 看到「销售服务 1,494,054.59」，除了困惑没有任何意义。
+# 现改为两级守卫：① 期间对齐；② 凭证自身（摘要/科目）必须与发现文本有实义词交集，
+# 交集为空 → **不采**（宁缺毋错：不给证据比给假证据好）。
+_VOUCHER_REL_STOP = frozenset({
+    "凭证", "记账", "科目", "金额", "差异", "调节", "说明", "存在", "缺失", "核实",
+    "检查", "数据", "来源", "有关", "无关于", "的是", "与否", "万元", "元", "笔", "项",
+})
+
+
+def _cjk_bigrams(text):
+    """中文相邻 2-gram —— 唯一权威 `engine/findingkit.py:cjk_bigrams`（本名转调）。"""
+    from engine.findingkit import cjk_bigrams as _fk
+    return _fk(text)
+
+
+def _voucher_relevant(v, gram_set):
+    """凭证行是否与发现文本相关（摘要/科目与发现正文的中文 2-gram 有实义交集）。"""
+    t = "%s %s" % (str(v.get("summary", v.get("摘要", "")) or ""),
+                   str(v.get("account_name", v.get("科目", "")) or ""))
+    if not t.strip():
+        return False
+    hit = (_cjk_bigrams(t) & gram_set) - _VOUCHER_REL_STOP
+    return bool(hit)
+
+
 def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, company_name=""):
     """为每条发现附加原始数据行级引用（evidence_rows），实现白盒可验证结论。
     
@@ -7478,13 +7533,22 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         }
     
     def _salary_row(s, label="工资"):
+        # ★ 2026-10-01 假证据根因修复：原先这里自己写了一份键表（姓名/部门/实发金额/period），
+        #   与工资表实际结构（name/salary/net/period_start…）完全对不上 ——
+        #   实测 12 张工资表 55 行**一行都读不到金额**，证据行金额恒 0.00 元、
+        #   部门与日期恒空。读者据此会认为"这几个人 0 元工资"，属假证据。
+        #   现统一取 fieldkit（工资字段唯一权威），金额/姓名/月份口径与检测器完全一致。
+        from engine.fieldkit import person_name as _fk_name
+        from engine.fieldkit import salary_dept as _fk_dept
+        from engine.fieldkit import salary_pay as _fk_pay
+        from engine.fieldkit import row_period as _fk_period
         return {
             "source": label,
-            "ref_id": str(s.get("姓名", s.get("name", "")))[:15] or "-",
-            "ref_label": str(s.get("部门", s.get("dept", "")))[:20],
-            "amount": to_number(s.get("实发金额", s.get("实发", s.get("amount", 0)))),
+            "ref_id": str(_fk_name(s))[:15] or "-",
+            "ref_label": str(_fk_dept(s))[:20],
+            "amount": to_number(_fk_pay(s)),
             "counterparty": "",
-            "date": str(s.get("period", s.get("月份", s.get("date", ""))))[:10],
+            "date": str(_fk_period(s))[:10],
             "note": ""
         }
     
@@ -7497,6 +7561,18 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
             continue
         ftype = f.get("type", "")
         combined = ftype + " " + str(f.get("detail", "")) + " " + str(f.get("description", ""))
+        # 期间对齐：发现文案里写明的所属期（如「…（2025-01）」/「2025-01 各来源…」）
+        #   用来把通用采样限定在同期间的原始行 —— 否则「2025-01 工资多源对等」挂的
+        #   是全年最大额的凭证，与 2025-01 无关。解析不出期间时维持原状（不过滤）。
+        _periods = set()
+        try:
+            from engine.findingkit import normalize_month as _nmonth
+            for _tok in __import__("re").findall(r"20\d{2}[-年/]\d{1,2}", combined):
+                _m = _nmonth(_tok)
+                if _m:
+                    _periods.add(_m)
+        except Exception:  # noqa: BLE001
+            _periods = set()
         evidence_rows = []
         max_rows = 8  # 每项待核事实最多8条示例证据行
         
@@ -7518,9 +7594,19 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
                 evidence_rows.append(_bank_row(tx, "银行流水"))
         
         # 凭证相关 → 采样凭证
-        if any(kw in combined for kw in ["凭证", "分录", "记账", "科目", "收入三源"]):
-            sorted_v = sorted(vouchers, key=lambda x: to_number(x.get("credit", x.get("debit", 0))), reverse=True)[:5]
-            for v in sorted_v:
+        # ★ 2026-10-01 语义误判根因修复：「凭证」二字在中文财税语境里有**两种含义** ——
+        #   ① 记账凭证（款号/分录/序时账）；② 其它凭证类资料名（参保凭证、原始凭证、
+        #   收款/付款凭证、合同凭证…）。旧判定只要出现「凭证」二字就采**全公司金额最大的
+        #   5 张记账凭证**，实测误伤：疑点「工资名册与社会保险人员范围差异」的文案里写了
+        #   "提供劳动合同、参保**凭证**或异地参保证明"，于是这张与工资/社保毫无关系的
+        #   收款 161 万、结转损益 152 万…等 4 张凭证被挂成了该疑点的「逐笔明细」。
+        #   现改为「必须命中记账凭证专属词」且「不含其它凭证类资料名」。
+        if (_is_ledger_voucher_context(combined)):
+            from engine.fieldkit import row_period as _fk_period
+            _grams = _cjk_bigrams(combined)
+            _pool = [v for v in vouchers if not _periods or _fk_period(v) in _periods]
+            _rel = [v for v in (_pool or vouchers) if _voucher_relevant(v, _grams)]
+            for v in (_rel or [])[:5]:
                 evidence_rows.append(_voucher_row(v, "记账凭证"))
         
         # 发票行为 → 采样可疑发票

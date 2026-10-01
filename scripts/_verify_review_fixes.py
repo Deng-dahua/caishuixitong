@@ -325,24 +325,52 @@ try:
 except Exception as e:
     rec("P1-10", "检索不到不得写成「正常」", "行为断言", "执行失败: %s" % e, False)
 
-# P1-11 个人信息脱敏
+# P1-11 ★ 2026-10-02（用户定调）：**报告禁止信息脱敏 / 禁止隐藏**
 try:
-    from engine.pii_guard import redact_enterprise_report as _rg
-    _o = _rg({"identity": {"organization": {"名称": "深圳海更数字传媒有限公司"}},
-              "p": [{"text": "收款人 杨莹 收到 670,000 元。"}]},
-             source={"rows": [{"counterparty": "杨莹"}, {"counterparty": "深圳海更数字传媒有限公司"}]})
+    _o = {"identity": {"organization": {"名称": "深圳海更数字传媒有限公司"}},
+          "p": [{"text": "收款人 杨莹 收到 670,000 元。"}]}
     _ob = json.dumps(_o, ensure_ascii=False)
-    rec("P1-11", "个人信息须脱敏 + 内部资料标识",
-        "行为：正文姓名脱敏、企业名不误改、带 _pii_notice",
-        "姓名残留=%s；企业名保留=%s；标识=%s" % ("杨莹" in _ob, "深圳海更数字传媒有限公司" in _ob,
-                                            bool(_o.get("_pii_notice"))),
-        "杨莹" not in _ob and "深圳海更数字传媒有限公司" in _ob and bool(_o.get("_pii_notice")))
+    _hid = [s for s in ("杨*", "初**", "李**", "徐*", "吴**") if s in _ob]
+    rec("P1-11", "报告禁止脱敏/隐藏",
+        "行为：正文姓名原样保留、企业名不改、无星号占位",
+        "真名保留=%s；占位=%s；企业名保留=%s" % ("杨莹" in _ob, _hid or "无",
+                                           "深圳海更数字传媒有限公司" in _ob),
+        "杨莹" in _ob and "深圳海更数字传媒有限公司" in _ob and not _hid)
 except Exception as e:
-    rec("P1-11", "个人信息须脱敏", "行为断言", "执行失败: %s" % e, False)
-rec("P1-11b", "报告须带脱敏标识",
-    "报告实测：enterprise_readable_report 带 _pii_notice",
-    "存在=%s" % bool(ER.get("_pii_notice")),
-    bool(ER.get("_pii_notice")))
+    rec("P1-11", "报告禁止脱敏/隐藏", "行为断言", "执行失败: %s" % e, False)
+# 报告实测：企业版报告不得残留脱敏标识/统计（pii_guard 已整体删除）
+_rec11 = [k for k in ("_pii_notice", "_pii_stats", "pii_guard") if k in ER]
+rec("P1-11b", "报告实测不得带脱敏残留",
+    "报告实测：enterprise_readable_report 不带 _pii_notice/_pii_stats",
+    "残留=%s" % (_rec11 or "无"),
+    not _rec11)
+# 行为闸门：源码里不得重新接回脱敏
+import ast as _ast11, pathlib as _pl11
+_hits11 = []
+for _rd in ("engine", "tools"):
+    for _f in sorted(pathlib.Path(_rd).glob("*.py")):
+        try:
+            _tr = _ast11.parse(_f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for _nd in _ast11.walk(_tr):
+            _syms = []
+            if isinstance(_nd, _ast11.Import):
+                _syms = [a.name for a in _nd.names]
+            elif isinstance(_nd, _ast11.ImportFrom):
+                _syms = [(_nd.module or "")] + [a.name for a in _nd.names]
+            elif isinstance(_nd, _ast11.Name):
+                _syms = [_nd.id]
+            elif isinstance(_nd, _ast11.Attribute):
+                _syms = [_nd.attr]
+            if any(s in ("pii_guard", "mask_person_name", "redact_enterprise_report")
+                   for s in _syms):
+                _hits11.append(str(_f))
+                break
+rec("P1-11c", "源码不得重新接回脱敏",
+    "行为：engine/ tools/ main.py 全 AST 扫描无脱敏符号",
+    "命中文件=%s" % (_hits11 or "无"),
+    not _hits11)
 
 # P1-12 时效与滞纳金
 rec("P1-12", "须给时效与滞纳金提示",

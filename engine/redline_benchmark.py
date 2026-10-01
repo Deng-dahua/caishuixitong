@@ -29,6 +29,8 @@ from engine.industry_benchmark import (
     resolve_benchmark as _ib_resolve,
     evaluate_indicator as _ib_evaluate,
     _METRIC_ZH_TO_EN,
+    BENCHMARK_CAUTION as _CAUTION,          # ★ 口径声明唯一出处（2026-10-02）
+    BENCHMARK_CAUTION_SHORT as _CAUTION_SHORT,
 )
 from engine.industry_resolver import load_industry_data
 
@@ -110,7 +112,7 @@ def resolve_redline_benchmark(industry: Optional[str], metric: str
         mid = float(rec[2]) if len(rec) >= 3 else round((lo + hi) / 2, 4)
         return {"lo": lo, "hi": hi, "mid": mid, "industry": ind,
                 "metric": metric, "source": "industry_data.json",
-                "reliable": "通用参考值（非税务机关官方口径）"}
+                "reliable": _CAUTION_SHORT}
 
     # 其余 4 个比率/百分比指标：委托 industry_benchmark 单一权威
     en = _METRIC_ZH_TO_EN.get(metric)
@@ -126,7 +128,7 @@ def resolve_redline_benchmark(industry: Optional[str], metric: str
     mid = round((lo + hi) / 2, 4)
     return {"lo": lo, "hi": hi, "mid": mid, "industry": matched,
             "metric": metric, "source": f"industry_benchmark（{source}）",
-            "reliable": "通用参考值（非税务机关官方口径）"}
+            "reliable": _CAUTION_SHORT}
 
 
 def benchmark_note(rid: str, industry: Optional[str] = None) -> Dict[str, object]:
@@ -141,11 +143,11 @@ def benchmark_note(rid: str, industry: Optional[str] = None) -> Dict[str, object
     b = resolve_redline_benchmark(industry, metric)
     if b is None:
         text = (f"该项以行业基准「{metric}」区间为参照，须按实际所属行业从 "
-                f"industry_data.json 取对应区间（通用参考值，非税务机关官方口径）")
+                f"industry_data.json 取对应区间；{_CAUTION_SHORT}")
         return {"rid": rid, "metric": metric, "resolved": False, "text": text, "range": None}
     rng_txt = f"[{_fmt(metric, b['lo'])}~{_fmt(metric, b['hi'])}]"
     text = (f"以行业基准「{metric}」区间{rng_txt}为参照"
-            f"（来源 {b['source']}，{b['reliable']}）")
+            f"（来源 {b['source']}；{_CAUTION}）")
     return {"rid": rid, "metric": metric, "resolved": True,
             "text": text, "range": [b["lo"], b["hi"], b["mid"]]}
 
@@ -199,7 +201,7 @@ def compare_redline_benchmark(rid: str, industry: Optional[str] = None,
                           f"疑数据不完整（如收入或成本口径不全），不参与行业比对"}
     lo_t, hi_t = _fmt(metric, b["lo"]), _fmt(metric, b["hi"])
     act_t = _fmt(metric, ev["value"])
-    src = f"来源 {b['source']}，{b['reliable']}"
+    src = f"来源 {b['source']}；{_CAUTION}"
 
     if ev["in_range"]:
         text = (f"本企业{metric}实测 {act_t}，落在行业参考区间[{lo_t}~{hi_t}]内，"

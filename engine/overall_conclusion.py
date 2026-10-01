@@ -313,9 +313,8 @@ def build_overall_conclusion(report_data: Any,
     # ══════════ 组装段落 ══════════
     P: List[str] = []
 
-    # ★ 2026-09-29（P2-3）：改走单一权威 `compilation_declaration`（按轮次条件化）
-    P.append(compilation_declaration(report_data))
-
+    # ★ 2026-10-02：结论段已置顶（见下），故**计数/等级/主题等派生量必须先于段落生成**算出。
+    #   （踩坑实录：结论段直接引用 `_themes`/`_grade`，插在派生之前会 UnboundLocalError。）
     # ★ 开篇总括（用户要求：先给整体情况与重点结果，再展开细节）
     _lv = {t["level"]: t["count"] for t in tiers}
     _high = int(_lv.get("高风险", 0) or 0)
@@ -337,6 +336,42 @@ def build_overall_conclusion(report_data: Any,
     dir_txt = ""
     if directions:
         dir_txt = "可能涉及的涉嫌方向包括：" + "、".join(directions) + "等。"
+
+    # ★ 2026-09-29（P2-3）：改走单一权威 `compilation_declaration`（按轮次条件化）
+    P.append(compilation_declaration(report_data))
+
+    # ★★★ 2026-10-02（用户定调：一定是先说重要的信息）：**企业整体风险综合评价置顶（结论先行）**。
+    #   原实现把本段排在第 6 位（在「检查范围/按风险性质/风险等级/纳税遵从看法」之后），
+    #   读者翻到第 1 页先看到的是程序性铺垫，最关键的「整体定调」反而被明细淹没。
+    #   重排后本章顺序＝结论（整体等级 + 主要风险领域 + 遵从评价）→ 检查范围与结果概览 →
+    #   风险等级评定 → 按风险性质归纳 → 行业口径 → 纳税遵从总体看法 → 未完成 → 下一步 →
+    #   监管态度 → 需要说明。
+    #   ★ 去重纪律（不违反「章内同一事实只说一遍」）：本段只给**整体等级 + 主要风险领域**，
+    #     各等级项数与点名清单仍只由「风险等级评定」段给出（本段不复述项数）。
+    #     「风险等级评定」段相应改为前指「上述整体等级」，不再重复报等级。
+    _top = sorted(_themes, key=lambda g: -int(g.get("count") or 0))[:2]
+    _total_p = len(problems)
+    _sum_top = sum(int(g.get("count") or 0) for g in _top)
+    _share = (_sum_top / _total_p * 100) if _total_p else 0.0
+    if len(_top) >= 2:
+        _top_clause = ("风险高度集中于「%s」与「%s」两个领域，二者合计 %d 项、"
+                       "占全部 %d 项涉嫌风险事项的 %.0f%%"
+                       % (_top[0].get("theme"), _top[1].get("theme"), _sum_top, _total_p, _share))
+    elif _top:
+        g0 = _top[0]
+        _top_clause = "主要风险领域为%s（%d 项，占全部 %d 项涉嫌风险事项的 %.0f%%）" % (
+            g0.get("theme"), g0.get("count"), _total_p,
+            (g0.get("count") / _total_p * 100 if _total_p else 0.0))
+    else:
+        _top_clause = "本轮暂无可归纳的主要风险领域"
+    P.append(
+        "企业整体风险综合评价：该企业整体税务风险等级为「%s」；%s。"
+        "结合资料与核算管理尚不完备、多项异常线索指向具体涉嫌方向的实际情况，"
+        "本轮对该企业纳税遵从的总体评价为：在已提交资料范围内呈现较高风险敞口，"
+        "但主观故意性质尚不能认定，须以补证与核实为前提，再行判断其纳税义务履行的真实状况。"
+        % (_grade, _top_clause)
+    )
+
     if problems:
         P.append(
             "检查范围与结果概览：本轮依据已上传的 %d 类资料（%d 份）实施检查，共识别并列示 %d 项涉嫌风险事项，"
@@ -381,10 +416,12 @@ def build_overall_conclusion(report_data: Any,
     lv_tiers = [t for t in tiers if t["level"] in _LEVELS]
     st_tiers = [t for t in tiers if t["level"] not in _LEVELS]
     if lv_tiers:
+        # ★ 2026-10-02（结论段上移）：整体等级已由首段「企业整体风险综合评价」给出，
+        #   本段只讲**评定口径 + 点名清单**，避免同一事实在章内说两遍（去重写作红线）。
         P.append(
-            "风险等级评定：本轮整体风险程度评定为「%s」。风险等级按潜在税额、涉及金额、证据缺口、"
-            "是否涉及虚开或偷税、补证紧迫性综合排序，仅供参考；各风险等级事项列示如下。"
-            % _grade
+            "风险等级评定：风险等级按潜在税额、涉及金额、证据缺口、"
+            "是否涉及虚开或偷税、补证紧迫性五项综合排序（整体等级见本章首段"
+            "「企业整体风险综合评价」，本段不复述）；各风险等级事项列示如下。"
         )
         for t in lv_tiers:
             P.append(f"{t['label']} {t['count']} 项：" + "；".join(t["items"]) + "。")
@@ -396,30 +433,8 @@ def build_overall_conclusion(report_data: Any,
             P.append(f"{t['label']}（非风险等级，供参考）{t['count']} 项："
                      + "；".join(t["items"]) + "。")
 
-    # ★ 企业整体风险综合评价（定调句：整体等级 + 主要风险领域 + 遵从评价，合成一段结论）
-    _top = sorted(_themes, key=lambda g: -int(g.get("count") or 0))[:2]
-    _total_p = len(problems)
-    _sum_top = sum(int(g.get("count") or 0) for g in _top)
-    _share = (_sum_top / _total_p * 100) if _total_p else 0.0
-    if len(_top) >= 2:
-        _top_clause = "风险高度集中于「%s」与「%s」两个领域，二者合计 %d 项、占全部涉嫌风险事项的 %.0f%%" % (
-            _top[0].get("theme"), _top[1].get("theme"), _sum_top, _share)
-    elif _top:
-        g0 = _top[0]
-        _top_clause = "主要风险领域为%s（%d 项，占全部涉嫌风险事项的 %.0f%%）" % (
-            g0.get("theme"), g0.get("count"),
-            (g0.get("count") / _total_p * 100 if _total_p else 0.0))
-    else:
-        _top_clause = "本轮暂无可归纳的主要风险领域"
-    P.append(
-        "企业整体风险综合评价：综合风险程度评定与问题类型分布，该企业整体税务风险等级为「%s」；%s。"
-        "结合资料与核算管理尚不完备、多项异常线索指向具体涉嫌方向的实际情况，"
-        "本轮对该企业纳税遵从的总体评价为：在已提交资料范围内呈现较高风险敞口，"
-        "但主观故意性质尚不能认定，须以补证与核实为前提，再行判断其纳税义务履行的真实状况。"
-        % (_grade, _top_clause)
-    )
-
     # ★ 2026-09-27（用户要求）：主营业务成本三方勾稽**不在总述展开**——它是细节分析，
+    #   「企业整体风险综合评价（结论段）」已于 2026-10-02 上移至本章首段（结论先行），此处不再重复。
     #   归「主营业务成本两口径勾稽明细」（第三章台账后）与风险事项台账（VR060 / 行业对标）。
     #   此处仍计算 cost_recon，供返回字段（cost_reconciliation）与台账消费，只是不再输出段落。
     cost_recon = _cost_reconciliation(rd)
@@ -453,17 +468,21 @@ def build_overall_conclusion(report_data: Any,
     )
 
     # ★ 监管态度与后续处理建议（分级分类；各类项数已在上文列明，此处不再重复数字）
+    # ★★★ 2026-10-02（用户定调：一定是先说重要的信息）：分级分类建议按**风险由重到轻**排列——
+    #   重点关注（高风险）→ 补证核实（中风险）→ 待核验 → 限期补正资料 → 提示提醒（低风险）。
+    #   原实现按「提示提醒(低) → 补证核实(中) → 重点关注(高)」排，把最轻的放在最前、
+    #   最重的放在第三位，与"先说重要的信息"相反。
     _pos = []
-    if _low:
-        _pos.append("提示提醒：对低风险事项，建议以提示提醒方式要求企业自行规范与整改")
-    if _mid:
-        _pos.append("补证核实：对中风险事项，建议限期要求企业补充合同、物流、资金、入库等外部证据，逐项排除疑点")
     if _high:
         _pos.append("重点关注：对高风险事项（证据相对集中、涉及隐匿收入或虚开发票方向），建议列为后续优先检查事项")
+    if _mid:
+        _pos.append("补证核实：对中风险事项，建议限期要求企业补充合同、物流、资金、入库等外部证据，逐项排除疑点")
     if _pend:
         _pos.append("待核验事项：对证据不足事项，建议先行补证，不宜在证据补齐前作出处理结论")
     if further:
         _pos.append("限期补正资料：对因资料缺失未能实施的检查，建议限期要求企业补齐后再行检查")
+    if _low:
+        _pos.append("提示提醒：对低风险事项，建议以提示提醒方式要求企业自行规范与整改")
     P.append("监管态度与后续处理建议（分级分类）：" + "；".join(_pos) + "。")
     P.append("需要说明：本部分为工作建议，不构成税务处理、行政处罚或移送决定；"
              "是否达到移送标准，应在证据补齐并依法核实后另行判断。")

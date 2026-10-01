@@ -123,3 +123,18 @@ def normalize_month(date_like: Any) -> str:
         return ""
     mm = int(m.group(2))
     return "%s-%02d" % (m.group(1), mm) if 1 <= mm <= 12 else ""
+
+
+def cjk_bigrams(text: Any) -> set:
+    """中文文本相邻 2-gram 集合（全系统唯一实现）。
+
+    用途：「要素/证据 ↔ 发现正文」的**语义相关性**判定 —— 例如判断一条记账凭证的
+    摘要「计提1月工资」是否与发现「工资多源对等逐月不匹配（2025-01）」相关。
+
+    ★ 2026-10-01 收敛：此前 `enterprise_report._cjk_bigrams` 与
+      `pipeline._cjk_bigrams` 各写一份（后者为证据相关性守卫新增），
+      `tools/audit_consistency.py` 的跨模块分歧检查立刻报出「真实分歧」。
+      现统一落在本模块，两侧一律转调（函数名保留以兼容既有引用）。
+    """
+    t = "".join(re.findall(r"[一-鿿]", str(text or "")))
+    return set(t[i:i + 2] for i in range(len(t) - 1))
