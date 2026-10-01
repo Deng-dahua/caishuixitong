@@ -267,8 +267,11 @@ _SUPP_ENTRIES = [
     ("农产品收购发票", "sup_agri_purchase_invoice",
      ["农产品收购发票", "收购发票"], []),
     ("收购台账", "sup_purchase_ledger",
-     ["收购台账", "农产品收购台账"], []),]
-
+     ["收购台账", "农产品收购台账"], []),
+    # ── 红冲合规凭据（2026-10-01：RL-VAT-007 要件④ 的独立数据源，登记后方可识别与判定状态）──
+    ("红字发票信息确认单", "sup_red_letter_confirm",
+     ["红字发票信息确认单", "红字信息确认单", "红字发票确认单", "红字确认单"], []),
+]
 # 红线需求名 → 识别信息（单一权威）
 _SUPPLEMENTARY_RECOGNITION = {
     name: {"doc_type": dt, "filename_kws": kws, "extra_cats": extra}

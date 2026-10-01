@@ -2922,6 +2922,66 @@ def check_evidence_text_not_truncated() -> List[Tuple[str, str, str]]:
                                "第%d行对备注栏(remark)做长度截断 —— 凭据号属证据本体，须完整呈现" % i))
     return issues
 
+def check_constituent_sources_consistency() -> List[Tuple[str, str, str]]:
+    """要件「独立数据源」必须**完整且可取得**（2026-10-01 用户指出后新增）。
+
+    背景：构成要件独立核对表的「独立数据源」来自红线里一张**手写平行清单** `constituent_sources`，
+    天然会与要件文本脱节。实测 RL-VAT-007（红字冲销与作废）系统性漏项——
+    要件①/②/⑤/⑥ 只写「销项发票」，而红冲/作废**在进项侧同样存在**（样本中的红冲票即 direction=进项）；
+    要件③ 漏「折让协议/拒收证明」；要件④ 漏「被冲减蓝字发票」；要件⑦ 漏退货/折让协议。
+
+    本闸门锁死两条判据（对**所有**声明了 `constituent_sources` 的红线生效，数据驱动、不写特例）：
+      (a) **可取得**：每个要件的数据源名必须落在「系统资料类别 ∪ 该红线 required_materials ∪ evidence_chain」内，
+          否则该要件的“已有/缺失”状态无从判定（声明了拿不到的东西）；
+      (b) **完整**：要件文本中**提到**的已声明资料名，必须出现在该要件的独立数据源里。
+    ★ 覆盖面（如实声明，勿夸大）：本闸门可抓三类漂移——
+      (i) 数据源名不在已声明资料内；(ii) 要件正文提到的已声明资料未列入数据源；(iii) 条数不按序对齐。
+    ⚠ **抓不到**「该要件本应两侧并取却只写一侧」这类**领域判断**（如红冲/作废在进项侧同样存在，
+      但要件正文并未出现「进项发票」字样）—— 该判断须靠编写规范：
+      **发票/账载类要件的数据源一律按「风险发生侧」并取，两侧共有的风险（红冲作废、进项转出、
+      票账差异等）不得只写销项或只写进项**。本条写入红线引擎 skill，作为新增/修改要件时的检查项。
+    反向验证：把 RL-VAT-007 要件③ 的源改回「退货单」（丢掉正文已写明的「折让协议」）→ 本闸门报 ERROR。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import re as _re
+    try:
+        from engine.tax_redlines import REDLINES
+        from engine.enterprise_report import _DOC_TYPE_TO_CATEGORY as _MP
+    except Exception as exc:
+        return [("ERROR", "engine/tax_redlines.py", f"要件数据源一致性检查不可用: {exc}")]
+    # 系统资料类别（含 sup_* 登记）—— 复用既有权威映射表，不另立清单
+    _cats: set = set()
+    for _v in (_MP or {}).values():
+        if isinstance(_v, str):
+            _cats.add(_v)
+        elif isinstance(_v, (list, tuple)):
+            _cats.update(str(x) for x in _v)
+
+    def _split(s):
+        return [x.strip() for x in _re.split(r"[、，,／/；;与和]", str(s or "")) if len(x.strip()) >= 2]
+
+    for r in REDLINES:
+        cs = r.get("constituent_sources") or []
+        if not cs:
+            continue
+        legal = set(_cats) | set(r.get("required_materials") or [])
+        for _e in (r.get("evidence_chain") or []):
+            legal |= set(_split(_e.get("name")))
+        cc = r.get("constituents") or []
+        if len(cs) != len(cc):
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           "%s constituent_sources %d 条与要件 %d 条不等（须按序对齐）" % (r.get("id"), len(cs), len(cc))))
+        for i, (con, src) in enumerate(zip(cc, cs), 1):
+            miss = [x for x in _split(src) if x not in legal]
+            if miss:
+                issues.append(("ERROR", "engine/tax_redlines.py",
+                               "%s 第%d条要件的数据源 %s 不在已声明资料内（状态无从判定）" % (r.get("id"), i, miss)))
+            mentioned = [m for m in sorted(legal) if m in con and m not in str(src)]
+            if mentioned:
+                issues.append(("ERROR", "engine/tax_redlines.py",
+                               "%s 第%d条要件正文提到的资料 %s 未列入独立数据源" % (r.get("id"), i, mentioned)))
+    return issues
+
 def check_finding_meta_wording() -> List[Tuple[str, str, str]]:
     """疑点 meta 行必须是**自然句**（用户 2026-09-27 改写口径）。
 
@@ -5026,6 +5086,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_report_plain_language()
                + check_finding_meta_wording()
                + check_evidence_text_not_truncated()
+               + check_constituent_sources_consistency()
                + check_risk_item_section_wording()
                + check_constituent_traceability()
                + check_constituent_no_threshold()
