@@ -7,10 +7,39 @@
 """
 import unittest
 
+from engine.material_recognition import _recognize_supplementary
 from engine.verified_rule_engine import (
     _is_raw_material_goods, _scan_material_output_ratio,
     _industry_to_gate, _spec_applies_to_entity,
 )
+
+
+class TestRedlineMaterialIsRecognizable(unittest.TestCase):
+    """★ 2026-10-02 #461（扫未覆盖税种/风险域）：红线写的资料名必须真的识别得出来。
+
+    事故：RL-OTH-001/007/008/009/010/011 六条印花税红线共用的「印花税申报表」没有登记，
+    资料类别表里也没有任何印花映射 → 用户上传《印花税申报表.xlsx》识别结果为 None，
+    六条红线的该资料**永远**判「缺资料」、只能出「待核验」。
+
+    判据（通用，非特例）：被红线列为 required_materials 的中文资料名，
+    必须能被 `_recognize_supplementary` 认出来；同时不得顺手抢走邻近资料的识别。
+    """
+
+    def test_stamp_duty_decl_is_recognizable(self):
+        for name in ("印花税申报表", "印花税纳税申报表"):
+            self.assertEqual(
+                _recognize_supplementary(name + ".xlsx"), "sup_stamp_decl", name)
+
+    def test_new_entry_does_not_steal_neighbours(self):
+        """反向锁：新增的印花税条目不得把邻近申报表改判（否则别条红线静默失真报绿）。"""
+        self.assertEqual(_recognize_supplementary("印花税完税证明.xlsx"),
+                         "sup_tax_paid_cert")
+        self.assertEqual(_recognize_supplementary("土地增值税申报表.xlsx"),
+                         "sup_land_vat_decl")
+        self.assertEqual(_recognize_supplementary("增值税申报表.xlsx"),
+                         "sup_vat_decl_retention")
+        self.assertEqual(_recognize_supplementary("文化事业建设费申报表.xlsx"),
+                         "sup_culture_decl")
 
 
 class TestRawMaterialGoods(unittest.TestCase):
