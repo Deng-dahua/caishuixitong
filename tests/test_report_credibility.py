@@ -81,6 +81,27 @@ class TestSentenceSplit(unittest.TestCase):
         for raw, want in cases.items():
             self.assertEqual(strip_meta_prefix(raw), want, raw)
 
+    def test_strip_meta_prefix_keeps_decimal_numbers(self):
+        """★ 2026-10-02 回归：小数/量词不得被当成列表编号剥掉。
+
+        旧实现把「1.3万」判成「行首编号 1.」→ 剥掉后报告写成「3万」，
+        「0.5」写成「5」——**金额凭空少一个数量级**。
+        判据：分隔符号后紧跟阿拉伯数字 ⇒ 那是小数数位，不是编号。
+        """
+        cases = {
+            "作废发票1.3万元": "作废发票1.3万元",
+            "涉及金额0.5元": "涉及金额0.5元",
+            "单价1.5万元/台": "单价1.5万元/台",
+            "账外收入0.5": "账外收入0.5",
+            # 下面这些仍是真·列表编号，必须照常剥离（防反向误判）
+            "1. 金额100元": "金额100元",
+            "2) 3张": "3张",
+            "3、资料": "资料",
+            "· 5人": "5人",
+        }
+        for raw, want in cases.items():
+            self.assertEqual(strip_meta_prefix(raw), want, raw)
+
 
 class TestStripMethodology(unittest.TestCase):
     """契约 5：线索链 numbers 不得混入方法论阈值（如「>=3张触发」）。"""

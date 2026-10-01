@@ -115,7 +115,26 @@ _META_PREFIXES = (
 _LEAD_MARK = re.compile(r"^[\s·•\-\*\u2460-\u2473\.、\)）]{1,6}")
 # 仅当数字后**紧跟编号分隔符**（. 、 ) ））才视为列表编号（如「1. xxx」「2) xxx」「3、xxx」）。
 # 注意：裸数字 + 中文量词（「13张」「6名」）不匹配，从而被保留。
-_LEAD_NUM = re.compile(r"^\d{1,3}[\.、\)）]")
+# ★ 2026-10-02 回归：补 `(?!\d)`。旧实现把「1.3万」「0.5」判成「1. / 0. 是列表编号」，
+#   剥掉后变成「3万」「5」——**报告里的金额/金额量被凭空改写**（1.3万 少一个数量级）。
+#   分隔符后紧跟阿拉伯数字 ⇒ 那是小数的数位，不是编号。
+_LEAD_NUM = re.compile(r"^\d{1,3}[\.、\)）](?!\d)")
+# 上一条里「分隔符号后紧跟数字」的边界形态（供 _is_list_number_mark 判定）
+_NUM_SEP_CHARS = ".、)）"
+
+
+def _is_list_number_mark(text: str, m) -> bool:
+    """当前匹配是「列表编号」还是「数值的一部分」？
+
+    「· 5人」的 '· ' 后面跟数字是**正常**的（项目符号 → 内容）；
+    但「1.3万」的 '1.'、'0.5' 的 '0.' 后面跟数字是**小数数位**，
+    剥掉就等于改写数字。故：仅当匹配的末位是数字分隔符、且其后紧跟数字时，
+    判定为数值、拒绝剥离。
+    """
+    if m.end() >= len(text):
+        return True
+    return not (m.group(0)[-1] in _NUM_SEP_CHARS
+                and text[m.end():m.end() + 1].isdigit())
 
 
 def strip_meta_prefix(text: str, strip_marks: bool = True) -> str:
@@ -131,7 +150,7 @@ def strip_meta_prefix(text: str, strip_marks: bool = True) -> str:
         if strip_marks:
             m = _LEAD_MARK.match(s)
             # 仅当剥掉后仍非空时才剥（避免把「· 」这类空标记残留）
-            if m and len(s) > m.end():
+            if m and _is_list_number_mark(s, m) and len(s) > m.end():
                 s = s[m.end():].lstrip()
                 changed = True
             # 列表编号（数字 + 分隔符），如「1. 」「2) 」
