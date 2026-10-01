@@ -191,3 +191,6 @@ pipeline 场景执行后接入，结果入 `comprehensive.redline_detection`；
 git 从未跟踪 → 属「闸门指向已删文件」，走豁免登记（#440/#444 同款）收口，不是新缺陷。
 - ★ 反向验证同理：破坏/还原改磁盘字节后必须 `del sys.modules[...]` + `importlib.invalidate_caches()`
   再 import，否则跑的是缓存里的旧对象 → 假红/假绿。还原一律用 `write_bytes(orig)`，**禁 `git checkout --`**。
+- ★★ **反向验证调用姿势（第 6 坑）**：pytest 节点选择器必须和文件路径**拼成同一个 argv 元素**（`pytest <file> -q "::Class::test"`）。拆成两个参数 → `rc=4` + `ERROR: directory argument cannot contain :: selection parts` —— 本轮它让 5 个 CASE 全判「未变红」，看起来像闸门是假的。反向验证脚本**必须打印子进程 stderr 尾巴做诊断**，否则会误判成闸门失效甚至去改判据凑绿。
+- 专用探测器通道：`engine/special_redline_detectors.py` 在表驱动 `SPECS` 之外留 `_EXTRA_DETECTORS` 钩子（每条红线一行 dict 不够时走函数），接线在 `run_special_redline_detection` 返回前。★ 供覆盖审计 `_scan_ids` 认领的写法是**先 `redline_id = "RL-SPT-012"` 再传参**（`_finding("RL-SPT-012",…)` 内联会被漏扫）。
+- **反证口径**：完税凭证判定要把 `tax_declarations` 拼进 `pay_text`，只看 contracts/vouchers/bank_txs/balances 会让「已完税」照样被置疑。
