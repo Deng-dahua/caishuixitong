@@ -57,6 +57,10 @@
 ## ★ 报告铁律（要点）
 - **材料齐全度不得以比例/百分比表述**，只报项数（还缺＝待核+缺失）；`closure` 只内部用于判定能否定性，**不进正文**。闸门 `check_material_completeness_no_ratio`（禁比例 + **禁模糊套话**：须写明①定性对象②排除对象③还缺的具体资料名）。
 - 标点规范化权威 `sentencekit.normalize_cjk_punct`；必须在两个输出收敛点生效——① `enterprise_report._zh_normalize_obj` ② `main._execute_tax_risk_analysis` 最终出口。保护小数 `0.00` 与扩展名 `.xlsx`。闸门 `check_report_punctuation`。
+- ★ 覆盖扫描判据必须**分级**：关键词匹配红线全文会大量误命中（「建设工程合同」命中 RL-SPT-001 土增税，命中的是 constituents 噪声词）。★强命中＝命中**红线名/domain/taxes**（语义主题）；○弱命中＝只命中 constituents/资料名（旁证，不计覆盖）。`scripts/_probe_461_coverage_gap.py`。
+- ★★ **登记名一旦成为真实系统类别，超类键必须删**：`analysis_coverage._MATERIAL_SUPERCLASS` 的键必须是**泛化需求名**；否则等于拿泛化资料冒充「已提供」（闸门 `check_coverage_source_wiring` bad_keys）。既有范式：`土地增值税申报表` → `印花税申报表`（登记进 `_SUPP_ENTRIES` 后删对应超类键）。
+- ★ **闸门自证循环（第 8 坑）**：`check_constituent_sources_consistency` 判据 (b) 的 `legal = _cats ∪ required_materials ∪ evidence_chain名`，**含该红线自己的 required_materials** ⇒ 红线写什么名什么名就「可取得」，永远抓不到「资料名识别不了」这类永久缺口。全库 sweep 出 **96 个**此类资料名（采购合同/入库单/存货台账/借款合同/费用明细账/记账凭证/出库单…）；诚实边界：其中一部分可能走内容解析通路实际可取得，须逐条核实再判缺陷。
+- ★ 改源码文件优先用 **Edit 工具**做文本编辑；用 bytes 手工插入时 `b'...中文...'` 直接 SyntaxError（中文锚点须 `str.encode("utf-8")`），且不查行尾就 `b.find(marker)` 会把字符串**劈成两半**（实测插坏 material_recognition.py 227 行）。
 - ★★ 报告数字绝不可被文本清洗改写：`sentencekit.strip_meta_prefix` 曾把「1.3万」的「1.」判成列表编号剥掉 → 报告写成「3万」、「0.5」写成「5」（**金额凭空少一个数量级**）。修法为通用规则：`_LEAD_NUM` 加负向前瞻 `(?!\d)`（分隔符号后紧跟阿拉伯数字＝小数数位，不是编号），并抽 `_is_list_number_mark()` 供 `_LEAD_MARK`/`_LEAD_NUM` 两路径共用。教训：同类问题往往**有多处**——2026-09-26 只清了 `_LEAD_MARK` 字符类里的 `\d`，漏了 `_LEAD_NUM`。
 - 行业专有名词原样（虚开/增值税/主营成本）；说人话只改系统/报告语。疑点 meta 行须自然句三段（涉嫌方向/结论+可信度/税种与潜在税额），禁「字段：值」。统一「涉嫌风险事项」，禁伪作执法文书。缺失≠0≠未发生：单边 diff 必须 None；申报表未取得禁写「实际缴纳0元」。截断必须可见：省略号「…」唯一信号（硬切片 `remark[:48]` 是缺陷，闸门 `check_evidence_text_not_truncated`）。空表必须解释。红线名是「要件包」，只命中非命名要件时标题裁剪+声明「未就〈前提〉作出认定」。资金回流闭环：≤5%等额双向/≤30%近似双向/>30%单侧不计。
 - **结论句必须有宾语、必须有具体信息**：报「缺 N 项」必须点出具体资料名（≤3 个顿号连，>3 报「N 项（详见下表）」并指向明细表）。
