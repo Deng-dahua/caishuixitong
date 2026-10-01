@@ -2893,6 +2893,35 @@ def check_report_plain_language() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_evidence_text_not_truncated() -> List[Tuple[str, str, str]]:
+    """证据文本（备注栏/凭据号）不得硬截断（2026-10-01 用户要求新增）。
+
+    事故：红冲/作废发票明细的 `note` 用 `str(remark)[:48]` 截断 —— 把备注栏里的
+    「被红冲蓝票号码」「红字发票信息确认单编号」这类**核验红冲合规性的关键凭据号**切成半截
+    （实测「…确认单编号：44010625011003201370」显示成「…编号：4401」），且**未加省略号**，
+    违反 `engine/table_governance.py` 自己写下的第 3 条「截断不注明」。
+
+    判据（源码级，宁少勿错）：生产代码中凡对 `remark`（发票备注栏）做长度切片的，即报 ERROR ——
+    备注栏承载被红冲蓝票号码/确认单编号/建筑服务项目地等法定要素，属证据本体，必须完整呈现。
+    反向验证：在 domain_analysis.py 里写回 `str(inv.get('remark',''))[:48]` → 本闸门报 ERROR。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import re as _re
+    # 匹配 `...remark...[:N]`（备注栏被切片），允许中间夹引号/括号/逗号
+    pat = _re.compile(r"remark.{0,40}?\[\s*:\s*\d+\s*\]")
+    for rel in ("engine/domain_analysis.py", "engine/pipeline.py", "engine/enterprise_report.py",
+                "engine/monthly_reconcile.py", "engine/table_governance.py"):
+        p = ROOT / rel
+        if not p.exists():
+            continue
+        for i, line in enumerate(_read(p).split("\n"), 1):
+            if line.lstrip().startswith("#"):
+                continue
+            if pat.search(line):
+                issues.append(("ERROR", rel,
+                               "第%d行对备注栏(remark)做长度截断 —— 凭据号属证据本体，须完整呈现" % i))
+    return issues
+
 def check_finding_meta_wording() -> List[Tuple[str, str, str]]:
     """疑点 meta 行必须是**自然句**（用户 2026-09-27 改写口径）。
 
@@ -4996,6 +5025,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_material_completeness_no_ratio()
                + check_report_plain_language()
                + check_finding_meta_wording()
+               + check_evidence_text_not_truncated()
                + check_risk_item_section_wording()
                + check_constituent_traceability()
                + check_constituent_no_threshold()

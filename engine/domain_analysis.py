@@ -4663,7 +4663,12 @@ def _domain_red_void_invoice(invoices):
                 "counterparty": party or "",
                 "amount": t,
                 "date": str(inv.get("date","")).split(" ")[0] if inv.get("date") else "",
-                "note": f"发票号{inv_no}｜{kind}｜价税合计{t:,.2f}元｜{str(inv.get('remark',''))[:48]}",
+                # ★ 2026-10-01 用户要求：备注栏里的**被红冲蓝票号码 / 红字发票信息确认单编号**
+                #   是核验红冲合规性的关键凭据号，属证据本体，**不得截断**
+                #   （原 `str(remark)[:48]` 把「红字发票信息确认单编号：44010625011003201370」
+                #    切成「…编号：4401」，且未加省略号 —— 违反 table_governance 第 3 条
+                #    「截断不注明」）。此处完整保留 remark。
+                "note": f"发票号{inv_no}｜{kind}｜价税合计{t:,.2f}元｜{str(inv.get('remark','')).strip()}",
                 "ref_label": f"发票号{inv_no}",
             })
 
