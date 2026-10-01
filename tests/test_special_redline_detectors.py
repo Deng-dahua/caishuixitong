@@ -1,4 +1,5 @@
 """特定/专项风险红线探测器单测：零误报 + 命中即产出 + 归属有效 + 打封印标。"""
+import json
 import os
 import sys
 import unittest
@@ -60,6 +61,76 @@ class SpecialRedlineDetectorTests(unittest.TestCase):
             self.assertIn(s["redline_id"], valid, f"{s['redline_id']} 不是有效红线 id")
             self.assertTrue(s.get("signals"), f"{s['redline_id']} 缺少 signals")
             self.assertTrue(s.get("needs"), f"{s['redline_id']} 缺少 needs(需补资料)")
+
+
+class EquityTransferIITTests(unittest.TestCase):
+    """RL-SPT-012 股权转让未申报个人所得税：专用探测器（表驱动 SPECS 之外的一条）。"""
+
+    def _found(self, data):
+        return {f["redline_id"]: f for f in run_special_redline_detection(data)}
+
+    def test_fires_on_equity_change_signal(self):
+        data = {
+            "bank_txs": [{"summary": "股权变更服务费", "amount": "1000"}],
+            "contracts": [{"name": "股权转让协议"}],
+        }
+        f = self._found(data).get("RL-SPT-012")
+        self.assertIsNotNone(f, "Real production detector for RL-SPT-012 must fire on equity transfer signal")
+        self.assertEqual(f["level"], "待核验")
+        self.assertEqual(f["tax_type"], "个人所得税")
+        self.assertTrue(f.get("_scenario_governed"), "必须打封印标否则被 seal 丢弃")
+        self.assertTrue(f.get("_unconfirmed"), "不得自动定性")
+        self.assertTrue(f["needs_material"])
+
+    def test_no_finding_without_equity_signal(self):
+        data = {"bank_txs": [{"summary": "支付货款", "amount": "1000"}],
+                "vouchers": [{"summary": "计提折旧"}]}
+        self.assertNotIn("RL-SPT-012", self._found(data))
+
+    def test_tax_paid_evidence_suppresses(self):
+        """出现股权转让完税凭证 → 视为可能已申报，不得置疑。"""
+        data = {
+            "contracts": [{"name": "股权转让协议"}],
+            "tax_declarations": [{"summary": "股权转让个税完税凭证"}],
+        }
+        self.assertNotIn("RL-SPT-012", self._found(data))
+
+    def test_reports_count_but_not_amount(self):
+        """★ 不得把银行手续费当成"股权转让涉及金额"报出去（缺数不得编）。"""
+        data = {"bank_txs": [{"summary": "股权变更服务费", "amount": "1000"}],
+                "contracts": [{"name": "股权转让协议"}]}
+        f = self._found(data)["RL-SPT-012"]
+        blob = json.dumps(f, ensure_ascii=False)
+        self.assertIn("相关记录", blob)
+        self.assertNotIn("涉及金额", blob)
+        # 不作试算必须**写明**（缺数不得编），但不能报出数字
+        self.assertIn("不作税额试算", f["detail"])
+        self.assertNotIn("\u91d1\u989d", blob)
+
+    def test_extra_detectors_are_invoked_by_runner(self):
+        """★ 运行器必须真的遍历 _EXTRA_DETECTORS，否则专用探测器是死代码。"""
+        import engine.special_redline_detectors as srd
+
+        called = []
+
+        def _sentinel(data, texts=None, pipeline_log=None):
+            called.append(1)
+            return []
+
+        old = srd._EXTRA_DETECTORS
+        srd._EXTRA_DETECTORS = (_sentinel,)
+        try:
+            srd.run_special_redline_detection({"vouchers": []})
+        finally:
+            srd._EXTRA_DETECTORS = old
+        self.assertTrue(called, "run_special_redline_detection 未调用 _EXTRA_DETECTORS")
+
+    def test_rlspt012_declared_in_production_source(self):
+        """覆盖度审计 `_scan_ids` 按 `redline_id…<id>` 字面量扫描生产检测器，须扫得到。"""
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        src = open(os.path.join(root, "engine", "special_redline_detectors.py"),
+                   encoding="utf-8").read()
+        self.assertRegex(src, r'redline_id[^\n]{0,8}?(RL-SPT-012)')
 
 
 if __name__ == "__main__":

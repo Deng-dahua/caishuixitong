@@ -317,6 +317,89 @@ def _match_stats(rows: List[Any], signals: Sequence[str]):
     return n, amt
 
 
+
+# ══════════ RL-SPT-012 股权转让未申报个人所得税（专用探测器）═════════════════════
+# 该红线此前只有 `_DEFAULT_HIT_INDEX` 兜底（软匹配），覆盖度审计把它记为「仅兜底」：
+# 生产链路里没有任何真检测器去认领它。补上专用探测器后，运行期走 `_map_finding` 的
+# `mode="declared"` 必然归位，而不是靠文本模糊匹配碰运气。
+#
+# 口径（严守"发现≠确认 / 缺数不得编"两条铁律）：
+#   1. 只认**实质线索**：合同、序时账、银行流水、科目余额里出现股权转让/股权变动态；
+#      不把任意含"股权"两字的记录都当证据（"股权投资""实收资本"是另一回事）。
+#   2. 「是否已申报缴纳股权转让个税」无法从现有资料直接读出 ⇒ 用**反证缺席**规避：
+#      资料里同一处同时出现股权转让与完税/完税凭证字样 → 视为可能已申报，不置疑。
+#   3. 要件1 的前置「转让方为自然人」本轮资料无法确认 ⇒ 结论只能是**待核验**，
+#      且**不试算税额**（缺转让协议与价款支付流水，缺数不得编）。
+#   4. 命中记录数可以报（扫描器真算过），但**不报"涉及金额"**：
+#      银行流水里 matched 行的金额多为变更登记服务费/手续费，报成"股权转让涉及金额"会误导。
+_EQUITY_SIGNALS = (
+    "股权转让", "股权变更", "转让股权", "受让股权", "股权变动", "股权转让协议",
+)
+# 反证：股权转让与完税凭证同时出现 → 可能已申报缴纳，不置置疑
+_EQUITY_PAY_EVIDENCE = ("完税", "完税凭证", "税收缴款书", "缴税凭证")
+_EQUITY_SOURCE_KEYS = ("contracts", "vouchers", "bank_txs", "balances")
+
+_EXTRA_DETECTORS = ()
+
+
+def _detect_equity_transfer_iit(data, texts=None, pipeline_log=None):
+    """RL-SPT-012 专用检测器：检出自然人股权转让线索 + 无完税凭证 → 待核置疑。"""
+    src_text = chr(10).join([_dump(data.get(k)) for k in _EQUITY_SOURCE_KEYS])
+    if not src_text:
+        return []
+    hits = [k for k in _EQUITY_SIGNALS if k in src_text]
+    if not hits:
+        return []
+    # 反证缺席：同一处既有股权转让、又有完税凭证 → 可能已申报，不置疑
+    # ★ 反证要连 tax_declarations 一起看（完税凭证/缴款记录多落在申报资料里）；
+    #   但信号本身仍只认合同/序时账/银行流水/科目余额，免得“证书里有转让字样”就当线索。
+    pay_text = src_text + chr(10) + _dump(data.get("tax_declarations"))
+    if any(k in pay_text for k in _EQUITY_PAY_EVIDENCE):
+        return []
+    # 计记录数（扫描器真算过的量）
+    n = 0
+    for k in _EQUITY_SOURCE_KEYS:
+        v = data.get(k)
+        if isinstance(v, list):
+            for row in v:
+                if any(s in _dump(row) for s in hits):
+                    n += 1
+    redline_id = "RL-SPT-012"
+    topic = "股权转让未申报个人所得税（待核）"
+    detail = (
+        "本轮资料中检出涉及股权转让/股权变更的线索"
+        "（命中：{hits}；来源：合同、序时账、银行流水、科目余额中相关记录 {n} 条）。"
+        "股权转让所得个人所得税的纳税义务人为**转让方自然人**，受让方支付方负代扣代缴义务；"
+        "本轮资料中未见股权转让个人所得税的完税凭证或缴款记录。需要说明两点："
+        "①转让方是否为自然人（要件前提）须凭股权转让协议与工商变更登记核实；"
+        "②因缺转让协议与转让价款支付流水，本项**不作税额试算**，缺数不编。"
+        "请补充下列资料后复核。"
+    ).format(hits="、".join(hits[:4]), n=n)
+    f = _finding(
+        redline_id, topic, "个人所得税", detail,
+        "待核验", 4,
+        needs_material=[
+            "股权转让协议", "工商变更登记", "转让价款支付流水",
+            "转让方身份证明或变更登记申请表", "完税凭证", "被投资企业资产负债表（净资产）",
+        ],
+        unconfirmed=True,
+        policy_ref="国家税务总局公告2014年第67号《股权转让所得个人所得税管理办法（试行）》",
+        evidence=hits[:4],
+    )
+    f["constituent_hits"] = [
+        {"index": 4, "evidence": "本轮资料未见股权转让个人所得税完税凭证或缴款记录"
+                                 "（缺资料 ≠ 已认定未申报，须企业举证）"},
+        {"index": 1, "evidence": "检出股权转让/股权变更相关记录 %d 条，转让方是否为自然人仍待核实" % n},
+    ]
+    f["_detection_method"] = (
+        "检索合同、序时账、银行流水、科目余额中的股权转让/股权变动态；"
+        "如同时出现完税凭证字样则视为可能已申报而不置疑；不试算税额（缺转让价款与协议）。"
+    )
+    return [f]
+
+
+_EXTRA_DETECTORS = (_detect_equity_transfer_iit,)
+
 def run_special_redline_detection(engine_data: Dict, pipeline_log: List[str] = None) -> List[Dict]:
     """执行全部特定/专项风险探测器。
 
@@ -402,6 +485,13 @@ def run_special_redline_detection(engine_data: Dict, pipeline_log: List[str] = N
             if pipeline_log is not None:
                 pipeline_log.append(f"[专项探测器] {spec.get('redline_id')} 执行异常: {exc}")
 
+    # ── 专用探测器：表驱动 SPECS 之外个别红线的专属识别路径（每行为一个 _EXTRA_DETECTORS 元素）──
+    for _extra in _EXTRA_DETECTORS:
+        try:
+            results.extend(_extra(data, texts, pipeline_log))
+        except Exception as _exc:  # 单条异常不阻断整体
+            if pipeline_log is not None:
+                pipeline_log.append("[专项探测器] %s 执行异常: %s" % (_extra.__name__, _exc))
     if pipeline_log is not None and results:
         pipeline_log.append(
             f"[专项探测器] 特定/专项风险域检出 {len(results)} 条待核事项"
