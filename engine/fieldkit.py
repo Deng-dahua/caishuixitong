@@ -55,6 +55,20 @@ ACCOUNT_KEYS: Tuple[str, ...] = (
     "account", "科目", "科目名称", "会计科目", "acct", "account_name",
 )
 
+# ── F2：发票「结构性证据」字段（2026-10-02 补充：成本/费用归属的第一刀）──────────
+# ★ 真实缺陷（本轮根因之一）：`main._parse_invoice_sheet` 早已把表头「税收编码」映射成
+#   `tax_code`、「计量单位」→`unit`、「业务类型」→`biz_type`；但全库 5 处读的是中文键
+#   「**税收分类编码**」——真实列名是「**税收编码**」，故这些 `tc.startswith("3")` 判据
+#   **永远取不到值**（实测 3620 行进项里 tax_code 非空 3354 行、而中文键恒空）⇒
+#   服务类发票的判定全部静默失效。故此类字段的别名表与读取**唯一收敛到此处**，
+#   任何模块只许 `fieldkit.tax_code_of(row)` 取，不得再写第二份字面量。
+TAX_CODE_KEYS: Tuple[str, ...] = (
+    "tax_code", "税收编码", "税收分类编码", "商品和服务税收分类编码",
+    "商品编码", "货物税收编码",
+)
+UNIT_KEYS: Tuple[str, ...] = ("unit", "计量单位", "uom")
+BIZ_TYPE_KEYS: Tuple[str, ...] = ("biz_type", "业务类型", "业务类别")
+
 # ── 工资/社保人员行字段（2026-10-01 补充：原 detector 与「证据行」各写一份键表）──
 # 事故：pipeline._enrich_evidence_rows._salary_row 读 姓名/部门/实发金额/period，
 # 而工资表实际行结构是 {name, salary, net, gross, period_start, period_end, ...}
@@ -111,6 +125,25 @@ def goods_name(inv: Any) -> str:
 def invoice_type(inv: Any) -> str:
     """发票类型（如"电子发票(普通发票)"/"增值税专用发票"）。"""
     return _txt(inv, INV_TYPE_KEYS)
+
+
+def tax_code_of(inv: Any) -> str:
+    """商品和服务税收分类编码（简称"税收编码"）。
+
+    ★ 唯一权威：真实数据里这个键叫 **tax_code**（`main._parse_invoice_sheet` 的映射产物），
+      中文别名一并兼容；历史代码里写成「税收分类编码」的写法**取不到值**（死判据）。
+    """
+    return _txt(inv, TAX_CODE_KEYS)
+
+
+def unit_of(inv: Any) -> str:
+    """计量单位（货物/服务的硬证据：件吨千克台… ⇒ 货物；次月小时项… ⇒ 服务）。"""
+    return _txt(inv, UNIT_KEYS)
+
+
+def biz_type_of(inv: Any) -> str:
+    """业务类型（开票软件导出的业务口径，如「库存商品_饲料」/「销售费用_运杂费」）。"""
+    return _txt(inv, BIZ_TYPE_KEYS)
 
 
 def invoice_status(inv: Any) -> str:

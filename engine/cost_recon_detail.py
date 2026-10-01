@@ -220,8 +220,13 @@ def _build_cost_expense_attribution(rd: Dict[str, Any]) -> Dict[str, Any]:
             g = str(r.get("goods") or "").strip()
             if not g:
                 continue
+            # ★ 2026-10-02：把发票结构性证据（税收编码/计量单位/业务类型）一并交给权威层，
+            #   否则「第一刀」（有无实物存货）无数据可用，只能退回关键词猜。
             item = {"goods": g, "amount": float(r.get("amount") or 0),
-                    "count": int(r.get("count") or 0)}
+                    "count": int(r.get("count") or 0),
+                    "tax_code": str(r.get("tax_code") or ""),
+                    "unit": str(r.get("unit") or ""),
+                    "biz_type": str(r.get("biz_type") or "")}
             if g in seen:
                 seen[g]["count"] += item["count"]
                 seen[g]["amount"] += item["amount"]

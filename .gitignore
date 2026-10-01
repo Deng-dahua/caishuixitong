@@ -46,6 +46,15 @@ static/methodology_runtime_state.json
 # 注：static/methodology_config.json 为框架权威配置（framework_config._CONFIG_PATH 读取），
 #     不属于运行期状态，保持进版本库；其运行期漂移须 git checkout 还原，切勿提交。
 
+# ── scripts/_archive/：归档件（不删文件本体、仅供追溯，不进版本库）─────────────
+# 2026-10-02：新建目录并把根目录历史产物 `_badB.py`（658KB / 13835 行，旧 main.py 副本，
+# 全仓零引用）移入此处。归档 ≠ 删除：保留可追溯，同时不再污染工作树、不误被提交。
+# ★ 判定标准：只有「已确认为历史产物 + 全仓零引用」的件才准搬进来；
+#   新增归档件须在 scripts/_archive/README.md 登记来源与归档理由。
+#   归档件本体（_badB.py 658KB）不进版本库；登记表 README.md 进版本库，供后续追溯。
+scripts/_archive/*
+!scripts/_archive/README.md
+
 # ── 临时/调试脚本与一次性验证产物（非源码，可重生成，不进版本库）──────────────
 # 2026-09-29：这些文件每次 git status 都显示未跟踪、长期污染工作树，
 # 且均为可重生成产物（脚本可重跑、HTML 可重新导出），故统一忽略。
@@ -60,3 +69,10 @@ scripts/_polish_constituents_diff.md
 scripts/_review_constituents.md
 # 由 scripts/_gen_constituent_html.py 一键生成的要件/反证明细清单（可重生成）
 /红线构成要件明细清单.html
+# │ scripts/_bak/：改动前的备份副本（engine/ 内一份 = 第二套实现，会被 audit 判跨模块重复）
+#   2026-10-02：备份纪律改为「一律 scripts/_bak_* / scripts/_bak/」，
+#   这些副本与在跑源码同名同内容，进版本库只会让 audit 的跨模块重复检查误判、也让 diff 噪音放大。
+#   ★ 需要回滚时用 git show 或取回对应脚本即可，备份本身不作为历史依据。
+scripts/_bak/
+# scripts/_bak_*.py 由 scripts/_bak_diag.py 一类脚本产生，同属备份，一并忽略
+scripts/_bak_*.py

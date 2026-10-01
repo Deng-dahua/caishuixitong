@@ -5164,6 +5164,11 @@ def _run_analyze(company_id, db, progress_callback=None):
         #   避免报告层重跑 classify 造成口径分叉（单一权威）。
         def _agg_invs(invs, key):
             _m = {}
+            # ★ 2026-10-02：同品名小计**必须把发票的结构性证据**（税收编码/计量单位/业务类型）
+            #   一起带下去 —— 成本/费用唯一权威 account_classifier 的「第一刀」（有无实物存货）
+            #   靠的就是这三样；原先只留 goods/count/amount ⇒ 证据到权威层就断了，
+            #   权威层只能退回关键词猜。取值走 fieldkit 别名表（单一权威，禁在此重抄键名）。
+            from engine.fieldkit import tax_code_of as _tc_of, unit_of as _u_of, biz_type_of as _bt_of
             for _iv in (invs or []):
                 if not isinstance(_iv, dict):
                     continue
@@ -5172,6 +5177,10 @@ def _run_analyze(company_id, db, progress_callback=None):
                 _b = _m.setdefault(_k, {"count": 0, "amount": 0.0})
                 _b["count"] += 1
                 _b["amount"] += float(_v)
+                for _sk, _getter in (("tax_code", _tc_of), ("unit", _u_of), ("biz_type", _bt_of)):
+                    _sv = str(_getter(_iv) or "").strip()
+                    if _sv and not _b.get(_sk):
+                        _b[_sk] = _sv
             return sorted(
                 [{key: _k, "count": _v["count"], "amount": round(_v["amount"], 2)}
                  for _k, _v in _m.items()],

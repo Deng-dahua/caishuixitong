@@ -65,25 +65,39 @@ CONF_LOW = "低"
 #: 允许输出的 account_class 全集（闸门 `check_cost_expense_triad` 据它校验）
 ALLOWED_CLASSES = (CLASS_COST, CLASS_EXPENSE, CLASS_CAPITAL, CLASS_UNDETERMINED)
 
-#: 计成本的 exception：即使命中需上下文层，只要 caller 显式给了项目上下文，仍可判成本
-NEEDS_CONTEXT_KWS = (
-    # 物流类（采购端运费→存货成本；销售端运费→销售费用；单看品名无法确定）
+#: ★ 2026-10-02 拆分：「需上下文层」原先是**一整张词表 ⇒ 命中即一律落待核**
+#   （实测 ④ 层两个分支 `return` 的都是 CLASS_UNDETERMINED，`require_context` 参数形同虚设）
+#   ⇒ 本最该被分辨的「运输/装卸/包装/搬运」反倒全都退成「分不出来」。
+#   现按**会计事实**拆成两张表，新增同类只需在对应表里加一行、不改分类逻辑：
+#     · INVENTORY_SUPPORT_KWS —— 构成**存货采购成本**（企业会计准则第1号——存货 第六条：
+#       存货采购成本含购买价款、运输费、装卸费、包装费、挑选整理费…）⇒ 命中即**自动裁决为成本**；
+#     · AMBIGUOUS_KWS —— 用途决定归属（生产耗用 vs 办公耗用 / 项目用 vs 管理用），
+#       票面 + 结构性证据都判不出 ⇒ **仍落待核**（铁律：判不出不默认成本）。
+INVENTORY_SUPPORT_KWS = (
+    # 物流类（★ 准则明文：采购成本含运输费、装卸费、包装费…）
     "运输", "运费", "物流", "货运", "配送", "装卸", "搬运", "承运", "运送",
-    # 能源（生产耗用→成本；办公耗用→管理费用）
-    "水电", "电费", "水费", "蒸汽", "燃气", "煤炭", "燃油", "汽油", "柴油", "加油",
-    # 生产辅耗
-    # ⚠ 只认「包装材料/包装物/包装费」等**采购口径**写法：裸词「包装」会命中
+    "仓租", "仓储", "挑选整理",
+    # 包装与辅耗（构成存货的直接组成部分）
+    # ⚠ 只认「包装材料/包装物/包装袋/包装箱/包装费」等**采购口径**写法：裸词「包装」会命中
     #   「软包装罐头」这类**商品属性**（真实验收：宠物罐头整块被挪去待核）
     "包装材料", "包装物", "包装袋", "包装箱", "包装费", "辅料", "耗材", "试剂",
-    # 维护类
+)
+
+AMBIGUOUS_KWS = (
+    # 能源（生产耗用→成本；办公耗用→管理费用；单看品名无法确定）
+    "水电", "电费", "水费", "蒸汽", "燃气", "煤炭", "燃油", "汽油", "柴油", "加油",
+    # 维护类（车间设备 vs 办公设备）
     "维修", "维护", "保养", "修理", "修缮",
-    # 场地
-    "租赁", "租金", "场地", "仓租",
+    # 场地（厂房用→成本/制造费用；办公用→管理费用）
+    "租赁", "租金", "场地",
     # 服务外购（用途决定：项目外包→成本；管理咨询→管理费用）
     # ⚠ 只留「劳务外包」：裸词「劳务/劳务费」过泛，会把 `*劳务*加工费` 截成费用、
     #   连带让 3 处既有回归测试失败（委托加工费对制造业就是主营业务成本）
     "检测", "化验", "实验", "会议", "会务", "安保", "劳务外包", "分包",
 )
+
+#: 兼容旧派生出口（major_expense_keywords 等引用）+ 旧派生出口语义不变量：两张表的并集
+NEEDS_CONTEXT_KWS = tuple(INVENTORY_SUPPORT_KWS) + tuple(AMBIGUOUS_KWS)
 
 #: 通用成本层（与行业无关也成立：直接构成存货/服务产出）
 GENERAL_COST_KWS = (
@@ -223,6 +237,187 @@ def _longest_keyword_hit(text: str, table: Iterable[str]) -> Optional[str]:
     return best
 
 
+# ═══ 结构性证据层（2026-10-02 新增：成本/费用归属的**第一刀**）════════════════════════
+# 发票票面**没有会计科目字段**，但有三样**行业无关、资料无关**的硬证据可以先把
+# 「这张进项有没有实物存货」切开 —— 这正是「一键分析能否分辨主营业务成本 vs 期间费用」的
+# 分水岭（此前只能靠关键词猜 + 业态兜底 ⇒ 服务类外购被兜底成成本、货物类又无处落地）。
+#
+#   ① 业务类型（开票软件口径，如「库存商品_饲料」/「销售费用_运杂费」）
+#   ② 税收分类编码（权威，字段 `tax_code`；真实列名是**「税收编码」**不是「税收分类编码」）
+#   ③ 计量单位（`unit`：件/吨/千克/台… ⇒ 货物；次/月/小时/项… ⇒ 服务）
+#   ④ 开票项目 `*大类*` 的大类名（含「服务」二字 ⇒ 服务）
+#
+# ★ 纪律：只登记**已实证**的前缀；未实证的一律不登记 ⇒ 回退关键词层/业态兜底（宁缺勿错）。
+
+#: 结构性定性结果（小写常量，供 evidence 文案与分支判据引用）
+KIND_GOODS = "goods"            #: 货物（构成存货）
+KIND_SERVICE = "service"        #: 服务/劳务/无形资产（无实物，不构成存货）
+KIND_PREPAID = "prepaid"        #: 预付卡销售
+KIND_AGENCY = "agency"          #: 代收代付（不计本企业成本费用）
+KIND_UNKNOWN = ""
+
+#: 税收分类编码「两位前缀」→ (结构性定性, 人可读名)。
+#: 证据：本仓库真实进项 **3620 行**只读统计（scripts/_probe_structural_fields.py），
+#:      每条前缀均附开票项目佐证；新增同类只在本表加一行，不改分类逻辑。
+#:   10 货物   `*纺织产品*被子` `*饲料*宠物食品` `*纸制品*纸箱`（1924 行，52%）
+#:   11 货物   `*供电*电费`（电力/热力属 VAT 货物税目）
+#:   20 劳务   `*劳务*维修费`
+#:   30 服务   `*设计服务*设计服务费` `*广告服务*广告发布费` `*运输服务*客运服务费`
+#:             `*信息技术服务*信息服务费` `*物流辅助服务*搬运服务`（1320 行，36%）
+#:   40 无形资产 `*无形资产*会员权益-餐饮权益`
+#:   60 预付卡   `*预付卡销售*京东E卡`（与 PREPAID_KWS 同口径）
+#:   61 代收代付 `*代收民航发展基金*代收民航发展基金`（代收代付不计本企业成本费用）
+TAX_CODE_CLASSES: Dict[str, Tuple[str, str]] = {
+    "10": (KIND_GOODS, "货物"),
+    "11": (KIND_GOODS, "电力/热力/燃气等货物"),
+    "20": (KIND_SERVICE, "劳务"),
+    "30": (KIND_SERVICE, "服务"),
+    "40": (KIND_SERVICE, "无形资产"),
+    "60": (KIND_PREPAID, "预付卡销售"),
+    "61": (KIND_AGENCY, "代收代付"),
+}
+
+#: 业务类型前缀 → (结构性定性, 人可读名, 期间费用子目)（实证：公司3 发票列表「库存商品_饲料」等）
+_BIZ_TYPE_INVENTORY = ("库存商品", "原材料", "半成品", "产成品", "周转材料", "委托加工物资")
+_BIZ_TYPE_EXPENSE = ("销售费用", "管理费用", "财务费用", "研发费用", "制造费用", "营业费用")
+
+#: 服务类大类名（开票项目 `*...*` 里的「大类」文本命中即服务）
+_SERVICE_CATEGORY_HINTS = (
+    "交通运输服务", "物流辅助服务", "信息技术服务", "设计服务", "广告服务",
+    "鉴证咨询服务", "专业技术服务", "文化创意服务", "商务辅助服务", "货物运输服务",
+    "建筑服务", "金融服务", "生活服务", "旅游服务", "鉴证服务", "认证服务",
+)
+#: 货物类大类名（开票项目 `*...*` 的大类明确是货物品名）
+_GOODS_CATEGORY_HINTS = (
+    "饲料", "纺织产品", "纸制品", "塑料制品", "金属材料", "化工原料", "五金",
+    "电子产品", "食品", "饮料", "服装", "木材", "建材", "机械设备", "仪器仪表",
+)
+
+#: 服务单位（计量单位层面即说明这是服务，无实物）
+_SERVICE_UNITS = ("月", "季", "年", "小时", "人次", "人天", "吨公里", "公里", "千米", "项", "次", "批", "天", "日")
+#: 货物单位（有实物，构成存货）
+_GOODS_UNITS = ("吨", "千克", "公斤", "克", "件", "个", "台", "套", "只", "张", "本", "根", "条",
+                "瓶", "包", "箱", "盒", "袋", "卷", "米", "升", "块", "双", "付", "组", "罐")
+
+
+def structural_kind(tax_code: Any = "", unit: Any = "", biz_type: Any = "",
+                    text: Any = "") -> Tuple[str, str]:
+    """结构性定性：这张进项**有没有实物存货** ⇒ 成本/费用第一刀（行业无关、资料无关）。
+
+    返回 ``(kind, evidence)``；取不到返回 ``("", 原因)``。优先级 ①业务类型 ②税收编码
+    ③计量单位 ④开票项目大类 ⑤品名含「服务」。
+    ★ 只做「定性」，**不做最终裁决** —— 最终三态仍由各关键词层/业态兜底给出，
+      结构性证据用来①堵住「服务类被业态兜底成成本」②给未命中项一个可自证的成本兜底。
+    """
+    biz_s = str(biz_type or "").strip()
+    if biz_s:
+        for pre in _BIZ_TYPE_INVENTORY:
+            if biz_s.startswith(pre):
+                return KIND_GOODS, "业务类型「%s」" % biz_s
+        for pre in _BIZ_TYPE_EXPENSE:
+            if biz_s.startswith(pre):
+                return KIND_SERVICE, "业务类型「%s」属当期损益口径" % biz_s
+    tc_s = str(tax_code or "").strip()
+    if len(tc_s) >= 2:
+        hit = TAX_CODE_CLASSES.get(tc_s[:2])
+        if hit:
+            return hit[0], "税收分类编码 %s（%s）" % (tc_s[:19], hit[1])
+    u_s = str(unit or "").strip()
+    if u_s:
+        if u_s in _SERVICE_UNITS:
+            return KIND_SERVICE, "计量单位「%s」" % u_s
+        if u_s in _GOODS_UNITS:
+            return KIND_GOODS, "计量单位「%s」" % u_s
+    body = str(text or "")
+    for hint in _SERVICE_CATEGORY_HINTS:
+        if hint in body:
+            return KIND_SERVICE, "开票项目含服务大类「%s」" % hint
+    for hint in _GOODS_CATEGORY_HINTS:
+        if hint in body:
+            return KIND_GOODS, "开票项目含货物大类「%s」" % hint
+    if "服务" in body:
+        return KIND_SERVICE, "品名含「服务」"
+    return KIND_UNKNOWN, "业务类型/税收编码/计量单位/开票项目均未给出定性"
+
+
+def _inventory_support_decision(text: str, kind_why: str,
+                                ind_list: Sequence[str]) -> Optional[Dict[str, Any]]:
+    """命中「存货采购支持词」（运输/装卸/搬运/包装/仓租/挑选整理/辅料耗材试剂）时的裁决。
+
+    ★ 业态闸门（2026-10-02）：「运输/装卸/搬运/包装 ⇒ 存货成本」是**企业会计准则第1号——存货
+      第六条**的明文结论，但**只在有存货的业态成立**（贸易型/生产型）。服务型（广告/咨询/信息技术
+      …）**根本无存货**，其运输费、搬运费一律是当期损益 ⇒ 此处**不得**裁决为成本，返回 None
+      由调用方继续往下落到通用费用层/业态兜底（服务型⇒待核）。
+      真实验收漏网点：广告传媒的 `*物流辅助服务*运输费` 曾被判成主营业务成本。
+    """
+    kw = _longest_keyword_hit(text, INVENTORY_SUPPORT_KWS)
+    if not kw or _business_category(ind_list) not in ("贸易型", "生产型"):
+        return None
+    return {
+        "account_class": CLASS_COST,
+        "expense_sub": "",
+        "confidence": CONF_MEDIUM,
+        "evidence": "存货采购成本层｜%s｜命中「%s」" % (kind_why or "票面品名", kw),
+        "matched_kw": kw,
+        "matched_layer": "存货采购成本",
+        # ★ 仍 needs_context=True：准则推论 ≠ 个案事实，若为**销售环节**运费（→销售费用）或
+        #   管理用途，仍须凭项目/合同上下文复核，不得把结论说死。
+        "needs_context": True,
+        "missing_material": "项目合同、验收(入库)单与付款凭证",
+        "reason": "属存货采购成本构成项（运输费/装卸费/包装费/挑选整理费），计入存货、结转主营业务成本；"
+                  "若为销售环节运费则应改计销售费用，须凭项目/合同上下文复核",
+    }
+
+
+def _resolve_service(kind_reason: str, text: str, goods_s: str,
+                     core: Sequence[str],
+                     ind_list: Sequence[str]) -> Optional[Dict[str, Any]]:
+    """服务/劳务/无形资产轨道裁决（结构性定性为「无实物」 ⇒ **不进存货成本推定**）。
+
+    顺序沿用 L4 铁律（行业核心投入优先于通用费用），其后才是通用成本、存货采购支持费，
+    最后通用费用；全部未命中 ⇒ 待核（★ 服务无存货可比照，**绝不**业态兜底成成本）。
+    """
+    kw = _longest_keyword_hit(goods_s, core) or _longest_keyword_hit(text, core)
+    if kw:
+        return {
+            "account_class": CLASS_COST, "expense_sub": "", "confidence": CONF_HIGH,
+            "evidence": "行业核心投入层｜%s｜命中「%s」" % (kind_reason, kw),
+            "matched_kw": kw, "matched_layer": "行业核心投入（服务轨道）",
+            "needs_context": False, "missing_material": "",
+            "reason": "属该行业核心投入（服务/劳务形态），构成服务产出成本",
+        }
+    kw = _longest_keyword_hit(text, GENERAL_COST_KWS)
+    if kw:
+        return {
+            "account_class": CLASS_COST, "expense_sub": "", "confidence": CONF_MEDIUM,
+            "evidence": "通用成本层｜%s｜命中「%s」" % (kind_reason, kw),
+            "matched_kw": kw, "matched_layer": "通用成本（服务轨道）",
+            "needs_context": False, "missing_material": "",
+            "reason": "构成服务产出的直接投入（委外加工等），计入主营业务成本",
+        }
+    svc_inv = _inventory_support_decision(text, kind_reason, ind_list)
+    if svc_inv:
+        svc_inv["matched_layer"] = "存货采购成本（服务轨道·%s）" % kind_reason
+        return svc_inv
+    kw = _longest_keyword_hit(text, GENERAL_EXPENSE_KWS)
+    if kw:
+        sub, why = _expense_sub_of(text, kw)
+        return {
+            "account_class": CLASS_EXPENSE, "expense_sub": sub, "confidence": CONF_MEDIUM,
+            "evidence": "通用费用层｜%s｜命中「%s」" % (kind_reason, kw),
+            "matched_kw": kw, "matched_layer": "通用费用（服务轨道）",
+            "needs_context": False, "missing_material": "",
+            "reason": why,
+        }
+    return {
+        "account_class": CLASS_UNDETERMINED, "expense_sub": "", "confidence": CONF_LOW,
+        "evidence": "服务轨道｜%s｜未落入行业核心投入/通用成本/存货采购支持/通用费用" % kind_reason,
+        "matched_kw": "", "matched_layer": "服务轨道（无存货可比照）",
+        "needs_context": True, "missing_material": "项目合同、验收(入库)单与付款凭证",
+        "reason": "服务类采购无存货可比照，既不能推定成本也不宜直接计入费用，须凭项目/合同上下文定性",
+    }
+
+
 def classify_line(
     goods: Any,
     *,
@@ -230,6 +425,9 @@ def classify_line(
     seller: Any = "",
     note: Any = "",
     require_context: bool = True,
+    tax_code: Any = "",
+    unit: Any = "",
+    biz_type: Any = "",
 ) -> Dict[str, Any]:
     """对**一张进项发票/一行明细**做成本/费用归属判定（三态）。
 
@@ -253,6 +451,12 @@ def classify_line(
     ind_list = [i for i in (industry if isinstance(industry, (list, tuple, set))
                             else [industry]) if i]
     ind_desc = "、".join(str(i) for i in ind_list) or "（无行业口径）"
+
+    # ★ ② 结构性定性（第一刀：有没有实物存货）—— 行业无关、资料无关、关键词无关。
+    #   服务/预付卡/代收代付 ⇒ **不进存货成本推定**，直接走服务轨道裁决（服务无存货可比照）。
+    _kind, _kind_why = structural_kind(tax_code, unit, biz_type,
+                                       "%s %s" % (goods_s, text))
+    _core = _industry_core(ind_list)
 
     def _undetermined(layer: str, kw: str, why: str) -> Dict[str, Any]:
         return {
@@ -308,8 +512,12 @@ def classify_line(
             "reason": "预付卡购入环节不征税、进项不得抵扣、税前不得扣除，须见到实际消费去向才能定性",
         }
 
-    # ── ② 行业核心投入层（优先于通用费用层，防广告公司核心成本被截走） ────────
-    core = _industry_core(ind_list)
+    # ── ②★ 结构性定性为「无实物」⇒ 服务轨道（行业无关第一刀；防服务类外购被业态兜底成成本）
+    if _kind in (KIND_SERVICE, KIND_PREPAID, KIND_AGENCY):
+        return _resolve_service(_kind_why, text, goods_s, _core, ind_list)
+
+    # ── ③ 行业核心投入层（优先于通用费用层，防广告公司核心成本被截走） ────────
+    core = _core
     kw = _longest_keyword_hit(goods_s, core) or _longest_keyword_hit(text, core)
     if kw:
         return {
@@ -339,24 +547,25 @@ def classify_line(
             "reason": "直接构成存货/服务产出，计入主营业务成本",
         }
 
-    # ── ④ 需上下文层（用途决定归属；无项目上下文即落待核） ───────────────────
-    kw = _longest_keyword_hit(text, NEEDS_CONTEXT_KWS)
-    if kw:
-        if not require_context:
-            return {
-                "account_class": CLASS_UNDETERMINED,
-                "expense_sub": "",
-                "confidence": CONF_LOW,
-                "evidence": "需上下文层｜命中「%s」但未提供项目上下文" % kw,
-                "matched_kw": kw,
-                "matched_layer": "需上下文",
-                "needs_context": True,
-                "missing_material": "项目合同、验收(入库)单与付款凭证",
-                "reason": "同一品名可能计入成本也可能计入期间费用，须凭项目/合同上下文定性",
-            }
+    # ── ④ 需上下文层（★ 2026-10-02「命中层自动裁决」：一张表拆成两张） ─────────
+    # ★ 旧缺陷 : 整张 NEEDS_CONTEXT_KWS 命中 ⇒ 两个分支 `return` 的都是 CLASS_UNDETERMINED
+    #            （`require_context` 形同虚设）⇒ 本最该被分辨的 运输/装卸/包装/搬运
+    #            反倒全退成"分不出来"。现按会计事实分道走：
+    #   · 存货采购支持费 INVENTORY_SUPPORT_KWS —— 企业会计准则第1号——存货 第六条明文的
+    #     存货采购成本构成（运输费/装卸费/包装费/挑选整理费…）⇒ **命中即自动裁决为成本**
+    #     （业态闸门在 `_inventory_support_decision` 内：服务型无存货不吃这条）；
+    #   · 用途模糊项 AMBIGUOUS_KWS（水电/维修/租赁/检测…，生产耗用 vs 办公耗用、项目用 vs
+    #     管理用票面判不出）⇒ **仍落待核**（铁律：判不出不默认成本），
+    #     除非 caller 显式声明已取得项目上下文（require_context=False）。
+    _inv_dec = _inventory_support_decision(text, _kind_why, ind_list)
+    if _inv_dec:
+        return _inv_dec
+    kw = _longest_keyword_hit(text, AMBIGUOUS_KWS)
+    if kw and require_context:
         return _undetermined(
             "需上下文", kw,
-            "同一品名可能计入成本也可能计入期间费用，须凭项目/合同上下文定性")
+            "同一品名可能计入成本也可能计入期间费用（生产耗用 vs 办公耗用、项目用 vs 管理用），"
+            "须凭项目/合同上下文定性")
     # ── ⑤ 通用费用层（明确当期损益） ────────────────────────────────────────
     # ⚠ 食品/水果/茶叶/酒水/香烟/礼品/礼盒**不在此层**：这些"招待载体"词单独出现既不能证
     #   成费用（商贸进货的罐头含"食品"）、也不能证成存货，谁都判不了 ⇒ 交给 ⑥ 业态兜底或待核。
@@ -390,8 +599,8 @@ def classify_line(
             "account_class": CLASS_COST,
             "expense_sub": "",
             "confidence": CONF_MEDIUM,
-            "evidence": "业态兜底层｜行业口径「%s」属%s，未列入费用/资本口径的进项通常构成存货"
-                        % (ind_desc, category),
+            "evidence": "业态兜底层｜%s｜行业口径「%s」属%s，未列入费用/资本口径的进项通常构成存货"
+                        % (_kind_why or ("行业口径「%s」未定性" % ind_desc), ind_desc, category),
             "matched_kw": "",
             "matched_layer": "业态兜底（%s）" % category,
             "needs_context": False,
@@ -425,18 +634,10 @@ def _business_category(ind_list: Sequence[str]) -> str:
                 return str(cat)
     except Exception:
         return ""
+    # ★ 2026-10-02 清理：原先 `return ""` 之后还有一整段 `return {...}`（**不可达死代码**，
+    #   是 `_business_category` 早期形态的残留）—— 它永不会执行，却会让误读者以为
+    #   「未命中 → 待核」在本函数内生成。此处只保留真正的业态口径（空串 ⇒ 调用方落待核）。
     return ""
-    return {
-        "account_class": CLASS_UNDETERMINED,
-        "expense_sub": "",
-        "confidence": CONF_LOW,
-        "evidence": "未命中任何权威层（行业核心投入/通用成本/需上下文/通用费用）",
-        "matched_kw": "",
-        "matched_layer": "未命中",
-        "needs_context": True,
-        "missing_material": "项目合同、验收(入库)单与付款凭证",
-        "reason": "票面品名未落在任何已登记的成本/费用口径内，不得凭空定性",
-    }
 
 
 def _expense_sub_of(text: str, kw: str) -> Tuple[str, str]:
@@ -487,9 +688,14 @@ def classify_lines(
             continue
         goods = ln.get("goods") or ln.get("goods_name") or ln.get("品名") or ""
         note = ln.get("note") or ln.get("备注") or ""
+        # ★ 2026-10-02：把发票的**结构性证据**（税收编码/计量单位/业务类型）一并交给权威层，
+        #   否则「第一刀」（有无实物存货）拿不到数据，只能退回关键词猜（本轮根因之一）。
         res = classify_line(
             goods, industry=ind_list, seller=ln.get("seller") or ln.get("对方单位") or "",
-            note=note, require_context=require_context)
+            note=note, require_context=require_context,
+            tax_code=ln.get("tax_code") or ln.get("税收编码") or ln.get("税收分类编码") or "",
+            unit=ln.get("unit") or ln.get("计量单位") or "",
+            biz_type=ln.get("biz_type") or ln.get("业务类型") or "")
         amt_val = _safe_amount(ln, amount_of)
         total += amt_val
         item = {
