@@ -5128,6 +5128,63 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"业态资料适配断言跳过: {_exc}"))
 
+    # ── ③h 证据行必须与本项**主题**相关（个人账户类项目不得混入公司主体记录）──
+    #   用户质疑：「为什么会涉及公司主体的记录，如上海蕴世广告传媒有限公司」——
+    #   疑点「公私混同发薪/私户支付薪酬」的明细表里混进了**对公**流水
+    #   （上海蕴世广告传媒 1,611,200.00 服务费收入、沙暴文化传播 419,154.26 收入…），
+    #   而那些是"客户付给公司"的钱，与"私户发薪"毫无关系。
+    #   根因：抓行只看"文本含银行/流水"就取**金额最大**的几笔，从不看这笔相不相关。
+    try:
+        from engine.fieldkit import (looks_like_enterprise as _lent2,
+                                     is_noise_counterparty as _lnoi2)
+        # ① 判据自测：企业法人必须被识别；银行摘要脏值必须被识别
+        if not (_lent2("上海蕴世广告传媒有限公司") and _lent2("沙暴文化传播（北京）有限公司")):
+            issues.append(("ERROR", "engine/fieldkit.py", "企业法人未被识别（过滤会失效）"))
+        if not _lent2("深圳某某科技有限公司"):
+            issues.append(("ERROR", "engine/fieldkit.py", "企业法人后缀识别不全"))
+        if _lent2("河南林超攀体育文化传播工作室") or _lent2("深圳市龙岗区篮球协会"):
+            issues.append(("ERROR", "engine/fieldkit.py",
+                           "工作室/协会被误判为企业法人（它们是个人账户往来的真实对象，不该剔）"))
+        if not _lnoi2("支付结算批量汇出汇款"):
+            issues.append(("ERROR", "engine/fieldkit.py",
+                           "银行摘要脏值未被识别（会被当成交易对手名列出）"))
+        # ② 端到端：个人账户类发现的明细行不得含公司主体
+        _dp8 = ROOT / "scripts" / "four_reports" / "_fresh_result.json"
+        if _dp8.exists():
+            _dd8 = json.loads(_dp8.read_text(encoding="utf-8"))
+            _rd8 = _dd8.get("report") or {}
+            if "all_findings" not in _rd8:
+                _rd8 = _rd8.get("report") or {}
+            _PERSONAL_KW = ("个人账户", "私户", "公私混同", "六员", "个人交易", "个人收款")
+            _bad8 = []
+            for _f8 in (_rd8.get("all_findings") or []):
+                # ⚠ 只看**主旨 type**：正文里偶然提到"个人账户支付"不代表本项主题是个人账户
+                #   （如「主营业务成本资金与负债支撑材料核验」的核心证据本是公司付款行，
+                #    按正文判定会把它们误当"混入的公司主体"报错）。
+                _txt8 = str(_f8.get("type") or "")
+                if not any(_k in _txt8 for _k in _PERSONAL_KW):
+                    continue
+                for _r8 in (_f8.get("evidence_rows") or []):
+                    _cp8 = str(_r8.get("counterparty") or "").strip()
+                    if not _cp8:
+                        continue
+                    if str(_r8.get("source") or "") == "工资表":
+                        continue
+                    if _lent2(_cp8) or _lnoi2(_cp8):
+                        _bad8.append("%s→%s" % (str(_f8.get("type") or "")[:12], _cp8[:18]))
+            if _bad8:
+                issues.append(("ERROR", "engine/pipeline.py",
+                               "个人账户类疑点的明细行里混入**公司主体**记录（与主题无关）："
+                               + "、".join(_bad8[:3])))
+        # ③ 用户要求「不要抽样，全显示」：不得再有抽样截断标记
+        _scope8 = [str(_f8.get("type") or "")[:16] for _f8 in (_rd8.get("all_findings") or [])
+                   if _f8.get("evidence_rows_scope")]
+        if _scope8:
+            issues.append(("ERROR", "engine/pipeline.py",
+                           "仍存在抽样截断标记（用户要求明细表全显示）：" + "、".join(_scope8[:3])))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"证据行主题相关性断言跳过: {_exc}"))
+
     # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。

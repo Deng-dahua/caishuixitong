@@ -7732,11 +7732,55 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         except Exception:  # noqa: BLE001
             _periods = set()
         evidence_rows = []
-        max_rows = 8  # 每项待核事实最多8条示例证据行
+        # ★ 2026-10-02（用户要求「不需要设定抽样，应该是全显示」）：**取消抽样上限**。
+        #   原为每项最多 8 条示例行，读者看到 8 行会以为这就是全部（与正文"共N笔"对不上）；
+        #   前端本就是折叠表（点击展开），全量展示不会影响阅读。
+        max_rows = None  # None ＝ 不截断
 
         # 外部核验项：先按自身声明的语义口径取行（取不到就如实为空，不降级去关键词兜底）
         if _ext_branch:
             evidence_rows = _ext_sample_rows(_scope, invoices, sal_invs, pur_invs, bank_txs)
+
+        # ★★ 2026-10-02（用户质疑「为什么会涉及公司主体的记录」）：**本项自带结构化明细时直接用它**。
+        #   事故：疑点「公私混同发薪/私户支付薪酬」的明细表里混进了**公司主体**的对公流水
+        #   （上海蕴世广告传媒 1,611,200.00 服务费收入、沙暴文化传播 419,154.26 收入…）——
+        #   那是"客户付给公司"的钱，与"私户发薪"毫无关系。根因：抓行只看"文本含银行/流水"就
+        #   取**金额最大**的几笔，从不看这笔到底相不相关。
+        #   而本类发现自身 `observed_metrics.matches` 里**已经有权威的个人对手方明细**
+        #   （姓名 + 公司转出/转入金额 + 大额笔数）—— 那才是本项结论真正的依据，故直接采用，
+        #   并**跳过**后续关键词兜底（避免再混入无关行）。
+        from engine.fieldkit import (looks_like_enterprise as _llp_ent,
+                                     is_noise_counterparty as _llp_noise)
+        _used_declared = False
+        if not _ext_branch:
+            _ms = (f.get("observed_metrics") or {}).get("matches")
+            if isinstance(_ms, list) and _ms:
+                for _m in _ms:
+                    if not isinstance(_m, dict):
+                        continue
+                    _nm = str(_m.get("name") or "").strip()
+                    if not _nm:
+                        continue
+                    # 剔「企业法人」（用户点名的公司主体）与「脏值」（银行摘要误入）
+                    if _llp_ent(_nm) or _llp_noise(_nm):
+                        continue
+                    _out = to_number(_m.get("out_to_person", 0))
+                    _in = to_number(_m.get("in_from_person", 0))
+                    _bo = int(_m.get("big_out_count") or 0)
+                    _bi = int(_m.get("big_in_count") or 0)
+                    evidence_rows.append({
+                        "source": "个人账户往来",
+                        "ref_id": _nm[:25],
+                        "ref_label": ("公司转出%s元" % format(_out, ",.2f")) if _out
+                                      else ("个人转入%s元" % format(_in, ",.2f")),
+                        "amount": _out or _in,
+                        "counterparty": _nm[:25],
+                        "date": "",
+                        "note": "个人账户往来（转出%s元/转入%s元%s）"
+                                % (format(_out, ",.2f"), format(_in, ",.2f"),
+                                   ("；其中大额转出%d笔、大额转入%d笔" % (_bo, _bi)) if (_bo or _bi) else ""),
+                    })
+                _used_declared = bool(evidence_rows)
 
         # ── 按finding类型采样相关原始数据（外部核验项不适用，见 _ext_branch 判定）──
         # 进销相关 → 采样销项/进项发票
@@ -7749,9 +7793,33 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
             for inv in sorted_pur:
                 evidence_rows.append(_inv_row(inv, "进项发票"))
         
-        # 银行/资金相关 → 采样银行流水
-        if not _ext_branch and any(kw in combined for kw in ["银行", "收款", "付款", "资金", "流水", "个人交易"]):
-            sorted_bank = sorted(bank_txs, key=lambda x: max(to_number(x.get("debit",0)), to_number(x.get("credit",0))), reverse=True)[:5]
+        # 银行/资金相关 → 取银行流水
+        # ★ 2026-10-02：①**按主题收敛** —— 本项若讲的是"个人账户/私户/公私混同/六员"，
+        #   只取**对手方为自然人**的流水（公司主体的对公收支与本项无关，混进来就是张冠李戴）；
+        #   ②去掉 [:5] 截断（用户要求全显示）。
+        if not _ext_branch and not _used_declared and any(
+                kw in combined for kw in ["银行", "收款", "付款", "资金", "流水", "个人交易"]):
+            # ⚠ 只看**主旨（type 标题）**，不看正文全文：正文里偶然出现"个人账户支付"
+            #   不代表本项主题是个人账户 —— 实测「主营业务成本资金与负债支撑材料核验」
+            #   正文提到"有 116,504.85 元由个人账户支付"，若按正文判定就会把它
+            #   **公司→供应商的付款行**一并过滤掉（那正是本项的核心证据）。判据必须对齐主题。
+            _type_txt = str(f.get("type") or "")
+            _personal_scope = any(kw in _type_txt for kw in
+                                  ("个人账户", "私户", "公私混同", "六员", "个人交易", "个人收款",
+                                   "个人卡", "私卡", "个人银行"))
+
+            def _cp_ok(_tx):
+                _c = str(_tx.get("counterparty", _tx.get("对方户名", "")) or "").strip()
+                # 个人账户类主题：剔**企业法人**（公司主体的对公流水与本项无关）
+                # 与**脏值**（银行摘要误入对手方字段）；工作室/协会/个体户保留
+                # —— 它们是"个人账户往来"的真实对象。
+                return bool(_c) and not _llp_ent(_c) and not _llp_noise(_c)
+
+            _pool = list(bank_txs)
+            if _personal_scope:
+                _pool = [t for t in _pool if _cp_ok(t)]
+            sorted_bank = sorted(_pool, key=lambda x: max(to_number(x.get("debit", 0)),
+                                                          to_number(x.get("credit", 0))), reverse=True)
             for tx in sorted_bank:
                 evidence_rows.append(_bank_row(tx, "银行流水"))
         
@@ -7826,7 +7894,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
             if key not in seen:
                 seen.add(key)
                 unique_rows.append(row)
-                if len(unique_rows) >= max_rows:
+                if max_rows is not None and len(unique_rows) >= max_rows:
                     hit_cap = True
                     break
         # ★ 2026-10-02（用户复核疑点5）：被上限截断必须**可自证** ——

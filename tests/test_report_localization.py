@@ -623,3 +623,37 @@ class TestSymbolFreeNarrative(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCounterpartyNatureJudgement(unittest.TestCase):
+    """★ 对手方性质判据（2026-10-02 用户质疑「为什么会涉及公司主体的记录」）。
+
+    疑点「公私混同发薪/私户支付薪酬」的明细表里混进了**公司主体**的对公流水
+    （上海蕴世广告传媒 1,611,200.00 服务费收入、沙暴文化传播 419,154.26 收入…）——
+    那是"客户付给公司"的钱，与"私户发薪"毫无关系。
+    """
+
+    def test_enterprise_suffixes_recognized(self):
+        from engine.fieldkit import looks_like_enterprise as E
+        for n in ("上海蕴世广告传媒有限公司", "沙暴文化传播（北京）有限公司",
+                  "深圳某某科技有限公司", "某某集团"):
+            self.assertTrue(E(n), f"{n} 未被识别为企业法人")
+
+    def test_studio_and_association_kept(self):
+        """工作室/协会是"个人账户往来"的**真实对象**，不得被当企业法人剔除。"""
+        from engine.fieldkit import looks_like_enterprise as E
+        for n in ("河南林超攀体育文化传播工作室", "深圳市龙岗区篮球协会"):
+            self.assertFalse(E(n), f"{n} 被误判为企业法人（会丢掉真实对象）")
+
+    def test_noise_counterparty_recognized(self):
+        """银行摘要误入对手方字段（如「支付结算批量汇出汇款」）必须被识别为脏值。"""
+        from engine.fieldkit import is_noise_counterparty as N
+        self.assertTrue(N("支付结算批量汇出汇款"))
+        self.assertFalse(N("初永伟"))
+        self.assertFalse(N("杨莹"))
+
+    def test_person_judgement(self):
+        from engine.fieldkit import looks_like_person as P
+        self.assertTrue(P("初永伟") and P("杨莹"))
+        self.assertFalse(P("上海蕴世广告传媒有限公司"))
+        self.assertFalse(P(""))
