@@ -2257,8 +2257,18 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
         #   ③ 都没有 → 不附明细；有明细但主体不符时**如实写明为什么没附**
         #      （绝不附一张主体不符的表 —— 那正是用户反复报的"内容与主体错配"）。
         _rid = s.get("redline_id", "")
+        # ★ 若上面主体自检已判定"**建入口那条发现**与风险指标名不符"，则它出的明细表
+        #   同样不挂（正文线索/证据已取自那条发现；再把它的明细挂上就是叠加错配）。
+        _table_subjects = list(_sup_subjects)
+        if (not _ok_sub) and _entry_subject:
+            try:
+                from engine.subject_consistency import norm_subject_key as _nsk2
+                _ek = _nsk2(_entry_subject)
+                _table_subjects = [x for x in _table_subjects if _nsk2(x) != _ek]
+            except Exception:
+                pass
         _tables, _tbl_note = _select_detail_tables(
-            _rid, rname, _sup_subjects, _src_tables, _dt_by_rid, _dt_by_type, s)
+            _rid, rname, _table_subjects, _src_tables, _dt_by_rid, _dt_by_type, s)
         if _tables:
             # ★★ 2026-10-02：**按小标题定位**，不得按位置写死。
             #   事故：原为 `paragraphs[1]["detail_tables"] = _tables`，
