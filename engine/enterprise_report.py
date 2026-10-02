@@ -938,6 +938,25 @@ _REQUIRED_DOC_CATEGORIES = [
     "增值税申报表", "企业所得税申报表", "个税申报表", "其他税种申报表",
 ]
 
+# ★★ 2026-10-02（用户质疑：行业为服务业，是否还欠缺进销存台账？）：**资料要求必须跟随业态**。
+#   业态配置 `industry_resolver.business_category()` 里每个业态已声明 `skip_domains`
+#   （服务型的 skip_domains 明确含「进销存分析/存货周转/BOM映射/水电能耗分析」），
+#   域分析据此跳过；但**必查资料清单没有跟着走** ⇒ 同一份报告自相矛盾：
+#     一处写「进销存跳过-服务行业：不适用进销存比值分析」，
+#     另一处把「进销存台账」列为缺失并要求企业补交（实测企业版报告 94 处提及）。
+#   对服务企业要求存货台账是**无效要求**：既增加企业负担，又让"资料齐全"永远达不到
+#   （参考：某服务型企业 15 类必查里缺 7 类，其中 1 类根本不该要）。
+#   本映射：**业态跳过的域 → 该域所需的资料名**。新增同类只加一行（资料名取自已登记名）。
+def _not_required_docs(industry):
+    """按**业态**给出「不该列为必查」的资料名与原因（薄转发，唯一实现在 industry_resolver）。
+
+    ★ 判据为业态 `skip_domains`（服务型含"进销存分析/存货周转/BOM映射"）；
+      `evidence_chain` 算缺失时也调同一实现，保证"报告说缺什么"与"这里列必查"一致。
+    """
+    from engine.industry_resolver import not_required_materials as _nrm
+    return _nrm(industry)
+
+
 # 2026-09-05 新增：缺失资料 → 无法检查的风险方面映射表。
 # 用户要求：告知"缺失某项资料而无法检查哪一方面的风险"。
 # 每项：缺什么资料 → 查不了哪些风险（大白话）→ 补什么能查清。
@@ -1685,7 +1704,7 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
     return [_naturalize_report_text(raw_items[i]) for i in keep[:cap]], "facts"
 
 
-def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
+def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_required_docs=None):
     """
     按「税务红线疑点」组装报告主体（2026-09-06 新方法论）
 
@@ -2029,8 +2048,13 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
             "narrative_paragraphs": paragraphs,
             "detail_table": _evidence_table(ev),
             "finding_count": s.get("finding_count", 1),
-            "missing_materials": s.get("missing_materials", []),
-            "verify_materials": s.get("verify_materials", []),
+            # ★ 按业态剔除「不适用资料」：对服务型企业要求进销存台账 = 无效要求
+            #   （实测 8/29 个疑点的待补清单里出现它，有的**只有**这一项）。
+            #   与 material_readiness 同源（同一 `not_required_docs`），不另立口径。
+            "missing_materials": [m for m in (s.get("missing_materials") or [])
+                                  if str(m) not in (not_required_docs or set())],
+            "verify_materials": [m for m in (s.get("verify_materials") or [])
+                                 if str(m) not in (not_required_docs or set())],
             "trace_id": (clue.get("nodes") or [{}])[0].get("trace_ref", ""),
         })
     # ★ 2026-09-27（P1）：逐项测算**潜在税额影响**。只认关键词锚定的明确金额，
@@ -2426,8 +2450,13 @@ def _build_confirmed_problems(report_data):
     if _rd.get("suspicions"):
         _findings = ((report_data.get("scenario_execution", {}) or {}).get("findings")
                      or report_data.get("all_findings", []) or [])
+        # ★ 2026-10-02：按业态把「不适用资料」传进去（如服务型企业的进销存台账），
+        #   与 material_readiness 用**同一权威**（业态 skip_domains），避免同一报告两套口径。
+        _na_docs2 = _not_required_docs(
+            (report_data.get("target_entity") or {}).get("industry"))[0]
         return _build_redline_problems(_rd["suspicions"], _findings,
-                                       rate_ctx=(report_data.get("comprehensive", {}) or {}).get("tax_rate_context"))
+                                       rate_ctx=(report_data.get("comprehensive", {}) or {}).get("tax_rate_context"),
+                                       not_required_docs=_na_docs2)
     findings = report_data.get("all_findings", []) or []
     # 缺失型（该有的没有）经竞争假设裁决后仍为"证据不足"的，转「待企业澄清事项」抛企业自证，
     # 不列为已确认问题（避免同一发现既"已核定"又"待证"的矛盾）。
@@ -2540,9 +2569,15 @@ def _build_material_readiness(report_data):
     file_results = report_data.get("file_results", []) or []
     covered = _doc_covered_categories(report_data)
 
+    # ★★ 2026-10-02（用户质疑「服务业是否还欠缺进销存台账」）：**按业态剔除不适用资料**。
+    #   判据来自 `industry_resolver.business_category()` 的 `skip_domains`（同一权威，
+    #   域分析也用它跳过分析）——不在这里另立一套行业名单。
+    _na_docs, _na_reason = _not_required_docs((report_data.get("target_entity") or {}).get("industry"))
+    _required_eff = [c for c in _REQUIRED_DOC_CATEGORIES if c not in _na_docs]
+
     provided = []
     missing = []
-    for cat in _REQUIRED_DOC_CATEGORIES:
+    for cat in _required_eff:
         if cat in covered:
             provided.append(cat)
         else:
@@ -2559,7 +2594,7 @@ def _build_material_readiness(report_data):
                     "uncheckable_risks": ["相关风险方向"],
                     "remedy": f"提供{cat}，否则相关检查无法完成。",
                 })
-    total = len(_REQUIRED_DOC_CATEGORIES)
+    total = len(_required_eff)
     complete = total - len(missing)
     # ★ 2026-09-25：**文件级**读取失败也要交代 —— 与"整类资料缺失"不同，
     #   这指"文件在清单里、但内容一行都没读到"（路径失效/格式不支持）。
@@ -2582,10 +2617,17 @@ def _build_material_readiness(report_data):
         "missing": missing,
         "read_failures": read_failures,
         "partial_data": bool(read_failures),
+        # 按业态**不适用**的资料（如服务型企业的进销存台账）：不计缺失，但必须说明原因，
+        # 否则读者会以为"漏要了一份资料"。
+        "not_applicable": ({
+            "docs": sorted(_na_docs),
+            "reason": _na_reason,
+        } if _na_docs else None),
         "summary_text": (
             f"本轮检查必查资料共 {total} 类，本轮已提供 {complete} 类、缺失 {len(missing)} 类。"
             + ("资料齐全，全部检查程序可执行。" if not missing
                else "资料不齐全：以下缺失将影响相应风险方向的检查（详见缺失清单）。")
+            + (_na_reason if _na_docs else "")
             + _rf_note
         ),
     }

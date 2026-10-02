@@ -418,6 +418,17 @@ def build_evidence_chain(finding: Dict, redline: Dict,
     #   ②**已提供的类别绝不进 missing**（否则会出现"社保明细缺失"而清单里明明有社保明细）。
     missing_materials: List[str] = []
     verify_materials: List[str] = []
+    # ★ 2026-10-02（用户质疑「服务业是否还欠缺进销存台账」）：**资料要求必须跟随业态**。
+    #   判据取唯一权威 `industry_resolver.not_required_materials`（业态 skip_domains 驱动）——
+    #   服务型业态天然无实物货物流转 ⇒ 进销存台账/BOM 不计缺失、不进待补清单。
+    #   ⚠ 必须在这里（引擎算缺失时）剔，而不是报告层过滤：报告文案（"尚缺：X"）
+    #     与计数都基于此处的结论，报告层过滤会出现"还缺1项却没有名字"的自相矛盾。
+    _na_docs: set = set()
+    try:
+        from engine.industry_resolver import not_required_materials as _nrm
+        _na_docs = _nrm((engine_data or {}).get("industry"))[0]
+    except Exception:
+        _na_docs = set()
     for e in elements:
         if e["role"] == "反证" or e["status"] == "已有":
             continue
@@ -429,6 +440,8 @@ def build_evidence_chain(finding: Dict, redline: Dict,
             forms = [category] + list(_EQUIVALENT_CATEGORIES.get(category, []))
             if any(f in available for f in forms):
                 continue  # 该类别本轮已提供 → 不是缺失
+            if category in _na_docs:
+                continue  # ★ 该业态天然不适用（如服务型企业的进销存台账）→ 不计缺失
             if category not in bucket:
                 bucket.append(category)
             break

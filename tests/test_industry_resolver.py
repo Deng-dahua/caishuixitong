@@ -17,7 +17,7 @@ import unittest
 from engine.industry_resolver import (
     SRC_INVOICE, benchmark_keys, business_category, generalization_note,
     infer_from_goods, is_in_benchmark_base, load_industry_data, match_benchmark,
-    normalize_industry_name, resolve_industry,
+    normalize_industry_name, not_required_materials, resolve_industry,
     scope_covers_industry, scope_industry_hint, scope_text_issue,
 )
 
@@ -989,3 +989,42 @@ class TestScopeTextUsability:
         assert ("摘要片段" in note or "不完整" in note), note
         assert "工商登记行业为「商贸」" in note, "术语必须写「工商登记行业」，不得写成「登记经营范围」"
         assert "登记经营范围为" not in note
+
+
+class TestNotRequiredMaterials(unittest.TestCase):
+    """★ 资料要求必须跟随**业态**（2026-10-02 用户质疑「服务业是否还欠缺进销存台账」）。
+
+    业态配置里服务型已声明 `skip_domains` 含"进销存分析/存货周转/BOM映射"，域分析据此跳过；
+    但资料要求没跟着走 ⇒ 同一份报告一边写「进销存跳过-服务行业：不适用进销存比值分析」，
+    一边把「进销存台账」列为缺失要求企业补交（实测企业版报告 94 处提及、
+    29 个疑点中 8 个的待补清单里出现它，有的**只有**这一项）。
+    对服务企业要求存货台账 = 无效要求，且让"资料齐全"永远达不到。
+    """
+
+    def test_service_industry_drops_inventory_ledger(self):
+        docs, reason = not_required_materials("广告传媒")
+        self.assertIn("进销存台账", docs)
+        self.assertTrue(reason, "剔除不适用资料必须说明原因（否则读者以为漏要了一份）")
+        self.assertIn("服务型", reason)
+
+    def test_trade_industry_keeps_inventory_ledger(self):
+        """贸易/生产型企业确实需要进销存台账 —— 不得误剔（真线索不能被吞）。"""
+        docs, _ = not_required_materials("商贸")
+        self.assertNotIn("进销存台账", docs)
+        docs2, _ = not_required_materials("建材销售")
+        self.assertNotIn("进销存台账", docs2)
+
+    def test_unknown_industry_drops_nothing(self):
+        """业态判不出 ⇒ **不臆测**：一份都不剔，宁可多列也不无据少列。"""
+        self.assertEqual(not_required_materials("")[0], set())
+        self.assertEqual(not_required_materials("某个不存在的行业xyz")[0], set())
+
+    def test_driven_by_business_config(self):
+        """判据必须由业态 `skip_domains` 驱动（新增同类只加映射一行，不改逻辑）。"""
+        import io
+        import os
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "engine", "industry_resolver.py")
+        src = io.open(p, encoding="utf-8").read()
+        self.assertIn("_SKIPPED_DOMAIN_DOCS", src)
+        self.assertIn('skip_domains', src)

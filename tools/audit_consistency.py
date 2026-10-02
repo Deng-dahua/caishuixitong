@@ -5103,6 +5103,31 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"疑点呈现顺序断言跳过: {_exc}"))
 
+    # ── ③g 资料要求必须跟随业态（服务业不该被要"进销存台账"）──
+    #   用户质疑：「如果行业为服务业，是否还欠缺进销存台账呢？」
+    #   事故：业态配置里服务型已声明 `skip_domains` 含"进销存分析/存货周转/BOM映射"，
+    #   域分析据此跳过；但**资料要求没跟着走** ⇒ 同一份报告一边写「进销存跳过-服务行业：
+    #   不适用进销存比值分析」，一边把「进销存台账」列为缺失要求企业补交
+    #   （实测企业版报告 94 处提及、29 个疑点中 8 个的待补清单里出现它）。
+    try:
+        from engine.industry_resolver import not_required_materials as _nrm2
+        _svc_docs, _svc_reason = _nrm2("广告传媒")
+        if "进销存台账" not in _svc_docs:
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "服务型业态未把「进销存台账」判为不适用（会向服务企业索要存货台账）"))
+        if not _svc_reason:
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "剔除不适用资料时未给出原因（读者会以为漏要了一份资料）"))
+        _trade_docs, _ = _nrm2("商贸")
+        if "进销存台账" in _trade_docs:
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "贸易型业态被误剔「进销存台账」（贸易企业确实需要，属于真线索被吞）"))
+        if _nrm2("")[0] or _nrm2("不存在的行业xyz")[0]:
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "业态判不出时仍剔除资料（应不臆测：判不出就不剔）"))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"业态资料适配断言跳过: {_exc}"))
+
     # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。
@@ -5281,6 +5306,31 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
             #   「按供应商」「逐张清单」的标签就是"主营业务成本"，不得把已判为
             #   期间费用/待核的支出也列进去（实测 59 家里 47.5% 的金额并非成本：
             #   机票、住宿、咨询、体育文化…读者看到"表名说成本、内容混着差旅"）。
+            # ★ 服务型业态的**报告实际产出**里不得再出现存货类资料要求（端到端断言）
+            try:
+                from engine.industry_resolver import not_required_materials as _nrm3
+                _na3 = _nrm3(_te_ind)[0]
+                if _na3:
+                    _mr3 = ((_er_d.get("material_readiness") or {}).get("missing") or [])
+                    _bad_mr = [str((_x or {}).get("doc") or "") for _x in _mr3
+                               if str((_x or {}).get("doc") or "") in _na3]
+                    if _bad_mr:
+                        issues.append(("ERROR", "engine/enterprise_report.py",
+                                       "必查资料清单仍列「该业态不适用」的资料（会让'资料齐全'永远达不到）："
+                                       + "、".join(_bad_mr)))
+                    _bad_cp = []
+                    for _c3 in (_er_d.get("confirmed_problems") or []):
+                        for _f3 in ("missing_materials", "verify_materials"):
+                            for _m3 in (_c3.get(_f3) or []):
+                                if str(_m3) in _na3:
+                                    _bad_cp.append("%s:%s" % (str(_c3.get("title") or "")[:14], _m3))
+                    if _bad_cp:
+                        issues.append(("ERROR", "engine/evidence_chain.py",
+                                       "疑点待补资料仍含「该业态不适用」的资料（无效要求）："
+                                       + "、".join(_bad_cp[:3])))
+            except Exception as _exc3:
+                issues.append(("WARN", "tools/audit_consistency.py", f"业态资料端到端断言跳过: {_exc3}"))
+
             _cost_amt = float((_cea_d2.get("cost") or {}).get("amount") or 0)
             _sup_amt = round(sum(float(_x.get("amount") or 0)
                                  for _x in (_crd_d2.get("by_supplier") or [])), 2)

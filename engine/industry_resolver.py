@@ -1052,3 +1052,50 @@ def resolve_into_profile(ctx, sales_goods, db=None, company_id=None):
     cp["industry_source"] = str(res.get("source") or "")
     cp["_industry_resolved"] = res
     return res
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# 「按业态不适用」的资料（唯一权威，2026-10-02）
+# ══════════════════════════════════════════════════════════════════════════
+# 用户质疑：「如果行业为服务业，是否还欠缺进销存台账呢？」
+#   业态配置里每个业态已声明 `skip_domains`（服务型明确含「进销存分析/存货周转/BOM映射」），
+#   域分析据此跳过分析；但**资料要求没跟着走** ⇒ 同一份报告自相矛盾：
+#     一处写「进销存跳过-服务行业：不适用进销存比值分析」，
+#     另一处把「进销存台账」列为缺失并要求企业补交（实测企业版报告 94 处提及、
+#     29 个疑点中 8 个的待补清单里出现它，有的**只有**这一项）。
+#   对服务企业要求存货台账是**无效要求**：既增加企业负担，又让"资料齐全"永远达不到。
+#   本表：**业态跳过的域 → 该域所需的资料名**；新增同类只加一行（资料名取自已登记名）。
+_SKIPPED_DOMAIN_DOCS = {
+    "进销存分析": ("进销存台账",),
+    "存货周转": ("进销存台账",),
+    "BOM映射": ("BOM物料清单",),
+    "加工费专项": (),
+    "水电能耗分析": (),
+}
+
+
+def not_required_materials(industry) -> Tuple[set, str]:
+    """按**业态**给出「不该列为必查/待补」的资料名与原因（单一权威）。
+
+    返回 `(资料名集合, 说明文本)`；业态未知或该业态未跳过任何域时返回空集合与空文本
+    —— **不臆测**：判不出就不剔，宁可多列也不无据少列。
+    """
+    ind = str(industry or "").strip()
+    if not ind:
+        return set(), ""
+    try:
+        _info = business_category(ind) or {}
+    except Exception:
+        return set(), ""
+    if not _info.get("is_known_industry"):
+        return set(), ""
+    _cat = str(_info.get("category") or "")
+    _skip = [str(x) for x in ((_info.get("config") or {}).get("skip_domains") or [])]
+    docs: set = set()
+    for _d in _skip:
+        docs.update(_SKIPPED_DOMAIN_DOCS.get(_d) or ())
+    if not docs:
+        return set(), ""
+    return docs, ("本企业业态为「%s」，天然无实物货物流转（该业态不适用：%s），"
+                  "故下列资料不属于必查项，不因未提供而计入缺失：%s。"
+                  % (_cat, "、".join(_skip), "、".join(sorted(docs))))
