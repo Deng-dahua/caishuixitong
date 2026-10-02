@@ -7609,7 +7609,61 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
             "date": str(_fk_period(s))[:10],
             "note": ""
         }
-    
+
+    def _ext_sample_rows(scope, all_invs, sal, pur, bank):
+        """按外部核验项**自己声明**的采样口径取行（口径表 `external_check_reminder._EXT_SAMPLE_BRANCH`）。
+
+        ★ 2026-10-02（用户复核疑点5）：外部核验待办项的明细表必须语义对齐。
+          这些发现的文案里必然出现"银行""供应商""客户"等字（"依赖工商/税务/海关/银行等"），
+          旧版让它走通用关键词兜底 ⇒ 「需外部数据核验：关联交易的同期资料与关联申报（共8笔）」
+          挂的是「全年最大额银行流水 + 0 元高频交易对方」，表题与内容完全错位。
+          现只按分支取真正相关的行；分支由探测器声明（数据表驱动），本函数不猜语义。
+        """
+        _branch = str(scope.get("branch") or "")
+        _limit = max(1, int(scope.get("limit") or 5))
+        _ents = [str(e).strip() for e in (scope.get("entities") or []) if str(e).strip()]
+        _rows = []
+
+        def _row_of(inv):
+            _dir = str(inv.get("direction") or "")
+            return _inv_row(inv, "销项发票" if _dir in ("销项", "sales") else "进项发票")
+
+        def _cp_of(inv):
+            _dir = str(inv.get("direction") or "")
+            _k = "buyer" if _dir in ("销项", "sales") else "seller"
+            _alt = "购方名称" if _dir in ("销项", "sales") else "销方名称"
+            return str(inv.get(_k) or inv.get(_alt) or "").strip()
+
+        if _branch == "top_pur_invoices":
+            for inv in sorted(pur, key=lambda x: to_number(x.get("amount", 0)),
+                              reverse=True)[:_limit]:
+                _rows.append(_row_of(inv))
+        elif _branch == "entity_bank_txs":
+            for tx in sorted(bank, key=lambda x: max(to_number(x.get("debit", 0)),
+                                                     to_number(x.get("credit", 0))),
+                             reverse=True):
+                if _ents and str(tx.get("counterparty", "") or "").strip() not in _ents:
+                    continue
+                _rows.append(_bank_row(tx, "银行流水"))
+                if len(_rows) >= _limit:
+                    break
+        elif _branch == "keyword_invoices":
+            _kws = [k.strip() for k in str(scope.get("keyword") or "").replace("，", ",").split(",")
+                    if k.strip()]
+            for inv in all_invs:
+                _g = str(inv.get("goods") or inv.get("货物或应税劳务名称") or "")
+                if _kws and any(k in _g for k in _kws):
+                    _rows.append(_row_of(inv))
+                    if len(_rows) >= _limit:
+                        break
+        elif _branch == "entity_invoices":
+            for inv in all_invs:
+                if _ents and _cp_of(inv) in _ents:
+                    _rows.append(_row_of(inv))
+                    if len(_rows) >= _limit:
+                        break
+        return _rows
+
     for f in all_findings:
         # ★ 2026-09-26：作者已显式构建的证据行（如「红冲/作废发票」的逐笔明细 13 行）
         #   必须保留，不得被通用 top-N 采样覆盖。否则「共13张红冲发票」的明细会被
@@ -7617,6 +7671,10 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         #   通用采样只作为「作者未提供证据行」时的兜底。
         if f.get("evidence_rows"):
             continue
+        # ★ 2026-10-02：外部核验待办项**只走自己声明的语义采样**，禁走通用关键词兜底
+        #   （其文案必然含"银行/供应商/客户"等词，按词抓行必然张冠李戴，见 `_ext_sample_rows` 注释）。
+        _scope = f.get("evidence_scope")
+        _ext_branch = str((_scope.get("branch") or "") if isinstance(_scope, dict) else "")
         ftype = f.get("type", "")
         combined = ftype + " " + str(f.get("detail", "")) + " " + str(f.get("description", ""))
         # 期间对齐：发现文案里写明的所属期（如「…（2025-01）」/「2025-01 各来源…」）
@@ -7633,10 +7691,14 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
             _periods = set()
         evidence_rows = []
         max_rows = 8  # 每项待核事实最多8条示例证据行
-        
-        # ── 按finding类型采样相关原始数据 ──
+
+        # 外部核验项：先按自身声明的语义口径取行（取不到就如实为空，不降级去关键词兜底）
+        if _ext_branch:
+            evidence_rows = _ext_sample_rows(_scope, invoices, sal_invs, pur_invs, bank_txs)
+
+        # ── 按finding类型采样相关原始数据（外部核验项不适用，见 _ext_branch 判定）──
         # 进销相关 → 采样销项/进项发票
-        if any(kw in combined for kw in ["购销", "进销", "毛利", "有进无销", "有销无进", "数量偏差"]):
+        if not _ext_branch and any(kw in combined for kw in ["购销", "进销", "毛利", "有进无销", "有销无进", "数量偏差"]):
             # 按金额从大到小取top发票
             sorted_sal = sorted(sal_invs, key=lambda x: to_number(x.get("amount", 0)), reverse=True)[:3]
             sorted_pur = sorted(pur_invs, key=lambda x: to_number(x.get("amount", 0)), reverse=True)[:3]
@@ -7646,7 +7708,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
                 evidence_rows.append(_inv_row(inv, "进项发票"))
         
         # 银行/资金相关 → 采样银行流水
-        if any(kw in combined for kw in ["银行", "收款", "付款", "资金", "流水", "个人交易"]):
+        if not _ext_branch and any(kw in combined for kw in ["银行", "收款", "付款", "资金", "流水", "个人交易"]):
             sorted_bank = sorted(bank_txs, key=lambda x: max(to_number(x.get("debit",0)), to_number(x.get("credit",0))), reverse=True)[:5]
             for tx in sorted_bank:
                 evidence_rows.append(_bank_row(tx, "银行流水"))
@@ -7659,7 +7721,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         #   "提供劳动合同、参保**凭证**或异地参保证明"，于是这张与工资/社保毫无关系的
         #   收款 161 万、结转损益 152 万…等 4 张凭证被挂成了该疑点的「逐笔明细」。
         #   现改为「必须命中记账凭证专属词」且「不含其它凭证类资料名」。
-        if (_is_ledger_voucher_context(combined)):
+        if (not _ext_branch) and _is_ledger_voucher_context(combined):
             from engine.fieldkit import row_period as _fk_period
             _grams = _cjk_bigrams(combined)
             _pool = [v for v in vouchers if not _periods or _fk_period(v) in _periods]
@@ -7668,7 +7730,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
                 evidence_rows.append(_voucher_row(v, "记账凭证"))
         
         # 发票行为 → 采样可疑发票
-        if any(kw in combined for kw in ["发票连号", "整十整百", "季度末", "金额分布"]):
+        if not _ext_branch and any(kw in combined for kw in ["发票连号", "整十整百", "季度末", "金额分布"]):
             # 对金额整十整百的采样
             round_invs = [i for i in invoices if to_number(i.get("amount", 0)) >= 1000 and (float(i.get("amount", 0)) % 1000 == 0 or float(i.get("amount", 0)) % 10000 == 0)]
             for inv in round_invs[:5]:
@@ -7678,7 +7740,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         # ★ 2026-09-29（点评整改）：进项按销方、销项按购方取对手方。旧版对两侧统一取
         #   `seller`，导致本企业自身（销项的销方=本企业）被计入"高频交易对方"
         #   （实测："交易70次 深圳海更数字传媒有限公司"），与"已剔除同名划转"的声明自相矛盾。
-        if any(kw in combined for kw in ["供应商", "客户", "集中"]):
+        if not _ext_branch and any(kw in combined for kw in ["供应商", "客户", "集中"]):
             from collections import Counter
             counterparty_counts = Counter()
             for inv in pur_invs:
@@ -7708,7 +7770,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
                 })
         
         # 工资相关 → 采样工资记录
-        if any(kw in combined for kw in ["工资", "薪金", "人员"]):
+        if not _ext_branch and any(kw in combined for kw in ["工资", "薪金", "人员"]):
             sorted_sal = sorted(salaries, key=lambda x: to_number(x.get("实发金额", x.get("实发", x.get("amount", 0)))), reverse=True)[:5]
             for s in sorted_sal:
                 evidence_rows.append(_salary_row(s, "工资表"))
@@ -7716,14 +7778,21 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         # 去重（按ref_id）并限制数量
         seen = set()
         unique_rows = []
+        hit_cap = False
         for row in evidence_rows:
             key = (row["source"], row["ref_id"])
             if key not in seen:
                 seen.add(key)
                 unique_rows.append(row)
                 if len(unique_rows) >= max_rows:
+                    hit_cap = True
                     break
-        
+        # ★ 2026-10-02（用户复核疑点5）：被上限截断必须**可自证** ——
+        #   报告层据此把口径说明从"基础逐笔明细（全量）"改成"抽样（最多N笔）"，
+        #   否则读者会以为这 8 行就是全部，与正文"共N笔"对不上。
+        if hit_cap:
+            f["evidence_rows_truncated"] = True
+            f["evidence_rows_scope"] = "只取与本项结论真正相关的原始行，最多%d笔" % max_rows
         if unique_rows:
             f["evidence_rows"] = unique_rows
     

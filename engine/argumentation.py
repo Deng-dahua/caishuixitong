@@ -37,6 +37,89 @@ _VERDICT_CONFIRMED = "已触碰税务违规红线（资料齐全，可作初步�
 _VERDICT_HIT_PENDING = "已触碰税务违规红线（资料不足，待补证后判断）" # 触红 + 材料未齐 → 置疑清单
 _VERDICT_EXCLUDED = "经核查未触碰违规红线（已有合理解释）"       # 反证成立 → 排除
 _VERDICT_WEAK = "现有资料不足以形成税务疑点"                   # 无线索支撑 → 仅作观察
+# ★ 2026-10-02（用户复核疑点5）：第五档 —— **外部数据核验待办**。
+#   这类发现（category="外部核验"）的性质是「账内检出信号、认定结论取决于工商/税务/海关/
+#   银行等外部数据」，其自身已声明"不作定性"。旧版只看线索链终端信号就把它们判成
+#   「已触碰税务违规红线」，而报告同项下一段却写「本企业涉及上述第 无 条构成要件」——
+#   同一疑点内部正面矛盾（用户复核实测）。
+#   根因：把「有信号」直接等同于「已核对到法定情形」。外部数据未取得 ⇒ 要件无从核对
+#   ⇒ 既不触红、也不出罪，必须走独立裁决档，不能挤进触红档。
+_VERDICT_EXTERNAL = "账内检出需外部数据核验的信号（不作定性，待外部核验后再判断）"
+
+# ★ 2026-10-02：触红档（HIT_PENDING）的**段尾断言**，抽为模块常量。
+#   理由：它是一句会进报告的**触红断言**，而「能不能这么说」取决于报告端才有的
+#   `participating`（要件是否被认定为成立）；报告输出闸门
+#   `enterprise_report.sanitize_conclusion_assertion` 需要按整句替换它 ——
+#   锚点必须与产出方同源，否则两处措辞一改就再也替换不到（静默失效）。
+_TAIL_HIT_PENDING = ("已经触碰税务红线，但材料还不够齐全，本轮暂不下结论，"
+                     "转由企业补充上述材料后重新检查；补证之前既不认定违法，也不予排除。")
+
+# ── 「零要件认定 ⇒ 不得断言触红」的唯一净化实现（2026-10-02）──────────────────
+#   背景（用户复核疑点5）：同一疑点里「一、未认定到任何一条构成要件」＋
+#   「四、本项结论是已触碰税务违规红线」＋段尾「已经触碰税务红线…」三句话正面冲突。
+#   口径结论：触红是「符合构成要件」的判断结果；一条要件都没认定时它没有依据。
+#   本函数是**唯一实现**，供文本产出侧（`redline_engine` 落案卷时）与
+#   报告输出侧（`enterprise_report`）共用，避免两处各写一套措辞。
+_TOUCH_REDLINE_PREFIX = "本企业触碰红线，即"
+_NEUTRAL_HIT_VERDICT = "逐条要件尚未认定成立（结论只到「账内信号待核实」这一层）"
+_NEUTRAL_HIT_TAIL = (
+    "账内已读到与该项风险指向一致的信号，但本轮未认定到任何一条具体构成要件成立，"
+    "材料也不够齐全；因此本项只作为待核疑点登记，暂不作出触碰红线的结论，"
+    "转由企业补充上述材料后重新检查；补证之前既不认定违法，也不予排除。"
+)
+# ★ 锚点必须**容错**：上游 `plain_language.to_plain` 会把「补证」改写成「补充资料」，
+#   逐字比对 `_VERDICT_HIT_PENDING` / `_TAIL_HIT_PENDING` 会**静默失效**（实测：
+#   报告里出现「待补充资料后判断」，而常量是「待补证后判断」→ 替换一次也没发生）。
+#   故这里改用不含易改写词的前缀锚点，替换范围延伸到该句结束。
+_VERDICT_HIT_ANCHOR = "已触碰税务违规红线"
+_TAIL_HIT_ANCHOR = "已经触碰税务红线，但材料还不够齐全"
+
+
+def neutralize_assertion_when_no_constituent(text, redline_name=""):
+    """把「一条构成要件都没认定」的论证文本里的**触红断言**中性化。
+
+    规则（宁缺勿错）：
+      ① 先把 `红线「名称」` 自然化为 `红线，即名称`，使本函数**不依赖渲染顺序**
+         （不论在产出侧还是输出侧调用，识别结果一致）；
+      ② 首句不是本条红线的触红开场（标题被裁剪过）→ 原样返回，不误伤；
+      ③ 首句是 → 换成「逐条核对未认定到要件 + 只构成需核实的疑点、不等于已触红
+         + 待补料与外部核验」；
+      ④ 段中「本项结论是<触红裁决>」与段尾「已经触碰税务红线，但材料还不够齐全…」
+         一并中性化 —— 只改首句会把矛盾留在同一段里。
+    """
+    _t = str(text or "").strip()
+    if not _t:
+        return _t
+    _t = re.sub(r"红线[「『]([^」』]{1,60})[」』]", r"红线，即\1", _t)
+    if not _t.startswith(_TOUCH_REDLINE_PREFIX):
+        return _t
+    _seg = _t[len(_TOUCH_REDLINE_PREFIX):]
+    _cut = _seg.find("。")
+    if _cut <= 0:
+        return _t
+    _head, _tail = _seg[:_cut + 1], _seg[_cut + 1:].strip()
+    _said = _head.split("，")[0].strip().rstrip("。").strip()
+    _name = str(redline_name or "").strip()
+    if _name and _said and _said != _name:
+        return _t
+    _t = ("本轮对「%s」逐条核对，未认定到任何一条构成要件成立；账内检出需进一步核验的信号，"
+          "但这只说明本项构成需核实的疑点、不等于已触碰红线，"
+          "是否触红须待补充资料与外部数据核验后再判断。%s"
+          % (_name or _said or "本项风险指标", _tail))
+    # ④-a 段中裁决：按前缀锚点换掉整段裁决（含括号内措辞；上游可能已改写括号内容）
+    _i = _t.find(_VERDICT_HIT_ANCHOR)
+    if _i >= 0:
+        _j = _t.find("）", _i)
+        _end = _j + 1 if 0 <= _j <= _i + 40 else _i + len(_VERDICT_HIT_ANCHOR)
+        _t = _t[:_i] + _NEUTRAL_HIT_VERDICT + _t[_end:]
+    # ④-b 段尾触红断言：整句替换（保留"不认定违法、也不予排除"的承诺）
+    _k = _t.find(_TAIL_HIT_ANCHOR)
+    if _k >= 0:
+        _m = _t.find("。", _k)
+        if _m >= 0:
+            _t = _t[:_k] + _NEUTRAL_HIT_TAIL + _t[_m + 1:]
+    return _t
+
 
 # 报告用的结论分级
 GRADE_CONFIRMED = "已核定"
@@ -127,6 +210,22 @@ def _grounds(finding: Dict, clue: Dict, evidence: Dict) -> List[str]:
     return grounds[:6]
 
 
+# ★ 2026-10-02：外部数据核验待办的识别口径（**单一权威**，pipeline/报告层复用）。
+#   判据只取发现自身声明的语义类别（`external_check_reminder` 唯一出处），
+#   不猜关键词、不看红线归属 —— 避免同一件事在两处被判成两种性质。
+_EXTERNAL_CATEGORY = "外部核验"
+_EXTERNAL_TYPE_PREFIX = "需外部数据核验："
+
+
+def is_external_check_finding(finding: Dict) -> bool:
+    """该发现是否属「需外部数据核验」待办项（账内有信号、结论文案取决于外部数据）。"""
+    if not isinstance(finding, Dict):
+        return False
+    if str(finding.get("category") or "").strip() == _EXTERNAL_CATEGORY:
+        return True
+    return str(finding.get("type") or "").strip().startswith(_EXTERNAL_TYPE_PREFIX)
+
+
 def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
                         evidence: Dict, engine_data: Optional[Dict] = None) -> Dict:
     """
@@ -146,13 +245,25 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
         }
     """
     engine_data = engine_data or {}
+    # ★ 2026-10-02（用户复核疑点5）：外部核验待办项**不得用触红口径开场**。
+    #   它的结论取决于本系统拿不到的外部数据，自身已声明不作定性；
+    #   若仍套「触碰红线，涉嫌……」，就会和同项「涉及第 无 条构成要件」正面冲突。
+    _external = is_external_check_finding(finding)
     _suspect = str(redline.get('suspect') or '税务风险')
     # suspect 已含「涉嫌」字样，不得重复叠加
     _suspect_txt = _suspect if _suspect.startswith("涉嫌") else f"涉嫌{_suspect}"
     # ★ 2026-09-25：claim 文本**不带红线编号** —— 编号是内部追溯标识，已在条目
     #   `redline_id` 字段中透传；写进面向读者的表述里，一旦某条渲染路径没过净化闸门
     #   就会泄漏给企业（实测内部树里 16 处 claim 仍带 RL-XXX）。
-    claim = (f"本企业触碰红线「{redline.get('name','')}」，{_suspect_txt}")
+    if _external:
+        # 主张只报「账内信号 + 结论待外部核验」，不报触红、不报红线 suspect 罪名
+        _sig = str(finding.get("detail") or finding.get("how_found") or "").strip()
+        _sig = _sig.rstrip("。；；,，").strip()
+        claim = (f"本项在账内检出信号——{_sig or '与该项风险指标对应的账内线索'}，"
+                 f"但能否成立取决于工商、税务、海关、银行等外部数据的核验结果，"
+                 f"现有资料不足以作出定性认定")
+    else:
+        claim = (f"本企业触碰红线「{redline.get('name','')}」，{_suspect_txt}")
     grounds = _grounds(finding, clue, evidence)
     rebuttals = _justifications(finding, redline)
 
@@ -199,10 +310,18 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
     # 线索链是否给出可量化的触红事实**，与证据链闭合度无关——闭合度决定
     # 的是「能否定性」，不是「是否触红」。用闭合度卡触红会让真实疑点被吞掉。
     has_signal = bool(clue.get("terminal_signal"))
-    redline_hit = has_signal
+    # ★ 2026-10-02：外部核验待办项**有信号也不判触红** ——
+    #   触红必须是「逐条要件已可核对到法定情形」；外部数据缺失时要件无从核对，
+    #   把它算触红会让同一疑点出现「已触碰税务违规红线」+「涉及第 无 条构成要件」的
+    #   自相矛盾。它走独立的 `_VERDICT_EXTERNAL` 档。
+    redline_hit = has_signal and not _external
 
     # ── 第二层：能否定性（取决于证据链闭合度与反证） ──
-    if redline_hit and rebuttal_ratio >= 0.5 and closure < 0.60:
+    if _external:
+        # 外部核验待办：账内有信号、结论待外部数据 —— 既非已定性，也非触红待补证
+        # （此时 redline_hit 已由上一行置 False，故不会落进下面的触红分支）
+        verdict, grade = _VERDICT_EXTERNAL, GRADE_PENDING
+    elif redline_hit and rebuttal_ratio >= 0.5 and closure < 0.60:
         verdict, grade = _VERDICT_EXCLUDED, GRADE_EXCLUDED
     elif redline_hit and closure >= 0.80 and not evidence.get("direct_missing"):
         verdict, grade = _VERDICT_CONFIRMED, GRADE_CONFIRMED
@@ -381,8 +500,15 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
                     "需企业说明原因（如红字冲销、补记凭证、在途未达账项等），"
                     "无法合理解释且存在账外资金或隐瞒收入线索的，转进一步核查。")
         else:
-            tail = ("已经触碰税务红线，但材料还不够齐全，本轮暂不下结论，"
-                    "转由企业补充上述材料后重新检查；补证之前既不认定违法，也不予排除。")
+            # ★ 2026-10-02：抽成模块常量（`_TAIL_HIT_PENDING`）——报告输出闸门
+            #   `enterprise_report.sanitize_conclusion_assertion` 要按「是否认定到构成要件」
+            #   把它整句**中性化**，锚点必须取自同一权威，不能在两处各写一份措辞。
+            tail = _TAIL_HIT_PENDING
+    elif verdict == _VERDICT_EXTERNAL:
+        tail = ("这一项不属于本轮能自行定论的事项：账内信号已经读到，但认定所需的信息在"
+                "税务端与跨部门数据池（工商登记、开票环境、参保与注销、报关收汇、账户实名等），"
+                "单账套拿不到，须由主管机关调取或企业补充外部资料后再判断；"
+                "本轮既不认定违法，也不予排除。")
     elif verdict == _VERDICT_EXCLUDED:
         tail = "企业给出的解释合理且有证据支撑，这一项予以排除。"
     else:

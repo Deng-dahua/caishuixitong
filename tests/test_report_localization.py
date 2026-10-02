@@ -138,6 +138,39 @@ class ClueRenderTests(unittest.TestCase):
             self.assertNotIn("salaries", row["对应资料"])
             self.assertNotIn("social_security", row["对应资料"])
 
+    def test_dup_row_still_localized(self):
+        """★ 2026-10-02：命中「同上」分支的行**同样必须中文化**，不得回填原始引擎键名。
+
+        实测真账套：疑点「对私转账」第 3 环观测值与上一环同文本 → 走"同上"分支，
+        旧实现直接回填原始 observed，表格里出现 `matches=人员=初永伟…`、
+        `receipts=275,000.00…` 这类引擎内部键名（用户看到的是英文变量名，不是数据）。
+        「同上」只是"不再重复播报"的信号，不是"放弃清洗"的信号。
+        """
+        dup = "涉及个人账号数=15；matches=人员=初永伟、转出个人金额=1,071,343.80等5项"
+        clue = {"nodes": [
+            {"step": 1, "source": "bank_txs", "action": "取流水", "observed": dup},
+            {"step": 2, "source": "bank_txs", "action": "核对对手方", "observed": dup},
+        ]}
+        t = _clue_table(clue)
+        for row in t["rows"]:
+            cell = row["实际看到的数据"]
+            self.assertNotRegex(cell, r"(?<![A-Za-z0-9_])[A-Za-z][A-Za-z0-9_]{2,}=",
+                                f"「同上」分支回填了未中文化的引擎键名：{cell}")
+            self.assertIn("初永伟", cell)
+        # 第 2 环与本环同文本，但表格每行须可独立阅读，故不得写「同上」
+        self.assertNotIn("同上", t["rows"][1]["实际看到的数据"])
+
+    def test_narrative_dup_becomes_same_as_previous(self):
+        """反向锁：**句子**路径仍用「同上」避免连续重复（表格与句子口径刻意不同）。"""
+        dup = "salary_person_count=6"
+        clue = {"nodes": [
+            {"step": 1, "source": "salaries", "action": "统计", "observed": dup},
+            {"step": 2, "source": "salaries", "action": "复核", "observed": dup},
+        ]}
+        out = _clue_narrative(clue)
+        self.assertIn("数据与上一环一致", out)
+        self.assertNotIn("salary_person_count", out)
+
 
 class DedupTests(unittest.TestCase):
     def test_adjacent_dup_collapsed(self):
@@ -394,6 +427,54 @@ class TestCompletedChecksSectionRemoved(unittest.TestCase):
         self.assertEqual(got.strip(), "", f"套话应整段清空，实得：{got!r}")
 
 
+class TestNoInternalFileNameInReportText(unittest.TestCase):
+    """契约（2026-10-02）：给企业看的报告不得暴露**内部实现文件名/模块名**。
+
+    实测真账套正文出现：
+      · 「来源 industry_benchmark（通用参考）」（红线论证链里的行业基准口径声明）
+      · 「industry_data.json 中无对应行业口径」（成本归属口径说明段）
+    读者是企业，不是开发者；这类标识既无从核验，也不专业。
+    对外一律写「系统内置行业基准库」，数据文件名同理。
+    """
+
+    _FILE_RX = r"(?<![A-Za-z0-9_])[A-Za-z_][A-Za-z0-9_]*\.(?:json|py)(?![A-Za-z0-9_])"
+    _MODS = ("industry_benchmark", "industry_profiles", "observed_metrics",
+             "clue_chain", "constituent_hits", "redline_engine")
+
+    def _assert_clean(self, text, where):
+        self.assertNotRegex(str(text), self._FILE_RX, f"{where} 暴露内部数据文件名：{text}")
+        for m in self._MODS:
+            self.assertNotRegex(str(text), r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % m,
+                                f"{where} 暴露内部模块名 {m}：{text}")
+
+    def test_benchmark_note_source_label_localized(self):
+        from engine.redline_benchmark import BENCHMARK_REFS, benchmark_note
+        for rid in list(BENCHMARK_REFS)[:6]:
+            self._assert_clean(benchmark_note(rid, "广告传媒")["text"], f"benchmark_note({rid})")
+            # 行业未确定的分支同样不得落文件名
+            self._assert_clean(benchmark_note(rid, None)["text"], f"benchmark_note({rid},None)")
+        self._assert_clean(benchmark_note("RL-VAT-001", "广告传媒")["text"], "benchmark_note")
+
+    def test_benchmark_compare_text_localized(self):
+        from engine.redline_benchmark import BENCHMARK_REFS, compare_redline_benchmark
+        ind = {"purchase_sales_ratio": 0.758, "tax_burden_rate": 0.02}
+        for rid in list(BENCHMARK_REFS)[:6]:
+            self._assert_clean(compare_redline_benchmark(rid, "广告传媒", ind)["text"],
+                               f"compare_redline_benchmark({rid})")
+
+    def test_cost_attribution_paragraph_localized(self):
+        """成本归属「未覆盖行业」说明段不得写数据文件名。"""
+        import io, os, re
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "engine", "cost_recon_detail.py")
+        src = io.open(p, encoding="utf-8").read()
+        for m in re.finditer(r'"[^"\n]*(?:json|\.py)[^"\n]*"', src):
+            # 只约束**会进报告正文**的中文字符串字面量（含中文即视为正文文案）
+            lit = m.group(0)
+            if re.search(r"[\u4e00-\u9fa5]", lit):
+                self.fail(f"成本归属正文文案里写了内部文件名：{lit}")
+
+
 class TestSymbolFreeNarrative(unittest.TestCase):
     """契约（2026-09-13 用户要求）：叙事式句子，不用直角引号与段落符号。
 
@@ -445,6 +526,28 @@ class TestSymbolFreeNarrative(unittest.TestCase):
         got = self._clean("典型：*纺织产品*针织布（销105773.05）")
         self.assertNotIn("*", got, f"markdown 星号未清：{got}")
         self.assertIn("纺织产品针织布", got)
+
+    def test_double_star_emphasis_fully_removed(self):
+        """★ 2026-10-02：`**加粗**` 必须**整对**吃掉，不得半剥成 `*斜体*`。
+
+        实测三处真账套正文残留：cost_recon_detail 的「业态兜底」、
+        special_redline_detectors 的「转让方自然人」、verified_rule_engine 的「无法核实」。
+        根因是旧式 `\\*([^*]+)\\*` 只匹配中间那对星号，替换后留下 `*x*`——
+        本想删强调，结果把加粗降级成斜体、星号照样留在报告里。
+        """
+        for src, must_contain in [
+            ("上述划分因此采用**业态兜底**口径（购销/生产业态下…）", "采用业态兜底口径"),
+            ("纳税义务人为**转让方自然人**，负代扣代缴义务", "纳税义务人为转让方自然人"),
+            ("申报完整性**无法核实**——本项为待核疑点", "申报完整性无法核实"),
+        ]:
+            got = self._clean(src)
+            self.assertNotIn("*", got, f"双星号强调半剥离、星号残留：{src} → {got}")
+            self.assertIn(must_contain, got, f"强调剥离误伤正文：{src} → {got}")
+
+    def test_vat_goods_single_star_preserved(self):
+        """反向锁：增值税发票品名形如「住宿服务*住宿服务」，单星号分隔不得被吞。"""
+        self.assertEqual(self._clean("住宿服务*住宿服务"), "住宿服务*住宿服务")
+        self.assertEqual(self._clean("畜禽产品燕窝40g*5瓶"), "畜禽产品燕窝40g*5瓶")
 
     def test_no_forbidden_symbols_in_whole_report(self):
         """端到端：真实报告过净化闸门后不得残留任何禁用符号。"""

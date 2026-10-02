@@ -796,7 +796,53 @@ def _limit_items_table(rid, findings):
     return {"title": "分项扣除限额测算", "columns": list(_LIMIT_COLUMNS), "rows": rows}
 
 
-def _with_scope_note(tables):
+def risk_item_lead(redline_name, suspect_txt, participating, signal=""):
+    """「一、涉及的风险事项」段首句（2026-10-02 抽出为可测函数，供闸门与回归测试直调）。
+
+    铁律：**一条构成要件都没认下时，不得用触红口径开场。**
+
+    事故：旧版无条件写「经检查，本企业触发税务风险指标，即<红线名>，<suspect>；
+    凡符合下列构成要件即属涉嫌疑点。」，而同一疑点下一段（构成要件独立核对表）却写
+    「经核对，本企业涉及上述第 无 条构成要件」—— 同一疑点内部正面矛盾（用户复核实测）。
+
+    根因：触红判据（线索链有没有信号）与「涉及第 N 条要件」判据（constituent_checkpoint
+    逐条独立核对有没有认定）是两套互不相认的口径，报告却默认它们永远一致。
+    `participating` 为假（无序号被认定）时，只报"账内信号 + 标准清单"，不报触红、不报罪名。
+    """
+    if participating:
+        return (f"经检查，本企业触发税务风险指标，即{redline_name}，{suspect_txt}。"
+                f"该风险指标不因行业而变，凡符合下列构成要件即属涉嫌疑点：")
+    _sig = ("账内检出需进一步核验的信号——%s。" % str(signal).rstrip("。；").strip()) if signal else ""
+    return (f"经检查，本企业未就「{redline_name}」认定到任何一条构成要件：{_sig}"
+            f"下列要件清单是本项对应的判断标准，逐条核对结果见下：")
+
+
+def sanitize_conclusion_assertion(text, redline_name, participating):
+    """「四、本项结论及理由」的**触红断言**必须与「是否认定到构成要件」口径一致。
+
+    ★ 2026-10-02（用户复核疑点5）：首句（一、）已按 `participating` 分支成文，
+      结论段（四、）却**无条件沿用**发现级的触红 claim —— 于是同一疑点里
+      首段说「未认定到任何一条构成要件」，结论段却写「本企业触碰红线……涉嫌虚开发票」。
+      本次事故里 p1 改对了、p4 漏改，可见「两处口径」必须落到**同一个函数**上，
+      靠渲染顺序天然一致是守不住的。
+
+    ★ 本函数现**只做转调**：净化实现收归
+      `argumentation.neutralize_assertion_when_no_constituent`（文本产出方同一份代码）。
+      原因：报告侧读到的文本可能已被上游 `plain_language.to_plain` 改写
+      （「补证」→「补充资料」），逐字锚点在报告侧会**静默失效**；
+      真正的修法是在**案件卷宗刚落成、尚未被改写时**就地中性化（`redline_engine` 收尾），
+      本函数留作输出侧的最后一道**幂等**保险（已中性化的文本不再匹配，原样返回）。
+    """
+    if participating:
+        return str(text or "").strip()
+    try:
+        from engine.argumentation import neutralize_assertion_when_no_constituent as _n
+    except Exception:
+        return str(text or "").strip()
+    return _n(text, redline_name)
+
+
+def _with_scope_note(tables, sampled_scope=None):
     """给「具体问题」所附明细表加**统一口径说明**（★ 2026-09-29 点评整改 P1-1）。
 
     外部点评实测：附表标题「有工资无社保（共5笔）」，行里却是工资表**全员名单**，
@@ -814,10 +860,20 @@ def _with_scope_note(tables):
             continue
         t = dict(t)
         if len(t.get("rows") or []) >= 2 and not t.get("scope_note"):
-            t["scope_note"] = (
-                "口径说明：本表列出的是该风险事项所依据的基础逐笔明细（全量）；"
-                "正文与构成要件中写明的人数/笔数是按构成要件筛选后的结果，"
-                "两者口径不同，判断具体涉及范围时以正文数字为准。")
+            if sampled_scope:
+                # ★ 2026-10-02（用户复核疑点5）：**抽样就说抽样**，不得自称"全量"。
+                #   实测「需外部数据核验：关联交易的同期资料与关联申报（共8笔）」下的口径说明
+                #   写的是"基础逐笔明细（全量）"，而这 8 行其实是采样上限截断的结果。
+                #   `sampled_scope` 由采样方（pipeline）自带，不在报告层另写一份上限数字。
+                t["scope_note"] = (
+                    "口径说明：本表列出的是该风险事项所依据的基础逐笔明细的抽样"
+                    "（%s，不是全量清单）；正文与构成要件中写明的人数/笔数是按构成要件筛选后的"
+                    "结果，两者口径不同，判断具体涉及范围时以正文数字为准。" % sampled_scope)
+            else:
+                t["scope_note"] = (
+                    "口径说明：本表列出的是该风险事项所依据的基础逐笔明细（全量）；"
+                    "正文与构成要件中写明的人数/笔数是按构成要件筛选后的结果，"
+                    "两者口径不同，判断具体涉及范围时以正文数字为准。")
         out.append(t)
     return out
 
@@ -836,10 +892,15 @@ def _finding_detail_tables(f):
     ev = f.get("evidence_rows") or []
     title = str(f.get("type") or "逐笔明细")
     if ev:
-        title = f"{title}（共{len(ev)}笔）"
+        # ★ 2026-10-02（用户复核疑点5）：**抽样不得自称"共N笔"** ——
+        #   "共N笔"读起来是"这件事一共发生了 N 笔"，而 N 其实是采样上限截断后的行数。
+        if f.get("evidence_rows_scope"):
+            title = f"{title}（抽样{len(ev)}笔）"
+        else:
+            title = f"{title}（共{len(ev)}笔）"
     tbl = _evidence_rows_to_detail_table(ev, title=title)
     if tbl:
-        return _with_scope_note([tbl])
+        return _with_scope_note([tbl], sampled_scope=f.get("evidence_rows_scope") or "")
     return []
 
 
@@ -1401,8 +1462,16 @@ def _strip_symbol_noise(s):
     # 11.5 箭头：查证路径与流程本是并列关系，改成顿号
     s = s.replace("→", "、")
     s = s.replace("<-", "来自")
-    # 11.6 markdown 强调（*纺织产品*）与标题井号：正文里一律去掉
-    s = _re.sub(r"\*([^*\n]{1,40})\*", r"\1", s)
+    # 11.6 markdown 强调与标题井号：正文里一律去掉。
+    #   ★ 2026-10-02：**必须同时吃掉 1~3 个星号**。旧式 `\*([^*]+)\*` 对
+    #   `**业态兜底**` 只会匹配到「中间那对」——`*` + `业态兜底` + `*`，
+    #   替换后剩 `*业态兜底*`，**把加粗半剥成斜体**，星号反而留在正文里
+    #   （实测三处：cost_recon_detail 的「业态兜底」、special_redline_detectors 的
+    #   「转让方自然人」、verified_rule_engine 的「无法核实」）。
+    #   星号只可能成对出现，故按 `\*{1,3}(...)\*{1,3}` 整对吃掉。
+    #   注意：增值税发票品名形如 `住宿服务*住宿服务`（单个星号在中间），
+    #   本式要求成对，不会误伤品名。
+    s = _re.sub(r"\*{1,3}([^*\n]{1,40})\*{1,3}", r"\1", s)
     s = _re.sub(r"^\s*#{1,6}\s*", "", s, flags=_re.M)
     # 11.7 清理因替换产生的重复/多余顿号逗号与空括号
     s = _re.sub(r"[、，]{2,}", "、", s)
@@ -1719,11 +1788,29 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
             _cps_all = []
         _sits, _sit_src, _cp_tbl = _enterprise_situations(
             arg, clue, constituents=_cons_all, checkpoints=_cps_all)
+        # ★ 2026-10-02：先无条件预置为空，供下面 p4 复用（避免在 `if _cons_all:` 里赋值、
+        #   却在分支外读取的 UnboundLocalError —— 曾多次栽在"变量只在分支内赋值"上）。
+        _participating: set = set()
         if _cons_all:
-            p1 = (
-                f"经检查，本企业触发税务风险指标，即{rname}，{_suspect_txt}。"
-                f"该风险指标不因行业而变，凡符合下列构成要件即属涉嫌疑点："
-            )
+            # ★ 2026-10-02（用户复核疑点5：涉及第 无 条 vs 触红 正面冲突）
+            #   **「触发税务风险指标…涉嫌X」的触红开场句，必须以「至少一条要件被认定」为前提。**
+            #   旧版无条件套用，于是出现：首句「本企业触发税务风险指标……涉嫌通过关联企业转移利润、
+            #   虚开发票」，下一条 bullet 却是「涉及上述第 无 条构成要件」——同一疑点内部自相矛盾。
+            #   根因：触红判据与要件认定是两套互不相认的口径，报告却默认它们一致。
+            _participating: set = set()
+            if _cps_all:
+                try:
+                    from engine.constituent_checkpoint import participating_indices as _pind
+                    _participating = set(_pind(_cps_all))
+                except Exception:
+                    _participating = set()
+            _sig_lead = str(clue.get("terminal_signal") or "").strip()
+            if not _sig_lead:
+                for _sf in (s.get("supporting_findings") or []):
+                    if isinstance(_sf, dict) and str(_sf.get("terminal_signal") or "").strip():
+                        _sig_lead = str(_sf["terminal_signal"]).strip()
+                        break
+            p1 = risk_item_lead(rname, _suspect_txt, _participating, _sig_lead)
             bullets1 = _sits
         else:
             # 防御：红线未定义构成要件（不应发生，68 条均≥3 条），退回旧版单句口径
@@ -1805,6 +1892,9 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
 
         # ④ 论证与理由（上游可能带出内部标记或编号，此处做正文净化兜底）
         p4 = _naturalize_report_text(arg.get("reasoning") or "")
+        # ★ 2026-10-02（用户复核疑点5）：**结论段的触红断言必须跟着要件认定走** ——
+        #   一条要件都没认下时不得再断言「本企业触碰红线」（与同项「涉及第 无 条构成要件」冲突）。
+        p4 = sanitize_conclusion_assertion(p4, rname, _participating)
         # ★ 2026-09-29（B2 闭环）：对"以行业基准为判定口径"的红线，论证段补出
         #   按实际行业解析出的基准区间与口径声明（来源 industry_benchmark / industry_data.json，
         #   非税务机关官方口径），使"对照行业基准区间上沿"这类硬化要件真正可核验、不自说自话。
@@ -1910,7 +2000,15 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
             "premise_note": _naturalize_report_text(_premise_note) if _premise_note else "",
             "redline_id": rid,
             "conclusion_grade": grade,
-            "verdict": s.get("verdict", ""),
+            # ★ 2026-10-02（用户复核疑点5）：**结论徽标也必须与要件认定同口径**。
+            #   引擎的 verdict 表示"红线终局信号已触发"，与"是否认定到构成要件"是两件事；
+            #   一条要件都没认定时，报告里若仍挂着「已触碰税务违规红线」，
+            #   读者看到的仍是"本项说触红了，可是构成要件一条都没认定"。
+            #   故报告层的结论文案跟随唯一权威 `_participating`（同 p1/p4 用的那个集合）。
+            #   引擎裁决本身不改（计数、排序仍按原裁决），只改**读者看到的措辞**
+            #   ——与「执行版不写触碰税务红线、改说触发税务风险指标（待核实）」同一宗旨。
+            "verdict": (s.get("verdict", "") if _participating
+                        else "账内检出信号待核实（未认定到构成要件，不作定性）"),
             "confidence": s.get("confidence", 0.0),
             # ★ 2026-09-29（点评整改 P1-9）：可信度的**分项计算依据**与公式（可逐项复算）。
             #   外部点评：全文 25 处「判断可信度约 N%」无任何口径披露，读者无法核验。
@@ -2237,11 +2335,18 @@ def _clue_table(clue):
     def _cell(i: int, node: dict) -> str:
         v = observed_list[i] if i < len(observed_list) else ""
         if v == "同上":
+            # ★ 2026-10-02：此处**必须仍走中文化**，不可回填原始 observed。
+            #   实测漏网：疑点「对私转账」第 3 环与本环观测值同文本 → 命中"同上"分支，
+            #   旧实现把 `matches=人员=初永伟…` / `receipts=275,000.00…` 这类
+            #   引擎内部键名**原样回填**进表格，读者看到的是英文变量名而不是数据。
+            #   「同上」只是"不再重复播报"的信号，不是"放弃清洗"的信号。
             cur = str(node.get("observed") or "").strip()
             if cur:
-                return cur
+                v = _humanize_observed(cur)
+            if v:
+                return v
             for j in range(i - 1, -1, -1):
-                prev = str((nodes[j] or {}).get("observed") or "").strip()
+                prev = _humanize_observed(str((nodes[j] or {}).get("observed") or "").strip())
                 if prev:
                     return prev
             return "与上一环节相同"

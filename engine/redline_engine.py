@@ -32,7 +32,7 @@ from engine.clue_chain import build_clue_chain
 from engine.evidence_chain import build_evidence_chain
 from engine.argumentation import (
     build_argumentation, _VERDICT_CONFIRMED, _VERDICT_HIT_PENDING,
-    _VERDICT_EXCLUDED, _VERDICT_WEAK,
+    _VERDICT_EXCLUDED, _VERDICT_WEAK, _VERDICT_EXTERNAL,
 )
 from engine.redline_benchmark import (
     benchmark_note,
@@ -42,11 +42,21 @@ from engine.redline_benchmark import (
 # 本企业实际指标的**唯一测算来源**（B1 接线：红线判定要用到实际值，禁止另起炉灶重算）
 from engine.industry_benchmark import compute_indicators as _ib_compute_indicators
 
-# 裁决优先级：成立可定性 > 成立待补证 > 线索不足 > 排除
+# 裁决优先级：成立可定性 > 成立待补证 > 外部待核 > 线索不足 > 排除
+# ★ 2026-10-02：新增 `外部待核` 档（argumentation._VERDICT_EXTERNAL）。
+#   它排在「成立待补证」之下——外部核验项并**未**认定触碰红线，只是账内信号待外部数据佐证。
 _VERDICT_RANK = {
     _VERDICT_CONFIRMED: 4, _VERDICT_HIT_PENDING: 3,
-    _VERDICT_WEAK: 2, _VERDICT_EXCLUDED: 1,
+    _VERDICT_EXTERNAL: 2, _VERDICT_WEAK: 2, _VERDICT_EXCLUDED: 1,
 }
+#
+# ★ 配套名单：这些红线**有意**不参与上面的 `_DEFAULT_HIT_INDEX` 盲发兜底 ——
+#   要件异质（同一条红线要各不相同的数据源），盲发会把任何命中都记成同一条要件、
+#   报告则出现「认下第①条要件」却拿不出该要件证据的假闭环。它们的“可达”由软匹配
+#   检测器保证（RL-CIT-001 已在公司1 真账套实测产出疑点），故准入闸门
+#   `check_redline_admission` 把它们与“登记兜底”同等看待，不算盲区红线。
+#   ⚠ 必须落在字典**外面**：它是声明，不是兜底表的一个条目。
+_NO_BLIND_CONSTITUENT_FALLBACK = {"RL-CIT-001"}
 
 ENGINE_VERSION = "1.0.0"
 
@@ -118,7 +128,21 @@ _DEFAULT_HIT_INDEX = {
     # —— 原兜底（外部核验待办 + 关键字匹配型红线），序号对应 constituents 顺序 ——
     "RL-PTY-002": [2, 5],
     "RL-FUND-001": [1, 4],
-    "RL-CIT-001": [1, 4],
+    # ★ 2026-10-02（用户复核疑点5：宁缺勿错）—— **RL-CIT-001 故意不登记兜底序号。**
+    #   该红线是「构成要件异质」的典型：①六员/地址/电话/账户重叠 ②购销占比超基准
+    #   ③定价偏离或无合理商业目的 ④未备同期资料 ⑤正当情形 —— 五种情形要各不相同的数据源。
+    #   旧的 [1, 4] 兜底会对**任何**命中该红线的未声明发现一律记成"第①条六员重叠"，
+    #   而实测全系统没有任何扫描器真算过六员/地址/电话比对：于是报告出现
+    #   「认下第①条要件」却拿不出六员证据的假闭环（同项要件表却是「涉及第 无 条」）。
+    #   改为**谁真算过要件谁自己声明 constituent_hits**，算不出的不认领：
+    #   报告如实写「未认定到任何一条构成要件 + 账内信号」，而不是编一条。
+    #   （外部核验项 ext_related_party_docs_verify 同理，见 external_check_reminder。）
+    #
+    # ★ 配套名单：`_NO_BLIND_CONSTITUENT_FALLBACK`。这些红线**有意**不参与盲发兜底，
+    #   但可达性由软匹配检测器保证（已在公司1 真账套实测产出疑点），因此不能算"盲区红线"
+    #   ——准入闸门 `check_redline_admission` 据此把它们也算作"可达"。
+    #
+    #   ⚠ 名单必须放在字典**外面**：它是一份声明，不是兜底表的一条目。
     "RL-PTY-004": [1, 2, 4],
     "RL-SPT-008": [1, 5],
     "RL-SPT-011": [1, 4],
@@ -142,6 +166,7 @@ _DEFAULT_HIT_INDEX = {
     "RL-VAT-012": [1, 2, 3, 4],
     "RL-SPT-012": [1, 2, 3, 4],
     "RL-SPT-013": [1, 2, 3, 4],
+
 }
 
 
@@ -362,8 +387,12 @@ def run_redline_detection(findings: List[Dict],
                 entry["match_reasons"] = list(minfo.get("reasons") or [])
                 entry["match_materials"] = list(minfo.get("materials") or [])
                 # 声明型发现是权威来源：以其 argumentation / 逐要件命中覆盖首条（模糊）发现的兜底命中
-                entry["argumentation"] = arg
-                entry["_constituent_hits"] = list(arg.get("constituent_hits") or [])
+                # ★ 2026-10-02（用户复核疑点5）：**但不得用一个更弱的裁决把论证换掉** ——
+                #   外部核验档（rank=2，结论待外部数据）晚到此，会把已判「已触碰红线」（rank=3）
+                #   的论证顶掉，于是同一疑点里 verdict 写触红、正文用的是"待外部核验"那套论证。
+                if _VERDICT_RANK.get(arg.get("verdict"), 0) >= _VERDICT_RANK.get(entry.get("verdict"), 0):
+                    entry["argumentation"] = arg
+                    entry["_constituent_hits"] = list(arg.get("constituent_hits") or [])
             # 归并时取更强的信号：闭合度更高者为主证据链，置信度取最高
             if ev.get("closure", 0) > entry["closure"]:
                 entry["evidence_chain"] = ev
@@ -404,9 +433,50 @@ def run_redline_detection(findings: List[Dict],
         except Exception:
             _actual_ind = {}
     for _s in grouped.values():
+        # ★ 2026-10-02（用户复核疑点5）：**疑点级裁决必须跟着"实际渲染的那份论证"走。**
+        #   事故：归并过程中 verdict 被"最强信号"分支改写、argumentation 又被"声明型发现"
+        #   分支改写（两分支各写一份、互不同步），报告于是同时输出
+        #   「结论=已触碰税务违规红线」与「一、未认定到任何一条构成要件 / 四、本轮不作定性」。
+        #   铁律：读者看到的裁决与读到的论证必须出自同一处，故在此统一对齐（只对齐、不重判）：
+        #   渲染用哪份 argumentation，verdict/grade/redline_hit 就是那一份的。
+        _rendered = _s.get("argumentation") or {}
+        if _rendered:
+            _s["verdict"] = _rendered.get("verdict", _s.get("verdict", ""))
+            _s["conclusion_grade"] = _rendered.get(
+                "conclusion_grade", _s.get("conclusion_grade", "待核"))
+            _s["redline_hit"] = bool(_rendered.get("redline_hit"))
         _acc = _s.pop("_constituent_hits", None)
         if _acc:
             _s.setdefault("argumentation", {})["constituent_hits"] = _acc
+        # ★ 2026-10-02（用户复核疑点5 的第二个矛盾）：**「触红断言」必须与「要件认定」同步**。
+        #   判据用唯一权威 `constituent_checkpoint`（`enterprise_report` 的
+        #   `_participating`、报告里的「本企业涉及上述第 N 条」都出自它，不另立口径）。
+        #   若一条要件都没认定，就把本疑点论证里的触红断言（开场句 / 「本项结论是<裁决>」
+        #   / 段尾「已经触碰税务红线…」）中性化。
+        #   ★ 必须**在这里**做：报告侧读到的文本已经被 `plain_language.to_plain`
+        #     改写过（「补证」→「补充资料」），在报告侧逐字找锚点会静默失效（实测过一次）。
+        _cp = 0
+        try:
+            from engine.constituent_checkpoint import (
+                build_constituent_checkpoints as _bcc,
+                participating_indices as _pind,
+            )
+            _cp = len(_pind(_bcc(_s)) or [])
+        except Exception as _exc:  # 留痕：静默失败会让矛盾文本重新进报告
+            if pipeline_log is not None:
+                pipeline_log.append(f"[红线论证] 要件认定口径核对异常：{_exc}")
+            _cp = None
+        if _cp == 0:
+            try:
+                from engine.argumentation import neutralize_assertion_when_no_constituent as _neu
+                _arg = _s.setdefault("argumentation", {})
+                if _arg.get("reasoning"):
+                    # `reasoning` 是唯一进报告正文的论证文本（`claim` 只作内部字段，
+                    # 全库无消费方），故只净化它。
+                    _arg["reasoning"] = _neu(_arg["reasoning"], _s.get("redline_name", ""))
+            except Exception as _exc:
+                if pipeline_log is not None:
+                    pipeline_log.append(f"[红线论证] 触红断言中性化异常：{_exc}")
         # ★ 2026-09-28（B2 行业基准动态化）：对"以行业基准为判定口径"的红线，
         #   注入按实际行业解析出的基准区间与口径声明（来源 industry_data.json，非税务机关官方口径）。
         #   不在此写死任何数字；缺行业时只说明"须按实际行业取值"，绝不编造区间。
@@ -432,8 +502,11 @@ def run_redline_detection(findings: List[Dict],
 
     confirmed = [s for s in suspicions if s.get("verdict") == _VERDICT_CONFIRMED]
     excluded = [s for s in suspicions if s.get("verdict") == _VERDICT_EXCLUDED]
+    # ★ 2026-10-02：外部核验档虽不判触红，但仍属「待后续核验后才能有结论」，
+    #   必须计入待补证桶，否则 summary 各类计数加总会少于疑点总数（计数对不上账）。
     unconfirmed = [s for s in suspicions
-                   if s.get("verdict") in (_VERDICT_HIT_PENDING, _VERDICT_WEAK)]
+                   if s.get("verdict") in (_VERDICT_HIT_PENDING, _VERDICT_WEAK,
+                                           _VERDICT_EXTERNAL)]
 
     # ★ 2026-09-29（C3 风险组合画像）：基于「未排除」疑点跨业务轴聚合，
     #   生成 0/1 条组合信号（不计入红线总数，仅作多税种联动稽查提示）。

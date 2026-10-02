@@ -4048,6 +4048,7 @@ def check_redline_admission() -> List[Tuple[str, str, str]]:
     try:
         from engine.tax_redlines import REDLINES
         from engine.redline_engine import _DEFAULT_HIT_INDEX
+        from engine.redline_engine import _NO_BLIND_CONSTITUENT_FALLBACK as _NO_BLIND
     except Exception as exc:
         return [("ERROR", "engine/tax_redlines.py", f"红线库/引擎加载失败: {exc}")]
     detectors = _scan_declared_detectors()
@@ -4068,7 +4069,10 @@ def check_redline_admission() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", "engine/tax_redlines.py", f"{rid} 字段 {f} 为空"))
         # 可达性
         has_det = rid in detectors
-        has_fallback = rid in _DEFAULT_HIT_INDEX
+        # ★ 2026-10-02：`_NO_BLIND_CONSTITUENT_FALLBACK` 里的红线是**有意**不做盲发兜底
+        #   （要件异质，盲发会把任何命中都记成同一条要件），但可达性由软匹配检测器保证，
+        #   故与登记兜底同等待遇，不算盲区红线。
+        has_fallback = rid in _DEFAULT_HIT_INDEX or rid in _NO_BLIND
         has_hints = bool(r.get("match_hints") or [])
         if not has_det and not has_fallback:
             if not has_hints:
@@ -4826,6 +4830,98 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", "static/js/tax-doc-analysis.js",
                        "导出PDF未经导出净化（控件文案/折叠空表会进交付文件）"))
 
+    # ══════════════════════════════════════════════════════════════
+    # ★ 2026-10-02（用户质疑「内容是不是不匹配啊」派生出的同类缺陷）
+    #   两处"清洗半途而废"，都用**直调生产函数**的行为断言锁死。
+    # ══════════════════════════════════════════════════════════════
+
+    # ── ① markdown 强调必须**整对**剥离：`**加粗**` 不得半剥成 `*斜体*` ──
+    #   实测三处（cost_recon_detail「业态兜底」、special_redline_detectors「转让方自然人」、
+    #   verified_rule_engine「无法核实」）：源文案写 `**x**`，旧式 `\*([^*]+)\*`
+    #   只吃掉中间那对星号，正文变成 `*x*`，星号反而留在了报告里。
+    try:
+        from engine.enterprise_report import _strip_symbol_noise as _ssn
+        _EMPH = [("采用**业态兜底**口径", "采用业态兜底口径"),
+                 ("纳税义务人为**转让方自然人**，负代扣代缴义务", "纳税义务人为转让方自然人，负代扣代缴义务"),
+                 ("申报完整性**无法核实**——本项", "申报完整性无法核实——本项")]
+        # ⚠ 循环变量**不得**取名 `_src`：本函数顶部有同名辅助函数 `_src(path)`，
+        #   赋值会把它覆盖成字符串，后面 `_src("engine/…")` 就变
+        #   `TypeError: 'str' object is not callable`（实测踩过，位置离得很远）。
+        for _emph_src, _emph_exp in _EMPH:
+            _got = _ssn(_emph_src)
+            if "*" in _got:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               f"markdown 强调被半剥离，星号残留报告正文: {_got}"))
+                break
+            if _emph_exp not in _got:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               f"强调剥离误伤正文内容: {_emph_src} → {_got}"))
+                break
+        # 反向：增值税发票品名形如「住宿服务*住宿服务」（单个星号在中间），必须原样保留
+        if _ssn("住宿服务*住宿服务") != "住宿服务*住宿服务":
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "强调剥离误伤增值税发票品名（单星号分隔）"))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"强调剥离行为断言跳过: {_exc}"))
+
+    # ── ② 发现过程明细表「同上」分支不得回填**未中文化**的引擎原始键名 ──
+    #   实测：疑点「对私转账」第 3 环观测值与上一环同文本 → 命中"同上"分支，
+    #   旧实现直接回填原始 observed，`matches=` / `receipts=` 这类引擎内部键名进了表格。
+    #   「同上」只是不再重复播报的信号，不是放弃清洗的信号。
+    try:
+        from engine.enterprise_report import _clue_table as _ct
+        _dup_obs = ("涉及个人账号数=15；matches=人员=初永伟、转出个人金额=1,071,343.80等5项")
+        _clue_dup = {"nodes": [
+            {"step": 1, "source": "bank_txs", "action": "取流水", "observed": _dup_obs},
+            {"step": 2, "source": "bank_txs", "action": "核对对手方", "observed": _dup_obs}]}
+        _ct_out = _ct(_clue_dup) or {}
+        _raw_cells = [str(_r.get("实际看到的数据") or "")
+                      for _r in (_ct_out.get("rows") or [])
+                      if re.search(r"(?<![A-Za-z0-9_])[A-Za-z][A-Za-z0-9_]{2,}=",
+                                   str(_r.get("实际看到的数据") or ""))]
+        if _raw_cells:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           f"明细表「同上」分支回填了未中文化的引擎键名: {_raw_cells[:1]}"))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"明细表同上分支行为断言跳过: {_exc}"))
+
+    # ── ③ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
+    #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
+    #   （plain_language 的规则），替换一次也不会发生，谁都不报错。
+    try:
+        from engine.argumentation import (
+            _VERDICT_HIT_PENDING as _vhp2, _TAIL_HIT_PENDING as _thp2,
+            _TAIL_HIT_ANCHOR as _tha2, neutralize_assertion_when_no_constituent as _neu2,
+        )
+        _nm2 = "关联交易异常：购销闭环与六员重叠"
+        _base2 = ("本企业触碰红线，即%s，涉嫌通过关联企业转移利润。"
+                  "综合以上，本项结论是%s，判断可信度约60%%（中等）。%s"
+                  % (_nm2, _vhp2, _thp2))
+        _out2 = _neu2(_base2, _nm2)
+        if _tha2 in _out2 or "已触碰税务违规红线" in _out2:
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "零要件认定时，论证段尾的触红断言未被中性化（与同项零认定首句矛盾）"))
+        if "既不认定违法，也不予排除" not in _out2:
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "中性化时把「不认定违法、也不予排除」的承诺一并删掉了"))
+        # 反向①：上游已把「补证」改写成「补充资料」时，仍必须能替换（锚点容错）
+        _broken2 = _base2.replace("补证", "补充资料")
+        _out3 = _neu2(_broken2, _nm2)
+        if _tha2 in _out3 or "已触碰税务违规红线" in _out3:
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "上游改写措辞后锚点失效，段尾触红断言逃逸（逐字锚点＝假闸门）"))
+        # 反向②：幂等 —— 二次净化不得把已中性的文本再改坏
+        if _neu2(_out2, _nm2) != _out2:
+            issues.append(("ERROR", "engine/argumentation.py", "触红断言中性化不幂等"))
+        # 反向③：不是本条红线的触红开场不得误伤
+        _other2 = ("本企业触碰红线，即另一个疑点名，涉嫌X。"
+                   "综合以上，本项结论是%s。" % _vhp2)
+        if _neu2(_other2, _nm2) != _other2:
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "触红断言中性化误伤非本红线的段落（标题裁剪场景）"))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"段尾触红断言行为断言跳过: {_exc}"))
+
     # ── dump 行为断言：企业报告内不得出现「英文变量名=值」，且截断必须可见 ──
     if _dump.exists():
         try:
@@ -4848,6 +4944,68 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", "engine/enterprise_report.py",
                                f"企业报告内仍有英文变量名入文: {('、'.join(sorted(_leak)[:6]))}"))
             _blob_d = json.dumps(_er_d, ensure_ascii=False)
+            # ★ 2026-10-02：**模块名 / 数据文件名**不得进正文。
+            #   实测：报告正文出现「来源 industry_benchmark（通用参考）」与
+            #   「industry_data.json 中无对应行业口径」——把内部实现文件暴露给读者，
+            #   既不专业也无法核验；对外一律写「系统内置行业基准库」。
+            #   ⚠ 只扫**字符串值**：结构键（如 working_paper_report 里的 observed_metrics、
+            #   inspector_reasoning 里的 industry_benchmark 分组键）是报告数据模型的一部分，
+            #   由前端渲染、不当作正文，扫键会满屏假报。
+            _txts_d = []
+
+            def _scan_texts(_o):
+                if isinstance(_o, dict):
+                    for _v in _o.values():
+                        _scan_texts(_v)
+                elif isinstance(_o, list):
+                    for _v in _o:
+                        _scan_texts(_v)
+                elif isinstance(_o, str):
+                    _txts_d.append(_o)
+            _scan_texts(_er_d)
+            _leak_txt = set()
+            for _s in _txts_d:
+                for _m in re.finditer(r"(?<![A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_]*\.(?:json|py))(?![A-Za-z0-9_])", _s):
+                    _leak_txt.add(_m.group(1))
+                for _t in ("industry_benchmark", "industry_profiles", "observed_metrics",
+                           "clue_chain", "constituent_hits"):
+                    if re.search(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % _t, _s):
+                        _leak_txt.add(_t)
+            if _leak_txt:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               f"企业报告正文暴露内部文件名/模块名: {('、'.join(sorted(_leak_txt)[:5]))}"))
+            # ★ 2026-10-02（用户复核疑点5）：**同一个疑点内部不得自相矛盾** ——
+            #   一边写「未认定到任何一条构成要件 / 涉及上述第 无 条」，
+            #   一边断言「已触碰/已经触碰税务红线」。实测 11 处（真账套）。
+            #   判据同时覆盖段首、段中裁决与段尾三处措辞。
+            _ZERO_PHRASES = ("未认定到任何一条构成要件", "涉及上述第 无 条")
+            _HIT_PHRASES = ("已触碰税务违规红线", "已经触碰税务红线", "已触碰税务红线")
+            #   ⚠ 只看**正文段落**：数据字段（要件核对表等）里出现「涉及上述第 无 条」
+            #     并不等于给读者的结论自相矛盾，扫整个 JSON 会把它误判成冲突（实测 15 vs 11）。
+            _conf_items = []
+            for _cp_i, _cp_o in enumerate(_er_d.get("confirmed_problems") or []):
+                _txt_cp = " ".join(str((_x or {}).get("text") or "")
+                                   for _x in (_cp_o.get("narrative_paragraphs") or []))
+                if (any(z in _txt_cp for z in _ZERO_PHRASES)
+                        and any(h in _txt_cp for h in _HIT_PHRASES)):
+                    _conf_items.append(str(_cp_o.get("title") or _cp_i)[:24])
+            if _conf_items:
+                issues.append(("ERROR", "engine/argumentation.py",
+                               "同一疑点内「未认定到任何构成要件」与「触碰税务红线」并存"
+                               f"（{len(_conf_items)} 项）：{('、'.join(_conf_items[:5]))}"))
+            # ★ 同一条口径也要管住**结论徽标字段** `verdict`：正文说「未认定到要件」，
+            #   徽标却写「已触碰税务违规红线」——读者照样看到打架（实测 11 项）。
+            _bad_badge = []
+            for _cp_j, _cp_w in enumerate(_er_d.get("confirmed_problems") or []):
+                _txt_w = " ".join(str((_x or {}).get("text") or "")
+                                  for _x in (_cp_w.get("narrative_paragraphs") or []))
+                if any(z in _txt_w for z in _ZERO_PHRASES) and any(
+                        h in str(_cp_w.get("verdict") or "") for h in _HIT_PHRASES):
+                    _bad_badge.append(str(_cp_w.get("title") or _cp_j)[:24])
+            if _bad_badge:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               "疑点结论徽标仍写「触碰税务红线」而正文写「未认定到要件」"
+                               f"（{len(_bad_badge)} 项）：{('、'.join(_bad_badge[:5]))}"))
             _half = [m.group(0) for m in re.finditer(r".{0,18}\d,\d{1,2}(?![\d])(.{0,6})", _blob_d)
                      if "…" not in m.group(0) and "等" not in m.group(1)]
             if _half:
@@ -5467,6 +5625,164 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         except Exception as exc:
             issues.append(("WARN", "tools/audit_consistency.py",
                            f"净化护栏 dump 行为验证跳过: {exc}"))
+
+    # ── ★ 2026-10-02（用户复核疑点5）：**触红开场句必须以「至少一条要件被认定」为前提** ──
+    #   事故：同一疑点里，首段写「本企业触发税务风险指标…涉嫌通过关联企业转移利润、虚开发票」，
+    #   下一条 bullet 却写「经核对，本企业涉及上述第 无 条构成要件」—— 内部正面矛盾。
+    #   根因：触红判据（线索链有没有信号）与「涉及第 N 条要件」判据（constituent_checkpoint
+    #   逐条独立核对有没有认定）是两套互不相认的口径，报告却默认它们永远一致。
+    #   判据用**行为断言**（直调生产函数 risk_item_leader），不靠文本匹配。
+    try:
+        from engine.enterprise_report import risk_item_lead as _ril
+        _hit_lead = _ril("关联交易异常", "涉嫌转移利润", {"1,3"})
+        _none_lead = _ril("关联交易异常", "涉嫌转移利润", set())
+        if "触发税务风险指标" not in _hit_lead:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "有要件被认下时，风险事项段却没用触红开场句（口径被改坏）"))
+        if "触发税务风险指标" in _none_lead or "税务违规红线" in _none_lead:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "一条要件都没认下时仍在用触红开场句（与同项「涉及第 无 条构成要件」矛盾）"))
+        if "认定到任何一条构成要件" not in _none_lead:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "零认定时首句未如实说明「未认定到任何一条构成要件」"))
+        # 反向用例：无信号时也不得凭空造信号
+        _none_nosig = _ril("关联交易异常", "涉嫌转移利润", set(), "")
+        if "账内检出" in _none_nosig:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "无信号时首句仍写「账内检出…信号」（凭空造信号）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       f"触红开场句行为断言执行失败: {exc}"))
+
+    # ── ★ 2026-10-02（用户复核疑点5）：**结论段的触红断言**同样要跟着要件认定走 ──
+    #   首句（p1）改对了、结论段（p4）还写「本企业触碰红线」——同一疑点内部自相矛盾。
+    #   直接调生产函数 `sanitize_conclusion_assertion`（行为断言，不靠文本匹配）。
+    try:
+        from engine.enterprise_report import (
+            sanitize_conclusion_assertion as _sca,
+        )
+        _rl_name = "关联交易异常：购销闭环与六员重叠"
+        _reason = ("本企业触碰红线，即%s，涉嫌通过关联企业转移利润、虚开发票。"
+                   "判断本项是否成立，要看这几项标准是否同时满足： Manufacturing。" % _rl_name)
+        _hit_p4 = _sca(_reason, _rl_name, {"1", "3"})
+        _none_p4 = _sca(_reason, _rl_name, set())
+        # ★ 判据必须锁死**断言句式**「本企业触碰红线，即…」：零认定时替换句里本来就要
+        #   写「不等于已触碰红线」，用裸词匹配会把自己判红（实测踩过）。
+        _assertion = "本企业触碰红线，即"
+        if _assertion not in _hit_p4:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "有要件被认下时，结论段的触红断言被误删（口径被改坏）"))
+        if _assertion in _none_p4 or "税务违规红线" in _none_p4:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "一条要件都没认下时，结论段仍在断言「触碰红线」（与「涉及第 无 条构成要"
+                           "件」正面矛盾）"))
+        if "不等于已触碰红线" not in _none_p4 or "未认定到任何一条构成要件" not in _none_p4:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "零认定时结论段未如实说明「未认定到要件 / 不等于已触红」"))
+        # 段尾「本项结论是<触红裁决>…」必须与首句一起被中性化（只改首句 = 首句说他没触红、
+        # 段尾说他触红了，读者照样看到自相矛盾）
+        try:
+            from engine.argumentation import _VERDICT_HIT_PENDING as _vhp
+        except Exception:
+            _vhp = "已触碰税务违规红线"
+        if _vhp in _none_p4:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "零认定时结论段结尾仍在断言触红裁决（与同项零认定首句矛盾）"))
+        # 改写只动首句，原论证正文（"判断本项是否成立…"）必须完整保留
+        _tail = _reason[_reason.find("。"):]
+        if _tail not in _none_p4:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "结论段改写时把原论证正文整段吞掉了（只留一句套话）"))
+        # ★ RL-CIT-001 是「要件异质」红线（①六员/地址/电话 ②购销占比 ③定价偏离
+        #   ④同期资料 ⑤正当情形，五条要各不相同的数据源），盲发兜底序号会把任何命中都
+        #   记成"第①条六员重叠"——实测全系统没有任何扫描器算过六员比对。
+        try:
+            from engine.redline_engine import _DEFAULT_HIT_INDEX as _di
+            if _di.get("RL-CIT-001"):
+                issues.append(("ERROR", "engine/redline_engine.py",
+                               "_DEFAULT_HIT_INDEX 仍为 RL-CIT-001 盲发兜底序号（要件异质红线"
+                               "会被一律记成同一条要件），须由检测器自行声明 constituent_hits"))
+        except Exception as exc:
+            issues.append(("ERROR", "engine/redline_engine.py", f"_DEFAULT_HIT_INDEX 加载失败: {exc}"))
+        # ★ 疑点级裁决必须与实际渲染的论证同出一家（两分支各写一份会出双口径）
+        if _dump.exists():
+            try:
+                _dd9 = json.loads(_dump.read_text(encoding="utf-8"))
+                for _sp in ((((_dd9.get("report") or {}).get("comprehensive") or {})
+                             .get("redline_detection") or {}).get("suspicions") or []):
+                    _sa9 = _sp.get("argumentation") or {}
+                    if _sa9.get("verdict") and _sp.get("verdict") != _sa9.get("verdict"):
+                        issues.append(("ERROR", "engine/redline_engine.py",
+                                       f"疑点 {_sp.get('redline_id')} 裁决({_sp.get('verdict')})"
+                                       f"与正文论证({_sa9.get('verdict')})不是一个口径"))
+                        break
+            except Exception as exc:
+                issues.append(("ERROR", "tools/audit_consistency.py",
+                               f"疑点裁决一致性 dump 验证失败: {exc}"))
+        # 反向用例：开场句不是本条红线（标题被裁剪），不许误伤
+        _other = _sca(_reason, "另一个疑点名", set())
+        if _other != _reason:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "结论段改写误伤了「非本条红线」的触红开场句（宁缺勿错被破坏）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       f"触红开场句行为断言执行失败: {exc}"))
+
+    # ── 外部核验项：不得判触红 + 明细行必须语义对齐 ──
+    try:
+        from engine.argumentation import (
+            _VERDICT_EXTERNAL as _VEXT,
+            build_argumentation as _ba, is_external_check_finding as _ief,
+        )
+        from engine.clue_chain import build_clue_chain as _bcl
+        from engine.evidence_chain import build_evidence_chain as _becl
+        from engine.tax_redlines import get_redline as _grl
+        _rl = _grl("RL-CIT-001")
+        _extf = {"type": "需外部数据核验：关联交易的同期资料与关联申报",
+                 "category": "外部核验", "level": "待核验",
+                 "detail": "发现既为供应商又为客户的主体2家，存在关联交易迹象。"}
+        _cl = _bcl(_extf, _rl)
+        _cl["terminal_signal"] = "既为供应商又为客户的主体2家"
+        _a = _ba(_extf, _rl, _cl, _becl(_extf, _rl, available_materials=["进项发票"]))
+        if _a.get("verdict") != _VEXT:
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "外部核验项未走独立裁决档（应判 %s）" % _VEXT))
+        if _a.get("redline_hit"):
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "外部核验项被判触红（外部数据未取得 ⇒ 要件无从核对 ⇒ 不得触红）"))
+        if not _ief(_extf):
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "is_external_check_finding 认不出外部核验项（识别口径被改坏）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/argumentation.py",
+                       f"外部核验裁决行为断言执行失败: {exc}"))
+    # 语义采样：外部核验项不得被通用关键词兜底挂上无关原始行（"银行"来自其文案说明）
+    try:
+        from engine import pipeline as _pl
+        from engine.external_check_reminder import build_external_check_reminders as _bcr
+        _sal = [{"direction": "销项", "inv_no": "S1", "发票号码": "S1", "goods": "广告服务",
+                 "amount": 1000.0, "buyer": "甲公司", "销方名称": "本公司", "date": "2025-03-01"}]
+        _pur = [{"direction": "进项", "inv_no": "P1", "发票号码": "P1", "goods": "服务费",
+                 "amount": 500.0, "seller": "甲公司", "销方名称": "甲公司", "date": "2025-02-01"}]
+        _bk = [{"transaction_serial_no": "B1", "date": "2025-01-05", "summary": "货款",
+                "debit": 300000.0, "credit": 0, "counterparty": "甲公司"}]
+        _fs = _bcr(_sal, _pur, _bk, None, None, None)
+        _pl._enrich_evidence_rows(_fs, _bk, _sal + _pur, [], [], company_name="本公司")
+        _rel = [f for f in _fs if "关联交易" in str(f.get("type") or "")]
+        if not _rel:
+            issues.append(("ERROR", "engine/external_check_reminder.py",
+                           "样本未产出关联交易外部核验项（闸门样本失效，需换样本）"))
+        else:
+            for _r in (_rel[0].get("evidence_rows") or []):
+                if _r.get("source") == "银行流水":
+                    issues.append(("ERROR", "engine/pipeline.py",
+                                   "关联交易核验表下挂了银行流水行（证据行语义错配，"
+                                   "应按 entity_invoices 分支只取既购又销主体的发票）"))
+                if not str(_r.get("counterparty") or "").strip():
+                    issues.append(("ERROR", "engine/pipeline.py",
+                                   "外部核验明细行缺交易对方（无法逐笔核验）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/pipeline.py", f"外部核验证据行断言执行失败: {exc}"))
 
     return issues
 

@@ -372,7 +372,7 @@ def build_cost_recon_detail(report_data: Any) -> Dict[str, Any]:
             paragraphs.append(_seg + "判不出来的只列入待核，未默认计入成本。")
             if not cea.get("industry_covered"):
                 paragraphs.append(
-                    "需说明：本轮未取到该行业的核心投入登记（industry_data.json 中无对应行业口径），"
+                    "需说明：本轮未取到该行业的核心投入登记（系统内置行业库中无对应行业口径），"
                     "上述划分因此采用**业态兜底**口径（购销/生产业态下未落入费用或资本化口径的进项"
                     "计入存货），而非按行业核心投入逐项认定；若要精确到「哪些属于该行业的外购成本」，"
                     "须补充登记该行业的核心投入品名。")

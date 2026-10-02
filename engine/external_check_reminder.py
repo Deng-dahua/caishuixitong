@@ -26,11 +26,73 @@ _RID_INCENTIVE = "RL-SPT-011"  # 核定/优惠资格
 _REMINDER_HIT_INDEX = {
     _RID_SUPPLIER: 2,    # RL-PTY-002 ② 前三大供应商占比较高/单一外省供应商占比较高
     _RID_FUND: 1,        # RL-FUND-001 ① 公司账户向股东/法定代表人/其亲属个人账户转账情形
-    _RID_RELATED: 1,     # RL-CIT-001  ① 人员/地址/电话/账户重叠的上下游企业
+    # ★ 2026-10-02（用户复核疑点5：宁缺勿错）—— **本项不认领任何要件**（index=None）。
+    #   它真正算过的只有「既为供应商又为客户的主体 N 家」(=购销闭环雏形)，而
+    #   RL-CIT-001 的①是「人员(六员)/地址/电话/账户重叠」、②是「购销占比超行业基准」、
+    #   ④是「未准备同期资料」——这三条本项**一条都没核算**，认领①属虚认：
+    #   报告会出现「认下第①条要件」却拿不出六员/地址/电话证据的假闭环。
+    #   故如实留空：本项只报账内信号，是否落到哪条要件由要件核对表按真实数据源判。
+    _RID_RELATED: None,
     _RID_CROSS: 1,       # RL-PTY-004  ① 订单-投料-完工-发货-收入数量闭环断裂
     _RID_EXPORT: 1,      # RL-SPT-008  ① 报关单/提单/收汇/生产四单未匹配
     _RID_INCENTIVE: 1,   # RL-SPT-011  ① 核定/优惠资格缺少支撑资料
 }
+
+
+# ★ 2026-10-02（用户复核疑点5）：**外部核验项该挂哪些原始行**的采样口径表（数据表驱动）。
+#
+#   事故：外部核验待办项原先没有自己的明细口径，由 pipeline 的「通用关键词兜底」按关键词
+#   抓行拼表 —— 实测「需外部数据核验：关联交易的同期资料与关联申报（共8笔）」挂上去的是
+#   「全年最大额银行流水 4 行 + 0 元高频交易对方 4 行」，表题与内容完全错位。
+#   根因：**按词猜证据**。关键词「银行」来自该发现自身文案里"依赖工商/税务/海关/…/银行等"
+#   这句说明，与"同期资料"毫无关系；「供应商」来自 detail。
+#
+#   修法：由本模块（最懂自身语义的一方）按 indicator 声明**采样分支 + 过滤条件**，
+#   pipeline 只负责按分支取行（证据行格式仍由 pipeline 唯一生成，不在此另造一份）。
+#   ⇒ 新增外部核验项时只需在 `_EXT_SAMPLE_BRANCH` 加一行，不必改 pipeline 采样逻辑。
+#   分支语义（全部行业/企业通用）：
+#     top_pur_invoices     —— 去向上"进"侧金额最大的若干张发票
+#     entity_bank_txs      —— 对手方落在 `entities` 集合内的银行流水（个人往来户）
+#     keyword_invoices     —— 品名命中关键字（本项业务特征词）的销项发票
+#     entity_invoices      —— 对手方落在 `entities` 集合内的发票（本项真正锁定的主体）
+_EXT_SAMPLE_BRANCH = {
+    "ext_supplier_verify": {
+        "branch": "top_pur_invoices", "limit": 5,
+    },
+    "ext_personal_payee_verify": {
+        # 不是"金额最大的银行流水"，而是**对手方为个人账户**的那几笔
+        "branch": "entity_bank_txs", "limit": 5,
+    },
+    "ext_export_docs_verify": {
+        "branch": "keyword_invoices", "limit": 5,
+        "keyword": "出口,离岸,境外,报关,FOB,CIF",
+    },
+    "ext_related_party_docs_verify": {
+        "branch": "entity_invoices", "limit": 8,
+    },
+}
+
+
+def _top_supplier_name(sellers):
+    """金额最大的那家供应商的名称（取不到则空串——取不到就不声明实体过滤，不编造）。"""
+    try:
+        return max((sellers or {}).items(), key=lambda kv: kv[1])[0]
+    except (TypeError, ValueError):
+        return ""
+
+
+def _personal_counterparties(bank):
+    """银行流水中**对手方像个人账户**的户名清单（企业特征词一个都没命中即判个人户）。
+
+    ★ 取不到就不返回，绝不的默认套"所有对手方"——与"缺失≠0"同一条铁律。
+    """
+    ent_kw = ("公司", "厂", "店", "中心", "部", "行", "社", "院", "所", "有限", "企业", "合作")
+    names = []
+    for t in (bank or []):
+        cp = str((t or {}).get("counterparty", "") or "").strip()
+        if cp and not any(k in cp for k in ent_kw) and cp not in names:
+            names.append(cp)
+    return names
 
 
 def _safe(v):
@@ -64,7 +126,7 @@ def _seller(inv) -> str:
     return _fk(inv)
 
 
-def _reminder(name, detail, why, materials, redline_id, indicator, value):
+def _reminder(name, detail, why, materials, redline_id, indicator, value, entities=None):
     _d = {
         "type": f"需外部数据核验：{name}",
         # 等级原为未登记值"提示"（会被静默丢弃）；权威词表的"待核验"才是本义
@@ -90,6 +152,12 @@ def _reminder(name, detail, why, materials, redline_id, indicator, value):
         if isinstance(value, (int, float)) and not isinstance(value, bool):
             _ev = f"{detail}（指标值：{value}）"
         _d["constituent_hits"] = [{"index": _idx, "evidence": _ev}]
+    # ★ 2026-10-02：声明本项的**证据行采样口径**（pipeline 据此取行，不走关键词兜底）。
+    #   `entities` 是本项真正锁定的交易主体，供 "entity_invoices" 分支过滤用。
+    _scope = dict(_EXT_SAMPLE_BRANCH.get(indicator) or {})
+    if _scope.get("branch"):
+        _scope["entities"] = [str(e).strip() for e in (entities or []) if str(e).strip()]
+        _d["evidence_scope"] = _scope
     return _d
 
 
@@ -118,6 +186,7 @@ def build_external_check_reminders(sal_invs, pur_invs, bank_txs, bs, income, ctx
                 "注册地址、是否为走逃/非正常户、开票IP/MAC是否与本企业或关联企业雷同）。",
                 "供应商营业执照/工商信息、参保人数、注册时间与实缴资本、开票环境信息。",
                 _RID_SUPPLIER, "ext_supplier_verify", round(top, 4),
+                entities=[_top_supplier_name(sellers)],
             ))
 
     # ── 2) 资金流实名核验：存在对私/公转私 ──
@@ -135,10 +204,12 @@ def build_external_check_reminders(sal_invs, pur_invs, bank_txs, bs, income, ctx
         findings.append(_reminder(
             "对私资金往来对象实名与性质",
             "账面存在与个人账户的资金往来记录。",
+            # 证据行只取**对手方确为个人户**的那几笔，不是"全年金额最大的银行流水"
             "对私大额/频繁往来需核实收款账户实名（是否为本企业股东、员工或其亲属）、"
             "款项性质（货款/借款/分红/工资）及是否存在资金回流闭环，避免账外经营与个税风险。",
             "对私收付款的账户实名信息、合同/借款/分红决议、回流路径核查说明。",
             _RID_FUND, "ext_personal_payee_verify", None,
+            entities=_personal_counterparties(bank),
         ))
 
     # ── 3) 出口业务报关与收汇核验 ──
@@ -151,6 +222,7 @@ def build_external_check_reminders(sal_invs, pur_invs, bank_txs, bs, income, ctx
             "防止买单配票、低值高报、虚假结汇。",
             "出口报关单、提单/运单、结汇水单、生产与产能证明。",
             _RID_EXPORT, "ext_export_docs_verify", None,
+            # 证据行取品名含出口特征的发票（分支自带 keyword，实体留空）
         ))
 
     # ── 5) 关联交易/跨境同期资料核验 ──
@@ -165,6 +237,8 @@ def build_external_check_reminders(sal_invs, pur_invs, bank_txs, bs, income, ctx
                 "按期完成关联申报；跨境关联交易还涉及受益所有人、特许权使用费等。",
                 "关联关系认定资料、关联申报表、同期资料文档、定价可比性分析。",
                 _RID_RELATED, "ext_related_party_docs_verify", len(common),
+                # ★ 证据行只挂**这些既购又销主体**的实际购销发票，不再挂"最大额银行流水"
+                entities=sorted(common),
             ))
 
     return findings

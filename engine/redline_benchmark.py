@@ -111,7 +111,7 @@ def resolve_redline_benchmark(industry: Optional[str], metric: str
         lo, hi = float(rec[0]), float(rec[1])
         mid = float(rec[2]) if len(rec) >= 3 else round((lo + hi) / 2, 4)
         return {"lo": lo, "hi": hi, "mid": mid, "industry": ind,
-                "metric": metric, "source": "industry_data.json",
+                "metric": metric, "source": "系统内置行业基准库",
                 "reliable": _CAUTION_SHORT}
 
     # 其余 4 个比率/百分比指标：委托 industry_benchmark 单一权威
@@ -126,8 +126,11 @@ def resolve_redline_benchmark(industry: Optional[str], metric: str
         return None
     lo, hi = float(pair[0]), float(pair[1])
     mid = round((lo + hi) / 2, 4)
+    # ★ 2026-10-02：来源标识必须是**读者能看懂的机构/库名**，不是模块文件名。
+    #   实测报告正文出现「来源 industry_benchmark（通用参考）」——英文模块名进了
+    #   给企业看的报告，既不专业也无法核验。对外一律写「系统内置行业基准库」。
     return {"lo": lo, "hi": hi, "mid": mid, "industry": matched,
-            "metric": metric, "source": f"industry_benchmark（{source}）",
+            "metric": metric, "source": f"系统内置行业基准库（{source}）",
             "reliable": _CAUTION_SHORT}
 
 
@@ -135,15 +138,15 @@ def benchmark_note(rid: str, industry: Optional[str] = None) -> Dict[str, object
     """生成可直读、带口径声明的基准说明。
 
     返回 `{"rid","metric","resolved":bool,"text":str,"range":[...]|None}`。
-    resolved=False 时不编造数字，只说明"须按实际行业从 industry_data.json 取值"。
+    resolved=False 时不编造数字，只说明"须按实际行业从系统内置行业基准库取值"。
     """
     metric = BENCHMARK_REFS.get(rid)
     if not metric:
         return {"rid": rid, "metric": None, "resolved": False, "text": "", "range": None}
     b = resolve_redline_benchmark(industry, metric)
     if b is None:
-        text = (f"该项以行业基准「{metric}」区间为参照，须按实际所属行业从 "
-                f"industry_data.json 取对应区间；{_CAUTION_SHORT}")
+        text = (f"该项以行业基准「{metric}」区间为参照，"
+                f"须按实际所属行业从系统内置行业基准库取对应区间；{_CAUTION_SHORT}")
         return {"rid": rid, "metric": metric, "resolved": False, "text": text, "range": None}
     rng_txt = f"[{_fmt(metric, b['lo'])}~{_fmt(metric, b['hi'])}]"
     text = (f"以行业基准「{metric}」区间{rng_txt}为参照"
