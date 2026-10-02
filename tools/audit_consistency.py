@@ -4972,6 +4972,48 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"差旅出行层断言跳过: {_exc}"))
 
+    # ── ③d 「直接相关性」判据：项目证据 ⇒ 成本；自用 ⇒ 费用（用户给出的判定原则）──
+    #   原则原话：区分成本与费用的核心不是发票品名，而是该支出**是否直接服务于某个项目、
+    #   与该项目收入形成直接配比** —— 同一张「技术服务费」：为客户项目 ⇒ 成本；
+    #   公司内部 IT 维护 ⇒ 管理费用。
+    #   落地红线：**只有取得项目/合同证据才判成本**；备注栏必须出现项目指示词才算证据
+    #   （否则"见附件""款已付"这类普通备注会把几乎所有发票判成成本）。
+    try:
+        from engine.account_classifier import (
+            classify_line as _cl4, CLASS_COST as _CC4, CLASS_EXPENSE as _CE4,
+            _project_evidence as _pe4,
+        )
+        # ① 项目证据 ⇒ 成本
+        for _g4 in ("现代服务技术服务费", "信息系统服务服务费"):
+            if _cl4(_g4, industry="广告传媒", project="某客户年度传播项目").get("account_class") != _CC4:
+                issues.append(("ERROR", "engine/account_classifier.py",
+                               f"有项目/合同证据却未按「直接配比」判成本：{_g4}"))
+                break
+        # ② 差旅票务对应到项目 ⇒ 成本（用户原则："项目相关的差旅费可计入成本"）
+        if _cl4("经纪代理服务机票款", industry="广告传媒",
+                remark="出差-某客户项目 行程单").get("account_class") != _CC4:
+            issues.append(("ERROR", "engine/account_classifier.py",
+                           "项目相关差旅费未按直接配比判成本（用户原则要求可入成本）"))
+        # ③ 自用 ⇒ 期间费用（用户举的第二个例子）
+        if _cl4("现代服务技术服务费", industry="广告传媒",
+                remark="系公司内部IT系统维护").get("account_class") != _CE4:
+            issues.append(("ERROR", "engine/account_classifier.py",
+                           "自用（内部维护）未判为期间费用（用户原则：间接相关 ⇒ 费用）"))
+        # ④ **反向红线**：无关备注不得被当成项目证据（否则一切都判成本）
+        for _bad_remark in ("见附件", "款已付，对账无误", "对账无误"):
+            if _pe4(None, project="", remark=_bad_remark):
+                issues.append(("ERROR", "engine/account_classifier.py",
+                               f"无关备注被误判为项目证据（「{_bad_remark}」）——会把大量发票判成成本"))
+                break
+        # ⑤ 硬排除优先于项目配比（挂项目也不能把个人消费/预付卡算进成本）
+        for _g5 in ("预付卡购物卡", "职工个人消费支出"):
+            if _cl4(_g5, industry="广告传媒", project="某项目").get("account_class") == _CC4:
+                issues.append(("ERROR", "engine/account_classifier.py",
+                               f"硬排除层被项目配比层越过：{_g5} 被判成成本"))
+                break
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"直接相关性判据断言跳过: {_exc}"))
+
     # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。

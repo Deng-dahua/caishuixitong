@@ -370,3 +370,70 @@ class TestCostInvoiceFilter:
     def test_tolerates_bad_rows(self):
         assert ac.filter_cost_invoices(None, industry="广告传媒") == []
         assert ac.filter_cost_invoices([None, "x", {}, {"goods": ""}], industry="广告传媒") == []
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 「直接相关性」判据（2026-10-02，用户给出的判定原则）
+#   核心：区分成本与费用的**不是发票品名**，而是该支出是否直接服务于某个项目、
+#   与该项目收入形成直接配比。同一张技术服务费：为客户项目 ⇒ 成本；内部 IT 维护 ⇒ 费用。
+# ══════════════════════════════════════════════════════════════════════════════
+class TestProjectDirectMatching:
+    """项目/合同证据 ⇒ 主营业务成本（与收入直接配比）。"""
+
+    def test_project_field_wins(self):
+        r = ac.classify_line("现代服务技术服务费", industry="广告传媒",
+                             project="某客户年度传播项目")
+        assert r["account_class"] == ac.CLASS_COST
+        assert r["matched_layer"] == "项目直接配比"
+
+    def test_remark_with_project_indicator(self):
+        r = ac.classify_line("信息系统服务服务费", industry="广告传媒",
+                             remark="华美博扬项目 结项结算")
+        assert r["account_class"] == ac.CLASS_COST, r
+        assert "项目" in r["matched_kw"]
+
+    def test_travel_linked_to_project_is_cost(self):
+        """用户原则明说：项目相关的差旅费可计入主营业务成本。"""
+        r = ac.classify_line("经纪代理服务机票款", industry="广告传媒",
+                             remark="出差-某客户项目 行程单")
+        assert r["account_class"] == ac.CLASS_COST, r
+
+    def test_plain_remark_is_not_evidence(self):
+        """反向红线：'见附件''款已付'这类普通备注**不是**项目证据。
+
+        否则"有备注就算项目证据"会把几乎所有发票判成主营业务成本（严重误判）。
+        """
+        for nm in ("见附件", "款已付，对账无误", "对账无误", ""):
+            assert ac._project_evidence(None, project="", remark=nm) == "", nm
+        # 行为层面：无项目证据的机票仍按差旅归费用
+        assert ac.classify_line("经纪代理服务机票款", industry="广告传媒",
+                                remark="见附件")["account_class"] == ac.CLASS_EXPENSE
+
+    def test_hard_exclusions_beat_project(self):
+        """挂项目也不能把个人消费/预付卡/资本性算进成本。"""
+        for g in ("预付卡购物卡", "职工个人消费支出", "房屋建筑物"):
+            r = ac.classify_line(g, industry="广告传媒", project="某项目")
+            assert r["account_class"] != ac.CLASS_COST, f"{g} 越过了硬排除层：{r}"
+
+
+class TestSelfUseExpense:
+    """自用 ⇒ 期间费用（用户举的第二个例子）。"""
+
+    def test_internal_it_maintenance_is_expense(self):
+        r = ac.classify_line("现代服务技术服务费", industry="广告传媒",
+                             remark="系公司内部IT系统维护")
+        assert r["account_class"] == ac.CLASS_EXPENSE, r
+        assert r["matched_layer"] == "自用（无项目配比）"
+        assert r["expense_sub"] == "管理费用"
+
+    def test_project_evidence_beats_self_use(self):
+        """项目证据与自用词同时出现时，按"直接配比"优先判成本。"""
+        r = ac.classify_line("现代服务技术服务费", industry="广告传媒",
+                             remark="华美博扬项目 内部结算")
+        assert r["account_class"] == ac.CLASS_COST, r
+
+    def test_no_remark_keeps_original_behaviour(self):
+        """无备注时行为不变（不得因新增层改变原有判定）。"""
+        assert ac.classify_line("广告服务广告发布费", industry="广告传媒")["account_class"] == ac.CLASS_COST
+        assert ac.classify_line("经纪代理服务机票款", industry="广告传媒")["account_class"] == ac.CLASS_EXPENSE
+        assert ac.classify_line("现代服务服务费", industry="广告传媒")["account_class"] == ac.CLASS_UNDETERMINED

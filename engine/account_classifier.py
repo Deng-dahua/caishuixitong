@@ -429,6 +429,92 @@ def _inventory_support_decision(text: str, kind_why: str,
     }
 
 
+#: 「自用」指示词（2026-10-02，用户判定原则的第二个例子）：
+#   同一张「技术服务费」，代客户项目开发 ⇒ 成本；**公司内部 IT 系统维护 ⇒ 管理费用**。
+#   依据是"是否为维持公司整体运营而发生的间接支出"——自用即间接，与收入无直接配比。
+#   ⚠ 词表刻意用**自用语义**而非裸词：「行政」「管理」这类裸词会误伤项目类备注
+#     （如"为XX项目提供行政管理服务"），且本层排在「项目直接配比」之后，
+#     项目证据一旦存在就先按成本定案。
+SELF_USE_KWS = (
+    "内部使用", "内部系统", "内部管理", "内部维护", "公司内部", "自用",
+    "办公用", "办公室用", "行政使用", "管理部门", "员工使用", "内部办公",
+)
+
+#: 备注栏里出现这些词，才认为它**在说项目/合同归属**。
+#  为什么不加这一层不行：备注栏绝大多数内容是"见附件""款已付""对账无误"这类**与项目无关**
+#  的文字；若"有备注就算项目证据"，等于把几乎所有发票都判成主营业务成本（严重误判）。
+_PROJECT_INDICATORS = ("项目", "工程", "合同", "订单", "方案", "标的")
+#: 从备注里**提取**项目名（取到"…项目/工程/合同/订单"为止的片段），避免把整段备注当项目名
+_PROJECT_NAME_RE = None  # 延迟编译（见 _project_evidence）
+
+
+def _project_evidence(inv_or_goods: Any, project: str = "", remark: str = "") -> str:
+    """取「项目/合同归属」证据（适用于 dict 行或纯文本两种调用形式）。
+
+    这是「直接相关性」判据的**唯一证据入口**：取不到就返回空串
+    （**空＝没有证据，不得据此推断归属**）。
+
+    证据来源与严格性：
+      ① 项目名 / 项目编号 / 合同号字段 —— 本身就是项目专用字段，非空即证据；
+      ② 备注栏 —— **必须出现项目指示词**（项目/工程/合同/订单/方案/标的）才算证据，
+         并从中**提取**项目名片段（`…项目` / `…合同`），不能把整段备注当项目名。
+    """
+    pj_raw = str(project or "").strip()
+    rk_raw = str(remark or "").strip()
+    if isinstance(inv_or_goods, dict):
+        try:
+            from engine.fieldkit import project_of as _pj, remark_of as _rk  # 单一权威
+            pj_raw = pj_raw or _pj(inv_or_goods)
+            rk_raw = rk_raw or _rk(inv_or_goods)
+        except Exception:
+            pass
+    if pj_raw:
+        return pj_raw[:40]
+    if rk_raw and any(k in rk_raw for k in _PROJECT_INDICATORS):
+        global _PROJECT_NAME_RE
+        if _PROJECT_NAME_RE is None:
+            import re as _re_pj
+            _PROJECT_NAME_RE = _re_pj.compile(
+                r"([\u4e00-\u9fa5A-Za-z0-9（）()·\-]{2,30}?(?:项目|工程|合同|订单))")
+        m = _PROJECT_NAME_RE.search(rk_raw)
+        return (m.group(1) if m else rk_raw[:30]).strip()
+    return ""
+
+
+def _project_linked_decision(evidence: str, kind_reason: str,
+                             travel_kw: str = "") -> Optional[Dict[str, Any]]:
+    """「与收入直接配比」⇒ 主营业务成本（用户给出的**核心判据**）。
+
+    用户原话（判定原则）：区分成本与费用的核心不是发票品名，而是**该支出是否直接服务于
+    某个已承接或将要承接的项目、并与该项目收入形成直接配比** ——
+    同一张「技术服务费」：为客户定制项目支付 ⇒ 成本；内部 IT 维护 ⇒ 管理费用。
+
+    落地口径（宁缺勿错）：
+      · 只有**取得项目/合同证据**（项目名、项目编号、合同号，或备注栏写明项目）时命中；
+      · 证据取不到 ⇒ 返回 None，由后续按品名 + 行业口径判定，**绝不臆测项目归属**；
+      · 差旅票务若对应到项目（如为客户项目出差），按用户原则可入成本 ⇒ 本层**先于**
+        差旅出行层判定（`travel_kw` 仅用于把理由写清楚）。
+    """
+    if not evidence:
+        return None
+    why = ("该支出直接对应到项目/合同「%s」，与该项目收入形成直接配比"
+           % evidence[:40])
+    if travel_kw:
+        why = ("%s；差旅票务本属期间费用，但对应到具体项目时按项目直接配比计入成本"
+               % why)
+    return {
+        "account_class": CLASS_COST,
+        "expense_sub": "",
+        "confidence": CONF_HIGH,
+        "evidence": "项目直接配比层｜%s｜命中项目/合同「%s」" % (kind_reason or "票面", evidence[:40]),
+        "matched_kw": evidence[:40],
+        "matched_layer": "项目直接配比",
+        "needs_context": False,
+        "missing_material": "",
+        "reason": why + "；须留存该项目合同与验收/结算单据备查",
+    }
+
+
 def filter_cost_invoices(invoices: Any, industry: Any = "") -> List[Dict[str, Any]]:
     """只保留**归属为主营业务成本**的发票（三态口径复核）。唯一实现，多处引用。
 
@@ -453,6 +539,8 @@ def filter_cost_invoices(invoices: Any, industry: Any = "") -> List[Dict[str, An
                 tax_code=inv.get("tax_code") or inv.get("税收编码") or "",
                 unit=inv.get("unit") or inv.get("单位") or "",
                 biz_type=inv.get("biz_type") or inv.get("业务类型") or "",
+                project=inv.get("project") or inv.get("项目名称") or inv.get("合同号") or "",
+                remark=inv.get("remark") or inv.get("备注") or "",
             ).get("account_class")
         except Exception:
             cls = ""
@@ -549,6 +637,8 @@ def classify_line(
     tax_code: Any = "",
     unit: Any = "",
     biz_type: Any = "",
+    project: Any = "",
+    remark: Any = "",
 ) -> Dict[str, Any]:
     """对**一张进项发票/一行明细**做成本/费用归属判定（三态）。
 
@@ -631,6 +721,40 @@ def classify_line(
             "needs_context": True,
             "missing_material": "预付卡实际消费明细与对应项目归属",
             "reason": "预付卡购入环节不征税、进项不得抵扣、税前不得扣除，须见到实际消费去向才能定性",
+        }
+
+    # ── ②★★ 项目直接配比层（用户判定原则的核心：与收入直接配比 ⇒ 主营业务成本）──────
+    #   依据（用户给出）：区分成本与费用的核心不是发票品名，而是该支出**是否直接服务于
+    #   某个已承接/将要承接的项目、与该项目收入形成直接配比**——同一张「技术服务费」，
+    #   为客户定制项目支付＝成本，内部 IT 维护＝费用。
+    #   落地口径：**只有取得项目/合同证据才命中**（项目名/项目编号/合同号，或备注栏写明项目）；
+    #   取不到证据一律返回 None，交后续按品名+行业口径判定 —— 绝不臆测项目归属。
+    #   位置：在「硬排除」之后（个人消费/资本化/预付卡即便挂了项目也不得计入成本费用），
+    #   但在差旅出行层与行业核心投入层**之前**（差旅若对应到项目，按用户原则可入成本）。
+    _pj_ev = _project_evidence(None, project=str(project or ""), remark=_parts_text(remark, note))
+    if _pj_ev:
+        _tk_hit = _longest_keyword_hit(text, TRAVEL_KWS)
+        _pj_dec = _project_linked_decision(_pj_ev, "", travel_kw=_tk_hit or "")
+        if _pj_dec:
+            return _pj_dec
+
+    # ── ②★★b 自用层（用户判定原则的第二个例子：间接相关 ⇒ 期间费用）────────────
+    #   「同一张技术服务费：为客户定制项目 ⇒ 成本；公司内部 IT 系统维护 ⇒ 管理费用」。
+    #   判据＝**备注/摘要说明该支出是自用**（为维持公司整体运营），与收入无直接配比。
+    #   位置在项目层之后：项目证据一旦存在，先按"直接配比"定案为成本。
+    _su_kw = _longest_keyword_hit(_parts_text(remark, note), SELF_USE_KWS)
+    if _su_kw:
+        return {
+            "account_class": CLASS_EXPENSE,
+            "expense_sub": "管理费用",
+            "confidence": CONF_MEDIUM,
+            "evidence": "自用层｜票面说明为自用｜命中「%s」" % _su_kw,
+            "matched_kw": _su_kw,
+            "matched_layer": "自用（无项目配比）",
+            "needs_context": False,
+            "missing_material": "",
+            "reason": "该支出为维持公司整体运营而发生（自用），与主营业务收入无直接配比，"
+                      "计入期间费用；若实为某项目投入，须提供该项目合同后调整",
         }
 
     # ── ②★ 结构性定性为「无实物」⇒ 服务轨道（行业无关第一刀；防服务类外购被业态兜底成成本）

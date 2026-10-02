@@ -69,6 +69,21 @@ TAX_CODE_KEYS: Tuple[str, ...] = (
 UNIT_KEYS: Tuple[str, ...] = ("unit", "计量单位", "uom")
 BIZ_TYPE_KEYS: Tuple[str, ...] = ("biz_type", "业务类型", "业务类别")
 
+# ── 备注 / 项目标识（2026-10-02 新增：成本与费用区分的「直接相关性」判据要用）──
+#  背景（用户给出的判定原则）：区分主营业务成本与期间费用的**核心判据不是发票品名，
+#  而是"这笔支出是否直接服务于某个项目/客户、与该项目收入形成直接配比"。
+#  同一张「技术服务费」：为客户定制项目支付 ⇒ 主营业务成本；内部 IT 维护 ⇒ 管理费用。
+#  这条判据要有证据才成立，票面上可承载它的就是**备注栏**与**项目编号/合同号**字段
+#  （发票备注常写"XX项目""合同号 XX"）。此处与其它字段一样收敛为唯一别名表，
+#  各模块只许 `fieldkit.project_of(row)` / `remark_of(row)` 取，不得自写键名。
+REMARK_KEYS: Tuple[str, ...] = (
+    "remark", "备注", "备注栏", "发票备注", "remarks", "note", "摘要",
+)
+PROJECT_KEYS: Tuple[str, ...] = (
+    "project", "project_name", "项目名称", "项目", "项目编号", "project_no",
+    "合同号", "contract_no", "合同编号",
+)
+
 # ── 工资/社保人员行字段（2026-10-01 补充：原 detector 与「证据行」各写一份键表）──
 # 事故：pipeline._enrich_evidence_rows._salary_row 读 姓名/部门/实发金额/period，
 # 而工资表实际行结构是 {name, salary, net, gross, period_start, period_end, ...}
@@ -139,6 +154,24 @@ def tax_code_of(inv: Any) -> str:
 def unit_of(inv: Any) -> str:
     """计量单位（货物/服务的硬证据：件吨千克台… ⇒ 货物；次月小时项… ⇒ 服务）。"""
     return _txt(inv, UNIT_KEYS)
+
+
+def remark_of(inv: Any) -> str:
+    """发票备注栏原文。**
+
+    ★ 2026-10-02：备注是「直接相关性」判据的**证据来源**之一（常写"XX项目""合同号 XX"），
+      此前全库没有统一入口 ⇒ 各模块即使想用也无从取值。
+    """
+    return _txt(inv, REMARK_KEYS)
+
+
+def project_of(inv: Any) -> str:
+    """项目/合同标识（项目名称、项目编号、合同号）。**
+
+    取不到就返回空串 —— **空表示"没有项目归属证据"，不得用空值去推断归属**；
+    有值时说明这张票能直接对应到某个项目/合同，是「与收入直接配比」的硬证据。
+    """
+    return _txt(inv, PROJECT_KEYS)
 
 
 def biz_type_of(inv: Any) -> str:
