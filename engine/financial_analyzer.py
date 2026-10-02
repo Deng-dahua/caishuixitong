@@ -478,10 +478,14 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                     "suggestion": "核实业务招待费归集是否准确，汇算清缴时按孰低法作纳税调增。",
                     "category": "成本费用",
                     "source_chain": "财务报表-业务招待费占比",
-                    "redline_id": "RL-COST-005",
-                    # ★ 2026-09-28：逐条判定 RL-COST-005 第②条要件（酌量性费用集中）。
+                    # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+                    #   本发现是**扣除限额超限**，此前误声明 RL-COST-005「期间费用年末突增：
+                    #   集中列支调节利润」⇒ 报告出现"期间费用年末突增"疑点、证据却是
+                    #   业务招待费超限（主体与内容错配）。改声明 RL-CIT-007「税前扣除限额
+                    #   超限未纳税调整」第①条要件（其要件原文即列明"业务招待费…超过法定扣除限额"）。
+                    "redline_id": "RL-CIT-007",
                     "constituent_hits": [
-                        {"index": 2, "evidence": f"费用集中在业务招待费等酌量性支出：业务招待费 {ent:,.2f} 元，"
+                        {"index": 1, "evidence": f"业务招待费超法定扣除限额：业务招待费 {ent:,.2f} 元，"
                                                  f"占主营业务收入 {revenue:,.2f} 元的 {ent_rate:.2%}"},
                     ],
                     "indicator": "travel_entertainment_ratio",

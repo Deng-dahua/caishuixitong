@@ -11042,6 +11042,12 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         try:
             from engine.enterprise_report import build_enterprise_readable_report
             report_data["enterprise_readable_report"] = build_enterprise_readable_report(report_data)
+            # ★ 2026-10-02（用户：给一键分析写入一套思考体系，让它能自行分析所写内容是否正确）：
+            #   疑点主体一致性自检的结论**必须进一键分析流水** —— 否则"自检跑没跑、跑出什么"
+            #   在界面上无从证实（本项目反复栽在"改了但看不出生效"）。
+            _sca = (report_data["enterprise_readable_report"] or {}).get("subject_consistency_audit")
+            if isinstance(_sca, dict) and _sca.get("summary_line"):
+                _append_one_click_log(report_data, "[主体一致性自检] " + str(_sca["summary_line"]))
         except Exception as _ere_exc:
             _append_one_click_log(report_data, f"[企业版报告] 生成失败: {_ere_exc}")
 

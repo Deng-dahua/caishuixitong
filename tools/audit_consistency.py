@@ -6819,6 +6819,134 @@ def check_static_asset_cache_version() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_suspicion_subject_consistency() -> List[Tuple[str, str, str]]:
+    """疑点主体一致性自检（唯一权威 `engine/subject_consistency`）必须真的成立。
+
+    ★ 2026-10-02（用户：**已经出现几次对疑点编辑的内容与疑点主体错配的情况了，
+      彻底检查并修复**）——本闸门锁三件事：
+
+      ① **行为断言**：直调生产函数看实际产出（本项目反复栽在"源码写了、运行不走"）：
+         · 勾稽轴 → 红线映射逐条自检通过；四处旧错配归属被拒；正当归属仍放行；
+         · 「别的发现的表」不能挂到本疑点，「自己的表」必须还挂着。
+      ② **接线断言**：勾稽引擎不得再就地硬编码红线编号（必须走唯一映射表）。
+      ③ **反向验证（内嵌自检）**：故意把映射改错一次，自检必须变红 ——
+         否则这条闸门本身是假的（只查"源码有没有引用"抓不到"判据从不生效"）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        import sys as _sys
+        if str(ROOT) not in _sys.path:
+            _sys.path.insert(0, str(ROOT))
+        from engine import subject_consistency as SC
+    except Exception as exc:  # pragma: no cover
+        return [("ERROR", "主体一致性", f"无法导入 engine/subject_consistency：{exc}")]
+
+    # ── ① 勾稽轴映射自检 ──
+    bad = SC.selfcheck_axis_map()
+    for b in bad:
+        issues.append(("ERROR", "勾稽轴→红线",
+                       f"{b['axis']} → {b['redline_id']} 主体自检不通过：{b['reason']}"))
+
+    # ── ① 旧错配归属必须被拒（回归锁）──
+    _must_reject = [
+        ("RL-COST-003", "待核事实：银行存款支出方对等逐月不匹配（2025-01）"),
+        ("RL-COST-003", "待核事实：应付账款发生额对等逐月不匹配（2025-01）"),
+        ("RL-COST-003", "待核事实：序时账与科目余额表逐科目不一致（账账不符）"),
+        ("RL-VAT-002", "待核事实：增值税进项税额对等逐月不匹配（2025-01）"),
+        ("RL-VAT-001", "待核事实：增值税销项税额对等逐月不匹配（2025-01）"),
+        ("RL-INC-001", "待核事实：收入多源对等逐月不匹配（2025-01）"),
+    ]
+    for rid, subject in _must_reject:
+        ok, _why = SC.declared_subject_ok(rid, subject)
+        if ok:
+            issues.append(("ERROR", "归属声明",
+                           f"旧错配归属未被拒绝：{rid} ← {subject[:34]}"))
+
+    # ── ① 正当归属不得被误拒 ──
+    _must_accept = [
+        ("RL-COST-003", "待核事实：主营业务成本有票支撑偏低"),
+        ("RL-PTY-001", "主营业务成本资金与负债支撑材料核验"),
+        ("RL-OTH-003", "城建税及教育费附加随增值税附征勾稽"),
+        ("RL-CIT-008", "待核事实：增值税进项税额对等逐月不匹配（2025-01）"),
+    ]
+    for rid, subject in _must_accept:
+        ok, why = SC.declared_subject_ok(rid, subject)
+        if not ok:
+            issues.append(("ERROR", "归属声明", f"正当归属被误拒：{rid} ← {subject[:34]}｜{why}"))
+
+    # ── ① 判据本身必须能区分（泛词不得使两条不同事项"同一主体"）──
+    if SC.same_subject("附加税费计税依据与增值税不匹配",
+                       "增值税进项税额对等逐月不匹配"):
+        issues.append(("ERROR", "主体词判据",
+                       "泛词（增值税/不匹配）未剔除，两条不同事项被判为同一主体"))
+
+    # ── ② 接线断言：勾稽引擎不得再就地硬编码红线编号 ──
+    try:
+        mr = (ROOT / "engine" / "monthly_reconcile.py").read_text(encoding="utf-8")
+        if re.search(r'\b_axis_rid\s*\(', mr) is None:
+            issues.append(("ERROR", "勾稽轴接线",
+                           "monthly_reconcile 未调用唯一映射 _axis_rid（红线编号可能仍是硬编码）"))
+        # 勾稽调用实参里出现字面 RL-XXX ⇒ 又绕过了唯一映射
+        for _m in re.finditer(r'_(?:reconcile|rate_consistency|point_reconcile)\s*\([^)]{0,400}?"RL-',
+                              mr, re.S):
+            issues.append(("ERROR", "勾稽轴接线",
+                           f"勾稽调用仍硬编码红线编号：{_m.group(0)[-60:].replace(chr(10), ' ')}"))
+    except Exception as exc:  # pragma: no cover
+        issues.append(("WARN", "勾稽轴接线", f"源码读取失败：{exc}"))
+
+    # ── ① 报告行为：外来表不挂、自己的表仍挂 ──
+    try:
+        from engine.enterprise_report import _build_redline_problems, _build_subject_audit
+        findings = [
+            {"type": "待核事实：银行存款支出方对等逐月不匹配（2025-01）", "level": "待核验",
+             "redline_id": "RL-COST-003", "evidence_rows": [{"对方单位": "甲公司", "金额": 100}]},
+            {"type": "待核事实：增值税进项税额对等逐月不匹配（2025-01）", "level": "待核验",
+             "redline_id": "RL-VAT-002", "evidence_rows": [{"对方单位": "乙公司", "金额": 200}]},
+        ]
+        sus = [{
+            "redline_id": "RL-COST-003", "redline_name": "白条入账：无合规凭证列支成本费用",
+            "suspect": "涉嫌以不合法凭证列支", "taxes": ["企业所得税"], "domain": "成本",
+            "legal_basis": ["《发票管理办法》第二十条"],
+            "constituents": ["成本费用列支无发票或其他合规外部凭证"],
+            "constituent_sources": ["成本明细账"],
+            "clue_chain": {"terminal_signal": "2025-01 各来源金额不一致", "nodes": []},
+            "evidence_chain": {}, "argumentation": {"verdict": "已触碰税务违规红线"},
+            "finding_type": "待核事实：银行存款支出方对等逐月不匹配（2025-01）",
+            "supporting_findings": [], "level": "待核验",
+        }]
+        sink = {"issues": [], "by_code": {}}
+        ps = _build_redline_problems(sus, findings, audit_sink=sink)
+        titles = [str((t or {}).get("title") or "")
+                  for p in ps for para in (p.get("narrative_paragraphs") or [])
+                  for t in (para.get("detail_tables") or [])]
+        if any("进项税额对等" in t for t in titles):
+            issues.append(("ERROR", "附表归属", "外来表（进项税额对等）被挂到了「白条入账」疑点下"))
+        if not any("银行存款支出方对等" in t for t in titles):
+            issues.append(("ERROR", "附表归属", "本疑点自己的明细表被误删（不得因一致性把该有的表也删掉）"))
+        au = _build_subject_audit(ps, sink)
+        if not any(i.get("code") == "疑点主体与其证据不是同一件事" for i in au.get("issues") or []):
+            issues.append(("ERROR", "自检留痕",
+                           "主体错配未被自检记录（自检形同虚设）"))
+        if not au.get("summary_line"):
+            issues.append(("ERROR", "自检留痕", "自检结论未产出可写入一键分析流水的一行"))
+    except Exception as exc:  # pragma: no cover
+        issues.append(("ERROR", "附表归属", f"报告行为断言执行失败：{exc}"))
+
+    # ── ③ 反向验证（内嵌）：把映射改错，自检必须变红 ──
+    try:
+        _bak = dict(SC.RECONCILE_AXIS_REDLINE)
+        SC.RECONCILE_AXIS_REDLINE["银行存款支出方对等"] = ("RL-COST-003", "银行存款支出方对等逐月不匹配")
+        _rev = SC.selfcheck_axis_map()
+        SC.RECONCILE_AXIS_REDLINE.clear()
+        SC.RECONCILE_AXIS_REDLINE.update(_bak)
+        if not _rev:
+            issues.append(("ERROR", "闸门自检",
+                           "反向验证失败：故意改错映射后自检仍未报警（本闸门是假的）"))
+    except Exception as exc:  # pragma: no cover
+        issues.append(("WARN", "闸门自检", f"反向验证执行失败：{exc}"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -6872,6 +7000,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_material_alias_drift()       # 2026-10-01 红线资料名异名漂移（照运行时真语义模拟）
                + check_conclusion_and_suspicion_order()  # 2026-10-02 结论先行 + 疑点/监管态度重→轻排序
                + check_static_asset_cache_version()  # 2026-10-02 前端缓存版本（改了看不到）
+               + check_suspicion_subject_consistency()  # 2026-10-02 疑点主体一致性（内容与主体错配）
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

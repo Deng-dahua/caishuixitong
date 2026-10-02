@@ -904,6 +904,116 @@ def _finding_detail_tables(f):
     return []
 
 
+def _select_detail_tables(rid, rname, sup_subjects, src_tables, dt_by_rid, dt_by_type, s):
+    """按**来源归属**选本疑点的逐笔明细表（唯一判据在 `subject_consistency`）。
+
+    返回 `(tables 或 None, 附在正文里的如实说明或 "")`。
+
+    选取顺序：
+      ① 本疑点**自己声明的支撑发现**出的表（权威口径，零猜测）；
+      ② 支撑发现为空（应为个例）→ 按红线编号精确关联；
+      ③ 再退一步：以**同一主体判据**（`subject_consistency.same_subject`）在
+         「发现类型 ↔ 本疑点主体」之间找表 —— ★ 不再用汉字 2-gram 重叠：
+         实测 2-gram 会把「增值税进项税额对等」挂到「附加税费计税依据与增值税不匹配」名下，
+         而同一主体判据（泛词已剔除）能同时做到"该挂的挂上、不该挂的不挂"。
+      ④ 都没有 → 不附明细；若系统里**确实存在**与该红线编号相关的明细、只是主体不符，
+         则如实写明"为什么没附"（读者需要知道是"没有相关的"，不是"系统没查"）。
+    """
+    try:
+        from engine.subject_consistency import norm_subject_key as _nsk
+        from engine.subject_consistency import same_subject as _ssame
+    except Exception:
+        _nsk = None
+        _ssame = None
+    sup_keys = []
+    for x in (sup_subjects or []):
+        k = _nsk(x) if _nsk else str(x or "")
+        if k and k not in sup_keys:
+            sup_keys.append(k)
+    picked, seen = [], set()
+    for k in sup_keys:
+        hit = (src_tables or {}).get(k)
+        if not hit:
+            continue
+        for t in (hit.get("tables") or []):
+            ttl = str((t or {}).get("title") or "")
+            if ttl in seen:
+                continue
+            seen.add(ttl)
+            picked.append(t)
+    if picked:
+        return picked, ""
+    if not sup_keys:
+        cand = (dt_by_rid or {}).get(rid) if rid else None
+        if cand:
+            return list(cand), ""
+        # 同一主体兜底（无红线编号 / 无支撑发现时的最后一道）
+        if _ssame and rname:
+            for _tk, _tabs in (dt_by_type or {}).items():
+                if _ssame(_tk, rname):
+                    return list(_tabs), ""
+        return None, ""
+    # 有明细被拒（主体不符）→ 必须说明，不能默默少一张表
+    rej = (dt_by_rid or {}).get(rid) if rid else None
+    if rej:
+        ttl = str((rej[0] or {}).get("title") or "")[:30]
+        return None, (
+            "\n\n说明：系统内另有一套与本项红线编号关联的逐笔明细（「%s」），"
+            "经主体一致性核对，其反映的是**另一件事**，与本项主体不符，故不附于本项；"
+            "该明细已归入其自身所属事项。本项不附逐笔明细，不代表本项未作核对——"
+            "本项实际读到的事实与数字见上一节各环。" % ttl)
+    return None, ""
+
+
+def _build_subject_audit(problems, sink):
+    """把"哪个环节记了什么"汇总成一份可复核的自检结果（唯一出口，供报告与流水共用）。
+
+    `sink` 是 `_build_redline_problems` 逐项累计的原始记录；本函数只做统计与
+    逐项对应（把 `seq` 补齐），不改判定结论。
+    """
+    issues = list((sink or {}).get("issues") or [])
+    # 逐项回填 seq/title（报告层按 `redline_id` + 标题前缀对齐）
+    _by_rid = {}
+    for p in (problems or []):
+        _by_rid.setdefault(str(p.get("redline_id") or ""), []).append(p)
+    for it in issues:
+        if it.get("seq"):
+            continue
+        cands = _by_rid.get(str(it.get("redline_id") or "")) or []
+        for p in cands:
+            if str(it.get("title") or "")[:24] and str(it.get("title") or "")[:24] in str(p.get("title") or ""):
+                it["seq"] = p.get("seq")
+                it["title"] = str(p.get("title") or "")[:60]
+                break
+        else:
+            if cands:
+                it["seq"] = cands[0].get("seq")
+                it["title"] = str(cands[0].get("title") or "")[:60]
+    by_code = {}
+    for it in issues:
+        by_code[it.get("code") or "—"] = by_code.get(it.get("code") or "—", 0) + 1
+    _checked = len(problems or [])
+    _bad_seqs = {it.get("seq") for it in issues if it.get("seq")}
+    out = {
+        "checked": _checked,
+        "issue_count": len(issues),
+        "ok_count": max(0, _checked - len(_bad_seqs)) if _bad_seqs else _checked,
+        "issues": issues,
+        "by_code": by_code,
+        "rule": ("疑点主体自检：① 每条疑点的**主体（风险指标名）**与其**支撑发现**必须"
+                 "是同一件事（主体词有交集，或红线库声明过该类主体归本红线）；"
+                 "② 每条拟挂附表必须来自**本疑点自己声明的支撑发现**；"
+                 "③ 判据不成立时：不挂该附表、标题声明认定范围、结论保持待核，并记入本自检。"),
+    }
+    try:
+        from engine.subject_consistency import format_audit_line
+        out["summary_line"] = format_audit_line(out)
+    except Exception:
+        out["summary_line"] = "主体一致性自检：检查 %d 项，%d 项不一致" % (
+            out["checked"], out["issue_count"])
+    return out
+
+
 def _match_suspicion_detail(s, dt_by_type):
     """按「发现类型 ↔ 疑点红线名」关键词重叠，把未打 redline_id 的域发现兜底关联到疑点。
     返回匹配到的明细表 list 或 None；重叠 2-gram 数 >=3 才命中，避免误挂。
@@ -1704,7 +1814,8 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
     return [_naturalize_report_text(raw_items[i]) for i in keep[:cap]], "facts"
 
 
-def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_required_docs=None):
+def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
+                            not_required_docs=None, audit_sink=None):
     """
     按「税务红线疑点」组装报告主体（2026-09-06 新方法论）
 
@@ -1723,6 +1834,15 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
     #   现统一把 evidence_rows 也视为明细表来源，并支持按 redline_id / 发现类型 关联到疑点。
     _dt_by_rid = {}
     _dt_by_type = {}
+    # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+    #   **附表挂载改为"来源归属"口径**（唯一权威 `subject_consistency`）。
+    #   旧版先按红线编号精确关联、未命中就用「红线名 ↔ 发现类型」的 2-gram 重叠兜底
+    #   ⇒ 实测把别的发现的表挂了过来（「附加税费计税依据与增值税不匹配」拿到
+    #      「增值税进项税额对等逐月不匹配」的表）。
+    #   现按「这张表来自哪条发现 → 该发现是不是**本疑点自己声明的支撑发现**」判定：
+    #   归属不符的表一律不挂，宁可不附明细，也不附错明细。
+    _src_tables = {}          # 发现主体规范键 -> {"rid": rid, "tables": [...]}
+    _owner = {}               # id(表) -> 发现主体规范键（供自检回溯来源）
     for _f in (findings or []):
         if not isinstance(_f, dict):
             continue
@@ -1740,6 +1860,14 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
         _tkey = _norm_type_key(_f.get("type") or "")
         if _tkey:
             _dt_by_type.setdefault(_tkey, _tables)
+        # ★ 来源归属索引：以「发现主体规范键」（去期间/批次括注）为键，
+        #   与疑点声明的支撑发现主体按同一函数归一，两端必然可比。
+        from engine.subject_consistency import norm_subject_key as _nsk
+        _skey = _nsk(_f.get("type") or "")
+        if _skey and _skey not in _src_tables:
+            _src_tables[_skey] = {"rid": str(_rid or ""), "tables": _tables}
+        for _t in _tables:
+            _owner[id(_t)] = _skey
     # ★ 2026-09-27（用户要求）：无线索支撑 / 已排除的结论**不得进「具体问题」**——
     #   否则出现"线索不足，未形成税务疑点"却列为问题的自相矛盾。此处统一滤除，
     #   并使 seq 保持连续（不跳号）。弱结论集来自 argumentation（单一出处）。
@@ -1755,6 +1883,14 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
         clue = s.get("clue_chain") or {}
         ev = s.get("evidence_chain") or {}
         rid = s.get("redline_id", "")
+        # ★★ 2026-10-02：本疑点声明的支撑发现主体（正文裁剪、附表归属、主体自检三处共用，
+        #   只算一次，避免三处各判一次又各不相同——这正是"错配"反复出现的根因）。
+        _sup_subjects = []
+        for _sf in (s.get("supporting_findings") or []):
+            if isinstance(_sf, dict) and str(_sf.get("type") or "").strip():
+                _sup_subjects.append(str(_sf["type"]).strip())
+        if str(s.get("finding_type") or "").strip():
+            _sup_subjects.insert(0, str(s["finding_type"]).strip())
         rname = s.get("redline_name", "")
         grade = s.get("conclusion_grade") or arg.get("conclusion_grade") or "待核"
 
@@ -1780,6 +1916,62 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
                 rid, _own_type, arg.get("constituent_hits"), rname)
         except Exception:
             _title_raw, _premise_note = (rname.strip() or rid), ""
+
+        # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+        #   **主体自检写进一键分析** —— 报告对自己"要写的内容"先自问一句：
+        #   "本项的主体（风险指标名）与本项实际依据的发现（支撑发现）是不是同一件事？"
+        #   不是 → 标题必须声明认定范围，**不得**让读者以为标题所述情形已被认定。
+        #   判据唯一权威 `subject_consistency.suspicion_subject_ok`（词表+红线声明两级）。
+        #   ★ 此处只"如实说明 + 记账"，不隐藏、不改事实：判定结果进 `audit_sink`，
+        #     由 `build_enterprise_readable_report` 汇总进报告与流水（可复核、可回归）。
+        _ok_sub = True
+        # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+        #   自检的**主判据是本疑点"建入口那条发现"（`finding_type`）**，而不是"支撑发现里
+        #   随便有一条对得上就算过"。事故：疑点 RL-SPT-017「广告/娱乐服务未申报文化事业建设费」
+        #   的 entry 是软匹配来的「同一供应商同品名单价不一致」（完全另一件事），
+        #   而它名下确实还挂着一条正当的「文化事业建设费未申报（待核）」支撑发现 ——
+        #   旧判据因后者命中而"通过"，标题与正文（entry 的线索链/证据链）却仍然错配。
+        #   entry 决定标题之外的线索链与证据链，因此 entry 一致才算本项主体一致。
+        _entry_subject = str(s.get("finding_type") or "").strip()
+        _check_subjects = [_entry_subject] if _entry_subject else list(_sup_subjects)
+        try:
+            from engine.subject_consistency import suspicion_subject_ok as _sso
+            _ok_sub, _why_sub = _sso(rname, _check_subjects, rid)
+            if not _ok_sub and _entry_subject:
+                # entry 与红线名不符，但**名下**确有同一主体的支撑发现 → 仍按不符处理，
+                # 但说明里点明这条支撑发现，便于复核时定位。
+                _ok2, _why2 = _sso(rname, _sup_subjects, rid)
+                if _ok2:
+                    _why_sub = ("本项建入口的发现（%s）与风险指标名不符；"
+                                "名下另有相同主体的支撑发现，但正文线索/证据取自建入口那条"
+                                % _entry_subject[:26])
+        except Exception:
+            _ok_sub, _why_sub = True, ""
+        if not _check_subjects:
+            # 本疑点连"依据了哪条发现"都没取到 → **无从判定**，不得当成错配报出去
+            # （实测此处曾把 12 条单发现疑点全部误判为错配）。
+            _ok_sub = True
+        if not _ok_sub:
+            # ★ 但若 `trim_redline_title` 已经声明过本项认定范围（`_premise_note` 非空），
+            #   就不再叠加第二段同义声明 —— 同一件事说两遍会让报告像在自我辩解。
+            #   自检留痕照记（审计不受影响），只是不再往标题里重复加括注。
+            if not _premise_note:
+                _clarify2 = ("本项风险指标名称与本项已读到的证据所指情形不完全对应，"
+                             "本项未就该指标名称所述情形作出认定")
+                _title_raw = ("%s（%s）" % (_title_raw, _clarify2))
+                _premise_note = ("需要说明：本项疑点名称取自风险指标库的指标名；"
+                                 "本项实际读到的证据指向的情形与该指标名所述情形不完全对应。"
+                                 "本项只按实际证据范围内的事实登记和说明，"
+                                 "未就该指标名称所述情形本身作出认定。")
+            if isinstance(audit_sink, dict):
+                audit_sink.setdefault("issues", []).append({
+                    "seq": None, "title": str(_title_raw)[:60],
+                    "code": "疑点主体与其证据不是同一件事", "detail": _why_sub,
+                    "redline_id": rid,
+                })
+                audit_sink.setdefault("by_code", {})
+                _k = "疑点主体与其证据不是同一件事"
+                audit_sink["by_code"][_k] = audit_sink["by_code"].get(_k, 0) + 1
 
         # ① 红线与法条
         legal = [l for l in (s.get("legal_basis") or []) if l]
@@ -2058,13 +2250,15 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
              "bullets": bullets5 or None, "tail": tail5},
         ]
 
-        # 规则显式下钻表 / 逐笔证据表 挂到「发现的依据」段：
-        # 先按红线编号精确关联，未命中再按「发现类型 ↔ 疑点名称」关键词重叠兜底关联
-        # （覆盖带 evidence_rows 但未打 redline_id 的域发现，如红冲/作废发票）。
+        # 逐笔明细表 挂到「发现的依据」段 —— **按来源归属**（唯一权威 subject_consistency）：
+        #   ① 只用「本疑点自己声明的支撑发现」出的表（`supporting_findings` 是引擎给出的
+        #      "本疑点由哪些发现构成"，是唯一权威）；
+        #   ② 支撑发现为空时，才退回按红线编号精确关联；
+        #   ③ 都没有 → 不附明细；有明细但主体不符时**如实写明为什么没附**
+        #      （绝不附一张主体不符的表 —— 那正是用户反复报的"内容与主体错配"）。
         _rid = s.get("redline_id", "")
-        _tables = _dt_by_rid.get(_rid) if _rid else None
-        if not _tables:
-            _tables = _match_suspicion_detail(s, _dt_by_type)
+        _tables, _tbl_note = _select_detail_tables(
+            _rid, rname, _sup_subjects, _src_tables, _dt_by_rid, _dt_by_type, s)
         if _tables:
             # ★★ 2026-10-02：**按小标题定位**，不得按位置写死。
             #   事故：原为 `paragraphs[1]["detail_tables"] = _tables`，
@@ -2078,6 +2272,22 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
                     break
             else:
                 paragraphs[-1]["detail_tables"] = _tables
+        elif _tbl_note:
+            # 有候选明细但主体不符（或压根没有与本项相关的明细）：如实写出来，
+            # 让读者知道"这里没有逐笔明细"的原因是**没有相关的**，而不是"系统没查"。
+            for _pp in paragraphs:
+                if str(_pp.get("heading") or "").startswith("二、"):
+                    _pp["text"] = (_pp.get("text") or "") + _tbl_note
+                    break
+            if isinstance(audit_sink, dict):
+                audit_sink.setdefault("issues", []).append({
+                    "seq": None, "title": _title_raw[:60],
+                    "code": "附表来源与本项主体不符",
+                    "detail": _tbl_note.strip()[:120], "redline_id": rid,
+                })
+                audit_sink.setdefault("by_code", {})
+                _k2 = "附表来源与本项主体不符"
+                audit_sink["by_code"][_k2] = audit_sink["by_code"].get(_k2, 0) + 1
 
         # ★ 2026-10-01：**分项扣除限额测算表**挂到「四、本项结论及理由」——
         #   多分项红线（如 RL-CIT-007 招待费/广宣费/福利费）此前只渲染算出数的那一项，
@@ -2554,7 +2764,7 @@ def _evidence_table(ev):
     }
 
 
-def _build_confirmed_problems(report_data):
+def _build_confirmed_problems(report_data, audit_sink=None):
     """从 findings 组装『确认的具体问题』（level 非待核验/信息的）"""
     # ═══ 新方法论：以「税务红线疑点」为主干（2026-09-06）═══
     _rd = (report_data.get("comprehensive", {}) or {}).get("redline_detection") or {}
@@ -2567,7 +2777,8 @@ def _build_confirmed_problems(report_data):
             (report_data.get("target_entity") or {}).get("industry"))[0]
         return _build_redline_problems(_rd["suspicions"], _findings,
                                        rate_ctx=(report_data.get("comprehensive", {}) or {}).get("tax_rate_context"),
-                                       not_required_docs=_na_docs2)
+                                       not_required_docs=_na_docs2,
+                                       audit_sink=audit_sink)
     findings = report_data.get("all_findings", []) or []
     # 缺失型（该有的没有）经竞争假设裁决后仍为"证据不足"的，转「待企业澄清事项」抛企业自证，
     # 不列为已确认问题（避免同一发现既"已核定"又"待证"的矛盾）。
@@ -4036,7 +4247,13 @@ def build_enterprise_readable_report(report_data, edition=None):
         from engine.audit_doctrine import DEFAULT_REPORT_EDITION
         edition = DEFAULT_REPORT_EDITION
 
-    problems = _build_confirmed_problems(report_data)
+    # ★★ 2026-10-02（用户：给一键分析写入一套"自我审查"思考体系）：
+    #   报告在编制**具体问题**章时，同步对自己"要写进去的内容"做主体一致性自检
+    #   （疑点主体 ↔ 自己的支撑发现 ↔ 拟挂附表），判定结果累计到 `_sc_audit`，
+    #   由本函数末尾写入报告（`subject_consistency_audit`）与一键分析流水。
+    #   自检**不改事实、不隐藏**：不匹配时报告如实声明认定范围，并记明原因供复核。
+    _sc_audit = {"issues": [], "by_code": {}}
+    problems = _build_confirmed_problems(report_data, audit_sink=_sc_audit)
     completed = _build_completed_checks(report_data)
     materials = _build_materials(report_data)
     procedures = _build_procedures(report_data)
@@ -4188,6 +4405,9 @@ def build_enterprise_readable_report(report_data, edition=None):
         # ★ 2026-09-29（P1-8/P2-7）：整改处理意见章被抽出的通用说明（章首一次）
         "action_plan_note": _chapter_notes.get("action_plan_note") or "",
         "confirmed_problems": problems,
+        # ★ 2026-10-02：主体一致性自检结果（疑点主体 ↔ 所写内容）。内部核对用；
+        #   同时写入一键分析流水，使"自检真的跑过、跑出什么"可被复核与回归。
+        "subject_consistency_audit": _build_subject_audit(problems, _sc_audit),
         "completed_checks": completed,
         "derivation_tree_report": derivation_tree_report,
         "analysis_coverage": analysis_coverage,

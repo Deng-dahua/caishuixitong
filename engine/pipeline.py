@@ -7719,6 +7719,15 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         _ext_branch = str((_scope.get("branch") or "") if isinstance(_scope, dict) else "")
         ftype = f.get("type", "")
         combined = ftype + " " + str(f.get("detail", "")) + " " + str(f.get("description", ""))
+        # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+        #   **兜底采样分支只看"本项主题"，不看正文**。
+        #   事故：疑点「印花税 — 租赁合同税目税负待核」的明细表挂出来的是
+        #   「明星费用/项目款/达人首期款」等销售发票行（且租赁与保险税目两表 132 行**完全相同**）。
+        #   根因：分支判定用的 `combined` 含 `detail/description`，而这类文案里必然出现
+        #   "银行流水口径未识别到…缴款""取合同台账、银行流水、发票比对…"等**述及数据源**的句子
+        #   ⇒ 命中「银行」分支 ⇒ 抓全年金额最大的流水。正文提到某类数据，不等于本项主题就是它。
+        #   判据与 `redline_engine._map_finding` 同口径：**主题层字段（type/target_fact）**。
+        _subject_txt = ftype + " " + str(f.get("target_fact", "") or "")
         # 期间对齐：发现文案里写明的所属期（如「…（2025-01）」/「2025-01 各来源…」）
         #   用来把通用采样限定在同期间的原始行 —— 否则「2025-01 工资多源对等」挂的
         #   是全年最大额的凭证，与 2025-01 无关。解析不出期间时维持原状（不过滤）。
@@ -7784,7 +7793,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
 
         # ── 按finding类型采样相关原始数据（外部核验项不适用，见 _ext_branch 判定）──
         # 进销相关 → 采样销项/进项发票
-        if not _ext_branch and any(kw in combined for kw in ["购销", "进销", "毛利", "有进无销", "有销无进", "数量偏差"]):
+        if not _ext_branch and any(kw in _subject_txt for kw in ["购销", "进销", "毛利", "有进无销", "有销无进", "数量偏差"]):
             # 按金额从大到小取top发票
             sorted_sal = sorted(sal_invs, key=lambda x: to_number(x.get("amount", 0)), reverse=True)[:3]
             sorted_pur = sorted(pur_invs, key=lambda x: to_number(x.get("amount", 0)), reverse=True)[:3]
@@ -7798,7 +7807,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         #   只取**对手方为自然人**的流水（公司主体的对公收支与本项无关，混进来就是张冠李戴）；
         #   ②去掉 [:5] 截断（用户要求全显示）。
         if not _ext_branch and not _used_declared and any(
-                kw in combined for kw in ["银行", "收款", "付款", "资金", "流水", "个人交易"]):
+                kw in _subject_txt for kw in ["银行", "收款", "付款", "资金", "流水", "个人交易", "公私混同", "私户"]):
             # ⚠ 只看**主旨（type 标题）**，不看正文全文：正文里偶然出现"个人账户支付"
             #   不代表本项主题是个人账户 —— 实测「主营业务成本资金与负债支撑材料核验」
             #   正文提到"有 116,504.85 元由个人账户支付"，若按正文判定就会把它
@@ -7849,7 +7858,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         #   "提供劳动合同、参保**凭证**或异地参保证明"，于是这张与工资/社保毫无关系的
         #   收款 161 万、结转损益 152 万…等 4 张凭证被挂成了该疑点的「逐笔明细」。
         #   现改为「必须命中记账凭证专属词」且「不含其它凭证类资料名」。
-        if (not _ext_branch) and _is_ledger_voucher_context(combined):
+        if (not _ext_branch) and _is_ledger_voucher_context(_subject_txt):
             from engine.fieldkit import row_period as _fk_period
             _grams = _cjk_bigrams(combined)
             _pool = [v for v in vouchers if not _periods or _fk_period(v) in _periods]
@@ -7858,7 +7867,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
                 evidence_rows.append(_voucher_row(v, "记账凭证"))
         
         # 发票行为 → 采样可疑发票
-        if not _ext_branch and any(kw in combined for kw in ["发票连号", "整十整百", "季度末", "金额分布"]):
+        if not _ext_branch and any(kw in _subject_txt for kw in ["发票连号", "整十整百", "季度末", "金额分布"]):
             # 对金额整十整百的采样
             round_invs = [i for i in invoices if to_number(i.get("amount", 0)) >= 1000 and (float(i.get("amount", 0)) % 1000 == 0 or float(i.get("amount", 0)) % 10000 == 0)]
             for inv in round_invs[:5]:
@@ -7868,7 +7877,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         # ★ 2026-09-29（点评整改）：进项按销方、销项按购方取对手方。旧版对两侧统一取
         #   `seller`，导致本企业自身（销项的销方=本企业）被计入"高频交易对方"
         #   （实测："交易70次 深圳海更数字传媒有限公司"），与"已剔除同名划转"的声明自相矛盾。
-        if not _ext_branch and any(kw in combined for kw in ["供应商", "客户", "集中"]):
+        if not _ext_branch and any(kw in _subject_txt for kw in ["供应商", "客户", "集中"]):
             from collections import Counter
             counterparty_counts = Counter()
             for inv in pur_invs:
@@ -7898,7 +7907,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
                 })
         
         # 工资相关 → 采样工资记录
-        if not _ext_branch and any(kw in combined for kw in ["工资", "薪金", "人员"]):
+        if not _ext_branch and any(kw in _subject_txt for kw in ["工资", "薪金", "人员"]):
             sorted_sal = sorted(salaries, key=lambda x: to_number(x.get("实发金额", x.get("实发", x.get("amount", 0)))), reverse=True)[:5]
             for s in sorted_sal:
                 evidence_rows.append(_salary_row(s, "工资表"))

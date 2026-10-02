@@ -114,7 +114,7 @@ def _check_union_and_edu(vouchers):
             "超限额部分未调增将少缴企业所得税。",
             "《企业所得税法实施条例》第四十一条（工会经费扣除限额为工资薪金总额的2%）",
             "核实工会经费是否取得工会经费收入专用收据，超支部分在汇算清缴时纳税调增。",
-            "成本费用", "凭证-工会经费限额", "RL-COST-005", "union_fund_over_limit", round(union - lim_u, 2),
+            "成本费用", "凭证-工会经费限额", "RL-CIT-007", "union_fund_over_limit", round(union - lim_u, 2),
         ))
     # 职工教育经费
     lim_e = wage * _EDU_RATE
@@ -129,7 +129,7 @@ def _check_union_and_edu(vouchers):
             "超限额部分当期不得扣除（可结转），未调整将影响当期应纳税所得额。",
             "《企业所得税法实施条例》第四十二条（职工教育经费扣除限额为工资薪金总额的8%）",
             "核实职工教育经费归集与凭证，超支部分按规定结转扣除或纳税调整。",
-            "成本费用", "凭证-教育经费限额", "RL-COST-005", "edu_fund_over_limit", round(edu - lim_e, 2),
+            "成本费用", "凭证-教育经费限额", "RL-CIT-007", "edu_fund_over_limit", round(edu - lim_e, 2),
         ))
     return findings
 
@@ -157,7 +157,7 @@ def _check_public_welfare_donation(vouchers, income):
             "超限额部分当期不得扣除（可结转三年），未调整将影响应纳税所得额。",
             "《企业所得税法》第九条、《企业所得税法实施条例》第五十三条（公益性捐赠扣除限额）",
             "核实捐赠是否通过公益性社会组织或县级以上人民政府（取得合规捐赠票据），超支部分结转或调增。",
-            "成本费用", "凭证-公益性捐赠限额", "RL-COST-005", "donation_over_limit", round(donation - lim, 2),
+            "成本费用", "凭证-公益性捐赠限额", "RL-CIT-007", "donation_over_limit", round(donation - lim, 2),
         )]
     return []
 

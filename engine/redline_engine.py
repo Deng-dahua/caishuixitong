@@ -82,6 +82,12 @@ def _available_materials(engine_data: Optional[Dict],
     return mats
 
 
+# ★★ 2026-10-02：**正向（非风险）结论等级**——这类发现只讲"企业享有/符合什么"，
+#   不是涉税风险；把它们配成风险红线必然产出"疑点主体与内容错配"的报告。
+#   用系统既有的等级值即判，新增同类无需改代码（数据驱动）。
+_NON_RISK_LEVELS = {"优惠机会", "政策红利", "税收优惠"}
+
+
 def _map_finding(finding: Dict, available_materials: Optional[List[str]] = None
                  ) -> Tuple[Optional[Dict], Dict]:
     """为单条发现匹配红线 → `(红线或 None, 配对说明)`。
@@ -101,6 +107,20 @@ def _map_finding(finding: Dict, available_materials: Optional[List[str]] = None
          **绝不改挂次优红线**（宁可不归类，也不可套错构成要件）。
     """
     rid = finding.get("redline_id")
+    # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+    #   **税收优惠/红利类发现不是风险事项，不得配成风险红线**。
+    #   事故：`tax_incentive_analyzer` 的「残保金免征(应享)」（level=优惠机会，
+    #   带 `tax_benefit` 键）因文本含"残保金"被软匹配到 RL-SPT-019
+    #   「未按规定安排残疾人就业且未申报缴纳残保金」—— 报告于是出现
+    #   "疑点：未申报残保金"却把"依法免征、应享优惠"当证据的自相矛盾。
+    #   判据用系统既有的 level 值（`优惠机会`）与正负向字段（`tax_benefit`），
+    #   不针对具体税种写特例：凡正向优惠一律不进风险配对。
+    if str(finding.get("level") or "").strip() in _NON_RISK_LEVELS or finding.get("tax_benefit"):
+        return None, {
+            "mode": "not_a_risk", "score": 0, "reasons": [],
+            "materials": [],
+            "note": "税收优惠/红利类发现，属正向机会提示，不作为税务风险事项配对",
+        }
     if rid:
         rl = get_redline(rid)
         if rl:
@@ -114,8 +134,15 @@ def _map_finding(finding: Dict, available_materials: Optional[List[str]] = None
                 "note": "发现自身声明了所属红线（扫描器前置认领）",
             }
     title = str(finding.get("type") or "")
+    # ★★ 2026-10-02：**配对文本只用"事实层"字段，不含 `description`**。
+    #   事故：「人均效能评估」的 `description` 是一段通用说明（"…可能表明存在虚列人员
+    #   工资或收入申报不足的问题"），于是仅凭这句解释性文字就把它配到
+    #   RL-PAY-003「虚列人员：工资表人员无真实用工痕迹」—— 报告标题说"虚列人员"，
+    #   证据却只是"人均产值 X 元"。
+    #   说明性文字天然会列举多种可能风险 ⇒ 用它做配对，任何发现都能"命中"任意红线。
+    #   事实层＝发现类型 + 具体读数(detail) + 目标事实；how_found 只述方法、也不参与。
     text = " ".join(str(finding.get(k) or "") for k in
-                    ("type", "domain", "detail", "description", "target_fact"))
+                    ("type", "domain", "detail", "target_fact"))
     return match_redline_grounded(title, text, available_materials,
                                   domain=finding.get("domain"))
 
@@ -343,6 +370,15 @@ def run_redline_detection(findings: List[Dict],
                 "evidence_chain": ev,
                 "argumentation": arg,
                 "supporting_findings": [],
+                # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+                #   **建入口那条发现（entry）的类型必须留下来**。
+                #   事故根因：`supporting_findings` 只装**第 2 条及以后**的发现，entry 自己的
+                #   类型此前没有落到任何字段 ⇒ 下游（报告）拿不到"本疑点到底依据了哪条发现"：
+                #     · `trim_redline_title` 的 `own_type` 取不到 → 标题只能沿用红线包名；
+                #     · 报告挂逐笔明细时无从按来源归属 → 退回"红线名 ↔ 类型"2-gram 兜底 → 挂错表；
+                #     · 主体一致性自检无从核对 → 只能误报"疑点无支撑发现"。
+                #   现把 entry 的 `type` 作为**本疑点主体**显式落盘（唯一权威来源）。
+                "finding_type": str(f.get("type") or "").strip(),
                 "level": f.get("level", ""),
                 "confidence": arg.get("confidence", 0.0),
                 "closure": ev.get("closure", 0.0),

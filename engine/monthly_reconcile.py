@@ -19,6 +19,24 @@
 from __future__ import annotations
 from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
 
+# ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+#   本模块的每条勾稽轴**原来就地硬编码红线编号**，且按"就近"挑 —— 实测四处张冠李戴：
+#     银行存款支出方对等 → RL-COST-003「白条入账」；增值税进项税额对等 → RL-VAT-002
+#     「有进无销」；工资多源对等 → RL-PAY-005「同一自然人同时列支工资与劳务报酬」；
+#     序时账↔科目余额表不符 → RL-COST-003「白条入账」。
+#   后果：报告用红线名当疑点标题 ⇒ 标题与正文/附表必然错配。
+#   现收敛到唯一权威 `subject_consistency.RECONCILE_AXIS_REDLINE`（轴 → 红线，带自检）。
+#   新增同类只加一行；自检不过或该轴无主体对得上的红线 → **不声明红线**（只作待核事实）。
+from engine.subject_consistency import axis_redline as _axis_redline
+
+
+def _axis_rid(axis: str, kind: str = "month") -> str:
+    """勾稽轴 → 红线编号（唯一权威 + 自检；无匹配返回空串，绝不套用无关红线）。"""
+    try:
+        return str(_axis_redline(axis, kind)[0] or "")
+    except Exception:
+        return ""
+
 from typing import Any, Dict, List, Optional
 
 _TOL_ABS = 1000.0      # 绝对容差（元）
@@ -580,7 +598,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     for _kind in ("month", "quarter", "year"):
         findings.extend(_reconcile(
             rev_sources, _kind, "收入多源对等",
-            "收入真实性", "RL-INC-001",
+            "收入真实性", _axis_rid("收入多源对等", _kind),
             "《税收征收管理法》第二十五条（如实申报）；《增值税暂行条例》关于销售额申报的规定",
             "收入申报与账载、开票不一致，可能少申报销售额，面临补税及滞纳金风险。",
         ))
@@ -597,7 +615,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
         for _kind in ("month", "year"):
             findings.extend(_reconcile(
                 wage_sources, _kind, "工资多源对等",
-                "个人所得税", "RL-PAY-005",
+                "个人所得税", _axis_rid("工资多源对等", _kind),
                 "《个人所得税法》第十一条（扣缴义务人按月预扣预缴）；《社会保险法》关于缴费基数的规定",
                 "工资与个税申报不一致，可能少代扣代缴个税或少缴社保，面临补税与社保稽核风险。",
             ))
@@ -612,7 +630,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
         for _kind in ("month", "year"):
             findings.extend(_reconcile(
                 iit_sources, _kind, "个税三源对等",
-                "个人所得税", "RL-PAY-005",
+                "个人所得税", _axis_rid("个税三源对等", _kind),
                 "《个人所得税法》第十一条；《税收征收管理法》关于代扣代缴义务的规定",
                 "代扣个税与申报、账载不一致，可能少扣少缴个税，面临补税与滞纳金风险。",
             ))
@@ -626,7 +644,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     if sum(1 for s in out_vat.values() if s) >= 2:
         for _kind in ("month", "year"):
             findings.extend(_reconcile(
-                out_vat, _kind, "增值税销项税额对等", "增值税", "RL-VAT-001",
+                out_vat, _kind, "增值税销项税额对等", "增值税", _axis_rid("增值税销项税额对等", _kind),
                 "《增值税暂行条例》关于销项税额申报的规定；增值税申报表附表一",
                 "销项税额在申报表、开具发票与账载之间不一致，可能少计少缴增值税。",
             ))
@@ -641,7 +659,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     if sum(1 for s in in_vat.values() if s) >= 2:
         for _kind in ("month", "year"):
             findings.extend(_reconcile(
-                in_vat, _kind, "增值税进项税额对等", "增值税", "RL-VAT-002",
+                in_vat, _kind, "增值税进项税额对等", "增值税", _axis_rid("增值税进项税额对等", _kind),
                 "《增值税暂行条例》第八条、第九条关于进项税额抵扣的规定",
                 "进项税额在申报、发票、认证与账载之间不一致，可能多抵或少抵进项税额。",
             ))
@@ -653,14 +671,14 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     if bank_credit and _vbank_debit:
         findings.extend(_reconcile(
             {"bank_credit": bank_credit, "voucher_bank_debit": _vbank_debit},
-            "month", "银行存款收入方对等", "资金流", "RL-INC-001",
+            "month", "银行存款收入方对等", "资金流", _axis_rid("银行存款收入方对等"),
             "《企业会计准则》关于货币资金核算的规定",
             "银行收款与账面银行存款借方不一致，可能存在未入账收款或跨期。",
         ))
     if bank_debit and _vbank_credit:
         findings.extend(_reconcile(
             {"bank_debit": bank_debit, "voucher_bank_credit": _vbank_credit},
-            "month", "银行存款支出方对等", "资金流", "RL-COST-003",
+            "month", "银行存款支出方对等", "资金流", _axis_rid("银行存款支出方对等"),
             "《企业会计准则》关于货币资金核算的规定",
             "银行付款与账面银行存款贷方不一致，可能存在账外支付或跨期。",
         ))
@@ -671,7 +689,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
                  "voucher_social": _voucher_series(vouchers, _SOCIAL_KWS, year, side="debit")}
         if sum(1 for s in s_src.values() if s) >= 2:
             findings.extend(_reconcile(
-                s_src, "month", "社保缴纳对等", "社保", "RL-PAY-005",
+                s_src, "month", "社保缴纳对等", "社保", _axis_rid("社保缴纳对等"),
                 "《社会保险法》关于缴费的规定",
                 "社保应缴与账面社保费用不一致，可能存在补缴/漏缴或口径差异。",
             ))
@@ -680,7 +698,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
                  "voucher_fund": _voucher_series(vouchers, _FUND_KWS, year, side="debit")}
         if sum(1 for s in f_src.values() if s) >= 2:
             findings.extend(_reconcile(
-                f_src, "month", "公积金缴存对等", "住房公积金", "RL-PAY-005",
+                f_src, "month", "公积金缴存对等", "住房公积金", _axis_rid("公积金缴存对等"),
                 "《住房公积金管理条例》关于缴存的规定",
                 "公积金缴存与账面不一致，可能存在少缴或口径差异。",
             ))
@@ -693,7 +711,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     if sum(1 for s in ar_sources.values() if s) >= 2:
         for _kind in ("month", "year"):
             findings.extend(_reconcile(
-                ar_sources, _kind, "应收账款发生额对等", "收入真实性", "RL-INC-001",
+                ar_sources, _kind, "应收账款发生额对等", "收入真实性", _axis_rid("应收账款发生额对等", _kind),
                 "《企业会计准则》关于应收账款核算的规定；《增值税暂行条例》关于销售额申报的规定",
                 "开票金额与账面应收账款借方不一致，可能开票未入账、挂错科目，或存在未开票收入/无票销售，"
                 "进而影响收入确认与增值税申报完整性。",
@@ -707,7 +725,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     if sum(1 for s in ap_sources.values() if s) >= 2:
         for _kind in ("month", "year"):
             findings.extend(_reconcile(
-                ap_sources, _kind, "应付账款发生额对等", "成本费用", "RL-COST-003",
+                ap_sources, _kind, "应付账款发生额对等", "成本费用", _axis_rid("应付账款发生额对等", _kind),
                 "《企业会计准则》关于应付账款核算的规定；《增值税暂行条例》关于进项税额抵扣的规定",
                 "取得发票与账面应付账款贷方不一致，可能发票未入账、暂估差异或取得虚开发票挂账，"
                 "影响成本列支与进项税额抵扣的真实性。",
@@ -718,7 +736,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     _out_tax = _voucher_series(vouchers, _OUTPUT_VAT_KWS, year, side="credit")
     if _rev_base and _out_tax:
         findings.extend(_rate_consistency(
-            _rev_base, _out_tax, "收入税价配比", "增值税", "RL-VAT-001",
+            _rev_base, _out_tax, "收入税价配比", "增值税", _axis_rid("收入税价配比"),
             "《增值税暂行条例》关于销售额与销项税额的规定",
             "收入与销项税额配比异常，可能收入含税误记或税率适用错误，影响增值税申报准确性。",
         ))
@@ -728,7 +746,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     _in_tax = _voucher_series(vouchers, _INPUT_VAT_KWS, year, side="debit")
     if _pur_base and _in_tax:
         findings.extend(_rate_consistency(
-            _pur_base, _in_tax, "采购税价配比", "增值税", "RL-VAT-002",
+            _pur_base, _in_tax, "采购税价配比", "增值税", _axis_rid("采购税价配比"),
             "《增值税暂行条例》第八条关于进项税额抵扣的原则规定",
             "采购与进项税额配比异常，可能取得发票未分离价税、税率适用错误或违规抵扣。",
         ))
@@ -741,14 +759,14 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
         if fa_gross > 0 and tb_fa_d > 0:
             findings.extend(_point_reconcile(
                 fa_gross, tb_fa_d, "固定资产清单原值合计", "科目余额表固定资产(1601)借方余额",
-                "固定资产原值勾稽", "资产账实", "RL-COST-003",
+                "固定资产原值勾稽", "资产账实", _axis_rid("固定资产原值勾稽"),
                 "《企业会计准则》关于固定资产核算的规定；《会计法》关于账实相符的规定",
                 "固定资产账实不符将影响折旧、资产税务处理与企业所得税扣除基数。",
             ))
         if fa_accum > 0 and tb_dep_c > 0:
             findings.extend(_point_reconcile(
                 fa_accum, tb_dep_c, "固定资产清单累计折旧合计", "科目余额表累计折旧(1602)贷方余额",
-                "累计折旧勾稽", "资产账实", "RL-COST-003",
+                "累计折旧勾稽", "资产账实", _axis_rid("累计折旧勾稽"),
                 "《企业会计准则》关于固定资产折旧的规定",
                 "累计折旧账实不符将影响折旧费用与企业所得税扣除。",
             ))
@@ -806,6 +824,7 @@ def run_ledger_reconcile(vouchers: List[Dict], trial_balance: List[Dict]) -> Lis
         "policy_ref": "《会计法》关于会计核算真实完整的规定；《企业会计准则》关于账簿记录的规定",
         "suggestion": "逐科目编制序时账与科目余额表的差异调节表，查明口径差异或补记凭证。",
         "category": "账账相符", "source_chain": "账账-序时账vs科目余额表",
-        "redline_id": "RL-COST-003", "indicator": "ledger_vs_trial_balance_gap",
+        "redline_id": _axis_rid("序时账与科目余额表逐科目不一致（账账不符）"),
+        "indicator": "ledger_vs_trial_balance_gap",
         "indicator_value": len(diffs),
     }]
