@@ -93,7 +93,11 @@ class TestResolveIndustry(unittest.TestCase):
         # ★ 2026-09-26：销项发票金税分类「广告服务」会先归一到基准库键「广告传媒」，
         #   否则与基准库字面不符 → 下游对标匹配不到 → 回退经营范围（真事故）。
         self.assertIn("广告传媒", r["candidates"].values())
-        self.assertTrue(r["conflicts"], "登记口径≠实际口径时应记录冲突")
+        # ★ 2026-10-02 三态判据：本例**没有经营范围文本** ⇒ scope_covers=None ⇒ 无从判定。
+        #   「登记口径≠销项口径」本身**不构成冲突**（经营范围是宽口径许可清单），
+        #   因此 conflicts 为空；只补上经营范围后才谈得上判涵盖与否。
+        self.assertIsNone(r["scope_covers"], "无经营范围文本 ⇒ 无从判定")
+        self.assertEqual(r["conflicts"], [], "无从判定时不得认定冲突（旧缺陷回归）")
         # 实际经营口径（销项品名）权威度高于登记口径
         self.assertEqual(r["industry"], "广告传媒")
         self.assertEqual(r["source"], SRC_INVOICE)
@@ -106,6 +110,22 @@ class TestResolveIndustry(unittest.TestCase):
                              sales_goods=["*广告服务*推广费", "*广告服务*设计费"])
         self.assertEqual(r["industry"], "广告传媒")
         self.assertEqual(r["source"], SRC_INVOICE)
+
+        # ★ 补充：补上经营范围后，冲突与否随「是否涵盖」走——
+        #   (i) 经营范围不含广告 ⇒ 未见及 ⇒ 1 条中性核查线索
+        r2 = resolve_industry(registered_industry="商贸",
+                              sales_goods=["*广告服务*广告发布费"],
+                              business_scope="日用百货销售；服装服饰零售")
+        self.assertIs(r2["scope_covers"], False)
+        self.assertEqual(len(r2["conflicts"]), 1)
+        self.assertIn("需核实", r2["conflicts"][0])
+        self.assertNotIn("超范围经营", "".join(r2["conflicts"]))
+        #   (ii) 经营范围含广告 ⇒ 已涵盖 ⇒ 不冲突（用户真实案例的海更口径）
+        r3 = resolve_industry(registered_industry="商贸",
+                              sales_goods=["*广告服务*广告发布费"],
+                              business_scope="广告设计、制作、代理、发布；办公用品销售")
+        self.assertIs(r3["scope_covers"], True)
+        self.assertEqual(r3["conflicts"], [], "已涵盖仍记冲突 = 假冲突误报（旧缺陷回归）")
 
     def test_normalize_industry_name_maps_invoice_category_to_benchmark_key(self):
         """金税分类名 → 基准库键的通用归一（新增同类只需在 industry_map 加一行）。"""
@@ -529,3 +549,291 @@ class TestReassessIndustry(unittest.TestCase):
         from engine import industry_resolver as ir
         self.assertTrue(getattr(ir, "_TRADE_FALLBACK_INDUSTRIES", ()),
                         "购销兜底口径表为空 → 兜底口径会被当成具体行业，再判读将失去分寸")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 2026-10-02 行业口径三态判据（用户口径事故修复）
+# ═══════════════════════════════════════════════════════════════════════════
+# 事故：原实现只要「工商登记 ≠ 销项发票品名推断」就写「指向超范围经营或开票品名不实」。
+#   但**经营范围是宽口径许可清单**——任一正常公司必然同时挂好几类业务
+#   （海更登记为商贸，经营范围里同时有「广告设计、制作、代理、发布」），
+#   本轮销项又只有广告传媒一个行业 ⇒ 该行业已被涵盖 ⇒ 根本不冲突，旧表述是假冲突误报。
+# 判据（scope_covers_industry）：True 已涵盖 / False 未见及 / None 无从判定（不得认定冲突）。
+# ★ 通用性：只查 `industry_data.json::industry_map` 反查，全行业适用，不写死任何行业。
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+class TestScopeCoversTristate(unittest.TestCase):
+    """★ 通用判据：本轮行业是否被经营范围涵盖（None＝无从判定，此时不得认定冲突）。"""
+
+    def test_covered_returns_true(self):
+        from engine.industry_resolver import scope_covers_industry
+        # 真实案例：登记商贸，但经营范围含广告设计/制作/代理/发布
+        self.assertIs(
+            scope_covers_industry("广告传媒",
+                                  "广告设计、制作、代理、发布；办公用品销售；国内贸易"),
+            True)
+
+    def test_not_covered_returns_false(self):
+        from engine.industry_resolver import scope_covers_industry
+        # 销项指向建筑工程，经营范围里只有日用百货/服装 → 许可范围里确实见不到
+        self.assertIs(
+            scope_covers_industry("建筑工程", "日用百货销售；服装服饰零售"), False)
+
+    def test_no_scope_text_returns_none(self):
+        from engine.industry_resolver import scope_covers_industry
+        self.assertIsNone(scope_covers_industry("广告传媒", ""))
+        self.assertIsNone(scope_covers_industry("广告传媒", None))
+
+    def test_industry_outside_benchmark_is_never_true(self):
+        """基准库没登记的行业（自造名）⇒ 拿不到行业级关键词，只拿它自己的名字去比
+        ⇒ 判 False（未见及），**绝不判 True**（不能凭空"涵盖"一个没登记过的行业）。"""
+        from engine.industry_resolver import scope_covers_industry
+        self.assertIs(
+            scope_covers_industry("zzz_nonexistent_industry_zzz", "广告设计；办公用品销售"),
+            False)
+        self.assertIsNone(
+            scope_covers_industry("zzz_nonexistent_industry_zzz", ""), "无范围文本 ⇒ 仍为 None")
+
+    def test_empty_industry_returns_none(self):
+        from engine.industry_resolver import scope_covers_industry
+        self.assertIsNone(scope_covers_industry("", "广告设计"))
+
+    def test_covered_matches_industry_level_keyword_not_full_name(self):
+        """涵盖判定吃的是**行业级关键词**（industry_map 反查出的「广告」），不是行业全名逐字。"""
+        from engine.industry_resolver import scope_covers_industry
+        # 经营范围通篇没出现「广告传媒」四个字，但有行业级关键词「广告」
+        self.assertIs(
+            scope_covers_industry("广告传媒", "会议及展览服务；企业管理咨询；设计制作代理发布国内广告"),
+            True)
+        # 换成非该行业的关键词则不算涵盖
+        self.assertIs(scope_covers_industry("广告传媒", "日用百货销售"), False)
+
+
+class TestScopeCoversIsIndustryAgnostic(unittest.TestCase):
+    """用户指令：全覆盖所有行业与企业，不写死代码 ⇒ 判据里不得出现具体行业名。"""
+
+    def test_every_benchmark_industry_has_reverse_lookup(self):
+        """行业无关性最强的证明：基准库里全部行业都能反查到行业级关键词。"""
+        from engine import industry_resolver as ir
+        im = ir.load_industry_data().get("industry_map") or {}
+        inds = sorted({ir.normalize_industry_name(str(v or "")) or str(v)
+                       for v in im.values() if str(v or "").strip()})
+        self.assertTrue(inds)
+        empty = [i for i in inds if not ir.industry_scope_keywords(i)]
+        self.assertEqual(empty, [],
+                         "有行业反查不到关键词 ⇒ 判据对它恒 None ⇒ 该行业的冲突永远查不出")
+
+    def test_no_industry_name_hardcoded_in_judgement(self):
+        import ast
+        import inspect
+        import textwrap
+        from engine import industry_resolver as ir
+
+        im = ir.load_industry_data().get("industry_map") or {}
+        names = {str(v).strip() for v in im.values() if str(v or "").strip()}
+        # 只取**代码里的字符串字面量**：注释/docstring 里提到某行业名不算写死
+        lits = set()
+        for fn in (ir.industry_scope_keywords, ir.scope_covers_industry):
+            s = textwrap.dedent(inspect.getsource(fn))
+            tree = ast.parse(s)
+            for node in tree.body:
+                if (isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant)
+                        and isinstance(node.value.value, str)):
+                    continue  # 剔 docstring
+                for sub in ast.walk(node):
+                    if isinstance(sub, ast.Constant) and isinstance(sub.value, str):
+                        lits.add(sub.value)
+        hit = sorted(n for n in names if n in lits)
+        self.assertEqual(hit, [],
+                         "判据代码里写死了行业名 ⇒ 换个行业就失效（用户要求全覆盖、不写死）")
+
+    def test_other_industry_reverse_lookup_is_nonempty(self):
+        """换一个与广告毫无关系的行业，同样走反查（证明不是为广告传媒开小灶）。"""
+        from engine.industry_resolver import industry_scope_keywords
+        for ind in ("建筑工程", "餐饮", "物流", "医药制造"):
+            self.assertTrue(industry_scope_keywords(ind), f"{ind} 反查为空")
+
+
+class TestResolveIndustryConflictTristate(unittest.TestCase):
+    """resolve_industry 的冲突留痕必须随 scope_covers 三态走。"""
+
+    @staticmethod
+    def _kw(scope=None, reg="商贸", goods=None):
+        kw = dict(registered_industry=reg,
+                  sales_goods=goods if goods is not None else ["*广告服务*广告费"])
+        if scope is not None:
+            kw["business_scope"] = scope
+        return kw
+
+    def test_covered_is_not_a_conflict(self):
+        """★ 用户真实案例：登记商贸 / 销项仅广告传媒 / 经营范围含广告 ⇒ 不冲突、不写"超范围"。"""
+        r = resolve_industry(**self._kw(scope="广告设计、制作、代理、发布；办公用品销售；国内贸易"))
+        self.assertEqual(r["industry"], "广告传媒")
+        self.assertIs(r["scope_covers"], True)
+        self.assertEqual(r["conflicts"], [],
+                         "已被经营范围涵盖却仍记冲突 = 假冲突误报（旧缺陷回归）")
+        self.assertIn("不构成超范围经营", r["scope_note"])
+        self.assertNotIn("指向超范围经营", r["scope_note"])
+        self.assertNotIn("指向超范围经营", "".join(r["conflicts"]))
+
+    def test_not_covered_is_a_neutral_hint(self):
+        """未见及 ⇒ 只作中性核查线索，不写风险定性词。"""
+        r = resolve_industry(**self._kw(scope="日用百货销售；服装服饰零售",
+                                        goods=["*建筑服务*工程款"]))
+        self.assertEqual(r["industry"], "建筑工程")
+        self.assertIs(r["scope_covers"], False)
+        self.assertEqual(len(r["conflicts"]), 1)
+        self.assertIn("需核实", r["conflicts"][0])
+        self.assertNotIn("超范围经营", "".join(r["conflicts"]))
+
+    def test_no_scope_text_never_claims_conflict(self):
+        """没拿到经营范围 ⇒ 无从判定 ⇒ 既不写冲突也不写风险表述。"""
+        r = resolve_industry(**self._kw(scope=None))
+        self.assertIs(r["scope_covers"], None)
+        self.assertEqual(r["conflicts"], [], "无经营范围文本就认定冲突 = 无据越界")
+        self.assertEqual(r["scope_note"], "",
+                         "无从判定时既不该记冲突、也不该留风险表述（scope_note 必须为空）")
+
+    def test_same_industry_no_conflict(self):
+        r = resolve_industry(registered_industry="广告传媒",
+                             business_scope="广告设计；办公用品销售",
+                             sales_goods=["*广告服务*广告费"])
+        self.assertEqual(r["industry"], "广告传媒")
+        self.assertEqual(r["conflicts"], [])
+        self.assertIs(r["scope_covers"], True)
+
+    def test_resolution_never_silent_on_scope(self):
+        """三态必须真的被带出来：下游（overall_conclusion / 账套页）靠它改写文案。"""
+        for scope, expect in (("广告设计；办公用品销售", True), ("日用百货销售", False), ("", None)):
+            r = resolve_industry(registered_industry="商贸",
+                                 business_scope=scope,
+                                 sales_goods=["*广告服务*广告费"])
+            self.assertIs(r["scope_covers"], expect, f"scope={scope!r}")
+
+
+class TestCompanyCardShowsResolvedIndustry(unittest.TestCase):
+    """★ 用户要求：选择账套页应显示本轮实际分析的行业（resolved），而不是登记口径。"""
+
+    @staticmethod
+    def _co(**kw):
+        from types import SimpleNamespace
+        base = dict(id=1, name="某某数字传媒有限公司", uscc="91330100MA2XXXXXXX",
+                    industry_code="商贸", industry_resolved="",
+                    industry_resolved_source="", company_type="有限责任公司",
+                    established_date=None)
+        base.update(kw)
+        return SimpleNamespace(**base)
+
+    def test_industry_prefers_resolved_over_registered(self):
+        import main as _main
+        card = _main._company_to_card(
+            self._co(industry_resolved="广告传媒",
+                     industry_resolved_source="销项发票品名推断"))
+        self.assertEqual(card["industry"], "广告传媒")
+        self.assertEqual(card["industry_resolved"], "广告传媒")
+        self.assertEqual(card["industry_registered"], "商贸")  # 登记口径保留供对照
+        self.assertEqual(card["industry_source"], "销项发票品名推断")
+
+    def test_falls_back_to_registered_when_not_analyzed(self):
+        """没跑过一键分析（resolved 为空）⇒ 仍显示登记口径，不显示空白。"""
+        import main as _main
+        card = _main._company_to_card(self._co())
+        self.assertEqual(card["industry"], "商贸")
+        self.assertEqual(card["industry_resolved"], "")
+
+
+class TestResolvedIndustryWriteBack(unittest.TestCase):
+    """★ 一键分析跑完必须把本轮行业口径落库（选择账套页据此显示），且不得误写/清空。"""
+
+    @staticmethod
+    def _fake_db(row):
+        class _Q:
+            def __init__(self, r):
+                self._r = r
+            def filter(self, *a, **k):
+                return self
+            def first(self):
+                return self._r
+        class _DB:
+            def __init__(self, r):
+                self.row = r
+                self.commits = 0
+            def query(self, *a, **k):
+                return _Q(self.row)
+            def commit(self):
+                self.commits += 1
+        return _DB(row)
+
+    @staticmethod
+    def _row():
+        from types import SimpleNamespace
+        return SimpleNamespace(id=1, industry_resolved="",
+                               industry_resolved_source="")
+
+    @staticmethod
+    def _rd(industry, source="销项发票品名推断"):
+        return {"target_entity": {"_industry_resolved": {
+            "industry": industry, "source": source}}}
+
+    def test_writes_resolved_industry_and_source(self):
+        import main as _main
+        import engine.industry_resolver as ir
+        # 用解析器真实产出构造用例，避免手写字符串与解析器漂移
+        r = ir.resolve_industry(registered_industry="商贸",
+                                sales_goods=["*广告服务*广告费"],
+                                business_scope="广告设计、制作、代理、发布")
+        row = self._row()
+        db = self._fake_db(row)
+        got = _main._write_resolved_industry(1, self._rd(r["industry"], r["source"]), db)
+        self.assertEqual(got, "广告传媒")
+        self.assertEqual(row.industry_resolved, "广告传媒")
+        self.assertEqual(row.industry_resolved_source, r["source"])
+        self.assertEqual(db.commits, 0,
+                         "注入会话时不由本函数提交（事务边界归调用方）")
+
+    def test_empty_resolution_keeps_previous_value(self):
+        """解析不出行业 ⇒ 返回 "" 且**不动**原值（解析不出 ≠ 无行业，不能清空）。"""
+        import main as _main
+        row = self._row()
+        row.industry_resolved = "广告传媒"          # 上一轮留下的口径
+        db = self._fake_db(row)
+        got = _main._write_resolved_industry(1, {"target_entity": {}}, db)
+        self.assertEqual(got, "")
+        self.assertEqual(row.industry_resolved, "广告传媒")
+        self.assertEqual(db.commits, 0)
+
+    def test_no_target_entity_is_noop(self):
+        import main as _main
+        row = self._row()
+        db = self._fake_db(row)
+        self.assertEqual(_main._write_resolved_industry(1, {}, db), "")
+        self.assertEqual(row.industry_resolved, "")
+
+    def test_missing_company_row_does_not_raise(self):
+        import main as _main
+        db = self._fake_db(None)
+        self.assertEqual(_main._write_resolved_industry(999, self._rd("广告传媒"), db), "")
+
+    def test_session_is_released_on_error(self):
+        """默认路径自建会话 ⇒ 无论成功与否都要关掉，不能泄漏连接。"""
+        import main as _main
+        calls = {"closed": 0}
+        class _Q:
+            def filter(self, *a, **k):
+                return self
+            def first(self):
+                return None
+        class _DB:
+            def query(self, *a, **k):
+                return _Q()
+            def commit(self):
+                pass
+            def close(self):
+                calls["closed"] += 1
+        real = _main.SessionLocal
+        _main.SessionLocal = lambda: _DB()
+        try:
+            _main._write_resolved_industry(1, self._rd("广告传媒"))
+        finally:
+            _main.SessionLocal = real
+        self.assertEqual(calls["closed"], 1)

@@ -55,6 +55,21 @@ def _short_title(t: Any) -> str:
     return s.strip()
 
 
+def _industry_scope_covers(te: Any) -> Optional[bool]:
+    """读解析器给出的「本轮行业是否被经营范围涵盖」三态结论（True/False/None）。
+
+    ★ 权威来源是 `industry_resolver.resolve_industry` 本轮产出的 `_industry_resolved`，
+      **不在本文件重算** —— 下游一重算就会出现"解析器说涵盖、文案说冲突"的口径打架。
+      解析器未给出（老产物/其他入口）时回退 None（无从判定 → 不认定冲突）。
+    """
+    if not isinstance(te, dict):
+        return None
+    res = te.get("_industry_resolved")
+    if isinstance(res, dict) and "scope_covers" in res:
+        return res.get("scope_covers")
+    return None
+
+
 def _collect_directions(problems: List[dict], limit: int = 6) -> List[str]:
     """从真实 suspect 文本扫描出**实际出现**的涉嫌方向（命中即列，未命中不列）。"""
     c: Counter = Counter()
@@ -297,14 +312,31 @@ def build_overall_conclusion(report_data: Any,
         "observations": ib.get("observations") or [],
         "candidates": cand,
     }
-    reg = str(cand.get("工商登记") or ind["registered"] or "").strip()
+    reg = str(cand.get("工商登记") or cand.get("经营范围推断") or ind["registered"] or "").strip()
     inv = str(cand.get("销项发票品名推断") or "").strip()
+    _covers = _industry_scope_covers(te)
+
+    # ★ 2026-10-02 重构（用户口径事故修复，行业无关、全行业通用）：
+    #   旧实现只要「登记 ≠ 销项推断」就写「指向超范围经营或开票品名不实」——
+    #   但经营范围是**宽口径许可清单**，正常公司必然同时挂多类业务
+    #   （登记商贸 ≠ 不能做广告传媒）。本轮销项只有广告传媒一个行业且经营范围含「广告」
+    #   ⇒ 已涵盖 ⇒ 根本不冲突，旧表述是**假冲突误报**。
+    #   三态：True 已涵盖（不表述/中性说明）；False 未见及（中性提核查）；None 无从判定（只说本轮口径）。
     conflict = ""
-    if reg and inv and reg != inv:
+    if reg and inv and reg != inv and _covers is False:
         # ★ 2026-09-26 用户口径：「变名开票」是重定性词，改为中性表述（只提出问题，不定性）。
         # ★ 2026-09-27 用户口径：这是**事实 + 观点**，不写"需核实"式免责语（观点用"指向…的可能"）。
         conflict = (f"登记经营范围为「{reg}」，销项发票品名指向「{inv}」，两者不一致；"
-                    f"开票品名与实际经营是否一致，指向超范围经营或开票品名不实的可能。")
+                    f"且「{inv}」在经营范围文本中未见行业级关键词，"
+                    f"开票品名与实际经营是否一致，需核实。")
+    elif reg and inv and reg != inv and _covers is True:
+        conflict = (f"登记经营范围为「{reg}」，本轮销项开票品名指向「{inv}」；"
+                    f"该行业已为经营范围所涵盖，不构成超范围经营，"
+                    f"本轮按销项口径以「{inv}」作为行业基准。")
+    elif reg and inv and reg != inv:
+        conflict = (f"登记经营范围为「{reg}」，本轮销项开票品名指向「{inv}」；"
+                    f"因未取得经营范围文本，无法核对该行业是否在许可范围内，"
+                    f"本轮按销项口径以「{inv}」作为行业基准。")
 
     # ── 已核定 / 待定性 ──
     verified = sum(1 for p in problems if str(p.get("conclusion_grade") or "") == "已核定")

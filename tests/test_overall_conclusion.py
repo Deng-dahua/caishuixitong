@@ -135,7 +135,9 @@ class TestEditorialStandard(unittest.TestCase):
         j = "".join(self._oc()["paragraphs"])
         self.assertIn("按销项发票品名指向", j)
         self.assertIn("来源：", j)                 # 事实：口径 + 来源
-        self.assertIn("不一致", j)                 # 观点：两口径不一致
+        # ★ 2026-10-02 三态判据：本夹具没有经营范围文本 ⇒ 无从判定 ⇒ 只陈述
+        #   「无法核对该行业是否在许可范围内」（观点），不再断言"两者不一致"（旧写法）。
+        self.assertIn("无法核对该行业是否在许可范围内", j)   # 观点：核对不了，不是笼统扣帽子
         self.assertNotIn("待核实", j)
         self.assertNotIn("本章不展开", j)
         self.assertNotIn("按「广告传媒」认定", j)
@@ -143,8 +145,9 @@ class TestEditorialStandard(unittest.TestCase):
     def test_no_heavy_qualifier_wording(self):
         oc = self._oc()
         j = "".join(oc["paragraphs"]) + oc["conflict"]
-        self.assertNotIn("变名开票", j)
-        self.assertIn("开票品名与实际经营是否一致", j)
+        self.assertNotIn("变名开票", j)                       # 重定性词一律不写
+        self.assertNotIn("指向超范围经营", j)                 # 未涵盖才有资格提，此处未取得范围文本
+        self.assertIn("未取得经营范围文本", j)                 # 说清核对不了是为什么
 
     def test_pending_verify_is_status_not_level(self):
         j = "".join(self._oc()["paragraphs"])
@@ -258,6 +261,61 @@ class TestChapterNoDuplication(unittest.TestCase):
             self.assertIn(marker, j)
         # ★ 2026-09-27：边界声明已归第六章「报告性质和使用说明」，本章不再重复
         self.assertNotIn("边界声明", j)
+
+
+class TestIndustryScopeCoversTristate(unittest.TestCase):
+    """「一、本轮检查总体结论」的行业冲突文案必须以解析器的 scope_covers 三态为准。
+
+    ★ 2026-10-02：旧实现只要「登记 ≠ 销项推断」就写「指向超范围经营或开票品名不实」——
+      但经营范围是宽口径许可清单（海更登记商贸、经营范围含广告设计/制作/发布），
+      本轮销项只有广告传媒 ⇒ 已涵盖 ⇒ 旧表述是假冲突误报。
+      本类锁死：已涵盖（True）绝不写「指向超范围经营」。
+    """
+
+    @staticmethod
+    def _te(covers, reg="商贸", inv="广告传媒"):
+        res = {"scope_covers": covers} if covers is not None else {}
+        return {
+            "industry": inv,
+            "_industry_source": "销项发票品名推断",
+            "_industry_confidence": "高",
+            "industry_registered": reg,
+            "_industry_candidates": {"工商登记": reg, "销项发票品名推断": inv},
+            "_industry_resolved": res,
+        }
+
+    def test_reads_resolver_verdict_without_recomputing(self):
+        """只读解析器结论、不在本文件重算（重算就会出现口径打架）。"""
+        from engine.overall_conclusion import _industry_scope_covers
+        self.assertIsNone(_industry_scope_covers({}))
+        self.assertIsNone(_industry_scope_covers({"_industry_resolved": {}}))
+        self.assertIsNone(_industry_scope_covers("not-a-dict"))
+        self.assertIs(_industry_scope_covers({"_industry_resolved": {"scope_covers": True}}), True)
+        self.assertIs(_industry_scope_covers({"_industry_resolved": {"scope_covers": False}}), False)
+
+    def test_covered_never_claims_super_scope(self):
+        oc = build_overall_conclusion(_rd([_p(1, "A", "中风险")], te=self._te(True)))
+        self.assertTrue(oc["conflict"])
+        self.assertIn("不构成超范围经营", oc["conflict"])
+        self.assertNotIn("指向超范围经营", oc["conflict"])
+        self.assertNotIn("指向超范围经营", "".join(oc["paragraphs"]))
+
+    def test_not_covered_is_a_neutral_ask_to_verify(self):
+        oc = build_overall_conclusion(_rd([_p(1, "A", "中风险")], te=self._te(False)))
+        self.assertTrue(oc["conflict"])
+        self.assertIn("未见行业级关键词", oc["conflict"])
+        self.assertNotIn("指向超范围经营", oc["conflict"])
+
+    def test_no_scope_text_states_it_could_not_be_checked(self):
+        oc = build_overall_conclusion(_rd([_p(1, "A", "中风险")], te=self._te(None)))
+        self.assertTrue(oc["conflict"])
+        self.assertIn("未取得经营范围文本", oc["conflict"])
+
+    def test_covered_keeps_benchmark_industry_named(self):
+        """涵盖 ≠ 不提行业：本轮口径仍要点名（账套页/报告据此按广告传媒测算）。"""
+        oc = build_overall_conclusion(_rd([_p(1, "A", "中风险")], te=self._te(True)))
+        self.assertIn("广告传媒", "".join(oc["paragraphs"]))
+        self.assertIn("广告传媒", oc["conflict"])
 
 
 if __name__ == "__main__":

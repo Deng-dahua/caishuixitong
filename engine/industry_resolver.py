@@ -452,6 +452,91 @@ def scope_industry_hint(scope_text: str = "", company_name: str = "") -> Optiona
     return normalize_industry_name(best_ind) or best_ind
 
 
+def industry_scope_keywords(industry: str) -> List[str]:
+    """某行业在本系统基准库里登记的全部**行业级关键词**（行业无关，纯查表）。
+
+    数据来源就是 `industry_data.json::industry_map` 的反查（kw→行业 的倒排），
+    ★ 因此新增/调整任何行业都**只改数据表**，这里不改逻辑——全行业通用。
+    附带并入：该行业名本身（去「业/服务/行业」等通用尾缀后的最短 distinctive 段）、
+    以及 `SCOPE_MFG_HINTS`/`SCOPE_TRADE_HINTS` 这类**门类通用词** iff 该行业确属该门类
+    （用 `SERVICE_FINE_TO_COARSE`/`BIZ_TO_COARSE` 反查，不为任一行业硬写死）。
+    """
+    ind = normalize_industry_name(str(industry or "")) or str(industry or "").strip()
+    if not ind:
+        return []
+    im = load_industry_data().get("industry_map") or {}
+    out: List[str] = []
+    for kw, v in im.items():
+        k = str(kw or "").strip()
+        if not k or len(k) < 2:
+            continue
+        vv = normalize_industry_name(str(v or "")) or str(v or "")
+        if vv == ind:
+            out.append(k)
+    # 行业名本身 + 去尾缀后的核心段（「广告传媒」→「广告传媒」；「广告传媒服务」→「广告传媒」）
+    core = ind
+    for suf in ("行业", "服务", "业务"):
+        if core.endswith(suf) and len(core) > len(suf):
+            core = core[: -len(suf)]
+    if len(core) >= 2 and core not in out:
+        out.append(core)
+    # 门类通用词（生产/购销）——只在行业确实属该门类时并入
+    _data = load_industry_data()
+    for table, hints in (("production_industries", SCOPE_MFG_HINTS),
+                         ("trade_industries", SCOPE_TRADE_HINTS)):
+        for row in (_data.get(table) or _data.get(table.replace("_", "")) or []):
+            names = row if isinstance(row, (list, tuple)) else (row.get("industry") if isinstance(row, dict) else "")
+            if isinstance(names, (list, tuple)):
+                hit = any((normalize_industry_name(str(n or "")) or str(n)) == ind for n in names)
+            else:
+                hit = (normalize_industry_name(str(names or "")) or str(names)) == ind
+            if hit:
+                out.extend(h for h in hints if h not in out)
+                break
+    # 保序去重
+    seen, final = set(), []
+    for k in out:
+        if k and k not in seen:
+            seen.add(k)
+            final.append(k)
+    return final
+
+
+def scope_covers_industry(industry: str, scope_text: str) -> Optional[bool]:
+    """★ 通用判据：本轮采用的行业是否被**经营范围**所涵盖（None＝无从判定）。
+
+    为什么必须存在（2026-10-02 用户口径事故）：
+      原实现只要「登记行业 ≠ 销项开票推断行业」就写「两者不一致，指向超范围经营/变名开票」。
+      但**经营范围是宽口径许可清单**，任何正常公司都同时挂了好几类业务（海更数字传媒
+      登记为商贸，经营范围里同时有「广告设计、制作、代理、发布」）。本轮销项只有广告
+      传媒一个行业 ⇒ 该行业已被经营范围涵盖 ⇒ 根本**不冲突**，不该报「超范围经营」——
+      那条表述是假冲突，属误报。
+
+    判据（行业无关、全行业通用）：
+      · 经营范围文本里出现该行业的任一**行业级关键词**（查 `industry_scope_keywords`）
+        ⇒ True（涵盖）；
+      · 文本存在但一个都不含 ⇒ False（真线索：开票品名指向的经营内容在许可范围里见不到）；
+      · 经营范围文本为空/无法提供 ⇒ None（无从判定，此时**不得**认定冲突）。
+
+    ⚠ 与 `scope_industry_hint` 的区别：后者是「从经营范围反推行业」（弱证据、用于候选），
+      本函数是「经营范围是否容纳已知行业」（强证据、决定是否算冲突），二者不可互换。
+    """
+    ind = normalize_industry_name(str(industry or "")) or str(industry or "").strip()
+    if not ind:
+        return None
+    scope = str(scope_text or "").strip()
+    if not scope:
+        return None
+    kws = industry_scope_keywords(ind)
+    if not kws:
+        # 基准库没登记该行业关键词 ⇒ 无从判定，宁可不说冲突
+        return None
+    for k in kws:
+        if k and k in scope:
+            return True
+    return False
+
+
 def resolve_industry(company_name: str = "", registered_industry: str = "",
                      online_industry: str = "", sales_goods: Optional[List[str]] = None,
                      business_scope: str = "", biz_model: str = "",
@@ -510,6 +595,11 @@ def resolve_industry(company_name: str = "", registered_industry: str = "",
                 if sc_hit:
                     candidates.setdefault(SRC_SCOPE, sc_hit)
 
+    # ★ 先给三个变量「无解」默认值（2026-10-02）：candidates 为空时（全无资料）下面
+    #   的三态冲突块会读到 best_src —— 不预置就会 UnboundLocalError，把"未确定"变成整次解析崩溃。
+    best_src = ""
+    industry = ""
+    source = ""
     # 最终采用：按来源权威度取最高（同权威度时按插入顺序，前面更权威）
     if candidates:
         best_src = max(candidates.keys(), key=lambda s: (_WEIGHT.get(s, 0), -list(candidates).index(s)))
@@ -521,16 +611,41 @@ def resolve_industry(company_name: str = "", registered_industry: str = "",
         industry = coarse_key or ""
         source = SRC_BIZMODEL if coarse_key else SRC_UNKNOWN
 
-    # 冲突留痕（R3）：登记口径 ≠ 实际口径 是有价值的核查线索
+    # ── 冲突留痕（三态，2026-10-02 重构）────────────────────────────────
+    # ★ 旧缺陷（用户口径事故）：只要「登记 ≠ 销项推断」就写「指向超范围经营/变名开票」。
+    #   经营范围是**宽口径许可清单**，正常公司必然同时挂多类业务（登记商贸 ≠ 不能做广告）。
+    #   本轮销项只有广告传媒一个行业且经营范围里有「广告」⇒ 已涵盖 ⇒ 根本不冲突，
+    #   照旧报「超范围经营」是假冲突误报。
+    # 新判据：只有「登记口径 ≠ 本轮采用口径」**且** 该口径未被经营范围涵盖 才算线索；
+    #         无从判定（无经营范围文本/基准库无该行业关键词）时**不**认定冲突。
+    scope_covers: Optional[bool] = None
+    try:
+        scope_covers = scope_covers_industry(industry, scope_text)
+    except Exception:
+        scope_covers = None
+
     conflicts: List[str] = []
-    for a, b in ((SRC_REGISTERED, SRC_INVOICE), (SRC_REGISTERED, SRC_ONLINE),
-                 (SRC_REGISTERED, SRC_NAME)):
-        if a in candidates and b in candidates and candidates[a] != candidates[b]:
-            conflicts.append(f"{a}「{candidates[a]}」≠ {b}「{candidates[b]}」")
+    scope_note = ""
+    if best_src != SRC_REGISTERED:
+        other = candidates.get(SRC_REGISTERED, "")
+        if other and other != industry:
+            if scope_covers is True:
+                # 已涵盖：只留痕，不作风险表述（报告据此不写冲突句）
+                conflicts = []
+                scope_note = (f"登记/经营范围口径为「{other}」，本轮销项开票品名指向「{industry}」，"
+                              f"该行业已为经营范围所涵盖，不构成超范围经营；"
+                              f"本轮行业口径采用「{industry}」（来源：{source}）。")
+            elif scope_covers is False:
+                conflicts.append(
+                    f"{SRC_REGISTERED}「{other}」≠ {SRC_INVOICE or source}「{industry}」；"
+                    f"且「{industry}」在经营范围文本中未见行业级关键词，"
+                    f"开票品名与实际经营是否一致，需核实")
+            # scope_covers is None ⇒ 无从判定，不写入 conflicts，也不写风险表述
     if conflicts and log is not None:
         log.append("[行业口径] " + "；".join(conflicts)
-                   + f"；本轮采用「{industry}」（来源：{source}）。"
-                     "两者不一致可能指向超范围经营/变名开票，建议列入核查事项。")
+                   + f"；本轮采用「{industry}」（来源：{source}）。")
+    elif scope_note and log is not None:
+        log.append("[行业口径] " + scope_note)
 
     # ★ 2026-09-26 多业态：除主类目外，一并给出**次类目**（占比达标的其他经营类目），
     #   供成本识别按并集匹配——否则混合经营企业众数之外的业务其进项会被误判为"非成本"。
@@ -546,6 +661,8 @@ def resolve_industry(company_name: str = "", registered_industry: str = "",
         "confidence": CONFIDENCE.get(source, "无"),
         "candidates": candidates,
         "conflicts": conflicts,
+        "scope_covers": scope_covers,
+        "scope_note": scope_note,
         "registered": registered_industry,
         "inferred": inferred,
         "secondary": secondary,

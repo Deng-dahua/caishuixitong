@@ -10547,6 +10547,41 @@ def _build_invoice_network_graph(report_data):
     }
 
 
+def _write_resolved_industry(company_id: int, report_data: Any, db: Any = None) -> str:
+    """把本轮 `industry_resolver` 解析出的行业口径回写公司档案（选择账套页据此显示）。
+
+    铁律：
+      ① 只写解析器**真的给出**的行业；解析为空 ⇒ 返回 ""，**保留原值**（解析不出 ≠ 无行业）；
+      ② 账套行不存在时不动任何字段（不新建、不置空）；
+      ③ `db` 可注入（测试用假会话），缺省自建 SessionLocal 并负责提交/关闭。
+    返回实际回写的行业名（未回写返回 ""）。
+    """
+    te = (report_data or {}).get("target_entity") or {}
+    res = te.get("_industry_resolved") or {}
+    ind = str(res.get("industry") or "").strip()
+    src = str(res.get("source") or "").strip()
+    if not ind:
+        return ""
+    owns = db is None
+    if owns:
+        db = SessionLocal()
+    try:
+        row = db.query(Company).filter(Company.id == company_id).first()
+        if row is None:
+            return ""
+        row.industry_resolved = ind
+        row.industry_resolved_source = src
+        if owns:
+            db.commit()
+        return ind
+    finally:
+        if owns:
+            try:
+                db.close()
+            except Exception:
+                pass
+
+
 def _persist_one_click_result(company_id, result):
     """只在全部必经阶段完成后写入最近结果和分析历史。"""
     # ★ 删除终局守卫：本账套结果已被删除 → 不写内存、不落盘、不写历史。
@@ -10620,6 +10655,20 @@ def _persist_one_click_result(company_id, result):
         "reused_cached_result": False,
         "note": "本次结果的实际计算时间与依据资料清单；重新分析后此处时间会更新。",
     }
+
+    # ★ 2026-10-02：把本轮解析出的行业口径回写公司档案，选择账套页据此显示
+    #   「本次按什么行业在分析」（industry_resolved，优先于工商登记口径 industry_code）。
+    #   回写失败只 warning 级留痕，绝不能吞掉整份分析结果。
+    try:
+        _written = _write_resolved_industry(company_id, report_data)
+        if _written:
+            print(f"[行业口径] company {company_id} 回写本轮行业「{_written}」", flush=True)
+    except Exception as _e:
+        print(
+            f"[行业口径] 回写 company {company_id} 行业失败（不影响分析结果）："
+            f"{type(_e).__name__}: {_e}",
+            flush=True,
+        )
 
     _last_analysis_cache[company_id] = {
         "report": result,
@@ -12444,12 +12493,22 @@ def get_audit_logs(
 # ───────────────────────────────────────────────────────────────
 
 def _company_to_card(company) -> dict:
-    """Company 行 → 前端账套卡片字段（select-company.html 契约）。"""
+    """Company 行 → 前端账套卡片字段（select-company.html 契约）。
+
+    ★ 2026-10-02：同时输出 `industry_resolved`（一键分析本轮解析出的**实际经营口径**，
+    来自 `engine.industry_resolver.resolve_industry`，销项发票品名推断优先）与
+    `industry_registered`（工商登记/经营范围口径）。前端优先显示 resolved，
+    因为它才是"本轮按什么行业在分析"；两者不同时，卡片附登记口径供对照。
+    """
+    resolved = str(getattr(company, "industry_resolved", "") or "").strip()
     return {
         "id": company.id,
         "name": company.name or "",
         "uscc": company.uscc or "",
-        "industry": company.industry_code or "",
+        "industry": resolved or (company.industry_code or ""),
+        "industry_resolved": resolved,
+        "industry_registered": company.industry_code or "",
+        "industry_source": str(getattr(company, "industry_resolved_source", "") or ""),
         "company_type": company.company_type or "",
         "established_date": (
             str(company.established_date) if company.established_date else ""

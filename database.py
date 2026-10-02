@@ -56,6 +56,10 @@ class Company(Base):
     business_scope = Column(Text, comment="经营范围")
     company_type = Column(String(20), comment="公司类型")
     industry_code = Column(String(30), comment="行业代码(manufacturing/commerce/construction/real_estate/service/technology/catering/logistics/agriculture)")
+    # ★ 2026-10-02：本轮一键分析**解析出的行业口径**（销项发票品名推断优先），
+    #   与上面的工商登记口径 industry_code 并存——便利选择账套页显示"本次按什么行业在分析"。
+    industry_resolved = Column(String(50), comment="本轮分析解析出的行业口径(industry_resolver 结果)")
+    industry_resolved_source = Column(String(30), comment="该行业口径的来源标识(销项发票品名推断/工商登记/…)")
     created_at = Column(DateTime, default=datetime.now)
 
     shareholders = relationship("CompanyShareholder", back_populates="company", cascade="all, delete-orphan")
@@ -789,6 +793,9 @@ def migrate_schema(db):
             "legal_representative_id": "ALTER TABLE companies ADD COLUMN legal_representative_id VARCHAR(30)",
             "address": "ALTER TABLE companies ADD COLUMN address VARCHAR(200)",
             "business_scope": "ALTER TABLE companies ADD COLUMN business_scope TEXT",
+            # ★ 2026-10-02：本轮解析的行业口径（一键分析报告的"行业"与账套页显示取此值）
+            "industry_resolved": "ALTER TABLE companies ADD COLUMN industry_resolved VARCHAR(50)",
+            "industry_resolved_source": "ALTER TABLE companies ADD COLUMN industry_resolved_source VARCHAR(30)",
         }
         for col_name, sql in company_new_cols.items():
             if col_name not in existing_cols:

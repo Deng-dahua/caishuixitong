@@ -7860,6 +7860,9 @@ def _detect_target_entity(bank_txs, invoices, salaries, db, company_id, pipeline
     entity["_industry_votes"] = _ires.get("votes", {})
     entity["_industry_candidates"] = _ires.get("candidates", {})
     entity["_industry_conflicts"] = _ires.get("conflicts", [])
+    # ★ 2026-10-02：把解析器**完整结果**（含三态判据 scope_covers / scope_note）一并带上，
+    #   让报告文案直接引用解析器结论，杜绝下游再算一遍（同一口径，不会两处漂）。
+    entity["_industry_resolved"] = _ires
 
     # 6. 提取期间范围（智能解析多种日期格式，避免硬截取Bug）
     import re as _dre
@@ -9133,6 +9136,8 @@ def _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_lo
                 target_entity["_industry_confidence"] = _r.get("confidence", "")
                 target_entity["_industry_candidates"] = _r.get("candidates", {})
                 target_entity["_industry_conflicts"] = _r.get("conflicts", [])
+                # ★ 2026-10-02：同上——完整解析结果（三态判据）供报告文案直接引用
+                target_entity["_industry_resolved"] = _r
                 if _old_ind != target_entity["industry"]:
                     pipeline_log.append(
                         f"[行业口径] 外部工商核验后重解析：'{_old_ind}' → "
