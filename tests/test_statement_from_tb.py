@@ -23,6 +23,11 @@ from engine.financial_analyzer import (
     analyze_financial_statements,
     build_statements_from_trial_balance,
     invoice_excl_tax,
+    PNL_CODE_PREFIXES,
+    account_code_of,
+    extract_income_cost_from_trial_balance,
+    is_pnl_account,
+    trial_balance_amount,
 )
 from engine.numparse import amount_of
 
@@ -267,6 +272,105 @@ class TestAnalysisCoverage(unittest.TestCase):
             # 每项指标要么在 blocked（缺资料），要么属于 executed —— 总数核对
             pass
         self.assertIn("税务指标", {it["kind"] for it in cov["blocked_items"]})
+
+
+class TestTrialBalanceCloseSideTriad(unittest.TestCase):
+    """契约 6（2026-10-02）：科目余额表「期末借方/期末贷方」**怎么用** —— 按科目类别分流。
+
+    真实数据实证（`data/uploads/1/1_928_2025年科目余额表.xlsx`，深圳海更数字传媒
+    2025 年度，156 行、17 个一级科目）：
+
+      6001 主营业务收入   期末借 0 / 期末贷 0   本期发生额 借 6,636,800.57 / 贷 6,636,800.57
+      6401 主营业务成本   期末借 0 / 期末贷 0   本期发生额 借 4,187,220.84 / 贷 4,187,220.84
+      6403 税金及附加 / 6602 管理费用 / 6603 财务费用 / 6801 所得税费用 —— 期末双双为 0
+      4103 本年利润                              期末 0，本期借=贷=6,636,800.57（已结转）
+      ⇒ 损益类的真实金额**只存在于「本期发生额」列**，且只能取**总额侧**
+        （费用/成本取借方发生额，收入取贷方发生额）；取「借−贷」净额同样为 0。
+      1002/1122/1221/2202/2211/2221/2241/4104 等资产负债类科目期末非零 ⇒ 取期末**净额**。
+
+    全表 156 行：期末借方合计 = 期末贷方合计 = 3,578,025.78（表自身平衡）；
+    17 个一级科目：期末借方合计 = 期末贷方合计 = 1,048,836.92，差异 0。
+    """
+
+    # 真实形态（损益类期末双 0、资产负债类期末非零）
+    ROWS = [
+        {"code": "1002", "current_debit": 8371659.92, "current_credit": 8093439.55,
+         "close_debit": 283080.54, "close_credit": 0.0},
+        {"code": "2202", "current_debit": 4070207.06, "current_credit": 4345820.06,
+         "close_debit": 0.0, "close_credit": 263243.0},
+        {"code": "6001", "current_debit": 6636800.57, "current_credit": 6636800.57,
+         "close_debit": 0.0, "close_credit": 0.0},
+        {"code": "6401", "current_debit": 4187220.84, "current_credit": 4187220.84,
+         "close_debit": 0.0, "close_credit": 0.0},
+    ]
+
+    def test_balance_sheet_code_takes_close_net(self):
+        """资产负债类：期末借方/期末贷方都要参与，取净额（不是单边）"""
+        self.assertEqual(trial_balance_amount(self.ROWS[0], debit_positive=True), 283080.54)
+        self.assertEqual(trial_balance_amount(self.ROWS[1], debit_positive=False), 263243.0)
+
+    def test_pnl_code_ignores_close_side(self):
+        """损益类：期末借/贷都是 0 ⇒ 只能取本期发生额，且必须取总额侧"""
+        self.assertEqual(trial_balance_amount(self.ROWS[2], debit_positive=False), 6636800.57)
+        self.assertEqual(trial_balance_amount(self.ROWS[3], debit_positive=True), 4187220.84)
+
+    def test_pnl_net_side_is_zero(self):
+        """反向验证：损益类若按「借−贷」净额（含结转、两侧相等）取数 ⇒ 恒为 0"""
+        row = self.ROWS[3]
+        self.assertEqual(row["current_debit"] - row["current_credit"], 0)
+        # 权威口径不得走净额
+        self.assertNotEqual(trial_balance_amount(row, debit_positive=True), 0)
+
+    def test_pnl_falls_back_close_only_without_movement(self):
+        """唯一例外：未结转的科目余额表（无本期发生额列）才回退期末余额"""
+        self.assertEqual(trial_balance_amount(
+            {"code": "6401", "close_debit": 1000.0, "close_credit": 0.0}, debit_positive=True), 1000.0)
+
+    def test_pnl_prefix_table_is_industry_agnostic(self):
+        """通用性：损益前缀表覆盖全部 17 个损益科目，新增同类只加一行前缀、不改逻辑"""
+        for code in ("6001", "6051", "6101", "6111", "6115", "6117", "6201", "6301",
+                     "6401", "6402", "6403", "6601", "6602", "6603", "6604", "6701", "6801"):
+            self.assertTrue(is_pnl_account(code), f"{code} 应被判为损益类")
+            self.assertTrue(is_pnl_account(code + "01"), f"{code}01 明细行应被判为损益类")
+        for code in ("1002", "1122", "1221", "1401", "1601", "1602", "2202", "2211",
+                     "2221", "2241", "4103", "4104"):
+            self.assertFalse(is_pnl_account(code), f"{code} 是资产负债类，不得按损益口径取数")
+
+    def test_pnl_prefix_table_not_empty(self):
+        self.assertGreaterEqual(len(PNL_CODE_PREFIXES), 17)
+
+    def test_code_alias_columns(self):
+        """科目编码列名兼容（code / 科目编码 / 科目编号）"""
+        self.assertEqual(account_code_of({"科目编号": "6001"}), "6001")
+        self.assertEqual(account_code_of({"code": " 6401 "}), "6401")
+        self.assertEqual(account_code_of({}), "")
+        self.assertEqual(account_code_of(None), "")
+
+    def test_extract_income_cost_uses_gross_side(self):
+        """pipeline 走的路径：收入/成本必须用本期发生额，绝不能读期末"""
+        ic = extract_income_cost_from_trial_balance(self.ROWS)
+        self.assertEqual(ic["revenue"], 6636800.57)
+        self.assertEqual(ic["total_cost"], 4187220.84)
+
+    def test_extract_income_cost_close_only_would_be_zero(self):
+        """行为反证：只喂期末列 ⇒ 损益为 0（说明期末列对损益类没有信息量）"""
+        close_only = [{"code": "6001", "close_debit": 0.0, "close_credit": 0.0},
+                      {"code": "6401", "close_debit": 0.0, "close_credit": 0.0}]
+        self.assertEqual(extract_income_cost_from_trial_balance(close_only)["revenue"], 0)
+
+    def test_extract_income_cost_empty(self):
+        self.assertEqual(extract_income_cost_from_trial_balance(None),
+                         {"revenue": 0.0, "total_cost": 0.0})
+        self.assertEqual(extract_income_cost_from_trial_balance([None, "x"]),
+                         {"revenue": 0.0, "total_cost": 0.0})
+
+    def test_pipeline_binds_the_authority(self):
+        """铁律：pipeline 必须真的导入该权威（漏别名 ⇒ 整条链路 NameError，全量测试全绿也照挂）"""
+        import engine.pipeline as pipeline
+        from engine import financial_analyzer as fa
+        self.assertIs(pipeline.extract_income_cost_from_trial_balance,
+                      fa.extract_income_cost_from_trial_balance)
+        self.assertIs(pipeline.trial_balance_amount, fa.trial_balance_amount)
 
 
 if __name__ == "__main__":

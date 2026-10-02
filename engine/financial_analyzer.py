@@ -12,6 +12,7 @@
 import json, os, re
 from datetime import datetime
 from collections import defaultdict
+from typing import Any, Dict
 
 # 申报收入勾稽：复用 two_tax_income 的申报表解析（增值税申报销售额），避免重复解析口径。
 # two_tax_income 不反向依赖本模块，顶层导入安全。
@@ -589,6 +590,124 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
     return findings
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# 科目余额表取数口径 —— **唯一权威**（2026-10-02）
+# ══════════════════════════════════════════════════════════════════════════════
+# 一张科目余额表同时存在三组金额：期初余额 / 本期发生额 / 期末余额，且**每一组都有
+# 借方和贷方两侧**。取哪一组、取哪一侧，取决于**科目类别**（不是取决于字段名）：
+#
+#   · 资产负债类（1 资产 / 2 负债 / 3 共同 / 4 所有者权益 / 14 存货…）
+#       → 取「**期末余额**」的**净额** = 期末借方 − 期末贷方；
+#         资产类借>贷为正，负债/权益类贷>借为正（由 debiit_positive 指定哪侧为正）。
+#   · 损益类（6001 收入 … 6801 所得税费用）
+#       → 取「**本期发生额**」的**总额侧**：费用/成本/支出类取**借方**发生额，
+#         收入/收益类取**贷方**发生额。
+#
+# ★ 损益类为什么**绝对不能**取期末余额？真实数据实证
+#   （data/uploads/1/1_928_2025年科目余额表.xlsx，深圳海更数字传媒 2025 年度，156 行）：
+#     6001 主营业务收入 期末借 0 / 期末贷 0，本期发生额借 6,636,800.57 / 贷 6,636,800.57
+#     6401 主营业务成本 期末借 0 / 期末贷 0，本期发生额借 4,187,220.84 / 贷 4,187,220.84
+#     6403 税金及附加 / 6602 管理费用 / 6603 财务费用 / 6801 所得税费用 期末双双为 0
+#     ⇒ ① 取期末余额 ⇒ 恒等于 0；
+#        ② 取「借−贷」净发生额也恒等于 0（多数科目余额表把**结转本年利润的金额也计入
+#           当期发生额**，结转即借贷同额，故两侧相等）；
+#        ③ 只有「总额侧」（费用类借方、收入类贷方）才是真实损益额。
+#   后果：取错 ⇒ 收入/成本静默为 0 ⇒ 依赖它的分析整段不产出（且不会报错）。
+#
+# ★ 唯一例外：本期发生额列缺失（未结转/极简科目余额表）才回退期末余额，
+#   此时期末余额才可能是真实损益额。
+# ══════════════════════════════════════════════════════════════════════════════
+
+#: 损益类科目编码前缀（企业会计准则科目表 6 类全列，新增同类只需加一行，不改逻辑）
+PNL_CODE_PREFIXES = (
+    "6001",  # 主营业务收入
+    "6051",  # 其他业务收入
+    "6101",  # 公允价值变动损益
+    "6111",  # 投资收益
+    "6115",  # 摊余成本计量的金融资产投资收益
+    "6117",  # 处置金融资产/资产组投资收益
+    "6201",  # 递延所得税资产/负债（特殊，按损益归属）
+    "6301",  # 营业外收入
+    "6401",  # 主营业务成本
+    "6402",  # 其他业务成本
+    "6403",  # 税金及附加
+    "6601",  # 销售费用
+    "6602",  # 管理费用
+    "6603",  # 财务费用
+    "6604",  # 研发费用
+    "6701",  # 营业外支出
+    "6801",  # 所得税费用
+)
+
+
+def account_code_of(row: Any) -> str:
+    """从科目余额表行取科目编码（兼容 code / 科目编码 / 科目编号 三种列名）。"""
+    if not isinstance(row, dict):
+        return ""
+    raw = row.get("code") or row.get("科目编码") or row.get("科目编号") or ""
+    return str(raw).strip()
+
+
+def is_pnl_account(code: Any = "") -> bool:
+    """该科目编码是否属损益类（决定取「本期发生额」还是「期末余额」）。"""
+    s = str(code or "").strip()
+    if not s:
+        return False
+    return any(s.startswith(p) or p.startswith(s) for p in PNL_CODE_PREFIXES)
+
+
+def trial_balance_amount(row: Any, *, debit_positive: bool = True) -> float:
+    """科目余额表单行『该侧金额』的唯一口径（详见上方块注释）。
+
+    Args:
+        row: 科目余额表的一行（dict）。
+        debit_positive: 该科目的正常增加在**借方**吗？
+            True  → 资产/成本/费用类（借增）⇒ 返回「借方侧」金额；
+            False → 负债/权益/收入类（贷增）⇒ 返回「贷方侧」金额。
+
+    Returns:
+        损益类：本期发生额的**总额侧**（费用→本期借方；收入→本期贷方），
+               本期发生额缺失时回退期末余额；
+        资产负债类：期末余额净额（借−贷 或 贷−借）。
+    """
+    if not isinstance(row, dict):
+        return 0.0
+    code = account_code_of(row)
+    if is_pnl_account(code):
+        cd = to_number(row.get("current_debit", row.get("本期借方", 0)))
+        cc = to_number(row.get("current_credit", row.get("本期贷方", 0)))
+        if cd or cc:
+            return round(cd if debit_positive else cc, 2)
+        # 本期发生额缺失（未结转的科目余额表）⇒ 回退期末余额
+        d = to_number(row.get("close_debit", row.get("期末借方", 0)))
+        c = to_number(row.get("close_credit", row.get("期末贷方", 0)))
+        return round((d - c) if debit_positive else (c - d), 2)
+    d = to_number(row.get("close_debit", row.get("期末借方", 0)))
+    c = to_number(row.get("close_credit", row.get("期末贷方", 0)))
+    return round((d - c) if debit_positive else (c - d), 2)
+
+
+def extract_income_cost_from_trial_balance(rows: Any) -> Dict[str, float]:
+    """从科目余额表提取「主营业务收入 / 主营业务成本」（损益类取本期发生额总额侧）。
+
+    ★ 为什么必须走这里而不是直接读 ``close_credit``/``close_debit``：损益类科目
+      期末余额借方与贷方**双双为 0**（实证见 `trial_balance_amount` 块注释），
+      直接读期末 ⇒ 收入与成本静默为 0。返回 ``{"revenue": …, "total_cost": …}``。
+    """
+    out = {"revenue": 0.0, "total_cost": 0.0}
+    for r in rows or []:
+        if not isinstance(r, dict):
+            continue
+        code = account_code_of(r)[:4]
+        if code == "6001":
+            out["revenue"] += trial_balance_amount(r, debit_positive=False)
+        elif code.startswith(("640", "5401")):
+            out["total_cost"] += trial_balance_amount(r, debit_positive=True)
+    out["revenue"] = round(out["revenue"], 2)
+    out["total_cost"] = round(out["total_cost"], 2)
+    return out
+
+
 def build_statements_from_trial_balance(rows):
     """
     从科目余额表构造 资产负债表/利润表/现金流量表 三套 dict，
@@ -673,18 +792,12 @@ def build_statements_from_trial_balance(rows):
     #   一次都没运行过，报告只字未提，而资料清单里也没说为什么没查）。
     #   故新增 `_pnl()`：费用类取借方发生额、收入类取贷方发生额（总额侧），
     #   并在本期发生额缺失时退回期末余额（兼容未结转的科目余额表）。
+    # ★ 单源铁律（2026-10-02）：损益类取数收敛到 `trial_balance_amount`，
+    #   本文件不再保留第二份「本期发生额优先、缺失回退期末」的私有实现。
     def _pnl(code, debit_positive=True):
         for r in rows or []:
-            code_r = str(r.get("code", r.get("科目编码", "")) or "").strip()
-            if code_r != code:
-                continue
-            cd = to_number(r.get("current_debit", r.get("本期借方", 0)))
-            cc = to_number(r.get("current_credit", r.get("本期贷方", 0)))
-            if cd or cc:
-                return round(cd if debit_positive else cc, 2)
-            d = to_number(r.get("close_debit", r.get("期末借方", 0)))
-            c = to_number(r.get("close_credit", r.get("期末贷方", 0)))
-            return round((d - c) if debit_positive else (c - d), 2)
+            if account_code_of(r) == str(code).strip():
+                return trial_balance_amount(r, debit_positive=debit_positive)
         return 0.0
 
     revenue = _pnl("6001", debit_positive=False)       # 主营业务收入（贷方发生额）

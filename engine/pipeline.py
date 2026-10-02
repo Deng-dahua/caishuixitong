@@ -13,6 +13,8 @@ from typing import Optional, List, Dict, Any, Tuple
 import json, os, re, math, uuid, hashlib, traceback, logging, io, time, ssl, urllib.request, urllib.parse
 from engine.thresholds import T  # 税率阈值统一配置
 from engine import account_classifier as _account_classifier  # ★ 2026-10-02 成本/费用归属唯一权威（禁在此处重抄词表）
+from engine.financial_analyzer import extract_income_cost_from_trial_balance  # ★ 2026-10-02 科目余额表取数口径唯一权威（损益类取本期发生额总额侧）
+from engine.financial_analyzer import trial_balance_amount  # ★ 同上：期末借/贷该取哪一侧的唯一口径
 
 from database import (
     get_db, SessionLocal,
@@ -2505,19 +2507,19 @@ def _run_analyze(company_id, db, progress_callback=None):
             _total_assets = 0
             for row in trial_balance_data:
                 acct_code = str(row.get("code", row.get("科目编码", "")))[:4]
-                if acct_code.startswith(("1",)):  # 1开头=资产类
-                    _total_assets += to_number(row.get("close_debit", 0))
+                if acct_code.startswith(("1",)):  # 1开头=资产类（期末净额）
+                    _total_assets += trial_balance_amount(row, debit_positive=True)
             if _total_assets > 0:
                 _balance_sheet["total_assets"] = _total_assets
             # 从科目余额表提取收入/利润
-            _total_revenue = 0
-            _total_cost = 0
-            for row in trial_balance_data:
-                acct_code = str(row.get("code", row.get("科目编码", "")))[:4]
-                if acct_code == "6001":  # 主营业务收入
-                    _total_revenue += to_number(row.get("close_credit", 0))
-                elif acct_code.startswith(("640", "6401", "6402", "5401")):  # 主营业务成本
-                    _total_cost += to_number(row.get("close_debit", 0))
+            # ★ 2026-10-02 根因修复：损益类科目（6001 收入 / 6401 成本 / 6403 税金及附加 /
+            #   6601-6604 期间费用）**期末余额借方=贷方=0**（2026-09-25 实证：公司1 的
+            #   2025 年科目余额表，6001 期末借 0 / 期末贷 0，6,636,800.57 只在「本期发生额」
+            #   贷方列），旧实现取 close_credit / close_debit ⇒ 收入与成本**静默读成 0**，
+            #   只能靠 2526 行以后的凭证推算兜底 —— 账上明明有数、却不作数。
+            #   统一走 `trial_balance_amount`：损益类取本期发生额的总额侧，资产负债类取期末净额。
+            _ic = extract_income_cost_from_trial_balance(trial_balance_data)
+            _total_revenue, _total_cost = _ic["revenue"], _ic["total_cost"]
             if _total_revenue > 0:
                 _income_stmt["revenue"] = _total_revenue
             if _total_cost > 0:
