@@ -502,21 +502,48 @@ def industry_scope_keywords(industry: str) -> List[str]:
     return final
 
 
+#: 经营范围文本的最小可用长度。低于此长度不足以判断"是否涵盖某行业"。
+_SCOPE_MIN_LEN = 40
+
+
+def scope_text_issue(scope_text: Any) -> str:
+    """经营范围文本是否**可用于判定**；返回 ""＝可用，否则返回问题说明（可直接进报告）。
+
+    ★ 2026-10-02（用户质疑「为什么还表述商贸」牵出的数据可靠性问题）：
+      实测公司1 的 `business_scope` 只有 **56 字**、且以「…服装...」结尾 —— 它不是完整的
+      工商登记经营范围，而是**联网核验结果的摘要片段**（`pipeline` 用正则
+      `经营范围[：:](.{10,}?)(?=\\s{2,}|行业分类|工商信息)` 从搜索结果文本里抓的同一行片段，
+      网页摘要自带省略号就被原样存库）。
+      这类文本若直接拿去做「有没有行业级关键词」的判断，会给出**看似确定、实则无据**的结论
+      （用户原文场景：报告写"广告传媒在经营范围文本中未见行业级关键词"，读者会以为
+      这家公司经营范围真的与广告无关；真相是**我们拿到的经营范围本身是残缺片段**）。
+      按本项目铁律「取不到数据时明确说明未确定，不得静默顶替后照常出结论」，
+      此处先判定文本可用性，不可用即不得据此下结论。
+    """
+    s = str(scope_text or "").strip()
+    if not s:
+        return "未取得经营范围文本"
+    if "..." in s or "…" in s:
+        return "经营范围文本含省略号，疑为工商信息摘要片段（非完整登记原文）"
+    if len(s) < _SCOPE_MIN_LEN:
+        return "经营范围文本仅 %d 字，不足以判断行业归属" % len(s)
+    return ""
+
+
 def scope_covers_industry(industry: str, scope_text: str) -> Optional[bool]:
     """★ 通用判据：本轮采用的行业是否被**经营范围**所涵盖（None＝无从判定）。
 
     为什么必须存在（2026-10-02 用户口径事故）：
       原实现只要「登记行业 ≠ 销项开票推断行业」就写「两者不一致，指向超范围经营/变名开票」。
-      但**经营范围是宽口径许可清单**，任何正常公司都同时挂了好几类业务（海更数字传媒
-      登记为商贸，经营范围里同时有「广告设计、制作、代理、发布」）。本轮销项只有广告
-      传媒一个行业 ⇒ 该行业已被经营范围涵盖 ⇒ 根本**不冲突**，不该报「超范围经营」——
-      那条表述是假冲突，属误报。
+      但**经营范围是宽口径许可清单**，一家公司常常同时挂好几类业务，其中就可能包含本轮
+      采用的行业 ⇒ 此时**不冲突**，不该报「超范围经营」（那是假冲突误报）。
 
     判据（行业无关、全行业通用）：
       · 经营范围文本里出现该行业的任一**行业级关键词**（查 `industry_scope_keywords`）
         ⇒ True（涵盖）；
-      · 文本存在但一个都不含 ⇒ False（真线索：开票品名指向的经营内容在许可范围里见不到）；
-      · 经营范围文本为空/无法提供 ⇒ None（无从判定，此时**不得**认定冲突）。
+      · 文本**可用**（见 `scope_text_issue`）且一个关键词都不含 ⇒ False（真线索）；
+      · 经营范围文本为空 / 残缺不可用 / 基准库无该行业关键词 ⇒ None（无从判定，
+        此时**不得**认定冲突，也不得说"未见行业级关键词"这种确定结论）。
 
     ⚠ 与 `scope_industry_hint` 的区别：后者是「从经营范围反推行业」（弱证据、用于候选），
       本函数是「经营范围是否容纳已知行业」（强证据、决定是否算冲突），二者不可互换。
@@ -526,6 +553,9 @@ def scope_covers_industry(industry: str, scope_text: str) -> Optional[bool]:
         return None
     scope = str(scope_text or "").strip()
     if not scope:
+        return None
+    if scope_text_issue(scope):
+        # ★ 文本残缺 ⇒ 无从判定（**不得**据此下"未见该行业关键词"的确定结论）
         return None
     kws = industry_scope_keywords(ind)
     if not kws:
@@ -632,7 +662,7 @@ def resolve_industry(company_name: str = "", registered_industry: str = "",
             if scope_covers is True:
                 # 已涵盖：只留痕，不作风险表述（报告据此不写冲突句）
                 conflicts = []
-                scope_note = (f"登记/经营范围口径为「{other}」，本轮销项开票品名指向「{industry}」，"
+                scope_note = (f"工商登记行业为「{other}」，本轮销项开票品名指向「{industry}」，"
                               f"该行业已为经营范围所涵盖，不构成超范围经营；"
                               f"本轮行业口径采用「{industry}」（来源：{source}）。")
             elif scope_covers is False:
@@ -640,7 +670,24 @@ def resolve_industry(company_name: str = "", registered_industry: str = "",
                     f"{SRC_REGISTERED}「{other}」≠ {SRC_INVOICE or source}「{industry}」；"
                     f"且「{industry}」在经营范围文本中未见行业级关键词，"
                     f"开票品名与实际经营是否一致，需核实")
-            # scope_covers is None ⇒ 无从判定，不写入 conflicts，也不写风险表述
+            else:
+                # scope_covers is None ⇒ **无从判定**：不写冲突，但必须如实说明**为什么判不了**。
+                # ★ 2026-10-02（用户质疑「为什么还表述商贸」）：这里的"判不了"最常见的原因不是
+                #   "经营范围里确实没有"，而是**我们拿到的经营范围本身不完整**（实测公司1 只有
+                #   56 字、带省略号，是联网核验的摘要片段）。此时若照旧输出"未见行业级关键词"，
+                #   就是把"数据不可用"说成了"事实如此" —— 按铁律必须如实标注数据问题。
+                # ⚠ 只有"**有文本但不可用**"才需要说明原因；"完全没提供经营范围"保持
+                #   scope_note 为空（本函数原有的三态语义：未经提供资料不在此处发声，
+                #   补充资料的要求由报告"需企业提供的资料"章节统一提出，避免噪声）。
+                _issue = scope_text_issue(scope_text)
+                if _issue == "未取得经营范围文本":
+                    _issue = ""
+                if _issue and other and other != industry:
+                    scope_note = (
+                        f"工商登记行业为「{other}」，本轮销项开票品名指向「{industry}」；"
+                        f"因{_issue}，无法据以判断「{industry}」是否在经营范围内，"
+                        f"须以工商登记原文核实；本轮行业口径采用「{industry}」（来源：{source}）。")
+            # scope_covers is None ⇒ 不写入 conflicts、不写风险表述
     if conflicts and log is not None:
         log.append("[行业口径] " + "；".join(conflicts)
                    + f"；本轮采用「{industry}」（来源：{source}）。")

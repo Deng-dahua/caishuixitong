@@ -97,7 +97,8 @@ def build_inspection_overview(report_data: Any,
         _ind_seg = ("行业口径：本轮按销项发票品名指向的「%s」口径测算（来源：%s）"
                     % (ind_name, ind_src or "未标注"))
         if ind_reg and ind_reg != ind_name:
-            _ind_seg += "；登记经营范围为「%s」，与销项发票品名口径不一致。" % ind_reg
+            # ⚠「商贸」是**工商登记行业**，不是经营范围（概念混用会误导读者，2026-10-02 修）
+            _ind_seg += "；工商登记行业为「%s」，与销项发票品名口径不一致。" % ind_reg
     P.append(
         "二、企业与经营特征：%s经营规模：%s。%s"
         % (_ind_seg, ("；".join(_scale) if _scale else "本轮未取得完整财务快照"),

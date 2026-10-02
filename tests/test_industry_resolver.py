@@ -18,7 +18,7 @@ from engine.industry_resolver import (
     SRC_INVOICE, benchmark_keys, business_category, generalization_note,
     infer_from_goods, is_in_benchmark_base, load_industry_data, match_benchmark,
     normalize_industry_name, resolve_industry,
-    scope_industry_hint,
+    scope_covers_industry, scope_industry_hint, scope_text_issue,
 )
 
 
@@ -115,15 +115,20 @@ class TestResolveIndustry(unittest.TestCase):
         #   (i) 经营范围不含广告 ⇒ 未见及 ⇒ 1 条中性核查线索
         r2 = resolve_industry(registered_industry="商贸",
                               sales_goods=["*广告服务*广告发布费"],
-                              business_scope="日用百货销售；服装服饰零售")
+                              business_scope="日用百货销售；服装服饰零售；鞋帽零售；"
+                                             "文具用品零售；化妆品零售；五金产品零售；"
+                                             "针纺织品销售；家用电器销售")
         self.assertIs(r2["scope_covers"], False)
         self.assertEqual(len(r2["conflicts"]), 1)
         self.assertIn("需核实", r2["conflicts"][0])
         self.assertNotIn("超范围经营", "".join(r2["conflicts"]))
-        #   (ii) 经营范围含广告 ⇒ 已涵盖 ⇒ 不冲突（用户真实案例的海更口径）
+        #   (ii) 经营范围含广告 ⇒ 已涵盖 ⇒ 不冲突
+        #        ⚠ 2026-10-02 更正：此处原注为"用户真实案例的海更口径"，但实测公司1 的
+        #          business_scope 并无广告类词且文本残缺 ⇒ 该说法不成立，改为构造用例。
         r3 = resolve_industry(registered_industry="商贸",
                               sales_goods=["*广告服务*广告发布费"],
-                              business_scope="广告设计、制作、代理、发布；办公用品销售")
+                              business_scope="广告设计、制作、代理、发布；企业形象策划；"
+                                             "会议及展览服务；办公用品销售；国内贸易代理")
         self.assertIs(r3["scope_covers"], True)
         self.assertEqual(r3["conflicts"], [], "已涵盖仍记冲突 = 假冲突误报（旧缺陷回归）")
 
@@ -567,17 +572,24 @@ class TestScopeCoversTristate(unittest.TestCase):
 
     def test_covered_returns_true(self):
         from engine.industry_resolver import scope_covers_industry
-        # 真实案例：登记商贸，但经营范围含广告设计/制作/代理/发布
+        # ⚠ 2026-10-02 更正：此前此处注释称"真实案例：经营范围含广告设计/制作/代理/发布"，
+        #   但实测公司1 的经营范围（business_scope）里**没有任何广告类词**、且文本残缺
+        #   （56 字 + 省略号，是联网核验的摘要片段）。此处仅为**判据的构造用例**，不是真实案例。
         self.assertIs(
             scope_covers_industry("广告传媒",
-                                  "广告设计、制作、代理、发布；办公用品销售；国内贸易"),
+                                  "广告设计、制作、代理、发布；企业形象策划；会议及展览服务；"
+                                  "办公用品销售；国内贸易代理；信息技术咨询服务"),
             True)
 
     def test_not_covered_returns_false(self):
         from engine.industry_resolver import scope_covers_industry
         # 销项指向建筑工程，经营范围里只有日用百货/服装 → 许可范围里确实见不到
+        # （文本必须足够长：过短/残缺的文本按新规判"不可用"，见 TestScopeTextUsability）
         self.assertIs(
-            scope_covers_industry("建筑工程", "日用百货销售；服装服饰零售"), False)
+            scope_covers_industry("建筑工程",
+                                  "日用百货销售；服装服饰零售；鞋帽零售；文具用品零售；"
+                                  "化妆品零售；五金产品零售；针纺织品销售；家用电器销售"),
+            False)
 
     def test_no_scope_text_returns_none(self):
         from engine.industry_resolver import scope_covers_industry
@@ -588,8 +600,15 @@ class TestScopeCoversTristate(unittest.TestCase):
         """基准库没登记的行业（自造名）⇒ 拿不到行业级关键词，只拿它自己的名字去比
         ⇒ 判 False（未见及），**绝不判 True**（不能凭空"涵盖"一个没登记过的行业）。"""
         from engine.industry_resolver import scope_covers_industry
-        self.assertIs(
+        # 文本不可用（过短）⇒ None；**关键是不判 True**（不能凭空"涵盖"没登记过的行业）
+        self.assertIsNot(
             scope_covers_industry("zzz_nonexistent_industry_zzz", "广告设计；办公用品销售"),
+            True)
+        # 文本可用时（足够长）⇒ False（未见及）
+        self.assertIs(
+            scope_covers_industry("zzz_nonexistent_industry_zzz",
+                                  "广告设计；广告制作；企业形象策划；会议及展览服务；"
+                                  "办公用品销售；国内贸易代理；信息技术咨询服务"),
             False)
         self.assertIsNone(
             scope_covers_industry("zzz_nonexistent_industry_zzz", ""), "无范围文本 ⇒ 仍为 None")
@@ -603,10 +622,16 @@ class TestScopeCoversTristate(unittest.TestCase):
         from engine.industry_resolver import scope_covers_industry
         # 经营范围通篇没出现「广告传媒」四个字，但有行业级关键词「广告」
         self.assertIs(
-            scope_covers_industry("广告传媒", "会议及展览服务；企业管理咨询；设计制作代理发布国内广告"),
+            scope_covers_industry("广告传媒",
+                                  "会议及展览服务；企业管理咨询；设计制作代理发布国内广告；"
+                                  "办公用品销售；国内贸易代理；信息技术咨询服务"),
             True)
-        # 换成非该行业的关键词则不算涵盖
-        self.assertIs(scope_covers_industry("广告传媒", "日用百货销售"), False)
+        # 换成非该行业的关键词则不算涵盖（文本同样要够长）
+        self.assertIs(
+            scope_covers_industry("广告传媒",
+                                  "日用百货销售；服装服饰零售；鞋帽零售；文具用品零售；"
+                                  "化妆品零售；五金产品零售；针纺织品销售；家用电器销售"),
+            False)
 
 
 class TestScopeCoversIsIndustryAgnostic(unittest.TestCase):
@@ -666,8 +691,10 @@ class TestResolveIndustryConflictTristate(unittest.TestCase):
         return kw
 
     def test_covered_is_not_a_conflict(self):
-        """★ 用户真实案例：登记商贸 / 销项仅广告传媒 / 经营范围含广告 ⇒ 不冲突、不写"超范围"。"""
-        r = resolve_industry(**self._kw(scope="广告设计、制作、代理、发布；办公用品销售；国内贸易"))
+        """登记商贸 / 销项仅广告传媒 / 经营范围已涵盖广告 ⇒ 不冲突、不写"超范围"。"""
+        r = resolve_industry(**self._kw(scope="广告设计、制作、代理、发布；企业形象策划；"
+                                              "会议及展览服务；办公用品销售；国内贸易代理；"
+                                              "信息技术咨询服务"))
         self.assertEqual(r["industry"], "广告传媒")
         self.assertIs(r["scope_covers"], True)
         self.assertEqual(r["conflicts"], [],
@@ -678,7 +705,9 @@ class TestResolveIndustryConflictTristate(unittest.TestCase):
 
     def test_not_covered_is_a_neutral_hint(self):
         """未见及 ⇒ 只作中性核查线索，不写风险定性词。"""
-        r = resolve_industry(**self._kw(scope="日用百货销售；服装服饰零售",
+        r = resolve_industry(**self._kw(scope="日用百货销售；服装服饰零售；鞋帽零售；"
+                                              "文具用品零售；化妆品零售；五金产品零售；"
+                                              "针纺织品销售；家用电器销售",
                                         goods=["*建筑服务*工程款"]))
         self.assertEqual(r["industry"], "建筑工程")
         self.assertIs(r["scope_covers"], False)
@@ -696,7 +725,8 @@ class TestResolveIndustryConflictTristate(unittest.TestCase):
 
     def test_same_industry_no_conflict(self):
         r = resolve_industry(registered_industry="广告传媒",
-                             business_scope="广告设计；办公用品销售",
+                             business_scope="广告设计；广告制作；广告发布；企业形象策划；"
+                                            "会议及展览服务；办公用品销售；国内贸易代理",
                              sales_goods=["*广告服务*广告费"])
         self.assertEqual(r["industry"], "广告传媒")
         self.assertEqual(r["conflicts"], [])
@@ -704,7 +734,11 @@ class TestResolveIndustryConflictTristate(unittest.TestCase):
 
     def test_resolution_never_silent_on_scope(self):
         """三态必须真的被带出来：下游（overall_conclusion / 账套页）靠它改写文案。"""
-        for scope, expect in (("广告设计；办公用品销售", True), ("日用百货销售", False), ("", None)):
+        _ad = ("广告设计；广告制作；广告发布；企业形象策划；会议及展览服务；"
+               "办公用品销售；国内贸易代理；信息技术咨询服务")
+        _no = ("日用百货销售；服装服饰零售；鞋帽零售；文具用品零售；化妆品零售；"
+               "五金产品零售；针纺织品销售；家用电器销售")
+        for scope, expect in ((_ad, True), (_no, False), ("", None)):
             r = resolve_industry(registered_industry="商贸",
                                  business_scope=scope,
                                  sales_goods=["*广告服务*广告费"])
@@ -909,3 +943,49 @@ class TestStaticAssetVersions(unittest.TestCase):
         self.assertEqual(r.returncode, 0,
                          "静态资源版本号与文件内容不一致（浏览器会继续用旧 JS/CSS）：\n"
                          + (r.stdout or "") + (r.stderr or ""))
+
+
+class TestScopeTextUsability:
+    """经营范围文本**可用性**判据（2026-10-02，用户质疑「为什么还表述商贸」牵出）。
+
+    实测场景：公司1 的 `business_scope` 只有 56 字、以「…服装...」结尾 —— 它是联网核验
+    的**摘要片段**（pipeline 用正则从搜索结果同一行里抓的，网页摘要自带省略号被原样存库），
+    并非完整工商登记经营范围。若直接拿它判「有没有行业级关键词」，会给出**看似确定、
+    实则无据**的结论（报告原文："广告传媒在经营范围文本中未见行业级关键词"）。
+    按铁律「取不到数据时明确说明未确定，不得静默顶替后照常出结论」，不可用即不得下结论。
+    """
+
+    SNIPPET = "五金产品零售;日用百货销售;针纺织品销售;化妆品零售;包装材料及制品销售;橡胶制品销售;日用杂品销售;服装..."
+    FULL_NO_AD = ("五金产品零售；日用百货销售；针纺织品销售；化妆品零售；包装材料及制品销售；"
+                  "橡胶制品销售；日用杂品销售；服装服饰零售；鞋帽零售；文具用品零售")
+
+    def test_snippet_is_unusable(self):
+        assert scope_text_issue(self.SNIPPET) != ""
+        assert "省略号" in scope_text_issue(self.SNIPPET) or "摘要" in scope_text_issue(self.SNIPPET)
+
+    def test_too_short_is_unusable(self):
+        assert scope_text_issue("五金零售；日用品销售") != ""
+
+    def test_full_text_is_usable(self):
+        assert scope_text_issue(self.FULL_NO_AD) == ""
+
+    def test_empty_is_unusable(self):
+        assert scope_text_issue("") != ""
+
+    def test_unusable_text_never_yields_false(self):
+        """残缺文本 ⇒ 无从判定（None），**不得**判 False（否则就是把"数据不可用"说成"事实如此"）。"""
+        assert scope_covers_industry("广告传媒", self.SNIPPET) is None
+
+    def test_usable_text_still_judges_both_ways(self):
+        assert scope_covers_industry("广告传媒", self.FULL_NO_AD) is False
+        assert scope_covers_industry("广告传媒", self.FULL_NO_AD + "；广告设计；广告发布") is True
+
+    def test_scope_note_states_the_real_reason(self):
+        """判不了时必须说明**真实原因**（文本残缺），不能只说"未取得"或"未见关键词"。"""
+        r = resolve_industry(company_name="某公司", registered_industry="商贸",
+                             sales_goods=["*广告服务*广告发布费"], business_scope=self.SNIPPET)
+        assert r.get("conflicts") == []
+        note = str(r.get("scope_note") or "")
+        assert ("摘要片段" in note or "不完整" in note), note
+        assert "工商登记行业为「商贸」" in note, "术语必须写「工商登记行业」，不得写成「登记经营范围」"
+        assert "登记经营范围为" not in note

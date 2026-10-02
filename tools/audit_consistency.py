@@ -5014,6 +5014,49 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"直接相关性判据断言跳过: {_exc}"))
 
+    # ── ③e 行业口径文案：术语不得混用 + 文本残缺不得下确定结论 ──
+    #   用户质疑「为什么还表述商贸？是正常的表述吗？」牵出两处：
+    #     ① 概念混用：「商贸」是**工商登记行业**（Company.industry_code），不是"经营范围"，
+    #        而三处文案写成"登记经营范围为「商贸」"；
+    #     ② 结论无据：公司1 的 `business_scope` 只有 56 字且带省略号（联网核验的**摘要片段**），
+    #        却据此输出"「广告传媒」在经营范围文本中未见行业级关键词"——把"数据不可用"
+    #        说成了"事实如此"。
+    try:
+        from engine.industry_resolver import (
+            scope_text_issue as _sti2, scope_covers_industry as _sci2, resolve_industry as _ri2,
+        )
+        # ① 文本可用性判据
+        if _sti2("五金产品零售;日用百货销售;服装...") == "":
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "含省略号的经营范围文本未被判为「不可用」（会把摘要片段当完整登记原文）"))
+        if _sti2("五金产品零售；日用百货销售；针纺织品销售；化妆品零售；包装材料及制品销售；橡胶制品销售") != "":
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "完整的经营范围文本被误判为不可用"))
+        # ② 残缺文本 ⇒ 不得下"未见行业级关键词"的确定结论
+        _bad_scope = "五金产品零售;日用百货销售;针纺织品销售;化妆品零售;包装材料及制品销售;服装..."
+        if _sci2("广告传媒", _bad_scope) is not None:
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "经营范围文本残缺时仍给出确定的涵盖判定（应判「无从判定」）"))
+        _r6 = _ri2(company_name="某公司", registered_industry="商贸",
+                   sales_goods=["*广告服务*广告发布费"], business_scope=_bad_scope)
+        if _r6.get("conflicts"):
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "经营范围文本残缺仍输出「未见行业级关键词」类冲突结论（结论无据）"))
+        if "摘要片段" not in str(_r6.get("scope_note") or "") and "不完整" not in str(_r6.get("scope_note") or ""):
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "无法判定时未如实说明原因（读者会把「资料不完整」误读成「确实没有」）"))
+        # ③ 反向：完整文本仍要能正常判（涵盖 / 未涵盖）
+        _full = ("五金产品零售；日用百货销售；针纺织品销售；化妆品零售；包装材料及制品销售；"
+                 "橡胶制品销售；日用杂品销售；服装服饰零售；鞋帽零售；文具用品零售")
+        if _sci2("广告传媒", _full) is not False:
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "完整且不含行业关键词的经营范围未判为「未涵盖」（真线索被吞）"))
+        if _sci2("广告传媒", _full + "；广告设计；广告制作；广告发布；广告代理") is not True:
+            issues.append(("ERROR", "engine/industry_resolver.py",
+                           "完整且含行业关键词的经营范围未判为「已涵盖」"))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"行业口径文案断言跳过: {_exc}"))
+
     # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。
@@ -5107,6 +5150,7 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
             #   一边写「未认定到任何一条构成要件 / 涉及上述第 无 条」，
             #   一边断言「已触碰/已经触碰税务红线」。实测 11 处（真账套）。
             #   判据同时覆盖段首、段中裁决与段尾三处措辞。
+
             _ZERO_PHRASES = ("未认定到任何一条构成要件", "涉及上述第 无 条")
             _HIT_PHRASES = ("已触碰税务违规红线", "已经触碰税务红线", "已触碰税务红线")
             #   ⚠ 只看**正文段落**：数据字段（要件核对表等）里出现「涉及上述第 无 条」
@@ -5133,6 +5177,32 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
             if "target_entity" not in _inner_d:
                 _inner_d = _inner_d.get("report") or {}
             _te_ind = str(((_inner_d.get("target_entity") or {}).get("industry")) or "").strip()
+            # ★ 2026-10-02（用户质疑「为什么还表述商贸」）：**术语不得混用** ——
+            #   「商贸」是工商**登记行业**，不是"经营范围"；输出文案写成"登记经营范围为「X」"
+            #   会让读者以为它是从经营范围文本里读出来的。
+            #   ⚠ 判据必须用**输出里的真实形态**：报告自然化会剥掉「」（实测 dump 里是
+            #     「登记经营范围为商贸」），按带引号的字面串匹配会**静默假绿**（本轮实测踩到）。
+            _reg7 = ""
+            try:
+                _reg7 = str((((_inner_d.get("target_entity") or {}).get("_industry_candidates")
+                              or {}).get("工商登记")) or "").strip()
+                if not _reg7:
+                    _reg7 = str(((_inner_d.get("target_entity") or {}).get("industry_registered")
+                                 or "")).strip()
+            except Exception as _exc7:
+                issues.append(("WARN", "tools/audit_consistency.py",
+                               f"行业口径术语断言取值失败（判据未生效）: {_exc7}"))
+                _reg7 = ""
+            _hit_term = []
+            for _k7 in ("overall_conclusion", "inspection_overview"):
+                for _seg7 in ((_er_d.get(_k7) or {}).get("paragraphs") or []):
+                    _m7 = re.search(r"登记经营范围[为是]?「?([^」」，；。]{1,20})", str(_seg7))
+                    if _m7 and _reg7 and _m7.group(1).strip() == _reg7:
+                        _hit_term.append(str(_seg7)[:90])
+            if _hit_term:
+                issues.append(("ERROR", "engine/overall_conclusion.py",
+                               "行业口径文案把「工商登记行业」写成「登记经营范围」（概念混用）："
+                               + _hit_term[0]))
             _bcc_d = ((_inner_d.get("engine_status") or {}).get("biz_cost_classification")) or {}
             _basis_d = str(_bcc_d.get("industry_basis") or "").strip()
             if _te_ind and _basis_d and _basis_d != _te_ind:
