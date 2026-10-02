@@ -289,6 +289,56 @@ def _build_combo_profiles(suspicions: List[Dict]) -> List[Dict]:
     }]
 
 
+def _entry_candidates(rid: str, group: List[Dict]) -> List[Dict]:
+    """把本红线的候选发现规整成 entry 选择所需的形态（唯一权威接口的输入）。"""
+    name = ""
+    for rec in (group or []):
+        name = str((rec.get("rl") or {}).get("name") or "")
+        break
+    out = []
+    for rec in (group or []):
+        _f = rec.get("f") or {}
+        _mi = rec.get("minfo") or {}
+        _ev = rec.get("ev") or {}
+        try:
+            _clo = float(_ev.get("closure") or 0)
+        except (TypeError, ValueError):
+            _clo = 0.0
+        out.append({
+            "type": str(_f.get("type") or "").strip(),
+            "declared": _mi.get("mode") == "declared",
+            "closure": _clo,
+        })
+    return out
+
+
+def _pick_entry(rid: str, group: List[Dict]) -> int:
+    """选"建入口那条发现"（唯一权威 `subject_consistency.pick_entry_index`，本名薄转发）。"""
+    try:
+        from engine.subject_consistency import pick_entry_index as _pei
+        _name = ""
+        for rec in (group or []):
+            _name = str((rec.get("rl") or {}).get("name") or "")
+            break
+        return int(_pei(rid, _name, _entry_candidates(rid, group)))
+    except Exception as exc:  # 不得静默：留痕并退回"取首条"（与旧行为一致）
+        print(f"[redline_engine] entry 选择失败，退回首条: {exc}", flush=True)
+        return 0
+
+
+def _entry_choice(rid: str, group: List[Dict]) -> str:
+    """本疑点 entry 选择的依据（一行，供日志/审计复核"为什么是它"）。"""
+    try:
+        from engine.subject_consistency import format_entry_choice as _fec
+        _name = ""
+        for rec in (group or []):
+            _name = str((rec.get("rl") or {}).get("name") or "")
+            break
+        return _fec(rid, _name, _entry_candidates(rid, group))
+    except Exception:
+        return ""
+
+
 def run_redline_detection(findings: List[Dict],
                           engine_data: Optional[Dict] = None,
                           material_readiness: Optional[Dict] = None,
@@ -315,6 +365,20 @@ def run_redline_detection(findings: List[Dict],
     # 本轮实际已提供的资料类别对所有发现都一样 → 只算一次
     _mats_all = _available_materials(engine_data, material_readiness, {})
 
+    # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复｜第二轮）：
+    #   **先收全每条红线的候选发现，再统一选"建入口那条"（entry）**，取消 first-finder-wins。
+    #   旧实现两个错配来源：
+    #     ① entry 固定为**第一条**映射到该红线的发现；若它是软匹配来的无关发现，
+    #        整条疑点的标题裁剪口径/线索链/证据链/附表归属/主体自检**全部建立在错的那条上**
+    #        （实测 RL-SPT-017「广告/娱乐服务未申报文化事业建设费」的 entry 是
+    #        「同一供应商同品名单价不一致」—— 只因该发现正文里举了"广告服务"这个例子）；
+    #     ② 归并时按 closure「取更强信号」把 entry 的 clue/evidence 换成**另一条**发现的，
+    #        于是同一疑点内"finding_type 讲A、证据链讲B"。
+    #   现规则（唯一权威 `subject_consistency.pick_entry_index`）：主体一致 → 声明型 → 闭合度高；
+    #   entry 定了之后，它的 clue/evidence/argumentation/finding_type/level **只来自这一条**
+    #   （同一来源）；其余发现只贡献支撑清单、要件命中与资料并集。
+    pending: Dict[str, List[Dict]] = {}
+    order: List[str] = []
     for f in findings:
         rl, minfo = _map_finding(f, _mats_all)
         if not rl:
@@ -353,109 +417,115 @@ def run_redline_detection(findings: List[Dict],
                     arg["constituent_hits"] = [
                         {"index": _di[0], "evidence": f"账内检测到：{_ev_src}"}
                     ]
-        entry = grouped.get(rid)
-        if not entry:
-            entry = {
-                "redline_id": rid,
-                "redline_name": rl.get("name", ""),
-                "suspect": rl.get("suspect", ""),
-                "taxes": list(rl.get("taxes") or []),
-                "domain": rl.get("domain", ""),
-                "legal_basis": list(rl.get("legal_basis") or []),
-                "constituents": list(rl.get("constituents") or []),
-                # ★ 2026-09-29（#448）：逐要件独立数据源（与 constituents 按序对齐），
-                #   供 constituent_checkpoint 解析"该要件的数据源本轮是否已取得"。
-                "constituent_sources": list(rl.get("constituent_sources") or []),
-                "clue_chain": clue,
-                "evidence_chain": ev,
-                "argumentation": arg,
-                "supporting_findings": [],
-                # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
-                #   **建入口那条发现（entry）的类型必须留下来**。
-                #   事故根因：`supporting_findings` 只装**第 2 条及以后**的发现，entry 自己的
-                #   类型此前没有落到任何字段 ⇒ 下游（报告）拿不到"本疑点到底依据了哪条发现"：
-                #     · `trim_redline_title` 的 `own_type` 取不到 → 标题只能沿用红线包名；
-                #     · 报告挂逐笔明细时无从按来源归属 → 退回"红线名 ↔ 类型"2-gram 兜底 → 挂错表；
-                #     · 主体一致性自检无从核对 → 只能误报"疑点无支撑发现"。
-                #   现把 entry 的 `type` 作为**本疑点主体**显式落盘（唯一权威来源）。
-                "finding_type": str(f.get("type") or "").strip(),
-                "level": f.get("level", ""),
-                "confidence": arg.get("confidence", 0.0),
-                "closure": ev.get("closure", 0.0),
-                "verdict": arg.get("verdict", ""),
-                "conclusion_grade": arg.get("conclusion_grade", "待核"),
-                "redline_hit": bool(arg.get("redline_hit")),
-                "remedy": ev.get("remedy", ""),
-                "missing_materials": list(ev.get("missing_materials") or []),
-                # ★ 2026-09-25：「待核」（有相关类别但须人工确认）必须与「缺失」分开上报，
-                #   否则报告要么漏掉该确认动作，要么把企业其实已交的资料说成"缺"。
-                "verify_materials": list(ev.get("verify_materials") or []),
-                # ★ 2026-09-25：配对方式与依据必须随结论一起留给报告/审计核对，
-                #   使"为什么这条发现被归到这条红线"可被复核。
-                "match_mode": minfo.get("mode", ""),
-                "match_score": minfo.get("score"),
-                "match_reasons": list(minfo.get("reasons") or []),
-                "match_materials": list(minfo.get("materials") or []),
-            }
-            # ★ 2026-09-27（A 收敛）：累计各来源判定的"要件命中"（域/模式检测器/VR 规则）。
-            entry["_constituent_hits"] = list(arg.get("constituent_hits") or [])
-            grouped[rid] = entry
-        else:
+        if rid not in pending:
+            pending[rid] = []
+            order.append(rid)
+        pending[rid].append({"f": f, "rl": rl, "minfo": minfo,
+                             "clue": clue, "ev": ev, "arg": arg})
+
+    for rid in order:
+        group = pending[rid]
+        _idx = _pick_entry(rid, group)
+        _base = group[_idx]
+        f = _base["f"]
+        rl = _base["rl"]
+        minfo = _base["minfo"]
+        clue = _base["clue"]
+        ev = _base["ev"]
+        arg = _base["arg"]
+        entry = {
+            "redline_id": rid,
+            "redline_name": rl.get("name", ""),
+            "suspect": rl.get("suspect", ""),
+            "taxes": list(rl.get("taxes") or []),
+            "domain": rl.get("domain", ""),
+            "legal_basis": list(rl.get("legal_basis") or []),
+            "constituents": list(rl.get("constituents") or []),
+            # ★ 2026-09-29（#448）：逐要件独立数据源（与 constituents 按序对齐），
+            #   供 constituent_checkpoint 解析"该要件的数据源本轮是否已取得"。
+            "constituent_sources": list(rl.get("constituent_sources") or []),
+            "clue_chain": clue,
+            "evidence_chain": ev,
+            "argumentation": arg,
+            "supporting_findings": [],
+            # ★★ 2026-10-02（用户：疑点内容与疑点主体错配，彻底修复）：
+            #   **建入口那条发现（entry）的类型必须留下来**。
+            #   根因：`supporting_findings` 只装**第 2 条及以后**的发现，entry 自己的类型
+            #   此前没有落到任何字段 ⇒ 下游（报告）拿不到"本疑点到底依据了哪条发现"：
+            #     · `trim_redline_title` 的 `own_type` 取不到 → 标题只能沿用红线包名；
+            #     · 报告挂逐笔明细时无从按来源归属 → 退回"红线名 ↔ 类型"2-gram 兜底 → 挂错表；
+            #     · 主体一致性自检无从核对 → 只能误报"疑点无支撑发现"。
+            #   现把 entry 的 `type` 作为**本疑点主体**显式落盘（唯一权威来源）。
+            "finding_type": str(f.get("type") or "").strip(),
+            # entry 选择依据（供日志/审计复核"为什么是它"）
+            "entry_choice": _entry_choice(rid, group),
+            "level": f.get("level", ""),
+            "confidence": arg.get("confidence", 0.0),
+            "closure": ev.get("closure", 0.0),
+            "verdict": arg.get("verdict", ""),
+            "conclusion_grade": arg.get("conclusion_grade", "待核"),
+            "redline_hit": bool(arg.get("redline_hit")),
+            "remedy": ev.get("remedy", ""),
+            "missing_materials": list(ev.get("missing_materials") or []),
+            # ★ 2026-09-25：「待核」（有相关类别但须人工确认）必须与「缺失」分开上报，
+            #   否则报告要么漏掉该确认动作，要么把企业其实已交的资料说成"缺"。
+            "verify_materials": list(ev.get("verify_materials") or []),
+            # ★ 2026-09-25：配对方式与依据必须随结论一起留给报告/审计核对，
+            #   使"为什么这条发现被归到这条红线"可被复核。
+            "match_mode": minfo.get("mode", ""),
+            "match_score": minfo.get("score"),
+            "match_reasons": list(minfo.get("reasons") or []),
+            "match_materials": list(minfo.get("materials") or []),
+        }
+        # ★ 2026-09-27（A 收敛）：累计各来源判定的"要件命中"（域/模式检测器/VR 规则）。
+        entry["_constituent_hits"] = list(arg.get("constituent_hits") or [])
+        for _j, _rec in enumerate(group):
+            if _j == _idx:
+                continue
+            _rf, _rmi = _rec["f"], _rec["minfo"]
+            _rclue, _rev, _rarg = _rec["clue"], _rec["ev"], _rec["arg"]
             entry["supporting_findings"].append({
-                "type": f.get("type", ""),
-                "domain": f.get("domain", ""),
-                "terminal_signal": clue.get("terminal_signal", ""),
-                "clue_nodes": clue.get("nodes", []),
-                "numbers": clue.get("numbers", []),
-                "samples": clue.get("samples", []),
+                "type": _rf.get("type", ""),
+                "domain": _rf.get("domain", ""),
+                "terminal_signal": _rclue.get("terminal_signal", ""),
+                "clue_nodes": _rclue.get("nodes", []),
+                "numbers": _rclue.get("numbers", []),
+                "samples": _rclue.get("samples", []),
             })
-            # ★ 2026-09-29（#448 接线升级 / 违「静默吃掉发现」红线）：红线配对是 first-finder-wins，
-            #   match_mode 在建入口（L336）只取**首条**映射发现的配对方式。若先到的是模糊匹配
-            #   （mode="matched"，来自 match_redline_grounded 兜底），而本条发现是**声明型**
-            #   （VR 显式写了 redline_id → _map_finding 返回 mode="declared"，才是该红线的真实检测器），
-            #   必须把配对方式升为 declared，并以声明型发现的逐要件命中覆盖 _DEFAULT_HIT_INDEX 兜底
-            #   （兜底只填首个序号、论证更弱，留着会把"发现级证据"伪装成"逐要件核对"）。
-            #   否则声明型检测器虽已接好，运行期却仍被标成模糊匹配，① 检出能力被静默低估。
-            if minfo.get("mode") == "declared":
+            # ★ 2026-09-29（#448）：配对方式是**红线级**事实 —— 只要本红线被任一"声明型"
+            #   发现认领过（VR 显式写了 redline_id / 扫描器前置认领），就标 declared，
+            #   否则声明型检测器虽已接好、运行期仍被标成模糊匹配，检出能力被静默低估。
+            if _rmi.get("mode") == "declared":
                 entry["match_mode"] = "declared"
-                if minfo.get("score") is not None:
-                    entry["match_score"] = minfo.get("score")
-                entry["match_reasons"] = list(minfo.get("reasons") or [])
-                entry["match_materials"] = list(minfo.get("materials") or [])
-                # 声明型发现是权威来源：以其 argumentation / 逐要件命中覆盖首条（模糊）发现的兜底命中
-                # ★ 2026-10-02（用户复核疑点5）：**但不得用一个更弱的裁决把论证换掉** ——
-                #   外部核验档（rank=2，结论待外部数据）晚到此，会把已判「已触碰红线」（rank=3）
-                #   的论证顶掉，于是同一疑点里 verdict 写触红、正文用的是"待外部核验"那套论证。
-                if _VERDICT_RANK.get(arg.get("verdict"), 0) >= _VERDICT_RANK.get(entry.get("verdict"), 0):
-                    entry["argumentation"] = arg
-                    entry["_constituent_hits"] = list(arg.get("constituent_hits") or [])
-            # 归并时取更强的信号：闭合度更高者为主证据链，置信度取最高
-            if ev.get("closure", 0) > entry["closure"]:
-                entry["evidence_chain"] = ev
-                entry["clue_chain"] = clue
-                entry["closure"] = ev.get("closure", 0.0)
-            # 同一条红线被多条发现命中时，取裁决层级最强的一次作为疑点结论
-            if _VERDICT_RANK.get(arg.get("verdict"), 0) > _VERDICT_RANK.get(entry.get("verdict"), 0):
-                entry["verdict"] = arg.get("verdict", "")
-                entry["conclusion_grade"] = arg.get("conclusion_grade", "待核")
-                entry["argumentation"] = arg
-            entry["redline_hit"] = bool(entry.get("redline_hit") or arg.get("redline_hit"))
-            if arg.get("confidence", 0) > entry["confidence"]:
-                entry["confidence"] = arg.get("confidence", 0.0)
-            for m in (ev.get("missing_materials") or []):
-                if m not in entry["missing_materials"]:
-                    entry["missing_materials"].append(m)
-            for m in (ev.get("verify_materials") or []):
-                if m not in entry.get("verify_materials", []):
-                    entry.setdefault("verify_materials", []).append(m)
+                if _rmi.get("score") is not None:
+                    entry["match_score"] = _rmi.get("score")
+                entry["match_reasons"] = list(_rmi.get("reasons") or [])
+                entry["match_materials"] = list(_rmi.get("materials") or [])
+            # 同一条红线被多条发现命中时，**裁决层级取最强的一次**（这是红线级裁决，
+            #   与"由哪条发现讲这条疑点的故事"是两件事）；同时记下该裁决来自哪条发现，
+            #   供报告自检与复核追溯 —— 不再用它替换 entry 的论证/证据（那正是错配来源）。
+            if _VERDICT_RANK.get(_rarg.get("verdict"), 0) > _VERDICT_RANK.get(entry.get("verdict"), 0):
+                entry["verdict"] = _rarg.get("verdict", "")
+                entry["conclusion_grade"] = _rarg.get("conclusion_grade", "待核")
+                entry["verdict_source_type"] = str(_rf.get("type") or "").strip()
+            entry["redline_hit"] = bool(entry.get("redline_hit") or _rarg.get("redline_hit"))
+            if _rarg.get("confidence", 0) > entry["confidence"]:
+                entry["confidence"] = _rarg.get("confidence", 0.0)
+            for _m in (_rev.get("missing_materials") or []):
+                if _m not in entry["missing_materials"]:
+                    entry["missing_materials"].append(_m)
+            for _m in (_rev.get("verify_materials") or []):
+                if _m not in entry.get("verify_materials", []):
+                    entry.setdefault("verify_materials", []).append(_m)
             # ★ 2026-09-27（A 收敛）：合并本条红线各来源的要件命中（按 index 去重）
             _acc = entry.setdefault("_constituent_hits", [])
             _seen = {(h.get("index") if isinstance(h, dict) else h) for h in _acc}
-            for _h in (arg.get("constituent_hits") or []):
+            for _h in (_rarg.get("constituent_hits") or []):
                 _k = _h.get("index") if isinstance(_h, dict) else _h
                 if _k not in _seen:
                     _acc.append(_h)
                     _seen.add(_k)
+        grouped[rid] = entry
 
     # 把累计的要件命中写回 argumentation（供企业报告"一、涉及的风险事项"采用）
     _industry = str((engine_data or {}).get("industry") or "").strip()

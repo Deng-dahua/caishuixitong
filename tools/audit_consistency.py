@@ -6868,6 +6868,9 @@ def check_suspicion_subject_consistency() -> List[Tuple[str, str, str]]:
         ("RL-PTY-001", "主营业务成本资金与负债支撑材料核验"),
         ("RL-OTH-003", "城建税及教育费附加随增值税附征勾稽"),
         ("RL-CIT-008", "待核事实：增值税进项税额对等逐月不匹配（2025-01）"),
+        # 由"自检误报"反推补登记的同类表述（同一件事的内/外部两种说法）
+        ("RL-FUND-001", "需外部数据核实：对私资金往来对象实名与性质"),
+        ("RL-CIT-004", "待核事实：企业所得税贡献率偏低"),
     ]
     for rid, subject in _must_accept:
         ok, why = SC.declared_subject_ok(rid, subject)
@@ -6932,6 +6935,41 @@ def check_suspicion_subject_consistency() -> List[Tuple[str, str, str]]:
     except Exception as exc:  # pragma: no cover
         issues.append(("ERROR", "附表归属", f"报告行为断言执行失败：{exc}"))
 
+    # ── ① 建入口那条发现（entry）的选择 ──
+    try:
+        _cands = [
+            {"type": "同一供应商同品名单价不一致", "declared": False, "closure": 0.3},
+            {"type": "文化事业建设费未申报（待核）", "declared": True, "closure": 0.1},
+        ]
+        if SC.pick_entry_index("RL-SPT-017", "广告/娱乐服务未申报文化事业建设费", _cands) != 1:
+            issues.append(("ERROR", "entry 选择",
+                           "无关软匹配发现仍可能成为疑点的建入口那条（主体一致/声明型未优先）"))
+        _cands2 = [
+            {"type": "主营业务成本有票支撑偏低", "declared": False, "closure": 0.9},
+            {"type": "某无关发现", "declared": True, "closure": 0.9},
+        ]
+        if SC.pick_entry_index("RL-COST-003", "白条入账：无合规凭证列支成本费用", _cands2) != 0:
+            issues.append(("ERROR", "entry 选择", "声明型优先被误用成'声明即可无视主体'"))
+    except Exception as exc:  # pragma: no cover
+        issues.append(("ERROR", "entry 选择", f"行为断言执行失败：{exc}"))
+
+    # ── ① 端到端：无关软匹配发现不得成为疑点主体 ──
+    try:
+        from engine.redline_engine import run_redline_detection as _rrd
+        _res = _rrd([
+            {"type": "同一供应商同品名单价不一致", "level": "待核验",
+             "detail": "多张发票同一供应商同一品名单价差异超50%，如XX广告服务单价 1000/5000 元。"},
+            {"type": "文化事业建设费未申报（待核）", "level": "待核验",
+             "redline_id": "RL-SPT-017",
+             "detail": "取得广告服务收入 1,000,000 元，未申报文化事业建设费。"},
+        ], material_readiness={"provided": ["销项发票"]})
+        _hit = [x for x in (_res.get("suspicions") or []) if x.get("redline_id") == "RL-SPT-017"]
+        if _hit and _hit[0].get("finding_type") != "文化事业建设费未申报（待核）":
+            issues.append(("ERROR", "entry 选择",
+                           f"疑点主体被软匹配发现占位：{_hit[0].get('finding_type')}"))
+    except Exception as exc:  # pragma: no cover
+        issues.append(("WARN", "entry 选择", f"端到端断言执行失败：{exc}"))
+
     # ── ③ 反向验证（内嵌）：把映射改错，自检必须变红 ──
     try:
         _bak = dict(SC.RECONCILE_AXIS_REDLINE)
@@ -6944,6 +6982,18 @@ def check_suspicion_subject_consistency() -> List[Tuple[str, str, str]]:
                            "反向验证失败：故意改错映射后自检仍未报警（本闸门是假的）"))
     except Exception as exc:  # pragma: no cover
         issues.append(("WARN", "闸门自检", f"反向验证执行失败：{exc}"))
+
+    # ── ③ 反向验证（内嵌）：把 entry 选择改坏，闸门必须变红 ──
+    try:
+        _orig_pick = SC.pick_entry_index
+        SC.pick_entry_index = lambda *a, **k: 0
+        _rev2 = check_suspicion_subject_consistency()
+        SC.pick_entry_index = _orig_pick
+        if not [x for x in _rev2 if x[1] == "entry 选择"]:
+            issues.append(("ERROR", "闸门自检",
+                           "反向验证失败：entry 选择被改坏后闸门仍未报警（该断言是假的）"))
+    except Exception as exc:  # pragma: no cover
+        issues.append(("WARN", "闸门自检", f"entry 反向验证执行失败：{exc}"))
     return issues
 
 

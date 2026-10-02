@@ -75,6 +75,14 @@ class TestAxisRedlineMap:
             ("RL-VAT-001", "待核事实：增值税销项税额对等逐月不匹配（2025-01）"),
             ("RL-INC-001", "待核事实：收入多源对等逐月不匹配（2025-01）"),
         ]
+        # 新登记不得变成"开口子"：同红线下无关主体仍必须被拒
+        _still_bad = [
+            ("RL-FUND-001", "同一供应商同品名单价不一致"),
+            ("RL-CIT-004", "工资表人数与社保参保人数不符"),
+        ]
+        for rid, subject in _still_bad:
+            ok2, why2 = declared_subject_ok(rid, subject)
+            assert ok2 is False, (rid, subject, why2)
         for rid, subject in bad:
             ok, why = declared_subject_ok(rid, subject)
             assert ok is False, (rid, subject, why)
@@ -87,14 +95,74 @@ class TestAxisRedlineMap:
             ("RL-PTY-001", "主营业务成本资金与负债支撑材料核验"),
             ("RL-OTH-003", "城建税及教育费附加随增值税附征勾稽"),
             ("RL-CIT-008", "待核事实：增值税进项税额对等逐月不匹配（2025-01）"),
+            # 由"自检误报"反推补登记的同类表述（同一件事的两种说法）
+            ("RL-FUND-001", "需外部数据核实：对私资金往来对象实名与性质"),
+            ("RL-CIT-004", "待核事实：企业所得税贡献率偏低"),
         ]
         for rid, subject in good:
             ok, why = declared_subject_ok(rid, subject)
             assert ok is True, (rid, subject, why)
 
 
-# ── ③ 附表准入 ──────────────────────────────────────────────────────────────
-class TestTableAttachment:
+# ── ②·B 建入口那条发现（entry）的选择 ────────────────────────────────────────
+class TestEntrySelection:
+    """疑点的 entry 决定标题口径/线索链/证据链/附表来源/自检基准，不得 first-finder-wins。"""
+
+    def test_unrelated_soft_match_loses_to_declared_same_subject(self):
+        """实测形态：软匹配来的无关发现排在前面，也必须让位给同主体的声明型发现。"""
+        from engine.subject_consistency import pick_entry_index
+        cands = [
+            {"type": "同一供应商同品名单价不一致", "declared": False, "closure": 0.3},
+            {"type": "文化事业建设费未申报（待核）", "declared": True, "closure": 0.1},
+        ]
+        i = pick_entry_index("RL-SPT-017", "广告/娱乐服务未申报文化事业建设费", cands)
+        assert cands[i]["type"] == "文化事业建设费未申报（待核）"
+
+    def test_subject_match_beats_declared_but_unrelated(self):
+        """主体一致 > 声明型：一条声明错了红线的发现不得代表本红线。"""
+        from engine.subject_consistency import pick_entry_index
+        cands = [
+            {"type": "主营业务成本有票支撑偏低", "declared": False, "closure": 0.9},
+            {"type": "某无关发现", "declared": True, "closure": 0.9},
+        ]
+        assert pick_entry_index("RL-COST-003", "白条入账：无合规凭证列支成本费用", cands) == 0
+
+    def test_declared_wins_within_same_subject_by_closure(self):
+        from engine.subject_consistency import pick_entry_index
+        cands = [
+            {"type": "待核事实：主营业务成本有票支撑偏低", "declared": False, "closure": 0.8},
+            {"type": "待核事实：取得发票对成本费用合计的支撑不足", "declared": True, "closure": 0.2},
+        ]
+        # 两条都主体一致：声明型得 3 分，压倒软匹配的 2 分
+        assert pick_entry_index("RL-COST-003", "白条入账：无合规凭证列支成本费用", cands) == 1
+
+    def test_empty_candidates_returns_zero(self):
+        from engine.subject_consistency import pick_entry_index
+        assert pick_entry_index("RL-X", "任意", []) == 0
+
+    def test_detection_entry_is_subject_consistent(self):
+        """端到端（生产函数）：无关软匹配发现不得成为 entry，且 match_mode 仍标 declared。"""
+        from engine.redline_engine import run_redline_detection
+        findings = [
+            {"type": "同一供应商同品名单价不一致", "level": "待核验",
+             "detail": "多张发票同一供应商同一品名单价差异超50%，如XX广告服务单价 1000/5000 元。"},
+            {"type": "文化事业建设费未申报（待核）", "level": "待核验",
+             "redline_id": "RL-SPT-017",
+             "detail": "取得广告服务收入 1,000,000 元，未申报文化事业建设费。"},
+        ]
+        res = run_redline_detection(findings, material_readiness={"provided": ["销项发票"]})
+        hit = [s for s in res["suspicions"] if s.get("redline_id") == "RL-SPT-017"]
+        assert hit, res["suspicions"]
+        s = hit[0]
+        assert s.get("finding_type") == "文化事业建设费未申报（待核）", s.get("finding_type")
+        assert s.get("match_mode") == "declared"
+        # 无关发现仍如实保留（在支撑清单里、或按"未归入已知风险情形"登记，不得静默消失）
+        assert any("单价不一致" in str(f.get("type") or "")
+                   for f in (s.get("supporting_findings") or [])) or any(
+            "单价不一致" in str(u.get("type") or "") for u in (res.get("unmapped") or []))
+
+
+# ── ③ 附表准入 ──────────────────────────────────────────────────────────────class TestTableAttachment:
     def test_source_outside_support_rejected(self):
         from engine.subject_consistency import norm_subject_key, table_source_ok
         sup = {norm_subject_key("城建税及教育费附加随增值税附征勾稽")}

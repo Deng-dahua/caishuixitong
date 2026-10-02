@@ -26,7 +26,7 @@ os.chdir(ROOT)
 sys.path.insert(0, ROOT)
 
 from engine.subject_consistency import (  # noqa: E402
-    norm_subject_key, same_subject, table_source_ok, suspicion_subject_ok,
+    norm_subject_key, same_subject, subject_terms, table_source_ok, suspicion_subject_ok,
 )
 
 PATH = sys.argv[1] if len(sys.argv) > 1 else 'scripts/four_reports/_fresh_result.json'
@@ -72,11 +72,27 @@ for i, c in enumerate(cps):
     title = str(c.get('title') or '')
     sus = None
     _tkey = norm_subject_key(title)
+    # 先按红线名回查；报告标题可能已按"发现自有名 + 认定范围括注"裁剪，故再按 entry 类型回查
     for r, s in SUS.items():
         _nkey = norm_subject_key(s.get('redline_name'))
         if _nkey and (_nkey in _tkey or _tkey.startswith(_nkey)):
             sus = s
             break
+    if sus is None:
+        for r, s in SUS.items():
+            _ekey = norm_subject_key(s.get('finding_type'))
+            if _ekey and _ekey in _tkey:
+                sus = s
+                break
+    if sus is None:
+        # 最后按本体词最大重合回查（仍取不到才判"无从判定"）
+        _best, _bs = None, 0
+        for r, s in SUS.items():
+            _ov = len(subject_terms(title) & subject_terms(s.get('redline_name')))
+            if _ov > _bs:
+                _best, _bs = s, _ov
+        if _bs >= 2:
+            sus = _best
     sup = []
     if sus:
         if str(sus.get('finding_type') or '').strip():

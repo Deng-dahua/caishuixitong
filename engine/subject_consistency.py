@@ -183,6 +183,13 @@ REDLINE_SUBJECT_DECL: Dict[str, Tuple[str, ...]] = {
     "RL-INC-001": ("银行收款大于申报收入", "银行收款", "应收账款发生额对等"),
     # —— 固定资产账实/折旧勾稽 ——
     "RL-AST-001": ("固定资产原值勾稽", "累计折旧勾稽", "固定资产取得", "折旧"),
+    # ★ 以下两条由"自检误报"反推补登记（实测同一件事的两种说法，不是错配）：
+    #   · RL-FUND-001「公转私大额频繁支出」的外部核验项主语是**对私资金往来**
+    #     （同一件事的内/外部两种表述）—— 不登记会把正当疑点误标成错配；
+    #   · RL-CIT-004「长期亏损仍持续经营」的**要件本身**含"税负贡献与规模不匹配"，
+    #     故「企业所得税贡献率偏低」是该红线的正当实例（标题已按要件裁剪并声明范围）。
+    "RL-FUND-001": ("公转私", "对私资金往来", "变相分配", "私户支付", "私账支付"),
+    "RL-CIT-004": ("企业所得税贡献率偏低", "贡献率偏低", "税负贡献", "长期亏损", "持续经营"),
 }
 
 # 兜底：未在 `REDLINE_SUBJECT_DECL` 中登记的红线，是否允许被声明。
@@ -343,6 +350,85 @@ def suspicion_subject_ok(redline_name: Any, support_subjects: Iterable[Any],
     return False, ("红线名「%s」与本疑点支撑发现（%s）找不到共同主体，"
                    "红线库也未声明该类主体归本红线"
                    % (name[:26], "／".join(subs)[:44]))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 四·B、建入口那条发现（entry）的选择（归属层第二处唯一权威）
+# ═══════════════════════════════════════════════════════════════════════════
+# 背景：一条红线常被多条发现命中，其中一条成为疑点的"entry" —— 它决定疑点的
+# **标题裁剪口径 / 线索链 / 证据链 / 论证链 / 附表来源 / 主体自检基准**。
+# 旧实现是 first-finder-wins（谁先来谁当 entry），于是软匹配来的无关发现一旦排在最前，
+# 整条疑点就建立在错的那条发现上（实测 RL-SPT-017「广告/娱乐服务未申报文化事业建设费」
+# 的 entry 是「同一供应商同品名单价不一致」—— 只因该发现正文里举了"广告服务"这个例子）。
+#
+# 选择规则（可审、可证伪）：
+#   ① **主体一致优先**（权重 2）：声明型发现只要能过红线自己的主体声明表即算一致；
+#      红线未登记主体声明表时，**声明型即视为一致**（检测器本身是权威，不因"没登记"贬低它）；
+#      非声明型（软匹配）必须与红线名属同一主体（主题词有交集）。
+#   ② **声明型优先**（权重 1）：检测器真算过的 > 文本相似度凑出来的。
+#   ③ 同分取证据链**闭合度更高**者，再同取先出现者（稳定）。
+ENTRY_SUBJECT_WEIGHT = 2
+ENTRY_DECLARED_WEIGHT = 1
+
+
+def entry_subject_ok(redline_id: Any, redline_name: Any, subject: Any,
+                     declared: bool = False) -> Tuple[bool, str]:
+    """该条发现是否有资格代表本红线（entry 候选的主体判据）。"""
+    subj = str(subject or "").strip()
+    if not subj:
+        return False, "发现主体为空"
+    if declared:
+        rid = str(redline_id or "").strip()
+        if rid and rid in REDLINE_SUBJECT_DECL:
+            ok, why = declared_subject_ok(rid, subj)
+            return ok, why
+        return True, "声明型发现（该红线未登记主体声明表，检测器本身即权威）"
+    if str(redline_name or "").strip() and same_subject(redline_name, subj):
+        return True, "与本红线名属同一主体"
+    return False, "与本红线名找不到共同主体（软匹配不可代表本红线）"
+
+
+def entry_score(redline_id: Any, redline_name: Any, candidate: Dict[str, Any]) -> Tuple[int, str]:
+    """entry 候选打分：`(分数, 依据)`。分数 = 2×主体一致 + 1×声明型。"""
+    subj = str((candidate or {}).get("type") or "")
+    declared = bool((candidate or {}).get("declared"))
+    ok, why = entry_subject_ok(redline_id, redline_name, subj, declared)
+    return ((ENTRY_SUBJECT_WEIGHT if ok else 0)
+            + (ENTRY_DECLARED_WEIGHT if declared else 0)), why
+
+
+def pick_entry_index(redline_id: Any, redline_name: Any,
+                     candidates: Iterable[Dict[str, Any]]) -> int:
+    """从本红线的候选发现里选"建入口那条"，返回下标（唯一权威）。
+
+    `candidates` 每项：`{"type": 发现类型, "declared": 是否声明型, "closure": 证据闭合度}`。
+    """
+    cands = list(candidates or [])
+    if not cands:
+        return 0
+    best_i, best_key = 0, None
+    for i, c in enumerate(cands):
+        sc, _why = entry_score(redline_id, redline_name, c)
+        try:
+            clo = float((c or {}).get("closure") or 0)
+        except (TypeError, ValueError):
+            clo = 0.0
+        key = (sc, clo)
+        if best_key is None or key > best_key:
+            best_i, best_key = i, key
+    return best_i
+
+
+def format_entry_choice(redline_id: Any, redline_name: Any,
+                        candidates: Iterable[Dict[str, Any]]) -> str:
+    """把 entry 选择过程写成一行（供日志/审计：为什么选它）。"""
+    cands = list(candidates or [])
+    i = pick_entry_index(redline_id, redline_name, cands)
+    if not cands:
+        return "无候选发现"
+    sc, why = entry_score(redline_id, redline_name, cands[i])
+    return "entry=「%s」（得分%d：%s；候选%d条）" % (
+        str((cands[i] or {}).get("type") or "")[:30], sc, why, len(cands))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
