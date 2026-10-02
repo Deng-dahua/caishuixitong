@@ -5185,6 +5185,42 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"证据行主题相关性断言跳过: {_exc}"))
 
+    # ── ③i 新增两段（用户要求）：为何列入检查 + 若不补证的后果 ──
+    #   ① 「为何列入检查」必须存在（有触发信号时）——让企业一眼看懂"正是因为出现了什么情况"；
+    #   ② 「若不补证的后果」必须**依法且不越界**：只说"存在被认定为…的风险"，
+    #      且必须保留"须由税务机关依法调查认定 / 本报告不作定性"。
+    try:
+        _dp9 = ROOT / "scripts" / "four_reports" / "_fresh_result.json"
+        if _dp9.exists():
+            _dd9 = json.loads(_dp9.read_text(encoding="utf-8"))
+            _rd9 = _dd9.get("report") or {}
+            if "enterprise_readable_report" not in _rd9:
+                _rd9 = _rd9.get("report") or {}
+            _er9 = _rd9.get("enterprise_readable_report") or {}
+            _cps9 = _er9.get("confirmed_problems") or []
+            _missing_why = []
+            _bad_cons = []
+            for _c9 in _cps9:
+                _heads = [str((_p9 or {}).get("heading") or "") for _p9 in (_c9.get("narrative_paragraphs") or [])]
+                _txt9 = " ".join(str((_p9 or {}).get("text") or "") for _p9 in (_c9.get("narrative_paragraphs") or []))
+                if "为何列入检查" not in _heads:
+                    _missing_why.append(str(_c9.get("title") or "")[:16])
+                if "若不补证的后果" in _heads:
+                    if ("须由税务机关依法调查认定" not in _txt9
+                            or "不作定性" not in _txt9):
+                        _bad_cons.append(str(_c9.get("title") or "")[:16])
+                    if "将被认定" in _txt9 or "已经认定违法" in _txt9:
+                        _bad_cons.append(str(_c9.get("title") or "")[:16] + "(越界断言)")
+            if _missing_why:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               "疑点缺「为何列入检查」段（读者不知道因何触发）：" + "、".join(_missing_why[:3])))
+            if _bad_cons:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               "「若不补证的后果」段越界或缺免责表述（禁伪作执法文书）："
+                               + "、".join(_bad_cons[:3])))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"新增两段断言跳过: {_exc}"))
+
     # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。

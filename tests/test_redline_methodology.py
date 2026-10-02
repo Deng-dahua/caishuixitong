@@ -363,9 +363,14 @@ class TestReportIntegration(unittest.TestCase):
             self.assertTrue(p["redline_id"], "编号仍须在字段层保留，供系统追溯")
             self.assertTrue(p["suspect"])
             # 五段式（小标题为正式文书式表述，不得出现内部术语与提问腔）
+            # ⚠ 2026-10-02：改为断言**五个标准章节齐备**，而不是 `len(heads)==5` ——
+            #   报告新增了辅助段（「为何列入检查」「若不补证的后果」），
+            #   硬编码段数会把"新增有帮助的内容"误判成回归；按章节存在性判断意图更准。
             heads = [x["heading"] for x in p["narrative_paragraphs"]]
-            self.assertEqual(len(heads), 5)
             joined = "".join(heads)
+            for _must in ("一、涉及的风险事项", "二、发现的依据", "三、已取得的资料与待补充的资料",
+                          "四、本项结论及理由", "五、需企业提供的资料与说明"):
+                self.assertIn(_must, joined, f"缺标准章节：{_must}")
             for jargon in ("线索链", "证据链", "论证", "裁决",
                            "是怎么发现的", "还缺什么", "手上已有"):
                 self.assertNotIn(jargon, joined, f"小标题不得出现「{jargon}」")

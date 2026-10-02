@@ -7808,16 +7808,34 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
                                   ("个人账户", "私户", "公私混同", "六员", "个人交易", "个人收款",
                                    "个人卡", "私卡", "个人银行"))
 
+            # ★★ 2026-10-02（用户质疑「检查该疑点的内容是否与疑点主题一致」）：
+            #   **证据行必须对齐风险发生侧**（与「信号必须对齐风险发生侧」同一铁律）。
+            #   实测事故：疑点「银行**收款**大于申报收入：存在账外收入嫌疑」的明细表 163 行里，
+            #   **支出 108 行、收入仅 53 行** —— 明星费用支出、房租水电、公积金、税款、
+            #   网银手续费（25 元）全被列进"收款差异"明细，与主题完全相反；
+            #   根因同上一类：只按"文本含银行/流水"取**金额最大**的几笔，不看方向。
+            #   判据：主题偏收入侧 ⇒ 只取 credit（贷方/收款）；偏支出侧 ⇒ 只取 debit（借方/付款）；
+            #   两侧线索都有（如"资金回流"既看收也看付）⇒ 不过滤，避免丢证据。
+            _INCOME_SIDE_KWS = ("收款", "收入", "账外", "隐匿", "少计", "入账", "未开票")
+            _EXPENSE_SIDE_KWS = ("付款", "支付", "支出", "成本", "费用", "公转私", "发薪", "对私")
+            _side_income = any(kw in combined for kw in _INCOME_SIDE_KWS)
+            _side_expense = any(kw in combined for kw in _EXPENSE_SIDE_KWS)
+
             def _cp_ok(_tx):
                 _c = str(_tx.get("counterparty", _tx.get("对方户名", "")) or "").strip()
                 # 个人账户类主题：剔**企业法人**（公司主体的对公流水与本项无关）
                 # 与**脏值**（银行摘要误入对手方字段）；工作室/协会/个体户保留
                 # —— 它们是"个人账户往来"的真实对象。
-                return bool(_c) and not _llp_ent(_c) and not _llp_noise(_c)
+                if _personal_scope and (not _c or _llp_ent(_c) or _llp_noise(_c)):
+                    return False
+                # 风险发生侧：只取与本项方向一致的行
+                if _side_income and not _side_expense:
+                    return to_number(_tx.get("credit", 0)) > 0
+                if _side_expense and not _side_income:
+                    return to_number(_tx.get("debit", 0)) > 0
+                return True
 
-            _pool = list(bank_txs)
-            if _personal_scope:
-                _pool = [t for t in _pool if _cp_ok(t)]
+            _pool = [t for t in bank_txs if _cp_ok(t)]
             sorted_bank = sorted(_pool, key=lambda x: max(to_number(x.get("debit", 0)),
                                                           to_number(x.get("credit", 0))), reverse=True)
             for tx in sorted_bank:

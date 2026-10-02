@@ -1942,7 +1942,106 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
                     for a in actions if str(a).strip()]
         tail5 = _naturalize_report_text(f"补救要求：{ev['remedy']}") if ev.get("remedy") else ""
 
-        paragraphs = [
+        # ══════════════════════════════════════════════════════════════════
+        # ★★ 2026-10-02（用户要求新增两项内容，由我决定后落地）：
+        #   ① **「为何列入检查」**：让企业一眼看懂"正是因为出现了什么情况才有这个疑点"。
+        #      数据来源＝本项终局触发信号（`clue_chain.terminal_signal`，即检测器判定触发的
+        #      那一句事实），**可自证**、不另行编造；取不到则不写（不臆测）。
+        #   ② **「若不补证的后果」**：按目前分析结论，若企业无法补证或解释，**可能**被如何
+        #      定性、承担什么后果。口径三条硬约束（不得越界）：
+        #        · 只说"存在被认定为…的风险"，不说"就是/将被认定"（本报告不作定性）；
+        #        · 引用的法条只用条款号（第三十二条滞纳金、第六十三条偷税），不逐字引原文
+        #          （法条文本以 `legal_citation` 唯一权威为准，避免两处表述漂移）；
+        #        · 必须保留"须由税务机关依法调查认定 + 补证前既不认定违法也不予排除"。
+        #      仅在**尚未定性**的档位出现（已核定的项已定性，不再讲"若不补证"）。
+        # ══════════════════════════════════════════════════════════════════
+        # ⚠ `terminal_signal` **不总是"触发原因"**：它有时是排查后的**结论句**
+        #   （实测「个人账户收取经营性款项」的 terminal_signal 是"对公账户工资类支出
+        #    1,743,847.92 元已覆盖并超过账面应发工资 928,000.00 元，公户代发充分"——
+        #    那是"未发现异常"的意思，拿它当触发原因会**语义相反**）。
+        #   故先排除"未发现/已覆盖/充分/正常"这类否定性信号，改用线索链首环的事实。
+        _NEG_SIGNAL_KWS = ("未发现", "未见", "不存在", "未出现", "已覆盖", "充分", "正常",
+                           "无异常", "未超过", "未达", "未涉及", "已排除")
+        # ⚠ 一个疑点常聚合**多条发现**，而主线索链未必是主题对应的那条 ——
+        #   实测「个人账户收取经营性款项」的主信号取到了同疑点下"成本付款核验"的信号
+        #   （"444 张发票的供应商在银行流水付款记录中找不到对应付款"），与"个人账户收款"无关。
+        #   故按**与疑点标题的字面相关度**（汉字 2-gram 重叠）挑最相关的那条发现，
+        #   主线索链仅作兜底。
+        def _bg2(_x):
+            _tt = "".join(_c for _c in str(_x or "") if "\u4e00" <= _c <= "\u9fff")
+            return {_tt[i:i + 2] for i in range(max(0, len(_tt) - 1))}
+
+        # 取值优先级（先主题相关、再字面相关、最后通用句）：
+        #   ① 主线索链的终局信号（非否定句）——它就是本项检测的触发事实；
+        #   ② 主线索链首环"账内实际读到的数据"；
+        #   ③ 同疑点下其它发现里与标题字面最相关者的信号；
+        #   ④ 通用句（不编造具体原因，但保证该段存在）。
+        _rb2 = _bg2(rname)
+        _main_sig = str(clue.get("terminal_signal") or "").strip()
+        if _main_sig and any(k in _main_sig for k in _NEG_SIGNAL_KWS):
+            _main_sig = ""
+        _why_txt = _main_sig
+        if not _why_txt:
+            for _n0 in (clue.get("nodes") or []):
+                _obs0 = str((_n0 or {}).get("observed") or "").strip() if isinstance(_n0, dict) else ""
+                # 跳过"已读取资料：…"这类**只说明读了什么**的环（不是触发原因），
+                # 且必须走中文化（否则会带 `matches=` 这类引擎内部键名进正文）。
+                if not _obs0 or "已读取资料" in _obs0:
+                    continue
+                _obs0 = _humanize_observed(_obs0) or _obs0
+                _why_txt = "在%s环节读到：%s%s" % (
+                    _label_source(str(_n0.get("source") or "")) or "相关资料",
+                    _obs0[:80], "…" if len(_obs0) > 80 else "")
+                break
+        if not _why_txt:
+            _best_sc = -1
+            for _f0 in (s.get("supporting_findings") or []):
+                if not isinstance(_f0, dict):
+                    continue
+                _sig2 = str(_f0.get("terminal_signal") or "").strip()
+                if not _sig2 or any(k in _sig2 for k in _NEG_SIGNAL_KWS):
+                    continue
+                _sc2 = len(_rb2 & _bg2(str(_f0.get("type") or "")))
+                if _sc2 > _best_sc:
+                    _why_txt, _best_sc = _sig2, _sc2
+        if not _why_txt:
+            # 回退：线索链首环"账内实际读到的数据"（同样是可自证事实，不臆测原因）
+            # ⚠ 截断必须**可见**（省略号），不得留半截数字（本项目铁律）
+            for _n in (clue.get("nodes") or []):
+                if isinstance(_n, dict) and str(_n.get("observed") or "").strip():
+                    _obs = str(_n["observed"]).strip()
+                    _why_txt = "在%s环节读到：%s%s" % (
+                        str(_n.get("source") or "相关资料"),
+                        _obs[:80], "…" if len(_obs) > 80 else "")
+                    break
+        _pre_paras = [{
+            "heading": "为何列入检查",
+            "text": _naturalize_report_text(
+                ("本项之所以列入检查，是因为出现了以下情况：%s。"
+                 "本项对应的风险指标是「%s」——凡出现上述情形即纳入检查范围；"
+                 "是否成立，另按本项构成要件逐条核对（见下）。"
+                 % (_why_txt.rstrip("。；; "), rname)) if _why_txt else
+                ("本项因风险指标「%s」与本企业账内数据的比对结果列入检查："
+                 "比对中发现与该指标对应的异常线索（详见下一节各环实际读到的数据）；"
+                 "是否成立，另按本项构成要件逐条核对。" % rname)),
+        }]
+        _post_paras = []
+        if grade != "已核定":
+            _taxes_txt = "、".join(str(x) for x in (s.get("taxes") or []) if str(x).strip())
+            _post_paras.append({
+                "heading": "若不补证的后果",
+                "text": _naturalize_report_text(
+                    "按目前的分析结论（%s）：若企业未能补充上述资料、也未对差额或异常作出"
+                    "合理解释，本项存在被认定为%s的风险%s，主管税务机关可依《税收征收管理法》"
+                    "第三十二条加收滞纳金，并依第六十三条追缴税款、处不缴或少缴税款百分之五十"
+                    "以上五倍以下罚款。是否构成偷税、以及是否移送，须由税务机关依法调查认定；"
+                    "本报告不作定性，在补证核实之前既不认定违法，也不予排除。"
+                    % ({"已核定": "已可作出判断", "已排除": "已排除"}.get(str(grade), "尚待补证与核实"),
+                       _suspect_txt or "账簿少列收入、少缴应纳税款",
+                       ("（涉及%s）" % _taxes_txt) if _taxes_txt else "")),
+            })
+
+        paragraphs = _pre_paras + [
             {"heading": "一、涉及的风险事项", "text": _naturalize_report_text(p1),
              "bullets": bullets1 or None, "tail": tail1,
              # ★ 2026-09-29（P0-5 深层）：要件级独立核对表（每要件一行：独立数据源 +
@@ -1954,6 +2053,7 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
             {"heading": "三、已取得的资料与待补充的资料", "text": _naturalize_report_text(p3),
              "detail_table": _evidence_table(ev)},
             {"heading": "四、本项结论及理由", "text": p4},
+        ] + _post_paras + [
             {"heading": "五、需企业提供的资料与说明", "text": _naturalize_report_text(p5_lead),
              "bullets": bullets5 or None, "tail": tail5},
         ]
@@ -1966,7 +2066,18 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None, not_r
         if not _tables:
             _tables = _match_suspicion_detail(s, _dt_by_type)
         if _tables:
-            paragraphs[1]["detail_tables"] = _tables
+            # ★★ 2026-10-02：**按小标题定位**，不得按位置写死。
+            #   事故：原为 `paragraphs[1]["detail_tables"] = _tables`，
+            #   本轮新增「为何列入检查」段（插在第 0 位）后，索引 1 变成
+            #   「一、涉及的风险事项」——逐笔证据表被挂到了**错误的小节**下
+            #   （读者的"发现的依据"里看不到明细，反而在"涉及的风险事项"里出现）。
+            #   是反向闸门 `test_legit_same_topic_table_still_attached` 把它抓出来的。
+            for _pp in paragraphs:
+                if str(_pp.get("heading") or "").startswith("二、"):
+                    _pp["detail_tables"] = _tables
+                    break
+            else:
+                paragraphs[-1]["detail_tables"] = _tables
 
         # ★ 2026-10-01：**分项扣除限额测算表**挂到「四、本项结论及理由」——
         #   多分项红线（如 RL-CIT-007 招待费/广宣费/福利费）此前只渲染算出数的那一项，

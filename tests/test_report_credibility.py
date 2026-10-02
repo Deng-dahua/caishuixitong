@@ -263,11 +263,20 @@ class TestSuspicionDetailNoMismatch(unittest.TestCase):
 
     @staticmethod
     def _para2_tables(problems):
+        """取「二、发现的依据」段挂载的明细表标题。
+
+        ⚠ 2026-10-02：改为**按小标题定位**，不再用 `paras[1]` 硬编码位置 ——
+          报告新增了辅助段（「为何列入检查」在第 1 段），位置一旦变化，
+          原实现会静默取到错段落（实测取到了「一、涉及的风险事项」）。
+        """
         out = []
         for p in (problems or []):
             paras = p.get("narrative_paragraphs") or []
-            if len(paras) >= 2:
-                out.append([t.get("title") for t in (paras[1].get("detail_tables") or [])])
+            _seg = next((x for x in paras
+                         if str((x or {}).get("heading") or "").startswith("二、")), None)
+            if _seg is None and len(paras) >= 2:
+                _seg = paras[1]          # 兼容无标题结构的调用方
+            out.append([t.get("title") for t in ((_seg or {}).get("detail_tables") or [])])
         return out
 
     def test_material_gap_finding_rows_never_borrowed(self):
