@@ -5057,6 +5057,52 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"行业口径文案断言跳过: {_exc}"))
 
+    # ── ③f 疑点呈现顺序必须真的按等级降序（**行为断言**，不是查源码接线）──
+    #   用户质疑「为什么二、具体问题不是从高风险开始排」暴露：
+    #     `_build_confirmed_problems` 在有红线疑点时**直接 return `_build_redline_problems(...)`**，
+    #     而 `_RISK_PRESENT_ORDER` 的排序写在**旧路径**（无 suspicions 时）后面 ⇒ 主路径
+    #     **从不执行那段排序**（死代码），实际顺序＝suspicions 的置信度顺序。
+    #     ⚠ 既有闸门（源码级）只查"排序键是否引用 `_RISK_PRESENT_ORDER`" ⇒ 查不到"这段从没走到"，
+    #       属典型**形式闸门**。此处补行为断言：直接调生产函数看**实际产出顺序**。
+    try:
+        from engine.enterprise_report import (
+            _build_confirmed_problems as _bcp7, _RISK_PRESENT_ORDER as _RPO7,
+            _LEGAL_RISK_LEVELS as _LRL7,
+        )
+        # ⚠ 本断言**自给自足**：不依赖同函数后续定义的 dump 变量（`_dd2` 定义在后面的
+        #   另一个 dump 块里，直接引用会 NameError → 被 except 吞成 WARN「跳过」→ 闸门空转）。
+        _dp7 = ROOT / "scripts" / "four_reports" / "_fresh_result.json"
+        if not _dp7.exists():
+            raise FileNotFoundError("无 dump：先跑一次一键分析")
+        _dd7 = json.loads(_dp7.read_text(encoding="utf-8"))
+        _rd7 = _dd7.get("report") or {}
+        if "comprehensive" not in _rd7:
+            _rd7 = _rd7.get("report") or {}
+        _cps7 = _bcp7(_rd7) or []
+        _bad_lv7 = [str(_c.get("risk_level") or "") for _c in _cps7
+                    if str(_c.get("risk_level") or "") not in _LRL7]
+        if _bad_lv7:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "疑点出现词表外风险等级（读者无法理解）："
+                           + "、".join(sorted(set(_bad_lv7))[:4])))
+        _prev7 = -1
+        _viol7 = []
+        for _c7 in _cps7:
+            _k7 = _RPO7.get(str(_c7.get("risk_level") or "").strip(), 99)
+            if _k7 < _prev7:
+                _viol7.append("%s(%s)" % (str(_c7.get("title") or "")[:16], _c7.get("risk_level")))
+            _prev7 = max(_prev7, _k7)
+        if _viol7:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "具体问题未按风险等级降序呈现（重的事项排在了轻的后面）："
+                           + "、".join(_viol7[:3])))
+        # seq 必须与呈现顺序一致（前端/引用按 seq 定位）
+        if _cps7 and [int(_c.get("seq") or 0) for _c in _cps7] != list(range(1, len(_cps7) + 1)):
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "疑点 seq 与呈现顺序不一致（排序后未重排 seq）"))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"疑点呈现顺序断言跳过: {_exc}"))
+
     # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。

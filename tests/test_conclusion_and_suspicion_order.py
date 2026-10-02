@@ -86,5 +86,59 @@ class TestSuspicionPresentOrder(unittest.TestCase):
         self.assertIn(titles[1], ("A", "B"))
 
 
+class TestRedlineProblemsPresentOrder(unittest.TestCase):
+    """★ **主路径**（有红线疑点）的呈现顺序。
+
+    事故（2026-10-02 用户质疑「为什么二、不是从高风险开始排」）：
+      `_build_confirmed_problems` 在有 suspicions 时**直接 return `_build_redline_problems(...)`**，
+      而排序写在**旧路径**（无 suspicions）后面 ⇒ 主路径**从不执行排序**（死代码），
+      实际顺序＝suspicions 的置信度顺序 → 读者看到"高风险"夹在第 7、14、15 位。
+    ⚠ 上面 `TestSuspicionPresentOrder` 的用例走的是**旧路径**，所以它一直是绿的 ——
+      这正是"测试覆盖不到主路径"的盲区，故此处单独补主路径用例。
+    """
+
+    @staticmethod
+    def _s(level, name, rid):
+        return {"redline_id": rid, "redline_name": name, "suspect": "涉嫌X", "taxes": ["增值税"],
+                "constituents": ["要件一", "要件二"], "level": level, "verdict": "待核",
+                "conclusion_grade": "待核", "confidence": 0.5, "closure": 0.3,
+                "argumentation": {"claim": "", "reasoning": "", "constituent_hits": [],
+                                  "confidence": 0.5, "verdict": "待核", "redline_hit": False,
+                                  "redline_name": name, "constituents": ["要件一"]},
+                "evidence_chain": {"elements": [], "available_count": 0, "missing_count": 1},
+                "clue_chain": {"nodes": []}, "supporting_findings": [], "finding_count": 1}
+
+    def _rd(self, susp):
+        return {"comprehensive": {"redline_detection": {"suspicions": susp}},
+                "all_findings": []}
+
+    def test_main_path_is_risk_first(self):
+        """主路径也必须 高 → 中 → 低 → 待核验（与旧路径同一权威表）。"""
+        out = _build_confirmed_problems(self._rd([
+            self._s("中风险", "乙项", "RL-X-2"),
+            self._s("待核验", "丁项", "RL-X-4"),
+            self._s("高风险", "甲项", "RL-X-1"),
+            self._s("低风险", "丙项", "RL-X-3"),
+        ]))
+        got = [p.get("risk_level") for p in out]
+        rank = [_RISK_PRESENT_ORDER.get(x, 99) for x in got]
+        self.assertEqual(rank, sorted(rank), "主路径未按风险等级降序呈现：%s" % got)
+        self.assertEqual(got[0], "高风险")
+        self.assertEqual([p.get("seq") for p in out], [1, 2, 3, 4], "排序后未重排 seq")
+
+    def test_out_of_vocabulary_level_normalized(self):
+        """词表外等级（如税收优惠分析器产出的「优惠机会」）必须规范化，不得原样进风险清单。"""
+        out = _build_confirmed_problems(self._rd([
+            self._s("优惠机会", "残保金事项", "RL-X-9"),
+            self._s("高风险", "甲项", "RL-X-1"),
+        ]))
+        levels = [p.get("risk_level") for p in out]
+        self.assertNotIn("优惠机会", levels, "词表外等级原样进了风险疑点清单")
+        for lv in levels:
+            self.assertIn(lv, _RISK_PRESENT_ORDER, f"等级不在权威词表内：{lv}")
+        # 规范化后（信息档）必须沉到风险等级之后
+        self.assertEqual(out[-1].get("risk_level"), "信息")
+
+
 if __name__ == "__main__":
     unittest.main()

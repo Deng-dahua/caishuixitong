@@ -2047,6 +2047,22 @@ def _build_redline_problems(suspicions, findings=None, rate_ctx=None):
                 _p["tax_impact"]["amount_context"] = _am.get("context", "")
     except Exception:
         pass
+
+    # ★★ 2026-10-02（用户质疑：为什么二、具体问题不是从高风险开始排）：
+    #   **排序必须在这个主路径上执行**。事故：`_build_confirmed_problems` 在有红线疑点时
+    #   直接 `return _build_redline_problems(...)`，而 `_RISK_PRESENT_ORDER` 的排序写在
+    #   **旧路径**（无 suspicions 时）后面 —— 主路径**从不执行那段排序**，它是死代码；
+    #   实际顺序＝suspicions 的置信度顺序，与风险等级无关（实测"高风险"夹在第 7、14、15 位）。
+    #   既有闸门只查"源码里有没有引用顺序表"，查不到"这段从没被走到"，故漏网。
+    #   判据：等级规范化 → 按呈现顺序升序（越重越靠前）→ 同级按潜在税额降序 → 重排 seq。
+    for _p in problems:
+        _p["risk_level"] = _normalize_risk_level(_p.get("risk_level"))
+    problems.sort(key=lambda _p: (
+        _RISK_PRESENT_ORDER.get(str(_p.get("risk_level") or "").strip(), 99),
+        -float(((_p.get("tax_impact") or {}).get("amount") or 0) or 0),
+    ))
+    for _i, _p in enumerate(problems, start=1):
+        _p["seq"] = _i
     return problems
 
 
@@ -3625,6 +3641,25 @@ _LEVEL_RANK = {"极高风险": 5, "高风险": 4, "中风险": 3, "低风险": 0
 #   ★ 与 `_LEVEL_RANK` 的区别：本表是**呈现顺序**（越小越靠前），不是等级高低标度。
 _RISK_PRESENT_ORDER = {"极高风险": 0, "高风险": 1, "中风险": 2, "低风险": 3,
                        "待核验": 4, "待核": 4, "信息": 4}
+
+#: 风险等级的**合法集合**（权威词表；与 `audit_consistency.check_finding_level_legality` 同源）。
+_LEGAL_RISK_LEVELS = ("极高风险", "高风险", "中风险", "低风险", "待核验", "信息")
+
+
+def _normalize_risk_level(level: Any) -> str:
+    """把疑点等级规范到权威词表；**词表外一律归「信息」**。
+
+    为什么必须规范（2026-10-02 用户问"为什么不是从高风险开始"时牵出）：
+      税收优惠分析器产出的发现 `level="优惠机会"`（机会流 vocabulary），被红线引擎归到
+      "未按规定安排残疾人就业且未申报缴纳残保金"后进了**风险疑点**章节，
+      报告于是出现 `风险等级=优惠机会` —— 它不是风险等级，读者无从理解；
+      而且它不在呈现顺序表里（会取 99 沉到最末），与其它等级混排时顺序更乱。
+    口径：词表外 ≠ 丢弃该疑点，而是**归入「信息」档**（呈现顺序最末），如实保留事项。
+    """
+    v = str(level or "").strip()
+    if v in _LEGAL_RISK_LEVELS:
+        return v
+    return "信息" if v else ""
 
 
 def _coerce_amount(v):
