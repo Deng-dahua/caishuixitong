@@ -4885,7 +4885,37 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"明细表同上分支行为断言跳过: {_exc}"))
 
-    # ── ③ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
+    # ── ③ 「就资料来说，…（已提供N项…）」这句的括号必须闭合 ──
+    #   实测公司1 疑点5 四、段：`（已提供0项；尚缺：合同文件；企业尚未提交正当理由的书面证明，
+    #   现有资料不足以排除本项涉嫌风险。` —— 左括号从未闭合，句子看起来没说完；
+    #   这类缺陷信息全都在、只少一个右括号，人眼几乎发现不了。
+    #   ⚠ **不要**做全报告括号配平扫描：中文序号「1）2）3）」本身就是只有右括号，
+    #     普扫会当场报 60 处假错（实测）。只锁这一句的结构。
+    try:
+        from engine.argumentation import _compose_reasoning as _cr3
+        _rl3 = {"name": "测试红线", "suspect": "涉嫌X", "constituents": ["要件一"]}
+        _clue3 = {"nodes": [{"step": 1, "source": "bank_txs", "action": "取数", "observed": "金额=1"}]}
+        _ev3 = {"verdict": "支撑材料严重不足", "available_count": 0, "missing_count": 1,
+                "missing_materials": ["合同文件"],
+                "rebuttal_status": "企业尚未提交正当理由的书面证明，现有资料不足以排除本项涉嫌风险。"}
+        _out3b = _cr3(_rl3, "本企业触碰红线「测试红线」，涉嫌X", _clue3, _ev3, ["已按独立交易原则定价"],
+                      "已触碰税务违规红线（资料不足，待补证后判断）", 0.6)
+        _i3 = _out3b.find("就资料来说")
+        if _i3 >= 0:
+            _seg3 = _out3b[_i3:_out3b.find("。", _i3) + 1]
+            if _seg3.count("（") != _seg3.count("）"):
+                issues.append(("ERROR", "engine/argumentation.py",
+                               f"材料说明句左括号未闭合（半截句子）: {_seg3}"))
+            if "。）。" in _seg3:
+                issues.append(("ERROR", "engine/argumentation.py",
+                               f"材料说明句出现双句号（自证语尾句号未剥）: {_seg3}"))
+        else:
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "论证缺「就资料来说…」材料说明句（材料齐备性未披露）"))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"材料说明句括号断言跳过: {_exc}"))
+
+    # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。
     try:

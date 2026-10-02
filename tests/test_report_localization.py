@@ -427,6 +427,46 @@ class TestCompletedChecksSectionRemoved(unittest.TestCase):
         self.assertEqual(got.strip(), "", f"套话应整段清空，实得：{got!r}")
 
 
+class TestReasoningMaterialSentence(unittest.TestCase):
+    """契约（2026-10-02）：论证里的材料说明句必须是完整句子（括号闭合、无双句号）。
+
+    实测公司 1 疑点5 四、段：「就资料来说，支撑材料严重不足，核心材料缺失（已提供0项；
+    尚缺：合同文件；企业尚未提交正当理由的书面证明，现有资料不足以排除本项涉嫌风险。」
+    —— 左括号「（」从未补右括号，句子看起来没说完。
+    这类缺陷信息全都在、只少一个右括号，人眼几乎发现不了，故锁死。
+    """
+
+    @staticmethod
+    def _reasoning(ev):
+        from engine.argumentation import _compose_reasoning
+        rl = {"name": "测试红线", "suspect": "涉嫌X", "constituents": ["要件一", "要件二"]}
+        clue = {"nodes": [{"step": 1, "source": "bank_txs", "action": "取数",
+                           "observed": "金额=1"}]}
+        return _compose_reasoning(rl, "本企业触碰红线「测试红线」，涉嫌X", clue, ev,
+                                  ["已按独立交易原则定价"],
+                                  "已触碰税务违规红线（资料不足，待补证后判断）", 0.6)
+
+    def _seg(self, out):
+        i = out.find("就资料来说")
+        self.assertGreaterEqual(i, 0, f"缺材料说明句：{out[:120]}")
+        return out[i:out.find("。", i) + 1]
+
+    def test_parens_balanced_with_rebuttal_status(self):
+        ev = {"verdict": "支撑材料严重不足", "available_count": 0, "missing_count": 1,
+              "missing_materials": ["合同文件"],
+              "rebuttal_status": "企业尚未提交正当理由的书面证明，现有资料不足以排除本项涉嫌风险。"}
+        seg = self._seg(self._reasoning(ev))
+        self.assertEqual(seg.count("（"), seg.count("）"), f"括号未配平：{seg}")
+        self.assertNotIn("。）。", seg, f"出现双句号：{seg}")
+
+    def test_parens_balanced_without_rebuttal_status(self):
+        for _mm, _mc in ((["合同文件"], 1), ([], 3), ([], 0)):
+            ev = {"verdict": "支撑材料不足", "available_count": 0, "missing_count": _mc,
+                  "missing_materials": _mm}
+            seg = self._seg(self._reasoning(ev))
+            self.assertEqual(seg.count("（"), seg.count("）"), f"括号未配平：{seg}")
+
+
 class TestNoInternalFileNameInReportText(unittest.TestCase):
     """契约（2026-10-02）：给企业看的报告不得暴露**内部实现文件名/模块名**。
 

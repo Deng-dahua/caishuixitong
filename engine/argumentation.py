@@ -485,7 +485,12 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
         _mat_txt += f"；还缺{_mc}项"
     else:
         _mat_txt += "，所需资料已齐备"
-    _mat_txt += f"{'；' + evidence.get('rebuttal_status', '') if evidence.get('rebuttal_status') else ''}。"
+    # ★ 2026-10-02：**括号必须闭合**。旧版只写了左括号「（已提供N项…」，
+    #   却从未补右括号 —— 正文出现「…现有资料不足以排除本项涉嫌风险。」后面永远缺一个「）」，
+    #   靠人眼几乎发现不了，但读者一眼能看出句子没说完（实测公司1 疑点5 四、段）。
+    #   同时把 rebuttal_status 自带的句号剥掉，避免「…风险。）。」这种双句号。
+    _rb = str(evidence.get('rebuttal_status') or '').strip().rstrip('。；; ')
+    _mat_txt += (f"；{_rb}" if _rb else "") + "）。"
     parts.append(_mat_txt)
     if rebuttals:
         parts.append(
