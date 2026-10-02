@@ -202,7 +202,19 @@ def _clean_text(value):
         return value
     cleaned = value
     for old, new in _DIRECT_REPLACEMENTS:
-        cleaned = cleaned.replace(old, new)
+        # ★★ 2026-10-03：**替换词必须与所在句子的语法槽位相容**。
+        #   事故：模板写「是否构成偷税、以及是否移送」——黑名单把「构成偷税」整词替换成
+        #   「是否涉及相关法律责任尚待依法复核」（自带前导"是否"），于是 24 条疑点的
+        #   「若不补证的后果」全部出现 **「是否是否涉及相关法律责任…」**。
+        #   根因：黑名单值是按"独立断言句"写的（"该行为构成偷税" → "是否涉及…"），
+        #   而它会被用在**已被"是否"引导**的从句里。现做上下文适配：
+        #   若前面已有"是否"，则用**述谓形式**（去掉前导"是否"），替换后仍然中性、
+        #   且句子通顺（"是否涉及相关法律责任尚待依法复核"）。
+        if new.startswith("是否"):
+            cleaned = re.sub(r"(?<=是否)" + re.escape(old), new[len("是否"):], cleaned)
+            cleaned = cleaned.replace(old, new)
+        else:
+            cleaned = cleaned.replace(old, new)
 
     # 2026-08-26 审计修复（P2-2）：处罚正则白名单。
     # 仅当命中片段不是已有法规引文（含《》）时才替换为中性复核提示，
@@ -221,7 +233,29 @@ def _clean_text(value):
     # ★ 去复读：中性化可能把多处命中替换成**同一句**，连续重复对读者无意义（实测 3 连）。
     cleaned = _collapse_duplicate_sentences(cleaned)
     # 2026-09-25：定性越界（规则式，见 _OVERCLAIM_RULES 注释）
-    return _apply_overclaim_rules(cleaned)
+    cleaned = _apply_overclaim_rules(cleaned)
+    # ★★ 2026-10-03：**替换后去"口吃"** —— 中性化是"整词换整词"，当替换词与
+    #   上下文已有功能词重合时会产生「是否是否…」「是否需要…」这类重复
+    #   （事故：24 条疑点的后果段全部出现「是否是否涉及相关法律责任…」）。
+    #   上面已按槽位适配黑名单；此处再兜一道通用归并，使**新增同类替换词**不会复发。
+    return _collapse_stutter(cleaned)
+
+
+# 会被中性化替换词"撞上"的功能词（重复即成口吃，需归并）
+_STUTTER_WORDS = ("是否", "需要", "相关", "应当", "须由", "依法", "可以", "认定")
+
+
+def _collapse_stutter(text: str) -> str:
+    """连续重复的功能词归并一次：`是否是否` → `是否`（幂等，不触碰其它内容）。"""
+    if not text:
+        return text
+    out = text
+    for w in _STUTTER_WORDS:
+        prev = None
+        while out != prev:
+            prev = out
+            out = out.replace(w + w, w)
+    return out
 
 
 def _collapse_duplicate_sentences(text: str) -> str:

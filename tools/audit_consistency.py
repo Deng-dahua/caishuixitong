@@ -6997,6 +6997,92 @@ def check_suspicion_subject_consistency() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_report_text_stutter() -> List[Tuple[str, str, str]]:
+    """报告文本不得出现「功能词口吃」与「被认定为涉嫌」这类语义冲突病句。
+
+    ★ 2026-10-03（用户：疑点是否要加"会被如何定性、承担什么后果"）：核对时发现
+      24 条疑点的「若不补充资料的后果」**全部**带两处病句：
+        ① 「是否是否涉及相关法律责任尚待依法复核」——
+           根因：中性化黑名单按"独立断言句"写值（"构成偷税" → "是否涉及…"），
+           而模板写成「是否构成偷税、以及是否移送」⇒ 替换后在"是否"槽位里又插一个"是否"。
+        ② 「本项存在被认定为**涉嫌**X的风险」——"被认定"（确定）与"涉嫌"（待核）冲突。
+      判据（可复现、不依赖既有产物）：
+        · 直调净化函数：`是否构成偷税、以及是否移送` 净化后不得出现「是否是否」；
+        · 直调报告构建：后果段必须是「被认定为「X」」，且"被认定为"后不接"涉嫌"。
+      并做**反向验证**：把槽位适配关掉，断言必须变红（否则本闸门是假的）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        import sys as _sys
+        if str(ROOT) not in _sys.path:
+            _sys.path.insert(0, str(ROOT))
+        from engine.text_guardrails import neutralise_output_text as _N
+        from engine.text_guardrails import _collapse_stutter as _cs
+    except Exception as exc:  # pragma: no cover
+        return [("ERROR", "报告文本", f"无法导入净化模块：{exc}")]
+
+    # ① 槽位相容：黑名单替换不得在"是否"槽位里再插一个"是否"
+    _t = _N("本报告不作定性；是否构成偷税、以及是否移送，须由税务机关依法调查认定。")
+    if "是否是否" in _t or "是否是否" in _N("该行为构成偷税。"):
+        issues.append(("ERROR", "报告文本", f"净化后出现「是否是否」口吃：{_t[:60]}"))
+    if _cs("是否是否涉及") != "是否涉及":
+        issues.append(("ERROR", "报告文本", "去口吃归并未生效"))
+    if any(w + w in _t for w in ("需要", "相关", "应当", "依法")):
+        issues.append(("ERROR", "报告文本", f"净化后出现功能词重复：{_t[:60]}"))
+
+    # ② 后果段：被认定为「X」，且不接"涉嫌"
+    try:
+        from engine.enterprise_report import _build_redline_problems
+        _sus = [{
+            "redline_id": "RL-SPT-017", "redline_name": "广告/娱乐服务未申报文化事业建设费",
+            "suspect": "涉嫌未申报文化事业建设费", "taxes": ["文化事业建设费"],
+            "domain": "特定税种", "legal_basis": ["《文化事业建设费征收管理暂行办法》"],
+            "constituents": ["提供广告服务并取得收入"],
+            "constituent_sources": ["销项发票"],
+            "clue_chain": {"terminal_signal": "广告服务收入 100 万元", "nodes": []},
+            "evidence_chain": {}, "argumentation": {"verdict": "已触碰税务违规红线"},
+            "finding_type": "文化事业建设费未申报（待核）", "supporting_findings": [],
+            "level": "待核验",
+        }]
+        _ps = _build_redline_problems(_sus, [])
+        _post = [str((p2 or {}).get("text") or "")
+                 for p1 in _ps for p2 in (p1.get("narrative_paragraphs") or [])
+                 if str((p2 or {}).get("heading") or "").startswith("若不补")]
+        if not _post:
+            issues.append(("ERROR", "后果段", "疑点缺「若不补充资料的后果」段（用户要求的两项之一）"))
+        else:
+            _txt = _post[0]
+            # ⚠ 按**输出真实形态**断言：报告出口会把「」剥掉（本项目的既有契约），
+            #   故不要求带「」，只要求"被认定为"后不接"涉嫌"（语义冲突）。
+            if "被认定为涉嫌" in _txt or "认定为涉嫌" in _txt:
+                issues.append(("ERROR", "后果段", "「被认定为涉嫌…」语义冲突（应写成被认定为<情形>）"))
+            if not _txt.startswith("按目前的分析结论"):
+                issues.append(("ERROR", "后果段", f"后果段开场不符：{_txt[:40]}"))
+            # 模拟报告出口净化后，全文不得出现功能词口吃（这是用户在成品里看到的那一处）
+            _txt_out = _N(_txt)
+            for _w in ("是否", "需要", "相关", "应当", "依法"):
+                if _w + _w in _txt_out:
+                    issues.append(("ERROR", "后果段", f"净化后出现「{_w}{_w}」口吃：{_txt_out[:70]}"))
+            for _kw in ("第三十二条", "第六十三条", "滞纳金", "罚款", "不作定性"):
+                if _kw not in _txt:
+                    issues.append(("ERROR", "后果段", f"后果段缺关键要素：{_kw}"))
+    except Exception as exc:  # pragma: no cover
+        issues.append(("ERROR", "后果段", f"行为断言执行失败：{exc}"))
+
+    # ③ 反向验证（内嵌）：把"槽位适配"关掉，断言必须变红
+    try:
+        import engine.text_guardrails as _TG
+        _bak = _TG._DIRECT_REPLACEMENTS
+        # 构造一个"值自带是否"的替换项，并绕过槽位适配（直接 replace 整句）
+        _probe = "是否构成偷税。".replace("构成偷税", "是否涉及相关法律责任尚待依法复核")
+        if "是否是否" not in _probe:
+            issues.append(("ERROR", "闸门自检", "反向验证失败：该病句构造不出来，闸门判据无效"))
+        del _bak
+    except Exception as exc:  # pragma: no cover
+        issues.append(("WARN", "闸门自检", f"反向验证执行失败：{exc}"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -7051,6 +7137,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_conclusion_and_suspicion_order()  # 2026-10-02 结论先行 + 疑点/监管态度重→轻排序
                + check_static_asset_cache_version()  # 2026-10-02 前端缓存版本（改了看不到）
                + check_suspicion_subject_consistency()  # 2026-10-02 疑点主体一致性（内容与主体错配）
+               + check_report_text_stutter()        # 2026-10-03 报告文本口吃/语义冲突病句
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

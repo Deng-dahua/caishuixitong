@@ -157,6 +157,11 @@ p{margin:8px 0}
 color:#7c4a03;font-size:13px;margin:10px 0}
 .empty{background:#f9fafb;border:1px dashed var(--line);border-radius:8px;padding:14px 16px;color:var(--ink3);font-size:13px}
 table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}
+.tbltitle{font-weight:600;color:#334155;margin:12px 0 2px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin:14px 0}
+.card h3{margin:0 0 8px;font-size:15px}
+.card h4{margin:12px 0 4px;font-size:13.5px;color:#0f172a}
+.pill.warn{background:#fee2e2;color:#991b1b}
 th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
 th{background:#f3f4f6;font-weight:600;color:var(--ink2);white-space:nowrap}
 td.mono{font-family:Consolas,Menlo,monospace;font-size:12px}
@@ -396,6 +401,82 @@ def _cost_recon_block(crd):
                           E(tr(_x.get("reason"), 80))))
     return "".join(out)
 
+
+# ── 三·补、具体问题逐项说明（与界面同一份内容：为何列入检查 / 事实依据 / 资料齐备度 /
+#          结论 / 若不补证的后果 / 需补资料；含逐笔明细表）──
+#   ★ 2026-10-03（用户："重新一键分析看看报告"）：旧版渲染器只渲染台账/待核事实等章节，
+#   **完全不渲染 `confirmed_problems` 的逐项叙述** ⇒ 用户在我的 HTML 里看不到
+#   「为何列入检查」与「若不补证的后果」这两段（它们本来就在数据里，界面也照常渲染）。
+#   现补齐，使离线交付物与界面口径一致。
+_cps = err.get("confirmed_problems") or []
+if _cps:
+    _sca = err.get("subject_consistency_audit") or {}
+    P.append('<section><h2><span class="n">三·补</span>具体问题逐项说明（共 %s 项）</h2>' % E(len(_cps)))
+    if _sca.get("summary_line"):
+        P.append('<div class="note">%s</div>' % E(_sca["summary_line"]))
+    P.append('<p class="muted">每项按「为何列入检查 → 涉及的风险事项 → 发现的依据 → '
+             '已取得/待补充资料 → 本项结论及理由 → 若不补证的后果 → 需企业提供的资料与说明」'
+             '逐项说明；括号内为原始明细表（可展开逐笔核对）。</p>')
+
+    def _tbl_html(tb):
+        cols = tb.get("columns") or []
+        rows = tb.get("rows") or []
+        if not cols and rows and isinstance(rows[0], dict):
+            cols = list(rows[0].keys())
+        if not cols:
+            return ""
+        out = []
+        # ★ 表题必须渲染：报告正文与用户沟通都以表题指代明细（如「表1 主营成本总额·
+        #   按供应商分布」「红冲/作废发票数量异常（共13笔）」「构成要件独立核对表」）
+        if tb.get("title"):
+            out.append('<p class="tbltitle">%s</p>' % E(tb["title"]))
+        out.append('<div class="tblwrap"><table class="mini">')
+        out.append("<tr>" + "".join("<th>%s</th>" % E(c) for c in cols) + "</tr>")
+        for r in rows:
+            out.append("<tr>" + "".join(
+                "<td>%s</td>" % E(str((r or {}).get(c, ""))[:120]) for c in cols) + "</tr>")
+        out.append("</table></div>")
+        if tb.get("scope_note"):
+            out.append('<p class="muted">%s</p>' % E(tb["scope_note"]))
+        return "".join(out)
+
+    for _c in _cps:
+        P.append('<div class="card"><h3>%s. %s</h3>' % (E(_c.get("seq")), E(_c.get("title"))))
+        _meta = []
+        for _k, _lb in (("risk_level", "风险等级"), ("conclusion_grade", "结论等级")):
+            if _c.get(_k):
+                _meta.append('<span class="pill">%s：%s</span>' % (E(_lb), E(_c.get(_k))))
+        if _c.get("closure") not in (None, ""):
+            try:
+                _meta.append('<span class="pill">证据齐全程度：%.0f%%</span>'
+                             % (float(_c["closure"]) * 100))
+            except (TypeError, ValueError):
+                pass
+        if _c.get("suspect"):
+            _meta.append('<span class="pill warn">%s</span>' % E(_c["suspect"]))
+        if _meta:
+            P.append("<p>%s</p>" % " ".join(_meta))
+        for _para in (_c.get("narrative_paragraphs") or []):
+            _h = str(_para.get("heading") or "")
+            P.append('<h4>%s</h4>' % E(_h))
+            if _para.get("text"):
+                P.append("<p>%s</p>" % esc_lines(_para["text"]))
+            if _para.get("bullets"):
+                P.append("<ul>" + "".join("<li>%s</li>" % esc_lines(_b)
+                                          for _b in _para["bullets"]) + "</ul>")
+            if _para.get("tail"):
+                P.append("<p>%s</p>" % esc_lines(_para["tail"]))
+            if _para.get("detail_table"):
+                P.append(_tbl_html(_para["detail_table"]))
+            for _tb in (_para.get("detail_tables") or []):
+                P.append(_tbl_html(_tb))
+        if _c.get("suggestion"):
+            P.append('<h4>处理建议</h4><p>%s</p>' % esc_lines(_c["suggestion"]))
+        if _c.get("missing_materials"):
+            P.append('<h4>尚缺资料</h4><p>%s</p>' % E("、".join(
+                str(x) for x in _c["missing_materials"])))
+        P.append("</div>")
+    P.append("</section>")
 
 # ── 四、全部风险事项台账（含证据地位）──
 _led = err.get("resolution_ledger") or {}

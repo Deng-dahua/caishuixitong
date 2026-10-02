@@ -657,3 +657,55 @@ class TestCounterpartyNatureJudgement(unittest.TestCase):
         self.assertTrue(P("初永伟") and P("杨莹"))
         self.assertFalse(P("上海蕴世广告传媒有限公司"))
         self.assertFalse(P(""))
+
+
+class TestReportTextStutterAndConsequence:
+    """★ 2026-10-03（用户：疑点是否要加"会被如何定性、承担什么后果"）：
+
+    核对时发现 24 条疑点的「若不补充资料的后果」**全部**带两处病句，根因不是笔误，
+    而是"整词替换词与所在槽位不相容"：
+      ① 黑名单值按独立断言句写（"构成偷税" → "是否涉及相关法律责任尚待依法复核"），
+         而模板写成「是否构成偷税、以及是否移送」⇒ 替换后成了「是否是否涉及…」；
+      ② 模板把「涉嫌X」直接塞进"被认定为…"槽位 ⇒「被认定为涉嫌X」（确定 + 待核冲突）。
+    """
+
+    def test_neutralisation_is_slot_aware(self):
+        from engine.text_guardrails import neutralise_output_text as N
+        t = N("本报告不作定性；是否构成偷税、以及是否移送，须由税务机关依法调查认定。")
+        assert "是否是否" not in t, t
+        assert "构成偷税" not in t, "独立断言未被中性化"
+        # 独立断言句仍须被中性化为疑问/待核口径
+        t2 = N("该行为构成偷税。")
+        assert "构成偷税" not in t2 and "是否" in t2, t2
+
+    def test_stutter_collapse_idempotent(self):
+        from engine.text_guardrails import _collapse_stutter as C
+        assert C("是否是否涉及是否需要需要") == "是否涉及是否需要"
+        assert C(C("是否是否")) == "是否"
+
+    def test_consequence_section_states_qualification_and_liability(self):
+        """后果段必须回答"会被如何定性、承担什么后果"，且不得用语冲突。"""
+        from engine.enterprise_report import _build_redline_problems
+        from engine.text_guardrails import neutralise_output_text as N
+        sus = [{
+            "redline_id": "RL-SPT-017", "redline_name": "广告/娱乐服务未申报文化事业建设费",
+            "suspect": "涉嫌未申报文化事业建设费", "taxes": ["文化事业建设费"],
+            "domain": "特定税种", "legal_basis": ["《文化事业建设费征收管理暂行办法》"],
+            "constituents": ["提供广告服务并取得收入"], "constituent_sources": ["销项发票"],
+            "clue_chain": {"terminal_signal": "广告服务收入 100 万元", "nodes": []},
+            "evidence_chain": {}, "argumentation": {"verdict": "已触碰税务违规红线"},
+            "finding_type": "文化事业建设费未申报（待核）", "supporting_findings": [],
+            "level": "待核验",
+        }]
+        ps = _build_redline_problems(sus, [])
+        post = [str(x.get("text") or "") for p in ps
+                for x in (p.get("narrative_paragraphs") or [])
+                if str(x.get("heading") or "").startswith("若不补")]
+        assert post, "缺「若不补充资料的后果」段"
+        txt = post[0]
+        assert "认定为涉嫌" not in txt, txt
+        for kw in ("第三十二条", "第六十三条", "滞纳金", "罚款", "不作定性"):
+            assert kw in txt, (kw, txt)
+        out = N(txt)
+        for w in ("是否", "需要", "相关"):
+            assert w + w not in out, (w, out)

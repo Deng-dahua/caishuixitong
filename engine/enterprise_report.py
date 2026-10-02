@@ -2220,16 +2220,25 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
         _post_paras = []
         if grade != "已核定":
             _taxes_txt = "、".join(str(x) for x in (s.get("taxes") or []) if str(x).strip())
+            # ★★ 2026-10-03（用户：疑点是否要加"会被如何定性、承担什么后果"）：
+            #   「存在被认定为**涉嫌**X的风险」是病句 —— "被认定"是确定语义、
+            #   "涉嫌"是待核语义，挤在一起既不通顺也不严谨。此处剥掉「涉嫌」前缀，
+            #   并加「」把被认定的情形括起来（实测 24 条疑点全部带这个病句）。
+            _suspect_plain = _suspect_txt
+            for _p0 in ("涉嫌",):
+                if _suspect_plain.startswith(_p0):
+                    _suspect_plain = _suspect_plain[len(_p0):]
+            _suspect_plain = _suspect_plain.strip() or "账簿少列收入、少缴应纳税款"
             _post_paras.append({
                 "heading": "若不补证的后果",
                 "text": _naturalize_report_text(
                     "按目前的分析结论（%s）：若企业未能补充上述资料、也未对差额或异常作出"
-                    "合理解释，本项存在被认定为%s的风险%s，主管税务机关可依《税收征收管理法》"
+                    "合理解释，本项存在被认定为「%s」的风险%s，主管税务机关可依《税收征收管理法》"
                     "第三十二条加收滞纳金，并依第六十三条追缴税款、处不缴或少缴税款百分之五十"
                     "以上五倍以下罚款。是否构成偷税、以及是否移送，须由税务机关依法调查认定；"
                     "本报告不作定性，在补证核实之前既不认定违法，也不予排除。"
                     % ({"已核定": "已可作出判断", "已排除": "已排除"}.get(str(grade), "尚待补证与核实"),
-                       _suspect_txt or "账簿少列收入、少缴应纳税款",
+                       _suspect_plain,
                        ("（涉及%s）" % _taxes_txt) if _taxes_txt else "")),
             })
 
