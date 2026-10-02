@@ -392,12 +392,52 @@ def build_cost_recon_detail(report_data: Any) -> Dict[str, Any]:
                     % (len(cea["contradictions"]),
                        _top, (cea["contradictions"][0].get("authority_class") or "")))
 
+    # ★ 2026-10-02（用户拍板）：**成本明细只列最终判为主营业务成本的部分**。
+    #   此前「按供应商」「逐张清单」直接沿用**发票类目口径**，把已判为费用/待核的支出
+    #   也挂在"主营业务成本"名下 —— 实测 59 家供应商里 47.5% 的金额并非成本
+    #   （机票/住宿/咨询/体育文化…），读者看到的是"表名说成本、内容混着差旅和咨询"。
+    #   做法：对每条明细用**唯一权威** `account_classifier` 复核归属，只保留 CLASS_COST；
+    #   被剔除的金额不消失 —— 它们在三态归属表里各有归属（费用/待核），两表口径一致。
+    _cea_final = _build_cost_expense_attribution(rd)
+    _cost_goods = {str(_i.get("goods") or "")
+                   for _i in (((_cea_final or {}).get("cost") or {}).get("items") or [])}
+    _base_rows = inv.get("rows") or []
+    # 二次过滤是**幂等**的保险：pipeline 已按同一口径过滤过（`filter_cost_invoices`），
+    # 这里再按三态归属复核一次，确保任何入口（含离线重建）拿到的都是同一口径。
+    _keep_rows = [_r for _r in _base_rows if str(_r.get("goods") or "") in _cost_goods]
+    _sup: Dict[str, Dict[str, Any]] = {}
+    for _r in _keep_rows:
+        _s = str(_r.get("seller") or "")
+        _b = _sup.setdefault(_s, {"seller": _s, "count": 0, "amount": 0.0})
+        _b["count"] += 1
+        _b["amount"] += float(_r.get("amount") or 0)
+    _by_supplier = sorted(
+        [{"seller": k, "count": v["count"], "amount": round(v["amount"], 2)} for k, v in _sup.items()],
+        key=lambda x: -x["amount"])
+
+    _by_goods = [_g for _g in (inv.get("by_goods") or [])
+                 if str(_g.get("goods") or "") in _cost_goods]
+
     return {
         "available": available,
+        # ⚠ `invoice_total/count` 是**发票类目口径全量**（含已判为费用/待核的部分），
+        #   用于与账面口径做勾稽（概述句引用）；下方三张成本明细表则只列归属为成本的
+        #   部分，故另有 `cost_detail_total/count` 作为这三张表的合计（两者口径不同，
+        #   前端必须各用各的，否则"表内明细加总 ≠ 合计行"）。
         "invoice_total": it, "invoice_count": int(inv.get("count") or 0),
-        "by_goods": inv.get("by_goods") or [],
-        "by_supplier": inv.get("by_supplier") or [],
-        "invoice_rows": inv.get("rows") or [],
+        "cost_detail_total": round(sum(float(_r.get("amount") or 0) for _r in _keep_rows), 2),
+        "cost_detail_count": len(_keep_rows),
+        "by_goods": _by_goods,
+        # ⚠ 下表只含**归属为主营业务成本**的发票；发票类目口径的全量合计见 invoice_total，
+        #   两者差额即已判为期间费用/待核的部分（见 cost_expense_attribution）。
+        "by_supplier": _by_supplier,
+        "invoice_rows": _keep_rows,
+        "cost_detail_scope": ("本明细只列经「成本/费用/待核」区分后归属主营业务成本、"
+                              "且能定位到具体发票的支出；已判为期间费用或待核的部分不计入本表"
+                              "（另见三态归属），无逐张发票可列的成本类支出亦不在本表。"),
+        "cost_detail_dropped_amount": round(
+            sum(float(_r.get("amount") or 0) for _r in _base_rows
+                if str(_r.get("goods") or "") not in _cost_goods), 2),
         "invoice_field_fill": inv.get("field_fill") or {},
         "book_total": bt, "book_source": book.get("source") or "",
         "book_row_count": book.get("row_count") or 0,

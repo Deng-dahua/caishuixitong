@@ -124,6 +124,29 @@ GENERAL_EXPENSE_KWS = (
     "利息", "手续费", "银行手续费",
 )
 
+#: ★ 差旅出行层（2026-10-02 新增，**优先于行业核心投入层**）
+#  会计事实：员工因公出行的票务与住宿属**期间费用**（管理费用—差旅费），与行业无关 ——
+#  广告公司的机票、制造企业的机票，同样都是差旅，**不是**主营业务成本。
+#  为什么必须单独成层、且排在行业核心投入之前（实测两处误判就出在这里）：
+#    ① 撞词：金税分类「*经纪代理服务*机票款」里含"代理"，而广告传媒的行业核心投入里
+#       登记过"代理服务"⇒ 105,883.20 元机票款被判成**主营业务成本**；
+#    ② 落地无门：`*运输服务*客运服务费 / 票价 / 国内机票款` 含"运输"，但服务轨道不吃
+#       存货采购成本层 ⇒ 72,135.26 元退成"待核"，而同一实物的「住宿服务住宿费」却在费用桶
+#       —— 同一类支出两种归属，读者一眼就看出不一致。
+#  ⚠ 口径说明（如实、不猜死）：默认按**员工差旅**归期间费用；若实为**为客户/项目代订**
+#    （应向客户另行收费），须凭项目合同调整 —— 故本层结论附带 `needs_context=True` 与
+#    需补资料说明，绝不把"代订"这一少数情形当成不存在。
+TRAVEL_KWS = (
+    # 票务与客运（含"代订"这种票务平台口径写法）
+    "机票", "车票", "火车票", "动车", "高铁", "客运", "旅客运输", "交通费",
+    "退票费", "改签费", "行李费", "燃油附加费", "机场建设费", "行程单",
+    "订票费", "代订机票", "代订住宿", "代订房", "代订票",
+    # 住宿与旅游（出差住宿、会务之外的旅游服务）
+    "住宿", "房费", "旅游服务", "旅行社",
+    # 明确的差旅口径用词
+    "差旅费", "差旅",
+)
+
 #: 资本化层（形成资产，不得一次性计入成本/费用；税务上另按折旧/摊销处理）
 CAPITAL_KWS = (
     "固定资产", "设备", "机器", "机械", "车辆", "汽车", "货车", "工程机械",
@@ -234,6 +257,43 @@ def _longest_keyword_hit(text: str, table: Iterable[str]) -> Optional[str]:
     for kw in table:
         if kw and kw in text and len(kw) > best_len:
             best, best_len = kw, len(kw)
+    return best
+
+
+#: 计价尾缀：金税品名常把同一实物写成「代言费 / 代言服务费 / 代言服务」三种形式。
+#  词表里写的是一个写法，票面是另一个写法 ⇒ 按**词根**比对，否则该进成本的反落"待核"
+#  （实测：行业核心投入登记了「代言费」，票面是「*现代服务*代言服务费」→ 匹配不上
+#   → 641,509.43 元被扔进"待核"，而它本是该行业的核心投入）。
+_KW_TRAIL_SUFFIXES = ("服务费", "服务", "费用", "费", "款项", "款", "金额")
+#: 词根化**禁用**结果：这些词本身没有任何行业信息，词根化后会命中一切含"服务/费"的品名
+#  （实测隐患：`core_inputs['咨询服务']` 里登记过裸「服务费」，词根化后成「服务」
+#   ⇒ 该行业所有 `*服务费` 都被判成主营业务成本）。
+_KW_ROOT_BLOCK = frozenset({"服务", "费用", "费", "款", "款项", "金额", "服务费"})
+
+
+def _kw_root(kw: Any) -> str:
+    """取关键词词根（去计价尾缀）；词根至少留 2 个字，且不得退化成无行业信息的泛词。"""
+    k = str(kw or "")
+    for s in _KW_TRAIL_SUFFIXES:
+        if k.endswith(s) and len(k) - len(s) >= 2:
+            root = k[: -len(s)]
+            return k if root in _KW_ROOT_BLOCK else root
+    return k
+
+
+def _longest_core_hit(text: str, core: Sequence[str]) -> Optional[str]:
+    """行业核心投入匹配：**原词 与 词根 二者取最长命中**。
+
+    ⚠ 只用于「行业核心投入层」：该层的词表由数据文件（`industry_data.json::core_inputs`）
+      维护、按行业登记，词根化不会把别的行业/别的层带偏；通用费用层等仍用逐字匹配
+      （那里词多且杂，词根化容易过宽）。
+    """
+    best: Optional[str] = None
+    best_len = 0
+    for kw in (core or ()):
+        for cand in (str(kw or ""), _kw_root(kw)):
+            if cand and len(cand) > best_len and cand in text:
+                best, best_len = cand, len(cand)
     return best
 
 
@@ -369,15 +429,76 @@ def _inventory_support_decision(text: str, kind_why: str,
     }
 
 
+def filter_cost_invoices(invoices: Any, industry: Any = "") -> List[Dict[str, Any]]:
+    """只保留**归属为主营业务成本**的发票（三态口径复核）。唯一实现，多处引用。
+
+    为什么需要它（2026-10-02，用户复核「按供应商」表）：
+      「主营成本按供应商」「核心成本逐张清单」这类明细的**标签就是"主营业务成本"**，
+      因此必须按「成本/费用/待核」三态过滤，不能用"发票类目口径"的全量。
+      实测公司1：发票类目口径核心成本 59 家供应商里，**47.5% 的金额实际被判为
+      期间费用或待核**（机票、住宿、咨询、体育文化…），挂在"主营业务成本"名下
+      → 读者看到"表名说成本、内容混着差旅和咨询"，且与三态表自相矛盾。
+
+    ⚠ 只用于**明细展示**；金额统计口径（如"发票类目口径合计"）不得用它替换 ——
+      那个合计是与账面口径做勾稽的基准，必须保持全量。
+    """
+    out: List[Dict[str, Any]] = []
+    for inv in (invoices or []):
+        if not isinstance(inv, dict):
+            continue
+        g = str(inv.get("goods") or inv.get("货物或应税劳务名称") or "")
+        try:
+            cls = classify_line(
+                g, industry=industry,
+                tax_code=inv.get("tax_code") or inv.get("税收编码") or "",
+                unit=inv.get("unit") or inv.get("单位") or "",
+                biz_type=inv.get("biz_type") or inv.get("业务类型") or "",
+            ).get("account_class")
+        except Exception:
+            cls = ""
+        if cls == CLASS_COST:
+            out.append(inv)
+    return out
+
+
+def _travel_decision(kind_reason: str, text: str) -> Optional[Dict[str, Any]]:
+    """差旅出行层裁决：命中票务/客运/住宿/旅游 ⇒ **期间费用（差旅费）**。
+
+    设计要点见 `TRAVEL_KWS` 注释：本层必须排在**行业核心投入层之前**，否则
+    「*经纪代理服务*机票款」会被行业核心投入里的"代理服务"截走判成主营业务成本。
+    """
+    kw = _longest_keyword_hit(text, TRAVEL_KWS)
+    if not kw:
+        return None
+    return {
+        "account_class": CLASS_EXPENSE,
+        "expense_sub": "差旅费",
+        "confidence": CONF_HIGH,
+        "evidence": "差旅出行层｜%s｜命中「%s」" % (kind_reason or "票面品名", kw),
+        "matched_kw": kw,
+        "matched_layer": "差旅出行",
+        # 员工差旅是常态；"为客户/项目代订"是少数情形 ⇒ 提示复核，不把话说死
+        "needs_context": True,
+        "missing_material": "出差审批单/行程单（如属为客户代订等非员工差旅，另需项目合同）",
+        "reason": "员工出行票务与住宿属期间费用（管理费用—差旅费）；"
+                  "如实属为客户/项目代订并另行收费，须凭项目合同改计成本",
+    }
+
+
 def _resolve_service(kind_reason: str, text: str, goods_s: str,
                      core: Sequence[str],
                      ind_list: Sequence[str]) -> Optional[Dict[str, Any]]:
     """服务/劳务/无形资产轨道裁决（结构性定性为「无实物」 ⇒ **不进存货成本推定**）。
 
-    顺序沿用 L4 铁律（行业核心投入优先于通用费用），其后才是通用成本、存货采购支持费，
-    最后通用费用；全部未命中 ⇒ 待核（★ 服务无存货可比照，**绝不**业态兜底成成本）。
+    顺序：**差旅出行层 → 行业核心投入** → 通用成本 → 存货采购支持费 → 通用费用；
+    全部未命中 ⇒ 待核（★ 服务无存货可比照，**绝不**业态兜底成成本）。
+    ★ 差旅层必须最先判：员工出行票务与行业无关，抢在"行业核心投入"之前才能避免
+      「*经纪代理服务*机票款」被行业词表里的"代理"截走（实测 105,883.20 元误判为成本）。
     """
-    kw = _longest_keyword_hit(goods_s, core) or _longest_keyword_hit(text, core)
+    _tr = _travel_decision(kind_reason, text)
+    if _tr:
+        return _tr
+    kw = _longest_core_hit(goods_s, core) or _longest_core_hit(text, core)
     if kw:
         return {
             "account_class": CLASS_COST, "expense_sub": "", "confidence": CONF_HIGH,
@@ -516,9 +637,14 @@ def classify_line(
     if _kind in (KIND_SERVICE, KIND_PREPAID, KIND_AGENCY):
         return _resolve_service(_kind_why, text, goods_s, _core, ind_list)
 
+    # ── ②★b 差旅出行层（优先于行业核心投入，见 TRAVEL_KWS 注释）─────────────
+    _tr = _travel_decision(_kind_why, text)
+    if _tr:
+        return _tr
+
     # ── ③ 行业核心投入层（优先于通用费用层，防广告公司核心成本被截走） ────────
     core = _core
-    kw = _longest_keyword_hit(goods_s, core) or _longest_keyword_hit(text, core)
+    kw = _longest_core_hit(goods_s, core) or _longest_core_hit(text, core)
     if kw:
         return {
             "account_class": CLASS_COST,

@@ -4940,6 +4940,38 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"行业张数口径断言跳过: {_exc}"))
 
+    # ── ③c 差旅出行必须落期间费用，且**同一实物不得两判** ──
+    #   实测两类误判（都出自用户贴的「按供应商」表）：
+    #     · `*经纪代理服务*机票款` 撞上行业核心投入里过泛的"代理服务" ⇒ 105,883.20 元
+    #       机票款被判成主营业务成本；
+    #     · `*运输服务*客运服务费/票价/国内机票款` 无层可落 ⇒ 退成"待核"，
+    #       而同实的「住宿服务住宿费」却在费用桶 —— 同一类支出两种归属。
+    #   修法=新增「差旅出行层」并置于行业核心投入**之前**（`TRAVEL_KWS`）。
+    try:
+        from engine.account_classifier import (
+            classify_line as _cl3, CLASS_EXPENSE as _CE3, TRAVEL_KWS as _TK3,
+        )
+        _TRAVEL_CASES = ["经纪代理服务机票款", "经纪代理服务代订住宿费", "经纪代理服务退票费",
+                         "运输服务客运服务费", "运输服务国内机票款；运输服务燃油附加费",
+                         "住宿服务住宿费", "旅游服务综合服务费"]
+        _bad3 = [g for g in _TRAVEL_CASES
+                 if _cl3(g, industry="广告传媒").get("account_class") != _CE3]
+        if _bad3:
+            issues.append(("ERROR", "engine/account_classifier.py",
+                           "差旅出行类品名未落期间费用（同一实物两种归属）："
+                           + "、".join(_bad3[:4])))
+        if not _TK3:
+            issues.append(("ERROR", "engine/account_classifier.py",
+                           "差旅出行词表 TRAVEL_KWS 为空（该层形同不存在）"))
+        # 成本类不得被差旅层误伤（广告公司的核心投入仍是成本）
+        for _g3 in ("广告服务广告发布费", "设计服务专业设计服务", "现代服务代言服务费"):
+            if _cl3(_g3, industry="广告传媒").get("account_class") != "主营业务成本":
+                issues.append(("ERROR", "engine/account_classifier.py",
+                               f"差旅层误伤行业核心投入：{_g3} 未判为成本"))
+                break
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"差旅出行层断言跳过: {_exc}"))
+
     # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。
@@ -5087,6 +5119,43 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", "engine/cost_recon_detail.py",
                                "同一品名既列在「主营业务成本」桶、又被列为口径差异（应作待核）"
                                f"，口径串桶：{('、'.join(_both[:4]))}"))
+            # ★ 2026-10-02（用户拍板）：**成本明细必须与三态归属一致**。
+            #   「按供应商」「逐张清单」的标签就是"主营业务成本"，不得把已判为
+            #   期间费用/待核的支出也列进去（实测 59 家里 47.5% 的金额并非成本：
+            #   机票、住宿、咨询、体育文化…读者看到"表名说成本、内容混着差旅"）。
+            _cost_amt = float((_cea_d2.get("cost") or {}).get("amount") or 0)
+            _sup_amt = round(sum(float(_x.get("amount") or 0)
+                                 for _x in (_crd_d2.get("by_supplier") or [])), 2)
+            # 判据：**不得多于**三态成本桶（多了＝把费用/待核也算进来了，正是要修的病）；
+            #       同时不得明显偏少（<90% ＝明细大面积漏行，读者会以为成本就这么点）。
+            # ⚠ 允许小幅偏少：三态桶按**品名**归类（输入含 core/费用/待核三桶品名），
+            #   而明细行只来自"发票类目口径核心成本发票" —— 少量按三态判为成本、
+            #   却不在核心发票桶里的品名（如零星配件）没有逐张明细可列（实测 649.33 元）。
+            if _cost_amt and _sup_amt > _cost_amt + 0.5:
+                issues.append(("ERROR", "engine/cost_recon_detail.py",
+                               "「按供应商」明细超出三态成本桶：「%s」成本桶 %s 元，明细 %s 元"
+                               "（明细含了期间费用/待核的支出）"
+                               % (_cea_ind or "", format(_cost_amt, ",.2f"), format(_sup_amt, ",.2f"))))
+            elif _cost_amt and _sup_amt < _cost_amt * 0.9:
+                issues.append(("ERROR", "engine/cost_recon_detail.py",
+                               "「按供应商」明细明显少于三态成本桶：「%s」成本桶 %s 元，明细 %s 元"
+                               "（明细大面积漏行）"
+                               % (_cea_ind or "", format(_cost_amt, ",.2f"), format(_sup_amt, ",.2f"))))
+            # 域分析/VR 规则写入发现的那份「主营成本按供应商」同样要过滤：
+            # 其合计不得超过三态归属的成本总额（超了说明把费用/待核也统计进去了）。
+            for _ds in (_inner_d.get("domain_summary") or []):
+                for _f in (_ds.get("findings") or []):
+                    _sb = (_f.get("observed_metrics") or {}).get("core_cost_supplier_breakdown")
+                    if not isinstance(_sb, dict) or not _sb:
+                        continue
+                    _sum_sb = round(sum(float((_v or {}).get("amount") or 0)
+                                        for _v in _sb.values()), 2)
+                    if _cost_amt and _sum_sb > _cost_amt + 0.5:
+                        issues.append(("ERROR", "engine/verified_rule_engine.py",
+                                       "发现里的「主营成本按供应商」未按三态过滤：合计 %s 元 > "
+                                       "主营业务成本 %s 元（多出的部分是期间费用/待核）"
+                                       % (format(_sum_sb, ",.2f"), format(_cost_amt, ",.2f"))))
+                        break
 
             # ★ 同一条口径也要管住**结论徽标字段** `verdict`：正文说「未认定到要件」，
             #   徽标却写「已触碰税务违规红线」——读者照样看到打架（实测 11 项）。

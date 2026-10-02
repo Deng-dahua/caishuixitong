@@ -5270,6 +5270,11 @@ def _run_analyze(company_id, db, progress_callback=None):
             "blank_rows_dropped": _blank_dropped,
         }
 
+        # 归属为主营业务成本的发票/行（唯一实现 `account_classifier.filter_cost_invoices`）：
+        # 供"按供应商""逐张清单"两张**明细表**使用；金额统计口径不受影响（见下方注释）。
+        _cost_ind = str(bcc.get("industry_basis") or "")
+        _cost_only_invs = _account_classifier.filter_cost_invoices(_core_invs, industry=_cost_ind)
+        _cost_only_rows = _account_classifier.filter_cost_invoices(_core_inv_rows, industry=_cost_ind)
         biz_cost_summary = {
             "core_cost_count": len(bcc.get("core_cost_invs", [])),
             "core_cost_amount": sum(to_number(inv.get("amount", 0)) for inv in bcc.get("core_cost_invs", [])),
@@ -5279,8 +5284,13 @@ def _run_analyze(company_id, db, progress_callback=None):
             "core_goods": list(bcc.get("pur_core_goods", []))[:20],
             "expense_goods": list(bcc.get("pur_expense_goods", []))[:20],
             "core_goods_breakdown": _agg_invs(_core_invs, "goods"),
-            "core_cost_supplier_breakdown": _agg_invs(_core_invs, "seller"),
-            "core_cost_invoices": _core_inv_rows,
+            # ★ 2026-10-02（用户复核「按供应商」表拍板）：**成本明细只列归属为主营业务成本的**。
+            #   `core_goods_breakdown` 保持**全量**（它是"发票类目口径"的构成，报告要用它
+            #   披露两口径差异 contradictions）；而"按供应商/逐张清单"是给读者看的成本明细，
+            #   必须与三态归属一致（实测全量里 47.5% 的金额其实是费用/待核）。
+            #   过滤走唯一实现 `account_classifier.filter_cost_invoices`（不在此重写判据）。
+            "core_cost_supplier_breakdown": _agg_invs(_cost_only_invs, "seller"),
+            "core_cost_invoices": _cost_only_rows,
             "core_cost_invoices_field_fill": _field_fill,
             # ★ 2026-10-02：费用侧与待核侧也**必须**带品名小计，否则报告层无法把
             #   「主营业务成本 vs 期间费用」逐类区分（只剩一个张数，只能看不能核）。

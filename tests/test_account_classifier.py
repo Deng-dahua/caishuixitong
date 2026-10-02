@@ -282,3 +282,91 @@ def test_pipeline_agg_keeps_structural_fields():
     assert 'for _sk, _getter in (("tax_code", _tc_of), ("unit", _u_of), ("biz_type", _bt_of))' in src, (
         "_agg_invs 未保住 tax_code/unit/biz_type（结构性证据到权威层的链路断了）")
     assert hasattr(pl, "_account_classifier")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 差旅出行层 + 行业核心投入词根匹配（2026-10-02，用户复核「按供应商」表暴露）
+# ══════════════════════════════════════════════════════════════════════════════
+class TestTravelExpenseLayer:
+    """员工差旅出行票务属**期间费用**，与行业无关；不得被"行业核心投入"截走。
+
+    实测两类误判（都出现在用户贴出的「主营成本·按供应商」表里）：
+      · `*经纪代理服务*机票款` 105,883.20 元 → 撞上行业核心投入里过泛的「代理服务」
+        被判成**主营业务成本**（那是"媒介代理"的意思，机票根本不是）；
+      · `*运输服务*客运服务费/票价/国内机票款` 72,135.26 元 → 无层可落退成"待核"，
+        而同一实物的「住宿服务住宿费」却在费用桶 —— 同一类支出两种归属。
+    """
+
+    CASES = ("经纪代理服务机票款", "经纪代理服务代订住宿费", "经纪代理服务代订房费",
+             "经纪代理服务退票费", "运输服务客运服务费",
+             "运输服务国内机票款；运输服务燃油附加费", "住宿服务住宿费", "旅游服务综合服务费")
+
+    def test_travel_goods_are_expense(self):
+        for g in self.CASES:
+            r = ac.classify_line(g, industry="广告传媒")
+            assert r["account_class"] == ac.CLASS_EXPENSE, f"{g} 未判为期间费用：{r}"
+            assert r["matched_layer"] == "差旅出行", f"{g} 未走差旅出行层：{r['matched_layer']}"
+            assert r["expense_sub"] == "差旅费", f"{g} 费用明细未落到差旅费：{r.get('expense_sub')}"
+
+    def test_same_thing_same_bucket(self):
+        """同一实物的"自营写法"与"代订写法"必须落同一个桶（不得一个成本一个待核）。"""
+        pairs = [("住宿服务住宿费", "经纪代理服务代订住宿费"),
+                 ("住宿服务房费", "经纪代理服务代订房费")]
+        for a, b in pairs:
+            ca = ac.classify_line(a, industry="广告传媒")["account_class"]
+            cb = ac.classify_line(b, industry="广告传媒")["account_class"]
+            assert ca == cb == ac.CLASS_EXPENSE, f"{a}/{b} 归属不一致：{ca} vs {cb}"
+
+    def test_capital_and_prepaid_still_win(self):
+        """差旅层不得抢在资本化/预付卡之前（加油卡仍须走预付卡、设备仍须资本化）。"""
+        assert ac.classify_line("加油卡", industry="广告传媒")["account_class"] != ac.CLASS_EXPENSE
+        assert ac.classify_line("移动通信设备三星 S25", industry="广告传媒")["account_class"] == ac.CLASS_CAPITAL
+
+    def test_core_input_not_hurt_by_travel_layer(self):
+        """反向锁：广告传媒的核心投入仍须判成本（差旅层不得误伤）。"""
+        for g in ("广告服务广告发布费", "设计服务专业设计服务", "信息系统服务信息服务费"):
+            assert ac.classify_line(g, industry="广告传媒")["account_class"] == ac.CLASS_COST, g
+
+    def test_travel_kws_not_empty(self):
+        assert ac.TRAVEL_KWS, "差旅出行词表为空（该层形同不存在）"
+
+
+class TestCoreKeywordRootMatch:
+    """行业核心投入按**词根**匹配：'代言费' 要能命中票面的「代言服务费」。
+
+    实测：`core_inputs['广告传媒']` 登记的是「代言费」，票面是
+    `*现代服务*代言服务费` → 逐字匹配不上 → 641,509.43 元的行业核心投入
+    被扔进"待核"（该进成本的没进）。
+    """
+
+    def test_suffix_variant_matches(self):
+        r = ac.classify_line("现代服务代言服务费", industry="广告传媒")
+        assert r["account_class"] == ac.CLASS_COST, r
+        assert r["matched_layer"] == "行业核心投入（服务轨道）"
+
+    def test_root_helper_basics(self):
+        assert ac._kw_root("代言费") == "代言"
+        assert ac._kw_root("制作费") == "制作"
+        # 泛词不得被词根化（否则"服务费"→"服务"会命中一切含"服务"的品名）
+        assert ac._kw_root("服务费") == "服务费"
+        assert ac._kw_root("费用") == "费用"
+        assert ac._kw_root("咨询") == "咨询"
+
+
+class TestCostInvoiceFilter:
+    """`filter_cost_invoices` —— 成本明细只留归属为主营业务成本的发票（用户拍板）。"""
+
+    def test_filters_out_travel_and_services(self):
+        invs = [
+            {"goods": "广告服务广告发布费", "amount": 1000, "seller": "A"},
+            {"goods": "经纪代理服务机票款", "amount": 2000, "seller": "B"},
+            {"goods": "现代服务咨询服务费", "amount": 3000, "seller": "C"},
+            {"goods": "现代服务代言服务费", "amount": 4000, "seller": "D"},
+        ]
+        kept = ac.filter_cost_invoices(invs, industry="广告传媒")
+        got = sorted(x["seller"] for x in kept)
+        assert got == ["A", "D"], f"应只保留成本类（A/D），实际 {got}"
+
+    def test_tolerates_bad_rows(self):
+        assert ac.filter_cost_invoices(None, industry="广告传媒") == []
+        assert ac.filter_cost_invoices([None, "x", {}, {"goods": ""}], industry="广告传媒") == []

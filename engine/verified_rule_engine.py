@@ -6050,7 +6050,17 @@ def _scan_core_cost_fund_evidence(data, spec):
             it["amount"] = round(it["amount"], 2)
         return dict(sorted(acc.items(), key=lambda kv: -kv[1]["amount"]))
 
-    core_break = _supplier_breakdown(core_invs)
+    # ★ 2026-10-02（用户复核「按供应商」表拍板）：**展示明细只列归属为主营业务成本的部分**。
+    #   本规则的金额统计（core_cost_total 等）仍按发票类目口径**不变** —— 那是与账面口径
+    #   做勾稽的基准；但「主营成本按供应商」这张表的标签就是"主营业务成本"，若把机票、
+    #   住宿、咨询、体育文化也列进去，表名与内容就不符了（实测该表 47.5% 的金额并非成本）。
+    try:
+        from engine.account_classifier import filter_cost_invoices as _fcost
+        _cost_only = _fcost(core_invs, industry=str(_cls.get("industry_basis") or ""))
+        # 不过滤为空就回退全量（回退＝把费用当成本展示，正是本次要修的病）；空就是空
+        core_break = _supplier_breakdown(_cost_only)
+    except Exception:
+        core_break = _supplier_breakdown(core_invs)
     _paid_rows = [e.get("row") for e in (evid.get("company_paid") or []) if isinstance(e, dict)]
     paid_break = _supplier_breakdown(_paid_rows)
     no_detail_full = [it for it in no_trace if (it.get("ap") or {}).get("status") == "无明细"]

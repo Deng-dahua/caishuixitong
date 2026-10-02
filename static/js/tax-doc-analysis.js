@@ -5095,17 +5095,26 @@ function _renderCostReconDetail(crd){
   _CRD_CACHE = crd;
   var h = '<h3>主营业务成本两口径勾稽明细</h3>';
   (crd.paragraphs || []).forEach(function(t){ h += '<p class="i2">' + esc(t) + '</p>'; });
+  // ★ 2026-10-02：口径必须写在明细前面 —— 这三张表只含**归属为主营业务成本**的部分，
+  //   而上面概述句的"发票类目口径合计"是含费用/待核的全量口径；不说明就看起来对不上账。
+  if (crd.cost_detail_scope) {
+    h += '<p class="i2" style="color:#64748b;font-size:12.5px">' + esc(crd.cost_detail_scope) + '</p>';
+  }
   var g = crd.by_goods || [];
   if (g.length) {
-    h += '<p class="i2" style="color:#64748b">① 发票类目口径构成（按品名/类目，逐类小计）' + _crdBtn('goods') + '</p>';
+    h += '<p class="i2" style="color:#64748b">① 主营业务成本构成（按品名/类目，逐类小计）' + _crdBtn('goods') + '</p>';
     h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
       + '<th>品名/类目</th><th>张数</th><th>金额(元)</th></tr></thead><tbody>';
     g.slice(0, 30).forEach(function(r){
       h += '<tr><td>' + esc(r.goods) + '</td><td>' + esc(r.count) + '</td>'
         + '<td style="white-space:nowrap">' + _crdMoney(r.amount) + '</td></tr>';
     });
-    h += '<tr><td><strong>合计</strong></td><td><strong>' + esc(crd.invoice_count || 0)
-      + '</strong></td><td><strong>' + _crdMoney(crd.invoice_total) + '</strong></td></tr></tbody></table></div>';
+    // 合计用**本表口径**（cost_detail_*），与上面三张表的明细一致
+    h += '<tr><td><strong>合计</strong></td><td><strong>'
+      + esc(crd.cost_detail_count != null ? crd.cost_detail_count : (crd.invoice_count || 0))
+      + '</strong></td><td><strong>' + _crdMoney(
+        crd.cost_detail_total != null ? crd.cost_detail_total : crd.invoice_total)
+      + '</strong></td></tr></tbody></table></div>';
   }
   var ir = crd.invoice_rows || [];
   if (ir.length) {
