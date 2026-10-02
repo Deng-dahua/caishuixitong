@@ -379,11 +379,18 @@ def build_cost_recon_detail(report_data: Any) -> Dict[str, Any]:
             if cea.get("contradictions"):
                 _top = "；".join("「%s」%s 元" % (str(x["goods"])[:24], _fmt(x.get("amount")))
                                 for x in (cea["contradictions"] or [])[:3])
+                # ★ 2026-10-02：此处必须写明是**哪个口径的成本**。
+                #   本列表按定义来自「发票类目口径」认定为成本类的品名（`core_rows`），
+                #   旧文案写「已计入成本桶的品名中…」——读者会把它理解成上一段的
+                #   「主营业务成本」桶（三态归属的 cost 桶），于是同一品名看起来
+                #   「既在成本桶、又说应作待核」，成了新的自相矛盾（用户一眼就会问）。
+                #   两个「成本」本是不同口径：发票类目（按品名归类）vs 三态归属（按权威层）。
                 paragraphs.append(
-                    "口径差异提示：已计入成本桶的品名中，有 %d 类按权威口径应作「%s」处理（%s），"
-                    "两者差异须核对合同用途后确认。"
+                    "口径差异提示：本次「发票类目口径」认定为成本类的品名中，有 %d 类经"
+                    "「成本/费用/待核」区分后不属于主营业务成本（%s，其中金额最大一项应作「%s」"
+                    "处理）；两套口径的差异须核对合同用途后确认。"
                     % (len(cea["contradictions"]),
-                       (cea["contradictions"][0].get("authority_class") or ""), _top))
+                       _top, (cea["contradictions"][0].get("authority_class") or "")))
 
     return {
         "available": available,

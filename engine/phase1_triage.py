@@ -38,7 +38,8 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
     pipeline_log.append(f"[Phase1] 财务快照: 销{sales_total:,.0f}/进{pur_total:,.0f}/银行{ctx.financial_snapshot['bank_tx_count']}笔")
     
     # ── 1.2 企业画像推断（★ 2026-09-26 提到成本识别**之前**：成本归属判断需要行业口径）──
-    _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries)
+    _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries,
+                           db=db, company_id=company_id)
     pipeline_log.append(f"[Phase1] 企业画像: 行业={ctx.company_profile['industry']} 模式={ctx.company_profile['biz_model']}")
 
     # ── 1.3 主营业务成本识别（共享函数；按该行业「核心投入」区分 主营成本 / 期间费用）──
@@ -76,20 +77,29 @@ def _phase1_triage(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs, 
     return ctx
 
 
-def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
+def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries, db=None, company_id=None):
     """从数据中推断企业行业和经营模式，并加载行业自适应配置"""
     import json, os
     cp = ctx.company_profile
     
     # ── 经营模式推断 ──
-    pur_goods_set = set()
-    sal_goods_set = set()
+    # ★ 2026-10-02（用户复核「主营业务成本/期间费用的确定」暴露）：品名必须**同时**保留
+    #   列表（含重复）与集合（去重）两种形态，二者用途不同、不可互替：
+    #     · 列表：行业推断的输入。`industry_resolver.infer_from_goods` 是按**张数**取
+    #       `*分类*` 众数（"卖得最多的是什么"）；传 set 会把口径偷换成"品名种类最多"。
+    #       实测同一批发票：按张数 → 广告传媒（正确）；按种类 → 现代服务（错，且该名
+    #       不是具体行业、在行业库里没有核心投入登记 → 成本归属整体落"待核"）。
+    #     · 集合：品名重合度（购销一致性）计算，天然需要去重。
+    pur_goods_list = []
+    sal_goods_list = []
     for inv in pur_invs:
         g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-        if g: pur_goods_set.add(g)
+        if g: pur_goods_list.append(g)
     for inv in sal_invs:
         g = str(inv.get("goods", inv.get("货物或应税劳务名称", ""))).strip()
-        if g: sal_goods_set.add(g)
+        if g: sal_goods_list.append(g)
+    pur_goods_set = set(pur_goods_list)
+    sal_goods_set = set(sal_goods_list)
     
     # 加工信号（仅制造/贸易型企业适用，服务型企业跳过）
     has_processing = False
@@ -145,25 +155,25 @@ def _infer_company_profile(ctx, pur_invs, sal_invs, bank_txs, salaries):
     elif total_revenue > 1000000: cp["scale"] = "小"
     else: cp["scale"] = "微"
     
-    # ── 行业推断（基于品名关键词，不做行业特化）──
-    _infer_industry_from_goods(ctx, pur_goods_set, sal_goods_set)
+    # ── 行业推断（唯一权威 industry_resolver；输入是**列表**，见上文的张数口径说明）──
+    _infer_industry_from_goods(ctx, pur_goods_list, sal_goods_list, db=db, company_id=company_id)
     
     # ── 加载行业自适应配置（industry_profiles.json）──
     _load_industry_profile(ctx)
 
 
-def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
-    """从**销项**发票品名推断行业（统一实现）。
+def _infer_industry_from_goods(ctx, pur_goods, sal_goods, db=None, company_id=None):
+    """从**销项**发票品名推断行业（薄转发，唯一实现在 industry_resolver）。
 
-    ★ 2026-09-25 收敛：实现已统一到 engine/industry_resolver.infer_from_goods（唯一权威）。
-      原先本模块与 domain_analysis 各有一份，规则虽近似但会漂移；
-      且统一实现比原版多一层 industry_map 关键词兜底（原版无 `*分类*` 时直接落"综合"）。
     铁律 META-001：仅以销项品名为依据（销项=实际经营产出），不参考进项。
+    ★ `sal_goods` 必须是**列表（含重复）**：`infer_from_goods` 取 `*分类*` 出现次数众数，
+      传 set 会把"卖得最多的是什么"偷换成"品名种类最多"，实测同一批发票：
+      按张数 → 广告传媒（对）；按种类 → 现代服务（错，行业库里无核心投入登记
+      → 成本归属整体落"待核"）。解析与写回都在唯一权威
+      `industry_resolver.resolve_into_profile`，本函数不得再写第二份逻辑。
     """
-    from engine.industry_resolver import infer_from_goods as _infer
-    cp = ctx.company_profile
-    _industry, _votes = _infer(list(sal_goods or []))
-    cp["industry"] = _industry or "综合"
+    from engine.industry_resolver import resolve_into_profile as _rip
+    return _rip(ctx, sal_goods, db=db, company_id=company_id)
 
 
 def _load_industry_profile(ctx):

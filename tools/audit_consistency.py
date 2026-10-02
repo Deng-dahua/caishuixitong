@@ -4915,6 +4915,31 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as _exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"材料说明句括号断言跳过: {_exc}"))
 
+    # ── ③b 行业推断必须按**张数**（列表），不得传 set ──
+    #   `infer_from_goods` 取的是 `*分类*` 的**出现次数**众数（"卖得最多的是什么"）。
+    #   传 set 会把口径偷换成"品名种类最多"，实测同一批发票：
+    #     按张数 → 广告传媒（对）；按种类 → 现代服务（错，且不是具体行业，
+    #     行业库里没有它的核心投入登记 → 成本归属整体落"待核"）。
+    #   这是"改了代码但报告数字不变/变错"的隐形推手，必须用行为断言锁住。
+    try:
+        from engine.context import AuditContext as _RC3
+        from engine.phase1_triage import _infer_company_profile as _icp3
+        _ctx3 = _RC3()
+        # 8 张广告发布 + 3 种现代服务品名各 1 张：按张数=广告传媒，按种类=现代服务
+        _sal3 = [{"goods": "*广告服务*广告发布费", "amount": 10000, "date": "2025-03-01"}] * 8 + [
+            {"goods": "*现代服务*代言服务费", "amount": 1000, "date": "2025-03-02"},
+            {"goods": "*现代服务*服务费", "amount": 1000, "date": "2025-03-03"},
+            {"goods": "*现代服务*咨询服务费", "amount": 1000, "date": "2025-03-04"}]
+        _pur3 = [{"goods": "*现代服务*服务费", "amount": 500, "date": "2025-03-05"}]
+        _icp3(_ctx3, _pur3, _sal3, [], [])
+        _got_ind3 = str((_ctx3.company_profile or {}).get("industry") or "")
+        if _got_ind3 != "广告传媒":
+            issues.append(("ERROR", "engine/phase1_triage.py",
+                           "行业推断未按**张数**统计（疑似又把 set 传给了推断器）："
+                           f"期望「广告传媒」，实际「{_got_ind3}」"))
+    except Exception as _exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"行业张数口径断言跳过: {_exc}"))
+
     # ── ④ 段尾触红断言的中性化 + **锚点容错**（上游 to_plain 会改写措辞）──
     #   逐字锚点最阴的失败方式是"静默失效"：常量写「补证」，报告里却是「补充资料」
     #   （plain_language 的规则），替换一次也不会发生，谁都不报错。
@@ -5023,6 +5048,46 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", "engine/argumentation.py",
                                "同一疑点内「未认定到任何构成要件」与「触碰税务红线」并存"
                                f"（{len(_conf_items)} 项）：{('、'.join(_conf_items[:5]))}"))
+            # ★ 2026-10-02（用户复核「主营业务成本/期间费用没变化」）：**行业口径必须唯一** ——
+            #   报告用的行业 vs 成本归属用的行业必须是同一个。
+            #   实测事故：报告写「广告传媒」，而 `biz_cost_classification.industry_basis`
+            #   是「现代服务」（金税税目大类，行业库里无核心投入登记）→ 成本归属全落「待核」。
+            # ⚠ 结构适配：`_fresh_result.json` 是**单层**（{"report": report_data}），
+            #   而 `last_analysis_cache.json` 是**双层**（[cid]["report"]["report"]）。
+            #   取错层级会让下面的判据全部拿到空值 → 闸门静默假绿（本轮实测踩过）。
+            _inner_d = _dd2.get("report") or {}
+            if "target_entity" not in _inner_d:
+                _inner_d = _inner_d.get("report") or {}
+            _te_ind = str(((_inner_d.get("target_entity") or {}).get("industry")) or "").strip()
+            _bcc_d = ((_inner_d.get("engine_status") or {}).get("biz_cost_classification")) or {}
+            _basis_d = str(_bcc_d.get("industry_basis") or "").strip()
+            if _te_ind and _basis_d and _basis_d != _te_ind:
+                issues.append(("ERROR", "engine/pipeline.py",
+                               "成本归属的行业口径与报告行业不一致：报告=%s，"
+                               "成本识别 industry_basis=%s（同一份报告两套行业口径）"
+                               % (_te_ind, _basis_d)))
+            # 报告侧也直接取自 enterprise_readable_report
+            _crd_d2 = (_er_d.get("cost_recon_detail") or {})
+            _cea_d2 = _crd_d2.get("cost_expense_attribution") or {}
+            _cea_ind = str(_cea_d2.get("industry") or "").strip()
+            if _te_ind and _cea_ind and _cea_ind != _te_ind:
+                issues.append(("ERROR", "engine/cost_recon_detail.py",
+                               "成本/费用归属的行业名与报告行业不一致：报告=%s，归属=%s"
+                               % (_te_ind, _cea_ind)))
+            # ★ `contradictions` 与「主营业务成本桶」不得有交集 —— 同一品名既在成本桶、
+            #   又被列为"应作待核"，那是同一口径内部的真矛盾（读者无法理解）。
+            #   `contradictions` 按定义取自**另一个口径**（发票类目口径的核心成本品名），
+            #   故只允许出现在成本桶之外；出现交集说明两桶口径串了。
+            _cost_names = {str(_i.get("goods") or "") for _i in
+                           (((_cea_d2.get("cost") or {}).get("items")) or [])}
+            _contra_names = {str(_x.get("goods") or "") for _x in
+                             (_cea_d2.get("contradictions") or [])}
+            _both = sorted((_cost_names & _contra_names) - {""})
+            if _both:
+                issues.append(("ERROR", "engine/cost_recon_detail.py",
+                               "同一品名既列在「主营业务成本」桶、又被列为口径差异（应作待核）"
+                               f"，口径串桶：{('、'.join(_both[:4]))}"))
+
             # ★ 同一条口径也要管住**结论徽标字段** `verdict`：正文说「未认定到要件」，
             #   徽标却写「已触碰税务违规红线」——读者照样看到打架（实测 11 项）。
             _bad_badge = []
@@ -6341,6 +6406,49 @@ def check_evidence_rows_semantic_match(_path=None) -> List[Tuple[str, str, str]]
     return issues
 
 
+def check_static_asset_cache_version() -> List[Tuple[str, str, str]]:
+    """静态资源 `?v=` 必须等于文件**内容哈希** —— 否则前端改动用户永远看不到。
+
+    ★ 2026-10-02（用户实测「改了这么多，报告还是没有什么变化」）根因之一：
+      浏览器按「URL 含 query」缓存。`tax-doc-analysis.js` 内容在 10-01 更新过
+      （新增「主营业务成本 vs 期间费用 三态归属」渲染），而 index.html 里仍是
+      `?v=2026092901`（9/29）→ 用户一直用旧 JS，新章节**根本不渲染**。
+      后端算得对，但用户看不见 —— 属于典型的"改了等于没改"。
+
+    判据（单一权威）：版本号 = 该文件 sha1 前 10 位；同步工具
+    `tools/sync_asset_versions.py`；本闸门只做校验（不自动改文件）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    index = ROOT / "static" / "index.html"
+    if not index.exists():
+        return issues
+    try:
+        import hashlib
+        html = index.read_text(encoding="utf-8")
+        refs = re.findall(r"(/static/(?:js|css)/[A-Za-z0-9_.\-]+)\?v=([0-9A-Za-z_.\-]+)", html)
+        stale, missing = [], []
+        for rel, cur in refs:
+            p = ROOT / rel.lstrip("/").replace("/", os.sep)
+            if not p.exists():
+                missing.append(rel)
+                continue
+            want = hashlib.sha1(p.read_bytes()).hexdigest()[:10]
+            if cur != want:
+                stale.append((rel, cur, want))
+        if stale:
+            _ex = "；".join("%s %s→%s" % (r, c, w) for r, c, w in stale[:4])
+            issues.append(("ERROR", "static/index.html",
+                           "静态资源版本号与文件内容不一致（浏览器会继续用旧 JS/CSS，"
+                           "改动用户看不到，共 %d 处）：%s。跑 python tools/sync_asset_versions.py 同步"
+                           % (len(stale), _ex)))
+        if missing:
+            issues.append(("ERROR", "static/index.html",
+                           "静态资源引用指向不存在的文件: " + "、".join(missing[:5])))
+    except Exception as exc:
+        issues.append(("WARN", "tools/audit_consistency.py", f"静态资源版本校验跳过: {exc}"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -6393,6 +6501,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_constituent_sources_wiring()  # #448 逐要件独立数据源接线锁定
                + check_material_alias_drift()       # 2026-10-01 红线资料名异名漂移（照运行时真语义模拟）
                + check_conclusion_and_suspicion_order()  # 2026-10-02 结论先行 + 疑点/监管态度重→轻排序
+               + check_static_asset_cache_version()  # 2026-10-02 前端缓存版本（改了看不到）
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

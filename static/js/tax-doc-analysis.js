@@ -5179,9 +5179,12 @@ function _renderCostReconDetail(crd){
     if (cea.missing_materials && cea.missing_materials.length) {
       h += '<p class="i2">待核项须补充的资料：' + esc(cea.missing_materials.slice(0, 3).join('、')) + '。</p>';
     }
+    // ★ 2026-10-02：必须写明是「发票类目口径」认定的成本类品名 —— 说成"成本桶"会让读者
+    //   把它与上表三态归属的「主营业务成本」桶混为一谈，看起来像同一品名既在成本桶又应待核。
     (cea.contradictions || []).slice(0, 5).forEach(function(x){
-      h += '<p class="i2">口径差异：已计入成本桶的「' + esc(x.goods || '') + '」按权威口径应作「'
-        + esc(x.authority_class || '') + '」处理，' + esc(x.reason || '') + '</p>';
+      h += '<p class="i2">口径差异（发票类目口径认为属成本类，本表口径区分后不属主营业务成本）：「'
+        + esc(x.goods || '') + '」应作「' + esc(x.authority_class || '') + '」处理，'
+        + esc(x.reason || '') + '</p>';
     });
   }
   return h;

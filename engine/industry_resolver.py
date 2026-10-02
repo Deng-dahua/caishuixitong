@@ -938,3 +938,70 @@ def reassess_industry(current_industry: str = "", *,
             "from_fallback": is_fallback, "reason": reason}
 
 
+
+# ══════════════════════════════════════════════════════════════════════════
+# 行业解析 → 写回分析上下文（**全流程唯一写回点**，2026-10-02）
+# ══════════════════════════════════════════════════════════════════════════
+def resolve_into_profile(ctx, sales_goods, db=None, company_id=None):
+    """解析行业并写回 `ctx.company_profile`（唯一写回点）。
+
+    为什么必须是唯一写回点
+    ----------------------
+    实测事故（用户复核「主营业务成本/期间费用没有变化」）：行业口径被**多处**写回
+    `ctx.company_profile["industry"]`，且各处用的证据与算法不同 ——
+      · Phase1 只用品名推断（且把发票品名传成 `set`，把"按张数取众数"偷换成
+        "按品名种类取众数"）→ 得出「现代服务」（金税税目大类，不是具体行业）；
+      · 报告侧 `_detect_target_entity` 用完整 `resolve_industry` → 得出「广告传媒」。
+    结果：报告写「广告传媒」，而「主营业务成本 vs 期间费用」的判定按「现代服务」算，
+    该行业在行业库里**没有核心投入登记** → 全部走业态兜底"待核"
+    （实测 167 类待核、主营业务成本只剩 521.24 元）。
+    同一件事两个入口、两套证据、两个结果 —— 这就是"改了代码但报告数字不变/变错"的推手。
+
+    现在：解析与写回都在这里（调用同一个 `resolve_industry`），
+    `phase1_triage` 与 `domain_analysis` 只做**薄转发**（同步闸门
+    `audit_consistency.check_duplicate_definitions` 要求同名函数为转发桩）。
+
+    参数
+      sales_goods —— **销项品名列表（含重复）**。必须是列表：`infer_from_goods`
+        取的是 `*分类*` 出现次数众数，传 set 会改变口径（见上）。
+      db / company_id —— 用于取工商登记行业与经营范围（解析器的第 4/5 路证据）。
+    """
+    cp = getattr(ctx, "company_profile", None)
+    if not isinstance(cp, dict):
+        return {}
+    _sales = list(sales_goods or [])
+
+    _name = str(cp.get("name") or "")
+    # ⚠ 登记行业只取登记口径字段：把推断结果（cp["industry"]）当登记回填＝自证循环。
+    _reg = str(cp.get("industry_registered") or "")
+    _scope = str(cp.get("business_scope") or "")
+    if db is not None and company_id:
+        try:
+            from database import Company
+            _c = db.query(Company).filter(Company.id == company_id).first()
+            if _c is not None:
+                _name = _name or str(_c.name or "")
+                _reg = str(_c.industry_code or "") or _reg
+                _scope = _scope or str(_c.business_scope or "")
+        except Exception:
+            pass
+
+    res: Dict[str, Any] = {}
+    try:
+        res = resolve_industry(company_name=_name, registered_industry=_reg,
+                               sales_goods=_sales, business_scope=_scope,
+                               biz_model=str(cp.get("biz_model") or "")) or {}
+    except Exception:
+        res = {}
+    ind = str(res.get("industry") or "").strip()
+    if not ind:
+        # 解析器给不出（无任何线索）→ 如实回退品名推断，并标注来源
+        try:
+            ind, _votes = infer_from_goods(_sales)
+        except Exception:
+            ind = ""
+        res = {"industry": ind, "source": "销项发票品名推断（回退）"}
+    cp["industry"] = ind or "综合"
+    cp["industry_source"] = str(res.get("source") or "")
+    cp["_industry_resolved"] = res
+    return res

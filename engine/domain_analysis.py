@@ -7906,19 +7906,16 @@ class AuditContext:
         return self, "\n".join(lines)
 
 
-def _infer_industry_from_goods(ctx, pur_goods, sal_goods):
-    """从**销项**发票品名推断行业（统一实现）。
+def _infer_industry_from_goods(ctx, pur_goods, sal_goods, db=None, company_id=None):
+    """从**销项**发票品名推断行业（薄转发，唯一实现在 industry_resolver）。
 
-    ★ 2026-09-25 收敛：实现已统一到 engine/industry_resolver.infer_from_goods（唯一权威）。
-      原先本模块与另一模块各有一份，规则虽近似但会漂移；
-      且统一实现比原版多一层 industry_map 关键词兜底（原版无 `*分类*` 时直接落"综合"）。
-    铁律 META-001：仅以销项品名为依据（销项=实际经营产出），不参考进项。
+    ★ 2026-10-02：原为本模块的**第二份实现**（只调 infer_from_goods 后写回 profile，
+      且调用了本模块并不存在的 `_load_industry_profile`）——属死代码 + 与唯一权威分歧：
+      行业口径一旦有两处写回，谁后写谁生效，全流程结果取决于调用顺序。
+      现收敛为转发桩，确保"报告行业"与"成本归属行业"永远同一个。
     """
-    from engine.industry_resolver import infer_from_goods as _infer
-    cp = ctx.company_profile
-    _industry, _votes = _infer(list(sal_goods or []))
-    cp["industry"] = _industry or "综合"
-    _load_industry_profile(ctx)   # 本模块特有副作用：加载行业自适应画像
+    from engine.industry_resolver import resolve_into_profile as _rip
+    return _rip(ctx, sal_goods, db=db, company_id=company_id)
 
 
 # ── 行业数据外部化加载器：从 industry_data.json 加载所有行业字典 ──

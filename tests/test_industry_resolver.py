@@ -837,3 +837,75 @@ class TestResolvedIndustryWriteBack(unittest.TestCase):
         finally:
             _main.SessionLocal = real
         self.assertEqual(calls["closed"], 1)
+
+
+class TestIndustryCountVsVariety(unittest.TestCase):
+    """行业口径必须按**销项发票张数**统计，不得按"品名种类"（2026-10-02）。
+
+    用户复核「报告没什么变化，特别是主营业务成本和期间费用的确定」暴露的事故链：
+      Phase1 把销项品名传成 `set` → `infer_from_goods` 取 `*分类*` **出现次数**众数的口径
+      被偷换成"品名种类最多" → 同一批发票得出不同行业：
+        按张数 → 广告传媒（正确，与报告一致）
+        按种类 → 现代服务（错误；且「现代服务」是金税税目大类、不是具体行业，
+                 行业库里没有它的核心投入登记 → 行业核心投入覆盖 False
+                 → 成本归属全部走业态兜底"待核"，实测主营业务成本只剩 521.24 元）
+    代价：报告写「广告传媒」，成本归属却按「现代服务」算 —— 同一份报告两套行业口径。
+    """
+
+    def test_inference_is_count_based(self):
+        # 8 张广告发布 + 3 种现代服务品名各 1 张
+        lst = ["*广告服务*广告发布费"] * 8 + [
+            "*现代服务*代言服务费", "*现代服务*服务费", "*现代服务*咨询服务费"]
+        self.assertEqual(infer_from_goods(lst)[0], "广告传媒",
+                         "按张数统计应得广告传媒")
+        # 反向锁：set（按种类）会得出**不同**结果 —— 这正是必须禁止传 set 的原因。
+        # 若哪天有人把调用改回去重，本断言会连同 audit 行为断言一起变红。
+        self.assertEqual(infer_from_goods(list(set(lst)))[0], "现代服务",
+                         "按品名种类统计会误得「现代服务」——故调用方必须传列表")
+
+    def test_phase1_passes_list_not_set(self):
+        """接线断言：Phase1 行业推断必须吃到**列表**（含重复），否则口径失真。"""
+        import io
+        import os
+        p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "engine", "phase1_triage.py")
+        src = io.open(p, encoding="utf-8").read()
+        self.assertIn("_infer_industry_from_goods(ctx, pur_goods_list, sal_goods_list",
+                      src, "Phase1 传给行业推断的必须是列表（含重复/张数）")
+        self.assertNotIn("_infer_industry_from_goods(ctx, pur_goods_set, sal_goods_set",
+                         src, "不得把去重集合传给行业推断（会把张数口径换成种类口径）")
+
+    def test_unique_writeback_point(self):
+        """行业写回 `company_profile["industry"]` 只能有一处（唯一权威）。"""
+        import io
+        import os
+        import re
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        writers = []
+        for mod in ("phase1_triage.py", "domain_analysis.py"):
+            src = io.open(os.path.join(root, "engine", mod), encoding="utf-8").read()
+            if re.search(r'cp\["industry"\]\s*=', src) or re.search(r'company_profile\["industry"\]\s*=', src):
+                writers.append(mod)
+        self.assertEqual(writers, [],
+                         "行业写回必须收敛到 industry_resolver.resolve_into_profile；"
+                         f"这些模块仍在直接写 profile: {writers}")
+
+
+class TestStaticAssetVersions(unittest.TestCase):
+    """静态资源 `?v=` 必须是文件内容哈希（2026-10-02）。
+
+    浏览器按「URL 含 query」缓存：JS 改了而 `?v=` 没变 → 用户**永远**用旧 JS，
+    后端算得再对页面上也看不见（实测 `tax-doc-analysis.js` 内容 10-01 更新、
+    版本号仍是 09-29 → 新增的「成本 vs 期间费用」章节根本没渲染）。
+    """
+
+    def test_versions_in_sync(self):
+        import os
+        import subprocess
+        import sys
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        r = subprocess.run([sys.executable, os.path.join(root, "tools", "sync_asset_versions.py"),
+                            "--check"], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(r.returncode, 0,
+                         "静态资源版本号与文件内容不一致（浏览器会继续用旧 JS/CSS）：\n"
+                         + (r.stdout or "") + (r.stderr or ""))

@@ -4249,6 +4249,38 @@ def _run_analyze(company_id, db, progress_callback=None):
         except Exception as _ol_err:
             pipeline_log.append(f"联网核查失败: {_ol_err}（继续流程）")
     
+    # ═══ 行业口径对齐：成本识别必须用**最终确定**的行业（2026-10-02）═══
+    #   根因（用户复核「报告没什么变化，特别是主营业务成本和期间费用的确定」）：
+    #     Phase1 的「主营业务成本 vs 期间费用」判定发生在**行业最终定型之前**
+    #     （Phase1 早于本步的实体识别与联网核验），于是可能出现
+    #     「报告写 A 行业、成本归属按 B 行业算」——同一份报告两套口径。
+    #     实测公司1：报告=广告传媒，成本识别=现代服务（**金税税目大类**，不是行业名，
+    #     `industry_data.json::core_inputs` 里没有它的核心投入登记）→ industry_covered=False
+    #     → 全部走业态兜底的"待核"：167 类进项待核、主营业务成本只剩 521.24 元。
+    #   修法：此处取最终行业，若与成本识别当时所用口径不同，则**重算一次**成本归属
+    #     （纯计算，代价可忽略），保证"报告行业的成本归属"名实相符。
+    try:
+        _final_ind = str((target_entity or {}).get("industry") or "").strip()
+        _used_ind = str(((ctx.biz_cost_classification or {}) or {}).get("industry_basis") or "").strip()
+        if pur_invs and _final_ind and _final_ind != _used_ind:
+            from engine.main_biz_cost import identify_main_biz_cost as _imbc_final
+            from engine.main_biz_cost import (set_active_industry as _sai_final,
+                                              set_active_industries as _sais_final)
+            _ires_final = (target_entity or {}).get("_industry_resolved") or {}
+            _sai_final(_final_ind)
+            _sais_final([_final_ind] + list(_ires_final.get("secondary") or []))
+            ctx.biz_cost_classification = _imbc_final(pur_invs, sal_invs, industry=_final_ind)
+            try:
+                ctx.company_profile["industry"] = _final_ind
+                ctx.company_profile["industry_source"] = str(_ires_final.get("source") or "")
+            except Exception:
+                pass
+            pipeline_log.append(
+                "[行业口径] 成本识别口径对齐：'%s' → '%s'（改用最终行业重算主营成本/期间费用归属）"
+                % (_used_ind or "未确定", _final_ind))
+    except Exception as _ial_err:
+        pipeline_log.append(f"[行业口径] 成本识别口径对齐失败（保留原结果）: {_ial_err}")
+
     # ═══ 报告编制总纲补全：数据锚定强化 ═══
     anchoring = _enforce_data_anchoring(target_entity, docs, pipeline_log)
     
