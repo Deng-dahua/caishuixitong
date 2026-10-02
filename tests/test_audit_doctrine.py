@@ -771,3 +771,87 @@ class TestSealGuaranteesExits:
         r2 = apply_three_piece_to_all(fs)
         assert r1["proof_filled"] == 1 and r1["terminal_filled"] == 1
         assert r2 == {"resolve_filled": 0, "proof_filled": 0, "terminal_filled": 0}
+
+
+# ═══════════════ ════════  要件数据源「拿得到吗」闸门（第 8/9 坑）  ═══════════════
+
+class TestConstituentSourceObtainability:
+    """锁死 `check_constituent_sources_consistency` 判据 (b)：「可取得」必须是**行为判定**。
+
+    背景（第 8 坑「闸门自证循环」）：
+      判据 (b) 原写法是 `legal = 真实资料类别 ∪ 该红线自己的 required_materials ∪ 证据链名`
+      ⇒ 红线在 required_materials 里写什么名，闸门就认什么名可取得，
+      **永远抓不到「声明了却一辈子拿不到」的独立数据源**。典型实例：
+      RL-OTH-001/007~011 六条红线共用的「印花税申报表」、RL-COST-006 的裸「发票」——
+      系统资料表里根本没有这些类别，`_match_material` 恒判「缺失」，
+      对应要件永远 `not_checked`（不计入认定），报告照出、风险静默消失。
+
+    第 9 坑：闸门必须问单一权威 `_match_material`「这个名字在真实资料类别里能判出什么」，
+    不能只做名字比对。
+    """
+
+    @staticmethod
+    def _cats():
+        from engine.enterprise_report import _DOC_TYPE_TO_CATEGORY as _MP
+        _cats = set()
+        for _v in (_MP or {}).values():
+            if isinstance(_v, str):
+                _cats.add(_v)
+            elif isinstance(_v, (list, tuple)):
+                _cats.update(str(x) for x in _v)
+        return sorted(_cats)
+
+    def test_alias_does_not_fabricate_availability_from_nothing(self):
+        """别名映射不得凭空造出「已有」：空资料清单下，任何声明的名字都只能「缺失」。"""
+        from engine.evidence_chain import _match_material
+        for name in ("投料单", "销项发票", "银行流水", "A106000弥补亏损明细表", "应付账款明细"):
+            assert _match_material(name, "", [])["status"] == "缺失", \
+                "没有提供任何资料时「%s」必须判缺失（禁止用别名硬映射冒充实得）" % name
+
+    def test_alias_resolves_declared_but_unmapped_source(self):
+        """同一实物的不同叫法：已提供进销存台账 → 其料单「投料单」判已有。"""
+        from engine.evidence_chain import _match_material
+        assert _match_material("投料单", "", ["进销存台账"])["status"] == "已有"
+        assert _match_material("销项发票", "", ["建安发票"])["status"] == "已有"
+
+    def test_alias_does_not_steal_neighbour_material(self):
+        """★ 双向锁：销项发票映射到建安发票，但不得把进项发票说成销项发票的已有依据。
+
+        这条锁防的是「为了让闸门变绿而乱加别名」——别名一旦串味，
+        报告会把没拿到的资料说成已提供（假已有，比漏检更危险）。
+        """
+        from engine.evidence_chain import _match_material
+        assert _match_material("销项发票", "", ["进项发票"])["status"] != "已有", \
+            "进项发票不得被当成销项发票的已有依据（两侧发票须可区分）"
+
+    def test_declared_source_that_is_never_obtainable_is_flagged(self):
+        """闸门 (b) 反向验证：故意往真实红线塞一个永远拿不到的数据源 → 必须报 ERROR。"""
+        from engine.tax_redlines import REDLINES
+        import copy
+        rl = next(r for r in REDLINES if r.get("constituent_sources"))
+        from tools.audit_consistency import check_constituent_sources_consistency
+        origin = copy.deepcopy(rl.get("constituent_sources"))
+        # ⚠ 哨兵名刻意用**纯 ASCII**：含中文的假名会撞上 `_related_categories` 的关键词
+        #   （实测「…资料名…」里的「资料」二字被判成类别相关 → 待核 → 闸门放绿），
+        #   那是判据「待核也算可取得」的正常放行，不是闸门失灵；此处要验的是「缺失」分支。
+        bogus = "zzz_unobtainable_sentinel_zzz"
+        try:
+            rl["constituent_sources"] = [bogus] + list(origin[1:])
+            issues = check_constituent_sources_consistency()
+        finally:
+            rl["constituent_sources"] = origin
+        hit = [i for i in issues if i[0] == "ERROR" and bogus in i[2]]
+        assert hit, "永久拿不到的数据源(%s)未被判 ERROR —— 闸门仍在自证循环" % bogus
+
+    def test_baseline_has_no_unknown_gap_warns_only_acknowledged(self):
+        """基线稳定性：全库判定无未知新缺口（ERROR 0），已知缺口走 WARN 且被点名。
+
+        当前唯一已知缺口是「拒收证明」（RL-VAT-007 折让/退货的事由说明，
+        与任何既存资料类别都不构成同一实物，刻意不做硬映射）。
+        """
+        from tools.audit_consistency import check_constituent_sources_consistency
+        issues = check_constituent_sources_consistency()
+        assert not [i for i in issues if i[0] == "ERROR"], \
+            "基线不得有未知缺口：%s" % [i[2][:80] for i in issues if i[0] == "ERROR"]
+        assert any(i[0] == "WARN" and "拒收证明" in i[2] for i in issues), \
+            "已知缺口「拒收证明」应走 WARN 并点名（未知缺口才 ERROR）"

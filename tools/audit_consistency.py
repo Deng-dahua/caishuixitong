@@ -3474,6 +3474,26 @@ def check_constituent_sources_consistency() -> List[Tuple[str, str, str]]:
     def _split(s):
         return [x.strip() for x in _re.split(r"[、，,；;]", str(s or "")) if len(x.strip()) >= 2]
 
+    # ★ 2026-10-02（#461 后续 · 第 9 坑「闸门自证循环」）：
+    #   判据 (b)「可取得」原先是 `legal = _cats ∪ required_materials ∪ evidence_chain名`，
+    #   **含该红线自己的 required_materials** ⇒ 红线写什么名、什么名就"可取得"，
+    #   永远抓不到「声明了却一辈子拿不到」的独立数据源
+    #   （实例：RL-OTH-001/007~011 的「印花税申报表」六条共用，识别器根本不认这个名）。
+    #   现改为**行为判定**：直接问单一权威 `evidence_chain._match_material`
+    #   「这个名字在真实资料类别里能判出什么」——拿得到（已有/待核）才过，拿不到（缺失）即报。
+    #   ⚠ 故意**不**把 required_materials 计入 legal：自证循环一旦保留，本判据就是摆设。
+    #   ★ 已显式登记的「拿得到但不该拿」的缺口（宁留缺口，绝不用硬映射冒充实得）：
+    _ACK_UNREACHABLE = {
+        "拒收证明": ("RL-VAT-007", "2026-10-02",
+                   "折让/退货的事由说明，与任何既存资料类别都不构成同一实物；"
+                   "硬映射会把事实上没拿到的资料说成「已有」"),
+    }
+    try:
+        from engine.evidence_chain import _match_material as _mm
+    except Exception as _exc:  # pragma: no cover
+        return [("ERROR", "engine/tax_redlines.py",
+                 "要件数据源可得性判定（_match_material）不可用: %s" % _exc)]
+
     for r in REDLINES:
         cs = r.get("constituent_sources") or []
         cc = r.get("constituents") or []
@@ -3482,17 +3502,29 @@ def check_constituent_sources_consistency() -> List[Tuple[str, str, str]]:
                            "%s 有 %d 条要件但未声明 constituent_sources，"
                            "核对表会写「未标注独立数据源」" % (r.get("id"), len(cc))))
             continue
-        legal = set(_cats) | set(r.get("required_materials") or [])
-        for _e in (r.get("evidence_chain") or []):
-            legal |= set(_split(_e.get("name")))
         if len(cs) != len(cc):
             issues.append(("ERROR", "engine/tax_redlines.py",
                            "%s constituent_sources %d 条与要件 %d 条不等（须按序对齐）" % (r.get("id"), len(cs), len(cc))))
         for i, (con, src) in enumerate(zip(cc, cs), 1):
-            miss = [x for x in _split(src) if x not in legal]
-            if miss:
-                issues.append(("ERROR", "engine/tax_redlines.py",
-                               "%s 第%d条要件的数据源 %s 不在已声明资料内（状态无从判定）" % (r.get("id"), i, miss)))
+            # ★ (b)「可取得」改为行为判定：问单一权威 _match_material 这个名字判得出什么
+            unobtainable = []
+            for _n in _split(src):
+                _st = ((_mm(_n, "", sorted(_cats)) or {}).get("status") or "缺失")
+                if _st == "缺失":
+                    unobtainable.append(_n)
+            if unobtainable:
+                _known = [x for x in unobtainable if x in _ACK_UNREACHABLE]
+                _new = [x for x in unobtainable if x not in _ACK_UNREACHABLE]
+                for _x in _known:
+                    issues.append(("WARN", "engine/tax_redlines.py",
+                                   "%s 第%d条要件的数据源「%s」判「缺失」（已知缺口：%s），"
+                                   "该要件本轮不会计入认定" % (r.get("id"), i, _x, _ACK_UNREACHABLE[_x][2])))
+                for _x in _new:
+                    issues.append(("ERROR", "engine/tax_redlines.py",
+                                   "%s 第%d条要件的数据源「%s」声明了但**永远拿不到**"
+                                   "（_match_material 判缺失），该要件恒 not_checked；"
+                                   "请把数据源改写成真实资料类别，或把资料登记进 _SUPP_ENTRIES"
+                                   % (r.get("id"), i, _x)))
             mentioned = [m for m in sorted(set(r.get("required_materials") or []))
                          if m in con and m not in str(src)]
             if mentioned:
