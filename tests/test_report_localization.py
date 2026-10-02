@@ -156,19 +156,29 @@ class ClueRenderTests(unittest.TestCase):
             cell = row["实际看到的数据"]
             self.assertNotRegex(cell, r"(?<![A-Za-z0-9_])[A-Za-z][A-Za-z0-9_]{2,}=",
                                 f"「同上」分支回填了未中文化的引擎键名：{cell}")
-            self.assertIn("初永伟", cell)
+            # ★ 2026-10-03：指标倾倒（"…等5项"）在表格里也只保留**第一个可引用读数**，
+            #   并以「…」明确标注截断（截断必须可见）；单元仍必须中文化、非空。
+            self.assertTrue(cell.strip(), "单元不能为空")
+            self.assertIn("涉及个人账号数", cell)
         # 第 2 环与本环同文本，但表格每行须可独立阅读，故不得写「同上」
         self.assertNotIn("同上", t["rows"][1]["实际看到的数据"])
 
-    def test_narrative_dup_becomes_same_as_previous(self):
-        """反向锁：**句子**路径仍用「同上」避免连续重复（表格与句子口径刻意不同）。"""
+    def test_narrative_dup_is_not_padded_with_empty_smalltalk(self):
+        """★ 2026-10-03 口径变更（用户：报告"很儿戏、整一堆没用的信息"）：
+
+        旧版把"某环与本环读数相同"写成「**数据与上一环一致**」——零数字、零信息，
+        24 条疑点里 15 条都有，是"空话占步"的典型。
+        现口径：**不写空话**；该环只交代"做了什么"，读数在首次出现的那一环给出即可。
+        （信息不得因此丢失：重复的那个读数仍必须出现在本项叙述里。）
+        """
         dup = "salary_person_count=6"
         clue = {"nodes": [
             {"step": 1, "source": "salaries", "action": "统计", "observed": dup},
             {"step": 2, "source": "salaries", "action": "复核", "observed": dup},
         ]}
         out = _clue_narrative(clue)
-        self.assertIn("数据与上一环一致", out)
+        self.assertNotIn("数据与上一环一致", out, f"空话占步未清除：{out}")
+        self.assertIn("工资表人数=6", out, f"读数被吞掉：{out}")
         self.assertNotIn("salary_person_count", out)
 
 
@@ -709,3 +719,96 @@ class TestReportTextStutterAndConsequence:
         out = N(txt)
         for w in ("是否", "需要", "相关"):
             assert w + w not in out, (w, out)
+
+
+class TestEvidenceEditingQuality:
+    """★ 2026-10-03（用户："报告编制特别不精准、很儿戏、整一堆没用的证据和信息"）
+
+    逐条实测出三类"垃圾证据"，本组测试锁住它们（含**反向锁**：不许把该留的行也删掉）：
+      ① 元信息当证据（"已读取资料：银行流水"/"本轮未取得该项资料"）；
+      ② 空话占步（"数据与上一环一致"）+ 指标倾倒（"…等5项 等10项"）；
+      ③ 明细行与本项口径相反（收款表混支出、正文称已剔除往来款而表里有往来款）。
+    """
+
+    def test_obs_kind_classifies_correctly(self):
+        from engine.enterprise_report import _obs_kind
+        assert _obs_kind("已读取资料：银行流水") == "meta_read"
+        assert _obs_kind("本轮未取得该项资料") == "meta_gap"
+        assert _obs_kind("该环节未产出可展示数据；所需资料已在本轮提供") == "meta_gap"
+        assert _obs_kind("匹配明细=人员=初永伟、转出个人金额=1,071,343.80等5项 等10项") == "pile"
+        assert _obs_kind("异常月份=202501、收款（银行）=395,905.76") == "fact"
+        assert _obs_kind("同上") == "none"
+        assert _obs_kind("") == "none"
+
+    def test_clue_narrative_never_passes_meta_as_evidence(self):
+        from engine.enterprise_report import _clue_narrative
+        clue = {"nodes": [
+            {"step": 1, "source": "银行流水", "action": "归集经营性收款",
+             "observed": "已读取资料：银行流水"},
+            {"step": 2, "source": "销项发票", "action": "汇总开票额",
+             "observed": "销项价税合计=8,050,908.58"},
+            {"step": 3, "source": "退货单、折让协议", "action": "核验红冲事由",
+             "observed": "本轮未取得该项资料"},
+        ]}
+        t = _clue_narrative(clue)
+        assert "看到已读取资料" not in t
+        assert "看到本轮未取得" not in t
+        assert "数据与上一环一致" not in t
+        assert "8,050,908.58" in t, "真正可引用的读数被吞掉了"
+        assert "退货单、折让协议" in t, "资料缺口必须如实交代（缺哪份资料）"
+
+    def test_pile_is_truncated_to_first_citable_reading(self):
+        from engine.enterprise_report import _clue_narrative
+        clue = {"nodes": [
+            {"step": 1, "source": "银行流水", "action": "构建资金流向图",
+             "observed": "匹配明细=人员=初永伟、转出个人金额=1,071,343.80等5项 等10项"},
+        ]}
+        t = _clue_narrative(clue)
+        assert "等5项" not in t or "完整读数见本项明细表" in t
+        assert "1,071,343.80" in t
+
+    def test_row_direction_filter_keeps_own_and_drops_opposite(self):
+        from engine.enterprise_report import _filter_rows_by_subject_side
+        tabs = [{"title": "t", "rows": [{"说明": "收入", "凭证/单据标识": "服务费", "金额（元）": 1},
+                                        {"说明": "支出", "凭证/单据标识": "明星费用", "金额（元）": 2},
+                                        {"金额（元）": -5}]}]
+        out, d = _filter_rows_by_subject_side(tabs, "银行收款大于申报收入：存在账外收入嫌疑")
+        assert d == 1 and len(out[0]["rows"]) == 2
+        assert out[0]["scope_note"], "过滤了行必须写明口径说明（不得静默丢数据）"
+
+    def test_non_operating_receipts_excluded_from_income_table(self):
+        from engine.enterprise_report import _filter_rows_by_subject_side
+        tabs = [{"title": "t", "rows": [
+            {"说明": "收入", "凭证/单据标识": "借款", "金额（元）": 400000},
+            {"说明": "收入", "凭证/单据标识": "往来款", "金额（元）": 259200},
+            {"说明": "收入", "凭证/单据标识": "服务费", "金额（元）": 111}]}]
+        out, d = _filter_rows_by_subject_side(tabs, "银行收款大于申报收入：存在账外收入嫌疑")
+        labs = [r["凭证/单据标识"] for r in out[0]["rows"]]
+        assert labs == ["服务费"] and d == 2
+
+    def test_both_side_topics_are_not_filtered(self):
+        """反向锁：资金回流既看付出也看收回，过滤任何一侧都会丢证据。"""
+        from engine.enterprise_report import _filter_rows_by_subject_side
+        tabs = [{"title": "t", "rows": [{"说明": "收入", "金额（元）": 1},
+                                        {"说明": "支出", "金额（元）": 2}]}]
+        out, d = _filter_rows_by_subject_side(tabs, "资金回流：付款后经个人账户回流")
+        assert d == 0 and len(out[0]["rows"]) == 2
+
+    def test_red_invoice_detail_splits_by_direction(self):
+        """红冲明细必须区分销项/取得侧：影响销项税额的只有销项侧。"""
+        from engine import domain_analysis as DA
+        invoices = [
+            {"direction": "销项", "status": "红冲", "total": -100, "date": "2025-03-02",
+             "buyer": "甲公司", "inv_no": "S1", "remark": ""},
+            {"direction": "进项", "status": "红冲", "total": -90, "date": "2025-01-05",
+             "seller": "乙公司", "inv_no": "P1", "remark": ""},
+            {"direction": "销项", "status": "红冲", "total": -50, "date": "2025-02-02",
+             "buyer": "丙公司", "inv_no": "S2", "remark": ""},
+        ]
+        fs = DA._domain_red_void_invoice(invoices)
+        assert fs, "红冲>=3 张应产出发现"
+        f = fs[0]
+        assert "销项（本企业开出）2张" in f["detail"], f["detail"]
+        assert "取得（进项）1张" in f["detail"], f["detail"]
+        rows = f.get("evidence_rows") or []
+        assert rows and "销项" in str(rows[0].get("source") or ""), "销项行必须排在前面"

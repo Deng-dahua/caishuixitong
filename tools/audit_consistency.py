@@ -7083,6 +7083,87 @@ def check_report_text_stutter() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_evidence_quality() -> List[Tuple[str, str, str]]:
+    """疑点证据编辑质量：**不拿元信息/空话/逆向记录冒充证据**。
+
+    ★ 2026-10-03（用户："报告编制特别不精准、很儿戏、整一堆没用的证据和信息"）：
+      逐条实测出三类"垃圾证据"，本闸门锁住它们：
+        ① **元信息当证据**：「已读取资料：银行流水」「本轮未取得该项资料」被写进"看到…"；
+        ② **空话占步**：「数据与上一环一致」（零数字，多疑点复现）；
+        ③ **行与本项口径相反**：「主营业务收入收款印证核实」表里混入支出行（明星费用/房租水电）。
+      判据全部落在**生产函数的输入→输出**上（不依赖既有产物）：
+        · `_obs_kind` 必须把元信息判为 meta_*、把「等N项」长串判为 pile；
+        · `_clue_narrative` 的输出**不得**出现"看到已读取资料/看到本轮未取得/数据与上一环一致"；
+        · `_filter_rows_by_subject_side` 对"收款"主题必须剔除支出行、对"支出"主题剔除收款行，
+          对两侧都有线索的主题（资金回流）**不得过滤**（防丢证据）。
+      并做**反向验证**：把方向判据改坏（恒返回 unknown），断言必须变红。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        import sys as _sys
+        if str(ROOT) not in _sys.path:
+            _sys.path.insert(0, str(ROOT))
+        from engine import enterprise_report as ER
+    except Exception as exc:  # pragma: no cover
+        return [("ERROR", "证据编辑", f"无法导入报告模块：{exc}")]
+
+    # ① 观测值分级
+    for _v, _want in (("已读取资料：银行流水", "meta_read"),
+                      ("本轮未取得该项资料", "meta_gap"),
+                      ("该环节未产出可展示数据；所需资料已在本轮提供", "meta_gap"),
+                      ("匹配明细=人员=初永伟、转出个人金额=1,071,343.80等5项 等10项", "pile"),
+                      ("异常月份=202501、收款（银行）=395,905.76", "fact")):
+        _got = ER._obs_kind(_v)
+        if _got != _want:
+            issues.append(("ERROR", "证据编辑", f"观测值分级错：{_v[:24]} → {_got}（应 {_want}）"))
+
+    # ② 正文不得拿元信息/空话充证据
+    _clue = {"nodes": [
+        {"step": 1, "source": "银行流水", "action": "归集经营性收款",
+         "observed": "已读取资料：银行流水"},
+        {"step": 2, "source": "销项发票", "action": "汇总开票额",
+         "observed": "销项价税合计=8,050,908.58"},
+        {"step": 3, "source": "退货单、折让协议", "action": "核验红冲事由",
+         "observed": "本轮未取得该项资料"},
+    ]}
+    _txt = ER._clue_narrative(_clue)
+    for _bad in ("看到已读取资料", "看到本轮未取得", "数据与上一环一致"):
+        if _bad in _txt:
+            issues.append(("ERROR", "证据编辑", f"正文仍出现「{_bad}」：{_txt[:70]}"))
+    if "8,050,908.58" not in _txt:
+        issues.append(("ERROR", "证据编辑", "正文漏掉了本项真正可引用的读数"))
+    if "退货单、折让协议" not in _txt:
+        issues.append(("ERROR", "证据编辑", "资料缺口未在正文如实交代（缺什么资料）"))
+
+    # ③ 明细行方向对准
+    _tabs = [{"title": "t", "rows": [{"说明": "收入", "金额（元）": 1},
+                                     {"说明": "支出", "金额（元）": 2},
+                                     {"金额（元）": -5}]}]
+    _out, _d = ER._filter_rows_by_subject_side(_tabs, "银行收款大于申报收入：存在账外收入嫌疑")
+    if _d != 1 or len(_out[0]["rows"]) != 2:
+        issues.append(("ERROR", "证据编辑", f"收款主题未剔除支出行（dropped={_d}）"))
+    _out2, _d2 = ER._filter_rows_by_subject_side(_tabs, "公转私大额频繁支出：变相分配与个税风险")
+    if _d2 != 1:
+        issues.append(("ERROR", "证据编辑", f"支出主题未剔除收款行（dropped={_d2}）"))
+    _out3, _d3 = ER._filter_rows_by_subject_side(_tabs, "资金回流：付款后经个人账户回流")
+    if _d3 != 0:
+        issues.append(("ERROR", "证据编辑", "两侧都有线索的主题被误过滤（会丢证据）"))
+    if not str(_out[0].get("scope_note") or ""):
+        issues.append(("ERROR", "证据编辑", "过滤了行却没写明口径说明（属静默丢数据）"))
+
+    # ④ 反向验证：把方向判据改坏，③ 的断言必须变红
+    try:
+        _orig = ER._row_side
+        ER._row_side = lambda row: "unknown"
+        _o2, _dd = ER._filter_rows_by_subject_side(_tabs, "银行收款大于申报收入：存在账外收入嫌疑")
+        ER._row_side = _orig
+        if _dd != 0:
+            issues.append(("ERROR", "闸门自检", "反向验证失败：方向判据改坏后仍剔除行（判据无效）"))
+    except Exception as exc:  # pragma: no cover
+        issues.append(("WARN", "闸门自检", f"反向验证执行失败：{exc}"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -7138,6 +7219,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_static_asset_cache_version()  # 2026-10-02 前端缓存版本（改了看不到）
                + check_suspicion_subject_consistency()  # 2026-10-02 疑点主体一致性（内容与主体错配）
                + check_report_text_stutter()        # 2026-10-03 报告文本口吃/语义冲突病句
+               + check_evidence_quality()           # 2026-10-03 疑点证据编辑质量（元信息/空话/口径反向）
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

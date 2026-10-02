@@ -904,6 +904,102 @@ def _finding_detail_tables(f):
     return []
 
 
+# ── 明细行与本项口径的方向对准（唯一权威，报告层统一执行）─────────────────────
+# ★★ 2026-10-03（用户："证据的收集特别不准，而且很垃圾，整一堆没用的证据和信息"）：
+#   实测三类"垃圾证据"，全部是**行与本项口径不符**：
+#     ① 「主营业务收入收款印证核实」表里混入**支出**行（明星费用 680,000、房租水电、
+#        批量扣收手续费）—— 收款表列支出，读者无法判断本项结论；
+#     ② 同一批银行流水行（上海蕴世 1,611,200 等）同时出现在疑点 3「银行收款大于申报收入」
+#        与疑点 17「公转私大额频繁支出」（共 185 行跨疑点重复）—— 因为两侧都按"金额最大"
+#        抓行，从不看方向：**按方向收敛后重复自然消失**（收款项只留收款行、支出项只留支出行）；
+#     ③ 明细表与正文声明相矛盾（正文写"已剔除借款、往来款"，表里却有「借款」「往来款」）。
+#   判据（与 `pipeline` 的"风险发生侧"同一口径，此处补到**报告层**以覆盖所有生产方）：
+#     主题偏收入侧 ⇒ 只留收款行；偏支出侧 ⇒ 只留支出行；两侧都有（如"资金回流"既看收也看付）
+#     ⇒ **不过滤**，避免丢证据。方向判不出来（金额为负的红冲行、无方向字段）⇒ **保留**（宁缺勿错）。
+_INCOME_SIDE_KWS = ("收款", "收取", "收入", "账外", "隐匿", "少计", "未开票", "销项",
+                    # 「回流」同时放进两侧：资金回流既看付出去、也看收回来的那一笔，
+                    # 任一侧过滤都会丢证据 ⇒ 两侧都有线索 = 不过滤。
+                    "回流")
+_EXPENSE_SIDE_KWS = ("付款", "支付", "支出", "成本", "费用", "公转私", "发薪", "对私",
+                     "进项", "采购", "回流")
+# 非经营性收款：收入完整性主题下，这些是"差异的说明项"，不是经营性收款的证据
+_NON_OPERATING_KWS = ("借款", "往来款", "还款", "退款", "贷款", "利息", "保证金", "押金",
+                      "投资款", "备用金", "代收代付")
+
+
+def _row_side(row) -> str:
+    """单行的资金方向：`income` / `expense` / `unknown`。
+
+    ★ 只认**结构化字段**（说明列的「收入/支出」、贷方/借方），不靠单位名称猜。
+      红冲行（金额为负）与无方向字段的行一律 `unknown`（保留）。
+    """
+    note = str((row or {}).get("说明") or (row or {}).get("note") or "")
+    if "支出" in note or "付款" in note:
+        return "expense"
+    if "收入" in note or "收款" in note:
+        return "income"
+    for _k, _side in (("贷方", "income"), ("收款", "income"),
+                      ("借方", "expense"), ("付款", "expense")):
+        if _k in note:
+            return _side
+    return "unknown"
+
+
+def _filter_rows_by_subject_side(tables, subject_text):
+    """按本项主题的资金方向过滤明细行；返回 `(过滤后的表, 被剔除行数)`。
+
+    · 主题同时含收/支两侧线索 ⇒ 不过滤（避免丢证据）；
+    · 方向判不出的行 ⇒ 保留；
+    · 被剔除的行数如实回传，由报告写进表下口径说明（**不静默丢数据**）。
+    """
+    subj = str(subject_text or "")
+    _inc = any(k in subj for k in _INCOME_SIDE_KWS)
+    _exp = any(k in subj for k in _EXPENSE_SIDE_KWS)
+    if _inc == _exp:
+        return tables, 0
+    want = "income" if _inc else "expense"
+    out, dropped = [], 0
+    for tb in (tables or []):
+        rows = (tb or {}).get("rows") or []
+        kept = []
+        _d = 0
+        _non_oper = 0
+        for r in rows:
+            _s = _row_side(r)
+            if _s != "unknown" and _s != want:
+                _d += 1
+                continue
+            # ★ 收入完整性主题：把**非经营性收款**（借款、往来款、还款、退款、贷款、利息、
+            #   保证金…）从"经营性收款"明细里剔出去 —— 这些正是本项差异的**说明项**，
+            #   不是本项的证据；而且正文已声明"已剔除…往来款等非收入项目"，
+            #   表里再列出来就是**正文与表自相矛盾**（实测 12 行）。
+            if want == "income":
+                _lab = str((r or {}).get("凭证/单据标识") or (r or {}).get("ref_label") or "")
+                if any(k in _lab for k in _NON_OPERATING_KWS):
+                    _non_oper += 1
+                    continue
+            kept.append(r)
+        dropped += _d + _non_oper
+        if not (_d or _non_oper):
+            out.append(tb)
+            continue
+        nt = dict(tb)
+        nt["rows"] = kept
+        _bits = []
+        if _d:
+            _bits.append("剔除 %d 行方向相反的资金记录（%s）"
+                         % (_d, "本项只看收款" if want == "income" else "本项只看支出"))
+        if _non_oper:
+            _bits.append("剔除 %d 行非经营性收款（借款、往来款、还款、退款、贷款、利息、保证金等）"
+                         "——这些是本项差异的**说明项**而非本项证据，须逐笔说明其性质，"
+                         "故不列作经营性收款明细" % _non_oper)
+        _note = ("口径说明：本表已按本项口径过滤，" + "；".join(_bits)
+                 + "。被剔除的记录仍在其自身所属事项中列示，此处不重复。")
+        nt["scope_note"] = (str(tb.get("scope_note") or "").strip() + " " + _note).strip()
+        out.append(nt)
+    return out, dropped
+
+
 def _select_detail_tables(rid, rname, sup_subjects, src_tables, dt_by_rid, dt_by_type, s):
     """按**来源归属**选本疑点的逐笔明细表（唯一判据在 `subject_consistency`）。
 
@@ -942,16 +1038,17 @@ def _select_detail_tables(rid, rname, sup_subjects, src_tables, dt_by_rid, dt_by
             seen.add(ttl)
             picked.append(t)
     if picked:
-        return picked, ""
+        # ★ 2026-10-03：按本项主题的资金方向对准（收款类只列收款、支出类只列支出）
+        return _filter_rows_by_subject_side(picked, rname)
     if not sup_keys:
         cand = (dt_by_rid or {}).get(rid) if rid else None
         if cand:
-            return list(cand), ""
+            return _filter_rows_by_subject_side(list(cand), rname)
         # 同一主体兜底（无红线编号 / 无支撑发现时的最后一道）
         if _ssame and rname:
             for _tk, _tabs in (dt_by_type or {}).items():
                 if _ssame(_tk, rname):
-                    return list(_tabs), ""
+                    return _filter_rows_by_subject_side(list(_tabs), rname)
         return None, ""
     # 有明细被拒（主体不符）→ 必须说明，不能默默少一张表
     rej = (dt_by_rid or {}).get(rid) if rid else None
@@ -2678,21 +2775,86 @@ def _dedup_observed(values):
     return out
 
 
+# ★★ 2026-10-03（用户："报告编制特别不精准、很儿戏、整一堆没用的证据和信息"）：
+#   **"实际看到的数据"里的三类无价值内容，一律不得充当证据。**
+#   逐条实测（公司1 成品报告）：
+#     ① 元信息当证据：「已读取资料：银行流水」「本轮未取得该项资料」——
+#        这是**取数过程的元信息**，不是账内事实；它被写进"看到…"后，
+#        该环等于没有证据，却占了整整一步（疑点1/5/7/9/12/15/16/18/19/20/21 均有）。
+#     ② 空话占步：「数据与上一环一致」——零数字、零信息（15 条疑点都有）。
+#     ③ 指标倾倒：`匹配明细=人员=初永伟、转出个人金额=1,071,343.80等5项…等10项`
+#        —— 把 `observed_metrics` 的原始结构直接倒进正文，读者拿不到"本项到底凭什么"。
+_OBS_META_READ_PREFIX = ("已读取资料", "已读取", "读取并归集", "本轮已上传并成功读取")
+_OBS_META_GAP_PREFIX = ("本轮未取得", "该环节未取得", "该环节未产出", "未取得该环节")
+_OBS_PILE_RE = re.compile(r"等\s*\d+\s*项")
+
+
+def _obs_kind(value) -> str:
+    """观测值的证据价值分类：`fact`(有账内读数) / `meta_read` / `meta_gap` / `none` / `pile`。"""
+    s = str(value or "").strip()
+    if not s or s == "同上":
+        return "none"
+    for p in _OBS_META_READ_PREFIX:
+        if s.startswith(p):
+            return "meta_read"
+    for p in _OBS_META_GAP_PREFIX:
+        if s.startswith(p):
+            return "meta_gap"
+    if _OBS_PILE_RE.search(s) and len(s) >= 26:
+        return "pile"
+    return "fact"
+
+
+def _obs_lead_fact(value, limit: int = 46) -> str:
+    """指标倾倒时只保留**第一个可直接引用的读数**（其余指向明细表）。"""
+    s = str(value or "").strip()
+    for seg in re.split(r"[，；、]", s):
+        seg = seg.strip()
+        if seg and re.search(r"\d", seg):
+            return seg[:limit]
+    return s[:limit]
+
+
 def _clue_narrative(clue):
-    """把发现过程讲成大白话，每环带实际数字（中文表述、剔除英文与 JSON 碎片）"""
+    """把发现过程讲成大白话，每环只在**真有账内读数**时才写「看到…」。
+
+    ★★ 2026-10-03 重写（用户："整一堆没用的证据和信息"）：
+      旧版对每一环一律写"看到{observed}"，于是元信息（"已读取资料：银行流水"）、
+      空话（"数据与上一环一致"，来自 dedup 的"同上"）、指标倾倒三种东西都冒充了证据。
+      现按证据价值分流：
+        · `fact`      → 原样写"看到…"（这是本项结论的真正依据）；
+        · `pile`      → 只写第一个可引用读数 + "（完整读数见本项明细表）"；
+        · `meta_read` → 该环只交代"做了什么"（读了什么资料已在第三节列明，不重复播报）；
+        · `meta_gap`  → 不写"看到"，把缺口**在句尾集中交代一次**并点明缺的是哪份资料
+                        （既不拿元信息冒充证据，也不静默吞掉"这一步没读到）"）。
+      另外：`dedup` 产生的"同上"不再写成"数据与上一环一致"（零信息），直接并入上一环的读数。
+    """
     nodes = clue.get("nodes") or []
     if not nodes:
         return ""
     observed_list = _dedup_observed([n.get("observed") for n in nodes])
     parts = []
+    gaps = []
     for i, n in enumerate(nodes):
         seg = f"第{n.get('step')}步从{_label_source(n.get('source')) or '相关资料'}中{n.get('action') or ''}"
         obs = observed_list[i] if i < len(observed_list) else ""
-        if obs:
+        kind = _obs_kind(obs)
+        if kind == "fact":
             # 观测值内部的「；」改为「，」，避免与步骤之间的分隔符混淆
-            seg += f"，看到{obs.replace('；', '，')}" if obs != "同上" else "，数据与上一环一致"
+            seg += f"，看到{str(obs).replace('；', '，')}"
+        elif kind == "pile":
+            seg += f"，看到{_obs_lead_fact(obs)}（完整读数见本项明细表）"
+        elif kind == "meta_gap":
+            _src = _label_source(n.get("source")) or "相关资料"
+            gaps.append(_src)
+        # meta_read / none：不写"看到"，避免拿取数过程冒充账内事实
         parts.append(seg)
-    return "；".join(parts) + "。"
+    txt = "；".join(parts) + "。"
+    _gaps = list(dict.fromkeys(gaps))
+    if _gaps:
+        txt += ("其中%d个环节因所需资料（%s）本轮未提供而未取得读数，已计入检查受限范围。"
+                % (len(_gaps), "、".join(_gaps)))
+    return txt
 
 
 def _clue_table(clue):
@@ -2730,6 +2892,14 @@ def _clue_table(clue):
                 if prev:
                     return prev
             return "与上一环节相同"
+        # ★★ 2026-10-03：表格里同样不得拿元信息/倾倒充当"实际看到的数据"（与正文同口径）。
+        _k = _obs_kind(v)
+        if _k == "meta_read":
+            return "—（本环为读取与归集，无独立读数）"
+        if _k == "meta_gap":
+            return "未取得读数（本轮未提供该资料）"
+        if _k == "pile":
+            return _obs_lead_fact(v) + "…"
         return v
     return {
         "columns": ["环节", "对应资料", "做了什么", "实际看到的数据"],

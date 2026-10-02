@@ -4647,12 +4647,26 @@ def _domain_red_void_invoice(invoices):
         except Exception:
             constituent_hits = []
 
-        detail = (f"共{len(red_void)}张发票涉及红冲/作废：其中红字发票（红冲）{n_red}张、作废{n_void}张，"
-                  f"合计价税合计{total_red:,.2f}元。{confirm_note}")
+        # ★★ 2026-10-03（用户："报告编制特别不精准"）：**红线名讲的是销项红冲调节销项税额，
+        #   而 detail 把销项与进项红冲混成一个金额**（实测：销项 4 张 1,015,900.00 + 进项 9 张
+        #   269,550.57 被写成"共13张…合计价税合计-1,285,450.57元"），同一疑点里出现两个口径；
+        #   附表又按日期升序、进项行排在最前 ⇒ 读者拿"取得侧红冲"当"本企业开出侧红冲"的证据。
+        #   现按方向拆分（销项/取得），并把销项行排在前面：销项侧才是"调节销项税额"的落点，
+        #   取得侧红冲影响的是进项税额抵扣（属另一项检查范围）。
+        _sales_red_ev = [i for i in red_void if str(i.get("direction", "")) == "销项"]
+        _pur_red_ev = [i for i in red_void if str(i.get("direction", "")) != "销项"]
+        detail = (f"共{len(red_void)}张发票涉及红冲/作废：其中红字发票（红冲）{n_red}张、作废{n_void}张。"
+                  f"按方向拆分：销项（本企业开出）{len(_sales_red_ev)}张、冲减价税合计 "
+                  f"{sum(abs(to_number(i.get('total', 0))) for i in _sales_red_ev):,.2f} 元；"
+                  f"取得（进项）{len(_pur_red_ev)}张、冲减价税合计 "
+                  f"{sum(abs(to_number(i.get('total', 0))) for i in _pur_red_ev):,.2f} 元。"
+                  f"影响销项税额的只有销项侧；取得侧红冲影响的是进项税额抵扣，属进项转出检查范围。"
+                  f"{confirm_note}")
 
-        # 逐笔明细（按开票日期升序，供报告列示）
+        # 逐笔明细（**销项在前**、同方向内按开票日期升序，供报告列示）
         evidence_rows = []
-        for inv in sorted(red_void, key=lambda x: str(x.get("date",""))):
+        for inv in sorted(red_void, key=lambda x: (
+                0 if str(x.get("direction", "")) == "销项" else 1, str(x.get("date", "")))):
             kind = "作废" if id(inv) in void_ids else "红冲"
             direction = str(inv.get("direction",""))
             party = inv.get("buyer") if direction == "销项" else inv.get("seller")
