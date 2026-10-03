@@ -309,32 +309,42 @@ def income_scope_note_with_undetermined_rows(res, limit: int = 5) -> str:
 
 
 def income_scope_brief(res: Dict[str, Any]) -> str:
-    """口径说明的**简短版**（用于会直接进报告的 `detail` 字段，避免过长被截断）。
+    """口径说明的**简短版**（用于 `detail`，随正文事实句一同呈现）。
 
     为什么单列一版：报告正文的事实句取自发现的 `detail`，而 `description` 并不呈现给读者
     —— 口径只说在 description 里等于**读者看不到**（实测："非经营性/待判定"在报告里 0 次）。
+    ⚠ 还须**避免使用分号**：报告的事实句由 `clue_chain._terminal_signal` 按「。；」切句后
+    只取一句，写成"…元；已剔除…"会把剔除说明切成第二句而**整段丢弃**（实测）。
+    故此处用逗号串联、用括号包裹，保证披露留在同一句内。
     """
     if not res or not res.get("rows"):
         return ""
     if not res.get("available"):
-        return "银行侧为全部贷方发生额（收款性质分类不可用，含借款/往来等非经营款项）"
-    parts = ["银行侧按收款性质取值：经营性收款 %s 元" % format(res.get("operating", 0), ",.2f")]
+        return "口径：银行侧为全部贷方发生额，收款性质分类本轮不可用，含借款/往来等非经营款项"
+    # 注意：**不重复经营性收款金额** —— 调用方的句子已写明「银行经营性收款 X 元」，
+    # 重复会挤占 180 字上限（报告事实句按 180 字截断），把"剔除/待判定"挤出可见范围。
+    parts = []
     if res.get("non_operating", 0) > 0:
         labels = [
-            "%s%s元" % (lab, format(v.get("amount", 0), ",.2f"))
-            for lab, v in sorted((res.get("by_label") or {}).items(), key=lambda kv: -kv[1].get("amount", 0))
+            lab for lab, v in sorted((res.get("by_label") or {}).items(), key=lambda kv: -kv[1].get("amount", 0))
             if v.get("nature") == NON_OPERATING
         ]
         parts.append(
-            "；已剔除非经营性收款 %s 元（%s）"
-            % (format(res.get("non_operating", 0), ",.2f"), "、".join(labels[:4]) if labels else "借款/往来/保证金等")
+            "已剔除非经营性收款 %s 元（%s）"
+            % (format(res.get("non_operating", 0), ",.2f"), "、".join(labels[:3]) if labels else "借款、往来、保证金等")
         )
     if res.get("undetermined", 0) > 0:
-        parts.append(
-            "；另有 %s 元收款性质待判定，未计入收入口径，须企业逐笔说明"
-            % format(res.get("undetermined", 0), ",.2f")
+        _names = "、".join(
+            (r.get("counterparty") or "未记录名称")
+            for r in sorted((res.get("undetermined_rows") or []), key=lambda r: -r.get("amount", 0))[:2]
         )
-    return "".join(parts).replace("**", "")
+        parts.append(
+            "另有性质待判定收款 %s 元（%s）须企业说明"
+            % (format(res.get("undetermined", 0), ",.2f"), _names)
+        )
+    if not parts:
+        return "口径：全部贷方经收款性质分类后均为经营性收款"
+    return "收款性质口径：" + "，".join(parts)
 
 
 __all__ = [

@@ -3403,7 +3403,9 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
     findings.append({
         "type": "收入三源对比总览",
         "level": "低风险", "score": 2,
-        "detail": f"凭证主营业务收入{vr_total:,.2f}元（开票{vr_invoiced:,.2f} + 未开票{vr_uninvoiced:,.2f} + 未标注{vr_unspec:,.2f}） vs 销项发票{inv_total:,.2f}元 vs {_bn_brief}。",
+        # ★ 2026-10-03：本句会被报告按 180 字截断（clue_chain._terminal_signal），
+        #   故控制长度、一次说清三个数 + 口径，不用分号（分号会被切句丢弃后半段）。
+        "detail": f"账载主营业务收入{vr_total:,.2f}元（未开票标注{vr_uninvoiced:,.2f}元） vs 销项发票{inv_total:,.2f}元 vs 银行经营性收款{bank_income:,.2f}元（{_bn_brief}）。",
         "description": f"这是税务合规中最核心的三源收入对比。凭证记录的主营业务收入为{vr_total:,.2f}元，其中明确标注开票收入{vr_invoiced:,.2f}元、明确标注未开票收入{vr_uninvoiced:,.2f}元、摘要未标注开票口径{vr_unspec:,.2f}元。销项发票价税合计{inv_total:,.2f}元，银行**经营性收款**{bank_income:,.2f}元。"
                        + (f"账载收入（不含税）与销项发票（含税）{_scope_note}" if _scope_note else "")
                        + (f" {_bn_note}" if _bn_note else ""),
