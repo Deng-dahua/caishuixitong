@@ -129,13 +129,33 @@ def test_vr067_discount_anomaly():
 
 # ───────────────────────── 第二批行为测试 ─────────────────────────
 def test_vr025_fund_recirculation():
-    """企业↔个人大额整数转存转取 → RL-FUND-002。"""
+    """★ 2026-10-03 契约收紧（用户："疑点2…这个疑点是怎么成立的？"）：
+
+    - **有配对回流**（先转出、后转入、金额接近）→ RL-FUND-002（资金回流），认领①②③；
+    - **仅单向大额转出**：
+        · 对象属六员 → RL-FUND-001（公转私），认领要件①；
+        · 否则 → **不挂任何红线**，降级"待核验"（不得凭转出认定回流）。
+    """
+    # 单向转出 + 非六员 ⇒ 不得挂"资金回流"
     bank = [{"date": "20250101", "counterparty": "张三", "credit": 0, "debit": 600000,
              "summary": "转存"}]
     fs = _run("VR025", {"bank_txs": bank, "target_entity": {}})
-    assert fs, "企业向个人大额整数转出应触发"
-    _assert_declared(fs[0], "RL-FUND-002")
-    assert fs[0]["constituent_hits"][0]["index"] == 1
+    assert fs, "企业向个人大额转出仍须产出发现（是线索，只是不叫回流）"
+    assert fs[0].get("redline_id") == "", "单向转出不得认领 RL-FUND-002（回流要件未成立）"
+    assert fs[0]["constituent_hits"] == []
+    assert fs[0]["level"] == "待核验"
+
+    # 单向转出 + 对象为六员 ⇒ 归公转私（RL-FUND-001 要件①）
+    fs2 = _run("VR025", {"bank_txs": bank, "target_entity": {"legal_person": "张三"}})
+    _assert_declared(fs2[0], "RL-FUND-001")
+    assert fs2[0]["constituent_hits"][0]["index"] == 1
+
+    # 有配对回流 ⇒ RL-FUND-002（要件①②③）
+    bank3 = [{"date": "20250310", "counterparty": "王某", "credit": 0, "debit": 600000, "summary": "转存"},
+             {"date": "20250318", "counterparty": "王某", "credit": 597000, "debit": 0, "summary": "转入"}]
+    fs3 = _run("VR025", {"bank_txs": bank3, "target_entity": {}})
+    _assert_declared(fs3[0], "RL-FUND-002")
+    assert [h["index"] for h in fs3[0]["constituent_hits"]] == [1, 2, 3]
 
 
 def test_vr043_city_constr_tax():

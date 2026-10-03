@@ -3327,28 +3327,59 @@ def _scan_fund_recirculation(data, spec):
     #   配对函数 `_pair_recirculation_flows` 只认"先转出、后转入、金额接近"，
     #   **配不上就不认领**（宁缺勿错，不把①的附赠当②③的证据）。
     #   要件④「经多个个人账户闭环流转」需多个中间账户的完整闭环链条，本扫描器未计算，不认领。
-    _fs[0]["redline_id"] = "RL-FUND-002"
+    # ★★ 2026-10-03（用户："疑点2 也是一个操蛋的疑点，这个疑点是怎么成立的？"）
+    #   **根因：检测器把"大额转出"当成了要件①（回流）的证据，无条件白送。**
+    #   要件①原文＝「向供应商付款后，资金**经由个人账户或多个中间账户回流至本企业或六员账户**」
+    #   ——核心是**回流**；而旧实现写的是"合计**转出**X元"。
+    #   实测后果：报告正文自己写着「初永伟…本轮未见该对象向企业转入款项，属单向大额转出——
+    #   单向转出本身不构成回流，不能仅凭此项认定资金回流」，结论却写"本企业触碰红线，即资金回流"
+    #   —— **同一份报告自证矛盾**。
+    #   现按事实分流（归属正确、线索不丢）：
+    #     · **有配对回流**（转入在转出后窗口内、金额±5%）→ RL-FUND-002，认领①②③；
+    #     · **仅单向大额转出**：
+    #         - 对象属六员（法定代表人/股东/财务等）→ 归 **RL-FUND-001 公转私大额频繁支出**（要件①）；
+    #         - 否则 → **不挂任何红线**（降级为待核验线索，不得凭转出认定回流）。
     _total_out = sum(agg["debit"] for agg in person_txs.values())
-    _hits = [{
-        "index": 1,
-        "evidence": f"企业账户与{len(signals)}个个人账户发生大额转存转取（合计转出{_total_out:,.0f}元），"
-                    f"资金流向由银行流水直接复算",
-    }]
-    if pair_records:
+    _has_pairs = bool(pair_records)
+    _six_names = []
+    for _n in person_txs:
+        if _n in personnel or any(_p and _p in _n for _p in personnel):
+            _six_names.append(_n)
+    _fs[0]["lateral_reasoning"] = None  # 占位：推演层按红线编号取包，无需在此算
+    if _has_pairs:
+        _fs[0]["redline_id"] = "RL-FUND-002"
         _n_pairs = sum(len(p["pairs"]) for p in pair_records)
         _all = [pp for p in pair_records for pp in p["pairs"]]
         _max_gap = max(pp["gap_days"] for pp in _all)
         _max_diff = max(abs(pp["diff"]) for pp in _all)
-        _hits.append({
-            "index": 2,
-            "evidence": f"{_n_pairs} 笔转入可与转出配对，金额接近（最大差额 {_max_diff:,.2f} 元，"
-                        f"容差±{int(_RECIRCULATE_AMOUNT_TOL * 100)}% 内）",
-        })
-        _hits.append({
-            "index": 3,
-            "evidence": f"上述配对均发生在转出之后 {_max_gap} 天内（窗口 ≤{_RECIRCULATE_WINDOW_DAYS} 天）",
-        })
-    _fs[0]["constituent_hits"] = _hits
+        _fs[0]["constituent_hits"] = [
+            {"index": 1,
+             "evidence": f"检出 {_n_pairs} 笔「先转出、后转入」且金额接近的配对（企业账户与"
+                         f"{len(pair_records)} 个个人账户之间），资金由银行流水直接复算"},
+            {"index": 2,
+             "evidence": f"{_n_pairs} 笔转入与对应转出金额接近（最大差额 {_max_diff:,.2f} 元，"
+                         f"容差 ±{int(_RECIRCULATE_AMOUNT_TOL * 100)}% 内）"},
+            {"index": 3,
+             "evidence": f"上述配对均发生在转出之后 {_max_gap} 天内（窗口 ≤{_RECIRCULATE_WINDOW_DAYS} 天）"},
+        ]
+    elif _six_names:
+        # 单向大额转出 + 对象属六员 ⇒ 公转私（变相分配/个税风险），这才是正确的红线归属
+        _fs[0]["redline_id"] = "RL-FUND-001"
+        _six_out = sum(person_txs[_n]["debit"] for _n in _six_names)
+        _fs[0]["constituent_hits"] = [{
+            "index": 1,
+            "evidence": f"企业账户向 {'、'.join(_six_names[:3])} 等 {len(_six_names)} 个六员个人账户"
+                        f"大额转出合计 {_six_out:,.0f} 元（本轮未见对应转入，属单向转出）",
+        }]
+    else:
+        # 既无配对回流、对象又不属六员 ⇒ 不得挂"资金回流"红线；降级为待核验线索
+        _fs[0]["redline_id"] = ""
+        _fs[0]["constituent_hits"] = []
+        _fs[0]["level"] = "待核验"
+        _fs[0]["_downgrade_reason"] = ("仅检出单向大额转出（无配对回流、对象不属六员）："
+                                       "单向转出本身不构成资金回流，降级为待核线索")
+    # 兼容旧变量名（下方 return 前的引用）
+    _hits = _fs[0]["constituent_hits"]
     return _fs
 
 

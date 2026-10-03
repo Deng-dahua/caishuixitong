@@ -7378,7 +7378,10 @@ def check_fund_scale_gate_not_roundness() -> List[Tuple[str, str, str]]:
       ① 非整数且规模达标（1,071,343.80）→ **必须**产出；
       ② 整数但规模不达标（90,000）→ **必须不**产出；
       ③ 规模达标且先转出后等额转入 → 必须认领要件①②③（回流配对的独立证据）；
-      ④ 金额相差悬殊 / 超时间窗 / 先收后付 → 只认领要件①（不得白送②③）。
+      ④ 金额相差悬殊 / 超时间窗 / 先收后付 → **不认领任何要件**；
+      ⑤ **单向大额转出 ≠ 回流**（2026-10-03 用户："疑点2 这个疑点是怎么成立的？"）：
+         非整数规模达标只须"产出发现"、**不得认领要件①**（要件①要求回流至本企业）；
+         单向 + 对象属六员 ⇒ 归 RL-FUND-001（公转私）；否则降级"待核验"。
     """
     issues: List[Tuple[str, str, str]] = []
     try:
@@ -7406,13 +7409,17 @@ def check_fund_scale_gate_not_roundness() -> List[Tuple[str, str, str]]:
     if _LARGE_TX_FLOOR <= 0:
         issues.append(("ERROR", rel, "规模门槛非正数（准入判据失效）"))
 
-    # ① 非整数 + 规模达标 → 必须产出
+    # ① 非整数 + 规模达标 → 必须产出（但单向转出**不认领要件**：这不是"回流"）
     r1 = _run([_tx("李昭阳", debit=1_071_343.80)])
     if not r1:
         issues.append(("ERROR", rel,
                        "非整数的大额转出（107.13 万）未产出——「整万当门槛」漏报复发"))
-    elif 1 not in _hits(r1):
-        issues.append(("ERROR", rel, "非整数大额转出未认领要件①"))
+    elif _hits(r1):
+        issues.append(("ERROR", rel,
+                       "仅单向大额转出却认领了要件 %s —— 单向转出不是「回流」（要件①要求回流至本企业）"
+                       % _hits(r1)))
+    elif str(r1[0].get("level") or "") != "待核验":
+        issues.append(("ERROR", rel, "单向大额转出未降级为待核验（level=%s）" % r1[0].get("level")))
 
     # ② 整数 + 规模不达标 → 必须不产出（证明整数不是门槛）
     r2 = _run([_tx("张某", debit=90000.0, date="2025-03-01"),
@@ -7420,14 +7427,15 @@ def check_fund_scale_gate_not_roundness() -> List[Tuple[str, str, str]]:
     if r2:
         issues.append(("ERROR", rel, "规模未达标（累计 18 万）仍产出——门槛失效"))
 
-    # ③ 规模达标 + 先转出后等额转入 → 认领 ①②③
+    # ③ 规模达标 + 先转出后等额转入 → 认领 ①②③ 且归 RL-FUND-002
     r3 = _run([_tx("王某", debit=600000.0, date="2025-03-10"),
                _tx("王某", credit=597000.0, date="2025-03-18")])
     if _hits(r3) != [1, 2, 3]:
-        issues.append(("ERROR", rel,
-                       "回流配对未给要件②③独立证据（实际认领 %s）" % _hits(r3)))
+        issues.append(("ERROR", rel, "回流配对未给要件①②③独立证据（实际 %s）" % _hits(r3)))
+    elif str(r3[0].get("redline_id") or "") != "RL-FUND-002":
+        issues.append(("ERROR", rel, "有配对回流却未归 RL-FUND-002（实际 %r）" % r3[0].get("redline_id")))
 
-    # ④ 金额悬殊 / 超窗 / 先收后付 → 只认领①
+    # ④ 金额悬殊 / 超窗 / 先收后付 → 不认领任何要件
     for _label, _rows in (
         ("金额悬殊", [_tx("赵某", debit=600000.0, date="2025-03-10"),
                       _tx("赵某", credit=100000.0, date="2025-03-18")]),
@@ -7437,14 +7445,25 @@ def check_fund_scale_gate_not_roundness() -> List[Tuple[str, str, str]]:
                       _tx("孙某", debit=600000.0, date="2025-03-10")]),
     ):
         _h = _hits(_run(_rows))
-        if _h != [1]:
-            issues.append(("ERROR", rel, "%s 情形下认领了要件 %s（②③不得白送）" % (_label, _h)))
+        if _h:
+            issues.append(("ERROR", rel, "%s 情形下认领了要件 %s（不得认领）" % (_label, _h)))
+
+    # ⑤ 单向 + 六员 ⇒ 归 RL-FUND-001（公转私），归属正确、线索不丢
+    r5 = _run([_tx("张三", debit=800000.0)])
+    try:
+        from engine.verified_rule_engine import _scan_fund_recirculation as _sfr
+        r5 = _sfr({"bank_txs": [_tx("张三", debit=800000.0)], "pur_invs": [],
+                   "target_entity": {"legal_person": "张三"}}, spec)
+        if str(r5[0].get("redline_id") or "") != "RL-FUND-001" or _hits(r5) != [1]:
+            issues.append(("ERROR", rel,
+                           "单向转出给六员：应归 RL-FUND-001 要件①（实际 %r / %s）"
+                           % (r5[0].get("redline_id"), _hits(r5))))
+    except Exception as exc:
+        issues.append(("WARN", rel, "六员归属判据不可检查：%s" % exc))
 
     if _RECIRCULATE_WINDOW_DAYS <= 0:
         issues.append(("ERROR", rel, "回流配对时间窗非正数"))
     return issues
-
-
 def check_inference_ladder_coverage() -> List[Tuple[str, str, str]]:
     """★ 2026-10-03：点→面推演层「每次都触发」的锁定。
 

@@ -41,7 +41,9 @@ class TestScaleNotRoundness:
         """1,071,343.80（非整万）必须进入检查范围——旧实现下它一笔都进不了 big_out。"""
         res = _run([_tx("李昭阳", debit=1_071_343.80)])
         assert res, "非整数大额转出被静默漏报（整万当门槛）"
-        assert 1 in _hits(res)
+        # ★ 规模门槛与"是否回流"是两件事：本用例只锁"不许因非整万而漏报"，
+        #   单向转出按新契约不认领要件（见 TestRecirculationPairing）
+        assert res[0]["level"] == "待核验" and _hits(res) == []
         assert "整数特征仅作证据" in res[0]["detail"] or "未见整数金额特征" in res[0]["detail"]
 
     def test_round_feature_is_evidence_not_gate(self):
@@ -68,24 +70,25 @@ class TestRecirculationPairing:
     def test_unpaired_single_direction_not_claimed(self):
         """只转出不转入：只说"单向大额转出"，不得认领要件②③（"回流"未成立）。"""
         res = _run([_tx("李某", debit=800000, date="2025-03-10")])
-        assert _hits(res) == [1]
+        # ★ 契约收紧：单向转出**不认领任何要件**（要件①要求"回流至本企业"，不是"转出"）
+        assert _hits(res) == []
         assert "单向" in res[0]["detail"]
 
     def test_amount_far_apart_not_claimed(self):
         res = _run([_tx("赵某", debit=600000, date="2025-03-10"),
                     _tx("赵某", credit=100000, date="2025-03-18")])
-        assert _hits(res) == [1]
+        assert _hits(res) == []   # 金额差 83%：不构成"金额接近"，不得认领要件①②③
 
     def test_outside_time_window_not_claimed(self):
         res = _run([_tx("钱某", debit=600000, date="2025-01-05"),
                     _tx("钱某", credit=600000, date="2025-07-24")])
-        assert _hits(res) == [1]
+        assert _hits(res) == []   # 间隔 200 天：不在短期窗口内
 
     def test_inflow_before_outflow_not_claimed(self):
         """先收后付不是回流（时间方向必须"先转出、后转入"）。"""
         res = _run([_tx("孙某", credit=600000, date="2025-03-01"),
                     _tx("孙某", debit=600000, date="2025-03-10")])
-        assert _hits(res) == [1]
+        assert _hits(res) == []   # 先收后付：方向不符"付款后回流"
 
     def test_pairing_prefers_closest_amount(self):
         from engine.verified_rule_engine import _pair_recirculation_flows
