@@ -3067,11 +3067,26 @@ def _scan_fund_recirculation(data, spec):
     #     ② 已取得发票的对象（本轮进项发票以其为销方，且开票额达到该笔转出的合理比例）；
     #   被排除的对象**在正文如实交代**（不静默丢证据），并转入"正常采购结算"口径。
     from engine.fieldkit import is_noise_counterparty as _is_noise
-    _inv_by_seller = defaultdict(float)
+    from engine.fieldkit import invoice_no as _fk_invno, total as _fk_total
+    # ★★ 2026-10-03（用户质疑"林超攀开票19603960.20，你确定？"）：**这里曾按行累加，必然虚高**。
+    #   实测进项发票是「**一票多行**」结构（取票1–12.xlsx：6124 明细行 / 1005 张票），
+    #   一行一个货物/服务明细；按行加总等于把同一张票重复计入。
+    #   现**按发票号去重**（`fieldkit.invoice_no` 为唯一权威取号）：
+    #   同一票号的多行取"票面金额最大的一行"作为该票金额（避免重复累加，也避免红蓝对冲被算成净额而低估）；
+    #   无票号的行按行计（极少，且只用于"是否已开票"的判断）。
+    _by_invoice = {}
     for _pi in (data.get("pur_invs", []) or []):
         _sn = str(_pi.get("seller") or _pi.get("销方名称") or "").strip()
-        if _sn:
-            _inv_by_seller[_sn] += abs(to_number(_pi.get("total", _pi.get("amount", 0))))
+        if not _sn:
+            continue
+        _no = str(_fk_invno(_pi) or "").strip()
+        _amt = abs(to_number(_fk_total(_pi) or _pi.get("total") or _pi.get("amount") or 0))
+        _k = (_sn, _no) if _no else (_sn, "__row__%s" % id(_pi))
+        if _amt > _by_invoice.get(_k, 0.0):
+            _by_invoice[_k] = _amt
+    _inv_by_seller = defaultdict(float)
+    for (_sn, _no), _v in _by_invoice.items():
+        _inv_by_seller[_sn] += _v
     _invoiced_total = 0.0
     _invoiced_names = []
 

@@ -867,3 +867,60 @@ class TestWhyIncludedIsSummaryNotExample:
         assert "共" in w and "个对象" in w, f"未概述（仍像举例）：{w[:80]}"
         # 不得再把"某一个对象"的例子当作唯一说明
         assert "之所以列入检查，是因为出现了以下情况：河南林超攀" not in w, w
+
+
+class TestInvoiceAmountDedupedByInvoiceNo:
+    """★ 2026-10-03（用户质疑"林超攀开票19603960.20，你确定？"）：
+
+    进项发票是「**一票多行**」结构（实测取票1–12：6124 明细行 / 1005 张票），
+    按销方**按行累加金额会虚高**（同一张票被重复计入）。
+    判据：同一票号的多行只计**一次**（取票面最大行）；不同票号正常相加。
+    """
+
+    def _pur(self):
+        # 一票三行（同一票号）+ 另一张票：去重后应为 300000 + 100000 = 400000
+        return [
+            {"seller": "河南林超攀体育文化传播工作室", "invoice_no": "25412000000140992366",
+             "total": 300000, "amount": 297029.70},
+            {"seller": "河南林超攀体育文化传播工作室", "invoice_no": "25412000000140992366",
+             "total": 300000, "amount": 297029.70},
+            {"seller": "河南林超攀体育文化传播工作室", "invoice_no": "25412000000140992366",
+             "total": 300000, "amount": 297029.70},
+            {"seller": "河南林超攀体育文化传播工作室", "invoice_no": "25412000000140963884",
+             "total": 100000, "amount": 99009.90},
+        ]
+
+    def test_by_seller_amount_not_inflated_by_multi_row_invoice(self):
+        from engine.fieldkit import invoice_no as fno, total as ftot
+        from engine.numparse import to_number
+        seen = {}
+        for pi in self._pur():
+            k = (pi["seller"], str(fno(pi) or ""))
+            seen[k] = max(seen.get(k, 0.0), abs(to_number(ftot(pi) or pi["total"] or 0)))
+        assert round(sum(seen.values()), 2) == 400000.00, seen
+
+    def test_detector_excludes_invoiced_counterparty(self):
+        """已开票对象不按"无票私户往来"列入本项，并在正文如实交代被排除项。"""
+        from engine.verified_rule_engine import _scan_fund_recirculation
+        spec = {"id": "VR025", "name": "资金回流与公私混同检测", "industries": ["ALL"],
+                "taxes": ["增值税"], "lifecycle": ["收付款与资金结算"],
+                "required_sources": ["bank_txs"], "status": "verified_executable_screening"}
+        data = {
+            "bank_txs": [
+                {"counterparty": "河南林超攀体育文化传播工作室", "debit": 600000, "credit": 0,
+                 "summary": "咨询服务费", "date": "2025-07-02"},
+                {"counterparty": "初永伟", "debit": 1000000, "credit": 0, "summary": "转存", "date": "2025-03-01"},
+                {"counterparty": "初永伟", "debit": 0, "credit": 275000, "summary": "转入", "date": "2025-03-20"},
+            ],
+            "pur_invs": self._pur(),
+            "target_entity": {"legal_rep": "初永伟"},
+        }
+        out = _scan_fund_recirculation(data, spec)
+        assert out, "应有发现"
+        detail = str(out[0].get("detail") or "")
+        assert "已排除的情形" in detail and "有票采购结算" in detail, detail
+        names = [m.get("name") for m in (out[0].get("observed_metrics") or {}).get("matches") or []]
+        assert "河南林超攀体育文化传播工作室" not in names, names
+        assert any("初永伟" in str(n) for n in names), names
+        # 有回流 vs 单向转出必须分开表述
+        assert "付款后资金回流" in detail
