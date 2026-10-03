@@ -248,6 +248,49 @@ def check_amount_provenance(er, dump_path):
     return tips
 
 
+def check_scope_disclosure(er):
+    """E 口径自证：报告里的"银行侧金额"是否按**收款性质**取值并披露了剔除与待判定。
+
+    ★ 2026-10-03（用户质询"是不是所有银行流水的收款都与收入相关？"）：
+      全部贷方 ≠ 收入。报告若把"银行入账"当收入去比开票额，差额会被读成
+      "隐匿未开票收入"（实测凭空造出 133.7 万）。成品报告层面必须能看出：
+        · 措辞是「银行经营性收款」而不是笼统的「银行入账」；
+        · 披露了剔除了多少非经营性收款、还有多少"性质待判定"须企业说明。
+    判据用**词面**（报告是最终产物，只能按文本判），命中即提示人工复核。
+    """
+    import json as _json
+
+    # 只看**疑点正文**（读者实际读到的段落），不看整份 JSON：
+    # 口径写在发现对象的其它字段里而正文没写 = 读者仍然看不到（实测踩过）。
+    parts = []
+    for p in (er.get("confirmed_problems") or []):
+        for para in (p.get("narrative_paragraphs") or []):
+            parts.append(str(para.get("text") or para.get("body") or ""))
+        for k in ("final_answer", "suggestion"):
+            parts.append(str(p.get(k) or ""))
+    body = "\n".join(parts)
+    if not body.strip():
+        _add("WARN", "E 口径自证", "取不到疑点正文段落，口径披露无法检查")
+        return 1
+    n = 0
+    if "银行入账" in body and "经营性收款" not in body:
+        _add("ERROR", "E 口径自证",
+             "疑点正文出现「银行入账」但无「经营性收款」——银行侧疑似按**全部贷方**当收入"
+             "（借款/往来/保证金会被算成收入，差额即被读成隐匿未开票收入）")
+        n += 1
+    if "经营性收款" in body and "非经营性" not in body:
+        _add("WARN", "E 口径自证",
+             "疑点正文写了「经营性收款」但未披露**剔除了多少非经营性收款**——读者无法判断口径范围")
+        n += 1
+    if "经营性收款" in body and "待判定" not in body:
+        _add("WARN", "E 口径自证",
+             "疑点正文写了「经营性收款」但未披露**性质待判定**的收款——未定性的收款既不能定罪也不该消失")
+        n += 1
+    if n == 0:
+        _add("INFO", "E 口径自证", "疑点正文口径措辞与披露完整（经营性收款 + 剔除构成 + 待判定）")
+    return n
+
+
 def main(argv=None):
     argv = list(argv or sys.argv[1:])
     strict = "--strict" in argv
@@ -265,13 +308,15 @@ def main(argv=None):
     n_rows, n_dup = check_evidence_quality(er)
     check_counts(rep, er)
     check_amount_provenance(er, path)
+    n_scope = check_scope_disclosure(er)
 
     print("=" * 86)
-    print("一键分析输出自检（四维）")
+    print("一键分析输出自检（五维）")
     print("=" * 86)
     print(f"结果文件：{path}")
     print(f"A 主体一致性：核对 {n_sub} 条疑点")
     print(f"B 证据编辑  ：扫描 {n_rows} 行明细；跨疑点重复 {n_dup} 条")
+    print(f"E 口径自证  ：{n_scope} 项待核（银行侧是否按收款性质取值并披露）")
     print("-" * 86)
     if not ISSUES:
         print("✓ 全部通过（无 ERROR / WARN）")
