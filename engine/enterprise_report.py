@@ -3106,10 +3106,25 @@ def _build_action_plan(problems):
 
 
 def _build_further_checks(report_data):
-    """受阻检查：14 类必查资料中未提交的类别"""
+    """受阻检查：必查资料中**未提交且本业态适用**的类别。
+
+    ★★ 2026-10-03（用户复核第一章："另有 7 项…"与"必查 14 类、进销存台账不适用"自相矛盾）：
+      本函数原先只做 `必查清单 − 已提供`，**没有剔除"本业态不适用"的资料** ——
+      于是「进销存台账」同时出现在两处：
+        · 章首：「本企业业态为服务型…进销存台账不属于必查项，不因未提供而计入缺失」；
+        · 章尾：把它列为"未收到导致相关检查未完成"的受限项。
+      与 `material_readiness` 用**同一权威**（业态 `skip_domains` → `not_required_materials`）剔除，
+      保证"报告说缺什么"与"这里列什么受限"口径一致。
+    """
     covered = _doc_covered_categories(report_data)
 
-    missing = [c for c in _REQUIRED_DOC_CATEGORIES if c not in covered]
+    _na_docs = set()
+    try:
+        _na_docs = set(_not_required_docs(
+            (report_data.get("target_entity") or {}).get("industry"))[0] or set())
+    except Exception:
+        _na_docs = set()
+    missing = [c for c in _REQUIRED_DOC_CATEGORIES if c not in covered and c not in _na_docs]
 
     further = []
     for i, cat in enumerate(missing):

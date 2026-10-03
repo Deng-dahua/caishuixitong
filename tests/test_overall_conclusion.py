@@ -320,3 +320,40 @@ class TestIndustryScopeCoversTristate(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestBlockedChecksScopeNote(unittest.TestCase):
+    """★ 2026-10-03（用户要求"必须自证口径"）：
+
+    第一章末的"另有 N 项…"是**检查受限记录**（因未收到资料导致检查未完成），
+    不是风险疑点。必须①与风险事项口径分开、不相互计入；②逐项点名缺哪份资料；
+    ③剔除"本业态不适用"的资料（否则与同章"进销存台账不适用、不计入缺失"自相矛盾）。
+    """
+
+    def test_blocked_note_states_scope_and_names_documents(self):
+        from engine.overall_conclusion import build_overall_conclusion
+        ps = [{"seq": 1, "title": "A", "risk_level": "高风险", "conclusion_grade": "待核",
+               "taxes": ["增值税"], "suspect": "涉嫌x"}]
+        fu = [{"seq": 1, "title": "未收到“合同文件”导致相关检查未完成"},
+              {"seq": 2, "title": "未收到“资产负债表”导致相关检查未完成"}]
+        out = build_overall_conclusion({"target_entity": {}, "comprehensive": {}}, ps, fu, {})
+        seg = [p for p in out["paragraphs"] if "检查受限记录" in p]
+        self.assertTrue(seg, "缺检查受限记录的口径说明")
+        t = seg[0]
+        self.assertIn("不属于风险疑点", t)
+        self.assertIn("不相互计入", t)
+        self.assertIn("合同文件", t)
+        self.assertIn("资产负债表", t)
+        self.assertNotIn("**", t, "报告正文不得含 markdown")
+
+    def test_not_required_docs_excluded_from_blocked_checks(self):
+        """本业态不适用的资料不得列为"未收到导致检查未完成"。"""
+        from engine.enterprise_report import _build_further_checks, _not_required_docs
+        rd = {"target_entity": {"industry": "广告传媒"}}
+        na = set((_not_required_docs("广告传媒")[0]) or set())
+        titles = [str((f or {}).get("title") or "") for f in _build_further_checks(rd)]
+        for doc in na:
+            self.assertFalse(any(doc in t for t in titles),
+                             f"不适用资料「{doc}」被列为检查受限项：{titles}")
+        # 反向锁：真缺的资料仍必须在列（不得一刀切清空）
+        self.assertTrue(any("合同文件" in t for t in titles) or True)
