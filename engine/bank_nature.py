@@ -213,6 +213,57 @@ def ledger_nature_of(cp: str, ledger: Optional[Dict[str, Any]]):
     return ("序时账-%s" % acct), nat, acct
 
 
+def _classify_full(tx: Any, rules: Optional[Sequence[Dict[str, Any]]] = None,
+                   ledger: Optional[Dict[str, Any]] = None):
+    """单笔收款 → (label, nature, correction_note)。
+
+    ★★ 2026-10-03（又一次"两条链路各判一次"）：**自我纠错原本只写在
+      `classify_receipts` 里、`classify_credit` 没有** —— 于是同一个对手方
+      （「应付活期存款息」77.11 元）在"三源对比"里被判银行结息（非经营性），
+      在"客户维度穿透"里仍被判"性质待判定"，报告里冒出"1 个付款方 77.11 元性质待判定"。
+      现把纠错下沉到本函数，两个入口共用一个判据。
+    """
+    rules = list(rules) if rules is not None else receipt_rules()
+    _lg = ledger_nature_of(counterparty_of(tx), ledger)
+    if _lg is not None:
+        return _lg[0], _lg[1], None
+    text = _tx_text(tx)
+    label, nature = "", UNDETERMINED
+    for rule in rules:
+        if rule.get("is_default"):
+            continue
+        kws = rule.get("keywords") or []
+        sums = rule.get("summaries") or []
+        if (kws and any(k in text for k in kws)) or (sums and any(s in text for s in sums)):
+            return str(rule.get("label") or ""), rule_nature(rule), None
+    dft = default_rule(rules)
+    if dft is not None:
+        label, nature = str(dft.get("label") or ""), rule_nature(dft)
+
+    # 纠错：极小金额 + 有零有整 + 文本无实质内容 ⇒ 实为银行结息（归入 is_bank_internal 类目）
+    cfg_corr = (_receipt_cfg().get("correction") or {})
+    max_amount = to_number(cfg_corr.get("max_amount", 100)) or 100.0
+    micro_amount = to_number(cfg_corr.get("micro_amount", 20)) or 20.0
+    internal_label = bank_internal_label(rules)
+    credit = to_number(tx.get("credit", 0))
+    if nature == UNDETERMINED and internal_label and 0 < credit < max_amount:
+        _decimal = abs(credit - int(credit)) > 1e-9
+        _flat = len(str(text).strip()) < 5
+        if _decimal and (
+            (credit < micro_amount and len(str(text).strip()) < 3)
+            or _flat
+            or _is_bank_like_text(text)
+            or re.match(r"^\d{4,8}$", str(tx.get("summary") or "").strip()) is not None
+        ):
+            note = ("纠错：%.2f 元「%s」由%s改判为%s（金额有零有整且文本无实质内容，符合银行结息特征）"
+                    % (credit, counterparty_of(tx) or "(空)", label or UNDETERMINED, internal_label))
+            for r in rules:
+                if str(r.get("label") or "") == internal_label:
+                    return internal_label, rule_nature(r), note
+            return internal_label, NON_OPERATING, note
+    return label, nature, None
+
+
 def classify_credit(tx: Any, rules: Optional[Sequence[Dict[str, Any]]] = None,
                     ledger: Optional[Dict[str, Any]] = None) -> Tuple[str, str]:
     """单笔收款 → (类目 label, 性质 nature)。
@@ -220,24 +271,10 @@ def classify_credit(tx: Any, rules: Optional[Sequence[Dict[str, Any]]] = None,
     证据顺位（★ 2026-10-03 由"猜关键词"改为"读账"）：
       ① **序时账科目**（账上已记的科目，最强证据）；
       ② 摘要/名称关键词规则（数据表驱动）；
-      ③ 兜底类目（nature＝待判定，不臆测）。
+      ③ 兜底类目（nature＝待判定，不臆测）——含自我纠错（银行结息，唯一实现见 `_classify_full`）。
     """
-    rules = list(rules) if rules is not None else receipt_rules()
-    _lg = ledger_nature_of(counterparty_of(tx), ledger)
-    if _lg is not None:
-        return _lg[0], _lg[1]
-    text = _tx_text(tx)
-    for rule in rules:
-        if rule.get("is_default"):
-            continue
-        kws = rule.get("keywords") or []
-        sums = rule.get("summaries") or []
-        if (kws and any(k in text for k in kws)) or (sums and any(s in text for s in sums)):
-            return str(rule.get("label") or ""), rule_nature(rule)
-    dft = default_rule(rules)
-    if dft is not None:
-        return str(dft.get("label") or ""), rule_nature(dft)
-    return "", UNDETERMINED
+    label, nature, _ = _classify_full(tx, rules, ledger)
+    return label, nature
 
 
 def _is_bank_like_text(text: str) -> bool:
@@ -263,10 +300,6 @@ def classify_receipts(bank_txs: Sequence[Any], vouchers: Optional[Sequence[Any]]
     rules = receipt_rules()
     available = rules_available()
     ledger = build_ledger_index(vouchers) if vouchers else None
-    cfg_corr = (_receipt_cfg().get("correction") or {})
-    max_amount = to_number(cfg_corr.get("max_amount", 100)) or 100.0
-    micro_amount = to_number(cfg_corr.get("micro_amount", 20)) or 20.0
-    internal_label = bank_internal_label(rules)
 
     by_label: Dict[str, Dict[str, Any]] = {}
     by_nature: Dict[str, Dict[str, Any]] = {}
@@ -284,8 +317,9 @@ def classify_receipts(bank_txs: Sequence[Any], vouchers: Optional[Sequence[Any]]
             continue
         n_rows += 1
         total += credit
-        label, nature = classify_credit(tx, rules, ledger=ledger)
-        text = _tx_text(tx)
+        label, nature, _corr = _classify_full(tx, rules, ledger)
+        if _corr:
+            corrections.append(_corr)
         # 证据来源标注（供报告披露"这一笔的性质是读账得出的还是猜摘要得出的"）
         if label.startswith("序时账-"):
             _ev_src = "序时账科目"
@@ -294,26 +328,6 @@ def classify_receipts(bank_txs: Sequence[Any], vouchers: Optional[Sequence[Any]]
         else:
             _ev_src = "未判定"
         evidence_stats[_ev_src] = evidence_stats.get(_ev_src, 0.0) + credit
-        # ── B4 自我纠错：极小金额 + 有零有整 + 文本无实质内容 ⇒ 实为银行结息 ──
-        if nature == UNDETERMINED and internal_label and credit < max_amount:
-            _decimal = abs(credit - int(credit)) > 1e-9
-            _blank = len(str(text).strip()) < 5
-            if _decimal and (
-                (credit < micro_amount and len(str(text).strip()) < 3)
-                or _blank
-                or _is_bank_like_text(text)
-                or re.match(r"^\d{4,8}$", str(tx.get("summary") or "").strip()) is not None
-            ):
-                corrections.append(
-                    "纠错：%.2f 元「%s」由%s改判为%s（金额有零有整且文本无实质内容，符合银行结息特征）"
-                    % (credit, counterparty_of(tx) or "(空)", label or UNDETERMINED, internal_label)
-                )
-                label = internal_label
-                # 纠错目标的性质在规则表里就声明着（银行结息＝非经营性）
-                for r in rules:
-                    if str(r.get("label") or "") == internal_label:
-                        nature = rule_nature(r)
-                        break
 
         rec = {
             "date": str(tx.get("date") or "")[:10],
