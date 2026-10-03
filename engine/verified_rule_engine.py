@@ -3048,6 +3048,14 @@ def _matches_for_report(person_txs, threshold: float = 500000.0):
     return rows[:10]
 
 
+# 机构型主体后缀：**不得按"个人账户"处理**（协会/事务所/基金会/商会/学校/医院/政府/银行…）。
+#   ⚠ 刻意**不含**"工作室／经营部／中心／个体"——个体工商户与工作室常以个人名义收付，
+#     是"个人账户往来"的真实对象，剔除它们会丢掉真实私户线索。
+_INSTITUTION_SUFFIX = ("协会", "事务所", "律师事务所", "会计师事务所", "基金会", "商会",
+                       "学校", "大学", "学院", "医院", "政府", "管委会", "银行", "信用社",
+                       "合作社", "研究院", "研究所", "电视台", "报社")
+
+
 def _scan_fund_recirculation(data, spec):
     """资金回流与公私混同检测：企业↔个人账户大额整数转账。
 
@@ -3113,6 +3121,15 @@ def _scan_fund_recirculation(data, spec):
             _invoiced_total += abs(to_number(row.get("debit", 0)))
             if counterparty not in _invoiced_names:
                 _invoiced_names.append(counterparty)
+            continue
+        # ★★ 2026-10-03（用户："是不是公转私、私转公，就会触发这个疑点？"）：
+        #   **机构不得按"个人账户"处理**。旧兜底是"没有企业后缀就视为个人"，而 `_COMPANY_SUFFIX`
+        #   不含"协会/事务所/基金会/商会/学校/医院/政府"等机构后缀 —— 实测把
+        #   「深圳市龙岗区篮球协会 125,000」「北京市东元律师事务所 10,000」当成了"个人账户往来"。
+        #   判据（保留"私户的真实对象"）：**工作室／经营部／个体户仍按个人处理**
+        #   （个体工商户、工作室常以个人名义收付，是私户往来的真实对象），
+        #   仅**明确的机构型主体**排除。
+        if any(_k in counterparty for _k in _INSTITUTION_SUFFIX):
             continue
         is_person = counterparty in personnel or any(p and p in counterparty for p in personnel) \
             or (not any(s in counterparty for s in _COMPANY_SUFFIX))
