@@ -171,14 +171,43 @@ def test_vr037_related_party_pricing():
 
 
 def test_vr056_mixed_payroll():
-    """员工个人账户直接支付薪酬 → RL-INC-002 要件①。"""
+    """**个人账户**直接支付薪酬 → RL-INC-002 要件① 认领。
+
+    ★ 2026-10-03 契约收紧（用户质疑疑点4 的"1,743,847.92 是公户代发工资吗？"）：
+      VR056 所在的数据里**必须真的存在个人账户流水**，私户支付才可能被证实；
+      仅"对手方是六员"不足以成立——**公户→员工**的付款同样会命中（方向相反）。
+      故本用例显式给出个人账户类型的流水行。
+    """
     salaries = [{"name": f"C{i}", "salary": 10000} for i in range(1, 7)]
     bank = [{"date": "20250101", "counterparty": "C1", "credit": 0, "debit": 5000,
-             "summary": "工资"}]
+             "summary": "工资", "客户账户类型": "个人储蓄卡"}]
     fs = _run("VR056", {"salaries": salaries, "bank_txs": bank})
     assert fs, "私户直接支付薪酬应触发"
     _assert_declared(fs[0], "RL-INC-002")
     assert fs[0]["constituent_hits"][0]["index"] == 1
+
+
+def test_vr056_no_personal_account_must_not_claim():
+    """反向锁（★ 2026-10-03）：**本轮没有个人账户流水时，不得认领 RL-INC-002**。
+
+    事故：银行流水全为对公账户，而"公户→员工的费用报销"被当成"以员工个人账户直接支付的工资款"，
+    金额（1,743,847.92＝费用报销）与方向（公户支出）双错，还据此写出"公户代发充分"的**反向结论**，
+    掩盖了真实缺口（公户工资类 759,517.57 < 账面应发 928,000）。
+    判据（宁缺勿错）：无个人账户流水 ⇒ 不认领要件①、不作私户认定；
+    但"公户工资支出小于账面"这一**账内可证事实**仍须报出（存在即报，不设阈值）。
+    """
+    salaries = [{"name": f"C{i}", "salary": 10000} for i in range(1, 7)]
+    bank = [{"date": "20250101", "counterparty": "C1", "credit": 0, "debit": 5000,
+             "summary": "费用报销（项目垫款）", "客户账户类型": "对公账号"}]
+    fs = _run("VR056", {"salaries": salaries, "bank_txs": bank})
+    assert all(f.get("redline_id") != "RL-INC-002" for f in fs), \
+        "无个人账户流水时不得认领 RL-INC-002（费用报销≠私户发薪）"
+    assert all(not (f.get("constituent_hits") or []) for f in fs)
+    # 费用报销不得被算作"公户工资类支出"
+    for f in fs:
+        m = f.get("observed_metrics") or {}
+        assert float(m.get("public_account_payroll") or 0) == 0.0, \
+            f"费用报销被计入公户工资类支出：{m.get('public_account_payroll')}"
 
 
 def test_vr024_individual_counterparty():
