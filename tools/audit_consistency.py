@@ -7406,6 +7406,74 @@ def check_fund_scale_gate_not_roundness() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_inference_ladder_coverage() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03：点→面推演层「每次都触发」的锁定。
+
+    用户要求：「这种对每一项问题从点到面的推断思考与分析，是应该接入一键分析按钮，
+    并让它每次生成报告时都要触发的功能。」——"每次触发"必须是可验证的，否则会退化成
+    "某个疑点恰好有推演包才有"。
+
+    判据：
+      ① 推演库存在且可解析；
+      ② **任意**疑点（含库里没有的红线）都必须产出推演段（没有专属包就退到通用框架）；
+      ③ 收入差集推演必须把差额翻译成**会计实质**：开票>收款要给应收账款方向的解释、
+         收款>开票要给预收账款/往来款方向的解释；
+      ④ 收款>开票必须带**渠道逻辑限制**（公账收款不能用于隐匿收入）；
+      ⑤ **反向验证**：把推演库临时清空，②仍必须成立（证明"每次都触发"不依赖具体数据）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        import engine.inference_ladder as _il
+    except Exception as exc:
+        return [("ERROR", "engine/inference_ladder.py", "推演层不可导入：%s" % exc)]
+
+    lib = _il.load_ladders() or {}
+    if not lib:
+        issues.append(("ERROR", "static/inference_ladders.json", "推演库为空或不可解析"))
+    for key in ("收入差集", "渠道逻辑", "通用推演"):
+        if not lib.get(key):
+            issues.append(("WARN", "static/inference_ladders.json", "推演库缺少「%s」" % key))
+
+    # ② 任意疑点都有推演段
+    try:
+        for s in ({"redline_id": "RL-VAT-006", "redline_name": "未开票收入长期为零"},
+                  {"redline_id": "RL-ZZZ-404", "redline_name": "库里没有的疑点"}):
+            sec = _il.ladder_for_suspicion(s)
+            if not (sec and sec.get("bullets")):
+                issues.append(("ERROR", "engine/inference_ladder.py",
+                               "疑点 %s 未产出推演段（'每次都触发'被破坏）" % s.get("redline_id")))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/inference_ladder.py", "推演段生成异常：%s" % exc))
+
+    # ③④ 差集必须翻译成会计实质并给渠道限制
+    try:
+        r1 = _il.revenue_gap_reasoning(1_000_000, 800_000, ar_movement=200_000)
+        if not any("应收账款" in str(e.get("科目")) for e in r1.get("explanations") or []):
+            issues.append(("ERROR", "engine/inference_ladder.py",
+                           "「开票大于收款」未给出应收账款方向的解释"))
+        r2 = _il.revenue_gap_reasoning(1_000_000, 1_300_000, advance_movement=300_000)
+        if not any("预收账款" in str(e.get("科目")) for e in r2.get("explanations") or []):
+            issues.append(("ERROR", "engine/inference_ladder.py",
+                           "「收款大于开票」未给出预收账款方向的解释"))
+        if "不会用公司公账" not in str(r2.get("channel_note") or ""):
+            issues.append(("ERROR", "engine/inference_ladder.py",
+                           "收入差集推演缺少渠道逻辑限制（公账收款≠隐匿渠道）"))
+    except Exception as exc:
+        issues.append(("ERROR", "engine/inference_ladder.py", "差集推演异常：%s" % exc))
+
+    # ⑤ 反向验证：库清空后仍必须有推演段（"每次都触发"不依赖库内容）
+    _orig = _il._LADDERS
+    _il._LADDERS = {}
+    try:
+        sec = _il.ladder_for_suspicion({"redline_id": "RL-VAT-006", "redline_name": "x"})
+        if not (sec and sec.get("bullets")):
+            issues.append(("ERROR", "闸门自检",
+                           "反向验证失败：推演库清空后不再产出推演段（'每次都触发'实为依赖库）"))
+    finally:
+        _il._LADDERS = _orig
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -7465,6 +7533,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_bank_receipt_nature_single_source()  # 2026-10-03 银行收款性质（收入口径≠全部贷方）
                + check_voucher_account_field()       # 2026-10-03 凭证科目名 vs 科目编码不得混用
                + check_fund_scale_gate_not_roundness()  # 2026-10-03 资金往来：规模准入 / 整数只作证据
+               + check_inference_ladder_coverage()  # 2026-10-03 点→面推演层：每次都触发 + 差集会计实质
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

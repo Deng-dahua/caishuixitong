@@ -2337,7 +2337,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "多源交叉验证", "findings": []})
     # 域15.5: 客户维度三源穿透分析（逐客户开票vs收款+合同验证+五时点确认）
     if sal_invs and bank_txs:
-        domain_results.append({"domain": "客户维度三源穿透", "findings": _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data, voucher_revenue)})
+        domain_results.append({"domain": "客户维度三源穿透", "findings": _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data, voucher_revenue, vouchers)})
     else:
         domain_results.append({"domain": "客户维度三源穿透", "findings": []})
     # 域16: 扩展规则
@@ -2345,7 +2345,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     else: domain_results.append({"domain": "扩展审查规则", "findings": []})
     _report(97, f"步骤③域分析 — 已完成{len(domain_results)}个域(交叉验证域)", step=3)
     # 域17: 凭证收入 vs 发票收入对比
-    domain_results.append({"domain": "凭证发票收入对比", "findings": _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs)})
+    domain_results.append({"domain": "凭证发票收入对比", "findings": _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs, vouchers)})
     # 域18: 312规则全覆盖验证——对未触发的规则产出缺失数据结论 (需要在all_findings之后)
     # 域19: 跨域关联推理——单点发现→多域印证→证据链 (需要在all_findings之后)
     # 先跑不依赖all_findings的域

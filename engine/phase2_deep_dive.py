@@ -206,7 +206,7 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
         "资金流向追踪": lambda: _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs),
         "经营实质分析": lambda: _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries),
         "行业对标分析": lambda: _domain_industry_benchmark(sal_invs, pur_invs, voucher_revenue, salaries, inventory, ctx.company_profile.get("industry", "")),
-        "凭证发票收入对比": lambda: _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs),
+        "凭证发票收入对比": lambda: _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs, vouchers),
         # 2026-09-22：传入解析出的申报表（ctx.tax_declarations），避免该域只查
         # VATDeclaration 数据库表而误报"缺少增值税申报表"。
         "增值税申报比对": lambda: _domain_vat_declaration_compare(
@@ -221,7 +221,7 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
         "人员与业务匹配": lambda: _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security),
         "个人交易风险": lambda: _domain_personal_transactions(sal_invs),
         "收入时间线调查": lambda: _domain_revenue_timeline(vouchers, sal_invs, bank_txs),
-        "客户维度三源穿透": lambda: _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data, voucher_revenue),
+        "客户维度三源穿透": lambda: _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data, voucher_revenue, vouchers),
     }
     
     for domain, depth in domains_to_run.items():

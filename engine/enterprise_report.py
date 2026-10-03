@@ -2024,6 +2024,12 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
     #      「增值税进项税额对等逐月不匹配」的表）。
     #   现按「这张表来自哪条发现 → 该发现是不是**本疑点自己声明的支撑发现**」判定：
     #   归属不符的表一律不挂，宁可不附明细，也不附错明细。
+    # ★ 2026-10-03：按发现**类型**建索引 —— 「点→面推演」要与本疑点建入口的那条发现对齐
+    #   （推演是基于"这一条读数"展开的，取错发现就会推出另一件事的解释）。
+    _lateral_by_type = {}
+    for _fl in (findings or []):
+        if isinstance(_fl, dict) and _fl.get("lateral_reasoning"):
+            _lateral_by_type[str(_fl.get("type") or "")] = _fl["lateral_reasoning"]
     _src_tables = {}          # 发现主体规范键 -> {"rid": rid, "tables": [...]}
     _owner = {}               # id(表) -> 发现主体规范键（供自检回溯来源）
     for _f in (findings or []):
@@ -2457,6 +2463,27 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
             {"heading": "五、需企业提供的资料与说明", "text": _naturalize_report_text(p5_lead),
              "bullets": bullets5 or None, "tail": tail5},
         ]
+
+        # ★★ 2026-10-03（用户：「这种对每一项问题从点到面的推断思考与分析，是应该接入
+        #   一键分析按钮，并让它每次生成报告时都要触发的功能」）：
+        #   为**每一条疑点**生成「推断与联想」段——把本项读数在正常经营下的可能原因、
+        #   若为违规会是什么样、哪份资料能区分、以及该载体在逻辑上能否成立，逐条摊开。
+        #   ★ 位置：插在「二、发现的依据」之后（先给依据，再展开推断），
+        #     且**按小标题定位**插入，不得按索引写死（历史上按索引插段曾把附表挂错小节）。
+        try:
+            from engine.inference_ladder import ladder_for_suspicion as _ladder
+            _lat = _lateral_by_type.get(str(s.get("finding_type") or ""))
+            _sec = _ladder(s, _lat)
+            if _sec and _sec.get("bullets"):
+                _sec["text"] = _naturalize_report_text(_sec["text"])
+                _sec["bullets"] = [_naturalize_report_text(b) for b in _sec["bullets"]]
+                _pos = next((k for k, pp in enumerate(paragraphs)
+                             if str(pp.get("heading") or "").startswith("二、")), None)
+                paragraphs.insert(_pos + 1 if _pos is not None else len(paragraphs), _sec)
+        except Exception as _le:
+            # 铁律：不静默吞（except 留痕）——推演段失败必须可见，否则等于没有这层能力
+            if audit_sink is not None:
+                audit_sink.append("推演段生成失败：%s" % _le)
 
         # 逐笔明细表 挂到「发现的依据」段 —— **按来源归属**（唯一权威 subject_consistency）：
         #   ① 只用「本疑点自己声明的支撑发现」出的表（`supporting_findings` 是引擎给出的

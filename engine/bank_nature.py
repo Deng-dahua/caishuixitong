@@ -128,9 +128,104 @@ def counterparty_of(tx: Any) -> str:
     return _ETS_RE.sub("电子税务局", cp)
 
 
-def classify_credit(tx: Any, rules: Optional[Sequence[Dict[str, Any]]] = None) -> Tuple[str, str]:
-    """单笔收款 → (类目 label, 性质 nature)。规则表按顺序匹配，**第一匹配生效**。"""
+# ── 序时账科目：收款性质的最强证据（2026-10-03 新增）───────────────────────────
+# ★ 用户质询：「如果你是老板，你会傻逼到未开票收入用公司公账来收款吗？」
+#   —— 不会。反过来：**账上早就把每一笔收款的科目记清楚了**（客户货款挂应收、
+#   个人往来挂其他应付款），系统却只靠猜摘要关键词。本层把"科目"提到第一顺位。
+def account_natures() -> Dict[str, str]:
+    """序时账科目 → 收款性质（数据表 industry_data.json::收款分类规则.account_natures）。"""
+    raw = (_receipt_cfg().get("account_natures") or {})
+    return {str(k): str(v) for k, v in raw.items() if not str(k).startswith("_")}
+
+
+def account_nature_of(account_name: Any) -> Optional[str]:
+    """科目名 → 性质（**最长命中优先**：'应收账款' 优先于 '应收'）。判不出返回 None。"""
+    name = str(account_name or "").strip()
+    if not name:
+        return None
+    table = account_natures()
+    best = None
+    for k, nat in table.items():
+        if k and k in name and (best is None or len(k) > len(best[0])):
+            best = (k, nat)
+    return best[1] if best else None
+
+
+def ledger_object_of(account_name: Any) -> str:
+    """序时账科目名里的**明细对象**（真实格式为 '科目/对象'，如 '应收账款/某某公司'）。"""
+    name = str(account_name or "").strip()
+    if "/" not in name:
+        return ""
+    return name.split("/", 1)[1].strip()
+
+
+def build_ledger_index(vouchers: Sequence[Any]) -> Dict[str, Dict[str, Dict[str, float]]]:
+    """序时账索引：明细对象 → {科目: {debit, credit, n}}（供收款性质判定用）。
+
+    唯一权威：科目名从 `fieldkit.account_name` 取（**不是** `account` 编码字段）。
+    """
+    from engine.fieldkit import account_name as _acct_name
+    from engine.numparse import to_number as _num
+
+    idx: Dict[str, Dict[str, Dict[str, float]]] = {}
+    for v in (vouchers or []):
+        if not isinstance(v, dict):
+            continue
+        full = _acct_name(v)
+        obj = ledger_object_of(full)
+        if not obj:
+            continue
+        acct = full.split("/", 1)[0].strip()
+        if not acct:
+            continue
+        b = idx.setdefault(obj, {}).setdefault(acct, {"debit": 0.0, "credit": 0.0, "n": 0})
+        b["debit"] += _num(v.get("debit", 0))
+        b["credit"] += _num(v.get("credit", 0))
+        b["n"] += 1
+    return idx
+
+
+def _ledger_match(cp: str, ledger: Optional[Dict[str, Any]]):
+    """按对手方名在序时账索引里找它的科目（精确优先，其次前 6 字互相包含）。"""
+    if not ledger or not cp:
+        return None
+    if cp in ledger:
+        return cp, ledger[cp]
+    for obj, accts in ledger.items():
+        if obj and (obj[:6] in cp or cp[:6] in obj):
+            return obj, accts
+    return None
+
+
+def ledger_nature_of(cp: str, ledger: Optional[Dict[str, Any]]):
+    """对手方 → (label, nature, account)：以序时账科目定性质。判不出返回 None。"""
+    hit = _ledger_match(cp, ledger)
+    if not hit:
+        return None
+    obj, accts = hit
+    # 取该对象名下发生额最大的科目（最多数情况下就是它挂的往来科目）
+    if not accts:
+        return None
+    acct = max(accts.items(), key=lambda kv: (kv[1].get("debit", 0) + kv[1].get("credit", 0)))[0]
+    nat = account_nature_of(acct)
+    if not nat:
+        return None
+    return ("序时账-%s" % acct), nat, acct
+
+
+def classify_credit(tx: Any, rules: Optional[Sequence[Dict[str, Any]]] = None,
+                    ledger: Optional[Dict[str, Any]] = None) -> Tuple[str, str]:
+    """单笔收款 → (类目 label, 性质 nature)。
+
+    证据顺位（★ 2026-10-03 由"猜关键词"改为"读账"）：
+      ① **序时账科目**（账上已记的科目，最强证据）；
+      ② 摘要/名称关键词规则（数据表驱动）；
+      ③ 兜底类目（nature＝待判定，不臆测）。
+    """
     rules = list(rules) if rules is not None else receipt_rules()
+    _lg = ledger_nature_of(counterparty_of(tx), ledger)
+    if _lg is not None:
+        return _lg[0], _lg[1]
     text = _tx_text(tx)
     for rule in rules:
         if rule.get("is_default"):
@@ -151,18 +246,23 @@ def _is_bank_like_text(text: str) -> bool:
     return bool(kws) and any(k in text for k in kws)
 
 
-def classify_receipts(bank_txs: Sequence[Any]) -> Dict[str, Any]:
+def classify_receipts(bank_txs: Sequence[Any], vouchers: Optional[Sequence[Any]] = None) -> Dict[str, Any]:
     """把一批银行流水的**贷方**按收款性质分类汇总（唯一实现）。
+
+    参数 `vouchers`（序时账/记账凭证行）：给了就先建科目索引，**性质以科目为准**
+    （见 `ledger_nature_of`）；没给则只用摘要关键词规则。
 
     返回：
       rows/total/operating/non_operating/undetermined —— 金额与笔数
       by_label / by_nature                            —— 分组汇总
       *_rows                                          —— 逐笔明细（报告证据行可直接用）
+      evidence_stats                                  —— 逐笔性质的**证据来源**统计（供披露）
       corrections                                     —— 自我纠错留痕
       available                                       —— 性质分类是否可用（B3）
     """
     rules = receipt_rules()
     available = rules_available()
+    ledger = build_ledger_index(vouchers) if vouchers else None
     cfg_corr = (_receipt_cfg().get("correction") or {})
     max_amount = to_number(cfg_corr.get("max_amount", 100)) or 100.0
     micro_amount = to_number(cfg_corr.get("micro_amount", 20)) or 20.0
@@ -174,6 +274,7 @@ def classify_receipts(bank_txs: Sequence[Any]) -> Dict[str, Any]:
         OPERATING: [], NON_OPERATING: [], UNDETERMINED: []
     }
     corrections: List[str] = []
+    evidence_stats: Dict[str, float] = {"序时账科目": 0.0, "摘要关键词": 0.0, "未判定": 0.0}
     total = 0.0
     n_rows = 0
 
@@ -183,8 +284,16 @@ def classify_receipts(bank_txs: Sequence[Any]) -> Dict[str, Any]:
             continue
         n_rows += 1
         total += credit
-        label, nature = classify_credit(tx, rules)
+        label, nature = classify_credit(tx, rules, ledger=ledger)
         text = _tx_text(tx)
+        # 证据来源标注（供报告披露"这一笔的性质是读账得出的还是猜摘要得出的"）
+        if label.startswith("序时账-"):
+            _ev_src = "序时账科目"
+        elif nature != UNDETERMINED:
+            _ev_src = "摘要关键词"
+        else:
+            _ev_src = "未判定"
+        evidence_stats[_ev_src] = evidence_stats.get(_ev_src, 0.0) + credit
         # ── B4 自我纠错：极小金额 + 有零有整 + 文本无实质内容 ⇒ 实为银行结息 ──
         if nature == UNDETERMINED and internal_label and credit < max_amount:
             _decimal = abs(credit - int(credit)) > 1e-9
@@ -212,6 +321,7 @@ def classify_receipts(bank_txs: Sequence[Any]) -> Dict[str, Any]:
             "amount": round(credit, 2),
             "label": label,
             "nature": nature,
+            "evidence": _ev_src,
         }
         rows_by_nature.setdefault(nature, []).append(rec)
 
@@ -237,6 +347,8 @@ def classify_receipts(bank_txs: Sequence[Any]) -> Dict[str, Any]:
         "non_operating_rows": rows_by_nature.get(NON_OPERATING, []),
         "undetermined_rows": rows_by_nature.get(UNDETERMINED, []),
         "corrections": corrections,
+        "evidence_stats": evidence_stats,
+        "has_ledger": bool(ledger),
         "available": available,
     }
 

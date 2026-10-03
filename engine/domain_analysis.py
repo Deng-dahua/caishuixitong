@@ -2757,7 +2757,8 @@ def _domain_multi_source_cross(bank_txs, sal_invs, pur_invs, salaries, social_se
 # ═══════════ 域15.5: 客户维度三源穿透分析 ═══════════
 # 逐客户匹配开票/收款/合同——资深税务合规员逐户穿透逻辑
 
-def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, voucher_revenue=None):
+def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, voucher_revenue=None,
+                                      vouchers=None):
     """逐客户匹配开票金额与银行收款金额——穿透到每个客户维度的三源交叉验证
     
     税务合规逻辑（老邓方法论）：
@@ -2807,7 +2808,9 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
     #   直接成为 RL-VAT-006 第③条要件的"证据"）。金额真值仍保留在 `raw`（供整数特征等展示），
     #   非经营性/待判定分别留痕，正文如实交代。
     from engine.bank_nature import classify_credit as _bn_classify
+    from engine.bank_nature import build_ledger_index as _bn_ledger
     from engine.bank_nature import NON_OPERATING as _BN_NONOP, UNDETERMINED as _BN_UNDET
+    _ledger = _bn_ledger(vouchers) if vouchers else None
     bank_by_payer = defaultdict(lambda: {"credit": 0, "debit": 0, "count": 0, "dates": [], "raw": []})
     nonop_by_payer = defaultdict(float)     # 非经营性收款（剔除，如实交代）
     undet_by_payer = defaultdict(float)     # 收款性质待判定（不得算作经营收款）
@@ -2820,7 +2823,7 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
         credit = to_number(tx.get("credit", 0))
         debit = to_number(tx.get("debit", 0))
         if credit > 0:
-            _lab, _nat = _bn_classify(tx)
+            _lab, _nat = _bn_classify(tx, ledger=_ledger)
             if _nat == _BN_NONOP:
                 nonop_by_payer[key] += credit
                 credit = 0.0        # 非经营性：不进收入口径
@@ -3362,7 +3365,18 @@ def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_securi
 
 # ═══════════ 域17: 凭证收入 vs 发票收入对比 ═══════════
 
-def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
+def _revenue_lateral(vr_total, bank_operating, vouchers, private_receipts=0.0):
+    """三源差集 → 会计实质推演（点→面推断层，唯一权威 engine.inference_ladder）。"""
+    try:
+        from engine.inference_ladder import open_item_movement, revenue_gap_reasoning
+        _mv = open_item_movement(vouchers)
+        return revenue_gap_reasoning(to_number(vr_total), to_number(bank_operating),
+                                     private_receipts=to_number(private_receipts), **_mv)
+    except Exception:
+        return None
+
+
+def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs, vouchers=None):
     """对比凭证中主营业务收入（区分开票/未开票）与销项发票收入、**经营性**银行收款
 
     ★★ 2026-10-03（用户质询："是不是所有的银行流水的收款都是与收入相关？"）：
@@ -3382,7 +3396,8 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
     from engine.tax_rates import match_tax_inclusive
 
     inv_total = sum(to_number(i.get("total", 0)) for i in sal_invs)
-    _bn = classify_receipts(bank_txs or [])
+    # ★ 2026-10-03：传入序时账 → 收款性质**以账上科目为准**（读账优先于猜摘要）
+    _bn = classify_receipts(bank_txs or [], vouchers)
     bank_income = _bn["operating"] if _bn["available"] else _bn["total"]
     _bn_note = income_scope_note_with_undetermined_rows(_bn)
     # ★ 2026-10-03：口径还必须进 **detail** —— 报告正文的事实句取自 detail，
@@ -3424,7 +3439,15 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
             if vr_total > 0 and vr_uninvoiced == 0
             else []
         ),
-        "category": "域17 凭证发票收入对比"
+        "category": "域17 凭证发票收入对比",
+        # ★ 2026-10-03（用户要求把"点→面推断"接进一键分析、每次生成报告都触发）：
+        #   三源差集必须翻译成**会计实质**并给渠道逻辑限制（公账≠隐匿渠道）。
+        #   引擎侧算好，报告侧只渲染（`enterprise_report` 会挂成「六、可能的解释与如何区分」段）。
+        "lateral_reasoning": _revenue_lateral(
+            vr_total, bank_income, vouchers,
+            private_receipts=_bn["by_label"].get("个人款(待分析)", {}).get("amount", 0.0)
+            + _bn["undetermined"],
+        ),
     })
     
     # 未开票收入占比过大
