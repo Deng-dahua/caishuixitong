@@ -934,6 +934,12 @@ def _row_side(row) -> str:
       红冲行（金额为负）与无方向字段的行一律 `unknown`（保留）。
     """
     note = str((row or {}).get("说明") or (row or {}).get("note") or "")
+    # ★★ 2026-10-03（自检脚本抓出）：**同一行里同时含"转出/转入"的往来行，方向不明，不得过滤**。
+    #   事故：疑点4「个人账户收取经营性款项」的附表行说明是"个人账户往来（转出600,000元/转入0元）"，
+    #   `_row_side` 误判为支出侧 ⇒ 100 行被剔空，而**表题仍写"（共100笔）"**，形成
+    #   "表题 100 笔、内容 0 行"的严重自相矛盾（自检脚本的第一条命中）。
+    if ("转出" in note and "转入" in note) or ("借" in note and "贷" in note):
+        return "unknown"
     if "支出" in note or "付款" in note:
         return "expense"
     if "收入" in note or "收款" in note:
@@ -985,6 +991,14 @@ def _filter_rows_by_subject_side(tables, subject_text):
             continue
         nt = dict(tb)
         nt["rows"] = kept
+        # ★★ 2026-10-03（自检脚本抓出）：**过滤后必须同步表题里的"（共N笔）"**，
+        #   否则出现"表题共100笔、实际0行"。空表一律不挂（避免空表占位）。
+        if kept:
+            _ttl = str(nt.get("title") or "")
+            if re.search(r"（共\s*\d+\s*笔）", _ttl):
+                nt["title"] = re.sub(r"（共\s*\d+\s*笔）", "（共%d笔）" % len(kept), _ttl)
+            elif re.search(r"共\s*\d+\s*笔", _ttl):
+                nt["title"] = re.sub(r"共\s*\d+\s*笔", "共%d笔" % len(kept), _ttl)
         _bits = []
         if _d:
             _bits.append("剔除 %d 行方向相反的资金记录（%s）"
@@ -996,7 +1010,8 @@ def _filter_rows_by_subject_side(tables, subject_text):
         _note = ("口径说明：本表已按本项口径过滤，" + "；".join(_bits)
                  + "。被剔除的记录仍在其自身所属事项中列示，此处不重复。")
         nt["scope_note"] = (str(tb.get("scope_note") or "").strip() + " " + _note).strip()
-        out.append(nt)
+        if kept:
+            out.append(nt)
     return out, dropped
 
 
@@ -1093,18 +1108,33 @@ def _select_detail_tables(rid, rname, sup_subjects, src_tables, dt_by_rid, dt_by
                 continue
             seen.add(ttl)
             picked.append(t)
+    # ★★ 2026-10-03（自检脚本抓出的**回归**）：本函数的第二返回值语义是"**如实说明文本**"，
+    #   而 `_filter_rows_by_subject_side` 的第二返回值是"剔除行数(int)" —— 直接透传会让
+    #   `_pp["text"] + _tbl_note` 抛 `TypeError: can only concatenate str (not "int") to str`，
+    #   导致**企业版报告整段生成失败**（main 里被 except 吞掉、只留一行日志、报告静默降级）。
+    #   现统一由 `_apply_dir_filter` 适配：返回 (tables 或 None, 说明文本)。
+    def _apply_dir_filter(_tabs):
+        _t2, _dropped = _filter_rows_by_subject_side(_tabs, rname)
+        if _t2:
+            return _t2, ""
+        if _dropped:
+            return None, ("\n\n说明：本项口径下可逐笔列示的记录全部为方向相反的记录"
+                          "（共 %d 行，已剔除），故本项不附明细表；"
+                          "这些记录归属其自身所属事项。" % _dropped)
+        return None, ""
+
     if picked:
         # ★ 2026-10-03：按本项主题的资金方向对准（收款类只列收款、支出类只列支出）
-        return _filter_rows_by_subject_side(picked, rname)
+        return _apply_dir_filter(picked)
     if not sup_keys:
         cand = (dt_by_rid or {}).get(rid) if rid else None
         if cand:
-            return _filter_rows_by_subject_side(list(cand), rname)
+            return _apply_dir_filter(list(cand))
         # 同一主体兜底（无红线编号 / 无支撑发现时的最后一道）
         if _ssame and rname:
             for _tk, _tabs in (dt_by_type or {}).items():
                 if _ssame(_tk, rname):
-                    return _filter_rows_by_subject_side(list(_tabs), rname)
+                    return _apply_dir_filter(list(_tabs))
         return None, ""
     # 有明细被拒（主体不符）→ 必须说明，不能默默少一张表
     rej = (dt_by_rid or {}).get(rid) if rid else None
