@@ -39,6 +39,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional
 
 # 数据源状态 → 是否"已取得"（唯一权威；新增状态词只加一行）
@@ -50,6 +51,11 @@ _CONCLUSION_ZH = {
     "checked_miss": "已单独核对：未发现符合该要件的情形",
     "threshold_unmet": "已单独核对：有信号但未达该要件的数值门槛",
     "not_checked": "未单独核对（独立数据源本轮未取得）",
+    # ★ 2026-10-03（用户："服务类采购本无物流"）：**本业态不适用** ——
+    #   该要件的独立数据源全部属"本业态不适用"资料（如服务型企业的货物流凭证）。
+    #   与"缺资料"是**两件不同的事**：不适用资料不构成缺失，也不能因为它无法核对
+    #   就把企业钉在"资料不足 ⇒ 无法排除"上（尤其出罪要件，否则企业永远无法自证清白）。
+    "not_applicable": "本业态不适用（该要件依赖的资料与本业态经营形态不符）",
 }
 
 
@@ -105,7 +111,8 @@ def _match_source(constituent: str, candidates: List[tuple]) -> tuple:
 _MIN_MATCH = 0.30
 
 
-def build_constituent_checkpoints(suspicion: Dict[str, Any]) -> List[Dict[str, Any]]:
+def build_constituent_checkpoints(suspicion: Dict[str, Any],
+                                  not_required: Any = None) -> List[Dict[str, Any]]:
     """逐要件生成独立核对记录（不依赖任何单条红线的特例代码）。"""
     s = suspicion if isinstance(suspicion, dict) else {}
     cons = [_norm(c) for c in (s.get("constituents") or []) if _norm(c)]
@@ -157,8 +164,42 @@ def build_constituent_checkpoints(suspicion: Dict[str, Any]) -> List[Dict[str, A
         if i - 1 < len(_declared):
             _e = _declared[i - 1]
             _decl = _norm(_e if isinstance(_e, str) else (_e.get("name") if isinstance(_e, dict) else ""))
-        if _decl and _material_match is not None:
-            # ① 明文声明的独立数据源：判定该材料是否已取得
+        # ★ 2026-10-03：**先按业态剔除"不适用资料"**
+        #   服务型企业的"物流单据/入库验收单"等货物流资料不适用（且业务上也不存在），
+        #   不能因为"没提供"就判该要件"独立数据源未取得" —— 那会让要件（尤其出罪要件）
+        #   永远无法核对，企业永远无法自证清白。
+        _na_set = {str(x) for x in (not_required or ())}
+        _decl_parts = [p.strip() for p in re.split(r"[、，,；;/／\s]+", _decl) if p.strip()] if _decl else []
+        _decl_na = [p for p in _decl_parts if any(p == x or p in x or x in p for x in _na_set)]
+        _decl_eff = "、".join(p for p in _decl_parts if p not in _decl_na)
+        if _decl_parts and not _decl_eff:
+            # 声明的数据源**全部**不适用 ⇒ 本要件对本业态不适用（不是"缺资料"）
+            out.append({
+                "index": i,
+                "要件": c,
+                "独立数据源": _decl,
+                "数据源状态": "本业态不适用",
+                "核对结论": _CONCLUSION_ZH["not_applicable"],
+                "_conclusion": "not_applicable",
+                "参与认定": False,
+                "依据": ("本要件的独立数据源（%s）均为本业态不适用资料 —— "
+                         "本企业业态天然无该形态资料，故不构成资料缺失，"
+                         "本要件也不计入「未单独核对」。" % "、".join(_decl_na)),
+                "证据": "",
+            })
+            continue
+        if _decl_eff and _material_match is not None:
+            # ① 明文声明的独立数据源（已剔除不适用项）：判定该材料是否已取得
+            src_name = _decl_eff
+            try:
+                _m = _material_match(_decl_eff, "", _avail) or {}
+                src_status = _norm(_m.get("status")) or "未知"
+            except Exception:
+                src_status = "未知"
+            if _decl_na:
+                src_name = _decl_eff
+        elif _decl and _material_match is not None:
+            # 声明项被全部剔除的情形已在上面 return；此处保留原分支（无剔除时走原逻辑）
             src_name = _decl
             try:
                 _m = _material_match(_decl, "", _avail) or {}
@@ -290,6 +331,11 @@ def summarize(checkpoints: List[Dict[str, Any]]) -> str:
     miss = sum(1 for c in cps if c.get("_conclusion") == "checked_miss")
     unmet = sum(1 for c in cps if c.get("_conclusion") == "threshold_unmet")
     nc = sum(1 for c in cps if c.get("_conclusion") == "not_checked")
-    return ("本项共 %d 条构成要件：已单独核对 %d 条（符合情形 %d 条、未发现符合 %d 条、"
-            "有信号但未达数值门槛 %d 条）；未单独核对 %d 条（独立数据源本轮未取得，"
-            "均不计入「涉及」）。" % (len(cps), hit + miss + unmet, hit, miss, unmet, nc))
+    na = sum(1 for c in cps if c.get("_conclusion") == "not_applicable")
+    _base = ("本项共 %d 条构成要件：已单独核对 %d 条（符合情形 %d 条、未发现符合 %d 条、"
+             "有信号但未达数值门槛 %d 条）；未单独核对 %d 条（独立数据源本轮未取得，"
+             "均不计入「涉及」）。" % (len(cps), hit + miss + unmet, hit, miss, unmet, nc))
+    if na:
+        _base += ("其中 %d 条**本业态不适用**（其独立数据源与本业态经营形态不符，"
+                  "不构成资料缺失、不计入「涉及」）。" % na).replace("**", "")
+    return _base

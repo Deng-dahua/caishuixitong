@@ -2346,6 +2346,20 @@ def _run_analyze(company_id, db, progress_callback=None):
     _report(97, f"步骤③域分析 — 已完成{len(domain_results)}个域(交叉验证域)", step=3)
     # 域17: 凭证收入 vs 发票收入对比
     domain_results.append({"domain": "凭证发票收入对比", "findings": _domain_voucher_invoice_revenue_compare(voucher_revenue, sal_invs, bank_txs, vouchers)})
+    # 域20: 采购来源真实性核验（★ 2026-10-03 用户："采购来源的真实性还是值得严谨的查一查，
+    #   就得看**如何证实**"）——判据全部**可证伪**（有票无付款/付款对象不符/同日同额/顶额/主体特征），
+    #   每条都写明「需核实什么 + 用哪份资料能证实或排除」；**不认领红线要件**（线索须先取证）。
+    #   必须传**真实银行流水**，否则 Z1（有票无付款）会误报。
+    try:
+        from engine.procurement_authenticity import procurement_findings as _proc_findings
+        # 行业口径取当前上下文（与成本/费用分类同一来源；取不到则 None，
+        # 此时按全量核查——**不臆测**）
+        _ind = str((ctx.company_profile or {}).get('industry') or '') or None
+        domain_results.append({"domain": "采购来源真实性核验",
+                               "findings": _proc_findings(pur_invs, bank_txs, industry=_ind)})
+    except Exception as _pe:
+        # 铁律：不静默吞（except 留痕），否则这层能力等于不存在
+        pipeline_log.append(f"[采购来源核验] 执行失败: {_pe}")
     # 域18: 312规则全覆盖验证——对未触发的规则产出缺失数据结论 (需要在all_findings之后)
     # 域19: 跨域关联推理——单点发现→多域印证→证据链 (需要在all_findings之后)
     # 先跑不依赖all_findings的域

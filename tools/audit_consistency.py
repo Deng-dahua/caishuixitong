@@ -5996,7 +5996,11 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     except Exception as exc:
         issues.append(("ERROR", "engine/constituent_checkpoint.py", f"要件核对断言执行失败: {exc}"))
     # 接线：报告必须用核对记录驱动要件清单（否则"不计入涉及"只是空话）
-    if "_cps_all = _bcc(s)" not in _er6_code:
+    # ★ 2026-10-03：判据放宽为"必须存在 `_cps_all = _bcc(s, ...)` 形式的调用"——
+    #   本轮把**业态不适用资料**也传了进去（`not_required=...`），旧的精确串
+    #   `"_cps_all = _bcc(s)"` 会误报"未接线"（闸门抓的是形式，不是行为）。
+    import re as _re_w
+    if not _re_w.search(r"_cps_all\s*=\s*_bcc\(\s*s\b", _er6_code):
         issues.append(("ERROR", "engine/enterprise_report.py", "要件级核对未接线（只 import 未调用）"))
     if "checkpoints=_cps_all" not in _er6_code:
         issues.append(("ERROR", "engine/enterprise_report.py", "要件级核对未传入要件清单渲染"))

@@ -2222,7 +2222,10 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
         _cps_all = []
         try:
             from engine.constituent_checkpoint import build_constituent_checkpoints as _bcc
-            _cps_all = _bcc(s)
+            # ★ 2026-10-03：传入**业态不适用资料集合** —— 要件级同样剔除
+            #   （服务型企业的"物流单据/入库验收单"不适用；不剔除会让要件——
+            #    尤其"不属于正当情形"这类出罪要件——永远核对不了，企业无法自证清白）。
+            _cps_all = _bcc(s, not_required=(not_required_docs or set()))
         except Exception:
             _cps_all = []
         _sits, _sit_src, _cp_tbl = _enterprise_situations(

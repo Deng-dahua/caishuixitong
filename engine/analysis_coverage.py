@@ -272,6 +272,22 @@ def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
             "effect": str(meta.get("tax_impact") or "")[:160],
         })
 
+    # ★★ 2026-10-03（用户："服务类采购本无物流"）：**资料要求必须跟随业态**——
+    #   服务型企业天然无实物货物流转，"物流单据/入库验收单/出库单"对其**不适用**；
+    #   若仍列为"缺失"，受限清单会永远挂着一项企业根本不可能提供的资料，
+    #   让"资料齐全"永远达不到、也让"该红线检查受限"变成无根据的指责。
+    #   判据唯一权威：`industry_resolver.not_required_materials`（业态 skip_domains 驱动）。
+    _na_docs: set = set()
+    try:
+        from engine.industry_resolver import not_required_materials as _nrm
+        _te = ed.get("target_entity") or {}
+        _ind = str((_te or {}).get("industry_resolved") or (_te or {}).get("industry") or "") \
+            or str((ed.get("company_profile") or {}).get("industry") or "")
+        if _ind:
+            _na_docs = {str(x) for x in (_nrm(_ind)[0] or ())}
+    except Exception:
+        _na_docs = set()
+
     # ③ 税务红线（68 条）：红线是"命中"概念，但可按其 required_materials 判定
     #    "本轮是否具备判定条件"——不具备则不可能是"排除"，只能说"未能检查"。
     for rl in all_redlines():
@@ -280,7 +296,9 @@ def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
             continue
         _present = ed.get("_available_materials") or []
         # ★ 必须用超类判定，不能用裸 `m not in _present`：泛化名会永远判缺
-        missing = [m for m in mats if not _material_satisfied(m, _present)]
+        #  ★ 剔除本业态不适用资料（如服务型企业的货物流类）——不构成缺失
+        missing = [m for m in mats
+                   if m not in _na_docs and not _material_satisfied(m, _present)]
         items.append({
             "kind": "税务红线",
             "name": str(rl.get("name") or ""),

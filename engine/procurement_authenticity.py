@@ -263,5 +263,56 @@ def verify_procurement_authenticity(pur_invs: Sequence[Any],
             "note": note.replace("**", "")}
 
 
-__all__ = ["verify_procurement_authenticity", "PAY_MATCH_TOL", "NO_PAY_FLOOR",
-           "NEAR_LIMIT_RATIO", "SAME_DAY_SAME_AMT_MIN", "SHAPE_FLOOR"]
+def procurement_findings(pur_invs: Sequence[Any], bank_txs: Sequence[Any] = (),
+                         *, industry: Any = "") -> List[Dict[str, Any]]:
+    """把核验结果转成**报告可渲染的发现**（接入一键分析用）。
+
+    ★ 定位：本项**不认领红线要件** —— 线索本身不等于违规，须先由资料/外部数据证实。
+      产出两条路径：
+        · 未检出线索 ⇒ level="信息"（写明按哪几类可证伪线索核查过、结论为未检出）；
+        · 检出线索   ⇒ level="待核验"，逐条给出「事实 + 需核实 + 用哪份资料能证实/排除」。
+      （宁缺勿滥：没有线索时不产出任何指控性措辞。）
+    """
+    res = verify_procurement_authenticity(pur_invs, bank_txs, industry=industry)
+    facts = res.get("facts") or []
+    if not facts:
+        return [{
+            "type": "采购来源真实性核验（未检出异常）", "level": "信息", "score": 1,
+            "detail": res["note"],
+            "description": (
+                "本项按「有票无付款、付款对象与开票销方不符、同日同额重复开票、顶额开票"
+                "（贴近税控单张限额）、开票主体特征」五类**可证伪**线索，对纳入核查的"
+                "成本类采购逐票核对。这些线索的共同点是：每一条都能由某份资料或某类外部数据"
+                "**证实或排除**，而不是靠统计指标推断。"
+            ),
+            "how_found": res["note"],
+            "tax_impact": "本轮未检出需进一步核实的采购来源线索，故不涉及补税风险。",
+            "suggestion": "保持采购发票、合同、付款、成果交付四流齐备备查；"
+                          "后续如出现有票无付款、付款给第三方等情形，须及时核实并留存说明。",
+            "category": "域4 供应商穿透",
+            "observed_metrics": {"采购发票数": res["invoice_count"], "采购金额": res["total"]},
+        }]
+    lines = []
+    for f in facts[:20]:
+        lines.append("  [%s] %s；需核实：%s；可证实资料：%s"
+                     % (f["code"], f["事实"], f["需核实"], f["可证实资料"]))
+    return [{
+        "type": "采购来源真实性待核实（可证伪线索）", "level": "待核验", "score": 4,
+        "detail": res["note"] + "\n" + "\n".join(lines),
+        "description": (
+            "下列线索均为**可证伪**的具体事实（不是统计指标推断）；每条都写明"
+            "「需核实什么」与「用哪份资料能证实或排除」。在企业提交对应资料之前，"
+            "本项不作定性、不计入任何违规认定。"
+        ),
+        "how_found": res["note"],
+        "tax_impact": "若线索被证实（如有票无付款实为无真实交易、付款对象不符实为第三方代收），"
+                      "可能涉及进项税额转出与企业所得税调整；须先取证再判断。",
+        "suggestion": "按每条线索列示的「可证实资料」逐项提供；无法提供的须说明款项性质与业务实质。",
+        "category": "域4 供应商穿透",
+        "observed_metrics": {"线索条数": len(facts)},
+    }]
+
+
+__all__ = ["verify_procurement_authenticity", "procurement_findings",
+           "PAY_MATCH_TOL", "NO_PAY_FLOOR", "NEAR_LIMIT_RATIO",
+           "SAME_DAY_SAME_AMT_MIN", "SHAPE_FLOOR"]
