@@ -5705,7 +5705,10 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       ? ('<p class="i2" style="margin:6px 0 10px;padding:8px 12px;background:#f8fafc;'
          + 'border-left:3px solid #2563eb;font-size:13px;line-height:1.9">' + _metaCells + '</p>')
       : '';
-    html += '<section class="fact-sec"><div class="ftitle">疑点' + esc(item.seq || '') + '：' + esc(item.title || '具体资料问题') + '</div>'
+    // ★ 2026-10-03（用户要求目录能跳转到每条疑点）：为每条疑点加**稳定锚点 id**，
+    //   供浮动目录的"疑点级"条目使用（seq 即本项序号，稳定且与正文一致）。
+    html += '<section class="fact-sec" id="company-problem-' + esc(item.seq || '') + '">'
+      + '<div class="ftitle">疑点' + esc(item.seq || '') + '：' + esc(item.title || '具体资料问题') + '</div>'
       + meta
       + _renderNarrativeParagraphs(_enterpriseProblemParagraphs(item), '本项尚未形成完整的段落式检查记录。') +
       '</section>';
@@ -10149,7 +10152,17 @@ async function clearTransferCache() {
 // ═══════════════════════════════════════════════════════════════
 (function () {
   var NAV_ID = 'rr-report-toc';
+  var TOP_ID = 'rr-top-btn';
   var _timer = null;
+  var _topBound = false;   // 返回顶部：滚动监听只绑一次
+  var _topSync = null;
+  var _spyBound = false;   // 滚动高亮：滚动监听只绑一次
+  var _spy = null;
+  var _spyRaf = null;
+  // ★ 自身写入（挂载目录/返回顶部钮）会触发 MutationObserver，若不屏蔽会形成
+  //   「挂载→observer→260ms 后再挂载」的无限重建循环；重建期间用户点击目录会因
+  //   节点被替换而丢失 click 事件（"点了没反应"）。故挂载期间置位、微任务后复位。
+  var _selfMutating = false;
 
   function _txt(el) { return (el && el.textContent || '').replace(/\s+/g, ' ').trim(); }
 
@@ -10168,10 +10181,31 @@ async function clearTransferCache() {
     return null;
   }
 
-  function mount() {
+  // ★ 报告容器在重渲染后可能被替换，故每次都按 id 现取（不用闭包捕获的旧引用）
+  function _reportScroller() {
     var root = document.getElementById('rr-report');
-    if (!root) { var old = document.getElementById(NAV_ID); if (old) old.remove(); return; }
-    var hs = root.querySelectorAll('h2, h3');
+    if (!root) return null;
+    if (!root._tocScrollParent || !document.body.contains(root._tocScrollParent)) {
+      root._tocScrollParent = _scrollContainerOf(root);
+    }
+    return root._tocScrollParent;
+  }
+
+  function _reportScrollY() {
+    var c = _reportScroller();
+    if (c) return c.scrollTop;
+    return window.pageYOffset || document.documentElement.scrollTop || 0;
+  }
+
+  function _mountInner() {
+    var root = document.getElementById('rr-report');
+    if (!root) {
+      var old = document.getElementById(NAV_ID); if (old) old.remove();
+      var ob = document.getElementById(TOP_ID); if (ob) { ob.classList.remove('show'); ob.remove(); }
+      return;
+    }
+    // 目录三级：h2=章 / h3=节 / section.fact-sec=疑点（疑点级便于在 24 条疑点间跳转）
+    var hs = root.querySelectorAll('h2, h3, section.fact-sec');
     if (hs.length < 2) return;
 
     var prev = document.getElementById(NAV_ID);
@@ -10182,9 +10216,19 @@ async function clearTransferCache() {
     var items = [];
     Array.prototype.forEach.call(hs, function (el, i) {
       if (!el.id) el.id = _slug(el, i);
-      var t = _txt(el);
+      var lv = el.tagName === 'H2' ? 2 : (el.tagName === 'H3' ? 3 : 4);
+      // 疑点级：标题取 .ftitle（形如「疑点12：XXX」），并去掉"疑点N："前缀留给序号徽标
+      var t = lv === 4 ? _txt(el.querySelector('.ftitle') || el) : _txt(el);
       if (!t) return;
-      items.push({ id: el.id, text: t.length > 34 ? t.slice(0, 34) + '…' : t, lv: el.tagName === 'H2' ? 2 : 3, el: el });
+      var seq = '';
+      if (lv === 4) {
+        var m = t.match(/^疑点\s*([0-9]+)\s*[：:]\s*/);
+        if (m) { seq = m[1]; t = t.slice(m[0].length); }
+      }
+      items.push({
+        id: el.id, lv: lv, seq: seq, el: el,
+        text: t.length > (lv === 4 ? 30 : 34) ? t.slice(0, lv === 4 ? 30 : 34) + '…' : t
+      });
     });
     if (!items.length) return;
 
@@ -10195,8 +10239,10 @@ async function clearTransferCache() {
       + '<button type="button" class="report-toc-toggle" title="收起 / 展开">−</button></div>'
       + '<ol class="report-toc-list">';
     items.forEach(function (it, i) {
-      inner += '<li class="lv' + it.lv + '"><a href="#' + it.id + '" data-i="' + i + '">'
-        + (typeof escapeHtml === 'function' ? escapeHtml(it.text) : it.text) + '</a></li>';
+      var safe = (typeof escapeHtml === 'function' ? escapeHtml(it.text) : it.text);
+      var label = it.seq ? '<span class="report-toc-seq">' + it.seq + '</span>' + safe : safe;
+      inner += '<li class="lv' + it.lv + '" title="' + safe + '"><a href="#' + it.id + '" data-i="' + i + '">'
+        + label + '</a></li>';
     });
     inner += '</ol>';
     nav.innerHTML = inner;
@@ -10229,6 +10275,31 @@ async function clearTransferCache() {
       }
     });
 
+    // 返回顶部（独立小钮，滚动超过 400px 才显示）
+    var topBtn = document.getElementById(TOP_ID);
+    if (!topBtn) {
+      topBtn = document.createElement('button');
+      topBtn.id = TOP_ID;
+      topBtn.type = 'button';
+      topBtn.className = 'report-top-btn';
+      topBtn.title = '返回顶部';
+      topBtn.textContent = '↑';
+      document.body.appendChild(topBtn);
+      topBtn.addEventListener('click', function () {
+        var c = _reportScroller();
+        if (c) { try { c.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { c.scrollTop = 0; } }
+        try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+      });
+    }
+    if (!_topSync) {
+      _topSync = function () {
+        if (!document.body.contains(topBtn)) return;   // 报告已关闭：不再干预
+        topBtn.classList.toggle('show', _reportScrollY() > 400);
+      };
+    }
+    if (!_topBound) { document.addEventListener('scroll', function () { _topSync(); }, true); _topBound = true; }
+    _topSync();
+
     var tg = nav.querySelector('.report-toc-toggle');
     if (tg) tg.addEventListener('click', function () {
       nav.classList.toggle('collapsed');
@@ -10236,24 +10307,30 @@ async function clearTransferCache() {
     });
 
     // 滚动高亮：document 捕获阶段监听，容器自身滚动也能接到
-    var _raf = null;
-    function spy() {
-      if (_raf) return;
-      _raf = requestAnimationFrame(function () {
-        _raf = null;
-        var best = 0, bestTop = -Infinity;
-        for (var k = 0; k < items.length; k++) {
-          var r = items[k].el.getBoundingClientRect();
-          if (r.top <= 120 && r.top > bestTop) { bestTop = r.top; best = k; }
-        }
-        markActive(best);
-      });
+    // （监听只绑一次；每次挂载替换 _spy 的实现，避免监听器随重建累积）
+    _spy = function () {
+      var best = 0, bestTop = -Infinity;
+      for (var k = 0; k < items.length; k++) {
+        var r = items[k].el.getBoundingClientRect();
+        if (r.top <= 120 && r.top > bestTop) { bestTop = r.top; best = k; }
+      }
+      markActive(best);
+    };
+    if (!_spyBound) {
+      document.addEventListener('scroll', function () {
+        if (_spyRaf) return;
+        _spyRaf = requestAnimationFrame(function () { _spyRaf = null; if (_spy) _spy(); });
+      }, true);
+      _spyBound = true;
     }
-    if (!nav._spyBound) {
-      document.addEventListener('scroll', spy, true);
-      nav._spyBound = true;
-    }
-    spy();
+    _spy();
+  }
+
+  function mount() {
+    _selfMutating = true;
+    try { _mountInner(); }
+    catch (e) { }
+    finally { setTimeout(function () { _selfMutating = false; }, 0); }
   }
 
   function schedule() {
@@ -10263,13 +10340,33 @@ async function clearTransferCache() {
 
   window._mountReportToc = mount;
 
+  // ★ 只认「报告容器自身/内部」的变化：body 上任何无关更新（进度条、日志、抽屉等）
+  //   都会触发 observer，若一律重建，则页面在分析过程中每 260ms 重建一次目录，
+  //   重建瞬间用户点击目录会丢 click 事件。故此处做与报告相关的过滤。
+  function _mutationHitsReport(m) {
+    var t = m.target;
+    if (!t || t.nodeType !== 1) return false;
+    if (t.id === NAV_ID || t.id === TOP_ID) return false;              // 自身节点
+    var own = document.getElementById(NAV_ID), ownB = document.getElementById(TOP_ID);
+    if ((own && own.contains(t)) || (ownB && ownB.contains(t))) return false;
+    var root = document.getElementById('rr-report');
+    if (!root) return m.type === 'childList';                          // 报告未出现：等它插入
+    if (t === root || root.contains(t)) return true;                   // 报告内部变化
+    if (m.type === 'childList' && m.addedNodes) {                      // 报告整体插入/被替换
+      for (var i = 0; i < m.addedNodes.length; i++) {
+        var n = m.addedNodes[i];
+        if (n && n.nodeType === 1 && (n.id === 'rr-report' || (n.querySelector && n.querySelector('#rr-report')))) return true;
+      }
+    }
+    return false;
+  }
+
   function boot() {
     if (!document.body) return;
     var mo = new MutationObserver(function (muts) {
+      if (_selfMutating) return;   // 自己挂载目录/按钮引起的变更：不得再触发重建（否则无限循环）
       for (var i = 0; i < muts.length; i++) {
-        var m = muts[i];
-        if (m.target && m.target.id === NAV_ID) continue;   // 自己的插入不触发
-        if (m.type === 'childList') { schedule(); return; }
+        if (_mutationHitsReport(muts[i])) { schedule(); return; }
       }
     });
     mo.observe(document.body, { childList: true, subtree: true });
