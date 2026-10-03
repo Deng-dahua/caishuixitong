@@ -66,11 +66,9 @@ def _day_diff(a: str, b: str) -> Optional[int]:
 
 
 def _tx_text(row: Dict) -> str:
-    if not isinstance(row, dict):
-        return ""
-    return " ".join(str(row.get(k) or "") for k in
-                    ("counterparty", "对手方", "对方户名", "summary", "摘要", "用途",
-                     "remark", "备注", "goods", "货物或应税劳务名称"))
+    """一条流水的可读文本（唯一权威转 engine.fieldkit.bank_tx_text）。"""
+    from engine.fieldkit import bank_tx_text
+    return bank_tx_text(row)
 
 
 def detect_channels(text: str) -> List[str]:

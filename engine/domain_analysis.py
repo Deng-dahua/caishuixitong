@@ -217,7 +217,12 @@ def _domain_bank_tracking(txs, business_model=None):
             third_party_count += 1
             third_party_detail.append(f"{tx.get('date','')} {cp[:15]} {tx['credit']:,.2f}")
         elif "税务" in raw: cats["tax"] += tx["debit"]
-    income = sum(tx["credit"] for tx in txs)
+    # ★ 2026-10-03：分母改用**经营性收款**（收款性质唯一权威）——"第三方收款占总收入比"
+    #   的分母若是"全部贷方"（含借款/往来/保证金），占比会被稀释 ⇒ 该报的不报。
+    #   性质分类不可用时回退全部贷方（并在 how_found 里写明口径）。
+    from engine.bank_nature import classify_receipts as _bn_receipts1
+    _bn1 = _bn_receipts1(txs)
+    income = _bn1["operating"] if (_bn1["available"] and _bn1["operating"] > 0) else _bn1["total"]
     expense = sum(tx["debit"] for tx in txs)
     if income > 0 and cats.get("third_party", 0) / income > T.ratios.half:
         pct = cats['third_party']/income*100
@@ -233,7 +238,7 @@ def _domain_bank_tracking(txs, business_model=None):
                     + "。第三方支付通道名下大额往来对应海量终端消费者，非单一对手方异常交易，"
                       "且每笔回款均有对应平台订单与销项发票，本项不列为税务风险。"
                 ),
-                "how_found": f"通道1(银行): 扫描{total_txs}笔流水，命中第三方支付通道归集回款{third_party_count}笔、金额{cats['third_party']:,.2f}元÷总贷方{income:,.2f}元={pct:.2f}%。通道2(经营模式): 经 detect_business_model 识别为面向终端消费者的零售(B2C)，第三方回款占比高属正常结算方式。",
+                "how_found": f"通道1(银行): 扫描{total_txs}笔流水，命中第三方支付通道归集回款{third_party_count}笔、金额{cats['third_party']:,.2f}元÷经营性收款{income:,.2f}元={pct:.2f}%。通道2(经营模式): 经 detect_business_model 识别为面向终端消费者的零售(B2C)，第三方回款占比高属正常结算方式。",
                 "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元（{third_party_count}笔），占总收入{pct:.2f}%。经核验企业经营模式为面向终端消费者的零售（B2C），第三方支付通道归集回款占比高是该类企业的正常结算方式，并非异常，本项不列为税务风险。",
                 "description": f"银行流水中{third_party_count}笔第三方收款，合计{cats['third_party']:,.2f}元，占总收入{pct:.2f}%。"
                               f"该企业经经营模式识别为零售(B2C)，第三方支付通道（如支付宝支付科技有限公司）仅为资金归集通道，"
@@ -244,7 +249,7 @@ def _domain_bank_tracking(txs, business_model=None):
                 "category": "域1 资金全链路"})
         else:
             findings.append({"type": "第三方收款占比过高", "level": "高风险", "score": 9,
-            "how_found": f"通道1(银行): 扫描{total_txs}笔流水raw字段，命中'支付宝/微信/财付通'关键词{third_party_count}笔、金额{cats['third_party']:,.2f}元÷总贷方{income:,.2f}元={pct:.2f}%。通道2(发票): 比对销项发票购方名称与银行收款对方，验证三流一致性。两条通道独立运行后交叉确认结论。",
+            "how_found": f"通道1(银行): 扫描{total_txs}笔流水raw字段，命中'支付宝/微信/财付通'关键词{third_party_count}笔、金额{cats['third_party']:,.2f}元÷经营性收款{income:,.2f}元={pct:.2f}%。通道2(发票): 比对销项发票购方名称与银行收款对方，验证三流一致性。两条通道独立运行后交叉确认结论。",
                 "detail": f"支付宝/微信等第三方平台收款{cats['third_party']:,.2f}元（{third_party_count}笔），占总收入{pct:.2f}%。电商、平台型企业经营中第三方收款比例高属常见现象，但仍需确认每笔第三方收款均有对应的开票和订单记录。",
                 "description": f"资金流方面：银行流水中{third_party_count}笔第三方收款，合计{cats['third_party']:,.2f}元，占总收入{pct:.2f}%。发票流方面：销项发票的开票对象已与收款来源一并核对。\n\n需说明的是：如果贵公司属于电商、直播带货、社交电商等新业态，第三方收款占比高本身不是问题——关键在于每一笔收款能否对应到真实订单和合规发票。\n\n第三方收款占比较高通常有三种成因：一是行业特性（如电商）；二是未规范使用对公账户；三是存在账外经营。需结合行业和经营模式综合判断。",
                 "tax_impact": "若无法逐笔匹配第三方收款与销售订单/发票，税务机关可能认定存在隐匿收入、账外经营的风险，要求补缴增值税及企业所得税，并加收滞纳金和罚款。",
@@ -2795,7 +2800,17 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
         if d: inv_by_buyer[key]["dates"].append(str(d)[:10])
     
     # 银行收款按付款方汇总
+    # ★★ 2026-10-03（用户质询"是不是所有的银行流水的收款都是与收入相关？"）：
+    #   `bank_by_payer[...]["credit"]` 是**收入口径**，必须只计**经营性收款** ——
+    #   借款/注资/关联往来/保证金/退税/结息等非经营性收款计入后，会让"收款无对应开票"
+    #   凭空多出对象（实测公司1：关联方资金往来 1,289,200 元被当成"无开票的经营收款"，
+    #   直接成为 RL-VAT-006 第③条要件的"证据"）。金额真值仍保留在 `raw`（供整数特征等展示），
+    #   非经营性/待判定分别留痕，正文如实交代。
+    from engine.bank_nature import classify_credit as _bn_classify
+    from engine.bank_nature import NON_OPERATING as _BN_NONOP, UNDETERMINED as _BN_UNDET
     bank_by_payer = defaultdict(lambda: {"credit": 0, "debit": 0, "count": 0, "dates": [], "raw": []})
+    nonop_by_payer = defaultdict(float)     # 非经营性收款（剔除，如实交代）
+    undet_by_payer = defaultdict(float)     # 收款性质待判定（不得算作经营收款）
     for tx in bank_txs:
         cp = str(tx.get("counterparty", "")).strip()
         cp = _normalize_counterparty_name(cp)
@@ -2804,16 +2819,26 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
         key = cp[:30]
         credit = to_number(tx.get("credit", 0))
         debit = to_number(tx.get("debit", 0))
+        if credit > 0:
+            _lab, _nat = _bn_classify(tx)
+            if _nat == _BN_NONOP:
+                nonop_by_payer[key] += credit
+                credit = 0.0        # 非经营性：不进收入口径
+            elif _nat == _BN_UNDET:
+                undet_by_payer[key] += credit
+                credit = 0.0        # 未判定：不臆测为经营性
         bank_by_payer[key]["credit"] += credit
         bank_by_payer[key]["debit"] += debit
         bank_by_payer[key]["count"] += 1
         d = tx.get("date", "")
         if d: bank_by_payer[key]["dates"].append(str(d)[:10])
-        # 保存原始交易记录用于特征分析
+        # 保存原始交易记录用于特征分析（金额为**真值**，不随收入口径归零）
         bank_by_payer[key]["raw"].append({
-            "date": str(d)[:10], "credit": credit, "debit": debit,
+            "date": str(d)[:10], "credit": to_number(tx.get("credit", 0)), "debit": debit,
             "summary": str(tx.get("summary", ""))[:50]
         })
+    _nonop_total = sum(nonop_by_payer.values())
+    _undet_total = sum(undet_by_payer.values())
     
     # 合同数据按对方名称汇总
     contract_by_party = defaultdict(lambda: {"amount": 0, "count": 0})
@@ -2907,6 +2932,9 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
             })
     
     # 检查银行收款中无对应开票的客户
+    # ★ 2026-10-03：`bank_data["credit"]` 已是**经营性收款**口径 —— 只有它才能支撑
+    #   「收了钱却没开票＝隐匿未开票收入」这个论断；非经营性收款（借款/往来/保证金…）
+    #   不进本项，在正文如实交代剔除了哪些、多少金额。
     for payer_key, bank_data in bank_by_payer.items():
         credit = bank_data["credit"]
         if credit < T.amount_thresholds.medium_transaction:
@@ -3023,7 +3051,10 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
             "type": "大额收款无对应开票（未开票收入风险）",
             "level": "高风险",
             "score": 10,
-            "detail": f"{len(payment_no_inv)}个付款方向企业支付大额款项（>10万元），但在销项发票中查不到对应客户的开票记录，合计{total_uninvoiced:,.2f}元：\n" + "\n".join(detail_lines),
+            "detail": f"{len(payment_no_inv)}个付款方对企业支付的经营性收款（>10万元）在销项发票中查不到对应客户的开票记录，合计{total_uninvoiced:,.2f}元：\n" + "\n".join(detail_lines)
+                      + (f"\n（口径说明：银行收款已按性质分类，上述金额仅为经营性收款；"
+                         f"另有非经营性收款 {_nonop_total:,.2f} 元已剔除、"
+                         f"性质待判定收款 {_undet_total:,.2f} 元未计入。）" if (_nonop_total or _undet_total) else ""),
             "description": (
                 f"逐户穿透中发现了更严重的问题——{len(payment_no_inv)}个付款方向企业支付了合计{total_uninvoiced:,.2f}元，但销项发票库中完全找不到对应的开票记录。\n\n"
                 f"这不是偏差的问题，是'零开票'的问题——企业收了钱但没有开任何发票。"
@@ -3062,8 +3093,36 @@ def _domain_customer_revenue_matching(bank_txs, sal_invs, contract_data=None, vo
             # ★ 2026-09-28：显式认领 RL-VAT-006 + 逐条判定第③条要件（经营相关收款未计入申报）。
             "redline_id": "RL-VAT-006",
             "constituent_hits": [
-                {"index": 3, "evidence": f"{len(payment_no_inv)} 个付款方支付大额款项（合计 {total_uninvoiced:,.2f} 元）却在销项发票中无任何对应开票记录（是否属经营性收款、是否已申报，须企业举证）"},
+                {"index": 3, "evidence": f"{len(payment_no_inv)} 个付款方的经营性收款合计 {total_uninvoiced:,.2f} 元在销项发票中无任何对应开票记录（是否已申报，须企业举证）；该金额已剔除非经营性收款 {_nonop_total:,.2f} 元、另有性质待判定 {_undet_total:,.2f} 元未计入"},
             ],
+        })
+
+    # 5.2b 收款性质待判定（不得算作收入，也不得静默丢弃）
+    # ★ 2026-10-03：个人/无摘要收款无法从票面判定性质 —— 既不能当"未开票收入"定罪，
+    #   也不能默默排除。本项以"待核验"如实列出，要求企业逐笔说明款项性质。
+    if _undet_total > 0:
+        _undet_rows = sorted(undet_by_payer.items(), key=lambda kv: -kv[1])[:8]
+        findings.append({
+            "type": "收款性质待判定（须企业逐笔说明）",
+            "level": "待核验", "score": 3,
+            "detail": f"{len(undet_by_payer)} 个付款方的收款合计 {_undet_total:,.2f} 元无法从票面判定款项性质：\n"
+                      + "\n".join(f"  {k[:20]}：{v:,.2f}元" for k, v in _undet_rows),
+            "description": (
+                f"银行流水中有 {_undet_total:,.2f} 元的收款，按收款方名称与交易摘要均无法判断其性质"
+                f"（既未命中任何非经营性款项特征，也不具备客户货款的识别要素，多为个人付款或无摘要收款）。"
+                f"系统**未**把这部分计入经营性收款，因此本项既不能据此认定隐匿收入，也不能视为已核实。"
+                f"需要企业逐笔说明：是货款（则涉及是否开票申报）、借款、还款、代收代付还是其他往来。"
+            ),
+            "how_found": (
+                f"对全部银行贷方按收款性质逐笔分类（engine.bank_nature，规则表驱动）："
+                f"经营性收款、非经营性收款（借款/注资/往来/保证金/退税/结息等）均可归类，"
+                f"剩余 {len(undet_by_payer)} 个付款方共 {_undet_total:,.2f} 元无法归类，列为待判定。"
+            ),
+            "tax_impact": "性质未定的收款，若属经营性收入且未开票、未申报，则涉及少计收入；若属往来款则须有协议与对账记录。在性质核实前不作定性。",
+            "suggestion": "逐笔提供该部分收款的款项性质说明与原始凭证（合同、借据、对账单、发货单），并说明是否已开票、已申报。",
+            "category": "域15.5 客户维度穿透",
+            "rule_id": 313,
+            "source_chain": "客户维度-收款性质待判定",
         })
     
     # 5.3 大额整数收款特征
@@ -3304,28 +3363,61 @@ def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_securi
 # ═══════════ 域17: 凭证收入 vs 发票收入对比 ═══════════
 
 def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
-    """对比凭证中主营业务收入（区分开票/未开票）与销项发票收入、银行入账"""
+    """对比凭证中主营业务收入（区分开票/未开票）与销项发票收入、**经营性**银行收款
+
+    ★★ 2026-10-03（用户质询："是不是所有的银行流水的收款都是与收入相关？"）：
+      **不是。** 旧实现 `bank_income = sum(tx["credit"])` 把**全部贷方**当收入，
+      与开票额比对后把差额读成"隐匿未开票收入"。实测公司1：全部贷方 8,371,659.92 元，
+      其中关联方资金往来 1,289,200、保证金 65,000、银行结息 94.53 等**非经营性**款项
+      1,354,294.53 元被当成收入 —— 凭空造出 133.7 万"差额"；
+      而按经营性收款 6,815,365.39 元比对，开票额反而多 21.96 万（结论完全反转）。
+      现取值**唯一走** `engine.bank_nature`（收款性质唯一权威），口径与"性质待判定"收款
+      一并写进正文（不静默）。
+    ★ 另一处同源缺陷：凭证"开票/未开票"分类旧实现把**摘要未标注**的一律计作未开票，
+      会把摘要只写"销售服务"的正常企业整成 100% 未开票收入；现单列 `unspecified`。
+    """
     findings = []
-    
+    from engine.bank_nature import classify_receipts, income_scope_note_with_undetermined_rows
+    from engine.bank_nature import income_scope_brief as _bn_brief
+    from engine.tax_rates import match_tax_inclusive
+
     inv_total = sum(to_number(i.get("total", 0)) for i in sal_invs)
-    bank_income = sum(tx["credit"] for tx in bank_txs) if bank_txs else 0
-    
+    _bn = classify_receipts(bank_txs or [])
+    bank_income = _bn["operating"] if _bn["available"] else _bn["total"]
+    _bn_note = income_scope_note_with_undetermined_rows(_bn)
+    # ★ 2026-10-03：口径还必须进 **detail** —— 报告正文的事实句取自 detail，
+    #   `description` 不呈现给读者（实测口径只写在 description 时，报告里"非经营性/待判定" 0 次）。
+    _bn_brief = _bn_brief(_bn)
+
     vr_total = voucher_rev["total"]
     vr_invoiced = voucher_rev["invoiced"]
     vr_uninvoiced = voucher_rev["uninvoiced"]
+    vr_unspec = to_number(voucher_rev.get("unspecified", 0.0))
+
+    # 含税/不含税口径换算（账载收入为不含税、销项发票为价税合计）——
+    # 不换算就会把"口径差"读成"少计收入"（实测差 398,208.01 元恰为 6% 税额）。
+    _scope = match_tax_inclusive(vr_total, inv_total)
+    _scope_note = str(_scope.get("note") or "") if _scope.get("matched") else ""
     
     # 收入三源对比总览
     findings.append({
         "type": "收入三源对比总览",
         "level": "低风险", "score": 2,
-        "detail": f"凭证主营业务收入{vr_total:,.2f}元（开票{vr_invoiced:,.2f} + 未开票{vr_uninvoiced:,.2f}） vs 销项发票{inv_total:,.2f}元 vs 银行入账{bank_income:,.2f}元。",
-        "description": f"这是税务合规中最核心的三源收入对比。凭证记录的主营业务收入为{vr_total:,.2f}元，其中明确标注开票收入{vr_invoiced:,.2f}元、未开票收入{vr_uninvoiced:,.2f}元（占比{vr_uninvoiced/max(vr_total,1)*100:.2f}%）。销项发票价税合计{inv_total:,.2f}元，银行流水入账{bank_income:,.2f}元。",
-        "how_found": f"①凭证端: {voucher_rev['rows']}条主营收入分录，按摘要(普票/专票/无票)分类求和→开票{vr_invoiced:,.2f}+未开票{vr_uninvoiced:,.2f}={vr_total:,.2f}元; ②发票端: {len(sal_invs)}张销项发票汇总{inv_total:,.2f}元; ③银行端: {len(bank_txs)}条流水贷方合计{bank_income:,.2f}元。三源对比出差异。",
+        "detail": f"凭证主营业务收入{vr_total:,.2f}元（开票{vr_invoiced:,.2f} + 未开票{vr_uninvoiced:,.2f} + 未标注{vr_unspec:,.2f}） vs 销项发票{inv_total:,.2f}元 vs {_bn_brief}。",
+        "description": f"这是税务合规中最核心的三源收入对比。凭证记录的主营业务收入为{vr_total:,.2f}元，其中明确标注开票收入{vr_invoiced:,.2f}元、明确标注未开票收入{vr_uninvoiced:,.2f}元、摘要未标注开票口径{vr_unspec:,.2f}元。销项发票价税合计{inv_total:,.2f}元，银行**经营性收款**{bank_income:,.2f}元。"
+                       + (f"账载收入（不含税）与销项发票（含税）{_scope_note}" if _scope_note else "")
+                       + (f" {_bn_note}" if _bn_note else ""),
+        "how_found": f"①凭证端: {voucher_rev['rows']}条主营收入分录，按摘要(普票/专票/无票)分类求和→开票{vr_invoiced:,.2f}+未开票{vr_uninvoiced:,.2f}+未标注{vr_unspec:,.2f}={vr_total:,.2f}元; ②发票端: {len(sal_invs)}张销项发票汇总价税合计{inv_total:,.2f}元; ③银行端: {_bn['rows']}笔贷方按**收款性质**分类，取经营性收款合计{bank_income:,.2f}元（非经营性{_bn['non_operating']:,.2f}元已剔除、性质待判定{_bn['undetermined']:,.2f}元）。三源对比出差异。",
         # ★ 2026-09-28：显式认领 RL-VAT-006 + 逐条判定第①条要件（申报收入=开票收入、未开票收入为零）。
+        # ★ 2026-10-03：要件① 的判据补"口径吻合"证据；口径换算不吻合时不再凭"未标注"认领。
         "redline_id": "RL-VAT-006",
         "constituent_hits": (
             [
-                {"index": 1, "evidence": f"凭证主营业务收入 {vr_total:,.2f} 元全部为开票收入，未开票收入 0.00 元（申报口径与开票口径无差异）"}
+                {"index": 1, "evidence": (
+                    f"账载主营业务收入 {vr_total:,.2f} 元，其中明确标注的未开票收入 0.00 元"
+                    + (f"；{_scope_note}" if _scope_note else
+                       "（账载收入与销项开票额未取得口径换算关系，未开票口径以账载标注为准）")
+                )}
             ]
             if vr_total > 0 and vr_uninvoiced == 0
             else []
@@ -3349,7 +3441,11 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
         })
     
     # 凭证开票收入 vs 销项发票差异
-    if vr_invoiced > 0 and inv_total > 0:
+    # ★ 2026-10-03：先做**含税/不含税口径换算**再判差异 —— 账载"标注开票收入"是不含税，
+    #   销项发票价税合计是含税，直接相减必然差一个税额（实测 398,208.01 元＝6%），
+    #   旧实现会把它报成"高风险：凭证开票收入与发票金额不一致"（纯口径差，假阳性）。
+    _scope2 = match_tax_inclusive(vr_invoiced, inv_total)
+    if vr_invoiced > 0 and inv_total > 0 and not _scope2.get("matched"):
         gap = abs(vr_invoiced - inv_total)
         if gap / max(vr_invoiced, 1) > T.ratios.minor_deviation:
             findings.append({
@@ -3364,20 +3460,23 @@ def _domain_voucher_invoice_revenue_compare(voucher_rev, sal_invs, bank_txs):
                 "category": "域17 凭证发票收入对比"
             })
     
-    # 银行入账 vs 凭证收入差异
+    # 银行（经营性）收款 vs 凭证收入差异
+    # ★ 2026-10-03：分子只取**经营性收款**（非经营性款项如借款/往来/保证金/结息不属收入，
+    #   计入会让差额虚增 —— 这是本项"未开票收入"判定的口径根因）；并披露口径与待判定收款。
     if vr_total > 0 and bank_income > 0:
         gap = abs(vr_total - bank_income)
         gap_pct = gap / max(vr_total, 1) * 100
         if gap_pct > 20:
             findings.append({
-                "type": "凭证收入与银行入账偏差大",
+                "type": "凭证收入与银行经营性收款偏差大",
                 "level": "高风险", "score": 8,
-                "detail": f"凭证收入{vr_total:,.2f}元 vs 银行入账{bank_income:,.2f}元，差异{gap:,.2f}元（{gap_pct:.2f}%）。",
-                "description": f"凭证记录的主营业务收入为{vr_total:,.2f}元，银行流水贷方入账{bank_income:,.2f}元，两者差异{gap:,.2f}元（{gap_pct:.2f}%）。银行入账大于凭证收入，说明存在未确认收入的资金入账；凭证收入大于银行入账，说明存在非银行渠道收款（现金、第三方平台等）或收入确认时点与收款时点不一致。",
-                "how_found": f"凭证主营收入{vr_total:,.2f}元 vs 银行流水贷方合计{bank_income:,.2f}元，差异{gap:,.2f}元({gap_pct:.2f}%)，超20%触发。",
-                "tax_impact": "银行入账与账面收入不匹配，会触发税务机关对隐匿收入或虚列收入的质疑。若银行入账多但账面收入少，差额可能被推定为隐匿收入。",
+                "detail": f"凭证收入{vr_total:,.2f}元 vs 银行经营性收款{bank_income:,.2f}元，差异{gap:,.2f}元（{gap_pct:.2f}%）。",
+                "description": f"凭证记录的主营业务收入为{vr_total:,.2f}元，银行流水按收款性质划分后的**经营性收款**为{bank_income:,.2f}元，两者差异{gap:,.2f}元（{gap_pct:.2f}%）。银行经营性收款大于账面收入，说明存在未确认收入的资金入账；账面收入大于银行经营性收款，说明存在非银行渠道收款（现金、第三方平台等）或收入确认时点与收款时点不一致。"
+                               + (f" {_bn_note}" if _bn_note else ""),
+                "how_found": f"凭证主营收入{vr_total:,.2f}元 vs 银行流水**按收款性质分类后**的经营性收款{bank_income:,.2f}元，差异{gap:,.2f}元({gap_pct:.2f}%)，超20%触发。银行侧已剔除非经营性收款 {_bn['non_operating']:,.2f} 元、另有性质待判定 {_bn['undetermined']:,.2f} 元未计入。",
+                "tax_impact": "银行经营性收款与账面收入不匹配，会触发税务机关对隐匿收入或虚列收入的质疑。若银行经营性收款多但账面收入少，差额可能被推定为隐匿收入。",
                 "policy_ref": "《税收征收管理法》第三十五条关于核定应纳税额的规定。",
-                "suggestion": "1）逐月编制银行入账与主营业务收入的调节表；2）区分经营性收款和非经营性收款；3）确保所有经营收款及时确认收入并如实申报。",
+                "suggestion": "1）逐月编制银行经营性收款与主营业务收入的调节表；2）对「收款性质待判定」的收款逐笔说明性质并补齐凭证；3）确保所有经营收款及时确认收入并如实申报。",
                 "category": "域17 凭证发票收入对比"
             })
     
@@ -3678,10 +3777,15 @@ def _domain_revenue_timeline(vouchers, sal_invs, bank_txs):
     findings = []
     
     # 从凭证提取收入时间分布
+    # ★ 2026-10-03：改读科目**名称**（`fieldkit.account_label`）——旧实现读
+    #   `v.get("account")`（科目编码 "600102"）恒不匹配 ⇒ 收入月份分布恒为空 ⇒
+    #   "收入月度集中度/突增"这一整块分析静默失效。
     from collections import defaultdict
+    from engine.fieldkit import account_label as _acct_label
     rev_by_month = defaultdict(float)
     for v in vouchers:
-        if "主营业务收入" in str(v.get("account", "")):
+        _acct = _acct_label(v)
+        if "主营业务收入" in _acct or "营业收入" in _acct or "销售收入" in _acct:
             date_str = str(v.get("date", ""))
             credit = to_number(v.get("credit", 0))
             _mk = _month_key(date_str)
@@ -6565,121 +6669,39 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
             "往来方全部": [{"名称": n, "金额": f"{a:,.2f}"} for n, a in counterparties.most_common()],
         }
         
-        # ── 收款类型分析：配置驱动自适应分类（不由预设类别决定，按关键词逐层匹配）──
-        # 规则存储于 industry_data.json → 收款分类规则，可随行业扩展而增加类型
-        pay_cats = {}  # label -> {payer_name: amount}
-        rc_rules_cfg = _load_industry_data().get("收款分类规则", {}).get("rules", [])
-        if not rc_rules_cfg:
-            # 兜底：内置默认规则
-            rc_rules_cfg = [
-                {"label": "税费社保退款", "keywords": ["社保","医保","税","国库","ETS","电子税务局"]},
-                {"label": "银行内部款项", "keywords": ["结息","利息","银行","农行"]},
-                {"label": "企业客户款", "keywords": ["有限公司","公司","企业","厂","店","集团"]},
-                {"label": "个人待分析", "is_default": True},
-            ]
-        for rule in rc_rules_cfg:
-            if not rule.get("is_default"):
-                pay_cats[rule["label"]] = defaultdict(float)
-        pay_cats["个人待分析"] = defaultdict(float)  # 兜底默认分类，标注"待分析"提示税务合规员关注
-        
-        for tx in bank_txs:
-            credit = to_number(tx.get("credit", 0))
-            if credit <= 0: continue
-            cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
-            cp = _normalize_counterparty_name(cp)
-            summary = str(tx.get("summary", "") or "")
-            # 收集全部可用文本字段用于综合分析
-            remark = str(tx.get("remark", "") or tx.get("notes", "") or tx.get("memo", "") or tx.get("交易附言", "") or "")
-            purpose = str(tx.get("purpose", "") or tx.get("用途", "") or "")
-            # 合并所有文本字段为综合分析文本
-            all_text = f"{cp} {summary} {remark} {purpose}"
-            
-            if not cp:
-                if any(k in all_text for k in ['结息','利息']): cp = "(银行结息)"
-                elif any(k in all_text for k in ['社保','ETS','扣税','代扣']): cp = "(税费扣款)"
-                elif any(k in all_text for k in ['年费','管理费','短信','账户','手续费']): cp = "(银行费用)"
-                else: cp = "(未记录名称)"
-            
-            # 三信息综合分析：对方户名 + 摘要 + 交易附言 联合匹配
-            matched = False
-            for rule in rc_rules_cfg:
-                if rule.get("is_default"): continue
-                kws = rule.get("keywords", [])
-                sums = rule.get("summaries", [])
-                # 在全部文本字段中匹配
-                name_match = kws and any(k in all_text for k in kws)
-                summary_match = sums and any(s in all_text for s in sums)
-                if name_match or summary_match:
-                    pay_cats[rule["label"]][cp] += credit
-                    matched = True
-                    break
-            if not matched:
-                pay_cats["个人待分析"][cp] += credit
-        
-        # ── 收款类型纠错验证：系统自我反思，修正明显误分类 ──
-        # 方法论：分类完成后，系统自问——"这个分类合理吗？有没有明显的反例？"
-        # 规则1：个人款中极小金额（<100元）且金额有零有整（如9.62）→ 大概率是银行利息
-        # 规则2：个人款中付款方为空且摘要含银行关键词 → 银行费用
-        # 规则3：企业客户款中付款方实际是关联方 → 需查摘要确认
-        import re as _re
-        corrections = []
-        for tx in bank_txs:
-            credit = to_number(tx.get("credit", 0))
-            if credit <= 0: continue
-            cp = str(tx.get("counterparty", "") or tx.get("counterparty_name", "")).strip()
-            cp = _normalize_counterparty_name(cp)
-            summary = str(tx.get("summary", "") or "")
-            remark = str(tx.get("remark", "") or tx.get("notes", "") or tx.get("memo", "") or tx.get("交易附言", "") or "")
-            purpose = str(tx.get("purpose", "") or tx.get("用途", "") or "")
-            all_text = f"{cp} {summary} {remark} {purpose}"
-            # 已经在个人待分析中的极小金额 → 检查是否为银行利息
-            in_individual = False
-            if cp in pay_cats.get("个人待分析", {}):
-                in_individual = True
-            elif not cp:
-                in_individual = True  # 空名称通常也在个人款兜底
-            
-            if in_individual and credit < 100:
-                # 金额特征验证：银行利息/费用通常是有整有零的精确小数
-                is_decimal = credit != int(credit)
-                # 放宽条件：极小金额(<20元)只要有零有整，几乎肯定是银行利息
-                # 银行利息特征：结息金额通常精确到分(如9.62/3.17/0.48)，人为转账多为整数
-                is_micro_amount = credit < 20
-                # 综合三信息分析（对方户名 + 摘要 + 交易附言）——不能只看单一字段
-                is_empty_all = len(all_text.strip()) < 5  # 所有文本字段几乎为空
-                is_bank_in_all = any(k in all_text for k in ['银行','农行','建行','工行','交行','招行','农商','信用社','分行','支行','结息','利息','季度','活期','定期','扣息','手续费','账户管理','管理费','年费'])
-                is_numeric_summary = _re.match(r'^\d{4,8}$', summary.strip()) is not None
-                # 摘要+附言联合判断
-                summary_remark = f"{summary} {remark}".strip()
-                has_empty_text = len(summary_remark) < 3
-                
-                should_correct = False
-                if is_decimal and is_micro_amount and has_empty_text:
-                    should_correct = True  # <20元+有零有整+摘要附言都空→银行利息（常识：没人会转9.62元）
-                elif is_decimal and (is_empty_all or is_bank_in_all or is_numeric_summary):
-                    should_correct = True  # 有零有整+综合分析有银行特征→银行利息
-                
-                if should_correct:
-                    # 重新分到银行内部款项
-                    if cp in pay_cats.get("个人待分析", {}):
-                        del pay_cats["个人待分析"][cp]
-                    pay_cats.setdefault("银行内部款项", defaultdict(float))[cp or "(银行)"] += credit
-                    corrections.append(f"纠错: {credit:.2f}元 '{cp or '(空)'}' 从个人待分析→银行内部款项(金额{credit}有零有整+{('空文本' if is_empty_all else '')}{('含银行关键词' if is_bank_in_all else '')}{('摘要空' if has_empty_text else '')})")
-        
+        # 自适应输出：只输出有数据的类别
+        # ★ 2026-10-03：分类与类别归属**唯一权威**已抽为 `engine.bank_nature`
+        #   （本处旧实现是它的第一份实现，现改为薄转发：同一份规则表、同一套性质标注，
+        #   避免"收款构成"与"收入口径"两条链路各判一次）。类别名前缀标注性质，
+        #   让读者一眼看出哪些收款不属于收入。
+        from engine.bank_nature import classify_receipts as _bn_receipts
+        _bn_res = _bn_receipts(bank_txs)
+        intel["银行流水"]["收款构成"] = {}
+        for label, v in sorted(_bn_res["by_label"].items(), key=lambda kv: -kv[1]["amount"]):
+            if v["amount"] > 0.01:
+                _nat = v.get("nature") or ""
+                _pref = ("" if _nat == "经营性" else ("[%s] " % _nat if _nat else ""))
+                intel["银行流水"]["收款构成"][_pref + label] = (
+                    f"{v['amount']:,.2f}元（计入收入口径）" if _nat == "经营性"
+                    else f"{v['amount']:,.2f}元（不计入收入口径）"
+                )
+        intel["银行流水"]["收款构成"]["——收入口径小计"] = (
+            f"经营性收款 {_bn_res['operating']:,.2f}元；"
+            f"非经营性收款 {_bn_res['non_operating']:,.2f}元（已剔除）；"
+            f"性质待判定 {_bn_res['undetermined']:,.2f}元（未计入，须企业说明）"
+        )
+        if not _bn_res["rows"]:
+            intel["银行流水"]["收款构成"] = {"未检测到收款数据": "0.00元"}
+        # 兼容旧结构：pay_cats 供后续"收款方全部"等段落使用
+        pay_cats = {}
+        for _r in _bn_res["operating_rows"] + _bn_res["non_operating_rows"] + _bn_res["undetermined_rows"]:
+            pay_cats.setdefault(_r["label"], defaultdict(float))
+            pay_cats[_r["label"]][_r["counterparty"] or "(空)"] += _r["amount"]
+        corrections = list(_bn_res["corrections"])
         if corrections and pipeline_log is not None:
-            pipeline_log.append(f"[收款分类纠错] {len(corrections)}笔误分类已自动修正")
+            pipeline_log.append(f"[收款分类纠错] {len(corrections)}笔误分类已自动修正（bank_nature）")
             for c in corrections[:5]:
                 pipeline_log.append(f"  {c}")
-        
-        # 自适应输出：只输出有数据的类别
-        intel["银行流水"]["收款构成"] = {}
-        for label, data in pay_cats.items():
-            total_val = sum(data.values())
-            entity_cnt = len(data)
-            if total_val > 0.01:
-                intel["银行流水"]["收款构成"][label] = f"{total_val:,.2f}元（{entity_cnt}个收款方）"
-        if not intel["银行流水"]["收款构成"]:
-            intel["银行流水"]["收款构成"]["未检测到收款数据"] = "0.00元"
         # TOP收款方明细（从配置驱动的分类中汇总）
         all_payers = {}
         for data in pay_cats.values():

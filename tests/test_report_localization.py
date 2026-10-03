@@ -923,4 +923,9 @@ class TestInvoiceAmountDedupedByInvoiceNo:
         assert "河南林超攀体育文化传播工作室" not in names, names
         assert any("初永伟" in str(n) for n in names), names
         # 有回流 vs 单向转出必须分开表述
-        assert "付款后资金回流" in detail
+        # ★ 2026-10-03（契约收紧）：回流判定现要求「**金额接近 ＋ 付款后短期内**」的配对
+        #   （红线 RL-FUND-002 要件②③）。本用例转入 275,000 对转出 1,000,000（27.5%）
+        #   不构成"金额接近"，故属「单向大额转出」——旧实现只要有一笔转入就写
+        #   "付款后资金回流"，把未配对的零头也当成回流，过于绝对。
+        #   真正配对的回流由 tests/test_fund_recirculation.py 锁定。
+        assert "单向" in detail and "不构成回流" in detail, detail

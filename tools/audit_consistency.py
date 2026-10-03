@@ -7164,6 +7164,248 @@ def check_evidence_quality() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_bank_receipt_nature_single_source() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03：银行**收款性质**（＝收入口径的唯一权威）接线锁定。
+
+    用户质询原文：「对于银行流水每一笔的性质没有确定，就会产生很多问题。你告诉我，
+    是不是所有的银行流水的收款都是与收入相关？」—— 不是。把**全部贷方**当收入去比开票额，
+    差额会被读成"隐匿未开票收入"（公司1 实测：全部贷方 8,371,659.92 元里
+    1,354,294.53 元是关联往来/保证金/结息，凭空造出 133.7 万"差额"）。
+
+    本闸门四道，**行为判据为主**（源码接线判据抓不到"这段没走到"）：
+      ① 权威模块 engine/bank_nature.py 存在且导出分类/口径/说明三个入口；
+      ② 数据表每个收款类目都必须标 nature（漏标＝静默变"待判定"）；
+      ③ **端到端行为**：真调 `_domain_voucher_invoice_revenue_compare`，喂入
+         「经营性 80 万 + 非经营性 1,354,200 + 待判定 202,000」的流水，
+         产出的三源对比正文**必须**只出现经营性金额、且写明剔除了什么；
+      ④ **反向验证**：把非经营性类目的 nature 临时改成经营性，同一断言必须变红
+         —— 否则说明判据没真正作用在数据上（闸门是假的）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    auth_rel = "engine/bank_nature.py"
+    if not (ROOT / auth_rel).exists():
+        return [("ERROR", "engine/", "缺少唯一权威 bank_nature（银行收款性质/收入口径）")]
+
+    src = (ROOT / auth_rel).read_text(encoding="utf-8", errors="replace")
+    for marker, why in (
+        ("def classify_receipts", "未导出 classify_receipts（收款性质分类入口）"),
+        ("def operating_credit_total", "未导出 operating_credit_total（收入口径取值入口）"),
+        ("def income_scope_note", "未导出 income_scope_note（口径说明，报告须披露）"),
+        ("def receipt_rules", "未导出 receipt_rules（规则表读取，数据驱动）"),
+    ):
+        if marker not in src:
+            issues.append(("ERROR", auth_rel, why))
+
+    # ② 数据表：类目必须逐条标性质
+    try:
+        import json as _json
+        data = _json.loads((ROOT / "static" / "industry_data.json").read_text(encoding="utf-8"))
+        rules = ((data.get("收款分类规则") or {}).get("rules")) or []
+        miss = [r.get("label") for r in rules if not str(r.get("nature") or "").strip()]
+        if not rules:
+            issues.append(("ERROR", "static/industry_data.json", "收款分类规则为空（收入口径判据失效）"))
+        elif miss:
+            issues.append(("ERROR", "static/industry_data.json",
+                           "以下收款类目未标注 nature（漏标＝静默归入「待判定」，"
+                           "报告会出现性质不明的收款）：%s" % miss))
+    except Exception as exc:
+        issues.append(("WARN", "static/industry_data.json", "收款分类规则不可检查：%s" % exc))
+
+    # ③④ 行为断言 + 反向验证
+    try:
+        import engine.bank_nature as _bn
+        from engine.domain_analysis import _domain_voucher_invoice_revenue_compare
+
+        def _mk(cp, summary, credit):
+            return {"counterparty": cp, "summary": summary, "credit": credit,
+                    "debit": 0.0, "date": "2025-06-30"}
+
+        bank = [_mk("某某科技有限公司", "货款", 800000.0),
+                _mk("某关联集团有限公司", "往来款", 1289200.0),
+                _mk("某某建设公司", "保证金", 65000.0),
+                _mk("李昭阳", "转存", 202000.0)]
+        rev = {"invoiced": 0.0, "uninvoiced": 0.0, "unspecified": 800000.0,
+               "total": 800000.0, "rows": 12}
+
+        out = _domain_voucher_invoice_revenue_compare(rev, [{"total": 848000.0}], bank)
+        _ov = [f for f in out if f.get("type") == "收入三源对比总览"]
+        if not _ov:
+            issues.append(("ERROR", "engine/domain_analysis.py", "三源对比未产出总览发现"))
+        else:
+            # 数值断言只看**明细段**：口径说明里本来就要写出「已剔除非经营性收款 X 元」，
+            # 那是应当出现的披露，不是把非经营性计入了收入（本闸门自身误报过一次）。
+            _det = str(_ov[0].get("detail") or "")
+            _txt = _det + str(_ov[0].get("description") or "")
+            if "800,000.00" not in _det:
+                issues.append(("ERROR", "engine/domain_analysis.py",
+                               "三源对比未取到经营性收款金额（收入口径未接权威函数）"))
+            if "2,356,200.00" in _det:
+                issues.append(("ERROR", "engine/domain_analysis.py",
+                               "三源对比把全部贷方（含非经营性）计入收入口径（银行入账≠收入）"))
+            if "非经营性" not in _txt or "待判定" not in _txt:
+                issues.append(("ERROR", "engine/domain_analysis.py",
+                               "三源对比未披露剔除口径/待判定收款（读者无法判断口径）"))
+
+        # ④ 反向验证：性质全改成经营性 → 收入口径必然变大
+        _orig = _bn._receipt_cfg
+
+        def _flip():
+            cfg = _orig() or {}
+            rules2 = [dict(r) for r in (cfg.get("rules") or [])]
+            for r in rules2:
+                r["nature"] = _bn.OPERATING
+            cfg2 = dict(cfg)
+            cfg2["rules"] = rules2
+            return cfg2
+
+        _bn._receipt_cfg = _flip
+        try:
+            res_flip = _bn.classify_receipts(bank)
+        finally:
+            _bn._receipt_cfg = _orig
+        if abs(res_flip["operating"] - 800000.0) < 1e-6:
+            issues.append(("ERROR", "闸门自检",
+                           "反向验证失败：性质全标经营性后收入口径未变，判据没作用在数据上"))
+    except Exception as exc:
+        issues.append(("WARN", "闸门自检", "收款性质行为断言执行失败：%s" % exc))
+
+    return issues
+
+
+def check_voucher_account_field() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03：凭证「科目编码」与「科目名称」不得混用。
+
+    真实凭证行：`{account: "600102", account_name: "主营业务收入/服务收入"}`
+    —— `account` 是**编码**。旧代码 `if "主营业务收入" in str(v.get("account"))`
+    永远不成立 ⇒ 凭证主营业务收入恒为 0.00（实测公司1 真实收入 6,636,800.57 元被读成 0），
+    「未开票收入长期为零」整条链路的证据因此是**假的**。
+
+    判据（行为 + 源码）：
+      ① 行为：`fieldkit.account_name` 必须返回科目**名称**（不得返回编码）；
+      ② 源码：engine/ 下不得再出现「拿汉字科目名去比 account 字段」的写法；
+      ③ 反向验证：把 `ACCOUNT_NAME_KEYS` 换成只认编码，断言①必须变红。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    row = {"account": "600102", "account_name": "主营业务收入/服务收入",
+           "summary": "销售服务", "credit": 100.0, "debit": 0.0}
+    try:
+        from engine import fieldkit as _fk
+        name = _fk.account_name(row)
+        if name != "主营业务收入/服务收入":
+            issues.append(("ERROR", "engine/fieldkit.py",
+                           "account_name 取到的不是科目名称而是编码（%r）——会静默读空收入" % name))
+        if _fk.account_code(row) != "600102":
+            issues.append(("ERROR", "engine/fieldkit.py", "account_code 未取到科目编码"))
+        # ③ 反向验证：键表被改回"只认编码"时，上面那条断言必须能失败
+        _orig = _fk.ACCOUNT_NAME_KEYS
+        _fk.ACCOUNT_NAME_KEYS = ("account",)
+        try:
+            broke = _fk.account_name(row)
+        finally:
+            _fk.ACCOUNT_NAME_KEYS = _orig
+        if broke == "主营业务收入/服务收入":
+            issues.append(("ERROR", "闸门自检",
+                           "反向验证失败：键表改成只认编码仍取到名称，判据无效"))
+    except Exception as exc:
+        issues.append(("WARN", "engine/fieldkit.py", "科目字段判据不可检查：%s" % exc))
+
+    # ② 源码扫描：汉字科目名 vs account 字段
+    import re as _re2
+    _pat = _re2.compile('"[\u4e00-\u9fa5]{2,10}"\\s+in\\s+str\\(\\s*\\w+\\.get\\(\\s*"account"\\s*\\)')
+    for p in sorted((ROOT / "engine").glob("*.py")):
+        try:
+            lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for _i, line in enumerate(lines, 1):
+            if line.lstrip().startswith("#"):
+                continue
+            if _pat.search(line):
+                issues.append(("ERROR", "engine/%s" % p.name,
+                               "第%d行用汉字科目名比对 account（科目编码）字段——"
+                               "应改用 fieldkit.account_label/account_name" % _i))
+    return issues
+
+
+def check_fund_scale_gate_not_roundness() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03：资金往来「规模准入门槛」与「整数特征（证据）」不得互换。
+
+    用户指正：「RL-FUND-002 用"整万"当准入门槛偏窄，会漏报非整数的可疑金额
+    （账上真实存在 1,071,343.80 这类）」。旧实现
+    `amount >= 100000 and abs(amount % 10000) < 0.01` 把"整万"当准入，
+    非整数的大额往来**一笔都进不了 big_out** ⇒ 一个 107 万的转出对象连信号都出不来。
+
+    判据（**行为判别对**，能真正区分"规模门槛"与"整数门槛"）：
+      ① 非整数且规模达标（1,071,343.80）→ **必须**产出；
+      ② 整数但规模不达标（90,000）→ **必须不**产出；
+      ③ 规模达标且先转出后等额转入 → 必须认领要件①②③（回流配对的独立证据）；
+      ④ 金额相差悬殊 / 超时间窗 / 先收后付 → 只认领要件①（不得白送②③）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.verified_rule_engine import (
+            _scan_fund_recirculation, _LARGE_TX_FLOOR, _RECIRCULATE_WINDOW_DAYS,
+        )
+    except Exception as exc:
+        return [("WARN", "engine/verified_rule_engine.py", "资金回流判据不可检查：%s" % exc)]
+
+    spec = {"id": "VR025", "name": "资金回流与公私混同检测",
+            "required_sources": ["银行流水"], "limitations": "", "category": "资金"}
+
+    def _tx(cp, debit=0.0, credit=0.0, date="2025-03-10"):
+        return {"counterparty": cp, "debit": debit, "credit": credit,
+                "date": date, "summary": "转存"}
+
+    def _run(rows):
+        return _scan_fund_recirculation(
+            {"bank_txs": rows, "pur_invs": [], "target_entity": {}}, spec)
+
+    def _hits(res):
+        return [h["index"] for h in res[0]["constituent_hits"]] if res else []
+
+    rel = "engine/verified_rule_engine.py"
+    if _LARGE_TX_FLOOR <= 0:
+        issues.append(("ERROR", rel, "规模门槛非正数（准入判据失效）"))
+
+    # ① 非整数 + 规模达标 → 必须产出
+    r1 = _run([_tx("李昭阳", debit=1_071_343.80)])
+    if not r1:
+        issues.append(("ERROR", rel,
+                       "非整数的大额转出（107.13 万）未产出——「整万当门槛」漏报复发"))
+    elif 1 not in _hits(r1):
+        issues.append(("ERROR", rel, "非整数大额转出未认领要件①"))
+
+    # ② 整数 + 规模不达标 → 必须不产出（证明整数不是门槛）
+    r2 = _run([_tx("张某", debit=90000.0, date="2025-03-01"),
+               _tx("张某", debit=90000.0, date="2025-03-02")])
+    if r2:
+        issues.append(("ERROR", rel, "规模未达标（累计 18 万）仍产出——门槛失效"))
+
+    # ③ 规模达标 + 先转出后等额转入 → 认领 ①②③
+    r3 = _run([_tx("王某", debit=600000.0, date="2025-03-10"),
+               _tx("王某", credit=597000.0, date="2025-03-18")])
+    if _hits(r3) != [1, 2, 3]:
+        issues.append(("ERROR", rel,
+                       "回流配对未给要件②③独立证据（实际认领 %s）" % _hits(r3)))
+
+    # ④ 金额悬殊 / 超窗 / 先收后付 → 只认领①
+    for _label, _rows in (
+        ("金额悬殊", [_tx("赵某", debit=600000.0, date="2025-03-10"),
+                      _tx("赵某", credit=100000.0, date="2025-03-18")]),
+        ("超时间窗", [_tx("钱某", debit=600000.0, date="2025-01-05"),
+                      _tx("钱某", credit=600000.0, date="2025-07-24")]),
+        ("先收后付", [_tx("孙某", credit=600000.0, date="2025-03-01"),
+                      _tx("孙某", debit=600000.0, date="2025-03-10")]),
+    ):
+        _h = _hits(_run(_rows))
+        if _h != [1]:
+            issues.append(("ERROR", rel, "%s 情形下认领了要件 %s（②③不得白送）" % (_label, _h)))
+
+    if _RECIRCULATE_WINDOW_DAYS <= 0:
+        issues.append(("ERROR", rel, "回流配对时间窗非正数"))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -7220,6 +7462,9 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_suspicion_subject_consistency()  # 2026-10-02 疑点主体一致性（内容与主体错配）
                + check_report_text_stutter()        # 2026-10-03 报告文本口吃/语义冲突病句
                + check_evidence_quality()           # 2026-10-03 疑点证据编辑质量（元信息/空话/口径反向）
+               + check_bank_receipt_nature_single_source()  # 2026-10-03 银行收款性质（收入口径≠全部贷方）
+               + check_voucher_account_field()       # 2026-10-03 凭证科目名 vs 科目编码不得混用
+               + check_fund_scale_gate_not_roundness()  # 2026-10-03 资金往来：规模准入 / 整数只作证据
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

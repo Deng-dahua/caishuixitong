@@ -3056,6 +3056,87 @@ _INSTITUTION_SUFFIX = ("协会", "事务所", "律师事务所", "会计师事�
                        "合作社", "研究院", "研究所", "电视台", "报社")
 
 
+# ── 资金往来"规模门槛" vs "整数特征"（2026-10-03 定稿口径）─────────────────────
+# ★ 用户 2026-10-03 指出：用"整万"当**准入门槛**偏窄，会**漏报** ——
+#   账上真实存在 1,071,343.80 这类非整数的大额往来（避税/回流常用非整数金额）。
+#   口径：**规模（单笔金额）决定"要不要查"，整数特征只作"证据/权重"**，
+#   绝不作准入条件。三处参数集中在此，改口径只改这里。
+_LARGE_TX_FLOOR = 100000.0          # 单笔"大额"门槛（元）
+_PERSON_TX_TOTAL_FLOOR = 500000.0   # 同一对象累计转出门槛（元）
+_RECIRCULATE_WINDOW_DAYS = 30       # 回流配对时间窗（天）
+_RECIRCULATE_AMOUNT_TOL = 0.05      # 回流金额接近度容差（等额±5%，覆盖手续费/尾差）
+_ROUND_UNIT = 10000.0               # 整数特征判定单位（万元整倍数）
+
+
+def _is_round_amount(amount: float, unit: float = _ROUND_UNIT) -> bool:
+    """是否呈"整数特征"（万元整倍数）——**只作证据**，不作准入。"""
+    try:
+        return abs(float(amount) % unit) < 0.01
+    except Exception:
+        return False
+
+
+def _parse_flow_day(text) -> "datetime | None":
+    """容错解析流水日期（2025-01-15 / 2025/1/15 / 20250115 均可）。"""
+    s = str(text or "").strip()
+    if not s:
+        return None
+    m = re.match(r"^(\d{4})[-/年.]?(\d{1,2})[-/月.]?(\d{1,2})", s)
+    if not m:
+        return None
+    try:
+        return datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+
+
+def _pair_recirculation_flows(out_rows, in_rows,
+                              window_days: int = _RECIRCULATE_WINDOW_DAYS,
+                              tol: float = _RECIRCULATE_AMOUNT_TOL):
+    """把「转出」与「其后短期内的转入」按**金额接近 + 时间接近**配对。
+
+    为什么要配对（★ 2026-10-03）：红线 RL-FUND-002 的要件②是「回流金额与付款金额接近」、
+    要件③是「回流时间在付款后短期内」——旧实现只看"该对象有没有转入"，等于把②③
+    当成①的附赠，拿不出独立证据。配对结果才是②③的证据。
+
+    配准则（宁缺勿错）：
+      · 只配「转入在转出之后、且间隔 ≤ window_days 天」的组合（先付后回才是回流）；
+      · 金额比落在 [1-tol, 1+tol] 内（等额或近似等额，容忍手续费/尾差）；
+      · 每笔转入最多被用一次；同一转出取"最接近等额且最早"的那笔；
+      · 配不上的不硬凑（返回里只含真配上对的）。
+    """
+    pairs = []
+    used = set()
+    parsed_in = [(k, _parse_flow_day(r.get("date")), r) for k, r in enumerate(in_rows or [])]
+    for o in sorted((out_rows or []), key=lambda r: str(r.get("date") or "")):
+        od = _parse_flow_day(o.get("date"))
+        oa = float(o.get("amount") or 0)
+        if od is None or oa <= 0:
+            continue
+        best = None
+        for k, iday, irow in parsed_in:
+            if k in used or iday is None:
+                continue
+            gap = (iday - od).days
+            if gap < 0 or gap > window_days:
+                continue
+            ia = float(irow.get("amount") or 0)
+            ratio = ia / oa
+            if ratio < (1.0 - tol) or ratio > (1.0 + tol):
+                continue
+            score = (abs(1.0 - ratio), gap)
+            if best is None or score < best[0]:
+                best = (score, k, irow, gap)
+        if best:
+            used.add(best[1])
+            pairs.append({
+                "out_date": str(o.get("date") or ""), "out_amount": round(oa, 2),
+                "in_date": str(best[2].get("date") or ""), "in_amount": round(float(best[2].get("amount") or 0), 2),
+                "gap_days": best[3], "diff": round(float(best[2].get("amount") or 0) - oa, 2),
+            })
+    return pairs
+
+
 def _scan_fund_recirculation(data, spec):
     """资金回流与公私混同检测：企业↔个人账户大额整数转账。
 
@@ -3144,35 +3225,49 @@ def _scan_fund_recirculation(data, spec):
         entry["credit"] += credit
         entry["debit"] += debit
         entry["count"] += 1
-        if amount >= 100000 and abs(amount % 10000) < 0.01:
-            rec = {"date": date, "amount": round(amount, 2), "summary": summary[:12]}
+        # ★ 2026-10-03：**规模决定要不要查，整数只作证据** ——
+        #   旧实现 `amount >= 100000 and abs(amount % 10000) < 0.01` 把"整万"当准入，
+        #   非整数的大额往来（实测账面真实存在 1,071,343.80）**一笔都不会进 big_out**，
+        #   于是一个 107 万的转出对象连信号都出不来（静默漏报）。
+        #   现按单笔金额规模入册，同时记录"是否整数"作为证据字段。
+        if abs(amount) >= _LARGE_TX_FLOOR:
+            rec = {"date": date, "amount": round(amount, 2), "summary": summary[:12],
+                   "round": _is_round_amount(amount)}
             if credit > 0:
                 entry["big_in"].append(rec)
             else:
                 entry["big_out"].append(rec)
 
     signals = []
+    pair_records = []
     for name, agg in sorted(person_txs.items(), key=lambda item: -(item[1]["debit"] + item[1]["credit"])):
         out_to_person = agg["debit"]
         in_from_person = agg["credit"]
         big_out = agg["big_out"]
         big_in = agg["big_in"]
-        if out_to_person >= 500000 and big_out:
-            summary_hint = "、".join(sorted({r["summary"] or "转账" for r in big_out}))[:30]
-            # ★★ 2026-10-03（用户："未免太过于绝对了"）：**把"有回流"与"仅单向转出"分开说** ——
-            #   本项红线名是「付款后经个人账户回流」，其成立必须看到"资金回来"；
-            #   只看到"转出去、没回来"是**单向大额转出**，本身不构成回流，
-            #   旧版一律写成"收到0元，公私账户资金混同"再加上"回流"二字，读者会当成已成立。
-            if in_from_person > 0:
-                _back_ratio = in_from_person / out_to_person if out_to_person else 0.0
+        if out_to_person >= _PERSON_TX_TOTAL_FLOOR and big_out:
+            # ★★ 2026-10-03（用户："对该疑点证据的收集特别不准"）：
+            #   要件②「回流金额与付款金额接近」与要件③「回流时间在付款后短期内」必须有
+            #   **独立证据** —— 现按"时间窗 + 金额接近"对每笔大额转出做配对，
+            #   配对结果即②③的证据；配不上就如实说"未见配对的回流记录"（宁缺勿错）。
+            pairs = _pair_recirculation_flows(big_out, big_in)
+            _round_n = sum(1 for r in big_out if r.get("round"))
+            _shape = ("其中 %d 笔呈整数特征（万元整倍数）" % _round_n) if _round_n else \
+                     "未见整数金额特征（整数特征仅作证据，不作准入门槛）"
+            if pairs:
+                _p = pairs[0]
+                pair_records.append({"name": name, "pairs": pairs})
                 signals.append(
-                    f"{name}：企业向其转出{out_to_person:,.0f}元（{len(big_out)}笔大额整数转账{summary_hint}），"
-                    f"同期该对象向企业转入{in_from_person:,.0f}元（约占转出的{_back_ratio:.0%}）——"
-                    f"存在「付款后资金回流」的形态，须核验款项性质（借款／分红／报销／代垫／投资款）"
+                    f"{name}：企业向其转出{out_to_person:,.0f}元（{len(big_out)}笔大额转账，{_shape}），"
+                    f"同期该对象向企业转入{in_from_person:,.0f}元；其中 {len(pairs)} 笔可与转出配对——"
+                    f"如 {_p['out_date']} 转出{_p['out_amount']:,.2f}元，"
+                    f"{_p['in_date']} 转入{_p['in_amount']:,.2f}元（间隔{_p['gap_days']}天，"
+                    f"金额差{_p['diff']:,.2f}元）——构成「付款后资金回流」的形态，须核验款项性质"
+                    f"（借款／分红／报销／代垫／投资款）"
                 )
             else:
                 signals.append(
-                    f"{name}：企业向其转出{out_to_person:,.0f}元（{len(big_out)}笔大额整数转账{summary_hint}），"
+                    f"{name}：企业向其转出{out_to_person:,.0f}元（{len(big_out)}笔大额转账，{_shape}），"
                     f"本轮**未见该对象向企业转入款项**，属「单向大额转出」——"
                     f"单向转出本身**不构成回流**，只能提示核验款项性质与业务实质，不能仅凭此项认定资金回流"
                 )
@@ -3205,7 +3300,8 @@ def _scan_fund_recirculation(data, spec):
         {
             "person_account_count": len(person_txs),
             "verified_facts": [
-                "企业账户与个人账户间检出大额（≥50万）整数转存转取，资金流向由银行流水直接复算。",
+                "企业账户与个人账户间检出大额（单笔≥10万元、对象累计转出≥50万元）转存转取，资金流向由银行流水直接复算；"
+                "金额是否呈整数特征仅作证据，不作准入门槛。",
                 "公私账户大额往来属法定关注事项，是否违法取决于款项性质，非仅凭转账即定性。",
             ],
             "to_prove": [
@@ -3213,7 +3309,7 @@ def _scan_fund_recirculation(data, spec):
                 "如涉分红，提供个税代扣代缴凭证；如涉借款，说明利息税务处理。",
             ],
             # ★★ 2026-10-03（用户："对该疑点证据的收集特别不准，整一堆没用的证据"）：
-            #   **附表只列"达到本要件口径"的对象（单笔≥50万大额整数转出），其余**汇总成一行**。
+            #   **附表只列"达到本要件口径"的对象（对象累计转出≥50万），其余**汇总成一行**。
             #   旧版把全部命中对象（含 180.00 元的手续费、3 万元的小额往来）平铺进表，
             #   表题却写"大额整数转存转取"，读者会以为这些都是"大额"——表与要件口径不一致。
             #   既不失全面（小额以汇总行交代笔数与金额），也不掺无用细节。
@@ -3223,15 +3319,36 @@ def _scan_fund_recirculation(data, spec):
         priority="调查优先级",
     )]
     # ★ 2026-09-29（#448 检出能力）：显式认领 RL-FUND-002「资金回流：付款后经个人账户回流」。
-    #   本扫描器即该红线的检测器（企业↔个人大额整数转存转取是资金回流/公私混同的可量化信号）；
-    #   此前未声明归属 → 被算作盲区、运行期靠软匹配。声明后 _map_finding 走 mode="declared" 必然归位。
-    #   仅认领已核对的要件①（企业账户与个人账户大额整数转存转取）；要件②③④需完整资金链条/合同物流佐证，本扫描器未计算，不认领（宁缺勿错）。
+    #   本扫描器即该红线的检测器（企业↔个人大额转存转取是资金回流/公私混同的可量化信号）。
+    # ★★ 2026-10-03（用户："'回流'目前只看该对象有没有转入，没做金额/时间配对，
+    #   要件②③没有独立证据"）—— 现将配对准入要件②③：
+    #     要件②「回流金额与付款金额接近」＝ 存在金额接近（±5% 内）的配对；
+    #     要件③「回流时间在付款后短期内」＝ 该配对间隔 ≤30 天；
+    #   配对函数 `_pair_recirculation_flows` 只认"先转出、后转入、金额接近"，
+    #   **配不上就不认领**（宁缺勿错，不把①的附赠当②③的证据）。
+    #   要件④「经多个个人账户闭环流转」需多个中间账户的完整闭环链条，本扫描器未计算，不认领。
     _fs[0]["redline_id"] = "RL-FUND-002"
-    _fs[0]["constituent_hits"] = [{
+    _total_out = sum(agg["debit"] for agg in person_txs.values())
+    _hits = [{
         "index": 1,
-        "evidence": f"企业账户与{len(signals)}个个人账户发生大额（≥50万）整数转存转取（合计转出"
-                    f"{sum(agg['debit'] for agg in person_txs.values()):,.0f}元），资金流向由银行流水直接复算",
+        "evidence": f"企业账户与{len(signals)}个个人账户发生大额转存转取（合计转出{_total_out:,.0f}元），"
+                    f"资金流向由银行流水直接复算",
     }]
+    if pair_records:
+        _n_pairs = sum(len(p["pairs"]) for p in pair_records)
+        _all = [pp for p in pair_records for pp in p["pairs"]]
+        _max_gap = max(pp["gap_days"] for pp in _all)
+        _max_diff = max(abs(pp["diff"]) for pp in _all)
+        _hits.append({
+            "index": 2,
+            "evidence": f"{_n_pairs} 笔转入可与转出配对，金额接近（最大差额 {_max_diff:,.2f} 元，"
+                        f"容差±{int(_RECIRCULATE_AMOUNT_TOL * 100)}% 内）",
+        })
+        _hits.append({
+            "index": 3,
+            "evidence": f"上述配对均发生在转出之后 {_max_gap} 天内（窗口 ≤{_RECIRCULATE_WINDOW_DAYS} 天）",
+        })
+    _fs[0]["constituent_hits"] = _hits
     return _fs
 
 

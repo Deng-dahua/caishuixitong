@@ -2063,21 +2063,32 @@ def _run_analyze(company_id, db, progress_callback=None):
     low_data_warning = total_parsed < 10  # 少于10条记录视为数据不足
     
     # ── 凭证收入提取（区分开票/未开票）──
-    voucher_revenue = {"invoiced": 0.0, "uninvoiced": 0.0, "total": 0.0, "rows": 0}
+    # ★★ 2026-10-03（根因）：旧实现读 `v.get("account")` —— 真实凭证里 `account` 是
+    #   **科目编码**（"600102"），科目**名称**在 `account_name`（"主营业务收入/服务收入"）。
+    #   于是 `"主营业务收入" in acct` 永远不成立 ⇒ 凭证主营业务收入恒为 0.00。
+    #   实测公司1：报告写「凭证主营业务收入0.00元 vs 销项发票7,035,008.58元」，
+    #   而账面真实收入 6,636,800.57 元（不含税）×1.06 = 7,035,008.60 ≈ 开票额 —— 三源吻合。
+    #   现统一用 `fieldkit.account_label`（名称优先、编码兜底，单一权威）。
+    # ★ 另修：摘要未标注"开票/未开票"的，**不得默认算作未开票**（旧实现落到 else 一律计未开票，
+    #   会把"摘要只写销售服务"的正常企业整成 100% 未开票收入）；改记 `unspecified` 单列。
+    from engine.fieldkit import account_label as _acct_label
+    voucher_revenue = {"invoiced": 0.0, "uninvoiced": 0.0, "unspecified": 0.0,
+                       "total": 0.0, "rows": 0}
     for v in vouchers:
-        acct = str(v.get("account", ""))
-        if "主营业务收入" in acct:
-            credit = to_number(v.get("credit", 0))
-            summary = str(v.get("summary", ""))
-            if credit <= 0: continue  # 结转行
-            if "未开票" in summary or "无票" in summary:
-                voucher_revenue["uninvoiced"] += credit
-            elif "普票" in summary or "专票" in summary or "发票" in summary:
-                voucher_revenue["invoiced"] += credit
-            else:
-                voucher_revenue["uninvoiced"] += credit
-            voucher_revenue["total"] += credit
-            voucher_revenue["rows"] += 1
+        acct = _acct_label(v)
+        if "主营业务收入" not in acct and "营业收入" not in acct and "销售收入" not in acct:
+            continue
+        credit = to_number(v.get("credit", 0))
+        summary = str(v.get("summary", ""))
+        if credit <= 0: continue  # 结转行
+        if "未开票" in summary or "无票" in summary:
+            voucher_revenue["uninvoiced"] += credit
+        elif "普票" in summary or "专票" in summary or "发票" in summary:
+            voucher_revenue["invoiced"] += credit
+        else:
+            voucher_revenue["unspecified"] += credit
+        voucher_revenue["total"] += credit
+        voucher_revenue["rows"] += 1
     
     # ═══════════════════════════════════════════════════════════
     _step_timing["step2"] = round(time.time() - _step_timing.get("step2_start", time.time()), 2)
@@ -9715,9 +9726,14 @@ def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouc
 
     # ═══ 规则2: 计算复核——关键数字重新计算 ═══
     # 复核凭证主营收入
+    # ★ 2026-10-03：同样改读科目**名称**（`fieldkit.account_label`）——旧实现读
+    #   `v.get("account")`（科目编码）恒不匹配，导致 vr_total=0、下面的复核断言
+    #   `vr_total > 0` 永不成立 ⇒ 这道自检**静默空转**（闸门存在但从未执行）。
+    from engine.fieldkit import account_label as _acct_label2
     vr_total = 0.0; vr_invoiced = 0.0; vr_uninvoiced = 0.0
     for v in vouchers:
-        if "主营业务收入" in str(v.get("account", "")):
+        _acct2 = _acct_label2(v)
+        if "主营业务收入" in _acct2 or "营业收入" in _acct2 or "销售收入" in _acct2:
             credit = to_number(v.get("credit", 0))
             summary = str(v.get("summary", ""))
             if credit <= 0: continue
@@ -9726,8 +9742,6 @@ def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouc
                 vr_uninvoiced += credit
             elif "普票" in summary or "专票" in summary or "发票" in summary:
                 vr_invoiced += credit
-            else:
-                vr_uninvoiced += credit
     
     # 检查报告中的收入数字
     for f in all_findings:

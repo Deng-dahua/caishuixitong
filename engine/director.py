@@ -250,8 +250,14 @@ class DirectorEngine:
             except: pass
         
         # 金额异常检测
-        if total_amount > 100000 and total_amount % 10000 == 0:
-            flags.append("大额整数交易（可能存在资金回流）")
+        # ★ 2026-10-03：**规模决定要不要看，整数特征只作证据** ——
+        #   旧实现 `total_amount > 100000 and total_amount % 10000 == 0` 把"整万"当准入，
+        #   非整数的大额资金往来（如 1,071,343.80）一笔都不会被标记到"可能存在资金回流"，
+        #   与 VR025/RL-FUND-002 的漏报同源。口径参数与判据统一取自 verified_rule_engine。
+        from engine.verified_rule_engine import _LARGE_TX_FLOOR as _FLOOR, _is_round_amount as _is_round
+        if total_amount > _FLOOR:
+            flags.append("大额资金往来（可能存在资金回流）"
+                         + ("，金额呈整数特征" if _is_round(total_amount) else ""))
         
         # 单一对方检测
         counterparties = set()

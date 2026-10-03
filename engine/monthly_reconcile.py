@@ -404,9 +404,12 @@ _AP_ACCT_KWS = ("应付账款", "2202")
 
 # 常见增值税征收率（不含税口径）及其含税等价率（税额÷含税金额 = c/(1+c)），
 # 用于"税价配比"勾稽：收入/采购若按含税金额入账，隐含率会落在含税等价区间。
-_CANON_RATES = (0.01, 0.03, 0.05, 0.06, 0.09, 0.13)
-_CANON_RATES_INCL = tuple(round(c / (1 + c), 4) for c in _CANON_RATES)
-_RATE_TOL = 0.015  # 1.5 个百分点
+# ★ 2026-10-03：税率表已抽为唯一权威 `engine.tax_rates`（凭证收入 vs 开票收入、
+#   账载成本 vs 进项发票等所有"含税—不含税口径换算"共用同一张表）；
+#   本模块保留原名转发，行为不变。
+from engine.tax_rates import CANON_RATES as _CANON_RATES  # noqa: E402
+from engine.tax_rates import CANON_RATES_INCL as _CANON_RATES_INCL  # noqa: E402
+from engine.tax_rates import RATE_TOL as _RATE_TOL  # noqa: E402
 
 
 def _money_fmt(v: float) -> str:

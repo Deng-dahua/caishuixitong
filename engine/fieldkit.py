@@ -55,6 +55,25 @@ ACCOUNT_KEYS: Tuple[str, ...] = (
     "account", "科目", "科目名称", "会计科目", "acct", "account_name",
 )
 
+# ── F1b 凭证「科目编码」与「科目名称」是两个字段，不可混用（2026-10-03）───────────
+# ★ 真实缺陷（用户 2026-10-03 复核疑点11 时暴露）：
+#   真实凭证行的结构是 `{account: "600102", account_name: "主营业务收入/服务收入", ...}`
+#   —— `account` 是**科目编码**，`account_name` 是**科目名称**。
+#   而 `sum(... for v in vouchers if "主营业务收入" in str(v.get("account")))` 这类判据
+#   读的是**编码**，永远匹配不到汉字科目名 ⇒ `凭证主营业务收入` 恒为 0.00。
+#   实测后果（公司1 真账套）：「收入三源对比」写成
+#   「凭证主营业务收入0.00元（开票0.00+未开票0.00） vs 销项发票7,035,008.58元」，
+#   而账面真实主营业务收入是 **6,636,800.57 元**（不含税），×1.06 恰好等于
+#   销项开票 7,035,008.58 元 —— 三源其实完全吻合，报告却呈现成"账上一分钱收入都没有"。
+#   故此处把两类字段分开登记：**要名称就用 `ACCOUNT_NAME_KEYS`，要编码就用 `ACCOUNT_CODE_KEYS`**，
+#   任何模块不得再写 `v.get("account")` 去比汉字科目名。
+ACCOUNT_NAME_KEYS: Tuple[str, ...] = (
+    "account_name", "科目名称", "会计科目", "科目全称", "科目", "acct_name", "subject_name",
+)
+ACCOUNT_CODE_KEYS: Tuple[str, ...] = (
+    "account_code", "科目编码", "科目代码", "account", "acct", "科目号", "account_no",
+)
+
 # ── F2：发票「结构性证据」字段（2026-10-02 补充：成本/费用归属的第一刀）──────────
 # ★ 真实缺陷（本轮根因之一）：`main._parse_invoice_sheet` 早已把表头「税收编码」映射成
 #   `tax_code`、「计量单位」→`unit`、「业务类型」→`biz_type`；但全库 5 处读的是中文键
@@ -185,8 +204,58 @@ def invoice_status(inv: Any) -> str:
 
 
 def account_name(voucher: Any) -> str:
-    """记账凭证的科目名称。"""
-    return _txt(voucher, ACCOUNT_KEYS)
+    """记账凭证的**科目名称**（如「主营业务收入/服务收入」）。
+
+    ★ 2026-10-03：改为只认**名称类**字段（`ACCOUNT_NAME_KEYS`），不再回退到 `account`
+    —— 真实凭证里 `account` 是科目编码（"600102"），回退会让所有"科目名含某关键词"
+    的判据恒不成立（实测把 6,636,800.57 元主营业务收入读成 0.00）。
+    需要编码请用 `account_code()`。
+    """
+    return _txt(voucher, ACCOUNT_NAME_KEYS)
+
+
+def account_code(voucher: Any) -> str:
+    """记账凭证的**科目编码**（如「600102」）。"""
+    return _txt(voucher, ACCOUNT_CODE_KEYS)
+
+
+def account_text(voucher: Any) -> str:
+    """科目**名称+编码**的合并文本（做"是否属于某类科目"的模糊判定时用）。
+
+    取并集而非二选一：名称给出语义、编码兜住只导了编码的模板。
+    ⚠ 刻意**不含摘要** —— 摘要常写"结转主营业务收入"这类字眼，掺进来会让
+    "该行科目是不是主营业务收入"的判定串到结转行/本年利润行上。
+    """
+    seen, out = set(), []
+    for p in (account_name(voucher), account_code(voucher)):
+        if p and p not in seen:
+            seen.add(p)
+            out.append(p)
+    return " ".join(out)
+
+
+def account_label(voucher: Any) -> str:
+    """科目**人读标签**：优先名称，无名称时用编码（报告展示/关键词判定统一用它）。"""
+    return account_name(voucher) or account_code(voucher)
+
+
+# ── 银行流水行文本（唯一维护处；2026-10-03 新增）────────────────────────────
+# 事故：这条"把一条流水的可读文本拼起来"的逻辑曾在 `bank_nature._tx_text` 与
+# `payment_channel._tx_text` 各写一份（字段清单还不一样）——同一笔流水的"文本"
+# 在一个模块里有"备注"、在另一个模块里没有，收款性质判定与结算渠道判定就会分叉。
+# 现收敛到此，两个模块只做薄转发。
+BANK_TX_TEXT_KEYS: Tuple[str, ...] = (
+    "counterparty", "counterparty_name", "对手方", "对方户名", "付款方", "收款方",
+    "summary", "摘要", "用途", "purpose", "remark", "备注", "notes", "memo",
+    "交易附言", "goods", "货物或应税劳务名称",
+)
+
+
+def bank_tx_text(row: Any) -> str:
+    """一条银行流水的可读文本（对手方 + 摘要 + 用途 + 备注 + 附言）。"""
+    if not isinstance(row, dict):
+        return ""
+    return " ".join(str(row.get(k)) for k in BANK_TX_TEXT_KEYS if row.get(k) not in (None, ""))
 
 
 def person_name(row: Any) -> str:
