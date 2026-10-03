@@ -50,7 +50,7 @@ from engine.numparse import to_number
 
 #: 真实供应商家数下限（低于此值不给集中度结论——家数太少时 CR3 天然接近 100%）
 MIN_SUPPLIERS = 8
-#: 集中度预警阈值（**百分数**，与 phase1_triage 的行业自适应阈值同量纲）
+#: 集中度关注线阈值（**百分数**，与 phase1_triage 的行业自适应阈值同量纲）
 DEFAULT_WARN_PCT = 80.0
 #: 成本类采购占全部进项的最低比例：低于此值视为"本企业无实质性供应商采购"（服务业常见）
 COST_MATERIALITY_PCT = 20.0
@@ -127,7 +127,7 @@ def supplier_concentration(pur_invs: Sequence[Any], *,
       province      —— 地域分布 [{省, 金额, 占比, 家数}]
       verdict       —— "集中" / "分散" / "家数不足无法判断"
       note          —— 人读说明（可直接进报告，数值与措辞一致）
-      warn_pct      —— 本次采用的预警阈值（百分数）
+      warn_pct      —— 本次采用的关注线阈值（百分数）
     """
     # ★ 只统计**成本类**采购（期间费用类对手方不是"供应商"，见模块头注释）
     _all_rows = list(pur_invs or [])
@@ -191,7 +191,7 @@ def supplier_concentration(pur_invs: Sequence[Any], *,
     if len(real) >= MIN_SUPPLIERS:
         if cr(3) >= DEFAULT_WARN_PCT:
             verdict = "集中"
-            note = (f"前三大供应商占真实采购额 {cr(3):.2f}%（≥预警 {DEFAULT_WARN_PCT:.0f}%）："
+            note = (f"前三大供应商占真实采购额 {cr(3):.2f}%（≥关注线 {DEFAULT_WARN_PCT:.0f}%）："
                     f"采购来源集中，须结合是否独家代理/长协/集团统采判断商业合理性。")
         else:
             verdict = "分散"

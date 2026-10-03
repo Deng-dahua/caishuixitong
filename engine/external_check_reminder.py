@@ -133,7 +133,7 @@ def _reminder(name, detail, why, materials, redline_id, indicator, value, entiti
         "level": "待核验",
         "score": 3,
         "detail": detail,
-        "description": why + " 本项依赖外部数据（工商/税务/海关/公安/银行等），系统在单账套内无法单独判定，"
+        "description": why + " 本项依赖外部数据（工商/税务/海关/银行等），系统在单账套内无法单独判定，"
                              "仅列为待核事项。",
         "how_found": detail,
         "tax_impact": "如外部数据核实后确认存在违规，可能涉及补税、滞纳金及处罚；本项不作定性。",

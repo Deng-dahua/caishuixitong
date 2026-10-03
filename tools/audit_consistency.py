@@ -7755,6 +7755,126 @@ def check_housing_fund_workforce_compare() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_detector_text_avoids_hard_ban() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03（用户："看看是否接入一键分析按钮了"）：检测器的**产出文案**不得含硬禁用词。
+
+    实测事故（就在本轮）：新增的「采购来源真实性核验」文案里写了
+    "而不是靠**统计指标**推断"，而 `pipeline._DEFAULT_HARD_BAN` 里有「指标」
+    ⇒ 整条发现被静默硬删——域跑了、发现产出了、报告里却一条都没有，
+    只有一份 `reason:"禁止词:指标"` 的被拒清单。**能力"接入了"但产出被吃掉**，
+    从报告侧看和"没接入"完全一样。
+
+    判据（只查**产出文案**，不查注释/docstring，避免误报）：
+      AST 解析目标模块，取 `type/detail/description/how_found/suggestion/tax_impact/
+      note/claim/suspect/remedy` 这些键对应的字符串字面量（含 f-string 的字面段），
+      逐字比对 HARD_BAN，命中即 ERROR 并指出词与所在行。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT))
+        # 唯一权威：运行时真正生效的过滤规则（配置优先、内置兜底）
+        from engine.framework_config import get_filter_rules as _gfr  # noqa
+        ban = [str(w) for w in ((_gfr() or {}).get("hard_ban") or []) if str(w)]
+        if not ban:
+            return [("WARN", "engine/framework_config.py", "HARD_BAN 为空（检查跳过）")]
+    except Exception as e:  # pragma: no cover
+        return [("WARN", "engine/framework_config.py", "无法加载 HARD_BAN（检查跳过）：%s" % e)]
+
+    import ast as _ast
+    TEXT_KEYS = {"type", "detail", "description", "how_found", "suggestion",
+                 "tax_impact", "note", "claim", "suspect", "remedy"}
+    # ★ 只查**新增能力模块**（它们产出的一切都应当到达报告）。
+    #   刻意**不含** `domain_analysis.py` / `monthly_reconcile.py`：那里面有一批
+    #   "方法论描述/信息摘要"型 type（如「资金流概览」「收入三源对比总览」「进销概况」）
+    #   是被 HARD_BAN **故意**过滤的，纳入只会制造 89 条误报、把闸门变成噪声源
+    #   （违反闸门铁律 G2 零误报）。新增能力模块请加进本表。
+    targets = ["engine/procurement_authenticity.py", "engine/supplier_stats.py",
+               "engine/payroll_rules.py", "engine/external_check_reminder.py"]
+
+    def _strings(node):
+        out = []
+        if isinstance(node, _ast.Constant) and isinstance(node.value, str):
+            out.append(node.value)
+        elif isinstance(node, _ast.JoinedStr):
+            for v in node.values:
+                if isinstance(v, _ast.Constant) and isinstance(v.value, str):
+                    out.append(v.value)
+        elif isinstance(node, _ast.BinOp) and isinstance(node.op, _ast.Mod):
+            out.extend(_strings(node.left))
+        elif isinstance(node, _ast.BinOp) and isinstance(node.op, _ast.Add):
+            out.extend(_strings(node.left)); out.extend(_strings(node.right))
+        elif isinstance(node, _ast.Call):
+            for a in list(node.args):
+                out.extend(_strings(a))
+        elif isinstance(node, _ast.IfExp):
+            out.extend(_strings(node.body)); out.extend(_strings(node.orelse))
+        elif isinstance(node, (_ast.Tuple, _ast.List)):
+            for e in node.elts:
+                out.extend(_strings(e))
+        return out
+
+    for rel in targets:
+        p = ROOT / rel
+        if not p.exists():
+            continue
+        try:
+            tree = _ast.parse(p.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError as e:
+            issues.append(("ERROR", rel, "语法错误，无法检查产出文案：%s" % e))
+            continue
+        for node in _ast.walk(tree):
+            if not isinstance(node, _ast.Dict):
+                continue
+            for k, v in zip(node.keys, node.values):
+                if not (isinstance(k, _ast.Constant) and k.value in TEXT_KEYS):
+                    continue
+                for txt in _strings(v):
+                    hit = [w for w in ban if w in txt]
+                    if hit:
+                        issues.append(("ERROR", rel,
+                                       "产出文案含硬禁用词 %s（会被静默硬删，能力等于没接入）："
+                                       "「%s」" % (hit, txt[:60])))
+    return issues
+
+
+def check_last_run_no_silent_domain_crash() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03：最近一次**真跑**的 pipeline_log 不得有异常留痕。
+
+    实测事故（就在本轮，我自己引入的）：`monthly_reconcile` 里引用了未定义的
+    `_row_period` ⇒ NameError 被域外层 except 吞掉 ⇒ **整个「跨文件逐月勾稽」域零产出**
+    （域数 35→31，RL-FUND-005 / 社保对等 / 收入多源对等 全部静默丢失），
+    而报告里只看得到一行 "跨文件逐月勾稽异常: name '_row_period' is not defined"。
+    pytest 全绿、audit ERROR 0 —— **静态检查抓不到"这段没走到"**，只有端到端产物的
+    pipeline_log 能抓。这正是项目铁律「pipeline_log 含"异常"＝本轮静默失效」的机器化。
+
+    判据：读 `scripts/four_reports/company_1_full.json` 的 `pipeline_log`，
+      出现「异常」「执行失败」「Traceback」即 ERROR（附原文）。
+      产物不存在 → WARN（提示需要先真跑一次全量）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    art = ROOT / "scripts" / "four_reports" / "company_1_full.json"
+    if not art.exists():
+        return [("WARN", "scripts/four_reports/company_1_full.json",
+                 "无真跑产物，无法核验「域是否静默崩溃」——请先跑一次全量一键分析")]
+    try:
+        import json as _json
+        d = _json.loads(art.read_text(encoding="utf-8", errors="replace"))
+    except Exception as e:
+        return [("WARN", "scripts/four_reports/company_1_full.json", "产物不可解析：%s" % e)]
+    rep = d.get("report") if isinstance(d.get("report"), dict) else d
+    log = (rep or {}).get("pipeline_log") or []
+    # ★ 判据要**精确**：只认"异常报告"的写法（异常后紧跟冒号 / 执行失败 / Traceback /
+    #   not defined）。绝不能见"异常"二字就报——实测「11个异常关系」「3项异常」
+    #   「异常抵扣0.0」都是**正常结论**，宽松匹配会把闸门变成噪声源（闸门铁律 G2 零误报）。
+    _pat = re.compile(r"(异常\s*[:：])|(执行失败)|(Traceback)|(not defined)|(\bError\b)")
+    bad = [str(L) for L in log if _pat.search(str(L))]
+    for s in bad[:8]:
+        issues.append(("ERROR", "scripts/four_reports/company_1_full.json",
+                       "最近一轮真跑存在**静默失效**留痕：%s" % s[:120]))
+    return issues
+
+
 def check_material_name_single_source() -> List[Tuple[str, str, str]]:
     """★ 2026-10-03（用户："彻底解决多种叫法的问题"）：资料名称**唯一权威** + 齐备性口径一致。
 
@@ -7921,6 +8041,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_no_company_hardcoding_in_judgement()  # 2026-10-03 泛化性：判定代码不得硬编码具体企业名
                + check_material_name_single_source()  # 2026-10-03 资料名称唯一权威（两级命名/别名归一）
                + check_housing_fund_workforce_compare()  # 2026-10-03 公积金接入人数/基数比对（金额勾稽不冒充人数结论）
+               + check_detector_text_avoids_hard_ban()  # 2026-10-03 产出文案不得含硬禁用词（否则静默硬删=没接入）
+               + check_last_run_no_silent_domain_crash()  # 2026-10-03 最近真跑 pipeline_log 不得有静默失效留痕
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

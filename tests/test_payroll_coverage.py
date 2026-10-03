@@ -184,3 +184,63 @@ class TestRedlineRequirementLogic:
         # 一旦要件②成立 ⇒ 全部命中要件计入
         cps.append({"index": 2, "参与认定": True, "checked_hit": True})
         assert participating_indices(cps, "RL-SPT-010") == [1, 2]
+
+
+# ── 采购来源真实性核验：接线与过滤器存活（2026-10-03 用户"看看是否接入一键分析按钮了"）──
+class TestProcurementWiring:
+    """一键分析按钮的产物路径上有三道"静默吃":等级词表 / HARD_BAN / 域汇总重建。
+
+    实测教训：本项文案里曾写"而不是靠**统计指标**推断"，命中 `HARD_BAN` 的「指标」
+    ⇒ 整条发现被静默硬删（域跑了、发现产出了、报告里一条都没有），
+    从报告侧看和"没接入"完全一样。
+    """
+
+    def _pur(self):
+        return [
+            {"seller": "某某文化传播工作室", "invoice_no": "INV-A1", "价税合计": 600000.00,
+             "开票日期": "2025-03-10", "货物或应税劳务名称": "咨询服务"},
+            {"seller": "某某文化传播工作室", "invoice_no": "INV-A2", "价税合计": 600000.00,
+             "开票日期": "2025-03-10", "货物或应税劳务名称": "咨询服务"},
+        ]
+
+    def test_detected_clue_produces_pending_finding(self):
+        """检出线索 ⇒ 「待核验」级（只有"未检出"才是「信息」级，而「信息」按设计不进风险清单）。"""
+        from engine.procurement_authenticity import procurement_findings
+        fs = [f for f in procurement_findings(self._pur(), [], industry=None) if isinstance(f, dict)]
+        assert fs, "应产出发现"
+        lv = {str(f.get("level")) for f in fs}
+        assert lv & {"待核验", "中风险", "高风险"}, lv
+        # 每条线索必须写明"用什么资料能证实或排除"（可证伪）
+        blob = " ".join(str(f.get("detail") or "") + str(f.get("description") or "") for f in fs)
+        assert "证实" in blob or "排除" in blob
+
+    def test_not_detected_is_information_level(self):
+        """未检出 ⇒ 「信息」级（不指控），且这是设计行为：信息级不进风险清单。"""
+        from engine.procurement_authenticity import procurement_findings
+        fs = [f for f in procurement_findings([{"seller": "甲", "invoice_no": "X",
+                                               "价税合计": 100.0, "开票日期": "2025-01-01"}], [],
+                                              industry=None) if isinstance(f, dict)]
+        assert fs and all(str(f.get("level")) == "信息" for f in fs), [f.get("level") for f in fs]
+
+    def test_level_in_authoritative_wordlist(self):
+        from engine.procurement_authenticity import procurement_findings
+        sev = {"极高风险", "高风险", "中风险", "待核验", "信息", "低风险"}
+        for f in procurement_findings(self._pur(), [], industry=None):
+            if isinstance(f, dict):
+                assert str(f.get("level")) in sev, f.get("level")
+
+    def test_output_survives_governance_filter(self):
+        """产出必须能穿过真实过滤器（HARD_BAN / COND_BAN / 正常结论规则）。
+
+        ⚠ `_apply_output_governance_filter` 返回**三元组** `(findings, log, stats)`——
+        不要直接把返回值当发现列表（本测试最初就踩了这个坑，"保留 0 条"是假失败）。
+        """
+        from engine.procurement_authenticity import procurement_findings
+        from engine.pipeline import _apply_output_governance_filter as F
+        fs = [dict(f, domain="采购来源真实性核验")
+              for f in procurement_findings(self._pur(), [], industry=None) if isinstance(f, dict)]
+        out = F(fs, [], [], self._pur(), [], [], [], [], [], target_industry="")
+        kept, _log, stats = out[0], out[1], out[2]
+        hit = [f for f in kept if isinstance(f, dict) and "采购来源" in str(f.get("type") or "")]
+        assert hit, "采购来源核验发现被过滤器静默删除（能力等于没接入）"
+        assert int(stats.get("hard_ban_removed") or 0) == 0, stats

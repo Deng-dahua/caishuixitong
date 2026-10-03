@@ -717,6 +717,14 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
             hf_amount as _hf_amt, hf_month as _hf_month, hf_person as _hf_person,
         )
         # 按 (人, 月) 建立"明细额 vs 工资表个人扣缴额"配对（判定口径的唯一可靠依据）
+        # ★ 2026-10-03 修复（我自己引入的静默崩溃）：这里原写成 `_row_period(_r)`，
+        #   而本模块**没有**该名字（它在 `fieldkit` / `domain_analysis` 里）⇒ NameError
+        #   被 `run_cross_period_reconcile` 外层的 except 吞掉 ⇒ **整个「跨文件逐月勾稽」域
+        #   一个发现都不产出**（实测：一键分析结果里该域整段消失，域数 35→31，
+        #   RL-FUND-005 / 社保对等 / 收入多源对等 全部静默丢失），而 pipeline_log 只有一行
+        #   "跨文件逐月勾稽异常: name '_row_period' is not defined"。
+        #   月份解析**必须**走唯一权威 `fieldkit.row_period`（别名表 PERIOD_KEYS）。
+        from engine.fieldkit import row_period as _fk_period
         _sal_hf_deduct = {}
         for _r in (salaries or []):
             if not isinstance(_r, dict):
@@ -724,7 +732,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
             _n = str(_r.get("name") or "").strip()
             if not _n:
                 continue
-            _sal_hf_deduct[(_n, _row_period(_r) or "未标注月份")] = _num(
+            _sal_hf_deduct[(_n, _fk_period(_r) or "未标注月份")] = _num(
                 _first_raw(_r, ("hf_deduct", "公积金个人", "housing_fund_deduct")))
         _hf_pairs, _hf_detail_total, _sal_hf_total = [], 0.0, 0.0
         for _r in (fund or []):

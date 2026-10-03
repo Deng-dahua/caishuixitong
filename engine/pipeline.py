@@ -2358,8 +2358,11 @@ def _run_analyze(company_id, db, progress_callback=None):
         # 行业口径取当前上下文（与成本/费用分类同一来源；取不到则 None，
         # 此时按全量核查——**不臆测**）
         _ind = str((ctx.company_profile or {}).get('industry') or '') or None
-        domain_results.append({"domain": "采购来源真实性核验",
-                               "findings": _proc_findings(pur_invs, bank_txs, industry=_ind)})
+        _pf = _proc_findings(pur_invs, bank_txs, industry=_ind)
+        domain_results.append({"domain": "采购来源真实性核验", "findings": _pf})
+        # ★ 产出留痕（否则"整域消失"无从定位）：域、条数、等级
+        pipeline_log.append("[采购来源核验] 域已追加: 发现 %d 条（%s）"
+                            % (len(_pf), "、".join(str(x.get("level")) for x in _pf) or "无"))
     except Exception as _pe:
         # 铁律：不静默吞（except 留痕），否则这层能力等于不存在
         pipeline_log.append(f"[采购来源核验] 执行失败: {_pe}")
