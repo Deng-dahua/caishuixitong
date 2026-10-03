@@ -1000,6 +1000,62 @@ def _filter_rows_by_subject_side(tables, subject_text):
     return out, dropped
 
 
+def _evidence_summary(tables) -> str:
+    """把本项附表的证据**汇总成一句概述**（口径／笔数／对象数／合计金额／最大一笔）。
+
+    ★★ 2026-10-03（用户：「本项之所以列入检查，是因为出现了以下情况：<某一个例子>…
+      这段话能否概述情况，而不是列举情况；**各疑点的这段内容也是概述情况，而不是列举情况**」）：
+      旧版取"某一条发现的 detail 原句"，而 detail 常是**举例**（"河南林超攀：转出600,000元…"），
+      于是"为何列入检查"变成"举一个例子"，甚至可能举到与本项主体**相反**的例子。
+      现改为**从本项证据本身归纳**：命中多少笔、涉及多少对象、合计多少钱、最大一笔是谁——
+      这才是稽查底稿说明"为什么把它列入检查"的口径（可复算、可回指明细表）。
+      返回 "" 表示无法汇总（调用方退回原取值链，不编造）。
+    """
+    rows = [r for tb in (tables or []) for r in ((tb or {}).get("rows") or [])]
+    if not rows:
+        return ""
+    names, amts = [], []
+    for r in rows:
+        who = str((r or {}).get("对方单位") or (r or {}).get("counterparty") or "").strip()
+        if who and who not in names:
+            names.append(who)
+        # ★ 列名可能被 `table_governance` 在全角/半角之间规范过（「金额（元）」/「金额(元)」），
+        #   这里两种都要认，否则概述会静默丢掉"合计金额"（实测漏过一次）。
+        for k in ("金额（元）", "金额(元)", "金额", "amount"):
+            if k in (r or {}):
+                try:
+                    amts.append(abs(float(str((r or {})[k]).replace(",", ""))))
+                except (TypeError, ValueError):
+                    pass
+                break
+    parts = ["共%d笔记录" % len(rows)]
+    if names:
+        parts.append("涉及%d个对象" % len(names))
+    _who_max = ""
+    if amts:
+        parts.append("金额合计%s元" % format(sum(amts), ",.2f"))
+        _mx = max(amts)
+        for r in rows:
+            # ★ "单笔最大"必须来自**逐笔行**：汇总行（"【汇总】…未达门槛"）的金额是合计，
+            #   把它当"单笔最大"会出现"单笔最大 117 万（其他个人／个体往来…）"这种自相矛盾的表述。
+            _who_r = str((r or {}).get("对方单位") or (r or {}).get("counterparty") or "").strip()
+            if _who_r.startswith("【汇总】") or "未达本要件" in _who_r:
+                continue
+            for k in ("金额（元）", "金额(元)", "金额", "amount"):
+                if k in (r or {}):
+                    try:
+                        if abs(float(str(r[k]).replace(",", ""))) == _mx:
+                            _who_max = _who_r
+                    except (TypeError, ValueError):
+                        pass
+                    break
+        parts.append("单笔最大%s元%s" % (format(_mx, ",.2f"),
+                                     ("（%s）" % _who_max[:16]) if _who_max else ""))
+    _titles = [str((tb or {}).get("title") or "") for tb in (tables or []) if (tb or {}).get("title")]
+    _head = ("按「%s」口径，" % _titles[0][:26]) if _titles else ""
+    return _head + "；".join(parts) + "。"
+
+
 def _select_detail_tables(rid, rname, sup_subjects, src_tables, dt_by_rid, dt_by_type, s):
     """按**来源归属**选本疑点的逐笔明细表（唯一判据在 `subject_consistency`）。
 
@@ -2266,10 +2322,26 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
         #   ③ 同疑点下其它发现里与标题字面最相关者的信号；
         #   ④ 通用句（不编造具体原因，但保证该段存在）。
         _rb2 = _bg2(rname)
+        # ★★ 2026-10-03：附表选择提前到这里 —— 「为何列入检查」要以**本项证据的汇总**概述，
+        #   而不是引用某条发现的 detail 原句（那常是"举一个例子"）。
+        _rid = s.get("redline_id", "")
+        _table_subjects = list(_sup_subjects)
+        if (not _ok_sub) and _entry_subject:
+            try:
+                from engine.subject_consistency import norm_subject_key as _nsk2
+                _ek = _nsk2(_entry_subject)
+                _table_subjects = [x for x in _table_subjects if _nsk2(x) != _ek]
+            except Exception:
+                pass
+        _tables, _tbl_note = _select_detail_tables(
+            _rid, rname, _table_subjects, _src_tables, _dt_by_rid, _dt_by_type, s)
+        _ev_sum = _evidence_summary(_tables)
         _main_sig = str(clue.get("terminal_signal") or "").strip()
         if _main_sig and any(k in _main_sig for k in _NEG_SIGNAL_KWS):
             _main_sig = ""
-        _why_txt = _main_sig
+        # 取值优先级（2026-10-03 起）：① 本项证据**汇总概述**（可复算、可回指明细表）；
+        #   ② 主线索链终局信号；③ 主线索链首环读数；④ 同疑点下最相关发现的信号；⑤ 通用句。
+        _why_txt = _ev_sum or _main_sig
         if not _why_txt:
             for _n0 in (clue.get("nodes") or []):
                 _obs0 = str((_n0 or {}).get("observed") or "").strip() if isinstance(_n0, dict) else ""
@@ -2362,19 +2434,7 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
         #   ② 支撑发现为空时，才退回按红线编号精确关联；
         #   ③ 都没有 → 不附明细；有明细但主体不符时**如实写明为什么没附**
         #      （绝不附一张主体不符的表 —— 那正是用户反复报的"内容与主体错配"）。
-        _rid = s.get("redline_id", "")
-        # ★ 若上面主体自检已判定"**建入口那条发现**与风险指标名不符"，则它出的明细表
-        #   同样不挂（正文线索/证据已取自那条发现；再把它的明细挂上就是叠加错配）。
-        _table_subjects = list(_sup_subjects)
-        if (not _ok_sub) and _entry_subject:
-            try:
-                from engine.subject_consistency import norm_subject_key as _nsk2
-                _ek = _nsk2(_entry_subject)
-                _table_subjects = [x for x in _table_subjects if _nsk2(x) != _ek]
-            except Exception:
-                pass
-        _tables, _tbl_note = _select_detail_tables(
-            _rid, rname, _table_subjects, _src_tables, _dt_by_rid, _dt_by_type, s)
+        # （附表已在前面选好：`_tables` / `_tbl_note`；此处只做挂载）
         if _tables:
             # ★★ 2026-10-02：**按小标题定位**，不得按位置写死。
             #   事故：原为 `paragraphs[1]["detail_tables"] = _tables`，

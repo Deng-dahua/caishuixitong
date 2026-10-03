@@ -3019,6 +3019,35 @@ _COMPANY_SUFFIX = ["公司", "有限", "集团", "厂", "店", "银行", "税务
                    "预算", "中心", "学校", "医院", "政府", "局", "支行", "分理处", "信用社", "合作社", "单位"]
 
 
+def _matches_for_report(person_txs, threshold: float = 500000.0):
+    """资金回流的附表行：**达门槛对象逐笔 + 未达门槛对象一行汇总**（不漏、不掺）。
+
+    ★ 2026-10-03：本项要件口径是"单笔转出≥50万元且呈整数特征"。附表若把全部命中对象
+      （含 180 元手续费、3 万元小额往来）平铺出来，表题与内容就自相矛盾，读者也无法判断
+      "哪些才构成本项要件"。现按门槛分层：达门槛者逐笔列示；未达门槛者合并为**一行汇总**
+      并在名称里写明笔数与合计，既不丢信息、也不把无关细节当证据。
+    """
+    rows, small = [], []
+    for name, agg in sorted(person_txs.items(), key=lambda item: -(item[1]["debit"] + item[1]["credit"])):
+        rec = {"name": name, "out_to_person": round(agg["debit"], 2),
+               "in_from_person": round(agg["credit"], 2),
+               "big_out_count": len(agg["big_out"]), "big_in_count": len(agg["big_in"])}
+        # ★ 门槛只看**转出金额**是否达到要件口径（≥50万）。"整数特征"只是辅助信号，
+        #   拿它当门槛会把 100.4 万这类正常大额往来误降级到"未达门槛"（实测漏过李昭阳）。
+        if agg["debit"] >= threshold:
+            rows.append(rec)
+        else:
+            small.append(rec)
+    if small:
+        rows.append({
+            "name": "【汇总】其他个人／个体往来（未达本要件50万元门槛，共%d个对象）" % len(small),
+            "out_to_person": round(sum(x["out_to_person"] for x in small), 2),
+            "in_from_person": round(sum(x["in_from_person"] for x in small), 2),
+            "big_out_count": 0, "big_in_count": 0,
+        })
+    return rows[:10]
+
+
 def _scan_fund_recirculation(data, spec):
     """资金回流与公私混同检测：企业↔个人账户大额整数转账。
 
@@ -3028,11 +3057,47 @@ def _scan_fund_recirculation(data, spec):
     bank = data.get("bank_txs", []) or []
     target_entity = data.get("target_entity", {})
     personnel = _collect_personnel(target_entity)
+    # ★★ 2026-10-03（用户："林超攀虽是转出600000，但是收到了林超攀的发票……未免太过于绝对了"）：
+    #   **"企业向某对象付款"不等于"私户往来/资金回流"——若本轮已取得该对象开具的发票，
+    #   那笔付款首先是有票采购结算。** 实测：企业向「河南林超攀体育文化传播工作室」转出 600,000 元，
+    #   而本轮进项发票中该对象**开票合计 19,603,960.20 元**；把它列为"公私账户资金混同、
+    #   须核验抽逃/回流/私分"，对一家正常结算的供应商而言过于绝对。
+    #   判据（通用，非本对象特例）：按下述顺序排除 ——
+    #     ① 银行摘要脏值（"支付结算批量汇出汇款"等，`fieldkit.is_noise_counterparty`）；
+    #     ② 已取得发票的对象（本轮进项发票以其为销方，且开票额达到该笔转出的合理比例）；
+    #   被排除的对象**在正文如实交代**（不静默丢证据），并转入"正常采购结算"口径。
+    from engine.fieldkit import is_noise_counterparty as _is_noise
+    _inv_by_seller = defaultdict(float)
+    for _pi in (data.get("pur_invs", []) or []):
+        _sn = str(_pi.get("seller") or _pi.get("销方名称") or "").strip()
+        if _sn:
+            _inv_by_seller[_sn] += abs(to_number(_pi.get("total", _pi.get("amount", 0))))
+    _invoiced_total = 0.0
+    _invoiced_names = []
+
+    def _invoiced_amount(name: str) -> float:
+        """该对象本轮进项发票合计（精确同名优先，其次包含关系）。"""
+        if name in _inv_by_seller:
+            return _inv_by_seller[name]
+        best = 0.0
+        for _k, _v in _inv_by_seller.items():
+            if _k and (name[:6] in _k or _k[:6] in name):
+                best = max(best, _v)
+        return best
 
     person_txs = defaultdict(lambda: {"credit": 0.0, "debit": 0.0, "count": 0, "big_out": [], "big_in": []})
     for row in bank:
         counterparty = str(row.get("counterparty") or "").strip()
         if not counterparty:
+            continue
+        # ① 银行摘要脏值：不是交易对手，是银行系统的说明字段
+        if _is_noise(counterparty):
+            continue
+        # ② 已取得发票的对象不按"无票私户往来"处理（转入"有票采购结算"，另在正文交代）
+        if _invoiced_amount(counterparty) > 0:
+            _invoiced_total += abs(to_number(row.get("debit", 0)))
+            if counterparty not in _invoiced_names:
+                _invoiced_names.append(counterparty)
             continue
         is_person = counterparty in personnel or any(p and p in counterparty for p in personnel) \
             or (not any(s in counterparty for s in _COMPANY_SUFFIX))
@@ -3062,10 +3127,23 @@ def _scan_fund_recirculation(data, spec):
         big_in = agg["big_in"]
         if out_to_person >= 500000 and big_out:
             summary_hint = "、".join(sorted({r["summary"] or "转账" for r in big_out}))[:30]
-            signals.append(
-                f"{name}：企业向其转出{out_to_person:,.0f}元（{len(big_out)}笔大额整数转账{summary_hint}），"
-                f"收到{in_from_person:,.0f}元，公私账户资金混同，须核验资金抽逃、回流、私分或借款性质"
-            )
+            # ★★ 2026-10-03（用户："未免太过于绝对了"）：**把"有回流"与"仅单向转出"分开说** ——
+            #   本项红线名是「付款后经个人账户回流」，其成立必须看到"资金回来"；
+            #   只看到"转出去、没回来"是**单向大额转出**，本身不构成回流，
+            #   旧版一律写成"收到0元，公私账户资金混同"再加上"回流"二字，读者会当成已成立。
+            if in_from_person > 0:
+                _back_ratio = in_from_person / out_to_person if out_to_person else 0.0
+                signals.append(
+                    f"{name}：企业向其转出{out_to_person:,.0f}元（{len(big_out)}笔大额整数转账{summary_hint}），"
+                    f"同期该对象向企业转入{in_from_person:,.0f}元（约占转出的{_back_ratio:.0%}）——"
+                    f"存在「付款后资金回流」的形态，须核验款项性质（借款／分红／报销／代垫／投资款）"
+                )
+            else:
+                signals.append(
+                    f"{name}：企业向其转出{out_to_person:,.0f}元（{len(big_out)}笔大额整数转账{summary_hint}），"
+                    f"本轮**未见该对象向企业转入款项**，属「单向大额转出」——"
+                    f"单向转出本身**不构成回流**，只能提示核验款项性质与业务实质，不能仅凭此项认定资金回流"
+                )
 
     if not signals:
         return []
@@ -3078,6 +3156,17 @@ def _scan_fund_recirculation(data, spec):
         "如为借款，提供借款协议与利息处理；如为分红，说明是否已履行「利息、股息、红利所得」20%个税代扣代缴；"
         "如为报销/代垫，提供对应业务凭证。资料充分则本项排除。"
     )
+    # ★ 2026-10-03：被排除的记录**如实交代**（不静默丢证据）——读者必须知道
+    #   "为什么这一笔没被列进本项"，否则会以为系统漏查。
+    if _invoiced_names:
+        detail += (
+            "\n已排除的情形（如实交代）：本轮进项发票显示，"
+            + "、".join(_invoiced_names[:4])
+            + ("（共%d个对象）" % len(_invoiced_names))
+            + "已向本企业开具发票，与之相关的付款属**有票采购结算**，"
+              "不按「无票私户往来」列入本项；其中向已开票对象的转出合计 "
+            + format(_invoiced_total, ",.2f") + " 元。"
+        )
     _fs = [_rule_finding(
         spec,
         detail,
@@ -3091,11 +3180,12 @@ def _scan_fund_recirculation(data, spec):
                 "每笔个人往来的款项性质证明（借款协议/分红决议/报销单据/代垫凭证）；",
                 "如涉分红，提供个税代扣代缴凭证；如涉借款，说明利息税务处理。",
             ],
-            "matches": [
-                {"name": name, "out_to_person": round(agg["debit"], 2), "in_from_person": round(agg["credit"], 2),
-                 "big_out_count": len(agg["big_out"]), "big_in_count": len(agg["big_in"])}
-                for name, agg in sorted(person_txs.items(), key=lambda item: -(item[1]["debit"] + item[1]["credit"]))[:10]
-            ],
+            # ★★ 2026-10-03（用户："对该疑点证据的收集特别不准，整一堆没用的证据"）：
+            #   **附表只列"达到本要件口径"的对象（单笔≥50万大额整数转出），其余**汇总成一行**。
+            #   旧版把全部命中对象（含 180.00 元的手续费、3 万元的小额往来）平铺进表，
+            #   表题却写"大额整数转存转取"，读者会以为这些都是"大额"——表与要件口径不一致。
+            #   既不失全面（小额以汇总行交代笔数与金额），也不掺无用细节。
+            "matches": _matches_for_report(person_txs),
         },
         spec["required_sources"],
         priority="调查优先级",

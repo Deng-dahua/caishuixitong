@@ -812,3 +812,58 @@ class TestEvidenceEditingQuality:
         assert "取得（进项）1张" in f["detail"], f["detail"]
         rows = f.get("evidence_rows") or []
         assert rows and "销项" in str(rows[0].get("source") or ""), "销项行必须排在前面"
+
+
+class TestWhyIncludedIsSummaryNotExample:
+    """★ 2026-10-03（用户：「这段内容只列举了一个情况，能否概述情况，而不是列举情况；
+    各疑点的这段内容也是概述情况」）。
+
+    旧版「为何列入检查」取的是**某一条发现的 detail 原句**（常是举例，甚至可能举到与本项
+    主体相反的例子上——实测"资金回流"举的例子是"转出600000元、收到0元"的**无回流**对象）。
+    现口径：**从本项证据本身归纳**（口径／笔数／对象数／合计金额／最大一笔）。
+    """
+
+    def test_evidence_summary_aggregates(self):
+        from engine.enterprise_report import _evidence_summary
+        t = [{"title": "资金回流与公私混同检测（共8笔）",
+              "rows": [{"对方单位": "初永伟", "金额（元）": "1,071,343.80"},
+                       {"对方单位": "李昭阳", "金额（元）": "1,004,478.76"},
+                       {"对方单位": "初永伟", "金额（元）": "100,000.00"}]}]
+        out = _evidence_summary(t)
+        assert "共3笔记录" in out and "涉及2个对象" in out
+        assert "2,175,822.56" in out, out          # 合计复算
+        assert "1,071,343.80" in out and "初永伟" in out
+        assert out.startswith("按「"), out           # 必须点明口径
+
+    def test_evidence_summary_empty_when_no_rows(self):
+        from engine.enterprise_report import _evidence_summary
+        assert _evidence_summary([]) == ""
+        assert _evidence_summary([{"title": "t", "rows": []}]) == ""
+
+    def test_why_included_uses_summary_when_table_attached(self):
+        from engine.enterprise_report import _build_redline_problems
+        sus = [{
+            "redline_id": "RL-FUND-002", "redline_name": "资金回流：付款后经个人账户回流",
+            "suspect": "涉嫌虚开发票（资金空转、开票后回流）", "taxes": ["增值税"],
+            "domain": "资金", "legal_basis": ["《发票管理办法》第二十二条"],
+            "constituents": ["向供应商付款后，资金经由个人账户回流至本企业或六员账户"],
+            "constituent_sources": ["银行流水"],
+            "clue_chain": {"terminal_signal": "河南林超攀：转出600,000元，收到0元", "nodes": []},
+            "evidence_chain": {}, "argumentation": {"verdict": "已触碰税务违规红线"},
+            "finding_type": "资金回流与公私混同检测", "supporting_findings": [],
+            "level": "中风险",
+        }]
+        findings = [{"type": "资金回流与公私混同检测", "level": "中风险",
+                     "evidence_rows": [{"对方单位": "初永伟", "金额（元）": 1071343.8,
+                                        "来源资料": "个人账户往来"},
+                                       {"对方单位": "李昭阳", "金额（元）": 1004478.76,
+                                        "来源资料": "个人账户往来"}]}]
+        ps = _build_redline_problems(sus, findings)
+        why = [str(x.get("text") or "") for p in ps
+               for x in (p.get("narrative_paragraphs") or [])
+               if str(x.get("heading") or "") == "为何列入检查"]
+        assert why, "缺「为何列入检查」段"
+        w = why[0]
+        assert "共" in w and "个对象" in w, f"未概述（仍像举例）：{w[:80]}"
+        # 不得再把"某一个对象"的例子当作唯一说明
+        assert "之所以列入检查，是因为出现了以下情况：河南林超攀" not in w, w
