@@ -1832,10 +1832,11 @@ _SIT_PREFIX_RES = (
 )
 
 
-def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None):
+def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None,
+                           redline_id=None):
     """section 一「涉及的风险事项」bullets 的**单一权威**产出函数。
 
-    返回 (条目列表, 来源)：
+    返回 (条目列表, 来源, 要件核对表)：  # ★ 2026-10-03：契约统一为 3 元组（旧文档写 2、实际多分支返回 3）
       - 有抽象构成要件（_cons 非空）：
           · 有逐条命中（constituent_hits）→ 返回**合并清单**：先一行"本企业涉及上述第 X 条
             构成要件，已核对到的情况见各条括号内标注"，再逐条列出全部抽象要件，命中的在
@@ -1873,7 +1874,9 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
                 checkpoint_table as _ctbl, participating_indices as _pind,
                 summarize as _csum,
             )
-            _part = _pind(_cps)
+            # ★ 2026-10-03：传入红线编号 —— 参与认定须过「要件组合逻辑」
+            #   （只有指标现象成立时不得计入"涉及要件"，详见 constituent_checkpoint.redline_verdict_rule）
+            _part = _pind(_cps, redline_id)
             _marks = "".join(_circled[i - 1] for i in _part if 1 <= i <= len(_circled))
             _head = ("经核对，本企业涉及上述第 %s 条构成要件（仅「已单独核对且符合情形」的要件计入）；"
                      % (_marks or "无"))
@@ -1884,7 +1887,12 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
                 _tail = ("（%s；独立数据源：%s｜%s）"
                          % (cp.get("核对结论"), cp.get("独立数据源"), cp.get("数据源状态")))
                 if cp.get("证据") and cp.get("_conclusion") == "checked_hit":
-                    _tail = _tail[:-1] + "；核对证据：%s）" % str(cp.get("证据"))[:120]
+                    # ★★ 2026-10-03（用户复核：证据被截成"…相差 ）"，括号不闭合）：
+                    #   旧实现 `str(...)[:120]` 是**硬切片** —— 没有省略号、还会把括号切掉，
+                    #   读者看到的是断句 + 孤立括号（实测"与 7,035,008.58 元相差 ）"）。
+                    #   铁律：截断必须可见（省略号是唯一信号），且括号必须配平。
+                    _ev = _clamp_balanced(str(cp.get("证据")), 150)
+                    _tail = _tail[:-1] + "；核对证据：%s）" % _ev
                 out.append(_naturalize_report_text(("%s %s" % (_mk, cp.get("要件"))).rstrip("。；") + _tail))
             _tb = _ctbl(_cps)
             return out, "constituents_checkpointed", _tb
@@ -1922,10 +1930,18 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
                 _hit_map["_unmet_note"] = "；".join(_unmet_notes)
             if not any(isinstance(k, int) for k in _hit_map):
                 # 全部命中项都未达门槛 → 不得声称"涉及"，如实写"未达门槛"
+                # ★ 2026-10-03：本函数其余分支都返回 **3 元组**（条目, 来源, 要件表），
+                #   这一支只返回 2 个值 ⇒ 调用方 `_sits, _sit_src, _cp_tbl = ...` 抛
+                #   "not enough values to unpack" —— 任何红线走到"命中项全未达门槛"都会让
+                #   报告装配整段失败（被 pytest 抓出）。补齐第 3 个返回值（无要件表 → None）。
+                # ★ 2026-10-03：本函数其余分支都返回 **3 元组**（条目, 来源, 要件表），
+                #   这一支只返回 2 个值 ⇒ 调用方 `_sits, _sit_src, _cp_tbl = ...` 抛
+                #   "not enough values to unpack" —— 任何红线走到"命中项全未达门槛"都会让
+                #   报告装配整段失败（被 pytest 抓出）。补齐第 3 个返回值（无要件表 → None）。
                 return [_naturalize_report_text(
                     "经核对，本企业本轮未达到上述构成要件的数值门槛，暂不计为涉及该项："
                     + "；".join(_unmet_notes) + "。上述要件清单供对照，具体是否涉及须补资料后重新判断。"
-                )], "constituents_threshold_unmet"
+                )], "constituents_threshold_unmet", None
             # 既有抽象要件、又有本企业命中 → 每条要件均列出，命中的在括号内标注本企业证据
             _hit_marks = "".join(_circled[i - 1] for i in sorted(k for k in _hit_map if isinstance(k, int))
                                  if 1 <= i <= len(_circled))
@@ -1947,12 +1963,12 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
             if _hit_map.get("_unmet_note"):
                 out.append(_naturalize_report_text(
                     "另有要件有信号但未达数值门槛，本轮不计为涉及：" + str(_hit_map["_unmet_note"])))
-            return out, "constituents"
+            return out, "constituents", None
         # 有抽象清单但本轮未取得逐条判定数据 → 仍列抽象清单，并说明
         return ([_naturalize_report_text(c.rstrip("。；")) for c in _cons]
                 + [_naturalize_report_text(
                     "（本轮已对该红线逐条核对，尚未取得足以判定各要件的完整数据；"
-                    "上列为本红线涉嫌构成要件）")]), "constituents_no_hit"
+                    "上列为本红线涉嫌构成要件）")]), "constituents_no_hit", None
     # —— 无抽象清单（不应发生，91 条红线均≥3 条）：回退到本企业实际核对到的事实 ——
     raw_items = []
 
@@ -1994,7 +2010,30 @@ def _enterprise_situations(arg, clue, cap=8, constituents=None, checkpoints=None
             continue                       # 完全重复
         keep.append(i)
         kept_keys.append(k)
-    return [_naturalize_report_text(raw_items[i]) for i in keep[:cap]], "facts"
+    return [_naturalize_report_text(raw_items[i]) for i in keep[:cap]], "facts", None
+
+
+def _clamp_balanced(text, limit):
+    """截断文本但**保留可见省略号**并**配平括号**（报告正文铁律：截断必须可见）。
+
+    ★ 2026-10-03 新增：旧代码直接用 `[:N]` 硬切片，实测把要件证据切成
+    "…与 7,035,008.58 元相差 ）" —— 断句 + 孤立右括号，读者读不通。
+    本函数：① 只在句子边界或空格处切；② 追加"…"；③ 补足被切掉的右括号。
+    """
+    s = str(text or "")
+    if len(s) <= limit:
+        return s
+    cut = s[:limit]
+    for _sep in ("。", "；", "，", "、", " "):
+        _k = cut.rfind(_sep)
+        if _k >= limit // 2:
+            cut = cut[:_k + (1 if _sep != " " else 0)]
+            break
+    cut = cut.rstrip("，、；： ")
+    for _pair in (("（", "）"), ("(", ")"), ("「", "」"), ("《", "》")):
+        if cut.count(_pair[0]) > cut.count(_pair[1]):
+            cut += _pair[1] * (cut.count(_pair[0]) - cut.count(_pair[1]))
+    return cut + "…"
 
 
 def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
@@ -2187,7 +2226,7 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
         except Exception:
             _cps_all = []
         _sits, _sit_src, _cp_tbl = _enterprise_situations(
-            arg, clue, constituents=_cons_all, checkpoints=_cps_all)
+            arg, clue, constituents=_cons_all, checkpoints=_cps_all, redline_id=rid)
         # ★ 2026-10-02：先无条件预置为空，供下面 p4 复用（避免在 `if _cons_all:` 里赋值、
         #   却在分支外读取的 UnboundLocalError —— 曾多次栽在"变量只在分支内赋值"上）。
         _participating: set = set()
@@ -2201,7 +2240,7 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
             if _cps_all:
                 try:
                     from engine.constituent_checkpoint import participating_indices as _pind
-                    _participating = set(_pind(_cps_all))
+                    _participating = set(_pind(_cps_all, rid))
                 except Exception:
                     _participating = set()
             _sig_lead = str(clue.get("terminal_signal") or "").strip()
@@ -2275,8 +2314,18 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
         _p3 = "本项要定性为成立还是不成立，须先把材料补齐：本项核查需要%d项材料" % _need_n
         if have:
             _p3 += "，其中名称逐字对应、已确在手上的有%d项（%s）" % (_have_n, _name_brief(have))
+        elif verify:
+            # ★★ 2026-10-03（用户复核疑点11："本项检查需要4项材料，目前还没有一项材料与要求
+            #   逐字对应"——而同一页正文正在引用序时账/销项发票/银行流水的数字）：
+            #   旧文案在 have 为空时一律写"还没有一项材料与要求逐字对应"，读者会理解成
+            #   "企业什么都没交"，与证据表里的"待核实（有同类资料）/缺2项"自相矛盾。
+            #   事实是：**本项要求的材料名比已提供清单的类别名更细**（如要求"全部银行账户
+            #   及个人账户流水"、已提供类别为"银行流水"）——属"同类资料、范围须确认"，
+            #   不是"未提供"。三态各说各话，不得用一句话把"待核"吞成"没有"。
+            _p3 += "，其中%d项已提供同类资料（%s）、但与本项要求的范围未逐字对应，须确认是否覆盖" % (
+                len(verify), _name_brief(verify))
         else:
-            _p3 += "，目前还没有一项材料与要求逐字对应"
+            _p3 += "，目前没有一项材料与本项要求对应"
         if verify:
             _p3 += "；另有%d项（%s）须确认已提供资料中是否含该内容" % (
                 len(verify), _name_brief(verify))

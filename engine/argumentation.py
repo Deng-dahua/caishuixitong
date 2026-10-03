@@ -478,12 +478,20 @@ def _compose_reasoning(redline: Dict, claim: str, clue: Dict, evidence: Dict,
     _av = int(evidence.get('available_count', 0) or 0)
     _mc = int(evidence.get('missing_count', 0) or 0)
     _mm = evidence.get('missing_materials') or []
-    _mat_txt = f"就资料来说，{_v}（已提供{_av}项"
+    # ★★ 2026-10-03（用户复核疑点11："本项检查需要4项材料，目前还没有一项材料与要求逐字对应"，
+    #   而同一页正文正在引用序时账/销项发票/银行流水的数字 —— 读者会以为企业什么都没交）：
+    #   "已提供0项"这一句只统计**名称逐字对应**的材料，**不含"已提供同类资料、须确认范围"那一类**。
+    #   三态必须各说各话：逐字对应 N 项 / 同类待确认 M 项 / 确未提供 K 项，
+    #   不得用"已提供0项"把"待核"一起吞成"没有"。
+    _vf = int(evidence.get('verify_count', 0) or 0)
+    _mat_txt = f"就资料来说，{_v}（名称逐字对应已提供{_av}项"
+    if _vf:
+        _mat_txt += f"；另有{_vf}项已提供同类资料、范围须人工确认"
     if _mm:
         _mat_txt += "；尚缺：" + "、".join(str(m) for m in _mm[:6])
     elif _mc:
         _mat_txt += f"；还缺{_mc}项"
-    else:
+    elif not _vf:
         _mat_txt += "，所需资料已齐备"
     # ★ 2026-10-02：**括号必须闭合**。旧版只写了左括号「（已提供N项…」，
     #   却从未补右括号 —— 正文出现「…现有资料不足以排除本项涉嫌风险。」后面永远缺一个「）」，

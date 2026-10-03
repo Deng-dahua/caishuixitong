@@ -7633,11 +7633,27 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         }
     
     def _voucher_row(v, label="凭证"):
+        # ★★ 2026-10-03（用户复核："金额合计0.00元"当列入检查的理由）：
+        #   旧实现 `to_number(v.get("credit", v.get("debit", 0)))` —— `dict.get` 的默认值**只在键不存在时**才用；
+        #   真实凭证行是 `{"debit": 40000.0, "credit": 0.0}`（**credit 键存在且为 0**）⇒ 永远取到 0.00，
+        #   于是明细表整列 0.00，报告写成"金额合计0.00元、单笔最大0.00元"这类**无意义证据**。
+        #   正确口径＝该行的**实际发生额**（借方或贷方中非零的那个），并标注方向（借/贷）。
+        _d = to_number(v.get("debit", v.get("借方", 0)))
+        _c = to_number(v.get("credit", v.get("贷方", 0)))
+        if _c and not _d:
+            _amt, _dir = _c, "贷"
+        elif _d and not _c:
+            _amt, _dir = _d, "借"
+        elif _d == _c == 0:
+            _amt, _dir = 0.0, ""
+        else:
+            _amt, _dir = _d, "借"   # 借贷同现（极少）：取借方并标注
         return {
             "source": label,
             "ref_id": str(v.get("voucher_no", v.get("凭证号", "")))[:25] or "-",
             "ref_label": str(v.get("summary", v.get("摘要", "")))[:30],
-            "amount": to_number(v.get("credit", v.get("debit", 0))),
+            "amount": _amt,
+            "direction": _dir,
             "counterparty": str(v.get("account_name", v.get("科目", "")))[:25],
             "date": str(v.get("entry_date", v.get("period", v.get("日期", ""))))[:10],
             "note": ""

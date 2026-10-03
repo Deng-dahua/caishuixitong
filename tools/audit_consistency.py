@@ -5845,7 +5845,9 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         if _cth("无阈值的要件", "任何证据")[0] != "unknown":
             issues.append(("ERROR", "engine/constituent_threshold.py", "无阈值要件不应判 unmet"))
         from engine.enterprise_report import _enterprise_situations
-        _s1, _src1 = _enterprise_situations(
+        # ★ 2026-10-03：`_enterprise_situations` 契约统一为 **3 元组**（条目, 来源, 要件表），
+        #   闸门原按 2 元组解包 → 阈值未达分支一走到就 "too many values to unpack"。
+        _s1, _src1, _ = _enterprise_situations(
             {"constituent_hits": [{"index": 2, "evidence": "未付款占比 32.5%"}]}, {},
             constituents=["要件一", "未付款占比超过50%", "要件三"])
         if _src1 != "constituents_threshold_unmet":

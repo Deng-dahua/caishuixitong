@@ -214,9 +214,53 @@ def build_constituent_checkpoints(suspicion: Dict[str, Any]) -> List[Dict[str, A
     return out
 
 
-def participating_indices(checkpoints: List[Dict[str, Any]]) -> List[int]:
-    """可计入「涉及第X条要件」的序号（只有 `checked_hit`）。"""
-    return sorted(int(cp["index"]) for cp in (checkpoints or []) if cp.get("参与认定"))
+def redline_verdict_rule(redline_id: Any) -> Dict[str, Any]:
+    """红线的**要件组合逻辑**（可选声明；未声明返回空 dict ⇒ 保持既有行为）。
+
+    字段（数据驱动，写在 engine/tax_redlines.py 的红线定义里）：
+      indicator_constituents —— **指标类要件**：只说明"看到的现象"，单独成立**不构成违规**
+                                （例：RL-VAT-006 第①条"全部收入均已开票"——全部开票本身是正当情形）；
+      violation_any_of       —— **违规成立所需**的要件（任一成立即可）。
+
+    ★ 2026-10-03（用户复核疑点11）根因：旧实现只要第①条（指标）成立就判"已触碰税务违规红线"，
+      而②③④（未开票收入的**来源特征**）全部未发现 ⇒ 结论完全颠倒：
+      一家客户全部要票、没有个人/现金/平台收款的企业，被指控"隐匿未开票收入"。
+    """
+    rid = str(redline_id or "").strip()
+    if not rid:
+        return {}
+    try:
+        from engine.tax_redlines import REDLINES
+    except Exception:
+        return {}
+    for rl in REDLINES:
+        if str(rl.get("id") or "") == rid:
+            if rl.get("violation_any_of"):
+                # ★ 不得返回 set —— 序列化后会以 `set()` repr 形式混进报告（闸门 check_no_set_in_report 实测抓出）。
+                return {
+                    "indicator": sorted(int(x) for x in (rl.get("indicator_constituents") or [])),
+                    "any_of": sorted(int(x) for x in (rl.get("violation_any_of") or [])),
+                }
+            return {}
+    return {}
+
+
+def participating_indices(checkpoints: List[Dict[str, Any]],
+                          redline_id: Any = None) -> List[int]:
+    """可计入「涉及第X条要件」的序号（只有 `checked_hit`，且须通过**要件组合逻辑**）。
+
+    给了 `redline_id` 且该红线声明了 `violation_any_of` 时：
+      · 命中集合与 `any_of` 有交集 → 照旧（构成违规，全部命中要件计入）；
+      · 只有 `indicator_constituents`（指标现象）成立 → **返回空集**
+        （报告随之写"未认定到构成要件"，不再出现"仅指标现象就判触红"的颠倒结论）。
+    """
+    hits = sorted(int(cp["index"]) for cp in (checkpoints or []) if cp.get("参与认定"))
+    rule = redline_verdict_rule(redline_id)
+    if not rule or not hits:
+        return hits
+    if set(hits) & set(rule["any_of"]):
+        return hits
+    return []
 
 
 def checkpoint_table(checkpoints: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
