@@ -2278,7 +2278,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         from engine.business_model import detect_business_model
         _cp = (ctx.company_profile if ctx else {}) or {}
         _bm = detect_business_model({"sal_invs": sal_invs or [], "company_profile": _cp})
-        domain_results.append({"domain": "资金全链路追踪", "findings": _domain_bank_tracking(bank_txs, _bm)})
+        domain_results.append({"domain": "资金全链路追踪", "findings": _domain_bank_tracking(bank_txs, _bm, vouchers)})
     # 主体快照（2026-09-15）：各域须据此识别本企业所在城市/行业等。
     # 此前 _target_snapshot 只在 `if sal_invs:` 块内定义，且 `target_entity` 从未作为变量存在
     # （它只是上一段字典字面量里的**键名**）——域调用若写 target_entity 会直接

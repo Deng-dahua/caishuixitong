@@ -2477,9 +2477,9 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
             if _sec and _sec.get("bullets"):
                 _sec["text"] = _naturalize_report_text(_sec["text"])
                 _sec["bullets"] = [_naturalize_report_text(b) for b in _sec["bullets"]]
-                _pos = next((k for k, pp in enumerate(paragraphs)
-                             if str(pp.get("heading") or "").startswith("二、")), None)
-                paragraphs.insert(_pos + 1 if _pos is not None else len(paragraphs), _sec)
+                # 位置＝**末尾**：段名是「六、」，接在「五、需企业提供的资料与说明」之后，
+                # 编号与位置一致（曾插在「二、」之后，出现"二、→六、→三、"的乱序）。
+                paragraphs.append(_sec)
         except Exception as _le:
             # 铁律：不静默吞（except 留痕）——推演段失败必须可见，否则等于没有这层能力
             if audit_sink is not None:

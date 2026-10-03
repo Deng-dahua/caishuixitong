@@ -353,13 +353,13 @@ def classify_receipts(bank_txs: Sequence[Any], vouchers: Optional[Sequence[Any]]
     }
 
 
-def operating_credit_total(bank_txs: Sequence[Any]) -> float:
+def operating_credit_total(bank_txs: Sequence[Any], vouchers: Optional[Sequence[Any]] = None) -> float:
     """**收入口径**的经营性收款合计（凡"银行入账 vs 开票收入"比对一律用它）。
 
     性质分类不可用时（B3）返回全部贷方合计——调用方**必须**用
     `income_scope_note()` 把这一事实写进报告，不许静默。
     """
-    res = classify_receipts(bank_txs)
+    res = classify_receipts(bank_txs, vouchers)
     if not res["available"]:
         return res["total"]
     return res["operating"]

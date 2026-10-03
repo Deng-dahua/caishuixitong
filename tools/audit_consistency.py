@@ -7246,7 +7246,44 @@ def check_bank_receipt_nature_single_source() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", "engine/domain_analysis.py",
                                "三源对比未披露剔除口径/待判定收款（读者无法判断口径）"))
 
-        # ④ 反向验证：性质全改成经营性 → 收入口径必然变大
+            # ★ 2026-10-03 追加 A：**读账优先**的行为锁定 —— 同一个对手方，
+        #   挂「其他应付款」时必须判非经营性（不得按摘要里的'货款'猜成经营性）。
+        try:
+            _vs = [{"account": "2241", "account_name": "其他应付款/某某科技有限公司",
+                    "debit": 0.0, "credit": 500000.0}]
+            _bank2 = [_mk("某某科技有限公司", "货款", 500000.0)]
+            _r2 = _bn.classify_receipts(_bank2, _vs)
+            if _r2["non_operating"] != 500000.0:
+                issues.append(("ERROR", "engine/bank_nature.py",
+                               "序时账科目未优先于摘要关键词（挂其他应付款的收款被判成了"
+                               "经营性/待判定）——'读账'链路断开"))
+            if _r2["evidence_stats"].get("序时账科目", 0.0) != 500000.0:
+                issues.append(("ERROR", "engine/bank_nature.py",
+                               "evidence_stats 未记录'序时账科目'来源（报告无法披露证据层级）"))
+        except Exception as exc:
+            issues.append(("WARN", "engine/bank_nature.py", "读账优先判据不可检查：%s" % exc))
+
+        # ★ 2026-10-03 追加 B：**调用点不得漏传序时账** ——
+        #   漏传会静默退回「猜摘要」，报告里的「性质待判定」永远消不掉（本轮实际踩过）。
+        import re as _re3
+        for _p2 in sorted((ROOT / "engine").glob("*.py")):
+            try:
+                _lines = _p2.read_text(encoding="utf-8", errors="replace").splitlines()
+            except OSError:
+                continue
+            for _i2, _ln in enumerate(_lines, 1):
+                if _ln.lstrip().startswith("#"):
+                    continue
+                _m2 = _re3.search(r"(classify_receipts|classify_credit)\(([^)]*)\)", _ln)
+                if not _m2:
+                    continue
+                _args = _m2.group(2)
+                if "voucher" in _args or "ledger" in _args or "rules" in _args:
+                    continue
+                issues.append(("ERROR", "engine/%s" % _p2.name,
+                               "第%d行 %s 未传序时账/索引 —— 收款性质会退回猜摘要"
+                               % (_i2, _m2.group(1))))
+    # ④ 反向验证：性质全改成经营性 → 收入口径必然变大
         _orig = _bn._receipt_cfg
 
         def _flip():

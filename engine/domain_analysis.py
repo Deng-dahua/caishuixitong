@@ -194,7 +194,7 @@ __all__ = [
 ]
 
 
-def _domain_bank_tracking(txs, business_model=None):
+def _domain_bank_tracking(txs, business_model=None, vouchers=None):
     """域1: 资金全链路追踪（第三方支付通道感知 + 经营模式裁决）
 
     系统级共享能力：第三方支付归集账户（支付宝/财付通/微信支付等）本质是资金通道，
@@ -221,7 +221,8 @@ def _domain_bank_tracking(txs, business_model=None):
     #   的分母若是"全部贷方"（含借款/往来/保证金），占比会被稀释 ⇒ 该报的不报。
     #   性质分类不可用时回退全部贷方（并在 how_found 里写明口径）。
     from engine.bank_nature import classify_receipts as _bn_receipts1
-    _bn1 = _bn_receipts1(txs)
+    # ★ 2026-10-03：分母口径同样以序时账科目为准（漏传则仍按猜摘要，与三源对比不同源）
+    _bn1 = _bn_receipts1(txs, vouchers)
     income = _bn1["operating"] if (_bn1["available"] and _bn1["operating"] > 0) else _bn1["total"]
     expense = sum(tx["debit"] for tx in txs)
     if income > 0 and cats.get("third_party", 0) / income > T.ratios.half:
@@ -6700,7 +6701,10 @@ def _extract_material_intel(bank_txs, invoices, salaries, social_security, vouch
         #   避免"收款构成"与"收入口径"两条链路各判一次）。类别名前缀标注性质，
         #   让读者一眼看出哪些收款不属于收入。
         from engine.bank_nature import classify_receipts as _bn_receipts
-        _bn_res = _bn_receipts(bank_txs)
+        # ★ 2026-10-03：**必须传 vouchers** —— 收款性质以序时账科目为准。
+        #   漏传会让"收款构成"仍按猜摘要分类，报告里的"性质待判定"永远消不掉
+        #   （实测：读账后应归零，但此处漏传导致 202,000 元仍标"待判定"）。
+        _bn_res = _bn_receipts(bank_txs, vouchers)
         intel["银行流水"]["收款构成"] = {}
         for label, v in sorted(_bn_res["by_label"].items(), key=lambda kv: -kv[1]["amount"]):
             if v["amount"] > 0.01:
