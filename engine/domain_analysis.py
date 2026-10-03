@@ -1835,8 +1835,8 @@ def _housing_fund_findings(sal_rows, sal_pm, sal_amt, sal_names, housing_fund):
                                   "2）全面排查其他人员是否存在同类低基数缴存；"
                                   "3）建立「工资变动 → 缴存基数联动」的内控制度，留存年度基数核定表。",
                     "category": "域8 工资社保",
-                    "observed_metrics": {"low_base_person_count": len(_persons),
-                                         "detail": low_base},
+            "observed_metrics": {"low_base_person_count": len(_persons),
+                                 "detail": low_base},
                     "detail_tables": [{
                         "title": ("公积金缴存基数低于实际工资（%d 人；个人缴存额占工资 "
                                   "%.2f%%~%.2f%%）" % (len(_persons), min(_ratios), max(_ratios))),
@@ -2134,6 +2134,23 @@ def _domain_salary_ss_hf_compare(salaries, social_security, housing_fund=None):
                 "uninsured_person_month_count": len(uninsured),
                 "person_month_detail": detail_rows,
             },
+            # ★★ 2026-10-03（同疑点23 根因）：**自带权威明细**，禁止关键词兜底采样接管。
+            #   此前本项主题含"工资"，兜底采样抓"工资表金额最大的 5 条"，
+            #   于是表题写「有工资无社保」、行里却是工资表**全员名单**
+            #   （4 人其实已参保）—— 外部点评实测过这对矛盾，当时只在报告层加口径说明，
+            #   没有从"表从哪来"上根治。现在表就是**差异人员的人月配对**本身。
+            "detail_tables": [{
+                "title": ("有工资无社保（工资表 %d 人、社保参保 %d 人，差 %d 人；"
+                          "共 %d 组姓名与月份组合）"
+                          % (len(sal_names), len(ss_names), len(uninsured_persons), len(uninsured))),
+                "columns": ["序号", "人员", "月份", "应发工资（元）", "说明"],
+                "rows": [
+                    {"序号": i + 1, "人员": _n, "月份": _m,
+                     "应发工资（元）": "{:,.2f}".format(
+                         to_number(sal_amt.get((_n, _m), sal_amt.get((_n, "未标注月份"), 0)) or 0.0)),
+                     "说明": "该月有工资发放、无社保参保记录"}
+                    for i, (_n, _m) in enumerate(uninsured)],
+            }],
             # ★ 本企业**实际涉及**的构成要件（逐条判定，只列命中的）
             "constituent_hits": _ch,
             "redline_id": "RL-PAY-001",
@@ -2195,7 +2212,22 @@ def _domain_salary_ss_hf_compare(salaries, social_security, housing_fund=None):
             "tax_impact": "低基数参保被查处后需补缴差额及滞纳金，并可能被认定为恶意规避社保义务面临罚款。",
             "policy_ref": "《社会保险法》第十二条、第三十五条关于缴费基数的规定。",
             "suggestion": f"1）按员工实际工资调整{n}的社保缴费基数；2）全面排查其他员工是否存在类似低基数问题；3）建立工资变动与社保基数联动的内控制度。",
-            "category": "域8 工资社保"},
+            "category": "域8 工资社保",
+            # ★★ 2026-10-03（同疑点23 根因）：**自带权威明细**，禁止关键词兜底采样接管。
+            #   此前本项主题含"工资"，兜底采样抓"工资表金额最大的 5 条"，
+            #   于是附表标题写「有工资无社保（共5笔）」、行里却是工资表**全员名单**
+            #   （4 人其实已参保）—— 外部点评实测过这对矛盾，当时只在报告层加口径说明，
+            #   没有从"表从哪来"上根治。现在表就是**逐人比对结果本身**。
+            "detail_tables": [{
+                "title": ("社保低基数参保（该人工资 %.2f 元、缴费基数 %.2f 元，基数占工资 %.2f%%）"
+                          % (salary, base, base / salary * 100)),
+                "columns": ["人员", "涉及月份", "应发工资（元）",
+                            "社保缴费基数（元）", "基数占工资"],
+                "rows": [{"人员": n, "涉及月份": _mtxt.replace("涉及月份 ", "") or "未标注月份",
+                          "应发工资（元）": "{:,.2f}".format(salary),
+                          "社保缴费基数（元）": "{:,.2f}".format(base),
+                          "基数占工资": "{:.2f}%".format(base / salary * 100)}],
+            }]},
             resolve_steps=[
                 f"核实{n}的社保缴费基数核定口径：若上年度月平均工资确实低于本月发放额，提供上年度工资台账即可解释该差异。",
                 "若确属低基数：按实际工资申报调整缴费基数并补缴差额及滞纳金，留存调整凭证。",
@@ -4456,6 +4488,17 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
     # 薪酬与社保人数比对（同样过滤噪声名）
     ss_count = len(_clean_emp_names(social_security)) if social_security else 0
     if emp_count > 0 and ss_count > 0 and emp_count != ss_count:
+        # 逐人姓名差集 + 工资合计（供本项自带明细表用；不做兜底采样）
+        _only_sal = sorted(set(_clean_emp_names(salaries)) - set(_clean_emp_names(social_security)))
+        _sal_sum: dict = {}
+        for _r in (salaries or []):
+            if not isinstance(_r, dict):
+                continue
+            _nm = str(_r.get("name") or "").strip()
+            if not _nm:
+                continue
+            _sal_sum[_nm] = _sal_sum.get(_nm, 0.0) + to_number(
+                _r.get("salary") or _r.get("wage") or _r.get("应发") or _r.get("gross"))
         findings.append({
             "type": "工资人数与社保人数不一致",
             "level": "高风险", "score": 8,
@@ -4464,7 +4507,24 @@ def _domain_workforce_profiling(salaries, voucher_rev, bank_txs, social_security
             "how_found": "分别从工资表和社保明细中提取唯一员工姓名集合，对比人数差异。",
             "tax_impact": "① 未参保员工→社保稽核+补缴+滞纳金；② 工资费用如无社保支撑→可能被质疑为虚列费用→纳税调整。",
             "suggestion": "① 立即为未参保员工补办社保登记并补缴；② 如为劳务派遣/外包，提供派遣协议。",
-            "category": "人员画像"
+            "category": "人员画像",
+            # ★★ 2026-10-03（同疑点23 根因）：**自带权威明细**，禁止关键词兜底采样接管。
+            #   否则附表退化成"工资表金额最大的 5 条"（全员名单），与"仅 N 人未参保"矛盾。
+            #   ⚠ 本项与域8「有工资无社保」(RL-PAY-001) 属**同一事实的两条链路**：域8 那条
+            #     口径更细（人月级配对 + 红线编号 + 出罪要件），本项保留作"人员画像"域的独立观察，
+            #     表由本项自出，不再借用工资表全量。
+            "detail_tables": [{
+                "title": ("工资名册有、社保参保无（工资表 %d 人、社保 %d 人，差 %d 人）"
+                          % (emp_count, ss_count, abs(emp_count - ss_count))),
+                "columns": ["序号", "人员", "工资表内工资合计（元）", "说明"],
+                "rows": ([{"序号": _i + 1, "人员": _nm,
+                           "工资表内工资合计（元）": "{:,.2f}".format(_sal_sum.get(_nm, 0.0)),
+                           "说明": "在工资表名册内、未见于社保参保名单"}
+                          for _i, _nm in enumerate(_only_sal)] or [
+                             {"序号": 1, "人员": "（人员级差异，无法逐人对应）",
+                              "工资表内工资合计（元）": "",
+                              "说明": "工资表与社保清单的姓名无法逐人对应，仅能给出人数差异"}]),
+            }],
         })
     
     return findings
