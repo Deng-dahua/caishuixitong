@@ -169,24 +169,52 @@ def build_external_check_reminders(sal_invs, pur_invs, bank_txs, bs, income, ctx
     bank = bank_txs or []
 
     # ── 1) 供应商外部核验：供应商集中 / 名称缺失或雷同 ──
-    sellers = {}
-    for i in pur:
-        s = _seller(i)
-        if s:
-            sellers[s] = sellers.get(s, 0.0) + abs(amount_of(i or {}))   # ★ 唯一权威
-    pur_total = sum(sellers.values())
-    if pur_total > 0 and sellers:
-        top = max(sellers.values()) / pur_total
-        conc = getattr(ctx, "supplier_concentration", None) if ctx else None
-        if (len(sellers) >= 4 and top >= 0.6) or (isinstance(conc, (int, float)) and conc >= 0.6):
+    # ★★ 2026-10-03（用户："疑点24 供应商集中度与地域分布缺乏商业合理性……
+    #   你也必须充分证据证明到底是怎么缺乏商业合理性！！！！"）
+    #   **根因：量纲错误（百分数 vs 小数）** —— `ctx.supplier_concentration` 是**百分数**
+    #   （phase1_triage 写入 `top3_pct`，行业预警阈值也是 80），而这里曾用 `conc >= 0.6`
+    #   （**小数**阈值）比较 ⇒ `33.45 >= 0.6` **恒真** ⇒ **任何企业都会命中"供应商高度集中"**。
+    #   实测公司1：真实供应商 374 家、CR1 11.75%、CR3 33.68%，是**极其分散**，
+    #   报告却写"供应商高度集中"——结论与事实完全相反。
+    #   现统一走唯一权威 `engine/supplier_stats.supplier_concentration`（同一口径、同一量纲），
+    #   并**只有判定为"集中"时才产出本项**；措辞直接来自统计（数值与文字一致）。
+    from engine.supplier_stats import supplier_concentration as _sup_conc, DEFAULT_WARN_PCT as _WARN
+    _home = None
+    _ind = None
+    try:
+        if ctx is not None:
+            _home = getattr(ctx, "home_province", None) or None
+            # ★ 行业用于"成本类采购"筛选（供应商＝与主营业务成本相关的采购；
+            #   期间费用类对手方不是"供应商"——见 supplier_stats 模块头注释）
+            _ip = getattr(ctx, "industry_profile", None)
+            if isinstance(_ip, dict):
+                _ind = _ip.get("industry") or _ip.get("industries") or _ip.get("name")
+            if not _ind:
+                _cp = getattr(ctx, "company_profile", None)
+                if isinstance(_cp, dict):
+                    _ind = _cp.get("industry") or _cp.get("industry_resolved")
+    except Exception:
+        _home = _home or None
+    _stat = _sup_conc(pur, home_province=_home, industry=_ind)
+    if _stat["verdict"] == "集中":
+        _warn = _WARN
+        _ip_thr = None
+        try:
+            if ctx is not None and isinstance(getattr(ctx, "industry_profile", None), dict):
+                _ip_thr = (ctx.industry_profile.get("benchmarks") or {}).get("supplier_concentration_warn")
+        except Exception:
+            _ip_thr = None
+        if isinstance(_ip_thr, (int, float)) and _ip_thr > 0:
+            _warn = float(_ip_thr)          # 行业自适应阈值（同为百分数）
+        if _stat["cr3"] >= _warn:
             findings.append(_reminder(
                 "供应商工商登记与开票环境",
-                f"对最大供应商的采购占进项总额约{top:.0%}，供应商高度集中。",
-                "供应商高度集中时，需核实其是否为真实经营主体（成立时间、实缴资本、参保人数、"
+                _stat["note"],
+                "供应商集中时，需核实前几家是否为真实经营主体（成立时间、实缴资本、参保人数、"
                 "注册地址、是否为走逃/非正常户、开票IP/MAC是否与本企业或关联企业雷同）。",
                 "供应商营业执照/工商信息、参保人数、注册时间与实缴资本、开票环境信息。",
-                _RID_SUPPLIER, "ext_supplier_verify", round(top, 4),
-                entities=[_top_supplier_name(sellers)],
+                _RID_SUPPLIER, "ext_supplier_verify", round(_stat["cr3"] / 100.0, 4),
+                entities=_stat["top_names"][:1],
             ))
 
     # ── 2) 资金流实名核验：存在对私/公转私 ──

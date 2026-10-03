@@ -443,31 +443,31 @@ def _detect_quarter_end_spike(ctx, invoices, direction):
 
 
 def _detect_supplier_concentration(ctx, pur_invs):
-    """供应商集中度检测（行业自适应阈值）"""
-    from collections import defaultdict
-    supplier_amounts = defaultdict(float)
-    for inv in pur_invs:
-        seller = str(inv.get("seller", inv.get("销方名称", ""))).strip()
-        amount = float(inv.get("amount", inv.get("total", 0)) or 0)
-        if seller and amount > 0:
-            supplier_amounts[seller] += amount
-    
-    if len(supplier_amounts) < 2:
+    """供应商集中度检测（行业自适应阈值）。
+
+    ★ 2026-10-03：**唯一权威**改为 `engine.supplier_stats.supplier_concentration`
+    （按票号去重 + 剔除平台/全国性服务商 + 家数下限 8），本函数只做薄转发。
+
+    单位约定（血泪）：`ctx.supplier_concentration` 是**百分数**（如 33.68），
+    与行业预警阈值 `supplier_concentration_warn`（默认 80）**同量纲**。
+    历史事故：`external_check_reminder` 曾用小数阈值 0.6 与它比较 ⇒ 恒真 ⇒
+    任何企业都被判"供应商高度集中"（"12% 高度集中"就是这么写出来的）。
+    """
+    from engine.supplier_stats import supplier_concentration as _sup
+    _home = getattr(ctx, "home_province", None) or None
+    stat = _sup(pur_invs, home_province=_home)
+    if stat["real_count"] < 2:
         return
-    
-    total = sum(supplier_amounts.values())
-    top3 = sorted(supplier_amounts.values(), reverse=True)[:3]
-    top3_pct = sum(top3) / total * 100
-    
+    top3_pct = stat["cr3"]                       # 百分数，与阈值同量纲
     ctx.supplier_concentration = top3_pct
-    
-    # 行业阈值：制造业60%，贸易50%
+    ctx.supplier_concentration_stat = stat       # 完整统计（CR1/CR3/CR5/地域/家数）
     ip = ctx.industry_profile or {}
-    warn_threshold = ip.get("benchmarks", {}).get("supplier_concentration_warn", 80)
-    
-    if top3_pct > warn_threshold and len(supplier_amounts) >= 3:
+    warn_threshold = (ip.get("benchmarks", {}) or {}).get("supplier_concentration_warn", 80)
+    if stat["verdict"] == "集中" and top3_pct > warn_threshold and stat["real_count"] >= 3:
         ctx.add_flag("yellow", "供应商高度集中",
-                    f"前3大供应商占总采购额{top3_pct:.0f}%（行业预警{warn_threshold}%）→可能存在关联交易或供应商依赖风险", "初查")
+                     f"前3大供应商占真实采购额{top3_pct:.0f}%（行业预警{warn_threshold}%）→"
+                     f"可能存在关联交易或供应商依赖风险", "初查")
+
 
 
 def _detect_customer_concentration(ctx, sal_invs):
