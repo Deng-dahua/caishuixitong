@@ -61,15 +61,6 @@ def _seller(inv: Any) -> str:
     return str(seller_name(inv) or "").strip()
 
 
-def _inv_amount(inv: Any) -> float:
-    from engine.fieldkit import total as _total
-    try:
-        v = abs(to_number(_total(inv) or inv.get("amount") or 0))
-    except Exception:
-        v = 0.0
-    return v
-
-
 def _is_platform(name: str) -> bool:
     try:
         from engine.verified_rule_engine import _is_platform_operator
@@ -88,13 +79,18 @@ def _province(name: str) -> Optional[str]:
 
 
 def supplier_amounts(pur_invs: Sequence[Any], *, dedup: bool = True) -> Dict[str, float]:
-    """按供应商归集采购额（**唯一口径**：按发票号去重，避免一票多行重复计入）。"""
+    """按供应商归集采购额（**唯一口径**：按发票号去重，避免一票多行重复计入）。
+
+    ★ 金额一律取**字段权威** `fieldkit.total`（不再自建 `_amount/_inv_amount` 包装：
+      跨模块重名会被闸门判"同一概念两份实现"，且包装层容易与权威漂移）。
+    """
+    from engine.fieldkit import total as _fk_total
     if not dedup:
         out: Dict[str, float] = defaultdict(float)
         for i in (pur_invs or []):
             s = _seller(i)
             if s:
-                out[s] += _inv_amount(i)
+                out[s] += abs(to_number(_fk_total(i) or 0))
         return dict(out)
 
     from engine.fieldkit import invoice_no as _invno
@@ -104,7 +100,7 @@ def supplier_amounts(pur_invs: Sequence[Any], *, dedup: bool = True) -> Dict[str
         if not s:
             continue
         no = str(_invno(i) or "").strip() or ("__row__%d" % id(i))
-        amt = _inv_amount(i)
+        amt = abs(to_number(_fk_total(i) or 0))
         k = (s, no)
         if amt > by_inv.get(k, 0.0):
             by_inv[k] = amt
