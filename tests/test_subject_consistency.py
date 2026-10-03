@@ -52,12 +52,22 @@ class TestAxisRedlineMap:
         ("应付账款发生额对等", "RL-PTY-001"),
         ("增值税进项税额对等", "RL-CIT-008"),
         ("工资多源对等", "RL-PAY-002"),
-        ("公积金缴存对等", "RL-SPT-010"),
         ("固定资产原值勾稽", "RL-AST-001"),
     ])
     def test_axis_maps_to_subject_matching_redline(self, axis, expect):
         from engine.subject_consistency import axis_redline
         assert axis_redline(axis)[0] == expect
+
+    def test_fund_reconcile_axis_must_not_claim_spt010(self):
+        """★ 2026-10-03（用户质询疑点23）：公积金**金额**勾稽轴不得挂 RL-SPT-010。
+
+        RL-SPT-010 要证的是**人数与缴存基数**（未全员缴存 / 基数不实），
+        而本轴比的是**金额**（缴存明细 vs 账簿"住房公积金"科目），且两者口径本就不同
+        （明细常只列个人部分、科目含单位+个人）⇒ 相减的"差额"是口径差、不是少缴。
+        公积金的人数/基数比对已由域8「工资社保比对」独立承担（见 tests/test_payroll_coverage.py）。
+        """
+        from engine.subject_consistency import axis_redline
+        assert axis_redline("公积金缴存对等")[0] == ""
 
     def test_axis_without_matching_redline_declares_none(self):
         """账簿记录质量类勾稽轴（账账不符）没有主体对得上的红线 → 不声明，绝不套用。"""

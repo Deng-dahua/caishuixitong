@@ -124,7 +124,8 @@ _SIGNAL_DOMAIN_MAP = {
 
 def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs,
                       salaries, social_security, vouchers, inventory, docs, file_results,
-                      contract_data, voucher_revenue, total_parsed, pipeline_log):
+                      contract_data, voucher_revenue, total_parsed, pipeline_log,
+                      housing_fund=None):
     """
     Phase 2 — 信号驱动的定向深挖
     
@@ -217,7 +218,7 @@ def _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_inv
         "上下游穿透分析": lambda: _domain_supply_chain_deep(invoices, bank_txs),
         "经营实质地理分析": lambda: _domain_business_premise_geo(bank_txs, invoices, docs, ctx.company_profile.get("industry", "")),
         "关联交易穿透检测": lambda: _domain_related_party_check(sal_invs, pur_invs, bank_txs),
-        "工资社保比对": lambda: _domain_salary_ss_hf_compare(salaries, social_security),
+        "工资社保比对": lambda: _domain_salary_ss_hf_compare(salaries, social_security, housing_fund),
         "人员与业务匹配": lambda: _domain_workforce_profiling(salaries, voucher_revenue, bank_txs, social_security),
         "个人交易风险": lambda: _domain_personal_transactions(sal_invs),
         "收入时间线调查": lambda: _domain_revenue_timeline(vouchers, sal_invs, bank_txs),

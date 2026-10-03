@@ -7617,6 +7617,144 @@ def check_no_company_hardcoding_in_judgement() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_housing_fund_workforce_compare() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03（用户："疑点23 又操蛋了，怎么得来了？"）：公积金**人数/基数**比对必须真正接线。
+
+    背景（实测根因）：`_domain_salary_ss_hf_compare` 名字里有 `hf`，签名里**没有** housing_fund
+    —— 公积金从未接入用工比对。它只被"金额对等勾稽"轴捞走（明细的**个人**部分 vs 账簿科目的
+    **单位+个人**），贴上 RL-SPT-010 的名字，于是触发依据是**口径差**造成的假差额（1,200 vs 2,400），
+    而真正的人数差异（有人未缴存）与基数不实（全员按最低基数）**一条也没算**。
+
+    判据（端到端产出断言，而非仅查源码接线）：
+      ① 域8 必须接收 housing_fund 参数，并调用独立的公积金比对函数；
+      ② 该函数必须在**任何早退分支之前**被调用（否则"只提供工资表+公积金"的企业整段不执行）；
+      ③ pipeline 与 phase2 两个调用点都必须传入公积金数据；
+      ④ 公积金金额勾稽轴**不得**挂 RL-SPT-010（金额≠人数/基数）；
+      ⑤ 字段名读取必须来自唯一权威 `payroll_rules`（不得再有第二份别名表）；
+      ⑥ **行为断言**：给定"工资 6 人 / 公积金 5 人"的样本，必须产出 RL-SPT-010 且证据含差异人名；
+         给定"个人缴存额占工资 2.5%"的样本，必须产出基数不实结论。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    da_rel = "engine/domain_analysis.py"
+    pr_rel = "engine/payroll_rules.py"
+    for rel in (da_rel, pr_rel):
+        if not (ROOT / rel).exists():
+            return [("ERROR", "engine/", "缺少 %s（公积金比对权威模块缺失）" % rel)]
+
+    src_da = (ROOT / da_rel).read_text(encoding="utf-8", errors="replace")
+    src_pr = (ROOT / pr_rel).read_text(encoding="utf-8", errors="replace")
+
+    # ① 签名必须收 housing_fund；必须有独立比对函数
+    if "def _domain_salary_ss_hf_compare(salaries, social_security, housing_fund=None)" not in src_da:
+        issues.append(("ERROR", da_rel,
+                       "域8 比对函数未接收 housing_fund —— 公积金未接入用工比对"))
+    if "def _housing_fund_findings(" not in src_da:
+        issues.append(("ERROR", da_rel, "缺少公积金比对函数 _housing_fund_findings"))
+
+    # ② 必须在早退分支之前调用（调用点在 ss_names 赋值之后、任何 `return findings` 之前）
+    if "findings.extend(_housing_fund_findings(" not in src_da:
+        issues.append(("ERROR", da_rel, "公积金比对未被调用（findings.extend 缺失）"))
+    else:
+        _call = src_da.index("findings.extend(_housing_fund_findings(")
+        _brk = src_da.index("分支A：只有工资表", 0)
+        if src_da.index("分支A：只有工资表", 0) < _call:
+            issues.append(("ERROR", da_rel,
+                           "公积金比对调用位于「只有工资表」早退分支之后 —— 该分支会提前返回，"
+                           "导致只提供工资表+公积金的企业整段不执行"))
+
+    # ③ 两个调用点都必须传入公积金数据
+    for rel, marker in (("engine/pipeline.py", "_domain_salary_ss_hf_compare("),
+                        ("engine/phase2_deep_dive.py", "_domain_salary_ss_hf_compare(")):
+        p = ROOT / rel
+        s = p.read_text(encoding="utf-8", errors="replace") if p.exists() else ""
+        idx = s.find(marker)
+        if idx < 0:
+            issues.append(("ERROR", rel, "未调用域8 比对函数"))
+            continue
+        tail = s[idx:idx + 200]
+        if "housing_fund" not in tail:
+            issues.append(("ERROR", rel, "调用域8 比对时未传入公积金数据（housing_fund）"))
+
+    # ④ 金额勾稽轴不得挂 RL-SPT-010
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT))
+        from engine.subject_consistency import RECONCILE_AXIS_REDLINE  # noqa
+        rid = (RECONCILE_AXIS_REDLINE.get("公积金缴存对等") or ("", ""))[0]
+        if rid:
+            issues.append(("ERROR", "engine/subject_consistency.py",
+                           "「公积金缴存对等」（金额勾稽）仍挂 %s —— 金额口径差会被读成「未全员缴存」" % rid))
+    except Exception as e:  # pragma: no cover
+        issues.append(("WARN", "engine/subject_consistency.py", "勾稽轴映射自检失败：%s" % e))
+
+    # ⑤ 字段名唯一权威：不得再有第二份公积金字段别名表
+    for rel in ("engine/domain_analysis.py", "engine/monthly_reconcile.py"):
+        s = (ROOT / rel).read_text(encoding="utf-8", errors="replace")
+        if '"counterparty"' in s and rel.endswith("monthly_reconcile.py"):
+            issues.append(("ERROR", rel,
+                           "仍在自建公积金月份别名（counterparty）——应走 payroll_rules.hf_month"))
+    for marker in ("def hf_month", "def hf_amount", "def hf_person", "def hf_detail_scope"):
+        if marker not in src_pr:
+            issues.append(("ERROR", pr_rel, "缺少唯一权威入口 %s" % marker))
+
+    # ⑦ 要件数据源的「或」必须按「或」判（且/或两个链路不得各判一次）
+    mn_rel = "engine/material_names.py"
+    src_mn = (ROOT / mn_rel).read_text(encoding="utf-8", errors="replace") if (ROOT / mn_rel).exists() else ""
+    if "def strict_category_groups" not in src_mn:
+        issues.append(("ERROR", mn_rel, "缺少 strict_category_groups（要件数据源的且/或解析）"))
+    ec_rel = "engine/evidence_chain.py"
+    src_ec = (ROOT / ec_rel).read_text(encoding="utf-8", errors="replace") if (ROOT / ec_rel).exists() else ""
+    if "_strict_category_groups(" not in src_ec:
+        issues.append(("ERROR", ec_rel,
+                       "类别层未使用 strict_category_groups —— 「或」会被当成「且」，"
+                       "只满足其一的企业该要件永远判「未单独核对」"))
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT))
+        from engine.material_names import strict_category_groups as _scg
+        from engine.evidence_chain import _match_material as _mm
+        _g = _scg("工资表或个税申报表")
+        if not (_g and len(_g) == 1 and len(_g[0]) == 2):
+            issues.append(("ERROR", mn_rel, "「工资表或个税申报表」未解析为同一组的两个候选"))
+        _st = (_mm("工资表或个税申报表", "", ["工资表"]) or {}).get("status")
+        if _st != "已有":
+            issues.append(("ERROR", ec_rel,
+                           "只提供工资表时「工资表或个税申报表」判为「%s」而非「已有」—— 或语义未生效" % _st))
+        if ((_mm("进项发票与采购台账", "", ["进项发票"]) or {}).get("status")) == "已有":
+            issues.append(("ERROR", ec_rel, "「且」语义被放宽（只提供进项发票就判「已有」）"))
+    except Exception as e:  # pragma: no cover
+        issues.append(("ERROR", ec_rel, "且/或语义自检异常：%s" % e))
+
+    # ⑥ 行为断言（端到端产出）
+    try:
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT))
+        from engine.domain_analysis import _domain_salary_ss_hf_compare as _cmp
+        _sal = [{"name": "甲", "salary": 12000, "hf_deduct": 300,
+                 "period_start": "2025-01-01", "period_end": "2025-01-31"},
+                {"name": "乙", "salary": 9000, "hf_deduct": 0,
+                 "period_start": "2025-01-01", "period_end": "2025-01-31"}]
+        _fund = [{"person_name": "甲", "counterparty": "2025-01", "amount_col": "300"}]
+        out = _cmp(_sal, [], _fund) or []
+        types = {f.get("type") for f in out}
+        if "有工资无公积金" not in types:
+            issues.append(("ERROR", da_rel, "行为断言失败：有工资无公积金未产出（人数比对未生效）"))
+        else:
+            f = next(f for f in out if f.get("type") == "有工资无公积金")
+            if f.get("redline_id") != "RL-SPT-010":
+                issues.append(("ERROR", da_rel, "「有工资无公积金」未挂 RL-SPT-010"))
+            if "乙" not in str(f.get("detail") or ""):
+                issues.append(("ERROR", da_rel, "「有工资无公积金」证据未点名差异人员（证据不硬）"))
+        if "公积金缴存基数低于实际工资" not in types:
+            issues.append(("ERROR", da_rel,
+                           "行为断言失败：基数不实未产出（法定 5% 反向证伪未生效）"))
+    except Exception as e:  # pragma: no cover
+        issues.append(("ERROR", da_rel, "行为断言异常（公积金比对不可用）：%s" % e))
+
+    return issues
+
+
 def check_material_name_single_source() -> List[Tuple[str, str, str]]:
     """★ 2026-10-03（用户："彻底解决多种叫法的问题"）：资料名称**唯一权威** + 齐备性口径一致。
 
@@ -7782,6 +7920,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_inference_ladder_coverage()  # 2026-10-03 点→面推演层：每次都触发 + 差集会计实质
                + check_no_company_hardcoding_in_judgement()  # 2026-10-03 泛化性：判定代码不得硬编码具体企业名
                + check_material_name_single_source()  # 2026-10-03 资料名称唯一权威（两级命名/别名归一）
+               + check_housing_fund_workforce_compare()  # 2026-10-03 公积金接入人数/基数比对（金额勾稽不冒充人数结论）
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

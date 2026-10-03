@@ -1593,8 +1593,302 @@ def _domain_tax_consistency(bank_txs, db, company_id):
                 "category": "域7 税务一致性"})
     return findings
 
-def _domain_salary_ss_hf_compare(salaries, social_security):
-    """域8: 工资社保比对（按月归位 + 过滤表头合计行 + **单向可查**）。
+def _housing_fund_findings(sal_rows, sal_pm, sal_amt, sal_names, housing_fund):
+    """公积金（用工第三方：工资 vs 社保 vs 公积金）比对发现。
+
+    ★★ 2026-10-03：从 `_domain_salary_ss_hf_compare` 抽出为独立函数，**在任何早退分支之前调用**。
+      原先它位于函数末尾，而「只有工资表」「只有社保明细」两个分支会提前 `return findings`
+      ⇒ 一家只提供「工资表 + 公积金」的企业（未提供社保明细）**公积金比对整段不执行**。
+      公积金的人数/基数比对并不依赖社保明细，故必须独立于社保分支。
+    """
+    from engine.audit_doctrine import (
+        TERMINAL_IRONCLAD, TERMINAL_SELF_PROOF,
+        attach_three_piece, self_proof_item,
+    )
+    findings = []
+    # ══════════════ 公积金（用工第三方：工资 vs 社保 vs 公积金）══════════════
+    # ★★ 2026-10-03：公积金首次接入本比对（此前只在"金额勾稽"里被误挂红线）。
+    #   判据与社保**完全同口径**：人月级差集 + 基数反推；**存在即触发，不设阈值**。
+    hf_rows = [r for r in (housing_fund or []) if isinstance(r, dict)]
+    if hf_rows:
+        from engine.payroll_rules import (
+            HF_MIN_RATIO, HF_MIN_RATIO_BASIS, SS_BASE_LOW_RATIO_BASIS,
+            hf_detail_scope as _hf_detail_scope, hf_scope_zh as _hf_scope_zh,
+            hf_month as _hf_month, hf_person as _hf_person, hf_amount as _hf_amount,
+        )
+        hf_pm = set()
+        hf_amt: dict = {}          # (姓名, 月份) -> 明细所载缴存额（个人部分或单位+个人，见口径判定）
+        for r in hf_rows:
+            n = _hf_person(r)
+            if not n or _is_noise_name(n):
+                continue
+            m = _hf_month(r) or "未标注月份"
+            hf_pm.add((n, m))
+            hf_amt[(n, m)] = hf_amt.get((n, m), 0.0) + _hf_amount(r)
+        hf_names = {n for n, _ in hf_pm}
+
+        # ── 口径判定（唯一权威判据）：明细列的是"个人缴存部分"还是"单位+个人合计" ──
+        #   与工资表「公积金个人扣缴额」比对 —— 两者都是个人实际扣缴数。
+        #   判出个人口径 ⇒ 与账簿"住房公积金"科目（含单位缴存部分）**天然差一个单位部分**，
+        #   不能直接金额对等（`monthly_reconcile` 用同一函数判定，避免两处各判一次）。
+        hf_detail_total = sum(hf_amt.values())
+        sal_hf_total = 0.0
+        _sal_hf_by_pm = {}
+        for r in sal_rows:
+            _n = str(r.get("name", "")).strip()
+            if not _n or _is_noise_name(_n):
+                continue
+            _v = _number(r.get("hf_deduct") or r.get("公积金个人")
+                         or r.get("housing_fund_deduct"))
+            sal_hf_total += _v
+            _sal_hf_by_pm[(_n, _row_period(r) or "未标注月份")] = _v
+        # 口径判定：优先按 (人, 月) 配对（更可靠），配不出才退回总额法
+        from engine.payroll_rules import hf_detail_scope_pairs as _hf_scope_pairs
+        _pairs = [(hf_amt[k], _sal_hf_by_pm[k]) for k in hf_amt if k in _sal_hf_by_pm]
+        hf_scope = _hf_scope_pairs(_pairs) if _pairs else _hf_detail_scope(hf_detail_total, sal_hf_total)
+
+        # ══ 分支C：只有公积金明细（无工资表）—— 单向核验，工资侧转待补自证 ══
+        if hf_pm and not sal_pm:
+            _months = sorted({m for _, m in hf_pm if m != "未标注月份"})
+            findings.append(attach_three_piece({
+                "type": "公积金缴存明细已单独核验（工资发放情况待补证）",
+                "level": "待核验", "score": 3,
+                "how_found": "本轮仅提供住房公积金缴存明细、未提供工资表。已对明细做自身可独立完成的"
+                             "核验：按人员去重计缴存人数、按月归集缴存额并检查缴存月份是否断档。",
+                "detail": f"公积金缴存明细核验：缴存人员 {len(hf_names)} 人、共 {len(hf_pm)} 组"
+                          f"『姓名+月份』记录，缴存额合计 {hf_detail_total:,.2f} 元"
+                          f"（口径判定：{_hf_scope_zh(hf_scope)}），覆盖月份 "
+                          f"{'、'.join(_months) if _months else '未标注'}（{len(_months)} 个月）。"
+                          f"该结果可与工资表人数、社保参保人数进一步核对。",
+                "description": "公积金缴存明细本身已按现有资料核验完毕。**「缴存人数/基数是否与用工"
+                               "规模相符」属于「工资表 × 社保明细 × 公积金明细」的交叉判断**，"
+                               "本轮未提供工资表，因此系统不会、也不应据公积金明细单独推断"
+                               "「未全员缴存」或「基数不实」——名单为空只代表资料未提交，"
+                               "不构成违规证据。",
+                "tax_impact": "本项为已核验事实，尚不产生税务影响；须与工资表比对后方能判定。",
+                "policy_ref": "《住房公积金管理条例》第十五条、第十六条、第二十条。",
+                "category": "域8 工资社保",
+                "observed_metrics": {
+                    "hf_person_count": len(hf_names),
+                    "hf_person_month_count": len(hf_pm),
+                    "hf_total": round(hf_detail_total, 2),
+                    "hf_months": _months,
+                    "hf_detail_scope": hf_scope,
+                    "cross_check_blocked": "salaries",
+                },
+            },
+                resolve_steps=[
+                    "提供本轮公积金缴存所属期间的工资表（含人员姓名与所属月份），由系统完成"
+                    "『发薪人数 vs 缴存人数』『实际工资 vs 缴存基数』交叉比对；",
+                    "若缴存人数少于发薪人数，请提供差异人员的身份依据（退休返聘/劳务派遣/"
+                    "非全日制/已在他处缴存等）以说明性质；",
+                    "比对一致即可自证清白。",
+                ],
+                self_proof=[
+                    self_proof_item("工资表", "证明实际发薪人员、金额与所属月份，核对缴存人数与基数是否匹配", "财务/人事工资册"),
+                    self_proof_item("劳动合同", "证明缴存人员与用工关系（判断是否属应缴未缴）", "人事档案留存"),
+                    self_proof_item("社保明细", "证明参保人数与缴费基数，与公积金口径互为印证", "社保经办机构导出"),
+                ],
+                terminal_state=TERMINAL_SELF_PROOF,
+            ))
+            return findings
+
+        if sal_pm and hf_pm:
+            # ── 发现一：有工资无公积金（人月级差集；与社保侧「有工资无社保」同口径）──
+            unfunded = sorted(p for p in sal_pm if p not in hf_pm)
+            if unfunded:
+                unfunded_persons = sorted({n for n, _ in unfunded})
+                _pm = defaultdict(list)
+                for n, m in unfunded:
+                    if m != "未标注月份":
+                        _pm[n].append(m)
+                _mtxt = "；".join("{0}（{1}）".format(n, "、".join(ms)) for n, ms in _pm.items()) \
+                    or "（公积金明细未标注月份，无法按月核验，仅按人员级判定）"
+                _unf_amt = 0.0
+                for _n, _m in unfunded:
+                    _unf_amt += to_number(sal_amt.get((_n, _m), sal_amt.get((_n, "未标注月份"), 0)))
+                _ev1 = (f"工资表 {len(sal_names)} 人、公积金缴存 {len(hf_names)} 人；"
+                        f"有工资无公积金 {len(unfunded_persons)} 人"
+                        f"（{len(unfunded)} 组『姓名+月份』）：{_mtxt}")
+                if _unf_amt:
+                    _ev1 += f"；涉及工资列支 {_unf_amt:,.2f} 元（金额只作证据，不设门槛）"
+                findings.append(attach_three_piece({
+                    "type": "有工资无公积金",
+                    "level": "中风险", "score": 6,
+                    "how_found": "将工资表与住房公积金缴存明细按 (姓名, 所属月份) 归位后做集合差集，"
+                                 "找出『有工资发放但对应月份无公积金缴存记录』的姓名+月份配对项"
+                                 "（已剔除合计/姓名/小计等表头行）。与『有工资无社保』同一判定口径。",
+                    "detail": f"{len(unfunded_persons)} 名员工在工资表内有发薪记录，但对应月份无住房"
+                              f"公积金缴存记录：{_mtxt}。依据《住房公积金管理条例》第十五条，"
+                              f"单位应当自录用之日起 30 日内为职工办理缴存登记，属应缴未缴待证线索。",
+                    "description": f"工资表名单与住房公积金缴存名单在 {len(unfunded)} 组『姓名+月份』"
+                                   f"上不匹配（涉及 {len(unfunded_persons)} 人）。住房公积金与社保同属"
+                                   f"法定强制缴存义务，未全员缴存面临公积金管理中心责令限期办理、"
+                                   f"补缴及罚款；同时缴存人数与发薪人数、参保人数不一致，会进入"
+                                   f"人社—税务—公积金三部门数据比对预警范围。",
+                    "tax_impact": "住房公积金不属于税收，属行政强制缴存义务：逾期不办理登记或不缴存的，"
+                                  "由公积金管理中心责令限期办理，逾期可申请法院强制执行；"
+                                  "并可能影响工资薪金支出的合理性认定。",
+                    "policy_ref": "《住房公积金管理条例》第十五条（30日内办理缴存登记）、"
+                                  "第三十七条、第三十八条（罚则）。",
+                    "suggestion": f"1）为 {len(unfunded_persons)} 名未缴存员工办理缴存登记并补缴；"
+                                  f"2）如属退休返聘/劳务派遣/已在他处缴存等法定不重复缴存情形，"
+                                  f"保留书面证明；3）确保工资表人数、社保参保人数、公积金缴存人数"
+                                  f"三方一致。",
+                    "category": "域8 工资社保",
+                    "observed_metrics": {
+                        "unfunded_person_count": len(unfunded_persons),
+                        "unfunded_person_month_count": len(unfunded),
+                        "person_month_detail": [
+                            {"姓名": n, "月份": m,
+                             "工资": round(to_number(sal_amt.get((n, m), 0.0) or 0.0), 2)}
+                            for n, m in unfunded],
+                    },
+                    # ★★ 2026-10-03：**自带权威明细**，禁止关键词兜底采样接管。
+                    #   此前本项主题含"工资"，兜底采样抓的是"工资表金额最大的 5 条"，
+                    #   把已正常缴存公积金的人也列了进来（表与结论自相矛盾）。
+                    #   表题带上**人数对比**，"为何列入检查"据此即可自证。
+                    "detail_tables": [{
+                        "title": ("有工资无公积金（工资表 %d 人、公积金缴存 %d 人，差 %d 人；"
+                                  "共 %d 组姓名与月份组合）"
+                                  % (len(sal_names), len(hf_names), len(unfunded_persons),
+                                     len(unfunded))),
+                        "columns": ["序号", "人员", "月份", "应发工资（元）", "说明"],
+                        "rows": [
+                            {"序号": i + 1, "人员": n, "月份": m,
+                             "应发工资（元）": "{:,.2f}".format(to_number(
+                                 sal_amt.get((n, m), sal_amt.get((n, "未标注月份"), 0)) or 0.0)),
+                             "说明": "该月有工资发放、无住房公积金缴存记录"}
+                            for i, (n, m) in enumerate(unfunded)],
+                    }],
+                    "constituent_hits": [{"index": 1, "evidence": "工资表有发薪人员，存在劳动用工关系"},
+                                         {"index": 2, "evidence": _ev1}],
+                    "redline_id": "RL-SPT-010",
+                },
+                    resolve_steps=[
+                        f"核实这 {len(unfunded_persons)} 名人员未缴存公积金的原因并分情形处理："
+                        f"应缴未缴的立即办理登记并补缴；属法定不重复缴存情形的备齐佐证材料。",
+                        "补齐「用工身份」证据链：劳动合同 + 工资发放银行流水 + 社保参保明细，"
+                        "三份名单与公积金缴存名单须一致。",
+                        "更正后重新执行一键分析，由系统复查原差异是否消除。",
+                    ],
+                    self_proof=[
+                        self_proof_item("住房公积金缴存明细", "证明实际缴存人员名单与所属月份，核对与工资表人数是否一致", "公积金管理中心/受托银行导出"),
+                        self_proof_item("劳动合同", "证明用工关系成立与性质（判断是否属应缴未缴；退休返聘/劳务派遣/非全日制不适用单位缴存）", "人事档案留存"),
+                        self_proof_item("社保明细", "证明这些人员已由其他主体缴存住房公积金（避免重复认定）", "社保/公积金经办机构证明"),
+                        self_proof_item("工资表", "证明发薪人员、金额与所属月份（核对用工规模）", "财务/人事工资册"),
+                    ],
+                    terminal_state=TERMINAL_IRONCLAD,
+                ))
+
+            # ── 发现二：公积金缴存基数低于实际工资（法定下限 5% 反向证伪）──
+            #   个人月缴存额 = 缴存基数 × 个人比例，且比例 ≥ 5%（条例第十八条）
+            #   ⇒ 基数 ≤ 个人缴存额 ÷ 5% ⇒ 若「个人缴存额 < 工资 × 5%」则基数必然低于工资。
+            #   反向不成立（比例可能 12%），故只对 <5% 的记录产出结论（宁缺勿错）。
+            low_base = []
+            for r in hf_rows:
+                n = _hf_person(r)
+                if not n or _is_noise_name(n):
+                    continue
+                m = _hf_month(r) or "未标注月份"
+                v = to_number(hf_amt.get((n, m), 0.0) or 0.0)
+                s = to_number(sal_amt.get((n, m), sal_amt.get((n, "未标注月份"), 0)))
+                if s > 0 and v >= 0 and (v / s) < HF_MIN_RATIO:
+                    low_base.append({"姓名": n, "月份": m, "工资": round(s, 2),
+                                     "公积金个人缴存": round(v, 2),
+                                     "占工资": round(v / s * 100, 2),
+                                     "反推缴存基数上限": round(v / HF_MIN_RATIO, 2)})
+            if low_base:
+                _persons = sorted({d["姓名"] for d in low_base})
+                _ratios = [d["占工资"] for d in low_base]
+                _bases = [d["反推缴存基数上限"] for d in low_base]
+                _sals = [d["工资"] for d in low_base]
+                _sample = low_base[0]
+                _base_span = ("不超过 %.2f 元" % min(_bases)) if abs(max(_bases) - min(_bases)) < 0.01 \
+                    else ("不超过 %.2f~%.2f 元" % (min(_bases), max(_bases)))
+                _ev2 = (f"{len(_persons)} 名已缴存人员的公积金个人缴存额占其同期应发工资 "
+                        f"{min(_ratios):.2f}%~{max(_ratios):.2f}%，低于法定最低缴存比例下限 5%；"
+                        f"按法定最低缴存比例反推，缴存基数{_base_span}，而实际月应发工资为 "
+                        f"{min(_sals):,.2f}~{max(_sals):,.2f} 元"
+                        f"（为反推基数的 {min(_sals)/max(_bases):.2f}~{max(_sals)/min(_bases):.2f} 倍）")
+                findings.append(attach_three_piece({
+                    "type": "公积金缴存基数低于实际工资",
+                    "level": "中风险", "score": 6,
+                    "how_found": f"逐人按月比对工资表的应发工资与公积金缴存明细的个人缴存额，"
+                                 f"以法定最低缴存比例 {HF_MIN_RATIO*100:.0f}%（{HF_MIN_RATIO_BASIS}）"
+                                 f"反向推算缴存基数上限；个人缴存额占工资比例低于 5% 即说明"
+                                 f"缴存基数必然低于实际工资。",
+                    "detail": f"例：{_sample['姓名']}（{_sample['月份']}）应发工资 "
+                              f"{_sample['工资']:,.2f} 元，公积金个人缴存 {_sample['公积金个人缴存']:,.2f} 元"
+                              f"（占 {_sample['占工资']:.2f}%），反推缴存基数不超过 "
+                              f"{_sample['反推缴存基数上限']:,.2f} 元。全员情况：{_ev2}。",
+                    "description": "缴存基数应按职工本人上一年度月平均工资确定，且缴存比例不得低于 5%。"
+                                   "本企业已缴存人员的个人缴存额占其实际应发工资的比例显著低于 5% 的"
+                                   "法定下限，据此可**单向证伪**——其缴存基数必然低于实际工资，"
+                                   "属按最低/低基数缴存、缴存基数不实。",
+                    "tax_impact": "住房公积金不属于税收：少缴部分由公积金管理中心责令限期补缴，"
+                                  "逾期可加收滞纳金并处罚款；个人少缴部分虽减少当期个税专项扣除，"
+                                  "但单位少缴不影响企业所得税税前扣除，不产生税款追缴。",
+                    "policy_ref": "《住房公积金管理条例》第十六条（月缴存额＝本人上一年度月平均工资"
+                                  "×缴存比例）、第十八条（缴存比例不得低于 5%）、第二十条（不得少缴）。",
+                    "suggestion": "1）按职工实际工资重新核定缴存基数并补缴差额；"
+                                  "2）全面排查其他人员是否存在同类低基数缴存；"
+                                  "3）建立「工资变动 → 缴存基数联动」的内控制度，留存年度基数核定表。",
+                    "category": "域8 工资社保",
+                    "observed_metrics": {"low_base_person_count": len(_persons),
+                                         "detail": low_base},
+                    "detail_tables": [{
+                        "title": ("公积金缴存基数低于实际工资（%d 人；个人缴存额占工资 "
+                                  "%.2f%%~%.2f%%）" % (len(_persons), min(_ratios), max(_ratios))),
+                        "columns": ["序号", "人员", "月份", "应发工资（元）",
+                                    "公积金个人缴存（元）", "占工资", "反推缴存基数上限（元）"],
+                        "rows": [
+                            {"序号": i + 1, "人员": d["姓名"], "月份": d["月份"],
+                             "应发工资（元）": "{:,.2f}".format(d["工资"]),
+                             "公积金个人缴存（元）": "{:,.2f}".format(d["公积金个人缴存"]),
+                             "占工资": "{:.2f}%".format(d["占工资"]),
+                             "反推缴存基数上限（元）": "{:,.2f}".format(d["反推缴存基数上限"])}
+                            for i, d in enumerate(low_base)],
+                    }],
+                    "constituent_hits": [
+                        {"index": 1, "evidence": "工资表有发薪人员，存在劳动用工关系"},
+                        {"index": 3, "evidence": _ev2},
+                        {"index": 4, "evidence": "已缴存人员个人缴存额占实际工资比例均低于 5% 法定下限，"
+                                                 "反推缴存基数低于实际工资，属按低基数缴存、缴存基数不实"},
+                    ],
+                    "redline_id": "RL-SPT-010",
+                },
+                    resolve_steps=[
+                        "提供上一年度工资台账与公积金年度基数核定表：若上年度月平均工资确实低于"
+                        "本月发放额，可解释该差异（年度基数按上年度月均核定属正常）。",
+                        "若确属低基数：按职工实际工资重新核定基数并补缴差额，留存补缴凭证。",
+                        "建立「工资变动 → 缴存基数联动」内控，下一轮分析复查是否仍偏离。",
+                    ],
+                    self_proof=[
+                        self_proof_item("工资表", "证明实际应发工资的金额与所属月份（基数核定基准）", "财务/人事工资册"),
+                        self_proof_item("住房公积金缴存明细", "证明缴存基数与缴存比例的实际取值", "公积金管理中心/受托银行导出"),
+                        self_proof_item("社保明细", "证明社保缴费基数口径，与公积金基数互为印证", f"{SS_BASE_LOW_RATIO_BASIS}"),
+                    ],
+                    terminal_state=TERMINAL_IRONCLAD,
+                ))
+
+    return findings
+
+
+def _domain_salary_ss_hf_compare(salaries, social_security, housing_fund=None):
+    """域8: 工资社保**公积金**比对（按月归位 + 过滤表头合计行 + **单向可查**）。
+
+    ★★ 2026-10-03（用户质询"疑点23 又操蛋了，怎么得来了？"）：
+      本函数名一直叫 `..._ss_hf_compare`，签名里却**没有公积金**——公积金从未接入本比对。
+      它只被"金额对等勾稽"轴捞走（公积金明细的**个人**缴存部分 vs 账簿"住房公积金"科目的
+      **单位+个人**合计），贴上了 RL-SPT-010 的名字。后果有两个，都很严重：
+        ① **假疑点**：1,200 vs 2,400 的差额**纯粹是口径差**（明细列个人、账载含单位），
+           不是少缴；报告却把它写成"公积金缴存对等逐月不匹配"并据此置疑未全员缴存。
+        ② **真问题漏掉**：工资表 6 人 / 公积金 5 人（杨莹未缴存）、5 名已缴存人统一按
+           6,000 元最低基数缴存（个人 300 元/月）而实际月工资 8,000~30,000 元
+           —— 这两条**铁证**一条也没算出来，报告只能写"未认定到任何一条构成要件成立"。
+      现按与社保**完全同一口径**接入（人月级差集 + 基数比对 + 单向核验），
+      新增同类（如工会经费）只需在本函数加一段，不改判据骨架。
 
     修复要点（2026-09-04 同源排查）：
     1. 工资/社保名单均过滤表头合计行噪声名（合计/姓名/小计…），避免把标题行当成人员；
@@ -1624,7 +1918,10 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
     findings = []
     sal_rows = [r for r in (salaries or []) if isinstance(r, dict)]
     ss_rows = [r for r in (social_security or []) if isinstance(r, dict)]
-    if not sal_rows and not ss_rows:
+    # ★ 2026-10-03：守卫必须把公积金也计入 —— 只提供「公积金明细」的企业同样要查
+    #   （上传了什么就查什么）；旧守卫只认工资/社保 ⇒ 只有公积金时整域零产出。
+    hf_present = any(isinstance(r, dict) for r in (housing_fund or []))
+    if not sal_rows and not ss_rows and not hf_present:
         return findings
     # ── 按月归位（过滤表头/合计行噪声名）──
     sal_pm, ss_pm = set(), set()
@@ -1644,6 +1941,9 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
         ss_pm.add((n, m))
     sal_names = {n for n, _ in sal_pm}
     ss_names = {n for n, _ in ss_pm}
+
+    # 公积金比对必须在任何早退分支之前执行（见 `_housing_fund_findings` 文档）
+    findings.extend(_housing_fund_findings(sal_rows, sal_pm, sal_amt, sal_names, housing_fund))
 
     # ══════════ 分支A：只有工资表（无社保明细）—— 单向查工资，社保转待补自证 ══════════
     if sal_pm and not ss_pm:
@@ -1851,8 +2151,12 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
             ],
             terminal_state=TERMINAL_IRONCLAD,
         ))
-    # 社保低基数参保（逐人按月比对，过滤噪声名）
-
+    # 社保低基数参保（逐人比对，过滤噪声名）
+    # ★ 2026-10-03：原实现**逐行**产出 —— 同一员工 12 个月的记录会生成 12 条几乎相同的
+    #   「社保低基数参保」，报告里同一人重复出现十几次。现按人聚合，只保留偏离最大的一条，
+    #   并把覆盖月份并入证据（判定口径不变：`payroll_rules.SS_BASE_LOW_RATIO`）。
+    from engine.payroll_rules import SS_BASE_LOW_RATIO, SS_BASE_LOW_RATIO_BASIS
+    _ss_low: dict = {}
     for r in (social_security or []):
         if not isinstance(r, dict):
             continue
@@ -1869,29 +2173,43 @@ def _domain_salary_ss_hf_compare(salaries, social_security):
                 if nn == n:
                     salary = v
                     break
-        if salary and base < salary * 0.6:
-            findings.append(attach_three_piece({
-                "type": "社保低基数参保", "level": "中风险", "score": 6,
-                "how_found": "逐人按月比对工资表的工资金额与社保明细的缴费基数，缴费基数<实际工资60%触发预警。",
-                "detail": f"{n}：工资{salary:,.2f}元，社保缴费基数仅{base:,.2f}元（{base/salary*100:.2f}%）。",
-                "description": f"员工{n}实际发放工资{salary:,.2f}元，但社保缴费基数仅{base:,.2f}元，仅为实际工资的{base/salary*100:.2f}%。社保缴费基数应按职工本人上年度月平均工资确定，明显低于实际工资属低基数参保。",
-                "tax_impact": "低基数参保被查处后需补缴差额及滞纳金，并可能被认定为恶意规避社保义务面临罚款。",
-                "policy_ref": "《社会保险法》第十二条、第三十五条关于缴费基数的规定。",
-                "suggestion": f"1）按员工实际工资调整{n}的社保缴费基数；2）全面排查其他员工是否存在类似低基数问题；3）建立工资变动与社保基数联动的内控制度。",
-                "category": "域8 工资社保"},
-                resolve_steps=[
-                    f"核实{n}的社保缴费基数核定口径：若上年度月平均工资确实低于本月发放额，提供上年度工资台账即可解释该差异。",
-                    "若确属低基数：按实际工资申报调整缴费基数并补缴差额及滞纳金，留存调整凭证。",
-                    "建立「工资变动 → 社保基数联动」的内控动作，并在下一轮分析中复查是否仍存在偏离。",
-                ],
-                self_proof=[
-                    self_proof_item("工资表", "证明实际发放工资的金额与所属月份（基数核定基准）", "财务/人事工资册"),
-                    self_proof_item("社保明细", "证明缴费基数的实际取值与调整记录", "社保经办机构导出"),
-                    self_proof_item("纳税申报表", "证明个税扣缴申报的工资口径，与社保基数核定口径对照", "电子税务局·扣缴申报明细"),
-                ],
-                terminal_state=TERMINAL_IRONCLAD,
-            ))
+        if not salary or base >= salary * SS_BASE_LOW_RATIO:
+            continue
+        cur = _ss_low.get(n)
+        # 保真：同一人取「基数/工资」最低（偏离最大）的一组作为代表，其余只并月份
+        if cur is None or (base / salary) < (cur["base"] / cur["salary"]):
+            _ss_low[n] = {"salary": salary, "base": base, "month": m,
+                          "months": set(cur["months"]) if cur else set()}
+        _ss_low[n]["months"].add(m or "未标注月份")
+    for n, d in _ss_low.items():
+        salary, base = d["salary"], d["base"]
+        _ms = sorted(x for x in d["months"] if x and x != "未标注月份")
+        _mtxt = ("涉及月份 " + "、".join(_ms)) if _ms else "（社保明细未标注月份，按人员级判定）"
+        findings.append(attach_three_piece({
+            "type": "社保低基数参保", "level": "中风险", "score": 6,
+            "how_found": f"逐人比对工资表的应发工资与社保明细的缴费基数，缴费基数低于实际工资 "
+                         f"{SS_BASE_LOW_RATIO*100:.0f}% 触发预警（引用法定口径：{SS_BASE_LOW_RATIO_BASIS}）；"
+                         f"同一人员多条月度记录按偏离最大的一组归并，避免同一人重复计数。",
+            "detail": f"{n}：工资{salary:,.2f}元，社保缴费基数仅{base:,.2f}元（{base/salary*100:.2f}%）；{_mtxt}。",
+            "description": f"员工{n}实际发放工资{salary:,.2f}元，但社保缴费基数仅{base:,.2f}元，仅为实际工资的{base/salary*100:.2f}%。社保缴费基数应按职工本人上年度月平均工资确定，明显低于实际工资属低基数参保。",
+            "tax_impact": "低基数参保被查处后需补缴差额及滞纳金，并可能被认定为恶意规避社保义务面临罚款。",
+            "policy_ref": "《社会保险法》第十二条、第三十五条关于缴费基数的规定。",
+            "suggestion": f"1）按员工实际工资调整{n}的社保缴费基数；2）全面排查其他员工是否存在类似低基数问题；3）建立工资变动与社保基数联动的内控制度。",
+            "category": "域8 工资社保"},
+            resolve_steps=[
+                f"核实{n}的社保缴费基数核定口径：若上年度月平均工资确实低于本月发放额，提供上年度工资台账即可解释该差异。",
+                "若确属低基数：按实际工资申报调整缴费基数并补缴差额及滞纳金，留存调整凭证。",
+                "建立「工资变动 → 社保基数联动」的内控动作，并在下一轮分析中复查是否仍存在偏离。",
+            ],
+            self_proof=[
+                self_proof_item("工资表", "证明实际发放工资的金额与所属月份（基数核定基准）", "财务/人事工资册"),
+                self_proof_item("社保明细", "证明缴费基数的实际取值与调整记录", "社保经办机构导出"),
+                self_proof_item("纳税申报表", "证明个税扣缴申报的工资口径，与社保基数核定口径对照", "电子税务局·扣缴申报明细"),
+            ],
+            terminal_state=TERMINAL_IRONCLAD,
+        ))
     return findings
+
 
 def _domain_invoice_lifecycle(invoices):
     """域9: 发票生命周期"""

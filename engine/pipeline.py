@@ -2233,7 +2233,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     ctx.tax_declarations = tax_declarations
     phase2_results = _phase2_deep_dive(ctx, company_id, db, bank_txs, invoices, sal_invs, pur_invs,
                                         salaries, social_security, vouchers, inventory, docs, file_results,
-                                        contract_data, voucher_revenue, total_parsed, pipeline_log)
+                                        contract_data, voucher_revenue, total_parsed, pipeline_log,
+                                        housing_fund_data)
     # 记录 Phase 2 已覆盖的域名，避免后续 domain_results 重复
     broadcast("phase2_deep_dive", {"findings": len(all_findings) if 'all_findings' in dir() else 0}, pipeline_log)
     phase2_domains_covered = set(dr["domain"] for dr in phase2_results)
@@ -2299,7 +2300,9 @@ def _run_analyze(company_id, db, progress_callback=None):
     if vouchers: domain_results.append({"domain": "凭证科目异常", "findings": _domain_voucher_anomaly(vouchers)})
     if inventory: domain_results.append({"domain": "存货周转预警", "findings": _domain_inventory_turnover(inventory, sal_invs, pur_invs, bank_txs)})
     if bank_txs: domain_results.append({"domain": "税务缴纳一致性", "findings": _domain_tax_consistency(bank_txs, db, company_id)})
-    if salaries or social_security: domain_results.append({"domain": "工资社保比对", "findings": _domain_salary_ss_hf_compare(salaries, social_security)})
+    if salaries or social_security or housing_fund_data:
+        domain_results.append({"domain": "工资社保比对", "findings": _domain_salary_ss_hf_compare(
+            salaries, social_security, housing_fund_data)})
     if clean_invs: domain_results.append({"domain": "发票生命周期", "findings": _domain_invoice_lifecycle(clean_invs)})
     if inv_match_findings: domain_results.append({"domain": "进销存匹配分析", "findings": inv_match_findings})
     _report(97, f"步骤③域分析 — 已完成{len(domain_results)}个域(基础域)", step=3)
@@ -7782,6 +7785,17 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         except Exception:  # noqa: BLE001
             _periods = set()
         evidence_rows = []
+        # ★★ 2026-10-03（用户质询"疑点23 又操蛋了，怎么得来了？"）：
+        #   **本项自带结构化明细时，一律不做关键词兜底采样。**
+        #   事故：疑点「住房公积金未开户、未全员缴存或缴存基数不实」的主题含"工资"，
+        #   下面的"工资相关 → 采样工资记录"分支便抓了**工资表金额最大的 5 条**
+        #   （徐瑶/黄奕珊/李昭阳/初永伟 其实都已正常缴存，只有杨莹未缴存）
+        #   ⇒ 附表标题写「有工资无公积金」、行里却列着已缴存的人，与结论**自相矛盾**；
+        #   更糟的是"为何列入检查"整段被这张表的口径摘要占据
+        #   （"按有工资无公积金（共5笔）口径，共10笔记录"），读者看不到真正的人数对比。
+        #   判据：发现已声明 `detail_tables` / `evidence_rows` ⇒ 它就是权威明细，不再兜底。
+        if f.get("detail_tables") or f.get("evidence_rows"):
+            continue
         # ★ 2026-10-02（用户要求「不需要设定抽样，应该是全显示」）：**取消抽样上限**。
         #   原为每项最多 8 条示例行，读者看到 8 行会以为这就是全部（与正文"共N笔"对不上）；
         #   前端本就是折叠表（点击展开），全量展示不会影响阅读。

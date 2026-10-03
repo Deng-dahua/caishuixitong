@@ -50,6 +50,7 @@ from engine.material_names import (
     canonical as _canonical_material,
     strict_categories_of as _strict_categories_of,
     strict_categories_all as _strict_categories_all,
+    strict_category_groups as _strict_category_groups,
 )
 
 _GENERIC_MATERIAL_TOKENS = {
@@ -208,15 +209,19 @@ def _match_material(evidence_name: str, purpose: str,
     #        判不出类别（反证材料、非同类实物）⇒ 保持下方严格逐字逻辑，**不兜底**。
     if role != "反证":
         # ★ 必须"全部段落都能归类"才允许走类别层（未登记的段落会让判定失效，不得静默丢弃）
-        _cats = _strict_categories_all(evidence_name)
-        if _cats:
+        #   ★★ 2026-10-03：改走 `strict_category_groups` —— 支持「或」语义
+        #   （要件①「工资表**或**个税申报表」＝ 其一即可；旧实现按「且」判，
+        #     只上传工资表的企业该要件永远"未单独核对"）。与 `_material_requirements`
+        #     的契约（"A或B → 两者之一即可"）对齐。
+        _groups = _strict_category_groups(evidence_name)
+        if _groups:
             # ★ 两处收紧（由既有严格性测试逼出，测试是对的）：
             #   ① 已提供侧**只用严格口径**：`category_strict`（登记别名/类别名），
             #      **不得**用关键词兜底 —— 否则「渠道订单」会因为名字里含"订单"
             #      被当成「合同文件」类别，从而给"采购合同"发一张假的"已有"
             #      （实测 test_no_fuzzy_match 正是锁这条）。
-            #   ② **必须完全覆盖**：要求里的类别集合要**全部**在已提供类别中才判「已有」；
-            #      只覆盖一部分（"进项发票与采购台账"里只有进项发票）⇒ 不得整项判已有
+            #   ② **必须完全覆盖**：每个「且」组内**任一「或」候选**的全部类别都在
+            #      已提供类别中，才算该组满足；未覆盖 ⇒ 不得整项判已有
             #      （实测 test_partial_match_is_pending_not_available 锁这条）。
             _have_cats = set()
             _have = []
@@ -225,9 +230,10 @@ def _match_material(evidence_name: str, purpose: str,
                 if _c:
                     _have_cats.add(_c)
                     _have.append(_a)
-            if set(_cats) <= _have_cats:
-                _have = [a for a in _have if _category_strict(a) in set(_cats)]
-                _cat_txt = "、".join(_cats)
+            if all(any(set(_alt) <= _have_cats for _alt in _grp) for _grp in _groups):
+                _needed = sorted({c for _grp in _groups for _alt in _grp for c in _alt})
+                _have = [a for a in _have if _category_strict(a) in set(_needed)]
+                _cat_txt = "、".join(_needed)
                 _basis = ("本项要求「%s」（资料类别：%s）；企业已提供同类资料「%s」，"
                           "该类别已具备——其中具体材料的范围与口径（如是否覆盖全部账户、"
                           "是否含本项所指协议）须人工确认。" %
@@ -236,7 +242,7 @@ def _match_material(evidence_name: str, purpose: str,
                         "matched_detail": [{"material": a, "need": evidence_name,
                                             "form": a, "exact": False} for a in _have[:4]],
                         "unmet": [], "related": [], "basis": _basis,
-                        "by_category": _cats}
+                        "by_category": _needed}
     groups = _material_requirements(evidence_name)
     matched: List[str] = []
     matched_detail: List[Dict] = []

@@ -830,10 +830,31 @@ class TestWhyIncludedIsSummaryNotExample:
                        {"对方单位": "李昭阳", "金额（元）": "1,004,478.76"},
                        {"对方单位": "初永伟", "金额（元）": "100,000.00"}]}]
         out = _evidence_summary(t)
-        assert "共3笔记录" in out and "涉及2个对象" in out
+        assert "涉及 2 个对象" in out, out
         assert "2,175,822.56" in out, out          # 合计复算
-        assert "1,071,343.80" in out and "初永伟" in out
-        assert out.startswith("按「"), out           # 必须点明口径
+        assert out.startswith("资金回流与公私混同检测"), out   # 必须点明口径（表题即口径）
+
+    def test_evidence_summary_does_not_merge_across_tables(self):
+        """★ 2026-10-03（用户质询疑点23「触发依据不能自证」）：**逐表概述，不跨表合并行数**。
+
+        事故：同一疑点挂了三张语义不同的表（要件表 5 行 + 有工资无公积金 2 行 +
+        缴存基数 53 行），旧实现把行数与金额**加总**成"共55笔记录…金额合计928,000.00元"
+        —— 这两个数字既不是人数差异、也不是基数差额，读者无法据此判断"为什么列入检查"。
+        """
+        from engine.enterprise_report import _evidence_summary
+        t = [{"title": "有工资无公积金（工资表 6 人、公积金缴存 5 人，差 1 人）",
+              "rows": [{"人员": "杨莹", "应发工资（元）": "8,500.00"}]},
+             {"title": "公积金缴存基数低于实际工资（5 人）",
+              "rows": [{"人员": "徐瑶", "应发工资（元）": "12,000.00"},
+                       {"人员": "黄奕珊", "应发工资（元）": "12,000.00"}]}]
+        out = _evidence_summary(t)
+        # 两张表各自成句，各自的题目/行数/对象数/金额都在
+        assert out.count("本表") == 2, out
+        assert "有工资无公积金" in out and "公积金缴存基数低于实际工资" in out
+        assert "本表 1 行" in out and "本表 2 行" in out, out
+        assert "8,500.00" in out                # 第①表（1 行 ⇒ 合计即该行）
+        assert "24,000.00" in out, out          # 第②表各自复算 12,000×2
+        assert "32,500.00" not in out           # **不得**跨表加总（8500+24000）
 
     def test_evidence_summary_empty_when_no_rows(self):
         from engine.enterprise_report import _evidence_summary

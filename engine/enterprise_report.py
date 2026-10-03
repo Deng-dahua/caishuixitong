@@ -1029,46 +1029,44 @@ def _evidence_summary(tables) -> str:
     rows = [r for tb in (tables or []) for r in ((tb or {}).get("rows") or [])]
     if not rows:
         return ""
-    names, amts = [], []
-    for r in rows:
-        who = str((r or {}).get("对方单位") or (r or {}).get("counterparty") or "").strip()
-        if who and who not in names:
-            names.append(who)
-        # ★ 列名可能被 `table_governance` 在全角/半角之间规范过（「金额（元）」/「金额(元)」），
-        #   这里两种都要认，否则概述会静默丢掉"合计金额"（实测漏过一次）。
-        for k in ("金额（元）", "金额(元)", "金额", "amount"):
-            if k in (r or {}):
-                try:
-                    amts.append(abs(float(str((r or {})[k]).replace(",", ""))))
-                except (TypeError, ValueError):
-                    pass
-                break
-    parts = ["共%d笔记录" % len(rows)]
-    if names:
-        parts.append("涉及%d个对象" % len(names))
-    _who_max = ""
-    if amts:
-        parts.append("金额合计%s元" % format(sum(amts), ",.2f"))
-        _mx = max(amts)
-        for r in rows:
-            # ★ "单笔最大"必须来自**逐笔行**：汇总行（"【汇总】…未达门槛"）的金额是合计，
-            #   把它当"单笔最大"会出现"单笔最大 117 万（其他个人／个体往来…）"这种自相矛盾的表述。
-            _who_r = str((r or {}).get("对方单位") or (r or {}).get("counterparty") or "").strip()
-            if _who_r.startswith("【汇总】") or "未达本要件" in _who_r:
-                continue
-            for k in ("金额（元）", "金额(元)", "金额", "amount"):
-                if k in (r or {}):
+    # ★★ 2026-10-03（用户质询疑点23「触发依据不能自证」）：**逐表概述，不跨表合并行数**。
+    #   事故：同一疑点挂了三张表（要件核对表 5 行 + 有工资无公积金 2 行 + 缴存基数 53 行），
+    #   旧实现把三张表的行数/金额**加总**成"共55笔记录…金额合计928,000.00元" ——
+    #   55 与 928,000 在语义上既不是人数差异、也不是基数差额，读者无法据此判断"为什么列入检查"。
+    #   现按表逐条概述：表题（自带口径与人数对比）+ 本表行数 + 对象数 + 金额合计。
+    _NAME_KEYS = ("对方单位", "counterparty", "人员", "人员姓名", "姓名")
+    _AMT_KEYS = ("金额（元）", "金额(元)", "金额", "amount", "应发工资（元）", "工资")
+    segs: List[str] = []
+    for tb in (tables or []):
+        _rows = [r for r in ((tb or {}).get("rows") or []) if isinstance(r, dict)]
+        if not _rows:
+            continue
+        ttl = str((tb or {}).get("title") or "逐笔明细").strip()
+        names, amts = [], []
+        for r in _rows:
+            who = ""
+            for _k in _NAME_KEYS:
+                who = str(r.get(_k) or "").strip()
+                if who:
+                    break
+            if who and who not in names:
+                names.append(who)
+            for k in _AMT_KEYS:
+                if k in r:
                     try:
-                        if abs(float(str(r[k]).replace(",", ""))) == _mx:
-                            _who_max = _who_r
+                        amts.append(abs(float(str(r[k]).replace(",", "").rstrip("%"))))
                     except (TypeError, ValueError):
                         pass
                     break
-        parts.append("单笔最大%s元%s" % (format(_mx, ",.2f"),
-                                     ("（%s）" % _who_max[:16]) if _who_max else ""))
-    _titles = [str((tb or {}).get("title") or "") for tb in (tables or []) if (tb or {}).get("title")]
-    _head = ("按「%s」口径，" % _titles[0][:26]) if _titles else ""
-    return _head + "；".join(parts) + "。"
+        seg = "%s（本表 %d 行" % (ttl, len(_rows))
+        if names:
+            seg += "，涉及 %d 个对象" % len(names)
+        if amts:
+            seg += "，金额合计 %s 元" % format(sum(amts), ",.2f")
+        segs.append(seg + "）")
+        if len(segs) >= 3:
+            break
+    return "；".join(segs) + "。"
 
 
 def _select_detail_tables(rid, rname, sup_subjects, src_tables, dt_by_rid, dt_by_type, s):

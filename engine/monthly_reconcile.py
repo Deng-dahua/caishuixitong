@@ -283,15 +283,21 @@ def _bank_series(bank: List[Dict]):
 
 
 def _fund_series(rows: List[Dict]) -> Dict[str, float]:
-    """住房公积金明细（通用表）→ {月: 缴存额合计}。"""
+    """住房公积金明细（通用表）→ {月: 缴存额合计}。
+
+    ★ 2026-10-03：月份/金额的字段名收敛到唯一权威 `engine.payroll_rules`
+      （`hf_month`/`hf_amount`）。此前本函数与 `domain_analysis` 的公积金比对**各写一份**
+      别名表，且本函数认 `counterparty`、对方不认 ⇒ 同一份明细两条链路读出不同月份。
+    """
+    from engine.payroll_rules import hf_month, hf_amount
     out: Dict[str, float] = {}
     for r in rows or []:
         if not isinstance(r, dict):
             continue
-        m = _month_of(_first_raw(r, ("counterparty", "缴存月份", "period", "月份", "所属期")))
+        m = hf_month(r)
         if not m:
             continue
-        out[m] = out.get(m, 0.0) + _num(_first_raw(r, ("amount_col", "单位缴存额", "单位缴存", "total", "amount")))
+        out[m] = out.get(m, 0.0) + hf_amount(r)
     return out
 
 
@@ -699,11 +705,65 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
     if fund:
         f_src = {"fund": _fund_series(fund),
                  "voucher_fund": _voucher_series(vouchers, _FUND_KWS, year, side="debit")}
-        if sum(1 for s in f_src.values() if s) >= 2:
+        # ★★ 2026-10-03（用户质询"疑点23 怎么得来了？"）：本轴**先做口径归一，再决定是否可比**。
+        #   公积金缴存明细常只列**个人**缴存部分，而账簿"住房公积金"科目记的是**单位+个人**
+        #   （个人部分属代扣，通常另走应付职工薪酬）。两者口径不同 ⇒ 直接相减会凭空得到
+        #   「差一个单位部分」的假差额（实测 1,200 vs 2,400），并被读成"少缴/未全员缴存"。
+        #   口径判定唯一权威＝`payroll_rules.hf_detail_scope`（拿工资表个人扣缴额比对）。
+        #   判出"个人口径"⇒ **本轴不做金额对等**（人数/基数比对已由域8承担），
+        #   只如实说明"两口径不同、须以公积金中心原件核对"，不再产出差异疑点。
+        from engine.payroll_rules import (
+            hf_detail_scope, hf_detail_scope_pairs, hf_scope_zh,
+            hf_amount as _hf_amt, hf_month as _hf_month, hf_person as _hf_person,
+        )
+        # 按 (人, 月) 建立"明细额 vs 工资表个人扣缴额"配对（判定口径的唯一可靠依据）
+        _sal_hf_deduct = {}
+        for _r in (salaries or []):
+            if not isinstance(_r, dict):
+                continue
+            _n = str(_r.get("name") or "").strip()
+            if not _n:
+                continue
+            _sal_hf_deduct[(_n, _row_period(_r) or "未标注月份")] = _num(
+                _first_raw(_r, ("hf_deduct", "公积金个人", "housing_fund_deduct")))
+        _hf_pairs, _hf_detail_total, _sal_hf_total = [], 0.0, 0.0
+        for _r in (fund or []):
+            if not isinstance(_r, dict):
+                continue
+            _v = _hf_amt(_r)
+            _hf_detail_total += _v
+            _k = (_hf_person(_r), _hf_month(_r) or "未标注月份")
+            if _k in _sal_hf_deduct:
+                _hf_pairs.append((_v, _sal_hf_deduct[_k]))
+        _sal_hf_total = sum(_sal_hf_deduct.values())
+        _hf_scope = hf_detail_scope_pairs(_hf_pairs) if _hf_pairs \
+            else hf_detail_scope(_hf_detail_total, _sal_hf_total)
+        if _hf_scope == "personal":
+            findings.append({
+                "type": "待核事实：公积金缴存明细与账载口径不一致（不作金额对等）",
+                "level": "信息", "score": 1,
+                "detail": f"公积金缴存明细列示金额合计 {_hf_detail_total:,.2f} 元，与工资表"
+                          f"「公积金个人缴存扣缴」合计 {_sal_hf_total:,.2f} 元一致，"
+                          f"表明该明细列的是**个人缴存部分**；账簿「住房公积金」科目通常记"
+                          f"**单位+个人**，两者口径不同，故本项不作金额对等。",
+                "description": "住房公积金缴存明细与账簿记录的**口径不同**（个人部分 vs 单位与个人合计），"
+                               "直接相减会得到「差一个单位缴存部分」的假差额。人数与缴存基数的真实性"
+                               "由「工资/社保/公积金三方比对」负责，本项不重复判定。",
+                "how_found": "以工资表『公积金个人缴存扣缴』合计为基准，与公积金缴存明细合计比对，"
+                             "两者一致即判定明细为个人口径，随后跳过金额对等。",
+                "tax_impact": "不产生税务影响；仅为口径说明。",
+                "policy_ref": "《住房公积金管理条例》第十六条、第十八条（单位与个人分别缴存、比例各自适用）。",
+                "suggestion": "如账面「住房公积金」科目金额与公积金中心《单位缴存明细》原件不符，"
+                              "请提供原件核对单位缴存部分的入账完整性。",
+                "category": "住房公积金", "source_chain": "公积金口径说明",
+                "redline_id": "", "indicator": "scope_not_comparable",
+                "indicator_value": _hf_detail_total,
+            })
+        elif sum(1 for s in f_src.values() if s) >= 2:
             findings.extend(_reconcile(
                 f_src, "month", "公积金缴存对等", "住房公积金", _axis_rid("公积金缴存对等"),
                 "《住房公积金管理条例》关于缴存的规定",
-                "公积金缴存与账面不一致，可能存在少缴或口径差异。",
+                "公积金缴存与账面不一致，可能存在少缴或口径差异（须先确认两方口径一致）。",
             ))
 
     # ── 家族八：应收账款发生额（开具发票不含税 ↔ 序时账 应收账款 借方）──
