@@ -7454,11 +7454,11 @@ def check_inference_ladder_coverage() -> List[Tuple[str, str, str]]:
 
     判据：
       ① 推演库存在且可解析；
-      ② **任意**疑点（含库里没有的红线）都必须产出推演段（没有专属包就退到通用框架）；
+      ② **有实质内容才产出**：有红线专属推演包 → 必须产出；没有 → **必须返回空**（2026-10-03 用户："这段内容特别多余，删掉！！！为什么每个疑点都会有这段内容？"—— 旧契约"任意疑点都必须产出"逼出了套模板：24 条里 21 条照抄通用框架条目，纯废话）；
       ③ 收入差集推演必须把差额翻译成**会计实质**：开票>收款要给应收账款方向的解释、
          收款>开票要给预收账款/往来款方向的解释；
       ④ 收款>开票必须带**渠道逻辑限制**（公账收款不能用于隐匿收入）；
-      ⑤ **反向验证**：把推演库临时清空，②仍必须成立（证明"每次都触发"不依赖具体数据）。
+      ⑤ **反向验证**：把推演库临时清空，**不得**再产出（证明"不套模板"是真约束）；并锁死模板文案"通用推演框架逐条展开"不得出现在任何推演段里。
     """
     issues: List[Tuple[str, str, str]] = []
     try:
@@ -7473,17 +7473,24 @@ def check_inference_ladder_coverage() -> List[Tuple[str, str, str]]:
         if not lib.get(key):
             issues.append(("WARN", "static/inference_ladders.json", "推演库缺少「%s」" % key))
 
-    # ② 任意疑点都有推演段
+    # ② 有专属推演包的红线必须产出；无包的必须为空（不得套模板念条目）
     try:
         for s in ({"redline_id": "RL-VAT-006", "redline_name": "未开票收入长期为零"},
-                  {"redline_id": "RL-ZZZ-404", "redline_name": "库里没有的疑点"}):
+                  {"redline_id": "RL-FUND-002", "redline_name": "资金回流"},
+                  {"redline_id": "RL-INC-002", "redline_name": "个人账户收款"}):
             sec = _il.ladder_for_suspicion(s)
             if not (sec and sec.get("bullets")):
                 issues.append(("ERROR", "engine/inference_ladder.py",
-                               "疑点 %s 未产出推演段（'每次都触发'被破坏）" % s.get("redline_id")))
+                               "红线 %s 有专属推演包却未产出推演段" % s.get("redline_id")))
+            elif "通用推演框架逐条展开" in " ".join(sec.get("bullets") or []):
+                issues.append(("ERROR", "engine/inference_ladder.py",
+                               "推演段出现模板空话（读者读不到本企业信息）"))
+        _sec0 = _il.ladder_for_suspicion({"redline_id": "RL-ZZZ-404", "redline_name": "库里没有的疑点"})
+        if _sec0 and _sec0.get("bullets"):
+            issues.append(("ERROR", "engine/inference_ladder.py",
+                           "无专属推演包的疑点仍产出推演段（＝套模板空话，读者读不到本企业信息）"))
     except Exception as exc:
         issues.append(("ERROR", "engine/inference_ladder.py", "推演段生成异常：%s" % exc))
-
     # ③④ 差集必须翻译成会计实质并给渠道限制
     try:
         r1 = _il.revenue_gap_reasoning(1_000_000, 800_000, ar_movement=200_000)
@@ -7505,9 +7512,9 @@ def check_inference_ladder_coverage() -> List[Tuple[str, str, str]]:
     _il._LADDERS = {}
     try:
         sec = _il.ladder_for_suspicion({"redline_id": "RL-VAT-006", "redline_name": "x"})
-        if not (sec and sec.get("bullets")):
+        if sec and sec.get("bullets"):
             issues.append(("ERROR", "闸门自检",
-                           "反向验证失败：推演库清空后不再产出推演段（'每次都触发'实为依赖库）"))
+                           "反向验证失败：推演库清空后仍产出推演段（说明存在套模板兜底）"))
     finally:
         _il._LADDERS = _orig
     return issues

@@ -101,12 +101,15 @@ class TestConclusionFollowsAccountsNotNames:
 
 # ── ③ 推演层：与具体企业无关，按红线编号/通用框架触发 ────────────────────────
 class TestLadderGenerality:
-    def test_any_redline_id_gets_ladder(self):
+    def test_pack_redlines_get_ladder_others_empty(self):
+        """契约（2026-10-03 反转）：**有专属推演包才产出**；没有就返回空，
+        不得套模板念条目（用户："这段内容特别多余，删掉！！！为什么每个疑点都会有这段内容？"）。"""
         from engine.inference_ladder import ladder_for_suspicion
-        for rid in ("RL-VAT-006", "RL-FUND-002", "RL-INC-002",
-                    "RL-COST-003", "RL-NEW-999"):
+        for rid in ("RL-VAT-006", "RL-FUND-002", "RL-INC-002"):
             sec = ladder_for_suspicion({"redline_id": rid, "redline_name": "任意名"})
             assert sec["bullets"], rid
+        for rid in ("RL-COST-003", "RL-NEW-999"):
+            assert ladder_for_suspicion({"redline_id": rid, "redline_name": "任意名"}) == {}, rid
 
     def test_revenue_gap_works_for_any_amounts(self):
         """差集推演对任意金额/任意方向都成立（餐饮、制造同样适用）。"""

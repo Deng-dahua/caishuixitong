@@ -66,14 +66,25 @@ class TestRevenueGapReasoning:
 
 # ── ② 一条疑点一条推演段（"每次都触发"） ────────────────────────────────────
 class TestLadderForSuspicion:
-    def test_every_suspicion_gets_bullets(self):
-        """任何疑点都必须产出推演段（有专属推演包用专属，没有退到通用框架）。"""
+    def test_pack_redlines_get_bullets(self):
+        """有专属推演包的红线必须产出推演段（带本企业具体数据的实质内容）。"""
         from engine.inference_ladder import ladder_for_suspicion
         for s in ({"redline_id": "RL-VAT-006", "redline_name": "未开票收入长期为零"},
-                  {"redline_id": "RL-XXX-999", "redline_name": "某未知疑点"}):
+                  {"redline_id": "RL-FUND-002", "redline_name": "资金回流"},
+                  {"redline_id": "RL-INC-002", "redline_name": "个人账户收款"}):
             sec = ladder_for_suspicion(s)
             assert sec["bullets"], s
             assert sec["heading"].startswith("六")
+
+    def test_no_pack_returns_empty_not_boilerplate(self):
+        """★ 2026-10-03（用户："这段内容特别多余，删掉！！！为什么每个疑点都会有这段内容？"）：
+        **没有专属推演包的疑点不得产出该段** —— 旧实现退到"通用框架逐条展开"，
+        实测 24 条疑点里 21 条都是那段问题清单（读者读不到任何本企业信息），是纯废话。
+        """
+        from engine.inference_ladder import ladder_for_suspicion
+        sec = ladder_for_suspicion({"redline_id": "RL-XXX-999", "redline_name": "某未知疑点"})
+        assert sec == {}, "无专属推演包时不得产出推演段（会变成套模板念条目）"
+        assert "通用推演框架逐条展开" not in str(sec)
 
     def test_redline_pack_used_when_available(self):
         from engine.inference_ladder import ladder_for_suspicion

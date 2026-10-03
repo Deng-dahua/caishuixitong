@@ -135,7 +135,6 @@ def ladder_for_suspicion(suspicion: Dict[str, Any],
     title = str((suspicion or {}).get("redline_name") or (suspicion or {}).get("title") or "").strip()
     lib = load_ladders()
     pack = ((lib.get("红线推演") or {}).get(rid)) or {}
-    frame = ((lib.get("通用推演") or {}).get("框架")) or []
 
     bullets: List[str] = []
     if lateral:
@@ -160,8 +159,15 @@ def ladder_for_suspicion(suspicion: Dict[str, Any],
     if lateral and lateral.get("text"):
         bullets.insert(0, lateral["text"])
     if not bullets:
-        # 没有专属推演包时，退到通用框架（保证"每次都触发"这件事本身不发生静默）
-        bullets = ["本项按通用推演框架逐条展开：" + "；".join(frame[:5])]
+        # ★★ 2026-10-03（用户："这段内容特别多余，删掉！！！为什么每个疑点都会有这段内容？"）：
+        #   **没有实质内容就什么都不输出**。
+        #   上一轮的实现是"没专属包就把通用框架的条目照抄一遍"——实测 24 条疑点里
+        #   **21 条**都是那段"这个读数在正常经营下可能由哪些原因造成（至少三种…）"，
+        #   是纯废话：读者读不到任何本企业的信息，只看到一串问题清单。
+        #   框架是**给系统自己用的推理步骤**，不是给读者的报告内容；要让它出现在报告里，
+        #   必须带上本项的具体金额/科目/对手方（如收入差集推演那样）。
+        #   要让某类疑点也有推演段，正确做法是**补一条专属推演包（数据）**，而不是套模板。
+        return {}
     return {
         "heading": "六、从本项到全局：可能的解释与如何区分",
         "text": ("本项不是只有一个结论。就上述读数而言，先把「正常经营下可能是什么」与"
