@@ -7511,6 +7511,68 @@ def check_inference_ladder_coverage() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_no_company_hardcoding_in_judgement() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03：**判定代码里不得出现具体企业名**（泛化性锁定）。
+
+    用户判据：「修改方案必须站在"适用所有行业/所有企业/所有同类场景"的角度，
+    不得针对用户举的那个具体例子写特例。新增一个同类对象时只需加一行数据，
+    不需要改逻辑分支。」
+
+    注释/docstring 里写实测案例是允许的（本项目惯例，且数字都核对过）；
+    但**可执行代码**里出现具体企业名，就意味着那条判据只对那家企业成立。
+
+    判据（AST，只扫非 docstring 的字符串常量）：
+      · 含企业组织形式后缀（有限公司/工作室/事务所/合伙企业…）；
+      · 字号部分 ≥4 个中文/字母数字字符（排除"有限公司"这种纯后缀 token）；
+      · 不含示例/占位词（如/例/某/等/XX/甲/乙/样本/测试…，排除"如某某科技有限公司"这类举例）。
+    实测：按此判据扫全 engine 现有代码 **0 命中**（不会产生噪声）。
+    """
+    import ast as _ast
+    import re as _re
+
+    SUF = ("有限公司", "有限责任公司", "股份有限公司", "工作室", "事务所", "合伙企业")
+    PLACE = ("如", "例", "某", "等", "XX", "xx", "样本", "测试", "示例", "公司A", "公司B",
+             "甲", "乙", "丙", "丁")
+
+    def _like_name(s: str) -> bool:
+        s = str(s or "").strip()
+        if not any(suf in s for suf in SUF):
+            return False
+        if any(p in s for p in PLACE):
+            return False
+        for suf in SUF:
+            k = s.find(suf)
+            if k < 0:
+                continue
+            core = s[:k].strip("，。、；：（）()「」《》\"' ")
+            if len(core) >= 4 and _re.fullmatch(r"[\u4e00-\u9fa5A-Za-z0-9]+", core):
+                return True
+        return False
+
+    issues: List[Tuple[str, str, str]] = []
+    for p in sorted((ROOT / "engine").glob("*.py")):
+        try:
+            tree = _ast.parse(p.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:
+            continue
+        docs = set()
+        for node in _ast.walk(tree):
+            if isinstance(node, (_ast.Module, _ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef)):
+                d = _ast.get_docstring(node, clean=False)
+                if d is not None:
+                    docs.add(d)
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Constant) and isinstance(node.value, str):
+                if node.value in docs:
+                    continue
+                if _like_name(node.value):
+                    issues.append(("ERROR", "engine/%s" % p.name,
+                                   "第%d行判定代码里出现具体企业名「%s」——"
+                                   "判据只对该企业成立；请改用数据表/通用规则"
+                                   % (node.lineno, node.value[:30])))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -7571,6 +7633,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_voucher_account_field()       # 2026-10-03 凭证科目名 vs 科目编码不得混用
                + check_fund_scale_gate_not_roundness()  # 2026-10-03 资金往来：规模准入 / 整数只作证据
                + check_inference_ladder_coverage()  # 2026-10-03 点→面推演层：每次都触发 + 差集会计实质
+               + check_no_company_hardcoding_in_judgement()  # 2026-10-03 泛化性：判定代码不得硬编码具体企业名
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

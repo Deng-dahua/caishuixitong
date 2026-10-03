@@ -299,7 +299,16 @@ def classify_receipts(bank_txs: Sequence[Any], vouchers: Optional[Sequence[Any]]
     """
     rules = receipt_rules()
     available = rules_available()
-    ledger = build_ledger_index(vouchers) if vouchers else None
+    # ★ 2026-10-03：`vouchers` 既可是**原始凭证行**，也可是**已建好的索引**
+    #   （{对象: {科目: {...}}}）。旧实现只认前者 —— 调用方若传索引，会被当成"凭证行列表"
+    #   迭代其键（字符串），`fieldkit.account_name` 取不到任何科目 ⇒ ledger 静默为空 ⇒
+    #   悄悄退回猜摘要（不报错、结果错）。现两种形状都接受。
+    if vouchers is None:
+        ledger = None
+    elif isinstance(vouchers, dict):
+        ledger = vouchers
+    else:
+        ledger = build_ledger_index(vouchers)
 
     by_label: Dict[str, Dict[str, Any]] = {}
     by_nature: Dict[str, Dict[str, Any]] = {}
