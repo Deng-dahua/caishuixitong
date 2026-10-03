@@ -357,3 +357,49 @@ class TestBlockedChecksScopeNote(unittest.TestCase):
                              f"不适用资料「{doc}」被列为检查受限项：{titles}")
         # 反向锁：真缺的资料仍必须在列（不得一刀切清空）
         self.assertTrue(any("合同文件" in t for t in titles) or True)
+
+
+class TestRiskThemeClassification(unittest.TestCase):
+    """★ 2026-10-03（用户："一并调"）：风险性质归类必须**按标题判定**。
+
+    根因：判据文本曾掺 `suspect`（红线包的**泛化涉嫌方向**，如"虚开发票""隐匿收入""账外"），
+    它会**抢先命中**排在前面的主题，把事项拉错类 —— 实测 7 项被带偏：
+      「数字特征异常」被"账外"拉进收入完整性；「成本列支的资金与负债证据不足」「关联交易异常」
+      被"虚开发票"拉进发票与交易真实性；「银行流水余额滚动关系不一致」被"隐瞒收入"拉进收入完整性；
+      「税前扣除限额超限未纳税调整」被"列支费用"拉进成本费用真实性；
+      「表间勾稽四方比对不一致」被"隐匿收入"拉进收入完整性；
+      「供应商集中度与地域分布缺乏商业合理性」被"接受虚开"拉进发票与交易真实性。
+    """
+
+    def _theme_of(self, title, suspect=""):
+        from engine.overall_conclusion import _group_by_theme
+        out = _group_by_theme([{"title": title, "suspect": suspect}])
+        return out[0]["theme"]
+
+    def test_suspect_does_not_hijack_theme(self):
+        """同样的标题，配上泛化的 suspect，归类不得改变（suspect 不参与判定）。"""
+        cases = [
+            ("数字特征异常：金额分布违背自然规律", "涉嫌账外收入"),
+            ("成本列支的资金与负债证据不足：真实性待核实", "涉嫌虚开发票"),
+            ("关联交易异常：购销闭环与六员重叠", "涉嫌虚开发票"),
+            ("银行流水余额滚动关系不一致：资金流水勾稽断裂", "涉嫌隐瞒收入"),
+            ("税前扣除限额超限未纳税调整", "涉嫌列支费用"),
+            ("表间勾稽四方比对不一致", "涉嫌隐匿收入"),
+            ("供应商集中度与地域分布缺乏商业合理性", "涉嫌接受虚开发票"),
+        ]
+        for title, sus in cases:
+            a = self._theme_of(title, "")
+            b = self._theme_of(title, sus)
+            self.assertEqual(a, b, f"suspect 改变了归类：{title} | {sus} → {a} vs {b}")
+
+    def test_expected_homes(self):
+        self.assertEqual(self._theme_of("数字特征异常：金额分布违背自然规律"), "发票与交易真实性")
+        self.assertEqual(self._theme_of("资金回流：付款后经个人账户回流"), "资金流向")
+        self.assertEqual(self._theme_of("银行流水余额滚动关系不一致"), "资金流向")
+        self.assertEqual(self._theme_of("税前扣除限额超限未纳税调整"), "税费申报")
+        self.assertEqual(self._theme_of("表间勾稽四方比对不一致"), "税费申报")
+        self.assertEqual(self._theme_of("企业所得税贡献率偏低（对应风险指标：长期亏损仍持续经营）"), "税费申报")
+        self.assertEqual(self._theme_of("成本列支的资金与负债证据不足：真实性待核实"), "成本费用真实性")
+        self.assertEqual(self._theme_of("关联交易异常：购销闭环与六员重叠"), "关联交易")
+        self.assertEqual(self._theme_of("供应商集中度与地域分布缺乏商业合理性"), "经营合理性")
+        self.assertEqual(self._theme_of("住房公积金未开户、未全员缴存或缴存基数不实"), "工资社保与个税")
