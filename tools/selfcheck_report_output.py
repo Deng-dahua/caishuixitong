@@ -140,6 +140,10 @@ def check_evidence_quality(er):
                     _add("ERROR", "B 证据编辑", f"疑点{seq}：空话占步（数据与上一环一致）")
                 for m in re.finditer(r"等\d+项", t):
                     _add("WARN", "B 证据编辑", f"疑点{seq}：指标倾倒（{m.group(0)}）")
+                # ⚠ 补漏：以「…」截断的长清单同样是"指标倾倒"（此前只认"等N项"会漏检）
+                for m in re.finditer(r"[^，；。]{40,}…", t):
+                    _add("WARN", "B 证据编辑",
+                         f"疑点{seq}：疑似指标倾倒被「…」截断（{m.group(0)[:34]}…）")
             for tb in ((para or {}).get("detail_tables") or []):
                 ttl = str((tb or {}).get("title") or "")
                 for r in ((tb or {}).get("rows") or []):

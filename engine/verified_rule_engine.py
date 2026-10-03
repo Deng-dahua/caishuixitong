@@ -5350,7 +5350,34 @@ _SERVICE_FEE_GOODS_HINTS = (
     "软件开发服务", "设计服务", "会议展览服务", "经纪代理服务", "贷款服务", "直接收费金融服务",
     "广播影视服务", "有形动产融资租赁", "不动产融资租赁", "代理服务",
 )
-_PAYROLL_TX_KEYWORDS = ("工资", "薪酬", "发薪", "薪金", "工资表", "薪资", "补贴", "奖金", "报销")
+# ★★ 2026-10-03（用户质疑"1,743,847.92 真的是工资吗？"）：**"报销"不是工资**，已剔除。
+#   事故链：关键词含"报销" ⇒ `public_payroll` 把 118 笔「费用报销（项目垫款/报销）」
+#   合计 1,743,847.92 元当成了"公户代发工资" ⇒ ①金额错（真实工资类只有 19 笔 759,517.57）；
+#   ②要件证据方向错（写成"以员工个人账户**直接支付**的工资款项"，而那是**公户→员工**的报销）；
+#   ③结论与真实风险相反（写"公户代发充分"，掩盖了"公户 759,517.57 < 账面应发 928,000"的缺口）。
+_PAYROLL_TX_KEYWORDS = ("工资", "薪酬", "发薪", "薪金", "工资表", "薪资", "补贴", "奖金")
+# 费用报销/垫款/备用金是**另一类支出**（员工垫付后报销），须与工资分开统计
+_REIMBURSE_TX_KEYWORDS = ("报销", "垫款", "备用金")
+# 个人账户流水的识别线索（**只有存在个人账户流水**，"私户支付"才可能被证实）
+_PERSONAL_ACCOUNT_HINTS = ("个人", "储蓄", "借记卡", "信用卡", "私户", "个人卡", "银行卡")
+
+
+def _bank_has_personal_account(bank) -> bool:
+    """本轮银行流水里是否含**个人账户**（账户类型/主体为个人）。
+
+    ★ 2026-10-03：实测本轮上传的银行流水**全部是对公账户**（客户账户类型="对公账号"369 行，
+    无任何个人账户文件）⇒ "私户支付薪酬"在数据上**无法成立**，据实按"盲区/待补资料"处理，
+    不得拿"公户→员工的费用报销"冒充"以员工个人账户直接支付"（方向相反，且是**假证据**）。
+    """
+    for tx in (bank or []):
+        t = str(tx.get("客户账户类型") or tx.get("账户类型") or tx.get("account_type") or "")
+        if not t:
+            continue
+        if any(k in t for k in ("对公", "单位", "企业")):
+            continue
+        if any(h in t for h in _PERSONAL_ACCOUNT_HINTS):
+            return True
+    return False
 # VR058：个人码/个人账户收款盲区关键词（与 VR057 企业第三方平台归集口径互斥，避免双触发）
 _PERSONAL_COLLECTION_KEYWORDS = (
     "个人微信", "微信（个人）", "微信个人", "个人支付宝", "支付宝（个人）", "个人收款码", "个人码",
@@ -5554,11 +5581,18 @@ def _scan_mixed_payroll(data, spec):
         _number(tx.get("debit") or tx.get("借方"))
         for tx in bank if _is_payroll_tx(tx) and _number(tx.get("debit") or tx.get("借方")) > 0
     )
+    # ★ 只有**存在个人账户流水**时，"私户支付"才可能被证实；否则本项的私户部分只能按盲区处理。
+    _has_personal = _bank_has_personal_account(bank)
     private_paid = []
-    for tx in bank:
-        cp = str(tx.get("counterparty") or tx.get("对方户名") or tx.get("交易对方") or "")
-        if cp in name_set and _is_payroll_tx(tx):
-            private_paid.append({"counterparty": cp, "amount": _number(tx.get("debit") or tx.get("借方"))})
+    if _has_personal:
+        for tx in bank:
+            cp = str(tx.get("counterparty") or tx.get("对方户名") or tx.get("交易对方") or "")
+            # 私户支付必须发生在**个人账户侧**：仅"对手方是六员"不足以成立
+            # （公户→员工的付款同样是"对手方=六员"，方向相反）。
+            _acct = str(tx.get("客户账户类型") or tx.get("账户类型") or "")
+            _is_personal_side = (not _acct) or any(h in _acct for h in _PERSONAL_ACCOUNT_HINTS)
+            if _is_personal_side and cp in name_set and _is_payroll_tx(tx):
+                private_paid.append({"counterparty": cp, "amount": _number(tx.get("debit") or tx.get("借方"))})
     sources = ["salaries"] + (["bank_txs"] if has_bank else [])
 
     # 情形一：无银行流水 → 监管盲区
@@ -5620,6 +5654,11 @@ def _scan_mixed_payroll(data, spec):
         # ★ 2026-09-29（#448 检出能力）：显式认领 RL-INC-002「个人账户收取经营性款项：公私混同隐匿收入」。
         #   本扫描器即该红线要件①（六员/员工个人账户存在经营性收款）的检测器之一（私户直接支付薪酬）。
         #   仅认领要件①；要件②③④需客户对应/未入账/微信支付宝等佐证，本路径未计算，不认领（宁缺勿错）。
+        # ★★ 2026-10-03（用户质疑）：**只有真正证实了"私户直接支付"，才认领 RL-INC-002 要件①**。
+        #   本轮实测：银行流水全为对公账户、无任何个人账户流水 ⇒ 私户部分**无法证实**，
+        #   据实不认领（宁缺勿错），改由下述"盲区"分支给"待补个人账户流水"的资料要求。
+        if not _has_personal:
+            return []   # 交由后续分支（公户口径）给出如实结论，不作私户认定
         _fs[0]["redline_id"] = "RL-INC-002"
         _fs[0]["constituent_hits"] = [{
             "index": 1,
@@ -5628,14 +5667,26 @@ def _scan_mixed_payroll(data, spec):
         }]
         return _fs
 
-    # 2b 公户工资支出明显小于账面 → 拆分盲区
+    # 2b 公户工资支出小于账面 → 支付来源待核（**存在即报，不设阈值**）
     gap = total_payroll - public_payroll
-    if gap > max(total_payroll * 0.3, 3000):
+    # ★★ 2026-10-03（用户："我很不明白你的分析逻辑！！！问题1/2/3"）：
+    #   旧条件 `gap > max(账面工资×30%, 3000)` —— 实测缺口 168,482.43（占 18.2%）**被阈值静默挡掉**，
+    #   真实线索消失了。项目铁律是"**情形存在即触发，幅度只作 evidence，不设阈值**"。
+    #   另：**差额是账内可证事实，"私户支付"只是可能解释** —— 无个人账户流水时，
+    #   措辞不得断定私户，只如实写"未见于对公支付，须补个人账户流水核验"。
+    if gap > 1:      # >1 仅避免浮点噪声；一旦存在缺口即报
+        if _has_personal:
+            _tail = ("该差额无法排除通过实际控制人/股东/财务个人卡等私户渠道支付、从而规避个人所得税"
+                     "全员全额扣缴的可能，属典型的『公账+私账拆分支付薪酬』盲区。本项不认定为违法，"
+                     "须责令企业提供私户流水佐证。")
+        else:
+            _tail = ("该差额未见对公支付痕迹。**本轮未提供任何个人账户流水**，故无法核验该差额是否经"
+                     "私户支付（差额亦可能为跨期计提、非工资性支出结算等），据实不作私户认定；"
+                     "须补充实际控制人/股东/财务人员的个人账户流水与个税扣缴申报表后重新核验。")
         detail = (
-            "账面应发工资合计{0}，但对公账户中可识别的工资/薪酬类支出仅{1}，差额约{2}（占账面工资{3:.0%}）"
-            "未见对公支付痕迹。该差额无法排除通过实际控制人/股东/财务个人卡等私户渠道支付、从而规避个人所得税"
-            "全员全额扣缴的可能，属典型的『公账+私账拆分支付薪酬』盲区。本项不认定为违法，须责令企业提供私户流水佐证。".format(
+            "账面应发工资合计{0}，但对公账户中可识别的工资/薪酬类支出仅{1}，差额约{2}（占账面工资{3:.0%}）。".format(
                 _fmt_yuan(total_payroll), _fmt_yuan(public_payroll), _fmt_yuan(gap), gap / total_payroll)
+            + _tail
         )
         demand_docs = [
             "对公账户银行流水（核验工资代发与账面计提差异）",
@@ -5651,12 +5702,15 @@ def _scan_mixed_payroll(data, spec):
             "demand_docs": demand_docs,
         }, sources, priority="调查优先级")]
         # ★ 2026-09-29（#448 检出能力）：显式认领 RL-INC-002「个人账户收取经营性款项：公私混同隐匿收入」要件①。
-        _fs[0]["redline_id"] = "RL-INC-002"
-        _fs[0]["constituent_hits"] = [{
-            "index": 1,
-            "evidence": f"账面应发工资{total_payroll:,.2f}元，对公账户工资类支出仅{public_payroll:,.2f}元，"
-                        f"差额{gap:,.2f}元（占账面工资{gap/total_payroll:.0%}）未见对公支付痕迹（私户支付敞口）",
-        }]
+        # ★★ 2026-10-03：**"公户工资支出小于账面"是可证的账内事实，但"私户支付"是推断** ——
+        #   无个人账户流水时不得断定（差额也可能来自跨期/其他结算），且不认领要件①（宁缺勿错）。
+        if _has_personal:
+            _fs[0]["redline_id"] = "RL-INC-002"
+            _fs[0]["constituent_hits"] = [{
+                "index": 1,
+                "evidence": f"账面应发工资{total_payroll:,.2f}元，对公账户工资类支出仅{public_payroll:,.2f}元，"
+                            f"差额{gap:,.2f}元（占账面工资{gap/total_payroll:.0%}）未见对公支付痕迹（私户支付敞口）",
+            }]
         return _fs
     return []
 
