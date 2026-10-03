@@ -10137,3 +10137,144 @@ async function clearTransferCache() {
 
 
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+//  报告「浮动目录」：跟随页面移动 + 点击跳转 + 滚动高亮 + 可收起
+//  2026-10-03 用户要求：「帮我做一个可以跟随页面移动的目录，让我点击目录可以快速到指定报告位置」
+//  设计：① 自挂载（MutationObserver 监听 #rr-report 出现/更新，覆盖全部渲染路径，无需各调用点接线）；
+//        ② 目录项取报告内 h2（章）/ h3（节），缺 id 的自动补；
+//        ③ 点击平滑滚动；④ 滚动高亮当前节（document 捕获阶段监听，body 自身不滚动也能生效）；
+//        ⑤ 可收起为小圆钮，窄屏默认收起；⑥ 幂等：重复渲染会重建而不是叠加。
+// ═══════════════════════════════════════════════════════════════
+(function () {
+  var NAV_ID = 'rr-report-toc';
+  var _timer = null;
+
+  function _txt(el) { return (el && el.textContent || '').replace(/\s+/g, ' ').trim(); }
+
+  function _slug(el, i) {
+    var t = _txt(el).replace(/[^\u4e00-\u9fa5A-Za-z0-9]+/g, '-').slice(0, 28);
+    return 'rrtoc-' + i + (t ? '-' + t : '');
+  }
+
+  function _scrollContainerOf(el) {
+    var p = el && el.parentElement;
+    while (p) {
+      var st = window.getComputedStyle(p);
+      if (/(auto|scroll|overlay)/.test(st.overflowY) && p.scrollHeight > p.clientHeight + 4) return p;
+      p = p.parentElement;
+    }
+    return null;
+  }
+
+  function mount() {
+    var root = document.getElementById('rr-report');
+    if (!root) { var old = document.getElementById(NAV_ID); if (old) old.remove(); return; }
+    var hs = root.querySelectorAll('h2, h3');
+    if (hs.length < 2) return;
+
+    var prev = document.getElementById(NAV_ID);
+    var wasCollapsed = prev ? prev.classList.contains('collapsed') : null;
+    var prevScroll = null;
+    if (prev) { prevScroll = prev.querySelector('.report-toc-list') ? prev.querySelector('.report-toc-list').scrollTop : null; prev.remove(); }
+
+    var items = [];
+    Array.prototype.forEach.call(hs, function (el, i) {
+      if (!el.id) el.id = _slug(el, i);
+      var t = _txt(el);
+      if (!t) return;
+      items.push({ id: el.id, text: t.length > 34 ? t.slice(0, 34) + '…' : t, lv: el.tagName === 'H2' ? 2 : 3, el: el });
+    });
+    if (!items.length) return;
+
+    var nav = document.createElement('nav');
+    nav.id = NAV_ID;
+    nav.className = 'report-toc';
+    var inner = '<div class="report-toc-hd"><span>目录</span>'
+      + '<button type="button" class="report-toc-toggle" title="收起 / 展开">−</button></div>'
+      + '<ol class="report-toc-list">';
+    items.forEach(function (it, i) {
+      inner += '<li class="lv' + it.lv + '"><a href="#' + it.id + '" data-i="' + i + '">'
+        + (typeof escapeHtml === 'function' ? escapeHtml(it.text) : it.text) + '</a></li>';
+    });
+    inner += '</ol>';
+    nav.innerHTML = inner;
+    document.body.appendChild(nav);
+
+    var list = nav.querySelector('.report-toc-list');
+    if (list && prevScroll) list.scrollTop = prevScroll;
+    if (wasCollapsed === null) {
+      if (window.matchMedia && window.matchMedia('(max-width: 1100px)').matches) nav.classList.add('collapsed');
+    } else if (wasCollapsed) {
+      nav.classList.add('collapsed');
+      nav.querySelector('.report-toc-toggle').textContent = '＋';
+    }
+
+    function markActive(i) {
+      var as = nav.querySelectorAll('a');
+      for (var k = 0; k < as.length; k++) as[k].classList.toggle('active', String(k) === String(i));
+    }
+
+    nav.addEventListener('click', function (e) {
+      var a = e.target.closest ? e.target.closest('a') : null;
+      if (!a) return;
+      e.preventDefault();
+      var id = (a.getAttribute('href') || '').slice(1);
+      var target = document.getElementById(id);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        markActive(a.getAttribute('data-i'));
+        try { history.replaceState(null, '', '#' + id); } catch (err) { }
+      }
+    });
+
+    var tg = nav.querySelector('.report-toc-toggle');
+    if (tg) tg.addEventListener('click', function () {
+      nav.classList.toggle('collapsed');
+      tg.textContent = nav.classList.contains('collapsed') ? '＋' : '−';
+    });
+
+    // 滚动高亮：document 捕获阶段监听，容器自身滚动也能接到
+    var _raf = null;
+    function spy() {
+      if (_raf) return;
+      _raf = requestAnimationFrame(function () {
+        _raf = null;
+        var best = 0, bestTop = -Infinity;
+        for (var k = 0; k < items.length; k++) {
+          var r = items[k].el.getBoundingClientRect();
+          if (r.top <= 120 && r.top > bestTop) { bestTop = r.top; best = k; }
+        }
+        markActive(best);
+      });
+    }
+    if (!nav._spyBound) {
+      document.addEventListener('scroll', spy, true);
+      nav._spyBound = true;
+    }
+    spy();
+  }
+
+  function schedule() {
+    if (_timer) clearTimeout(_timer);
+    _timer = setTimeout(function () { _timer = null; try { mount(); } catch (e) { } }, 260);
+  }
+
+  window._mountReportToc = mount;
+
+  function boot() {
+    if (!document.body) return;
+    var mo = new MutationObserver(function (muts) {
+      for (var i = 0; i < muts.length; i++) {
+        var m = muts[i];
+        if (m.target && m.target.id === NAV_ID) continue;   // 自己的插入不触发
+        if (m.type === 'childList') { schedule(); return; }
+      }
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    schedule();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();

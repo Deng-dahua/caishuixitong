@@ -1095,3 +1095,36 @@
     .page-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     .page-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
     @media (max-width: 900px) { .page-grid-2, .page-grid-3 { grid-template-columns: 1fr; } }
+
+
+    /* ── 报告浮动目录（跟随页面移动 / 点击跳转 / 滚动高亮）2026-10-03 ── */
+    .report-toc {
+      position: fixed; right: 18px; top: 88px; width: 268px; max-height: calc(100vh - 120px);
+      background: #ffffff; border: 1px solid var(--gray-200); border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, .14); z-index: 2000; display: flex; flex-direction: column;
+      font-size: 13px; line-height: 1.45;
+    }
+    .report-toc-hd {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 9px 12px; border-bottom: 1px solid var(--gray-100); font-weight: 600; color: var(--gray-700);
+      background: var(--gray-50); border-radius: 10px 10px 0 0;
+    }
+    .report-toc-toggle {
+      border: 1px solid var(--gray-200); background: #fff; color: var(--gray-700); cursor: pointer;
+      width: 24px; height: 24px; border-radius: 6px; line-height: 1; font-size: 14px;
+    }
+    .report-toc-toggle:hover { border-color: var(--primary); color: var(--primary); }
+    .report-toc-list { list-style: none; margin: 0; padding: 6px 4px 8px; overflow-y: auto; }
+    .report-toc-list li { margin: 0; }
+    .report-toc-list a {
+      display: block; padding: 4px 8px; border-radius: 6px; color: var(--gray-700);
+      text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .report-toc-list a:hover { background: var(--primary-light); color: var(--primary-dark); }
+    .report-toc-list a.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 600; }
+    .report-toc-list li.lv3 a { padding-left: 20px; color: var(--gray-500); font-size: 12.5px; }
+    .report-toc.collapsed { width: auto; max-height: none; }
+    .report-toc.collapsed .report-toc-list { display: none; }
+    .report-toc.collapsed .report-toc-hd { border-bottom: 0; border-radius: 10px; }
+    @media (max-width: 1100px) { .report-toc { right: 10px; width: 232px; } }
+    @media print { .report-toc { display: none !important; } }
