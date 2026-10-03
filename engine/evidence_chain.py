@@ -37,30 +37,21 @@ import re
 # ⚠ 关键词须**只放该类别独有**的词："名册""人员""用工""考勤""记录"这些词
 #   横跨多个类别（用工名册/成员名册/资产名册、考勤记录/门禁记录），
 #   放进来会造成类别串味，进而把不相干的证据说成"类别相关"。
-_MATERIAL_KEYWORDS: List[List[str]] = [
-    ["银行流水", ["流水", "付款", "收款", "资金", "转账", "代付", "支付", "回单"]],
-    ["销项发票", ["销项", "开票", "销售发票"]],
-    ["进项发票", ["进项", "采购发票"]],
-    ["记账凭证", ["凭证", "记账", "会计分录", "账簿"]],
-    ["工资表", ["工资", "薪酬"]],
-    ["社保明细", ["社保", "参保", "缴费基数"]],
-    ["进销存台账", ["入库", "出库", "库存", "盘点", "台账", "存货", "领料", "完工", "发货"]],
-    ["合同文件", ["合同", "协议", "订单"]],
-    ["科目余额表", ["科目", "余额", "明细账", "往来", "挂账", "辅助账"]],
-    ["增值税申报表", ["增值税", "纳税申报"]],
-    ["企业所得税申报表", ["所得税", "汇算"]],
-    ["个税申报表", ["个税", "扣缴"]],
-    ["资产负债表", ["资产", "负债", "报表"]],
-    ["利润表", ["利润", "毛利", "费用", "成本", "报表"]],
-]
+# ★★ 2026-10-03（用户："彻底解决多种叫法的问题"）：类别表与别名表**不再在本模块维护**，
+#   统一由 `engine/material_names.py` 提供（唯一权威）。本模块只做引用/转发。
+#   背景：此前"资料名"散落在 8 处（required_materials / evidence_chain.name /
+#   constituent_sources / _SUPP_ENTRIES / _MATERIAL_KEYWORDS / _MATERIAL_SYNONYMS /
+#   _EQUIVALENT_CATEGORIES / _MATERIAL_SUPERCLASS），同一份材料两套名字两套判定 ⇒
+#   要件表说"银行流水｜已有"、证据表说"完整资金链条流水｜待核实"，同页自相矛盾。
+from engine.material_names import (
+    CATEGORY_KEYWORDS as _MATERIAL_KEYWORDS,
+    CATEGORY_ALIASES as _MATERIAL_SYNONYMS,
+    category_strict as _category_strict,
+    canonical as _canonical_material,
+    strict_categories_of as _strict_categories_of,
+    strict_categories_all as _strict_categories_all,
+)
 
-# ── 「已有」的判据：逐字材料名覆盖（2026-09-25 根因修复）────────────────────
-# 铁律：**「已有」是对"某个具体材料已提交"的事实断言，不是对"相关类别存在"的推断。**
-# 只有证据项名里要求的**每一组具体材料名**都被某份已提供资料的**名称**逐字覆盖，
-# 才可判「已有」；仅类别相关 → 「待核」（须人工确认是否含该材料）；无相关 → 「缺失」。
-# 反例（修复前）：企业只交了「工资表」，报告却写
-#   直接证据「劳动合同与用工名册」现状=已有，basis=本轮已提供「工资表」，可作为本项证据
-# ——用工资表去证明劳动合同，且该企业连「合同文件」都列在缺失清单里。
 _GENERIC_MATERIAL_TOKENS = {
     # 单独出现时无法确认"这份具体材料已提交"（"发票"分不清进/销项，"合同"分不清采购/销售/劳务）
     "发票", "凭证", "合同", "协议", "记录", "单据", "明细", "清单", "流水",
@@ -70,31 +61,10 @@ _GENERIC_MATERIAL_TOKENS = {
     "纳税申报表", "其他税种申报表", "申报表", "财务报表",
 }
 
-# 同一份材料的规范名与别名（**仅限确属同一实物**；不得放宽到"相关/相近"）
-_MATERIAL_SYNONYMS = {
-    "银行流水": ["银行对账单", "银行明细", "资金流水", "流水单"],
-    "工资表": ["工资名册", "工资清单", "工资花名册", "薪酬表"],
-    "社保明细": ["社保参保明细", "参保缴费明细", "参保缴费记录", "社保清单", "社保缴费明细"],
-    "记账凭证": ["会计凭证"],
-    "科目余额表": ["余额表"],
-    "增值税申报表": ["增值税纳税申报表"],
-    # ★ 2026-10-02 #461 后续（闸门自证循环治理）追加：
-    #   这些名字是红线 `constituent_sources` 真实声明的独立数据源，但系统里没有任何
-    #   资料类别与之对应 → `_match_material` 判「缺失」→ 对应要件永远 `not_checked`
-    #   （不计入认定）。下列映射全部是**同一实物的不同叫法**，不是"相关/相近"：
-    #   建安发票/出口发票 本身就是发票；收汇水单、收银或平台结算单 都是资金收付凭证；
-    #   投料单、在建（研发）领用记录、退货单 都是进销存台账里的料单；
-    #   「应付账款明细」是科目余额表下的往来明细；A106000 是企业所得税年度申报表体系的附表。
-    #   ⚠ 「拒收证明」刻意**不**在此登记：它是折让/退货的事由说明，与任何既存资料类别
-    #     都不构成同一实物，硬映射会拿到「已有」而事实上拿不到（宁留缺口，不冒充实得）。
-    "销项发票": ["建安发票", "出口发票"],
-    "银行流水": ["收汇水单", "收银或平台结算单"],
-    "进销存台账": ["投料单", "在建工程领用或研发领用记录", "退货单"],
-    "科目余额表": ["应付账款明细"],
-    # A106000（企业所得税弥补亏损明细表）是企业所得税年度申报表体系的附表，
-    # 资料以「企业所得税申报表」整体提供；映射到系统真实类别才能让该要件被核对。
-    "企业所得税申报表": ["A106000弥补亏损明细表"],
-}
+# ★ 2026-10-03：原此处自建的 `_MATERIAL_SYNONYMS` 字面量表已删除 ——
+#   它与 `material_names.CATEGORY_ALIASES` 是同一概念的两份实现（多头维护），
+#   且局部定义会**覆盖**上方 import 的转发，导致新登记的别名在旧匹配路径里失效。
+#   现全系统只保留唯一权威 `engine/material_names.CATEGORY_ALIASES`。
 
 _AND_SPLIT = re.compile(r"[、，,；;／/\s]+|与|和|及|以及")
 _OR_SPLIT = re.compile(r"或|或者")
@@ -219,7 +189,7 @@ def _related_categories(evidence_name: str, purpose: str,
 
 
 def _match_material(evidence_name: str, purpose: str,
-                    available: List[str]) -> Dict:
+                    available: List[str], role: str = "") -> Dict:
     """判定证据项现状 → `{status, basis, matched, related}`（**全系统唯一实现**）。
 
     三态（判据见 `_material_requirements` 注释）：
@@ -229,6 +199,44 @@ def _match_material(evidence_name: str, purpose: str,
 
     **禁止**把「待核」当作「已有」使用（闭合度、可定性判断一律按未取得处理）。
     """
+    # ★★ 2026-10-03：**两级判定** —— 先按"资料**类别**"判有没有，再谈具体材料与范围。
+    #   为什么要这一步：系统只有 14 个"材料类别"（与"企业已提供清单"同源），
+    #   而红线要求常是更细的名字（"完整资金链条流水"）。两个层级混在一起做**逐字比较**，
+    #   细名永远匹配不上类别名 ⇒ 系统性判「待核/缺失」，并派生出"要件表说已有、
+    #   证据表说待核实"的同页矛盾（用户反复报的就是这个）。
+    #   口径：类别命中 ⇒ 「已有」（"这类资料已提供"是可证事实），并把**范围差异**写进说明；
+    #        判不出类别（反证材料、非同类实物）⇒ 保持下方严格逐字逻辑，**不兜底**。
+    if role != "反证":
+        # ★ 必须"全部段落都能归类"才允许走类别层（未登记的段落会让判定失效，不得静默丢弃）
+        _cats = _strict_categories_all(evidence_name)
+        if _cats:
+            # ★ 两处收紧（由既有严格性测试逼出，测试是对的）：
+            #   ① 已提供侧**只用严格口径**：`category_strict`（登记别名/类别名），
+            #      **不得**用关键词兜底 —— 否则「渠道订单」会因为名字里含"订单"
+            #      被当成「合同文件」类别，从而给"采购合同"发一张假的"已有"
+            #      （实测 test_no_fuzzy_match 正是锁这条）。
+            #   ② **必须完全覆盖**：要求里的类别集合要**全部**在已提供类别中才判「已有」；
+            #      只覆盖一部分（"进项发票与采购台账"里只有进项发票）⇒ 不得整项判已有
+            #      （实测 test_partial_match_is_pending_not_available 锁这条）。
+            _have_cats = set()
+            _have = []
+            for _a in available:
+                _c = _category_strict(_a)
+                if _c:
+                    _have_cats.add(_c)
+                    _have.append(_a)
+            if set(_cats) <= _have_cats:
+                _have = [a for a in _have if _category_strict(a) in set(_cats)]
+                _cat_txt = "、".join(_cats)
+                _basis = ("本项要求「%s」（资料类别：%s）；企业已提供同类资料「%s」，"
+                          "该类别已具备——其中具体材料的范围与口径（如是否覆盖全部账户、"
+                          "是否含本项所指协议）须人工确认。" %
+                          (evidence_name, _cat_txt, "、".join(_have[:4])))
+                return {"status": "已有", "matched": _have,
+                        "matched_detail": [{"material": a, "need": evidence_name,
+                                            "form": a, "exact": False} for a in _have[:4]],
+                        "unmet": [], "related": [], "basis": _basis,
+                        "by_category": _cats}
     groups = _material_requirements(evidence_name)
     matched: List[str] = []
     matched_detail: List[Dict] = []
@@ -375,7 +383,7 @@ def build_evidence_chain(finding: Dict, redline: Dict,
                 "weight": _ROLE_WEIGHT.get(role, 1),
             })
             continue
-        m = _match_material(name, purpose, available)
+        m = _match_material(name, purpose, available, role=role)
         status, basis = m["status"], m["basis"]
         if status == "缺失" and (finding.get("supporting_evidence") or []):
             # 发现自身带支持性证据记录 → 至多为"待核"，**绝不可**升为"已有"
@@ -389,6 +397,9 @@ def build_evidence_chain(finding: Dict, redline: Dict,
             "status": status, "basis": basis,
             "matched": m["matched"], "matched_detail": m.get("matched_detail") or [],
             "related": m["related"],
+            # ★ 2026-10-03：判「已有」的**依据**必须随元素带出去（报告与不变式都要能自证）：
+            #   逐字依据看 matched_detail.form；类别依据看 by_category（严格口径的类别名）。
+            "by_category": m.get("by_category") or [],
             "weight": _ROLE_WEIGHT.get(role, 1),
         })
 

@@ -913,8 +913,16 @@ def check_evidence_claim_grounded() -> List[Tuple[str, str, str]]:
             issues.append(("ERROR", "engine/evidence_chain.py",
                            f"判「已有」但未给出逐字依据：「{item}」"))
 
-    # ③ 全量不变式：全量红线 × 全部证据项，凡判「已有」必有逐字依据
+    # ③ 全量不变式：全量红线 × 全部证据项，凡判「已有」必有**可自证**的依据。
+    #    ★ 2026-10-03（用户："彻底解决多种叫法的问题"）：依据有两类 ——
+    #      ① **逐字依据**：命中材料的 form 与证据项名互相包含；
+    #      ② **类别依据**：`by_category` 非空且这些类别确实来自已提供清单的**严格归类**
+    #         （`material_names.category_strict`，不兜底、不关键词猜测）——
+    #         用于"完整资金链条流水"＝银行流水类这种「同一份材料、名字里带了范围」的情形。
+    #      两类都必须可自证；凭空判「已有」仍会报错。
     try:
+        from engine.material_names import category_strict as _cs2
+        _avail_cats = {_cs2(a) for a in avail if _cs2(a)}
         for rl in all_redlines():
             ev = build_evidence_chain({"type": "probe"}, rl, avail)
             for e in ev.get("elements", []):
@@ -922,11 +930,15 @@ def check_evidence_claim_grounded() -> List[Tuple[str, str, str]]:
                     continue
                 name = e.get("name", "")
                 det = e.get("matched_detail") or []
-                if not any(d.get("form") and (d["form"] in name or name in d["form"])
-                           for d in det):
-                    issues.append(("ERROR", "engine/evidence_chain.py",
-                                   f"红线 {rl.get('id')} 的「{name}」被判「已有」"
-                                   f"但命中称谓不在证据项名中：{det}"))
+                if any(d.get("form") and (d["form"] in name or name in d["form"])
+                       for d in det):
+                    continue                                  # ① 逐字依据
+                cats = set(e.get("by_category") or [])
+                if cats and cats <= _avail_cats:
+                    continue                                  # ② 类别依据
+                issues.append(("ERROR", "engine/evidence_chain.py",
+                               f"红线 {rl.get('id')} 的「{name}」被判「已有」"
+                               f"但无可自证依据（逐字/类别都不成立）：{det} cats={sorted(cats)}"))
     except Exception as exc:  # noqa: BLE001
         issues.append(("ERROR", "engine/evidence_chain.py", f"全量不变式检查失败：{exc}"))
 
@@ -7601,6 +7613,109 @@ def check_no_company_hardcoding_in_judgement() -> List[Tuple[str, str, str]]:
     return issues
 
 
+def check_material_name_single_source() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-03（用户："彻底解决多种叫法的问题"）：资料名称**唯一权威** + 齐备性口径一致。
+
+    背景：资料名曾散落 8 处（`required_materials` / `evidence_chain[].name` /
+    `constituent_sources` / `_SUPP_ENTRIES` / `_MATERIAL_KEYWORDS` / `_MATERIAL_SYNONYMS` /
+    `_EQUIVALENT_CATEGORIES` / `_MATERIAL_SUPERCLASS`），同一份材料两套名字两套判定 ⇒
+    要件表说「银行流水｜已有」、证据表说「完整资金链条流水｜待核实」，**同一页自相矛盾**。
+
+    判据：
+      ① 唯一权威 `engine/material_names.py` 存在且导出归一入口；
+      ② `evidence_chain` **不得再自建**类别/别名表（应为转发，杜绝多头维护）；
+      ③ **两级命名行为**：
+         · "完整资金链条流水"（细名）→ 与"银行流水"（类别）**同一材料**；
+         · 类别命满 ⇒ 判「已有」；类别未命满/有段落判不出 ⇒ **不得**判「已有」；
+         · 反证（role="反证"）**不得**因"已提供合同文件类别"而判「已有」。
+      ④ **反向验证**：临时清空别名表 → "完整资金链条流水"必须**不再**判「已有」
+         （证明判定真的依赖登记，而不是靠字符串碰巧）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    auth_rel = "engine/material_names.py"
+    if not (ROOT / auth_rel).exists():
+        return [("ERROR", "engine/", "缺少唯一权威 material_names（资料名称/别名归一）")]
+
+    src_auth = (ROOT / auth_rel).read_text(encoding="utf-8", errors="replace")
+    for marker, why in (
+        ("def canonical", "未导出 canonical（任意叫法→类别）"),
+        ("def category_strict", "未导出 category_strict（严格口径，供齐备性判定）"),
+        ("def strict_categories_all", "未导出 strict_categories_all（要求全部段落可归类）"),
+        ("def missing_from", "未导出 missing_from（按类别求差集）"),
+        ("CATEGORY_ALIASES", "未定义类别别名表"),
+    ):
+        if marker not in src_auth:
+            issues.append(("ERROR", auth_rel, why))
+
+    # ② evidence_chain 不得再自建表
+    ec_rel = "engine/evidence_chain.py"
+    src_ec = (ROOT / ec_rel).read_text(encoding="utf-8", errors="replace")
+    if "_MATERIAL_KEYWORDS: List[List[str]] = [" in src_ec:
+        issues.append(("ERROR", ec_rel,
+                       "仍在自建 _MATERIAL_KEYWORDS 字面量表——应转发 material_names（多头维护）"))
+    if "_MATERIAL_SYNONYMS = {" in src_ec:
+        issues.append(("ERROR", ec_rel,
+                       "仍在自建 _MATERIAL_SYNONYMS 字面量表——应转发 material_names（多头维护）"))
+    if "from engine.material_names import" not in src_ec:
+        issues.append(("ERROR", ec_rel, "未引用唯一权威 material_names"))
+
+    # ③ 两级命名行为
+    try:
+        from engine.evidence_chain import _match_material
+        from engine.material_names import same_material
+        if not same_material("完整资金链条流水", "银行流水"):
+            issues.append(("ERROR", auth_rel,
+                           "「完整资金链条流水」未被归为「银行流水」——细名永远匹配不上类别名"))
+        _avail = ["银行流水", "销项发票", "进项发票", "合同文件", "进销存台账"]
+
+        def _st(nm, role="直接证据"):
+            return _match_material(nm, "证明目的", _avail, role=role)["status"]
+
+        if _st("完整资金链条流水") != "已有":
+            issues.append(("ERROR", ec_rel,
+                           "细名（完整资金链条流水）在已提供银行流水时未判「已有」"))
+        # ★ 反证的判据在**生产路径**里是 `build_evidence_chain`（只认企业实际提交，
+        #   状态为"已提交/待企业提交"），**不走** `_match_material` —— 故必须按生产路径验证，
+        #   直接调 `_match_material(role="反证")` 会测到一条不存在于生产的路径（闸门自己误报过一次）。
+        from engine.evidence_chain import build_evidence_chain as _bec
+        _rl_reb = {"evidence_chain": [{"role": "反证", "name": "退款协议、质量索赔协议",
+                                      "purpose": "交易取消后的退款不属回流"}]}
+        _ev_reb = _bec({"type": "x"}, _rl_reb, ["银行流水", "合同文件"])
+        for _e in _ev_reb["elements"]:
+            if _e["role"] == "反证" and _e["status"] != "待企业提交":
+                issues.append(("ERROR", ec_rel,
+                               "反证材料未由企业提交却非「待企业提交」（status=%s）" % _e["status"]))
+        # 未提供该类别 ⇒ 不得判已有；部分覆盖 ⇒ 不得整项判已有
+        if _st("物流单据与承运记录") == "已有":
+            issues.append(("ERROR", ec_rel, "未提供类别却判「已有」"))
+        if _st("进项发票与采购台账") == "已有":
+            issues.append(("ERROR", ec_rel,
+                           "只覆盖一部分（进项发票有、采购台账无）却整项判「已有」"))
+    except Exception as exc:
+        issues.append(("WARN", ec_rel, "两级命名行为断言执行失败：%s" % exc))
+
+    # ④ 反向验证：清空别名表 ⇒ 细名不得再判「已有」
+    try:
+        import engine.material_names as _mn
+        _saved = dict(_mn.CATEGORY_ALIASES)
+        try:
+            # 原地清空（不是重新绑定）：`evidence_chain` 里转发引用的是**同一个 dict 对象**，
+            # 重新绑定只改本模块属性，转发引用仍持有旧内容 ⇒ 反向验证会假绿。
+            _mn.CATEGORY_ALIASES.clear()
+            from engine.evidence_chain import _match_material as _mm2
+            _s = _mm2("完整资金链条流水", "证明目的",
+                      ["银行流水", "销项发票", "进项发票", "合同文件"], role="直接证据")["status"]
+        finally:
+            _mn.CATEGORY_ALIASES.clear()
+            _mn.CATEGORY_ALIASES.update(_saved)
+        if _s == "已有":
+            issues.append(("ERROR", "闸门自检",
+                           "反向验证失败：清空别名表后细名仍判「已有」（判定没真正依赖登记）"))
+    except Exception as exc:
+        issues.append(("WARN", "闸门自检", "反向验证执行失败：%s" % exc))
+    return issues
+
+
 def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                           List[Tuple[str, str, str]]]:
     authoritative = authoritative_values()
@@ -7662,6 +7777,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_fund_scale_gate_not_roundness()  # 2026-10-03 资金往来：规模准入 / 整数只作证据
                + check_inference_ladder_coverage()  # 2026-10-03 点→面推演层：每次都触发 + 差集会计实质
                + check_no_company_hardcoding_in_judgement()  # 2026-10-03 泛化性：判定代码不得硬编码具体企业名
+               + check_material_name_single_source()  # 2026-10-03 资料名称唯一权威（两级命名/别名归一）
                + check_report_consistency())        # 2026-09-29 报告级一致性（缺失≠0/≠未发生/税率语境/三态）
     return counts, general
 

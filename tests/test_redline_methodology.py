@@ -251,19 +251,33 @@ class TestEvidenceStatusGrounded(unittest.TestCase):
         self.assertIn("采购台账", e["basis"])
 
     def test_every_available_claim_is_traceable(self):
-        """★ 全量不变式：91 条红线、354 个证据项，凡判「已有」必有逐字依据。"""
+        """★ 全量不变式：91 条红线、354 个证据项，凡判「已有」必有**可自证**的依据。
+
+        依据有两类（2026-10-03 扩展，仍必须可自证、不得凭空）：
+          ① **逐字依据**：命中材料的 `form` 与本项要求名互相包含（原口径）；
+          ② **类别依据**：`by_category` 非空，且这些类别**确实来自已提供清单的严格归类**
+             （`category_strict`，不兜底）——用于"完整资金链条流水"＝银行流水类这种
+             「同一份材料、名字里带了范围」的情形。
+        ⚠ 反证（role="反证"）不参与类别层判定，故本不变式对它仍按逐字口径要求。
+        """
+        from engine.material_names import category_strict as _cs
         bad = []
         for rl in all_redlines():
             ev = build_evidence_chain({"type": "x"}, rl, self.AVAIL)
+            _avail_cats = {_cs(a) for a in self.AVAIL if _cs(a)}
             for e in ev["elements"]:
                 if e["status"] != "已有":
                     continue
                 name = e["name"]
                 det = e.get("matched_detail") or []
-                if not any(d.get("form") and (d["form"] in name or name in d["form"])
-                           for d in det):
-                    bad.append((rl.get("id"), name, det))
-        self.assertEqual(bad, [], f"判「已有」但无逐字依据：{bad}")
+                if any(d.get("form") and (d["form"] in name or name in d["form"])
+                       for d in det):
+                    continue                                    # ① 逐字依据
+                cats = set(e.get("by_category") or [])
+                if cats and cats <= _avail_cats:                # ② 类别依据（须来自已提供类别）
+                    continue
+                bad.append((rl.get("id"), name, det, sorted(cats)))
+        self.assertEqual(bad, [], f"判「已有」但无可自证依据：{bad}")
 
     def test_verify_not_counted_as_obtained(self):
         """「待核」不得计入已取得：否则闭合度虚高会把疑点错误升级为已确认"""
