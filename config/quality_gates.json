@@ -1,0 +1,340 @@
+{
+  "schema": "caishuixitong.quality_gates/1",
+  "version": "1.0.0",
+  "updated": "2026-10-08",
+  "note": "四道质量门禁的唯一权威判据表（WB-TRISK-2026-001 §六）。门禁总控 engine/quality_gates.py 读本表执行；未通过不得生成正式底稿。新增判据只需在本表加一行。",
+  "policy": {
+    "formal_output_requires": "ALL_GATES_PASS",
+    "on_fail": "标记为『辅助分析结果』，禁止进入正式归档；不得直接用于处罚或定性。",
+    "skip_is_not_pass": true,
+    "note": "★取不到数据时必须报 SKIP 并写明原因，绝不静默通过；SKIP 计入未通过。"
+  },
+  "severity": [
+    "ERROR",
+    "WARN",
+    "INFO"
+  ],
+  "layers": {
+    "data": "作用于 report_data（结构化事实层），在报告组装后、渲染前执行。",
+    "render": "作用于导出物（HTML/PDF/Word/DOCX 文本），在导出前执行。",
+    "both": "两层都要执行（判据在两层分别取值比对）。"
+  },
+  "scan_domain": {
+    "note": "★报告正文域（scan_domain）唯一权威 —— 2026-10-09 起 = **用户可见投影**。扫描域必须与产出同口径：旧『字段白名单』把 enterprise_readable_report **全域**当正文，其中 working_paper_report / resolution_ledger 前端**从不渲染**（static/js/tax-doc-analysis.js 零引用），造成门禁在不渲染字段上判红（D5 实测 189 种重复中 87 种只落在这些字段）。现收敛为报告正文投影 engine/output_variants.report_text_from()（与去重判据同源，用户铁律『用户可见域=report_text_from()』）。新增可见字段只需改投影一处，门禁与去重自动同口径。",
+    "mode": "projection",
+    "projection_source": "engine.output_variants.report_text_from",
+    "max_chars": 3000000,
+    "truncation_policy": "REPORT_TRUNCATION_AS_ERROR"
+  },
+  "gates": [
+    {
+      "id": "A",
+      "code": "evidence_closure",
+      "cn": "证据链闭合度门禁",
+      "source": "§3.1",
+      "entries": "engine/quality_gates.py::gate_evidence_closure",
+      "checks": [
+        {
+          "id": "A1",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "closure==0 或 evidence_have==0 的事项不得带 高/中/低/极高 风险等级（关键证据一票否决）",
+          "fix": "将风险等级降为『待核』并追加『（关键证据缺失，本项不作认定）』"
+        },
+        {
+          "id": "A2",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "closure < min_closure(0.8) 的事项其结论等级不得为 L3 风险事项成立",
+          "fix": "结论等级降为 L2 待核线索，并在正文声明证据不足"
+        },
+        {
+          "id": "A3",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "存在直接证据缺失（direct_missing 为真）时，本项不得出现定性词（已查明/已认定/构成偷税…）",
+          "fix": "剔除定性词，改写为『账内已读到与该项风险指向一致的信号，待补充资料后判断』"
+        },
+        {
+          "id": "A4",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "每条风险事项必须登记 conclusion_grade，不得缺失或为空",
+          "fix": "按 config/conclusion_grades.json 规则补登结论等级"
+        },
+        {
+          "id": "A5",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "风险等级词必须属于合法词表（极高风险/高风险/中风险/低风险/待核验/信息，权威=engine/risk_levels.LEGAL_LEVELS）",
+          "fix": "表外词一律用 risk_levels.normalize 归一；归一后仍非法的映射到最近合法档并记录原词"
+        },
+        {
+          "id": "A6",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "证据状态词必须属于五态词表（已有/缺失/须核对/待企业提交/本业态不适用）",
+          "fix": "按 engine/data_source_status.STATUSES 归一"
+        },
+        {
+          "id": "A7",
+          "layer": "data",
+          "severity": "WARN",
+          "rule": "missing_material_names 非空时，必须给出 config/alternative_evidence.json 登记的具体替代资料名",
+          "fix": "从替代程序库取具体替代资料名写入『补救要求』列，禁止只写通用套话"
+        },
+        {
+          "id": "A8",
+          "layer": "data",
+          "severity": "WARN",
+          "rule": "closure 必须进入会话摘要（跨轮可比）",
+          "fix": "把 closure 加入 snapshot_invariance.DIGEST_FIELDS"
+        },
+        {
+          "id": "A9",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "closure 已登记但低于 min_closure(0.8) 的事项不得带 中风险及以上等级（证据链未闭合却定中高等级）",
+          "fix": "降为『待核验』或补足证据后重新定级"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "code": "logic_consistency",
+      "cn": "逻辑一致性门禁",
+      "source": "§3.2",
+      "entries": "engine/quality_gates.py::gate_logic_consistency",
+      "checks": [
+        {
+          "id": "B1",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "同一标签在同一期间出现 ≥2 个不同金额/人数/笔数，且未并列声明口径与差异原因（金额口径登记表）",
+          "fix": "补登口径（全口径/剔除口径、含税/不含税、期间、来源、计算过程）并说明两者关系；或统一为一个权威值"
+        },
+        {
+          "id": "B2",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "编号必须从 1 连续递增、不跳号、不重号，且 max(seq)==项数；每条风险必须有序号",
+          "fix": "由 engine/numbering.py 重新生成连续编号"
+        },
+        {
+          "id": "B3",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "结论等级为 L1/L2 的事项不得带 高风险/极高风险（等级与结论脱钩）",
+          "fix": "降级风险等级，或补足证据链至 L3 后再定高等级"
+        },
+        {
+          "id": "B4",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "同一事项内不得并存『高风险』与『可能性低』（除非明确声明按潜在影响定级）",
+          "fix": "统一口径：二者只能留其一，或补写定级依据说明"
+        },
+        {
+          "id": "B5",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "同一事项内不得并存『未认定』与『已查明』（定性冲突）",
+          "fix": "按 A3 改写，全项统一为『未认定 + 已读到信号』"
+        },
+        {
+          "id": "B6",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "计数类结论必须单一来源：分项之和 == 合计 == 权威值",
+          "fix": "由唯一权威重算并回填"
+        },
+        {
+          "id": "B7",
+          "layer": "both",
+          "severity": "ERROR",
+          "rule": "同一事实在报告多处出现必须同值（跨章节逐值比对）",
+          "fix": "以事实库 fact_id 引用替代重复手写"
+        },
+        {
+          "id": "B8",
+          "layer": "data",
+          "severity": "WARN",
+          "rule": "企业名称/统一社会信用代码/检查期间/税种名称全文一致",
+          "fix": "统一取 enterprise_profile 权威值"
+        },
+        {
+          "id": "B9",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "closure 必须与 evidence_have/evidence_need 自洽（closure == round(have/need,2)，容差 0.02）",
+          "fix": "闭合度由唯一权威按 have/need 重算，禁止两处各算一遍"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "code": "archive_spec",
+      "cn": "归档规范性门禁",
+      "source": "§3.3",
+      "entries": "engine/quality_gates.py::gate_archive_spec",
+      "checks": [
+        {
+          "id": "C1",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "总底稿编号存在且符合 config/numbering.json 的 workpaper 规则",
+          "fix": "由 engine/numbering.py 生成 WB-TR-<企业代码>-<期间>-<版本>"
+        },
+        {
+          "id": "C2",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "每条风险事项有唯一风险编号 WB-R-…",
+          "fix": "按编号服务补号"
+        },
+        {
+          "id": "C3",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "每个证据有唯一证据编号 WB-EV-…，且可定位来源资料/文件名/哈希",
+          "fix": "按编号服务补号并挂 source_file/sha256"
+        },
+        {
+          "id": "C4",
+          "layer": "data",
+          "severity": "WARN",
+          "rule": "每个资料缺口有唯一编号 WB-GAP-…",
+          "fix": "按编号服务补号"
+        },
+        {
+          "id": "C5",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "七类索引（风险/证据/资料缺口/法规/金额/附件/整改台账）齐备",
+          "fix": "由归档引擎按 archive_spec.indexes 生成缺失索引"
+        },
+        {
+          "id": "C6",
+          "layer": "render",
+          "severity": "ERROR",
+          "rule": "导出物每页有页眉（企业名/信用代码/期间/底稿号）与页脚（页码/总页数/密级/版本/日期）",
+          "fix": "在导出模板加 @page 页眉页脚与 counter(page)/counter(pages)"
+        },
+        {
+          "id": "C7",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "复核签署栏齐备：编制人/复核人/审批人三栏位必须存在（角色名唯一权威 config/report_compliance.json#signatures）",
+          "fix": "按 archive_spec.signature_block.roles 校验栏位；签署人可为『待签署』，栏位不得缺"
+        },
+        {
+          "id": "C8",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "审计轨迹四要素齐备：谁/何时/改了什么/为什么改",
+          "fix": "接入 report_compliance.record_version 并补 operator/reason 字段"
+        },
+        {
+          "id": "C9",
+          "layer": "data",
+          "severity": "WARN",
+          "rule": "归档导出包六成员齐备（PDF/Word/Excel/证据附件包/索引/版本对比）",
+          "fix": "由导出层生成缺失成员"
+        },
+        {
+          "id": "C10",
+          "layer": "data",
+          "severity": "WARN",
+          "rule": "附件可回查（附件号 + 页码范围 + 来源文件 + 哈希）",
+          "fix": "补附件索引"
+        }
+      ]
+    },
+    {
+      "id": "D",
+      "code": "template_hygiene",
+      "cn": "模板整洁度门禁",
+      "source": "§3.4",
+      "entries": "engine/quality_gates.py::gate_template_hygiene",
+      "checks": [
+        {
+          "id": "D1",
+          "layer": "both",
+          "severity": "ERROR",
+          "rule": "不得残留界面交互词（下载 CSV/点击展开/导出/复制/展开）",
+          "fix": "在引擎层剥离（现仅有前端 _EXPORT_STRIP_SELECTOR，覆盖不到服务端导出）"
+        },
+        {
+          "id": "D2",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "不得存在孤立引导句（『需要：』『如下：』后为空）",
+          "fix": "补内容或整段删除（engine/content_placeholder_guard.is_orphan_lead 已实现）"
+        },
+        {
+          "id": "D3",
+          "layer": "both",
+          "severity": "ERROR",
+          "rule": "不得残留未替换变量（{xx} / {{xx}} / <xx>）",
+          "fix": "补全模板变量；单花括号需用通用正则而非硬编码黑名单"
+        },
+        {
+          "id": "D4",
+          "layer": "both",
+          "severity": "ERROR",
+          "rule": "不得残留 Markdown 语法（** / ## / |--- / - [ ]）",
+          "fix": "导出前剥离标记（engine/text_guardrails.strip_markup 已在用，需前置到数据层）"
+        },
+        {
+          "id": "D5",
+          "layer": "data",
+          "severity": "ERROR",
+          "rule": "重复段落/重复表头不得超阈值（同一 >25 字段落重复 ≤2 次）",
+          "fix": "抽公共说明，个性化只留差异（engine/chapter_dedup.py 已实现，需扩到全文）"
+        },
+        {
+          "id": "D6",
+          "layer": "both",
+          "severity": "ERROR",
+          "rule": "不得有只有标题无正文的章节",
+          "fix": "补正文或删章节"
+        },
+        {
+          "id": "D7",
+          "layer": "data",
+          "severity": "WARN",
+          "rule": "术语统一：结论词/资料词/等级词须取自统一词表",
+          "fix": "收敛到 config 单一术语表"
+        },
+        {
+          "id": "D8",
+          "layer": "both",
+          "severity": "WARN",
+          "rule": "金额格式统一（千分位 + 两位小数）、日期格式统一",
+          "fix": "渲染前统一格式化"
+        },
+        {
+          "id": "D9",
+          "layer": "render",
+          "severity": "ERROR",
+          "rule": "不得输出空表头或全空行表格",
+          "fix": "折叠面板导出时展开或整段省略（archive_spec.render_layer.empty_table_policy）"
+        },
+        {
+          "id": "D10",
+          "layer": "render",
+          "severity": "ERROR",
+          "rule": "目录必须由正文标题生成且与正文一致",
+          "fix": "目录改为 document_headings 单一来源；现为手写锚点列表"
+        },
+        {
+          "id": "D11",
+          "layer": "both",
+          "severity": "ERROR",
+          "rule": "可信度百分比必须可复算：正文「判断可信度约X%」== 条目 confidence == Σ分项贡献（confidence_breakdown），且出现百分比时可见域必须披露同源公式（可信度 = 基准分…）",
+          "fix": "改 engine/argumentation.py：分项明细为唯一账本（区间截断/触碰红线补足均登记为显式分项），confidence=round(Σ贡献,2)，百分比由 confidence_percent() 唯一算法产出；算不出就不写"
+        }
+      ]
+    }
+  ]
+}

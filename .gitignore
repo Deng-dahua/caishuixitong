@@ -76,3 +76,49 @@ scripts/_review_constituents.md
 scripts/_bak/
 # scripts/_bak_*.py 由 scripts/_bak_diag.py 一类脚本产生，同属备份，一并忽略
 scripts/_bak_*.py
+
+# ── 过程垃圾（★ 权威 = tools/purge_process_junk.py 的 JUNK_GLOBS，勿在此另立口径）──
+# 2026-10-09：`git status` 长期显示 400+ 未跟踪件，逐条判断既费时又必然漂。
+# 现把**项目自己已经认定**的"过程垃圾"类别同步到忽略规则：
+#   · `tools/purge_process_junk.py` 的 JUNK_GLOBS 是「写出即用完、零外部 import」的类别权威；
+#   · 本文件只做**同一口径的镜像**（类别改名/新增时，两处一起改）。
+# 注意：`scripts/_audit_*` / `scripts/_verify*` 等审计工具**保留在版本库**（不在此列）。
+scripts/_bk_*/
+scripts/_bk_*
+scripts/_bak*/
+scripts/_apply_*.py
+scripts/_add_*.py
+scripts/_append_*.py
+scripts/_fix*.py
+scripts/_set_*.py
+scripts/_repair_*.py
+scripts/_patch*.py
+scripts/_probe*.py
+scripts/_diag*.py
+scripts/_dbg*.py
+scripts/_dump_*.py
+scripts/_peek*.py
+scripts/_try*.py
+scripts/_test*.py
+scripts/_FAILED_*.txt
+# 过程脚本顺手落下的中间产物（XML 回执 / 日志 / 临时 json）
+scripts/_*.xml
+scripts/_*.log
+scripts/_*.out
+scripts/_*.txt
+scripts/_tmp_*.json
+# 一次性测量/对比的输出目录（日志与信号快照，可重跑）
+scripts/measure/
+scripts/_ab/
+scripts/_cs/
+# 本会话临时输出（`.pytmp*`，与 JUNK_GLOBS 同口径；上方既有 `.pytmp/` 只匹配目录）
+.pytmp*
+
+# ── 清理前的备份副本与生成产物（2026-10-09 补）────────────────────────────────
+# `baseline/_bak/`：`tools/cleanup_20261008.py` 的清理前备份（420 个文件）。
+#   与上面 `scripts/_bak/` 同理：备份副本不是源码，进版本库只会放大 diff 噪音、
+#   并让 audit 的跨模块重复检查误判。★ 需要回滚时从磁盘取即可，备份本身不作为历史依据。
+baseline/_bak/
+# `output/`：报告评估/导出产物（HTML/文本/Markdown），可由脚本重生成
+#   （注意与既有 `outputs/` 规则同义，这里是单数目录名，此前漏了）
+output/

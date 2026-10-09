@@ -47,14 +47,30 @@ class TestDeleteFinalityGuard:
         app_main._deleted_company_ids.add(guard_cid)
         assert app_main._is_result_deleted(guard_cid) is True
 
-    def test_guard_true_when_task_marked_deleted(self, guard_cid):
-        """删除端点③ 把在跑的任务标成 deleted —— 这是第二路判据（任务已消失也拦得住）。"""
-        app_main._analysis_tasks["_task_delete_finality_probe"] = {
-            "company_id": guard_cid,
-            "status": "deleted",
-            "result": None,
-        }
-        assert app_main._is_result_deleted(guard_cid) is True
+    def test_guard_true_for_run_started_before_report_delete(self, guard_cid):
+        """★ 2026-10-06 起第二路判据＝**时间水位线**（不再扫任务状态）。
+
+        为什么换掉：旧判据是"该账套存在 status=deleted 的任务"，它把"某一条任务的删除"
+        放大成"整个账套永久不许写回"，与「删除报告」共用墓碑 ⇒ 用户删过报告后，
+        **此后每次重跑的结果都被永久拦下、永不落盘**（2026-10-06 用户实测：
+        删账套→重建→重跑，报告一模一样且保存不下来；服务端日志有 `[删除终局] … 跳过写回`）。
+        新语义：删除报告只拦"**删除发生时正在跑的那一轮**"。
+        """
+        import time as _t
+        app_main._report_deleted_at[guard_cid] = _t.time()
+        # 启动于删除**之前** ⇒ 属被删的那一份，不得写回
+        assert app_main._is_result_deleted(guard_cid, started_at=app_main._report_deleted_at[guard_cid] - 10) is True
+
+    def test_guard_false_for_run_started_after_report_delete(self, guard_cid):
+        """删除报告**之后**新发起的分析必须允许写回（否则重跑的报告永远存不下来）。"""
+        import time as _t
+        app_main._report_deleted_at[guard_cid] = _t.time()
+        assert app_main._is_result_deleted(guard_cid, started_at=app_main._report_deleted_at[guard_cid] + 10) is False
+
+    def test_guard_true_when_company_deleted(self, guard_cid):
+        """删除账套 ⇒ 永久拦截（直到重建账套）。"""
+        app_main._deleted_company_ids.add(guard_cid)
+        assert app_main._is_result_deleted(guard_cid, started_at=1e18) is True
 
 
 class TestNoWriteBackAfterDelete:
@@ -73,7 +89,16 @@ class TestNoWriteBackAfterDelete:
         monkeypatch.setattr(app_main, "atomic_write_json", lambda p, v: writes.append(str(p)))
         monkeypatch.setattr(app_main, "_analysis_history", {})
         app_main._last_analysis_cache.pop(_GUARD_CID, None)
-        return writes
+        # ★ 2026-10-06：**测试卫生** —— 本类新增了「删除报告水位线」用例，
+        #   若不在每个用例前后清干净，水位线会污染后续"无守卫必须落盘"的反向用例
+        #   （实测：2 条反向用例因此误判为失败）。三个状态一并复位。
+        def _reset():
+            app_main._deleted_company_ids.discard(_GUARD_CID)
+            app_main._report_deleted_at.pop(_GUARD_CID, None)
+            app_main._analysis_started_at.pop(_GUARD_CID, None)
+        _reset()
+        yield writes
+        _reset()
 
     # ---- ① 分析历史 -------------------------------------------------------
     def test_history_not_appended_after_delete(self, stubbed, guard_cid):

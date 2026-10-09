@@ -23,10 +23,10 @@
     0.50~0.80 部分闭合   → 需补证后才能定性
     <0.50  未闭合         → 属检查范围受限，禁止推定，转入置疑清单
 
-严禁：以「证据链未闭合」为由不记录疑点；也严禁以「已触红线」为由跳过证据链。
+严禁：以「证据链未闭合」为由不记录疑点；也严禁以「已触碰红线线」为由跳过证据链。
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import re
 
 # 证据名称关键词 → 资料类别（**仅用于判断"类别相关"**，不再用于判定"已有"！
@@ -67,8 +67,14 @@ _GENERIC_MATERIAL_TOKENS = {
 #   且局部定义会**覆盖**上方 import 的转发，导致新登记的别名在旧匹配路径里失效。
 #   现全系统只保留唯一权威 `engine/material_names.CATEGORY_ALIASES`。
 
-_AND_SPLIT = re.compile(r"[、，,；;／/\s]+|与|和|及|以及")
-_OR_SPLIT = re.compile(r"或|或者")
+# ★★ 2026-10-06：此处原有的 `_AND_SPLIT` / `_OR_SPLIT` 两张正则表**已删除** ——
+#   ① 它们是**死代码**（全文件无任何引用，实际切分由下方括号感知的
+#      `_AND_DELIMS` / `_AND_WORDS` 承担）；
+#   ② 作为"第二份并列分隔符表"存在本身就是隐患：它与
+#      `industry_resolver.MATERIAL_SEG_SEP`、`material_names._AND_SPLIT`
+#      内容还**各不相同**，后人误引即复活多头维护
+#      （曾因此出现"同一份要件 3 种判法"，见 `industry_resolver` 顶部 ★★ 说明）。
+#   唯一权威：`engine.industry_resolver.MATERIAL_SEG_SEP`（含「或」用 `MATERIAL_ALT_SEP`）。
 
 # ⚠ 切分必须**括号感知**：证据项名里常带括号，如
 #   「与待证事实相关且依法获准核验的特定账户、期间和交易资料（含已销户账户）」
@@ -121,6 +127,29 @@ def _material_forms(name: str) -> List[str]:
     return out
 
 
+# ★★ 2026-10-04（疑点1 四维自检 D7 另一半）：**实质限定语**权威表。
+#   证据项名形如「限定语 + 资料类别名」时，限定语分两类：
+#     · 方向/用途类（付款/收款/收付/销项/进项/开出/取得…）——任何该类资料都具备，
+#       不构成额外内容要求 ⇒ 已提供「银行流水」即满足「付款银行流水」（旧行为正确，保留）。
+#     · 实质要求类（下表）——要求资料中含**特定性质的记录**：
+#       有「银行流水」≠有「退款记录」⇒ **不得**判「已有」，须判「待核」。
+_SUBSTANTIVE_QUALIFIERS: tuple = (
+    "退款", "退货", "退运", "退回", "折让", "拒收", "抵销", "抵账", "核销",
+    "赔款", "赔偿", "违约金", "罚没", "滞纳", "冲减", "冲回",
+)
+
+
+def _substantive_qualifier(token: str, form: str) -> str:
+    """`token` 比 `form` 多出的限定部分里，是否含**实质要求**类限定语；返回命中的那个。"""
+    if not token or not form or form == token or form not in token:
+        return ""
+    _extra = str(token).replace(str(form), "")
+    for _q in _SUBSTANTIVE_QUALIFIERS:
+        if _q in _extra:
+            return _q
+    return ""
+
+
 def _covered_by(token: str, available: List[str]) -> Optional[Dict]:
     """`token` 是否被某项已提供资料**逐字覆盖**；是则返回命中详情，否则 None。
 
@@ -142,9 +171,23 @@ def _covered_by(token: str, available: List[str]) -> Optional[Dict]:
         for form in _material_forms(str(a or "")):
             if len(form) < 3 or form in _GENERIC_MATERIAL_TOKENS:
                 continue
-            if form == token or form in token or token in form:
+            # ★★ 2026-10-04（疑点1 D7 另一半）：`form in token`（证据项比已提供资料**更具体**）
+            #   不再一律算覆盖 —— 先看多出来的限定语是方向/用途还是实质要求。
+            # ★ 2026-10-04（选项 B）：**同族不同物不构成覆盖** ——
+            #   社保与公积金同族（归类相同、便于剔除与计数），但不是同一份材料，
+            #   不得判「已有」。唯一权威 `material_names.sibling_conflict`。
+            try:
+                from engine.material_names import sibling_conflict as _sib
+                if _sib(token, form):
+                    continue
+            except Exception:  # noqa: BLE001
+                pass
+            if form == token or token in form:
                 return {"need": token, "material": str(a), "form": form,
                         "exact": form == token}
+            if form in token and not _substantive_qualifier(token, form):
+                return {"need": token, "material": str(a), "form": form,
+                        "exact": False}
     return None
 
 
@@ -168,6 +211,32 @@ def _material_requirements(evidence_name: str) -> List[List[str]]:
         if alts:
             groups.append(alts)
     return groups
+
+
+# ★★ 2026-10-04（疑点2 D9，选项 1 披露式）：**范围/完整性**限定语 —— 只用于**披露**，
+#   **不参与**「已有／待核」判定（清别名会破不变量：要件数据源恒 not_checked、既有闸门
+#   要求此类细名判已有）。职责只有一件：本项名在**已命中材料名之外**还带这些限定语时，
+#   说明有这类资料 ≠ 覆盖了这个范围，必须在依据里**具体披露**并标记 scope_unverified。
+_SCOPE_QUALIFIERS: tuple = (
+    "完整", "全量", "全部", "逐笔", "全套", "链条", "账户", "已销户", "明细",
+)
+
+
+def _scope_gap(evidence_name: str, matched: List[str]) -> str:
+    """本项名在已命中材料名之外是否带**范围/完整性**限定语；有则返回该限定语，否则空串。
+
+    唯一权威：`_SCOPE_QUALIFIERS`。**只用于披露，不改变判定**。
+    """
+    _name = str(evidence_name or "")
+    _rest = _name
+    for _m in (matched or []):
+        _m = str(_m or "")
+        if _m and _m in _rest:
+            _rest = _rest.replace(_m, "")
+    for _q in _SCOPE_QUALIFIERS:
+        if _q in _rest:
+            return _q
+    return ""
 
 
 def _related_categories(evidence_name: str, purpose: str,
@@ -230,18 +299,48 @@ def _match_material(evidence_name: str, purpose: str,
                 if _c:
                     _have_cats.add(_c)
                     _have.append(_a)
+            # ★ 2026-10-04（选项 B）：类别命中但**同族不同物** ⇒ 不得判「已有」。
+            _sib_hit = False
+            try:
+                from engine.material_names import sibling_conflict as _sib2
+                for _a2 in _have:
+                    if _sib2(evidence_name, _a2):
+                        _sib_hit = True
+                        break
+            except Exception:  # noqa: BLE001
+                _sib_hit = False
+            if _sib_hit:
+                try:
+                    from engine.material_names import sibling_note as _sibn
+                    _sib_txt = _sibn(evidence_name, "、".join(_have[:2])) or "同族但不是同一份材料"
+                except Exception:  # noqa: BLE001
+                    _sib_txt = "同族但不是同一份材料"
+                return {"status": "待核", "matched": _have, "matched_detail": [],
+                        "unmet": [evidence_name], "related": [],
+                        "basis": ("本项要求「%s」；本轮已提供的是「%s」，二者%s，"
+                                  "须补充该项本身的具体材料后方可核对。"
+                                  % (evidence_name, "、".join(_have[:3]), _sib_txt)),
+                        "sibling_conflict": True}
             if all(any(set(_alt) <= _have_cats for _alt in _grp) for _grp in _groups):
                 _needed = sorted({c for _grp in _groups for _alt in _grp for c in _alt})
                 _have = [a for a in _have if _category_strict(a) in set(_needed)]
                 _cat_txt = "、".join(_needed)
+                # ★ 2026-10-04（疑点2 D9，选项 1 披露式）：范围差异必须具体披露且可校验。
+                _gap = _scope_gap(evidence_name, _needed)
                 _basis = ("本项要求「%s」（资料类别：%s）；企业已提供同类资料「%s」，"
-                          "该类别已具备——其中具体材料的范围与口径（如是否覆盖全部账户、"
-                          "是否含本项所指协议）须人工确认。" %
-                          (evidence_name, _cat_txt, "、".join(_have[:4])))
+                          "该类别已具备。" % (evidence_name, _cat_txt, "、".join(_have[:4])))
+                if _gap:
+                    # ⚠ 本段会渲染进报告「依据」列 ⇒ 不得带 markdown
+                    _basis += ("但本项名另含「范围/完整性」限定「%s」，属同类不同范围——"
+                               "已提供资料是否覆盖该范围（如是否含全部账户、是否逐笔到明细）"
+                               "须人工确认，确认前不得视为已满足本项范围要求。" % _gap)
+                else:
+                    _basis += "本项名中无额外范围限定，视为已具备。"
                 return {"status": "已有", "matched": _have,
                         "matched_detail": [{"material": a, "need": evidence_name,
                                             "form": a, "exact": False} for a in _have[:4]],
                         "unmet": [], "related": [], "basis": _basis,
+                        "scope_unverified": _gap or None,
                         "by_category": _needed}
     groups = _material_requirements(evidence_name)
     matched: List[str] = []
@@ -268,13 +367,20 @@ def _match_material(evidence_name: str, purpose: str,
             else:
                 _parts.append("「%s」（本项写作「%s」，属同一材料的不同叫法）"
                               % (h["material"], h["need"]))
+        _gap2 = _scope_gap(evidence_name, matched)
+        _basis2 = "本轮已提供%s，可作为本项证据" % "、".join(_parts)
+        if _gap2:
+            # ⚠ 同上：进报告「依据」列，禁 markdown
+            _basis2 += ("；但本项名另含「范围/完整性」限定「%s」，属同类不同范围——"
+                        "已提供资料是否覆盖该范围须人工确认。" % _gap2)
         return {
             "status": "已有",
             "matched": matched,
             "matched_detail": matched_detail,
             "unmet": [],
             "related": [],
-            "basis": "本轮已提供%s，可作为本项证据" % "、".join(_parts),
+            "basis": _basis2,
+            "scope_unverified": _gap2 or None,
         }
 
     related = _related_categories(evidence_name, purpose, available)
@@ -327,6 +433,39 @@ _DIRECT_ROLES = {"直接证据"}
 # 属无据断言。现由上方 `_match_material`（逐字材料名覆盖）唯一承担。
 
 
+def _atoms_count(elements, not_required_docs=None):
+    """把一组证据元素按**材料名原子**计数（拆复合名 + 去重），并先过业态剔除。
+
+    ★ 与 §三（`enterprise_report`）**同一算法、同一业态剔除权威** —— 两边必须同源，
+      否则同一页会给出两个数（疑点5 D11 事故）。
+    """
+    _na = not_required_docs
+    if _na is None:
+        _na = set()
+    _seps = ("、", "，", ",", "；", ";", "／", "/", "以及", "或者", "与", "和", "及", "或")
+    _out = []
+    for _e in (elements or []):
+        _n = _e.get("name") if isinstance(_e, dict) else _e
+        _n = str(_n or "").strip()
+        if not _n:
+            continue
+        if _na:
+            _drop = False
+            for _m in _na:
+                if _m and _m in _n:
+                    _drop = True
+                    break
+            if _drop:
+                continue
+        for _s in _seps:
+            _n = _n.replace(_s, "\x00")
+        for _y in _n.split("\x00"):
+            _y = _y.strip()
+            if _y and _y not in _out:
+                _out.append(_y)
+    return _out
+
+
 def build_evidence_chain(finding: Dict, redline: Dict,
                          available_materials: Optional[List[str]] = None,
                          engine_data: Optional[Dict] = None) -> Dict:
@@ -357,6 +496,30 @@ def build_evidence_chain(finding: Dict, redline: Dict,
     template = list(redline.get("evidence_chain") or [])
     elements: List[Dict] = []
 
+    # ★★ 2026-10-06：**业态不适用资料在此处（算 status 之前）就剔除**。
+    #   唯一权威 `industry_resolver.exclude_not_required_material`（段级；"" = 整项不适用）。
+    #
+    #   病根（已复现，非特例）：旧实现在**函数末尾**用**字符级 `str.replace`** 剔除，
+    #   把不适用资料名当**子串删掉** ⇒ ① 切出悬空连词残词
+    #   （"采购合同与入库验收单"→"采购合同**与**"、"物流单据与承运记录"→"**与**承运记录" 或 ""，
+    #    **取决于 set 迭代序 ⇒ 同一输入两次运行产出不同**）；② 它发生在
+    #   `status`/`basis`/`direct_missing` **算完之后** ⇒ 只有名字被改，
+    #   **依据、直接证据清单、补救要求仍是原始要求** —— 服务型企业照样被要求补物流单据。
+    #   ⇒ 现在：先剔名 → 用剔后的名去判 status / 算 basis / 组 direct_missing，
+    #     整项都不适用 ⇒ **该证据项不进 elements**（不可能要求的材料不该出现在证据角色表），
+    #     并记入 `industry_excluded` 供报告如实披露（**不静默丢弃**）。
+    _na_docs: set = set()
+    try:
+        from engine.industry_resolver import not_required_materials as _nrm
+        _na_docs = set(_nrm((engine_data or {}).get("industry"))[0] or ())
+    except Exception:  # noqa: BLE001
+        _na_docs = set()
+    _excluded: List[Dict] = []
+    try:
+        from engine.industry_resolver import exclude_not_required_material as _xna
+    except Exception:  # noqa: BLE001
+        _xna = None
+
     # 企业已提交的反证线索（用于判断正当理由是否有资料支撑）
     _submitted = []
     for key in ("opposing_evidence", "supporting_evidence", "reasonable_explanations"):
@@ -368,6 +531,14 @@ def build_evidence_chain(finding: Dict, redline: Dict,
         role = str(item.get("role") or "间接证据")
         name = str(item.get("name") or "")
         purpose = str(item.get("purpose") or "")
+        if role != "反证" and _xna is not None:
+            # ★ 反证不剔：它是正当理由（不是企业要交的材料），剔空会把反证整条吃掉。
+            _nm_eff = _xna(name, _na_docs)
+            if not _nm_eff:
+                _excluded.append({"role": role, "name": name,
+                                  "reason": "本业态天然不适用（不构成资料缺失，也不作为证据要求）"})
+                continue
+            name = _nm_eff
         if role == "反证":
             # 反证（正当理由）是否成立，只认企业是否实际提交，
             # 严禁按资料类别关键词猜测——否则「银行承兑汇票」里的「转账」
@@ -435,25 +606,36 @@ def build_evidence_chain(finding: Dict, redline: Dict,
     #   ②**已提供的类别绝不进 missing**（否则会出现"社保明细缺失"而清单里明明有社保明细）。
     missing_materials: List[str] = []
     verify_materials: List[str] = []
+    # ★★ 2026-10-04（疑点2 D12，双字段）：**具体材料名**清单（面向企业"要补哪几样"）。
+    #   `missing_materials` 保持**类别级**不动 —— 它是业态剔除与计数的口径，
+    #   换成具体名会让下游建议文案把本业态不适用的具体名写进去（实测 3 项 ERROR）
+    #   并打破 `test_verify_and_missing_separated` 的粒度锁定。
+    #   两个字段并存：**口径用类别、表达用具体名**，互不干扰。
+    missing_material_names: List[str] = []
+    verify_material_names: List[str] = []
     # ★ 2026-10-02（用户质疑「服务业是否还欠缺进销存台账」）：**资料要求必须跟随业态**。
     #   判据取唯一权威 `industry_resolver.not_required_materials`（业态 skip_domains 驱动）——
     #   服务型业态天然无实物货物流转 ⇒ 进销存台账/BOM 不计缺失、不进待补清单。
     #   ⚠ 必须在这里（引擎算缺失时）剔，而不是报告层过滤：报告文案（"尚缺：X"）
     #     与计数都基于此处的结论，报告层过滤会出现"还缺1项却没有名字"的自相矛盾。
-    _na_docs: set = set()
-    try:
-        from engine.industry_resolver import not_required_materials as _nrm
-        _na_docs = _nrm((engine_data or {}).get("industry"))[0]
-    except Exception:
-        _na_docs = set()
+    # ★★ 2026-10-06：`_na_docs` 已于函数开头取好（**同一派生、不重复计算**）；
+    #   到这里 `e["name"]` **已经过段级剔除**（见开头 ★★），故下面的名称级判据
+    #   只是纵深防御；`category in _na_docs`（**类别级**，另一粒度）仍不可省 ——
+    #   段级名剔除管不到"类别名本身不适用"（如服务型的"进销存台账"类）。
     for e in elements:
         if e["role"] == "反证" or e["status"] == "已有":
             continue
         bucket = verify_materials if e["status"] == "待核" else missing_materials
+        names_bucket = (verify_material_names if e["status"] == "待核"
+                        else missing_material_names)
         text = e["name"]
+        if _na_docs and any(_m and _m in text for _m in _na_docs):
+            text = ""  # ★疑点6 D10：本业态天然不适用 ⇒ 不进名称级待补清单（否则正文会要企业交它）
+        _cls = False
         for category, keywords in _MATERIAL_KEYWORDS:
             if not any(kw in text for kw in keywords):
                 continue
+            _cls = True
             forms = [category] + list(_EQUIVALENT_CATEGORIES.get(category, []))
             if any(f in available for f in forms):
                 continue  # 该类别本轮已提供 → 不是缺失
@@ -461,7 +643,16 @@ def build_evidence_chain(finding: Dict, redline: Dict,
                 continue  # ★ 该业态天然不适用（如服务型企业的进销存台账）→ 不计缺失
             if category not in bucket:
                 bucket.append(category)
-            break
+            if text and text not in names_bucket:
+                names_bucket.append(text)
+        # ★★ 2026-10-04（疑点3 D13）：**归不了类的缺失证据也要登记具体名**。
+        #   旧实现只登记能归入 `_MATERIAL_KEYWORDS` 已知类别的材料名；疑点3 的
+        #   「销售台账、发货记录」「客户对账单与询证函回函」归不了任何类别 ⇒ 两个字段都空，
+        #   而 §三 文案列的是全部缺失元素 ⇒ 字段与文案口径分裂。
+        #   这里**不做类别归一**（`missing_materials` 仍只收已归类项，语义不变），
+        #   只把**具体名**补进 `missing_material_names`；业态剔除照常按名判。
+        if (not _cls) and text and text not in names_bucket:
+            names_bucket.append(text)
 
     # 反证状态
     rebuttals = [e for e in elements if e["role"] == "反证"]
@@ -475,23 +666,67 @@ def build_evidence_chain(finding: Dict, redline: Dict,
         #   改为直述「不足以排除本项涉嫌风险」——排除对象、排除了多少，一次说清。
         rebuttal_status = "企业尚未提交正当理由的书面证明，现有资料不足以排除本项涉嫌风险"
 
+    # ★★ 2026-10-06：旧的**字符级业态剔除块已删除**（原来在这里用 `str.replace` 删子串）。
+    #   它有两个已复现的缺陷：① 切出悬空连词残词（"采购合同与"/"与承运记录"）、
+    #   且结果**依赖 set 迭代序 ⇒ 同一输入两次运行产出不同**；
+    #   ② 时序在 status/basis/direct_missing **之后** ⇒ 名字改了，依据与待补清单没改，
+    #      服务型企业照样被要求补物流单据。
+    #   ⇒ 现改为**函数开头、算 status 之前**由唯一权威
+    #     `industry_resolver.exclude_not_required_material` 段级剔除，
+    #     整项不适用则不进 elements（见上方说明与 `industry_excluded`）。
+
+    # ★★ 2026-10-06：红线自带的「补救要求」是**成句文案**，同样含本业态不适用资料
+    #   （实测「提供付款对应的采购合同、入库验收单、物流单据，并对资金回流路径…」）
+    #   ⇒ 与证据项名走**同一权威**的文本级剔除（`exclude_not_required_in_text`）。
+    #   在引擎层就剔：`remedy` 有 3 个消费点（report §五、argumentation.remedy、suspicion 顶层），
+    #   只在报告层剔会让另外两处仍要求企业提交不存在的东西。
+    _remedy_eff = redline.get("remedy", "")
+    if _remedy_eff and _na_docs:
+        try:
+            from engine.industry_resolver import exclude_not_required_in_text as _xtna
+            _remedy_eff = _xtna(_remedy_eff, _na_docs)
+        except Exception:  # noqa: BLE001
+            pass
+
     return {
         "elements": elements,
         "available_count": sum(1 for e in elements if e["status"] == "已有"),
         "verify_count": sum(1 for e in elements if e["status"] == "待核"),
         "missing_count": sum(1 for e in elements if e["status"] != "已有"),
+        # ★★ 2026-10-05（疑点5 D11）：**原子数**权威字段（与 §三 同算法、同业态剔除）。
+        #   事故：上面三个是**元素数**，而 §三 用**材料名原子数**（拆复合名、去重）
+        #   ⇒ 同一页 §三「同类 3 项」/§四「同类 1 项」。
+        #   本组字段是**唯一权威**：§三 与 §四 都读它 ⇒ 构造上不可能不一致。
+        #   ⚠ 仅**新增**，不改上面三个字段、不改任何判定（逐步切换，便于回退）。
+        "available_atom_count": len(_atoms_count([e for e in elements if e["status"] == "已有"])),
+        "verify_atom_count": len(_atoms_count([e for e in elements if e["status"] == "待核"])),
+        # ★ 只算"缺失"（与 §三「确未提供」同口径）—— 旧写法 `!= "已有"` 会把
+        #   「待核」「待企业提交」也算进去 ⇒ §三「需要N项」被算大（实测 5→9）。
+        "missing_atom_count": len(_atoms_count([e for e in elements if e["status"] == "缺失"])),
         "closure": closure,
+        # ★★ 2026-10-09（P0-6 闭合度单一权威）：把闭合度的**分子/分母（权数口径）**一并带出。
+        #   事故：`closure` 有两个算法 —— 这里按**权数**（直接证据权数3）算，
+        #   而报告 `evidence_have/evidence_need` 按**元素项数**算，门禁 B9 用后者复算前者 ⇒
+        #   必然不自洽（实测 0.38 vs 1/4=0.25）。现把分子分母透出，使
+        #   `closure == round(closure_num / closure_den, 2)` 可由任一下游**单向复核**。
+        "closure_num": got,
+        "closure_den": need,
         "verdict": verdict,
         "direct_missing": direct_missing,
         "missing_materials": missing_materials,
+        "missing_material_names": missing_material_names,
+        "verify_material_names": verify_material_names,
         "verify_materials": verify_materials,
-        "remedy": redline.get("remedy", ""),
+        "remedy": _remedy_eff,
         "rebuttal_status": rebuttal_status,
         "required_materials": list(redline.get("required_materials") or []),
         # ★ 2026-09-29（#448）：本轮**实际取得**的材料名（与需求侧 required/missing 互补）。
         #   用途：逐要件独立核对（constituent_checkpoint）据此解析「该要件的独立数据源是否已取得」。
         #   不改任何闭合度/结论逻辑，仅作为"已取得"的权威清单向下游透出。
         "available_materials": list(available),
+        # ★★ 2026-10-06：本项**因业态天然不适用而被剔除**的证据要求（如实披露，**不静默丢**）。
+        #   报告据此可写"本项另有 N 项证据要求不属于本业态必查项"。
+        "industry_excluded": _excluded,
     }
 
 
@@ -519,3 +754,78 @@ def evidence_text(chain: Dict) -> str:
     _miss_n = int(chain.get("missing_count", 0) or 0)   # missing_count = 待核 + 缺失
     seg.append(f"共需{_have_n + _miss_n}项材料，已有{_have_n}项、还缺{_miss_n}项，{chain.get('verdict', '')}")
     return "；".join(seg) + "。"
+
+
+# ---------------------------------------------------------------- 闭合度唯一权威（P0-6）
+def closure_basis(chain: Any) -> Dict[str, Any]:
+    """闭合度的**分子/分母**（权数口径）——唯一计算处。
+
+    ★★ 2026-10-09（P0-6）：闭合度此前有**两个算法**：本模块按证据角色**权数**
+    （直接证据 3 / 资金 2 / 间接 2）算，报告 `evidence_have/evidence_need` 按**项数**算，
+    门禁 B9 用后者复算前者 ⇒ 必然不自洽。现把分子分母收敛到本函数**一处**：
+      · `num` = 已取得（status=="已有"）且非反证 的权数合计
+      · `den` = 全部非反证证据 的权数合计
+      · `closure = round(min(1.0, num/den), 2)`，den==0 时 closure=0.0
+    传入的可以是 evidence_chain 字典，也可以是裸 elements 列表。
+    """
+    if isinstance(chain, dict):
+        els = [e for e in (chain.get("elements") or []) if isinstance(e, dict)]
+    elif isinstance(chain, (list, tuple)):
+        els = [e for e in chain if isinstance(e, dict)]
+    else:
+        els = []
+    den = sum(int(e.get("weight") or 1) for e in els if e.get("role") != "反证")
+    num = sum(int(e.get("weight") or 1) for e in els
+              if e.get("role") != "反证" and e.get("status") == "已有")
+    closure = round(min(1.0, num / den), 2) if den else 0.0
+    return {"num": num, "den": den, "closure": closure, "elements": len(els)}
+
+
+def closure_of(chain: Any) -> Optional[float]:
+    """闭合度唯一权威 —— 由 `elements` **单向重算**（不读缓存值），供报告/门禁共用。
+
+    返回 None 表示**结构缺失**（拿不到 elements），调用方应如实登记"未评估"，
+    绝不用 0.0 冒充（缺失≠0）。
+    """
+    if isinstance(chain, dict) and not (chain.get("elements") or []):
+        return None
+    if not isinstance(chain, dict) and not isinstance(chain, (list, tuple)):
+        return None
+    return closure_basis(chain)["closure"]
+
+
+# ── 门禁可见投影（P0-6）────────────────────────────────────────────────
+#: `elements[]` 中**门禁可见**的窄字段（A6 用 status；C3 用 evidence_no；口径用 role/weight）。
+SURFACE_ELEMENT_KEYS: Tuple[str, ...] = (
+    "name", "role", "status", "weight", "basis", "evidence_no",
+)
+#: 链级**门禁可见**字段（计数 / 闭合度分子分母 / 待补材料名）。
+SURFACE_CHAIN_KEYS: Tuple[str, ...] = (
+    "available_count", "verify_count", "missing_count",
+    "closure", "closure_num", "closure_den",
+    "direct_missing", "missing_materials", "missing_material_names",
+)
+
+
+def surface_chain(chain: Any) -> Optional[Dict[str, Any]]:
+    """把证据链裁成**门禁可见投影**（唯一权威）—— 挂到 `confirmed_problems[].evidence_chain`。
+
+    ★★ 2026-10-09（P0-6）：此前该字段恒为 None ⇒ 门禁 A6/C3 **判据空转（SKIP）**。
+      但**不能整链挂载**：链里的 `verdict`/`remedy`/`rebuttal_status` 是**成句长文案**，
+      而它们**已经在报告正文**（§三 / §五）出现过 —— 整链挂载会让同一段话二次进入
+      A3 定性词扫描与去重统计，制造**假红**。
+      ⇒ 只保留"门禁真正要用的窄字段"：① elements 的 role/status/weight/basis/编号
+        ② 计数 ③ 闭合度分子分母 ④ 待补材料名。
+
+    拿不到 elements ⇒ 返回 None（缺失≠0，不臆造空链）。
+    """
+    if not isinstance(chain, dict) or not (chain.get("elements") or []):
+        return None
+    els: List[Dict[str, Any]] = []
+    for e in (chain.get("elements") or []):
+        if not isinstance(e, dict):
+            continue
+        els.append({k: e.get(k) for k in SURFACE_ELEMENT_KEYS if e.get(k) not in (None, "")})
+    out: Dict[str, Any] = {k: chain.get(k) for k in SURFACE_CHAIN_KEYS if chain.get(k) is not None}
+    out["elements"] = els
+    return out

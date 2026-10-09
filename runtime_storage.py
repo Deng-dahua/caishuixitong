@@ -10,7 +10,7 @@ import os
 import re
 import tempfile
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -42,6 +42,16 @@ DELETED_DOCS = DATA_DIR / "deleted_docs.json"
 
 _json_lock = threading.RLock()
 _unsafe_filename = re.compile(r"[^A-Za-z0-9._\-\u4e00-\u9fff]+")
+
+
+def now_cst() -> str:
+    """当前北京时间（Asia/Shanghai, UTC+8）ISO8601 字符串（★ 唯一权威）。
+
+    ★ 2026-10-08 收敛：报告生成时间（report_compliance）、Skill 运行时间
+      （skill_runtime）、分析会话时间（analysis_session）此前**各自实现**同一
+      北京时间戳（3 处），任一处改口径即漂移。统一到本处，调用方只薄转发。
+    """
+    return datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%dT%H:%M:%S+08:00")
 
 
 def _move_legacy_private_file(destination: Path, legacy: Path) -> None:
@@ -158,6 +168,61 @@ def clear_doc_tombstone(company_id: int, filename: str) -> None:
         pass
 
 
+def clear_company_doc_tombstones(company_id: int) -> int:
+    """清掉某账套的**全部**删除墓碑，返回清除条数。
+
+    ★ 2026-10-06（删除账套的派生物清理，唯一权威
+      `main.purge_company_analysis_artifacts` 调用）：账套没了，它的墓碑也该没 ——
+      否则墓碑永久累积，且同一 id 将来重建账套时会被旧墓碑误伤
+      （新上传的同名文件会被当成"已删除"而不入库）。
+    """
+    cid = int(company_id)
+    if cid <= 0:
+        return 0
+    try:
+        tombstones = load_doc_tombstones()
+        keep = {k: v for k, v in tombstones.items()
+                if int((v or {}).get("company_id") or 0) != cid}
+        removed = len(tombstones) - len(keep)
+        if removed:
+            save_doc_tombstones(keep)
+        return removed
+    except Exception:
+        return 0
+
+
+def count_company_doc_tombstones(company_id: int) -> int:
+    """某账套现存删除墓碑条数（闸门用：账套不存在 ⇒ 必须为 0）。"""
+    cid = int(company_id)
+    if cid <= 0:
+        return 0
+    try:
+        return sum(1 for v in load_doc_tombstones().values()
+                   if int((v or {}).get("company_id") or 0) == cid)
+    except Exception:
+        return 0
+
+
+def offline_reports_root() -> str:
+    """离线分析产物（`company_{id}_*.json`）的**根目录**（唯一权威）。
+
+    ★★ 2026-10-06（实测事故根因）：派生物目录**必须跟随应用的数据根**
+      （`APP_DATA_DIR`），不得写死源码树路径。
+      事故：`tests/test_company_api.py` 用 `APP_DATA_DIR=<临时目录>` 起一个
+      **子进程应用实例**并在其中删除账套 ⇒ 清理权威用 `__file__` 拼出
+      `scripts/four_reports` ⇒ **隔离实例越界删掉了真实项目的产物**
+      （`company_1_full.json` 同日被删 4 次，靠备份才恢复）。
+    规则：
+      · 设了 `APP_DATA_DIR` ⇒ `<APP_DATA_DIR>/offline_reports`（隔离实例，只清自己的）；
+      · 未设（生产实例）⇒ `scripts/four_reports`（现行位置，行为不变）。
+    """
+    app_data = os.environ.get("APP_DATA_DIR")
+    if app_data:
+        return os.path.join(app_data, "offline_reports")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "scripts", "four_reports")
+
+
 def purge_file(file_path) -> tuple:
     """尽力物理移除单个文件，返回 (removed: bool, reason: str)。
 
@@ -244,8 +309,22 @@ def _to_json_safe(value: Any, _seen: set | None = None) -> Any:
         return str(value)
 
 
-def atomic_write_json(path: os.PathLike[str] | str, value: Any) -> None:
-    """Write JSON using fsync + atomic replace so crashes cannot truncate it."""
+def atomic_write_text(path: os.PathLike[str] | str, text: str) -> None:
+    """**文本落盘的唯一原子实现**（fsync + `os.replace`，崩不断、截不留）。
+
+    ★ 2026-10-09：从 `atomic_write_json` 里**抽出的唯一实现**（原来是"顺手写一遍"）。
+      为什么必须唯一：JSONL 类追加表（作业流水 `data/analysis_jobs.jsonl`、
+      版本台账 `data/report_versions.jsonl`、`data/purge_log.jsonl`）需要**整表重写**
+      （删除企业时清行），而 `atomic_write_json` 只写 JSON。
+      各模块于是**各自**手写 `mkstemp` + `os.replace` + **失败时 `os.unlink(tmp)`** ——
+      闸门 `check_delete_exits` 逐行扫描"未声明的删除调用"，一写就报 ERROR
+      （实测：`engine/analysis_jobs.py::_rewrite_rows` 被闸门抓到）。
+      现统一走本函数：**"谁能删临时文件"只有这一个声明过的出口**，
+      调用方连 `os.unlink` 都不该出现。
+
+    ⚠ 本函数与 `atomic_write_json` 的关系：后者**只是本函数的一个 JSON 包装**
+      （`_to_json_safe` + 序列化），不得再各写一份原子替换逻辑。
+    """
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with _json_lock:
@@ -256,13 +335,34 @@ def atomic_write_json(path: os.PathLike[str] | str, value: Any) -> None:
         )
         try:
             with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
-                json.dump(_to_json_safe(value), handle, ensure_ascii=False, default=str)
+                handle.write(text)
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temp_name, destination)
         finally:
             if os.path.exists(temp_name):
                 os.unlink(temp_name)
+
+
+def atomic_write_json(path: os.PathLike[str] | str, value: Any,
+                      indent: int | None = None) -> None:
+    """Write JSON using fsync + atomic replace so crashes cannot truncate it.
+
+    ★ 2026-10-06：新增 `indent`（默认 None，行为与从前完全一致）。
+      为什么需要它：`scripts/run_companies.py` / `_rerun_company1.py` 会把
+      **全量分析产物**落盘，产物用 `indent=1`（便于人工检索阅读）。
+      这两个脚本此前**各自手写** `open(...,"w")` + `json.dump` —— 非原子：
+      磁盘写满/进程中断时会把**正式产物截断**（实测 `company_1_full.json` 被截成
+      3110 字节、只剩 4 个键）。现统一走本函数（**唯一落盘实现**），只多一个 `indent`。
+
+    ★ 2026-10-09：本函数改为 `atomic_write_text` 的**薄包装**（单一原子写实现）。
+      序列化口径不变：`_to_json_safe` + `ensure_ascii=False` + `default=str`
+      + `indent`（与旧的 `json.dump(..., handle, ...)` 逐字节等价）。
+    """
+    atomic_write_text(
+        path,
+        json.dumps(_to_json_safe(value), ensure_ascii=False, indent=indent, default=str),
+    )
 
 
 def read_json(path: os.PathLike[str] | str, default: Any) -> Any:

@@ -1,0 +1,341 @@
+{
+  "version": "1.0",
+  "authority": "《系统固化与迭代路线图》的唯一权威。新增模块只加一条，不改逻辑分支。",
+  "principle": [
+    "每个模块必须写明 8 项：功能 / 输入 / 输出 / 规则 / 校验 / 优先级 / 依赖 / 验收。",
+    "『规则唯一权威』必须是**一个文件或一个函数**；其它位置只能薄转发，不得二次实现。",
+    "验收必须可复现：给出脚本与命令，且**修前报红、修后转绿**（反向验证）。",
+    "本批已落地不等于已接入：接入产出链（被 main 调用）与登记（skill_specs）分开标注，未接入的不得标『已完成』。"
+  ],
+  "modules": [
+    {
+      "no": 1,
+      "id": "fact_store",
+      "name": "唯一事实源",
+      "authority": "engine/fact_store.py（已接入 main.py）",
+      "func": "登记每条事实（金额/人数/笔数/比例）及其五要素口径，同键不同值保留历史不静默覆盖",
+      "input": "引擎各处产生的事实与口径（scope/tax_inclusive/period/source/derivation）",
+      "output": "FactStore.snapshot() 事实表 + conflicts() 冲突登记 + render() 报告渲染",
+      "rules": "五要素缺登记即视为未登记口径，不得进报告；解析失败返回 None，绝不返回 0",
+      "check": "门禁 A8（digest 字段一致性）；tests/test_quality_gates_v2.py",
+      "priority": "P0",
+      "depends": [],
+      "accept": "本样本 16 项事实可在 CH4 逐条溯源；冲突登记非空时门禁报错",
+      "status": "已完成（**已接入产出链**：main.py 唯一接线点登记事实 + 冲突留痕）；门禁 B1 不再 SKIP"
+    },
+    {
+      "no": 2,
+      "id": "numbering",
+      "name": "编号服务（底稿层 + 报告层）",
+      "authority": "engine/numbering.py + config/numbering.json",
+      "func": "生成底稿号 WB-* 与报告短号 R/C/F/D/S/L/T，并做连续性校验",
+      "input": "企业代码、期间、各类型序号（事实/要件按父级分别计数）",
+      "output": "编号字符串 + 引用串（见疑点R1 / 见事实R1-F01）+ validate_continuity 问题清单",
+      "rules": "任何模块禁止自行拼接编号字符串；R 总数必须等于确认事项数；起点 1、无跳号无重号",
+      "check": "validate_continuity；scripts/_phase3_numbering.py",
+      "priority": "P0",
+      "depends": [],
+      "accept": "R1~R16 连续、max(seq)=总数（修正原文『第十八项』＞16）；引用串由 ref_format 生成，实测无手写",
+      "status": "已完成"
+    },
+    {
+      "no": 3,
+      "id": "conclusion_grade",
+      "name": "结论分级与关键证据一票否决",
+      "authority": "engine/conclusion_grade.py + config/conclusion_grades.json",
+      "func": "把结论映射到 L1/L2/L3/L4，并在关键证据缺失时执行一票否决",
+      "input": "verdict 文本、closure、direct_missing、缺口登记状态",
+      "output": "conclusion_grade、驳回后等级（待核验）、追加文字『（关键证据缺失，本项不作认定）』",
+      "rules": "L4 系统永不输出，必须转交有权人员；等级词表唯一权威 risk_levels.LEGAL_LEVELS",
+      "check": "vocab_consistency() 与 verdict_vocab_consistency() 双向校验；门禁 A9/B9",
+      "priority": "P0",
+      "depends": [
+        "fact_store"
+      ],
+      "accept": "本样本 16/16 项触发否决并降为待核验，与原报告『高风险2/中风险9』冲突可复现",
+      "status": "已完成"
+    },
+    {
+      "no": 4,
+      "id": "dupkit",
+      "name": "重复判定唯一实现",
+      "authority": "engine/dupkit.py + config/dedup_rules.json",
+      "func": "提供段落级/句子级相似度判定与句子切分，供去重与诊断共用",
+      "input": "文本对（段落或句子）",
+      "output": "相似度分数与 is_xxx_dup 布尔",
+      "rules": "段落级用 Jaccard、句子级用 SequenceMatcher.ratio；**禁止各处自行实现相似度**",
+      "check": "scripts/_selfcheck_phase1.py（32/32）",
+      "priority": "P0",
+      "depends": [],
+      "accept": "去重与诊断引用同一函数：实测 V1.1 事实重复 0 次（此前两套口径导致 21→9→6 不归零）",
+      "status": "本批新建"
+    },
+    {
+      "no": 5,
+      "id": "dedup_pipeline",
+      "name": "去重与引用替换流水线",
+      "authority": "engine/dedup_pipeline.py（通用六类重复 + 阻断）＋ engine/report_dedup.py（报告文体特有：元话语/共性段上提/表注）",
+      "func": "按六类重复规则执行删除/合并/引用替换，产出新版本稿",
+      "input": "上一版报告文本 + dedup_rules.json + numbering",
+      "output": "新版本稿 + 去重处理记录（逐条：类型/原文/处置/依据）",
+      "rules": "只删『字面相同/高度相似/渲染残留/套话』四类；不同疑点不同上下文一律保留；★ 与 report_dedup 分工见 dedup_pipeline 模块 docstring：两者共用 dupkit 相似度，不重复实现",
+      "check": "重跑 _phase1_diagnose.py，三项阈值须 PASS，且旧版仍 FAIL",
+      "priority": "P0",
+      "depends": [
+        "dupkit",
+        "numbering"
+      ],
+      "accept": "V1.0 21.96%/15章/53次 → V1.1 0.74%/0章/0次，去重 979 条",
+      "status": "已完成（**已固化为引擎模块**；`duplicate_rate()` 提供阻断；`scripts/_phase5_dedup.py` 薄转发）"
+    },
+    {
+      "no": 6,
+      "id": "diagnose",
+      "name": "重复与问题诊断器",
+      "authority": "scripts/_phase1_diagnose.py（待固化为 engine/diagnose.py）",
+      "func": "六类重复分类 + 三项阈值校验 + 9 类问题诊断，对任意版本稿可重跑",
+      "input": "报告纯文本（V1.0/V1.1/…）",
+      "output": "重复清单.json / 重复率.json / 问题诊断.json",
+      "rules": "必要重复白名单（引用串/表格分隔/骨架/表头）不参与判定；同章节判定须过最小样本量与最小冗余字数双门槛",
+      "check": "_selfcheck_phase1.py 反向验证 32/32",
+      "priority": "P0",
+      "depends": [
+        "dupkit"
+      ],
+      "accept": "对 V1.0 报红、对 V1.1 报绿，同一套判据",
+      "status": "已落地为脚本（**未固化为 engine 模块**）"
+    },
+    {
+      "no": 7,
+      "id": "root_causes",
+      "name": "根因登记",
+      "authority": "config/root_causes.json + scripts/_phase2_rootcause.py",
+      "func": "把症状（重复/问题）归因到根因，并给出修复落点与唯一权威",
+      "input": "阶段1 的三份 JSON",
+      "output": "根因分析.json（每条：症状数/证据/修复阶段/权威）",
+      "rules": "根因不得是表象；必须写明唯一权威落点；同一症状可被多层根因解释（发生原因 + 未被拦截原因）",
+      "check": "每条根因的 symptom_count 由脚本现算，不手写",
+      "priority": "P1",
+      "depends": [
+        "diagnose"
+      ],
+      "accept": "10 条根因解释 673 处症状命中，与第09批 R1~R5、第11批 R6 完成映射",
+      "status": "本批新建"
+    },
+    {
+      "no": 8,
+      "id": "report_structure",
+      "name": "报告结构（9 章 + 六段式）",
+      "authority": "config/report_structure.json",
+      "func": "定义章节职责、风险总表列与六段式写作规则、原→新映射",
+      "input": "无（配置）",
+      "output": "结构方案 + 章节禁止项 + CH2 列定义",
+      "rules": "一章一职责；同一内容只允许在一个章节完整出现；风险等级与证据强度分列",
+      "check": "scripts/_phase4_structure.py；去重后重复率重测",
+      "priority": "P0",
+      "depends": [],
+      "accept": "9 章结构落地于 V1.1；原→新映射 10 条无内容丢失",
+      "status": "已完成"
+    },
+    {
+      "no": 9,
+      "id": "tax_limits",
+      "name": "法定限额与税率",
+      "authority": "config/tax_limits.json + scripts/_phase6_verify.py",
+      "func": "机器复算各费用限额；按差异性质与税率分档测算税额敞口",
+      "input": "费用发生额、基数（营业收入/工资薪金总额/年度利润总额）",
+      "output": "限额复算表 + 当期敞口（永久性×税率）+ 递延影响（时间性差异）",
+      "rules": "税率必须声明依据；永久性与时间性差异不得合并计算；基数取不到登记『未测算』不填零",
+      "check": "复算值与报告值逐项比对（限额一致 / 超限一致）",
+      "priority": "P0",
+      "depends": [
+        "fact_store"
+      ],
+      "accept": "本样本 2 项限额复算一致；头条 105,606.89 溯源为 (377,927.53+1,734,210.17)×5%，修正为永久性×25%=94,481.88",
+      "status": "本批新建"
+    },
+    {
+      "no": 10,
+      "id": "industry",
+      "name": "行业适配（含业态剔除）",
+      "authority": "engine/industry_resolver.py + static/industry_data.json + config/industry_params.json",
+      "func": "行业名归一 → 基准匹配 → 业态分类 → 不适用资料剔除 → 等级调整",
+      "input": "企业名称、登记行业、经营范围、销项品名",
+      "output": "基准名与基准值、业态类别、not_required_materials、level_adjustments",
+      "rules": "**入口必须归一化**；粗粒度门类键也要匹配；新增行业只加数据行",
+      "check": "scripts/_phase8_industry.py 探针 + 引用完整性校验（benchmark_refs/risk_families/report_template）",
+      "priority": "P0",
+      "depends": [],
+      "accept": "本样本 数字传媒 → 文化传媒（原 _default）；行业包 6→10；别名 123→152",
+      "status": "本批修复 + 扩充"
+    },
+    {
+      "no": 11,
+      "id": "quality_gates",
+      "name": "四道质量门禁",
+      "authority": "engine/quality_gates.py + config/quality_gates.json",
+      "func": "A 证据链闭合度 / B 逻辑一致性 / C 归档规范性 / D 模板整洁度，共 38 条判据",
+      "input": "report_data",
+      "output": "_quality_gates_v2 + formal_workpaper_allowed + 未过则 automatic_determination_allowed=False",
+      "rules": "attach_to_report 为唯一接线点；SKIP≠PASS；超限留痕不静默截断",
+      "check": "scripts/_acceptance_wb_trisk_2026_001.py（35/35）；tests/test_quality_gates_v2.py（59）",
+      "priority": "P0",
+      "depends": [
+        "fact_store",
+        "conclusion_grade"
+      ],
+      "accept": "本样本实跑 18 ERROR / failed_gates=[A,B,C,D]；接线后 formal_workpaper_allowed=False",
+      "status": "已完成（C6/D9/D10 依赖渲染层，当前 SKIP）"
+    },
+    {
+      "no": 12,
+      "id": "archive_spec",
+      "name": "归档规范",
+      "authority": "config/archive_spec.json",
+      "func": "底稿编号、页眉页脚、七类索引、证据号/附件号、复核签署、审计轨迹、导出包六成员",
+      "input": "报告产物与元数据",
+      "output": "归档包结构 + 渲染层降级规则（forbid_in_export / toc 单一来源 / empty_table_policy / page_css）",
+      "rules": "未过门禁不得归档；页码不得手写；TOC 单一来源",
+      "check": "门禁 C 系列；archive_spec 的强制项",
+      "priority": "P1",
+      "depends": [
+        "quality_gates"
+      ],
+      "accept": "空表策略生效（本报告 96 行空表已消除）；页眉页脚/页码待渲染层实现",
+      "status": "已完成（渲染层部分待实现）"
+    },
+    {
+      "no": 13,
+      "id": "doc_consistency",
+      "name": "交付文档一致性（D1~D5）",
+      "authority": "engine/doc_consistency_core.py",
+      "func": "文档数字一致性 / 规则引用一致性 / 全文残留 / 术语 / 口径",
+      "input": "交付文档集",
+      "output": "一致性问题清单",
+      "rules": "唯一实现；marker 按文件绑定 tests/test_doc_consistency_skills.py",
+      "check": "pytest tests/test_doc_consistency_skills.py",
+      "priority": "P1",
+      "depends": [],
+      "accept": "新增测试文件对 D1 零影响（已实测）",
+      "status": "已完成"
+    },
+    {
+      "no": 14,
+      "id": "workpaper_skill",
+      "name": "工作底稿编排 Skill",
+      "authority": "engine/workpaper_generator.py",
+      "func": "十五步编排（每步指向唯一权威实现）+ 归档包构建 + manifest 渲染",
+      "input": "企业资料与画像",
+      "output": "工作底稿 + 归档包",
+      "rules": "每步禁止另起实现，只能调用唯一权威",
+      "check": "待登记 config/skill_specs.json 并接入 skill_runtime",
+      "priority": "P0",
+      "depends": [
+        "fact_store",
+        "numbering",
+        "quality_gates",
+        "conclusion_grade"
+      ],
+      "accept": "登记后可由 skill_runtime 调用；当前**未登记、未接入**",
+      "status": "**未完成**（未登记 skill_specs.json，未接入 skill_runtime）"
+    },
+    {
+      "no": 15,
+      "id": "reconciliation",
+      "name": "数据勾稽校验器",
+      "authority": "engine/reconciliation.py",
+      "func": "校验金额合计/比例/含税换算/期间一致性/量纲笔误，发现不一致阻断输出",
+      "input": "report_data（tax_impact、confirmed_problems、口径文本）",
+      "output": "{passed,blocking,issues,skipped}",
+      "rules": "取不到即 SKIP 不静默通过；blocking=True ⇒ formal_workpaper_allowed=False",
+      "check": "scripts/_phase10_regression.py；main.py 接线留痕",
+      "priority": "P0",
+      "depends": [
+        "fact_store"
+      ],
+      "accept": "接线后 main.py 输出 [数据勾稽] 日志；阻塞项非空即禁止出正式稿",
+      "status": "本批新建并接线"
+    },
+    {
+      "no": 16,
+      "id": "legal_version",
+      "name": "法规版本管理器",
+      "authority": "engine/legal_version.py",
+      "func": "按登记表给报告每条法规引用标注 版本/生效日期/现行有效性，输出待核与拦截清单",
+      "input": "report_data 中的法规引用文本",
+      "output": "{annotations,pending,blocking}",
+      "rules": "未登记一律『版本待核』，绝不当现行有效；superseded/expired 引用即拦下",
+      "check": "scripts/_phase6_verify.py；main.py 接线留痕",
+      "priority": "P0",
+      "depends": [
+        "legal_versions.json"
+      ],
+      "accept": "《中国国家地理》等非法规名被过滤；未登记法规进待核清单",
+      "status": "本批补 report 级接口并接线（版本判定沿用既有唯一权威）"
+    },
+    {
+      "no": 17,
+      "id": "output_variants",
+      "name": "多版本输出模块",
+      "authority": "engine/output_variants.py",
+      "func": "一键生成内部完整版 + 对外版",
+      "input": "报告全文",
+      "output": "两版文件 + 实质一致性校验",
+      "rules": "**脱敏策略=不脱敏（用户铁律）**；对外版仅剔除工作底稿内部字段，实质内容逐字相同",
+      "check": "verify_no_masking() 反查脱敏标记须为空；_same_substance() 须 PASS",
+      "priority": "P0",
+      "depends": [
+        "dedup_pipeline"
+      ],
+      "accept": "两版实质一致 PASS、脱敏标记反查为空（实测：剔除 16 行内部字段）",
+      "status": "本批新建并接线（脚本薄转发）"
+    },
+    {
+      "no": 18,
+      "id": "knowledge_learner",
+      "name": "知识库自学习模块",
+      "authority": "engine/knowledge_learner.py",
+      "func": "从诊断结果提炼候选规则 + 问题样本入库",
+      "input": "问题诊断.json + 样本 case",
+      "output": "knowledge_candidates.json 候选 + experience_cases.json 入库",
+      "rules": "**只提炼不自动改判据**（须人工确认后合入权威表）；每条候选带证据；幂等（同键累加 times_seen）",
+      "check": "读 candidate 的 times_seen/first_sample 可追溯",
+      "priority": "P1",
+      "depends": [
+        "diagnose"
+      ],
+      "accept": "已入库问题样本 1 条；候选规则自动登记且状态为『待人工确认』",
+      "status": "本批新建并接线"
+    }
+  ],
+  "roadmap": [
+    {
+      "phase": "P0（本批已完成）",
+      "items": [
+        "去重与诊断判据（dupkit + dedup_rules）",
+        "编号体系（报告层短号）",
+        "结论分级与一票否决",
+        "法定限额复算",
+        "行业适配修复（归一化 + 粗粒度 + 别名 + 扩包）",
+        "报告结构（9 章 + 六段式）"
+      ]
+    },
+    {
+      "phase": "P1（下一批）",
+      "items": [
+        "渲染层实现（页眉页脚/页码/TOC/Word 降级）⇒ 解锁门禁 C6/D9/D10",
+        "workpaper_generator 登记 skill_specs.json 并接入 skill_runtime",
+        "closure 纳入 snapshot_invariance.DIGEST_FIELDS（当前 A8 WARN）",
+        "（本批已补：reconciliation / legal_version 报告级接口 / output_variants / knowledge_learner 均已落地并接线）"
+      ]
+    },
+    {
+      "phase": "P2（按需）",
+      "items": [
+        "税种包补全（当前 2~3 成）",
+        "行业包继续扩充（按新样本出现频率）",
+        "外部数据核验接口（工商/税务/银行）"
+      ]
+    }
+  ]
+}

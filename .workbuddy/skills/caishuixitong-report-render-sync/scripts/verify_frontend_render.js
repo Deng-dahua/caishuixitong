@@ -9,10 +9,20 @@ const path = require('path');
 
 const args = process.argv.slice(2);
 let pyramid = false;
+let dumpPath = '';
 const posArgs = [];
-args.forEach((a) => { if (a === '--pyramid') pyramid = true; else posArgs.push(a); });
-if (posArgs.length < 2) {
-  console.error('用法: node verify_frontend_render.js <report.json> "子串1" ["子串2" ...] [--pyramid]');
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+  if (a === '--pyramid') { pyramid = true; continue; }
+  // ★ 2026-10-05：`--dump <file>` 输出**完整渲染 HTML**。
+  //   原因：只做"子串是否存在"是**同义反复**（页面由数据渲染，问"有没有"必然有），
+  //   防不住任何真问题。要判断"页面上到底显示了什么/有没有空块/有没有重复章"，
+  //   必须有 HTML 全文本可供切块分析（见 tools/verify_page_render.py）。
+  if (a === '--dump') { dumpPath = args[i + 1] || ''; i++; continue; }
+  posArgs.push(a);
+}
+if (posArgs.length < 1) {
+  console.error('用法: node verify_frontend_render.js <report.json> ["子串1" ...] [--pyramid] [--dump <out.html>]');
   process.exit(2);
 }
 const reportPath = posArgs[0];
@@ -43,8 +53,20 @@ const sandbox = {
   document: mkProxy(),
   console, setTimeout, clearTimeout,
   JSON, Date, Math, String, Array, Object, RegExp, parseInt, parseFloat, isNaN,
+  // ★ 2026-10-05（实测缺陷）：前端 `boot()` 用了浏览器的 `MutationObserver`，
+  //   桩环境没提供 ⇒ 加载即抛 `ReferenceError: MutationObserver is not defined`，
+  //   整个验证脚本跑不起来（"验证工具本身坏了"比"没验证"更危险 —— 会给出假通过）。
+  //   补最小桩：只求不抛，不模拟真实行为（本脚本只验"某段是否被画出"）。
+  MutationObserver: function MutationObserverStub() {
+    return { observe() {}, disconnect() {}, takeRecords() { return []; } };
+  },
+  requestAnimationFrame: function (fn) { try { fn(Date.now()); } catch (e) {} return 0; },
+  addEventListener() {}, removeEventListener() {},
+  localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
 };
-sandbox.window._tdaReportEdition = 'workpaper';
+// ★ 2026-10-05：「企业检查报告版」（inspection_report）与其版本切换条已整体下线，
+//   报告只渲染工作底稿版 ⇒ `_tdaReportEdition` 已从 tax-doc-analysis.js 删除，
+//   此处不再需要预设该变量（预设在 script 里已无消费方，只会造成"以为还有版本切换"的误判）。
 vm.createContext(sandbox);
 vm.runInContext(js, sandbox, { filename: jsPath });
 
@@ -55,6 +77,11 @@ function checkFn(name, fn) {
   let html;
   try { html = fn(r, '2026-01-01'); }
   catch (e) { console.log('FAIL - ' + name + ' 渲染抛错: ' + e.message); return false; }
+  // ★ 2026-10-05：`--dump` 时把完整 HTML 落盘（供结构级验收切块分析）
+  if (dumpPath) {
+    try { fs.writeFileSync(dumpPath, html, 'utf-8'); console.log('DUMPED - ' + dumpPath); }
+    catch (e) { console.log('DUMP_FAIL - ' + e.message); }
+  }
   let allOk = true;
   needles.forEach((n) => {
     const ok = html.indexOf(n) >= 0;

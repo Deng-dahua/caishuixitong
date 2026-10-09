@@ -19,6 +19,7 @@ from datetime import datetime
 from typing import Any
 
 from engine.verified_rule_engine import VERIFIED_RULE_CATALOG, run_verified_rules
+from engine.findingkit import finding_identity  # ★ 发现身份键唯一权威
 
 
 GOVERNANCE_STATUS = "output_governed"
@@ -209,7 +210,9 @@ def seal_governed_findings(execution: dict) -> list:
     for item in findings:
         if not isinstance(item, dict) or item.get("_scenario_governed") is not True:
             continue
-        identity = str(item.get("scene_fact_id") or item.get("fact_id") or item.get("type") or "").strip()
+        # ★ 身份取值唯一权威：原先此处手写一份「scene_fact_id/fact_id/type」取值，
+        #   与 self_learning 门禁跨轮记账各写各的，两边迟早漂移；改用唯一权威。
+        identity = finding_identity(item)
         if not identity or identity in identities:
             continue
         identities.add(identity)

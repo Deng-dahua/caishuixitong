@@ -20,7 +20,7 @@ from engine.input_voucher import run_input_voucher_check
 from engine.false_invoice import run_false_invoice_check
 from engine.inspection_questions import run_inspection_questions
 
-COMPANIES = {"1": "深圳海更数字传媒有限公司", "3": "北京桦橙佳业商贸有限公司"}
+COMPANIES = {"1": "某传媒企业示例公司", "3": "北京桦橙佳业商贸有限公司"}
 
 
 def load(cid):

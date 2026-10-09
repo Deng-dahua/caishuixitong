@@ -241,7 +241,7 @@ class TestConclusionAssertionConsistency(unittest.TestCase):
     @staticmethod
     def _reasoning():
         from engine.argumentation import _VERDICT_HIT_PENDING
-        return ("本企业触碰红线，即%s，涉嫌通过关联企业转移利润、虚开发票。"
+        return ("本条涉嫌触碰红线，即%s，涉嫌通过关联企业转移利润、虚开发票。"
                 "判断本项是否成立，要看这几项标准是否同时满足：与本企业存在人员重叠的上下游企业。"
                 "本轮从所报资料中直接核对到的事实是：既为供应商又为客户的主体2家。"
                 "综合以上，本项结论是%s，判断可信度约56%%（中等）。这一项既不认定违法，也不予排除。"
@@ -250,9 +250,13 @@ class TestConclusionAssertionConsistency(unittest.TestCase):
     def test_zero_participant_strips_touch_redline_opening(self):
         from engine.enterprise_report import sanitize_conclusion_assertion as f
         out = f(self._reasoning(), self.NAME, set())
-        self.assertNotIn("本企业触碰红线，即", out)
-        self.assertIn("未认定到任何一条构成要件", out)
+        self.assertNotIn("本条涉嫌触碰红线，即", out)
+        # ★ 2026-10-07（触发条件与认定要件分离）：零认定段不再写「未认定到任何一条构成要件」
+        #   （该句与"已因触发条件命中而列为疑点"冲突，已按用户验收下线）；
+        #   改为**分层表述**：疑点成立（触发条件命中）≠ 风险成立，且仍须保留"不触红"提示。
+        self.assertIn("已因触发条件命中而列为疑点", out)
         self.assertIn("不等于已触碰红线", out)
+        self.assertNotIn("未认定到任何一条构成要件", out)
 
     def test_zero_participant_strips_touch_redline_tail(self):
         """只改首句不算修好：段尾「本项结论是<触红裁决>」同样要中性化。"""
@@ -265,7 +269,7 @@ class TestConclusionAssertionConsistency(unittest.TestCase):
         from engine.argumentation import _VERDICT_HIT_PENDING
         from engine.enterprise_report import sanitize_conclusion_assertion as f
         out = f(self._reasoning(), self.NAME, {"1"})
-        self.assertIn("本企业触碰红线，即", out)
+        self.assertIn("本条涉嫌触碰红线，即", out)
         self.assertIn(_VERDICT_HIT_PENDING, out)
 
     def test_other_redline_opening_not_touched(self):
@@ -283,7 +287,7 @@ class TestConclusionAssertionConsistency(unittest.TestCase):
     def test_no_redline_name_mismatch_crash(self):
         from engine.enterprise_report import sanitize_conclusion_assertion as f
         self.assertIsInstance(f("", self.NAME, set()), str)
-        self.assertIsInstance(f("本企业触碰红线，即", self.NAME, set()), str)
+        self.assertIsInstance(f("本条涉嫌触碰红线，即", self.NAME, set()), str)
 
 
 class TestTailAssertionNeutralization(unittest.TestCase):
@@ -299,7 +303,7 @@ class TestTailAssertionNeutralization(unittest.TestCase):
     @staticmethod
     def _reasoning():
         from engine.argumentation import _VERDICT_HIT_PENDING, _TAIL_HIT_PENDING
-        return ("本企业触碰红线「%s」，涉嫌通过关联企业转移利润。"
+        return ("本条涉嫌触碰红线「%s」，涉嫌通过关联企业转移利润。"
                 "判断本项是否成立，要看这几项标准是否同时满足。"
                 "综合以上，本项结论是%s，判断可信度约60%%（中等）。%s"
                 % (TestTailAssertionNeutralization.NAME, _VERDICT_HIT_PENDING, _TAIL_HIT_PENDING))
@@ -319,7 +323,9 @@ class TestTailAssertionNeutralization(unittest.TestCase):
         「待补充资料后判断」，常量是「待补证后判断」→ 一次也没替换成功）。
         """
         from engine.argumentation import _TAIL_HIT_ANCHOR, neutralize_assertion_when_no_constituent as f
-        broken = self._reasoning().replace("补证", "补充资料")
+        # ★ 2026-10-06：常量文案已改为「待**补充资料**后判断」（原「待补证后判断」），
+        #   故模拟的上游改写方向随之反转 —— 判据本身不变：**锚点必须扛得住上游改写**。
+        broken = self._reasoning().replace("补充资料", "补证")
         self.assertNotEqual(broken, self._reasoning())
         out = f(broken, self.NAME)
         self.assertNotIn(_TAIL_HIT_ANCHOR, out, "上游改写后锚点失效，段尾触红断言逃逸")
@@ -332,7 +338,7 @@ class TestTailAssertionNeutralization(unittest.TestCase):
 
     def test_no_touch_opening_left_untouched(self):
         from engine.argumentation import neutralize_assertion_when_no_constituent as f
-        other = ("本企业触碰红线，即另一个疑点名，涉嫌X。"
+        other = ("本条涉嫌触碰红线，即另一个疑点名，涉嫌X。"
                  "综合以上，本项结论是已触碰税务违规红线（资料不足，待补充资料后判断）。")
         self.assertEqual(f(other, self.NAME), other, "非本红线的触红开场被误伤")
 

@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "version": "2026.10",
+  "updated": "2026-10-07",
+  "note": "★ Skill 编排方案库（任务1 的唯一权威）。每个方案声明：按什么顺序执行哪些 Skill、哪些可并行、什么条件下才执行、失败重试几次、哪些位置需人工复核后继续、以及各 Skill 的启用版本（灰度/回滚）。**新增方案或调整顺序只改本文件**。",
+  "default_plan": "standard",
+  "plans": [
+    {
+      "plan_id": "standard",
+      "plan_name": "常规全面检查",
+      "applies_to": {
+        "industries": [],
+        "taxes": [],
+        "focus": []
+      },
+      "steps": [
+        {
+          "step_id": "s1",
+          "skill_id": "industry_params",
+          "entry": "load_params",
+          "params": {}
+        },
+        {
+          "step_id": "s2",
+          "skill_id": "numparse",
+          "entry": "to_number_checked",
+          "params": {},
+          "when": {
+            "always": true
+          }
+        },
+        {
+          "step_id": "s3",
+          "skill_id": "tax_impact",
+          "entry": "infer_rate_context",
+          "params": {},
+          "parallel_group": "P1",
+          "retries": 1
+        },
+        {
+          "step_id": "s4",
+          "skill_id": "legal_version",
+          "entry": "registered_laws",
+          "params": {},
+          "parallel_group": "P1"
+        },
+        {
+          "step_id": "s5",
+          "skill_id": "report_compliance",
+          "entry": "validate_compliance",
+          "params": {},
+          "pause_after": true,
+          "pause_reason": "合规要素与签署状态须人工复核后再继续"
+        },
+        {
+          "step_id": "s6",
+          "skill_id": "table_governance",
+          "entry": "collect_table_violations",
+          "params": {},
+          "when": {
+            "industry_matched": true
+          }
+        },
+        {
+          "step_id": "s7",
+          "skill_id": "redaction",
+          "entry": "roles",
+          "params": {},
+          "when": {
+            "export_role": [
+              "external",
+              "enterprise",
+              "auditor"
+            ]
+          },
+          "retries": 1
+        }
+      ]
+    },
+    {
+      "plan_id": "industry_focus",
+      "plan_name": "行业专项检查",
+      "applies_to": {
+        "industries": [
+          "广告传媒",
+          "制造业",
+          "电子商务",
+          "建筑安装",
+          "餐饮",
+          "科技服务"
+        ],
+        "taxes": [],
+        "focus": []
+      },
+      "steps": [
+        {
+          "step_id": "s1",
+          "skill_id": "industry_params",
+          "entry": "params_of",
+          "params": {
+            "arg": "industry"
+          }
+        },
+        {
+          "step_id": "s2",
+          "skill_id": "industry_params",
+          "entry": "evaluate_triggers",
+          "params": {
+            "args_from_ctx": [
+              "industry"
+            ]
+          },
+          "when": {
+            "industry_matched": true
+          }
+        },
+        {
+          "step_id": "s3",
+          "skill_id": "report_template",
+          "entry": "section_order",
+          "params": {
+            "args_from_ctx": [
+              "industry"
+            ]
+          }
+        },
+        {
+          "step_id": "s4",
+          "skill_id": "risk_families",
+          "entry": "summary_line",
+          "params": {},
+          "parallel_group": "P1"
+        },
+        {
+          "step_id": "s5",
+          "skill_id": "legal_version",
+          "entry": "unregistered_core_laws",
+          "params": {},
+          "parallel_group": "P1"
+        },
+        {
+          "step_id": "s6",
+          "skill_id": "skill_registry",
+          "entry": "coverage",
+          "params": {}
+        }
+      ]
+    },
+    {
+      "plan_id": "compliance_review",
+      "plan_name": "对外交付合规复核",
+      "applies_to": {
+        "industries": [],
+        "taxes": [],
+        "focus": [
+          "对外交付"
+        ]
+      },
+      "steps": [
+        {
+          "step_id": "s1",
+          "skill_id": "report_compliance",
+          "entry": "document_meta",
+          "params": {}
+        },
+        {
+          "step_id": "s2",
+          "skill_id": "report_compliance",
+          "entry": "signature_block",
+          "params": {}
+        },
+        {
+          "step_id": "s3",
+          "skill_id": "redaction",
+          "entry": "role_policy",
+          "params": {},
+          "pause_after": true,
+          "pause_reason": "脱敏范围须人工确认后方可对外"
+        },
+        {
+          "step_id": "s4",
+          "skill_id": "legal_version",
+          "entry": "audit_registry",
+          "params": {}
+        }
+      ]
+    }
+  ],
+  "versions": {
+    "redaction": "1.0.0",
+    "report_compliance": "1.0.0",
+    "industry_params": "1.0.0",
+    "tax_impact": "1.2.0",
+    "legal_version": "1.0.0"
+  },
+  "gray": {
+    "note": "灰度：按**企业白名单**启用新版 Skill；未列入的企业走 versions 表里的稳定版本。回滚：把 rollback 指向的版本写回 versions。",
+    "enabled_for_companies": {},
+    "rollback_to": {
+      "redaction": "1.0.0"
+    }
+  }
+}

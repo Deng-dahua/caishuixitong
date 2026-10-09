@@ -25,6 +25,10 @@ import os
 import time
 from datetime import datetime
 from collections import defaultdict
+from typing import Dict, Tuple
+
+from engine.legal_citation import legal_reference_of  # ★ 法条字段唯一权威（判据与产出同源）
+from engine.findingkit import finding_identity  # ★ 发现身份键唯一权威（跨轮记账用）
 from runtime_storage import (
     CONTENT_FEEDBACK,
     CORRECTION_RULES,
@@ -292,6 +296,100 @@ class ModuleLearner:
 
 # ═══════════════ Layer 3: 行为规范门禁 ═══════════════
 
+# ═════════ 法条推断：税／非税两张表（2026-10-04 疑点10-21 合并批次 ⑭） ═════════
+# 约定：**非税事项（公积金缴存／社保缴费／工会经费拨缴／残保金／文化事业建设费等）不归
+# 税收法律调整**，故其 `law_ref` 即使本轮取不到，也**不得**回落到《税收征收管理法》——
+# 写了就是法律适用错（不是措辞问题），反而把一项合规提示变成一条错误指控。
+_TAX_LAW_MAP: Dict[str, str] = {
+    "隐匿": "《税收征收管理法》第六十三条第一款",
+    "虚开": "《发票管理办法》第二十二条、《刑法》第二百零五条",
+    "进销": "《中华人民共和国增值税法》第九条",
+    "收款": "《税收征收管理法》第十九条",
+    "付款": "《税收征收管理法》第十九条",
+    "发票": "《发票管理办法》第二十二条",
+    "合同": "《民法典》第四百七十条",
+    "加工": "《中华人民共和国增值税法实施条例》第三条",
+    "账簿": "《税收征收管理法》第十九条、第六十条",
+    "申报": "《税收征收管理法》第二十五条",
+    "社保": "《社会保险法》第五十八条",
+    "工资": "《企业所得税法》第八条",
+    "资产": "《企业所得税法》第十一条",
+    "折旧": "《企业所得税法》第十一条",
+    "存货": "《中华人民共和国增值税法实施条例》第三条",
+    "关联": "《税收征收管理法》第三十六条、《企业所得税法》第四十一条",
+    "转移": "《企业所得税法》第四十一条",
+    "隐匿收入": "《税收征收管理法》第六十三条第一款",
+}
+
+# 非税事项关键词（命中 ⇒ 用非税表；且**禁止**用《税收征收管理法》兜底）
+_NON_TAX_LAW_KEYWORDS: Tuple[str, ...] = (
+    "公积金", "工会经费", "残保金", "残疾人就业保障金",
+    "文化事业建设费", "水利建设基金",
+)
+
+_NON_TAX_LAW_MAP: Dict[str, str] = {
+    "公积金": "《住房公积金管理条例》第十五条（办理缴存登记）、第三十七条、第三十八条（罚则）",
+    "工会经费": "《中华人民共和国工会法》第四十三条（按全部职工工资总额 2% 拨缴）",
+    "残保金": "《中华人民共和国残疾人保障法》第三十八条、《残疾人就业保障金征收管理办法》",
+    "文化事业建设费": "《文化事业建设费征收管理暂行办法》（财税〔2016〕25 号）",
+    "水利建设基金": "《政府性基金管理暂行办法》（财综〔2010〕80 号）",
+}
+
+# 判定「本发现是否属非税事项」时用于识别税种的标记词
+_TAX_TOKENS: Tuple[str, ...] = (
+    "增值税", "企业所得税", "个人所得税", "印花税", "消费税",
+    "土地增值税", "房产税", "契税", "车船税", "关税", "城市维护建设税",
+)
+
+
+def _is_non_tax_finding(finding) -> bool:
+    """本发现是否属**非税事项**（不由税收法律调整）。
+
+    判据优先取发现的 `taxes` 字段（红线/检测器已声明本项涉及的税），取不到时
+    才回落到发现类型关键词——**不用默认值静默顶替**：拿不到就两种判据都试，都不知才回 False。
+    """
+    if not isinstance(finding, dict):
+        return False
+    taxes = finding.get("taxes") or finding.get("tax") or []
+    if isinstance(taxes, str):
+        taxes = [taxes]
+    joined = " ".join(str(x) for x in taxes)
+    if joined and not any(tok in joined for tok in _TAX_TOKENS):
+        return True
+    ftype = str(finding.get("type", "") or "")
+    return any(k in ftype for k in _NON_TAX_LAW_KEYWORDS)
+
+
+def _m06_exempt_reason(finding) -> str:
+    """M06（缺法条 ⇒ 违规）**豁免**理由；返回 "" 表示该项必须可引用法条。
+
+    三类豁免（每项都有数据/类型依据，不用默认值静默放行）：
+      ① 系统自检/元发现（「结论自洽-…」「Causal: …」「综合定性结论」等）——
+         判据来自唯一权威 `ledger_governance.is_citation_expectable`；
+      ② 非税事项（公积金/工会经费/残保金/文化事业建设费…）——本轮未取得其适用依据时
+         记「待人工核验」，不回落税收法律；
+      ③ 外部核验类（`is_external_check_finding`）——结论取决于系统拿不到的外部数据。
+    """
+    if not isinstance(finding, dict):
+        return ""
+    try:
+        from engine.ledger_governance import is_citation_expectable  # 单一权威
+        _expect, _why = is_citation_expectable(finding)
+        if not _expect:
+            return _why
+    except Exception:  # noqa: BLE001
+        pass
+    if _is_non_tax_finding(finding):
+        return "非税事项，本轮未取得其适用依据（待人工核验），不引用税收法律"
+    try:
+        from engine.argumentation import is_external_check_finding  # noqa: PLC0415
+        if is_external_check_finding(finding):
+            return "外部核验类，结论取决于本系统未取得的工商/税务/海关/银行数据"
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
 class ComplianceGate:
     """
     事前门禁：在报告输出前检查12条铁律。
@@ -310,7 +408,20 @@ class ComplianceGate:
         self.violations = []
         self.auto_fixed = []
         self.blocked = False
-    
+        # ★ 2026-10-04（同批 ⑭）：M06 违规里**属非税事项**的那几条，逐级降级为警告，
+        #   不计入阻断（它们本就不该引用税收法律，硬要 ⇒ 法律适用错 + 整份报告被判阻断）。
+        # ★ 2026-10-04（疑点10-21 合并批次）：豁免/非税**按发现身份记账**，不再按
+        #   违规对象的 id()。事故：以 id(violation) 为键 ⇒ 一旦复检（自动修复后
+        #   重跑门禁）就会生成全新的违规字典对象，豁免标记当场失效 ⇒ 上次"已豁免"
+        #   的元发现/非税项又变回阻断，实测把阻断数从 21 拖到 4 再拖到 2，
+        #   **每修一次就复发一次**；本轮实证这正是「合规门禁阻断」反复调不完的病根。
+        #   豁免是这条发现的**固有属性**（元发现/非税/外部核验），不是"这轮跑出来的
+        #   某个对象"，因此必须锚在发现身份上才能跨轮存活。
+        self._m06_non_tax_keys = set()
+        # ★ 2026-10-04（同批 ⑭）：元发现/非税/外部核验三类**本就无可引用法条**的 M06-N，
+        #   一律不计入阻断（记警告即可），否则整份报告会被「合规门禁阻断」卡死。
+        self._m06_exempt_keys = set()
+
     def check_all(self):
         """逐条检查12铁律+12报告质量标准"""
         self._check_m03_cross_evidence()
@@ -350,16 +461,51 @@ class ComplianceGate:
                 self.auto_fixed.append(f"M04: {f.get('type','')[:20]}自动补明细占位")
     
     def _check_m06_law_reference(self):
-        """M06: 高风险必须有法条引用"""
+        """M06: 高风险必须有法条引用（★ 2026-10-04 同批 ⑭：非税/元发现不按"缺法条"阻断）
+
+        事故（实测 21 项阻断 ⇒ 整份报告被打成「合规门禁阻断：21 项阻断性违规」）：
+          旧实现只看「score≥8 且 law_ref 为空」，于是把**元发现**——内部一致性自检
+          「结论自洽-虚开信号与四流合一完整的冲突」、归因叙事「Causal: 隐匿收入的资金回流路径」、
+          「综合定性结论」「资料完备度综合评估」——一律判"缺少法律依据"。
+          这些条目是**系统自检结论**而非税务主张：没有、也不该有一条税法去对应它；
+          判它缺法条 ⇒ 法律适用错 + 21 项阻断 ⇒ 整份报告发不出来。
+        修法：「本项是否**应当**有可引用法条」由唯一权威
+        `ledger_governance.is_citation_expectable` 判；判"不应当"的记 M06-N（待人工核验）
+        并**排除在阻断之外**（沿用非税事项的同一条豁免链路）。
+        """
         for f in self.all_findings:
             if (f.get("score", 0) or 0) >= 8:
-                if not f.get("law_ref"):
-                    self.violations.append({
+                # ★ 判据与产出必须同源：法条可能写在 `policy_ref`（报告呈现侧优先读）
+                #   也可能写在 `law_ref`（自动修复侧默认写），只读一个 ⇒ 实测 4 项明明
+                #   已有《社会保险法》第五十八条仍被判"缺法条" ⇒ 报告被判「合规门禁阻断」。
+                #   唯一权威：`legal_citation.legal_reference_of`。
+                if not legal_reference_of(f):
+                    _exempt = _m06_exempt_reason(f)
+                    if _exempt:
+                        _v = {
+                            "rule": "M06-N-依据待核",
+                        "finding_raw": f,
+                            "finding": f.get("type", "")[:60],
+                            "issue": "本项无可引用法条（%s）——不按「缺法条」阻断" % _exempt,
+                            "fixable": False,
+                        }
+                        self.violations.append(_v)
+                        self._m06_exempt_keys.add(finding_identity(f) or (
+                            "type=" + str(f.get("type", ""))))
+                        continue
+                    _v = {
                         "rule": "M06-法条引用",
+                        "finding_raw": f,
                         "finding": f.get("type", "")[:60],
-                        "issue": "高风险发现缺少法律依据",
+                        "issue": ("非税事项缺少适用法规依据（不属税收法律调整范围，"
+                                  "不按「缺法条」阻断）" if _is_non_tax_finding(f)
+                                  else "高风险发现缺少法律依据"),
                         "fixable": True
-                    })
+                    }
+                    self.violations.append(_v)
+                    if _is_non_tax_finding(f):
+                        self._m06_non_tax_keys.add(finding_identity(f) or (
+                            "type=" + str(f.get("type", ""))))
     
     def _check_m08_confidence_filter(self):
         """M08: 极低置信度发现自动过滤（阈值0.15，原0.3过严）"""
@@ -532,12 +678,33 @@ class ComplianceGate:
         self.violations.extend([{"rule": f"报告标准-{m}", "fixable": False} for m in merged])
         self.auto_fixed.extend(fixed)
     
+    def _violation_finding_index(self, violation):
+        """把一条违规还原成**发现身份键**（唯一权威 findingkit.finding_identity）。
+
+        还原不出时退回违规对象 id —— 宁可"记不住豁免"也不要"误放行"，
+        因此这里不做任何兜底成"已豁免"。
+        """
+        _key = ""
+        try:
+            _key = finding_identity(violation.get("finding_raw"))
+        except Exception:  # noqa: BLE001
+            _key = ""
+        return _key or ("type=" + str(violation.get("finding", "")))
+
+
     def _verdict(self):
         """输出裁决 — 区分阻断性违规与警告性违规"""
         # 阻断性违规：仅M06(法条缺失)阻断，其余降级为警告
+        # ★ 2026-10-04（同批 ⑭）：M06 只应阻断"**本应引用税法却缺法条**"的发现。
+        #   非税事项（公积金/工会经费/残保金/文化事业建设费） Laws 不适用，
+        #   硬要它引用税法既不可能也无意义，却把整份报告打成"合规门禁阻断"。
+        #   判据：`_is_non_tax_finding()` 命中的，改记 M06-N（非税依据待核）并降级为警告。
         BLOCKING_RULES = {"M06-法条引用"}
-        blocking = [v for v in self.violations if v.get("rule", "") in BLOCKING_RULES]
-        warnings = [v for v in self.violations if v.get("rule", "") not in BLOCKING_RULES]
+        blocking = [v for v in self.violations
+                    if v.get("rule", "") in BLOCKING_RULES
+                    and self._violation_finding_index(v) not in self._m06_non_tax_keys
+                    and self._violation_finding_index(v) not in self._m06_exempt_keys]
+        warnings = [v for v in self.violations if v not in blocking]
         
         can_auto_fix = len([v for v in blocking if v.get("fixable")]) > 0
         
@@ -558,12 +725,37 @@ class ComplianceGate:
         fixed_any = False
         for f in all_findings:
             # 修复M06：补充法条引用
-            if (f.get("score", 0) or 0) >= 8 and not f.get("law_ref"):
+            # ★★ 2026-10-04（同批 ⑭）：兜底**不再一刀切**套《税收征收管理法》第二十五条。
+            #   非税事项（公积金缴存/工会经费/残保金/文化事业建设费）根本不归税收法律调整，
+            #   套上去就是**法律适用错**；本轮取不到准确依据时，如实标注"待人工核验适用依据"。
+            # ★ 修复判据与 M06 判罚同源（唯一权威 legal_reference_of）：旧实现写
+            #   not f.get("law_ref")，而门禁判罚读 policy_ref/law_ref ⇒ 同一项在
+            #   "修前/修后"用两套口径，互为盲区。
+            if (f.get("score", 0) or 0) >= 8 and not legal_reference_of(f):
                 ftype = f.get("type", "")
-                f["law_ref"] = self._infer_law_ref(ftype)
+                _ref = self._infer_law_ref(ftype)
+                if not _ref:
+                    _ex = _m06_exempt_reason(f)
+                    if _ex:
+                        # 无可引用法条（非税 / 元发现 / 外部核验）：不写错法条，只标注待核验
+                        _ref = ("（本项无可引用法条——%s；在本项上套用税收法律会构成"
+                                "法律适用错，故本期不作引用，须人工核验后补充适用依据）" % _ex)
+                        f["_non_tax_law_pending"] = True
+                    elif _is_non_tax_finding(f):
+                        # 非税事项：不写错法条，只标注待核验
+                        _ref = ("（本事项属非税/政府性基金项目，本期未取得对应法规依据，"
+                                "暂不引用税收法律；须人工核验后补充适用依据）")
+                        f["_non_tax_law_pending"] = True
+                    else:
+                        _ref = "《税收征收管理法》第二十五条"  # 税事项兜底：通用纳税义务
+                # ★ 写入**规范字段** `policy_ref`（`findingkit.FINDING_FIELDS` 里的同名字段，
+                #   报告呈现侧优先读它）；`law_ref` 只作旧字段镜像，避免老读法看到空值。
+                #   事故：旧实现只写 `law_ref`，而门禁判据只读 `law_ref`／另一条流水线只写
+                #   `policy_ref` ⇒ 4 项高风险发现"法条已写好"仍被 M06 判"缺法条" ⇒ 报告被阻断。
+                f["policy_ref"] = _ref
                 if not f.get("law_ref"):
-                    f["law_ref"] = "《税收征收管理法》第二十五条"  # 兜底通用法条
-                if f["law_ref"]:
+                    f["law_ref"] = _ref
+                if _ref:
                     fixed_any = True
             # 修复S02：补充tax_impact的因果链（事实→影响→后果）
             ti = str(f.get("tax_impact", ""))
@@ -593,28 +785,28 @@ class ComplianceGate:
         return fixed_any
     
     def _infer_law_ref(self, ftype):
-        """从发现类型推断可能的法律依据"""
-        LAW_MAP = {
-            "隐匿": "《税收征收管理法》第六十三条第一款",
-            "虚开": "《发票管理办法》第二十二条、《刑法》第二百零五条",
-            "进销": "《中华人民共和国增值税法》第九条",
-            "收款": "《税收征收管理法》第十九条",
-            "付款": "《税收征收管理法》第十九条",
-            "发票": "《发票管理办法》第二十二条",
-            "合同": "《民法典》第四百七十条",
-            "加工": "《中华人民共和国增值税法实施条例》第三条",
-            "账簿": "《税收征收管理法》第十九条、第六十条",
-            "申报": "《税收征收管理法》第二十五条",
-            "社保": "《社会保险法》第五十八条",
-            "工资": "《企业所得税法》第八条",
-            "资产": "《企业所得税法》第十一条",
-            "折旧": "《企业所得税法》第十一条",
-            "存货": "《中华人民共和国增值税法实施条例》第三条",
-            "关联": "《税收征收管理法》第三十六条、《企业所得税法》第四十一条",
-            "转移": "《企业所得税法》第四十一条",
-            "隐匿收入": "《税收征收管理法》第六十三条第一款",
-        }
-        for keyword, law in LAW_MAP.items():
+        """从发现类型推断可能的法律依据（税／非税分表，非税绝不回落税收法律）。
+
+        ★★ 2026-10-04（疑点10-21 合并批次 ⑭）：**非税事项法条**——小改、一处判据、修掉法律适用错。
+        事故链：
+          ① `_infer_law_ref` 表内**没有公积金/工会经费/残保金/文化事业建设费**等非税关键词 ⇒ 返回 ""；
+          ② `auto_heal` 见空就回落到"《税收征收管理法》第二十五条" ⇒ **法律适用错**
+             （税收征管法调整的是纳税申报与税款征收；公积金缴存、社保缴费、工会经费拨缴
+              **根本不归它调整**，一份讲"缴存基数低于实际工资"的疑点挂着"未按规定申报纳税"
+              的错法条，专业读者一眼看穿，且属法律适用错误而非措辞问题）；
+          ③ 非税发现拿不到准确法条 ⇒ `M06`（score≥8 且缺 law_ref）判违规 ⇒
+             21 项触发 ⇒ `run_compliance_gate` 判定不通过 ⇒ 整份报告被打上
+             「合规门禁阻断：21 项阻断性违规」（实测 fy5/fy6 备份与本轮均为此态）。
+        修法：`_NON_TAX_LAW_MAP` 补非税事项的**正确**依据；非税事项**不得**回落到税收法律。
+        """
+        # ★ 顺序不可颠倒：**非税表必须先判**。
+        #   事故：税表里"工资"这条会抢先命中「公积金缴存基数低于实际工资」，
+        #   于是非税事项又被挂到《企业所得税法》第八条（工资薪金税前扣除）——
+        #   比旧版套《税收征收管理法》更隐蔽，但同样是法律适用错。
+        for keyword in _NON_TAX_LAW_KEYWORDS:
+            if keyword in ftype:
+                return _NON_TAX_LAW_MAP[keyword]
+        for keyword, law in _TAX_LAW_MAP.items():
             if keyword in ftype:
                 return law
         return ""
@@ -622,25 +814,72 @@ class ComplianceGate:
 
 # ═══════════════ 便捷入口 ═══════════════
 
+def _gate_loop(all_findings, pipeline_log, file_results, ctx, max_rounds=3):
+    """门禁主循环：检测 → 对**可自动修复**的阻断项 auto_heal → 复检，直到放行或无解。
+
+    ★★ 2026-10-04（疑点10-21 合并批次）：本循环是门禁的**唯一实现**。
+       事故：`auto_heal` 原本只写在 `run_compliance_gate_blocking` 里，而
+       pipeline 实际调用（也是**唯一被接线**）的 `run_compliance_gate` **只检测不修复**
+       ⇒ 能被自动补齐的法条/因果链永远补不进报告，可修的阻断项恒为阻断，
+       报告因此恒被打「合规门禁阻断：N项阻断性违规」（实测残留 2 项全是可自愈项）。
+       修法：两条入口都薄转发到本循环，消除多头，自愈真正接线。
+
+    ★ 与"检测+标记模式"不冲突：本循环只保证**可自愈的**阻断项被修掉；
+       修不掉（fixable=False）的照样不通过、报告照样标记风险——只是不再冤枉可修项。
+    """
+    rounds = 0
+    gate_result = None
+    for round_num in range(1, max_rounds + 1):
+        rounds = round_num
+        gate = ComplianceGate(all_findings, pipeline_log, file_results, ctx)
+        gate_result = gate.check_all()
+        if gate_result["passed"]:
+            pipeline_log.append(f"[COMPLIANCE] 门禁第{round_num}轮通过 ✓")
+            if gate_result["auto_fixed"]:
+                pipeline_log.append("[COMPLIANCE] 自动修复: " + ", ".join(gate_result["auto_fixed"][:10]))
+            break
+        blocking = gate_result.get("blocking_violations", [])
+        pipeline_log.append(f"[COMPLIANCE] 门禁第{round_num}轮不通过: {len(blocking)}项阻断性违规，尝试自动修复...")
+        if gate_result.get("can_auto_fix"):
+            gate.auto_heal(gate.all_findings)
+            all_findings = gate.all_findings
+            pipeline_log.append(f"[COMPLIANCE] 自动修复完成，进入第{round_num + 1}轮检查")
+            continue
+        pipeline_log.append(f"[COMPLIANCE] 门禁阻断: {len(blocking)}项不可自动修复 — 报告禁止输出")
+        break
+    if gate_result is not None:
+        gate_result["rounds"] = rounds
+    return gate_result, all_findings, rounds
+
+
 def run_compliance_gate(all_findings, pipeline_log, file_results, ctx):
-    """执行事前合规门禁检查"""
-    gate = ComplianceGate(all_findings, pipeline_log, file_results, ctx)
-    result = gate.check_all()
+    """执行事前合规门禁检查（检测 + **已接线自愈** + 复检）
+
+    pipeline 唯一调用的门禁入口；走 `_gate_loop` 同一条链路，只是把轮数收窄到 2 轮
+    （一轮检测 + 一轮自愈复检），避免"检测+标记"语义下白跑太多轮。
+    """
+    result, all_findings, _rounds = _gate_loop(
+        all_findings, pipeline_log, file_results, ctx, max_rounds=2
+    )
     if not result["passed"]:
-        pipeline_log.append(f"[COMPLIANCE] 门禁未通过: {len(result['violations'])}项违规 — 报告含风险标记")
+        pipeline_log.append(f"[COMPLIANCE] 门禁仍未通过: {len(result['violations'])}项违规 — 报告含风险标记")
     if result["auto_fixed"]:
         pipeline_log.append(f"[COMPLIANCE] 自动修复: {', '.join(result['auto_fixed'])}")
-    return result, gate.all_findings
+    return result, all_findings
 
 
 def run_compliance_gate_blocking(all_findings, pipeline_log, file_results, ctx, max_rounds=3):
-    """
-    合规门禁阻断版：不通过时自动修复+重试。
-    
+    """合规门禁阻断版：不通过时自动修复+重试 —— 薄转发到 `_gate_loop`（唯一实现）。
+
     返回 (gate_result, all_findings, rounds_used)
     - gate_result["passed"] = True → 报告可以输出
     - gate_result["passed"] = False → 报告禁止输出，需人工复核
     """
+    return _gate_loop(all_findings, pipeline_log, file_results, ctx, max_rounds=max_rounds)
+
+
+def _run_compliance_gate_blocking_legacy(all_findings, pipeline_log, file_results, ctx, max_rounds=3):
+    """已废弃的旧循环实现，仅留作对照，勿调用。"""
     for round_num in range(1, max_rounds + 1):
         gate = ComplianceGate(all_findings, pipeline_log, file_results, ctx)
         gate_result = gate.check_all()

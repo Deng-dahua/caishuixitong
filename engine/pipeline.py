@@ -27,11 +27,71 @@ from database import (
 
 from engine.domain_analysis import *  # 35域分析函数
 from engine.domain_analysis import _classify_purchase_voucher_distribution, _classify_voucher_deductibility  # 扣税凭证引擎
+# ★ 2026-10-07 修复：`_is_noise_name` 为下划线开头，**不被 `import *` 导出**，
+#   而 `_review_report` 曾直接引用 `_sal_noise_name`（该名不存在）⇒ 执行到即 NameError。
+from engine.domain_analysis import _is_noise_name  # 姓名噪声判定唯一权威
 from engine.enterprise_profile import _profile_enterprise  # 案情画像与策略 (P0)
 from engine.associate_findings import _associate_findings  # 多疑点关联推理 (P1)
 # 项目根目录（engine/ 子目录需要回退一层才能访问 static/ 和根级文件）
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED = False
+
+# ══════════════════ 域分析容错（唯一实现）══════════════════
+# 事故（2026-10-07，用户现象「一键分析失败，出现分析异常的提示」）：
+#   `_domain_salary_ss_hf_compare` 内一处除零（公积金缴存额为 0 的记录被当作"低基数"参与
+#   反推基数，反推基数为 0）→ ZeroDivisionError **直接冒泡**到 `_execute_tax_risk_analysis`
+#   ⇒ 被 catch 成 {"ok":False,"message":"分析异常: float division by zero"}，
+#   **整轮分析失败、一份报告都出不来**。一个域里的一个脏数据点不该有这种杀伤力。
+# 口径（与既有约定一致，见本文件「采购来源核验」「发票开票行为分析」的 except 留痕）：
+#   · 单个域抛异常 → 该域本轮记 0 项发现；**其余域照常产出**；
+#   · 异常**必须留痕**：写入 `_DOMAIN_FAILURES`，由 `_run_analyze` 在域阶段收口处
+#     统一追加到 `pipeline_log`（含"异常"字样，闸门/自检可查见）—— **绝不静默**。
+# 覆盖方式：**自动**（不手工登记名单）——凡本模块命名空间内以 `_domain_` 开头的可调用对象
+#   一律加护栏；`engine/domain_analysis.__all__` 新增域函数后自动生效，无需改这里。
+_DOMAIN_FAILURES: List[Dict[str, str]] = []
+
+
+def _make_domain_guard(_name, _fn):
+    """把单个域函数包成容错版本（失败返回 []，并登记失败原因）。"""
+    def _guarded(*args, **kwargs):
+        try:
+            return _fn(*args, **kwargs)
+        except Exception as _exc:                       # noqa: BLE001 - 域级隔离，必须留痕
+            import traceback as _tb
+            _DOMAIN_FAILURES.append({
+                "domain": _name,
+                "error": "%s: %s" % (type(_exc).__name__, _exc),
+                "traceback": _tb.format_exc()[-800:],
+            })
+            return []
+    _guarded.__name__ = _name
+    _guarded.__wrapped__ = _fn
+    _guarded.__isolated__ = True
+    return _guarded
+
+
+def _isolate_domain_functions():
+    """给本模块全部 `_domain_*` 可调用对象加域级护栏（幂等）。"""
+    _g = globals()
+    for _n in [k for k in list(_g) if k.startswith("_domain_")]:
+        _f = _g.get(_n)
+        if not callable(_f) or getattr(_f, "__isolated__", False):
+            continue
+        _g[_n] = _make_domain_guard(_n, _f)
+    return len([k for k in _g if k.startswith("_domain_") and getattr(_g[k], "__isolated__", False)])
+
+
+def _drain_domain_failures(pipeline_log):
+    """域失败统一留痕出口：写入 pipeline_log 并清空登记（不静默、不重复）。"""
+    if not _DOMAIN_FAILURES:
+        return 0
+    _n = len(_DOMAIN_FAILURES)
+    for _df in _DOMAIN_FAILURES:
+        pipeline_log.append("[域分析异常] %s 本轮执行失败（该域记 0 项发现，其余域照常）: %s"
+                            % (_df.get("domain", "?"), _df.get("error", "")))
+    _DOMAIN_FAILURES.clear()
+    return _n
+
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _tax_risk_docs  # 共享全局状态
 
 def _auto_assign_rule_ids(all_findings, pipeline_log=None):
@@ -256,7 +316,10 @@ def _merge_same_type_findings(all_findings):
             order.append(key)
         groups[key].append(f)
     merged = []
-    _sev = {"极高风险": 5, "高风险": 4, "中风险": 3, "待核验": 2, "信息": 1, "低风险": 0}
+    # ★ 2026-10-06：等级标度转发**唯一权威** `engine.risk_levels`。原先本处自建 `_sev`，
+    #   把「信息」排在「低风险」**之上**，与 `enterprise_report` 的上限压制表**相反**
+    #   ——"没判出等级"的事项会顶掉真风险成为同 type 合并的代表。现一律取权威标度。
+    from engine.risk_levels import severity as _risk_severity
     for key in order:
         items = groups[key]
         if len(items) == 1:
@@ -264,19 +327,43 @@ def _merge_same_type_findings(all_findings):
             continue
         base = dict(items[0])
         parts, metrics, redline = [], {}, None
-        best = max(items, key=lambda x: _sev.get(str(x.get("level", "")), 0))
+        _seen_parts: set = set()
+        _again: List[str] = []          # 被判定为"同一段话说两遍"而丢弃的副本（留痕用）
+        best = max(items, key=lambda x: _risk_severity(x.get("level")))
         for it in items:
             d = it.get("detail") or it.get("description") or ""
             if d:
+                # ★★ 2026-10-06（用户：「来自原子规则/域分析…你也要有资料站住脚啊！」）：
+                #   同 type 的**两条完全相同**的 detail 被 `"\n\n".join` 拼成"同一段话说两遍"
+                #   —— 实测 9 个原子规则发现（VR001/005/012/013/019/024/025/037/056/061）
+                #   在报告里各自整段重复，读者会以为"两句不同的话"其实一字不差。
+                #   更糟的一种：VR024 的两遍**数字不同**（占主营成本总额 14.62% vs 14.83%），
+                #   ⇒ 同一段里出现同一指标的两个值 = **同一指标两套口径**（多头实现），
+                #   直接呈现会让读者无从判断。
+                #   处置：**按"前 28 字指纹"判同**（能同时覆盖"一字不差"与"只差一个数字"），
+                #   重复/冲突的副本**不拼进正文**，改记入 `_detail_dropped` 留痕
+                #   （由 pipeline 写进 pipeline_log —— 不静默丢弃、也不把矛盾数字摊给企业）。
+                _k = str(d).strip()
+                _fp = _k[:28]
+                _dup = (_k in _seen_parts) or any(
+                    _fp and _p[:28] == _fp for _p in _seen_parts)
+                if _dup:
+                    if _k not in _seen_parts:
+                        _again.append(_k)
+                    continue
+                _seen_parts.add(_k)
                 parts.append(d)
             if isinstance(it.get("observed_metrics"), dict):
                 metrics.update(it["observed_metrics"])
             if it.get("redline_id"):
                 redline = it["redline_id"]
         if parts:
-            base["detail"] = "\n\n".join(parts)
+            # 去重后只剩一段 ⇒ 直接用原文，不加分隔（避免"一段话 + 空行 + 同段话"）
+            base["detail"] = ("\n\n".join(parts) if len(parts) > 1 else parts[0])
             if "description" in base:
-                base["description"] = "\n\n".join(parts)
+                base["description"] = base["detail"]
+        if _again:
+            base["_detail_dropped"] = _again
         if metrics:
             base["observed_metrics"] = metrics
         if redline and not base.get("redline_id"):
@@ -661,7 +748,7 @@ def _run_analyze(company_id, db, progress_callback=None):
         return r
 
     # ★ 主体一致性闸门（2026-09-25）：上传资料必须与账套主体相匹配
-    #   背景：把「猩猩织光」的资料上传到「深圳海更」账套，系统照常出报告 ——
+    #   背景：把「猩猩织光」的资料上传到「某传媒企业」账套，系统照常出报告 ——
     #   主体错了，报告里每一条结论都失去意义，必须在下结论前拦住。
     #   规则见 main.py `_check_file_subject`：只在文件**明确声明本方主体**且与之矛盾时判不符；
     #   文件无本方主体线索（发票只含对方/社保只含人员/流水只含对手方）时一律不作判断，避免误杀。
@@ -2246,6 +2333,9 @@ def _run_analyze(company_id, db, progress_callback=None):
             depth_levels[dom] = dr["depth"]
     
     domain_results = []
+    # ★ 域级护栏在此生效（此后所有 `_domain_*` 调用都受容错保护；幂等，重复调用不会重复包装）
+    _isolated_cnt = _isolate_domain_functions()
+    pipeline_log.append(f"[域护栏] 已对 {_isolated_cnt} 个域函数启用容错（单域异常不再中断整轮分析）")
     
     # ═══ 预检测目标行业（供行业对标使用）═══
     _target_industry = ""
@@ -2595,6 +2685,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     else:
         domain_results.append({"domain": "发票实质性审计", "findings": []})
     _report(98, f"步骤③域分析 — 全部{len(domain_results)}个域分析完成，开始信号叠加", step=3)
+    # ★ 域失败统一收口留痕（唯一出口）：单个域的数据脏点不再让整轮分析失败，但**必须可见**
+    _drain_domain_failures(pipeline_log)
 
     # ═══════════════════════════════════════════════════════════
     # Phase 2 结果注入 + 去重
@@ -3171,6 +3263,10 @@ def _run_analyze(company_id, db, progress_callback=None):
     chain_findings = []   # 链驱动生成的新发现
     try:
         chain_path = os.path.join(_PROJECT_ROOT, "static", "audit_chains.json")
+        # ★ 2026-10-07 修复：原引用未定义变量 `rules_path`（重构丢变量）。该分支被
+        #   `LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED`（当前 False）**短路**，故从未抛错，
+        #   但一旦启用即 NameError。此处补上唯一路径来源（static/audit_rules.json）。
+        rules_path = os.path.join(_PROJECT_ROOT, "static", "audit_rules.json")
         if LEGACY_CANDIDATE_CHAIN_EXECUTION_ENABLED and os.path.exists(chain_path) and os.path.exists(rules_path):
             with open(chain_path, "r", encoding="utf-8") as cf:
                 chains_data = json.load(cf)
@@ -4279,6 +4375,24 @@ def _run_analyze(company_id, db, progress_callback=None):
                     pipeline_log.append(f"  ⚠️ {target_entity['_company_status_warning']}")
         except Exception as _ol_err:
             pipeline_log.append(f"联网核查失败: {_ol_err}（继续流程）")
+
+        # ★ 2026-10-07 修复（报告封面「统一社会信用代码：未填写」）：
+        #   统一社会信用代码的**唯一权威是该企业自身的账套档案**（主体一致性检查一直用它判
+        #   "资料主体不符"，实测日志里明确写着账套信用代码）。联网核查可能拿不到（网络受限/
+        #   检索无果，实测 360 搜索路径返回空）⇒ `target_entity.uscc` 为空 ⇒ 报告封面
+        #   "未填写"。此处做**最终兜底**：仍为空则取自账套档案，并留痕。
+        if not str(target_entity.get("uscc") or "").strip():
+            try:
+                from database import Company as _CoUscc
+                _co_row = db.query(_CoUscc).filter(_CoUscc.id == company_id).first()
+                _co_uscc = str((getattr(_co_row, "uscc", "") or "")).strip()
+                if _co_uscc:
+                    target_entity["uscc"] = _co_uscc
+                    pipeline_log.append(f"信用代码兜底: 取自已建账套档案 {_co_uscc}")
+                else:
+                    pipeline_log.append("信用代码兜底: 账套档案亦未登记信用代码（报告将如实标注未填写）")
+            except Exception as _uce:
+                pipeline_log.append(f"信用代码兜底失败: {_uce}")
     
     # ═══ 行业口径对齐：成本识别必须用**最终确定**的行业（2026-10-02）═══
     #   根因（用户复核「报告没什么变化，特别是主营业务成本和期间费用的确定」）：
@@ -5622,6 +5736,12 @@ def _run_analyze(company_id, db, progress_callback=None):
             pur_invs=pur_invs, sal_invs=sal_invs,
             cross_enterprise=comprehensive.get("cross_enterprise"),
             company_name=_iv_name,
+            # ★★ 2026-10-06：**必须把"进项认证抵扣明细"传进来**。
+            #   判"应转出未转出"的前提是"**已抵扣**"，而"已抵扣"只体现在抵扣表的
+            #   `勾选状态` 与 `有效抵扣税额` 两列 —— 取票表里没有。
+            #   此前没传 ⇒ 检测器只能拿"票面税额"当成"已抵扣税额"，
+            #   把普通发票（本就不可抵扣）的票面税额也算成"应转出"（实测 146 张全为普票）。
+            input_vat_deductions=input_vat_deductions,
         )
         comprehensive["input_voucher"] = _iv
         # 留存按发票号聚合后的进项发票清单，使进项总额可独立复算/审计（风险检查分身透明化）
@@ -5691,6 +5811,13 @@ def _run_analyze(company_id, db, progress_callback=None):
         _cov_materials = []
     try:
         from engine.analysis_coverage import build_coverage
+        # ★ 2026-10-06（用户：「能查的全查完即可」/「那 84 项资料齐备的检查是否都真跑了？」）：
+        #   `build_coverage` 原只按"资料齐备"判"已执行" —— 资料在 ≠ 跑过了。
+        #   此处把执行器 `run_verified_rules` 的**执行回执**（逐规则 status）交给它交叉，
+        #   使 `executed` 由回执证明；查不到回执的项如实进 `not_executed`。
+        #   与 6401 行同款守卫：`_verified_result` 只在 try 成功时才会被赋值。
+        _cov_exec = (_verified_result.get("executions")
+                     if '_verified_result' in dir() and isinstance(_verified_result, dict) else None)
         _coverage = build_coverage({
             "sal_invs": sal_invs, "pur_invs": pur_invs, "bank_txs": bank_txs,
             "vouchers": vouchers, "tax_declarations": tax_declarations,
@@ -5708,9 +5835,15 @@ def _run_analyze(company_id, db, progress_callback=None):
             "transport_contracts": transport_contracts,
             # 已提供的**资料类别**用唯一实现现算（红线按 required_materials 判定可判定性）
             "_available_materials": _cov_materials,
-        })
+        }, executions=_cov_exec)
         if _coverage.get("summary_text"):
             pipeline_log.append("[分析覆盖] " + str(_coverage["summary_text"]))
+        # ★ 执行回执留痕：未执行项必须在 pipeline_log 里可见（否则又是"静默"）
+        _ne = _coverage.get("not_executed_items") or []
+        if _ne:
+            pipeline_log.append(
+                "[分析覆盖] ⚠ 资料齐备但未取得执行回执 %d 项：%s"
+                % (len(_ne), "、".join(str(x.get("id") or x.get("name")) for x in _ne[:20])))
     except Exception as _ce:
         pipeline_log.append(f"[分析覆盖] 生成失败: {_ce}")
 
@@ -5952,6 +6085,10 @@ def _run_analyze(company_id, db, progress_callback=None):
             all_findings, pipeline_log, file_results, ctx
         )
         gate_passed = gate_result.get("passed", False)
+        # ★ 门禁已接线上自愈+复检（run_compliance_gate 走 _gate_loop），轮数不再恒为 1：
+        #   写死 1 会让报告里的"门禁轮数"与真实发生的不符，属于记录失真。
+        gate_rounds = int(gate_result.get("rounds", 1) or 1)
+        gate_passed = gate_result.get("passed", False)
         result["compliance_gate"] = gate_result
         result["report"]["gate_rounds"] = gate_rounds
         if not gate_passed:
@@ -5961,7 +6098,7 @@ def _run_analyze(company_id, db, progress_callback=None):
             result["report"]["block_reason"] = gate_result.get("blocked_reason", "")
             result["report"]["blocking_violations_count"] = blocking_count
         else:
-            pipeline_log.append(f"[GATE-PASS] 合规门禁第{gate_rounds}轮通过 ✓")
+            pipeline_log.append(f"[GATE-PASS] 合规门禁{gate_rounds}轮通过 ✓")
     except Exception as e:
         pipeline_log.append(f"[COMPLIANCE] 门禁执行异常: {e}")
     
@@ -6219,6 +6356,15 @@ def _run_analyze(company_id, db, progress_callback=None):
     # 同 type 多子发现合并（消除 VR060 等"同标题重复"）：须在封印前、且位于防误判 try 之外
     # 执行——防误判 try 内若协商引擎异常会跳过合并。合并后 scenario_execution 与 sealed 两层都只剩一条。
     _scenario_execution["findings"] = _merge_same_type_findings(_scenario_execution["findings"])
+    # ★ 2026-10-06：合并时被判为"同一段话说两遍"而**未拼进正文**的副本必须留痕
+    #   （尤其两遍**数字不同**的情形 = 同一指标两套口径，属真缺陷，不能悄无声息）
+    for _f in _scenario_execution["findings"]:
+        if isinstance(_f, dict) and _f.get("_detail_dropped"):
+            pipeline_log.append(
+                "[同类合并] 「%s」有 %d 条同义副本未并入正文，**疑为同一指标两套口径**，"
+                "请核对分母口径：%s"
+                % (str(_f.get("type"))[:24], len(_f["_detail_dropped"]),
+                   " / ".join(x[:90] for x in _f["_detail_dropped"][:2])))
     all_findings = seal_governed_findings(_scenario_execution)
     # ★ 2026-09-25：**报告里每一条发现都必须有出口**（怎么解除 + 需补什么自证 + 终局方向）。
     #   用户决策"全部呈现"后，入报告的发现由 ~15 条涨到 ~90 条；实测其中 92 条无解除方式、
@@ -6249,18 +6395,14 @@ def _run_analyze(company_id, db, progress_callback=None):
         pass
     result["report"]["domain_summary"] = _scenario_execution.get("domain_summary", [])
     result["report"]["total_risks"] = len(all_findings)
-    _lvl_high = _lvl_mid = _lvl_low = 0
-    for _sf in all_findings:
-        _lv = str(_sf.get("level", ""))
-        if _lv.startswith("极高") or _lv.startswith("高"):
-            _lvl_high += 1
-        elif _lv.startswith("中"):
-            _lvl_mid += 1
-        elif _lv.startswith("低"):
-            _lvl_low += 1
-    result["report"]["high_risk"] = _lvl_high
-    result["report"]["mid_risk"] = _lvl_mid
-    result["report"]["low_risk"] = _lvl_low
+    # ★ 2026-10-08（P0-1）：等级/结论计数算术收敛到唯一权威 `report_metrics`
+    #   （不再在此处各写一套 for 循环）。⚠ 本阶段正文未生成，属**引擎阶段值**，
+    #   报告最终出口 `main._execute_tax_risk_analysis` 会用正文口径重新定稿。
+    from engine import report_metrics as _rm_pl
+    _lc_pl = _rm_pl.count_levels(all_findings)
+    result["report"]["high_risk"] = _lc_pl["high_risk"]
+    result["report"]["mid_risk"] = _lc_pl["mid_risk"]
+    result["report"]["low_risk"] = _lc_pl["low_risk"]
     # ═══ 报告文本标点规范化：消除 "。。""。；" 等拼接残留 ═══
     for _sf in all_findings:
         if not isinstance(_sf, dict):
@@ -6270,12 +6412,15 @@ def _run_analyze(company_id, db, progress_callback=None):
                 _sf[_field] = _normalize_punct(_sf.get(_field))
 
     # ═══ 两级结论统计：可核定（已给出最终答案）/ 待核（保留建议）═══
-    _verified_cnt = sum(1 for _sf in all_findings if isinstance(_sf, dict) and _sf.get("conclusion_grade") == "已核定")
-    _pending_cnt = len(all_findings) - _verified_cnt
+    _verified_cnt, _pending_cnt = _rm_pl.count_conclusions(all_findings)
     result["report"]["verified_count"] = _verified_cnt
     result["report"]["pending_count"] = _pending_cnt
+    # ★ 2026-10-09（P1-4 收尾）：措辞**唯一权威** = `report_metrics.conclusion_count_phrase`
+    #   —— 旧字面量「已核定X项/待核Y项」把**裁决词**写进报告首行：① 裸词「待核」触犯用户明令
+    #   （D7 实测报出 1 处真缺陷）；② 与本模块下方 already 使用的术语「待核事项」**同一概念两种措辞**。
     result["report"]["overall_level"] = (
-        f"已核定{_verified_cnt}项/待核{_pending_cnt}项" if all_findings else "未形成待核事实"
+        _rm_pl.conclusion_count_phrase(_verified_cnt, _pending_cnt)
+        if all_findings else ("未形成" + _rm_pl.conclusion_count_labels()[1])
     )
     result["report"]["summary_text"] = (
         f"正式输出治理完成：{_scenario_execution.get('common_fact_findings', 0)}项共同事实门待核事实已纳入，"
@@ -6403,6 +6548,27 @@ def _run_analyze(company_id, db, progress_callback=None):
             )
     except Exception as _dt_err:
         pipeline_log.append(f"疑点派生树注入失败: {_dt_err}")
+
+    # ★ 2026-10-06：**落盘执行回执**。此前 `run_verified_rules` 的 `executions` 被丢弃，
+    #   只留一句"运行73条"的日志 ⇒ 事后再也无法从产物核实"某项检查到底跑没跑"
+    #   （用户原问：「那 84 项资料齐备的检查，是否都在引擎里真跑了？」）。
+    #   现随产物下发，使「覆盖清单」的每一项都可回溯到自己的执行状态。
+    #   ⚠ 必须同时写进 `result["report"]`：闸门与审计脚本读的是**报告体**
+    #     （`scripts/four_reports/company_1_full.json` = `res["report"]` 的扁平形态）。
+    #     只写外层 `result` 会"看着接了、产物里却查不到"（本轮实测踩过）。
+    try:
+        if '_verified_result' in dir() and isinstance(_verified_result, dict):
+            _execs = _verified_result.get("executions") or []
+            result["verified_rule_executions"] = _execs
+            if isinstance(result.get("report"), dict):
+                result["report"]["verified_rule_executions"] = _execs
+    except Exception as _ex_err:
+            pipeline_log.append(f"执行回执注入失败: {_ex_err}")
+
+    # ★ 域失败**最终收口**（唯一出口之二）：域调用并不全在域阶段内（例如后面复用
+    #   `_domain_fund_flow_mapping` 做付款人身份核查），此处再收口一次，
+    #   确保**任何位置**的域失败都不会无人留痕（闸门 `check_domain_fault_isolation` 核对本行位置）。
+    _drain_domain_failures(pipeline_log)
 
     return result
 # 必须在质量标准执行之前运行，确保进入报告的是可读的专业文本
@@ -6744,12 +6910,12 @@ def _evidence_three_property_check(all_findings, pipeline_log):
         if f["_evidence_legality"] == "不合规":
             report["illegal"] += 1
             issues.append("合法性: 取证路径不合规")
-        f["_evidence_authenticity"] = "待核实" if "真实性" in str(issues) else "可追溯"
+        f["_evidence_authenticity"] = "尚需核实" if "真实性" in str(issues) else "可追溯"
         if issues:
             existing = f.get("_quality_issues", [])
             f["_quality_issues"] = existing + issues
         checked.append(f)
-    pipeline_log.append(f"证据三性校验: {report['passed']}条通过 待核实{report['marked']}条 不合规{report['illegal']}条")
+    pipeline_log.append(f"证据三性校验: {report['passed']}条通过 尚需核实{report['marked']}条 不合规{report['illegal']}条")
     return checked, report
 
 
@@ -6905,6 +7071,17 @@ def _build_engine_hub_summary(red_team, blind_test, hallucination, topology):
     return {"status": "五环路运行完成", "details": lines}
 
 
+def _build_seven_layer_summary(quality_report, finding_count, high_count, cross_verify) -> dict:
+    """七层执行摘要（一键分析可见语言）。
+
+    ★ 2026-10-07 修复：本函数原**丢失了 `def` 行**（连同 `lines` 初始化），函数体被并入上方
+      `_build_engine_hub_summary` ⇒ 位于早返回之后不可达，且 `quality_report`/`finding_count`/
+      `high_count`/`cross_verify` 四个形参随之消失（执行到即 NameError）。
+      现恢复为独立函数，形参按函数体内实际引用重建（当前无调用方，保留以便重新接线）。
+    """
+    quality_report = quality_report or {}
+    cross_verify = cross_verify or {}
+    lines = []
     lines.append(f"第一层·启动: 身份锚定 ✓ 行业穿透 ✓")
     lines.append(f"第二层·扫描: 文件识别 ✓ 情报提取 ✓")
     lines.append(f"第三层·布网: 42域并行发动 ✓ 多域信号汇聚 ✓")
@@ -7025,7 +7202,7 @@ def _generate_rights_and_signature_chapters(company_info):
                   # ★ 2026-09-29（P2-5）：本报告由系统自动生成，不是税务机关的执法文书；
                   #   权利提示用于说明在税务机关依法检查程序中的权利，不能读成"本报告已启动该程序"。
                   "本节所列权利提示用于说明在税务机关依法实施的检查程序中企业享有的权利；"
-                  "本报告由系统自动生成，不构成税务机关的执法行为，所列事项均为待核实事实。"
+                  "本报告由系统自动生成，不构成税务机关的执法行为，所列事项均为尚需核实事实。"
     }
     # ★ 2026-09-30（用户定调）：报告**不为出具方免责**——署名栏不再写「非税务机关文书」等声明；
     #   报告立场是税务稽查专家对企业所提交资料作风险分析并呈现结果。
@@ -7934,7 +8111,7 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
         # 供应商/客户相关 → 采样高频对方
         # ★ 2026-09-29（点评整改）：进项按销方、销项按购方取对手方。旧版对两侧统一取
         #   `seller`，导致本企业自身（销项的销方=本企业）被计入"高频交易对方"
-        #   （实测："交易70次 深圳海更数字传媒有限公司"），与"已剔除同名划转"的声明自相矛盾。
+        #   （实测："交易70次 某传媒企业示例公司"），与"已剔除同名划转"的声明自相矛盾。
         if not _ext_branch and any(kw in _subject_txt for kw in ["供应商", "客户", "集中"]):
             from collections import Counter
             counterparty_counts = Counter()
@@ -9361,7 +9538,15 @@ def _enrich_target_entity_from_online(target_entity, db, company_id, pipeline_lo
         elif not target_entity.get("address"):
             target_entity["address"] = _online_addr
         target_entity["company_type"] = lookup.get("company_type", "")
-        target_entity["uscc"] = lookup.get("uscc", "")
+        # ★ 2026-10-07 修复（报告封面「统一社会信用代码：未填写」回归）：
+        #   原为**无条件覆盖** `target_entity["uscc"] = lookup.get("uscc", "")`
+        #   ⇒ 联网核查未返回信用代码时，把此前由账套档案/资料识别得到的 uscc **抹成空**
+        #   （实测：账套档案有 91440300MA5H824G7M、主体一致性也用它判过"资料主体不符"，
+        #    唯独报告封面为空）。口径改为：**非空才覆盖**——与相邻 business_scope/address
+        #   的"不覆盖更好数据"同一原则。
+        _online_uscc = str(lookup.get("uscc") or "").strip()
+        if _online_uscc:
+            target_entity["uscc"] = _online_uscc
         target_entity["shareholders"] = lookup.get("shareholders", [])
         target_entity["directors"] = lookup.get("directors", [])
         target_entity["supervisors"] = lookup.get("supervisors", [])
@@ -9854,7 +10039,7 @@ def _review_report(all_findings, domain_summary, stats, bank_txs, invoices, vouc
     salary_names = set()
     for s in salaries:
         name = str(s.get("name", "")).strip()
-        if name and not _sal_noise_name(name): salary_names.add(name)
+        if name and not _is_noise_name(name): salary_names.add(name)
     if len(salaries) > 0 and len(salary_names) == 0:
         issues.append({
             "level": "错误", "item": "工资数据姓名字段全空",

@@ -140,6 +140,16 @@ def _txt(row: Any, keys: Sequence[str]) -> str:
     return ""
 
 
+def first_text(row: Any, keys: Sequence[str]) -> str:
+    """按别名顺序取第一个**去空白后非空**的值（★ 唯一权威）。
+
+    `_txt` 的公开入口。★ 2026-10-08 收敛：engine/ap_aging.py 与 engine/ar_aging.py
+    的 `_first` 与本函数是**同一概念的多头实现**（两份字节级完全一致的私有实现），
+    已统一到此处，两模块只薄转发。
+    """
+    return _txt(row, keys)
+
+
 # ── 字段读取 ────────────────────────────────────────────────────────────────
 def buyer_name(inv: Any) -> str:
     """购方名称（兼容各导出模板别名）。"""

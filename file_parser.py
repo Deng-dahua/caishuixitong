@@ -8,11 +8,28 @@ from sqlalchemy import func, or_, and_, text
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
-import os, io, json, re as _re_module, openpyxl, hashlib, csv, logging
+import os, io, json, re as _re_module, openpyxl, hashlib, csv, logging, uuid
 
-from database import get_db
+# ★ 2026-10-07 修复：本模块自 main.py 拆分时**丢失了数据模型 import**，
+#   导致 20 处引用未定义名（执行到即 NameError，相关接口全部 500）。
+#   数据模型唯一权威仍是 `database`，此处按需显式导入。
+from database import (
+    get_db,
+    ColumnTemplate, BankTransaction, SalesInvoice, PurchaseInvoice,
+    BookkeepingInvoice, InputVATDeduction, Employee, Customer, Supplier, Department,
+)
 
 router = APIRouter(tags=["文件解析"])
+
+
+def _upload_policy():
+    """上传策略（扩展名白名单 / 大小上限）—— 唯一权威在 `main`，延迟导入避免循环依赖。
+
+    ★ 2026-10-07：本模块拆分时丢失该两个常量，`analyze_file_headers` /
+      `import_file_with_mapping` 引用未定义名 ⇒ NameError。
+    """
+    from main import ALLOWED_EXTENSIONS, MAX_UPLOAD_SIZE
+    return ALLOWED_EXTENSIONS, MAX_UPLOAD_SIZE
 
 class ColumnTemplateCreate(BaseModel):
     module: str
@@ -90,6 +107,7 @@ async def analyze_file_headers(
     bank_config_id: Optional[int] = Form(None)
 ):
     """上传文件，返回表头列表供用户做列映射"""
+    ALLOWED_EXTENSIONS, MAX_UPLOAD_SIZE = _upload_policy()
     fname = file.filename or "unknown"
     ext = os.path.splitext(fname)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -241,6 +259,7 @@ async def import_file_with_mapping(  # v2026-06-04-simplify: 进项发票改为�
 ):
     """根据列映射导入文件数据"""
     try:
+        ALLOWED_EXTENSIONS, MAX_UPLOAD_SIZE = _upload_policy()
         fname = file.filename or "unknown"
         ext = os.path.splitext(fname)[1].lower()
         if ext not in ALLOWED_EXTENSIONS:
@@ -979,6 +998,7 @@ async def get_file_parse_debug():
     当文件导入识别失败时，前端可调用此端点获取详细的诊断信息和修复建议。
     返回：关键词匹配记录、结构分析候选、交叉验证裁决、失败诊断建议。
     """
+    from main import _get_last_trace  # ★ 唯一实现在 main（拆分时丢失引用），延迟导入避免循环
     trace = _get_last_trace()
     if not trace or not trace.get("filename"):
         return {"ok": False, "message": "暂无文件解析记录，请先上传文件导入"}
@@ -1011,7 +1031,7 @@ def validate_uscc(code: str) -> tuple:
     code = code.strip().upper()
     if len(code) != 18:
         return False, "统一社会信用代码必须为18位"
-    if not re.match(r'^[0-9A-HJ-NPQRTUWXY]{2}\d{6}[0-9A-HJ-NPQRTUWXY]{10}$', code):
+    if not _re_module.match(r'^[0-9A-HJ-NPQRTUWXY]{2}\d{6}[0-9A-HJ-NPQRTUWXY]{10}$', code):
         return False, "统一社会信用代码格式不正确（应为：2位登记管理机关+6位组织机构代码+9位主体标识码+1位校验码）"
     char_map = '0123456789ABCDEFGHJKLMNPQRTUWXY'
     weights = [1, 3, 9, 27, 19, 26, 16, 17, 20, 29, 25, 13, 8, 24, 10, 30, 28]
@@ -1030,7 +1050,7 @@ def validate_id_card(card_no: str) -> tuple:
     card_no = card_no.strip().upper()
     if len(card_no) != 18:
         return False, "身份证号码必须为18位"
-    if not re.match(r'^\d{17}[\dX]$', card_no):
+    if not _re_module.match(r'^\d{17}[\dX]$', card_no):
         return False, "身份证号码前17位必须为数字，第18位为数字或X"
     try:
         birth_str = card_no[6:14]

@@ -154,8 +154,17 @@ class TestEditorialStandard(unittest.TestCase):
         self.assertIn("不参与风险等级排序", j)
         self.assertIn("风险等级按", j)              # 分级依据必须写明
 
-    def test_tax_stats_labeled_as_relation_count(self):
-        self.assertIn("事项—税种关联次数", "".join(self._oc()["paragraphs"]))
+    def test_tax_stats_detail_removed_from_chapter(self):
+        """★ 2026-10-08 用户定稿：第一章不得再列「事项—税种关联次数」明细（与后章重复）。
+
+        税种统计仍由**返回字段** `tax_types` 提供（前端台账与后章据此渲染），
+        只是不再写进第一章正文。
+        """
+        oc = self._oc()
+        j = "".join(oc["paragraphs"])
+        self.assertNotIn("事项—税种关联次数", j)
+        self.assertNotIn("涉及税种", j)
+        self.assertTrue(oc["tax_types"], "tax_types 返回字段不得因文案删除而丢失")
 
     def test_directions_are_softened(self):
         j = "".join(self._oc()["paragraphs"])
@@ -201,19 +210,28 @@ class TestChapterNoDuplication(unittest.TestCase):
     def test_total_count_stated_once(self):
         j = "".join(self._oc()["paragraphs"])
         self.assertEqual(j.count("识别并列示"), 1,
-                         "事项总数只应在「检查范围与结果概览」出现一次")
+                         "事项总数只应在（二）整体结论出现一次")
 
     def test_risk_total_not_standalone(self):
         P = self._oc()["paragraphs"]
         standalone = [p for p in P if p.startswith("本轮识别并列示")]
         self.assertEqual(standalone, [], "「风险总量」应并入概览，不得再单列一段")
 
-    def test_each_level_count_heading_once(self):
+    def test_no_per_level_item_listing(self):
+        """★ 2026-10-08 用户定稿：执行摘要**不再逐项平铺**，只保留计数。
+
+        旧版有「高风险 2 项：A；B。」式逐项清单（16 项平铺），与第二章台账重复。
+        现判据**反转**：任何"等级 + 空格 + 项："开头的清单段落都算回退；
+        同时各级项数仍须以**计数**形式出现（只一次），否则读者失去规模感。
+        """
         P = self._oc()["paragraphs"]
         for lvl in ("高风险", "中风险", "低风险"):
             heads = [p for p in P if p.startswith(lvl + " ") and "项：" in p]
-            self.assertEqual(len(heads), 1,
-                             "%s 清单标题应只出现一次（各级项数不得重复报）" % lvl)
+            self.assertEqual(heads, [],
+                             "%s 不得再有逐项清单（明细指向第二章台账）" % lvl)
+        j = "".join(P)
+        self.assertEqual(j.count("高风险 "), 1, "高风险项数应只出现一次")
+        self.assertEqual(j.count("中风险 "), 1, "中风险项数应只出现一次")
 
     def test_no_bare_pending_phrase(self):
         j = "".join(self._oc()["paragraphs"])
@@ -222,52 +240,50 @@ class TestChapterNoDuplication(unittest.TestCase):
         self.assertIn("涉嫌风险事项", j)
 
     def test_conclusion_comes_first(self):
-        """★★ 2026-10-02 用户定调「一定是先说重要的信息」：结论段必须早于程序性铺垫段。
+        """★★ 2026-10-08 定稿：四段式「总结→概括→抽象→建议」，结论不得被铺垫淹没。
 
-        原实现把「企业整体风险综合评价」排在第 6 段（在概览/性质归纳/等级评定之后），
-        读者第 1 页看不到整体定调。本测试锁死"结论先行"。
+        口径变更史：2026-10-02 用户要求"综合评价早于检查范围概览"；
+        2026-10-08 用户定稿为"（一）检查性质与资料条件（总结）在前，（二）整体结论紧随"。
+        实质不变式**保留**：整体等级必须出现在**前 3 段内**（不得沉到第 6 段被明细淹没）。
         """
         P = self._oc()["paragraphs"]
+        i_cond = next((i for i, p in enumerate(P) if "（一）检查性质与资料条件" in p), -1)
         i_concl = next((i for i, p in enumerate(P) if "企业整体风险综合评价" in p), -1)
-        i_overview = next((i for i, p in enumerate(P) if "检查范围与结果概览" in p), -1)
-        self.assertGreaterEqual(i_concl, 0, "总述缺「企业整体风险综合评价」段")
-        self.assertLess(i_concl, i_overview,
-                        "未结论先行：「企业整体风险综合评价」应早于「检查范围与结果概览」")
+        self.assertGreaterEqual(i_cond, 0, "缺（一）检查性质与资料条件段")
+        self.assertGreaterEqual(i_concl, 0, "缺（二）整体结论段")
+        self.assertLess(i_cond, i_concl, "（一）检查性质与资料条件应早于（二）整体结论")
+        self.assertLessEqual(i_concl, 2,
+                             "整体结论沉到第 %d 段，被程序性铺垫淹没" % (i_concl + 1))
 
-    def test_posture_clauses_weight_desc(self):
-        """★★ 2026-10-02：监管态度分级条款必须由重到轻（关注→补证→待核验→限期→提示）。
-
-        原实现按「提示提醒(低) → 补证核实(中) → 重点关注(高)」排，把最轻的放最前。
-        """
-        P = self._oc()["paragraphs"]
-        pos = next((p for p in P if "监管态度与后续处理建议" in p), "")
-        self.assertTrue(pos, "总述缺「监管态度与后续处理建议」段")
-        order = ["重点关注：", "补证核实：", "待核验事项：", "限期补正资料：", "提示提醒："]
-        found = {}
-        for k in order:
-            if k in pos:
-                found[k] = pos.find(k)
-        self.assertTrue(found, "监管态度段一个分级条款都没有（判据失效，须修闸门/文案）")
-        seq = [found[k] for k in order if k in found]
-        self.assertEqual(seq, sorted(seq),
-                         "监管态度分级条款未按风险由重到轻排列（应为 重点关注→补证核实→"
-                         "待核验事项→限期补正资料→提示提醒）")
+    def test_posture_detail_removed(self):
+        """★ 2026-10-08 用户定稿：第一章不再列「监管态度与后续处理建议」分级分类明细
+        （与后章重复），改为「（四）下一步动作」并指向后章。"""
+        j = "".join(self._oc()["paragraphs"])
+        self.assertNotIn("监管态度与后续处理建议", j)
+        self.assertNotIn("重点关注：", j)
+        self.assertIn("（四）下一步动作", j)
 
     def test_section_markers_present(self):
         j = "".join(self._oc()["paragraphs"])
-        for marker in ("检查范围与结果概览", "按风险性质归纳", "风险等级评定",
-                       "企业整体风险综合评价", "对企业纳税遵从情况的总体看法",
-                       "监管态度与后续处理建议"):
+        for marker in ("（一）检查性质与资料条件", "（二）整体结论",
+                       "（三）主线抽象", "（四）下一步动作",
+                       "企业整体风险综合评价", "可能涉及的涉嫌方向"):
             self.assertIn(marker, j)
-        # ★ 2026-09-27：边界声明已归第六章「报告性质和使用说明」，本章不再重复
-        self.assertNotIn("边界声明", j)
+        # ★ 2026-10-08 用户定稿：以下旧段落与后章重复，已删除，不得回退
+        for gone in ("检查范围与结果概览", "按风险性质归纳", "风险等级评定",
+                     "监管态度与后续处理建议", "边界声明", "事项—税种关联次数"):
+            self.assertNotIn(gone, j)
+        # 执行摘要长度上限（防回退成"压缩版全文"；旧实现 2172 字 / 15 段）
+        self.assertLessEqual(len(j), 2000, "第一章 %d 字，超出执行摘要长度上限" % len(j))
+        self.assertLessEqual(len(self._oc()["paragraphs"]), 10,
+                             "第一章段落数超上限（执行摘要要短）")
 
 
 class TestIndustryScopeCoversTristate(unittest.TestCase):
     """「一、本轮检查总体结论」的行业冲突文案必须以解析器的 scope_covers 三态为准。
 
     ★ 2026-10-02：旧实现只要「登记 ≠ 销项推断」就写「指向超范围经营或开票品名不实」——
-      但经营范围是宽口径许可清单（海更登记商贸、经营范围含广告设计/制作/发布），
+      但经营范围是宽口径许可清单（某企业登记商贸、经营范围含广告设计/制作/发布），
       本轮销项只有广告传媒 ⇒ 已涵盖 ⇒ 旧表述是假冲突误报。
       本类锁死：已涵盖（True）绝不写「指向超范围经营」。
     """
@@ -403,3 +419,81 @@ class TestRiskThemeClassification(unittest.TestCase):
         self.assertEqual(self._theme_of("关联交易异常：购销闭环与六员重叠"), "关联交易")
         self.assertEqual(self._theme_of("供应商集中度与地域分布缺乏商业合理性"), "经营合理性")
         self.assertEqual(self._theme_of("住房公积金未开户、未全员缴存或缴存基数不实"), "工资社保与个税")
+
+
+class TestConclusionScopedByMaterialCoverage(unittest.TestCase):
+    """★ 2026-10-06（用户评语 #5「检查程序未完成，但总体结论偏强」）。
+
+    事故：报告自述必查资料 14 类仅收到 8 类，检查程序并未全部完成，
+    首段却直接给出"该企业整体税务风险等级为高"的定论 ——
+    读者会把"资料受限下的画像"当成"完整结论"。
+
+    口径：**资料受限 ⇒ 先限定结论效力范围，再给等级**；
+    资料齐全 ⇒ **不得**出现该限定语（否则是套模板的假声明，真受限时反而失去警示作用）。
+    """
+
+    @staticmethod
+    def _first_conclusion(rd):
+        from engine.overall_conclusion import build_overall_conclusion
+        for p in (build_overall_conclusion(rd).get("paragraphs") or []):
+            if "企业整体风险综合评价" in str(p):
+                return str(p)
+        return ""
+
+    @staticmethod
+    def _rd_with(n_types):
+        from engine.enterprise_report import (
+            _DOC_TYPE_TO_CATEGORY, required_doc_coverage)
+        cov = required_doc_coverage({"target_entity": {}})
+        cats = list(cov.get("required") or [])[:n_types]
+        types = []
+        for c in cats:
+            t = next((k for k, v in _DOC_TYPE_TO_CATEGORY.items()
+                      if v == c or (isinstance(v, (tuple, list)) and c in v)), None)
+            types.append(t or c)
+        return {
+            "files_count": len(types),
+            "file_results": [{"type": t} for t in types],
+            "target_entity": {},
+            "enterprise_readable_report": {
+                "confirmed_problems": [{"seq": 1, "title": "A", "risk_level": "高风险",
+                                        "taxes": ["增值税"], "suspect": "涉嫌x",
+                                        "conclusion_grade": "待核"}],
+                "further_checks": [],
+            },
+        }
+
+    def test_limited_coverage_scopes_the_conclusion(self):
+        from engine.enterprise_report import required_doc_coverage
+        rd = self._rd_with(7)
+        cov = required_doc_coverage(rd)
+        self.assertTrue(cov["limited"], "构造数据应处于资料受限状态")
+        t = self._first_conclusion(rd)
+        self.assertIn("风险画像", t, t)
+        self.assertIn("受限", t, t)
+        self.assertIn(str(cov["total"]), t, "未给出必查资料类别数，读者无法判断受限程度")
+        self.assertNotIn("**", t, "报告正文不得含 markdown")
+
+    def test_full_coverage_has_no_fake_scope_disclaimer(self):
+        from engine.enterprise_report import required_doc_coverage
+        rd = self._rd_with(99)          # 全部类别
+        cov = required_doc_coverage(rd)
+        self.assertFalse(cov["limited"], "构造数据应资料齐全")
+        t = self._first_conclusion(rd)
+        self.assertNotIn("风险画像", t, "资料齐全时不得声称「资料受限下的风险画像」")
+
+    def test_coverage_authority_is_single_source(self):
+        """`further_checks` 与 `material_readiness` 必须共用同一权威（否则章首章末自相矛盾）。"""
+        import inspect
+        from engine.enterprise_report import (
+            _build_further_checks, _build_material_readiness)
+        for fn in (_build_further_checks, _build_material_readiness):
+            self.assertIn("required_doc_coverage", inspect.getsource(fn), fn.__name__)
+
+    def test_missing_count_agrees_between_chapters(self):
+        from engine.enterprise_report import (
+            _build_further_checks, required_doc_coverage)
+        rd = self._rd_with(7)
+        cov = required_doc_coverage(rd)
+        self.assertEqual(len(_build_further_checks(rd)), cov["missing_count"],
+                         "受阻检查条数与缺失类别数不一致（章首/章末会自相矛盾）")

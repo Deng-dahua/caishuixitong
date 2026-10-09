@@ -40,6 +40,76 @@ if (typeof esc === 'undefined') {
 }
 
 
+// ★ 2026-10-07（根因修复·作用域）：以下 5 个辅助函数**必须留在顶层作用域**。
+//   事故：它们曾被插入 `renderTaxDocReport` 的**函数体内**（成为局部函数），
+//   而顶层使用者（`_buildEnterpriseReadableBody`、7 章 fallback 的封面等）取不到它们
+//   ⇒ 浏览器渲染报告时抛 `ReferenceError: _reportDocName is not defined`，
+//   报告区无法产出新报告（用户现象：「前端不出新报告」「还是旧模板」）。
+//   判据：任何被多处调用的报告级取数函数，一律定义在模块顶层。
+// ══════════════════════════════════════════════════════════════════
+// ═══ 报告名称与"是否企业易读版"的**唯一解析点**（2026-10-07 质检）═══
+// 事故：① 封面标题硬编码「涉税风险检查工作报告」，后端已把名称配置化为
+//         「税务风险扫描工作底稿」（report_compliance.document_meta）⇒ 前端不跟随；
+//      ② `enterpriseMode` 用**硬编码白名单**比对 compilation_style，
+//         后端一改名称就**不在白名单里** ⇒ 报告可能切到非企业版渲染（回归风险）。
+// 口径：名称只从 `enterprise_readable_report.document_meta.name` 取；
+//       取不到才退回历史默认名，**并把历史名一并视为企业版**（兼容旧缓存报告）。
+function _reportDocName(r) {
+  try {
+    var dm = (r && r.enterprise_readable_report && r.enterprise_readable_report.document_meta) || {};
+    if (dm.name) return String(dm.name);
+  } catch (e) {}
+  return '涉税风险检查工作报告';
+}
+function _complianceOf(r) {
+  // 合规块唯一来源：报告顶层 report_compliance，或报告成品里的 compliance/signature_block。
+  try {
+    if (r && r.report_compliance && r.report_compliance.compliance) return r.report_compliance.compliance;
+    if (r && r.report_compliance && r.report_compliance.document_meta) {
+      return {document: r.report_compliance.document_meta, security: r.report_compliance.security,
+              authorization: r.report_compliance.authorization, system: r.report_compliance.system_block,
+              signatures: r.report_compliance.signature_block, feedback: r.report_compliance.feedback};
+    }
+    var er = (r && r.enterprise_readable_report) || {};
+    if (er.compliance) return er.compliance;
+    if (er.document_meta) {
+      return {document: er.document_meta, security: er.security, authorization: er.authorization,
+              system: er.system_block, signatures: er.signature_block, feedback: er.feedback};
+    }
+  } catch (e) {}
+  return null;
+}
+function _signatureRows(r) {
+  var cb = _complianceOf(r);
+  var rows = (cb && cb.signatures && cb.signatures.rows) || null;
+  return Array.isArray(rows) && rows.length ? rows : null;
+}
+function _isEnterpriseEdition(r) {
+  // ★ 2026-10-07（根因修复）：**删除名称白名单**。
+  //   旧实现用「compilation_style 是否等于某几个写死的报告名」判定，而报告名是**可配置的**
+  //   （唯一权威 `report_compliance.document_meta`）—— 用户把名称一改，白名单就匹配不上，
+  //   本函数返回 false ⇒ 静默回落到本模块自带的 7 章旧模板（用户现象：「前端还是出旧报告」）。
+  //   现改为只看**后端声明的文档定位**：有 `document_meta`（name 或 edition_kind）即认定文书式版式；
+  //   旧缓存（无 document_meta）再退看 `report_edition`。**不再有任何报告名字面量**。
+  var er = (r && r.enterprise_readable_report) || null;
+  if (!er) return false;
+  var dm = er.document_meta || null;
+  if (dm && (dm.name || dm.edition_kind)) return true;
+  if (er.report_edition) return true;
+  return false;
+}
+function _fallbackReason(r) {
+  // 回落原因必须**可见**（禁止静默出旧版式）：供 7 章 fallback 在文首如实说明。
+  var er = (r && r.enterprise_readable_report) || null;
+  if (!er) return '本次结果未包含「企业文书式报告」数据（enterprise_readable_report 缺失），' +
+                  '无法按正式文书版式呈现，下面为您回退到通用过程记录版式。';
+  if (!(er.document_meta && (er.document_meta.name || er.document_meta.edition_kind)) && !er.report_edition)
+    return '本次结果未携带后端声明文档定位（document_meta），' +
+           '无法确认正式文书版式，下面为您回退到通用过程记录版式。';
+  return '';
+}
+
+
 function renderTaxDocAnalysis(container) {
 
 
@@ -918,6 +988,20 @@ function renderAnalyzeHeader(report) {
     var roundId = badge.round_id || cr.round_id || '';
     var fp = badge.report_fingerprint || cr.report_fingerprint || '';
     var freshSrc = ((report.enterprise_readable_report || {}).summary || {}).headline_source;
+    // ═══ 分析会话信息（2026-10-07 第 4 批 任务1）：报告开头标明本次分析会话 ═══
+    // 会话编号/快照版本/假重新分析自检结论 —— 让"本次是重新分析"可见、可核对。
+    var sess = badge.session_id || ((report.analysis_session || {}).session_id) || '';
+    var runId = badge.session_run_id || ((report.analysis_session || {}).run_id) || '';
+    var snapV = badge.snapshot_version || (((report.analysis_session || {}).snapshot) || {}).version || '';
+    var raOk = badge.reanalysis_ok;
+    var sessLine = sess
+      ? '<div>分析会话：<strong style="color:#0f172a;font-family:monospace">' + sess + '</strong>'
+        + (runId ? '　·　运行号：<strong style="color:#0f172a;font-family:monospace">' + runId + '</strong>' : '')
+        + (snapV ? '　·　数据快照：<strong style="color:#0f172a;font-family:monospace">' + snapV + '</strong>' : '')
+        + '　·　假重新分析自检：<strong style="color:' + (raOk === false ? '#dc2626' : '#16a34a') + '">'
+        + (raOk === false ? '检出异常，须人工确认' : '通过') + '</strong>'
+        + '</div>'
+      : '';
     h += '<div id="compilation-badge" style="margin:14px 0 4px;padding:10px 14px;background:linear-gradient(90deg,#f8fafc,#eff6ff);border:1px solid #dbeafe;border-radius:6px;font-size:12px;color:#475569;line-height:1.9">'
       + '<div style="font-weight:700;color:#1e40af;font-size:13px">📝 本次报告编制信息</div>'
       + '<div>编制时间：<strong style="color:#0f172a">' + (analyzedAt || '—') + '</strong>'
@@ -925,6 +1009,7 @@ function renderAnalyzeHeader(report) {
       + (fp ? '　·　报告指纹：<strong style="color:#0f172a;font-family:monospace">' + fp.slice(0, 16) + '</strong>' : '')
       + (freshSrc === 'llm' ? '　·　叙述编制：<strong style="color:#16a34a">智能重编</strong>' : '　·　叙述编制：<strong style="color:#0f172a">按轮次重编</strong>')
       + '</div>'
+      + sessLine
       + '<div style="color:#94a3b8">本报告由分析引擎对当前上传资料重新读取、重新计算、重新编制而成；数字与结论来自本轮复算，叙述文字随轮次重新组织。</div>'
       + '</div>';
 
@@ -1234,6 +1319,21 @@ function renderAnalyzeHeader(report) {
 
 // 全局转义函数
 
+
+/**
+ * 风险等级 → 面向读者的表述（**渲染层翻译**，唯一入口）。
+ * ★ 2026-10-05（用户："报告永远不能出现待核实。能确定的风险就是风险"）：
+ *   `risk_level` 的取值里，「待核验/待核」是**证据成熟度/降级标识**（机器用，
+ *   闸门 `check_downgraded_problem_wording` 依赖它），**不能在数据层改**；
+ *   但**不能让读者看到**这种内部标识 ⇒ 在此翻译：
+ *     · 待核验/待核 → 「已查明待办事项」（它有确定事实，只是未做风险分级）
+ *     · 空值 → 不显示（调用方已有判空）
+ */
+function _levelText(lv) {
+  var s = String(lv || '').trim();
+  if (s === '待核验' || s === '待核') return '已查明待办事项';
+  return s;
+}
 
 function esc(s) {
 
@@ -2390,7 +2490,18 @@ async function analyzeTaxDocs(force) {
   } catch (e) {
 
 
-    toast('分析失败: ' + e.message, 'error');
+    // ★ 2026-10-06（用户实测「分析失败: Failed to fetch」看不懂）：
+    //   `Failed to fetch` 是浏览器的网络层报错（**后台服务不可达/连接被中断**），
+    //   直接把英文原文抛给用户等于没说。这里按错误类型给**可执行的中文原因**：
+    //     · 网络层类型错误 ⇒ 提示"后台服务未运行或连接中断"，并给出处理动作；
+    //     · 其余错误保留原文（不掩盖真实原因）。
+    var _msg = e && e.message ? e.message : String(e);
+    if (/Failed to fetch|NetworkError|Load failed/i.test(_msg)) {
+      _msg = '与后台服务的连接中断（后台服务可能未运行或已停止）。'
+           + '请确认后台服务已启动后重试；若刚重启过服务，请刷新页面再点一次一键分析。'
+           + '（技术信息：' + _msg + '）';
+    }
+    toast('分析失败: ' + _msg, 'error');
 
 
   } finally {
@@ -2713,8 +2824,10 @@ function renderTaxDocReport(r) {
   // ✏️由_initAllEditIcons统一注入，这里不再内联
 
 
+
+  window.__wbLastReport = r;   // ★ 供导出/打印路径取报告名称（那两处作用域里没有 r）
   var html = ctx.html;
-  var enterpriseMode = !!(r.enterprise_readable_report && ['涉税风险检查工作报告（风险检查文书式）', '税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0);
+  var enterpriseMode = _isEnterpriseEdition(r);
 
   // 持续合规轮次与系统角色必须在报告首屏固定展示，防止内部分析
   // 被误认为税务机关行政处理、处罚或案件定性结论。
@@ -5034,8 +5147,15 @@ function _renderTaxImpactSummary(s){
       + (s.by_tax || []).map(function(x){ return esc(x.tax) + ' ' + _crdMoney(x.amount) + ' 元'; }).join('；')
       + '）。';
   }
-  h += '已量化 ' + esc(s.quantified || 0) + ' / ' + esc(s.total_items || 0) + ' 项'
-    + (s.quantified < s.total_items ? '，其余项检查记录中尚无明确金额、暂不能量化。' : '。')
+  // ★★ 2026-10-06（用户第 1 批 ①）：口径必须与报告首部**同一份计数**。
+  //   旧写法「已量化 7 / 26 项」里的 26 来自**同族合并之前**的旧列表，
+  //   与首页「16 项」矛盾（用户实测同一份报告两套口径）。
+  //   现改为「已量化 X 项、未量化 Y 项（合计 N 项）」，三项自洽且都取自**定稿**汇总。
+  var _tot = Number(s.total_items || 0);
+  var _q = Number(s.quantified || 0);
+  var _uq = Math.max(0, _tot - _q);
+  h += '已量化 ' + _q + ' 项、未量化 ' + _uq + ' 项（合计 ' + _tot + ' 项）'
+    + (_uq > 0 ? '，未量化项在检查记录中尚无明确金额，须补资料后测算。' : '。')
     + '<br><span style="color:#64748b;font-size:12.5px">' + esc(s.note || '') + '</span></p>';
   return h;
 }
@@ -5290,250 +5410,256 @@ if (typeof window !== 'undefined') {
 
 if (typeof window !== 'undefined') { window._crdDownloadCsv = _crdDownloadCsv; }
 
-function _renderResolutionLedger(ledger) {
-  var rows = (ledger && ledger.rows) || [];
-  if (!rows.length) return '';
-  var total = ledger.total || rows.length;
-  var tiers = ledger.evidence_tiers || {};
-  var tierHtml = '';
-  for (var tk in tiers) {
-    if (!tiers.hasOwnProperty(tk) || !tiers[tk]) continue;
-    var tcls = (String(tk).indexOf('已验原子规则') >= 0) ? 'tier-verified' : 'tier-domain';
-    tierHtml += '<span class="tier-badge ' + tcls + '">' + esc(tk) + '：' + tiers[tk] + ' 项</span> ';
-  }
-  var cols = ledger.columns || ['风险事项', '等级', '证据地位', '终局方向', '解除方式', '需补自证资料'];
-  // ★ 2026-09-26：自动隐藏整列为空的列；短列（内容可在单行放下）不换行
-  cols = _colsWithContent(cols, rows);
-  if (!cols.length) return '';
-  var shortCols = {};
-  cols.forEach(function(c){ shortCols[c] = _colShort(c, rows, 16); });
-  var h = '<h2 id="company-ledger">三、全部风险事项台账与解除/自证清单</h2>' +
-    '<p class="i2">本台账依据本轮上传资料，逐条列示经分析查出的<strong>全部风险事项（共 ' + total + ' 项）</strong>，' +
-    '无论其是否已固化为已验证规则。对每一项均载明：风险等级、证据地位、终局方向，以及企业解除风险的路径与' +
-    '应补充的自证资料。<strong>证据地位仅表示结论的取得方式（即可信度来源），不代表风险本身的大小。</strong></p>';
-  if (tierHtml) {
-    h += '<p class="i2" style="line-height:2.4">' + tierHtml + '</p>';
-  }
-  h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>';
-  cols.forEach(function(c){ h += '<th>' + esc(c) + '</th>'; });
-  h += '</tr></thead><tbody>';
-  rows.forEach(function(r){
-    h += '<tr>';
-    cols.forEach(function(c){
-      var v = r[c];
-      var nw = shortCols[c] ? ' style="white-space:nowrap"' : '';
-      if (c === '证据地位') {
-        var sv = String(v || '');
-        var cls = (sv.indexOf('已验原子规则') >= 0) ? 'tier-verified'
-          : (sv.indexOf('域分析结论') >= 0 ? 'tier-domain' : 'tier-other');
-        h += '<td' + nw + '><span class="tier-badge ' + cls + '">' + esc(sv || '—') + '</span></td>';
-      } else if (c === '等级') {
-        var lv = String(v || '');
-        var lcls = (lv.indexOf('高') >= 0) ? 'lv-high'
-          : (lv.indexOf('中') >= 0 ? 'lv-mid'
-            : (lv.indexOf('低') >= 0 ? 'lv-low' : 'lv-pend'));
-        h += '<td' + nw + '><span class="lv-badge ' + lcls + '">' + esc(lv || '—') + '</span></td>';
-      } else if (c === '风险事项') {
-        // ★ 2026-09-29（P1-7 类型级聚合）：聚合行在事项名下给出**明细**（期间/批次逐条）。
-        //   折叠块在导出时由 _sanitizeExportClone 展开，故导出的 Word/PDF 不会丢明细。
-        var cell = esc(v || '—');
-        var det = r['明细'] || [];
-        if (det.length) {
-          cell += '<details style="margin-top:6px"><summary style="cursor:pointer;color:#1d4ed8;font-size:12px">'
-            + '明细（' + det.length + ' 项）<span class="on-screen-only">，点击展开</span></summary>'
-            + '<table class="tbl" style="margin-top:4px"><thead><tr><th>期间/批次</th><th>等级</th>'
-            + '<th>解除方式</th></tr></thead><tbody>';
-          det.forEach(function(d){
-            cell += '<tr><td>' + esc(d['期间/批次'] || '—') + '</td><td>' + esc(d['等级'] || '—') + '</td><td>'
-              + esc(d['解除方式'] || '—') + '</td></tr>';
-          });
-          cell += '</tbody></table></details>';
-        }
-        h += '<td' + nw + '>' + cell + '</td>';
-      } else {
-        h += '<td' + nw + '>' + esc(v || '—') + '</td>';
-      }
-    });
-    h += '</tr>';
+/**
+ * 渲染「本条关联的其它风险信号」（第二/三章**融合**的呈现端）。
+ * ★ 2026-10-05：同一主题下的风险信号**并入本条**呈现，读者不必跨章找；
+ *   每条给出等级/终局方向/解除方式/需补自证资料 —— 与独立条目同一套要素。
+ */
+/**
+ * 渲染「本项的专项比对分析」（用户要求：专项比对**融入对应疑点**）。
+ * ★ 2026-10-05：`bank_flow_report`（银行流水比对）、`revenue_authenticity_report`
+ *   （收入真实性三维度）、`two_tax_report`（两税收入差异）、`fund_loop_report`
+ *   （跨企业资金回流）、`cross_enterprise_report`（跨企业关联图谱）、
+ *   `false_invoice_report`（虚开风险网络）、`cost_recon_detail`（成本两口径勾稽）
+ *   讲的**就是某一个疑点**的深度分析 —— 由后端按唯一权威映射（`engine/report_layout`）
+ *   挂到本疑点下，此处展开呈现，读者不必去末尾一节里对应"哪段给哪个疑点"。
+ */
+function _renderRelatedAnalyses(list) {
+  if (!list || !list.length) return '';
+  var h = '<div style="margin:12px 0 4px">';
+  list.forEach(function(item){
+    var d = item.data || {};
+    // ★★★ 2026-10-05（用户：「主营业务成本两口径勾稽明细已并入疑点15，
+    //   那么还有单独呈现的必要吗？」）—— 一句反问暴露了真问题：
+    //   `cost_recon_detail` 的结构与其他专项比对**不同**（没有 summary/body/signals 三键，
+    //   而是 paragraphs/by_goods/by_voucher/cost_expense_attribution），
+    //   旧渲染对它产出**空内容** ⇒ 我上一轮说"已并入疑点15"其实**在页面上看不见**。
+    //   现改为调**专用渲染**（去掉其章标题，因为已在疑点内），让本项真的看得见。
+    if (item.key === 'cost_recon_detail') {
+      h += _renderCostReconDetail(d).replace('<h3>主营业务成本两口径勾稽明细</h3>', '');
+      return;
+    }
+    h += '<div style="border:1px solid #bfdbfe;background:#eff6ff;border-radius:6px;'
+      + 'padding:10px 12px;margin:0 0 10px">'
+      + '<div style="font-weight:700;font-size:13.5px;color:#1e40af;margin-bottom:6px">'
+      + '本项专项比对：' + esc(item.title || '') + '</div>';
+    if (d.summary) h += '<p class="i2" style="margin:4px 0;line-height:1.95">' + esc(d.summary) + '</p>';
+    if (d.body) h += '<p class="i2" style="margin:4px 0;line-height:1.95">' + esc(d.body) + '</p>';
+    // 识别到的信号（表）
+    var sigs = d.signals || [];
+    if (sigs.length) {
+      h += '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+        + '<th>识别到的信号</th><th>说明与核实方向</th></tr></thead><tbody>';
+      sigs.forEach(function(s){
+        if (typeof s === 'string') { h += '<tr><td colspan="2">' + esc(s) + '</td></tr>'; return; }
+        h += '<tr><td>' + esc(s.signal || s.title || s['信号'] || '')
+          + '</td><td>' + esc(s.direction || s.note || s['说明与核实方向'] || '') + '</td></tr>';
+      });
+      h += '</tbody></table></div>';
+    }
+    if (d.verdict) h += '<p class="i2" style="margin:6px 0 2px"><strong>比对结论：</strong>' + esc(d.verdict) + '</p>';
+    if (d.recommendation) h += '<p class="i2" style="margin:2px 0"><strong>下一步：</strong>' + esc(d.recommendation) + '</p>';
+    if (d.note) h += '<p class="i2" style="margin:4px 0;font-size:12.5px;color:#64748b">' + esc(d.note) + '</p>';
+    h += '</div>';
   });
-  h += '</tbody></table></div>';
-  if (ledger.excluded_internal_note) {
-    h += '<p class="i2" style="color:#64748b;font-size:12.5px;line-height:1.9">'
-      + esc(ledger.excluded_internal_note) + '</p>';
-  }
-  if (ledger.evidence_tier_note) {
-    h += '<p class="i2" style="color:#64748b;font-size:12.5px;line-height:1.9">' + esc(ledger.evidence_tier_note) + '</p>';
-  }
-  if (ledger.statement) {
-    h += '<p class="i2" style="background:#f8fafc;border-left:3px solid #2563eb;padding:8px 12px;font-size:13px;line-height:1.9">'
-      + esc(ledger.statement) + '</p>';
-  }
-  return h;
+  return h + '</div>';
 }
 
-
 /**
- * 「企业检查报告版」（2026-09-30 用户定调）。
+ * 渲染「本项因缺资料未能查完」—— **完整说明并入本条**（用户追问三次的落点）。
  *
- * 定位：税务稽查专家**给企业出具的检查报告**——结论先行、逐项风险事项与整改要求清晰，
- * 让企业看得懂"我有什么风险、要补什么、怎么改"。
- * 章节：一 检查基本情况 / 二 检查结论 / 三 涉嫌风险事项 / 四 需补充资料清单 /
- *      五 整改要求与期限 / 六 检查程序 / 七 资料完备度评估。
- * 不含（保留在工作底稿版）：证据链明细、构成要件逐条、关键口径对照、能力边界与技术专项章节。
- * 数据全部取自同一份报告载荷，只做重组与呈现，不新增任何风险事项，不改金额/结论/判定/等级。
+ * ★ 2026-10-05（用户第三次问「这些内容就不能融入到第二章吗？」）：
+ *   此前只给"缺 X"一行**指针**、并保留独立的「因资料缺失而无法完成的检查」章 ⇒
+ *   读者仍要跨章拼装。现改为**整段并入**：
+ *   本轮检查结论／被阻断的检查和风险影响／补充资料要求／下一轮复查程序
+ *   四段原文直接呈现在本疑点内；报告**不再单设该章**。
+ *   数据来源：后端按疑点自声明的「独立数据源」匹配（`report_layout`，唯一权威），
+ *   并把 `further_checks` 的原文段落一并带入（`material_gap_notes[].段落`）。
  */
-function _buildInspectionReportBody(r, dateStr) {
-  var report = r.enterprise_readable_report || {};
-  var identity = report.identity || {};
-  var oc = report.overall_conclusion || {};
-  var problems = report.confirmed_problems || [];
-  var ledger = report.resolution_ledger || {};
-  var plans = report.action_plan || [];
-  var procs = report.inspection_procedures || [];
-  var mr = report.material_readiness || {};
-  var h = '';
-
-  // ── 封面 ──
-  h += '<div class="cover"><h1>涉税风险检查报告</h1><div class="sub">'
-    + '受检单位：' + esc(identity.subject_name || '未指定') + '<br>'
-    + '纳税人识别号：' + esc(identity.taxpayer_id || '未提供') + '<br>'
-    + '受检期间：' + esc(identity.period || '') + '<br>'
-    + '报告日期：' + esc(dateStr) + '<br>'
-    + '编制：税务稽查专家（涉税风险检查）</div></div>';
-
-  // ── 一、检查基本情况 ──
-  var _filesN = (r && r.files_count) ? r.files_count : 0;
-  var _scope = '共接收资料 ' + _filesN + ' 份；必查资料 ' + (mr.required_total || 0) + ' 类，'
-    + '已提供 ' + (mr.provided_count || 0) + ' 类、缺失 ' + (mr.missing_count || 0) + ' 类。';
-  h += '<h2>一、检查基本情况</h2>'
-    + '<table class="tbl2"><tr><th style="width:22%">项目</th><th>内容</th></tr>'
-    + '<tr><td>受检单位</td><td>' + esc(identity.subject_name || '') + '</td></tr>'
-    + '<tr><td>受检期间</td><td>' + esc(identity.period || '') + '</td></tr>'
-    + '<tr><td>资料范围</td><td>' + esc(_scope) + '</td></tr>'
-    + '<tr><td>检查方式</td><td>案头检查：对已上传资料实施「资料合规性核实、多源交叉比对、'
-    + '资金流向顺藤摸瓜追查、行业基准对标、规则与红线扫描、材料齐全程度评估」六步程序。</td></tr>'
-    + '</table>';
-
-  // ── 二、检查结论 ──
-  h += '<h2>二、检查结论</h2>';
-  h += '<p class="i2" style="background:#f8fafc;border-left:3px solid #2563eb;padding:10px 12px;font-size:13px;line-height:1.95">'
-    + '<strong>总体结论：</strong>' + esc(r.overall_level || '') + '</p>';
-  var _ocp = oc.paragraphs || [];
-  _ocp.forEach(function (p) {
-    if (String(p || '').trim()) h += '<p style="line-height:1.95">' + esc(p) + '</p>';
+function _renderMaterialGaps(gaps, notes) {
+  if ((!gaps || !gaps.length) && (!notes || !notes.length)) return '';
+  var h = '<div style="margin:14px 0 4px;padding:10px 13px;background:#fef2f2;'
+    + 'border-left:3px solid #dc2626;line-height:1.95">'
+    + '<div style="font-weight:700;font-size:13.5px;color:#991b1b;margin-bottom:6px">'
+    + '本项因缺资料未能查完</div>';
+  if (!notes || !notes.length) {
+    h += '<div style="font-size:13px">' + esc((gaps || []).join('、'))
+      + '<span style="color:#78716c">　—— 补齐后本项可完成核对。</span></div>';
+    return h + '</div>';
+  }
+  notes.forEach(function(n){
+    h += '<div style="margin:8px 0 10px">'
+      + '<div style="font-weight:600;font-size:13px;color:#7f1d1d">'
+      + '未收到「' + esc(n['类别'] || '') + '」</div>';
+    (n['段落'] || []).forEach(function(p){
+      if (!p || !p.text) return;
+      h += '<div style="font-size:13px;margin-top:4px">'
+        + '<span style="color:#7f1d1d;font-weight:600">' + esc(p.heading || '') + '：</span>'
+        + esc(p.text) + '</div>';
+    });
+    h += '</div>';
   });
-  if (oc.counts) {
-    var _tis = report.tax_impact_summary || {};
-    h += '<p style="line-height:1.9">本次共列示涉税风险事项 <strong>' + esc(String(oc.counts.total || problems.length))
-      + '</strong> 项，其中已量化潜在税额敞口 <strong>' + esc(String(_tis.quantified || 0))
-      + '</strong> 项（潜在税额敞口合计 ' + esc(String(_tis.total || 0)) + ' 元，为最坏情形上界）。</p>';
-  }
-
-  // ── 三、涉嫌风险事项（逐项）──
-  h += '<h2>三、涉嫌风险事项</h2>';
-  if (!problems.length) {
-    h += '<p>本轮未识别出涉嫌风险事项。</p>';
-  } else {
-    problems.forEach(function (p) {
-      var _taxes = (p.taxes || []).join('、');
-      h += '<div class="pcard" style="border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:0 0 14px">'
-        + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">'
-        + '<div style="font-weight:700;font-size:14px">第' + esc(String(p.seq || '')) + '项　' + esc(p.title || '') + '</div>'
-        + '<div style="white-space:nowrap;font-size:12.5px;color:#b91c1c;font-weight:700">' + esc(p.risk_level || '') + '</div>'
-        + '</div>';
-      if (p.suspect) h += '<p style="margin:6px 0;line-height:1.9"><strong>涉嫌情形：</strong>' + esc(p.suspect) + '</p>';
-      if (_taxes) h += '<p style="margin:6px 0;line-height:1.9"><strong>涉及税种：</strong>' + esc(_taxes) + '</p>';
-      h += '<p style="margin:6px 0;line-height:1.9"><strong>潜在税额：</strong>' + esc(_taxImpactText(p)) + '</p>';
-      if (p.verdict) h += '<p style="margin:6px 0;line-height:1.9"><strong>认定方向：</strong>' + esc(p.verdict) + '</p>';
-      // 资料现状：evidence_have / evidence_need 是**项数**（非清单）；清单取 missing_materials / verify_materials。
-      var _mm = (p.missing_materials || []).concat(p.verify_materials || []);
-      var _closure = (typeof p.closure === 'number') ? Math.round(p.closure * 100) : null;
-      h += '<p style="margin:6px 0;line-height:1.9"><strong>资料现状：</strong>已取得 '
-        + esc(String(p.evidence_have || 0)) + ' 项资料；尚需 ' + esc(String(p.evidence_need || 0)) + ' 项'
-        + (_mm.length ? '（' + esc(_mm.join('、')) + '）' : '')
-        + (_closure === null ? '' : '；证据闭合度 ' + esc(String(_closure)) + '%') + '。</p>';
-      if (p.suggestion) h += '<p style="margin:6px 0;line-height:1.9"><strong>处理建议：</strong>' + esc(p.suggestion) + '</p>';
-      h += '</div>';
-    });
-  }
-
-  // ── 四、需补充资料清单 ──
-  h += '<h2>四、需补充资料清单</h2>';
-  if (ledger && ledger.rows && ledger.rows.length) {
-    h += _renderResolutionLedger(ledger);
-  } else {
-    h += '<p>本轮无需补充资料的事项。</p>';
-  }
-
-  // ── 五、整改要求与期限 ──
-  h += '<h2>五、整改要求与期限</h2>';
-  if (plans.length) {
-    plans.forEach(function (pl) {
-      h += '<p style="line-height:1.95"><strong>' + esc(String(pl.seq || '')) + '　' + esc(pl.problem || '') + '</strong><br>'
-        + esc(pl.narrative || '') + '</p>';
-    });
-  } else {
-    h += '<p>本轮无整改要求事项。</p>';
-  }
-
-  // ── 六、检查程序（企业需知道"查了什么"）──
-  h += '<h2>六、检查程序</h2>';
-  if (procs.length) {
-    h += '<table class="tbl2"><tr><th style="width:60px">序号</th><th style="width:26%">检查程序</th><th>执行说明</th></tr>';
-    procs.forEach(function (pr) {
-      h += '<tr><td>' + esc(String(pr.seq || '')) + '</td><td>' + esc(pr.name || '') + '</td><td>'
-        + esc(pr.narrative || '') + '</td></tr>';
-    });
-    h += '</table>';
-  } else {
-    h += '<p>本轮未记录检查程序。</p>';
-  }
-
-  // ── 七、资料完备度评估 ──
-  h += '<h2>七、资料完备度评估</h2>';
-  if (mr.summary_text) h += '<p style="line-height:1.95">' + esc(mr.summary_text) + '</p>';
-  var _prov = mr.provided || [], _miss = mr.missing || [];
-  if (_prov.length) h += '<p style="line-height:1.9"><strong>已提供（' + _prov.length + '类）：</strong>'
-    + esc(_prov.join('、')) + '</p>';
-  if (_miss.length) h += '<p style="line-height:1.9"><strong>尚未提供（' + _miss.length + '类）：</strong>'
-    + esc(_miss.join('、')) + '——未提供资料对应的事项本轮无法核实，补齐后重新检查。</p>';
-
-  h += '<div class="foot" style="color:#64748b;font-size:12.5px;margin-top:24px;line-height:1.9">'
-    + '本报告由税务稽查专家基于企业提交资料作涉税风险分析后编制；所列事项均为待核实事实，'
-    + '具体处理以企业举证与依法核实结果为准。</div>';
-  return h;
+  h += '<div style="font-size:12.5px;color:#78716c;margin-top:4px">'
+    + '（本项结论在资料补齐前不予认定；补齐后重新执行一键分析即完成本项核对。）</div>';
+  return h + '</div>';
 }
-
 
 /**
- * 报告版本切换条（2026-09-30 起恢复为两版：工作底稿版 / 企业检查报告版）。
- * 纯前端切换：两版数据都在同一份报告载荷里，切换只重渲染、不重算。
+ * 渲染「本项需企业澄清的问题」—— 把询问清单挂回对应疑点。
+ * ★ 2026-10-05（用户追问三次「这些内容就不能融入到第二章吗？」）：
+ *   询问清单原为独立"待企业澄清事项"章；其中**指向具体疑点**的主题
+ *   （资金私户收款／未开票敞口／关联闭环／双向往来／同额凑数）现整条并入本条；
+ *   无对应疑点的主题（如"进项，应转出未转出"）保留在报告末尾。
  */
-function _renderEditionToggle() {
-  var cur = (window._tdaReportEdition === 'inspection_report') ? 'inspection_report' : 'working_paper';
-  function _btn(code, label, sub) {
-    var active = (cur === code);
-    return '<button type="button" data-edition="' + code + '" onclick="_tdaSwitchEdition(\'' + code + '\')" '
-      + 'style="cursor:pointer;text-align:left;border:1px solid ' + (active ? '#1d4ed8' : '#d1d5db')
-      + ';background:' + (active ? '#eff6ff' : '#fff') + ';color:' + (active ? '#1d4ed8' : '#374151')
-      + ';border-radius:8px;padding:7px 13px;margin-right:8px;font-size:13px;line-height:1.5">'
-      + '<strong>' + esc(label) + '</strong><br><span style="font-size:11.5px;color:#64748b">' + esc(sub) + '</span></button>';
+/* ── 「要补什么资料」的**去重登记**（唯一实现，2026-10-06）──────────────────
+   用户原话：「(同一批数据) 在报告中至少出现在以下位置……同一批人的同一批数据，
+   在 6 个地方反复出现」「同一份资料被要求三次」。
+
+   口径：**同一份材料在企业报告全文只要求一次** —— 第一个渲染到它的位置负责列出，
+   后续位置不再重复（材料名做了标点/空白归一后比对，避免"金额（元）"与"金额(元)"被当成两份）。
+   ⚠ 只统一**"要求企业补什么"**这类清单（询问清单 / 风险信号 / 自我怀疑验证清单）；
+     **「缺失资料」**（企业确实没提供）不参与去重 —— 那是事实陈述，各自成句、不构成"重复要求"。
+   ⚠ 不复用"见上文"式指针（本项目口径：指针也是废话），重复的静默剔除、不写占位语。 */
+var _askedMaterials = {};
+function _materialKey(s) {
+  return String(s == null ? '' : s).replace(/[\s\u3000]/g, '')
+    .replace(/[（(]/g, '(').replace(/[）)]/g, ')')
+    .replace(/[，,]/g, ',');
+}
+function _resetMaterialClaims() { _askedMaterials = {}; }
+/** 取"首次出现"的材料子集；返回数组（可能为空）。 */
+function _firstTimeMaterials(list) {
+  var out = [];
+  (list || []).forEach(function(m) {
+    var s = String(m == null ? '' : m).trim();
+    if (!s) return;
+    var k = _materialKey(s);
+    if (_askedMaterials[k]) return;
+    _askedMaterials[k] = 1;
+    out.push(s);
+  });
+  return out;
+}
+/** 同上去重，但输入是「A；B、C」这类**拼接串**；返回去重后的拼接串（可能为空串）。 */
+function _firstTimeMaterialText(text) {
+  var parts = String(text == null ? '' : text).split(/[；;、,，\/\/]/);
+  var kept = _firstTimeMaterials(parts.map(function(x) { return x.trim(); }));
+  return kept.join('；');
+}
+
+function _renderQuestions(themes) {
+  if (!themes || !themes.length) return '';
+  var h = '<div style="margin:14px 0 4px;padding:10px 13px;background:#fffbeb;'
+    + 'border-left:3px solid #ca8a04;line-height:1.95">'
+    + '<div style="font-weight:700;font-size:13.5px;color:#854d0e;margin-bottom:6px">'
+    + '本项需企业澄清的问题</div>';
+  themes.forEach(function(th){
+    if (th.severity) {
+      h += '<div style="font-size:12px;color:#78716c;margin:2px 0">关注级别：'
+        + esc(th.severity) + '</div>';
+    }
+    (th.questions || []).forEach(function(q, i){
+      h += '<div style="margin:6px 0;font-size:13px">'
+        + '<span style="color:#a16207;font-weight:600">询问 ' + (i + 1) + '：</span>'
+        + esc(q.question || '') + '</div>';
+      if (q.basis) h += '<div style="font-size:12.5px;color:#475569;margin-left:14px">'
+        + '<span style="color:#0f766e">风险检查依据：</span>' + esc(q.basis) + '</div>';
+      if (q.materials && q.materials.length) {
+        var _qm = _firstTimeMaterials(q.materials);   // ★ 同一份资料只要求一次
+        if (_qm.length) h += '<div style="font-size:12.5px;color:#475569;margin-left:14px">'
+          + '<span style="color:#0f766e">需补充资料：</span>' + esc(_qm.join('；')) + '</div>';
+      }
+      if (q.system_gap) h += '<div style="font-size:12.5px;color:#64748b;margin-left:14px">'
+        + '<span style="color:#92400e">系统局限→企业自证：</span>' + esc(q.system_gap) + '</div>';
+    });
+  });
+  return h + '</div>';
+}
+
+/**
+ * 渲染「本项可能错在哪里：自我反驳与验证清单」—— 疑点自我怀疑层。
+ * ★ 2026-10-06（用户要求）：「对疑点产生自我怀疑：以终为始拆解疑点的关键信息，
+ *   自我反驳，并再索取资料信息进行自我验证」。
+ * 数据：`engine/self_doubt.py`（唯一权威）——
+ *   key_inputs[{item,value,strength,doubt,overturns_if,look_for}]
+ *   counter_reading / verdict_before_verify / requested[{material,look_for,overturns_if}] / note
+ * 只渲染，不判断；`**` 由后端清洗（前端照原样转义）。
+ */
+function _renderSelfDoubt(sd) {
+  if (!sd || !sd.available || !(sd.key_inputs || []).length) return '';
+  var h = '<div style="margin:14px 0 4px;padding:10px 13px;background:#f5f3ff;'
+    + 'border-left:3px solid #6d28d9;line-height:1.95">'
+    + '<div style="font-weight:700;font-size:13.5px;color:#5b21b6;margin-bottom:6px">'
+    + '本项可能错在哪里：自我反驳与验证清单</div>';
+  if (sd.verdict_before_verify) {
+    h += '<p style="margin:4px 0;font-size:13px;color:#5b21b6"><strong>'
+      + esc(sd.verdict_before_verify) + '</strong></p>';
   }
-  return '<div id="tda-edition-toggle" style="margin:0 0 18px;padding:12px 14px;border:1px dashed #cbd5e1;border-radius:10px;background:#fbfdff">'
-    + _btn('working_paper', '税务稽查专家工作底稿版', '专家内部视角·含检查程序、证据与要件全过程')
-    + _btn('inspection_report', '企业检查报告版', '专家给企业出具·结论/风险事项/需补资料/整改要求')
-    + '</div>';
+  if (sd.counter_reading) {
+    h += '<p style="margin:4px 0;font-size:12.5px;color:#475569">' + esc(sd.counter_reading) + '</p>';
+  }
+  h += '<div style="margin-top:8px;font-size:13px;font-weight:600;color:#5b21b6">'
+    + '一、本项结论依赖的关键信息（以及它可能不成立的地方）</div>';
+  (sd.key_inputs || []).forEach(function(k){
+    var _c = k.strength === '强' ? '#166534' : (k.strength === '中' ? '#a16207' : '#b91c1c');
+    h += '<div style="margin:6px 0 2px;font-size:13px">'
+      + '<span style="color:' + _c + ';font-weight:700">［' + esc(k.strength || '') + '］</span>'
+      + esc(k.item || '') + (k.value ? '　<span style="color:#64748b;font-size:12px">' + esc(k.value) + '</span>' : '')
+      + '</div>';
+    if (k.doubt) h += '<div style="margin-left:14px;font-size:12.5px;color:#475569">'
+      + '<span style="color:#92400e">可能不成立之处：</span>' + esc(k.doubt) + '</div>';
+    if (k.overturns_if) h += '<div style="margin-left:14px;font-size:12.5px;color:#475569">'
+      + '<span style="color:#0f766e">什么情况下不成立：</span>' + esc(k.overturns_if) + '</div>';
+    if (k.look_for) h += '<div style="margin-left:14px;font-size:12.5px;color:#475569">'
+      + '<span style="color:#0f766e">要核对什么：</span>' + esc(k.look_for) + '</div>';
+  });
+  var _rq = sd.requested || [];
+  if (_rq.length) {
+    h += '<div style="margin-top:10px;font-size:13px;font-weight:600;color:#5b21b6">'
+      + '二、请提供以下资料，用来验证或推翻本项</div>';
+    _rq.forEach(function(q, i){
+      h += '<div style="margin:6px 0;padding:6px 10px;background:#fff;border:1px solid #ddd6fe;'
+        + 'border-radius:4px;font-size:12.5px">'
+        + '<div style="font-weight:600">' + (i + 1) + '. ' + esc(q.material || '') + '</div>'
+        + (q.look_for ? '<div style="color:#475569;margin-top:2px">看什么：' + esc(q.look_for) + '</div>' : '')
+        + (q.overturns_if ? '<div style="color:#475569">推翻条件：' + esc(q.overturns_if) + '</div>' : '')
+        + '</div>';
+    });
+  }
+  if (sd.note) h += '<p style="margin:8px 0 0;font-size:12px;color:#64748b">' + esc(sd.note) + '</p>';
+  return h + '</div>';
 }
 
-
-/** 前端版本切换：仅改状态并重渲染，不重新计算。 */
-function _tdaSwitchEdition(code) {
-  window._tdaReportEdition = (code === 'inspection_report') ? 'inspection_report' : 'working_paper';
-  if (window._reportData) renderTaxDocReport(window._reportData);
+function _renderRelatedRisks(related) {
+  if (!related || !related.length) return '';
+  var h = '<div style="margin:10px 0 4px;padding:9px 12px;background:#fff7ed;'
+    + 'border-left:3px solid #c2410c;line-height:1.9">'
+    + '<div style="font-weight:700;font-size:13px;color:#9a3412;margin-bottom:5px">'
+    + '本项还包含以下风险信号</div>';
+  related.forEach(function(r){
+    var bits = [];
+    if (r['等级']) bits.push('等级：' + r['等级']);
+    if (r['终局方向']) bits.push('终局：' + r['终局方向']);
+    // ★ 2026-10-06：需补资料同一份只要求一次（见 `_firstTimeMaterialText`）
+    var _rm = _firstTimeMaterialText(r['需补自证资料']);
+    h += '<div style="margin:6px 0">'
+      + '<div style="font-weight:600">' + esc(r['风险事项'] || '') + '</div>'
+      + (bits.length ? '<div style="font-size:12.5px;color:#78716c">' + esc(bits.join('　|　')) + '</div>' : '')
+      + (r['解除方式'] ? '<div style="font-size:12.5px;margin-top:2px">'
+          + '<span style="color:#9a3412">怎么解除：</span>' + esc(r['解除方式']) + '</div>' : '')
+      + (_rm ? '<div style="font-size:12.5px">'
+          + '<span style="color:#9a3412">需补资料：</span>' + esc(_rm) + '</div>' : '')
+      + '</div>';
+  });
+  return h + '</div>';
 }
+
 
 
 function _buildEnterpriseReadableBody(r, dateStr) {
+  // ★ 2026-10-06：每次重新渲染都**复位"要补资料"的去重登记**（见 `_firstTimeMaterials`），
+  //   否则第二次渲染时材料会被上一次的登记全部吃掉（正文变成空白）。
+  _resetMaterialClaims();
   var report = r.enterprise_readable_report || {};
   var identity = report.identity || {};
   var summary = report.summary || {};
@@ -5547,13 +5673,9 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   var recheck = report.recheck || {};
   var capb = report.capability_boundary || {};
   var iqSec = report.inspection_questions_report || {};
-  var statements = (report.report_statement || []).map(function(item){
-    var value = String(item || '');
-    if (value.indexOf('本报告以企业内部税务风险检查人员视角编制') >= 0) {
-      return '本报告采用税务风险检查文书式结构和风险检查人员陈述口径编制，所列检查事实、处理意见和复查要求用于企业合规整改。';
-    }
-    return value;
-  });
+  // ★ 2026-10-06：原先这里有一段"把旧文案改写成新文案"的替换垫片，其目标句本身也是
+  //   **系统自述**（"采用…口径编制"），且新文案下永不触发 ⇒ 删除（不留死代码）。
+  var statements = (report.report_statement || []).map(function(item){ return String(item || ''); });
   var displayedAddressee = '被检查企业及其负责人';
   var openingText = String(inspector.opening || '');
   if (!openingText || openingText.indexOf('本报告以内部税务风险检查人员的工作口径') >= 0 || openingText.indexOf('风险检查人员对被检查企业提交') >= 0) {
@@ -5565,11 +5687,17 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   headlineText = headlineText.replace(/另有\s*\d+\s*项检查已经做完、本轮没有发现达到条件的异常[；;]?/g, '');
   var administrativeBoundary = String(inspector.administrative_boundary || '');
   if (!administrativeBoundary || administrativeBoundary.indexOf('企业内部自查文书') >= 0) {
-    administrativeBoundary = '本报告由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务风险检查程序并开展合规整改，不具有税务机关行政执法文书效力；税务机关实际检查结论应以依法送达的正式文书为准。';
+    // ★ 2026-10-06：删掉「由企业使用的财税风险防控系统依据已提交资料生成，用于模拟税务风险
+    //   检查程序并开展合规整改」——那是**系统自述**（我们是谁、我们怎么定位），
+    //   企业需要知道的只有一句：这份东西**没有执法效力**。
+    //   「依据已提交资料生成」也与第三章「覆盖范围声明」重复 ⇒ 一并去掉。
+    // ★ 2026-10-08（条款 B5）：唯一权威在数据侧 `engine/enterprise_report._build_inspector_perspective`
+    //   （同一句，**两处必须一致**）；此处仅为取不到时的**可见回落**，不得静默留空。
+    administrativeBoundary = '本报告不具有税务机关行政执法文书的效力，不替代税务机关依法定程序作出的认定；税务机关的实际检查结论以依法送达的正式文书为准。';
   }
   var html = _capabilityStyles();
 
-  html += '<div class="cover"><h1>涉税风险检查工作报告</h1><div class="sub">' +
+  html += '<div class="cover"><h1>' + esc(_reportDocName(r)) + '</h1><div class="sub">' +
     '被检查企业：' + esc(identity.subject_name || '未填写企业名称') + '<br>' +
     '统一社会信用代码：' + esc(identity.taxpayer_id || '未填写') + '<br>' +
     '检查期间：' + esc(identity.period || '以本轮资料记载期间为准') + '<br>' +
@@ -5586,12 +5714,10 @@ function _buildEnterpriseReadableBody(r, dateStr) {
     '</div>';
 
   html += '<div class="toc"><a href="#company-conclusion">一、检查情况总述与总体结论</a><br>' +
-    '<a href="#company-problems">二、本轮风险检查确认的具体问题</a><br>' +
-    '<a href="#company-ledger">三、全部风险事项台账与解除/自证清单</a><br>' +
-    '<a href="#company-actions">四、风险检查处理意见和整改验收标准</a><br>' +
-    '<a href="#company-further">五、因资料缺失或不完整而无法完成的检查</a><br>' +
-    '<span style="font-size:13px;color:#64748b;padding-left:16px">└ 专项能力比对（行业对标 / 关联方穿透 / 两税差异 / 虚开网络 / 资金回流等）</span><br>' +
-    '<a href="#company-statement">六、报告性质和使用说明</a></div>';
+    '<a href="#company-problems">二、本轮风险检查确认的具体问题（含各项的资料缺口与待澄清问题）</a><br>' +
+    '<a href="#company-scope-note">三、本报告的覆盖范围声明（仅基于已上传资料）</a><br>' +
+    '<a href="#company-recheck">四、整改验收与下一轮复查标准</a><br>' +
+    '<a href="#company-statement">五、报告性质和使用说明</a></div>';
 
   // ★ 2026-09-27：工作底稿版「检查情况总述与总体结论」为**单章**，由后端 overall_conclusion
   //   统一生成（已吸收原「检查情况总述」的定调句 / 纳税遵从看法 / 监管态度 / 边界声明，每件事只说一遍，
@@ -5639,6 +5765,11 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   html += '<h2 id="company-problems">二、本轮风险检查确认的具体问题（税务红线疑点）</h2>' +
     '<p class="i2">本部分按<strong>税务红线</strong>组织。每一条说明：涉及的风险事项、发现的依据、'
     + '已取得的资料与待补充的资料、本项结论及理由，以及需企业提供的资料与说明。</p>';
+  // ★★ 2026-10-05（用户："这一段就不能单独成一章？"）：
+  //   「办理要求 / 什么时候重新检查 / 重新检查什么 / 怎样判断趋于合规」是
+  //   **跨全部疑点的通用验收规则**，不是某一章的前言 ⇒ **独立成章**，
+  //   置于报告末尾（企业整改完回头看即可）。原先塞在本部分章首，
+  //   读起来像"只管本部分"，属我方理解错误。
   // ★ 2026-09-27（P2）：章首**主线研判**（最可能的 2–3 个方向及依据，结论先行）
   var ma = report.main_assessment || {};
   if (ma.available && ma.paragraph) {
@@ -5707,91 +5838,87 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       : '';
     // ★ 2026-10-03（用户要求目录能跳转到每条疑点）：为每条疑点加**稳定锚点 id**，
     //   供浮动目录的"疑点级"条目使用（seq 即本项序号，稳定且与正文一致）。
+    // ★ 2026-10-05（用户意见：处理顺序并入问题本身）：标题上直接标「办理顺序 第N项」，
+    //   企业一眼看出先做哪个后做哪个，不必再翻第四章（原第四章已整章下线）。
+    var _ord = item['办理顺序'] || '';
+    var _ordTag = _ord
+      ? '<span style="display:inline-block;margin-left:10px;padding:1px 9px;border-radius:10px;'
+        + 'background:#b91c1c;color:#fff;font-size:12px;font-weight:700;vertical-align:middle">'
+        + '办理顺序：第' + esc(_ord) + '项</span>'
+      : '';
     html += '<section class="fact-sec" id="company-problem-' + esc(item.seq || '') + '">'
-      + '<div class="ftitle">疑点' + esc(item.seq || '') + '：' + esc(item.title || '具体资料问题') + '</div>'
+      + '<div class="ftitle">疑点' + esc(item.seq || '') + '：' + esc(item.title || '具体资料问题')
+      + _ordTag + '</div>'
       + meta
-      + _renderNarrativeParagraphs(_enterpriseProblemParagraphs(item), '本项尚未形成完整的段落式检查记录。') +
+      + _renderNarrativeParagraphs(_enterpriseProblemParagraphs(item), '本项尚未形成完整的段落式检查记录。')
+      // ★★★ 2026-10-05（用户：第二/三/四章要**融合**）：把后端并入本条的
+      //   `related_risks`（同一主题下的其它风险信号）**在本条内一并呈现** ——
+      //   同一件事只在这里讲一次，读者不必跨章找。
+      // ★★★ 2026-10-05（用户：专项比对应**融入相关板块**）：把后端按唯一权威
+      //   映射挂进本疑点的专项比对（银行流水/收入真实性/两税差异/资金回流/
+      //   关联图谱/虚开网络/成本两口径）**在本条内展开**。
+      + _renderRelatedAnalyses(item.related_analyses)
+      + _renderRelatedRisks(item.related_risks)
+      // ★★★ 2026-10-05（用户追问两遍「这些内容就不能融入到第二章吗？」）：
+      //   本项**因缺哪些资料而没查完** —— 依据是疑点自声明的「独立数据源」
+      //   （见 `report_layout.extract_sources`），不是关键词全文匹配（会误挂）。
+      //   只给一行指针，完整说明仍在「无法完成的检查」章，两处不重复。
+      + _renderMaterialGaps(item.material_gaps, item.material_gap_notes)
+      // ★★★ 2026-10-05（用户追问三次）：**问企业澄清的问题**也并入本条 ——
+      //   归属依据 `report_layout.QUESTION_THEME_TO_PROBLEM`（显式表，非关键词匹配）。
+      + _renderQuestions(item.questions)
+      // ★★★ 2026-10-06（用户要求）：「对疑点产生自我怀疑」——
+      //   以终为始拆解本项的关键支撑 → 逐条自我反驳 → 给出**可执行的验证清单**
+      //   （要哪份资料、看什么、满足什么条件就推翻本项）。数据来自 `engine/self_doubt.py`。
+      + _renderSelfDoubt(item.self_doubt) +
       '</section>';
   });
 
   // 注：原「已经执行且本轮未发现达到条件异常的检查」一章自 2026-09-13 起整章下线，
   // 不再列示（引擎 _build_completed_checks 亦恒返回空）。
 
-  // ═══ 三、全部风险事项台账与解除/自证清单（用户决策「全部提升」的前端落点）═══
-  var ledger = report.resolution_ledger || {};
-  if (ledger && ledger.rows && ledger.rows.length) {
-    html += _renderResolutionLedger(ledger);
-  }
+  // ★★★ 2026-10-05（用户：「三、本轮另行检出的税务风险事项为什么不放在第二章？
+  //   为什么不以第二章的表述方式呈现？」）：
+  //   这些风险事项**已并入第二章同一列表**（后端 `_promote_standalone_to_problems`
+  //   为每条生成与红线疑点**同构的六段论证**），故本章**整章下线** ——
+  //   报告只有**一份风险清单**，且每条都用同一种表述方式，不再有"表格二等公民"。
   // ★ 2026-09-27：主营业务成本两口径勾稽明细（阈值内也照出，合规留痕）
-  html += _renderCostReconDetail(report.cost_recon_detail);
-
-  html += '<h2 id="company-actions">四、风险检查处理意见和整改验收标准</h2>' +
-    '<p class="i2">请按照下列顺序办理。所有处理必须建立在真实业务和原始资料基础上，不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';
-  // ★ 2026-09-29（点评整改 P1-8 / P2-7）：**本章通用说明只说一次**。
-  //   此前 25 条处理意见**每条都以同一段 89 字通用说明结尾**（"办理须指定熟悉该项业务的
-  //   负责人…验收时确认处理过程能够回查…"）→ 点评所说"模板重复约四成"。现由后端
-  //   `chapter_dedup.collapse_common_tail` 抽出到章首一次，条目内只留该条差异部分。
-  if (report.action_plan_note) {
-    html += '<p class="i2" style="background:#f8fafc;border-left:3px solid #94a3b8;padding:8px 12px;'
-      + 'font-size:12.5px;line-height:1.9;color:#475569">' + esc(report.action_plan_note) + '</p>';
+  // ★ 2026-10-05（用户：「已并入疑点15，还有单独呈现的必要吗？」）：
+  //   **已并入疑点的，不再单设章节**（后端标记 `_carried_by_problem`）——
+  //   同一份明细不在两处出现。仅在**无任何疑点承载**时保留此章作兜底
+  //   （例如企业没有"成本列支"类疑点，明细仍须可见）。
+  if (report.cost_recon_detail && !report.cost_recon_detail._carried_by_problem) {
+    html += _renderCostReconDetail(report.cost_recon_detail);
   }
-  if (!plans.length) html += '<p class="i2">本轮没有需要立即处理的已证实具体问题，企业应先按第四部分补充资料。</p>';
-  plans.forEach(function(item){
-    html += '<h3>' + esc(item.seq || '') + '、先处理“' + esc(item.problem || '') + '”</h3>' +
-      '<p class="i2" style="line-height:2">' + esc(item.narrative || ('风险检查人员提出的第一项处理动作是：' + (item.first_action || '') + '责任安排为：' + (item.responsibility || '') + '本项整改不能以口头说明作为完成依据，必须达到以下验收条件：' + _narrativeSequence(item.completion_standard, '完成后能够用原始资料重新核对。'))) + '</p>';
-  });
 
-  html += '<h3>整改验收与下一轮复查标准</h3>' +
-    '<p class="i2"><strong>什么时候重新检查：</strong>' + esc(recheck.trigger || '') + '</p>' +
-    '<p class="i2"><strong>重新检查什么：</strong>' + esc(recheck.work || '') + '</p>' +
-    '<p class="i2"><strong>怎样判断企业正在趋于合规：</strong>' + esc(recheck.convergence || '') + '</p>';
+  // ★★ 2026-10-05（用户意见：处理意见并入第二章，不再单开一章）：
+  //   原第四章 26 条的正文 = 第二章每条 §五 的重复陈述（实测逐字相同），
+  //   其**唯一独有信息**是「整改验收与下一轮复查标准」—— 已移入第二章章首（见上）。
+  //   「办理顺序」也已下放到每条疑点标题（`_ordTag`），故本章整章下线。
 
-  html += '<h2 id="company-further">五、因资料缺失或不完整而无法完成的检查</h2>' +
-    '<p class="i2">本部分不是问题认定。系统逐项说明缺少什么、阻断了什么检查、哪些风险目前无法排除、可以提供什么替代资料，以及补齐后下一轮具体重新检查什么。</p>';
-  if (!further.length) html += '<p class="i2">本轮没有单独列明的补充资料事项。</p>';
-  further.forEach(function(item){
-    html += '<section class="fact-sec"><div class="ftitle">事项' + esc(item.seq || '') + '：' + esc(item.title || '') + '</div>' +
-      _renderNarrativeParagraphs(_enterpriseFollowUpParagraphs(item), '本项资料缺口尚未形成完整的段落式说明。') + '</section>';
-  });
-  // 系统能力边界：须依赖外部数据源与人工下户才能查实
+  // ★★★ 2026-10-05（用户**追问三次**「这些内容就不能融入到第二章吗？」）：
+  //   资料缺口的**完整四段说明**已整段并入其影响的每条疑点
+  //   （见 `_renderMaterialGaps`，后端 `material_gap_notes` 提供原文），
+  //   故**不再单设**「因资料缺失或不完整而无法完成的检查」章 ——
+  //   报告自此只有一份叙事：每件事在它所属的疑点里讲完。
+
+  // ★★★ 2026-10-05（用户：「系统能力边界是要独立一章说明，或者并入第四章」）：
+  //   原先用 `<h3>` 渲染，**不属于任何 `<h2>` 章**（悬空小节，目录也不可达）。
+  //   现按「独立一章」处理 —— 它回答的是"本报告结论能信到什么程度"，
+  //   对读者决策重要，且有完整结构（覆盖范围 / 够不着的缺口 / 推进路线 / 底线）。
   if (capb && capb.title) {
-    html += '<h3>系统能力边界：须依赖外部数据源与人工下户才能查实</h3>' +
-      '<p class="i2">' + esc(capb.opening || '') + '</p>';
-    var cov = capb.covered_in_scope || [];
-    if (cov.length) {
-      html += '<p class="i2">系统已能在数据可触达范围内近乎彻底覆盖：' + esc(cov.join('；')) + (capb.coverage_note ? '。' + esc(capb.coverage_note) : '') + '</p>';
-    }
-    var ext = capb.must_rely_on_external || [];
-    if (ext.length) {
-      html += '<table class="tbl"><thead><tr><th>缺口</th><th>为何系统够不着</th><th>所需证据</th></tr></thead><tbody>';
-      ext.forEach(function(it){
-        html += '<tr><td>' + esc(it.gap || '') + '</td><td>' + esc(it.why || '') + '</td><td>' + esc(it.need || '') + '</td></tr>';
-      });
-      html += '</tbody></table>';
-    }
-    var road = capb.roadmap || [];
-    if (road.length) {
-      html += '<p class="i2">继续向上推进的路线：' + road.map(function(it){ return esc(it); }).join('；') + '</p>';
-    }
-    if (capb.bottom_line) html += '<p class="i2"><strong>底线：</strong>' + esc(capb.bottom_line) + '</p>';
-  }
-  // 待企业澄清事项（风险检查询问清单）
-  if (iqSec && iqSec.title) {
-    html += '<h3>待企业澄清事项（风险检查询问清单）</h3>' +
-      '<p class="i2">' + esc(iqSec.summary || '') + '</p>';
-    var iqThemes = iqSec.themes || [];
-    iqThemes.forEach(function(th){
-      html += '<h4 style="color:#b91c1c">' + esc(th.theme || '') + '　<span style="font-size:12px;color:#64748b">关注级别：' + esc(th.severity || '') + '</span></h4>';
-      (th.questions || []).forEach(function(q, idx){
-        html += '<div class="i2" style="border-left:3px solid #b91c1c;padding:6px 12px;margin:8px 0;background:#fff7f7">';
-        html += '<p style="margin:4px 0"><strong>询问 ' + (idx + 1) + '：</strong>' + esc(q.question || '') + '</p>';
-        if (q.basis) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">风险检查依据：</span>' + esc(q.basis) + '</p>';
-        if (q.materials && q.materials.length) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">需补充资料：</span>' + esc(q.materials.join('；')) + '</p>';
-        if (q.system_gap) html += '<p style="margin:4px 0;color:#64748b"><span style="color:#92400e">系统局限→企业自证：</span>' + esc(q.system_gap) + '</p>';
-        html += '</div>';
-      });
-    });
-    if (iqSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(iqSec.verdict) + '</p>';
+    // ★★★ 2026-10-05（用户：「这真让人想死…你是怎么认为这些内容的？」）：
+    //   原「系统能力边界」章（能查什么／三阶路线图／底线）是**系统自述**，
+    //   属产品说明/立项材料 —— 企业读它没有意义（企业只关心"我有什么风险、怎么改"）。
+    //   按用户决定**从企业报告移除**，只留**一句必要的能力声明**；
+    //   完整内容另存内部文档：`scripts/four_reports/capability_boundary_internal.md`。
+    html += '<h2 id="company-scope-note">三、本报告的覆盖范围声明</h2>' +
+      '<p class="i2" style="line-height:2">本报告的结论<strong>仅基于企业本轮已上传的资料</strong>，'
+      + '未接入外部数据源（工商、司法、第三方支付等）。因此'
+      + '<strong>账外经营、私户收款、两套账、未申报的隐性收入</strong>等'
+      + '不体现在已上传资料中的风险方向，<strong>不在本报告的覆盖范围内</strong>，'
+      + '亦不因本报告未列出而视为不存在；此类方向须由风险检查员结合外部数据与下户取证另行核实。</p>' +
+      '<p class="i2">本报告所列事项的定性权在风险检查员；系统结论不得替代法定程序认定。</p>';
   }
 
   // ═══ 专项能力章节（数据层早已产出，此前前端无渲染入口）═══
@@ -5799,17 +5926,17 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   // 「资料不够时缺口在哪」，与业务界面的「系统能力边界」同一层级。
   // 铁律：全部为待证线索，不作定性依据。
   var _capOrder = [
-    ['derivation_tree_report', 'cap-derivation', '四之一、疑点派生树（逐层展开的连带疑点）'],
-    ['industry_benchmark_report', 'cap-industry', '四之二、行业指标对标（与同行业预警区间比对）'],
-    ['related_party_report', 'cap-related-party', '四之三、关联方穿透（同源信号与人员穿透）'],
-    ['two_tax_report', 'cap-two-tax', '四之四、增值税收入与企业所得税收入差异比对'],
-    ['input_voucher_report', 'cap-input-voucher', '四之五、进项异常凭证与应转出未转出比对'],
-    ['false_invoice_report', 'cap-false-invoice', '四之六、虚开风险网络比对'],
-    ['fund_loop_report', 'cap-fund-loop', '四之七、跨企业资金回流闭环比对'],
-    ['cross_enterprise_report', 'cap-cross-enterprise', '四之八、跨企业关联图谱比对'],
-    ['external_verify_report', 'cap-external-verify', '四之九、外部数据源核验'],
-    ['bank_flow_report', 'cap-bank-flow', '四之十、银行流水比对'],
-    ['revenue_authenticity_report', 'cap-revenue-auth', '四之十一、收入真实性（账外收入嫌疑）三维度验证'],
+    ['derivation_tree_report', 'cap-derivation', '疑点派生树（逐层展开的连带疑点）'],
+    ['industry_benchmark_report', 'cap-industry', '行业指标对标（与同行业预警区间比对）'],
+    ['related_party_report', 'cap-related-party', '关联方穿透（同源信号与人员穿透）'],
+    ['two_tax_report', 'cap-two-tax', '增值税收入与企业所得税收入差异比对'],
+    ['input_voucher_report', 'cap-input-voucher', '进项异常凭证与应转出未转出比对'],
+    ['false_invoice_report', 'cap-false-invoice', '虚开风险网络比对'],
+    ['fund_loop_report', 'cap-fund-loop', '跨企业资金回流闭环比对'],
+    ['cross_enterprise_report', 'cap-cross-enterprise', '跨企业关联图谱比对'],
+    ['external_verify_report', 'cap-external-verify', '外部数据源核验'],
+    ['bank_flow_report', 'cap-bank-flow', '银行流水比对'],
+    ['revenue_authenticity_report', 'cap-revenue-auth', '收入真实性（账外收入嫌疑）三维度验证'],
   ];
   var _capRendered = [];
   window._tdaCapRenderedSections = _capRendered;
@@ -5817,6 +5944,13 @@ function _buildEnterpriseReadableBody(r, dateStr) {
   _capOrder.forEach(function(item){
     var sec = report[item[0]];
     if (!sec || typeof sec !== 'object') return;
+    // ★★★ 2026-10-05（用户：「主营业务成本两口径勾稽明细已并入疑点15，
+    //   那么还有单独呈现的必要吗？」）—— **同一判断适用于所有专项比对**：
+    //   凡已被某条疑点承载的（后端在挂载 `related_analyses` 时打标
+    //   `_carried_by_problem=True`），**不再在此重复渲染**；
+    //   未被任何疑点承载的（派生树／行业对标／关联方穿透／外部核验）仍保留。
+    //   实测此前 7 份底稿在「疑点内」与「专项能力章节」**各渲染一遍**。
+    if (sec._carried_by_problem) return;
     // 未发现异常（无偏离/无疑点）的专项章节不展示：避免空壳占位与套话（报告纪律「未发现异常不写套话」）
     if (sec.verdict === "未发现异常") return;
     // 无内容且无缺口说明的章节不渲染，避免空壳占位
@@ -5834,17 +5968,90 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       _capRendered.push(item[2]);
     }
   });
-  if (_capHtml) {
-    html += '<h3>专项能力比对（全部为待证线索，不作定性依据）</h3>' +
-      '<p class="i2">以下比对建立在数据可触达范围内：资料齐全的给出量化结果，' +
-      '资料缺失的明示缺口与所需材料。所有结论均属待核线索，须由企业自证或补充资料后重新检查，系统不作违法认定。</p>' +
-      _capHtml;
-  }
+  // ★★★ 2026-10-05（用户：「专项能力对比，既然已经并入5个疑点，是各疑点的测算底稿，
+  //   那么还有单独呈现的必要吗？」）—— **已并入的不再单独呈现**（循环内按
+  //   `_carried_by_problem` 跳过，实测 7 份）。此处**只剩余未被任何疑点承载的项**；
+  //   本企业只剩「外部数据源核验」（另两份 verdict=未发现异常，前端本就不渲染）。
+  //   它的性质是「系统能查到什么／查不到什么」⇒ **归入第三章（系统能力边界）**，
+  //   故不再单设名不副实的「专项能力比对」章。
+  // ★★★ 2026-10-05（用户决定）：原「外部视角核实」小节（各通道未检索到/未启用付费通道）
+  //   是**系统运行日志**性质，企业不需要知道；已移除（旧内容里还混着"进项异常凭证"比对，
+  //   那是**真风险**，现已升为独立风险事项，见后端 `STANDALONE_RISK_REPORTS`）。
+  //   外部核验的完整结论仍保留在报告数据里（`external_verify_report`），供内部复核。
 
-  html += '<h2 id="company-statement">六、报告性质和使用说明</h2>' +
+  // ★★ 2026-10-05（用户："这一段就不能单独成一章？"）：
+  //   「整改验收与下一轮复查标准」独立成章 —— 它是**跨全部疑点**的通用验收规则
+  //   （办理要求 / 何时重检 / 重检什么 / 怎么判断趋于合规），不属于任何单章的前言。
+  //   放在报告末尾：企业整改完回头看，一页说清"怎么才算改完"。
+  html += '<h2 id="company-recheck">四、整改验收与下一轮复查标准</h2>' +
+    '<p class="i2" style="line-height:2"><strong>办理要求：</strong>'
+    // ★ 2026-10-05（用户复核第四章）：删掉「各条风险事项的标题**右侧标注『办理顺序 第N项』**，
+    //   请按序号先后办理」—— 那是**排版描述**（企业自己看得见那个徽标），属"我怎么做的"。
+    // ★ 2026-10-06（用户：「这个要重写，有废话」）：连留下的「请按各条标注的办理顺序先后办理；」
+    //   也一起删 —— 每条的标题右侧本来就标着"办理顺序 第N项"，再说一遍是重复的排版说明。
+    //   只留企业真正要遵守的那条底线。
+    + '所有处理必须建立在真实业务和原始资料基础上，'
+    + '不要为了让系统不再提示而作没有事实依据的调账或申报。</p>';
+  if (report.action_plan_note) {
+    html += '<p class="i2" style="background:#f8fafc;border-left:3px solid #94a3b8;padding:8px 12px;'
+      + 'font-size:12.5px;line-height:1.9;color:#475569">' + esc(report.action_plan_note) + '</p>';
+  }
+  // ★★ 2026-10-08（前后端对齐审计发现：**数据算了不显示**）：
+  //   「监管态度与后续处理建议（分级分类）」的**唯一权威 = `inspection_overview.posture`**
+  //   （结构化 6 条，已按风险由重到轻排好）。它此前**两条链路都不渲染**
+  //   （前端整章不渲染 `inspection_overview`；离线导出只取八/九节）——
+  //   于是第一章那段"分级分类"成了全报告**唯一可见副本**。
+  //   用户 2026-10-08 按"与后章重复"删掉了第一章那段 ⇒ 若不加这里，建议会彻底消失。
+  //   ⇒ 在此真正呈现权威（**不再引用 inspection_overview.paragraphs，避免又一处文本副本**）。
+  var _posture = ((report.inspection_overview || {}).posture) || [];
+  if (_posture.length) {
+    html += '<p class="i2" style="line-height:2"><strong>分级分类处理要求（按风险由重到轻）：</strong></p>'
+      + '<ul class="i2" style="line-height:2;margin:0 0 10px 22px">'
+      + _posture.map(function(t){
+          var s = String(t || '').trim();
+          if (s && !/[。；;]$/.test(s)) { s += '。'; }
+          return '<li>' + esc(s) + '</li>';
+        }).join('')
+      + '</ul>';
+  }
+  html += '<p class="i2" style="line-height:2"><strong>什么时候重新检查：</strong>'
+    + esc(recheck.trigger || '') + '</p>'
+    + '<p class="i2" style="line-height:2"><strong>重新检查什么：</strong>'
+    + esc(recheck.work || '') + '</p>'
+    + '<p class="i2" style="line-height:2"><strong>怎样判断企业正在趋于合规：</strong>'
+    + esc(recheck.convergence || '') + '</p>';
+
+  // ★ 2026-10-06（用户：「五、报告性质和使用说明……」要求重写，指出有废话）：
+  //   原标题尾部那个「待企业澄清事项」的括注**已不成立** —— 指向具体疑点的询问已并入各疑点，
+  //   残余清单也由闸门断言为空 ⇒ 该括注是失效表述，去掉。
+  html += '<h2 id="company-statement">五、报告性质和使用说明</h2>' +
     '<p class="i2"><strong>文书性质说明。</strong>' + esc(administrativeBoundary) + '</p>';
   statements.forEach(function(item, index){ html += '<p class="i2"><strong>说明' + (index + 1) + '。</strong>' + esc(item || '') + '</p>'; });
 
+
+  // 待企业澄清事项：**指向具体疑点的主题已并入疑点内**（见 `_renderQuestions`），
+  // 此处只列**无对应疑点**的主题（如"进项，应转出未转出" —— 疑点15 正文不含
+  // "进项转出/不得抵扣"，硬挂即张冠李戴，故保留在此）。
+  var iqThemes = (iqSec && iqSec.unattached_themes) || [];
+  if (iqSec && iqSec.title && iqThemes.length) {
+    html += '<h3>待企业澄清事项（其余事项）</h3>' +
+      '<p class="i2">与具体风险事项直接相关的询问已并入相应条目；下列为无对应条目的澄清事项。</p>';
+    iqThemes.forEach(function(th){
+      html += '<h4 style="color:#b91c1c">' + esc(th.theme || '') + '　<span style="font-size:12px;color:#64748b">关注级别：' + esc(th.severity || '') + '</span></h4>';
+      (th.questions || []).forEach(function(q, idx){
+        html += '<div class="i2" style="border-left:3px solid #b91c1c;padding:6px 12px;margin:8px 0;background:#fff7f7">';
+        html += '<p style="margin:4px 0"><strong>询问 ' + (idx + 1) + '：</strong>' + esc(q.question || '') + '</p>';
+        if (q.basis) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">风险检查依据：</span>' + esc(q.basis) + '</p>';
+        if (q.materials && q.materials.length) {
+          var _qm2 = _firstTimeMaterials(q.materials);   // ★ 同一份资料只要求一次
+          if (_qm2.length) html += '<p style="margin:4px 0;color:#475569"><span style="color:#0f766e">需补充资料：</span>' + esc(_qm2.join('；')) + '</p>';
+        }
+        if (q.system_gap) html += '<p style="margin:4px 0;color:#64748b"><span style="color:#92400e">系统局限→企业自证：</span>' + esc(q.system_gap) + '</p>';
+        html += '</div>';
+      });
+    });
+    if (iqSec.verdict) html += '<p class="i2"><strong>综合结论：</strong>' + esc(iqSec.verdict) + '</p>';
+  }
 
   html += '<div class="seal"><p>风险检查报告编制人：_______________　日期：_______________</p>' +
     '<p>被检查企业负责人签收：_______________　日期：_______________</p>' +
@@ -6011,7 +6218,9 @@ function _buildInspectionProcessBody(r, allF, dateStr) {
   var processCheck = process.process_compilation_check || {};
   var html = '';
 
-  html += '<div class="cover"><h1>企 业 内 部 涉 税 稽 查 工 作 过 程 报 告</h1><div class="sub">' +
+  // ★ 2026-10-07（用户："把旧模板都删除"）：此处原为**过程报告专用的旧封面名**，已删除，
+  //   统一取报告名称唯一权威 `_reportDocName(r)`（后端 document_meta.name）。
+  html += '<div class="cover"><h1>' + esc(_reportDocName(r)) + '</h1><div class="sub">' +
     '文书性质：一键分析形成的内部过程报告草稿<br>' +
     '被检查主体：' + esc(identity.subject_name || '未指定') + '<br>' +
     '资料批次/快照：' + esc(identity.snapshot_id || '待生成') + '<br>' +
@@ -6337,15 +6546,12 @@ function _renderReportFallback(r, allF) {
 
 
   // 企业版是主文书；专业过程底稿继续保留在后台，供内部复查和历史轮次追溯。
-  if (r.enterprise_readable_report && ['涉税风险检查工作报告（风险检查文书式）', '税务风险检查文书式报告', '内部税务风险检查员报告', '企业易读检查结果'].indexOf(r.enterprise_readable_report.compilation_style) >= 0) {
-    // 2026-09-30（用户定调）：报告分两版——工作底稿版（专家内部视角，含证据与要件全过程）
-    // 与企业检查报告版（专家给企业出具：结论/风险事项/需补资料/整改要求 + 检查程序 + 资料完备度）。
-    h += _renderEditionToggle();
-    if (window._tdaReportEdition === 'inspection_report') {
-      h += _buildInspectionReportBody(r, dateStr);
-    } else {
-      h += _buildEnterpriseReadableBody(r, dateStr);
-    }
+  if (_isEnterpriseEdition(r)) {
+    // ★ 2026-10-05（用户要求「删除企业检查报告版及其代码」）：
+    //   原「企业检查报告版」（`inspection_report`）与其版本切换条**已整体下线**，
+    //   报告只保留**工作底稿版**（`_buildEnterpriseReadableBody`，专家内部视角、
+    //   含证据链与构成要件全过程）。故此处不再有版本分支与切换按钮。
+    h += _buildEnterpriseReadableBody(r, dateStr);
     h += '</div>';
     return {
       html: h,
@@ -6369,7 +6575,19 @@ function _renderReportFallback(r, allF) {
   // fallback 使用7章标准结构渲染
 
 
-  h += '<div class="cover"><h1>企 业 内 部 税 务 合 规 风 险 分 析 报 告</h1><div class="sub">'
+  // ★ 2026-10-07：**禁止静默出旧版式**。回退到通用过程记录版式时，必须在文首如实说明原因
+  //   （此前成因即：后端文档定位缺失/判据不匹配 ⇒ 无声无息地出旧模板，用户无从判断）。
+  var _fbReason = _fallbackReason(r);
+  if (_fbReason) {
+    h += '<div data-export-exclude="1" style="border:1px solid #f0a020;background:#fff9ec;'
+       + 'border-radius:8px;padding:12px 14px;margin:0 0 16px;font-size:12px;line-height:1.8;color:#b45309">'
+       + '<b>⚠ 报告版式回退说明</b><br>' + esc(_fbReason) + '</div>';
+  }
+
+
+  // ★ 2026-10-07（用户："把旧模板都删除"）：此处原为**本模块自带的旧封面名**（7 章标准结构
+  //   专用），已删除，改用报告名称唯一权威 `_reportDocName(r)`（后端 document_meta.name）。
+  h += '<div class="cover"><h1>' + esc(_reportDocName(r)) + '</h1><div class="sub">'
 
 
     + '报告编号：未配置（交付前由有权人员按适用制度填写）<br>'
@@ -7665,15 +7883,29 @@ h += '<h2 id="ch5">第五章 合规改进与复查任务</h2>';
   h += '<div class="seal" style="margin-top:40px;padding:24px 0;line-height:3">';
 
 
-  h += '<p>内部报告编制人：_______________　　日期：_______________</p>';
-
-
-  h += '<p>税 务 复 核 人：_______________　　日期：_______________</p>';
-
-
-  h += '<p>企业内部批准人/授权标识（如适用）：_______________</p>';
-
-
+  // ★ 2026-10-07（用户："把旧模板都删除"）：原三行签章（编制人／复核人／批准人·授权标识）
+  //   是本模块**自带的旧模板**，已删除；
+  //   改为消费后端签名栏唯一权威 `report_compliance.signature_block.rows`（编制人/复核人/审批人）。
+  //   无签署数据时如实写「待签署」，不留空冒充已签署。
+  var _rows = _signatureRows(r);
+  if (_rows) {
+    _rows.forEach(function (row) {
+      h += '<p>' + esc(row.role || '') + '：' + esc(row.name || '待签署')
+         + '　　日期：' + esc(row.date || '_______________') + '</p>';
+    });
+  } else {
+    h += '<p>编制人：待签署　　日期：_______________</p>';
+    h += '<p>复核人：待签署　　日期：_______________</p>';
+    h += '<p>审批人：待签署　　日期：_______________</p>';
+  }
+  var _cb = _complianceOf(r) || {};
+  if (_cb.security && _cb.security.restriction) {
+    h += '<p style="margin-top:16px">保密等级：' + esc(_cb.security.level || '内部资料')
+       + '——' + esc(_cb.security.restriction) + '</p>';
+  }
+  if (r && r.report_compliance_text) {
+    h += '<p style="margin-top:10px;font-size:12px;color:#475569">' + esc(r.report_compliance_text) + '</p>';
+  }
   h += '<p style="margin-top:20px">报告日期：' + dateStr + '</p>';
 
 
@@ -8335,7 +8567,7 @@ async function exportTaxDocReport() {
       var wmHtml = isOfficial ? ''
         : '<div class="wm">内部草稿 · 仅供内部复核 · 非正式结论</div>';
       reportHtml = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
-        + '<title>涉税风险检查工作报告</title>'
+        + '<title>' + esc(_reportDocName(window.__wbLastReport)) + '</title>'
         + '<style>body{font-family:"PingFang SC","Microsoft YaHei",serif;color:#1a1a1a;'
         + 'margin:0;padding:32px 40px;line-height:1.85;position:relative}'
         + 'table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}'
@@ -8416,7 +8648,7 @@ async function exportTaxDocReportPdf() {
       var wm = isOfficial ? ''
         : '<div class="wm">内部草稿 · 仅供内部复核 · 非正式结论</div>';
       reportHtml = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
-        + '<title>涉税风险检查工作报告</title>'
+        + '<title>' + esc(_reportDocName(window.__wbLastReport)) + '</title>'
         + '<style>body{font-family:"PingFang SC","Microsoft YaHei",serif;color:#1a1a1a;'
         + 'margin:0;padding:32px 40px;line-height:1.85;position:relative}'
         + 'table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}'

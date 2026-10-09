@@ -1,0 +1,142 @@
+{
+  "_doc": "风险族配置表（唯一权威）。同一事实只能有一个父风险；子项只作差异点，不单独计入报告总事项数。新增一族只加一条数据，不改任何判定逻辑。",
+  "_schema": {
+    "risk_family_id": "族内唯一标识（英文短名，配置键）",
+    "risk_family_name": "族的中文名（报告呈现用）",
+    "parent_risk_code": "父风险编号（报告口径：疑点编号由定稿顺序生成，此处为族内稳定码）",
+    "parent_risk_name": "父风险名称（报告标题）",
+    "child_risk_code": "子风险编号（族内序号）",
+    "child_risk_name": "子风险名称（红线名/发现类型的关键词，用于归族）",
+    "count_policy": "计数口径：once_per_family=同族只计 1 项（父项）；sub_items_not_counted=子项不计入总事项数",
+    "display_policy": "呈现口径：parent_plus_diffs=父项 + 差异点清单；sub_items_as_bullets=子项作为父项下的条目",
+    "level_policy": "等级口径：max_of_children=取各子项最高等级；parent_fixed=父项固定等级（须声明依据）",
+    "enabled_industries": "启用该族的行业（空数组=全行业启用）"
+  },
+  "version": "2026-10-07",
+  "families": [
+    {
+      "risk_family_id": "payroll_tri_source",
+      "risk_family_name": "薪酬与用工三源",
+      "parent_risk_code": "FAM-PAY-001",
+      "parent_risk_name": "工资表人数与社保参保人数不符",
+      "children": [
+        {"child_risk_code": "FAM-PAY-001-1", "child_risk_name": "工资表人数"},
+        {"child_risk_code": "FAM-PAY-001-2", "child_risk_name": "社保参保人数"},
+        {"child_risk_code": "FAM-PAY-001-3", "child_risk_name": "社会保险"},
+        {"child_risk_code": "FAM-PAY-001-4", "child_risk_name": "社保低基数"},
+        {"child_risk_code": "FAM-PAY-001-5", "child_risk_name": "低基数参保"},
+        {"child_risk_code": "FAM-PAY-001-6", "child_risk_name": "公积金"},
+        {"child_risk_code": "FAM-PAY-001-7", "child_risk_name": "住房公积金"},
+        {"child_risk_code": "FAM-PAY-001-8", "child_risk_name": "个税申报工资"},
+        {"child_risk_code": "FAM-PAY-001-9", "child_risk_name": "账面工资"},
+        {"child_risk_code": "FAM-PAY-001-10", "child_risk_name": "社保基数"},
+        {"child_risk_code": "FAM-PAY-001-11", "child_risk_name": "公私混同发薪"},
+        {"child_risk_code": "FAM-PAY-001-12", "child_risk_name": "私户支付薪酬"},
+        {"child_risk_code": "FAM-PAY-001-13", "child_risk_name": "用工"},
+        {"child_risk_code": "FAM-PAY-001-14", "child_risk_name": "参保"}
+      ],
+      "count_policy": "once_per_family",
+      "display_policy": "parent_plus_diffs",
+      "level_policy": "max_of_children",
+      "enabled_industries": []
+    },
+    {
+      "risk_family_id": "funds_and_mixing",
+      "risk_family_name": "资金流与公私混同",
+      "parent_risk_code": "FAM-FUND-001",
+      "parent_risk_name": "多税种联动稽查风险画像（收入、票账差异、资金）",
+      "children": [
+        {"child_risk_code": "FAM-FUND-001-1", "child_risk_name": "资金回流"},
+        {"child_risk_code": "FAM-FUND-001-2", "child_risk_name": "公私混同"},
+        {"child_risk_code": "FAM-FUND-001-3", "child_risk_name": "公转私"},
+        {"child_risk_code": "FAM-FUND-001-4", "child_risk_name": "个人账户"},
+        {"child_risk_code": "FAM-FUND-001-5", "child_risk_name": "私户"},
+        {"child_risk_code": "FAM-FUND-001-6", "child_risk_name": "资金对手方"},
+        {"child_risk_code": "FAM-FUND-001-7", "child_risk_name": "大额双向收付"},
+        {"child_risk_code": "FAM-FUND-001-8", "child_risk_name": "多税种联动"},
+        {"child_risk_code": "FAM-FUND-001-9", "child_risk_name": "资金流"},
+        {"child_risk_code": "FAM-FUND-001-10", "child_risk_name": "回流"}
+      ],
+      "count_policy": "once_per_family",
+      "display_policy": "parent_plus_diffs",
+      "level_policy": "max_of_children",
+      "enabled_industries": []
+    },
+    {
+      "risk_family_id": "revenue_and_bank",
+      "risk_family_name": "收入与银行收款",
+      "parent_risk_code": "FAM-REV-001",
+      "parent_risk_name": "银行收款大于申报收入：存在账外收入嫌疑",
+      "children": [
+        {"child_risk_code": "FAM-REV-001-1", "child_risk_name": "银行收款"},
+        {"child_risk_code": "FAM-REV-001-2", "child_risk_name": "申报收入"},
+        {"child_risk_code": "FAM-REV-001-3", "child_risk_name": "未开票收入"},
+        {"child_risk_code": "FAM-REV-001-4", "child_risk_name": "账外收入"},
+        {"child_risk_code": "FAM-REV-001-5", "child_risk_name": "其他应付款"},
+        {"child_risk_code": "FAM-REV-001-6", "child_risk_name": "收入三源"},
+        {"child_risk_code": "FAM-REV-001-7", "child_risk_name": "销项与银行"}
+      ],
+      "count_policy": "once_per_family",
+      "display_policy": "parent_plus_diffs",
+      "level_policy": "max_of_children",
+      "enabled_industries": []
+    },
+    {
+      "risk_family_id": "stamp_duty_items",
+      "risk_family_name": "印花税税目申报",
+      "parent_risk_code": "FAM-SPT-001",
+      "parent_risk_name": "印花税计税依据不足：合同金额与开票不符",
+      "children": [
+        {"child_risk_code": "FAM-SPT-001-1", "child_risk_name": "印花税"},
+        {"child_risk_code": "FAM-SPT-001-2", "child_risk_name": "借款合同"},
+        {"child_risk_code": "FAM-SPT-001-3", "child_risk_name": "租赁合同"},
+        {"child_risk_code": "FAM-SPT-001-4", "child_risk_name": "保险合同"},
+        {"child_risk_code": "FAM-SPT-001-5", "child_risk_name": "计税依据不足"}
+      ],
+      "count_policy": "once_per_family",
+      "display_policy": "parent_plus_diffs",
+      "level_policy": "max_of_children",
+      "enabled_industries": []
+    },
+    {
+      "risk_family_id": "related_party_overlap",
+      "risk_family_name": "关联交易与对手方重叠",
+      "parent_risk_code": "FAM-REL-001",
+      "parent_risk_name": "同一交易对手同时出现在客户与供应商清单",
+      "children": [
+        {"child_risk_code": "FAM-REL-001-1", "child_risk_name": "关联交易"},
+        {"child_risk_code": "FAM-REL-001-2", "child_risk_name": "关联方"},
+        {"child_risk_code": "FAM-REL-001-3", "child_risk_name": "同一交易对手"},
+        {"child_risk_code": "FAM-REL-001-4", "child_risk_name": "客户与供应商"},
+        {"child_risk_code": "FAM-REL-001-5", "child_risk_name": "购销闭环"},
+        {"child_risk_code": "FAM-REL-001-6", "child_risk_name": "六员"},
+        {"child_risk_code": "FAM-REL-001-7", "child_risk_name": "个体户供应商"},
+        {"child_risk_code": "FAM-REL-001-8", "child_risk_name": "个人/个体户"},
+        {"child_risk_code": "FAM-REL-001-9", "child_risk_name": "供应商客户"}
+      ],
+      "count_policy": "once_per_family",
+      "display_policy": "parent_plus_diffs",
+      "level_policy": "max_of_children",
+      "enabled_industries": []
+    },
+    {
+      "risk_family_id": "input_and_declaration",
+      "risk_family_name": "进项与申报差异",
+      "parent_risk_code": "FAM-INP-001",
+      "parent_risk_name": "增值税申报进项税额与进项发票税额月度差异",
+      "children": [
+        {"child_risk_code": "FAM-INP-001-1", "child_risk_name": "表间勾稽"},
+        {"child_risk_code": "FAM-INP-001-2", "child_risk_name": "进项税额"},
+        {"child_risk_code": "FAM-INP-001-3", "child_risk_name": "进项发票税额"},
+        {"child_risk_code": "FAM-INP-001-4", "child_risk_name": "认证税额"},
+        {"child_risk_code": "FAM-INP-001-5", "child_risk_name": "申报进项税额"},
+        {"child_risk_code": "FAM-INP-001-6", "child_risk_name": "票账差异"},
+        {"child_risk_code": "FAM-INP-001-7", "child_risk_name": "四方比对"}
+      ],
+      "count_policy": "once_per_family",
+      "display_policy": "parent_plus_diffs",
+      "level_policy": "max_of_children",
+      "enabled_industries": []
+    }
+  ]
+}

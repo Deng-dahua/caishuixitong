@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>报告第一章重构为四段式执行摘要 · 前后对照与验收</title>
+<style>
+  :root{
+    --ink:#1f2937; --ink-2:#475569; --ink-3:#64748b;
+    --line:#e2e8f0; --bg:#fff; --bg-2:#f8fafc; --bg-3:#f1f5f9;
+    --red:#b91c1c; --red-bg:#fef2f2; --amber:#b45309; --amber-bg:#fffbeb;
+    --green:#15803d; --green-bg:#f0fdf4; --blue:#1e40af; --blue-bg:#eff6ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 36px 64px;background:var(--bg);color:var(--ink);
+       font:15px/1.85 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:25px;margin:0 0 6px}
+  .sub{color:var(--ink-3);font-size:13px;margin-bottom:24px}
+  h2{font-size:19px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{font-size:15.5px;margin:20px 0 8px}
+  code{background:var(--bg-3);padding:1px 6px;border-radius:4px;font-size:13px;
+       font-family:ui-monospace,Consolas,monospace}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0}
+  .card{flex:1 1 200px;border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--bg-2)}
+  .card .n{font-size:25px;font-weight:700;line-height:1.2}
+  .card .t{font-size:12.5px;color:var(--ink-3);margin-top:4px}
+  .ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--amber)} .blue{color:var(--blue)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--bg-2);font-weight:600;white-space:nowrap}
+  .box{border-left:3px solid var(--blue);background:var(--blue-bg);padding:12px 16px;
+       border-radius:0 8px 8px 0;margin:14px 0}
+  .box.warn{border-color:#f59e0b;background:var(--amber-bg)}
+  .box.good{border-color:#22c55e;background:var(--green-bg)}
+  .box.bad{border-color:#ef4444;background:var(--red-bg)}
+  .par{border:1px solid var(--line);border-radius:8px;padding:12px 15px;margin:9px 0;background:var(--bg-2)}
+  .par .tag{display:inline-block;font-size:11.5px;color:var(--ink-3);margin-bottom:5px}
+  .par .tag b{color:var(--blue)}
+  ul,ol{margin:8px 0 8px 22px;padding:0} li{margin:5px 0}
+  .meta{color:var(--ink-3);font-size:12.5px}
+  .foot{margin-top:42px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>报告第一章重构为「四段式执行摘要」· 前后对照与验收</h1>
+<div class="sub">
+范围：<b>只重构第一章</b>（= 前端「一、检查情况总述与总体结论」）·
+改造点：<code>engine/overall_conclusion.py :: build_overall_conclusion</code> 的 <code>paragraphs</code> 组装 ·
+同步修改：闸门 2 处、回归用例 6 处、文档行号 4 份 · 数据源：真实产物（2026-10-08 14:34 那次一键分析）
+</div>
+
+<h2>一、为什么"前端一直没变化"——根因（已实证）</h2>
+<div class="box bad">
+<b>前端第一章读的是 <code>enterprise_readable_report.overall_conclusion.paragraphs</code>。</b><br>
+渲染点 <code>static/js/tax-doc-analysis.js</code>：<code>var oc = report.overall_conclusion || {};</code>
+→ <code>var ocParas = oc.paragraphs || [];</code> → 逐段 <code>&lt;p class="i2"&gt;</code>。
+<ul>
+<li>上一轮我改的 <code>engine/report_pipeline.py::_render_text_from_report_data</code> <b>只影响 <code>output/editions/*.md</code> 落盘</b>，前端完全不读 ⇒ 所以"没有任何变化"。</li>
+<li>本次用<b>运行时渲染</b>实证：把新章节注入真实产物后跑真实前端函数，报告区 HTML 中第一章由 15 段变为 9 段（见第五节）。</li>
+</ul>
+</div>
+
+<h2>二、重构前后对照</h2>
+<div class="kpi">
+  <div class="card"><div class="n ok">9 段 / 1468 字</div><div class="t">重构后（原 <b>15 段 / 2172 字</b>）</div></div>
+  <div class="card"><div class="n">4</div><div class="t">段标：（一）性质与资料条件 →（二）整体结论 →（三）主线抽象 →（四）下一步动作</div></div>
+  <div class="card"><div class="n bad">−4 类</div><div class="t">删除"与后章重复"的内容</div></div>
+  <div class="card"><div class="n ok">16 / 16</div><div class="t">数据不变量：返回字段（tiers/tax_types/directions/…）全部保持</div></div>
+</div>
+
+<table>
+<thead><tr><th style="width:34%">旧结构（15 段，压缩版全文）</th><th style="width:12%">处置</th><th>新结构（9 段，执行摘要）</th></tr></thead>
+<tbody>
+<tr><td>①编制声明 ②企业整体风险综合评价 ③检查范围与结果概览</td><td>改写并入</td><td><b>（一）检查性质与资料条件</b>（性质+资料计数+六步程序）<br><b>（二）整体结论</b>（等级+效力范围+主要风险领域+遵从评价）</td></tr>
+<tr><td>④行业口径</td><td>保留（移入（二））</td><td>行业口径（含登记口径冲突的三态表述）</td></tr>
+<tr><td>⑤按风险性质归纳明细（8 个主题全列）</td><td class="bad">删除</td><td>→ 抽象为 <b>（三）主线抽象</b>（只留 3 条主线 + 代表事项）</td></tr>
+<tr><td>⑥风险等级评定 + ⑦⑧⑨⑩ 高/中/低/"已列明"逐项清单（16 项平铺）</td><td class="bad">删除</td><td>→ <b>只留计数</b>（高风险 2 / 中风险 9 / 低风险 3 / 已列明 2）+ 指向第二部分台账</td></tr>
+<tr><td>③中"涉及税种（共9类）：企业所得税8项…"</td><td class="bad">删除</td><td>→ 税种数据仍由返回字段 <code>tax_types</code> 提供（前端台账/后章用），不进第一章正文</td></tr>
+<tr><td>⑪纳税遵从总体看法</td><td>改写并入</td><td>→ 合入（二）</td></tr>
+<tr><td>⑫检查受限记录（6 项缺资料逐名）</td><td>保留</td><td>保留（（一）段的补充段，口径独立、不相互计入）</td></tr>
+<tr><td>⑬下一步</td><td>保留+扩充</td><td>→ <b>（四）下一步动作</b>（含 4 条操作顺序 + 指向第四部分）</td></tr>
+<tr><td>⑭监管态度与后续处理建议（分级分类：重点关注/补充资料核实/已列明/限期补正/提示提醒）</td><td class="bad">删除</td><td>→ 与后章重复，改为"分级分类处理意见见第二部分及第四部分"</td></tr>
+<tr><td>⑮需要说明（免责声明全文）</td><td class="bad">删除</td><td>→ 统一放"口径与声明"章节，第一章只<b>引用</b>（第五部分）</td></tr>
+</tbody>
+</table>
+
+<h2>三、重构后第一章正文（逐段）</h2>
+<div class="par"><span class="tag"><b>（一）检查性质与资料条件（总结）</b> · 174 字</span><br>
+（一）检查性质与资料条件：本轮为税务风险扫描工作底稿，依据已上传的 12 类资料（102 份）实施检查；按本轮检查必查资料口径共 14 类（实际提供 8 类、缺失 6 类）。编制声明：本轮已重新读取全部资料并重新计算，按“资料合规性核验 → 多源交叉比对 → 资金流向穿透 → 行业基准对标 → 规则与红线扫描 → 证据链闭合度评估”六步程序实施检查，以下为本轮复算结论。</div>
+<div class="par"><span class="tag">检查受限记录（（一）段补充；<b>不是风险疑点</b>） · 206 字</span><br>
+另有 6 项不属于风险疑点，而是因未收到相应资料、导致相关检查无法完成的检查受限记录，分别是：合同文件、资产负债表、利润表、企业所得税申报表、个税申报表、其他税种申报表；原因是检查所需资料未提供，不是已查出问题。它与上面列示的 16 项风险事项口径不同、不相互计入（本报告的风险事项合计 16 项，不因本段而增减）。补齐上述资料后，受影响的检查程序将重新执行；本段只表示本轮检查范围受限，不表示已经发生相应违法。</div>
+<div class="par"><span class="tag"><b>（二）整体结论（概括）</b> · 349 字</span><br>
+（二）整体结论：企业整体风险综合评价：本轮结论受资料条件限制：必查资料共 14 类，实际提供 8 类、缺失 6 类（缺失清单与各自影响见本章「本轮检查必查资料齐备性」及后面的检查受限记录），部分检查程序因此未能完成。故以下结论是「现有资料条件下的风险画像」，不等于对企业涉税情况的完整结论，补齐资料后须重新判断。在资料受限的前提下，该企业的整体税务风险等级为「较高」；风险高度集中于「税费申报」与「其他」两个领域，二者合计 11 项、占全部 16 项涉嫌风险事项的 69%。结合资料与核算管理尚不完备、多项异常线索指向具体涉嫌方向的实际情况，本轮对该企业纳税遵从的总体评价为：在已提交资料范围内呈现较高风险敞口，但主观故意性质尚不能认定，须以补充资料与核实为前提，再行判断其纳税义务履行的真实状况。</div>
+<div class="par"><span class="tag">事项总数 + 分级依据 + 计数 + 证据状态分列 · 177 字</span><br>
+本轮共识别并列示 16 项涉嫌风险事项（编号 R1~R16），逐项的依据、需补资料与复核情况见本报告第二部分风险事项台账；风险等级按潜在税额、涉及金额、证据缺口、是否涉及虚开或偷税、补充资料紧迫性五项综合评定：高风险 2 项、中风险 9 项、低风险 3 项；另有「已列明」2 项属证据状态（证据不足），不参与风险等级排序，本报告不对任何一项作出违法认定。</div>
+<div class="par"><span class="tag">行业口径 · 41 字</span><br>
+行业口径：本轮按销项发票品名指向的「广告传媒」口径测算（来源：销项发票品名推断）。</div>
+<div class="par"><span class="tag">涉嫌方向（数据驱动，命不中不写） · 41 字</span><br>
+可能涉及的涉嫌方向包括：虚列人员、隐匿收入、隐瞒收入、虚增成本、转移利润、虚抵等。</div>
+<div class="par"><span class="tag"><b>（三）主线抽象（抽象）</b> · 205 字</span><br>
+（三）主线抽象：3 条贯穿全部事项的主线（对应事项见第二部分风险事项台账）：①「税费申报」7 项，代表：税前扣除限额超限未纳税调整、印花税计税依据不足、附加税费计税依据与增值税不匹配等；②「其他」4 项，代表：多税种联动稽查风险画像（收入、票账差异、资金）、同一交易对手同时出现在客户与供应商清单、固定资产取得、投用与折旧不匹配等；③「发票与交易真实性」2 项，代表：红字冲销与作废发票比例异常、数字特征异常。</div>
+<div class="par"><span class="tag"><b>（四）下一步动作（建议）</b> · 96 字</span><br>
+（四）下一步动作：请企业负责人先按上述风险程度与优先顺序组织处理，并按要求补齐资料；完成真实更正和资料补充后，发起新一轮全量复查，继续核对原问题是否处理完成，以及补充资料是否带出新的关联问题。</div>
+<div class="par"><span class="tag">操作顺序建议 + 效力范围引用 · 167 字</span><br>
+操作顺序建议：① 优先补齐影响面最广的缺失资料（清单见本章「本轮检查必查资料齐备性」）；② 按上文（三）的主线顺序组织核实；③ 按各事项「需补资料」逐项补齐（见第二部分台账）；④ 资料补齐后重新执行受影响的检查程序（见第四部分整改验收与复查标准）。本段为工作建议，不构成处理结论；其效力范围与使用限制见第五部分「报告性质和使用说明」。</div>
+
+<h2>四、同步改了哪些（不改就会"改了不生效"或"闸门自己判红"）</h2>
+<table>
+<thead><tr><th>文件</th><th>改动</th><th>为什么必须改</th></tr></thead>
+<tbody>
+<tr><td><code>engine/overall_conclusion.py</code></td><td>paragraphs 组装 → 四段式（唯一改造点）</td><td>第一章的唯一生成侧；返回字段全部保持不动</td></tr>
+<tr><td><code>tools/audit_consistency.py</code> · <code>check_overall_conclusion_no_dup</code></td><td>判据<b>反转</b>：原"每个等级清单标题只出现一次"（承认逐项清单存在）→ 现"出现逐项清单即 ERROR"；并新增"四类已删内容不得回流"+"段落数上限"</td><td>否则闸门会拦下正确的重构（它原本在为旧结构背书）</td></tr>
+<tr><td><code>tools/audit_consistency.py</code> · <code>check_conclusion_and_suspicion_order</code></td><td>① 改为"四段式段标齐备且按序"；保留实质不变式"<b>整体结论必须出现在前 3 段内</b>"（不得被铺垫淹没）<br>② 原"监管态度分级由重到轻"随该段删除而废 → 改为"<b>等级与证据状态必须分列</b>"</td><td>口径变了（用户 2026-10-08 定稿"总结在前"），但"结论不被淹没"的实质诉求必须留住</td></tr>
+<tr><td><code>tests/test_overall_conclusion.py</code></td><td>6 处断言更新：税种明细→须不存在；等级清单→须不存在（计数仍在）；结论先行→四段序 + 前 3 段；监管态度→须不存在；段标→新 4 个；并加"字数 ≤2000、段数 ≤10"上限</td><td>用例是结构的守卫；规则变了守卫必须随规则走，且保留"派生性"不变式</td></tr>
+<tr><td>4 份文档（<code>docs/第01批…</code>）</td><td>门禁定义/调用行号随闸门位移更新（10651→10673、11200→11222、11088→11110、11203→11225）</td><td>D1「文档数字一致性」会现算权威值，文档不同步就报红</td></tr>
+<tr><td><code>tests/test_doc_consistency_skills.py</code></td><td>2 处反向验证用例的"变异锚点"由<b>写死行号</b>改为<b>动态取权威值</b></td><td>本项目铁律"闸门不得硬编码某一条具体对象做样检"——写死一次，闸门一动用例就腐化（本次即失败 2 例）</td></tr>
+</tbody>
+</table>
+
+<h2>五、验收证据（可复现）</h2>
+<div class="box good">
+<b>1) 全量回归</b>：<code>./.venv/Scripts/python.exe -m pytest tests/ -q</code> → <b>1542 passed / 4 skipped / 166 subtests passed</b>（297s）。与改动前基线<b>完全一致</b>（1542 passed），零回归。
+</div>
+<table>
+<thead><tr><th>项</th><th>结果</th></tr></thead>
+<tbody>
+<tr><td>第一章闸门 3 处（derivation / no_dup / order）</td><td class="ok">0 条 ERROR</td></tr>
+<tr><td><b>反向验证</b>（故意破坏 → 必须报红）</td><td class="ok">7/7 全部报红</td></tr>
+<tr><td>&nbsp;&nbsp;· 回填逐项清单 / 回填税种关联次数 / 回填监管态度分级 / 段落数超限</td><td class="ok">闸门 1 各报 1 条</td></tr>
+<tr><td>&nbsp;&nbsp;· 删掉（三）主线抽象 / 结论沉到第 6 段 / 四段乱序</td><td class="ok">闸门 2 各报 1~2 条</td></tr>
+<tr><td><b>运行时渲染</b>（真实产物 + 真实前端函数）</td><td class="ok">第一章 = 9 段 / 1468 字；五章齐备；无 <code>undefined</code>/<code>NaN</code>/字段名泄漏</td></tr>
+<tr><td>数据不变量</td><td class="ok"><code>tiers</code>/<code>tax_types</code>/<code>directions</code>/<code>industry</code>/<code>conflict</code>/<code>risk_themes</code>/<code>cost_reconciliation</code>/<code>counts</code> 全部原样保留</td></tr>
+</tbody>
+</table>
+
+<h2>六、还剩什么（需你决定 / 需你操作）</h2>
+<div class="box warn">
+<b>要看到前端变化，还差一步操作：重启服务并重跑一键分析。</b><br>
+<code>uvicorn</code> 未开 <code>--reload</code> ⇒ 改了 <code>.py</code> 必须重启进程（当前 PID 见下），
+再点一次「一键分析并生成过程报告」，前端第一章即为上文的四段式。
+</div>
+<ul>
+<li><b>仍未做（超出"只改第一章"范围）</b>：<code>engine/inspection_overview.py</code> 仍保留「七、监管态度与后续处理建议（分级分类）」——它<b>不在前端链路</b>（前端不渲染该模块），只进离线导出与多版本 md；按"只改第一章"未动它。若也希望统一，可另行处理。</li>
+<li><b>数据侧已知缺陷（未修）</b>：<code>summary.pending_problem_count=26</code> 与 <code>confirmed_problem_count=16</code> 口径不符；引擎层 <code>all_findings</code> 153 项 vs 报告层 16 项。</li>
+<li><b>环境小问题</b>：仓库无 <code>pytest.ini</code>，裸跑 <code>pytest</code> 会被 <code>data/trash/</code> 里的历史 <code>*_test.py</code> 干扰（收集期报错）。请用 <code>pytest tests/ -q</code>，或加一份最小 <code>pytest.ini</code>（<code>testpaths = tests</code>）永久规避。</li>
+</ul>
+
+<div class="foot">
+生成时间：2026-10-08 · 改造点：<code>engine/overall_conclusion.py</code> · 验收脚本：<code>pytest tests/ -q</code>、
+<code>tools/audit_consistency.py</code>（3 处第一章闸门）、<code>scripts/_audit_frontend_render.js</code>（运行时渲染）
+</div>
+
+</div>
+</body>
+</html>

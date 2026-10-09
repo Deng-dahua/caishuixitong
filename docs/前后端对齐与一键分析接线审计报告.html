@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>前后端对齐 + 一键分析接线审计报告</title>
+<style>
+  :root{
+    --ink:#1f2937; --ink-2:#475569; --ink-3:#64748b;
+    --line:#e2e8f0; --bg:#ffffff; --bg-2:#f8fafc; --bg-3:#f1f5f9;
+    --red:#b91c1c; --red-bg:#fef2f2; --amber:#b45309; --amber-bg:#fffbeb;
+    --green:#15803d; --green-bg:#f0fdf4; --blue:#1e40af; --blue-bg:#eff6ff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 36px 64px;background:var(--bg);color:var(--ink);
+       font:15px/1.8 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:.3px}
+  .sub{color:var(--ink-3);font-size:13px;margin-bottom:26px}
+  h2{font-size:19px;margin:38px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;margin:22px 0 8px}
+  p{margin:8px 0}
+  code{background:var(--bg-3);padding:1px 6px;border-radius:4px;font-size:13px;
+       font-family:ui-monospace,Consolas,"Courier New",monospace}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:18px 0 6px}
+  .card{flex:1 1 210px;border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--bg-2)}
+  .card .n{font-size:26px;font-weight:700;line-height:1.2}
+  .card .t{font-size:12.5px;color:var(--ink-3);margin-top:4px}
+  .ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--amber)}
+  table{width:100%;border-collapse:collapse;margin:12px 0 6px;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--bg-2);font-weight:600;white-space:nowrap}
+  td.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;white-space:nowrap}
+  .tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;
+       border:1px solid transparent;white-space:nowrap}
+  .t-red{background:var(--red-bg);color:var(--red);border-color:#fecaca}
+  .t-amber{background:var(--amber-bg);color:var(--amber);border-color:#fde68a}
+  .t-green{background:var(--green-bg);color:var(--green);border-color:#bbf7d0}
+  .t-blue{background:var(--blue-bg);color:var(--blue);border-color:#bfdbfe}
+  .box{border-left:3px solid var(--blue);background:var(--blue-bg);padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+  .box.warn{border-color:#f59e0b;background:var(--amber-bg)}
+  .box.bad{border-color:#ef4444;background:var(--red-bg)}
+  .box.good{border-color:#22c55e;background:var(--green-bg)}
+  ul,ol{margin:8px 0 8px 22px;padding:0}
+  li{margin:5px 0}
+  .meta{color:var(--ink-3);font-size:12.5px}
+  .foot{margin-top:44px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>前后端对齐 + 一键分析接线审计报告</h1>
+<div class="sub">
+数据源：<code>data/cache/last_analysis_cache.json</code>（真实一键分析产物，2026-10-08 13:23）·
+报告层 <code>enterprise_readable_report</code>（56 键）· 引擎层（115 键）·
+方法：静态比对 + <b>运行时渲染</b>（用真实产物驱动真实前端函数）
+</div>
+
+<h2>一、结论速览</h2>
+<div class="kpi">
+  <div class="card"><div class="n ok">24 / 24</div><div class="t">一键分析后处理与引擎链路的<b>落地证据</b>（真实产物中逐项存在）</div></div>
+  <div class="card"><div class="n ok">0</div><div class="t">报告体渲染缺陷（322,557 字符 HTML；无 undefined / NaN / 字段名泄漏）</div></div>
+  <div class="card"><div class="n bad">10</div><div class="t">前端调用但后端<b>无此路由</b>（404，静默失效）</div></div>
+  <div class="card"><div class="n warn">4</div><div class="t">前端读取但后端<b>零产出</b>的字段（面板/章节静默消失）</div></div>
+  <div class="card"><div class="n warn">15</div><div class="t">未被一键分析链引用的 engine 模块（含死代码与设计上不接的）</div></div>
+</div>
+
+<div class="box good">
+<b>关键结论：</b>「一键分析按钮」的<b>主链路是通的</b> —— 去重、自检、多版本、勾稽、法规、自学习、事实库、质量门禁、风险-证据矩阵、资料缺口、章节总述等
+<b>24 项</b>在真实产物里都能查到落地证据；报告正文也在前端<b>正确渲染</b>（五章齐备）。
+缺陷集中在<b>边角</b>：已下线的 AGI/人学习接口仍被前端调用、4 个字段名前后端不一致、以及前端「第一章取值路径」这一处需要特别注意（见第七节）。
+</div>
+
+<h2>二、审计方法（可复现）</h2>
+<p>本次没有用「肉眼看代码」，而是四个只读脚本 + 真实产物。全部可重跑：</p>
+<table>
+<thead><tr><th>脚本</th><th>作用</th><th>关键设计</th></tr></thead>
+<tbody>
+<tr><td class="mono">scripts/_audit_fe_be_alignment.py</td><td>前端调用 ↔ 后端路由，按 <b>(方法, 路径) 二元组</b>比对</td><td>认两种写法：<code>fetch(url,{method})</code> 与 <code>api('POST',url)</code>；拼接 <code>'/api/x/'+id</code> 归一为 <code>&lt;p&gt;</code> 段</td></tr>
+<tr><td class="mono">scripts/_audit_fe_be_fields.py</td><td>后端产出 → 前端是否读；前端读 → 后端是否产出；后处理落地证据</td><td>产物定位用「含 <code>enterprise_readable_report</code> 且键最多」的 dict，避免选到中间包装层</td></tr>
+<tr><td class="mono">scripts/_audit_engine_wiring.py</td><td>从入口做 <b>AST 传递闭包</b>，找未被引用的 engine 模块与 config 表</td><td>用 <code>ast</code> 收集含<b>函数体内 import</b> 与 <code>importlib</code> 动态导入</td></tr>
+<tr><td class="mono">scripts/_audit_frontend_render.js</td><td><b>运行时</b>：Node 里跑真实前端函数渲染真实产物，抓未定义字段/空章节</td><td>桩化 DOM/观察器；必须补齐 <code>MutationObserver</code> 等，否则脚本只加载一半（见下）</td></tr>
+</tbody>
+</table>
+
+<div class="box warn">
+<b>方法学（本次踩到的两个"审计脚本自己假红"，与项目既有铁律一致）：</b>
+<ol>
+<li><b>产物选错层</b>：缓存结构是 <code>{"1":{"report":{"report":{…115键…}}}}</code>。最初按"标记命中数"选，选到了 <b>56 键的中间投影</b>，导致「落地证据 6/15」整表假红；改为「含 <code>enterprise_readable_report</code> 且键最多」后为 <b>24/24</b>。</li>
+<li><b>脚本只加载一半</b>：Node 桩缺 <code>MutationObserver</code> ⇒ <code>tax-doc-analysis.js</code> 在顶层语句抛错 ⇒ 只加载到一半，后面的函数全缺。补桩后才有完整结论。若不查"加载了几个脚本"，会把"覆盖不全"误读成"没有问题"。</li>
+</ol>
+</div>
+
+<h2>三、A 类：前端调用后端 404（10 条真断链）</h2>
+<p>前端 <code>fetch</code> 的接口在后端<b>不存在</b>。多数被 <code>.catch(function(){})</code> 或 <code>|| {}</code> 吞掉，<b>界面上不报错，只是永远没有数据</b>。</p>
+<table>
+<thead><tr><th>方法与路径</th><th>前端位置</th><th>后端</th><th>后果</th></tr></thead>
+<tbody>
+<tr><td class="mono">GET /api/accounts</td><td>core.js:737 <code>loadAllAccounts()</code></td><td>无</td><td>科目列表恒空（静默 catch）</td></tr>
+<tr><td class="mono">GET /api/journal-entries/by-voucher</td><td>core.js:1398</td><td>无</td><td>凭证明细弹窗永远"加载中"</td></tr>
+<tr><td class="mono">GET /api/agi/status</td><td>core.js:1018</td><td>无（AGI 已下线）</td><td>状态面板恒空</td></tr>
+<tr><td class="mono">GET /api/agi/pipeline/dashboard</td><td>core.js:1017</td><td>无（同上）</td><td>仪表盘恒空</td></tr>
+<tr><td class="mono">POST /api/agi/chat</td><td>core.js（接口清单/文档）</td><td>无</td><td>对话式合规不可用</td></tr>
+<tr><td class="mono">GET /api/agi/patrol/status · POST /api/agi/patrol/trigger</td><td>core.js:1157-1158</td><td>无（同上）</td><td>巡逻功能已下线</td></tr>
+<tr><td class="mono">GET /api/agi/overrides/summary · POST /api/agi/overrides/{id}/activate · /rollback · /emergency-reset</td><td>core.js:1153-1156</td><td>无（同上）</td><td>覆盖层功能已下线</td></tr>
+<tr><td class="mono">GET /api/human-learning/status</td><td>human-learning-page.js:90</td><td>无（2026-09-30 移除）</td><td><b>该页面仍由 index.html 加载</b> ⇒ 活页面调死接口</td></tr>
+<tr><td class="mono">POST /api/human-learning/learn</td><td>tax-doc-analysis.js:4325 / 4369</td><td>无</td><td><b>报告里"编辑纠正""审核确认"的自动学习埋点全部静默失效</b></td></tr>
+<tr><td class="mono">POST /api/human-learning/{action}</td><td>human-learning-page.js:196</td><td>无</td><td>同上</td></tr>
+</tbody>
+</table>
+<p class="meta">判定为断链的：<code>/api/accounts</code>、<code>/api/journal-entries/by-voucher</code>、AGI 6 条、human-learning 3 条，共 <b>10 条</b>（审计脚本报 19 条，其中 9 条已逐条核实为假阳性，见第六节）。</p>
+
+<h2>四、B 类：前后端字段名不一致（4 个字段零产出）</h2>
+<p>前端读取的字段在后端产物里<b>全 payload 深度搜索都不存在</b>。（这类是本项目的高发病根：字段改名不同步 / 取值层级错。）</p>
+<table>
+<thead><tr><th>前端读取</th><th>前端位置</th><th>后端实际</th><th>后果</th></tr></thead>
+<tbody>
+<tr><td class="mono">r.one_click_closure</td><td>tax-doc-analysis.js:2846</td><td>只有 <code>_one_click_pipeline</code>，且结构不同（<code>{version,status,stages}</code>，无 <code>modules[]</code>）</td><td>「一键分析四模块闭环」面板<b>整块不渲染</b></td></tr>
+<tr><td class="mono">r.coverage_closure</td><td>:2424（完成提示）</td><td>无（:7029 有 <code>r.scenario_execution.coverage_closure</code> 兜底，且该键存在）</td><td>提示恒为「0 项已记账，未决 0 项」；台账章节正常</td></tr>
+<tr><td class="mono">r.document_evidence_index</td><td>:6980 / :8140</td><td>无</td><td>「文档证据索引」章节<b>整块不渲染</b></td></tr>
+<tr><td class="mono">r.bank_stats</td><td>:8099</td><td>无（有 <code>bi['笔数']</code> 兜底）</td><td>银行流水条数回落兜底值，非致命</td></tr>
+</tbody>
+</table>
+<div class="box warn"><b>为什么运行时没报出 undefined：</b>这 4 处都写成 <code>|| {}</code> / <code>|| 0</code>，<b>拿不到值就变成合法默认值</b>，界面不报错、只是少内容或显示 0 —— 属"静默降级"，比抛错更难发现。</div>
+
+<h2>五、C 类：一键分析接线完整性（15 个 engine 模块未被引用）</h2>
+<p>方法：从 <code>main</code> / <code>engine.pipeline</code> / <code>engine.enterprise_report</code> / <code>engine.report_pipeline</code> 等入口做 AST 传递闭包。结论<b>不是"15 个缺口"</b>，而要分四类看：</p>
+<table>
+<thead><tr><th>分类</th><th>模块</th><th>判定依据</th><th>建议</th></tr></thead>
+<tbody>
+<tr>
+  <td><span class="tag t-green">设计上不接</span><br>离线 Skill / 校验链</td>
+  <td class="mono">doc_consistency_core · doc_number_authority · doc_ref_graph · doc_residue_scan · rule_reference_sync · todo_status_sync · shared_content_sync · skill_runtime</td>
+  <td>被 <code>tools/audit_consistency.py</code>、<code>tests/</code> 与 <code>config/skill_specs.json</code> 引用；它们是<b>交付文档自检链（D1~D5）与闸门</b>，本就该在闸门/离线跑</td>
+  <td>保持现状；<b>不要</b>塞进一键分析</td>
+</tr>
+<tr>
+  <td><span class="tag t-red">死代码</span><br>AGI 遗留</td>
+  <td class="mono">director · override_engine · scm_reasoner · enforcement_procedure · unknown_pattern_detector</td>
+  <td>main.py 有「已随 AGI 子系统整体移除」注释；前端 <code>/api/agi/*</code> 一批 404；<code>scripts/_verify_agi_removed.py</code> 佐证</td>
+  <td>与第三节 A 类<b>一并清除</b>（前端调用 + 后端模块 + 页面入口）</td>
+</tr>
+<tr>
+  <td><span class="tag t-amber">刻意不接</span></td>
+  <td class="mono">threshold_scanner</td>
+  <td><code>tools/verify_release.py:149</code> <b>断言</b> <code>"from engine.threshold_scanner import" not in pipeline_source</code> —— 发布校验明确要求它不得出现在 pipeline</td>
+  <td>保持现状（这是有意设计，不是缺口）</td>
+</tr>
+<tr>
+  <td><span class="tag t-amber">真缺口</span></td>
+  <td class="mono">narrative_variants</td>
+  <td>提供 <code>organize()</code>（按税种/风险族/资料缺口/金额/整改优先级组织章节），<b>仅被测试引用</b>，无任何生产代码调用</td>
+  <td>评估是否纳入一键分析的报告生成环节</td>
+</tr>
+</tbody>
+</table>
+<p class="meta">config 表：25 个中 4 个未被一键分析链引用 —— <code>doc_consistency.json</code> / <code>doc_synonyms.json</code>（属 D1~D5 自检链）、<code>skill_plan.json</code>（属 skill_runtime）、<code>module_roadmap.json</code>（路线图文档，本就非运行时配置）。<b>经核实无一是真缺口。</b></p>
+
+<h2>六、逐条核实：审计脚本报 19 条 404，其中 9 条是假阳性</h2>
+<table>
+<thead><tr><th>报出的路径</th><th>实际</th></tr></thead>
+<tbody>
+<tr><td class="mono">/api/knowledge/assets/system_config.json</td><td>命中动态路由 <code>/api/knowledge/assets/{asset_name}</code> ⇒ 正常</td></tr>
+<tr><td class="mono">/api/tax-assets/analysis · clues · evidence · canonical_catalog</td><td>命中 <code>/api/tax-assets/{asset_name}</code>，且在 <code>virtual_assets</code> 白名单内 ⇒ 正常</td></tr>
+<tr><td class="mono">/api/compliance/rounds（GET/POST）</td><td>是 <code>'/api/compliance/rounds/'+id</code> 与 <code>.../deliver</code> 的拼接，后端 <code>{round_id}</code> / <code>/deliver</code> 均在 ⇒ 正常</td></tr>
+<tr><td class="mono">/api/tax-risk-docs/analyze-result · analyze-status（GET）</td><td>同上（尾部拼 taskId）⇒ 正常</td></tr>
+<tr><td class="mono">POST /api/compliance/rounds/&lt;p&gt;（报为方法不匹配 405）</td><td>前端实为 <code>.../deliver</code> + POST，后端有该 POST ⇒ 正常（0 条真实 405）</td></tr>
+</tbody>
+</table>
+
+<h2>七、与当前待办的关系（第一章为什么"前端没变化"）</h2>
+<div class="box bad">
+<b>已用运行时渲染证实：</b>前端第一章的值来自
+<code>enterprise_readable_report.overall_conclusion.paragraphs</code> ——
+实测 <b>15 段 / 2172 字</b>（正是用户看到的"压缩版全文"，其中第 3 段含税种关联次数）。
+<ul>
+<li>前端只渲染 <code>oc.paragraphs</code>，<b>前端无需改</b>；</li>
+<li>因此要重构第一章，唯一正确改造点是生成侧 <code>engine/overall_conclusion.py :: build_overall_conclusion</code> 的 <code>paragraphs</code> 组装；</li>
+<li>上一轮改的 <code>engine/report_pipeline.py :: _render_text_from_report_data</code> <b>只影响 <code>output/editions/*.md</code> 落盘，前端完全不读</b> —— 用户观察正确。</li>
+</ul>
+</div>
+
+<h2>八、修复方案（按性价比排序）</h2>
+<table>
+<thead><tr><th>#</th><th>动作</th><th>范围</th><th>风险</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><b>重构第一章为四段式执行摘要</b>（改 <code>overall_conclusion.build_overall_conclusion</code>）</td><td>删 16 项逐项清单 / 税种关联次数 / 风险性质明细 / 监管态度分类；保留编制声明、资料条件、等级+判据、行业口径、涉嫌方向、检查受限、下一步</td><td>中：<code>tests/test_overall_conclusion.py</code> 22 处断言依赖旧结构，需同步改为锁"新结构 + 派生性不变式"</td></tr>
+<tr><td>2</td><td><b>清除 AGI / human-learning 死链</b>：前端 3 处调用与接口清单、<code>human-learning-page.js</code> 及其入口、后端 5 个死模块</td><td>前端 + 后端</td><td>低</td></tr>
+<tr><td>3</td><td><b>补 4 个字段对齐</b>：<code>one_click_closure</code>（改前端读 <code>_one_click_pipeline</code> 或后端补结构）、<code>document_evidence_index</code>、<code>coverage_closure</code>（提示改走 <code>scenario_execution</code>）、<code>bank_stats</code></td><td>按字段定</td><td>低~中（需先定"哪个是正确的唯一权威"）</td></tr>
+<tr><td>4</td><td><b>补 <code>/api/accounts</code>、<code>/api/journal-entries/by-voucher</code> 或删除调用</b></td><td>前后端二选一</td><td>低</td></tr>
+<tr><td>5</td><td>评估 <code>narrative_variants</code> 是否纳入报告生成</td><td>引擎</td><td>中</td></tr>
+<tr><td>6</td><td><b>把 4 个审计脚本固化为常驻闸门</b>（任一 A/B 类新增即变红）</td><td>tools/</td><td>低</td></tr>
+</tbody>
+</table>
+
+<h2>九、仍未验证 / 保留项</h2>
+<ul>
+<li>本审计的运行时渲染只覆盖<b>企业易读版（enterpriseMode）</b>主流程；<code>!enterpriseMode</code> 分支（工作底稿版控件、四模块闭环面板等）未逐块验证。</li>
+<li><code>tax-engine-dashboard.js</code> / <code>tax-pipeline-pages.js</code> 中的页面渲染未做运行时验证（仅做了接口层对齐）。</li>
+<li>「一键分析」后处理虽 24/24 有落地证据，但<b>门禁结果本身是否为 PASS</b>（四道质量门禁 17 ERROR 的历史遗留）未在本次范围内复核。</li>
+<li>未做真实 HTTP 探测（未启动服务逐个打接口）；结论基于"路由定义存在性 + 静态方法匹配 + 运行时渲染"三重证据。</li>
+</ul>
+
+<div class="foot">
+生成时间：2026-10-08 · 审计脚本：<code>scripts/_audit_fe_be_alignment.py</code>、<code>scripts/_audit_fe_be_fields.py</code>、<code>scripts/_audit_engine_wiring.py</code>、<code>scripts/_audit_frontend_render.js</code>（均为只读，可重复执行）
+</div>
+
+</div>
+</body>
+</html>

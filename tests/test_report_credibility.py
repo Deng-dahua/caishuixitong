@@ -468,14 +468,14 @@ class TestTransientNoiseCleanup(unittest.TestCase):
     """契约 10：主体名与诊断日志里的"脏值/内部结构"必须清掉。"""
 
     def test_subject_name_strips_stamp_annotation(self):
-        """真实事故：`_subject_clues_from_text` 产出「公章）深圳海更数字传媒有限公司」。
+        """真实事故：`_subject_clues_from_text` 产出「公章）某传媒示例有限公司」。
 
         根因：旧去噪正则 `^[\\s:：\\-—=_（）()]+` 把「（」当标点先剥掉，
         剩「公章）：…」→ 括号注解再也匹配不上 → 连「公章）：」一起吃进主体名。
         """
         from main import _subject_clues_from_text
-        for text in ("纳税人名称（公章）：深圳海更数字传媒有限公司",
-                     "纳税人名称（公章）深圳海更数字传媒有限公司",
+        for text in ("纳税人名称（公章）：某传媒示例有限公司",
+                     "纳税人名称（公章）某传媒示例有限公司",
                      "单位名称（盖章）：某某有限责任公司"):
             names, _ = _subject_clues_from_text(text)
             for n in names:
@@ -485,7 +485,7 @@ class TestTransientNoiseCleanup(unittest.TestCase):
 
     def test_subject_name_drops_stamp_only_segment(self):
         from main import _clean_subject_name
-        self.assertEqual(_clean_subject_name("公章）深圳海更数字传媒有限公司"), "")
+        self.assertEqual(_clean_subject_name("公章）某传媒示例有限公司"), "")
         self.assertEqual(_clean_subject_name("（公章）"), "")
         self.assertEqual(_clean_subject_name("某某有限公司（公章）"), "某某有限公司")
 

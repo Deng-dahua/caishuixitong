@@ -63,11 +63,13 @@ _AR_ACCOUNT_MARKS = ("应收账款", "1122", "应收暂估", "暂估应收")
 
 
 def _first(row: Dict, keys) -> str:
-    for k in keys:
-        v = row.get(k)
-        if v not in (None, ""):
-            return str(v).strip()
-    return ""
+    """★ 2026-10-08 收敛：统一到 engine/fieldkit.first_text（唯一权威）。
+
+    原私有实现与 ap_aging._first 字节级完全一致（同一概念两份实现），
+    且未跳过"仅空白"的别名值，现随权威实现一并修正。
+    """
+    from engine.fieldkit import first_text as _first_text
+    return _first_text(row, keys)
 
 
 def _to_float(value) -> float:

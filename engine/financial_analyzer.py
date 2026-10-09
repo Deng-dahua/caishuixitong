@@ -18,6 +18,10 @@ from typing import Any, Dict
 # two_tax_income 不反向依赖本模块，顶层导入安全。
 from engine.two_tax_income import _extract_from_tax_declarations  # noqa: E402
 from engine.numparse import to_number, amount_of  # ★ 2026-09-25 统一数值解析/取值
+# ★ 2026-10-05（疑点7 D5）内部参照线的**唯一权威**渲染入口。
+#   本模块不再手写"（低于 X 参照线）"字样 —— 阈值出处与免责措辞一律由
+#   `engine.heuristic_threshold` 提供（详见该模块头部的病根说明）。
+from engine.heuristic_threshold import format_heuristic as _fmt_heur  # noqa: E402
 
 
 # ═══════════════ 税务合规专项分析指标 ═══════════════
@@ -418,19 +422,50 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
 
         if cit_rate is not None and cit_rate < 0.01:
             _lvl = "高风险" if cit_rate < 0.005 else "中风险"
-            findings.append({
+            _det_txt = (f"企业所得税贡献率约{cit_rate:.2%}（{_basis}），"
+                        f"低于常规水平。主营业务收入{revenue:,.2f}元，净利润{net_profit:,.2f}元。")
+            # ★★ 2026-10-05（疑点7 D2 根因修复）**检测器不得认领自己没有真算过的要件**。
+            #   事故：本检测器算的是「贡献率低」，却硬挂 RL-CIT-004「长期亏损仍持续经营」，
+            #   并认领其第②要件「**亏损额**与经营规模、人员、产能不匹配」——
+            #   而该企业净利润实测为正 402,368.09 元，"亏损额"字面即不成立；
+            #   报告因此出现"标题按亏损立、正文却零要件可核对"的空壳疑点，
+            #   且第②要件被写成"符合情形"，是**判据与事实相反**的假认定。
+            #   判据（通用、数据驱动，唯一权威 `tax_redlines.naming_premise_supported`）：
+            #   触发事实读不到该红线名称断言的前提（本例「亏损」）⇒ 不认领该红线。
+            #   本条的账内信号本身有效，**不删除发现**，只是不再挂错红线 ——
+            #   去掉 redline_id 会让该发现在报告里彻底消失（unmapped 无下游消费），信息丢失更糟。
+            _detail_txt = _det_txt
+            _hits: list = [
+                {"index": 2, "evidence": f"主营业务收入 {revenue:,.2f} 元而企业所得税贡献率仅 {cit_rate:.2%}"
+                                         f"（净利润 {net_profit:,.2f} 元），税负贡献与经营规模明显不匹配"
+                                         "（是否属税收优惠、亏损弥补等正当情形，须企业说明）"},
+            ]
+            try:
+                from engine.tax_redlines import naming_premise_supported as _nps
+                if not _nps("RL-CIT-004", _detail_txt):
+                    # ★★ 2026-10-05（疑点7 D2）**保留红线挂载、只撤要件认领**。
+                    #   为何不撤 `redline_id`：撤了这条发现就落进 `redline_detection.unmapped`，
+                    #   而报告层**不消费 unmapped** ⇒ 疑点直接消失（实测 26→25），
+                    #   一个真实的账内信号（贡献率 0.01%）被整条丢掉，比"挂错红线"更糟。
+                    #   为何要撤要件：第②要件原文是「**亏损额**与经营规模不匹配」，
+                    #   而本企业净利润实测为正 ⇒ 该要件**字面即不成立**，
+                    #   认领它等于"判据与事实相反"的假认定。
+                    #   撤掉要件后：报告按 `trim_redline_title` 用**发现自有名称**立标题
+                    #   并声明"未就亏损这一前提作出认定"（与 D12 同一权威），
+                    #   要件表如实显示"未认定到任何一条构成要件"—— 诚实且不丢信息。
+                    _hits = []
+            except Exception:  # noqa: BLE001 —— 取不到判据时保持原行为，不静默改口径
+                pass
+            _f: Dict[str, Any] = {
                 "type": "待核事实：企业所得税贡献率偏低",
                 "level": _lvl, "score": 8 if _lvl == "高风险" else 6,
-                "detail": (
-                    f"企业所得税贡献率约{cit_rate:.2%}（{_basis}），"
-                    f"低于常规水平。主营业务收入{revenue:,.2f}元，净利润{net_profit:,.2f}元。"
-                ),
+                "detail": _detail_txt,
                 "description": (
                     "企业所得税贡献率（所得税费用占收入的比重）是金税四期横向比对的常用指标。"
                     "该指标偏低可能来自行业特性、享受税收优惠、前期亏损弥补，"
                     "也可能指向成本费用虚增或收入未足额申报，须结合行业与优惠情况核验。"
                 ),
-                "how_found": f"计算口径：{_basis}；结果{cit_rate:.2%}，低于1%参照线。",
+                "how_found": f"计算口径：{_basis}；结果{_fmt_heur('cit_contribution_ratio', cit_rate)}",
                 "tax_impact": "如因虚增成本费用或隐匿收入导致少缴企业所得税，需补缴税款、滞纳金并可能处罚。",
                 "policy_ref": "《企业所得税法》第四条、第二十八条（税率与优惠）；《税收征收管理法》第六十三条",
                 "suggestion": (
@@ -439,16 +474,16 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                 ),
                 "category": "税负",
                 "source_chain": "财务报表-企业所得税贡献率",
+                # ⚠ 必须保留**字面量**：闸门 `_scan_declared_detectors` 用正则
+                #   `redline_id["']?\s*[:=]\s*["'](RL-...)` 判定"该红线有源码检测器"，
+                #   改成变量赋值就扫不到 ⇒ RL-CIT-004 被误判成盲区红线（实测多出 1 条 WARN）。
                 "redline_id": "RL-CIT-004",
-                # ★ 2026-09-28：逐条判定 RL-CIT-004 第②条要件（亏损/贡献与经营规模不匹配）。
-                "constituent_hits": [
-                    {"index": 2, "evidence": f"主营业务收入 {revenue:,.2f} 元而企业所得税贡献率仅 {cit_rate:.2%}"
-                                             f"（净利润 {net_profit:,.2f} 元），税负贡献与经营规模明显不匹配"
-                                             "（是否属税收优惠、亏损弥补等正当情形，须企业说明）"},
-                ],
                 "indicator": "cit_contribution_ratio",
                 "indicator_value": round(cit_rate, 6),
-            })
+            }
+            if _hits:
+                _f["constituent_hits"] = _hits
+            findings.append(_f)
 
     # ── ⑤ 业务招待费占比（限额扣除，超标须纳税调增）──
     if revenue > 0:
@@ -463,16 +498,29 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
             ent_rate = ent / revenue
             if ent_rate > 0.005:  # 超过收入0.5%（法定扣除限额为发生额60%与收入5‰孰低）
                 _limit = min(ent * 0.6, revenue * 0.005)
+                # ★ 2026-10-05（疑点7 D5）：5‰ 是**法定标准**（有法条出处），
+                #   与"内部经验参照线"性质不同 ⇒ 走 `LEGAL_THRESHOLDS` 拿出处，
+                #   **不加**"仅作线索参照"免责（法定标准本就是判定依据）。
+                #   统一引用，杜绝"5‰"字面量散落多处（口径唯一）。
+                _ent_legal = ""
+                try:
+                    from engine.heuristic_threshold import LEGAL_THRESHOLDS as _LT
+                    _ent_legal = str((_LT.get("entertainment_5permille") or {}).get("basis") or "")
+                except Exception:  # noqa: BLE001
+                    _ent_legal = ""
                 findings.append({
                     "type": "待核事实：业务招待费超过税前扣除限额",
                     "level": "中风险", "score": 6,
                     "detail": (
                         f"业务招待费{ent:,.2f}元，占主营业务收入{revenue:,.2f}元的{ent_rate:.2%}，"
-                        f"超过收入5‰的法定参照线；按孰低法可扣除约{_limit:,.2f}元，"
+                        f"超过收入5‰的法定扣除标准；按孰低法可扣除约{_limit:,.2f}元，"
                         f"超额部分约{ent - _limit:,.2f}元需纳税调增。"
                     ),
                     "description": "业务招待费按发生额的60%扣除，且不得超过当年销售收入的5‰，两者取其低。",
-                    "how_found": f"凭证中业务招待费合计{ent:,.2f}元 / 主营业务收入{revenue:,.2f}元 = {ent_rate:.2%}。",
+                    "how_found": (f"凭证中业务招待费合计{ent:,.2f}元 / 主营业务收入{revenue:,.2f}元 "
+                                  f"= {ent_rate:.2%}；扣除标准 5‰ 的法律出处：{_ent_legal}"
+                                  if _ent_legal else
+                                  f"凭证中业务招待费合计{ent:,.2f}元 / 主营业务收入{revenue:,.2f}元 = {ent_rate:.2%}。"),
                     "tax_impact": "超标部分不得税前扣除，应在汇算清缴时纳税调增，补缴企业所得税。",
                     "policy_ref": "《企业所得税法实施条例》第四十三条（业务招待费扣除标准为发生额60%且不超过销售收入5‰）",
                     "suggestion": "核实业务招待费归集是否准确，汇算清缴时按孰低法作纳税调增。",
@@ -519,7 +567,7 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                             "若申报销售额明显低于销项发票金额，可能指向已开票收入未足额申报，"
                             "需核对申报表销项合计与发票汇总金额是否一致。"
                         ),
-                        "how_found": f"增值税申报销售额 / 销项发票不含税金额 = {decl_ratio:.0%}（低于90%参照线）。",
+                        "how_found": "增值税申报销售额 / 销项发票不含税金额 = " + _fmt_heur("decl_vs_invoice_ratio", decl_ratio),
                         "tax_impact": "已开票未申报将少缴增值税及附加税费，并可能引发企业所得税收入少计。",
                         "policy_ref": "《增值税暂行条例》第十九条（纳税义务发生时间）；《税收征收管理法》第六十三条",
                         "suggestion": "核对增值税申报表销项合计与发票汇总平台金额，说明差异原因（如销货退回、以前年度补开、红冲等）。",
@@ -543,7 +591,7 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                             "未开票收入本身合法（如面向个人客户的销售），但占比过高时需核实"
                             "是否存在应开票未开票、账外经营或收入确认不完整的情形。"
                         ),
-                        "how_found": f"(申报销售额 - 销项发票不含税金额) / 申报销售额 = {unbilled:.0%}（高于30%参照线）。",
+                        "how_found": "(申报销售额 - 销项发票不含税金额) / 申报销售额 = " + _fmt_heur("unbilled_ratio", unbilled),
                         "tax_impact": "如存在应确认未确认收入，将少缴增值税及企业所得税。",
                         "policy_ref": "《增值税暂行条例》第十九条；《企业所得税法》第六条（收入总额）",
                         "suggestion": "说明未开票收入的业务构成与客户类型，核实是否均按纳税义务发生时间申报。",
@@ -572,7 +620,7 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
                     "期末突击开票冲收入，或存在虚构收入/虚构应收账款，需核实收入真实性与回款记录。"
                     "注：以期末应收账款近似平均余额，口径为估算。"
                 ),
-                "how_found": f"主营业务收入 / 应收账款 = {rt:.1f}次（高于20次参照线）。",
+                "how_found": "主营业务收入 / 应收账款 = " + _fmt_heur("receivable_turns", rt, fmt="num") + "次",
                 "tax_impact": "收入不实将少缴增值税与企业所得税；虚增收入亦影响利润与所得税计缴。",
                 "policy_ref": "《企业所得税法》第六条（收入总额）；《发票管理办法》第二十二条",
                 "suggestion": "提供主要客户账期、开票与回款台账，核实收入确认时点及业务真实性。",
@@ -608,7 +656,7 @@ def _check_tax_audit_indicators(bs, income, vouchers, sal_invs, pur_invs, ctx, t
 #         收入/收益类取**贷方**发生额。
 #
 # ★ 损益类为什么**绝对不能**取期末余额？真实数据实证
-#   （data/uploads/1/1_928_2025年科目余额表.xlsx，深圳海更数字传媒 2025 年度，156 行）：
+#   （data/uploads/1/1_928_2025年科目余额表.xlsx，某传媒企业数字传媒 2025 年度，156 行）：
 #     6001 主营业务收入 期末借 0 / 期末贷 0，本期发生额借 6,636,800.57 / 贷 6,636,800.57
 #     6401 主营业务成本 期末借 0 / 期末贷 0，本期发生额借 4,187,220.84 / 贷 4,187,220.84
 #     6403 税金及附加 / 6602 管理费用 / 6603 财务费用 / 6801 所得税费用 期末双双为 0

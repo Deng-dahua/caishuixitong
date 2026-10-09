@@ -1183,7 +1183,19 @@ function loadCrossDomainStatic() {
     .then(function(r) { return r.json(); })
     .then(function(chains) {
       window._allCrossChains = chains;
-      renderCrossDomainStaticContent(chains);
+      // ★ 2026-10-07 修复：`renderCrossDomainStaticContent` **全仓无定义**
+      //   （该渲染器随其所属模块一并下线）。原写法直接调用 ⇒ 抛 ReferenceError ⇒
+      //   被下方 .catch 吞成「跨域证据链定义加载失败」，**无论数据是否加载成功都显示失败**
+      //   （把"函数没了"伪装成"数据加载失败"，误导使用者）。
+      //   现按本文件既有惯用法（见 `renderReportSpecPage` 对已下线的 `renderReportStandards`）
+      //   做特性探测，并给出**如实**提示：数据已取到，只是渲染器未加载。
+      if (typeof renderCrossDomainStaticContent === 'function') {
+        renderCrossDomainStaticContent(chains);
+      } else if (target) {
+        target.innerHTML = '<div style="padding:40px 0;font-size:10px;color:#64748b">'
+          + '数据已加载（' + (chains && chains.length || 0) + ' 条），但本页内容渲染器未随当前版本加载；'
+          + '请以「一键风险检查」报告中的证据链章节为准。</div>';
+      }
     })
     .catch(function() {
       if (target) target.innerHTML = '<div style="padding:40px 0;font-size:10px;color:#64748b">跨域证据链定义加载失败</div>';
@@ -1202,7 +1214,14 @@ function loadCrossDomainDynamic() {
         target.innerHTML = '<div style="text-align:center;padding:20px;color:#64748b;margin-top:20px">暂无分析结果，请先运行一键风险检查以获取动态证据链数据</div>';
         return;
       }
-      renderCrossDomainDynamic(data.report);
+      // ★ 2026-10-07 修复：`renderCrossDomainDynamic` 全仓无定义（同上一处，渲染器随模块下线）。
+      //   原直接调用 ⇒ ReferenceError ⇒ 被 .catch 吞成「动态数据加载失败」。
+      if (typeof renderCrossDomainDynamic === 'function') {
+        renderCrossDomainDynamic(data.report);
+      } else {
+        target.innerHTML = '<div style="text-align:center;padding:20px;color:#64748b;margin-top:20px">'
+          + '动态数据已加载，但本页内容渲染器未随当前版本加载；请以「一键风险检查」报告为准。</div>';
+      }
     })
     .catch(function(e) {
       target.innerHTML = '<div style="text-align:center;padding:20px;color:#64748b;margin-top:20px">动态数据加载失败</div>';

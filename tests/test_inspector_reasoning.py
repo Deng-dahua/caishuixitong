@@ -22,7 +22,7 @@ class TestMatchBenchmark(unittest.TestCase):
         self.assertIn("毛利率", bench)
 
     def test_fuzzy_industry(self):
-        name, _ = _match_benchmark("海更数字传媒", "服务业", entity_name="深圳海更数字传媒有限公司")
+        name, _ = _match_benchmark("某传媒企业传媒", "服务业", entity_name="某传媒企业示例公司")
         self.assertIsNotNone(name)
 
     def test_biz_model_fallback(self):
@@ -116,7 +116,7 @@ class TestInvestigationRoute(unittest.TestCase):
 class TestBuildInspectorReasoning(unittest.TestCase):
     def test_full_reasoning(self):
         rd = {
-            "target_entity": {"name": "深圳海更数字传媒", "industry": "广告传媒", "biz_model": "服务业"},
+            "target_entity": {"name": "某传媒企业数字传媒", "industry": "广告传媒", "biz_model": "服务业"},
             "engine_status": {"financial_snapshot": {"total_sales": 6636800, "total_purchases": 5757171, "gross_margin_pct": 13.3}},
             "all_findings": [
                 {"type": "待核事实：现金、聚合支付与个人账户收款闭环", "level": "中风险", "score": 5},

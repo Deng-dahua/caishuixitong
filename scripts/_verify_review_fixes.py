@@ -327,15 +327,15 @@ except Exception as e:
 
 # P1-11 ★ 2026-10-02（用户定调）：**报告禁止信息脱敏 / 禁止隐藏**
 try:
-    _o = {"identity": {"organization": {"名称": "深圳海更数字传媒有限公司"}},
+    _o = {"identity": {"organization": {"名称": "某传媒企业示例公司"}},
           "p": [{"text": "收款人 杨莹 收到 670,000 元。"}]}
     _ob = json.dumps(_o, ensure_ascii=False)
     _hid = [s for s in ("杨*", "初**", "李**", "徐*", "吴**") if s in _ob]
     rec("P1-11", "报告禁止脱敏/隐藏",
         "行为：正文姓名原样保留、企业名不改、无星号占位",
         "真名保留=%s；占位=%s；企业名保留=%s" % ("杨莹" in _ob, _hid or "无",
-                                           "深圳海更数字传媒有限公司" in _ob),
-        "杨莹" in _ob and "深圳海更数字传媒有限公司" in _ob and not _hid)
+                                           "某传媒企业示例公司" in _ob),
+        "杨莹" in _ob and "某传媒企业示例公司" in _ob and not _hid)
 except Exception as e:
     rec("P1-11", "报告禁止脱敏/隐藏", "行为断言", "执行失败: %s" % e, False)
 # 报告实测：企业版报告不得残留脱敏标识/统计（pii_guard 已整体删除）

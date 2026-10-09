@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import time
 from datetime import datetime
 
@@ -144,8 +145,25 @@ def refresh_narrative(narrative, report_data):
     return out, "variant"
 
 
+# ★★ 2026-10-06（用户实测报告出现「≈一元」「补教要求」「口经说明」「敦低法」「潜在税额口」）：
+#   **根因**：本函数用 LLM（temperature=0.7）**改写报告正文**，动机是"让文字读起来像本次新编制"；
+#   而唯一的安全校验只是**抽查数字**，抓不住**同音字替换**（救→教、径→经、孰→敦）
+#   与**数字被改坏**（如金额被写成"一元"）。
+#   ⇒ 这与本项目铁律正面冲突：**数字绝不被清洗改写；报告每个字都必须有据可查**。
+#     为"看起来新"而让不可控的文本模型重写合规正文，**风险远大于收益**。
+#   处置：**默认关闭** LLM 正文改写（改为只做"章节标题变体 + 编制序言"轮换，
+#   这两者不触碰任何事实/金额/结论词），需要时显式 `APP_REPORT_LLM_REWRITE=1` 开启；
+#   开启时保真校验由"抽查"升级为**全量比对**（见 `_facts_preserved` 强化）。
+_LLM_REWRITE_ENABLED = str(os.environ.get("APP_REPORT_LLM_REWRITE", "")).strip() in ("1", "true", "True")
+
+
 def _llm_rewrite(text, report_data, kind="headline"):
-    """用系统 LLM 重新措辞；失败/不可用返回空串（调用方保留原文）。"""
+    """用系统 LLM 重新措辞；**默认关闭**（见上方 ★★ 说明）。
+
+    失败/不可用/未开启/保真校验不过 ⇒ 返回空串，调用方保留原文。
+    """
+    if not _LLM_REWRITE_ENABLED:
+        return ""
     if not text or len(text) < 20:
         return ""
     try:
@@ -158,7 +176,7 @@ def _llm_rewrite(text, report_data, kind="headline"):
         sys_prompt = (
             "你是资深税务稽查报告编制专家。请把下面的报告文字重新组织一遍措辞，"
             "要求：①所有数字、金额、百分比、公司名称、法规名称逐字保留，一个都不能改；"
-            "②结论与风险定性（如'待核实''高风险''账外风险'）逐字保留；"
+            "②结论与风险定性（如'尚需核实''高风险''账外风险'）逐字保留；"
             "③只改变句式和表达顺序，让文字读起来像是本次新编制的；"
             "④输出纯文本，不要加任何前缀说明。"
         )

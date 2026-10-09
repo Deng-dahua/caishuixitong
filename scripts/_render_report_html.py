@@ -101,6 +101,22 @@ raw = json.load(open(SRC, encoding="utf-8"))
 rep = raw.get("report") or {}
 te = rep.get("target_entity") or {}
 err = rep.get("enterprise_readable_report") or raw.get("enterprise_readable_report") or {}
+# ★ 2026-10-07（用户："把旧模板都删除"）：报告名称不再硬编码为旧模板名，
+#   统一取合规唯一权威（报告成品里的 document_meta，其次 report_compliance，最后退回默认）。
+def _doc_title(_err, _rep):
+    try:
+        _dm = (_err or {}).get("document_meta") or {}
+        if _dm.get("name"):
+            return str(_dm["name"])
+        _rc = (_rep or {}).get("report_compliance") or {}
+        _dm2 = _rc.get("document_meta") or (_rc.get("document") or {})
+        if _dm2.get("name"):
+            return str(_dm2["name"])
+    except Exception:
+        pass
+    return "税务风险扫描工作底稿"
+
+DOC_TITLE = _doc_title(err, rep)
 sc = rep.get("subject_check") or {}
 rm = rep.get("reconciliation_matrix") or {}
 dr = rep.get("document_requests") or []
@@ -125,7 +141,7 @@ P = []
 _co = E(te.get("name") or "未知主体")
 P.append("""<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>涉税风险分析报告 - """ + _co + """</title>
+<title>""" + DOC_TITLE + """ - """ + _co + """</title>
 <style>
 :root{--ink:#1f2937;--ink2:#4b5563;--ink3:#6b7280;--line:#e5e7eb;--bg:#f7f8fa;--card:#ffffff;
 --brand:#1d4ed8;--warn:#b45309;--warnbg:#fff9ec;--danger:#b91c1c;--ok:#166534;--okbg:#f0fdf4}
@@ -178,7 +194,7 @@ summary{cursor:pointer;font-weight:600;font-size:13.5px}
 
 # ── 封面 ──
 gen = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-P.append('<div class="cover"><h1>涉税风险分析报告</h1>'
+P.append('<div class="cover"><h1>' + E(DOC_TITLE) + '</h1>'
          '<div class="sub">系统自动生成 · 分析与核验工作底稿 · %s</div>' % E(gen))
 # ★ 2026-09-29（点评整改 P2-5）：文书性质声明必须**在封面出现**，
 #   不能只在文末写一句。外部点评指出原文书易被误当作税务机关文书。

@@ -10,6 +10,15 @@ from datetime import datetime
 from collections import defaultdict
 from typing import Optional, List, Dict, Any
 
+# ★ 模板句清单（唯一权威，2026-10-07）
+#   事故：本清单原定义在 `check_findings_quality()` **函数内部**，而 `auto_apply_fixes()`
+#   直接引用 `_BOILERPLATE` ⇒ 跨函数引用未定义名 ⇒ 执行到修正分支即 NameError（自愈整段失效）。
+#   现提升为模块级常量：**检测方与修正方共用同一份**，不再各写一份。
+_BOILERPLATE = [
+    "是税务合规重点方向", "需逐笔核实", "请提供相关佐证材料",
+    "申报不合规是税务行政处罚的常见案由", "通过调取企业各税种申报表",
+]
+
 # ==================== 错误模式 → 规则模板映射 ====================
 
 ERROR_PATTERN_TEMPLATES = {
@@ -348,10 +357,6 @@ def auto_detect_inconsistencies(findings: list) -> list:
             })
     
     # ── 模板句检测 ──
-    _BOILERPLATE = [
-        "是税务合规重点方向", "需逐笔核实", "请提供相关佐证材料",
-        "申报不合规是税务行政处罚的常见案由", "通过调取企业各税种申报表",
-    ]
     for f in findings:
         text = str(f.get("description","")) + str(f.get("how_found","")) + str(f.get("suggestion",""))
         for bp in _BOILERPLATE:

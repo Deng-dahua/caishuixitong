@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "version": "1.0.0",
+  "updated": "2026-10-07",
+  "note": "同义写法词典（Skill 3 唯一权威）。stale_values = 本批**已修订掉的旧值**；每项的 variants 必须**穷举**该旧值在文档里可能出现的一切写法（半角/全角、中文/英文、带空格/不带空格）。未收录的写法 = 校验漏洞 ⇒ 门禁报 WARN 要求补词典（并由 residue 自检脚本提示）。新增一条旧值 = 加一行数据。",
+  "scan_scope": {
+    "include_globs": [
+      "docs/第01批_触发条件与认定要件分离/*.md"
+    ],
+    "exclude_files": [
+      "R1_数字统一修订记录.md",
+      "R1_诊断报告.md",
+      "R1_Skill修订记录.md",
+      "08_未完成事项清单.md",
+      "R3_判据缺口诊断报告.md",
+      "R1_修正记录.md",
+      "5个Skill设计文档.md",
+      "5个Skill配置JSON.md",
+      "5个Skill门禁规则.md",
+      "5个Skill测试用例.md",
+      "5个Skill回归测试报告.md",
+      "5个Skill自动应用验证结果.md",
+      "5个Skill验收自证.md",
+      "R3_修正记录.md",
+      "R3_被抓记录.md",
+      "R3_实跑结果.md",
+      "R4_判据缺口诊断报告.md",
+      "R4_被抓记录.md",
+      "R4_修正记录.md",
+      "R5_命名治理记录.md"
+    ],
+    "exclude_reason": "这些文件**按设计要求**保留「修订前 / 诊断 / 补做记录 / 失败样例」语境中的旧值作为对照（须给出前后对比）；其余交付物正文一律不得残留旧值。**不排除会把合规的对照判成残留（实测假红）。**",
+    "skip_fenced_blocks": true,
+    "skip_fenced_reason": "围栏代码块（```…```）是**引用区**：交付物必须贴「依据命令 + 实测输出」，而实测输出本身可能逐字含旧值（如展开式 `grep -rnE \"(25 例|25 passed|…)\"`）。**围栏内不计残留，围栏外出现旧值仍必须报 ERROR**（反向验证见 `tests/test_doc_consistency_skills.py::TestNewJudgments`）。"
+  },
+  "stale_values": [
+    {
+      "id": "SV-testcount-25",
+      "old": "25 例",
+      "variants": [
+        "25 例",
+        "25例",
+        "25 passed",
+        "25passed",
+        "25 tests",
+        "25tests",
+        "25 用例",
+        "25用例",
+        "25 个用例",
+        "测试 25",
+        "tests 25",
+        "25 passed（修",
+        "25 passed，修"
+      ],
+      "replaced_by": "28 例"
+    },
+    {
+      "id": "SV-passed-1421",
+      "old": "1421",
+      "variants": [
+        "1421",
+        "1,421",
+        "1421 passed",
+        "1421passed",
+        "passed 1421",
+        "1421 通过"
+      ],
+      "replaced_by": "1424"
+    },
+    {
+      "id": "SV-duration-55",
+      "old": "55.94s",
+      "variants": [
+        "55.94s",
+        "55.94 秒",
+        "55.94秒",
+        "55.94 s",
+        "55.94"
+      ],
+      "replaced_by": "214.90s（浮动区间 55.94–214.90s，须写作区间时另注）"
+    },
+    {
+      "id": "SV-criterion-445",
+      "old": "445 条",
+      "variants": [
+        "445 条",
+        "445条",
+        "445 ",
+        "认定要件 445",
+        "445 项"
+      ],
+      "replaced_by": "456 条"
+    },
+    {
+      "id": "SV-rulecount-8",
+      "old": "8 条规则",
+      "variants": [
+        "8 条规则",
+        "8条规则",
+        "8 条门禁",
+        "8条门禁",
+        "门禁 8 条",
+        "规则 8 条",
+        "8 项规则"
+      ],
+      "replaced_by": "9 条规则"
+    },
+    {
+      "id": "SV-tds-missing",
+      "old": "TDS-①~⑧",
+      "variants": [
+        "TDS-①~⑧",
+        "TDS-①～⑧",
+        "TDS-①-⑧",
+        "①~⑧"
+      ],
+      "replaced_by": "TDS-①~⑨"
+    }
+  ]
+}

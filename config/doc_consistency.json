@@ -1,0 +1,1340 @@
+{
+  "schema": 1,
+  "version": "1.0.0",
+  "updated": "2026-10-07",
+  "note": "文档一致性数据表（Skill 1/2/5 的唯一权威）。新增一个数字/规则/引用边 = 加一行数据，不改逻辑。authority.kind 支持：config_count（config/*.json 计数）/ pytest_collect（测试收集数）/ file_count（目录文件数）/ product_count（全量产物计数）/ catalog_count（规则清单条数）。",
+  "status_vocab": [
+    "未开始",
+    "进行中",
+    "已修复",
+    "待决策",
+    "不阻断"
+  ],
+  "todo_declaration_marker": "状态同步声明",
+  "numbers": [
+    {
+      "id": "rule_count",
+      "name": "本批门禁规则条数",
+      "authority": {
+        "kind": "catalog_count"
+      },
+      "claims": [
+        {
+          "file": "02_系统配置变更清单.md",
+          "regex": "质量门禁\\s*\\*{0,2}(\\d+)\\*{0,2}\\s*条规则"
+        },
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "TDS-①~⑨（共\\s*(\\d+)\\s*条"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "门禁\\s*\\*{0,2}(\\d+)\\*{0,2}\\s*条规则"
+        }
+      ],
+      "must_state_in": [
+        "02_系统配置变更清单.md",
+        "06_写入系统证据.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "test_case_count",
+      "name": "本 Skill 测试用例数",
+      "authority": {
+        "kind": "pytest_collect",
+        "target": "tests/test_trigger_determination_separation.py"
+      },
+      "claims": [
+        {
+          "file": "01_Skill设计文档.md",
+          "regex": "测试\\s*9\\s*→\\s*\\*{0,2}(\\d+)\\s*例"
+        },
+        {
+          "file": "01_Skill设计文档.md",
+          "regex": "测试清单（§6，\\*{0,2}(\\d+)\\s*例"
+        },
+        {
+          "file": "01_Skill设计文档.md",
+          "regex": "\\*{0,2}(\\d+) passed\\*{0,2}(?=（分项| \\| 命令)"
+        },
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "本 Skill 测试用例\\s*\\|\\s*\\*{0,2}(\\d+)\\s*例"
+        },
+        {
+          "file": "05_回归测试报告.md",
+          "regex": "本 Skill 专项（\\*{0,2}(\\d+)\\s*tests"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "本 Skill 专项[^\\n]*?\\*{0,2}(\\d+)\\s*tests"
+        }
+      ],
+      "must_state_in": [
+        "01_Skill设计文档.md",
+        "05_回归测试报告.md",
+        "06_写入系统证据.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "risk_count",
+      "name": "风险指标条数",
+      "authority": {
+        "kind": "config_count",
+        "path": "config/risk_conditions.json",
+        "expr": "len:risks"
+      },
+      "claims": [
+        {
+          "file": "01_Skill设计文档.md",
+          "regex": "（(\\d+)\\s*条\\s*=\\s*91\\s*红线"
+        },
+        {
+          "file": "05_回归测试报告.md",
+          "regex": "\\*{0,2}(\\d+)\\s*条风险指标（91 红线派生"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "风险指标条数\\s*\\|\\s*\\*{0,2}(\\d+)\\*{0,2}"
+        }
+      ],
+      "must_state_in": [
+        "01_Skill设计文档.md",
+        "05_回归测试报告.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "criterion_count",
+      "name": "认定要件条数",
+      "authority": {
+        "kind": "config_count",
+        "path": "config/risk_conditions.json",
+        "expr": "sum:determination_criteria"
+      },
+      "claims": [
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "认定要件\\s*(\\d+)\\s*其中前提条"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "认定要件数\\s*\\|\\s*\\*{0,2}(\\d+)\\*{0,2}"
+        },
+        {
+          "file": "R1_数字统一修订记录.md",
+          "regex": "认定要件\\s*\\*{0,2}(\\d+)\\s*条"
+        }
+      ],
+      "must_state_in": [
+        "06_写入系统证据.md",
+        "R1_数字统一修订记录.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "precondition_count",
+      "name": "前提条条数",
+      "authority": {
+        "kind": "config_count",
+        "path": "config/risk_conditions.json",
+        "expr": "count:is_precondition"
+      },
+      "claims": [
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "其中前提条\\s*(\\d+)"
+        },
+        {
+          "file": "01_Skill设计文档.md",
+          "regex": "其中\\*{0,2}前提条\\s*(\\d+)\\s*条"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "前提条数\\s*\\|\\s*\\*{0,2}(\\d+)\\*{0,2}"
+        }
+      ],
+      "must_state_in": [
+        "01_Skill设计文档.md",
+        "06_写入系统证据.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "batch_doc_count",
+      "name": "本批交付物文件数",
+      "authority": {
+        "kind": "file_count",
+        "glob": "docs/第01批_触发条件与认定要件分离/*.md"
+      },
+      "claims": [
+        {
+          "file": "最小检查集.md",
+          "regex": "=\\s*\\*{0,2}(\\d+)\\s*份\\*{0,2}）"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "本批目录交付物文件数 \\| \\*{0,2}(\\d+)\\*{0,2}"
+        }
+      ],
+      "must_state_in": [
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "problem_count",
+      "name": "疑点数",
+      "authority": {
+        "kind": "product_count",
+        "path": "enterprise_readable_report.confirmed_problems",
+        "expr": "len"
+      },
+      "claims": [
+        {
+          "file": "05_回归测试报告.md",
+          "regex": "\\*{0,2}(\\d+)\\s*个疑点\\*{0,2}\\s*/\\s*94 条风险指标"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "疑点数\\s*\\|\\s*\\*{0,2}(\\d+)\\*{0,2}"
+        }
+      ],
+      "must_state_in": [
+        "05_回归测试报告.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "gate_fn_line",
+      "name": "门禁函数定义行号",
+      "authority": {
+        "kind": "grep_line",
+        "path": "tools/audit_consistency.py",
+        "pattern": "^def check_trigger_determination_separation"
+      },
+      "claims": [
+        {
+          "file": "02_系统配置变更清单.md",
+          "regex": "第\\s*\\*{0,2}(\\d+)\\*{0,2}\\s*行 `check_trigger_determination_separation\\(\\)`"
+        },
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "定义位置 \\| 第 \\*{0,2}(\\d+)\\*{0,2} 行"
+        },
+        {
+          "file": "01_Skill设计文档.md",
+          "regex": "第 (\\d+) 行 `check_trigger_determination_separation\\(\\)`"
+        },
+        {
+          "file": "03_失败样例测试结果.md",
+          "regex": "check_trigger_determination_separation\\(\\)`（第 (\\d+) 行）"
+        }
+      ],
+      "must_state_in": [
+        "02_系统配置变更清单.md",
+        "06_写入系统证据.md",
+        "01_Skill设计文档.md",
+        "03_失败样例测试结果.md"
+      ]
+    },
+    {
+      "id": "gate_call_line",
+      "name": "门禁调用行号",
+      "authority": {
+        "kind": "grep_line",
+        "path": "tools/audit_consistency.py",
+        "pattern": "\\+ check_trigger_determination_separation\\(\\)"
+      },
+      "claims": [
+        {
+          "file": "02_系统配置变更清单.md",
+          "regex": "调用位置\\*{0,2}：第\\s*\\*{0,2}(\\d+)\\*{0,2}\\s*行"
+        },
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "调用位置 \\| 第 \\*{0,2}(\\d+)\\*{0,2} 行"
+        },
+        {
+          "file": "01_Skill设计文档.md",
+          "regex": "第 (\\d+) 行并入总链"
+        }
+      ],
+      "must_state_in": [
+        "02_系统配置变更清单.md",
+        "06_写入系统证据.md",
+        "01_Skill设计文档.md"
+      ],
+      "note": "★ 本项 claims 必须覆盖**全部已知消费点**（02/06/01 三处）；漏一处就是缺口 B（实测踩过：只接了 02）"
+    },
+    {
+      "id": "doc_gate_def_line",
+      "name": "文档一致性门禁定义行号",
+      "authority": {
+        "kind": "grep_line",
+        "path": "tools/audit_consistency.py",
+        "pattern": "^def check_doc_number_authority"
+      },
+      "claims": [
+        {
+          "file": "02_系统配置变更清单.md",
+          "regex": "`check_doc_number_authority\\(\\)` 定义第\\s*\\*{0,2}(\\d+)\\*{0,2}\\s*行"
+        }
+      ],
+      "must_state_in": [
+        "02_系统配置变更清单.md"
+      ]
+    },
+    {
+      "id": "doc_gate_call_line",
+      "name": "文档一致性门禁调用行号",
+      "authority": {
+        "kind": "grep_line",
+        "path": "tools/audit_consistency.py",
+        "pattern": "\\+ check_doc_number_authority\\(\\)"
+      },
+      "claims": [
+        {
+          "file": "02_系统配置变更清单.md",
+          "regex": "调用第\\s*\\*{0,2}(\\d+)\\*{0,2}\\s*行（D1）"
+        }
+      ],
+      "must_state_in": [
+        "02_系统配置变更清单.md"
+      ]
+    },
+    {
+      "id": "full_pytest_passed",
+      "name": "全量回归 passed",
+      "authority": {
+        "kind": "pytest_receipt",
+        "field": "passed"
+      },
+      "claims": [
+        {
+          "file": "05_回归测试报告.md",
+          "regex": "\\| passed \\| \\*{0,2}(\\d+)\\*{0,2} \\|"
+        },
+        {
+          "file": "05_回归测试报告.md",
+          "regex": "\\*{0,2}(\\d+) passed / 0 failed"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "全量 pytest passed \\| \\*{0,2}(\\d+)\\*{0,2}"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "\\*{0,2}(\\d+) passed / 0 failed"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "实测：(\\d+) passed, 4 skipped"
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "实测：(\\d+) passed, 4 skipped"
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "全量 \\*{0,2}(\\d+) passed"
+        },
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "实测：(\\d+) passed, 4 skipped",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "（`(\\d+) passed`）",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill测试用例.md",
+          "regex": "全量 \\*{0,2}(\\d+) passed",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill测试用例.md",
+          "regex": "实测：(\\d+) passed, 4 skipped",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill验收自证.md",
+          "regex": "\\*{0,2}(\\d+) passed / 4 skipped",
+          "enforce": true
+        },
+        {
+          "file": "R1_Skill修订记录.md",
+          "regex": "\\*{0,2}(\\d+) passed / 4 skipped"
+        }
+      ],
+      "must_state_in": [
+        "05_回归测试报告.md",
+        "最小检查集.md",
+        "最终判断.md"
+      ]
+    },
+    {
+      "id": "skill_total",
+      "name": "Skill 总数",
+      "authority": {
+        "kind": "json_len",
+        "path": "config/skill_specs.json",
+        "expr": "len:skills"
+      },
+      "claims": [
+        {
+          "file": "02_系统配置变更清单.md",
+          "regex": "\\*\\*Skill 总数\\*\\* \\|\\s*54\\s*\\|\\s*\\*{0,2}(\\d+)\\*{0,2}"
+        },
+        {
+          "file": "02_系统配置变更清单.md",
+          "regex": "validate \\[\\] \\| total (\\d+)"
+        },
+        {
+          "file": "05_回归测试报告.md",
+          "regex": "实测输出：validate \\[\\] \\| total (\\d+)"
+        },
+        {
+          "file": "05_回归测试报告.md",
+          "regex": "Skill 总数 (\\d+)"
+        },
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "Skill 总数 \\| \\*{0,2}(\\d+)\\*{0,2}"
+        },
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "validate \\[\\] \\| total (\\d+)"
+        },
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "Skill 总数 \\*{0,2}(\\d+)\\*{0,2}"
+        },
+        {
+          "file": "06_写入系统证据.md",
+          "regex": "total (\\d+)）"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "Skill 总数 \\| \\*{0,2}(\\d+)\\*{0,2}"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "validate \\[\\] \\| total (\\d+)"
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "Skill 总数 \\*{0,2}(\\d+)\\*{0,2}"
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "Skill 总数 \\*{0,2}(\\d+)\\*{0,2}"
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "validate \\[\\] \\| total (\\d+)"
+        },
+        {
+          "file": "R1_Skill修订记录.md",
+          "regex": "Skill 总数 \\*{0,2}(\\d+)\\*{0,2}"
+        }
+      ],
+      "must_state_in": [
+        "02_系统配置变更清单.md",
+        "05_回归测试报告.md",
+        "06_写入系统证据.md",
+        "最小检查集.md",
+        "最终判断.md"
+      ]
+    },
+    {
+      "id": "authority_count",
+      "name": "已登记的数字权威条数",
+      "authority": {
+        "kind": "json_len",
+        "path": "config/doc_consistency.json",
+        "expr": "len:numbers"
+      },
+      "claims": [
+        {
+          "file": "5个Skill设计文档.md",
+          "regex": "数字权威（\\*{0,2}(\\d+)\\*{0,2} 个）",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill配置JSON.md",
+          "regex": "数字权威映射[^\\n]*?\\| \\*{0,2}(\\d+)\\*{0,2} \\|",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill设计文档.md",
+        "5个Skill配置JSON.md"
+      ]
+    },
+    {
+      "id": "authority_kind_count",
+      "name": "权威 kind 种类数",
+      "authority": {
+        "kind": "json_len",
+        "path": "config/doc_consistency.json",
+        "expr": "distinct:numbers.authority.kind"
+      },
+      "claims": [
+        {
+          "file": "5个Skill设计文档.md",
+          "regex": "（\\*{0,2}(\\d+)\\*{0,2} 种 kind）",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill配置JSON.md",
+          "regex": "共 \\*{0,2}(\\d+)\\*{0,2} 种 kind",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill设计文档.md",
+        "5个Skill配置JSON.md"
+      ]
+    },
+    {
+      "id": "judgement_count",
+      "name": "门禁判据条数（Skill 判据，非 TDS 规则）",
+      "authority": {
+        "kind": "regex_count",
+        "path": "docs/第01批_触发条件与认定要件分离/5个Skill门禁规则.md",
+        "pattern": "^\\| \\*\\*D[0-9]-R[0-9]+\\*\\*"
+      },
+      "claims": [
+        {
+          "file": "5个Skill门禁规则.md",
+          "regex": "判据合计 \\*{0,2}(\\d+)\\*{0,2} 条",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill门禁规则.md",
+          "regex": "\\+ \\*{0,2}(\\d+)\\*{0,2} 条判据",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill验收自证.md",
+          "regex": "（\\*{0,2}(\\d+)\\*{0,2} 条判据",
+          "enforce": true
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "（\\*{0,2}(\\d+)\\*{0,2} 条判据",
+          "enforce": true
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "门禁 \\*{0,2}(\\d+)\\*{0,2} 条判据",
+          "enforce": true
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "\\*{0,2}(\\d+)\\*{0,2} 条判据",
+          "enforce": true
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "门禁 \\*{0,2}(\\d+)\\*{0,2} 条判据",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill门禁规则.md",
+        "5个Skill验收自证.md",
+        "最小检查集.md",
+        "最终判断.md"
+      ]
+    },
+    {
+      "id": "doc_test_total",
+      "name": "文档一致性测试用例总数",
+      "authority": {
+        "kind": "pytest_collect",
+        "target": "tests/test_doc_consistency_skills.py"
+      },
+      "claims": [
+        {
+          "file": "5个Skill测试用例.md",
+          "regex": "用例数（`--collect-only` 实测）：\\*{0,2}(\\d+)\\*{0,2}",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill测试用例.md",
+          "regex": "用例清单 \\*{0,2}(\\d+)\\*{0,2} 条",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill设计文档.md",
+          "regex": "（\\*{0,2}(\\d+) 例\\*{0,2}：",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "文档一致性 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "全量用例 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "测试（\\*{0,2}(\\d+)\\*{0,2} 例）",
+          "enforce": true
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "门禁 \\*{0,2}\\d+\\*{0,2} 条判据 \\+ 测试 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill测试用例.md",
+        "最小检查集.md",
+        "最终判断.md"
+      ]
+    },
+    {
+      "id": "reverse_test_count",
+      "name": "反向验证用例数（test_reverse_*）",
+      "authority": {
+        "kind": "regex_count",
+        "path": "tests/test_doc_consistency_skills.py",
+        "pattern": "^\\s*@pytest\\.mark\\.reverse$"
+      },
+      "claims": [
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "反向验证（[^\\n]*?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "反向验证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill门禁规则.md",
+          "regex": "反向验证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill验收自证.md",
+          "regex": "反向验证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill测试用例.md",
+          "regex": "反向验证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "反向验证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "反向验证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill回归测试报告.md",
+        "5个Skill门禁规则.md",
+        "5个Skill验收自证.md",
+        "5个Skill测试用例.md",
+        "最小检查集.md",
+        "最终判断.md"
+      ]
+    },
+    {
+      "id": "break_test_count",
+      "name": "破坏性用例数（test_break_*，改真文件 ⇒ 必须报红）",
+      "authority": {
+        "kind": "regex_count",
+        "path": "tests/test_doc_consistency_skills.py",
+        "pattern": "^\\s*@pytest\\.mark\\.breaking$"
+      },
+      "claims": [
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "破坏性用例（`test_break_\\*`）\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill测试用例.md",
+          "regex": "破坏性用例 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "破坏性用例 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill回归测试报告.md",
+        "5个Skill测试用例.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "lock_test_count",
+      "name": "口径锁用例数（test_lock_*，不得报错/口径自证）",
+      "authority": {
+        "kind": "regex_count",
+        "path": "tests/test_doc_consistency_skills.py",
+        "pattern": "^\\s*@pytest\\.mark\\.lock$"
+      },
+      "claims": [
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "口径锁[^\\n]{0,24}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill门禁规则.md",
+          "regex": "口径锁[^\\n]{0,24}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill验收自证.md",
+          "regex": "口径锁[^\\n]{0,24}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "口径锁[^\\n]{0,24}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "最终判断.md",
+          "regex": "口径锁[^\\n]{0,24}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill测试用例.md",
+          "regex": "口径锁[^\\n]{0,24}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill回归测试报告.md",
+        "5个Skill门禁规则.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "validation_case_total",
+      "name": "验证类用例合计（reverse+breaking+lock）",
+      "authority": {
+        "kind": "regex_count",
+        "path": "tests/test_doc_consistency_skills.py",
+        "pattern": "^\\s*@pytest\\.mark\\.(reverse|breaking|lock)$"
+      },
+      "claims": [
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "验证类[^\\n]{0,6}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill验收自证.md",
+          "regex": "验证类[^\\n]{0,6}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "验证类[^\\n]{0,6}?\\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill回归测试报告.md",
+        "5个Skill验收自证.md",
+        "最小检查集.md"
+      ]
+    },
+    {
+      "id": "plain_test_count",
+      "name": "正例/自证用例数",
+      "authority": {
+        "kind": "regex_count",
+        "path": "tests/test_doc_consistency_skills.py",
+        "pattern": "^\\s*@pytest\\.mark\\.plain$"
+      },
+      "claims": [
+        {
+          "file": "5个Skill测试用例.md",
+          "regex": "正例/自证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "5个Skill回归测试报告.md",
+          "regex": "正例/自证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        },
+        {
+          "file": "最小检查集.md",
+          "regex": "正例/自证 \\*{0,2}(\\d+)\\*{0,2} 例",
+          "enforce": true
+        }
+      ],
+      "must_state_in": [
+        "5个Skill测试用例.md",
+        "5个Skill回归测试报告.md",
+        "最小检查集.md"
+      ]
+    }
+  ],
+  "sum_checks": [
+    {
+      "id": "SUM-01-testcase",
+      "name": "01 §6 测试分项加总 == 合计 == 权威值",
+      "file": "01_Skill设计文档.md",
+      "items_regex": "分项\\s*((?:\\d+)(?:\\s*\\+\\s*\\d+)+)\\s*=\\s*(\\d+)",
+      "must_equal_number": "test_case_count",
+      "must_state_in": [
+        "01_Skill设计文档.md"
+      ]
+    }
+  ],
+  "rule_catalog": [
+    {
+      "id": "TDS-①",
+      "desc": "风险指标必须同时定义触发条件与认定要件"
+    },
+    {
+      "id": "TDS-②",
+      "desc": "不得「已列为疑点」却「未触发任何触发条件」"
+    },
+    {
+      "id": "TDS-③",
+      "desc": "不得出现病句「未涉及任何一条构成要件」"
+    },
+    {
+      "id": "TDS-④",
+      "desc": "第1条认定要件（前提条）不得出现「未形成核对结论/未单独核对」"
+    },
+    {
+      "id": "TDS-⑤",
+      "desc": "每个疑点必须落结构化块且 8 字段齐全"
+    },
+    {
+      "id": "TDS-⑥",
+      "desc": "触发命中 ⇔ 疑点成立（双向）"
+    },
+    {
+      "id": "TDS-⑦",
+      "desc": "认定要件与逐条状态必须一一对应"
+    },
+    {
+      "id": "TDS-⑧",
+      "desc": "前提条结论必须写「符合情形」且不得与缺口措辞并存"
+    },
+    {
+      "id": "TDS-⑨",
+      "desc": "产物认定要件条数 == 配置条数（配置有、产物必须有）"
+    }
+  ],
+  "rule_id_pattern": "TDS-[①-⑩0-9]+",
+  "rule_catalog_files": [
+    "02_系统配置变更清单.md"
+  ],
+  "ref_graph": [
+    {
+      "up": "01_Skill设计文档.md",
+      "down": [
+        "最小检查集.md",
+        "05_回归测试报告.md"
+      ],
+      "numbers": [
+        "test_case_count",
+        "risk_count"
+      ]
+    },
+    {
+      "up": "02_系统配置变更清单.md",
+      "down": [
+        "最小检查集.md",
+        "06_写入系统证据.md"
+      ],
+      "numbers": [
+        "rule_count"
+      ]
+    },
+    {
+      "up": "tests/test_trigger_determination_separation.py",
+      "down": [
+        "01_Skill设计文档.md",
+        "06_写入系统证据.md",
+        "最小检查集.md"
+      ],
+      "numbers": [
+        "test_case_count"
+      ]
+    }
+  ],
+  "quote_files": [
+    "R1_数字统一修订记录.md",
+    "R1_诊断报告.md",
+    "R1_Skill修订记录.md",
+    "08_未完成事项清单.md",
+    "R3_判据缺口诊断报告.md",
+    "R1_修正记录.md",
+    "5个Skill设计文档.md",
+    "5个Skill配置JSON.md",
+    "5个Skill门禁规则.md",
+    "5个Skill测试用例.md",
+    "5个Skill回归测试报告.md",
+    "5个Skill自动应用验证结果.md",
+    "5个Skill验收自证.md",
+    "R3_修正记录.md",
+    "R3_被抓记录.md",
+    "R3_实跑结果.md",
+    "R4_判据缺口诊断报告.md",
+    "R4_被抓记录.md",
+    "R4_修正记录.md",
+    "R5_命名治理记录.md"
+  ],
+  "quote_files_reason": "这些文件**按设计要求**保留「修订前/诊断/补做记录/失败样例」语境中的旧值与规则编号清单（须给出前后对比，如「25 passed → 28 passed」「TDS-①~⑧ → ①~⑨」）⇒ Skill 1/2/5 的 claims 校验跳过它们；它们的旧值由 Skill 3 的 scan_scope.exclude_files 同样排除。**不登记就会把合规的对照判成「数字写错」或「引用了不存在的规则编号」（实测假红）。**　★ 补充口径（2026-10-07 最终修正轮）：文件级豁免是**粗粒度**的 —— 同一份对照文件里也可能有「必须等于当前权威值」的数字 ⇒ 用 `claims[].enforce = true` 逐条强制校验。",
+  "rule_id_parse": "逐字符校验：TDS- 之后的每个字符都必须是一个已登记编号",
+  "claims_rule": "claims = 该数字在**哪些文件、用哪条正则**被声明；must_state_in = 必须声明的文件（未命中即 ERROR）；未列入 must_state_in 的 claims 未命中只记 WARN（正则可能过时）。",
+  "consistency_checks": [
+    {
+      "id": "CONS-05-duration",
+      "name": "05 全量回归耗时",
+      "file": "05_回归测试报告.md",
+      "exclude_if_range": true,
+      "required_any": [
+        "同一次运行",
+        "同次运行"
+      ],
+      "must_state_in": [
+        "05_回归测试报告.md"
+      ],
+      "why": "耗时是易变值（同代码多次跑 55.94~214.90s）⇒ **不设绝对值权威**（否则必然假红）；只要求①文件内多处单值相等、②注明与本次 passed 同次运行。",
+      "regexes": [
+        "耗时[^\\n]{0,30}?\\*{0,2}(\\d+(?:\\.\\d+)?)s"
+      ]
+    },
+    {
+      "id": "CONS-05-passed",
+      "name": "05 全量回归 passed",
+      "file": "05_回归测试报告.md",
+      "regexes": [
+        "\\| passed \\| \\*{0,2}(\\d+)\\*{0,2} \\|",
+        "\\*{0,2}(\\d+) passed / 0 failed"
+      ],
+      "exclude_if_range": false,
+      "required_any": [],
+      "must_state_in": [
+        "05_回归测试报告.md"
+      ],
+      "why": "同一份报告里「§2 表格的 passed」与「文末自证段的 passed」必须相等（实测踩过：1424 vs 1456）。另外 `numbers.full_pytest_passed` 还提供**绝对权威**（全量回执），两者互补：自洽查'文件内打架'、权威查'与实测不符'。"
+    }
+  ],
+  "d5_scope": "D5（跨文件引用一致性）**只**校验 `ref_graph` 里的**跨文件**引用：下游文件必须声明上游数字的权威映射且实际命中。**同文件内部一致性不归 D5** —— 数值自洽归 D1（`check_sums` 分项加总 / `check_consistency` 同指标多处单值相等），结构自洽（表格列数）归 D4（`check_tables`）。",
+  "consistency_checks_note": "判据语义：①②**文件内自洽**（同一指标多个单值必须相等）；③**绝对值**由 `numbers[]`（含 `full_pytest_passed` 回执 / `skill_total` 配置计数）负责。易变指标（耗时）**只做①**，不做③（否则必然假红）。",
+  "declaration_scope": [
+    "01_Skill设计文档.md",
+    "02_系统配置变更清单.md",
+    "03_失败样例测试结果.md",
+    "04_通过样例测试结果.md",
+    "05_回归测试报告.md",
+    "06_写入系统证据.md",
+    "07_自动应用验证结果.md",
+    "08_未完成事项清单.md",
+    "最小检查集.md",
+    "最终判断.md",
+    "5个Skill设计文档.md",
+    "5个Skill配置JSON.md",
+    "5个Skill门禁规则.md",
+    "5个Skill测试用例.md",
+    "5个Skill回归测试报告.md",
+    "5个Skill自动应用验证结果.md",
+    "5个Skill验收自证.md"
+  ],
+  "meta_checks": [
+    {
+      "id": "META-交付物份数",
+      "name": "交付物份数声明",
+      "regex": "本批目录交付物文件数 \\| \\*{0,2}\\d+\\*{0,2}|=\\s*\\*{0,2}\\d+\\s*份\\*{0,2}）"
+    },
+    {
+      "id": "META-判据条数",
+      "name": "判据条数声明",
+      "regex": "（\\*{0,2}\\d+\\*{0,2} 条判据）|判据合计 \\*{0,2}\\d+\\*{0,2} 条|门禁 \\*{0,2}\\d+\\*{0,2} 条判据|\\*\\*\\d+ 条判据\\*\\*"
+    },
+    {
+      "id": "META-数字权威条数",
+      "name": "数字权威条数声明",
+      "regex": "数字权威（\\*{0,2}\\d+\\*{0,2} 个）"
+    },
+    {
+      "id": "META-kind种数",
+      "name": "权威 kind 种类数声明",
+      "regex": "\\*{0,2}\\d+\\*{0,2} 种 kind|共 \\*{0,2}\\d+\\*{0,2} 种 kind"
+    },
+    {
+      "id": "META-用例数",
+      "name": "测试用例数声明",
+      "regex": "用例数（`--collect-only` 实测）：\\*{0,2}\\d+\\*{0,2}|用例清单 \\*{0,2}\\d+\\*{0,2} 条|文档一致性 \\*{0,2}\\d+\\*{0,2} 例"
+    },
+    {
+      "id": "META-反向验证例数",
+      "name": "反向验证例数声明",
+      "regex": "反向验证 \\*{0,2}\\d+\\*{0,2} 例|`test_reverse_\\*` \\*{0,2}\\d+\\*{0,2} 例"
+    },
+    {
+      "id": "META-口径锁例数",
+      "name": "口径锁例数声明",
+      "regex": "口径锁 \\*{0,2}\\d+\\*{0,2} 例"
+    },
+    {
+      "id": "META-破坏性例数",
+      "name": "破坏性用例例数声明",
+      "regex": "破坏性用例 \\*{0,2}\\d+\\*{0,2} 例"
+    },
+    {
+      "id": "META-验证类合计",
+      "name": "验证类用例合计声明",
+      "regex": "验证类[^\\n]{0,6}?\\*{0,2}\\d+\\*{0,2} 例"
+    },
+    {
+      "id": "META-正例自证",
+      "name": "正例/自证例数声明",
+      "regex": "正例/自证 \\*{0,2}\\d+\\*{0,2} 例"
+    }
+  ],
+  "meta_checks_note": "元判据语义：**文档里出现的「指标短语 + 数字」必须已被某条 claims 覆盖**，否则报 ERROR（「该指标应登记权威」）。扫描范围 = `declaration_scope`（交付物正文）；修订记录/诊断报告/被抓记录等**对照类文件**不扫（它们按设计要求引用历史值）。",
+  "declaration_scope_note": "声明类文件（交付物正文）：其中出现的当前事实必须已登记权威；与 `quote_files`（对照类文件，允许引用旧值）是**两个正交维度**。",
+  "naming_rules": {
+    "policy": "交付物命名规范（唯一权威）：**轮次用编号前缀表达；程度词禁令只针对轮次文件**。常驻文件的名字是**指令契约**（如《最终判断》《最小检查集》），不受程度词约束。",
+    "resident_prefix_ok": [
+      "00_",
+      "01_",
+      "02_",
+      "03_",
+      "04_",
+      "05_",
+      "06_",
+      "07_",
+      "08_",
+      "5个Skill"
+    ],
+    "round_prefix_pattern": "^R\\d+_",
+    "forbidden_words": [
+      "最终",
+      "终极",
+      "最新",
+      "新版",
+      "final",
+      "latest"
+    ],
+    "why": "实测教训：同一批次追加 4 轮交付物后，出现 3 份「…修正记录」、2 份「…诊断报告」、2 份「…被抓记录」，且「最终」之后又出「终极」⇒ 程度词不可持续、近名难辨、同名难查。⇒ 规则：**常驻文件（滚动更新型）保留固定名；轮次文件必须 `R<轮次>_` 前缀**；**文件名不得含程度词**；**同一（轮次, 角色）不得重复**。",
+    "resident_files": [
+      "最小检查集.md",
+      "最终判断.md"
+    ],
+    "scope_of_forbidden_words": "仅对**非常驻（轮次）文件**生效 —— 常驻名由用户指令给定，不得因含「最终」而改（实测：`最终判断.md` 是用户点名的交付物名）。"
+  },
+  "deliverable_registry": [
+    {
+      "file": "00_五项原文.md",
+      "round": "常驻",
+      "role": "五项原文"
+    },
+    {
+      "file": "01_Skill设计文档.md",
+      "round": "常驻",
+      "role": "Skill设计文档（批次主体）"
+    },
+    {
+      "file": "02_系统配置变更清单.md",
+      "round": "常驻",
+      "role": "系统配置变更清单"
+    },
+    {
+      "file": "03_失败样例测试结果.md",
+      "round": "常驻",
+      "role": "失败样例"
+    },
+    {
+      "file": "04_通过样例测试结果.md",
+      "round": "常驻",
+      "role": "通过样例"
+    },
+    {
+      "file": "05_回归测试报告.md",
+      "round": "常驻",
+      "role": "回归报告"
+    },
+    {
+      "file": "06_写入系统证据.md",
+      "round": "常驻",
+      "role": "写入系统证据"
+    },
+    {
+      "file": "07_自动应用验证结果.md",
+      "round": "常驻",
+      "role": "自动应用验证"
+    },
+    {
+      "file": "08_未完成事项清单.md",
+      "round": "常驻",
+      "role": "未完成事项"
+    },
+    {
+      "file": "5个Skill设计文档.md",
+      "round": "常驻",
+      "role": "Skill设计文档（Skill化交付）"
+    },
+    {
+      "file": "5个Skill配置JSON.md",
+      "round": "常驻",
+      "role": "Skill配置JSON"
+    },
+    {
+      "file": "5个Skill门禁规则.md",
+      "round": "常驻",
+      "role": "Skill门禁规则"
+    },
+    {
+      "file": "5个Skill测试用例.md",
+      "round": "常驻",
+      "role": "Skill测试用例"
+    },
+    {
+      "file": "5个Skill回归测试报告.md",
+      "round": "常驻",
+      "role": "Skill回归报告"
+    },
+    {
+      "file": "5个Skill自动应用验证结果.md",
+      "round": "常驻",
+      "role": "Skill自动应用验证"
+    },
+    {
+      "file": "5个Skill验收自证.md",
+      "round": "常驻",
+      "role": "Skill验收自证"
+    },
+    {
+      "file": "最小检查集.md",
+      "round": "常驻",
+      "role": "最小检查集"
+    },
+    {
+      "file": "最终判断.md",
+      "round": "常驻",
+      "role": "最终判断"
+    },
+    {
+      "file": "R1_诊断报告.md",
+      "round": "R1",
+      "role": "诊断报告"
+    },
+    {
+      "file": "R1_修正记录.md",
+      "round": "R1",
+      "role": "修正记录"
+    },
+    {
+      "file": "R1_数字统一修订记录.md",
+      "round": "R1",
+      "role": "数字统一修订记录"
+    },
+    {
+      "file": "R1_Skill修订记录.md",
+      "round": "R1",
+      "role": "Skill修订记录"
+    },
+    {
+      "file": "R3_判据缺口诊断报告.md",
+      "round": "R3",
+      "role": "判据缺口诊断报告"
+    },
+    {
+      "file": "R3_被抓记录.md",
+      "round": "R3",
+      "role": "被抓记录"
+    },
+    {
+      "file": "R3_修正记录.md",
+      "round": "R3",
+      "role": "修正记录"
+    },
+    {
+      "file": "R3_实跑结果.md",
+      "round": "R3",
+      "role": "实跑结果"
+    },
+    {
+      "file": "R4_判据缺口诊断报告.md",
+      "round": "R4",
+      "role": "判据缺口诊断报告"
+    },
+    {
+      "file": "R4_被抓记录.md",
+      "round": "R4",
+      "role": "被抓记录"
+    },
+    {
+      "file": "R4_修正记录.md",
+      "round": "R4",
+      "role": "修正记录"
+    },
+    {
+      "file": "R4_实跑结果.md",
+      "round": "R4",
+      "role": "实跑结果"
+    },
+    {
+      "file": "R5_命名治理记录.md",
+      "round": "R5",
+      "role": "命名治理记录"
+    }
+  ],
+  "deliverable_registry_note": "交付物登记表（**文件名/轮次的唯一权威**，人可读版见 `最终判断.md` 的「交付物清单」）。轮次口径：**常驻** = 滚动更新型（全批次只一份，如 `01`~`08` / `5个Skill*`（轮2 的交付物，后续轮次继续更新）/ `最小检查集` / `最终判断`）；**R1** = 补做与 11 处修正；**R3** = 最终修正（7 处）；**R4** = 终极修正（6 处）；**R5** = 命名治理（轮次前缀化 + D1-R10 命名判据）。门禁 `check_deliverable_naming()` 校验：目录↔登记表双向一致 + 前缀规范 + 禁程度词 + (轮次,角色)不重复。",
+  "snapshot_records": {
+    "marker": "快照时点",
+    "probe_patterns": [
+      {
+        "id": "权威值",
+        "regex": "权威值 (\\d+)",
+        "note": "门禁报错原文里的「权威值 N」"
+      },
+      {
+        "id": "破坏性用例",
+        "regex": "破坏性[^\\n]{0,6}?\\*\\*(\\d+)\\*\\*",
+        "note": "四分类：破坏性用例数"
+      },
+      {
+        "id": "口径锁用例",
+        "regex": "口径锁[^\\n]{0,6}?\\*\\*(\\d+)\\*\\*",
+        "note": "四分类：口径锁用例数"
+      },
+      {
+        "id": "反向验证",
+        "regex": "反向验证[^\\n]{0,6}?\\*\\*(\\d+)\\*\\*",
+        "note": "四分类：反向验证例数"
+      },
+      {
+        "id": "正例自证",
+        "regex": "正例[/／]?自证[^\\n]{0,6}?\\*\\*(\\d+)\\*\\*",
+        "note": "四分类：正例/自证例数"
+      }
+    ],
+    "why": "记录类文件（`R*_*.md`）是**某时刻的快照**：里面的「权威值 N / 破坏性 N / 口径锁 N / 反向验证 N / 正例自证 N」是**当时**的实测值。实测教训：`R4_被抓记录` 写「权威值 27」、`R4_修正记录` 写「破坏性 3 / 口径锁 6」，而当前是 31 / 7 / 8 —— 读者会**直接误判为「5 个 Skill 假绿」**（用户复核时就是这样读到的）。★ 更严重的真问题：这些历史值此前**不在任何判据的管辖范围内**（既非当前值声明，也不被 claims 覆盖 —— 实测把对照豁免撤掉后仍 0 ERROR）⇒ **事后把 27 改成 31、把 3 改成 7 也无人发现**。故：① 记录文件必须声明「快照时点」（用于区分「当时值 vs 当前值」）；② 按 `probe_patterns` 逐文件登记**当时值**；探针未命中 / 出现未登记值 / 登记值丢失 ⇒ **ERROR**；③ 新增一个历史值 = 改一行数据（`files[<文件>].expect[<模式>]`）。",
+    "files": {
+      "R1_Skill修订记录.md": {
+        "snapshot_at": "2026-10-07（R1 轮收口；该轮无精确回执时间戳，以日期为准）",
+        "expect": {}
+      },
+      "R1_修正记录.md": {
+        "snapshot_at": "2026-10-07（R1 轮收口；该轮无精确回执时间戳，以日期为准）",
+        "expect": {
+          "权威值": [
+            9,
+            28,
+            11200
+          ]
+        }
+      },
+      "R1_数字统一修订记录.md": {
+        "snapshot_at": "2026-10-07（R1 轮收口；该轮无精确回执时间戳，以日期为准）",
+        "expect": {}
+      },
+      "R1_诊断报告.md": {
+        "snapshot_at": "2026-10-07（R1 轮收口；该轮无精确回执时间戳，以日期为准）",
+        "expect": {}
+      },
+      "R3_修正记录.md": {
+        "snapshot_at": "2026-10-07 20:44:41（= R3 最后一轮全量的回执 finished_at，见 R3_实跑结果.md）",
+        "expect": {}
+      },
+      "R3_判据缺口诊断报告.md": {
+        "snapshot_at": "2026-10-07 20:44:41（= R3 最后一轮全量的回执 finished_at，见 R3_实跑结果.md）",
+        "expect": {}
+      },
+      "R3_实跑结果.md": {
+        "snapshot_at": "2026-10-07 20:44:41（= R3 最后一轮全量的回执 finished_at，见 R3_实跑结果.md）",
+        "expect": {}
+      },
+      "R3_被抓记录.md": {
+        "snapshot_at": "2026-10-07 20:44:41（= R3 最后一轮全量的回执 finished_at，见 R3_实跑结果.md）",
+        "expect": {
+          "权威值": [
+            61,
+            11200
+          ]
+        }
+      },
+      "R4_修正记录.md": {
+        "snapshot_at": "2026-10-07 22:53:43（= R4 最后一轮全量的回执 finished_at，见 R4_实跑结果.md）",
+        "expect": {
+          "破坏性用例": [
+            3
+          ],
+          "口径锁用例": [
+            6
+          ],
+          "反向验证": [
+            19
+          ],
+          "正例自证": [
+            24
+          ]
+        }
+      },
+      "R4_判据缺口诊断报告.md": {
+        "snapshot_at": "2026-10-07 22:53:43（= R4 最后一轮全量的回执 finished_at，见 R4_实跑结果.md）",
+        "expect": {
+          "破坏性用例": [
+            3
+          ],
+          "口径锁用例": [
+            5
+          ],
+          "反向验证": [
+            15
+          ],
+          "正例自证": [
+            19
+          ]
+        }
+      },
+      "R4_实跑结果.md": {
+        "snapshot_at": "2026-10-07 22:53:43（= R4 最后一轮全量的回执 finished_at，见 R4_实跑结果.md）",
+        "expect": {}
+      },
+      "R4_被抓记录.md": {
+        "snapshot_at": "2026-10-07 22:53:43（= R4 最后一轮全量的回执 finished_at，见 R4_实跑结果.md）",
+        "expect": {
+          "权威值": [
+            9,
+            22,
+            23,
+            24,
+            27,
+            52
+          ]
+        }
+      },
+      "R5_命名治理记录.md": {
+        "snapshot_at": "2026-10-07（R5 轮收口；本轮为结构性改名，无新增数值型快照）",
+        "expect": {}
+      }
+    }
+  }
+}

@@ -297,7 +297,7 @@ def procurement_findings(pur_invs: Sequence[Any], bank_txs: Sequence[Any] = (),
         lines.append("  [%s] %s；需核实：%s；可证实资料：%s"
                      % (f["code"], f["事实"], f["需核实"], f["可证实资料"]))
     return [{
-        "type": "采购来源真实性待核实（可证伪线索）", "level": "待核验", "score": 4,
+        "type": "采购来源真实性尚需核实（可证伪线索）", "level": "待核验", "score": 4,
         "detail": res["note"] + "\n" + "\n".join(lines),
         "description": (
             "下列线索均为**可证伪**的具体事实（不是统计口径推断）；每条都写明"

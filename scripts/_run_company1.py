@@ -6,6 +6,6 @@ ROOT = r"c:/Users/Administrator/WorkBuddy/2026-08-04-21-37-33/caishuixitong"
 os.chdir(ROOT)
 sys.path.insert(0, ROOT)
 
-import scripts.run_four_companies as R
+import scripts.run_companies as R
 
 R.run_one(1)

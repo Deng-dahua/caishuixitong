@@ -1,4 +1,7 @@
 from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
+# ★ 2026-10-05（疑点7 D5）内部参照线的**唯一权威**渲染入口（阈值出处 + 免责措辞）。
+#   本模块不再手写"（低于 X 参照线）"字样；阈值本身也从该表取（见下方 `_th`）。
+from engine.heuristic_threshold import format_heuristic as _fmt_heur  # noqa: E402
 """结构错配探测器 —— 补齐金税四期"费用/成本结构 + 进项属性与主业匹配"类缺口。
 
 背景：`verified_rule_engine` 已覆盖 VR031/035 印花税、VR042 房产税、VR070 固定资产处置、
@@ -14,9 +17,21 @@ _AGRI_GOODS = ("农产品", "粮食", "棉花", "中药材", "木材", "原木",
 _AGRI_INDUSTRY = ("农", "林业", "园林", "绿化", "林场", "森林", "牧", "渔", "食品", "纺织",
                   "木材", "家具", "中药", "医药制造", "农产品加工", "饲料", "酿造", "食用",
                   "种植", "养殖")
-# 期间费用 / 销售成本 的异常参照线
-_EXP_COST_HIGH = 0.80   # 费用接近或超过成本，多数行业不合理
-_EXP_COST_LOW = 0.02    # 费用极低（<2%），可能费用未如实归集
+# ★ 2026-10-05（疑点7 D5）期间费用/销售成本的异常参照线 —— **取自唯一权威**
+#   `engine.heuristic_threshold`（新增同类判据只在该表加一行，此处不再另写数字）。
+#   旧实现把 0.80 / 0.02 硬写在本文件里，且报告文案只写"（费用接近或超过成本…）"、
+#   既无出处也无免责 ⇒ 同一个缺陷在四个检测器里各写一份。
+def _th(key, default):
+    try:
+        from engine.heuristic_threshold import get_threshold as _gt
+        d = _gt(key)
+        return float(d[0]) if d else default
+    except Exception:  # noqa: BLE001
+        return default
+
+
+_EXP_COST_HIGH = _th("expense_cost_ratio_high", 0.80)   # 费用接近或超过成本，多数行业不合理
+_EXP_COST_LOW = _th("expense_cost_ratio_low", 0.02)     # 费用极低（<2%），可能费用未如实归集
 _AGRI_MIN_AMT = 100000.0  # 农产品进项关注金额
 
 # ── 成本商品结构基线（补齐"成本结构与行业应有结构差异"缺口，2026-09-15）──
@@ -130,7 +145,11 @@ def _check_expense_cost_ratio(income):
                else "（费用占比极低，可能费用未如实归集）。"),
             "期间费用与销售成本的比例结构能反映费用归集是否合理。费用异常偏高可能指向多列费用、"
             "资本性支出费用化；异常偏低则可能费用未足额归集或成本核算口径不一致，均需核实。",
-            f"（销售+管理+财务费用）/ 主营业务成本 = {ratio:.0%}。",
+            f"（销售+管理+财务费用）/ 主营业务成本 = "
+            # 高低双向触发 ⇒ 按**实际方向**取对应键，否则会渲染成相反的参照线
+            + _fmt_heur("expense_cost_ratio_high" if ratio >= _EXP_COST_HIGH
+                        else "expense_cost_ratio_low", ratio)
+            + "。",
             "费用归集异常将影响企业所得税应纳税所得额的准确性。",
             "《企业所得税法》第八条、第十条（与取得收入有关的、合理的支出准予扣除）",
             "提供费用明细与成本核算说明，核实费用归集口径及与经营的相关性。",

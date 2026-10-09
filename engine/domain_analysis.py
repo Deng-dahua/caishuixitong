@@ -1793,7 +1793,13 @@ def _housing_fund_findings(sal_rows, sal_pm, sal_amt, sal_names, housing_fund):
                 m = _hf_month(r) or "未标注月份"
                 v = to_number(hf_amt.get((n, m), 0.0) or 0.0)
                 s = to_number(sal_amt.get((n, m), sal_amt.get((n, "未标注月份"), 0)))
-                if s > 0 and v >= 0 and (v / s) < HF_MIN_RATIO:
+                # ★ 2026-10-07 修复（ZeroDivisionError：整轮分析被中断的直接原因）：
+                #   条件原为 `v >= 0`，于是**缴存额 = 0（即未缴存）**的记录也进了"低基数"集合
+                #   ⇒ 反推基数 = 0 ÷ 5% = 0 ⇒ 下面 min(_bases)=0 做除法 → 除零 → 整轮分析报"分析异常"。
+                #   口径纠正：**0 缴存额不是"低基数"，是"未缴存"**，已由本函数「发现一」（未缴存名单）
+                #   单独覆盖；本项只应处理"确有缴存但基数明显偏低"。故此处要求 v > 0。
+                #   （通用规则：参与比例/倍数判定的分母与分子必须为正；0 或缺失一律另立情形，不混入。）
+                if s > 0 and v > 0 and (v / s) < HF_MIN_RATIO:
                     low_base.append({"姓名": n, "月份": m, "工资": round(s, 2),
                                      "公积金个人缴存": round(v, 2),
                                      "占工资": round(v / s * 100, 2),
@@ -1806,11 +1812,16 @@ def _housing_fund_findings(sal_rows, sal_pm, sal_amt, sal_names, housing_fund):
                 _sample = low_base[0]
                 _base_span = ("不超过 %.2f 元" % min(_bases)) if abs(max(_bases) - min(_bases)) < 0.01 \
                     else ("不超过 %.2f~%.2f 元" % (min(_bases), max(_bases)))
+                _s_lo, _s_hi = min(_sals), max(_sals)
+                _b_lo, _b_hi = min(_bases), max(_bases)
+                # ★ 2026-10-07：除零守卫（v>0 时反推基数必为正，此处为兜底，确保此类缺陷
+                #   绝不会再中断整轮分析）。取不到可用基数时**不打印**倍数，而不是打印 0/0。
+                _mult_txt = (f"（为反推基数的 {_s_lo/_b_hi:.2f}~{_s_hi/_b_lo:.2f} 倍）"
+                             if _b_lo > 0 and _b_hi > 0 else "")
                 _ev2 = (f"{len(_persons)} 名已缴存人员的公积金个人缴存额占其同期应发工资 "
                         f"{min(_ratios):.2f}%~{max(_ratios):.2f}%，低于法定最低缴存比例下限 5%；"
                         f"按法定最低缴存比例反推，缴存基数{_base_span}，而实际月应发工资为 "
-                        f"{min(_sals):,.2f}~{max(_sals):,.2f} 元"
-                        f"（为反推基数的 {min(_sals)/max(_bases):.2f}~{max(_sals)/min(_bases):.2f} 倍）")
+                        f"{_s_lo:,.2f}~{_s_hi:,.2f} 元{_mult_txt}")
                 findings.append(attach_three_piece({
                     "type": "公积金缴存基数低于实际工资",
                     "level": "中风险", "score": 6,
@@ -4341,7 +4352,7 @@ def _domain_fund_flow_mapping(bank_txs, sal_invs, pur_invs, target_entity=None):
         if other_personal:
             other_total = sum(other_personal.values())
             other_names = "、".join(list(other_personal.keys()))
-            id_check_parts.append(f"其他个人付款方（{len(other_personal)}个，合计{other_total:,.2f}元）：{other_names}——身份待核实")
+            id_check_parts.append(f"其他个人付款方（{len(other_personal)}个，合计{other_total:,.2f}元）：{other_names}——身份尚需核实")
         
         if id_check_parts:
             findings.append({
@@ -5044,7 +5055,7 @@ def _domain_red_void_invoice(invoices):
         #   以红线库 `RL-VAT-007.constituents` 为**唯一要件表**；域逐条判定并回填 `index`（命中第几条）
         #   + 本企业 `evidence`；报告只列"本企业涉及的那几条"。
         #   **判定原则：只要该情形存在（≥1 次）即命中；幅度（占比/张数/金额）只作证据、不设门槛** ——
-        #   系统只管"有没有这种情况、情况多大"，够不够格由人工判断（与"触红≠定性"一致）。
+        #   系统只管"有没有这种情况、情况多大"，够不够格由人工判断（与"触碰红线≠定性"一致）。
         constituent_hits = []
         try:
             # ① 存在红冲（红字/作废）即命中；占比只作证据（无门槛）。
@@ -5114,6 +5125,13 @@ def _domain_red_void_invoice(invoices):
                 _ev4 = []
                 if not has_confirm:
                     _ev4.append("未检到《红字发票信息确认单》编号")
+                # ★ 2026-10-04（疑点1 四维自检 D4）：配平**只核销项侧**，且这条口径须显式。
+                #   本条红线讲的是"通过红冲调节**销项税额**"；被红冲的销项蓝票由本企业开出，
+                #   对手方=购方。取得侧（进项）红冲影响的是进项税额抵扣，其配平属
+                #   "进项转出检查范围"（与上文 detail 的声明一致），**不并入本项**——
+                #   否则会出现"红线讲销项调节、要件却由进项侧成立"的错配。
+                #   旧实现写 `for _r in red_list`（含进项），只因进项红冲的对手方（本企业）
+                #   恰好不在销项蓝票字典的键里而被**偶然**跳过 —— 隐式行为，换数据即串味。
                 _blue_amt = {}
                 for _b in invoices:
                     if str(_b.get("direction", "")) != "销项":
@@ -5124,12 +5142,12 @@ def _domain_red_void_invoice(invoices):
                     _blue_amt.setdefault(str(_b.get("buyer", "")), []).append(
                         round(abs(to_number(_b.get("total", 0))), 2))
                 _mismatch = 0
-                for _r in red_list:
+                for _r in _sales_red:
                     _amts = _blue_amt.get(str(_r.get("buyer", "")))
                     if _amts and round(abs(to_number(_r.get("total", 0))), 2) not in _amts:
                         _mismatch += 1
                 if _mismatch:
-                    _ev4.append(f"{_mismatch} 张与同购方蓝字发票金额对不上（配平待核实）")
+                    _ev4.append(f"{_mismatch} 张与同购方蓝字发票金额对不上（配平尚需核实）")
                 if _ev4:
                     constituent_hits.append({"index": 4, "evidence": "；".join(_ev4)})
             # ⑤ 存在跨年度红冲，或金额显著偏大
@@ -5163,7 +5181,12 @@ def _domain_red_void_invoice(invoices):
         #   取得侧红冲影响的是进项税额抵扣（属另一项检查范围）。
         _sales_red_ev = [i for i in red_void if str(i.get("direction", "")) == "销项"]
         _pur_red_ev = [i for i in red_void if str(i.get("direction", "")) != "销项"]
-        detail = (f"共{len(red_void)}张发票涉及红冲/作废：其中红字发票（红冲）{n_red}张、作废{n_void}张。"
+        # ★ 2026-10-04（疑点1 四维自检 D3）：**判据必须写在读数前面**。
+        #   旧版详情只给读数不给判据，而类型名却叫"…数量异常"、要件①又写"占比需评估"
+        #   —— 名（像阈值型）与实（存在即触发、不设门槛）不一致，读者会去找一个不存在的阈值。
+        detail = (f"本项为现象/前提条：只要存在红字发票或作废发票即成立，"
+                  f"不设比例或张数阈值；占比与张数只作证据，够不够格由人工判断。"
+                  f"共{len(red_void)}张发票涉及红冲/作废：其中红字发票（红冲）{n_red}张、作废{n_void}张。"
                   f"按方向拆分：销项（本企业开出）{len(_sales_red_ev)}张、冲减价税合计 "
                   f"{sum(abs(to_number(i.get('total', 0))) for i in _sales_red_ev):,.2f} 元；"
                   f"取得（进项）{len(_pur_red_ev)}张、冲减价税合计 "
@@ -5195,12 +5218,24 @@ def _domain_red_void_invoice(invoices):
             })
 
         findings.append({
-            "type": "红冲/作废发票数量异常",
+            # ★ 2026-10-04（疑点1 D3 收尾）：类型名**去掉"数量异常"**——
+            #   本项判据是"存在即成立、不设比例/张数阈值"（见上方详情首句），
+            #   而"数量异常"暗示存在一个阈值型判据，名与实不符。
+            #   改名后 名（现象情形）/判据（存在即成立）/读数（对题要件证据）三者口径一致。
+            "type": "红冲/作废发票情形",
             "level": "高风险", "score": 8,
             "detail": detail,
             "description": (
-                f"检出{len(red_void)}张涉及红冲/作废的发票（红冲{n_red}张、作废{n_void}张），"
-                f"合计价税合计{total_red:,.2f}元。\n\n"
+                # ★ 2026-10-04（疑点1 D2）：description 必须与 detail **同口径**——
+                #   旧版 detail 已按方向拆分，description 仍写"合计价税合计 -1,285,450.57 元"
+                #   （销项 1,015,900.00 + 进项 269,550.57），同一疑点里两个口径，
+                #   且合成数会被当成"触发依据"金额。措辞与 detail 保持一致，避免锚点漂移。
+                f"检出{len(red_void)}张涉及红冲/作废的发票（红字发票（红冲）{n_red}张、作废{n_void}张）。"
+                f"按方向拆分：销项（本企业开出）{len(_sales_red_ev)}张、冲减价税合计"
+                f"{sum(abs(to_number(i.get('total', 0))) for i in _sales_red_ev):,.2f} 元；"
+                f"取得（进项）{len(_pur_red_ev)}张、冲减价税合计"
+                f"{sum(abs(to_number(i.get('total', 0))) for i in _pur_red_ev):,.2f} 元，"
+                f"不跨方向加总。\n\n"
                 f"【红冲 vs 折扣折让 判定标准】\n"
                 f"· 红冲（红字发票）：因开票有误、销货退回、销售折让等，开具红字发票冲销原蓝票；"
                 f"数电票须凭《红字发票信息确认单》、增值税专用发票须凭《红字增值税专用发票信息表》，属法定更正机制，"
@@ -5222,10 +5257,19 @@ def _domain_red_void_invoice(invoices):
             # 的 _extract_finding_exposure（_is_expo_key 命中「红冲/作废」中文字样且不含
             # total/合计 等上下文排除 token）捕获，进入决策版潜在最大敞口。
             # 计数键用「_笔数」后缀（落入 _BOSS_KEY_EXCLUDE_TOKEN）避免被误判为金额。
+            # ★★ 2026-10-04（疑点1 四维自检 D2）：**不再给"销项+进项合成"的单一金额键**。
+            #   本条红线讲的是"通过红冲调节**销项税额**"，而影响销项税额的只有销项侧；
+            #   合成数（销项 1,015,900.00 + 进项 269,550.57）既不是本项涉案金额，
+            #   又与 detail 的按方向拆分口径矛盾 —— 同一疑点里两个口径（实测被当"触发依据"）。
+            #   改按方向分列，键名仍保留"红冲作废"字样以便企业报告敞口判据（_is_expo_key）
+            #   继续命中；敞口取命中键的**最大值**，故自动落到销项侧，与正文口径一致。
+            #   新增同类红线只需照此写方向键，不必改逻辑。
             "observed_metrics": {
                 "红字发票_笔数": n_red,
                 "作废发票_笔数": n_void,
-                "红冲作废金额": abs(total_red),
+                "红冲作废金额_销项侧": abs(_red_sales_amt),
+                "红冲作废金额_进项侧": sum(
+                    abs(to_number(i.get("total", 0))) for i in _pur_red),
             },
             # ★ 2026-09-27：本企业**实际涉及**的构成要件（逐条判定，只列命中的），
             #   供企业报告「一、涉及的风险事项」直接采用（不再罗列通用要件清单）。
@@ -12545,12 +12589,35 @@ def _ctx(result):
 # ═══════════════════════════════════════════════════════
 
 # 封皮：永远出
-_block("cover", "", lambda ctx: True, lambda ctx: {
-    "company_name": ctx["entity"].get("name", "被查单位"),
-    "company_uscc": ctx["entity"].get("uscc", ""),
-    "report_no": f"税稽字[2026]第{len(ctx['findings'])}号",
-    "files_count": ctx["files_count"],
-})
+def _cover_block_data(ctx):
+    """封皮数据（★ 2026-10-07 质检：文档名称与合规要素必须取**唯一权威**）。
+
+    事故：前端 `report-block-renderer.js` 的封皮标题**硬编码**为
+    「企 业 内 部 税 务 合 规 风 险 分 析 报 告」⇒ 后端把名称配置化为
+    「税务风险扫描工作底稿」后，**前端封面依旧出旧名**（用户报"前端不出新报告"）。
+    现由后端在封皮块里给出 `doc_title` 与合规要素，前端只负责渲染，不再自带模板文案。
+    """
+    d = {
+        "company_name": ctx["entity"].get("name", "被查单位"),
+        "company_uscc": ctx["entity"].get("uscc", ""),
+        "report_no": f"税稽字[2026]第{len(ctx['findings'])}号",
+        "files_count": ctx["files_count"],
+    }
+    try:
+        from engine.report_compliance import compliance_block, compliance_text, document_meta
+        d["doc_title"] = str((document_meta("internal_working_paper") or {}).get("name")
+                             or "税务风险扫描工作底稿")
+        _blk = compliance_block("internal_working_paper")
+        d["security"] = _blk.get("security") or {}
+        d["signatures"] = (_blk.get("signatures") or {}).get("rows") or []
+        d["compliance_text"] = compliance_text(_blk)
+        d["document"] = _blk.get("document") or {}
+    except Exception:
+        d["doc_title"] = "税务风险扫描工作底稿"
+    return d
+
+
+_block("cover", "", lambda ctx: True, _cover_block_data)
 
 # 企业基本画像：有企业名称就出
 _block("entity_profile", "税务合规对象基本情况",
@@ -12689,9 +12756,22 @@ def _compute_processing_score(industry, has_proc_fee, has_goods_diff, has_spec_d
     
     score = min(max(score, 0.0), 1.0)
     return round(score, 2), signals
-    
-    score = min(max(score, 0.0), 1.0)
-    return round(score, 2), signals
+
+
+def _industry_supports_processing(ind):
+    """行业是否具备加工/制造属性（唯一权威：本模块 `_get_processing_keywords`）。
+
+    口径与 `_compute_processing_score` 信号5**完全一致**，避免两处各判一次：
+    纯服务业 → 否；制造/加工倾向 或 部分加工 → 是；其余 → 否。
+    """
+    s = (ind or "").strip()
+    if not s:
+        return False
+    prone, partial, pure_service = _get_processing_keywords()
+    if any(kw in s for kw in pure_service):
+        return False
+    return any(kw in s for kw in prone) or any(kw in s for kw in partial)
+
 
 def _build_methods_data(ctx):
     te = ctx["entity"]
@@ -12704,17 +12784,23 @@ def _build_methods_data(ctx):
     if processing_applicable:
         methods.append("加工环节穿透法")
     methods.append("五步核查法")
+    # ★ 2026-10-07 修复：原引用 5 个未定义变量（detected_industry /
+    #   industry_supports_processing / has_processing_fee / has_pur_sal_diff / has_processing）
+    #   —— 函数重构时丢了局部变量定义，执行到本行即抛 NameError（blocks 报告链路整体失效）。
+    #   现统一从**唯一权威**读取，不重新计算、不二次判定：
+    #     行业 ← te.industry；加工费/进销品名差异/加工适用性 ← te._goods_analysis（pipeline 已算好）
+    ind = te.get("industry", "") or te.get("industry_online", "")
     return {
         "methods": methods,
         "registered_business": te.get("industry_online", "") or te.get("industry", ""),
         "invoice_stats": ctx["invoices"],
         "bank_stats": ctx["bank"],
         "_processing_check": {
-            "industry": detected_industry,
-            "industry_supports": industry_supports_processing,
-            "has_processing_fee": has_processing_fee,
-            "has_pur_sal_diff": has_pur_sal_diff,
-            "lists_processing_method": has_processing,
+            "industry": ind,
+            "industry_supports": _industry_supports_processing(ind),
+            "has_processing_fee": bool(ga.get("has_processing_fee", False)),
+            "has_pur_sal_diff": bool(ga.get("has_goods_mismatch", False)),
+            "lists_processing_method": bool(te.get("_has_processing_signal", False)),
         },
     }
 

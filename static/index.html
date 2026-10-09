@@ -100,21 +100,28 @@
 
 <script src="/static/js/tax-engine-dashboard.js?v=3958b1e87a"></script>
 <script src="/static/js/engine-hub.js?v=589db5b225"></script>
-<script src="/static/js/core.js?v=f6a61a0084"></script>
+<script src="/static/js/core.js?v=75543a89d3"></script>
 <script src="/static/js/constants.js?v=c09acc08fe" defer></script>
-<script src="/static/js/tax-risk-report.js?v=e68b046d78" defer></script>
 <script src="/static/js/tax-risk-rules.js?v=58a784c1d9" defer></script>
-<script src="/static/js/tax-pipeline-pages.js?v=a081ce2f75" defer></script>
-<script src="/static/js/report-block-renderer.js?v=6c5510d2b2" defer></script>
+<script src="/static/js/tax-pipeline-pages.js?v=803fdfaa4a" defer></script>
+<script src="/static/js/report-block-renderer.js?v=640eddfb6d" defer></script>
 <script src="/static/js/report-modules.js?v=c1b5999257" defer></script>
-<script src="/static/js/tax-doc-analysis.js?v=ac5918615b" defer></script>
+<script src="/static/js/tax-doc-analysis.js?v=fe83c84fb0" defer></script>
 <script src="/static/js/system-logs.js?v=611a55f3b3" defer></script>
-<script src="/static/js/file-import.js?v=d4c7da02ed" defer></script>
+    <!-- ★ 2026-10-07：原 `/static/js/file-import.js` 已下线（移入 data/trash/，可恢复）。
+         依据：① 其入口 `showUploadModal` 全仓**无任何调用**（0 处引用）⇒ 整模块不可达；
+              ② 其内部调用 `createModal` / `renderBankTransactions` / `renderSalesInvoices` /
+                 `renderPurchaseInvoices` / `renderBookkeepingInvoices` / `renderInputVATDeductions` /
+                 `renderEmployees` / `renderCustomers` / `renderSuppliers` / `renderDepartments`
+                 **共 10 个函数全仓无定义** ⇒ 一旦被调用即 ReferenceError（闸门 check_js_undefined_calls 拦）；
+              ③ 它还把 `escapeHtml` **重复定义**了一次（弱化版：不转义 `'`、不做展示值归一），
+                 因后加载而**覆盖**了 core.js 的权威实现 —— 属"多头维护"。
+         需要恢复文件导入弹窗时，请先补齐上述 10 个渲染函数再重新引回本行。 -->
 <script src="/static/js/tax-auditor-handbook.js?v=203ac137d8" defer></script>
 <script src="/static/js/tax-knowledge-hub.js?v=060ce37d68" defer></script>
 <script src="/static/js/correction-rules.js?v=4f574b682d" defer></script>
 <script src="/static/js/human-learning-page.js?v=1ccc56897c" defer></script>
-<script src="/static/js/module-headers.js?v=b78f155460" defer></script>
+<script src="/static/js/module-headers.js?v=38c0d6206d" defer></script>
 <!-- CACHE-BUST: 2026071113-REPORT-STANDARDS-FIX -->
 
 

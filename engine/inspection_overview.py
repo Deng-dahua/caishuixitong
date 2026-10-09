@@ -13,9 +13,9 @@
   · 发现 ≠ 确认：线索只能说"存在指向…的差异/异常"，不得说"存在偷税/虚开事实"；
   · 主观故意不作认定：是否属故意偷逃税，须经补证与核实，本轮不下结论；
   · 等级与状态分离：高/中/低是等级，"待核验"是证据状态，不参与排序；
-  · 行业认定待核实：销项品名只作"初步测算口径"，须并列登记口径；
+  · 行业认定尚需核实：销项品名只作"初步测算口径"，须并列登记口径；
   · 边界声明归属：文书性质说明统一在第六章「报告性质和使用说明」给出，本章不再重复（2026-09-27）。
-  · 本章只写**检查分析的事实与由此提出的观点**：不写"待核实"式免责语，不写"见某章/本章不展开"式引导。
+  · 本章只写**检查分析的事实与由此提出的观点**：不写"尚需核实"式免责语，不写"见某章/本章不展开"式引导。
 """
 
 from __future__ import annotations
@@ -226,13 +226,13 @@ def build_inspection_overview(report_data: Any,
     #   外部点评指出全文 25 处「判断可信度约 75%（较高）」无任何公式披露，读者无法判断
     #   这个数从哪来。公式与权重来自唯一权威 `argumentation.CONFIDENCE_WEIGHTS`（此处只转引）。
     try:
-        from engine.argumentation import CONFIDENCE_WEIGHTS as _cw
-        _cal.append(
-            "口径%d 判断可信度＝基准分%.2f＋%.2f×证据链闭合度＋%.2f×环节数据完整度"
-            "＋%.2f×（高风险时）−%.2f×（低风险时）−%.2f×反证已提交比例，"
-            "结果截断在 5%%~95%% 之间；权重固定、可逐项复算（各分项权重与取值见该风险事项的明细）。"
-            % (len(_rows) + 1, _cw["base"], _cw["closure"], _cw["data_completeness"],
-               abs(_cw["high_risk"]), abs(_cw["low_risk"]), abs(_cw["rebuttal_ratio"])))
+        # ★★ P1-2（2026-10-09）**单一权威**：公式文本由 `argumentation.confidence_formula_text()`
+        #   生成（权重取自 `CONFIDENCE_WEIGHTS`），本处只做**转引**，不再自拼一份——
+        #   旧实现两处各写一套，实测已漂移成"证据链闭合度"/"材料齐全程度"两种用词。
+        #   闸门断言本文件**必须**出现 `confidence_formula_text`（转引，禁自写公式字面量）。
+        from engine.argumentation import confidence_formula_text as _cft
+        _cal.append("口径%d 判断可信度：%s（各分项权重与取值见该风险事项的明细）"
+                    % (len(_rows) + 1, _cft()))
     except Exception:
         pass
     P.append(" ".join(_cal))

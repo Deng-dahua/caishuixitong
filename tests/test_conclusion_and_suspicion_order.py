@@ -31,16 +31,22 @@ class TestSuspicionPresentOrder(unittest.TestCase):
     """疑点呈现顺序：由重到轻，表外沉底。"""
 
     def test_table_is_monotonic_light_to_heavy(self):
-        """呈现序必须 极高 < 高 < 中 < 低 < 待核验（数值越小越靠前）。"""
-        chain = ["极高风险", "高风险", "中风险", "低风险", "待核验", "待核", "信息"]
+        """呈现序必须 极高 < 高 < 中 < 低 < 待核验/信息（数值越小越靠前）。
+
+        ★ 2026-10-06：链中不再含「待核」—— 它是**表外值**（合法词表只有
+        `极高/高/中/低/待核验/信息`，见 `engine.risk_levels.LEGAL_LEVELS`），
+        历史事故正是误用「待核」导致发现被整条静默丢弃（见 `audit_doctrine` 注释）。
+        表外值的行为由下面的 `test_out_of_table_levels_sink_to_bottom` 单独锁住。
+        """
+        chain = ["极高风险", "高风险", "中风险", "低风险", "待核验", "信息"]
         vals = [_RISK_PRESENT_ORDER[k] for k in chain]
         self.assertEqual(vals, sorted(vals),
                          "疑点呈现顺序表不是单调递增（越小越靠前），顺序会乱：%s" % vals)
-        # 风险等级四个档位必须各自一档；「待核验/待核/信息」是**证据状态**，刻意同档且沉底。
+        # 风险等级四个档位必须各自一档；「待核验/信息」是**证据状态**，刻意同档且沉底。
         self.assertEqual(len(set(vals[:4])), 4,
                          "极高/高/中/低 四档出现同值（等级之间不再分先后）")
         self.assertEqual(len(set(vals[4:])), 1,
-                         "待核验/待核/信息 三种证据状态应同档沉底（现被拆开）")
+                         "待核验/信息 两种证据状态应同档沉底（现被拆开）")
         self.assertGreater(_RISK_PRESENT_ORDER["待核验"], _RISK_PRESENT_ORDER["低风险"],
                            "「待核验」应排在「低风险」之后（证据状态不参与风险排序）")
 

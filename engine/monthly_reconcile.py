@@ -715,6 +715,7 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
         from engine.payroll_rules import (
             hf_detail_scope, hf_detail_scope_pairs, hf_scope_zh,
             hf_amount as _hf_amt, hf_month as _hf_month, hf_person as _hf_person,
+            HF_SCOPE_UNIT_TOTAL as _HF_UNIT_TOTAL,
         )
         # 按 (人, 月) 建立"明细额 vs 工资表个人扣缴额"配对（判定口径的唯一可靠依据）
         # ★ 2026-10-03 修复（我自己引入的静默崩溃）：这里原写成 `_row_period(_r)`，
@@ -746,23 +747,43 @@ def run_cross_period_reconcile(data: Dict[str, Any]) -> List[Dict]:
         _sal_hf_total = sum(_sal_hf_deduct.values())
         _hf_scope = hf_detail_scope_pairs(_hf_pairs) if _hf_pairs \
             else hf_detail_scope(_hf_detail_total, _sal_hf_total)
-        if _hf_scope == "personal":
+        # ★ 2026-10-07 修复（假疑点复发）：**只有明确判出「单位+个人合计」口径时才做金额对等**。
+        #   公积金明细通常只列**个人**缴存部分（本模块 `hf_amount` 优先取「个人缴存额」），
+        #   而账簿「住房公积金」科目记**单位+个人** ⇒ 相减必然差一个单位部分。
+        #   本模块 `hf_detail_scope_pairs` 的 docstring 已记录过这家企业的同源教训
+        #   （总额法判成"非个人口径" ⇒ 又产出 9 条口径差疑点）。
+        #   本轮复发路径：公积金明细解析此前**静默失败**（解析器缺陷，已修）⇒ 明细合计恒为 0
+        #   ⇒ 口径判为 UNKNOWN；而旧判据**只在 `personal` 时跳过** ⇒ UNKNOWN 照样执行金额对等
+        #   ⇒ 一次性产出 12 条「公积金缴存对等逐月不匹配」假疑点。
+        #   口径纠正（通用规则，适用所有企业）：**金额对等的前提是两侧口径已被证实一致**；
+        #   未证实就不相减，改为如实说明（信息级），人数/基数真实性由域8「工资社保公积金比对」
+        #   承担 —— 与本项目「缺失≠0、取不到不臆测」同一原则。
+        if _hf_scope != _HF_UNIT_TOTAL:
+            _scope_zh = hf_scope_zh(_hf_scope)
+            _why = (
+                "明细列示金额与工资表「公积金个人缴存扣缴」一致，表明明细列的是**个人缴存部分**"
+                if _hf_scope == "personal" else
+                "本轮**无法判定**明细的金额口径（工资表未提供可配对的个人缴存扣缴列，"
+                "或两侧月份/人员对不上）"
+            )
             findings.append({
-                "type": "待核事实：公积金缴存明细与账载口径不一致（不作金额对等）",
+                "type": "待核事实：公积金缴存明细与账载口径未对齐（不作金额对等）",
                 "level": "信息", "score": 1,
-                "detail": f"公积金缴存明细列示金额合计 {_hf_detail_total:,.2f} 元，与工资表"
-                          f"「公积金个人缴存扣缴」合计 {_sal_hf_total:,.2f} 元一致，"
-                          f"表明该明细列的是**个人缴存部分**；账簿「住房公积金」科目通常记"
-                          f"**单位+个人**，两者口径不同，故本项不作金额对等。",
-                "description": "住房公积金缴存明细与账簿记录的**口径不同**（个人部分 vs 单位与个人合计），"
-                               "直接相减会得到「差一个单位缴存部分」的假差额。人数与缴存基数的真实性"
-                               "由「工资/社保/公积金三方比对」负责，本项不重复判定。",
-                "how_found": "以工资表『公积金个人缴存扣缴』合计为基准，与公积金缴存明细合计比对，"
-                             "两者一致即判定明细为个人口径，随后跳过金额对等。",
-                "tax_impact": "不产生税务影响；仅为口径说明。",
+                "detail": f"公积金缴存明细列示金额合计 {_hf_detail_total:,.2f} 元"
+                          f"（口径判定：{_scope_zh}），而账簿「住房公积金」科目通常记"
+                          f"**单位+个人**；{_why}。"
+                          f"两者口径不一致时直接相减会得到「差一个单位缴存部分」的**假差额**"
+                          f"（实测约 1,200 元 vs 2,400 元），故本项**不作金额对等**。",
+                "description": "住房公积金缴存明细与账簿记录的**口径需先归一**再比较（个人部分 vs 单位与个人"
+                               "合计）。本项不产出金额差异疑点；人数与缴存基数的真实性由"
+                               "「工资/社保/公积金三方比对」负责，本项不重复判定。",
+                "how_found": "以工资表『公积金个人缴存扣缴』为基准，与公积金缴存明细按 (人员, 月份) 配对"
+                             "判定明细口径（唯一权威 `payroll_rules.hf_detail_scope_pairs`）；"
+                             "仅当判出「单位与个人合计」时才执行金额对等。",
+                "tax_impact": "住房公积金不属于税收；口径未对齐不构成少缴认定，亦不产生税务影响。",
                 "policy_ref": "《住房公积金管理条例》第十六条、第十八条（单位与个人分别缴存、比例各自适用）。",
-                "suggestion": "如账面「住房公积金」科目金额与公积金中心《单位缴存明细》原件不符，"
-                              "请提供原件核对单位缴存部分的入账完整性。",
+                "suggestion": "如需核对单位缴存部分的入账完整性，请提供公积金管理中心"
+                              "《单位缴存明细》原件，与账簿「住房公积金」科目逐月核对。",
                 "category": "住房公积金", "source_chain": "公积金口径说明",
                 "redline_id": "", "indicator": "scope_not_comparable",
                 "indicator_value": _hf_detail_total,

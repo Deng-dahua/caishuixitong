@@ -197,38 +197,142 @@ def _material_satisfied(need: str, present) -> bool:
     return any(m in present for m in members)
 
 
-def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
+# ── 金税四期量化指标的数据依赖（**唯一权威**）────────────────────────────────
+# ★ 2026-10-06：原为 `build_coverage` 内的局部变量 `_IND_SRC`，
+#   导致任何外部审计脚本无法引用同一张表（只能自己再抄一份 = 同一概念两处实现）。
+#   提到模块级：既是本模块的依赖声明，也是 `scripts/_audit_executed_items.py` 的取数依据。
+_IND_SRC: Dict[str, list] = {
+    "revenue_declaration_ratio": ["sal_invs", "tax_declarations"],
+    "unbilled_revenue_ratio": ["sal_invs", "tax_declarations"],
+    "cost_income_ratio": ["trial_balance"],
+    "purchase_invoice_match": ["pur_invs", "trial_balance"],
+    "expense_revenue_ratio": ["trial_balance"],
+    "travel_entertainment_ratio": ["trial_balance", "vouchers"],
+    "receivable_turnover": ["trial_balance", "sal_invs"],
+    "inventory_turnover": ["trial_balance"],
+    "asset_liability_ratio": ["trial_balance"],
+    "operating_cashflow_quality": ["bank_txs", "trial_balance"],
+    "cash_sales_match": ["bank_txs", "trial_balance"],
+    "owner_equity_change": ["trial_balance"],
+    "revenue_growth_surge": ["__cross_period__"],
+    "cost_surge_detect": ["__cross_period__"],
+}
+
+
+def build_coverage(engine_data: Optional[Dict] = None,
+                   executions: Optional[List[Dict]] = None) -> Dict:
     """生成本轮**分析覆盖清单**。
+
+    :param engine_data: 与本轮分析同源的输入数据（各 source 键）
+    :param executions: `run_verified_rules()` 返回的 `executions`（**执行回执**）。
+        ★ 2026-10-06：不传则不臆断"已执行"，只标 `executed_basis="资料齐备（无执行回执）"`。
 
     返回：
         {
           "total": 应检查项总数,
-          "executed": 资料齐备、可执行的项数,
+          "executed": **真的执行了**的项数（原子规则以执行回执为准）,
           "blocked": 因缺资料不可执行的项数,
+          "not_executed": 资料齐备、引擎却没执行的项数（★ 应为 0；非 0 即系统缺陷，非企业问题）,
           "executed_ratio": 0~1,
           "blocked_items": [ {name, kind, missing: [中文资料名], effect} ],
+          "not_executed_items": [ {…, run_status, executed_basis} ],
           "missing_sources": {中文资料名: 阻碍的检查项数},
-          "summary_text": "一句话结论（含"结论基于不完整资料"提示）",
+          "summary_text": "一句话结论",
         }
 
     铁律（C2）：`blocked_items` 必须逐项列出、不得为空缺省；
     宁可说"这项没查、因为缺 X"，也绝不静默略过。
+    ★ 铁律（C4，2026-10-06）：**"资料齐备" ≠ "已执行"**。
+      `executed` 只能由**执行回执**证明；查不到回执就必须如实降级为"未执行"，
+      绝不用"数据在"冒充"跑过了"——那正是覆盖率虚报的根因。
     """
-    from engine.verified_rule_engine import VERIFIED_RULE_CATALOG
+    from engine.verified_rule_engine import VERIFIED_RULE_CATALOG, _spec_applies_to_entity
     from engine.tax_redlines import all_redlines
 
     ed = engine_data or {}
     items: List[Dict] = []
 
+    # ★★★ 2026-10-05（用户要求「一键分析必须执行100%覆盖率；能查的全查完」）：
+    #   **业态剔除必须在下标构建之前算出来，且三段（原子规则/税务指标/税务红线）全用**。
+    #   原实现只在**税务红线段**用了 `_na_docs`，原子规则段与税务指标段没用 ⇒
+    #   服务型企业被算了「进销存台账」（8 项）、「入库单」（5 项）、「存货台账」（5 项）
+    #   等**本业态天然不适用**的检查项进分母，覆盖率被虚低到 46%，
+    #   且企业永远补不齐（它本来就没有实物货物流转）。
+    #   判据唯一权威：`industry_resolver.not_required_materials`（业态 skip_domains 驱动）。
+    _na_docs: set = set()
+    try:
+        from engine.industry_resolver import not_required_materials as _nrm
+        _te = ed.get("target_entity") or {}
+        _ind = str((_te or {}).get("industry_resolved") or (_te or {}).get("industry") or "") \
+            or str((ed.get("company_profile") or {}).get("industry") or "")
+        if _ind:
+            _na_docs = {str(x) for x in (_nrm(_ind)[0] or ())}
+    except Exception:
+        _na_docs = set()
+
+    def _na(s: str) -> bool:
+        """该资料在本业态**不适用**（不进分母、也不算缺口）。"""
+        return _SOURCE_ZH.get(s, s) in _na_docs
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # ★★★ 2026-10-06 执行回执：「资料齐备」**不等于**「已经跑过」
+    #   用户原话：「一键分析按钮必须执行100%覆盖率」「能查的全查完即可」。
+    #   而 `executed` 原定义为 `len(items) - len(blocked)`，其中
+    #   `blocked := missing 非空`、`missing := 声明的 required_sources 里 engine_data 没数据`——
+    #   它证明的只是「声明所需资料本轮齐备」，**不能**证明该项被引擎执行过。
+    #   二者之间还隔着执行器的口径差（见下方 ①）与运行期异常。
+    #   修法：判定"缺什么 / 跑没跑"一律以**执行回执**为准（与执行器同一权威）。
+    #   回执形如 `[{"rule_id": "VR001", "status": "triggered"|"completed_not_triggered"
+    #                |"not_run_missing_data"|"skipped_industry"|"execution_error", ...}]`
+    # ══════════════════════════════════════════════════════════════════════════
+    _RAN = ("triggered", "completed_not_triggered")
+    _BASIS = {
+        "not_run_missing_data": "引擎未执行：缺执行器认定的必需数据源",
+        "skipped_industry": "引擎未执行：本业态不适用（行业门槛跳过）",
+        "execution_error": "引擎执行异常（见 executions[].message）",
+    }
+    _rcpt = {str((e or {}).get("rule_id") or ""): (e or {}) for e in (executions or [])}
+    _has_receipt = executions is not None
+
     # ① 已验原子规则（73 条）：按其声明的 required_sources 判定
     catalog = VERIFIED_RULE_CATALOG
     catalog = catalog if isinstance(catalog, list) else list(catalog.values())
+    _te = ed.get("target_entity") or {}
     for r in catalog:
         if not isinstance(r, dict):
+            continue
+        # ★★ 2026-10-06（用户：「能查的全查完即可」）：**适用性判定必须与执行器同源**。
+        #   执行器 `run_verified_rules` 在 `_spec_applies_to_entity(spec, target_entity)`
+        #   为假时记 `skipped_industry`（该规则对本企业不适用，本就不该跑）。
+        #   本模块原实现**不做这道闸**，于是服务业企业被算了
+        #   「生产用能源消耗」（VR014，industries 仅 A/B/C/D）、
+        #   「进销物耗投入产出比」（VR023）等**本业态规则级不适用**的项进分母，
+        #   且因资料"看得到"（进项发票）反被判为 `executed` ⇒ **覆盖率虚报**。
+        #   判据唯一权威：`verified_rule_engine._spec_applies_to_entity`（与执行器同一函数）。
+        if not _spec_applies_to_entity(r, _te):
             continue
         srcs = [str(s) for s in (r.get("required_sources") or []) if s]
         if not srcs:
             continue
+        # ★ 2026-10-05：**先剔除本业态不适用的源**；若该检查项全部源都不适用，
+        #   说明"这项检查本业态天然没有" ⇒ **不进分母**（不是"没查"，也不是"缺资料"），
+        #   否则服务型企业会永远挂着一批它不可能提供的资料，覆盖率被永久虚低。
+        srcs = [s for s in srcs if not _na(s)]
+        if not srcs:
+            continue
+        # ── ★★ 2026-10-06 判缺口径必须与执行器一致 ──────────────────────────────
+        #   执行器 `run_verified_rules` 按 `required_sources` 的**原始声明**判缺
+        #   （不剔业态不适用源）。若本模块用"剔过 `_na` 之后"的清单判缺，两套口径必然分叉：
+        #   实测 VR044「库存积压与收入背离」声明 `[inventory_ledger, declaration, sal_invs]`，
+        #   服务业企业 `inventory_ledger` 不适用被剔 ⇒ 本模块判 `missing=[]` 计"已执行"，
+        #   执行器却因缺 `inventory_ledger` 记 `not_run_missing_data` ⇒ **声称查了、其实没跑**。
+        #   现以**执行回执**为准（同一权威）；无回执时才退回本模块探针。
+        #   规则：执行器缺的源若**全是本业态不适用资料** ⇒ 该检查对本业态不成立 ⇒ 不进分母。
+        _rec = _rcpt.get(str(r.get("id") or "")) if _rcpt else None
+        if _rec is not None and str(_rec.get("status") or "") == "not_run_missing_data":
+            _m_raw = [str(x) for x in (_rec.get("missing_sources") or [])]
+            if not [s for s in _m_raw if not _na(s)]:
+                continue          # 缺的全是业态不适用 ⇒ 本项对本业态不成立
         missing = [s for s in srcs if not _has(ed, s)]
         items.append({
             "kind": "原子规则",
@@ -240,22 +344,6 @@ def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
 
     # ② 金税四期量化指标（14 项）：逐项声明其数据依赖
     from engine.financial_analyzer import TAX_AUDIT_INDICATORS
-    _IND_SRC = {
-        "revenue_declaration_ratio": ["sal_invs", "tax_declarations"],
-        "unbilled_revenue_ratio": ["sal_invs", "tax_declarations"],
-        "cost_income_ratio": ["trial_balance"],
-        "purchase_invoice_match": ["pur_invs", "trial_balance"],
-        "expense_revenue_ratio": ["trial_balance"],
-        "travel_entertainment_ratio": ["trial_balance", "vouchers"],
-        "receivable_turnover": ["trial_balance", "sal_invs"],
-        "inventory_turnover": ["trial_balance"],
-        "asset_liability_ratio": ["trial_balance"],
-        "operating_cashflow_quality": ["bank_txs", "trial_balance"],
-        "cash_sales_match": ["bank_txs", "trial_balance"],
-        "owner_equity_change": ["trial_balance"],
-        "revenue_growth_surge": ["__cross_period__"],
-        "cost_surge_detect": ["__cross_period__"],
-    }
     for key, meta in (TAX_AUDIT_INDICATORS or {}).items():
         need = _IND_SRC.get(key) or ["trial_balance"]
         if "__cross_period__" in need:
@@ -264,6 +352,10 @@ def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
                 "missing": ["上期（跨期）报表"],
                 "effect": "单期资料无法计算同比增幅，需提供上期报表后方可判定。",
             })
+            continue
+        # ★ 2026-10-05：同 ①，本业态不适用的源要剔除；全不适用则不进分母。
+        need = [s for s in need if not _na(s)]
+        if not need:
             continue
         missing = [s for s in need if not _has(ed, s)]
         items.append({
@@ -277,21 +369,20 @@ def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
     #   若仍列为"缺失"，受限清单会永远挂着一项企业根本不可能提供的资料，
     #   让"资料齐全"永远达不到、也让"该红线检查受限"变成无根据的指责。
     #   判据唯一权威：`industry_resolver.not_required_materials`（业态 skip_domains 驱动）。
-    _na_docs: set = set()
-    try:
-        from engine.industry_resolver import not_required_materials as _nrm
-        _te = ed.get("target_entity") or {}
-        _ind = str((_te or {}).get("industry_resolved") or (_te or {}).get("industry") or "") \
-            or str((ed.get("company_profile") or {}).get("industry") or "")
-        if _ind:
-            _na_docs = {str(x) for x in (_nrm(_ind)[0] or ())}
-    except Exception:
-        _na_docs = set()
+    #   （`_na_docs` 已在函数开头算出，此处不再重复计算 —— 见上方 ★★★ 2026-10-05 说明。）
 
     # ③ 税务红线（68 条）：红线是"命中"概念，但可按其 required_materials 判定
     #    "本轮是否具备判定条件"——不具备则不可能是"排除"，只能说"未能检查"。
     for rl in all_redlines():
         mats = [str(m) for m in (rl.get("required_materials") or []) if m]
+        if not mats:
+            continue
+        # ★ 2026-10-05（用户：「能查的全查完即可」）：**本业态不适用 ⇒ 该红线不进分母**。
+        #   原实现只把不适用资料从 `missing` 里剔掉，检查项**本身仍进 items** ⇒
+        #   服务型企业被算了「运输费与产销规模背离」「库存积压与收入背离」这类
+        #   只依赖"运输合同/进销存台账"（本业态天然没有）的检查项，
+        #   missing 剔完为空 ⇒ 反被算成"已执行"，既不准也掩盖了真实覆盖情况。
+        mats = [m for m in mats if m not in _na_docs]
         if not mats:
             continue
         _present = ed.get("_available_materials") or []
@@ -307,8 +398,47 @@ def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
             "effect": "所需资料不齐时，该红线既不能认定、也不能排除，属检查受限。",
         })
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # 逐项打「执行回执」标记（判据统一在此，勿在各段各写一份）
+    # ══════════════════════════════════════════════════════════════════════════
+    for it in items:
+        if it.get("kind") != "原子规则":
+            # 指标/红线暂无独立回执通道：如实标注口径，不冒充"引擎已执行"。
+            it["executed_basis"] = "资料齐备（非回执口径）"
+            continue
+        rec = _rcpt.get(it.get("id") or "")
+        if rec is None:
+            it["run_status"] = ""
+            it["executed_basis"] = ("资料齐备（未取得执行回执）" if _has_receipt
+                                    else "资料齐备（无执行回执通道）")
+            continue
+        st = str(rec.get("status") or "")
+        it["run_status"] = st
+        it["executed_basis"] = ("引擎已执行（%s）" % st) if st in _RAN else _BASIS.get(
+            st, "引擎未执行：" + (st or "状态缺失"))
+
+    def _really_executed(it: Dict) -> bool:
+        """该项是否**真的跑了**。
+
+        · 原子规则：仅当执行回执为 `triggered`/`completed_not_triggered`。
+          ★ 未传回执时（`_has_receipt=False`）退回"资料齐备"口径并保留如实标注，
+            绝不把"没回执"当成"已执行"再对外声称。
+        · 指标/红线：无回执通道，按资料齐备计（口径写在 `executed_basis`）。
+        """
+        if it.get("kind") != "原子规则":
+            return True
+        if not _has_receipt:
+            return True
+        return str(it.get("executed_basis") or "").startswith("引擎已执行")
+
     blocked = [it for it in items if it["missing"]]
-    executed = len(items) - len(blocked)
+    _blocked_ids = {id(it) for it in blocked}
+    # 未执行 = 资料齐备、且不在缺资料桶里，但执行回执证明没跑（或压根没回执）
+    not_executed = [it for it in items
+                    if id(it) not in _blocked_ids and not _really_executed(it)]
+    executed_items = [it for it in items
+                      if id(it) not in _blocked_ids and _really_executed(it)]
+    executed = len(executed_items)
     miss_stat: Dict[str, int] = {}
     for it in blocked:
         for m in it["missing"]:
@@ -318,7 +448,7 @@ def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
     ratio = round(executed / len(items), 4) if items else 0.0
     if not items:
         summary = ""
-    elif not blocked:
+    elif not blocked and not not_executed:
         summary = f"本轮应检查 {len(items)} 项，现有资料已支撑全部检查项执行。"
     else:
         # ★ 2026-09-25 语义纠正（用户宗旨）：
@@ -334,14 +464,22 @@ def build_coverage(engine_data: Optional[Dict] = None) -> Dict:
                if top_miss else "")
             + "上述待补事项在资料补齐前一律不作违规认定；补齐后重新分析即可得到完整结论。"
         )
+        if not_executed:
+            # ★ 这类不是企业的问题，是**系统自身**的问题，必须独立点名、不得混进"待补资料"。
+            summary += (f"⚠ 另有 {len(not_executed)} 项资料齐备却未取得执行回执，"
+                        f"属系统执行缺口，须逐项核因（不得对外表述为已检查）。")
 
     return {
         "total": len(items),
         "executed": executed,
         "blocked": len(blocked),
+        "not_executed": len(not_executed),
         "executed_ratio": ratio,
         "awaiting_self_proof": len(blocked),
+        "items": items,
+        "executed_items": executed_items,
         "blocked_items": blocked,
+        "not_executed_items": not_executed,
         "missing_sources": dict(top_miss),
         "summary_text": summary,
     }

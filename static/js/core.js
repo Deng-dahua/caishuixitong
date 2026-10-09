@@ -190,7 +190,6 @@ const pages = {
   'social-security': '社会保险费',
   'housing-fund': '住房公积金',
   'bookkeeping-invoices': '记账发票',
-  'tax-risk-report': '账务风险分析报告',
   'tax-doc-analysis': '资料风险分析报告',
   'system-logs': '系统日志',
   'ai-interaction': 'AI交互',
@@ -460,7 +459,15 @@ window.enterApp = enterApp;  // 确保全局可访问
   var coList = window._companiesForPick || [];
   var co = coList.find(function(c){ return String(c.id) === String(companyId); });
   if (coUsccEl && co) coUsccEl.textContent = co.uscc || '';
-  await loadCompanies();
+  // ★ 2026-10-07 修复（同「未定义名」一类）：此处原为 `await loadCompanies();`，
+  //   而本文件**只有 `loadCompaniesRaw()`**（获取）——`loadCompanies` 从未定义
+  //   ⇒ `ReferenceError: loadCompanies is not defined` 抛在 `enterApp` 内
+  //   ⇒ 后面三行（期间/科目加载、`navigateTo(lastPage)`）**全部不执行**
+  //   ⇒ 登录后不跳转到上次页面、侧栏信息不刷新（实测：控制台「初始化失败 ReferenceError」）。
+  //   语义澄清：公司列表**获取**的唯一权威是 `loadCompaniesRaw()`；
+  //   列表**渲染**由各入口自己负责（见 `exitCompany` 的「fetch → showCompanyPick」两步式）。
+  //   本行只需保证缓存就绪即可。
+  window._companiesForPick = (await loadCompaniesRaw()) || window._companiesForPick || [];
   await loadCurrentPeriod();
   await loadAllAccounts();
   const lastPage = localStorage.getItem('lastPage') || 'tax-doc-analysis';
@@ -797,7 +804,6 @@ function navigateTo(page) {
     case 'company-overview':    _sR(container, 'renderCompanyOverview'); break;
     case 'compliance-workbench': _sR(container, 'renderComplianceWorkbench'); break;
     case 'company':                window.location.href = '/select-company'; break;
-    case 'tax-risk-report':        _sR(container, 'renderTaxRiskReport'); break;
     case 'tax-doc-analysis':       _sR(container, 'renderTaxDocAnalysis'); break;
     case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
     case 'ai-interaction':

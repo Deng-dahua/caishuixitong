@@ -16,7 +16,7 @@ from engine.pipeline import _aggregate_invoices_by_no, _dedupe_cross_file_invoic
 from engine.verified_rule_engine import _scan_supplier_geo, _province_of
 from engine.domain_analysis import _domain_supply_chain_deep
 
-COMPANIES = {"1": "深圳海更数字传媒有限公司", "3": "北京桦橙佳业商贸有限公司"}
+COMPANIES = {"1": "某传媒企业示例公司", "3": "北京桦橙佳业商贸有限公司"}
 
 
 def load(cid):

@@ -5,6 +5,9 @@ from __future__ import annotations  # 延迟注解求值：允许在类型注解
 import json
 from typing import Dict, List, Any, Optional
 from .base import BaseAgent
+# ★ 2026-10-07 修复：本模块两处 `amount_of(ei)` 引用未定义名（拆分时丢了 import）
+#   ⇒ 执行到即 NameError。行内取金额一律用唯一权威 `numparse.amount_of`。
+from engine.numparse import amount_of
 # [merged] # DialogAgent
 # [merged] # RuleReasonerAgent
 # [merged] # LearningAgent

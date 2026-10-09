@@ -1,0 +1,69 @@
+{
+  "schema": "caishuixitong.vocab_exemptions/1",
+  "version": "1.0.0",
+  "updated": "2026-10-09",
+  "note": "★ 禁用词表 × 授权词表的**已登记豁免**（唯一权威）。闸门 `check_vocab_conflict` 判据：两表**子串级交集**必须为空 —— 非空时，每一处交集都必须在本表登记（含 reason + handler），否则 ERROR。新增一张词表/一个词元而产生新交集时，只在本表加一行数据，不改闸门判据。",
+  "why": "本项目高发病根「同一概念两处维护」在词表层表现为：**清洗层要删的词，恰是术语层要留的词**。实测「待核」既在 FORBIDDEN_VAGUE_TERMS（要删）又在授权术语「待核事项」里（要留）——若不登记豁免，两个模块的判据必然互相打架，只能靠代码里的隐式占位豁免勉强共存；隐式豁免无出处、无理由 ⇒ 下次改词表必然复发。本表把「为什么可以共存、由谁裁决、行为级闸门在哪」显式登记。",
+  "relation_legend": {
+    "equal": "禁用词与授权词**逐字相同** —— 必须解释为何同一串在一边禁用、在一边授权",
+    "substring": "禁用词是授权词（或反之）的**子串** —— 通常是术语/枚举值的组成部分"
+  },
+  "exemptions": [
+    {
+      "id": "VX-01",
+      "forbidden": "待核",
+      "forbidden_table": "report_wording.FORBIDDEN_VAGUE_TERMS",
+      "authorized": "待核事项",
+      "authorized_table": "conclusion_grades.term_authority.terms",
+      "relation": "substring",
+      "reason": "「待核」是被禁的**状态描述词**（用户口径：报告不得出现「待核」类模糊词）；而 L2（待核线索）的**授权术语**就是「待核事项」。二者是子串关系：作为独立状态值时必须清洗，作为授权术语的一部分时必须保留。",
+      "handler": "engine/report_wording.py::vague_hits —— 判定前先 `_authoritative_terms()` **占位保护**授权术语，再扫 FORBIDDEN_VAGUE_TERMS；`scrub_vague` 同序。",
+      "gate": "check_vague_wording_single_source"
+    },
+    {
+      "id": "VX-02",
+      "forbidden": "待核",
+      "forbidden_table": "report_wording.FORBIDDEN_VAGUE_TERMS",
+      "authorized": "待核验",
+      "authorized_table": "risk_levels.LEGAL_LEVELS",
+      "relation": "substring",
+      "reason": "「待核验」是 `level_vocab.evidence_states` 里**合法登记的证据状态档**（等级枚举值之一，不可改写）；而裸词「待核」是被禁的模糊词。子串关系：等级枚举值必须原位透出，自然语言里的裸「待核」必须清洗。",
+      "handler": "engine/report_wording.py::_GLOBAL_REGEX_RULES —— 裸词兜底用的正则是 `待核(?!验|实)`，**显式排除**「待核验/待核实」，故枚举值不会被误改。",
+      "gate": "check_no_vague_wording"
+    },
+    {
+      "id": "VX-03",
+      "forbidden": "待核验",
+      "forbidden_table": "report_wording.FORBIDDEN_VAGUE_TERMS",
+      "authorized": "待核验",
+      "authorized_table": "risk_levels.LEGAL_LEVELS",
+      "relation": "equal",
+      "reason": "★ **逐字相同的真冲突**，必须显式裁决：`FORBIDDEN_VAGUE_TERMS` 列「待核验」是为了清洗**自然语言状态描述**（用户口径：不得出现待核实/待核验），而 `risk_levels.LEGAL_LEVELS` 列「待核验」是**风险等级枚举值**（`evidence_states` 已知的合法档）。同一串在「等级字段值」位置合法、在「叙述文本」位置禁用 —— 判据无法从字符串本身区分，故必须登记豁免。",
+      "handler": "① 清洗层：`scrub_vague` 只改**整串就是状态词**的场合（步骤③），而等级枚举值是结构化字段（`plain_language` 键黑名单保护），不进入文本清洗；② 判据层：`check_report_vague_wording` 扫的是**正文叙述域**（`quality_gates.report_surface`），不把 `risk_level` 字段值当正文。",
+      "gate": "check_no_vague_wording + check_report_metrics_single_source（等级取数权威）",
+      "risk_note": "⚠ 本项是全表**唯一**的 equal 型冲突，属高风险共存：若将来要求报告正文彻底不出现「待核验」三字，则必须**改等级词表**（`config/conclusion_grades.json::level_vocab.evidence_states`）而不是放宽本豁免。"
+    },
+    {
+      "id": "VX-04",
+      "forbidden": "待核验事实：",
+      "forbidden_table": "report_wording.FORBIDDEN_VAGUE_TERMS",
+      "authorized": "待核验",
+      "authorized_table": "risk_levels.LEGAL_LEVELS",
+      "relation": "substring",
+      "reason": "「待核验事实：」是**事项命名前缀**（要剥掉），其子串「待核验」是等级枚举值（要保留）。剥离前缀与保留枚举值是两个不同动作，互不冲突。",
+      "handler": "engine/report_wording.py::scrub_vague 步骤② —— 正则 `待核(?:实|验)?事实：` **全文剥离该前缀**（含句中引用），与等级枚举值无关。",
+      "gate": "check_no_vague_wording"
+    },
+    {
+      "id": "VX-05",
+      "forbidden": "已认定",
+      "forbidden_table": "conclusion_grades.veto_rules.determinative_words",
+      "authorized": "已认定事实",
+      "authorized_table": "conclusion_grades.term_authority.terms",
+      "relation": "substring",
+      "reason": "「已认定」是**一票否决的定性词**（L1/L2 出现即违规定性）；而 L3（风险事项成立）的**授权术语**是「已认定事实」（L3 `allow_determinative_words=true`，术语层面合法）。子串关系：术语本身合法，但它**内含**一个定性词 ⇒ 必须靠「等级×术语」联动裁决，不能靠字符串匹配。",
+      "handler": "engine/conclusion_grade.py::contains_determinative（否定语境感知，`NEGATION_MARKERS` 唯一权威）+ `effective_grade_id` / `cap_level_for_grade`（术语与等级联动：L1/L2 一旦出现定性即降级）。",
+      "gate": "check_conclusion_wording_authority"
+    }
+  ]
+}

@@ -45,7 +45,7 @@ from engine.sentencekit import clamp_text  # noqa: E402  ★ 2026-09-25 报告�
 # ★ 2026-09-25 新增（真实误报事故）：经营范围表述的是"**可以**做什么"，不是"**实际在**做什么"。
 #   原实现（Step 3）把 `business_scope + entity_name` 拼成一串，遍历 65 个行业基准键，
 #   **哪个键是这串的子串就用哪个**（且取插入顺序最靠前者，结果不可解释）。
-#   实例：深圳海更数字传媒有限公司的经营范围含"橡胶制品销售" → 命中基准键"橡胶制品"
+#   实例：某传媒企业示例公司的经营范围含"橡胶制品销售" → 命中基准键"橡胶制品"
 #   → 用橡胶制品业毛利率区间（12%~30%）判一家传媒/商贸公司"毛利率明显偏低"，
 #   还附上"可能隐瞒收入/虚列成本"的方向。这是纯误报，严重损害报告可信度。
 #   修法：先判业态 —— 只有"制造/生产/加工"类经营范围才允许落到制造业细分基准；
@@ -448,7 +448,7 @@ def build_inspector_reasoning(report_data):
     parts.append("三、哪些线索最要紧")
     if key_clues:
         for i, c in enumerate(key_clues[:8], 1):
-            seg = f"{i}. {c['type']}（{c['level'] or '待核实'}）"
+            seg = f"{i}. {c['type']}（{c['level'] or '待核验'}）"
             if c["opposing"]:
                 seg += f"——可能的正常解释：{'、'.join(c['opposing'][:3])}"
             parts.append(seg)

@@ -91,7 +91,7 @@ def _generate_innocence_hypotheses(ftype, detail):
         "虚开发票": ["真实交易但合同与发票主体不一致", "代开发票但业务真实", "关联交易有商业实质"],
         "偷税": ["计算错误导致的申报差异", "政策理解偏差导致的少报", "新会计对税法不熟悉"],
     }
-    default = ["合法商业安排待核实", "行业特殊惯例待确认", "第三方证据待补充"]
+    default = ["合法商业安排尚需核实", "行业特殊惯例待确认", "第三方证据待补充"]
     for key, hyps in mapping.items():
         if key in ftype:
             hypotheses = hyps

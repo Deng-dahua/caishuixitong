@@ -47,6 +47,36 @@ _INTERNAL_TYPE_HINTS: Tuple[str, ...] = (
     "系统", "引擎", "程序", "口径核对", "章节", "校验",
 )
 
+# ★★ 2026-10-05（用户追问「真的有 85 个风险啊？」→ 核实结论：**不是**）。
+#   台账把 `all_findings` 近乎原样平铺，其中大量是**"查不了"的信息缺口**，
+#   不是企业的涉税风险：
+#     「合同文件缺失」「财务报表缺失」「企业所得税申报表缺失」
+#     「资金流概览」「进销存跳过-服务行业」「资料完备度综合评估」
+#   把它们当"风险事项"列给企业，等于让企业为"没交资料"本身背风险，
+#   也让真正的风险（19 条带等级的）被淹没。
+#   处置：这类**不进风险清单**，改归「因资料缺失而无法完成的检查」章
+#   （已在报告第四章，企业照样能看到、照样要补，但**不冒充风险**）。
+#   词表数据驱动，新增同类只加一行。
+_GAP_NOT_RISK_PATTERNS: Tuple[str, ...] = (
+    "缺失", "未提供", "看不到", "无法核", "跳过", "概览", "完备度",
+    "待完善", "尚未取得",
+)
+
+# ★★ 2026-10-04（疑点10-21 合并批次 ⑭）：**"没有可引用法条的事项"**（法条可引用性判据）。
+#   与上面 `_INTERNAL_TYPE_PATTERNS`（**台账准入**：哪些条目不进企业版台账）是
+#   「同一 doctrine 的两个关注点」，但**判定维度不同、不能合并**：
+#     · 台账准入关心"读者会不会以为又多了一件事"；
+#     · 法条可引用性关心"这项结论本身是不是一项法律评价"。
+#   实测事故：门禁 M06（score≥8 且缺 law_ref ⇒ 阻断）把 21 项**元发现**（内部一致性自检
+#   「结论自洽-…」、归因叙事「Causal: …」、「综合定性结论」「资料完备度综合评估」）一律
+#   判"缺少法律依据" ⇒ 整份报告被打成「合规门禁阻断：21 项阻断性违规」——
+#   这些条目根本不是税务主张（没有也不该有一条税法去对应它），要它引法条既不可能也无意义。
+#   ⇒ 它们是**系统自检结论**，不是法律适用对象：不计 M06，更不得阻断发布。
+_NO_CITATION_TYPE_PATTERNS: Tuple[str, ...] = (
+    "结论自洽", "综合定性结论", "资料完备度", "能力边界",
+    "方法论", "报告章节", "质量检查", "检查程序待完善",
+)
+
 # 自引用循环检测：同一子句在"需补自证资料"里重复出现即视为模板套模板
 _SELF_REF_MIN_REPEAT = 3
 
@@ -79,6 +109,34 @@ def is_enterprise_risk_item(finding: Dict[str, Any]) -> Tuple[bool, str]:
     )
     if blob and _is_self_referential(blob):
         return False, "需补自证资料为自引用循环文本（模板套模板，无行动指引）"
+    # ★ 2026-10-05：**资料缺口不是风险**（用户质疑"真的有 85 个风险？"后核实）。
+    #   「合同文件缺失」这类是"本轮查不了"，归「无法完成的检查」章，不进风险清单。
+    for g in _GAP_NOT_RISK_PATTERNS:
+        if g in t:
+            return False, f"资料/能力缺口（命中「{g}」）——不是涉税风险，归未完成检查"
+    return True, ""
+
+
+def is_citation_expectable(finding: Dict[str, Any]) -> Tuple[bool, str]:
+    """该发现是否**应当引用可引用的法律依据**（单一权威，禁在别处另写一份名单）。
+
+    返回 `(是否应当具备可引用法条, 说明)`：
+      · True  —— 涉税风险事项/非税管理事项，缺 law_ref 时 M06 可判违规；
+      · False —— 系统自检结论或元发现（「结论自洽-…」「Causal: …」「综合定性结论」等），
+                它们没有对应的税法条款可引，**不要求法条、不判 M06、更不得阻断发布**。
+
+    注意：本判据只回答"法条可引用性"，**不决定**该条目是否进企业版台账
+    （那仍是 `is_enterprise_risk_item` 的关注点）。
+    """
+    if not isinstance(finding, dict):
+        return False, "非字典"
+    t = _norm(finding.get("type"))
+    for p in _NO_CITATION_TYPE_PATTERNS:
+        if p in t:
+            return False, f"系统自检/元发现条目（命中「{p}」），无对应法条可引"
+    # 归因叙事类：类型名以「Causal: 」开头（由 phase4 归因引擎产出）
+    if t.lower().startswith("causal:"):
+        return False, "归因叙事条目（Causal:），属分析叙述而非法律评价"
     return True, ""
 
 
@@ -140,17 +198,61 @@ def _extract_bracket(name: Any) -> str:
     return m.group(1).strip() if m else ""
 
 
+def _title_keys(title: Any) -> list:
+    """标题 → 可用于匹配的规范化键组（原标题 + 剥掉「（…）」括注后的短标题）。
+
+    括注里常含"对应风险指标：…未就…前提作出认定"这类长说明，必须剥掉，
+    否则短标题匹配不上。
+    """
+    t = str(title or "").strip()
+    if not t:
+        return []
+    base = re.sub(r"[（(][^）)]*[）)]", "", t).strip() or t
+    keys: list = []
+    for x in (t, base):
+        k = "".join(re.findall(r"[一-鿿A-Za-z0-9]", x))
+        if k and k not in keys:
+            keys.append(k)
+    return keys
+
+
 def build_related_problem_index(problems: Sequence[Dict[str, Any]]) -> Dict[str, str]:
-    """`redline_id` → 「具体问题第N项」标签（供台账行写「关联疑点」）。"""
+    """疑点身份 → 「具体问题第N项」标签（供台账行写「关联疑点」）。
+
+    ★★ 2026-10-05（用户意见：同一件事不在报告里说两遍 ⇒ 必须能可靠判定
+      "这项风险是否已在具体问题章详证"）。实测**单靠 `redline_id` 不成立**：
+      企业报告的 26 条疑点 `redline_id` **全为空**（渲染层不保留该字段），
+      原实现 ⇒ 85 行台账「关联疑点」全空 ⇒ 去重判据完全失效（实测标记 0 行）。
+      故改为**双通道并存**：`redline_id`（有则最精确）+ **标题规范化键**（覆盖缺失场景）。
+    """
     idx: Dict[str, str] = {}
     for p in (problems or []):
         if not isinstance(p, dict):
             continue
-        rid = _norm(p.get("redline_id"))
         seq = p.get("seq")
-        if rid and seq and rid not in idx:
-            idx[rid] = "具体问题第%s项" % seq
+        if not seq:
+            continue
+        label = "具体问题第%s项" % seq
+        rid = _norm(p.get("redline_id"))
+        if rid and rid not in idx:
+            idx[rid] = label
+        for k in _title_keys(p.get("title")):
+            if k and k not in idx:
+                idx[k] = label
     return idx
+
+
+def _lookup_problem(idx: Dict[str, str], row: Dict[str, Any],
+                    finding: Dict[str, Any] = None) -> str:
+    """按「redline_id → 标题键」顺序查关联疑点标签（**唯一查表入口**）。"""
+    rid = _norm((row or {}).get("redline_id") or (finding or {}).get("redline_id"))
+    if rid and idx.get(rid):
+        return idx[rid]
+    src = (row or {}).get("风险事项") or (finding or {}).get("type") or ""
+    for k in _title_keys(src):
+        if idx.get(k):
+            return idx[k]
+    return ""
 
 
 def govern_ledger_rows(rows: Sequence[Dict[str, Any]],
@@ -197,7 +299,8 @@ def govern_ledger_rows(rows: Sequence[Dict[str, Any]],
             new_row = dict(head_row)
             new_row["风险事项"] = ckey or _norm(head_row.get("风险事项"))
             new_row["发现ID"] = make_finding_id(ckey or _norm(head_row.get("风险事项")))
-            new_row["关联疑点"] = idx.get(rid, "")
+            # ★ 2026-10-05：走唯一查表入口 `_lookup_problem`（redline_id → 标题键双通道）
+            new_row["关联疑点"] = _lookup_problem(idx, new_row, head_f)
             new_row["聚合项数"] = ""
             out_rows.append(new_row)
             continue
@@ -229,7 +332,10 @@ def govern_ledger_rows(rows: Sequence[Dict[str, Any]],
             # ★ 2026-09-29（P1-13）：聚合行的联动事项取各成员并集（不丢联动关系）
             "联动事项": _union("联动事项"),
             "发现ID": make_finding_id(ckey),
-            "关联疑点": idx.get(rid, ""),
+            # ⚠ 聚合行此时 `new_row` 尚未构造完成，不能传它进来查表
+            #   （会拿到残缺 dict ⇒ 匹配必失败 ⇒ 又退回"关联全空"）。
+            #   直接用规范键 `ckey` 查，语义等价且不依赖构造顺序。
+            "关联疑点": _lookup_problem(idx, {"风险事项": ckey}, head_f),
             "聚合项数": "含 %d 项（明细见下表）" % len(members),
             "明细": detail,
         }

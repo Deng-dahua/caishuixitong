@@ -155,3 +155,31 @@ def _monthly_account_balance(db: Session, company_id: int, account_code: str, ps
     ).group_by(JournalEntry.period).order_by(JournalEntry.period).all()
     return {r[0]: {"debit": _safe_float(r[1]), "credit": _safe_float(r[2])} for r in rows}
 
+
+def _pl_net(db: Session, company_id: int, ps: str = None, pe: str = None) -> float:
+    """利润总额（**近似口径**，仅供限额类规则使用）。
+
+    ★ 2026-10-07 新增：`tax_risk._analyze_donation_compliance` 原调用不存在的 `_pl_net`
+      ⇒ 执行到即 NameError ⇒ 捐赠扣除规则永不产出。
+
+    口径（调用方**必须**在文案中标注"估算口径"）：
+        利润总额 ≈ 营业收入(6001 贷方) − 营业成本(6401 借方)
+                   − 税金及附加(6405 借方) − 期间费用(6601/6602/6603 借方)
+    未含投资收益与营业外收支，故为近似值。
+
+    **取不到数据返回 0.0**（调用方必须按"限额本轮不可测算"处理，
+    绝不可把 0 当作"利润总额为 0 ⇒ 必然超标"）。
+    """
+    if ps is None or pe is None:
+        ps, pe = _get_period_range(db, company_id)
+    if not ps or not pe:
+        return 0.0
+    revenue = _get_account_sum(db, company_id, "6001", ps, pe, "credit")
+    cost = _get_account_sum(db, company_id, "6401", ps, pe, "debit")
+    surcharge = _get_account_sum(db, company_id, "6405", ps, pe, "debit")
+    expenses = sum(_get_account_sum(db, company_id, c, ps, pe, "debit")
+                   for c in ("6601", "6602", "6603"))
+    if not any((revenue, cost, surcharge, expenses)):
+        return 0.0
+    return round(revenue - cost - surcharge - expenses, 2)
+

@@ -256,6 +256,49 @@ class TestAnalysisCoverage(unittest.TestCase):
         self.assertIn("已全部执行", cov["summary_text"])
         self.assertNotIn("未能执行", cov["summary_text"])
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # ★ 2026-10-06 执行回执契约（用户：「那 84 项资料齐备的检查，是否都真跑了？」）
+    #   核心：**「资料齐备」≠「已经跑过」**。`executed` 必须由执行回执证明。
+    #   双向对照见下（阳性/阴性各一条），缺任一向这条契约就是摆设。
+    # ══════════════════════════════════════════════════════════════════════════
+    _RECEIPT_ED = {"bank_txs": [{}], "sal_invs": [{}], "target_entity": {"name": "X"}}
+
+    def test_receipt_triggered_counts_as_executed(self):
+        """阳性对照：回执为 completed_not_triggered ⇒ 必须计入已执行（没命中不等于没跑）"""
+        from engine.analysis_coverage import build_coverage
+        cov = build_coverage(dict(self._RECEIPT_ED),
+                             executions=[{"rule_id": "VR001",
+                                          "status": "completed_not_triggered"}])
+        self.assertIn("VR001", {str(it.get("id")) for it in cov["executed_items"]})
+        self.assertNotIn("VR001", {str(it.get("id")) for it in cov["not_executed_items"]})
+
+    def test_receipt_missing_data_not_counted_as_executed(self):
+        """阴性对照：回执为 not_run_missing_data ⇒ 一律不得计入已执行，且必须留痕。
+
+        ★ 病根实录：本项资料在覆盖口径下"齐备"（业态不适用资料已剔），
+          执行器却按**原始声明**判缺 ⇒ 旧实现把这它算成"已执行" = 覆盖率虚报。
+        """
+        from engine.analysis_coverage import build_coverage
+        cov = build_coverage(dict(self._RECEIPT_ED),
+                             executions=[{"rule_id": "VR001",
+                                          "status": "not_run_missing_data",
+                                          "missing_sources": ["bank_txs"]}])
+        ids_ex = {str(it.get("id")) for it in cov["executed_items"]}
+        ids_ne = {str(it.get("id")) for it in cov["not_executed_items"]}
+        self.assertNotIn("VR001", ids_ex, "资料齐备但未执行，不得算作已执行")
+        self.assertIn("VR001", ids_ne, "未执行项必须进 not_executed_items（不得静默吞掉）")
+
+    def test_not_executed_surfaces_system_gap_not_enterprise_gap(self):
+        """未执行属**系统缺口**，必须与"待补资料"分开表述，不得混成企业要补资料。"""
+        from engine.analysis_coverage import build_coverage
+        cov = build_coverage(dict(self._RECEIPT_ED),
+                             executions=[{"rule_id": "VR001",
+                                          "status": "execution_error",
+                                          "message": "boom"}])
+        self.assertGreaterEqual(cov["not_executed"], 1)
+        self.assertIn("执行缺口", cov["summary_text"])
+        self.assertIn("VR001", {str(it.get("id")) for it in cov["not_executed_items"]})
+
     def test_all_14_indicators_present_in_coverage(self):
         """14 项登记指标必须全部出现在覆盖清单里（登记了就不许失踪）"""
         from engine.analysis_coverage import build_coverage
@@ -277,7 +320,7 @@ class TestAnalysisCoverage(unittest.TestCase):
 class TestTrialBalanceCloseSideTriad(unittest.TestCase):
     """契约 6（2026-10-02）：科目余额表「期末借方/期末贷方」**怎么用** —— 按科目类别分流。
 
-    真实数据实证（`data/uploads/1/1_928_2025年科目余额表.xlsx`，深圳海更数字传媒
+    真实数据实证（`data/uploads/1/1_928_2025年科目余额表.xlsx`，某传媒企业数字传媒
     2025 年度，156 行、17 个一级科目）：
 
       6001 主营业务收入   期末借 0 / 期末贷 0   本期发生额 借 6,636,800.57 / 贷 6,636,800.57

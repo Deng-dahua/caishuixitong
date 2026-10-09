@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "version": "2026.10",
+  "updated": "2026-10-07",
+  "note": "★ 报告定位与合规模板（任务2「报告定位与合规」的唯一权威）。所有面向企业/外部的文字都在这里，代码只负责装配。 ★ 内部底稿的**名称唯一权威**是 config/report_identity.json 的 canonical（本文件同名，闸门 check_report_quality_skill_wiring 核对）。",
+  "system": {
+    "name": "涉税风险扫描系统",
+    "version": "2026.10",
+    "vendor": "本地部署版"
+  },
+  "documents": {
+    "internal_working_paper": {
+      "name": "内部辅助分析工作底稿",
+      "purpose": "内部辅助分析工作底稿（仅供内部风险复核与整改使用）",
+      "is_enforceable": false,
+      "non_enforcement_note": "本工作底稿是依据企业提供的资料所做的**风险线索梳理**，不是税务处理决定、税务行政处罚决定或其他执法文书；不构成对任何事实的定性与对任何税款的核定。"
+    },
+    "external_notice": {
+      "name": "风险提示函",
+      "purpose": "对外送达企业的风险提示",
+      "is_enforceable": false,
+      "non_enforcement_note": "本提示函仅将扫描中发现的风险线索提示给企业，供企业自查自纠；不是税务处理决定、税务行政处罚决定或其他执法文书，不具有强制执行力。"
+    }
+  },
+  "security": {
+    "internal_working_paper": {
+      "level": "内部资料",
+      "restriction": "内部资料，仅限税务风险核查使用，不得外传。",
+      "retention": "底稿与原始资料留存期限按企业授权范围与内部档案制度执行；到期由数据责任人复核后销毁。"
+    },
+    "external_notice": {
+      "level": "商业秘密",
+      "restriction": "本提示函含企业商业秘密，仅限收件企业及其授权人员使用，未经许可不得向第三方披露。",
+      "retention": "送达记录与回执留存备查。"
+    }
+  },
+  "authorization": {
+    "statement": "本报告所依据的账务、发票、申报与银行流水等资料，由企业按授权范围提供；系统仅在本次核查范围内读取与处理，不对外传输、不用于其他目的。",
+    "scope_required": true,
+    "destruction_rule": "核查结束后，原始资料与中间产物按授权约定的留存期限保管，到期由数据责任人复核后销毁；销毁动作留痕可查。"
+  },
+  "signatures": [
+    {
+      "role": "编制人",
+      "required": true,
+      "note": "本次扫描的执行人"
+    },
+    {
+      "role": "复核人",
+      "required": true,
+      "note": "对线索与结论复核的人"
+    },
+    {
+      "role": "审批人",
+      "required": true,
+      "note": "对本报告对外/归档放行负责的人"
+    }
+  ],
+  "feedback": {
+    "title": "企业申辩与反馈",
+    "window_days": 10,
+    "channels": [
+      "书面反馈（加盖公章）",
+      "电子邮件",
+      "当面沟通并形成书面记录"
+    ],
+    "process": "企业可在反馈期限内就任何一项风险线索提交说明与证据；收到后由复核人在 5 个工作日内逐项复核，形成书面复核意见；复核结论为『线索不成立』的，从正式版本中移除或改列『已解释』，并保留原提法与复核记录以备追溯。",
+    "must_have_evidence": "申辩应附可核验的证据（合同、发票、付款凭证、说明文件等）；无证据的说明只作备注，不改变线索的列示状态。"
+  },
+  "version_control": {
+    "rule": "报告每次生成都登记版本号与修改记录；版本号形如 V<主序号>.<次序号>，内容变化即递增。",
+    "ledger": "data/report_versions.jsonl",
+    "fields": [
+      "doc_no",
+      "doc_name",
+      "edition_kind",
+      "version",
+      "generated_at",
+      "generator",
+      "system_version",
+      "reviewed",
+      "change_note"
+    ]
+  },
+  "redaction_roles": {
+    "internal": {
+      "label": "内部底稿（不脱敏）",
+      "name": false,
+      "account": false,
+      "id_card": false,
+      "amount": false,
+      "contact": false
+    },
+    "auditor": {
+      "label": "检查人员（金额可见、身份脱敏）",
+      "name": true,
+      "account": true,
+      "id_card": true,
+      "amount": false,
+      "contact": true
+    },
+    "enterprise": {
+      "label": "企业自阅（对方信息脱敏）",
+      "name": true,
+      "account": true,
+      "id_card": true,
+      "amount": false,
+      "contact": true
+    },
+    "external": {
+      "label": "对外送达（身份与金额均脱敏）",
+      "name": true,
+      "account": true,
+      "id_card": true,
+      "amount": true,
+      "contact": true
+    }
+  },
+  "templates": {
+    "service_light": {
+      "label": "服务型行业模板（轻资产）",
+      "sections": [
+        "风险事项",
+        "行业指标对标",
+        "证据现状与需补资料",
+        "结论与建议"
+      ],
+      "emphasis": "以收入完整性、费用真实性为主轴；不呈现进销存类章节"
+    },
+    "manufacturing": {
+      "label": "制造业模板（投入产出）",
+      "sections": [
+        "风险事项",
+        "行业指标对标",
+        "投入产出与存货",
+        "证据现状与需补资料",
+        "结论与建议"
+      ],
+      "emphasis": "突出进销比与投入产出可勾稽性"
+    },
+    "retail": {
+      "label": "零售/餐饮模板（收入完整性）",
+      "sections": [
+        "风险事项",
+        "行业指标对标",
+        "收款完整性与申报比对",
+        "证据现状与需补资料",
+        "结论与建议"
+      ],
+      "emphasis": "突出收款渠道与申报收入的闭合性"
+    },
+    "project_based": {
+      "label": "项目型模板（跨期）",
+      "sections": [
+        "风险事项",
+        "行业指标对标",
+        "跨期收入与往来账龄",
+        "证据现状与需补资料",
+        "结论与建议"
+      ],
+      "emphasis": "突出跨期确认与预收/预付账龄"
+    }
+  }
+}

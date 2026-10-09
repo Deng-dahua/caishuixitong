@@ -1,0 +1,3536 @@
+{
+  "schema": 1,
+  "version": "1.0.0",
+  "updated": "2026-10-07",
+  "note": "风险指标配置（触发条件与认定要件分离）。唯一权威=本文件；由 `scripts/_gen_risk_conditions.py` 从 `engine.tax_redlines` 派生。is_precondition 派生规则：①要件文本含 PREMISE_MARKERS；②或为认定要件第1条且属存在性判据（含存在性语、不含数值门槛语）。人工可逐条修订本文件，无需改代码。★ 2026-10-07：新增 `aliases` 字段——无红线/规则键控的发现（VR 规则、综合画像）按发现标记名登记，使其同样获得已登记的触发条件与认定要件；**该字段与本类条目由生成器原样保留（不会被重生成覆盖）**。",
+  "fields": [
+    "risk_code",
+    "name",
+    "aliases",
+    "trigger_conditions",
+    "determination_criteria"
+  ],
+  "criterion_fields": [
+    "id",
+    "desc",
+    "is_precondition"
+  ],
+  "trigger_fields": [
+    "id",
+    "desc",
+    "auto"
+  ],
+  "risks": [
+    {
+      "risk_code": "RL-AST-001",
+      "name": "固定资产取得、投用与折旧不匹配",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "固定资产入账、投入使用、计提折旧的时点链条不闭合",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "固定资产入账、投入使用、计提折旧的时点链条不闭合",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "已提折旧但无投用记录，或已投用但未见折旧计提",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "折旧年限、残值率或折旧方法与税法规定不一致且未作纳税调整",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "已完工在建工程长期不转固，推迟计提折旧",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：适用加速折旧或一次性扣除政策并已备案；在建工程尚未转固（有在建工程明细）；季节性停用或大修停用（税法允许停用期间不计提）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-AST-002",
+      "name": "政府补助与收益确认纳税调整异常",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "取得政府补助但未计入应税收入，或未按支出进度结转",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "取得政府补助但未计入应税收入，或未按支出进度结转",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "作为不征税收入处理但不符合「专门文件、专门管理办法、单独核算」三项条件",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "不征税收入对应的支出仍税前扣除",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "不征税收入对应支出与应税支出混同核算",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：同时符合财税〔2011〕70号三项条件并已单独核算；已计入应税收入并申报纳税；补助在5年（60个月）内支出完毕且已按规定处理",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-AST-003",
+      "name": "数字特征异常：金额分布违背自然规律",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "交易金额首位数字分布与本福特定律存在偏离",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "交易金额首位数字分布与本福特定律存在偏离",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "或存在完全相同的重复金额、整数金额",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无法用业务特性（定价政策、套餐价格）解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "金额尾数高度集中于 .00、.50 等整数，疑似人为构造",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：统一定价、套餐式收费（有价目表）；样本量偏小导致统计规律不显著；行业特性（如按台班、按吨固定单价）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-001",
+      "name": "关联交易异常：购销闭环与六员重叠",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "与本企业存在人员（六员）、地址、电话、账户重叠的上下游企业",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "与本企业存在人员（六员）、地址、电话、账户重叠的上下游企业",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "与之发生购销交易金额占同期购销总额比例超过行业基准进销比区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "交易价格与市场价存在偏离，或无合理商业目的",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "关联交易未准备同期资料、未做转让定价文档",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已按独立交易原则定价并准备同期资料；关联关系已依法申报披露；交易具有合理商业目的（有商业理由说明）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-002",
+      "name": "关联方无偿或低价资金往来：未按独立交易原则计息",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "与关联方发生资金拆借金额超过行业人均营收基准×从业人数（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "与关联方发生资金拆借金额超过行业人均营收基准×从业人数（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "未收取或支付利息，或利率与同期金融机构贷款利率存在偏离",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "未作特别纳税调整",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "关联方无偿使用资产（厂房、设备、商标）未作视同销售或纳税调整",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：符合统借统还条件并已备案（免征增值税）；集团资金池统一管理且有分摊协议；短期临时周转（金额小、期限短）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-003",
+      "name": "研发费用加计扣除归集异常",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "研发费用归集范围超出规定（含非研发人员工资、非研发设备折旧、生产用料）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "研发费用归集范围超出规定（含非研发人员工资、非研发设备折旧、生产用料）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "研发项目无立项文件、无研发人员工时记录、无成果产出",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "研发费用与生产费用未分别核算",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "将普通生产人员工资全额计入研发人员，虚增加计扣除",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已设置研发费用辅助账并与生产费用分别核算；研发人员兼职且工时分摊有据可查；委托研发按80%计入且已取得合同与发票",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-004",
+      "name": "长期亏损仍持续经营：收入或成本不实",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "申报亏损的同时经营规模持续扩大",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "申报亏损的同时经营规模持续扩大",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "亏损额与经营规模、人员、产能不匹配",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无合理解释（如市场培育期、大额投入期）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "连续亏损但仍持续新增投资、扩大产能，收入或成本不实信号明显",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：市场培育期、前期投入大（有投入计划与凭证）；行业周期性低谷；新业务板块拖累且已单独核算",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-005",
+      "name": "弥补亏损超过法定结转年限或无历年亏损台账支撑",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "申报表或账簿显示以以前年度亏损抵减了本年度应纳税所得额",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "申报表或账簿显示以以前年度亏损抵减了本年度应纳税所得额",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "弥补亏损所属年度距本年度已超过法定结转年限（一般5年；高新技术企业和科技型中小企业10年）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无法提供历年汇算清缴亏损台账（A106000）证明可弥补亏损额",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "用未实际发生的亏损额抵减当期应纳税所得额",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已取得高新技术企业或科技型中小企业资格，适用10年结转年限；属于受疫情影响困难行业等适用延长结转年限的特殊情形；以前年度亏损额已经税务机关确认或专项检查认定",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-006",
+      "name": "资产损失税前扣除无专项申报资料或申报不实",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "账簿记载营业外支出、资产减值损失、固定资产清理等资产损失",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "账簿记载营业外支出、资产减值损失、固定资产清理等资产损失",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "该损失未在年度申报表A105090申报税前扣除，或缺少专项申报资料与鉴证报告",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "资产损失金额超过行业人均营收基准×从业人数（行业基准通用参考值，非税务机关官方口径，仅作线索参照），且无合法有效证据支撑",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "将经营亏损包装为资产损失税前扣除",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：损失已在以前年度申报扣除，本期未重复列支；属于正常损耗且已计入成本费用，未重复税前扣除；已取得税务机关专项申报受理回执",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-007",
+      "name": "税前扣除限额超限未纳税调整",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "业务招待费、广告费和业务宣传费、职工福利费、工会经费、职工教育经费、公益性捐赠等超过法定扣除限额",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "业务招待费、广告费和业务宣传费、职工福利费、工会经费、职工教育经费、公益性捐赠等超过法定扣除限额",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "超限额部分未在汇算清缴作纳税调增",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "关联方债权性投资与权益性投资比例超过2:1且超标准利息未调整",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "业务招待费、广告费和业务宣传费超限额部分未纳税调增且混用科目",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已按规定在汇算清缴作纳税调增；符合政策性加计或特殊行业限额规定；工资薪金据实列支且有发放与代扣凭证",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-008",
+      "name": "表间勾稽四方比对不一致",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "资产负债表「未分配利润」期末减期初的变动额，与利润表「净利润」扣除已分配股利利润后的金额存在超过合理误差（如超过净利润 5% 且绝对值超 5 万元）的差异，且无法用以前年度损益调整、盈余公积转增等已披露事项解释",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "资产负债表「未分配利润」期末减期初的变动额，与利润表「净利润」扣除已分配股利利润后的金额存在超过合理误差（如超过净利润 5% 且绝对值超 5 万元）的差异，且无法用以前年度损益调整、盈余公积转增等已披露事项解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "利润表「营业收入」与增值税申报表「销售额」、企业所得税申报表「营业收入」三者口径差异超过合理范围（如账面收入明显大于申报销售额且无未开票收入佐证，或申报收入明显大于账面收入）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "增值税申报表「应纳税额」与资产负债表「应交税费—未交增值税」本期变动、银行实际缴税流水不能对应（如申报应纳税额远大于实际缴纳且无留抵、欠税说明）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "利润表「营业成本/期间费用」与其对应的进项税额、银行付款流水规模显著不匹配（如费用列支远大于可佐证付款）",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：会计政策变更或前期差错更正已按规定追溯调整并披露；未开票收入已在申报表「未开票收入」栏如实申报；收入跨期（如预收账款履约后确认）已按权责发生制调整；税费缴纳时点差异（税款所属期与入库期跨月）已说明",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-009",
+      "name": "资本弱化关联方债资比超限",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业存在向关联方（母公司、子公司、受同一控制方控制的企业等）的借款或债券性融资，且关联债权性投资余额与权益性投资余额之比超过规定比例（一般企业 2:1，金融企业 5:1）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业存在向关联方（母公司、子公司、受同一控制方控制的企业等）的借款或债券性融资，且关联债权性投资余额与权益性投资余额之比超过规定比例（一般企业 2:1，金融企业 5:1）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "上述超比例关联借款对应的利息支出已在企业所得税前扣除，未按规定作纳税调整（未将超标利息调增应纳税所得额）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "借款合同约定的利率超过金融企业同期同类贷款利率，或超过关联方债资比限制对应的可扣除利息上限",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "企业实际税负不高于境内关联方，或不满足独立交易原则下可不受比例限制的条件（即不能以税负不高于关联方为由突破债资比限制）",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：关联借款比例未超过 2:1（金融企业 5:1）且利息符合独立交易原则；借款方实际税负高于境内关联方，符合财税〔2008〕121号豁免条件并已提供资料；利息支出已取得合法有效凭证且未超过同期同类贷款利率",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-CIT-010",
+      "name": "资本弱化：关联方债资比超过 2:1，超标准部分利息支出未作纳税调整",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在关联方借款或资金拆借（关联方借款、统借统还、关联方资金占用等）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在关联方借款或资金拆借（关联方借款、统借统还、关联方资金占用等）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "关联债资比＝关联方债权性投资 ÷ 权益性投资（含实收资本、资本公积、盈余公积等），非金融企业超过 2:1（金融企业 5:1）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "超过标准比例部分发生的利息支出未在企业所得税汇算清缴时作纳税调增",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "通过资本弱化安排转移利润、减少应纳税所得额",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：关联债资比未超标准；超标准部分利息已作纳税调整；能证明符合独立交易原则并备有同期资料",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-COST-001",
+      "name": "暂估成本长期挂账无发票冲回",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "暂估入账的成本或费用跨年度未取得发票",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "暂估入账的成本或费用跨年度未取得发票",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "汇算清缴期结束前仍未取得合规税前扣除凭证",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "未作纳税调增",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "暂估成本对应的供应商后续失联或注销，支出真实性存疑",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已取得发票但尚未入账冲回（提供发票）；供应商注销、撤销、吊销营业执照或认定为非正常户，按28号公告凭资料证实支出；工程结算周期长，按完工进度暂估且已取得阶段性发票",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-COST-002",
+      "name": "大额咨询费、服务费、会务费无成果交付证据",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "咨询费、服务费、会务费、推广费等无形服务支出合计占期间费用比例超过行业基准期间费用率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "咨询费、服务费、会务费、推广费等无形服务支出合计占期间费用比例超过行业基准期间费用率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "无服务成果交付物（报告、方案、会议纪要、活动记录）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "服务商为小规模、空壳或与经营活动无实质关联",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "咨询服务费开票方为同一控制人关联企业，缺乏独立交易价格佐证",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：确有专业服务需求且成果已交付（提供成果文件）；长期合作的服务商按年结算；集团统一采购的服务分摊",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-COST-003",
+      "name": "白条入账：无合规凭证列支成本费用",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "成本费用列支无发票或其他合规外部凭证",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "成本费用列支无发票或其他合规外部凭证",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "以收据、白条、内部单据作为唯一扣除依据",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "以内部审批单、出库单等自制凭证代替发票列支成本费用",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "不属于小额零星经营业务（单次超过增值税按次纳税起征点，或不属于个人零星经营）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-COST-004",
+      "name": "毛利率显著背离：成本与收入不匹配",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "毛利率与同行业正常水平或自身历史水平存在偏离",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "毛利率与同行业正常水平或自身历史水平存在偏离",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "毛利率低于行业基准毛利率区间下沿或高于上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照），且无法用自身历史水平合理解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无法用经营策略、市场环境、产品结构变化解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "毛利率长期为负或接近零（收入成本倒挂），疑似虚增成本或隐瞒收入",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：新市场开拓期让利促销（有促销政策与审批）；原材料价格大幅上涨（有采购价格凭证）；产品结构调整，低毛利产品占比提高；会计政策变更导致口径差异",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-COST-005",
+      "name": "期间费用年末突增：集中列支调节利润",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "第四季度或12月费用占全年比例超过行业基准期间费用率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "第四季度或12月费用占全年比例超过行业基准期间费用率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "费用增长集中在管理费用、销售费用等酌量性费用",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无对应业务活动支撑或跨期费用提前列支",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "年末大额费用入账后次年集中红冲或退回，跨期调节利润",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：年终奖金与绩效计提；年末集中结算的服务费（有合同约定的结算周期）；年末促销活动投入",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-COST-006",
+      "name": "成本费用虚列：无真实业务支撑或凭证链断裂的虚构列支",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "列支的成本费用缺少对应的合同、发票、付款、物流或成果交付等任一核心证据",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "列支的成本费用缺少对应的合同、发票、付款、物流或成果交付等任一核心证据",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "成本费用金额与经营规模、行业均值存在背离且无合理解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "同一费用在多个科目重复列支或以无关票据拼凑抵账",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以员工或关联方名义虚列工资、劳务费等套取资金、虚构列支",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：暂估成本已在次月取得发票冲回；预提费用在汇算清缴前已取得合规凭证；跨期费用属时间性差异且有合同支撑",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-FUND-001",
+      "name": "公转私大额频繁支出：变相分配与个税风险",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在公司账户向股东、法定代表人及其亲属个人账户转账的情形",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在公司账户向股东、法定代表人及其亲属个人账户转账的情形",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "转账未附借款合同、报销凭证、工资薪金等合法事由",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "往来款挂账未见清理",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "频繁小额公转私拆分转账，疑似规避大额交易报告与监管",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已按工资薪金或股息红利依法申报缴纳个人所得税；真实借款且有借款合同并按期归还；差旅、采购等业务备用金且已报销冲账",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-FUND-002",
+      "name": "资金回流：付款后经个人账户回流",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "向供应商付款后，资金经由个人账户或多个中间账户回流至本企业或六员账户",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "向供应商付款后，资金经由个人账户或多个中间账户回流至本企业或六员账户",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "回流金额与付款金额接近（需扣除开票手续费）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "回流时间在付款后短期内",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "资金经多个个人账户闭环流转后回流，形成资金循环",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：交易取消或质量索赔导致的退款（有协议）；供应商代付款项退回；预付账款结算后的余额退回",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-FUND-003",
+      "name": "股东借款年度终了未归还且未用于经营",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "股东（含家庭成员）从公司借款",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "股东（含家庭成员）从公司借款",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "在纳税年度终了后仍未归还",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "借款未用于企业生产经营",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "股东借款跨年度滚续、长期挂其他应收款不清理",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：借款用于企业生产经营（有合同与凭证支撑）；已在年度终了前归还；已按股息红利申报缴纳个人所得税",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-FUND-004",
+      "name": "大额现金收付：交易真实性无法验证",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在大额现金收入或支出（超过结算起点1000元）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在大额现金收入或支出（超过结算起点1000元）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "现金交易对应的收入未申报或成本无合规凭证",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无法通过银行流水印证交易真实性",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "现金收支占比异常偏高，规避银行流水留痕",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：面向个人的零星小额销售（符合现金结算范围）；工资、差旅等小额现金支付",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-FUND-005",
+      "name": "银行流水余额滚动关系不一致：资金流水勾稽断裂",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "各期银行流水期末余额与本期的期初余额、本期借贷方发生额无法勾稽平衡",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "各期银行流水期末余额与本期的期初余额、本期借贷方发生额无法勾稽平衡",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "余额滚动关系断裂且无法由未达账项、在途资金合理解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "存在账外账户或未入账资金循环嫌疑",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "多账户间资金互转掩饰资金来源与去向",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：在途资金、未达账项（有银行余额调节表支撑）；账户销户前的正常余额结转；银行系统批量代发导致的跨日记账差异",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-FUND-006",
+      "name": "同一凭证借贷不平：会计分录借贷失衡",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "同一记账凭证借方合计金额与贷方合计金额不相等",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "同一记账凭证借方合计金额与贷方合计金额不相等",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "借贷不平伴随资金、收入或成本科目异常",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无法通过红字冲销、补记凭证合理解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "记账凭证借贷方含大量红字或负数冲抵，分录异常",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已用红字冲销或补记凭证更正的记账差错；系统导入时的借贷方尾差（已调整且金额极小）；多借多贷分录的分录行合计对齐（整体借贷平衡）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-INC-001",
+      "name": "银行收款大于申报收入：存在账外收入嫌疑",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "银行账户经营性入账金额与同期申报收入、开票收入存在差异",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "银行账户经营性入账金额与同期申报收入、开票收入存在差异",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "上述差额（申报收入与开票/账面收入差异）占申报收入比例超过行业基准税负率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "差额无法由往来款、借款、退款等非收入项目解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "个人账户代收经营款项后转入公司账户但未确认收入，形成账外回流",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：股东或关联方借款入账（有借款合同与还款记录）；代收代付款项（有代付协议与转付凭证）；退款、保证金、押金退回；跨期收款（上期发出商品本期收款，收入已在上期确认）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-INC-002",
+      "name": "个人账户收取经营性款项：公私混同隐匿收入",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "法定代表人、股东、财务人员、实际控制人及其亲属个人账户存在经营性收款",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "法定代表人、股东、财务人员、实际控制人及其亲属个人账户存在经营性收款",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "收款方为客户单位或与客户存在对应关系",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "款项未入公司账、未申报纳税",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "通过关联方或员工个人支付宝、微信收取货款未申报纳税",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：公司书面授权个人代收且款项已全额转入公司账户并申报纳税；个人与公司无关的私人往来（需提供款项性质证明）；员工报销款、备用金退回",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-INC-003",
+      "name": "预收账款、合同负债长期挂账不转收入",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "预收账款或合同负债余额长期挂账（超过一个会计年度）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "预收账款或合同负债余额长期挂账（超过一个会计年度）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "对应货物已发出或服务已提供（有出库单、验收单）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "未按规定确认收入并申报纳税",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "预收房款、货款已达到交房或交付条件仍挂账不转收入",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：合同约定分期交付且尚未完成交付；项目暂停或中止（有书面协议）；客户预付的意向金且交易未成立",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-INC-004",
+      "name": "其他应付款大额长期挂账：隐匿收入或账外资金",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "其他应付款余额占负债比重异常或金额重大",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "其他应付款余额占负债比重异常或金额重大",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "挂账对象为无关联自然人或经营范围不符的企业",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无法提供借款合同或往来协议支撑",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以借款名义长期挂账实为隐匿销售收入，后续无还款、无利息支出",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：真实借款（有借款合同、约定利率、按期付息）；关联方资金拆借（有协议）；收取的保证金、押金（有合同约定）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-INV-001",
+      "name": "账实不符：存货账面数量与实际库存不符",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存货账面结存数量与盘点实际数量存在差异",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存货账面结存数量与盘点实际数量存在差异",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "关联方交易价格差异金额超过行业人均营收基准×从业人数（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无合理的损耗、报废、盘盈盘亏处理",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "存货盘亏长期挂待处理财产损溢未报批、未转出对应进项税额",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：正常损耗（有行业损耗标准）；已审批的报废、毁损处理；盘点时点差异（在途、寄售、代管）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-INV-002",
+      "name": "存货长期不动销：滞销挂账或虚假存货",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "部分存货品种无出库记录",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "部分存货品种无出库记录",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "不动销存货占存货比重异常，且金额超过行业人均营收基准×从业人数（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "未计提跌价准备或作报废处理",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "存货账面值远高于可变现净值，跌价准备计提不足",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：战略性备货（有备货策略文件）；专用设备备件、售后配件等必需库存；季节性商品（有销售周期说明）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-INV-003",
+      "name": "投入产出不匹配：耗用与产量背离",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "单位产品的材料耗用与BOM标准或行业经验值存在偏离",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "单位产品的材料耗用与BOM标准或行业经验值存在偏离",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "投入的原材料数量与产出成品数量无合理配比关系",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无工艺变更、设备改造、损耗异常等解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "投入原材料与产出废料、副产品数量关系异常，疑似隐瞒副产品销售",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：工艺改进或设备改造（有变更文件）；原材料批次质量差异导致损耗上升；试生产阶段损耗偏高",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-INV-004",
+      "name": "异常增值税扣税凭证抵扣",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业取得的增值税专用发票被税务机关认定为异常增值税扣税凭证（开票方走逃失联、非正常户、购销不一致、填报不符等情形）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业取得的增值税专用发票被税务机关认定为异常增值税扣税凭证（开票方走逃失联、非正常户、购销不一致、填报不符等情形）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "上述异常凭证对应的进项税额已申报抵扣，未作进项税额转出",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "异常凭证对应的货物或服务无真实交易佐证（合同、物流、付款三流不一致或缺失）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "取得异常凭证的供应商为短期内成立、无实际经营或已失联的空壳企业",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：异常凭证已全额作进项税额转出并补缴相应税款；能提供充分证据证明交易真实（真实合同、物流、付款、入库记录）并经税务机关复核解除异常标注；异常系税务机关数据比对错误已取得更正通知",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-001",
+      "name": "印花税计税依据不足：合同金额与开票不符",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "购销合同金额或实际结算金额与印花税计税依据存在差异",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "购销合同金额或实际结算金额与印花税计税依据存在差异",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "应税凭证未贴花或未申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "应纳税所得额差异金额占申报应纳税所得额比例超过行业基准税负率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以电子订单、框架协议隐瞒应税凭证未申报印花税",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：框架协议无具体金额，已按实际结算申报；属于免税凭证（如小额零星、农业保险合同）；已按核定征收方式申报",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-002",
+      "name": "持有房产土地未申报房产税、土地使用税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "账面存在房屋建筑物或土地使用权",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "账面存在房屋建筑物或土地使用权",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "无对应房产税、土地使用税申报记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "房产原值未包含地价或装修等，计税依据偏低",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "不属于免税范围",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-003",
+      "name": "附加税费计税依据与增值税不匹配",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "附加税费计税依据与同期实际缴纳的增值税、消费税存在差异",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "附加税费计税依据与同期实际缴纳的增值税、消费税存在差异",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "差额无合理说明",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "免抵增值税额未作为城市维护建设税计税依据，依据错误",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "不属于政策性减免、退税退库、跨期缴纳等法定或正当情形",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-004",
+      "name": "持有土地或房产但未申报城镇土地使用税，或申报面积与实际占用不符",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "账簿记载无形资产—土地使用权、固定资产—房屋建筑物，或存在不动产购置、自建支出",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "账簿记载无形资产—土地使用权、固定资产—房屋建筑物，或存在不动产购置、自建支出",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "未见城镇土地使用税申报记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "申报占用土地面积与权证、财务报表附注或房产税申报中的土地面积不一致",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "免税土地范围主张无批文支撑",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：土地位于法定免税范围或已获减免税批准；由承租方或物业方承担并已申报缴纳；已按核定面积申报且经税务机关确认",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-005",
+      "name": "拥有车辆船舶但未申报缴纳车船税，或交强险代收车船税缺失",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "固定资产中存在运输设备（车辆、船舶），或费用中含车辆保险、加油、维修、过路过桥费等用车支出",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "固定资产中存在运输设备（车辆、船舶），或费用中含车辆保险、加油、维修、过路过桥费等用车支出",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "未见车船税申报记录，或交强险保单中未见代收车船税记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "车辆台账与实际用车数量不符",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "已过户或报废车辆仍继续申报、或未停申报，税基不实",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：属于新能源车船等法定免税范围；已由保险机构在交强险中代收代缴；车辆已报废或转让并已办理停驶或过户手续",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-006",
+      "name": "销售折扣折让异常",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "销售折扣、折让比例与合同、开票不一致，或占销售收入比例超过行业基准期间费用率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "销售折扣、折让比例与合同、开票不一致，或占销售收入比例超过行业基准期间费用率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "折扣折让无真实商业理由或未在同一张发票注明",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "折让金额与实际收款或回款记录不符",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以折扣折让名义冲减收入实为返利，未依规处理",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：折扣折让有真实商业理由且与合同一致；折扣已与销售额在同一张发票上注明；折让后收款与开票一致",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-007",
+      "name": "营业账簿（资金账簿）印花税未按实收资本与资本公积申报缴纳",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业存在实收资本或资本公积（科目余额表/资产负债表所有者权益含实收资本、资本公积科目且余额>0）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业存在实收资本或资本公积（科目余额表/资产负债表所有者权益含实收资本、资本公积科目且余额>0）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "营业账簿（资金账簿）印花税计税依据应为「实收资本＋资本公积」合计金额，税率万分之五（小微企业减半万分之二点五）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "印花税申报表（资金账簿税目）计税依据显著小于实收资本＋资本公积，或未见资金账簿税目申报/缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "通过资本公积转增、股权溢价等调节掩盖应计税依据",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：实收资本与资本公积均为0或仅期初数本期无增加且已申报；享受小微企业减半/免征并已留存证明；资金账簿已按法定口径足额申报缴纳",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-008",
+      "name": "产权转移书据（股权/不动产/土地使用权转让）印花税未申报或计税依据偏低",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "发生股权、不动产或土地使用权等产权转移（股权转让协议、不动产转让合同、土地使用权转让合同等书面凭证）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "发生股权、不动产或土地使用权等产权转移（股权转让协议、不动产转让合同、土地使用权转让合同等书面凭证）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "产权转移书据印花税计税依据应为书据所列价款（股权转让为转让金额，不动产/土地使用权为交易价格）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "印花税申报表（产权转移书据税目）计税依据显著小于实际转让金额，或未见产权转移书据税目申报/缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以低价转让、阴阳合同等方式调节掩盖应计税依据",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：转让价款真实且已按法定口径（万分之五）足额申报缴纳；属法定免税或不征税范围并已留存证明",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-009",
+      "name": "向银行借款未按「借款合同」税目申报印花税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业与银行等金融机构签订借款合同（贷款合同、金融借款合同等书面凭证）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业与银行等金融机构签订借款合同（贷款合同、金融借款合同等书面凭证）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "借款合同印花税计税依据应为借款金额（含展期、借新还旧）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "印花税申报表（借款合同税目）计税依据显著小于实际借款金额，或未见借款合同税目申报/缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以非金融机构借贷（依法不征印花税）混淆、掩盖应计税依据",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：借款合同真实且已按法定口径（万分之零点五）足额申报缴纳；确属非金融机构借贷不征并已留存证明",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-010",
+      "name": "财产租赁合同未按「租赁合同」税目申报印花税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "发生房屋、设备、厂房、场地等财产经营租赁（房屋租赁合同、设备租赁合同等书面凭证）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "发生房屋、设备、厂房、场地等财产经营租赁（房屋租赁合同、设备租赁合同等书面凭证）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "租赁合同印花税计税依据应为租金收入（不含融资租赁）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "印花税申报表（租赁合同税目）计税依据显著小于实际租金，或未见租赁合同税目申报/缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以融资租赁（应按借款合同税目）或非租赁安排混淆、掩盖应计税依据",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：租金真实且已按千分之一足额申报缴纳；属融资租赁并已按借款合同税目申报",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-OTH-011",
+      "name": "财产保险合同未按「保险合同」税目申报印花税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "投保财产保险、责任保险或保证保险（财产保险合同、责任保险合同等书面凭证）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "投保财产保险、责任保险或保证保险（财产保险合同、责任保险合同等书面凭证）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "保险合同印花税计税依据应为保费收入（不含人身保险）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "印花税申报表（保险合同税目）计税依据显著小于实际保费，或未见保险合同税目申报/缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以人身保险（依法不征）混淆、掩盖应计税依据",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：保费真实且已按千分之一足额申报缴纳；属人身保险不征并已留存证明",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PAY-001",
+      "name": "工资表人数与社保参保人数不符",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "工资表列支人数与社保参保人数存在差异",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "工资表列支人数与社保参保人数存在差异",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "差异人员不属于劳务派遣、退休返聘、实习生、非全日制等依法免缴社保的情形",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "工资列支总额与从业人数、实际发放记录不匹配（存在无法逐人对应说明的工资列支差额），且无法提供用工与薪酬合理性说明",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "工资表含已离职人员仍列支，疑似虚列工资",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：退休返聘人员（已享受养老保险待遇，无需再参保）；劳务派遣人员（由派遣单位依法参保）；在校实习生（签订实习协议，未建立劳动关系）；非全日制用工（按小时计酬，可单独参加工伤保险）；当月入职次月参保的合理时间差（30日内办理）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PAY-002",
+      "name": "个税申报工资与账面工资、社保基数三者不一致",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "个税申报的工资薪金金额与账面工资费用存在差异",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "个税申报的工资薪金金额与账面工资费用存在差异",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "或社保缴费基数与个税申报工资存在差异",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "三者差异无合理解释（如跨期、口径差异）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "年终奖与日常工资拆分多处发放以降低计税基数",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：跨期发放导致的时间性差异（12月计提次年发放）；社保基数按上年平均工资核定，与当月工资必然不同；免税收入、专项附加扣除导致的申报口径差异",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PAY-003",
+      "name": "虚列人员：工资表人员无真实用工痕迹",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "工资表人员无考勤、无门禁、无社保、无个税申报、无银行代发记录",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "工资表人员无考勤、无门禁、无社保、无个税申报、无银行代发记录",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "人员信息与六员、关联方人员重合",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "工资以现金形式领取且无签收",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "工资表人员身份证号为虚假或重复，疑似冒用身份虚列",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：外勤、外派、居家办公人员无门禁记录但有工作成果；新入职人员当月尚未建立完整记录；兼职人员按工作量计酬",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PAY-004",
+      "name": "劳务报酬与工资薪金混淆：用工身份与扣缴不实",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在长期固定、接受管理、按月计酬的人员却按劳务报酬处理",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在长期固定、接受管理、按月计酬的人员却按劳务报酬处理",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "或反之：真实劳务关系却按工资薪金列支",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "劳务报酬未取得发票且未按规定扣缴个税",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "高管薪酬以咨询费、劳务费名义支付，规避工资薪金个税",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：真正独立的承包/承揽关系（自行承担风险、自主安排工作）；一次性、临时性的项目合作；已取得发票并按规定扣缴个税",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PAY-005",
+      "name": "同一自然人同时列支工资与劳务报酬，或劳务报酬未履行代扣代缴",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "账簿或银行流水中列支劳务费、劳务报酬、佣金、提成等支出",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "账簿或银行流水中列支劳务费、劳务报酬、佣金、提成等支出",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "同一自然人既出现在工资表又出现在劳务报酬支付名单",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "劳务报酬支付未见个人所得税代扣代缴申报，或无劳务合同支撑",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "向无资质个人支付大额劳务费未扣缴个税且未取得发票",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：人员为退休返聘或外部兼职，依法按劳务报酬计税；已按劳务报酬所得代扣代缴个人所得税；属于支付给个体工商户或企业的经营性质支出，非个人劳务",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PAY-006",
+      "name": "一个纳税年度内多次适用全年一次性奖金单独计税，或同一自然人多处任职未合并",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "同一纳税年度内同一纳税人适用全年一次性奖金单独计税超过一次",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "同一纳税年度内同一纳税人适用全年一次性奖金单独计税超过一次",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "同一身份证号在本单位或多个发放主体重复列支工资薪金",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "多处任职所得未办理综合所得年度汇算合并申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "同一人在多家关联企业同时领薪未合并综合所得申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已在年度汇算中并入综合所得重新计税并补缴税款；不同人员同名但身份证号不同，未构成重复；属于按月预扣预缴与年终奖分别适用法定计税方式",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PTY-001",
+      "name": "成本列支的资金与负债证据不足：真实性待核",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "成本列支后无任何支付渠道记录（对公转账、第三方平台代付、票据结算、个人垫付报销、现金、债务抵销）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "成本列支后无任何支付渠道记录（对公转账、第三方平台代付、票据结算、个人垫付报销、现金、债务抵销）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "存在未付款金额且占同类成本比例超过行业基准进销比区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "账面应付账款明细中亦无对应挂账（只有先排除挂账、票据结算、债务抵销等非现款结算，才可认定本项；成本列支的正常闭环是「有付款」或「有负债」二者至少其一）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "成本对应的供应商与销售客户为同一控制方，形成自买自卖闭环",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：尚在信用期内未付款（有应付账款挂账与账龄）；以银行承兑汇票背书结算（有票据台账与背书记录）；三方转账或债权抵销（有书面协议）；关联方内部往来统一结算（有结算协议）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PTY-002",
+      "name": "供应商集中度与地域分布缺乏商业合理性：采购来源真实性待核",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在异地采购且异地采购金额占采购总额比例显著高于本省同行业可比水平（须以本省同行业为基准，不得与全国均值硬比；行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在异地采购且异地采购金额占采购总额比例显著高于本省同行业可比水平（须以本省同行业为基准，不得与全国均值硬比；行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "前三大供应商占比较高，或单一外省供应商占比较高",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "异地货物类采购无任何运输合同、入库验收等货物流佐证（服务类采购本无物流，不得据此认定异常）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "上述至少一项成立，且无独家代理、行业产地集中、集团统采、电商平台或全国招标等合理解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "主要供应商注册地与实际经营地不符、无实地经营，疑似空壳供货",
+          "is_precondition": false
+        },
+        {
+          "id": "C6",
+          "desc": "不属于下列正当情形：独家代理或长期协议采购（有协议）；行业特性决定原料产地集中（如特定矿产、农产品、纺织产业带）；集团统一采购后分配；电商平台或全国性服务商（京东/淘宝/电信/电网等）采购，以及小额零星采购，不代表采购产地异常（已剔除）；全国招标、比价采购形成的分散供应商；地域与集中度须以本省同行业可比口径衡量（非与全国均值硬比）；供应商集中度须结合供应商总数判断：供应商仅3~5家时，前三大占比天然接近100%，不当然构成集中",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PTY-003",
+      "name": "委托加工费异常：以加工费名义掩盖虚开",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "委托加工费支出占成本费用比例超过行业基准期间费用率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照），且受托方地域分散或与本企业无产能关联",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "委托加工费支出占成本费用比例超过行业基准期间费用率区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照），且受托方地域分散或与本企业无产能关联",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "加工费与本企业产量、销量无合理配比",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无加工协议、发料单、完工验收单支撑",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "委托加工费开票方与受托加工方不一致，票货分离",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：产能不足需外协（有外协计划与产能证明）；特殊工序需专业厂家（有工艺说明）；受托方为长期合作且资料齐备",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PTY-004",
+      "name": "订单—投料—完工—发货—收入数量闭环断裂",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "订单量、投料量、完工量、发货量与确认收入的数量链条存在断裂",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "订单量、投料量、完工量、发货量与确认收入的数量链条存在断裂",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "某一环节数量与后续环节不匹配且无法解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "资金/票据链路断裂环节涉及金额超过行业人均营收基准×从业人数（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "投料量远大于产出量且无废料、在产品合理解释，疑似隐瞒产出售",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：发出商品尚未满足收入确认条件（在途、寄售、待验收）；合理损耗与废品（有损耗标准）；内部领用、样品、赠品（有审批记录）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-PTY-005",
+      "name": "发票数据质量异常：票面关系与连续性存疑",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "发票号码不连续、存在断号缺号或重复",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "发票号码不连续、存在断号缺号或重复",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "票面金额、税额、价税合计的勾稽关系错误",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "开票日期与所属期、与业务单据日期逻辑矛盾",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "发票购方信息与企业实际客户不符，疑似替票或代开",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：作废、红冲导致的号码断号；多开票点、多税号分别开票；系统导出或格式转换造成的数据缺失",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-001",
+      "name": "土地增值税未清算或扣除项目不实",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在不动产、土地使用权转让收入或开发产品交付、视同销售行为",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在不动产、土地使用权转让收入或开发产品交付、视同销售行为",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "房地产开发项目已竣工验收、已整体转让或已售面积达到可清算标准，但未办理土地增值税清算",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "扣除项目（取得土地使用权支付金额、开发成本、开发费用）金额与合同、发票、决算资料不一致，或无合法有效凭证",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "虚增开发成本（虚列建安、前期费用）降低增值额",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：项目尚未达到可清算条件（未竣工、已售面积未达标），仅适用预征；建造普通标准住宅出售且增值额未超过扣除项目金额20%，依法免征；因城市规划、国家建设需要依法征用、收回而转让房地产，依法免征；扣除项目已按决算调整并取得合法凭证，与申报数一致",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-002",
+      "name": "应税消费品未申报消费税或计税价格明显偏低",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "经营范围或实际生产涉及应税消费品（烟、酒、化妆品、贵重首饰、成品油、小汽车、摩托车、高尔夫球及球具、高档手表、游艇、木制一次性筷子、实木地板、电池、涂料等）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "经营范围或实际生产涉及应税消费品（烟、酒、化妆品、贵重首饰、成品油、小汽车、摩托车、高尔夫球及球具、高档手表、游艇、木制一次性筷子、实木地板、电池、涂料等）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "存在应税消费品的销售或自产自用移送，但无对应消费税申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "或对关联方销售价格明显低于同期同类非关联方价格且无正当理由",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "自产应税消费品用于在建工程、职工福利未缴纳消费税",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：委托加工应税消费品已由受托方代收代缴消费税，收回后直接销售并已作扣除；出口应税消费品依法免征消费税（国家限制出口的除外）；自产自用于连续生产应税消费品，属于移送环节不纳税的法定情形；关联交易价格符合独立交易原则并具备同期资料支撑",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-003",
+      "name": "开采应税资源未申报资源税或销售量与产量不符",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在原矿、选矿产品的开采或生产活动",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在原矿、选矿产品的开采或生产活动",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "资源税申报的销售数量或销售额，与产量台账、过磅记录、存货出库数量存在差异",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无正当的库存增加、自用移送、加工损耗等解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "原矿销售按选矿税率申报，适用税率错误",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：开采共伴生矿、尾矿依法享受免征或减征，且已完成备案；产品用于连续生产应税资源产品，在移送环节不纳税；期末库存合理增加，产量与申报销售量的差额有盘点表支撑；开采低品位矿、衰竭期矿山依法减征，已履行备案程序",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-004",
+      "name": "直接排放应税污染物未申报环境保护税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在大气污染物、水污染物、固体废物或工业噪声的直接排放行为",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在大气污染物、水污染物、固体废物或工业噪声的直接排放行为",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "持有排污许可证或纳入重点排污单位名录，但无对应环境保护税申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "申报的污染物排放量低于自动监测数据、第三方检测报告或物料衡算结果且无合理解释",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "应税污染物排放量按虚假监测数据申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：向依法设立的污水集中处理、生活垃圾集中处理场所排放，不属于直接向环境排放；在符合标准的设施、场所贮存或处置固体废物，不纳税；排放浓度低于国家和地方规定排放标准百分之三十，依法减按百分之七十五征收；规模化畜禽养殖场已进行综合利用和无害化处理，符合免税条件",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-005",
+      "name": "进口货物完税价格申报不实：成交价格与付汇不符",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在货物进口报关行为",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在货物进口报关行为",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "报关单申报的成交价格与对外付汇金额、合同金额存在差异",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "或将应计入完税价格的境外运输费、保险费、特许权使用费、协助费用、佣金等排除在外",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "特许权使用费、协助费用未计入进口完税价格",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：申报价格为成交价格，且已包含运抵输入地点起卸前的运费与保险费；支付的购货佣金（买方佣金）依法不计入完税价格；成交价格业经海关预裁定或价格质疑程序认可；付汇金额与报关价格的差额为后续追加采购或质保金，与本次报关无关",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-006",
+      "name": "向非居民支付境内所得未履行源泉扣缴",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在向境外（含中国港澳台地区）单位或个人支付款项的记录",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在向境外（含中国港澳台地区）单位或个人支付款项的记录",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "款项性质属于股息红利、利息、租金、特许权使用费、财产转让所得或境内劳务服务",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "向境外支付特许权使用费未扣缴预提所得税",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "未见对应的扣缴企业所得税申报与完税凭证，且不属于已备案免税情形",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-007",
+      "name": "承受土地房屋权属未申报契税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在受让土地使用权、购买/受赠/互换房屋或以土地房屋权属作价出资、抵债等承受行为",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在受让土地使用权、购买/受赠/互换房屋或以土地房屋权属作价出资、抵债等承受行为",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "不动产权属已变更登记或已实际交付使用，但未见契税申报与完税凭证",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "或申报的成交价格明显低于同期同类不动产市场价格且无正当理由",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以抵债、作价出资方式承受权属未申报契税",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：权属转移尚未完成登记，且未实际交付使用，纳税义务尚未发生；属于法定免征情形（国家机关、事业单位、社会团体承受土地房屋用于办公教学医疗等）；婚姻关系存续期间夫妻之间变更土地房屋权属，依法免征；因人民法院、仲裁委员会的生效法律文书或监察机关决定发生权属转移，已按裁定价格申报；成交价格偏低系因房屋存在瑕疵、急售或司法处置等正当理由",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-008",
+      "name": "出口退税申报与收汇、物流、生产能力不匹配",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在出口货物退（免）税申报并取得退税款",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在出口货物退（免）税申报并取得退税款",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "出口报关单、海运提单、装箱单、发票之间存在品名、数量、金额、收发货人不一致",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "出口货物数量或金额明显超出企业实际产能、采购规模或用电量支撑范围",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "出口后未见收汇，且无延期收汇备案或视同收汇的合法情形",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "出口发票金额与报关单不一致，疑似高报出口骗税",
+          "is_precondition": false
+        },
+        {
+          "id": "C6",
+          "desc": "不属于下列正当情形：委托代理出口：货源与收汇由委托方承担，本企业产能不支撑不属异常；已按规定办理延期收汇备案，或属于视同收汇的法定情形；出口货物为外购后直接出口，采购发票与付款流水完整可查；单证差异系因报关行录入错误，已取得海关更正证明",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-009",
+      "name": "股权转让价格明显偏低且无正当理由",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在股权转让行为（工商变更登记或股东名册变更）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在股权转让行为（工商变更登记或股东名册变更）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "申报的转让价格低于对应的净资产份额、初始投资成本或同期公允价值且无正当理由",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "转让协议约定的价格与实际付款金额不一致，或存在未披露的补充协议、代持安排",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以阴阳合同低报转让价格避税",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：能出具有效文件证明被投资企业因国家政策调整，生产经营受到重大影响导致价格偏低；继承或将股权转让给能提供具有法律效力身份关系证明的配偶、父母、子女等近亲属；相关法律、政府文件或企业章程规定，并有相关资料充分证明转让价格合理且真实的本企业员工内部转让；股权转让双方能够提供有效证据证明其合理性的其他合理情形；转让价格不低于初始投资成本且企业累计未分配利润为负，不存在避税动机",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-010",
+      "name": "住房公积金未开户、未全员缴存或缴存基数不实",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在劳动用工关系（工资表或个税申报有人员）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在劳动用工关系（工资表或个税申报有人员）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "未办理住房公积金缴存登记，或缴存人数与工资表人数、社保参保人数存在差异",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "缴存基数低于职工上一年度月平均工资，或单位缴存比例低于所在地规定下限",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "按最低缴费基数而非实际工资缴存，缴存基数不实",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：退休返聘人员、已在他处缴存的兼职人员依法不重复缴存；劳务派遣人员的公积金由派遣单位缴存，用工单位不重复缴存；非全日制用工、季节性用工按当地规定不属于强制缴存范围；已取得公积金中心批准的缓缴或降低缴存比例手续，且处于批准期限内",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-011",
+      "name": "不符合核定征收条件而适用核定征收：以核定规避查账义务",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "适用核定征收方式（定额或核定应税所得率）申报缴纳企业所得税或个人所得税",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "适用核定征收方式（定额或核定应税所得率）申报缴纳企业所得税或个人所得税",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "实际具备健全账簿并能够准确核算收入、成本、费用，或已达到查账征收的规模与规范标准",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "存在为维持核定资格而拆分经营主体、分散收入、设置关联方转移利润的情形",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "为维持核定征收故意不取得合规凭证、不设置账簿",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：确实未设置账簿、账目混乱或成本资料、收入凭证残缺不全，符合法定核定情形；核定征收方式系由税务机关依法认定并在有效期内；规模以下个体工商户按当地规定适用定期定额征收，属正常征管方式；关联主体具有独立的经营场所、人员与业务，不存在人为拆分",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-012",
+      "name": "股权转让未申报个人所得税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "发生个人转让股权行为（股权转让协议签署、工商股权变更、实缴出资转让等），且转让方为自然人",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "发生个人转让股权行为（股权转让协议签署、工商股权变更、实缴出资转让等），且转让方为自然人",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "股权转让收入（或核定收入）减去股权原值和合理费用后的余额为正，应纳个人所得税但未申报或未足额申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "股权转让价格明显偏低（低于对应净资产份额、低于初始投资成本且无正当理由），或申报转让价格与评估/账面净资产明显不符",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "支付方（企业）未履行代扣代缴义务，或个人未自行申报，且税款未缴纳",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：转让价格符合67号公告第十三条正当理由（国家政策调整低价转让、转让给配偶等直系亲属等）；转让亏损（收入低于原值及合理费用）无应纳税所得；已按规定申报缴纳并取得完税凭证",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-013",
+      "name": "灵活用工平台网红报酬未代扣个税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业向个人支付报酬（含向灵活用工平台、网红/主播、自由职业者、劳务人员支付的费用），且该类个人并非企业雇员",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业向个人支付报酬（含向灵活用工平台、网红/主播、自由职业者、劳务人员支付的费用），且该类个人并非企业雇员",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "上述报酬未依法按劳务报酬所得或工资薪金所得代扣代缴个人所得税，而是通过平台代开经营所得发票等方式转换所得性质规避代扣义务",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "支付金额较大且企业与个人之间存在实质雇佣或长期固定劳务关系，但未按工资薪金代扣也未申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "平台或个人未提供完整完税证明，企业以已代扣或经营所得已自行申报为由未承担扣缴责任，实际税款未足额缴纳",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：个人确为独立经营的个体工商户/个人独资企业，已就经营所得自行申报纳税并取得完税凭证；报酬已按劳务报酬代扣代缴并取得申报记录；真实偶然性、临时性劳务且已依法扣缴",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-014",
+      "name": "占用耕地未申报耕地占用税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业占用耕地（含园地、林地、草地等其他农用地）从事非农业建设",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业占用耕地（含园地、林地、草地等其他农用地）从事非农业建设",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "农用地转用或建设用地审批线索显示实际占用耕地，但未申报缴纳耕地占用税",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "占用面积与申报面积不一致，或以临时用地名义规避纳税义务",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "不属于下列正当情形：占用耕地属于法定免税或减征范围（如军用、学校、水利工程）并获批准；已取得耕地占用税减免批复；占用土地不属于耕地或其他农用地",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-015",
+      "name": "收购烟叶未申报烟叶税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业收购烟叶（烤烟、晾晒烟）并向烟叶生产者支付收购金额",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业收购烟叶（烤烟、晾晒烟）并向烟叶生产者支付收购金额",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "烟叶收购金额对应的烟叶税未申报缴纳，或无烟叶税缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "收购金额与申报计税依据不一致（如剔除价外补贴虚减计税依据）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "不属于下列正当情形：未从事烟叶收购业务；已按规定申报缴纳烟叶税并取得完税凭证；收购对象不属于烟叶税征税范围",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-016",
+      "name": "自有/使用船舶未申报船舶吨税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业自有或期租、程租使用船舶，且船舶进入中国境内港口",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业自有或期租、程租使用船舶，且船舶进入中国境内港口",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "船舶吨税由船舶负责人或税务机关委托扣缴义务人未按期申报缴纳",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "船籍或吨位与申报计税依据不一致",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "不属于下列正当情形：使用非机动船舶或法定免税船舶（如军警、避难船舶）并获认可；已按规定申报缴纳船舶吨税；船舶不进入中国境内港口",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-017",
+      "name": "广告/娱乐服务未申报文化事业建设费",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业提供广告服务（广告发布、广告代理、广告制作）或娱乐服务取得收入",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业提供广告服务（广告发布、广告代理、广告制作）或娱乐服务取得收入",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "计费销售额达到文化事业建设费起征点（缴纳义务人月销售额≥2万元，广告服务业）且未申报缴纳",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "增值税申报表或发票品名显示广告/娱乐服务收入，但无文化事业建设费申报或缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "将广告服务收入拆分、混入其他应税服务以规避文化事业建设费计费基数",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：提供的服务不属于广告服务或娱乐服务范围；月计费销售额未达起征点；已取得文化事业建设费减免或免征资格并留存证明",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-018",
+      "name": "购置应税车辆未申报车辆购置税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业购进自用应税车辆（汽车、摩托车、挂车等）并计入固定资产",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业购进自用应税车辆（汽车、摩托车、挂车等）并计入固定资产",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "购车价款对应的车辆购置税未申报缴纳，或无车辆购置税完税证明",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "机动车销售统一发票金额与申报计税价格不一致（如以最低计税价格替代实际成交价）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "不属于下列正当情形：购置的车辆属于法定免税范围（如新能源车免税且已备案）；已按规定申报缴纳并取得完税证明；购置车辆为非应税车辆",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-019",
+      "name": "未按规定安排残疾人就业且未申报缴纳残疾人就业保障金",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业上年度安排残疾人就业的比例低于所在地省级人民政府规定的比例（一般不低于在职职工总数的1.5%）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业上年度安排残疾人就业的比例低于所在地省级人民政府规定的比例（一般不低于在职职工总数的1.5%）",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "未按上年在职职工年平均工资与差额人数计算申报缴纳残疾人就业保障金，且无合法减免、免征或缓缴证明",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "账簿或资料中出现残疾人就业保障金计提/缴纳科目或费种名称，但无对应申报或缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "少报上年在职职工人数或工资总额，以降低残疾人就业保障金计费基数",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：在职职工总数30人（含）以下依法免征；安排残疾人就业已达到规定比例；已按规定申报缴纳或已办理减免、缓缴并留存证明",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-020",
+      "name": "未按规定申报缴纳水利建设基金",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业取得销售收入、营业收入或实际缴纳的增值税、消费税税额，构成所在地地方水利建设基金的计费依据",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业取得销售收入、营业收入或实际缴纳的增值税、消费税税额，构成所在地地方水利建设基金的计费依据",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "账簿或凭证中出现水利建设基金计提/缴纳科目或费种名称，但无对应申报或缴款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "未按所在地规定的征收标准、计费依据、申报期限申报缴纳水利建设基金",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "通过将收入跨期确认、少报计费依据等方式规避水利建设基金",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：所在地已按规定停征、免征或对该行业/主体减免；已按规定申报缴纳；计费依据未达起征标准",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-SPT-021",
+      "name": "计提工会经费未实际拨缴（税前扣除凭证不合规）",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业按工资薪金总额计提工会经费（一般按2%）并计入成本费用",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业按工资薪金总额计提工会经费（一般按2%）并计入成本费用",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "计提的工会经费未实际拨缴给工会组织，或未取得工会经费收入专用收据",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "账簿出现工会经费计提额（应付职工薪酬—工会经费贷方），但无对应拨缴付款记录或专用收据",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "已计提未实际拨缴部分在企业所得税汇算清缴时未作纳税调增",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：已实际拨缴并取得工会经费收入专用收据；尚未建立工会组织且已按规定缴纳工会筹备金；未计提工会经费",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-001",
+      "name": "有销无进：销售品名无对应进项来源",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "销项发票中的实物类品名，在同期进项发票中无同类、无可替代、无加工关系的品名",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "销项发票中的实物类品名，在同期进项发票中无同类、无可替代、无加工关系的品名",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "存在无对应进项来源的销售额，且该项销售额占同期销项总额比例超过行业基准进销比区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无上期结转存货、无委托加工供料、无集团调拨可解释来源",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "进项税额明显低于同行业税负率水平，进项结构异常偏轻（疑似取得进项不足或虚开）",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "接受开票的供应商为短期内成立、无实际经营地址的空壳企业，开票方真实性存疑",
+          "is_precondition": false
+        },
+        {
+          "id": "C6",
+          "desc": "不属于下列正当情形：委托加工：材料由委托方提供，加工方只收加工费，无对应材料进项属正常；上期结转存货：本期销售来自期初库存，无需本期进项；集团内调拨：总分公司或母子公司间调拨销售，有内部结算单；纯服务性附加：销售附带的安装、运输服务本就无对应材料进项",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-002",
+      "name": "有进无销：大量进项无对应销售实现",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "进项发票中的实物类品名，在同期及后续期间销项发票中无同类或加工后品名",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "进项发票中的实物类品名，在同期及后续期间销项发票中无同类或加工后品名",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "存在无对应销项实现的进项税额，且占同期进项税额比例超过行业基准进销比区间上沿（行业基准通用参考值，非税务机关官方口径，仅作线索参照）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "存货账未同步增加，或增加后未见动销记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "进项税额长期大于销项形成大额留抵且无合理经营理由（疑似虚增进项）",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "取得进项发票后短期内作废或红冲，对应存货无入库与领用轨迹",
+          "is_precondition": false
+        },
+        {
+          "id": "C6",
+          "desc": "不属于下列正当情形：备货周期长：季节性备货或项目制采购，去路在后续期间；用于在建工程、研发、职工福利等非应税项目（但须作进项转出）；委托加工后由受托方直接发货给客户；固定资产或低值易耗品一次性领用",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-003",
+      "name": "进销品名背离：购进与销售商品完全不相关",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "进项品名与销项品名在生产工艺上无投入产出关系",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "进项品名与销项品名在生产工艺上无投入产出关系",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "品名所属商品大类跨行业（如购进钢材销售药品）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无法提供加工工艺说明或生产记录解释转换过程",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "购进品名与销项品名适用税率档次差异巨大（如购进低税率农产品、销售高税率货物）",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：贸易企业转售：购进与销售品名应一致，若一致则合法；多元化经营：企业跨行业经营且分别核算；受托加工与委托加工并存",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-004",
+      "name": "顶额开票：开票金额长期贴近发票限额",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在单张发票金额接近发票版本限额（顶额开具）的情形",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在单张发票金额接近发票版本限额（顶额开具）的情形",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "存在向同一或少数受票方开具顶额发票的情形",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无对应大额交付、物流与收款证据",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "开票金额呈规律性整数或临界值聚集，疑似规避发票限额或起征点",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：客户为控制单次付款风险要求分次开票；行业惯例按批次结算且单批金额接近限额；发票版本限额较低而业务本身金额较大",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-005",
+      "name": "开票额与生产经营要素严重不匹配",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "开票金额与产能、场地、人员、能耗、运费等生产要素不匹配",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "开票金额与产能、场地、人员、能耗、运费等生产要素不匹配",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "缺少与经营规模匹配的生产要素支出（场地租金、水电能耗、运输费、生产人员工资）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无法提供与开票规模匹配的产能证明",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "单位产值对应的能耗、运费显著低于同行业可比水平（产能虚胖或开票虚高）",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：全部委托外部加工：本企业只负责接单与销售，无自有产能；纯贸易与经销：只做购销不做生产，无需生产能耗；场地与设备由关联方无偿提供（须有协议与关联方说明）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-006",
+      "name": "未开票收入长期为零：全部收入均开具发票",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "申报收入等于开票收入，未见未开票收入",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "申报收入等于开票收入，未见未开票收入",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "存在面向个人消费者、现款现货、电商平台等易产生未开票收入的业务特征",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "银行流水或个人账户存在与经营相关的收款未计入申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "存在未开具发票的视同销售行为（无偿赠送、用于集体福利或个人消费）未确认收入",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：客户全部为一般纳税人企业，均索取专用发票；全部为款到发货且合同约定必须开票；单一大客户包销，全额开票结算",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-007",
+      "name": "红字冲销与作废发票比例异常",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在红字发票或作废发票（红冲行为）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在红字发票或作废发票（红冲行为）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "红冲发生在月末、季末或申报期前后等敏感时点",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "红冲无对应退货单、折让协议等合法事由",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "红字发票缺《红字发票信息确认单》，或与被冲减蓝字发票不配平（无对应蓝票、购方或金额不符、非一正一负配平）",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "存在跨年度红冲，或单张红冲金额高于同期蓝票水平（可能跨期调节收入、冲减上年度利润）",
+          "is_precondition": false
+        },
+        {
+          "id": "C6",
+          "desc": "频繁作废发票后重新开具以调节税额或隐瞒真实交易",
+          "is_precondition": false
+        },
+        {
+          "id": "C7",
+          "desc": "不属于下列正当情形：开票信息填写错误当月作废重开；客户退货或销售折让（有协议支撑）；跨期价格调整与结算差异",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-008",
+      "name": "视同销售未按规计提销项税额",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "将自产、委托加工或购进的货物无偿赠送他人、交付样品、用于集体福利或个人消费、非增值税应税项目",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "将自产、委托加工或购进的货物无偿赠送他人、交付样品、用于集体福利或个人消费、非增值税应税项目",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "账面有对应货物转出或费用支出，但无销项税额计提与收入确认分录",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "无按组成计税价格（成本×(1+成本利润率)）计提销项的依据",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "将自产货物用于在建工程、固定资产等非增值税应税项目未作视同销售处理",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：领用货物为外购且已按规定不得抵扣进项，不触发视同销售；已按组成计税价格计提销项并申报；属样品且已作销售费用-促销处理（含视同销售计提）",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-009",
+      "name": "价外费用未并入销售额申报",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "向购买方收取的违约金、赔偿金、滞纳金、包装费、代收款项等价外费用",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "向购买方收取的违约金、赔偿金、滞纳金、包装费、代收款项等价外费用",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "收款未开票、未并入销售额、未申报增值税",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "银行流水或凭证中存在对应收款记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "向购买方收取的价外费用混入往来科目（其他应付款等）隐瞒、未确认收入",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：款项为代收代付的政府性基金、行政事业性收费，不并入销售额；属预收保证金且已返还，不构成价外费用；已随销售额一并开票申报",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-010",
+      "name": "长期零申报或申报数据异常",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "存在连续期间的增值税零申报",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "存在连续期间的增值税零申报",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "申报收入为零或极低，与开票、银行流水、社保缴纳等经营痕迹存在矛盾",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "有持续开票或社保缴纳却零申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "各期申报数据大起大落、税负率忽高忽低，疑似人为调节纳税义务",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：属筹建期或法定停业期且已备案；属免税项目且已按规定申报；无任何经营痕迹、确未发生业务",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-011",
+      "name": "进项税额应转出未转出",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "用于简易计税、免征增值税项目、集体福利或个人消费、非正常损失的进项税额",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "用于简易计税、免征增值税项目、集体福利或个人消费、非正常损失的进项税额",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "进项税额已抵扣但未作转出",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "存在免税收入、简易计税项目或非正常损失记录",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "兼营免税与应税项目但未按销售额比例划分、全额抵扣进项税额",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：进项均用于应税项目，无不得抵扣情形；已按规定作进项税额转出；属兼营且已按比例划分可抵扣进项",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-012",
+      "name": "视同销售未计提销项",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业将货物（含自产、委托加工、外购）用于集体福利或个人消费（如发放职工福利、用于非应税项目），未在移送环节视同销售计提销项税额",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业将货物（含自产、委托加工、外购）用于集体福利或个人消费（如发放职工福利、用于非应税项目），未在移送环节视同销售计提销项税额",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "企业将货物无偿赠送其他单位或个人，或用于对外投资、分配给股东/投资者，未按规定视同销售确认收入并计提增值税及企业所得税",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "视同销售对应的货物无对应销项发票或销售收入入账，成本已结转但收入未确认（收入成本不匹配）",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "外购货物用于视同销售情形未依规作进项税转出或未按规定计税，或进项税额已抵扣但货物用途改变未转出",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：货物在同一法人内部移送用于连续生产（不视同销售）；处置使用过的固定资产按规定简易计税或免税；样品展品展销后收回且无所有权转移；用于免税项目已作进项转出且未抵扣",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-013",
+      "name": "增值税留抵退税真实性存疑（涉嫌骗取留抵退税）",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业申请并取得了增值税期末留抵退税（增量留抵或存量留抵）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业申请并取得了增值税期末留抵退税（增量留抵或存量留抵）",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "进项发票存在虚开、异常凭证或未按规定转出情形，导致留抵税额虚高",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "销项收入（含未开票收入）未按规定申报，人为制造留抵以骗取退税",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "出口退税、即征即退与留抵退税混同，或同一税款重复申请",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：留抵税额来源于真实进项税额且进项凭证合法合规；已按规定作进项转出；申请符合财政部 税务总局公告2022年第14号/21号规定的信用与行业条件并提供证明",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-014",
+      "name": "异地建筑服务/不动产租赁销售未在项目所在地预缴增值税",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "纳税人在其机构所在地以外的县（市、区）提供建筑服务，或出租、销售与机构所在地不在同一县（市、区）的不动产",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "纳税人在其机构所在地以外的县（市、区）提供建筑服务，或出租、销售与机构所在地不在同一县（市、区）的不动产",
+          "is_precondition": true
+        },
+        {
+          "id": "C2",
+          "desc": "未在建筑服务发生地或不动产所在地主管税务机关预缴增值税（建筑服务一般计税预征率2%、简易计税3%；不动产租赁与转让按法定预征率）",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "账簿或发票中出现异地工程项目、工程施工（安装、装饰、修缮）服务收入或异地不动产租赁收入，但未见《增值税预缴税款表》或异地预缴完税凭证",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以在机构所在地直接申报替代异地预缴，或将异地项目收入并入本地收入一并申报",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：项目与机构在同一县（市、区）依法无需预缴；已在项目地预缴并留存完税凭证；其他个人出租不动产由机构所在地申报等法定不预缴情形",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "RL-VAT-015",
+      "name": "农产品收购发票进项真实性存疑（无收购业务支撑）",
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "企业以自行开具的农产品收购发票（或收购凭证）作为增值税进项税额抵扣凭证并据以税前扣除",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "企业以自行开具的农产品收购发票（或收购凭证）作为增值税进项税额抵扣凭证并据以税前扣除",
+          "is_precondition": false
+        },
+        {
+          "id": "C2",
+          "desc": "收购业务缺乏过磅单、入库验收单、收购台账、农户身份信息与付款记录等佐证资料",
+          "is_precondition": false
+        },
+        {
+          "id": "C3",
+          "desc": "收购发票的金额、数量与同期产量、销量、产能规模不匹配，或收购单价明显偏离当地市场价",
+          "is_precondition": false
+        },
+        {
+          "id": "C4",
+          "desc": "以收购发票为通道虚增进项税额、虚增农产品成本，配合虚开发票或虚列成本",
+          "is_precondition": false
+        },
+        {
+          "id": "C5",
+          "desc": "不属于下列正当情形：属农产品核定扣除试点范围并已按核定方法计算进项税额；收购资料完整且可逐笔对应；已按规定留存农户信息与真实付款凭证",
+          "is_precondition": false
+        }
+      ]
+    },
+    {
+      "risk_code": "SYN-MULTI-TAX-PROFILE",
+      "name": "多税种联动稽查风险画像（收入、票账差异、资金）",
+      "aliases": [
+        "多税种联动稽查风险画像（收入、票账差异、资金）"
+      ],
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "多税种、多域信号联动命中（收入、票账差异、资金）",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "多个业务环节的异常信号同时出现（收入环节、票账差异、资金流向）——本项为现象/前提条，多环节同时异常才构成联动信号",
+          "is_precondition": true
+        }
+      ]
+    },
+    {
+      "risk_code": "VR012",
+      "name": "同一交易对手同时出现在客户与供应商清单",
+      "aliases": [
+        "同一交易对手同时出现在客户与供应商清单"
+      ],
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "同一交易对手同时出现在客户与供应商清单",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "进销项发票中存在同一标准化交易对手名称同时出现在客户与供应商范围——本项为现象/前提条，存在即成立",
+          "is_precondition": true
+        }
+      ]
+    },
+    {
+      "risk_code": "VR019",
+      "name": "增值税申报进项税额与进项发票税额月度差异",
+      "aliases": [
+        "增值税申报进项税额与进项发票税额月度差异"
+      ],
+      "trigger_conditions": [
+        {
+          "id": "T1",
+          "desc": "增值税申报进项税额与进项发票税额存在月度差异",
+          "auto": true
+        }
+      ],
+      "determination_criteria": [
+        {
+          "id": "C1",
+          "desc": "增值税申报表进项税额与同期进项发票税额存在月度差异——本项为现象/前提条，存在即成立",
+          "is_precondition": true
+        }
+      ]
+    }
+  ]
+}

@@ -32,17 +32,38 @@
   var renderBlock = {};
 
   // 封皮
+  // ★ 2026-10-07（质检）：封皮标题**不再硬编码**（原为一段**写死的旧模板名**，导致后端改名后前端仍出旧名）。名称与合规要素一律由后端封皮块给出：
+  //   `doc_title` / `security` / `signatures` / `compliance_text`。
   renderBlock['cover'] = function(b) {
-    var d = b.data;
-    return ''
+    var d = b.data || {};
+    var title = d.doc_title || '税务风险扫描工作底稿';
+    var html = ''
       + '<div class="block-cover">'
-      + '<h1>企 业 内 部 税 务 合 规 风 险 分 析 报 告</h1>'
+      + '<h1>' + esc(title) + '</h1>'
       + '<div class="cover-sub">'
       + '编号：' + esc(d.report_no) + '<br>'
       + '被查单位：' + esc(d.company_name) + '<br>'
       + '报告日期：' + new Date().toLocaleDateString('zh-CN') + '<br>'
       + '资料数量：' + (d.files_count || 0) + '份'
-      + '</div></div>';
+      + '</div>';
+    if (d.security && d.security.restriction) {
+      html += '<div class="cover-sub" style="margin-top:12px">保密等级：'
+        + esc(d.security.level || '内部资料') + '——' + esc(d.security.restriction) + '</div>';
+    }
+    if (Array.isArray(d.signatures) && d.signatures.length) {
+      html += '<div class="cover-sub" style="margin-top:16px;text-align:left;display:inline-block">';
+      d.signatures.forEach(function (row) {
+        html += '　' + esc(row.role || '') + '：' + esc(row.name || '待签署')
+          + '　　日期：' + esc(row.date || '_______________') + '<br>';
+      });
+      html += '</div>';
+    }
+    if (d.compliance_text) {
+      html += '<div class="cover-sub" style="margin-top:14px;font-size:12px;color:#475569">'
+        + esc(d.compliance_text) + '</div>';
+    }
+    html += '</div>';
+    return html;
   };
 
   // 企业基本画像

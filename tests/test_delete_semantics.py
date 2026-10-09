@@ -205,6 +205,15 @@ class TestDeleteCoreBehaviour:
         monkeypatch.setattr(main_mod, "add_doc_tombstone", runtime_storage.add_doc_tombstone)
         monkeypatch.setattr(runtime_storage, "TRASH_DIR", tmp_path / "trash")
         monkeypatch.setattr(runtime_storage, "DELETED_DOCS", tmp_path / "deleted_docs.json")
+        # ★★ 2026-10-05（实测缺陷）：**必须重置共享的待分析列表**。
+        #   `main._tax_risk_docs` 是**模块级列表**，且 `main` 导入时会
+        #   `_init_tax_docs_from_disk()` 从 `data/uploads` 扫描加载 ⇒
+        #   若磁盘上恰有文件，其 id 会与本测试 append 的 id 撞车
+        #   ⇒ `removed` 变成 2（断言 1 失败）。
+        #   实测：单跑该文件 28 passed；**全量跑**时因真跑脚本会把账套资料写回
+        #   `data/uploads`，扫描后 id=12 重复 ⇒ 稳定失败 1 项。
+        #   修法：每个测试从**干净列表**开始（测试不该依赖磁盘状态）。
+        main_mod._tax_risk_docs.clear()
         return main_mod
 
     def test_real_delete_removes_file(self, app_ctx, tmp_path):

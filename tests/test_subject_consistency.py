@@ -273,3 +273,66 @@ class TestReportBehaviour:
         codes = {i["code"] for i in au["issues"]}
         assert "疑点主体与其证据不是同一件事" in codes, au
         assert any("建入口的发现" in str(i.get("detail") or "") for i in au["issues"])
+
+
+# ── ⑤ 事实引子：**引子来源必须与本项红线名是同一件事**（P0-4 根因治理）──────────
+class TestEntrySubjectFloor:
+    """事故形态（公司1 真实产物 R14 / RL-SPT-017）：
+
+    疑点「广告/娱乐服务未申报文化事业建设费」的"为何列入检查"被写成
+    「同一供应商同品名单价不一致（共5笔）…金额合计 0.00 元」——
+    引子取自一张**主体与本项毫不相干**的附表（那张表来自建入口的软匹配发现）。
+
+    根因：`_evidence_summary(_tables)` 概述的是**附表**，而附表可以来自
+    `_ok_sub=False` 的建入口发现 ⇒ 用它当引子必然张冠李戴。
+    修法：用 `subject_consistency.same_subject(来源发现类型, 红线名)` 逐张核，
+    无一通过 ⇒ 引子退回线索链终局信号（本就是"本项为何触发"的口径），并留痕。
+
+    ⚠ 只动引子、不动附表 —— 附表是本项**实际读到的证据**（既有测试
+      `test_foreign_table_is_not_attached` 明确要求保留）。
+    """
+
+    def _run(self, entry_type):
+        from engine.enterprise_report import _build_redline_problems
+        findings = [{"type": entry_type, "level": "待核验", "redline_id": "RL-SPT-017",
+                     "evidence_rows": [{"对方单位": "甲公司", "金额（元）": "0.00"},
+                                       {"对方单位": "乙公司", "金额（元）": "0.00"}]}]
+        sus = [{
+            "redline_id": "RL-SPT-017",
+            "redline_name": "广告/娱乐服务未申报文化事业建设费",
+            "suspect": "涉嫌未申报文化事业建设费", "taxes": ["文化事业建设费"],
+            "domain": "特定税种", "legal_basis": ["《文化事业建设费征收管理暂行办法》"],
+            "constituents": ["提供广告服务并取得收入"],
+            "constituent_sources": ["销项发票"],
+            "clue_chain": {"terminal_signal": "检测到涉及「文化事业建设费未申报」的线索",
+                           "nodes": []},
+            "evidence_chain": {}, "argumentation": {"verdict": "已触碰税务违规红线"},
+            "finding_type": entry_type, "supporting_findings": [], "level": "待核验",
+        }]
+        sink = {"issues": [], "by_code": {}}
+        ps = _build_redline_problems(sus, findings, audit_sink=sink)
+        txt = ""
+        for p in ps:
+            for para in (p.get("narrative_paragraphs") or []):
+                if str(para.get("heading") or "") == "为何列入检查":
+                    txt += str(para.get("text") or "")
+        return ps, txt, sink
+
+    def test_offtopic_annex_must_not_become_entry_reason(self):
+        """① 附表来源与本项红线名不是同一件事 ⇒ 不得拿它的汇总当引子。"""
+        _, txt, sink = self._run("同一供应商同品名单价不一致")
+        assert "同一供应商同品名单价不一致" not in txt, txt[:200]
+        # 必须退回本项自身的触发信号
+        assert "文化事业建设费" in txt, txt[:200]
+        # 且**留痕**（不静默）
+        assert any("事实引子" in str(i) for i in (sink.get("issues") or [])), sink
+
+    def test_reverse_ontopic_annex_still_used(self):
+        """② 反向验证：附表来源**就是**本项主体 ⇒ 引子仍是"证据汇总"口径。
+
+        若不通过（引子退回触发信号），说明上面的断言是"引子本来就空"的同义反复（假闸门）。
+        `_evidence_summary` 的口径是"表题 + 本表 N 行 + 涉及 N 个对象 + 金额合计"，
+        故用「本表」/「涉及」作为它的指纹；本项触发信号里不含这两个词。
+        """
+        _, txt, _ = self._run("文化事业建设费未申报（待核）")
+        assert ("本表" in txt) or ("涉及" in txt), txt[:200]

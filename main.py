@@ -94,6 +94,9 @@ from security_web import (
 from request_context import (
     reset_current_user_id,
     set_current_user_id,
+    reset_current_job_id,
+    set_current_job_id,
+    get_current_job_id,
 )
 
 
@@ -148,25 +151,10 @@ app = FastAPI(title="财税风险防控系统", description="全行业通用财�
 # ═══════════════ 个人登录 ═══════════════
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
+    # ★ 2026-10-07：本函数下方原有「旧登录会话 + 跳转」整段实现（在早返回之后**不可达**，
+    #   且引用已不存在的 `_AUTH_SESSIONS`）—— 属结构性隐患，已删除。
+    #   现行鉴权唯一权威：`security_web.enforce_request_security`（会话式，见 security.py）。
     return await enforce_request_security(request, call_next)
-    path = request.url.path
-    skip_paths = ["/login", "/select-company", "/new-company", "/api/auth/", "/api/apikey", "/api/system/stats", "/api/pipeline/history", "/api/tax-risk-rules/", "/static/", "/favicon.ico"]
-    if any(path == s or path.startswith(s) for s in skip_paths):
-        return await call_next(request)
-    is_api = path.startswith("/api/")
-    token = request.cookies.get("auth_token")
-    if token and token in _AUTH_SESSIONS:
-        sess = _AUTH_SESSIONS[token]
-        if sess["expires"] > time.time():
-            # 已登录但未选账套 → 跳转账套选择页
-            if not request.cookies.get("company_id") and not is_api:
-                return RedirectResponse("/select-company", status_code=302)
-            return await call_next(request)
-        else:
-            del _AUTH_SESSIONS[token]
-    if is_api:
-        return JSONResponse({"ok": False, "message": "请先登录", "code": 401}, status_code=401)
-    return RedirectResponse("/login", status_code=302)
 
 
 @app.get("/login", response_class=HTMLResponse)
@@ -176,37 +164,15 @@ async def login_page():
 
 @app.post("/api/auth/login")
 async def api_login(request: Request):
+    # ★ 2026-10-07：原「姓名+手机号发 token」的**旧实现**遗留在本行之后（不可达，
+    #   且引用已不存在的 `_AUTH_SESSIONS`/`_save_sessions`）—— 已删除。
     return await login_handler(request)
-    try:
-        body = await request.body()
-        data = json.loads(body.decode("utf-8"))
-    except Exception:
-        return {"ok": False, "message": "请求数据格式错误"}
-    name = data.get("name", "").strip()
-    phone = data.get("phone", "").strip()
-    if not name:
-        return {"ok": False, "message": "请输入姓名"}
-    if not phone or not phone.isdigit() or len(phone) != 11:
-        return {"ok": False, "message": "请输入有效的11位手机号码"}
-    token = secrets.token_hex(32)
-    _AUTH_SESSIONS[token] = {"name": name, "phone": phone, "expires": float("inf")}
-    _save_sessions()
-    resp = JSONResponse({"ok": True, "name": name})
-    resp.set_cookie("auth_token", token, httponly=True, samesite="lax")
-    # cookie不支持中文，需要URL编码
-    resp.set_cookie("user_name", urllib.parse.quote(name), samesite="lax")
-    return resp
 
 
 @app.post("/api/auth/logout")
 async def api_logout(request: Request):
+    # ★ 2026-10-07：原旧版登出实现（不可达 + 引用已不存在的 `_AUTH_SESSIONS`）已删除。
     return await logout_handler(request)
-    token = request.cookies.get("auth_token")
-    if token and token in _AUTH_SESSIONS:
-        del _AUTH_SESSIONS[token]
-    resp = JSONResponse({"ok": True})
-    resp.delete_cookie("auth_token")
-    return resp
 
 
 @app.get("/api/auth/me")
@@ -404,6 +370,39 @@ async def delete_my_llm_credential(credential_id: int, request: Request):
 async def get_api_key(request: Request):
     return public_llm_status(user_id=request.state.auth.user_id)
 
+@app.post("/api/workpaper/generate")
+async def api_generate_workpaper(company_id: int = Query(...), db: Session = Depends(get_db)):
+    """★ **独立入口**：按 Skill「十五步」编排生成工作底稿 + 归档包（不改写业务结论）。
+
+    与一键分析的分工（2026-10-08 用户指令「workpaper 作为独立入口接入」）：
+      · 一键分析（本文件的 `_execute_tax_risk_analysis`）负责**出报告**（含去重/自检/多版本）；
+      · 本入口负责**出底稿与归档束**（底稿号 / 七类索引 / 附件索引 / 审计轨迹 / 导出包六成员）。
+    两者共用同一份 report_data，**互不覆盖**；取不到即如实登记 missing。
+    """
+    from engine.workpaper_generator import (run_workpaper, build_archive_bundle,
+                                            render_manifest, SKILL_ID, OUTPUTS)
+    cached = _last_analysis_cache.get(company_id)
+    if not (isinstance(cached, dict) and cached.get("report")):
+        return JSONResponse({"ok": False,
+                             "message": "无缓存报告，请先执行一键分析后再生成底稿"},
+                            status_code=409)
+    report = cached["report"]
+    rd = report.get("report", report) if isinstance(report, dict) else {}
+    if not isinstance(rd, dict):
+        return JSONResponse({"ok": False, "message": "报告数据格式异常"}, status_code=422)
+    cc = str(rd.get("company_code") or (rd.get("target_entity") or {}).get("company_code") or "")
+    pd_ = str(rd.get("inspection_period") or rd.get("period") or "")
+    try:
+        wp = run_workpaper(rd, company_code=cc, period=pd_)
+        bundle = build_archive_bundle(rd, company_code=cc, period=pd_)
+        return {"ok": True, "skill_id": SKILL_ID, "outputs": OUTPUTS,
+                "workpaper": wp, "bundle": bundle,
+                "manifest": render_manifest(bundle)}
+    except Exception as exc:  # noqa: BLE001 —— 留痕并在响应里如实返回
+        _append_one_click_log(rd, f"[底稿编排] 独立入口执行失败: {exc}")
+        return JSONResponse({"ok": False, "message": f"底稿生成失败：{exc}"}, status_code=500)
+
+
 @app.post("/api/apikey")
 async def save_api_key(request: Request):
     return JSONResponse(
@@ -433,16 +432,8 @@ async def new_company_page():
 
 @app.post("/api/auth/select-company")
 async def api_select_company(data: dict, request: Request):
+    # ★ 2026-10-07：原旧版选账套实现（不可达 + 引用已不存在的 `_AUTH_SESSIONS`）已删除。
     return await select_company_handler(data, request)
-    cid = data.get("company_id", 0)
-    token = request.cookies.get("auth_token")
-    if not token or token not in _AUTH_SESSIONS:
-        return {"ok": False, "message": "请先登录"}
-    _AUTH_SESSIONS[token]["company_id"] = cid
-    _save_sessions()
-    resp = JSONResponse({"ok": True})
-    resp.set_cookie("company_id", str(cid), samesite="lax")
-    return resp
 
 
 # ═══════════════════ ⑥ 代码变更追踪 ═══════════════════
@@ -1376,10 +1367,92 @@ def _write_analysis_checkpoint(company_id, stage, status, error=None):
         pass
 
 
-def _launch_analysis_task(company_id, user_id):
+# ═══════════════════════════════════════════════════════════════════════════
+# ★ 2026-10-09 作业实体化：作业流水登记的**唯一漏斗**
+#   为什么要有漏斗：作业起点/终态各有多个发起来源（analyze-start 的正常与
+#   增量复用分支、analyze-resume、上传后自动重跑），若各处自行调用落盘函数，
+#   守卫（`_is_result_deleted`）与留痕口径必然分叉 —— 那就是下一个"删除被静默
+#   撤销"事故的温床。故**所有**登记都必须走下面两个函数。
+#   铁律：登记失败只留痕、**绝不阻断分析**（台账是旁路证据，不是主链）；
+#        但**绝不静默**（`print(..., flush=True)` 到服务端日志）。
+# ═══════════════════════════════════════════════════════════════════════════
+def _register_job_started(company_id, job_id, user_id, trigger="manual", force=False):
+    """登记**作业起点**（唯一漏斗）。返回落盘行；失败返回 None 并留痕。"""
+    try:
+        from engine.analysis_jobs import job_started as _js
+        return _js(company_id, job_id, started_by=user_id,
+                   trigger=trigger, force=force)
+    except Exception as _je:                     # noqa: BLE001
+        print(f"[analysis-jobs] 作业起点登记异常(不影响分析): {_je}", flush=True)
+        return None
+
+
+def _register_job_finished(task_id, company_id, snap, reused_from=""):
+    """登记**作业终态**（唯一漏斗），覆盖 done / error / blocked 三条终局路径。
+
+    ★ 两道守卫，顺序不可颠倒（颠倒即"删除被静默撤销"）：
+      ① **任务已不在内存** ⇒ 该企业的内存/磁盘派生物已被同一批删除清掉
+         （`purge_company_analysis_artifacts` 第 ③/⑩ 项），故**不写、不复活**；
+      ② `_is_result_deleted(company_id, started_at)` ⇒ 账套已删（永久）或
+         "删报告**之前**就已启动的这轮"，不得写回。
+         `started_at` 必须用 task 里那个 epoch 浮点（与 `_analysis_started_at`
+         同口径），**不得**传作业流水里的 ISO 时间戳（类型不同 ⇒ 比较恒假 ⇒ 守卫失效）。
+    """
+    try:
+        if not isinstance(snap, dict):
+            return None
+        if _is_result_deleted(company_id, snap.get("started_at")):
+            print(f"[analysis-jobs] 账套 {company_id} 的分析结果已被删除，"
+                  f"跳过作业终态登记（作业 {task_id}）", flush=True)
+            return None
+        from engine.analysis_jobs import job_finished as _jf
+        _st = str(snap.get("status") or "")
+        if _st == "done":
+            _status = "done"
+        elif snap.get("blocked"):
+            _status = "blocked"
+        else:
+            # 线程已结束却仍非 done ⇒ 如实记为失败（不伪造成"仍在跑"）
+            _status = "error"
+        _res = snap.get("result") if isinstance(snap.get("result"), dict) else {}
+        _rpt = _res.get("report") if isinstance(_res.get("report"), dict) else {}
+        _p4 = ((_rpt.get("engine_status") or {}).get("phase4_synthesis") or {})
+        _findings = _rpt.get("all_findings")
+        _count = len(_findings) if isinstance(_findings, list) else None
+        # 报告文稿编号：逐层取，**取不到就留空**（绝不猜、绝不伪造）
+        #   ★ 首选 `report_data["report_compliance"]["version_record"]`
+        #     （`main._execute_tax_risk_analysis` 里合规装配的落点，实测确认的唯一位置）
+        _doc = ""
+        for _cand in (((_rpt.get("report_compliance") or {}).get("version_record") or {}),
+                      (_rpt.get("version_record") or {}),
+                      ((_rpt.get("enterprise_readable_report") or {}).get("version_record") or {})):
+            if isinstance(_cand, dict) and _cand.get("doc_no"):
+                _doc = str(_cand["doc_no"])
+                break
+        _msg = str(snap.get("error") or "")
+        if _status == "error" and not _msg:
+            _msg = str(snap.get("message") or "分析未正常结束（线程已退出但状态非完成）")
+        return _jf(task_id, _status, company_id=company_id,
+                   error_step=str(snap.get("current_module") or ""),
+                   error_message=_msg,
+                   findings_count=_count,
+                   overall_level=str(_p4.get("overall_risk") or _rpt.get("overall_level") or ""),
+                   report_doc_no=_doc,
+                   block_detail=str(snap.get("block_detail") or ""),
+                   reused_from=str(reused_from or ""))
+    except Exception as _je:                     # noqa: BLE001
+        print(f"[analysis-jobs] 作业终态登记异常(不影响分析结果): {_je}", flush=True)
+        return None
+
+
+def _launch_analysis_task(company_id, user_id, trigger="manual", force=False):
     """启动一次完整分析任务（运行态检查 + 建 task + 后台线程）。
 
     供 analyze-start 与 analyze-resume 复用，避免启动逻辑重复。
+
+    `trigger`：作业触发方式（manual / force / resume），**随作业流水落盘**，
+    用于区分"用户点了一下"与"强制重算""失败续跑"（★ 唯一权威：
+    `engine.analysis_jobs.JOB_TRIGGERS`）。
     """
     import uuid as _uuid, time as _time_
     with _analysis_lock:
@@ -1414,6 +1487,11 @@ def _launch_analysis_task(company_id, user_id):
             "current_module": "",
             "patrol_enrolled": False,
         }
+    # ★ 2026-10-09 作业实体化：登记**作业起点**（落盘、可回读）。
+    #   为什么必须在这里而不是在 analyze-start：resume 走的是同一个入口，
+    #   起点登记必须覆盖全部发起来源，否则"续跑"这一类作业没有起点。
+    #   并发复用（上面直接 return）**不建新作业行** —— 它不是一次新分析。
+    _register_job_started(company_id, _task_id, user_id, trigger, force)
     _t = threading.Thread(
         target=_run_analysis_thread,
         args=(_task_id, company_id, user_id),
@@ -2266,113 +2344,16 @@ def delete_tax_risk_report(company_id: int = Query(...)):
       ⑤ 磁盘 last_analysis_cache.json —— 旧实现 except 吞异常且**不回读校验**，
          写入失败时 key 仍在，服务器重启后报告"复活"。
     现在：逐项清理 → 回读校验 → 如实返回 cleared/leftovers，绝不谎报。
-    """
-    cleared, leftovers = [], []
 
-    # ① 内存缓存
-    try:
-        if company_id in _last_analysis_cache:
-            _last_analysis_cache.pop(company_id, None)
-            cleared.append("内存分析缓存")
-    except Exception as exc:
-        leftovers.append(f"内存分析缓存: {exc}")
-
-    # ★ ①-b 删除终局登记（必须最先做）：此后该账套的任何分析结果写回路径
-    # （_persist_one_click_result / _append_analysis_history / _write_analysis_checkpoint）
-    # 都会因 _is_result_deleted 提前返回，避免"删除后被进行中的分析写回复活"。
-    _deleted_company_ids.add(company_id)
-
-    # ② 磁盘分析缓存（写入后回读校验，避免"以为删了其实还在"）
-    try:
-        disk = read_json(LAST_ANALYSIS_CACHE, {})
-        key = str(company_id)
-        if isinstance(disk, dict) and key in disk:
-            del disk[key]
-            atomic_write_json(LAST_ANALYSIS_CACHE, disk)
-        verify = read_json(LAST_ANALYSIS_CACHE, {})
-        if isinstance(verify, dict) and key in verify:
-            leftovers.append("磁盘分析缓存（写入后仍存在）")
-        else:
-            cleared.append("磁盘分析缓存")
-    except Exception as exc:
-        leftovers.append(f"磁盘分析缓存: {exc}")
-
-    # ③ 已完成任务的结果（否则 /analyze-result 仍能取到旧报告）
-    #    ★ 同时统计"正在跑"的任务：删除后若它跑完写回，删除就被静默撤销。
-    #      这里把在跑的任务也标记为 deleted（_is_result_deleted 的第二路判据），
-    #      并在返回里如实告知用户已取消几个。
-    _cancelled = 0
-    try:
-        hit = 0
-        with _analysis_lock:
-            for _tid, _task in list(_analysis_tasks.items()):
-                if _task.get("company_id") == company_id:
-                    if _task.get("status") == "running":
-                        _cancelled += 1
-                        _task["cancelled"] = True
-                    _task["result"] = None
-                    _task["status"] = "deleted"
-                    _task["message"] = "报告已删除（分析已取消）" if _cancelled else "报告已删除"
-                    _task["incremental"] = False
-                    hit += 1
-        if hit:
-            cleared.append(f"分析任务结果({hit}个)")
-        if _cancelled:
-            cleared.append(f"已取消进行中的分析({_cancelled}个，跑完也不写回)")
-    except Exception as exc:
-        leftovers.append(f"分析任务结果: {exc}")
-
-    # ④ 分析历史（内存 + 磁盘）
-    try:
-        if _analysis_history.pop(company_id, None) is not None:
-            _save_analysis_history_disk()
-            _verify = read_json(ANALYSIS_HISTORY, {})
-            if isinstance(_verify, dict) and str(company_id) in _verify:
-                leftovers.append("分析历史（磁盘仍存在）")
-            else:
-                cleared.append("分析历史")
-    except Exception as exc:
-        leftovers.append(f"分析历史: {exc}")
-
-    # ⑤ 失败检查点
-    try:
-        _cp = os.path.join(CHECKPOINT_DIR, f"{company_id}.json")
-        if os.path.exists(_cp):
-            purge_file(_cp)
-            if os.path.exists(_cp):
-                leftovers.append("分析检查点")
-            else:
-                cleared.append("分析检查点")
-    except Exception as exc:
-        leftovers.append(f"分析检查点: {exc}")
-
-    # ⑥ 中转站解析缓存（{cid}_{docid}.json）
-    #    ★ 2026-10-01：旧实现丢弃 purge_file 的返回值、只按 os.listdir 命中数计数，
-    #      于是"文件其实没移走"也会报"清理 88 个"——谎报。现在按返回值逐文件判定。
-    #      注意：purge_file 成功只是"移入项目回收站 data/trash"，并非物理删除，
-    #      如实计入并通过返回文案告知用户（旧文案"彻底删除"不准确）。
-    try:
-        _moved = _not_moved = 0
-        _bad = ""
-        if os.path.isdir(TRANSFER_DIR):
-            for _fn in os.listdir(TRANSFER_DIR):
-                if _fn.startswith(f"{company_id}_"):
-                    _okp, _why = purge_file(os.path.join(TRANSFER_DIR, _fn))
-                    if _okp:
-                        _moved += 1
-                    else:
-                        _not_moved += 1
-                        if not _bad:
-                            _bad = f"{_fn}({_why})"
-        if _moved:
-            cleared.append(f"中转站解析缓存({_moved}个，已移入项目回收站)")
-        if _not_moved:
-            leftovers.append(
-                f"中转站解析缓存({_not_moved}个未移除，首例：{_bad})"
-            )
-    except Exception as exc:
-        leftovers.append(f"中转站解析缓存: {exc}")
-
+    ★★ 2026-10-06（用户：「删除之后相应的都删除，不要踢一脚动一下」）：
+      清理逻辑**整体下沉**到唯一权威 `purge_company_analysis_artifacts`，
+      本端点只负责"删报告"这一语义（不带上传原件）并组装返回文案。
+      为什么必须下沉：**删除账套**（`/api/companies/{id}`）此前**根本不调本端点**，
+      只删 Company 行 + 授权 ⇒ 报告的 6 处副本 + 离线产物全部残留
+      （实测：库里早没有 id=2/3/4，`scripts/four_reports/` 却还躺着它们的产物）。
+      两处各自实现 = 必然漏。"""
+    out = purge_company_analysis_artifacts(company_id, include_uploads=False)
+    cleared, leftovers = out["cleared"], out["leftovers"]
     ok = not leftovers
     return {
         "ok": ok,
@@ -2389,6 +2370,498 @@ def delete_tax_risk_report(company_id: int = Query(...)):
              f"已清理 {len(cleared)} 处，仍残留：{'、'.join(leftovers)}")
         ),
     }
+
+
+def purge_company_analysis_artifacts(company_id: int,
+                                     include_uploads: bool = False,
+                                     confirmed_deleted: bool = False,
+                                     company_name: str = "") -> dict:
+    """删除某账套的**全部分析派生物**（内存 + 磁盘 + 离线产物 + 可选上传原件）。
+
+    ★★ 2026-10-06（用户：「删除之后，与之相应的文件都删除、相应信息都改，
+        不要踢一脚动一下」）—— **本函数是唯一权威**：
+      · 「删除报告」端点（`/api/tax-risk-docs/report`）与「删除账套」
+        （`/api/companies/{id}`）都必须走这里，**不得各写一份**
+        （两处各写一份正是"删了账套、产物还在"的根因）；
+      · 逐项清理 → **回读校验** → 如实返回 `cleared/leftovers`，绝不谎报
+        （沿用 2026-09-25 起的口径）；
+      · `purge_file` 只把文件移入项目回收站 `data/trash`（可恢复），
+        文案必须如实说"移入回收站"，不得说"彻底删除"。
+    覆盖范围（2026-10-06 起）：
+      ① 内存分析缓存 `_last_analysis_cache`　② 磁盘 `last_analysis_cache.json`
+      ③ 分析任务结果 `_analysis_tasks`（含在跑任务的取消）
+      ④ 分析历史 `_analysis_history`（内存 + 磁盘）
+      ⑤ 检查点 `data/uploads/checkpoints/{cid}.json`
+      ⑥ 中转站解析缓存 `data/uploads/transfer/{cid}_*.json`
+      ⑦ **离线产物** `scripts/four_reports/company_{cid}_*`（含 readable/ 子目录，新增）
+      ⑧ **资料删除墓碑** `runtime_storage` 的 doc tombstones（新增）
+      ⑨ **上传原件目录** `data/uploads/{cid}/`（仅 `include_uploads=True`，
+         即删除账套时；"删除报告"不带上传原件）
+      ⑩ **分析作业流水** `data/analysis_jobs.jsonl` 中该企业的**全部**作业行
+         （2026-10-09 新增；含 `started` 与 `finished`，删后回读必须为空）
+
+    ★★ 2026-10-06 安全护栏（**实测事故后加的**）：`include_uploads=True`（删账套语义）
+      时，若该 id **仍在库里** ⇒ **拒绝执行**并如实返回 ——
+      删账套的正确调用时机是"Company 行已删、`db.commit()` 已提交"之后；
+      若此刻企业还在，说明调用方搞错了对象（例如把"删除报告"当成了"删除账套"，
+      或 id 传错），此时清掉它的全部产物是**不可恢复的破坏**。
+      （本轮实测：在库企业的 `company_1_full.json` 曾被清掉，靠备份才恢复。）
+      另：每次清理都写 `data/purge_log.jsonl`（何时删了哪个文件、多大）——
+      以后"文件怎么没了"一查便知，不再靠猜。
+    """
+    cid = int(company_id)
+    cleared, leftovers = [], []
+
+    # ★ 安全护栏（两级）：
+    #   ① **显式确认**：`include_uploads=True`（清上传原件 ⇒ 不可恢复）必须
+    #      `confirmed_deleted=True`。**不查库来决定** —— 本轮实测：全量 pytest 期间
+    #      有测试改变了 DB 可见状态，"活查库"的护栏被判成"企业不存在"⇒ 护栏失效
+    #      ⇒ 在库企业的产物被清掉（且同一天发生两次）。
+    #      显式确认不依赖任何运行时状态，测试里根本无法误触发。
+    #   ② **在库检查**（纵深防御）：确认之后仍查一次库，企业若还在 ⇒ 拒绝。
+    if include_uploads and not confirmed_deleted:
+        return {"cleared": [], "leftovers": [
+            "拒绝清理：include_uploads=True（含上传原件，不可恢复）必须显式传"
+            " confirmed_deleted=True —— 该参数只允许由「删除账套」端点在"
+            " Company 行删除并提交之后传入"]}
+
+    if include_uploads:
+        try:
+            from database import Company as _Company                     # noqa: PLC0415
+            from database import SessionLocal as _SL                     # noqa: PLC0415
+            _db = _SL()
+            try:
+                _exists = _db.query(_Company.id).filter(
+                    _Company.id == cid).first() is not None
+            finally:
+                _db.close()
+            if _exists:
+                return {"cleared": [], "leftovers": [
+                    "拒绝清理：企业 %d 仍在数据库中（include_uploads=True 只用于"
+                    "「删除账套」之后；清在库企业的报告请用 include_uploads=False）" % cid]}
+        except Exception as exc:  # noqa: BLE001
+            leftovers.append(f"安全护栏检查失败（未执行清理）: {exc}")
+            return {"cleared": [], "leftovers": leftovers}
+
+    def _audit(kind: str, path: str, size: int) -> None:
+        """清理审计：何时删了哪个文件（含大小），追加写 `data/purge_log.jsonl`。
+
+        ★ 2026-10-09：路径改挂 `runtime_storage.DATA_DIR`（应用数据根**唯一权威**）。
+          原实现用 `__file__` 硬编码项目 `data/` ⇒ 隔离实例（测试用 `APP_DATA_DIR`
+          起独立进程）会把审计记录写进**真实项目**（违反"派生物目录必须跟随应用
+          数据根"的铁律，也让验收脚本产生越界副作用）。
+        """
+        try:
+            import time as _t
+            from runtime_storage import DATA_DIR as _DD                  # noqa: PLC0415
+            rec = {"at": _t.strftime("%Y-%m-%dT%H:%M:%S"), "company_id": cid,
+                   "kind": kind, "path": path, "size": int(size),
+                   "include_uploads": bool(include_uploads), "pid": os.getpid()}
+            with io.open(os.path.join(str(_DD), "purge_log.jsonl"),
+                         "a", encoding="utf-8") as _f:
+                _f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        except Exception:  # noqa: BLE001
+            pass
+
+    # ① 内存缓存
+    try:
+        if cid in _last_analysis_cache:
+            _last_analysis_cache.pop(cid, None)
+            cleared.append("内存分析缓存")
+    except Exception as exc:
+        leftovers.append(f"内存分析缓存: {exc}")
+
+    # ★ ①-b 删除终局登记（必须最先做）：此后该账套的任何分析结果写回路径
+    # （_persist_one_click_result / _append_analysis_history / _write_analysis_checkpoint）
+    # 都会因 `_is_result_deleted` 提前返回，避免"删除后被进行中的分析写回复活"。
+    # ★★ 2026-10-06 语义**必须分两档**（否则用户重跑的报告永远存不下来，实测）：
+    #   · 删除账套（include_uploads=True，清上传原件）⇒ 永久墓碑 `_deleted_company_ids`
+    #     （只在**重建账套**时撤销）；
+    #   · 删除报告（include_uploads=False）⇒ 只记**时间水位线** `_report_deleted_at`，
+    #     拦"删除发生时正在跑的那一轮"，而**不拦**删除之后新发起的分析。
+    if include_uploads:
+        _deleted_company_ids.add(cid)
+        _report_deleted_at.pop(cid, None)
+    else:
+        try:
+            import time as _t_wm
+            _report_deleted_at[cid] = _t_wm.time()
+        except Exception:  # noqa: BLE001
+            pass
+
+    # ★ ①-c 分析作业流水（2026-10-09 新增，第 ⑩ 类派生物）
+    #   铁律「删了就是真删了」：作业行（谁发起/何时/多久/什么结果）必须随账套
+    #   一起消失，否则删除之后仍能从流水里"看见"这个账套分析过什么。
+    #   放在 ①-b **立墓碑之后**：先把"此后不许再写回"钉死，再清已有的流水，
+    #   这样"删除瞬间正在跑的那一轮"其终态登记会被 `_is_result_deleted` 拦下，
+    #   不会在本行删完之后又被写回来（实测验证过：删报告/删账套两条路径）。
+    #   回读校验，不谎报。
+    try:
+        from engine.analysis_jobs import (                              # noqa: PLC0415
+            jobs_path as _jobs_path, remove_company_jobs as _rm_jobs,
+            list_jobs as _ls_jobs)
+        _jp = _jobs_path()
+        _sz_before = _jp.stat().st_size if _jp.exists() else 0
+        _n_jobs = _rm_jobs(cid)
+        if _ls_jobs(company_id=cid, limit=1):
+            leftovers.append("分析作业流水（删除后仍能读到）")
+        elif _n_jobs:
+            cleared.append(f"分析作业流水({_n_jobs}行)")
+        _audit("analysis_jobs", str(_jp), _sz_before)
+    except Exception as exc:  # noqa: BLE001
+        leftovers.append(f"分析作业流水: {exc}")
+
+    # ② 磁盘分析缓存（写入后回读校验，避免"以为删了其实还在"）
+    try:
+        disk = read_json(LAST_ANALYSIS_CACHE, {})
+        key = str(cid)
+        if isinstance(disk, dict) and key in disk:
+            del disk[key]
+            atomic_write_json(LAST_ANALYSIS_CACHE, disk)
+        verify = read_json(LAST_ANALYSIS_CACHE, {})
+        if isinstance(verify, dict) and key in verify:
+            leftovers.append("磁盘分析缓存（写入后仍存在）")
+        else:
+            cleared.append("磁盘分析缓存")
+    except Exception as exc:
+        leftovers.append(f"磁盘分析缓存: {exc}")
+
+    # ③ 已完成任务的结果（否则 /analyze-result 仍能取到旧报告）
+    #    ★ 同时统计"正在跑"的任务：删除后若它跑完写回，删除就被静默撤销。
+    try:
+        hit = 0
+        with _analysis_lock:
+            for _tid, _task in list(_analysis_tasks.items()):
+                if _task.get("company_id") == cid:
+                    if _task.get("status") == "running":
+                        _task["cancelled"] = True
+                    _task["result"] = None
+                    _task["status"] = "deleted"
+                    _task["message"] = "报告已删除"
+                    _task["incremental"] = False
+                    hit += 1
+        if hit:
+            cleared.append(f"分析任务结果({hit}个)")
+    except Exception as exc:
+        leftovers.append(f"分析任务结果: {exc}")
+
+    # ④ 分析历史（内存 + 磁盘）
+    try:
+        if _analysis_history.pop(cid, None) is not None:
+            _save_analysis_history_disk()
+            _verify = read_json(ANALYSIS_HISTORY, {})
+            if isinstance(_verify, dict) and str(cid) in _verify:
+                leftovers.append("分析历史（磁盘仍存在）")
+            else:
+                cleared.append("分析历史")
+    except Exception as exc:
+        leftovers.append(f"分析历史: {exc}")
+
+    # ⑤ 失败检查点
+    try:
+        _cp = os.path.join(CHECKPOINT_DIR, f"{cid}.json")
+        if os.path.exists(_cp):
+            _audit("检查点", _cp, os.path.getsize(_cp))
+            purge_file(_cp)
+            if os.path.exists(_cp):
+                leftovers.append("分析检查点")
+            else:
+                cleared.append("分析检查点")
+    except Exception as exc:
+        leftovers.append(f"分析检查点: {exc}")
+
+    # ⑥ 中转站解析缓存（{cid}_{docid}.json）
+    #    ★ 按 purge_file 返回值逐文件判定（旧实现按 listdir 计数 ⇒ 谎报"清理 88 个"）。
+    try:
+        _moved = _not_moved = 0
+        _bad = ""
+        if os.path.isdir(TRANSFER_DIR):
+            for _fn in os.listdir(TRANSFER_DIR):
+                if _fn.startswith(f"{cid}_"):
+                    _tp = os.path.join(TRANSFER_DIR, _fn)
+                    try:
+                        _audit("中转站缓存", _tp, os.path.getsize(_tp))
+                    except OSError:
+                        pass
+                    _okp, _why = purge_file(_tp)
+                    if _okp:
+                        _moved += 1
+                    else:
+                        _not_moved += 1
+                        if not _bad:
+                            _bad = f"{_fn}({_why})"
+        if _moved:
+            cleared.append(f"中转站解析缓存({_moved}个，已移入项目回收站)")
+        if _not_moved:
+            leftovers.append(
+                f"中转站解析缓存({_not_moved}个未移除，首例：{_bad})"
+            )
+    except Exception as exc:
+        leftovers.append(f"中转站解析缓存: {exc}")
+
+    # ⑦ 离线产物（`scripts/four_reports/` 下按公司命名的派生文件，含 readable/ 子目录）
+    #    ★ 2026-10-06 新增。实测事故：库里早没有 id=2/3/4，
+    #      `scripts/four_reports/` 却还躺着它们的 full/summary/readable 产物
+    #      ⇒ "目录里 4 份产物"与"库里 1 家企业"对不上。
+    #    判据：文件名以 `company_{cid}_` 开头（不限定扩展名 —— full.json / summary.json /
+    # ⑦ 离线产物（按公司命名的派生文件，含 readable/ 子目录）
+    #    ★ 2026-10-06 新增。实测事故：库里早没有 id=2/3/4，
+    #      `scripts/four_reports/` 却还躺着它们的产物
+    #      ⇒ "目录里 4 份产物"与"库里 1 家企业"对不上。
+    #    ★★ 根目录**必须跟随应用的数据根**（`runtime_storage.offline_reports_root`）：
+    #      事故（同日第二起）：`tests/test_company_api.py` 用 `APP_DATA_DIR=<临时目录>`
+    #      起子进程实例并删账套 ⇒ 用 `__file__` 拼路径 ⇒ **隔离实例越界删掉了
+    #      真实项目的 company_1_full.json**（同日 4 次，审计日志抓到）。
+    #    判据：文件名以 `company_{cid}_` 开头（不限扩展名 —— full/summary/readable
+    #    都是同一企业的派生物）。
+    try:
+        from runtime_storage import offline_reports_root as _orr
+        _rep_root = _orr()
+        _hit = []
+        if os.path.isdir(_rep_root):
+            _prefix = f"company_{cid}_"
+            for _root, _dirs, _files in os.walk(_rep_root):
+                for _fn in list(_files):
+                    if not _fn.startswith(_prefix):
+                        continue
+                    _p = os.path.join(_root, _fn)
+                    try:
+                        _audit("离线产物", _p, os.path.getsize(_p))
+                    except OSError:
+                        pass
+                    _okp, _why = purge_file(_p)
+                    if _okp:
+                        _hit.append(os.path.relpath(_p, _rep_root))
+                    else:
+                        leftovers.append(f"离线产物 {os.path.relpath(_p, _rep_root)} 未移除({_why})")
+                for _d in list(_dirs):
+                    _dp = os.path.join(_root, _d)
+                    try:
+                        if not os.listdir(_dp) and _dp != _rep_root:
+                            os.rmdir(_dp)
+                    except OSError:
+                        pass
+        if _hit:
+            cleared.append(f"离线分析产物({len(_hit)}个)")
+    except Exception as exc:
+        leftovers.append(f"离线分析产物: {exc}")
+
+    # ⑧ 资料删除墓碑（`runtime_storage` doc tombstones 按 company_id 记账）
+    try:
+        from runtime_storage import clear_company_doc_tombstones as _ccdt
+        _n = _ccdt(cid)
+        if _n:
+            cleared.append(f"资料删除墓碑({_n}条)")
+    except Exception as exc:
+        leftovers.append(f"资料删除墓碑: {exc}")
+
+    # ⑨ 上传原件目录（仅删除账套时）
+    try:
+        if include_uploads:
+            _up = os.path.join(str(RUNTIME_UPLOAD_DIR), str(cid))
+            _nf = 0
+            if os.path.isdir(_up):
+                for _root, _dirs, _files in os.walk(_up):
+                    for _fn in _files:
+                        _fp = os.path.join(_root, _fn)
+                        try:
+                            _audit("上传原件", _fp, os.path.getsize(_fp))
+                        except OSError:
+                            pass
+                        _okp, _why = purge_file(_fp)
+                        if _okp:
+                            _nf += 1
+                        else:
+                            leftovers.append(f"上传原件 {_fn} 未移除({_why})")
+                # 清掉空的子目录与目录本身（purge_file 已移走文件）
+                for _root, _dirs, _files in os.walk(_up, topdown=False):
+                    try:
+                        if not _files and not _dirs:
+                            os.rmdir(_root)
+                    except OSError:
+                        pass
+                if os.path.isdir(_up):
+                    try:
+                        os.rmdir(_up)
+                    except OSError:
+                        leftovers.append("上传原件目录未能移除（可能仍有残留文件）")
+                if _nf:
+                    cleared.append(f"上传原件({_nf}个，已移入项目回收站)")
+    except Exception as exc:
+        leftovers.append(f"上传原件: {exc}")
+
+    # ⑩ AGI 知识库（`tax_agi_knowledge.json`）：剔除**已不存在企业**的学习条目。
+    #    ★★ 2026-10-06 新增（第 10 处派生物，实测残留）：
+    #      · `analysis_history[]` —— 该库自持一份**分析历史**（按 company_name 记账），
+    #        删账套后 100 条历史仍在；
+    #      · `causal_edges[]` —— 自动抽取的因果边，`source = auto_extracted:〈企业名〉`。
+    #    判据（通用，不针对某一家）：以**现存企业名集合**为准，凡条目归属的企业
+    #    已不在库里 ⇒ 剔除。与「孤儿派生物」同一口径。
+    _alive_names = None                 # ★ 先置 None（⑪ 学习模式清理依赖它判作用域）
+    try:
+        from database import Company as _Company2                    # noqa: PLC0415
+        from database import SessionLocal as _SL2                    # noqa: PLC0415
+        from runtime_storage import atomic_write_json as _awj        # noqa: PLC0415
+        _db2 = _SL2()
+        try:
+            _alive_names = {r[0] for r in _db2.query(_Company2.name).all()}
+        finally:
+            _db2.close()
+        _kb = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "data", "tax_agi_knowledge.json")
+        if os.path.exists(_kb) and os.path.getsize(_kb):
+            with io.open(_kb, encoding="utf-8") as _f:
+                _kd = json.load(_f)
+            if isinstance(_kd, dict):
+                _n_hist = _n_edge = 0
+                _hist = _kd.get("analysis_history")
+                if isinstance(_hist, list):
+                    _keep = [h for h in _hist
+                             if str((h or {}).get("company_name") or "") in _alive_names]
+                    _n_hist = len(_hist) - len(_keep)
+                    if _n_hist:
+                        _kd["analysis_history"] = _keep
+                _edges = _kd.get("causal_edges")
+                if isinstance(_edges, list):
+                    # 因果边的 source 形如 "auto_extracted:〈企业名〉"；
+                    # 抽出企业名，凡该企业已不在库里 ⇒ 剔除该边。
+                    def _edge_alive(e):
+                        src = str((e or {}).get("source") or "")
+                        nm = src.split("auto_extracted:", 1)[-1].strip()
+                        return (not nm) or (nm in _alive_names)
+                    _keep = [e for e in _edges if _edge_alive(e)]
+                    _n_edge = len(_edges) - len(_keep)
+                    if _n_edge:
+                        _kd["causal_edges"] = _keep
+                if _n_hist or _n_edge:
+                    _awj(_kb, _kd, indent=1)
+                    if _n_hist:
+                        cleared.append(f"知识库分析历史({_n_hist}条)")
+                    if _n_edge:
+                        cleared.append(f"知识库因果边({_n_edge}条)")
+    except Exception as exc:
+        leftovers.append(f"知识库清理: {exc}")
+
+    # ⑪ 学习模式库（`static/patterns/pattern_*.json`）：剔除**已不存在企业**的模式。
+    #    ★★ 2026-10-06 新增（第 11 处派生物，实测 1151 个、含交易对手与企业数据）。
+    #    每个 pattern 自带 `entity`（分析对象企业名）⇒ 按名归属：
+    #      · entity 不在现存企业集合 ⇒ 该模式来自已删除的账套 ⇒ 剔除；
+    #      · 库里**一个在库企业都没有** ⇒ 现存模式不可能有合法来源 ⇒ 全部剔除。
+    try:
+        _pat_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "static", "patterns")
+        if os.path.isdir(_pat_dir) and _alive_names is not None:
+            _n_pat = 0
+            for _fn in os.listdir(_pat_dir):
+                if not (_fn.startswith("pattern_") and _fn.endswith(".json")):
+                    continue
+                _pp = os.path.join(_pat_dir, _fn)
+                try:
+                    with io.open(_pp, encoding="utf-8") as _f:
+                        _pd = json.load(_f)
+                    _ent = str((_pd or {}).get("entity") or "").strip()
+                    _drop = (_ent not in _alive_names) or (not _alive_names)
+                except Exception:  # noqa: BLE001
+                    _drop = False        # 解析不了的不动（宁留不误删）
+                if _drop:
+                    _okp, _why = purge_file(_pp)
+                    if _okp:
+                        try:
+                            _audit("学习模式", _pp, os.path.getsize(_pp))
+                        except OSError:
+                            pass
+                        _n_pat += 1
+                    else:
+                        leftovers.append(f"学习模式 {_fn} 未移除({_why})")
+            if _n_pat:
+                cleared.append(f"学习模式({_n_pat}个)")
+    except Exception as exc:
+        leftovers.append(f"学习模式清理: {exc}")
+
+    # ⑫ 学习/记忆层存储（`static/*.json`）：剔除**提及已删企业**的条目。
+    #    ★★ 2026-10-06 新增（第 12 处派生物，实测 5 个库都含已删企业数据）：
+    #      cross_analysis_memory / event_log / knowledge_graph /
+    #      pattern_confidence / report_audits。
+    #    判据：用**删除前拿到的企业名**（`company_name` 参数，由「删除账套」端点
+    #    在删除前读取并传入）逐条匹配 —— 条目文本含该企业名 ⇒ 剔除。
+    #    ⚠ 必须用企业名而不是活查库：删完之后名字只在这里有。
+    _LEARNING_STORES = ("cross_analysis_memory.json", "event_log.json",
+                        "knowledge_graph.json", "pattern_confidence.json",
+                        "report_audits.json")
+    _cname = str(company_name or "").strip()
+    if _cname and confirmed_deleted:
+        _static = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "static")
+        for _store in _LEARNING_STORES:
+            _sp = os.path.join(_static, _store)
+            if not os.path.exists(_sp) or os.path.getsize(_sp) == 0:
+                continue
+            try:
+                with io.open(_sp, encoding="utf-8") as _f:
+                    _sd = json.load(_f)
+                _n0 = len(json.dumps(_sd, ensure_ascii=False))
+
+                def _scrub(o):
+                    if isinstance(o, list):
+                        _keep = [x for x in o
+                                 if _cname not in json.dumps(x, ensure_ascii=False)]
+                        _scrubbed = len(o) - len(_keep)
+                        for x in _keep:
+                            _scrub(x)
+                        return _keep, _scrubbed
+                    if isinstance(o, dict):
+                        _removed = 0
+                        for _k in list(o.keys()):
+                            _txt = json.dumps(o[_k], ensure_ascii=False)
+                            if _cname in _k or _cname in _txt:
+                                del o[_k]
+                                _removed += 1
+                            else:
+                                _, _r = _scrub(o[_k])
+                                _removed += _r
+                        return o, _removed
+                    return o, 0
+
+                _sd, _rm = _scrub(_sd)
+                if _rm:
+                    _awj_local = atomic_write_json
+                    _awj_local(_sp, _sd)
+                    cleared.append(f"学习层 {_store}({_rm}条)")
+            except Exception as exc:
+                leftovers.append(f"学习层 {_store} 清理失败: {exc}")
+
+    # ⑬ **数据库行**：所有带 `company_id` 列的表（industry_benchmarks 等，随表结构演进自动覆盖）。
+    #    ★★ 2026-10-06 新增（第 13 处派生物，实测 industry_benchmarks 残留 3 行）。
+    #    删完后 VACUUM —— 否则已删数据仍物理留在数据库文件的数据页里（"删了还能翻出来"）。
+    if include_uploads and confirmed_deleted:
+        try:
+            import sqlite3 as _sq3
+            from runtime_storage import ACCOUNTING_DB as _adb          # noqa: PLC0415
+            _con = _sq3.connect(str(_adb))
+            _cur = _con.cursor()
+            _cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            _tabs = [r[0] for r in _cur.fetchall()]
+            _n_rows = _n_tabs = 0
+            for _t in _tabs:
+                try:
+                    _cur.execute('PRAGMA table_info("%s")' % _t)
+                    if "company_id" not in [c[1] for c in _cur.fetchall()]:
+                        continue
+                    _cur.execute('DELETE FROM "%s" WHERE company_id=?' % _t, (cid,))
+                    if _cur.rowcount:
+                        _n_rows += _cur.rowcount
+                        _n_tabs += 1
+                except Exception:  # noqa: BLE001
+                    continue
+            _con.commit()
+            _cur.execute("VACUUM")
+            _con.close()
+            if _n_rows:
+                cleared.append(f"数据库行({_n_rows}行/{_n_tabs}表，已VACUUM)")
+        except Exception as exc:
+            leftovers.append(f"数据库行清理: {exc}")
+
+    return {"cleared": cleared, "leftovers": leftovers}
 
 
 def _delete_tax_risk_docs(doc_ids, company_id):
@@ -4018,6 +4491,9 @@ def _parse_housing_fund_sheet(sheet, header):
     rows = []
     nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
     for r in range(1, min(nrows, 200)):
+        # ★ 2026-10-07 修复：原缺本行，下面的 `raw_vals[col]` 引用未定义名 → NameError。
+        #   同族解析器（银行/工资等）均有此行；行值唯一来源 `_get_row_values`。
+        raw_vals = _get_row_values(sheet, r)
         vals = {}
         for field, col in cols.items():
             try:
@@ -5570,7 +6046,16 @@ def _parse_invoice_sheet(sheet, direction):
     ])
     header = _get_row_values(sheet, header_row)
     cols = _find_cols_semantic(header, {
-        "发票类型": "inv_type", "发票号码": "inv_no", "发票代码": "inv_code",
+        "发票类型": "inv_type", "发票票种": "inv_type", "票种": "inv_type",
+        # ★★ 2026-10-06（用户：「你核实了发票类型没有？」）：
+        #   取票表的列名是**「发票票种」**（不是"发票类型"）⇒ 旧映射没匹配上，
+        #   **票种整列被丢弃** ⇒ 进项侧检测器只能拿"票面税额"硬算，
+        #   把普通发票的票面税额也算成"应转出未转出"（实测 146 张餐饮/礼品**全部是普通发票**，
+        #   票面税额 4,185.50 元被报成"应转出未转出约 3,996.91 元"——**结论方向反了**）。
+        #   同批补齐：发票状态 / 是否正数发票 / 发票风险等级 / 特定业务类型。
+        "发票状态": "inv_status", "是否正数发票": "is_positive",
+        "发票风险等级": "risk_level", "特定业务类型": "biz_type",
+        "发票号码": "inv_no", "发票代码": "inv_code",
         "数电发票号码": "digital_inv_no", "数电票号码": "digital_inv_no",
         "购方名称": "buyer", "购方税号": "buyer_tax", "购买方名称": "buyer", "购买方纳税人识别号": "buyer_tax",
         "销方名称": "seller", "销方税号": "seller_tax", "销售方名称": "seller", "销售方纳税人识别号": "seller_tax",
@@ -6426,7 +6911,7 @@ def _rows_from_sheet(sheet, max_rows=5000):
 # ═══════════════════════════════════════════════════════════════════════════════
 # ★ 主体一致性校验（2026-09-25）：上传的资料必须与账套主体相匹配
 # ═══════════════════════════════════════════════════════════════════════════════
-# 背景：用户把「猩猩织光（北京）商贸有限公司」的资料上传到「深圳海更数字传媒有限公司」
+# 背景：用户把「猩猩织光（北京）商贸有限公司」的资料上传到「某传媒示例有限公司」
 #   账套，系统照常出报告。**主体错了，报告里每一条结论都失去意义** —— 这比误报更严重，
 #   必须在下结论之前拦住。
 #
@@ -6442,9 +6927,9 @@ def _rows_from_sheet(sheet, max_rows=5000):
 # 指向"本方主体"的标签（其后紧跟公司名）
 # 标签与主体名之间的"噪声"：空白/标点，以及**括号注解**（如「（公章）」「(盖章)」）。
 # ★ 2026-09-25 根因修复：旧写法是 `re.sub(r"^[\s:：\-—=_（）()]+", "", seg)` ——
-#   它把「（」当标点先剥掉，剩下「公章）：深圳海更数字传媒有限公司」，
+#   它把「（」当标点先剥掉，剩下「公章）：某传媒示例有限公司」，
 #   于是"括号注解"再也匹配不上，`_COMPANY_RE` 连「公章）：」一起吃进主体名 →
-#   企业报告与主体一致性闸门里出现 `公章）深圳海更数字传媒有限公司`（实测）。
+#   企业报告与主体一致性闸门里出现 `公章）某传媒示例有限公司`（实测）。
 #   ⚠ 顺序要紧：**先整体剥掉括号注解，再剥标点**（合并成一个可重复的模式，循环剥尽）。
 _SUBJECT_LEAD_NOISE_RE = re.compile(r"^(?:[\s:：\-—=_·、]+|[（(][^）)]{0,12}[）)])+")
 
@@ -6501,7 +6986,7 @@ def _norm_company_core(name):
     ①全角括号→半角 ②去空白与分隔符 ③剥离括注行政区划（如"（北京）"）
     ④剥离行政区划前缀 ⑤剥离组织形式后缀 ⑥去 股份/集团/控股 尾字
     例：`猩猩织光（北京）商贸有限公司` → `猩猩织光商贸`
-        `深圳海更数字传媒有限公司`   → `海更数字传媒`
+        `某传媒示例有限公司`   → `某传媒企业传媒`
     """
     if not name:
         return ""
@@ -6523,7 +7008,7 @@ def _norm_company_core(name):
 
 
 def _name_similarity(a, b):
-    """字符二元组 Dice 相似度，用于识别简称/别名（如 海更传媒 vs 深圳海更数字传媒）。"""
+    """字符二元组 Dice 相似度，用于识别简称/别名（如 某传媒企业 vs 某传媒企业数字传媒）。"""
     if not a or not b:
         return 0.0
     if a == b:
@@ -7358,7 +7843,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
     
     # 1. 风险叙事
     level_stats = {"极高风险": 0, "高风险": 0, "中风险": 0, "低风险": 0}
-    for f in findings:
+    for f in all_findings:
         lv = f.get("level", "")
         if lv in level_stats: level_stats[lv] += 1
     
@@ -7386,7 +7871,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
     # 按风险类型分组，记录每类涉及的发票
     type_invoices = {}  # {风险类型: {(发票key, amount, tax_amt, invoice_type)}}
     
-    for f in findings:
+    for f in all_findings:
         ftype = f.get("type","")[:40]
         items = f.get("items", []) or f.get("evidence_rows", []) or []
         if ftype not in type_invoices:
@@ -7456,7 +7941,7 @@ async def get_report_intelligence(company_id: int = Query(...)):
         
         # 获取该类型的风险等级
         level = ""
-        for f in findings:
+        for f in all_findings:
             if f.get("type","")[:40] == ftype:
                 level = f.get("level","")
                 break
@@ -7766,8 +8251,18 @@ def _build_delivery_html(report, delivery_type):
         "<div class='wm'>内部草稿 · 仅供内部复核 · 非正式结论</div>"
         if is_draft else ""
     )
+    # ★ 2026-10-09：报告名唯一权威 = `report_identity.canonical_name()`
+    #   （配置 `config/report_identity.json`）。此处原为**硬编码字面量**
+    #   「税务合规风险分析报告」—— 该串已被登记为 `forbidden_aliases`（禁止别名），
+    #   而本函数由**在线路由** `/api/compliance/rounds/{round_id}/deliver` 调用
+    #   ⇒ 用户下载到的交付件标题顶着系统明令禁止的名称。
+    #   闸门 `check_report_quality_skill_wiring` ⑤ 只扫了前端，本文件当时漏网（已补扫）。
+    #   注：不在本处再写兜底字面量 —— `canonical_name()` 自带兜底且不抛异常，
+    #   写第二份就是又造一个"名字的出处"。
+    from engine.report_identity import canonical_name as _canon
+    _doc_title = str(_canon() or "").strip()
     return f"""<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>税务合规风险分析报告</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>{_doc_title}</title>
 <style>
 body{{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;color:#1a1a1a;margin:0;padding:48px 56px;line-height:1.7;position:relative;}}
 h1{{font-size:22px;font-weight:600;text-align:center;margin:0 0 4px;}}
@@ -7783,7 +8278,7 @@ th{{background:#f4f6f8;font-weight:600;}}
 .wm{{position:fixed;top:42%;left:0;right:0;text-align:center;font-size:52px;color:rgba(0,0,0,0.07);font-weight:700;transform:rotate(-24deg);pointer-events:none;z-index:9;}}
 </style></head><body>
 {watermark}
-<h1>税务合规风险分析报告</h1>
+<h1>{_doc_title}</h1>
 <div class="sub">{name}</div>
 <h2>一、报告性质</h2>
 <p>本报告由系统依据企业上传的经营资料自动生成待核事项，仅用于内部税务合规辅助复核。所有发现均为待核事实，不代表违法定性、税额确定、处罚或移送结论，最终结论须由有权人员依法复核。</p>
@@ -8313,7 +8808,6 @@ def get_report_summary(company_id: int = Query(...), version: str = Query("full"
             "comprehensive": cc,
         })
     
-    _report(100, "分析完成")
     return {"ok": True, "report": base}
 
 
@@ -9718,20 +10212,64 @@ _analysis_lock = threading.Lock()
 # 根因不是删除漏清，而是：① 删除不取消进行中的分析；② 写回路径没有终局守卫。
 _deleted_company_ids = set()
 
+# ★★ 2026-10-06（用户实测「删账套→重建→重跑，报告一模一样」揭出的**真 bug**）：
+#   原实现把「删除报告」与「删除账套」当成同一件事 —— 两者都给 `_deleted_company_ids`
+#   加值，而该集合**只在重建账套时撤销** ⇒ 用户点过一次「删除报告」之后，
+#   该账套**此后每一次重跑的结果都被永久拦下、永不落盘**：
+#     实测证据（服务端日志）：`[删除终局] 账套 1 的结果已被删除，跳过写回`
+#     ⇒ 页面能看到报告（还在内存里），一刷新/重启就没了；分析历史也永不增长。
+#   语义必须分开：
+#     · 账套已删（`_deleted_company_ids`）：永久，直到重建 —— 拦截一切写回；
+#     · 报告已删（`_report_deleted_at` 时间水位线）：只拦"**删除发生之前**就已启动的那轮
+#       分析"（2026-10-01 事故：删完 2 分钟被在跑的分析写回复活）；
+#       删除之后**新发起**的分析必须能正常落盘。
+_report_deleted_at: dict = {}
+# 每轮分析的启动时刻（`_execute_tax_risk_analysis` 入口登记）—— 供上面的水位线比较。
+_analysis_started_at: dict = {}
 
-def _is_result_deleted(company_id):
-    """该账套的分析结果是否已被用户删除 —— 删除终局状态的**单一权威判据**。
+
+def _is_result_deleted(company_id, started_at=None):
+    """该账套的分析结果是否**不得写回** —— 写回守卫的**单一权威判据**。
 
     铁律：任何"分析结果"写回路径（最近结果缓存 / 分析历史 / 分析检查点）都必须先过
-    这一关。删除是终局状态，进行中的分析任务跑完也不得把结果写回，否则删除会被静默
-    撤销（2026-10-01 实测事故）。判据两路并行：内存中登记的删除集合，或该账套存在
-    status=deleted 的任务（删除端点③会把在跑的任务一并标记为 deleted）。
+    这一关，否则"删除"会被进行中的分析静默撤销（2026-10-01 实测事故）。
+
+    判据（2026-10-06 起分为两路，语义不再混用）：
+      ① **账套已删**：`company_id in _deleted_company_ids` ⇒ 永久为真（重建账套时撤销）；
+      ② **报告已删**：`_report_deleted_at[company_id]` 时间水位线 ——
+         仅当"本轮分析**启动于**删除报告之前（或启动时间未知）"时为真。
+         ⇒ 删除之后新发起的分析**必须允许写回**（否则用户重跑的报告永远存不下来）。
     """
     try:
-        if company_id in _deleted_company_ids:
+        cid = int(company_id)
+    except Exception:
+        return False
+    try:
+        if cid in _deleted_company_ids:
             return True
     except Exception:
         pass
+    try:
+        _wm = float(_report_deleted_at.get(cid) or 0)
+        if _wm > 0:
+            _st = started_at
+            if _st is None:
+                _st = _analysis_started_at.get(cid)
+            # 启动时间取不到 ⇒ 保守判"已删除"（宁可少写一次，也不能让删除被撤销）
+            if _st is None or float(_st) <= _wm:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+def _is_result_deleted_legacy_taskscan(company_id):
+    """（保留供排查）旧的"该账套存在 status=deleted 任务"判据 —— 已弃用。
+
+    弃用原因：它把"某一条任务的删除"放大成"整个账套都不许再写回"，
+    与「删除报告」共用墓碑 ⇒ 重建账套后重跑的结果全部被拦（2026-10-06 用户实测）。
+    现由上面的时间水位线取代：删除报告只拦"当时在跑/已完成的那一份"。
+    """
     try:
         # ★ 2026-10-01 死锁修复：这里**故意不加锁**。
         #   本函数是「写回路径守卫」，被 _write_analysis_checkpoint /
@@ -9838,14 +10376,18 @@ def _enforce_scenario_execution_boundary(report_data):
     report_data["domain_summary"] = execution.get("domain_summary", [])
     report_data["total_risks"] = len(findings)
     # 两级结论统计：可核定（已给出最终答案）/ 待核（保留建议）
-    _vf_cnt = sum(1 for f in findings if isinstance(f, dict) and f.get("conclusion_grade") == "已核定")
+    #   ★ 2026-10-08（P0-1）：算术收敛到唯一权威 `report_metrics`（不再本地 for 循环）。
+    #   ⚠ 本阶段正文尚未生成，属**引擎阶段值**；报告最终出口会用正文口径**重新定稿**。
+    from engine import report_metrics as _rm_es
+    _vf_cnt, _pd_cnt = _rm_es.count_conclusions(findings)
     report_data["verified_count"] = _vf_cnt
-    report_data["pending_count"] = len(findings) - _vf_cnt
+    report_data["pending_count"] = _pd_cnt
     report_data["high_risk"] = 0
     report_data["mid_risk"] = 0
     report_data["low_risk"] = 0
     report_data["overall_level"] = (
-        f"已核定{_vf_cnt}项/待核{len(findings) - _vf_cnt}项" if findings else "未形成待核事实"
+        _rm_es.conclusion_count_phrase(_vf_cnt, _pd_cnt)
+        if findings else ("未形成" + _rm_es.conclusion_count_labels()[1])
     )
     report_data["release_status"] = "草稿_待人工复核"
     report_data["automatic_determination_allowed"] = False
@@ -9933,25 +10475,20 @@ def _apply_output_governance_stage(report_data):
                 "auto_enforced": True,
             }
     # ═══ 等级定稿后的高/中/低统计（复核阶段可能调整等级，故在此处统一计数）═══
-    _lvl_high = _lvl_mid = _lvl_low = 0
-    for _fnd_lv in findings:
-        _lv = str(_fnd_lv.get("level", ""))
-        if _lv.startswith("极高") or _lv.startswith("高"):
-            _lvl_high += 1
-        elif _lv.startswith("中"):
-            _lvl_mid += 1
-        elif _lv.startswith("低"):
-            _lvl_low += 1
-    report_data["high_risk"] = _lvl_high
-    report_data["mid_risk"] = _lvl_mid
-    report_data["low_risk"] = _lvl_low
+    #   ★ 2026-10-08（P0-1）：算术收敛到唯一权威 `report_metrics.count_levels`。
+    from engine import report_metrics as _rm_og
+    _lc_og = _rm_og.count_levels(findings)
+    report_data["high_risk"] = _lc_og["high_risk"]
+    report_data["mid_risk"] = _lc_og["mid_risk"]
+    report_data["low_risk"] = _lc_og["low_risk"]
     report_data["total_risks"] = len(findings)
     # 两级结论统计（等级定稿后终值）：可核定已给最终答案 / 待核保留建议
-    _vf_final = sum(1 for f in findings if isinstance(f, dict) and f.get("conclusion_grade") == "已核定")
+    _vf_final, _pd_final = _rm_og.count_conclusions(findings)
     report_data["verified_count"] = _vf_final
-    report_data["pending_count"] = len(findings) - _vf_final
+    report_data["pending_count"] = _pd_final
     report_data["overall_level"] = (
-        f"已核定{_vf_final}项/待核{len(findings) - _vf_final}项" if findings else "未形成待核事实"
+        _rm_og.conclusion_count_phrase(_vf_final, _pd_final)
+        if findings else ("未形成" + _rm_og.conclusion_count_labels()[1])
     )
     summary = {
         "total_methods": len(PIPELINE_KNOWLEDGE.get("methodologies", [])),
@@ -10681,6 +11218,13 @@ def _persist_one_click_result(company_id, result):
             "timestamp": value.get("timestamp", ""),
             "report": value.get("report", {}),
             "snapshot": value.get("snapshot", {}),
+            # ★ 2026-10-09 根因修复：`_data_fp` 从前**只写内存、不写磁盘**，
+            #   而启动时 `lifespan` 用磁盘缓存回填 `_last_analysis_cache`
+            #   ⇒ 重启后 `_cached.get("_data_fp", "")` 恒为 `""`
+            #   ⇒ `_cached_fp == _fp` 恒假 ⇒ **跨重启的增量复用从未生效**。
+            #   （实测：`data/cache/last_analysis_cache.json` 里各企业 `_data_fp` 为 None。）
+            #   本字段只是指纹字符串，与随它一起落盘的全量 report 相比可忽略不计。
+            "_data_fp": value.get("_data_fp", "") or "",
         }
         for key, value in _last_analysis_cache.items()
     }
@@ -10966,6 +11510,15 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
     """
     import traceback as _traceback
 
+    # ★ 2026-10-06：登记**本轮分析的启动时刻**（写回守卫的水位线比较基准）。
+    #   删除报告时记时间水位线；启动于水位线**之后**的分析必须允许写回，
+    #   启动于之前的（= 删除时正在跑的那一份）不得写回。见 `_is_result_deleted`。
+    try:
+        import time as _t_reg
+        _analysis_started_at[int(company_id)] = _t_reg.time()
+    except Exception:  # noqa: BLE001
+        pass
+
     execution = {
         "version": _ONE_CLICK_PIPELINE_VERSION,
         "status": "running",
@@ -10981,7 +11534,13 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
 
             if _load_correction_rules():
                 propagate_corrections_to_chains()
-            cross_result = apply_cross_company_synthesis() or {}
+            # ★ 2026-10-07（第 4 批，由「分析会话·分析轨迹」暴露的真实静默失效）：
+            #   本行原为 `apply_cross_company_synthesis()` —— 缺 `company_id` 必填参数，
+            #   每次都抛 TypeError 并被外层 `except Exception` 吞成 `degraded`，
+            #   ⇒ **跨企业合成分析（跨公司纠正 → 通用规则）从未真正执行过**，
+            #   而报告与日志里只看到"preparation: degraded"，没人察觉。
+            #   修法：按签名传参（这是唯一正确修法，不是加 try）。
+            cross_result = apply_cross_company_synthesis(company_id, db) or {}
             execution["stages"]["preparation"] = {
                 "status": "completed",
                 "cross_rules": cross_result.get("cross_rules_count", 0),
@@ -11051,6 +11610,188 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         except Exception as _ere_exc:
             _append_one_click_log(report_data, f"[企业版报告] 生成失败: {_ere_exc}")
 
+        # ═══ 产出链统一后处理（★ 生成时去重，而不只是事后检测）═══
+        #   ★ 2026-10-08（用户指令「把所有的都要接进产出链，都给到一键分析」）：
+        #   此前去重只在离线脚本链（scripts/_phase5_dedup.py）生效，
+        #   一键分析产出的报告仍是未去重版（实测重复率 21.27% FAIL、措辞 13 处）。
+        #   本块把 engine/report_pipeline 的去重真正作用到报告数据上。
+        try:
+            from engine.report_pipeline import dedup_report_data as _drd
+            _before = None
+            try:
+                from engine import output_variants as _ov0
+                from engine.dedup_pipeline import duplicate_rate as _dr0
+                _t0 = _ov0.report_text_from(report_data)
+                _before = _dr0(_t0.split("\n"))["整体"]["重复率"] if _t0.strip() else None
+            except Exception:
+                pass
+            _, _dlog = _drd(report_data)
+            _after = None
+            try:
+                from engine import output_variants as _ov1
+                from engine.dedup_pipeline import duplicate_rate as _dr1
+                _t1 = _ov1.report_text_from(report_data)
+                _after = _dr1(_t1.split("\n"))["整体"]["重复率"] if _t1.strip() else None
+            except Exception:
+                pass
+            report_data["_dedup_log_count"] = len(_dlog)
+            report_data["_dedup_rate_before"] = _before
+            report_data["_dedup_rate_after"] = _after
+            _append_one_click_log(
+                report_data,
+                "[报告去重] 处理 %d 条；重复率 %s → %s" % (
+                    len(_dlog),
+                    ("%.2f%%" % (_before * 100)) if _before is not None else "取不到",
+                    ("%.2f%%" % (_after * 100)) if _after is not None else "取不到"))
+        except Exception as _drd_exc:
+            report_data["_dedup_log_count"] = -1
+            _append_one_click_log(report_data, f"[报告去重] 接线异常（已留痕）: {_drd_exc}")
+
+        # ═══ 阶段9 引擎接线：唯一事实源 + 数据勾稽 + 法规版本 + 知识库自学习 ═══
+        # ★ 唯一接线点。任一模块异常 ⇒ 记录并降级（不静默、不影响主流程），但**勾稽阻塞项非空 ⇒ 不得出正式稿**。
+        try:
+            from engine.fact_store import declare_into, get_store
+            _period = (report_data.get("inspection_period") or report_data.get("period")
+                       or report_data.get("check_period") or "")
+            _n_fact = 0
+            from engine.report_pipeline import report_items as _ritems
+            for _it in _ritems(report_data)[:50]:
+                if not isinstance(_it, dict):
+                    continue
+                _ti = _it.get("tax_impact")
+                if isinstance(_ti, dict) and _ti.get("total") is not None:
+                    declare_into(report_data, kind="amount",
+                                 label="潜在税额·" + str(_it.get("title") or "")[:24],
+                                 value=_ti.get("total"), unit="元", period=_period,
+                                 source="tax_impact.total",
+                                 derivation=str(_ti.get("basis") or "")[:60],
+                                 owner="tax_impact")
+                    _n_fact += 1
+            _st = get_store(report_data)
+            report_data["_fact_store_stats"] = _st.stats() if _st else {"note": "事实库未创建"}
+            report_data["_fact_store_conflicts"] = [c.describe() for c in _st.conflicts()] if _st else []
+            _append_one_click_log(
+                report_data,
+                f"[唯一事实源] 登记事实 {_n_fact} 条；冲突 {len(report_data['_fact_store_conflicts'])} 项"
+                f"（B1 不再 SKIP；冲突非空须人工裁量）")
+        except Exception as _fs_exc:
+            report_data["_fact_store_stats"] = {"error": str(_fs_exc)}
+            _append_one_click_log(report_data, f"[唯一事实源] 接线异常（已留痕）: {_fs_exc}")
+
+        # ★ 自动去重阻断（指令执行要求第7条：不再依赖人工提醒）
+        try:
+            from engine import output_variants as _ov
+            from engine.dedup_pipeline import duplicate_rate as _drate
+            _txt = _ov.report_text_from(report_data)
+            if _txt.strip():
+                _dr = _drate(_txt.split("\n"))
+                report_data["_duplicate_rate"] = _dr
+                _append_one_click_log(
+                    report_data,
+                    f"[重复率自检] {_dr['整体']['重复率']:.2%}（阈值 {_dr['整体']['阈值']:.0%}）"
+                    f"→ {_dr['整体']['判定']}；阻断={_dr['阻断']}")
+                if _dr.get("阻断"):
+                    report_data["formal_workpaper_allowed"] = False
+            else:
+                report_data["_duplicate_rate"] = {"note": "无可判定文本，SKIP（不静默通过）"}
+                _append_one_click_log(report_data, "[重复率自检] 无可判定文本（SKIP，不静默通过）")
+        except Exception as _dr_exc:
+            report_data["_duplicate_rate"] = {"error": str(_dr_exc)}
+            _append_one_click_log(report_data, f"[重复率自检] 接线异常（已留痕）: {_dr_exc}")
+
+        # ★ 措辞审计（本批由知识库自学习合入：W1 定性口径破句 / W2 已查明与未认定同段冲突）
+        try:
+            from engine import output_variants as _ov2
+            from engine.text_guardrails import audit_wording as _aw
+            _w_hits = _aw(_ov2.report_text_from(report_data))
+            report_data["_wording_audit"] = _w_hits
+            if _w_hits:
+                _append_one_click_log(
+                    report_data,
+                    f"[措辞审计] 命中 {len(_w_hits)} 处：" +
+                    "、".join(f"{h['rule']} {h['name']}" for h in _w_hits[:3]))
+                report_data["formal_workpaper_allowed"] = False
+            else:
+                _append_one_click_log(report_data, "[措辞审计] 通过（无破句/无同段口径冲突）")
+        except Exception as _aw_exc:
+            report_data["_wording_audit"] = {"error": str(_aw_exc)}
+            _append_one_click_log(report_data, f"[措辞审计] 接线异常（已留痕）: {_aw_exc}")
+
+        # ★ 资料缺失与风险分离（禁止把缺失计入风险事项数）
+        try:
+            from engine.material_gap import separate as _mg_sep
+            _ind = ((report_data.get("target_entity") or {}).get("industry")
+                    if isinstance(report_data.get("target_entity"), dict) else "")
+            _mg = _mg_sep(report_data, industry=str(_ind or ""))
+            report_data["_material_gap"] = _mg
+            _append_one_click_log(report_data, f"[资料缺失分离] {_mg.get('summary')}")
+        except Exception as _mg_exc:
+            report_data["_material_gap"] = {"error": str(_mg_exc)}
+            _append_one_click_log(report_data, f"[资料缺失分离] 接线异常（已留痕）: {_mg_exc}")
+
+        # ★ 风险-证据矩阵（等级与证据强度分列）
+        try:
+            from engine.risk_evidence import build_matrix as _rem
+            from engine.report_pipeline import report_items as _ritems2
+            _items = _ritems2(report_data)
+            _mx = _rem(_items)
+            report_data["_risk_evidence"] = _mx
+            _append_one_click_log(report_data, f"[风险-证据矩阵] {_mx.get('summary')}")
+        except Exception as _mx_exc:
+            report_data["_risk_evidence"] = {"error": str(_mx_exc)}
+            _append_one_click_log(report_data, f"[风险-证据矩阵] 接线异常（已留痕）: {_mx_exc}")
+
+        try:
+            from engine.reconciliation import check_report
+            _rc = check_report(report_data)
+            report_data["_reconciliation"] = _rc
+            _append_one_click_log(
+                report_data, f"[数据勾稽] {_rc.get('summary')}；阻塞={_rc.get('blocking')}")
+            if _rc.get("blocking"):
+                report_data["formal_workpaper_allowed"] = False
+        except Exception as _rc_exc:
+            report_data["_reconciliation"] = {"error": str(_rc_exc)}
+            _append_one_click_log(report_data, f"[数据勾稽] 接线异常（已留痕）: {_rc_exc}")
+
+        try:
+            from engine.legal_version import annotate_report
+            _lv = annotate_report(report_data)
+            report_data["_legal_versions"] = _lv
+            _append_one_click_log(report_data, f"[法规版本] {_lv.get('summary')}")
+            if _lv.get("blocking"):
+                report_data["formal_workpaper_allowed"] = False
+        except Exception as _lv_exc:
+            report_data["_legal_versions"] = {"error": str(_lv_exc)}
+            _append_one_click_log(report_data, f"[法规版本] 接线异常（已留痕）: {_lv_exc}")
+
+        try:
+            from engine.knowledge_learner import (
+                update_knowledge, problems_from_report, case_from_report,
+            )
+            # ★ 2026-10-08（条款 A10 核验发现，两处真缺口一并修）：
+            #   ① 原调用**没传 `case`** ⇒ `record_case` 从不执行，"把本次报告存入样本库"
+            #      从未真正发生（实测 config/experience_cases.json 只有 1 条手工样例）；
+            #   ② `problems` 原读离线 `baseline/阶段1/问题诊断.json`（**上次离线诊断**的静态
+            #      结果）⇒ 提炼源与"本次报告"无关。
+            #   现改为从**本次报告**的问题信号归一（唯一权威 `problems_from_report`）。
+            _problems = problems_from_report(report_data)
+            _case = case_from_report(report_data, company_id)
+            _kr = update_knowledge(_problems, None, sample_id=str(company_id), case=_case)
+            report_data["_knowledge_learn"] = _kr
+            _append_one_click_log(
+                report_data,
+                f"[知识库自学习] {_kr.get('summary')}；本次问题信号 {len(_problems)} 条")
+        except Exception as _kl_exc:
+            report_data["_knowledge_learn"] = {"error": str(_kl_exc)}
+            _append_one_click_log(report_data, f"[知识库自学习] 接线异常（已留痕）: {_kl_exc}")
+
+        # ═══ WB-TRISK-2026-001 四道质量门禁 ═══
+        #   ★ 2026-10-09（P1-5 接线顺序修复）：**本块已移到报告最终出口之后**
+        #     （`result["report"] = report_data` 之前），与产出**同口径**。
+        #     旧位置在「标点规范化/通用口径上提/派生量定稿/去重收敛」**之前** ⇒
+        #     门禁在**中间态**文本上判红（与用户所见文本不同源，违反 P0-3 教训）。
+        #     见下方 `[质量门禁]` 与 `[归档结构]` 两处接线。
+
         # ═══ 风险检查分身·数据准入：五流调取资料清单（缺哪流提示补哪流）═══
         try:
             report_data["document_requests"] = _build_five_flow_document_requests(report_data)
@@ -11117,8 +11858,129 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
         except Exception as _rs_exc:  # pragma: no cover
             execution["stages"]["report_style"] = {"status": "degraded", "message": str(_rs_exc)}
 
-        # ═══ 报告**最终出口**：统一做中文标点规范化（半角→全角）═══
-        # ★ 2026-09-27（用户要求「标点符号技能要加强」）：前端 `tax-doc-analysis.js`
+        # ═══ 分析会话（用户第 4 批 任务1）：会话身份 / 增量对比 / 假重新分析自检 / 画像·案例·规则建议 ═══
+        #   ★ 收尾统一在唯一权威 `engine.analysis_session.finish_session`（本处只做薄转发，
+        #     不在这里再算一遍会话/指纹/对比，避免多头维护）。
+        #   ★ 默认档为**恒等**：不改执行计划、不改报告正文，只新增会话记录与 5 份附件文档。
+        #   ★ 失败不阻断主分析（except 留痕，绝不静默）。
+        try:
+            from engine.analysis_session import finish_session as _finish_session
+            _er2 = report_data.get("enterprise_readable_report")
+            _sess_params = dict(report_data.get("analysis_params") or {})
+            _sess_params.setdefault(
+                "industry", (report_data.get("target_entity") or {}).get("industry") or "")
+            _sr = _finish_session(company_id, report_data,
+                                  _er2 if isinstance(_er2, dict) else {},
+                                  execution=execution, params=_sess_params)
+            report_data["analysis_session"] = _sr["session"]
+            report_data["analysis_session_note"] = _sr["header"]
+            report_data["incremental_analysis"] = _sr["incremental"]
+            report_data["reanalysis_audit"] = _sr["audit"]
+            report_data["entity_dossier"] = _sr["dossier"]
+            # 报告头（前端「本次报告编制信息」条）追加会话信息
+            _badge = report_data.get("compilation_badge")
+            if isinstance(_badge, dict):
+                _badge["session_id"] = _sr["session"].get("session_id")
+                _badge["session_run_id"] = _sr["session"].get("run_id")
+                _badge["snapshot_version"] = (
+                    (_sr["session"].get("snapshot") or {}).get("version") or "")
+                _badge["session_header"] = _sr["header"]
+                _badge["reanalysis_ok"] = bool((_sr["audit"] or {}).get("ok", True))
+            _append_one_click_log(
+                report_data, "[分析会话] %s（%s）" % (
+                    _sr["session"].get("session_id"), _sr["session"].get("run_id")))
+            _append_one_click_log(report_data, "[增量分析] %s"
+                                  % str((_sr["incremental"] or {}).get("summary_line") or ""))
+            _append_one_click_log(report_data, "[假分析自检] %s"
+                                  % str((_sr["audit"] or {}).get("note") or ""))
+            for _d in (_sr["session"].get("degraded") or []):
+                _append_one_click_log(report_data, "[分析会话] 降级：%s" % _d)
+        except Exception as _sess_exc:  # noqa: BLE001
+            _append_one_click_log(report_data, f"[分析会话] 生成失败(不阻断): {_sess_exc}")
+
+        # ═══ 多行业能力 + 报告定位与合规（用户第 5 批 任务1/2）═══
+        #   ★ 唯一权威：行业参数 `engine.industry_params`、模板 `engine.report_template`、
+        #     合规 `engine.report_compliance`、脱敏 `engine.redaction`；本处只做**装配**（薄转发）。
+        #   ★ 默认行为不变：行业未匹配 ⇒ 通用结构；未给签署人 ⇒ 标「待签署」（不阻断主流程）。
+        try:
+            from engine.industry_params import materiality as _ind_mat, params_of as _ind_params
+            from engine.report_template import apply_template as _apply_tpl, template_note as _tpl_note
+            from engine.report_compliance import (internal_edition as _int_ed,
+                                                 external_edition as _ext_ed,
+                                                 compliance_text as _comp_txt)
+            _ind = ((report_data.get("target_entity") or {}).get("industry")
+                    or ((report_data.get("comprehensive") or {}).get("company_profile") or {}).get("industry")
+                    or "")
+            _ip = _ind_params(_ind)
+            # ① 行业参数（风险族/指标/基准/重要性水平/资料优先级）
+            report_data["industry_params"] = {
+                "matched": bool(_ip.get("matched")),
+                "industry_id": _ip.get("industry_id"),
+                "label": _ip.get("label"),
+                "risk_families": _ip.get("risk_families") or [],
+                "risk_indicators": _ip.get("risk_indicators") or [],
+                "benchmark_meta": _ip.get("benchmark_meta") or {},
+                "materiality": _ip.get("materiality") or {},
+                "note": _ip.get("note") or "",
+            }
+            # ② 行业报告模板（章节/重点/补资料优先级）
+            #   ⚠ 「缺失资料」的唯一权威是 `enterprise_report.required_doc_coverage`
+            #     （必查 − 已提供 − 业态不适用）。初版这里读 `report_data["materials"]`
+            #     且判它是不是 dict ⇒ 永远拿不到缺失清单、优先级排序**静默为空**（实测踩过）。
+            _mats = []
+            try:
+                from engine.enterprise_report import required_doc_coverage as _rdc
+                _mats = [str(x) for x in ((_rdc(report_data) or {}).get("missing") or [])]
+            except Exception as _m_e:  # noqa: BLE001
+                _append_one_click_log(report_data, f"[报告模板] 缺失资料取数失败: {_m_e}")
+            _er3 = report_data.get("enterprise_readable_report")
+            if isinstance(_er3, dict):
+                _er3_t, _tmeta = _apply_tpl(_er3, _ind, _mats or None)
+                report_data["enterprise_readable_report"] = _er3_t
+                report_data["report_template_meta"] = _tmeta
+                _append_one_click_log(report_data, "[报告模板] %s" % _tpl_note(_ind))
+            # ③ 合规要素 + 内部底稿/对外版本
+            _signers = dict(report_data.get("report_signers") or {})
+            _reviewed = report_data.get("report_reviewed")
+            # ★ 2026-10-09 根因修复（用户可见缺陷）：原实现是
+            #     `report_data["report_compliance"] = json.loads(json.dumps(_int_ed(...)))`
+            #   —— 裸 `json.dumps` 无法序列化 `set`，而 report_data 内**必然**存在 set
+            #   ⇒ 抛 `Object of type set is not JSON serializable` ⇒ **整段被本 try 的
+            #   except 兜走** ⇒ `report_compliance` **从未写入**（实测：前端合规声明与
+            #   签名/版本记录两章长期无数据源，只能走回落）。三处修正：
+            #     ① 改用**既有唯一权威** `runtime_storage._to_json_safe`（递归处理
+            #        set/tuple/循环引用；与落盘 `atomic_write_json` 同一口径）；
+            #     ② 只取**合规要素**（前端 `_complianceOf` 只读这几个键）——
+            #        不内嵌整份报告，否则 report_data 自包含、落盘体积接近翻倍；
+            #     ③ 台账行带上**作业 id**（`analysis_id`）⇒ 报告 → 作业单向回指。
+            _int = _int_ed(report_data, company_id=company_id, signers=_signers,
+                           reviewed=_reviewed, change_note="一键分析生成",
+                           analysis_id=str(get_current_job_id() or ""))
+            from runtime_storage import _to_json_safe as _jss
+            report_data["report_compliance"] = _jss({
+                _k: _int.get(_k) for _k in (
+                    "compliance", "compliance_text", "document_meta",
+                    "signature_block", "version_record", "change_log",
+                ) if _int.get(_k) is not None
+            })
+            report_data["report_compliance_text"] = _comp_txt(
+                report_data["report_compliance"].get("compliance") or {})
+            # 对外版本（按角色脱敏；**不问就不生成**，避免无谓的重复体量）
+            if str(report_data.get("export_role") or "") in ("external", "enterprise", "auditor"):
+                report_data["external_edition"] = _ext_ed(
+                    report_data, company_id=company_id, signers=_signers,
+                    reviewed=_reviewed, change_note="一键分析生成（对外版）",
+                    role=str(report_data.get("export_role")))
+            _append_one_click_log(
+                report_data, "[报告合规] 《%s》版本=%s；签署=%s" % (
+                    (report_data["report_compliance"].get("document_meta") or {}).get("name"),
+                    (report_data["report_compliance"].get("version_record") or {}).get("version"),
+                    "齐全" if (report_data["report_compliance"].get("signature_block") or {}).get("signed")
+                    else "待签署"))
+        except Exception as _ind_exc:  # noqa: BLE001
+            _append_one_click_log(report_data, f"[多行业/合规] 装配失败(不阻断): {_ind_exc}")
+
+        # ═══ 报告**最终出口**：统一做中文标点规范化（半角→全角）═══        # ★ 2026-09-27（用户要求「标点符号技能要加强」）：前端 `tax-doc-analysis.js`
         #   与离线 `_render_report_html.py` 直接消费 `all_findings`/`domain_summary`/
         #   `_engine_hub` 等**原文**；这些字段分布在 `_enforce_scenario_execution_boundary`
         #   **之后**追加的多个阶段（智能引擎中枢、五流清单、各图谱、编制新鲜感…），
@@ -11139,6 +12001,173 @@ def _execute_tax_risk_analysis(company_id, db, progress_callback=None):
             walk_strings_inplace(report_data, lambda s, k: to_plain_obj(_np(s), k))
         except Exception as _pe:  # pragma: no cover - 标点规范化失败不得阻断报告
             _append_one_click_log(report_data, f"[标点规范化] 跳过：{_pe}")
+
+        # ═══ 报告最终出口 ②：**报告级通用口径上提**（P0-7）═══
+        #   ★★ 2026-10-09：正文有 33 种**非数值模板句**跨章节重复（最长 ×13），而三项
+        #   重复率判据都抓不到"跨章节 + 非数值 + 句子级"这一格（模板句藏在段内，段与段
+        #   并不相似；且无金额锚点）。这些句子绝大多数是**报告级通用口径**（对每个事项
+        #   一字不差成立），本不该逐条复述 ⇒ 按登记表从各事项正文移除、在报告级只说一次。
+        #   唯一权威 `engine/common_clauses`（登记表 `config/common_clauses.json`）；
+        #   `report_statement` 是**渲染器唯一消费点**（前端渲染为「五、报告性质和使用说明」），
+        #   故上提时同时写入它 —— 否则"去重"就等于"把话删掉了"。
+        #   位置不可调换：必须在④去重收敛**之前**（指令《六》执行批次与接线点）。
+        try:
+            from engine.common_clauses import hoist_common_clauses as _hcc
+            _hcs = _hcc(report_data)
+            _append_one_click_log(
+                report_data,
+                "[报告级通用口径] 上提 %d 句（登记项 %d 个，段落清空 %d 个）"
+                % (_hcs.get("hoisted", 0), len(_hcs.get("clauses") or []),
+                   _hcs.get("paragraphs_dropped", 0)))
+        except Exception as _hc_exc:  # noqa: BLE001 —— 不静默：上提失败即重复率必超阈
+            _append_one_click_log(report_data, f"[报告级通用口径] 接线异常（已留痕）: {_hc_exc}")
+
+        # ═══ 报告最终出口 ③：**报告级派生量定稿**（★ 必须在正文生成之后）═══
+        #   ★★ 2026-10-08（P0-1 根因治理，公司1 真实产物取证）：
+        #   病根 = 报告级计数**两套集合各算一遍**：
+        #     · 引擎层 `all_findings`（154）→ `total_risks=154`、`overall_level=已核定2项/待核152项`
+        #     · 报告层 `enterprise_readable_report.confirmed_problems`（16，正文实际列出并编号）
+        #   实测四门禁 B6 一次抓出 **11 处**声明-实际不符（含 total_risks 154↔16、
+        #   overall_level 已核定 2↔16），并在报告首屏造成"154 项 vs 正文 16 项"的硬矛盾。
+        #   修法：报告级声明**一律以正文条目集合为口径**，由唯一权威 `engine/report_metrics`
+        #     在**正文生成之后**定稿写回；取不到正文集合时**不写回**（不静默顶替）。
+        #   同时把「结论成熟度摘要」与「风险等级标签」两个语义拆开：
+        #     `overall_level` = 已核定X项/待核Y项（**不是**风险等级）；
+        #     `risk_level_label` = 由唯一权威按高/中/低分布取最重档（真正的等级标签）。
+        try:
+            from engine import report_metrics as _rm_f
+            _rmm = _rm_f.apply_report_metrics(report_data)
+            if _rmm.get("ok"):
+                _append_one_click_log(report_data, "[报告级派生量] " + _rm_f.scope_note(report_data))
+            else:
+                _append_one_click_log(
+                    report_data,
+                    "[报告级派生量] 未定稿（%s）——沿用引擎阶段值，不静默用 0 顶替"
+                    % _rmm.get("skipped_reason"))
+        except Exception as _rm_exc:  # noqa: BLE001
+            _append_one_click_log(report_data, f"[报告级派生量] 接线异常（已留痕）: {_rm_exc}")
+
+        # ═══ 报告最终出口 ②：**去重收敛 + 重复率权威自检**（★ 必须在标点规范化之后）═══
+        #   ★★ 2026-10-08（P0-3 根因治理，公司1 真实产物取证）：
+        #   病根 = **去重与自检发生在标点规范化之前**。`engine.sentencekit.normalize_cjk_punct`
+        #   会把半角 `;` 规范为全角 `；`，而分句唯一权威 `engine.sentencekit.split_sentences`
+        #   的定界符集合是「。！？；」（**仅全角**）⇒ 规范化**改变了句子边界**：
+        #     · 去重时：半角 `;` 不切句 ⇒ 相邻句被当成一句 ⇒ 相似度判据失准 ⇒ 本项内复述未删；
+        #     · 落盘后：已是全角 `；` ⇒ 同一对句子被判「同一事实重复」。
+        #   实测后果（公司1，同一判据、同一产物）：
+        #     去重后即时 整体 4.08%/事实重复 PASS/阻断 False；
+        #     **落盘产物 整体 4.11%/事实重复 FAIL/阻断 True** ⇒ 回执与事实不符（假绿）。
+        #   修法：**判定口径与产出文本必须同源** —— 在报告最终出口（规范化之后）再收敛一次，
+        #     并以此**覆盖** `_duplicate_rate` 回执（原先记的是中间态，无法复核"落盘报告是否真通过"）。
+        #   `dedup_report_data` 幂等（实测连续多轮文本不再变化），重复调用安全。
+        try:
+            from engine import output_variants as _ov_f
+            from engine.dedup_pipeline import duplicate_rate as _drate_f
+            from engine.report_pipeline import dedup_report_data as _drd_f
+            _flog = []
+            try:
+                _, _flog = _drd_f(report_data)
+            except Exception as _dfe:  # noqa: BLE001
+                _append_one_click_log(report_data, f"[报告最终去重] 执行异常（已留痕）: {_dfe}")
+            _ftxt = _ov_f.report_text_from(report_data)
+            if _ftxt.strip():
+                _fdr = _drate_f(_ftxt.split("\n"))
+                report_data["_duplicate_rate"] = _fdr        # ★ 权威回执：以最终文本为准
+                report_data["_dedup_log_count"] = len(_flog)
+                _append_one_click_log(
+                    report_data,
+                    "[报告最终口径] 整体 %.2f%%（阈值 %.0f%%）→ %s；同章节超阈 %d；"
+                    "同一事实 %s；阻断=%s；本轮收敛处理 %d 条" % (
+                        _fdr["整体"]["重复率"], _fdr["整体"]["阈值"], _fdr["整体"]["判定"],
+                        _fdr["章节统计"]["超阈章节"], _fdr["事实重复"]["判定"],
+                        _fdr["阻断"], len(_flog)))
+                if _fdr.get("阻断"):
+                    report_data["formal_workpaper_allowed"] = False
+            else:
+                report_data["_duplicate_rate"] = {"note": "无可判定文本，SKIP（不静默通过）"}
+        except Exception as _fd_exc:  # noqa: BLE001
+            _append_one_click_log(report_data, f"[报告最终去重] 接线异常（已留痕）: {_fd_exc}")
+
+        # ═══ 多版本一键生成（内部完整版 + 对外版；脱敏策略=不脱敏，用户铁律）═══
+        #   ★ 2026-10-08：**移至最终去重收敛之后** —— 派生物必须与落盘报告同源
+        #     （否则版本文件里仍留着"已从正文删掉的复述句"）。
+        try:
+            import os as _os_mv
+            from engine.report_pipeline import render_variants_from as _rvf, selfcheck_report_data as _srd
+            _ext_dir = _os_mv.path.join(_os_mv.path.dirname(_os_mv.path.abspath(__file__)),
+                                        "output", "editions")
+            _mv = _rvf(report_data, _ext_dir, version="V1.4")
+            report_data["_report_editions"] = _mv
+            _append_one_click_log(
+                report_data,
+                "[多版本输出] 内部版=%s；对外版=%s；实质一致性=%s；脱敏标记=%s" % (
+                    _os_mv.path.basename(_mv["internal"]), _os_mv.path.basename(_mv["external"]),
+                    _mv["实质一致性校验"], (_mv.get("脱敏标记反查") or "无")))
+        except Exception as _mv_exc:
+            report_data["_report_editions"] = {"error": str(_mv_exc)}
+            _append_one_click_log(report_data, f"[多版本输出] 接线异常（已留痕）: {_mv_exc}")
+
+        # ═══ 产出链 20 项自检（可执行项；未通过 ⇒ 不得出正式稿）═══
+        #   ★ 2026-10-08：同样移至最终去重收敛之后，使自检口径 = 落盘报告口径。
+        try:
+            from engine.report_pipeline import selfcheck_report_data as _srd2
+            _sc = _srd2(report_data)
+            report_data["_pipeline_selfcheck"] = _sc
+            _fail = [c for c in _sc if c.get("结果") == "不通过"]
+            _skip = [c for c in _sc if c.get("结果") == "SKIP"]
+            _append_one_click_log(
+                report_data,
+                "[产出链自检] 通过 %d / 不通过 %d / SKIP %d%s" % (
+                    len(_sc) - len(_fail) - len(_skip), len(_fail), len(_skip),
+                    ("；不通过：" + "、".join("[%s]%s" % (c["no"], c["项"]) for c in _fail[:4])) if _fail else ""))
+            if _fail:
+                report_data["formal_workpaper_allowed"] = False
+        except Exception as _sc_exc:
+            report_data["_pipeline_selfcheck"] = {"error": str(_sc_exc)}
+            _append_one_click_log(report_data, f"[产出链自检] 接线异常（已留痕）: {_sc_exc}")
+
+        # ═══ 报告最终出口 ⑦①：**归档结构回填**（P1-5 —— C 归档规范性门禁的唯一产出源）═══
+        #   ★★ 2026-10-09：C 门禁（C1 底稿号 / C2 风险编号 / C5 七类索引 / C8 审计轨迹）
+        #   消费的是 `enterprise_readable_report` 上的归档字段，而一键分析链**从不回填**
+        #   （归档束原先只在独立入口 `/api/workpaper/generate` 产出）⇒ C 门禁恒报 5~6 条 ERROR、
+        #   `formal_workpaper_allowed` 永久为假。
+        #   位置：必须在**四门禁之前**、报告正文定稿**之后**（编号要覆盖最终条目集合）。
+        #   编号只经 `engine/numbering`；索引只经 `workpaper_generator.build_archive_bundle`。
+        try:
+            from engine.archive_attachment import attach_archive_structure as _aas
+            _arc = _aas(report_data, company_code=report_data.get("company_code") or "",
+                        period=report_data.get("inspection_period") or "")
+            if _arc.get("ok"):
+                _append_one_click_log(
+                    report_data,
+                    "[归档结构] 底稿号=%s；风险编号 %d 项；证据编号 %d 条；索引 %s；审计轨迹 %d 条%s"
+                    % (_arc.get("workpaper_no"), _arc.get("risk_numbered"), _arc.get("evidence_total"),
+                       _arc.get("indexes"), _arc.get("audit_entries"),
+                       ("；索引缺口：" + "、".join(_arc.get("indexes_missing") or [])) if _arc.get("indexes_missing") else ""))
+            else:
+                _append_one_click_log(report_data, f"[归档结构] 未挂载（{_arc.get('error')}）")
+        except Exception as _arc_exc:  # noqa: BLE001 —— 不静默：C 门禁会随之报红
+            _append_one_click_log(report_data, f"[归档结构] 接线异常（已留痕）: {_arc_exc}")
+
+        # ═══ 报告最终出口 ⑦②：**WB-TRISK-2026-001 四道质量门禁** ═══
+        #   ★ 位置 = 报告**终态**（标点/上提/派生量/去重收敛/多版本/产出链自检之后），
+        #     与产出同口径（P0-3 教训：判定口径与产出文本必须同源）。
+        #   ★ `formal_workpaper_allowed` 为**累加约束**（只降不升）——见 quality_gates.attach_to_report。
+        try:
+            from engine.quality_gates import attach_to_report as _qg_attach
+            _qg = _qg_attach(report_data)
+            _qgs = (_qg or {}).get("summary") or {}
+            _append_one_click_log(
+                report_data,
+                f"[质量门禁] 四道门禁通过={(_qg or {}).get('all_passed')}；"
+                f"ERROR {_qgs.get('total_errors', '?')} / WARN {_qgs.get('total_warns', '?')} / "
+                f"SKIP {_qgs.get('total_skips', '?')}；"
+                f"未通过门禁={(_qgs.get('failed_gates') or [])}；"
+                f"允许出具正式底稿={report_data.get('formal_workpaper_allowed')}"
+            )
+        except Exception as _qg_exc:
+            report_data["formal_workpaper_allowed"] = False
+            _append_one_click_log(report_data, f"[质量门禁] 执行异常（已按未通过处理）: {_qg_exc}")
 
         result["report"] = report_data
 
@@ -11180,6 +12209,11 @@ def _run_analysis_thread(task_id, company_id, user_id):
     import socket as _socket
     _socket.setdefaulttimeout(10)
     user_context_token = set_current_user_id(user_id)
+    # ★ 2026-10-09 作业实体化：把**作业 id**放进本线程的 context，
+    #   供 engine 层（`report_compliance.record_version`）把"这份报告是哪一次
+    #   分析产出的"写进版本台账 ⇒ 实现**报告 → 作业**的单向回指。
+    #   与用户身份同一机制、同一生命周期（入口 set、finally reset，成对出现）。
+    job_context_token = set_current_job_id(task_id)
     try:
         from database import SessionLocal
         db = SessionLocal()
@@ -11247,7 +12281,23 @@ def _run_analysis_thread(task_id, company_id, user_id):
                     _e,
                 )
     finally:
+        # ★ 2026-10-09 作业实体化：**作业终态登记**放在最外层 finally。
+        #   为什么必须在这里：done / error / blocked 三条终局路径分散在
+        #   上面的 try/except 里，只在成功分支登记就会漏掉异常与主体不一致拦截
+        #   ⇒ 作业永远停在"执行中"，重启后按 task_id 查到的仍是"在跑"（假象）。
+        #   快照必须在**锁内**取、守卫与落盘必须在**锁外**做：threading.Lock
+        #   不可重入，`_is_result_deleted` 会遍历 `_analysis_tasks`（2026-10-01
+        #   死锁事故的同一个坑）。
+        try:
+            with _analysis_lock:
+                _jt = _analysis_tasks.get(task_id)
+                _jsnap = dict(_jt) if isinstance(_jt, dict) else None
+            if _jsnap is not None:
+                _register_job_finished(task_id, company_id, _jsnap)
+        except Exception as _je:                 # noqa: BLE001
+            print(f"[analysis-jobs] 作业终态登记入口异常(不影响分析结果): {_je}", flush=True)
         reset_current_user_id(user_context_token)
+        reset_current_job_id(job_context_token)
         # ★ 2026-09-25：分析结束统一回收工作簿句柄。
         #   句柄泄漏会让用户删除自己上传的资料时遇到 WinError 32
         #   （占用者是本服务自身，而非 Excel），这里做兜底收敛，
@@ -11313,26 +12363,29 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                 # ★ 2026-09-26 缓存结构一致性闸门：增量复用只认"含正确企业报告"的结果。
                 # 根因：报告渲染结构随代码回退/升级而变化，但增量复用仅按"资料+规则指纹"
                 # 判断，导致回退前内存里那份缺 enterprise_readable_report 或旧版式的旧缓存
-                # 被原样复用，前端于是渲染出与上轮不符的报告。故复用前必须先校验缓存结果
-                # 确实含目标企业报告（compilation_style 命中 + 含金字塔原理编辑版派生结构），
-                # 否则视为脏缓存、强制全量重算。
+                # 被原样复用，前端于是渲染出与上轮不符的报告。
+                # ★★ 2026-10-09（对真实产物实测后**根因修复**）：
+                #   原实现是**硬编码报告名白名单**，而那 4 个取值**全部来自
+                #   `config/report_identity.json` 的 `forbidden_aliases`（禁止别名表）——
+                #   即"只接受顶着禁止名称的报告"。而真实产出值是唯一权威
+                #   `report_compliance.document_meta` 派生的「内部辅助分析工作底稿（风险检查
+                #   文书式）」，白名单里没有 ⇒ `_cached_report_ok` **恒为 False**
+                #   ⇒ **增量复用从未生效**（`trigger="incremental"` 是死路径）。
+                #   现改为向唯一权威取：`enterprise_report.is_current_report_version()`
+                #   （判据：compilation_style == 当前产出值 + document_meta 存在 +
+                #     report_edition 合法）。**本处不再有任何报告名字面量**。
+                #   前端同一概念已修好（`tax-doc-analysis.js::_isEnterpriseEdition`
+                #   「★ 删除名称白名单」），后端此次收敛到同一口径。
                 _cached_report_ok = False
                 try:
-                    _cr = (_cached.get("report") or {}).get("report") or {}
-                    _cer = _cr.get("enterprise_readable_report") or {}
-                    _cached_report_ok = (
-                        isinstance(_cer, dict)
-                        and _cer.get("compilation_style") in (
-                            "涉税风险检查工作报告（风险检查文书式）",
-                            "税务风险检查文书式报告",
-                            "内部税务风险检查员报告",
-                            "企业易读检查结果",
-                        )
-                        # 2026-09-30：报告分两版——税务稽查专家工作底稿版 / 企业检查报告版。
-                        and _cer.get("report_edition") in (
-                            "税务稽查专家工作底稿版", "企业检查报告版")
+                    from engine.enterprise_report import (
+                        is_current_report_version as _is_cur_ver,
                     )
-                except Exception:
+                    _cr = (_cached.get("report") or {}).get("report") or {}
+                    _cached_report_ok = _is_cur_ver(_cr.get("enterprise_readable_report") or {})
+                except Exception as _cv_exc:  # noqa: BLE001
+                    print(f"[增量复用] 缓存版式校验失败（按脏缓存处理，将全量重算）：{_cv_exc}",
+                          flush=True)
                     _cached_report_ok = False
                 if _cached_fp == _fp and _fresh and _cached_report_ok:
                     _inc_id = _uuid.uuid4().hex[:12]
@@ -11353,6 +12406,25 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                             "reused": True,
                             "result_computed_at": _ts,
                         }
+                    # ★ 2026-10-09 作业实体化：增量复用**也是一次作业**（只是没真算）。
+                    #   如实记 trigger=incremental，起点与终态同刻 ⇒ duration_ms=0；
+                    #   并记明复用自哪一次作业（取最近一条**已完成**作业；取不到留空，
+                    #   绝不用"上次"这种推测顶替）。
+                    _register_job_started(company_id, _inc_id, request_user_id,
+                                          trigger="incremental", force=False)
+                    _rf = ""
+                    try:
+                        from engine.analysis_jobs import list_jobs as _lj
+                        _prev = next((j for j in _lj(company_id=company_id, limit=20)
+                                      if j.get("job_id") != _inc_id
+                                      and j.get("status") == "done"), None)
+                        _rf = str((_prev or {}).get("job_id") or "")
+                    except Exception as _lje:        # noqa: BLE001
+                        print(f"[analysis-jobs] 增量复用来源解析异常(不影响复用): {_lje}",
+                              flush=True)
+                    _register_job_finished(_inc_id, company_id,
+                                           dict(_analysis_tasks.get(_inc_id) or {}),
+                                           reused_from=_rf)
                     return {"ok": True, "task_id": _inc_id,
                             "message": "上传资料与上次分析完全一致，已复用上次结果"
                                        "（如需强制重算，请点“重新计算”）",
@@ -11360,7 +12432,9 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                             "result_computed_at": _ts}
     except Exception:
         pass
-    return _launch_analysis_task(company_id, request_user_id)
+    return _launch_analysis_task(company_id, request_user_id,
+                                 trigger=("force" if force else "manual"),
+                                 force=bool(force))
 
 
 @app.post("/api/tax-risk-docs/analyze-resume")
@@ -11381,7 +12455,7 @@ def analyze_tax_risk_docs_resume(request: Request, company_id: int = Query(...))
     except Exception:
         pass
     request_user_id = request.state.auth.user_id
-    return _launch_analysis_task(company_id, request_user_id)
+    return _launch_analysis_task(company_id, request_user_id, trigger="resume")
 
 
 @app.get("/api/tax-risk-docs/analyze-status/{task_id}")
@@ -11799,7 +12873,7 @@ def get_english_report(company_id: int, db: Session = Depends(get_db)):
     all_findings = report.get("all_findings", [])
     
     # 翻译关键字段
-    for f in findings:
+    for f in all_findings:
         f["level_en"] = _ZH_EN_MAP.get(f.get("level", ""), f.get("level", ""))
         f["type_en"] = _ZH_EN_MAP.get(f.get("type", ""), f.get("type", ""))
     
@@ -11960,12 +13034,16 @@ def toggle_parallel():
         result = enable_parallel()
         return {"ok": True, "message": "并行加速已启用", **result}
     return {"ok": True, "message": "并行加速已启用", "parallel_enabled": True, "note": "设置环境变量 AGI_PARALLEL=1 永久启用"}
-    """触发AGI对自己最近一次分析进行自我验证
-    
-    AGI会：
-    1. 重新审视高风险结论，生成反向假设
-    2. 检测结论间矛盾
-    3. 对存疑结论自动降低置信度或添加修正
+
+
+def _self_verify_report(company_id: int) -> dict:
+    """对最近一次分析结果做自校验：高风险结论的法律依据/事实描述/建议充分性。
+
+    ★ 2026-10-07 修复：本函数原**丢失了 `def` 行（及路由装饰器）**，函数体被并入上方
+      `toggle_parallel`（位于早返回之后，不可达；且形参 `company_id` 不存在）⇒
+      一旦执行即 NameError。现恢复为独立函数。
+      原路由路径已不可考（AGI 子系统 `/api/agi/*` 入口整体移除），故**不擅自重建路由**，
+      仅保留可调用的实现（当前无调用方），便于需要时重新接线。
     """
     cached = _last_analysis_cache.get(company_id)
     if not cached:
@@ -12311,7 +13389,7 @@ def get_analysis_trace(analysis_id: str, company_id: int = Query(...), db: Sessi
     
     # 提取所有trace记录
     traces = []
-    for f in findings:
+    for f in all_findings:
         t = f.get("_trace", {})
         if t:
             traces.append({
@@ -12557,6 +13635,25 @@ def create_company(
     db.add(company)
     db.commit()
     db.refresh(company)
+    # ★ 2026-10-06：**重建账套必须撤销旧墓碑**。
+    #   删除账套时会把 id 记入 `_deleted_company_ids`（防"删除后被在跑分析写回复活"）。
+    #   SQLite 不开 AUTOINCREMENT 时，删掉最大 id 后新建可能**复用同一 id** ——
+    #   若不撤销墓碑，新账套的分析结果会被 `_is_result_deleted` 静默拦下，
+    #   表现为"新建的企业永远出不来报告"（且无任何报错）。
+    #   同时清掉该 id 的资料删除墓碑（同上理由）。
+    _deleted_company_ids.discard(company.id)
+    # ★ 2026-10-06：同时清掉「报告已删除」水位线 —— 新建/重建账套后，
+    #   任何一轮新分析都必须能正常写回（否则重跑的报告又存不下来）。
+    try:
+        _report_deleted_at.pop(int(company.id), None)
+        _analysis_started_at.pop(int(company.id), None)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from runtime_storage import clear_company_doc_tombstones as _ccdt
+        _ccdt(company.id)
+    except Exception:
+        pass
     # 初始化账套种子数据（科目表/增值税科目/部门/期间）——稽查科目余额分析的基础设施
     from database import init_company_data
     init_company_data(db, company.id)
@@ -12567,14 +13664,39 @@ def create_company(
 
 @app.delete("/api/companies/{company_id}")
 def delete_company(company_id: int, db: Session = Depends(get_db)):
-    """删除账套：清理 Company 行 + 全部用户授权 + 会话选中态。"""
+    """删除账套：清理 Company 行 + 全部用户授权 + 会话选中态。
+
+    ★★ 2026-10-06（用户：「删除之后，与之相应的文件都删除、相应信息都改，
+        不要踢一脚动一下」）：**必须同时清掉该账套的全部分析派生物** ——
+      报告 6 处副本 + 离线产物 + 上传原件 + 资料删除墓碑。
+      旧版只删 Company 行与授权 ⇒ 库里删了 id=2/3/4，
+      `scripts/four_reports/` 还躺着它们的产物、"4 个产物"与"库里 1 家"对不上。
+      ⇒ 全部走唯一权威 `purge_company_analysis_artifacts`（与"删除报告"同一实现，
+        不得各写一份），并 `include_uploads=True` 连上传原件一起清。
+    """
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(404, "账套不存在")
+    company_name = company.name
     db.delete(company)
     db.commit()
     delete_company_cascade(company_id)
-    return {"ok": True, "message": "账套已删除"}
+    out = purge_company_analysis_artifacts(company_id, include_uploads=True,
+                                           confirmed_deleted=True,
+                                           company_name=company_name)
+    _cleared = out["cleared"]
+    _left = out["leftovers"]
+    return {
+        "ok": not _left,
+        "message": (
+            f"账套「{company_name}」已删除；随之清理其分析派生物 "
+            f"{len(_cleared)} 处（{'、'.join(_cleared)}）；文件已移入项目回收站 data/trash"
+            if not _left else
+            f"账套「{company_name}」已删除，但仍有派生物残留：{'、'.join(_left)}"
+        ),
+        "cleared": _cleared,
+        "leftovers": _left,
+    }
 
 
 @app.put("/api/companies/{company_id}/industry")
@@ -13006,7 +14128,17 @@ def _get_cross_industry_insight(all_findings):
                     insights[ft[:40]] = r
         return insights
     except: return {}
-    """将✏️编辑/审核反馈接入规则库闭环 → 纠正规则→更新五链"""
+
+
+def _apply_edit_feedback_to_learning(feedback: dict) -> None:
+    """将✏️编辑/审核反馈接入规则库闭环 → 纠正规则 → 更新五链/记忆。
+
+    ★ 2026-10-07 修复：本函数原**丢失了 `def` 行**（函数体被并入上一个函数
+      `_get_cross_industry_insight`，其形参 `feedback` 随之不存在）⇒ 一旦执行即 NameError。
+      现恢复为独立函数，形参沿用原名 `feedback`。
+      注：入口（调用方）在早期清理中一并丢失，本函数当前无调用方；保留实现以便重新接线，
+      如需下线请**整体删除**，不要只删 `def` 行（那正是本次缺陷的成因）。
+    """
     try:
         chapter = feedback.get("chapter", "")
         wrong = feedback.get("wrong_content", "")[:200]
@@ -13054,7 +14186,7 @@ def _infer_finding_type_from_feedback(chapter: str, wrong: str, correct: str) ->
         ("收款", "收款与开票金额偏差大"),
         ("开票", "收款与开票金额偏差大"),
         ("发票", "发票合规问题"),
-        ("红冲", "红冲/作废发票数量异常"),
+        ("红冲", "红冲/作废发票情形"),
         ("工资", "工资发放不合规"),
         ("社保", "社保缴费问题"),
         ("个税", "个人所得税问题"),

@@ -11,7 +11,7 @@
   ｜`analysis_coverage._MATERIAL_SUPERCLASS`（15 类超类表）
 
 后果（实测，用户反复报）：
-  · 要件表说「独立数据源：银行流水｜**已有**」，同一页证据表说「完整资金链条流水｜**待核实**」
+  · 要件表说「独立数据源：银行流水｜**已有**」，同一页证据表说「完整资金链条流水｜**尚需核实**」
     —— 同一份材料，两处名字不同、两套判定 → **同页自相矛盾**；
   · 「本项检查需要4项材料，目前还没有一项材料与要求逐字对应」，而正文正在引用这些材料的数字。
 
@@ -101,10 +101,81 @@ CATEGORY_ALIASES: Dict[str, List[str]] = {
     #   「拒收证明」——折让/退货的事由说明，与任何既存类别都不是同一实物。
 }
 
+#: ★★ 2026-10-04（疑点2 收尾，选项 B）**同族不同物**关系表（单一权威）。
+#:   同一族内的成员**归类相同**（便于业态剔除与计数），但**不是同一份材料**，
+#:   因此**覆盖判定不得为「已有」**，须判「待核」并说明差在哪。
+#:   例：社保（养老/医疗/失业/工伤/生育）与住房公积金是**两套制度、两张表**——
+#:   "已提供社保明细"不能证明"已有公积金缴存明细"。
+#:   ★ 为什么不摘掉别名：那会让公积金判不出类别 ⇒ 要件数据源恒 not_checked ⇒ 触发既有闸门。
+#:     故**归类保留、只改覆盖判定**。新增同族只需加一行数据。
+_SIBLING_FAMILIES: List[Dict[str, Any]] = [
+    {
+        "family": "社保与公积金",
+        "note": "社保与住房公积金分属两套制度、逐人逐月各出一张表，不是同一份材料",
+        # ★ 每个 group 是一份**物料**；组内成员互为别名（同物），组间才是**不同物**。
+        #   此前把别名与不同物混在一个 members 里 ⇒ 社保明细 与 社保缴费明细 被误判同族。
+        "groups": [
+            {"label": "社会保险", "members": ["社保明细", "社会保险参保明细", "参保缴费明细",
+                                        "参保缴费记录", "社保清单", "社保缴费明细"]},
+            {"label": "住房公积金", "members": ["住房公积金缴存明细", "住房公积金明细",
+                                          "公积金缴存明细", "公积金明细", "公积金汇缴书",
+                                          "住房公积金汇缴书"]},
+        ],
+    },
+]
+
+
+def _sibling_group_of(name: Any):
+    """`name` 落在哪个同族关系的哪个**物料组**；判不出返回 None。"""
+    _x = str(name or "").strip()
+    if not _x:
+        return None
+    for _fam in _SIBLING_FAMILIES:
+        for _g in (_fam.get("groups") or []):
+            for _m in (_g.get("members") or []):
+                _m = str(_m)
+                if _x == _m or _m in _x or _x in _m:
+                    return (_fam, _g)
+    return None
+
+
+def sibling_conflict(a: Any, b: Any) -> bool:
+    """`a` 与 `b` 是否**同族但不同物**（同族、且落在不同物料组）。
+
+    覆盖判定用它把同族从「已有」降为「待核」；**归类/剔除/计数不受影响**。
+    同物别名（社保明细 与 社保缴费明细）⇒ False。
+    """
+    _ga = _sibling_group_of(a)
+    _gb = _sibling_group_of(b)
+    if not _ga or not _gb:
+        return False
+    if _ga[0] is not _gb[0]:
+        return False
+    return _ga[1] is not _gb[1]
+
+
+def sibling_note(a: Any, b: Any) -> str:
+    """同族不同物时的说明（供证据依据原文使用）。"""
+    _ga = _sibling_group_of(a)
+    if not _ga:
+        return ""
+    _fam, _g = _ga
+    return "%s：%s（本项属%s，已提供的是%s）" % (
+        _fam.get("family"), _fam.get("note"), _g.get("label"), str(b or ""))
+
+
 #: 类别规范名（供外部判断"这个名字是不是类别名"）
 CATEGORIES: List[str] = [c for c, _ in CATEGORY_KEYWORDS]
 
-_SPLIT = re.compile(r"[、，,；;／/\s]+|与|和|及|以及|或")
+# ★★ 2026-10-06：三张分隔符表**全部收敛到唯一权威** `engine.industry_resolver`。
+#   本模块不再自持（曾出现 4 份实现、4 种判法 ⇒ 同一份要件在报告里 3 种结论，
+#   最严重的一份漏了「与」导致"采购合同与入库验收单"整条要件被误判「本业态不适用」）：
+#     · `_SPLIT`     = 原子名切分（且＋或，不区分关系）→ `MATERIAL_ATOM_SEP`
+#     · `_AND_SPLIT` = 「且」关系（A、B ＝ 两样都要）  → `MATERIAL_SEG_SEP`
+#     · `_ALT_SPLIT` = 「或」关系（A或B ＝ 其一即可）  → `MATERIAL_ALT_SEP`
+from engine.industry_resolver import (                                # noqa: E402
+    MATERIAL_ALT_SEP as _ALT_SPLIT, MATERIAL_ATOM_SEP as _SPLIT,
+    MATERIAL_SEG_SEP as _AND_SPLIT)
 
 
 def _alias_index() -> Dict[str, str]:
@@ -182,10 +253,8 @@ def strict_categories_of(text: Any) -> List[str]:
     return out
 
 
-#: 「且」分隔（要件数据源里 A、B ＝ 两样都要）
-_AND_SPLIT = re.compile(r"[、，,；;／/\s]+|与|和|及|以及")
-#: 「或」分隔（A或B ＝ 其一即可，与 `evidence_chain._material_requirements` 同一契约）
-_ALT_SPLIT = re.compile(r"或(?:者)?")
+# 「且」/「或」分隔表已在上方**薄转发**到唯一权威（`_AND_SPLIT` / `_ALT_SPLIT`），
+# 此处不再重复定义 —— 同一契约两份表必然分裂（见上方 ★★ 说明）。
 
 
 def strict_category_groups(text: Any) -> Optional[List[List[List[str]]]]:

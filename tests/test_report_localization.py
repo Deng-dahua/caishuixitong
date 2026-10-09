@@ -572,10 +572,25 @@ class TestSymbolFreeNarrative(unittest.TestCase):
         got2 = self._clean("外部核验通道：A ● 国家企业信用信息公示系统：未知 ● 搜索引擎：无")
         self.assertNotIn("●", got2, f"圆点未清：{got2}")
 
-    def test_markdown_emphasis_removed(self):
-        got = self._clean("典型：*纺织产品*针织布（销105773.05）")
-        self.assertNotIn("*", got, f"markdown 星号未清：{got}")
-        self.assertIn("纺织产品针织布", got)
+    def test_vat_goods_classification_star_pair_preserved(self):
+        """★ 2026-10-07（**修正旧判据**）：`*纺织产品*针织布` 是**数电票品名的标准写法**
+        （`*分类简称*具体品名`），**不是 markdown**，必须逐字保留。
+
+        事故：旧规则 `\\*{1,3}(...)\\*{1,3}` 把**单个星号**也当标记 ⇒ 报告里凡引用
+        带分类前缀的品名（如 `*现代服务*代言服务费`、`*广告服务*广告发布费`）
+        都被吃成「现代服务代言服务费」——**实测报告内 547 处**，分类星号被删、
+        品名不再逐字可校验（违反"报告每个字都要有据"）。
+        本用例原先断言的正是**被吃掉的错误结果**，随判据一并修正。
+
+        现规则：**只有连续 ≥2 个星号才算 markdown**（本项目强调一律写 `**加粗**`）；
+        单个 `*` 一律保留。真正的 markdown 由
+        `test_double_star_emphasis_fully_removed` 锁死。
+        """
+        for src in ("典型：*纺织产品*针织布（销105773.05）",
+                    "进项发票中含有研发相关品名：*设计服务*设计服务费",
+                    "*现代服务*代言服务费"):
+            got = self._clean(src)
+            self.assertEqual(got, src, f"发票品名的分类星号被误删：{src} → {got}")
 
     def test_double_star_emphasis_fully_removed(self):
         """★ 2026-10-02：`**加粗**` 必须**整对**吃掉，不得半剥成 `*斜体*`。
@@ -693,32 +708,156 @@ class TestReportTextStutterAndConsequence:
         assert C("是否是否涉及是否需要需要") == "是否涉及是否需要"
         assert C(C("是否是否")) == "是否"
 
-    def test_consequence_section_states_qualification_and_liability(self):
-        """后果段必须回答"会被如何定性、承担什么后果"，且不得用语冲突。"""
+    def _consequence_text_of(self, sus):
         from engine.enterprise_report import _build_redline_problems
-        from engine.text_guardrails import neutralise_output_text as N
-        sus = [{
-            "redline_id": "RL-SPT-017", "redline_name": "广告/娱乐服务未申报文化事业建设费",
-            "suspect": "涉嫌未申报文化事业建设费", "taxes": ["文化事业建设费"],
-            "domain": "特定税种", "legal_basis": ["《文化事业建设费征收管理暂行办法》"],
-            "constituents": ["提供广告服务并取得收入"], "constituent_sources": ["销项发票"],
-            "clue_chain": {"terminal_signal": "广告服务收入 100 万元", "nodes": []},
-            "evidence_chain": {}, "argumentation": {"verdict": "已触碰税务违规红线"},
-            "finding_type": "文化事业建设费未申报（待核）", "supporting_findings": [],
-            "level": "待核验",
-        }]
         ps = _build_redline_problems(sus, [])
         post = [str(x.get("text") or "") for p in ps
                 for x in (p.get("narrative_paragraphs") or [])
                 if str(x.get("heading") or "").startswith("若不补")]
         assert post, "缺「若不补充资料的后果」段"
-        txt = post[0]
+        return post[0]
+
+    def test_consequence_of_tax_item_cites_collection_law(self):
+        """★ 2026-10-06 反向锁（★ 2026-10-08 按 P0-2 去重收口改口径）：
+        **税**事项的征管法依据仍须完整存在 —— 只是位置由"逐项铺开"上提为**报告级声明一次**。
+
+        防线说明：`levy_nature` 上线后，若把"按性质分派"写成"一律用最宽松口径"，
+        真正的税种事项会丢失征管法依据 —— 这条测试锁住"税仍是税"。
+        逐项段则**只留本项情形 + 指向报告级声明的引用**（同一法条全文在报告中只出现一次）。
+        """
+        from engine.levy_nature import consequence_declaration
+        from engine.text_guardrails import neutralise_output_text as N
+        sus = [{
+            "redline_id": "RL-CIT-001", "redline_name": "收入与开票额差异（少计收入）",
+            "suspect": "涉嫌账簿少列收入、少缴应纳税款", "taxes": ["增值税", "企业所得税"],
+            "domain": "申报", "legal_basis": ["《税收征收管理法》第六十三条"],
+            "constituents": ["申报收入小于开票额"], "constituent_sources": ["销项发票"],
+            "clue_chain": {"terminal_signal": "开票额 800 万元、申报收入 600 万元", "nodes": []},
+            "evidence_chain": {}, "argumentation": {"verdict": "已触碰税务违规红线"},
+            "finding_type": "收入少计（待核）", "supporting_findings": [],
+            "level": "待核验",
+        }]
+        # ── 报告级：征管法依据必须完整（第三十二条 / 第六十三条 / 滞纳金 / 罚款）──
+        decl = consequence_declaration("税")
+        for kw in ("第三十二条", "第六十三条", "滞纳金", "罚款"):
+            assert kw in decl, (kw, decl)
+        # 税事项**不应**出现"不适用税收征管法偷税条款"这类非税声明
+        assert "不适用" not in decl, decl
+
+        txt = self._consequence_text_of(sus)
         assert "认定为涉嫌" not in txt, txt
-        for kw in ("第三十二条", "第六十三条", "滞纳金", "罚款", "不作定性"):
-            assert kw in txt, (kw, txt)
+        # ── 逐项：只留情形 + 引用；法条原文不上提前那样逐项铺开 ──
+        assert "税费性质与法定后果" in txt, txt
+        # ★ 反向锁（2026-10-08 病句修复）：引用语已含"见"，调用方不得再加"见"
+        assert "见（见" not in txt, txt
+        assert "不作定性" in txt, txt
         out = N(txt)
         for w in ("是否", "需要", "相关"):
             assert w + w not in out, (w, out)
+
+    def test_consequence_of_non_tax_levy_never_cites_collection_law(self):
+        """★ 2026-10-06（用户评语 #4「税费法律适用混同」）：非税项目**不得**引征管法偷税条款。
+
+        事故：旧实现对**所有**事项一律写"依《税收征收管理法》第三十二条加收滞纳金，
+        并依第六十三条追缴税款…" —— 对文化事业建设费（政府性基金）、社保费、住房公积金
+        属**法律适用错误**（追责主体与依据都不同）。
+        唯一权威 `engine.levy_nature`；本测试覆盖三类非税项目并**反向锁**其不得混同
+        （★ 2026-10-08 改口径：逐项段已无任何法条原文，故断言落在**报告级声明**上）。
+        """
+        from engine.levy_nature import consequence_declaration, natures_of
+        cases = [
+            ("文化事业建设费", "RL-SPT-017", "广告/娱乐服务未申报文化事业建设费",
+             "涉嫌未申报文化事业建设费", ["文化事业建设费"],
+             ["《文化事业建设费征收管理暂行办法》"], "提供广告服务并取得收入", "销项发票",
+             "政府性基金"),
+            ("社会保险费", "RL-PAY-001", "工资与社保缴费基数不一致",
+             "涉嫌少缴社会保险费", ["社会保险费"],
+             ["《中华人民共和国社会保险法》第八十六条"], "存在工资薪金支出", "工资表",
+             "社会保险费"),
+            ("住房公积金", "RL-HF-001", "有工资薪金未缴住房公积金",
+             "涉嫌少缴住房公积金", ["住房公积金"],
+             ["《住房公积金管理条例》第二十条"], "存在工资薪金支出", "工资表",
+             "住房公积金"),
+        ]
+        for nat, rid, rname, suspect, taxes, basis, cons, csrc, want_nature in cases:
+            sus = [{
+                "redline_id": rid, "redline_name": rname, "suspect": suspect,
+                "taxes": taxes, "domain": "用工与缴费", "legal_basis": basis,
+                "constituents": [cons], "constituent_sources": [csrc],
+                "clue_chain": {"terminal_signal": cons, "nodes": []},
+                "evidence_chain": {}, "argumentation": {"verdict": "疑似触碰税务违规红线"},
+                "finding_type": rname + "（待核）", "supporting_findings": [],
+                "level": "待核验",
+            }]
+            txt = self._consequence_text_of(sus)
+            assert "认定为涉嫌" not in txt, (nat, txt)
+            # 必先判对性质（性质判错 ⇒ 后面全是白测）
+            assert natures_of({"taxes": taxes}) == [want_nature], (nat, natures_of({"taxes": taxes}))
+            # 逐项段**不得**出现征管法偷税条款
+            assert "第六十三条" not in txt, (nat, txt)
+            assert "第三十二条" not in txt, (nat, txt)
+            assert "见（见" not in txt, (nat, txt)
+            assert "不作定性" in txt, (nat, txt)
+            # 报告级声明：不得套用征管法偷税条款，且必须写明"不适用"
+            decl = consequence_declaration(want_nature)
+            assert "第六十三条" not in decl, (nat, decl)
+            assert "第三十二条" not in decl, (nat, decl)
+            assert "不适用" in decl, (nat, decl)
+            # 必须给出该性质自身的依据线索
+            if nat == "社会保险费":
+                assert "社会保险法" in decl, (nat, decl)
+                assert "住房公积金管理中心" not in decl, (nat, decl)
+            elif nat == "住房公积金":
+                assert "住房公积金" in decl, (nat, decl)
+                assert "社会保险法" not in decl, (nat, decl)
+            else:
+                assert "政府性基金" in decl, (nat, decl)
+
+    def test_mixed_nature_item_states_both_sides(self):
+        """★ 2026-10-06：**混性质**项必须逐段标注，不得单选一边。
+
+        实测 RL-PAY-001「工资表人数与社保参保人数不符」的 taxes 同时含
+        `个人所得税/企业所得税/社会保险费` —— 既有虚列工资成本少缴企业所得税
+        （适用征管法偷税条款），也有未依法参保（依《社会保险法》）。
+        若按单一性质出后果段，无论选哪边都会丢掉另一半的法律依据。
+        ★ 2026-10-08 改口径：逐段标注的**法条全文**现在落在 `consequence_text`
+        （报告级/整段版）；逐项段只留本项情形 + 对报告级声明的引用。
+        """
+        from engine.levy_nature import consequence_text, natures_of
+        from engine.text_guardrails import neutralise_output_text as N
+        assert natures_of({"taxes": ["个人所得税", "企业所得税", "社会保险费"]}) == \
+            ["税", "社会保险费"]
+        assert natures_of({"taxes": ["住房公积金"]}) == ["住房公积金"]
+        assert natures_of({"taxes": ["文化事业建设费"]}) == ["政府性基金"]
+        assert natures_of({"taxes": ["增值税"]}) == ["税"]
+
+        # 报告级/整段版：逐段标注 + 各段法条全文
+        mix = consequence_text(["税", "社会保险费"])
+        assert "就税款部分" in mix, mix
+        assert "就社会保险费部分" in mix, mix
+        assert "第六十三条" in mix and "社会保险法" in mix, mix
+        out = N(mix)
+        for w in ("是否", "需要", "相关"):
+            assert w + w not in out, (w, out)
+
+        # 逐项版：两侧性质都要点到 + 引用报告级声明 + 无"见（见…）"病句
+        sus = [{
+            "redline_id": "RL-PAY-001", "redline_name": "工资表人数与社保参保人数不符",
+            "suspect": "涉嫌虚列人员虚增工资成本，或实际用工未依法参保",
+            "taxes": ["个人所得税", "企业所得税", "社会保险费"],
+            "domain": "工资社保",
+            "legal_basis": ["《社会保险法》第五十八条", "《企业所得税法》第八条"],
+            "constituents": ["工资表列支人数与社保参保人数存在差异"],
+            "constituent_sources": ["工资表"],
+            "clue_chain": {"terminal_signal": "工资 20 人、参保 15 人", "nodes": []},
+            "evidence_chain": {}, "argumentation": {"verdict": "疑似触碰税务违规红线"},
+            "finding_type": "工资与社保人数不符（待核）", "supporting_findings": [],
+            "level": "待核验",
+        }]
+        txt = self._consequence_text_of(sus)
+        assert "税款" in txt and "社会保险费" in txt, txt
+        assert "税费性质与法定后果" in txt, txt
+        assert "见（见" not in txt, txt
 
 
 class TestEvidenceEditingQuality:

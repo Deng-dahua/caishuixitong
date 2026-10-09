@@ -1,0 +1,506 @@
+{
+  "schema": 1,
+  "version": "1.0.0",
+  "updated": "2026-10-07",
+  "note": "数据源状态表（唯一权威=本文件）。由 scripts/_gen_data_sources.py 从真实产物派生；aliases/provided_by/markers 为**人工撰写字段**，重生成时原样保留（不会被覆盖）。口径：provided_by 只写**能证实的包含关系**（如确认单编号是数电红字发票的字段）；markers 只写**专有标识名**（如「红字发票信息确认单编号」），不写泛词。新增数据源只加一行 ⇒ 自动纳入一致性校验（门禁 check_data_source_status_consistency）。",
+  "status_vocab": [
+    "已有",
+    "缺失",
+    "须核对",
+    "待企业提交"
+  ],
+  "fields": [
+    "data_source_id",
+    "data_source_name",
+    "aliases",
+    "provided_by",
+    "markers"
+  ],
+  "sources": [
+    {
+      "data_source_id": "DS_001",
+      "data_source_name": "销项发票",
+      "aliases": [
+        "销项发票明细"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 17
+    },
+    {
+      "data_source_id": "DS_002",
+      "data_source_name": "银行流水",
+      "aliases": [
+        "银行对账单",
+        "流水"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 13
+    },
+    {
+      "data_source_id": "DS_003",
+      "data_source_name": "进项发票",
+      "aliases": [
+        "进项发票明细"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 10
+    },
+    {
+      "data_source_id": "DS_004",
+      "data_source_name": "增值税申报表",
+      "aliases": [
+        "增值税纳税申报表"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 7
+    },
+    {
+      "data_source_id": "DS_005",
+      "data_source_name": "费用明细账",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 6
+    },
+    {
+      "data_source_id": "DS_006",
+      "data_source_name": "合同台账",
+      "aliases": [
+        "合同清单"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 5
+    },
+    {
+      "data_source_id": "DS_007",
+      "data_source_name": "工资表",
+      "aliases": [
+        "工资明细表",
+        "工资发放表"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 5
+    },
+    {
+      "data_source_id": "DS_008",
+      "data_source_name": "企业所得税申报表",
+      "aliases": [
+        "企业所得税年度纳税申报表"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 4
+    },
+    {
+      "data_source_id": "DS_009",
+      "data_source_name": "利润表",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 4
+    },
+    {
+      "data_source_id": "DS_010",
+      "data_source_name": "合同文件",
+      "aliases": [
+        "合同"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 4
+    },
+    {
+      "data_source_id": "DS_011",
+      "data_source_name": "固定资产明细账",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 4
+    },
+    {
+      "data_source_id": "DS_012",
+      "data_source_name": "汇算清缴纳税调整明细",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 4
+    },
+    {
+      "data_source_id": "DS_013",
+      "data_source_name": "附加税费申报表",
+      "aliases": [
+        "城建税及附加申报表",
+        "附加税申报表"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 4
+    },
+    {
+      "data_source_id": "DS_014",
+      "data_source_name": "凭证",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 3
+    },
+    {
+      "data_source_id": "DS_015",
+      "data_source_name": "印花税申报表",
+      "aliases": [
+        "印花税纳税申报表"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 3
+    },
+    {
+      "data_source_id": "DS_016",
+      "data_source_name": "应付账款明细",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 3
+    },
+    {
+      "data_source_id": "DS_017",
+      "data_source_name": "往来科目明细",
+      "aliases": [
+        "往来明细",
+        "往来款明细"
+      ],
+      "provided_by": [],
+      "markers": [
+        "往来科目明细"
+      ],
+      "_seen": 3
+    },
+    {
+      "data_source_id": "DS_018",
+      "data_source_name": "成本明细账",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 3
+    },
+    {
+      "data_source_id": "DS_019",
+      "data_source_name": "文化事业建设费申报表",
+      "aliases": [
+        "文化事业建设费申报"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 3
+    },
+    {
+      "data_source_id": "DS_020",
+      "data_source_name": "社保明细",
+      "aliases": [
+        "社保参保明细",
+        "社会保险缴费明细"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 3
+    },
+    {
+      "data_source_id": "DS_021",
+      "data_source_name": "合同或协议",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_022",
+      "data_source_name": "在建工程明细",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_023",
+      "data_source_name": "境外付款台账",
+      "aliases": [
+        "境外付款清单"
+      ],
+      "provided_by": [],
+      "markers": [
+        "境外付款台账"
+      ],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_024",
+      "data_source_name": "娱乐服务收入台账",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_025",
+      "data_source_name": "完税凭证",
+      "aliases": [
+        "完税证明",
+        "税收缴款书"
+      ],
+      "provided_by": [],
+      "markers": [
+        "完税凭证",
+        "完税证明"
+      ],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_026",
+      "data_source_name": "定价政策",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_027",
+      "data_source_name": "广告服务",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_028",
+      "data_source_name": "扣缴企业所得税报告表",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_029",
+      "data_source_name": "折旧计算表",
+      "aliases": [
+        "折旧表"
+      ],
+      "provided_by": [],
+      "markers": [
+        "折旧计算表"
+      ],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_030",
+      "data_source_name": "折让协议",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_031",
+      "data_source_name": "服务合同",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_032",
+      "data_source_name": "评估报告",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_033",
+      "data_source_name": "资产负债表",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_034",
+      "data_source_name": "退货单",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_035",
+      "data_source_name": "采购合同",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 2
+    },
+    {
+      "data_source_id": "DS_036",
+      "data_source_name": "借款合同",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_037",
+      "data_source_name": "劳务派遣协议",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_038",
+      "data_source_name": "劳动合同",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_039",
+      "data_source_name": "对外付汇凭证",
+      "aliases": [
+        "付汇凭证"
+      ],
+      "provided_by": [],
+      "markers": [
+        "对外付汇凭证"
+      ],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_040",
+      "data_source_name": "工商变更登记",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_041",
+      "data_source_name": "工资总额计算底稿",
+      "aliases": [
+        "工资总额底稿"
+      ],
+      "provided_by": [],
+      "markers": [
+        "工资总额计算底稿"
+      ],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_042",
+      "data_source_name": "开票错误更正说明",
+      "aliases": [
+        "更正说明"
+      ],
+      "provided_by": [],
+      "markers": [
+        "开票错误更正说明"
+      ],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_043",
+      "data_source_name": "拒收证明",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_044",
+      "data_source_name": "收入",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_045",
+      "data_source_name": "红字发票信息确认单",
+      "aliases": [
+        "红字确认单",
+        "红字发票信息确认单编号",
+        "红字信息表"
+      ],
+      "provided_by": [
+        "销项发票",
+        "进项发票"
+      ],
+      "markers": [
+        "红字发票信息确认单编号",
+        "红字发票信息确认单",
+        "红字确认单编号"
+      ],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_046",
+      "data_source_name": "被冲减蓝字发票",
+      "aliases": [
+        "被红冲蓝字发票",
+        "蓝字发票"
+      ],
+      "provided_by": [
+        "销项发票",
+        "进项发票"
+      ],
+      "markers": [
+        "被冲减蓝字数电发票号码",
+        "被红冲蓝字数电发票号码",
+        "被冲减蓝字发票号码",
+        "被红冲蓝字发票号码"
+      ],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_047",
+      "data_source_name": "验收单",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 1
+    },
+    {
+      "data_source_id": "DS_X_047",
+      "data_source_name": "科目余额表",
+      "aliases": [
+        "余额表"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 0
+    },
+    {
+      "data_source_id": "DS_X_048",
+      "data_source_name": "记账凭证",
+      "aliases": [
+        "凭证"
+      ],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 0
+    },
+    {
+      "data_source_id": "DS_X_049",
+      "data_source_name": "资产财务报表",
+      "aliases": [],
+      "provided_by": [],
+      "markers": [],
+      "_seen": 0
+    }
+  ]
+}

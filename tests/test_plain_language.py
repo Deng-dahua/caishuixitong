@@ -40,11 +40,41 @@ class PlainLanguageTests(unittest.TestCase):
         self.assertEqual(to_plain("涉嫌疑点"), "涉嫌疑点")
 
     def test_long_word_priority_no_mangling(self):
-        # "待核实"中的"待核"不得被二次替换
-        self.assertEqual(to_plain("本项为待核实事项"), "这项属于待核实事项")
-        self.assertEqual(to_plain("本项为待核事项"), "这项属于待核实事项")
+        # ★★ 2026-10-06 契约变更（**两次都踩同一个坑**）：
+        #   第一次：通俗化把「待核/待核验」改写成 **「待核实」**——那正是用户禁用的词
+        #           ⇒ 改为「尚需核实」。
+        #   第二次（本次）：**「尚需核实」同样是禁用词**（用户："报告永远不能出现
+        #           待核实/尚需核实"），而且这个 pass 跑在报告构建**之后**（`main` 末刻
+        #           全量遍历）⇒ 构建器刚清洗干净，这里又把它变回禁用词
+        #           （实测产物 210 处「尚需核实」，而构建器日志写着"已替换 208 处"）。
+        #   ⇒ 通俗化层的**目标词必须落在禁用词之外**：统一用**行动指引**「须核对」。
+        self.assertEqual(to_plain("本项为待核实事项"), "这项属于须核对事项")
+        # ★ 2026-10-08（条款 B4 契约变更）：「待核事项」是**结论用语权威术语**
+        #   （`config/conclusion_grades.json::term_authority` 四词之一），
+        #   通俗化层**必须豁免**、不得改写为"须核对事项"（否则报告与权威术语表漂移）。
+        self.assertEqual(to_plain("本项为待核事项"), "这项属于待核事项")
         # "疑点信号"不得被拆成"可疑的地方信号"
         self.assertEqual(to_plain("确认疑点信号"), "确认可疑信号")
+
+    def test_plainifier_never_emits_forbidden_vague_words(self):
+        """★ 不变量：通俗化层**不得产出任何禁用模糊词**（否则下游永远追不上它）。
+
+        事故：本 pass 位于报告构建**之后**，若它产出的词在禁用表里，
+        `enterprise_report` 末尾的清洗**已经跑完**，没人再兜得住。
+        """
+        from engine.plain_language import to_plain
+        # ⚠ 「待核线索：」是**受保护的结构标识**（降级疑点身份）；
+        #   「待核事项」是**结论用语权威术语**（条款 B4）⇒ 判据一律走唯一实现
+        #   `vague_hits`（内部已豁免权威术语），不再裸扫词表（否则术语会被误判）。
+        from engine.report_wording import vague_hits, _PROTECTED_PREFIXES
+        samples = ["本项为待核实事项", "本项为待核事项", "本项为待核验事项",
+                   "现状：待核实", "税负待核", "两者均为待核验事实"]
+        for s in samples:
+            out = to_plain(s)
+            for p in _PROTECTED_PREFIXES:
+                out = out.replace(p, "")
+            bad = vague_hits(out)
+            self.assertFalse(bad, "通俗化产出禁用词 %s：%r → %r" % (bad, s, out))
 
     def test_sentence_patterns(self):
         self.assertEqual(to_plain("异常偏低"), "明显偏低，不正常")
@@ -88,7 +118,8 @@ class WalkStringsInplaceTests(unittest.TestCase):
         a["child"] = b                 # a -> b -> a 形成循环引用
         root = {"a": a, "list": [b, a, {"note": "核验真实性"}], "level": "高风险"}
         walk_strings_inplace(root, lambda s, k: to_plain_obj(s, k))
-        self.assertIn("这项属于待核实事项", a["title"])
+        # ★ 2026-10-08（条款 B4）：「待核事项」是权威术语 ⇒ 通俗化只改句式，不改术语本身。
+        self.assertIn("这项属于待核事项", a["title"])
         self.assertIn("看不到的死角", b["detail"])
         self.assertIn("检查", b["detail"])
         self.assertEqual(root["level"], "高风险")   # 枚举键不被替换

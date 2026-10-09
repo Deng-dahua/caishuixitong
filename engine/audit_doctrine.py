@@ -38,6 +38,9 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+# ★ 2026-10-06：项目权威等级词表**唯一权威** `engine/risk_levels`（纯数据模块，无依赖）。
+from engine.risk_levels import LEGAL_LEVELS as _LEGAL_LEVELS
+
 # ══════════════════════════════════════════════════════════════════════════
 # 单向可查声明（D1）
 #   键＝一份资料（与 pipeline 的数据集合名一致）；值＝该资料**单独存在**时可独立执行的检查。
@@ -205,8 +208,11 @@ def is_ironclad_state(state: Any) -> bool:
 #     闸门 `check_audit_doctrine` 的行为断言现在会校验等级合法性。
 MISSING_DRIVEN_LEVEL_CAP = "待核验"
 
-# 项目权威风险等级（与 pipeline._merge_same_type_findings 的 _sev 逐字一致）
-SEVERITY_LEVELS = ("极高风险", "高风险", "中风险", "待核验", "信息", "低风险")
+# 项目权威风险等级 —— ★ 2026-10-06 转发唯一权威 `engine.risk_levels.LEGAL_LEVELS`。
+#   原先此处硬编码一份、`pipeline::_sev` 另有一份、`enterprise_report` 还有两张，
+#   四份表对「信息 vs 低风险」给出相反答案 ⇒ 同一事项在不同章节等级不一致。
+#   等级标度只留一处；本常量仅为向后兼容保留（只作**成员判定**用，不作排序）。
+SEVERITY_LEVELS = _LEGAL_LEVELS
 _MISSING_DRIVEN_SCORE_CAP = 4
 
 
@@ -624,7 +630,13 @@ REPORT_EDITING_STANDARDS: Dict[str, Dict[str, Any]] = {
         "code": "working_paper",
         "is_baseline": True,
         "derived_from": "",
-        "compilation_style": "涉税风险检查工作报告（风险检查文书式）",
+        # ⚠ 2026-10-09：此处原有的 `"compilation_style": "涉税风险检查工作报告（风险检查文书式）"`
+        #   **已删除**。它是报告名的**第二个出处**，且取值早已过期——该串如今是
+        #   `config/report_identity.json` 里的 `forbidden_aliases`（禁止别名）。
+        #   报告名唯一权威：`report_compliance.document_meta`（生产者
+        #   `enterprise_report._doc_display_name()`，一致性守卫 `report_identity`）。
+        #   任何模块要判"报告名"都必须向权威取，不得在本表留一份副本（改了不会同步，
+        #   实测已导致 `main.py` 缓存复用判据**恒假**：白名单全是禁止别名）。
         "principle": "检查组工作底稿：六章文书式，按税务红线疑点逐条列示原始证据与判定。"
                      "内容（风险事实层）与结构（章节顺序）均原样保留，不作任何重组或改写。",
         "constraints": [
@@ -632,29 +644,13 @@ REPORT_EDITING_STANDARDS: Dict[str, Dict[str, Any]] = {
             "任何派生编辑版都不得反向改写本版的任何字段。",
         ],
     },
-    # ★ 2026-09-30（用户定调）：报告要两份视角——工作底稿版（专家内部）与企业检查报告版（给企业出具）。
-    #   2026-09-26 曾有的「金字塔原理编辑版」已于 2026-09-30 整体下线（只做呈现重组、无风险价值），
-    #   本版取而代之：按「企业看得懂、可整改」重组章节，不改任何风险事实。
-    "企业检查报告版": {
-        "code": "inspection_report",
-        "is_baseline": False,
-        "derived_from": "税务稽查专家工作底稿版",
-        "compilation_style": "涉税风险检查报告（企业检查报告式）",
-        "principle": "税务稽查专家给企业出具的检查报告：结论先行，逐项列示涉嫌风险事项、需补充资料与整改要求；"
-                     "并保留「检查程序」与「资料完备度评估」两章，让企业知道查了什么、还缺什么。",
-        "constraints": [
-            "只读重组：绝不增删风险事项；不改金额、结论、判定、等级。",
-            "章节固定为七章：检查基本情况／检查结论／涉嫌风险事项／需补充资料清单／整改要求与期限／检查程序／资料完备度评估。",
-            "不含证据链明细、构成要件逐条、关键口径对照、能力边界与技术专项章节（这些留在工作底稿版）。",
-            "通用：章节与排序由固定模板定义，不按企业硬编码。",
-        ],
-    },
 }
 
 # 报告编辑版代码（与 REPORT_EDITING_STANDARDS[].code 一一对应）
-REPORT_EDITION_CODES = ("working_paper", "inspection_report")
+# ★ 2026-10-05（用户要求「删除企业检查报告版及其代码」）：该版已整体下线，只留工作底稿版。
+REPORT_EDITION_CODES = ("working_paper",)
 # 报告编辑版中文名（与 REPORT_EDITING_STANDARDS 的键一一对应）
-REPORT_EDITION_NAMES = ("税务稽查专家工作底稿版", "企业检查报告版")
+REPORT_EDITION_NAMES = ("税务稽查专家工作底稿版",)
 # 默认编辑版：工作底稿版（基线，内容 + 结构原样）
 DEFAULT_REPORT_EDITION = "税务稽查专家工作底稿版"
 # 缓存一致性闸门允许复用的 report_edition 取值

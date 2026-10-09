@@ -1,6 +1,9 @@
 """涉税规则加载与校验 — 从 tax_risk.py 提取"""
 import json, os, sys
 from typing import Dict, Any
+# ★ 2026-10-07 修复：`_apply_conflict_answers` 引用未定义的 `_risk_color`
+#   ⇒ 冲突答复应用时 NameError。等级配色唯一权威 `tax_risk_utils._risk_color`。
+from tax_risk_utils import _risk_color
 
 CONFLICT_ANSWERS_FILE = os.path.join(os.path.dirname(__file__), 'tax_risk_conflict_answers.json')
 

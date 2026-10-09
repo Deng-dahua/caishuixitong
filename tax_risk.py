@@ -29,7 +29,7 @@ from sqlalchemy import func, case, extract, and_, or_
 from datetime import date, timedelta, datetime
 from typing import Optional, List, Tuple, Dict, Any
 from engine.numparse import to_number as _to_number  # ★ 2026-09-25 唯一数值解析
-from tax_risk_utils import _get_account_balance, _get_account_sum, _get_periods_between, _monthly_account_balance, _normalize_period, _period_to_date_range, _risk_color, _safe_float, _vat_payable_sum  # 2026-07-18: import * 不导入下划线名——显式补全，修复规则引擎静默NameError
+from tax_risk_utils import _get_account_balance, _get_account_sum, _get_periods_between, _monthly_account_balance, _normalize_period, _period_to_date_range, _risk_color, _safe_float, _vat_payable_sum, _pl_net  # 2026-10-07: 补 _pl_net（捐赠12%限额用，原引用未定义名）
 from collections import defaultdict
 import json
 import os
@@ -3019,7 +3019,7 @@ def _analyze_industry_specific(db, company_id, ps, pe, results):
                 "category": "行业专项", "category_icon": "📊", "risk_score": 4, "risk_level": "中风险",
                 "risk_color": "#f59e0b", "urgency": "提醒",
                 "item": "行业税负率明显低于同行业平均水平",
-                "detail": f"增值税实际税负 {actual_vat_burden:.2f}%，{industry}行业参考值 {benchmark['vat_burden']}%，偏差 {vat_gap:.1f} 个百分点。",
+                "detail": f"增值税实际税负 {actual_vat_burden:.2f}%，{found_industry}行业参考值 {benchmark['vat_burden']}%，偏差 {vat_gap:.1f} 个百分点。",
                 "suggestion": "税负偏低：分析是否有大量留抵或进项税额过大。税负偏高：检查进项税额是否应抵尽抵。"
             })
 
@@ -4732,7 +4732,7 @@ def _analyze_biz_substance_registration_mismatch(db, company_id, ps, pe, results
     })
 
     # 规则 999502：外包轻加工模式下合同缺失风险
-    if business_substance_desc and "外包" in biz_substance_desc:
+    if biz_substance_desc and "外包" in biz_substance_desc:
         results.append({
             "category": "经营实质", "category_icon": "🔍",
             "risk_score": 7, "risk_level": "高风险",
@@ -9644,21 +9644,25 @@ def _analyze_donation_compliance(db, company_id, ps, pe, results):
 
     if found:
         total_amt = sum(x["amount"] for x in found)
-        # 计算利润总额12%限额
+        # 计算利润总额12%限额（唯一权威 `tax_risk_utils._pl_net`，近似口径见其 docstring）
         profit = _pl_net(db, company_id, ps, pe)
-        limit_12pct = abs(profit) * 0.12 if profit else 0
+        # ★ 缺失≠0：取不到利润总额时**不得**按 0 判"必然超标"，须如实标注"限额本轮不可测算"
+        limit_12pct = abs(profit) * 0.12 if profit else None
+        _over = bool(limit_12pct) and total_amt > limit_12pct
+        _limit_txt = (f"利润总额12%限额={limit_12pct:,.2f}元（利润总额≈{abs(profit):,.2f}元，估算口径）"
+                      + ("，超标!" if _over else "，在限额内。")
+                      ) if limit_12pct else "本轮未取得利润总额，12%限额无法测算（须补利润表后判断）"
         detail_parts = [f"{x['period']} {x['summary'][:40]}（{x['amount']:,.0f}元）" for x in found]
         results.append({
             "category": "企业所得税", "category_icon": "💰",
-            "risk_score": 7 if total_amt > limit_12pct else 5,
-            "risk_level": "高风险" if total_amt > limit_12pct else "中风险",
-            "risk_color": "#ef4444" if total_amt > limit_12pct else "#f59e0b",
-            "urgency": "紧急" if total_amt > limit_12pct else "提醒",
+            "risk_score": 7 if _over else 5,
+            "risk_level": "高风险" if _over else "中风险",
+            "risk_color": "#ef4444" if _over else "#f59e0b",
+            "urgency": "紧急" if _over else "提醒",
             "item": "捐赠支出税前扣除合规性存疑",
             "detail": (
                            f"发现 {len(found)} 笔捐赠/赞助支出（合计{total_amt:,.2f}元，"
-                           f"利润总额12%限额={limit_12pct:,.2f}元"
-                           + ("，超标!" if total_amt > limit_12pct else "，在限额内。")
+                           + _limit_txt
                            + "）捐赠支出税前扣除需满足："
                            "(1)通过公益性社会组织或县级以上政府捐赠；"
                            "(2)不超过年度利润总额12%（超标可结转3年）；"

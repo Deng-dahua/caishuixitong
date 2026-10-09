@@ -1,0 +1,174 @@
+{
+  "schema": 1,
+  "updated": "2026-10-07",
+  "note": "案例经验库（策展部分）。★ 本文件**起步为空是有意的**：任务要求记录『同类企业、同类风险、处理结果、补资料经验』，而这些必须来自**已闭环的真实案例**，不能由系统编造。填充规则：① 每条必须是一例真实办结的检查（可追溯到某次分析会话或人工复核结论）；② 必填 case_id/industry/risk_types/outcome/material_experience（缺字段 add_case 会直接报错）；③ 运行时新增条目走 data/experience_cases.jsonl（append-only）。所有案例 affects_risk_level 恒为 false —— 案例只作参考，不改变风险等级。",
+  "cases": [
+    {
+      "case_id": "WB-TRISK-SAMPLE-001",
+      "name": "深圳海更数字传媒有限公司 税务风险检查报告（去重前问题样本）",
+      "industry": "文化传媒",
+      "business_category": "服务型",
+      "problems": [
+        "整体重复率 21.96%（阈值 10%）：同一事实在「为何列入检查→涉及的风险事项→发现的依据→结论及理由」四处各写一遍",
+        "要件清单正文与表格逐字双写（13 项）",
+        "套话硬编码进每个证据项（×32）",
+        "模板变量为空仍渲染（空表行 96 + 空标题 77）",
+        "等级无单一事实源：自述「高风险2/中风险9」vs 正文仅 4 项有等级词",
+        "关键证据缺失仍给中/高等级（16 项无一 closure≥0.80）",
+        "行业基准落 _default（数字传媒未归一到文化传媒）",
+        "头条税额口径混算永久性/时间性差异且税率未声明依据"
+      ],
+      "fixes": [
+        "9 章 + 六段式重构，去重 979 条，重复率降至 0.73%",
+        "R1~R16 连续编号 + R/C/F/D/S/L/T 短号引用",
+        "16/16 触发一票否决降为待核验",
+        "行业名归一修复 + 别名 +29 行，行业包 6→10",
+        "税额修正为永久性差异×25% = 94,481.88（另列递延影响）"
+      ],
+      "added_at": "2026-10-08 10:29"
+    },
+    {
+      "case_id": "AUTO-7-R?",
+      "name": "一键分析自动留档：本次税务风险检查共收到0个文件，归为0类资料。检查人员逐项读取、重新计算、交叉核",
+      "industry": "",
+      "business_category": "",
+      "problems": [],
+      "fixes": [],
+      "metrics": {
+        "整体重复率": 0.0,
+        "风险事项数": 0,
+        "轮次": null
+      },
+      "source": "one_click_analysis",
+      "added_at": "2026-10-08 19:21"
+    },
+    {
+      "case_id": "AUTO-1-R?",
+      "name": "一键分析自动留档：本次税务风险检查共收到102个文件，归为12类资料。检查人员逐项读取、重新计算、",
+      "industry": "广告传媒",
+      "business_category": "",
+      "problems": [
+        {
+          "seq": 1,
+          "title": "红字冲销与作废发票比例异常",
+          "risk_level": "高风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-VAT-007"
+        },
+        {
+          "seq": 2,
+          "title": "多税种联动稽查风险画像（收入、票账差异、资金）",
+          "risk_level": "高风险",
+          "conclusion_grade": null,
+          "redline_id": ""
+        },
+        {
+          "seq": 3,
+          "title": "工资表人数与社保参保人数不符",
+          "risk_level": "中风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-PAY-001"
+        },
+        {
+          "seq": 4,
+          "title": "银行收款大于申报收入：存在账外收入嫌疑",
+          "risk_level": "中风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-INC-001"
+        },
+        {
+          "seq": 5,
+          "title": "税前扣除限额超限未纳税调整",
+          "risk_level": "中风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-CIT-007"
+        },
+        {
+          "seq": 6,
+          "title": "数字特征异常：金额分布违背自然规律",
+          "risk_level": "中风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-AST-003"
+        },
+        {
+          "seq": 7,
+          "title": "印花税计税依据不足：合同金额与开票不符",
+          "risk_level": "中风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-OTH-001"
+        },
+        {
+          "seq": 8,
+          "title": "附加税费计税依据与增值税不匹配",
+          "risk_level": "中风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-OTH-003"
+        },
+        {
+          "seq": 9,
+          "title": "企业所得税贡献率偏低（对应风险指标：长期亏损仍持续经营：收入或成本不实；本项未认定到该指标的任何一条构成要件，也未就亏损这一前提作出认定）",
+          "risk_level": "中风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-CIT-004"
+        },
+        {
+          "seq": 10,
+          "title": "同一交易对手同时出现在客户与供应商清单",
+          "risk_level": "中风险",
+          "conclusion_grade": null,
+          "redline_id": ""
+        },
+        {
+          "seq": 11,
+          "title": "增值税申报进项税额与进项发票税额月度差异",
+          "risk_level": "中风险",
+          "conclusion_grade": null,
+          "redline_id": ""
+        },
+        {
+          "seq": 12,
+          "title": "固定资产取得、投用与折旧不匹配",
+          "risk_level": "低风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-AST-001"
+        },
+        {
+          "seq": 13,
+          "title": "向非居民支付境内所得未履行源泉扣缴",
+          "risk_level": "低风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-SPT-006"
+        },
+        {
+          "seq": 14,
+          "title": "广告/娱乐服务未申报文化事业建设费",
+          "risk_level": "低风险",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-SPT-017"
+        },
+        {
+          "seq": 15,
+          "title": "成本列支的资金与负债证据不足：真实性须核对",
+          "risk_level": "待核验",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-PTY-001"
+        },
+        {
+          "seq": 16,
+          "title": "股权转让未申报个人所得税",
+          "risk_level": "待核验",
+          "conclusion_grade": "待核",
+          "redline_id": "RL-SPT-012"
+        }
+      ],
+      "fixes": [],
+      "metrics": {
+        "整体重复率": 0.1687,
+        "风险事项数": 16,
+        "轮次": null
+      },
+      "source": "one_click_analysis",
+      "added_at": "2026-10-08 19:33"
+    }
+  ]
+}

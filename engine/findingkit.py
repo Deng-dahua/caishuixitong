@@ -34,6 +34,28 @@ FINDING_FIELDS = (
 )
 
 
+# ★ 发现身份键在此**唯一**定义。原先 `output_governance.seal_governed_findings`
+#   （封印去重）与 `self_learning`（门禁跨轮豁免记账）**各手写一份**同样的
+#   「scene_fact_id → fact_id → type」取值 ⇒ 两处会各自漂移；本函数是唯一权威。
+_IDENTITY_FIELDS = ("scene_fact_id", "fact_id", "type")
+
+
+def finding_identity(finding: Any) -> str:
+    """一条发现的稳定身份键；三条字段都取不到时返回 ""（调用方据此判定不可跟踪）。
+
+    字段取值与 `seal_governed_findings` 现网行为逐字节一致（换成本函数后封印去重
+    结果不变），只是把「怎么取身份」收敛到一处。
+    """
+    if not isinstance(finding, dict):
+        return ""
+    for _k in _IDENTITY_FIELDS:
+        _v = finding.get(_k)
+        if _v is None or _v == "":
+            continue
+        return str(_v).strip()
+    return ""
+
+
 def make_finding(type_, level, score, detail, description, how_found, tax_impact,
                  policy_ref, suggestion, category, source_chain, redline_id,
                  indicator, value) -> dict:

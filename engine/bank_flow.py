@@ -111,13 +111,13 @@ def run_bank_flow_compare(bank_txs, sal_invs=None, pur_invs=None,
             "ok": True,
             "title": "银行流水（资金流）比对",
             "summary": "本轮未提供银行流水。",
-            "body": "银行流水（资金流）是数电票时代暴露账外经营、私户收款、未开票收入的核心依据，"
+            "body": "银行流水（资金流）是数电票时代暴露账外经营、自然人账户收款、未开票收入的核心依据，"
                     "也是风险检查必收资料。未提供则无法做资金流比对，属系统能力边界内的待补强项。",
             "metrics": {},
             "signals": [],
             "verdict": "未提供银行流水",
             "recommendation": "上传企业基本户/一般户银行流水（含交易日期、对方户名、借贷金额、摘要），"
-                              "系统将自动比对资金流与申报收入，量化未开票敞口与私户收款。",
+                              "系统将自动比对资金流与申报收入，量化未开票敞口与自然人账户收款情况。",
             "note": "银行流水比对结论属「待证线索」，需逐笔核实交易背景，不作为定性依据。",
         }
 
@@ -221,8 +221,23 @@ def run_bank_flow_compare(bank_txs, sal_invs=None, pur_invs=None,
         top_personal = sorted(personal_detail.items(), key=lambda x: -x[1])[:8]
         names = "、".join(f"{n}({a:,.2f})" for n, a in top_personal)
         signals.append({
-            "signal": f"私户/个人收款合计{personal_receipt:,.2f}元（{len(personal_detail)}个个人付款方）",
-            "hint": f"个人户收款疑为未开票经营收入或股东/个人往来；重点核实：{names}。须逐笔确认是否应申报增值税与企业所得税。",
+            # ★★ 2026-10-06（用户评语 #3「同一报告内数据矛盾」）：
+            #   旧文案写作「私户/个人收款合计…」——**措辞本身就是错的**：
+            #   本项统计的是**对公账户"收款方向"里对手方为自然人的金额**，
+            #   不是"私户（自然人自有账户）自身的收付"。同名两处一混，
+            #   读者就会把"已读到对公一侧 108 万"与"未提供个人账户流水"看成自相矛盾。
+            #   ⇒ 术语按事实改：**对公账户收自自然人的款项**；并在提示里点明口径边界。
+            "signal": f"对公账户收自自然人的款项合计{personal_receipt:,.2f}元（{len(personal_detail)}个自然人付款方）",
+            # ★★ 2026-10-06（用户第 2 批 疑点3-②）：**同一份口径只在一处出现**。
+            #   本项（对公账户一侧）**已经**给出合计与付款方个数；另一处又说"本轮未提供
+            #   自然人自有账户（私户）的流水" ⇒ 读者把"列了 3 个人名金额"与"未提供私户流水"
+            #   读成矛盾。按用户口径统一为：**只给合计 + 付款方个数 + 私户流水另需取得**，
+            #   不再在此逐名罗列金额（逐笔明细仍在工作底稿与本项明细表中可查）。
+            "hint": ("这是**对公账户一侧**的记录：公司账户从自然人处收到的款项，"
+                     f"合计{personal_receipt:,.2f}元、涉及{len(personal_detail)}个自然人付款方；"
+                     "**自然人自有账户（私户）本身的收付流水属另一侧资料，本轮尚未取得，须另核**。"
+                     "须逐笔确认这些款项是否为经营收入（应申报增值税与企业所得税）或属借款/往来；"
+                     "若为经营收入而由自然人账户收款，还涉及个人所得税与账外收入认定。"),
         })
 
     if third_party_receipt > 0:
@@ -275,9 +290,15 @@ def run_bank_flow_compare(bank_txs, sal_invs=None, pur_invs=None,
     lines = []
     lines.append(f"资金流收款合计：{flow_receipt:,.2f}元（付款合计{flow_pay:,.2f}元）")
     lines.append(f"申报侧（{declared_source}）：{declared:,.2f}元")
-    lines.append(f"未开票/账外敞口（收款−申报侧）：{gap:,.2f}元"
-                 + (f"（剔除明显非销售流入后约{gap_after_nonsales:,.2f}元）" if nonsales_receipt > 0 else ""))
-    lines.append(f"对公收款：{corporate_receipt:,.2f}元｜私户/个人收款：{personal_receipt:,.2f}元"
+    # ★ 2026-10-07（Skill 2「金额口径取舍」）：原先把**毛差额**与**净敞口**并列写出、
+    #   却不指明哪个是最终风险敞口（实测「1,734,859.35元（剔除…后约227,659.35元）」），
+    #   读者无法据以判断量级。口径唯一权威 `engine.amount_scope_choice`：
+    #   净敞口=最终口径（报告只认它），毛差额只作**起点参考**并显式标注。
+    from engine.amount_scope_choice import exposure_sentence as _expo
+    _exposure = _expo(gap, (gap_after_nonsales if nonsales_receipt > 0 else None),
+                      item="未开票/账外敞口")
+    lines.append(_exposure)
+    lines.append(f"对公收款：{corporate_receipt:,.2f}元｜对公账户收自自然人：{personal_receipt:,.2f}元"
                  + (f"｜第三方平台收款：{third_party_receipt:,.2f}元" if third_party_receipt else ""))
     if unmatched_corporate_receipt > 0:
         lines.append(f"对公收款中来自非开票客户的金额：{unmatched_corporate_receipt:,.2f}元")
@@ -288,13 +309,24 @@ def run_bank_flow_compare(bank_txs, sal_invs=None, pur_invs=None,
         lines.append("第三方平台收款样例：")
         lines.extend(f"  - {d}" for d in third_detail)
     if personal_detail:
-        lines.append("私户收款主要个人户：")
-        for n, a in sorted(personal_detail.items(), key=lambda x: -x[1])[:8]:
-            lines.append(f"  - {n}：{a:,.2f}元")
+        # ★★ 2026-10-06（B 类普查）：这里是**对公账户一侧**收自自然人的明细，
+        #   不是"私户（自然人自有账户）收款"。措辞必须按事实写，否则与
+        #   "本轮未提供自然人自有账户流水"并列时被读成自相矛盾（用户评语 #6）。
+        # ★★ 2026-10-07（质检复核，用户选项 b）：注释声明"措辞必须按事实写"，
+        #   但代码**照旧逐人列金额** ⇒ 与"本轮未提供自然人自有账户流水"并列时被读成自相矛盾。
+        #   现按事实收敛：**只给合计与付款方人数**，并**当场披露另一侧资料未取得**
+        #   （自然人姓名与个人金额不再进入报告——私户流水本轮未提供，无法核实其性质）。
+        _tot = sum(float(v) for v in personal_detail.values())
+        lines.append(
+            f"对公账户收自自然人的款项合计 {_tot:,.2f} 元（{len(personal_detail)} 个自然人付款方）；"
+            "以上为**对公账户一侧**的记录，仅说明公司账户收到哪些自然人的款项。"
+            "**自然人自有账户（私户）本身的收付流水属另一侧资料，本轮尚未取得，须另核**——"
+            "故本项不列自然人姓名与个人金额，避免与上述事实冲突。")
     body = "\n".join(lines)
 
     recommendation = ("系统已量化上述敞口。下一步：①逐笔核实敞口对应交易是否开票申报；"
-                      "②私户收款区分经营收入与股东往来；③第三方收款匹配订单与发票；"
+                      "②上表所列自然人付款方须区分经营收入与借款/股东往来（自然人自有账户流水另需取得）；"
+                      "③第三方收款匹配订单与发票；"
                       "④资金回流结合关联企业业务真实性核查。全部需人工取证与定性。")
 
     return {
@@ -304,7 +336,7 @@ def run_bank_flow_compare(bank_txs, sal_invs=None, pur_invs=None,
         "company": company_name,
         "verified_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "summary": f"银行流水收款{flow_receipt:,.2f}元 vs {declared_source}{declared:,.2f}元，"
-                   f"未开票/账外敞口约{gap:,.2f}元；私户收款{personal_receipt:,.2f}元。"
+                   + _exposure + f"；对公账户收自自然人{personal_receipt:,.2f}元。"
                    + (f"资金回流闭环约{circular_amount:,.2f}元。" if circular_amount > 0 else ""),
         "body": body,
         "metrics": metrics,

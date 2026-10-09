@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "updated": "2026-10-07",
+  "note": "分析编排目录（★ 任务1「分析编排配置 / 视角轮换」的唯一权威）。所有 id 都必须能在对应权威表里查到：modules→engine/orchestrator.MODULE_REGISTRY、skills→config/skill_specs.json、risk_families→config/risk_families.json；闸门 check_analysis_session() 会逐条校验（配置里出现不存在的 id = ERROR）。新增一个视角只加一条数据。",
+  "default_profile": "default",
+  "materiality_levels": [
+    {"level_id": "strict", "level_name": "从严", "amount_floor": 50000, "note": "金额下限低，措辞从严，缺资料即列为待核"},
+    {"level_id": "standard", "level_name": "标准", "amount_floor": 100000, "note": "系统默认口径"},
+    {"level_id": "material_only", "level_name": "只列重大", "amount_floor": 1000000, "note": "仅列重大金额事项，其余作观察"}
+  ],
+  "default_thresholds": {
+    "amount_materiality": 100000,
+    "bank_over_invoice_pct": 10,
+    "related_party_share_pct": 30,
+    "payroll_headcount_variance": 0
+  },
+  "views": [
+    {
+      "view_id": "revenue_integrity",
+      "view_name": "收入完整性",
+      "focus": "申报收入与开票、收款之间是否闭合，是否存在账外收入",
+      "modules": ["M006_phase1_triage", "M007_phase2_deep_dive", "M008_domain_analysis",
+                  "M009_rule_engine", "M010_chain_engine", "M011_hypothesis_verification",
+                  "M013_phase3_cross_validate", "M017_financial_analysis"],
+      "skills": ["redline_engine", "verified_rule_engine", "domain_analysis", "tax_impact",
+                 "tax_rates", "risk_families", "clue_chain", "evidence_chain", "argumentation"],
+      "risk_families": ["revenue_and_bank"],
+      "materials": ["销项发票", "银行流水", "增值税申报表", "企业所得税申报表", "财务报表", "科目余额表"],
+      "thresholds": {"bank_over_invoice_pct": 10},
+      "narrative_weight": 10
+    },
+    {
+      "view_id": "cost_authenticity",
+      "view_name": "成本真实性",
+      "focus": "成本费用的真实性与税前扣除凭证的合规性",
+      "modules": ["M006_phase1_triage", "M008_domain_analysis", "M009_rule_engine",
+                  "M010_chain_engine", "M011_hypothesis_verification",
+                  "M013_phase3_cross_validate", "M017_financial_analysis"],
+      "skills": ["redline_engine", "domain_analysis", "account_classifier", "tax_impact",
+                 "constituent_checkpoint", "constituent_threshold", "clue_chain", "argumentation"],
+      "risk_families": ["related_party_overlap"],
+      "materials": ["进项发票", "序时账（凭证）", "科目余额表", "购销存台账", "财务报表", "合同"],
+      "thresholds": {"amount_materiality": 100000},
+      "narrative_weight": 8
+    },
+    {
+      "view_id": "fund_flow",
+      "view_name": "资金流向",
+      "focus": "资金流与业务流、票据流是否一致，公私是否混同",
+      "modules": ["M005_supply_chain_check", "M006_phase1_triage", "M008_domain_analysis",
+                  "M010_chain_engine", "M011_hypothesis_verification",
+                  "M013_phase3_cross_validate"],
+      "skills": ["redline_engine", "domain_analysis", "tax_impact", "levy_nature",
+                 "clue_chain", "subject_consistency", "argumentation"],
+      "risk_families": ["funds_and_mixing"],
+      "materials": ["银行流水", "销项发票", "进项发票", "序时账（凭证）", "合同"],
+      "thresholds": {"related_party_share_pct": 30},
+      "narrative_weight": 9
+    },
+    {
+      "view_id": "payroll_compliance",
+      "view_name": "薪酬与用工",
+      "focus": "工资、社保、住房公积金三源是否一致，个税扣缴是否完整",
+      "modules": ["M006_phase1_triage", "M008_domain_analysis", "M009_rule_engine",
+                  "M010_chain_engine", "M013_phase3_cross_validate"],
+      "skills": ["redline_engine", "domain_analysis", "payroll_rules", "tax_impact",
+                 "constituent_checkpoint", "clue_chain", "argumentation"],
+      "risk_families": ["payroll_tri_source"],
+      "materials": ["工资表", "社保缴费明细", "住房公积金缴存明细", "个人所得税申报表", "序时账（凭证）"],
+      "thresholds": {"payroll_headcount_variance": 0},
+      "narrative_weight": 9
+    },
+    {
+      "view_id": "related_party_invoice",
+      "view_name": "关联交易与发票真实性",
+      "focus": "关联方交易定价与发票真实性（对手方重叠、走逃失联、虚开信号）",
+      "modules": ["M005_supply_chain_check", "M006_phase1_triage", "M008_domain_analysis",
+                  "M009_rule_engine", "M010_chain_engine", "M011_hypothesis_verification",
+                  "M013_phase3_cross_validate"],
+      "skills": ["redline_engine", "verified_rule_engine", "domain_analysis", "tax_impact",
+                 "fieldkit", "material_names", "finding_families", "clue_chain", "argumentation"],
+      "risk_families": ["related_party_overlap", "input_and_declaration", "stamp_duty_items"],
+      "materials": ["进项发票", "销项发票", "合同", "银行流水", "科目余额表"],
+      "thresholds": {"related_party_share_pct": 30},
+      "narrative_weight": 7
+    }
+  ],
+  "profiles": [
+    {
+      "profile_id": "default",
+      "profile_name": "常规全面检查",
+      "views": ["__ALL__"],
+      "materiality": "standard",
+      "note": "默认档：启用全部视角与全部模块 —— **与改造前行为完全一致**（编排过滤为恒等函数）。"
+    },
+    {
+      "profile_id": "revenue_focus",
+      "profile_name": "收入侧专项",
+      "views": ["revenue_integrity", "fund_flow"],
+      "materiality": "standard",
+      "note": "只看收入与资金，模块收敛到这两条视角的并集（含依赖闭包）。"
+    },
+    {
+      "profile_id": "cost_focus",
+      "profile_name": "成本费用专项",
+      "views": ["cost_authenticity", "related_party_invoice"],
+      "materiality": "standard",
+      "note": "成本真实性与关联交易/发票。"
+    },
+    {
+      "profile_id": "payroll_focus",
+      "profile_name": "薪酬用工专项",
+      "views": ["payroll_compliance"],
+      "materiality": "standard",
+      "note": "工资/社保/公积金三源比对。"
+    },
+    {
+      "profile_id": "material_only",
+      "profile_name": "只查重大",
+      "views": ["__ALL__"],
+      "materiality": "material_only",
+      "note": "全视角但重要性水平收紧到 100 万以上。"
+    }
+  ]
+}

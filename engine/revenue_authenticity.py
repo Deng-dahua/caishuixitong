@@ -211,7 +211,7 @@ def run_revenue_authenticity_check(data: Dict[str, Any], company_name: str = "",
         verdict_detail = "已开票未收回款项（应收挂账未达长期无回款），属正常赊销经营常态，待核非定罪。"
     else:
         verdict = "待核验"
-        verdict_detail = "银行收款高于申报收入，但三维均未呈现强异常，暂列为待核实事项。"
+        verdict_detail = "银行收款高于申报收入，但三维均未呈现强异常，暂列为尚需核实事项。"
 
     signals = []
     if start_signal:
@@ -221,7 +221,7 @@ def run_revenue_authenticity_check(data: Dict[str, Any], company_name: str = "",
     elif invoiced > declared * 1.02:
         signals.append({"signal": "开票>申报（漏报方向）", "hint": "已开票未申报，须核验"})
     if has_person_in:
-        signals.append({"signal": f"个人账户归集 {person_in:,.0f} 元", "hint": "账外收款待核实线索（须逐笔核实款项性质，不构成认定依据）"})
+        signals.append({"signal": f"个人账户归集 {person_in:,.0f} 元", "hint": "账外收款尚需核实线索（须逐笔核实款项性质，不构成认定依据）"})
     if ar_long > 0:
         signals.append({"signal": f"{ar_long} 个客户应收挂账超 1 年", "hint": "长期无回款，疑虚构收入"})
 

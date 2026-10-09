@@ -843,15 +843,30 @@ class TestConstituentSourceObtainability:
         hit = [i for i in issues if i[0] == "ERROR" and bogus in i[2]]
         assert hit, "永久拿不到的数据源(%s)未被判 ERROR —— 闸门仍在自证循环" % bogus
 
-    def test_baseline_has_no_unknown_gap_warns_only_acknowledged(self):
-        """基线稳定性：全库判定无未知新缺口（ERROR 0），已知缺口走 WARN 且被点名。
+    def test_baseline_has_no_unreachable_constituent_source(self):
+        """基线稳定性：全库**不得有任何不可达的要件数据源**（ERROR 0 且 WARN 0）。
 
-        当前唯一已知缺口是「拒收证明」（RL-VAT-007 折让/退货的事由说明，
-        与任何既存资料类别都不构成同一实物，刻意不做硬映射）。
+        ★ 2026-10-06 口径变更（把"永久豁口"从根上修掉）：
+          本测试原先断言「拒收证明」**永久**走 WARN 并点名 —— 那是把豁口**制度化**。
+          实际根因不是"资料拿不到"，而是**没登记**：已在
+          `material_recognition._SUPP_ENTRIES` 登记为独立补充类别（新增一类真资料，
+          不是硬映射到既存 15 类），故现在应当**一条缺口都没有**。
+          反向锁：真·不可达名字仍必须被判 ERROR（见上一个用例的哨兵名）。
         """
         from tools.audit_consistency import check_constituent_sources_consistency
         issues = check_constituent_sources_consistency()
         assert not [i for i in issues if i[0] == "ERROR"], \
-            "基线不得有未知缺口：%s" % [i[2][:80] for i in issues if i[0] == "ERROR"]
-        assert any(i[0] == "WARN" and "拒收证明" in i[2] for i in issues), \
-            "已知缺口「拒收证明」应走 WARN 并点名（未知缺口才 ERROR）"
+            "基线不得有不可达数据源：%s" % [i[2][:80] for i in issues if i[0] == "ERROR"]
+        assert not [i for i in issues if i[0] == "WARN"], \
+            ("不应再存在「已知缺口」豁口（原「拒收证明」已登记为补充类别）：%s"
+             % [i[2][:80] for i in issues if i[0] == "WARN"])
+
+    def test_reject_cert_is_reachable_not_acknowledged(self):
+        """「拒收证明」必须**可达**（曾被当作永久缺口豁免，现已从根上修掉）。"""
+        from engine.enterprise_report import _DOC_TYPE_TO_CATEGORY
+        from engine.evidence_chain import _match_material as mm
+        cats = set()
+        for v in _DOC_TYPE_TO_CATEGORY.values():
+            cats.update(str(x) for x in (v if isinstance(v, (tuple, list)) else (v,)))
+        st = (mm("拒收证明", "", sorted(cats)) or {}).get("status")
+        assert st != "缺失", "「拒收证明」仍判不可达 —— 该要件将永远不计入认定"

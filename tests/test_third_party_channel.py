@@ -66,7 +66,7 @@ def test_is_third_party_payment_channel():
     assert is_third_party_payment_channel("通联支付网络服务股份有限公司") is True
     # 真实企业不得误判
     assert is_third_party_payment_channel("北京潘祥记餐饮有限公司") is False
-    assert is_third_party_payment_channel("深圳海更数字传媒有限公司") is False
+    assert is_third_party_payment_channel("某传媒企业示例公司") is False
 
 
 def test_retail_third_party_not_risk():

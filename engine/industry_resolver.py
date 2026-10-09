@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 # ── 单一数据源 ──────────────────────────────────────────────────────────────
@@ -179,10 +180,19 @@ def match_benchmark(industry: str, biz_model: str = "", entity_name: str = "",
     benchmarks = data.get("benchmarks") or {}
     coarse = data.get("benchmarks_coarse") or {}
 
-    ind = str(industry or "").strip()
+    # ★★ 2026-10-08 修复（真缺陷）：入口先归一 —— 此前 match_benchmark 直接用原始行业名匹配，
+    #    绕过 normalize_industry_name，导致「数字传媒」这类**别名业态**匹配不到「文化传媒」，
+    #    一路回退到 `_default` 通用基准（本样本 深圳海更数字传媒 即落此项，行业基准形同虚设）。
+    #    根因是「行业名归一」这个概念有两条链路，只有一条走了归一化。
+    #    修法：薄转发到唯一权威 normalize_industry_name，不在本函数内重复实现别名逻辑。
+    ind = normalize_industry_name(str(industry or "").strip())
     # 1. 精确匹配细分行业
     if ind and ind in benchmarks:
         return ind, benchmarks[ind]
+    # 1b. 精确匹配**粗粒度门类**（"制造业""交通运输"等是门类键而非细分键）——
+    #     此前这类名一路落到 `_default` 通用基准，等于行业基准失配（实测 "制造业" → _default）。
+    if ind and ind in coarse:
+        return ind, coarse[ind]
     # 2. 细分行业名互含匹配（"文化传媒" vs "广告传媒"）
     if ind:
         hit = _longest_hit(ind, benchmark_keys()) or None
@@ -411,7 +421,7 @@ def scope_industry_hint(scope_text: str = "", company_name: str = "") -> Optiona
 
     为什么需要（2026-10-01 真事故）：原逻辑「经营范围含购销词 → 判商贸」把**所有**
     服务型企业都拉成商贸——因为「销售/批发/零售/贸易」是中国公司经营范围的**万能尾巴**。
-    实证：深圳海更数字传媒，经营范围明写「广告设计、制作、代理、发布」+ 尾部「办公用品
+    实证：某传媒企业数字传媒，经营范围明写「广告设计、制作、代理、发布」+ 尾部「办公用品
     销售」，仍被判「商贸」（销项品名一旦抽不到，就 100% 落商贸）。
 
     判据（行业无关，靠**已有**单一数据源，不新增分类表）：
@@ -1077,8 +1087,25 @@ _SKIPPED_DOMAIN_DOCS = {
     "加工费专项": (),
     "水电能耗分析": (),
     # ★ 2026-10-03：服务型企业无实物货物流转 ⇒ 货物流类资料不适用（新增同类只加一行）
+    # ★★ 2026-10-06（补齐"同一实物、多种叫法"）：原表只列了 7 个名字，
+    #   而红线 `required_materials` 里同一族资料写作 **20 余种**叫法
+    #   （入库单 / 存货台账 / 出入库单 / 完工入库单 / 存货明细账 / 产成品明细账 /
+    #     领料单 / 投料单 / 盘点表 / 运输单据 / 运输与保险单据 / 过磅单与入库验收单 …）。
+    #   实测后果（company_1 某传媒企业数字传媒·广告传媒/服务业）：覆盖清单仍把
+    #   「入库单、存货台账、出入库单、完工入库单、存货明细账、运输单据 …」
+    #   共 17 个税务红线检查项列为"缺资料受限"，等于**让一家广告公司去补它天然不会有的货物流单据**。
+    #   ⚠ 为什么不能靠"资料类别"归一（`material_names.canonical`）来兜：
+    #     · 「存货明细账 / 产成品明细账」会归到**科目余额表**（"明细账"压过"存货"）；
+    #     · 「运输合同」归到**合同文件**，而合同文件对该业态是**适用**的
+    #       （采购合同仍须提供）⇒ 类别级剔除会把"采购合同"一并误删。
+    #   ⇒ 本族只能按**具体名**登记。**新增同类叫法仍只加一行数据，不改任何判定逻辑**。
     "货物流核验": ("物流单据", "入库验收单", "出库单", "过磅单", "承运合同",
-                   "物流单据与承运记录", "运输合同"),
+                   "物流单据与承运记录", "运输合同",
+                   # —— 2026-10-06 补齐的同族叫法（同一实物、不同写法）
+                   "入库单", "出入库单", "出库单与领用单", "完工入库单",
+                   "存货台账", "存货明细账", "产成品明细账", "存货盘点表", "盘点表",
+                   "盘点表与毁损鉴定报告", "领料单", "投料单", "过磅单与入库验收单",
+                   "运输单据", "运输与保险单据"),
 }
 
 
@@ -1107,3 +1134,177 @@ def not_required_materials(industry) -> Tuple[set, str]:
     return docs, ("本企业业态为「%s」，天然无实物货物流转（该业态不适用：%s），"
                   "故下列资料不属于必查项，不因未提供而计入缺失：%s。"
                   % (_cat, "、".join(_skip), "、".join(sorted(docs))))
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# ★★ 2026-10-06：「按名剔除业态不适用资料」的**唯一权威**（两件事：怎么切段、怎么判）
+#
+# ## 为什么必须收敛（用户口径：解决根因，不打补丁）
+# 「把本业态不适用的资料从××清单里剔掉」这一个概念，此前有 **4 份各自实现**，
+# 分隔符表不同、判定方向也不同 ⇒ 同一份要件在同一份报告里出现 4 种判法：
+#
+#   ① `evidence_chain.build_evidence_chain`（引擎层，字符级 `str.replace`）
+#        不切段，把不适用资料名**当子串删掉**：
+#          "采购合同与入库验收单" → "采购合同与"（悬空连词残词）
+#          "物流单据与承运记录"   → "与承运记录" **或** ""（**取决于 set 迭代序**）
+#        ⚠ 且它发生在 `status`/`basis`/`direct_missing` **算完之后** ⇒ 只有名字被改，
+#          依据与「取得直接证据」清单仍是原始要求 ⇒ 服务型企业仍被要求补物流单据。
+#   ② `enterprise_report._strip_not_required`（报告层，段级，**这一份是对的**）
+#   ③ `constituent_checkpoint._decl_na`（要件层）
+#        分隔符表**不含「与/及/和」** + **双向包含** ⇒ "采购合同与入库验收单" 不切段，
+#        整体命中 "入库验收单" ⇒ 整条要件被误判「本业态不适用」。
+#   ④ `enterprise_report._trim_text_materials`（整句文本级）
+#
+# ## 判据（数据驱动，与 `not_required_materials` 同一权威）
+#   · 先按**并列分隔符**切段（含「与/及/和」，否则复合名切不开）；
+#   · 逐段判定：段 == 不适用名，或段**包含**不适用名 ⇒ 剔该段；
+#     ⚠ **禁止反向**（不适用名包含段）—— 实测 "合同" ⊂ "承运合同/运输合同"，
+#       反向判定会把"采购合同"里的"合同"一并误删（此坑已踩过一次）。
+#   · 剔完一段不剩 ⇒ 返回 ""（**整项本业态不适用**，调用方应剔除该项，不得当作"缺失"）；
+#   · 无并列结构 ⇒ 原样返回（避免把含「与/和/及」的专有名词切坏）。
+#   · **幂等**：结果再过一次不变；**确定性**：与 set 迭代序无关。
+# ══════════════════════════════════════════════════════════════════════════
+
+#: 材料名/数据源名内的**并列分隔符（「且」语义）**（"采购合同与入库验收单" ⇒ 两段）
+#  ★★ 全系统**只此一处** —— 见下方 ★★ 说明：曾出现 4 份实现、4 种判法。
+MATERIAL_SEG_SEP = re.compile(r"[、，,；;／/｜|\s]+|与|及|和|以及")
+#: 「或」分隔（A或B ＝ 其一即可，**不是**"两样都要"，不得与上表混用语义）
+MATERIAL_ALT_SEP = re.compile(r"或(?:者)?")
+#: 只要**原子名**、不区分且/或时的合并切分（由上面两张表**派生**，不另立一份）
+MATERIAL_ATOM_SEP = re.compile(MATERIAL_SEG_SEP.pattern + "|" + MATERIAL_ALT_SEP.pattern)
+
+
+def _norm_na(not_required) -> List[str]:
+    """规范化不适用资料名集合（去空白、去空、**长度降序**保证判定与迭代序无关）。"""
+    _seen = set()
+    out: List[str] = []
+    for x in (not_required or ()):
+        t = str(x or "").strip()
+        if t and t not in _seen:
+            _seen.add(t)
+            out.append(t)
+    # ★ 长度降序：段级判定虽与顺序无关，但降序可保证任何"前缀/包含"类兜底也稳定
+    return sorted(out, key=len, reverse=True)
+
+
+def classify_not_required_segments(name, not_required):
+    """把材料名按并列分隔符切段并逐段判定 → `(保留段, 被剔段, 是否有并列结构)`。
+
+    **唯一判定的"带明细"入口** —— 需要说明依据（"剔掉了哪几段"）的调用方走它；
+    只需要结果字符串的走 `exclude_not_required_material`（同一实现，**薄转发**）。
+    """
+    s = str(name or "").strip()
+    nr = _norm_na(not_required)
+    if not s or not nr:
+        return ([s] if s else []), [], False
+    if s in nr:
+        return [], [s], False
+    segs = [x.strip() for x in MATERIAL_SEG_SEP.split(s) if x.strip()]
+    if len(segs) <= 1:
+        return ([s] if s else []), [], False
+    keep, drop = [], []
+    for x in segs:
+        # ⚠ 单向判定（段 == 不适用名 或 段**包含**不适用名）；
+        #   **禁止反向**（不适用名包含段）——"合同" ⊂ "承运合同/运输合同"，
+        #   反向会把"采购合同"里的"合同"一并误删。
+        if any(x == n or n in x for n in nr):
+            drop.append(x)
+        else:
+            keep.append(x)
+    return keep, drop, True
+
+
+def exclude_not_required_material(name, not_required) -> str:
+    """段级剔除材料名里**本业态不适用**的段；返回 "" 表示整项都不适用。
+
+    **全系统唯一实现** —— 任何"按名剔除业态不适用资料"的链路都必须薄转发到本函数，
+    不得各自 `re.split` / `str.replace`（见本文件顶部 ★★ 说明：曾出现 4 份实现、4 种判法）。
+    """
+    s = str(name or "").strip()
+    if not s:
+        return ""
+    if not _norm_na(not_required):
+        return s
+    keep, drop, had = classify_not_required_segments(s, not_required)
+    if not had:
+        return "" if drop else s     # 整名恰为不适用名 ⇒ 整项剔除；否则原样
+    if not drop:
+        return s                      # 无段被剔 ⇒ 原样返回，不做无意义重组
+    if not keep:
+        return ""                     # 一段不剩 ⇒ 整项不适用
+    return "、".join(keep)
+
+
+#: 剔除后只剩"空动词"的段 ⇒ 整段无意义（"提供"、"取得"…）
+_TEXT_EMPTY_VERBS = ("提供", "补充提供", "补充", "取得", "提供相应", "留存",
+                     "出具", "提供相应资料")
+_TEXT_TRIM_PUNCT = " \u3000，,；;。：:（）()"
+
+
+def exclude_not_required_in_text(text, not_required) -> str:
+    """在**整句文本**里按「、」并列段剔除本业态不适用资料（**唯一实现**）。
+
+    例：`提供付款对应的采购合同、入库验收单、物流单据，并对××作出书面说明`
+      → `提供付款对应的采购合同，并对××作出书面说明`
+    用于红线自带的「补救要求」等**成句文案**（`exclude_not_required_material` 只管单个名）。
+    """
+    t = str(text or "")
+    nr = _norm_na(not_required)
+    if not t or not nr:
+        return t
+    out = []
+    for p in t.split("、"):
+        core = p.strip(_TEXT_TRIM_PUNCT)
+        drop = core in nr
+        if not drop:
+            for n in nr:
+                if core.startswith(n):
+                    p = p.replace(n, "", 1)
+                    break
+                if core.endswith(n):
+                    i = p.rfind(n)
+                    p = p[:i] + p[i + len(n):]
+                    break
+            if not p.strip(_TEXT_TRIM_PUNCT):
+                drop = True
+            elif p.strip(_TEXT_TRIM_PUNCT) in _TEXT_EMPTY_VERBS:
+                drop = True
+        out.append("" if drop else p)
+    kept = []
+    for i, p in enumerate(out):
+        if not p.strip():
+            continue
+        if i > 0:
+            p = p.lstrip(" \u3000，,；;。：:与及和")
+        if p.strip():
+            kept.append(p)
+    return "、".join(kept).replace("、并", "，并")
+
+
+#: 段级剔除后可能出现**悬空连词**（"采购合同**与**"）—— 残词自检用（闸门与测试共用）
+_DANGLING_EDGE = "、，,；;与及和 \u3000"
+#: 并列连词（段级剔除全部按它们切段 ⇒ 被改写过的结果里**不应再出现**）
+_PARA_CONJ = "与及和"
+
+
+def has_dangling_separator(text, original=None) -> bool:
+    """名字是否因剔除不当而留下**残词**（悬空连词，如"采购合同与"、"与承运记录"）。
+
+    ★★ 判据**必须给 `original`**（剔除前的原名），否则会把合法名称误判成残词 ——
+      实测踩过：「与境外方签署的合同或协议、董事会利润分配决议」本就以「与」开头，
+      单看字符串会当成残词（**闸门自己报的假红**）。
+    给了原名后的精确判据：
+      · `text == original` ⇒ **未被改写**，原样输出是正确行为，**不是**残词；
+      · 被改写 ⇒ 结果里**不应再出现任何并列连词**（与/及/和）—— 它们是切段符，
+        段级剔除的每个保留段都不含它们；再出现即只可能是"字符级删字"留下的残词。
+    未给 `original` 时退回宽松判据（只看首尾字符），仅供调试，闸门不得用。
+    """
+    s = str(text or "").strip()
+    if not s:
+        return False
+    if original is not None:
+        o = str(original or "").strip()
+        if s == o:
+            return False
+        return any(ch in s for ch in _PARA_CONJ)
+    return s[0] in _DANGLING_EDGE or s[-1] in _DANGLING_EDGE

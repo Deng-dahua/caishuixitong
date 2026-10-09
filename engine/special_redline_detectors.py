@@ -389,7 +389,7 @@ def _detect_equity_transfer_iit(data, texts=None, pipeline_log=None):
     f["constituent_hits"] = [
         {"index": 4, "evidence": "本轮资料未见股权转让个人所得税完税凭证或缴款记录"
                                  "（缺资料 ≠ 已认定未申报，须企业举证）"},
-        {"index": 1, "evidence": "检出股权转让/股权变更相关记录 %d 条，转让方是否为自然人仍待核实" % n},
+        {"index": 1, "evidence": "检出股权转让/股权变更相关记录 %d 条，转让方是否为自然人仍尚需核实" % n},
     ]
     f["_detection_method"] = (
         "检索合同、序时账、银行流水、科目余额中的股权转让/股权变动态；"

@@ -20,6 +20,7 @@
 """
 
 from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯一实现）
+import re
 import time
 from collections import defaultdict
 
@@ -63,8 +64,32 @@ def _goods(inv) -> str:
 
 
 def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
-                             cross_enterprise=None, company_name=""):
-    """扫描进项发票，量化异常抵扣凭证与应转出未转出敞口。返回对齐 dict。"""
+                             cross_enterprise=None, company_name="",
+                             input_vat_deductions=None):
+    """扫描进项发票，量化异常抵扣凭证与应转出未转出敞口。返回对齐 dict。
+
+    ★★ 2026-10-06（用户：「**你核实了发票类型没有？**」）：
+      「应转出**未转出**」的前提是「**已经抵扣**」，而"是否已抵扣"只写在
+      **进项认证抵扣明细**（`勾选状态` / `有效抵扣税额`），取票表里没有。
+      旧实现只看取票表的**票面税额**就断言"应转出未转出"，等于把"票上印了多少"当成"已经抵扣了多少"。
+      实测（某传媒企业数字传媒）：被判"应转出未转出 3,996.91 元"的 146 张发票
+      **全部是「数电发票（普通发票）」**，且**一张都没进抵扣表**（255 张抵扣表记录全部能在取票中
+      找到，但方向相反——抵扣表是取票的子集，不包含这 146 张）⇒ **从未抵扣，无转出义务**。
+      故本函数现在按三态分流（判据全部来自资料本身，不猜）：
+        · **可抵扣票种（专票）且已抵扣** → 计入 `应转出未转出`（金额取**有效抵扣税额**，不取票面税额）
+        · **不可抵扣票种（普通发票）或未勾选** → 计入 `无需转出`（有票种/勾选证据，结论明确）
+        · **无票种也无抵扣记录** → 计入 `待核`（**不给金额**，只列待核线索）
+    """
+    input_vat_deductions = input_vat_deductions or []
+    _ded_by_no = {}
+    for _d in input_vat_deductions:
+        if not isinstance(_d, dict):
+            continue
+        for _k in (_d.get("digital_invoice_no"), _d.get("invoice_no"),
+                   _d.get("inv_no"), _d.get("digital_inv_no")):
+            _s = re.sub(r"\D", "", str(_k or ""))
+            if _s:
+                _ded_by_no.setdefault(_s, _d)
     if not pur_invs:
         return {
             "available": False,
@@ -88,7 +113,12 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
                                "non_ded_tax": 0.0, "non_ded_goods": []})
     input_tax_total = 0.0
     input_amount_total = 0.0
-    non_deductible_tax = 0.0
+    non_deductible_tax = 0.0        # 应转出未转出（**专票且已抵扣**，取有效抵扣税额）
+    no_reversal_tax = 0.0           # 无需转出（普票 / 未勾选，有证据）
+    pending_tax = 0.0               # 待核（无票种亦无抵扣记录，**不给结论金额**）
+    _hit_kw_rows = defaultdict(int)  # 实际命中的关键词 → 张数
+    _no_rev_sup = []                 # 无需转出的供应商（含票种）
+    _pending_sup = []                # 待核供应商
 
     for inv in pur_invs:
         nm = _name(inv)
@@ -102,12 +132,46 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
             d["amount"] += amt
             d["tax"] += tax
         g = _goods(inv)
-        if any(k in g for k in _NON_DEDUCTIBLE_KW):
-            non_deductible_tax += tax
-            if nm:
-                sup[nm]["non_ded_tax"] += tax
-                if len(sup[nm]["non_ded_goods"]) < 6:
-                    sup[nm]["non_ded_goods"].append(f"{g[:16]}(税额{tax:,.2f})")
+        _hit = [k for k in _NON_DEDUCTIBLE_KW if k in g]
+        if _hit:
+            for _k in set(_hit):
+                _hit_kw_rows[_k] += 1
+            # ★★ 三态分流（判据全部来自资料本身，不猜；详见函数 docstring）
+            _no = ""
+            for _cand in (inv.get("digital_inv_no"), inv.get("inv_no"),
+                          inv.get("digital_invoice_no"), inv.get("invoice_no")):
+                _no = re.sub(r"\D", "", str(_cand or ""))
+                if _no:
+                    break
+            _ded = _ded_by_no.get(_no) or {}
+            # 票种：取票侧字段 `inv_type`（本轮补上）或抵扣表 `invoice_type`
+            _itype = str(inv.get("inv_type") or inv.get("invoice_type")
+                         or _ded.get("invoice_type") or "").strip()
+            _is_special = "专用发票" in _itype
+            _is_general = ("普通发票" in _itype) or ("general" in _itype.lower())
+            _dtax = to_number(_ded.get("deductible_tax")) if _ded else 0.0
+            _status = str((_ded or {}).get("status") or inv.get("inv_status") or "").strip()
+            _deducted = _dtax > 0 or ("已勾选" in _status)
+            if _is_special and _deducted:
+                # 可抵扣票种 + 已抵扣 ⇒ 确属"应转出"；金额取**有效抵扣税额**
+                _amt_out = _dtax if _dtax > 0 else tax
+                non_deductible_tax += _amt_out
+                if nm:
+                    sup[nm]["non_ded_tax"] += _amt_out
+                    if len(sup[nm]["non_ded_goods"]) < 6:
+                        sup[nm]["non_ded_goods"].append(
+                            f"{g[:16]}({'、'.join(sorted(set(_hit)))}；已抵扣{_amt_out:,.2f})")
+            elif _is_general or (_is_special and not _deducted):
+                # 普通发票（本就不可抵扣）或专票但未勾选 ⇒ **不存在"应转出未转出"**
+                no_reversal_tax += tax
+                if nm and len(_no_rev_sup) < 8:
+                    _no_rev_sup.append("%s（%s，%s，票面税额%s）"
+                                       % (nm, _itype or "票种不明", _status or "未勾选", f"{tax:,.2f}"))
+            else:
+                # 既无票种也无抵扣记录 ⇒ **不得给结论金额**，只作待核
+                pending_tax += tax
+                if nm and len(_pending_sup) < 8:
+                    _pending_sup.append("%s（%s）" % (nm, g[:16]))
 
     # ── 异常凭证清单 → 异常抵扣 ──
     abnormal_set = set()
@@ -213,10 +277,31 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
         for nm, d in sup.items():
             if d["non_ded_tax"] > 0 and len(targets) < 6:
                 targets.append(f"{nm}：{d['non_ded_tax']:,.2f}元（{'、'.join(d['non_ded_goods'][:3])}）")
+        # ★ 依据文字必须写**实际命中的关键词**（旧文案写死"福利/职工/个人消费/免税/业务招待"，
+        #   而本例实际命中的是「餐饮」「礼品」⇒ 读者按文案去核，一个都找不到）。
+        _kw_txt = "、".join("%s（%d张）" % (k, v)
+                           for k, v in sorted(_hit_kw_rows.items(), key=lambda kv: -kv[1])[:6])
         signals.append({
-            "signal": f"购进货物含不得抵扣用途，应进项转出未转出税额约{non_deductible_tax:,.2f}元",
-            "hint": "货物名称含福利/职工/个人消费/免税/业务招待等，其进项税应作转出未转出；"
+            "signal": f"购进项目含不得抵扣用途，应进项转出未转出税额约{non_deductible_tax:,.2f}元",
+            "hint": f"命中不得抵扣用途关键词：{_kw_txt}。**已核实为可抵扣票种且已勾选抵扣**"
+                    f"（金额取有效抵扣税额），故应作进项转出；"
                     f"需结合用途明细账核实是否已转出。涉及：{'；'.join(targets)}。",
+        })
+    if no_reversal_tax > 0:
+        # ★ 有票种/勾选证据证明"无需转出" ⇒ 明确写出来（**不列为风险**，但要让读者知道系统核过了）
+        signals.append({
+            "signal": f"另有{no_reversal_tax:,.2f}元票据项目属不得抵扣用途，但**无需转出**（已核实票种/勾选状态）",
+            "hint": "这些票据为**普通发票**（本就不作为抵扣凭证）或**未勾选抵扣**，"
+                    "不存在「已抵扣应转出」的情形；如与实际情况不符，请提供抵扣勾选记录核对。"
+                    + ("涉及：" + "；".join(_no_rev_sup[:5]) + "。" if _no_rev_sup else ""),
+        })
+    if pending_tax > 0:
+        signals.append({
+            "signal": f"另有{pending_tax:,.2f}元票据项目属不得抵扣用途，但**票种与抵扣状态均无法判定**，列为待核",
+            "hint": "本轮资料中未见这些发票的票种（专用/普通）与勾选抵扣状态，"
+                    "**故不给「应转出」金额、也不作排除**；请补充进项认证抵扣明细（含勾选状态、"
+                    "有效抵扣税额）后重新核对。"
+                    + ("涉及：" + "；".join(_pending_sup[:5]) + "。" if _pending_sup else ""),
         })
 
     if circular_mirror:
@@ -252,6 +337,12 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
         verdict = "进项侧存在较高虚开/异常抵扣嫌疑，须逐票核实"
     elif sev_mid:
         verdict = "进项侧存在异常线索，需核实用途与供应商真实性"
+    elif non_deductible_tax <= 0 and pending_tax <= 0:
+        # ★★ 2026-10-06：**"不得抵扣用途"≠"应转出未转出"** —— 若经票种/勾选状态核实
+        #   **没有一张是"可抵扣票种且已抵扣"的**，则本项**不存在风险事实**，
+        #   必须落"未发现异常"（`_promote_standalone_reports` 据此不立为风险事项），
+        #   不得以"票面税额"冒充"应转出额"挤进风险清单。
+        verdict = "未发现异常"
     else:
         verdict = "进项侧未触发明显异常（仅代表本轮数据范围）"
 
@@ -264,6 +355,10 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
         "concentration_supplier": top_name,
         "concentration_ratio": round(concentration_ratio, 4),
         "should_transfer_out_tax": round(non_deductible_tax, 2),
+        # ★ 2026-10-06：三态分流的另两态（**必须与"应转出"同处可见**，
+        #   否则读者以为"没提就是没有"）——"无需转出"有票种/勾选证据；"待核"缺票种与抵扣状态。
+        "no_reversal_tax": round(no_reversal_tax, 2),
+        "pending_invoice_type_tax": round(pending_tax, 2),
         "circular_supplier_count": len(circular_suppliers),
         # 2026-09-14 新增：双向主体的对开分级计数（供询问提纲与报告按级取用，
         # 避免"只要有双向往来就定对开嫌疑"的误报）
@@ -280,7 +375,11 @@ def run_input_voucher_check(pur_invs, sal_invs=None, abnormal_list=None,
     if top_name:
         lines.append(f"供应商集中度：{top_name} 占{concentration_ratio*100:.1f}%")
     if non_deductible_tax > 0:
-        lines.append(f"应进项转出未转出（不得抵扣用途）税额：{non_deductible_tax:,.2f}元")
+        lines.append(f"应进项转出未转出（不得抵扣用途，专票且已抵扣）税额：{non_deductible_tax:,.2f}元")
+    if no_reversal_tax > 0:
+        lines.append(f"属不得抵扣用途但**无需转出**（普通发票/未勾选）票面税额：{no_reversal_tax:,.2f}元")
+    if pending_tax > 0:
+        lines.append(f"属不得抵扣用途但**票种与抵扣状态无法判定**（待核，不计金额）：{pending_tax:,.2f}元")
     if circular_suppliers:
         lines.append("供应商=客户（双向往来）名单：")
         for s in circular_suppliers[:4]:

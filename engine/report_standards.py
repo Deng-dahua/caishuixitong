@@ -5,9 +5,28 @@ from __future__ import annotations
 
 import re
 
+from engine.legal_citation import (  # ★ 法条字段唯一权威（禁在本文件另抄一份字段名清单）
+    legal_reference_of as _legal_ref_of,
+)
+
+# ★ 2026-10-07（用户："把旧模板都删除"）：封面名不再硬编码为旧模板名，
+#   统一取合规唯一权威 `report_compliance.document_meta().name`；取不到才退回默认。
+def _doc_title() -> str:
+    try:
+        from engine.report_compliance import document_meta
+        nm = str((document_meta("internal_working_paper") or {}).get("name") or "").strip()
+        if nm:
+            return nm
+    except Exception:
+        pass
+    return "税务风险扫描工作底稿"
+
+
+DOC_TITLE = _doc_title()
+
 
 REPORT_STRUCTURE = {
-    "封面": {"title": "涉税风险分析报告", "fields": ["被分析单位", "所属行业", "分析期间", "报告日期", "密级"]},
+    "封面": {"title": DOC_TITLE, "fields": ["被分析单位", "所属行业", "分析期间", "报告日期", "密级"]},
     "第一章": {"title": "任务、范围与方法", "content": ["任务来源", "资料来源", "分析范围", "方法论", "局限性"]},
     "第二章": {"title": "主体、业务与数据概览", "content": ["主体边界", "经营模式", "资料清单", "数据质量", "政策期间"]},
     "第三章": {"title": "待核事实与资料缺口", "content": ["待核事项", "适用边界", "观察信号", "正常解释", "资料缺口"]},
@@ -162,7 +181,11 @@ def _sanitize_legal_references(findings):
     for finding in findings:
         if not isinstance(finding, dict):
             continue
-        policy_ref = str(finding.get("policy_ref", finding.get("law_ref", "")) or "").strip()
+        # ★ 2026-10-04（⑭）："法条写在哪个字段"的唯一权威是
+        #   `legal_citation.legal_reference_of`（法条可能落在 policy_ref / law_ref）。
+        #   旧实现在此另抄了一份 `.get("policy_ref", .get("law_ref",""))`，与门禁判据
+        #   不同源 ⇒ 同一条发现一侧"有依据"、一侧"缺依据"，报告因此被判阻断。
+        policy_ref = str(_legal_ref_of(finding) or "").strip()
         malformed_fields = [
             key for key in ("policy_ref", "law_ref", "tax_impact", "detail", "description", "suggestion")
             if _MALFORMED_POLICY_RE.search(str(finding.get(key, "") or ""))

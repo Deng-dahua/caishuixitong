@@ -510,8 +510,11 @@ def format_audit_line(audit: Dict[str, Any]) -> str:
         return "主体一致性自检：未执行"
     by = audit.get("by_code") or {}
     if not audit.get("issue_count"):
-        return "主体一致性自检：%s 项全部通过（疑点主体与所写内容一致）" % audit.get("checked", 0)
-    return "主体一致性自检：检查 %s 项，发现 %s 项不一致（%s）；已按判据剔除错配内容并如实说明" % (
+        # ★ 2026-10-07（质检）：单位必须写清是「条发现」而不是「项事项」——
+        #   实测同一报告里"检查 170 项（自检）"与"共 16 项（风险事项）"并列，
+        #   读者会读成**计数不一致**。二者计数单位不同，必须显式区分。
+        return "主体一致性自检：核对 %s 条发现，全部通过（疑点主体与所写内容一致）" % audit.get("checked", 0)
+    return "主体一致性自检：核对 %s 条发现，其中 %s 条不一致（%s）；已按判据剔除错配内容并如实说明" % (
         audit.get("checked", 0), audit.get("issue_count", 0),
         "，".join("%s×%d" % (k, v) for k, v in sorted(by.items())) or "—",
     )

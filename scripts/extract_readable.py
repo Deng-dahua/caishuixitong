@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""从 run_four_companies 产出的 full.json 中抽取 enterprise_readable_report 的正文，
+"""从 run_companies 产出的 full.json 中抽取 enterprise_readable_report 的正文，
 生成可读 markdown，供人工评估"风险检查员分身"达成度。不重复跑分析。
 """
 import sys, os, json
@@ -11,10 +11,13 @@ SYS = os.path.join(OUT, "readable")
 # 只保留三类内容：确认问题 / 处理意见+验收 / 资料缺失未完成
 # 注：原「已经执行且本轮未发现达到条件异常的检查」一章自 2026-09-13 起整章下线，
 # 引擎 _build_completed_checks 恒返回空，此处同步移除。
+# ★ 2026-10-05（用户意见：「先干哪个后干哪个、怎么干完」并入问题本身，
+#   不再单开一章重复）：`action_plan` 整章下线 —— 它 26 条正文与
+#   `confirmed_problems` 里每条的「需企业提供的资料与说明」**逐字重复**（实测），
+#   唯一独有的「下一轮复查安排（recheck）」保留，紧随问题章之后。
 CHAPTER_ORDER = [
     "identity", "summary",
-    "confirmed_problems",
-    "action_plan", "recheck",
+    "confirmed_problems", "recheck",
     "further_checks", "capability_boundary", "inspection_questions_report",
     "report_statement",
 ]
@@ -23,8 +26,7 @@ TITLE_MAP = {
     "identity": "一、企业信息",
     "summary": "二、本轮检查总体结论",
     "confirmed_problems": "三、本轮风险检查确认的具体问题",
-    "action_plan": "四、风险检查处理意见和整改验收标准",
-    "recheck": "四（续）、下一轮复查安排",
+    "recheck": "四、下一轮复查安排",
     "further_checks": "五、因资料缺失或不完整而无法完成的检查",
     "capability_boundary": "五（续）、系统能力边界",
     "inspection_questions_report": "五（续）、待企业澄清事项（风险检查询问清单）",

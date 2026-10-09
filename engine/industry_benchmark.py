@@ -195,6 +195,19 @@ _METRIC_ZH_TO_EN = {
 #   （首版统一 ×100 曾把 进销比 0.4~0.95 变成 40~95，属单位错误。）
 _METRIC_SCALE = {"毛利率": 100.0, "税负率": 100.0, "期间费用率": 100.0, "进销比": 1.0}
 
+# ★ 指标键 → 报告用中文名（**唯一权威**，2026-10-07）
+#   事故：本文件 `run_industry_benchmark_check` 里 5 处引用 `_LABEL[key]`，而 `_LABEL`
+#   从未定义（重构丢变量）⇒ 行业对标域一执行即 NameError ⇒ 该域发现被静默吃掉；
+#   同时 `enterprise_report._build_industry_benchmark_report` 又自带一份同内容手工表
+#   （两个头维护同一概念）。现统一为：**本表反向派生自 `_METRIC_ZH_TO_EN`**（同源，禁第二份手工表），
+#   报告侧改为薄转发 `indicator_label()`，新增指标只改 `_METRIC_ZH_TO_EN` 一行。
+_LABEL: Dict[str, str] = {en: zh for zh, en in _METRIC_ZH_TO_EN.items()}
+
+
+def indicator_label(key) -> str:
+    """指标键 → 报告用中文名（唯一权威）。未登记则原样返回，由报告侧词表兜底。"""
+    return _LABEL.get(str(key or ""), str(key or ""))
+
 
 def _build_industry_benchmarks() -> Dict[str, Dict[str, Tuple[float, float]]]:
     """从唯一数据源（static/industry_data.json）派生区间表。"""

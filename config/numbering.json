@@ -1,0 +1,110 @@
+{
+  "schema": "caishuixitong.numbering/1",
+  "version": "1.0.0",
+  "updated": "2026-10-08",
+  "note": "编号服务唯一权威（WB-TRISK-2026-001 §3.2/§3.3）。所有编号必须由 engine/numbering.py 生成，禁止任何模块自行拼接编号字符串。新增编号类型只需在本表加一行。",
+  "connector": "-",
+  "company_code": {
+    "preferred": "unified_social_credit_code",
+    "fallback": "company_id",
+    "aliases": ["unified_social_credit_code", "uscc", "credit_code", "taxpayer_id", "company_code"],
+    "id_key": "company_id",
+    "width": 18,
+    "normalize": "upper_strip"
+  },
+  "period": {
+    "format": "YYYYMM",
+    "derived_from": "inspection_period_start",
+    "aliases": ["inspection_period", "period", "check_period", "期间"],
+    "fallback": "000000"
+  },
+  "rules": {
+    "workpaper":  { "prefix": "WB-TR",  "cn": "总底稿",   "seq_width": 2, "scope": "report" },
+    "risk":       { "prefix": "WB-R",   "cn": "风险事项", "seq_width": 3, "scope": "finding" },
+    "evidence":   { "prefix": "WB-EV",  "cn": "证据",     "seq_width": 4, "scope": "evidence" },
+    "gap":        { "prefix": "WB-GAP", "cn": "资料缺口", "seq_width": 3, "scope": "gap" },
+    "law":        { "prefix": "WB-LAW", "cn": "法规",     "seq_width": 3, "scope": "law" },
+    "attachment": { "prefix": "WB-ATT", "cn": "附件",     "seq_width": 3, "scope": "attachment" },
+    "index":      { "prefix": "WB-IDX", "cn": "索引",     "seq_width": 2, "scope": "index" },
+    "rectify":    { "prefix": "WB-RC",  "cn": "整改台账", "seq_width": 3, "scope": "rectify" }
+  },
+  "special_rules": {
+    "law": {
+      "note": "法规编号按税种分段：WB-LAW-<税种代码>-<序号>，不含企业代码与期间（法规是全局对象，非本企业事实）。",
+      "segments": ["prefix", "tax_code", "seq"],
+      "tax_codes": {
+        "VAT": "增值税",
+        "CIT": "企业所得税",
+        "IIT": "个人所得税",
+        "STP": "印花税",
+        "URB": "城市维护建设税",
+        "EDU": "教育费附加",
+        "LED": "地方教育附加",
+        "CUL": "文化事业建设费",
+        "PAY": "社会保险费",
+        "PTY": "房产税/财产行为税",
+        "OTH": "其他"
+      }
+    }
+  },
+  "continuity": {
+    "enforce": true,
+    "allow_gap": false,
+    "allow_duplicate": false,
+    "start_at": 1,
+    "note": "起点=1，逐项 +1，不得跳号不得重号；max(seq) 必须等于总数。"
+  },
+  "page": {
+    "enforce": true,
+    "note": "页码由渲染层按顺序生成，不得手写；页脚须含 页码/总页数/密级/版本号/生成日期。"
+  },
+  "report_layer": {
+    "note": "报告正文引用层的短编号（R/C/F/D/S/L/T）。唯一权威同为本表，由 engine/numbering.py::ReportNumbering 生成，禁止任何模块自行拼接短号。新增类型只在本表加一行。",
+    "connector": "-",
+    "rules": {
+      "risk": {
+        "prefix": "R", "cn": "风险事项", "format": "{prefix}{seq}", "seq_width": 0,
+        "ref_format": "见疑点R{seq}", "maps_to": "risk", "scope": "每个确认的风险事项（疑点）一个号"
+      },
+      "constituent": {
+        "prefix": "C", "cn": "构成要件", "format": "R{rseq}{conn}C{seq}", "seq_width": 0,
+        "ref_format": "见要件R{rseq}-C{seq}", "parent": "risk", "maps_to": "constituent",
+        "scope": "某风险事项下的第 n 条构成要件，编号形如 R1-C2"
+      },
+      "fact": {
+        "prefix": "F", "cn": "事实", "format": "R{rseq}{conn}F{seq:02d}", "seq_width": 2,
+        "ref_format": "见事实R{rseq}-F{seq:02d}", "parent": "risk", "maps_to": "evidence",
+        "scope": "某风险事项下的一条事实（金额/人数/笔数/比例），按疑点分事实子库，编号形如 R1-F01"
+      },
+      "material": {
+        "prefix": "D", "cn": "资料", "format": "{prefix}{conn}{seq:03d}", "seq_width": 3,
+        "ref_format": "见资料D-{seq:03d}", "maps_to": "gap",
+        "scope": "一类需企业提供的资料（可含多个具体材料名），编号形如 D-003"
+      },
+      "statement": {
+        "prefix": "S", "cn": "声明", "format": "{prefix}{conn}{seq:02d}", "seq_width": 2,
+        "ref_format": "见声明S-{seq:02d}",
+        "scope": "全局一次性声明（口径声明/免责声明/复查声明），编号形如 S-01"
+      },
+      "law": {
+        "prefix": "L", "cn": "法规", "format": "{prefix}{conn}{seq:02d}", "seq_width": 2,
+        "ref_format": "见法规L-{seq:02d}", "maps_to": "law",
+        "scope": "一条被引用的法规（含文号与版本状态），编号形如 L-05"
+      },
+      "table": {
+        "prefix": "T", "cn": "表", "format": "{prefix}{conn}{seq:02d}", "seq_width": 2,
+        "ref_format": "见表T-{seq:02d}", "maps_to": "index",
+        "scope": "一张正式表格（不含明细数据表，明细表随所属要件编号），编号形如 T-01"
+      }
+    },
+    "continuity": {
+      "enforce": true,
+      "start_at": 1,
+      "note": "七类短号各自从 1 起连续递增，不得跳号重号；R 的总数必须等于报告确认的风险事项数（本样本 16）。"
+    },
+    "cross_ref": {
+      "note": "去重后的正文禁止整段复述，改用下列引用格式；引用串由本表 ref_format 生成，不得手写。",
+      "examples": ["见疑点R1", "见要件R1-C2", "见事实F-012", "见资料D-003", "见声明S-02", "见法规L-05", "见表T-01"]
+    }
+  }
+}

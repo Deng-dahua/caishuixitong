@@ -2,7 +2,7 @@
 """主体一致性闸门验收：
    场景A 错配（猩猩织光资料 → 无关账套）→ 必须阻断，不出报告
    场景B 匹配（猩猩织光资料 → 猩猩织光账套）→ 不得误杀，正常出报告
-   场景C 混合（深圳海更申报表 + 猩猩织光社保 → 深圳海更账套）→ 只剔除不符者，继续出报告
+   场景C 混合（某传媒企业申报表 + 猩猩织光社保 → 某传媒企业账套）→ 只剔除不符者，继续出报告
 """
 import os, sys, json, sqlite3, glob, shutil
 os.environ["APP_COOKIE_SECURE"] = "0"
@@ -87,7 +87,7 @@ rb = run_scene((9994, "猩猩织光（北京）商贸有限公司", "91110117XXX
 assert rb.get("ok") and not rb.get("subject_mismatch"), "场景B 被误杀！"
 
 # 场景C：混合
-rc = run_scene((9993, "深圳海更数字传媒有限公司", "91440300MA5H824G7M"), "场景C 混合",
+rc = run_scene((9993, "某传媒企业示例公司", "91440300MA5H824G7M"), "场景C 混合",
                HX_FILES + [XX_FILES[0]])
 assert rc.get("ok"), "场景C 不应被阻断（仍有匹配资料）"
 

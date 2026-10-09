@@ -32,6 +32,36 @@ _ART_RE = re.compile(
 _LIB_CACHE: Optional[Dict[Tuple[str, str], str]] = None
 
 
+# ── 「法律依据写在哪个字段」的**唯一权威** ─────────────────────────────────────────
+# ★★ 2026-10-04（疑点10-21 合并批次 ⑭）：同一份法条会被写进**两个字段**——
+#    `policy_ref`（报告呈现侧优先读）与 `law_ref`（门禁/自动修复侧默认写）。
+#    事故（实测）：4 项高风险发现被 `auto_heal` 写进 `policy_ref`，而 M06 判据只读
+#    `law_ref` ⇒ 明明已有《社会保险法》第五十八条，仍被判"高风险发现缺少法律依据"
+#    ⇒ 报告被打成「合规门禁阻断：4 项阻断性违规」。判据与产出不同源＝口径错。
+# ⇒ 凡要判断"这项发现有没有可呈现的法律依据"，一律走本函数，
+#    新增/调整法条字段名只改这里一行。
+_LEGAL_REF_FIELDS: Tuple[str, ...] = ("policy_ref", "law_ref", "legal_ref")
+
+
+def legal_reference_of(finding: Dict) -> str:
+    """取该发现的**可呈现法律依据**（优先级见 `_LEGAL_REF_FIELDS`）；没有则返回 ""。
+
+    判空规则：**非空即视为已具备依据**——不得用"字段值看着不像法条"去反推没有，
+    那会把合法引用（如汇总型说明）误判成缺法条。
+    """
+    if not isinstance(finding, Dict):
+        return ""
+    for f in _LEGAL_REF_FIELDS:
+        v = str((finding.get(f) or "")).strip()
+        if v:
+            return v
+    return ""
+
+
+def has_legal_reference(finding: Dict) -> bool:
+    return bool(legal_reference_of(finding))
+
+
 def norm_law(s: str) -> str:
     """法名归一：去《》（），去掉「中华人民共和国」，去空白。"""
     s = str(s or "").replace("《", "").replace("》", "")
@@ -173,8 +203,17 @@ def resolve_citation(s) -> str:
     return raw
 
 
-def format_legal_basis(items) -> str:
-    """把 legal_basis（list/str）渲染为「…；…」，逐条补全条款号与内容，去重保序。"""
+def format_legal_basis(items, with_version: bool = False) -> str:
+    """把 legal_basis（list/str）渲染为「…；…」，逐条补全条款号与内容，去重保序。
+
+    ★ `with_version=True`（2026-10-07 用户第 3 批 任务4「法条版本化」）：
+      每条引用后附**版本括注**（唯一权威 `engine.legal_version.version_note`）——
+      已登记 ⇒「（2023年修订；国务院令第764号，现行有效）」；**未登记 ⇒
+      「（版本未登记，须核对现行有效文本）」**，绝不默认按现行有效呈现。
+      **同一部法只注一次**（首次出现处），避免同一段里重复刷版本。
+      ★ 版本括注只含"年/文号/状态"语义，**不含金额锚点词与"元"** ⇒
+        不会改变 `tax_impact.extract_amount` 的锚定（改后须做 tax_impact 全量 diff 证明）。
+    """
     if isinstance(items, str):
         items = [items]
     out: List[str] = []
@@ -188,4 +227,20 @@ def format_legal_basis(items) -> str:
             continue
         seen.add(k)
         out.append(t)
+    if with_version and out:
+        try:
+            from engine.legal_version import version_note as _vn
+        except Exception:
+            _vn = None
+        if _vn is not None:
+            _noted: set = set()
+            _out2: List[str] = []
+            for t in out:
+                law, _art, _note, _c = split_citation(t)
+                lk = norm_law(law)
+                if lk and lk not in _noted:
+                    _noted.add(lk)
+                    t = t + _vn(law)
+                _out2.append(t)
+            out = _out2
     return "；".join(out)

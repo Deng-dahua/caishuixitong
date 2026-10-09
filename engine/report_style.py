@@ -15,7 +15,7 @@
      落地：`static/js/tax-doc-analysis.js`（疑点 meta 三段自然句）。
 
   S3 有分寸、不越界
-     —— 写"涉嫌 / 可能性较高 / 待核实"，不断言"已认定违法"（定性护栏另有唯一权威 `text_guardrails`）。
+     —— 写"涉嫌 / 可能性较高 / 尚需核实"，不断言"已认定违法"（定性护栏另有唯一权威 `text_guardrails`）。
 
   S4 给出可行动的出口
      —— 每条风险都要告诉企业"补什么资料即可排除 / 需要提供什么"（出口由 `audit_doctrine.attach_three_piece` 保证）。
@@ -44,7 +44,7 @@ EXPRESSION_PRINCIPLES: List[Dict[str, str]] = [
      "rule": "不用「字段：值｜字段：值」罗列，写成完整自然句。",
      "landing": "static/js/tax-doc-analysis.js（疑点 meta 三段自然句）"},
     {"key": "S3", "name": "有分寸、不越界",
-     "rule": "写涉嫌 / 可能性较高 / 待核实，不断言已认定违法。",
+     "rule": "写涉嫌 / 可能性较高 / 尚需核实，不断言已认定违法。",
      "landing": "engine/text_guardrails.py（定性护栏，唯一权威）"},
     {"key": "S4", "name": "给出可行动的出口",
      "rule": "每条风险都告诉企业补什么资料即可排除 / 需要提供什么。",

@@ -63,7 +63,7 @@ def test_ad_industry_core_cost_not_caught_by_generic_expense():
     assert r["confidence"] == ac.CONF_HIGH
 
 
-def test_海更型广告业成本费用分离():
+def test_某企业型广告业成本费用分离():
     lines = [{"goods": g} for g in (
         "*广告服务*广告发布费", "*现代服务*策划服务费", "*信息技术服务*信息服务费",
         "*现代服务*会展服务", "*生活服务*餐饮", "住宿费", "办公用品", "*物流辅助服务*运输费")]

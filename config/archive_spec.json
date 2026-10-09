@@ -1,0 +1,263 @@
+{
+  "schema": "caishuixitong.archive_spec/1",
+  "version": "1.0.0",
+  "updated": "2026-10-08",
+  "note": "归档规范唯一权威（WB-TRISK-2026-001 §3.3）。定义底稿编号、页眉页脚、七类索引、证据号/附件号、复核签署、审计轨迹、归档导出包结构。渲染层与导出层均须以本表为准，不得各自硬编码。",
+  "workpaper": {
+    "number_rule": "workpaper",
+    "title_format": "{company_name} 税务风险扫描工作底稿",
+    "versions": {
+      "draft": "草稿",
+      "reviewed": "复核中",
+      "final": "正式版"
+    },
+    "file_name_format": "{workpaper_no}_{company_name}_{period}_{edition}",
+    "top_level": [
+      "workpaper",
+      "risk",
+      "evidence",
+      "gap",
+      "law",
+      "attachment",
+      "index",
+      "rectify"
+    ]
+  },
+  "header": {
+    "required": true,
+    "fields": [
+      "company_name",
+      "unified_social_credit_code",
+      "inspection_period",
+      "workpaper_no"
+    ],
+    "render": "{company_name}｜统一社会信用代码：{unified_social_credit_code}｜检查期间：{inspection_period}｜底稿编号：{workpaper_no}",
+    "note": "每页页眉；字段缺失时以『未提供』占位并在门禁记 ERROR，不得留空。"
+  },
+  "footer": {
+    "required": true,
+    "fields": [
+      "page_no",
+      "total_pages",
+      "security_level",
+      "version",
+      "generated_date"
+    ],
+    "render": "第 {page_no} 页 / 共 {total_pages} 页｜密级：{security_level}｜版本：{version}｜生成日期：{generated_date}",
+    "security_levels": [
+      "内部",
+      "商业秘密",
+      "机密"
+    ],
+    "default_security_level": "商业秘密"
+  },
+  "indexes": [
+    {
+      "id": "risk",
+      "cn": "风险索引",
+      "rule": "risk",
+      "required": true,
+      "keys": [
+        "risk_no",
+        "title",
+        "risk_level",
+        "conclusion_grade",
+        "closure"
+      ]
+    },
+    {
+      "id": "evidence",
+      "cn": "证据索引",
+      "rule": "evidence",
+      "required": true,
+      "keys": [
+        "evidence_no",
+        "risk_no",
+        "role",
+        "name",
+        "status",
+        "source_file",
+        "sha256"
+      ]
+    },
+    {
+      "id": "gap",
+      "cn": "资料缺口索引",
+      "rule": "gap",
+      "required": true,
+      "keys": [
+        "gap_no",
+        "material_name",
+        "impact",
+        "remedy",
+        "alternative"
+      ]
+    },
+    {
+      "id": "law",
+      "cn": "法规索引",
+      "rule": "law",
+      "required": true,
+      "keys": [
+        "law_no",
+        "tax_code",
+        "title",
+        "clause",
+        "version_status"
+      ]
+    },
+    {
+      "id": "amount",
+      "cn": "金额索引",
+      "rule": null,
+      "required": true,
+      "keys": [
+        "fact_id",
+        "label",
+        "value",
+        "scope",
+        "tax_inclusive",
+        "period",
+        "source",
+        "derivation"
+      ]
+    },
+    {
+      "id": "attachment",
+      "cn": "附件索引",
+      "rule": "attachment",
+      "required": true,
+      "keys": [
+        "attachment_no",
+        "name",
+        "pages",
+        "source_file",
+        "sha256"
+      ]
+    },
+    {
+      "id": "rectify",
+      "cn": "整改台账索引",
+      "rule": "rectify",
+      "required": true,
+      "keys": [
+        "rectify_no",
+        "risk_no",
+        "action",
+        "owner",
+        "due",
+        "deliverable",
+        "status"
+      ]
+    }
+  ],
+  "signature_block": {
+    "required": true,
+    "roles": [
+      {
+        "key": "prepared_by",
+        "cn": "编制人",
+        "date_key": "prepared_date"
+      },
+      {
+        "key": "reviewed_by",
+        "cn": "复核人",
+        "date_key": "reviewed_date"
+      },
+      {
+        "key": "approved_by",
+        "cn": "审批人",
+        "date_key": "approved_date"
+      }
+    ],
+    "extra_fields": [
+      "review_opinion",
+      "revision_log",
+      "version"
+    ],
+    "note": "三签 + 复核意见 + 修改记录 + 版本号。**签署角色名称唯一权威 = config/report_compliance.json#signatures**（本表只登记归档层结构，不另立角色名）；门禁 C7 按 roles[].cn 校验栏位存在。"
+  },
+  "audit_trail": {
+    "required": true,
+    "append_only": true,
+    "entry_fields": [
+      "at",
+      "operator",
+      "action",
+      "target",
+      "before",
+      "after",
+      "reason",
+      "source_data_version",
+      "rule_version",
+      "template_version",
+      "skill_version"
+    ],
+    "note": "『谁、何时、改了什么、为什么改』四要素缺一不可；operator 必须是可识别主体，不得用角色名顶替。"
+  },
+  "export_package": {
+    "required": true,
+    "members": [
+      {
+        "id": "pdf",
+        "cn": "PDF 正式版",
+        "ext": ".pdf",
+        "required": true
+      },
+      {
+        "id": "word",
+        "cn": "Word 可编辑版",
+        "ext": ".docx",
+        "required": true
+      },
+      {
+        "id": "excel",
+        "cn": "Excel 数据包",
+        "ext": ".xlsx",
+        "required": true
+      },
+      {
+        "id": "evidence",
+        "cn": "证据附件包",
+        "ext": ".zip",
+        "required": true
+      },
+      {
+        "id": "index_file",
+        "cn": "索引文件",
+        "ext": ".json",
+        "required": true
+      },
+      {
+        "id": "version_diff",
+        "cn": "版本对比文件",
+        "ext": ".md",
+        "required": true
+      }
+    ],
+    "naming_format": "{workpaper_no}_package_{version}",
+    "manifest_field": "manifest.json"
+  },
+  "render_layer": {
+    "note": "★HTML→PDF/Word 导出适配（本轮新发现的硬伤来源）。导出物必须做降级处理，不得把界面交互元素带出。",
+    "forbid_in_export": [
+      "下载 CSV",
+      "点击展开",
+      "导出",
+      "复制",
+      "展开",
+      "127.0.0.1",
+      "localhost"
+    ],
+    "toc": {
+      "source": "document_headings",
+      "note": "目录必须由正文标题生成（单一来源），禁止另写一份目录文案。",
+      "require_page_no": true
+    },
+    "empty_table_policy": "折叠面板在导出时要么展开为完整表格，要么整段省略；不得输出表头为空或全空行的表格。",
+    "page_css": {
+      "require_at_page": true,
+      "require_footer_counter": true
+    }
+  }
+}

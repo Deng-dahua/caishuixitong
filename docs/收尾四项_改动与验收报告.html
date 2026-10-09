@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>收尾四项 · 改动与验收报告</title>
+<style>
+  :root{--ink:#1f2937;--ink-2:#475569;--ink-3:#64748b;--line:#e2e8f0;--bg:#fff;--bg-2:#f8fafc;--bg-3:#f1f5f9;
+        --red:#b91c1c;--red-bg:#fef2f2;--amber:#b45309;--amber-bg:#fffbeb;--green:#15803d;--green-bg:#f0fdf4;
+        --blue:#1e40af;--blue-bg:#eff6ff;}
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 36px 64px;background:var(--bg);color:var(--ink);
+       font:15px/1.85 -apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:25px;margin:0 0 6px}
+  .sub{color:var(--ink-3);font-size:13px;margin-bottom:24px}
+  h2{font-size:19px;margin:34px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  h3{font-size:15.5px;margin:20px 0 8px}
+  code{background:var(--bg-3);padding:1px 6px;border-radius:4px;font-size:13px;font-family:ui-monospace,Consolas,monospace}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--bg-2);font-weight:600;white-space:nowrap}
+  .box{border-left:3px solid var(--blue);background:var(--blue-bg);padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0}
+  .box.warn{border-color:#f59e0b;background:var(--amber-bg)}
+  .box.good{border-color:#22c55e;background:var(--green-bg)}
+  .box.bad{border-color:#ef4444;background:var(--red-bg)}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0}
+  .card{flex:1 1 200px;border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--bg-2)}
+  .card .n{font-size:24px;font-weight:700;line-height:1.2}
+  .card .t{font-size:12.5px;color:var(--ink-3);margin-top:4px}
+  .ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--amber)}
+  ul,ol{margin:8px 0 8px 22px;padding:0} li{margin:5px 0}
+  .foot{margin-top:42px;padding-top:14px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>收尾四项 · 改动与验收报告</h1>
+<div class="sub">
+2026-10-08 · 对应上一条消息的 4 项遗留：①pytest.ini ②inspection_overview 分级建议 ③summary 计数口径 ④重跑分析 + 重启服务<br>
+所有结论均给出**可复现命令与实测输出**；新增/修改的闸门均已做**反向验证**
+</div>
+
+<div class="kpi">
+  <div class="card"><div class="n ok">1542 / 4 skipped</div><div class="t">全量回归（166 subtests 通过，零回归）</div></div>
+  <div class="card"><div class="n ok">26 → 16</div><div class="t">summary 待核数源头修正，且「待核 = 已确认 − 已核定」成立</div></div>
+  <div class="card"><div class="n ok">1 → 0</div><div class="t">分级分类处理建议：从「任何出口都不显示」→ 真正渲染进第四章</div></div>
+  <div class="card"><div class="n ok">PID 24020</div><div class="t">服务已重启，healthz 200，已恢复新缓存</div></div>
+</div>
+
+<h2>① 加 <code>pytest.ini</code>：裸跑 <code>pytest</code> 不再被回收站里的历史测试文件打断</h2>
+<div class="box bad">
+<b>问题</b>：仓库原先**没有** pytest 配置 ⇒ 裸跑 <code>pytest</code> 会递归收集 <code>data/trash/</code>（项目回收站）
+里的历史 <code>*_test.py</code>，触发 <code>import file mismatch</code>，**收集期 5 errors 直接中断整轮回归**。
+</div>
+<table>
+<thead><tr><th>项</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>改动</td><td>新增 <code>pytest.ini</code>：<code>testpaths = tests</code> + <code>norecursedirs = .* _darcs build CVS dist node_modules venv .venv data baseline scripts docs artifacts</code></td></tr>
+<tr><td>为何列出默认项</td><td><code>norecursedirs</code> 会**覆盖** pytest 默认值，故把默认项（含 <code>.*</code>）一并列出</td></tr>
+<tr><td>影响面核查</td><td>仓库内另散落 <code>scripts/test_*.py</code> 等；项目标准回归一直是 <code>pytest tests/</code>（基线 1542），
+故 <code>testpaths = tests</code> 与既有习惯**等价**，不含漏统计</td></tr>
+<tr><td>实测</td><td>裸跑 <code>pytest --collect-only -q</code> → <b>1546 tests collected, 0 errors</b>（1542 passed + 4 skipped）</td></tr>
+</tbody>
+</table>
+
+<h2>② 「监管态度与后续处理建议」：真相不是"删重复"，而是"算了不显示"</h2>
+<div class="box warn">
+<b>先验证再动手（关键）</b>：用户原意是第一章那段与后章重复。实测全 payload 发现该内容存在 <b>三处</b>：
+<code>overall_conclusion.paragraphs[13]</code>（第一章，已删）／<code>inspection_overview.paragraphs[6]</code>（七章）／
+<code>inspection_overview.posture[]</code>（结构化 6 条，**唯一权威**）。<br>
+但 —— <b><code>inspection_overview</code> 在两条链路都不渲染</b>：前端整章不渲染它，离线导出只取「八、九」两节（附录）。
+⇒ 第一章那段"分级分类"其实是**全报告唯一可见副本**；照字面删掉，建议会**彻底消失**。
+</div>
+<table>
+<thead><tr><th>处置</th><th>说明</th></tr></thead>
+<tbody>
+<tr><td>保留结构化权威</td><td><code>inspection_overview.posture</code>（按风险由重到轻已排好，6 条）作为唯一来源</td></tr>
+<tr><td><b>真正渲染它</b></td><td>前端第四章「整改验收与下一轮复查标准」新增「分级分类处理要求（按风险由重到轻）」列表，直接消费 <code>posture</code>（**不再复制 <code>paragraphs</code> 文本，避免又一处副本**）</td></tr>
+<tr><td>第一章指针改准确</td><td>由「见第四部分整改验收与复查标准」→「见第四部分…，其中含按风险由重到轻的分级分类处理要求」</td></tr>
+<tr><td>闸门口径细化</td><td><code>check_report_chapter_integrity</code>：**禁**整章渲染 <code>inspection_overview</code> 的 paragraphs（防"总述并排贴回"），**要求**渲染其独有字段 <code>posture</code>（防"算了不显示"复发）</td></tr>
+<tr><td>同步资源版本</td><td>已跑 <code>tools/sync_asset_versions.py</code>：<code>tax-doc-analysis.js</code> <code>f25b49852c → e66bf1dcf1</code>，<code>static/index.html</code> 已写回</td></tr>
+</tbody>
+</table>
+
+<div class="box bad">
+<b>过程中踩到并修掉的根因（闸门"自己判自己"）</b>：对 <code>static/js</code> 做文本判据时，
+原先用的 <code>_strip_comments_keep_lines</code> 基于 **Python <code>tokenize</code>，只认 Python 注释**，对 JS 无效
+⇒ 判据被**我自己的 JS 注释**判红（注释里写了字段名）。<br>
+反向也漏：用**整份 js（含注释）**做"必须存在"断言时，"把渲染代码删掉、注释里还留着字段名"照样通过（实测漏报）。
+<b>修法（根因）</b>：新增 <code>_js_code_only(src)</code>（剥 <code>//</code> 与 <code>/*…*/</code>、保留行结构），
+**"必须不存在"与"必须存在"两类判据一律先过它**。
+</div>
+
+<h2>③ summary 计数 26≠16：根因是"只补了一个字段"</h2>
+<div class="box bad">
+<b>根因（实测定位）</b>：<code>_build_summary()</code> 在**列表定稿之前**执行；之后两处补丁
+（并入独立风险事项后 / 「计数定稿」块）**各自只同步了 <code>confirmed_problem_count</code>**，
+把**同源的兄弟字段</b> <code>pending_problem_count</code> 漏掉 ⇒ 报告出现「已确认 16 项 / 待核 26 项」，
+而 26 也不是任何真实列表的长度。
+</div>
+<table>
+<thead><tr><th>改动</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>新增唯一权威</td><td><code>enterprise_report._resync_summary_counts(out)</code>：按**定稿列表**重算
+<code>confirmed / verified / pending(=已确认−已核定) / further / completed</code> —— 此后**新增任何列表派生计数只加在这里**</td></tr>
+<tr><td>两处补丁改走权威</td><td>原「只改 <code>confirmed_problem_count</code>」的两处，一律改为调用该函数（并打印自证日志）</td></tr>
+<tr><td>撤掉渲染层第二个口径</td><td><code>report_pipeline</code> 原先"弃用 pending、本层自算 <code>confirmed−verified</code>"⇒ 改回**直接取权威字段**</td></tr>
+<tr><td>新增闸门</td><td><code>check_summary_count_consistency()</code>：**行为 + 形态双锁** ——
+①喂一份被写歪的 summary，必须被校正；②除权威自身外，**全库不得再有第二处手改 summary 计数**；
+③渲染层不得自算形成第二口径</td></tr>
+</tbody>
+</table>
+<div class="box good">
+<b>端到端证据（进程内真跑一键分析，与按钮同一函数）：</b><br>
+<code>[计数定稿] summary 重算：已确认 16 / 已核定 0 / 待核 16 / 受阻 6</code><br>
+<code>[重跑] summary: 已确认=16 已核定=0 待核=16 受阻=6</code>；<br>
+<code>[重跑] 冲突检查：confirmed 与 len(confirmed_problems) 一致=True；待核==已确认−已核定=True</code>
+</div>
+
+<h2>④ 重跑一键分析并重启服务</h2>
+<table>
+<thead><tr><th>步骤</th><th>实测</th></tr></thead>
+<tbody>
+<tr><td>备份旧缓存</td><td><code>baseline/_bak/last_analysis_cache.bak_before_rerun_20261008.json</code>（33 MB）</td></tr>
+<tr><td>进程内重跑</td><td><code>scripts/_rerun_company1_analysis.py 1</code> → <b>用时 1062.8s，ok=True</b>（与按钮同一条 <code>main._execute_tax_risk_analysis</code>）</td></tr>
+<tr><td>新第一章</td><td><b>9 段 / 1495 字</b>（四段式：（一）性质与资料条件 →（二）整体结论 →（三）主线抽象 →（四）下一步动作）</td></tr>
+<tr><td>缓存已更新</td><td><code>data/cache/last_analysis_cache.json</code> 16:00:47（26.0 MB）</td></tr>
+<tr><td>停旧启新</td><td>旧进程 PID 21632 已终止 → 新进程 <b>PID 24020</b> 监听 127.0.0.1:8001</td></tr>
+<tr><td>启动自证</td><td><code>[STARTUP] 恢复缓存: 1条分析记录</code>／<code>恢复分析历史: 5条</code>／<code>28维·调度中枢21模块·质量保障5层22组件</code></td></tr>
+<tr><td>探活</td><td><code>/healthz</code> → <b>HTTP 200 {"ok":true}</b>；<code>/</code> → 302（跳登录，正常）</td></tr>
+<tr><td>前端脚本版本</td><td><code>static/index.html</code> 已登记 <code>tax-doc-analysis.js?v=e66bf1dcf1</code>（新）</td></tr>
+</tbody>
+</table>
+
+<h2>⑤ 前端渲染取证（真实产物 + 真实前端函数）</h2>
+<table>
+<thead><tr><th>检查</th><th>结果</th></tr></thead>
+<tbody>
+<tr><td>报告区 HTML</td><td>322,247 字符；渲染异常：无</td></tr>
+<tr><td>五章齐备</td><td class="ok">✓ 一、总述与总体结论　✓ 二、具体问题　✓ 三、覆盖范围声明　✓ 四、整改验收与复查标准　✓ 五、报告性质与使用说明</td></tr>
+<tr><td>第一章取值</td><td><code>oc.paragraphs</code> 渲染（<b>9 段 / 1495 字</b>）</td></tr>
+<tr><td>新增：分级分类处理要求</td><td class="ok">出现 1 处（含"重点关注：对 2 项高风险事项…"等条目）</td></tr>
+<tr><td>旧第一章四类内容</td><td class="ok">监管态度与后续处理建议 0 ／ 事项—税种关联次数 0 ／ 按风险性质归纳 0 ／ 检查范围与结果概览 0</td></tr>
+<tr><td>渲染缺陷</td><td class="ok">无（无 undefined / NaN / 字段名泄漏）</td></tr>
+</tbody>
+</table>
+
+<h2>⑥ 验收汇总（闸门 + 反向验证）</h2>
+<table>
+<thead><tr><th>闸门 / 用例</th><th>正常态</th><th>反向验证（故意破坏 → 必须报红）</th></tr></thead>
+<tbody>
+<tr><td><code>check_summary_count_consistency</code>（新）</td><td class="ok">0 条</td><td class="ok">权威失效 → 5 条；渲染层自算 → 1 条；还原 → 0</td></tr>
+<tr><td><code>check_report_chapter_integrity</code>（口径细化）</td><td class="ok">0 条</td><td class="ok">去掉 posture 渲染 → 1 条；改回整章 paragraphs → 2 条；还原 → 0</td></tr>
+<tr><td><code>check_overall_conclusion_no_dup</code> / <code>check_conclusion_and_suspicion_order</code>（上一轮改）</td><td class="ok">0 条</td><td class="ok">7/7 变异全部报红</td></tr>
+<tr><td>D1 文档数字一致性</td><td class="ok">0 条</td><td>—（两次行号位移已同步：10651→10673→<b>10804</b>；11200→11222→<b>11353</b>；11088→11110→<b>11241</b>；11203→11225→<b>11356</b>）</td></tr>
+<tr><td>全量回归 <code>pytest tests/ -q</code></td><td class="ok" colspan="2">1542 passed / 4 skipped / 166 subtests（301.98s）</td></tr>
+</tbody>
+</table>
+
+<div class="box warn">
+<b>过程中发现并一并修正的一处"用例腐化"</b>：<code>tests/test_doc_consistency_skills.py</code> 两处反向验证用例
+把**行号写死**成变异锚点（<code>replace("第 **11200** 行", …)</code>）⇒ 闸门一行号位移，用例就自报"变异锚点未命中"。
+已改为 <code>_gate_call_line_authority()</code> **动态现算**（本项目铁律：闸门不得硬编码具体对象做样检）。
+</div>
+
+<h2>⑦ 仍需你决定 / 未做</h2>
+<ul>
+<li><b>离线导出仍只渲染 <code>inspection_overview</code> 的八、九两节</b>：分级建议现已在前端第四章可见；
+若你要求离线稿也带分级建议，需把「七」纳入 <code>scripts/_render_report_html.py</code> 的 <code>_IV_SECTIONS</code>（会改动离线章节结构，属新范围）。</li>
+<li><b>数据侧遗留</b>：引擎层 <code>all_findings</code>（153 项）与报告层 16 项的口径差异为设计如此（引擎层是扫描全集），未动。</li>
+<li><b>本批新增/改动的文件</b>（备查）：<code>pytest.ini</code>、<code>engine/enterprise_report.py</code>（<code>_resync_summary_counts</code> + 两处调用）、
+<code>engine/overall_conclusion.py</code>（四段式 + 指针）、<code>engine/report_pipeline.py</code>（撤自算）、
+<code>static/js/tax-doc-analysis.js</code>（posture 渲染）、<code>static/index.html</code>（资源版本）、
+<code>tools/audit_consistency.py</code>（2 处闸门 + <code>_js_code_only</code>）、
+<code>tests/test_doc_consistency_skills.py</code>（动态锚点）、<code>docs/第01批…</code> 4 份（行号）、<code>scripts/_rerun_company1_analysis.py</code>（重跑工具）。</li>
+</ul>
+
+<div class="foot">
+生成时间：2026-10-08 16:0x · 服务：127.0.0.1:8001（PID 24020）· 回归：<code>pytest tests/ -q</code>（裸跑 <code>pytest</code> 亦等价）
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,675 @@
+{
+  "schema": 1,
+  "version": "2026.10",
+  "updated": "2026-10-07",
+  "note": "★ 行业参数库（任务1「多行业通用能力配置」的唯一权威）。设计口径：**数值不在这里复制**——每个行业用 `benchmark_ref` 指向既有基准库（static/industry_data.json）的键，本文件只登记『该行业用哪套基准』与『这套基准的来源/版本/期间/口径/适用范围』。这样既满足『行业基准库管理』，又不会产生第三套行业数值。**新增行业只需在 industries 里加一条数据，不改任何代码**（engine/industry_params.py 是唯一读取点）。；2026-10-08 阶段8 扩充至 10 个行业包（批发零售/物流运输/医药健康/教育培训）",
+  "benchmark_meta_default": {
+    "source": "系统内置行业统计通用参考值（非税务机关官方口径）",
+    "basis": "公开行业统计口径 + 系统实测校准区间",
+    "period": "2025年度",
+    "scope": "一般纳税人工商企业；区间为行业常见区间，非准入标准",
+    "caveat": "仅作线索参照，不得作为定性依据；偏离行业区间不等于违规"
+  },
+  "industries": [
+    {
+      "industry_id": "advertising_media",
+      "label": "广告传媒",
+      "subtypes": [
+        "广告",
+        "传媒",
+        "文化传播",
+        "营销策划",
+        "公关",
+        "影视",
+        "出版",
+        "会展",
+        "设计"
+      ],
+      "risk_families": [
+        "revenue_and_bank",
+        "funds_and_mixing",
+        "related_party_overlap",
+        "stamp_duty_items"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "期间费用率",
+        "税负率",
+        "人均营收(万)",
+        "进销比"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "服务型行业，进销比不具解释力，仅作观察"
+      },
+      "report_template": "service_light",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 50000
+      },
+      "material_priority": [
+        "合同",
+        "销项发票",
+        "银行流水",
+        "序时账（凭证）",
+        "科目余额表",
+        "财务报表"
+      ],
+      "level_adjustments": [
+        {
+          "adjust_id": "ADV-EXPENSE-RATIO",
+          "applies_to": {
+            "indicator": "期间费用率"
+          },
+          "trigger": {
+            "kind": "above",
+            "bound": "high"
+          },
+          "action": "floor",
+          "to_level": "中风险",
+          "reason": "服务型行业费用是主要支出载体，期间费用率高于同业上限时，费用真实性的证据要求提高"
+        }
+      ],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "广告传媒"
+        }
+      ]
+    },
+    {
+      "industry_id": "manufacturing",
+      "label": "制造业",
+      "subtypes": [
+        "制造",
+        "生产",
+        "加工",
+        "组装",
+        "机械制造",
+        "电子制造",
+        "设备制造",
+        "冶炼",
+        "铸造"
+      ],
+      "risk_families": [
+        "input_and_declaration",
+        "related_party_overlap",
+        "stamp_duty_items",
+        "payroll_tri_source"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "进销比",
+        "税负率",
+        "人均营收(万)",
+        "期间费用率"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "制造业按大类基准；细分行业可在 benchmarks 表内指向更细的键"
+      },
+      "report_template": "manufacturing",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 100000
+      },
+      "material_priority": [
+        "购销存台账",
+        "进项发票",
+        "科目余额表",
+        "序时账（凭证）",
+        "销项发票",
+        "银行流水"
+      ],
+      "level_adjustments": [
+        {
+          "adjust_id": "MFG-IO-RATIO",
+          "applies_to": {
+            "risk_family": "input_and_declaration",
+            "indicator": "进销比"
+          },
+          "trigger": {
+            "kind": "below",
+            "bound": "low"
+          },
+          "action": "floor",
+          "to_level": "中风险",
+          "reason": "制造业投入产出可勾稽，进销比低于同业下限时，投入产出证据要求提高"
+        }
+      ],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks_coarse",
+          "key": "制造业"
+        },
+        {
+          "table": "benchmarks",
+          "key": "机械制造"
+        }
+      ]
+    },
+    {
+      "industry_id": "ecommerce",
+      "label": "电子商务",
+      "subtypes": [
+        "电商",
+        "电子商务",
+        "网络销售",
+        "在线零售",
+        "平台销售",
+        "直播电商"
+      ],
+      "risk_families": [
+        "revenue_and_bank",
+        "stamp_duty_items",
+        "input_and_declaration",
+        "funds_and_mixing"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "进销比",
+        "税负率",
+        "人均营收(万)"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "零售业态，退货与平台结算导致收入确认口径差异大"
+      },
+      "report_template": "retail",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 50000
+      },
+      "material_priority": [
+        "销项发票",
+        "银行流水",
+        "进项发票",
+        "科目余额表",
+        "财务报表",
+        "合同"
+      ],
+      "level_adjustments": [],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "电子商务"
+        }
+      ]
+    },
+    {
+      "industry_id": "construction",
+      "label": "建筑安装",
+      "subtypes": [
+        "建筑",
+        "施工",
+        "安装",
+        "装饰装修",
+        "市政工程",
+        "工程"
+      ],
+      "risk_families": [
+        "stamp_duty_items",
+        "input_and_declaration",
+        "revenue_and_bank",
+        "payroll_tri_source"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "进销比",
+        "税负率",
+        "期间费用率"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "跨期项目多，收入确认与预收/预付款账龄是重点"
+      },
+      "report_template": "project_based",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 200000
+      },
+      "material_priority": [
+        "合同",
+        "序时账（凭证）",
+        "进项发票",
+        "银行流水",
+        "科目余额表",
+        "财务报表"
+      ],
+      "level_adjustments": [
+        {
+          "adjust_id": "CON-BIG-PAY",
+          "applies_to": {
+            "risk_family": "funds_and_mixing"
+          },
+          "trigger": {
+            "kind": "above",
+            "bound": "high",
+            "metric": "毛利率"
+          },
+          "action": "cap",
+          "to_level": "高风险",
+          "reason": "工程款单笔金额大、往来频繁，大额往来缺少业务佐证时证据缺口更严重"
+        }
+      ],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "建筑工程"
+        }
+      ]
+    },
+    {
+      "industry_id": "catering",
+      "label": "餐饮",
+      "subtypes": [
+        "餐饮",
+        "饭店",
+        "餐厅",
+        "快餐",
+        "饮品",
+        "住宿餐饮",
+        "食堂"
+      ],
+      "risk_families": [
+        "revenue_and_bank",
+        "payroll_tri_source",
+        "stamp_duty_items"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "期间费用率",
+        "税负率",
+        "人均营收(万)"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "现金/散客占比高，收入完整性依赖银行与扫码收款记录"
+      },
+      "report_template": "retail",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 30000
+      },
+      "material_priority": [
+        "银行流水",
+        "销项发票",
+        "工资表",
+        "社保缴费明细",
+        "科目余额表",
+        "序时账（凭证）"
+      ],
+      "level_adjustments": [],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "餐饮服务"
+        }
+      ]
+    },
+    {
+      "industry_id": "tech_service",
+      "label": "科技服务",
+      "subtypes": [
+        "科技",
+        "软件",
+        "信息技术",
+        "互联网",
+        "研发",
+        "技术服务",
+        "检测",
+        "咨询"
+      ],
+      "risk_families": [
+        "revenue_and_bank",
+        "payroll_tri_source",
+        "related_party_overlap",
+        "input_and_declaration"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "期间费用率",
+        "税负率",
+        "人均营收(万)"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "人力成本占比高，人均营收与薪酬三源是主要抓手"
+      },
+      "report_template": "service_light",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 50000
+      },
+      "material_priority": [
+        "工资表",
+        "社保缴费明细",
+        "销项发票",
+        "合同",
+        "序时账（凭证）",
+        "财务报表"
+      ],
+      "level_adjustments": [
+        {
+          "adjust_id": "TECH-PAYROLL",
+          "applies_to": {
+            "risk_family": "payroll_tri_source"
+          },
+          "trigger": {
+            "kind": "present"
+          },
+          "action": "floor",
+          "to_level": "中风险",
+          "reason": "科技服务业以人力为主要成本，用工三源不一致直接影响成本真实性"
+        }
+      ],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "信息技术"
+        }
+      ]
+    },
+    {
+      "industry_id": "wholesale_retail",
+      "label": "批发零售",
+      "subtypes": [
+        "批发",
+        "零售",
+        "商贸",
+        "商超",
+        "超市",
+        "连锁",
+        "经销",
+        "分销",
+        "便利店"
+      ],
+      "risk_families": [
+        "input_and_declaration",
+        "revenue_and_bank",
+        "stamp_duty_items",
+        "funds_and_mixing"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "进销比",
+        "税负率",
+        "人均营收(万)"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "购销为主，进销比与存货周转是主要抓手；无实物库存的电商/平台业务另见电子商务"
+      },
+      "report_template": "retail",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 50000
+      },
+      "material_priority": [
+        "进项发票",
+        "销项发票",
+        "科目余额表",
+        "序时账（凭证）",
+        "银行流水",
+        "财务报表"
+      ],
+      "level_adjustments": [
+        {
+          "adjust_id": "WR-IO-RATIO",
+          "applies_to": {
+            "risk_family": "input_and_declaration",
+            "indicator": "进销比"
+          },
+          "trigger": {
+            "kind": "below",
+            "bound": "low"
+          },
+          "action": "floor",
+          "to_level": "中风险",
+          "reason": "购销业务可勾稽，进销比低于同业下限时，购销匹配证据要求提高"
+        }
+      ],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "商贸批发"
+        },
+        {
+          "table": "benchmarks",
+          "key": "商贸零售"
+        }
+      ]
+    },
+    {
+      "industry_id": "logistics",
+      "label": "物流运输",
+      "subtypes": [
+        "物流",
+        "运输",
+        "货运",
+        "快递",
+        "仓储",
+        "配送",
+        "供应链",
+        "货代",
+        "托运"
+      ],
+      "risk_families": [
+        "revenue_and_bank",
+        "input_and_declaration",
+        "payroll_tri_source",
+        "stamp_duty_items"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "期间费用率",
+        "税负率",
+        "人均营收(万)",
+        "进销比"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "运输单据与承运合同是业务真实性的核心凭证；个体司机/挂靠运力导致用工与发票口径易错配"
+      },
+      "report_template": "service_light",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 50000
+      },
+      "material_priority": [
+        "合同",
+        "销项发票",
+        "银行流水",
+        "进项发票",
+        "工资表",
+        "序时账（凭证）"
+      ],
+      "level_adjustments": [
+        {
+          "adjust_id": "LOG-CARRIER",
+          "applies_to": {
+            "risk_family": "input_and_declaration"
+          },
+          "trigger": {
+            "kind": "present"
+          },
+          "action": "floor",
+          "to_level": "中风险",
+          "reason": "运费支出的承运方资质与实际承运人不一致时，成本真实性证据要求提高"
+        }
+      ],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "物流运输"
+        },
+        {
+          "table": "benchmarks",
+          "key": "物流仓储"
+        }
+      ]
+    },
+    {
+      "industry_id": "pharma",
+      "label": "医药健康",
+      "subtypes": [
+        "医药",
+        "药品",
+        "医疗器械",
+        "生物医药",
+        "医疗",
+        "诊所",
+        "健康",
+        "生物制品",
+        "制药"
+      ],
+      "risk_families": [
+        "input_and_declaration",
+        "revenue_and_bank",
+        "related_party_overlap",
+        "stamp_duty_items",
+        "funds_and_mixing"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "期间费用率",
+        "税负率",
+        "进销比",
+        "人均营收(万)"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "推广费/学术会议费占比高、两票制下票流与货流分离，是费用真实性与虚开风险的高发区"
+      },
+      "report_template": "manufacturing",
+      "materiality": {
+        "level": "strict",
+        "amount_floor": 20000
+      },
+      "material_priority": [
+        "合同",
+        "进项发票",
+        "销项发票",
+        "银行流水",
+        "科目余额表",
+        "序时账（凭证）"
+      ],
+      "level_adjustments": [
+        {
+          "adjust_id": "PHA-PROMO",
+          "applies_to": {
+            "risk_family": "input_and_declaration",
+            "indicator": "期间费用率"
+          },
+          "trigger": {
+            "kind": "above",
+            "bound": "high"
+          },
+          "action": "floor",
+          "to_level": "高风险",
+          "reason": "推广/会议费在医药业是虚开高发区，期间费用率高于同业上限时须提高证据要求（不直接定性，须补证据）"
+        },
+        {
+          "adjust_id": "PHA-CHAIN",
+          "applies_to": {
+            "risk_family": "related_party_overlap"
+          },
+          "trigger": {
+            "kind": "present"
+          },
+          "action": "floor",
+          "to_level": "中风险",
+          "reason": "两票制下经销/推广主体间关联交易常见，须核对定价与资金回流"
+        }
+      ],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "医药健康"
+        },
+        {
+          "table": "benchmarks",
+          "key": "医疗器械"
+        }
+      ]
+    },
+    {
+      "industry_id": "education",
+      "label": "教育培训",
+      "subtypes": [
+        "教育",
+        "培训",
+        "教学",
+        "辅导",
+        "职业技能",
+        "教育科技",
+        "在线教育",
+        "驾校"
+      ],
+      "risk_families": [
+        "revenue_and_bank",
+        "payroll_tri_source",
+        "stamp_duty_items",
+        "funds_and_mixing"
+      ],
+      "risk_indicators": [
+        "毛利率",
+        "税负率",
+        "人均营收(万)"
+      ],
+      "benchmark_meta": {
+        "period": "2025年度",
+        "note": "预收学费形成合同负债，收入确认跨期；大量兼职讲师导致个税与用工三源易不一致"
+      },
+      "report_template": "service_light",
+      "materiality": {
+        "level": "standard",
+        "amount_floor": 30000
+      },
+      "material_priority": [
+        "银行流水",
+        "合同",
+        "工资表",
+        "社保缴费明细",
+        "销项发票",
+        "科目余额表"
+      ],
+      "level_adjustments": [
+        {
+          "adjust_id": "EDU-PREPAY",
+          "applies_to": {
+            "risk_family": "revenue_and_bank"
+          },
+          "trigger": {
+            "kind": "present"
+          },
+          "action": "floor",
+          "to_level": "中风险",
+          "reason": "预收学费的跨期确认直接影响收入完整性，须核对退费与结转"
+        },
+        {
+          "adjust_id": "EDU-PARTTIME",
+          "applies_to": {
+            "risk_family": "payroll_tri_source"
+          },
+          "trigger": {
+            "kind": "present"
+          },
+          "action": "floor",
+          "to_level": "中风险",
+          "reason": "兼职/外聘讲师报酬的个税扣缴与用工口径易缺失"
+        }
+      ],
+      "benchmark_refs": [
+        {
+          "table": "benchmarks",
+          "key": "教育服务"
+        },
+        {
+          "table": "benchmarks",
+          "key": "教育培训"
+        }
+      ]
+    }
+  ]
+}

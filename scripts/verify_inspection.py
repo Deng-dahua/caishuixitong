@@ -51,7 +51,7 @@ print("=" * 60)
 for cid in [1, 2, 3, 4]:
     path = os.path.join(OUT, f"company_{cid}_full.json")
     if not os.path.exists(path):
-        print(f"[MISS] company_{cid}_full.json 不存在，先跑 run_four_companies.py")
+        print(f"[MISS] company_{cid}_full.json 不存在，先跑 run_companies.py")
         failures.append(f"C{cid}: 报告缺失")
         continue
     with open(path, "r", encoding="utf-8") as f:

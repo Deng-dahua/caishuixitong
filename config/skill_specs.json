@@ -1,0 +1,1830 @@
+{
+  "schema": 1,
+  "updated": "2026-10-08",
+  "note": "Skill 登记表（★ 任务1「Skill 通用结构规范」的可机检形式）。字段口径见 docs/第3批_Skill规范与建设_现状与规范.md §1；校验器 engine/skill_registry.py，闸门 check_skill_specs()。新增一个 Skill 只加一条数据，不改逻辑。",
+  "fields": [
+    "id",
+    "name",
+    "version",
+    "impl",
+    "entry_points",
+    "input_schema",
+    "output_schema",
+    "unquantified",
+    "unquantified_convention",
+    "params",
+    "deps",
+    "tests",
+    "log_fields"
+  ],
+  "skills": [
+    {
+      "id": "numparse",
+      "name": "数值解析（唯一权威）",
+      "version": "1.0.0",
+      "impl": "engine/numparse.py",
+      "entry_points": [
+        "to_number_checked",
+        "amount_of",
+        "sum_field",
+        "first_amount"
+      ],
+      "input_schema": "to_number_checked(v) / amount_of(inv: dict)",
+      "output_schema": "(值, 是否成功) 或 float；金额键取自 AMOUNT_KEYS（新增字段只加此表）",
+      "unquantified": true,
+      "unquantified_convention": "解析失败 ⇒ 返回 None（不返回 0），调用方按未量化处理",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.numparse.AMOUNT_KEYS"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_numparse.py"
+      ],
+      "log_fields": "无（纯函数）"
+    },
+    {
+      "id": "fieldkit",
+      "name": "发票字段归一",
+      "version": "1.0.0",
+      "impl": "engine/fieldkit.py",
+      "entry_points": [
+        "buyer_name",
+        "seller_name",
+        "goods_name",
+        "invoice_type",
+        "tax_code_of"
+      ],
+      "input_schema": "各字段函数接受发票行 dict（键名异构）",
+      "output_schema": "str（归一后的字段值）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_fieldkit.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "tax_rates",
+      "name": "含税/不含税换算（唯一权威）",
+      "version": "1.0.0",
+      "impl": "engine/tax_rates.py",
+      "entry_points": [
+        "to_exclusive",
+        "to_inclusive",
+        "implied_rate"
+      ],
+      "input_schema": "to_exclusive(amount, rate)",
+      "output_schema": "float | None（取不到税率 ⇒ None，不换算）",
+      "unquantified": true,
+      "unquantified_convention": "无可用税率 ⇒ None 且调用方如实标注『取不到税率，不换算』",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "tax_impact",
+      "name": "税额测算",
+      "version": "1.2.0",
+      "impl": "engine/tax_impact.py",
+      "entry_points": [
+        "estimate_tax",
+        "extract_amount_from_problem",
+        "normalize_basis",
+        "evaluate_small_micro",
+        "infer_rate_context",
+        "build_tax_impact_summary"
+      ],
+      "input_schema": "estimate_tax(amount: float|None, taxes: list[str], rate_ctx: dict|None, amount_nature: str, amount_is_tax: bool)",
+      "output_schema": "{available: bool, basis: float|None, items: [{tax, rate, amount|None, note}], total: float|None, note: str}",
+      "unquantified": true,
+      "unquantified_convention": "取不到金额或适用税率 ⇒ available=False 且 amount/total 为 None，绝不用 0/1 元顶替、不计入合计",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.tax_impact._RATES"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.tax_impact._SMB_CONDITIONS"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.tax_impact._AMOUNT_KW"
+        }
+      ],
+      "deps": [
+        "numparse",
+        "tax_rates",
+        "levy_nature"
+      ],
+      "tests": [
+        "tests/test_tax_impact.py",
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "无（税率语境由 pipeline 记入 comprehensive.tax_rate_context）"
+    },
+    {
+      "id": "levy_nature",
+      "name": "税费性质与法律适用",
+      "version": "1.1.0",
+      "impl": "engine/levy_nature.py",
+      "entry_points": [
+        "natures_of",
+        "nature_of",
+        "levy",
+        "consequence_text"
+      ],
+      "input_schema": "natures_of(obj|str) / consequence_text(nature: str)",
+      "output_schema": "list[str] 性质；str 后果文案（费/基金不引征管法偷税条款）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.levy_nature._NATURE_KW"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "legal_citation",
+      "name": "法条引用补全",
+      "version": "1.1.0",
+      "impl": "engine/legal_citation.py",
+      "entry_points": [
+        "resolve_citation",
+        "format_legal_basis",
+        "split_citation",
+        "legal_reference_of"
+      ],
+      "input_schema": "format_legal_basis(items, with_version: bool = False)",
+      "output_schema": "str（《法名》第X条：内容；with_version=True 时附版本括注）",
+      "unquantified": true,
+      "unquantified_convention": "查不到条文内容或版本 ⇒ 原样返回 / 『（版本未登记，须核对现行有效文本）』，绝不臆造法条与日期",
+      "params": [
+        {
+          "kind": "config",
+          "path": "static/legal_library.json"
+        },
+        {
+          "kind": "config",
+          "path": "static/legal_refs.json"
+        },
+        {
+          "kind": "config",
+          "path": "config/legal_versions.json"
+        }
+      ],
+      "deps": [
+        "legal_version"
+      ],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "legal_version",
+      "name": "法条版本化（唯一权威）",
+      "version": "1.0.0",
+      "impl": "engine/legal_version.py",
+      "entry_points": [
+        "canonical_law",
+        "version_note",
+        "status_of",
+        "audit_registry",
+        "audit_citations"
+      ],
+      "input_schema": "version_note(law: str) / audit_registry() / audit_citations(citations)",
+      "output_schema": "str 版本括注；list[str] 问题描述（空 = 合规）",
+      "unquantified": true,
+      "unquantified_convention": "未登记版本 ⇒ 状态 unknown 并如实标注『版本未登记』，不默认按现行有效呈现",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/legal_versions.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "[法条版本] 已登记 N 部；引用 M 处、未登记版本法名 K 个"
+    },
+    {
+      "id": "risk_levels",
+      "name": "风险等级与证据状态",
+      "version": "1.1.0",
+      "impl": "engine/risk_levels.py",
+      "entry_points": [
+        "severity",
+        "present_order",
+        "normalize",
+        "cap_level",
+        "display_label"
+      ],
+      "input_schema": "severity(level) / display_label(level)",
+      "output_schema": "int 压制序数；str 展示标签（数据层保权威键，展示层用 *_display）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.risk_levels.PRESENT_ORDER"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.risk_levels.LEGAL_LEVELS"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_risk_levels.py",
+        "tests/test_risk_level_recalibration.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "risk_families",
+      "name": "风险族（配置权威）",
+      "version": "1.0.0",
+      "impl": "engine/risk_families.py",
+      "entry_points": [
+        "load",
+        "families",
+        "family_of",
+        "count_policy_means",
+        "validate_against_runtime"
+      ],
+      "input_schema": "families(industry: str|None) / count_policy_means(family)",
+      "output_schema": "list[dict] 族定义；str 口径说明；list[str] 配置↔运行时不一致项（空 = 一致）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/risk_families.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "[同族合并] N 个族合并掉 M 个子项"
+    },
+    {
+      "id": "finding_families",
+      "name": "发现同族归类",
+      "version": "1.0.0",
+      "impl": "engine/finding_families.py",
+      "entry_points": [
+        "classify_family",
+        "merge_families"
+      ],
+      "input_schema": "merge_families(findings: list[dict])",
+      "output_schema": "list[dict]（同族只留父项，子项作差异点保留）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.finding_families.FAMILIES"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_finding_merge_dedup.py"
+      ],
+      "log_fields": "[同族合并] …"
+    },
+    {
+      "id": "learnable_rules",
+      "name": "可学习内容四档分级",
+      "version": "1.0.0",
+      "impl": "engine/learnable_rules.py",
+      "entry_points": [
+        "tier_of",
+        "may_write_rule",
+        "guard_rule_write",
+        "all_tiers"
+      ],
+      "input_schema": "tier_of(kind: str) / may_write_rule(kind) / guard_rule_write(kind)",
+      "output_schema": "str 档位；tuple(bool, str)；guard_rule_write 不允许时 raise PermissionError",
+      "unquantified": true,
+      "unquantified_convention": "未登记类别 ⇒ 一律按最严档 manual（不得默认可自动学习）",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.learnable_rules.TIERS"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "[规则入库] 档位=… 可否=…"
+    },
+    {
+      "id": "retrospective",
+      "name": "四步复盘与规则萃取",
+      "version": "1.0.0",
+      "impl": "engine/retrospective.py",
+      "entry_points": [
+        "record_event",
+        "cluster_patterns",
+        "extract_rule_proposals",
+        "commit_rules",
+        "run_retrospective"
+      ],
+      "input_schema": "run_retrospective(events: list[dict]|None, as_of: str|None, out_dir: Path|None, dry_run: bool)",
+      "output_schema": "{dir, files, clusters, proposals, commit}——并落 5 份文档 + retrospective.json",
+      "unquantified": true,
+      "unquantified_convention": "无事件 ⇒ 如实写『本轮无新增事件』，不生成假记录；不可自动写入的档位只记 pending_manual + 理由",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.retrospective.PATTERN_SIGNATURES"
+        }
+      ],
+      "deps": [
+        "learnable_rules"
+      ],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "复盘产出目录：…；模式 N 个；建议规则 M 条"
+    },
+    {
+      "id": "table_governance",
+      "name": "表格治理（唯一权威）",
+      "version": "1.0.0",
+      "impl": "engine/table_governance.py",
+      "entry_points": [
+        "align_table",
+        "govern_all_tables",
+        "collect_table_violations"
+      ],
+      "input_schema": "govern_all_tables(root) / collect_table_violations(obj)",
+      "output_schema": "(治理后对象, 日志) ；list[str] 违规描述",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "[表格治理] 剔除空白表格 N 张"
+    },
+    {
+      "id": "report_dedup",
+      "name": "报告去重（段级/句级/表注）",
+      "version": "1.1.0",
+      "impl": "engine/report_dedup.py",
+      "entry_points": [
+        "norm_head",
+        "is_consequence_head",
+        "is_hoistable_head",
+        "dedup_report"
+      ],
+      "input_schema": "dedup_report(obj)",
+      "output_schema": "(对象, 日志)——元话语删除数/共性段上提数/表注去重数",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.report_dedup._HOISTABLE_HEADS"
+        }
+      ],
+      "deps": [
+        "sentencekit"
+      ],
+      "tests": [
+        "tests/test_report_dedup.py"
+      ],
+      "log_fields": "[去重] 元话语删 N 句｜共性段上提 M 处…"
+    },
+    {
+      "id": "report_wording",
+      "name": "措辞清洗（禁用模糊词）",
+      "version": "1.0.0",
+      "impl": "engine/report_wording.py",
+      "entry_points": [
+        "scrub_vague",
+        "has_forbidden_vague",
+        "status_text"
+      ],
+      "input_schema": "scrub_vague(text)",
+      "output_schema": "(清洗后文本, 替换数)",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.report_wording.FORBIDDEN_VAGUE_TERMS"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_plain_language.py"
+      ],
+      "log_fields": "[措辞清洗] 替换 N 处"
+    },
+    {
+      "id": "clue_chain",
+      "name": "线索链（环节/资料/读数同源）",
+      "version": "1.1.0",
+      "impl": "engine/clue_chain.py",
+      "entry_points": [
+        "build_clue_chain",
+        "materials_available",
+        "chain_text"
+      ],
+      "input_schema": "build_clue_chain(...)（红线/构成要件/证据）",
+      "output_schema": "{nodes: [{动作, 资料, 读数}], …}",
+      "unquantified": true,
+      "unquantified_convention": "取不到对题读数 ⇒ 如实标注 material_missing / engine_gap，绝不回落 metrics[:3]",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.clue_chain._ON_TOPIC_MIN_BIGRAMS"
+        }
+      ],
+      "deps": [
+        "material_names",
+        "industry_resolver"
+      ],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "industry_resolver",
+      "name": "行业解析（唯一权威）",
+      "version": "1.0.0",
+      "impl": "engine/industry_resolver.py",
+      "entry_points": [
+        "normalize_industry_name",
+        "match_benchmark",
+        "benchmark_keys",
+        "load_industry_data"
+      ],
+      "input_schema": "match_benchmark(industry: str)",
+      "output_schema": "str 基准键；取不到 ⇒ 空/None（不猜行业）",
+      "unquantified": true,
+      "unquantified_convention": "取不到行业 ⇒ 不做行业推断，如实标注未确定",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_industry_resolver.py",
+        "tests/test_industry_gate_and_material.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "material_names",
+      "name": "资料名归组（15 类不变式）",
+      "version": "1.0.0",
+      "impl": "engine/material_names.py",
+      "entry_points": [
+        "canonical",
+        "category_strict",
+        "sibling_conflict",
+        "strict_categories_of"
+      ],
+      "input_schema": "canonical(name) / category_strict(name)",
+      "output_schema": "str 规范资料名 / 类别名（15 类之一）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_material_reachability.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "constituent_threshold",
+      "name": "要件阈值核对（法定标准）",
+      "version": "1.0.0",
+      "impl": "engine/constituent_threshold.py",
+      "entry_points": [
+        "parse_threshold",
+        "extract_actual",
+        "check_constituent_hit"
+      ],
+      "input_schema": "check_constituent_hit(constituent_text, evidence_text)",
+      "output_schema": "tuple(命中档, 说明)——未达门槛不得标注为『涉及』",
+      "unquantified": true,
+      "unquantified_convention": "要件文本取不到阈值/实测值 ⇒ 返回未判定档，不得默认为命中",
+      "params": [],
+      "deps": [
+        "numparse"
+      ],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "constituent_checkpoint",
+      "name": "构成要件/要件核对表",
+      "version": "1.0.0",
+      "impl": "engine/constituent_checkpoint.py",
+      "entry_points": [
+        "build_constituent_checkpoints",
+        "assess_hit_evidence",
+        "redline_verdict_rule"
+      ],
+      "input_schema": "build_constituent_checkpoints(...)（红线 + 证据行）",
+      "output_schema": "{checkpoints: [...], verdict: str}",
+      "unquantified": true,
+      "unquantified_convention": "要件缺证据 ⇒ 结论档为『待核』而非『已触碰』",
+      "params": [],
+      "deps": [
+        "constituent_threshold"
+      ],
+      "tests": [
+        "tests/test_batch3_skills.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "account_classifier",
+      "name": "成本/费用分类",
+      "version": "1.0.0",
+      "impl": "engine/account_classifier.py",
+      "entry_points": [
+        "filter_cost_invoices",
+        "structural_kind",
+        "all_authoritative_keywords"
+      ],
+      "input_schema": "structural_kind(row) / filter_cost_invoices(rows)",
+      "output_schema": "str 结构类型（判不出 ⇒ 待核，严禁默认判成本）",
+      "unquantified": true,
+      "unquantified_convention": "判不出 ⇒ 『待核』，不得默认判成本",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.account_classifier.major_expense_keywords"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_account_classifier.py",
+        "tests/test_cost_structure.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "payroll_rules",
+      "name": "用工与缴费法定参数/口径",
+      "version": "1.0.0",
+      "impl": "engine/payroll_rules.py",
+      "entry_points": [
+        "hf_detail_scope",
+        "hf_scope_zh",
+        "hf_month",
+        "hf_person",
+        "hf_amount"
+      ],
+      "input_schema": "hf_*(...)（公积金/社保明细行）",
+      "output_schema": "str/list/float 口径化结果",
+      "unquantified": true,
+      "unquantified_convention": "取不到个人缴费明细 ⇒ 不给人数/基数结论，如实标注",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_payroll_coverage.py",
+        "tests/test_payroll_month_dimension.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "sentencekit",
+      "name": "句子切分/拼接（标点保真）",
+      "version": "1.0.0",
+      "impl": "engine/sentencekit.py",
+      "entry_points": [
+        "split_sentences",
+        "join_cn",
+        "is_balanced",
+        "first_sentence"
+      ],
+      "input_schema": "split_sentences(text, keep_delims: bool)",
+      "output_schema": "list[str]（keep_delims=True 时保留句末分隔符）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_report_localization.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "evidence_chain",
+      "name": "证据链现状",
+      "version": "1.0.0",
+      "impl": "engine/evidence_chain.py",
+      "entry_points": [
+        "build_evidence_chain",
+        "evidence_text"
+      ],
+      "input_schema": "build_evidence_chain(...)（发现 + 已提供资料）",
+      "output_schema": "{have: [...], missing: [...], text: str}",
+      "unquantified": true,
+      "unquantified_convention": "缺资料按业态剔除后如实列出，不把不适用资料算作缺失",
+      "params": [],
+      "deps": [
+        "industry_resolver",
+        "material_names"
+      ],
+      "tests": [
+        "tests/test_material_reachability.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "text_guardrails",
+      "name": "文本护栏（方法论/定性净化）",
+      "version": "1.0.0",
+      "impl": "engine/text_guardrails.py",
+      "entry_points": [
+        "review_finding",
+        "review_findings",
+        "neutralise_methodology_text"
+      ],
+      "input_schema": "review_findings(findings)",
+      "output_schema": "净化后的 findings（不改变金额与结论档）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_audit_doctrine.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "subject_consistency",
+      "name": "主体一致性",
+      "version": "1.0.0",
+      "impl": "engine/subject_consistency.py",
+      "entry_points": [
+        "norm_subject_key",
+        "same_subject",
+        "declared_subject_ok",
+        "reconcile_finding_subject"
+      ],
+      "input_schema": "same_subject(a, b) / reconcile_finding_subject(finding, subject)",
+      "output_schema": "bool / 处置结果 dict",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_conclusion_and_suspicion_order.py"
+      ],
+      "log_fields": "[主体一致性] 修正 N 处"
+    },
+    {
+      "id": "enterprise_report",
+      "name": "企业报告组装（计数定稿点）",
+      "version": "1.2.0",
+      "impl": "engine/enterprise_report.py",
+      "entry_points": [
+        "build_enterprise_readable_report"
+      ],
+      "input_schema": "build_enterprise_readable_report(report_data: dict, edition: str|None)",
+      "output_schema": "{confirmed_problems: [...], summary, overall_conclusion, tax_impact_summary, …}",
+      "unquantified": true,
+      "unquantified_convention": "缺失≠0；空表/合计 0 表不挂；未量化项不计入合计",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.enterprise_report._METRIC_CN"
+        }
+      ],
+      "deps": [
+        "tax_impact",
+        "risk_levels",
+        "table_governance",
+        "report_dedup",
+        "report_wording",
+        "finding_families",
+        "clue_chain",
+        "legal_citation"
+      ],
+      "tests": [
+        "tests/test_overall_conclusion.py",
+        "tests/test_report_credibility.py"
+      ],
+      "log_fields": "[计数定稿] …共 N 项｜[编号定稿] 疑点编号已连续重排"
+    },
+    {
+      "id": "audit_consistency",
+      "name": "跨模块一致性闸门",
+      "version": "1.3.0",
+      "impl": "tools/audit_consistency.py",
+      "entry_points": [
+        "run_checks",
+        "main",
+        "check_report_consistency",
+        "check_legal_versioning",
+        "check_skill_specs"
+      ],
+      "input_schema": "run_checks() / main(argv)",
+      "output_schema": "(counts, general) 问题列表；退出码 0=过 1=有 ERROR 2=闸门失效",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "tools.audit_consistency._MIN_REGISTERED_CHECKS"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_shared_content_sync.py"
+      ],
+      "log_fields": "ERROR N 项 | WARN M 项"
+    },
+    {
+      "id": "industry_params",
+      "name": "行业参数库（多行业通用能力）",
+      "version": "1.0.0",
+      "impl": "engine/industry_params.py",
+      "entry_points": [
+        "load_params",
+        "industries",
+        "params_of",
+        "benchmark_values_of",
+        "benchmark_meta",
+        "resolve_industry_id",
+        "material_priority",
+        "apply_level_adjustments",
+        "evaluate_triggers",
+        "report_template",
+        "materiality",
+        "validate_params",
+        "new_industry_template",
+        "industry_summary_line"
+      ],
+      "input_schema": "params_of(industry) / apply_level_adjustments(industry, risk_family, indicator, level, triggered) / validate()",
+      "output_schema": "{matched, industry_id, label, risk_families, risk_indicators, benchmark_refs, benchmark_values, report_template, materiality, material_priority, level_adjustments}",
+      "unquantified": true,
+      "unquantified_convention": "行业匹配不上 ⇒ matched=False、参数返回空，**不冒用别行业参数**；基准取不到 ⇒ 空 dict（不猜数值）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/industry_params.json"
+        },
+        {
+          "kind": "config",
+          "path": "static/industry_data.json"
+        }
+      ],
+      "deps": [
+        "industry_resolver",
+        "risk_families",
+        "material_names",
+        "risk_levels"
+      ],
+      "tests": [
+        "tests/test_batch5_skills.py"
+      ],
+      "log_fields": "[行业参数] 已配置行业 N 个；本次匹配=…"
+    },
+    {
+      "id": "report_template",
+      "name": "行业报告模板装配",
+      "version": "1.0.0",
+      "impl": "engine/report_template.py",
+      "entry_points": [
+        "template_of",
+        "section_order",
+        "template_note",
+        "priority_sort",
+        "apply_template",
+        "validate_templates"
+      ],
+      "input_schema": "apply_template(report, industry, materials) / priority_sort(items, industry)",
+      "output_schema": "(新报告, {industry, matched, template_id, sections, material_priority, note})",
+      "unquantified": true,
+      "unquantified_convention": "行业模板取不到 ⇒ 按通用结构呈现并如实说明；资料优先级取不到 ⇒ 保持原顺序（不冒用别行业）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/report_compliance.json"
+        }
+      ],
+      "deps": [
+        "industry_params",
+        "material_names"
+      ],
+      "tests": [
+        "tests/test_batch5_skills.py"
+      ],
+      "log_fields": "[报告模板] 按「…」呈现，N 个章节"
+    },
+    {
+      "id": "report_compliance",
+      "name": "报告定位与合规装配",
+      "version": "1.0.0",
+      "impl": "engine/report_compliance.py",
+      "entry_points": [
+        "document_meta",
+        "security_block",
+        "authorization_block",
+        "system_block",
+        "signature_block",
+        "feedback_block",
+        "compliance_block",
+        "compliance_text",
+        "record_version",
+        "change_log",
+        "internal_edition",
+        "external_edition",
+        "validate_compliance"
+      ],
+      "input_schema": "internal_edition(report, company_id, signers, reviewed) / external_edition(...)",
+      "output_schema": "{compliance:{document,security,authorization,system,signatures,feedback}, version_record, change_log}",
+      "unquantified": true,
+      "unquantified_convention": "未签署 ⇒ 写「待签署」并标注未完成签署；未人工复核 ⇒ 如实写「尚未人工复核」，**不得默认已复核**",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/report_compliance.json"
+        }
+      ],
+      "deps": [
+        "redaction"
+      ],
+      "tests": [
+        "tests/test_batch5_skills.py"
+      ],
+      "log_fields": "[报告合规] 《…》版本=…；脱敏角色=…"
+    },
+    {
+      "id": "redaction",
+      "name": "数据脱敏（按角色）",
+      "version": "1.0.0",
+      "impl": "engine/redaction.py",
+      "entry_points": [
+        "role_policy",
+        "roles",
+        "redact_text",
+        "redact_names",
+        "redact_obj",
+        "redaction_report",
+        "copy_for_role"
+      ],
+      "input_schema": "redact_text(text, policy) / copy_for_role(obj, role)",
+      "output_schema": "(脱敏后副本, 命中计数, 留痕说明)",
+      "unquantified": true,
+      "unquantified_convention": "未登记角色 ⇒ **按最严处理**（全部脱敏），绝不默认不脱敏；未命中也要如实说明『未命中』",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/report_compliance.json"
+        }
+      ],
+      "deps": [
+        "material_names"
+      ],
+      "tests": [
+        "tests/test_batch5_skills.py"
+      ],
+      "log_fields": "[脱敏] 角色=…；命中 N 项"
+    },
+    {
+      "id": "skill_runtime",
+      "name": "Skill 编排引擎",
+      "version": "1.0.0",
+      "impl": "engine/skill_runtime.py",
+      "entry_points": [
+        "resolve_plan",
+        "effective_version",
+        "rollback",
+        "run",
+        "rerun",
+        "validate_plans",
+        "render_log_md",
+        "persistence_path"
+      ],
+      "input_schema": "run(plan, ctx, handlers, company_id) / rerun(plan, from_step_id, ...)",
+      "output_schema": "{run_id, plan_id, status(ok|paused|failed), log[{step_id,skill_id,version,entry,params,ms,attempt,status,result,error}], summary}",
+      "unquantified": true,
+      "unquantified_convention": "条件不成立 ⇒ 记 skipped + 原因（不静默跳过）；重试全失败 ⇒ status=failed + error；未登记 Skill/方案/步骤 ⇒ 直接报错",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/skill_plan.json"
+        }
+      ],
+      "deps": [
+        "skill_registry"
+      ],
+      "tests": [
+        "tests/test_batch6_skills.py"
+      ],
+      "log_fields": "[编排] 方案=…；共 N 步（成功/跳过/失败）；耗时 M ms"
+    },
+    {
+      "id": "findingkit",
+      "name": "发现身份与月份键（唯一权威）",
+      "version": "1.0.0",
+      "impl": "engine/findingkit.py",
+      "entry_points": [
+        "finding_identity",
+        "make_finding",
+        "month_key",
+        "normalize_month"
+      ],
+      "input_schema": "finding_identity(finding) / month_key(row) / make_finding(...)",
+      "output_schema": "str 稳定身份键 / str 月份键 / dict 标准发现",
+      "unquantified": true,
+      "unquantified_convention": "三条身份字段都取不到 ⇒ 返回空串，调用方据此判定「不可跟踪」（不得用随机键顶替）",
+      "params": [],
+      "deps": [],
+      "tests": [
+        "tests/test_metric_key_localization.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "enterprise_profile",
+      "name": "案情画像聚合（身份/行业/规模/策略）",
+      "version": "1.0.0",
+      "impl": "engine/enterprise_profile.py",
+      "entry_points": [
+        "_profile_enterprise",
+        "_build_identity",
+        "_build_industry",
+        "_build_scale",
+        "_build_risk_profile",
+        "_build_strategy"
+      ],
+      "input_schema": "_profile_enterprise(company_id, ctx, db, bank_txs, invoices, docs, …)",
+      "output_schema": "EnterpriseProfile（identity/industry/scale/risk_profile/strategy）",
+      "unquantified": true,
+      "unquantified_convention": "维度取不到 ⇒ 留空并标注「待定」，不猜行业/规模",
+      "params": [],
+      "deps": [
+        "industry_resolver"
+      ],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "skill_registry",
+      "name": "Skill 规范登记与校验",
+      "version": "1.0.0",
+      "impl": "engine/skill_registry.py",
+      "entry_points": [
+        "validate",
+        "coverage",
+        "spec_of",
+        "specs",
+        "load_specs",
+        "declared_fields"
+      ],
+      "input_schema": "validate() / spec_of(skill_id) / coverage()",
+      "output_schema": "list[str] 问题描述（空=合规）；dict 覆盖台账；dict|null 单个 Skill 规格",
+      "unquantified": true,
+      "unquantified_convention": "Skill 未登记 ⇒ spec_of 返回 None，调用方如实写「未登记」（不得伪造版本）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/skill_specs.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_batch3_skills.py",
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[Skill 规范] 已登记 N 个 Skill（有回归测试 M 个）"
+    },
+    {
+      "id": "redline_engine",
+      "name": "红线检测引擎",
+      "version": "1.0.0",
+      "impl": "engine/redline_engine.py",
+      "entry_points": [
+        "run_redline_detection",
+        "suspicion_title"
+      ],
+      "input_schema": "run_redline_detection(...)（域分析结果 + 数据画像 + 红线库）",
+      "output_schema": "{suspicions: [...], matched:[...], declared:[...]}",
+      "unquantified": true,
+      "unquantified_convention": "要件证据取不到 ⇒ 结论档为「待核」，不得按已触碰呈现",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.tax_redlines.REDLINES"
+        }
+      ],
+      "deps": [
+        "constituent_checkpoint",
+        "constituent_threshold",
+        "numparse"
+      ],
+      "tests": [
+        "tests/test_redline_methodology.py"
+      ],
+      "log_fields": "[红线] 命中 N 条 / 声明 M 条"
+    },
+    {
+      "id": "verified_rule_engine",
+      "name": "已验证规则引擎（VR）",
+      "version": "1.0.0",
+      "impl": "engine/verified_rule_engine.py",
+      "entry_points": [
+        "run_verified_rules",
+        "build_derivation_tree"
+      ],
+      "input_schema": "run_verified_rules(...)（引擎数据 + 规则数据）",
+      "output_schema": "{findings: [...], derivation_tree: {...}}",
+      "unquantified": true,
+      "unquantified_convention": "规则前置数据缺失 ⇒ 不触发（并留痕），不得用默认值代入判据",
+      "params": [],
+      "deps": [
+        "numparse",
+        "findingkit"
+      ],
+      "tests": [
+        "tests/test_generality.py"
+      ],
+      "log_fields": "[VR] 触发 N 条"
+    },
+    {
+      "id": "domain_analysis",
+      "name": "域分析（35 域）",
+      "version": "1.0.0",
+      "impl": "engine/domain_analysis.py",
+      "entry_points": [
+        "_domain_bank_tracking",
+        "_domain_personal_transactions",
+        "_domain_tax_consistency",
+        "classify_cross_direction"
+      ],
+      "input_schema": "各 _domain_* 函数接受对应域数据（银行/发票/凭证/库存…）",
+      "output_schema": "list[dict] 域发现（含 level/detail/tax_impact/evidence）",
+      "unquantified": true,
+      "unquantified_convention": "该域所需资料缺失 ⇒ 不产出该域结论，如实登记未检查原因",
+      "params": [],
+      "deps": [
+        "numparse",
+        "fieldkit",
+        "account_classifier"
+      ],
+      "tests": [
+        "tests/test_core_business_scope.py",
+        "tests/test_revenue_authenticity.py"
+      ],
+      "log_fields": "[域分析] N 个域产出 M 条"
+    },
+    {
+      "id": "argumentation",
+      "name": "论证与裁决档",
+      "version": "1.0.0",
+      "impl": "engine/argumentation.py",
+      "entry_points": [
+        "build_argumentation",
+        "is_external_check_finding",
+        "neutralize_assertion_when_no_constituent"
+      ],
+      "input_schema": "build_argumentation(finding, ...)（发现 + 要件命中）",
+      "output_schema": "{verdict: str, ...}（裁决档词表为唯一权威）",
+      "unquantified": true,
+      "unquantified_convention": "资料不足 ⇒ 裁决档必须是「疑似…」而非「已触碰」",
+      "params": [],
+      "deps": [
+        "constituent_checkpoint",
+        "risk_levels"
+      ],
+      "tests": [
+        "tests/test_report_credibility.py",
+        "tests/test_conclusion_and_suspicion_order.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "orchestrator",
+      "name": "模块编排调度",
+      "version": "1.0.0",
+      "impl": "engine/orchestrator.py",
+      "entry_points": [
+        "build_orchestration_plan",
+        "build_data_profile",
+        "get_module_registry_summary"
+      ],
+      "input_schema": "build_orchestration_plan(data_profile: dict)",
+      "output_schema": "{active_modules, skipped_modules, execution_order, summary}",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.orchestrator.MODULE_REGISTRY"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[编排] 激活 N 个模块／跳过 M 个"
+    },
+    {
+      "id": "snapshot_invariance",
+      "name": "数据快照与四类不变性指纹",
+      "version": "1.0.0",
+      "impl": "engine/snapshot_invariance.py",
+      "entry_points": [
+        "snapshot_version",
+        "fingerprint",
+        "fingerprints",
+        "diff_rows",
+        "verify_invariance",
+        "content_signature",
+        "scoring_rule_version"
+      ],
+      "input_schema": "verify_invariance(prev_report, curr_report, kinds) / snapshot_version(files)",
+      "output_schema": "{ok: bool, diffs: {kind: [描述]}, hashes: {...}}",
+      "unquantified": true,
+      "unquantified_convention": "字段取不到 ⇒ 写 __MISSING__ 占位（不得用空串顶替，否则『字段丢了』与『字段为空』分不开）",
+      "params": [],
+      "deps": [
+        "legal_citation",
+        "legal_version",
+        "risk_levels"
+      ],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "无"
+    },
+    {
+      "id": "analysis_session",
+      "name": "分析会话与编排",
+      "version": "1.0.0",
+      "impl": "engine/analysis_session.py",
+      "entry_points": [
+        "build_session",
+        "resolve_orchestration",
+        "rotate_views",
+        "filter_orchestration_plan",
+        "record_intervention",
+        "session_header_text",
+        "persist_session",
+        "load_sessions",
+        "previous_session"
+      ],
+      "input_schema": "build_session(company_id, orchestration, snapshot, trace, params, fingerprint)",
+      "output_schema": "{session_id, analyzed_at, skills, params, snapshot, trace, interventions}",
+      "unquantified": true,
+      "unquantified_convention": "Skill 版本取不到 ⇒ 写「未登记」（不伪造版本号）；无上次会话 ⇒ 增量分析如实标『首次分析』",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/analysis_catalog.json"
+        }
+      ],
+      "deps": [
+        "skill_registry",
+        "snapshot_invariance"
+      ],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[分析会话] 会话号=…；编排=…；视角=N 个；Skill=M 项"
+    },
+    {
+      "id": "incremental_analysis",
+      "name": "增量分析（与上次对比）",
+      "version": "1.0.0",
+      "impl": "engine/incremental_analysis.py",
+      "entry_points": [
+        "diff_reports",
+        "comparison_table",
+        "render_comparison_md",
+        "run_incremental"
+      ],
+      "input_schema": "diff_reports(prev_report, curr_report, prev_session, curr_session)",
+      "output_schema": "{eliminated, downgraded, upgraded, added, still_pending, unchanged, table}",
+      "unquantified": true,
+      "unquantified_convention": "无上次分析 ⇒ 全部标为「首次分析」并说明，不虚构对比结论",
+      "params": [],
+      "deps": [
+        "snapshot_invariance",
+        "findingkit",
+        "analysis_session"
+      ],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[增量分析] 消除 N／降级 M／新增 K／仍待核实 J"
+    },
+    {
+      "id": "reanalysis_guard",
+      "name": "假重新分析检测",
+      "version": "1.0.0",
+      "impl": "engine/reanalysis_guard.py",
+      "entry_points": [
+        "audit_reanalysis",
+        "detect_date_only_change",
+        "detect_unfounded_reorder",
+        "detect_unfounded_conclusion_change",
+        "detect_abnormal_count_change"
+      ],
+      "input_schema": "audit_reanalysis(prev_report, curr_report, prev_session, curr_session)",
+      "output_schema": "{ok: bool, issues: [{code, level, detail}], checked: [detector ids]}",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.reanalysis_guard.FAKE_PATTERNS"
+        }
+      ],
+      "deps": [
+        "snapshot_invariance",
+        "analysis_session"
+      ],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[假分析检测] 命中 N 项"
+    },
+    {
+      "id": "narrative_variants",
+      "name": "叙事生成差异化",
+      "version": "1.0.0",
+      "impl": "engine/narrative_variants.py",
+      "entry_points": [
+        "organize",
+        "order_problems",
+        "variant_note"
+      ],
+      "input_schema": "organize(report, by, orchestration)",
+      "output_schema": "重排后的报告（**只改顺序与组织说明，不改任何事实/金额/等级**）",
+      "unquantified": false,
+      "unquantified_convention": "",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/analysis_catalog.json"
+        }
+      ],
+      "deps": [
+        "analysis_session",
+        "risk_levels",
+        "snapshot_invariance"
+      ],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[叙事组织] 按「…」组织，N 项已重排"
+    },
+    {
+      "id": "entity_dossier",
+      "name": "企业画像（统一出口）",
+      "version": "1.0.0",
+      "impl": "engine/entity_dossier.py",
+      "entry_points": [
+        "build_dossier",
+        "dossier_text",
+        "render_dossier_md"
+      ],
+      "input_schema": "build_dossier(report_data, profile=None)",
+      "output_schema": "{industry, scale, taxpayer_type, business_model, accounting_features, historical_risks, supplied_materials, affects_risk_level: False}",
+      "unquantified": true,
+      "unquantified_convention": "字段取不到 ⇒ 写「未确定」并注明依据缺失，不猜（且**绝不影响风险等级**）",
+      "params": [],
+      "deps": [
+        "enterprise_profile",
+        "industry_resolver"
+      ],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[企业画像] 字段 N 项（8 项中）"
+    },
+    {
+      "id": "experience_library",
+      "name": "同类案例经验库",
+      "version": "1.0.0",
+      "impl": "engine/experience_library.py",
+      "entry_points": [
+        "load_cases",
+        "match_cases",
+        "case_reference_text",
+        "add_case",
+        "render_cases_md"
+      ],
+      "input_schema": "match_cases(industry, risk_types, biz_model, limit)",
+      "output_schema": "[{case_id, industry, risk_type, outcome, material_experience, affects_risk_level: False}]",
+      "unquantified": true,
+      "unquantified_convention": "无同类案例 ⇒ 明确写「无同类案例可参考」，不得用别行业案例充数",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/experience_cases.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[案例参考] 命中 N 例"
+    },
+    {
+      "id": "rule_abstraction",
+      "name": "从点到面抽象（规则萃取）",
+      "version": "1.0.0",
+      "impl": "engine/rule_abstraction.py",
+      "entry_points": [
+        "can_abstract",
+        "abstract",
+        "abstract_findings",
+        "render_proposals_md"
+      ],
+      "input_schema": "abstract_findings(findings, context)",
+      "output_schema": "{proposals: [...], cases_kept: [...], summary_line: str}",
+      "unquantified": true,
+      "unquantified_convention": "判不出能否抽象 ⇒ 归入个案（不得默认上升为规则）；规则必须有判据与验收方式",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.rule_abstraction.ABSTRACT_CRITERIA"
+        }
+      ],
+      "deps": [
+        "learnable_rules",
+        "retrospective",
+        "findingkit"
+      ],
+      "tests": [
+        "tests/test_batch4_skills.py"
+      ],
+      "log_fields": "[从点到面] 可抽象 N 条／个案 M 条"
+    },
+    {
+      "id": "trigger_constituent_separation",
+      "name": "触发条件与认定要件分离",
+      "version": "1.1.0",
+      "impl": "engine/trigger_conditions.py",
+      "entry_points": [
+        "is_premise_constituent",
+        "is_precondition",
+        "premise_indices",
+        "premise_indices_of",
+        "load_risk_conditions",
+        "risk_entry",
+        "trigger_conditions_of",
+        "determination_criteria_of",
+        "trigger_status",
+        "classify",
+        "trigger_text",
+        "rollup",
+        "verdict_sentence"
+      ],
+      "input_schema": "is_precondition(risk_code, index, text) / classify(risk_code, checkpoints, constituents) / 风险指标配置 config/risk_conditions.json（trigger_conditions + determination_criteria）",
+      "output_schema": "risk_code, trigger_conditions, trigger_status, determination_criteria, criterion_status, 疑点是否成立(suspicion_established), 风险是否成立(risk_established), 结论表述",
+      "unquantified": true,
+      "unquantified_convention": "要件/配置缺失 ⇒ 结论句返回空（不臆造「已满足」）；配置里查不到该要件 ⇒ 退回文本词表兜底；两者都判不出 ⇒ 不标记前提条（保守，不增记「符合」）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/risk_conditions.json"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.trigger_conditions.PREMISE_MARKERS"
+        }
+      ],
+      "deps": [
+        "constituent_checkpoint",
+        "redline_engine",
+        "argumentation"
+      ],
+      "tests": [
+        "tests/test_trigger_determination_separation.py",
+        "tests/test_report_quality_skills.py"
+      ],
+      "log_fields": "风险编码、触发条件及其命中状态、认定要件及其核对状态、是否前提条、疑点是否成立、风险是否成立、结论表述"
+    },
+    {
+      "id": "amount_scope_single_final",
+      "name": "金额口径取舍（毛差额/净敞口）",
+      "version": "1.0.0",
+      "impl": "engine/amount_scope_choice.py",
+      "entry_points": [
+        "choose",
+        "exposure_sentence",
+        "is_final_label"
+      ],
+      "input_schema": "choose(gross, net, basis) / exposure_sentence(gross, net, basis, item)",
+      "output_schema": "{final, final_label, final_source, gross, gross_note, basis}；报告句只认净敞口为最终口径",
+      "unquantified": true,
+      "unquantified_convention": "净敞口取不到 ⇒ final=None 且**不得**拿毛差额顶替充当最终口径，如实写「本轮未做性质甄别，净敞口未测算」，毛差额仅作起点参考",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.amount_scope_choice.NOTE_GROSS_ONLY"
+        }
+      ],
+      "deps": [
+        "numparse",
+        "tax_impact"
+      ],
+      "tests": [
+        "tests/test_report_quality_skills.py"
+      ],
+      "log_fields": "毛差额、净敞口、最终口径来源(net/none)、取舍依据"
+    },
+    {
+      "id": "field_completeness",
+      "name": "字段截断与完整性检测",
+      "version": "1.0.0",
+      "impl": "engine/field_completeness.py",
+      "entry_points": [
+        "parse_period",
+        "months_in",
+        "claims_coverage",
+        "has_truncation_mark",
+        "check_text",
+        "scan",
+        "coverage_line"
+      ],
+      "input_schema": "check_text(文本, period) / scan(报告对象, period)",
+      "output_schema": "问题清单[{kind:month_gap|silent_truncation, level, detail, missing, path}]；空=合规",
+      "unquantified": true,
+      "unquantified_convention": "检查期间取不到 ⇒ 返回空清单并**显式声明「无法判定」**（不得默认通过）；月份枚举只判完整性，不补齐数据",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.field_completeness.COVERAGE_CLAIM_WORDS"
+        }
+      ],
+      "deps": [
+        "numparse"
+      ],
+      "tests": [
+        "tests/test_report_quality_skills.py"
+      ],
+      "log_fields": "问题类型(month_gap/silent_truncation)、缺失月份、所在路径"
+    },
+    {
+      "id": "content_placeholder_guard",
+      "name": "占位符与空内容检测",
+      "version": "1.0.0",
+      "impl": "engine/content_placeholder_guard.py",
+      "entry_points": [
+        "is_empty",
+        "is_orphan_lead",
+        "is_placeholder",
+        "scan_item",
+        "scan",
+        "assert_clean"
+      ],
+      "input_schema": "scan(报告对象) / assert_clean(报告对象) / is_orphan_lead(条目文本)",
+      "output_schema": "问题清单[{kind:empty_item|orphan_lead|placeholder, level, detail, path}]；assert_clean 命中即抛",
+      "unquantified": true,
+      "unquantified_convention": "条目为 None/空串 ⇒ 判为空内容（ERROR）；形态判不准时按\"不判\"处理，绝不把正常句子误判为占位符",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.content_placeholder_guard.LEAD_TAILS"
+        }
+      ],
+      "deps": [
+        "sentencekit"
+      ],
+      "tests": [
+        "tests/test_report_quality_skills.py"
+      ],
+      "log_fields": "问题类型(empty_item/orphan_lead/placeholder)、条目路径、原文本片段"
+    },
+    {
+      "id": "report_identity",
+      "name": "报告性质一致性",
+      "version": "1.0.0",
+      "impl": "engine/report_identity.py",
+      "entry_points": [
+        "load_config",
+        "canonical_name",
+        "forbidden_aliases",
+        "unify",
+        "scan_names",
+        "identity_line",
+        "consistency_report"
+      ],
+      "input_schema": "canonical_name() / unify(文本) / consistency_report(标题, 文末声明, 报告定位)",
+      "output_schema": "唯一名称(str)、统一后文本、问题清单[{kind:alias_used|identity_mismatch|identity_missing}]",
+      "unquantified": true,
+      "unquantified_convention": "配置文件缺失 ⇒ 退回同值兜底并可见（不静默改变报告名称）；三处任一为空 ⇒ 报 identity_missing，不代为填写",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/report_identity.json"
+        }
+      ],
+      "deps": [
+        "report_compliance"
+      ],
+      "tests": [
+        "tests/test_report_quality_skills.py"
+      ],
+      "log_fields": "唯一名称、命中的禁用别名、不一致位置(标题/文末声明/报告定位)"
+    },
+    {
+      "id": "child_item_completeness",
+      "name": "子项与关联项完整性",
+      "version": "1.1.0",
+      "impl": "engine/child_item_completeness.py",
+      "entry_points": [
+        "load_config",
+        "reload_config",
+        "entry_of",
+        "children_of",
+        "related_of",
+        "norm_key",
+        "mentions",
+        "has_skip_reason",
+        "has_conclusion",
+        "analyze_status",
+        "analyze_related",
+        "problem_texts",
+        "finding_texts",
+        "enumerate_children",
+        "problem_key",
+        "audit",
+        "render_child_list",
+        "checklist_text",
+        "audit_for_problem",
+        "config_completeness",
+        "audit_product"
+      ],
+      "input_schema": "audit(parent_risk_code, narrative_texts) / analyze_status(child, text_or_bag) / problem_texts(problem) / enumerate_children(problem, extra_texts) / checklist_text(problem) / audit_product(rep) / 子项配置 config/child_items.json（child_items + related_items）",
+      "output_schema": "parent_risk_code, child_items, child_status, child_conclusion, child_gap, related_items, related_analysis, unanalysed, issues（落进每个疑点的 child_item_audit 结构化块）+ 报告文本清单（checklist_text）",
+      "unquantified": true,
+      "unquantified_convention": "取不到子项配置 ⇒ 返回空（不臆造子项）；正文取不到结论 ⇒ 判「未核对/须核对」并**必写 gap**；判据三层：①「提到」= 4-gram 重合率≥50%（两侧标点同源归一）；②「有结论」= 子项附近 ±80 字内出现**核对动作/结果**词，且只在分析性文本里找（表格标题与表内数据行不算分析）；③「被口径跳过」= SKIP_PHRASES 命中 ⇒ 未核对 + skipped_by_caliber。判据源唯一权威 problem_texts()（生成器与报告端同源）；本模块自身产物由 CHECKLIST_LEAD 自引用屏障剔除。；文本清单与结构化块由 audit_for_problem() 用同一份判据文本一次算出（防两张皮）。",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/child_items.json"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.child_item_completeness.SKIP_PHRASES"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.child_item_completeness.CONCLUSION_MARKERS"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.child_item_completeness.OBJECT_ITEM_KWS"
+        }
+      ],
+      "deps": [
+        "sentencekit",
+        "findingkit"
+      ],
+      "tests": [
+        "tests/test_child_item_completeness.py"
+      ],
+      "log_fields": "父风险编码、子项清单及其状态（枚举来源）、未核对的 gap、关联项及其分析结论、漏登记（audit_product）与要件原位结论（门禁④）"
+    },
+    {
+      "id": "data_source_status",
+      "name": "数据源状态一致性",
+      "version": "1.0.0",
+      "impl": "engine/data_source_status.py",
+      "entry_points": [
+        "load_config",
+        "reload_config",
+        "sources",
+        "entry_of",
+        "data_source_id",
+        "canonical_name",
+        "split_sources",
+        "detail_text",
+        "detail_text_from_suspicion",
+        "available_of_suspicion",
+        "declared_sources",
+        "status_of",
+        "combine",
+        "resolve_group",
+        "source_status_map",
+        "table_from",
+        "table_for",
+        "audit_product"
+      ],
+      "input_schema": "resolve_group(group_text, available, detail, not_required) / source_status_map(suspicion) / table_from(problem, suspicion) / audit_product(rep) / 数据源状态表 config/data_sources.json（data_source_id/data_source_name/aliases/provided_by/markers）",
+      "output_schema": "data_source_id, data_source_name, status_in_detail, status_in_checklist, consistency, conflict_reason（落进每个疑点的 data_source_status）+ 要件核对表 的 独立数据源/数据源状态/核对结论",
+      "unquantified": true,
+      "unquantified_convention": "四态：已有/缺失/须核对/待企业提交（另有扩展态「本业态不适用」——不是资料缺口）。逐源判定 + 合成：全有=已有；部分=须核对并**逐源点名**；全缺时凡有源属「须核对」则组合亦为「须核对」（只有全部「未提供」才判「缺失」）。硬证据两条：本项**明细表**里出现该源名称/别名/专有标识 ⇒ 已有（★ 必须排除要件核对表自身，防自引用）；该源是某份已取得资料的字段/内容（provided_by）⇒ 已有。**短名（≤2 字）不得按名称命中**（如「收入」），须靠 markers 证实。分隔符表由 industry_resolver.MATERIAL_SEG_SEP/MATERIAL_ALT_SEP **派生**，不另立一份。",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/data_sources.json"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.data_source_status.STATUSES"
+        }
+      ],
+      "deps": [
+        "evidence_chain",
+        "industry_resolver",
+        "constituent_checkpoint"
+      ],
+      "tests": [
+        "tests/test_data_source_status_consistency.py"
+      ],
+      "log_fields": "数据源编码/名称、明细表侧状态、核对表侧状态、一致性、冲突原因（落盘到疑点 data_source_status）"
+    },
+    {
+      "id": "doc_number_authority",
+      "name": "文档数字一致性",
+      "version": "1.0.0",
+      "impl": "engine/doc_number_authority.py",
+      "entry_points": [
+        "audit"
+      ],
+      "input_schema": "无入参：audit() 读 config/doc_consistency.json 的 numbers[] + docs/第01批…/*.md",
+      "output_schema": "逐个数字的一致性结果与不一致清单 [{level, where, detail}]",
+      "unquantified": true,
+      "unquantified_convention": "数字权威值取不到 ⇒ WARN（不静默通过）；必须声明的文件未命中 ⇒ ERROR；对照文件（quote_files）跳过；实现为薄转发，核心逻辑在 engine/doc_consistency_core.py（唯一实现，不作为独立 Skill 登记）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/doc_consistency.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_doc_consistency_skills.py"
+      ],
+      "log_fields": "数字 id、文档位置、文档值、权威值、权威来源"
+    },
+    {
+      "id": "rule_reference_sync",
+      "name": "规则引用一致性",
+      "version": "1.0.0",
+      "impl": "engine/rule_reference_sync.py",
+      "entry_points": [
+        "audit"
+      ],
+      "input_schema": "无入参：audit() 读 rule_catalog + rule_catalog_files + 全批文档",
+      "output_schema": "引用有效性/覆盖完整性清单 [{level, where, detail}]",
+      "unquantified": true,
+      "unquantified_convention": "规则编号逐字符校验（支持 TDS-⑤⑥⑦⑧ 集合引用）；未登记编号 ⇒ ERROR；实现为薄转发，核心逻辑在 engine/doc_consistency_core.py（唯一实现，不作为独立 Skill 登记）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/doc_consistency.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_doc_consistency_skills.py"
+      ],
+      "log_fields": "规则编号、引用文件:行、同步状态"
+    },
+    {
+      "id": "doc_residue_scan",
+      "name": "全文残留校验",
+      "version": "1.0.0",
+      "impl": "engine/doc_residue_scan.py",
+      "entry_points": [
+        "audit",
+        "expand_grep"
+      ],
+      "input_schema": "无入参：audit() 读 config/doc_synonyms.json（同义词典 + scan_scope）",
+      "output_schema": "展开后的 grep 命令 + 残留清单 [{level, where, detail}]",
+      "unquantified": true,
+      "unquantified_convention": "区间/并列形态不算残留；词典未收录写法 ⇒ WARN（校验漏洞）；实现为薄转发，核心逻辑在 engine/doc_consistency_core.py（唯一实现，不作为独立 Skill 登记）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/doc_synonyms.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_doc_consistency_skills.py"
+      ],
+      "log_fields": "旧值、命中的同义写法、应改值、文件:行"
+    },
+    {
+      "id": "todo_status_sync",
+      "name": "未完成事项状态同步",
+      "version": "1.0.0",
+      "impl": "engine/todo_status_sync.py",
+      "entry_points": [
+        "audit",
+        "sync_status"
+      ],
+      "input_schema": "无入参：audit() 读 08_未完成事项清单.md 的 U 表 + 补做记录；sync_status(completed_ids)",
+      "output_schema": "状态同步结果与不一致清单 [{level, where, detail}]",
+      "unquantified": true,
+      "unquantified_convention": "状态词表 未开始/进行中/已修复/待决策/不阻断；缺状态字段或与补做记录不一致 ⇒ ERROR；实现为薄转发，核心逻辑在 engine/doc_consistency_core.py（唯一实现，不作为独立 Skill 登记）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/doc_consistency.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_doc_consistency_skills.py"
+      ],
+      "log_fields": "事项 ID、状态、补做记录声明、文件:行"
+    },
+    {
+      "id": "doc_ref_graph",
+      "name": "跨文件引用一致性",
+      "version": "1.0.0",
+      "impl": "engine/doc_ref_graph.py",
+      "entry_points": [
+        "audit",
+        "affected_downstream"
+      ],
+      "input_schema": "无入参：audit() 读 config/doc_consistency.json 的 ref_graph；affected_downstream(上游文件)",
+      "output_schema": "受影响下游清单 + 同步状态 [{level, where, detail}]",
+      "unquantified": true,
+      "unquantified_convention": "下游必须标注上游数字来源（未声明/未命中 ⇒ ERROR）；对照文件跳过；实现为薄转发，核心逻辑在 engine/doc_consistency_core.py（唯一实现，不作为独立 Skill 登记）",
+      "params": [
+        {
+          "kind": "config",
+          "path": "config/doc_consistency.json"
+        }
+      ],
+      "deps": [],
+      "tests": [
+        "tests/test_doc_consistency_skills.py"
+      ],
+      "log_fields": "上游文件、下游文件、数字 id、同步状态"
+    },
+    {
+      "id": "workpaper",
+      "name": "工作底稿编排（十五步）",
+      "version": "1.0.0",
+      "impl": "engine/workpaper_generator.py",
+      "entry_points": [
+        "run_workpaper",
+        "build_archive_bundle",
+        "render_manifest"
+      ],
+      "input_schema": "run_workpaper(ctx: dict, *, out_dir: str='') —— ctx 含企业画像/资料/报告数据",
+      "output_schema": "{steps:[{step,authority,status}], outputs:[路径…], bundle:归档包六成员}；依赖的 engine 模块（非 skill 表条目）：fact_store/numbering/quality_gates/conclusion_grade/dedup_pipeline；接线一致性由 tests/test_report_quality_skills.py 覆盖",
+      "unquantified": false,
+      "unquantified_convention": "任一步骤取不到输入 ⇒ 该步标 SKIP 并留痕，不用默认值顶替",
+      "params": [
+        {
+          "kind": "in_code",
+          "ref": "engine.workpaper_generator.STEPS"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.workpaper_generator.OUTPUTS"
+        },
+        {
+          "kind": "in_code",
+          "ref": "engine.workpaper_generator.SKILL_ID"
+        }
+      ],
+      "deps": [
+        "report_dedup"
+      ],
+      "tests": [
+        "tests/test_report_quality_skills.py"
+      ],
+      "log_fields": [
+        "step",
+        "authority",
+        "status"
+      ]
+    }
+  ]
+}

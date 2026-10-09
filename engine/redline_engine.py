@@ -7,7 +7,7 @@
 ----------------------------------------------------------
     原始资料
       ↓ 原子观察（已有能力）
-    税务红线判定 ← 行业无关：符合构成要件即触红，红线不因行业而变
+    税务红线判定 ← 行业无关：符合构成要件即触碰红线，红线不因行业而变
       ↓
     ┌─────────────┬──────────────┬───────────────┐
    线索链        证据链          论证链
@@ -396,12 +396,48 @@ def run_redline_detection(findings: List[Dict],
         mats = _available_materials(engine_data, material_readiness, f)
         # ★ 2026-09-29（点评整改 P0-1②）：线索链的"资料缺失/程序待完善"三态判定，
         #   只认资料齐备性唯一权威 material_readiness 的已提供清单。
-        clue = build_clue_chain(f, rl, engine_data, provided_materials=_mats_all)
+        # ★ 2026-10-04：环节"缺资料"必须过**业态剔除**（唯一权威 industry_resolver）
+        try:
+            from engine.industry_resolver import not_required_materials as _nrm
+            _nr_docs = _nrm(str((engine_data or {}).get("industry") or ""))[0]
+        except Exception:  # noqa: BLE001
+            _nr_docs = set()
+        clue = build_clue_chain(f, rl, engine_data, provided_materials=_mats_all,
+                                not_required_materials=_nr_docs)
         ev = build_evidence_chain(f, rl, mats, engine_data)
         arg = build_argumentation(f, rl, clue, ev, engine_data)
         # ★ 2026-09-28 逐条判定兜底：显式 constituent_hits 优先；未附时按"检测信号→要件"映射补齐，
         #   证据取自发现自身的 detail/how_found（账内实际命中的事实），保证报告 (A)+(B) 闭环。
-        if not arg.get("constituent_hits"):
+        # ★★ 2026-10-03（用户复核疑点2「资金回流」）：**上游显式降级的发现，兜底不得回填要件命中**。
+        #   事故：检测器已判定「仅检出单向大额转出（无配对回流、对象不属六员）：单向转出本身不构成
+        #   资金回流」，并据此**清空** `constituent_hits`、清空 `redline_id`、降级为低风险；
+        #   兜底却立刻用 `_DEFAULT_HIT_INDEX` 把发现级 detail 回填成**要件①命中** ⇒
+        #   报告里要件①显示「已单独核对：符合该要件情形」，而它的核对证据原文写着
+        #   「单向转出本身不构成回流…不能仅凭此项认定资金回流」——**判据与证据相反**；
+        #   疑点标题也仍是红线名、等级仍是「高风险」。
+        #   判据：`_downgrade_reason` 非空 ＝ 上游已给出显式降级结论 ⇒ 兜底必须尊重，不得回填。
+        #   （降级标记随 `entry["downgraded"]` 传到疑点层，由报告改用"待核线索"口径，见 enterprise_report。）
+        _dg_reason = str(f.get("_downgrade_reason") or "").strip()
+        # ★★ 2026-10-03（用户复核疑点4）：**发现文本"自我否定"时同样不得回填**。
+        #   事故：VR056「公私混同发薪/私户支付薪酬」在**未提供个人账户流水**时已如实写明
+        #   「无法核验该差额是否经私户支付……**据实不作私户认定**」，并**不认领任何红线**；
+        #   兜底却把"账面工资 928,000 / 公户工资支出 0"这段**发现级事实**回填成
+        #   RL-INC-002 要件①「个人账户存在经营性收款」命中 ⇒
+        #   报告判"要件①符合 + 已触碰税务违规红线"，而触发事实**根本没提到个人账户收款**。
+        #   判据（唯一权威 `constituent_checkpoint.assess_hit_evidence`，与要件级同一套正则）：
+        #     发现 detail/description 含"不作认定/无法核实/不构成/未见/未发现…" ⇒ 不回填。
+        #   实测波及面：全库 156 条发现中仅 **6 条**文本自我否定；使用兜底回填的疑点仅 4 条，
+        #   其中只有 RL-INC-002 命中 ⇒ **零误伤**。
+        if not _dg_reason:
+            try:
+                from engine.constituent_checkpoint import assess_hit_evidence as _ahe_f
+                _fv, _fnote = _ahe_f(str(f.get("detail") or "") + " " + str(f.get("description") or ""))
+                if _fv:
+                    _dg_reason = ("发现自身文字已为『不作认定/无法核验』类结论（%s）⇒ "
+                                  "不得回填要件命中，仅作尚需核实线索" % _fnote[:60])
+            except Exception:
+                pass
+        if not arg.get("constituent_hits") and not _dg_reason:
             _di = _DEFAULT_HIT_INDEX.get(rid)
             if _di:
                 _ev_src = f.get("detail") or f.get("how_found") or f.get("description") or ""
@@ -433,6 +469,44 @@ def run_redline_detection(findings: List[Dict],
         clue = _base["clue"]
         ev = _base["ev"]
         arg = _base["arg"]
+        # ★★ 2026-10-03（用户复核疑点2）：**降级是"这条线索"的属性，不是"某一条发现"的属性**。
+        #   实测：RL-FUND-002 组内有 2 条同类型发现（「资金回流与公私混同检测」），
+        #   只有其中 1 条带 `_downgrade_reason`；`_pick_entry` 恰好选中另一条 ⇒
+        #   若只看 entry，"降级"就丢了，报告仍以红线名立标题、仍标「高风险」。
+        #   判据（保守，两条件同时满足才降级）：
+        #     ① 组内**存在**显式降级的发现（上游给了 `_downgrade_reason`）；
+        #     ② 组内**没有任何发现**认领到构成要件（`constituent_hits` 全空）。
+        #   ⇒ 既不冤枉"另有要件命中的组"，也不放过"整组只有降级线索"的情形。
+        _dg_any = [str(_r["f"].get("_downgrade_reason") or "").strip()
+                   for _r in group
+                   if str(_r["f"].get("_downgrade_reason") or "").strip()]
+        _hits_any = any((_r["arg"].get("constituent_hits") or []) for _r in group)
+        _dg_group = bool(_dg_any) and not _hits_any
+        _dg_group_reason = (_dg_reason if _dg_group and _dg_reason
+                            else (_dg_any[0] if _dg_group and _dg_any else ""))
+        # ★★ 2026-10-03（用户复核疑点4）：**"未认领 + 自我否定"的线索同样要降级**（D1 的通用解）。
+        #   事故：VR056 在无个人账户流水时**如实不认领** RL-INC-002（不设 redline_id / 不设
+        #   constituent_hits，detail 写"据实不作私户认定"），但它仍靠**关键词匹配**（"公私混同"）
+        #   被挂到 RL-INC-002 上 ⇒ 报告以红线名「个人账户收取经营性款项：公私混同隐匿收入」
+        #   立标题，而触发事实是"**公司未通过公户发工资**"（薪酬支付渠道）——
+        #   **触发事实与被指控要件不是同一件事**。
+        #   判据（保守，三条件同时满足）：
+        #     ① 组内**没有任何发现认领该红线**（`redline_id` 均 ≠ rid）；
+        #     ② 组内**没有任何要件命中**；
+        #     ③ entry 发现文本**自我否定**（与要件级同一权威 `assess_hit_evidence`）。
+        #   ⇒ 该疑点按「待核线索」呈现（不以红线名立标题、等级「待核验」）。
+        #   实测波及面：仅 RL-INC-002 一条（RL-FUND-002 已因 `_downgrade_reason` 降级，幂等不变）。
+        if not _dg_group and not _hits_any:
+            try:
+                from engine.constituent_checkpoint import assess_hit_evidence as _ahe_g
+                _claimed = any(str(_r["f"].get("redline_id") or "") == rid for _r in group)
+                _gtxt = str(f.get("detail") or "") + " " + str(f.get("description") or "")
+                if (not _claimed) and _ahe_g(_gtxt)[0]:
+                    _dg_group = True
+                    _dg_group_reason = ("组内发现均未认领本红线，且其自身文字为『不作认定/无法核验』"
+                                        "类结论 ⇒ 本项属关键词匹配挂靠，仅作尚需核实线索登记")
+            except Exception:
+                pass
         entry = {
             "redline_id": rid,
             "redline_name": rl.get("name", ""),
@@ -457,6 +531,13 @@ def run_redline_detection(findings: List[Dict],
             #     · 主体一致性自检无从核对 → 只能误报"疑点无支撑发现"。
             #   现把 entry 的 `type` 作为**本疑点主体**显式落盘（唯一权威来源）。
             "finding_type": str(f.get("type") or "").strip(),
+            # ★★ 2026-10-03（用户复核疑点2）：**降级必须随发现传到疑点层**。
+            #   事故：`_downgrade_reason` 只写在 finding 上（"仅检出单向大额转出…降级为待核实线索"），
+            #   疑点层拿不到 ⇒ 报告仍用**红线名**做标题、`risk_level` 仍是「高风险」，
+            #   一条被明确判定"不构成回流、不挂红线"的线索被呈现为高风险资金回流疑点。
+            #   约定：`downgraded=True` ⇒ 报告须改用「待核线索：<发现类型>」口径且等级降为「待核验」。
+            "downgraded": _dg_group,
+            "downgrade_reason": _dg_group_reason,
             # entry 选择依据（供日志/审计复核"为什么是它"）
             "entry_choice": _entry_choice(rid, group),
             "level": f.get("level", ""),
@@ -467,6 +548,9 @@ def run_redline_detection(findings: List[Dict],
             "redline_hit": bool(arg.get("redline_hit")),
             "remedy": ev.get("remedy", ""),
             "missing_materials": list(ev.get("missing_materials") or []),
+            # ★ 2026-10-04（疑点2 D12 双字段）：具体材料名一并透传（口径仍用类别级）
+            "missing_material_names": list(ev.get("missing_material_names") or []),
+            "verify_material_names": list(ev.get("verify_material_names") or []),
             # ★ 2026-09-25：「待核」（有相关类别但须人工确认）必须与「缺失」分开上报，
             #   否则报告要么漏掉该确认动作，要么把企业其实已交的资料说成"缺"。
             "verify_materials": list(ev.get("verify_materials") or []),
@@ -551,13 +635,23 @@ def run_redline_detection(findings: List[Dict],
             _s["conclusion_grade"] = _rendered.get(
                 "conclusion_grade", _s.get("conclusion_grade", "待核"))
             _s["redline_hit"] = bool(_rendered.get("redline_hit"))
+            # ★★ P1-2（2026-10-09）**置信度与分项明细也必须跟着"实际渲染的那份论证"走**
+            #   —— 与上面 verdict 同一条铁律（读者看到的裁决、数值与读到的论证同出一处）。
+            #   事故根因：上方"同一条红线取最强裁决"把 `entry["confidence"]` 提升为某条
+            #   **支撑发现**的置信度，而报告渲染的正文百分比来自 **entry 自己的论证** ⇒
+            #   前端「可能性档位」（读 `item.confidence`）与正文「判断可信度约X%」在
+            #   同一条疑点上给出**不同档位**（实测 16 条中 4 条：正文"偏低"、前端"中等"）。
+            _rc = _rendered.get("confidence")
+            if isinstance(_rc, (int, float)):
+                _s["confidence"] = _rc
+                _s["confidence_breakdown"] = list(_rendered.get("confidence_breakdown") or [])
         _acc = _s.pop("_constituent_hits", None)
         if _acc:
             _s.setdefault("argumentation", {})["constituent_hits"] = _acc
-        # ★ 2026-10-02（用户复核疑点5 的第二个矛盾）：**「触红断言」必须与「要件认定」同步**。
+        # ★ 2026-10-02（用户复核疑点5 的第二个矛盾）：**「触碰红线断言」必须与「要件认定」同步**。
         #   判据用唯一权威 `constituent_checkpoint`（`enterprise_report` 的
         #   `_participating`、报告里的「本企业涉及上述第 N 条」都出自它，不另立口径）。
-        #   若一条要件都没认定，就把本疑点论证里的触红断言（开场句 / 「本项结论是<裁决>」
+        #   若一条要件都没认定，就把本疑点论证里的触碰红线断言（开场句 / 「本项结论是<裁决>」
         #   / 段尾「已经触碰税务红线…」）中性化。
         #   ★ 必须**在这里**做：报告侧读到的文本已经被 `plain_language.to_plain`
         #     改写过（「补证」→「补充资料」），在报告侧逐字找锚点会静默失效（实测过一次）。
@@ -582,7 +676,7 @@ def run_redline_detection(findings: List[Dict],
                     _arg["reasoning"] = _neu(_arg["reasoning"], _s.get("redline_name", ""))
             except Exception as _exc:
                 if pipeline_log is not None:
-                    pipeline_log.append(f"[红线论证] 触红断言中性化异常：{_exc}")
+                    pipeline_log.append(f"[红线论证] 触碰红线断言中性化异常：{_exc}")
         # ★ 2026-09-28（B2 行业基准动态化）：对"以行业基准为判定口径"的红线，
         #   注入按实际行业解析出的基准区间与口径声明（来源 industry_data.json，非税务机关官方口径）。
         #   不在此写死任何数字；缺行业时只说明"须按实际行业取值"，绝不编造区间。
@@ -608,7 +702,7 @@ def run_redline_detection(findings: List[Dict],
 
     confirmed = [s for s in suspicions if s.get("verdict") == _VERDICT_CONFIRMED]
     excluded = [s for s in suspicions if s.get("verdict") == _VERDICT_EXCLUDED]
-    # ★ 2026-10-02：外部核验档虽不判触红，但仍属「待后续核验后才能有结论」，
+    # ★ 2026-10-02：外部核验档虽不判触碰红线，但仍属「待后续核验后才能有结论」，
     #   必须计入待补证桶，否则 summary 各类计数加总会少于疑点总数（计数对不上账）。
     unconfirmed = [s for s in suspicions
                    if s.get("verdict") in (_VERDICT_HIT_PENDING, _VERDICT_WEAK,
