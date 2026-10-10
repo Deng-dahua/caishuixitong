@@ -20,7 +20,9 @@ rules:
     name: "社保人数与个税人数差异"
     tax_type: "社保与非税收入"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(social_headcount - iit_headcount) / iit_headcount > params.headcount_diff_ratio"
@@ -48,7 +50,9 @@ rules:
     name: "社保基数与工资总额差异"
     tax_type: "社保与非税收入"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(social_base_total - salary_total) / salary_total > params.base_diff_ratio"
@@ -75,7 +79,9 @@ rules:
     name: "试用期未缴社保"
     tax_type: "社保与非税收入"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "probation_employee_count > 0 and social_insured = false"
@@ -102,7 +108,9 @@ rules:
     name: "按最低基数缴纳"
     tax_type: "社保与非税收入"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "social_base = min_base for ratio > params.min_base_share"
@@ -130,7 +138,9 @@ rules:
     name: "劳务派遣社保异常"
     tax_type: "社保与非税收入"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "dispatch_worker_count > 0 and social_insured = false"
@@ -157,7 +167,9 @@ rules:
     name: "公积金基数异常"
     tax_type: "社保与非税收入"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(housing_fund_base - salary_total) / salary_total > params.fund_base_diff_ratio"
@@ -184,7 +196,9 @@ rules:
     name: "残保金申报异常"
     tax_type: "社保与非税收入"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "disabled_employment_ratio < required_ratio and fund_declared = 0"
@@ -210,7 +224,9 @@ rules:
     name: "工会经费申报异常"
     tax_type: "社保与非税收入"
     source_set: "V1.1"
-    level: "low"
+    severity: "low"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "union_fund_declared < salary_total * params.union_fund_rate"
@@ -237,7 +253,9 @@ rules:
     name: "合同金额与印花税计税依据差异"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(contract_amount - stamp_tax_base) / contract_amount > params.base_diff_ratio"
@@ -264,7 +282,9 @@ rules:
     name: "资金账簿印花税异常"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "capital_increase > 0 and stamp_tax_paid = 0"
@@ -290,7 +310,9 @@ rules:
     name: "产权转移书据未申报"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "property_transfer_amount > 0 and stamp_tax_paid = 0"
@@ -316,7 +338,9 @@ rules:
     name: "借款合同未申报"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "loan_contract_amount > 0 and stamp_tax_paid = 0"
@@ -342,7 +366,9 @@ rules:
     name: "租赁合同未申报"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "lease_contract_amount > 0 and stamp_tax_paid = 0"
@@ -368,7 +394,9 @@ rules:
     name: "购销合同未申报"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "purchase_sales_contract_amount > 0 and stamp_tax_paid = 0"
@@ -394,7 +422,9 @@ rules:
     name: "运输合同未申报"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "transport_contract_amount > 0 and stamp_tax_paid = 0"
@@ -422,7 +452,9 @@ rules:
     name: "技术合同未申报"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "technology_contract_amount > 0 and stamp_tax_paid = 0"
@@ -448,7 +480,9 @@ rules:
     name: "营业账簿印花税异常"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "business_ledger_count > 0 and stamp_tax_paid = 0"
@@ -474,7 +508,9 @@ rules:
     name: "印花税税目适用错误"
     tax_type: "印花税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_stamp_tax_item != correct_item"
@@ -500,7 +536,9 @@ rules:
     name: "房产原值未申报"
     tax_type: "房产税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "building_original_value > 0 and property_tax_paid = 0"
@@ -527,7 +565,9 @@ rules:
     name: "租金收入未申报房产税"
     tax_type: "房产税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "rental_income > 0 and property_tax_paid = 0"
@@ -553,7 +593,9 @@ rules:
     name: "免租期房产税异常"
     tax_type: "房产税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "rent_free_period > 0 and property_tax_paid = 0"
@@ -580,7 +622,9 @@ rules:
     name: "地下建筑物未申报"
     tax_type: "房产税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "underground_building_value > 0 and property_tax_paid = 0"
@@ -607,7 +651,9 @@ rules:
     name: "在建工程转固未申报"
     tax_type: "房产税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "construction_in_progress_transferred > 0 and property_tax_paid = 0"
@@ -633,7 +679,9 @@ rules:
     name: "房产税计税依据异常"
     tax_type: "房产税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(property_tax_base - building_original_value * (1 - params.deduction_ratio)) > params.base_diff_tolerance"
@@ -661,7 +709,9 @@ rules:
     name: "房产税税率适用错误"
     tax_type: "房产税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_property_tax_rate != correct_rate"
@@ -689,7 +739,9 @@ rules:
     name: "房产税与土地使用税不匹配"
     tax_type: "房产税"
     source_set: "V1.1"
-    level: "low"
+    severity: "low"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "property_tax_paid > 0 and land_use_tax_paid = 0"
@@ -716,7 +768,9 @@ rules:
     name: "土地面积未申报"
     tax_type: "城镇土地使用税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "land_area > 0 and land_use_tax_paid = 0"
@@ -742,7 +796,9 @@ rules:
     name: "土地等级适用错误"
     tax_type: "城镇土地使用税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_land_level != correct_land_level"
@@ -770,7 +826,9 @@ rules:
     name: "免税土地未备案"
     tax_type: "城镇土地使用税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_exempt_land > 0 and filing_missing = true"
@@ -796,7 +854,9 @@ rules:
     name: "土地使用税与房产税不匹配"
     tax_type: "城镇土地使用税"
     source_set: "V1.1"
-    level: "low"
+    severity: "low"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "land_use_tax_paid > 0 and property_tax_paid = 0"
@@ -823,7 +883,9 @@ rules:
     name: "土地出让合同与申报差异"
     tax_type: "城镇土地使用税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(land_transfer_area - declared_land_area) / land_transfer_area > params.area_diff_ratio"
@@ -850,7 +912,9 @@ rules:
     name: "土地闲置未申报"
     tax_type: "城镇土地使用税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "idle_land_area > 0 and land_use_tax_paid = 0"
@@ -877,7 +941,9 @@ rules:
     name: "预缴土地增值税异常"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "prepaid_lat < pre_sale_revenue * params.prepay_rate"
@@ -905,7 +971,9 @@ rules:
     name: "清算条件已满足未清算"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "liquidation_condition_met = true and liquidation_done = false"
@@ -931,7 +999,9 @@ rules:
     name: "扣除项目金额异常"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "deduction_amount > params.amount_threshold"
@@ -956,7 +1026,9 @@ rules:
     name: "销售收入与申报差异"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(sales_revenue - declared_lat_sales) / sales_revenue > params.diff_ratio"
@@ -982,7 +1054,9 @@ rules:
     name: "普通住宅与非普通住宅划分错误"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "residential_type_misclassified = true"
@@ -1009,7 +1083,9 @@ rules:
     name: "开发成本分摊异常"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cost_allocation_ratio != reasonable_ratio"
@@ -1035,7 +1111,9 @@ rules:
     name: "利息支出扣除异常"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "interest_deduction > params.amount_threshold"
@@ -1061,7 +1139,9 @@ rules:
     name: "拆迁补偿费异常"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "relocation_compensation > params.amount_threshold"
@@ -1087,7 +1167,9 @@ rules:
     name: "土地增值税税负率异常"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "lat_burden < industry_avg_lat_burden * params.burden_ratio"
@@ -1115,7 +1197,9 @@ rules:
     name: "清算后再转让未申报"
     tax_type: "土地增值税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "post_liquidation_transfer > 0 and lat_declared = 0"
@@ -1142,7 +1226,9 @@ rules:
     name: "附加税费计税依据与增值税差异"
     tax_type: "附加税费"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(surtax_base - vat_payable) / vat_payable > params.base_diff_ratio"
@@ -1169,7 +1255,9 @@ rules:
     name: "附加税费减免适用错误"
     tax_type: "附加税费"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "surtax_reduction_applied and condition not met"
@@ -1195,7 +1283,9 @@ rules:
     name: "城建税税率适用错误"
     tax_type: "附加税费"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_urban_rate != correct_rate"
@@ -1223,7 +1313,9 @@ rules:
     name: "教育费附加/地方教育附加未申报"
     tax_type: "附加税费"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vat_payable > 0 and education_surcharge_paid = 0"
@@ -1249,7 +1341,9 @@ rules:
     name: "附加税费与增值税申报不匹配"
     tax_type: "附加税费"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(surtax_paid - vat_payable * surtax_rate) > params.tolerance"
@@ -1277,7 +1371,9 @@ rules:
     name: "消费税税目适用错误"
     tax_type: "消费税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_consumption_item != correct_item"
@@ -1303,7 +1399,9 @@ rules:
     name: "消费税计税依据异常"
     tax_type: "消费税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(consumption_tax_base - sales_amount) > params.base_diff_tolerance"
@@ -1330,7 +1428,9 @@ rules:
     name: "自产自用未申报"
     tax_type: "消费税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "self_produced_used > 0 and consumption_tax_paid = 0"
@@ -1356,7 +1456,9 @@ rules:
     name: "委托加工未代扣代缴"
     tax_type: "消费税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "entrusted_processing > 0 and consumption_tax_withheld = 0"
@@ -1382,7 +1484,9 @@ rules:
     name: "进口消费税未申报"
     tax_type: "消费税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "import_consumption_goods > 0 and consumption_tax_paid = 0"
@@ -1408,7 +1512,9 @@ rules:
     name: "消费税与增值税收入差异"
     tax_type: "消费税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(consumption_tax_sales - vat_sales) / vat_sales > params.diff_ratio"
@@ -1434,7 +1540,9 @@ rules:
     name: "成品油消费税异常"
     tax_type: "消费税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "oil_consumption_tax != calculated"
@@ -1460,7 +1568,9 @@ rules:
     name: "白酒消费税异常"
     tax_type: "消费税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "baijiu_consumption_tax != calculated"
@@ -1486,7 +1596,9 @@ rules:
     name: "资源税计税依据异常"
     tax_type: "资源税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(resource_tax_base - sales_quantity) > params.base_diff_tolerance"
@@ -1513,7 +1625,9 @@ rules:
     name: "资源税税目适用错误"
     tax_type: "资源税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_resource_item != correct_item"
@@ -1539,7 +1653,9 @@ rules:
     name: "环保税排放量申报异常"
     tax_type: "环境保护税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "emission_declared != emission_actual"
@@ -1565,7 +1681,9 @@ rules:
     name: "环保税减免适用错误"
     tax_type: "环境保护税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "env_tax_reduction and condition not met"
@@ -1591,7 +1709,9 @@ rules:
     name: "环保税与排污许可差异"
     tax_type: "环境保护税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(env_tax_emission - permit_emission) > params.emission_tolerance"
@@ -1618,7 +1738,9 @@ rules:
     name: "契税计税依据偏低"
     tax_type: "契税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "deed_tax_base < contract_amount * params.base_ratio"
@@ -1646,7 +1768,9 @@ rules:
     name: "土地使用权出让契税未申报"
     tax_type: "契税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "land_transfer_amount > 0 and deed_tax_paid = 0"
@@ -1672,7 +1796,9 @@ rules:
     name: "房屋买卖契税未申报"
     tax_type: "契税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "house_transfer_amount > 0 and deed_tax_paid = 0"
@@ -1698,7 +1824,9 @@ rules:
     name: "契税税率适用错误"
     tax_type: "契税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_deed_rate != correct_rate"
@@ -1726,7 +1854,9 @@ rules:
     name: "契税减免条件不符"
     tax_type: "契税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "deed_tax_reduction and condition not met"
@@ -1752,7 +1882,9 @@ rules:
     name: "耕地占用税未申报"
     tax_type: "耕地占用税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "occupied_farmland_area > 0 and farmland_tax_paid = 0"
@@ -1778,7 +1910,9 @@ rules:
     name: "耕地占用税计税面积异常"
     tax_type: "耕地占用税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(tax_area - actual_area) / actual_area > params.area_diff_ratio"
@@ -1805,7 +1939,9 @@ rules:
     name: "耕地占用税减免异常"
     tax_type: "耕地占用税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "farmland_tax_reduction and condition not met"
@@ -1831,7 +1967,9 @@ rules:
     name: "车船税未申报"
     tax_type: "车船税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vehicle_count > 0 and vehicle_tax_paid = 0"
@@ -1857,7 +1995,9 @@ rules:
     name: "车船税计税依据异常"
     tax_type: "车船税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vehicle_tax_base != correct_base"
@@ -1883,7 +2023,9 @@ rules:
     name: "车船税减免异常"
     tax_type: "车船税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vehicle_tax_reduction and condition not met"
@@ -1909,7 +2051,9 @@ rules:
     name: "车辆购置税未申报"
     tax_type: "车辆购置税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vehicle_purchase_amount > 0 and vpt_paid = 0"
@@ -1935,7 +2079,9 @@ rules:
     name: "车辆购置税计税价格偏低"
     tax_type: "车辆购置税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vpt_base < market_price * params.base_ratio"
@@ -1962,7 +2108,9 @@ rules:
     name: "车辆购置税减免异常"
     tax_type: "车辆购置税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vpt_reduction and condition not met"
@@ -1988,7 +2136,9 @@ rules:
     name: "关税完税价格异常"
     tax_type: "关税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "customs_value < invoice_value * params.value_ratio"
@@ -2016,7 +2166,9 @@ rules:
     name: "关税税率适用错误"
     tax_type: "关税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_customs_rate != correct_rate"
@@ -2044,7 +2196,9 @@ rules:
     name: "关税减免异常"
     tax_type: "关税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "customs_reduction and condition not met"
@@ -2071,7 +2225,9 @@ rules:
     name: "船舶吨税未申报"
     tax_type: "船舶吨税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "ship_tonnage > 0 and tonnage_tax_paid = 0"
@@ -2097,7 +2253,9 @@ rules:
     name: "烟叶税未申报"
     tax_type: "烟叶税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tobacco_purchase_amount > 0 and tobacco_tax_paid = 0"
@@ -2123,7 +2281,9 @@ rules:
     name: "烟叶税计税依据异常"
     tax_type: "烟叶税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tobacco_tax_base != purchase_amount"
@@ -2150,7 +2310,9 @@ rules:
     name: "文化事业建设费未申报"
     tax_type: "文化事业建设费"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "advertising_revenue > 0 and cultural_fee_paid = 0"
@@ -2176,7 +2338,9 @@ rules:
     name: "文化事业建设费计税依据异常"
     tax_type: "文化事业建设费"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(cultural_fee_base - advertising_revenue) / advertising_revenue > params.base_diff_ratio"
@@ -2203,7 +2367,9 @@ rules:
     name: "水利建设基金未申报"
     tax_type: "水利建设基金"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "sales_revenue > 0 and water_fund_paid = 0"
@@ -2229,7 +2395,9 @@ rules:
     name: "水利建设基金计税依据异常"
     tax_type: "水利建设基金"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(water_fund_base - sales_revenue) / sales_revenue > params.base_diff_ratio"
@@ -2256,7 +2424,9 @@ rules:
     name: "地方教育附加未申报"
     tax_type: "附加税费"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vat_payable > 0 and local_edu_surcharge_paid = 0"
@@ -2283,7 +2453,9 @@ rules:
     name: "教育费附加减免异常"
     tax_type: "附加税费"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "edu_surcharge_reduction and condition not met"
@@ -2309,7 +2481,9 @@ rules:
     name: "附加税费退库异常"
     tax_type: "附加税费"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "surtax_refund > 0 and vat_refund = 0"
@@ -2335,7 +2509,9 @@ rules:
     name: "附加税费跨期异常"
     tax_type: "附加税费"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "surtax_period != vat_period"
@@ -2361,7 +2537,9 @@ rules:
     name: "附加税费申报表间差异"
     tax_type: "附加税费"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(surtax_return_a - surtax_return_b) > params.return_diff_threshold"

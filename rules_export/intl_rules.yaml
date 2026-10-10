@@ -21,7 +21,9 @@ rules:
     name: "非居民预提所得税未代扣"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "non_resident_income > 0 and withholding_tax = 0"
@@ -47,7 +49,9 @@ rules:
     name: "非居民股息预提税异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "dividend_to_non_resident > 0 and withholding_tax < correct_tax"
@@ -73,7 +77,9 @@ rules:
     name: "非居民利息预提税异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "interest_to_non_resident > 0 and withholding_tax < correct_tax"
@@ -99,7 +105,9 @@ rules:
     name: "非居民特许权使用费预提税异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "royalty_to_non_resident > 0 and withholding_tax < correct_tax"
@@ -125,7 +133,9 @@ rules:
     name: "非居民财产转让预提税异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "property_transfer_to_non_resident > 0 and withholding_tax = 0"
@@ -151,7 +161,9 @@ rules:
     name: "常设机构判定异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "permanent_establishment_indicators > threshold"
@@ -177,7 +189,9 @@ rules:
     name: "国际运输税收异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "international_transport_income > 0 and tax_treatment_abnormal"
@@ -204,7 +218,9 @@ rules:
     name: "税收协定优惠适用异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "treaty_benefit_claimed and beneficial_owner_test_failed"
@@ -230,7 +246,9 @@ rules:
     name: "受益所有人认定异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "beneficial_owner_indicators < threshold"
@@ -255,7 +273,9 @@ rules:
     name: "境外所得未申报"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "overseas_income > 0 and declared_overseas_income = 0"
@@ -282,7 +302,9 @@ rules:
     name: "境外所得抵免异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "foreign_tax_credit > correct_credit"
@@ -309,7 +331,9 @@ rules:
     name: "直接抵免异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "direct_credit_abnormal = true"
@@ -335,7 +359,9 @@ rules:
     name: "间接抵免异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "indirect_credit_abnormal = true"
@@ -361,7 +387,9 @@ rules:
     name: "分国不分项抵免异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "country_by_country_credit_abnormal = true"
@@ -387,7 +415,9 @@ rules:
     name: "综合抵免异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "comprehensive_credit_abnormal = true"
@@ -413,7 +443,9 @@ rules:
     name: "饶让抵免异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_sparing_credit_abnormal = true"
@@ -439,7 +471,9 @@ rules:
     name: "CRS信息申报异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "CRS_reporting_missing = true"
@@ -464,7 +498,9 @@ rules:
     name: "对外支付备案缺失"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "outbound_payment > params.outbound_payment_threshold and filing_missing = true"
@@ -492,7 +528,9 @@ rules:
     name: "服务贸易对外支付税务备案异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "service_trade_payment > params.service_trade_payment_threshold and tax_filing_missing"
@@ -520,7 +558,9 @@ rules:
     name: "非居民享受协定待遇后续管理异常"
     tax_type: "国际税收与非居民"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "treaty_benefit_followup_missing = true"

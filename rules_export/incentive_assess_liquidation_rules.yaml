@@ -21,7 +21,9 @@ rules:
     name: "优惠条件不满足但享受优惠"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_condition_met = false and incentive_claimed = true"
@@ -49,7 +51,9 @@ rules:
     name: "优惠备案缺失"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_claimed = true and filing_missing = true"
@@ -75,7 +79,9 @@ rules:
     name: "优惠金额计算错误"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_amount != calculated_incentive"
@@ -101,7 +107,9 @@ rules:
     name: "叠加享受优惠"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "overlapping_incentives = true"
@@ -127,7 +135,9 @@ rules:
     name: "优惠期间错误"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_period != correct_period"
@@ -153,7 +163,9 @@ rules:
     name: "高新优惠异常"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "high_tech_condition_met = false and high_tech_deduction > 0"
@@ -180,7 +192,9 @@ rules:
     name: "小微优惠异常"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "small_micro_condition_met = false and small_micro_deduction > 0"
@@ -206,7 +220,9 @@ rules:
     name: "研发加计扣除异常"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "R&D_condition_met = false and R&D_deduction > 0"
@@ -232,7 +248,9 @@ rules:
     name: "西部大开发优惠异常"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "western_condition_met = false and western_deduction > 0"
@@ -259,7 +277,9 @@ rules:
     name: "软件企业优惠异常"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "software_condition_met = false and software_deduction > 0"
@@ -285,7 +305,9 @@ rules:
     name: "资源综合利用优惠异常"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "resource_condition_met = false and resource_deduction > 0"
@@ -312,7 +334,9 @@ rules:
     name: "残疾人就业优惠异常"
     tax_type: "税收优惠"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "disabled_condition_met = false and disabled_deduction > 0"
@@ -338,7 +362,9 @@ rules:
     name: "优惠条件不满足但享受"
     tax_type: "税收优惠"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_condition_met = false and incentive_claimed = true"
@@ -365,7 +391,9 @@ rules:
     name: "优惠备案缺失"
     tax_type: "税收优惠"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_claimed and filing_missing"
@@ -392,7 +420,9 @@ rules:
     name: "优惠金额计算错误"
     tax_type: "税收优惠"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_amount != calculated_incentive"
@@ -419,7 +449,9 @@ rules:
     name: "叠加享受优惠"
     tax_type: "税收优惠"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "overlapping_incentives = true"
@@ -445,7 +477,9 @@ rules:
     name: "优惠期间错误"
     tax_type: "税收优惠"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_period != correct_period"
@@ -472,7 +506,9 @@ rules:
     name: "核定征收条件不符"
     tax_type: "核定征收"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "assessed_collection and conditions_not_met"
@@ -498,7 +534,9 @@ rules:
     name: "核定征收率异常"
     tax_type: "核定征收"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "assessed_rate < industry_avg_rate * params.assessed_rate_ratio"
@@ -526,7 +564,9 @@ rules:
     name: "核定征收企业收入异常"
     tax_type: "核定征收"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "assessed_income < actual_income * params.assessed_income_ratio"
@@ -554,7 +594,9 @@ rules:
     name: "个人独资/合伙核定异常"
     tax_type: "核定征收"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "sole_proprietorship_or_partnership and assessed_collection and conditions_not_met"
@@ -581,7 +623,9 @@ rules:
     name: "注销清算未申报"
     tax_type: "注销清算"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "liquidation and tax_declared = 0"
@@ -608,7 +652,9 @@ rules:
     name: "清算所得计算异常"
     tax_type: "注销清算"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "liquidation_income != calculated_income"
@@ -635,7 +681,9 @@ rules:
     name: "股东分得剩余资产税务处理异常"
     tax_type: "注销清算"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "residual_asset_distribution and tax_treatment_abnormal"
@@ -661,7 +709,9 @@ rules:
     name: "破产重整税务处理异常"
     tax_type: "破产重整"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "bankruptcy_reorganization and tax_treatment_abnormal"
@@ -688,7 +738,9 @@ rules:
     name: "债务重组所得未申报"
     tax_type: "破产重整"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "debt_restructuring_income > 0 and tax_declared = 0"
@@ -714,7 +766,9 @@ rules:
     name: "资产处置损失异常"
     tax_type: "破产重整"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "asset_disposal_loss > params.asset_loss_threshold"

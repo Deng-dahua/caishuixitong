@@ -20,7 +20,9 @@ rules:
     name: "个税申报人数与社保人数差异"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(iit_headcount - social_headcount) / social_headcount > params.headcount_diff_ratio"
@@ -47,7 +49,9 @@ rules:
     name: "个税工资总额与企业所得税工资总额差异"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(iit_salary_total - cit_salary_total) / cit_salary_total > params.salary_total_diff_ratio"
@@ -75,7 +79,9 @@ rules:
     name: "股东借款长期未还"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "shareholder_loan_balance > 0 and loan_days > params.loan_days"
@@ -102,7 +108,9 @@ rules:
     name: "股东分红未代扣代缴"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "dividend_paid > 0 and iit_withheld = 0"
@@ -129,7 +137,9 @@ rules:
     name: "劳务报酬未代扣代缴"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "labor_remuneration > 0 and iit_withheld = 0"
@@ -155,7 +165,9 @@ rules:
     name: "多处任职未合并申报"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "person_multi_employer = true and merged_declaration = false"
@@ -181,7 +193,9 @@ rules:
     name: "年终奖计税方式异常"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "annual_bonus_tax_method not optimal"
@@ -208,7 +222,9 @@ rules:
     name: "高收入人员税负偏低"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "high_income_person_tax_burden < params.burden_threshold"
@@ -234,7 +250,9 @@ rules:
     name: "外籍个人免税补贴异常"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "foreign_tax_exempt_subsidy > params.amount_threshold"
@@ -261,7 +279,9 @@ rules:
     name: "股权转让个税申报异常"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "equity_transfer_income > 0 and iit_declared < params.amount_threshold"
@@ -287,7 +307,9 @@ rules:
     name: "合伙企业个人合伙人经营所得异常"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "partnership_income_allocated > 0 and iit_declared = 0"
@@ -313,7 +335,9 @@ rules:
     name: "个体工商户核定征收异常"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "fixed_rate_collection and actual_income > params.amount_threshold"
@@ -339,7 +363,9 @@ rules:
     name: "个人独资企业投资人个税异常"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "sole_proprietorship_income > 0 and iit_declared = 0"
@@ -366,7 +392,9 @@ rules:
     name: "工资薪金长期低于起征点"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "salary_below_threshold_months > params.salary_below_threshold_months"
@@ -392,7 +420,9 @@ rules:
     name: "现金发放工资未申报"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cash_salary > 0 and iit_declared = 0"
@@ -418,7 +448,9 @@ rules:
     name: "离职补偿金个税异常"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "severance_pay > params.severance_threshold and iit_withheld = 0"
@@ -446,7 +478,9 @@ rules:
     name: "股权激励个税递延异常"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "equity_incentive and deferred_tax_condition not met"
@@ -473,7 +507,9 @@ rules:
     name: "利息股息红利所得未代扣"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "interest_dividend_income > 0 and iit_withheld = 0"
@@ -500,7 +536,9 @@ rules:
     name: "财产租赁所得未代扣"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "property_rental_income > 0 and iit_withheld = 0"
@@ -527,7 +565,9 @@ rules:
     name: "偶然所得未代扣"
     tax_type: "个人所得税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "accidental_income > 0 and iit_withheld = 0"

@@ -20,7 +20,9 @@ rules:
     name: "所得税贡献率偏低"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: 80
+    score_note: "外部清单 D.4 示例明确给出"
     version: "1.0.0"
     enabled: false
     condition: "cit_contribution < industry_avg_cit_contribution * params.ratio"
@@ -48,7 +50,9 @@ rules:
     name: "所得税税负率异常波动"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(cit_burden - cit_burden_last_year) / cit_burden_last_year > params.volatility"
@@ -75,7 +79,9 @@ rules:
     name: "利润总额与应纳税所得额差异异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(taxable_income - profit_total) / profit_total > params.diff_ratio"
@@ -102,7 +108,9 @@ rules:
     name: "成本费用率异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cost_ratio > industry_avg_cost_ratio * params.upper_ratio"
@@ -129,7 +137,9 @@ rules:
     name: "收入与成本变动背离"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "revenue_growth - cost_growth < -params.growth_gap and revenue_growth < 0"
@@ -156,7 +166,9 @@ rules:
     name: "毛利率异常低于行业"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "gross_margin < industry_avg_gross_margin * params.ratio"
@@ -182,7 +194,9 @@ rules:
     name: "预缴与汇算差异大"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(prepaid_cit - annual_cit) / annual_cit > params.diff_ratio"
@@ -209,7 +223,9 @@ rules:
     name: "期间费用占比异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "expense_ratio > industry_avg_expense_ratio * params.upper_ratio"
@@ -235,7 +251,9 @@ rules:
     name: "业务招待费超标"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "entertainment_expense > min(revenue * params.revenue_rate, actual * params.actual_rate)"
@@ -261,7 +279,9 @@ rules:
     name: "广告宣传费超标"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "advertising_expense > revenue * params.revenue_rate"
@@ -287,7 +307,9 @@ rules:
     name: "利息支出超标/资本弱化"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "interest_expense > equity * params.debt_equity_ratio * market_rate"
@@ -314,7 +336,9 @@ rules:
     name: "关联交易定价异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(related_transaction_price - market_price) / market_price > params.price_deviation"
@@ -340,7 +364,9 @@ rules:
     name: "关联方借款长期未还"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_party_receivable_age > params.age_days"
@@ -366,7 +392,9 @@ rules:
     name: "存货与成本不匹配"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "inventory_change - cost_of_sales_change > params.growth_gap"
@@ -392,7 +420,9 @@ rules:
     name: "固定资产折旧异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "depreciation_amount != depreciation_policy_amount"
@@ -418,7 +448,9 @@ rules:
     name: "无形资产摊销异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "amortization_amount != amortization_policy_amount"
@@ -445,7 +477,9 @@ rules:
     name: "资产损失税前扣除异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "asset_loss_amount > params.amount_threshold and evidence_completeness < 1"
@@ -471,7 +505,9 @@ rules:
     name: "政府补助税务处理异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "government_grant > 0 and taxable_grant != government_grant"
@@ -497,7 +533,9 @@ rules:
     name: "不征税收入对应支出扣除"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "non_taxable_income > 0 and corresponding_expense_deducted > 0"
@@ -523,7 +561,9 @@ rules:
     name: "免税收入对应成本扣除"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_exempt_income > 0 and corresponding_cost_deducted > 0"
@@ -549,7 +589,9 @@ rules:
     name: "研发费用加计扣除异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "R&D_expense > 0 and R&D_conditions not met"
@@ -575,7 +617,9 @@ rules:
     name: "高新技术企业优惠异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "high_tech_conditions not met and high_tech_deduction > 0"
@@ -602,7 +646,9 @@ rules:
     name: "小型微利企业优惠异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "small_micro_conditions not met and small_micro_deduction > 0"
@@ -628,7 +674,9 @@ rules:
     name: "西部大开发等区域优惠异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "regional_incentive_conditions not met and regional_deduction > 0"
@@ -654,7 +702,9 @@ rules:
     name: "弥补亏损异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "loss_carryforward > params.years or loss_amount > params.amount_threshold"
@@ -680,7 +730,9 @@ rules:
     name: "预提费用/预计负债异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "accrued_expense > actual_payment"
@@ -707,7 +759,9 @@ rules:
     name: "工资薪金与个税社保不匹配"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "salary_total - iit_total - social_security_total > params.amount_threshold"
@@ -734,7 +788,9 @@ rules:
     name: "股东借款视同分红风险"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "shareholder_loan_balance > 0 and loan_days > params.loan_days"
@@ -760,7 +816,9 @@ rules:
     name: "对外捐赠扣除异常"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "donation_amount > deduction_limit"
@@ -786,7 +844,9 @@ rules:
     name: "税会差异调整不完整"
     tax_type: "企业所得税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_accounting_diff > adjusted_diff"

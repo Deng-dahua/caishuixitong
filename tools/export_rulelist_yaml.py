@@ -199,7 +199,12 @@ def _render(fname: str, sub: list[dict]) -> str:
         L.append("    name: " + _q(raw["name"]))
         L.append("    tax_type: " + _q(tt))
         L.append("    source_set: " + _q(r["src_set"]))
-        L.append("    level: " + _q(raw["sev"]))
+        L.append("    severity: " + _q(raw["sev"]))
+        L.append("    score: " + (json.dumps(raw["score"]) if raw.get("score") is not None else "null"))
+        L.append("    score_note: " + _q(
+            (raw.get("score_source") or "外部清单明确给出")
+            if raw.get("score") is not None else
+            "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"))
         L.append("    version: " + _q("1.0.0"))
         L.append("    enabled: false")
         L.append("    condition: " + _q(raw["logic"]))

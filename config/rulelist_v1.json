@@ -203,7 +203,9 @@
         "declared_sales"
       ],
       "suggestion": "核查未开票收入、申报完整性",
-      "legal_basis_ref": "法规库自动匹配"
+      "legal_basis_ref": "法规库自动匹配",
+      "score": 85,
+      "score_source": "外部清单 D.4 示例明确给出"
     },
     {
       "src": "VAT-004",
@@ -650,7 +652,9 @@
         "industry_avg"
       ],
       "suggestion": "核查利润、纳税调整",
-      "legal_basis_ref": "法规库自动匹配"
+      "legal_basis_ref": "法规库自动匹配",
+      "score": 80,
+      "score_source": "外部清单 D.4 示例明确给出"
     },
     {
       "src": "CIT-002",
@@ -1124,5 +1128,6 @@
       "legal_basis_ref": "法规库自动匹配"
     }
   ],
-  "supplement": "config/rulelist_v11.json（V1.1 补充规则集 174 条的分册；V1.0 + V1.1 合计 234 条）"
+  "supplement": "config/rulelist_v11.json（V1.1 补充规则集 174 条的分册；V1.0 + V1.1 合计 234 条）",
+  "score_discipline": "★ 候选清单**未逐条给出分值**（仅 D.4 示例给出 VAT-003=85 / CIT-001=80）。本表不编造其余分值；且系统**不使用规则自评分**——事项等级唯一权威为 engine/risk_levels.py（6 档）。"
 }

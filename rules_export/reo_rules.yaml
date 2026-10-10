@@ -21,7 +21,9 @@ rules:
     name: "股权收购特殊性税务处理异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "special_tax_treatment and conditions_not_met"
@@ -48,7 +50,9 @@ rules:
     name: "资产收购特殊性税务处理异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "special_tax_treatment and conditions_not_met"
@@ -75,7 +79,9 @@ rules:
     name: "企业合并特殊性税务处理异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "special_tax_treatment and conditions_not_met"
@@ -102,7 +108,9 @@ rules:
     name: "企业分立特殊性税务处理异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "special_tax_treatment and conditions_not_met"
@@ -129,7 +137,9 @@ rules:
     name: "债务重组特殊性税务处理异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "special_tax_treatment and conditions_not_met"
@@ -156,7 +166,9 @@ rules:
     name: "股权转让所得未申报"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "equity_transfer_income > 0 and tax_declared = 0"
@@ -183,7 +195,9 @@ rules:
     name: "股权转让价格偏低"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "transfer_price < fair_value * params.fair_value_ratio"
@@ -210,7 +224,9 @@ rules:
     name: "非货币性资产投资税务处理异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "non_monetary_asset_investment and tax_treatment_abnormal"
@@ -237,7 +253,9 @@ rules:
     name: "技术入股递延纳税异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "technology_equity_investment and deferred_tax_conditions_not_met"
@@ -264,7 +282,9 @@ rules:
     name: "股权激励递延纳税异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "equity_incentive and deferred_tax_conditions_not_met"
@@ -291,7 +311,9 @@ rules:
     name: "转增股本个税异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "capital_reserve_to_equity > 0 and IIT_withheld = 0"
@@ -319,7 +341,9 @@ rules:
     name: "未分配利润转增个税异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "retained_earnings_to_equity > 0 and IIT_withheld = 0"
@@ -346,7 +370,9 @@ rules:
     name: "资本公积转增个税异常"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "capital_reserve_to_equity > 0 and IIT_withheld = 0"
@@ -373,7 +399,9 @@ rules:
     name: "间接转让中国应税财产未申报"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "indirect_transfer_china_taxable_property and tax_declared = 0"
@@ -400,7 +428,9 @@ rules:
     name: "合理商业目的不足"
     tax_type: "企业重组与资本交易"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "reasonable_business_purpose_score < params.purpose_score_threshold"

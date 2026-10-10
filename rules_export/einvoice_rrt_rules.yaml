@@ -20,7 +20,9 @@ rules:
     name: "电子发票重复报销"
     tax_type: "电子发票"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "duplicate_e_invoice = true"
@@ -47,7 +49,9 @@ rules:
     name: "全电发票红冲异常"
     tax_type: "电子发票"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "full_e_invoice_void_abnormal = true"
@@ -75,7 +79,9 @@ rules:
     name: "数电票开具异常"
     tax_type: "电子发票"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "digital_invoice_abnormal = true"
@@ -100,7 +106,9 @@ rules:
     name: "发票查验异常"
     tax_type: "电子发票"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "invoice_verification_failed = true"
@@ -126,7 +134,9 @@ rules:
     name: "发票勾选异常"
     tax_type: "电子发票"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "invoice_selection_abnormal = true"
@@ -152,7 +162,9 @@ rules:
     name: "留抵退税条件不符"
     tax_type: "留抵退税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "retained_tax_refund and conditions_not_met"
@@ -178,7 +190,9 @@ rules:
     name: "增量留抵异常"
     tax_type: "留抵退税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incremental_retained_tax_refund_abnormal"
@@ -204,7 +218,9 @@ rules:
     name: "存量留抵异常"
     tax_type: "留抵退税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "stock_retained_tax_refund_abnormal"
@@ -230,7 +246,9 @@ rules:
     name: "留抵抵欠异常"
     tax_type: "留抵退税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "retained_tax_offset_arrears_abnormal"
@@ -256,7 +274,9 @@ rules:
     name: "留抵退税后进项转出异常"
     tax_type: "留抵退税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "input_tax_transfer_out_after_refund_abnormal"

@@ -21,7 +21,9 @@ rules:
     name: "平台佣金收入未申报"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "platform_commission_income > 0 and tax_declared = 0"
@@ -48,7 +50,9 @@ rules:
     name: "平台打赏收入未申报"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "live_reward_income > 0 and tax_declared = 0"
@@ -75,7 +79,9 @@ rules:
     name: "主播个税未代扣"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "anchor_income > 0 and IIT_withheld = 0"
@@ -101,7 +107,9 @@ rules:
     name: "MCN机构税务处理异常"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "MCN_income_allocation_abnormal"
@@ -128,7 +136,9 @@ rules:
     name: "平台灵活用工结算异常"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "flexible_employment_settlement > params.amount_threshold and invoice_abnormal"
@@ -154,7 +164,9 @@ rules:
     name: "委托代征异常"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "entrusted_collection and conditions_not_met"
@@ -181,7 +193,9 @@ rules:
     name: "汇总代开发票异常"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "aggregated_invoice_abnormal = true"
@@ -207,7 +221,9 @@ rules:
     name: "自然人代开异常"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "natural_person_invoice > params.amount_threshold"
@@ -233,7 +249,9 @@ rules:
     name: "临时税务登记异常"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "temporary_tax_registration > threshold"
@@ -259,7 +277,9 @@ rules:
     name: "集群注册异常"
     tax_type: "平台经济"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cluster_registration > threshold"
@@ -284,7 +304,9 @@ rules:
     name: "劳务外包变相用工"
     tax_type: "灵活用工"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "labor_outsourcing_ratio > params.outsourcing_ratio and actual_employment = true"
@@ -311,7 +333,9 @@ rules:
     name: "劳务派遣比例超标"
     tax_type: "灵活用工"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "dispatch_worker_ratio > params.dispatch_ratio"
@@ -337,7 +361,9 @@ rules:
     name: "社保代缴异常"
     tax_type: "灵活用工"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "social_security_agency > 0 and actual_employer != agency"
@@ -364,7 +390,9 @@ rules:
     name: "个税代征异常"
     tax_type: "灵活用工"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "IIT_collection_agency and conditions_not_met"
@@ -391,7 +419,9 @@ rules:
     name: "薪酬代发异常"
     tax_type: "灵活用工"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "salary_payment_agency > params.amount_threshold"
@@ -416,7 +446,9 @@ rules:
     name: "高净值个人税负偏低"
     tax_type: "高净值个人"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "high_net_worth_tax_burden < params.burden_threshold"
@@ -444,7 +476,9 @@ rules:
     name: "境外资产未申报"
     tax_type: "高净值个人"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "overseas_asset > 0 and declared = 0"
@@ -471,7 +505,9 @@ rules:
     name: "境外收入未申报"
     tax_type: "高净值个人"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "overseas_income > 0 and declared = 0"
@@ -498,7 +534,9 @@ rules:
     name: "家族信托税务处理异常"
     tax_type: "高净值个人"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "family_trust_tax_treatment_abnormal"
@@ -525,7 +563,9 @@ rules:
     name: "大额保单税务处理异常"
     tax_type: "高净值个人"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "large_insurance_policy > params.amount_threshold"

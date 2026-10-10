@@ -20,7 +20,9 @@ rules:
     name: "增值税税负率偏低"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "vat_burden < industry_avg_vat_burden * params.ratio"
@@ -48,7 +50,9 @@ rules:
     name: "增值税税负率异常波动"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(vat_burden - vat_burden_last_year) / vat_burden_last_year > params.volatility"
@@ -75,7 +79,9 @@ rules:
     name: "开票收入与申报收入差异"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: 85
+    score_note: "外部清单 D.4 示例明确给出"
     version: "1.0.0"
     enabled: false
     condition: "abs(invoice_sales - declared_sales) / declared_sales > params.diff_ratio"
@@ -102,7 +108,9 @@ rules:
     name: "进销项变动背离"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "output_tax_growth - input_tax_growth > params.growth_gap and output_tax_growth > params.output_growth_floor"
@@ -130,7 +138,9 @@ rules:
     name: "进销项品名背离"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "top_input_goods not in top_output_goods and amount_ratio > params.amount_ratio"
@@ -156,7 +166,9 @@ rules:
     name: "进销项数量背离"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(input_qty - output_qty) / output_qty > params.qty_ratio"
@@ -181,7 +193,9 @@ rules:
     name: "月末集中开票"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "month_end_invoice_ratio > params.month_end_share"
@@ -208,7 +222,9 @@ rules:
     name: "夜间开票异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "night_invoice_ratio > params.night_ratio"
@@ -237,7 +253,9 @@ rules:
     name: "红冲作废率异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "void_ratio > params.void_ratio"
@@ -263,7 +281,9 @@ rules:
     name: "进项发票异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abnormal_invoice_count > 0"
@@ -289,7 +309,9 @@ rules:
     name: "有进项无销项"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "input_tax > 0 and output_tax = 0 for n months"
@@ -314,7 +336,9 @@ rules:
     name: "有销项无进项"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "output_tax > 0 and input_tax = 0 for n months"
@@ -339,7 +363,9 @@ rules:
     name: "免税收入与进项抵扣不匹配"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_exempt_sales > 0 and input_tax_for_exempt_deducted > 0"
@@ -366,7 +392,9 @@ rules:
     name: "简易计税与一般计税混用异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "simplified_tax_sales > 0 and general_tax_input_deducted > 0"
@@ -392,7 +420,9 @@ rules:
     name: "预缴增值税与申报差异"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(prepaid_vat - declared_vat) / declared_vat > params.diff_ratio"
@@ -419,7 +449,9 @@ rules:
     name: "未开票收入占比异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "un_invoiced_revenue_ratio > params.unbilled_ratio"
@@ -445,7 +477,9 @@ rules:
     name: "销售退回异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "sales_return_ratio > params.return_ratio"
@@ -471,7 +505,9 @@ rules:
     name: "价外费用未计税"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "extra_price_income > taxed_extra_price_income"
@@ -497,7 +533,9 @@ rules:
     name: "视同销售未处理"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "deemed_sales_amount > declared_deemed_sales"
@@ -523,7 +561,9 @@ rules:
     name: "进项税额转出异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "should_transfer_out > actual_transfer_out"
@@ -549,7 +589,9 @@ rules:
     name: "差额征税项目异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "difference_tax_sales - difference_tax_cost > params.gap_threshold"
@@ -576,7 +618,9 @@ rules:
     name: "发票作废后重开异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "void_reissue_count > params.count_threshold"
@@ -601,7 +645,9 @@ rules:
     name: "同一客户频繁顶额开票"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "same_customer_max_invoice_count > params.count_threshold"
@@ -626,7 +672,9 @@ rules:
     name: "新办企业短期大量开票"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "new_company_invoice_amount_3m > params.amount_threshold"
@@ -654,7 +702,9 @@ rules:
     name: "购销合同与开票金额差异"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(contract_amount - invoice_amount) / contract_amount > params.diff_ratio"
@@ -680,7 +730,9 @@ rules:
     name: "银行流水收入与开票收入差异"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(bank_receipts - invoice_sales) / invoice_sales > params.revenue_diff_ratio"
@@ -706,7 +758,9 @@ rules:
     name: "应收账款与收入变动背离"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "AR_growth - revenue_growth > params.growth_gap"
@@ -732,7 +786,9 @@ rules:
     name: "存货变动与销售成本背离"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "inventory_change - cost_of_sales_change > params.growth_gap"
@@ -758,7 +814,9 @@ rules:
     name: "增值税税率适用错误"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_vat_rate != correct_vat_rate"
@@ -785,7 +843,9 @@ rules:
     name: "即征即退/先征后退异常"
     tax_type: "增值税"
     source_set: "V1.0"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "refund_amount > params.amount_threshold and refund_condition not met"

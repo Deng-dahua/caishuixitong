@@ -20,7 +20,9 @@ rules:
     name: "贷款利息收入未申报"
     tax_type: "金融"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "loan_interest_income > 0 and tax_declared = 0"
@@ -48,7 +50,9 @@ rules:
     name: "金融商品转让税务处理异常"
     tax_type: "金融"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "financial_asset_transfer and tax_treatment_abnormal"
@@ -75,7 +79,9 @@ rules:
     name: "贷款损失准备金扣除异常"
     tax_type: "金融"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "loan_loss_provision > params.amount_threshold"
@@ -101,7 +107,9 @@ rules:
     name: "融资租赁税务处理异常"
     tax_type: "融资租赁"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "finance_lease and tax_treatment_abnormal"
@@ -127,7 +135,9 @@ rules:
     name: "融资性售后回租异常"
     tax_type: "融资租赁"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "sale_leaseback and tax_treatment_abnormal"
@@ -154,7 +164,9 @@ rules:
     name: "经营租赁税务处理异常"
     tax_type: "融资租赁"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "operating_lease and tax_treatment_abnormal"
@@ -181,7 +193,9 @@ rules:
     name: "保理利息税务处理异常"
     tax_type: "保理"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "factoring_interest and tax_treatment_abnormal"
@@ -208,7 +222,9 @@ rules:
     name: "小贷公司利息收入未申报"
     tax_type: "小额贷款"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "micro_loan_interest > 0 and tax_declared = 0"
@@ -236,7 +252,9 @@ rules:
     name: "担保费收入未申报"
     tax_type: "担保"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "guarantee_fee_income > 0 and tax_declared = 0"
@@ -264,7 +282,9 @@ rules:
     name: "典当利息税务处理异常"
     tax_type: "典当"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "pawn_interest and tax_treatment_abnormal"
@@ -290,7 +310,9 @@ rules:
     name: "私募基金税务处理异常"
     tax_type: "私募基金"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "private_equity_fund and tax_treatment_abnormal"
@@ -317,7 +339,9 @@ rules:
     name: "公募基金税务处理异常"
     tax_type: "公募基金"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "public_fund and tax_treatment_abnormal"
@@ -344,7 +368,9 @@ rules:
     name: "信托收益税务处理异常"
     tax_type: "信托"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "trust_income and tax_treatment_abnormal"
@@ -371,7 +397,9 @@ rules:
     name: "REITs税务处理异常"
     tax_type: "REITs"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "REITs and tax_treatment_abnormal"
@@ -398,7 +426,9 @@ rules:
     name: "REITs分红税务处理异常"
     tax_type: "REITs"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "REITs_dividend and tax_treatment_abnormal"
@@ -425,7 +455,9 @@ rules:
     name: "PPP项目税务处理异常"
     tax_type: "PPP"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "PPP_project and tax_treatment_abnormal"
@@ -452,7 +484,9 @@ rules:
     name: "EPC合同税务处理异常"
     tax_type: "EPC"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "EPC_contract and tax_treatment_abnormal"
@@ -479,7 +513,9 @@ rules:
     name: "BOT项目税务处理异常"
     tax_type: "BOT"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "BOT_project and tax_treatment_abnormal"
@@ -506,7 +542,9 @@ rules:
     name: "资产证券化税务处理异常"
     tax_type: "资产证券化"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "ABS_transaction and tax_treatment_abnormal"
@@ -533,7 +571,9 @@ rules:
     name: "资金池税务处理异常"
     tax_type: "资金流"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cash_pool and tax_treatment_abnormal"

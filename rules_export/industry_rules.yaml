@@ -21,7 +21,9 @@ rules:
     name: "高新条件不满足但享受优惠"
     tax_type: "高新技术企业"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "high_tech_condition_met = false and high_tech_deduction > 0"
@@ -48,7 +50,9 @@ rules:
     name: "高新研发费用占比异常"
     tax_type: "高新技术企业"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "R&D_ratio < params.rnd_ratio_required"
@@ -76,7 +80,9 @@ rules:
     name: "高新科技人员占比异常"
     tax_type: "高新技术企业"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tech_personnel_ratio < params.tech_personnel_ratio_required"
@@ -104,7 +110,9 @@ rules:
     name: "研发费用加计扣除异常"
     tax_type: "研发"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "R&D_deduction and conditions_not_met"
@@ -131,7 +139,9 @@ rules:
     name: "研发费用归集异常"
     tax_type: "研发"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "R&D_expense_allocation_abnormal"
@@ -156,7 +166,9 @@ rules:
     name: "软件企业优惠异常"
     tax_type: "软件企业"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "software_condition_met = false and software_deduction > 0"
@@ -183,7 +195,9 @@ rules:
     name: "集成电路企业优惠异常"
     tax_type: "集成电路"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "IC_condition_met = false and IC_deduction > 0"
@@ -210,7 +224,9 @@ rules:
     name: "动漫企业优惠异常"
     tax_type: "动漫"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "anime_condition_met = false and anime_deduction > 0"
@@ -237,7 +253,9 @@ rules:
     name: "文化企业优惠异常"
     tax_type: "文化企业"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "culture_condition_met = false and culture_deduction > 0"
@@ -264,7 +282,9 @@ rules:
     name: "教育服务税务处理异常"
     tax_type: "教育"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "education_service and tax_treatment_abnormal"
@@ -291,7 +311,9 @@ rules:
     name: "医疗服务税务处理异常"
     tax_type: "医疗"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "medical_service and tax_treatment_abnormal"
@@ -318,7 +340,9 @@ rules:
     name: "养老服务税务处理异常"
     tax_type: "养老"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "elderly_care_service and tax_treatment_abnormal"
@@ -345,7 +369,9 @@ rules:
     name: "托育服务税务处理异常"
     tax_type: "托育"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "childcare_service and tax_treatment_abnormal"
@@ -372,7 +398,9 @@ rules:
     name: "家政服务税务处理异常"
     tax_type: "家政"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "domestic_service and tax_treatment_abnormal"
@@ -398,7 +426,9 @@ rules:
     name: "体育服务税务处理异常"
     tax_type: "体育"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "sports_service and tax_treatment_abnormal"
@@ -425,7 +455,9 @@ rules:
     name: "旅游服务税务处理异常"
     tax_type: "旅游"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tourism_service and tax_treatment_abnormal"
@@ -452,7 +484,9 @@ rules:
     name: "住宿服务税务处理异常"
     tax_type: "住宿"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "hotel_service and tax_treatment_abnormal"
@@ -479,7 +513,9 @@ rules:
     name: "餐饮服务税务处理异常"
     tax_type: "餐饮"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "catering_service and tax_treatment_abnormal"
@@ -506,7 +542,9 @@ rules:
     name: "娱乐服务税务处理异常"
     tax_type: "娱乐"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "entertainment_service and tax_treatment_abnormal"
@@ -533,7 +571,9 @@ rules:
     name: "跨境电商税务处理异常"
     tax_type: "跨境电商"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cross_border_ecommerce and tax_treatment_abnormal"

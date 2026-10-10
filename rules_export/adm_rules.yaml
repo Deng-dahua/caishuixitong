@@ -19,7 +19,9 @@ rules:
     name: "税务登记信息与工商信息不一致"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_registration != business_registration"
@@ -45,7 +47,9 @@ rules:
     name: "财务负责人/办税人异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "same_person_multi_companies > params.same_person_multi_companies"
@@ -72,7 +76,9 @@ rules:
     name: "注册地址异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "registered_address_virtual = true"
@@ -99,7 +105,9 @@ rules:
     name: "发票领用异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "invoice_quota_increase_abnormal = true"
@@ -126,7 +134,9 @@ rules:
     name: "税控设备异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_device_abnormal = true"
@@ -152,7 +162,9 @@ rules:
     name: "申报表逻辑校验异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "return_logic_check_failed = true"
@@ -177,7 +189,9 @@ rules:
     name: "申报数据篡改痕迹"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "return_amended_count > params.amended_count"
@@ -204,7 +218,9 @@ rules:
     name: "多次更正申报"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "amended_count > params.amended_count"
@@ -231,7 +247,9 @@ rules:
     name: "申报与缴款不一致"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(declared_tax - paid_tax) > params.declared_paid_tolerance"
@@ -258,7 +276,9 @@ rules:
     name: "欠税未清缴"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_arrears > 0"
@@ -283,7 +303,9 @@ rules:
     name: "滞纳金异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "late_fee > params.late_fee_threshold"
@@ -309,7 +331,9 @@ rules:
     name: "延期申报异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "extension_declaration_count > params.extension_count"
@@ -335,7 +359,9 @@ rules:
     name: "延期缴税异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "extension_payment_count > params.extension_count"
@@ -362,7 +388,9 @@ rules:
     name: "税收优惠备案缺失"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "incentive_claimed and filing_missing"
@@ -389,7 +417,9 @@ rules:
     name: "跨区域涉税事项未报验"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cross_region_project and report_missing"
@@ -416,7 +446,9 @@ rules:
     name: "外管证未核销"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "external_management_certificate_not_cancelled"
@@ -442,7 +474,9 @@ rules:
     name: "总分机构汇总纳税异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "headquarters_branch_allocation_abnormal"
@@ -469,7 +503,9 @@ rules:
     name: "合并纳税异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "consolidated_tax_filing_abnormal"
@@ -495,7 +531,9 @@ rules:
     name: "税收洼地注册异常"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_haven_registration = true"
@@ -522,7 +560,9 @@ rules:
     name: "财政返还与税收挂钩"
     tax_type: "税收征管与申报"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "fiscal_refund_linked_to_tax = true"

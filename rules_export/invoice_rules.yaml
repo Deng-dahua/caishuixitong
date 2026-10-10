@@ -20,7 +20,9 @@ rules:
     name: "进销项品名背离"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "top_input_goods not in top_output_goods and amount_ratio > params.amount_ratio"
@@ -48,7 +50,9 @@ rules:
     name: "顶额开票"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "invoice_amount = max_limit for count > params.count_threshold"
@@ -76,7 +80,9 @@ rules:
     name: "月末集中开票"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "month_end_invoice_ratio > params.month_end_share"
@@ -106,7 +112,9 @@ rules:
     name: "夜间开票"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "night_invoice_ratio > params.night_ratio"
@@ -136,7 +144,9 @@ rules:
     name: "作废红冲异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "void_ratio > params.void_ratio"
@@ -163,7 +173,9 @@ rules:
     name: "新办企业短期大量开票"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "new_company_invoice_amount_3m > params.amount_threshold"
@@ -190,7 +202,9 @@ rules:
     name: "同一IP/设备开票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "same_ip_invoice_count > params.count_threshold"
@@ -217,7 +231,9 @@ rules:
     name: "同一客户频繁开票"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "same_customer_invoice_count > params.count_threshold"
@@ -244,7 +260,9 @@ rules:
     name: "发票流与资金流不一致"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "invoice_payer != fund_payer"
@@ -270,7 +288,9 @@ rules:
     name: "发票流与合同流不一致"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "invoice_party != contract_party"
@@ -296,7 +316,9 @@ rules:
     name: "进项发票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abnormal_invoice_count > 0"
@@ -323,7 +345,9 @@ rules:
     name: "销项发票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abnormal_output_invoice_count > 0"
@@ -349,7 +373,9 @@ rules:
     name: "农产品收购发票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "agricultural_purchase_invoice > params.amount_threshold"
@@ -374,7 +400,9 @@ rules:
     name: "差旅费发票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "travel_expense_invoice > params.amount_threshold"
@@ -399,7 +427,9 @@ rules:
     name: "咨询费发票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "consulting_invoice > params.amount_threshold"
@@ -424,7 +454,9 @@ rules:
     name: "会议费发票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "conference_invoice > params.amount_threshold"
@@ -449,7 +481,9 @@ rules:
     name: "广告费发票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "advertising_invoice > params.amount_threshold"
@@ -475,7 +509,9 @@ rules:
     name: "运输费发票异常"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "transport_invoice > params.amount_threshold"
@@ -500,7 +536,9 @@ rules:
     name: "电子发票重复报销"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "duplicate_e_invoice = true"
@@ -527,7 +565,9 @@ rules:
     name: "发票备注栏缺失"
     tax_type: "发票合规"
     source_set: "V1.1"
-    level: "low"
+    severity: "low"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "required_remark_missing = true"

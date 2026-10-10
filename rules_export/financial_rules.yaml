@@ -20,7 +20,9 @@ rules:
     name: "资产负债表不平衡"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "assets != liabilities + equity"
@@ -48,7 +50,9 @@ rules:
     name: "利润表与资产负债表未分配利润勾稽异常"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(net_profit - retained_earnings_change) > params.tolerance"
@@ -74,7 +78,9 @@ rules:
     name: "现金流量表与货币资金勾稽异常"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(cash_flow_net - cash_change) > params.tolerance"
@@ -100,7 +106,9 @@ rules:
     name: "收入与应收账款变动背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "AR_growth - revenue_growth > params.growth_gap"
@@ -127,7 +135,9 @@ rules:
     name: "收入与存货变动背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "inventory_growth - revenue_growth > params.growth_gap"
@@ -153,7 +163,9 @@ rules:
     name: "成本与应付账款变动背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "AP_growth - cost_growth > params.growth_gap"
@@ -179,7 +191,9 @@ rules:
     name: "费用与应付职工薪酬变动背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "payable_salary_growth - expense_growth > params.growth_gap"
@@ -205,7 +219,9 @@ rules:
     name: "固定资产与折旧变动背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "fixed_asset_growth - depreciation_growth > params.growth_gap"
@@ -231,7 +247,9 @@ rules:
     name: "无形资产与摊销变动背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "intangible_asset_growth - amortization_growth > params.growth_gap"
@@ -257,7 +275,9 @@ rules:
     name: "长期股权投资与投资收益背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "long_term_equity_investment_growth - investment_income_growth > params.growth_gap"
@@ -283,7 +303,9 @@ rules:
     name: "借款与财务费用背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "loan_growth - finance_expense_growth > params.growth_gap"
@@ -309,7 +331,9 @@ rules:
     name: "货币资金与利息收入背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cash_growth - interest_income_growth > params.growth_gap"
@@ -335,7 +359,9 @@ rules:
     name: "其他应收款长期挂账"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "other_receivable_age > params.age_days"
@@ -361,7 +387,9 @@ rules:
     name: "其他应付款长期挂账"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "other_payable_age > params.age_days"
@@ -387,7 +415,9 @@ rules:
     name: "预收账款与收入确认背离"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "advance_receipt_growth - revenue_growth > params.growth_gap"
@@ -413,7 +443,9 @@ rules:
     name: "存货周转率异常"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "inventory_turnover < industry_avg * params.turnover_ratio"
@@ -440,7 +472,9 @@ rules:
     name: "应收账款周转率异常"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "AR_turnover < industry_avg * params.turnover_ratio"
@@ -469,7 +503,9 @@ rules:
     name: "毛利率异常波动"
     tax_type: "财务报表勾稽"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(gross_margin - gross_margin_last_year) > params.gross_margin_delta"
@@ -496,7 +532,9 @@ rules:
     name: "关联交易定价异常"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(related_price - market_price) / market_price > params.price_deviation"
@@ -524,7 +562,9 @@ rules:
     name: "关联交易占比过高"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_transaction_ratio > params.related_ratio"
@@ -551,7 +591,9 @@ rules:
     name: "关联方资金占用"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_party_receivable > params.amount_threshold"
@@ -576,7 +618,9 @@ rules:
     name: "关联方借款利率异常"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_loan_rate > market_rate * params.market_rate_multiple"
@@ -604,7 +648,9 @@ rules:
     name: "关联方购销价格异常"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_purchase_sales_price != market_price"
@@ -630,7 +676,9 @@ rules:
     name: "关联方劳务费用异常"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_service_fee > params.amount_threshold"
@@ -656,7 +704,9 @@ rules:
     name: "关联方资产转让异常"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_asset_transfer_price != fair_value"
@@ -683,7 +733,9 @@ rules:
     name: "关联方股权转让异常"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_equity_transfer_price != fair_value"
@@ -709,7 +761,9 @@ rules:
     name: "关联方债务豁免"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_party_debt_forgiveness > 0"
@@ -735,7 +789,9 @@ rules:
     name: "关联方承担费用"
     tax_type: "关联交易"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "related_party_expense_bearing > 0"
@@ -760,7 +816,9 @@ rules:
     name: "公转私大额频繁"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "public_to_private_count > params.count_threshold and amount > params.amount_threshold"
@@ -787,7 +845,9 @@ rules:
     name: "私转公大额频繁"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "private_to_public_count > params.count_threshold and amount > params.amount_threshold"
@@ -814,7 +874,9 @@ rules:
     name: "资金回流"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "fund_return_detected = true"
@@ -839,7 +901,9 @@ rules:
     name: "银行流水与收入不匹配"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(bank_receipts - revenue) / revenue > params.revenue_diff_ratio"
@@ -867,7 +931,9 @@ rules:
     name: "银行流水与成本不匹配"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(bank_payments - cost) / cost > params.cost_diff_ratio"
@@ -894,7 +960,9 @@ rules:
     name: "现金交易异常"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cash_transaction_ratio > params.cash_ratio"
@@ -921,7 +989,9 @@ rules:
     name: "个人卡收付款"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "personal_card_transaction > params.amount_threshold"
@@ -946,7 +1016,9 @@ rules:
     name: "第三方支付异常"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "third_party_payment > params.amount_threshold"
@@ -971,7 +1043,9 @@ rules:
     name: "资金池异常"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "fund_pool_balance > params.amount_threshold"
@@ -996,7 +1070,9 @@ rules:
     name: "大额预付款长期未冲销"
     tax_type: "资金流"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "prepayment_age > params.prepay_age_days"

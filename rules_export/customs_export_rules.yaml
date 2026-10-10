@@ -21,7 +21,9 @@ rules:
     name: "出口退税申报异常"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "export_refund > params.amount_threshold and condition not met"
@@ -47,7 +49,9 @@ rules:
     name: "免抵退税额异常"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "export_tax_refund != calculated_refund"
@@ -73,7 +77,9 @@ rules:
     name: "出口收入与报关单差异"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "abs(export_revenue - customs_declaration) / export_revenue > params.export_revenue_diff_ratio"
@@ -100,7 +106,9 @@ rules:
     name: "进料加工核销异常"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "processing_trade_verification_missing = true"
@@ -127,7 +135,9 @@ rules:
     name: "出口发票异常"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "export_invoice_abnormal = true"
@@ -152,7 +162,9 @@ rules:
     name: "退税函调异常"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_refund_investigation_abnormal = true"
@@ -178,7 +190,9 @@ rules:
     name: "出口商品编码适用错误"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_export_code != correct_code"
@@ -204,7 +218,9 @@ rules:
     name: "出口退税率适用错误"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "applied_refund_rate != correct_rate"
@@ -230,7 +246,9 @@ rules:
     name: "出口收汇异常"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "export_receipt_missing = true"
@@ -256,7 +274,9 @@ rules:
     name: "出口转内销未申报"
     tax_type: "出口退税"
     source_set: "V1.1"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "export_to_domestic > 0 and tax_declared = 0"
@@ -283,7 +303,9 @@ rules:
     name: "出口退税函调异常"
     tax_type: "出口退税"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "tax_refund_investigation_abnormal = true"
@@ -309,7 +331,9 @@ rules:
     name: "出口收汇异常"
     tax_type: "出口退税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "export_receipt_missing = true"
@@ -336,7 +360,9 @@ rules:
     name: "出口转内销未申报"
     tax_type: "出口退税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "export_to_domestic > 0 and tax_declared = 0"
@@ -363,7 +389,9 @@ rules:
     name: "跨境电商无票免税异常"
     tax_type: "出口退税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cross_border_ecommerce_tax_free and conditions_not_met"
@@ -390,7 +418,9 @@ rules:
     name: "保税料件内销未补税"
     tax_type: "海关"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "bonded_material_domestic_sale > 0 and tax_paid = 0"
@@ -417,7 +447,9 @@ rules:
     name: "加工贸易核销异常"
     tax_type: "海关"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "processing_trade_verification_abnormal"
@@ -443,7 +475,9 @@ rules:
     name: "海关完税价格异常"
     tax_type: "海关"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "customs_value < invoice_value * params.value_ratio"
@@ -471,7 +505,9 @@ rules:
     name: "关税减免异常"
     tax_type: "海关"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "customs_reduction and condition not met"
@@ -498,7 +534,9 @@ rules:
     name: "保税区税务处理异常"
     tax_type: "保税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "bonded_zone and tax_treatment_abnormal"
@@ -525,7 +563,9 @@ rules:
     name: "综合保税区税务处理异常"
     tax_type: "保税"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "comprehensive_bonded_zone and tax_treatment_abnormal"
@@ -552,7 +592,9 @@ rules:
     name: "自贸区税务处理异常"
     tax_type: "自贸区"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "free_trade_zone and tax_treatment_abnormal"
@@ -579,7 +621,9 @@ rules:
     name: "海南自贸港15%所得税异常"
     tax_type: "海南自贸港"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "hainan_15_percent and conditions_not_met"
@@ -608,7 +652,9 @@ rules:
     name: "海南自贸港个税优惠异常"
     tax_type: "海南自贸港"
     source_set: "V1.2"
-    level: "high"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "hainan_IIT_incentive and conditions_not_met"
@@ -636,7 +682,9 @@ rules:
     name: "离岛免税异常"
     tax_type: "海南自贸港"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "duty_free_island and conditions_not_met"
@@ -663,7 +711,9 @@ rules:
     name: "跨境电商保税进口异常"
     tax_type: "海南自贸港"
     source_set: "V1.2"
-    level: "medium"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
     condition: "cross_border_bonded_import and tax_treatment_abnormal"
