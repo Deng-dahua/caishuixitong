@@ -1094,6 +1094,144 @@ VERIFIED_RULE_CATALOG = [
              "materials": "银行对账单、余额调节表、科目余额表、明细账"},
         ],
     },
+    # ══ 外部规则清单 V1.0 落地的 12 条（2026-10-10）════════════════════════
+    #   来源：外部《财税稽查规则清单 V1.0》（VAT 30 + CIT 30）中本系统**真缺**的 12 条。
+    #   对照与阈值登记：`config/rulelist_v1.json`（覆盖状态 48 条已有/部分 + 12 条落地）；
+    #   实现：`engine/rulelist_v1.py`（阈值全部读数据表，数值/月份走唯一权威）。
+    #   ★ 属**查实层**（可复算事实），**不新增红线**（红线条数被 91 处文档/闸门绑定）；
+    #     缺资料时只出「数据质量提示」，且不重复报告覆盖度模块已列明的资料缺口。
+    {
+        "id": "VR075",
+        "name": "进销项税额增速背离（销项增速显著高于进项）",
+        "layer": "增值税勾稽规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["开票与收入确认", "进项抵扣与凭证管理"],
+        "required_sources": ["sal_invs", "pur_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "按月度聚合销项/进项税额的首末月增速比较；首月基数为零时不出结论（增速无意义）。阈值取 config/rulelist_v1.json。",
+    },
+    {
+        "id": "VR076",
+        "name": "夜间开票异常（22:00–次日 06:00 开票占比偏高）",
+        "layer": "发票行为规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["开票与收入确认"],
+        "required_sources": ["sal_invs"],
+        "status": "verified_executable_screening",
+        "limitation": "仅当销项发票日期含时分秒且样本不少于阈值张数时判定；夜间时段与阈值取 config/rulelist_v1.json。",
+    },
+    {
+        "id": "VR077",
+        "name": "简易计税与一般计税进项混用线索",
+        "layer": "增值税计税方法规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["申报与缴税"],
+        "required_sources": ["vouchers", "tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "账内只能检出「简易计税」线索；完整判定（简易销售额与一般计税进项是否混用）需增值税申报表附列资料，缺则只出资料提示。",
+    },
+    {
+        "id": "VR078",
+        "name": "预缴增值税与申报税额差异（需预缴税款表）",
+        "layer": "增值税预缴规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["申报与缴税"],
+        "required_sources": ["sal_invs", "tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "仅在销项/合同出现建筑服务、不动产租赁等可能需异地预缴的应税行为时才提示；账内无预缴记录时只出资料提示，不判违规。",
+    },
+    {
+        "id": "VR079",
+        "name": "差额征税项目销售额与扣除额异常（需附列资料三）",
+        "layer": "增值税差额征税规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["申报与缴税"],
+        "required_sources": ["sal_invs", "tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "以销项品名命中差额征税税目为线索；扣除项目明细须来自申报表附列资料（三），缺则只出资料提示。",
+    },
+    {
+        "id": "VR080",
+        "name": "新办企业短期大量开票",
+        "layer": "发票行为规则",
+        "industries": ["ALL"],
+        "taxes": ["增值税"],
+        "lifecycle": ["开票与收入确认", "设立与登记"],
+        "required_sources": ["sal_invs", "target_entity"],
+        "status": "verified_executable_screening",
+        "limitation": "以企业档案 established_date 为起点统计成立后 N 个月内的开票金额与张数；无成立日期时不判（不猜）。",
+    },
+    {
+        "id": "VR081",
+        "name": "企业所得税税负率期间波动异常",
+        "layer": "企业所得税勾稽规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["申报与缴税"],
+        "required_sources": ["tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "需两期及以上企业所得税申报表；仅当期时只出资料提示。无该类申报表时不产出（覆盖度模块已列明需补）。",
+    },
+    {
+        "id": "VR082",
+        "name": "利润总额与应纳税所得额差异异常",
+        "layer": "企业所得税勾稽规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["申报与缴税"],
+        "required_sources": ["tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "利润总额/应纳税所得额取自企业所得税申报表；无该表时不产出（避免与覆盖度模块重复报缺资料）。",
+    },
+    {
+        "id": "VR083",
+        "name": "企业所得税预缴与汇算差异过大",
+        "layer": "企业所得税预缴规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["申报与缴税"],
+        "required_sources": ["tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "需同一纳税年度的预缴税额与汇算应纳额同时可见；缺一侧不出结论。",
+    },
+    {
+        "id": "VR084",
+        "name": "不征税收入对应支出已扣除线索",
+        "layer": "企业所得税扣除规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["税前扣除与纳税调整"],
+        "required_sources": ["vouchers", "trial_balance"],
+        "status": "verified_executable_screening",
+        "limitation": "账内只提供不征税收入线索；对应支出是否已扣除须以专项资料与 A105040 核实，缺则只出资料提示。",
+    },
+    {
+        "id": "VR085",
+        "name": "免税收入对应成本已扣除线索",
+        "layer": "企业所得税扣除规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["税前扣除与纳税调整"],
+        "required_sources": ["vouchers", "trial_balance"],
+        "status": "verified_executable_screening",
+        "limitation": "账内只提供免税收入/免税项目线索；对应成本是否已扣除须以分别核算资料核实，缺则只出资料提示。",
+    },
+    {
+        "id": "VR086",
+        "name": "税会差异调整不完整线索",
+        "layer": "企业所得税扣除规则",
+        "industries": ["ALL"],
+        "taxes": ["企业所得税"],
+        "lifecycle": ["税前扣除与纳税调整"],
+        "required_sources": ["tax_declarations"],
+        "status": "verified_executable_screening",
+        "limitation": "以「利润总额与应纳税所得额存在差异而纳税调整额为 0」为线索；完整判定需 A105000 明细表。",
+    },
 ]
 
 
@@ -1185,7 +1323,7 @@ def _rule_finding(spec, detail, metrics, sources, status="clue_pending_investiga
              level=None, score=None, cleared_reason=None):
     """统一的风险检查发现底盘。
 
-    全系统 73 条原子规则的 finding 均经此构造，强制携带「三件套」：
+    全系统 85 条原子规则的 finding 均经此构造，强制携带「三件套」：
     1) finding_disposition —— 处置定性（明确非已认定违法，仅待证线索）
     2) verified_facts / to_prove —— 已核实事实 / 待企业举证事项（规则可自填，未填给诚实兜底）
     3) enterprise_rights —— 企业权利告知（复议/诉讼防御的统一底线）
@@ -7810,6 +7948,16 @@ def _scan_cash_blindspot(data, spec):
     return []
 
 
+def _rl1_scan(data, spec, src_id):
+    """薄转发到 `engine/rulelist_v1`（外部规则清单 V1.0 落地的 12 条）。
+
+    惰性导入：`rulelist_v1` 只在函数内引用本模块的 `_rule_finding`，故不构成导入环；
+    放在函数内可避免本模块 import 期就拉起外部清单的配置读取。
+    """
+    from engine.rulelist_v1 import scan as _scan_v1
+    return _scan_v1(data, spec, src_id)
+
+
 _SCANNERS = {
     "VR001": _scan_bank_invoice_gap,
     "VR002": _scan_voucher_invoice_gap,
@@ -7885,6 +8033,21 @@ _SCANNERS = {
     "VR072": _scan_agri_purchase_deduction,
     "VR073": _scan_travel_toll_input_tax,
     "VR074": _scan_bank_book_consistency,
+    # ── 外部规则清单 V1.0 落地的 12 条（2026-10-10）：薄转发到 engine/rulelist_v1 ──
+    #   转发而非就地实现：① 复用同一套数据表（阈值唯一权威 config/rulelist_v1.json）
+    #   ② 避免把外部清单的语义混进本模块的原子规则主体。惰性导入规避导入环。
+    "VR075": lambda data, spec: _rl1_scan(data, spec, "VAT-004"),
+    "VR076": lambda data, spec: _rl1_scan(data, spec, "VAT-008"),
+    "VR077": lambda data, spec: _rl1_scan(data, spec, "VAT-014"),
+    "VR078": lambda data, spec: _rl1_scan(data, spec, "VAT-015"),
+    "VR079": lambda data, spec: _rl1_scan(data, spec, "VAT-021"),
+    "VR080": lambda data, spec: _rl1_scan(data, spec, "VAT-024"),
+    "VR081": lambda data, spec: _rl1_scan(data, spec, "CIT-002"),
+    "VR082": lambda data, spec: _rl1_scan(data, spec, "CIT-003"),
+    "VR083": lambda data, spec: _rl1_scan(data, spec, "CIT-007"),
+    "VR084": lambda data, spec: _rl1_scan(data, spec, "CIT-019"),
+    "VR085": lambda data, spec: _rl1_scan(data, spec, "CIT-020"),
+    "VR086": lambda data, spec: _rl1_scan(data, spec, "CIT-030"),
 }
 
 
