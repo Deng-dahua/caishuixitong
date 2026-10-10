@@ -1,0 +1,1081 @@
+{
+  "schema": 1,
+  "name": "规则版本登记表（唯一权威）",
+  "purpose": "为每条已发布规则登记版本与生效日，使 finding 能自证「本结论当时按哪版规则计算」。此前只有 trace_id / Provenance / 法规版本 / 报告版本，缺规则版本。",
+  "discipline": [
+    "★ 新增同类对象 = 加一行数据，不改逻辑分支。",
+    "★ 未登记的 rule_id：finding 必须显式标 `rule_version=未登记`（status=unregistered），**绝不用默认版本静默顶替**（否则等于伪造版本溯源）。",
+    "★ 无 rule_id 的发现（域分析等）标 `rule_version_status=not_applicable`，不制造假归属。",
+    "规则**内容一改，必须同步改本表 version 并追加 rule_set_history**（门禁 check_rule_version_coverage 校验覆盖率）。"
+  ],
+  "rule_set_version": "2026.10",
+  "rule_set_history": [
+    {
+      "version": "2026.10",
+      "date": "2026-10-10",
+      "note": "P0-A 引入规则版本留痕；初版为全部已发布规则登记 1.0.0。"
+    }
+  ],
+  "counts": {
+    "tax_redlines": 91,
+    "verified_rule_engine": 85
+  },
+  "rules": {
+    "RL-AST-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-AST-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-AST-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-006": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-007": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-008": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-009": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-CIT-010": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-COST-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-COST-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-COST-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-COST-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-COST-005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-COST-006": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-FUND-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-FUND-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-FUND-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-FUND-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-FUND-005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-FUND-006": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-INC-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-INC-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-INC-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-INC-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-INV-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-INV-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-INV-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-INV-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-006": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-007": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-008": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-009": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-010": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-OTH-011": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PAY-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PAY-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PAY-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PAY-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PAY-005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PAY-006": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PTY-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PTY-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PTY-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PTY-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-PTY-005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-006": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-007": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-008": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-009": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-010": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-011": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-012": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-013": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-014": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-015": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-016": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-017": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-018": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-019": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-020": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-SPT-021": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-006": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-007": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-008": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-009": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-010": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-011": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-012": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-013": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-014": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "RL-VAT-015": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "tax_redlines"
+    },
+    "VR001": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR002": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR003": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR004": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR005": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR006": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR007": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR008": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR009": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR010": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR011": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR012": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR013": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR014": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR015": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR016": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR017": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR018": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR019": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR020": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR021": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR022": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR023": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR024": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR025": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR026": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR027": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR028": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR029": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR030": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR031": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR032": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR033": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR034": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR035": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR036": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR037": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR038": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR039": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR040": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR041": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR042": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR043": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR044": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR045": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR046": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR047": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR048": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR049": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR050": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR052": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR053": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR054": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR055": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR056": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR057": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR058": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR059": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR060": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR061": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR062": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR063": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR064": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR065": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR066": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR067": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR068": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR069": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR070": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR071": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR072": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR073": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR074": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR075": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR076": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR077": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR078": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR079": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR080": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR081": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR082": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR083": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR084": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR085": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    },
+    "VR086": {
+      "version": "1.0.0",
+      "effective_from": "2026-10-10",
+      "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+      "layer": "verified_rule_engine"
+    }
+  }
+}

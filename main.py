@@ -1391,10 +1391,13 @@ def _register_job_started(company_id, job_id, user_id, trigger="manual", force=F
         try:
             from engine.audit_trail import record as _audit_record
             from engine.analysis_jobs import trigger_cn as _trig_cn   # noqa: PLC0415
+            # ★ P0-A：分析起点即记录**当次规则集版本**（取不到写「未登记」，不伪造）
+            from engine.rule_versions import rule_set_version as _rsv_fn
+            _rsv = _rsv_fn() or "未登记"
             _audit_record(
                 "analysis.start", target=str(job_id), company_id=company_id,
-                detail="触发方式：%s%s" % (_trig_cn(trigger),
-                                          "；强制重算" if force else ""),
+                detail="触发方式：%s%s；规则集版本：%s" % (
+                    _trig_cn(trigger), "；强制重算" if force else "", _rsv),
                 user_id=user_id,
             )
         except Exception:                        # noqa: BLE001
@@ -1450,6 +1453,9 @@ def _register_job_finished(task_id, company_id, snap, reused_from=""):
         _msg = str(snap.get("error") or "")
         if _status == "error" and not _msg:
             _msg = str(snap.get("message") or "分析未正常结束（线程已退出但状态非完成）")
+        # ★ P0-A：终态登记带**本次分析所用规则集版本**（从报告载荷 rule_version 块取；
+        #   取不到留空字符串，绝不伪造版本号）。
+        _rv_blk = _rpt.get("rule_version") if isinstance(_rpt.get("rule_version"), dict) else {}
         return _jf(task_id, _status, company_id=company_id,
                    error_step=str(snap.get("current_module") or ""),
                    error_message=_msg,
@@ -1457,7 +1463,8 @@ def _register_job_finished(task_id, company_id, snap, reused_from=""):
                    overall_level=str(_p4.get("overall_risk") or _rpt.get("overall_level") or ""),
                    report_doc_no=_doc,
                    block_detail=str(snap.get("block_detail") or ""),
-                   reused_from=str(reused_from or ""))
+                   reused_from=str(reused_from or ""),
+                   rule_set_version=str(_rv_blk.get("rule_set_version") or ""))
     except Exception as _je:                     # noqa: BLE001
         print(f"[analysis-jobs] 作业终态登记异常(不影响分析结果): {_je}", flush=True)
         return None

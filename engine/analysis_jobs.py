@@ -278,7 +278,8 @@ def job_finished(job_id: str, status: str, company_id: Any = None,
                  overall_level: str = "",
                  report_doc_no: str = "",
                  reused_from: str = "",
-                 block_detail: str = "") -> Optional[Dict[str, Any]]:
+                 block_detail: str = "",
+                 rule_set_version: str = "") -> Optional[Dict[str, Any]]:
     """登记一次分析的**终态**（done / error / blocked）。返回写入的行。
 
     ★ 终态必须**恰好登记一次**（异常路径也要走到这里），否则作业永远停在
@@ -313,6 +314,9 @@ def job_finished(job_id: str, status: str, company_id: Any = None,
         "report_doc_no": str(report_doc_no or ""),
         "reused_from": str(reused_from or ""),
         "block_detail": str(block_detail or "")[:500],
+        # ★ P0-A 规则版本留痕：本次分析所用**规则集版本**（唯一权威 config/rule_versions.json）。
+        #   取不到就留空字符串 —— 绝不伪造版本号。
+        "rule_set_version": str(rule_set_version or ""),
     }
     return _guard(lambda: (_append_row(row), row)[1], "登记作业终态")
 

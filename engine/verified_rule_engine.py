@@ -1383,6 +1383,11 @@ def _rule_finding(spec, detail, metrics, sources, status="clue_pending_investiga
     if cleared_reason:
         result["cleared_reason"] = cleared_reason
         result["adjudication"] = "正常经营假设胜出（经竞争假设裁决后排除）"
+    # ── P0-A 规则版本留痕：`rule_version` / `rule_set_version` ──────────────
+    #   未登记 ⇒ 显式标「未登记」（status=unregistered），绝不写默认版本
+    #   （否则等于伪造版本溯源）。唯一权威 config/rule_versions.json。
+    from engine.rule_versions import stamp as _rv_stamp
+    _rv_stamp(result)
     return result
 
 

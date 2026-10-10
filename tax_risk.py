@@ -698,6 +698,9 @@ _REPORT_PAYLOAD_KEYS = (
     "company_id", "period_start", "period_end", "industry", "industry_benchmark",
     "data_quality", "restricted_analyses", "summary", "metrics",
     "rules_applied", "rules_count", "required_evidence_summary", "results",
+    # ★ P0-A（2026-10-10）规则版本留痕：使报告自证"本结论按哪版规则算出"。
+    #   唯一权威 engine/rule_versions.py + config/rule_versions.json。
+    "rule_version",
     "analysis_available", "notice",
 )
 
@@ -758,6 +761,15 @@ def _report_payload(*, company_id, period_start, period_end, summary, results,
 
     键集固定为 `_REPORT_PAYLOAD_KEYS`（闸门断言两分支键集完全相同）。
     """
+    # ── P0-A 规则版本留痕：从 results 反查命中规则及其版本（未登记显式列出）──
+    try:
+        from engine.rule_versions import snapshot as _rv_snapshot
+        _rv_block = _rv_snapshot(results)
+    except Exception as _e:                                   # noqa: BLE001
+        # 留痕失败必须可见，绝不用默认版本顶替
+        _rv_block = {"rule_set_version": "未登记", "hit_rule_count": 0,
+                     "hit_rule_versions": {}, "unregistered_rule_ids": [],
+                     "error": str(_e)}
     return {
         "company_id": company_id,
         "period_start": period_start, "period_end": period_end,
@@ -771,6 +783,7 @@ def _report_payload(*, company_id, period_start, period_end, summary, results,
         "rules_count": rules_count,
         "required_evidence_summary": evidence_summary if evidence_summary is not None else [],
         "results": results,
+        "rule_version": _rv_block,
         "analysis_available": analysis_available,
         "notice": notice,
     }

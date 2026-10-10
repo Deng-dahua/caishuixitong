@@ -750,6 +750,12 @@ def run_redline_detection(findings: List[Dict],
         "unmapped": len(unmapped),
         "combo_profiles": combo_profiles,
     }
+    # ── P0-A 规则版本留痕 ────────────────────────────────────────────────
+    #   每条红线疑点携带「本条规则当时的版本 + 整批规则集版本」，使历史结论可自证
+    #   "当时按哪版规则算出"。未登记 ⇒ 显式标「未登记」，**不默认**（engine/rule_versions.py）。
+    from engine.rule_versions import stamp_all as _rv_stamp_all
+    _rv_stamp_all(suspicions)
+
     if pipeline_log is not None:
         pipeline_log.append(
             f"[红线判定] {len(findings)}项发现 → 归并命中{len(suspicions)}条税务红线"

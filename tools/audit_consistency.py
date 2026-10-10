@@ -12890,6 +12890,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_redline_detector_attribution()  # 2026-10-10 红线归属须由检测器自报（A-P0-1）
                + check_redline_coverage_counts_authority_table()  # 2026-10-10 覆盖率须认表声明形态（A-P0-4）
                + check_redline_overlap_ledger()  # 2026-10-10 同概念红线须登记且不靠兜底编闭环（A-P0-2）
+               + check_rule_version_coverage()   # P0-A 全部已发布规则须登记版本（未登记⇒finding 无法自证）
                + check_non_risk_findings_not_flagged()  # 2026-10-10 正向发现不得被打风险等级（A-P0-3）
                + check_pending_verdict_softened()     # 2026-10-06 资料不足档不得断言触红
                + check_report_text_integrity()       # 2026-10-06 报告文本不得被改写坏
@@ -14680,6 +14681,59 @@ def check_redline_coverage_counts_authority_table() -> List[Tuple[str, str, str]
     for _p in coverage_missing_authority_table(_cov, _table & _ids):
         issues.append(("ERROR", "scripts/_redline_coverage.json",
                        "覆盖率口径漏了「归属权威表」这一声明形态：%s" % _p))
+    return issues
+
+
+def check_rule_version_coverage() -> List[Tuple[str, str, str]]:
+    """P0-A：**全部已发布规则必须登记版本**（唯一权威 `config/rule_versions.json`）。
+
+    为什么必须是 ERROR：P0-A 之后每条 finding 都带 `rule_version`；未登记的规则会被
+    显式标为「未登记」⇒ 该结论**无法自证当时按哪版规则算出**，报告可追溯性出现空洞。
+    这正是 P0-A 要根治的问题，故未登记即红灯（而不是 WARN）。
+
+    规则 id 来源（与 `_init_rule_versions.py` 同一口径，四层去重）：
+      tax_redlines.REDLINES / verified_rule_engine.VERIFIED_RULE_CATALOG /
+      gap_risk_detectors.DETECTORS / special_redline_detectors.SPECS
+
+    ★ 反向验证：从 `config/rule_versions.json` 删掉任一条 ⇒ 本检查必须变红
+      （见 `_verify_authority_gates.py`），否则判据是假的。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine import rule_versions as _RV
+        from engine.tax_redlines import REDLINES as _RL
+        from engine.verified_rule_engine import VERIFIED_RULE_CATALOG as _CAT
+        from engine import gap_risk_detectors as _GAP
+        from engine import special_redline_detectors as _SPEC
+    except Exception as _e:                       # noqa: BLE001
+        return [("ERROR", "config/rule_versions.json",
+                 "规则版本模块不可导入（版本留痕失效）：%r" % (_e,))]
+
+    # ★ 每次审计重读版本表：否则模块级缓存会让「改坏 ⇒ 变红」的反向验证失效（假绿）。
+    #   文件损坏 ⇒ load() 返回空表 ⇒ 下面 coverage 全 missing ⇒ ERROR（正是期望行为）。
+    _RV.reload()
+
+    ids: set = set()
+    for r in _RL:
+        ids.add(str(r.get("id") or "").strip())
+    for s in _CAT:
+        ids.add(str(s.get("id") or "").strip())
+    for rid, _fn in getattr(_GAP, "DETECTORS", []):
+        ids.add(str(rid or "").strip())
+    for it in (getattr(_SPEC, "SPECS", None) or []):
+        if isinstance(it, dict):
+            ids.add(str(it.get("id") or it.get("redline_id") or "").strip())
+    ids.discard("")
+
+    if not _RV.rule_set_version():
+        issues.append(("ERROR", "config/rule_versions.json",
+                       "未登记 `rule_set_version` ⇒ 报告与作业流水无法自证规则集口径"))
+    cov = _RV.coverage(sorted(ids))
+    if cov["missing"]:
+        issues.append(("ERROR", "config/rule_versions.json",
+                       "有 %d 条**已发布规则未登记版本**（其 finding 会标「未登记」，"
+                       "历史结论无法自证规则口径）：%s"
+                       % (len(cov["missing"]), cov["missing"][:12])))
     return issues
 
 
