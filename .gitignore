@@ -107,6 +107,12 @@ scripts/_*.log
 scripts/_*.out
 scripts/_*.txt
 scripts/_tmp_*.json
+# ★ 2026-10-10 补齐：`scripts/_*.json` 同属"过程脚本落下的中间产物（临时 json）"——
+#   上方注释早已声明该类含"临时 json"，此处原只列了 `_tmp_*.json` 一个子类，
+#   导致 `_gate_blocking.json` / `_lawblock.json` / `_pre_sanitize.json` 等长期污染工作树。
+#   这是**补齐既有类别**，不是新立口径（本文件与 `tools/purge_process_junk.py::JUNK_GLOBS` 的一致性要求不涉及本行：
+#   本行只做 git 忽略，**不**授权删除）。
+scripts/_*.json
 # 一次性测量/对比的输出目录（日志与信号快照，可重跑）
 scripts/measure/
 scripts/_ab/

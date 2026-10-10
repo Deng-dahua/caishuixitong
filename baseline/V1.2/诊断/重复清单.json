@@ -1,0 +1,298 @@
+{
+  "findings": [
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        542,
+        606
+      ],
+      "all_lines_count": 2,
+      "sample": "| 1 | 服务费 | 上海蕴世广告传媒有限公司 | 20250708 | 银行流水 | 收入 | 20250708 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1830,
+        1871
+      ],
+      "all_lines_count": 2,
+      "sample": "| 郑州琥珀体育文化有限公司 | 1 | 641509.43 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1832,
+        1873
+      ],
+      "all_lines_count": 2,
+      "sample": "| 宁夏博图数字传媒有限公司 | 1 | 235849.06 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1833,
+        1874
+      ],
+      "all_lines_count": 2,
+      "sample": "| 江西君酌文化传播有限公司 | 4 | 201672.65 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1834,
+        1875
+      ],
+      "all_lines_count": 2,
+      "sample": "| 悟研(邯郸)文化传媒有限公司 | 8 | 200990.1 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1836,
+        1877
+      ],
+      "all_lines_count": 2,
+      "sample": "| 深圳市世纪联想广告有限公司 | 1 | 169811.32 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1838,
+        1879
+      ],
+      "all_lines_count": 2,
+      "sample": "| 南昌晨午文化传媒有限公司 | 1 | 84833.3 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1839,
+        1880
+      ],
+      "all_lines_count": 2,
+      "sample": "| 上海卓信文化传媒有限公司 | 1 | 71350 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1841,
+        1881
+      ],
+      "all_lines_count": 2,
+      "sample": "| 承德沣禾网络科技有限公司 | 7 | 45795.05 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1842,
+        1882
+      ],
+      "all_lines_count": 2,
+      "sample": "| 河北创研造意文化传媒有限公司 | 2 | 43861.39 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1844,
+        1884
+      ],
+      "all_lines_count": 2,
+      "sample": "| 深圳嘀嗒数字互动有限公司 | 1 | 22641.51 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1845,
+        1885
+      ],
+      "all_lines_count": 2,
+      "sample": "| 极光星河(深圳)文化传媒有限公司 | 1 | 18427.36 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1846,
+        1886
+      ],
+      "all_lines_count": 2,
+      "sample": "| 上海智扬唯美文化传播有限公司 | 1 | 16981.13 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1847,
+        1887
+      ],
+      "all_lines_count": 2,
+      "sample": "| 承德汇沣网络科技有限公司 | 2 | 16538.61 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1848,
+        1888
+      ],
+      "all_lines_count": 2,
+      "sample": "| 深圳市云走运动文化有限公司 | 1 | 14851.49 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1850,
+        1889
+      ],
+      "all_lines_count": 2,
+      "sample": "| 江西一汀文化传播有限公司 | 1 | 12924.53 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1851,
+        1890
+      ],
+      "all_lines_count": 2,
+      "sample": "| 安徽省醉美时光网络科技有限公司 | 1 | 9900.99 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1852,
+        1891
+      ],
+      "all_lines_count": 2,
+      "sample": "| 郑州博斯腾信息科技有限公司 | 1 | 6438.68 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1854,
+        1892
+      ],
+      "all_lines_count": 2,
+      "sample": "| 上海那创网络科技有限公司 | 2 | 4128.91 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1857,
+        1893
+      ],
+      "all_lines_count": 2,
+      "sample": "| 宁夏航海传媒有限公司 | 1 | 1980.2 |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        2507,
+        2508
+      ],
+      "sample": "- **S-01**：要核对什么：该证据本身（补齐后核对其内容与本项口径是否一致）",
+      "peer": "- **S-02**：看什么：该证据本身（补齐后核对其内容与本项口径是否一致）",
+      "jaccard": 0.775,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    }
+  ]
+}

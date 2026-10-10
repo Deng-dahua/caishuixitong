@@ -1,0 +1,56 @@
+{
+  "series": "深圳海更数字传媒有限公司税务风险检查报告",
+  "sample_id": "WB-TRISK-SAMPLE-001",
+  "versions": [
+    {
+      "version": "V1.0",
+      "name": "原始冻结版",
+      "stage": "阶段0",
+      "desc": "用户提供的原始 DOCX 位级副本，本批次唯一不可变基线；任何后续版本均以此为对照。",
+      "artifact": "baseline/V1.0/原始报告.docx",
+      "sha256": "a6d2fde33c98d1eca354dbdc18ddccefe1a895a9b12185ebc9ea1af73aa8f110",
+      "status": "已冻结"
+    },
+    {
+      "version": "V1.1",
+      "name": "结构重构与去重版",
+      "stage": "阶段4-5",
+      "desc": "9 章结构 + 六段式改写 + 冗余重复消除 + 引用替换（见R1/见要件R1-C2/见事实F-012…）。",
+      "artifact": "baseline/V1.1/报告_V1.1.md",
+      "sha256": null,
+      "status": "待生成"
+    },
+    {
+      "version": "V1.2",
+      "name": "数据与法规校验版",
+      "stage": "阶段6",
+      "desc": "金额重算、税率与限额口径修正（含业务招待费 5‰ 笔误）、法规引用逐条复核。",
+      "artifact": "baseline/V1.2/报告_V1.2.md",
+      "sha256": null,
+      "status": "待生成"
+    },
+    {
+      "version": "V1.3",
+      "name": "等级与证据强度分离版",
+      "stage": "阶段7",
+      "desc": "风险等级与证据强度双字段分离，风险总表新增证据强度/闭合度/结论等级列。",
+      "artifact": "baseline/V1.3/报告_V1.3.md",
+      "sha256": null,
+      "status": "待生成"
+    },
+    {
+      "version": "V1.4",
+      "name": "定稿版",
+      "stage": "阶段11",
+      "desc": "过四道门禁 + 20 项自检清单，可归档交付（对内完整版 / 对外脱敏版）。",
+      "artifact": "baseline/V1.4/报告_V1.4.md",
+      "sha256": null,
+      "status": "待生成"
+    }
+  ],
+  "freeze_rule": [
+    "V1.0 只读，任何阶段不得修改 baseline/V1.0/ 下文件。",
+    "每升一个版本必须先在 baseline/修改日志.md 登记一条五列记录。",
+    "版本号与 git 提交、归档包文件名三者必须一致。"
+  ]
+}

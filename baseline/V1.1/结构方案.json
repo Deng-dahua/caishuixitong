@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-10-08 09:18",
+  "chapters": [
+    "CH0",
+    "CH1",
+    "CH2",
+    "CH3",
+    "CH4",
+    "CH5",
+    "CH6",
+    "CH7",
+    "CH8"
+  ],
+  "six_segment": [
+    "fact",
+    "evidence",
+    "analysis",
+    "conclusion",
+    "materials",
+    "recheck"
+  ],
+  "status": "待人工确认"
+}

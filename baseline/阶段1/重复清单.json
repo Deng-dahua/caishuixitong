@@ -1,0 +1,2392 @@
+{
+  "findings": [
+    {
+      "type": "渲染残留",
+      "subtype": "空表格行",
+      "count": 96,
+      "lines": [
+        1465,
+        1466,
+        1467,
+        1468,
+        1469,
+        1470,
+        1471,
+        1472,
+        1473,
+        1474,
+        1475,
+        1476,
+        1477,
+        1478,
+        1479,
+        1480,
+        1481,
+        1482,
+        1483,
+        1484
+      ],
+      "all_lines_count": 96,
+      "sample": "|  |  |  |  |  |",
+      "necessary": false,
+      "handling": "删除整行；空表改为『本项无适用行』一行声明",
+      "redundant_mode": "all"
+    },
+    {
+      "type": "渲染残留",
+      "subtype": "空小标题（模板变量为空）",
+      "count": 77,
+      "lines": [
+        39,
+        42,
+        65,
+        94,
+        97,
+        129,
+        132,
+        135,
+        140,
+        169,
+        172,
+        191,
+        210,
+        213,
+        278,
+        281,
+        300,
+        428,
+        431,
+        510
+      ],
+      "all_lines_count": 77,
+      "sample": "分述",
+      "necessary": false,
+      "handling": "删除；原『总述/分述』双轨合并为单轨",
+      "redundant_mode": "all"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《一、涉及的风险事项》",
+      "count": 16,
+      "lines": [
+        43,
+        133,
+        173,
+        282,
+        514,
+        614,
+        697,
+        784,
+        851,
+        940,
+        994,
+        1032,
+        1125,
+        1219,
+        1302,
+        1776
+      ],
+      "all_lines_count": 16,
+      "sample": "一、涉及的风险事项",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《二、发现的依据》",
+      "count": 16,
+      "lines": [
+        66,
+        136,
+        192,
+        301,
+        533,
+        633,
+        716,
+        801,
+        870,
+        943,
+        997,
+        1051,
+        1142,
+        1238,
+        1321,
+        1795
+      ],
+      "all_lines_count": 16,
+      "sample": "二、发现的依据",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《三、已取得的资料与待补充的资料》",
+      "count": 16,
+      "lines": [
+        86,
+        138,
+        200,
+        419,
+        541,
+        642,
+        724,
+        808,
+        878,
+        945,
+        999,
+        1060,
+        1151,
+        1246,
+        1413,
+        1804
+      ],
+      "all_lines_count": 16,
+      "sample": "三、已取得的资料与待补充的资料",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《四、本项结论及理由》",
+      "count": 16,
+      "lines": [
+        95,
+        141,
+        211,
+        429,
+        551,
+        651,
+        733,
+        816,
+        887,
+        948,
+        1002,
+        1070,
+        1163,
+        1255,
+        1424,
+        1814
+      ],
+      "all_lines_count": 16,
+      "sample": "四、本项结论及理由",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《五、需企业提供的资料与说明》",
+      "count": 3,
+      "lines": [
+        143,
+        950,
+        1004
+      ],
+      "all_lines_count": 3,
+      "sample": "五、需企业提供的资料与说明",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《一、本项结论依赖的关键信息（以及它可能不成立的地方）》",
+      "count": 16,
+      "lines": [
+        103,
+        154,
+        234,
+        477,
+        583,
+        667,
+        757,
+        828,
+        907,
+        971,
+        1009,
+        1085,
+        1171,
+        1275,
+        1735,
+        1834
+      ],
+      "all_lines_count": 16,
+      "sample": "一、本项结论依赖的关键信息（以及它可能不成立的地方）",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《二、请提供以下资料，用来验证或推翻本项》",
+      "count": 16,
+      "lines": [
+        120,
+        163,
+        263,
+        498,
+        604,
+        684,
+        774,
+        841,
+        924,
+        984,
+        1022,
+        1106,
+        1200,
+        1292,
+        1760,
+        1855
+      ],
+      "all_lines_count": 16,
+      "sample": "二、请提供以下资料，用来验证或推翻本项",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《为何列入检查》",
+      "count": 16,
+      "lines": [
+        40,
+        130,
+        170,
+        279,
+        511,
+        611,
+        694,
+        781,
+        848,
+        937,
+        991,
+        1029,
+        1122,
+        1216,
+        1299,
+        1773
+      ],
+      "all_lines_count": 16,
+      "sample": "为何列入检查",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《若不补充资料的后果》",
+      "count": 13,
+      "lines": [
+        98,
+        214,
+        432,
+        554,
+        654,
+        736,
+        819,
+        890,
+        1073,
+        1166,
+        1258,
+        1427,
+        1817
+      ],
+      "all_lines_count": 13,
+      "sample": "若不补充资料的后果",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《本项可能错在哪里：自我反驳与验证清单》",
+      "count": 16,
+      "lines": [
+        100,
+        151,
+        231,
+        474,
+        580,
+        664,
+        754,
+        825,
+        904,
+        968,
+        1006,
+        1082,
+        1168,
+        1272,
+        1732,
+        1831
+      ],
+      "all_lines_count": 16,
+      "sample": "本项可能错在哪里：自我反驳与验证清单",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《构成要件独立核对表（每要件独立数据源与独立结论）》",
+      "count": 13,
+      "lines": [
+        54,
+        182,
+        291,
+        523,
+        623,
+        706,
+        792,
+        860,
+        1041,
+        1133,
+        1228,
+        1311,
+        1785
+      ],
+      "all_lines_count": 13,
+      "sample": "构成要件独立核对表（每要件独立数据源与独立结论）",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《本项还包含以下风险信号》",
+      "count": 8,
+      "lines": [
+        216,
+        456,
+        556,
+        656,
+        738,
+        821,
+        1260,
+        1715
+      ],
+      "all_lines_count": 8,
+      "sample": "本项还包含以下风险信号",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《本项需企业澄清的问题》",
+      "count": 4,
+      "lines": [
+        145,
+        225,
+        468,
+        952
+      ],
+      "all_lines_count": 4,
+      "sample": "本项需企业澄清的问题",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "结构重复",
+      "subtype": "骨架标题《本项因缺资料未能查完》",
+      "count": 8,
+      "lines": [
+        461,
+        568,
+        742,
+        892,
+        1075,
+        1265,
+        1725,
+        1819
+      ],
+      "all_lines_count": 8,
+      "sample": "本项因缺资料未能查完",
+      "necessary": true,
+      "handling": "统一模板化：骨架只在模板库声明一次，各疑点只填差异",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 32,
+      "lines": [
+        107,
+        115,
+        238,
+        246,
+        250,
+        254,
+        485,
+        489,
+        493,
+        595,
+        675,
+        679,
+        769,
+        836,
+        911,
+        915,
+        919,
+        1089,
+        1093,
+        1097
+      ],
+      "all_lines_count": 32,
+      "sample": "要核对什么：该证据本身（补齐后核对其内容与本项口径是否一致）",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 32,
+      "lines": [
+        122,
+        125,
+        265,
+        268,
+        271,
+        274,
+        500,
+        503,
+        506,
+        606,
+        686,
+        689,
+        776,
+        843,
+        926,
+        929,
+        932,
+        1108,
+        1111,
+        1114
+      ],
+      "all_lines_count": 32,
+      "sample": "看什么：该证据本身（补齐后核对其内容与本项口径是否一致）",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 32,
+      "lines": [
+        123,
+        126,
+        266,
+        269,
+        272,
+        275,
+        501,
+        504,
+        507,
+        607,
+        687,
+        690,
+        777,
+        844,
+        927,
+        930,
+        933,
+        1109,
+        1112,
+        1115
+      ],
+      "all_lines_count": 32,
+      "sample": "推翻条件：该证据补齐后，若显示相关业务真实、口径一致 ⇒ 本项不成立（可自证清白）。",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 13,
+      "lines": [
+        119,
+        262,
+        497,
+        603,
+        683,
+        773,
+        840,
+        923,
+        1105,
+        1199,
+        1291,
+        1759,
+        1854
+      ],
+      "all_lines_count": 13,
+      "sample": "要核对什么：提升该分项所缺的输入（见本项「需补充资料」）",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 12,
+      "lines": [
+        111,
+        242,
+        591,
+        671,
+        761,
+        765,
+        832,
+        1179,
+        1183,
+        1279,
+        1283,
+        1747
+      ],
+      "all_lines_count": 12,
+      "sample": "要核对什么：该类资料中是否真含本项所需的具体内容（逐字比对，不是凭名称相似）",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 9,
+      "lines": [
+        116,
+        259,
+        680,
+        770,
+        837,
+        920,
+        1102,
+        1196,
+        1288
+      ],
+      "all_lines_count": 9,
+      "sample": "［弱］最薄弱环节（可信度分项）　材料齐全程度（取值 0.0）",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 13,
+      "lines": [
+        118,
+        261,
+        496,
+        602,
+        682,
+        772,
+        839,
+        922,
+        1104,
+        1198,
+        1290,
+        1758,
+        1853
+      ],
+      "all_lines_count": 13,
+      "sample": "什么情况下不成立：把这一项补足（例如材料齐全程度、环节数据完整度）后重新计算可信度即可验证。",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 13,
+      "lines": [
+        117,
+        260,
+        495,
+        601,
+        681,
+        771,
+        838,
+        921,
+        1103,
+        1197,
+        1289,
+        1757,
+        1852
+      ],
+      "all_lines_count": 13,
+      "sample": "可能不成立之处：本项可信度的分项计算中，这一项取值最低 ⇒ 它是决定本项可信度上限的环节；只提高其他环节不改变结论。",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用句",
+      "count": 13,
+      "lines": [
+        102,
+        233,
+        476,
+        582,
+        666,
+        756,
+        827,
+        906,
+        1084,
+        1170,
+        1274,
+        1734,
+        1833
+      ],
+      "all_lines_count": 13,
+      "sample": "最强的反驳是：本项最关键的证据尚未取得——现在能说的只是「出现了需要核对的迹象」，而不是「已经发生」。",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用（见声明S-0x）",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用段（前缀匹配）",
+      "count": 12,
+      "lines": [
+        463,
+        570,
+        575,
+        744,
+        749,
+        894,
+        899,
+        1077,
+        1267,
+        1727,
+        1821,
+        1826
+      ],
+      "all_lines_count": 12,
+      "sample": "本轮检查结论：经检查，本轮没有收到这项资料…",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "套话重复",
+      "subtype": "通用段（前缀匹配）",
+      "count": 12,
+      "lines": [
+        466,
+        573,
+        578,
+        747,
+        752,
+        897,
+        902,
+        1080,
+        1270,
+        1730,
+        1824,
+        1829
+      ],
+      "all_lines_count": 12,
+      "sample": "下一轮复查程序：资料补齐后，检查人员将重新执行受影响的全部检查程序…",
+      "necessary": false,
+      "handling": "改为一次性声明 + 交叉引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 49,
+      "lines": [
+        1485,
+        1486,
+        1487,
+        1488,
+        1489,
+        1490,
+        1491,
+        1492,
+        1493,
+        1494,
+        1495,
+        1496,
+        1497,
+        1498,
+        1499,
+        1500,
+        1501,
+        1502,
+        1503,
+        1504
+      ],
+      "all_lines_count": 49,
+      "sample": "| | | | |",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 13,
+      "lines": [
+        56,
+        184,
+        293,
+        525,
+        625,
+        708,
+        794,
+        862,
+        1043,
+        1135,
+        1230,
+        1313,
+        1787
+      ],
+      "all_lines_count": 13,
+      "sample": "要件序号 | 构成要件 | 独立数据源 | 数据源状态 | 核对结论",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 12,
+      "lines": [
+        89,
+        203,
+        422,
+        645,
+        727,
+        811,
+        881,
+        1063,
+        1154,
+        1249,
+        1416,
+        1807
+      ],
+      "all_lines_count": 12,
+      "sample": "证据角色 | 证据名称 | 证明目的 | 现状 | 依据",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 12,
+      "lines": [
+        1101,
+        1175,
+        1187,
+        1191,
+        1195,
+        1287,
+        1739,
+        1751,
+        1755,
+        1838,
+        1846,
+        1850
+      ],
+      "all_lines_count": 12,
+      "sample": "要核对什么:该证据本身(补齐后核对其内容与本项口径是否一致)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 12,
+      "lines": [
+        1117,
+        1202,
+        1205,
+        1208,
+        1211,
+        1294,
+        1762,
+        1765,
+        1768,
+        1857,
+        1860,
+        1863
+      ],
+      "all_lines_count": 12,
+      "sample": "看什么:该证据本身(补齐后核对其内容与本项口径是否一致)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 12,
+      "lines": [
+        1118,
+        1203,
+        1206,
+        1209,
+        1212,
+        1295,
+        1763,
+        1766,
+        1769,
+        1858,
+        1861,
+        1864
+      ],
+      "all_lines_count": 12,
+      "sample": "推翻条件:该证据补齐后,若显示相关业务真实,口径一致 ⇒ 本项不成立(可自证清白)。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 9,
+      "lines": [
+        110,
+        241,
+        590,
+        670,
+        760,
+        831,
+        1178,
+        1278,
+        1746
+      ],
+      "all_lines_count": 9,
+      "sample": "什么情况下不成立:经核对,已提供的同类资料中确实包含本项所需内容且口径一致 ⇒ 支撑成立;若确认不包含 ⇒ 本项应退回「资料不足,不作认定」。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 9,
+      "lines": [
+        536,
+        636,
+        719,
+        804,
+        873,
+        1054,
+        1145,
+        1241,
+        1798
+      ],
+      "all_lines_count": 9,
+      "sample": "环节 | 对应资料 | 做了什么 | 实际看到的数据",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 8,
+      "lines": [
+        101,
+        232,
+        475,
+        905,
+        1083,
+        1169,
+        1733,
+        1832
+      ],
+      "all_lines_count": 8,
+      "sample": "在验证前不能认定本项成立:本项的直接证据尚为「缺失」,属前置条件未满足。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 8,
+      "lines": [
+        467,
+        579,
+        753,
+        903,
+        1081,
+        1271,
+        1731,
+        1830
+      ],
+      "all_lines_count": 8,
+      "sample": "(本项结论在资料补齐前不予认定;补齐后重新执行一键分析即完成本项核对。)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 7,
+      "lines": [
+        558,
+        658,
+        661,
+        740,
+        1262,
+        1720,
+        1723
+      ],
+      "all_lines_count": 7,
+      "sample": "终局:可自证清白",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 6,
+      "lines": [
+        462,
+        569,
+        743,
+        1266,
+        1726,
+        1820
+      ],
+      "all_lines_count": 6,
+      "sample": "未收到「合同文件」",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 6,
+      "lines": [
+        464,
+        571,
+        745,
+        1268,
+        1728,
+        1822
+      ],
+      "all_lines_count": 6,
+      "sample": "被阻断的检查和风险影响:由于资料条件不具备,本轮没法完成与“合同文件”相关的账,票,表,税,款交叉核对。目前仍无法排除相应的风险方向。涉及合同文件的检查结论不得显示为无异常或已经合规。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 6,
+      "lines": [
+        465,
+        572,
+        746,
+        1269,
+        1729,
+        1823
+      ],
+      "all_lines_count": 6,
+      "sample": "补充资料要求:企业应补充合同文件。如原资料客观上无法取得,可以提供能够证明同一事实的替代资料。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 5,
+      "lines": [
+        69,
+        1324,
+        1365,
+        1393,
+        1404
+      ],
+      "all_lines_count": 5,
+      "sample": "口径说明:本表列出的是该风险事项所依据的基础逐笔明细(全量);正文与构成要件中写明的人数/笔数是按构成要件筛选后的结果,两者口径不同,判断具体涉及范围时以正文数字为准。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 5,
+      "lines": [
+        218,
+        458,
+        562,
+        566,
+        1717
+      ],
+      "all_lines_count": 5,
+      "sample": "等级:中风险 | 终局:可自证清白",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 5,
+      "lines": [
+        581,
+        665,
+        755,
+        826,
+        1273
+      ],
+      "all_lines_count": 5,
+      "sample": "在验证前不能认定本项成立:本项的直接证据尚为「须核对」,属前置条件未满足。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 4,
+      "lines": [
+        481,
+        587,
+        1743,
+        1842
+      ],
+      "all_lines_count": 4,
+      "sample": "要核对什么:该资料是否覆盖本项要求的范围(如:是否含全部账户,是否逐笔到明细,是否含附表)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        128,
+        935,
+        989
+      ],
+      "all_lines_count": 3,
+      "sample": "从本次上传资料来看,本企业本项已查明的风险的可能性低,且所需资料已齐备,可作初步判断。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        146,
+        226,
+        469
+      ],
+      "all_lines_count": 3,
+      "sample": "关注级别:高",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        152,
+        969,
+        1007
+      ],
+      "all_lines_count": 3,
+      "sample": "在验证前不能认定本项成立:本项未做证据角色核对,现有结论只建立在数据事实之上。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        153,
+        970,
+        1008
+      ],
+      "all_lines_count": 3,
+      "sample": "最强的反驳是:本项只有数据事实,没有登记需要哪些证据,现状如何;数据事实成立不等于税务违规成立。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        155,
+        976,
+        1014
+      ],
+      "all_lines_count": 3,
+      "sample": "证据核对状态 未做证据角色核对(本项非红线来源,无红线证据要求)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        156,
+        977,
+        1015
+      ],
+      "all_lines_count": 3,
+      "sample": "可能不成立之处:本项没有登记「需要哪些证据,这些证据现状如何」⇒ 无法判断取证是否充分;结论只建立在数据事实之上,而数据事实成立不等于税务违规成立。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        157,
+        978,
+        1016
+      ],
+      "all_lines_count": 3,
+      "sample": "什么情况下不成立:按同样的证据核对口径为这类事项补做核对后,若所需证据缺失 ⇒ 本项同样只能列为待补充资料,不能认定。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        158,
+        979,
+        1017
+      ],
+      "all_lines_count": 3,
+      "sample": "要核对什么:本项若按红线口径核对,需要哪些证据,现状如何",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        164,
+        985,
+        1023
+      ],
+      "all_lines_count": 3,
+      "sample": "本项若按红线口径核对,需要哪些证据,现状如何",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        165,
+        986,
+        1024
+      ],
+      "all_lines_count": 3,
+      "sample": "看什么:本项若按红线口径核对,需要哪些证据,现状如何",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        166,
+        987,
+        1025
+      ],
+      "all_lines_count": 3,
+      "sample": "推翻条件:按同样的证据核对口径为这类事项补做核对后,若所需证据缺失 ⇒ 本项同样只能列为待补充资料,不能认定。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        494,
+        1756,
+        1851
+      ],
+      "all_lines_count": 3,
+      "sample": "最薄弱环节(可信度分项) 反证已提交比例(反向计分)(取值 0.0)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        574,
+        898,
+        1076
+      ],
+      "all_lines_count": 3,
+      "sample": "未收到「企业所得税申报表」",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        576,
+        900,
+        1078
+      ],
+      "all_lines_count": 3,
+      "sample": "被阻断的检查和风险影响:由于资料条件不具备,本轮没法完成与“企业所得税申报表”相关的账,票,表,税,款交叉核对。目前仍无法排除相应的风险方向。涉及企业所得税申报表的检查结论不得显示为无异常或已经合规。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        577,
+        901,
+        1079
+      ],
+      "all_lines_count": 3,
+      "sample": "补充资料要求:企业应补充企业所得税申报表。如原资料客观上无法取得,可以提供能够证明同一事实的替代资料。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 3,
+      "lines": [
+        1596,
+        1623,
+        1667
+      ],
+      "all_lines_count": 3,
+      "sample": "品名 | 金额(元) | 判定依据",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        244,
+        248
+      ],
+      "all_lines_count": 2,
+      "sample": "可能不成立之处:情形与「劳动合同与用工名册」相同(缺失);不再重复同一段自我反驳。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        257,
+        598
+      ],
+      "all_lines_count": 2,
+      "sample": "什么情况下不成立:按另一口径复算后金额显著变化,或与他项重复计算 ⇒ 本项金额应相应调整。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        258,
+        599
+      ],
+      "all_lines_count": 2,
+      "sample": "要核对什么:该金额的取出所需要的数据口径与逐笔明细(可否独立复算)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        306,
+        370
+      ],
+      "all_lines_count": 2,
+      "sample": "序号 | 凭证/单据标识 | 对方单位 | 日期 | 来源资料 | 说明 | 凭证号",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        307,
+        371
+      ],
+      "all_lines_count": 2,
+      "sample": "1 | 服务费 | 上海蕴世广告传媒有限公司 | 20250708 | 银行流水 | 收入 | 20250708",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        438,
+        449
+      ],
+      "all_lines_count": 2,
+      "sample": "识别到的信号 | 说明与核实方向",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        953,
+        963
+      ],
+      "all_lines_count": 2,
+      "sample": "关注级别:低",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        955,
+        965
+      ],
+      "all_lines_count": 2,
+      "sample": "风险检查依据:风险检查要点:互为供需本身不违规,仅在金额对称或品名无关时才构成对开嫌疑。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        973,
+        1011
+      ],
+      "all_lines_count": 2,
+      "sample": "可能不成立之处:这些数据源本轮已上传,但它们是否足以独立支撑本项结论尚未确认;由原始数据到本项结论之间还隔着口径与业务实质。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        974,
+        1012
+      ],
+      "all_lines_count": 2,
+      "sample": "什么情况下不成立:若这些数据源中的关键项经核对与本项口径不一致 ⇒ 本项依据不成立。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        975,
+        1013
+      ],
+      "all_lines_count": 2,
+      "sample": "要核对什么:各数据源中与本项口径对应的具体内容(逐项比对)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        980,
+        1018
+      ],
+      "all_lines_count": 2,
+      "sample": "结论来源(证据地位) 已验原子规则(可信观察)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        981,
+        1019
+      ],
+      "all_lines_count": 2,
+      "sample": "可能不成立之处:本项来源是「已验原子规则」——它证明的是数据事实(如名单重叠,金额不一致),不等于税务违规;由数据事实到违规之间还隔着业务实质,口径与主观要件。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        982,
+        1020
+      ],
+      "all_lines_count": 2,
+      "sample": "什么情况下不成立:若这些数据事实可由正常业务解释(口径差异,跨期,集团内往来,行业惯例)⇒ 本项不构成税务风险。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        983,
+        1021
+      ],
+      "all_lines_count": 2,
+      "sample": "要核对什么:能解释该数据事实的业务凭证(合同,结算单,往来说明,跨期调节表)",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1091,
+        1095
+      ],
+      "all_lines_count": 2,
+      "sample": "可能不成立之处:情形与「设备采购合同,发票与验收单」相同(缺失);不再重复同一段自我反驳。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1189,
+        1193
+      ],
+      "all_lines_count": 2,
+      "sample": "可能不成立之处:情形与「与境外方签署的合同或协议,董事会利润分配决议」相同(待企业提交);不再重复同一段自我反驳。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1326,
+        1367
+      ],
+      "all_lines_count": 2,
+      "sample": "供应商 | 笔数 | 金额",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1327,
+        1368
+      ],
+      "all_lines_count": 2,
+      "sample": "郑州琥珀体育文化有限公司 | 1 | 641509.43",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1329,
+        1370
+      ],
+      "all_lines_count": 2,
+      "sample": "宁夏博图数字传媒有限公司 | 1 | 235849.06",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1330,
+        1371
+      ],
+      "all_lines_count": 2,
+      "sample": "江西君酌文化传播有限公司 | 4 | 201672.65",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1331,
+        1372
+      ],
+      "all_lines_count": 2,
+      "sample": "悟研(邯郸)文化传媒有限公司 | 8 | 200990.1",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1333,
+        1374
+      ],
+      "all_lines_count": 2,
+      "sample": "深圳市世纪联想广告有限公司 | 1 | 169811.32",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1335,
+        1376
+      ],
+      "all_lines_count": 2,
+      "sample": "南昌晨午文化传媒有限公司 | 1 | 84833.3",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1336,
+        1377
+      ],
+      "all_lines_count": 2,
+      "sample": "上海卓信文化传媒有限公司 | 1 | 71350",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1338,
+        1378
+      ],
+      "all_lines_count": 2,
+      "sample": "承德沣禾网络科技有限公司 | 7 | 45795.05",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1339,
+        1379
+      ],
+      "all_lines_count": 2,
+      "sample": "河北创研造意文化传媒有限公司 | 2 | 43861.39",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1341,
+        1381
+      ],
+      "all_lines_count": 2,
+      "sample": "深圳嘀嗒数字互动有限公司 | 1 | 22641.51",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1342,
+        1382
+      ],
+      "all_lines_count": 2,
+      "sample": "极光星河(深圳)文化传媒有限公司 | 1 | 18427.36",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1343,
+        1383
+      ],
+      "all_lines_count": 2,
+      "sample": "上海智扬唯美文化传播有限公司 | 1 | 16981.13",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1344,
+        1384
+      ],
+      "all_lines_count": 2,
+      "sample": "承德汇沣网络科技有限公司 | 2 | 16538.61",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1345,
+        1385
+      ],
+      "all_lines_count": 2,
+      "sample": "深圳市云走运动文化有限公司 | 1 | 14851.49",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1347,
+        1386
+      ],
+      "all_lines_count": 2,
+      "sample": "江西一汀文化传播有限公司 | 1 | 12924.53",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1348,
+        1387
+      ],
+      "all_lines_count": 2,
+      "sample": "安徽省醉美时光网络科技有限公司 | 1 | 9900.99",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1349,
+        1388
+      ],
+      "all_lines_count": 2,
+      "sample": "郑州博斯腾信息科技有限公司 | 1 | 6438.68",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1351,
+        1389
+      ],
+      "all_lines_count": 2,
+      "sample": "上海那创网络科技有限公司 | 2 | 4128.91",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1354,
+        1390
+      ],
+      "all_lines_count": 2,
+      "sample": "宁夏航海传媒有限公司 | 1 | 1980.2",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1721,
+        1724
+      ],
+      "all_lines_count": 2,
+      "sample": "怎么解除:编制该期间差异调节表,逐笔说明差异原因(含税口径/跨期/未同步/漏记),必要时补充申报或更正账务。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "完全重复",
+      "subtype": "字面相同",
+      "count": 2,
+      "lines": [
+        1749,
+        1753
+      ],
+      "all_lines_count": 2,
+      "sample": "可能不成立之处:情形与「采购合同」相同(待企业提交);不再重复同一段自我反驳。",
+      "necessary": false,
+      "handling": "保留首次完整陈述，其余改为引用",
+      "redundant_mode": "keep_one"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 8,
+      "lines": [
+        38,
+        277,
+        609,
+        692,
+        779,
+        846,
+        1027,
+        1214
+      ],
+      "sample": "涉嫌通过红冲调节销项税额、配合受票方虚开后冲回。从本次上传资料来看，本企业本项已查明的风险；未认定到构成要件的可能性中等，但能补全尚缺的3项资料来排除此项税务风险嫌疑。本项涉税嫌疑，涉及增值税；潜在税额影响：未量化（缺明确金额，须补资料后测算）。",
+      "peer": "涉嫌隐匿收入、账外经营、少计销项税额。从本次上传资料来看，本企业本项已查明的风险；未认定到构成要件的可能性中等，但能补全尚缺的3项资料来排除此项税务风险嫌疑。本项涉税嫌疑，涉及增值税、企业所得税；潜在税额影响：未量化（缺明确金额，须补资料后测算）。",
+      "jaccard": 0.72,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 13,
+      "lines": [
+        45,
+        175,
+        284,
+        516,
+        616,
+        699,
+        786,
+        853,
+        1034,
+        1127,
+        1221,
+        1304,
+        1778
+      ],
+      "sample": "本项（红字冲销与作废发票比例异常）：经核对，本企业未涉及任何一条构成要件（仅已单独核对且符合情形的要件计入）；本项共 7 条构成要件：已单独核对 0 条（符合情形 0 条、未发现符合 0 条、有信号但未达数值门槛 0 条）；未形成核对结论 4 条（资料已取得但缺对应核对证据，不作未发现符合认定）；未单独核对 3 条（独",
+      "peer": "本项（工资表人数与社保参保人数不符）：经核对，本企业未涉及任何一条构成要件（仅已单独核对且符合情形的要件计入）；本项共 5 条构成要件：已单独核对 1 条（符合情形 0 条、未发现符合 0 条、有信号但未达数值门槛 1 条）；未形成核对结论 2 条（资料已取得但缺对应核对证据，不作未发现符合认定）；未单独核对 2 条（",
+      "jaccard": 0.735,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 11,
+      "lines": [
+        99,
+        433,
+        555,
+        655,
+        737,
+        820,
+        891,
+        1074,
+        1167,
+        1428,
+        1818
+      ],
+      "sample": "按目前的分析结论（尚待补充资料与核实）：若企业未能补充上述资料、也未对差额或异常作出合理解释，本项存在被认定为通过红冲调节销项税额、配合受票方虚开后冲回的风险（涉及增值税）。主管税务机关可依《税收征收管理法》第三十二条加收滞纳金；构成偷税、抗税、骗税的，依第六十三条等规定追缴税款、滞纳金并处罚款。是否构成偷税、以及是否",
+      "peer": "按目前的分析结论（尚待补充资料与核实）：若企业未能补充上述资料、也未对差额或异常作出合理解释，本项存在被认定为隐匿收入、账外经营、少计销项税额的风险（涉及增值税、企业所得税）。主管税务机关可依《税收征收管理法》第三十二条加收滞纳金；构成偷税、抗税、骗税的，依第六十三条等规定追缴税款、滞纳金并处罚款。是否构成偷税、以及是",
+      "jaccard": 0.793,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        101,
+        581
+      ],
+      "sample": "在验证前不能认定本项成立：本项的直接证据尚为「缺失」，属前置条件未满足。",
+      "peer": "在验证前不能认定本项成立：本项的直接证据尚为「须核对」，属前置条件未满足。",
+      "jaccard": 0.816,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 13,
+      "lines": [
+        105,
+        236,
+        483,
+        593,
+        673,
+        767,
+        834,
+        909,
+        1087,
+        1173,
+        1285,
+        1737,
+        1836
+      ],
+      "sample": "可能不成立之处：「退货单、折让协议、拒收证明」本轮未提供，是支撑链上最弱的一环；缺它就无法认定本项成立 —— 只能列为「资料未齐、不作认定」。",
+      "peer": "可能不成立之处：「劳动合同与用工名册」本轮未提供，是支撑链上最弱的一环；缺它就无法认定本项成立 —— 只能列为「资料未齐、不作认定」。",
+      "jaccard": 0.692,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 10,
+      "lines": [
+        106,
+        237,
+        484,
+        594,
+        674,
+        768,
+        835,
+        1286,
+        1738,
+        1837
+      ],
+      "sample": "什么情况下不成立：「退货单、折让协议、拒收证明」补齐后，若显示相关业务真实、口径一致 ⇒ 本项不成立（可自证清白）。",
+      "peer": "什么情况下不成立：「劳动合同与用工名册」补齐后，若显示相关业务真实、口径一致 ⇒ 本项不成立（可自证清白）。",
+      "jaccard": 0.631,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 9,
+      "lines": [
+        109,
+        240,
+        589,
+        669,
+        759,
+        830,
+        1177,
+        1277,
+        1745
+      ],
+      "sample": "可能不成立之处：「退款银行流水」本轮未逐字见到，只是「同类资料已提供」；若「退款银行流水」其实不含本项所需内容，本项的这一支撑即为空。",
+      "peer": "可能不成立之处：「银行代发工资流水或签收记录」本轮未逐字见到，只是「同类资料已提供」；若「银行代发工资流水或签收记录」其实不含本项所需内容，本项的这一支撑即为空。",
+      "jaccard": 0.757,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        113,
+        1749
+      ],
+      "sample": "可能不成立之处：情形与「退货单、折让协议、拒收证明」相同（待企业提交）；不再重复同一段自我反驳。",
+      "peer": "可能不成立之处：情形与「采购合同」相同（待企业提交）；不再重复同一段自我反驳。",
+      "jaccard": 0.635,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 3,
+      "lines": [
+        131,
+        134,
+        137
+      ],
+      "sample": "本项之所以列入检查，是因为在已上传资料中出现了以下情况：本项不是独立事实，而是下列各业务环节的信号**同时出现**后合成的联动信号（任一环节单独出现只作提示；多环节同时异常才提示多税种联动稽查）：· 收入环节——银行收款大于申报收入：存在账外收入嫌疑（中风险）：银行收款与销项开票金额月度差异（共59笔）（本表 59 行",
+      "peer": "经检查，本项涉及的风险事项为「多税种联动稽查风险画像（收入、票账差异、资金）」，风险等级 高风险。本项不是独立事实，而是下列各业务环节的信号**同时出现**后合成的联动信号（任一环节单独出现只作提示；多环节同时异常才提示多税种联动稽查）：· 收入环节——银行收款大于申报收入：存在账外收入嫌疑（中风险）：银行收款与销项开",
+      "jaccard": 0.848,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        142,
+        1003
+      ],
+      "sample": "本项（多税种联动稽查风险画像（收入、票账差）：本项属**已查明的风险**，等级 高风险；其结论以已上传资料的可复核证据为限，涉及定性的部分须由风险检查员结合企业举证与外部数据核实。",
+      "peer": "本项（增值税申报进项税额与进项发票税额月度）：本项属**已查明的风险**，等级 中风险；其结论以已上传资料的可复核证据为限，涉及定性的部分须由风险检查员结合企业举证与外部数据核实。",
+      "jaccard": 0.621,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        157,
+        166
+      ],
+      "sample": "什么情况下不成立：按同样的证据核对口径为这类事项补做核对后，若所需证据缺失 ⇒ 本项同样只能列为待补充资料，不能认定。",
+      "peer": "推翻条件：按同样的证据核对口径为这类事项补做核对后，若所需证据缺失 ⇒ 本项同样只能列为待补充资料，不能认定。",
+      "jaccard": 0.797,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 3,
+      "lines": [
+        158,
+        164,
+        165
+      ],
+      "sample": "要核对什么：本项若按红线口径核对，需要哪些证据、现状如何",
+      "peer": "1. 本项若按红线口径核对，需要哪些证据、现状如何",
+      "jaccard": 0.808,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 4,
+      "lines": [
+        219,
+        459,
+        559,
+        563
+      ],
+      "sample": "怎么解除：围绕「工资名册与社会保险人员范围差异」，核对其所涉及的劳动合同、工资表、社保明细、工资表等资料的真实性与账务、申报处理口径；对确认存在的差错，完成账务更正或申报更正，并留存更正凭证与情况说明；补齐上述资料后重新执行一键分析，由系统复查本事项是否已消除。",
+      "peer": "怎么解除：围绕「主营业务收入收款印证核实」，核对其所涉及的银行流水、销项发票、银行流水等资料的真实性与账务、申报处理口径；对确认存在的差错，完成账务更正或申报更正，并留存更正凭证与情况说明；补齐上述资料后重新执行一键分析，由系统复查本事项是否已消除。",
+      "jaccard": 0.623,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        244,
+        252
+      ],
+      "sample": "可能不成立之处：情形与「劳动合同与用工名册」相同（缺失）；不再重复同一段自我反驳。",
+      "peer": "可能不成立之处：情形与「劳动合同与用工名册」相同（待企业提交）；不再重复同一段自我反驳。",
+      "jaccard": 0.804,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        304,
+        368
+      ],
+      "sample": "口径说明：本表列出的是该风险事项所依据的基础逐笔明细（全量）；正文与构成要件中写明的人数/笔数是按构成要件筛选后的结果，两者口径不同，判断具体涉及范围时以正文数字为准。 口径说明：本表已按本项口径过滤，剔除 10 行非经营性收款（借款、往来款、还款、退款、贷款、利息、保证金等）——这些是本项差异的**说明项**而非本项",
+      "peer": "口径说明：本表列出的是该风险事项所依据的基础逐笔明细（全量）；正文与构成要件中写明的人数/笔数是按构成要件筛选后的结果，两者口径不同，判断具体涉及范围时以正文数字为准。 口径说明：本表已按本项口径过滤，剔除 108 行方向相反的资金记录（本项只看收款）；剔除 6 行非经营性收款（借款、往来款、还款、退款、贷款、利息、保",
+      "jaccard": 0.899,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 5,
+      "lines": [
+        464,
+        576,
+        750,
+        895,
+        1827
+      ],
+      "sample": "被阻断的检查和风险影响：由于资料条件不具备，本轮没法完成与“合同文件”相关的账、票、表、税、款交叉核对。目前仍无法排除相应的风险方向。涉及合同文件的检查结论不得显示为无异常或已经合规。",
+      "peer": "被阻断的检查和风险影响：由于资料条件不具备，本轮没法完成与“企业所得税申报表”相关的账、票、表、税、款交叉核对。目前仍无法排除相应的风险方向。涉及企业所得税申报表的检查结论不得显示为无异常或已经合规。",
+      "jaccard": 0.812,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 5,
+      "lines": [
+        465,
+        577,
+        751,
+        896,
+        1828
+      ],
+      "sample": "补充资料要求：企业应补充合同文件。如原资料客观上无法取得，可以提供能够证明同一事实的替代资料。",
+      "peer": "补充资料要求：企业应补充企业所得税申报表。如原资料客观上无法取得，可以提供能够证明同一事实的替代资料。",
+      "jaccard": 0.745,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 4,
+      "lines": [
+        479,
+        585,
+        1741,
+        1840
+      ],
+      "sample": "可能不成立之处：「全部银行账户流水（含已销户账户）」本轮已提供，但是否覆盖本项要求的范围与口径尚未逐项确认；若其覆盖范围不足，「已提供」不等于「足以支撑本项」。",
+      "peer": "可能不成立之处：「费用明细账与凭证」本轮已提供，但是否覆盖本项要求的范围与口径尚未逐项确认；若其覆盖范围不足，「已提供」不等于「足以支撑本项」。",
+      "jaccard": 0.695,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 4,
+      "lines": [
+        480,
+        586,
+        1742,
+        1841
+      ],
+      "sample": "什么情况下不成立：经核对，「全部银行账户流水（含已销户账户）」确已覆盖本项要求的全部范围与口径 ⇒ 这一条的支撑成立（不推翻本项，但本项的可信度应据此上调）。",
+      "peer": "什么情况下不成立：经核对，「费用明细账与凭证」确已覆盖本项要求的全部范围与口径 ⇒ 这一条的支撑成立（不推翻本项，但本项的可信度应据此上调）。",
+      "jaccard": 0.707,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        487,
+        491
+      ],
+      "sample": "可能不成立之处：情形与「销售台账、发货记录」相同（缺失）；不再重复同一段自我反驳。",
+      "peer": "可能不成立之处：情形与「销售台账、发货记录」相同（待企业提交）；不再重复同一段自我反驳。",
+      "jaccard": 0.804,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        725,
+        809
+      ],
+      "sample": "本项要定性为成立还是不成立，须先把材料补齐：本项检查需要4项材料，其中4项已提供同类资料（合同台账、全部应税凭证、印花税申报表、完税凭证）、但与本项要求的范围未逐字对应，须确认是否覆盖。",
+      "peer": "本项要定性为成立还是不成立，须先把材料补齐：本项检查需要2项材料，其中2项已提供同类资料（增值税、附加税费申报表）、但与本项要求的范围未逐字对应，须确认是否覆盖。",
+      "jaccard": 0.625,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        741,
+        1718
+      ],
+      "sample": "怎么解除：围绕「印花税 — 买卖合同税目税负须核对」，核对其所涉及的银行流水、合同文件、科目余额表等资料的真实性与账务、申报处理口径；对确认存在的差错，完成账务更正或申报更正，并留存更正凭证与情况说明；补齐上述资料后重新执行一键分析，由系统复查本事项是否已消除。",
+      "peer": "怎么解除：围绕「主营业务成本资金与负债支撑材料核实」，核对其所涉及的银行流水、科目余额表、进项发票、银行流水等资料的真实性与账务、申报处理口径；对确认存在的差错，完成账务更正或申报更正，并留存更正凭证与情况说明；补齐上述资料后重新执行一键分析，由系统复查本事项是否已消除。",
+      "jaccard": 0.678,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 3,
+      "lines": [
+        764,
+        1182,
+        1282
+      ],
+      "sample": "什么情况下不成立：同上：该情形一旦核对通过，「印花税申报表与完税凭证」这一条的支撑即成立。",
+      "peer": "什么情况下不成立：同上：该情形一旦核对通过，「扣缴企业所得税报告表与完税凭证」这一条的支撑即成立。",
+      "jaccard": 0.698,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        913,
+        917
+      ],
+      "sample": "可能不成立之处：情形与「历年财务报表与审计报告」相同（缺失）；不再重复同一段自我反驳。",
+      "peer": "可能不成立之处：情形与「历年财务报表与审计报告」相同（待企业提交）；不再重复同一段自我反驳。",
+      "jaccard": 0.812,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        938,
+        944
+      ],
+      "sample": "本项之所以列入检查，是因为在已上传资料中出现了以下情况：进销项发票中有2个标准化交易对手名称同时出现在客户和供应商范围，应按业务合同和实际履约判断双向交易性质。涉及的对手方举例：华美博扬（深圳）数字科技有限公司、深圳市世纪联想广告有限公司。",
+      "peer": "进销项发票中有2个标准化交易对手名称同时出现在客户和供应商范围，应按业务合同和实际履约判断双向交易性质。涉及的对手方举例：华美博扬（深圳）数字科技有限公司、深圳市世纪联想广告有限公司。量化结果：重叠户数=2",
+      "jaccard": 0.691,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        956,
+        966
+      ],
+      "sample": "需补充资料：双向交易的商业背景说明",
+      "peer": "需补充资料：双向交易商业背景说明",
+      "jaccard": 0.824,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        957,
+        967
+      ],
+      "sample": "系统局限→企业自证：本项不指向违规，仅提示检查员在现场询问时一并了解双向往来的商业合理性。",
+      "peer": "系统局限→企业自证：本项不指向违规，仅提示现场询问时一并了解双向往来的商业合理性。",
+      "jaccard": 0.867,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        992,
+        998
+      ],
+      "sample": "本项之所以列入检查，是因为在已上传资料中出现了以下情况：增值税申报表进项税额合计192,463.32元，同期进项发票税额合计225,093.81元，差异-32,630.49元，有1个月度差异超过5%或5千元：202512申报20,064vs发票25,631（差-5,567）",
+      "peer": "增值税申报表进项税额合计192,463.32元，同期进项发票税额合计225,093.81元，差异-32,630.49元，有1个月度差异超过5%或5千元：202512申报20,064vs发票25,631（差-5,567）量化结果：申报进项税额合计=192463.32；发票进项税额合计=225093.81；差异月份数=1",
+      "jaccard": 0.64,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        1091,
+        1099
+      ],
+      "sample": "可能不成立之处：情形与「设备采购合同、发票与验收单」相同（缺失）；不再重复同一段自我反驳。",
+      "peer": "可能不成立之处：情形与「设备采购合同、发票与验收单」相同（待企业提交）；不再重复同一段自我反驳。",
+      "jaccard": 0.82,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        1101,
+        1117
+      ],
+      "sample": "要核对什么：该证据本身（补齐后核对其内容与本项口径是否一致）",
+      "peer": "看什么：该证据本身（补齐后核对其内容与本项口径是否一致）",
+      "jaccard": 0.897,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        1185,
+        1189
+      ],
+      "sample": "可能不成立之处：情形与「与境外方签署的合同或协议、董事会利润分配决议」相同（缺失）；不再重复同一段自我反驳。",
+      "peer": "可能不成立之处：情形与「与境外方签署的合同或协议、董事会利润分配决议」相同（待企业提交）；不再重复同一段自我反驳。",
+      "jaccard": 0.847,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        1710,
+        1712
+      ],
+      "sample": "口径差异（发票类目口径认为属成本类，本表口径区分后不属主营业务成本）：「*现代服务*服务费」应作「须核对」处理，服务类采购无存货可比照，既不能推定成本也不宜直接计入费用，须凭项目/合同上下文定性",
+      "peer": "口径差异（发票类目口径认为属成本类，本表口径区分后不属主营业务成本）：「*体育服务*现代服务」应作「须核对」处理，服务类采购无存货可比照，既不能推定成本也不宜直接计入费用，须凭项目/合同上下文定性",
+      "jaccard": 0.926,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    },
+    {
+      "type": "近似重复",
+      "subtype": "2-gram 相似度≥0.62",
+      "count": 2,
+      "lines": [
+        1844,
+        1848
+      ],
+      "sample": "可能不成立之处：情形与「股权转让协议、工商股权变更登记」相同（缺失）；不再重复同一段自我反驳。",
+      "peer": "可能不成立之处：情形与「股权转让协议、工商股权变更登记」相同（待企业提交）；不再重复同一段自我反驳。",
+      "jaccard": 0.824,
+      "necessary": false,
+      "handling": "合并为一处完整陈述 + 引用"
+    }
+  ]
+}
