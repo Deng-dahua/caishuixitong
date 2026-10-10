@@ -11,11 +11,11 @@ status: draft
 wired: false
 wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
 coverage_summary:
-  total: 27
+  total: 29
   covered: 3
   partial: 13
-  missing: 10
-  placeholder: 1
+  missing: 11
+  placeholder: 2
 rules:
   - rule_id: "TAXINC-001"
     name: "优惠条件不满足但享受优惠"
@@ -790,3 +790,61 @@ rules:
       status: "partial"
       action: "merge"
       mapped_to: "RL-CIT-006（资产损失税前扣除）+ RL-AST-001"
+  - rule_id: "LIQ-004"
+    name: "清算期间经营所得未申报"
+    tax_type: "注销清算"
+    source_set: "V1.2"
+    severity: "high"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
+    version: "1.0.0"
+    enabled: false
+    condition: "liquidation_period_income > 0 and tax_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.LIQ-004"
+    params:
+      _basis: "清算期间经营所得：清算期损益表 vs 申报（需清算资料）"
+    inputs:
+      - "清算期间所得"
+      - "申报"
+    risk:
+      message: "清算期间经营所得未申报"
+      evidence:
+        - "命中：「清算期间经营所得未申报」（LIQ-004）"
+        - "阈值：config/rulelist_v12.json::params.LIQ-004"
+        - "取数：清算期间所得 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「清算期间」；需清算期间损益资料 ⇒ 部分待资料"
+  - rule_id: "BANKR-004"
+    name: "破产财产分配税务处理异常"
+    tax_type: "破产重整"
+    source_set: "V1.2"
+    severity: "medium"
+    score: null
+    score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
+    version: "1.0.0"
+    enabled: false
+    condition: "bankruptcy_asset_distribution and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.BANKR-004"
+    params:
+      _basis: "判据未定义（placeholder）⇒ 须先细化可算判据"
+    inputs:
+      - "破产财产分配"
+      - "税务处理"
+    risk:
+      message: "破产财产分配税务处理异常"
+      evidence:
+        - "命中：「破产财产分配税务处理异常」（BANKR-004）"
+        - "阈值：config/rulelist_v12.json::params.BANKR-004"
+        - "取数：破产财产分配 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义（tax_treatment_abnormal）⇒ 先细化"

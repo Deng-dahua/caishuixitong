@@ -16,56 +16,171 @@
     "本批**不写入系统**：仅产出对照报告 + 合并方案 + 参数登记 + YAML 交换文件，待确认后再落地。"
   ],
   "namespace": {
-    "DEED": "契税", "GOT": "耕地占用税", "VET": "车船税", "VPT": "车辆购置税", "CUS": "关税",
-    "TON": "船舶吨税", "TOB": "烟叶税", "CUL": "文化事业建设费", "WAT": "水利建设基金",
-    "ADM": "税收征管与申报", "AA": "反避税与转让定价", "INT": "国际税收与非居民",
-    "REO": "企业重组与资本交易", "EST": "房地产", "CONSTR": "建筑安装",
-    "PLAT": "平台经济", "FLEX": "灵活用工", "HNW": "高净值个人",
-    "FINA": "金融", "LEASE": "融资租赁", "FACT": "保理", "MICRO": "小额贷款", "GUAR": "担保",
-    "PAWN": "典当", "PE": "私募基金", "FUNDM": "公募基金", "TRUST": "信托", "REIT": "REITs",
-    "PPP": "PPP", "EPC": "EPC", "BOT": "BOT", "ABS": "资产证券化",
-    "EXPORT": "出口退税", "CUSTOMS": "海关", "BOND": "保税", "FTZ": "自贸区", "HAINAN": "海南自贸港",
-    "TAXINC": "税收优惠", "ASSESS": "核定征收", "LIQ": "注销清算", "BANKR": "破产重整",
-    "EINV": "电子发票", "RRT": "留抵退税",
-    "HNTECH": "高新技术企业", "RD": "研发", "SOFT": "软件企业", "IC": "集成电路",
-    "ANIME": "动漫", "CULT": "文化企业", "EDU": "教育", "MED": "医疗", "ELDER": "养老",
-    "CHILD": "托育", "HOUSE": "家政", "SPORT": "体育", "TOUR": "旅游", "HOTEL": "住宿",
-    "CATER": "餐饮", "ENT": "娱乐", "CBEC": "跨境电商"
+    "DEED": "契税",
+    "GOT": "耕地占用税",
+    "VET": "车船税",
+    "VPT": "车辆购置税",
+    "CUS": "关税",
+    "TON": "船舶吨税",
+    "TOB": "烟叶税",
+    "CUL": "文化事业建设费",
+    "WAT": "水利建设基金",
+    "ADM": "税收征管与申报",
+    "AA": "反避税与转让定价",
+    "INT": "国际税收与非居民",
+    "REO": "企业重组与资本交易",
+    "EST": "房地产",
+    "CONSTR": "建筑安装",
+    "PLAT": "平台经济",
+    "FLEX": "灵活用工",
+    "HNW": "高净值个人",
+    "FINA": "金融",
+    "LEASE": "融资租赁",
+    "FACT": "保理",
+    "MICRO": "小额贷款",
+    "GUAR": "担保",
+    "PAWN": "典当",
+    "PE": "私募基金",
+    "FUNDM": "公募基金",
+    "TRUST": "信托",
+    "REIT": "REITs",
+    "PPP": "PPP",
+    "EPC": "EPC",
+    "BOT": "BOT",
+    "ABS": "资产证券化",
+    "EXPORT": "出口退税",
+    "CUSTOMS": "海关",
+    "BOND": "保税",
+    "FTZ": "自贸区",
+    "HAINAN": "海南自贸港",
+    "TAXINC": "税收优惠",
+    "ASSESS": "核定征收",
+    "LIQ": "注销清算",
+    "BANKR": "破产重整",
+    "EINV": "电子发票",
+    "RRT": "留抵退税",
+    "HNTECH": "高新技术企业",
+    "RD": "研发",
+    "SOFT": "软件企业",
+    "IC": "集成电路",
+    "ANIME": "动漫",
+    "CULT": "文化企业",
+    "EDU": "教育",
+    "MED": "医疗",
+    "ELDER": "养老",
+    "CHILD": "托育",
+    "HOUSE": "家政",
+    "SPORT": "体育",
+    "TOUR": "旅游",
+    "HOTEL": "住宿",
+    "CATER": "餐饮",
+    "ENT": "娱乐",
+    "CBEC": "跨境电商"
   },
-
   "count_discrepancy": {
     "_note": "★ 诚实记录：候选原文标题与实际条数不符，已按**实际列示**登记，不按标题。",
     "组一标题": "小税种补充规则 30 条",
     "组一实际": 29,
     "全表标题暗示": "300+ 条",
-    "全表实际": 224,
+    "全表实际": 226,
     "累计候选（V1.0+V1.1+V1.2）": 458,
-    "说明": "组一实际 29 条（DEED 5 + GOT 3 + VET 3 + VPT 3 + CUS 3 + TON 1 + TOB 2 + CUL 2 + WAT 2 + SUR 5）。全表 224 条。累计 458 条（非 300+）。"
+    "说明": "组一实际 29 条（DEED 5 + GOT 3 + VET 3 + VPT 3 + CUS 3 + TON 1 + TOB 2 + CUL 2 + WAT 2 + SUR 5）。全表 224 条。累计 458 条（非 300+）。",
+    "本指令增量": "指令书 V1.0 相对已交付 458 条**新增 2 条**（LIQ-004 / BANKR-004）⇒ 累计 460 条（去重后）"
   },
-
   "stats": {
     "_note": "计数由规则体实测得出，非人工填列（tools/export_rulelist_yaml.py --check 可复算）。",
-    "total": 224,
+    "total": 226,
     "covered": 25,
     "partial": 63,
-    "missing": 46,
-    "placeholder": 90,
+    "missing": 47,
+    "placeholder": 91,
     "by_group": {
-      "小税种（DEED/GOT/VET/VPT/CUS/TON/TOB/CUL/WAT/SUR）": {"total": 29, "covered": 11, "partial": 8, "missing": 10, "placeholder": 0},
-      "ADM 征管": {"total": 20, "covered": 0, "partial": 8, "missing": 0, "placeholder": 12},
-      "AA 反避税": {"total": 20, "covered": 3, "partial": 4, "missing": 3, "placeholder": 10},
-      "INT 国际税收": {"total": 20, "covered": 1, "partial": 7, "missing": 2, "placeholder": 10},
-      "REO 重组资本": {"total": 15, "covered": 1, "partial": 1, "missing": 4, "placeholder": 9},
-      "EST/CONSTR 地产建安": {"total": 20, "covered": 2, "partial": 9, "missing": 5, "placeholder": 4},
-      "PLAT/FLEX/HNW": {"total": 20, "covered": 1, "partial": 5, "missing": 4, "placeholder": 10},
-      "金融（FINA/LEASE/FACT/MICRO/GUAR/PAWN/PE/FUNDM/TRUST/REIT/PPP/EPC/BOT/ABS/FUND-011）": {"total": 20, "covered": 0, "partial": 4, "missing": 3, "placeholder": 13},
-      "EXPORT/CUSTOMS/BOND/FTZ/HAINAN": {"total": 15, "covered": 2, "partial": 2, "missing": 3, "placeholder": 8},
-      "TAXINC/ASSESS/LIQ/BANKR": {"total": 15, "covered": 1, "partial": 6, "missing": 7, "placeholder": 1},
-      "EINV/RRT": {"total": 10, "covered": 1, "partial": 6, "missing": 0, "placeholder": 3},
-      "行业特定": {"total": 20, "covered": 2, "partial": 3, "missing": 5, "placeholder": 10}
+      "小税种（DEED/GOT/VET/VPT/CUS/TON/TOB/CUL/WAT/SUR）": {
+        "total": 29,
+        "covered": 11,
+        "partial": 8,
+        "missing": 10,
+        "placeholder": 0
+      },
+      "ADM 征管": {
+        "total": 20,
+        "covered": 0,
+        "partial": 8,
+        "missing": 0,
+        "placeholder": 12
+      },
+      "AA 反避税": {
+        "total": 20,
+        "covered": 3,
+        "partial": 4,
+        "missing": 3,
+        "placeholder": 10
+      },
+      "INT 国际税收": {
+        "total": 20,
+        "covered": 1,
+        "partial": 7,
+        "missing": 2,
+        "placeholder": 10
+      },
+      "REO 重组资本": {
+        "total": 15,
+        "covered": 1,
+        "partial": 1,
+        "missing": 4,
+        "placeholder": 9
+      },
+      "EST/CONSTR 地产建安": {
+        "total": 20,
+        "covered": 2,
+        "partial": 9,
+        "missing": 5,
+        "placeholder": 4
+      },
+      "PLAT/FLEX/HNW": {
+        "total": 20,
+        "covered": 1,
+        "partial": 5,
+        "missing": 4,
+        "placeholder": 10
+      },
+      "金融（FINA/LEASE/FACT/MICRO/GUAR/PAWN/PE/FUNDM/TRUST/REIT/PPP/EPC/BOT/ABS/FUND-011）": {
+        "total": 20,
+        "covered": 0,
+        "partial": 4,
+        "missing": 3,
+        "placeholder": 13
+      },
+      "EXPORT/CUSTOMS/BOND/FTZ/HAINAN": {
+        "total": 15,
+        "covered": 2,
+        "partial": 2,
+        "missing": 3,
+        "placeholder": 8
+      },
+      "TAXINC/ASSESS/LIQ/BANKR": {
+        "total": 17,
+        "covered": 1,
+        "partial": 6,
+        "missing": 8,
+        "placeholder": 2
+      },
+      "EINV/RRT": {
+        "total": 10,
+        "covered": 1,
+        "partial": 6,
+        "missing": 0,
+        "placeholder": 3
+      },
+      "行业特定": {
+        "total": 20,
+        "covered": 2,
+        "partial": 3,
+        "missing": 5,
+        "placeholder": 10
+      }
     }
   },
-
   "var_map_addendum": {
     "_note": "V1.2 新增变量 → 系统取数口径。★ 标 [数据源不存在] 者，账内无对应字段 ⇒ 相关规则只能 placeholder/待资料。",
     "contract_amount": "contracts（合同表）/ contract_payments（付款）金额",
@@ -100,67 +215,244 @@
     "high_tech_condition_met / R&D_ratio / tech_personnel_ratio": "company_profile + 研发费用辅助账 [部分可得]",
     "bank_txs 派生": "银行流水（粒度已支持公转私/回流/代发识别）"
   },
-
   "params": {
     "_note": "★ V1.2 全量阈值集中登记处（参数化）。规则体只引用键名，不内联数值。未登记的键，检测器须输出「待核」，禁止用默认值静默顶替。",
-    "DEED-001": {"base_ratio": 0.9, "_basis": "契税计税依据 vs 合同金额下限倍数"},
-    "DEED-004": {"deed_rates": {"土地使用权出让": 0.03, "房屋买卖": 0.03, "其他": 0.03}, "_basis": "契税税率（地区差异，宜入 region_params）"},
-    "GOT-002": {"area_diff_ratio": 0.1, "_basis": "耕地占用税计税面积 vs 实际面积差异率"},
-    "VPT-002": {"base_ratio": 0.9, "_basis": "车购税计税价格 vs 市场价下限倍数"},
-    "CUS-001": {"value_ratio": 0.9, "_basis": "关税完税价格 vs 发票金额下限倍数"},
-    "CUS-002": {"customs_rates": null, "_basis": "关税税率按商品编码，需海关税则参数（未提供则待核）"},
-    "TOB-002": {"tolerance": 0.0, "_basis": "烟叶税计税依据偏差容忍"},
-    "CUL-002": {"base_diff_ratio": 0.1, "_basis": "文化事业建设费计费基数 vs 广告收入差异率"},
-    "WAT-002": {"base_diff_ratio": 0.1, "_basis": "水利基金计费基数 vs 收入差异率"},
-    "SUR-010": {"return_diff_threshold": null, "_basis": "附加税费申报表间差异阈值（待登记）"},
-    "ADM-002": {"same_person_multi_companies": null, "_basis": "同一人兼任企业数阈值（六员重叠，可复用 VR020）"},
-    "ADM-007": {"amended_count": null, "_basis": "申报更正次数阈值"},
-    "ADM-008": {"amended_count": 3, "_basis": "多次更正申报次数阈值"},
-    "ADM-009": {"declared_paid_tolerance": null, "_basis": "申报税额 vs 缴款税额偏差"},
-    "ADM-011": {"late_fee_threshold": null, "_basis": "滞纳金金额阈值"},
-    "ADM-012": {"extension_count": null, "_basis": "延期申报次数阈值"},
-    "ADM-013": {"extension_count": null, "_basis": "延期缴税次数阈值"},
-    "AA-001": {"price_deviation": 0.2, "_basis": "关联价 vs 市场价偏离率（同 REL-001）"},
-    "AA-002": {"related_ratio": 0.5, "_basis": "关联交易占比上限（同 REL-002）"},
-    "AA-004": {"market_rate_multiple": 1.5, "_basis": "关联借款利率 vs 市场利率倍数（市场利率 = redline_benchmark.LOAN_RATE_SERIES）"},
-    "AA-012": {"related_transaction_threshold": null, "_basis": "同期资料准备门槛（关联购销≥2亿/其他≥4000万等，需法规库参数）"},
-    "AA-017": {"purpose_score_threshold": null, "_basis": "合理商业目的评分阈值（需评分模型，暂不可算）"},
-    "AA-018": {"conduit_indicators_threshold": null, "_basis": "导管公司特征指标阈值（需模型）"},
-    "AA-019": {"treaty_shopping_threshold": null, "_basis": "择协避税指标阈值（需模型）"},
-    "INT-018": {"outbound_payment_threshold": null, "_basis": "对外支付备案金额门槛（5万美元，需法规库参数）"},
-    "INT-019": {"service_trade_payment_threshold": null, "_basis": "服务贸易对外支付税务备案门槛"},
-    "REO-007": {"fair_value_ratio": 0.7, "_basis": "股权转让价格 vs 公允价值下限倍数"},
-    "REO-011": {"withholding_required": true, "_basis": "转增股本视同分红须代扣个税（存在即触发）"},
-    "EST-001": {"prepay_rate": null, "_basis": "房地产预缴增值税预征率（地区参数）"},
-    "EST-002": {"prepay_rate": null, "_basis": "土地增值税预征率（地区/业态参数）"},
-    "EST-003": {"gross_profit_rate": null, "_basis": "预计毛利率（地区参数，通常 15%/10%）"},
-    "EST-005": {"reasonable_ratio": null, "_basis": "开发成本分摊合理比例（需项目口径）"},
-    "CONSTR-003": {"simplified_conditions": null, "_basis": "简易计税适用条件（甲供材/清包工/老项目）"},
-    "CONSTR-006": {"subcontract_deduction_threshold": null, "_basis": "分包款扣除阈值"},
-    "FLEX-001": {"outsourcing_ratio": 0.5, "_basis": "劳务外包占比阈值"},
-    "FLEX-002": {"dispatch_ratio": 0.1, "_basis": "劳务派遣用工占比上限（10%）"},
-    "HNW-001": {"burden_threshold": null, "_basis": "高净值个人税负下限（需个税申报与资产数据）"},
-    "FINA-001": {"tolerance": 0.0, "_basis": "贷款利息收入申报偏差容忍"},
-    "MICRO-001": {"tolerance": 0.0, "_basis": "小贷利息收入申报偏差容忍"},
-    "GUAR-001": {"tolerance": 0.0, "_basis": "担保费收入申报偏差容忍"},
-    "FUND-011": {"amount_threshold": null, "_basis": "资金池余额阈值（同 FUND-009）"},
-    "EXPORT-012": {"export_receipt_gap_ratio": 0.15, "_basis": "出口额 vs 收汇缺口率（export_rebate_crosscheck）"},
-    "CUSTOMS-001": {"domestic_sale_tax_tolerance": 0.0, "_basis": "保税料件内销补税偏差容忍"},
-    "CUSTOMS-003": {"value_ratio": 0.9, "_basis": "海关完税价格 vs 发票金额下限倍数"},
-    "HAINAN-001": {"revenue_ratio": 0.6, "industry_negative_list": null, "_basis": "海南15%所得税：主营业务收入占比≥60% 且不在负面清单"},
-    "HAINAN-002": {"iit_burden_cap": 0.15, "_basis": "海南个税优惠：实际税负超15%部分免征"},
-    "ASSESS-002": {"assessed_rate_ratio": 0.7, "_basis": "核定征收率 vs 行业均值下限倍数"},
-    "ASSESS-003": {"assessed_income_ratio": 0.7, "_basis": "核定收入 vs 实际收入下限倍数"},
-    "LIQ-002": {"tolerance": 0.0, "_basis": "清算所得计算偏差容忍"},
-    "BANKR-003": {"asset_loss_threshold": null, "_basis": "资产处置损失金额阈值"},
-    "EINV-002": {"void_abnormal_ratio": null, "_basis": "全电发票红冲异常占比阈值"},
-    "RRT-002": {"incremental_abnormal_tolerance": null, "_basis": "增量留抵退税异常容忍"},
-    "RRT-003": {"stock_abnormal_tolerance": null, "_basis": "存量留抵退税异常容忍"},
-    "HNTECH-002": {"rnd_ratio_required": 0.03, "_basis": "高新研发费用占比要求（按收入档：<5000万→5%，5000万~2亿→4%，>2亿→3%）"},
-    "HNTECH-003": {"tech_personnel_ratio_required": 0.1, "_basis": "高新科技人员占比要求（≥10%）"},
-    "EDU-001~CBEC-001": {"tax_treatment": null, "_basis": "行业税务处理复核：判据未定义（placeholder），须先细化具体可算判据"}
+    "DEED-001": {
+      "base_ratio": 0.9,
+      "_basis": "契税计税依据 vs 合同金额下限倍数"
+    },
+    "DEED-004": {
+      "deed_rates": {
+        "土地使用权出让": 0.03,
+        "房屋买卖": 0.03,
+        "其他": 0.03
+      },
+      "_basis": "契税税率（地区差异，宜入 region_params）"
+    },
+    "GOT-002": {
+      "area_diff_ratio": 0.1,
+      "_basis": "耕地占用税计税面积 vs 实际面积差异率"
+    },
+    "VPT-002": {
+      "base_ratio": 0.9,
+      "_basis": "车购税计税价格 vs 市场价下限倍数"
+    },
+    "CUS-001": {
+      "value_ratio": 0.9,
+      "_basis": "关税完税价格 vs 发票金额下限倍数"
+    },
+    "CUS-002": {
+      "customs_rates": null,
+      "_basis": "关税税率按商品编码，需海关税则参数（未提供则待核）"
+    },
+    "TOB-002": {
+      "tolerance": 0.0,
+      "_basis": "烟叶税计税依据偏差容忍"
+    },
+    "CUL-002": {
+      "base_diff_ratio": 0.1,
+      "_basis": "文化事业建设费计费基数 vs 广告收入差异率"
+    },
+    "WAT-002": {
+      "base_diff_ratio": 0.1,
+      "_basis": "水利基金计费基数 vs 收入差异率"
+    },
+    "SUR-010": {
+      "return_diff_threshold": null,
+      "_basis": "附加税费申报表间差异阈值（待登记）"
+    },
+    "ADM-002": {
+      "same_person_multi_companies": null,
+      "_basis": "同一人兼任企业数阈值（六员重叠，可复用 VR020）"
+    },
+    "ADM-007": {
+      "amended_count": null,
+      "_basis": "申报更正次数阈值"
+    },
+    "ADM-008": {
+      "amended_count": 3,
+      "_basis": "多次更正申报次数阈值"
+    },
+    "ADM-009": {
+      "declared_paid_tolerance": null,
+      "_basis": "申报税额 vs 缴款税额偏差"
+    },
+    "ADM-011": {
+      "late_fee_threshold": null,
+      "_basis": "滞纳金金额阈值"
+    },
+    "ADM-012": {
+      "extension_count": null,
+      "_basis": "延期申报次数阈值"
+    },
+    "ADM-013": {
+      "extension_count": null,
+      "_basis": "延期缴税次数阈值"
+    },
+    "AA-001": {
+      "price_deviation": 0.2,
+      "_basis": "关联价 vs 市场价偏离率（同 REL-001）"
+    },
+    "AA-002": {
+      "related_ratio": 0.5,
+      "_basis": "关联交易占比上限（同 REL-002）"
+    },
+    "AA-004": {
+      "market_rate_multiple": 1.5,
+      "_basis": "关联借款利率 vs 市场利率倍数（市场利率 = redline_benchmark.LOAN_RATE_SERIES）"
+    },
+    "AA-012": {
+      "related_transaction_threshold": null,
+      "_basis": "同期资料准备门槛（关联购销≥2亿/其他≥4000万等，需法规库参数）"
+    },
+    "AA-017": {
+      "purpose_score_threshold": null,
+      "_basis": "合理商业目的评分阈值（需评分模型，暂不可算）"
+    },
+    "AA-018": {
+      "conduit_indicators_threshold": null,
+      "_basis": "导管公司特征指标阈值（需模型）"
+    },
+    "AA-019": {
+      "treaty_shopping_threshold": null,
+      "_basis": "择协避税指标阈值（需模型）"
+    },
+    "INT-018": {
+      "outbound_payment_threshold": null,
+      "_basis": "对外支付备案金额门槛（5万美元，需法规库参数）"
+    },
+    "INT-019": {
+      "service_trade_payment_threshold": null,
+      "_basis": "服务贸易对外支付税务备案门槛"
+    },
+    "REO-007": {
+      "fair_value_ratio": 0.7,
+      "_basis": "股权转让价格 vs 公允价值下限倍数"
+    },
+    "REO-011": {
+      "withholding_required": true,
+      "_basis": "转增股本视同分红须代扣个税（存在即触发）"
+    },
+    "EST-001": {
+      "prepay_rate": null,
+      "_basis": "房地产预缴增值税预征率（地区参数）"
+    },
+    "EST-002": {
+      "prepay_rate": null,
+      "_basis": "土地增值税预征率（地区/业态参数）"
+    },
+    "EST-003": {
+      "gross_profit_rate": null,
+      "_basis": "预计毛利率（地区参数，通常 15%/10%）"
+    },
+    "EST-005": {
+      "reasonable_ratio": null,
+      "_basis": "开发成本分摊合理比例（需项目口径）"
+    },
+    "CONSTR-003": {
+      "simplified_conditions": null,
+      "_basis": "简易计税适用条件（甲供材/清包工/老项目）"
+    },
+    "CONSTR-006": {
+      "subcontract_deduction_threshold": null,
+      "_basis": "分包款扣除阈值"
+    },
+    "FLEX-001": {
+      "outsourcing_ratio": 0.5,
+      "_basis": "劳务外包占比阈值"
+    },
+    "FLEX-002": {
+      "dispatch_ratio": 0.1,
+      "_basis": "劳务派遣用工占比上限（10%）"
+    },
+    "HNW-001": {
+      "burden_threshold": null,
+      "_basis": "高净值个人税负下限（需个税申报与资产数据）"
+    },
+    "FINA-001": {
+      "tolerance": 0.0,
+      "_basis": "贷款利息收入申报偏差容忍"
+    },
+    "MICRO-001": {
+      "tolerance": 0.0,
+      "_basis": "小贷利息收入申报偏差容忍"
+    },
+    "GUAR-001": {
+      "tolerance": 0.0,
+      "_basis": "担保费收入申报偏差容忍"
+    },
+    "FUND-011": {
+      "amount_threshold": null,
+      "_basis": "资金池余额阈值（同 FUND-009）"
+    },
+    "EXPORT-012": {
+      "export_receipt_gap_ratio": 0.15,
+      "_basis": "出口额 vs 收汇缺口率（export_rebate_crosscheck）"
+    },
+    "CUSTOMS-001": {
+      "domestic_sale_tax_tolerance": 0.0,
+      "_basis": "保税料件内销补税偏差容忍"
+    },
+    "CUSTOMS-003": {
+      "value_ratio": 0.9,
+      "_basis": "海关完税价格 vs 发票金额下限倍数"
+    },
+    "HAINAN-001": {
+      "revenue_ratio": 0.6,
+      "industry_negative_list": null,
+      "_basis": "海南15%所得税：主营业务收入占比≥60% 且不在负面清单"
+    },
+    "HAINAN-002": {
+      "iit_burden_cap": 0.15,
+      "_basis": "海南个税优惠：实际税负超15%部分免征"
+    },
+    "ASSESS-002": {
+      "assessed_rate_ratio": 0.7,
+      "_basis": "核定征收率 vs 行业均值下限倍数"
+    },
+    "ASSESS-003": {
+      "assessed_income_ratio": 0.7,
+      "_basis": "核定收入 vs 实际收入下限倍数"
+    },
+    "LIQ-002": {
+      "tolerance": 0.0,
+      "_basis": "清算所得计算偏差容忍"
+    },
+    "BANKR-003": {
+      "asset_loss_threshold": null,
+      "_basis": "资产处置损失金额阈值"
+    },
+    "EINV-002": {
+      "void_abnormal_ratio": null,
+      "_basis": "全电发票红冲异常占比阈值"
+    },
+    "RRT-002": {
+      "incremental_abnormal_tolerance": null,
+      "_basis": "增量留抵退税异常容忍"
+    },
+    "RRT-003": {
+      "stock_abnormal_tolerance": null,
+      "_basis": "存量留抵退税异常容忍"
+    },
+    "HNTECH-002": {
+      "rnd_ratio_required": 0.03,
+      "_basis": "高新研发费用占比要求（按收入档：<5000万→5%，5000万~2亿→4%，>2亿→3%）"
+    },
+    "HNTECH-003": {
+      "tech_personnel_ratio_required": 0.1,
+      "_basis": "高新科技人员占比要求（≥10%）"
+    },
+    "EDU-001~CBEC-001": {
+      "tax_treatment": null,
+      "_basis": "行业税务处理复核：判据未定义（placeholder），须先细化具体可算判据"
+    },
+    "LIQ-004": {
+      "_basis": "清算期间经营所得：清算期损益表 vs 申报（需清算资料）"
+    },
+    "BANKR-004": {
+      "_basis": "判据未定义（placeholder）⇒ 须先细化可算判据"
+    }
   },
-
   "v11_equivalence": {
     "_note": "V1.2 与 V1.0/V1.1 的重复条目 ⇒ 以先登记者为准，V1.2 条目不重复落地。★ 说明本批最要紧的去重结果。",
     "AA-001": "= REL-001（= VAT/CIT-012 关联交易定价）",
@@ -204,245 +496,3724 @@
       "ADM-014 ↔ TAXINC-002/TAXINC-014（优惠备案缺失，三重复）"
     ]
   },
-
   "rules": [
-    {"src": "DEED-001", "name": "契税计税依据偏低", "sev": "high", "status": "partial", "by": "RL-SPT-007（承受土地房屋权属未申报契税）+ engine/analysis_coverage", "action": "merge", "params_ref": "config/rulelist_v12.json::params.DEED-001", "logic": "deed_tax_base < contract_amount * params.base_ratio", "inputs": ["契税基数", "合同金额"], "suggestion": "核查计税依据", "legal_basis_ref": "法规库自动匹配", "note": "系统判「未申报」，候选判「依据偏低」⇒ 合并为同一检测器的两分支"},
-    {"src": "DEED-002", "name": "土地使用权出让契税未申报", "sev": "high", "status": "covered", "by": "RL-SPT-007", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.DEED-002", "logic": "land_transfer_amount > 0 and deed_tax_paid = 0", "inputs": ["土地出让金额", "契税"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "DEED-003", "name": "房屋买卖契税未申报", "sev": "high", "status": "covered", "by": "RL-SPT-007", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.DEED-003", "logic": "house_transfer_amount > 0 and deed_tax_paid = 0", "inputs": ["房屋转让金额", "契税"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "DEED-004", "name": "契税税率适用错误", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.DEED-004", "logic": "applied_deed_rate != correct_rate", "inputs": ["适用税率", "正确税率"], "suggestion": "核查税率", "legal_basis_ref": "法规库自动匹配", "note": "契税税率属地区参数 ⇒ 未登记则待核"},
-    {"src": "DEED-005", "name": "契税减免条件不符", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.DEED-005", "logic": "deed_tax_reduction and condition not met", "inputs": ["减免", "条件"], "suggestion": "核查减免", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "GOT-001", "name": "耕地占用税未申报", "sev": "high", "status": "covered", "by": "RL-SPT-014 + engine/gap_tax_obligations", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.GOT-001", "logic": "occupied_farmland_area > 0 and farmland_tax_paid = 0", "inputs": ["占用耕地面积", "耕地占用税"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "GOT-002", "name": "耕地占用税计税面积异常", "sev": "medium", "status": "partial", "by": "RL-SPT-014（申报面积口径）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.GOT-002", "logic": "abs(tax_area - actual_area) / actual_area > params.area_diff_ratio", "inputs": ["计税面积", "实际面积"], "suggestion": "核查面积", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "GOT-003", "name": "耕地占用税减免异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.GOT-003", "logic": "farmland_tax_reduction and condition not met", "inputs": ["减免", "条件"], "suggestion": "核查减免", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "VET-001", "name": "车船税未申报", "sev": "medium", "status": "covered", "by": "RL-OTH-005 + engine/gap_risk_detectors", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.VET-001", "logic": "vehicle_count > 0 and vehicle_tax_paid = 0", "inputs": ["车辆数量", "车船税"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "VET-002", "name": "车船税计税依据异常", "sev": "medium", "status": "partial", "by": "RL-OTH-005（车辆台账与保单）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.VET-002", "logic": "vehicle_tax_base != correct_base", "inputs": ["计税依据", "正确依据"], "suggestion": "核查依据", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "VET-003", "name": "车船税减免异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.VET-003", "logic": "vehicle_tax_reduction and condition not met", "inputs": ["减免", "条件"], "suggestion": "核查减免", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "VPT-001", "name": "车辆购置税未申报", "sev": "high", "status": "covered", "by": "RL-SPT-018 + engine/gap_tax_obligations", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.VPT-001", "logic": "vehicle_purchase_amount > 0 and vpt_paid = 0", "inputs": ["购车金额", "车辆购置税"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "VPT-002", "name": "车辆购置税计税价格偏低", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.VPT-002", "logic": "vpt_base < market_price * params.base_ratio", "inputs": ["计税价格", "市场价"], "suggestion": "核查价格", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "VPT-003", "name": "车辆购置税减免异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.VPT-003", "logic": "vpt_reduction and condition not met", "inputs": ["减免", "条件"], "suggestion": "核查减免", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "CUS-001", "name": "关税完税价格异常", "sev": "high", "status": "covered", "by": "RL-SPT-005（进口完税价格申报不实）+ engine/special_redline_detectors", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.CUS-001", "logic": "customs_value < invoice_value * params.value_ratio", "inputs": ["完税价格", "发票金额"], "suggestion": "核查完税价格", "legal_basis_ref": "法规库自动匹配", "note": "★ 与 CUSTOMS-003 同一判据（V1.2 内部重复）"},
-    {"src": "CUS-002", "name": "关税税率适用错误", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.CUS-002", "logic": "applied_customs_rate != correct_rate", "inputs": ["适用税率", "正确税率"], "suggestion": "核查税率", "legal_basis_ref": "法规库自动匹配", "note": "关税税率按商品编码，需海关税则参数"},
-    {"src": "CUS-003", "name": "关税减免异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.CUS-003", "logic": "customs_reduction and condition not met", "inputs": ["减免", "条件"], "suggestion": "核查减免", "legal_basis_ref": "法规库自动匹配", "note": "★ 与 CUSTOMS-004 同一判据（V1.2 内部重复）"},
-    {"src": "TON-001", "name": "船舶吨税未申报", "sev": "medium", "status": "covered", "by": "RL-SPT-016 + engine/gap_tax_obligations", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.TON-001", "logic": "ship_tonnage > 0 and tonnage_tax_paid = 0", "inputs": ["船舶吨位", "吨税"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "TOB-001", "name": "烟叶税未申报", "sev": "medium", "status": "covered", "by": "RL-SPT-015 + engine/gap_tax_obligations", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.TOB-001", "logic": "tobacco_purchase_amount > 0 and tobacco_tax_paid = 0", "inputs": ["烟叶收购金额", "烟叶税"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "TOB-002", "name": "烟叶税计税依据异常", "sev": "medium", "status": "partial", "by": "RL-SPT-015（收购金额口径）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.TOB-002", "logic": "tobacco_tax_base != purchase_amount", "inputs": ["计税依据", "收购金额"], "suggestion": "核查依据", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "CUL-001", "name": "文化事业建设费未申报", "sev": "medium", "status": "covered", "by": "RL-SPT-017 + engine/gap_tax_obligations", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.CUL-001", "logic": "advertising_revenue > 0 and cultural_fee_paid = 0", "inputs": ["广告收入", "文化事业建设费"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "CUL-002", "name": "文化事业建设费计税依据异常", "sev": "medium", "status": "partial", "by": "RL-SPT-017（广告收入口径）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.CUL-002", "logic": "abs(cultural_fee_base - advertising_revenue) / advertising_revenue > params.base_diff_ratio", "inputs": ["计费基数", "广告收入"], "suggestion": "核查依据", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "WAT-001", "name": "水利建设基金未申报", "sev": "medium", "status": "covered", "by": "RL-SPT-020 + engine/gap_tax_obligations", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.WAT-001", "logic": "sales_revenue > 0 and water_fund_paid = 0", "inputs": ["销售收入", "水利基金"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "WAT-002", "name": "水利建设基金计税依据异常", "sev": "medium", "status": "partial", "by": "RL-SPT-020（销售收入口径）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.WAT-002", "logic": "abs(water_fund_base - sales_revenue) / sales_revenue > params.base_diff_ratio", "inputs": ["计费基数", "收入"], "suggestion": "核查依据", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "SUR-006", "name": "地方教育附加未申报", "sev": "medium", "status": "covered", "by": "RL-OTH-003 + VR043", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.SUR-006", "logic": "vat_payable > 0 and local_edu_surcharge_paid = 0", "inputs": ["增值税", "地方教育附加"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "⊇ SUR-004（V1.1）"},
-    {"src": "SUR-007", "name": "教育费附加减免异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.SUR-007", "logic": "edu_surcharge_reduction and condition not met", "inputs": ["减免", "条件"], "suggestion": "核查减免", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "SUR-008", "name": "附加税费退库异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.SUR-008", "logic": "surtax_refund > 0 and vat_refund = 0", "inputs": ["附加税费退库", "增值税退税"], "suggestion": "核查退库", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "SUR-009", "name": "附加税费跨期异常", "sev": "medium", "status": "partial", "by": "VR043（随增值税附征勾稽）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.SUR-009", "logic": "surtax_period != vat_period", "inputs": ["附加税费期间", "增值税期间"], "suggestion": "核查期间", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "SUR-010", "name": "附加税费申报表间差异", "sev": "medium", "status": "partial", "by": "RL-CIT-008（表间勾稽四方比对）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.SUR-010", "logic": "abs(surtax_return_a - surtax_return_b) > params.return_diff_threshold", "inputs": ["申报表A", "申报表B"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-
-    {"src": "ADM-001", "name": "税务登记信息与工商信息不一致", "sev": "medium", "status": "partial", "by": "engine/tax_redlines（税务登记）+ target_entity（统一社会信用代码）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ADM-001", "logic": "tax_registration != business_registration", "inputs": ["税务登记", "工商登记"], "suggestion": "核查登记", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "ADM-002", "name": "财务负责人/办税人异常", "sev": "medium", "status": "partial", "by": "VR020（六员个人账户与经营资金往来）+ RL-CIT-001（六员重叠）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ADM-002", "logic": "same_person_multi_companies > params.same_person_multi_companies", "inputs": ["人员", "企业数"], "suggestion": "核查关联", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "ADM-003", "name": "注册地址异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-003", "logic": "registered_address_virtual = true", "inputs": ["注册地址", "虚拟地址标识"], "suggestion": "核查地址", "legal_basis_ref": "法规库自动匹配", "note": "「虚拟地址标识」无客观判据、无数据源 ⇒ 需先细化（如：同址企业数 > N 且无实际经营痕迹）"},
-    {"src": "ADM-004", "name": "发票领用异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-004", "logic": "invoice_quota_increase_abnormal = true", "inputs": ["发票领用", "调整"], "suggestion": "核查领用", "legal_basis_ref": "法规库自动匹配", "note": "无发票领用/调整数据源 ⇒ 待资料"},
-    {"src": "ADM-005", "name": "税控设备异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-005", "logic": "tax_device_abnormal = true", "inputs": ["税控设备"], "suggestion": "核查设备", "legal_basis_ref": "法规库自动匹配", "note": "无税控设备数据源 ⇒ 待资料"},
-    {"src": "ADM-006", "name": "申报表逻辑校验异常", "sev": "high", "status": "partial", "by": "RL-CIT-008 + VR018/VR019", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ADM-006", "logic": "return_logic_check_failed = true", "inputs": ["申报表逻辑"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "ADM-007", "name": "申报数据篡改痕迹", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-007", "logic": "return_amended_count > params.amended_count", "inputs": ["更正次数"], "suggestion": "核查更正", "legal_basis_ref": "法规库自动匹配", "note": "无申报更正记录数据源；且「篡改痕迹」需先定义判据 ⇒ 待资料"},
-    {"src": "ADM-008", "name": "多次更正申报", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-008", "logic": "amended_count > params.amended_count", "inputs": ["更正次数"], "suggestion": "核查原因", "legal_basis_ref": "法规库自动匹配", "note": "无更正记录数据源 ⇒ 待资料"},
-    {"src": "ADM-009", "name": "申报与缴款不一致", "sev": "high", "status": "partial", "by": "VR018/VR019（申报↔开票↔账载）+ engine/subject_consistency", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ADM-009", "logic": "abs(declared_tax - paid_tax) > params.declared_paid_tolerance", "inputs": ["申报税额", "缴款税额"], "suggestion": "核查缴款", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "ADM-010", "name": "欠税未清缴", "sev": "high", "status": "partial", "by": "engine/domain_analysis（欠税关键词）+ trial_balance「应交税费」", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ADM-010", "logic": "tax_arrears > 0", "inputs": ["欠税金额"], "suggestion": "核查欠税", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "ADM-011", "name": "滞纳金异常", "sev": "medium", "status": "partial", "by": "engine/domain_analysis / cross_domain_negotiation（滞纳金）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ADM-011", "logic": "late_fee > params.late_fee_threshold", "inputs": ["滞纳金"], "suggestion": "核查滞纳", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "ADM-012", "name": "延期申报异常", "sev": "medium", "status": "partial", "by": "engine/domain_analysis（延期申报）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ADM-012", "logic": "extension_declaration_count > params.extension_count", "inputs": ["延期申报次数"], "suggestion": "核查延期", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "ADM-013", "name": "延期缴税异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-013", "logic": "extension_payment_count > params.extension_count", "inputs": ["延期缴税次数"], "suggestion": "核查延期", "legal_basis_ref": "法规库自动匹配", "note": "全仓 0 命中；无延期缴税记录数据源 ⇒ 待资料"},
-    {"src": "ADM-014", "name": "税收优惠备案缺失", "sev": "medium", "status": "partial", "by": "engine/tax_incentive_analyzer", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ADM-014", "logic": "incentive_claimed and filing_missing", "inputs": ["优惠", "备案"], "suggestion": "核查备案", "legal_basis_ref": "法规库自动匹配", "note": "★ 与 TAXINC-002 / TAXINC-014 三重复 ⇒ 合并为一条"},
-    {"src": "ADM-015", "name": "跨区域涉税事项未报验", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-015", "logic": "cross_region_project and report_missing", "inputs": ["跨区域项目", "报验"], "suggestion": "核查报验", "legal_basis_ref": "法规库自动匹配", "note": "无报验记录数据源 ⇒ 待资料（可先做「有异地项目而无报验痕迹」置疑）"},
-    {"src": "ADM-016", "name": "外管证未核销", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-016", "logic": "external_management_certificate_not_cancelled", "inputs": ["外管证"], "suggestion": "核查核销", "legal_basis_ref": "法规库自动匹配", "note": "无外管证数据源 ⇒ 待资料"},
-    {"src": "ADM-017", "name": "总分机构汇总纳税异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-017", "logic": "headquarters_branch_allocation_abnormal", "inputs": ["总分机构", "分配"], "suggestion": "核查汇总", "legal_basis_ref": "法规库自动匹配", "note": "全仓 0 命中；需总分机构分配表 ⇒ 待资料"},
-    {"src": "ADM-018", "name": "合并纳税异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-018", "logic": "consolidated_tax_filing_abnormal", "inputs": ["合并纳税"], "suggestion": "核查合并", "legal_basis_ref": "法规库自动匹配", "note": "需合并纳税申报数据 ⇒ 待资料"},
-    {"src": "ADM-019", "name": "税收洼地注册异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-019", "logic": "tax_haven_registration = true", "inputs": ["注册地", "税收洼地"], "suggestion": "核查实质", "legal_basis_ref": "法规库自动匹配", "note": "「税收洼地」需地区清单 + 实质经营判据 ⇒ 先细化（建议：注册地优惠园区 + 无人员无资产）"},
-    {"src": "ADM-020", "name": "财政返还与税收挂钩", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ADM-020", "logic": "fiscal_refund_linked_to_tax = true", "inputs": ["财政返还", "税收"], "suggestion": "核查返还", "legal_basis_ref": "法规库自动匹配", "note": "需财政返还协议/批文 ⇒ 待资料"},
-
-    {"src": "AA-001", "name": "关联交易定价偏离市场", "sev": "high", "status": "covered", "by": "VR037 / RL-CIT-001", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.AA-001", "logic": "abs(related_price - market_price) / market_price > params.price_deviation", "inputs": ["关联价", "市场价"], "suggestion": "核查转让定价", "legal_basis_ref": "法规库自动匹配", "note": "= REL-001（= VAT/CIT-012）"},
-    {"src": "AA-002", "name": "关联交易占比过高", "sev": "medium", "status": "partial", "by": "VR017（购销双方集中度核验）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.AA-002", "logic": "related_transaction_ratio > params.related_ratio", "inputs": ["关联交易", "总收入"], "suggestion": "核查关联", "legal_basis_ref": "法规库自动匹配", "note": "= REL-002"},
-    {"src": "AA-003", "name": "关联方资金占用", "sev": "high", "status": "covered", "by": "RL-CIT-002 / VR030", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.AA-003", "logic": "related_party_receivable > params.amount_threshold", "inputs": ["关联方应收"], "suggestion": "核查资金占用", "legal_basis_ref": "法规库自动匹配", "note": "= REL-003"},
-    {"src": "AA-004", "name": "关联方借款利率异常", "sev": "high", "status": "covered", "by": "RL-CIT-009（基准＝1 年期 LPR）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.AA-004", "logic": "related_loan_rate > market_rate * params.market_rate_multiple", "inputs": ["关联利率", "市场利率"], "suggestion": "核查利息", "legal_basis_ref": "法规库自动匹配", "note": "= REL-004（= CIT-011）"},
-    {"src": "AA-005", "name": "关联方劳务费用异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.AA-005", "logic": "related_service_fee > params.amount_threshold", "inputs": ["关联劳务费"], "suggestion": "核查劳务", "legal_basis_ref": "法规库自动匹配", "note": "= REL-006（0 命中「关联方劳务」）"},
-    {"src": "AA-006", "name": "关联方资产转让异常", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.AA-006", "logic": "related_asset_transfer_price != fair_value", "inputs": ["关联资产转让", "公允价值"], "suggestion": "核查转让", "legal_basis_ref": "法规库自动匹配", "note": "= REL-007"},
-    {"src": "AA-007", "name": "关联方股权转让异常", "sev": "high", "status": "partial", "by": "RL-SPT-009（价格明显偏低）/ RL-SPT-012", "action": "merge", "params_ref": "config/rulelist_v12.json::params.AA-007", "logic": "related_equity_transfer_price != fair_value", "inputs": ["关联股权转让", "公允价值"], "suggestion": "核查转让", "legal_basis_ref": "法规库自动匹配", "note": "= REL-008"},
-    {"src": "AA-008", "name": "关联方债务豁免", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.AA-008", "logic": "related_party_debt_forgiveness > 0", "inputs": ["债务豁免"], "suggestion": "核查税务处理", "legal_basis_ref": "法规库自动匹配", "note": "= REL-009（0 命中「债务豁免」）"},
-    {"src": "AA-009", "name": "关联方承担费用", "sev": "medium", "status": "partial", "by": "engine/domain_analysis（费用承担）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.AA-009", "logic": "related_party_expense_bearing > 0", "inputs": ["关联方费用承担"], "suggestion": "核查费用", "legal_basis_ref": "法规库自动匹配", "note": "= REL-010"},
-    {"src": "AA-010", "name": "成本分摊协议异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-010", "logic": "cost_sharing_agreement_abnormal = true", "inputs": ["成本分摊协议"], "suggestion": "核查分摊", "legal_basis_ref": "法规库自动匹配", "note": "需成本分摊协议文本 ⇒ 待资料 + 判据未定义"},
-    {"src": "AA-011", "name": "预约定价安排未执行", "sev": "medium", "status": "placeholder", "by": "engine/domain_analysis（预约定价关键词）", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-011", "logic": "APA_exists and actual_transaction != APA_terms", "inputs": ["APA", "实际交易"], "suggestion": "核查执行", "legal_basis_ref": "法规库自动匹配", "note": "仅有文案提及；APA 文本不可得 ⇒ 待资料"},
-    {"src": "AA-012", "name": "同期资料缺失", "sev": "medium", "status": "partial", "by": "engine/domain_analysis / enterprise_report（同期资料）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.AA-012", "logic": "related_transaction_threshold_met and contemporaneous_docs_missing", "inputs": ["关联交易", "同期资料"], "suggestion": "核查资料", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "AA-013", "name": "国别报告缺失", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-013", "logic": "CbCR_required and CbCR_missing", "inputs": ["国别报告要求", "提交"], "suggestion": "核查报告", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需国别报告数据 ⇒ 待资料"},
-    {"src": "AA-014", "name": "主体文档缺失", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-014", "logic": "master_file_required and master_file_missing", "inputs": ["主体文档"], "suggestion": "核查文档", "legal_basis_ref": "法规库自动匹配", "note": "需转让定价文档体系 ⇒ 待资料"},
-    {"src": "AA-015", "name": "本地文档缺失", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-015", "logic": "local_file_required and local_file_missing", "inputs": ["本地文档"], "suggestion": "核查文档", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "AA-016", "name": "特殊事项文档缺失", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-016", "logic": "special_file_required and special_file_missing", "inputs": ["特殊事项文档"], "suggestion": "核查文档", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "AA-017", "name": "合理商业目的不足", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-017", "logic": "reasonable_business_purpose_score < params.purpose_score_threshold", "inputs": ["商业目的评分"], "suggestion": "核查目的", "legal_basis_ref": "法规库自动匹配", "note": "★ 需评分模型（当前不存在）⇒ 先细化判据；与 REO-015 重复"},
-    {"src": "AA-018", "name": "导管公司特征", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-018", "logic": "conduit_company_indicators > params.conduit_indicators_threshold", "inputs": ["导管公司指标"], "suggestion": "核查实质", "legal_basis_ref": "法规库自动匹配", "note": "「指标」未定义 ⇒ 先细化（如：无雇员/无实质经营/单一资金来源）"},
-    {"src": "AA-019", "name": "择协避税特征", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-019", "logic": "treaty_shopping_indicators > params.treaty_shopping_threshold", "inputs": ["择协避税指标"], "suggestion": "核查受益所有人", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "AA-020", "name": "主要目的测试未通过", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.AA-020", "logic": "principal_purpose_test_failed = true", "inputs": ["主要目的测试"], "suggestion": "核查协定优惠", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-
-    {"src": "INT-001", "name": "非居民预提所得税未代扣", "sev": "high", "status": "covered", "by": "RL-SPT-006（向非居民支付境内所得未履行源泉扣缴）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.INT-001", "logic": "non_resident_income > 0 and withholding_tax = 0", "inputs": ["非居民所得", "预提税"], "suggestion": "核查代扣", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "INT-002", "name": "非居民股息预提税异常", "sev": "high", "status": "partial", "by": "RL-SPT-006（未分所得类型）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.INT-002", "logic": "dividend_to_non_resident > 0 and withholding_tax < correct_tax", "inputs": ["股息", "预提税"], "suggestion": "核查代扣", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "INT-003", "name": "非居民利息预提税异常", "sev": "high", "status": "partial", "by": "RL-SPT-006", "action": "merge", "params_ref": "config/rulelist_v12.json::params.INT-003", "logic": "interest_to_non_resident > 0 and withholding_tax < correct_tax", "inputs": ["利息", "预提税"], "suggestion": "核查代扣", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "INT-004", "name": "非居民特许权使用费预提税异常", "sev": "high", "status": "partial", "by": "RL-SPT-006", "action": "merge", "params_ref": "config/rulelist_v12.json::params.INT-004", "logic": "royalty_to_non_resident > 0 and withholding_tax < correct_tax", "inputs": ["特许权使用费", "预提税"], "suggestion": "核查代扣", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "INT-005", "name": "非居民财产转让预提税异常", "sev": "high", "status": "partial", "by": "RL-SPT-006", "action": "merge", "params_ref": "config/rulelist_v12.json::params.INT-005", "logic": "property_transfer_to_non_resident > 0 and withholding_tax = 0", "inputs": ["财产转让", "预提税"], "suggestion": "核查代扣", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "INT-006", "name": "常设机构判定异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-006", "logic": "permanent_establishment_indicators > threshold", "inputs": ["常设机构指标"], "suggestion": "核查常设机构", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "INT-007", "name": "国际运输税收异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-007", "logic": "international_transport_income > 0 and tax_treatment_abnormal", "inputs": ["国际运输收入", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "INT-008", "name": "税收协定优惠适用异常", "sev": "high", "status": "partial", "by": "engine/external_check_reminder（受益所有人）+ manual_inspection_worksheets", "action": "merge", "params_ref": "config/rulelist_v12.json::params.INT-008", "logic": "treaty_benefit_claimed and beneficial_owner_test_failed", "inputs": ["协定优惠", "受益所有人"], "suggestion": "核查受益所有人", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "INT-009", "name": "受益所有人认定异常", "sev": "high", "status": "partial", "by": "engine/external_check_reminder / manual_inspection_worksheets", "action": "merge", "params_ref": "config/rulelist_v12.json::params.INT-009", "logic": "beneficial_owner_indicators < threshold", "inputs": ["受益所有人指标"], "suggestion": "核查认定", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "INT-010", "name": "境外所得未申报", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.INT-010", "logic": "overseas_income > 0 and declared_overseas_income = 0", "inputs": ["境外所得", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需境外所得申报表（A108000 系列）⇒ 先置疑"},
-    {"src": "INT-011", "name": "境外所得抵免异常", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.INT-011", "logic": "foreign_tax_credit > correct_credit", "inputs": ["境外抵免", "正确抵免"], "suggestion": "核查抵免", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；同上"},
-    {"src": "INT-012", "name": "直接抵免异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-012", "logic": "direct_credit_abnormal = true", "inputs": ["直接抵免"], "suggestion": "核查抵免", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "INT-013", "name": "间接抵免异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-013", "logic": "indirect_credit_abnormal = true", "inputs": ["间接抵免"], "suggestion": "核查抵免", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "INT-014", "name": "分国不分项抵免异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-014", "logic": "country_by_country_credit_abnormal = true", "inputs": ["分国抵免"], "suggestion": "核查计算", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "INT-015", "name": "综合抵免异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-015", "logic": "comprehensive_credit_abnormal = true", "inputs": ["综合抵免"], "suggestion": "核查计算", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "INT-016", "name": "饶让抵免异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-016", "logic": "tax_sparing_credit_abnormal = true", "inputs": ["饶让抵免"], "suggestion": "核查计算", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "INT-017", "name": "CRS信息申报异常", "sev": "medium", "status": "partial", "by": "engine/audit_coverage / manual_inspection_worksheets（CRS）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.INT-017", "logic": "CRS_reporting_missing = true", "inputs": ["CRS申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "INT-018", "name": "对外支付备案缺失", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-018", "logic": "outbound_payment > params.outbound_payment_threshold and filing_missing = true", "inputs": ["对外支付", "备案"], "suggestion": "核查备案", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需对外支付备案数据 ⇒ 待资料"},
-    {"src": "INT-019", "name": "服务贸易对外支付税务备案异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-019", "logic": "service_trade_payment > params.service_trade_payment_threshold and tax_filing_missing", "inputs": ["服务贸易支付", "备案"], "suggestion": "核查备案", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "INT-020", "name": "非居民享受协定待遇后续管理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.INT-020", "logic": "treaty_benefit_followup_missing = true", "inputs": ["协定待遇", "后续管理"], "suggestion": "核查管理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-
-    {"src": "REO-001", "name": "股权收购特殊性税务处理异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-001", "logic": "special_tax_treatment and conditions_not_met", "inputs": ["特殊性税务处理", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需重组资料 + 条件判据 ⇒ 先细化"},
-    {"src": "REO-002", "name": "资产收购特殊性税务处理异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-002", "logic": "special_tax_treatment and conditions_not_met", "inputs": ["特殊性税务处理", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "REO-003", "name": "企业合并特殊性税务处理异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-003", "logic": "special_tax_treatment and conditions_not_met", "inputs": ["特殊性税务处理", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "REO-004", "name": "企业分立特殊性税务处理异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-004", "logic": "special_tax_treatment and conditions_not_met", "inputs": ["特殊性税务处理", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "REO-005", "name": "债务重组特殊性税务处理异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-005", "logic": "special_tax_treatment and conditions_not_met", "inputs": ["特殊性税务处理", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "REO-006", "name": "股权转让所得未申报", "sev": "high", "status": "partial", "by": "RL-SPT-012（股权转让未申报个税）/ RL-SPT-009", "action": "merge", "params_ref": "config/rulelist_v12.json::params.REO-006", "logic": "equity_transfer_income > 0 and tax_declared = 0", "inputs": ["股权转让所得", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "系统覆盖个税侧；候选为企业所得税侧所得 ⇒ 合并为双税种"},
-    {"src": "REO-007", "name": "股权转让价格偏低", "sev": "high", "status": "covered", "by": "RL-SPT-009（股权转让价格明显偏低且无正当理由）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.REO-007", "logic": "transfer_price < fair_value * params.fair_value_ratio", "inputs": ["转让价格", "公允价值"], "suggestion": "核查价格", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "REO-008", "name": "非货币性资产投资税务处理异常", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.REO-008", "logic": "non_monetary_asset_investment and tax_treatment_abnormal", "inputs": ["非货币资产投资", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；可先做「非货币资产对外投资未见递延纳税备案」置疑"},
-    {"src": "REO-009", "name": "技术入股递延纳税异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-009", "logic": "technology_equity_investment and deferred_tax_conditions_not_met", "inputs": ["技术入股", "递延条件"], "suggestion": "核查递延", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需技术入股与递延备案资料 ⇒ 先细化"},
-    {"src": "REO-010", "name": "股权激励递延纳税异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-010", "logic": "equity_incentive and deferred_tax_conditions_not_met", "inputs": ["股权激励", "递延条件"], "suggestion": "核查递延", "legal_basis_ref": "法规库自动匹配", "note": "= IIT-017（V1.1 已判 missing/placeholder，同判据）"},
-    {"src": "REO-011", "name": "转增股本个税异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.REO-011", "logic": "capital_reserve_to_equity > 0 and IIT_withheld = 0", "inputs": ["转增股本", "个税"], "suggestion": "核查个税", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；可真算（实收资本/资本公积变动 × 股东名册）"},
-    {"src": "REO-012", "name": "未分配利润转增个税异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.REO-012", "logic": "retained_earnings_to_equity > 0 and IIT_withheld = 0", "inputs": ["未分配利润转增", "个税"], "suggestion": "核查个税", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；可真算"},
-    {"src": "REO-013", "name": "资本公积转增个税异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.REO-013", "logic": "capital_reserve_to_equity > 0 and IIT_withheld = 0", "inputs": ["资本公积转增", "个税"], "suggestion": "核查个税", "legal_basis_ref": "法规库自动匹配", "note": "★ 与 REO-011 判据重复（同表达式）⇒ 合并"},
-    {"src": "REO-014", "name": "间接转让中国应税财产未申报", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-014", "logic": "indirect_transfer_china_taxable_property and tax_declared = 0", "inputs": ["间接转让", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需境外股权架构资料 ⇒ 待资料"},
-    {"src": "REO-015", "name": "合理商业目的不足", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REO-015", "logic": "reasonable_business_purpose_score < params.purpose_score_threshold", "inputs": ["商业目的评分"], "suggestion": "核查目的", "legal_basis_ref": "法规库自动匹配", "note": "★ = AA-017（V1.2 内部重复）⇒ 合并为一条"},
-
-    {"src": "EST-001", "name": "预收房款未预缴增值税", "sev": "high", "status": "partial", "by": "RL-INC-003 / VR063（预收账款长期挂账）+ RL-VAT-014", "action": "merge", "params_ref": "config/rulelist_v12.json::params.EST-001", "logic": "pre_sale_revenue > 0 and vat_prepaid = 0", "inputs": ["预收房款", "预缴增值税"], "suggestion": "核查预缴", "legal_basis_ref": "法规库自动匹配", "note": "预征率属地区参数"},
-    {"src": "EST-002", "name": "预收房款未预缴土地增值税", "sev": "high", "status": "partial", "by": "RL-SPT-001（土地增值税未清算或扣除不实）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.EST-002", "logic": "pre_sale_revenue > 0 and lat_prepaid = 0", "inputs": ["预收房款", "预缴土地增值税"], "suggestion": "核查预缴", "legal_basis_ref": "法规库自动匹配", "note": "预征率属地区参数；注意「预缴」与「清算」是不同环节"},
-    {"src": "EST-003", "name": "预收房款未预计毛利", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.EST-003", "logic": "pre_sale_revenue > 0 and estimated_gross_profit = 0", "inputs": ["预收房款", "预计毛利"], "suggestion": "核查所得税", "legal_basis_ref": "法规库自动匹配", "note": "需预计毛利率（地区参数）"},
-    {"src": "EST-004", "name": "开发产品完工未结转", "sev": "high", "status": "partial", "by": "engine/analysis_coverage / audit_coverage（完工结转）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.EST-004", "logic": "project_completed and revenue_not_recognized", "inputs": ["完工项目", "收入确认"], "suggestion": "核查结转", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "EST-005", "name": "开发成本分摊异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.EST-005", "logic": "cost_allocation_ratio != reasonable_ratio", "inputs": ["成本分摊", "合理比例"], "suggestion": "核查分摊", "legal_basis_ref": "法规库自动匹配", "note": "= LAT-006（同判据）"},
-    {"src": "EST-006", "name": "土地成本扣除异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.EST-006", "logic": "land_cost_deduction > params.amount_threshold", "inputs": ["土地成本", "扣除"], "suggestion": "核查扣除", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "EST-007", "name": "拆迁补偿费异常", "sev": "medium", "status": "partial", "by": "RL-SPT-001（条文提及）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.EST-007", "logic": "relocation_compensation > params.amount_threshold", "inputs": ["拆迁补偿", "凭证"], "suggestion": "核查补偿", "legal_basis_ref": "法规库自动匹配", "note": "= LAT-008"},
-    {"src": "EST-008", "name": "公共配套费异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.EST-008", "logic": "public_facilities_cost > params.amount_threshold", "inputs": ["公共配套费"], "suggestion": "核查成本", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "EST-009", "name": "开发间接费异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.EST-009", "logic": "development_indirect_cost > params.amount_threshold", "inputs": ["开发间接费"], "suggestion": "核查费用", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "EST-010", "name": "利息支出扣除异常", "sev": "medium", "status": "partial", "by": "RL-CIT-007 / engine/deduction_limit_detector", "action": "merge", "params_ref": "config/rulelist_v12.json::params.EST-010", "logic": "interest_deduction > params.amount_threshold", "inputs": ["利息支出", "扣除限额"], "suggestion": "核查利息", "legal_basis_ref": "法规库自动匹配", "note": "= LAT-007"},
-    {"src": "CONSTR-001", "name": "建筑服务预缴增值税异常", "sev": "high", "status": "covered", "by": "RL-VAT-014（异地建筑服务未在项目所在地预缴）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.CONSTR-001", "logic": "construction_service_revenue > 0 and vat_prepaid = 0", "inputs": ["建筑服务收入", "预缴增值税"], "suggestion": "核查预缴", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "CONSTR-002", "name": "异地施工未预缴", "sev": "high", "status": "covered", "by": "RL-VAT-014", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.CONSTR-002", "logic": "cross_region_construction and vat_prepaid = 0", "inputs": ["异地施工", "预缴"], "suggestion": "核查预缴", "legal_basis_ref": "法规库自动匹配", "note": "★ 与 CONSTR-001 同源（RL-VAT-014 直接对应）"},
-    {"src": "CONSTR-003", "name": "简易计税适用异常", "sev": "medium", "status": "partial", "by": "VR077（简易计税与一般计税进项混用）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.CONSTR-003", "logic": "simplified_tax_method and conditions_not_met", "inputs": ["简易计税", "条件"], "suggestion": "核查适用", "legal_basis_ref": "法规库自动匹配", "note": "系统判「进项混用」，候选判「适用条件」⇒ 合并两分支"},
-    {"src": "CONSTR-004", "name": "甲供材税务处理异常", "sev": "medium", "status": "partial", "by": "engine/enterprise_profile / industry_resolver（甲供材）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.CONSTR-004", "logic": "owner_supplied_materials and tax_treatment_abnormal", "inputs": ["甲供材", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "CONSTR-005", "name": "清包工税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.CONSTR-005", "logic": "labor_only_contract and tax_treatment_abnormal", "inputs": ["清包工", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "CONSTR-006", "name": "分包款扣除异常", "sev": "medium", "status": "partial", "by": "engine/account_classifier / enterprise_profile（分包）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.CONSTR-006", "logic": "subcontract_deduction > params.subcontract_deduction_threshold", "inputs": ["分包款", "扣除"], "suggestion": "核查扣除", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "CONSTR-007", "name": "挂靠经营税务风险", "sev": "high", "status": "partial", "by": "engine/domain_analysis / enterprise_profile（挂靠）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.CONSTR-007", "logic": "affiliation_business = true", "inputs": ["挂靠经营"], "suggestion": "核查主体", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "CONSTR-008", "name": "转包税务风险", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.CONSTR-008", "logic": "subcontracting = true", "inputs": ["转包"], "suggestion": "核查转包", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化（建议：合同金额流向与施工能力比对）"},
-    {"src": "CONSTR-009", "name": "项目部个税未申报", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.CONSTR-009", "logic": "project_department_salary > 0 and IIT_declared = 0", "inputs": ["项目部工资", "个税"], "suggestion": "核查个税", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；无项目部工资数据源 ⇒ 待资料"},
-    {"src": "CONSTR-010", "name": "项目部社保未缴纳", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.CONSTR-010", "logic": "project_department_salary > 0 and social_insured = false", "inputs": ["项目部工资", "社保"], "suggestion": "核查社保", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-
-    {"src": "PLAT-001", "name": "平台佣金收入未申报", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.PLAT-001", "logic": "platform_commission_income > 0 and tax_declared = 0", "inputs": ["平台佣金", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "0 命中「平台佣金」；开票品名含「信息技术服务费/平台服务费」可算"},
-    {"src": "PLAT-002", "name": "平台打赏收入未申报", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.PLAT-002", "logic": "live_reward_income > 0 and tax_declared = 0", "inputs": ["打赏收入", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "需平台结算数据 ⇒ 部分待资料"},
-    {"src": "PLAT-003", "name": "主播个税未代扣", "sev": "high", "status": "covered", "by": "RL-SPT-013（灵活用工平台网红报酬未代扣个税）/ VR065", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.PLAT-003", "logic": "anchor_income > 0 and IIT_withheld = 0", "inputs": ["主播收入", "个税"], "suggestion": "核查代扣", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "PLAT-004", "name": "MCN机构税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.PLAT-004", "logic": "MCN_income_allocation_abnormal", "inputs": ["MCN收入", "分配"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "PLAT-005", "name": "平台灵活用工结算异常", "sev": "high", "status": "partial", "by": "RL-SPT-013 + engine/memory（灵活用工）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.PLAT-005", "logic": "flexible_employment_settlement > params.amount_threshold and invoice_abnormal", "inputs": ["灵活用工结算", "发票"], "suggestion": "核查结算", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "PLAT-006", "name": "委托代征异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.PLAT-006", "logic": "entrusted_collection and conditions_not_met", "inputs": ["委托代征", "条件"], "suggestion": "核查代征", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需委托代征协议 ⇒ 待资料"},
-    {"src": "PLAT-007", "name": "汇总代开发票异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.PLAT-007", "logic": "aggregated_invoice_abnormal = true", "inputs": ["汇总代开"], "suggestion": "核查代开", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "PLAT-008", "name": "自然人代开异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.PLAT-008", "logic": "natural_person_invoice > params.amount_threshold", "inputs": ["自然人代开"], "suggestion": "核查代开", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；可从进项发票的开票方为自然人/个体户识别（VR024 已有基础）"},
-    {"src": "PLAT-009", "name": "临时税务登记异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.PLAT-009", "logic": "temporary_tax_registration > threshold", "inputs": ["临时税务登记"], "suggestion": "核查登记", "legal_basis_ref": "法规库自动匹配", "note": "无登记数据源 ⇒ 待资料"},
-    {"src": "PLAT-010", "name": "集群注册异常", "sev": "medium", "status": "partial", "by": "engine/domain_analysis（集群注册）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.PLAT-010", "logic": "cluster_registration > threshold", "inputs": ["集群注册"], "suggestion": "核查注册", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "FLEX-001", "name": "劳务外包变相用工", "sev": "high", "status": "partial", "by": "engine/account_classifier / text_guardrails（劳务外包）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.FLEX-001", "logic": "labor_outsourcing_ratio > params.outsourcing_ratio and actual_employment = true", "inputs": ["劳务外包", "实际用工"], "suggestion": "核查实质", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "FLEX-002", "name": "劳务派遣比例超标", "sev": "medium", "status": "partial", "by": "SI-005 相关（用工形式）+ VR022（用工人数）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.FLEX-002", "logic": "dispatch_worker_ratio > params.dispatch_ratio", "inputs": ["派遣比例"], "suggestion": "核查比例", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "FLEX-003", "name": "社保代缴异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.FLEX-003", "logic": "social_security_agency > 0 and actual_employer != agency", "inputs": ["社保代缴", "实际雇主"], "suggestion": "核查代缴", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需社保代缴协议与参保单位名称比对 ⇒ 部分可得"},
-    {"src": "FLEX-004", "name": "个税代征异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.FLEX-004", "logic": "IIT_collection_agency and conditions_not_met", "inputs": ["个税代征", "条件"], "suggestion": "核查代征", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "FLEX-005", "name": "薪酬代发异常", "sev": "medium", "status": "partial", "by": "bank_txs 代发识别 + engine/fund_matching", "action": "merge", "params_ref": "config/rulelist_v12.json::params.FLEX-005", "logic": "salary_payment_agency > params.amount_threshold", "inputs": ["薪酬代发"], "suggestion": "核查代发", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "HNW-001", "name": "高净值个人税负偏低", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HNW-001", "logic": "high_net_worth_tax_burden < params.burden_threshold", "inputs": ["高净值个人", "税负"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需个人涉税信息 ⇒ 待资料（企业侧仅能置疑）"},
-    {"src": "HNW-002", "name": "境外资产未申报", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HNW-002", "logic": "overseas_asset > 0 and declared = 0", "inputs": ["境外资产", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "数据源不存在 ⇒ 待资料"},
-    {"src": "HNW-003", "name": "境外收入未申报", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.HNW-003", "logic": "overseas_income > 0 and declared = 0", "inputs": ["境外收入", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "= INT-010（同判据）"},
-    {"src": "HNW-004", "name": "家族信托税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HNW-004", "logic": "family_trust_tax_treatment_abnormal", "inputs": ["家族信托", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "HNW-005", "name": "大额保单税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HNW-005", "logic": "large_insurance_policy > params.amount_threshold", "inputs": ["大额保单"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-
-    {"src": "FINA-001", "name": "贷款利息收入未申报", "sev": "high", "status": "partial", "by": "VR068（银行存款利息收入未申报）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.FINA-001", "logic": "loan_interest_income > 0 and tax_declared = 0", "inputs": ["利息收入", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "系统覆盖存款利息，候选为贷款利息（放贷业务）⇒ 合并扩展"},
-    {"src": "FINA-002", "name": "金融商品转让税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.FINA-002", "logic": "financial_asset_transfer and tax_treatment_abnormal", "inputs": ["金融商品转让", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "FINA-003", "name": "贷款损失准备金扣除异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.FINA-003", "logic": "loan_loss_provision > params.amount_threshold", "inputs": ["贷款损失准备金"], "suggestion": "核查扣除", "legal_basis_ref": "法规库自动匹配", "note": "需准备金台账与扣除限额（金融业专项）"},
-    {"src": "LEASE-001", "name": "融资租赁税务处理异常", "sev": "high", "status": "partial", "by": "engine/domain_analysis / gap_tax_obligations（融资租赁）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.LEASE-001", "logic": "finance_lease and tax_treatment_abnormal", "inputs": ["融资租赁", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "LEASE-002", "name": "融资性售后回租异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.LEASE-002", "logic": "sale_leaseback and tax_treatment_abnormal", "inputs": ["售后回租", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "LEASE-003", "name": "经营租赁税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.LEASE-003", "logic": "operating_lease and tax_treatment_abnormal", "inputs": ["经营租赁", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "系统有 RL-OTH-010（租赁合同印花税）≠ 本概念；判据未定义 ⇒ 先细化"},
-    {"src": "FACT-001", "name": "保理利息税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.FACT-001", "logic": "factoring_interest and tax_treatment_abnormal", "inputs": ["保理利息", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "MICRO-001", "name": "小贷公司利息收入未申报", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.MICRO-001", "logic": "micro_loan_interest > 0 and tax_declared = 0", "inputs": ["小贷利息", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；可从「利息收入」科目 + 放贷合同识别"},
-    {"src": "GUAR-001", "name": "担保费收入未申报", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.GUAR-001", "logic": "guarantee_fee_income > 0 and tax_declared = 0", "inputs": ["担保费", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；可从「其他业务收入-担保费」识别"},
-    {"src": "PAWN-001", "name": "典当利息税务处理异常", "sev": "medium", "status": "partial", "by": "engine/verified_rule_engine（典当）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.PAWN-001", "logic": "pawn_interest and tax_treatment_abnormal", "inputs": ["典当利息", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "PE-001", "name": "私募基金税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.PE-001", "logic": "private_equity_fund and tax_treatment_abnormal", "inputs": ["私募基金", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "FUNDM-001", "name": "公募基金税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.FUNDM-001", "logic": "public_fund and tax_treatment_abnormal", "inputs": ["公募基金", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "TRUST-001", "name": "信托收益税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.TRUST-001", "logic": "trust_income and tax_treatment_abnormal", "inputs": ["信托收益", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中（「信托」整词）；判据未定义 ⇒ 先细化"},
-    {"src": "REIT-001", "name": "REITs税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REIT-001", "logic": "REITs and tax_treatment_abnormal", "inputs": ["REITs", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "REIT-002", "name": "REITs分红税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.REIT-002", "logic": "REITs_dividend and tax_treatment_abnormal", "inputs": ["REITs分红", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "PPP-001", "name": "PPP项目税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.PPP-001", "logic": "PPP_project and tax_treatment_abnormal", "inputs": ["PPP项目", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "EPC-001", "name": "EPC合同税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.EPC-001", "logic": "EPC_contract and tax_treatment_abnormal", "inputs": ["EPC合同", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "BOT-001", "name": "BOT项目税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.BOT-001", "logic": "BOT_project and tax_treatment_abnormal", "inputs": ["BOT项目", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "ABS-001", "name": "资产证券化税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ABS-001", "logic": "ABS_transaction and tax_treatment_abnormal", "inputs": ["ABS交易", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "FUND-011", "name": "资金池税务处理异常", "sev": "medium", "status": "partial", "by": "engine/financial_analyzer / tax_redlines（资金池）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.FUND-011", "logic": "cash_pool and tax_treatment_abnormal", "inputs": ["资金池", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "= FUND-009（V1.1）"},
-
-    {"src": "EXPORT-011", "name": "出口退税函调异常", "sev": "high", "status": "partial", "by": "engine/domain_analysis（函调）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.EXPORT-011", "logic": "tax_refund_investigation_abnormal = true", "inputs": ["函调结果"], "suggestion": "核查函调", "legal_basis_ref": "法规库自动匹配", "note": "= EXPORT-006；★ 函调属税务机关外部信息 ⇒ 归「外部核验类·不判触红」"},
-    {"src": "EXPORT-012", "name": "出口收汇异常", "sev": "medium", "status": "covered", "by": "engine/export_rebate_crosscheck（出口额↔收汇 15% 阈值）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.EXPORT-012", "logic": "export_receipt_missing = true", "inputs": ["出口收汇"], "suggestion": "核查收汇", "legal_basis_ref": "法规库自动匹配", "note": "= EXPORT-009"},
-    {"src": "EXPORT-013", "name": "出口转内销未申报", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.EXPORT-013", "logic": "export_to_domestic > 0 and tax_declared = 0", "inputs": ["出口转内销", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "= EXPORT-010（0 命中）"},
-    {"src": "EXPORT-014", "name": "跨境电商无票免税异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.EXPORT-014", "logic": "cross_border_ecommerce_tax_free and conditions_not_met", "inputs": ["无票免税", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 + 需跨境电商申报数据 ⇒ 先细化"},
-    {"src": "CUSTOMS-001", "name": "保税料件内销未补税", "sev": "high", "status": "partial", "by": "engine/domain_analysis / special_redline_detectors（保税）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.CUSTOMS-001", "logic": "bonded_material_domestic_sale > 0 and tax_paid = 0", "inputs": ["保税料件内销", "补税"], "suggestion": "核查补税", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "CUSTOMS-002", "name": "加工贸易核销异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.CUSTOMS-002", "logic": "processing_trade_verification_abnormal", "inputs": ["加工贸易核销"], "suggestion": "核查核销", "legal_basis_ref": "法规库自动匹配", "note": "= EXPORT-004（0 命中「进料加工」）"},
-    {"src": "CUSTOMS-003", "name": "海关完税价格异常", "sev": "high", "status": "covered", "by": "RL-SPT-005 + engine/special_redline_detectors", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.CUSTOMS-003", "logic": "customs_value < invoice_value * params.value_ratio", "inputs": ["完税价格", "发票金额"], "suggestion": "核查价格", "legal_basis_ref": "法规库自动匹配", "note": "★ = CUS-001（V1.2 内部重复）"},
-    {"src": "CUSTOMS-004", "name": "关税减免异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.CUSTOMS-004", "logic": "customs_reduction and condition not met", "inputs": ["减免", "条件"], "suggestion": "核查减免", "legal_basis_ref": "法规库自动匹配", "note": "★ = CUS-003（V1.2 内部重复）"},
-    {"src": "BOND-001", "name": "保税区税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.BOND-001", "logic": "bonded_zone and tax_treatment_abnormal", "inputs": ["保税区", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "BOND-002", "name": "综合保税区税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.BOND-002", "logic": "comprehensive_bonded_zone and tax_treatment_abnormal", "inputs": ["综保区", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同上"},
-    {"src": "FTZ-001", "name": "自贸区税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.FTZ-001", "logic": "free_trade_zone and tax_treatment_abnormal", "inputs": ["自贸区", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "HAINAN-001", "name": "海南自贸港15%所得税异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HAINAN-001", "logic": "hainan_15_percent and conditions_not_met", "inputs": ["海南优惠", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "★ 判据其实**可算**（主营业务收入占比≥60% + 负面清单）；但缺地区参数与负面清单 ⇒ 先补参数再实现"},
-    {"src": "HAINAN-002", "name": "海南自贸港个税优惠异常", "sev": "high", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HAINAN-002", "logic": "hainan_IIT_incentive and conditions_not_met", "inputs": ["海南个税优惠", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "可算（实际税负>15%部分免征）；需个人申报数据"},
-    {"src": "HAINAN-003", "name": "离岛免税异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HAINAN-003", "logic": "duty_free_island and conditions_not_met", "inputs": ["离岛免税", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；属零售终端业务 ⇒ 企业侧不可算"},
-    {"src": "HAINAN-004", "name": "跨境电商保税进口异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HAINAN-004", "logic": "cross_border_bonded_import and tax_treatment_abnormal", "inputs": ["跨境电商保税进口"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-
-    {"src": "TAXINC-013", "name": "优惠条件不满足但享受", "sev": "high", "status": "partial", "by": "engine/tax_incentive_analyzer._verify_conditions_against_data", "action": "merge", "params_ref": "config/rulelist_v12.json::params.TAXINC-013", "logic": "incentive_condition_met = false and incentive_claimed = true", "inputs": ["优惠条件", "享受优惠"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "= TAXINC-001（重复）"},
-    {"src": "TAXINC-014", "name": "优惠备案缺失", "sev": "medium", "status": "partial", "by": "engine/tax_incentive_analyzer", "action": "merge", "params_ref": "config/rulelist_v12.json::params.TAXINC-014", "logic": "incentive_claimed and filing_missing", "inputs": ["优惠", "备案"], "suggestion": "核查备案", "legal_basis_ref": "法规库自动匹配", "note": "= TAXINC-002 = ADM-014（三重复）⇒ 合并为一条"},
-    {"src": "TAXINC-015", "name": "优惠金额计算错误", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.TAXINC-015", "logic": "incentive_amount != calculated_incentive", "inputs": ["优惠金额", "计算值"], "suggestion": "核查计算", "legal_basis_ref": "法规库自动匹配", "note": "= TAXINC-003（重复）"},
-    {"src": "TAXINC-016", "name": "叠加享受优惠", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.TAXINC-016", "logic": "overlapping_incentives = true", "inputs": ["叠加优惠"], "suggestion": "核查叠加", "legal_basis_ref": "法规库自动匹配", "note": "= TAXINC-004（重复）"},
-    {"src": "TAXINC-017", "name": "优惠期间错误", "sev": "medium", "status": "partial", "by": "engine/tax_incentive_analyzer（政策库含期间）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.TAXINC-017", "logic": "incentive_period != correct_period", "inputs": ["优惠期间", "正确期间"], "suggestion": "核查期间", "legal_basis_ref": "法规库自动匹配", "note": "= TAXINC-005（重复）"},
-    {"src": "ASSESS-001", "name": "核定征收条件不符", "sev": "high", "status": "covered", "by": "RL-SPT-011（不符合核定征收条件而适用核定征收）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.ASSESS-001", "logic": "assessed_collection and conditions_not_met", "inputs": ["核定征收", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "ASSESS-002", "name": "核定征收率异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.ASSESS-002", "logic": "assessed_rate < industry_avg_rate * params.assessed_rate_ratio", "inputs": ["核定率", "行业均值"], "suggestion": "核查核定", "legal_basis_ref": "法规库自动匹配", "note": "行业核定率须登记 industry_benchmark；未登记则待核"},
-    {"src": "ASSESS-003", "name": "核定征收企业收入异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.ASSESS-003", "logic": "assessed_income < actual_income * params.assessed_income_ratio", "inputs": ["核定收入", "实际收入"], "suggestion": "核查收入", "legal_basis_ref": "法规库自动匹配", "note": "可真算（核定收入 vs 开票/银行收入）"},
-    {"src": "ASSESS-004", "name": "个人独资/合伙核定异常", "sev": "high", "status": "partial", "by": "RL-SPT-011 + engine/domain_analysis（个独/合伙主体识别）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.ASSESS-004", "logic": "sole_proprietorship_or_partnership and assessed_collection and conditions_not_met", "inputs": ["个独/合伙", "核定", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "LIQ-001", "name": "注销清算未申报", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.LIQ-001", "logic": "liquidation and tax_declared = 0", "inputs": ["清算", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；需清算资料 ⇒ 部分可得"},
-    {"src": "LIQ-002", "name": "清算所得计算异常", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.LIQ-002", "logic": "liquidation_income != calculated_income", "inputs": ["清算所得", "计算值"], "suggestion": "核查计算", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "LIQ-003", "name": "股东分得剩余资产税务处理异常", "sev": "high", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.LIQ-003", "logic": "residual_asset_distribution and tax_treatment_abnormal", "inputs": ["剩余资产分配", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "BANKR-001", "name": "破产重整税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.BANKR-001", "logic": "bankruptcy_reorganization and tax_treatment_abnormal", "inputs": ["破产重整", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；判据未定义 ⇒ 先细化"},
-    {"src": "BANKR-002", "name": "债务重组所得未申报", "sev": "high", "status": "partial", "by": "engine/domain_analysis / payment_channel（债务重组）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.BANKR-002", "logic": "debt_restructuring_income > 0 and tax_declared = 0", "inputs": ["债务重组所得", "申报"], "suggestion": "核查申报", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "BANKR-003", "name": "资产处置损失异常", "sev": "medium", "status": "partial", "by": "RL-CIT-006（资产损失税前扣除）+ RL-AST-001", "action": "merge", "params_ref": "config/rulelist_v12.json::params.BANKR-003", "logic": "asset_disposal_loss > params.asset_loss_threshold", "inputs": ["资产处置损失"], "suggestion": "核查损失", "legal_basis_ref": "法规库自动匹配"},
-
-    {"src": "EINV-001", "name": "电子发票重复报销", "sev": "medium", "status": "covered", "by": "VR003 / VR004（票号重复）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.EINV-001", "logic": "duplicate_e_invoice = true", "inputs": ["电子发票", "报销记录"], "suggestion": "核查重复", "legal_basis_ref": "法规库自动匹配", "note": "= INV-019"},
-    {"src": "EINV-002", "name": "全电发票红冲异常", "sev": "medium", "status": "partial", "by": "VR071（红字发票合规性异常）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.EINV-002", "logic": "full_e_invoice_void_abnormal = true", "inputs": ["全电发票", "红冲"], "suggestion": "核查红冲", "legal_basis_ref": "法规库自动匹配", "note": "系统覆盖红冲合规性；「全电发票」是票种属性，不改变判据 ⇒ 合并"},
-    {"src": "EINV-003", "name": "数电票开具异常", "sev": "medium", "status": "partial", "by": "engine/bank_flow / domain_analysis（数电票）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.EINV-003", "logic": "digital_invoice_abnormal = true", "inputs": ["数电票"], "suggestion": "核查开具", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "EINV-004", "name": "发票查验异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.EINV-004", "logic": "invoice_verification_failed = true", "inputs": ["发票查验"], "suggestion": "核查查验", "legal_basis_ref": "法规库自动匹配", "note": "无查验接口/结果数据 ⇒ 待资料"},
-    {"src": "EINV-005", "name": "发票勾选异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.EINV-005", "logic": "invoice_selection_abnormal = true", "inputs": ["发票勾选"], "suggestion": "核查勾选", "legal_basis_ref": "法规库自动匹配", "note": "无勾选确认数据 ⇒ 待资料"},
-    {"src": "RRT-001", "name": "留抵退税条件不符", "sev": "high", "status": "partial", "by": "RL-VAT-013（增值税留抵退税真实性存疑）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.RRT-001", "logic": "retained_tax_refund and conditions_not_met", "inputs": ["留抵退税", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "RRT-002", "name": "增量留抵异常", "sev": "high", "status": "partial", "by": "RL-VAT-013", "action": "merge", "params_ref": "config/rulelist_v12.json::params.RRT-002", "logic": "incremental_retained_tax_refund_abnormal", "inputs": ["增量留抵"], "suggestion": "核查计算", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "RRT-003", "name": "存量留抵异常", "sev": "high", "status": "partial", "by": "RL-VAT-013", "action": "merge", "params_ref": "config/rulelist_v12.json::params.RRT-003", "logic": "stock_retained_tax_refund_abnormal", "inputs": ["存量留抵"], "suggestion": "核查计算", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "RRT-004", "name": "留抵抵欠异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.RRT-004", "logic": "retained_tax_offset_arrears_abnormal", "inputs": ["留抵抵欠"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 + 需欠税数据 ⇒ 先细化"},
-    {"src": "RRT-005", "name": "留抵退税后进项转出异常", "sev": "medium", "status": "partial", "by": "RL-VAT-011 / VR032（应转出未转出）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.RRT-005", "logic": "input_tax_transfer_out_after_refund_abnormal", "inputs": ["进项转出"], "suggestion": "核查转出", "legal_basis_ref": "法规库自动匹配"},
-
-    {"src": "HNTECH-001", "name": "高新条件不满足但享受优惠", "sev": "high", "status": "partial", "by": "engine/tax_incentive_analyzer（高新条件核验）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.HNTECH-001", "logic": "high_tech_condition_met = false and high_tech_deduction > 0", "inputs": ["高新条件", "优惠"], "suggestion": "核查高新", "legal_basis_ref": "法规库自动匹配", "note": "= TAXINC-006（重复）"},
-    {"src": "HNTECH-002", "name": "高新研发费用占比异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.HNTECH-002", "logic": "R&D_ratio < params.rnd_ratio_required", "inputs": ["研发费用占比", "要求"], "suggestion": "核查占比", "legal_basis_ref": "法规库自动匹配", "note": "占比要求按收入档（5%/4%/3%），须分档参数"},
-    {"src": "HNTECH-003", "name": "高新科技人员占比异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.HNTECH-003", "logic": "tech_personnel_ratio < params.tech_personnel_ratio_required", "inputs": ["科技人员占比", "要求"], "suggestion": "核查占比", "legal_basis_ref": "法规库自动匹配", "note": "可真算（员工名册 × 学历/岗位）"},
-    {"src": "RD-001", "name": "研发费用加计扣除异常", "sev": "medium", "status": "covered", "by": "RL-CIT-003（研发费用加计扣除归集异常）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.RD-001", "logic": "R&D_deduction and conditions_not_met", "inputs": ["研发加计", "条件"], "suggestion": "核查条件", "legal_basis_ref": "法规库自动匹配", "note": "= TAXINC-008"},
-    {"src": "RD-002", "name": "研发费用归集异常", "sev": "medium", "status": "covered", "by": "RL-CIT-003（归集异常）", "action": "keep_existing", "params_ref": "config/rulelist_v12.json::params.RD-002", "logic": "R&D_expense_allocation_abnormal", "inputs": ["研发费用归集"], "suggestion": "核查归集", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "SOFT-001", "name": "软件企业优惠异常", "sev": "medium", "status": "partial", "by": "engine/tax_incentive_analyzer（软件产品即征即退）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.SOFT-001", "logic": "software_condition_met = false and software_deduction > 0", "inputs": ["软件条件", "优惠"], "suggestion": "核查软件", "legal_basis_ref": "法规库自动匹配", "note": "= TAXINC-010"},
-    {"src": "IC-001", "name": "集成电路企业优惠异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.IC-001", "logic": "IC_condition_met = false and IC_deduction > 0", "inputs": ["集成电路条件", "优惠"], "suggestion": "核查集成电路", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；可扩展 tax_incentive_analyzer 的政策库（加一行数据）"},
-    {"src": "ANIME-001", "name": "动漫企业优惠异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.ANIME-001", "logic": "anime_condition_met = false and anime_deduction > 0", "inputs": ["动漫条件", "优惠"], "suggestion": "核查动漫", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；同上"},
-    {"src": "CULT-001", "name": "文化企业优惠异常", "sev": "medium", "status": "missing", "by": "", "action": "add", "params_ref": "config/rulelist_v12.json::params.CULT-001", "logic": "culture_condition_met = false and culture_deduction > 0", "inputs": ["文化条件", "优惠"], "suggestion": "核查文化", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；同上"},
-    {"src": "EDU-001", "name": "教育服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.EDU-001", "logic": "education_service and tax_treatment_abnormal", "inputs": ["教育服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "MED-001", "name": "医疗服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.MED-001", "logic": "medical_service and tax_treatment_abnormal", "inputs": ["医疗服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同"},
-    {"src": "ELDER-001", "name": "养老服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ELDER-001", "logic": "elderly_care_service and tax_treatment_abnormal", "inputs": ["养老服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同"},
-    {"src": "CHILD-001", "name": "托育服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.CHILD-001", "logic": "childcare_service and tax_treatment_abnormal", "inputs": ["托育服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "0 命中；同"},
-    {"src": "HOUSE-001", "name": "家政服务税务处理异常", "sev": "medium", "status": "partial", "by": "engine/tax_redlines / verified_rule_engine（家政）", "action": "merge", "params_ref": "config/rulelist_v12.json::params.HOUSE-001", "logic": "domestic_service and tax_treatment_abnormal", "inputs": ["家政服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配"},
-    {"src": "SPORT-001", "name": "体育服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.SPORT-001", "logic": "sports_service and tax_treatment_abnormal", "inputs": ["体育服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "判据未定义 ⇒ 先细化"},
-    {"src": "TOUR-001", "name": "旅游服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.TOUR-001", "logic": "tourism_service and tax_treatment_abnormal", "inputs": ["旅游服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同"},
-    {"src": "HOTEL-001", "name": "住宿服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.HOTEL-001", "logic": "hotel_service and tax_treatment_abnormal", "inputs": ["住宿服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同"},
-    {"src": "CATER-001", "name": "餐饮服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.CATER-001", "logic": "catering_service and tax_treatment_abnormal", "inputs": ["餐饮服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同"},
-    {"src": "ENT-001", "name": "娱乐服务税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.ENT-001", "logic": "entertainment_service and tax_treatment_abnormal", "inputs": ["娱乐服务", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同"},
-    {"src": "CBEC-001", "name": "跨境电商税务处理异常", "sev": "medium", "status": "placeholder", "by": "", "action": "specify_first", "params_ref": "config/rulelist_v12.json::params.CBEC-001", "logic": "cross_border_ecommerce and tax_treatment_abnormal", "inputs": ["跨境电商", "税务处理"], "suggestion": "核查处理", "legal_basis_ref": "法规库自动匹配", "note": "同"}
+    {
+      "src": "DEED-001",
+      "name": "契税计税依据偏低",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-007（承受土地房屋权属未申报契税）+ engine/analysis_coverage",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.DEED-001",
+      "logic": "deed_tax_base < contract_amount * params.base_ratio",
+      "inputs": [
+        "契税基数",
+        "合同金额"
+      ],
+      "suggestion": "核查计税依据",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "系统判「未申报」，候选判「依据偏低」⇒ 合并为同一检测器的两分支"
+    },
+    {
+      "src": "DEED-002",
+      "name": "土地使用权出让契税未申报",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-007",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.DEED-002",
+      "logic": "land_transfer_amount > 0 and deed_tax_paid = 0",
+      "inputs": [
+        "土地出让金额",
+        "契税"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "DEED-003",
+      "name": "房屋买卖契税未申报",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-007",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.DEED-003",
+      "logic": "house_transfer_amount > 0 and deed_tax_paid = 0",
+      "inputs": [
+        "房屋转让金额",
+        "契税"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "DEED-004",
+      "name": "契税税率适用错误",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.DEED-004",
+      "logic": "applied_deed_rate != correct_rate",
+      "inputs": [
+        "适用税率",
+        "正确税率"
+      ],
+      "suggestion": "核查税率",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "契税税率属地区参数 ⇒ 未登记则待核"
+    },
+    {
+      "src": "DEED-005",
+      "name": "契税减免条件不符",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.DEED-005",
+      "logic": "deed_tax_reduction and condition not met",
+      "inputs": [
+        "减免",
+        "条件"
+      ],
+      "suggestion": "核查减免",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "GOT-001",
+      "name": "耕地占用税未申报",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-014 + engine/gap_tax_obligations",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.GOT-001",
+      "logic": "occupied_farmland_area > 0 and farmland_tax_paid = 0",
+      "inputs": [
+        "占用耕地面积",
+        "耕地占用税"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "GOT-002",
+      "name": "耕地占用税计税面积异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-SPT-014（申报面积口径）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.GOT-002",
+      "logic": "abs(tax_area - actual_area) / actual_area > params.area_diff_ratio",
+      "inputs": [
+        "计税面积",
+        "实际面积"
+      ],
+      "suggestion": "核查面积",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "GOT-003",
+      "name": "耕地占用税减免异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.GOT-003",
+      "logic": "farmland_tax_reduction and condition not met",
+      "inputs": [
+        "减免",
+        "条件"
+      ],
+      "suggestion": "核查减免",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VET-001",
+      "name": "车船税未申报",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-OTH-005 + engine/gap_risk_detectors",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.VET-001",
+      "logic": "vehicle_count > 0 and vehicle_tax_paid = 0",
+      "inputs": [
+        "车辆数量",
+        "车船税"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VET-002",
+      "name": "车船税计税依据异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-OTH-005（车辆台账与保单）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.VET-002",
+      "logic": "vehicle_tax_base != correct_base",
+      "inputs": [
+        "计税依据",
+        "正确依据"
+      ],
+      "suggestion": "核查依据",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VET-003",
+      "name": "车船税减免异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.VET-003",
+      "logic": "vehicle_tax_reduction and condition not met",
+      "inputs": [
+        "减免",
+        "条件"
+      ],
+      "suggestion": "核查减免",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VPT-001",
+      "name": "车辆购置税未申报",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-018 + engine/gap_tax_obligations",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.VPT-001",
+      "logic": "vehicle_purchase_amount > 0 and vpt_paid = 0",
+      "inputs": [
+        "购车金额",
+        "车辆购置税"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VPT-002",
+      "name": "车辆购置税计税价格偏低",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.VPT-002",
+      "logic": "vpt_base < market_price * params.base_ratio",
+      "inputs": [
+        "计税价格",
+        "市场价"
+      ],
+      "suggestion": "核查价格",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VPT-003",
+      "name": "车辆购置税减免异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.VPT-003",
+      "logic": "vpt_reduction and condition not met",
+      "inputs": [
+        "减免",
+        "条件"
+      ],
+      "suggestion": "核查减免",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CUS-001",
+      "name": "关税完税价格异常",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-005（进口完税价格申报不实）+ engine/special_redline_detectors",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.CUS-001",
+      "logic": "customs_value < invoice_value * params.value_ratio",
+      "inputs": [
+        "完税价格",
+        "发票金额"
+      ],
+      "suggestion": "核查完税价格",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ 与 CUSTOMS-003 同一判据（V1.2 内部重复）"
+    },
+    {
+      "src": "CUS-002",
+      "name": "关税税率适用错误",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.CUS-002",
+      "logic": "applied_customs_rate != correct_rate",
+      "inputs": [
+        "适用税率",
+        "正确税率"
+      ],
+      "suggestion": "核查税率",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "关税税率按商品编码，需海关税则参数"
+    },
+    {
+      "src": "CUS-003",
+      "name": "关税减免异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.CUS-003",
+      "logic": "customs_reduction and condition not met",
+      "inputs": [
+        "减免",
+        "条件"
+      ],
+      "suggestion": "核查减免",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ 与 CUSTOMS-004 同一判据（V1.2 内部重复）"
+    },
+    {
+      "src": "TON-001",
+      "name": "船舶吨税未申报",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-SPT-016 + engine/gap_tax_obligations",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.TON-001",
+      "logic": "ship_tonnage > 0 and tonnage_tax_paid = 0",
+      "inputs": [
+        "船舶吨位",
+        "吨税"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "TOB-001",
+      "name": "烟叶税未申报",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-SPT-015 + engine/gap_tax_obligations",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.TOB-001",
+      "logic": "tobacco_purchase_amount > 0 and tobacco_tax_paid = 0",
+      "inputs": [
+        "烟叶收购金额",
+        "烟叶税"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "TOB-002",
+      "name": "烟叶税计税依据异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-SPT-015（收购金额口径）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.TOB-002",
+      "logic": "tobacco_tax_base != purchase_amount",
+      "inputs": [
+        "计税依据",
+        "收购金额"
+      ],
+      "suggestion": "核查依据",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CUL-001",
+      "name": "文化事业建设费未申报",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-SPT-017 + engine/gap_tax_obligations",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.CUL-001",
+      "logic": "advertising_revenue > 0 and cultural_fee_paid = 0",
+      "inputs": [
+        "广告收入",
+        "文化事业建设费"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CUL-002",
+      "name": "文化事业建设费计税依据异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-SPT-017（广告收入口径）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.CUL-002",
+      "logic": "abs(cultural_fee_base - advertising_revenue) / advertising_revenue > params.base_diff_ratio",
+      "inputs": [
+        "计费基数",
+        "广告收入"
+      ],
+      "suggestion": "核查依据",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "WAT-001",
+      "name": "水利建设基金未申报",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-SPT-020 + engine/gap_tax_obligations",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.WAT-001",
+      "logic": "sales_revenue > 0 and water_fund_paid = 0",
+      "inputs": [
+        "销售收入",
+        "水利基金"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "WAT-002",
+      "name": "水利建设基金计税依据异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-SPT-020（销售收入口径）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.WAT-002",
+      "logic": "abs(water_fund_base - sales_revenue) / sales_revenue > params.base_diff_ratio",
+      "inputs": [
+        "计费基数",
+        "收入"
+      ],
+      "suggestion": "核查依据",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "SUR-006",
+      "name": "地方教育附加未申报",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-OTH-003 + VR043",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.SUR-006",
+      "logic": "vat_payable > 0 and local_edu_surcharge_paid = 0",
+      "inputs": [
+        "增值税",
+        "地方教育附加"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "⊇ SUR-004（V1.1）"
+    },
+    {
+      "src": "SUR-007",
+      "name": "教育费附加减免异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.SUR-007",
+      "logic": "edu_surcharge_reduction and condition not met",
+      "inputs": [
+        "减免",
+        "条件"
+      ],
+      "suggestion": "核查减免",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "SUR-008",
+      "name": "附加税费退库异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.SUR-008",
+      "logic": "surtax_refund > 0 and vat_refund = 0",
+      "inputs": [
+        "附加税费退库",
+        "增值税退税"
+      ],
+      "suggestion": "核查退库",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "SUR-009",
+      "name": "附加税费跨期异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR043（随增值税附征勾稽）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.SUR-009",
+      "logic": "surtax_period != vat_period",
+      "inputs": [
+        "附加税费期间",
+        "增值税期间"
+      ],
+      "suggestion": "核查期间",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "SUR-010",
+      "name": "附加税费申报表间差异",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-CIT-008（表间勾稽四方比对）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.SUR-010",
+      "logic": "abs(surtax_return_a - surtax_return_b) > params.return_diff_threshold",
+      "inputs": [
+        "申报表A",
+        "申报表B"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ADM-001",
+      "name": "税务登记信息与工商信息不一致",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_redlines（税务登记）+ target_entity（统一社会信用代码）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ADM-001",
+      "logic": "tax_registration != business_registration",
+      "inputs": [
+        "税务登记",
+        "工商登记"
+      ],
+      "suggestion": "核查登记",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ADM-002",
+      "name": "财务负责人/办税人异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR020（六员个人账户与经营资金往来）+ RL-CIT-001（六员重叠）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ADM-002",
+      "logic": "same_person_multi_companies > params.same_person_multi_companies",
+      "inputs": [
+        "人员",
+        "企业数"
+      ],
+      "suggestion": "核查关联",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ADM-003",
+      "name": "注册地址异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-003",
+      "logic": "registered_address_virtual = true",
+      "inputs": [
+        "注册地址",
+        "虚拟地址标识"
+      ],
+      "suggestion": "核查地址",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "「虚拟地址标识」无客观判据、无数据源 ⇒ 需先细化（如：同址企业数 > N 且无实际经营痕迹）"
+    },
+    {
+      "src": "ADM-004",
+      "name": "发票领用异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-004",
+      "logic": "invoice_quota_increase_abnormal = true",
+      "inputs": [
+        "发票领用",
+        "调整"
+      ],
+      "suggestion": "核查领用",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无发票领用/调整数据源 ⇒ 待资料"
+    },
+    {
+      "src": "ADM-005",
+      "name": "税控设备异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-005",
+      "logic": "tax_device_abnormal = true",
+      "inputs": [
+        "税控设备"
+      ],
+      "suggestion": "核查设备",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无税控设备数据源 ⇒ 待资料"
+    },
+    {
+      "src": "ADM-006",
+      "name": "申报表逻辑校验异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-CIT-008 + VR018/VR019",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ADM-006",
+      "logic": "return_logic_check_failed = true",
+      "inputs": [
+        "申报表逻辑"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ADM-007",
+      "name": "申报数据篡改痕迹",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-007",
+      "logic": "return_amended_count > params.amended_count",
+      "inputs": [
+        "更正次数"
+      ],
+      "suggestion": "核查更正",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无申报更正记录数据源；且「篡改痕迹」需先定义判据 ⇒ 待资料"
+    },
+    {
+      "src": "ADM-008",
+      "name": "多次更正申报",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-008",
+      "logic": "amended_count > params.amended_count",
+      "inputs": [
+        "更正次数"
+      ],
+      "suggestion": "核查原因",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无更正记录数据源 ⇒ 待资料"
+    },
+    {
+      "src": "ADM-009",
+      "name": "申报与缴款不一致",
+      "sev": "high",
+      "status": "partial",
+      "by": "VR018/VR019（申报↔开票↔账载）+ engine/subject_consistency",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ADM-009",
+      "logic": "abs(declared_tax - paid_tax) > params.declared_paid_tolerance",
+      "inputs": [
+        "申报税额",
+        "缴款税额"
+      ],
+      "suggestion": "核查缴款",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ADM-010",
+      "name": "欠税未清缴",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/domain_analysis（欠税关键词）+ trial_balance「应交税费」",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ADM-010",
+      "logic": "tax_arrears > 0",
+      "inputs": [
+        "欠税金额"
+      ],
+      "suggestion": "核查欠税",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ADM-011",
+      "name": "滞纳金异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/domain_analysis / cross_domain_negotiation（滞纳金）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ADM-011",
+      "logic": "late_fee > params.late_fee_threshold",
+      "inputs": [
+        "滞纳金"
+      ],
+      "suggestion": "核查滞纳",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ADM-012",
+      "name": "延期申报异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/domain_analysis（延期申报）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ADM-012",
+      "logic": "extension_declaration_count > params.extension_count",
+      "inputs": [
+        "延期申报次数"
+      ],
+      "suggestion": "核查延期",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ADM-013",
+      "name": "延期缴税异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-013",
+      "logic": "extension_payment_count > params.extension_count",
+      "inputs": [
+        "延期缴税次数"
+      ],
+      "suggestion": "核查延期",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "全仓 0 命中；无延期缴税记录数据源 ⇒ 待资料"
+    },
+    {
+      "src": "ADM-014",
+      "name": "税收优惠备案缺失",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ADM-014",
+      "logic": "incentive_claimed and filing_missing",
+      "inputs": [
+        "优惠",
+        "备案"
+      ],
+      "suggestion": "核查备案",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ 与 TAXINC-002 / TAXINC-014 三重复 ⇒ 合并为一条"
+    },
+    {
+      "src": "ADM-015",
+      "name": "跨区域涉税事项未报验",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-015",
+      "logic": "cross_region_project and report_missing",
+      "inputs": [
+        "跨区域项目",
+        "报验"
+      ],
+      "suggestion": "核查报验",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无报验记录数据源 ⇒ 待资料（可先做「有异地项目而无报验痕迹」置疑）"
+    },
+    {
+      "src": "ADM-016",
+      "name": "外管证未核销",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-016",
+      "logic": "external_management_certificate_not_cancelled",
+      "inputs": [
+        "外管证"
+      ],
+      "suggestion": "核查核销",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无外管证数据源 ⇒ 待资料"
+    },
+    {
+      "src": "ADM-017",
+      "name": "总分机构汇总纳税异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-017",
+      "logic": "headquarters_branch_allocation_abnormal",
+      "inputs": [
+        "总分机构",
+        "分配"
+      ],
+      "suggestion": "核查汇总",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "全仓 0 命中；需总分机构分配表 ⇒ 待资料"
+    },
+    {
+      "src": "ADM-018",
+      "name": "合并纳税异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-018",
+      "logic": "consolidated_tax_filing_abnormal",
+      "inputs": [
+        "合并纳税"
+      ],
+      "suggestion": "核查合并",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "需合并纳税申报数据 ⇒ 待资料"
+    },
+    {
+      "src": "ADM-019",
+      "name": "税收洼地注册异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-019",
+      "logic": "tax_haven_registration = true",
+      "inputs": [
+        "注册地",
+        "税收洼地"
+      ],
+      "suggestion": "核查实质",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "「税收洼地」需地区清单 + 实质经营判据 ⇒ 先细化（建议：注册地优惠园区 + 无人员无资产）"
+    },
+    {
+      "src": "ADM-020",
+      "name": "财政返还与税收挂钩",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ADM-020",
+      "logic": "fiscal_refund_linked_to_tax = true",
+      "inputs": [
+        "财政返还",
+        "税收"
+      ],
+      "suggestion": "核查返还",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "需财政返还协议/批文 ⇒ 待资料"
+    },
+    {
+      "src": "AA-001",
+      "name": "关联交易定价偏离市场",
+      "sev": "high",
+      "status": "covered",
+      "by": "VR037 / RL-CIT-001",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.AA-001",
+      "logic": "abs(related_price - market_price) / market_price > params.price_deviation",
+      "inputs": [
+        "关联价",
+        "市场价"
+      ],
+      "suggestion": "核查转让定价",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-001（= VAT/CIT-012）"
+    },
+    {
+      "src": "AA-002",
+      "name": "关联交易占比过高",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR017（购销双方集中度核验）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.AA-002",
+      "logic": "related_transaction_ratio > params.related_ratio",
+      "inputs": [
+        "关联交易",
+        "总收入"
+      ],
+      "suggestion": "核查关联",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-002"
+    },
+    {
+      "src": "AA-003",
+      "name": "关联方资金占用",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-CIT-002 / VR030",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.AA-003",
+      "logic": "related_party_receivable > params.amount_threshold",
+      "inputs": [
+        "关联方应收"
+      ],
+      "suggestion": "核查资金占用",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-003"
+    },
+    {
+      "src": "AA-004",
+      "name": "关联方借款利率异常",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-CIT-009（基准＝1 年期 LPR）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.AA-004",
+      "logic": "related_loan_rate > market_rate * params.market_rate_multiple",
+      "inputs": [
+        "关联利率",
+        "市场利率"
+      ],
+      "suggestion": "核查利息",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-004（= CIT-011）"
+    },
+    {
+      "src": "AA-005",
+      "name": "关联方劳务费用异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.AA-005",
+      "logic": "related_service_fee > params.amount_threshold",
+      "inputs": [
+        "关联劳务费"
+      ],
+      "suggestion": "核查劳务",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-006（0 命中「关联方劳务」）"
+    },
+    {
+      "src": "AA-006",
+      "name": "关联方资产转让异常",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.AA-006",
+      "logic": "related_asset_transfer_price != fair_value",
+      "inputs": [
+        "关联资产转让",
+        "公允价值"
+      ],
+      "suggestion": "核查转让",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-007"
+    },
+    {
+      "src": "AA-007",
+      "name": "关联方股权转让异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-009（价格明显偏低）/ RL-SPT-012",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.AA-007",
+      "logic": "related_equity_transfer_price != fair_value",
+      "inputs": [
+        "关联股权转让",
+        "公允价值"
+      ],
+      "suggestion": "核查转让",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-008"
+    },
+    {
+      "src": "AA-008",
+      "name": "关联方债务豁免",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.AA-008",
+      "logic": "related_party_debt_forgiveness > 0",
+      "inputs": [
+        "债务豁免"
+      ],
+      "suggestion": "核查税务处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-009（0 命中「债务豁免」）"
+    },
+    {
+      "src": "AA-009",
+      "name": "关联方承担费用",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/domain_analysis（费用承担）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.AA-009",
+      "logic": "related_party_expense_bearing > 0",
+      "inputs": [
+        "关联方费用承担"
+      ],
+      "suggestion": "核查费用",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= REL-010"
+    },
+    {
+      "src": "AA-010",
+      "name": "成本分摊协议异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-010",
+      "logic": "cost_sharing_agreement_abnormal = true",
+      "inputs": [
+        "成本分摊协议"
+      ],
+      "suggestion": "核查分摊",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "需成本分摊协议文本 ⇒ 待资料 + 判据未定义"
+    },
+    {
+      "src": "AA-011",
+      "name": "预约定价安排未执行",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "engine/domain_analysis（预约定价关键词）",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-011",
+      "logic": "APA_exists and actual_transaction != APA_terms",
+      "inputs": [
+        "APA",
+        "实际交易"
+      ],
+      "suggestion": "核查执行",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "仅有文案提及；APA 文本不可得 ⇒ 待资料"
+    },
+    {
+      "src": "AA-012",
+      "name": "同期资料缺失",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/domain_analysis / enterprise_report（同期资料）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.AA-012",
+      "logic": "related_transaction_threshold_met and contemporaneous_docs_missing",
+      "inputs": [
+        "关联交易",
+        "同期资料"
+      ],
+      "suggestion": "核查资料",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "AA-013",
+      "name": "国别报告缺失",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-013",
+      "logic": "CbCR_required and CbCR_missing",
+      "inputs": [
+        "国别报告要求",
+        "提交"
+      ],
+      "suggestion": "核查报告",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需国别报告数据 ⇒ 待资料"
+    },
+    {
+      "src": "AA-014",
+      "name": "主体文档缺失",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-014",
+      "logic": "master_file_required and master_file_missing",
+      "inputs": [
+        "主体文档"
+      ],
+      "suggestion": "核查文档",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "需转让定价文档体系 ⇒ 待资料"
+    },
+    {
+      "src": "AA-015",
+      "name": "本地文档缺失",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-015",
+      "logic": "local_file_required and local_file_missing",
+      "inputs": [
+        "本地文档"
+      ],
+      "suggestion": "核查文档",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "AA-016",
+      "name": "特殊事项文档缺失",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-016",
+      "logic": "special_file_required and special_file_missing",
+      "inputs": [
+        "特殊事项文档"
+      ],
+      "suggestion": "核查文档",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "AA-017",
+      "name": "合理商业目的不足",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-017",
+      "logic": "reasonable_business_purpose_score < params.purpose_score_threshold",
+      "inputs": [
+        "商业目的评分"
+      ],
+      "suggestion": "核查目的",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ 需评分模型（当前不存在）⇒ 先细化判据；与 REO-015 重复"
+    },
+    {
+      "src": "AA-018",
+      "name": "导管公司特征",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-018",
+      "logic": "conduit_company_indicators > params.conduit_indicators_threshold",
+      "inputs": [
+        "导管公司指标"
+      ],
+      "suggestion": "核查实质",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "「指标」未定义 ⇒ 先细化（如：无雇员/无实质经营/单一资金来源）"
+    },
+    {
+      "src": "AA-019",
+      "name": "择协避税特征",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-019",
+      "logic": "treaty_shopping_indicators > params.treaty_shopping_threshold",
+      "inputs": [
+        "择协避税指标"
+      ],
+      "suggestion": "核查受益所有人",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "AA-020",
+      "name": "主要目的测试未通过",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.AA-020",
+      "logic": "principal_purpose_test_failed = true",
+      "inputs": [
+        "主要目的测试"
+      ],
+      "suggestion": "核查协定优惠",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "INT-001",
+      "name": "非居民预提所得税未代扣",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-006（向非居民支付境内所得未履行源泉扣缴）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.INT-001",
+      "logic": "non_resident_income > 0 and withholding_tax = 0",
+      "inputs": [
+        "非居民所得",
+        "预提税"
+      ],
+      "suggestion": "核查代扣",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "INT-002",
+      "name": "非居民股息预提税异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-006（未分所得类型）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.INT-002",
+      "logic": "dividend_to_non_resident > 0 and withholding_tax < correct_tax",
+      "inputs": [
+        "股息",
+        "预提税"
+      ],
+      "suggestion": "核查代扣",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "INT-003",
+      "name": "非居民利息预提税异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-006",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.INT-003",
+      "logic": "interest_to_non_resident > 0 and withholding_tax < correct_tax",
+      "inputs": [
+        "利息",
+        "预提税"
+      ],
+      "suggestion": "核查代扣",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "INT-004",
+      "name": "非居民特许权使用费预提税异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-006",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.INT-004",
+      "logic": "royalty_to_non_resident > 0 and withholding_tax < correct_tax",
+      "inputs": [
+        "特许权使用费",
+        "预提税"
+      ],
+      "suggestion": "核查代扣",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "INT-005",
+      "name": "非居民财产转让预提税异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-006",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.INT-005",
+      "logic": "property_transfer_to_non_resident > 0 and withholding_tax = 0",
+      "inputs": [
+        "财产转让",
+        "预提税"
+      ],
+      "suggestion": "核查代扣",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "INT-006",
+      "name": "常设机构判定异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-006",
+      "logic": "permanent_establishment_indicators > threshold",
+      "inputs": [
+        "常设机构指标"
+      ],
+      "suggestion": "核查常设机构",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "INT-007",
+      "name": "国际运输税收异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-007",
+      "logic": "international_transport_income > 0 and tax_treatment_abnormal",
+      "inputs": [
+        "国际运输收入",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "INT-008",
+      "name": "税收协定优惠适用异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/external_check_reminder（受益所有人）+ manual_inspection_worksheets",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.INT-008",
+      "logic": "treaty_benefit_claimed and beneficial_owner_test_failed",
+      "inputs": [
+        "协定优惠",
+        "受益所有人"
+      ],
+      "suggestion": "核查受益所有人",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "INT-009",
+      "name": "受益所有人认定异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/external_check_reminder / manual_inspection_worksheets",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.INT-009",
+      "logic": "beneficial_owner_indicators < threshold",
+      "inputs": [
+        "受益所有人指标"
+      ],
+      "suggestion": "核查认定",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "INT-010",
+      "name": "境外所得未申报",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.INT-010",
+      "logic": "overseas_income > 0 and declared_overseas_income = 0",
+      "inputs": [
+        "境外所得",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需境外所得申报表（A108000 系列）⇒ 先置疑"
+    },
+    {
+      "src": "INT-011",
+      "name": "境外所得抵免异常",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.INT-011",
+      "logic": "foreign_tax_credit > correct_credit",
+      "inputs": [
+        "境外抵免",
+        "正确抵免"
+      ],
+      "suggestion": "核查抵免",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；同上"
+    },
+    {
+      "src": "INT-012",
+      "name": "直接抵免异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-012",
+      "logic": "direct_credit_abnormal = true",
+      "inputs": [
+        "直接抵免"
+      ],
+      "suggestion": "核查抵免",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "INT-013",
+      "name": "间接抵免异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-013",
+      "logic": "indirect_credit_abnormal = true",
+      "inputs": [
+        "间接抵免"
+      ],
+      "suggestion": "核查抵免",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "INT-014",
+      "name": "分国不分项抵免异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-014",
+      "logic": "country_by_country_credit_abnormal = true",
+      "inputs": [
+        "分国抵免"
+      ],
+      "suggestion": "核查计算",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "INT-015",
+      "name": "综合抵免异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-015",
+      "logic": "comprehensive_credit_abnormal = true",
+      "inputs": [
+        "综合抵免"
+      ],
+      "suggestion": "核查计算",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "INT-016",
+      "name": "饶让抵免异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-016",
+      "logic": "tax_sparing_credit_abnormal = true",
+      "inputs": [
+        "饶让抵免"
+      ],
+      "suggestion": "核查计算",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "INT-017",
+      "name": "CRS信息申报异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/audit_coverage / manual_inspection_worksheets（CRS）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.INT-017",
+      "logic": "CRS_reporting_missing = true",
+      "inputs": [
+        "CRS申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "INT-018",
+      "name": "对外支付备案缺失",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-018",
+      "logic": "outbound_payment > params.outbound_payment_threshold and filing_missing = true",
+      "inputs": [
+        "对外支付",
+        "备案"
+      ],
+      "suggestion": "核查备案",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需对外支付备案数据 ⇒ 待资料"
+    },
+    {
+      "src": "INT-019",
+      "name": "服务贸易对外支付税务备案异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-019",
+      "logic": "service_trade_payment > params.service_trade_payment_threshold and tax_filing_missing",
+      "inputs": [
+        "服务贸易支付",
+        "备案"
+      ],
+      "suggestion": "核查备案",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "INT-020",
+      "name": "非居民享受协定待遇后续管理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.INT-020",
+      "logic": "treaty_benefit_followup_missing = true",
+      "inputs": [
+        "协定待遇",
+        "后续管理"
+      ],
+      "suggestion": "核查管理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "REO-001",
+      "name": "股权收购特殊性税务处理异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-001",
+      "logic": "special_tax_treatment and conditions_not_met",
+      "inputs": [
+        "特殊性税务处理",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需重组资料 + 条件判据 ⇒ 先细化"
+    },
+    {
+      "src": "REO-002",
+      "name": "资产收购特殊性税务处理异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-002",
+      "logic": "special_tax_treatment and conditions_not_met",
+      "inputs": [
+        "特殊性税务处理",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "REO-003",
+      "name": "企业合并特殊性税务处理异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-003",
+      "logic": "special_tax_treatment and conditions_not_met",
+      "inputs": [
+        "特殊性税务处理",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "REO-004",
+      "name": "企业分立特殊性税务处理异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-004",
+      "logic": "special_tax_treatment and conditions_not_met",
+      "inputs": [
+        "特殊性税务处理",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "REO-005",
+      "name": "债务重组特殊性税务处理异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-005",
+      "logic": "special_tax_treatment and conditions_not_met",
+      "inputs": [
+        "特殊性税务处理",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "REO-006",
+      "name": "股权转让所得未申报",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-012（股权转让未申报个税）/ RL-SPT-009",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.REO-006",
+      "logic": "equity_transfer_income > 0 and tax_declared = 0",
+      "inputs": [
+        "股权转让所得",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "系统覆盖个税侧；候选为企业所得税侧所得 ⇒ 合并为双税种"
+    },
+    {
+      "src": "REO-007",
+      "name": "股权转让价格偏低",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-009（股权转让价格明显偏低且无正当理由）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.REO-007",
+      "logic": "transfer_price < fair_value * params.fair_value_ratio",
+      "inputs": [
+        "转让价格",
+        "公允价值"
+      ],
+      "suggestion": "核查价格",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "REO-008",
+      "name": "非货币性资产投资税务处理异常",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.REO-008",
+      "logic": "non_monetary_asset_investment and tax_treatment_abnormal",
+      "inputs": [
+        "非货币资产投资",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；可先做「非货币资产对外投资未见递延纳税备案」置疑"
+    },
+    {
+      "src": "REO-009",
+      "name": "技术入股递延纳税异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-009",
+      "logic": "technology_equity_investment and deferred_tax_conditions_not_met",
+      "inputs": [
+        "技术入股",
+        "递延条件"
+      ],
+      "suggestion": "核查递延",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需技术入股与递延备案资料 ⇒ 先细化"
+    },
+    {
+      "src": "REO-010",
+      "name": "股权激励递延纳税异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-010",
+      "logic": "equity_incentive and deferred_tax_conditions_not_met",
+      "inputs": [
+        "股权激励",
+        "递延条件"
+      ],
+      "suggestion": "核查递延",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= IIT-017（V1.1 已判 missing/placeholder，同判据）"
+    },
+    {
+      "src": "REO-011",
+      "name": "转增股本个税异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.REO-011",
+      "logic": "capital_reserve_to_equity > 0 and IIT_withheld = 0",
+      "inputs": [
+        "转增股本",
+        "个税"
+      ],
+      "suggestion": "核查个税",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；可真算（实收资本/资本公积变动 × 股东名册）"
+    },
+    {
+      "src": "REO-012",
+      "name": "未分配利润转增个税异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.REO-012",
+      "logic": "retained_earnings_to_equity > 0 and IIT_withheld = 0",
+      "inputs": [
+        "未分配利润转增",
+        "个税"
+      ],
+      "suggestion": "核查个税",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；可真算"
+    },
+    {
+      "src": "REO-013",
+      "name": "资本公积转增个税异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.REO-013",
+      "logic": "capital_reserve_to_equity > 0 and IIT_withheld = 0",
+      "inputs": [
+        "资本公积转增",
+        "个税"
+      ],
+      "suggestion": "核查个税",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ 与 REO-011 判据重复（同表达式）⇒ 合并"
+    },
+    {
+      "src": "REO-014",
+      "name": "间接转让中国应税财产未申报",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-014",
+      "logic": "indirect_transfer_china_taxable_property and tax_declared = 0",
+      "inputs": [
+        "间接转让",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需境外股权架构资料 ⇒ 待资料"
+    },
+    {
+      "src": "REO-015",
+      "name": "合理商业目的不足",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REO-015",
+      "logic": "reasonable_business_purpose_score < params.purpose_score_threshold",
+      "inputs": [
+        "商业目的评分"
+      ],
+      "suggestion": "核查目的",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ = AA-017（V1.2 内部重复）⇒ 合并为一条"
+    },
+    {
+      "src": "EST-001",
+      "name": "预收房款未预缴增值税",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-INC-003 / VR063（预收账款长期挂账）+ RL-VAT-014",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.EST-001",
+      "logic": "pre_sale_revenue > 0 and vat_prepaid = 0",
+      "inputs": [
+        "预收房款",
+        "预缴增值税"
+      ],
+      "suggestion": "核查预缴",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "预征率属地区参数"
+    },
+    {
+      "src": "EST-002",
+      "name": "预收房款未预缴土地增值税",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-001（土地增值税未清算或扣除不实）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.EST-002",
+      "logic": "pre_sale_revenue > 0 and lat_prepaid = 0",
+      "inputs": [
+        "预收房款",
+        "预缴土地增值税"
+      ],
+      "suggestion": "核查预缴",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "预征率属地区参数；注意「预缴」与「清算」是不同环节"
+    },
+    {
+      "src": "EST-003",
+      "name": "预收房款未预计毛利",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.EST-003",
+      "logic": "pre_sale_revenue > 0 and estimated_gross_profit = 0",
+      "inputs": [
+        "预收房款",
+        "预计毛利"
+      ],
+      "suggestion": "核查所得税",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "需预计毛利率（地区参数）"
+    },
+    {
+      "src": "EST-004",
+      "name": "开发产品完工未结转",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/analysis_coverage / audit_coverage（完工结转）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.EST-004",
+      "logic": "project_completed and revenue_not_recognized",
+      "inputs": [
+        "完工项目",
+        "收入确认"
+      ],
+      "suggestion": "核查结转",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "EST-005",
+      "name": "开发成本分摊异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.EST-005",
+      "logic": "cost_allocation_ratio != reasonable_ratio",
+      "inputs": [
+        "成本分摊",
+        "合理比例"
+      ],
+      "suggestion": "核查分摊",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= LAT-006（同判据）"
+    },
+    {
+      "src": "EST-006",
+      "name": "土地成本扣除异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.EST-006",
+      "logic": "land_cost_deduction > params.amount_threshold",
+      "inputs": [
+        "土地成本",
+        "扣除"
+      ],
+      "suggestion": "核查扣除",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "EST-007",
+      "name": "拆迁补偿费异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-SPT-001（条文提及）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.EST-007",
+      "logic": "relocation_compensation > params.amount_threshold",
+      "inputs": [
+        "拆迁补偿",
+        "凭证"
+      ],
+      "suggestion": "核查补偿",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= LAT-008"
+    },
+    {
+      "src": "EST-008",
+      "name": "公共配套费异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.EST-008",
+      "logic": "public_facilities_cost > params.amount_threshold",
+      "inputs": [
+        "公共配套费"
+      ],
+      "suggestion": "核查成本",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "EST-009",
+      "name": "开发间接费异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.EST-009",
+      "logic": "development_indirect_cost > params.amount_threshold",
+      "inputs": [
+        "开发间接费"
+      ],
+      "suggestion": "核查费用",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "EST-010",
+      "name": "利息支出扣除异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-CIT-007 / engine/deduction_limit_detector",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.EST-010",
+      "logic": "interest_deduction > params.amount_threshold",
+      "inputs": [
+        "利息支出",
+        "扣除限额"
+      ],
+      "suggestion": "核查利息",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= LAT-007"
+    },
+    {
+      "src": "CONSTR-001",
+      "name": "建筑服务预缴增值税异常",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-VAT-014（异地建筑服务未在项目所在地预缴）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-001",
+      "logic": "construction_service_revenue > 0 and vat_prepaid = 0",
+      "inputs": [
+        "建筑服务收入",
+        "预缴增值税"
+      ],
+      "suggestion": "核查预缴",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CONSTR-002",
+      "name": "异地施工未预缴",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-VAT-014",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-002",
+      "logic": "cross_region_construction and vat_prepaid = 0",
+      "inputs": [
+        "异地施工",
+        "预缴"
+      ],
+      "suggestion": "核查预缴",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ 与 CONSTR-001 同源（RL-VAT-014 直接对应）"
+    },
+    {
+      "src": "CONSTR-003",
+      "name": "简易计税适用异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR077（简易计税与一般计税进项混用）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-003",
+      "logic": "simplified_tax_method and conditions_not_met",
+      "inputs": [
+        "简易计税",
+        "条件"
+      ],
+      "suggestion": "核查适用",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "系统判「进项混用」，候选判「适用条件」⇒ 合并两分支"
+    },
+    {
+      "src": "CONSTR-004",
+      "name": "甲供材税务处理异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/enterprise_profile / industry_resolver（甲供材）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-004",
+      "logic": "owner_supplied_materials and tax_treatment_abnormal",
+      "inputs": [
+        "甲供材",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CONSTR-005",
+      "name": "清包工税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-005",
+      "logic": "labor_only_contract and tax_treatment_abnormal",
+      "inputs": [
+        "清包工",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "CONSTR-006",
+      "name": "分包款扣除异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/account_classifier / enterprise_profile（分包）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-006",
+      "logic": "subcontract_deduction > params.subcontract_deduction_threshold",
+      "inputs": [
+        "分包款",
+        "扣除"
+      ],
+      "suggestion": "核查扣除",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CONSTR-007",
+      "name": "挂靠经营税务风险",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/domain_analysis / enterprise_profile（挂靠）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-007",
+      "logic": "affiliation_business = true",
+      "inputs": [
+        "挂靠经营"
+      ],
+      "suggestion": "核查主体",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CONSTR-008",
+      "name": "转包税务风险",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-008",
+      "logic": "subcontracting = true",
+      "inputs": [
+        "转包"
+      ],
+      "suggestion": "核查转包",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化（建议：合同金额流向与施工能力比对）"
+    },
+    {
+      "src": "CONSTR-009",
+      "name": "项目部个税未申报",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-009",
+      "logic": "project_department_salary > 0 and IIT_declared = 0",
+      "inputs": [
+        "项目部工资",
+        "个税"
+      ],
+      "suggestion": "核查个税",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；无项目部工资数据源 ⇒ 待资料"
+    },
+    {
+      "src": "CONSTR-010",
+      "name": "项目部社保未缴纳",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.CONSTR-010",
+      "logic": "project_department_salary > 0 and social_insured = false",
+      "inputs": [
+        "项目部工资",
+        "社保"
+      ],
+      "suggestion": "核查社保",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "PLAT-001",
+      "name": "平台佣金收入未申报",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-001",
+      "logic": "platform_commission_income > 0 and tax_declared = 0",
+      "inputs": [
+        "平台佣金",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中「平台佣金」；开票品名含「信息技术服务费/平台服务费」可算"
+    },
+    {
+      "src": "PLAT-002",
+      "name": "平台打赏收入未申报",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-002",
+      "logic": "live_reward_income > 0 and tax_declared = 0",
+      "inputs": [
+        "打赏收入",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "需平台结算数据 ⇒ 部分待资料"
+    },
+    {
+      "src": "PLAT-003",
+      "name": "主播个税未代扣",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-013（灵活用工平台网红报酬未代扣个税）/ VR065",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-003",
+      "logic": "anchor_income > 0 and IIT_withheld = 0",
+      "inputs": [
+        "主播收入",
+        "个税"
+      ],
+      "suggestion": "核查代扣",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "PLAT-004",
+      "name": "MCN机构税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-004",
+      "logic": "MCN_income_allocation_abnormal",
+      "inputs": [
+        "MCN收入",
+        "分配"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "PLAT-005",
+      "name": "平台灵活用工结算异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-013 + engine/memory（灵活用工）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-005",
+      "logic": "flexible_employment_settlement > params.amount_threshold and invoice_abnormal",
+      "inputs": [
+        "灵活用工结算",
+        "发票"
+      ],
+      "suggestion": "核查结算",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "PLAT-006",
+      "name": "委托代征异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-006",
+      "logic": "entrusted_collection and conditions_not_met",
+      "inputs": [
+        "委托代征",
+        "条件"
+      ],
+      "suggestion": "核查代征",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需委托代征协议 ⇒ 待资料"
+    },
+    {
+      "src": "PLAT-007",
+      "name": "汇总代开发票异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-007",
+      "logic": "aggregated_invoice_abnormal = true",
+      "inputs": [
+        "汇总代开"
+      ],
+      "suggestion": "核查代开",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "PLAT-008",
+      "name": "自然人代开异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-008",
+      "logic": "natural_person_invoice > params.amount_threshold",
+      "inputs": [
+        "自然人代开"
+      ],
+      "suggestion": "核查代开",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；可从进项发票的开票方为自然人/个体户识别（VR024 已有基础）"
+    },
+    {
+      "src": "PLAT-009",
+      "name": "临时税务登记异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-009",
+      "logic": "temporary_tax_registration > threshold",
+      "inputs": [
+        "临时税务登记"
+      ],
+      "suggestion": "核查登记",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无登记数据源 ⇒ 待资料"
+    },
+    {
+      "src": "PLAT-010",
+      "name": "集群注册异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/domain_analysis（集群注册）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.PLAT-010",
+      "logic": "cluster_registration > threshold",
+      "inputs": [
+        "集群注册"
+      ],
+      "suggestion": "核查注册",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "FLEX-001",
+      "name": "劳务外包变相用工",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/account_classifier / text_guardrails（劳务外包）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.FLEX-001",
+      "logic": "labor_outsourcing_ratio > params.outsourcing_ratio and actual_employment = true",
+      "inputs": [
+        "劳务外包",
+        "实际用工"
+      ],
+      "suggestion": "核查实质",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "FLEX-002",
+      "name": "劳务派遣比例超标",
+      "sev": "medium",
+      "status": "partial",
+      "by": "SI-005 相关（用工形式）+ VR022（用工人数）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.FLEX-002",
+      "logic": "dispatch_worker_ratio > params.dispatch_ratio",
+      "inputs": [
+        "派遣比例"
+      ],
+      "suggestion": "核查比例",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "FLEX-003",
+      "name": "社保代缴异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.FLEX-003",
+      "logic": "social_security_agency > 0 and actual_employer != agency",
+      "inputs": [
+        "社保代缴",
+        "实际雇主"
+      ],
+      "suggestion": "核查代缴",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需社保代缴协议与参保单位名称比对 ⇒ 部分可得"
+    },
+    {
+      "src": "FLEX-004",
+      "name": "个税代征异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.FLEX-004",
+      "logic": "IIT_collection_agency and conditions_not_met",
+      "inputs": [
+        "个税代征",
+        "条件"
+      ],
+      "suggestion": "核查代征",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "FLEX-005",
+      "name": "薪酬代发异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "bank_txs 代发识别 + engine/fund_matching",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.FLEX-005",
+      "logic": "salary_payment_agency > params.amount_threshold",
+      "inputs": [
+        "薪酬代发"
+      ],
+      "suggestion": "核查代发",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "HNW-001",
+      "name": "高净值个人税负偏低",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HNW-001",
+      "logic": "high_net_worth_tax_burden < params.burden_threshold",
+      "inputs": [
+        "高净值个人",
+        "税负"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需个人涉税信息 ⇒ 待资料（企业侧仅能置疑）"
+    },
+    {
+      "src": "HNW-002",
+      "name": "境外资产未申报",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HNW-002",
+      "logic": "overseas_asset > 0 and declared = 0",
+      "inputs": [
+        "境外资产",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "数据源不存在 ⇒ 待资料"
+    },
+    {
+      "src": "HNW-003",
+      "name": "境外收入未申报",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.HNW-003",
+      "logic": "overseas_income > 0 and declared = 0",
+      "inputs": [
+        "境外收入",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= INT-010（同判据）"
+    },
+    {
+      "src": "HNW-004",
+      "name": "家族信托税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HNW-004",
+      "logic": "family_trust_tax_treatment_abnormal",
+      "inputs": [
+        "家族信托",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "HNW-005",
+      "name": "大额保单税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HNW-005",
+      "logic": "large_insurance_policy > params.amount_threshold",
+      "inputs": [
+        "大额保单"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "FINA-001",
+      "name": "贷款利息收入未申报",
+      "sev": "high",
+      "status": "partial",
+      "by": "VR068（银行存款利息收入未申报）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.FINA-001",
+      "logic": "loan_interest_income > 0 and tax_declared = 0",
+      "inputs": [
+        "利息收入",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "系统覆盖存款利息，候选为贷款利息（放贷业务）⇒ 合并扩展"
+    },
+    {
+      "src": "FINA-002",
+      "name": "金融商品转让税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.FINA-002",
+      "logic": "financial_asset_transfer and tax_treatment_abnormal",
+      "inputs": [
+        "金融商品转让",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "FINA-003",
+      "name": "贷款损失准备金扣除异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.FINA-003",
+      "logic": "loan_loss_provision > params.amount_threshold",
+      "inputs": [
+        "贷款损失准备金"
+      ],
+      "suggestion": "核查扣除",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "需准备金台账与扣除限额（金融业专项）"
+    },
+    {
+      "src": "LEASE-001",
+      "name": "融资租赁税务处理异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/domain_analysis / gap_tax_obligations（融资租赁）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.LEASE-001",
+      "logic": "finance_lease and tax_treatment_abnormal",
+      "inputs": [
+        "融资租赁",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "LEASE-002",
+      "name": "融资性售后回租异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.LEASE-002",
+      "logic": "sale_leaseback and tax_treatment_abnormal",
+      "inputs": [
+        "售后回租",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "LEASE-003",
+      "name": "经营租赁税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.LEASE-003",
+      "logic": "operating_lease and tax_treatment_abnormal",
+      "inputs": [
+        "经营租赁",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "系统有 RL-OTH-010（租赁合同印花税）≠ 本概念；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "FACT-001",
+      "name": "保理利息税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.FACT-001",
+      "logic": "factoring_interest and tax_treatment_abnormal",
+      "inputs": [
+        "保理利息",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "MICRO-001",
+      "name": "小贷公司利息收入未申报",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.MICRO-001",
+      "logic": "micro_loan_interest > 0 and tax_declared = 0",
+      "inputs": [
+        "小贷利息",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；可从「利息收入」科目 + 放贷合同识别"
+    },
+    {
+      "src": "GUAR-001",
+      "name": "担保费收入未申报",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.GUAR-001",
+      "logic": "guarantee_fee_income > 0 and tax_declared = 0",
+      "inputs": [
+        "担保费",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；可从「其他业务收入-担保费」识别"
+    },
+    {
+      "src": "PAWN-001",
+      "name": "典当利息税务处理异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/verified_rule_engine（典当）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.PAWN-001",
+      "logic": "pawn_interest and tax_treatment_abnormal",
+      "inputs": [
+        "典当利息",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "PE-001",
+      "name": "私募基金税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.PE-001",
+      "logic": "private_equity_fund and tax_treatment_abnormal",
+      "inputs": [
+        "私募基金",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "FUNDM-001",
+      "name": "公募基金税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.FUNDM-001",
+      "logic": "public_fund and tax_treatment_abnormal",
+      "inputs": [
+        "公募基金",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "TRUST-001",
+      "name": "信托收益税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.TRUST-001",
+      "logic": "trust_income and tax_treatment_abnormal",
+      "inputs": [
+        "信托收益",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中（「信托」整词）；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "REIT-001",
+      "name": "REITs税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REIT-001",
+      "logic": "REITs and tax_treatment_abnormal",
+      "inputs": [
+        "REITs",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "REIT-002",
+      "name": "REITs分红税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.REIT-002",
+      "logic": "REITs_dividend and tax_treatment_abnormal",
+      "inputs": [
+        "REITs分红",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "PPP-001",
+      "name": "PPP项目税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.PPP-001",
+      "logic": "PPP_project and tax_treatment_abnormal",
+      "inputs": [
+        "PPP项目",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "EPC-001",
+      "name": "EPC合同税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.EPC-001",
+      "logic": "EPC_contract and tax_treatment_abnormal",
+      "inputs": [
+        "EPC合同",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "BOT-001",
+      "name": "BOT项目税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.BOT-001",
+      "logic": "BOT_project and tax_treatment_abnormal",
+      "inputs": [
+        "BOT项目",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "ABS-001",
+      "name": "资产证券化税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ABS-001",
+      "logic": "ABS_transaction and tax_treatment_abnormal",
+      "inputs": [
+        "ABS交易",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "FUND-011",
+      "name": "资金池税务处理异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/financial_analyzer / tax_redlines（资金池）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.FUND-011",
+      "logic": "cash_pool and tax_treatment_abnormal",
+      "inputs": [
+        "资金池",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= FUND-009（V1.1）"
+    },
+    {
+      "src": "EXPORT-011",
+      "name": "出口退税函调异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/domain_analysis（函调）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.EXPORT-011",
+      "logic": "tax_refund_investigation_abnormal = true",
+      "inputs": [
+        "函调结果"
+      ],
+      "suggestion": "核查函调",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= EXPORT-006；★ 函调属税务机关外部信息 ⇒ 归「外部核验类·不判触红」"
+    },
+    {
+      "src": "EXPORT-012",
+      "name": "出口收汇异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "engine/export_rebate_crosscheck（出口额↔收汇 15% 阈值）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.EXPORT-012",
+      "logic": "export_receipt_missing = true",
+      "inputs": [
+        "出口收汇"
+      ],
+      "suggestion": "核查收汇",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= EXPORT-009"
+    },
+    {
+      "src": "EXPORT-013",
+      "name": "出口转内销未申报",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.EXPORT-013",
+      "logic": "export_to_domestic > 0 and tax_declared = 0",
+      "inputs": [
+        "出口转内销",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= EXPORT-010（0 命中）"
+    },
+    {
+      "src": "EXPORT-014",
+      "name": "跨境电商无票免税异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.EXPORT-014",
+      "logic": "cross_border_ecommerce_tax_free and conditions_not_met",
+      "inputs": [
+        "无票免税",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 + 需跨境电商申报数据 ⇒ 先细化"
+    },
+    {
+      "src": "CUSTOMS-001",
+      "name": "保税料件内销未补税",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/domain_analysis / special_redline_detectors（保税）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.CUSTOMS-001",
+      "logic": "bonded_material_domestic_sale > 0 and tax_paid = 0",
+      "inputs": [
+        "保税料件内销",
+        "补税"
+      ],
+      "suggestion": "核查补税",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CUSTOMS-002",
+      "name": "加工贸易核销异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.CUSTOMS-002",
+      "logic": "processing_trade_verification_abnormal",
+      "inputs": [
+        "加工贸易核销"
+      ],
+      "suggestion": "核查核销",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= EXPORT-004（0 命中「进料加工」）"
+    },
+    {
+      "src": "CUSTOMS-003",
+      "name": "海关完税价格异常",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-005 + engine/special_redline_detectors",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.CUSTOMS-003",
+      "logic": "customs_value < invoice_value * params.value_ratio",
+      "inputs": [
+        "完税价格",
+        "发票金额"
+      ],
+      "suggestion": "核查价格",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ = CUS-001（V1.2 内部重复）"
+    },
+    {
+      "src": "CUSTOMS-004",
+      "name": "关税减免异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.CUSTOMS-004",
+      "logic": "customs_reduction and condition not met",
+      "inputs": [
+        "减免",
+        "条件"
+      ],
+      "suggestion": "核查减免",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ = CUS-003（V1.2 内部重复）"
+    },
+    {
+      "src": "BOND-001",
+      "name": "保税区税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.BOND-001",
+      "logic": "bonded_zone and tax_treatment_abnormal",
+      "inputs": [
+        "保税区",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "BOND-002",
+      "name": "综合保税区税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.BOND-002",
+      "logic": "comprehensive_bonded_zone and tax_treatment_abnormal",
+      "inputs": [
+        "综保区",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同上"
+    },
+    {
+      "src": "FTZ-001",
+      "name": "自贸区税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.FTZ-001",
+      "logic": "free_trade_zone and tax_treatment_abnormal",
+      "inputs": [
+        "自贸区",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "HAINAN-001",
+      "name": "海南自贸港15%所得税异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HAINAN-001",
+      "logic": "hainan_15_percent and conditions_not_met",
+      "inputs": [
+        "海南优惠",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "★ 判据其实**可算**（主营业务收入占比≥60% + 负面清单）；但缺地区参数与负面清单 ⇒ 先补参数再实现"
+    },
+    {
+      "src": "HAINAN-002",
+      "name": "海南自贸港个税优惠异常",
+      "sev": "high",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HAINAN-002",
+      "logic": "hainan_IIT_incentive and conditions_not_met",
+      "inputs": [
+        "海南个税优惠",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "可算（实际税负>15%部分免征）；需个人申报数据"
+    },
+    {
+      "src": "HAINAN-003",
+      "name": "离岛免税异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HAINAN-003",
+      "logic": "duty_free_island and conditions_not_met",
+      "inputs": [
+        "离岛免税",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；属零售终端业务 ⇒ 企业侧不可算"
+    },
+    {
+      "src": "HAINAN-004",
+      "name": "跨境电商保税进口异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HAINAN-004",
+      "logic": "cross_border_bonded_import and tax_treatment_abnormal",
+      "inputs": [
+        "跨境电商保税进口"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "TAXINC-013",
+      "name": "优惠条件不满足但享受",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer._verify_conditions_against_data",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.TAXINC-013",
+      "logic": "incentive_condition_met = false and incentive_claimed = true",
+      "inputs": [
+        "优惠条件",
+        "享受优惠"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= TAXINC-001（重复）"
+    },
+    {
+      "src": "TAXINC-014",
+      "name": "优惠备案缺失",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.TAXINC-014",
+      "logic": "incentive_claimed and filing_missing",
+      "inputs": [
+        "优惠",
+        "备案"
+      ],
+      "suggestion": "核查备案",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= TAXINC-002 = ADM-014（三重复）⇒ 合并为一条"
+    },
+    {
+      "src": "TAXINC-015",
+      "name": "优惠金额计算错误",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.TAXINC-015",
+      "logic": "incentive_amount != calculated_incentive",
+      "inputs": [
+        "优惠金额",
+        "计算值"
+      ],
+      "suggestion": "核查计算",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= TAXINC-003（重复）"
+    },
+    {
+      "src": "TAXINC-016",
+      "name": "叠加享受优惠",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.TAXINC-016",
+      "logic": "overlapping_incentives = true",
+      "inputs": [
+        "叠加优惠"
+      ],
+      "suggestion": "核查叠加",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= TAXINC-004（重复）"
+    },
+    {
+      "src": "TAXINC-017",
+      "name": "优惠期间错误",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer（政策库含期间）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.TAXINC-017",
+      "logic": "incentive_period != correct_period",
+      "inputs": [
+        "优惠期间",
+        "正确期间"
+      ],
+      "suggestion": "核查期间",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= TAXINC-005（重复）"
+    },
+    {
+      "src": "ASSESS-001",
+      "name": "核定征收条件不符",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-SPT-011（不符合核定征收条件而适用核定征收）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.ASSESS-001",
+      "logic": "assessed_collection and conditions_not_met",
+      "inputs": [
+        "核定征收",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "ASSESS-002",
+      "name": "核定征收率异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.ASSESS-002",
+      "logic": "assessed_rate < industry_avg_rate * params.assessed_rate_ratio",
+      "inputs": [
+        "核定率",
+        "行业均值"
+      ],
+      "suggestion": "核查核定",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "行业核定率须登记 industry_benchmark；未登记则待核"
+    },
+    {
+      "src": "ASSESS-003",
+      "name": "核定征收企业收入异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.ASSESS-003",
+      "logic": "assessed_income < actual_income * params.assessed_income_ratio",
+      "inputs": [
+        "核定收入",
+        "实际收入"
+      ],
+      "suggestion": "核查收入",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "可真算（核定收入 vs 开票/银行收入）"
+    },
+    {
+      "src": "ASSESS-004",
+      "name": "个人独资/合伙核定异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-SPT-011 + engine/domain_analysis（个独/合伙主体识别）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.ASSESS-004",
+      "logic": "sole_proprietorship_or_partnership and assessed_collection and conditions_not_met",
+      "inputs": [
+        "个独/合伙",
+        "核定",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "LIQ-001",
+      "name": "注销清算未申报",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.LIQ-001",
+      "logic": "liquidation and tax_declared = 0",
+      "inputs": [
+        "清算",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；需清算资料 ⇒ 部分可得"
+    },
+    {
+      "src": "LIQ-002",
+      "name": "清算所得计算异常",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.LIQ-002",
+      "logic": "liquidation_income != calculated_income",
+      "inputs": [
+        "清算所得",
+        "计算值"
+      ],
+      "suggestion": "核查计算",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "LIQ-003",
+      "name": "股东分得剩余资产税务处理异常",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.LIQ-003",
+      "logic": "residual_asset_distribution and tax_treatment_abnormal",
+      "inputs": [
+        "剩余资产分配",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "BANKR-001",
+      "name": "破产重整税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.BANKR-001",
+      "logic": "bankruptcy_reorganization and tax_treatment_abnormal",
+      "inputs": [
+        "破产重整",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "BANKR-002",
+      "name": "债务重组所得未申报",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/domain_analysis / payment_channel（债务重组）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.BANKR-002",
+      "logic": "debt_restructuring_income > 0 and tax_declared = 0",
+      "inputs": [
+        "债务重组所得",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "BANKR-003",
+      "name": "资产处置损失异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-CIT-006（资产损失税前扣除）+ RL-AST-001",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.BANKR-003",
+      "logic": "asset_disposal_loss > params.asset_loss_threshold",
+      "inputs": [
+        "资产处置损失"
+      ],
+      "suggestion": "核查损失",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "EINV-001",
+      "name": "电子发票重复报销",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR003 / VR004（票号重复）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.EINV-001",
+      "logic": "duplicate_e_invoice = true",
+      "inputs": [
+        "电子发票",
+        "报销记录"
+      ],
+      "suggestion": "核查重复",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= INV-019"
+    },
+    {
+      "src": "EINV-002",
+      "name": "全电发票红冲异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR071（红字发票合规性异常）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.EINV-002",
+      "logic": "full_e_invoice_void_abnormal = true",
+      "inputs": [
+        "全电发票",
+        "红冲"
+      ],
+      "suggestion": "核查红冲",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "系统覆盖红冲合规性；「全电发票」是票种属性，不改变判据 ⇒ 合并"
+    },
+    {
+      "src": "EINV-003",
+      "name": "数电票开具异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/bank_flow / domain_analysis（数电票）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.EINV-003",
+      "logic": "digital_invoice_abnormal = true",
+      "inputs": [
+        "数电票"
+      ],
+      "suggestion": "核查开具",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "EINV-004",
+      "name": "发票查验异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.EINV-004",
+      "logic": "invoice_verification_failed = true",
+      "inputs": [
+        "发票查验"
+      ],
+      "suggestion": "核查查验",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无查验接口/结果数据 ⇒ 待资料"
+    },
+    {
+      "src": "EINV-005",
+      "name": "发票勾选异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.EINV-005",
+      "logic": "invoice_selection_abnormal = true",
+      "inputs": [
+        "发票勾选"
+      ],
+      "suggestion": "核查勾选",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "无勾选确认数据 ⇒ 待资料"
+    },
+    {
+      "src": "RRT-001",
+      "name": "留抵退税条件不符",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-VAT-013（增值税留抵退税真实性存疑）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.RRT-001",
+      "logic": "retained_tax_refund and conditions_not_met",
+      "inputs": [
+        "留抵退税",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "RRT-002",
+      "name": "增量留抵异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-VAT-013",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.RRT-002",
+      "logic": "incremental_retained_tax_refund_abnormal",
+      "inputs": [
+        "增量留抵"
+      ],
+      "suggestion": "核查计算",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "RRT-003",
+      "name": "存量留抵异常",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-VAT-013",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.RRT-003",
+      "logic": "stock_retained_tax_refund_abnormal",
+      "inputs": [
+        "存量留抵"
+      ],
+      "suggestion": "核查计算",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "RRT-004",
+      "name": "留抵抵欠异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.RRT-004",
+      "logic": "retained_tax_offset_arrears_abnormal",
+      "inputs": [
+        "留抵抵欠"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 + 需欠税数据 ⇒ 先细化"
+    },
+    {
+      "src": "RRT-005",
+      "name": "留抵退税后进项转出异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-VAT-011 / VR032（应转出未转出）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.RRT-005",
+      "logic": "input_tax_transfer_out_after_refund_abnormal",
+      "inputs": [
+        "进项转出"
+      ],
+      "suggestion": "核查转出",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "HNTECH-001",
+      "name": "高新条件不满足但享受优惠",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer（高新条件核验）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.HNTECH-001",
+      "logic": "high_tech_condition_met = false and high_tech_deduction > 0",
+      "inputs": [
+        "高新条件",
+        "优惠"
+      ],
+      "suggestion": "核查高新",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= TAXINC-006（重复）"
+    },
+    {
+      "src": "HNTECH-002",
+      "name": "高新研发费用占比异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.HNTECH-002",
+      "logic": "R&D_ratio < params.rnd_ratio_required",
+      "inputs": [
+        "研发费用占比",
+        "要求"
+      ],
+      "suggestion": "核查占比",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "占比要求按收入档（5%/4%/3%），须分档参数"
+    },
+    {
+      "src": "HNTECH-003",
+      "name": "高新科技人员占比异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.HNTECH-003",
+      "logic": "tech_personnel_ratio < params.tech_personnel_ratio_required",
+      "inputs": [
+        "科技人员占比",
+        "要求"
+      ],
+      "suggestion": "核查占比",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "可真算（员工名册 × 学历/岗位）"
+    },
+    {
+      "src": "RD-001",
+      "name": "研发费用加计扣除异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-CIT-003（研发费用加计扣除归集异常）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.RD-001",
+      "logic": "R&D_deduction and conditions_not_met",
+      "inputs": [
+        "研发加计",
+        "条件"
+      ],
+      "suggestion": "核查条件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= TAXINC-008"
+    },
+    {
+      "src": "RD-002",
+      "name": "研发费用归集异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-CIT-003（归集异常）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v12.json::params.RD-002",
+      "logic": "R&D_expense_allocation_abnormal",
+      "inputs": [
+        "研发费用归集"
+      ],
+      "suggestion": "核查归集",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "SOFT-001",
+      "name": "软件企业优惠异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer（软件产品即征即退）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.SOFT-001",
+      "logic": "software_condition_met = false and software_deduction > 0",
+      "inputs": [
+        "软件条件",
+        "优惠"
+      ],
+      "suggestion": "核查软件",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "= TAXINC-010"
+    },
+    {
+      "src": "IC-001",
+      "name": "集成电路企业优惠异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.IC-001",
+      "logic": "IC_condition_met = false and IC_deduction > 0",
+      "inputs": [
+        "集成电路条件",
+        "优惠"
+      ],
+      "suggestion": "核查集成电路",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；可扩展 tax_incentive_analyzer 的政策库（加一行数据）"
+    },
+    {
+      "src": "ANIME-001",
+      "name": "动漫企业优惠异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.ANIME-001",
+      "logic": "anime_condition_met = false and anime_deduction > 0",
+      "inputs": [
+        "动漫条件",
+        "优惠"
+      ],
+      "suggestion": "核查动漫",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；同上"
+    },
+    {
+      "src": "CULT-001",
+      "name": "文化企业优惠异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.CULT-001",
+      "logic": "culture_condition_met = false and culture_deduction > 0",
+      "inputs": [
+        "文化条件",
+        "优惠"
+      ],
+      "suggestion": "核查文化",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；同上"
+    },
+    {
+      "src": "EDU-001",
+      "name": "教育服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.EDU-001",
+      "logic": "education_service and tax_treatment_abnormal",
+      "inputs": [
+        "教育服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "MED-001",
+      "name": "医疗服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.MED-001",
+      "logic": "medical_service and tax_treatment_abnormal",
+      "inputs": [
+        "医疗服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同"
+    },
+    {
+      "src": "ELDER-001",
+      "name": "养老服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ELDER-001",
+      "logic": "elderly_care_service and tax_treatment_abnormal",
+      "inputs": [
+        "养老服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同"
+    },
+    {
+      "src": "CHILD-001",
+      "name": "托育服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.CHILD-001",
+      "logic": "childcare_service and tax_treatment_abnormal",
+      "inputs": [
+        "托育服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；同"
+    },
+    {
+      "src": "HOUSE-001",
+      "name": "家政服务税务处理异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_redlines / verified_rule_engine（家政）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v12.json::params.HOUSE-001",
+      "logic": "domestic_service and tax_treatment_abnormal",
+      "inputs": [
+        "家政服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "SPORT-001",
+      "name": "体育服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.SPORT-001",
+      "logic": "sports_service and tax_treatment_abnormal",
+      "inputs": [
+        "体育服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "判据未定义 ⇒ 先细化"
+    },
+    {
+      "src": "TOUR-001",
+      "name": "旅游服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.TOUR-001",
+      "logic": "tourism_service and tax_treatment_abnormal",
+      "inputs": [
+        "旅游服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同"
+    },
+    {
+      "src": "HOTEL-001",
+      "name": "住宿服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.HOTEL-001",
+      "logic": "hotel_service and tax_treatment_abnormal",
+      "inputs": [
+        "住宿服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同"
+    },
+    {
+      "src": "CATER-001",
+      "name": "餐饮服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.CATER-001",
+      "logic": "catering_service and tax_treatment_abnormal",
+      "inputs": [
+        "餐饮服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同"
+    },
+    {
+      "src": "ENT-001",
+      "name": "娱乐服务税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.ENT-001",
+      "logic": "entertainment_service and tax_treatment_abnormal",
+      "inputs": [
+        "娱乐服务",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同"
+    },
+    {
+      "src": "CBEC-001",
+      "name": "跨境电商税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.CBEC-001",
+      "logic": "cross_border_ecommerce and tax_treatment_abnormal",
+      "inputs": [
+        "跨境电商",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "同"
+    },
+    {
+      "src": "LIQ-004",
+      "name": "清算期间经营所得未申报",
+      "sev": "high",
+      "status": "missing",
+      "by": "",
+      "action": "add",
+      "params_ref": "config/rulelist_v12.json::params.LIQ-004",
+      "logic": "liquidation_period_income > 0 and tax_declared = 0",
+      "inputs": [
+        "清算期间所得",
+        "申报"
+      ],
+      "suggestion": "核查申报",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中「清算期间」；需清算期间损益资料 ⇒ 部分待资料"
+    },
+    {
+      "src": "BANKR-004",
+      "name": "破产财产分配税务处理异常",
+      "sev": "medium",
+      "status": "placeholder",
+      "by": "",
+      "action": "specify_first",
+      "params_ref": "config/rulelist_v12.json::params.BANKR-004",
+      "logic": "bankruptcy_asset_distribution and tax_treatment_abnormal",
+      "inputs": [
+        "破产财产分配",
+        "税务处理"
+      ],
+      "suggestion": "核查处理",
+      "legal_basis_ref": "法规库自动匹配",
+      "note": "0 命中；判据未定义（tax_treatment_abnormal）⇒ 先细化"
+    }
   ],
-
   "open_questions": [
     "★ placeholder 共 90 条（占 V1.2 的 40%）：该类规则写作 `tax_treatment_abnormal` / `xxx_abnormal = true` / `indicators > threshold`，**无客观判据**。建议统一处理：先由业务/税务专家把判据写成「可算的字段 + 阈值」，再按 VR 落地；**在本轮不做假检测器**。",
     "★ 地区参数缺失（契税税率、车购税计税价格、土增税预征率、预计毛利率、土地等级税额、海南优惠条件与负面清单等）⇒ 未登记则一律待核。是否新建 `config/region_params.json` 统一登记？",
