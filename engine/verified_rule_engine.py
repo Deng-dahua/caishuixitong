@@ -7114,7 +7114,7 @@ def _scan_personal_service_withholding(data, spec):
                          "summary": summary[:20], "amount": round(debit, 2)})
     if total < 50000:
         return []
-    return [_rule_finding(
+    _f065 = _rule_finding(
         spec,
         f"银行支出中向个人支付劳务性质款项合计{total:,.2f}元（{len(persons)}个自然人，{len(hits)}笔），"
         f"如{sorted(persons)[0] if persons else ''}等，摘要含『劳务/咨询/佣金/服务费』等。"
@@ -7125,7 +7125,16 @@ def _scan_personal_service_withholding(data, spec):
          "hit_count": len(hits), "examples": hits[:5]},
         spec["required_sources"],
         priority="调查优先级",
-    )]
+    )
+    # 归属声明（A 轨道，2026-10-10）：本规则真算的事实是「向非雇员个人支付劳务性质报酬」，
+    # 落在 RL-SPT-013「灵活用工/个人报酬未依法代扣代缴个税」要件①上。
+    # ★ 只声明归属 + 只认领**真算过**的要件①；「是否已代扣代缴」（要件②）本规则未复算 ⇒ 不认领。
+    _f065["redline_id"] = "RL-SPT-013"
+    _f065["constituent_hits"] = [
+        {"index": 1, "evidence": f"银行支出中向个人支付劳务性质款项合计{total:,.2f}元、"
+                                 f"{len(persons)}个自然人、{len(hits)}笔（摘要含劳务/咨询/佣金/服务费等）"},
+    ]
+    return [_f065]
 
 
 def _scan_supplier_invoice_pattern(data, spec):

@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Dict, List, Optional, Tuple
 
 # ★ 复用行业基准单一权威（数值/口径均来自此处，不重复实现）
@@ -239,3 +240,39 @@ def compare_redline_benchmark(rid: str, industry: Optional[str] = None,
 def benchmark_refs() -> Dict[str, str]:
     """返回红线→指标登记表的副本（供闸门与渲染消费）。"""
     return dict(BENCHMARK_REFS)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# 金融企业同期同类贷款利率基准（RL-CIT-009 要件③ 的**唯一取值源**）
+# ==========================================================================
+# 口径：以**全国银行间同业拆借中心公布的 1 年期贷款市场报价利率（LPR）**
+#   作为「金融企业同期同类贷款利率」的可得代理值（取借款期间适用的最近一次报价）。
+# 来源（可自证）：中国人民银行授权公布的《贷款市场报价利率（LPR）公告》，
+#   例如 2024-10-21 起 1 年期 LPR 3.10%、2025-05-20 起 3.00%。
+# ★ 登记纪律：新增同类对象 = 在 `LOAN_RATE_SERIES` **加一行数据**，不改任何逻辑分支；
+#   未登记期间的报价 ⇒ 检测器**只出「待核」**，绝不用默认值静默顶替后照常出结论。
+# ══════════════════════════════════════════════════════════════════════════
+LOAN_RATE_SERIES = [
+    ("2023-08-21", 3.45),
+    ("2024-07-22", 3.35),
+    ("2024-10-21", 3.10),
+    ("2025-05-20", 3.00),
+]
+LOAN_RATE_SOURCE = "全国银行间同业拆借中心公布的 1 年期贷款市场报价利率（LPR）"
+
+
+def resolve_loan_rate_benchmark(as_of: Optional[str] = None) -> Optional[float]:
+    """取 `as_of`（YYYY-MM-DD / YYYY-MM / YYYY）当日有效的 1 年期 LPR（%）。
+
+    早于序列起点或无法解析 ⇒ 返回 None（调用方须据此**只出待核**，不得回退默认值）。
+    """
+    s = str(as_of or "").strip()
+    m = re.match(r"(\d{4})[-/.]?(\d{1,2})?", s)
+    if not m:
+        return None
+    key = "%04d-%02d" % (int(m.group(1)), int(m.group(2) or 12))
+    best = None
+    for eff, rate in LOAN_RATE_SERIES:
+        if eff[:7] <= key:
+            best = rate
+    return best

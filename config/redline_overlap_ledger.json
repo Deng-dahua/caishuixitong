@@ -43,7 +43,15 @@
       },
       "overlaps_with_third": {},
       "disposition": "no_blind_fallback",
-      "disposition_note": "**真检测器归 RL-CIT-010**：`engine/deduction_limit_detector.py::_check_related_party_debt_equity` 本就算「关联方借款÷所有者权益 → 超 2:1」，与 010 名称逐字贴合；原误挂 `RL-CIT-002`「关联方无偿或低价资金往来：未按独立交易原则计息」（**另一概念**，本函数从未算过是否计息/利率是否偏离）⇒ 归属纠正为 010，并声明其真算过的要件①②（见 A-P0-1）。RL-CIT-009 全仓无检测器，移入 `_NO_BLIND_CONSTITUENT_FALLBACK`（消除假闭环；可达性由软匹配保证，准入闸门不算盲区）。下一片：为 009 的净增量「利率超同期同类贷款利率」建真检测器。RL-CIT-002 另有 `special_redline_detectors.py` 的关键词置疑 SPEC，归属纠正后不受影响。",
+      "disposition_note": "**真检测器归 RL-CIT-010**：`engine/deduction_limit_detector.py::_check_related_party_debt_equity` 本就算「关联方借款÷所有者权益 → 超 2:1」，与 010 名称逐字贴合；原误挂 `RL-CIT-002`「关联方无偿或低价资金往来：未按独立交易原则计息」（**另一概念**，本函数从未算过是否计息/利率是否偏离）⇒ 归属纠正为 010，并声明其真算过的要件①②（见 A-P0-1）。RL-CIT-009 全仓无检测器，移入 `_NO_BLIND_CONSTITUENT_FALLBACK`（消除假闭环；可达性由软匹配保证，准入闸门不算盲区）。RL-CIT-002 另有 `special_redline_detectors.py` 的关键词置疑 SPEC，归属纠正后不受影响。",
+      "detector_built_at": "2026-10-10",
+      "detector_note": "**已为 RL-CIT-009 的净增量建真检测器**：`engine/gap_risk_detectors.py::detect_related_party_interest_rate` —— 从科目余额表/序时账取**借款本金**与**利息支出**，年化计算实际利率，与 `engine/redline_benchmark.py::resolve_loan_rate_benchmark`（**1 年期 LPR**，来源可自证、数据表驱动）比对：超基准 ⇒ 待核（要件③）；本金或利息缺一侧、或该期间未登记 LPR 报价 ⇒ **只出待核**，绝不用默认利率静默顶替。**与 RL-CIT-010 的债资比维度相互独立**（本函数不看债权性投资÷权益性投资）。009 仍留在 `_NO_BLIND_CONSTITUENT_FALLBACK`（软匹配仍不得回填要件——本函数只算要件③，①②④未计算）。",
+      "merge_review": {
+        "reviewed_at": "2026-10-10",
+        "verdict": "keep_both",
+        "reason": "两条**各有真检测器、各有独立净增量**：(1) 010 独有=债资比超 2:1（非金融）/5:1（金融）这一**比例限制**，以及要件④「通过资本弱化安排转移利润」的主观安排要件与关联交易同期资料要求；(2) 009 独有=**要件③『利率超金融企业同期同类贷款利率』**这一独立于债资比的利息扣除限制，及金融企业 5:1 的主口径表述。二者的法定表述与举证材料不同（009 需借款合同与同期同类贷款利率证明），合并会丢失独立情形的登记处。",
+        "next": "无（本对已闭合）。若日后新增第三条同概念红线，仍按本表『新增一对 = 加一行数据』登记。"
+      },
       "decided_at": "2026-10-10",
       "evidence": "① 静态：`grep -rn 'RL-CIT-009\\|RL-CIT-010' engine/`—— 010 原由 `deduction_limit_detector`（真算债资比，但**误报为 002**）与 `special_redline_detectors.py:255`（关键词置疑 SPEC）两处覆盖；009 仅靠 `_DEFAULT_HIT_INDEX=[1,2,3,4]` 兜底。② 逐要件比对：009 要件①②③ ↔ 010 要件①②③ 一一对应（存在关联方借款 / 债资比超 2:1 / 超标利息未调增）。③ 真产物 `company_1_full.json`（2026-10-10 10:32）26 条疑点中 **002/009/010 均未出现**（本账套无关联方债资比超标场景）⇒ 本轮归属纠正**不产生**报告差异，属**潜在缺陷**（latent）收敛 + 静态可证；结果级验收以「构造债资比超标样例断言归属=RL-CIT-010」实现。"
     }

@@ -26,9 +26,11 @@ R13~R15 证明 G5 三段判据各自非假：登记与代码不一致 / 非生�
 R16~R17 证明 G6 是**端到端**判据：直接篡改真产物里的正向发现 ⇒ 必须抓到；修复后的真产物 ⇒ 必须 0 ERROR。
 R18~R19 证明 G7 会抓「表声明的红线被算成仅兜底」与「归属权威表被清空」。
 R20~R22 证明 G8 会抓「登记重复却仍靠兜底认要件」「登记重复却未声明有意不兜底」「净增量为空」。
-   ★ R20/R21 的注入对象**动态选取**（2026-10-10 修正）：旧版硬编码 `RL-VAT-012`，而 A 轨道给
-     012 建了真检测器后它走「有检测器 ⇒ 豁免」分支，注入被吃掉 ⇒ 反向验证静默失效。
-     现挑「当前无检测器且处于健康态」的同概念成员注入，成员换人也不假红。
+   ★ R20/R21 的注入对象**动态选取 + 状态合成**（2026-10-10 两次修正）：
+     旧版硬编码 `RL-VAT-012`，A 轨道给它建了真检测器后它走「有检测器 ⇒ 豁免」分支，
+     注入被吃掉 ⇒ 反向验证静默失效。改为动态挑同概念成员后，**当晚所有成员也都建了检测器**
+     ⇒ 再次无天然样检对象。**不能因此放弃自证**：现改为**合成健康态**——篡改覆盖率产物
+     把该成员从 `has_detector` 摘掉、必要时临时加入 `_NB`，注入缺陷 ⇒ 必红，随后逐字节还原。
 
 用法：`.venv/Scripts/python.exe _verify_authority_gates.py`
 
@@ -466,26 +468,35 @@ def main() -> int:
     #   ★★ 注入对象必须**动态选取**（2026-10-10 实测修正）：旧版硬编码 `RL-VAT-012`。
     #     而 A 轨道已给 012 建了**真检测器** ⇒ G8 的 `has_detector ⇒ 豁免` 分支让它
     #     不再受本约束，注入被豁免吃掉 ⇒ 反向验证**静默失效**（闸门没坏，是样检前提陈旧）。
-    #     现改为：动态挑一个**当前确实"无检测器"**的同概念成员（须 `_NB` 内、`_DH` 外，
-    #     即处于"正确的健康态"），对它注入 ⇒ 必红；日后该成员也建了检测器，会自动换下一个。
+    #     现改为：动态挑同概念成员并**在进程内合成健康态**（见下）。
+    #   ★★ 二次修正（2026-10-10 当晚）：台账里的同概念成员**现已全部建了真检测器**
+    #     （本轨道目标达成）⇒ 已无"天然无检测器"的注入对象，"无样检对象就报错"会让
+    #     反向验证**从此废止**。正确做法不是放弃，而是**合成状态**：
+    #       ① 动态取 `constituent_duplicate` 成员；
+    #       ② 篡改覆盖率产物把它从 `has_detector` 摘掉（= 合成"无检测器"）；
+    #       ③ 确保它在 `_NB` 内、不在 `_DH`（= 合成"正确的健康态"）；
+    #       ④ 注入缺陷 ⇒ 必须变红；⑤ 逐字节还原覆盖率产物与内存表。
     from engine import redline_engine as _RE
     _dh = _RE._DEFAULT_HIT_INDEX
     _nb = _RE._NO_BLIND_CONSTITUENT_FALLBACK
     _ledger_data = _json2.loads((ROOT / "config" / "redline_overlap_ledger.json").read_text(encoding="utf-8"))
-    _cov_now = _json2.loads(_covp.read_text(encoding="utf-8")) if _covp.exists() else {}
-    _has_now = set(_cov_now.get("has_detector") or [])
-    _target = None
-    for _p in _ledger_data.get("pairs") or []:
-        if _p.get("verdict") != "constituent_duplicate":
-            continue
-        for _m in _p.get("members") or []:
-            if _m not in _has_now and _m in _nb and _m not in _dh:
-                _target = _m
-                break
-        if _target:
-            break
-    check("存在可注入的「无检测器的同概念成员」样本", bool(_target),
-          "登记表里已无『无检测器 + 在 _NO_BLIND + 不在 _DH』的成员，本组反向验证无法自证")
+    _cov_orig = _covp.read_bytes() if _covp.exists() else None
+    _cov_synth = _json2.loads(_cov_orig.decode("utf-8")) if _cov_orig else {}
+    _members = [str(m) for _p in (_ledger_data.get("pairs") or [])
+                if _p.get("verdict") == "constituent_duplicate"
+                for m in (_p.get("members") or [])]
+    check("台账存在可注入的同概念成员", bool(_members))
+    _target = _members[0] if _members else None
+    _added_nb = False
+    if _target:
+        for _fld in ("has_detector", "has_detector_static", "has_detector_authority_table",
+                     "blind", "only_fallback", "no_blind_fallback_no_detector"):
+            if isinstance(_cov_synth.get(_fld), list):
+                _cov_synth[_fld] = [x for x in _cov_synth[_fld] if x != _target]
+        _covp.write_text(_json2.dumps(_cov_synth, ensure_ascii=False, indent=2), encoding="utf-8")
+        _added_nb = _target not in _nb
+        if _added_nb:
+            _nb.add(_target)
 
     if _target:
         # ── R20：登记为"要件重复"却仍靠兜底认要件 ⇒ 必须变红（G8-C）──────
@@ -507,6 +518,14 @@ def main() -> int:
                   any("须有意不做盲发兜底" in i[2] for i in issues), repr(issues[:2]))
         finally:
             _nb.add(_target)
+
+        # ── 还原合成状态（覆盖率产物逐字节还原；内存表复原）──────────────
+        if _added_nb:
+            _nb.discard(_target)
+        if _cov_orig is not None:
+            _covp.write_bytes(_cov_orig)
+        check("R20/R21 合成状态已还原（覆盖率产物逐字节一致）",
+              _cov_orig is None or _covp.read_bytes() == _cov_orig)
 
     # ── R22：净增量为空 ⇒ 必须变红（G8-D：没有独立存在必要，应提请合并）──
     print("\n[R22] G8：把某成员的净增量清空 ⇒ 必须 ERROR（提请裁定合并）")

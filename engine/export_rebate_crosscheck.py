@@ -116,6 +116,7 @@ def run_export_rebate_crosscheck(
                 "请补充资料后复核是否存在单证不一致、未收汇或出口规模与产能不匹配的情形。"
             ),
             "level": "中风险", "score": 5, "tax_type": "出口退税", "domain": "特定税种",
+            "redline_id": "RL-SPT-008",
             "policy_ref": "RL-SPT-008",
             "suggestion": "请补充下列资料后复核：" + "、".join(missing),
             "items": [{"name": m, "status": "待补充"} for m in missing],
@@ -139,7 +140,8 @@ def run_export_rebate_crosscheck(
                     "请核实是否存在单证品名、数量、金额或收发货人不一致的情形。"
                 ),
                 "level": "高风险", "score": 8, "tax_type": "出口退税", "domain": "特定税种",
-                "policy_ref": "RL-SPT-008",
+                "redline_id": "RL-SPT-008",
+            "policy_ref": "RL-SPT-008",
                 "suggestion": "提供报关单、海运提单、装箱单与出口发票，逐票比对品名、数量、金额、收发货人。",
                 "items": [{"name": "报关单", "status": "待补充"},
                           {"name": "海运提单与装箱单", "status": "待补充"}],
@@ -148,6 +150,11 @@ def run_export_rebate_crosscheck(
                 "needs_material": ["报关单", "海运提单", "装箱单", "出口发票"],
                 "_gap_detector": "RL-SPT-008",
                 "_detection_method": "报关单金额与出口发票金额相对偏差比对（阈值10%）",
+                # 要件认领：②单证金额不一致、⑤出口发票与报关单不一致（均为本函数真算过的事实）
+                "constituent_hits": [
+                    {"index": 2, "evidence": f"报关单 {decl_amount:,.2f} 与出口发票 {export_sales:,.2f} 偏差 {gap*100:.1f}%（阈值10%）"},
+                    {"index": 5, "evidence": "出口发票金额与报关单金额逐票比对结果如上"},
+                ],
                 "_unconfirmed": False,
             })
 
@@ -163,7 +170,8 @@ def run_export_rebate_crosscheck(
                     "或存在视同收汇的合法情形；长期未收汇且无合法情形的，不符合退（免）税条件。"
                 ),
                 "level": "高风险", "score": 7, "tax_type": "出口退税", "domain": "特定税种",
-                "policy_ref": "RL-SPT-008",
+                "redline_id": "RL-SPT-008",
+            "policy_ref": "RL-SPT-008",
                 "suggestion": "提供收汇水单、延期收汇备案或视同收汇的证明材料。",
                 "items": [{"name": "收汇水单", "status": "待补充"},
                           {"name": "延期收汇备案或视同收汇证明", "status": "待补充"}],
@@ -172,6 +180,10 @@ def run_export_rebate_crosscheck(
                 "needs_material": ["收汇水单", "延期收汇备案", "视同收汇证明"],
                 "_gap_detector": "RL-SPT-008",
                 "_detection_method": "出口金额与收汇金额缺口比对（阈值15%）",
+                # 要件认领：④出口后未见收汇（本函数真算过缺口）
+                "constituent_hits": [
+                    {"index": 4, "evidence": f"出口 {export_sales:,.2f} 中 {export_sales-receipts:,.2f}（{shortfall*100:.1f}%）未见对应收汇"},
+                ],
                 "_unconfirmed": False,
             })
 
@@ -185,6 +197,7 @@ def run_export_rebate_crosscheck(
                 "能耗支撑该出口规模，排除虚构出口的可能。"
             ),
             "level": "高风险", "score": 8, "tax_type": "出口退税", "domain": "特定税种",
+            "redline_id": "RL-SPT-008",
             "policy_ref": "RL-SPT-008",
             "suggestion": "提供产能台账、用电量记录、原材料采购合同与进项发票、生产工时记录。",
             "items": [{"name": "产能台账与用电量记录", "status": "待补充"},
@@ -194,6 +207,10 @@ def run_export_rebate_crosscheck(
             "needs_material": ["产能台账", "用电量记录", "采购合同与进项发票", "生产工时记录"],
             "_gap_detector": "RL-SPT-008",
             "_detection_method": "出口额与采购/能耗/产能投入的倍数比对（异常线3倍）",
+            # 要件认领：③出口规模明显超出产能/采购支撑（本函数真算过倍数）
+            "constituent_hits": [
+                {"index": 3, "evidence": f"出口 {export_sales:,.2f} 为同期采购/产能投入 {capacity:,.2f} 的 {export_sales/capacity:.1f} 倍（异常线 3 倍）"},
+            ],
             "_unconfirmed": True,
         })
 

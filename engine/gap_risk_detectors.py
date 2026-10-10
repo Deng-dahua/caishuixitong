@@ -43,6 +43,17 @@ METHODS: Dict[str, str] = {
                   "有持有无申报则置疑要求补权证与面积；有申报再比对面积",
     "RL-OTH-005": "检索固定资产运输设备与车辆保险/加油/维修/过路费等用车支出 → "
                   "检索车船税申报或交强险代收记录 → 有车无税则置疑要求补车辆台账与保单",
+    # ── 2026-10-10（A 轨道·为「仅兜底」红线建链路）新增 4 条 ──
+    "RL-INV-004": "扫描进项发票的税务机关风险标注字段（票据状态/风险等级）→ 命中『异常/走逃/失联/非正常/比对不符』"
+                  "即认定为异常凭证 → 汇总其票面进项税额 → 与序时账及科目余额表的『进项税额转出』比对 → "
+                  "未足额转出则为待核疑点；已足额转出属正当情形不报",
+    "RL-PAY-003": "提取工资表名册（去表头噪声）→ 取社保缴费明细人员集合与银行流水对个人的工资代发集合 → "
+                  "两个痕迹均无者列为待核；有任一痕迹即不判（避免把『未参保但确有代发』的用工误判为虚列）",
+    "RL-CIT-009": "检索借款类科目/序时账中的借款本金与利息支出 → 有本金与利息即年化计算实际利率 → "
+                  "与 1 年期 LPR（金融企业同期同类贷款利率代理值，见 redline_benchmark.LOAN_RATE_SERIES）比对 → "
+                  "超基准则为待核；有借款线索但缺合同/利率资料则置疑要求补充",
+    "RL-SPT-011": "检索纳税申报表类型与申报数据中的核定征收特征（核定/定额/应税所得率）→ "
+                  "命中即列为待核并索取征收方式认定文书；本账套仅增值税申报（无企业所得税核定痕迹）时正常沉默",
 }
 
 
@@ -369,6 +380,394 @@ def detect_vehicle_tax(data: Dict) -> List[Dict]:
     )]
 
 
+# ══════════════════════════════════════════════════════════════════════
+# 2026-10-10（A 轨道·为「仅兜底」红线建真链路）新增 4 个探测器
+#   口径与既有探测器完全一致：只产出「待核疑点 / 置疑清单」，绝不定性；
+#   能算则算（给金额与命中），不能算则如实置疑列明需补资料。
+#   ★ 数值解析一律走唯一权威 engine/numparse.py（严禁私有实现）。
+# ══════════════════════════════════════════════════════════════════════
+
+def _num(value) -> float:
+    """数值解析（统一权威 engine/numparse.py）。"""
+    from engine.numparse import to_number
+    return to_number(value)
+
+
+def _period(value) -> str:
+    """期间键（`YYYY-MM`）——统一权威 `engine/findingkit.normalize_month`。
+
+    ★ 铁律：**禁止自造"截前七位"的期间切法**（会把 `2025/1/15` 切成 `2025/1/`）⇒ 审计闸门会报 ERROR。
+    """
+    from engine.findingkit import normalize_month
+    return normalize_month(value)
+
+
+# ── RL-INV-004：异常增值税扣税凭证已抵扣未转出 ──────────────────────────
+_ABNORMAL_INV_STATUS_KW = (
+    "异常", "疑点", "走逃", "失联", "非正常", "失控", "认证不符", "比对不符",
+    "异常凭证", "预警", "风险",
+)
+
+
+def _input_tax_reversal_amount(data: Dict) -> float:
+    """账内「进项税额转出」金额（贷方发生额；科目余额表取本期贷方）。"""
+    total = 0.0
+    for v in _as_list(data.get("vouchers")):
+        if not isinstance(v, dict):
+            continue
+        acct = str(v.get("account_name") or v.get("科目名称") or v.get("account") or "")
+        if "进项税额转出" in acct:
+            total += _num(v.get("credit")) or _num(v.get("贷方"))
+    for b in _as_list(data.get("balances")):
+        if not isinstance(b, dict):
+            continue
+        acct = str(b.get("name") or b.get("科目名称") or "")
+        if "进项税额转出" in acct:
+            total += _num(b.get("current_credit")) or _num(b.get("本期贷方"))
+    return round(total, 2)
+
+
+def detect_abnormal_input_voucher(data: Dict) -> List[Dict]:
+    """RL-INV-004 取得异常增值税扣税凭证并已抵扣、未作进项税额转出（待核）。
+
+    异常凭证的认定来源是**税务机关的风险标注字段**（票据状态/风险等级），
+    账内不可自行判定 ⇒ 本探测器只读该字段，命中即列异常凭证清单；再与
+    账内『进项税额转出』比对：已足额转出属正当情形，不报。
+    """
+    # ★ 归属声明口径与模块既有 6 个探测器一致：局部变量 `redline_id = "RL-XXX"`
+    #   （覆盖率静态审计 `scripts/_audit_redline_coverage.py` 据此认定「有真检测器」）。
+    redline_id = "RL-INV-004"
+    pur = _as_list(data.get("pur_invs"))
+    if not pur:
+        return []
+    abnormal = []
+    for inv in pur:
+        if not isinstance(inv, dict):
+            continue
+        status = _get_field(inv, ["inv_status", "票据状态", "发票状态", "state"])
+        risk = _get_field(inv, ["risk_level", "风险等级", "风险级别"])
+        tag = status + "|" + risk
+        hit = _hit(tag, _ABNORMAL_INV_STATUS_KW)
+        if not hit:
+            continue
+        abnormal.append({
+            "seller": _get_field(inv, ["seller", "销方名称", "销售方名称"]),
+            "inv_no": _get_field(inv, ["inv_no", "invoice_no", "digital_inv_no"]),
+            "goods": _get_field(inv, ["goods", "货物名称"])[:24],
+            "tax": _num(inv.get("tax") if inv.get("tax") is not None else inv.get("税额")),
+            "date": _get_field(inv, ["date", "开票日期"])[:10],
+            "tag": tag,
+            "hit": "、".join(hit),
+        })
+    if not abnormal:
+        return []
+    tax_total = round(sum(a["tax"] for a in abnormal), 2)
+    reversal = _input_tax_reversal_amount(data)
+    if reversal + 1e-6 >= tax_total:
+        return []                        # 已足额转出 ⇒ 正当情形（红线要件⑤），不报
+    sellers = sorted({a["seller"] for a in abnormal if a["seller"]})
+    hits = sorted({h for a in abnormal for h in a["hit"].split("、") if h})
+    return [_finding(
+        redline_id,
+        "取得异常增值税扣税凭证并已申报抵扣（待核）",
+        "增值税",
+        f"进项发票中有 {len(abnormal)} 张带有税务机关异常风险标注（命中：{'、'.join(hits)}），"
+        f"涉及销方 {len(sellers)} 户、票面税额合计 {tax_total:,.2f} 元；"
+        f"账内『进项税额转出』仅 {reversal:,.2f} 元，未覆盖上述税额。"
+        "请核实是否已按规定作进项税额转出并补缴税款，或能证明交易真实且异常标注已由税务机关复核解除。",
+        "中风险", 6,
+        needs_material=["异常凭证认定通知或抵扣勾选异常清单",
+                        "进项税额转出记账凭证与增值税申报表附列资料（二）",
+                        "对应货物/服务的合同、物流与付款记录"],
+        unconfirmed=False, policy_ref="《国家税务总局公告2019年第38号》",
+        evidence=[f"异常标注发票 {len(abnormal)} 张", f"异常标注票面税额 {tax_total:,.2f}",
+                  f"账内进项税额转出 {reversal:,.2f}", f"涉及销方 {len(sellers)} 户"],
+    )]
+
+
+# ── RL-PAY-003：虚列人员（工资表人员无真实用工痕迹）──────────────────────
+# 个税扣缴申报明细（累计预扣法）专属列：命中即说明这批「工资表」**实为个税申报数据**
+_IIT_DECL_MARKERS = (
+    "income_type", "acc_income", "acc_taxable", "acc_paid", "acc_deduct",
+    "所得项目", "累计收入", "累计应纳税所得额", "累计已缴税额",
+)
+
+
+def _is_iit_declaration_rows(rows) -> bool:
+    """这批「工资表」是否为个税扣缴申报明细（含累计预扣法专属列）。
+
+    若是，则名册上每个人**都已有个税申报痕迹** ⇒ RL-PAY-003 要件①
+    「无个税申报」不成立，不得判为虚列。
+    """
+    for r in _as_list(rows):
+        if isinstance(r, dict) and any(k in r for k in _IIT_DECL_MARKERS):
+            return True
+    return False
+
+
+def detect_ghost_employees(data: Dict) -> List[Dict]:
+    """RL-PAY-003 工资表人员无真实用工痕迹（社保、个税申报、银行代发三个独立痕迹全无）。
+
+    ★★ 判据范围严格限定（2026-10-10 实测修正）：
+      该红线要件①为「无考勤、无门禁、**无社保**、**无个税申报**、**无银行代发记录**」——
+      **三个痕迹必须全无**才成立。只缺其一属**另一主题**，不得在此重复判定：
+        · 「有工资无社保」⇒ VR005「工资名册与社会保险人员范围差异」（本账套 12 个
+          『工资薪金所得』文件实为**个税扣缴申报明细**，杨莹即此类，已被 VR005 报告）——
+          在此再报一遍会造成**跨疑点重复**（输出自检维度 B）。
+        · 「有个税申报」⇒ 该人**已经有个税申报痕迹**，本要件不成立。
+      故：**若工资表本身即个税扣缴申报明细**（含累计预扣法专属列），名册上每个人都已有
+      个税痕迹 ⇒ 直接返回空（正常沉默），绝不把『未参保』误报为『虚列』。
+      考勤/门禁无数据源 ⇒ 不在本判据内，如实列为待核所需资料。
+    """
+    redline_id = "RL-PAY-003"
+    from engine.verified_rule_engine import _person_name, _is_noise_name
+    if _is_iit_declaration_rows(data.get("salaries")):
+        return []                        # 工资表=个税申报明细 ⇒ 人人已有个税痕迹，本要件不成立
+    payroll: Dict[str, Dict] = {}
+    for r in _as_list(data.get("salaries")):
+        if not isinstance(r, dict):
+            continue
+        n = _person_name(r)
+        if not n or _is_noise_name(n):
+            continue
+        info = payroll.setdefault(n, {"months": set(), "amount": 0.0})
+        # 期间键统一走唯一权威 findingkit.normalize_month（禁止自造"截前七位"切法）
+        period = _period(_get_field(r, ["period_start", "period_end", "period"]))
+        if period:
+            info["months"].add(period)
+        info["amount"] += _salary_of(r)
+    if len(payroll) < 3:
+        return []
+
+    social = set()
+    for r in _as_list(data.get("social_security")):
+        if not isinstance(r, dict):
+            continue
+        n = _person_name(r)
+        if n and not _is_noise_name(n):
+            social.add(n)
+
+    from engine.fund_matching import is_individual_name
+    bank_paid = set()
+    for t in _as_list(data.get("bank_txs")):
+        if not isinstance(t, dict):
+            continue
+        cp = str(t.get("counterparty") or t.get("对方户名") or "").strip()
+        if cp and is_individual_name(cp) and _num(t.get("debit") if t.get("debit") is not None
+                                                 else t.get("借方")) > 0:
+            bank_paid.add(cp)
+
+    # 独立个税申报数据（若与工资表不同源）：其人员已有个税申报痕迹
+    tax_filed = set()
+    for r in _as_list(data.get("tax_declarations")):
+        if isinstance(r, dict) and str(r.get("_declaration_type") or "") in (
+                "individual_tax", "iit", "个税"):
+            n = _get_field(r, ["name", "姓名", "纳税人姓名", "person"]).strip()
+            if n:
+                tax_filed.add(n)
+
+    ghosts = []
+    for n, info in sorted(payroll.items()):
+        if n in social or n in bank_paid or n in tax_filed:
+            continue
+        ghosts.append({"name": n, "months": sorted(info["months"]),
+                       "amount": round(info["amount"], 2)})
+    if not ghosts:
+        return []
+    total = round(sum(g["amount"] for g in ghosts), 2)
+    names = "、".join(g["name"] for g in ghosts[:8])
+    return [_finding(
+        redline_id,
+        "工资表人员无社保且无工资代发痕迹（待核）",
+        "个人所得税",
+        f"工资表名册 {len(payroll)} 人中有 {len(ghosts)} 人既未见于社会保险缴费明细、"
+        f"也未在银行流水中找到对个人的工资代发记录（申报工资合计 {total:,.2f} 元）：{names}。"
+        "请核实其是否为本企业真实用工（考勤/门禁、劳动合同、工作成果或现金签收记录）。",
+        "中风险", 6,
+        needs_material=["工资表与个人所得税扣缴申报明细", "社会保险缴费明细（全员）",
+                        "银行工资代发记录", "劳动合同与考勤/门禁记录"],
+        unconfirmed=False, policy_ref="《企业所得税法》第八条",
+        evidence=[f"工资表名册 {len(payroll)} 人", f"无社保且无代发 {len(ghosts)} 人",
+                  f"涉申报工资 {total:,.2f}"]
+                 + [f"{g['name']}（{len(g['months'])}个月）" for g in ghosts[:3]],
+    )]
+
+
+def _salary_of(row: Dict) -> float:
+    """取一行工资的应发口径（容错不同表头）。"""
+    for k in ("salary", "gross", "acc_income", "应发工资", "工资", "收入额"):
+        if row.get(k) not in (None, ""):
+            return _num(row.get(k))
+    return 0.0
+
+
+# ── RL-CIT-009：关联方借款利率超金融企业同期同类贷款利率 ─────────────────
+def _loan_principal(data: Dict) -> float:
+    """借款本金余额（负债类取期末贷方；无余额表则取序时账贷方发生额）。"""
+    total = 0.0
+    for b in _as_list(data.get("balances")):
+        if not isinstance(b, dict):
+            continue
+        acct = str(b.get("name") or b.get("科目名称") or "")
+        if "借款" in acct and "收入" not in acct:
+            total += _num(b.get("close_credit")) or _num(b.get("期末贷方"))
+    if total > 0:
+        return round(total, 2)
+    for v in _as_list(data.get("vouchers")):
+        if not isinstance(v, dict):
+            continue
+        acct = str(v.get("account_name") or v.get("科目名称") or v.get("account") or "")
+        if "借款" in acct and "收入" not in acct:
+            total += _num(v.get("credit")) or _num(v.get("贷方"))
+    return round(total, 2)
+
+
+def _interest_expense(data: Dict) -> float:
+    """利息支出（排除利息收入）。"""
+    total = 0.0
+    for v in _as_list(data.get("vouchers")):
+        if not isinstance(v, dict):
+            continue
+        acct = str(v.get("account_name") or v.get("科目名称") or v.get("account") or "")
+        summary = str(v.get("summary") or v.get("摘要") or "")
+        blob = acct + " " + summary
+        if "利息收入" in blob:
+            continue
+        if "利息支出" in blob or ("财务费用" in acct and "利息" in summary):
+            total += _num(v.get("debit")) or _num(v.get("借方"))
+    return round(total, 2)
+
+
+def _data_asof(data: Dict) -> str:
+    """数据时点（用于取适用的 LPR 报价）：取申报期/工资期的最晚年月。"""
+    cands = []
+    for key in ("tax_declarations", "salaries"):
+        for r in _as_list(data.get(key)):
+            if not isinstance(r, dict):
+                continue
+            for f in ("period", "period_end", "period_start"):
+                s = _period(r.get(f))
+                if s:
+                    cands.append(s)
+    return max(cands) if cands else ""
+
+
+def _loan_months(data: Dict) -> int:
+    """借款/利息涉及的月份数（序时账），缺则按 12 个月。"""
+    months = set()
+    for v in _as_list(data.get("vouchers")):
+        if not isinstance(v, dict):
+            continue
+        acct = str(v.get("account_name") or v.get("科目名称") or v.get("account") or "")
+        if "借款" in acct or "利息" in acct:
+            m = str(v.get("month_no") or v.get("month") or "")
+            if m.strip().isdigit():
+                months.add(m.strip())
+    return len(months) or 12
+
+
+def detect_related_party_interest_rate(data: Dict) -> List[Dict]:
+    """RL-CIT-009 关联方借款利率超过金融企业同期同类贷款利率（要件③净增量）。
+
+    与 RL-CIT-010（债资比 2:1）**相互独立**：本探测器只看**利率**这一维度。
+    基准取 1 年期 LPR（见 `engine/redline_benchmark.LOAN_RATE_SERIES`，可自证来源）；
+    未登记该期间报价时**只出待核**，绝不用默认利率静默顶替。
+    """
+    redline_id = "RL-CIT-009"
+    from engine.redline_benchmark import resolve_loan_rate_benchmark, LOAN_RATE_SOURCE
+    principal = _loan_principal(data)
+    interest = _interest_expense(data)
+    if principal <= 0 and interest <= 0:
+        return []                        # 无任何借款线索 ⇒ 正常沉默
+    if principal <= 0 or interest <= 0:
+        return [_finding(
+            redline_id,
+            "关联方借款利息扣除：缺本金或利息资料（待核）",
+            "企业所得税",
+            f"账内检索到{'借款本金' if principal > 0 else '利息支出'} "
+            f"{principal if principal > 0 else interest:,.2f} 元，但缺少另一侧数据，"
+            "无法计算实际利率并与金融企业同期同类贷款利率比对。请补充资料后复核。",
+            "低风险", 4,
+            needs_material=["借款合同（含约定利率与借款期间）", "利息计算明细与支付凭证",
+                            "金融企业同期同类贷款利率证明"],
+            unconfirmed=True, policy_ref="《财税〔2008〕121号》",
+            evidence=[f"借款本金 {principal:,.2f}", f"利息支出 {interest:,.2f}"],
+        )]
+    months = max(_loan_months(data), 1)
+    annual_rate = interest / principal * (12.0 / months) * 100.0
+    benchmark = resolve_loan_rate_benchmark(_data_asof(data))
+    if benchmark is None:
+        return [_finding(
+            redline_id,
+            "关联方借款利率：缺同期同类贷款利率基准（待核）",
+            "企业所得税",
+            f"账内借款本金 {principal:,.2f} 元、利息支出 {interest:,.2f} 元（折合年化 {annual_rate:.2f}%），"
+            f"但未登记该期间适用的 {LOAN_RATE_SOURCE}，无法判定是否超限。请补充同期同类贷款利率证明。",
+            "低风险", 4,
+            needs_material=["金融企业同期同类贷款利率证明", "借款合同（含约定利率与借款期间）"],
+            unconfirmed=True, policy_ref="《财税〔2008〕121号》",
+            evidence=[f"借款本金 {principal:,.2f}", f"利息支出 {interest:,.2f}",
+                      f"年化利率 {annual_rate:.2f}%"],
+        )]
+    if annual_rate <= benchmark + 1e-9:
+        return []                        # 未超基准 ⇒ 正当情形，不报
+    return [_finding(
+        redline_id,
+        "关联方借款利率超过金融企业同期同类贷款利率（待核）",
+        "企业所得税",
+        f"账内借款本金 {principal:,.2f} 元、对应利息支出 {interest:,.2f} 元，折合年化 "
+        f"{annual_rate:.2f}%，高于 {LOAN_RATE_SOURCE} 同期水平 {benchmark:.2f}%。"
+        "超过金融企业同期同类贷款利率部分的利息支出不得在企业所得税前扣除，"
+        "请核实是否已作纳税调增，并说明关联关系与独立交易原则的符合性。",
+        "中风险", 6,
+        needs_material=["借款合同（含约定利率与借款期间）", "利息计算明细与支付凭证",
+                        "关联方关系证明与独立交易原则说明"],
+        unconfirmed=False, policy_ref="《企业所得税法》第四十六条",
+        evidence=[f"借款本金 {principal:,.2f}", f"利息支出 {interest:,.2f}",
+                  f"年化利率 {annual_rate:.2f}%", f"同期 1 年期 LPR {benchmark:.2f}%"],
+    )]
+
+
+# ── RL-SPT-011：不符合核定征收条件而适用核定征收 ─────────────────────────
+_DEEMED_COLLECTION_KW = (
+    "核定征收", "核定应税所得率", "应税所得率", "定期定额", "定额征收", "核定应纳税额", "核定比例",
+)
+
+
+def detect_deemed_collection(data: Dict) -> List[Dict]:
+    """RL-SPT-011 适用核定征收方式的合规性（待核）。
+
+    核定征收的认定依据是**征收方式认定文书/申报表类型**；本探测器只读
+    申报资料与企业档案中的核定特征，命中即列待核并索取认定文书。
+    本账套仅有增值税申报（无企业所得税核定痕迹）时**正常沉默**。
+    """
+    redline_id = "RL-SPT-011"
+    sources = []
+    for r in _as_list(data.get("tax_declarations")):
+        if isinstance(r, dict):
+            sources.append(json.dumps(r, ensure_ascii=False, default=str))
+    for key in ("company_profile", "target_entity"):
+        v = data.get(key)
+        if v:
+            sources.append(json.dumps(v, ensure_ascii=False, default=str))
+    hit = _hit("\n".join(sources), _DEEMED_COLLECTION_KW)
+    if not hit:
+        return []
+    return [_finding(
+        redline_id,
+        "适用核定征收方式的合规性（待核）",
+        "企业所得税",
+        f"申报资料中出现核定征收特征（命中：{'、'.join(hit)}）。请核实是否确实符合法定核定情形"
+        "（未设置账簿、账目混乱或成本资料/收入凭证残缺不全），或实际已具备健全账簿、"
+        "能够准确核算应纳税所得额，却通过拆分经营主体、分散收入、关联交易人为维持核定资格。",
+        "低风险", 4,
+        needs_material=["征收方式认定文书（核定通知书/定额核定表）", "会计账簿与凭证（完整性证明）",
+                        "财务报表与申报表", "关联方工商登记与开票数据"],
+        unconfirmed=True, policy_ref="国税发〔2008〕30号",
+        evidence=[f"命中核定征收特征：{'、'.join(hit)}"],
+    )]
+
+
 # ── 统一入口 ──────────────────────────────────────────────────────────
 
 DETECTORS = [
@@ -378,6 +777,10 @@ DETECTORS = [
     ("RL-PAY-006", detect_multi_income_bonus),
     ("RL-OTH-004", detect_land_use_tax),
     ("RL-OTH-005", detect_vehicle_tax),
+    ("RL-INV-004", detect_abnormal_input_voucher),
+    ("RL-PAY-003", detect_ghost_employees),
+    ("RL-CIT-009", detect_related_party_interest_rate),
+    ("RL-SPT-011", detect_deemed_collection),
 ]
 
 

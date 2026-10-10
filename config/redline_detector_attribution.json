@@ -39,6 +39,22 @@
       "redline_id": "RL-VAT-008",
       "declared_at": "2026-10-10",
       "evidence": "VR036 的**gifts 通道**按摘要关键词归集「无偿赠送/交付样品」的支出，即 RL-VAT-008 要件①情形；此前未声明 `redline_id` ⇒ 只能靠标题命中 `match_hints` 猜归属（归属可被措辞改写，静态覆盖率也会把它算成『仅兜底』）。本次**只补归属声明、不认领构成要件**（该通道是关键词归集，并未逐笔复算『账面确无销项税额计提分录』= 要件②），故 `constituent_hits` 留空。"
+    },
+    {
+      "detector_file": "engine/export_rebate_crosscheck.py",
+      "detector_fn": "run_export_rebate_crosscheck",
+      "finding_type": "出口退税四单交叉核验（单证不一致/收汇缺口/产能不匹配）",
+      "redline_id": "RL-SPT-008",
+      "declared_at": "2026-10-10",
+      "evidence": "本模块**早就是 RL-SPT-008 的真检测器**（出口发票×报关单×收汇×产能四单交叉，已接线 pipeline），但 finding 只写了 `policy_ref`/`_gap_detector`，**没写 `redline_id`** ⇒ 覆盖率静态审计看不见它，把 RL-SPT-008 记成『仅兜底』（**系统性低估检出能力**，与 A-P0-1 同类；§16.3 用『VR 目录名称相似度』筛查，方法本身漏掉了非 VR 模块 ⇒ 结论『0 条已有实现仅缺归属』有盲区，本轮修正）。本次补 `redline_id` 并按每条 finding **认领真算过的要件**：单证不一致→②⑤、收汇缺口→④、产能不匹配→③；『缺报关单/收汇』那条属资料缺口 ⇒ 不认领要件。"
+    },
+    {
+      "detector_file": "engine/verified_rule_engine.py",
+      "detector_fn": "_scan_personal_service_withholding",
+      "finding_type": "向个人支付劳务性质报酬未代扣个税",
+      "redline_id": "RL-SPT-013",
+      "declared_at": "2026-10-10",
+      "evidence": "VR065「个人劳务报酬支付未代扣个税」真算的是**银行支出中向非雇员个人支付的劳务性质款项**（公转私 + 摘要劳务/咨询/佣金/服务费等），落在 RL-SPT-013 要件①『企业向个人支付报酬，且该类个人并非企业雇员』上（该要件正文明确包含『自由职业者、劳务人员』，并非仅限平台/网红）⇒ 归属 013。**只认领真算过的要件①**；『是否已依法代扣代缴』（要件②）本规则未复算 ⇒ 不认领（§16.3 曾以『名称相似度低』拒绝，属方法局限；要件正文比对才是判据）。"
     }
   ]
 }
