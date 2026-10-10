@@ -143,6 +143,13 @@ COUNT_EXEMPT_CONTEXTS = [
     re.compile(r"≥\s*\d+\s*条规则"),       # 阈值：中风险需 ≥2条规则触发 才形成闭环
     re.compile(r"采样前\s*\d+\s*条规则"),   # 采样：for rule in self._rules[:200]  # 采样前200条规则
     re.compile(r"原来\s*\d+\s*条规则外"),   # 局部层：覆盖原来15条规则外的常见矛盾
+    # ★ 2026-10-10 新增：**引用旧值的样例 / 同义写法词典示例**（非当前总量口径）。
+    #   实测两处误报（均为"这是在引用"的语境，改成 89 反而语义错误）：
+    #     · `engine/doc_residue_scan.py` 的**同义写法词典示例**：「8 条规则 / 8 条门禁 / 门禁 8 条」
+    #     · `tests/test_doc_consistency_skills.py` 的**失败样例名录**："8 条规则"
+    #   判据：数字**紧贴引号**（被引用），而非裸写的总量声明。
+    #   ⚠ 反向验证要求：裸写的 `N 条规则/红线`（不加引号）必须**仍然**被抓（见 §19 的 R23/R24）。
+    re.compile(r"[「\"“]\s*\d+\s*条(?:规则|红线)"),
 ]
 
 # ══════════════ 扫描范围 ══════════════
@@ -1573,13 +1580,56 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
         # "降级既有高风险发现"，JSON 版只能追加低风险备注）→ 已删死实现，此处上锁防复发。
         "_detect_conflicts",
     }
-    # 这些名字允许跨模块存在「真实分歧」（各自独立实现、签名/语义不同，并非同一概念）：
-    #   _fmt          —— 各模块私有格式化助手，签名与用途不同（千分位 / 2位小数 / 指标百分比），
-    #                   非"同一格式化函数"的多头实现，收敛反而会破坏各自语义。
-    #   _norm         —— 各模块私有归一化助手，用途不同（长度保持归一化 vs 去空白），非同一概念。
-    #   parse_threshold —— 各模块私有阈值解析，输入形态不同（自由文本 vs 结构化字段），非同一概念。
-    # 新增同名真实分歧若不在本表 → 仍报 WARN，强制人工确认是否该收敛（防复发）。
-    _DIVERGENCE_OK = {"_fmt", "_norm", "parse_threshold"}
+    # 这些名字允许跨模块存在「真实分歧」（各自独立实现、签名/语义不同，并非同一概念）。
+    # ★ 2026-10-10（A 轨道收尾）：由集合升级为**带理由的裁定表** —— 每一组都经人工比对
+    #   函数体后给出"为什么不是同一概念"；`in` 语义不变（新增同名分歧仍会被报 WARN）。
+    #   裁定口径三类：① 各模块**私有工具**（语义不同）② 各文件**配置读取器**（同一模板、
+    #   各自的数据源，非同一概念）③ 各领域**自己的域入口**（audit/coverage/scan…）。
+    _DIVERGENCE_OK = {
+        # ── 既有裁定 ──
+        "_fmt": "各模块私有格式化助手（千分位 / 2位小数 / 指标百分比），签名与用途不同",
+        "_norm": "各模块私有归一化助手（长度保持归一化 vs 去空白），非同一概念",
+        "parse_threshold": "各模块私有阈值解析（自由文本 vs 结构化字段），输入形态不同",
+        # ── ① 私有工具（同名单、异语义）──
+        "_as_list": "gap_risk_detectors 保留原元素类型；quality_gates 强制 str 并滤空 ⇒ 语义不同",
+        "_cn_num": "quality_gates 是「中文数字→int」解析；enterprise_report 是「int→中文数字」"
+                   "格式化 ⇒ **方向相反**，仅同名",
+        "_grams": "child_item_completeness 为原始字符 n-gram（不过滤）；constituent_checkpoint "
+                  "先滤非中文字符并去停用词 ⇒ 语义不同（中文 2-gram 唯一权威=findingkit.cjk_bigrams）",
+        "_guard": "analysis_jobs 为并发任务护栏；doc_consistency_core 为读表异常护栏",
+        "_index": "data_source_status 为表索引；learnable_rules 为规则索引",
+        "_key": "common_clauses 为条款归一键；incremental_analysis 为转发",
+        "_load": "doc_consistency_core 读判据配置；knowledge_learner 读经验库 ⇒ 数据源不同",
+        "_load_json": "domain_analysis 以**本模块目录**为基准且缺省 []；selfcheck 用**绝对路径**"
+                      "且缺省 None ⇒ 语义不同",
+        "_log": "analysis_jobs 记任务日志；audit_trail 写业务留痕（留痕唯一权威=engine/audit_trail.py）",
+        "_split_keep": "common_clauses 为条款切分保尾；report_dedup 为段落切分保尾 ⇒ 输入域不同",
+        "last_error": "analysis_jobs 的**任务**错误；audit_trail 的**留痕写入**错误 ⇒ 不同",
+        "problem_key": "child_item_completeness 与 snapshot_invariance 各自的疑点键构造",
+        "summary_line": "risk_families 与 selfcheck 各自的「一行摘要」",
+        "canonical_name": "data_source_status 的规范名（入参 name）；report_identity 的名称归一（无参）"
+                          "⇒ 签名与用途不同",
+        # ── ② 各文件配置读取器（同一模板、各自的数据源）──
+        "load_config": "各模块各读**自己的**配置文件（child_item_completeness / data_source_status / "
+                       "report_compliance / report_identity），缓存与缺省各异 ⇒ 非同一概念",
+        "reload_config": "同上；doc_consistency_core 只清缓存不返回，方式各异",
+        "load_spec": "各模块各读自己的规格表（conclusion_grade / quality_gates / vocab_registry）",
+        "load_errors": "各模块装载**自身**配置后的解析错误列表",
+        "load_rules": "dedup_pipeline / dupkit / numbering 各读自己的规则表",
+        "entry_of": "child_item_completeness（按风险编码）/ data_source_status（按资料名）/ "
+                    "legal_version（按法名）三套不同索引",
+        "status_of": "data_source_status 的资料可用状态推导；legal_version 的版本状态 ⇒ 不同",
+        # ── ③ 各领域自己的域入口 ──
+        "audit": "各 Skill 的**域审计入口**（各自判据与返回结构），非同一函数",
+        "audit_product": "child_item_completeness 与 data_source_status 各自的产物审计",
+        "coverage": "reference 的引用覆盖 vs skill_registry 的 Skill 覆盖 ⇒ 不同",
+        "scan": "content_placeholder_guard 与 field_completeness 各自的全文扫描",
+        # ── 例外：实为**已收敛**（被"转发桩检测"漏判）──
+        "affected_downstream": "doc_consistency_core 完整实现 + doc_ref_graph 薄转发 ⇒ 已收敛",
+        "split_sentences": "dupkit 为**薄转发**（唯一权威 engine/sentencekit.split_sentences，"
+                           "docstring 已注明）；本组被报系转发桩检测**只看函数体内 import**、"
+                           "未识别**模块级** import 的转发 ⇒ 实为已收敛",
+    }
     _files = [str(ROOT / "main.py")] + sorted(_glob.glob(str(ROOT / "engine" / "**" / "*.py"), recursive=True))
     defs: Dict[str, List[str]] = {}
     srcs: Dict[str, str] = {}
@@ -1685,10 +1735,12 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
                            f"{name} 在 {len(files)} 个模块各有**真实实现**（应统一为单来源转发）：{files}"))
 
     if real_divergent:
+        # ★ 打印**全部**名字（原为 `[:10]`）：只列前 10 个会让"逐组裁定"无从下手，
+        #   而本判据的设计目的正是"强制人工确认每一组"。裁定结论登记在 `_DIVERGENCE_OK`。
         names = [n for n, _ in real_divergent]
         issues.append(("WARN", "engine/",
                        f"仍有 {len(real_divergent)} 组跨模块**真实分歧**（非转发桩），"
-                       f"请确认是否属同一概念、能否收敛：{names[:10]}"))
+                       f"请确认是否属同一概念、能否收敛：{names}"))
     return issues
 
 
