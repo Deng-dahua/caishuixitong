@@ -1,0 +1,553 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "realestate_construction_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 20
+  covered: 2
+  partial: 9
+  missing: 5
+  placeholder: 4
+rules:
+  - rule_id: "EST-001"
+    name: "预收房款未预缴增值税"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "pre_sale_revenue > 0 and vat_prepaid = 0"
+    params_ref: "config/rulelist_v12.json::params.EST-001"
+    params:
+      prepay_rate: null
+      _basis: "房地产预缴增值税预征率（地区参数）"
+    inputs:
+      - "预收房款"
+      - "预缴增值税"
+    risk:
+      message: "预收房款未预缴增值税"
+      evidence:
+        - "命中：「预收房款未预缴增值税」（EST-001）"
+        - "阈值：config/rulelist_v12.json::params.EST-001"
+        - "取数：预收房款 / 预缴增值税"
+      suggestion: "核查预缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-INC-003 / VR063（预收账款长期挂账）+ RL-VAT-014"
+      note: "预征率属地区参数"
+  - rule_id: "EST-002"
+    name: "预收房款未预缴土地增值税"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "pre_sale_revenue > 0 and lat_prepaid = 0"
+    params_ref: "config/rulelist_v12.json::params.EST-002"
+    params:
+      prepay_rate: null
+      _basis: "土地增值税预征率（地区/业态参数）"
+    inputs:
+      - "预收房款"
+      - "预缴土地增值税"
+    risk:
+      message: "预收房款未预缴土地增值税"
+      evidence:
+        - "命中：「预收房款未预缴土地增值税」（EST-002）"
+        - "阈值：config/rulelist_v12.json::params.EST-002"
+        - "取数：预收房款 / 预缴土地增值税"
+      suggestion: "核查预缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-001（土地增值税未清算或扣除不实）"
+      note: "预征率属地区参数；注意「预缴」与「清算」是不同环节"
+  - rule_id: "EST-003"
+    name: "预收房款未预计毛利"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "pre_sale_revenue > 0 and estimated_gross_profit = 0"
+    params_ref: "config/rulelist_v12.json::params.EST-003"
+    params:
+      gross_profit_rate: null
+      _basis: "预计毛利率（地区参数，通常 15%/10%）"
+    inputs:
+      - "预收房款"
+      - "预计毛利"
+    risk:
+      message: "预收房款未预计毛利"
+      evidence:
+        - "命中：「预收房款未预计毛利」（EST-003）"
+        - "阈值：config/rulelist_v12.json::params.EST-003"
+        - "取数：预收房款 / 预计毛利"
+      suggestion: "核查所得税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "需预计毛利率（地区参数）"
+  - rule_id: "EST-004"
+    name: "开发产品完工未结转"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "project_completed and revenue_not_recognized"
+    params_ref: "config/rulelist_v12.json::params.EST-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "完工项目"
+      - "收入确认"
+    risk:
+      message: "开发产品完工未结转"
+      evidence:
+        - "命中：「开发产品完工未结转」（EST-004）"
+        - "阈值：config/rulelist_v12.json::params.EST-004"
+        - "取数：完工项目 / 收入确认"
+      suggestion: "核查结转"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/analysis_coverage / audit_coverage（完工结转）"
+  - rule_id: "EST-005"
+    name: "开发成本分摊异常"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cost_allocation_ratio != reasonable_ratio"
+    params_ref: "config/rulelist_v12.json::params.EST-005"
+    params:
+      reasonable_ratio: null
+      _basis: "开发成本分摊合理比例（需项目口径）"
+    inputs:
+      - "成本分摊"
+      - "合理比例"
+    risk:
+      message: "开发成本分摊异常"
+      evidence:
+        - "命中：「开发成本分摊异常」（EST-005）"
+        - "阈值：config/rulelist_v12.json::params.EST-005"
+        - "取数：成本分摊 / 合理比例"
+      suggestion: "核查分摊"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= LAT-006（同判据）"
+  - rule_id: "EST-006"
+    name: "土地成本扣除异常"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "land_cost_deduction > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.EST-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "土地成本"
+      - "扣除"
+    risk:
+      message: "土地成本扣除异常"
+      evidence:
+        - "命中：「土地成本扣除异常」（EST-006）"
+        - "阈值：config/rulelist_v12.json::params.EST-006"
+        - "取数：土地成本 / 扣除"
+      suggestion: "核查扣除"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "EST-007"
+    name: "拆迁补偿费异常"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "relocation_compensation > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.EST-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "拆迁补偿"
+      - "凭证"
+    risk:
+      message: "拆迁补偿费异常"
+      evidence:
+        - "命中：「拆迁补偿费异常」（EST-007）"
+        - "阈值：config/rulelist_v12.json::params.EST-007"
+        - "取数：拆迁补偿 / 凭证"
+      suggestion: "核查补偿"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-001（条文提及）"
+      note: "= LAT-008"
+  - rule_id: "EST-008"
+    name: "公共配套费异常"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "public_facilities_cost > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.EST-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "公共配套费"
+    risk:
+      message: "公共配套费异常"
+      evidence:
+        - "命中：「公共配套费异常」（EST-008）"
+        - "阈值：config/rulelist_v12.json::params.EST-008"
+        - "取数：公共配套费"
+      suggestion: "核查成本"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "EST-009"
+    name: "开发间接费异常"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "development_indirect_cost > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.EST-009"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "开发间接费"
+    risk:
+      message: "开发间接费异常"
+      evidence:
+        - "命中：「开发间接费异常」（EST-009）"
+        - "阈值：config/rulelist_v12.json::params.EST-009"
+        - "取数：开发间接费"
+      suggestion: "核查费用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "EST-010"
+    name: "利息支出扣除异常"
+    tax_type: "房地产"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "interest_deduction > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.EST-010"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "利息支出"
+      - "扣除限额"
+    risk:
+      message: "利息支出扣除异常"
+      evidence:
+        - "命中：「利息支出扣除异常」（EST-010）"
+        - "阈值：config/rulelist_v12.json::params.EST-010"
+        - "取数：利息支出 / 扣除限额"
+      suggestion: "核查利息"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-CIT-007 / engine/deduction_limit_detector"
+      note: "= LAT-007"
+  - rule_id: "CONSTR-001"
+    name: "建筑服务预缴增值税异常"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "construction_service_revenue > 0 and vat_prepaid = 0"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "建筑服务收入"
+      - "预缴增值税"
+    risk:
+      message: "建筑服务预缴增值税异常"
+      evidence:
+        - "命中：「建筑服务预缴增值税异常」（CONSTR-001）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-001"
+        - "取数：建筑服务收入 / 预缴增值税"
+      suggestion: "核查预缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-014（异地建筑服务未在项目所在地预缴）"
+  - rule_id: "CONSTR-002"
+    name: "异地施工未预缴"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "cross_region_construction and vat_prepaid = 0"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-002"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "异地施工"
+      - "预缴"
+    risk:
+      message: "异地施工未预缴"
+      evidence:
+        - "命中：「异地施工未预缴」（CONSTR-002）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-002"
+        - "取数：异地施工 / 预缴"
+      suggestion: "核查预缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-014"
+      note: "★ 与 CONSTR-001 同源（RL-VAT-014 直接对应）"
+  - rule_id: "CONSTR-003"
+    name: "简易计税适用异常"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "simplified_tax_method and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-003"
+    params:
+      simplified_conditions: null
+      _basis: "简易计税适用条件（甲供材/清包工/老项目）"
+    inputs:
+      - "简易计税"
+      - "条件"
+    risk:
+      message: "简易计税适用异常"
+      evidence:
+        - "命中：「简易计税适用异常」（CONSTR-003）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-003"
+        - "取数：简易计税 / 条件"
+      suggestion: "核查适用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR077（简易计税与一般计税进项混用）"
+      note: "系统判「进项混用」，候选判「适用条件」⇒ 合并两分支"
+  - rule_id: "CONSTR-004"
+    name: "甲供材税务处理异常"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "owner_supplied_materials and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "甲供材"
+      - "税务处理"
+    risk:
+      message: "甲供材税务处理异常"
+      evidence:
+        - "命中：「甲供材税务处理异常」（CONSTR-004）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-004"
+        - "取数：甲供材 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/enterprise_profile / industry_resolver（甲供材）"
+  - rule_id: "CONSTR-005"
+    name: "清包工税务处理异常"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "labor_only_contract and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "清包工"
+      - "税务处理"
+    risk:
+      message: "清包工税务处理异常"
+      evidence:
+        - "命中：「清包工税务处理异常」（CONSTR-005）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-005"
+        - "取数：清包工 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义 ⇒ 先细化"
+  - rule_id: "CONSTR-006"
+    name: "分包款扣除异常"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "subcontract_deduction > params.subcontract_deduction_threshold"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-006"
+    params:
+      subcontract_deduction_threshold: null
+      _basis: "分包款扣除阈值"
+    inputs:
+      - "分包款"
+      - "扣除"
+    risk:
+      message: "分包款扣除异常"
+      evidence:
+        - "命中：「分包款扣除异常」（CONSTR-006）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-006"
+        - "取数：分包款 / 扣除"
+      suggestion: "核查扣除"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/account_classifier / enterprise_profile（分包）"
+  - rule_id: "CONSTR-007"
+    name: "挂靠经营税务风险"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "affiliation_business = true"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "挂靠经营"
+    risk:
+      message: "挂靠经营税务风险"
+      evidence:
+        - "命中：「挂靠经营税务风险」（CONSTR-007）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-007"
+        - "取数：挂靠经营"
+      suggestion: "核查主体"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis / enterprise_profile（挂靠）"
+  - rule_id: "CONSTR-008"
+    name: "转包税务风险"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "subcontracting = true"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "转包"
+    risk:
+      message: "转包税务风险"
+      evidence:
+        - "命中：「转包税务风险」（CONSTR-008）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-008"
+        - "取数：转包"
+      suggestion: "核查转包"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义 ⇒ 先细化（建议：合同金额流向与施工能力比对）"
+  - rule_id: "CONSTR-009"
+    name: "项目部个税未申报"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "project_department_salary > 0 and IIT_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-009"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "项目部工资"
+      - "个税"
+    risk:
+      message: "项目部个税未申报"
+      evidence:
+        - "命中：「项目部个税未申报」（CONSTR-009）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-009"
+        - "取数：项目部工资 / 个税"
+      suggestion: "核查个税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；无项目部工资数据源 ⇒ 待资料"
+  - rule_id: "CONSTR-010"
+    name: "项目部社保未缴纳"
+    tax_type: "建筑安装"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "project_department_salary > 0 and social_insured = false"
+    params_ref: "config/rulelist_v12.json::params.CONSTR-010"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "项目部工资"
+      - "社保"
+    risk:
+      message: "项目部社保未缴纳"
+      evidence:
+        - "命中：「项目部社保未缴纳」（CONSTR-010）"
+        - "阈值：config/rulelist_v12.json::params.CONSTR-010"
+        - "取数：项目部工资 / 社保"
+      suggestion: "核查社保"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"

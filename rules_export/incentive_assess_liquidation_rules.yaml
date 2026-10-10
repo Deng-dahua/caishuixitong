@@ -1,0 +1,738 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "incentive_assess_liquidation_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 27
+  covered: 3
+  partial: 13
+  missing: 10
+  placeholder: 1
+rules:
+  - rule_id: "TAXINC-001"
+    name: "优惠条件不满足但享受优惠"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_condition_met = false and incentive_claimed = true"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-001"
+    params:
+      period: "current_year"
+      _basis: "优惠条件核验期间"
+    inputs:
+      - "优惠条件"
+      - "享受优惠"
+    risk:
+      message: "优惠条件不满足但享受优惠"
+      evidence:
+        - "命中：「优惠条件不满足但享受优惠」（TAXINC-001）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-001"
+        - "取数：优惠条件 / 享受优惠"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer._verify_conditions_against_data（真判符合/不符合）"
+      note: "★ 系统已能判「条件是否符合」；缺的是「不符合却仍按优惠申报」的申报侧勾稽（无优惠申报表）"
+  - rule_id: "TAXINC-002"
+    name: "优惠备案缺失"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_claimed = true and filing_missing = true"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "优惠"
+      - "备案"
+    risk:
+      message: "优惠备案缺失"
+      evidence:
+        - "命中：「优惠备案缺失」（TAXINC-002）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-002"
+        - "取数：优惠 / 备案"
+      suggestion: "核查备案"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（政策库+条件核验）"
+  - rule_id: "TAXINC-003"
+    name: "优惠金额计算错误"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_amount != calculated_incentive"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "优惠金额"
+      - "计算值"
+    risk:
+      message: "优惠金额计算错误"
+      evidence:
+        - "命中：「优惠金额计算错误」（TAXINC-003）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-003"
+        - "取数：优惠金额 / 计算值"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "TAXINC-004"
+    name: "叠加享受优惠"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "overlapping_incentives = true"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "叠加优惠"
+    risk:
+      message: "叠加享受优惠"
+      evidence:
+        - "命中：「叠加享受优惠」（TAXINC-004）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-004"
+        - "取数：叠加优惠"
+      suggestion: "核查叠加"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「叠加享受」"
+  - rule_id: "TAXINC-005"
+    name: "优惠期间错误"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_period != correct_period"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "优惠期间"
+      - "正确期间"
+    risk:
+      message: "优惠期间错误"
+      evidence:
+        - "命中：「优惠期间错误」（TAXINC-005）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-005"
+        - "取数：优惠期间 / 正确期间"
+      suggestion: "核查期间"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（政策库含期间字段）"
+  - rule_id: "TAXINC-006"
+    name: "高新优惠异常"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "high_tech_condition_met = false and high_tech_deduction > 0"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-006"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "高新条件"
+      - "优惠"
+    risk:
+      message: "高新优惠异常"
+      evidence:
+        - "命中：「高新优惠异常」（TAXINC-006）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-006"
+        - "取数：高新条件 / 优惠"
+      suggestion: "核查高新"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（六大类含「高新技术企业15%税率」）"
+      note: "与 V1.0 CIT-022 同一概念"
+  - rule_id: "TAXINC-007"
+    name: "小微优惠异常"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "small_micro_condition_met = false and small_micro_deduction > 0"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-007"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "小微条件"
+      - "优惠"
+    risk:
+      message: "小微优惠异常"
+      evidence:
+        - "命中：「小微优惠异常」（TAXINC-007）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-007"
+        - "取数：小微条件 / 优惠"
+      suggestion: "核查小微"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/tax_impact.evaluate_small_micro（唯一权威）"
+  - rule_id: "TAXINC-008"
+    name: "研发加计扣除异常"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "R&D_condition_met = false and R&D_deduction > 0"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-008"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "研发条件"
+      - "加计扣除"
+    risk:
+      message: "研发加计扣除异常"
+      evidence:
+        - "命中：「研发加计扣除异常」（TAXINC-008）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-008"
+        - "取数：研发条件 / 加计扣除"
+      suggestion: "核查研发"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-003"
+  - rule_id: "TAXINC-009"
+    name: "西部大开发优惠异常"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "western_condition_met = false and western_deduction > 0"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-009"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "西部条件"
+      - "优惠"
+    risk:
+      message: "西部大开发优惠异常"
+      evidence:
+        - "命中：「西部大开发优惠异常」（TAXINC-009）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-009"
+        - "取数：西部条件 / 优惠"
+      suggestion: "核查西部"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（含「西部大开发15%税率」）"
+      note: "与 V1.0 CIT-024 同一概念"
+  - rule_id: "TAXINC-010"
+    name: "软件企业优惠异常"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "software_condition_met = false and software_deduction > 0"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-010"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "软件条件"
+      - "优惠"
+    risk:
+      message: "软件企业优惠异常"
+      evidence:
+        - "命中：「软件企业优惠异常」（TAXINC-010）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-010"
+        - "取数：软件条件 / 优惠"
+      suggestion: "核查软件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（含「软件产品即征即退」）"
+  - rule_id: "TAXINC-011"
+    name: "资源综合利用优惠异常"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "resource_condition_met = false and resource_deduction > 0"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-011"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "资源条件"
+      - "优惠"
+    risk:
+      message: "资源综合利用优惠异常"
+      evidence:
+        - "命中：「资源综合利用优惠异常」（TAXINC-011）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-011"
+        - "取数：资源条件 / 优惠"
+      suggestion: "核查资源"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「资源综合利用」"
+  - rule_id: "TAXINC-012"
+    name: "残疾人就业优惠异常"
+    tax_type: "税收优惠"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "disabled_condition_met = false and disabled_deduction > 0"
+    params_ref: "config/rulelist_v11.json::params.TAXINC-012"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "残疾人条件"
+      - "优惠"
+    risk:
+      message: "残疾人就业优惠异常"
+      evidence:
+        - "命中：「残疾人就业优惠异常」（TAXINC-012）"
+        - "阈值：config/rulelist_v11.json::params.TAXINC-012"
+        - "取数：残疾人条件 / 优惠"
+      suggestion: "核查残疾人"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（含「残疾人就业保障金减免」）/ RL-SPT-019"
+  - rule_id: "TAXINC-013"
+    name: "优惠条件不满足但享受"
+    tax_type: "税收优惠"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_condition_met = false and incentive_claimed = true"
+    params_ref: "config/rulelist_v12.json::params.TAXINC-013"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "优惠条件"
+      - "享受优惠"
+    risk:
+      message: "优惠条件不满足但享受"
+      evidence:
+        - "命中：「优惠条件不满足但享受」（TAXINC-013）"
+        - "阈值：config/rulelist_v12.json::params.TAXINC-013"
+        - "取数：优惠条件 / 享受优惠"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer._verify_conditions_against_data"
+      note: "= TAXINC-001（重复）"
+  - rule_id: "TAXINC-014"
+    name: "优惠备案缺失"
+    tax_type: "税收优惠"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_claimed and filing_missing"
+    params_ref: "config/rulelist_v12.json::params.TAXINC-014"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "优惠"
+      - "备案"
+    risk:
+      message: "优惠备案缺失"
+      evidence:
+        - "命中：「优惠备案缺失」（TAXINC-014）"
+        - "阈值：config/rulelist_v12.json::params.TAXINC-014"
+        - "取数：优惠 / 备案"
+      suggestion: "核查备案"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer"
+      note: "= TAXINC-002 = ADM-014（三重复）⇒ 合并为一条"
+  - rule_id: "TAXINC-015"
+    name: "优惠金额计算错误"
+    tax_type: "税收优惠"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_amount != calculated_incentive"
+    params_ref: "config/rulelist_v12.json::params.TAXINC-015"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "优惠金额"
+      - "计算值"
+    risk:
+      message: "优惠金额计算错误"
+      evidence:
+        - "命中：「优惠金额计算错误」（TAXINC-015）"
+        - "阈值：config/rulelist_v12.json::params.TAXINC-015"
+        - "取数：优惠金额 / 计算值"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= TAXINC-003（重复）"
+  - rule_id: "TAXINC-016"
+    name: "叠加享受优惠"
+    tax_type: "税收优惠"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "overlapping_incentives = true"
+    params_ref: "config/rulelist_v12.json::params.TAXINC-016"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "叠加优惠"
+    risk:
+      message: "叠加享受优惠"
+      evidence:
+        - "命中：「叠加享受优惠」（TAXINC-016）"
+        - "阈值：config/rulelist_v12.json::params.TAXINC-016"
+        - "取数：叠加优惠"
+      suggestion: "核查叠加"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= TAXINC-004（重复）"
+  - rule_id: "TAXINC-017"
+    name: "优惠期间错误"
+    tax_type: "税收优惠"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_period != correct_period"
+    params_ref: "config/rulelist_v12.json::params.TAXINC-017"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "优惠期间"
+      - "正确期间"
+    risk:
+      message: "优惠期间错误"
+      evidence:
+        - "命中：「优惠期间错误」（TAXINC-017）"
+        - "阈值：config/rulelist_v12.json::params.TAXINC-017"
+        - "取数：优惠期间 / 正确期间"
+      suggestion: "核查期间"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（政策库含期间）"
+      note: "= TAXINC-005（重复）"
+  - rule_id: "ASSESS-001"
+    name: "核定征收条件不符"
+    tax_type: "核定征收"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "assessed_collection and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.ASSESS-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "核定征收"
+      - "条件"
+    risk:
+      message: "核定征收条件不符"
+      evidence:
+        - "命中：「核定征收条件不符」（ASSESS-001）"
+        - "阈值：config/rulelist_v12.json::params.ASSESS-001"
+        - "取数：核定征收 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-011（不符合核定征收条件而适用核定征收）"
+  - rule_id: "ASSESS-002"
+    name: "核定征收率异常"
+    tax_type: "核定征收"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "assessed_rate < industry_avg_rate * params.assessed_rate_ratio"
+    params_ref: "config/rulelist_v12.json::params.ASSESS-002"
+    params:
+      assessed_rate_ratio: 0.7
+      _basis: "核定征收率 vs 行业均值下限倍数"
+    inputs:
+      - "核定率"
+      - "行业均值"
+    risk:
+      message: "核定征收率异常"
+      evidence:
+        - "命中：「核定征收率异常」（ASSESS-002）"
+        - "阈值：config/rulelist_v12.json::params.ASSESS-002"
+        - "取数：核定率 / 行业均值"
+      suggestion: "核查核定"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "行业核定率须登记 industry_benchmark；未登记则待核"
+  - rule_id: "ASSESS-003"
+    name: "核定征收企业收入异常"
+    tax_type: "核定征收"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "assessed_income < actual_income * params.assessed_income_ratio"
+    params_ref: "config/rulelist_v12.json::params.ASSESS-003"
+    params:
+      assessed_income_ratio: 0.7
+      _basis: "核定收入 vs 实际收入下限倍数"
+    inputs:
+      - "核定收入"
+      - "实际收入"
+    risk:
+      message: "核定征收企业收入异常"
+      evidence:
+        - "命中：「核定征收企业收入异常」（ASSESS-003）"
+        - "阈值：config/rulelist_v12.json::params.ASSESS-003"
+        - "取数：核定收入 / 实际收入"
+      suggestion: "核查收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "可真算（核定收入 vs 开票/银行收入）"
+  - rule_id: "ASSESS-004"
+    name: "个人独资/合伙核定异常"
+    tax_type: "核定征收"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "sole_proprietorship_or_partnership and assessed_collection and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.ASSESS-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "个独/合伙"
+      - "核定"
+      - "条件"
+    risk:
+      message: "个人独资/合伙核定异常"
+      evidence:
+        - "命中：「个人独资/合伙核定异常」（ASSESS-004）"
+        - "阈值：config/rulelist_v12.json::params.ASSESS-004"
+        - "取数：个独/合伙 / 核定 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-011 + engine/domain_analysis（个独/合伙主体识别）"
+  - rule_id: "LIQ-001"
+    name: "注销清算未申报"
+    tax_type: "注销清算"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "liquidation and tax_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.LIQ-001"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "清算"
+      - "申报"
+    risk:
+      message: "注销清算未申报"
+      evidence:
+        - "命中：「注销清算未申报」（LIQ-001）"
+        - "阈值：config/rulelist_v12.json::params.LIQ-001"
+        - "取数：清算 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；需清算资料 ⇒ 部分可得"
+  - rule_id: "LIQ-002"
+    name: "清算所得计算异常"
+    tax_type: "注销清算"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "liquidation_income != calculated_income"
+    params_ref: "config/rulelist_v12.json::params.LIQ-002"
+    params:
+      tolerance: 0.0
+      _basis: "清算所得计算偏差容忍"
+    inputs:
+      - "清算所得"
+      - "计算值"
+    risk:
+      message: "清算所得计算异常"
+      evidence:
+        - "命中：「清算所得计算异常」（LIQ-002）"
+        - "阈值：config/rulelist_v12.json::params.LIQ-002"
+        - "取数：清算所得 / 计算值"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "LIQ-003"
+    name: "股东分得剩余资产税务处理异常"
+    tax_type: "注销清算"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "residual_asset_distribution and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.LIQ-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "剩余资产分配"
+      - "税务处理"
+    risk:
+      message: "股东分得剩余资产税务处理异常"
+      evidence:
+        - "命中：「股东分得剩余资产税务处理异常」（LIQ-003）"
+        - "阈值：config/rulelist_v12.json::params.LIQ-003"
+        - "取数：剩余资产分配 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "BANKR-001"
+    name: "破产重整税务处理异常"
+    tax_type: "破产重整"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "bankruptcy_reorganization and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.BANKR-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "破产重整"
+      - "税务处理"
+    risk:
+      message: "破产重整税务处理异常"
+      evidence:
+        - "命中：「破产重整税务处理异常」（BANKR-001）"
+        - "阈值：config/rulelist_v12.json::params.BANKR-001"
+        - "取数：破产重整 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义 ⇒ 先细化"
+  - rule_id: "BANKR-002"
+    name: "债务重组所得未申报"
+    tax_type: "破产重整"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "debt_restructuring_income > 0 and tax_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.BANKR-002"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "债务重组所得"
+      - "申报"
+    risk:
+      message: "债务重组所得未申报"
+      evidence:
+        - "命中：「债务重组所得未申报」（BANKR-002）"
+        - "阈值：config/rulelist_v12.json::params.BANKR-002"
+        - "取数：债务重组所得 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis / payment_channel（债务重组）"
+  - rule_id: "BANKR-003"
+    name: "资产处置损失异常"
+    tax_type: "破产重整"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "asset_disposal_loss > params.asset_loss_threshold"
+    params_ref: "config/rulelist_v12.json::params.BANKR-003"
+    params:
+      asset_loss_threshold: null
+      _basis: "资产处置损失金额阈值"
+    inputs:
+      - "资产处置损失"
+    risk:
+      message: "资产处置损失异常"
+      evidence:
+        - "命中：「资产处置损失异常」（BANKR-003）"
+        - "阈值：config/rulelist_v12.json::params.BANKR-003"
+        - "取数：资产处置损失"
+      suggestion: "核查损失"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-CIT-006（资产损失税前扣除）+ RL-AST-001"

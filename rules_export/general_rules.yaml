@@ -1,11 +1,11 @@
 # ==========================================================================
 # 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
-# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
 # 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
 # ==========================================================================
 schema: 1
 file: "general_rules.yaml"
-rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
 rule_set_version: "2026.10"
 status: draft
 wired: false
@@ -189,7 +189,7 @@ rules:
     condition: "declaration_date > due_date"
     params_ref: "config/rulelist_v11.json::params.GEN-007"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "申报日期"
       - "截止日期"
@@ -269,7 +269,7 @@ rules:
     condition: "required_tax_types not in declared_tax_types"
     params_ref: "config/rulelist_v11.json::params.GEN-010"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "应报税种"
       - "已报税种"
@@ -349,7 +349,7 @@ rules:
     condition: "declaration_frequency > params.count_threshold"
     params_ref: "config/rulelist_v11.json::params.GEN-013"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "申报频率"
     risk:

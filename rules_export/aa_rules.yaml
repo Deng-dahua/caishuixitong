@@ -1,0 +1,553 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "aa_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 20
+  covered: 3
+  partial: 4
+  missing: 3
+  placeholder: 10
+rules:
+  - rule_id: "AA-001"
+    name: "关联交易定价偏离市场"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(related_price - market_price) / market_price > params.price_deviation"
+    params_ref: "config/rulelist_v12.json::params.AA-001"
+    params:
+      price_deviation: 0.2
+      _basis: "关联价 vs 市场价偏离率（同 REL-001）"
+    inputs:
+      - "关联价"
+      - "市场价"
+    risk:
+      message: "关联交易定价偏离市场"
+      evidence:
+        - "命中：「关联交易定价偏离市场」（AA-001）"
+        - "阈值：config/rulelist_v12.json::params.AA-001"
+        - "取数：关联价 / 市场价"
+      suggestion: "核查转让定价"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR037 / RL-CIT-001"
+      note: "= REL-001（= VAT/CIT-012）"
+  - rule_id: "AA-002"
+    name: "关联交易占比过高"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_transaction_ratio > params.related_ratio"
+    params_ref: "config/rulelist_v12.json::params.AA-002"
+    params:
+      related_ratio: 0.5
+      _basis: "关联交易占比上限（同 REL-002）"
+    inputs:
+      - "关联交易"
+      - "总收入"
+    risk:
+      message: "关联交易占比过高"
+      evidence:
+        - "命中：「关联交易占比过高」（AA-002）"
+        - "阈值：config/rulelist_v12.json::params.AA-002"
+        - "取数：关联交易 / 总收入"
+      suggestion: "核查关联"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR017（购销双方集中度核验）"
+      note: "= REL-002"
+  - rule_id: "AA-003"
+    name: "关联方资金占用"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_party_receivable > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.AA-003"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "关联方应收"
+    risk:
+      message: "关联方资金占用"
+      evidence:
+        - "命中：「关联方资金占用」（AA-003）"
+        - "阈值：config/rulelist_v12.json::params.AA-003"
+        - "取数：关联方应收"
+      suggestion: "核查资金占用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-002 / VR030"
+      note: "= REL-003"
+  - rule_id: "AA-004"
+    name: "关联方借款利率异常"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_loan_rate > market_rate * params.market_rate_multiple"
+    params_ref: "config/rulelist_v12.json::params.AA-004"
+    params:
+      market_rate_multiple: 1.5
+      _basis: "关联借款利率 vs 市场利率倍数（市场利率 = redline_benchmark.LOAN_RATE_SERIES）"
+    inputs:
+      - "关联利率"
+      - "市场利率"
+    risk:
+      message: "关联方借款利率异常"
+      evidence:
+        - "命中：「关联方借款利率异常」（AA-004）"
+        - "阈值：config/rulelist_v12.json::params.AA-004"
+        - "取数：关联利率 / 市场利率"
+      suggestion: "核查利息"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-009（基准＝1 年期 LPR）"
+      note: "= REL-004（= CIT-011）"
+  - rule_id: "AA-005"
+    name: "关联方劳务费用异常"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_service_fee > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.AA-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "关联劳务费"
+    risk:
+      message: "关联方劳务费用异常"
+      evidence:
+        - "命中：「关联方劳务费用异常」（AA-005）"
+        - "阈值：config/rulelist_v12.json::params.AA-005"
+        - "取数：关联劳务费"
+      suggestion: "核查劳务"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= REL-006（0 命中「关联方劳务」）"
+  - rule_id: "AA-006"
+    name: "关联方资产转让异常"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_asset_transfer_price != fair_value"
+    params_ref: "config/rulelist_v12.json::params.AA-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "关联资产转让"
+      - "公允价值"
+    risk:
+      message: "关联方资产转让异常"
+      evidence:
+        - "命中：「关联方资产转让异常」（AA-006）"
+        - "阈值：config/rulelist_v12.json::params.AA-006"
+        - "取数：关联资产转让 / 公允价值"
+      suggestion: "核查转让"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= REL-007"
+  - rule_id: "AA-007"
+    name: "关联方股权转让异常"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_equity_transfer_price != fair_value"
+    params_ref: "config/rulelist_v12.json::params.AA-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "关联股权转让"
+      - "公允价值"
+    risk:
+      message: "关联方股权转让异常"
+      evidence:
+        - "命中：「关联方股权转让异常」（AA-007）"
+        - "阈值：config/rulelist_v12.json::params.AA-007"
+        - "取数：关联股权转让 / 公允价值"
+      suggestion: "核查转让"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-009（价格明显偏低）/ RL-SPT-012"
+      note: "= REL-008"
+  - rule_id: "AA-008"
+    name: "关联方债务豁免"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_party_debt_forgiveness > 0"
+    params_ref: "config/rulelist_v12.json::params.AA-008"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "债务豁免"
+    risk:
+      message: "关联方债务豁免"
+      evidence:
+        - "命中：「关联方债务豁免」（AA-008）"
+        - "阈值：config/rulelist_v12.json::params.AA-008"
+        - "取数：债务豁免"
+      suggestion: "核查税务处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= REL-009（0 命中「债务豁免」）"
+  - rule_id: "AA-009"
+    name: "关联方承担费用"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_party_expense_bearing > 0"
+    params_ref: "config/rulelist_v12.json::params.AA-009"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "关联方费用承担"
+    risk:
+      message: "关联方承担费用"
+      evidence:
+        - "命中：「关联方承担费用」（AA-009）"
+        - "阈值：config/rulelist_v12.json::params.AA-009"
+        - "取数：关联方费用承担"
+      suggestion: "核查费用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（费用承担）"
+      note: "= REL-010"
+  - rule_id: "AA-010"
+    name: "成本分摊协议异常"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cost_sharing_agreement_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.AA-010"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "成本分摊协议"
+    risk:
+      message: "成本分摊协议异常"
+      evidence:
+        - "命中：「成本分摊协议异常」（AA-010）"
+        - "阈值：config/rulelist_v12.json::params.AA-010"
+        - "取数：成本分摊协议"
+      suggestion: "核查分摊"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "需成本分摊协议文本 ⇒ 待资料 + 判据未定义"
+  - rule_id: "AA-011"
+    name: "预约定价安排未执行"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "APA_exists and actual_transaction != APA_terms"
+    params_ref: "config/rulelist_v12.json::params.AA-011"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "APA"
+      - "实际交易"
+    risk:
+      message: "预约定价安排未执行"
+      evidence:
+        - "命中：「预约定价安排未执行」（AA-011）"
+        - "阈值：config/rulelist_v12.json::params.AA-011"
+        - "取数：APA / 实际交易"
+      suggestion: "核查执行"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: "engine/domain_analysis（预约定价关键词）"
+      note: "仅有文案提及；APA 文本不可得 ⇒ 待资料"
+  - rule_id: "AA-012"
+    name: "同期资料缺失"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_transaction_threshold_met and contemporaneous_docs_missing"
+    params_ref: "config/rulelist_v12.json::params.AA-012"
+    params:
+      related_transaction_threshold: null
+      _basis: "同期资料准备门槛（关联购销≥2亿/其他≥4000万等，需法规库参数）"
+    inputs:
+      - "关联交易"
+      - "同期资料"
+    risk:
+      message: "同期资料缺失"
+      evidence:
+        - "命中：「同期资料缺失」（AA-012）"
+        - "阈值：config/rulelist_v12.json::params.AA-012"
+        - "取数：关联交易 / 同期资料"
+      suggestion: "核查资料"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis / enterprise_report（同期资料）"
+  - rule_id: "AA-013"
+    name: "国别报告缺失"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "CbCR_required and CbCR_missing"
+    params_ref: "config/rulelist_v12.json::params.AA-013"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "国别报告要求"
+      - "提交"
+    risk:
+      message: "国别报告缺失"
+      evidence:
+        - "命中：「国别报告缺失」（AA-013）"
+        - "阈值：config/rulelist_v12.json::params.AA-013"
+        - "取数：国别报告要求 / 提交"
+      suggestion: "核查报告"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；需国别报告数据 ⇒ 待资料"
+  - rule_id: "AA-014"
+    name: "主体文档缺失"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "master_file_required and master_file_missing"
+    params_ref: "config/rulelist_v12.json::params.AA-014"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "主体文档"
+    risk:
+      message: "主体文档缺失"
+      evidence:
+        - "命中：「主体文档缺失」（AA-014）"
+        - "阈值：config/rulelist_v12.json::params.AA-014"
+        - "取数：主体文档"
+      suggestion: "核查文档"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "需转让定价文档体系 ⇒ 待资料"
+  - rule_id: "AA-015"
+    name: "本地文档缺失"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "local_file_required and local_file_missing"
+    params_ref: "config/rulelist_v12.json::params.AA-015"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "本地文档"
+    risk:
+      message: "本地文档缺失"
+      evidence:
+        - "命中：「本地文档缺失」（AA-015）"
+        - "阈值：config/rulelist_v12.json::params.AA-015"
+        - "取数：本地文档"
+      suggestion: "核查文档"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"
+  - rule_id: "AA-016"
+    name: "特殊事项文档缺失"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "special_file_required and special_file_missing"
+    params_ref: "config/rulelist_v12.json::params.AA-016"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "特殊事项文档"
+    risk:
+      message: "特殊事项文档缺失"
+      evidence:
+        - "命中：「特殊事项文档缺失」（AA-016）"
+        - "阈值：config/rulelist_v12.json::params.AA-016"
+        - "取数：特殊事项文档"
+      suggestion: "核查文档"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"
+  - rule_id: "AA-017"
+    name: "合理商业目的不足"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "reasonable_business_purpose_score < params.purpose_score_threshold"
+    params_ref: "config/rulelist_v12.json::params.AA-017"
+    params:
+      purpose_score_threshold: null
+      _basis: "合理商业目的评分阈值（需评分模型，暂不可算）"
+    inputs:
+      - "商业目的评分"
+    risk:
+      message: "合理商业目的不足"
+      evidence:
+        - "命中：「合理商业目的不足」（AA-017）"
+        - "阈值：config/rulelist_v12.json::params.AA-017"
+        - "取数：商业目的评分"
+      suggestion: "核查目的"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "★ 需评分模型（当前不存在）⇒ 先细化判据；与 REO-015 重复"
+  - rule_id: "AA-018"
+    name: "导管公司特征"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "conduit_company_indicators > params.conduit_indicators_threshold"
+    params_ref: "config/rulelist_v12.json::params.AA-018"
+    params:
+      conduit_indicators_threshold: null
+      _basis: "导管公司特征指标阈值（需模型）"
+    inputs:
+      - "导管公司指标"
+    risk:
+      message: "导管公司特征"
+      evidence:
+        - "命中：「导管公司特征」（AA-018）"
+        - "阈值：config/rulelist_v12.json::params.AA-018"
+        - "取数：导管公司指标"
+      suggestion: "核查实质"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "「指标」未定义 ⇒ 先细化（如：无雇员/无实质经营/单一资金来源）"
+  - rule_id: "AA-019"
+    name: "择协避税特征"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "treaty_shopping_indicators > params.treaty_shopping_threshold"
+    params_ref: "config/rulelist_v12.json::params.AA-019"
+    params:
+      treaty_shopping_threshold: null
+      _basis: "择协避税指标阈值（需模型）"
+    inputs:
+      - "择协避税指标"
+    risk:
+      message: "择协避税特征"
+      evidence:
+        - "命中：「择协避税特征」（AA-019）"
+        - "阈值：config/rulelist_v12.json::params.AA-019"
+        - "取数：择协避税指标"
+      suggestion: "核查受益所有人"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "AA-020"
+    name: "主要目的测试未通过"
+    tax_type: "反避税与转让定价"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "principal_purpose_test_failed = true"
+    params_ref: "config/rulelist_v12.json::params.AA-020"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "主要目的测试"
+    risk:
+      message: "主要目的测试未通过"
+      evidence:
+        - "命中：「主要目的测试未通过」（AA-020）"
+        - "阈值：config/rulelist_v12.json::params.AA-020"
+        - "取数：主要目的测试"
+      suggestion: "核查协定优惠"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"

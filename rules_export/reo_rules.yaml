@@ -1,0 +1,424 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "reo_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 15
+  covered: 1
+  partial: 1
+  missing: 4
+  placeholder: 9
+rules:
+  - rule_id: "REO-001"
+    name: "股权收购特殊性税务处理异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "special_tax_treatment and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.REO-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "特殊性税务处理"
+      - "条件"
+    risk:
+      message: "股权收购特殊性税务处理异常"
+      evidence:
+        - "命中：「股权收购特殊性税务处理异常」（REO-001）"
+        - "阈值：config/rulelist_v12.json::params.REO-001"
+        - "取数：特殊性税务处理 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；需重组资料 + 条件判据 ⇒ 先细化"
+  - rule_id: "REO-002"
+    name: "资产收购特殊性税务处理异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "special_tax_treatment and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.REO-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "特殊性税务处理"
+      - "条件"
+    risk:
+      message: "资产收购特殊性税务处理异常"
+      evidence:
+        - "命中：「资产收购特殊性税务处理异常」（REO-002）"
+        - "阈值：config/rulelist_v12.json::params.REO-002"
+        - "取数：特殊性税务处理 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"
+  - rule_id: "REO-003"
+    name: "企业合并特殊性税务处理异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "special_tax_treatment and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.REO-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "特殊性税务处理"
+      - "条件"
+    risk:
+      message: "企业合并特殊性税务处理异常"
+      evidence:
+        - "命中：「企业合并特殊性税务处理异常」（REO-003）"
+        - "阈值：config/rulelist_v12.json::params.REO-003"
+        - "取数：特殊性税务处理 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"
+  - rule_id: "REO-004"
+    name: "企业分立特殊性税务处理异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "special_tax_treatment and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.REO-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "特殊性税务处理"
+      - "条件"
+    risk:
+      message: "企业分立特殊性税务处理异常"
+      evidence:
+        - "命中：「企业分立特殊性税务处理异常」（REO-004）"
+        - "阈值：config/rulelist_v12.json::params.REO-004"
+        - "取数：特殊性税务处理 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"
+  - rule_id: "REO-005"
+    name: "债务重组特殊性税务处理异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "special_tax_treatment and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.REO-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "特殊性税务处理"
+      - "条件"
+    risk:
+      message: "债务重组特殊性税务处理异常"
+      evidence:
+        - "命中：「债务重组特殊性税务处理异常」（REO-005）"
+        - "阈值：config/rulelist_v12.json::params.REO-005"
+        - "取数：特殊性税务处理 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"
+  - rule_id: "REO-006"
+    name: "股权转让所得未申报"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "equity_transfer_income > 0 and tax_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.REO-006"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "股权转让所得"
+      - "申报"
+    risk:
+      message: "股权转让所得未申报"
+      evidence:
+        - "命中：「股权转让所得未申报」（REO-006）"
+        - "阈值：config/rulelist_v12.json::params.REO-006"
+        - "取数：股权转让所得 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-012（股权转让未申报个税）/ RL-SPT-009"
+      note: "系统覆盖个税侧；候选为企业所得税侧所得 ⇒ 合并为双税种"
+  - rule_id: "REO-007"
+    name: "股权转让价格偏低"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "transfer_price < fair_value * params.fair_value_ratio"
+    params_ref: "config/rulelist_v12.json::params.REO-007"
+    params:
+      fair_value_ratio: 0.7
+      _basis: "股权转让价格 vs 公允价值下限倍数"
+    inputs:
+      - "转让价格"
+      - "公允价值"
+    risk:
+      message: "股权转让价格偏低"
+      evidence:
+        - "命中：「股权转让价格偏低」（REO-007）"
+        - "阈值：config/rulelist_v12.json::params.REO-007"
+        - "取数：转让价格 / 公允价值"
+      suggestion: "核查价格"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-009（股权转让价格明显偏低且无正当理由）"
+  - rule_id: "REO-008"
+    name: "非货币性资产投资税务处理异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "non_monetary_asset_investment and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.REO-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "非货币资产投资"
+      - "税务处理"
+    risk:
+      message: "非货币性资产投资税务处理异常"
+      evidence:
+        - "命中：「非货币性资产投资税务处理异常」（REO-008）"
+        - "阈值：config/rulelist_v12.json::params.REO-008"
+        - "取数：非货币资产投资 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；可先做「非货币资产对外投资未见递延纳税备案」置疑"
+  - rule_id: "REO-009"
+    name: "技术入股递延纳税异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "technology_equity_investment and deferred_tax_conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.REO-009"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "技术入股"
+      - "递延条件"
+    risk:
+      message: "技术入股递延纳税异常"
+      evidence:
+        - "命中：「技术入股递延纳税异常」（REO-009）"
+        - "阈值：config/rulelist_v12.json::params.REO-009"
+        - "取数：技术入股 / 递延条件"
+      suggestion: "核查递延"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；需技术入股与递延备案资料 ⇒ 先细化"
+  - rule_id: "REO-010"
+    name: "股权激励递延纳税异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "equity_incentive and deferred_tax_conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.REO-010"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "股权激励"
+      - "递延条件"
+    risk:
+      message: "股权激励递延纳税异常"
+      evidence:
+        - "命中：「股权激励递延纳税异常」（REO-010）"
+        - "阈值：config/rulelist_v12.json::params.REO-010"
+        - "取数：股权激励 / 递延条件"
+      suggestion: "核查递延"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "= IIT-017（V1.1 已判 missing/placeholder，同判据）"
+  - rule_id: "REO-011"
+    name: "转增股本个税异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "capital_reserve_to_equity > 0 and IIT_withheld = 0"
+    params_ref: "config/rulelist_v12.json::params.REO-011"
+    params:
+      withholding_required: true
+      _basis: "转增股本视同分红须代扣个税（存在即触发）"
+    inputs:
+      - "转增股本"
+      - "个税"
+    risk:
+      message: "转增股本个税异常"
+      evidence:
+        - "命中：「转增股本个税异常」（REO-011）"
+        - "阈值：config/rulelist_v12.json::params.REO-011"
+        - "取数：转增股本 / 个税"
+      suggestion: "核查个税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；可真算（实收资本/资本公积变动 × 股东名册）"
+  - rule_id: "REO-012"
+    name: "未分配利润转增个税异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "retained_earnings_to_equity > 0 and IIT_withheld = 0"
+    params_ref: "config/rulelist_v12.json::params.REO-012"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "未分配利润转增"
+      - "个税"
+    risk:
+      message: "未分配利润转增个税异常"
+      evidence:
+        - "命中：「未分配利润转增个税异常」（REO-012）"
+        - "阈值：config/rulelist_v12.json::params.REO-012"
+        - "取数：未分配利润转增 / 个税"
+      suggestion: "核查个税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；可真算"
+  - rule_id: "REO-013"
+    name: "资本公积转增个税异常"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "capital_reserve_to_equity > 0 and IIT_withheld = 0"
+    params_ref: "config/rulelist_v12.json::params.REO-013"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "资本公积转增"
+      - "个税"
+    risk:
+      message: "资本公积转增个税异常"
+      evidence:
+        - "命中：「资本公积转增个税异常」（REO-013）"
+        - "阈值：config/rulelist_v12.json::params.REO-013"
+        - "取数：资本公积转增 / 个税"
+      suggestion: "核查个税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "★ 与 REO-011 判据重复（同表达式）⇒ 合并"
+  - rule_id: "REO-014"
+    name: "间接转让中国应税财产未申报"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "indirect_transfer_china_taxable_property and tax_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.REO-014"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "间接转让"
+      - "申报"
+    risk:
+      message: "间接转让中国应税财产未申报"
+      evidence:
+        - "命中：「间接转让中国应税财产未申报」（REO-014）"
+        - "阈值：config/rulelist_v12.json::params.REO-014"
+        - "取数：间接转让 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；需境外股权架构资料 ⇒ 待资料"
+  - rule_id: "REO-015"
+    name: "合理商业目的不足"
+    tax_type: "企业重组与资本交易"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "reasonable_business_purpose_score < params.purpose_score_threshold"
+    params_ref: "config/rulelist_v12.json::params.REO-015"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "商业目的评分"
+    risk:
+      message: "合理商业目的不足"
+      evidence:
+        - "命中：「合理商业目的不足」（REO-015）"
+        - "阈值：config/rulelist_v12.json::params.REO-015"
+        - "取数：商业目的评分"
+      suggestion: "核查目的"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "★ = AA-017（V1.2 内部重复）⇒ 合并为一条"

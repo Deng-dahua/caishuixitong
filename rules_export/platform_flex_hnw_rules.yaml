@@ -1,0 +1,549 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "platform_flex_hnw_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 20
+  covered: 1
+  partial: 5
+  missing: 4
+  placeholder: 10
+rules:
+  - rule_id: "PLAT-001"
+    name: "平台佣金收入未申报"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "platform_commission_income > 0 and tax_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.PLAT-001"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "平台佣金"
+      - "申报"
+    risk:
+      message: "平台佣金收入未申报"
+      evidence:
+        - "命中：「平台佣金收入未申报」（PLAT-001）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-001"
+        - "取数：平台佣金 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「平台佣金」；开票品名含「信息技术服务费/平台服务费」可算"
+  - rule_id: "PLAT-002"
+    name: "平台打赏收入未申报"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "live_reward_income > 0 and tax_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.PLAT-002"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "打赏收入"
+      - "申报"
+    risk:
+      message: "平台打赏收入未申报"
+      evidence:
+        - "命中：「平台打赏收入未申报」（PLAT-002）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-002"
+        - "取数：打赏收入 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "需平台结算数据 ⇒ 部分待资料"
+  - rule_id: "PLAT-003"
+    name: "主播个税未代扣"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "anchor_income > 0 and IIT_withheld = 0"
+    params_ref: "config/rulelist_v12.json::params.PLAT-003"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "主播收入"
+      - "个税"
+    risk:
+      message: "主播个税未代扣"
+      evidence:
+        - "命中：「主播个税未代扣」（PLAT-003）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-003"
+        - "取数：主播收入 / 个税"
+      suggestion: "核查代扣"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-013（灵活用工平台网红报酬未代扣个税）/ VR065"
+  - rule_id: "PLAT-004"
+    name: "MCN机构税务处理异常"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "MCN_income_allocation_abnormal"
+    params_ref: "config/rulelist_v12.json::params.PLAT-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "MCN收入"
+      - "分配"
+    risk:
+      message: "MCN机构税务处理异常"
+      evidence:
+        - "命中：「MCN机构税务处理异常」（PLAT-004）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-004"
+        - "取数：MCN收入 / 分配"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "PLAT-005"
+    name: "平台灵活用工结算异常"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "flexible_employment_settlement > params.amount_threshold and invoice_abnormal"
+    params_ref: "config/rulelist_v12.json::params.PLAT-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "灵活用工结算"
+      - "发票"
+    risk:
+      message: "平台灵活用工结算异常"
+      evidence:
+        - "命中：「平台灵活用工结算异常」（PLAT-005）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-005"
+        - "取数：灵活用工结算 / 发票"
+      suggestion: "核查结算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-013 + engine/memory（灵活用工）"
+  - rule_id: "PLAT-006"
+    name: "委托代征异常"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "entrusted_collection and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.PLAT-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "委托代征"
+      - "条件"
+    risk:
+      message: "委托代征异常"
+      evidence:
+        - "命中：「委托代征异常」（PLAT-006）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-006"
+        - "取数：委托代征 / 条件"
+      suggestion: "核查代征"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；需委托代征协议 ⇒ 待资料"
+  - rule_id: "PLAT-007"
+    name: "汇总代开发票异常"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "aggregated_invoice_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.PLAT-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "汇总代开"
+    risk:
+      message: "汇总代开发票异常"
+      evidence:
+        - "命中：「汇总代开发票异常」（PLAT-007）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-007"
+        - "取数：汇总代开"
+      suggestion: "核查代开"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "PLAT-008"
+    name: "自然人代开异常"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "natural_person_invoice > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.PLAT-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "自然人代开"
+    risk:
+      message: "自然人代开异常"
+      evidence:
+        - "命中：「自然人代开异常」（PLAT-008）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-008"
+        - "取数：自然人代开"
+      suggestion: "核查代开"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；可从进项发票的开票方为自然人/个体户识别（VR024 已有基础）"
+  - rule_id: "PLAT-009"
+    name: "临时税务登记异常"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "temporary_tax_registration > threshold"
+    params_ref: "config/rulelist_v12.json::params.PLAT-009"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "临时税务登记"
+    risk:
+      message: "临时税务登记异常"
+      evidence:
+        - "命中：「临时税务登记异常」（PLAT-009）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-009"
+        - "取数：临时税务登记"
+      suggestion: "核查登记"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无登记数据源 ⇒ 待资料"
+  - rule_id: "PLAT-010"
+    name: "集群注册异常"
+    tax_type: "平台经济"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cluster_registration > threshold"
+    params_ref: "config/rulelist_v12.json::params.PLAT-010"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "集群注册"
+    risk:
+      message: "集群注册异常"
+      evidence:
+        - "命中：「集群注册异常」（PLAT-010）"
+        - "阈值：config/rulelist_v12.json::params.PLAT-010"
+        - "取数：集群注册"
+      suggestion: "核查注册"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（集群注册）"
+  - rule_id: "FLEX-001"
+    name: "劳务外包变相用工"
+    tax_type: "灵活用工"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "labor_outsourcing_ratio > params.outsourcing_ratio and actual_employment = true"
+    params_ref: "config/rulelist_v12.json::params.FLEX-001"
+    params:
+      outsourcing_ratio: 0.5
+      _basis: "劳务外包占比阈值"
+    inputs:
+      - "劳务外包"
+      - "实际用工"
+    risk:
+      message: "劳务外包变相用工"
+      evidence:
+        - "命中：「劳务外包变相用工」（FLEX-001）"
+        - "阈值：config/rulelist_v12.json::params.FLEX-001"
+        - "取数：劳务外包 / 实际用工"
+      suggestion: "核查实质"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/account_classifier / text_guardrails（劳务外包）"
+  - rule_id: "FLEX-002"
+    name: "劳务派遣比例超标"
+    tax_type: "灵活用工"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "dispatch_worker_ratio > params.dispatch_ratio"
+    params_ref: "config/rulelist_v12.json::params.FLEX-002"
+    params:
+      dispatch_ratio: 0.1
+      _basis: "劳务派遣用工占比上限（10%）"
+    inputs:
+      - "派遣比例"
+    risk:
+      message: "劳务派遣比例超标"
+      evidence:
+        - "命中：「劳务派遣比例超标」（FLEX-002）"
+        - "阈值：config/rulelist_v12.json::params.FLEX-002"
+        - "取数：派遣比例"
+      suggestion: "核查比例"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "SI-005 相关（用工形式）+ VR022（用工人数）"
+  - rule_id: "FLEX-003"
+    name: "社保代缴异常"
+    tax_type: "灵活用工"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "social_security_agency > 0 and actual_employer != agency"
+    params_ref: "config/rulelist_v12.json::params.FLEX-003"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "社保代缴"
+      - "实际雇主"
+    risk:
+      message: "社保代缴异常"
+      evidence:
+        - "命中：「社保代缴异常」（FLEX-003）"
+        - "阈值：config/rulelist_v12.json::params.FLEX-003"
+        - "取数：社保代缴 / 实际雇主"
+      suggestion: "核查代缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；需社保代缴协议与参保单位名称比对 ⇒ 部分可得"
+  - rule_id: "FLEX-004"
+    name: "个税代征异常"
+    tax_type: "灵活用工"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "IIT_collection_agency and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.FLEX-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "个税代征"
+      - "条件"
+    risk:
+      message: "个税代征异常"
+      evidence:
+        - "命中：「个税代征异常」（FLEX-004）"
+        - "阈值：config/rulelist_v12.json::params.FLEX-004"
+        - "取数：个税代征 / 条件"
+      suggestion: "核查代征"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "FLEX-005"
+    name: "薪酬代发异常"
+    tax_type: "灵活用工"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "salary_payment_agency > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.FLEX-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "薪酬代发"
+    risk:
+      message: "薪酬代发异常"
+      evidence:
+        - "命中：「薪酬代发异常」（FLEX-005）"
+        - "阈值：config/rulelist_v12.json::params.FLEX-005"
+        - "取数：薪酬代发"
+      suggestion: "核查代发"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "bank_txs 代发识别 + engine/fund_matching"
+  - rule_id: "HNW-001"
+    name: "高净值个人税负偏低"
+    tax_type: "高净值个人"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "high_net_worth_tax_burden < params.burden_threshold"
+    params_ref: "config/rulelist_v12.json::params.HNW-001"
+    params:
+      burden_threshold: null
+      _basis: "高净值个人税负下限（需个税申报与资产数据）"
+    inputs:
+      - "高净值个人"
+      - "税负"
+    risk:
+      message: "高净值个人税负偏低"
+      evidence:
+        - "命中：「高净值个人税负偏低」（HNW-001）"
+        - "阈值：config/rulelist_v12.json::params.HNW-001"
+        - "取数：高净值个人 / 税负"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；需个人涉税信息 ⇒ 待资料（企业侧仅能置疑）"
+  - rule_id: "HNW-002"
+    name: "境外资产未申报"
+    tax_type: "高净值个人"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "overseas_asset > 0 and declared = 0"
+    params_ref: "config/rulelist_v12.json::params.HNW-002"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "境外资产"
+      - "申报"
+    risk:
+      message: "境外资产未申报"
+      evidence:
+        - "命中：「境外资产未申报」（HNW-002）"
+        - "阈值：config/rulelist_v12.json::params.HNW-002"
+        - "取数：境外资产 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "数据源不存在 ⇒ 待资料"
+  - rule_id: "HNW-003"
+    name: "境外收入未申报"
+    tax_type: "高净值个人"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "overseas_income > 0 and declared = 0"
+    params_ref: "config/rulelist_v12.json::params.HNW-003"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "境外收入"
+      - "申报"
+    risk:
+      message: "境外收入未申报"
+      evidence:
+        - "命中：「境外收入未申报」（HNW-003）"
+        - "阈值：config/rulelist_v12.json::params.HNW-003"
+        - "取数：境外收入 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= INT-010（同判据）"
+  - rule_id: "HNW-004"
+    name: "家族信托税务处理异常"
+    tax_type: "高净值个人"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "family_trust_tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.HNW-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "家族信托"
+      - "税务处理"
+    risk:
+      message: "家族信托税务处理异常"
+      evidence:
+        - "命中：「家族信托税务处理异常」（HNW-004）"
+        - "阈值：config/rulelist_v12.json::params.HNW-004"
+        - "取数：家族信托 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义 ⇒ 先细化"
+  - rule_id: "HNW-005"
+    name: "大额保单税务处理异常"
+    tax_type: "高净值个人"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "large_insurance_policy > params.amount_threshold"
+    params_ref: "config/rulelist_v12.json::params.HNW-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "大额保单"
+    risk:
+      message: "大额保单税务处理异常"
+      evidence:
+        - "命中：「大额保单税务处理异常」（HNW-005）"
+        - "阈值：config/rulelist_v12.json::params.HNW-005"
+        - "取数：大额保单"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义 ⇒ 先细化"

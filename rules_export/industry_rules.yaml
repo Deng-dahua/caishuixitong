@@ -1,0 +1,558 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "industry_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 20
+  covered: 2
+  partial: 3
+  missing: 5
+  placeholder: 10
+rules:
+  - rule_id: "HNTECH-001"
+    name: "高新条件不满足但享受优惠"
+    tax_type: "高新技术企业"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "high_tech_condition_met = false and high_tech_deduction > 0"
+    params_ref: "config/rulelist_v12.json::params.HNTECH-001"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "高新条件"
+      - "优惠"
+    risk:
+      message: "高新条件不满足但享受优惠"
+      evidence:
+        - "命中：「高新条件不满足但享受优惠」（HNTECH-001）"
+        - "阈值：config/rulelist_v12.json::params.HNTECH-001"
+        - "取数：高新条件 / 优惠"
+      suggestion: "核查高新"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（高新条件核验）"
+      note: "= TAXINC-006（重复）"
+  - rule_id: "HNTECH-002"
+    name: "高新研发费用占比异常"
+    tax_type: "高新技术企业"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "R&D_ratio < params.rnd_ratio_required"
+    params_ref: "config/rulelist_v12.json::params.HNTECH-002"
+    params:
+      rnd_ratio_required: 0.03
+      _basis: "高新研发费用占比要求（按收入档：<5000万→5%，5000万~2亿→4%，>2亿→3%）"
+    inputs:
+      - "研发费用占比"
+      - "要求"
+    risk:
+      message: "高新研发费用占比异常"
+      evidence:
+        - "命中：「高新研发费用占比异常」（HNTECH-002）"
+        - "阈值：config/rulelist_v12.json::params.HNTECH-002"
+        - "取数：研发费用占比 / 要求"
+      suggestion: "核查占比"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "占比要求按收入档（5%/4%/3%），须分档参数"
+  - rule_id: "HNTECH-003"
+    name: "高新科技人员占比异常"
+    tax_type: "高新技术企业"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tech_personnel_ratio < params.tech_personnel_ratio_required"
+    params_ref: "config/rulelist_v12.json::params.HNTECH-003"
+    params:
+      tech_personnel_ratio_required: 0.1
+      _basis: "高新科技人员占比要求（≥10%）"
+    inputs:
+      - "科技人员占比"
+      - "要求"
+    risk:
+      message: "高新科技人员占比异常"
+      evidence:
+        - "命中：「高新科技人员占比异常」（HNTECH-003）"
+        - "阈值：config/rulelist_v12.json::params.HNTECH-003"
+        - "取数：科技人员占比 / 要求"
+      suggestion: "核查占比"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "可真算（员工名册 × 学历/岗位）"
+  - rule_id: "RD-001"
+    name: "研发费用加计扣除异常"
+    tax_type: "研发"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "R&D_deduction and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.RD-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "研发加计"
+      - "条件"
+    risk:
+      message: "研发费用加计扣除异常"
+      evidence:
+        - "命中：「研发费用加计扣除异常」（RD-001）"
+        - "阈值：config/rulelist_v12.json::params.RD-001"
+        - "取数：研发加计 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-003（研发费用加计扣除归集异常）"
+      note: "= TAXINC-008"
+  - rule_id: "RD-002"
+    name: "研发费用归集异常"
+    tax_type: "研发"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "R&D_expense_allocation_abnormal"
+    params_ref: "config/rulelist_v12.json::params.RD-002"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "研发费用归集"
+    risk:
+      message: "研发费用归集异常"
+      evidence:
+        - "命中：「研发费用归集异常」（RD-002）"
+        - "阈值：config/rulelist_v12.json::params.RD-002"
+        - "取数：研发费用归集"
+      suggestion: "核查归集"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-003（归集异常）"
+  - rule_id: "SOFT-001"
+    name: "软件企业优惠异常"
+    tax_type: "软件企业"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "software_condition_met = false and software_deduction > 0"
+    params_ref: "config/rulelist_v12.json::params.SOFT-001"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "软件条件"
+      - "优惠"
+    risk:
+      message: "软件企业优惠异常"
+      evidence:
+        - "命中：「软件企业优惠异常」（SOFT-001）"
+        - "阈值：config/rulelist_v12.json::params.SOFT-001"
+        - "取数：软件条件 / 优惠"
+      suggestion: "核查软件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer（软件产品即征即退）"
+      note: "= TAXINC-010"
+  - rule_id: "IC-001"
+    name: "集成电路企业优惠异常"
+    tax_type: "集成电路"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "IC_condition_met = false and IC_deduction > 0"
+    params_ref: "config/rulelist_v12.json::params.IC-001"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "集成电路条件"
+      - "优惠"
+    risk:
+      message: "集成电路企业优惠异常"
+      evidence:
+        - "命中：「集成电路企业优惠异常」（IC-001）"
+        - "阈值：config/rulelist_v12.json::params.IC-001"
+        - "取数：集成电路条件 / 优惠"
+      suggestion: "核查集成电路"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；可扩展 tax_incentive_analyzer 的政策库（加一行数据）"
+  - rule_id: "ANIME-001"
+    name: "动漫企业优惠异常"
+    tax_type: "动漫"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "anime_condition_met = false and anime_deduction > 0"
+    params_ref: "config/rulelist_v12.json::params.ANIME-001"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "动漫条件"
+      - "优惠"
+    risk:
+      message: "动漫企业优惠异常"
+      evidence:
+        - "命中：「动漫企业优惠异常」（ANIME-001）"
+        - "阈值：config/rulelist_v12.json::params.ANIME-001"
+        - "取数：动漫条件 / 优惠"
+      suggestion: "核查动漫"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；同上"
+  - rule_id: "CULT-001"
+    name: "文化企业优惠异常"
+    tax_type: "文化企业"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "culture_condition_met = false and culture_deduction > 0"
+    params_ref: "config/rulelist_v12.json::params.CULT-001"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "文化条件"
+      - "优惠"
+    risk:
+      message: "文化企业优惠异常"
+      evidence:
+        - "命中：「文化企业优惠异常」（CULT-001）"
+        - "阈值：config/rulelist_v12.json::params.CULT-001"
+        - "取数：文化条件 / 优惠"
+      suggestion: "核查文化"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；同上"
+  - rule_id: "EDU-001"
+    name: "教育服务税务处理异常"
+    tax_type: "教育"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "education_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.EDU-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "教育服务"
+      - "税务处理"
+    risk:
+      message: "教育服务税务处理异常"
+      evidence:
+        - "命中：「教育服务税务处理异常」（EDU-001）"
+        - "阈值：config/rulelist_v12.json::params.EDU-001"
+        - "取数：教育服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "MED-001"
+    name: "医疗服务税务处理异常"
+    tax_type: "医疗"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "medical_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.MED-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "医疗服务"
+      - "税务处理"
+    risk:
+      message: "医疗服务税务处理异常"
+      evidence:
+        - "命中：「医疗服务税务处理异常」（MED-001）"
+        - "阈值：config/rulelist_v12.json::params.MED-001"
+        - "取数：医疗服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同"
+  - rule_id: "ELDER-001"
+    name: "养老服务税务处理异常"
+    tax_type: "养老"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "elderly_care_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.ELDER-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "养老服务"
+      - "税务处理"
+    risk:
+      message: "养老服务税务处理异常"
+      evidence:
+        - "命中：「养老服务税务处理异常」（ELDER-001）"
+        - "阈值：config/rulelist_v12.json::params.ELDER-001"
+        - "取数：养老服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同"
+  - rule_id: "CHILD-001"
+    name: "托育服务税务处理异常"
+    tax_type: "托育"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "childcare_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.CHILD-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "托育服务"
+      - "税务处理"
+    risk:
+      message: "托育服务税务处理异常"
+      evidence:
+        - "命中：「托育服务税务处理异常」（CHILD-001）"
+        - "阈值：config/rulelist_v12.json::params.CHILD-001"
+        - "取数：托育服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；同"
+  - rule_id: "HOUSE-001"
+    name: "家政服务税务处理异常"
+    tax_type: "家政"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "domestic_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.HOUSE-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "家政服务"
+      - "税务处理"
+    risk:
+      message: "家政服务税务处理异常"
+      evidence:
+        - "命中：「家政服务税务处理异常」（HOUSE-001）"
+        - "阈值：config/rulelist_v12.json::params.HOUSE-001"
+        - "取数：家政服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_redlines / verified_rule_engine（家政）"
+  - rule_id: "SPORT-001"
+    name: "体育服务税务处理异常"
+    tax_type: "体育"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "sports_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.SPORT-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "体育服务"
+      - "税务处理"
+    risk:
+      message: "体育服务税务处理异常"
+      evidence:
+        - "命中：「体育服务税务处理异常」（SPORT-001）"
+        - "阈值：config/rulelist_v12.json::params.SPORT-001"
+        - "取数：体育服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "TOUR-001"
+    name: "旅游服务税务处理异常"
+    tax_type: "旅游"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tourism_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.TOUR-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "旅游服务"
+      - "税务处理"
+    risk:
+      message: "旅游服务税务处理异常"
+      evidence:
+        - "命中：「旅游服务税务处理异常」（TOUR-001）"
+        - "阈值：config/rulelist_v12.json::params.TOUR-001"
+        - "取数：旅游服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同"
+  - rule_id: "HOTEL-001"
+    name: "住宿服务税务处理异常"
+    tax_type: "住宿"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "hotel_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.HOTEL-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "住宿服务"
+      - "税务处理"
+    risk:
+      message: "住宿服务税务处理异常"
+      evidence:
+        - "命中：「住宿服务税务处理异常」（HOTEL-001）"
+        - "阈值：config/rulelist_v12.json::params.HOTEL-001"
+        - "取数：住宿服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同"
+  - rule_id: "CATER-001"
+    name: "餐饮服务税务处理异常"
+    tax_type: "餐饮"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "catering_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.CATER-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "餐饮服务"
+      - "税务处理"
+    risk:
+      message: "餐饮服务税务处理异常"
+      evidence:
+        - "命中：「餐饮服务税务处理异常」（CATER-001）"
+        - "阈值：config/rulelist_v12.json::params.CATER-001"
+        - "取数：餐饮服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同"
+  - rule_id: "ENT-001"
+    name: "娱乐服务税务处理异常"
+    tax_type: "娱乐"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "entertainment_service and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.ENT-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "娱乐服务"
+      - "税务处理"
+    risk:
+      message: "娱乐服务税务处理异常"
+      evidence:
+        - "命中：「娱乐服务税务处理异常」（ENT-001）"
+        - "阈值：config/rulelist_v12.json::params.ENT-001"
+        - "取数：娱乐服务 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同"
+  - rule_id: "CBEC-001"
+    name: "跨境电商税务处理异常"
+    tax_type: "跨境电商"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cross_border_ecommerce and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.CBEC-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "跨境电商"
+      - "税务处理"
+    risk:
+      message: "跨境电商税务处理异常"
+      evidence:
+        - "命中：「跨境电商税务处理异常」（CBEC-001）"
+        - "阈值：config/rulelist_v12.json::params.CBEC-001"
+        - "取数：跨境电商 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同"

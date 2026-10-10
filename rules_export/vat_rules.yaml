@@ -1,11 +1,11 @@
 # ==========================================================================
 # 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
-# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
 # 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
 # ==========================================================================
 schema: 1
 file: "vat_rules.yaml"
-rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
 rule_set_version: "2026.10"
 status: draft
 wired: false
@@ -54,7 +54,7 @@ rules:
     condition: "abs(vat_burden - vat_burden_last_year) / vat_burden_last_year > params.volatility"
     params_ref: "config/rulelist_v1.json::params.VAT-002"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "vat_burden"
       - "vat_burden_last_year"
@@ -162,7 +162,7 @@ rules:
     condition: "abs(input_qty - output_qty) / output_qty > params.qty_ratio"
     params_ref: "config/rulelist_v1.json::params.VAT-006"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "进销项数量"
     risk:
@@ -451,7 +451,7 @@ rules:
     condition: "sales_return_ratio > params.return_ratio"
     params_ref: "config/rulelist_v1.json::params.VAT-017"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "销售退回金额"
       - "销售收入"
@@ -712,7 +712,7 @@ rules:
     condition: "AR_growth - revenue_growth > params.growth_gap"
     params_ref: "config/rulelist_v1.json::params.VAT-027"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "应收账款"
       - "收入"
@@ -764,7 +764,7 @@ rules:
     condition: "applied_vat_rate != correct_vat_rate"
     params_ref: "config/rulelist_v1.json::params.VAT-029"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "适用税率"
       - "正确税率"
@@ -791,7 +791,7 @@ rules:
     condition: "refund_amount > params.amount_threshold and refund_condition not met"
     params_ref: "config/rulelist_v1.json::params.VAT-030"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "退税金额"
       - "退税条件"

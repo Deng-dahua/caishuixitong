@@ -1,11 +1,11 @@
 # ==========================================================================
 # 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
-# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
 # 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
 # ==========================================================================
 schema: 1
 file: "cit_rules.yaml"
-rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
 rule_set_version: "2026.10"
 status: draft
 wired: false
@@ -26,7 +26,7 @@ rules:
     condition: "cit_contribution < industry_avg_cit_contribution * params.ratio"
     params_ref: "config/rulelist_v1.json::params.CIT-001"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "cit_payable"
       - "revenue"
@@ -424,7 +424,7 @@ rules:
     condition: "amortization_amount != amortization_policy_amount"
     params_ref: "config/rulelist_v1.json::params.CIT-016"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "amortization_amount"
       - "policy"
@@ -686,7 +686,7 @@ rules:
     condition: "accrued_expense > actual_payment"
     params_ref: "config/rulelist_v1.json::params.CIT-026"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "accrued_expense"
       - "actual_payment"

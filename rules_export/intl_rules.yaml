@@ -1,0 +1,545 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "intl_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 20
+  covered: 1
+  partial: 7
+  missing: 2
+  placeholder: 10
+rules:
+  - rule_id: "INT-001"
+    name: "非居民预提所得税未代扣"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "non_resident_income > 0 and withholding_tax = 0"
+    params_ref: "config/rulelist_v12.json::params.INT-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "非居民所得"
+      - "预提税"
+    risk:
+      message: "非居民预提所得税未代扣"
+      evidence:
+        - "命中：「非居民预提所得税未代扣」（INT-001）"
+        - "阈值：config/rulelist_v12.json::params.INT-001"
+        - "取数：非居民所得 / 预提税"
+      suggestion: "核查代扣"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-006（向非居民支付境内所得未履行源泉扣缴）"
+  - rule_id: "INT-002"
+    name: "非居民股息预提税异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "dividend_to_non_resident > 0 and withholding_tax < correct_tax"
+    params_ref: "config/rulelist_v12.json::params.INT-002"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "股息"
+      - "预提税"
+    risk:
+      message: "非居民股息预提税异常"
+      evidence:
+        - "命中：「非居民股息预提税异常」（INT-002）"
+        - "阈值：config/rulelist_v12.json::params.INT-002"
+        - "取数：股息 / 预提税"
+      suggestion: "核查代扣"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-006（未分所得类型）"
+  - rule_id: "INT-003"
+    name: "非居民利息预提税异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "interest_to_non_resident > 0 and withholding_tax < correct_tax"
+    params_ref: "config/rulelist_v12.json::params.INT-003"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "利息"
+      - "预提税"
+    risk:
+      message: "非居民利息预提税异常"
+      evidence:
+        - "命中：「非居民利息预提税异常」（INT-003）"
+        - "阈值：config/rulelist_v12.json::params.INT-003"
+        - "取数：利息 / 预提税"
+      suggestion: "核查代扣"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-006"
+  - rule_id: "INT-004"
+    name: "非居民特许权使用费预提税异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "royalty_to_non_resident > 0 and withholding_tax < correct_tax"
+    params_ref: "config/rulelist_v12.json::params.INT-004"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "特许权使用费"
+      - "预提税"
+    risk:
+      message: "非居民特许权使用费预提税异常"
+      evidence:
+        - "命中：「非居民特许权使用费预提税异常」（INT-004）"
+        - "阈值：config/rulelist_v12.json::params.INT-004"
+        - "取数：特许权使用费 / 预提税"
+      suggestion: "核查代扣"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-006"
+  - rule_id: "INT-005"
+    name: "非居民财产转让预提税异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "property_transfer_to_non_resident > 0 and withholding_tax = 0"
+    params_ref: "config/rulelist_v12.json::params.INT-005"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "财产转让"
+      - "预提税"
+    risk:
+      message: "非居民财产转让预提税异常"
+      evidence:
+        - "命中：「非居民财产转让预提税异常」（INT-005）"
+        - "阈值：config/rulelist_v12.json::params.INT-005"
+        - "取数：财产转让 / 预提税"
+      suggestion: "核查代扣"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-006"
+  - rule_id: "INT-006"
+    name: "常设机构判定异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "permanent_establishment_indicators > threshold"
+    params_ref: "config/rulelist_v12.json::params.INT-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "常设机构指标"
+    risk:
+      message: "常设机构判定异常"
+      evidence:
+        - "命中：「常设机构判定异常」（INT-006）"
+        - "阈值：config/rulelist_v12.json::params.INT-006"
+        - "取数：常设机构指标"
+      suggestion: "核查常设机构"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义 ⇒ 先细化"
+  - rule_id: "INT-007"
+    name: "国际运输税收异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "international_transport_income > 0 and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.INT-007"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "国际运输收入"
+      - "税务处理"
+    risk:
+      message: "国际运输税收异常"
+      evidence:
+        - "命中：「国际运输税收异常」（INT-007）"
+        - "阈值：config/rulelist_v12.json::params.INT-007"
+        - "取数：国际运输收入 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "INT-008"
+    name: "税收协定优惠适用异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "treaty_benefit_claimed and beneficial_owner_test_failed"
+    params_ref: "config/rulelist_v12.json::params.INT-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "协定优惠"
+      - "受益所有人"
+    risk:
+      message: "税收协定优惠适用异常"
+      evidence:
+        - "命中：「税收协定优惠适用异常」（INT-008）"
+        - "阈值：config/rulelist_v12.json::params.INT-008"
+        - "取数：协定优惠 / 受益所有人"
+      suggestion: "核查受益所有人"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/external_check_reminder（受益所有人）+ manual_inspection_worksheets"
+  - rule_id: "INT-009"
+    name: "受益所有人认定异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "beneficial_owner_indicators < threshold"
+    params_ref: "config/rulelist_v12.json::params.INT-009"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "受益所有人指标"
+    risk:
+      message: "受益所有人认定异常"
+      evidence:
+        - "命中：「受益所有人认定异常」（INT-009）"
+        - "阈值：config/rulelist_v12.json::params.INT-009"
+        - "取数：受益所有人指标"
+      suggestion: "核查认定"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/external_check_reminder / manual_inspection_worksheets"
+  - rule_id: "INT-010"
+    name: "境外所得未申报"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "overseas_income > 0 and declared_overseas_income = 0"
+    params_ref: "config/rulelist_v12.json::params.INT-010"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "境外所得"
+      - "申报"
+    risk:
+      message: "境外所得未申报"
+      evidence:
+        - "命中：「境外所得未申报」（INT-010）"
+        - "阈值：config/rulelist_v12.json::params.INT-010"
+        - "取数：境外所得 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；需境外所得申报表（A108000 系列）⇒ 先置疑"
+  - rule_id: "INT-011"
+    name: "境外所得抵免异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "foreign_tax_credit > correct_credit"
+    params_ref: "config/rulelist_v12.json::params.INT-011"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "境外抵免"
+      - "正确抵免"
+    risk:
+      message: "境外所得抵免异常"
+      evidence:
+        - "命中：「境外所得抵免异常」（INT-011）"
+        - "阈值：config/rulelist_v12.json::params.INT-011"
+        - "取数：境外抵免 / 正确抵免"
+      suggestion: "核查抵免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中；同上"
+  - rule_id: "INT-012"
+    name: "直接抵免异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "direct_credit_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.INT-012"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "直接抵免"
+    risk:
+      message: "直接抵免异常"
+      evidence:
+        - "命中：「直接抵免异常」（INT-012）"
+        - "阈值：config/rulelist_v12.json::params.INT-012"
+        - "取数：直接抵免"
+      suggestion: "核查抵免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "INT-013"
+    name: "间接抵免异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "indirect_credit_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.INT-013"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "间接抵免"
+    risk:
+      message: "间接抵免异常"
+      evidence:
+        - "命中：「间接抵免异常」（INT-013）"
+        - "阈值：config/rulelist_v12.json::params.INT-013"
+        - "取数：间接抵免"
+      suggestion: "核查抵免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "INT-014"
+    name: "分国不分项抵免异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "country_by_country_credit_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.INT-014"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "分国抵免"
+    risk:
+      message: "分国不分项抵免异常"
+      evidence:
+        - "命中：「分国不分项抵免异常」（INT-014）"
+        - "阈值：config/rulelist_v12.json::params.INT-014"
+        - "取数：分国抵免"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "INT-015"
+    name: "综合抵免异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "comprehensive_credit_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.INT-015"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "综合抵免"
+    risk:
+      message: "综合抵免异常"
+      evidence:
+        - "命中：「综合抵免异常」（INT-015）"
+        - "阈值：config/rulelist_v12.json::params.INT-015"
+        - "取数：综合抵免"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "INT-016"
+    name: "饶让抵免异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_sparing_credit_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.INT-016"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "饶让抵免"
+    risk:
+      message: "饶让抵免异常"
+      evidence:
+        - "命中：「饶让抵免异常」（INT-016）"
+        - "阈值：config/rulelist_v12.json::params.INT-016"
+        - "取数：饶让抵免"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义 ⇒ 先细化"
+  - rule_id: "INT-017"
+    name: "CRS信息申报异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "CRS_reporting_missing = true"
+    params_ref: "config/rulelist_v12.json::params.INT-017"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "CRS申报"
+    risk:
+      message: "CRS信息申报异常"
+      evidence:
+        - "命中：「CRS信息申报异常」（INT-017）"
+        - "阈值：config/rulelist_v12.json::params.INT-017"
+        - "取数：CRS申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/audit_coverage / manual_inspection_worksheets（CRS）"
+  - rule_id: "INT-018"
+    name: "对外支付备案缺失"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "outbound_payment > params.outbound_payment_threshold and filing_missing = true"
+    params_ref: "config/rulelist_v12.json::params.INT-018"
+    params:
+      outbound_payment_threshold: null
+      _basis: "对外支付备案金额门槛（5万美元，需法规库参数）"
+    inputs:
+      - "对外支付"
+      - "备案"
+    risk:
+      message: "对外支付备案缺失"
+      evidence:
+        - "命中：「对外支付备案缺失」（INT-018）"
+        - "阈值：config/rulelist_v12.json::params.INT-018"
+        - "取数：对外支付 / 备案"
+      suggestion: "核查备案"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；需对外支付备案数据 ⇒ 待资料"
+  - rule_id: "INT-019"
+    name: "服务贸易对外支付税务备案异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "service_trade_payment > params.service_trade_payment_threshold and tax_filing_missing"
+    params_ref: "config/rulelist_v12.json::params.INT-019"
+    params:
+      service_trade_payment_threshold: null
+      _basis: "服务贸易对外支付税务备案门槛"
+    inputs:
+      - "服务贸易支付"
+      - "备案"
+    risk:
+      message: "服务贸易对外支付税务备案异常"
+      evidence:
+        - "命中：「服务贸易对外支付税务备案异常」（INT-019）"
+        - "阈值：config/rulelist_v12.json::params.INT-019"
+        - "取数：服务贸易支付 / 备案"
+      suggestion: "核查备案"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"
+  - rule_id: "INT-020"
+    name: "非居民享受协定待遇后续管理异常"
+    tax_type: "国际税收与非居民"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "treaty_benefit_followup_missing = true"
+    params_ref: "config/rulelist_v12.json::params.INT-020"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "协定待遇"
+      - "后续管理"
+    risk:
+      message: "非居民享受协定待遇后续管理异常"
+      evidence:
+        - "命中：「非居民享受协定待遇后续管理异常」（INT-020）"
+        - "阈值：config/rulelist_v12.json::params.INT-020"
+        - "取数：协定待遇 / 后续管理"
+      suggestion: "核查管理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"

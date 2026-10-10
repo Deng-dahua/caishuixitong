@@ -1,0 +1,279 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "einvoice_rrt_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 10
+  covered: 1
+  partial: 6
+  placeholder: 3
+rules:
+  - rule_id: "EINV-001"
+    name: "电子发票重复报销"
+    tax_type: "电子发票"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "duplicate_e_invoice = true"
+    params_ref: "config/rulelist_v12.json::params.EINV-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "电子发票"
+      - "报销记录"
+    risk:
+      message: "电子发票重复报销"
+      evidence:
+        - "命中：「电子发票重复报销」（EINV-001）"
+        - "阈值：config/rulelist_v12.json::params.EINV-001"
+        - "取数：电子发票 / 报销记录"
+      suggestion: "核查重复"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR003 / VR004（票号重复）"
+      note: "= INV-019"
+  - rule_id: "EINV-002"
+    name: "全电发票红冲异常"
+    tax_type: "电子发票"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "full_e_invoice_void_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.EINV-002"
+    params:
+      void_abnormal_ratio: null
+      _basis: "全电发票红冲异常占比阈值"
+    inputs:
+      - "全电发票"
+      - "红冲"
+    risk:
+      message: "全电发票红冲异常"
+      evidence:
+        - "命中：「全电发票红冲异常」（EINV-002）"
+        - "阈值：config/rulelist_v12.json::params.EINV-002"
+        - "取数：全电发票 / 红冲"
+      suggestion: "核查红冲"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR071（红字发票合规性异常）"
+      note: "系统覆盖红冲合规性；「全电发票」是票种属性，不改变判据 ⇒ 合并"
+  - rule_id: "EINV-003"
+    name: "数电票开具异常"
+    tax_type: "电子发票"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "digital_invoice_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.EINV-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "数电票"
+    risk:
+      message: "数电票开具异常"
+      evidence:
+        - "命中：「数电票开具异常」（EINV-003）"
+        - "阈值：config/rulelist_v12.json::params.EINV-003"
+        - "取数：数电票"
+      suggestion: "核查开具"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/bank_flow / domain_analysis（数电票）"
+  - rule_id: "EINV-004"
+    name: "发票查验异常"
+    tax_type: "电子发票"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "invoice_verification_failed = true"
+    params_ref: "config/rulelist_v12.json::params.EINV-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "发票查验"
+    risk:
+      message: "发票查验异常"
+      evidence:
+        - "命中：「发票查验异常」（EINV-004）"
+        - "阈值：config/rulelist_v12.json::params.EINV-004"
+        - "取数：发票查验"
+      suggestion: "核查查验"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无查验接口/结果数据 ⇒ 待资料"
+  - rule_id: "EINV-005"
+    name: "发票勾选异常"
+    tax_type: "电子发票"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "invoice_selection_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.EINV-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "发票勾选"
+    risk:
+      message: "发票勾选异常"
+      evidence:
+        - "命中：「发票勾选异常」（EINV-005）"
+        - "阈值：config/rulelist_v12.json::params.EINV-005"
+        - "取数：发票勾选"
+      suggestion: "核查勾选"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无勾选确认数据 ⇒ 待资料"
+  - rule_id: "RRT-001"
+    name: "留抵退税条件不符"
+    tax_type: "留抵退税"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "retained_tax_refund and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.RRT-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "留抵退税"
+      - "条件"
+    risk:
+      message: "留抵退税条件不符"
+      evidence:
+        - "命中：「留抵退税条件不符」（RRT-001）"
+        - "阈值：config/rulelist_v12.json::params.RRT-001"
+        - "取数：留抵退税 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-VAT-013（增值税留抵退税真实性存疑）"
+  - rule_id: "RRT-002"
+    name: "增量留抵异常"
+    tax_type: "留抵退税"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "incremental_retained_tax_refund_abnormal"
+    params_ref: "config/rulelist_v12.json::params.RRT-002"
+    params:
+      incremental_abnormal_tolerance: null
+      _basis: "增量留抵退税异常容忍"
+    inputs:
+      - "增量留抵"
+    risk:
+      message: "增量留抵异常"
+      evidence:
+        - "命中：「增量留抵异常」（RRT-002）"
+        - "阈值：config/rulelist_v12.json::params.RRT-002"
+        - "取数：增量留抵"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-VAT-013"
+  - rule_id: "RRT-003"
+    name: "存量留抵异常"
+    tax_type: "留抵退税"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "stock_retained_tax_refund_abnormal"
+    params_ref: "config/rulelist_v12.json::params.RRT-003"
+    params:
+      stock_abnormal_tolerance: null
+      _basis: "存量留抵退税异常容忍"
+    inputs:
+      - "存量留抵"
+    risk:
+      message: "存量留抵异常"
+      evidence:
+        - "命中：「存量留抵异常」（RRT-003）"
+        - "阈值：config/rulelist_v12.json::params.RRT-003"
+        - "取数：存量留抵"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-VAT-013"
+  - rule_id: "RRT-004"
+    name: "留抵抵欠异常"
+    tax_type: "留抵退税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "retained_tax_offset_arrears_abnormal"
+    params_ref: "config/rulelist_v12.json::params.RRT-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "留抵抵欠"
+    risk:
+      message: "留抵抵欠异常"
+      evidence:
+        - "命中：「留抵抵欠异常」（RRT-004）"
+        - "阈值：config/rulelist_v12.json::params.RRT-004"
+        - "取数：留抵抵欠"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 + 需欠税数据 ⇒ 先细化"
+  - rule_id: "RRT-005"
+    name: "留抵退税后进项转出异常"
+    tax_type: "留抵退税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "input_tax_transfer_out_after_refund_abnormal"
+    params_ref: "config/rulelist_v12.json::params.RRT-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "进项转出"
+    risk:
+      message: "留抵退税后进项转出异常"
+      evidence:
+        - "命中：「留抵退税后进项转出异常」（RRT-005）"
+        - "阈值：config/rulelist_v12.json::params.RRT-005"
+        - "取数：进项转出"
+      suggestion: "核查转出"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-VAT-011 / VR032（应转出未转出）"

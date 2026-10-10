@@ -1,11 +1,11 @@
 # ==========================================================================
 # 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
-# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
 # 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
 # ==========================================================================
 schema: 1
 file: "financial_rules.yaml"
-rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
 rule_set_version: "2026.10"
 status: draft
 wired: false
@@ -26,7 +26,7 @@ rules:
     condition: "assets != liabilities + equity"
     params_ref: "config/rulelist_v11.json::params.FIN-001"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "资产"
       - "负债"
@@ -54,7 +54,7 @@ rules:
     condition: "abs(net_profit - retained_earnings_change) > params.tolerance"
     params_ref: "config/rulelist_v11.json::params.FIN-002"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "净利润"
       - "未分配利润"
@@ -80,7 +80,7 @@ rules:
     condition: "abs(cash_flow_net - cash_change) > params.tolerance"
     params_ref: "config/rulelist_v11.json::params.FIN-003"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "现金流"
       - "货币资金"
@@ -159,7 +159,7 @@ rules:
     condition: "AP_growth - cost_growth > params.growth_gap"
     params_ref: "config/rulelist_v11.json::params.FIN-006"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "应付账款"
       - "成本"
@@ -185,7 +185,7 @@ rules:
     condition: "payable_salary_growth - expense_growth > params.growth_gap"
     params_ref: "config/rulelist_v11.json::params.FIN-007"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "应付薪酬"
       - "费用"
@@ -263,7 +263,7 @@ rules:
     condition: "long_term_equity_investment_growth - investment_income_growth > params.growth_gap"
     params_ref: "config/rulelist_v11.json::params.FIN-010"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "长期股权投资"
       - "投资收益"
@@ -289,7 +289,7 @@ rules:
     condition: "loan_growth - finance_expense_growth > params.growth_gap"
     params_ref: "config/rulelist_v11.json::params.FIN-011"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "借款"
       - "财务费用"
@@ -636,7 +636,7 @@ rules:
     condition: "related_service_fee > params.amount_threshold"
     params_ref: "config/rulelist_v11.json::params.REL-006"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "关联劳务费"
     risk:
@@ -662,7 +662,7 @@ rules:
     condition: "related_asset_transfer_price != fair_value"
     params_ref: "config/rulelist_v11.json::params.REL-007"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "关联资产转让"
       - "公允价值"
@@ -689,7 +689,7 @@ rules:
     condition: "related_equity_transfer_price != fair_value"
     params_ref: "config/rulelist_v11.json::params.REL-008"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "关联股权转让"
       - "公允价值"
@@ -977,7 +977,7 @@ rules:
     condition: "fund_pool_balance > params.amount_threshold"
     params_ref: "config/rulelist_v11.json::params.FUND-009"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "资金池"
     risk:

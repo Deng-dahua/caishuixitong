@@ -1,0 +1,547 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "adm_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 20
+  partial: 8
+  placeholder: 12
+rules:
+  - rule_id: "ADM-001"
+    name: "税务登记信息与工商信息不一致"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_registration != business_registration"
+    params_ref: "config/rulelist_v12.json::params.ADM-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "税务登记"
+      - "工商登记"
+    risk:
+      message: "税务登记信息与工商信息不一致"
+      evidence:
+        - "命中：「税务登记信息与工商信息不一致」（ADM-001）"
+        - "阈值：config/rulelist_v12.json::params.ADM-001"
+        - "取数：税务登记 / 工商登记"
+      suggestion: "核查登记"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_redlines（税务登记）+ target_entity（统一社会信用代码）"
+  - rule_id: "ADM-002"
+    name: "财务负责人/办税人异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "same_person_multi_companies > params.same_person_multi_companies"
+    params_ref: "config/rulelist_v12.json::params.ADM-002"
+    params:
+      same_person_multi_companies: null
+      _basis: "同一人兼任企业数阈值（六员重叠，可复用 VR020）"
+    inputs:
+      - "人员"
+      - "企业数"
+    risk:
+      message: "财务负责人/办税人异常"
+      evidence:
+        - "命中：「财务负责人/办税人异常」（ADM-002）"
+        - "阈值：config/rulelist_v12.json::params.ADM-002"
+        - "取数：人员 / 企业数"
+      suggestion: "核查关联"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR020（六员个人账户与经营资金往来）+ RL-CIT-001（六员重叠）"
+  - rule_id: "ADM-003"
+    name: "注册地址异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "registered_address_virtual = true"
+    params_ref: "config/rulelist_v12.json::params.ADM-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "注册地址"
+      - "虚拟地址标识"
+    risk:
+      message: "注册地址异常"
+      evidence:
+        - "命中：「注册地址异常」（ADM-003）"
+        - "阈值：config/rulelist_v12.json::params.ADM-003"
+        - "取数：注册地址 / 虚拟地址标识"
+      suggestion: "核查地址"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "「虚拟地址标识」无客观判据、无数据源 ⇒ 需先细化（如：同址企业数 > N 且无实际经营痕迹）"
+  - rule_id: "ADM-004"
+    name: "发票领用异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "invoice_quota_increase_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.ADM-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "发票领用"
+      - "调整"
+    risk:
+      message: "发票领用异常"
+      evidence:
+        - "命中：「发票领用异常」（ADM-004）"
+        - "阈值：config/rulelist_v12.json::params.ADM-004"
+        - "取数：发票领用 / 调整"
+      suggestion: "核查领用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无发票领用/调整数据源 ⇒ 待资料"
+  - rule_id: "ADM-005"
+    name: "税控设备异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_device_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.ADM-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "税控设备"
+    risk:
+      message: "税控设备异常"
+      evidence:
+        - "命中：「税控设备异常」（ADM-005）"
+        - "阈值：config/rulelist_v12.json::params.ADM-005"
+        - "取数：税控设备"
+      suggestion: "核查设备"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无税控设备数据源 ⇒ 待资料"
+  - rule_id: "ADM-006"
+    name: "申报表逻辑校验异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "return_logic_check_failed = true"
+    params_ref: "config/rulelist_v12.json::params.ADM-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "申报表逻辑"
+    risk:
+      message: "申报表逻辑校验异常"
+      evidence:
+        - "命中：「申报表逻辑校验异常」（ADM-006）"
+        - "阈值：config/rulelist_v12.json::params.ADM-006"
+        - "取数：申报表逻辑"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-CIT-008 + VR018/VR019"
+  - rule_id: "ADM-007"
+    name: "申报数据篡改痕迹"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "return_amended_count > params.amended_count"
+    params_ref: "config/rulelist_v12.json::params.ADM-007"
+    params:
+      amended_count: null
+      _basis: "申报更正次数阈值"
+    inputs:
+      - "更正次数"
+    risk:
+      message: "申报数据篡改痕迹"
+      evidence:
+        - "命中：「申报数据篡改痕迹」（ADM-007）"
+        - "阈值：config/rulelist_v12.json::params.ADM-007"
+        - "取数：更正次数"
+      suggestion: "核查更正"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无申报更正记录数据源；且「篡改痕迹」需先定义判据 ⇒ 待资料"
+  - rule_id: "ADM-008"
+    name: "多次更正申报"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "amended_count > params.amended_count"
+    params_ref: "config/rulelist_v12.json::params.ADM-008"
+    params:
+      amended_count: 3
+      _basis: "多次更正申报次数阈值"
+    inputs:
+      - "更正次数"
+    risk:
+      message: "多次更正申报"
+      evidence:
+        - "命中：「多次更正申报」（ADM-008）"
+        - "阈值：config/rulelist_v12.json::params.ADM-008"
+        - "取数：更正次数"
+      suggestion: "核查原因"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无更正记录数据源 ⇒ 待资料"
+  - rule_id: "ADM-009"
+    name: "申报与缴款不一致"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(declared_tax - paid_tax) > params.declared_paid_tolerance"
+    params_ref: "config/rulelist_v12.json::params.ADM-009"
+    params:
+      declared_paid_tolerance: null
+      _basis: "申报税额 vs 缴款税额偏差"
+    inputs:
+      - "申报税额"
+      - "缴款税额"
+    risk:
+      message: "申报与缴款不一致"
+      evidence:
+        - "命中：「申报与缴款不一致」（ADM-009）"
+        - "阈值：config/rulelist_v12.json::params.ADM-009"
+        - "取数：申报税额 / 缴款税额"
+      suggestion: "核查缴款"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR018/VR019（申报↔开票↔账载）+ engine/subject_consistency"
+  - rule_id: "ADM-010"
+    name: "欠税未清缴"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_arrears > 0"
+    params_ref: "config/rulelist_v12.json::params.ADM-010"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "欠税金额"
+    risk:
+      message: "欠税未清缴"
+      evidence:
+        - "命中：「欠税未清缴」（ADM-010）"
+        - "阈值：config/rulelist_v12.json::params.ADM-010"
+        - "取数：欠税金额"
+      suggestion: "核查欠税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（欠税关键词）+ trial_balance「应交税费」"
+  - rule_id: "ADM-011"
+    name: "滞纳金异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "late_fee > params.late_fee_threshold"
+    params_ref: "config/rulelist_v12.json::params.ADM-011"
+    params:
+      late_fee_threshold: null
+      _basis: "滞纳金金额阈值"
+    inputs:
+      - "滞纳金"
+    risk:
+      message: "滞纳金异常"
+      evidence:
+        - "命中：「滞纳金异常」（ADM-011）"
+        - "阈值：config/rulelist_v12.json::params.ADM-011"
+        - "取数：滞纳金"
+      suggestion: "核查滞纳"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis / cross_domain_negotiation（滞纳金）"
+  - rule_id: "ADM-012"
+    name: "延期申报异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "extension_declaration_count > params.extension_count"
+    params_ref: "config/rulelist_v12.json::params.ADM-012"
+    params:
+      extension_count: null
+      _basis: "延期申报次数阈值"
+    inputs:
+      - "延期申报次数"
+    risk:
+      message: "延期申报异常"
+      evidence:
+        - "命中：「延期申报异常」（ADM-012）"
+        - "阈值：config/rulelist_v12.json::params.ADM-012"
+        - "取数：延期申报次数"
+      suggestion: "核查延期"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（延期申报）"
+  - rule_id: "ADM-013"
+    name: "延期缴税异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "extension_payment_count > params.extension_count"
+    params_ref: "config/rulelist_v12.json::params.ADM-013"
+    params:
+      extension_count: null
+      _basis: "延期缴税次数阈值"
+    inputs:
+      - "延期缴税次数"
+    risk:
+      message: "延期缴税异常"
+      evidence:
+        - "命中：「延期缴税异常」（ADM-013）"
+        - "阈值：config/rulelist_v12.json::params.ADM-013"
+        - "取数：延期缴税次数"
+      suggestion: "核查延期"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "全仓 0 命中；无延期缴税记录数据源 ⇒ 待资料"
+  - rule_id: "ADM-014"
+    name: "税收优惠备案缺失"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "incentive_claimed and filing_missing"
+    params_ref: "config/rulelist_v12.json::params.ADM-014"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "优惠"
+      - "备案"
+    risk:
+      message: "税收优惠备案缺失"
+      evidence:
+        - "命中：「税收优惠备案缺失」（ADM-014）"
+        - "阈值：config/rulelist_v12.json::params.ADM-014"
+        - "取数：优惠 / 备案"
+      suggestion: "核查备案"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer"
+      note: "★ 与 TAXINC-002 / TAXINC-014 三重复 ⇒ 合并为一条"
+  - rule_id: "ADM-015"
+    name: "跨区域涉税事项未报验"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cross_region_project and report_missing"
+    params_ref: "config/rulelist_v12.json::params.ADM-015"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "跨区域项目"
+      - "报验"
+    risk:
+      message: "跨区域涉税事项未报验"
+      evidence:
+        - "命中：「跨区域涉税事项未报验」（ADM-015）"
+        - "阈值：config/rulelist_v12.json::params.ADM-015"
+        - "取数：跨区域项目 / 报验"
+      suggestion: "核查报验"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无报验记录数据源 ⇒ 待资料（可先做「有异地项目而无报验痕迹」置疑）"
+  - rule_id: "ADM-016"
+    name: "外管证未核销"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "external_management_certificate_not_cancelled"
+    params_ref: "config/rulelist_v12.json::params.ADM-016"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "外管证"
+    risk:
+      message: "外管证未核销"
+      evidence:
+        - "命中：「外管证未核销」（ADM-016）"
+        - "阈值：config/rulelist_v12.json::params.ADM-016"
+        - "取数：外管证"
+      suggestion: "核查核销"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "无外管证数据源 ⇒ 待资料"
+  - rule_id: "ADM-017"
+    name: "总分机构汇总纳税异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "headquarters_branch_allocation_abnormal"
+    params_ref: "config/rulelist_v12.json::params.ADM-017"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "总分机构"
+      - "分配"
+    risk:
+      message: "总分机构汇总纳税异常"
+      evidence:
+        - "命中：「总分机构汇总纳税异常」（ADM-017）"
+        - "阈值：config/rulelist_v12.json::params.ADM-017"
+        - "取数：总分机构 / 分配"
+      suggestion: "核查汇总"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "全仓 0 命中；需总分机构分配表 ⇒ 待资料"
+  - rule_id: "ADM-018"
+    name: "合并纳税异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "consolidated_tax_filing_abnormal"
+    params_ref: "config/rulelist_v12.json::params.ADM-018"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "合并纳税"
+    risk:
+      message: "合并纳税异常"
+      evidence:
+        - "命中：「合并纳税异常」（ADM-018）"
+        - "阈值：config/rulelist_v12.json::params.ADM-018"
+        - "取数：合并纳税"
+      suggestion: "核查合并"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "需合并纳税申报数据 ⇒ 待资料"
+  - rule_id: "ADM-019"
+    name: "税收洼地注册异常"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_haven_registration = true"
+    params_ref: "config/rulelist_v12.json::params.ADM-019"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "注册地"
+      - "税收洼地"
+    risk:
+      message: "税收洼地注册异常"
+      evidence:
+        - "命中：「税收洼地注册异常」（ADM-019）"
+        - "阈值：config/rulelist_v12.json::params.ADM-019"
+        - "取数：注册地 / 税收洼地"
+      suggestion: "核查实质"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "「税收洼地」需地区清单 + 实质经营判据 ⇒ 先细化（建议：注册地优惠园区 + 无人员无资产）"
+  - rule_id: "ADM-020"
+    name: "财政返还与税收挂钩"
+    tax_type: "税收征管与申报"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "fiscal_refund_linked_to_tax = true"
+    params_ref: "config/rulelist_v12.json::params.ADM-020"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "财政返还"
+      - "税收"
+    risk:
+      message: "财政返还与税收挂钩"
+      evidence:
+        - "命中：「财政返还与税收挂钩」（ADM-020）"
+        - "阈值：config/rulelist_v12.json::params.ADM-020"
+        - "取数：财政返还 / 税收"
+      suggestion: "核查返还"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "需财政返还协议/批文 ⇒ 待资料"

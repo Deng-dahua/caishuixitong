@@ -1,0 +1,687 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "customs_export_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 25
+  covered: 5
+  partial: 7
+  missing: 5
+  placeholder: 8
+rules:
+  - rule_id: "EXPORT-001"
+    name: "出口退税申报异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_refund > params.amount_threshold and condition not met"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "出口退税"
+      - "条件"
+    risk:
+      message: "出口退税申报异常"
+      evidence:
+        - "命中：「出口退税申报异常」（EXPORT-001）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-001"
+        - "取数：出口退税 / 条件"
+      suggestion: "核查退税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-008 / engine/export_rebate_crosscheck"
+  - rule_id: "EXPORT-002"
+    name: "免抵退税额异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_tax_refund != calculated_refund"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "免抵退税额"
+      - "计算值"
+    risk:
+      message: "免抵退税额异常"
+      evidence:
+        - "命中：「免抵退税额异常」（EXPORT-002）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-002"
+        - "取数：免抵退税额 / 计算值"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis / engine/tax_impact（免抵退关键词）"
+  - rule_id: "EXPORT-003"
+    name: "出口收入与报关单差异"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(export_revenue - customs_declaration) / export_revenue > params.export_revenue_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-003"
+    params:
+      export_revenue_diff_ratio: 0.1
+      _basis: "出口收入 vs 报关单差异率（export_rebate_crosscheck 阈值10%）"
+    inputs:
+      - "出口收入"
+      - "报关单"
+    risk:
+      message: "出口收入与报关单差异"
+      evidence:
+        - "命中：「出口收入与报关单差异」（EXPORT-003）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-003"
+        - "取数：出口收入 / 报关单"
+      suggestion: "核查收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/export_rebate_crosscheck（报关单↔出口发票 10% 阈值）"
+  - rule_id: "EXPORT-004"
+    name: "进料加工核销异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "processing_trade_verification_missing = true"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "进料加工"
+      - "核销"
+    risk:
+      message: "进料加工核销异常"
+      evidence:
+        - "命中：「进料加工核销异常」（EXPORT-004）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-004"
+        - "取数：进料加工 / 核销"
+      suggestion: "核查核销"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「进料加工」"
+  - rule_id: "EXPORT-005"
+    name: "出口发票异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_invoice_abnormal = true"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "出口发票"
+    risk:
+      message: "出口发票异常"
+      evidence:
+        - "命中：「出口发票异常」（EXPORT-005）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-005"
+        - "取数：出口发票"
+      suggestion: "核查发票"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/export_rebate_crosscheck"
+  - rule_id: "EXPORT-006"
+    name: "退税函调异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_refund_investigation_abnormal = true"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "函调结果"
+    risk:
+      message: "退税函调异常"
+      evidence:
+        - "命中：「退税函调异常」（EXPORT-006）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-006"
+        - "取数：函调结果"
+      suggestion: "核查函调"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（函调关键词）"
+      note: "函调结果属**税务机关外部信息** ⇒ 应归入「外部核验类·不判触红」，只出待核"
+  - rule_id: "EXPORT-007"
+    name: "出口商品编码适用错误"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "applied_export_code != correct_code"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "商品编码"
+      - "正确编码"
+    risk:
+      message: "出口商品编码适用错误"
+      evidence:
+        - "命中：「出口商品编码适用错误」（EXPORT-007）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-007"
+        - "取数：商品编码 / 正确编码"
+      suggestion: "核查编码"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/fieldkit / tax_redlines（商品编码字段）"
+  - rule_id: "EXPORT-008"
+    name: "出口退税率适用错误"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "applied_refund_rate != correct_rate"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "退税率"
+      - "正确税率"
+    risk:
+      message: "出口退税率适用错误"
+      evidence:
+        - "命中：「出口退税率适用错误」（EXPORT-008）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-008"
+        - "取数：退税率 / 正确税率"
+      suggestion: "核查税率"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_redlines（退税率）"
+  - rule_id: "EXPORT-009"
+    name: "出口收汇异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_receipt_missing = true"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-009"
+    params:
+      export_receipt_gap_ratio: 0.15
+      _basis: "出口额 vs 收汇缺口率（export_rebate_crosscheck 阈值15%）"
+    inputs:
+      - "出口收汇"
+    risk:
+      message: "出口收汇异常"
+      evidence:
+        - "命中：「出口收汇异常」（EXPORT-009）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-009"
+        - "取数：出口收汇"
+      suggestion: "核查收汇"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/export_rebate_crosscheck（出口额↔收汇 15% 阈值）"
+  - rule_id: "EXPORT-010"
+    name: "出口转内销未申报"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_to_domestic > 0 and tax_declared = 0"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-010"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "出口转内销"
+      - "申报"
+    risk:
+      message: "出口转内销未申报"
+      evidence:
+        - "命中：「出口转内销未申报」（EXPORT-010）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-010"
+        - "取数：出口转内销 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「出口转内销」"
+  - rule_id: "EXPORT-011"
+    name: "出口退税函调异常"
+    tax_type: "出口退税"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_refund_investigation_abnormal = true"
+    params_ref: "config/rulelist_v12.json::params.EXPORT-011"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "函调结果"
+    risk:
+      message: "出口退税函调异常"
+      evidence:
+        - "命中：「出口退税函调异常」（EXPORT-011）"
+        - "阈值：config/rulelist_v12.json::params.EXPORT-011"
+        - "取数：函调结果"
+      suggestion: "核查函调"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（函调）"
+      note: "= EXPORT-006；★ 函调属税务机关外部信息 ⇒ 归「外部核验类·不判触红」"
+  - rule_id: "EXPORT-012"
+    name: "出口收汇异常"
+    tax_type: "出口退税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_receipt_missing = true"
+    params_ref: "config/rulelist_v12.json::params.EXPORT-012"
+    params:
+      export_receipt_gap_ratio: 0.15
+      _basis: "出口额 vs 收汇缺口率（export_rebate_crosscheck）"
+    inputs:
+      - "出口收汇"
+    risk:
+      message: "出口收汇异常"
+      evidence:
+        - "命中：「出口收汇异常」（EXPORT-012）"
+        - "阈值：config/rulelist_v12.json::params.EXPORT-012"
+        - "取数：出口收汇"
+      suggestion: "核查收汇"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/export_rebate_crosscheck（出口额↔收汇 15% 阈值）"
+      note: "= EXPORT-009"
+  - rule_id: "EXPORT-013"
+    name: "出口转内销未申报"
+    tax_type: "出口退税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_to_domestic > 0 and tax_declared = 0"
+    params_ref: "config/rulelist_v12.json::params.EXPORT-013"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "出口转内销"
+      - "申报"
+    risk:
+      message: "出口转内销未申报"
+      evidence:
+        - "命中：「出口转内销未申报」（EXPORT-013）"
+        - "阈值：config/rulelist_v12.json::params.EXPORT-013"
+        - "取数：出口转内销 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= EXPORT-010（0 命中）"
+  - rule_id: "EXPORT-014"
+    name: "跨境电商无票免税异常"
+    tax_type: "出口退税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cross_border_ecommerce_tax_free and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.EXPORT-014"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "无票免税"
+      - "条件"
+    risk:
+      message: "跨境电商无票免税异常"
+      evidence:
+        - "命中：「跨境电商无票免税异常」（EXPORT-014）"
+        - "阈值：config/rulelist_v12.json::params.EXPORT-014"
+        - "取数：无票免税 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 + 需跨境电商申报数据 ⇒ 先细化"
+  - rule_id: "CUSTOMS-001"
+    name: "保税料件内销未补税"
+    tax_type: "海关"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "bonded_material_domestic_sale > 0 and tax_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.CUSTOMS-001"
+    params:
+      domestic_sale_tax_tolerance: 0.0
+      _basis: "保税料件内销补税偏差容忍"
+    inputs:
+      - "保税料件内销"
+      - "补税"
+    risk:
+      message: "保税料件内销未补税"
+      evidence:
+        - "命中：「保税料件内销未补税」（CUSTOMS-001）"
+        - "阈值：config/rulelist_v12.json::params.CUSTOMS-001"
+        - "取数：保税料件内销 / 补税"
+      suggestion: "核查补税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis / special_redline_detectors（保税）"
+  - rule_id: "CUSTOMS-002"
+    name: "加工贸易核销异常"
+    tax_type: "海关"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "processing_trade_verification_abnormal"
+    params_ref: "config/rulelist_v12.json::params.CUSTOMS-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "加工贸易核销"
+    risk:
+      message: "加工贸易核销异常"
+      evidence:
+        - "命中：「加工贸易核销异常」（CUSTOMS-002）"
+        - "阈值：config/rulelist_v12.json::params.CUSTOMS-002"
+        - "取数：加工贸易核销"
+      suggestion: "核查核销"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "= EXPORT-004（0 命中「进料加工」）"
+  - rule_id: "CUSTOMS-003"
+    name: "海关完税价格异常"
+    tax_type: "海关"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "customs_value < invoice_value * params.value_ratio"
+    params_ref: "config/rulelist_v12.json::params.CUSTOMS-003"
+    params:
+      value_ratio: 0.9
+      _basis: "海关完税价格 vs 发票金额下限倍数"
+    inputs:
+      - "完税价格"
+      - "发票金额"
+    risk:
+      message: "海关完税价格异常"
+      evidence:
+        - "命中：「海关完税价格异常」（CUSTOMS-003）"
+        - "阈值：config/rulelist_v12.json::params.CUSTOMS-003"
+        - "取数：完税价格 / 发票金额"
+      suggestion: "核查价格"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-005 + engine/special_redline_detectors"
+      note: "★ = CUS-001（V1.2 内部重复）"
+  - rule_id: "CUSTOMS-004"
+    name: "关税减免异常"
+    tax_type: "海关"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "customs_reduction and condition not met"
+    params_ref: "config/rulelist_v12.json::params.CUSTOMS-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "减免"
+      - "条件"
+    risk:
+      message: "关税减免异常"
+      evidence:
+        - "命中：「关税减免异常」（CUSTOMS-004）"
+        - "阈值：config/rulelist_v12.json::params.CUSTOMS-004"
+        - "取数：减免 / 条件"
+      suggestion: "核查减免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "★ = CUS-003（V1.2 内部重复）"
+  - rule_id: "BOND-001"
+    name: "保税区税务处理异常"
+    tax_type: "保税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "bonded_zone and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.BOND-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "保税区"
+      - "税务处理"
+    risk:
+      message: "保税区税务处理异常"
+      evidence:
+        - "命中：「保税区税务处理异常」（BOND-001）"
+        - "阈值：config/rulelist_v12.json::params.BOND-001"
+        - "取数：保税区 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"
+  - rule_id: "BOND-002"
+    name: "综合保税区税务处理异常"
+    tax_type: "保税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "comprehensive_bonded_zone and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.BOND-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "综保区"
+      - "税务处理"
+    risk:
+      message: "综合保税区税务处理异常"
+      evidence:
+        - "命中：「综合保税区税务处理异常」（BOND-002）"
+        - "阈值：config/rulelist_v12.json::params.BOND-002"
+        - "取数：综保区 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "同上"
+  - rule_id: "FTZ-001"
+    name: "自贸区税务处理异常"
+    tax_type: "自贸区"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "free_trade_zone and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.FTZ-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "自贸区"
+      - "税务处理"
+    risk:
+      message: "自贸区税务处理异常"
+      evidence:
+        - "命中：「自贸区税务处理异常」（FTZ-001）"
+        - "阈值：config/rulelist_v12.json::params.FTZ-001"
+        - "取数：自贸区 / 税务处理"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；判据未定义 ⇒ 先细化"
+  - rule_id: "HAINAN-001"
+    name: "海南自贸港15%所得税异常"
+    tax_type: "海南自贸港"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "hainan_15_percent and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.HAINAN-001"
+    params:
+      revenue_ratio: 0.6
+      industry_negative_list: null
+      _basis: "海南15%所得税：主营业务收入占比≥60% 且不在负面清单"
+    inputs:
+      - "海南优惠"
+      - "条件"
+    risk:
+      message: "海南自贸港15%所得税异常"
+      evidence:
+        - "命中：「海南自贸港15%所得税异常」（HAINAN-001）"
+        - "阈值：config/rulelist_v12.json::params.HAINAN-001"
+        - "取数：海南优惠 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "★ 判据其实**可算**（主营业务收入占比≥60% + 负面清单）；但缺地区参数与负面清单 ⇒ 先补参数再实现"
+  - rule_id: "HAINAN-002"
+    name: "海南自贸港个税优惠异常"
+    tax_type: "海南自贸港"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "hainan_IIT_incentive and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.HAINAN-002"
+    params:
+      iit_burden_cap: 0.15
+      _basis: "海南个税优惠：实际税负超15%部分免征"
+    inputs:
+      - "海南个税优惠"
+      - "条件"
+    risk:
+      message: "海南自贸港个税优惠异常"
+      evidence:
+        - "命中：「海南自贸港个税优惠异常」（HAINAN-002）"
+        - "阈值：config/rulelist_v12.json::params.HAINAN-002"
+        - "取数：海南个税优惠 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "可算（实际税负>15%部分免征）；需个人申报数据"
+  - rule_id: "HAINAN-003"
+    name: "离岛免税异常"
+    tax_type: "海南自贸港"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "duty_free_island and conditions_not_met"
+    params_ref: "config/rulelist_v12.json::params.HAINAN-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "离岛免税"
+      - "条件"
+    risk:
+      message: "离岛免税异常"
+      evidence:
+        - "命中：「离岛免税异常」（HAINAN-003）"
+        - "阈值：config/rulelist_v12.json::params.HAINAN-003"
+        - "取数：离岛免税 / 条件"
+      suggestion: "核查条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "0 命中；属零售终端业务 ⇒ 企业侧不可算"
+  - rule_id: "HAINAN-004"
+    name: "跨境电商保税进口异常"
+    tax_type: "海南自贸港"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cross_border_bonded_import and tax_treatment_abnormal"
+    params_ref: "config/rulelist_v12.json::params.HAINAN-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "跨境电商保税进口"
+    risk:
+      message: "跨境电商保税进口异常"
+      evidence:
+        - "命中：「跨境电商保税进口异常」（HAINAN-004）"
+        - "阈值：config/rulelist_v12.json::params.HAINAN-004"
+        - "取数：跨境电商保税进口"
+      suggestion: "核查处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "placeholder"
+      action: "specify_first"
+      mapped_to: ""
+      note: "判据未定义 ⇒ 先细化"

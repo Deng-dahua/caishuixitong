@@ -1,20 +1,20 @@
 # ==========================================================================
 # 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
-# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
 # 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
 # ==========================================================================
 schema: 1
 file: "other_tax_rules.yaml"
-rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
 rule_set_version: "2026.10"
 status: draft
 wired: false
 wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
 coverage_summary:
-  total: 72
-  covered: 26
-  partial: 29
-  missing: 17
+  total: 89
+  covered: 35
+  partial: 30
+  missing: 24
 rules:
   - rule_id: "SI-001"
     name: "社保人数与个税人数差异"
@@ -480,7 +480,7 @@ rules:
     condition: "applied_stamp_tax_item != correct_item"
     params_ref: "config/rulelist_v11.json::params.SD-010"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "适用税目"
       - "正确税目"
@@ -962,7 +962,7 @@ rules:
     condition: "abs(sales_revenue - declared_lat_sales) / sales_revenue > params.diff_ratio"
     params_ref: "config/rulelist_v11.json::params.LAT-004"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "销售收入"
       - "申报收入"
@@ -988,7 +988,7 @@ rules:
     condition: "residential_type_misclassified = true"
     params_ref: "config/rulelist_v11.json::params.LAT-005"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "住宅类型"
       - "划分标准"
@@ -1015,7 +1015,7 @@ rules:
     condition: "cost_allocation_ratio != reasonable_ratio"
     params_ref: "config/rulelist_v11.json::params.LAT-006"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "成本分摊"
       - "合理比例"
@@ -1041,7 +1041,7 @@ rules:
     condition: "interest_deduction > params.amount_threshold"
     params_ref: "config/rulelist_v11.json::params.LAT-007"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "利息支出"
       - "扣除限额"
@@ -1067,7 +1067,7 @@ rules:
     condition: "relocation_compensation > params.amount_threshold"
     params_ref: "config/rulelist_v11.json::params.LAT-008"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "拆迁补偿"
       - "凭证"
@@ -1175,7 +1175,7 @@ rules:
     condition: "surtax_reduction_applied and condition not met"
     params_ref: "config/rulelist_v11.json::params.SUR-002"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "减免"
       - "条件"
@@ -1283,7 +1283,7 @@ rules:
     condition: "applied_consumption_item != correct_item"
     params_ref: "config/rulelist_v11.json::params.CONS-001"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "适用税目"
       - "正确税目"
@@ -1414,7 +1414,7 @@ rules:
     condition: "abs(consumption_tax_sales - vat_sales) / vat_sales > params.diff_ratio"
     params_ref: "config/rulelist_v11.json::params.CONS-006"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "消费税收入"
       - "增值税收入"
@@ -1440,7 +1440,7 @@ rules:
     condition: "oil_consumption_tax != calculated"
     params_ref: "config/rulelist_v11.json::params.CONS-007"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "成品油"
       - "消费税"
@@ -1466,7 +1466,7 @@ rules:
     condition: "baijiu_consumption_tax != calculated"
     params_ref: "config/rulelist_v11.json::params.CONS-008"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "白酒"
       - "消费税"
@@ -1519,7 +1519,7 @@ rules:
     condition: "applied_resource_item != correct_item"
     params_ref: "config/rulelist_v11.json::params.RES-002"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "适用税目"
       - "正确税目"
@@ -1571,7 +1571,7 @@ rules:
     condition: "env_tax_reduction and condition not met"
     params_ref: "config/rulelist_v11.json::params.ENV-002"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "减免"
       - "条件"
@@ -1597,7 +1597,7 @@ rules:
     condition: "abs(env_tax_emission - permit_emission) > params.emission_tolerance"
     params_ref: "config/rulelist_v11.json::params.ENV-003"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "环保税排放"
       - "排污许可"
@@ -1614,320 +1614,773 @@ rules:
       action: "merge"
       mapped_to: "engine/analysis_coverage / domain_analysis（排污许可关键词）"
       note: "排污许可数据源当前账套无 ⇒ 待核"
-  - rule_id: "TAXINC-001"
-    name: "优惠条件不满足但享受优惠"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
+  - rule_id: "DEED-001"
+    name: "契税计税依据偏低"
+    tax_type: "契税"
+    source_set: "V1.2"
     level: "high"
     version: "1.0.0"
     enabled: false
-    condition: "incentive_condition_met = false and incentive_claimed = true"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-001"
+    condition: "deed_tax_base < contract_amount * params.base_ratio"
+    params_ref: "config/rulelist_v12.json::params.DEED-001"
     params:
-      period: "current_year"
-      _basis: "优惠条件核验期间"
+      base_ratio: 0.9
+      _basis: "契税计税依据 vs 合同金额下限倍数"
     inputs:
-      - "优惠条件"
-      - "享受优惠"
+      - "契税基数"
+      - "合同金额"
     risk:
-      message: "优惠条件不满足但享受优惠"
+      message: "契税计税依据偏低"
       evidence:
-        - "命中：「优惠条件不满足但享受优惠」（TAXINC-001）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-001"
-        - "取数：优惠条件 / 享受优惠"
-      suggestion: "核查条件"
+        - "命中：「契税计税依据偏低」（DEED-001）"
+        - "阈值：config/rulelist_v12.json::params.DEED-001"
+        - "取数：契税基数 / 合同金额"
+      suggestion: "核查计税依据"
       legal_basis_ref: "法规库自动匹配"
     coverage:
       status: "partial"
       action: "merge"
-      mapped_to: "engine/tax_incentive_analyzer._verify_conditions_against_data（真判符合/不符合）"
-      note: "★ 系统已能判「条件是否符合」；缺的是「不符合却仍按优惠申报」的申报侧勾稽（无优惠申报表）"
-  - rule_id: "TAXINC-002"
-    name: "优惠备案缺失"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
-    level: "medium"
+      mapped_to: "RL-SPT-007（承受土地房屋权属未申报契税）+ engine/analysis_coverage"
+      note: "系统判「未申报」，候选判「依据偏低」⇒ 合并为同一检测器的两分支"
+  - rule_id: "DEED-002"
+    name: "土地使用权出让契税未申报"
+    tax_type: "契税"
+    source_set: "V1.2"
+    level: "high"
     version: "1.0.0"
     enabled: false
-    condition: "incentive_claimed = true and filing_missing = true"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-002"
+    condition: "land_transfer_amount > 0 and deed_tax_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.DEED-002"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
     inputs:
-      - "优惠"
-      - "备案"
+      - "土地出让金额"
+      - "契税"
     risk:
-      message: "优惠备案缺失"
+      message: "土地使用权出让契税未申报"
       evidence:
-        - "命中：「优惠备案缺失」（TAXINC-002）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-002"
-        - "取数：优惠 / 备案"
-      suggestion: "核查备案"
+        - "命中：「土地使用权出让契税未申报」（DEED-002）"
+        - "阈值：config/rulelist_v12.json::params.DEED-002"
+        - "取数：土地出让金额 / 契税"
+      suggestion: "核查申报"
       legal_basis_ref: "法规库自动匹配"
     coverage:
-      status: "partial"
-      action: "merge"
-      mapped_to: "engine/tax_incentive_analyzer（政策库+条件核验）"
-  - rule_id: "TAXINC-003"
-    name: "优惠金额计算错误"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-007"
+  - rule_id: "DEED-003"
+    name: "房屋买卖契税未申报"
+    tax_type: "契税"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "house_transfer_amount > 0 and deed_tax_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.DEED-003"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "房屋转让金额"
+      - "契税"
+    risk:
+      message: "房屋买卖契税未申报"
+      evidence:
+        - "命中：「房屋买卖契税未申报」（DEED-003）"
+        - "阈值：config/rulelist_v12.json::params.DEED-003"
+        - "取数：房屋转让金额 / 契税"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-007"
+  - rule_id: "DEED-004"
+    name: "契税税率适用错误"
+    tax_type: "契税"
+    source_set: "V1.2"
     level: "medium"
     version: "1.0.0"
     enabled: false
-    condition: "incentive_amount != calculated_incentive"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-003"
-    params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    condition: "applied_deed_rate != correct_rate"
+    params_ref: "config/rulelist_v12.json::params.DEED-004"
+    params:
+      deed_rates: {"土地使用权出让": 0.03, "房屋买卖": 0.03, "其他": 0.03}
+      _basis: "契税税率（地区差异，宜入 region_params）"
     inputs:
-      - "优惠金额"
-      - "计算值"
+      - "适用税率"
+      - "正确税率"
     risk:
-      message: "优惠金额计算错误"
+      message: "契税税率适用错误"
       evidence:
-        - "命中：「优惠金额计算错误」（TAXINC-003）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-003"
-        - "取数：优惠金额 / 计算值"
-      suggestion: "核查计算"
+        - "命中：「契税税率适用错误」（DEED-004）"
+        - "阈值：config/rulelist_v12.json::params.DEED-004"
+        - "取数：适用税率 / 正确税率"
+      suggestion: "核查税率"
       legal_basis_ref: "法规库自动匹配"
     coverage:
       status: "missing"
       action: "add"
       mapped_to: ""
-  - rule_id: "TAXINC-004"
-    name: "叠加享受优惠"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
+      note: "契税税率属地区参数 ⇒ 未登记则待核"
+  - rule_id: "DEED-005"
+    name: "契税减免条件不符"
+    tax_type: "契税"
+    source_set: "V1.2"
     level: "medium"
     version: "1.0.0"
     enabled: false
-    condition: "overlapping_incentives = true"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-004"
+    condition: "deed_tax_reduction and condition not met"
+    params_ref: "config/rulelist_v12.json::params.DEED-005"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
-      - "叠加优惠"
+      - "减免"
+      - "条件"
     risk:
-      message: "叠加享受优惠"
+      message: "契税减免条件不符"
       evidence:
-        - "命中：「叠加享受优惠」（TAXINC-004）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-004"
-        - "取数：叠加优惠"
-      suggestion: "核查叠加"
+        - "命中：「契税减免条件不符」（DEED-005）"
+        - "阈值：config/rulelist_v12.json::params.DEED-005"
+        - "取数：减免 / 条件"
+      suggestion: "核查减免"
       legal_basis_ref: "法规库自动匹配"
     coverage:
       status: "missing"
       action: "add"
       mapped_to: ""
-      note: "0 命中「叠加享受」"
-  - rule_id: "TAXINC-005"
-    name: "优惠期间错误"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
+  - rule_id: "GOT-001"
+    name: "耕地占用税未申报"
+    tax_type: "耕地占用税"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "occupied_farmland_area > 0 and farmland_tax_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.GOT-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "占用耕地面积"
+      - "耕地占用税"
+    risk:
+      message: "耕地占用税未申报"
+      evidence:
+        - "命中：「耕地占用税未申报」（GOT-001）"
+        - "阈值：config/rulelist_v12.json::params.GOT-001"
+        - "取数：占用耕地面积 / 耕地占用税"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-014 + engine/gap_tax_obligations"
+  - rule_id: "GOT-002"
+    name: "耕地占用税计税面积异常"
+    tax_type: "耕地占用税"
+    source_set: "V1.2"
     level: "medium"
     version: "1.0.0"
     enabled: false
-    condition: "incentive_period != correct_period"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-005"
-    params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    condition: "abs(tax_area - actual_area) / actual_area > params.area_diff_ratio"
+    params_ref: "config/rulelist_v12.json::params.GOT-002"
+    params:
+      area_diff_ratio: 0.1
+      _basis: "耕地占用税计税面积 vs 实际面积差异率"
     inputs:
-      - "优惠期间"
-      - "正确期间"
+      - "计税面积"
+      - "实际面积"
     risk:
-      message: "优惠期间错误"
+      message: "耕地占用税计税面积异常"
       evidence:
-        - "命中：「优惠期间错误」（TAXINC-005）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-005"
-        - "取数：优惠期间 / 正确期间"
+        - "命中：「耕地占用税计税面积异常」（GOT-002）"
+        - "阈值：config/rulelist_v12.json::params.GOT-002"
+        - "取数：计税面积 / 实际面积"
+      suggestion: "核查面积"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-014（申报面积口径）"
+  - rule_id: "GOT-003"
+    name: "耕地占用税减免异常"
+    tax_type: "耕地占用税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "farmland_tax_reduction and condition not met"
+    params_ref: "config/rulelist_v12.json::params.GOT-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "减免"
+      - "条件"
+    risk:
+      message: "耕地占用税减免异常"
+      evidence:
+        - "命中：「耕地占用税减免异常」（GOT-003）"
+        - "阈值：config/rulelist_v12.json::params.GOT-003"
+        - "取数：减免 / 条件"
+      suggestion: "核查减免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "VET-001"
+    name: "车船税未申报"
+    tax_type: "车船税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "vehicle_count > 0 and vehicle_tax_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.VET-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "车辆数量"
+      - "车船税"
+    risk:
+      message: "车船税未申报"
+      evidence:
+        - "命中：「车船税未申报」（VET-001）"
+        - "阈值：config/rulelist_v12.json::params.VET-001"
+        - "取数：车辆数量 / 车船税"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-OTH-005 + engine/gap_risk_detectors"
+  - rule_id: "VET-002"
+    name: "车船税计税依据异常"
+    tax_type: "车船税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "vehicle_tax_base != correct_base"
+    params_ref: "config/rulelist_v12.json::params.VET-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "计税依据"
+      - "正确依据"
+    risk:
+      message: "车船税计税依据异常"
+      evidence:
+        - "命中：「车船税计税依据异常」（VET-002）"
+        - "阈值：config/rulelist_v12.json::params.VET-002"
+        - "取数：计税依据 / 正确依据"
+      suggestion: "核查依据"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-OTH-005（车辆台账与保单）"
+  - rule_id: "VET-003"
+    name: "车船税减免异常"
+    tax_type: "车船税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "vehicle_tax_reduction and condition not met"
+    params_ref: "config/rulelist_v12.json::params.VET-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "减免"
+      - "条件"
+    risk:
+      message: "车船税减免异常"
+      evidence:
+        - "命中：「车船税减免异常」（VET-003）"
+        - "阈值：config/rulelist_v12.json::params.VET-003"
+        - "取数：减免 / 条件"
+      suggestion: "核查减免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "VPT-001"
+    name: "车辆购置税未申报"
+    tax_type: "车辆购置税"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "vehicle_purchase_amount > 0 and vpt_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.VPT-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "购车金额"
+      - "车辆购置税"
+    risk:
+      message: "车辆购置税未申报"
+      evidence:
+        - "命中：「车辆购置税未申报」（VPT-001）"
+        - "阈值：config/rulelist_v12.json::params.VPT-001"
+        - "取数：购车金额 / 车辆购置税"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-018 + engine/gap_tax_obligations"
+  - rule_id: "VPT-002"
+    name: "车辆购置税计税价格偏低"
+    tax_type: "车辆购置税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "vpt_base < market_price * params.base_ratio"
+    params_ref: "config/rulelist_v12.json::params.VPT-002"
+    params:
+      base_ratio: 0.9
+      _basis: "车购税计税价格 vs 市场价下限倍数"
+    inputs:
+      - "计税价格"
+      - "市场价"
+    risk:
+      message: "车辆购置税计税价格偏低"
+      evidence:
+        - "命中：「车辆购置税计税价格偏低」（VPT-002）"
+        - "阈值：config/rulelist_v12.json::params.VPT-002"
+        - "取数：计税价格 / 市场价"
+      suggestion: "核查价格"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "VPT-003"
+    name: "车辆购置税减免异常"
+    tax_type: "车辆购置税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "vpt_reduction and condition not met"
+    params_ref: "config/rulelist_v12.json::params.VPT-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "减免"
+      - "条件"
+    risk:
+      message: "车辆购置税减免异常"
+      evidence:
+        - "命中：「车辆购置税减免异常」（VPT-003）"
+        - "阈值：config/rulelist_v12.json::params.VPT-003"
+        - "取数：减免 / 条件"
+      suggestion: "核查减免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "CUS-001"
+    name: "关税完税价格异常"
+    tax_type: "关税"
+    source_set: "V1.2"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "customs_value < invoice_value * params.value_ratio"
+    params_ref: "config/rulelist_v12.json::params.CUS-001"
+    params:
+      value_ratio: 0.9
+      _basis: "关税完税价格 vs 发票金额下限倍数"
+    inputs:
+      - "完税价格"
+      - "发票金额"
+    risk:
+      message: "关税完税价格异常"
+      evidence:
+        - "命中：「关税完税价格异常」（CUS-001）"
+        - "阈值：config/rulelist_v12.json::params.CUS-001"
+        - "取数：完税价格 / 发票金额"
+      suggestion: "核查完税价格"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-005（进口完税价格申报不实）+ engine/special_redline_detectors"
+      note: "★ 与 CUSTOMS-003 同一判据（V1.2 内部重复）"
+  - rule_id: "CUS-002"
+    name: "关税税率适用错误"
+    tax_type: "关税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "applied_customs_rate != correct_rate"
+    params_ref: "config/rulelist_v12.json::params.CUS-002"
+    params:
+      customs_rates: null
+      _basis: "关税税率按商品编码，需海关税则参数（未提供则待核）"
+    inputs:
+      - "适用税率"
+      - "正确税率"
+    risk:
+      message: "关税税率适用错误"
+      evidence:
+        - "命中：「关税税率适用错误」（CUS-002）"
+        - "阈值：config/rulelist_v12.json::params.CUS-002"
+        - "取数：适用税率 / 正确税率"
+      suggestion: "核查税率"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "关税税率按商品编码，需海关税则参数"
+  - rule_id: "CUS-003"
+    name: "关税减免异常"
+    tax_type: "关税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "customs_reduction and condition not met"
+    params_ref: "config/rulelist_v12.json::params.CUS-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "减免"
+      - "条件"
+    risk:
+      message: "关税减免异常"
+      evidence:
+        - "命中：「关税减免异常」（CUS-003）"
+        - "阈值：config/rulelist_v12.json::params.CUS-003"
+        - "取数：减免 / 条件"
+      suggestion: "核查减免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "★ 与 CUSTOMS-004 同一判据（V1.2 内部重复）"
+  - rule_id: "TON-001"
+    name: "船舶吨税未申报"
+    tax_type: "船舶吨税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "ship_tonnage > 0 and tonnage_tax_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.TON-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "船舶吨位"
+      - "吨税"
+    risk:
+      message: "船舶吨税未申报"
+      evidence:
+        - "命中：「船舶吨税未申报」（TON-001）"
+        - "阈值：config/rulelist_v12.json::params.TON-001"
+        - "取数：船舶吨位 / 吨税"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-016 + engine/gap_tax_obligations"
+  - rule_id: "TOB-001"
+    name: "烟叶税未申报"
+    tax_type: "烟叶税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tobacco_purchase_amount > 0 and tobacco_tax_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.TOB-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "烟叶收购金额"
+      - "烟叶税"
+    risk:
+      message: "烟叶税未申报"
+      evidence:
+        - "命中：「烟叶税未申报」（TOB-001）"
+        - "阈值：config/rulelist_v12.json::params.TOB-001"
+        - "取数：烟叶收购金额 / 烟叶税"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-015 + engine/gap_tax_obligations"
+  - rule_id: "TOB-002"
+    name: "烟叶税计税依据异常"
+    tax_type: "烟叶税"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tobacco_tax_base != purchase_amount"
+    params_ref: "config/rulelist_v12.json::params.TOB-002"
+    params:
+      tolerance: 0.0
+      _basis: "烟叶税计税依据偏差容忍"
+    inputs:
+      - "计税依据"
+      - "收购金额"
+    risk:
+      message: "烟叶税计税依据异常"
+      evidence:
+        - "命中：「烟叶税计税依据异常」（TOB-002）"
+        - "阈值：config/rulelist_v12.json::params.TOB-002"
+        - "取数：计税依据 / 收购金额"
+      suggestion: "核查依据"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-015（收购金额口径）"
+  - rule_id: "CUL-001"
+    name: "文化事业建设费未申报"
+    tax_type: "文化事业建设费"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "advertising_revenue > 0 and cultural_fee_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.CUL-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "广告收入"
+      - "文化事业建设费"
+    risk:
+      message: "文化事业建设费未申报"
+      evidence:
+        - "命中：「文化事业建设费未申报」（CUL-001）"
+        - "阈值：config/rulelist_v12.json::params.CUL-001"
+        - "取数：广告收入 / 文化事业建设费"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-017 + engine/gap_tax_obligations"
+  - rule_id: "CUL-002"
+    name: "文化事业建设费计税依据异常"
+    tax_type: "文化事业建设费"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(cultural_fee_base - advertising_revenue) / advertising_revenue > params.base_diff_ratio"
+    params_ref: "config/rulelist_v12.json::params.CUL-002"
+    params:
+      base_diff_ratio: 0.1
+      _basis: "文化事业建设费计费基数 vs 广告收入差异率"
+    inputs:
+      - "计费基数"
+      - "广告收入"
+    risk:
+      message: "文化事业建设费计税依据异常"
+      evidence:
+        - "命中：「文化事业建设费计税依据异常」（CUL-002）"
+        - "阈值：config/rulelist_v12.json::params.CUL-002"
+        - "取数：计费基数 / 广告收入"
+      suggestion: "核查依据"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-017（广告收入口径）"
+  - rule_id: "WAT-001"
+    name: "水利建设基金未申报"
+    tax_type: "水利建设基金"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "sales_revenue > 0 and water_fund_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.WAT-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "销售收入"
+      - "水利基金"
+    risk:
+      message: "水利建设基金未申报"
+      evidence:
+        - "命中：「水利建设基金未申报」（WAT-001）"
+        - "阈值：config/rulelist_v12.json::params.WAT-001"
+        - "取数：销售收入 / 水利基金"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-020 + engine/gap_tax_obligations"
+  - rule_id: "WAT-002"
+    name: "水利建设基金计税依据异常"
+    tax_type: "水利建设基金"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(water_fund_base - sales_revenue) / sales_revenue > params.base_diff_ratio"
+    params_ref: "config/rulelist_v12.json::params.WAT-002"
+    params:
+      base_diff_ratio: 0.1
+      _basis: "水利基金计费基数 vs 收入差异率"
+    inputs:
+      - "计费基数"
+      - "收入"
+    risk:
+      message: "水利建设基金计税依据异常"
+      evidence:
+        - "命中：「水利建设基金计税依据异常」（WAT-002）"
+        - "阈值：config/rulelist_v12.json::params.WAT-002"
+        - "取数：计费基数 / 收入"
+      suggestion: "核查依据"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-020（销售收入口径）"
+  - rule_id: "SUR-006"
+    name: "地方教育附加未申报"
+    tax_type: "附加税费"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "vat_payable > 0 and local_edu_surcharge_paid = 0"
+    params_ref: "config/rulelist_v12.json::params.SUR-006"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "增值税"
+      - "地方教育附加"
+    risk:
+      message: "地方教育附加未申报"
+      evidence:
+        - "命中：「地方教育附加未申报」（SUR-006）"
+        - "阈值：config/rulelist_v12.json::params.SUR-006"
+        - "取数：增值税 / 地方教育附加"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-OTH-003 + VR043"
+      note: "⊇ SUR-004（V1.1）"
+  - rule_id: "SUR-007"
+    name: "教育费附加减免异常"
+    tax_type: "附加税费"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "edu_surcharge_reduction and condition not met"
+    params_ref: "config/rulelist_v12.json::params.SUR-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "减免"
+      - "条件"
+    risk:
+      message: "教育费附加减免异常"
+      evidence:
+        - "命中：「教育费附加减免异常」（SUR-007）"
+        - "阈值：config/rulelist_v12.json::params.SUR-007"
+        - "取数：减免 / 条件"
+      suggestion: "核查减免"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "SUR-008"
+    name: "附加税费退库异常"
+    tax_type: "附加税费"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "surtax_refund > 0 and vat_refund = 0"
+    params_ref: "config/rulelist_v12.json::params.SUR-008"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "附加税费退库"
+      - "增值税退税"
+    risk:
+      message: "附加税费退库异常"
+      evidence:
+        - "命中：「附加税费退库异常」（SUR-008）"
+        - "阈值：config/rulelist_v12.json::params.SUR-008"
+        - "取数：附加税费退库 / 增值税退税"
+      suggestion: "核查退库"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "SUR-009"
+    name: "附加税费跨期异常"
+    tax_type: "附加税费"
+    source_set: "V1.2"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "surtax_period != vat_period"
+    params_ref: "config/rulelist_v12.json::params.SUR-009"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "附加税费期间"
+      - "增值税期间"
+    risk:
+      message: "附加税费跨期异常"
+      evidence:
+        - "命中：「附加税费跨期异常」（SUR-009）"
+        - "阈值：config/rulelist_v12.json::params.SUR-009"
+        - "取数：附加税费期间 / 增值税期间"
       suggestion: "核查期间"
       legal_basis_ref: "法规库自动匹配"
     coverage:
       status: "partial"
       action: "merge"
-      mapped_to: "engine/tax_incentive_analyzer（政策库含期间字段）"
-  - rule_id: "TAXINC-006"
-    name: "高新优惠异常"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
+      mapped_to: "VR043（随增值税附征勾稽）"
+  - rule_id: "SUR-010"
+    name: "附加税费申报表间差异"
+    tax_type: "附加税费"
+    source_set: "V1.2"
     level: "medium"
     version: "1.0.0"
     enabled: false
-    condition: "high_tech_condition_met = false and high_tech_deduction > 0"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-006"
-    params: {}
-    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    condition: "abs(surtax_return_a - surtax_return_b) > params.return_diff_threshold"
+    params_ref: "config/rulelist_v12.json::params.SUR-010"
+    params:
+      return_diff_threshold: null
+      _basis: "附加税费申报表间差异阈值（待登记）"
     inputs:
-      - "高新条件"
-      - "优惠"
+      - "申报表A"
+      - "申报表B"
     risk:
-      message: "高新优惠异常"
+      message: "附加税费申报表间差异"
       evidence:
-        - "命中：「高新优惠异常」（TAXINC-006）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-006"
-        - "取数：高新条件 / 优惠"
-      suggestion: "核查高新"
+        - "命中：「附加税费申报表间差异」（SUR-010）"
+        - "阈值：config/rulelist_v12.json::params.SUR-010"
+        - "取数：申报表A / 申报表B"
+      suggestion: "核查申报"
       legal_basis_ref: "法规库自动匹配"
     coverage:
       status: "partial"
       action: "merge"
-      mapped_to: "engine/tax_incentive_analyzer（六大类含「高新技术企业15%税率」）"
-      note: "与 V1.0 CIT-022 同一概念"
-  - rule_id: "TAXINC-007"
-    name: "小微优惠异常"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
-    level: "medium"
-    version: "1.0.0"
-    enabled: false
-    condition: "small_micro_condition_met = false and small_micro_deduction > 0"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-007"
-    params: {}
-    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
-    inputs:
-      - "小微条件"
-      - "优惠"
-    risk:
-      message: "小微优惠异常"
-      evidence:
-        - "命中：「小微优惠异常」（TAXINC-007）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-007"
-        - "取数：小微条件 / 优惠"
-      suggestion: "核查小微"
-      legal_basis_ref: "法规库自动匹配"
-    coverage:
-      status: "covered"
-      action: "keep_existing"
-      mapped_to: "engine/tax_impact.evaluate_small_micro（唯一权威）"
-  - rule_id: "TAXINC-008"
-    name: "研发加计扣除异常"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
-    level: "medium"
-    version: "1.0.0"
-    enabled: false
-    condition: "R&D_condition_met = false and R&D_deduction > 0"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-008"
-    params: {}
-    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
-    inputs:
-      - "研发条件"
-      - "加计扣除"
-    risk:
-      message: "研发加计扣除异常"
-      evidence:
-        - "命中：「研发加计扣除异常」（TAXINC-008）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-008"
-        - "取数：研发条件 / 加计扣除"
-      suggestion: "核查研发"
-      legal_basis_ref: "法规库自动匹配"
-    coverage:
-      status: "covered"
-      action: "keep_existing"
-      mapped_to: "RL-CIT-003"
-  - rule_id: "TAXINC-009"
-    name: "西部大开发优惠异常"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
-    level: "medium"
-    version: "1.0.0"
-    enabled: false
-    condition: "western_condition_met = false and western_deduction > 0"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-009"
-    params: {}
-    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
-    inputs:
-      - "西部条件"
-      - "优惠"
-    risk:
-      message: "西部大开发优惠异常"
-      evidence:
-        - "命中：「西部大开发优惠异常」（TAXINC-009）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-009"
-        - "取数：西部条件 / 优惠"
-      suggestion: "核查西部"
-      legal_basis_ref: "法规库自动匹配"
-    coverage:
-      status: "partial"
-      action: "merge"
-      mapped_to: "engine/tax_incentive_analyzer（含「西部大开发15%税率」）"
-      note: "与 V1.0 CIT-024 同一概念"
-  - rule_id: "TAXINC-010"
-    name: "软件企业优惠异常"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
-    level: "medium"
-    version: "1.0.0"
-    enabled: false
-    condition: "software_condition_met = false and software_deduction > 0"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-010"
-    params: {}
-    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
-    inputs:
-      - "软件条件"
-      - "优惠"
-    risk:
-      message: "软件企业优惠异常"
-      evidence:
-        - "命中：「软件企业优惠异常」（TAXINC-010）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-010"
-        - "取数：软件条件 / 优惠"
-      suggestion: "核查软件"
-      legal_basis_ref: "法规库自动匹配"
-    coverage:
-      status: "partial"
-      action: "merge"
-      mapped_to: "engine/tax_incentive_analyzer（含「软件产品即征即退」）"
-  - rule_id: "TAXINC-011"
-    name: "资源综合利用优惠异常"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
-    level: "medium"
-    version: "1.0.0"
-    enabled: false
-    condition: "resource_condition_met = false and resource_deduction > 0"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-011"
-    params: {}
-    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
-    inputs:
-      - "资源条件"
-      - "优惠"
-    risk:
-      message: "资源综合利用优惠异常"
-      evidence:
-        - "命中：「资源综合利用优惠异常」（TAXINC-011）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-011"
-        - "取数：资源条件 / 优惠"
-      suggestion: "核查资源"
-      legal_basis_ref: "法规库自动匹配"
-    coverage:
-      status: "missing"
-      action: "add"
-      mapped_to: ""
-      note: "0 命中「资源综合利用」"
-  - rule_id: "TAXINC-012"
-    name: "残疾人就业优惠异常"
-    tax_type: "税收优惠"
-    source_set: "V1.1"
-    level: "medium"
-    version: "1.0.0"
-    enabled: false
-    condition: "disabled_condition_met = false and disabled_deduction > 0"
-    params_ref: "config/rulelist_v11.json::params.TAXINC-012"
-    params: {}
-    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
-    inputs:
-      - "残疾人条件"
-      - "优惠"
-    risk:
-      message: "残疾人就业优惠异常"
-      evidence:
-        - "命中：「残疾人就业优惠异常」（TAXINC-012）"
-        - "阈值：config/rulelist_v11.json::params.TAXINC-012"
-        - "取数：残疾人条件 / 优惠"
-      suggestion: "核查残疾人"
-      legal_basis_ref: "法规库自动匹配"
-    coverage:
-      status: "partial"
-      action: "merge"
-      mapped_to: "engine/tax_incentive_analyzer（含「残疾人就业保障金减免」）/ RL-SPT-019"
+      mapped_to: "RL-CIT-008（表间勾稽四方比对）"

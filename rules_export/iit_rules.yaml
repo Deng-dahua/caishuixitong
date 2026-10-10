@@ -1,11 +1,11 @@
 # ==========================================================================
 # 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
-# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 唯一权威：config/rulelist_v1.json + rulelist_v11.json + rulelist_v12.json
 # 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
 # ==========================================================================
 schema: 1
 file: "iit_rules.yaml"
-rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set: "外部候选规则清单 V1.0 + V1.1 + V1.2"
 rule_set_version: "2026.10"
 status: draft
 wired: false
@@ -187,7 +187,7 @@ rules:
     condition: "annual_bonus_tax_method not optimal"
     params_ref: "config/rulelist_v11.json::params.IIT-007"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "年终奖"
       - "计税方式"
@@ -214,7 +214,7 @@ rules:
     condition: "high_income_person_tax_burden < params.burden_threshold"
     params_ref: "config/rulelist_v11.json::params.IIT-008"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "高收入人员"
       - "税负"
@@ -240,7 +240,7 @@ rules:
     condition: "foreign_tax_exempt_subsidy > params.amount_threshold"
     params_ref: "config/rulelist_v11.json::params.IIT-009"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "外籍补贴"
       - "免税条件"
@@ -319,7 +319,7 @@ rules:
     condition: "fixed_rate_collection and actual_income > params.amount_threshold"
     params_ref: "config/rulelist_v11.json::params.IIT-012"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "核定征收"
       - "实际收入"
@@ -372,7 +372,7 @@ rules:
     condition: "salary_below_threshold_months > params.salary_below_threshold_months"
     params_ref: "config/rulelist_v11.json::params.IIT-014"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "工资"
       - "月份"
@@ -452,7 +452,7 @@ rules:
     condition: "equity_incentive and deferred_tax_condition not met"
     params_ref: "config/rulelist_v11.json::params.IIT-017"
     params: {}
-    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    params_note: "待登记：阈值/地区参数尚未提供，检测器须输出「待核」，禁止默认值顶替。"
     inputs:
       - "股权激励"
       - "递延条件"
