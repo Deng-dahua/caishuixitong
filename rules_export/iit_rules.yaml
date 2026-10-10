@@ -1,0 +1,552 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "iit_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 20
+  covered: 6
+  partial: 7
+  missing: 7
+rules:
+  - rule_id: "IIT-001"
+    name: "个税申报人数与社保人数差异"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(iit_headcount - social_headcount) / social_headcount > params.headcount_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.IIT-001"
+    params:
+      headcount_diff_ratio: 0.2
+      _basis: "申报人数差异容忍度"
+    inputs:
+      - "个税人数"
+      - "社保人数"
+    risk:
+      message: "个税申报人数与社保人数差异"
+      evidence:
+        - "命中：「个税申报人数与社保人数差异」（IIT-001）"
+        - "阈值：config/rulelist_v11.json::params.IIT-001"
+        - "取数：个税人数 / 社保人数"
+      suggestion: "核查漏报、少报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-PAY-001 / VR005"
+  - rule_id: "IIT-002"
+    name: "个税工资总额与企业所得税工资总额差异"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(iit_salary_total - cit_salary_total) / cit_salary_total > params.salary_total_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.IIT-002"
+    params:
+      salary_total_diff_ratio: 0.1
+      _basis: "个税工资 vs 企税工资总额差异率"
+    inputs:
+      - "个税工资"
+      - "所得税工资"
+    risk:
+      message: "个税工资总额与企业所得税工资总额差异"
+      evidence:
+        - "命中：「个税工资总额与企业所得税工资总额差异」（IIT-002）"
+        - "阈值：config/rulelist_v11.json::params.IIT-002"
+        - "取数：个税工资 / 所得税工资"
+      suggestion: "核查工资口径"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-PAY-002"
+      note: "系统比「个税申报工资 vs 账面工资 vs 社保基数」；候选的「企税申报工资」维度当前账套无 A105050 表 ⇒ 并入后作为可选维度，缺表则待核"
+  - rule_id: "IIT-003"
+    name: "股东借款长期未还"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "shareholder_loan_balance > 0 and loan_days > params.loan_days"
+    params_ref: "config/rulelist_v11.json::params.IIT-003"
+    params:
+      loan_days: 365
+      _basis: "股东借款跨年未还"
+    inputs:
+      - "股东借款"
+      - "天数"
+    risk:
+      message: "股东借款长期未还"
+      evidence:
+        - "命中：「股东借款长期未还」（IIT-003）"
+        - "阈值：config/rulelist_v11.json::params.IIT-003"
+        - "取数：股东借款 / 天数"
+      suggestion: "核查视同分红"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-FUND-003 / VR030"
+  - rule_id: "IIT-004"
+    name: "股东分红未代扣代缴"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "dividend_paid > 0 and iit_withheld = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-004"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "分红金额"
+      - "已扣个税"
+    risk:
+      message: "股东分红未代扣代缴"
+      evidence:
+        - "命中：「股东分红未代扣代缴」（IIT-004）"
+        - "阈值：config/rulelist_v11.json::params.IIT-004"
+        - "取数：分红金额 / 已扣个税"
+      suggestion: "核查代扣代缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "「股息红利」仅出现在 material_names（资料名）与 tax_redlines 条文中，无检测器"
+  - rule_id: "IIT-005"
+    name: "劳务报酬未代扣代缴"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "labor_remuneration > 0 and iit_withheld = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-005"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "劳务报酬"
+      - "已扣个税"
+    risk:
+      message: "劳务报酬未代扣代缴"
+      evidence:
+        - "命中：「劳务报酬未代扣代缴」（IIT-005）"
+        - "阈值：config/rulelist_v11.json::params.IIT-005"
+        - "取数：劳务报酬 / 已扣个税"
+      suggestion: "核查代扣代缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR065 / RL-PAY-005 / RL-SPT-013"
+  - rule_id: "IIT-006"
+    name: "多处任职未合并申报"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "person_multi_employer = true and merged_declaration = false"
+    params_ref: "config/rulelist_v11.json::params.IIT-006"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "任职信息"
+      - "申报记录"
+    risk:
+      message: "多处任职未合并申报"
+      evidence:
+        - "命中：「多处任职未合并申报」（IIT-006）"
+        - "阈值：config/rulelist_v11.json::params.IIT-006"
+        - "取数：任职信息 / 申报记录"
+      suggestion: "核查合并申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-PAY-006"
+  - rule_id: "IIT-007"
+    name: "年终奖计税方式异常"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "annual_bonus_tax_method not optimal"
+    params_ref: "config/rulelist_v11.json::params.IIT-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "年终奖"
+      - "计税方式"
+    risk:
+      message: "年终奖计税方式异常"
+      evidence:
+        - "命中：「年终奖计税方式异常」（IIT-007）"
+        - "阈值：config/rulelist_v11.json::params.IIT-007"
+        - "取数：年终奖 / 计税方式"
+      suggestion: "核查计税方式"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-PAY-006"
+      note: "系统覆盖「多次适用全年一次性奖金单独计税」；候选的「是否最优计税方式」需比较两种算法 ⇒ 合并为同一检测器的第二分支"
+  - rule_id: "IIT-008"
+    name: "高收入人员税负偏低"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "high_income_person_tax_burden < params.burden_threshold"
+    params_ref: "config/rulelist_v11.json::params.IIT-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "高收入人员"
+      - "税负"
+    risk:
+      message: "高收入人员税负偏低"
+      evidence:
+        - "命中：「高收入人员税负偏低」（IIT-008）"
+        - "阈值：config/rulelist_v11.json::params.IIT-008"
+        - "取数：高收入人员 / 税负"
+      suggestion: "核查申报完整性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR055"
+  - rule_id: "IIT-009"
+    name: "外籍个人免税补贴异常"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "foreign_tax_exempt_subsidy > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.IIT-009"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "外籍补贴"
+      - "免税条件"
+    risk:
+      message: "外籍个人免税补贴异常"
+      evidence:
+        - "命中：「外籍个人免税补贴异常」（IIT-009）"
+        - "阈值：config/rulelist_v11.json::params.IIT-009"
+        - "取数：外籍补贴 / 免税条件"
+      suggestion: "核查免税条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "全仓 0 命中「外籍」"
+  - rule_id: "IIT-010"
+    name: "股权转让个税申报异常"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "equity_transfer_income > 0 and iit_declared < params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.IIT-010"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "股权转让收入"
+      - "个税"
+    risk:
+      message: "股权转让个税申报异常"
+      evidence:
+        - "命中：「股权转让个税申报异常」（IIT-010）"
+        - "阈值：config/rulelist_v11.json::params.IIT-010"
+        - "取数：股权转让收入 / 个税"
+      suggestion: "核查股权转让"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-012 / RL-SPT-009"
+  - rule_id: "IIT-011"
+    name: "合伙企业个人合伙人经营所得异常"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "partnership_income_allocated > 0 and iit_declared = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-011"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "合伙分配"
+      - "个税"
+    risk:
+      message: "合伙企业个人合伙人经营所得异常"
+      evidence:
+        - "命中：「合伙企业个人合伙人经营所得异常」（IIT-011）"
+        - "阈值：config/rulelist_v11.json::params.IIT-011"
+        - "取数：合伙分配 / 个税"
+      suggestion: "核查经营所得"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（主体类型识别）"
+  - rule_id: "IIT-012"
+    name: "个体工商户核定征收异常"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "fixed_rate_collection and actual_income > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.IIT-012"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "核定征收"
+      - "实际收入"
+    risk:
+      message: "个体工商户核定征收异常"
+      evidence:
+        - "命中：「个体工商户核定征收异常」（IIT-012）"
+        - "阈值：config/rulelist_v11.json::params.IIT-012"
+        - "取数：核定征收 / 实际收入"
+      suggestion: "核查核定适用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-011"
+  - rule_id: "IIT-013"
+    name: "个人独资企业投资人个税异常"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "sole_proprietorship_income > 0 and iit_declared = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-013"
+    params:
+      salary_below_threshold_months: 6
+      _basis: "工资长期低于起征点的月数"
+    inputs:
+      - "独资企业利润"
+      - "个税"
+    risk:
+      message: "个人独资企业投资人个税异常"
+      evidence:
+        - "命中：「个人独资企业投资人个税异常」（IIT-013）"
+        - "阈值：config/rulelist_v11.json::params.IIT-013"
+        - "取数：独资企业利润 / 个税"
+      suggestion: "核查经营所得"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis"
+  - rule_id: "IIT-014"
+    name: "工资薪金长期低于起征点"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "salary_below_threshold_months > params.salary_below_threshold_months"
+    params_ref: "config/rulelist_v11.json::params.IIT-014"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "工资"
+      - "月份"
+    risk:
+      message: "工资薪金长期低于起征点"
+      evidence:
+        - "命中：「工资薪金长期低于起征点」（IIT-014）"
+        - "阈值：config/rulelist_v11.json::params.IIT-014"
+        - "取数：工资 / 月份"
+      suggestion: "核查工资真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR055"
+  - rule_id: "IIT-015"
+    name: "现金发放工资未申报"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "cash_salary > 0 and iit_declared = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-015"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "现金工资"
+      - "个税"
+    risk:
+      message: "现金发放工资未申报"
+      evidence:
+        - "命中：「现金发放工资未申报」（IIT-015）"
+        - "阈值：config/rulelist_v11.json::params.IIT-015"
+        - "取数：现金工资 / 个税"
+      suggestion: "核查漏报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR056 / VR059 / RL-FUND-004"
+  - rule_id: "IIT-016"
+    name: "离职补偿金个税异常"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "severance_pay > params.severance_threshold and iit_withheld = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-016"
+    params:
+      severance_threshold: 0.0
+      _basis: "离职补偿超当地社平工资3倍免征额；具体数额由法规库/地区参数提供，未提供则待核"
+    inputs:
+      - "离职补偿"
+      - "个税"
+    risk:
+      message: "离职补偿金个税异常"
+      evidence:
+        - "命中：「离职补偿金个税异常」（IIT-016）"
+        - "阈值：config/rulelist_v11.json::params.IIT-016"
+        - "取数：离职补偿 / 个税"
+      suggestion: "核查免税额度"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "全仓 0 命中「离职补偿/经济补偿」"
+  - rule_id: "IIT-017"
+    name: "股权激励个税递延异常"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "equity_incentive and deferred_tax_condition not met"
+    params_ref: "config/rulelist_v11.json::params.IIT-017"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "股权激励"
+      - "递延条件"
+    risk:
+      message: "股权激励个税递延异常"
+      evidence:
+        - "命中：「股权激励个税递延异常」（IIT-017）"
+        - "阈值：config/rulelist_v11.json::params.IIT-017"
+        - "取数：股权激励 / 递延条件"
+      suggestion: "核查递延备案"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "全仓 0 命中「股权激励」"
+  - rule_id: "IIT-018"
+    name: "利息股息红利所得未代扣"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "interest_dividend_income > 0 and iit_withheld = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-018"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "利息股息"
+      - "已扣个税"
+    risk:
+      message: "利息股息红利所得未代扣"
+      evidence:
+        - "命中：「利息股息红利所得未代扣」（IIT-018）"
+        - "阈值：config/rulelist_v11.json::params.IIT-018"
+        - "取数：利息股息 / 已扣个税"
+      suggestion: "核查代扣代缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "同 IIT-004；与 IIT-004 合并为一条「投资收益类所得未代扣」更佳（同一判据、仅所得类型不同）"
+  - rule_id: "IIT-019"
+    name: "财产租赁所得未代扣"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "property_rental_income > 0 and iit_withheld = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-019"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "租赁所得"
+      - "已扣个税"
+    risk:
+      message: "财产租赁所得未代扣"
+      evidence:
+        - "命中：「财产租赁所得未代扣」（IIT-019）"
+        - "阈值：config/rulelist_v11.json::params.IIT-019"
+        - "取数：租赁所得 / 已扣个税"
+      suggestion: "核查代扣代缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "「财产租赁」命中的是 RL-OTH-010（财产租赁合同印花税），非个税代扣 ⇒ 不同概念"
+  - rule_id: "IIT-020"
+    name: "偶然所得未代扣"
+    tax_type: "个人所得税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "accidental_income > 0 and iit_withheld = 0"
+    params_ref: "config/rulelist_v11.json::params.IIT-020"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "偶然所得"
+      - "已扣个税"
+    risk:
+      message: "偶然所得未代扣"
+      evidence:
+        - "命中：「偶然所得未代扣」（IIT-020）"
+        - "阈值：config/rulelist_v11.json::params.IIT-020"
+        - "取数：偶然所得 / 已扣个税"
+      suggestion: "核查代扣代缴"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "全仓 0 命中「偶然所得」"

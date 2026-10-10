@@ -1,0 +1,394 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "general_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 14
+  covered: 6
+  partial: 4
+  missing: 4
+rules:
+  - rule_id: "GEN-001"
+    name: "申报表间数据不一致"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(return_a - return_b) / return_b > params.return_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.GEN-001"
+    params:
+      return_diff_ratio: 0.1
+      _basis: "申报表间差异率"
+    inputs:
+      - "申报表A"
+      - "申报表B"
+    risk:
+      message: "申报表间数据不一致"
+      evidence:
+        - "命中：「申报表间数据不一致」（GEN-001）"
+        - "阈值：config/rulelist_v11.json::params.GEN-001"
+        - "取数：申报表A / 申报表B"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-008（表间勾稽四方比对）/ VR018 / VR019"
+  - rule_id: "GEN-002"
+    name: "申报数据与财务报表不一致"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(tax_return - financial_statement) / financial_statement > params.statement_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.GEN-002"
+    params:
+      statement_diff_ratio: 0.1
+      _basis: "申报 vs 财报差异率"
+    inputs:
+      - "申报数据"
+      - "财务报表"
+    risk:
+      message: "申报数据与财务报表不一致"
+      evidence:
+        - "命中：「申报数据与财务报表不一致」（GEN-002）"
+        - "阈值：config/rulelist_v11.json::params.GEN-002"
+        - "取数：申报数据 / 财务报表"
+      suggestion: "核查差异"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-008"
+  - rule_id: "GEN-003"
+    name: "申报数据与发票数据不一致"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(tax_return - invoice_data) / invoice_data > params.invoice_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.GEN-003"
+    params:
+      invoice_diff_ratio: 0.1
+      _basis: "申报 vs 发票差异率"
+    inputs:
+      - "申报数据"
+      - "发票数据"
+    risk:
+      message: "申报数据与发票数据不一致"
+      evidence:
+        - "命中：「申报数据与发票数据不一致」（GEN-003）"
+        - "阈值：config/rulelist_v11.json::params.GEN-003"
+        - "取数：申报数据 / 发票数据"
+      suggestion: "核查差异"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR018 / VR019"
+  - rule_id: "GEN-004"
+    name: "申报数据与银行流水不一致"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(tax_return - bank_flow) / bank_flow > params.bank_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.GEN-004"
+    params:
+      bank_diff_ratio: 0.2
+      _basis: "申报 vs 银行流水差异率"
+    inputs:
+      - "申报数据"
+      - "银行流水"
+    risk:
+      message: "申报数据与银行流水不一致"
+      evidence:
+        - "命中：「申报数据与银行流水不一致」（GEN-004）"
+        - "阈值：config/rulelist_v11.json::params.GEN-004"
+        - "取数：申报数据 / 银行流水"
+      suggestion: "核查差异"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR001 / VR028 / RL-INC-001"
+  - rule_id: "GEN-005"
+    name: "申报数据与社保数据不一致"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(tax_return - social_security) / social_security > params.social_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.GEN-005"
+    params:
+      social_diff_ratio: 0.2
+      _basis: "申报 vs 社保差异率"
+    inputs:
+      - "申报数据"
+      - "社保数据"
+    risk:
+      message: "申报数据与社保数据不一致"
+      evidence:
+        - "命中：「申报数据与社保数据不一致」（GEN-005）"
+        - "阈值：config/rulelist_v11.json::params.GEN-005"
+        - "取数：申报数据 / 社保数据"
+      suggestion: "核查差异"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-PAY-002"
+  - rule_id: "GEN-006"
+    name: "申报数据与工商年报不一致"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(tax_return - annual_report) / annual_report > params.annual_report_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.GEN-006"
+    params:
+      annual_report_diff_ratio: 0.2
+      _basis: "申报 vs 工商年报差异率"
+    inputs:
+      - "申报数据"
+      - "工商年报"
+    risk:
+      message: "申报数据与工商年报不一致"
+      evidence:
+        - "命中：「申报数据与工商年报不一致」（GEN-006）"
+        - "阈值：config/rulelist_v11.json::params.GEN-006"
+        - "取数：申报数据 / 工商年报"
+      suggestion: "核查差异"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "工商年报数据源不存在 ⇒ 待资料"
+  - rule_id: "GEN-007"
+    name: "申报逾期"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "declaration_date > due_date"
+    params_ref: "config/rulelist_v11.json::params.GEN-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "申报日期"
+      - "截止日期"
+    risk:
+      message: "申报逾期"
+      evidence:
+        - "命中：「申报逾期」（GEN-007）"
+        - "阈值：config/rulelist_v11.json::params.GEN-007"
+        - "取数：申报日期 / 截止日期"
+      suggestion: "核查逾期"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "无申报日期/截止日字段 ⇒ 待资料"
+  - rule_id: "GEN-008"
+    name: "零申报异常"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "zero_declaration_months > params.zero_declaration_months and business_active = true"
+    params_ref: "config/rulelist_v11.json::params.GEN-008"
+    params:
+      zero_declaration_months: 6
+      _basis: "零申报月数阈值"
+    inputs:
+      - "零申报月份"
+      - "经营状态"
+    risk:
+      message: "零申报异常"
+      evidence:
+        - "命中：「零申报异常」（GEN-008）"
+        - "阈值：config/rulelist_v11.json::params.GEN-008"
+        - "取数：零申报月份 / 经营状态"
+      suggestion: "核查零申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-010 / VR029"
+  - rule_id: "GEN-009"
+    name: "负申报异常"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "negative_declaration_months > params.negative_declaration_months"
+    params_ref: "config/rulelist_v11.json::params.GEN-009"
+    params:
+      negative_declaration_months: 3
+      _basis: "负申报月数阈值"
+    inputs:
+      - "负申报月份"
+    risk:
+      message: "负申报异常"
+      evidence:
+        - "命中：「负申报异常」（GEN-009）"
+        - "阈值：config/rulelist_v11.json::params.GEN-009"
+        - "取数：负申报月份"
+      suggestion: "核查负申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/audit_doctrine（负申报关键词）"
+  - rule_id: "GEN-010"
+    name: "申报税种缺失"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "required_tax_types not in declared_tax_types"
+    params_ref: "config/rulelist_v11.json::params.GEN-010"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "应报税种"
+      - "已报税种"
+    risk:
+      message: "申报税种缺失"
+      evidence:
+        - "命中：「申报税种缺失」（GEN-010）"
+        - "阈值：config/rulelist_v11.json::params.GEN-010"
+        - "取数：应报税种 / 已报税种"
+      suggestion: "核查缺失"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/gap_tax_obligations（RL-SPT-014~021 等特定税种）"
+      note: "系统为逐税种置疑，未做通用「应报税种清单」比对"
+  - rule_id: "GEN-011"
+    name: "申报期间缺失"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "missing_periods > 0"
+    params_ref: "config/rulelist_v11.json::params.GEN-011"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "申报期间"
+    risk:
+      message: "申报期间缺失"
+      evidence:
+        - "命中：「申报期间缺失」（GEN-011）"
+        - "阈值：config/rulelist_v11.json::params.GEN-011"
+        - "取数：申报期间"
+      suggestion: "核查缺失"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/gap_tax_obligations"
+  - rule_id: "GEN-012"
+    name: "申报金额突变"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(current_amount - last_amount) / last_amount > params.amount_change_ratio"
+    params_ref: "config/rulelist_v11.json::params.GEN-012"
+    params:
+      amount_change_ratio: 0.5
+      _basis: "申报金额突变阈值"
+    inputs:
+      - "本期金额"
+      - "上期金额"
+    risk:
+      message: "申报金额突变"
+      evidence:
+        - "命中：「申报金额突变」（GEN-012）"
+        - "阈值：config/rulelist_v11.json::params.GEN-012"
+        - "取数：本期金额 / 上期金额"
+      suggestion: "核查突变"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「金额突变」"
+  - rule_id: "GEN-013"
+    name: "申报频率异常"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "low"
+    version: "1.0.0"
+    enabled: false
+    condition: "declaration_frequency > params.count_threshold"
+    params_ref: "config/rulelist_v11.json::params.GEN-013"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "申报频率"
+    risk:
+      message: "申报频率异常"
+      evidence:
+        - "命中：「申报频率异常」（GEN-013）"
+        - "阈值：config/rulelist_v11.json::params.GEN-013"
+        - "取数：申报频率"
+      suggestion: "核查频率"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「申报频率」"
+  - rule_id: "GEN-014"
+    name: "同一法人多企业关联申报异常"
+    tax_type: "通用申报"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "same_legal_person_companies > params.company_count_threshold and abnormal_related_declaration = true"
+    params_ref: "config/rulelist_v11.json::params.GEN-014"
+    params:
+      company_count_threshold: null
+      _basis: "同一法人关联企业数阈值"
+    inputs:
+      - "同一法人企业"
+      - "申报"
+    risk:
+      message: "同一法人多企业关联申报异常"
+      evidence:
+        - "命中：「同一法人多企业关联申报异常」（GEN-014）"
+        - "阈值：config/rulelist_v11.json::params.GEN-014"
+        - "取数：同一法人企业 / 申报"
+      suggestion: "核查关联"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/cross_enterprise（跨企业六大能力之一）"

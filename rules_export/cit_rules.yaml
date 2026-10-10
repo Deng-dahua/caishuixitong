@@ -1,0 +1,810 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "cit_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 30
+  covered: 17
+  partial: 7
+  missing: 6
+rules:
+  - rule_id: "CIT-001"
+    name: "所得税贡献率偏低"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "cit_contribution < industry_avg_cit_contribution * params.ratio"
+    params_ref: "config/rulelist_v1.json::params.CIT-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "cit_payable"
+      - "revenue"
+      - "industry_avg"
+    risk:
+      message: "所得税贡献率偏低"
+      evidence:
+        - "命中：「所得税贡献率偏低」（CIT-001）"
+        - "阈值：config/rulelist_v1.json::params.CIT-001"
+        - "取数：cit_payable / revenue / industry_avg"
+      suggestion: "核查利润、纳税调整"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/industry_benchmark（税负率）+ domain_analysis 贡献率"
+      note: "「所得税贡献率」指标本系统未单列（需企业所得税申报表）"
+  - rule_id: "CIT-002"
+    name: "所得税税负率异常波动"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(cit_burden - cit_burden_last_year) / cit_burden_last_year > params.volatility"
+    params_ref: "config/rulelist_v1.json::params.CIT-002"
+    params:
+      volatility: 0.5
+      _basis: "|本期所得税税负率 − 上期| / 上期 > 0.5；需两期企业所得税申报表"
+    inputs:
+      - "cit_payable"
+      - "profit"
+    risk:
+      message: "所得税税负率异常波动"
+      evidence:
+        - "命中：「所得税税负率异常波动」（CIT-002）"
+        - "阈值：config/rulelist_v1.json::params.CIT-002"
+        - "取数：cit_payable / profit"
+      suggestion: "分析税负突变"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR081（本批落地）"
+  - rule_id: "CIT-003"
+    name: "利润总额与应纳税所得额差异异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(taxable_income - profit_total) / profit_total > params.diff_ratio"
+    params_ref: "config/rulelist_v1.json::params.CIT-003"
+    params:
+      diff_ratio: 0.3
+      _basis: "|应纳税所得额 − 利润总额| / 利润总额 > 0.3；需企业所得税年度申报表（A100000）"
+    inputs:
+      - "profit_total"
+      - "taxable_income"
+    risk:
+      message: "利润总额与应纳税所得额差异异常"
+      evidence:
+        - "命中：「利润总额与应纳税所得额差异异常」（CIT-003）"
+        - "阈值：config/rulelist_v1.json::params.CIT-003"
+        - "取数：profit_total / taxable_income"
+      suggestion: "核查税会差异调整"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR082（本批落地）"
+  - rule_id: "CIT-004"
+    name: "成本费用率异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "cost_ratio > industry_avg_cost_ratio * params.upper_ratio"
+    params_ref: "config/rulelist_v1.json::params.CIT-004"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "cost"
+      - "revenue"
+      - "industry_avg"
+    risk:
+      message: "成本费用率异常"
+      evidence:
+        - "命中：「成本费用率异常」（CIT-004）"
+        - "阈值：config/rulelist_v1.json::params.CIT-004"
+        - "取数：cost / revenue / industry_avg"
+      suggestion: "核查成本费用真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-COST-004 毛利率显著背离 + VR034 成本费用虚列异常 + redline_benchmark 毛利率/期间费用率"
+  - rule_id: "CIT-005"
+    name: "收入与成本变动背离"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "revenue_growth - cost_growth < -params.growth_gap and revenue_growth < 0"
+    params_ref: "config/rulelist_v1.json::params.CIT-005"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "revenue"
+      - "cost"
+    risk:
+      message: "收入与成本变动背离"
+      evidence:
+        - "命中：「收入与成本变动背离」（CIT-005）"
+        - "阈值：config/rulelist_v1.json::params.CIT-005"
+        - "取数：revenue / cost"
+      suggestion: "核查收入成本匹配"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-COST-004 / VR002 会计收入与销项开票月度差异"
+      note: "「收入降、成本升」的方向性背离未单列"
+  - rule_id: "CIT-006"
+    name: "毛利率异常低于行业"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "gross_margin < industry_avg_gross_margin * params.ratio"
+    params_ref: "config/rulelist_v1.json::params.CIT-006"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "gross_margin"
+      - "industry_avg"
+    risk:
+      message: "毛利率异常低于行业"
+      evidence:
+        - "命中：「毛利率异常低于行业」（CIT-006）"
+        - "阈值：config/rulelist_v1.json::params.CIT-006"
+        - "取数：gross_margin / industry_avg"
+      suggestion: "核查定价、成本"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-COST-004 + redline_benchmark（毛利率，行业区间）"
+  - rule_id: "CIT-007"
+    name: "预缴与汇算差异大"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(prepaid_cit - annual_cit) / annual_cit > params.diff_ratio"
+    params_ref: "config/rulelist_v1.json::params.CIT-007"
+    params:
+      diff_ratio: 0.3
+      _basis: "|预缴企业所得税 − 汇算应纳| / 汇算应纳 > 0.3；需季度预缴表与年度汇算表"
+    inputs:
+      - "prepaid_cit"
+      - "annual_cit"
+    risk:
+      message: "预缴与汇算差异大"
+      evidence:
+        - "命中：「预缴与汇算差异大」（CIT-007）"
+        - "阈值：config/rulelist_v1.json::params.CIT-007"
+        - "取数：prepaid_cit / annual_cit"
+      suggestion: "核查预缴准确性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR083（本批落地）"
+  - rule_id: "CIT-008"
+    name: "期间费用占比异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "expense_ratio > industry_avg_expense_ratio * params.upper_ratio"
+    params_ref: "config/rulelist_v1.json::params.CIT-008"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "expense"
+      - "revenue"
+    risk:
+      message: "期间费用占比异常"
+      evidence:
+        - "命中：「期间费用占比异常」（CIT-008）"
+        - "阈值：config/rulelist_v1.json::params.CIT-008"
+        - "取数：expense / revenue"
+      suggestion: "核查费用真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "redline_benchmark「期间费用率」+ RL-COST-005 期间费用年末突增"
+  - rule_id: "CIT-009"
+    name: "业务招待费超标"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "entertainment_expense > min(revenue * params.revenue_rate, actual * params.actual_rate)"
+    params_ref: "config/rulelist_v1.json::params.CIT-009"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "entertainment_expense"
+      - "revenue"
+    risk:
+      message: "业务招待费超标"
+      evidence:
+        - "命中：「业务招待费超标」（CIT-009）"
+        - "阈值：config/rulelist_v1.json::params.CIT-009"
+        - "取数：entertainment_expense / revenue"
+      suggestion: "核查纳税调整"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR038 业务招待费扣除超限未纳税调整 + engine/deduction_limit_detector.py"
+  - rule_id: "CIT-010"
+    name: "广告宣传费超标"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "advertising_expense > revenue * params.revenue_rate"
+    params_ref: "config/rulelist_v1.json::params.CIT-010"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "advertising_expense"
+      - "revenue"
+    risk:
+      message: "广告宣传费超标"
+      evidence:
+        - "命中：「广告宣传费超标」（CIT-010）"
+        - "阈值：config/rulelist_v1.json::params.CIT-010"
+        - "取数：advertising_expense / revenue"
+      suggestion: "核查纳税调整"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR039 广告费和业务宣传费扣除超限未纳税调整"
+  - rule_id: "CIT-011"
+    name: "利息支出超标/资本弱化"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "interest_expense > equity * params.debt_equity_ratio * market_rate"
+    params_ref: "config/rulelist_v1.json::params.CIT-011"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "interest_expense"
+      - "equity"
+      - "market_rate"
+    risk:
+      message: "利息支出超标/资本弱化"
+      evidence:
+        - "命中：「利息支出超标/资本弱化」（CIT-011）"
+        - "阈值：config/rulelist_v1.json::params.CIT-011"
+        - "取数：interest_expense / equity / market_rate"
+      suggestion: "核查关联方利息扣除"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-009 利率超同期同类贷款利率 + RL-CIT-010 债资比 2:1 + deduction_limit_detector"
+  - rule_id: "CIT-012"
+    name: "关联交易定价异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(related_transaction_price - market_price) / market_price > params.price_deviation"
+    params_ref: "config/rulelist_v1.json::params.CIT-012"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "related_transaction_price"
+      - "market_price"
+    risk:
+      message: "关联交易定价异常"
+      evidence:
+        - "命中：「关联交易定价异常」（CIT-012）"
+        - "阈值：config/rulelist_v1.json::params.CIT-012"
+        - "取数：related_transaction_price / market_price"
+      suggestion: "核查转让定价"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR037 关联交易价格偏离（转让定价探针）+ RL-CIT-001"
+  - rule_id: "CIT-013"
+    name: "关联方借款长期未还"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_party_receivable_age > params.age_days"
+    params_ref: "config/rulelist_v1.json::params.CIT-013"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "related_party_receivable_balance"
+      - "age"
+    risk:
+      message: "关联方借款长期未还"
+      evidence:
+        - "命中：「关联方借款长期未还」（CIT-013）"
+        - "阈值：config/rulelist_v1.json::params.CIT-013"
+        - "取数：related_party_receivable_balance / age"
+      suggestion: "核查视同分红/利息"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-FUND-003 股东借款年度终了未归还 + VR030 股东借款长期挂账 + 专项探测器"
+  - rule_id: "CIT-014"
+    name: "存货与成本不匹配"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "inventory_change - cost_of_sales_change > params.growth_gap"
+    params_ref: "config/rulelist_v1.json::params.CIT-014"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "inventory"
+      - "cost_of_sales"
+    risk:
+      message: "存货与成本不匹配"
+      evidence:
+        - "命中：「存货与成本不匹配」（CIT-014）"
+        - "阈值：config/rulelist_v1.json::params.CIT-014"
+        - "取数：inventory / cost_of_sales"
+      suggestion: "核查成本结转"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR047 进销数量倒挂 + VR044 库存积压与收入背离 + RL-INV-002"
+  - rule_id: "CIT-015"
+    name: "固定资产折旧异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "depreciation_amount != depreciation_policy_amount"
+    params_ref: "config/rulelist_v1.json::params.CIT-015"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "depreciation_amount"
+      - "policy"
+    risk:
+      message: "固定资产折旧异常"
+      evidence:
+        - "命中：「固定资产折旧异常」（CIT-015）"
+        - "阈值：config/rulelist_v1.json::params.CIT-015"
+        - "取数：depreciation_amount / policy"
+      suggestion: "核查折旧政策"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR041 折旧摊销与长期待摊异常 + RL-AST-001 固定资产取得、投用与折旧不匹配"
+  - rule_id: "CIT-016"
+    name: "无形资产摊销异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "amortization_amount != amortization_policy_amount"
+    params_ref: "config/rulelist_v1.json::params.CIT-016"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "amortization_amount"
+      - "policy"
+    risk:
+      message: "无形资产摊销异常"
+      evidence:
+        - "命中：「无形资产摊销异常」（CIT-016）"
+        - "阈值：config/rulelist_v1.json::params.CIT-016"
+        - "取数：amortization_amount / policy"
+      suggestion: "核查摊销政策"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR041（含摊销类科目）"
+      note: "无形资产摊销政策比对未单列"
+  - rule_id: "CIT-017"
+    name: "资产损失税前扣除异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "asset_loss_amount > params.amount_threshold and evidence_completeness < 1"
+    params_ref: "config/rulelist_v1.json::params.CIT-017"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "asset_loss_amount"
+      - "evidence"
+    risk:
+      message: "资产损失税前扣除异常"
+      evidence:
+        - "命中：「资产损失税前扣除异常」（CIT-017）"
+        - "阈值：config/rulelist_v1.json::params.CIT-017"
+        - "取数：asset_loss_amount / evidence"
+      suggestion: "核查损失证据"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-006 + gap_risk_detectors.detect_asset_loss（置疑补 A105090）"
+  - rule_id: "CIT-018"
+    name: "政府补助税务处理异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "government_grant > 0 and taxable_grant != government_grant"
+    params_ref: "config/rulelist_v1.json::params.CIT-018"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "government_grant"
+      - "taxable_grant"
+    risk:
+      message: "政府补助税务处理异常"
+      evidence:
+        - "命中：「政府补助税务处理异常」（CIT-018）"
+        - "阈值：config/rulelist_v1.json::params.CIT-018"
+        - "取数：government_grant / taxable_grant"
+      suggestion: "核查不征税收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-AST-002 + VR069 财政补贴政府补助未申报 + 专项探测器"
+  - rule_id: "CIT-019"
+    name: "不征税收入对应支出扣除"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "non_taxable_income > 0 and corresponding_expense_deducted > 0"
+    params_ref: "config/rulelist_v1.json::params.CIT-019"
+    params:
+      _basis: "不征税收入 > 0 且其对应支出已税前扣除；需不征税收入专项资料与 A105040"
+    inputs:
+      - "non_taxable_income"
+      - "expense"
+    risk:
+      message: "不征税收入对应支出扣除"
+      evidence:
+        - "命中：「不征税收入对应支出扣除」（CIT-019）"
+        - "阈值：config/rulelist_v1.json::params.CIT-019"
+        - "取数：non_taxable_income / expense"
+      suggestion: "核查支出不得扣除"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR084（本批落地）"
+  - rule_id: "CIT-020"
+    name: "免税收入对应成本扣除"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_exempt_income > 0 and corresponding_cost_deducted > 0"
+    params_ref: "config/rulelist_v1.json::params.CIT-020"
+    params:
+      _basis: "免税收入 > 0 且其对应成本已税前扣除；需免税项目核算资料"
+    inputs:
+      - "tax_exempt_income"
+      - "cost"
+    risk:
+      message: "免税收入对应成本扣除"
+      evidence:
+        - "命中：「免税收入对应成本扣除」（CIT-020）"
+        - "阈值：config/rulelist_v1.json::params.CIT-020"
+        - "取数：tax_exempt_income / cost"
+      suggestion: "核查成本不得扣除"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR085（本批落地）"
+  - rule_id: "CIT-021"
+    name: "研发费用加计扣除异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "R&D_expense > 0 and R&D_conditions not met"
+    params_ref: "config/rulelist_v1.json::params.CIT-021"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "R&D_expense"
+      - "conditions"
+    risk:
+      message: "研发费用加计扣除异常"
+      evidence:
+        - "命中：「研发费用加计扣除异常」（CIT-021）"
+        - "阈值：config/rulelist_v1.json::params.CIT-021"
+        - "取数：R&D_expense / conditions"
+      suggestion: "核查加计扣除条件"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-003 研发费用加计扣除归集异常 + 专项探测器"
+  - rule_id: "CIT-022"
+    name: "高新技术企业优惠异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "high_tech_conditions not met and high_tech_deduction > 0"
+    params_ref: "config/rulelist_v1.json::params.CIT-022"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "conditions"
+      - "deduction"
+    risk:
+      message: "高新技术企业优惠异常"
+      evidence:
+        - "命中：「高新技术企业优惠异常」（CIT-022）"
+        - "阈值：config/rulelist_v1.json::params.CIT-022"
+        - "取数：conditions / deduction"
+      suggestion: "核查高新优惠"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer.py"
+      note: "资格条件逐条核验未实现（需高新证书与研发占比资料）"
+  - rule_id: "CIT-023"
+    name: "小型微利企业优惠异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "small_micro_conditions not met and small_micro_deduction > 0"
+    params_ref: "config/rulelist_v1.json::params.CIT-023"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "conditions"
+      - "deduction"
+    risk:
+      message: "小型微利企业优惠异常"
+      evidence:
+        - "命中：「小型微利企业优惠异常」（CIT-023）"
+        - "阈值：config/rulelist_v1.json::params.CIT-023"
+        - "取数：conditions / deduction"
+      suggestion: "核查小微优惠"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_impact.evaluate_small_micro + tax_incentive_analyzer"
+  - rule_id: "CIT-024"
+    name: "西部大开发等区域优惠异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "regional_incentive_conditions not met and regional_deduction > 0"
+    params_ref: "config/rulelist_v1.json::params.CIT-024"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "conditions"
+      - "deduction"
+    risk:
+      message: "西部大开发等区域优惠异常"
+      evidence:
+        - "命中：「西部大开发等区域优惠异常」（CIT-024）"
+        - "阈值：config/rulelist_v1.json::params.CIT-024"
+        - "取数：conditions / deduction"
+      suggestion: "核查区域优惠"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer.py（区域优惠）"
+  - rule_id: "CIT-025"
+    name: "弥补亏损异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "loss_carryforward > params.years or loss_amount > params.amount_threshold"
+    params_ref: "config/rulelist_v1.json::params.CIT-025"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "loss_carryforward"
+      - "period"
+    risk:
+      message: "弥补亏损异常"
+      evidence:
+        - "命中：「弥补亏损异常」（CIT-025）"
+        - "阈值：config/rulelist_v1.json::params.CIT-025"
+        - "取数：loss_carryforward / period"
+      suggestion: "核查亏损弥补"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-005 + gap_risk_detectors.detect_loss_carryforward"
+  - rule_id: "CIT-026"
+    name: "预提费用/预计负债异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "accrued_expense > actual_payment"
+    params_ref: "config/rulelist_v1.json::params.CIT-026"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "accrued_expense"
+      - "actual_payment"
+    risk:
+      message: "预提费用/预计负债异常"
+      evidence:
+        - "命中：「预提费用/预计负债异常」（CIT-026）"
+        - "阈值：config/rulelist_v1.json::params.CIT-026"
+        - "取数：accrued_expense / actual_payment"
+      suggestion: "核查预提费用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-COST-001 暂估成本长期挂账 + VR062 暂估成本闭环"
+      note: "「预计负债」未单独覆盖"
+  - rule_id: "CIT-027"
+    name: "工资薪金与个税社保不匹配"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "salary_total - iit_total - social_security_total > params.amount_threshold"
+    params_ref: "config/rulelist_v1.json::params.CIT-027"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "salary_total"
+      - "iit_total"
+      - "social_security_total"
+    risk:
+      message: "工资薪金与个税社保不匹配"
+      evidence:
+        - "命中：「工资薪金与个税社保不匹配」（CIT-027）"
+        - "阈值：config/rulelist_v1.json::params.CIT-027"
+        - "取数：salary_total / iit_total / social_security_total"
+      suggestion: "核查工资个税社保"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR005 + RL-PAY-001 人数不符 + RL-PAY-002 三方不一致"
+  - rule_id: "CIT-028"
+    name: "股东借款视同分红风险"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "shareholder_loan_balance > 0 and loan_days > params.loan_days"
+    params_ref: "config/rulelist_v1.json::params.CIT-028"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "shareholder_loan_balance"
+      - "loan_days"
+    risk:
+      message: "股东借款视同分红风险"
+      evidence:
+        - "命中：「股东借款视同分红风险」（CIT-028）"
+        - "阈值：config/rulelist_v1.json::params.CIT-028"
+        - "取数：shareholder_loan_balance / loan_days"
+      suggestion: "核查视同分红"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-FUND-003 + VR030 + 专项探测器（财税〔2003〕158号）"
+  - rule_id: "CIT-029"
+    name: "对外捐赠扣除异常"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "donation_amount > deduction_limit"
+    params_ref: "config/rulelist_v1.json::params.CIT-029"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "donation_amount"
+      - "deduction_limit"
+    risk:
+      message: "对外捐赠扣除异常"
+      evidence:
+        - "命中：「对外捐赠扣除异常」（CIT-029）"
+        - "阈值：config/rulelist_v1.json::params.CIT-029"
+        - "取数：donation_amount / deduction_limit"
+      suggestion: "核查捐赠扣除"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/deduction_limit_detector.py（公益性捐赠限额扣除）"
+  - rule_id: "CIT-030"
+    name: "税会差异调整不完整"
+    tax_type: "企业所得税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_accounting_diff > adjusted_diff"
+    params_ref: "config/rulelist_v1.json::params.CIT-030"
+    params:
+      _basis: "账载税会差异 > 已调整差异；需 A105000 纳税调整项目明细表"
+    inputs:
+      - "tax_accounting_diff"
+      - "adjusted_diff"
+    risk:
+      message: "税会差异调整不完整"
+      evidence:
+        - "命中：「税会差异调整不完整」（CIT-030）"
+        - "阈值：config/rulelist_v1.json::params.CIT-030"
+        - "取数：tax_accounting_diff / adjusted_diff"
+      suggestion: "核查调整完整性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR086（本批落地）"

@@ -8,7 +8,6 @@
     "覆盖状态枚举：covered（已有强对应）/ partial（部分覆盖，方向对、维度或口径不同）/ missing（真缺，已落地为 VR）。",
     "本表只登记「清单 vs 系统」的对照与落地，**不新增红线**（红线条数被 91 处文档/闸门绑定）。"
   ],
-
   "var_map": {
     "_note": "清单变量 → 系统真实取数口径。★ 清单里的变量名（vat_burden/invoice_sales…）**不是**系统数据字典的键；必须经本表映射，否则取数为 0。",
     "bank_receipts": "bank_txs[].credit 合计（方向=收入）；口径唯一权威 engine/bank_nature.py（经营性/非经营性）",
@@ -41,100 +40,1089 @@
     "contract_amount": "合同台账 contracts（本账套未上传 ⇒ 有数据才算）",
     "refund_amount / refund_condition": "需退税审批与退税凭证（本账套未上传）"
   },
-
   "landed_vr": {
     "_note": "12 条真缺的按系统范式落地为 VR（查实层）；归属层不新增红线（红线条数被 91 处绑定）。落地文件 engine/rulelist_v1.py + verified_rule_engine._SCANNERS 注册。",
-    "VR075": {"src": "VAT-004", "name": "进销项税额增速背离（增速差 > 0.3 且销项增速 > 0.2）"},
-    "VR076": {"src": "VAT-008", "name": "夜间开票异常（夜间开票占比 > 0.2）"},
-    "VR077": {"src": "VAT-014", "name": "简易计税与一般计税进项混用线索"},
-    "VR078": {"src": "VAT-015", "name": "预缴增值税与申报税额差异（> 10%）"},
-    "VR079": {"src": "VAT-021", "name": "差额征税项目销售额与扣除额异常"},
-    "VR080": {"src": "VAT-024", "name": "新办企业短期大量开票"},
-    "VR081": {"src": "CIT-002", "name": "企业所得税税负率期间波动异常（> 50%）"},
-    "VR082": {"src": "CIT-003", "name": "利润总额与应纳税所得额差异异常（> 30%）"},
-    "VR083": {"src": "CIT-007", "name": "企业所得税预缴与汇算差异过大（> 30%）"},
-    "VR084": {"src": "CIT-019", "name": "不征税收入对应支出已扣除线索"},
-    "VR085": {"src": "CIT-020", "name": "免税收入对应成本已扣除线索"},
-    "VR086": {"src": "CIT-030", "name": "税会差异调整不完整线索"}
+    "VR075": {
+      "src": "VAT-004",
+      "name": "进销项税额增速背离（增速差 > 0.3 且销项增速 > 0.2）"
+    },
+    "VR076": {
+      "src": "VAT-008",
+      "name": "夜间开票异常（夜间开票占比 > 0.2）"
+    },
+    "VR077": {
+      "src": "VAT-014",
+      "name": "简易计税与一般计税进项混用线索"
+    },
+    "VR078": {
+      "src": "VAT-015",
+      "name": "预缴增值税与申报税额差异（> 10%）"
+    },
+    "VR079": {
+      "src": "VAT-021",
+      "name": "差额征税项目销售额与扣除额异常"
+    },
+    "VR080": {
+      "src": "VAT-024",
+      "name": "新办企业短期大量开票"
+    },
+    "VR081": {
+      "src": "CIT-002",
+      "name": "企业所得税税负率期间波动异常（> 50%）"
+    },
+    "VR082": {
+      "src": "CIT-003",
+      "name": "利润总额与应纳税所得额差异异常（> 30%）"
+    },
+    "VR083": {
+      "src": "CIT-007",
+      "name": "企业所得税预缴与汇算差异过大（> 30%）"
+    },
+    "VR084": {
+      "src": "CIT-019",
+      "name": "不征税收入对应支出已扣除线索"
+    },
+    "VR085": {
+      "src": "CIT-020",
+      "name": "免税收入对应成本已扣除线索"
+    },
+    "VR086": {
+      "src": "CIT-030",
+      "name": "税会差异调整不完整线索"
+    }
   },
-
   "params": {
     "_note": "★ 唯一权威：本批 12 条外部规则的**全部阈值集中在此**，不得写进代码分支（项目铁律：同一阈值多处各写一份 = 多头维护事故）。新增同类对象 = 加一行数据。",
-    "VAT-004": {"growth_gap": 0.3, "output_growth_floor": 0.2, "_basis": "销项税增速 − 进项税增速 > 0.3 且 销项税增速 > 0.2；按月度聚合计算期间变动"},
-    "VAT-008": {"night_ratio": 0.2, "night_hours": [22, 23, 0, 1, 2, 3, 4, 5], "min_invoices": 10, "_basis": "夜间（22:00–次日 06:00）开票占比 > 0.2；样本不足 min_invoices 张不出结论"},
-    "VAT-014": {"_basis": "简易计税销售额 > 0 且 一般计税进项已抵扣 > 0；需申报表附列资料（本账套无 ⇒ 置疑补资料）"},
-    "VAT-015": {"diff_ratio": 0.1, "_basis": "|预缴增值税 − 申报增值税| / 申报增值税 > 0.1；需《增值税预缴税款表》"},
-    "VAT-021": {"diff_amount": 0.0, "_basis": "差额征税销售额 − 扣除额 > diff_amount（默认 >0 即提示）；需申报表附列资料（差额征税栏）"},
-    "VAT-024": {"months": 3, "amount_threshold": 1000000.0, "min_invoices": 20, "_basis": "成立后 months 个月内开票金额 > amount_threshold 且张数 ≥ min_invoices"},
-    "CIT-002": {"volatility": 0.5, "_basis": "|本期所得税税负率 − 上期| / 上期 > 0.5；需两期企业所得税申报表"},
-    "CIT-003": {"diff_ratio": 0.3, "_basis": "|应纳税所得额 − 利润总额| / 利润总额 > 0.3；需企业所得税年度申报表（A100000）"},
-    "CIT-007": {"diff_ratio": 0.3, "_basis": "|预缴企业所得税 − 汇算应纳| / 汇算应纳 > 0.3；需季度预缴表与年度汇算表"},
-    "CIT-019": {"_basis": "不征税收入 > 0 且其对应支出已税前扣除；需不征税收入专项资料与 A105040"},
-    "CIT-020": {"_basis": "免税收入 > 0 且其对应成本已税前扣除；需免税项目核算资料"},
-    "CIT-030": {"_basis": "账载税会差异 > 已调整差异；需 A105000 纳税调整项目明细表"}
+    "VAT-004": {
+      "growth_gap": 0.3,
+      "output_growth_floor": 0.2,
+      "_basis": "销项税增速 − 进项税增速 > 0.3 且 销项税增速 > 0.2；按月度聚合计算期间变动"
+    },
+    "VAT-008": {
+      "night_ratio": 0.2,
+      "night_hours": [
+        22,
+        23,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "min_invoices": 10,
+      "_basis": "夜间（22:00–次日 06:00）开票占比 > 0.2；样本不足 min_invoices 张不出结论"
+    },
+    "VAT-014": {
+      "_basis": "简易计税销售额 > 0 且 一般计税进项已抵扣 > 0；需申报表附列资料（本账套无 ⇒ 置疑补资料）"
+    },
+    "VAT-015": {
+      "diff_ratio": 0.1,
+      "_basis": "|预缴增值税 − 申报增值税| / 申报增值税 > 0.1；需《增值税预缴税款表》"
+    },
+    "VAT-021": {
+      "diff_amount": 0.0,
+      "_basis": "差额征税销售额 − 扣除额 > diff_amount（默认 >0 即提示）；需申报表附列资料（差额征税栏）"
+    },
+    "VAT-024": {
+      "months": 3,
+      "amount_threshold": 1000000.0,
+      "min_invoices": 20,
+      "_basis": "成立后 months 个月内开票金额 > amount_threshold 且张数 ≥ min_invoices"
+    },
+    "CIT-002": {
+      "volatility": 0.5,
+      "_basis": "|本期所得税税负率 − 上期| / 上期 > 0.5；需两期企业所得税申报表"
+    },
+    "CIT-003": {
+      "diff_ratio": 0.3,
+      "_basis": "|应纳税所得额 − 利润总额| / 利润总额 > 0.3；需企业所得税年度申报表（A100000）"
+    },
+    "CIT-007": {
+      "diff_ratio": 0.3,
+      "_basis": "|预缴企业所得税 − 汇算应纳| / 汇算应纳 > 0.3；需季度预缴表与年度汇算表"
+    },
+    "CIT-019": {
+      "_basis": "不征税收入 > 0 且其对应支出已税前扣除；需不征税收入专项资料与 A105040"
+    },
+    "CIT-020": {
+      "_basis": "免税收入 > 0 且其对应成本已税前扣除；需免税项目核算资料"
+    },
+    "CIT-030": {
+      "_basis": "账载税会差异 > 已调整差异；需 A105000 纳税调整项目明细表"
+    }
   },
-
   "rules": [
-    {"src": "VAT-001", "name": "增值税税负率偏低", "sev": "high", "status": "covered", "by": "VR026 增值税税负率与行业区间偏离 + engine/industry_benchmark「税负率」", "note": "清单阈值 industry_avg*0.7；系统用行业区间偏离（更稳健，避免单点阈值）"},
-    {"src": "VAT-002", "name": "增值税税负率异常波动", "sev": "medium", "status": "partial", "by": "VR026", "note": "系统做的是行业区间偏离，**未做同比**（需上期数据）"},
-    {"src": "VAT-003", "name": "开票收入与申报收入差异", "sev": "high", "status": "covered", "by": "VR018 增值税申报销售额与销项开票金额月度差异", "note": "系统按**月**逐期比对，强于清单的单期 10% 阈值"},
-    {"src": "VAT-004", "name": "进销项变动背离", "sev": "medium", "status": "missing", "by": "VR075（本批落地）"},
-    {"src": "VAT-005", "name": "进销项品名背离", "sev": "high", "status": "covered", "by": "VR033 进销品名背离（变名开票）+ RL-VAT-003"},
-    {"src": "VAT-006", "name": "进销项数量背离", "sev": "medium", "status": "partial", "by": "VR047 进销数量倒挂与滚动矛盾 + VR023 投入产出比"},
-    {"src": "VAT-007", "name": "月末集中开票", "sev": "medium", "status": "covered", "by": "engine/invoice_pattern_detector._MONTH_END_SHARE=0.50（月末最后 3 天）", "note": "★ 阈值与清单 0.5 完全一致"},
-    {"src": "VAT-008", "name": "夜间开票异常", "sev": "medium", "status": "missing", "by": "VR076（本批落地）"},
-    {"src": "VAT-009", "name": "红冲作废率异常", "sev": "medium", "status": "covered", "by": "VR027 作废与红冲发票异常占比 + VR071 红字发票合规性异常"},
-    {"src": "VAT-010", "name": "进项发票异常", "sev": "high", "status": "covered", "by": "RL-INV-004 异常增值税扣税凭证抵扣（本会话新建）+ VR066 进项发票上游异常开票特征 + engine/input_voucher.py"},
-    {"src": "VAT-011", "name": "有进项无销项", "sev": "high", "status": "covered", "by": "RL-VAT-002 有进无销：大量进项无对应销售实现"},
-    {"src": "VAT-012", "name": "有销项无进项", "sev": "medium", "status": "covered", "by": "RL-VAT-001 有销无进：销售品名无对应进项来源"},
-    {"src": "VAT-013", "name": "免税收入与进项抵扣不匹配", "sev": "high", "status": "partial", "by": "RL-VAT-011 进项税额应转出未转出 + VR032", "note": "系统覆盖「用途改变应转出」；免税项目逐项对应需申报表附列资料"},
-    {"src": "VAT-014", "name": "简易计税与一般计税混用异常", "sev": "medium", "status": "missing", "by": "VR077（本批落地）"},
-    {"src": "VAT-015", "name": "预缴增值税与申报差异", "sev": "medium", "status": "missing", "by": "VR078（本批落地）"},
-    {"src": "VAT-016", "name": "未开票收入占比异常", "sev": "medium", "status": "covered", "by": "RL-VAT-006 未开票收入长期为零 + VR028 银行收款显著大于销项开票"},
-    {"src": "VAT-017", "name": "销售退回异常", "sev": "medium", "status": "partial", "by": "VR067 销售折扣与折让异常 + RL-OTH-006"},
-    {"src": "VAT-018", "name": "价外费用未计税", "sev": "medium", "status": "covered", "by": "RL-VAT-009 价外费用未并入销售额申报 + VR064 价外费用与零星收入未开票"},
-    {"src": "VAT-019", "name": "视同销售未处理", "sev": "high", "status": "covered", "by": "RL-VAT-008 / RL-VAT-012 / VR036（三通道）"},
-    {"src": "VAT-020", "name": "进项税额转出异常", "sev": "medium", "status": "covered", "by": "VR032 进项税额应转出未转出 + RL-VAT-011"},
-    {"src": "VAT-021", "name": "差额征税项目异常", "sev": "medium", "status": "missing", "by": "VR079（本批落地）"},
-    {"src": "VAT-022", "name": "发票作废后重开异常", "sev": "medium", "status": "covered", "by": "VR053 作废发票资金回流勾稽 + VR054 作废后未重开未申报"},
-    {"src": "VAT-023", "name": "同一客户频繁顶额开票", "sev": "medium", "status": "covered", "by": "RL-VAT-004 顶额开票 + engine/invoice_pattern_detector 同对方同金额多次"},
-    {"src": "VAT-024", "name": "新办企业短期大量开票", "sev": "high", "status": "missing", "by": "VR080（本批落地）"},
-    {"src": "VAT-025", "name": "购销合同与开票金额差异", "sev": "medium", "status": "covered", "by": "RL-OTH-001 印花税计税依据不足：合同金额与开票不符 + VR031"},
-    {"src": "VAT-026", "name": "银行流水收入与开票收入差异", "sev": "high", "status": "covered", "by": "VR001 银行收款与销项开票金额月度差异 + RL-INC-001"},
-    {"src": "VAT-027", "name": "应收账款与收入变动背离", "sev": "medium", "status": "partial", "by": "RL-CIT-008 表间勾稽四方比对不一致（含应收）"},
-    {"src": "VAT-028", "name": "存货变动与销售成本背离", "sev": "medium", "status": "covered", "by": "VR044 库存积压与收入背离 + RL-INV-002"},
-    {"src": "VAT-029", "name": "增值税税率适用错误", "sev": "high", "status": "partial", "by": "VR010/VR011 价税合计关系一致性（可发现错率）", "note": "逐票「品名→正确税率」比对未实现（依赖税码映射）"},
-    {"src": "VAT-030", "name": "即征即退/先征后退异常", "sev": "medium", "status": "partial", "by": "engine/tax_incentive_analyzer.py（即征即退优惠分析）"},
-
-    {"src": "CIT-001", "name": "所得税贡献率偏低", "sev": "high", "status": "partial", "by": "engine/industry_benchmark（税负率）+ domain_analysis 贡献率", "note": "「所得税贡献率」指标本系统未单列（需企业所得税申报表）"},
-    {"src": "CIT-002", "name": "所得税税负率异常波动", "sev": "medium", "status": "missing", "by": "VR081（本批落地）"},
-    {"src": "CIT-003", "name": "利润总额与应纳税所得额差异异常", "sev": "medium", "status": "missing", "by": "VR082（本批落地）"},
-    {"src": "CIT-004", "name": "成本费用率异常", "sev": "high", "status": "covered", "by": "RL-COST-004 毛利率显著背离 + VR034 成本费用虚列异常 + redline_benchmark 毛利率/期间费用率"},
-    {"src": "CIT-005", "name": "收入与成本变动背离", "sev": "medium", "status": "partial", "by": "RL-COST-004 / VR002 会计收入与销项开票月度差异", "note": "「收入降、成本升」的方向性背离未单列"},
-    {"src": "CIT-006", "name": "毛利率异常低于行业", "sev": "medium", "status": "covered", "by": "RL-COST-004 + redline_benchmark（毛利率，行业区间）"},
-    {"src": "CIT-007", "name": "预缴与汇算差异大", "sev": "medium", "status": "missing", "by": "VR083（本批落地）"},
-    {"src": "CIT-008", "name": "期间费用占比异常", "sev": "medium", "status": "covered", "by": "redline_benchmark「期间费用率」+ RL-COST-005 期间费用年末突增"},
-    {"src": "CIT-009", "name": "业务招待费超标", "sev": "medium", "status": "covered", "by": "VR038 业务招待费扣除超限未纳税调整 + engine/deduction_limit_detector.py"},
-    {"src": "CIT-010", "name": "广告宣传费超标", "sev": "medium", "status": "covered", "by": "VR039 广告费和业务宣传费扣除超限未纳税调整"},
-    {"src": "CIT-011", "name": "利息支出超标/资本弱化", "sev": "high", "status": "covered", "by": "RL-CIT-009 利率超同期同类贷款利率 + RL-CIT-010 债资比 2:1 + deduction_limit_detector"},
-    {"src": "CIT-012", "name": "关联交易定价异常", "sev": "high", "status": "covered", "by": "VR037 关联交易价格偏离（转让定价探针）+ RL-CIT-001"},
-    {"src": "CIT-013", "name": "关联方借款长期未还", "sev": "medium", "status": "covered", "by": "RL-FUND-003 股东借款年度终了未归还 + VR030 股东借款长期挂账 + 专项探测器"},
-    {"src": "CIT-014", "name": "存货与成本不匹配", "sev": "medium", "status": "covered", "by": "VR047 进销数量倒挂 + VR044 库存积压与收入背离 + RL-INV-002"},
-    {"src": "CIT-015", "name": "固定资产折旧异常", "sev": "medium", "status": "covered", "by": "VR041 折旧摊销与长期待摊异常 + RL-AST-001 固定资产取得、投用与折旧不匹配"},
-    {"src": "CIT-016", "name": "无形资产摊销异常", "sev": "medium", "status": "partial", "by": "VR041（含摊销类科目）", "note": "无形资产摊销政策比对未单列"},
-    {"src": "CIT-017", "name": "资产损失税前扣除异常", "sev": "high", "status": "covered", "by": "RL-CIT-006 + gap_risk_detectors.detect_asset_loss（置疑补 A105090）"},
-    {"src": "CIT-018", "name": "政府补助税务处理异常", "sev": "medium", "status": "covered", "by": "RL-AST-002 + VR069 财政补贴政府补助未申报 + 专项探测器"},
-    {"src": "CIT-019", "name": "不征税收入对应支出扣除", "sev": "high", "status": "missing", "by": "VR084（本批落地）"},
-    {"src": "CIT-020", "name": "免税收入对应成本扣除", "sev": "high", "status": "missing", "by": "VR085（本批落地）"},
-    {"src": "CIT-021", "name": "研发费用加计扣除异常", "sev": "medium", "status": "covered", "by": "RL-CIT-003 研发费用加计扣除归集异常 + 专项探测器"},
-    {"src": "CIT-022", "name": "高新技术企业优惠异常", "sev": "medium", "status": "partial", "by": "engine/tax_incentive_analyzer.py", "note": "资格条件逐条核验未实现（需高新证书与研发占比资料）"},
-    {"src": "CIT-023", "name": "小型微利企业优惠异常", "sev": "medium", "status": "partial", "by": "engine/tax_impact.evaluate_small_micro + tax_incentive_analyzer"},
-    {"src": "CIT-024", "name": "西部大开发等区域优惠异常", "sev": "medium", "status": "partial", "by": "engine/tax_incentive_analyzer.py（区域优惠）"},
-    {"src": "CIT-025", "name": "弥补亏损异常", "sev": "medium", "status": "covered", "by": "RL-CIT-005 + gap_risk_detectors.detect_loss_carryforward"},
-    {"src": "CIT-026", "name": "预提费用/预计负债异常", "sev": "medium", "status": "partial", "by": "RL-COST-001 暂估成本长期挂账 + VR062 暂估成本闭环", "note": "「预计负债」未单独覆盖"},
-    {"src": "CIT-027", "name": "工资薪金与个税社保不匹配", "sev": "high", "status": "covered", "by": "VR005 + RL-PAY-001 人数不符 + RL-PAY-002 三方不一致"},
-    {"src": "CIT-028", "name": "股东借款视同分红风险", "sev": "high", "status": "covered", "by": "RL-FUND-003 + VR030 + 专项探测器（财税〔2003〕158号）"},
-    {"src": "CIT-029", "name": "对外捐赠扣除异常", "sev": "medium", "status": "covered", "by": "engine/deduction_limit_detector.py（公益性捐赠限额扣除）"},
-    {"src": "CIT-030", "name": "税会差异调整不完整", "sev": "medium", "status": "missing", "by": "VR086（本批落地）"}
-  ]
+    {
+      "src": "VAT-001",
+      "name": "增值税税负率偏低",
+      "sev": "high",
+      "status": "covered",
+      "by": "VR026 增值税税负率与行业区间偏离 + engine/industry_benchmark「税负率」",
+      "note": "清单阈值 industry_avg*0.7；系统用行业区间偏离（更稳健，避免单点阈值）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-001",
+      "logic": "vat_burden < industry_avg_vat_burden * params.ratio",
+      "inputs": [
+        "vat_payable",
+        "sales_revenue",
+        "industry_avg_vat_burden"
+      ],
+      "suggestion": "核查收入确认、进项抵扣、发票合规",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-002",
+      "name": "增值税税负率异常波动",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR026",
+      "note": "系统做的是行业区间偏离，**未做同比**（需上期数据）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.VAT-002",
+      "logic": "abs(vat_burden - vat_burden_last_year) / vat_burden_last_year > params.volatility",
+      "inputs": [
+        "vat_burden",
+        "vat_burden_last_year"
+      ],
+      "suggestion": "分析税负突变原因",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-003",
+      "name": "开票收入与申报收入差异",
+      "sev": "high",
+      "status": "covered",
+      "by": "VR018 增值税申报销售额与销项开票金额月度差异",
+      "note": "系统按**月**逐期比对，强于清单的单期 10% 阈值",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-003",
+      "logic": "abs(invoice_sales - declared_sales) / declared_sales > params.diff_ratio",
+      "inputs": [
+        "invoice_sales",
+        "declared_sales"
+      ],
+      "suggestion": "核查未开票收入、申报完整性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-004",
+      "name": "进销项变动背离",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR075（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.VAT-004",
+      "logic": "output_tax_growth - input_tax_growth > params.growth_gap and output_tax_growth > params.output_growth_floor",
+      "inputs": [
+        "output_tax",
+        "input_tax"
+      ],
+      "suggestion": "核查进项抵扣与销售匹配",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-005",
+      "name": "进销项品名背离",
+      "sev": "high",
+      "status": "covered",
+      "by": "VR033 进销品名背离（变名开票）+ RL-VAT-003",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-005",
+      "logic": "top_input_goods not in top_output_goods and amount_ratio > params.amount_ratio",
+      "inputs": [
+        "进销项品名",
+        "金额"
+      ],
+      "suggestion": "核查虚开、变名开票",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-006",
+      "name": "进销项数量背离",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR047 进销数量倒挂与滚动矛盾 + VR023 投入产出比",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.VAT-006",
+      "logic": "abs(input_qty - output_qty) / output_qty > params.qty_ratio",
+      "inputs": [
+        "进销项数量"
+      ],
+      "suggestion": "核查存货、生产消耗",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-007",
+      "name": "月末集中开票",
+      "sev": "medium",
+      "status": "covered",
+      "by": "engine/invoice_pattern_detector._MONTH_END_SHARE=0.50（月末最后 3 天）",
+      "note": "★ 阈值与清单 0.5 完全一致",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-007",
+      "logic": "month_end_invoice_ratio > params.month_end_share",
+      "inputs": [
+        "month_end_invoice_amount",
+        "total_invoice_amount"
+      ],
+      "suggestion": "核查收入确认时点",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-008",
+      "name": "夜间开票异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR076（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.VAT-008",
+      "logic": "night_invoice_ratio > params.night_ratio",
+      "inputs": [
+        "night_invoice_count",
+        "total_invoice_count"
+      ],
+      "suggestion": "核查开票真实性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-009",
+      "name": "红冲作废率异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR027 作废与红冲发票异常占比 + VR071 红字发票合规性异常",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-009",
+      "logic": "void_ratio > params.void_ratio",
+      "inputs": [
+        "void_invoice_amount",
+        "total_invoice_amount"
+      ],
+      "suggestion": "核查作废红冲原因",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-010",
+      "name": "进项发票异常",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-INV-004 异常增值税扣税凭证抵扣（本会话新建）+ VR066 进项发票上游异常开票特征 + engine/input_voucher.py",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-010",
+      "logic": "abnormal_invoice_count > 0",
+      "inputs": [
+        "abnormal_invoice_count",
+        "input_invoice_total"
+      ],
+      "suggestion": "核查异常凭证、进项转出",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-011",
+      "name": "有进项无销项",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-VAT-002 有进无销：大量进项无对应销售实现",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-011",
+      "logic": "input_tax > 0 and output_tax = 0 for n months",
+      "inputs": [
+        "月度进销项"
+      ],
+      "suggestion": "核查隐匿收入、停工待产",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-012",
+      "name": "有销项无进项",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-VAT-001 有销无进：销售品名无对应进项来源",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-012",
+      "logic": "output_tax > 0 and input_tax = 0 for n months",
+      "inputs": [
+        "月度进销项"
+      ],
+      "suggestion": "核查虚开、成本缺失",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-013",
+      "name": "免税收入与进项抵扣不匹配",
+      "sev": "high",
+      "status": "partial",
+      "by": "RL-VAT-011 进项税额应转出未转出 + VR032",
+      "note": "系统覆盖「用途改变应转出」；免税项目逐项对应需申报表附列资料",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.VAT-013",
+      "logic": "tax_exempt_sales > 0 and input_tax_for_exempt_deducted > 0",
+      "inputs": [
+        "免税销售额",
+        "已抵扣进项"
+      ],
+      "suggestion": "核查进项转出",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-014",
+      "name": "简易计税与一般计税混用异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR077（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.VAT-014",
+      "logic": "simplified_tax_sales > 0 and general_tax_input_deducted > 0",
+      "inputs": [
+        "简易计税销售额",
+        "一般计税进项"
+      ],
+      "suggestion": "核查计税方法适用",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-015",
+      "name": "预缴增值税与申报差异",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR078（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.VAT-015",
+      "logic": "abs(prepaid_vat - declared_vat) / declared_vat > params.diff_ratio",
+      "inputs": [
+        "预缴税额",
+        "申报税额"
+      ],
+      "suggestion": "核查预缴与申报一致性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-016",
+      "name": "未开票收入占比异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-VAT-006 未开票收入长期为零 + VR028 银行收款显著大于销项开票",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-016",
+      "logic": "un_invoiced_revenue_ratio > params.unbilled_ratio",
+      "inputs": [
+        "未开票收入",
+        "总收入"
+      ],
+      "suggestion": "核查未开票收入真实性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-017",
+      "name": "销售退回异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR067 销售折扣与折让异常 + RL-OTH-006",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.VAT-017",
+      "logic": "sales_return_ratio > params.return_ratio",
+      "inputs": [
+        "销售退回金额",
+        "销售收入"
+      ],
+      "suggestion": "核查退回真实性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-018",
+      "name": "价外费用未计税",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-VAT-009 价外费用未并入销售额申报 + VR064 价外费用与零星收入未开票",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-018",
+      "logic": "extra_price_income > taxed_extra_price_income",
+      "inputs": [
+        "价外费用",
+        "已计税价外费用"
+      ],
+      "suggestion": "核查价外费用计税",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-019",
+      "name": "视同销售未处理",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-VAT-008 / RL-VAT-012 / VR036（三通道）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-019",
+      "logic": "deemed_sales_amount > declared_deemed_sales",
+      "inputs": [
+        "视同销售金额",
+        "已申报视同销售"
+      ],
+      "suggestion": "核查视同销售",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-020",
+      "name": "进项税额转出异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR032 进项税额应转出未转出 + RL-VAT-011",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-020",
+      "logic": "should_transfer_out > actual_transfer_out",
+      "inputs": [
+        "应转出进项",
+        "实际转出"
+      ],
+      "suggestion": "核查进项转出",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-021",
+      "name": "差额征税项目异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR079（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.VAT-021",
+      "logic": "difference_tax_sales - difference_tax_cost > params.gap_threshold",
+      "inputs": [
+        "差额征税销售额",
+        "扣除额"
+      ],
+      "suggestion": "核查差额征税",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-022",
+      "name": "发票作废后重开异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR053 作废发票资金回流勾稽 + VR054 作废后未重开未申报",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-022",
+      "logic": "void_reissue_count > params.count_threshold",
+      "inputs": [
+        "void_reissue_count"
+      ],
+      "suggestion": "核查作废重开",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-023",
+      "name": "同一客户频繁顶额开票",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-VAT-004 顶额开票 + engine/invoice_pattern_detector 同对方同金额多次",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-023",
+      "logic": "same_customer_max_invoice_count > params.count_threshold",
+      "inputs": [
+        "same_customer_invoice_count"
+      ],
+      "suggestion": "核查拆分开票",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-024",
+      "name": "新办企业短期大量开票",
+      "sev": "high",
+      "status": "missing",
+      "by": "VR080（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.VAT-024",
+      "logic": "new_company_invoice_amount_3m > params.amount_threshold",
+      "inputs": [
+        "新办企业开票金额"
+      ],
+      "suggestion": "核查虚开",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-025",
+      "name": "购销合同与开票金额差异",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-OTH-001 印花税计税依据不足：合同金额与开票不符 + VR031",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-025",
+      "logic": "abs(contract_amount - invoice_amount) / contract_amount > params.diff_ratio",
+      "inputs": [
+        "合同金额",
+        "开票金额"
+      ],
+      "suggestion": "核查合同与发票一致性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-026",
+      "name": "银行流水收入与开票收入差异",
+      "sev": "high",
+      "status": "covered",
+      "by": "VR001 银行收款与销项开票金额月度差异 + RL-INC-001",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-026",
+      "logic": "abs(bank_receipts - invoice_sales) / invoice_sales > params.revenue_diff_ratio",
+      "inputs": [
+        "银行收款",
+        "开票收入"
+      ],
+      "suggestion": "核查账外收入",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-027",
+      "name": "应收账款与收入变动背离",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-CIT-008 表间勾稽四方比对不一致（含应收）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.VAT-027",
+      "logic": "AR_growth - revenue_growth > params.growth_gap",
+      "inputs": [
+        "应收账款",
+        "收入"
+      ],
+      "suggestion": "核查收入确认",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-028",
+      "name": "存货变动与销售成本背离",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR044 库存积压与收入背离 + RL-INV-002",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.VAT-028",
+      "logic": "inventory_change - cost_of_sales_change > params.growth_gap",
+      "inputs": [
+        "存货",
+        "销售成本"
+      ],
+      "suggestion": "核查成本结转",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-029",
+      "name": "增值税税率适用错误",
+      "sev": "high",
+      "status": "partial",
+      "by": "VR010/VR011 价税合计关系一致性（可发现错率）",
+      "note": "逐票「品名→正确税率」比对未实现（依赖税码映射）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.VAT-029",
+      "logic": "applied_vat_rate != correct_vat_rate",
+      "inputs": [
+        "适用税率",
+        "正确税率"
+      ],
+      "suggestion": "核查税率适用",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "VAT-030",
+      "name": "即征即退/先征后退异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer.py（即征即退优惠分析）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.VAT-030",
+      "logic": "refund_amount > params.amount_threshold and refund_condition not met",
+      "inputs": [
+        "退税金额",
+        "退税条件"
+      ],
+      "suggestion": "核查退税合规",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-001",
+      "name": "所得税贡献率偏低",
+      "sev": "high",
+      "status": "partial",
+      "by": "engine/industry_benchmark（税负率）+ domain_analysis 贡献率",
+      "note": "「所得税贡献率」指标本系统未单列（需企业所得税申报表）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.CIT-001",
+      "logic": "cit_contribution < industry_avg_cit_contribution * params.ratio",
+      "inputs": [
+        "cit_payable",
+        "revenue",
+        "industry_avg"
+      ],
+      "suggestion": "核查利润、纳税调整",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-002",
+      "name": "所得税税负率异常波动",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR081（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.CIT-002",
+      "logic": "abs(cit_burden - cit_burden_last_year) / cit_burden_last_year > params.volatility",
+      "inputs": [
+        "cit_payable",
+        "profit"
+      ],
+      "suggestion": "分析税负突变",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-003",
+      "name": "利润总额与应纳税所得额差异异常",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR082（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.CIT-003",
+      "logic": "abs(taxable_income - profit_total) / profit_total > params.diff_ratio",
+      "inputs": [
+        "profit_total",
+        "taxable_income"
+      ],
+      "suggestion": "核查税会差异调整",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-004",
+      "name": "成本费用率异常",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-COST-004 毛利率显著背离 + VR034 成本费用虚列异常 + redline_benchmark 毛利率/期间费用率",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-004",
+      "logic": "cost_ratio > industry_avg_cost_ratio * params.upper_ratio",
+      "inputs": [
+        "cost",
+        "revenue",
+        "industry_avg"
+      ],
+      "suggestion": "核查成本费用真实性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-005",
+      "name": "收入与成本变动背离",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-COST-004 / VR002 会计收入与销项开票月度差异",
+      "note": "「收入降、成本升」的方向性背离未单列",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.CIT-005",
+      "logic": "revenue_growth - cost_growth < -params.growth_gap and revenue_growth < 0",
+      "inputs": [
+        "revenue",
+        "cost"
+      ],
+      "suggestion": "核查收入成本匹配",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-006",
+      "name": "毛利率异常低于行业",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-COST-004 + redline_benchmark（毛利率，行业区间）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-006",
+      "logic": "gross_margin < industry_avg_gross_margin * params.ratio",
+      "inputs": [
+        "gross_margin",
+        "industry_avg"
+      ],
+      "suggestion": "核查定价、成本",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-007",
+      "name": "预缴与汇算差异大",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR083（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.CIT-007",
+      "logic": "abs(prepaid_cit - annual_cit) / annual_cit > params.diff_ratio",
+      "inputs": [
+        "prepaid_cit",
+        "annual_cit"
+      ],
+      "suggestion": "核查预缴准确性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-008",
+      "name": "期间费用占比异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "redline_benchmark「期间费用率」+ RL-COST-005 期间费用年末突增",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-008",
+      "logic": "expense_ratio > industry_avg_expense_ratio * params.upper_ratio",
+      "inputs": [
+        "expense",
+        "revenue"
+      ],
+      "suggestion": "核查费用真实性",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-009",
+      "name": "业务招待费超标",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR038 业务招待费扣除超限未纳税调整 + engine/deduction_limit_detector.py",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-009",
+      "logic": "entertainment_expense > min(revenue * params.revenue_rate, actual * params.actual_rate)",
+      "inputs": [
+        "entertainment_expense",
+        "revenue"
+      ],
+      "suggestion": "核查纳税调整",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-010",
+      "name": "广告宣传费超标",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR039 广告费和业务宣传费扣除超限未纳税调整",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-010",
+      "logic": "advertising_expense > revenue * params.revenue_rate",
+      "inputs": [
+        "advertising_expense",
+        "revenue"
+      ],
+      "suggestion": "核查纳税调整",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-011",
+      "name": "利息支出超标/资本弱化",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-CIT-009 利率超同期同类贷款利率 + RL-CIT-010 债资比 2:1 + deduction_limit_detector",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-011",
+      "logic": "interest_expense > equity * params.debt_equity_ratio * market_rate",
+      "inputs": [
+        "interest_expense",
+        "equity",
+        "market_rate"
+      ],
+      "suggestion": "核查关联方利息扣除",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-012",
+      "name": "关联交易定价异常",
+      "sev": "high",
+      "status": "covered",
+      "by": "VR037 关联交易价格偏离（转让定价探针）+ RL-CIT-001",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-012",
+      "logic": "abs(related_transaction_price - market_price) / market_price > params.price_deviation",
+      "inputs": [
+        "related_transaction_price",
+        "market_price"
+      ],
+      "suggestion": "核查转让定价",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-013",
+      "name": "关联方借款长期未还",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-FUND-003 股东借款年度终了未归还 + VR030 股东借款长期挂账 + 专项探测器",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-013",
+      "logic": "related_party_receivable_age > params.age_days",
+      "inputs": [
+        "related_party_receivable_balance",
+        "age"
+      ],
+      "suggestion": "核查视同分红/利息",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-014",
+      "name": "存货与成本不匹配",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR047 进销数量倒挂 + VR044 库存积压与收入背离 + RL-INV-002",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-014",
+      "logic": "inventory_change - cost_of_sales_change > params.growth_gap",
+      "inputs": [
+        "inventory",
+        "cost_of_sales"
+      ],
+      "suggestion": "核查成本结转",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-015",
+      "name": "固定资产折旧异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "VR041 折旧摊销与长期待摊异常 + RL-AST-001 固定资产取得、投用与折旧不匹配",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-015",
+      "logic": "depreciation_amount != depreciation_policy_amount",
+      "inputs": [
+        "depreciation_amount",
+        "policy"
+      ],
+      "suggestion": "核查折旧政策",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-016",
+      "name": "无形资产摊销异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "VR041（含摊销类科目）",
+      "note": "无形资产摊销政策比对未单列",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.CIT-016",
+      "logic": "amortization_amount != amortization_policy_amount",
+      "inputs": [
+        "amortization_amount",
+        "policy"
+      ],
+      "suggestion": "核查摊销政策",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-017",
+      "name": "资产损失税前扣除异常",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-CIT-006 + gap_risk_detectors.detect_asset_loss（置疑补 A105090）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-017",
+      "logic": "asset_loss_amount > params.amount_threshold and evidence_completeness < 1",
+      "inputs": [
+        "asset_loss_amount",
+        "evidence"
+      ],
+      "suggestion": "核查损失证据",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-018",
+      "name": "政府补助税务处理异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-AST-002 + VR069 财政补贴政府补助未申报 + 专项探测器",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-018",
+      "logic": "government_grant > 0 and taxable_grant != government_grant",
+      "inputs": [
+        "government_grant",
+        "taxable_grant"
+      ],
+      "suggestion": "核查不征税收入",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-019",
+      "name": "不征税收入对应支出扣除",
+      "sev": "high",
+      "status": "missing",
+      "by": "VR084（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.CIT-019",
+      "logic": "non_taxable_income > 0 and corresponding_expense_deducted > 0",
+      "inputs": [
+        "non_taxable_income",
+        "expense"
+      ],
+      "suggestion": "核查支出不得扣除",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-020",
+      "name": "免税收入对应成本扣除",
+      "sev": "high",
+      "status": "missing",
+      "by": "VR085（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.CIT-020",
+      "logic": "tax_exempt_income > 0 and corresponding_cost_deducted > 0",
+      "inputs": [
+        "tax_exempt_income",
+        "cost"
+      ],
+      "suggestion": "核查成本不得扣除",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-021",
+      "name": "研发费用加计扣除异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-CIT-003 研发费用加计扣除归集异常 + 专项探测器",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-021",
+      "logic": "R&D_expense > 0 and R&D_conditions not met",
+      "inputs": [
+        "R&D_expense",
+        "conditions"
+      ],
+      "suggestion": "核查加计扣除条件",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-022",
+      "name": "高新技术企业优惠异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer.py",
+      "note": "资格条件逐条核验未实现（需高新证书与研发占比资料）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.CIT-022",
+      "logic": "high_tech_conditions not met and high_tech_deduction > 0",
+      "inputs": [
+        "conditions",
+        "deduction"
+      ],
+      "suggestion": "核查高新优惠",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-023",
+      "name": "小型微利企业优惠异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_impact.evaluate_small_micro + tax_incentive_analyzer",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.CIT-023",
+      "logic": "small_micro_conditions not met and small_micro_deduction > 0",
+      "inputs": [
+        "conditions",
+        "deduction"
+      ],
+      "suggestion": "核查小微优惠",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-024",
+      "name": "西部大开发等区域优惠异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "engine/tax_incentive_analyzer.py（区域优惠）",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.CIT-024",
+      "logic": "regional_incentive_conditions not met and regional_deduction > 0",
+      "inputs": [
+        "conditions",
+        "deduction"
+      ],
+      "suggestion": "核查区域优惠",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-025",
+      "name": "弥补亏损异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "RL-CIT-005 + gap_risk_detectors.detect_loss_carryforward",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-025",
+      "logic": "loss_carryforward > params.years or loss_amount > params.amount_threshold",
+      "inputs": [
+        "loss_carryforward",
+        "period"
+      ],
+      "suggestion": "核查亏损弥补",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-026",
+      "name": "预提费用/预计负债异常",
+      "sev": "medium",
+      "status": "partial",
+      "by": "RL-COST-001 暂估成本长期挂账 + VR062 暂估成本闭环",
+      "note": "「预计负债」未单独覆盖",
+      "action": "merge",
+      "params_ref": "config/rulelist_v1.json::params.CIT-026",
+      "logic": "accrued_expense > actual_payment",
+      "inputs": [
+        "accrued_expense",
+        "actual_payment"
+      ],
+      "suggestion": "核查预提费用",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-027",
+      "name": "工资薪金与个税社保不匹配",
+      "sev": "high",
+      "status": "covered",
+      "by": "VR005 + RL-PAY-001 人数不符 + RL-PAY-002 三方不一致",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-027",
+      "logic": "salary_total - iit_total - social_security_total > params.amount_threshold",
+      "inputs": [
+        "salary_total",
+        "iit_total",
+        "social_security_total"
+      ],
+      "suggestion": "核查工资个税社保",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-028",
+      "name": "股东借款视同分红风险",
+      "sev": "high",
+      "status": "covered",
+      "by": "RL-FUND-003 + VR030 + 专项探测器（财税〔2003〕158号）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-028",
+      "logic": "shareholder_loan_balance > 0 and loan_days > params.loan_days",
+      "inputs": [
+        "shareholder_loan_balance",
+        "loan_days"
+      ],
+      "suggestion": "核查视同分红",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-029",
+      "name": "对外捐赠扣除异常",
+      "sev": "medium",
+      "status": "covered",
+      "by": "engine/deduction_limit_detector.py（公益性捐赠限额扣除）",
+      "action": "keep_existing",
+      "params_ref": "config/rulelist_v1.json::params.CIT-029",
+      "logic": "donation_amount > deduction_limit",
+      "inputs": [
+        "donation_amount",
+        "deduction_limit"
+      ],
+      "suggestion": "核查捐赠扣除",
+      "legal_basis_ref": "法规库自动匹配"
+    },
+    {
+      "src": "CIT-030",
+      "name": "税会差异调整不完整",
+      "sev": "medium",
+      "status": "missing",
+      "by": "VR086（本批落地）",
+      "action": "add",
+      "params_ref": "config/rulelist_v1.json::params.CIT-030",
+      "logic": "tax_accounting_diff > adjusted_diff",
+      "inputs": [
+        "tax_accounting_diff",
+        "adjusted_diff"
+      ],
+      "suggestion": "核查调整完整性",
+      "legal_basis_ref": "法规库自动匹配"
+    }
+  ],
+  "supplement": "config/rulelist_v11.json（V1.1 补充规则集 174 条的分册；V1.0 + V1.1 合计 234 条）"
 }

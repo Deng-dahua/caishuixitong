@@ -1,0 +1,809 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "vat_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 30
+  covered: 17
+  partial: 7
+  missing: 6
+rules:
+  - rule_id: "VAT-001"
+    name: "增值税税负率偏低"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "vat_burden < industry_avg_vat_burden * params.ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "vat_payable"
+      - "sales_revenue"
+      - "industry_avg_vat_burden"
+    risk:
+      message: "增值税税负率偏低"
+      evidence:
+        - "命中：「增值税税负率偏低」（VAT-001）"
+        - "阈值：config/rulelist_v1.json::params.VAT-001"
+        - "取数：vat_payable / sales_revenue / industry_avg_vat_burden"
+      suggestion: "核查收入确认、进项抵扣、发票合规"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR026 增值税税负率与行业区间偏离 + engine/industry_benchmark「税负率」"
+      note: "清单阈值 industry_avg*0.7；系统用行业区间偏离（更稳健，避免单点阈值）"
+  - rule_id: "VAT-002"
+    name: "增值税税负率异常波动"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(vat_burden - vat_burden_last_year) / vat_burden_last_year > params.volatility"
+    params_ref: "config/rulelist_v1.json::params.VAT-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "vat_burden"
+      - "vat_burden_last_year"
+    risk:
+      message: "增值税税负率异常波动"
+      evidence:
+        - "命中：「增值税税负率异常波动」（VAT-002）"
+        - "阈值：config/rulelist_v1.json::params.VAT-002"
+        - "取数：vat_burden / vat_burden_last_year"
+      suggestion: "分析税负突变原因"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR026"
+      note: "系统做的是行业区间偏离，**未做同比**（需上期数据）"
+  - rule_id: "VAT-003"
+    name: "开票收入与申报收入差异"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(invoice_sales - declared_sales) / declared_sales > params.diff_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-003"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "invoice_sales"
+      - "declared_sales"
+    risk:
+      message: "开票收入与申报收入差异"
+      evidence:
+        - "命中：「开票收入与申报收入差异」（VAT-003）"
+        - "阈值：config/rulelist_v1.json::params.VAT-003"
+        - "取数：invoice_sales / declared_sales"
+      suggestion: "核查未开票收入、申报完整性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR018 增值税申报销售额与销项开票金额月度差异"
+      note: "系统按**月**逐期比对，强于清单的单期 10% 阈值"
+  - rule_id: "VAT-004"
+    name: "进销项变动背离"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "output_tax_growth - input_tax_growth > params.growth_gap and output_tax_growth > params.output_growth_floor"
+    params_ref: "config/rulelist_v1.json::params.VAT-004"
+    params:
+      growth_gap: 0.3
+      output_growth_floor: 0.2
+      _basis: "销项税增速 − 进项税增速 > 0.3 且 销项税增速 > 0.2；按月度聚合计算期间变动"
+    inputs:
+      - "output_tax"
+      - "input_tax"
+    risk:
+      message: "进销项变动背离"
+      evidence:
+        - "命中：「进销项变动背离」（VAT-004）"
+        - "阈值：config/rulelist_v1.json::params.VAT-004"
+        - "取数：output_tax / input_tax"
+      suggestion: "核查进项抵扣与销售匹配"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR075（本批落地）"
+  - rule_id: "VAT-005"
+    name: "进销项品名背离"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "top_input_goods not in top_output_goods and amount_ratio > params.amount_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-005"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "进销项品名"
+      - "金额"
+    risk:
+      message: "进销项品名背离"
+      evidence:
+        - "命中：「进销项品名背离」（VAT-005）"
+        - "阈值：config/rulelist_v1.json::params.VAT-005"
+        - "取数：进销项品名 / 金额"
+      suggestion: "核查虚开、变名开票"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR033 进销品名背离（变名开票）+ RL-VAT-003"
+  - rule_id: "VAT-006"
+    name: "进销项数量背离"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(input_qty - output_qty) / output_qty > params.qty_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "进销项数量"
+    risk:
+      message: "进销项数量背离"
+      evidence:
+        - "命中：「进销项数量背离」（VAT-006）"
+        - "阈值：config/rulelist_v1.json::params.VAT-006"
+        - "取数：进销项数量"
+      suggestion: "核查存货、生产消耗"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR047 进销数量倒挂与滚动矛盾 + VR023 投入产出比"
+  - rule_id: "VAT-007"
+    name: "月末集中开票"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "month_end_invoice_ratio > params.month_end_share"
+    params_ref: "config/rulelist_v1.json::params.VAT-007"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "month_end_invoice_amount"
+      - "total_invoice_amount"
+    risk:
+      message: "月末集中开票"
+      evidence:
+        - "命中：「月末集中开票」（VAT-007）"
+        - "阈值：config/rulelist_v1.json::params.VAT-007"
+        - "取数：month_end_invoice_amount / total_invoice_amount"
+      suggestion: "核查收入确认时点"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/invoice_pattern_detector._MONTH_END_SHARE=0.50（月末最后 3 天）"
+      note: "★ 阈值与清单 0.5 完全一致"
+  - rule_id: "VAT-008"
+    name: "夜间开票异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "night_invoice_ratio > params.night_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-008"
+    params:
+      night_ratio: 0.2
+      night_hours: [22, 23, 0, 1, 2, 3, 4, 5]
+      min_invoices: 10
+      _basis: "夜间（22:00–次日 06:00）开票占比 > 0.2；样本不足 min_invoices 张不出结论"
+    inputs:
+      - "night_invoice_count"
+      - "total_invoice_count"
+    risk:
+      message: "夜间开票异常"
+      evidence:
+        - "命中：「夜间开票异常」（VAT-008）"
+        - "阈值：config/rulelist_v1.json::params.VAT-008"
+        - "取数：night_invoice_count / total_invoice_count"
+      suggestion: "核查开票真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR076（本批落地）"
+  - rule_id: "VAT-009"
+    name: "红冲作废率异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "void_ratio > params.void_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-009"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "void_invoice_amount"
+      - "total_invoice_amount"
+    risk:
+      message: "红冲作废率异常"
+      evidence:
+        - "命中：「红冲作废率异常」（VAT-009）"
+        - "阈值：config/rulelist_v1.json::params.VAT-009"
+        - "取数：void_invoice_amount / total_invoice_amount"
+      suggestion: "核查作废红冲原因"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR027 作废与红冲发票异常占比 + VR071 红字发票合规性异常"
+  - rule_id: "VAT-010"
+    name: "进项发票异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abnormal_invoice_count > 0"
+    params_ref: "config/rulelist_v1.json::params.VAT-010"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "abnormal_invoice_count"
+      - "input_invoice_total"
+    risk:
+      message: "进项发票异常"
+      evidence:
+        - "命中：「进项发票异常」（VAT-010）"
+        - "阈值：config/rulelist_v1.json::params.VAT-010"
+        - "取数：abnormal_invoice_count / input_invoice_total"
+      suggestion: "核查异常凭证、进项转出"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-INV-004 异常增值税扣税凭证抵扣（本会话新建）+ VR066 进项发票上游异常开票特征 + engine/input_voucher.py"
+  - rule_id: "VAT-011"
+    name: "有进项无销项"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "input_tax > 0 and output_tax = 0 for n months"
+    params_ref: "config/rulelist_v1.json::params.VAT-011"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "月度进销项"
+    risk:
+      message: "有进项无销项"
+      evidence:
+        - "命中：「有进项无销项」（VAT-011）"
+        - "阈值：config/rulelist_v1.json::params.VAT-011"
+        - "取数：月度进销项"
+      suggestion: "核查隐匿收入、停工待产"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-002 有进无销：大量进项无对应销售实现"
+  - rule_id: "VAT-012"
+    name: "有销项无进项"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "output_tax > 0 and input_tax = 0 for n months"
+    params_ref: "config/rulelist_v1.json::params.VAT-012"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "月度进销项"
+    risk:
+      message: "有销项无进项"
+      evidence:
+        - "命中：「有销项无进项」（VAT-012）"
+        - "阈值：config/rulelist_v1.json::params.VAT-012"
+        - "取数：月度进销项"
+      suggestion: "核查虚开、成本缺失"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-001 有销无进：销售品名无对应进项来源"
+  - rule_id: "VAT-013"
+    name: "免税收入与进项抵扣不匹配"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_exempt_sales > 0 and input_tax_for_exempt_deducted > 0"
+    params_ref: "config/rulelist_v1.json::params.VAT-013"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "免税销售额"
+      - "已抵扣进项"
+    risk:
+      message: "免税收入与进项抵扣不匹配"
+      evidence:
+        - "命中：「免税收入与进项抵扣不匹配」（VAT-013）"
+        - "阈值：config/rulelist_v1.json::params.VAT-013"
+        - "取数：免税销售额 / 已抵扣进项"
+      suggestion: "核查进项转出"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-VAT-011 进项税额应转出未转出 + VR032"
+      note: "系统覆盖「用途改变应转出」；免税项目逐项对应需申报表附列资料"
+  - rule_id: "VAT-014"
+    name: "简易计税与一般计税混用异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "simplified_tax_sales > 0 and general_tax_input_deducted > 0"
+    params_ref: "config/rulelist_v1.json::params.VAT-014"
+    params:
+      _basis: "简易计税销售额 > 0 且 一般计税进项已抵扣 > 0；需申报表附列资料（本账套无 ⇒ 置疑补资料）"
+    inputs:
+      - "简易计税销售额"
+      - "一般计税进项"
+    risk:
+      message: "简易计税与一般计税混用异常"
+      evidence:
+        - "命中：「简易计税与一般计税混用异常」（VAT-014）"
+        - "阈值：config/rulelist_v1.json::params.VAT-014"
+        - "取数：简易计税销售额 / 一般计税进项"
+      suggestion: "核查计税方法适用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR077（本批落地）"
+  - rule_id: "VAT-015"
+    name: "预缴增值税与申报差异"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(prepaid_vat - declared_vat) / declared_vat > params.diff_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-015"
+    params:
+      diff_ratio: 0.1
+      _basis: "|预缴增值税 − 申报增值税| / 申报增值税 > 0.1；需《增值税预缴税款表》"
+    inputs:
+      - "预缴税额"
+      - "申报税额"
+    risk:
+      message: "预缴增值税与申报差异"
+      evidence:
+        - "命中：「预缴增值税与申报差异」（VAT-015）"
+        - "阈值：config/rulelist_v1.json::params.VAT-015"
+        - "取数：预缴税额 / 申报税额"
+      suggestion: "核查预缴与申报一致性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR078（本批落地）"
+  - rule_id: "VAT-016"
+    name: "未开票收入占比异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "un_invoiced_revenue_ratio > params.unbilled_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-016"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "未开票收入"
+      - "总收入"
+    risk:
+      message: "未开票收入占比异常"
+      evidence:
+        - "命中：「未开票收入占比异常」（VAT-016）"
+        - "阈值：config/rulelist_v1.json::params.VAT-016"
+        - "取数：未开票收入 / 总收入"
+      suggestion: "核查未开票收入真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-006 未开票收入长期为零 + VR028 银行收款显著大于销项开票"
+  - rule_id: "VAT-017"
+    name: "销售退回异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "sales_return_ratio > params.return_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-017"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "销售退回金额"
+      - "销售收入"
+    risk:
+      message: "销售退回异常"
+      evidence:
+        - "命中：「销售退回异常」（VAT-017）"
+        - "阈值：config/rulelist_v1.json::params.VAT-017"
+        - "取数：销售退回金额 / 销售收入"
+      suggestion: "核查退回真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR067 销售折扣与折让异常 + RL-OTH-006"
+  - rule_id: "VAT-018"
+    name: "价外费用未计税"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "extra_price_income > taxed_extra_price_income"
+    params_ref: "config/rulelist_v1.json::params.VAT-018"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "价外费用"
+      - "已计税价外费用"
+    risk:
+      message: "价外费用未计税"
+      evidence:
+        - "命中：「价外费用未计税」（VAT-018）"
+        - "阈值：config/rulelist_v1.json::params.VAT-018"
+        - "取数：价外费用 / 已计税价外费用"
+      suggestion: "核查价外费用计税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-009 价外费用未并入销售额申报 + VR064 价外费用与零星收入未开票"
+  - rule_id: "VAT-019"
+    name: "视同销售未处理"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "deemed_sales_amount > declared_deemed_sales"
+    params_ref: "config/rulelist_v1.json::params.VAT-019"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "视同销售金额"
+      - "已申报视同销售"
+    risk:
+      message: "视同销售未处理"
+      evidence:
+        - "命中：「视同销售未处理」（VAT-019）"
+        - "阈值：config/rulelist_v1.json::params.VAT-019"
+        - "取数：视同销售金额 / 已申报视同销售"
+      suggestion: "核查视同销售"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-008 / RL-VAT-012 / VR036（三通道）"
+  - rule_id: "VAT-020"
+    name: "进项税额转出异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "should_transfer_out > actual_transfer_out"
+    params_ref: "config/rulelist_v1.json::params.VAT-020"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "应转出进项"
+      - "实际转出"
+    risk:
+      message: "进项税额转出异常"
+      evidence:
+        - "命中：「进项税额转出异常」（VAT-020）"
+        - "阈值：config/rulelist_v1.json::params.VAT-020"
+        - "取数：应转出进项 / 实际转出"
+      suggestion: "核查进项转出"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR032 进项税额应转出未转出 + RL-VAT-011"
+  - rule_id: "VAT-021"
+    name: "差额征税项目异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "difference_tax_sales - difference_tax_cost > params.gap_threshold"
+    params_ref: "config/rulelist_v1.json::params.VAT-021"
+    params:
+      diff_amount: 0.0
+      _basis: "差额征税销售额 − 扣除额 > diff_amount（默认 >0 即提示）；需申报表附列资料（差额征税栏）"
+    inputs:
+      - "差额征税销售额"
+      - "扣除额"
+    risk:
+      message: "差额征税项目异常"
+      evidence:
+        - "命中：「差额征税项目异常」（VAT-021）"
+        - "阈值：config/rulelist_v1.json::params.VAT-021"
+        - "取数：差额征税销售额 / 扣除额"
+      suggestion: "核查差额征税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR079（本批落地）"
+  - rule_id: "VAT-022"
+    name: "发票作废后重开异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "void_reissue_count > params.count_threshold"
+    params_ref: "config/rulelist_v1.json::params.VAT-022"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "void_reissue_count"
+    risk:
+      message: "发票作废后重开异常"
+      evidence:
+        - "命中：「发票作废后重开异常」（VAT-022）"
+        - "阈值：config/rulelist_v1.json::params.VAT-022"
+        - "取数：void_reissue_count"
+      suggestion: "核查作废重开"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR053 作废发票资金回流勾稽 + VR054 作废后未重开未申报"
+  - rule_id: "VAT-023"
+    name: "同一客户频繁顶额开票"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "same_customer_max_invoice_count > params.count_threshold"
+    params_ref: "config/rulelist_v1.json::params.VAT-023"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "same_customer_invoice_count"
+    risk:
+      message: "同一客户频繁顶额开票"
+      evidence:
+        - "命中：「同一客户频繁顶额开票」（VAT-023）"
+        - "阈值：config/rulelist_v1.json::params.VAT-023"
+        - "取数：same_customer_invoice_count"
+      suggestion: "核查拆分开票"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-004 顶额开票 + engine/invoice_pattern_detector 同对方同金额多次"
+  - rule_id: "VAT-024"
+    name: "新办企业短期大量开票"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "new_company_invoice_amount_3m > params.amount_threshold"
+    params_ref: "config/rulelist_v1.json::params.VAT-024"
+    params:
+      months: 3
+      amount_threshold: 1000000.0
+      min_invoices: 20
+      _basis: "成立后 months 个月内开票金额 > amount_threshold 且张数 ≥ min_invoices"
+    inputs:
+      - "新办企业开票金额"
+    risk:
+      message: "新办企业短期大量开票"
+      evidence:
+        - "命中：「新办企业短期大量开票」（VAT-024）"
+        - "阈值：config/rulelist_v1.json::params.VAT-024"
+        - "取数：新办企业开票金额"
+      suggestion: "核查虚开"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: "VR080（本批落地）"
+  - rule_id: "VAT-025"
+    name: "购销合同与开票金额差异"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(contract_amount - invoice_amount) / contract_amount > params.diff_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-025"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "合同金额"
+      - "开票金额"
+    risk:
+      message: "购销合同与开票金额差异"
+      evidence:
+        - "命中：「购销合同与开票金额差异」（VAT-025）"
+        - "阈值：config/rulelist_v1.json::params.VAT-025"
+        - "取数：合同金额 / 开票金额"
+      suggestion: "核查合同与发票一致性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-OTH-001 印花税计税依据不足：合同金额与开票不符 + VR031"
+  - rule_id: "VAT-026"
+    name: "银行流水收入与开票收入差异"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(bank_receipts - invoice_sales) / invoice_sales > params.revenue_diff_ratio"
+    params_ref: "config/rulelist_v1.json::params.VAT-026"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "银行收款"
+      - "开票收入"
+    risk:
+      message: "银行流水收入与开票收入差异"
+      evidence:
+        - "命中：「银行流水收入与开票收入差异」（VAT-026）"
+        - "阈值：config/rulelist_v1.json::params.VAT-026"
+        - "取数：银行收款 / 开票收入"
+      suggestion: "核查账外收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR001 银行收款与销项开票金额月度差异 + RL-INC-001"
+  - rule_id: "VAT-027"
+    name: "应收账款与收入变动背离"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "AR_growth - revenue_growth > params.growth_gap"
+    params_ref: "config/rulelist_v1.json::params.VAT-027"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "应收账款"
+      - "收入"
+    risk:
+      message: "应收账款与收入变动背离"
+      evidence:
+        - "命中：「应收账款与收入变动背离」（VAT-027）"
+        - "阈值：config/rulelist_v1.json::params.VAT-027"
+        - "取数：应收账款 / 收入"
+      suggestion: "核查收入确认"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-CIT-008 表间勾稽四方比对不一致（含应收）"
+  - rule_id: "VAT-028"
+    name: "存货变动与销售成本背离"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "inventory_change - cost_of_sales_change > params.growth_gap"
+    params_ref: "config/rulelist_v1.json::params.VAT-028"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "存货"
+      - "销售成本"
+    risk:
+      message: "存货变动与销售成本背离"
+      evidence:
+        - "命中：「存货变动与销售成本背离」（VAT-028）"
+        - "阈值：config/rulelist_v1.json::params.VAT-028"
+        - "取数：存货 / 销售成本"
+      suggestion: "核查成本结转"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR044 库存积压与收入背离 + RL-INV-002"
+  - rule_id: "VAT-029"
+    name: "增值税税率适用错误"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "applied_vat_rate != correct_vat_rate"
+    params_ref: "config/rulelist_v1.json::params.VAT-029"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "适用税率"
+      - "正确税率"
+    risk:
+      message: "增值税税率适用错误"
+      evidence:
+        - "命中：「增值税税率适用错误」（VAT-029）"
+        - "阈值：config/rulelist_v1.json::params.VAT-029"
+        - "取数：适用税率 / 正确税率"
+      suggestion: "核查税率适用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR010/VR011 价税合计关系一致性（可发现错率）"
+      note: "逐票「品名→正确税率」比对未实现（依赖税码映射）"
+  - rule_id: "VAT-030"
+    name: "即征即退/先征后退异常"
+    tax_type: "增值税"
+    source_set: "V1.0"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "refund_amount > params.amount_threshold and refund_condition not met"
+    params_ref: "config/rulelist_v1.json::params.VAT-030"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "退税金额"
+      - "退税条件"
+    risk:
+      message: "即征即退/先征后退异常"
+      evidence:
+        - "命中：「即征即退/先征后退异常」（VAT-030）"
+        - "阈值：config/rulelist_v1.json::params.VAT-030"
+        - "取数：退税金额 / 退税条件"
+      suggestion: "核查退税合规"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_incentive_analyzer.py（即征即退优惠分析）"

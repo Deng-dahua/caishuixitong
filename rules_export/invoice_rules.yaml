@@ -1,0 +1,814 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "invoice_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 30
+  covered: 16
+  partial: 10
+  missing: 4
+rules:
+  - rule_id: "INV-001"
+    name: "进销项品名背离"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "top_input_goods not in top_output_goods and amount_ratio > params.amount_ratio"
+    params_ref: "config/rulelist_v11.json::params.INV-001"
+    params:
+      amount_ratio: 0.3
+      _basis: "进销品名背离金额占比"
+    inputs:
+      - "进销项品名"
+      - "金额"
+    risk:
+      message: "进销项品名背离"
+      evidence:
+        - "命中：「进销项品名背离」（INV-001）"
+        - "阈值：config/rulelist_v11.json::params.INV-001"
+        - "取数：进销项品名 / 金额"
+      suggestion: "核查虚开"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-003 / VR033"
+      note: "与 V1.0 VAT-005 同一规则 ⇒ 取系统实现"
+  - rule_id: "INV-002"
+    name: "顶额开票"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "invoice_amount = max_limit for count > params.count_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-002"
+    params:
+      max_limit_ratio: 0.95
+      count_threshold: 3
+      _basis: "贴限开票判据（已由 RL-VAT-004/invoice_pattern_detector 实现）"
+    inputs:
+      - "发票金额"
+      - "限额"
+    risk:
+      message: "顶额开票"
+      evidence:
+        - "命中：「顶额开票」（INV-002）"
+        - "阈值：config/rulelist_v11.json::params.INV-002"
+        - "取数：发票金额 / 限额"
+      suggestion: "核查拆分"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-004 / engine/invoice_pattern_detector"
+  - rule_id: "INV-003"
+    name: "月末集中开票"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "month_end_invoice_ratio > params.month_end_share"
+    params_ref: "config/rulelist_v11.json::params.INV-003"
+    params:
+      month_end_share: 0.5
+      month_end_days: 3
+      min_invoices: 10
+      _basis: "月末集中开票（已由 invoice_pattern_detector._MONTH_END_SHARE 实现，数值完全一致）"
+    inputs:
+      - "月末开票"
+      - "总开票"
+    risk:
+      message: "月末集中开票"
+      evidence:
+        - "命中：「月末集中开票」（INV-003）"
+        - "阈值：config/rulelist_v11.json::params.INV-003"
+        - "取数：月末开票 / 总开票"
+      suggestion: "核查收入确认"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/invoice_pattern_detector（_MONTH_END_SHARE=0.50）"
+      note: "★ 阈值与候选 0.5 完全一致"
+  - rule_id: "INV-004"
+    name: "夜间开票"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "night_invoice_ratio > params.night_ratio"
+    params_ref: "config/rulelist_v11.json::params.INV-004"
+    params:
+      night_hours: [22, 23, 0, 1, 2, 3, 4, 5]
+      night_ratio: 0.2
+      min_invoices: 10
+      _basis: "夜间开票（已由 VR076 实现）"
+    inputs:
+      - "夜间开票"
+      - "总开票"
+    risk:
+      message: "夜间开票"
+      evidence:
+        - "命中：「夜间开票」（INV-004）"
+        - "阈值：config/rulelist_v11.json::params.INV-004"
+        - "取数：夜间开票 / 总开票"
+      suggestion: "核查真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR076"
+      note: "与 V1.0 VAT-008 同一规则"
+  - rule_id: "INV-005"
+    name: "作废红冲异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "void_ratio > params.void_ratio"
+    params_ref: "config/rulelist_v11.json::params.INV-005"
+    params:
+      void_ratio: 0.1
+      _basis: "作废红冲占比"
+    inputs:
+      - "作废金额"
+      - "总金额"
+    risk:
+      message: "作废红冲异常"
+      evidence:
+        - "命中：「作废红冲异常」（INV-005）"
+        - "阈值：config/rulelist_v11.json::params.INV-005"
+        - "取数：作废金额 / 总金额"
+      suggestion: "核查作废"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-007 / VR027 / VR071"
+  - rule_id: "INV-006"
+    name: "新办企业短期大量开票"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "new_company_invoice_amount_3m > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-006"
+    params:
+      amount_threshold: null
+      months: 3
+      _basis: "新办企业 3 个月开票金额阈值（已由 VR080 实现，阈值在本表登记）"
+    inputs:
+      - "新办企业开票"
+    risk:
+      message: "新办企业短期大量开票"
+      evidence:
+        - "命中：「新办企业短期大量开票」（INV-006）"
+        - "阈值：config/rulelist_v11.json::params.INV-006"
+        - "取数：新办企业开票"
+      suggestion: "核查虚开"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR080"
+  - rule_id: "INV-007"
+    name: "同一IP/设备开票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "same_ip_invoice_count > params.count_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "开票IP"
+      - "设备"
+    risk:
+      message: "同一IP/设备开票异常"
+      evidence:
+        - "命中：「同一IP/设备开票异常」（INV-007）"
+        - "阈值：config/rulelist_v11.json::params.INV-007"
+        - "取数：开票IP / 设备"
+      suggestion: "核查关联"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "★ 发票明细无 IP/设备字段 ⇒ 数据源不存在，列入「本质盲区」不入判定"
+  - rule_id: "INV-008"
+    name: "同一客户频繁开票"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "same_customer_invoice_count > params.count_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-008"
+    params:
+      same_pair_count: 3
+      window_days: 45
+      _basis: "同一对方同金额开票次数（invoice_pattern_detector._SAME_PAIR_COUNT）"
+    inputs:
+      - "客户开票次数"
+    risk:
+      message: "同一客户频繁开票"
+      evidence:
+        - "命中：「同一客户频繁开票」（INV-008）"
+        - "阈值：config/rulelist_v11.json::params.INV-008"
+        - "取数：客户开票次数"
+      suggestion: "核查拆分"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/invoice_pattern_detector（_SAME_PAIR_COUNT 同一对方同金额 ×3）"
+  - rule_id: "INV-009"
+    name: "发票流与资金流不一致"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "invoice_payer != fund_payer"
+    params_ref: "config/rulelist_v11.json::params.INV-009"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "发票"
+      - "资金流"
+    risk:
+      message: "发票流与资金流不一致"
+      evidence:
+        - "命中：「发票流与资金流不一致」（INV-009）"
+        - "阈值：config/rulelist_v11.json::params.INV-009"
+        - "取数：发票 / 资金流"
+      suggestion: "核查三流一致"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR025 / VR028 / VR013 / engine/fund_loop"
+  - rule_id: "INV-010"
+    name: "发票流与合同流不一致"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "invoice_party != contract_party"
+    params_ref: "config/rulelist_v11.json::params.INV-010"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "发票"
+      - "合同"
+    risk:
+      message: "发票流与合同流不一致"
+      evidence:
+        - "命中：「发票流与合同流不一致」（INV-010）"
+        - "阈值：config/rulelist_v11.json::params.INV-010"
+        - "取数：发票 / 合同"
+      suggestion: "核查三流一致"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-CIT-001（购销闭环）/ contracts / contract_payments"
+  - rule_id: "INV-011"
+    name: "进项发票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abnormal_invoice_count > 0"
+    params_ref: "config/rulelist_v11.json::params.INV-011"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "异常发票"
+      - "进项"
+    risk:
+      message: "进项发票异常"
+      evidence:
+        - "命中：「进项发票异常」（INV-011）"
+        - "阈值：config/rulelist_v11.json::params.INV-011"
+        - "取数：异常发票 / 进项"
+      suggestion: "核查进项转出"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-INV-004"
+      note: "与 V1.0 VAT-010 同一规则"
+  - rule_id: "INV-012"
+    name: "销项发票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abnormal_output_invoice_count > 0"
+    params_ref: "config/rulelist_v11.json::params.INV-012"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "异常销项"
+    risk:
+      message: "销项发票异常"
+      evidence:
+        - "命中：「销项发票异常」（INV-012）"
+        - "阈值：config/rulelist_v11.json::params.INV-012"
+        - "取数：异常销项"
+      suggestion: "核查销项"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-INV-004（仅进项）"
+      note: "候选要求覆盖销项异常；系统仅进项 ⇒ 合并为进销双向"
+  - rule_id: "INV-013"
+    name: "农产品收购发票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "agricultural_purchase_invoice > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-013"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "农产品发票"
+    risk:
+      message: "农产品收购发票异常"
+      evidence:
+        - "命中：「农产品收购发票异常」（INV-013）"
+        - "阈值：config/rulelist_v11.json::params.INV-013"
+        - "取数：农产品发票"
+      suggestion: "核查收购"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-VAT-015 / VR072"
+  - rule_id: "INV-014"
+    name: "差旅费发票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "travel_expense_invoice > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-014"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "差旅发票"
+    risk:
+      message: "差旅费发票异常"
+      evidence:
+        - "命中：「差旅费发票异常」（INV-014）"
+        - "阈值：config/rulelist_v11.json::params.INV-014"
+        - "取数：差旅发票"
+      suggestion: "核查真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR073（通行费与旅客运输进项抵扣）"
+  - rule_id: "INV-015"
+    name: "咨询费发票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "consulting_invoice > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-015"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "咨询发票"
+    risk:
+      message: "咨询费发票异常"
+      evidence:
+        - "命中：「咨询费发票异常」（INV-015）"
+        - "阈值：config/rulelist_v11.json::params.INV-015"
+        - "取数：咨询发票"
+      suggestion: "核查虚开"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-COST-002"
+  - rule_id: "INV-016"
+    name: "会议费发票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "conference_invoice > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-016"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "会议发票"
+    risk:
+      message: "会议费发票异常"
+      evidence:
+        - "命中：「会议费发票异常」（INV-016）"
+        - "阈值：config/rulelist_v11.json::params.INV-016"
+        - "取数：会议发票"
+      suggestion: "核查真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-COST-002（含会务费）"
+  - rule_id: "INV-017"
+    name: "广告费发票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "advertising_invoice > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-017"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "广告发票"
+    risk:
+      message: "广告费发票异常"
+      evidence:
+        - "命中：「广告费发票异常」（INV-017）"
+        - "阈值：config/rulelist_v11.json::params.INV-017"
+        - "取数：广告发票"
+      suggestion: "核查真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR039（广告费扣除限额）"
+      note: "系统判「扣除限额」，候选判「发票真实性」⇒ 不同维度，合并为同一科目的双分支"
+  - rule_id: "INV-018"
+    name: "运输费发票异常"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "transport_invoice > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.INV-018"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "运输发票"
+    risk:
+      message: "运输费发票异常"
+      evidence:
+        - "命中：「运输费发票异常」（INV-018）"
+        - "阈值：config/rulelist_v11.json::params.INV-018"
+        - "取数：运输发票"
+      suggestion: "核查真实性"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR045 / VR073"
+  - rule_id: "INV-019"
+    name: "电子发票重复报销"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "duplicate_e_invoice = true"
+    params_ref: "config/rulelist_v11.json::params.INV-019"
+    params:
+      duplicate: true
+      _basis: "电子发票重复报销（已由 VR003/VR004 票号重复实现）"
+    inputs:
+      - "电子发票"
+      - "报销记录"
+    risk:
+      message: "电子发票重复报销"
+      evidence:
+        - "命中：「电子发票重复报销」（INV-019）"
+        - "阈值：config/rulelist_v11.json::params.INV-019"
+        - "取数：电子发票 / 报销记录"
+      suggestion: "核查重复"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR003 / VR004（票号重复）"
+  - rule_id: "INV-020"
+    name: "发票备注栏缺失"
+    tax_type: "发票合规"
+    source_set: "V1.1"
+    level: "low"
+    version: "1.0.0"
+    enabled: false
+    condition: "required_remark_missing = true"
+    params_ref: "config/rulelist_v11.json::params.INV-020"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "发票备注"
+      - "要求"
+    risk:
+      message: "发票备注栏缺失"
+      evidence:
+        - "命中：「发票备注栏缺失」（INV-020）"
+        - "阈值：config/rulelist_v11.json::params.INV-020"
+        - "取数：发票备注 / 要求"
+      suggestion: "核查备注"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中备注栏校验"
+  - rule_id: "EXPORT-001"
+    name: "出口退税申报异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_refund > params.amount_threshold and condition not met"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-001"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "出口退税"
+      - "条件"
+    risk:
+      message: "出口退税申报异常"
+      evidence:
+        - "命中：「出口退税申报异常」（EXPORT-001）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-001"
+        - "取数：出口退税 / 条件"
+      suggestion: "核查退税"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-SPT-008 / engine/export_rebate_crosscheck"
+  - rule_id: "EXPORT-002"
+    name: "免抵退税额异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_tax_refund != calculated_refund"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "免抵退税额"
+      - "计算值"
+    risk:
+      message: "免抵退税额异常"
+      evidence:
+        - "命中：「免抵退税额异常」（EXPORT-002）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-002"
+        - "取数：免抵退税额 / 计算值"
+      suggestion: "核查计算"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis / engine/tax_impact（免抵退关键词）"
+  - rule_id: "EXPORT-003"
+    name: "出口收入与报关单差异"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(export_revenue - customs_declaration) / export_revenue > params.export_revenue_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-003"
+    params:
+      export_revenue_diff_ratio: 0.1
+      _basis: "出口收入 vs 报关单差异率（export_rebate_crosscheck 阈值10%）"
+    inputs:
+      - "出口收入"
+      - "报关单"
+    risk:
+      message: "出口收入与报关单差异"
+      evidence:
+        - "命中：「出口收入与报关单差异」（EXPORT-003）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-003"
+        - "取数：出口收入 / 报关单"
+      suggestion: "核查收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/export_rebate_crosscheck（报关单↔出口发票 10% 阈值）"
+  - rule_id: "EXPORT-004"
+    name: "进料加工核销异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "processing_trade_verification_missing = true"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-004"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "进料加工"
+      - "核销"
+    risk:
+      message: "进料加工核销异常"
+      evidence:
+        - "命中：「进料加工核销异常」（EXPORT-004）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-004"
+        - "取数：进料加工 / 核销"
+      suggestion: "核查核销"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「进料加工」"
+  - rule_id: "EXPORT-005"
+    name: "出口发票异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_invoice_abnormal = true"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-005"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "出口发票"
+    risk:
+      message: "出口发票异常"
+      evidence:
+        - "命中：「出口发票异常」（EXPORT-005）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-005"
+        - "取数：出口发票"
+      suggestion: "核查发票"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/export_rebate_crosscheck"
+  - rule_id: "EXPORT-006"
+    name: "退税函调异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "tax_refund_investigation_abnormal = true"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "函调结果"
+    risk:
+      message: "退税函调异常"
+      evidence:
+        - "命中：「退税函调异常」（EXPORT-006）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-006"
+        - "取数：函调结果"
+      suggestion: "核查函调"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（函调关键词）"
+      note: "函调结果属**税务机关外部信息** ⇒ 应归入「外部核验类·不判触红」，只出待核"
+  - rule_id: "EXPORT-007"
+    name: "出口商品编码适用错误"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "applied_export_code != correct_code"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "商品编码"
+      - "正确编码"
+    risk:
+      message: "出口商品编码适用错误"
+      evidence:
+        - "命中：「出口商品编码适用错误」（EXPORT-007）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-007"
+        - "取数：商品编码 / 正确编码"
+      suggestion: "核查编码"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/fieldkit / tax_redlines（商品编码字段）"
+  - rule_id: "EXPORT-008"
+    name: "出口退税率适用错误"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "applied_refund_rate != correct_rate"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "退税率"
+      - "正确税率"
+    risk:
+      message: "出口退税率适用错误"
+      evidence:
+        - "命中：「出口退税率适用错误」（EXPORT-008）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-008"
+        - "取数：退税率 / 正确税率"
+      suggestion: "核查税率"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/tax_redlines（退税率）"
+  - rule_id: "EXPORT-009"
+    name: "出口收汇异常"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_receipt_missing = true"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-009"
+    params:
+      export_receipt_gap_ratio: 0.15
+      _basis: "出口额 vs 收汇缺口率（export_rebate_crosscheck 阈值15%）"
+    inputs:
+      - "出口收汇"
+    risk:
+      message: "出口收汇异常"
+      evidence:
+        - "命中：「出口收汇异常」（EXPORT-009）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-009"
+        - "取数：出口收汇"
+      suggestion: "核查收汇"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "engine/export_rebate_crosscheck（出口额↔收汇 15% 阈值）"
+  - rule_id: "EXPORT-010"
+    name: "出口转内销未申报"
+    tax_type: "出口退税"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "export_to_domestic > 0 and tax_declared = 0"
+    params_ref: "config/rulelist_v11.json::params.EXPORT-010"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "出口转内销"
+      - "申报"
+    risk:
+      message: "出口转内销未申报"
+      evidence:
+        - "命中：「出口转内销未申报」（EXPORT-010）"
+        - "阈值：config/rulelist_v11.json::params.EXPORT-010"
+        - "取数：出口转内销 / 申报"
+      suggestion: "核查申报"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「出口转内销」"

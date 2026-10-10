@@ -1,0 +1,1022 @@
+# ==========================================================================
+# 自动生成，请勿手工编辑 —— 导出器：tools/export_rulelist_yaml.py
+# 唯一权威：config/rulelist_v1.json（V1.0） + config/rulelist_v11.json（V1.1）
+# 所有阈值集中在上述文件的 params 段；本文件只引用（params_ref），不内联。
+# ==========================================================================
+schema: 1
+file: "financial_rules.yaml"
+rule_set: "外部候选规则清单 V1.0 + V1.1"
+rule_set_version: "2026.10"
+status: draft
+wired: false
+wired_note: "未接入系统：不新增红线、不改判定逻辑、不改前端。系统内部权威为 config/rulelist_*.json。"
+coverage_summary:
+  total: 38
+  covered: 18
+  partial: 14
+  missing: 6
+rules:
+  - rule_id: "FIN-001"
+    name: "资产负债表不平衡"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "assets != liabilities + equity"
+    params_ref: "config/rulelist_v11.json::params.FIN-001"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "资产"
+      - "负债"
+      - "权益"
+    risk:
+      message: "资产负债表不平衡"
+      evidence:
+        - "命中：「资产负债表不平衡」（FIN-001）"
+        - "阈值：config/rulelist_v11.json::params.FIN-001"
+        - "取数：资产 / 负债 / 权益"
+      suggestion: "核查报表"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "★「文案提及 ≠ 检测器」：试算平衡仅出现在 memory.py 的资料名清单，无平衡校验实现"
+  - rule_id: "FIN-002"
+    name: "利润表与资产负债表未分配利润勾稽异常"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(net_profit - retained_earnings_change) > params.tolerance"
+    params_ref: "config/rulelist_v11.json::params.FIN-002"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "净利润"
+      - "未分配利润"
+    risk:
+      message: "利润表与资产负债表未分配利润勾稽异常"
+      evidence:
+        - "命中：「利润表与资产负债表未分配利润勾稽异常」（FIN-002）"
+        - "阈值：config/rulelist_v11.json::params.FIN-002"
+        - "取数：净利润 / 未分配利润"
+      suggestion: "核查勾稽"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-CIT-008（表间勾稽四方比对）"
+  - rule_id: "FIN-003"
+    name: "现金流量表与货币资金勾稽异常"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(cash_flow_net - cash_change) > params.tolerance"
+    params_ref: "config/rulelist_v11.json::params.FIN-003"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "现金流"
+      - "货币资金"
+    risk:
+      message: "现金流量表与货币资金勾稽异常"
+      evidence:
+        - "命中：「现金流量表与货币资金勾稽异常」（FIN-003）"
+        - "阈值：config/rulelist_v11.json::params.FIN-003"
+        - "取数：现金流 / 货币资金"
+      suggestion: "核查勾稽"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-CIT-008 / VR074"
+  - rule_id: "FIN-004"
+    name: "收入与应收账款变动背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "AR_growth - revenue_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-004"
+    params:
+      growth_gap: 0.3
+      _basis: "收入与应收变动背离阈值"
+    inputs:
+      - "应收账款"
+      - "收入"
+    risk:
+      message: "收入与应收账款变动背离"
+      evidence:
+        - "命中：「收入与应收账款变动背离」（FIN-004）"
+        - "阈值：config/rulelist_v11.json::params.FIN-004"
+        - "取数：应收账款 / 收入"
+      suggestion: "核查收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+  - rule_id: "FIN-005"
+    name: "收入与存货变动背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "inventory_growth - revenue_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-005"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "存货"
+      - "收入"
+    risk:
+      message: "收入与存货变动背离"
+      evidence:
+        - "命中：「收入与存货变动背离」（FIN-005）"
+        - "阈值：config/rulelist_v11.json::params.FIN-005"
+        - "取数：存货 / 收入"
+      suggestion: "核查收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR044"
+  - rule_id: "FIN-006"
+    name: "成本与应付账款变动背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "AP_growth - cost_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "应付账款"
+      - "成本"
+    risk:
+      message: "成本与应付账款变动背离"
+      evidence:
+        - "命中：「成本与应付账款变动背离」（FIN-006）"
+        - "阈值：config/rulelist_v11.json::params.FIN-006"
+        - "取数：应付账款 / 成本"
+      suggestion: "核查成本"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR060（成本资金与负债证据链）"
+  - rule_id: "FIN-007"
+    name: "费用与应付职工薪酬变动背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "payable_salary_growth - expense_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "应付薪酬"
+      - "费用"
+    risk:
+      message: "费用与应付职工薪酬变动背离"
+      evidence:
+        - "命中：「费用与应付职工薪酬变动背离」（FIN-007）"
+        - "阈值：config/rulelist_v11.json::params.FIN-007"
+        - "取数：应付薪酬 / 费用"
+      suggestion: "核查费用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/payroll_rules / domain_analysis"
+  - rule_id: "FIN-008"
+    name: "固定资产与折旧变动背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "fixed_asset_growth - depreciation_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-008"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "固定资产"
+      - "折旧"
+    risk:
+      message: "固定资产与折旧变动背离"
+      evidence:
+        - "命中：「固定资产与折旧变动背离」（FIN-008）"
+        - "阈值：config/rulelist_v11.json::params.FIN-008"
+        - "取数：固定资产 / 折旧"
+      suggestion: "核查折旧"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-AST-001 / VR041"
+  - rule_id: "FIN-009"
+    name: "无形资产与摊销变动背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "intangible_asset_growth - amortization_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-009"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "无形资产"
+      - "摊销"
+    risk:
+      message: "无形资产与摊销变动背离"
+      evidence:
+        - "命中：「无形资产与摊销变动背离」（FIN-009）"
+        - "阈值：config/rulelist_v11.json::params.FIN-009"
+        - "取数：无形资产 / 摊销"
+      suggestion: "核查摊销"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR041"
+  - rule_id: "FIN-010"
+    name: "长期股权投资与投资收益背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "long_term_equity_investment_growth - investment_income_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-010"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "长期股权投资"
+      - "投资收益"
+    risk:
+      message: "长期股权投资与投资收益背离"
+      evidence:
+        - "命中：「长期股权投资与投资收益背离」（FIN-010）"
+        - "阈值：config/rulelist_v11.json::params.FIN-010"
+        - "取数：长期股权投资 / 投资收益"
+      suggestion: "核查收益"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-VAT-012（通道3 对外投资配对）"
+  - rule_id: "FIN-011"
+    name: "借款与财务费用背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "loan_growth - finance_expense_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-011"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "借款"
+      - "财务费用"
+    risk:
+      message: "借款与财务费用背离"
+      evidence:
+        - "命中：「借款与财务费用背离」（FIN-011）"
+        - "阈值：config/rulelist_v11.json::params.FIN-011"
+        - "取数：借款 / 财务费用"
+      suggestion: "核查利息"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-CIT-009 / RL-CIT-010"
+  - rule_id: "FIN-012"
+    name: "货币资金与利息收入背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cash_growth - interest_income_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-012"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "货币资金"
+      - "利息收入"
+    risk:
+      message: "货币资金与利息收入背离"
+      evidence:
+        - "命中：「货币资金与利息收入背离」（FIN-012）"
+        - "阈值：config/rulelist_v11.json::params.FIN-012"
+        - "取数：货币资金 / 利息收入"
+      suggestion: "核查利息"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR068（银行存款利息收入未申报）"
+  - rule_id: "FIN-013"
+    name: "其他应收款长期挂账"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "other_receivable_age > params.age_days"
+    params_ref: "config/rulelist_v11.json::params.FIN-013"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "其他应收款"
+      - "账龄"
+    risk:
+      message: "其他应收款长期挂账"
+      evidence:
+        - "命中：「其他应收款长期挂账」（FIN-013）"
+        - "阈值：config/rulelist_v11.json::params.FIN-013"
+        - "取数：其他应收款 / 账龄"
+      suggestion: "核查挂账"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR030 / RL-FUND-003"
+  - rule_id: "FIN-014"
+    name: "其他应付款长期挂账"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "other_payable_age > params.age_days"
+    params_ref: "config/rulelist_v11.json::params.FIN-014"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "其他应付款"
+      - "账龄"
+    risk:
+      message: "其他应付款长期挂账"
+      evidence:
+        - "命中：「其他应付款长期挂账」（FIN-014）"
+        - "阈值：config/rulelist_v11.json::params.FIN-014"
+        - "取数：其他应付款 / 账龄"
+      suggestion: "核查挂账"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-INC-004 / VR062"
+  - rule_id: "FIN-015"
+    name: "预收账款与收入确认背离"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "advance_receipt_growth - revenue_growth > params.growth_gap"
+    params_ref: "config/rulelist_v11.json::params.FIN-015"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "预收账款"
+      - "收入"
+    risk:
+      message: "预收账款与收入确认背离"
+      evidence:
+        - "命中：「预收账款与收入确认背离」（FIN-015）"
+        - "阈值：config/rulelist_v11.json::params.FIN-015"
+        - "取数：预收账款 / 收入"
+      suggestion: "核查收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-INC-003 / VR063"
+  - rule_id: "FIN-016"
+    name: "存货周转率异常"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "inventory_turnover < industry_avg * params.turnover_ratio"
+    params_ref: "config/rulelist_v11.json::params.FIN-016"
+    params:
+      turnover_ratio: 0.7
+      _basis: "存货周转率 vs 行业均值下限倍数"
+    inputs:
+      - "存货周转率"
+      - "行业均值"
+    risk:
+      message: "存货周转率异常"
+      evidence:
+        - "命中：「存货周转率异常」（FIN-016）"
+        - "阈值：config/rulelist_v11.json::params.FIN-016"
+        - "取数：存货周转率 / 行业均值"
+      suggestion: "核查存货"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR046（长期滞销与呆滞库存）"
+  - rule_id: "FIN-017"
+    name: "应收账款周转率异常"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "AR_turnover < industry_avg * params.turnover_ratio"
+    params_ref: "config/rulelist_v11.json::params.FIN-017"
+    params:
+      turnover_ratio: 0.7
+      overturn_times: 20
+      _basis: "应收账款周转：候选判「偏低」(<行业×0.7)；系统 financial_analyzer 判「过快」(>20次) —— ★方向相反，合并时须双分支"
+    inputs:
+      - "应收账款周转率"
+      - "行业均值"
+    risk:
+      message: "应收账款周转率异常"
+      evidence:
+        - "命中：「应收账款周转率异常」（FIN-017）"
+        - "阈值：config/rulelist_v11.json::params.FIN-017"
+        - "取数：应收账款周转率 / 行业均值"
+      suggestion: "核查应收"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/financial_analyzer（⑧ 应收账款周转过快 >20次）"
+      note: "★★ 方向相反：候选判「偏低 < 行业×0.7」，系统判「过快 >20 次」。合并时**必须双分支**，否则会反向漏报"
+  - rule_id: "FIN-018"
+    name: "毛利率异常波动"
+    tax_type: "财务报表勾稽"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(gross_margin - gross_margin_last_year) > params.gross_margin_delta"
+    params_ref: "config/rulelist_v11.json::params.FIN-018"
+    params:
+      gross_margin_delta: 0.2
+      _basis: "毛利率同比波动阈值"
+    inputs:
+      - "毛利率"
+      - "上年毛利率"
+    risk:
+      message: "毛利率异常波动"
+      evidence:
+        - "命中：「毛利率异常波动」（FIN-018）"
+        - "阈值：config/rulelist_v11.json::params.FIN-018"
+        - "取数：毛利率 / 上年毛利率"
+      suggestion: "核查波动"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-COST-004"
+  - rule_id: "REL-001"
+    name: "关联交易定价异常"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(related_price - market_price) / market_price > params.price_deviation"
+    params_ref: "config/rulelist_v11.json::params.REL-001"
+    params:
+      price_deviation: 0.2
+      _basis: "关联价格 vs 市场价格偏离率"
+    inputs:
+      - "关联价格"
+      - "市场价格"
+    risk:
+      message: "关联交易定价异常"
+      evidence:
+        - "命中：「关联交易定价异常」（REL-001）"
+        - "阈值：config/rulelist_v11.json::params.REL-001"
+        - "取数：关联价格 / 市场价格"
+      suggestion: "核查转让定价"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR037 / RL-CIT-001"
+      note: "与 V1.0 CIT-012 同一规则"
+  - rule_id: "REL-002"
+    name: "关联交易占比过高"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_transaction_ratio > params.related_ratio"
+    params_ref: "config/rulelist_v11.json::params.REL-002"
+    params:
+      related_ratio: 0.5
+      _basis: "关联交易占总收入比例上限"
+    inputs:
+      - "关联交易"
+      - "总收入"
+    risk:
+      message: "关联交易占比过高"
+      evidence:
+        - "命中：「关联交易占比过高」（REL-002）"
+        - "阈值：config/rulelist_v11.json::params.REL-002"
+        - "取数：关联交易 / 总收入"
+      suggestion: "核查关联"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR017（购销双方集中度核验）"
+  - rule_id: "REL-003"
+    name: "关联方资金占用"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_party_receivable > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.REL-003"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "关联方应收"
+    risk:
+      message: "关联方资金占用"
+      evidence:
+        - "命中：「关联方资金占用」（REL-003）"
+        - "阈值：config/rulelist_v11.json::params.REL-003"
+        - "取数：关联方应收"
+      suggestion: "核查资金占用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-002 / VR030"
+  - rule_id: "REL-004"
+    name: "关联方借款利率异常"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_loan_rate > market_rate * params.market_rate_multiple"
+    params_ref: "config/rulelist_v11.json::params.REL-004"
+    params:
+      market_rate_multiple: 1.5
+      _basis: "关联借款利率 vs 市场利率倍数（市场利率 = redline_benchmark.LOAN_RATE_SERIES）"
+    inputs:
+      - "关联借款利率"
+      - "市场利率"
+    risk:
+      message: "关联方借款利率异常"
+      evidence:
+        - "命中：「关联方借款利率异常」（REL-004）"
+        - "阈值：config/rulelist_v11.json::params.REL-004"
+        - "取数：关联借款利率 / 市场利率"
+      suggestion: "核查利息"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-009（本轮新建检测器，基准 = 1 年期 LPR）"
+      note: "与 IIT/关联利率共用 redline_benchmark.LOAN_RATE_SERIES"
+  - rule_id: "REL-005"
+    name: "关联方购销价格异常"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_purchase_sales_price != market_price"
+    params_ref: "config/rulelist_v11.json::params.REL-005"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "关联购销"
+      - "市场价格"
+    risk:
+      message: "关联方购销价格异常"
+      evidence:
+        - "命中：「关联方购销价格异常」（REL-005）"
+        - "阈值：config/rulelist_v11.json::params.REL-005"
+        - "取数：关联购销 / 市场价格"
+      suggestion: "核查定价"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-CIT-001 / VR037"
+  - rule_id: "REL-006"
+    name: "关联方劳务费用异常"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_service_fee > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.REL-006"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "关联劳务费"
+    risk:
+      message: "关联方劳务费用异常"
+      evidence:
+        - "命中：「关联方劳务费用异常」（REL-006）"
+        - "阈值：config/rulelist_v11.json::params.REL-006"
+        - "取数：关联劳务费"
+      suggestion: "核查劳务"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「关联方劳务」"
+  - rule_id: "REL-007"
+    name: "关联方资产转让异常"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_asset_transfer_price != fair_value"
+    params_ref: "config/rulelist_v11.json::params.REL-007"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "关联资产转让"
+      - "公允价值"
+    risk:
+      message: "关联方资产转让异常"
+      evidence:
+        - "命中：「关联方资产转让异常」（REL-007）"
+        - "阈值：config/rulelist_v11.json::params.REL-007"
+        - "取数：关联资产转让 / 公允价值"
+      suggestion: "核查转让"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "RL-CIT-001 覆盖购销闭环，未覆盖资产转让定价"
+  - rule_id: "REL-008"
+    name: "关联方股权转让异常"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_equity_transfer_price != fair_value"
+    params_ref: "config/rulelist_v11.json::params.REL-008"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "关联股权转让"
+      - "公允价值"
+    risk:
+      message: "关联方股权转让异常"
+      evidence:
+        - "命中：「关联方股权转让异常」（REL-008）"
+        - "阈值：config/rulelist_v11.json::params.REL-008"
+        - "取数：关联股权转让 / 公允价值"
+      suggestion: "核查转让"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "RL-SPT-009（价格明显偏低）/ RL-SPT-012"
+  - rule_id: "REL-009"
+    name: "关联方债务豁免"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_party_debt_forgiveness > 0"
+    params_ref: "config/rulelist_v11.json::params.REL-009"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "债务豁免"
+    risk:
+      message: "关联方债务豁免"
+      evidence:
+        - "命中：「关联方债务豁免」（REL-009）"
+        - "阈值：config/rulelist_v11.json::params.REL-009"
+        - "取数：债务豁免"
+      suggestion: "核查税务处理"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "0 命中「债务豁免」"
+  - rule_id: "REL-010"
+    name: "关联方承担费用"
+    tax_type: "关联交易"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "related_party_expense_bearing > 0"
+    params_ref: "config/rulelist_v11.json::params.REL-010"
+    params: {}
+    params_note: "本规则为「存在即触发」判据（> 0 / = 0 型），无比例阈值；符合项目铁律「不要阈值」。"
+    inputs:
+      - "关联方费用承担"
+    risk:
+      message: "关联方承担费用"
+      evidence:
+        - "命中：「关联方承担费用」（REL-010）"
+        - "阈值：config/rulelist_v11.json::params.REL-010"
+        - "取数：关联方费用承担"
+      suggestion: "核查费用"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/domain_analysis（费用承担关键词）"
+  - rule_id: "FUND-001"
+    name: "公转私大额频繁"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "public_to_private_count > params.count_threshold and amount > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.FUND-001"
+    params:
+      count_threshold: null
+      amount_threshold: null
+      _basis: "公转私频次/金额阈值（本表登记，检测器已实现频次+金额双判）"
+    inputs:
+      - "公转私记录"
+    risk:
+      message: "公转私大额频繁"
+      evidence:
+        - "命中：「公转私大额频繁」（FUND-001）"
+        - "阈值：config/rulelist_v11.json::params.FUND-001"
+        - "取数：公转私记录"
+      suggestion: "核查资金"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-FUND-001"
+  - rule_id: "FUND-002"
+    name: "私转公大额频繁"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "private_to_public_count > params.count_threshold and amount > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.FUND-002"
+    params:
+      count_threshold: null
+      amount_threshold: null
+      _basis: "私转公频次/金额阈值"
+    inputs:
+      - "私转公记录"
+    risk:
+      message: "私转公大额频繁"
+      evidence:
+        - "命中：「私转公大额频繁」（FUND-002）"
+        - "阈值：config/rulelist_v11.json::params.FUND-002"
+        - "取数：私转公记录"
+      suggestion: "核查资金"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR013（同一对手方大额双向收付）"
+  - rule_id: "FUND-003"
+    name: "资金回流"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "fund_return_detected = true"
+    params_ref: "config/rulelist_v11.json::params.FUND-003"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "资金流水"
+    risk:
+      message: "资金回流"
+      evidence:
+        - "命中：「资金回流」（FUND-003）"
+        - "阈值：config/rulelist_v11.json::params.FUND-003"
+        - "取数：资金流水"
+      suggestion: "核查回流"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-FUND-002 / VR025 / VR053"
+  - rule_id: "FUND-004"
+    name: "银行流水与收入不匹配"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(bank_receipts - revenue) / revenue > params.revenue_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.FUND-004"
+    params:
+      revenue_diff_ratio: 0.2
+      _basis: "银行收款 vs 收入差异率"
+    inputs:
+      - "银行收款"
+      - "收入"
+    risk:
+      message: "银行流水与收入不匹配"
+      evidence:
+        - "命中：「银行流水与收入不匹配」（FUND-004）"
+        - "阈值：config/rulelist_v11.json::params.FUND-004"
+        - "取数：银行收款 / 收入"
+      suggestion: "核查收入"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-INC-001 / VR028"
+      note: "与 V1.0 VAT-026 同一规则"
+  - rule_id: "FUND-005"
+    name: "银行流水与成本不匹配"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "abs(bank_payments - cost) / cost > params.cost_diff_ratio"
+    params_ref: "config/rulelist_v11.json::params.FUND-005"
+    params:
+      cost_diff_ratio: 0.2
+      _basis: "银行付款 vs 成本差异率"
+    inputs:
+      - "银行付款"
+      - "成本"
+    risk:
+      message: "银行流水与成本不匹配"
+      evidence:
+        - "命中：「银行流水与成本不匹配」（FUND-005）"
+        - "阈值：config/rulelist_v11.json::params.FUND-005"
+        - "取数：银行付款 / 成本"
+      suggestion: "核查成本"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "VR060"
+  - rule_id: "FUND-006"
+    name: "现金交易异常"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "cash_transaction_ratio > params.cash_ratio"
+    params_ref: "config/rulelist_v11.json::params.FUND-006"
+    params:
+      cash_ratio: 0.3
+      _basis: "现金交易占比阈值"
+    inputs:
+      - "现金交易"
+      - "总交易"
+    risk:
+      message: "现金交易异常"
+      evidence:
+        - "命中：「现金交易异常」（FUND-006）"
+        - "阈值：config/rulelist_v11.json::params.FUND-006"
+        - "取数：现金交易 / 总交易"
+      suggestion: "核查现金"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-FUND-004 / VR059"
+  - rule_id: "FUND-007"
+    name: "个人卡收付款"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "high"
+    version: "1.0.0"
+    enabled: false
+    condition: "personal_card_transaction > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.FUND-007"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "个人卡交易"
+    risk:
+      message: "个人卡收付款"
+      evidence:
+        - "命中：「个人卡收付款」（FUND-007）"
+        - "阈值：config/rulelist_v11.json::params.FUND-007"
+        - "取数：个人卡交易"
+      suggestion: "核查资金"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "RL-INC-002 / VR058 / VR020"
+  - rule_id: "FUND-008"
+    name: "第三方支付异常"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "third_party_payment > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.FUND-008"
+    params: {}
+    params_note: "阈值权威在**系统内部实现**（见 coverage.mapped_to）；本清单不另设阈值，避免两头各写一份。"
+    inputs:
+      - "第三方支付"
+    risk:
+      message: "第三方支付异常"
+      evidence:
+        - "命中：「第三方支付异常」（FUND-008）"
+        - "阈值：config/rulelist_v11.json::params.FUND-008"
+        - "取数：第三方支付"
+      suggestion: "核查资金"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "covered"
+      action: "keep_existing"
+      mapped_to: "VR057"
+  - rule_id: "FUND-009"
+    name: "资金池异常"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "fund_pool_balance > params.amount_threshold"
+    params_ref: "config/rulelist_v11.json::params.FUND-009"
+    params: {}
+    params_note: "待登记：阈值/地区参数尚未提供（config/rulelist_*.json::params 未含），检测器须输出「待核」，禁止默认值顶替。"
+    inputs:
+      - "资金池"
+    risk:
+      message: "资金池异常"
+      evidence:
+        - "命中：「资金池异常」（FUND-009）"
+        - "阈值：config/rulelist_v11.json::params.FUND-009"
+        - "取数：资金池"
+      suggestion: "核查资金"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "partial"
+      action: "merge"
+      mapped_to: "engine/financial_analyzer（资金池关键词）"
+  - rule_id: "FUND-010"
+    name: "大额预付款长期未冲销"
+    tax_type: "资金流"
+    source_set: "V1.1"
+    level: "medium"
+    version: "1.0.0"
+    enabled: false
+    condition: "prepayment_age > params.prepay_age_days"
+    params_ref: "config/rulelist_v11.json::params.FUND-010"
+    params:
+      prepay_age_days: 365
+      _basis: "预付款账龄上限"
+    inputs:
+      - "预付款"
+      - "账龄"
+    risk:
+      message: "大额预付款长期未冲销"
+      evidence:
+        - "命中：「大额预付款长期未冲销」（FUND-010）"
+        - "阈值：config/rulelist_v11.json::params.FUND-010"
+        - "取数：预付款 / 账龄"
+      suggestion: "核查预付款"
+      legal_basis_ref: "法规库自动匹配"
+    coverage:
+      status: "missing"
+      action: "add"
+      mapped_to: ""
+      note: "预付账款仅在 account_classifier/child_item_completeness（分类与资料要求），无账龄判定"
