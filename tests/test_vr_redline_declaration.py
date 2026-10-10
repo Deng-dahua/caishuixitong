@@ -49,6 +49,10 @@ DECLARED = [
     ("VR005", "RL-PAY-001"),    # 工资名册与社会保险人员范围差异
     ("VR037", "RL-CIT-001"),    # 关联交易价格偏离（转让定价探针）
     ("VR056", "RL-INC-002"),    # 公私混同发薪/私户支付薪酬
+    # ── 第三批（2026-10-10 A 轨道）：给 RL-VAT-012 的**净增量**建真检测器后纳入本闸门 ──
+    #   012「视同销售未计提销项」与 008「视同销售未按规计提销项税额」是同概念（已登记冗余对），
+    #   012 的净增量只有一项「对外投资/分配给股东」⇒ 由本通道判定并归属 012。
+    ("VR036", "RL-VAT-012"),    # 视同销售（货物用于对外投资/分配给股东）
 ]
 
 
@@ -188,6 +192,77 @@ def test_vr037_related_party_pricing():
     assert fs, "3 笔同品名同单位单价离散应触发"
     _assert_declared(fs[0], "RL-CIT-001")
     assert fs[0]["constituent_hits"][0]["index"] == 3
+
+
+def test_vr036_invest_distribute_declares_vat012():
+    """★ 2026-10-10（A 轨道）：货物用于**对外投资/分配给股东** ⇒ RL-VAT-012 要件②③。
+
+    判定口径（凭证借贷配对，可复算）：
+      同一凭证内 ①存货科目贷方转出 ②对外投资/利润分配借方 ③该凭证无销项税额计提。
+    负例（必须**不**触发）：已计提销项税额（贷:应交税费/应交增值税/销项税额）⇒ 不构成缺口；
+    以及「存货转出但借方去向是主营业务成本」（正常销售结转）⇒ 不得误报。
+    """
+    # 正例①：对外投资（借 长期股权投资 / 贷 库存商品），无销项计提
+    invest_v = [
+        {"month_no": "3", "voucher_no": "记-8", "summary": "以存货对外投资",
+         "account_name": "长期股权投资/某公司", "account": "1511", "debit": 120000.0, "credit": 0.0},
+        {"month_no": "3", "voucher_no": "记-8", "summary": "以存货对外投资",
+         "account_name": "库存商品/A产品", "account": "1405", "debit": 0.0, "credit": 120000.0},
+    ]
+    fs = _run("VR036", {"vouchers": invest_v})
+    declared = [f for f in fs if f.get("redline_id") == "RL-VAT-012"]
+    assert declared, f"存货对外投资未计提销项应归属 RL-VAT-012：{[f.get('redline_id') for f in fs]}"
+    _assert_declared(declared[0], "RL-VAT-012")
+    assert [h["index"] for h in declared[0]["constituent_hits"]] == [2, 3]
+    assert declared[0]["observed_metrics"]["invest_distribute_total"] == 120000.0
+
+    # 正例②：分配给股东（借 利润分配 / 贷 产成品）
+    dist_v = [
+        {"month_no": "12", "voucher_no": "记-23", "summary": "向股东实物分配",
+         "account_name": "利润分配/未分配利润", "account": "410401", "debit": 50000.0, "credit": 0.0},
+        {"month_no": "12", "voucher_no": "记-23", "summary": "向股东实物分配",
+         "account_name": "产成品/B", "account": "1405", "debit": 0.0, "credit": 50000.0},
+    ]
+    fs2 = _run("VR036", {"vouchers": dist_v})
+    assert any(f.get("redline_id") == "RL-VAT-012" for f in fs2), "实物分配给股东应归属 RL-VAT-012"
+
+    # 负例①：已计提销项税额 ⇒ 不构成勾稽缺口，不得报出
+    ok_v = invest_v + [
+        {"month_no": "3", "voucher_no": "记-8", "summary": "以存货对外投资",
+         "account_name": "应交税费/应交增值税/销项税额", "account": "22210105",
+         "debit": 0.0, "credit": 15600.0},
+    ]
+    fs3 = _run("VR036", {"vouchers": ok_v})
+    assert all(f.get("redline_id") != "RL-VAT-012" for f in fs3), \
+        "已计提销项税额时不得报『未计提销项』（防假阳性）"
+
+    # 负例②：正常销售结转（借 主营业务成本 / 贷 库存商品）⇒ 不得误报
+    sales_v = [
+        {"month_no": "5", "voucher_no": "记-9", "summary": "结转销售成本",
+         "account_name": "主营业务成本/商品成本", "account": "6401", "debit": 80000.0, "credit": 0.0},
+        {"month_no": "5", "voucher_no": "记-9", "summary": "结转销售成本",
+         "account_name": "库存商品/C", "account": "1405", "debit": 0.0, "credit": 80000.0},
+    ]
+    fs4 = _run("VR036", {"vouchers": sales_v})
+    assert all(f.get("redline_id") != "RL-VAT-012" for f in fs4), \
+        "正常销售成本结转不得被判为对外投资/分配（防假阳性）"
+
+
+def test_vr036_gift_channel_declares_vat008_without_claiming_constituents():
+    """★ 2026-10-10（A-P0-1 同源缺口）：赠送/样品通道**只声明归属、不认领要件**。
+
+    该通道按摘要关键词归集，并未逐笔复算"账面确无销项税额计提分录"（= 008 要件②），
+    故 `constituent_hits` 必须为空 —— 否则就是"认下要件却拿不出证据"的假闭环。
+    """
+    v = [{"month_no": "1", "voucher_no": "记-5", "summary": "无偿赠送客户样品",
+          "account_name": "销售费用/样品费", "account": "6601", "debit": 3000.0, "credit": 0.0}]
+    fs = _run("VR036", {"vouchers": v})
+    gift = [f for f in fs if f.get("redline_id") == "RL-VAT-008"]
+    assert gift, f"赠送/样品通道应声明归属 RL-VAT-008：{[f.get('redline_id') for f in fs]}"
+    assert not (gift[0].get("constituent_hits") or []), \
+        "关键词归集通道不得认领构成要件（只声明归属）"
+    rl, info = redline_engine._map_finding(gift[0], available_materials=["记账凭证"])
+    assert info.get("mode") == "declared" and rl and rl["id"] == "RL-VAT-008"
 
 
 def test_vr056_mixed_payroll():

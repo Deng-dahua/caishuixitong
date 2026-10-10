@@ -52,6 +52,16 @@ RISK_GRADES: Tuple[str, ...] = ("极高风险", "高风险", "中风险", "低�
 #: **证据状态**（不参与高低比较，也不受上限压制）。
 EVIDENCE_STATES: Tuple[str, ...] = ("待核验",)
 
+#: ★★ **正向（非风险）等级词表** —— 这类发现讲的是"企业享有/符合什么"，不是涉税风险。
+#  唯一权威（2026-10-10 从 `redline_engine._NON_RISK_LEVELS` 上提到本模块）：
+#  两处**必须同判**，否则同一概念两处口径：
+#    · `redline_engine._map_finding()` —— 不得配成风险红线（否则报告出现
+#      "疑点是未申报缴纳，证据却是依法免征"的自相矛盾，本项目已有此事故）；
+#    · `text_guardrails.review_finding()` —— 不得被证据成熟度归一压成「待核验」
+#      （否则同一行 `match_note` 说"不作为风险事项"、`level` 却说"待核验/全面复核"）。
+#  新增同类**只需在此加一个词**（数据驱动，不改任何逻辑分支）。
+NON_RISK_LEVELS: Tuple[str, ...] = ("优惠机会", "政策红利", "税收优惠")
+
 #: 等级 → 轻重标度（**越大越重**）。含「待核验」以便"合并取代表"时不被轻项顶替。
 SEVERITY: Dict[str, int] = {
     "极高风险": 5, "高风险": 4, "中风险": 3, "待核验": 2, "低风险": 1, "信息": 0,
@@ -107,6 +117,23 @@ def normalize(level: Any) -> str:
 def severity(level: Any) -> int:
     """轻重标度（越大越重）。**未知/空 → -1**（不得顶掉已知等级）。"""
     return SEVERITY.get(str(level or "").strip(), _UNKNOWN_SEVERITY)
+
+
+def is_non_risk_finding(finding: Any) -> bool:
+    """**正向（非风险）发现**的唯一判据（2026-10-10）。
+
+    两个条件，都用系统**既有**字段判定，**不针对具体税种/政策写特例**：
+      ① `level ∈ NON_RISK_LEVELS`（机会流词汇）；
+      ② 带正向字段 `tax_benefit`（"能省多少"）。
+
+    调用方注意：判据本身只回答"这是不是正向机会"，**不改变**任何字段；
+    需要"合法等级"时另调 `normalize()`（`优惠机会 → 信息`，最轻档）。
+    """
+    if not isinstance(finding, dict):
+        return False
+    if finding.get("tax_benefit"):
+        return True
+    return str(finding.get("level") or "").strip() in NON_RISK_LEVELS
 
 
 def present_order(level: Any) -> int:

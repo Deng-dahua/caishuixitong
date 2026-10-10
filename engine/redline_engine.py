@@ -56,7 +56,7 @@ _VERDICT_RANK = {
 #   检测器保证（RL-CIT-001 已在公司1 真账套实测产出疑点），故准入闸门
 #   `check_redline_admission` 把它们与“登记兜底”同等看待，不算盲区红线。
 #   ⚠ 必须落在字典**外面**：它是声明，不是兜底表的一个条目。
-_NO_BLIND_CONSTITUENT_FALLBACK = {"RL-CIT-001"}
+_NO_BLIND_CONSTITUENT_FALLBACK = {"RL-CIT-001", "RL-VAT-012", "RL-CIT-009"}
 
 ENGINE_VERSION = "1.0.0"
 
@@ -84,8 +84,11 @@ def _available_materials(engine_data: Optional[Dict],
 
 # ★★ 2026-10-02：**正向（非风险）结论等级**——这类发现只讲"企业享有/符合什么"，
 #   不是涉税风险；把它们配成风险红线必然产出"疑点主体与内容错配"的报告。
-#   用系统既有的等级值即判，新增同类无需改代码（数据驱动）。
-_NON_RISK_LEVELS = {"优惠机会", "政策红利", "税收优惠"}
+#   ★ 2026-10-10（A-P0-3）：词表**上提**到等级唯一权威 `engine/risk_levels.py::NON_RISK_LEVELS`
+#   —— 因为 `text_guardrails.review_finding()` 也要用同一判据（不得被证据成熟度压成「待核验」）。
+#   同一概念两处各写一份词表＝迟早分叉，故此处只做**薄转发**，不另存副本。
+from engine.risk_levels import NON_RISK_LEVELS as _NON_RISK_LEVELS, \
+    is_non_risk_finding as _is_non_risk_finding  # noqa: E402
 
 
 def _map_finding(finding: Dict, available_materials: Optional[List[str]] = None
@@ -115,7 +118,7 @@ def _map_finding(finding: Dict, available_materials: Optional[List[str]] = None
     #   "疑点：未申报残保金"却把"依法免征、应享优惠"当证据的自相矛盾。
     #   判据用系统既有的 level 值（`优惠机会`）与正负向字段（`tax_benefit`），
     #   不针对具体税种写特例：凡正向优惠一律不进风险配对。
-    if str(finding.get("level") or "").strip() in _NON_RISK_LEVELS or finding.get("tax_benefit"):
+    if _is_non_risk_finding(finding):
         return None, {
             "mode": "not_a_risk", "score": 0, "reasons": [],
             "materials": [],
@@ -174,8 +177,7 @@ _DEFAULT_HIT_INDEX = {
     "RL-SPT-008": [1, 5],
     "RL-SPT-011": [1, 4],
     "RL-PAY-005": [2, 3, 4],
-    "RL-PTY-003": [1, 3, 4],
-    "RL-INC-002": [1, 3, 4],
+    "RL-PTY-003": [1, 3, 4],    "RL-INC-002": [1, 3, 4],
     "RL-AST-003": [1, 2, 4],
     "RL-PAY-002": [1, 2, 4],
     "RL-PAY-003": [1, 4],
@@ -188,9 +190,33 @@ _DEFAULT_HIT_INDEX = {
     # —— 本轮新增场景追加（逐条判定兜底，序号按 constituents 顺序计算）——
     # ★ 2026-09-29 A 类新增 6 条：均指向客观构成要件（非末项出罪要件）。
     "RL-CIT-008": [1, 2, 3, 4],
-    "RL-CIT-009": [1, 2, 3, 4],
+    # ★★ 2026-10-10（A 轨道·同概念裁定）**RL-CIT-009 故意不登记兜底序号**（同 RL-CIT-001 先例）。
+    #   裁定（逐要件比对，见 `config/redline_overlap_ledger.json`）：
+    #     009「资本弱化关联方债资比超限」与 **RL-CIT-010「资本弱化：关联方债资比超过 2:1，
+    #     超标准部分利息支出未作纳税调整」描述同一概念**（要件①②③一一对应：
+    #     存在关联方借款、债资比超 2:1/5:1、超标利息未调增）。
+    #   处置：**真检测器归 010**（`deduction_limit_detector._check_related_party_debt_equity`
+    #     本就算「关联方借款 ÷ 所有者权益 → 超 2:1」，与 010 名称逐字贴合；A-P0-1 已纠正其归属）。
+    #     009 全仓无任何检测器算过其要件，原 `[1,2,3,4]` 兜底 ⇒ 一旦被软匹配命中就
+    #     **认下 4 条构成要件**却拿不出证据 ⇒ **假闭环**。故移入 `_NO_BLIND_CONSTITUENT_FALLBACK`
+    #     （可达性由软匹配保证，准入闸门不算盲区）。
     "RL-INV-004": [1, 2, 3, 4],
-    "RL-VAT-012": [1, 2, 3, 4],
+    # ★★ 2026-10-10（A-P0-2 冗余裁定）**RL-VAT-012 故意不登记兜底序号**（同 RL-CIT-001 先例）。
+    #   裁定（逐字段比对，见 `config/redline_overlap_ledger.json`）：
+    #     012「视同销售未计提销项」与 **RL-VAT-008「视同销售未按规计提销项税额」同概念**：
+    #       要件1/2/3 与 008 高度重叠（集体福利/个人消费/无偿赠送 + 未计提销项）；
+    #       要件4「进项税转出」与 **RL-VAT-011「进项税额应转出未转出」重复**（011 有真检测器 VR032）；
+    #       012 的**净增量只有一项**：「对外投资、分配给股东/投资者」。
+    #   缺陷：原 `[1,2,3,4]` 兜底会在**零检测器**情况下把发现级 detail 回填成「要件①命中」
+    #     ⇒ **假闭环**（报告认下要件却拿不出该要件证据）。012 原本全仓无任何检测器算过其要件。
+    #   处置：移入 `_NO_BLIND_CONSTITUENT_FALLBACK`（可达性仍成立 ⇒ 准入闸门不算盲区），并登记冗余对。
+    #   ★★ 2026-10-10 续（下一片已落地）：**012 的净增量真检测器已建成** ——
+    #     `engine/verified_rule_engine.py::_scan_deemed_sales` 的**通道3**（同一凭证内
+    #     『存货科目贷方转出』×『对外投资/利润分配借方』× 无销项税额计提分录），归属 RL-VAT-012，
+    #     声明真算过的要件②③（登记表 `config/redline_detector_attribution.json`）。
+    #     ⚠ **仍留在本名单**：软匹配命中**仍不得**回填要件 —— 要件①由 008 的 self_use 通道算、
+    #       要件④（进项税转出）本仓未计算 ⇒ 盲发兜底仍会编出假闭环。008/012 的合并评审结论
+    #       为 `keep_both`（各有独立净增量），见 `config/redline_overlap_ledger.json`。
     "RL-SPT-012": [1, 2, 3, 4],
     "RL-SPT-013": [1, 2, 3, 4],
 

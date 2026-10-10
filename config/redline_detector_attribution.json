@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "purpose": "红线**归属声明**登记表：凡「已算出该红线事实」的检测器，必须自行声明 `redline_id`，不得让引擎按关键词猜。",
+  "why": "实测（2026-10-10，真产物 company_1_full.json）：26 条嫌疑里 3 条是 `match_mode=\"matched\"`（关键词兜底），其中 RL-AST-001 的实质事实已由 `_domain_depreciation_match` 算出，却因未声明归属，只能靠『标题里撞上「固定资产/折旧」两个字』配对 ⇒ ① 归属可被措辞改写（不是算的）；② 静态覆盖率审计把它记为「仅兜底」，检出能力被系统性低估。修法不是加白名单，而是**让算过的检测器自报归属**（`mode=\"declared\"`）。",
+  "discipline": [
+    "只认领**真算过**的要件：本表只声明『归属于哪条红线』，**不等于**认领该红线的构成要件（constituent_hits 仍由谁算过谁声明）。",
+    "`detector_file` 必须在 `engine/` 或 `main.py`（生产代码）；`scripts/` 下的一次性脚本**不计入**生产覆盖，登记在那里等于没登记。",
+    "新增一处 = 加一行数据，不改任何逻辑分支。"
+  ],
+  "declarations": [
+    {
+      "detector_file": "engine/domain_analysis.py",
+      "detector_fn": "_domain_depreciation_match",
+      "finding_type": "固定资产采购与折旧匹配提示",
+      "redline_id": "RL-AST-001",
+      "declared_at": "2026-10-10",
+      "evidence": "真产物：`银行流水发现2笔固定资产类付款，合计20,000.00元。应相应计提折旧。`（旧产物 match_mode=matched / match_reasons=[hint@title, hint@title]）。"
+    },
+    {
+      "detector_file": "engine/deduction_limit_detector.py",
+      "detector_fn": "_check_related_party_debt_equity",
+      "finding_type": "待核事实：关联方债权性投资与权益性投资比例偏高",
+      "redline_id": "RL-CIT-010",
+      "declared_at": "2026-10-10",
+      "evidence": "本检测器真算「关联方借款÷所有者权益 → 超 2:1」，即 RL-CIT-010 要件①②（见声明表 `_REDLINE_DECL`）。**原误挂 RL-CIT-002**「关联方无偿或低价资金往来：未按独立交易原则计息」（另一概念，本函数从未算过是否计息/利率是否偏离）⇒ 归属纠正；同时声明真算过的要件①②、不认领未计算的要件③④。RL-CIT-002 仍由 `engine/special_redline_detectors.py` 的关键词置疑 SPEC 覆盖，不受影响。"
+    },
+    {
+      "detector_file": "engine/verified_rule_engine.py",
+      "detector_fn": "_scan_deemed_sales",
+      "finding_type": "视同销售未计提销项税额（货物用于对外投资/分配给股东）",
+      "redline_id": "RL-VAT-012",
+      "declared_at": "2026-10-10",
+      "evidence": "VR036 的**通道3**由凭证借贷配对判定：同一张凭证内『存货类科目贷方转出』×『对外投资（长期股权投资等）或利润分配/应付股利借方』× 该凭证无销项税额计提分录 ⇒ 命中。这正是 RL-VAT-012 相对 RL-VAT-008 的**唯一净增量**「对外投资、分配给股东/投资者」（逐要件比对见 `config/redline_overlap_ledger.json` 第 1 对）⇒ 归属 012，并声明真算过的要件②③（要件①由 self_use 通道算、归 008；要件④未计算，不认领）。"
+    },
+    {
+      "detector_file": "engine/verified_rule_engine.py",
+      "detector_fn": "_scan_deemed_sales",
+      "finding_type": "视同销售未计提销项税额（无偿赠送/交付样品）",
+      "redline_id": "RL-VAT-008",
+      "declared_at": "2026-10-10",
+      "evidence": "VR036 的**gifts 通道**按摘要关键词归集「无偿赠送/交付样品」的支出，即 RL-VAT-008 要件①情形；此前未声明 `redline_id` ⇒ 只能靠标题命中 `match_hints` 猜归属（归属可被措辞改写，静态覆盖率也会把它算成『仅兜底』）。本次**只补归属声明、不认领构成要件**（该通道是关键词归集，并未逐笔复算『账面确无销项税额计提分录』= 要件②），故 `constituent_hits` 留空。"
+    }
+  ]
+}

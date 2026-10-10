@@ -1,0 +1,490 @@
+[
+  {
+    "company": 1,
+    "name": "某传媒企业示例公司",
+    "industry": "广告传媒",
+    "biz_model": "服务业",
+    "coverage_now": {
+      "total": 170,
+      "executed": 81,
+      "blocked": 89,
+      "not_executed": 0,
+      "ratio": 0.4765
+    },
+    "coverage_stale": {
+      "total": 174,
+      "executed": 84,
+      "blocked": 90
+    },
+    "run_status_counts": {
+      "triggered": 18,
+      "completed_not_triggered": 44,
+      "not_run_missing_data": 10,
+      "skipped_industry": 2
+    },
+    "invariants": {
+      "I1_executed_without_receipt": [],
+      "I2_executed_and_blocked": 0,
+      "I3_catalog_without_scanner": [],
+      "I4_industry_skip_leaked_into_denominator": [],
+      "I5_ran_but_reported_missing": []
+    },
+    "not_executed_items": [],
+    "indicators": [
+      {
+        "id": "revenue_declaration_ratio",
+        "need": [
+          "sal_invs",
+          "tax_declarations"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "unbilled_revenue_ratio",
+        "need": [
+          "sal_invs",
+          "tax_declarations"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "cost_income_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "purchase_invoice_match",
+        "need": [
+          "pur_invs",
+          "trial_balance"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "expense_revenue_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "travel_entertainment_ratio",
+        "need": [
+          "trial_balance",
+          "vouchers"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "receivable_turnover",
+        "need": [
+          "trial_balance",
+          "sal_invs"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "inventory_turnover",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "asset_liability_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "operating_cashflow_quality",
+        "need": [
+          "bank_txs",
+          "trial_balance"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "cash_sales_match",
+        "need": [
+          "bank_txs",
+          "trial_balance"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "owner_equity_change",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": true,
+        "note": "资料齐备"
+      },
+      {
+        "id": "revenue_growth_surge",
+        "need": [
+          "__cross_period__"
+        ],
+        "ok": false,
+        "note": "跨期指标：单期资料无法计算（已在覆盖清单声明）"
+      },
+      {
+        "id": "cost_surge_detect",
+        "need": [
+          "__cross_period__"
+        ],
+        "ok": false,
+        "note": "跨期指标：单期资料无法计算（已在覆盖清单声明）"
+      }
+    ],
+    "blocked_by_kind": {
+      "原子规则": 4,
+      "税务指标": 2,
+      "税务红线": 83
+    },
+    "executed_by_kind": {
+      "原子规则": 61,
+      "税务指标": 12,
+      "税务红线": 8
+    },
+    "summary_text": "本轮按「上传了什么资料就查什么资料」执行：应检查 170 项，其中现有资料已足以判定 81 项（已全部执行），另有 89 项需与企业补充资料交叉比对后方可判定（已全部列为待补自证事项）。须补充的资料主要为：企业所得税申报表（涉及 9 项）、采购合同（涉及 6 项）、印花税申报表（涉及 6 项）、合同文件（涉及 5 项）、借款合同（涉及 5 项）、完税凭证（涉及 5 项）。上述待补事项在资料补齐前一律不作违规认定；补齐后重新分析即可得到完整结论。"
+  },
+  {
+    "company": 2,
+    "name": "中山市达冠纺织有限公司",
+    "industry": "纺织制造",
+    "biz_model": "制造业",
+    "coverage_now": {
+      "total": 178,
+      "executed": 40,
+      "blocked": 138,
+      "not_executed": 0,
+      "ratio": 0.2247
+    },
+    "coverage_stale": {
+      "total": 176,
+      "executed": 40,
+      "blocked": 136
+    },
+    "run_status_counts": {
+      "triggered": 14,
+      "not_run_missing_data": 35,
+      "completed_not_triggered": 25
+    },
+    "invariants": {
+      "I1_executed_without_receipt": [],
+      "I2_executed_and_blocked": 0,
+      "I3_catalog_without_scanner": [],
+      "I4_industry_skip_leaked_into_denominator": [],
+      "I5_ran_but_reported_missing": []
+    },
+    "not_executed_items": [],
+    "indicators": [
+      {
+        "id": "revenue_declaration_ratio",
+        "need": [
+          "sal_invs",
+          "tax_declarations"
+        ],
+        "ok": false,
+        "note": "缺 tax_declarations"
+      },
+      {
+        "id": "unbilled_revenue_ratio",
+        "need": [
+          "sal_invs",
+          "tax_declarations"
+        ],
+        "ok": false,
+        "note": "缺 tax_declarations"
+      },
+      {
+        "id": "cost_income_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "purchase_invoice_match",
+        "need": [
+          "pur_invs",
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "expense_revenue_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "travel_entertainment_ratio",
+        "need": [
+          "trial_balance",
+          "vouchers"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance/vouchers"
+      },
+      {
+        "id": "receivable_turnover",
+        "need": [
+          "trial_balance",
+          "sal_invs"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "inventory_turnover",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "asset_liability_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "operating_cashflow_quality",
+        "need": [
+          "bank_txs",
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "cash_sales_match",
+        "need": [
+          "bank_txs",
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "owner_equity_change",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "revenue_growth_surge",
+        "need": [
+          "__cross_period__"
+        ],
+        "ok": false,
+        "note": "跨期指标：单期资料无法计算（已在覆盖清单声明）"
+      },
+      {
+        "id": "cost_surge_detect",
+        "need": [
+          "__cross_period__"
+        ],
+        "ok": false,
+        "note": "跨期指标：单期资料无法计算（已在覆盖清单声明）"
+      }
+    ],
+    "blocked_by_kind": {
+      "原子规则": 34,
+      "税务指标": 14,
+      "税务红线": 90
+    },
+    "executed_by_kind": {
+      "原子规则": 39,
+      "税务红线": 1
+    },
+    "summary_text": "本轮按「上传了什么资料就查什么资料」执行：应检查 178 项，其中现有资料已足以判定 40 项（已全部执行），另有 138 项需与企业补充资料交叉比对后方可判定（已全部列为待补自证事项）。须补充的资料主要为：科目余额表（涉及 20 项）、纳税申报表（涉及 16 项）、记账凭证/序时账（涉及 15 项）、工资表（涉及 12 项）、进销存台账（涉及 10 项）、增值税申报表（涉及 10 项）。上述待补事项在资料补齐前一律不作违规认定；补齐后重新分析即可得到完整结论。"
+  },
+  {
+    "company": 3,
+    "name": "北京桦橙佳业商贸有限公司",
+    "industry": "农业生产",
+    "biz_model": "制造业",
+    "coverage_now": {
+      "total": 178,
+      "executed": 37,
+      "blocked": 141,
+      "not_executed": 0,
+      "ratio": 0.2079
+    },
+    "coverage_stale": {
+      "total": 176,
+      "executed": 52,
+      "blocked": 124
+    },
+    "run_status_counts": {
+      "not_run_missing_data": 39,
+      "completed_not_triggered": 23,
+      "triggered": 12
+    },
+    "invariants": {
+      "I1_executed_without_receipt": [],
+      "I2_executed_and_blocked": 0,
+      "I3_catalog_without_scanner": [],
+      "I4_industry_skip_leaked_into_denominator": [],
+      "I5_ran_but_reported_missing": []
+    },
+    "not_executed_items": [],
+    "indicators": [
+      {
+        "id": "revenue_declaration_ratio",
+        "need": [
+          "sal_invs",
+          "tax_declarations"
+        ],
+        "ok": false,
+        "note": "缺 tax_declarations"
+      },
+      {
+        "id": "unbilled_revenue_ratio",
+        "need": [
+          "sal_invs",
+          "tax_declarations"
+        ],
+        "ok": false,
+        "note": "缺 tax_declarations"
+      },
+      {
+        "id": "cost_income_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "purchase_invoice_match",
+        "need": [
+          "pur_invs",
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "expense_revenue_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "travel_entertainment_ratio",
+        "need": [
+          "trial_balance",
+          "vouchers"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "receivable_turnover",
+        "need": [
+          "trial_balance",
+          "sal_invs"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "inventory_turnover",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "asset_liability_ratio",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "operating_cashflow_quality",
+        "need": [
+          "bank_txs",
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 bank_txs/trial_balance"
+      },
+      {
+        "id": "cash_sales_match",
+        "need": [
+          "bank_txs",
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 bank_txs/trial_balance"
+      },
+      {
+        "id": "owner_equity_change",
+        "need": [
+          "trial_balance"
+        ],
+        "ok": false,
+        "note": "缺 trial_balance"
+      },
+      {
+        "id": "revenue_growth_surge",
+        "need": [
+          "__cross_period__"
+        ],
+        "ok": false,
+        "note": "跨期指标：单期资料无法计算（已在覆盖清单声明）"
+      },
+      {
+        "id": "cost_surge_detect",
+        "need": [
+          "__cross_period__"
+        ],
+        "ok": false,
+        "note": "跨期指标：单期资料无法计算（已在覆盖清单声明）"
+      }
+    ],
+    "blocked_by_kind": {
+      "原子规则": 39,
+      "税务指标": 14,
+      "税务红线": 88
+    },
+    "executed_by_kind": {
+      "原子规则": 34,
+      "税务红线": 3
+    },
+    "summary_text": "本轮按「上传了什么资料就查什么资料」执行：应检查 178 项，其中现有资料已足以判定 37 项（已全部执行），另有 141 项需与企业补充资料交叉比对后方可判定（已全部列为待补自证事项）。须补充的资料主要为：银行流水（涉及 20 项）、科目余额表（涉及 20 项）、纳税申报表（涉及 16 项）、进销存台账（涉及 10 项）、增值税申报表（涉及 10 项）、企业所得税申报表（涉及 9 项）。上述待补事项在资料补齐前一律不作违规认定；补齐后重新分析即可得到完整结论。"
+  }
+]

@@ -468,7 +468,10 @@ VERIFIED_RULE_CATALOG = [
         "lifecycle": ["销售与收入确认", "资产领用与用途改变", "费用报销与税前扣除"],
         "required_sources": ["sal_invs", "vouchers", "pur_invs"],
         "status": "verified_executable_screening",
-        "limitation": "无偿赠送、样品、自产自用、用于集体福利或个人消费的资产移转须视同销售计提销项；凭证明细不足时仅能给出线索，最终以用途与计税依据为准。",
+        "limitation": ("无偿赠送、样品、自产自用、用于集体福利或个人消费、以及用于对外投资/分配给股东的"
+                       "资产移转须视同销售计提销项；凭证明细不足时仅能给出线索，最终以用途与计税依据为准。"
+                       "『对外投资/分配给股东』由凭证借贷配对判定（存货贷方转出 × 投资/分配借方 × 无销项计提），"
+                       "归属 RL-VAT-012；其余形态归属 RL-VAT-008。"),
     },
     {
         "id": "VR037",
@@ -4176,9 +4179,38 @@ def _scan_stamp_tax_other_items(data, spec):
 # ①无偿赠送/样品/赠品（摘要含"赠送/样品/赠品/宣传品"且无对应销项收入）
 # ②自产或委托加工货物用于集体福利/个人消费（领用产成品入福利费/在建工程等）
 # ③将自产、委托加工或购进货物无偿送其他单位或个人
+# ④将货物用于**对外投资 / 分配给股东（投资者）**（账簿借贷配对判定）
 # 依据：增值税法第十条、财税[2016]36号附件1第十四条。
 _GIFT_KEYWORDS = ["赠送", "赠品", "样品", "宣传品", "无偿", "礼盒", "促销赠"]
 _SELF_USE_KEYWORDS = ["福利费", "集体福利", "个人消费", "在建工程", "职工", "工会", "食堂"]
+
+# ★★ 2026-10-10（A 轨道·为 RL-VAT-012 净增量建真检测器）────────────────────────
+#   红线库里有**两条同概念的「视同销售」红线**（008 / 012），已在
+#   `config/redline_overlap_ledger.json` 登记为重复对，并逐要件比对出各自净增量：
+#     · RL-VAT-008 的净增量：赠送/样品/宣传品等**实物赠送形态**、在建工程等**非应税项目**、
+#       组成计税价格口径；
+#     · RL-VAT-012 的净增量**只有一项**：**对外投资、分配给股东/投资者**。
+#   本条通道就是为这**一项净增量**建的真检测器，归属 `RL-VAT-012`（不再挂在 008 上）。
+#   判定口径（**全部可从账簿复算，不依赖任何外部资料**）：
+#     同一张凭证内 ①存货类科目在**贷方**转出（货物离开企业、成本已结转）
+#                 ②借方去向为「对外投资/权益性投资」或「利润分配/应付股利」
+#                 ③该凭证**未见销项税额计提分录**
+#   ⇒ 货物用于对外投资 / 分配给股东而未视同销售计提销项（待核事实，非违法定性）。
+#   ⚠ 数据驱动：新增一种「投向后缀」只需在下面三张表各加一行，判定分支不变。
+_INVESTMENT_DEBIT_KEYWORDS = [
+    "长期股权投资", "对外投资", "交易性金融资产", "其他权益工具投资",
+    "债权投资", "其他非流动金融资产", "长期债权投资",
+]
+_DISTRIBUTION_DEBIT_KEYWORDS = [
+    "利润分配", "未分配利润", "应付股利", "应付利润", "盈余公积转入",
+]
+# ⚠ 只列**具体存货科目名**，不含裸词「商品」（裸词会把"应收账款/商品部"这类
+#   部门/客户名误判成存货转出 ⇒ 假命中）。
+_INVENTORY_KEYWORDS = [
+    "库存商品", "产成品", "库存材料", "原材料", "自制半成品", "周转材料",
+    "发出商品", "委托加工物资", "材料采购", "受托代销商品", "消耗性生物资产", "开发产品",
+]
+_VAT_OUTPUT_KEYWORDS = ["销项税额"]
 
 
 def _scan_deemed_sales(data, spec):
@@ -4230,6 +4262,48 @@ def _scan_deemed_sales(data, spec):
                 "channel": "销项发票零金额",
             })
 
+    # 通道3：货物用于**对外投资 / 分配给股东**（RL-VAT-012 的净增量情形）
+    #   判定不靠摘要关键词，而是靠**凭证借贷配对**（可复算、不依赖措辞）：
+    #   同一张凭证内既出现「存货类科目贷方转出」、又出现「投资/分配类科目借方」，
+    #   且该凭证**无销项税额计提分录** ⇒ 命中。
+    _by_vno = defaultdict(list)
+    for v in vs:
+        if not isinstance(v, dict):
+            continue
+        _vn = str(v.get("voucher_no") or "").strip()
+        if not _vn:
+            continue
+        _mo = str(v.get("month_no") or v.get("period") or v.get("date") or "")
+        _by_vno[(_mo, _vn)].append(v)
+    invest = []
+    for (_mo, _vn), _lines in _by_vno.items():
+        if len(_lines) < 2:          # 单行凭证不可能构成"转出×投向"配对
+            continue
+        _inv_amt = 0.0
+        _inv_accts, _tgt_accts = [], []
+        _has_output = False
+        for _ln in _lines:
+            _a = str(_ln.get("account_name") or _ln.get("account") or "")
+            _cr = _number(_ln.get("credit") or _ln.get("贷方"))
+            _dr = _number(_ln.get("debit") or _ln.get("借方"))
+            if _cr > 0 and any(_k in _a for _k in _INVENTORY_KEYWORDS):
+                _inv_amt += _cr
+                _inv_accts.append(_a)
+            if _dr > 0 and any(_k in _a for _k in
+                               (_INVESTMENT_DEBIT_KEYWORDS + _DISTRIBUTION_DEBIT_KEYWORDS)):
+                _tgt_accts.append(_a)
+            if any(_k in _a for _k in _VAT_OUTPUT_KEYWORDS):
+                _has_output = True
+        if _inv_amt > 0 and _tgt_accts and not _has_output:
+            invest.append({
+                "month": _mo, "voucher_no": _vn,
+                "amount": round(_inv_amt, 2),
+                "inventory": sorted(set(_inv_accts))[:3],
+                "target": sorted(set(_tgt_accts))[:3],
+                "summary": str(_lines[0].get("summary") or "")[:40],
+                "channel": "凭证借贷配对",
+            })
+
     findings = []
     if gifts:
         g_total = sum(x["amount"] for x in gifts)
@@ -4242,7 +4316,7 @@ def _scan_deemed_sales(data, spec):
             "需要企业举证说明的事项如下：请逐笔提供：受赠对象与用途说明；该笔是否已作销售费用-促销（账务已含视同销售处理）；"
             "如确属视同销售，是否按组成计税价格（成本×(1+成本利润率)）申报销项。资料充分则本项排除。"
         )
-        findings.append(_rule_finding(
+        _f036_gift = _rule_finding(
             spec, detail,
             {"gift_count": len(gifts), "gift_total": round(g_total, 2),
              "examples": gifts[:10],
@@ -4255,7 +4329,16 @@ def _scan_deemed_sales(data, spec):
                  "是否已作视同销售处理（销项税额计提凭证）；如未计提，说明并按组成计税价格补报。",
              ]},
             spec["required_sources"], priority="中",
-        ))
+        )
+        # ★★ 2026-10-10（A-P0-1 同源缺口）：**已算过的事实必须自报归属，不许让引擎按关键词猜**。
+        #   本通道按摘要关键词归集「无偿赠送/交付样品」的支出，即 RL-VAT-008 的要件①情形；
+        #   此前未声明 `redline_id` ⇒ 只能靠标题里的"视同销售/样品"命中 match_hints 猜测归属
+        #   （归属可被措辞改写，且静态覆盖率会把它算成"仅兜底"）。
+        #   ⚠ 只声明**归属**，**不认领构成要件**：本通道是关键词归集、并未逐笔复算
+        #     "账面确实无销项税额计提分录"（那是要件②），故 `constituent_hits` 留空，
+        #     由企业举证后再定（形态同 A-P0-1 的 `_domain_depreciation_match`）。
+        _f036_gift["redline_id"] = "RL-VAT-008"
+        findings.append(_f036_gift)
     if self_use:
         s_total = sum(x["amount"] for x in self_use)
         detail = (
@@ -4290,6 +4373,61 @@ def _scan_deemed_sales(data, spec):
             {"index": 2, "evidence": "上述货物转出账面未见对应的销项税额计提分录"},
         ]
         findings.append(_f036)
+    # ── 通道3 发现：对外投资 / 分配给股东（RL-VAT-012 的净增量）──────────────
+    if invest:
+        i_total = sum(x["amount"] for x in invest)
+        _ex_txt = "；".join(
+            f"{x['month']}月{x['voucher_no']}号凭证（{'/'.join(x['inventory'])} → {'/'.join(x['target'])}，"
+            f"存货转出 {x['amount']:,.2f}元）" for x in invest[:5])
+        detail = (
+            f"已经核实的事实是：账内检出{len(invest)}张凭证把存货转出、而借方去向是对外投资或利润分配"
+            f"（按存货账面成本口径合计 {i_total:,.2f}元），这些转出在**同一张凭证内未见销项税额计提分录**。"
+            f"逐笔为：{_ex_txt}。\n"
+            "之所以值得查，具体理由是：依增值税法第十条，将自产、委托加工或购进的货物用于对外投资、"
+            "分配给股东或投资者，应**视同销售**确认收入并计提增值税（企业所得税同步确认视同销售收入）。"
+            "触发门槛的具体事实是：货物从存货科目转出、成本已结转，去向却是长期股权投资/利润分配等"
+            "**非销售**科目，且无对应的销项税额贷方发生额——这一『成本已结转、收入与销项未见』的勾稽缺口"
+            "在账簿内可直接复算，故构成待证疑点，而非预设违法。\n"
+            "需要企业举证说明的事项如下：请逐笔提供该项存货转出的用途与决议（对外投资协议 / 利润分配决议）；"
+            "如属视同销售，是否按同期同类货物售价或组成计税价格申报销项并确认收入；"
+            "如属同一法人内部移送连续生产等不视同销售的情形，请提供移送记录。资料充分则本项排除。"
+        )
+        _f012 = _rule_finding(
+            spec, detail,
+            {"invest_distribute_count": len(invest),
+             "invest_distribute_total": round(i_total, 2),
+             "examples": invest[:10],
+             "verified_facts": [
+                 f"账内检出 {len(invest)} 张凭证存在『存货科目贷方转出 × 对外投资/利润分配借方』配对，"
+                 f"按存货账面成本口径合计 {i_total:,.2f} 元。",
+                 "上述凭证内均未见销项税额计提分录（销项税额贷方）——成本已结转、收入与销项未见。",
+                 "视同销售认定依据为增值税法第十条，属法定情形，非针对本企业预设。",
+             ],
+             "to_prove": [
+                 "每笔存货转出的用途与内部决议（对外投资协议、利润分配决议、出库/移送单）；",
+                 "如属视同销售，请提供销项税额计提凭证与视同销售收入确认记录；"
+                 "如未计提，说明并按同期同类售价或组成计税价格补报。",
+                 "如属同一法人内部移送连续生产等不视同销售情形，请提供移送记录以排除。",
+             ]},
+            spec["required_sources"], priority="中",
+        )
+        # ★★ 2026-10-10（A 轨道·RL-VAT-012 净增量真检测器）：
+        #   归属 `RL-VAT-012`（**不是** 008）——本条通道算的正是 012 相对 008 的**唯一净增量**
+        #   「对外投资、分配给股东/投资者」（逐要件比对见 `config/redline_overlap_ledger.json`）。
+        #   只认领**真算过**的要件，宁缺勿错：
+        #     要件②——本通道由「存货贷方 × 投资/分配借方」的凭证借贷配对直接得出（012 要件②后半段情形）；
+        #     要件③——同凭证内无销项税额计提分录，即"成本已结转但收入未确认"的勾稽缺口，由本通道复算；
+        #     要件①（集体福利/个人消费）由上文 self_use 通道算、归 008，本通道不认领；
+        #     要件④（进项税转出）本通道未计算，不认领。
+        _f012["redline_id"] = "RL-VAT-012"
+        _f012["constituent_hits"] = [
+            {"index": 2, "evidence": f"账内 {len(invest)} 张凭证存在『存货科目贷方转出 × "
+                                     f"对外投资/利润分配科目借方』配对，即货物用于对外投资/分配给股东"
+                                     f"（012 要件②后半段情形），成本口径合计 {i_total:,.2f} 元"},
+            {"index": 3, "evidence": "上述凭证内均未见销项税额计提分录：成本已由存货科目贷方结转，"
+                                     "却无对应的视同销售收入与销项税额——收入成本不匹配的勾稽缺口"},
+        ]
+        findings.append(_f012)
     return findings
 
 

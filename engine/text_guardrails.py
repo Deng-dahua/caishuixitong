@@ -10,6 +10,12 @@ from __future__ import annotations
 import re
 from typing import List
 
+# ★ 2026-10-10（A-P0-3）：正向（非风险）发现的判据与等级归一都必须走**唯一权威**
+#   `engine/risk_levels.py`（词表 `NON_RISK_LEVELS` + `is_non_risk_finding()` + `normalize()`）。
+#   绝不在本模块另抄一份词表 —— 同一概念两处口径正是本缺陷的成因。
+from engine.risk_levels import is_non_risk_finding as _is_non_risk_finding
+from engine.risk_levels import normalize as normalize_level
+
 
 _DIRECT_REPLACEMENTS = (
     # ★ 2026-09-27：**去掉冗余的"（待核实）"**——"涉嫌/待核"已含此意，叠加即累赘
@@ -356,6 +362,14 @@ def review_finding(finding):
     if not isinstance(finding, dict):
         return finding
 
+    # ★★ 2026-10-10（A-P0-3 根因修复·第一步）：**先快照原始等级与非风险语义**。
+    #   本函数后半段会按证据成熟度**无条件**改写 `finding["level"]`，而 `优惠机会`
+    #   这类机会流词汇不在 `LEGAL_LEVELS` 里 ⇒ 到那时原文已被覆盖，再判断就晚了
+    #   （实测：先写 `if _is_non_risk_finding(finding)` 在末尾，`level` 已是「待核验」⇒
+    #    `normalize()` 原样返回「待核验」，修复**静默失效**）。
+    _orig_level = str(finding.get("level") or "").strip()
+    _non_risk_snapshot = _is_non_risk_finding(finding)
+
     for field in (
         "type", "detail", "description", "how_found", "tax_impact", "suggestion",
         "policy_ref", "determination", "action", "remedy", "focus", "normal_reason",
@@ -497,6 +511,29 @@ def review_finding(finding):
     # 证据成熟度已用 evidence_grade 表达，level 保留域引擎的风险信号，不因证据链评价而降级为"待核验"
     if finding.get("_objective_domain_finding") and finding.get("_domain_risk_level"):
         finding["level"] = finding["_domain_risk_level"]
+
+    # ★★ 2026-10-10（A-P0-3 根因修复）：**正向（非风险）发现的 level 不得被归一压成「待核验」**。
+    #
+    #   实测（真产物 `comprehensive.redline_detection.unmapped[]`）× 5 条税收优惠/红利发现：
+    #     同一行里  `match_note` = 「税收优惠/红利类发现，属正向机会提示，**不作为**税务风险事项配对」
+    #     而         `level`      = 「待核验」、`review_level` = 「全面复核」
+    #   ⇒ **同一行自相矛盾**：一边说"不是风险事项"，一边把它定级成"待核、须全面复核"。
+    #
+    #   根因链（用 `scripts/_probe_incentive_findings.py` 在红线入口实测抓取，非推测）：
+    #     ① `tax_incentive_analyzer` 产出 `level="优惠机会"` + `tax_benefit`（正确）；
+    #     ② 红线入口**收到了**这两个字段 ⇒ `_map_finding` 正确判 `not_a_risk`、理由正确；
+    #     ③ 但**本函数**是无差别递归遍历（`_clean_review_section` 对任何"有 type + detail/level"
+    #        的字典都调 `review_finding`），而 `优惠机会` 不在 `LEGAL_LEVELS` 里 ⇒
+    #        上面按证据成熟度分批的 `finding["level"] = "待核验"` **无条件覆盖**了它，
+    #        语义（正向机会）被抹平成"待核风险"。
+    #
+    #   修法：与上方 `_objective_domain_finding` 豁免**同一口径**，只是把它推广到"非风险语义"——
+    #     判据复用唯一权威 `risk_levels.is_non_risk_finding()`（不新造词、不写特例），
+    #     归一复用唯一权威 `risk_levels.normalize()`（`优惠机会 → 信息`，最轻档，
+    #     与"不作为风险事项"语义一致）。用的是**函数开头快照**的语义，不是已被覆盖的 level。
+    if _non_risk_snapshot:
+        finding["level"] = normalize_level(_orig_level) or normalize_level(finding.get("level"))
+        finding["non_risk_semantic"] = _orig_level
     finding["independent_source_count"] = source_count
     # 2026-08-26 审计修复（P0-3）：evidence_maturity / determination_path 中的
     # "系统辅助定性""复核后定性"话术全部改为"人工确认"口径。

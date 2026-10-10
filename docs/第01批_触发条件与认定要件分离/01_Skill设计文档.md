@@ -106,7 +106,7 @@
 | 本 Skill 依赖 | `config/risk_conditions.json` | 触发条件/认定要件配置（唯一权威） |
 | 本 Skill 依赖 | `engine/industry_resolver.py` | 业态剔除（要件数据源是否"本业态不适用"） |
 | 本 Skill 被依赖 | `engine/enterprise_report.py`（第 3094 行 `_enterprise_situations` → 第 3151 行 `verdict_sentence`；第 2516 行 `_finalize_trigger_determination`） | 报告里那两句分层结论句 + 结构化块落盘 |
-| 本 Skill 被依赖 | `tools/audit_consistency.py`（第 11489 行 `check_trigger_determination_separation()`，第 12888 行并入总链） | 质量门禁 |
+| 本 Skill 被依赖 | `tools/audit_consistency.py`（第 11490 行 `check_trigger_determination_separation()`，第 12895 行并入总链） | 质量门禁 |
 | 本 Skill 被依赖 | `engine/child_item_completeness.py`（Skill 6）/ `engine/data_source_status.py`（Skill 7） | 各自用 `is_precondition()` 判前提条（**不各自实现**） |
 
 ---

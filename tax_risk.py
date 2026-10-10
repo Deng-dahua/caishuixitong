@@ -21,7 +21,7 @@ V10新增27项: 合同内容涉税风险(涉税条款缺失/拆分合同/违约�
 V11新增2项: 普票浪费可抵扣进项税额（专业服务类供应商开普票未开专票→浪费进项）/
 预付卡涉税风险（增值税不得抵扣+企业所得税扣除凭证+个人所得税代扣代缴）
 """
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, Query, Body, Request
 from fastapi.responses import FileResponse, Response
 import sys
 from sqlalchemy.orm import Session
@@ -677,6 +677,140 @@ def _apply_rule_overrides(results, rules, db=None, company_id=None, ps=None, pe=
         })
 
 
+# ═══════════════════════════════════════════════════════════════
+#  报告载荷 shape — **唯一权威**
+#
+#  ★ 2026-10-09 事故（T-P0-8）：本模块曾有两个 return 各自手写载荷字面量：
+#    · 「无业务数据」分支把 `summary` 写成 **str**，中风险键名写作 `medium_risk_count`；
+#    · 「正常」分支把 `summary` 写成 **dict**，中风险键名写作 `mid_risk_count`。
+#    而四个渲染出口（`_generate_report_html` / `_download_pdf` / `_download_docx` /
+#    `_download_pptx`）全都 `s.get(...)` ⇒ 本系统**唯一那个真实账套**（七张业务表全 0 行）
+#    一旦导出报告即 `AttributeError: 'str' object has no attribute 'get'` ⇒ **500**。
+#
+#  修法不是给四个出口各加一层防御（那是把"多头维护"扩大成"五头维护"），
+#  而是**让两个分支共用下面这组函数**：键名、类型、口径只在这里定义一次，
+#  新增字段只需改这一处 ⇒ 结构上不可能再漂移。
+#  闸门 `tools/audit_consistency.py::check_report_payload_single_shape` 上锁。
+# ═══════════════════════════════════════════════════════════════
+
+#: 载荷顶层键（顺序即输出顺序；供闸门与测试断言"形状唯一"）
+_REPORT_PAYLOAD_KEYS = (
+    "company_id", "period_start", "period_end", "industry", "industry_benchmark",
+    "data_quality", "restricted_analyses", "summary", "metrics",
+    "rules_applied", "rules_count", "required_evidence_summary", "results",
+    "analysis_available", "notice",
+)
+
+#: `summary` 子键（**中风险只能是 mid_risk_count**，历史上曾漂移成 medium_risk_count）
+_SUMMARY_KEYS = (
+    "total_items", "high_risk_count", "mid_risk_count", "low_risk_count",
+    "good_count", "restricted_count", "overall_risk_score", "overall_risk_level",
+)
+
+#: 无业务数据时给用户看的原因说明（**必须写进交付物，不得沉默**）
+_NO_DATA_NOTICE = ("该公司暂无业务数据（序时账/发票/银行流水/合同/员工/资产均无记录），"
+                   "无法进行涉税风险分析。")
+
+
+def _report_summary(results, restricted_count=0, analysis_available=True):
+    """把 findings 汇总为 `summary`（键名 + 计数口径唯一权威）。
+
+    `analysis_available=False`（无业务数据）时 `overall_risk_level` 为 **None** 而非"良好"
+    —— "没有数据"不等于"没有风险"，不得用默认值顶替（缺失≠0）。
+    """
+    high_count = sum(1 for r in results if r.get("risk_level") == "高风险")
+    mid_count = sum(1 for r in results if r.get("risk_level") == "中风险")
+    low_count = sum(1 for r in results if r.get("risk_level") == "低风险")
+    good_count = sum(1 for r in results if r.get("risk_level") == "良好")
+    total_score = sum(r.get("risk_score", 0) for r in results)
+    level = None
+    if analysis_available:
+        level = ("高风险" if total_score >= 60 else
+                 ("中风险" if total_score >= 30 else
+                  ("低风险" if total_score >= 10 else "良好")))
+    return {
+        "total_items": len(results),
+        "high_risk_count": high_count, "mid_risk_count": mid_count,
+        "low_risk_count": low_count, "good_count": good_count,
+        "restricted_count": restricted_count,
+        "overall_risk_score": total_score,
+        "overall_risk_level": level,
+    }
+
+
+def _industry_benchmark_block(benchmark):
+    """行业基准的对外呈现形状（唯一实现，两个分支共用）。"""
+    if not benchmark:
+        return {"name": "", "vat_burden_range": "", "gross_margin_range": ""}
+    return {
+        "name": benchmark["name"],
+        "vat_burden_range": f"{benchmark['vat_burden_min']}-{benchmark['vat_burden_max']}%",
+        "gross_margin_range": f"{benchmark['gross_margin_min']}-{benchmark['gross_margin_max']}%",
+    }
+
+
+def _report_payload(*, company_id, period_start, period_end, summary, results,
+                    industry=None, industry_benchmark=None, data_quality=None,
+                    restricted_analyses=None, metrics=None, rules_applied=False,
+                    rules_count=0, evidence_summary=None, notice="",
+                    analysis_available=True):
+    """报告 JSON 载荷的**唯一构造点**：`get_tax_risk_report()` 的所有 return 都必须走这里。
+
+    键集固定为 `_REPORT_PAYLOAD_KEYS`（闸门断言两分支键集完全相同）。
+    """
+    return {
+        "company_id": company_id,
+        "period_start": period_start, "period_end": period_end,
+        "industry": industry,
+        "industry_benchmark": industry_benchmark,
+        "data_quality": data_quality if data_quality is not None else {},
+        "restricted_analyses": restricted_analyses or [],
+        "summary": summary,
+        "metrics": metrics if metrics is not None else {},
+        "rules_applied": rules_applied,
+        "rules_count": rules_count,
+        "required_evidence_summary": evidence_summary if evidence_summary is not None else [],
+        "results": results,
+        "analysis_available": analysis_available,
+        "notice": notice,
+    }
+
+
+# ── 交付物渲染的取值口径（唯一实现，"缺失≠0"）──────────────────────────
+#   无业务数据时 revenue/cost/vat_payable 是 **None**（未知），
+#   直接 `f"{v:,.2f}"` 会 `TypeError`、`s.get(k, 0)` 会把它伪造成 ¥0.00。
+#   故三个渲染出口一律经下面两个函数取值 —— 未知一律渲染为「—」。
+
+def _money_text(value):
+    """金额 > 文本：None/"缺失" ⇒ 「—」（**不伪造成 0.00**）。"""
+    if value is None or value == "":
+        return "—"
+    try:
+        return format(float(value), ",.2f")
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _pct_text(value):
+    """百分比 > 文本：None ⇒ 「—」。"""
+    if value is None or value == "":
+        return "—"
+    try:
+        return format(float(value), ".1f") + "%"
+    except (TypeError, ValueError):
+        return "—"
+
+
+def _level_text(summary):
+    """综合风险等级 > 文本：无业务数据时不得渲染成 "None"。"""
+    return (summary or {}).get("overall_risk_level") or "无法评估"
+
+
+def _notice_text(data):
+    """交付物开头的口径说明；无说明时返回 ""（唯一实现，四个出口共用）。"""
+    return str((data or {}).get("notice") or "").strip()
+
+
 # ── 风险分析核心 ──
 
 @router.get("/report")
@@ -688,23 +822,11 @@ def get_tax_risk_report(
     db: Session = Depends(get_db)
 ):
     results = []
-    # ── 全局数据存在性校验：无任何业务数据时直接返回空结果，避免误报 ──
-    if not _has_any_business_data(db, company_id):
-        return {
-            "company_id": company_id,
-            "results": [],
-            "total": 0,
-            "high_risk_count": 0,
-            "medium_risk_count": 0,
-            "low_risk_count": 0,
-            "good_count": 0,
-            "overall_risk_level": None,
-            "summary": "该公司暂无业务数据（序时账/发票/银行流水/合同/员工/资产均无记录），无法进行涉税风险分析。",
-            "data_quality": {"total_score": 0, "level": "严重不足", "warnings": ["无任何业务数据"]},
-        }
 
+    # ── 期间规范化（★ 提前到"数据存在性校验"之前）──────────────────────
+    #   旧实现把它放在校验之后 ⇒ 无业务数据时 period_start/period_end 直接**丢失**，
+    #   交付物只好渲染成 "None"。两个分支必须给同一套字段（T-P0-8）。
     if period_from and period_to:
-        # 规范化：统一为 YYYY-MM 格式
         period_start = _normalize_period(period_from)
         period_end = _normalize_period(period_to)
     elif period:
@@ -721,13 +843,7 @@ def get_tax_risk_report(
         else:
             period_start = period_end = date.today().strftime("%Y-%m")
 
-    # ── V15新增：数据质量评分前置环节 ──
-    data_quality = assess_data_quality(db, company_id, period_start, period_end)
-
-    # ── V15新增：分析受限说明 — 检测因资料不足无法执行的分析 ──
-    restricted_analyses = check_analysis_data_availability(db, company_id, period_start, period_end)
-
-    # ── V15新增：行业自适应 — 自动识别行业并加载行业基准 ──
+    # ── V15新增：行业自适应 — 自动识别行业并加载行业基准（同样提前；两分支共用）──
     company = db.query(Company).filter(Company.id == company_id).first()
     industry = getattr(company, "industry_code", None) if company else None
     if not industry and company and company.business_scope:
@@ -735,6 +851,28 @@ def get_tax_risk_report(
     elif not industry:
         industry = "综合"  # 不预设制造业，行业由销项发票品名驱动推断
     industry_benchmark = get_industry_benchmark(industry)
+
+    # ── 全局数据存在性校验：无任何业务数据时不跑分析，直接返回**同一形状**的载荷 ──
+    #   ⚠ 不得再手写字面量：形状唯一权威是 `_report_payload`（否则键名/类型必然漂移）。
+    if not _has_any_business_data(db, company_id):
+        return _report_payload(
+            company_id=company_id, period_start=period_start, period_end=period_end,
+            industry=industry,
+            industry_benchmark=_industry_benchmark_block(industry_benchmark),
+            data_quality={"total_score": 0, "level": "严重不足",
+                          "warnings": ["无任何业务数据"]},
+            summary=_report_summary([], analysis_available=False),
+            # 没有数据 ≠ 收入为 0：金额一律 None，交付物渲染为「—」（缺失≠0）
+            metrics={"revenue": None, "cost": None,
+                     "gross_margin_pct": None, "vat_payable": None},
+            results=[], notice=_NO_DATA_NOTICE, analysis_available=False,
+        )
+
+    # ── V15新增：数据质量评分前置环节 ──
+    data_quality = assess_data_quality(db, company_id, period_start, period_end)
+
+    # ── V15新增：分析受限说明 — 检测因资料不足无法执行的分析 ──
+    restricted_analyses = check_analysis_data_availability(db, company_id, period_start, period_end)
 
     # ── 23 个基础分析维度 ──
     _analyze_accounting(db, company_id, period_start, period_end, results)
@@ -922,12 +1060,6 @@ def get_tax_risk_report(
 
     results.sort(key=lambda x: (x.get("risk_score", 0)), reverse=True)
 
-    high_count = sum(1 for r in results if r.get("risk_level") == "高风险")
-    mid_count = sum(1 for r in results if r.get("risk_level") == "中风险")
-    low_count = sum(1 for r in results if r.get("risk_level") == "低风险")
-    good_count = sum(1 for r in results if r.get("risk_level") == "良好")
-    total_score = sum(r.get("risk_score", 0) for r in results)
-
     # 计算主要税负率和财务指标
     revenue_debit = _get_account_sum(db, company_id, "6001", period_start, period_end, "credit")
     cost_debit = _get_account_sum(db, company_id, "6401", period_start, period_end, "debit")
@@ -937,40 +1069,26 @@ def get_tax_risk_report(
     evidence_summary = _build_evidence_summary(results)
     evidence_summary = enhance_evidence_summary(evidence_summary, company_id)
 
-    return {
-        "company_id": company_id,
-        "period_start": period_start, "period_end": period_end,
-        "industry": industry,
-        "industry_benchmark": {
-            "name": industry_benchmark["name"],
-            "vat_burden_range": f"{industry_benchmark['vat_burden_min']}-{industry_benchmark['vat_burden_max']}%",
-            "gross_margin_range": f"{industry_benchmark['gross_margin_min']}-{industry_benchmark['gross_margin_max']}%",
-        },
-        "data_quality": data_quality,
-        "restricted_analyses": restricted_analyses,
-        "summary": {
-            "total_items": len(results),
-            "high_risk_count": high_count, "mid_risk_count": mid_count,
-            "low_risk_count": low_count, "good_count": good_count,
-            "restricted_count": len(restricted_analyses),
-            "overall_risk_score": total_score,
-            "overall_risk_level": (
-                "高风险" if total_score >= 60 else
-                ("中风险" if total_score >= 30 else
-                 ("低风险" if total_score >= 10 else "良好"))
-            )
-        },
-        "metrics": {
+    # ★ 载荷唯一构造点：键集/类型必须与"无业务数据"分支**完全相同**（T-P0-8）
+    return _report_payload(
+        company_id=company_id,
+        period_start=period_start, period_end=period_end,
+        industry=industry,
+        industry_benchmark=_industry_benchmark_block(industry_benchmark),
+        data_quality=data_quality,
+        restricted_analyses=restricted_analyses,
+        summary=_report_summary(results, len(restricted_analyses), analysis_available=True),
+        metrics={
             "revenue": round(revenue_debit, 2),
             "cost": round(cost_debit, 2),
             "gross_margin_pct": round((revenue_debit - cost_debit) / revenue_debit * 100, 2) if revenue_debit > 0 else 0,
             "vat_payable": round(vat_total, 2),
         },
-        "rules_applied": rules_applied,
-        "rules_count": rules_count,
-        "required_evidence_summary": evidence_summary,
-        "results": results
-    }
+        rules_applied=rules_applied,
+        rules_count=rules_count,
+        evidence_summary=evidence_summary,
+        results=results,
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1089,14 +1207,15 @@ def _generate_report_html(data):
     </style></head><body>
     <h1>🛡️ 涉税风险分析报告</h1>
     <div class="header-info">公司ID: {data.get("company_id")} | 分析期间: {data.get("period_start")} ~ {data.get("period_end")}</div>
+    {('<div class="summary-box" style="background:#fef2f2;border-left:4px solid #dc2626"><strong>说明：</strong>' + _notice_text(data) + '</div>') if _notice_text(data) else ''}
     <div class="cards">
-      <div class="card" style="border-color:#dc2626"><div class="label">综合风险</div><div class="value" style="color:#dc2626">{s.get("overall_risk_level","")}</div></div>
+      <div class="card" style="border-color:#dc2626"><div class="label">综合风险</div><div class="value" style="color:#dc2626">{_level_text(s)}</div></div>
       <div class="card"><div class="label">高风险</div><div class="value" style="color:#dc2626">{s.get("high_risk_count",0)}</div></div>
       <div class="card"><div class="label">中风险</div><div class="value" style="color:#f59e0b">{s.get("mid_risk_count",0)}</div></div>
       <div class="card"><div class="label">低风险</div><div class="value" style="color:#3b82f6">{s.get("low_risk_count",0)}</div></div>
     </div>
     <div class="summary-box">
-      <p>分析项目：{s.get("total_items",0)}项 | 收入：¥{m.get("revenue",0):,.2f} | 毛利率：{m.get("gross_margin_pct",0):.1f}%</p>
+      <p>分析项目：{s.get("total_items",0)}项 | 收入：¥{_money_text(m.get("revenue"))} | 毛利率：{_pct_text(m.get("gross_margin_pct"))}</p>
     </div>
     <h2>📊 风险详情</h2>
     {items_html}
@@ -1105,6 +1224,7 @@ def _generate_report_html(data):
 
 @router.get("/report/download")
 def download_tax_risk_report(
+    request: Request,
     company_id: int = Query(...),
     period_from: str = Query(None),
     period_to: str = Query(None),
@@ -1112,9 +1232,26 @@ def download_tax_risk_report(
     db: Session = Depends(get_db)
 ):
     """下载涉税风险分析报告 - 支持 pdf/docx/pptx 三种格式"""
+    # ★ 2026-10-09 业务留痕（唯一漏斗：本端点同时是 pdf/docx/pptx 三种格式的出口）。
+    #   记录的是**请求**而非"成功产物" —— 对审计来说，"谁试图下载了什么"比"谁成功了"
+    #   更重要（尤其导出外发场景）；且放在重算之前，即便后续重算失败也留得下痕。
+    try:
+        from engine.audit_trail import record as _audit_record
+        _audit_record(
+            "report.download", target="涉税风险分析报告.%s" % format,
+            company_id=company_id,
+            detail="请求下载（格式：%s%s%s）" % (
+                format,
+                ("；期间 %s" % period_from) if period_from else "",
+                ("~%s" % period_to) if period_to else ""),
+            request=request,
+        )
+    except Exception:                            # noqa: BLE001
+        pass
+
     # 生成报告数据（复用核心分析逻辑）
     data = get_tax_risk_report(company_id=company_id, period_from=period_from, period_to=period_to, db=db)
-    
+
     if format == "pdf":
         return _download_pdf(data)
     elif format == "docx":
@@ -1249,7 +1386,10 @@ def _download_pdf(data):
     story.append(Paragraph("涉税风险分析报告", cn_title))
     story.append(Spacer(1, 6*mm))
     story.append(Paragraph(f"公司ID: {data.get('company_id')} | 期间: {data.get('period_start')} ~ {data.get('period_end')}", cn_style))
-    story.append(Paragraph(f"综合风险: {s.get('overall_risk_level','')} | 高风险{s.get('high_risk_count',0)}项 | 中风险{s.get('mid_risk_count',0)}项 | 低风险{s.get('low_risk_count',0)}项 | 共{s.get('total_items',0)}项", cn_style))
+    if _notice_text(data):
+        story.append(Paragraph("说明：" + _notice_text(data), cn_style))
+    story.append(Paragraph(f"综合风险: {_level_text(s)} | 高风险{s.get('high_risk_count',0)}项 | 中风险{s.get('mid_risk_count',0)}项 | 低风险{s.get('low_risk_count',0)}项 | 共{s.get('total_items',0)}项", cn_style))
+    story.append(Paragraph(f"收入: ¥{_money_text(m.get('revenue'))} | 毛利率: {_pct_text(m.get('gross_margin_pct'))}", cn_style))
     story.append(Spacer(1, 4*mm))
     
     for r in results:  # 最多50项
@@ -1288,8 +1428,10 @@ def _download_docx(data):
     results = data.get("results", [])
     
     doc.add_paragraph(f"公司ID: {data.get('company_id')}  |  期间: {data.get('period_start')} ~ {data.get('period_end')}")
-    doc.add_paragraph(f"综合风险等级: {s.get('overall_risk_level','')}  |  高风险: {s.get('high_risk_count',0)}项  |  中风险: {s.get('mid_risk_count',0)}项  |  低风险: {s.get('low_risk_count',0)}项")
-    doc.add_paragraph(f"分析项目: {s.get('total_items',0)}项  |  收入: ¥{m.get('revenue',0):,.2f}  |  毛利率: {m.get('gross_margin_pct',0):.1f}%  |  风险评估分: {s.get('overall_risk_score',0)}")
+    if _notice_text(data):
+        doc.add_paragraph("说明：" + _notice_text(data))
+    doc.add_paragraph(f"综合风险等级: {_level_text(s)}  |  高风险: {s.get('high_risk_count',0)}项  |  中风险: {s.get('mid_risk_count',0)}项  |  低风险: {s.get('low_risk_count',0)}项")
+    doc.add_paragraph(f"分析项目: {s.get('total_items',0)}项  |  收入: ¥{_money_text(m.get('revenue'))}  |  毛利率: {_pct_text(m.get('gross_margin_pct'))}  |  风险评估分: {s.get('overall_risk_score',0)}")
     doc.add_paragraph("")
     
     # 汇总表
@@ -1365,10 +1507,16 @@ def _download_pptx(data):
     p.font.color.rgb = RGBColor(0x64, 0x74, 0x8B)
     p.alignment = PP_ALIGN.CENTER
     p2 = tf2.add_paragraph()
-    p2.text = f"综合风险: {s.get('overall_risk_level','')} | 评估分: {s.get('overall_risk_score',0)} | 高风险{s.get('high_risk_count',0)}项"
+    p2.text = f"综合风险: {_level_text(s)} | 评估分: {s.get('overall_risk_score',0)} | 高风险{s.get('high_risk_count',0)}项"
     p2.font.size = Pt(16)
     p2.font.color.rgb = RGBColor(0xDC, 0x26, 0x26)
     p2.alignment = PP_ALIGN.CENTER
+    if _notice_text(data):
+        p3 = tf2.add_paragraph()
+        p3.text = "说明：" + _notice_text(data)
+        p3.font.size = Pt(12)
+        p3.font.color.rgb = RGBColor(0x64, 0x74, 0x8B)
+        p3.alignment = PP_ALIGN.CENTER
     
     # Slide 2: 汇总
     slide2 = prs.slides.add_slide(prs.slide_layouts[6])
@@ -1383,15 +1531,15 @@ def _download_pptx(data):
     # 汇总表
     rows_data = [
         ["指标", "数值"],
-        ["综合风险等级", s.get('overall_risk_level','')],
+        ["综合风险等级", _level_text(s)],
         ["风险评估总分", str(s.get('overall_risk_score',0))],
         ["高风险项", str(s.get('high_risk_count',0))],
         ["中风险项", str(s.get('mid_risk_count',0))],
         ["低风险项", str(s.get('low_risk_count',0))],
         ["良好事项", str(s.get('good_count',0))],
         ["分析项目数", str(s.get('total_items',0))],
-        ["收入", f"¥{m.get('revenue',0):,.2f}"],
-        ["毛利率", f"{m.get('gross_margin_pct',0):.1f}%"],
+        ["收入", f"¥{_money_text(m.get('revenue'))}"],
+        ["毛利率", _pct_text(m.get('gross_margin_pct'))],
     ]
     table_shape = slide2.shapes.add_table(len(rows_data), 2, Inches(1.5), Inches(1.5), Inches(10), Inches(4))
     table = table_shape.table
@@ -1402,10 +1550,11 @@ def _download_pptx(data):
             if i == 0:
                 cell.text_frame.paragraphs[0].font.bold = True
     
-    # Slide 3+: 风险详情
+    # Slide 3+: 风险详情（每页最多 6 项）
+    # ⚠ 2026-10-09（T-P0-8 同批）：原实现里有一句 `if idx > 0 and idx % 6 == 0: continue`
+    #   —— 它把**每一页的第 7 项静默丢掉**（idx=6/12/18…），同时让后续项的 y 坐标错位。
+    #   "导出内容与屏幕不一致"就是这么来的。这里改为：满 6 项就翻新页，**不跳过任何一项**。
     for idx, r in enumerate(results):
-        if idx > 0 and idx % 6 == 0:
-            continue  # 每页最多6项
         if idx % 6 == 0:
             slide_n = prs.slides.add_slide(prs.slide_layouts[6])
             txBox_n = slide_n.shapes.add_textbox(Inches(0.5), Inches(0.3), Inches(12), Inches(1))
@@ -1443,8 +1592,9 @@ def _has_any_business_data(db, company_id):
     """检查公司是否有任何业务数据（序时账/发票/银行流水/合同/员工/资产）"""
     for Model in (JournalEntry, SalesInvoice, PurchaseInvoice,
                  BankTransaction, Contract, Employee, FixedAsset):
-        if db.query(func.count(Model.id)).filter(
-            Model.company_id == company_id).scalar() or 0 > 0:
+        # ⚠ 必须显式括号：`scalar() or 0 > 0` 会被解析成 `scalar() or (0 > 0)`（`>` 优先级高于 `or`）
+        if (db.query(func.count(Model.id)).filter(
+                Model.company_id == company_id).scalar() or 0) > 0:
             return True
     return False
 

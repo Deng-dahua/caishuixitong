@@ -49,6 +49,7 @@ import json
 import os
 import re
 import sys
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -12832,6 +12833,12 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_company_artifact_consistency() # 2026-10-06 删账套必须连派生物一起清
                + check_delete_exits()                 # 2026-10-06 删除出口唯一（任何删除都要删干净）
                + check_report_version_reuse_authority()  # 2026-10-09 增量复用判据须走权威
+               + check_audit_trail_single_writer()    # 2026-10-09 业务留痕写入唯一权威
+               + check_report_payload_single_shape()  # 2026-10-09 报告载荷形状唯一（T-P0-8）
+               + check_redline_detector_attribution()  # 2026-10-10 红线归属须由检测器自报（A-P0-1）
+               + check_redline_coverage_counts_authority_table()  # 2026-10-10 覆盖率须认表声明形态（A-P0-4）
+               + check_redline_overlap_ledger()  # 2026-10-10 同概念红线须登记且不靠兜底编闭环（A-P0-2）
+               + check_non_risk_findings_not_flagged()  # 2026-10-10 正向发现不得被打风险等级（A-P0-3）
                + check_pending_verdict_softened()     # 2026-10-06 资料不足档不得断言触红
                + check_report_text_integrity()       # 2026-10-06 报告文本不得被改写坏
                + check_report_no_redundancy()        # 2026-10-06 报告不得重复冗余/元话语
@@ -14083,6 +14090,761 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
                            "底层删除原语 `%s` 不在 runtime_storage.py（在 %s）—— "
                            "唯一实现必须落在 runtime_storage" % (_n, _hits[0])))
     return issues
+
+
+def check_audit_trail_single_writer() -> List[Tuple[str, str, str]]:
+    """业务操作留痕：**写入只有一处**，且"失败不阻断、也绝不静默"（2026-10-09）。
+
+    ★ 病根（实测，非设想）：`audit_logs` 表早就在、读接口 `/api/audit-logs` 也早就在，
+      但**全仓没有任何一处写入** —— `SELECT COUNT(*)` = 0，
+      `grep -rn "audit_logs"` 只有 `CREATE TABLE` 与 `SELECT`。
+      ⇒ 上传 / 分析 / 复核 / 导出 / 下载 / 删除这六类**最需要追责的动作**一条都没留痕。
+      本次收敛为唯一权威 `engine/audit_trail.py`，本闸门保证它不会被绕过，
+      也保证它不会被"顺手再写一份 INSERT"分叉。
+
+    判据：
+      A【静态】`INSERT INTO audit_logs` 只允许出现在 `engine/audit_trail.py`；
+        权威模块必须同时导出 `record()` 与 `list_records()`（写/读都不许绕开）。
+      B【行为·子进程隔离】在 `APP_DATA_DIR=<临时目录>` 的**独立进程**里验证：
+        ① 已登记动作写成功且返回 id、`count()` 递增；
+        ② **未登记**动作**照记原值**（不静默丢弃）；
+        ③ `company_id=None` 存 NULL，**不得用 0 冒充**"无归属"；
+        ④ `list_records(action=...)` 过滤生效；
+        ⑤ 写入失败时 `record()` **不抛异常**（不阻断主流程）且 `last_error()` 非空（不静默）。
+      为什么用子进程：行为判据要真的写库，**绝不能污染真实 `accounting.db`**；
+      子进程 + `APP_DATA_DIR` 让 `runtime_storage`/`database` 自然指向临时库，无需 monkeypatch 全局。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    # ── A 静态：写入唯一 ────────────────────────────────────────────────────
+    _pat = re.compile(r"INSERT\s+INTO\s+audit_logs", re.I)
+    _SKIP_PARTS = {".venv", ".git", "node_modules", "__pycache__", "data",
+                   "baseline", "outputs", "_archive", "_bak"}
+    _AUTHORITY = "engine/audit_trail.py"
+    # 本检查器**自身**含该字面量（正则与提示文案）⇒ 自检跳过（与 `check_counts`
+    # 的「自检跳过」同例）。同时把 docstring 与行注释用空格顶掉（保留换行、行号不变），
+    # 避免把"提到这个写法"的说明文字判成真写入 —— 与 `check_delete_exits._mask_prose` 同一修法。
+    _SELF = "tools/audit_consistency.py"
+
+    def _mask_prose(text: str) -> str:
+        def _blank(m: "re.Match[str]") -> str:
+            return re.sub(r"[^\n]", " ", m.group(0))
+        t = re.sub(r'"""(?:.|\n)*?"""', _blank, text)
+        t = re.sub(r"'''(?:.|\n)*?'''", _blank, t)
+        return re.sub(r"#[^\n]*", lambda m: " " * len(m.group(0)), t)
+
+    _files: List[Any] = sorted(ROOT.glob("*.py"))
+    for _d in ("engine", "tools", "scripts", "tests", "config", "routers"):
+        _base = ROOT / _d
+        if _base.is_dir():
+            _files.extend(sorted(_base.rglob("*.py")))
+    for _p in _files:
+        _rel = _p.relative_to(ROOT).as_posix()
+        if _rel == _SELF:
+            continue
+        if set(_p.relative_to(ROOT).parts) & _SKIP_PARTS:
+            continue
+        if _p.name.startswith("_bk") or "_bak" in _p.name:
+            continue
+        try:
+            _txt = _mask_prose(_p.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            continue
+        for _m in _pat.finditer(_txt):
+            if _rel == _AUTHORITY:
+                continue
+            _ln = _txt[:_m.start()].count("\n") + 1
+            issues.append(("ERROR", _rel,
+                           "第 %d 行出现 `INSERT INTO audit_logs` —— 业务留痕的写入"
+                           "只允许在唯一权威 `%s::record()`（否则同一概念两处实现，"
+                           "迟早分叉，「谁写过」再也说不清）。" % (_ln, _AUTHORITY)))
+    _auth = ROOT / _AUTHORITY
+    if not _auth.exists():
+        issues.append(("ERROR", _AUTHORITY,
+                       "业务留痕唯一权威不存在（`engine/audit_trail.py`）"))
+    else:
+        _src = _auth.read_text(encoding="utf-8", errors="replace")
+        for _fn in ("record", "list_records"):
+            if ("def %s(" % _fn) not in _src:
+                issues.append(("ERROR", _AUTHORITY,
+                               "唯一权威缺 `%s()` —— 写/读都不许绕开本模块" % _fn))
+
+    # ── B 行为（子进程 + APP_DATA_DIR 隔离，绝不碰真实库）────────────────────
+    import subprocess
+    import tempfile
+    _probe = r'''
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path.cwd()))
+import runtime_storage as RS
+from engine import audit_trail as AT
+AT.ensure_schema()
+assert AT.count() == 0, "隔离库初始应为空：%r" % AT.count()
+i1 = AT.record("doc.upload", target="probe.csv", company_id=7, detail="probe",
+               user_name="probe-user")
+assert isinstance(i1, int) and AT.count() == 1, ("写入失败", i1, AT.count())
+# ② 未登记动作必须照记原值
+i2 = AT.record("not.a.registered.action", target="t", company_id=7)
+assert AT.count() == 2, ("未登记动作被丢弃", AT.count())
+assert AT.list_records(action="not.a.registered.action")[0]["action"] == \
+    "not.a.registered.action", "未登记动作被改名"
+# ③ company_id=None 必须存 NULL，不得用 0 冒充
+i3 = AT.record("doc.delete", target="t2")
+row = [r for r in AT.list_records() if r["id"] == i3][0]
+assert row["company_id"] is None, ("无归属被 0 冒充：%r" % (row["company_id"],))
+# ④ 过滤生效
+assert [r["action"] for r in AT.list_records(action="doc.upload")] == ["doc.upload"]
+assert len(AT.list_records(company_id=7)) == 2, AT.list_records(company_id=7)
+# ⑤ 写失败：不抛（不阻断）、且 last_error 非空（不静默）
+_orig = AT.ensure_schema
+AT.ensure_schema = lambda: (_ for _ in ()).throw(RuntimeError("probe-boom"))
+try:
+    bad = AT.record("doc.upload", target="x", company_id=7)
+    assert bad is None, "写失败却返回了值：%r" % (bad,)
+    assert AT.last_error(), "写失败被静默（last_error 为空）"
+finally:
+    AT.ensure_schema = _orig
+print("OK db=%s" % RS.ACCOUNTING_DB)
+'''
+    with tempfile.TemporaryDirectory(prefix="audit-gate-") as _td:
+        _env = dict(os.environ)
+        _env["APP_DATA_DIR"] = _td
+        _env["PYTHONIOENCODING"] = "utf-8"
+        try:
+            _cp = subprocess.run([sys.executable, "-c", _probe], cwd=str(ROOT),
+                                 env=_env, capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace", timeout=180)
+        except Exception as exc:                 # noqa: BLE001
+            issues.append(("ERROR", _AUTHORITY, "行为判据子进程无法启动：%s" % exc))
+        else:
+            if _cp.returncode != 0 or "OK " not in (_cp.stdout or ""):
+                issues.append(("ERROR", _AUTHORITY,
+                               "业务留痕行为判据失败（写/未登记动作/无归属/过滤/失败不静默）：%s"
+                               % ((_cp.stdout or "") + " | " + (_cp.stderr or "")).strip()[-400:]))
+    return issues
+
+
+def check_report_payload_single_shape() -> List[Tuple[str, str, str]]:
+    """报告 JSON 载荷：**形状（键集/类型）只有一个出处**（2026-08-09 T-P0-8）。
+
+    ★ 病根（实测，非设想）：`tax_risk.py::get_tax_risk_report()` 曾有两个 `return`
+      各自手写载荷字面量 ——「无业务数据」分支 `summary` 是 **str**、中风险键名
+      `medium_risk_count`；「正常」分支 `summary` 是 **dict**、中风险键名 `mid_risk_count`。
+      四个渲染出口（`_generate_report_html` / `_download_pdf` / `_download_docx` /
+      `_download_pptx`）一律 `s.get(...)` ⇒ 本系统**唯一那个真实账套**（七张业务表全 0 行）
+      导出报告时 `AttributeError: 'str' object has no attribute 'get'` ⇒ **HTTP 500**。
+      同批还发现 PPTX 详情页有一句 `if idx > 0 and idx % 6 == 0: continue`
+      —— 把**每一页的第 7 项静默丢掉**（导出内容 ≠ 分析结果）。
+
+    判据：
+      A【静态】`tax_risk.py` 里 `get_tax_risk_report()` 的**每一个 return 都必须调
+        `_report_payload()`**（不许再出现手写字典字面量）——这是"结构上不可能再漂移"的保证；
+        且权威函数/键表齐全。
+      B【静态】中风险键名 `medium_risk_count` **全仓不得出现**
+        （同一概念两个键名 = 多头维护；渲染出口只会认 `mid_risk_count`）。
+      C【行为】四类入参（无数据 / 有 findings）产出的载荷**键集逐项相同**且等于
+        `_REPORT_PAYLOAD_KEYS`，`summary` 两处都是 dict 且键集等于 `_SUMMARY_KEYS`；
+        四个渲染出口对**两种载荷**都必须产出非空字节（"不 500"的机器证明），
+        且无数据载荷里不得出现 `None` 被当值渲染的痕迹。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import ast
+    import subprocess
+    import tempfile
+
+    _REL = "tax_risk.py"
+    _SRC = ROOT / _REL
+    if not _SRC.exists():
+        return [("ERROR", _REL, "报告载荷所在模块不存在")]
+
+    # ── A 静态（AST）：所有 return 必须走 `_report_payload()` ──────────────
+    try:
+        _tree = ast.parse(_SRC.read_text(encoding="utf-8", errors="replace"))
+    except SyntaxError as exc:
+        return [("ERROR", _REL, "语法错误，无法做载荷形状判据：%s" % exc)]
+
+    _fn = None
+    for _node in ast.walk(_tree):
+        if isinstance(_node, (ast.FunctionDef, ast.AsyncFunctionDef)) \
+                and _node.name == "get_tax_risk_report":
+            _fn = _node
+            break
+    if _fn is None:
+        issues.append(("ERROR", _REL, "找不到 `get_tax_risk_report()`"))
+    else:
+        _returns = [n for n in ast.walk(_fn) if isinstance(n, ast.Return)]
+        if not _returns:
+            issues.append(("ERROR", _REL, "`get_tax_risk_report()` 没有任何 return"))
+        for _r in _returns:
+            _ok_call = (isinstance(_r.value, ast.Call)
+                        and isinstance(_r.value.func, ast.Name)
+                        and _r.value.func.id == "_report_payload")
+            if not _ok_call:
+                _kind = type(_r.value).__name__ if _r.value is not None else "None"
+                issues.append((
+                    "ERROR", _REL,
+                    "第 %d 行 `get_tax_risk_report()` 的 return 是 %s，不是 "
+                    "`_report_payload(...)` —— 载荷形状一旦有两处手写实现，"
+                    "键名/类型必然漂移（T-P0-8 事故）。" % (_r.lineno, _kind)))
+
+    _src_txt = _SRC.read_text(encoding="utf-8", errors="replace")
+    for _name in ("_report_payload", "_report_summary", "_REPORT_PAYLOAD_KEYS",
+                  "_SUMMARY_KEYS", "_money_text", "_pct_text", "_level_text",
+                  "_notice_text"):
+        if ("def %s(" % _name) not in _src_txt and ("%s = (" % _name) not in _src_txt:
+            issues.append(("ERROR", _REL, "报告载荷权威缺 `%s`" % _name))
+
+    # ── B 静态：中风险键名不得出现第二写法（AST 精确判定，不审散文）─────────
+    #   ⚠ 判据坑：用裸正则扫全仓会把**说明文字**与**测试断言**判成违规
+    #     （`assert "medium_risk_count" not in s` 就是一句正当的断言）。
+    #     故只认三种**真取值**写法：字典键、`d['...']` 下标、`.get('...')` 实参。
+    _SELF = "tools/audit_consistency.py"
+    _SKIP = {".venv", ".git", "node_modules", "__pycache__", "data", "baseline",
+             "outputs", "_archive", "_bak"}
+    _BAD_KEY = "medium_" + "risk_count"          # 运行期拼：本文件自身也不写死该字面量
+    _scan: List[Any] = sorted(ROOT.glob("*.py"))
+    for _d in ("engine", "tools", "scripts", "tests", "config", "routers"):
+        _b = ROOT / _d
+        if _b.is_dir():
+            _scan.extend(sorted(_b.rglob("*.py")))
+            _scan.extend(sorted(_b.rglob("*.js")))
+
+    def _key_uses(tree) -> List[int]:
+        """返回把 `_BAD_KEY` 当**键**用的行号（字典键 / 下标 / .get() 实参）。"""
+        hits: List[int] = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Dict):
+                for k in node.keys:
+                    if isinstance(k, ast.Constant) and k.value == _BAD_KEY:
+                        hits.append(k.lineno)
+            elif isinstance(node, ast.Subscript):
+                s = node.slice
+                if isinstance(s, ast.Constant) and s.value == _BAD_KEY:
+                    hits.append(node.lineno)
+            elif isinstance(node, ast.Call):
+                for a in (list(node.args) + [kw.value for kw in node.keywords]):
+                    if isinstance(a, ast.Constant) and a.value == _BAD_KEY:
+                        hits.append(node.lineno)
+        return hits
+
+    for _p in _scan:
+        try:
+            _rel = _p.relative_to(ROOT).as_posix()
+        except ValueError:
+            continue
+        if _rel == _SELF or set(_p.relative_to(ROOT).parts) & _SKIP:
+            continue
+        if "_bak" in _p.name or _p.name.startswith("_bk"):
+            continue
+        try:
+            _txt = _p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if _p.suffix == ".py":
+            try:
+                # ⚠ 闸门不得被别处的 SyntaxWarning 刷屏：AST 解析只取结构，抑制告警。
+                #   （实测：`scripts/_gate_trunc_final.py:4` 有 `invalid escape sequence '\d'`，
+                #    与本判据无关，但会污染闸门输出 —— 已单独记录，不在本闸门处理。）
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    _lines = _key_uses(ast.parse(_txt))
+            except SyntaxError:
+                continue
+        else:                                    # .js：无 AST，退回正则（前端无需注释说明）
+            _lines = [_txt[:_m.start()].count("\n") + 1
+                      for _m in re.finditer(re.escape(_BAD_KEY), _txt)]
+        for _ln in _lines:
+            issues.append((
+                "ERROR", _rel,
+                "第 %d 行把中风险写成了 `%s` —— 键名唯一权威是 "
+                "`mid_risk_count`（见 `tax_risk.py::_SUMMARY_KEYS`）。"
+                "同一概念两个键名 ⇒ 渲染出口静默取不到值。"
+                % (_ln, _BAD_KEY)))
+
+    # ── C 行为（子进程 + APP_DATA_DIR 隔离，绝不碰真实库/真实产物）─────────
+    _probe = r'''
+import json, sys, pathlib
+sys.path.insert(0, str(pathlib.Path.cwd()))
+import tax_risk as T
+
+PK, SK = set(T._REPORT_PAYLOAD_KEYS), set(T._SUMMARY_KEYS)
+
+def _mk(results, avail):
+    return T._report_payload(
+        company_id=1, period_start="2025-01", period_end="2025-06",
+        industry="综合", industry_benchmark=T._industry_benchmark_block(None),
+        summary=T._report_summary(results, 0, analysis_available=avail),
+        metrics=({"revenue": None, "cost": None, "gross_margin_pct": None,
+                  "vat_payable": None} if not avail else
+                 {"revenue": 1000.0, "cost": 600.0, "gross_margin_pct": 40.0,
+                  "vat_payable": 30.0}),
+        results=results, notice="" if avail else T._NO_DATA_NOTICE,
+        analysis_available=avail)
+
+EMPTY = _mk([], False)
+FULL = _mk([{"item": "甲", "category": "经营实质", "risk_level": "高风险",
+             "risk_score": 9, "detail": "d", "suggestion": "s"},
+            {"item": "乙", "category": "发票异常", "risk_level": "中风险",
+             "risk_score": 4, "detail": "d", "suggestion": "s"}], True)
+
+for _tag, _p in (("empty", EMPTY), ("full", FULL)):
+    assert set(_p) == PK, ("载荷顶层键集漂移", _tag, sorted(set(_p) ^ PK))
+    assert isinstance(_p["summary"], dict), ("summary 不是 dict", _tag)
+    assert set(_p["summary"]) == SK, ("summary 键集漂移", _tag,
+                                      sorted(set(_p["summary"]) ^ SK))
+
+def _bytes_of(out):
+    # 四个出口返回类型并不统一：`_generate_report_html` 是 str，其余是 Response
+    if isinstance(out, bytes):
+        return out
+    if isinstance(out, str):
+        return out.encode("utf-8")
+    b = getattr(out, "body", None)
+    if b is None:
+        b = getattr(out, "content", b"")
+    return b or b""
+
+for _tag, _p in (("empty", EMPTY), ("full", FULL)):
+    for _fn in ("_generate_report_html", "_download_pdf", "_download_docx",
+                "_download_pptx"):
+        body = _bytes_of(getattr(T, _fn)(_p))
+        assert body, ("渲染出口产出为空", _tag, _fn)
+
+# 无数据载荷不得把缺失渲染成 "None"，也不得伪造成 0.00
+_html = _bytes_of(T._generate_report_html(EMPTY)).decode("utf-8", "replace")
+assert "None" not in _html and "nan" not in _html, "无数据载荷把缺失渲染成了 None/nan"
+assert "0.00" not in _html, "无数据载荷把缺失伪造成了 0.00（缺失≠0）"
+assert "—" in _html, "无数据时金额/比例应渲染为「—」而非 0.00"
+assert "暂无业务数据" in _html, "无数据交付物没有写明原因"
+
+# 导出完整性：PPTX 不得静默丢项（每页第 7 项曾被 continue 吃掉）
+import io, zipfile
+_many = [{"item": "唯一标记项%02d" % i, "category": "经营实质", "risk_level": "中风险",
+          "risk_score": 5, "detail": "d", "suggestion": "s"} for i in range(1, 14)]
+_r = T._download_pptx(_mk(_many, True))
+_zf = zipfile.ZipFile(io.BytesIO(_bytes_of(_r)))
+_xml = b"".join(_zf.read(n) for n in sorted(_zf.namelist())
+                if n.startswith("ppt/slides/") and n.endswith(".xml"))
+_miss = [i for i in range(1, 14) if ("唯一标记项%02d" % i).encode() not in _xml]
+assert not _miss, ("PPTX 静默丢项", _miss)
+print("OK")
+'''
+    with tempfile.TemporaryDirectory(prefix="payload-gate-") as _td:
+        _env = dict(os.environ)
+        _env["APP_DATA_DIR"] = _td
+        _env["PYTHONIOENCODING"] = "utf-8"
+        try:
+            _cp = subprocess.run([sys.executable, "-c", _probe], cwd=str(ROOT),
+                                 env=_env, capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace", timeout=300)
+        except Exception as exc:                 # noqa: BLE001
+            issues.append(("ERROR", _REL, "载荷形状行为判据子进程无法启动：%s" % exc))
+        else:
+            if _cp.returncode != 0 or "OK" not in (_cp.stdout or ""):
+                issues.append(("ERROR", _REL,
+                               "载荷形状/渲染行为判据失败（形状唯一 · 四出口可用 · "
+                               "缺失不渲染为 0 · PPTX 不丢项）：%s"
+                               % ((_cp.stdout or "") + " | "
+                                  + (_cp.stderr or "")).strip()[-500:]))
+    return issues
+
+
+def non_risk_level_conflicts(roots) -> List[Tuple[str, str]]:
+    """扫出「**正向（非风险）发现却被打上风险/待核等级**」的条目（A-P0-3）。
+
+    ★ 病根（实测真产物，非设想）：`comprehensive.redline_detection.unmapped[]` 里 5 条
+      税收优惠/红利发现，**同一行**里 `match_note` 明写「属正向机会提示，不作为税务风险事项配对」，
+      而 `level` 却是「待核验」、`review_level` 是「全面复核」⇒ 自相矛盾。
+      根因：`text_guardrails.review_finding()` 是无差别递归归一，按证据成熟度**无条件**
+      把 `level` 改成「待核验」，而 `优惠机会` 不在 `LEGAL_LEVELS` 里 ⇒ 语义被抹平。
+      已修（走 `risk_levels.is_non_risk_finding()` + `normalize()`）；本函数是**端到端判据**。
+
+    判据只用**引擎自己的字段**（不新造口径）：
+      非风险语义 = 带 `tax_benefit` 或带 `non_risk_semantic`；
+      违规 = 其 `level` 落在风险档/证据状态档（`待核验`、`极高/高/中/低风险`）。
+      ⇒ 「信息」是唯一合法落点（最轻档，与"不作为风险事项"一致）。
+
+    遍历：**迭代 + `id()` 去环**（`report_data` 含自引用，递归会 RecursionError）。
+    """
+    import collections
+    from engine.risk_levels import RISK_GRADES, EVIDENCE_STATES
+    # 「风险档 + 证据状态档」= 正向发现**不得**落在的档位（唯一权威派生，不另抄一张表）。
+    # 「信息」是唯一合法落点（最轻档，与"不作为风险事项"语义一致）。
+    _BAD = tuple(set(RISK_GRADES) - {"信息"}) + tuple(EVIDENCE_STATES)
+    conflicts: List[Tuple[str, str]] = []
+    for name, root in roots:
+        seen: set = set()
+        stack = [root]
+        while stack:
+            cur = stack.pop()
+            if isinstance(cur, (dict, list)):
+                if id(cur) in seen:
+                    continue
+                seen.add(id(cur))
+                if isinstance(cur, dict):
+                    _lv = str(cur.get("level") or "").strip()
+                    _non_risk = bool(cur.get("tax_benefit") or cur.get("non_risk_semantic"))
+                    if _non_risk and _lv in _BAD:
+                        conflicts.append((name, "%s ｜ level=%s ｜ type=%s"
+                                          % (str(cur.get("non_risk_semantic")
+                                                 or cur.get("tax_benefit"))[:22],
+                                             _lv, str(cur.get("type") or "")[:28])))
+                    stack.extend(cur.values())
+                else:
+                    stack.extend(cur)
+    return conflicts
+
+
+def check_non_risk_findings_not_flagged() -> List[Tuple[str, str, str]]:
+    """闸门：**正向（非风险）发现不得被打上风险/待核等级**（2026-10-10，A-P0-3）。
+
+    端到端产出断言：直接读**真产物** `scripts/four_reports/company_*_full.json`，
+    而不是只看代码 —— 本缺陷正是"代码看着对、产物里自相矛盾"。
+    产物不存在 ⇒ 如实 WARN（不假装通过）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import json as _json
+    dumps = sorted((ROOT / "scripts" / "four_reports").glob("company_*_full.json"))
+    if not dumps:
+        return [("WARN", "scripts/four_reports/",
+                 "没有公司产物（`company_*_full.json`）⇒ 「正向发现不被误标等级」**未验证**；"
+                 "跑 `scripts/run_companies.py` 后重跑本闸门")]
+    for _p in dumps:
+        try:
+            _data = _json.loads(_p.read_text(encoding="utf-8"))
+        except Exception as exc:                     # noqa: BLE001
+            issues.append(("ERROR", _p.name, "产物读不出来：%s" % exc))
+            continue
+        rel = "scripts/four_reports/%s" % _p.name
+        for _name, _detail in non_risk_level_conflicts([(rel, _data)]):
+            issues.append(("ERROR", rel,
+                           "正向（非风险）发现被打上风险/待核等级 ⇒ 同一行自相矛盾"
+                           "（说明文字说它不是风险，等级却说它待核）：%s" % _detail))
+        # ⑤ 反向兜底：产物里若**一条**正向发现都没有，说明字段被上游吃掉了 ⇒ 如实 WARN
+        _found = 0
+        seen: set = set()
+        stack = [_data]
+        while stack:
+            cur = stack.pop()
+            if isinstance(cur, (dict, list)):
+                if id(cur) in seen:
+                    continue
+                seen.add(id(cur))
+                if isinstance(cur, dict):
+                    if cur.get("tax_benefit") or cur.get("non_risk_semantic"):
+                        _found += 1
+                    stack.extend(cur.values())
+                else:
+                    stack.extend(cur)
+        if _found == 0:
+            issues.append(("WARN", rel,
+                           "产物里找不到任何正向（非风险）发现 ⇒ 等级判据可能被上游清空，"
+                           "本闸门对该产物**实际上没判到什么**"))
+    return issues
+
+
+def coverage_missing_authority_table(coverage: Dict, table_ids) -> List[str]:
+    """覆盖率口径判据（纯函数，便于反向验证）：返回问题描述列表。
+
+    ★ 病根（2026-10-10，A-P0-4）：`scripts/_audit_redline_coverage.py` 原先只认
+      "源码里 `redline_id` 旁出现红线 id 字面量"。而本项目存在**第二种合法声明形态** ——
+      归属由**权威表**给出（`engine/subject_consistency.py` 的 `REDLINE_SUBJECT_DECL` /
+      `RECONCILE_AXIS_REDLINE`），检测器**不写字面量**。
+      实测：`RL-CIT-008`、`RL-PAY-002` 两条的归属**完全来自表**，
+      真产物里它们是 `match_mode="declared"`（真认领），而覆盖率权威把二者记成「仅兜底」
+      ⇒ **检出能力被系统性低估**（有真实检测器 82 应为 84，仅兜底 9 应为 7）。
+    """
+    problems: List[str] = []
+    if not isinstance(coverage, dict) or not coverage:
+        return ["覆盖率产物为空/读不出来"]
+    has = set(coverage.get("has_detector") or [])
+    only = set(coverage.get("only_fallback") or [])
+    for rid in sorted(table_ids):
+        if rid in only:
+            problems.append("%s 由归属权威表声明，却被记进 `only_fallback`（仅兜底）" % rid)
+        elif rid not in has:
+            problems.append("%s 由归属权威表声明，却不在 `has_detector` 里" % rid)
+    return problems
+
+
+def check_redline_coverage_counts_authority_table() -> List[Tuple[str, str, str]]:
+    """闸门：**覆盖率口径必须认「归属权威表」这一声明形态**（2026-10-10，A-P0-4）。
+
+    三段：
+      A【权威表健康】`engine.subject_consistency.py` 的两张表都非空，且表里每个红线 id
+        都在 `engine.tax_redlines.REDLINES`（**幽灵登记 ⇒ ERROR**）。
+      B【口径一致】覆盖率产物里，表声明的红线必须落在 `has_detector`、**不在** `only_fallback`。
+      C【新鲜度】产物若比 `engine/subject_consistency.py` 或覆盖率脚本旧 ⇒ 只报 WARN，
+        **不假装通过**（防"读过期产物假绿"）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import json as _json
+    try:
+        from engine import subject_consistency as _sc
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "engine/subject_consistency.py",
+                 "归属权威表模块导入失败（覆盖率口径无法校验）：%s" % exc)]
+
+    _decl = dict(getattr(_sc, "REDLINE_SUBJECT_DECL", {}) or {})
+    _axis = dict(getattr(_sc, "RECONCILE_AXIS_REDLINE", {}) or {})
+    if not _decl or not _axis:
+        issues.append(("ERROR", "engine/subject_consistency.py",
+                       "归属权威表为空（`REDLINE_SUBJECT_DECL`=%d / `RECONCILE_AXIS_REDLINE`=%d）"
+                       "—— 归属层的唯一权威被清空，覆盖率口径必然失真"
+                       % (len(_decl), len(_axis))))
+    try:
+        _ids = _load_redline_ids()
+    except Exception as exc:                       # noqa: BLE001
+        return issues + [("ERROR", "engine/tax_redlines.py",
+                          "红线库读不出来，无法校验幽灵登记：%s" % exc)]
+
+    _table = set(_decl) | {(v[0] if isinstance(v, (list, tuple)) and v else "")
+                           for v in _axis.values()}
+    _table.discard("")
+    for rid in sorted(_table - _ids):
+        issues.append(("ERROR", "engine/subject_consistency.py",
+                       "归属权威表登记了不存在的红线 %r（幽灵登记）" % rid))
+
+    _cov_p = ROOT / "scripts" / "_redline_coverage.json"
+    if not _cov_p.exists():
+        issues.append(("WARN", "scripts/_redline_coverage.json",
+                       "覆盖率产物不存在 ⇒ 「表声明 ⇒ 计入有真实检测器」**未验证**"
+                       "（跑 `scripts/_audit_redline_coverage.py` 后重跑本闸门）"))
+        return issues
+
+    _deps = [ROOT / "engine" / "subject_consistency.py",
+             ROOT / "scripts" / "_audit_redline_coverage.py"]
+    _stale = [d.name for d in _deps if d.exists() and d.stat().st_mtime > _cov_p.stat().st_mtime]
+    if _stale:
+        issues.append(("WARN", "scripts/_redline_coverage.json",
+                       "覆盖率产物比 %s 旧 ⇒ 口径结论不可信，请重跑 "
+                       "`scripts/_audit_redline_coverage.py`" % "、".join(_stale)))
+        return issues
+
+    try:
+        _cov = _json.loads(_cov_p.read_text(encoding="utf-8"))
+    except Exception as exc:                       # noqa: BLE001
+        return issues + [("ERROR", "scripts/_redline_coverage.json",
+                          "覆盖率产物读不出来：%s" % exc)]
+    for _p in coverage_missing_authority_table(_cov, _table & _ids):
+        issues.append(("ERROR", "scripts/_redline_coverage.json",
+                       "覆盖率口径漏了「归属权威表」这一声明形态：%s" % _p))
+    return issues
+
+
+def check_redline_overlap_ledger() -> List[Tuple[str, str, str]]:
+    """闸门：**同概念红线**必须登记，且登记为"要件重复"的不得靠兜底编闭环（2026-10-10，A-P0-2）。
+
+    ★ 病根（实测，非设想）：`RL-VAT-008`「视同销售未按规计提销项税额」与 `RL-VAT-012`
+      「视同销售未计提销项」**描述同一概念**（要件1/2/3 高度重叠；012 的要件4 又与
+      `RL-VAT-011` 重复），而 012 原先登记着 `_DEFAULT_HIT_INDEX=[1,2,3,4]`
+      ⇒ 一旦被软匹配命中就**认下 4 条构成要件**，而**全仓没有任何检测器算过**它们
+      ⇒ **假闭环**（报告认下要件却拿不出该要件的证据）。项目早有先例与机制：
+      `RL-CIT-001` 故意不登记兜底 + `_NO_BLIND_CONSTITUENT_FALLBACK` 名单。
+
+    判据（数据驱动：新增一对 = 在 `config/redline_overlap_ledger.json` 加一行）：
+      A【表可读】`pairs` 非空；每对必填 `concept` / `members`(≥2) / `verdict` /
+        `net_increment`(对每个成员都要有) / `disposition`。
+      B【id 有效】members 必须在 `REDLINES` 里（**幽灵登记 ⇒ ERROR**）。
+      C【口径一致】`verdict == "constituent_duplicate"` 的成员**必须**
+        在 `_NO_BLIND_CONSTITUENT_FALLBACK` 里、且**不得**出现在 `_DEFAULT_HIT_INDEX`
+        —— 否则就是"声明了重复，却仍靠兜底认要件"的半途状态。
+      D【不得空手】`net_increment` 里某成员为空 ⇒ 该红线没有存在必要 ⇒ ERROR（提请裁定合并）。
+      E【覆盖率口径】覆盖率产物里该成员不得被记成 `blind`（盲区）——它属"有意不兜底"。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import json as _json
+    _REL = "config/redline_overlap_ledger.json"
+    _p = ROOT / _REL
+    if not _p.exists():
+        return [("ERROR", _REL, "同概念红线登记表不存在（重复红线必须先登记再处置）")]
+    try:
+        _data = _json.loads(_p.read_text(encoding="utf-8"))
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", _REL, "登记表读不出来（判据会静默变绿）：%s" % exc)]
+    _pairs = _data.get("pairs")
+    if not isinstance(_pairs, list) or not _pairs:
+        return [("ERROR", _REL, "`pairs` 为空 —— 登记表存在却无内容，判据等于没跑")]
+    try:
+        _ids = _load_redline_ids()
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "engine/tax_redlines.py", "红线库读不出来：%s" % exc)]
+    try:
+        from engine.redline_engine import (_DEFAULT_HIT_INDEX as _DH,
+                                           _NO_BLIND_CONSTITUENT_FALLBACK as _NB)
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "engine/redline_engine.py", "兜底表/名单读不出来：%s" % exc)]
+
+    _cov_p = ROOT / "scripts" / "_redline_coverage.json"
+    _cov = {}
+    if _cov_p.exists():
+        try:
+            _cov = _json.loads(_cov_p.read_text(encoding="utf-8"))
+        except Exception:                          # noqa: BLE001
+            _cov = {}
+
+    _REQ = ("concept", "members", "verdict", "net_increment", "disposition")
+    for _i, _pair in enumerate(_pairs):
+        _where = "%s:第%d对" % (_REL, _i + 1)
+        if not isinstance(_pair, dict) or any(k not in _pair for k in _REQ):
+            issues.append(("ERROR", _REL, "%s 缺必需键 %s" % (_where, list(_REQ))))
+            continue
+        _members = [str(m) for m in (_pair.get("members") or [])]
+        if len(_members) < 2:
+            issues.append(("ERROR", _REL, "%s `members` 少于 2 条（不构成「同一概念多条」）" % _where))
+        for _m in _members:
+            if _m not in _ids:
+                issues.append(("ERROR", _REL, "%s 登记了不存在的红线 %r（幽灵登记）" % (_where, _m)))
+        _ni = _pair.get("net_increment") or {}
+        if not isinstance(_ni, dict):
+            issues.append(("ERROR", _REL, "%s `net_increment` 必须是「红线 → 独有情形」的对象" % _where))
+            _ni = {}
+        if str(_pair.get("verdict")) == "constituent_duplicate":
+            # ⚠ 判据范围（2026-10-10 实测修正）：只在成员**没有真检测器**时才要求
+            #   「进 `_NO_BLIND_CONSTITUENT_FALLBACK` 且不在 `_DEFAULT_HIT_INDEX`」——
+            #   因为只有"无检测器"的红线才会靠兜底**编**要件闭环（假闭环）。
+            #   成员若有真检测器（如 RL-VAT-008 由 VR036 声明），它的要件是**真算过的**，
+            #   不得被强制"不许兜底"（第一版判据就错在这里，把合规的 008 判成 ERROR）。
+            _has_det = set((_cov or {}).get("has_detector") or [])
+            for _m in _members:
+                if not str(_ni.get(_m) or "").strip():
+                    issues.append(("ERROR", _REL,
+                                   "%s 的 %s **未给出净增量** ⇒ 该红线没有独立存在必要，"
+                                   "应提请裁定合并（不得靠兜底维持「看似可达」）" % (_where, _m)))
+                if _cov and _m in _has_det:
+                    continue                       # 有真检测器 ⇒ 要件是真算过的，不适用本约束
+                if _m not in _NB:
+                    issues.append(("ERROR", _REL,
+                                   "%s 的 %s 已登记为「要件重复」且**无真检测器**，却不在 "
+                                   "`_NO_BLIND_CONSTITUENT_FALLBACK`（须有意不做盲发兜底）" % (_where, _m)))
+                if _m in _DH:
+                    issues.append(("ERROR", _REL,
+                                   "%s 的 %s 已登记为「要件重复」且**无真检测器**，却仍登记在 "
+                                   "`_DEFAULT_HIT_INDEX` ⇒ 半途状态：软匹配命中即「认下要件」的假闭环仍在"
+                                   % (_where, _m)))
+                if _cov and _m in (_cov.get("blind") or []):
+                    issues.append(("ERROR", "scripts/_redline_coverage.json",
+                                   "%s 被覆盖率口径记成「盲区」，实为「有意不做兜底」（口径不一致）" % _m))
+    if not _cov:
+        issues.append(("WARN", "scripts/_redline_coverage.json",
+                       "覆盖率产物缺失/读不出 ⇒ 「有真检测器的成员不受本约束」这一步**未验证**"
+                       "（跑 `scripts/_audit_redline_coverage.py` 后重跑本闸门）"))
+    return issues
+
+
+def check_redline_detector_attribution() -> List[Tuple[str, str, str]]:
+    """红线的**归属声明**：算过的检测器必须自报 `redline_id`，不许让引擎按关键词猜（2026-10-10，A-P0-1）。
+
+    ★ 病根（实测真产物，非设想）：`company_1_full.json` 的 26 条嫌疑里 3 条
+      `match_mode="matched"`（关键词兜底）。其中 RL-AST-001「固定资产取得、投用与折旧不匹配」
+      的事实**已经算出来了** —— `_domain_depreciation_match` 产出
+      「银行流水发现2笔固定资产类付款，合计20,000.00元。应相应计提折旧。」——
+      但该 finding **没有声明 `redline_id`** ⇒ 引擎只能 `match_redline_grounded()` 用标题里的
+      "固定资产/折旧" 两个词猜归属（`match_reasons=["hint@title","hint@title"]`）。两层后果：
+        ① 归属是**猜的**：同一事实换个措辞就会挂到别的红线（同类事故本项目已发生过 7 次）；
+        ② 静态覆盖率审计把这条红线记成「仅兜底」⇒ **检出能力被系统性低估**。
+      这类「已有实现、只缺归属声明」被本项目明确认定为**最容易被误判成"没实现"**的形态
+      （见 `scripts/_vr_rl_affinity.py` 的立项理由）。
+
+    判据（数据驱动：新增一处 = 在 `config/redline_detector_attribution.json` 加一行）：
+      A【表可读】`declarations` 非空、必需键齐全（缺表/空表 ⇒ ERROR，不静默）。
+      B【声明真在】`detector_file` 存在、且含 `"redline_id": "<id>"` 的**真声明**；
+        且文件在 `engine/` 或为 `main.py` —— `scripts/` 下的一次性脚本不计入生产覆盖
+        （与 `scripts/_audit_redline_coverage.py` 的口径**必须一致**，否则同一件事两个口径）。
+      C【红线存在】`redline_id` 必须在 `engine/tax_redlines.REDLINES` 里。
+      D【端到端】覆盖率权威产物 `scripts/_redline_coverage.json` 里该红线必须落在
+        `has_detector`、**不在** `only_fallback`（"声明 ⇒ 不再算仅兜底"的机器证明）。
+        产物缺失或**比被扫描的源文件旧** ⇒ 如实报 WARN，不假装通过（防"读过期产物假绿"）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import json as _json
+
+    _REL = "config/redline_detector_attribution.json"
+    _p = ROOT / _REL
+    if not _p.exists():
+        return [("ERROR", _REL, "红线归属声明登记表不存在（新增检测器归属声明的唯一登记处）")]
+    try:
+        _data = _json.loads(_p.read_text(encoding="utf-8"))
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", _REL, "登记表读不出来（JSON 坏了 ⇒ 判据会静默变绿）：%s" % exc)]
+    _rows = _data.get("declarations")
+    if not isinstance(_rows, list) or not _rows:
+        return [("ERROR", _REL, "`declarations` 为空 —— 登记表存在却无内容，判据等于没跑")]
+
+    _REQ = ("detector_file", "redline_id")
+    for _i, _row in enumerate(_rows):
+        if not isinstance(_row, dict) or any(k not in _row for k in _REQ):
+            issues.append(("ERROR", _REL, "第 %d 行缺必需键 %s" % (_i + 1, list(_REQ))))
+            continue
+        _f = ROOT / str(_row["detector_file"])
+        _rid = str(_row["redline_id"])
+        _where = "%s:%d" % (_REL, _i + 1)
+        if not _f.exists():
+            issues.append(("ERROR", _REL, "%s 指定的 `detector_file` 不存在：%s"
+                           % (_where, _row["detector_file"])))
+            continue
+        _parts = set(_f.relative_to(ROOT).parts)
+        _is_prod = (_f.parent.name == "engine") or (_f.name == "main.py")
+        if not _is_prod or "scripts" in _parts:
+            issues.append(("ERROR", _REL,
+                           "%s 的 `detector_file`（%s）不是生产代码 —— 一次性诊断脚本运行期不执行，"
+                           "登记在那里等于没登记（覆盖率审计也不计入）"
+                           % (_where, _row["detector_file"])))
+        _txt = _f.read_text(encoding="utf-8", errors="replace")
+        _needle = '"redline_id": "%s"' % _rid
+        _needle2 = '["redline_id"] = "%s"' % _rid
+        if (_needle not in _txt) and (_needle2 not in _txt):
+            issues.append(("ERROR", str(_row["detector_file"]),
+                           "已登记归属 `%s`，但文件里找不到声明（`%s` 或 `%s`）—— "
+                           "登记与代码不一致（要么补声明，要么删登记行）。"
+                           % (_rid, _needle, _needle2)))
+        # C 红线必须真实存在
+        try:
+            _tr = _load_redline_ids()
+        except Exception as exc:                   # noqa: BLE001
+            issues.append(("ERROR", _REL, "红线库读不出来，无法校验 redline_id：%s" % exc))
+            _tr = set()
+        if _tr and _rid not in _tr:
+            issues.append(("ERROR", _REL, "%s 的 `redline_id`=%s 不在红线库里"
+                           % (_where, _rid)))
+        # D 端到端：覆盖率权威产物
+        _cov_p = ROOT / "scripts" / "_redline_coverage.json"
+        if not _cov_p.exists():
+            issues.append(("WARN", _REL,
+                           "覆盖率权威产物 `scripts/_redline_coverage.json` 不存在 ⇒ "
+                           "「声明 ⇒ 不再算仅兜底」这一步**未验证**（跑 "
+                           "`scripts/_audit_redline_coverage.py` 后重跑本闸门）"))
+        else:
+            if _f.stat().st_mtime > _cov_p.stat().st_mtime:
+                issues.append(("WARN", _REL,
+                               "覆盖率产物比被扫描的源文件旧（%s 在本产物之后改过）⇒ "
+                               "D 段结论不可信，请重跑 `scripts/_audit_redline_coverage.py`"
+                               % _row["detector_file"]))
+            else:
+                try:
+                    _cov = _json.loads(_cov_p.read_text(encoding="utf-8"))
+                except Exception as exc:           # noqa: BLE001
+                    issues.append(("ERROR", _REL, "覆盖率产物读不出来：%s" % exc))
+                    _cov = {}
+                if _cov:
+                    if _rid in (_cov.get("only_fallback") or []):
+                        issues.append(("ERROR", "scripts/_redline_coverage.json",
+                                       "%s 已声明归属，覆盖率权威仍把它记为「仅兜底」⇒ "
+                                       "声明没进生产扫描路径（或产物业已过期）" % _rid))
+                    elif _rid not in (_cov.get("has_detector") or []):
+                        issues.append(("ERROR", "scripts/_redline_coverage.json",
+                                       "%s 已声明归属，却既不在 has_detector 也不在 "
+                                       "only_fallback —— 覆盖率产物与红线库不同步" % _rid))
+    return issues
+
+
+def _load_redline_ids() -> set:
+    """红线 id 集合（唯一来源 = `engine/tax_redlines.REDLINES`，不另抄一份）。"""
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location(
+        "_rl_ids_for_gate", ROOT / "engine" / "tax_redlines.py")
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    return {str(r["id"]) for r in _mod.REDLINES}
 
 
 def check_metric_key_localized() -> List[Tuple[str, str, str]]:

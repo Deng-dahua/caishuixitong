@@ -5445,6 +5445,18 @@ def _domain_depreciation_match(bank_txs, pur_invs):
         findings.append({
             "type": "固定资产采购与折旧匹配提示",
             "level": "低风险", "score": 3,
+            # ★★ 2026-10-10（A-P0-1 红线归属体检）：**本检测器必须声明它属于哪条红线**。
+            #   实测（真产物 `company_1_full.json`）：本发现已算出「银行流水发现2笔固定资产类付款，
+            #   合计20,000.00元。应相应计提折旧。」，但**没有声明 `redline_id`** ⇒ `redline_engine`
+            #   只能走 `match_redline_grounded()` 的**关键词兜底**（实测 `match_mode="matched"`、
+            #   `match_reasons=["hint@title","hint@title"]`，即"标题里撞上了'固定资产/折旧'两个字"）。
+            #   后果有两层：① 归属是**猜的**不是算的（同一事实换个措辞就会挂到别的红线）；
+            #   ② 静态覆盖率审计把它记成「仅兜底」，**检出能力被系统性低估**（实测 81 条被报成 80）。
+            #   声明后走 `mode="declared"`（`reasons=["declared_by_scanner"]`），归属可自证来源。
+            #   ⚠ 只声明"归属"，**不认领构成要件** —— 本检测器真算过的是"有固定资产类付款"，
+            #     算不出"是否已计提折旧/年限是否合规"（那需要折旧计算表），故不写 `constituent_hits`
+            #     （遵循「谁真算过要件谁自己声明，算不出的不认领」）。
+            "redline_id": "RL-AST-001",
             "detail": f"银行流水发现{len(asset_payments)}笔固定资产类付款，合计{asset_total:,.2f}元。应相应计提折旧。",
             "description": f"银行流水中检测到{len(asset_payments)}笔可能与固定资产采购相关的付款（含关键词：{'/'.join(asset_keywords)}），合计{asset_total:,.2f}元。\n\n提醒: 如果这些付款确实对应固定资产采购，应作如下处理:\n① 建立固定资产台账并登记入账\n② 按规定年限计提折旧（作为成本费用税前扣除）\n③ 折旧费与采购金额、折旧年限应逻辑匹配",
             "how_found": "从银行流水借方摘要中搜索固定资产类关键词（设备/机器/车辆等）。",

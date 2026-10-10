@@ -263,6 +263,9 @@ _METRIC_CN = {
     # VR036 视同销售
     "gift_count": "赠送笔数", "gift_total": "赠送金额合计", "self_use_count": "自用处数",
     "self_use_total": "自用金额合计", "channel": "线索来源",
+    # VR036 通道3：货物用于对外投资/分配给股东（RL-VAT-012 净增量）
+    "invest_distribute_count": "对外投资/分配笔数",
+    "invest_distribute_total": "对外投资/分配存货成本合计",
     # VR037 关联交易转让定价
     "deviation_count": "单价偏离笔数", "threshold": "偏离阈值", "median_price": "中位单价",
     "deviation": "偏离幅度", "direction": "方向", "counterparty": "交易对手方",

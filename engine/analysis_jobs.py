@@ -80,6 +80,23 @@ _STATUS_CN: Dict[str, str] = {
     "blocked": "已拦截（未出报告）",
 }
 
+
+def trigger_cn(trigger: Any) -> str:
+    """触发方式码 → 中文名（**唯一权威的转发入口**；未登记的原样返回）。
+
+    ★ 为什么要有这个公开入口：调用方（`main.py` 的留痕登记、报告文案）需要中文触发名，
+      而词表 `_TRIGGER_CN` 是私有实现细节。让外部去 `import _TRIGGER_CN` 等于把
+      内部结构变成契约 —— 一旦改名，静默失效。故薄转发一层。
+    """
+    t = str(trigger or "")
+    return _TRIGGER_CN.get(t, t)
+
+
+def status_cn(status: Any) -> str:
+    """状态码 → 中文名（同上，薄转发）。"""
+    s = str(status or "")
+    return _STATUS_CN.get(s, s)
+
 #: 作业行事件类型（★ 唯一权威）
 JOB_EVENTS: Tuple[str, ...] = ("started", "finished")
 
@@ -499,4 +516,5 @@ __all__ = [
     "jobs_path", "job_started", "job_finished",
     "list_jobs", "get_job", "last_job", "is_terminal", "remove_company_jobs",
     "all_job_ids", "selfcheck", "last_error", "RAISE_ON_WRITE_ERROR",
+    "trigger_cn", "status_cn",
 ]

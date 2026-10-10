@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "purpose": "同概念红线登记表：两条（或多条）红线**描述同一概念**时在此登记，并写明各自的**净增量**与处置，避免重复维护、重复报告、以及靠兜底编闭环。",
+  "why": "实测（2026-10-10，A-P0-2 冗余裁定）：`RL-VAT-008`「视同销售未按规计提销项税额」与 `RL-VAT-012`「视同销售未计提销项」逐字段比对后确认——要件1/2/3 高度重叠（集体福利/个人消费/无偿赠送 + 未计提销项）；012 的要件4「进项税转出」与 `RL-VAT-011`「进项税额应转出未转出」重复（011 有真检测器 VR032）；012 的净增量**只有一项**：对外投资、分配给股东/投资者。而 012 原先靠 `_DEFAULT_HIT_INDEX=[1,2,3,4]` 兜底 ⇒ 一旦被软匹配命中就**认下 4 条要件**，而全仓没有任何检测器算过它们 ⇒ **假闭环**。",
+  "discipline": [
+    "**不删既有红线**：条数被文档计数与多处闸门绑定；重复的处置方式是「登记 + 收敛可达性口径 + 补检测器」，不是删。",
+    "凡登记为 `constituent_duplicate` 的红线，**必须**在 `engine/redline_engine.py::_NO_BLIND_CONSTITUENT_FALLBACK` 里、且**不得**出现在 `_DEFAULT_HIT_INDEX`（谁真算过要件谁声明，算不出的不认领）。",
+    "`net_increment` 必须写明该红线**相对其它条独有的情形**；若为空，说明它没有存在必要 ⇒ 直接提请用户裁定合并。",
+    "新增一对 = 加一行数据，不改任何逻辑分支。"
+  ],
+  "pairs": [
+    {
+      "concept": "视同销售未计提销项税额",
+      "members": ["RL-VAT-008", "RL-VAT-012"],
+      "verdict": "constituent_duplicate",
+      "net_increment": {
+        "RL-VAT-008": "样品/赠品/宣传品等实物赠送形态、在建工程等非增值税应税项目、组成计税价格口径（要求提供成本构成资料）",
+        "RL-VAT-012": "对外投资、分配给股东/投资者"
+      },
+      "overlaps_with_third": {
+        "RL-VAT-011": "012 的要件4（外购货物用途改变未作进项税转出）与 RL-VAT-011「进项税额应转出未转出」是同一件事；011 有真检测器 VR032"
+      },
+      "disposition": "no_blind_fallback",
+      "disposition_note": "012 移入 `_NO_BLIND_CONSTITUENT_FALLBACK`（消除假闭环；可达性由软匹配保证，准入闸门不算盲区）。下一片：为 012 的净增量「对外投资/分配给股东」建真检测器（届时 012 恢复为真检测点），建完后应重新审视 008 与 012 是否合并。",
+      "detector_built_at": "2026-10-10",
+      "detector_note": "**已建真检测器**：`engine/verified_rule_engine.py::_scan_deemed_sales` 的**通道3**——同一凭证内『存货类科目贷方转出』×『对外投资/利润分配借方』× 无销项税额计提分录 ⇒ 归属 `RL-VAT-012`，声明真算过的要件②③（登记见 `config/redline_detector_attribution.json`）。012 仍留在 `_NO_BLIND_CONSTITUENT_FALLBACK`（软匹配命中**仍不得**回填要件——要件①由 008 的 self_use 通道算、要件④未计算），但已从覆盖率产物的 `no_blind_fallback_no_detector` 归零。",
+      "merge_review": {
+        "reviewed_at": "2026-10-10",
+        "verdict": "keep_both",
+        "reason": "两条**现已各有真检测器**，且**各有独立净增量**，合并会丢失独立情形的显式登记：(1) 008 独有=样品/赠品/宣传品等实物赠送形态、在建工程等非应税项目、组成计税价格口径（VR036 self_use+gifts 通道，认领要件①②）；(2) 012 独有=对外投资、分配给股东/投资者（VR036 通道3，认领要件②③）。二者的法定表述与举证材料亦不同（012 需投资协议/利润分配决议），企业侧『要补什么』的指引不可互换 ⇒ 合并将使其中一方净增量失去登记处。",
+        "next": "无（本对已闭合）。若日后新增第三条同概念红线，仍按本表『新增一对 = 加一行数据』登记。"
+      },
+      "decided_at": "2026-10-10",
+      "evidence": "逐字段比对（name/suspect/constituents/required_materials/match_hints/legal_basis/trigger_conditions/risk_conditions 登记）；真产物 `company_1_full.json` 中两条均未触发（本账套无视同销售场景），故本轮**不产生**报告差异。"
+    },
+    {
+      "concept": "资本弱化：关联方债资比超标准（非金融 2:1、金融 5:1），超标准部分利息不得税前扣除",
+      "members": ["RL-CIT-009", "RL-CIT-010"],
+      "verdict": "constituent_duplicate",
+      "net_increment": {
+        "RL-CIT-010": "要件④「通过资本弱化安排转移利润、减少应纳税所得额」的**主观安排**要件，以及明确要求备查「关联交易同期资料」（009 无此要件）",
+        "RL-CIT-009": "要件③「借款合同约定利率超过金融企业同期同类贷款利率」这一**独立于债资比**的利息扣除限制，以及金融企业 5:1 的主口径表述"
+      },
+      "overlaps_with_third": {},
+      "disposition": "no_blind_fallback",
+      "disposition_note": "**真检测器归 RL-CIT-010**：`engine/deduction_limit_detector.py::_check_related_party_debt_equity` 本就算「关联方借款÷所有者权益 → 超 2:1」，与 010 名称逐字贴合；原误挂 `RL-CIT-002`「关联方无偿或低价资金往来：未按独立交易原则计息」（**另一概念**，本函数从未算过是否计息/利率是否偏离）⇒ 归属纠正为 010，并声明其真算过的要件①②（见 A-P0-1）。RL-CIT-009 全仓无检测器，移入 `_NO_BLIND_CONSTITUENT_FALLBACK`（消除假闭环；可达性由软匹配保证，准入闸门不算盲区）。下一片：为 009 的净增量「利率超同期同类贷款利率」建真检测器。RL-CIT-002 另有 `special_redline_detectors.py` 的关键词置疑 SPEC，归属纠正后不受影响。",
+      "decided_at": "2026-10-10",
+      "evidence": "① 静态：`grep -rn 'RL-CIT-009\\|RL-CIT-010' engine/`—— 010 原由 `deduction_limit_detector`（真算债资比，但**误报为 002**）与 `special_redline_detectors.py:255`（关键词置疑 SPEC）两处覆盖；009 仅靠 `_DEFAULT_HIT_INDEX=[1,2,3,4]` 兜底。② 逐要件比对：009 要件①②③ ↔ 010 要件①②③ 一一对应（存在关联方借款 / 债资比超 2:1 / 超标利息未调增）。③ 真产物 `company_1_full.json`（2026-10-10 10:32）26 条疑点中 **002/009/010 均未出现**（本账套无关联方债资比超标场景）⇒ 本轮归属纠正**不产生**报告差异，属**潜在缺陷**（latent）收敛 + 静态可证；结果级验收以「构造债资比超标样例断言归属=RL-CIT-010」实现。"
+    }
+  ]
+}

@@ -21,6 +21,22 @@ _DONATION_RATE = 0.12       # 公益性捐赠：年度利润总额 12%
 _DEBT_EQUITY_RATIO = 2.0    # 非金融企业关联方债资比 2:1
 _MIN_BASE = 10000.0         # 基数下限（元），低于此不判定，避免小样本噪音
 
+# ── 归属声明（A-P0-1：算过的检测器必须自报 redline_id，不许让引擎按关键词猜）───────────
+# 唯一登记处：本模块每个检测器「真算过的事实」归属哪条红线，在此声明**一次**；
+#   运行期检测器直接取用本表（不写字面量），静态覆盖率审计
+#   （`scripts/_audit_redline_coverage.py`）与归属闸门
+#   （`tools/audit_consistency.check_redline_detector_attribution`）也从这里读
+#   ⇒ **一份数据、多处消费**，不会分叉（形态同 `special_redline_detectors.SPECS`）。
+_REDLINE_DECL = {
+    # 关联方债资比检测器真算的是「资本弱化·关联方债资比超标准」，归属 RL-CIT-010。
+    # 原误挂 RL-CIT-002「关联方无偿或低价资金往来：未按独立交易原则计息」——
+    # 那是**另一概念**（无偿占用未计息/转让定价），本函数从未算过是否计息或利率是否偏离。
+    "_check_related_party_debt_equity": {
+        "redline_id": "RL-CIT-010",
+        "concept": "资本弱化：关联方债资比超标准（非金融 2:1），超标准部分利息不得税前扣除",
+    },
+}
+
 
 def _safe(v):
     """数值解析（统一实现）。
@@ -181,7 +197,15 @@ def _check_related_party_debt_equity(bs, vouchers):
     ratio = related_loan / equity
     if ratio > _DEBT_EQUITY_RATIO:
         excess = related_loan - equity * _DEBT_EQUITY_RATIO
-        return [_mk(
+        # ★★ 2026-10-10（A 轨道·归属纠正）—— 本检测器**真算的是「资本弱化·关联债资比超 2:1」**，
+        #   即 `RL-CIT-010` 的构成要件①②（存在关联方借款/资金拆借 + 债资比超标准）。
+        #   原写法把它挂到 `RL-CIT-002`「关联方无偿或低价资金往来：未按独立交易原则计息」
+        #   —— 那是**另一概念**（无偿占用未计息 / 转让定价），本函数从未计算过
+        #   「是否计息、利率是否偏离同期金融机构贷款利率」⇒ 一旦命中就会产出
+        #   「疑点主体（关联方无偿资金往来）与疑点内容（债资比超标）错配」的报告。
+        #   归属改为真算过的那条：**谁算过谁声明**（A-P0-1 铁律）。
+        #   `RL-CIT-009` 与本条是同一概念的重复登记对，见 `config/redline_overlap_ledger.json`。
+        _f = _mk(
             "待核事实：关联方债权性投资与权益性投资比例偏高",
             "中风险", 6,
             f"（疑似）关联方借款{related_loan:,.2f}元，所有者权益{equity:,.2f}元，"
@@ -192,8 +216,25 @@ def _check_related_party_debt_equity(bs, vouchers):
             "超标准部分对应的利息支出不得税前扣除，未调整将少缴企业所得税。",
             "《企业所得税法》第四十六条；财税〔2008〕121号（关联方债资比2:1）",
             "核实关联方借款性质与利率，按2:1限额计算可扣除利息并作纳税调整，补充关联关系与独立交易原则举证。",
-            "关联交易", "凭证-关联方债资比", "RL-CIT-002", "related_party_debt_equity_ratio", round(ratio, 4),
-        )]
+            "关联交易", "凭证-关联方债资比",
+            _REDLINE_DECL["_check_related_party_debt_equity"]["redline_id"],
+            "related_party_debt_equity_ratio", round(ratio, 4),
+        )
+        # 要件级证据：只认领**真算过**的要件（宁缺勿错）。
+        #   要件①「存在关联方借款或资金拆借」——由科目名含「关联/股东」且含「借款/应付/拆借/往来」归集得出；
+        #   要件②「关联债资比＝债权性投资 ÷ 权益性投资 超 2:1」——本函数实测比值。
+        #   要件③④（超标部分利息未作纳税调增、通过资本弱化转移利润）本函数**未计算**
+        #   ⇒ 不认领（交人工复核），避免"认下要件却拿不出证据"的假闭环。
+        _f["constituent_hits"] = [
+            {"index": 1, "evidence": f"归集到关联方借款/资金拆借（科目含「关联/股东」且含「借款/应付/拆借/往来」）"
+                                     f"合计 {related_loan:,.2f} 元。"},
+            {"index": 2, "evidence": f"关联债资比＝关联方借款 {related_loan:,.2f} 元 ÷ 所有者权益 "
+                                     f"{equity:,.2f} 元 ≈ {ratio:.2f}:1，超过非金融企业 2:1 标准。"},
+        ]
+        _f["_detection_method"] = (
+            "归集所有者权益（权益性投资）与关联方借款/资金拆借贷方余额（债权性投资）"
+            "→ 计算关联债资比 → 超过非金融企业 2:1 标准即列为待核事实")
+        return [_f]
     return []
 
 

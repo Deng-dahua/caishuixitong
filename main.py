@@ -1377,11 +1377,29 @@ def _write_analysis_checkpoint(company_id, stage, status, error=None):
 #        但**绝不静默**（`print(..., flush=True)` 到服务端日志）。
 # ═══════════════════════════════════════════════════════════════════════════
 def _register_job_started(company_id, job_id, user_id, trigger="manual", force=False):
-    """登记**作业起点**（唯一漏斗）。返回落盘行；失败返回 None 并留痕。"""
+    """登记**作业起点**（唯一漏斗）。返回落盘行；失败返回 None 并留痕。
+
+    ★ 2026-10-09：本函数同时是**业务留痕 `analysis.start` 的唯一登记点**。
+      为什么放在这里而不是各端点：作业起点的发起来源有 4 处（analyze-start 的正常与
+      增量复用分支、analyze-resume、上传后自动重跑），留痕若各写各的必然分叉；
+      这里是既有的"唯一漏斗"，一件事只有一个登记点。
+    """
     try:
         from engine.analysis_jobs import job_started as _js
-        return _js(company_id, job_id, started_by=user_id,
-                   trigger=trigger, force=force)
+        row = _js(company_id, job_id, started_by=user_id,
+                  trigger=trigger, force=force)
+        try:
+            from engine.audit_trail import record as _audit_record
+            from engine.analysis_jobs import trigger_cn as _trig_cn   # noqa: PLC0415
+            _audit_record(
+                "analysis.start", target=str(job_id), company_id=company_id,
+                detail="触发方式：%s%s" % (_trig_cn(trigger),
+                                          "；强制重算" if force else ""),
+                user_id=user_id,
+            )
+        except Exception:                        # noqa: BLE001
+            pass                                 # record() 自身已留痕，这里不再吞一次
+        return row
     except Exception as _je:                     # noqa: BLE001
         print(f"[analysis-jobs] 作业起点登记异常(不影响分析): {_je}", flush=True)
         return None
@@ -2127,6 +2145,7 @@ def _run_declaration_consistency(db, company_id, cross):
 
 @app.post("/api/tax-risk-docs/upload")
 async def upload_tax_risk_docs(
+    request: Request,
     files: list[UploadFile] = File(...),
     company_id: int = Query(...),
 ):
@@ -2260,6 +2279,25 @@ async def upload_tax_risk_docs(
             if subject_warnings:
                 msg += f"，其中 {len(subject_warnings)} 个文件主体与账套「{_co_name}」不一致"
     except Exception:
+        pass
+
+    # ★ 2026-10-09 业务留痕：上传是六类必须留痕的动作之一（此前一条不记）。
+    #   目标 = 本次真正落盘的文件名（失败与查重在 `detail` 里如实说明，不粉饰）。
+    try:
+        from engine.audit_trail import record as _audit_record
+        _names = [str(_u.get("filename") or "") for _u in uploaded]
+        _audit_record(
+            "doc.upload",
+            target=("、".join(_names)[:400] if _names else ""),
+            company_id=company_id,
+            detail="成功 %d 个%s%s" % (
+                len(uploaded),
+                ("；跳过重复 %d 个" % skipped) if skipped else "",
+                ("；拒绝 %d 个" % len(rejected)) if rejected else "",
+            ),
+            request=request,
+        )
+    except Exception:                            # noqa: BLE001
         pass
 
     return {"ok": True, "uploaded": uploaded, "skipped": skipped, "rejected": rejected,
@@ -2861,10 +2899,27 @@ def purge_company_analysis_artifacts(company_id: int,
         except Exception as exc:
             leftovers.append(f"数据库行清理: {exc}")
 
+    # ★ 2026-10-09 业务留痕。动作由 `include_uploads` **派生**，不另传参数：
+    #   该标志同时决定"清理范围"（含上传原件 ⇒ 账套没了；不含 ⇒ 只删报告），
+    #   语义与范围**同源**，不会出现"端点说删报告、留痕说删账套"两套口径。
+    #   如实记录 cleared/leftovers —— 有残留也照记，不留痕的删除事后查不出是谁干的。
+    try:
+        from engine.audit_trail import record as _audit_record
+        _audit_record(
+            "company.purge" if include_uploads else "report.delete",
+            target=str(company_id), company_id=company_id,
+            detail="清理 %d 项%s" % (
+                len(cleared),
+                ("；残留 %d 项（%s）" % (len(leftovers), "；".join(
+                    str(x)[:80] for x in leftovers[:3]))) if leftovers else ""),
+        )
+    except Exception:                            # noqa: BLE001
+        pass
+
     return {"cleared": cleared, "leftovers": leftovers}
 
 
-def _delete_tax_risk_docs(doc_ids, company_id):
+def _delete_tax_risk_docs(doc_ids, company_id, request=None):
     """真实删除涉税资料（删单条与批量删除共用的唯一实现）。
 
     2026-09-25 用户反馈"删除选中资料删不干净、重启后资料又回来"。
@@ -2944,6 +2999,23 @@ def _delete_tax_risk_docs(doc_ids, company_id):
             _tax_risk_docs.remove(d)
         result["removed"] += 1
 
+    # ★ 2026-10-09 业务留痕（本函数是"删资料"的**唯一实现**，故留痕也放这一处）。
+    #   如实记录"物理移除 / 仅登记墓碑"的条数 —— 不留痕的删除 = 事后查不出是谁干的。
+    try:
+        from engine.audit_trail import record as _audit_record
+        _audit_record(
+            "doc.delete",
+            target="、".join(str(d.get("original_name") or d.get("filename") or "")
+                            for d in hits)[:400],
+            company_id=company_id,
+            detail="请求 %d 个；移除 %d 个（物理 %d / 仅记事 %d）；未找到 %d 个" % (
+                result["requested"], result["removed"], result["disk_removed"],
+                result["tombstoned"], len(result["not_found"])),
+            request=request,
+        )
+    except Exception:                            # noqa: BLE001
+        pass
+
     return result
 
 
@@ -2966,7 +3038,7 @@ async def batch_delete_tax_risk_docs(request: Request):
     if not isinstance(doc_ids, list) or not doc_ids:
         return {"ok": False, "message": "未选择要删除的资料"}
 
-    res = _delete_tax_risk_docs(doc_ids, company_id)
+    res = _delete_tax_risk_docs(doc_ids, company_id, request=request)
     left = res["left_on_disk"]
     parts = [f"已删除 {res['removed']} 个资料"]
     if res["tombstoned"]:
@@ -2979,9 +3051,9 @@ async def batch_delete_tax_risk_docs(request: Request):
 
 
 @app.delete("/api/tax-risk-docs/{doc_id}")
-def delete_tax_risk_doc(doc_id: int, company_id: int = Query(...)):
+def delete_tax_risk_doc(request: Request, doc_id: int, company_id: int = Query(...)):
     """删除单条涉税资料（与批量删除共用唯一实现）。"""
-    res = _delete_tax_risk_docs([doc_id], company_id)
+    res = _delete_tax_risk_docs([doc_id], company_id, request=request)
     if res["removed"] == 0:
         raise HTTPException(404, "文件不存在")
     if res["left_on_disk"]:
@@ -7562,7 +7634,8 @@ def _extract_invoice_fields_from_text(text):
     return fields if fields else None
 
 @app.post("/api/tax-risk-docs/review")
-async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depends(get_db)):
+async def review_tax_risk_docs(request: Request, company_id: int = Query(...),
+                               db: Session = Depends(get_db)):
     """报告复核：优先使用缓存，无缓存时重新分析"""
     cached = _last_analysis_cache.get(company_id)
     if cached and cached.get("report"):
@@ -7629,6 +7702,19 @@ async def review_tax_risk_docs(company_id: int = Query(...), db: Session = Depen
         bank_txs, invoices, vouchers, salaries
     )
     
+    # ★ 2026-10-09 业务留痕：复核是"结论被人改过吗"的唯一证据来源
+    try:
+        from engine.audit_trail import record as _audit_record
+        _audit_record(
+            "finding.review", target="全量复核", company_id=company_id,
+            detail="复核项 %d 条；结论：%s" % (
+                len(review_issues),
+                "通过" if len([i for i in review_issues if i["level"] == "错误"]) == 0 else "存在错误"),
+            request=request,
+        )
+    except Exception:                            # noqa: BLE001
+        pass
+
     return {
         "ok": True,
         "report_issues": len(review_issues),
@@ -7805,6 +7891,20 @@ async def review_single_finding(request: Request, company_id: int = Query(...)):
         summary = "部分数据需人工确认"
         method = "已从源文件重新计算并比对，存在需核实的差异"
     
+    # ★ 2026-10-09 业务留痕：单条复核（用户对某一条结论发起质疑/核对）
+    try:
+        from engine.audit_trail import record as _audit_record
+        _audit_record(
+            "finding.review",
+            target=str(finding.get("title") or finding.get("name")
+                       or finding.get("redline_id") or "单条结论")[:200],
+            company_id=company_id,
+            detail="单条复核结论：%s（%s）" % (level, summary),
+            request=request,
+        )
+    except Exception:                            # noqa: BLE001
+        pass
+
     return {
         "ok": True,
         "review": {
@@ -8324,6 +8424,20 @@ async def deliver_compliance_report(round_id: str, request: Request, company_id:
 
     html = _build_delivery_html(report, delivery_type)
     filename = "tax-compliance-official.html" if delivery_type == "official" else "tax-compliance-draft.html"
+    # ★ 2026-10-09 业务留痕：导出交付件是"报告流出去了"的关键动作，
+    #   正式交付还要记接收对象（与上面"须记录接收对象"的校验同源）。
+    try:
+        from engine.audit_trail import record as _audit_record
+        _audit_record(
+            "report.export", target=filename, company_id=company_id,
+            detail="交付类型：%s%s%s" % (
+                "正式报告" if delivery_type == "official" else "草稿",
+                ("；接收对象：%s" % recipient) if recipient else "",
+                ("；用途：%s" % purpose) if purpose else ""),
+            request=request,
+        )
+    except Exception:                            # noqa: BLE001
+        pass
     return Response(
         content=html,
         media_type="text/html; charset=utf-8",
@@ -8584,7 +8698,7 @@ def get_evidence_chain(company_id: int = Query(...)):
 # ═══════════════════════════════════════════════════════════
 
 @app.get("/api/tax-risk-docs/manual-worksheets/export")
-def export_manual_worksheets(company_id: int = Query(...)):
+def export_manual_worksheets(request: Request, company_id: int = Query(...)):
     """导出「本质盲区」人工兜底工作底稿（Excel，WS-01~04）。
 
     这 4 类风险本质不可数字化，系统不产出结论，改由稽查人员按底稿现场核查。
@@ -8605,6 +8719,14 @@ def export_manual_worksheets(company_id: int = Query(...)):
         path = export_worksheets_xlsx(sheets, os.path.join(out_dir, fname))
         if not path:
             return {"ok": False, "message": "Excel 生成失败：缺少 openpyxl"}
+        # ★ 2026-10-09 业务留痕：导出工作底稿（含"本质盲区"工单）同样是要留痕的流出动作
+        try:
+            from engine.audit_trail import record as _audit_record
+            _audit_record("report.export", target=fname, company_id=company_id,
+                          detail="人工兜底工作底稿（%d 张工单）" % len(sheets),
+                          request=request)
+        except Exception:                        # noqa: BLE001
+            pass
         return FileResponse(
             path, filename=fname,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -13543,26 +13665,26 @@ def _extract_word_text(content: bytes, ext: str) -> str:
 @app.get("/api/audit-logs")
 def get_audit_logs(
     company_id: int = Query(None),
+    action: str = Query(None),
     limit: int = Query(100),
+    offset: int = Query(0),
     db: Session = Depends(get_db)
 ):
-    """查询操作审计日志"""
-    from sqlalchemy import text as TextClause
+    """查询业务操作留痕。
+
+    ★ 2026-10-09：取数**收敛到唯一权威** `engine.audit_trail.list_records()`
+      （此前本端点自己拼 SQL，与写入侧各写一套；同一概念两处实现 = 迟早分叉）。
+    ★ 向后兼容：`company_id`/`limit` 行为不变，返回体原有 7 个键**全部保留**，
+      只**新增** `user_id` 与 `action_cn`；新增 `action`/`offset` 为可选过滤参数
+      （不传即原行为）。
+    """
     try:
-        if company_id:
-            rows = db.execute(TextClause(
-                "SELECT * FROM audit_logs WHERE company_id = :cid ORDER BY created_at DESC LIMIT :lim"
-            ), {"cid": company_id, "lim": limit}).fetchall()
-        else:
-            rows = db.execute(TextClause(
-                "SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT :lim"
-            ), {"lim": limit}).fetchall()
-        return {"ok": True, "logs": [
-            {"id": r[0], "company_id": r[1], "user_name": r[2], "action": r[3],
-             "target": r[4], "detail": r[5], "created_at": r[6]}
-            for r in rows
-        ]}
+        from engine.audit_trail import list_records as _list
+        logs = _list(company_id=company_id, action=action,
+                     limit=limit, offset=offset)
+        return {"ok": True, "logs": logs, "count": len(logs)}
     except Exception as e:
+        # 留痕是旁路证据：查不到要**如实报错**，不返回"空即无事"的假象
         return {"ok": False, "error": str(e), "logs": []}
 
 
