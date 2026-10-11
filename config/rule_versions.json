@@ -20,6 +20,69 @@
     "tax_redlines": 91,
     "verified_rule_engine": 85
   },
+  "layer_semantics": {
+    "note": "★ 规则体系分层与计数口径的**唯一权威**。本表定义「什么算一条规则」，防止把**检测器实现层**计入规则总数。历史错误口径（2026-10-11 勘误，见 docs/现状盘点报告_20261011.md）：多份文档曾写「四层合计 211 条」= 91+85+25+10，其中专项探测 25（`special_redline_detectors`）、缺口探测 10（`gap_risk_detectors`）、缺口税种探测 14（`gap_tax_obligations`）**均为红线的检测器实现**（其 id 全部落在 91 条红线内），相加即**重复计数**。新增同类对象 = 只加一行数据，不改逻辑分支。",
+    "layers": {
+      "tax_redlines": {
+        "cn": "红线规则",
+        "count": 91,
+        "source": "engine/tax_redlines.py::REDLINES",
+        "kind": "rule",
+        "counts_toward_rule_total": true
+      },
+      "verified_rule_engine": {
+        "cn": "已验证规则",
+        "count": 85,
+        "source": "engine/verified_rule_engine.py::VERIFIED_RULE_CATALOG",
+        "kind": "rule",
+        "counts_toward_rule_total": true
+      },
+      "special_redline_detectors": {
+        "cn": "专项红线探测（检测器实现层）",
+        "count": 25,
+        "source": "engine/special_redline_detectors.py::SPECS",
+        "kind": "detector_implementation",
+        "counts_toward_rule_total": false,
+        "note": "★ 其 redline_id 全部落在 tax_redlines 的 91 条内 ⇒ 是红线的**检测器实现**，不是独立规则。"
+      },
+      "gap_risk_detectors": {
+        "cn": "缺口风险探测（检测器实现层）",
+        "count": 10,
+        "source": "engine/gap_risk_detectors.py::DETECTORS",
+        "kind": "detector_implementation",
+        "counts_toward_rule_total": false,
+        "note": "★ 其 redline_id 全部落在 tax_redlines 的 91 条内 ⇒ 是红线的**检测器实现**，不是独立规则。"
+      },
+      "gap_tax_obligations": {
+        "cn": "缺口税种探测（检测器实现层）",
+        "count": 14,
+        "source": "engine/gap_tax_obligations.py::SPECS",
+        "kind": "detector_implementation",
+        "counts_toward_rule_total": false,
+        "note": "★ 其 redline_id 全部落在 tax_redlines 的 91 条内 ⇒ 是红线的**检测器实现**，不是独立规则。"
+      },
+      "fact_check_rules": {
+        "cn": "权威事实核查规则（横向、行业无关）",
+        "count": 89,
+        "source": "engine/fact_rules.py::governance_inventory()['rules'] ← static/methodology_canonical_catalog.json",
+        "kind": "rule_other_axis",
+        "counts_toward_rule_total": false,
+        "note": "与红线/已验证规则属**不同维度**体系，独立列示，不得与二者相加。"
+      }
+    },
+    "forbidden_aggregations": [
+      {
+        "value": 211,
+        "formula": "91 + 85 + 25 + 10",
+        "reason": "把检测器实现层（专项探测 25 / 缺口探测 10）计入规则总数 ⇒ 重复计数。"
+      },
+      {
+        "value": 215,
+        "formula": "91 + 85 + 25 + 14",
+        "reason": "同上；即便把缺口换成缺口税种探测 14，仍属把检测器实现层当独立规则相加。"
+      }
+    ]
+  },
   "rules": {
     "RL-AST-001": {
       "version": "1.0.0",

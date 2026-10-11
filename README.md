@@ -1,16 +1,17 @@
 # 财税风险防控系统（安全加固版）
 
-本副本在保留原业务代码和 1720 条规则库的基础上，完成了认证、租户隔离、
+本副本在保留原业务代码和**规则库（规则主体 176 条 = 红线 91 + 已验证规则 85；
+专项探测 25 / 缺口探测 10 为红线的检测器实现层，不重复计入）**的基础上，完成了认证、租户隔离、
 密钥、静态数据、上传、缓存、日志、数据库和启动方式的安全整改。发布包不含
 原数据库、会话、密钥、上传件、缓存和访问日志。
 
 ## 首次启动（Windows）
 
 ```powershell
-py -3.12 -m venv .venv
+py -3.13 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.lock
 .\.venv\Scripts\python.exe manage_users.py create admin --role admin
-.\start.bat
+.\start8001.bat
 ```
 
 浏览器访问 `http://127.0.0.1:8000`。本地 HTTP 启动脚本只监听回环地址，并将
@@ -59,7 +60,7 @@ python manage_users.py list
 python manage_users.py create USER --role user --companies 1,2
 python manage_users.py reset-password USER
 python manage_users.py revoke-sessions USER
-python tools/audit_rules.py
+python tools/audit_consistency.py
 python tools/verify_release.py
 ```
 

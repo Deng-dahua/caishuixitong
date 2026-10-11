@@ -13009,7 +13009,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_legal_versioning()            # 法条版本管理（45 部登记 / 47 处未登记法名）
                + check_profile_and_case_reference_only()    # 企业画像与同类案例仅作参考、不得抬升等级
                + check_reanalysis_guard_detectors()  # 假分析四检测器
-               + check_report_compliance_and_redaction())   # 报告定位 / 保密 / 授权 / 脱敏边界
+               + check_report_compliance_and_redaction()   # 报告定位 / 保密 / 授权 / 脱敏边界
+               + check_rule_layer_no_double_count())        # 2026-10-11 规则分层不得重复计入（禁"合计 211"）
     return counts, general
 
 
@@ -17440,6 +17441,144 @@ def check_risk_family_and_learnable_tiers() -> List[Tuple[str, str, str]]:
         if may_write_rule(_k)[0]:
             issues.append(("ERROR", "engine/learnable_rules.py",
                            "禁止档「%s」不得允许系统自动写入规则库" % _k))
+    return issues
+
+
+def _load_module_attr(rel: str, attr: str):
+    """按**文件**加载模块并取属性值（绕 `sys.modules` 缓存）。
+
+    ★ 为什么不直接 `from engine import X`：后者会命中 `engine` 包命名空间上的
+      **旧属性** —— 源码被改坏后仍返回旧对象 ⇒ 反向验证"改坏却不报红"的**假绿**
+      （实测：本闸门第一版用 `from engine import`，G9-A 反向验证假通过）。
+    """
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location("_layer_attr_for_gate", ROOT / rel)
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    return getattr(_mod, attr)
+
+
+def _load_layer_ids(rel: str) -> List[str]:
+    """按**文件**加载检测器实现层，返回其 redline_id 列表（`SPECS` 或 `DETECTORS`）。
+
+    `DETECTORS` 形态为 `[(redline_id, func), ...]`（取 `x[0]`）。
+    """
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location("_layer_ids_for_gate", ROOT / rel)
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    if hasattr(_mod, "SPECS"):
+        return [str(x.get("id") or x.get("redline_id") or "") for x in _mod.SPECS]
+    return [str(x[0]) for x in (getattr(_mod, "DETECTORS", None) or [])]
+
+
+def check_rule_layer_no_double_count() -> List[Tuple[str, str, str]]:
+    """闸门：**规则分层不得重复计入**（2026-10-11，用户"规则库总数"口径追问引出）。
+
+    ★ 根因（实测取证）：多份文档曾写「四层合计 211 条」= 91(红线)+85(VR)+25(专项)+10(缺口)。
+      而专项探测（`special_redline_detectors.SPECS`）与缺口探测（`gap_tax_obligations.SPECS`）
+      的 `redline_id` **全部落在** `engine.tax_redlines.REDLINES` 的 91 条 id 集合内 ——
+      它们是红线的**检测器实现层**，不是独立规则。相加即**重复计数**（虚高约 22%）。
+      唯一权威 = `config/rule_versions.json::layer_semantics`。
+
+    三段（任一失败都不放过）：
+      A【归属】检测器实现层的每条 id 必须 ⊂ 红线 id 集；出现"独立 id" ⇒ 分层被破坏 ⇒ ERROR。
+      B【禁用拼接总量】`docs/**/*.md` / `README.md` / `config/rulelist_v*.json` 不得出现
+        「(四层|各层|合计|总计…) 211|215 条」这类把检测器实现层计入总数的表述
+        （含"勘误/重复计数/废止/不得/虚高"等**说明性上下文**的行豁免，以免误伤勘误本身）。
+      C【口径一致】权威表每层 `count` 必须 == 实测；`counts` 与 `layer_semantics` 不得两处各写一遍。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import json as _json
+
+    _rv_p = ROOT / "config" / "rule_versions.json"
+    try:
+        _rv = _json.loads(_rv_p.read_text(encoding="utf-8"))
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "config/rule_versions.json",
+                 "规则分层权威表读不出来（分层判据无法校验）：%s" % exc)]
+    _sem = _rv.get("layer_semantics") or {}
+    _layers = _sem.get("layers") or {}
+    _counts = _rv.get("counts") or {}
+    if not _layers:
+        return [("ERROR", "config/rule_versions.json",
+                 "layer_semantics.layers 为空 ⇒ 分层口径无唯一权威，判据必然失真"
+                 "（禁止用历史数字兜底）")]
+
+    # ---- A 段：检测器实现层必须全部归属既有红线 ----
+    try:
+        _rl_ids = set(_load_redline_ids())
+    except Exception as exc:                       # noqa: BLE001
+        return issues + [("ERROR", "engine/tax_redlines.py",
+                          "红线库读不出来，无法校验分层归属：%s" % exc)]
+    try:
+        _sp_ids = _load_layer_ids("engine/special_redline_detectors.py")
+        _gr_ids = _load_layer_ids("engine/gap_risk_detectors.py")
+        _gp_ids = _load_layer_ids("engine/gap_tax_obligations.py")
+    except Exception as exc:                       # noqa: BLE001
+        return issues + [("ERROR", "engine/special_redline_detectors.py",
+                          "检测器实现层无法按文件加载（分层判据无法校验）：%s" % exc)]
+
+    for _name, _ids in (("special_redline_detectors", _sp_ids),
+                        ("gap_risk_detectors", _gr_ids),
+                        ("gap_tax_obligations", _gp_ids)):
+        _ghost = sorted({i for i in _ids if i and i not in _rl_ids})
+        if _ghost:
+            issues.append(("ERROR", "engine/%s.py" % _name,
+                           "检测器实现层的 id %s **不在**红线 id 集内 ⇒ 分层被破坏"
+                           "（它已不是红线的检测器，而是独立规则）。"
+                           "应归入既有红线，或把该层标 counts_toward_rule_total=true 并说明。"
+                           % (_ghost[:5],)))
+
+    # ---- C 段：权威表口径 vs 实测（同概念不得两处各写一遍）----
+    _actual = {"tax_redlines": len(_rl_ids),
+               "special_redline_detectors": len([i for i in _sp_ids if i]),
+               "gap_risk_detectors": len([i for i in _gr_ids if i]),
+               "gap_tax_obligations": len([i for i in _gp_ids if i])}
+    try:
+        _actual["verified_rule_engine"] = len(
+            _load_module_attr("engine/verified_rule_engine.py", "VERIFIED_RULE_CATALOG"))
+    except Exception as exc:                       # noqa: BLE001
+        issues.append(("ERROR", "engine/verified_rule_engine.py",
+                       "已验证规则目录读取失败，无法校验其条数：%s" % exc))
+    for _k, _v in _layers.items():
+        if _k in _actual and _v.get("count") != _actual[_k]:
+            issues.append(("ERROR", "config/rule_versions.json",
+                           "layer_semantics.layers[%r].count=%s 与实测 %s 不一致 ⇒ 权威表已过期"
+                           % (_k, _v.get("count"), _actual[_k])))
+    if ("tax_redlines" in _counts
+            and _counts.get("tax_redlines") != (_layers.get("tax_redlines") or {}).get("count")):
+        issues.append(("ERROR", "config/rule_versions.json",
+                       "counts.tax_redlines 与 layer_semantics 两处各写一遍且不一致"
+                       "（同一概念必须一处维护）"))
+
+    # ---- B 段：禁用「把检测器实现层计入总数」的拼接总量表述 ----
+    # 判据：**同一行**同时出现「拼接总量关键词」与「禁用数值 211/215」即命中
+    # （覆盖「四层合计 211 条」「合计 | | **211** |」「系统侧合计 211」等变体）。
+    _num_re = re.compile(r"(?<!\d)(?:211|215)(?!\d)")
+    _ctx_re = re.compile(r"(?:四层|各层|合计|总计|共计|系统侧)")
+    _exempt = ("勘误", "重复计数", "废止", "禁止", "不得", "虚高", "错误口径",
+               "旧口径", "更正", "弃用", "不应相加", "子集")
+    _targets: list = sorted((ROOT / "docs").rglob("*.md"))
+    _targets += [ROOT / "README.md"]
+    _targets += sorted((ROOT / "config").glob("rulelist_v*.json"))
+    for _p in _targets:
+        if not _p.exists():
+            continue
+        try:
+            _lines = _p.read_text(encoding="utf-8").splitlines()
+        except Exception:                          # noqa: BLE001
+            continue
+        for _i, _ln in enumerate(_lines, 1):
+            if not (_num_re.search(_ln) and _ctx_re.search(_ln)):
+                continue
+            if any(_e in _ln for _e in _exempt):
+                continue
+            issues.append(("ERROR", str(_p.relative_to(ROOT)),
+                           "第 %d 行出现「把检测器实现层计入规则总数」的拼接总量表述：%s —— "
+                           "专项/缺口是红线的检测器实现，不得与红线/VR 相加；"
+                           "请改为分层列示（权威 config/rule_versions.json::layer_semantics）"
+                           % (_i, _ln.strip()[:60])))
     return issues
 
 

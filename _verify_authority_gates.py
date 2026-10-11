@@ -581,6 +581,58 @@ def main() -> int:
     check("归属登记表逐字节还原",
           _conf.read_text(encoding="utf-8") == _conf_txt)
 
+    # ---------------------------------------------------------------- G9
+    # check_rule_layer_no_double_count（规则分层不得重复计入，2026-10-11）
+    _gr_txt = (ROOT / "engine" / "gap_risk_detectors.py").read_text(encoding="utf-8")
+    _rv_txt = (ROOT / "config" / "rule_versions.json").read_text(encoding="utf-8")
+
+    # B 段：往 docs/ 注入「四层合计 211 条」⇒ 必须报红；清理后必须回绿
+    _probe9 = ROOT / "docs" / "_zz_probe_rule_layer.md"
+    _probe9.write_text("# 探针\n系统四层合计 211 条规则。\n", encoding="utf-8")
+    try:
+        _e9b = [i for i in g.check_rule_layer_no_double_count() if i[0] == "ERROR"]
+        check("G9-B 注入「四层合计 211 条」⇒ 报红",
+              any("_zz_probe_rule_layer.md" in i[1] for i in _e9b), repr(_e9b[:1]))
+    finally:
+        _probe9.unlink(missing_ok=True)
+    check("G9-B 探针清理后回绿",
+          not _probe9.exists()
+          and [i for i in g.check_rule_layer_no_double_count() if i[0] == "ERROR"] == [])
+
+    # A 段：把缺口风险探测的一条 redline_id 改成不存在的 id ⇒ 必须报红
+    def _drop9() -> None:
+        for _k in list(sys.modules):
+            if _k.startswith(("engine.gap_risk_detectors",
+                              "engine.special_redline_detectors",
+                              "engine.gap_tax_obligations",
+                              "engine.verified_rule_engine")):
+                del sys.modules[_k]
+
+    with Patch("engine/gap_risk_detectors.py") as _p9a:
+        _p9a.apply('("RL-CIT-005", detect_loss_carryforward)',
+                   '("RL-ZZ-999", detect_loss_carryforward)')
+        _drop9()
+        _e9a = [i for i in g.check_rule_layer_no_double_count() if i[0] == "ERROR"]
+        check("G9-A 检测器实现层出现独立 id ⇒ 报红",
+              any("不在" in i[2] for i in _e9a), repr(_e9a[:1]))
+    _drop9()
+    check("G9-A 还原后回绿",
+          [i for i in g.check_rule_layer_no_double_count() if i[0] == "ERROR"] == [])
+
+    # C 段：把权威表 counts 改坏 ⇒ 必须报红
+    with Patch("config/rule_versions.json") as _p9c:
+        _p9c.apply('"tax_redlines": 91', '"tax_redlines": 999')
+        _e9c = [i for i in g.check_rule_layer_no_double_count() if i[0] == "ERROR"]
+        check("G9-C 权威表 counts 与分层表不一致 ⇒ 报红",
+              any(("各写一遍" in i[2]) or ("不一致" in i[2]) for i in _e9c), repr(_e9c[:1]))
+    check("G9-C 还原后回绿",
+          [i for i in g.check_rule_layer_no_double_count() if i[0] == "ERROR"] == [])
+
+    check("gap_risk_detectors.py 逐字节还原",
+          (ROOT / "engine" / "gap_risk_detectors.py").read_text(encoding="utf-8") == _gr_txt)
+    check("rule_versions.json 逐字节还原",
+          (ROOT / "config" / "rule_versions.json").read_text(encoding="utf-8") == _rv_txt)
+
     bad = [r for r in RESULTS if not r[1]]
     print("\n" + "-" * 74)
     print("合计 %d 项 | 通过 %d | 失败 %d" % (len(RESULTS), len(RESULTS) - len(bad), len(bad)))
