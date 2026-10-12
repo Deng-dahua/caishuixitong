@@ -13011,7 +13011,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_reanalysis_guard_detectors()  # 假分析四检测器
                + check_report_compliance_and_redaction()   # 报告定位 / 保密 / 授权 / 脱敏边界
                + check_rule_layer_no_double_count()        # 2026-10-11 规则分层不得重复计入（禁"合计 211"）
-               + check_risk_score_monotone())              # 2026-10-12 T-2 风险分值须由等级单调派生
+               + check_risk_score_monotone()               # 2026-10-12 T-2 风险分值须由等级单调派生
+               + check_candidate_params_no_dangling())     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
     return counts, general
 
 
@@ -17672,6 +17673,92 @@ def check_risk_score_monotone() -> List[Tuple[str, str, str]]:
                                "疑点「%s」等级=%s 却分值=%s（应为 %s）⇒ 分值与等级矛盾"
                                "（多半是分值在等级压制前派生）"
                                % (str(_p.get("title"))[:20], _lv, _sc, _expect)))
+    return issues
+
+
+def check_candidate_params_no_dangling() -> List[Tuple[str, str, str]]:
+    """闸门：候选规则库**参数不得悬空** + 地区参数表合规（2026-10-13）。
+
+    ★ 背景（规则去重合并第 2 步实测）：候选库 `config/rulelist_v{1,11,12}.json` 的
+      `logic` 会引用 `params.<名>`，而 `params[src]` 是**按规则嵌套**的登记条目。
+      实测 3 处「引用了未登记的参数名」⇒ 悬空引用（VAT-021 gap_threshold→diff_amount、
+      INV-008 count_threshold→same_pair_count、PCT-006 deduction_ratio 未登记）。
+      悬空的后果：落地时取不到阈值 ⇒ 要么崩、要么用默认值顶替（违反「缺失≠0」铁律）。
+
+    ★ 口径提醒（本轮踩过）：`params` 是**嵌套**结构（`params['VAT-004']={"growth_gap":0.3}`），
+      **不能按扁平 dict 查找** —— 首轮我曾因此误报「真悬空 172 条」，正确口径下为 3 条。
+
+    三段判据：
+      A【无悬空】每条候选：`logic` 引用的 `params.X` 必须能在 `params[src]` 中解析；
+      B【地区参数合规】`config/region_params.json` 必须存在且结构合法
+        （`local_pending` 一律 `value=null`，**禁止预设地方值**）；
+      C【口径一致】凡引用地区参数的候选，其 params 条目须给出指向（`null` + `拒绝默认值`语义）。
+    """
+    import json as _json
+    import re as _re
+    issues: List[Tuple[str, str, str]] = []
+    _num = _re.compile(r"params\.(\w+)")
+
+    # A 无悬空
+    for _rel in ("config/rulelist_v1.json", "config/rulelist_v11.json",
+                 "config/rulelist_v12.json"):
+        _p = ROOT / _rel
+        if not _p.exists():
+            issues.append(("ERROR", _rel, "候选规则库缺失（参数悬空判据无法执行）"))
+            continue
+        try:
+            _d = _json.loads(_p.read_text(encoding="utf-8"))
+        except Exception as exc:                   # noqa: BLE001
+            issues.append(("ERROR", _rel, "候选规则库读不出来：%s" % exc))
+            continue
+        _params = _d.get("params") or {}
+        for _r in (_d.get("rules") or []):
+            _used = set(_num.findall(str(_r.get("logic") or "")))
+            if not _used:
+                continue
+            _entry = _params.get(_r.get("src"))
+            if not isinstance(_entry, dict):
+                continue                            # 条目本身未登记 ⇒ 属「未落地」，另行统计
+            _miss = sorted(x for x in _used if x not in _entry)
+            if _miss:
+                issues.append(("ERROR", _rel,
+                               "规则 `%s` 的 logic 引用了未登记的参数名 %s "
+                               "（`params['%s']` 实有 %s）⇒ **悬空引用**；"
+                               "落地时会取不到阈值（缺失≠0），须统一命名或补登记"
+                               % (_r.get("src"), _miss, _r.get("src"),
+                                  sorted(k for k in _entry if not k.startswith("_")))))
+
+    # B 地区参数表合规
+    _rp = ROOT / "config" / "region_params.json"
+    if not _rp.exists():
+        issues.append(("ERROR", "config/region_params.json",
+                       "地区参数表缺失 ⇒ 任务要求「地区均值必须参数化」无落点"))
+    else:
+        try:
+            _rpd = _json.loads(_rp.read_text(encoding="utf-8"))
+        except Exception as exc:                   # noqa: BLE001
+            issues.append(("ERROR", "config/region_params.json", "读不出来：%s" % exc))
+            _rpd = None
+        if _rpd is not None:
+            _ps = _rpd.get("params") or {}
+            if not _ps:
+                issues.append(("ERROR", "config/region_params.json",
+                               "params 为空 ⇒ 违反「空表不得静默通过」"))
+            for _k, _v in _ps.items():
+                if not isinstance(_v, dict):
+                    issues.append(("ERROR", "config/region_params.json",
+                                   "条目 `%s` 不是对象" % _k))
+                    continue
+                if _v.get("kind") not in ("statutory", "local_pending"):
+                    issues.append(("ERROR", "config/region_params.json",
+                                   "条目 `%s` 的 kind=%r 不在 {statutory, local_pending} 内"
+                                   % (_k, _v.get("kind"))))
+                # ★ 不得预设地方值
+                if _v.get("kind") == "local_pending" and _v.get("value") is not None:
+                    issues.append(("ERROR", "config/region_params.json",
+                                   "条目 `%s` 是地方自定参数却预设了 value=%r ⇒ "
+                                   "**禁止预设地方值**（须由业务按属地确认后填入）"
+                                   % (_k, _v.get("value"))))
     return issues
 
 

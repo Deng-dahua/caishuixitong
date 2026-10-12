@@ -226,7 +226,8 @@
     },
     "PCT-006": {
       "base_diff_tolerance": 0.0,
-      "_basis": "计税依据与原值×(1-扣除)的偏差容忍"
+      "deduction_ratio": null,
+      "_basis": "计税依据与原值×(1-扣除)的偏差容忍；扣除比例 deduction_ratio 属**地方参数**（房产税计税余值扣除比例，法定区间 10%~30%，具体由省级政府确定）⇒ 见 config/region_params.json::property_tax_deduction_ratio。★ 2026-10-13：原 logic 引用 params.deduction_ratio 但未登记 ⇒ 悬空引用，现补登记为 null 并**明确「未提供则待核」，禁止以默认值静默计算**。"
     },
     "PCT-007": {
       "rate_from_value": 0.012,
@@ -307,7 +308,7 @@
     "INV-008": {
       "same_pair_count": 3,
       "window_days": 45,
-      "_basis": "同一对方同金额开票次数（invoice_pattern_detector._SAME_PAIR_COUNT）"
+      "_basis": "同一对方同金额开票次数（invoice_pattern_detector._SAME_PAIR_COUNT）。★ 2026-10-13 口径修正：logic 原引用 params.count_threshold，与其 params 登记名 same_pair_count 属同一含义的两个名（悬空引用），已统一为 same_pair_count。"
     },
     "INV-019": {
       "duplicate": true,
@@ -1651,7 +1652,7 @@
       "by": "engine/invoice_pattern_detector（_SAME_PAIR_COUNT 同一对方同金额 ×3）",
       "action": "merge",
       "params_ref": "config/rulelist_v11.json::params.INV-008",
-      "logic": "same_customer_invoice_count > params.count_threshold",
+      "logic": "same_customer_invoice_count > params.same_pair_count",
       "inputs": [
         "客户开票次数"
       ],

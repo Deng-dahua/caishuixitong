@@ -122,7 +122,7 @@
     },
     "VAT-021": {
       "diff_amount": 0.0,
-      "_basis": "差额征税销售额 − 扣除额 > diff_amount（默认 >0 即提示）；需申报表附列资料（差额征税栏）"
+      "_basis": "差额征税销售额 − 扣除额 > diff_amount（默认 >0 即提示）；需申报表附列资料（差额征税栏）。★ 2026-10-13 口径修正：logic 原引用 params.gap_threshold，与其 params 登记名 diff_amount 属同一含义的两个名（悬空引用），已统一为 diff_amount。"
     },
     "VAT-024": {
       "months": 3,
@@ -486,7 +486,7 @@
       "by": "VR079（本批落地）",
       "action": "add",
       "params_ref": "config/rulelist_v1.json::params.VAT-021",
-      "logic": "difference_tax_sales - difference_tax_cost > params.gap_threshold",
+      "logic": "difference_tax_sales - difference_tax_cost > params.diff_amount",
       "inputs": [
         "差额征税销售额",
         "扣除额"

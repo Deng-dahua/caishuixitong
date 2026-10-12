@@ -1,0 +1,106 @@
+{
+  "schema": "caishuixitong.region_params/1",
+  "version": "1.0.0",
+  "updated": "2026-10-13",
+  "note": "★ **地区/地方性税政参数**的唯一权威表。回答候选库自身提出的待确认项（`config/rulelist_v11.json` 的 params._note：「地区参数当前未登记 ⇒ 相关规则一律待核，禁止默认值顶替。是否建立 config/region_params.json？」）。",
+  "discipline": [
+    "★ 本表**只登记「法定口径 + 待核位」，不预设地方值**：地方自定的参数（房产税扣除比例、契税税率、土增预征率、土地等级税额、普通住宅标准、当地平均工资）一律 `value=null` + `status=pending_local`，**禁止任何默认值静默顶替**（项目铁律：缺失≠0）。",
+    "★ `kind` 区分两类：`statutory`＝法定固定值（全国统一，可直接用）；`local_pending`＝地方自定（**必须由业务按属地确认后填入**，未确认前相关规则输出「待核」）。",
+    "★ 取值来源必须可自证：填入地方值时须同时填 `source`（文件/文号/查询日期），空 `source` 视为未确认。",
+    "★ 若本表与现行法条不一致，**以法条为准**并即时更正本表（本表只登记，不创设）。",
+    "★ 新增一个地区参数 = 加一行数据，不改任何逻辑分支。"
+  ],
+  "params": {
+    "property_tax_deduction_ratio": {
+      "cn": "房产税计税余值扣除比例",
+      "kind": "local_pending",
+      "legal_range": [0.10, 0.30],
+      "authority": "省级政府（在法定区间内确定）",
+      "value": null,
+      "status": "pending_local",
+      "source": "",
+      "used_by": ["PCT-006（房产税计税依据异常）"],
+      "basis": "从价计征按房产原值一次减除一定比例后的余值计征；减除比例由省级政府在法定区间内确定 ⇒ 属地未知时待核。"
+    },
+    "deed_tax_rate": {
+      "cn": "契税税率",
+      "kind": "local_pending",
+      "legal_range": [0.03, 0.05],
+      "authority": "省级政府（在法定幅度内确定）",
+      "value": null,
+      "status": "pending_local",
+      "source": "",
+      "used_by": ["DEED-001（契税计税依据偏低）", "DEED-002/003/005"],
+      "basis": "契税税率为法定幅度税率，具体适用税率由省级政府在幅度内确定 ⇒ 属地未知时待核。"
+    },
+    "lat_prepay_rate": {
+      "cn": "土地增值税预征率",
+      "kind": "local_pending",
+      "legal_range": null,
+      "authority": "省级税务机关（按地区、业态分别确定）",
+      "value": null,
+      "status": "pending_local",
+      "source": "",
+      "used_by": ["LAT-001（预缴土地增值税异常）"],
+      "basis": "预征率按地区与业态分别确定，无全国统一法定值 ⇒ 未提供时**必须待核**，不得以默认预征率静默计算（候选库已明示此约束）。"
+    },
+    "land_grade_tax": {
+      "cn": "城镇土地使用税土地等级税额",
+      "kind": "local_pending",
+      "legal_range": null,
+      "authority": "市/县政府（按土地等级分档确定）",
+      "value": null,
+      "status": "pending_local",
+      "source": "",
+      "used_by": ["LUT 命名空间相关规则"],
+      "basis": "按土地等级适用分档税额，等级与税额由地方确定 ⇒ 待核。"
+    },
+    "ordinary_housing_standard": {
+      "cn": "普通住宅划分标准",
+      "kind": "local_pending",
+      "legal_range": null,
+      "authority": "省级政府（面积/价格等标准）",
+      "value": null,
+      "status": "pending_local",
+      "source": "",
+      "used_by": ["LAT 土地增值税优惠与预征相关规则", "EST 房地产开发相关规则"],
+      "basis": "普通住宅与非普通住宅的划分标准由地方规定，直接影响土增税优惠适用 ⇒ 待核。"
+    },
+    "severance_tax_free_threshold": {
+      "cn": "解除劳动关系一次性补偿免征额",
+      "kind": "local_pending",
+      "legal_range": null,
+      "authority": "按当地上年职工平均工资计算（3 倍以内免征）",
+      "value": null,
+      "status": "pending_local",
+      "source": "",
+      "used_by": ["IIT 离职补偿相关规则"],
+      "basis": "免征额为当地上年职工平均工资的 3 倍，需当地统计数据 ⇒ 未取得当地平均工资时待核。"
+    },
+    "urban_maintenance_rate_band": {
+      "cn": "城市维护建设税适用档",
+      "kind": "statutory",
+      "legal_range": null,
+      "authority": "法定三档（按纳税人所在地）",
+      "value": null,
+      "status": "requires_location",
+      "source": "",
+      "bands": [
+        {"where": "市区", "rate": 0.07},
+        {"where": "县城、镇", "rate": 0.05},
+        {"where": "其他", "rate": 0.01}
+      ],
+      "used_by": ["SUR 附加税费相关规则", "RL-VAT-013 附加税费计税依据与增值税不匹配"],
+      "basis": "法定三档税率，**值全国统一**，但适用哪一档取决于纳税人所在地 ⇒ 需所在地信息；未提供所在地时不得默认按市区档计算。"
+    }
+  },
+  "pending": [
+    "property_tax_deduction_ratio：需按企业房产属地确认省级确定的扣除比例",
+    "deed_tax_rate：需按不动产所在地确认省级确定的契税适用税率",
+    "lat_prepay_rate：需按项目所在地及业态确认预征率",
+    "land_grade_tax：需按土地所在地确认土地等级与税额",
+    "ordinary_housing_standard：需按项目所在地确认普通住宅划分标准",
+    "severance_tax_free_threshold：需取得当地上年职工平均工资",
+    "urban_maintenance_rate_band：需确认纳税人所在地（市区/县城镇/其他）"
+  ]
+}
