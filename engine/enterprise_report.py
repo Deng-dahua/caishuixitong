@@ -7734,6 +7734,15 @@ def build_enterprise_readable_report(report_data, edition=None):
         if _seq_remap:
             print("[编号定稿] 疑点编号已连续重排：%s" % _seq_remap)
 
+        # ★★ T-2（2026-10-12）：**风险分值必须在此刻派生**（等级已定稿之后）。
+        #   为什么必须在这里、而不是更早：上方「结论等级→风险等级上限」压制会**改写**
+        #   `risk_level`（实测 `红字冲销…` 由「高风险」压到「低风险」，而分值若早算则为 80
+        #   ⇒ **分值陈旧、与等级矛盾**）。分值口径只由等级派生（唯一权威 `engine/risk_levels.py`），
+        #   故必须在等级终局后派生；且排序（上方 sort）依据的是等级，不受分值影响。
+        #   待核验（证据状态）/正向发现/词表外 ⇒ `None` + `risk_score_status`，**绝不用 0 顶替**。
+        from engine.risk_levels import stamp_risk_score_all as _stamp_scores
+        _stamp_scores(problems)
+
         out["overall_conclusion"] = _boc_rc(
             report_data, problems, further, inspector_reasoning)
         out["inspection_overview"] = _bio_rc(

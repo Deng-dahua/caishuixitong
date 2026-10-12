@@ -6,7 +6,7 @@
 
 ```bash
 ./.venv/Scripts/python.exe -m pytest tests/ -q
-# 实测：1757 passed, 4 skipped, 166 subtests passed（耗时随机器负载浮动，不单列；以「与本次 passed 同次运行」为准）
+# 实测：1780 passed, 4 skipped, 166 subtests passed（耗时随机器负载浮动，不单列；以「与本次 passed 同次运行」为准）
 ```
 （本批主体 28 例 + 文档一致性 59 例已包含在内）
 
@@ -53,7 +53,7 @@
 
 ## 5. 失败项
 
-**全量 0 失败**（`1757 passed`）。
+**全量 0 失败**（`1780 passed`）。
 过程中**被这 5 个 Skill 自己抓出并修掉**的问题（诚实记录）：
 
 | # | 被抓出的问题 | 抓它的 Skill | 修法 |

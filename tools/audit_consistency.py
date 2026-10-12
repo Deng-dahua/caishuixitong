@@ -13010,7 +13010,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_profile_and_case_reference_only()    # 企业画像与同类案例仅作参考、不得抬升等级
                + check_reanalysis_guard_detectors()  # 假分析四检测器
                + check_report_compliance_and_redaction()   # 报告定位 / 保密 / 授权 / 脱敏边界
-               + check_rule_layer_no_double_count())        # 2026-10-11 规则分层不得重复计入（禁"合计 211"）
+               + check_rule_layer_no_double_count()        # 2026-10-11 规则分层不得重复计入（禁"合计 211"）
+               + check_risk_score_monotone())              # 2026-10-12 T-2 风险分值须由等级单调派生
     return counts, general
 
 
@@ -17579,6 +17580,98 @@ def check_rule_layer_no_double_count() -> List[Tuple[str, str, str]]:
                            "专项/缺口是红线的检测器实现，不得与红线/VR 相加；"
                            "请改为分层列示（权威 config/rule_versions.json::layer_semantics）"
                            % (_i, _ln.strip()[:60])))
+    return issues
+
+
+def check_risk_score_monotone() -> List[Tuple[str, str, str]]:
+    """闸门：**风险分值必须由等级单调派生**（T-2，2026-10-12）。
+
+    ★ 背景：用户确认前端有「按严重程度排序/筛选」需求 ⇒ 需要 0-100 分值。
+      但项目铁律「禁止自动定性」⇒ **分值方向只能是 等级 → 分值**，不得反向。
+      实测历史缺陷：`tax_risk._report_summary` 已累加 `r.get("risk_score", 0)`，
+      而该字段**从未被生产者填充** ⇒ 恒取默认 0（**缺失≠0** 铁律），
+      且等级词用 `良好`（不在 `LEGAL_LEVELS`）⇒ **第二套等级词表**。
+
+    判据（三段，全部数据驱动）：
+      A【单调】`RISK_SCORE_BANDS` 的分值顺序必须与 `risk_levels.severity` 严格一致；
+      B【单一权威】`config/risk_scores.json::bands` 与 `RISK_SCORE_BANDS` 必须一一对应
+        （同一概念不得两处各写一遍）；
+      C【不得给非风险态打分】有分值的档必须 ∈ `RISK_GRADES`；证据状态（`待核验`）
+        与正向发现必须为 `None`（实测断言，非只看表）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import json as _json
+    try:
+        from engine import risk_levels as _rl
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "engine/risk_levels.py", "风险等级权威不可用：%s" % exc)]
+
+    bands = dict(getattr(_rl, "RISK_SCORE_BANDS", {}) or {})
+    if not bands:
+        return [("ERROR", "engine/risk_levels.py",
+                 "RISK_SCORE_BANDS 为空 ⇒ 分值口径无唯一权威（禁止空表静默通过）")]
+
+    # A 单调
+    _by_sev = [k for k, _ in sorted(bands.items(), key=lambda kv: -_rl.severity(kv[0]))]
+    _by_score = [k for k, _ in sorted(bands.items(), key=lambda kv: -kv[1])]
+    if _by_sev != _by_score:
+        issues.append(("ERROR", "engine/risk_levels.py",
+                       "分值顺序与等级 severity 不一致（分值必须由等级单调派生）："
+                       "按 severity=%s vs 按 score=%s" % (_by_sev, _by_score)))
+
+    # C 不得给非风险态打分
+    for lv in bands:
+        if lv not in _rl.RISK_GRADES:
+            issues.append(("ERROR", "engine/risk_levels.py",
+                           "「%s」不是可比风险档（不在 RISK_GRADES）却被赋分值 ⇒ "
+                           "证据状态/词表外不得打分" % lv))
+    for lv in _rl.EVIDENCE_STATES:
+        if lv in bands:
+            issues.append(("ERROR", "engine/risk_levels.py",
+                           "证据状态「%s」被赋分值 ⇒ 证据不足不得参与风险含量排序" % lv))
+    # 实断言（不只看表）
+    if _rl.risk_score_of("待核验") is not None:
+        issues.append(("ERROR", "engine/risk_levels.py", "`risk_score_of('待核验')` 必须为 None"))
+    if _rl.risk_score_of("优惠机会", {"risk_level": "优惠机会"}) is not None:
+        issues.append(("ERROR", "engine/risk_levels.py",
+                       "正向发现（优惠机会）不得有风险分值"))
+    if _rl.risk_score_of("") is not None:
+        issues.append(("ERROR", "engine/risk_levels.py", "空等级不得有风险分值（缺失≠0）"))
+
+    # B 单一权威：config 表与代码表一一对应
+    _p = ROOT / "config" / "risk_scores.json"
+    try:
+        _cfg = _json.loads(_p.read_text(encoding="utf-8"))
+    except Exception as exc:                       # noqa: BLE001
+        return issues + [("ERROR", "config/risk_scores.json",
+                          "分值分档权威表读不出来（判据无法校验）：%s" % exc)]
+    _cfg_bands = {b.get("level"): b.get("score") for b in (_cfg.get("bands") or [])}
+    if _cfg_bands != bands:
+        issues.append(("ERROR", "config/risk_scores.json",
+                       "分档表与 `engine/risk_levels.RISK_SCORE_BANDS` 不一致"
+                       "（同一口径两处各写一遍）：config=%s vs code=%s" % (_cfg_bands, bands)))
+
+    # D 端到端产出断言：真实报告产物里每条发现的分值必须与其**终局等级**一致。
+    #   ★ 为什么必须做产品级断言（实测事故）：分值若在「等级上限压制」**之前**派生，
+    #     会被压制成陈旧值（实测 `红字冲销…` 等级由「高风险」压到「低风险」，分值却留 80
+    #     ⇒ 分值与等级矛盾）。只看表/函数抓不到，必须看产物。
+    _rep = _canonical_report()
+    if _rep is None:
+        issues.append(("WARN", "scripts/four_reports/company_1_full.json",
+                       "无真跑产物 ⇒ 分值×等级一致性**未验证**（跑一次全量分析后自动生效）"))
+    else:
+        _er = _rep.get("enterprise_readable_report") or _rep
+        for _p in (_er.get("confirmed_problems") or []):
+            if not isinstance(_p, dict):
+                continue
+            _lv = str(_p.get("risk_level") or "").strip()
+            _sc = _p.get("risk_score")
+            _expect = _rl.RISK_SCORE_BANDS.get(_lv)
+            if _sc is not None and _expect is not None and int(_sc) != int(_expect):
+                issues.append(("ERROR", "scripts/four_reports/company_1_full.json",
+                               "疑点「%s」等级=%s 却分值=%s（应为 %s）⇒ 分值与等级矛盾"
+                               "（多半是分值在等级压制前派生）"
+                               % (str(_p.get("title"))[:20], _lv, _sc, _expect)))
     return issues
 
 

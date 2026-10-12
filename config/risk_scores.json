@@ -1,0 +1,31 @@
+{
+  "schema": "caishuixitong.risk_scores/1",
+  "version": "1.0.0",
+  "updated": "2026-10-12",
+  "note": "★ 风险分值（0-100）分档的唯一权威（T-2）。分值**由等级派生**，用于前端「按严重程度排序/筛选」；**禁止用分值反推定性**（项目铁律：禁止自动定性）。等级本体唯一权威见 `engine/risk_levels.py`（6 档词表）；本表只登记「哪一档落在哪个分数段」，新增/调整一档 = 加一行数据，不改逻辑分支。",
+  "discipline": [
+    "★ 单调性：分值顺序必须与 `engine/risk_levels.severity()` 严格一致（分值高 ⇔ 等级重）。闸门 `check_risk_score_monotone` 上锁。",
+    "★ 非风险态**不得伪造分值**：证据状态（待核验）与词表外等级一律 `risk_score=null` 并标 `risk_score_status`，**绝不用 0 或默认分顶替**（缺失≠0）。",
+    "★ 分值只作排序/筛选辅助，不得作为定性结论或处罚依据。"
+  ],
+  "bands": [
+    {"level": "极高风险", "score": 95, "range": [90, 100], "counts_toward_risk": true},
+    {"level": "高风险", "score": 80, "range": [70, 89], "counts_toward_risk": true},
+    {"level": "中风险", "score": 60, "range": [50, 69], "counts_toward_risk": true},
+    {"level": "低风险", "score": 40, "range": [30, 49], "counts_toward_risk": true},
+    {"level": "信息", "score": 20, "range": [10, 29], "counts_toward_risk": true}
+  ],
+  "non_scoring": {
+    "待核验": {"score": null, "status": "evidence_state"},
+    "": {"score": null, "status": "unregistered"}
+  },
+  "not_applicable": {
+    "unregistered_level": "unregistered",
+    "evidence_state": "evidence_state",
+    "non_risk_finding": "non_risk"
+  },
+  "consumers": {
+    "sort": "前端按 risk_score 降序排列风险项；null 排末位（不与已定性项混排）",
+    "filter": "按 severity 档筛选（极高/高/中/低/信息）；待核验单列，不入风险筛选"
+  }
+}

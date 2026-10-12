@@ -8,7 +8,7 @@
 | 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check_doc_*` 函数（**25 条判据**），**全部并入总链 `run_checks()`**；对真实交付物实测 **ERROR 0 / WARN 0** | ✅ |
 | 3 | 每个 Skill 必须用本次 **11 处问题**做失败样例 | 逐 Skill 对应（见 §失败样例映射）：D1←5 处数字 + 2 处 bug 的"配置有产物无"；D2←TDS-⑨ 未同步；D3←旧 grep 漏「25 passed」；D4←U1 状态未同步；D5←跨文件 28 vs 25 | ✅ |
 | 4 | 每个 Skill 必须用**修复后**做通过样例 | 5 个门禁对真实文档 **0 ERROR**（`5个Skill门禁规则.md` §1 表）；`pytest tests/test_doc_consistency_skills.py -q` → **42 passed** | ✅ |
-| 5 | 每个 Skill 必须**跑回归测试** | `pytest tests/ -q` → **1757 passed / 4 skipped / 166 subtests**（耗时随机器负载浮动，不单列；以「与本次 passed 同次运行」为准）；5 个门禁 0 ERROR；反向验证 **19 例**；破坏性用例 **7 例**；口径锁 **8 例**（验证类 **34 例**）成立 | ✅ |
+| 5 | 每个 Skill 必须**跑回归测试** | `pytest tests/ -q` → **1780 passed / 4 skipped / 166 subtests**（耗时随机器负载浮动，不单列；以「与本次 passed 同次运行」为准）；5 个门禁 0 ERROR；反向验证 **19 例**；破坏性用例 **7 例**；口径锁 **8 例**（验证类 **34 例**）成立 | ✅ |
 | 6 | 每个 Skill 必须**支持下次分析自动应用** | ① 并入闸门总链（一键分析收尾即执行）；② **造新文档实测**：新落盘一篇含 `TDS-⑩` 的文档 ⇒ D2 立即报红，无需改代码；③ 换批次只需改 `doc_root` 一行 | ✅ |
 
 ## 失败样例映射（本次 11 处问题 → 5 个 Skill）
@@ -26,7 +26,7 @@
 
 ```bash
 ./.venv/Scripts/python.exe -m pytest tests/test_doc_consistency_skills.py -q   # 42 passed
-./.venv/Scripts/python.exe -m pytest tests/ -q                                  # 1757 passed / 4 skipped
+./.venv/Scripts/python.exe -m pytest tests/ -q                                  # 1780 passed / 4 skipped
 ./.venv/Scripts/python.exe -c "import sys; sys.path.insert(0,'.'); from engine import skill_registry as SR; print(SR.validate())"   # []
 ```
 

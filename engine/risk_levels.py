@@ -196,3 +196,94 @@ def counts(levels: Iterable[Any]) -> List[Tuple[str, int]]:
         if _v:
             _acc[_v] = _acc.get(_v, 0) + 1
     return [(_lv, _acc[_lv]) for _lv in LEGAL_LEVELS if _acc.get(_lv)]
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  风险分值（0-100）—— 供前端「按严重程度排序/筛选」（T-2，2026-10-12）
+#
+#  ★ 方向只有一条：**等级 → 分值**（单调映射）。**禁止用分值反推定性** ——
+#    合规定性只能由 `risk_level` 承载（项目铁律「禁止自动定性」）。
+#  ★ 本表是分档唯一权威（数据 `config/risk_scores.json` 与之同源：新增一档=加一行）。
+#  ★ 非风险态**不得伪造分值**：证据状态（待核验）与词表外等级一律 `None` 且给出状态，
+#    绝不用 0 顶替（缺失≠0）。
+# ══════════════════════════════════════════════════════════════════════════════
+
+#: 等级 → 分值（与 `config/risk_scores.json::bands` 同源；单调性与 `SEVERITY` 一致）
+RISK_SCORE_BANDS: Dict[str, int] = {
+    "极高风险": 95, "高风险": 80, "中风险": 60, "低风险": 40, "信息": 20,
+}
+
+#: 分值状态（写入 finding 的 `risk_score_status`，使 `None` 可自证原因）
+RISK_SCORE_EVIDENCE_STATE = "evidence_state"   # 待核验：证据状态，不参与风险排序
+RISK_SCORE_UNREGISTERED = "unregistered"       # 词表外等级：不得猜
+RISK_SCORE_NON_RISK = "non_risk"               # 正向（非风险）发现：优惠机会等
+RISK_SCORE_SCORED = "scored"                   # 已按等级给出分值
+
+
+def _scoring_level(finding: Dict[str, Any]) -> str:
+    """取该发现的**等级**用于算分：`risk_level` 优先，回落 `level`（封后发现的键是前者）。"""
+    return str(finding.get("risk_level") or finding.get("level") or "").strip()
+
+
+def _non_risk_probe(finding: Any) -> Any:
+    """把发现桥接成 `is_non_risk_finding` 认得的视图（其判据读 `level`，封后写 `risk_level`）。
+
+    ★ 只做**键桥接**，不复制判据 —— 正向判定仍唯一走 `is_non_risk_finding`。
+    """
+    if not isinstance(finding, dict) or finding.get("level"):
+        return finding
+    return dict(finding, level=finding.get("risk_level"))
+
+
+def risk_score_of(level: Any, finding: Any = None) -> Optional[int]:
+    """等级 → 0-100 分值；**无法定性时返回 None**（不返回 0）。
+
+    · 可定性档（`RISK_SCORE_BANDS` 内）⇒ 返回对应分值；
+    · 证据状态（`待核验`）⇒ **None**（证据不足不参与风险含量排序）；
+    · 正向发现（`is_non_risk_finding`）⇒ **None**（不是风险，不应有风险分）；
+    · 词表外/空 ⇒ **None**。
+    """
+    if finding is not None and is_non_risk_finding(_non_risk_probe(finding)):
+        return None
+    _v = str(level or "").strip()
+    if _v in EVIDENCE_STATES:
+        return None
+    return RISK_SCORE_BANDS.get(_v)
+
+
+def risk_score_status_of(level: Any, finding: Any = None) -> str:
+    """分值状态（与 `risk_score_of` 同判据，使 `None` 可自证原因）。"""
+    if finding is not None and is_non_risk_finding(_non_risk_probe(finding)):
+        return RISK_SCORE_NON_RISK
+    _v = str(level or "").strip()
+    if _v in EVIDENCE_STATES:
+        return RISK_SCORE_EVIDENCE_STATE
+    if _v in RISK_SCORE_BANDS:
+        return RISK_SCORE_SCORED
+    return RISK_SCORE_UNREGISTERED
+
+
+def stamp_risk_score(finding: Dict[str, Any]) -> Dict[str, Any]:
+    """就地补齐 `risk_score` / `risk_score_status` 并返回（幂等）。
+
+    ★ 只在**尚无** `risk_score` 时写入：不得覆盖上游显式给的分值
+      （上游若有更细口径，以其为准；本函数只补"缺"不补"错"）。
+    """
+    if not isinstance(finding, dict):
+        return finding
+    _lv = _scoring_level(finding)
+    if finding.get("risk_score") is None:
+        finding["risk_score"] = risk_score_of(_lv, finding)
+    if not finding.get("risk_score_status"):
+        finding["risk_score_status"] = risk_score_status_of(_lv, finding)
+    return finding
+
+
+def stamp_risk_score_all(findings: Iterable[Any]) -> List[Any]:
+    """批量补齐（迭代遍历，兼容任意 list；非 dict 原样返回）。"""
+    out: List[Any] = []
+    for f in findings or []:
+        if isinstance(f, dict):
+            stamp_risk_score(f)
+        out.append(f)
+    return out
