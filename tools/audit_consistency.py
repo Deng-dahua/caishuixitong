@@ -13012,7 +13012,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_report_compliance_and_redaction()   # 报告定位 / 保密 / 授权 / 脱敏边界
                + check_rule_layer_no_double_count()        # 2026-10-11 规则分层不得重复计入（禁"合计 211"）
                + check_risk_score_monotone()               # 2026-10-12 T-2 风险分值须由等级单调派生
-               + check_candidate_params_no_dangling())     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
+               + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
+               + check_rule_dsl_and_externalizable())     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
     return counts, general
 
 
@@ -17759,6 +17760,124 @@ def check_candidate_params_no_dangling() -> List[Tuple[str, str, str]]:
                                    "条目 `%s` 是地方自定参数却预设了 value=%r ⇒ "
                                    "**禁止预设地方值**（须由业务按属地确认后填入）"
                                    % (_k, _v.get("value"))))
+    return issues
+
+
+def check_rule_dsl_and_externalizable() -> List[Tuple[str, str, str]]:
+    """闸门：T-6「规则外置」的表达力边界与字段缺口（2026-10-13）。
+
+    ★ 背景：T-6 裁定为**三层渐进**（阈值类已外置 / 条件类可外置 / 要件化类留 Python）。
+      本轮建 `engine/rule_dsl.py`（条件 DSL 解释器）后，**实测瓶颈不在 DSL，而在字段取数口径**：
+      538 个字段被候选 `logic` 引用但 `var_map` 未登记取数口径。若无人对账，缺口会**悄悄扩大**。
+
+    判据（A/B/C 三段）：
+      A【白名单】候选 `logic` 用到的函数名必须 ∈ `ALLOWED_FUNCS`
+        （未登记函数 ⇒ 解析期本就报错，此处再兜一层，防有人偷偷放宽白名单）；
+      B【边界登记双向一致】实际「超表达力/不规范」规则集 必须与
+        `config/rule_dsl_scope.json::unsupported_rules` / `malformed_rules` **完全一致**
+        （既不许漏登，也不许幽灵登记）；
+      C【缺口不得扩大】实际「字段取数口径缺口」数与「可外置条数」不得**劣于**登记值
+        （缺口减少 ⇒ 台账 print 提示同步；缺口增加 ⇒ ERROR，须解释或补口径）。
+    """
+    import json as _json
+    issues: List[Tuple[str, str, str]] = []
+    _scope_p = ROOT / "config" / "rule_dsl_scope.json"
+    try:
+        from engine import rule_dsl as _dsl
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "engine/rule_dsl.py", "DSL 解释器不可用：%s" % exc)]
+    if not _scope_p.exists():
+        return [("ERROR", "config/rule_dsl_scope.json",
+                 "表达力边界登记表缺失（T-6 判据无落点）")]
+    try:
+        _scope = _json.loads(_scope_p.read_text(encoding="utf-8"))
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "config/rule_dsl_scope.json", "读不出来：%s" % exc)]
+
+    # ── 现算 ──
+    _files = ("config/rulelist_v1.json", "config/rulelist_v11.json",
+              "config/rulelist_v12.json")
+    _vm = set()
+    _rules = []
+    for _rel in _files:
+        _p = ROOT / _rel
+        if not _p.exists():
+            issues.append(("ERROR", _rel, "候选规则库缺失"))
+            return issues
+        _d = _json.loads(_p.read_text(encoding="utf-8"))
+        _vm |= set(k for k in (_d.get("var_map") or _d.get("var_map_addendum") or {})
+                   if not k.startswith("_"))
+        for _r in (_d.get("rules") or []):
+            _r["_params"] = (_d.get("params") or {}).get(_r.get("src"))
+            _rules.append(_r)
+
+    _unsup, _malf, _ext, _gap = [], [], 0, set()
+    _funcs_used = set()
+    for _r in _rules:
+        _lg = str(_r.get("logic") or "")
+        try:
+            _pr = _dsl.compile_expr(_lg)
+        except _dsl.UnsupportedSyntax:
+            _unsup.append(_r["src"])
+            continue
+        except _dsl.DslError:
+            _malf.append(_r["src"])
+            continue
+        _funcs_used |= set(_pr.funcs_used)
+        _ids = set(_pr.identifiers)
+        if not _ids:
+            continue
+        _entry = _r.get("_params")
+        _kp = (set(k for k in _entry if not k.startswith("_"))
+               if isinstance(_entry, dict) else set())
+        _missv = _ids - _vm
+        _missp = set(_pr.params_used) - _kp
+        if not _missv and not _missp:
+            _ext += 1
+        else:
+            _gap |= _missv
+
+    # A 白名单
+    _bad_fn = sorted(_funcs_used - set(_dsl.ALLOWED_FUNCS))
+    if _bad_fn:
+        issues.append(("ERROR", "engine/rule_dsl.py",
+                       "候选 logic 使用了未登记函数 %s ⇒ 须登记白名单或改写表达式"
+                       % _bad_fn))
+
+    # B 边界登记双向一致
+    _reg_u = sorted(x.get("src") for x in (_scope.get("unsupported_rules") or []))
+    _reg_m = sorted(x.get("src") for x in (_scope.get("malformed_rules") or []))
+    if sorted(_unsup) != _reg_u:
+        _only_now = sorted(set(_unsup) - set(_reg_u))
+        _only_reg = sorted(set(_reg_u) - set(_unsup))
+        issues.append(("ERROR", "config/rule_dsl_scope.json",
+                       "「超表达力（留 Python）」规则集与登记表不一致："
+                       "实际多出 %s；登记多出 %s ⇒ 重跑 "
+                       "`python scripts/_gen_rule_dsl_scope.py` 同步" % (_only_now, _only_reg)))
+    if sorted(_malf) != _reg_m:
+        _only_now = sorted(set(_malf) - set(_reg_m))
+        _only_reg = sorted(set(_reg_m) - set(_malf))
+        issues.append(("ERROR", "config/rule_dsl_scope.json",
+                       "「表达式不规范」规则集与登记表不一致："
+                       "实际多出 %s；登记多出 %s" % (_only_now, _only_reg)))
+
+    # C 缺口不得扩大
+    _cnt = _scope.get("counts") or {}
+    _reg_gap = int(_cnt.get("gap_fields") or 0)
+    _reg_ext = int(_cnt.get("ext_ok") or 0)
+    if len(_gap) > _reg_gap:
+        issues.append(("ERROR", "config/rule_dsl_scope.json",
+                       "「字段取数口径缺口」**扩大了**：登记 %d、实际 %d ⇒ "
+                       "新规则引入了未登记字段，须补口径并重跑生成器" % (_reg_gap, len(_gap))))
+    # 台账（可见、可收敛；不作为 ERROR）
+    print("  [规则外置] 候选 %d 条｜可解析 %d｜可外置 %d（登记 %d）｜"
+          "超表达力 %d｜不规范 %d｜字段缺口 %d（登记 %d）"
+          % (len(_rules), len(_rules) - len(_unsup) - len(_malf), _ext, _reg_ext,
+             len(_unsup), len(_malf), len(_gap), _reg_gap))
+    if len(_gap) < _reg_gap or _ext != _reg_ext:
+        print("  [规则外置] 指标已变化（缺口 %d→%d、可外置 %d→%d）"
+              "⇒ 建议重跑 `python scripts/_gen_rule_dsl_scope.py` 同步登记表与报告"
+              % (_reg_gap, len(_gap), _reg_ext, _ext))
     return issues
 
 
