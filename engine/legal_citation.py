@@ -24,9 +24,15 @@ from typing import Dict, List, Optional, Tuple
 _ROOT = Path(__file__).resolve().parent.parent
 
 # 条款号：第X条[、第Y条]… [第Z款]
+# ★ 2026-10-12 修正（T-5 根因，实测）：原正则**只认「第X条、第Y条」**，不认
+#   「第X条**至**第Y条」这种**范围**写法 ⇒ `split_citation` 在末尾只能匹配到
+#   「第四十五条」，剩「第四十条至」被末段 `if rest: law = law + rest` **拼回法名**
+#   ⇒ 法名被污染成「企业所得税法实施条例第四十条至」，进而在法条版本闸门里
+#   被当成一个"不存在的法名"（假缺口）。此处补范围分隔符，法名不再被污染。
 _ART_RE = re.compile(
     r"(第[一二三四五六七八九十百零〇\d]+条"
     r"(?:\s*[、,，]\s*第[一二三四五六七八九十百零〇\d]+条)*"
+    r"(?:\s*[至~～\-—－]\s*第[一二三四五六七八九十百零〇\d]+条)?"
     r"(?:第[一二三四五六七八九十]+款)?)\s*$"
 )
 _LIB_CACHE: Optional[Dict[Tuple[str, str], str]] = None
@@ -73,6 +79,19 @@ def norm_art(a: str) -> str:
     return re.sub(r"\s+", "", str(a or ""))
 
 
+def strip_article_from_law(law: str) -> str:
+    """法名**兜底**：法名里不得残留条文号（2026-10-12，T-5 根因）。
+
+    为什么需要兜底：源数据里存在"两处条文"写法（如
+    `《增值税暂行条例》第六条及其实施细则第十二条`），按末尾条文剥离后
+    前缀仍含「第六条」⇒ 法名被污染 ⇒ 法条版本闸门当成"不存在的法名"（假缺口）。
+    法名一旦出现条文号，即截止于**第一个**条文号。
+
+    抽成独立函数是为了**可反向验证**（测试可临时替换为恒等函数，证明不变量非空）。
+    """
+    return re.split(r"第[一二三四五六七八九十百零〇\d]+条", str(law or ""))[0].strip()
+
+
 def split_citation(s: str) -> Tuple[str, str, str, str]:
     """把一条引用拆成 (法名, 条款号, 括注, 内容)。拆不出的部分留空。
 
@@ -89,6 +108,7 @@ def split_citation(s: str) -> Tuple[str, str, str, str]:
         head, content = raw[: m.start()], raw[m.end():].strip()
     head = head.strip()
     # ① 法名 = 首个《…》及其后紧跟的（…）；否则退化为取《…》所在片段
+    # ① 法名 = 首个《…》及其后紧跟的（…）；否则退化为取《…》所在片段
     law = ""
     rest = head
     ml = re.match(r"^(.*?《[^》]+》)(（[^（）]+）)?", head)
@@ -96,8 +116,12 @@ def split_citation(s: str) -> Tuple[str, str, str, str]:
         law = (ml.group(1) + (ml.group(2) or "")).strip()
         rest = head[ml.end():].strip()
     else:
-        law = head
-        rest = ""
+        # ★ 2026-10-12 修正：**无书名号**的引用（如「财税〔2003〕158号第二条」）也要能
+        #   剥离条文 —— 原实现 `law = head; rest = ""` 会把**条文一起吞进法名**
+        #   （实测 4 处：RL-FUND-003 / RL-CIT-006 / RL-PAY-006 / 同类）。
+        #   改为法名留空、把整串交给 ③ 段按条文切分。
+        law = ""
+        rest = head
     # ② 尾部括注（如「（扣缴义务人全员全额扣缴申报）」）
     note = ""
     mn = re.search(r"（[^（）]{1,40}）\s*$", rest)
@@ -105,13 +129,25 @@ def split_citation(s: str) -> Tuple[str, str, str, str]:
         note = mn.group(0)
         rest = rest[: mn.start()].strip()
     # ③ 条款号
+    # ★ 2026-10-12 修正（T-5 根因，实测 6 处）：原实现只在**条文位于末尾**时才剥离，
+    #   若条文后还有内容（「…第四十六条**及其实施细则**」「…第四十六条**（长说明）**」
+    #   「财税〔2018〕164号**第一条**」），`_ART_RE` 因 `$` 锚定匹配失败 ⇒
+    #   整段被末段 `if rest: law = law + rest` **拼回法名** ⇒ 法名含条文号。
+    #   修法：条文一旦出现，法名即在其**前**截止；条文号单独取出，其余不再入法名。
     art = ""
     ma = _ART_RE.search(rest)
     if ma:
         art = ma.group(1)
         rest = rest[: ma.start()].strip()
+    else:
+        mb = re.search(r"第[一二三四五六七八九十百零〇\d]+条", rest)
+        if mb:
+            art = mb.group(0)
+            rest = rest[: mb.start()].strip()
     if rest:
         law = (law + rest).strip()
+    # ★ 2026-10-12 兜底：法名**不得残留条文号**（见 `strip_article_from_law` 说明）
+    law = strip_article_from_law(law)
     return norm_law(law), norm_art(art), note, content
 
 

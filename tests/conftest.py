@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import atexit
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -29,6 +30,18 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+
+# ★★ 2026-10-12（实测根因）：**嵌套 pytest（子进程）不得写回执**。
+#   缺陷：`_is_full_run()` 只看命令行参数，无法识别"我本身是被测试调起的子进程"。
+#   而部分测试会 `subprocess` 跑 `pytest tests/`（如 D1 反向验证）⇒ 子进程
+#   `pytest_sessionfinish` 也写回执 ⇒ **覆盖全量权威值** ⇒ 主进程后续的 D1 校验
+#   读到"别的进程的 passed" ⇒ 报「文档写 X、权威值 Y」**假红**（实测一轮 12 项 ERROR）。
+#   为什么以前没暴露：上一轮子进程写的 passed **恰好等于**文档值，巧合掩盖了缺陷；
+#   一旦新增/删除测试改变了收集数，缺陷立刻显形。
+#   修法：会话开始时若**已存在**本标记 ⇒ 我是子进程 ⇒ 本次不写回执；否则由我设置
+#   标记供下级继承（`subprocess` 默认继承环境变量）。
+_RECEIPT_GUARD_ENV = "PB_PYTEST_NESTED"
+_IS_NESTED = bool(os.environ.get(_RECEIPT_GUARD_ENV))
 
 # ★★ 2026-10-08（实测根因，用户"冗余"追问引出的硬证据）：**测试的回收站必须隔离**。
 #   问题：`runtime_storage.TRASH_DIR` 在 import 时固化为 `<project>/data/trash`（仅当
@@ -92,9 +105,14 @@ def pytest_configure(config):
     """
     for m in MARKERS:
         config.addinivalue_line("markers", "%s: 文档一致性用例分类（D1 的判据口径权威）" % m)
+    # 顶层会话设置标记，供其下起的子进程 pytest 识别"我是嵌套运行"（见文件头说明）
+    if not _IS_NESTED:
+        os.environ[_RECEIPT_GUARD_ENV] = "1"
 
 
 def pytest_sessionfinish(session, exitstatus):        # noqa: ARG001 - pytest 钩子签名
+    if _IS_NESTED:
+        return                                        # ★ 嵌套运行不写回执（防污染全量权威）
     cfg = getattr(session, "config", None)
     args = list(getattr(getattr(cfg, "invocation_params", None), "args", ()) or ())
     if not _is_full_run(args):
