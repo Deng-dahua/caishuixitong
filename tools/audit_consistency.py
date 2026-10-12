@@ -4614,8 +4614,8 @@ def check_legal_basis_freshness() -> List[Tuple[str, str, str]]:
         "人民币银行结算账户管理办法", "企业会计准则——基本准则", "企业所得税核定征收办法",
         "企业所得税法", "企业所得税法实施条例", "企业所得税税前扣除凭证管理办法",
         "会计法", "住房公积金管理条例", "关于规范个人投资者个人所得税征收管理的通知",
-        "出口货物退（免）税管理办法", "印花税法", "发票管理办法",
-        "国家税务总局公告2011年第25号", "国家税务总局公告2014年第39号",
+        "印花税法", "发票管理办法",  # 2026-10-13 移除「出口货物退（免）税管理办法」（2012-07-01 已全文废止）
+        "国家税务总局公告2011年第25号", "国家税务总局公告2014年第39号", "国家税务总局公告2026年第5号", "出口业务增值税和消费税退（免）税管理办法", "财政部 税务总局公告2026年第11号", "财政部 税务总局关于出口业务增值税和消费税政策的公告",  # 2026-10-13 新增：RL-SPT-008 出口退税现行依据（原 1994 年办法已废止）
         "国家税务总局公告2014年第67号", "国家税务总局公告2018年第28号",
         "国家税务总局公告2019年第38号", "财税〔2008〕121号",
         "国家税务总局关于房地产开发企业土地增值税清算管理有关问题的通知",
@@ -15581,6 +15581,27 @@ def check_legal_versioning() -> List[Tuple[str, str, str]]:
         _idx = set(registered_laws())
         _unreg = sorted({canonical_law(_sc(c)[0] or c) for c in _cites}
                         - _idx - {""})
+        # ★ F（2026-10-13，T-5 第二阶段）：**法名文号↔全称归一机制必须生效**。
+        #   事故：引用写「企业所得税核定征收办法（国税发〔2008〕30号）」，登记表存全称
+        #   ⇒ 归一不同 ⇒ 被当成另一部法 ⇒ 报"未登记"（**假缺口**）。实测 39 个"未登记"中
+        #   18 个属此类。判据：**未登记法名里不得再出现"文号可解析却仍判未登记"的项**。
+        from engine import legal_version as _lv
+        _alias = _lv._wenhao_alias_index()
+        _false_unreg = []
+        for _n in _unreg:
+            if not _n:
+                continue
+            _hit = _lv._resolve_alias(_n)
+            if _hit and _hit not in _idx:
+                _false_unreg.append(_n)
+        if not _alias:
+            issues.append(("ERROR", "config/legal_versions.json",
+                           "文号别名表为空 ⇒ 文号↔全称归一机制未生效"
+                           "（登记表 source 须登记文号，否则假'未登记'会复发）"))
+        if _false_unreg:
+            issues.append(("ERROR", "engine/legal_version.py",
+                           "以下法名的文号已可解析，却仍被判'未登记'（归一失效）：%s"
+                           % _false_unreg[:5]))
         print("  [法条版本] 已登记 %d 部；红线库引用 %d 处、其中未登记版本的法名 %d 个"
               % (len(_idx), len(_cites), len(_unreg)))
     except Exception as exc:

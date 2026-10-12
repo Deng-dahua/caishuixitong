@@ -67,6 +67,79 @@ _VERSION_NOTE_RE = re.compile(
 #: 纯"（试行）"类**属于法名本身**，不得剥除（如《股权转让所得个人所得税管理办法（试行）》）
 _KEEP_TITLE_NOTE = ("试行", "暂行", "草案")
 
+# ★★ 2026-10-13（T-5 第二阶段实测根因）：**同一部法两套法名**必须归一。
+#   `_VERSION_NOTE_RE` 明确"不认文号括注"（见其上注释），但这导致：
+#     · 引用写「企业所得税核定征收办法（国税发〔2008〕30号）」，登记表存「企业所得税核定征收办法」
+#       ⇒ 归一结果不同 ⇒ 被当成**另一部法** ⇒ 法条版本闸门报"未登记"（**假缺口**）。
+#     · 引用只写文号（「财税〔2003〕158号」），登记表存全称 ⇒ 同样失配。
+#   实测：39 个"未登记法名"中 **18 个**属此类（占 46%）。
+#   ⇒ 修法：从登记表自身的 `source` 字段**派生**「文号 → 登记法名」别名表
+#     （单一权威：别名不另存一份，随登记表自动同步，**不可能漂移**）。
+_WENHAO_RE = re.compile(
+    r"(财税\s*〔\d{4}〕\s*\d+\s*号"
+    r"|国税发\s*〔\d{4}〕\s*\d+\s*号"
+    r"|财综\s*〔\d{4}〕\s*\d+\s*号"
+    r"|国家税务总局公告\s*\d{4}\s*年第\s*\d+\s*号"
+    r"|财政部\s*税务总局公告\s*\d{4}\s*年第\s*\d+\s*号"
+    r"|财政部\s*国家税务总局公告\s*\d{4}\s*年第\s*\d+\s*号"
+    r"|国务院令第\s*\d+\s*号"
+    r"|国令第\s*\d+\s*号)"
+)
+#: **尾部说明型/文号型括注**（≥6 字，且**不**含"试行/暂行/草案"）⇒ 归一法名时剥除。
+#: 例：「（国家税务总局公告2014年第67号）」「（引用较早，具体适用须按…复核）」。
+_TRAIL_NOTE_RE = re.compile(r"[（(][^（）()]{6,}[）)]\s*$")
+
+_REG_KEYS_CACHE: Optional[frozenset] = None
+_ALIAS_CACHE: Optional[Dict[str, str]] = None
+
+
+def _norm_wh(s: str) -> str:
+    """文号归一（去空白），使「财税〔2008〕121 号」与「财税〔2008〕121号」等价。"""
+    return re.sub(r"\s+", "", str(s or ""))
+
+
+def _base_key(law: str) -> str:
+    """登记名的基础归一（**不含**别名解析，避免自引用）。"""
+    return _norm_law(_VERSION_NOTE_RE.sub("", str(law or "")))
+
+
+def _registered_keys() -> frozenset:
+    global _REG_KEYS_CACHE
+    if _REG_KEYS_CACHE is None:
+        _REG_KEYS_CACHE = frozenset(_base_key(e.get("law") or "") for e in registry_entries())
+    return _REG_KEYS_CACHE
+
+
+def _wenhao_alias_index() -> Dict[str, str]:
+    """**文号 → 登记法名**（从登记表 `source` 字段派生；不含独立数据文件 ⇒ 不会漂移）。"""
+    global _ALIAS_CACHE
+    if _ALIAS_CACHE is None:
+        idx: Dict[str, str] = {}
+        for e in registry_entries():
+            base = _base_key(e.get("law") or "")
+            for wh in _WENHAO_RE.findall(str(e.get("source") or "")):
+                idx.setdefault(_norm_wh(wh), base)
+        _ALIAS_CACHE = idx
+    return _ALIAS_CACHE
+
+
+def _resolve_alias(s: str) -> Optional[str]:
+    for wh in _WENHAO_RE.findall(s):
+        hit = _wenhao_alias_index().get(_norm_wh(wh))
+        if hit:
+            return hit
+    return None
+
+
+def reset_caches() -> None:
+    """清空登记表与别名缓存（测试/登记表变更后调用）。"""
+    global _REG_CACHE, _ISSUES_CACHE, _REG_KEYS_CACHE, _ALIAS_CACHE
+    _REG_CACHE = None
+    _ISSUES_CACHE = None
+    _REG_KEYS_CACHE = None
+    _ALIAS_CACHE = None
+
+
 _REG_CACHE: Optional[Dict[str, Any]] = None
 _ISSUES_CACHE: Optional[List[Tuple[str, str, str]]] = None
 
@@ -77,16 +150,37 @@ def _norm_law(s: str) -> str:
 
 
 def canonical_law(law: str) -> str:
-    """法名归一（★ 唯一权威）：去《》、去"中华人民共和国"、**去版本括注**、去空白。
+    """法名归一（★ 唯一权威）：去《》、去"中华人民共和国"、去版本括注、**文号↔全称归一**、去空白。
 
     ★ 保留"（试行）/（暂行）"类括注 —— 那是法名的组成部分，去掉会与正式法混淆。
+
+    ★★ 2026-10-13（T-5 第二阶段）：新增**文号归一**，解决"同一部法两套法名"：
+      ① 已是登记名 ⇒ 原样返回（避免把文号型登记名改写成别的法）；
+      ② 串内出现**已登记文号** ⇒ 返回该文号对应的登记法名（如「财税〔2003〕158号」→ 全称）；
+      ③ 否则剥**尾部说明型/文号型括注**后重试（如「…办法（国税发〔2008〕30号）」→「…办法」）。
+    实测效果：39 个"未登记法名"中 18 个为假缺口，据此消解。
     """
-    s = str(law or "")
-    for keep in _KEEP_TITLE_NOTE:
-        if keep in s:
-            # 该法名自带"试行/暂行"语义：只剥版本括注，其余保留
-            return _norm_law(_VERSION_NOTE_RE.sub("", s))
-    return _norm_law(_VERSION_NOTE_RE.sub("", s))
+    s = _base_key(law)
+    if not s:
+        return s
+    reg = _registered_keys()
+    # ① 已是登记名（含"国家税务总局公告2014年第39号"这类以文号为名的登记项）
+    if s in reg:
+        return s
+    # ② 串内含已登记文号 ⇒ 归一为全称法名
+    hit = _resolve_alias(s)
+    if hit:
+        return hit
+    # ③ 剥尾部说明型/文号型括注后重试
+    s2 = _TRAIL_NOTE_RE.sub("", s).strip()
+    if s2 and s2 != s:
+        if s2 in reg:
+            return s2
+        hit2 = _resolve_alias(s2)
+        if hit2:
+            return hit2
+        return s2
+    return s
 
 
 def has_version_in_name(law: str) -> bool:
