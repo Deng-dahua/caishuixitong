@@ -56,7 +56,7 @@ from database import (
 from tax_risk import router as tax_risk_router
 from utils import build_account_hierarchy as _build_account_hierarchy, clear_source_voucher_no as _clear_source_voucher_no, renumber_vouchers as _renumber_vouchers, renumber_archive as _renumber_archive, sync_biz_voucher_no as _sync_biz_voucher_no
 from tax_rules_api import router as tax_rules_api_router
-from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router; from rules_api import router as rules_router, page_router as rules_page_router  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎
+from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router; from rules_api import router as rules_router, page_router as rules_page_router; from risks_api import router as risks_router, page_router as risks_page_router  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
@@ -628,7 +628,7 @@ async def add_no_cache_headers(request, call_next):
     return response
 app.include_router(tax_risk_router)
 app.include_router(tax_rules_api_router)
-app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router); app.include_router(rules_router); app.include_router(rules_page_router)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎
+app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router); app.include_router(rules_router); app.include_router(rules_page_router); app.include_router(risks_router); app.include_router(risks_page_router)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")

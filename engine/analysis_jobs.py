@@ -36,7 +36,8 @@
 - **写失败绝不静默**：任何一次追加失败都要留痕到 stderr（`[analysis-jobs] ...`）；
   失败**不得**让分析主流程失败（台账是旁路证据，不是主链），但必须能被看见。
 - **读侧与存储解耦**：所有存取出入三个私有原语
-  （`_append_row` / `_read_rows` / `_rewrite_rows`）。将来迁 SQLite 只换这三个，
+  （`_append_event` / `_load_rows` / `_rewrite_rows`；前两者**薄转发** `runtime_storage`）。
+  将来迁 SQLite 只换这几处，
   上层（`main.py` / 报告台账 / 前端接口）**一行不动**。
 """
 from __future__ import annotations
@@ -130,43 +131,30 @@ def jobs_path() -> Path:
 
 # ── 私有存储原语（★ 迁 SQLite 时只换这三个函数）────────────────────────────────
 
-def _append_row(row: Dict[str, Any]) -> None:
-    """追加一行（append-only）。"""
-    p = jobs_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with _LOCK:
-        with open(p, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+def _append_event(row: Dict[str, Any]) -> None:
+    """追加一行作业流水（append-only）。
+
+    ★ **薄转发** `runtime_storage.append_jsonl`（"JSONL 落盘"的唯一权威）。
+      收敛理由（2026-10-13，P0-6）：原 `_append_row` 与 `engine/risk_review._append_row`
+      **字节级相同**（仅文件路径不同）⇒ 同一概念两处实现，已收敛。
+    """
+    from runtime_storage import append_jsonl                  # noqa: PLC0415
+    append_jsonl(jobs_path(), row)
 
 
-def _read_rows() -> List[Dict[str, Any]]:
-    """顺序读出全部行；坏行**计数留痕**（不静默丢弃）。"""
+def _load_rows() -> List[Dict[str, Any]]:
+    """顺序读出作业流水全部行；坏行**计数留痕**（不静默丢弃）。
+
+    ★ **薄转发** `runtime_storage.read_jsonl`（唯一实现）；留痕文案属本模块，故在此处写。
+    """
     global _LAST_ERROR
-    p = jobs_path()
-    if not p.exists():
-        return []
-    rows: List[Dict[str, Any]] = []
-    bad = 0
+    from runtime_storage import read_jsonl                    # noqa: PLC0415
     try:
-        with _LOCK:
-            text = p.read_text(encoding="utf-8")
-    except Exception as exc:                     # noqa: BLE001
+        rows, bad = read_jsonl(jobs_path())
+    except Exception as exc:                                  # noqa: BLE001
         _LAST_ERROR = "读取作业流水失败：%s" % exc
         _log(_LAST_ERROR)
         return []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            o = json.loads(line)
-        except Exception:                        # noqa: BLE001
-            bad += 1
-            continue
-        if isinstance(o, dict):
-            rows.append(o)
-        else:
-            bad += 1
     if bad:
         _LAST_ERROR = "作业流水有 %d 行无法解析（已跳过，未静默当作空）" % bad
         _log(_LAST_ERROR)
@@ -274,7 +262,7 @@ def job_started(company_id: Any, job_id: str, started_by: Any = None,
         "data_fingerprint": str(data_fingerprint or ""),
         "rules_fingerprint": str(rules_fingerprint or ""),
     }
-    return _guard(lambda: (_append_row(row), row)[1], "登记作业开始")
+    return _guard(lambda: (_append_event(row), row)[1], "登记作业开始")
 
 
 def job_finished(job_id: str, status: str, company_id: Any = None,
@@ -324,7 +312,7 @@ def job_finished(job_id: str, status: str, company_id: Any = None,
         #   取不到就留空字符串 —— 绝不伪造版本号。
         "rule_set_version": str(rule_set_version or ""),
     }
-    out = _guard(lambda: (_append_row(row), row)[1], "登记作业终态")
+    out = _guard(lambda: (_append_event(row), row)[1], "登记作业终态")
     # ★ 2026-10-13（P0-4）：**终态留痕**登记在"唯一终态漏斗"里。
     #   为什么在这里而不是各调用方：终态路径有四条（done / error / blocked / cancelled），
     #   分散登记必然漏 —— 实测原实现**完成与失败都没有审计动作**（只有起点 `analysis.start`），
@@ -364,7 +352,7 @@ def _audit_terminal(row: Dict[str, Any]) -> None:
 def _started_of(job_id: str) -> Optional[Dict[str, Any]]:
     """取某作业**最早**的 `started` 行（无则 None）。"""
     best: Optional[Dict[str, Any]] = None
-    for r in _read_rows():
+    for r in _load_rows():
         if str(r.get("job_id") or "") != str(job_id) or str(r.get("event") or "") != "started":
             continue
         if best is None or str(r.get("started_at") or "") < str(best.get("started_at") or ""):
@@ -375,7 +363,7 @@ def _started_of(job_id: str) -> Optional[Dict[str, Any]]:
 def _last_terminal(job_id: str) -> Optional[Dict[str, Any]]:
     """取某作业**最后**的 `finished` 行（无则 None）。"""
     last: Optional[Dict[str, Any]] = None
-    for r in _read_rows():
+    for r in _load_rows():
         if str(r.get("job_id") or "") == str(job_id) and str(r.get("event") or "") == "finished":
             last = r
     return last
@@ -445,7 +433,7 @@ def _collapse(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 def list_jobs(company_id: Any = None, limit: Optional[int] = None,
               status: Optional[str] = None) -> List[Dict[str, Any]]:
     """列出作业（按 `started_at` **倒序**，最新在前）。"""
-    jobs = _collapse(_read_rows())
+    jobs = _collapse(_load_rows())
     if company_id is not None:
         want = _cid(company_id)
         jobs = [j for j in jobs if j.get("company_id") == want]
@@ -461,7 +449,7 @@ def list_jobs(company_id: Any = None, limit: Optional[int] = None,
 def get_job(job_id: str) -> Optional[Dict[str, Any]]:
     """取单个作业（重启后依然可查 —— 这正是本模块存在的理由）。"""
     want = str(job_id or "")
-    for j in _collapse(_read_rows()):
+    for j in _collapse(_load_rows()):
         if j.get("job_id") == want:
             return j
     return None
@@ -487,7 +475,7 @@ def remove_company_jobs(company_id: Any) -> int:
       "删了就是真删了"：这里用整表重写，删除后**读不到任何残留**。
     """
     want = _cid(company_id)
-    rows = _read_rows()
+    rows = _load_rows()
     kept = [r for r in rows if _cid(r.get("company_id")) != want]
     removed = len(rows) - len(kept)
     if removed:
@@ -497,7 +485,7 @@ def remove_company_jobs(company_id: Any) -> int:
 
 def all_job_ids() -> List[str]:
     """全部作业 id（正序）。"""
-    return [str(j.get("job_id")) for j in _collapse(_read_rows())]
+    return [str(j.get("job_id")) for j in _collapse(_load_rows())]
 
 
 # ── 自检（供闸门/验收脚本；返回问题清单，空列表 = 通过）──────────────────────────
@@ -509,7 +497,7 @@ def selfcheck(company_id: Any = None) -> List[str]:
     否则说明判据是假的（见验收脚本的反向验证）。
     """
     problems: List[str] = []
-    rows = _read_rows()
+    rows = _load_rows()
     if company_id is not None:
         want = _cid(company_id)
         rows = [r for r in rows if _cid(r.get("company_id")) == want]

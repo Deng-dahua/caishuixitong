@@ -24,7 +24,6 @@
 """
 from __future__ import annotations
 
-import json
 import os
 from typing import Any, Dict, Optional
 
@@ -65,40 +64,18 @@ def _session(request: Request):
 
 
 def _findings_payload(company_id: Any, session: Any) -> Dict[str, Any]:
-    """读该账套的**真实产物载荷**。查不到 ⇒ 返回 `{available: False, reason: ...}`。
+    """读该账套的**真实产物载荷**（**薄转发** `risk_service.load_payload`）。
 
-    ★ 路径取唯一权威 `runtime_storage.offline_reports_root()`（不写死 `scripts/four_reports`
-      —— 该函数明确要求派生物目录跟随 `APP_DATA_DIR`，写死会在隔离实例里越界读生产产物）。
+    ★ 2026-10-13（P0-6）收敛：原先本函数自己实现了一份读盘逻辑，与 P0-6 风险视图层**同概念两处**。
+      现唯一权威 = `engine/risk_service.load_payload()`（它同时服务规则库页与风险工作台）
+      ⇒ 两个页面的取数口径不可能各自漂移。本函数只做 **错误类型翻译**
+      （`RiskServiceError` → `HTTPException`），不改任何读盘语义。
     """
+    from engine import risk_service as RISK                       # noqa: PLC0415
     try:
-        from runtime_storage import offline_reports_root          # noqa: PLC0415
-    except Exception as exc:                                      # noqa: BLE001
-        return {"available": False, "reason": "运行时目录权威不可用：%s" % exc}
-    try:
-        cid = int(company_id)
-    except Exception:                                             # noqa: BLE001
-        raise HTTPException(status_code=400, detail="company_id 非法")
-    if not session.can_access_company(cid):
-        raise HTTPException(status_code=404, detail="账套不存在或无权访问")
-    path = os.path.join(offline_reports_root(), "company_%d_full.json" % cid)
-    if not os.path.exists(path):
-        return {"available": False, "reason": "该账套尚未生成报告载荷（请先执行一键分析）",
-                "path_hint": os.path.basename(path)}
-    try:
-        with open(path, encoding="utf-8") as fh:
-            return {"available": True, "payload": json.load(fh) or {},
-                    "generated_at": _mtime(path)}
-    except Exception as exc:                                      # noqa: BLE001
-        return {"available": False, "reason": "载荷读取失败：%s" % exc}
-
-
-def _mtime(path: str) -> str:
-    try:
-        import datetime
-        return datetime.datetime.fromtimestamp(os.path.getmtime(path)).isoformat(
-            timespec="seconds")
-    except Exception:                                             # noqa: BLE001
-        return ""
+        return RISK.load_payload(company_id, session)
+    except RISK.RiskServiceError as exc:
+        raise HTTPException(status_code=exc.status, detail=exc.message) from exc
 
 
 # --------------------------------------------------------------------------

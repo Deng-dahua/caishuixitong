@@ -150,7 +150,7 @@ class TestJobLedgerVersion:
     def test_finished_row_carries_rule_set_version(self, monkeypatch):
         rows = []
         monkeypatch.setattr(AJ, "_last_terminal", lambda jid: None)
-        monkeypatch.setattr(AJ, "_append_row", lambda r: rows.append(r))
+        monkeypatch.setattr(AJ, "_append_event", lambda r: rows.append(r))
         AJ.job_finished("JOB-X", "done", company_id=1, rule_set_version="2026.10")
         assert rows and rows[0]["event"] == "finished"
         assert rows[0]["rule_set_version"] == "2026.10"
@@ -158,6 +158,6 @@ class TestJobLedgerVersion:
     def test_finished_row_defaults_empty_not_fake(self, monkeypatch):
         rows = []
         monkeypatch.setattr(AJ, "_last_terminal", lambda jid: None)
-        monkeypatch.setattr(AJ, "_append_row", lambda r: rows.append(r))
+        monkeypatch.setattr(AJ, "_append_event", lambda r: rows.append(r))
         AJ.job_finished("JOB-Y", "done", company_id=1)
         assert rows[0]["rule_set_version"] == "", "取不到版本必须留空，不得伪造"

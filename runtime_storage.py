@@ -247,6 +247,57 @@ def count_company_doc_tombstones(company_id: int) -> int:
         return 0
 
 
+#: JSONL 追加/读取的进程内锁（★ 本模块是"JSONL 落盘"的唯一实现处）
+_JSONL_LOCK = threading.RLock()
+
+
+def append_jsonl(path: "os.PathLike[str] | str", row: Any) -> None:
+    """向 JSONL 文件**追加一行**（append-only；父目录自动创建）。
+
+    ★★ 2026-10-13（P0-6）收敛：`engine/analysis_jobs._append_row` 与
+      `engine/risk_review._append_row` **字节级相同**（只有"取哪个文件路径"不同）
+      —— 属"同一概念两处实现"。本函数是**唯一实现**，两模块改为调用此处。
+      理由：本模块本就是「删除 / 落盘**唯一权威**」，JSONL 追加属落盘能力。
+
+    ★ 追加式（不改历史）＝ 可追溯；读取方负责"折叠当前态"。
+    """
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with _JSONL_LOCK:
+        with open(p, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+def read_jsonl(path: "os.PathLike[str] | str") -> "tuple[list, int]":
+    """顺序读出 JSONL 全部行 ⇒ `(rows, bad_count)`。
+
+    ★ 坏行**只计数、不静默丢弃**：返回值里带 `bad_count`，由**调用方**决定如何留痕
+      （留痕文案属各模块自己的语境，故不在此处写死）。
+    ★ 文件不存在 ⇒ `([], 0)`（不是错误：尚未产生流水是正常状态）。
+    """
+    p = Path(path)
+    if not p.exists():
+        return [], 0
+    rows: list = []
+    bad = 0
+    with _JSONL_LOCK:
+        text = p.read_text(encoding="utf-8")
+    for line in text.splitlines():
+        s = line.strip()
+        if not s:
+            continue
+        try:
+            obj = json.loads(s)
+        except Exception:                                 # noqa: BLE001
+            bad += 1
+            continue
+        if isinstance(obj, dict):
+            rows.append(obj)
+        else:
+            bad += 1
+    return rows, bad
+
+
 def offline_reports_root() -> str:
     """离线分析产物（`company_{id}_*.json`）的**根目录**（唯一权威）。
 

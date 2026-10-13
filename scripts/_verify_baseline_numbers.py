@@ -6,12 +6,13 @@
   错误地基上。本脚本是"基线可信"的**结果级判据**——任一数字不符即退出码 1。
 
 判据（全部为「实测值」而非文档转录）：
-  端点 149/9/2/7 ｜ engine 190 ｜ tests 98 ｜ config 38 ｜ tools 12 ｜ yaml 18
-  accounting.db 39 表 ｜ security.db 6 表
+  各 router 文件端点 ｜ engine 207 ｜ tests 104 ｜ config 42 ｜ tools 12 ｜ yaml 18
+  accounting.db 必需表齐全（表数仅作信息）｜ security.db 6 表
   规则主体 176（红线 91 + 已验证 85 + 检测器实现层 25/10/14）
   候选 460（add 97 / merge 141）｜ 176+97=273
-  ★ P0-1 稽查项目（2026-10-13 新增）：projects/project_members 两表 + 8 个 API 端点 + 6 状态 + 4 角色
-    + 4 个审计动作 + 页面路由 /projects
+  ★ App 实测：API 端点 206 ｜ 非 /api 路由 19 ｜ 业务页面 6
+    （★ 隔离子进程里起 App 再数，**不污染真实数据**；对外一律引用 206）
+  ★ P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核
 
 用法：
   .venv/Scripts/python.exe scripts/_verify_baseline_numbers.py
@@ -32,6 +33,42 @@ sys.path.insert(0, ROOT)          # 项目铁律：只读核验脚本必须显�
 def _count(fname: str, pat: str) -> int:
     with open(os.path.join(ROOT, fname), encoding="utf-8") as fh:
         return len(re.findall(pat, fh.read()))
+
+
+def _app_route_counts() -> dict:
+    """在**隔离子进程**里起一次 App 并统计路由（只读；不改真实数据）。
+
+    ★ 为什么用子进程：`from main import app` 在**导入期**会有落盘副作用（日志目录等）；
+      在自检脚本里直接 import 会污染真实 `data/`。子进程 + 临时 `APP_DATA_DIR` 可完全隔离。
+    ★ 为什么要有这个判据：文档曾出现「行合计 ≠ 合计」（口径混用）⇒ 端点数必须以
+      App 实测为准，不能靠"各项相加"推。
+    """
+    import subprocess
+    import tempfile
+    code = (
+        "import os, tempfile\n"
+        "os.environ['APP_DATA_DIR'] = tempfile.mkdtemp()\n"
+        "from main import app\n"
+        "api = [r for r in app.routes if getattr(r, 'path', '').startswith('/api')"
+        " and hasattr(r, 'methods')]\n"
+        "other = [r for r in app.routes if not getattr(r, 'path', '').startswith('/api')"
+        " and hasattr(r, 'methods')]\n"
+        "print(len(api), len(other), len(app.openapi()['paths']))\n"
+        "print('|'.join(sorted(getattr(r, 'path', '') for r in other)))\n"
+    )
+    with tempfile.TemporaryDirectory() as td:
+        env = os.environ.copy()
+        env["APP_DATA_DIR"] = td
+        env.setdefault("APP_COOKIE_SECURE", "0")
+        proc = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env,
+                              capture_output=True, text=True, timeout=300)
+    if proc.returncode != 0:
+        raise RuntimeError("App 路由统计失败：%s" % proc.stderr[-800:])
+    lines = [x for x in proc.stdout.strip().splitlines() if x.strip()]
+    parts = [int(x) for x in lines[0].split()[:3]]
+    paths = [x for x in (lines[1].split("|") if len(lines) > 1 else []) if x]
+    return {"api": parts[0], "other": parts[1], "schema_paths": parts[2],
+            "other_paths": paths}
 
 
 def _table_names(db: str) -> list:
@@ -67,12 +104,14 @@ def main() -> int:
     chk("analysis_api.py 页面路由", 1, _count("analysis_api.py", r"@page_router\.(get|post)\("))
     chk("rules_api.py 路由", 9, _count("rules_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("rules_api.py 页面路由", 1, _count("rules_api.py", r"@page_router\.(get|post)\("))
+    chk("risks_api.py 路由", 7, _count("risks_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("risks_api.py 页面路由", 1, _count("risks_api.py", r"@page_router\.(get|post)\("))
     chk("main.py 行数(零漂移)", 15156,
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 205, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 103, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("engine/*.py", 207, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 104, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
     chk("config/*.json", 42, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
@@ -253,6 +292,47 @@ def main() -> int:
         [k for k in set(_cw["clamps"]) | set(_arg.CONFIDENCE_CLAMPS)
          if float(_cw["clamps"].get(k, float("nan")))
          != float(_arg.CONFIDENCE_CLAMPS.get(k, float("nan")))])
+
+    # ── P0-6 风险结果展示与复核（新增，2026-10-13）──
+    from engine import risk_review as RR_, risk_service as RSVC_
+    chk("复核 5 态", 5, len(RR_.REVIEW_STATES))
+    chk("复核状态中文名齐全", 5, len([s for s in RR_.REVIEW_STATES if RR_.STATE_CN.get(s)]))
+    chk("复核动作 6 种", 6, len(RR_.REVIEW_ACTIONS))
+    chk("复核动作中文名齐全", 6, len([a for a in RR_.REVIEW_ACTIONS if RR_.ACTION_CN.get(a)]))
+    chk("动作→目标态映射覆盖全部动作", [], sorted(set(RR_.REVIEW_ACTIONS) - set(RR_.ACTION_TO_STATE)))
+    chk("状态迁移图覆盖全部状态", [], sorted(set(RR_.REVIEW_STATES) - set(RR_.STATE_FLOW)))
+    chk("迁移目标均为合法状态", [],
+        sorted({t2 for v in RR_.STATE_FLOW.values() for t2 in v} - set(RR_.REVIEW_STATES)))
+    chk("待处理无自环（不允许 pending→pending）", True,
+        "pending" not in RR_.STATE_FLOW.get("pending", ()))
+    chk("理由必填动作均为需附说明者", ["exclude", "false_positive", "rectify", "reopen"],
+        sorted(RR_.NOTE_REQUIRED))
+    chk("终态可重开（不漏出口）", 4, len(RR_.TERMINAL_STATES))
+    chk("排序键", ["amount", "level", "priority", "risk_no", "seq"], sorted(RSVC_.SORTS))
+    chk("排序键中文名齐全", len(RSVC_.SORTS),
+        len([s for s in RSVC_.SORTS if RSVC_.SORT_CN.get(s)]))
+    chk("视图元数据取等级权威（6 档）", 6, len(RSVC_.metadata()["levels"]))
+    chk("元数据复核段与状态权威一致", list(RR_.REVIEW_ACTIONS),
+        [a["value"] for a in RSVC_.metadata()["review"]["actions"]])
+    _rk = [a for a in ACTIONS if a.startswith("risk.")]
+    chk("风险复核审计动作数", 3, len(_rk))
+    chk("风险复核审计动作中文名齐全", 3, len([a for a in _rk if ACTION_CN.get(a)]))
+    chk("与既有 finding.review 不同概念", True,
+        ACTION_CN["finding.review"] != ACTION_CN["risk.review"])
+    # 期间解析走编号权威（不自行切字符串）
+    chk("风险编号期间解析", "202501", RSVC_.period_of("WB-R-XYZ-202501-001"))
+
+    # ── App 实测端点总数（口径唯一权威；**不靠各项相加推**）──
+    try:
+        _rc = _app_route_counts()
+        chk("App API 端点数（实测）", 206, _rc["api"])
+        chk("App 非 /api 路由数（实测）", 19, _rc["other"])
+        _page_six = ("/projects", "/documents", "/extract", "/analysis", "/rules", "/risks")
+        chk("六个业务页面均在 App 路由中（缺一即报）", [],
+            [p for p in _page_six if p not in _rc["other_paths"]])
+        chk("OpenAPI 收录路径数（实测）", 197, _rc["schema_paths"])
+    except Exception as _exc:                                    # noqa: BLE001
+        raise AssertionError("App 路由统计失败（判据不可用，参数不完整）：%s" % _exc)
 
     # ── 规则分层（唯一权威 layer_semantics）──
     with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as fh:

@@ -138,8 +138,8 @@ ok("R2-b 反向：缺少发起人 ⇒ 自检变红",
 # ══ 反向验证：写失败绝不静默 ══
 AJ.RAISE_ON_WRITE_ERROR = True
 import engine.analysis_jobs as _AJ2
-_orig = _AJ2._append_row
-_AJ2._append_row = lambda row: (_ for _ in ()).throw(IOError("磁盘满"))
+_orig = _AJ2._append_event
+_AJ2._append_event = lambda row: (_ for _ in ()).throw(IOError("磁盘满"))
 raised = False
 try:
     AJ.job_started(company_id=80, job_id="jobE", started_by=9)
@@ -147,7 +147,7 @@ except Exception as e:
     raised = True
 ok("R3 反向：写入失败 ⇒ 抛异常（不静默）", raised)
 ok("R4 反向：写入失败 ⇒ last_error 留痕", bool(AJ.last_error()), AJ.last_error())
-_AJ2._append_row = _orig
+_AJ2._append_event = _orig
 
 # ══ 反向验证：报告合规装配失败的根因（`json.dumps` 遇 set）═══
 #   证明两件事：① 原缺陷真实存在（裸 dumps 必抛）；② 采用的修法口径真的有效。
