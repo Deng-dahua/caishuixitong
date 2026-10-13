@@ -426,3 +426,107 @@ class TestGapFieldBatching:
         monkeypatch.setattr(mod, "ROOT", root, raising=True)
         assert not [i for i in mod.check_rule_dsl_and_externalizable()
                     if i[0] == "ERROR"], "还原后闸门仍报 ERROR"
+
+
+class TestSwitchRequiresEquivalence:
+    """★★ 「可外置」**不等于**「可切换执行」——必须过等价性验证（2026-10-13 新增）。
+
+    **事故背景**：`ext_ok`（可外置）判据只是「字段有 `var_map` 口径 + 参数已登记」，
+    它衡量**表达要件是否齐备**，**不衡量判据是否与现有 Python 实现等价**。
+    实测（`scripts/_verify_dsl_equivalence.py`，12 用例 **8 个不一致**）候选 DSL 是现有判据的
+    **简化版**：
+      · 人数差异：丢失 `has_uninsured`（有工资无社保**不受阈值限制**直接命中，防漏报铁律）
+        ⇒ 1 人有工资无社保、占比 5% 时 Python 命中而 DSL **不命中**（**漏报**）；
+      · 进项异常：丢失「已足额转出属正当情形，不报」要件
+        ⇒ 已足额转出时 Python 不报而 DSL **报**（**误报**）。
+    ⇒ 故 `switch_allowed` 必须与等价性结论**同源**，且不等价时**一律为假**。
+    """
+
+    def _scope(self):
+        import json
+        from pathlib import Path
+        return json.loads((Path(__file__).resolve().parents[1]
+                           / "config" / "rule_dsl_scope.json").read_text(encoding="utf-8"))
+
+    def test_equivalence_section_exists_with_source(self):
+        s = self._scope()
+        eq = s.get("equivalence") or {}
+        assert eq.get("verdict"), "缺等价性结论（verdict）"
+        assert eq.get("evidence_source"), "缺证据来源（无法溯源到验证脚本）"
+
+    def test_verdict_is_not_equivalent_and_case_count_reported(self):
+        """当前 5 条可外置规则经验证**不等价**；结论须带用例计数（可对数）。"""
+        eq = self._scope()["equivalence"]
+        assert eq.get("verdict") == "NOT_EQUIVALENT"
+        assert int(eq.get("cases_divergent") or 0) > 0, "声称不等价却没给出不一致用例数"
+        assert int(eq.get("cases_total") or 0) >= int(eq.get("cases_divergent") or 0)
+
+    def test_every_externalizable_rule_switch_blocked(self):
+        s = self._scope()
+        assert s["equivalence"]["switch_allowed"] is False
+        for r in s["externalizable_rules"]:
+            assert r.get("switch_allowed") is False, \
+                "不等价却标可切换：%s" % r.get("src")
+            assert r.get("switch_blocked_by"), \
+                "标为不可切换却未说明阻塞原因：%s" % r.get("src")
+
+    def test_python_probes_still_authoritative(self):
+        """★ 反向确认：现有 Python 判据仍在工作（未因"未切换"而失效）。
+
+        `_scan_payroll_social` 对「1 人有工资无社保」必须命中 —— 这正是 DSL 会漏掉的那条。
+        """
+        from engine.verified_rule_engine import (VERIFIED_RULE_CATALOG,
+                                                 _scan_payroll_social)
+        spec = next(x for x in VERIFIED_RULE_CATALOG if x.get("id") == "VR005")
+        sals = [{"姓名": "员工%02d" % i, "月份": "2026-01", "应发工资": 8000}
+                for i in range(1, 21)]
+        socs = [{"姓名": "员工%02d" % i, "月份": "2026-01", "缴费基数": 8000}
+                for i in range(1, 20)]          # 第 20 人只有工资、无社保
+        assert _scan_payroll_social({"salaries": sals, "social_security": socs}, spec), \
+            "防漏报护栏失效：1 人有工资无社保竟未命中"
+
+    def test_dsl_would_miss_it(self):
+        """同一边界样本上，候选 DSL 表达式**不命中** ⇒ 证明「不等价」不是空话。"""
+        import engine.rule_dsl as dsl
+        got = dsl.evaluate(
+            dsl.compile_expr("abs(iit_headcount - social_headcount) / social_headcount "
+                             "> params.headcount_diff_ratio"),
+            {"iit_headcount": 20, "social_headcount": 19},
+            {"headcount_diff_ratio": 0.2})
+        assert got is False, "DSL 竟命中了（与实测不符，判据需复核）"
+
+    def test_gate_blocks_contradictory_switch_flag(self, monkeypatch):
+        """★ 反向验证：把某条 `switch_allowed` 改成 True ⇒ 闸门必须**真的**报 ERROR。
+
+        ⚠ 必须**真调闸门**（不可同义反复），且须把候选库一并复制到临时目录 ——
+        否则闸门在更早处即 `return「候选规则库缺失」`，根本走不到 D 段。
+        """
+        import importlib.util
+        import json
+        import shutil
+        import tempfile
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        spec = importlib.util.spec_from_file_location(
+            "_ac_switch", root / "tools" / "audit_consistency.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)                       # noqa: SLF001
+
+        broken = json.loads(json.dumps(self._scope()))
+        broken["externalizable_rules"][0]["switch_allowed"] = True   # ★ 制造自相矛盾
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            (td / "config").mkdir(parents=True, exist_ok=True)
+            for f in ("rulelist_v1.json", "rulelist_v11.json", "rulelist_v12.json"):
+                shutil.copy2(root / "config" / f, td / "config" / f)
+            (td / "config" / "rule_dsl_scope.json").write_text(
+                json.dumps(broken, ensure_ascii=False), encoding="utf-8")
+            monkeypatch.setattr(mod, "ROOT", td, raising=True)
+            errs = [i for i in mod.check_rule_dsl_and_externalizable()
+                    if i[0] == "ERROR" and "switch_allowed" in i[2]]
+            assert errs, "判据失真：标了可切换，闸门竟未报 ERROR"
+
+        monkeypatch.undo()
+        monkeypatch.setattr(mod, "ROOT", root, raising=True)
+        assert not [i for i in mod.check_rule_dsl_and_externalizable()
+                    if i[0] == "ERROR"], "还原后闸门仍报 ERROR"

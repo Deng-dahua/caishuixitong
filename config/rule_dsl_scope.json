@@ -57,29 +57,47 @@
     {
       "ver": "V1.0",
       "src": "VAT-010",
-      "name": "进项发票异常"
+      "name": "进项发票异常",
+      "switch_allowed": false,
+      "switch_blocked_by": "等价性验证未通过（见 equivalence 段）"
     },
     {
       "ver": "V1.1",
       "src": "IIT-001",
-      "name": "个税申报人数与社保人数差异"
+      "name": "个税申报人数与社保人数差异",
+      "switch_allowed": false,
+      "switch_blocked_by": "等价性验证未通过（见 equivalence 段）"
     },
     {
       "ver": "V1.1",
       "src": "IIT-002",
-      "name": "个税工资总额与企业所得税工资总额差异"
+      "name": "个税工资总额与企业所得税工资总额差异",
+      "switch_allowed": false,
+      "switch_blocked_by": "等价性验证未通过（见 equivalence 段）"
     },
     {
       "ver": "V1.1",
       "src": "SI-001",
-      "name": "社保人数与个税人数差异"
+      "name": "社保人数与个税人数差异",
+      "switch_allowed": false,
+      "switch_blocked_by": "等价性验证未通过（见 equivalence 段）"
     },
     {
       "ver": "V1.1",
       "src": "INV-011",
-      "name": "进项发票异常"
+      "name": "进项发票异常",
+      "switch_allowed": false,
+      "switch_blocked_by": "等价性验证未通过（见 equivalence 段）"
     }
   ],
+  "equivalence": {
+    "verdict": "NOT_EQUIVALENT",
+    "switch_allowed": false,
+    "reason": "候选 DSL 表达式是现有 Python 判据的**简化版**：丢失要件与防漏报护栏，切换将同时产生**漏报**（有工资无社保但占比 <20%）与**误报**（异常凭证已足额转出、属正当情形）；且人数差异的分母口径与实现不同。",
+    "cases_total": 12,
+    "cases_divergent": 8,
+    "evidence_source": "scripts/_verify_dsl_equivalence.py"
+  },
   "unsupported_rules": [
     {
       "src": "VAT-005",

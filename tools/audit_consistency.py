@@ -17939,6 +17939,37 @@ def check_rule_dsl_and_externalizable() -> List[Tuple[str, str, str]]:
         issues.append(("WARN", "config/rule_dsl_scope.json",
                        "缺口未按规则实现状态分档（T-6 第 1 批无法对账）⇒ "
                        "重跑 `python scripts/_gen_rule_dsl_scope.py`"))
+
+    # ★ D（2026-10-13）**「可外置」≠「可切换执行」** —— 必须有等价性验证，且结论自洽。
+    #   事故背景：`ext_ok`（可外置）只衡量「表达要件是否齐备」（字段有口径 + 参数已登记），
+    #   **不衡量"判据是否与现有 Python 实现等价"**。实测（12 用例中 8 个不一致）候选 DSL
+    #   是现有判据的**简化版**：人数差异丢失 `has_uninsured` 防漏报护栏 ⇒ 漏报；
+    #   进项异常丢失「已足额转出属正当情形」要件 ⇒ 误报。若把 `ext_ok` 当切换凭证，
+    #   会**同时**引入漏报与误报（且都是税务口径上的实质错误）。
+    #   判据：① `equivalence` 段必须存在且含 verdict；
+    #         ② verdict != EQUIVALENT ⇒ **每条 externalizable_rule 的 switch_allowed 必须为假**
+    #            （禁"一处说不可、另一处说可"的脱节）；
+    #         ③ verdict == UNVERIFIED ⇒ ERROR（未验证就不得声称可切换）。
+    _eq = _scope.get("equivalence") or {}
+    _vd = str(_eq.get("verdict") or "")
+    _ext_rules = _scope.get("externalizable_rules") or []
+    if not _vd:
+        issues.append(("ERROR", "config/rule_dsl_scope.json",
+                       "缺 `equivalence` 段（等价性验证结论）⇒ 「可外置」会被误当作"
+                       "「可切换执行」；须跑 `python scripts/_verify_dsl_equivalence.py` 后重跑生成器"))
+    elif _vd == "UNVERIFIED":
+        issues.append(("ERROR", "config/rule_dsl_scope.json",
+                       "等价性**未验证**（verdict=UNVERIFIED）⇒ 不得声称可切换执行；"
+                       "请跑 `python scripts/_verify_dsl_equivalence.py`"))
+    elif _vd != "EQUIVALENT":
+        _bad = [_r.get("src") for _r in _ext_rules if _r.get("switch_allowed")]
+        if _bad:
+            issues.append(("ERROR", "config/rule_dsl_scope.json",
+                           "判定为不等价（verdict=%s），但以下「可外置」规则仍标 "
+                           "`switch_allowed=True`（自相矛盾，禁止切换）：%s" % (_vd, _bad)))
+    if _ext_rules and not _eq.get("evidence_source"):
+        issues.append(("ERROR", "config/rule_dsl_scope.json",
+                       "等价性结论缺 `evidence_source`（无法溯源到验证脚本）"))
     # 台账（可见、可收敛；不作为 ERROR）
     print("  [规则外置] 候选 %d 条｜可解析 %d｜可外置 %d（登记 %d）｜"
           "超表达力 %d｜不规范 %d｜字段缺口 %d（登记 %d）"

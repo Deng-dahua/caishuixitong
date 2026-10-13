@@ -1,0 +1,113 @@
+{
+  "verdict": {
+    "verdict": "NOT_EQUIVALENT",
+    "switch_allowed": false,
+    "reason": "候选 DSL 表达式是现有 Python 判据的**简化版**：丢失要件与防漏报护栏，切换将同时产生**漏报**（有工资无社保但占比 <20%）与**误报**（异常凭证已足额转出、属正当情形）；且人数差异的分母口径与实现不同。",
+    "cases_total": 12,
+    "cases_divergent": 8
+  },
+  "cases": [
+    {
+      "case": "20 人有工资、19 人有社保：1 人【有工资无社保】(占 5%)",
+      "python": true,
+      "dsl": {
+        "IIT-001": false,
+        "SI-001": false
+      },
+      "same": false,
+      "note": "两侧结论不一致"
+    },
+    {
+      "case": "20 人有工资、18 人有社保：2 人【有工资无社保】(占 10%)",
+      "python": true,
+      "dsl": {
+        "IIT-001": false,
+        "SI-001": false
+      },
+      "same": false,
+      "note": "两侧结论不一致"
+    },
+    {
+      "case": "10 人有工资、8 人有社保：2 人【有工资无社保】(占 20%)",
+      "python": true,
+      "dsl": {
+        "IIT-001": true,
+        "SI-001": false
+      },
+      "same": false,
+      "note": "两侧结论不一致"
+    },
+    {
+      "case": "10 人有工资、13 人有社保：3 人【仅社保无工资】(占 23%)",
+      "python": true,
+      "dsl": {
+        "IIT-001": true,
+        "SI-001": true
+      },
+      "same": true,
+      "note": ""
+    },
+    {
+      "case": "8 人有工资、10 人有社保：2 人【仅社保无工资】(合并范围 20% 整)",
+      "python": true,
+      "dsl": {
+        "IIT-001": false,
+        "SI-001": true
+      },
+      "same": false,
+      "note": "两侧结论不一致"
+    },
+    {
+      "case": "100 人有工资、95 人有社保：5 人【有工资无社保】(占 5%)",
+      "python": true,
+      "dsl": {
+        "IIT-001": false,
+        "SI-001": false
+      },
+      "same": false,
+      "note": "两侧结论不一致"
+    },
+    {
+      "case": "1 张异常票(税额1000)，账内进项税额转出 0 ⇒ 未转出",
+      "python": true,
+      "dsl": true,
+      "same": true,
+      "note": ""
+    },
+    {
+      "case": "1 张异常票(税额1000)，账内已足额转出 1000 ⇒ 正当情形",
+      "python": false,
+      "dsl": true,
+      "same": false,
+      "note": "两侧结论不一致"
+    },
+    {
+      "case": "2 张异常票(合计1000)，已足额转出 ⇒ 正当情形",
+      "python": false,
+      "dsl": true,
+      "same": false,
+      "note": "两侧结论不一致"
+    },
+    {
+      "case": "1 张异常票(税额1000)，仅转出 500 ⇒ 未足额",
+      "python": true,
+      "dsl": true,
+      "same": true,
+      "note": ""
+    },
+    {
+      "case": "无异常标注票",
+      "python": false,
+      "dsl": false,
+      "same": true,
+      "note": ""
+    },
+    {
+      "case": "IIT-002 缺企税工资表",
+      "python": "不可算（无实现，须补资料）",
+      "dsl": null,
+      "same": false,
+      "note": "两侧均不可算，但**都不是 FALSE** —— DSL 给 UNKNOWN，需资料"
+    }
+  ]
+}

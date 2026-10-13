@@ -126,6 +126,23 @@ def main() -> int:
     flag_like = sorted(x for x in gap if _flag_like(x))
     numeric_like = sorted(x for x in gap if not _flag_like(x))
 
+    # ── ★★ 等价性验证结论（切换执行的**前置**判据，单一权威＝验证脚本产物）──
+    #   「可外置」（ext_ok）只衡量"表达要件是否齐备"，**不等于**"判据与现有实现等价"。
+    #   结论由 `scripts/_verify_dsl_equivalence.py` 用**边界样本**两侧各跑一次得出；
+    #   本表只**引用**它，不自行判断（避免第二份判据）。
+    _eq_p = ROOT / "config" / "dsl_equivalence.json"
+    if _eq_p.exists():
+        try:
+            _eq = dict(json.loads(_eq_p.read_text(encoding="utf-8")).get("verdict") or {})
+        except Exception as _e:                       # noqa: BLE001
+            _eq = {"verdict": "UNREADABLE", "switch_allowed": None,
+                   "reason": "验证结论文件解析失败：%s" % _e}
+    else:
+        _eq = {"verdict": "UNVERIFIED", "switch_allowed": None,
+               "reason": "未运行 `python scripts/_verify_dsl_equivalence.py` ⇒ "
+                         "**不得**声称可切换执行；`switch_allowed` 一律视为 False"}
+    _eq.setdefault("evidence_source", "scripts/_verify_dsl_equivalence.py")
+
     # ── 登记表 ──
     scope = {
         "schema": "caishuixitong.rule_dsl_scope/1",
@@ -166,7 +183,18 @@ def main() -> int:
             "rules_with_gap_unimplemented": len(unimpl_rules),
         },
         "externalizable_rules": [
-            {"ver": v, "src": s, "name": n} for v, s, n in ext_ok_rules],
+            # ★★ 2026-10-13：`ext_ok`（可外置）**只是"表达要件齐备"，不等于"可切换执行"**。
+            #   实测（`scripts/_verify_dsl_equivalence.py`，12 用例中 **8 个不一致**）：
+            #     · 人数差异：候选 DSL 丢失 `has_uninsured` 防漏报护栏 ⇒ **漏报**
+            #       （1 人有工资无社保、占比 5% 时，Python 命中而 DSL 不命中）；
+            #     · 进项异常：候选 DSL 丢失"已足额转出属正当情形"要件 ⇒ **误报**。
+            #   故每条都带 `switch_allowed`，与 `equivalence` 段同源（单一权威）。
+            {"ver": v, "src": s, "name": n,
+             "switch_allowed": bool(_eq.get("switch_allowed")),
+             "switch_blocked_by": (None if _eq.get("switch_allowed")
+                                   else "等价性验证未通过（见 equivalence 段）")}
+            for v, s, n in ext_ok_rules],
+        "equivalence": _eq,
         "unsupported_rules": unsupported,
         "malformed_rules": malformed,
         "gap_fields": {
@@ -319,7 +347,44 @@ def main() -> int:
     A("")
     A("⇒ 这 %d 条的「阈值 + 字段口径」**均已登记**，因此**改它们只需改数据**。" % cls.get("ext_ok", 0))
     A("")
-    A("### 2.3 表达式规范化（本轮已处理）")
+    A("### 2.3 ★★ 等价性验证：**「可外置」≠「可切换执行」**（本轮新增，结论为**不可切换**）")
+    A("")
+    A("> `ext_ok`（可外置）的判据只是「**表达要件是否齐备**」（字段有 `var_map` 口径 + 参数已登记），"
+      "它**不衡量判据是否与现有 Python 实现等价**。若把 `ext_ok` 当切换凭证，会引入实质税务口径错误。")
+    A("")
+    A("**验证方法**：用**边界样本**把两侧各跑一次（现有 Python 判据 vs 候选 DSL 表达式），"
+      "两侧结论不一致即**不可切换**。脚本 `scripts/_verify_dsl_equivalence.py`（可复现、只读）。")
+    A("")
+    if _eq.get("verdict"):
+        A("| 指标 | 值 |")
+        A("|---|---|")
+        A("| 结论 | **%s** |" % _eq.get("verdict"))
+        A("| 允许切换 | **%s** |" % ("是" if _eq.get("switch_allowed") else "否"))
+        A("| 用例总数 / 不一致 | **%s / %s** |"
+          % (_eq.get("cases_total"), _eq.get("cases_divergent")))
+        A("| 证据来源 | `%s` |" % _eq.get("evidence_source"))
+        A("")
+        A("**不一致的两类（都是税务口径上的实质错误）**：")
+        A("")
+        A("| # | 场景 | 现有 Python | 候选 DSL | 后果 |")
+        A("|---|---|---|---|---|")
+        A("| 1 | 20 人有工资、19 人有社保（1 人**有工资无社保**，占 5%） "
+          "| **命中**（`has_uninsured` 不受阈值限制，防漏报铁律） | **不命中**（比例 < 20%） | **漏报** |")
+        A("| 2 | 1 张异常票（税额 1000），账内**已足额转出** 1000（属正当情形） "
+          "| **不报**（要件⑤已满足） | **报**（只看 `abnormal_invoice_count > 0`） | **误报** |")
+        A("")
+        A("**根因**：候选 DSL 表达式是现有判据的**简化版** —— 丢失了「要件」与「防漏报护栏」，"
+          "且人数差异的**分母口径不同**（Python 用「合并人员范围」，DSL 用单侧人数；"
+          "IIT-001 与 SI-001 彼此分母又不同）。")
+        A("")
+        A("⇒ **裁定：本轮不切换任何执行路径**；现有 176 条规则主体仍以 Python 为执行权威。"
+          "结论已写入 `config/rule_dsl_scope.json::equivalence`，并由闸门 D 段断言"
+          "（不等价时 `switch_allowed` 强制为假，禁自相矛盾）。")
+    else:
+        A("⚠ **等价性未验证**（`verdict` 缺失）⇒ 不得声称可切换；"
+          "请先跑 `python scripts/_verify_dsl_equivalence.py`。")
+    A("")
+    A("### 2.4 表达式规范化（本轮已处理）")
     A("")
     A("首轮解析时 %d 条报错，逐一归因后**全部消解**（均为候选库的写法问题，非语义不清）："
       % (cls.get("malformed", 0) + 23))
@@ -373,14 +438,14 @@ def main() -> int:
       "`partial` 表示「部分覆盖」⇒ 字段口径需补齐才能完整判定。二者是**真缺口**。"
       "`missing`/`placeholder` 的字段口径**依赖该规则先被实现**，现在补属**超前投入**。")
     A("")
-    A("### 3.2 缺口 TOP 15（按被引用次数）")
+    A("### 3.3 缺口 TOP 15（按被引用次数）")
     A("")
     A("| # | 字段 | 被引用 | 归类 |")
     A("|---|---|---|---|")
     for i, (x, n) in enumerate(gap.most_common(15), 1):
         A("| %d | `%s` | %d | %s |" % (i, x, n, "布尔标志位" if _flag_like(x) else "数值字段"))
     A("")
-    A("### 3.3 推进路径（可增量、可对数）")
+    A("### 3.4 推进路径（可增量、可对数）")
     A("")
     A("1. **每补一个字段口径 ⇒ 减一行 `gap_fields`**（登记表见 `config/rule_dsl_scope.json`）；")
     A("2. 补口径时必须**复用既有唯一权威**（`numparse` / `fieldkit` / `account_classifier` / "
@@ -409,8 +474,10 @@ def main() -> int:
       % len(flag_like))
     A("| D-2 | %d 个「数值字段」的取数口径优先级 | 部分字段的权威口径（如 `market_price`/`fair_value`）"
       "需业务确认取数来源 |" % len(numeric_like))
-    A("| D-3 | 是否要把「条件类·可外置」的 %d 条**切换**为 DSL 执行 | 本轮**有意未切换**"
-      "（保护既有闸门与可追溯链）；切换须先做等价性验证 |" % cls.get("ext_ok", 0))
+    A("| D-3 | ~~是否要把「条件类·可外置」的 %d 条**切换**为 DSL 执行~~ | "
+      "✅ **已闭环（2026-10-13）**：经等价性验证 ⇒ **判据不等价，不可切换**"
+      "（12 用例 8 个不一致；漏报＋误报，见 §2.3）。`switch_allowed` 由闸门 D 段锁定为假 |"
+      % cls.get("ext_ok", 0))
     A("| D-4 | `IIT-007 X not optimal` 等**非 `met` 形容词**是否也算自然语言否定 | "
       "本模块白名单已含 `met/optimal/satisfied/applicable`，其余须逐条确认 |")
     A("")
