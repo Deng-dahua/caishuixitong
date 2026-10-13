@@ -24,7 +24,8 @@ EMBEDDABLE = frozenset({".pdf", ".jpg", ".jpeg", ".png", ".bmp", ".tiff"})
 #: ★ 中文水印的字体（事故：`Helvetica` / PIL 默认字体**渲染不了 CJK**）
 #:   · PDF：reportlab **内置** CID 字体 `STSong-Light`（无需外部字体文件）；
 #:   · 图片：需系统 CJK TrueType；找不到 ⇒ **降级为 sidecar 并说明原因**（不渲染方块）。
-_PDF_CJK_FONT = "STSong-Light"
+PDF_CJK_FONT = "STSong-Light"
+#: ★ 公开（供报告渲染复用同一字体口径 —— 中文渲染的字体唯一权威在本模块）
 _IMAGE_FONT_CANDIDATES = (
     r"C:\Windows\Fonts\msyh.ttc",
     r"C:\Windows\Fonts\simhei.ttf",
@@ -40,8 +41,8 @@ def _pdf_font_name() -> str:
     from reportlab.pdfbase import pdfmetrics                 # noqa: PLC0415
     from reportlab.pdfbase.cidfonts import UnicodeCIDFont    # noqa: PLC0415
     try:
-        pdfmetrics.registerFont(UnicodeCIDFont(_PDF_CJK_FONT))
-        return _PDF_CJK_FONT
+        pdfmetrics.registerFont(UnicodeCIDFont(PDF_CJK_FONT))
+        return PDF_CJK_FONT
     except Exception:                                        # noqa: BLE001
         return "Helvetica"
 

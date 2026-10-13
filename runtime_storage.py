@@ -318,6 +318,22 @@ def offline_reports_root() -> str:
                         "scripts", "four_reports")
 
 
+def report_output_root() -> str:
+    """**报告交付物**（P0-7 生成的 pdf/docx/xlsx/html）的根目录（唯一权威）。
+
+    ★ 与 `offline_reports_root()` 同一理由（2026-10-06 事故）：
+      派生物目录**必须跟随应用的数据根**（`APP_DATA_DIR`），不得写死源码树路径，
+      否则隔离实例（测试子进程）会往**真实产出目录**里写文件、甚至越界清理。
+    规则：
+      · 设了 `APP_DATA_DIR` ⇒ `<APP_DATA_DIR>/reports`（隔离实例，只写自己的）；
+      · 未设（生产实例）⇒ `<project>/output/reports`。
+    """
+    app_data = os.environ.get("APP_DATA_DIR")
+    if app_data:
+        return os.path.join(app_data, "reports")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "output", "reports")
+
+
 def purge_file(file_path) -> tuple:
     """尽力物理移除单个文件，返回 (removed: bool, reason: str)。
 
@@ -420,6 +436,18 @@ def atomic_write_text(path: os.PathLike[str] | str, text: str) -> None:
     ⚠ 本函数与 `atomic_write_json` 的关系：后者**只是本函数的一个 JSON 包装**
       （`_to_json_safe` + 序列化），不得再各写一份原子替换逻辑。
     """
+    atomic_write_bytes(path, text.encode("utf-8"))
+
+
+def atomic_write_bytes(path: "os.PathLike[str] | str", data: bytes) -> None:
+    """**字节落盘的唯一原子实现**（fsync + `os.replace`，崩不断、截不留）。
+
+    ★ 2026-10-13（P0-7）：`atomic_write_text` 的**二进制核心**在此抽出。
+      为什么必须抽出：报告交付物有 **PDF / DOCX / XLSX 三种二进制格式**，
+      若各自手写 `mkstemp` + `os.replace` + 失败 `os.unlink` ⇒
+      ① 又多三份原子替换实现；② 闸门 `check_delete_exits` 会逐行抓到未声明的删除调用。
+      ⇒ 现统一走本函数（`atomic_write_text` 亦为薄转发，写文本行为逐字节不变）。
+    """
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     with _json_lock:
@@ -429,8 +457,8 @@ def atomic_write_text(path: os.PathLike[str] | str, text: str) -> None:
             dir=str(destination.parent),
         )
         try:
-            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
-                handle.write(text)
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(data)
                 handle.flush()
                 os.fsync(handle.fileno())
             os.replace(temp_name, destination)

@@ -27,7 +27,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 _DDL_EXTRACTED_TABLES = """
 CREATE TABLE IF NOT EXISTS extracted_tables (
@@ -192,3 +192,42 @@ def table_columns(engine=None, table: str = "extracted_tables") -> List[str]:
     ensure_schema(eng)
     with eng.connect() as conn:
         return [c["name"] for c in _inspect(conn).get_columns(table)]
+
+
+def artifact_counts(company_id: Any = None, *, project_id: Any = None,
+           engine=None) -> Dict[str, int]:
+    """只读：解析产物的**条数统计**（本模块是三张表的属主，故统计口也在此）。
+
+    ★ 2026-10-13（P0-7）：报告「数据来源」一节需要"已解析几表/几字段/几异常"。
+      该统计的权威**只能在属主模块**——放到报告侧再写一遍 SQL 就是第二份实现。
+      `company_id`/`project_id` 均为 `None` ⇒ 统计全库。
+    """
+    from sqlalchemy import text as _text                        # noqa: PLC0415
+    eng = engine if engine is not None else _default_engine()
+    ensure_schema(eng)
+    where, params = [], {}
+    if company_id not in (None, ""):
+        where.append("company_id = :cid")
+        params["cid"] = int(company_id)
+    if project_id not in (None, ""):
+        where.append("project_id = :pid")
+        params["pid"] = int(project_id)
+    clause = (" WHERE " + " AND ".join(where)) if where else ""
+    out: Dict[str, int] = {}
+    with eng.connect() as conn:
+        for tbl, key in (("extracted_tables", "tables"),
+                         ("extracted_fields", "fields"),
+                         ("extract_issues", "issues")):
+            try:
+                out[key] = int(conn.execute(_text(
+                    "SELECT COUNT(*) FROM %s%s" % (tbl, clause)), params).scalar() or 0)
+            except Exception:                                    # noqa: BLE001
+                out[key] = 0                                      # 表未建 ⇒ 0（不是错误）
+    try:
+        out["corrected_fields"] = int(conn.execute(_text(
+            "SELECT COUNT(*) FROM extracted_fields WHERE corrected = 1%s"
+            % (" AND company_id = :cid" if "cid" in params else "")),
+            {"cid": params["cid"]} if "cid" in params else {}).scalar() or 0)
+    except Exception:                                            # noqa: BLE001
+        out["corrected_fields"] = 0
+    return out

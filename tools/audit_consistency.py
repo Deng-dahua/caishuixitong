@@ -1629,7 +1629,7 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
         "split_sentences": "dupkit 为**薄转发**（唯一权威 engine/sentencekit.split_sentences，"
                            "docstring 已注明）；本组被报系转发桩检测**只看函数体内 import**、"
                            "未识别**模块级** import 的转发 ⇒ 实为已收敛", "_assemble": "report_compliance 组装**版本台账记录**；rule_executor 组装**发现/证据/执行**归一产物 —— 输入输出无交集，属裁定口径①（同名单、异语义）", "_legal_refs": "rule_loader 把**法规依据原文 → 结构化引用**（产出引用）；snapshot_invariance **读取**引用做快照比对 ⇒ 方向相反，仅同名", "_note": "enterprise_report 向**报告产物**写注记；rule_loader 向 **stderr 留痕**（加载器问题）⇒ 出口与消费者不同，属裁定口径①", "_root": "★ **已收敛**：rule_catalog 已改为**转发** `rule_loader._root()`（本轮实测发现两处字节级复制粘贴）；本组仍被报系转发桩检测**只看函数体内 import**、未识别 `return L._root()` 这类**模块级引用转发** —— 与左侧 `split_sentences` 同因，实为已收敛", "amount_of": "numparse 是**文本 → 金额**解析（全项目唯一权威）；risk_scoring 是**从 finding dict 取涉税金额合计**（输入是结构化发现而非文本）⇒ 入参形态不同，非同一概念", "config": "doc_consistency_core 读**文档一致性判据配置**；risk_scoring 读**风险评分配置**（config/risk_scoring.json）—— 各读自己的文件、缓存独立，属裁定口径②", "get": "analysis_task 按 **job_id** 取任务；fact_store 取**事实**；rule_catalog 按 **rule_id** 取规则 —— 三套不同索引，属裁定口径②（各文件自己的取数器）", "stamp": "rule_versions 给 finding 盖**规则版本**；risk_scoring 给 finding 盖**综合排序分** —— 作用对象相同但**盖的字段与语义不同**（版本留痕 vs 排序辅助），两者可叠加且互不覆盖", "stamp_all": "同上（stamp 的批量版）：规则版本打戳 vs 排序分打戳，字段不同、可叠加", "stats": "fact_store 统计**事实库**；rule_catalog 统计**规则库**（分层/法规依据覆盖）；tax_redlines 统计**红线库** —— 各自的对象与口径不同，属裁定口径②",
-        "_collapse": "analysis_jobs 折叠**作业状态**（按 job_id，含终态与 running 判定）；risk_review 折叠**复核事件**（按 risk_no，含批注聚合、转人工标记、整改编号）—— 折叠对象与聚合语义不同，属裁定口径①（同名单、异语义）", "last_errors": "risk_review 报**复核流水读取**错误；rule_loader 报**规则载体加载**错误 —— 两个不同数据源的诊断出口，属裁定口径②（各文件自己的错误出口）", "last_error": "同上（单数形）：两模块各自的错误出口，数据源不同", "_now": "全项目**既有惯例**（本次新增 risk_review 后共 8 处：analysis_jobs / archive_attachment / document_service / extract_service / project_service / report_compliance / risk_review / skill_runtime）—— 各模块自己的**时间戳文本封装**，底层权威是 runtime_storage.now_cst；不收敛的原因：文案/格式各随语境（有的带秒、有的带毫秒），且属**既有**写法，强行合并会改动 8 个既有模块的行为 ⇒ 属裁定口径①（同名单、异语义）", "_amount": "false_invoice 从**明细行**取金额（多列名逐个尝试）；risk_service 按**标准字段**取金额（输入=字段名+行）—— 入参与语义不同，属裁定口径①"}
+        "_collapse": "analysis_jobs 折叠**作业状态**（按 job_id，含终态与 running 判定）；risk_review 折叠**复核事件**（按 risk_no，含批注聚合、转人工标记、整改编号）—— 折叠对象与聚合语义不同，属裁定口径①（同名单、异语义）", "last_errors": "risk_review 报**复核流水读取**错误；rule_loader 报**规则载体加载**错误 —— 两个不同数据源的诊断出口，属裁定口径②（各文件自己的错误出口）", "last_error": "同上（单数形）：两模块各自的错误出口，数据源不同", "_now": "全项目**既有惯例**（本次新增 risk_review 后共 8 处：analysis_jobs / archive_attachment / document_service / extract_service / project_service / report_compliance / risk_review / skill_runtime）—— 各模块自己的**时间戳文本封装**，底层权威是 runtime_storage.now_cst；不收敛的原因：文案/格式各随语境（有的带秒、有的带毫秒），且属**既有**写法，强行合并会改动 8 个既有模块的行为 ⇒ 属裁定口径①（同名单、异语义）", "_amount": "false_invoice 从**明细行**取金额（多列名逐个尝试）；risk_service 按**标准字段**取金额（输入=字段名+行）—— 入参与语义不同，属裁定口径①", "versions": "rule_catalog 返回**规则版本**（唯一权威 config/rule_versions.json，回答「这批结论按哪版规则算出」）；report_service 返回**报告版本台账**（唯一权威 data/report_versions.jsonl，回答「这家企业出过哪些报告」）—— 两个不同主题、两套不同权威文件，属裁定口径②（各文件自己的版本源）"}
     _files = [str(ROOT / "main.py")] + sorted(_glob.glob(str(ROOT / "engine" / "**" / "*.py"), recursive=True))
     defs: Dict[str, List[str]] = {}
     srcs: Dict[str, str] = {}
@@ -14027,7 +14027,7 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
     #   失败 `os.unlink(tmp)` —— 闸门抓到 `engine/analysis_jobs.py::_rewrite_rows`
     #   报 ERROR。现抽为唯一实现，删除临时文件只此一个声明出口。
     _PRIMITIVES = {"move_to_trash", "empty_trash_batch", "purge_file",
-                   "atomic_write_json", "atomic_write_text", "purge_tree"}  # purge_tree：目录级（move_to_trash 只处理文件）
+                   "atomic_write_json", "atomic_write_text", "purge_tree", "atomic_write_bytes"}  # purge_tree：目录级；atomic_write_bytes：P0-7 报告二进制原子写（与 atomic_write_text 同一出口家族）
     _PAT = re.compile(r"os\.remove\(|os\.unlink\(|shutil\.rmtree\(|"
                       r"move_to_trash\(|purge_file\(|empty_trash_batch\(|purge_tree\(")
     _SCAN = ["main.py", "runtime_storage.py", "security.py", "llm_credentials.py"]
@@ -16222,8 +16222,26 @@ def check_report_compliance_and_redaction() -> List[Tuple[str, str, str]]:
     try:
         rep = {"confirmed_problems": [{"title": "t", "risk_level": "中风险",
                                        "narrative_paragraphs": [{"text": "张伟先生支付1000.00元。"}]}]}
-        internal = internal_edition(rep, company_id="GATE-T")
-        external = external_edition(rep, company_id="GATE-T")
+        # ★★ 2026-10-13（P0-7 实测事故）：本检查需要"真的生成两次"才能验证
+        #   「版本台账未记录每一次生成（含同内容重复生成）」——而 `internal_edition`
+        #   / `external_edition` 会**写版本台账**。从前直写**生产**
+        #   `data/report_versions.jsonl` ⇒ 实测该台账里 `company_id=GATE-T` 累积 **370 行**
+        #   （`T-X1` 336 行同因）；**只读闸门却有写入副作用**是本项目明确要根治的一类缺陷。
+        #   ⇒ 现把台账**重定向到临时目录**：语义完全不变（仍是"真生成两次 + 真读台账"），
+        #     但**零副作用**。
+        import contextlib as _ctx
+        import tempfile as _tf
+        from engine import report_compliance as _rc_led
+        _orig_ledger_path = _rc_led.ledger_path
+        with _tf.TemporaryDirectory() as _led_dir:
+            _rc_led.ledger_path = lambda: (__import__("pathlib").Path(_led_dir)
+                                           / "report_versions.jsonl")
+            try:
+                internal = internal_edition(rep, company_id="GATE-T")
+                external = external_edition(rep, company_id="GATE-T")
+                _n_ledger = len(change_log("GATE-T"))
+            finally:
+                _rc_led.ledger_path = _orig_ledger_path
         import json as _json
         if "张伟先生" not in _json.dumps(internal, ensure_ascii=False):
             issues.append(("ERROR", "engine/report_compliance.py", "内部底稿被脱敏了"))
@@ -16231,7 +16249,7 @@ def check_report_compliance_and_redaction() -> List[Tuple[str, str, str]]:
             issues.append(("ERROR", "engine/report_compliance.py", "对外版本未脱敏"))
         if "张伟先生" not in _json.dumps(rep, ensure_ascii=False):
             issues.append(("ERROR", "engine/redaction.py", "脱敏改动了原对象（内部底稿被污染）"))
-        if len(change_log("GATE-T")) < 2:
+        if _n_ledger < 2:
             issues.append(("ERROR", "engine/report_compliance.py",
                            "版本台账未记录每一次生成（含同内容重复生成）"))
     except Exception as exc:  # noqa: BLE001

@@ -106,12 +106,14 @@ def main() -> int:
     chk("rules_api.py 页面路由", 1, _count("rules_api.py", r"@page_router\.(get|post)\("))
     chk("risks_api.py 路由", 7, _count("risks_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("risks_api.py 页面路由", 1, _count("risks_api.py", r"@page_router\.(get|post)\("))
+    chk("reports_api.py 路由", 6, _count("reports_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("reports_api.py 页面路由", 1, _count("reports_api.py", r"@page_router\.(get|post)\("))
     chk("main.py 行数(零漂移)", 15156,
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 207, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 104, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("engine/*.py", 211, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 105, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
     chk("config/*.json", 42, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
@@ -129,7 +131,8 @@ def main() -> int:
                   "audit_logs",             # P0-1 前既有（运行时 DDL 建）
                   "projects", "project_members",      # P0-1 稽查项目
                   "documents", "document_pages",     # P0-2 资料
-                  "extracted_tables", "extracted_fields", "extract_issues")  # P0-3 解析
+                  "extracted_tables", "extracted_fields", "extract_issues",  # P0-3 解析
+                  "reports")                          # P0-7 报告登记
     _acct = set(_table_names("data/accounting.db"))
     chk("accounting.db 必需表齐全", [], sorted(set(_need_acct) - _acct))
     print("  [信息] accounting.db 表数 = %d（随功能合法增长，不作断言）" % len(_acct))
@@ -325,14 +328,78 @@ def main() -> int:
     # ── App 实测端点总数（口径唯一权威；**不靠各项相加推**）──
     try:
         _rc = _app_route_counts()
-        chk("App API 端点数（实测）", 206, _rc["api"])
-        chk("App 非 /api 路由数（实测）", 19, _rc["other"])
-        _page_six = ("/projects", "/documents", "/extract", "/analysis", "/rules", "/risks")
-        chk("六个业务页面均在 App 路由中（缺一即报）", [],
+        chk("App API 端点数（实测）", 212, _rc["api"])
+        chk("App 非 /api 路由数（实测）", 20, _rc["other"])
+        _page_six = ("/projects", "/documents", "/extract", "/analysis", "/rules",
+                     "/risks", "/reports")
+        chk("业务页面均在 App 路由中（缺一即报）", [],
             [p for p in _page_six if p not in _rc["other_paths"]])
-        chk("OpenAPI 收录路径数（实测）", 197, _rc["schema_paths"])
+        chk("OpenAPI 收录路径数（实测）", 203, _rc["schema_paths"])
     except Exception as _exc:                                    # noqa: BLE001
         raise AssertionError("App 路由统计失败（判据不可用，参数不完整）：%s" % _exc)
+
+    # ── P0-7 报告生成与导出（新增，2026-10-13）──
+    from engine import report_store as RST_, report_views as RV_
+    from engine import report_render as RRND_, report_service as RSVC_
+    chk("报告视图 4 种", 4, len(RV_.VIEWS))
+    chk("报告视图标签齐全", 4, len([v for v in RV_.VIEWS if RV_.VIEW_LABEL.get(v)]))
+    chk("报告视图说明齐全", 4, len([v for v in RV_.VIEWS if RV_.VIEW_DESC.get(v)]))
+    chk("导出格式 4 种", ["docx", "html", "pdf", "xlsx"], sorted(RV_.FORMATS))
+    chk("格式中文名齐全", 4, len([f for f in RV_.FORMATS if RV_.FORMAT_CN.get(f)]))
+    chk("格式媒体类型齐全", 4, len([f for f in RV_.FORMATS if RV_.FORMAT_MEDIA.get(f)]))
+    chk("格式水印方式齐全", 4, len([f for f in RV_.FORMATS if RV_.WATERMARK_METHOD.get(f)]))
+    chk("章节 12 个", 12, len(RV_.SECTIONS))
+    chk("章节中文名齐全", 12, len([s for s in RV_.SECTIONS if RV_.SECTION_CN.get(s)]))
+    # ★ 视图-章节：保留 ∩ 未含 = ∅，并集 = 全章节（不得静默丢章节）
+    chk("视图章节划分不重不漏", [],
+        [(v, sorted(set(RV_.sections_of(v)) & set(RV_.omitted_sections_of(v))),
+          sorted(set(RV_.sections_of(v)) | set(RV_.omitted_sections_of(v))
+                 ^ set(RV_.SECTIONS)))
+         for v in RV_.VIEWS
+         if (set(RV_.sections_of(v)) & set(RV_.omitted_sections_of(v)))
+         or (set(RV_.sections_of(v)) | set(RV_.omitted_sections_of(v))) != set(RV_.SECTIONS)])
+    chk("视图全覆盖 cover/disclaimer（声明必含）", [],
+        [v for v in RV_.VIEWS
+         if not {"cover", "disclaimer"} <= set(RV_.sections_of(v))])
+    # ★ 报告名称合规（任务书的报告类型名含禁用别名 ⇒ 本项目的视图名不得命中）
+    chk("视图名称合规（以唯一名称开头且不含禁用别名）", [], RV_.verify_view_names())
+    chk("报告登记表列齐备", [],
+        sorted({"doc_no", "version", "company_id", "view", "name", "files",
+                "watermark_mode", "reviewed", "generated_at"}
+               - set(RST_.table_columns())))
+    import sqlite3 as _sq3
+    _conn_ = _sq3.connect(os.path.join(ROOT, "data/accounting.db"))
+    try:
+        _tables_now = {r[0] for r in _conn_.execute(
+            "select name from sqlite_master where type='table'")}
+    finally:
+        _conn_.close()
+    chk("report_versions **不建**（权威已是台账 report_versions.jsonl）", [],
+        [] if RST_.BUILD_OPTIONAL_TABLES
+        else [k for k in RST_.OPTIONAL_TABLES if k in _tables_now])
+    chk("免责声明来源为唯一权威", True,
+        ("engine/report_identity" in RSVC_.metadata()["disclaimer_source"]))
+    # 渲染层反例：缺声明章节 ⇒ 必须抛错（判据在判）
+    _nodisc = {"name": "x", "view": "full", "view_label": "全景", "doc_no": "d",
+               "version": "V1", "generated_at": "", "generated_by": "", "reviewed": False,
+               "reviewed_by": "", "watermark_text": "w",
+               "disclaimer": {"identity_line": "唯一权威声明"},
+               "sections": [{"key": "cover", "title": "封面", "blocks": []}], "omitted": []}
+    _raised = False
+    try:
+        RRND_.render(_nodisc, "html")
+    except RRND_.ReportRenderError:
+        _raised = True
+    chk("缺免责声明章节必须报错", True, _raised)
+    chk("水印方式四格式均 embedded", ["embedded"],
+        sorted({m for m in [RRND_.render(
+            {"name": "x", "view": "full", "view_label": "全景", "doc_no": "d",
+             "version": "V1", "generated_at": "", "generated_by": "", "reviewed": False,
+             "reviewed_by": "", "watermark_text": "w",
+             "disclaimer": {"identity_line": "唯一权威声明"},
+             "sections": [{"key": "disclaimer", "title": "免责声明",
+                           "blocks": [{"type": "paragraph", "text": "唯一权威声明"}]}],
+             "omitted": []}, f)[1] for f in RV_.FORMATS]}))
 
     # ── 规则分层（唯一权威 layer_semantics）──
     with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as fh:

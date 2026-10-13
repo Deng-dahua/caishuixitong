@@ -29,6 +29,8 @@ import tempfile
 import time
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 # ★★ 2026-10-12（实测根因）：**嵌套 pytest（子进程）不得写回执**。
@@ -145,3 +147,38 @@ def pytest_sessionfinish(session, exitstatus):        # noqa: ARG001 - pytest �
         RECEIPT.write_text(json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:                                  # 留痕：写不进去不影响测试结果
         pass
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# ★★ 报告版本台账**隔离**（2026-10-13，P0-7 实测事故）
+# ══════════════════════════════════════════════════════════════════════════
+@pytest.fixture(autouse=True, scope="session")
+def _isolate_report_ledger(tmp_path_factory):
+    """把**报告版本台账**重定向到临时目录，避免测试写进**真实** `data/report_versions.jsonl`。
+
+    ## 为什么需要（实测证据，非推测）
+    P0-7 实测发现真实台账里 **1342 行中有 1044 行（78%）是测试产物**：
+    `company_id` 为 `GATE-T`（370 行）、`T-X1`（336 行）、`T-VER-*`（约 169 组各 2 行）
+    —— 全是在**进程内**直接调 `report_compliance.record_version()` 的测试写进来的
+    （它们没有自己的 `APP_DATA_DIR`，而台账路径当时是**模块级常量**）。
+
+    ## 已修的部分
+    `report_compliance.ledger_path()` 现**调用时解析** `APP_DATA_DIR`
+    ⇒ **子进程型**测试（自带 `APP_DATA_DIR`）已不会污染真实台账。
+
+    ## 本夹具负责的部分
+    **进程内**测试没有 `APP_DATA_DIR`，`ledger_path()` 仍会落到真实路径
+    ⇒ 本会话级 autouse 夹具把 `ledger_path` 指向临时目录。
+    语义等价（同一会话内 `record_version` 与 `change_log` 读同一个文件），
+    只是这个文件在临时目录里 ⇒ **跑测试不再改动生产台账**。
+
+    ★ 反向验证：`tests/test_report_api.py` 断言 `ledger_path()` 落在隔离目录内。
+    """
+    from engine import report_compliance as _rc
+    _orig = _rc.ledger_path
+    _dir = tmp_path_factory.mktemp("report_ledger")
+    _rc.ledger_path = lambda: (_dir / "report_versions.jsonl")   # noqa: E731
+    try:
+        yield _dir
+    finally:
+        _rc.ledger_path = _orig

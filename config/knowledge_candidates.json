@@ -264,14 +264,14 @@
       "hits": 1,
       "suggested_target": "engine/quality_gates.py",
       "suggested_rule": "为『质量门禁未通过』补一条机器判据（命中即阻断输出）",
-      "times_seen": 60,
+      "times_seen": 62,
       "first_sample": "1",
       "last_sample": "1",
       "status": "待人工确认",
       "created_at": "2026-10-08 19:33"
     }
   ],
-  "updated": "2026-10-13 23:33",
+  "updated": "2026-10-14 00:51",
   "last_run": {
     "sample_id": "7",
     "added": 0,

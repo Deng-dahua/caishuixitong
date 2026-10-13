@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -35,7 +36,28 @@ from engine.report_identity import canonical_name  # noqa: E402
 
 _ROOT = Path(__file__).resolve().parent.parent
 _COMPLIANCE = _ROOT / "config" / "report_compliance.json"
-_LEDGER = _ROOT / "data" / "report_versions.jsonl"
+#: ★ 台账**路径**（`Path` 在调用时解析；见 `ledger_path()`）
+_p_NAME = "report_versions.jsonl"
+
+
+def ledger_path() -> Path:
+    """版本台账路径（**唯一权威**）。
+
+    ★★ 2026-10-13（P0-7 实测事故）：此前是模块级常量
+      `_ROOT / "data" / "report_versions.jsonl"` —— **写死源码树路径、不随
+      `APP_DATA_DIR`** ⇒ 隔离实例（测试子进程 / 冒烟脚本）会往**真实项目的台账**里
+      追加行（实测：一次冒烟给真实台账写进 5 行 V136~V140，已备份后精确移除）。
+      与 `runtime_storage.offline_reports_root()` 记录的 2026-10-06 事故**同一类**。
+
+    规则（与 `offline_reports_root()` 一致）：
+      · 设了 `APP_DATA_DIR` ⇒ `<APP_DATA_DIR>/report_versions.jsonl`（隔离实例，只写自己的）；
+      · 未设（生产实例）⇒ `<project>/data/report_versions.jsonl`（现行位置，行为不变）。
+    ★ 必须在**调用时**解析（模块 import 期 `APP_DATA_DIR` 可能尚未设置）。
+    """
+    app_data = os.environ.get("APP_DATA_DIR")
+    if app_data:
+        return Path(app_data) / _p_NAME
+    return _ROOT / "data" / _p_NAME
 
 #: 文稿类型（★ 唯一权威：与配置 documents 的键一一对应）
 DOC_KINDS: Tuple[str, ...] = ("internal_working_paper", "external_notice")
@@ -186,8 +208,9 @@ def _doc_no(company_id: Any, edition_kind: str, version: str) -> str:
 def next_version(company_id: Any, edition_kind: str = "internal_working_paper") -> str:
     """下一个版本号（同企业同文稿类型递增）：V1、V2…；**以台账为准**，不猜。"""
     n = 0
-    if _LEDGER.exists():
-        for line in _LEDGER.read_text(encoding="utf-8").splitlines():
+    _p = ledger_path()
+    if _p.exists():
+        for line in _p.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if not line:
                 continue
@@ -227,18 +250,20 @@ def record_version(company_id: Any, block: Dict[str, Any],
         "change_note": str(change_note or "首次生成。"),
         "analysis_id": str(analysis_id or ""),
     }
-    _LEDGER.parent.mkdir(parents=True, exist_ok=True)
-    with open(_LEDGER, "a", encoding="utf-8") as fh:
+    _p = ledger_path()
+    _p.parent.mkdir(parents=True, exist_ok=True)
+    with open(_p, "a", encoding="utf-8") as fh:
         fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
     return rec
 
 
 def change_log(company_id: Any = None, limit: int = 20) -> List[Dict[str, Any]]:
     """修改记录（按企业过滤；台账倒序）。"""
-    if not _LEDGER.exists():
+    _p = ledger_path()
+    if not _p.exists():
         return []
     out: List[Dict[str, Any]] = []
-    for line in _LEDGER.read_text(encoding="utf-8").splitlines():
+    for line in _p.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line:
             continue
