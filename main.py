@@ -56,7 +56,7 @@ from database import (
 from tax_risk import router as tax_risk_router
 from utils import build_account_hierarchy as _build_account_hierarchy, clear_source_voucher_no as _clear_source_voucher_no, renumber_vouchers as _renumber_vouchers, renumber_archive as _renumber_archive, sync_biz_voucher_no as _sync_biz_voucher_no
 from tax_rules_api import router as tax_rules_api_router
-from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router; from rules_api import router as rules_router, page_router as rules_page_router; from risks_api import router as risks_router, page_router as risks_page_router; from reports_api import router as reports_router, page_router as reports_page_router; from rbac_api import router as rbac_router, page_router as rbac_page_router  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计
+from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router; from rules_api import router as rules_router, page_router as rules_page_router; from risks_api import router as risks_router, page_router as risks_page_router; from reports_api import router as reports_router, page_router as reports_page_router; from rbac_api import router as rbac_router, page_router as rbac_page_router; from engine import parse_enhance as _PE; from engine import ocr_engine as _OC; from parse_api import router as parse_router; from ocr_api import router as ocr_router; from templates_api import router as templates_router, page_router as templates_page_router; from rule_versions_api import router as rule_versions_router, page_router as rule_versions_page_router  # P1-1 解析增强 / P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
@@ -628,7 +628,7 @@ async def add_no_cache_headers(request, call_next):
     return response
 app.include_router(tax_risk_router)
 app.include_router(tax_rules_api_router)
-app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router); app.include_router(rules_router); app.include_router(rules_page_router); app.include_router(risks_router); app.include_router(risks_page_router); app.include_router(reports_router); app.include_router(reports_page_router); app.include_router(rbac_router); app.include_router(rbac_page_router)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计
+app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router); app.include_router(rules_router); app.include_router(rules_page_router); app.include_router(risks_router); app.include_router(risks_page_router); app.include_router(reports_router); app.include_router(reports_page_router); app.include_router(rbac_router); app.include_router(rbac_page_router); app.include_router(parse_router); app.include_router(ocr_router); app.include_router(templates_router); app.include_router(templates_page_router); app.include_router(rule_versions_router); app.include_router(rule_versions_page_router)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计 / P1-1 解析增强
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")
@@ -1691,7 +1691,7 @@ def _ocr_png_bytes(images):
                     chunks.append(str(t).strip())
         if chunks:
             print(f"[OCR] rapidocr 提取 {len(chunks)} 段", flush=True)
-            return "\n".join(chunks)
+            return _OC.record_ocr_run(chunks, "rapidocr")  # P1-2 运行留痕（返回值与拼接逐字符相同）
     except Exception as e:
         print(f"[OCR] rapidocr 不可用: {type(e).__name__}: {e}", flush=True)
 
@@ -1711,7 +1711,7 @@ def _ocr_png_bytes(images):
                     chunks.append(str(txt).strip())
         if chunks:
             print(f"[OCR] easyocr 提取 {len(chunks)} 段", flush=True)
-            return "\n".join(chunks)
+            return _OC.record_ocr_run(chunks, "easyocr")  # P1-2
     except Exception:
         pass
 
@@ -1736,7 +1736,7 @@ def _ocr_png_bytes(images):
     except Exception as e:
         print(f"[OCR] 无可用 OCR 引擎: {type(e).__name__}: {e}", flush=True)
 
-    return "\n".join(chunks)
+    return _OC.record_ocr_run(chunks, "none")  # P1-2 全部引擎不可用 ⇒ 显式留痕（不静默）
 
 
 def _ocr_pdf_pages(filepath, max_pages=20, dpi=300):
@@ -3631,7 +3631,7 @@ _FILE_FINGERPRINTS = {
 
 def _parse_customs_sheet(sheet):
     """解析报关单：提取出口商品明细——用于退税单证比对和报关vs开票一致性验证"""
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "报关单号", "海关编号", "出口日期", "商品编码", "HS编码",
         "商品名称", "美元金额", "人民币金额", "运抵国", "成交方式"
@@ -3710,7 +3710,7 @@ def _parse_customs_sheet(sheet):
 
 def _parse_export_invoice_sheet(sheet):
     """解析出口发票：识别境外买方、贸易术语、起运港/目的港等出口特有信息"""
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "发票号", "出口日期", "买方", "境外", "贸易术语", "FOB", "CIF", "起运港", "目的港"
     ])
@@ -3764,7 +3764,7 @@ def _parse_export_invoice_sheet(sheet):
 
 def _parse_forex_sheet(sheet):
     """解析收汇核销表：核对外汇收入与报关出口的匹配关系"""
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "收汇金额", "核销单号", "收汇日期", "收汇币种", "汇款人", "对应报关单"
     ])
@@ -3826,7 +3826,7 @@ def _parse_audit_notice(sheet):
     
     解析后自动生成应对材料推荐清单。
     """
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     
     # 提取所有文本内容（通知书通常是文本书而非表格结构）
     all_text = []
@@ -4082,7 +4082,7 @@ def _parse_rd_aux_ledger(sheet):
     典型列名：项目名称、费用类型、资本化/费用化、本年发生额、可加计扣除金额
     解析后按项目分组，每个项目包含费用分类和人员信息。
     """
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "项目名称", "研发项目", "费用类型", "费用类别", "本年发生额",
         "可加计扣除", "资本化", "费用化", "人员人工", "直接投入",
@@ -4180,7 +4180,7 @@ def _parse_rd_aux_ledger(sheet):
 def _parse_generic_table(sheet, header):
     """通用表格解析: 提取表头+数据行，不做特定类型转换"""
     rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     for r in range(1, min(nrows, 2000)):
         vals = _get_row_values(sheet, r)
         if _is_summary_row(vals): continue
@@ -4224,7 +4224,7 @@ def _parse_vat_declaration_sheet(sheet, header=None):
     payable_tax(应纳税额)。提取不到关键字段时退回通用表格解析，保证数据不丢。
     """
     import re as _re_local
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     ncols = sheet.ncols if hasattr(sheet, 'ncols') else sheet.max_column
 
     FIELDS = {
@@ -4435,7 +4435,7 @@ def _detect_holder_columns(header):
 
 def _parse_bank_sheet(sheet):
     """解析银行流水：自适应表头+提取交易记录"""
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "交易日期", "记账日期", "对方户名", "对方账号", "收入金额", "支出金额",
         "贷方金额", "借方金额", "摘要", "余额", "流水号", "用途", "附言",
@@ -4568,7 +4568,7 @@ def _parse_housing_fund_sheet(sheet, header):
     cols = _find_cols_semantic(header, colmap)
     if not cols: return None
     rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     for r in range(1, min(nrows, 200)):
         # ★ 2026-10-07 修复：原缺本行，下面的 `raw_vals[col]` 引用未定义名 → NameError。
         #   同族解析器（银行/工资等）均有此行；行值唯一来源 `_get_row_values`。
@@ -4776,7 +4776,7 @@ def _parse_by_content(names, get_sheet, original_name="", extra_text=None):
                     # 额外验证：取前3行样本数据
                     try:
                         sample_data = []
-                        nrows = s.nrows if hasattr(s, 'nrows') else s.max_row
+                        nrows = s.nrows if hasattr(s, 'nrows') else _PE.safe_nrows(s)  # P1-1 防御
                         for r in range(1, min(nrows, 4)):
                             row_vals = _get_row_values(s, r)
                             sample_data.append(" ".join(str(v) for v in row_vals if v))
@@ -5140,7 +5140,7 @@ def _get_row_values(sheet, row_idx):
             batch_start = cached_max + 2  # openpyxl使用1-based行号
             batch_end = row_idx + 2
             try:
-                batch_rows = list(sheet.iter_rows(min_row=batch_start, max_row=batch_end, values_only=True))
+                batch_rows = _PE.iter_rows_range(sheet, batch_start, batch_end)  # P1-1 顺序游标：O(n²)→O(n)
                 for i, batch_row in enumerate(batch_rows):
                     actual_row_idx = cached_max + 1 + i
                     if batch_row:
@@ -5181,7 +5181,7 @@ def _detect_header_row(sheet, nrows, column_keywords, max_scan=2000):
     best_row, best_score = 0, 0
     low_score_streak = 0  # 连续低分行计数
     
-    for r in range(min(max_scan + 1, nrows)):
+    for r in range(min(max_scan + 1, _PE.safe_nrows(sheet, nrows))):  # P1-1 修 nrows=None 崩溃
         row_vals = _get_row_values(sheet, r)
         row_text = " ".join(str(v) for v in row_vals if v)
         score = sum(1 for kw in column_keywords if kw in row_text)
@@ -6086,7 +6086,7 @@ def _parse_by_structure_only(sheet):
 
 def _parse_input_vat_sheet(sheet):
     """解析进项认证抵扣明细"""
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "数电发票号码", "发票代码", "发票号码", "开票日期",
         "金额", "税额", "有效抵扣税额", "勾选状态", "发票来源"
@@ -6118,7 +6118,7 @@ def _parse_input_vat_sheet(sheet):
 
 def _parse_invoice_sheet(sheet, direction):
     # ═══ 自适应表头检测：扫描前20行找真正的列名行 ═══
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "发票号码", "发票代码", "数电发票号码", "开票日期", "购方名称", "销方名称",
         "金额", "税额", "价税合计", "货物或应税劳务名称", "规格型号", "数量", "单价"
@@ -6191,7 +6191,7 @@ def _parse_trial_balance_sheet(sheet, header):
     close_debit/close_credit（并保留 科目编码/科目名称/期末借方/期末贷方 供财务报表分析）。
     若存在"科目级次"列，仅保留一级科目行，避免上下级科目被重复汇总。
     """
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     ncols = sheet.ncols if hasattr(sheet, 'ncols') else sheet.max_column
 
     def _row(r):
@@ -6293,7 +6293,7 @@ def _parse_contract_sheet(sheet, header):
     })
     if not cols: return None
     rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     for r in range(1, min(nrows, 2000)):
         vals = {}
         for field, col in cols.items():
@@ -6316,7 +6316,7 @@ def _parse_related_party_sheet(sheet, header):
     })
     if not cols: return None
     rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     for r in range(1, min(nrows, 1000)):
         vals = {}
         for field, col in cols.items():
@@ -6330,7 +6330,7 @@ def _parse_related_party_sheet(sheet, header):
 
 def _parse_salary_sheet(sheet):
     # ═══ 自适应表头检测 ═══
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "姓名", "工号", "工资", "本期收入", "应发", "实发", "证件", "身份证",
         "应税", "应纳税所得额", "代扣个税", "基本养老保险", "住房公积金"
@@ -6384,7 +6384,7 @@ def _parse_social_sheet(sheet, header):
     # 扫描行0-6，选关键词命中最多的一行作为真实表头
     best_header = header
     best_score = sum(1 for kw in ["姓名","身份证","参保","基数","单位","个人"] if any(kw in str(h) for h in header))
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     for r in range(min(7, nrows)):  # 0-6行
         candidate = _get_row_values(sheet, r)
         score = sum(1 for kw in ["姓名","身份证","证件","参保","基数","缴费","险种","费款","序号","单位","个人","费率"] if any(kw in str(h) for h in candidate))
@@ -6411,7 +6411,7 @@ def _parse_social_sheet(sheet, header):
     })
     if not cols: return None
     rows = []
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     for r in range(1, min(nrows, 200)):
         raw_vals = _get_row_values(sheet, r)
         vals = {}
@@ -6428,7 +6428,7 @@ def _parse_social_sheet(sheet, header):
     return rows
 
 def _parse_voucher_sheet(sheet):
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "日期", "凭证字号", "凭证号", "摘要", "科目", "借方", "贷方"
     ])
@@ -6459,7 +6459,7 @@ def _parse_voucher_sheet(sheet):
     return {"type": "voucher", "rows": rows}
 
 def _parse_inventory_sheet(sheet):
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "日期", "凭证", "入库", "出库", "存货", "数量", "金额",
         "产品编码", "产品名称", "期初库存", "期末库存", "本期入库", "本期出库"
@@ -6504,7 +6504,7 @@ def _parse_bom_sheet(sheet):
     - 成品编码 | 成品名称 | 原料编码 | 原料名称 | 单位用量 | 损耗率 | 工艺路线
     - 父项编码 | 子项编码 | 子项名称 | 用量 | 单位
     """
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "物料编码", "成品编码", "原料编码", "子项编码", "父项编码",
         "物料名称", "成品名称", "原料名称", "组件名称", "BOM版本",
@@ -6618,7 +6618,7 @@ def _parse_warehouse_lease_sheet(sheet, header=None):
     账面存货所需面积必须 ≤ 合同面积；若合同未明确面积条款，
     存货真实存放地存疑（租仓库放不下账面库存→存货真实性风险）。
     """
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "仓库租赁", "仓储合同", "仓库合同", "合同编号", "出租方", "承租方",
         "仓库坐落", "仓储面积", "仓库面积", "租赁期限", "月租金", "仓储品类",
@@ -6675,7 +6675,7 @@ def _parse_transport_contract_sheet(sheet, header=None):
     "到货价含运/购方承担"不能解释本企业账面零运输费——物流单据仍须提供；
     若无任何运输合同+跨省购销，货物流断裂，涉嫌资金回流式虚开。
     """
-    nrows = sheet.nrows if hasattr(sheet, 'nrows') else sheet.max_row
+    nrows = sheet.nrows if hasattr(sheet, 'nrows') else _PE.safe_nrows(sheet)  # P1-1 修缺 dimension 时 max_row=None
     header_row, _scores = _detect_header_row(sheet, nrows, [
         "运输合同", "物流合同", "货运合同", "承运合同", "承运方", "起运地",
         "到达地", "运输方式", "运输距离", "运输重量", "运费", "运费承担方式",

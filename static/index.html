@@ -121,6 +121,13 @@
     <div class="nav-item" data-perm="audit.view" onclick="location.href='/audit-logs'" title="审计日志：上传/分析/修改/下载/导出/复核/状态变更与登录留痕">
       <span class="icon">🧾</span> 审计日志
     </div>
+    <!-- P1-5 报告模板管理 / P1-6 规则版本管理：`data-perm` 同上由 rbac-nav.js 按权限显隐 -->
+    <div class="nav-item" data-perm="report.view" onclick="location.href='/report-templates'" title="报告模板管理：章节顺序与侧重的新建/覆盖/停用，含变更历史（不增删风险事项）">
+      <span class="icon">📐</span> 报告模板
+    </div>
+    <div class="nav-item" data-perm="report.view" onclick="location.href='/rule-versions'" title="规则版本管理：版本历史、版本差异、发布与回滚">
+      <span class="icon">🏷️</span> 规则版本
+    </div>
   </div>
 </nav>
 

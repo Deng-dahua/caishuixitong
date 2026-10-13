@@ -13015,7 +13015,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理
     return counts, general
 
 
@@ -18472,6 +18472,267 @@ print("OK rbac-gate")
                                "RBAC/租户/脱敏行为判据失败"
                                "（角色权限 / 不静默放行 / 脱敏值域 / 租户隔离）：%s"
                                % ((_cp.stdout or "") + " | " + (_cp.stderr or "")).strip()[-400:]))
+    return issues
+
+
+def check_row_cap_manifest() -> List[Tuple[str, str, str]]:
+    """P1-1 解析增强（三条判据，均**可自证**）：
+
+    ① **行数上限登记表 ↔ 源码实测集合一致**：`main.py` 里每个 `min(nrows, N)` 的 N
+       都必须在 `engine/parse_enhance.ROW_CAPS` 登记，反之亦然 ⇒ 改上限必须同步登记。
+    ② **O(n²) 回归防线**：`main._get_row_values` 必须走顺序游标 `_PE.iter_rows_range`。
+       退回 openpyxl read_only 的逐行区间读 ⇒ 复杂度 O(n²)（实测 200 行 0.57s →
+       5,000 行 277.6s，`耗时/n²` 恒定 11~14 µs）。
+    ③ **`nrows` 必须经 `_PE.safe_nrows`**：缺 worksheet dimension 的 xlsx
+       （`max_row is None`）否则抛 TypeError 并被上层吞成"无法识别"。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    _rel = "engine/parse_enhance.py"
+    try:
+        import sys as _sys                              # noqa: PLC0415
+        _sys.path.insert(0, str(ROOT))
+        from engine import parse_enhance as _PE        # noqa: PLC0415
+    except Exception as exc:                            # noqa: BLE001
+        issues.append(("ERROR", _rel, "不可导入：%s" % exc))
+        return issues
+
+    _m = _PE.manifest()
+    if not _m.get("row_caps"):
+        issues.append(("ERROR", _rel, "`ROW_CAPS` 为空（上限登记表被清空）"))
+    if not _m.get("consistent"):
+        issues.append(("ERROR", _rel,
+                       "行数上限登记表与 main.py 实测集合不一致：未登记=%s / 登记但源码已无=%s"
+                       "（新增或修改 `min(nrows, N)` 必须同步 `ROW_CAPS`）"
+                       % (_m.get("unregistered"), _m.get("stale"))))
+
+    _main = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    if "_PE.iter_rows_range(sheet, batch_start, batch_end)" not in _main:
+        issues.append(("ERROR", "main.py",
+                       "`_get_row_values` 未走顺序游标（`_PE.iter_rows_range`）⇒ openpyxl "
+                       "read_only 下逐行区间读会退回 O(n²)（实测 5,000 行 277.6s）"))
+    if "_PE.safe_nrows(" not in _main:
+        issues.append(("ERROR", "main.py",
+                       "`nrows` 未接 `_PE.safe_nrows` ⇒ 缺 worksheet dimension 的 xlsx"
+                       "（max_row=None）会抛 TypeError 并被吞成「无法识别」"))
+    # ★ 绕过路径也要抓：`else sheet.max_row` 直取与 `safe_nrows` 等价于没修
+    #   （反向验证实测：只判 `_PE.safe_nrows(` 是否存在，会把"局部绕过"判成绿 ⇒ 假绿）
+    if "else sheet.max_row" in _main or "else s.max_row" in _main:
+        issues.append(("ERROR", "main.py",
+                       "存在**绕过** `safe_nrows` 的 `else {sheet,s}.max_row` 直取 ⇒ "
+                       "缺 worksheet dimension 的 xlsx（max_row=None）仍会崩"))
+    for _tok in ("from parse_api import router as parse_router",
+                 "app.include_router(parse_router)"):
+        if _tok not in _main:
+            issues.append(("ERROR", "main.py", "缺少 P1-1 接线片段：`%s`" % _tok))
+    return issues
+
+
+def check_ocr_engine_single_source() -> List[Tuple[str, str, str]]:
+    """P1-2 OCR 引擎治理（三条判据）：
+
+    ① `main._ocr_png_bytes` 必须走治理层（`_OC.record_ocr_run`）—— 不得再出现**裸**
+       `return "\\n".join(chunks)`（否则"引擎状态/置信度/运行留痕"三个治理点全部落空）；
+    ② 引擎登记表 `ENGINES` 必须覆盖既有实现的三个引擎（rapidocr / easyocr / tesseract）
+       —— 少一个就会让"可用性回执"与实际能力不符；
+    ③ 接线完整（import + `include_router`）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    _main = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for _tok in ("from engine import ocr_engine as _OC",
+                 "app.include_router(ocr_router)"):
+        if _tok not in _main:
+            issues.append(("ERROR", "main.py", "缺少 P1-2 接线片段：`%s`" % _tok))
+    import re as _re                                          # noqa: PLC0415
+    _bare = _re.findall(r'return "\\n"\.join\(chunks\)', _main)
+    if _bare:
+        issues.append(("ERROR", "main.py",
+                       "`_ocr_png_bytes` 仍有 %d 处裸 `return \"\\n\".join(chunks)` ⇒ "
+                       "绕过治理层（引擎可用性 / 置信度 / 留痕全部缺失）" % len(_bare)))
+    if _main.count("_OC.record_ocr_run(") < 3:
+        issues.append(("ERROR", "main.py",
+                       "`_OC.record_ocr_run` 调用不足 3 处（三引擎各一 + 兜底）⇒ 部分路径无留痕"))
+
+    try:
+        import sys as _sys                                    # noqa: PLC0415
+        _sys.path.insert(0, str(ROOT))
+        from engine import ocr_engine as _OC                  # noqa: PLC0415
+        _names = [str(e.get("name")) for e in _OC.ENGINES]
+        for _n in ("rapidocr", "easyocr", "tesseract"):
+            if _n not in _names:
+                issues.append(("ERROR", "engine/ocr_engine.py",
+                               "引擎 `%s` 未登记进 ENGINES（可用性回执将与实际能力不符）" % _n))
+        if not _OC.engine_status().get("note"):
+            issues.append(("ERROR", "engine/ocr_engine.py", "`engine_status().note` 为空"))
+    except Exception as exc:                                  # noqa: BLE001
+        issues.append(("ERROR", "engine/ocr_engine.py", "不可导入或状态不可取：%s" % exc))
+    return issues
+
+
+def check_extract_rules_sync() -> List[Tuple[str, str, str]]:
+    """P1-3 数据校验规则（三条判据）：
+
+    ① `engine.extract_validate.RULES` 与 `config/standard_fields.json::_validation`
+       的键集合**必须完全一致**（新增规则要两处同步，否则前端字典与实际校验不对应）；
+    ② 规则数不得少于 12（P1-3 的下限，防被误删）；
+    ③ 每条规则必须有中文名（前端直接展示，缺名会露出英文枚举码）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    _rel = "engine/extract_validate.py"
+    try:
+        import json as _json                                  # noqa: PLC0415
+        import sys as _sys                                    # noqa: PLC0415
+        _sys.path.insert(0, str(ROOT))
+        from engine.extract_validate import RULES as _R, RULE_CN as _CN   # noqa: PLC0415
+        _cfg = _json.loads((ROOT / "config" / "standard_fields.json")
+                           .read_text(encoding="utf-8"))
+        _decl = set((_cfg.get("_validation") or {}).keys())
+        _have = set(str(x) for x in _R)
+        if _have != _decl:
+            issues.append(("ERROR", _rel,
+                           "规则清单与配置说明表不同集合：仅在代码=%s / 仅在配置=%s"
+                           % (sorted(_have - _decl), sorted(_decl - _have))))
+        if len(_have) < 12:
+            issues.append(("ERROR", _rel, "校验规则数 %d < 12（P1-3 下限）" % len(_have)))
+        _noname = [r for r in _R if not _CN.get(r)]
+        if _noname:
+            issues.append(("ERROR", _rel, "规则缺中文名（前端会露出英文码）：%s" % _noname))
+    except Exception as exc:                                  # noqa: BLE001
+        issues.append(("ERROR", _rel, "不可导入或配置不可读：%s" % exc))
+    return issues
+
+
+def check_review_flow_wiring() -> List[Tuple[str, str, str]]:
+    """P1-4 人工复核流程（四条判据）：
+
+    ① `engine.risk_review` 必须导出 `bulk_review` / `history` / `review_stats`；
+    ② `risks_api.py` 必须注册三个新端点；
+    ③ **路由顺序**：`/risks/review-board` 与 `/risks/bulk-review` 必须出现在
+       `/risks/{risk_id}` **之前** —— 否则会被路径参数吃成"风险编号 review-board"（静默 404）；
+    ④ 批量复核的汇总审计动作 `risk.bulk_review` 必须已登记且有中文名（否则留痕失败）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        import sys as _sys                                    # noqa: PLC0415
+        _sys.path.insert(0, str(ROOT))
+        from engine import risk_review as _R                  # noqa: PLC0415
+        for _n in ("bulk_review", "history", "review_stats"):
+            if not hasattr(_R, _n):
+                issues.append(("ERROR", "engine/risk_review.py", "缺 P1-4 能力：`%s`" % _n))
+        if int(getattr(_R, "BULK_LIMIT", 0) or 0) <= 0:
+            issues.append(("ERROR", "engine/risk_review.py", "`BULK_LIMIT` 未设置（批量无上限）"))
+        from engine.audit_trail import ACTIONS as _A, ACTION_CN as _C    # noqa: PLC0415
+        if "risk.bulk_review" not in _A:
+            issues.append(("ERROR", "engine/audit_trail.py",
+                           "`risk.bulk_review` 未登记进 ACTIONS（批量复核将无留痕）"))
+        elif not _C.get("risk.bulk_review"):
+            issues.append(("ERROR", "engine/audit_trail.py",
+                           "`risk.bulk_review` 缺中文名（ACTION_CN 须成对维护）"))
+    except Exception as exc:                                  # noqa: BLE001
+        issues.append(("ERROR", "engine/risk_review.py", "不可导入：%s" % exc))
+
+    _api = (ROOT / "risks_api.py").read_text(encoding="utf-8", errors="replace")
+    for _p in ('"/risks/review-board"', '"/risks/bulk-review"', '"/risks/{risk_id}/history"'):
+        if _p not in _api:
+            issues.append(("ERROR", "risks_api.py", "缺 P1-4 端点：%s" % _p))
+    # ★ 顺序判据：字面量路径必须早于参数化路径出现
+    _i_board = _api.find('"/risks/review-board"')
+    _i_bulk = _api.find('"/risks/bulk-review"')
+    _i_param = _api.find('"/risks/{risk_id}"')
+    if _i_param >= 0:
+        for _name, _idx in (("review-board", _i_board), ("bulk-review", _i_bulk)):
+            if 0 <= _idx and _idx > _i_param:
+                issues.append(("ERROR", "risks_api.py",
+                               "`/risks/%s` 注册在 `/risks/{risk_id}` **之后** ⇒ "
+                               "会被路径参数吃成风险编号（静默 404）" % _name))
+    return issues
+
+
+def check_template_manage_wiring() -> List[Tuple[str, str, str]]:
+    """P1-5 报告模板管理（四条判据）：
+
+    ① `engine.template_store` 必须导出 `list_templates` / `get_template` /
+       `upsert_template` / `disable_template` / `effective_templates`；
+    ② **内置来源单一**：`builtin_templates()` 与 `report_compliance.load_config()["templates"]`
+       的键集合必须一致（本层不得复制或改写内置）；
+    ③ **接线完整**（import + `include_router`，含页面路由）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    _rel = "engine/template_store.py"
+    try:
+        import sys as _sys                                    # noqa: PLC0415
+        _sys.path.insert(0, str(ROOT))
+        from engine import template_store as T                # noqa: PLC0415
+        from engine.report_compliance import load_config      # noqa: PLC0415
+        for _n in ("list_templates", "get_template", "upsert_template",
+                   "disable_template", "effective_templates"):
+            if not hasattr(T, _n):
+                issues.append(("ERROR", _rel, "缺 P1-5 能力：`%s`" % _n))
+        cfg_keys = set((load_config().get("templates") or {}).keys())
+        bi_keys = set(T.builtin_templates().keys())
+        if cfg_keys != bi_keys:
+            issues.append(("ERROR", _rel,
+                           "内置模板集合与 config 不一致：仅代码=%s / 仅配置=%s"
+                           % (sorted(bi_keys - cfg_keys), sorted(cfg_keys - bi_keys))))
+    except Exception as exc:                                  # noqa: BLE001
+        issues.append(("ERROR", _rel, "不可导入或配置不可读：%s" % exc))
+
+    _main = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for _tok in ("from templates_api import router as templates_router",
+                 "app.include_router(templates_router)",
+                 "app.include_router(templates_page_router)"):
+        if _tok not in _main:
+            issues.append(("ERROR", "main.py", "缺少 P1-5 接线片段：`%s`" % _tok))
+    return issues
+
+
+def check_rule_version_manage_wiring() -> List[Tuple[str, str, str]]:
+    """P1-6 规则版本管理（四条判据）：
+
+    ① `engine.rule_version_admin` 必须导出 `publish` / `rollback` / `diff` / `list_versions`；
+    ② **未发布时与基线一致**：台账为空 ⇒ `rule_versions.rule_set_version()`
+       必须等于 `config/rule_versions.json::rule_set_version`（否则既有报告溯源被悄悄改口径）；
+    ③ 审计动作 `rule_version.publish` / `rule_version.rollback` 必须已登记且有中文名；
+    ④ 接线完整 + **路由顺序**（字面量段早于 `{version}`）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    _rel = "engine/rule_version_admin.py"
+    try:
+        import sys as _sys                                    # noqa: PLC0415
+        _sys.path.insert(0, str(ROOT))
+        from engine import rule_version_admin as A            # noqa: PLC0415
+        from engine import rule_versions as RV                # noqa: PLC0415
+        for _n in ("publish", "rollback_version", "diff", "list_versions", "snapshot_of"):
+            if not hasattr(A, _n):
+                issues.append(("ERROR", _rel, "缺 P1-6 能力：`%s`" % _n))
+        if not RV.published_version():
+            _cfg_v = str(RV.load_versions().get("rule_set_version") or "")
+            _eff_v = str(RV.rule_set_version() or "")
+            if _cfg_v != _eff_v:
+                issues.append(("ERROR", "engine/rule_versions.py",
+                               "台账为空时生效版本(%s) != 配置基线(%s) ⇒ 既有报告溯源被改口径"
+                               % (_eff_v, _cfg_v)))
+        from engine.audit_trail import ACTIONS as _A, ACTION_CN as _C    # noqa: PLC0415
+        for _a in ("rule_version.publish", "rule_version.rollback"):
+            if _a not in _A:
+                issues.append(("ERROR", "engine/audit_trail.py",
+                               "`%s` 未登记进 ACTIONS（版本变更将无留痕）" % _a))
+            elif not _C.get(_a):
+                issues.append(("ERROR", "engine/audit_trail.py", "`%s` 缺中文名" % _a))
+    except Exception as exc:                                  # noqa: BLE001
+        issues.append(("ERROR", _rel, "不可导入：%s" % exc))
+
+    _main = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for _tok in ("from rule_versions_api import router as rule_versions_router",
+                 "app.include_router(rule_versions_router)",
+                 "app.include_router(rule_versions_page_router)"):
+        if _tok not in _main:
+            issues.append(("ERROR", "main.py", "缺少 P1-6 接线片段：`%s`" % _tok))
+    _api = (ROOT / "rule_versions_api.py").read_text(encoding="utf-8", errors="replace")
+    _i_lit = _api.find('"/rule-versions/meta"')
+    _i_par = _api.find('"/rule-versions/{version}"')
+    if _i_par >= 0 and 0 <= _i_lit and _i_lit > _i_par:
+        issues.append(("ERROR", "rule_versions_api.py",
+                       "`/rule-versions/meta` 注册在 `{version}` **之后** ⇒ 会被路径参数吃掉"))
     return issues
 
 

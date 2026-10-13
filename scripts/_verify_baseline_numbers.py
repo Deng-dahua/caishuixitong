@@ -10,7 +10,7 @@
   accounting.db 必需表齐全（表数仅作信息）｜ security.db 6 表
   规则主体 176（红线 91 + 已验证 85 + 检测器实现层 25/10/14）
   候选 460（add 97 / merge 141）｜ 176+97=273
-  ★ App 实测：API 端点 220 ｜ 非 /api 路由 23 ｜ 业务页面 10
+  ★ App 实测：API 端点 240 ｜ 非 /api 路由 25 ｜ 业务页面 12
     （★ 隔离子进程里起 App 再数，**不污染真实数据**；对外一律引用 206）
   ★ P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核
   ★ P0-7 报告 / P0-8 权限·租户·审计（RBAC 5 角色 13 权限 / 租户隔离 / 脱敏）
@@ -107,7 +107,7 @@ def main() -> int:
     chk("analysis_api.py 页面路由", 1, _count("analysis_api.py", r"@page_router\.(get|post)\("))
     chk("rules_api.py 路由", 9, _count("rules_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("rules_api.py 页面路由", 1, _count("rules_api.py", r"@page_router\.(get|post)\("))
-    chk("risks_api.py 路由", 7, _count("risks_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("risks_api.py 路由", 10, _count("risks_api.py", r"@router\.(get|post|put|delete|patch)\("))   # P1-4 +3
     chk("risks_api.py 页面路由", 1, _count("risks_api.py", r"@page_router\.(get|post)\("))
     chk("reports_api.py 路由", 6, _count("reports_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("reports_api.py 页面路由", 1, _count("reports_api.py", r"@page_router\.(get|post)\("))
@@ -115,8 +115,8 @@ def main() -> int:
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 213, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 106, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("engine/*.py", 217, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 112, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
     chk("config/*.json", 43, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
@@ -181,9 +181,9 @@ def main() -> int:
     # ── P0-3 解析与标准化（新增，2026-10-13）──
     from engine import standard_fields as SF
     from engine.extract_validate import RULES, RULE_CN, validate_rows
-    chk("标准字段数", 35, len(SF.fields()))
-    chk("校验规则数", 6, len(RULES))
-    chk("校验规则中文名齐全", 6, len([r for r in RULES if RULE_CN.get(r)]))
+    chk("标准字段数", 49, len(SF.fields()))   # P1-1 由 35 扩到 49
+    chk("校验规则数", 12, len(RULES))       # P1-3 由 6 扩到 12
+    chk("校验规则中文名齐全", 12, len([r for r in RULES if RULE_CN.get(r)]))
     chk("期间归一(含 YYYYMMDD)", 3, len([
         1 for x in ("2024-01", "20240105", "2024年第2季度") if SF.to_standard_period(x)[1]]))
     chk("金额校验有效", True,
@@ -323,8 +323,8 @@ def main() -> int:
     chk("元数据复核段与状态权威一致", list(RR_.REVIEW_ACTIONS),
         [a["value"] for a in RSVC_.metadata()["review"]["actions"]])
     _rk = [a for a in ACTIONS if a.startswith("risk.")]
-    chk("风险复核审计动作数", 3, len(_rk))
-    chk("风险复核审计动作中文名齐全", 3, len([a for a in _rk if ACTION_CN.get(a)]))
+    chk("风险复核审计动作数", 4, len(_rk))   # P1-4 +risk.bulk_review
+    chk("风险复核审计动作中文名齐全", 4, len([a for a in _rk if ACTION_CN.get(a)]))
     chk("与既有 finding.review 不同概念", True,
         ACTION_CN["finding.review"] != ACTION_CN["risk.review"])
     # 期间解析走编号权威（不自行切字符串）
@@ -333,13 +333,14 @@ def main() -> int:
     # ── App 实测端点总数（口径唯一权威；**不靠各项相加推**）──
     try:
         _rc = _app_route_counts()
-        chk("App API 端点数（实测）", 220, _rc["api"])
-        chk("App 非 /api 路由数（实测）", 23, _rc["other"])
+        chk("App API 端点数（实测）", 240, _rc["api"])
+        chk("App 非 /api 路由数（实测）", 25, _rc["other"])
         _page_all = ("/projects", "/documents", "/extract", "/analysis", "/rules",
-                     "/risks", "/reports", "/users", "/roles", "/audit-logs")
+                     "/risks", "/reports", "/users", "/roles", "/audit-logs",
+                     "/report-templates", "/rule-versions")
         chk("业务页面均在 App 路由中（缺一即报）", [],
             [p for p in _page_all if p not in _rc["other_paths"]])
-        chk("OpenAPI 收录路径数（实测）", 208, _rc["schema_paths"])
+        chk("OpenAPI 收录路径数（实测）", 227, _rc["schema_paths"])
     except Exception as _exc:                                    # noqa: BLE001
         raise AssertionError("App 路由统计失败（判据不可用，参数不完整）：%s" % _exc)
 
@@ -411,7 +412,7 @@ def main() -> int:
     _rc_cfg = RB_.rbac_config()
     chk("RBAC 角色 5 个（任务书）", ["auditor", "enterprise_finance", "review_expert",
                                   "system_admin", "tax_advisor"], sorted(RB_.role_codes()))
-    chk("RBAC 权限点 13 个", 13, len(RB_.permission_codes()))
+    chk("RBAC 权限点 15 个", 15, len(RB_.permission_codes()))   # P1-5/6 各 +1
     chk("角色→权限映射覆盖全部内置角色", [],
         sorted(set(RB_.role_codes()) - set(_rc_cfg.get("role_permissions") or {})))
     chk("角色→脱敏映射覆盖全部内置角色", [],

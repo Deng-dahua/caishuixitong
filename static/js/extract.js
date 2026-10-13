@@ -272,6 +272,54 @@
     });
   }
 
+  /* P1-1 解析能力面板：字段数 / 行数上限档位 / 上限登记一致性（**全部取后端**，不硬编码）。*/
+  async function loadCapability() {
+    try {
+      var m = await api(API + "/parse/meta");
+      var fields = (((m.standard_fields || {}).fields) || []).length;
+      var caps = m.row_caps || [];
+      var ruleN = Object.keys(m.validation || {}).length;
+      $("cap-stats").innerHTML =
+        "<div><b>" + fields + "</b>标准字段</div>" +
+        "<div><b>" + ruleN + "</b>校验规则</div>" +
+        "<div><b>" + caps.length + "</b>行数上限档位</div>" +
+        "<div><b>" + (m.row_cap_consistent ? "一致" : "不一致") + "</b>上限登记</div>";
+      var notes = m.parse_notes || {};
+      $("cap-caps").innerHTML =
+        "上限档位：" + caps.map(function (c) {
+          return c.cap + "（" + esc(c.note) + "）";
+        }).join("；") +
+        "<br>" + esc(notes.cursor || "") +
+        "<br>" + esc(notes.truncation || "");
+      await loadOcr();
+    } catch (e) {
+      $("cap-stats").innerHTML =
+        '<div class="muted">解析能力信息不可用：' + esc(e.message) + "</div>";
+    }
+  }
+
+  /* P1-2 OCR 引擎状态：可用性 / 首选 / 阈值 / 最近一次运行（**全部取后端**）。*/
+  async function loadOcr() {
+    var box = $("ocr-status");
+    if (!box) return;
+    try {
+      var o = await api(API + "/ocr/meta");
+      var engines = (o.engines || []).map(function (e) {
+        return e.name + (e.available ? "✅" : "⛔");
+      }).join("　");
+      var last = o.last;
+      box.innerHTML = "<b>OCR 引擎</b>（P1-2）：" + engines +
+        "　首选：" + esc(o.preferred || "无") +
+        "　低置信阈值：" + esc(String(o.conf_floor)) +
+        (last ? "<br>最近一次：" + esc(last.engine) + "，" + last.segments + " 段，" +
+                last.chars + " 字" + (last.reason ? "（" + esc(last.reason) + "）" : "")
+              : "<br>本进程尚未执行过 OCR") +
+        "<br>" + esc(o.note || "");
+    } catch (e) {
+      box.innerHTML = '<span class="muted">OCR 引擎状态不可用：' + esc(e.message) + "</span>";
+    }
+  }
+
   (async function init() {
     try {
       var me = await api("/api/me").catch(function () { return null; });
@@ -284,6 +332,7 @@
       flash("初始化失败：" + e.message, "err");
     }
     bind();
+    await loadCapability();
     await loadDocs();
   })();
 })();

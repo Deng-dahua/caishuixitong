@@ -128,6 +128,7 @@
       <div class="tab" data-tab="stats" id="tab-stats">风险统计</div>
       <div class="tab" data-tab="rect" id="tab-rect">整改台账</div>
       <div class="tab" data-tab="exec" id="tab-exec">逐条执行</div>
+      <div class="tab" data-tab="board" id="tab-board">复核看板</div>
     </div>
 
     <!-- ═══════════ 风险列表 ═══════════ -->
@@ -175,11 +176,11 @@
         <div style="overflow:auto">
           <table class="grid">
             <thead><tr>
-              <th>序号</th><th>风险编号</th><th>风险事项</th><th>等级</th>
+              <th>选择</th><th>序号</th><th>风险编号</th><th>风险事项</th><th>等级</th>
               <th>排序分</th><th>涉税金额（测算）</th><th>税种</th>
               <th>复核状态</th><th>操作</th>
             </tr></thead>
-            <tbody id="tb-risks"><tr><td colspan="9" class="muted">加载中…</td></tr></tbody>
+            <tbody id="tb-risks"><tr><td colspan="10" class="muted">加载中…</td></tr></tbody>
           </table>
         </div>
         <div class="toolbar" style="margin-top:10px">
@@ -236,6 +237,35 @@
           <thead><tr><th>规则</th><th>层级</th><th>状态</th><th>说明</th></tr></thead>
           <tbody id="tb-exec"><tr><td colspan="4" class="muted">加载中…</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ═══════════ 复核看板（P1-4） ═══════════ -->
+    <div id="pane-board" style="display:none">
+      <div class="card">
+        <h3>复核看板 <span class="hint" id="board-hint"></span></h3>
+        <div class="kpis" id="board-kpis"></div>
+        <div class="muted" id="board-note" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <h3>超期待处理 <span class="hint" id="board-stale-hint"></span></h3>
+        <table class="grid">
+          <thead><tr><th>风险编号</th><th>已待（天）</th><th>最近处置时间</th></tr></thead>
+          <tbody id="tb-stale"><tr><td colspan="3" class="muted">加载中…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>批量复核 <span class="hint">逐条独立执行；部分失败不回滚，逐条如实回报</span></h3>
+        <div class="toolbar">
+          <label>动作</label>
+          <select id="bk-action"></select>
+          <input type="text" id="bk-note" placeholder="理由/说明（排除 / 误报 / 已整改 / 重开 必填）" style="min-width:320px">
+          <button class="btn" id="bk-run">对当前页已勾选风险执行</button>
+          <button class="btn ghost" id="bk-all">全选本页</button>
+          <button class="btn ghost" id="bk-none">清空选择</button>
+          <span class="muted" id="bk-hint"></span>
+        </div>
+        <div class="muted" id="bk-result" style="margin-top:8px;line-height:1.9"></div>
       </div>
     </div>
   </div>

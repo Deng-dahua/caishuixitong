@@ -27,6 +27,10 @@ PRODUCTION_PYTHON = [
     "engine/fact_rules.py", "engine/text_guardrails.py",
     "engine/framework_config.py", "engine/output_governance.py",
     "engine/rbac.py", "engine/access_service.py",
+    # ── 2026-10-14 新增（P1 系列）：解析增强 / OCR 治理 / 模板管理 / 版本管理 ──
+    "engine/parse_enhance.py", "engine/ocr_engine.py",
+    "engine/template_store.py", "engine/rule_version_admin.py",
+    "parse_api.py", "ocr_api.py", "templates_api.py", "rule_versions_api.py",
     "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",
 ]

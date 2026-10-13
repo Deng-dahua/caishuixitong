@@ -21,7 +21,7 @@ var API = '/api/v1';
 var META = null, PROJECTS = [], PID = null, CID = null;
 var PAGE = 1, PAGE_SIZE = 20, TOTAL = 0, LAST = null;
 var DETAIL = null;                 // 当前详情
-var TABS = ['list', 'stats', 'rect', 'exec'];
+var TABS = ['list', 'stats', 'rect', 'exec', 'board'];   // 'board' = P1-4 复核看板
 
 function el(id) { return document.getElementById(id); }
 function esc(s) {
@@ -154,6 +154,8 @@ async function loadList() {
   el('filter-note').innerHTML = notes.length ? notes.map(esc).join(' ') : '';
   el('tb-risks').innerHTML = j.items.map(function (x) {
     return '<tr>'
+      + '<td><input type="checkbox" data-pick="' + esc(x.risk_no || x.seq) + '"'
+      + (PICKED[x.risk_no || x.seq] ? ' checked' : '') + '></td>'
       + '<td>' + esc(x.seq) + '</td>'
       + '<td class="muted">' + esc(x.risk_no || '—') + '</td>'
       + '<td class="wrap">' + esc(x.title || '') + '</td>'
@@ -575,6 +577,88 @@ async function loadExec() {
   }).join('') || '<tr><td colspan="4" class="muted">（无执行记录）</td></tr>';
 }
 
+/* ───────────── P1-4 复核看板 / 批量复核 ───────────── */
+var PICKED = {};                    // risk_no → true（仅本页勾选，不跨页累积）
+
+function pickedIds() { return Object.keys(PICKED).filter(function (k) { return PICKED[k]; }); }
+
+function renderCheckboxes() {
+  var boxes = document.querySelectorAll('[data-pick]');
+  for (var i = 0; i < boxes.length; i++) {
+    var k = boxes[i].getAttribute('data-pick');
+    boxes[i].checked = !!PICKED[k];
+  }
+}
+
+async function loadBoard() {
+  if (!PID) {
+    el('board-kpis').innerHTML = '';
+    el('board-note').textContent = '请先选择稽查项目';
+    el('tb-stale').innerHTML = '<tr><td colspan="3" class="muted">请先选择项目</td></tr>';
+    return;
+  }
+  var j;
+  try { j = await api('GET', API + '/risks/review-board?project_id=' + PID); }
+  catch (e) {
+    el('board-note').textContent = '看板加载失败：' + e.message;
+    el('tb-stale').innerHTML = '<tr><td colspan="3" class="muted">加载失败</td></tr>';
+    return;
+  }
+  CID = j.company_id || CID;
+  el('board-hint').textContent = j.note || '';
+  el('board-kpis').innerHTML =
+      kpi('已处置', j.done) + kpi('处置率', Math.round((j.done_ratio || 0) * 100) + '%')
+    + kpi('超期待处理', j.overdue_count) + kpi('从未处置', j.never_reviewed_count)
+    + Object.keys(j.by_state_cn || {}).map(function (k) {
+        return kpi(k, j.by_state_cn[k]); }).join('');
+  el('board-note').textContent = '超期阈值 ' + j.stale_days + ' 天；共 ' + j.total + ' 条纳入统计。';
+  el('board-stale-hint').textContent = '共 ' + j.overdue_count + ' 条';
+  el('tb-stale').innerHTML = (j.overdue || []).map(function (x) {
+    return '<tr><td>' + esc(x.risk_no) + '</td><td class="num">' + esc(x.days)
+      + '</td><td class="muted">' + esc(x.updated_at || '—') + '</td></tr>';
+  }).join('') || '<tr><td colspan="3" class="muted">（无超期待处理）</td></tr>';
+  // 批量动作下拉：**取后端字典**（不硬编码中文名与"是否必填理由"）
+  var sel = el('bk-action');
+  if (!sel.options.length && META && META.review) {
+    (META.review.actions || []).forEach(function (a) {
+      var o = document.createElement('option');
+      o.value = a.value;
+      o.textContent = a.label + (a.note_required ? '（需填理由）' : '');
+      o.setAttribute('data-note', a.note_required ? '1' : '0');
+      sel.appendChild(o);
+    });
+  }
+  el('bk-hint').textContent = '已勾选 ' + pickedIds().length + ' 条（在「风险列表」页勾选）';
+}
+
+async function runBulk() {
+  var ids = pickedIds();
+  if (!ids.length) { alertBox('warn', '请先在「风险列表」页勾选要处置的风险'); return; }
+  var sel = el('bk-action');
+  var opt = sel.options[sel.selectedIndex];
+  var note = (el('bk-note').value || '').trim();
+  if (opt && opt.getAttribute('data-note') === '1' && !note) {
+    alertBox('warn', '「' + opt.textContent + '」必须填写理由/说明');
+    return;
+  }
+  var body = { risk_ids: ids, action: sel.value, note: note };
+  if (CID) { body.company_id = CID; }
+  var j;
+  try { j = await api('POST', API + '/risks/bulk-review', body); }
+  catch (e) { alertBox('err', '批量复核失败：' + e.message); return; }
+  el('bk-result').innerHTML =
+      '共 ' + j.total + ' 条：<b>成功 ' + j.ok + '</b> · 无变化 ' + j.noop
+    + ' · <b>失败 ' + j.failed + '</b>'
+    + (j.dup_removed ? '（已自动去重 ' + j.dup_removed + ' 条）' : '')
+    + '<br>' + esc(j.note || '')
+    + '<br>' + (j.items || []).map(function (x) {
+        return '· ' + esc(x.risk_no) + ' → ' + esc(x.status) + '：' + esc(x.message);
+      }).join('<br>');
+  PICKED = {};
+  await loadList();
+  await loadBoard();
+}
+
 /* ─────────────────── 事件 ─────────────────── */
 function switchTab(name) {
   TABS.forEach(function (t) {
@@ -584,6 +668,7 @@ function switchTab(name) {
   if (name === 'stats') { loadStats(); }
   if (name === 'rect') { loadRect(); }
   if (name === 'exec') { loadExec(); }
+  if (name === 'board') { loadBoard(); }
 }
 
 async function refreshAll() {
@@ -591,6 +676,7 @@ async function refreshAll() {
   if (el('pane-stats').style.display !== 'none') { await loadStats(); }
   if (el('pane-rect').style.display !== 'none') { await loadRect(); }
   if (el('pane-exec').style.display !== 'none') { await loadExec(); }
+  if (el('pane-board').style.display !== 'none') { await loadBoard(); }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -616,8 +702,28 @@ document.addEventListener('DOMContentLoaded', function () {
   el('pg-next').onclick = function () {
     if (LAST && PAGE < (LAST.pages || 1)) { PAGE++; loadList(); }
   };
+  el('bk-run').onclick = runBulk;
+  el('bk-all').onclick = function () {
+    (LAST && LAST.items || []).forEach(function (x) { PICKED[x.risk_no || x.seq] = true; });
+    renderCheckboxes();
+    el('bk-hint').textContent = '已勾选 ' + pickedIds().length + ' 条';
+  };
+  el('bk-none').onclick = function () {
+    PICKED = {};
+    renderCheckboxes();
+    el('bk-hint').textContent = '已勾选 0 条';
+  };
   el('d-close').onclick = closeDrawer;
   el('mask').onclick = closeDrawer;
+  document.addEventListener('change', function (ev) {
+    var t = ev.target;
+    if (t && t.getAttribute && t.getAttribute('data-pick')) {
+      PICKED[t.getAttribute('data-pick')] = !!t.checked;
+      if (el('bk-hint')) {
+        el('bk-hint').textContent = '已勾选 ' + pickedIds().length + ' 条';
+      }
+    }
+  });
   document.addEventListener('click', function (ev) {
     var b = ev.target.closest ? ev.target.closest('[data-open]') : null;
     if (b) { openDetail(b.getAttribute('data-open')); }

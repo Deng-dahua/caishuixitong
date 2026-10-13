@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>规则版本管理 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a { color:#cbd5e1; border:1px solid rgba(255,255,255,.25); border-radius:5px;
+                padding:5px 12px; font-size:12px; text-decoration:none; }
+    .topbar a:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1400px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:14px; }
+    .card > h3 { margin:0; padding:12px 16px; font-size:14px; border-bottom:1px solid #f1f5f9; }
+    .card > .body { padding:14px 16px; }
+    .kpis { display:flex; gap:22px; flex-wrap:wrap; }
+    .kpis > div { font-size:12px; color:#64748b; }
+    .kpis b { display:block; font-size:20px; color:#0f172a; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+    .toolbar input, .toolbar select { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px; font-size:13px; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:8px 11px; text-align:left; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
+    table.grid tr:hover td { background:#f8fafc; }
+    .muted { color:#94a3b8; }
+    .msg { padding:8px 12px; border-radius:5px; font-size:13px; margin-bottom:10px; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .msg.warn { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; background:#f1f5f9; color:#475569; }
+    .tag.cur { background:#dcfce7; color:#15803d; font-weight:600; }
+    .tag.cfg { background:#e0e7ff; color:#3730a3; }
+    .tag.led { background:#fef3c7; color:#b45309; }
+    code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12px; }
+  </style>
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🏷️ 规则版本管理</h1>
+    <span class="spacer"></span>
+    <span class="muted" id="who" style="color:#94a3b8"></span>
+    <a href="/rules">规则库</a>
+    <a href="/">返回主界面</a>
+  </div>
+
+  <div class="wrap">
+    <div id="alert"></div>
+
+    <div class="card">
+      <h3>当前状态 <span class="muted" id="meta-note"></span></h3>
+      <div class="body"><div class="kpis" id="kpis"></div></div>
+    </div>
+
+    <div class="card">
+      <h3>版本清单 <span class="muted">出厂历史 + 发布/回滚事件（同一版本以事件为准）</span></h3>
+      <div class="body">
+        <div class="toolbar"><button class="btn ghost" id="btn-refresh">刷新</button></div>
+        <table class="grid">
+          <thead><tr><th>版本</th><th>来源</th><th>动作</th><th>日期</th><th>操作人</th><th>快照</th><th>说明</th><th>操作</th></tr></thead>
+          <tbody id="tb"><tr><td colspan="8" class="muted">加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>发布 / 回滚</h3>
+      <div class="body">
+        <div class="toolbar">
+          <label>版本号</label>
+          <input type="text" id="v-version" placeholder="YYYY.NN，如 2026.11" style="min-width:160px">
+          <label>说明</label>
+          <input type="text" id="v-note" placeholder="变更原因（留痕会记录）" style="min-width:300px">
+          <button class="btn" id="btn-publish">发布新版本</button>
+          <button class="btn ghost" id="btn-rollback">回滚到该版本</button>
+        </div>
+        <div class="muted" id="v-hint"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>版本差异 <span class="muted">基于发布时落盘的逐条规则版本快照</span></h3>
+      <div class="body">
+        <div class="toolbar">
+          <label>从</label><input type="text" id="d-from" placeholder="如 2026.10" style="min-width:130px">
+          <label>到</label><input type="text" id="d-to" placeholder="如 2026.11" style="min-width:130px">
+          <button class="btn ghost" id="btn-diff">比对</button>
+          <span class="muted" id="d-hint"></span>
+        </div>
+        <div id="d-result" class="muted" style="line-height:1.9"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/rule_versions.js" defer></script>
+</body>
+</html>

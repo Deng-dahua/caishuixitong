@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>报告模板管理 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a { color:#cbd5e1; border:1px solid rgba(255,255,255,.25); border-radius:5px;
+                padding:5px 12px; font-size:12px; text-decoration:none; }
+    .topbar a:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1400px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:14px; }
+    .card > h3 { margin:0; padding:12px 16px; font-size:14px; border-bottom:1px solid #f1f5f9; }
+    .card > .body { padding:14px 16px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+    .toolbar input, .toolbar select { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px; font-size:13px; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:8px 11px; text-align:left; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
+    table.grid tr:hover td { background:#f8fafc; }
+    .muted { color:#94a3b8; }
+    .msg { padding:8px 12px; border-radius:5px; font-size:13px; margin-bottom:10px; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .msg.warn { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; background:#f1f5f9; color:#475569; }
+    .tag.builtin { background:#e0e7ff; color:#3730a3; }
+    .tag.custom { background:#dcfce7; color:#15803d; }
+    .tag.off { background:#e5e7eb; color:#6b7280; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .chip { padding:3px 9px; border-radius:12px; font-size:12px; background:#f1f5f9; color:#334155; cursor:pointer; }
+    .chip.on { background:#3b82f6; color:#fff; }
+    .chips.lock .chip { cursor:not-allowed; opacity:.85; }
+    textarea { padding:6px 9px; border:1px solid #cbd5e1; border-radius:5px; font-size:13px;
+               font-family:inherit; width:100%; min-height:52px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+    .row label { font-size:12px; color:#64748b; }
+  </style>
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>📐 报告模板管理</h1>
+    <span class="spacer"></span>
+    <span class="muted" id="who" style="color:#94a3b8"></span>
+    <a href="/reports">报告工作台</a>
+    <a href="/">返回主界面</a>
+  </div>
+
+  <div class="wrap">
+    <div id="alert"></div>
+
+    <div class="card">
+      <h3>模板清单 <span class="muted" id="list-hint"></span></h3>
+      <div class="body">
+        <div class="toolbar">
+          <label><input type="checkbox" id="inc-off"> 显示已停用</label>
+          <button class="btn ghost" id="btn-refresh">刷新</button>
+        </div>
+        <table class="grid">
+          <thead><tr><th>模板编码</th><th>名称</th><th>来源</th><th>版本</th><th>章节</th><th>侧重</th><th>操作</th></tr></thead>
+          <tbody id="tb"><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>新建 / 覆盖模板 <span class="muted" id="edit-hint">（章节必须落在白名单内）</span></h3>
+      <div class="body">
+        <div class="row">
+          <label>模板编码</label><input type="text" id="t-id" placeholder="如 service_light（小写字母开头）" style="min-width:220px">
+          <label>名称</label><input type="text" id="t-label" placeholder="如 服务型行业模板（轻资产）" style="min-width:280px">
+        </div>
+        <div class="row"><label>章节（点击选择/取消，顺序即呈现顺序）</label></div>
+        <div class="chips" id="t-sections"></div>
+        <div class="row" style="margin-top:10px">
+          <label>侧重说明</label><input type="text" id="t-emphasis" placeholder="如 以收入完整性、费用真实性为主轴" style="min-width:420px">
+        </div>
+        <div class="row"><label style="min-width:60px">备注</label><textarea id="t-note" placeholder="变更原因（留痕会记录）"></textarea></div>
+        <div class="row">
+          <button class="btn" id="btn-save">保存（版本自增）</button>
+          <button class="btn ghost" id="btn-clear">清空表单</button>
+          <span class="muted" id="save-hint"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>变更历史 <span class="muted" id="hist-hint">（点"历史"查看某个模板）</span></h3>
+      <div class="body">
+        <table class="grid">
+          <thead><tr><th>版本</th><th>动作</th><th>时间</th><th>操作人</th><th>名称</th><th>章节</th><th>备注</th></tr></thead>
+          <tbody id="tb-hist"><tr><td colspan="7" class="muted">（未选择模板）</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/templates.js" defer></script>
+</body>
+</html>

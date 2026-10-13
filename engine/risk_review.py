@@ -36,6 +36,7 @@ __all__ = [
     "ACTION_CN", "ACTION_TO_STATE", "NOTE_REQUIRED", "TERMINAL_STATES",
     "RiskReviewError", "reviews_path", "last_errors",
     "get", "states_of", "review", "comment", "rectifications",
+    "history", "review_stats", "bulk_review", "BULK_LIMIT", "STALE_DAYS_DEFAULT",
     "metadata", "reset_cache",
 ]
 
@@ -479,6 +480,174 @@ def comment(risk_no: Any, text: Any, session: Any, *,
     return out
 
 
+#: 批量复核单次上限（**防止一次点全表把服务打满**；超出 ⇒ 400 并如实说明）
+BULK_LIMIT: int = 200
+
+#: 「待处理」超过多少天算**超期**（看板用；可由调用方覆盖）
+STALE_DAYS_DEFAULT: int = 3
+
+
+def history(risk_no: Any, company_id: Any = None) -> Dict[str, Any]:
+    """该风险的**处置事件流**（折叠后的 `history` + `comments`，时间正序）。
+
+    ★ 未处置 ⇒ 返回空列表 + `reviewed=False`（**缺失 ≠ 有记录**，不伪造事件）。
+    """
+    rec = get(risk_no, company_id)
+    return {
+        "risk_no": str(rec.get("risk_no") or ""),
+        "state": rec.get("state"), "state_cn": rec.get("state_cn"),
+        "reviewed": bool(rec.get("reviewed")),
+        "manual_required": bool(rec.get("manual_required")),
+        "rectification_no": rec.get("rectification_no") or "",
+        "updated_at": rec.get("updated_at") or "",
+        "updated_by": rec.get("updated_by") or "",
+        "events": list(rec.get("history") or []),
+        "comments": list(rec.get("comments") or []),
+        "note": ("本列表为该风险的**人工处置**留痕（append-only 折叠）；"
+                 "未处置时为空白列表，不表示『没有风险』。"),
+    }
+
+
+def _days_since(iso: Any) -> Optional[int]:
+    """`at`（ISO 文本）距现在的**整日数**；无法解析 ⇒ `None`（**不猜**）。"""
+    s = str(iso or "").strip()
+    if len(s) < 10:
+        return None
+    try:
+        import datetime as _dt                                # noqa: PLC0415
+        then = _dt.date(int(s[0:4]), int(s[5:7]), int(s[8:10]))
+    except (ValueError, TypeError):
+        return None
+    try:
+        from runtime_storage import now_cst                   # noqa: PLC0415
+        now = str(now_cst())
+        today = _dt.date(int(now[0:4]), int(now[5:7]), int(now[8:10]))
+    except Exception:                                         # noqa: BLE001
+        import datetime as _dt2                               # noqa: PLC0415
+        today = _dt2.date.today()
+    return max(0, (today - then).days)
+
+
+def review_stats(company_id: Any = None, *, risk_nos: Any = None,
+                 stale_days: int = STALE_DAYS_DEFAULT) -> Dict[str, Any]:
+    """复核看板：各态计数 / 已处置率 / **超期待处理**清单。
+
+    `risk_nos` 给定时只统计这些编号（用于"项目视角"——一个项目只含其账套的部分风险）；
+    未给定时统计该账套**已产生过处置记录**的全部风险。
+    """
+    st = states_of(company_id)
+    keys = ([str(x) for x in risk_nos if str(x or "").strip()] if risk_nos
+            else sorted(st.keys()))
+    try:
+        stale = int(stale_days)
+    except (TypeError, ValueError):
+        stale = STALE_DAYS_DEFAULT
+    by_state: Dict[str, int] = {s: 0 for s in REVIEW_STATES}
+    overdue: List[Dict[str, Any]] = []
+    never: List[str] = []
+    for k in keys:
+        rec = st.get(k) or _blank(k, company_id or 0)
+        s = str(rec.get("state") or DEFAULT_STATE)
+        by_state[s] = by_state.get(s, 0) + 1
+        if s != DEFAULT_STATE:
+            continue
+        d = _days_since(rec.get("updated_at"))
+        if not rec.get("reviewed") or d is None:
+            never.append(k)                       # 从未处置（不是"超期"—— 无起点）
+        elif d >= stale:
+            overdue.append({"risk_no": k, "days": d,
+                            "updated_at": str(rec.get("updated_at") or "")})
+    total = len(keys)
+    done = sum(by_state.get(s, 0) for s in TERMINAL_STATES)
+    return {
+        "total": total,
+        "by_state": by_state,
+        "by_state_cn": {STATE_CN[s]: by_state.get(s, 0) for s in REVIEW_STATES},
+        "done": done,
+        "done_ratio": (0.0 if total == 0 else round(done / total, 4)),
+        "stale_days": stale,
+        "overdue": overdue,
+        "overdue_count": len(overdue),
+        "never_reviewed": never,
+        "never_reviewed_count": len(never),
+        "note": ("「从未处置」与「超期」分开计：前者**没有起点**（不能算超期），"
+                 "后者自最近一次处置起算；缺失 ≠ 0。"),
+    }
+
+
+def bulk_review(risk_nos: Any, action: Any, session: Any, *,
+                company_id: Any = None, note: str = "",
+                request: Any = None, limit: int = BULK_LIMIT) -> Dict[str, Any]:
+    """**批量复核**：对一批风险执行同一动作，**逐条独立执行、逐条如实回报**。
+
+    ★ 为什么不做"全成功才提交"：那需要事务性回滚，而处置流水是 **append-only** 台账
+      （`risk_reviews.jsonl`）—— 强行回滚会破坏"留痕不可改写"这条铁律。
+      故采用**部分成功可见**语义：每条给出 `ok / noop / failed` 三态与原因。
+    ★ 重复编号自动去重（去重后仍计入 `dup_removed`，如实告知，不静默）。
+    """
+    ids = [str(x).strip() for x in (risk_nos or []) if str(x or "").strip()]
+    if not ids:
+        raise RiskReviewError("批量复核的风险编号列表不能为空", 400)
+    try:
+        cap = int(limit)
+    except (TypeError, ValueError):
+        cap = BULK_LIMIT
+    if len(ids) > cap:
+        raise RiskReviewError(
+            "单次批量复核最多 %d 条（本次 %d 条）—— 请分批提交" % (cap, len(ids)), 400)
+
+    seen: set = set()
+    uniq: List[str] = []
+    for i in ids:
+        if i not in seen:
+            seen.add(i)
+            uniq.append(i)
+
+    items: List[Dict[str, Any]] = []
+    ok = noop = bad = 0
+    for rn in uniq:
+        try:
+            r = review(rn, action, session, company_id=company_id,
+                       note=note, request=request)
+        except RiskReviewError as exc:
+            items.append({"risk_no": rn, "status": "failed", "code": int(exc.status),
+                          "message": str(exc.message), "state": ""})
+            bad += 1
+            continue
+        except Exception as exc:                              # noqa: BLE001
+            items.append({"risk_no": rn, "status": "failed", "code": 500,
+                          "message": "未预期错误：%s" % type(exc).__name__, "state": ""})
+            bad += 1
+            continue
+        if r.get("noop"):
+            items.append({"risk_no": rn, "status": "noop", "code": 200,
+                          "message": str(r.get("message") or ""),
+                          "state": str(r.get("state") or "")})
+            noop += 1
+        else:
+            items.append({"risk_no": rn, "status": "ok", "code": 200,
+                          "message": str(r.get("message") or ""),
+                          "state": str(r.get("state") or "")})
+            ok += 1
+
+    out = {
+        "action": str(action or ""),
+        "action_cn": ACTION_CN.get(str(action or ""), str(action or "")),
+        "total": len(uniq),
+        "ok": ok, "noop": noop, "failed": bad,
+        "dup_removed": len(ids) - len(uniq),
+        "items": items,
+        "note": ("批量复核**逐条独立执行**：部分失败**不回滚**已成功条目"
+                 "（处置流水是 append-only 台账，不可改写）；失败原因逐条可见。"),
+    }
+    # 汇总留痕（**逐条的 review 已各自留痕**；这里再记一条便于按批检索）
+    _record("risk.bulk_review", str(action or ""), company_id,
+            "批量复核「%s」：共 %d 条，成功 %d、无变化 %d、失败 %d"
+            % (ACTION_CN.get(str(action or ""), str(action or "")),
+               len(uniq), ok, noop, bad), request, session)
+    return out
+
+
 def _record(action: str, target: str, company_id: Any, detail: str,
             request: Any, session: Any = None) -> None:
     """薄转发 `audit_trail.record`（**不放进 try/except:pass** —— 留痕失败必须可见）。
@@ -517,4 +686,6 @@ def metadata() -> Dict[str, Any]:
                  "（等级唯一权威 engine/risk_levels.py）。与既有 `finding.review`（引擎数据"
                  "一致性复核）是**两个概念**，互不顶替。"),
         "storage": "data/risk_reviews.jsonl（append-only，当前态由折叠得到）",
+        "bulk_limit": BULK_LIMIT,
+        "stale_days_default": STALE_DAYS_DEFAULT,
     }

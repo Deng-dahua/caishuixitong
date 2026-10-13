@@ -461,6 +461,189 @@
       "required": false,
       "aliases_from": "SALARY_DEPT_KEYS",
       "aliases": []
+    },
+    {
+      "name": "voucher_no",
+      "cn": "凭证号",
+      "domain": "ledger",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "凭证号",
+        "凭证字号",
+        "凭证编号",
+        "记账号",
+        "voucher_no"
+      ]
+    },
+    {
+      "name": "summary",
+      "cn": "摘要",
+      "domain": "ledger",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "摘要",
+        "业务摘要",
+        "摘要说明"
+      ]
+    },
+    {
+      "name": "voucher_date",
+      "cn": "凭证日期",
+      "domain": "ledger",
+      "type": "date",
+      "required": false,
+      "aliases": [
+        "凭证日期",
+        "记账日期",
+        "制单日期",
+        "业务日期"
+      ]
+    },
+    {
+      "name": "invoice_code",
+      "cn": "发票代码",
+      "domain": "invoice",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "发票代码",
+        "发票代号",
+        "invoice_code"
+      ]
+    },
+    {
+      "name": "tax_rate",
+      "cn": "税率",
+      "domain": "invoice",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "税率",
+        "征收率",
+        "税率/征收率",
+        "tax_rate"
+      ]
+    },
+    {
+      "name": "seller_tax_no",
+      "cn": "销方纳税人识别号",
+      "domain": "invoice",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "销方纳税人识别号",
+        "销售方纳税人识别号",
+        "销方税号",
+        "销方统一社会信用代码",
+        "销售方统一社会信用代码"
+      ]
+    },
+    {
+      "name": "buyer_tax_no",
+      "cn": "购方纳税人识别号",
+      "domain": "invoice",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "购方纳税人识别号",
+        "购买方纳税人识别号",
+        "购方税号",
+        "购方统一社会信用代码",
+        "购买方统一社会信用代码"
+      ]
+    },
+    {
+      "name": "bank_account",
+      "cn": "银行账号",
+      "domain": "bank",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "银行账号",
+        "本方账号",
+        "本方银行账号",
+        "bank_account"
+      ]
+    },
+    {
+      "name": "bank_name",
+      "cn": "开户行",
+      "domain": "bank",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "开户行",
+        "开户银行",
+        "银行名称",
+        "bank_name"
+      ]
+    },
+    {
+      "name": "direction",
+      "cn": "收付方向",
+      "domain": "bank",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "收付方向",
+        "借贷标志",
+        "收支方向",
+        "direction"
+      ]
+    },
+    {
+      "name": "tax_item",
+      "cn": "税目",
+      "domain": "declaration",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "税目",
+        "征收项目",
+        "征收品目",
+        "tax_item"
+      ]
+    },
+    {
+      "name": "id_card",
+      "cn": "身份证号",
+      "domain": "payroll",
+      "type": "text",
+      "required": false,
+      "aliases": [
+        "身份证号",
+        "身份证号码",
+        "证件号码",
+        "身份证件号码"
+      ]
+    },
+    {
+      "name": "social_insurance",
+      "cn": "社保费",
+      "domain": "payroll",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "社保费",
+        "社会保险费",
+        "单位社保",
+        "个人社保",
+        "五险"
+      ]
+    },
+    {
+      "name": "housing_fund",
+      "cn": "住房公积金",
+      "domain": "payroll",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "住房公积金",
+        "公积金",
+        "住房公积"
+      ]
     }
   ],
   "_validation": {
@@ -469,8 +652,14 @@
     "period_mismatch": "period 与文档名/项目稽查期间不一致 ⇒ 记「期间错配」",
     "duplicate": "同一 (标准字段集合 + 关键列) 出现完全相同的行 ⇒ 记「重复数据」",
     "debit_credit_unbalanced": "借贷列同时存在时，Σ借方 ≠ Σ贷方 ⇒ 记「借贷不平衡」（差额与两侧合计）",
-    "cross_check": "报表勾稽：资产总计 ≠ 负债合计 + 所有者权益合计 ⇒ 记「报表勾稽异常」"
+    "cross_check": "报表勾稽：资产总计 ≠ 负债合计 + 所有者权益合计 ⇒ 记「报表勾稽异常」",
+    "amount_negative": "**报表类**金额字段（资产总计/负债合计/所有者权益/营业收入/营业成本）出现负值 ⇒ 记「金额异常负值」（借贷列的负值可能是红字冲销，**不报**）",
+    "null_rate": "某标准字段的**填充率**（非空行数 / 总行数）在 (0, 50%) 区间 ⇒ 记「关键列缺失率过高」（全空由 required_missing 报，两者不重叠）",
+    "date_out_of_range": "date 类型字段归一后早于 2000-01-01 或晚于「次年年底」⇒ 记「日期超出合理范围」（解析失败的不重复报）",
+    "account_code_format": "科目编码非 4~12 位纯数字 ⇒ 记「科目编码格式异常」",
+    "tax_rate_validity": "税率经 rate_to_percent 归一后不在法定档位（0/1/1.5/3/5/6/9/10/11/13/16/17 %）⇒ 记「税率非标准档位」；无法解析为税率的单独标注「无法解析为税率」",
+    "duplicate_invoice_no": "同一表内发票号码重复 ⇒ 记「发票号码重复」（**只看号码**；整行重复由 duplicate 报，两者不重叠）"
   },
-  "updated": "2026-10-13",
-  "_version_note": "2026-10-13: invoice_date/tx_date 补 date 别名（既有解析器输出的列名）；日期归一补 YYYYMMDD"
+  "updated": "2026-10-14",
+  "_version_note": "2026-10-14（P1-1 标准化增强）：新增 14 个标准字段（ledger 凭证号/摘要/凭证日期；invoice 发票代码/税率/销方·购方纳税人识别号；bank 银行账号/开户行/收付方向；declaration 税目；payroll 身份证号/社保费/住房公积金）⇒ 35 → 49。全部 required=false，**不新增必填约束**（向后兼容）。 （历史）2026-10-13: invoice_date/tx_date 补 date 别名；日期归一补 YYYYMMDD"
 }

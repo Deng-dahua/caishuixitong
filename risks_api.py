@@ -93,7 +93,73 @@ def _project_company(project_id: int, session: Any) -> int:
 @router.get("/risks/meta", summary="字典（状态机/动作/排序键/等级候选）")
 def risks_meta(request: Request):
     _session(request)
+    # ★ 复核状态机字典由 `risk_service.metadata()` **内部**收口（它转发 `risk_review.metadata()`）
+    #   ⇒ 本处**不再二次写入** `review` 键（避免同一概念两个写入点）。
+    #   P1-4 新增的 `bulk_limit` / `stale_days_default` 已随该链路自动可见。
     return RISK.metadata()
+
+
+# --------------------------------------------------------------------------
+# P1-4 复核看板 / 批量复核（★ 注册在 `/risks/{risk_id}` **之前**，否则会被它吃掉）
+# --------------------------------------------------------------------------
+@router.get("/risks/review-board", summary="复核看板（各态计数 / 已处置率 / 超期待处理）")
+def review_board(request: Request,
+                 company_id: Optional[int] = Query(None, ge=1),
+                 project_id: Optional[int] = Query(None, ge=1),
+                 stale_days: Optional[int] = Query(None, ge=0)):
+    """复核看板（P1-4）。
+
+    ★ `risk_nos` 取"该项目/账套的可见风险"：
+      · 给 `project_id` ⇒ 项目视角（该账套的全部风险）；
+      · 只给 `company_id` ⇒ 账套视角。
+    ★ 「从未处置」与「超期」**分开计**（前者无起点，不能算超期）。
+    """
+    session = _session(request)
+    if company_id is not None:
+        cid = _svc(RISK.require_company, int(company_id), session)
+    elif project_id is not None:
+        cid = _project_company(int(project_id), session)
+    else:
+        raise HTTPException(status_code=400, detail="必须提供 company_id 或 project_id")
+    kw: Dict[str, Any] = {}
+    if stale_days is not None:
+        kw["stale_days"] = int(stale_days)
+    out = _svc(REVIEW.review_stats, cid, **kw)
+    out["company_id"] = int(cid)
+    return out
+
+
+@router.post("/risks/bulk-review", summary="批量复核（逐条独立执行、逐条如实回报）")
+def bulk_review_risks(request: Request,
+                      payload: Dict[str, Any] = Body(default_factory=dict)):
+    """请求体：`{risk_ids: [...], action, note?, company_id?, project_id?}`。
+
+    ★ **逐条独立执行**：部分失败**不回滚**已成功条目（处置流水为 append-only 台账），
+      结果逐条给出 `ok / noop / failed` 三态与原因。超上限 ⇒ 400（请分批）。
+    """
+    session = _session(request)
+    body = payload if isinstance(payload, dict) else {}
+    ids = body.get("risk_ids") or body.get("risk_nos") or []
+    if not isinstance(ids, (list, tuple)):
+        raise HTTPException(status_code=400, detail="risk_ids 必须是数组")
+    if not [x for x in ids if str(x or "").strip()]:
+        raise HTTPException(status_code=400, detail="risk_ids 不能为空")
+    action = str(body.get("action") or "").strip()
+    note = str(body.get("note") or "").strip()
+    # 账套定位：显式 `company_id` 优先 → `project_id` → 按**首个风险编号**反查可见账套
+    #   （批量复核的语义是"同一账套内一批风险"，跨账套批量不属于本接口职责）
+    if body.get("company_id") not in (None, ""):
+        cid = _svc(RISK.require_company, int(body["company_id"]), session)
+    elif body.get("project_id") not in (None, ""):
+        cid = _project_company(int(body["project_id"]), session)
+    else:
+        first = next(str(x).strip() for x in ids if str(x or "").strip())
+        cid = _company_of_risk_no(first, session, None)
+
+    out = _svc(REVIEW.bulk_review, list(ids), action, session,
+               company_id=cid, note=note, request=request)
+    out["company_id"] = int(cid)
+    return out
 
 
 # --------------------------------------------------------------------------
@@ -245,6 +311,19 @@ def comment_risk(risk_id: str, request: Request,
     text = str(body.get("text") or body.get("note") or "").strip()
     cid = _resolve_company(rid, session, body.get("company_id"), body.get("project_id"))
     out = _svc(REVIEW.comment, rid, text, session, company_id=cid, request=request)
+    out["company_id"] = int(cid)
+    return out
+
+
+@router.get("/risks/{risk_id}/history", summary="风险处置历史（事件流 + 批注）")
+def risk_history(risk_id: str, request: Request,
+                 company_id: Optional[int] = Query(None, ge=1),
+                 project_id: Optional[int] = Query(None, ge=1)):
+    """该风险的**人工处置**事件流（P1-4）。未处置 ⇒ 空列表 + `reviewed=false`。"""
+    session = _session(request)
+    rid = str(risk_id or "").strip()
+    cid = _resolve_company(rid, session, company_id, project_id)
+    out = _svc(REVIEW.history, rid, cid)
     out["company_id"] = int(cid)
     return out
 

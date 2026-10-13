@@ -15,12 +15,14 @@
   · **不确定就不报**：取不到参与计算的量（如报表三项缺一）⇒ **跳过该规则**，
     报"无法判定"而非伪装成"通过"（与项目铁律「缺失≠0」一致）。
   · `severity`：`error`（必填缺失 / 借贷不平衡 / 金额格式）· `warning`（期间错配 / 重复 / 勾稽）
+↓ 见下：`RULES` 已扩展（P1-3 由 6 条扩到 12 条）
 """
 from __future__ import annotations
 
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
+from engine.numparse import to_number_checked
 from engine.standard_fields import (
     aliases_of, field as _field, fields as _all_fields, normalize_value,
     required_names, value_from_row,
@@ -34,6 +36,13 @@ RULES: Tuple[str, ...] = (
     "duplicate",
     "debit_credit_unbalanced",
     "cross_check",
+    # ── P1-3 新增 6 条（全部适用所有企业，**只报不修、不确定就不报**）──
+    "amount_negative",
+    "null_rate",
+    "date_out_of_range",
+    "account_code_format",
+    "tax_rate_validity",
+    "duplicate_invoice_no",
 )
 
 RULE_CN: Dict[str, str] = {
@@ -43,7 +52,28 @@ RULE_CN: Dict[str, str] = {
     "duplicate": "重复数据",
     "debit_credit_unbalanced": "借贷不平衡",
     "cross_check": "报表勾稽异常",
+    "amount_negative": "金额异常负值",
+    "null_rate": "关键列缺失率过高",
+    "date_out_of_range": "日期超出合理范围",
+    "account_code_format": "科目编码格式异常",
+    "tax_rate_validity": "税率非标准档位",
+    "duplicate_invoice_no": "发票号码重复",
 }
+
+#: **报表类**金额字段（只有这些列出现负值才算"异常"；借贷列的负值可能是红字冲销，不报）
+_NEG_FIELDS: Tuple[str, ...] = (
+    "total_assets", "total_liabilities", "total_equity", "revenue", "cost",
+)
+
+#: 关键列填充率下限（低于此值且 > 0 ⇒ "半空"，提示列名可能未被识别）
+_FILL_FLOOR: float = 0.5
+
+#: 增值税税率**法定档位**（含历史与征收率；单位 %）
+STD_TAX_RATES: Tuple[float, ...] = (0.0, 1.0, 1.5, 3.0, 5.0, 6.0, 9.0, 10.0, 11.0, 13.0, 16.0, 17.0)
+
+#: 日期合理区间（早于此或晚于"次年年底" ⇒ 疑为笔误）
+_DATE_LO: str = "2000-01-01"
+
 
 #: 借贷列（标准字段名）——用于 `debit_credit_unbalanced`
 _DEBIT_COLS = ("opening_debit", "current_debit", "closing_debit", "debit")
@@ -73,6 +103,31 @@ def _std_amount(name: str, row: Dict[str, Any]) -> Optional[float]:
         return None
     num, ok, _ = normalize_value(name, v)
     return float(num) if ok else None
+
+
+def rate_to_percent(value: Any) -> Optional[float]:
+    """税率文本 → **百分比数值**（`"13%"` ⇒ 13.0；`"0.13"` ⇒ 13.0；`13` ⇒ 13.0）。
+
+    无法解析 ⇒ `None`（**不猜**，由调用方按"无法解析为税率"如实报）。
+    """
+    s = str(value if value is not None else "").strip().replace("％", "%").replace(" ", "")
+    if not s:
+        return None
+    pct = s.endswith("%")
+    if pct:
+        s = s[:-1]
+    num, ok = to_number_checked(s, default=None)
+    if not ok or num is None:
+        return None
+    try:
+        f = float(num)
+    except (TypeError, ValueError):
+        return None
+    if pct:
+        return f
+    if 0 < f <= 1:
+        return f * 100.0
+    return f
 
 
 def validate_rows(rows: List[Dict[str, Any]], *, domain: str = "",
@@ -218,6 +273,128 @@ def validate_rows(rows: List[Dict[str, Any]], *, domain: str = "",
                 {"assets": round(a_sum, 2), "liabilities": round(l_sum, 2),
                  "equity": round(e_sum, 2), "diff": round(diff, 2)}, "warning"))
 
+    # ══════════════════════════════════════════════════════════════════════
+    # P1-3 新增 6 条（口径一致：**只报不修** / **不确定就不报** / 全部 warning 级）
+    # ══════════════════════════════════════════════════════════════════════
+    # ── ⑦ 金额异常负值（**报表类**字段；借贷列的负值可能是红字冲销 ⇒ 不报）──
+    neg: List[Dict[str, Any]] = []
+    for i, r in enumerate(rows, 1):
+        for n in _NEG_FIELDS:
+            if names and n not in names:
+                continue
+            v = _std_amount(n, r)
+            if v is not None and v < 0:
+                neg.append({"row": i, "standard_field": n,
+                            "field_cn": (_field(n) or {}).get("cn", n),
+                            "value": round(v, 2)})
+    if neg:
+        issues.append(_issue(
+            "amount_negative",
+            "有 %d 处报表类金额为负值（%s）—— 若属红字冲销请核实后忽略"
+            % (len(neg), "、".join(sorted({str(x["field_cn"]) for x in neg}))),
+            {"items": neg[:50], "total": len(neg)}, "warning"))
+
+    # ── ⑧ 关键列填充率过低（**半空**：0 < 命中 < 下限；全空由 required_missing 报）──
+    #   ★ `names` 为空时**必须遍历全部标准字段**：否则"不传 names"的调用方
+    #     （如 `validate_rows(rows)`）会让本规则**永不触发**（实测踩过：
+    #     样例 `[{"购方名称":"A"},{"购方名称":""},{"购方名称":""}]` 一条都不报）。
+    fill_names = list(names) or [str(f.get("name")) for f in _all_fields()]
+    lowfill: List[Dict[str, Any]] = []
+    for n in fill_names:
+        hit = sum(1 for r in rows if value_from_row(n, r) not in (None, ""))
+        if rows and 0 < hit < len(rows) * _FILL_FLOOR:
+            lowfill.append({"standard_field": n,
+                            "field_cn": (_field(n) or {}).get("cn", n),
+                            "hits": hit, "rows": len(rows),
+                            "ratio": round(hit / len(rows), 4)})
+    if lowfill:
+        issues.append(_issue(
+            "null_rate",
+            "有 %d 个字段填充率低于 %d%%（列名可能未被识别，或该列本就稀疏）"
+            % (len(lowfill), int(_FILL_FLOOR * 100)),
+            {"items": lowfill[:50], "total": len(lowfill)}, "warning"))
+
+    # ── ⑨ 日期超出合理范围（解析失败的不在此重复报）──
+    date_cols = [str(f.get("name")) for f in _all_fields()
+                 if str(f.get("type")) == "date"
+                 and (not names or str(f.get("name")) in names)]
+    bad_dates: List[Dict[str, Any]] = []
+    hi = ""
+    if date_cols:
+        import datetime as _dt                            # noqa: PLC0415
+        hi = "%d-12-31" % (_dt.date.today().year + 1)
+        for i, r in enumerate(rows, 1):
+            for n in date_cols:
+                v = value_from_row(n, r)
+                if v in (None, ""):
+                    continue
+                pv, ok, _why = normalize_value(n, v)
+                if not ok:
+                    continue
+                s = str(pv)
+                if s < _DATE_LO or s > hi:
+                    bad_dates.append({"row": i, "standard_field": n, "value": s})
+    if bad_dates:
+        issues.append(_issue(
+            "date_out_of_range",
+            "有 %d 处日期超出合理区间（%s ~ 次年年底）" % (len(bad_dates), _DATE_LO),
+            {"items": bad_dates[:50], "total": len(bad_dates),
+             "range": [_DATE_LO, hi]}, "warning"))
+
+    # ── ⑩ 科目编码格式异常（应为 4~12 位纯数字）──
+    if not names or "account_code" in names:
+        bad_code: List[Dict[str, Any]] = []
+        for i, r in enumerate(rows, 1):
+            v = value_from_row("account_code", r)
+            if v in (None, ""):
+                continue
+            s = str(v).strip()
+            if not s.isdigit() or not (4 <= len(s) <= 12):
+                bad_code.append({"row": i, "value": s[:20]})
+        if bad_code:
+            issues.append(_issue(
+                "account_code_format",
+                "有 %d 处科目编码格式异常（应为 4~12 位纯数字）" % len(bad_code),
+                {"items": bad_code[:50], "total": len(bad_code)}, "warning"))
+
+    # ── ⑪ 税率非标准档位 ──
+    if not names or "tax_rate" in names:
+        bad_rate: List[Dict[str, Any]] = []
+        for i, r in enumerate(rows, 1):
+            v = value_from_row("tax_rate", r)
+            if v in (None, ""):
+                continue
+            pct = rate_to_percent(v)
+            if pct is None:
+                bad_rate.append({"row": i, "value": str(v)[:20], "why": "无法解析为税率"})
+            elif round(float(pct), 2) not in STD_TAX_RATES:
+                bad_rate.append({"row": i, "value": str(v)[:20], "why": "不在法定档位"})
+        if bad_rate:
+            issues.append(_issue(
+                "tax_rate_validity",
+                "有 %d 处税率不在法定档位（%s）"
+                % (len(bad_rate), "、".join("%g%%" % x for x in STD_TAX_RATES)),
+                {"items": bad_rate[:50], "total": len(bad_rate)}, "warning"))
+
+    # ── ⑫ 发票号码重复（**只看号码**；整行重复由 `duplicate` 报，两者不重叠）──
+    if not names or "invoice_no" in names:
+        seen_no: Dict[str, int] = {}
+        dup_no: List[Dict[str, Any]] = []
+        for i, r in enumerate(rows, 1):
+            v = value_from_row("invoice_no", r)
+            s = str(v).strip() if v not in (None, "") else ""
+            if not s:
+                continue
+            if s in seen_no:
+                dup_no.append({"row": i, "invoice_no": s, "same_as_row": seen_no[s]})
+            else:
+                seen_no[s] = i
+        if dup_no:
+            issues.append(_issue(
+                "duplicate_invoice_no",
+                "有 %d 行发票号码与前面的行重复（可能是重复导入或错填）" % len(dup_no),
+                {"items": dup_no[:50], "total": len(dup_no)}, "warning"))
+
     return issues
 
 
@@ -234,4 +411,5 @@ def summary(issues: List[Dict[str, Any]]) -> Dict[str, Any]:
             "by_severity": by_sev}
 
 
-__all__ = ["RULES", "RULE_CN", "validate_rows", "summary"]
+__all__ = ["RULES", "RULE_CN", "STD_TAX_RATES", "rate_to_percent",
+           "validate_rows", "summary"]

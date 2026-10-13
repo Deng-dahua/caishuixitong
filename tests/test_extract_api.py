@@ -124,9 +124,9 @@ class ExtractUnitTests(unittest.TestCase):
             )
             from engine.extract_validate import RULES, RULE_CN, validate_rows, summary
 
-            # 1) 字典完整：35 个标准字段、6 条校验规则
-            assert len(fields()) == 35, len(fields())
-            assert len(RULES) == 6, RULES
+            # 1) 字典完整：49 个标准字段（P1-1）、12 条校验规则（P1-3 由 6 扩到 12）
+            assert len(fields()) == 49, len(fields())
+            assert len(RULES) == 12, RULES
             for r in RULES:
                 assert RULE_CN.get(r), "规则缺中文名：%s" % r
 
@@ -274,8 +274,8 @@ class ExtractIntegrationTests(unittest.TestCase):
                 # 字典
                 meta = client.get(base + "/extract/meta")
                 assert meta.status_code == 200, meta.text
-                assert len(meta.json()["standard_fields"]["fields"]) == 35
-                assert len(meta.json()["rules"]) == 6
+                assert len(meta.json()["standard_fields"]["fields"]) == 49
+                assert len(meta.json()["rules"]) == 12
                 # 字典须说明"沿用现有"（不新建同义表）
                 assert meta.json()["tables"]["optional_not_built"], meta.json()["tables"]
                 assert "sales_invoices" in meta.json()["tables"]["reused_existing"]["invoices"]

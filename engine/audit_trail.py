@@ -75,6 +75,14 @@ ACTIONS: Tuple[str, ...] = (
     "user.create",       # 用户创建（含角色指派与所属租户/账套）
     "user.update",       # 用户修改（显示名/联系方式/启停用/角色调整/租户调整）
     "role.create",       # 自定义角色创建（含权限点集合）
+    # ── 2026-10-14 新增（P1-4 人工复核流程完善）：**只在末尾追加** ──
+    "risk.bulk_review",  # 风险**批量**复核（一次动作多条，逐条独立执行、逐条留痕）
+    # ── 2026-10-14 新增（P1-5 报告模板管理）：**只在末尾追加** ──
+    "report_template.upsert",   # 报告模板新建/覆盖（含版本号）
+    "report_template.disable",  # 报告模板停用
+    # ── 2026-10-14 新增（P1-6 规则版本管理）：**只在末尾追加** ──
+    "rule_version.publish",     # 规则集版本发布（含逐条规则版本快照）
+    "rule_version.rollback",    # 规则集版本回滚
 )
 
 #: 动作的中文名（★ 与 `ACTIONS` 一一对应；面向界面/导出，不得出现英文码）
@@ -108,6 +116,11 @@ ACTION_CN: Dict[str, str] = {
     "user.create": "用户创建",
     "user.update": "用户修改",
     "role.create": "角色创建",
+    "risk.bulk_review": "风险批量复核",
+    "report_template.upsert": "报告模板保存",
+    "report_template.disable": "报告模板停用",
+    "rule_version.publish": "规则版本发布",
+    "rule_version.rollback": "规则版本回滚",
 }
 
 #: 最近一次留痕错误（供诊断/闸门读取；正常为 None）

@@ -55,13 +55,85 @@ def reload() -> Dict[str, Any]:
 
 
 def rule_set_version() -> str:
-    """整批规则集版本。未登记返回空串（调用方须显式处理，不得填默认值）。"""
+    """整批规则集版本（**当前生效**）。
+
+    ★ 2026-10-14（P1-6）：引入**发布/回滚**后，"当前生效版本"= 台账里最后一次
+      发布/回滚的目标版本；台账为空（从未发布过）⇒ 回落 `config/rule_versions.json`
+      的 `rule_set_version` —— 即**未发布时与基线完全一致**（闸门断言这一点）。
+      未登记 ⇒ 空串（调用方须显式处理，不得填默认值）。
+    """
+    pub = published_version()
+    if pub:
+        return pub
     return str(load_versions().get("rule_set_version") or "")
 
 
 def _rules() -> Dict[str, Any]:
     r = load_versions().get("rules")
     return r if isinstance(r, dict) else {}
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# 发布/回滚台账（P1-6）—— append-only；本模块是"当前生效版本"的唯一判读点
+# ══════════════════════════════════════════════════════════════════════════
+def events_path() -> "Path":
+    """版本事件台账路径。
+
+    ★ **调用时**解析 `runtime_storage`（不在 import 期固化）—— 否则隔离实例
+      （`APP_DATA_DIR`）会越界写生产数据。
+    """
+    from runtime_storage import DATA_DIR                      # noqa: PLC0415
+    return Path(DATA_DIR) / "rule_version_events.jsonl"
+
+
+def load_version_events() -> List[Dict[str, Any]]:
+    """读版本事件（**不含** config 里的 `rule_set_history`；那是出厂历史）。"""
+    try:
+        from runtime_storage import read_jsonl                # noqa: PLC0415
+        rows, _bad = read_jsonl(events_path())
+        return [r for r in rows if isinstance(r, dict)]
+    except Exception:                                         # noqa: BLE001
+        return []
+
+
+def append_event(row: Dict[str, Any]) -> None:
+    """追加一条版本事件（写入侧唯一入口）。"""
+    from runtime_storage import append_jsonl                  # noqa: PLC0415
+    append_jsonl(events_path(), row)
+
+
+def published_version() -> str:
+    """台账里最后一次发布/回滚的**目标版本**；从未发布 ⇒ 空串（**不猜**）。"""
+    evs = [e for e in load_version_events()
+           if str(e.get("action") or "") in ("publish", "rollback")]
+    if not evs:
+        return ""
+    return str(evs[-1].get("to_version") or "")
+
+
+def rule_set_history() -> List[Dict[str, Any]]:
+    """完整版本历史 = 出厂历史（config）+ 运行期事件（台账），按版本去重（台账在后、胜出）。"""
+    out: List[Dict[str, Any]] = []
+    for h in (load_versions().get("rule_set_history") or []):
+        if isinstance(h, dict):
+            out.append({"version": str(h.get("version") or ""),
+                        "date": str(h.get("date") or ""),
+                        "note": str(h.get("note") or ""),
+                        "source": "config"})
+    for e in load_version_events():
+        act = str(e.get("action") or "")
+        if act not in ("publish", "rollback"):
+            continue
+        out.append({"version": str(e.get("to_version") or ""),
+                    "date": str(e.get("at") or ""),
+                    "note": str(e.get("note") or ""),
+                    "source": "ledger", "action": act,
+                    "actor": str(e.get("actor") or ""),
+                    "from_version": str(e.get("from_version") or "")})
+    seen: Dict[str, Dict[str, Any]] = {}
+    for h in out:
+        seen[h["version"]] = h                    # 后写胜出（台账覆盖 config 同版本条目）
+    return [seen[k] for k in sorted(seen) if k]
 
 
 def version_of(rule_id: Any) -> Optional[str]:
