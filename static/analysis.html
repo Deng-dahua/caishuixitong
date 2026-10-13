@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>一键稽查分析任务 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b;
+              color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a, .topbar button, .topbar select { color:#cbd5e1; background:none;
+              border:1px solid rgba(255,255,255,.25); border-radius:5px; padding:5px 12px;
+              font-size:12px; cursor:pointer; text-decoration:none; }
+    .topbar select { color:#e2e8f0; background:#1e293b; }
+    .topbar a:hover, .topbar button:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1400px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:14px 16px;
+            margin-bottom:14px; }
+    .card h3 { margin:0 0 10px; font-size:14px; color:#334155; }
+    .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .row input, .row select { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px;
+            font-size:13px; background:#fff; }
+    .btn { padding:8px 18px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:6px; font-size:14px; cursor:pointer; font-weight:600; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; font-weight:400; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    .btn.danger { background:#dc2626; border-color:#dc2626; font-weight:400; }
+    .btn.danger:hover { background:#b91c1c; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .progress-outer { height:18px; background:#e2e8f0; border-radius:9px; overflow:hidden;
+            margin:10px 0 6px; }
+    .progress-inner { height:100%; background:linear-gradient(90deg,#3b82f6,#60a5fa);
+            width:0; transition:width .4s; }
+    .progress-inner.cancelled { background:#94a3b8; }
+    .progress-inner.failed { background:#dc2626; }
+    .progress-inner.done { background:#16a34a; }
+    .step-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:6px;
+            margin-top:8px; }
+    .step { display:flex; gap:8px; align-items:flex-start; padding:6px 9px; border-radius:6px;
+            border:1px solid #f1f5f9; background:#f8fafc; font-size:12px; }
+    .step .no { width:18px; height:18px; border-radius:50%; background:#cbd5e1; color:#fff;
+            display:flex; align-items:center; justify-content:center; font-size:11px; flex:0 0 auto; }
+    .step.active { background:#eff6ff; border-color:#bfdbfe; }
+    .step.active .no { background:#3b82f6; }
+    .step.done { background:#f0fdf4; border-color:#bbf7d0; }
+    .step.done .no { background:#16a34a; }
+    .step.failed { background:#fef2f2; border-color:#fecaca; }
+    .step.failed .no { background:#dc2626; }
+    .step.cancelled { background:#f1f5f9; border-color:#e2e8f0; }
+    .step.cancelled .no { background:#94a3b8; }
+    .step .t { font-weight:600; color:#334155; }
+    .step .d { color:#94a3b8; font-size:11px; line-height:1.5; }
+    .kv { display:grid; grid-template-columns:110px 1fr; gap:5px 12px; font-size:13px; }
+    .kv .k { color:#64748b; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:8px 10px; text-align:left;
+            border-bottom:1px solid #f1f5f9; font-size:13px; white-space:nowrap; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
+    table.grid tr:hover td { background:#f8fafc; }
+    .tag { display:inline-block; padding:2px 9px; border-radius:10px; font-size:12px; }
+    .st-PENDING{background:#f1f5f9;color:#475569}
+    .st-RUNNING{background:#dbeafe;color:#1d4ed8}
+    .st-SUCCESS{background:#dcfce7;color:#15803d}
+    .st-FAILED{background:#fee2e2;color:#b91c1c}
+    .st-CANCELLED{background:#e5e7eb;color:#4b5563}
+    .msg { padding:9px 12px; border-radius:5px; font-size:13px; margin:10px 0; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .msg.warn { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    .muted { color:#94a3b8; font-size:12px; }
+    .empty { padding:28px; text-align:center; color:#94a3b8; }
+    .err-box { background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:10px 12px;
+            color:#b91c1c; font-size:13px; white-space:pre-wrap; margin-top:8px; }
+  </style>
+  <!-- 全局 fetch 拦截（自动附加 CSRF / 401 跳登录）；显式引用，不依赖 _read_html 注入 -->
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>⚡ 一键稽查分析任务</h1>
+    <select id="f-project" title="选择稽查项目（决定分析哪个账套的资料）"></select>
+    <label class="muted" style="display:flex;align-items:center;gap:5px;color:#cbd5e1;font-size:12px">
+      <input type="checkbox" id="f-force" style="cursor:pointer"> 强制重算
+    </label>
+    <button id="btn-start" onclick="startAnalysis()">▶ 开始稽查分析</button>
+    <span class="spacer"></span>
+    <span class="muted" id="who" style="color:#94a3b8"></span>
+    <a href="/">返回主界面</a>
+  </div>
+
+  <div class="wrap">
+    <div id="alert"></div>
+
+    <div class="card">
+      <h3>当前任务</h3>
+      <div class="row">
+        <button class="btn ghost" onclick="refreshCurrent()">↻ 刷新</button>
+        <button class="btn ghost" id="btn-cancel" onclick="cancelCurrent()" disabled>■ 取消</button>
+        <button class="btn ghost" id="btn-retry" onclick="retryCurrent()" disabled>⟳ 重试</button>
+        <span class="muted" id="cur-id"></span>
+      </div>
+      <div class="progress-outer"><div class="progress-inner" id="bar"></div></div>
+      <div class="row">
+        <span id="cur-status" class="tag st-PENDING">—</span>
+        <span id="cur-step" class="muted"></span>
+        <span id="cur-progress" class="muted"></span>
+        <span id="cur-module" class="muted"></span>
+      </div>
+      <div class="step-list" id="step-list"></div>
+      <div id="cur-err"></div>
+    </div>
+
+    <div class="card">
+      <h3>任务历史</h3>
+      <div class="card" style="border:none;padding:0">
+        <table class="grid">
+          <thead><tr>
+            <th>作业号</th><th>状态</th><th>触发</th><th>进度</th>
+            <th>开始</th><th>时长</th><th>疑点</th><th>等级</th><th>报告编号</th><th>操作</th>
+          </tr></thead>
+          <tbody id="history"><tr><td colspan="10" class="empty">加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/analysis.js"></script>
+</body>
+</html>

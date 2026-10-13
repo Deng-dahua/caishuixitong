@@ -51,7 +51,10 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 JOB_SCHEMA_VERSION = 1
 
 #: 作业终态（★ 唯一权威：新增一态只加这里一处）
-TERMINAL_STATUSES: Tuple[str, ...] = ("done", "error", "blocked")
+#: `cancelled`（2026-10-13，P0-4）：用户主动取消 ⇒ **本次结果不予采用**。
+#:   它与 `error` 必须分开：取消不是失败（不该计入失败率/触发告警），
+#:   也不是完成（不该出报告）—— 混成一态即"两种事实一个名字"。
+TERMINAL_STATUSES: Tuple[str, ...] = ("done", "error", "blocked", "cancelled")
 
 #: 非终态（作业正在进行；读侧据此判断"是否仍在跑"）
 RUNNING_STATUS = "running"
@@ -63,6 +66,7 @@ JOB_TRIGGERS: Tuple[str, ...] = (
     "resume",       # 失败断点续跑（analyze-resume）
     "incremental",  # 资料与规则均未变化 ⇒ 增量复用（未真正重算）
     "auto_upload",  # 上传资料后自动重跑（前端与 manual 共用同一接口，需显式传参才能区分）
+    "project",      # 由**稽查项目**发起（P0-4，2026-10-13；与 manual 的区别在发起入口）
 )
 
 _TRIGGER_CN: Dict[str, str] = {
@@ -71,6 +75,7 @@ _TRIGGER_CN: Dict[str, str] = {
     "resume": "失败断点续跑",
     "incremental": "增量复用",
     "auto_upload": "上传后自动重跑",
+    "project": "项目发起",
 }
 
 _STATUS_CN: Dict[str, str] = {
@@ -78,6 +83,7 @@ _STATUS_CN: Dict[str, str] = {
     "done": "已完成",
     "error": "执行失败",
     "blocked": "已拦截（未出报告）",
+    "cancelled": "已取消",
 }
 
 
@@ -318,7 +324,39 @@ def job_finished(job_id: str, status: str, company_id: Any = None,
         #   取不到就留空字符串 —— 绝不伪造版本号。
         "rule_set_version": str(rule_set_version or ""),
     }
-    return _guard(lambda: (_append_row(row), row)[1], "登记作业终态")
+    out = _guard(lambda: (_append_row(row), row)[1], "登记作业终态")
+    # ★ 2026-10-13（P0-4）：**终态留痕**登记在"唯一终态漏斗"里。
+    #   为什么在这里而不是各调用方：终态路径有四条（done / error / blocked / cancelled），
+    #   分散登记必然漏 —— 实测原实现**完成与失败都没有审计动作**（只有起点 `analysis.start`），
+    #   于是"某次分析跑完了/失败了"在审计里查不到。一处登记 = 四态全覆盖（闸门见
+    #   `tests/test_analysis_task_api.py::...AuditTests` 的**行为级**断言）。
+    #   落盘失败（`out is None`）时不写审计：审计必须与事实一致，不虚记。
+    if out is not None:
+        _audit_terminal(out)
+    return out
+
+
+def _audit_terminal(row: Dict[str, Any]) -> None:
+    """把作业终态写一条业务留痕（动作 `job.finished`）。
+
+    ★ 静默边界：审计失败**必须留痕**（`record()` 自身保证不抛、不静默），
+      故这里不允许再套一层 `try/except: pass`（那正是"留痕失败被藏起来"的病根）。
+    """
+    try:
+        from engine.audit_trail import record as _record          # noqa: PLC0415
+    except Exception as exc:                                      # noqa: BLE001
+        _log("终态审计不可用（%s）；本次未写审计" % exc)
+        return
+    _st = str(row.get("status") or "")
+    _trig = str(row.get("trigger") or "")
+    _started = _started_of(str(row.get("job_id") or "")) or {}
+    _detail = "触发方式：%s；状态：%s" % (trigger_cn(_trig), status_cn(_st))
+    _err = str(row.get("error_message") or "")
+    if _err:
+        _detail += "；原因：%s" % _err[:200]
+    _record("job.finished", target=str(row.get("job_id") or ""),
+            company_id=row.get("company_id"), detail=_detail,
+            user_id=(str(_started.get("started_by") or "") or None))
 
 
 # ── 读侧：折叠（最后一次 finished 胜出）────────────────────────────────────────

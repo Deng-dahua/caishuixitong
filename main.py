@@ -56,7 +56,7 @@ from database import (
 from tax_risk import router as tax_risk_router
 from utils import build_account_hierarchy as _build_account_hierarchy, clear_source_voucher_no as _clear_source_voucher_no, renumber_vouchers as _renumber_vouchers, renumber_archive as _renumber_archive, sync_biz_voucher_no as _sync_biz_voucher_no
 from tax_rules_api import router as tax_rules_api_router
-from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router  # P0-1 项目 / P0-2 资料 / P0-3 解析
+from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
@@ -628,7 +628,7 @@ async def add_no_cache_headers(request, call_next):
     return response
 app.include_router(tax_risk_router)
 app.include_router(tax_rules_api_router)
-app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router)  # P0-1 项目 / P0-2 资料 / P0-3 解析
+app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")
@@ -1434,7 +1434,7 @@ def _register_job_finished(task_id, company_id, snap, reused_from=""):
             _status = "blocked"
         else:
             # 线程已结束却仍非 done ⇒ 如实记为失败（不伪造成"仍在跑"）
-            _status = "error"
+            _status = ("cancelled" if str(snap.get("status") or "") == "cancelled" else "error")  # P0-4：取消与失败必须分开登记（取消不计失败率）
         _res = snap.get("result") if isinstance(snap.get("result"), dict) else {}
         _rpt = _res.get("report") if isinstance(_res.get("report"), dict) else {}
         _p4 = ((_rpt.get("engine_status") or {}).get("phase4_synthesis") or {})
@@ -12358,11 +12358,11 @@ def _run_analysis_thread(task_id, company_id, user_id):
             )
             with _analysis_lock:
                 if task_id in _analysis_tasks:
-                    _analysis_tasks[task_id]["result"] = result
+                    _analysis_tasks[task_id]["result"] = (None if _analysis_tasks[task_id].get("cancel_requested") else result)  # P0-4 取消写回守卫：取消后结果不予采用
                     if result and result.get("ok"):
-                        _analysis_tasks[task_id]["status"] = "done"
-                        _analysis_tasks[task_id]["progress"] = 100
-                        _analysis_tasks[task_id]["message"] = "分析完成"
+                        _analysis_tasks[task_id]["status"] = ("cancelled" if _analysis_tasks[task_id].get("cancel_requested") else "done")  # P0-4：取消 ⇒ 终态 cancelled（不是 done）
+                        _analysis_tasks[task_id]["progress"] = (max(0, min(int(_analysis_tasks[task_id].get("progress") or 0), 99)) if _analysis_tasks[task_id].get("cancel_requested") else 100)  # P0-4：取消不置 100%（不假装跑完）
+                        _analysis_tasks[task_id]["message"] = ("已取消（本次结果不予采用）" if _analysis_tasks[task_id].get("cancel_requested") else "分析完成")  # P0-4：取消不得显示"分析完成"
                         # ① 自动巡逻后置触发 + ⑧ 巡逻登记
                         # 后置动作异常不得把"分析已完成"的任务误判为失败（逐个兜底）
                         _analysis_tasks[task_id]["patrol_enrolled"] = True

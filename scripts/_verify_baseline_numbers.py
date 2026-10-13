@@ -63,12 +63,14 @@ def main() -> int:
     chk("projects_api.py 页面路由", 1, _count("projects_api.py", r"@page_router\.(get|post)\("))
     chk("documents_api.py 路由", 12, _count("documents_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("documents_api.py 页面路由", 1, _count("documents_api.py", r"@page_router\.(get|post)\("))
+    chk("analysis_api.py 路由", 6, _count("analysis_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("analysis_api.py 页面路由", 1, _count("analysis_api.py", r"@page_router\.(get|post)\("))
     chk("main.py 行数(零漂移)", 15156,
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 200, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 101, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("engine/*.py", 201, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 102, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
     chk("config/*.json", 40, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
@@ -152,6 +154,44 @@ def main() -> int:
     from engine.extract_service import metadata as _exmeta
     chk("解析复用现有解析器（声明可核对）", True,
         _exmeta()["parser_reuse"]["excel_csv"].startswith("main."))
+
+    # ── P0-4 一键稽查分析任务（新增，2026-10-13）──
+    from engine import analysis_task as AT
+    from engine.analysis_jobs import (TERMINAL_STATUSES, JOB_TRIGGERS,
+                                      RUNNING_STATUS, status_cn as _job_status_cn,
+                                      trigger_cn as _trigger_cn)
+    chk("任务 8 步", 8, AT.step_count())
+    chk("任务 5 状态", 5, len(AT.TASK_STATUSES))
+    chk("任务状态中文名齐全", 5, len([s for s in AT.TASK_STATUSES if AT.STATUS_CN.get(s)]))
+    _seq = [AT.ENGINE_STEP_TO_TASK[e] for e in AT.ENGINE_REPORT_ORDER]
+    chk("引擎步→任务步 单调递增", True, _seq == sorted(_seq) and len(set(_seq)) == len(_seq))
+    chk("每个任务步都可达（无死步）", [], sorted(set(range(1, 9)) - set(AT.ENGINE_STEP_TO_TASK.values())))
+    chk("运行态映射覆盖引擎全部状态", [],
+        sorted({"running", "done", "error", "blocked", "cancelled", "deleted"} - set(AT.RUNTIME_TO_TASK)))
+    chk("作业终态含 cancelled", True, "cancelled" in TERMINAL_STATUSES)
+    chk("作业终态中文名齐全", len(TERMINAL_STATUSES),
+        len([s for s in TERMINAL_STATUSES if _job_status_cn(s) != s]))
+    chk("触发方式含 project", True, "project" in JOB_TRIGGERS)
+    chk("触发方式中文名齐全", len(JOB_TRIGGERS),
+        len([x for x in JOB_TRIGGERS if _trigger_cn(x) != x]))
+    chk("超时阈值 > 0", True, AT._timeout_seconds() > 0)
+    _jb = [a for a in ACTIONS if a.startswith("job.")]
+    chk("任务审计动作数", 3, len(_jb))
+    chk("任务审计动作中文名齐全", 3, len([a for a in _jb if ACTION_CN.get(a)]))
+    # 项目↔作业链接（append-only）可用且可复现
+    # ★ 在**临时目录**里往返：自检脚本不得往真实 `data/` 里写探针行（实测踩过）
+    import tempfile as _tf
+    import runtime_storage as _rs
+    _orig_data_dir = _rs.DATA_DIR
+    _probe_ok = False
+    with _tf.TemporaryDirectory() as _td:
+        _rs.DATA_DIR = _td
+        try:
+            AT.register_link("__vbn_probe__", 999999)
+            _probe_ok = (AT.link_of("__vbn_probe__") or {}).get("project_id") == 999999
+        finally:
+            _rs.DATA_DIR = _orig_data_dir
+    chk("项目↔作业链接可登记可读回（临时目录）", True, _probe_ok)
 
     # ── 规则分层（唯一权威 layer_semantics）──
     with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as fh:
