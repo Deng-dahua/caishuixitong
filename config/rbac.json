@@ -1,0 +1,100 @@
+{
+  "schema": "caishuixitong.rbac/1",
+  "version": "1.0.0",
+  "updated": "2026-10-14",
+  "note": "RBAC 角色 / 权限点 / 角色-权限映射 / 角色-脱敏映射的**唯一权威数据表**（P0-8）。新增一个角色或一个权限点只在本表加一行，engine/rbac.py 只加载并薄转发，不改任何逻辑分支。`role_redaction` 的值必须取自 config/report_compliance.json::redaction_roles 的键 —— 『要不要脱敏、脱哪几项』的唯一权威仍在那里，本表只声明『哪个 RBAC 角色按哪套脱敏策略出参』。",
+  "tenant_modes": {
+    "saas": "SaaS 多租户：同一实例内按 tenant_id 隔离，跨租户不可见",
+    "private": "私有化组织：实例独占，仍保留 tenant_id 以支持集团内多组织"
+  },
+  "default_tenant": {
+    "code": "default",
+    "name": "默认组织",
+    "mode": "saas"
+  },
+  "default_role": "enterprise_finance",
+  "legacy_admin_role": "system_admin",
+  "permissions": [
+    {"code": "project.view", "name": "查看稽查项目", "group": "项目管理", "group_code": "project", "sort": 10,
+     "description": "浏览项目列表与详情（受数据权限/项目权限约束）"},
+    {"code": "project.write", "name": "管理稽查项目", "group": "项目管理", "group_code": "project", "sort": 11,
+     "description": "新建/修改/删除项目、变更成员与状态"},
+    {"code": "document.view", "name": "查看财税资料", "group": "资料管理", "group_code": "document", "sort": 20,
+     "description": "浏览资料清单、预览与下载（下载带水印）"},
+    {"code": "document.write", "name": "上传与整理财税资料", "group": "资料管理", "group_code": "document", "sort": 21,
+     "description": "上传、分类修正、删除资料，发起解析与校正"},
+    {"code": "analysis.run", "name": "发起一键稽查分析", "group": "分析任务", "group_code": "analysis", "sort": 30,
+     "description": "发起/取消/重试分析作业"},
+    {"code": "risk.view", "name": "查看风险结果", "group": "风险与复核", "group_code": "risk", "sort": 40,
+     "description": "浏览风险清单、详情与证据链"},
+    {"code": "risk.review", "name": "复核与处置风险", "group": "风险与复核", "group_code": "risk", "sort": 41,
+     "description": "确认/排除/误报/重开/转人工、批注、登记整改（**不含**改等级）"},
+    {"code": "report.view", "name": "查看分析报告", "group": "报告", "group_code": "report", "sort": 50,
+     "description": "浏览报告列表、详情与版本记录"},
+    {"code": "report.generate", "name": "生成与导出报告", "group": "报告", "group_code": "report", "sort": 51,
+     "description": "生成报告草稿、导出 PDF/Word/Excel/HTML"},
+    {"code": "user.view", "name": "查看用户", "group": "系统管理", "group_code": "system", "sort": 60,
+     "description": "查看本租户用户名单（联系方式与证件号按角色脱敏）"},
+    {"code": "user.manage", "name": "管理用户", "group": "系统管理", "group_code": "system", "sort": 61,
+     "description": "创建用户、启停用、指派角色、调整所属账套"},
+    {"code": "role.manage", "name": "管理角色", "group": "系统管理", "group_code": "system", "sort": 62,
+     "description": "创建自定义角色并调整角色-权限映射"},
+    {"code": "audit.view", "name": "查看审计日志", "group": "系统管理", "group_code": "system", "sort": 63,
+     "description": "按动作/用户/对象/时间检索业务留痕"}
+  ],
+  "roles": [
+    {"code": "system_admin", "name": "系统管理员", "scope": "platform", "sort": 10, "builtin": 1,
+     "description": "全部功能与全部数据；唯一可管理用户与角色的角色。对应 users.role='admin'。"},
+    {"code": "enterprise_finance", "name": "企业财务", "scope": "tenant", "sort": 20, "builtin": 1,
+     "description": "本企业资料的整理与分析发起方；可管理本项目，不能处置复核意见、不能管理用户。"},
+    {"code": "tax_advisor", "name": "税务师", "scope": "tenant", "sort": 30, "builtin": 1,
+     "description": "承接分析并复核风险的专业角色；可发起分析、复核风险、生成报告。"},
+    {"code": "review_expert", "name": "复核专家", "scope": "tenant", "sort": 40, "builtin": 1,
+     "description": "独立复核岗：只读项目与资料，可复核风险与查看审计留痕，不发起分析、不导出报告。"},
+    {"code": "auditor", "name": "审计员", "scope": "platform", "sort": 50, "builtin": 1,
+     "description": "只读监督岗：可查看项目/资料/风险/报告与审计留痕、查看用户名单；一切写操作均被拒。"}
+  ],
+  "role_permissions": {
+    "system_admin": ["*"],
+    "enterprise_finance": [
+      "project.view", "project.write",
+      "document.view", "document.write",
+      "analysis.run",
+      "risk.view",
+      "report.view", "report.generate"
+    ],
+    "tax_advisor": [
+      "project.view", "project.write",
+      "document.view", "document.write",
+      "analysis.run",
+      "risk.view", "risk.review",
+      "report.view", "report.generate"
+    ],
+    "review_expert": [
+      "project.view",
+      "document.view",
+      "risk.view", "risk.review",
+      "report.view",
+      "audit.view"
+    ],
+    "auditor": [
+      "project.view",
+      "document.view",
+      "risk.view",
+      "report.view",
+      "audit.view",
+      "user.view"
+    ]
+  },
+  "role_redaction": {
+    "system_admin": "internal",
+    "enterprise_finance": "enterprise",
+    "tax_advisor": "auditor",
+    "review_expert": "auditor",
+    "auditor": "auditor"
+  },
+  "fallback_redaction": "external",
+  "masked_user_fields": ["display_name", "phone", "id_card", "bank_account"],
+  "name_fields": ["display_name"],
+  "masked_audit_fields": ["target", "detail"]
+}

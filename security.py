@@ -45,6 +45,9 @@ class SessionContext:
     selected_company_id: Optional[int]
     csrf_hash: str
     expires_at: int
+    #: P0-8 新增：会话所属租户（组织）。加在**末尾且带默认值** ⇒ 既有构造调用
+    #: （一律关键字实参）保持可用；`None` 表示"未指定"，由 `engine/rbac` 回落到默认租户。
+    tenant_id: Optional[int] = None
 
     @property
     def is_admin(self) -> bool:
@@ -106,7 +109,49 @@ def init_security_db() -> None:
             );
             """
         )
+        _ensure_user_columns(connection)
     _bootstrap_admin_from_environment()
+    _ensure_authorization_schema()
+
+
+def _ensure_authorization_schema() -> None:
+    """幂等建立**授权相关表**（roles/permissions/role_permissions/user_roles/tenants）。
+
+    ★ 为什么在这里而不是只在 `engine/rbac.py` 里懒建：身份库的初始化**只有一处**
+      （`init_security_db`）。若只在"第一次用到 rbac 时"才建表，会出现
+      「库已初始化但授权表缺失」的中间态 —— 自检脚本、离线 CLI（`manage_users.py`）
+      看到的就是一个**不完整**的身份库。这里做，`engine/rbac.ensure_rbac_schema()`
+      仍保留（幂等、可在换库/测试时重复调用），二者不冲突。
+    ★ 失败必须**可见**：授权表建不起来会让所有权限判定失效，绝不静默。
+    """
+    try:
+        from engine.rbac import ensure_rbac_schema as _ensure   # noqa: PLC0415
+        _ensure()
+    except Exception as exc:                                    # noqa: BLE001
+        import sys as _sys
+        print("[security] ⚠ 授权表初始化失败（权限判定将不可用）：%r" % (exc,),
+              file=_sys.stderr, flush=True)
+
+
+#: `users` 表在 P0-8 需要追加的列（**只增不删**，幂等补列 = 本项目 migration 底座）。
+#: ★ `role` 的两值 `CHECK` 约束**不改**（SQLite 无法 `ALTER ... CHECK`，改动会让
+#:   既有 `is_admin` 判定与历史数据失配）；细粒度角色由 `engine/rbac.py` 的
+#:   `user_roles` / `role_permissions` 承担，`users.role` 仅保留 'admin'/'user' 语义。
+_USER_ADDED_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("display_name", "TEXT NOT NULL DEFAULT ''"),
+    ("phone", "TEXT NOT NULL DEFAULT ''"),
+    ("id_card", "TEXT NOT NULL DEFAULT ''"),
+    ("bank_account", "TEXT NOT NULL DEFAULT ''"),
+    ("tenant_id", "INTEGER"),
+)
+
+
+def _ensure_user_columns(connection) -> None:
+    """幂等补列（旧库升级路径；列序不变、既有列不动）。"""
+    existing = {row[1] for row in connection.execute("PRAGMA table_info(users)").fetchall()}
+    for name, ddl in _USER_ADDED_COLUMNS:
+        if name not in existing:
+            connection.execute("ALTER TABLE users ADD COLUMN %s %s" % (name, ddl))
 
 
 def validate_password(password: str) -> None:
@@ -161,21 +206,39 @@ def create_user(
     role: str = "user",
     company_ids: Iterable[int] = (),
     must_change_password: bool = False,
+    display_name: str = "",
+    phone: str = "",
+    id_card: str = "",
+    bank_account: str = "",
+    tenant_id: Optional[int] = None,
 ) -> int:
+    """新建用户。
+
+    ★ P0-8：`display_name/phone/id_card/bank_account/tenant_id` 为**追加**参数
+      （全部带默认值 ⇒ 既有调用一字不改）。`phone/id_card/bank_account` 是**敏感字段**：
+      落库保留原文以便追责，**出参一律由 `engine/rbac.mask_for_session()` 脱敏**。
+    ★ `role` 仍只接受 'admin'/'user'（两值 `CHECK` 约束）；细粒度角色由
+      `engine/rbac.assign_user_roles()` 写入 `user_roles`。
+    """
     normalized = (username or "").strip()
     if not _USERNAME_RE.fullmatch(normalized):
         raise ValueError("username must be 2-64 safe characters")
     if role not in {"admin", "user"}:
         raise ValueError("role must be admin or user")
     allowed = sorted({int(value) for value in company_ids if int(value) > 0})
+    try:
+        tenant = int(tenant_id) if tenant_id is not None else None
+    except (TypeError, ValueError):
+        raise ValueError("tenant_id must be an integer")
     now = int(time.time())
     with _connect() as connection:
         cursor = connection.execute(
             """
             INSERT INTO users
                 (username, password_hash, role, company_ids, active,
-                 must_change_password, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+                 must_change_password, created_at, updated_at,
+                 display_name, phone, id_card, bank_account, tenant_id)
+            VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 normalized,
@@ -185,6 +248,11 @@ def create_user(
                 int(must_change_password),
                 now,
                 now,
+                str(display_name or "").strip()[:80],
+                str(phone or "").strip()[:40],
+                str(id_card or "").strip()[:40],
+                str(bank_account or "").strip()[:40],
+                tenant,
             ),
         )
         return int(cursor.lastrowid)
@@ -223,6 +291,135 @@ def list_users() -> list[dict]:
         }
         for row in rows
     ]
+
+
+# ── P0-8：用户读取/维护（唯一权威仍是本模块；engine/access_service 只薄转发）─────
+
+#: `users` 可被接口更新的字段白名单（**禁**把任意列名直接拼进 UPDATE）
+UPDATABLE_USER_FIELDS: tuple[str, ...] = (
+    "display_name", "phone", "id_card", "bank_account", "tenant_id", "role",
+)
+
+
+def _row_to_user(row) -> dict:
+    return {
+        "id": int(row["id"]),
+        "username": row["username"],
+        "display_name": row["display_name"] or "",
+        "role": row["role"],
+        "company_ids": json.loads(row["company_ids"] or "[]"),
+        "active": bool(row["active"]),
+        "must_change_password": bool(row["must_change_password"]),
+        "phone": row["phone"] or "",
+        "id_card": row["id_card"] or "",
+        "bank_account": row["bank_account"] or "",
+        "tenant_id": (int(row["tenant_id"]) if row["tenant_id"] is not None else None),
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"],
+    }
+
+
+_USER_SELECT = (
+    "SELECT id, username, display_name, role, company_ids, active, "
+    "must_change_password, phone, id_card, bank_account, tenant_id, "
+    "created_at, updated_at FROM users"
+)
+
+
+def get_user(user_id: int) -> Optional[dict]:
+    with _connect() as connection:
+        row = connection.execute(_USER_SELECT + " WHERE id=?", (int(user_id),)).fetchone()
+    return _row_to_user(row) if row else None
+
+
+def find_user(username: str) -> Optional[dict]:
+    with _connect() as connection:
+        row = connection.execute(
+            _USER_SELECT + " WHERE username=? COLLATE NOCASE",
+            ((username or "").strip(),)).fetchone()
+    return _row_to_user(row) if row else None
+
+
+def _user_scope_clause(tenant_id, include_inactive: bool,
+                       include_null_tenant: bool = False):
+    where, params = [], []
+    if tenant_id is not None:
+        if include_null_tenant:
+            # ★ `tenant_id IS NULL` = "未指定组织"的账号（含 `APP_ADMIN_USERNAME` 引导超管），
+            #   语义上归属**默认组织** ⇒ 只在查默认组织时并入，绝不并入其他组织（否则泄漏）。
+            where.append("(tenant_id = ? OR tenant_id IS NULL)")
+        else:
+            where.append("tenant_id = ?")
+        params.append(int(tenant_id))
+    if not include_inactive:
+        where.append("active = 1")
+    return (" WHERE " + " AND ".join(where)) if where else "", params
+
+
+def list_users_detailed(*, tenant_id=None, include_inactive: bool = True,
+                        limit: int = 500, offset: int = 0,
+                        include_null_tenant: bool = False) -> list[dict]:
+    """按租户列用户（**租户过滤在此处**；接口层不得各写一套过滤口径）。"""
+    clause, params = _user_scope_clause(tenant_id, include_inactive, include_null_tenant)
+    sql = _USER_SELECT + clause + " ORDER BY id LIMIT ? OFFSET ?"
+    with _connect() as connection:
+        rows = connection.execute(sql, params + [int(limit), int(offset)]).fetchall()
+    return [_row_to_user(r) for r in rows]
+
+
+def count_users(*, tenant_id=None, include_inactive: bool = True,
+                include_null_tenant: bool = False) -> int:
+    clause, params = _user_scope_clause(tenant_id, include_inactive, include_null_tenant)
+    with _connect() as connection:
+        return int(connection.execute("SELECT COUNT(*) FROM users" + clause,
+                                      params).fetchone()[0] or 0)
+
+
+def set_user_active(user_id: int, active: bool) -> bool:
+    """启用/停用（停用即登录被拒，见 `authenticate`）。返回是否命中行。"""
+    with _connect() as connection:
+        cur = connection.execute(
+            "UPDATE users SET active=?, updated_at=? WHERE id=?",
+            (1 if active else 0, int(time.time()), int(user_id)))
+        return cur.rowcount > 0
+
+
+def set_user_companies(user_id: int, company_ids: Iterable[int]) -> list[int]:
+    """**覆盖式**设置用户的账套授权（数据权限的唯一写入点）。返回最新列表。"""
+    allowed = sorted({int(v) for v in (company_ids or []) if int(v) > 0})
+    with _connect() as connection:
+        connection.execute(
+            "UPDATE users SET company_ids=?, updated_at=? WHERE id=?",
+            (json.dumps(allowed), int(time.time()), int(user_id)))
+    return allowed
+
+
+def update_user_fields(user_id: int, **fields) -> Optional[dict]:
+    """更新白名单字段（其余字段名 ⇒ `ValueError`，**不静默忽略**）。"""
+    sets, params = [], []
+    for key, value in fields.items():
+        if key not in UPDATABLE_USER_FIELDS:
+            raise ValueError("不可更新的用户字段：%s" % key)
+        if key == "tenant_id":
+            params.append(int(value) if value is not None else None)
+        elif key == "role":
+            if value not in {"admin", "user"}:
+                raise ValueError("role must be admin or user")
+            params.append(str(value))
+        else:
+            params.append(str(value or "").strip()[:80])
+        sets.append("%s=?" % key)
+    if not sets:
+        return get_user(user_id)
+    sets.append("updated_at=?")
+    params.append(int(time.time()))
+    with _connect() as connection:
+        cur = connection.execute(
+            "UPDATE users SET %s WHERE id=?" % ", ".join(sets),
+            params + [int(user_id)])
+        if cur.rowcount <= 0:
+            return None
+    return get_user(user_id)
 
 
 # 2026-09-05 修复：/api/companies 必须能在创建时把账套授权给当前用户（普通用户也能建账套并查看），
@@ -348,7 +545,7 @@ def authenticate(username: str, password: str) -> Optional[dict]:
         row = connection.execute(
             """
             SELECT id, username, password_hash, role, company_ids, active,
-                   must_change_password
+                   must_change_password, display_name, tenant_id
             FROM users WHERE username=? COLLATE NOCASE
             """,
             ((username or "").strip(),),
@@ -358,9 +555,11 @@ def authenticate(username: str, password: str) -> Optional[dict]:
     return {
         "id": int(row["id"]),
         "username": row["username"],
+        "display_name": row["display_name"] or "",
         "role": row["role"],
         "company_ids": json.loads(row["company_ids"] or "[]"),
         "must_change_password": bool(row["must_change_password"]),
+        "tenant_id": (int(row["tenant_id"]) if row["tenant_id"] is not None else None),
     }
 
 
@@ -403,7 +602,8 @@ def get_session(raw_token: str, *, client_fingerprint: str = "") -> Optional[Ses
         row = connection.execute(
             """
             SELECT s.user_id, s.csrf_hash, s.selected_company_id, s.expires_at,
-                   s.client_fingerprint, u.username, u.role, u.company_ids, u.active
+                   s.client_fingerprint, u.username, u.role, u.company_ids, u.active,
+                   u.tenant_id
             FROM sessions s JOIN users u ON u.id=s.user_id
             WHERE s.token_hash=?
             """,
@@ -429,6 +629,7 @@ def get_session(raw_token: str, *, client_fingerprint: str = "") -> Optional[Ses
         ),
         csrf_hash=row["csrf_hash"],
         expires_at=int(row["expires_at"]),
+        tenant_id=(int(row["tenant_id"]) if row["tenant_id"] is not None else None),
     )
 
 
@@ -467,7 +668,10 @@ def revoke_all_sessions(username: str) -> int:
 
 
 def is_public_path(path: str) -> bool:
-    if path in {"/login", "/healthz", "/api/auth/login", "/favicon.ico"}:
+    # `/api/v1/auth/login` 是 P0-8 新增的登录端点（与既有 `/api/auth/login` 同语义，
+    # 同一实现 `security_web.login_handler`）。**必须**登记为公开路径，否则请求会先被
+    # 鉴权中间件拦成 401，永远到不了登录处理器。
+    if path in {"/login", "/healthz", "/api/auth/login", "/api/v1/auth/login", "/favicon.ico"}:
         return True
     if path.startswith("/static/"):
         return Path(path).suffix.lower() in _PUBLIC_ASSET_EXTENSIONS

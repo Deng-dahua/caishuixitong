@@ -10,9 +10,10 @@
   accounting.db 必需表齐全（表数仅作信息）｜ security.db 6 表
   规则主体 176（红线 91 + 已验证 85 + 检测器实现层 25/10/14）
   候选 460（add 97 / merge 141）｜ 176+97=273
-  ★ App 实测：API 端点 206 ｜ 非 /api 路由 19 ｜ 业务页面 6
+  ★ App 实测：API 端点 220 ｜ 非 /api 路由 23 ｜ 业务页面 10
     （★ 隔离子进程里起 App 再数，**不污染真实数据**；对外一律引用 206）
   ★ P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核
+  ★ P0-7 报告 / P0-8 权限·租户·审计（RBAC 5 角色 13 权限 / 租户隔离 / 脱敏）
 
 用法：
   .venv/Scripts/python.exe scripts/_verify_baseline_numbers.py
@@ -101,6 +102,8 @@ def main() -> int:
     chk("documents_api.py 路由", 12, _count("documents_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("documents_api.py 页面路由", 1, _count("documents_api.py", r"@page_router\.(get|post)\("))
     chk("analysis_api.py 路由", 6, _count("analysis_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("rbac_api.py 路由（P0-8）", 8, _count("rbac_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("rbac_api.py 页面路由（P0-8）", 3, _count("rbac_api.py", r"@page_router\.(get|post)\("))
     chk("analysis_api.py 页面路由", 1, _count("analysis_api.py", r"@page_router\.(get|post)\("))
     chk("rules_api.py 路由", 9, _count("rules_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("rules_api.py 页面路由", 1, _count("rules_api.py", r"@page_router\.(get|post)\("))
@@ -112,9 +115,9 @@ def main() -> int:
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 211, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 105, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
-    chk("config/*.json", 42, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
+    chk("engine/*.py", 213, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 106, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("config/*.json", 43, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
 
@@ -136,7 +139,9 @@ def main() -> int:
     _acct = set(_table_names("data/accounting.db"))
     chk("accounting.db 必需表齐全", [], sorted(set(_need_acct) - _acct))
     print("  [信息] accounting.db 表数 = %d（随功能合法增长，不作断言）" % len(_acct))
-    _need_sec = ("users", "sessions", "login_attempts", "llm_credentials")
+    _need_sec = ("users", "sessions", "login_attempts", "llm_credentials",
+                 "roles", "permissions", "role_permissions", "user_roles",
+                 "tenants")            # P0-8 权限/租户
     _sec = set(_table_names("data/security.db"))
     chk("security.db 必需表齐全", [], sorted(set(_need_sec) - _sec))
     print("  [信息] security.db 表数 = %d" % len(_sec))
@@ -328,13 +333,13 @@ def main() -> int:
     # ── App 实测端点总数（口径唯一权威；**不靠各项相加推**）──
     try:
         _rc = _app_route_counts()
-        chk("App API 端点数（实测）", 212, _rc["api"])
-        chk("App 非 /api 路由数（实测）", 20, _rc["other"])
-        _page_six = ("/projects", "/documents", "/extract", "/analysis", "/rules",
-                     "/risks", "/reports")
+        chk("App API 端点数（实测）", 220, _rc["api"])
+        chk("App 非 /api 路由数（实测）", 23, _rc["other"])
+        _page_all = ("/projects", "/documents", "/extract", "/analysis", "/rules",
+                     "/risks", "/reports", "/users", "/roles", "/audit-logs")
         chk("业务页面均在 App 路由中（缺一即报）", [],
-            [p for p in _page_six if p not in _rc["other_paths"]])
-        chk("OpenAPI 收录路径数（实测）", 203, _rc["schema_paths"])
+            [p for p in _page_all if p not in _rc["other_paths"]])
+        chk("OpenAPI 收录路径数（实测）", 208, _rc["schema_paths"])
     except Exception as _exc:                                    # noqa: BLE001
         raise AssertionError("App 路由统计失败（判据不可用，参数不完整）：%s" % _exc)
 
@@ -400,6 +405,37 @@ def main() -> int:
              "sections": [{"key": "disclaimer", "title": "免责声明",
                            "blocks": [{"type": "paragraph", "text": "唯一权威声明"}]}],
              "omitted": []}, f)[1] for f in RV_.FORMATS]}))
+
+    # ── P0-8 权限 / 租户 / 审计 / 脱敏（新增，2026-10-14）──
+    from engine import rbac as RB_
+    _rc_cfg = RB_.rbac_config()
+    chk("RBAC 角色 5 个（任务书）", ["auditor", "enterprise_finance", "review_expert",
+                                  "system_admin", "tax_advisor"], sorted(RB_.role_codes()))
+    chk("RBAC 权限点 13 个", 13, len(RB_.permission_codes()))
+    chk("角色→权限映射覆盖全部内置角色", [],
+        sorted(set(RB_.role_codes()) - set(_rc_cfg.get("role_permissions") or {})))
+    chk("角色→脱敏映射覆盖全部内置角色", [],
+        sorted(set(RB_.role_codes()) - set(_rc_cfg.get("role_redaction") or {})))
+    _rc_ids = RB_.rbac_metadata()["roles"]
+    chk("内置角色均登记 builtin=1", len(RB_.role_codes()),
+        len([r for r in _rc_ids if r["builtin"]]))
+    chk("默认角色在角色表内", True, _rc_cfg.get("default_role") in RB_.role_codes())
+    chk("超管等价角色在角色表内", True, _rc_cfg.get("legacy_admin_role") in RB_.role_codes())
+    chk("租户形态登记 2 种", ["private", "saas"], sorted(RB_.TENANT_MODES))
+    from engine.audit_trail import ACTIONS as _ACT8, ACTION_CN as _CN8   # noqa: PLC0415
+    _p8 = [a for a in _ACT8 if a.startswith(("auth.", "user.", "role."))]
+    chk("P0-8 审计动作 7 个", 7, len(_p8))
+    chk("P0-8 动作中文名齐全", 7, len([a for a in _p8 if _CN8.get(a)]))
+    # 角色→脱敏的取值必须落在「要不要脱」的唯一权威（report_compliance.redaction_roles）内
+    from engine.report_compliance import load_config as _load_rc   # noqa: PLC0415
+    _rr_registered = set((_load_rc().get("redaction_roles") or {}).keys())
+    _rr_used = set((_rc_cfg.get("role_redaction") or {}).values())
+    _rr_used.add(str(_rc_cfg.get("fallback_redaction") or ""))
+    chk("脱敏策略键均为已登记脱敏角色", [], sorted(_rr_used - _rr_registered))
+    chk("内部角色必须不脱敏（报告/内部底稿定调）", [], sorted(
+        k for k, v in __import__("engine.redaction", fromlist=["role_policy"])
+        .role_policy("internal").items()
+        if v is True and k in ("name", "account", "id_card", "amount", "contact")))
 
     # ── 规则分层（唯一权威 layer_semantics）──
     with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as fh:

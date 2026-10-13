@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>角色管理 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a, .topbar button { color:#cbd5e1; background:none; border:1px solid rgba(255,255,255,.25);
+              border-radius:5px; padding:5px 12px; font-size:12px; cursor:pointer; text-decoration:none; }
+    .topbar a:hover, .topbar button:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1500px; margin:0 auto; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; margin-bottom:16px; }
+    .card h3 { margin:0; padding:12px 16px; font-size:14px; border-bottom:1px solid #f1f5f9; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:9px 12px; text-align:left; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
+    table.grid tr:hover td { background:#f8fafc; }
+    table.matrix td, table.matrix th { text-align:center; }
+    table.matrix td.name, table.matrix th.name { text-align:left; }
+    .yes { color:#15803d; font-weight:700; }
+    .no { color:#cbd5e1; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px;
+           background:#eef2ff; color:#3730a3; margin-right:4px; }
+    .tag.builtin { background:#ecfeff; color:#155e75; }
+    .tag.custom { background:#fef3c7; color:#b45309; }
+    .msg { padding:8px 12px; border-radius:5px; font-size:13px; margin-bottom:10px; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .empty { text-align:center; color:#94a3b8; padding:26px 0; }
+    .overlay { position:fixed; inset:0; background:#0f172a80; display:none; place-items:center; z-index:50; }
+    .overlay.show { display:grid; }
+    .modal { width:min(660px,calc(100% - 32px)); background:#fff; border-radius:10px; overflow:hidden; }
+    .modal h2 { margin:0; padding:14px 20px; font-size:15px; border-bottom:1px solid #f1f5f9; }
+    .modal .body { padding:16px 20px; max-height:64vh; overflow:auto; }
+    .modal .foot { padding:12px 20px; border-top:1px solid #f1f5f9; display:flex; gap:8px; justify-content:flex-end; }
+    .form-row { display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+    .form-row > label { flex:1; min-width:200px; display:flex; flex-direction:column; gap:4px;
+             font-size:12px; color:#64748b; }
+    .form-row input, .form-row select, .form-row textarea { padding:7px 9px; border:1px solid #cbd5e1;
+             border-radius:5px; font-size:13px; font-family:inherit; width:100%; }
+    .perm-box { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .perm-box label { display:flex; align-items:center; gap:6px; font-size:13px; color:#334155;
+             border:1px solid #e2e8f0; border-radius:5px; padding:5px 8px; }
+    .hint { color:#94a3b8; font-size:12px; margin:6px 2px; }
+  </style>
+  <script src="/static/js/security.js"></script>
+  <script src="/static/js/rbac-nav.js?v=4d62d2a49e" defer></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🔐 角色管理</h1>
+    <span class="spacer"></span>
+    <span id="whoami" style="color:#94a3b8;font-size:12px"></span>
+    <a href="/users" data-perm="user.view">用户管理</a>
+    <a href="/audit-logs" data-perm="audit.view">审计日志</a>
+    <a href="/">返回主界面</a>
+  </div>
+
+  <div class="wrap">
+    <div id="msg"></div>
+    <div class="toolbar">
+      <button class="btn ghost" id="btn-reload">刷新</button>
+      <button class="btn" id="btn-new" data-perm="role.manage">＋ 新建自定义角色</button>
+      <span id="me" style="color:#64748b;font-size:12px"></span>
+    </div>
+
+    <div class="card">
+      <h3>角色清单（功能权限的来源；数据权限看账套授权，项目权限看项目成员）</h3>
+      <table class="grid">
+        <thead><tr><th>编码</th><th>名称</th><th>范围</th><th>类型</th><th>权限数</th><th>说明</th></tr></thead>
+        <tbody id="tbody"><tr><td colspan="6" class="empty">加载中…</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>角色 × 权限矩阵（✓ = 具备）</h3>
+      <div style="overflow:auto"><table class="grid matrix" id="matrix"></table></div>
+    </div>
+
+    <div class="card">
+      <h3>角色 → 脱敏策略（「是否脱敏」的唯一权威在 config/report_compliance.json）</h3>
+      <table class="grid">
+        <thead><tr><th>角色</th><th>脱敏策略键</th></tr></thead>
+        <tbody id="redaction"><tr><td colspan="2" class="empty">加载中…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="hint" id="tenant-modes"></p>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2>新建自定义角色</h2>
+      <div class="body">
+        <div class="form-row">
+          <label>角色编码<input id="f-code" placeholder="英文/下划线，如 data_reviewer"></label>
+          <label>角色名称<input id="f-name" placeholder="如：数据复核岗"></label>
+        </div>
+        <div class="form-row">
+          <label>范围
+            <select id="f-scope">
+              <option value="tenant">tenant（组织内）</option>
+              <option value="platform">platform（跨组织）</option>
+            </select>
+          </label>
+          <label>说明<input id="f-desc" placeholder="这个角色能做什么"></label>
+        </div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:6px">权限点</div>
+        <div class="perm-box" id="perm-box"></div>
+        <p class="hint">内置角色不可重建（需调整请改 config/rbac.json，那是唯一权威数据表）。</p>
+      </div>
+      <div class="foot">
+        <button class="btn ghost" id="btn-cancel">取消</button>
+        <button class="btn" id="btn-save">创建</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var state = { data:null };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+  function showMsg(text, ok) {
+    $("msg").innerHTML = text
+      ? '<div class="msg ' + (ok ? "ok" : "err") + '">' + esc(text) + "</div>" : "";
+  }
+
+  function load() {
+    fetch("/api/v1/roles", { credentials:"same-origin" })
+      .then(function (r) { return r.json().then(function (d) { return { s:r.status, d:d }; }); })
+      .then(function (res) {
+        if (res.s !== 200) {
+          showMsg("无法查看角色配置：" + (res.d.detail || res.d.message || res.s)
+                  + "（需要 user.view 或 role.manage 权限）", false);
+          $("tbody").innerHTML = '<tr><td colspan="6" class="empty">无权限查看</td></tr>';
+          return;
+        }
+        state.data = res.d;
+        render();
+      }).catch(function (e) { showMsg("加载异常：" + e, false); });
+  }
+
+  function render() {
+    var d = state.data;
+    $("tbody").innerHTML = d.roles.map(function (r) {
+      return "<tr>"
+        + "<td>" + esc(r.code) + "</td><td>" + esc(r.name) + "</td>"
+        + "<td>" + esc(r.scope) + "</td>"
+        + '<td><span class="tag ' + (r.builtin ? "builtin" : "custom") + '">'
+          + (r.builtin ? "内置" : "自定义") + "</span></td>"
+        + "<td>" + esc(r.permission_count) + "</td>"
+        + "<td>" + esc(r.description || "—") + "</td></tr>";
+    }).join("");
+    var perms = d.permissions || [];
+    var roles = d.roles || [];
+    var head = '<thead><tr><th class="name">权限点</th>';
+    roles.forEach(function (r) { head += "<th>" + esc(r.name) + "</th>"; });
+    head += "</tr></thead><tbody>";
+    var body = perms.map(function (p) {
+      var row = '<tr><td class="name">' + esc(p.name)
+        + ' <span style="color:#94a3b8">(' + esc(p.code) + ")</span></td>";
+      roles.forEach(function (r) {
+        var owned = (d.role_permissions[r.code] || []).indexOf(p.code) >= 0;
+        row += "<td>" + (owned ? '<span class="yes">✓</span>' : '<span class="no">—</span>') + "</td>";
+      });
+      return row + "</tr>";
+    }).join("");
+    $("matrix").innerHTML = head + body + "</tbody>";
+
+    $("redaction").innerHTML = roles.map(function (r) {
+      return "<tr><td>" + esc(r.name) + "（" + esc(r.code) + "）</td><td>"
+        + esc((d.role_redaction || {})[r.code] || d.fallback_redaction) + "</td></tr>";
+    }).join("");
+    $("tenant-modes").textContent = "租户形态：" + Object.keys(d.tenant_modes || {})
+      .map(function (k) { return k + "=" + d.tenant_modes[k]; }).join("；");
+
+    $("me").textContent = "当前角色：" + (d.current_roles || []).join("、")
+      + "（权限 " + (d.current_permissions || []).length + " 项）";
+    $("perm-box").innerHTML = perms.map(function (p) {
+      return '<label><input type="checkbox" value="' + esc(p.code) + '"> '
+        + esc(p.name) + "</label>";
+    }).join("");
+  }
+
+  function create() {
+    var perms = Array.prototype.slice.call($("perm-box").querySelectorAll("input:checked"))
+      .map(function (i) { return i.value; });
+    var body = {
+      code: $("f-code").value.trim(), name: $("f-name").value.trim(),
+      scope: $("f-scope").value, description: $("f-desc").value, permissions: perms
+    };
+    if (!body.code || !body.name) { showMsg("角色编码与名称必填", false); return; }
+    fetch("/api/v1/roles", {
+      method:"POST", credentials:"same-origin",
+      headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)
+    }).then(function (r) { return r.json().then(function (d) { return { s:r.status, d:d }; }); })
+      .then(function (res) {
+        if (res.s === 201) {
+          $("overlay").classList.remove("show");
+          showMsg("已创建自定义角色 " + body.code, true);
+          load();
+        } else {
+          showMsg("创建失败：" + (res.d.detail || res.d.message || res.s), false);
+        }
+      }).catch(function (e) { showMsg("创建异常：" + e, false); });
+  }
+
+  $("btn-reload").addEventListener("click", load);
+  $("btn-new").addEventListener("click", function () {
+    ["f-code","f-name","f-desc"].forEach(function (k) { $(k).value = ""; });
+    $("perm-box").querySelectorAll("input").forEach(function (i) { i.checked = false; });
+    $("overlay").classList.add("show");
+  });
+  $("btn-cancel").addEventListener("click", function () { $("overlay").classList.remove("show"); });
+  $("btn-save").addEventListener("click", create);
+
+  if (window.RBAC && window.RBAC.ready) {
+    window.RBAC.ready(function (st) {
+      $("whoami").textContent = st.username
+        ? (st.username + "（" + (st.roles || []).join("、") + "）") : "";
+    });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

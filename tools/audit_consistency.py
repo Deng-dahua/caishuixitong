@@ -6623,8 +6623,8 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
     #        · 并用**更强**的补偿断言锁死"内部底稿永不脱敏"（行为级）。
     _DESENS_SYMS = ("pii_guard", "mask_person_name", "mask_id_no", "mask_phone",
                     "mask_account", "redact_enterprise_report", "_pii_stats", "_pii_notice")
-    #: 专供**对外版本**的脱敏实现（唯一允许出现脱敏符号的两个文件）
-    _DESENS_ALLOWED = {"engine/redaction.py", "engine/report_compliance.py"}
+    #: 专供**对外版本/人员名单**的脱敏实现（唯一允许出现脱敏符号的文件）
+    _DESENS_ALLOWED = {"engine/redaction.py", "engine/report_compliance.py", "engine/access_service.py"}  # 2026-10-14 P0-8：+access_service（用户目录/审计日志接口的人员敏感字段出口；报告正文禁脱敏的补偿断言①②③仍全部生效）
     if os.path.exists(str(ROOT / "engine" / "pii_guard.py")):
         issues.append(("ERROR", "engine/pii_guard.py",
                        "个人信息脱敏模块仍存在（用户定调：报告禁止脱敏/隐藏）"))
@@ -13015,7 +13015,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威
     return counts, general
 
 
@@ -18278,6 +18278,200 @@ def check_confidence_weights_single_source() -> List[Tuple[str, str, str]]:
     except Exception as exc:                       # noqa: BLE001
         issues.append(("ERROR", "engine/argumentation.py",
                        "分项账本复算断言失败：%s" % exc))
+    return issues
+
+
+def check_rbac_single_source() -> List[Tuple[str, str, str]]:
+    """RBAC / 租户 / 脱敏映射：**单一权威 + 不静默放行**（2026-10-14，P0-8）。
+
+    ★ 为什么需要（实测缺口，不是设想）：P0-8 之前系统只有两值角色
+      （`users.role ∈ {admin, user}`）与账套级数据权限。新增 RBAC 后，
+      **最容易复发的病**是"同概念多处实现"：
+        · 角色→权限映射在 `rbac_api` / `security_web` / 前端各判一次 ⇒ 迟早分叉；
+        · 前端"藏了按钮"被当成权限控制 ⇒ 后端没拦（越权可达）；
+        · 未知权限/未知角色被当成"默认放行" ⇒ 静默提权。
+
+    判据（A 静态 + B 行为·子进程隔离）：
+      A1 权威文件与入口齐备：`config/rbac.json`（唯一数据表）+ `engine/rbac.py`
+         且导出 `rbac_allows` / `session_permission_codes` / `require_permission`。
+      A2 判定唯一：全仓 `def rbac_allows(` 只允许 1 处。
+      A3 角色写入唯一：`INSERT INTO role_permissions` 只允许出现在 `engine/rbac.py`。
+      A4 `users.role` 的两值 `CHECK` **不得被改**（改了 `SessionContext.is_admin` 与既有
+         守卫（`security_web._ADMIN_PATHS`）全部失配）—— 与本模块的
+         "不换技术栈 / 只增不改" 裁定同口径。
+      A5 接线：`main.py` 必须 include rbac 的两个 router（否则页面与接口都不可达）。
+      A6 动作成对：P0-8 新增审计动作必须在 `ACTIONS` 与 `ACTION_CN` **同时**存在。
+      B1 角色→权限（隔离库）：超管全权、企业财务无 `user.manage`、审计员无任何写权限。
+      B2 **不静默放行**：未知权限码 / 未知角色码 / 空会话 ⇒ 一律 False。
+      B3 角色→脱敏：取值必须落在 `report_compliance.redaction_roles` 键集合内
+         （"要不要脱"的唯一权威仍在那里），未知角色 ⇒ 取最严 fallback。
+      B4 租户隔离：非超管 `visible_tenant_ids` 只含自身租户；超管为 `None`（不限）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import os as _os
+    import subprocess as _sp
+    import sys as _sys
+    import tempfile as _tf
+
+    _REL = "engine/rbac.py"
+    _CFG = "config/rbac.json"
+    _rbac_py = ROOT / _REL
+    _cfg_py = ROOT / _CFG
+    if not _rbac_py.exists():
+        return [("ERROR", _REL, "RBAC 唯一权威不存在（`engine/rbac.py`）")]
+    if not _cfg_py.exists():
+        return [("ERROR", _CFG, "RBAC 唯一数据表不存在（`config/rbac.json`）")]
+
+    # ── A1 入口齐备 ────────────────────────────────────────────────────────
+    _src = _rbac_py.read_text(encoding="utf-8", errors="replace")
+    for _fn in ("rbac_allows", "session_permission_codes", "require_permission",
+                "redaction_role_of", "visible_tenant_ids", "ensure_rbac_schema"):
+        if ("def %s(" % _fn) not in _src:
+            issues.append(("ERROR", _REL, "唯一权威缺 `%s()` —— 判定/建表入口不完整" % _fn))
+
+    # ── A2 判定唯一 ────────────────────────────────────────────────────────
+    _def_re = re.compile(r"^def\s+rbac_allows\s*\(", re.M)
+    _dn = len(_def_re.findall(_src))
+    if _dn != 1:
+        issues.append(("ERROR", _REL,
+                       "`def rbac_allows(` 出现 %d 次（必须 1 次）—— 权限判定只能有一个实现" % _dn))
+
+    # ── A3 角色-权限写入唯一 ───────────────────────────────────────────────
+    _ins_re = re.compile(r"INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+role_permissions", re.I)
+    _files = [ROOT / "main.py", ROOT / "security.py", ROOT / "security_web.py",
+              ROOT / "rbac_api.py", ROOT / "projects_api.py", ROOT / "reports_api.py",
+              ROOT / "risks_api.py", ROOT / "rules_api.py", ROOT / "documents_api.py"]
+    for _d in ("engine", "tools", "scripts", "tests", "routers"):
+        _base = ROOT / _d
+        if _base.is_dir():
+            _files.extend(sorted(_base.rglob("*.py")))
+    for _p in _files:
+        if not _p.exists() or _p.resolve() == _rbac_py.resolve():
+            continue
+        if _p.resolve() == Path(__file__).resolve():
+            continue                      # 本闸门自检跳过（提示文案内含该字面量）
+        _t = _p.read_text(encoding="utf-8", errors="replace")
+        _m = _ins_re.search(_t)
+        if _m:
+            _ln = _t[:_m.start()].count("\n") + 1
+            issues.append(("ERROR", _p.relative_to(ROOT).as_posix(),
+                           "第 %d 行出现 `INSERT INTO role_permissions` —— 角色-权限映射的"
+                           "写入只允许在唯一权威 `%s`（否则同一概念两处实现，迟早分叉）"
+                           % (_ln, _REL)))
+
+    # ── A4 users.role 两值 CHECK 不得被改 ─────────────────────────────────
+    _sec = (ROOT / "security.py").read_text(encoding="utf-8", errors="replace")
+    if "CHECK(role IN ('admin', 'user'))" not in _sec:
+        issues.append(("ERROR", "security.py",
+                       "`users.role` 的两值 CHECK 被改动 —— `SessionContext.is_admin` 与既有"
+                       "管理员守卫会失配；细粒度角色应走 RBAC 的 user_roles 表"))
+
+    # ── A5 接线 ───────────────────────────────────────────────────────────
+    _main = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for _token in ("from rbac_api import router as rbac_router",
+                   "app.include_router(rbac_router)",
+                   "app.include_router(rbac_page_router)"):
+        if _token not in _main:
+            issues.append(("ERROR", "main.py", "缺少接线片段：`%s`（页面/接口将不可达）" % _token))
+
+    # ── A6 审计动作成对 ───────────────────────────────────────────────────
+    try:
+        _sys.path.insert(0, str(ROOT))
+        from engine.audit_trail import ACTIONS as _ACT, ACTION_CN as _CN   # noqa: PLC0415
+        for _a in ("auth.login", "auth.login_failed", "auth.logout", "auth.denied",
+                   "user.create", "user.update", "role.create"):
+            if _a not in _ACT:
+                issues.append(("ERROR", "engine/audit_trail.py",
+                               "P0-8 动作 `%s` 未登记进 ACTIONS（关键操作将无留痕）" % _a))
+            elif _a not in _CN or not _CN.get(_a):
+                issues.append(("ERROR", "engine/audit_trail.py",
+                               "动作 `%s` 缺中文名（ACTION_CN 成对维护）" % _a))
+    except Exception as exc:                                  # noqa: BLE001
+        issues.append(("ERROR", "engine/audit_trail.py", "审计动作表不可读：%s" % exc))
+
+    # ── B 行为（子进程 + APP_DATA_DIR 隔离，绝不碰真实库）───────────────────
+    _probe = r'''
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path.cwd()))
+from security import init_security_db, create_user, SessionContext
+from engine import rbac as R
+init_security_db(); R.ensure_rbac_schema()
+
+def sess(uid, legacy="user", tenant=None):
+    return SessionContext(user_id=uid, username="u%d" % uid, role=legacy,
+                          allowed_company_ids=frozenset(), selected_company_id=None,
+                          csrf_hash="", expires_at=0, tenant_id=tenant)
+
+# B0 五个任务书角色齐备
+for code in ("enterprise_finance", "tax_advisor", "review_expert",
+             "system_admin", "auditor"):
+    assert code in R.role_codes(), ("缺角色", code)
+
+# B1 角色→权限
+perms = set(R.permission_codes())
+assert set(R.session_permission_codes(sess(1, legacy="admin"))) == perms, "超管权限不完整"
+fin = create_user("gfin", "Gate-Fin-2026!", role="user")
+R.assign_user_roles(fin, ["enterprise_finance"])
+f = sess(fin)
+assert R.rbac_allows(f, "project.write") is True, "企业财务应可管理项目"
+assert R.rbac_allows(f, "user.manage") is False, "企业财务不应有 user.manage"
+assert R.rbac_allows(f, "role.manage") is False, "企业财务不应有 role.manage"
+aud = create_user("gaud", "Gate-Aud-2026!", role="user")
+R.assign_user_roles(aud, ["auditor"])
+a = sess(aud)
+assert R.rbac_allows(a, "audit.view") is True, "审计员应可看留痕"
+for w in ("project.write", "document.write", "analysis.run", "risk.review",
+          "report.generate", "user.manage", "role.manage"):
+    assert R.rbac_allows(a, w) is False, ("审计员不应有写权限", w)
+
+# B2 不静默放行
+assert R.rbac_allows(f, "no.such.permission") is False, "未知权限竟放行"
+assert R.rbac_allows(f, "") is False, "空权限竟放行"
+assert R.rbac_allows(None, "project.view") is False, "空会话竟放行"
+assert R.session_permission_codes(None) == frozenset(), "空会话权限非空"
+# 非法角色码不可指派
+try:
+    R.assign_user_roles(fin, ["no_such_role"])
+    raise AssertionError("非法角色竟被接受")
+except AssertionError:
+    raise
+except Exception as e:
+    assert e.__class__.__name__ == "RbacError", e.__class__.__name__
+
+# B3 角色→脱敏 值域
+from engine.report_compliance import load_config
+allowed = set((load_config().get("redaction_roles") or {}).keys())
+cfg = R.rbac_config()
+bad = {k: v for k, v in (cfg.get("role_redaction") or {}).items() if v not in allowed}
+assert not bad, ("脱敏策略键非法", bad)
+assert cfg.get("fallback_redaction") in allowed, "fallback 脱敏键非法"
+assert R.redaction_role_of_code("__nope__") == cfg["fallback_redaction"], "未知角色未取最严策略"
+
+# B4 租户隔离
+tid = R.default_tenant_id()
+assert isinstance(tid, int) and tid > 0, ("默认租户应为正数 id", tid)
+assert R.visible_tenant_ids(sess(1, legacy="admin")) is None, "超管应不限租户"
+assert R.visible_tenant_ids(sess(fin, tenant=tid)) == frozenset({tid}), "非超管租户范围错误"
+assert R.visible_tenant_ids(None) == frozenset(), "空会话租户范围应为空"
+
+print("OK rbac-gate")
+'''
+    with _tf.TemporaryDirectory(prefix="rbac-gate-") as _td:
+        _env = dict(_os.environ)
+        _env["APP_DATA_DIR"] = _td
+        _env["PYTHONIOENCODING"] = "utf-8"
+        try:
+            _cp = _sp.run([_sys.executable, "-c", _probe], cwd=str(ROOT), env=_env,
+                          capture_output=True, text=True, encoding="utf-8",
+                          errors="replace", timeout=180)
+        except Exception as exc:                              # noqa: BLE001
+            issues.append(("ERROR", _REL, "行为判据子进程无法启动：%s" % exc))
+        else:
+            if _cp.returncode != 0 or "OK rbac-gate" not in (_cp.stdout or ""):
+                issues.append(("ERROR", _REL,
+                               "RBAC/租户/脱敏行为判据失败"
+                               "（角色权限 / 不静默放行 / 脱敏值域 / 租户隔离）：%s"
+                               % ((_cp.stdout or "") + " | " + (_cp.stderr or "")).strip()[-400:]))
     return issues
 
 

@@ -111,6 +111,16 @@
     <div class="nav-item" data-page="system-logs">
       <span class="icon">📋</span> 系统日志
     </div>
+    <!-- P0-8 权限与审计：`data-perm` 由 /static/js/rbac-nav.js 按服务端下发的权限集合显隐 -->
+    <div class="nav-item" data-perm="user.view" onclick="location.href='/users'" title="用户管理：账号、角色、所属组织与账套授权（联系方式等敏感字段按角色脱敏）">
+      <span class="icon">👥</span> 用户管理
+    </div>
+    <div class="nav-item" data-perm="role.manage" onclick="location.href='/roles'" title="角色管理：内置角色与权限点、角色-权限映射、自定义角色">
+      <span class="icon">🔐</span> 角色管理
+    </div>
+    <div class="nav-item" data-perm="audit.view" onclick="location.href='/audit-logs'" title="审计日志：上传/分析/修改/下载/导出/复核/状态变更与登录留痕">
+      <span class="icon">🧾</span> 审计日志
+    </div>
   </div>
 </nav>
 
@@ -145,6 +155,7 @@
 <script src="/static/js/correction-rules.js?v=4f574b682d" defer></script>
 <script src="/static/js/human-learning-page.js?v=1ccc56897c" defer></script>
 <script src="/static/js/module-headers.js?v=38c0d6206d" defer></script>
+<script src="/static/js/rbac-nav.js?v=4d62d2a49e" defer></script>
 <!-- CACHE-BUST: 2026071113-REPORT-STANDARDS-FIX -->
 
 

@@ -67,6 +67,14 @@ ACTIONS: Tuple[str, ...] = (
                          #     前者=人对风险的处置意见；后者=重解析源文件比对结论是否可靠。
     "risk.comment",      # 风险批注（人工留痕，不改状态）
     "risk.rectify",      # 风险整改台账登记（标记已整改并生成整改编号 WB-RC-…）
+    # ── 2026-10-14 新增（P0-8 权限、租户、审计）：**只在末尾追加**，顺序不得变动 ──
+    "auth.login",        # 登录成功
+    "auth.login_failed", # 登录失败（含限流拦截；**用户名照记**，口令绝不入留痕）
+    "auth.logout",       # 退出登录
+    "auth.denied",       # 越权访问被拒（403：管理员路径 / 跨账套 / CSRF 失败）
+    "user.create",       # 用户创建（含角色指派与所属租户/账套）
+    "user.update",       # 用户修改（显示名/联系方式/启停用/角色调整/租户调整）
+    "role.create",       # 自定义角色创建（含权限点集合）
 )
 
 #: 动作的中文名（★ 与 `ACTIONS` 一一对应；面向界面/导出，不得出现英文码）
@@ -93,6 +101,13 @@ ACTION_CN: Dict[str, str] = {
     "risk.review": "风险复核",
     "risk.comment": "风险批注",
     "risk.rectify": "整改台账登记",
+    "auth.login": "登录成功",
+    "auth.login_failed": "登录失败",
+    "auth.logout": "退出登录",
+    "auth.denied": "越权访问被拒",
+    "user.create": "用户创建",
+    "user.update": "用户修改",
+    "role.create": "角色创建",
 }
 
 #: 最近一次留痕错误（供诊断/闸门读取；正常为 None）
@@ -282,23 +297,65 @@ def record(action: str, *, target: Any = "", company_id: Any = None,
 
 # ── 读侧 ─────────────────────────────────────────────────────────────────────
 
-def list_records(company_id: Any = None, action: Any = None,
-                 limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-    """按条件读留痕（`created_at` **倒序**，最新在前）。
-
-    ★ 与 `/api/audit-logs` 的历史行为同口径：不传 `company_id` ⇒ 全量。
-      这里**不做权限判断**（权限网关在路由层），只负责取数。
-    """
-    from database import engine as _engine        # noqa: PLC0415
-    from sqlalchemy import text as _text          # noqa: PLC0415
+def _build_audit_filters(*, company_id=None, action=None, user_id=None, q=None,
+                         actions=None, date_from=None, date_to=None
+                         ) -> Tuple[List[str], Dict[str, Any]]:
+    """过滤条件**唯一构造点**（`list_records` 与 `count` 共用 ⇒ 两者口径永不漂移）。"""
     where: List[str] = []
-    params: Dict[str, Any] = {"lim": max(0, int(limit)), "off": max(0, int(offset))}
+    params: Dict[str, Any] = {}
     if company_id is not None:
         where.append("company_id = :cid")
         params["cid"] = int(company_id)
     if action:
         where.append("action = :ac")
         params["ac"] = str(action)
+    if actions:
+        keys = []
+        for i, a in enumerate([str(x) for x in actions if str(x)]):
+            k = "_act%d" % i
+            keys.append(":" + k)
+            params[k] = a
+        if keys:
+            where.append("action IN (%s)" % ", ".join(keys))
+    if user_id is not None:
+        where.append("user_id = :uid_f")
+        params["uid_f"] = int(user_id)
+    kw = str(q or "").strip()
+    if kw:
+        where.append("(target LIKE :kw OR detail LIKE :kw OR user_name LIKE :kw)")
+        params["kw"] = "%" + kw + "%"
+    df = str(date_from or "").strip()
+    if df:
+        where.append("created_at >= :df")
+        params["df"] = df
+    dt = str(date_to or "").strip()
+    if dt:
+        where.append("created_at <= :dt")
+        params["dt"] = dt
+    return where, params
+
+
+def list_records(company_id: Any = None, action: Any = None,
+                 limit: int = 100, offset: int = 0, *,
+                 user_id: Any = None, q: Any = None, actions: Any = None,
+                 date_from: Any = None, date_to: Any = None) -> List[Dict[str, Any]]:
+    """按条件读留痕（`created_at` **倒序**，最新在前）。
+
+    ★ 与 `/api/audit-logs` 的历史行为同口径：不传 `company_id` ⇒ 全量。
+      这里**不做权限判断**（权限网关在路由层），只负责取数。
+    ★ 2026-10-14（P0-8）：新增**可选**过滤（全部为关键字参数 ⇒ 既有调用零改动）——
+      `user_id`（按操作人）/ `q`（目标或说明模糊匹配）/ `actions`（动作白名单）/
+      `date_from`/`date_to`（`created_at` 为 `runtime_storage.now_cst()` 的 ISO 文本，
+      直接按字符串比较即可）。过滤条件由 `_build_audit_filters` **唯一构造**，
+      `count()` 与之一字不差 ⇒ 分页总数与列表永远自洽。
+    """
+    from database import engine as _engine        # noqa: PLC0415
+    from sqlalchemy import text as _text          # noqa: PLC0415
+    where, params = _build_audit_filters(
+        company_id=company_id, action=action, user_id=user_id, q=q,
+        actions=actions, date_from=date_from, date_to=date_to)
+    params["lim"] = max(0, int(limit))
+    params["off"] = max(0, int(offset))
     sql = "SELECT id, company_id, user_name, action, target, detail, created_at, user_id " \
           "FROM audit_logs"
     if where:
@@ -319,18 +376,15 @@ def list_records(company_id: Any = None, action: Any = None,
     return out
 
 
-def count(company_id: Any = None, action: Any = None) -> int:
-    """计数（供验收/自证；不与 `list_records` 各写一套过滤口径）。"""
+def count(company_id: Any = None, action: Any = None, *,
+          user_id: Any = None, q: Any = None, actions: Any = None,
+          date_from: Any = None, date_to: Any = None) -> int:
+    """计数（供验收/自证；过滤条件与 `list_records` **同源**）。"""
     from database import engine as _engine        # noqa: PLC0415
     from sqlalchemy import text as _text          # noqa: PLC0415
-    where: List[str] = []
-    params: Dict[str, Any] = {}
-    if company_id is not None:
-        where.append("company_id = :cid")
-        params["cid"] = int(company_id)
-    if action:
-        where.append("action = :ac")
-        params["ac"] = str(action)
+    where, params = _build_audit_filters(
+        company_id=company_id, action=action, user_id=user_id, q=q,
+        actions=actions, date_from=date_from, date_to=date_to)
     sql = "SELECT COUNT(*) FROM audit_logs"
     if where:
         sql += " WHERE " + " AND ".join(where)

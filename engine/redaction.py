@@ -294,6 +294,30 @@ def redaction_report(role: str, counter: Dict[str, int]) -> str:
     return "本次对外版本按角色「%s」完成脱敏：%s。" % (pol.get("label", role), "、".join(parts))
 
 
+# ── 字段级人名脱敏（P0-8）───────────────────────────────────────────────────
+#: 姓名字段的键名（★ 唯一权威：新增一个"整列都是人名"的字段只加一行）
+NAME_FIELD_KEYS: Tuple[str, ...] = ("display_name", "real_name", "contact_name", "联系人", "姓名")
+
+
+def mask_person_name_field(text: str) -> Tuple[str, int]:
+    """**字段级**人名脱敏：已知该字段整体就是人名时使用。
+
+    ★ 为什么不复用 `redact_names()`：那是**文本级**脱敏，靠称谓/身份词（"先生"、
+      "法定代表人"…）作锚点定位人名。裸字段值（如 `display_name = "张会计"`）
+      没有任何锚点 ⇒ 文本级脱敏**一个字都不会改**，看上去"脱敏跑了"，其实没生效
+      （实测：审计员看到的仍是「张会计」）。字段级则不需要锚点 ——
+      **字段语义本身就是锚定**。
+    ★ 姓氏/复姓判据仍共用本模块的唯一权威表（`_SURNAMES` / `_COMPOUND` / `_mask`）。
+    """
+    s = str(text or "").strip()
+    if not s or "某" in s:
+        return s, 0
+    if not _ok_head(s):
+        # 首字不是姓氏（可能是"财务部""待补充"等）⇒ **不猜**，原样返回且不计命中
+        return s, 0
+    return _mask(s), 1
+
+
 #: **数值型**金额字段的键名（★ 唯一权威：新增一类只加一行）。
 #:   ⚠ 只脱敏**文本**是不够的：实测报告的 `tax_impact.basis/total` 是**数字**，
 #:     正则扫不到 ⇒ 对外版仍会泄漏精确金额（"看起来脱敏了，其实最大的那个数没动"）。
@@ -365,4 +389,4 @@ def copy_for_role(obj: Any, role: str) -> Tuple[Any, Dict[str, int], str]:
 
 
 __all__ = ["REDACTION_ITEMS", "role_policy", "roles", "redact_text", "redact_names", "redact_obj",
-           "redaction_report", "copy_for_role"]
+           "redaction_report", "copy_for_role", "NAME_FIELD_KEYS", "mask_person_name_field"]

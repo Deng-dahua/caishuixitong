@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>审计日志 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a, .topbar button { color:#cbd5e1; background:none; border:1px solid rgba(255,255,255,.25);
+              border-radius:5px; padding:5px 12px; font-size:12px; cursor:pointer; text-decoration:none; }
+    .topbar a:hover, .topbar button:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1500px; margin:0 auto; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+    .toolbar input, .toolbar select { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px;
+              font-size:13px; background:#fff; }
+    .toolbar input[type=text] { width:200px; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:9px 12px; text-align:left; border-bottom:1px solid #f1f5f9;
+              font-size:13px; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; white-space:nowrap; }
+    table.grid td { vertical-align:top; }
+    table.grid tr:hover td { background:#f8fafc; }
+    td.wrap-cell { white-space:normal; max-width:420px; color:#475569; }
+    .act { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px;
+           background:#eef2ff; color:#3730a3; }
+    .act.auth { background:#fef3c7; color:#b45309; }
+    .act.sec { background:#fee2e2; color:#b91c1c; }
+    .empty { text-align:center; color:#94a3b8; padding:26px 0; }
+    .msg { padding:8px 12px; border-radius:5px; font-size:13px; margin-bottom:10px; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .pager { display:flex; gap:8px; align-items:center; justify-content:flex-end; padding:10px 12px;
+             color:#64748b; font-size:12px; }
+    .hint { color:#94a3b8; font-size:12px; margin:8px 2px; }
+    .mono { font-family:ui-monospace,Menlo,Consolas,monospace; color:#64748b; font-size:12px; }
+  </style>
+  <script src="/static/js/security.js"></script>
+  <script src="/static/js/rbac-nav.js?v=4d62d2a49e" defer></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🧾 审计日志</h1>
+    <span class="spacer"></span>
+    <span id="whoami" style="color:#94a3b8;font-size:12px"></span>
+    <a href="/users" data-perm="user.view">用户管理</a>
+    <a href="/roles" data-perm="role.manage">角色管理</a>
+    <a href="/">返回主界面</a>
+  </div>
+
+  <div class="wrap">
+    <div id="msg"></div>
+    <div class="toolbar">
+      <select id="f-action"><option value="">全部动作</option></select>
+      <input type="text" id="q" placeholder="搜索对象 / 说明 / 操作人">
+      <input type="text" id="f-from" placeholder="起始时间 YYYY-MM-DD" style="width:170px">
+      <input type="text" id="f-to" placeholder="截止时间 YYYY-MM-DD" style="width:170px">
+      <select id="f-size">
+        <option value="50" selected>50 条/页</option>
+        <option value="100">100 条/页</option>
+        <option value="200">200 条/页</option>
+      </select>
+      <button class="btn ghost" id="btn-search">查询</button>
+      <button class="btn ghost" id="btn-reset">重置</button>
+      <button class="btn ghost" id="btn-reload">刷新</button>
+      <span id="count" style="color:#64748b;font-size:12px"></span>
+    </div>
+
+    <div class="card">
+      <table class="grid">
+        <thead>
+          <tr><th>ID</th><th>时间（北京时间）</th><th>操作人</th><th>动作</th>
+              <th>对象</th><th>说明</th><th>账套</th></tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="7" class="empty">加载中…</td></tr></tbody>
+      </table>
+      <div class="pager">
+        <span id="pageinfo"></span>
+        <button class="btn ghost" id="btn-prev">上一页</button>
+        <button class="btn ghost" id="btn-next">下一页</button>
+      </div>
+    </div>
+    <p class="hint" id="note"></p>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+  var state = { page:1, size:50, total:0 };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(v) { return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
+    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+  function showMsg(text, ok) {
+    $("msg").innerHTML = text
+      ? '<div class="msg ' + (ok ? "ok" : "err") + '">' + esc(text) + "</div>" : "";
+  }
+  function actClass(code) {
+    var c = String(code || "");
+    if (c.indexOf("auth.") === 0) return c === "auth.login" ? "act auth" : "act sec";
+    if (c.indexOf("user.") === 0 || c.indexOf("role.") === 0) return "act sec";
+    return "act";
+  }
+
+  function load() {
+    var qs = "?page=" + state.page + "&page_size=" + state.size
+      + "&action=" + encodeURIComponent($("f-action").value)
+      + "&q=" + encodeURIComponent($("q").value.trim())
+      + "&date_from=" + encodeURIComponent($("f-from").value.trim())
+      + "&date_to=" + encodeURIComponent($("f-to").value.trim());
+    fetch("/api/v1/audit-logs" + qs, { credentials:"same-origin" })
+      .then(function (r) { return r.json().then(function (d) { return { s:r.status, d:d }; }); })
+      .then(function (res) {
+        if (res.s !== 200) {
+          showMsg("加载失败：" + (res.d.detail || res.d.message || res.s)
+                  + "（需要 audit.view 权限）", false);
+          $("tbody").innerHTML = '<tr><td colspan="7" class="empty">无权限查看</td></tr>';
+          return;
+        }
+        fillActions(res.d.actions || []);
+        state.total = res.d.total || 0;
+        $("note").textContent = res.d.redaction_note || "";
+        render(res.d.items || []);
+      }).catch(function (e) { showMsg("加载异常：" + e, false); });
+  }
+
+  function fillActions(list) {
+    var sel = $("f-action");
+    if (sel.getAttribute("data-filled") === "1") return;
+    sel.innerHTML = '<option value="">全部动作</option>' + list.map(function (a) {
+      return '<option value="' + esc(a.value) + '">' + esc(a.label) + "（" + esc(a.value) + "）</option>";
+    }).join("");
+    sel.setAttribute("data-filled", "1");
+  }
+
+  function render(items) {
+    var tb = $("tbody");
+    if (!items.length) {
+      tb.innerHTML = '<tr><td colspan="7" class="empty">没有符合条件的留痕</td></tr>';
+    } else {
+      tb.innerHTML = items.map(function (x) {
+        return "<tr>"
+          + '<td class="mono">' + esc(x.id) + "</td>"
+          + '<td class="mono">' + esc(x.created_at || "—") + "</td>"
+          + "<td>" + esc(x.user_name || (x.user_id == null ? "—" : ("#" + x.user_id))) + "</td>"
+          + '<td><span class="' + actClass(x.action) + '">'
+            + esc(x.action_cn || x.action) + "</span></td>"
+          + '<td class="wrap-cell">' + esc(x.target || "—") + "</td>"
+          + '<td class="wrap-cell">' + esc(x.detail || "—") + "</td>"
+          + "<td>" + esc(x.company_id == null ? "—" : x.company_id) + "</td>"
+          + "</tr>";
+      }).join("");
+    }
+    var pages = state.size ? Math.ceil(state.total / state.size) : 1;
+    $("pageinfo").textContent = "第 " + state.page + " / " + (pages || 1) + " 页，共 "
+      + state.total + " 条";
+    $("count").textContent = "共 " + state.total + " 条留痕";
+    $("btn-prev").disabled = state.page <= 1;
+    $("btn-next").disabled = state.page >= pages;
+  }
+
+  $("btn-search").addEventListener("click", function () { state.page = 1; load(); });
+  $("btn-reset").addEventListener("click", function () {
+    ["q","f-from","f-to"].forEach(function (k) { $(k).value = ""; });
+    $("f-action").value = ""; state.page = 1; load(); });
+  $("btn-reload").addEventListener("click", load);
+  $("btn-prev").addEventListener("click", function () { if (state.page > 1) { state.page--; load(); } });
+  $("btn-next").addEventListener("click", function () { state.page++; load(); });
+  $("f-size").addEventListener("change", function () {
+    state.size = parseInt($("f-size").value, 10); state.page = 1; load(); });
+  $("q").addEventListener("keydown", function (e) { if (e.key === "Enter") { state.page = 1; load(); } });
+  $("f-action").addEventListener("change", function () { state.page = 1; load(); });
+
+  if (window.RBAC && window.RBAC.ready) {
+    window.RBAC.ready(function (st) {
+      $("whoami").textContent = st.username
+        ? (st.username + "（" + (st.roles || []).join("、") + "）") : "";
+    });
+  }
+  load();
+})();
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from typing import Any
 
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -29,6 +30,20 @@ from security import (
 
 _COMPANY_PATH = re.compile(r"^/api/companies/(\d+)(?:/|$)")
 _ADMIN_PATHS = ("/api/system-logs",)
+
+
+def _audit_auth(action: str, *, target: Any = "", detail: Any = "",
+                user_id: Any = None, user_name: Any = None) -> None:
+    """认证类留痕（薄转发 `engine.audit_trail.record`）。
+
+    ★ 登录**发生在**鉴权之前（此时 `request.state.auth` 尚不存在），故用户身份由
+      调用方显式传入；`record()` 自身保证"不抛、不静默" ⇒ 这里不再包 try/except。
+    """
+    try:
+        from engine.audit_trail import record as _record     # noqa: PLC0415
+    except Exception:                                        # noqa: BLE001
+        return
+    _record(action, target=target, detail=detail, user_id=user_id, user_name=user_name)
 
 
 def _with_security_headers(response, request):
@@ -68,6 +83,9 @@ async def enforce_request_security(request, call_next):
     request.state.auth = session
 
     if any(path.startswith(prefix) for prefix in _ADMIN_PATHS) and not session.is_admin:
+        _audit_auth("auth.denied", target=path,
+                    detail="仅管理员可访问（角色 %s）" % session.role,
+                    user_id=session.user_id, user_name=session.username)
         return _with_security_headers(
             JSONResponse({"ok": False, "message": "仅管理员可执行此操作"}, status_code=403),
             request,
@@ -75,6 +93,8 @@ async def enforce_request_security(request, call_next):
 
     if request.method.upper() not in {"GET", "HEAD", "OPTIONS"}:
         if not csrf_is_valid(session, request.headers.get("X-CSRF-Token", "")):
+            _audit_auth("auth.denied", target=path, detail="CSRF 校验失败",
+                        user_id=session.user_id, user_name=session.username)
             return _with_security_headers(
                 JSONResponse({"ok": False, "message": "CSRF 校验失败"}, status_code=403),
                 request,
@@ -120,6 +140,9 @@ async def enforce_request_security(request, call_next):
     if selected_cookie.isdigit():
         candidate_company_ids.add(int(selected_cookie))
     if any(company > 0 and not session.can_access_company(company) for company in candidate_company_ids):
+        _audit_auth("auth.denied", target=path,
+                    detail="越权访问账套 %s" % sorted(candidate_company_ids),
+                    user_id=session.user_id, user_name=session.username)
         return _with_security_headers(
             JSONResponse({"ok": False, "message": "无权访问该账套"}, status_code=403),
             request,
@@ -130,6 +153,8 @@ async def enforce_request_security(request, call_next):
         and request.method.upper() != "GET"
         and not session.is_admin
     ):
+        _audit_auth("auth.denied", target=path, detail="非管理员尝试管理账套",
+                    user_id=session.user_id, user_name=session.username)
         return _with_security_headers(
             JSONResponse({"ok": False, "message": "仅管理员可管理账套"}, status_code=403),
             request,
@@ -145,6 +170,12 @@ async def enforce_request_security(request, call_next):
 
 
 async def login_handler(request):
+    """登录**唯一实现**（P0-8 收敛）。
+
+    ★ 此前只有 `/api/auth/login` 一个入口；P0-8 新增 `/api/v1/auth/login`（任务书路径）。
+      两个入口**共用本函数**而不是各写一套 —— 否则「限流窗口 / 失败计数 / 会话与 CSRF
+      Cookie 名 / 审计动作」会分叉成两套口径。路由差异只在 `main.py` / `rbac_api.py` 的注册处。
+    """
     try:
         data = await request.json()
     except Exception:
@@ -154,6 +185,8 @@ async def login_handler(request):
     client_ip = normalize_client_ip(request.client.host if request.client else "")
     allowed, retry_after = login_is_allowed(username, client_ip)
     if not allowed:
+        _audit_auth("auth.login_failed", target=username,
+                    detail="登录尝试过多，限流 %d 秒" % retry_after, user_name=username)
         return JSONResponse(
             {"ok": False, "message": f"登录尝试过多，请在 {retry_after} 秒后重试"},
             status_code=429,
@@ -162,14 +195,33 @@ async def login_handler(request):
     user = authenticate(username, password)
     record_login_result(username, client_ip, bool(user))
     if not user:
+        _audit_auth("auth.login_failed", target=username, detail="用户名或密码错误",
+                    user_name=username)
         return JSONResponse({"ok": False, "message": "用户名或密码错误"}, status_code=401)
     fingerprint = request.headers.get("user-agent", "")[:256]
     token, csrf_token = create_session(user, client_fingerprint=fingerprint)
+    from engine.rbac import session_permission_codes, session_role_codes   # noqa: PLC0415
+    from security import SessionContext as _SC                              # noqa: PLC0415
+    _probe = _SC(
+        user_id=int(user["id"]), username=user["username"], role=user["role"],
+        allowed_company_ids=frozenset(int(v) for v in (user.get("company_ids") or [])),
+        selected_company_id=None, csrf_hash="", expires_at=0,
+        tenant_id=user.get("tenant_id"),
+    )
+    _roles = sorted(session_role_codes(_probe))
+    _perms = sorted(session_permission_codes(_probe))
+    _audit_auth("auth.login", target=user["username"],
+                detail="登录成功（角色：%s）" % ("、".join(_roles) or "无"),
+                user_id=user["id"], user_name=user["username"])
     response = JSONResponse(
         {
             "ok": True,
             "username": user["username"],
+            "display_name": user.get("display_name") or "",
             "role": user["role"],
+            "roles": _roles,
+            "permissions": _perms,
+            "tenant_id": user.get("tenant_id"),
             "must_change_password": user["must_change_password"],
         }
     )
@@ -190,6 +242,11 @@ async def login_handler(request):
 
 
 async def logout_handler(request):
+    session = getattr(getattr(request, "state", None), "auth", None)
+    if session is not None:
+        _audit_auth("auth.logout", target=getattr(session, "username", ""),
+                    detail="退出登录", user_id=getattr(session, "user_id", None),
+                    user_name=getattr(session, "username", ""))
     revoke_session(request.cookies.get("auth_token", ""))
     response = JSONResponse({"ok": True})
     for name in ("auth_token", "csrf_token", "company_id", "user_name"):
@@ -220,10 +277,23 @@ async def select_company_handler(data: dict, request):
 
 def auth_me_handler(request):
     session = request.state.auth
+    # P0-8：把「当前会话的角色与权限」一并发给前端 —— 菜单/按钮/数据可见性
+    # 的唯一依据（前端**不得**自行推断角色，否则又是一处第二权威）。
+    try:
+        from engine.rbac import (                                    # noqa: PLC0415
+            session_permission_codes, session_role_codes,
+        )
+        roles = sorted(session_role_codes(session))
+        permissions = sorted(session_permission_codes(session))
+    except Exception:                                                # noqa: BLE001
+        roles, permissions = [], []
     return {
         "ok": True,
         "username": session.username,
         "role": session.role,
+        "roles": roles,
+        "permissions": permissions,
+        "tenant_id": getattr(session, "tenant_id", None),
         "company_ids": sorted(session.allowed_company_ids),
         "selected_company_id": session.selected_company_id,
         "expires_at": session.expires_at,

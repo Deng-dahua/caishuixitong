@@ -18,14 +18,15 @@ SENSITIVE_NAMES = {
 }
 PRODUCTION_PYTHON = [
     "security.py", "security_web.py", "runtime_storage.py", "llm_config.py",
-    "llm_credentials.py", "llm_providers.py", "request_context.py",
-    "manage_users.py", "database.py", "main.py",
+    "llm_credentials.py", "llm_providers.py",     "request_context.py",
+    "manage_users.py", "rbac_api.py", "database.py", "main.py",
     "engine/llm_client.py", "engine/pipeline.py", "engine/self_learning.py",
     "engine/rule_discovery.py",
     "engine/orchestrator.py", "engine/report_standards.py",
     "engine/verified_rule_engine.py", "engine/redline_engine.py",
     "engine/fact_rules.py", "engine/text_guardrails.py",
     "engine/framework_config.py", "engine/output_governance.py",
+    "engine/rbac.py", "engine/access_service.py",
     "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",
 ]
