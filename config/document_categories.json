@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "name": "资料业务大类映射（P0-2）",
+  "_description": "★ 本文件是「系统类型码 → 业务大类」的**唯一权威**。系统类型码来自 static/filename_type_map.json（那是「文件名→类型码」的权威）。本文件只做**第二段薄映射**：新增一个可识别文件类型 = 两个 JSON 各加一行，不改代码分支。",
+  "_why_two_files": "两段分离的原因：①「文件名怎么认」与「认出来归哪一类」是两个不同的问题，混在一个文件里会互相牵制；② 类型码是决策层（pipeline 用它选解析器），业务大类是展示层（列表/筛选/统计用它），生命周期不同。",
+  "categories": {
+    "financial_statement": "财务报表",
+    "ledger": "账簿",
+    "invoice": "发票",
+    "declaration": "申报表",
+    "bank_statement": "银行流水",
+    "contract": "合同",
+    "payroll": "薪酬",
+    "archive": "档案",
+    "other": "其他"
+  },
+  "_categories_note": "任务书要求「财务报表、账簿、发票、申报表、银行流水、合同等」。另补 薪酬/档案/其他 三档，避免未归类资料被静默归入某一类（落「其他」且可见）。",
+  "type_to_category": {
+    "financial_statement": "financial_statement",
+    "balance_sheet": "financial_statement",
+    "income_statement": "financial_statement",
+    "cash_flow_statement": "financial_statement",
+    "equity_statement": "financial_statement",
+
+    "voucher": "ledger",
+    "ledger": "ledger",
+    "inventory": "ledger",
+
+    "sales_invoice": "invoice",
+    "purchase_invoice": "invoice",
+    "input_vat_deduction": "invoice",
+    "invoice": "invoice",
+
+    "vat_declaration": "declaration",
+    "cit_declaration": "declaration",
+    "salary_tax": "declaration",
+    "social_security": "declaration",
+    "housing_fund": "declaration",
+    "declaration": "declaration",
+
+    "bank_statement": "bank_statement",
+
+    "contract": "contract",
+    "agreement": "contract",
+
+    "salary": "payroll",
+    "payroll": "payroll",
+
+    "archive": "archive"
+  },
+  "_type_to_category_note": "左侧键 = static/filename_type_map.json 的 type 值（既有 13 个 + 本轮新增的财务报表/合同/账簿等）。新增类型只加一行。",
+  "_unmatched": "未命中任何文件名规则的资料 ⇒ 类型码为空、业务大类落 `other`（其他），并在列表中以「待分类」可见 —— **不猜测、不静默塞入某一类**。",
+  "updated": "2026-10-13"
+}

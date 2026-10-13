@@ -1589,7 +1589,7 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
         # ── 既有裁定 ──
         "_fmt": "各模块私有格式化助手（千分位 / 2位小数 / 指标百分比），签名与用途不同",
         "_norm": "各模块私有归一化助手（长度保持归一化 vs 去空白），非同一概念",
-        "parse_threshold": "各模块私有阈值解析（自由文本 vs 结构化字段），输入形态不同", "ensure_schema": "audit_trail 幂等建「审计表 audit_logs」；project_store 幂等建「项目表 projects/project_members」—— 同一**模式**（幂等建表+幂等加列）、**各自的数据源**，属裁定口径②（各文件自己的表，非同一概念）；两者均由 inspector 守卫且可重复调用",
+        "parse_threshold": "各模块私有阈值解析（自由文本 vs 结构化字段），输入形态不同", "ensure_schema": "audit_trail 幂等建「审计表 audit_logs」；project_store 幂等建「项目表 projects/project_members」—— 同一**模式**（幂等建表+幂等加列）、**各自的数据源**，属裁定口径②（各文件自己的表，非同一概念）；两者均由 inspector 守卫且可重复调用", "reset_cache": "各模块清**自己的**模块级缓存（audit_trail 按 engine 身份 / project_store 表就绪态 / document_store 表就绪态 / document_types 的 JSON 读盘缓存）—— 缓存归属不同、清空对象不同，属裁定口径②（各文件自己的缓存）", "table_columns": "各模块读**自己的表**列名（project_store 默认 projects / document_store 默认 documents）—— 同一**模式**（只读列名供闸门断言）、各自的数据源，属裁定口径②", "metadata": "各模块**自己的**字典端点数据（project_service 出状态/角色/迁移表；document_service 出扩展名/分类/解析状态/上限）—— 内容无交集、各自权威，属裁定口径①（同名单、异语义）",
         # ── ① 私有工具（同名单、异语义）──
         "_as_list": "gap_risk_detectors 保留原元素类型；quality_gates 强制 str 并滤空 ⇒ 语义不同",
         "_cn_num": "quality_gates 是「中文数字→int」解析；enterprise_report 是「int→中文数字」"
@@ -14019,7 +14019,7 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
         "clear_system_logs": "访问日志自删（日志本身即对象）",
         "_run_declaration_consistency": "同名上传覆盖：旧版移入项目回收站",
         "analyze_tax_risk_docs_resume": "重跑前清失败检查点（状态重置，非业务数据）",
-        "delete_credential": "用户级 LLM 凭证（DB 行即全部，另在 llm_credentials.py）",
+        "delete_credential": "用户级 LLM 凭证（DB 行即全部，另在 llm_credentials.py）", "_cleanup_upload_session": "上传会话临时态（data/upload_sessions/<id>/ 分片 + <id>.json）—— **不是**用户资料/交付物（P0-2，2026-10-13）",
     }
     # 底层原语：只允许在 runtime_storage 里出现（唯一实现）
     # ★ 2026-10-09 新增 `atomic_write_text`：JSONL 整表重写（作业流水/版本台账/
@@ -14027,9 +14027,9 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
     #   失败 `os.unlink(tmp)` —— 闸门抓到 `engine/analysis_jobs.py::_rewrite_rows`
     #   报 ERROR。现抽为唯一实现，删除临时文件只此一个声明出口。
     _PRIMITIVES = {"move_to_trash", "empty_trash_batch", "purge_file",
-                   "atomic_write_json", "atomic_write_text"}
+                   "atomic_write_json", "atomic_write_text", "purge_tree"}  # purge_tree：目录级（move_to_trash 只处理文件）
     _PAT = re.compile(r"os\.remove\(|os\.unlink\(|shutil\.rmtree\(|"
-                      r"move_to_trash\(|purge_file\(|empty_trash_batch\(")
+                      r"move_to_trash\(|purge_file\(|empty_trash_batch\(|purge_tree\(")
     _SCAN = ["main.py", "runtime_storage.py", "security.py", "llm_credentials.py"]
 
     def _mask_prose(text: str) -> str:
@@ -14087,7 +14087,7 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
 
     # 出口函数必须真的存在（防"声明了但实现被删/改名"）
     _src_main = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace") \
-        if (ROOT / "main.py").exists() else ""
+        if (ROOT / "main.py").exists() else ""; _src_main += "\n" + "\n".join(_p.read_text(encoding="utf-8", errors="replace") for _p in sorted((ROOT / "engine").glob("*.py")))  # 2026-10-13：出口可落在 engine 模块（P0-2 的 _cleanup_upload_session），须与 _SCAN 同范围
     for _name in _EXITS:
         if _name in ("delete_credential",):
             continue

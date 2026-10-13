@@ -1,7 +1,7 @@
 # Skill 化补充 · 5 个 Skill 测试用例
 
 > 文件：`tests/test_doc_consistency_skills.py` ｜ 用例数（`--collect-only` 实测）：**59**
-> 本轮实测：`42 passed`（全量 1914 passed / 4 skipped / 166 subtests，见 `5个Skill回归测试报告.md`）
+> 本轮实测：`42 passed`（全量 1921 passed / 4 skipped / 166 subtests，见 `5个Skill回归测试报告.md`）
 
 ## 1. 用例清单
 
@@ -56,7 +56,7 @@
 ./.venv/Scripts/python.exe -m pytest tests/test_doc_consistency_skills.py -q
 # 实测：42 passed
 ./.venv/Scripts/python.exe -m pytest tests/ -q
-# 实测：1914 passed, 4 skipped, 166 subtests passed（耗时随机器负载浮动，不单列；以「与本次 passed 同次运行」为准）
+# 实测：1921 passed, 4 skipped, 166 subtests passed（耗时随机器负载浮动，不单列；以「与本次 passed 同次运行」为准）
 ```
 
 ## 3. 失败样例 → 通过样例的**可复现**对照

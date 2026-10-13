@@ -56,7 +56,7 @@ from database import (
 from tax_risk import router as tax_risk_router
 from utils import build_account_hierarchy as _build_account_hierarchy, clear_source_voucher_no as _clear_source_voucher_no, renumber_vouchers as _renumber_vouchers, renumber_archive as _renumber_archive, sync_biz_voucher_no as _sync_biz_voucher_no
 from tax_rules_api import router as tax_rules_api_router
-from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router  # P0-1 稽查项目（/api/v1/projects + 页面 /projects）
+from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router  # P0-1 项目 / P0-2 资料（/api/v1 + 页面 /projects /documents）
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
@@ -628,7 +628,7 @@ async def add_no_cache_headers(request, call_next):
     return response
 app.include_router(tax_risk_router)
 app.include_router(tax_rules_api_router)
-app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router)  # P0-1 稽查项目 /api/v1/projects + 页面 /projects
+app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router)  # P0-1 项目 / P0-2 资料
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")
@@ -671,7 +671,7 @@ app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
 # ==================== 文件上传安全常数 (P2-4/5) ====================
 MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
 ALLOWED_EXTENSIONS = {'.xlsx', '.xls', '.csv', '.pdf', '.txt', '.docx', '.doc',
-                    '.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
+                    '.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.xml', '.ofd', '.zip'}  # P0-2 补齐 XML/OFD/ZIP
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
 
 def _validate_upload_content(filename: str, content: bytes):

@@ -51,6 +51,9 @@ ACTIONS: Tuple[str, ...] = (
     "project.update",        # 稽查项目修改（含状态迁移）
     "project.delete",        # 稽查项目删除
     "project.member_change",  # 稽查项目成员变更（新增/角色调整）
+    # ── 2026-10-13 新增（P0-2 资料上传）：**只在末尾追加**，既有动作顺序不得变动 ──
+    "doc.download",      # 资料下载（含水印生成）
+    "doc.classify",      # 资料分类修正（人工）
 )
 
 #: 动作的中文名（★ 与 `ACTIONS` 一一对应；面向界面/导出，不得出现英文码）
@@ -67,6 +70,8 @@ ACTION_CN: Dict[str, str] = {
     "project.update": "项目修改",
     "project.delete": "项目删除",
     "project.member_change": "项目成员变更",
+    "doc.download": "资料下载",
+    "doc.classify": "资料分类修正",
 }
 
 #: 最近一次留痕错误（供诊断/闸门读取；正常为 None）

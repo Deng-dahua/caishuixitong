@@ -96,6 +96,50 @@ def move_to_trash(file_path) -> bool:
         return False
 
 
+def purge_tree(dir_path) -> tuple:
+    """把一棵**运行时临时态目录**移入回收站（不物理删除），返回 (ok, reason)。
+
+    ★ 为什么需要它：`move_to_trash` / `purge_file` **只处理文件**
+      （`not src.is_file()` 即返回 False），而上传分片会话是"目录 + 多个 .part"，
+      需要**目录级**出口。删除原语**只此一处**实现（`check_delete_exits` 已登记）。
+
+    ★ 适用范围（**窄口径，勿扩大**）：仅用于**本项目自建的运行时中间态**
+      （如 `data/upload_sessions/<id>/` 分片目录）。**不得**用于
+      **用户资料 / 报告交付物 / 账套派生物** —— 那些各有专属业务出口
+      （`_delete_tax_risk_docs` / `purge_company_analysis_artifacts` …）。
+
+    做法：逐文件移入回收站（`move_to_trash` 不触发环境批量删除守护），
+    随后删空目录；**任何一个文件移不动就如实返回 False 并说明**（不谎报成功）。
+    """
+    src = Path(str(dir_path))
+    if not src.exists():
+        return True, "目录已不存在"
+    if src.is_file():
+        ok = move_to_trash(src)
+        return (ok, "已移入回收站" if ok else "移动失败")
+    failed = []
+    try:
+        entries = sorted(src.rglob("*"), key=lambda p: len(p.parts), reverse=True)
+    except Exception as exc:  # noqa: BLE001
+        return False, "%s: %s" % (type(exc).__name__, exc)
+    for entry in entries:
+        try:
+            if entry.is_file() and not move_to_trash(entry):
+                failed.append(entry.name)
+        except Exception:  # noqa: BLE001
+            failed.append(getattr(entry, "name", "?"))
+    # 自底向上清空目录（仅删**空**目录，非文件 ⇒ 不触发删除守护）
+    for entry in entries + [src]:
+        try:
+            if entry.is_dir():
+                entry.rmdir()
+        except OSError:
+            pass
+    if failed:
+        return False, "以下文件未能移入回收站：%s" % "、".join(failed[:10])
+    return True, "已移入回收站"
+
+
 def empty_trash_batch(max_files: int = 20) -> int:
     """物理清理回收站（谨慎调用：环境守护按轮次累计 os.remove 次数，
     50 次即终止进程，单批务必 ≤20 且不宜在同一轮次多次调用）。

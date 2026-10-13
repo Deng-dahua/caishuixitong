@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>资料上传与管理 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a, .topbar button { color:#cbd5e1; background:none; border:1px solid rgba(255,255,255,.25);
+      border-radius:5px; padding:5px 12px; font-size:12px; cursor:pointer; text-decoration:none; }
+    .topbar a:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1500px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:14px; }
+    .card > h2 { margin:0; padding:12px 16px; font-size:14px; border-bottom:1px solid #f1f5f9; }
+    .card > .body { padding:14px 16px; }
+    /* 拖拽区 */
+    #drop { border:2px dashed #cbd5e1; border-radius:10px; padding:26px 16px; text-align:center;
+            color:#64748b; background:#fbfdff; transition:all .15s; cursor:pointer; }
+    #drop.hot { border-color:#3b82f6; background:#eff6ff; color:#1d4ed8; }
+    #drop .big { font-size:15px; font-weight:600; color:#334155; margin-bottom:4px; }
+    #drop .sub { font-size:12px; color:#94a3b8; margin-top:6px; line-height:1.7; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    .btn.danger { background:#dc2626; border-color:#dc2626; }
+    .btn.danger:hover { background:#b91c1c; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    /* 队列 */
+    #queue { margin-top:12px; }
+    .qitem { display:flex; align-items:center; gap:10px; padding:7px 10px; border:1px solid #eef2f7;
+             border-radius:6px; margin-bottom:6px; font-size:13px; background:#fff; }
+    .qitem .nm { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .qitem .sz { color:#94a3b8; font-size:12px; width:76px; text-align:right; }
+    .qitem .bar { width:170px; height:8px; background:#f1f5f9; border-radius:5px; overflow:hidden; }
+    .qitem .bar > i { display:block; height:100%; width:0; background:#3b82f6; transition:width .15s; }
+    .qitem .st { width:96px; font-size:12px; }
+    .st-ok { color:#15803d } .st-err { color:#b91c1c } .st-dup { color:#b45309 } .st-run { color:#1d4ed8 }
+    /* 工具栏 */
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+    .toolbar input, .toolbar select { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px;
+              font-size:13px; background:#fff; }
+    .toolbar input[type=text] { width:220px; }
+    .toolbar .count { color:#64748b; font-size:12px; margin-left:auto; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:9px 12px; text-align:left; border-bottom:1px solid #f1f5f9;
+              font-size:13px; white-space:nowrap; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
+    table.grid tr:hover td { background:#f8fafc; }
+    table.grid td.wrap-cell { white-space:normal; max-width:280px; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+    .cat-financial_statement{background:#dbeafe;color:#1d4ed8}
+    .cat-ledger{background:#e0e7ff;color:#4338ca}
+    .cat-invoice{background:#dcfce7;color:#15803d}
+    .cat-declaration{background:#fef3c7;color:#b45309}
+    .cat-bank_statement{background:#cffafe;color:#0e7490}
+    .cat-contract{background:#ede9fe;color:#6d28d9}
+    .cat-payroll{background:#fce7f3;color:#be185d}
+    .cat-archive{background:#f1f5f9;color:#475569}
+    .cat-other{background:#fee2e2;color:#b91c1c}
+    .ps-pending{background:#f1f5f9;color:#475569} .ps-parsing{background:#dbeafe;color:#1d4ed8}
+    .ps-success{background:#dcfce7;color:#15803d} .ps-failed{background:#fee2e2;color:#b91c1c}
+    .ps-manual{background:#fef3c7;color:#b45309}
+    .pager { display:flex; gap:6px; align-items:center; justify-content:flex-end; padding:10px 12px;
+             color:#64748b; font-size:12px; }
+    .pager button { padding:4px 10px; border:1px solid #cbd5e1; background:#fff; border-radius:4px; cursor:pointer; font-size:12px; }
+    .pager button:disabled { opacity:.45; cursor:not-allowed; }
+    .muted { color:#94a3b8; }
+    .empty { padding:34px; text-align:center; color:#94a3b8; }
+    .msg { padding:8px 12px; border-radius:5px; font-size:13px; margin-bottom:10px; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .msg.warn { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    .mask { position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:center;
+            justify-content:center; z-index:50; padding:20px; }
+    .mask[hidden] { display:none; }
+    .modal { background:#fff; border-radius:10px; width:100%; max-width:560px; max-height:88vh; overflow:auto;
+             box-shadow:0 20px 50px rgba(0,0,0,.25); }
+    .modal h3 { margin:0; padding:13px 18px; font-size:15px; border-bottom:1px solid #f1f5f9; }
+    .modal .body { padding:14px 18px; }
+    .modal .foot { padding:11px 18px; border-top:1px solid #f1f5f9; display:flex; gap:8px; justify-content:flex-end; }
+    .kv { display:grid; grid-template-columns:110px 1fr; gap:6px 12px; font-size:13px; }
+    .kv .k { color:#64748b; }
+  </style>
+  <!-- 全局 fetch 拦截（自动附加 CSRF / 401 跳登录）；显式引用，不依赖注入 -->
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>📎 资料上传与管理</h1>
+    <span class="spacer"></span>
+    <select id="proj" style="padding:5px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:#334155;color:#fff;font-size:12px"></select>
+    <span id="whoami" class="muted" style="color:#94a3b8"></span>
+    <a href="/projects">项目管理</a>
+    <a href="/">返回主界面</a>
+  </div>
+
+  <div class="wrap">
+    <div id="msg"></div>
+
+    <div class="card">
+      <h2>上传资料</h2>
+      <div class="body">
+        <div id="drop">
+          <div class="big">把文件拖到这里，或点击选择</div>
+          <div class="muted" style="font-size:12px">支持批量多选</div>
+          <div class="sub" id="ext-hint">加载字典中…</div>
+        </div>
+        <input type="file" id="picker" multiple hidden>
+        <div id="queue"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>资料清单</h2>
+      <div class="body">
+        <div class="toolbar">
+          <input type="text" id="q" placeholder="搜索文件名">
+          <select id="f-cat"><option value="">全部分类</option></select>
+          <select id="f-status"><option value="">全部状态</option></select>
+          <select id="f-size"><option value="10">10 条/页</option><option value="20" selected>20 条/页</option><option value="50">50 条/页</option></select>
+          <button class="btn ghost" id="btn-search">搜索</button>
+          <button class="btn ghost" id="btn-reset">重置</button>
+          <span class="count" id="count"></span>
+        </div>
+        <table class="grid">
+          <thead><tr>
+            <th>文件名</th><th>分类</th><th>解析状态</th><th>大小</th><th>上传时间</th><th>上传人</th><th>操作</th>
+          </tr></thead>
+          <tbody id="tbody"><tr><td colspan="7" class="empty">请先选择项目</td></tr></tbody>
+        </table>
+        <div class="pager">
+          <span id="pageinfo"></span>
+          <button id="prev">上一页</button>
+          <button id="next">下一页</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分类修正 -->
+  <div class="mask" id="m-classify" hidden>
+    <div class="modal">
+      <h3>修正分类</h3>
+      <div class="body">
+        <p style="margin:0 0 10px">文件：<b id="cl-name"></b></p>
+        <label style="display:block;font-size:12px;color:#64748b">目标分类
+          <select id="cl-cat" style="width:100%;padding:7px 9px;margin-top:4px;border:1px solid #cbd5e1;border-radius:5px"></select>
+        </label>
+        <label style="display:block;font-size:12px;color:#64748b;margin-top:10px">修正说明（可选）
+          <input type="text" id="cl-note" style="width:100%;padding:7px 9px;margin-top:4px;border:1px solid #cbd5e1;border-radius:5px">
+        </label>
+        <p class="muted" style="font-size:12px;margin-top:10px">人工修正后不会被自动识别回改（标记为「人工修正」）。</p>
+      </div>
+      <div class="foot">
+        <button class="btn ghost" data-close="m-classify">取消</button>
+        <button class="btn" id="btn-classify-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详情 -->
+  <div class="mask" id="m-detail" hidden>
+    <div class="modal">
+      <h3 id="detail-title">资料详情</h3>
+      <div class="body" id="detail-body"></div>
+      <div class="foot"><button class="btn ghost" data-close="m-detail">关闭</button></div>
+    </div>
+  </div>
+
+  <!-- 删除二次确认 -->
+  <div class="mask" id="m-del" hidden>
+    <div class="modal" style="max-width:440px">
+      <h3>确认删除</h3>
+      <div class="body">
+        <p>即将删除资料：<b id="del-name"></b></p>
+        <p class="muted" style="font-size:12px">文件将<b>移入回收站</b>（可追溯），登记信息删除。此操作不可撤销。</p>
+      </div>
+      <div class="foot">
+        <button class="btn ghost" data-close="m-del">取消</button>
+        <button class="btn danger" id="btn-del-confirm">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/documents.js" defer></script>
+</body>
+</html>

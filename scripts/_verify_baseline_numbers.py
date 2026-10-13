@@ -34,13 +34,18 @@ def _count(fname: str, pat: str) -> int:
         return len(re.findall(pat, fh.read()))
 
 
-def _tables(db: str) -> int:
+def _table_names(db: str) -> list:
+    """返回表的**名字集合**（比总数稳定：总数会随功能幂等建表而合法增长）。"""
     conn = sqlite3.connect(os.path.join(ROOT, db))
     try:
-        return len(list(conn.execute(
-            "select name from sqlite_master where type='table'")))
+        return [r[0] for r in conn.execute(
+            "select name from sqlite_master where type='table'")]
     finally:
         conn.close()
+
+
+def _tables(db: str) -> int:
+    return len(_table_names(db))
 
 
 def main() -> int:
@@ -56,19 +61,38 @@ def main() -> int:
     chk("file_parser.py 路由", 7, _count("file_parser.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("projects_api.py 路由", 8, _count("projects_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("projects_api.py 页面路由", 1, _count("projects_api.py", r"@page_router\.(get|post)\("))
+    chk("documents_api.py 路由", 12, _count("documents_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("documents_api.py 页面路由", 1, _count("documents_api.py", r"@page_router\.(get|post)\("))
     chk("main.py 行数(零漂移)", 15156,
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 192, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 99, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
-    chk("config/*.json", 38, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
+    chk("engine/*.py", 196, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 100, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("config/*.json", 39, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
 
     # ── 数据库 ──
-    chk("accounting.db 表数", 39, _tables("data/accounting.db"))
-    chk("security.db 表数", 6, _tables("data/security.db"))
+    # ★ 判据修正（2026-10-13）：原为「表总数 == 39」——**这是错的判据**：
+    #   `ensure_schema()` 会随功能增加幂等建表（本项目 migration 底座的**设计目的**），
+    #   因此总数会合法增长；在干净环境下总数又是 39 ⇒ **同一判据在不同环境结论相反**
+    #   （与"引入 Alembic"那次同类错误：把会变的量当常量）。
+    #   正确判据 = **必需表必须齐全**（不随功能增长而失效）；总数仅作信息输出。
+    _need_acct = ("companies", "accounts", "periods", "journal_entries", "suppliers",
+                  "customers", "sales_invoices", "purchase_invoices",
+                  "bank_transactions", "vat_declarations", "salary_records",
+                  "fixed_assets", "inventory_items",
+                  "audit_logs",             # P0-1 前既有（运行时 DDL 建）
+                  "projects", "project_members",      # P0-1 稽查项目
+                  "documents", "document_pages")      # P0-2 资料
+    _acct = set(_table_names("data/accounting.db"))
+    chk("accounting.db 必需表齐全", [], sorted(set(_need_acct) - _acct))
+    print("  [信息] accounting.db 表数 = %d（随功能合法增长，不作断言）" % len(_acct))
+    _need_sec = ("users", "sessions", "login_attempts", "llm_credentials")
+    _sec = set(_table_names("data/security.db"))
+    chk("security.db 必需表齐全", [], sorted(set(_need_sec) - _sec))
+    print("  [信息] security.db 表数 = %d" % len(_sec))
 
     # ── P0-1 稽查项目（新增，2026-10-13）──
     from engine.project_store import STATUSES, STATUS_CN, ROLES, ROLE_CN, STATUS_FLOW
@@ -83,6 +107,24 @@ def main() -> int:
     _pj = [a for a in ACTIONS if a.startswith("project.")]
     chk("项目审计动作数", 4, len(_pj))
     chk("项目审计动作中文名齐全", 4, len([a for a in _pj if ACTION_CN.get(a)]))
+
+    # ── P0-2 资料上传与管理（新增，2026-10-13）──
+    from engine import document_types as DT
+    chk("扩展名白名单", 15, len(DT.ALLOWED_EXTENSIONS))
+    chk("存量扩展名一个不少", 12, len(DT.LEGACY_EXTENSIONS))
+    chk("新增扩展名 xml/ofd/zip", 3, len(DT.NEW_EXTENSIONS))
+    chk("解析状态数", 5, len(DT.PARSE_STATUSES))
+    chk("解析状态中文名齐全", 5, len([s for s in DT.PARSE_STATUSES if DT.PARSE_STATUS_CN.get(s)]))
+    chk("业务大类数", 9, len(DT.categories()))
+    chk("分类规则完整（文件名→类型→大类）", 7,
+        len([1 for fn, want in [("资产负债表.xlsx", "财务报表"), ("银行流水.xlsx", "银行流水"),
+                                ("销项发票.xlsx", "发票"), ("增值税申报表.xlsx", "申报表"),
+                                ("科目余额表.xlsx", "账簿"), ("采购合同.pdf", "合同"),
+                                ("工资表.xlsx", "薪酬")]
+             if DT.category_cn(DT.guess_category(fn)[0]) == want]))
+    _doc = [a for a in ACTIONS if a.startswith("doc.")]
+    chk("资料审计动作数", 4, len(_doc))
+    chk("资料审计动作中文名齐全", 4, len([a for a in _doc if ACTION_CN.get(a)]))
 
     # ── 规则分层（唯一权威 layer_semantics）──
     with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as fh:

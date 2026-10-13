@@ -1,24 +1,178 @@
 {
   "_description": "文件名→类型映射表。文件名包含左侧任一关键词即判定为该类型。优先级从上到下：第一个匹配的生效。编辑此文件即可调整识别规则，无需改代码。",
-  "_version": "2026-06-28",
+  "_version": "2026-10-13",
   "_methodology": "决策优先级: 文件名 > 结构指纹 > 关键词匹配",
   "_rules_log": [
     "2026-06-28: 新增 个税申报(salary_tax)、公积金(housing_fund) 关键词",
-    "2026-06-28: 新增综合判定逻辑——文件名暗示+列头推理+公司匹配三方交叉验证"
+    "2026-06-28: 新增综合判定逻辑——文件名暗示+列头推理+公司匹配三方交叉验证",
+    "2026-10-13: P0-2 资料上传 —— 追加 6 项文件名识别条目（财务报表 / 账簿 / 合同 / 发票(通用) / 申报表(通用) / 工资表），**一律追加在末尾**以保持既有优先级不变"
   ],
   "mappings": [
-    { "keywords": ["银行", "流水", "bank_statement"], "type": "bank_statement", "label": "银行流水" },
-    { "keywords": ["开票", "销项", "销售发票", "销货"], "type": "sales_invoice", "label": "销项发票" },
-    { "keywords": ["取票", "进项", "采购发票", "购货", "取得发票"], "type": "purchase_invoice", "label": "进项发票" },
-    { "keywords": ["抵扣", "勾选", "认证"], "type": "input_vat_deduction", "label": "进项抵扣认证" },
-    { "keywords": ["增值税申报", "增值税纳税申报"], "type": "vat_declaration", "label": "增值税申报表" },
-    { "keywords": ["企业所得税申报", "所得税申报", "汇算清缴"], "type": "cit_declaration", "label": "企业所得税申报表" },
-    { "keywords": ["工资", "薪金", "个税申报", "扣缴"], "type": "salary", "label": "工资薪金/个税申报" },
-    { "keywords": ["所得", "个税"], "type": "salary_tax", "label": "个人所得税扣缴申报" },
-    { "keywords": ["社保", "社会保险"], "type": "social_security", "label": "社保明细" },
-    { "keywords": ["公积金", "住房", "缴存"], "type": "housing_fund", "label": "公积金缴存明细" },
-    { "keywords": ["凭证", "记账", "序时账"], "type": "voucher", "label": "记账凭证" },
-    { "keywords": ["进销存", "台账", "存货", "库存"], "type": "inventory", "label": "进销存台账" },
-    { "keywords": ["档案"], "type": "archive", "label": "档案/基础资料" }
+    {
+      "keywords": [
+        "银行",
+        "流水",
+        "bank_statement"
+      ],
+      "type": "bank_statement",
+      "label": "银行流水"
+    },
+    {
+      "keywords": [
+        "开票",
+        "销项",
+        "销售发票",
+        "销货"
+      ],
+      "type": "sales_invoice",
+      "label": "销项发票"
+    },
+    {
+      "keywords": [
+        "取票",
+        "进项",
+        "采购发票",
+        "购货",
+        "取得发票"
+      ],
+      "type": "purchase_invoice",
+      "label": "进项发票"
+    },
+    {
+      "keywords": [
+        "抵扣",
+        "勾选",
+        "认证"
+      ],
+      "type": "input_vat_deduction",
+      "label": "进项抵扣认证"
+    },
+    {
+      "keywords": [
+        "增值税申报",
+        "增值税纳税申报"
+      ],
+      "type": "vat_declaration",
+      "label": "增值税申报表"
+    },
+    {
+      "keywords": [
+        "企业所得税申报",
+        "所得税申报",
+        "汇算清缴"
+      ],
+      "type": "cit_declaration",
+      "label": "企业所得税申报表"
+    },
+    {
+      "keywords": [
+        "工资",
+        "薪金",
+        "个税申报",
+        "扣缴"
+      ],
+      "type": "salary",
+      "label": "工资薪金/个税申报"
+    },
+    {
+      "keywords": [
+        "所得",
+        "个税"
+      ],
+      "type": "salary_tax",
+      "label": "个人所得税扣缴申报"
+    },
+    {
+      "keywords": [
+        "社保",
+        "社会保险"
+      ],
+      "type": "social_security",
+      "label": "社保明细"
+    },
+    {
+      "keywords": [
+        "公积金",
+        "住房",
+        "缴存"
+      ],
+      "type": "housing_fund",
+      "label": "公积金缴存明细"
+    },
+    {
+      "keywords": [
+        "凭证",
+        "记账",
+        "序时账"
+      ],
+      "type": "voucher",
+      "label": "记账凭证"
+    },
+    {
+      "keywords": [
+        "进销存",
+        "台账",
+        "存货",
+        "库存"
+      ],
+      "type": "inventory",
+      "label": "进销存台账"
+    },
+    {
+      "keywords": [
+        "档案"
+      ],
+      "type": "archive",
+      "label": "档案/基础资料"
+    },
+    {
+      "keywords": [
+        "资产负债",
+        "资产负债表",
+        "利润表",
+        "现金流量表",
+        "所有者权益变动",
+        "财务报表"
+      ],
+      "type": "financial_statement"
+    },
+    {
+      "keywords": [
+        "科目余额",
+        "余额表",
+        "总账",
+        "明细账",
+        "分类账"
+      ],
+      "type": "ledger"
+    },
+    {
+      "keywords": [
+        "合同",
+        "协议"
+      ],
+      "type": "contract"
+    },
+    {
+      "keywords": [
+        "发票"
+      ],
+      "type": "invoice"
+    },
+    {
+      "keywords": [
+        "申报表",
+        "纳税申报"
+      ],
+      "type": "declaration"
+    },
+    {
+      "keywords": [
+        "工资表",
+        "工资单",
+        "薪酬"
+      ],
+      "type": "salary"
+    }
   ]
 }
