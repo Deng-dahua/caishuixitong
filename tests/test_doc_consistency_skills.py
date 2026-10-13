@@ -73,15 +73,27 @@ class TestD1NumberAuthority:
 
     @pytest.mark.reverse
     def test_reverse_wrong_number_is_detected(self):
-        """反向验证：把文档里的数字改错 ⇒ 门禁必须变红（否则判据是假的）。"""
+        """反向验证：把文档里的数字改错 ⇒ 门禁必须变红（否则判据是假的）。
+
+        ★ 2026-10-13：变异锚点由**硬编码 69** 改为**现算权威值**。
+          起因：RL-FUND-004 要件①由「含数值阈值」改为存在性表述 ⇒ 标记为前提条 ⇒ 权威值 69→70，
+          硬编码锚点随即失配（反向验证**自己**报「锚点未命中」）。同类问题与
+          `_gate_call_line_authority()` 一致 —— 判据不得硬编码具体值做样检。
+        """
+        import engine.doc_consistency_core as C
+        _spec = [n for n in C.config()["numbers"] if n.get("id") == "precondition_count"][0]["authority"]
+        cur, _why = C.authority_value(_spec)
+        assert cur is not None, "前提条权威值取不到：%s" % _why
+        wrong = cur + 1
         snap = _backup()
         try:
             f = DOCDIR / "最小检查集.md"
-            f.write_text(f.read_text(encoding="utf-8").replace("| 前提条数 | **69**", "| 前提条数 | **68**"),
-                         encoding="utf-8")
+            f.write_text(f.read_text(encoding="utf-8").replace(
+                "| 前提条数 | **%d**" % cur, "| 前提条数 | **%d**" % wrong),
+                encoding="utf-8")
             from engine.doc_number_authority import audit
             errs = [i for i in audit() if i["level"] == "ERROR"]
-            assert any("前提条" in i["detail"] and "68" in i["detail"] for i in errs), errs[:3]
+            assert any("前提条" in i["detail"] and str(wrong) in i["detail"] for i in errs), errs[:3]
         finally:
             _restore(snap)
 

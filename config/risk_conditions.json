@@ -858,15 +858,15 @@
       "trigger_conditions": [
         {
           "id": "T1",
-          "desc": "存在大额现金收入或支出（超过结算起点1000元）",
+          "desc": "存在现金收入或支出（含坐支、白条抵库等不规范现金收付形态）",
           "auto": true
         }
       ],
       "determination_criteria": [
         {
           "id": "C1",
-          "desc": "存在大额现金收入或支出（超过结算起点1000元）",
-          "is_precondition": false
+          "desc": "存在现金收入或支出（含坐支、白条抵库等不规范现金收付形态）",
+          "is_precondition": true
         },
         {
           "id": "C2",

@@ -48,7 +48,7 @@
 | 配置项 | 位置（文件:行） | 取值 |
 |---|---|---|
 | 触发条件字典 | `config/risk_conditions.json` → `risks[].trigger_conditions[]` | 每条 `{id, desc, auto}`；**94 条风险指标各 ≥1 条**（合计 **94 条**） |
-| 认定要件字典 | `config/risk_conditions.json` → `risks[].determination_criteria[]` | 每条 `{id, desc, is_precondition}`；**94 条风险指标各 ≥1 条**（合计 **456 条**，其中**前提条 69 条**） |
+| 认定要件字典 | `config/risk_conditions.json` → `risks[].determination_criteria[]` | 每条 `{id, desc, is_precondition}`；**94 条风险指标各 ≥1 条**（合计 **456 条**，其中**前提条 70 条**） |
 | 状态字典 | `engine/trigger_conditions.py` 第 53–57 行 | `SAY_TRIGGER` / `SAY_ROLLUP` / `SAY_SUSPICION_OK` / `SAY_RISK_PENDING` / `SAY_RISK_OK` |
 | 前提条标记 | `config/risk_conditions.json` → `determination_criteria[].is_precondition` | 结构化字段（**不是**文本词表）；派生规则见 `scripts/_gen_risk_conditions.py::is_existence_criterion` |
 | 结论枚举 | `engine/constituent_checkpoint.py` 第 53–71 行 `_CONCLUSION_ZH` | `checked_hit / checked_miss / threshold_unmet / not_concluded / not_checked / not_applicable` |

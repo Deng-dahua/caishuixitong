@@ -4447,8 +4447,8 @@ def check_constituent_no_threshold() -> List[Tuple[str, str, str]]:
 
     区分两类（这点很重要）：
       - **自设阈值**（"达到X万元以上""占比X%以上""X家以上""70%以上""连续6个月及以上"等）→ **必须清零**；
-      - **法定标准**（法定扣除限额、法定结转年限、2:1 债资比、1000 元结算起点、可清算标准、查账征收标准）→
-        **必须保留**（那是法律规定，不是系统拍脑袋），故含"法定/规定/限额/结转年限/结算起点/…"者豁免。
+      - **法定标准**（法定扣除限额、法定结转年限、2:1 债资比、可清算标准、查账征收标准）→
+        **必须保留**（那是法律规定，不是系统拍脑袋），故含"法定/规定/限额/结转年限/…"者豁免。
     """
     issues: List[Tuple[str, str, str]] = []
     try:
@@ -4459,7 +4459,7 @@ def check_constituent_no_threshold() -> List[Tuple[str, str, str]]:
         r"(?:\d+(?:\.\d+)?\s*(?:万元|亿元|元|%|家|个月|年|张|笔)?\s*(?:以上|以下))"
         r"|(?:达到|超过|大于|小于)\s*\d+(?:\.\d+)?\s*(?:万元|亿元|元|%)"
     )
-    legal = ("法定", "规定", "限额", "结转年限", "结算起点", "可清算标准",
+    legal = ("法定", "规定", "限额", "结转年限", "可清算标准",
              "查账征收", "扣除限额", "2:1", "起征点")
     for r in REDLINES:
         for i, c in enumerate((r.get("constituents") or []), 1):
@@ -18087,6 +18087,11 @@ def check_legal_text_coverage() -> List[Tuple[str, str, str]]:
     return issues
 
 
+# ★ 法规引用时效闸门扫描的源文件（模块级常量：便于测试以 tmp 文件做**反向验证**）
+_CURRENCY_SCAN_FILES = ("engine/tax_redlines.py", "engine/special_redline_detectors.py",
+                        "engine/gap_risk_detectors.py", "engine/gap_tax_obligations.py")
+
+
 def check_redline_legal_basis_currency() -> List[Tuple[str, str, str]]:
     """红线法规依据**时效**闸门：不得引用**已废止**法规（A）与**不存在**的法规（B）。
 
@@ -18126,6 +18131,29 @@ def check_redline_legal_basis_currency() -> List[Tuple[str, str, str]]:
                                    "%s 引用了 status=%s 的法规《%s》⇒ 须改引现行依据"
                                    "（历史引用请用「」标注，勿用书名号）"
                                    % (r.get("id"), _expired[name], m.group(1))))
+    # ── 扩展覆盖（2026-10-13）：检测器实现层的 policy_ref 亦不得引用失效法规 ──
+    #   事故：本闸门原只查 ``tax_redlines.legal_basis``，而 ``special_redline_detectors.SPECS.policy_ref``
+    #   是**另一份**政策引用（各写一份 ⇒ 多头维护），导致 RL-FUND-004 引《现金管理暂行条例》、
+    #   RL-SPT-005 引《进出口关税条例》一度失效而未同步。现按**文件文本**扫描全部《》引用
+    #   （留痕已统一用「」标注历史引用，故不会误报）。新增同类对象只需在 _scan 加一个文件名。
+    _seen = set()
+    for _rel in _CURRENCY_SCAN_FILES:
+        _p = _rel if os.path.isabs(_rel) else os.path.join(str(ROOT), _rel)
+        if not os.path.exists(_p):
+            continue
+        try:
+            _txt = open(_p, encoding="utf-8").read()
+        except Exception:                                      # noqa: BLE001
+            continue
+        for _m in re.finditer(r"《([^》]+)》", _txt):
+            _name = _cl(_m.group(1))
+            if _name in _expired and (_rel, _m.group(1)) not in _seen:
+                _seen.add((_rel, _m.group(1)))
+                _hits += 1
+                issues.append(("ERROR", _rel,
+                               "引用 status=%s 的法规《%s》⇒ 须改引现行依据"
+                               "（历史引用请用「」标注，勿用书名号）"
+                               % (_expired[_name], _m.group(1))))
     print("  [法规时效] 引用已废止/被取代法规 %d 处（应为 0）" % _hits)
     return issues
 

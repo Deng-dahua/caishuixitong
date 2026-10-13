@@ -210,22 +210,55 @@ class TestGateReverse:
         assert any("已废止" in i[2] or "expired" in i[2] for i in errs), errs[:3]
         monkeypatch.undo()
 
+    def test_currency_gate_scan_scope_covers_detectors(self):
+        """闸门默认扫描范围必须含**检测器实现层**（防有人收窄范围 ⇒ 盲区复发）。"""
+        mod = _load_audit()
+        need = {"engine/tax_redlines.py", "engine/special_redline_detectors.py"}
+        assert need <= set(mod._CURRENCY_SCAN_FILES), mod._CURRENCY_SCAN_FILES
+
+    def test_currency_gate_scans_detector_policy_ref(self, tmp_path, monkeypatch):
+        """★ 检测器实现层的 ``policy_ref`` 也必须被时效闸门覆盖（原盲区）。
+
+        事故背景：闸门原只查 ``tax_redlines.legal_basis``，而
+        ``special_redline_detectors.SPECS.policy_ref`` 是**另一份**政策引用 ⇒
+        RL-FUND-004 / RL-SPT-005 / RL-INV-001 / RL-INV-003 / RL-VAT-009 曾长期引用失效法规。
+
+        反向验证：把扫描文件列表指向一个**临时文件**（内含引用已废止法规），
+        真调闸门 ⇒ **必须**报 ERROR。全程不触碰任何真实文件。
+        """
+        p = tmp_path / "fake_detector.py"
+        p.write_text('X = {"policy_ref": "《现金管理暂行条例》第五条"}\n',
+                     encoding="utf-8")
+        mod = _load_audit()
+        monkeypatch.setattr(mod, "_CURRENCY_SCAN_FILES", (str(p),), raising=True)
+        errs = [i for i in mod.check_redline_legal_basis_currency() if i[0] == "ERROR"]
+        assert any("现金管理暂行条例" in i[2] for i in errs), \
+            "判据失真：检测器 policy_ref 引用已废止法规竟未报 ERROR"
+        monkeypatch.undo()
+
     def test_currency_gate_ignores_bracketed_history_note(self):
         """留痕用「」标注的历史引用**不得**被判为引用（否则会误报）。
 
         ⚠ 判据必须**归一后精确比对**，不得用子串 —— 实测裸子串「增值税暂行条例」会
         误命中《中华人民共和国**土地**增值税暂行条例》（**现行有效的另一部法**）。
+        扫描范围＝闸门实际扫描的全部政策引用文件（含检测器实现层）。
         """
         import re
         import sys
         sys.path.insert(0, str(ROOT))
         from engine.legal_version import canonical_law
 
-        src = (ROOT / "engine" / "tax_redlines.py").read_text(encoding="utf-8")
+        mod = _load_audit()
         expired = {"现金管理暂行条例", "进出口关税条例", "增值税暂行条例",
                    "增值税暂行条例实施细则"}
-        hits = [m.group(1) for m in re.finditer(r"《([^》]+)》", src)
-                if canonical_law(m.group(1)) in expired]
+        hits = []
+        for rel in mod._CURRENCY_SCAN_FILES:
+            fp = Path(rel) if Path(rel).is_absolute() else (ROOT / rel)
+            if not fp.exists():
+                continue
+            src = fp.read_text(encoding="utf-8")
+            hits += [m.group(1) for m in re.finditer(r"《([^》]+)》", src)
+                     if canonical_law(m.group(1)) in expired]
         assert not hits, "已废止法规出现在书名号内（会被判为正式引用）：%s" % hits[:3]
 
     def test_script_loads_and_is_idempotent(self):
