@@ -333,3 +333,96 @@ class TestGateReverse:
         """附加防线：布尔值参与**数值**比较 ⇒ UNKNOWN（类型错误不得静默算出结论）。"""
         assert ev("flag > 1", {"flag": False}) is None
         assert any("不是数值" in x for x in ev_reasons("flag > 1", {"flag": False}))
+
+
+class TestGapFieldBatching:
+    """★ 字段口径缺口**按规则实现状态分档**（2026-10-13 新增）。
+
+    **为什么要分档**：543→538 个缺口若不加区分地去补口径，会有相当一部分**补了也无处可用** ——
+    因为引用该字段的规则本身还是 `missing`（未实现）/ `placeholder`（判据未定义）。
+    分档后 T-6 的「第 1 批（真需补）」才**可对账**、可收敛。
+
+    判据（三条，缺一则分档失真）：
+      ① 两档**字段集互斥且并集 = 总缺口**（否则重复计数或漏算）；
+      ② 两档**引用次数之和 = 总引用次数**（按**字段归属**统计，不是按规则分次计）；
+      ③ 反向验证：篡改计数 ⇒ 闸门 C2 必报 ERROR（证明判据非空）。
+    """
+
+    def _scope(self):
+        import json
+        from pathlib import Path
+        return json.loads((Path(__file__).resolve().parents[1]
+                           / "config" / "rule_dsl_scope.json").read_text(encoding="utf-8"))
+
+    def test_batches_are_mutually_exclusive_and_cover_total(self):
+        s = self._scope()
+        bs = s["gap_fields"]["batch_by_rule_status"]
+        impl = set(bs["implemented"]["fields"])
+        unimpl = set(bs["unimplemented"]["fields"])
+        assert not (impl & unimpl), "两档字段重叠：%s" % sorted(impl & unimpl)[:5]
+        assert len(impl) + len(unimpl) == s["counts"]["gap_fields"], \
+            "分档字段数之和 ≠ 总缺口"
+
+    def test_batch_rule_sets_disjoint(self):
+        s = self._scope()
+        bs = s["gap_fields"]["batch_by_rule_status"]
+        a = set(bs["implemented"]["rules"])
+        b = set(bs["unimplemented"]["rules"])
+        assert not (a & b), "同一规则出现在两档：%s" % sorted(a & b)[:5]
+
+    def test_refs_sum_matches_total(self):
+        s = self._scope()
+        c = s["counts"]
+        assert (c["gap_refs_in_implemented_rules"]
+                + c["gap_refs_in_unimplemented_rules"]) == c["gap_refs"], \
+            "分档引用次数之和 ≠ 总引用次数（须按字段归属统计，不可按规则分次计）"
+
+    def test_batch1_is_nonempty_and_reasonable(self):
+        """第 1 批必须非空（否则分档无意义），且不应吞掉全部缺口。"""
+        c = self._scope()["counts"]
+        assert 0 < c["gap_fields_in_implemented_rules"] < c["gap_fields"]
+        assert 0 < c["gap_fields_in_unimplemented_rules"] < c["gap_fields"]
+
+    def test_gate_detects_tampered_batch_total(self, monkeypatch):
+        """★ 反向验证：把分档之和改坏 ⇒ 闸门 C2 必须**真的**报 ERROR。
+
+        ⚠ 首版此用例是**假判据**（自己造 `bad = a != b` 再 `assert bad`，等于同义反复，
+        没调用闸门）—— 属项目铁律点名的「同义反复」陷阱。改为**真调闸门**：
+        把 `ROOT` 指向临时目录并在其中放篡改后的 `config/rule_dsl_scope.json`。
+        """
+        import importlib.util
+        import json
+        import tempfile
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        spec = importlib.util.spec_from_file_location(
+            "_ac_gap_batch", root / "tools" / "audit_consistency.py")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)                       # noqa: SLF001
+
+        real = self._scope()
+        # 篡改：总数 +7 ⇒ 分档之和 ≠ 总数（正是 C2 要拦的形态）
+        broken = json.loads(json.dumps(real))
+        broken["counts"]["gap_fields"] = int(real["counts"]["gap_fields"]) + 7
+
+        with tempfile.TemporaryDirectory() as td:
+            td = Path(td)
+            (td / "config").mkdir(parents=True, exist_ok=True)
+            # ⚠ 闸门在**更早**处会先读候选库（不存在即 return「候选规则库缺失」），
+            #   故必须把候选库一并复制过去，否则走不到 C2 段（首版反向验证即栽在这里）。
+            import shutil
+            for f in ("rulelist_v1.json", "rulelist_v11.json", "rulelist_v12.json"):
+                shutil.copy2(root / "config" / f, td / "config" / f)
+            (td / "config" / "rule_dsl_scope.json").write_text(
+                json.dumps(broken, ensure_ascii=False), encoding="utf-8")
+            monkeypatch.setattr(mod, "ROOT", td, raising=True)
+            errs = [i for i in mod.check_rule_dsl_and_externalizable()
+                    if i[0] == "ERROR" and "分档" in i[2]]
+            assert errs, "判据失真：篡改分档后闸门竟未报 ERROR"
+            assert "脱节" in errs[0][2] or "≠" in errs[0][2]
+
+        # 还原后必须回到 0 命中（证明报错确由篡改引起）
+        monkeypatch.undo()
+        monkeypatch.setattr(mod, "ROOT", root, raising=True)
+        assert not [i for i in mod.check_rule_dsl_and_externalizable()
+                    if i[0] == "ERROR"], "还原后闸门仍报 ERROR"

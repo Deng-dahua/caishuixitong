@@ -56,6 +56,12 @@ def analyze():
     cls = collections.Counter()
     unsupported, malformed, ext_ok, gap = [], [], [], collections.Counter()
     ext_ok_rules = []
+    # ★ 2026-10-13：缺口**按规则状态分档** —— 只对「已实现」的规则补口径才有意义。
+    #   实测 743 次缺口引用中 **322 次（43%）** 属 `missing`/`placeholder`（规则本身未建），
+    #   补了也无处可用 ⇒ 必须与「真需补」分开，否则缺口数永远无法收敛。
+    IMPLEMENTED = {"covered", "partial"}
+    gap_impl, gap_unimpl = collections.Counter(), collections.Counter()
+    impl_rules, unimpl_rules = set(), set()
     for r in rules:
         lg = str(r.get("logic") or "")
         try:
@@ -82,9 +88,28 @@ def analyze():
             ext_ok_rules.append((r["_ver"], r["src"], r.get("name")))
         else:
             cls["gap"] += 1
+            _st = str(r.get("status") or "")
+            _impl = _st in IMPLEMENTED
             for x in missv:
                 gap[x] += 1
-    return rules, vm_union, cls, unsupported, malformed, ext_ok_rules, gap
+                # ★ 互斥归属：只要**任一已实现规则**引用了该字段 ⇒ 归第 1 批
+                #   （该字段确实有用途）。仅被未实现规则引用，才归"后置"。
+                if _impl:
+                    gap_impl[x] += 1
+                else:
+                    gap_unimpl[x] += 1
+            if missv:
+                (impl_rules if _impl else unimpl_rules).add((r["_ver"], r["src"]))
+    # 互斥归一：被已实现规则引用过的字段一律归"第 1 批"，未实现档中剔除。
+    # ★ 引用次数按**字段归属**统计（`sum(gap[x])`），而非「按规则分次计」——
+    #   后者会让同一字段被两类规则引用时只记一次 ⇒ 分档之和 ≠ 总数。
+    _impl_f = sorted(gap_impl)
+    _impl_set = set(_impl_f)
+    _unimpl_f = sorted(x for x in gap if x not in _impl_set)
+    gap_impl = collections.Counter({x: gap[x] for x in _impl_f})
+    gap_unimpl = collections.Counter({x: gap[x] for x in _unimpl_f})
+    return (rules, vm_union, cls, unsupported, malformed, ext_ok_rules, gap,
+            gap_impl, gap_unimpl, impl_rules, unimpl_rules)
 
 
 def _flag_like(name: str) -> bool:
@@ -93,7 +118,8 @@ def _flag_like(name: str) -> bool:
 
 def main() -> int:
     (rules, vm_union, cls, unsupported, malformed,
-     ext_ok_rules, gap) = analyze()
+     ext_ok_rules, gap, gap_impl, gap_unimpl,
+     impl_rules, unimpl_rules) = analyze()
     total = len(rules)
     n_gap_fields = len(gap)
     n_gap_refs = sum(gap.values())
@@ -131,6 +157,13 @@ def main() -> int:
             "gap_refs": n_gap_refs,
             "gap_fields_flag_like": len(flag_like),
             "gap_fields_numeric_like": len(numeric_like),
+            # ★ 2026-10-13：按**规则实现状态**分档（补口径只对「已实现」规则有意义）
+            "gap_fields_in_implemented_rules": len(gap_impl),
+            "gap_refs_in_implemented_rules": sum(gap_impl.values()),
+            "gap_fields_in_unimplemented_rules": len(gap_unimpl),
+            "gap_refs_in_unimplemented_rules": sum(gap_unimpl.values()),
+            "rules_with_gap_implemented": len(impl_rules),
+            "rules_with_gap_unimplemented": len(unimpl_rules),
         },
         "externalizable_rules": [
             {"ver": v, "src": s, "name": n} for v, s, n in ext_ok_rules],
@@ -140,6 +173,21 @@ def main() -> int:
             "_note": "「字段口径缺口」清单：候选 logic 引用、但 `var_map` 未登记取数口径的字段。落地一条 = 减一行。`flag_like` 为按命名特征识别的布尔标志位（本质属要件化类，需检测器产出）。",
             "flag_like": flag_like,
             "numeric_like": numeric_like,
+            # ★ 推进批次：**只对「已实现」规则**（`covered`/`partial`）补口径才有意义。
+            #   未实现规则（`missing`/`placeholder`）的字段引用于补无益 ⇒ 单列，**不计入待收敛**。
+            "batch_by_rule_status": {
+                "_note": "★ 推进口径：`implemented`（规则已实现，字段真需补口径）＝T-6 第 1 批；`unimplemented`（规则本身未建，补了无处可用）＝随规则入库时一并处理，**不算当前缺口**。",
+                "implemented": {
+                    "rules": sorted("%s/%s" % (v, s) for v, s in impl_rules),
+                    "fields": sorted(gap_impl),
+                    "refs": sum(gap_impl.values()),
+                },
+                "unimplemented": {
+                    "rules": sorted("%s/%s" % (v, s) for v, s in unimpl_rules),
+                    "fields": sorted(gap_unimpl),
+                    "refs": sum(gap_unimpl.values()),
+                },
+            },
         },
     }
     SCOPE.write_text(json.dumps(scope, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -307,6 +355,23 @@ def main() -> int:
     A("")
     A("> ★ 该分类按**命名特征**识别，**仅为线索、须人工确认**："
       "`conditions_not_met` 这类名字对应的其实是一个**判定**，不是一条取数。")
+    A("")
+    A("### 3.2 ★ 缺口按**规则实现状态**分档（决定「该不该补」）")
+    A("")
+    A("> **为什么必须分档**：%d 个缺口里若不加区分地去补口径，会有相当一部分**补了也无处可用** —— "
+      "因为引用该字段的规则本身还是 `missing`（未实现）/ `placeholder`（判据未定义）。"
+      "按规则状态切开，T-6 的「可收敛部分」才**可对账**。" % n_gap_fields)
+    A("")
+    A("| 分档 | 规则数 | 字段数 | 被引用次数 | 处置 |")
+    A("|---|---|---|---|---|")
+    A("| **已实现规则**（`covered` / `partial`） | **%d** | **%d** | **%d** | ★ **T-6 第 1 批**：字段真需补口径 |"
+      % (len(impl_rules), len(gap_impl), sum(gap_impl.values())))
+    A("| **未实现规则**（`missing` / `placeholder`） | **%d** | **%d** | **%d** | 随规则入库时一并处理，**不计入当前缺口** |"
+      % (len(unimpl_rules), len(gap_unimpl), sum(gap_unimpl.values())))
+    A("")
+    A("> **判据**：`covered` 表示「系统已有实现」⇒ 其字段**理应已能取到**，只是没登记 `var_map`；"
+      "`partial` 表示「部分覆盖」⇒ 字段口径需补齐才能完整判定。二者是**真缺口**。"
+      "`missing`/`placeholder` 的字段口径**依赖该规则先被实现**，现在补属**超前投入**。")
     A("")
     A("### 3.2 缺口 TOP 15（按被引用次数）")
     A("")

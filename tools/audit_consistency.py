@@ -17918,6 +17918,27 @@ def check_rule_dsl_and_externalizable() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", "config/rule_dsl_scope.json",
                        "「字段取数口径缺口」**扩大了**：登记 %d、实际 %d ⇒ "
                        "新规则引入了未登记字段，须补口径并重跑生成器" % (_reg_gap, len(_gap))))
+    # C2（2026-10-13）缺口**分档自洽**：按规则实现状态的切分之和必须等于总缺口。
+    #   用途：T-6「第 1 批（已实现规则）」的口径**可对账** ——
+    #   只改总数不改分档（或反之）⇒ 生成器与登记表脱节。
+    _bs = ((_scope.get("gap_fields") or {}).get("batch_by_rule_status") or {})
+    if _bs:
+        _sum_f = (len((_bs.get("implemented") or {}).get("fields") or [])
+                  + len((_bs.get("unimplemented") or {}).get("fields") or []))
+        if _sum_f != _reg_gap:
+            issues.append(("ERROR", "config/rule_dsl_scope.json",
+                           "缺口分档之和 %d ≠ 总缺口 %d ⇒ 分档与总数脱节，重跑生成器"
+                           % (_sum_f, _reg_gap)))
+        _ri = int(_cnt.get("gap_refs_in_implemented_rules") or 0)
+        _ru = int(_cnt.get("gap_refs_in_unimplemented_rules") or 0)
+        if _ri + _ru != int(_cnt.get("gap_refs") or 0):
+            issues.append(("ERROR", "config/rule_dsl_scope.json",
+                           "缺口引用次数分档 %d+%d ≠ 总 %d"
+                           % (_ri, _ru, int(_cnt.get("gap_refs") or 0))))
+    else:
+        issues.append(("WARN", "config/rule_dsl_scope.json",
+                       "缺口未按规则实现状态分档（T-6 第 1 批无法对账）⇒ "
+                       "重跑 `python scripts/_gen_rule_dsl_scope.py`"))
     # 台账（可见、可收敛；不作为 ERROR）
     print("  [规则外置] 候选 %d 条｜可解析 %d｜可外置 %d（登记 %d）｜"
           "超表达力 %d｜不规范 %d｜字段缺口 %d（登记 %d）"
