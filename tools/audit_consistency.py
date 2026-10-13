@@ -4610,7 +4610,7 @@ def check_legal_basis_freshness() -> List[Tuple[str, str, str]]:
         "中华人民共和国土地增值税暂行条例", "中华人民共和国增值税法", "中华人民共和国增值税法实施条例",
         "中华人民共和国契税法", "中华人民共和国海关法", "中华人民共和国消费税暂行条例",
         "中华人民共和国环境保护税法", "中华人民共和国税收征收管理法",
-        "中华人民共和国资源税法", "中华人民共和国进出口关税条例",
+        "中华人民共和国资源税法", "中华人民共和国关税法", "关税法",
         "人民币银行结算账户管理办法", "企业会计准则——基本准则", "企业所得税核定征收办法",
         "企业所得税法", "企业所得税法实施条例", "企业所得税税前扣除凭证管理办法",
         "会计法", "住房公积金管理条例", "关于规范个人投资者个人所得税征收管理的通知",
@@ -4622,7 +4622,7 @@ def check_legal_basis_freshness() -> List[Tuple[str, str, str]]:
         "国税发〔2006〕187号", "国税发〔2008〕30号", "城市维护建设税法",
         "城镇土地使用税暂行条例", "增值税专用发票使用规定", "国家税务总局公告2019年第26号", "国家税务总局公告2025年第20号",
         "征收教育费附加的暂行规定", "房产税暂行条例", "财政部 税务总局公告2019年第71号", "财政部 税务总局公告2025年第7号",
-        "现金管理暂行条例", "社会保险法", "税收征收管理法", "税目税率表",
+        "社会保险法", "税收征收管理法", "税目税率表",  # 2026-10-13 移除「现金管理暂行条例」（2025-01-20 已废止）
         "股权转让所得个人所得税管理办法（试行）", "营业税改征增值税试点实施办法",
         "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知",
         "财政部 税务总局公告2023年第7号", "车船税法", "车船税法实施条例",
@@ -13013,7 +13013,9 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_rule_layer_no_double_count()        # 2026-10-11 规则分层不得重复计入（禁"合计 211"）
                + check_risk_score_monotone()               # 2026-10-12 T-2 风险分值须由等级单调派生
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
-               + check_rule_dsl_and_externalizable())     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
+               + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
+               + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
+               + check_redline_legal_basis_currency())   # 2026-10-13 红线不得引用已废止/被取代法规
     return counts, general
 
 
@@ -17979,6 +17981,152 @@ def check_rule_dsl_and_externalizable() -> List[Tuple[str, str, str]]:
         print("  [规则外置] 指标已变化（缺口 %d→%d、可外置 %d→%d）"
               "⇒ 建议重跑 `python scripts/_gen_rule_dsl_scope.py` 同步登记表与报告"
               % (_reg_gap, len(_gap), _reg_ext, _ext))
+    return issues
+
+
+def check_legal_text_coverage() -> List[Tuple[str, str, str]]:
+    """法规**正文库**（``static/legal_library.json``）覆盖率与字段完备性闸门。
+
+    ★ 与 ``check_legal_versioning``（**版本登记** ``config/legal_versions.json``）是**两件事**：
+      前者问「这部法现行有没有效」，本闸门问「这条**条文原文**有没有入库」。
+      两者混谈会导致「登记了版本就以为有正文」的假绿。
+
+    判据（A~C，任一不满足即 ERROR）：
+      A **覆盖率不得退化** —— 红线库引用可在正文库匹配的比例，不得低于
+        ``config/legal_text_coverage.json`` 的登记值（改了引用却忘了补条文 ⇒ 立刻报红）；
+      B **字段完备** —— 每条正文必须含非空 ``law`` / ``article`` / ``content`` / ``source``，
+        且 ``(law, article)`` 不得重复（重复 = 同一口径两处维护）；
+      C **条数不得减少** —— 正文库条数不得低于登记值（防误删）。
+
+    ★ 不可匹配项**必须**是「引用写法问题」而非「缺条文」：当前登记 total=206、matched=205，
+      唯一未匹配项是「一句话引两部法」被切分器取首部所致（``《增值税法》第二十八条及
+      《增值税法实施条例》第三十九条``）；此类应如实留在待确认，**不得编造条文凑覆盖率**。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    lib_path = ROOT / "static" / "legal_library.json"
+    cov_path = ROOT / "config" / "legal_text_coverage.json"
+    try:
+        lib = json.loads(lib_path.read_text(encoding="utf-8"))
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", str(lib_path), "正文库无法读取：%s" % exc)]
+
+    # B 字段完备 + 去重
+    seen: Dict[Tuple[str, str], int] = {}
+    for i, item in enumerate(lib or []):
+        if not isinstance(item, dict):
+            issues.append(("ERROR", str(lib_path), "第 %d 条不是对象" % (i + 1)))
+            continue
+        for f in ("law", "article", "content", "source"):
+            if not str(item.get(f) or "").strip():
+                issues.append(("ERROR", str(lib_path),
+                               "第 %d 条缺字段 `%s`（law=%r article=%r）"
+                               % (i + 1, f, item.get("law"), item.get("article"))))
+        k = (str(item.get("law") or "").strip(), str(item.get("article") or "").strip())
+        if k in seen:
+            issues.append(("ERROR", str(lib_path),
+                           "`%s %s` 重复登记（第 %d 条与第 %d 条）—— 同一口径两处维护"
+                           % (k[0], k[1], seen[k], i + 1)))
+        else:
+            seen[k] = i + 1
+
+    # A/C 覆盖率与条数不得退化
+    try:
+        cov = json.loads(cov_path.read_text(encoding="utf-8"))
+    except Exception:                                           # noqa: BLE001
+        issues.append(("WARN", str(cov_path),
+                       "未登记覆盖率基线 ⇒ 无法防退化。重跑 `python scripts/_load_legal_texts.py`"))
+        return issues
+
+    if len(lib) < int(cov.get("library_size") or 0):
+        issues.append(("ERROR", str(lib_path),
+                       "正文库条数 %d < 登记基线 %d ⇒ 疑误删（如确需减少，请重跑录入脚本更新基线）"
+                       % (len(lib), int(cov.get("library_size") or 0))))
+
+    sys.path.insert(0, str(ROOT))
+    try:
+        import re as _re
+
+        from engine.legal_citation import split_citation as _sc
+        from engine.legal_version import canonical_law as _cl
+        from engine.tax_redlines import REDLINES as _RL
+
+        def _an(a: object) -> str:
+            return _re.sub(r"\s+", "", str(a or ""))
+
+        _idx: Dict[str, set] = {}
+        for x in lib:
+            _idx.setdefault(_cl(str(x.get("law") or "")), set()).add(_an(x.get("article")))
+        _tot = _hit = 0
+        for _r in _RL:
+            _lb = (_r or {}).get("legal_basis")
+            if isinstance(_lb, str):
+                _lb = [_lb]
+            for _it in (_lb or []):
+                if not isinstance(_it, str) or not _it.strip():
+                    continue
+                _law, _art, _, _ = _sc(_it)
+                _tot += 1
+                _arts = _idx.get(_cl(_law))
+                if _arts and (not _art or any(a.startswith(_an(_art)) or _an(_art).startswith(a)
+                                              for a in _arts if a)):
+                    _hit += 1
+    except Exception as exc:                                    # noqa: BLE001
+        issues.append(("ERROR", "engine/tax_redlines.py",
+                       "覆盖率现算失败：%s（若导入异常，检查 sys.path）" % exc))
+        return issues
+
+    _base = float(cov.get("coverage") or 0)
+    _now = (_hit / _tot) if _tot else 0.0
+    if _now + 1e-9 < _base:
+        issues.append(("ERROR", str(cov_path),
+                       "法规正文覆盖率**退化**：%d/%d = %.1f%% < 登记 %.1f%% ⇒ "
+                       "红线引用了正文库中没有的条文，请补录（禁编造）后重跑录入脚本"
+                       % (_hit, _tot, _now * 100, _base * 100)))
+    print("  [法规正文] 引用 %d 处｜可匹配 %d（%.1f%%，基线 %.1f%%）｜正文库 %d 条"
+          % (_tot, _hit, _now * 100, _base * 100, len(lib)))
+    return issues
+
+
+def check_redline_legal_basis_currency() -> List[Tuple[str, str, str]]:
+    """红线法规依据**时效**闸门：不得引用**已废止**法规（A）与**不存在**的法规（B）。
+
+    ★ 为什么必须独立于 ``check_legal_versioning``：后者只查「版本是否登记、状态是否 blocking」，
+      本闸门查「引用是否**指向失效对象**」—— 两者覆盖不同失效形态。
+    当前实测：``RL-SPT-008``（原引 1994 年出口退税办法）、``RL-SPT-005``（原引已废止的
+    《进出口关税条例》）、``RL-FUND-004``（原引已废止的《现金管理暂行条例》）均已按
+    现行依据改写；本闸门锁死该结论，防复发。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    sys.path.insert(0, str(ROOT))
+    try:
+        from engine.legal_version import canonical_law as _cl
+        from engine.legal_version import registry_entries as _re_entries
+        from engine.tax_redlines import REDLINES as _RL
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", "engine/tax_redlines.py", "法规时效检查导入失败：%s" % exc)]
+
+    _expired = {}
+    for e in _re_entries():
+        if str(e.get("status") or "").lower() in ("expired", "superseded"):
+            _expired[_cl(str(e.get("law") or ""))] = str(e.get("status"))
+    _hits = 0
+    for r in _RL:
+        lb = (r or {}).get("legal_basis")
+        if isinstance(lb, str):
+            lb = [lb]
+        for it in (lb or []):
+            if not isinstance(it, str) or not it.strip():
+                continue
+            # 留痕用「」标注历史引用，正式引用用《》；只检后者
+            for m in re.finditer(r"《([^》]+)》", it):
+                name = _cl(m.group(1))
+                if name in _expired:
+                    _hits += 1
+                    issues.append(("ERROR", "engine/tax_redlines.py",
+                                   "%s 引用了 status=%s 的法规《%s》⇒ 须改引现行依据"
+                                   "（历史引用请用「」标注，勿用书名号）"
+                                   % (r.get("id"), _expired[name], m.group(1))))
+    print("  [法规时效] 引用已废止/被取代法规 %d 处（应为 0）" % _hits)
     return issues
 
 
