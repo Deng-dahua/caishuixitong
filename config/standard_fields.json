@@ -1,0 +1,476 @@
+{
+  "schema": 1,
+  "name": "标准字段字典（P0-3 解析与标准化）",
+  "_description": "★ 本文件是「原始资料字段 → 标准字段」映射的**唯一权威**。一行一字段；新增一个可识别字段 = **加一行数据**，不改代码分支。解析结果一律归一到本表声明的标准字段名，供后续分析消费。",
+  "_aliases_from": "`aliases_from` 引用 `engine/fieldkit.py` 的**别名常量名**（如 BUYER_KEYS），以免把同一份别名表抄第二遍（多头维护）。运行时解析该常量并拼接 `aliases`（内联别名优先级更低，追加在后）。",
+  "_types": {
+    "amount": "金额（走 engine/numparse.to_number_checked 解析；解析失败 ⇒ 记「金额格式错误」校验异常）",
+    "text": "文本（去空白）",
+    "date": "日期（归一为 YYYY-MM-DD）",
+    "period": "期间（归一为 YYYY-MM 或 YYYY-MM-DD）"
+  },
+  "_domains": {
+    "common": "通用（期间等）",
+    "ledger": "账簿 / 科目余额表 / 凭证",
+    "report": "财务报表",
+    "invoice": "发票（销项 / 进项）",
+    "bank": "银行流水",
+    "declaration": "申报表",
+    "payroll": "薪酬 / 社保 / 公积金"
+  },
+  "fields": [
+    {
+      "name": "period",
+      "cn": "会计期间",
+      "domain": "common",
+      "type": "period",
+      "required": true,
+      "aliases_from": "PERIOD_KEYS",
+      "aliases": [
+        "会计期间",
+        "所属期间",
+        "税款所属期",
+        "申报所属期",
+        "数据期间"
+      ]
+    },
+    {
+      "name": "account_code",
+      "cn": "科目编码",
+      "domain": "ledger",
+      "type": "text",
+      "required": true,
+      "aliases_from": "ACCOUNT_CODE_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "account_name",
+      "cn": "科目名称",
+      "domain": "ledger",
+      "type": "text",
+      "required": true,
+      "aliases_from": "ACCOUNT_NAME_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "opening_debit",
+      "cn": "期初借方",
+      "domain": "ledger",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "期初借方",
+        "期初余额借方",
+        "年初借方",
+        "期初余额(借)",
+        "期初借"
+      ]
+    },
+    {
+      "name": "opening_credit",
+      "cn": "期初贷方",
+      "domain": "ledger",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "期初贷方",
+        "期初余额贷方",
+        "年初贷方",
+        "期初余额(贷)",
+        "期初贷"
+      ]
+    },
+    {
+      "name": "current_debit",
+      "cn": "本期借方",
+      "domain": "ledger",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "本期借方",
+        "本期发生额借方",
+        "本期发生借方",
+        "借方发生额",
+        "本期借",
+        "借方发生"
+      ]
+    },
+    {
+      "name": "current_credit",
+      "cn": "本期贷方",
+      "domain": "ledger",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "本期贷方",
+        "本期发生额贷方",
+        "本期发生贷方",
+        "贷方发生额",
+        "本期贷",
+        "贷方发生"
+      ]
+    },
+    {
+      "name": "closing_debit",
+      "cn": "期末借方",
+      "domain": "ledger",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "期末借方",
+        "期末余额借方",
+        "期末余额(借)",
+        "期末借"
+      ]
+    },
+    {
+      "name": "closing_credit",
+      "cn": "期末贷方",
+      "domain": "ledger",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "期末贷方",
+        "期末余额贷方",
+        "期末余额(贷)",
+        "期末贷"
+      ]
+    },
+    {
+      "name": "total_assets",
+      "cn": "资产总计",
+      "domain": "report",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "资产总计",
+        "资产合计",
+        "总资产",
+        "资产总额"
+      ]
+    },
+    {
+      "name": "total_liabilities",
+      "cn": "负债合计",
+      "domain": "report",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "负债合计",
+        "负债总计",
+        "总负债",
+        "负债总额"
+      ]
+    },
+    {
+      "name": "total_equity",
+      "cn": "所有者权益合计",
+      "domain": "report",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "所有者权益合计",
+        "所有者权益(或股东权益)合计",
+        "净资产",
+        "股东权益合计"
+      ]
+    },
+    {
+      "name": "revenue",
+      "cn": "营业收入",
+      "domain": "report",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "营业收入",
+        "营业总收入",
+        "主营业务收入",
+        "销售收入"
+      ]
+    },
+    {
+      "name": "cost",
+      "cn": "营业成本",
+      "domain": "report",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "营业成本",
+        "主营业务成本",
+        "销售成本"
+      ]
+    },
+    {
+      "name": "net_profit",
+      "cn": "净利润",
+      "domain": "report",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "净利润",
+        "本年利润",
+        "税后利润"
+      ]
+    },
+    {
+      "name": "invoice_no",
+      "cn": "发票号码",
+      "domain": "invoice",
+      "type": "text",
+      "required": true,
+      "aliases": [
+        "invoice_no",
+        "发票号码",
+        "inv_no",
+        "发票号",
+        "number",
+        "invoice_number"
+      ]
+    },
+    {
+      "name": "invoice_type",
+      "cn": "发票类型",
+      "domain": "invoice",
+      "type": "text",
+      "required": false,
+      "aliases_from": "INV_TYPE_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "invoice_date",
+      "cn": "开票日期",
+      "domain": "invoice",
+      "type": "date",
+      "required": false,
+      "aliases": [
+        "开票日期",
+        "发票日期",
+        "inv_date",
+        "invoice_date",
+        "日期",
+        "date"
+      ]
+    },
+    {
+      "name": "buyer",
+      "cn": "购方名称",
+      "domain": "invoice",
+      "type": "text",
+      "required": true,
+      "aliases_from": "BUYER_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "seller",
+      "cn": "销方名称",
+      "domain": "invoice",
+      "type": "text",
+      "required": true,
+      "aliases_from": "SELLER_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "goods",
+      "cn": "货物或应税劳务名称",
+      "domain": "invoice",
+      "type": "text",
+      "required": false,
+      "aliases_from": "GOODS_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "invoice_amount",
+      "cn": "金额（不含税）",
+      "domain": "invoice",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "amount",
+        "金额",
+        "je",
+        "amount_excl_tax",
+        "不含税金额",
+        "金额(元)"
+      ]
+    },
+    {
+      "name": "invoice_tax",
+      "cn": "税额",
+      "domain": "invoice",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "tax",
+        "税额",
+        "se",
+        "tax_amount"
+      ]
+    },
+    {
+      "name": "invoice_total",
+      "cn": "价税合计",
+      "domain": "invoice",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "total",
+        "价税合计",
+        "jshj",
+        "amount_with_tax",
+        "价税合计金额",
+        "金额合计"
+      ]
+    },
+    {
+      "name": "tx_date",
+      "cn": "交易日期",
+      "domain": "bank",
+      "type": "date",
+      "required": false,
+      "aliases": [
+        "交易日期",
+        "tx_date",
+        "记账日期",
+        "日期",
+        "交易日",
+        "date"
+      ]
+    },
+    {
+      "name": "debit",
+      "cn": "借方发生额",
+      "domain": "bank",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "debit",
+        "借方金额",
+        "借方发生额",
+        "支出金额",
+        "付款金额",
+        "debit_amount",
+        "借方",
+        "借方数",
+        "借"
+      ]
+    },
+    {
+      "name": "credit",
+      "cn": "贷方发生额",
+      "domain": "bank",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "credit",
+        "贷方金额",
+        "贷方发生额",
+        "收入金额",
+        "收款金额",
+        "credit_amount",
+        "贷方",
+        "贷方数",
+        "贷"
+      ]
+    },
+    {
+      "name": "balance",
+      "cn": "余额",
+      "domain": "bank",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "余额",
+        "balance",
+        "账户余额",
+        "当前余额"
+      ]
+    },
+    {
+      "name": "counterparty",
+      "cn": "对手方",
+      "domain": "bank",
+      "type": "text",
+      "required": false,
+      "aliases_from": "BANK_TX_TEXT_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "tax_type",
+      "cn": "税种",
+      "domain": "declaration",
+      "type": "text",
+      "required": true,
+      "aliases": [
+        "税种",
+        "税种名称",
+        "tax_type",
+        "税目"
+      ]
+    },
+    {
+      "name": "taxable_amount",
+      "cn": "计税依据",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "计税依据",
+        "销售额",
+        "应税销售额",
+        "应纳税所得额",
+        "taxable_amount"
+      ]
+    },
+    {
+      "name": "tax_payable",
+      "cn": "应纳税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "应纳税额",
+        "应纳增值税",
+        "应补(退)税额",
+        "税额",
+        "tax_payable"
+      ]
+    },
+    {
+      "name": "person_name",
+      "cn": "姓名",
+      "domain": "payroll",
+      "type": "text",
+      "required": false,
+      "aliases_from": "PERSON_NAME_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "salary_pay",
+      "cn": "应发/实发工资",
+      "domain": "payroll",
+      "type": "amount",
+      "required": false,
+      "aliases_from": "SALARY_PAY_KEYS",
+      "aliases": []
+    },
+    {
+      "name": "salary_dept",
+      "cn": "部门",
+      "domain": "payroll",
+      "type": "text",
+      "required": false,
+      "aliases_from": "SALARY_DEPT_KEYS",
+      "aliases": []
+    }
+  ],
+  "_validation": {
+    "required_missing": "标准字段中 required=true 且整表未取到任何值的 ⇒ 记「必填缺失」",
+    "amount_format": "type=amount 的列，逐行调用 numparse.to_number_checked ⇒ 解析失败的行记「金额格式错误」（附行号与原值）",
+    "period_mismatch": "period 与文档名/项目稽查期间不一致 ⇒ 记「期间错配」",
+    "duplicate": "同一 (标准字段集合 + 关键列) 出现完全相同的行 ⇒ 记「重复数据」",
+    "debit_credit_unbalanced": "借贷列同时存在时，Σ借方 ≠ Σ贷方 ⇒ 记「借贷不平衡」（差额与两侧合计）",
+    "cross_check": "报表勾稽：资产总计 ≠ 负债合计 + 所有者权益合计 ⇒ 记「报表勾稽异常」"
+  },
+  "updated": "2026-10-13",
+  "_version_note": "2026-10-13: invoice_date/tx_date 补 date 别名（既有解析器输出的列名）；日期归一补 YYYYMMDD"
+}

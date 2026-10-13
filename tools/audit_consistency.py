@@ -1589,7 +1589,7 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
         # ── 既有裁定 ──
         "_fmt": "各模块私有格式化助手（千分位 / 2位小数 / 指标百分比），签名与用途不同",
         "_norm": "各模块私有归一化助手（长度保持归一化 vs 去空白），非同一概念",
-        "parse_threshold": "各模块私有阈值解析（自由文本 vs 结构化字段），输入形态不同", "ensure_schema": "audit_trail 幂等建「审计表 audit_logs」；project_store 幂等建「项目表 projects/project_members」—— 同一**模式**（幂等建表+幂等加列）、**各自的数据源**，属裁定口径②（各文件自己的表，非同一概念）；两者均由 inspector 守卫且可重复调用", "reset_cache": "各模块清**自己的**模块级缓存（audit_trail 按 engine 身份 / project_store 表就绪态 / document_store 表就绪态 / document_types 的 JSON 读盘缓存）—— 缓存归属不同、清空对象不同，属裁定口径②（各文件自己的缓存）", "table_columns": "各模块读**自己的表**列名（project_store 默认 projects / document_store 默认 documents）—— 同一**模式**（只读列名供闸门断言）、各自的数据源，属裁定口径②", "metadata": "各模块**自己的**字典端点数据（project_service 出状态/角色/迁移表；document_service 出扩展名/分类/解析状态/上限）—— 内容无交集、各自权威，属裁定口径①（同名单、异语义）",
+        "parse_threshold": "各模块私有阈值解析（自由文本 vs 结构化字段），输入形态不同", "ensure_schema": "audit_trail 幂等建「审计表 audit_logs」；project_store 幂等建「项目表 projects/project_members」—— 同一**模式**（幂等建表+幂等加列）、**各自的数据源**，属裁定口径②（各文件自己的表，非同一概念）；两者均由 inspector 守卫且可重复调用", "reset_cache": "各模块清**自己的**模块级缓存（audit_trail 按 engine 身份 / project_store 表就绪态 / document_store 表就绪态 / document_types 的 JSON 读盘缓存）—— 缓存归属不同、清空对象不同，属裁定口径②（各文件自己的缓存）", "table_columns": "各模块读**自己的表**列名（project_store 默认 projects / document_store 默认 documents）—— 同一**模式**（只读列名供闸门断言）、各自的数据源，属裁定口径②", "metadata": "各模块**自己的**字典端点数据（project_service 出状态/角色/迁移表；document_service 出扩展名/分类/解析状态/上限）—— 内容无交集、各自权威，属裁定口径①（同名单、异语义）", "_document_row": "document_service 是**资料可见性**权威（资料→项目→租户）；extract_service 是**薄转发 + 异常类型转换**（DocumentError→ExtractError，保持原状态码）—— 单一权威仍在 document_service，属转发层（P0-3）", "_domain_of": "cross_domain_negotiation 是**发现对象→业务域**（入参是 finding dict）；extract_service 是**解析器类型码→标准字段域**（入参是 type 字符串，映射见 document_categories）—— 入参形态与取值域均不同，属裁定口径①", "_issue": "extract_validate 构造**校验问题**（rule/severity/message/detail）；reanalysis_guard 构造**守卫问题**（code/detail/level）—— 字段集不同、消费者不同，属裁定口径①", "_v400": "各模块把**自己的**校验器 `ValueError` 转成**自己的**业务异常（document_service→DocumentError；extract_service→ExtractError）—— 异常类型不同，无法共用同一函数，属裁定口径①（P0-2/P0-3）", "to_standard_period": "本函数是**文书格式归一**（产出可读期间串，给人看）；findingkit.month_key 是**分组键构造**（保证同一月一个桶，给聚合用）—— 本函数不构造月键、不做分组，故不属期间键归一的多头实现（P0-3）",
         # ── ① 私有工具（同名单、异语义）──
         "_as_list": "gap_risk_detectors 保留原元素类型；quality_gates 强制 str 并滤空 ⇒ 语义不同",
         "_cn_num": "quality_gates 是「中文数字→int」解析；enterprise_report 是「int→中文数字」"
@@ -14019,7 +14019,7 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
         "clear_system_logs": "访问日志自删（日志本身即对象）",
         "_run_declaration_consistency": "同名上传覆盖：旧版移入项目回收站",
         "analyze_tax_risk_docs_resume": "重跑前清失败检查点（状态重置，非业务数据）",
-        "delete_credential": "用户级 LLM 凭证（DB 行即全部，另在 llm_credentials.py）", "_cleanup_upload_session": "上传会话临时态（data/upload_sessions/<id>/ 分片 + <id>.json）—— **不是**用户资料/交付物（P0-2，2026-10-13）",
+        "delete_credential": "用户级 LLM 凭证（DB 行即全部，另在 llm_credentials.py）", "_cleanup_upload_session": "上传会话临时态（data/upload_sessions/<id>/ 分片 + <id>.json）—— **不是**用户资料/交付物（P0-2，2026-10-13）", "_reset_document_extract": "本模块三张解析登记表（extracted_tables/extracted_fields/extract_issues）中该文档的行——**不触碰** documents 表与物理文件（P0-3，2026-10-13）",
     }
     # 底层原语：只允许在 runtime_storage 里出现（唯一实现）
     # ★ 2026-10-09 新增 `atomic_write_text`：JSONL 整表重写（作业流水/版本台账/

@@ -67,9 +67,9 @@ def main() -> int:
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 196, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 100, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
-    chk("config/*.json", 39, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
+    chk("engine/*.py", 200, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 101, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("config/*.json", 40, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
 
@@ -85,7 +85,8 @@ def main() -> int:
                   "fixed_assets", "inventory_items",
                   "audit_logs",             # P0-1 前既有（运行时 DDL 建）
                   "projects", "project_members",      # P0-1 稽查项目
-                  "documents", "document_pages")      # P0-2 资料
+                  "documents", "document_pages",     # P0-2 资料
+                  "extracted_tables", "extracted_fields", "extract_issues")  # P0-3 解析
     _acct = set(_table_names("data/accounting.db"))
     chk("accounting.db 必需表齐全", [], sorted(set(_need_acct) - _acct))
     print("  [信息] accounting.db 表数 = %d（随功能合法增长，不作断言）" % len(_acct))
@@ -125,6 +126,32 @@ def main() -> int:
     _doc = [a for a in ACTIONS if a.startswith("doc.")]
     chk("资料审计动作数", 4, len(_doc))
     chk("资料审计动作中文名齐全", 4, len([a for a in _doc if ACTION_CN.get(a)]))
+
+    # ── P0-3 解析与标准化（新增，2026-10-13）──
+    from engine import standard_fields as SF
+    from engine.extract_validate import RULES, RULE_CN, validate_rows
+    chk("标准字段数", 35, len(SF.fields()))
+    chk("校验规则数", 6, len(RULES))
+    chk("校验规则中文名齐全", 6, len([r for r in RULES if RULE_CN.get(r)]))
+    chk("期间归一(含 YYYYMMDD)", 3, len([
+        1 for x in ("2024-01", "20240105", "2024年第2季度") if SF.to_standard_period(x)[1]]))
+    chk("金额校验有效", True,
+        len([i for i in validate_rows([{"金额": "abc"}], standard_names=["invoice_amount"])
+             if i["rule"] == "amount_format"]) == 1)
+    chk("借贷不平衡可检出", True,
+        len([i for i in validate_rows([{"借": 100, "贷": 50}], standard_names=["debit", "credit"])
+             if i["rule"] == "debit_credit_unbalanced"]) == 1)
+    chk("勾稽异常可检出", True,
+        len([i for i in validate_rows([{"资产总计": 500, "负债合计": 200, "所有者权益合计": 250}],
+                                      standard_names=["total_assets", "total_liabilities",
+                                                      "total_equity"])
+             if i["rule"] == "cross_check"]) == 1)
+    _ex = [a for a in ACTIONS if a.startswith("extract.")]
+    chk("解析审计动作数", 2, len(_ex))
+    chk("解析审计动作中文名齐全", 2, len([a for a in _ex if ACTION_CN.get(a)]))
+    from engine.extract_service import metadata as _exmeta
+    chk("解析复用现有解析器（声明可核对）", True,
+        _exmeta()["parser_reuse"]["excel_csv"].startswith("main."))
 
     # ── 规则分层（唯一权威 layer_semantics）──
     with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as fh:
