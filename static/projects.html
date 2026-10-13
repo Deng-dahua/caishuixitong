@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>稽查项目管理 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b;
+              color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a, .topbar button { color:#cbd5e1; background:none; border:1px solid rgba(255,255,255,.25);
+              border-radius:5px; padding:5px 12px; font-size:12px; cursor:pointer; text-decoration:none; }
+    .topbar a:hover, .topbar button:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1500px; margin:0 auto; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+    .toolbar input, .toolbar select { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px;
+              font-size:13px; background:#fff; }
+    .toolbar input[type=text] { width:220px; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    .btn.danger { background:#dc2626; border-color:#dc2626; }
+    .btn.danger:hover { background:#b91c1c; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:9px 12px; text-align:left; border-bottom:1px solid #f1f5f9;
+              font-size:13px; white-space:nowrap; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
+    table.grid tr:hover td { background:#f8fafc; }
+    table.grid td.wrap-cell { white-space:normal; max-width:260px; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
+    .st-draft{background:#f1f5f9;color:#475569} .st-uploading{background:#dbeafe;color:#1d4ed8}
+    .st-analyzing{background:#fef3c7;color:#b45309} .st-reviewing{background:#ede9fe;color:#6d28d9}
+    .st-reported{background:#dcfce7;color:#15803d} .st-archived{background:#e5e7eb;color:#4b5563}
+    .toolbar .count { color:#64748b; font-size:12px; margin-left:auto; }
+    .pager { display:flex; gap:6px; align-items:center; justify-content:flex-end; padding:10px 12px;
+             color:#64748b; font-size:12px; }
+    .pager button { padding:4px 10px; border:1px solid #cbd5e1; background:#fff; border-radius:4px;
+             cursor:pointer; font-size:12px; }
+    .pager button:disabled { opacity:.45; cursor:not-allowed; }
+    .muted { color:#94a3b8; }
+    .empty { padding:36px; text-align:center; color:#94a3b8; }
+    /* 模态 */
+    .mask { position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:center;
+            justify-content:center; z-index:50; padding:20px; }
+    .mask[hidden] { display:none; }
+    .modal { background:#fff; border-radius:10px; width:100%; max-width:720px; max-height:90vh;
+             overflow:auto; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+    .modal.wide { max-width:960px; }
+    .modal h2 { margin:0; padding:14px 20px; font-size:15px; border-bottom:1px solid #f1f5f9; }
+    .modal .body { padding:16px 20px; }
+    .modal .foot { padding:12px 20px; border-top:1px solid #f1f5f9; display:flex; gap:8px;
+             justify-content:flex-end; }
+    .form-row { display:flex; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+    .form-row > label { flex:1; min-width:200px; display:flex; flex-direction:column; gap:4px;
+             font-size:12px; color:#64748b; }
+    .form-row input, .form-row select, .form-row textarea { padding:7px 9px; border:1px solid #cbd5e1;
+             border-radius:5px; font-size:13px; font-family:inherit; width:100%; }
+    .sect { margin:18px 0 8px; font-size:13px; font-weight:700; color:#334155;
+            padding-bottom:6px; border-bottom:1px solid #f1f5f9; }
+    .kv { display:grid; grid-template-columns:120px 1fr; gap:6px 12px; font-size:13px; }
+    .kv .k { color:#64748b; }
+    .msg { padding:8px 12px; border-radius:5px; font-size:13px; margin-bottom:10px; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .logline { font-size:12px; padding:5px 0; border-bottom:1px dashed #f1f5f9; color:#475569; }
+    .logline .t { color:#94a3b8; margin-right:8px; }
+    .statustrack { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+    .statustrack .now { font-weight:700; }
+  </style>
+  <!-- 全局 fetch 拦截（自动附加 CSRF / 401 跳登录）；显式引用，不依赖 _read_html 注入 -->
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>📂 稽查项目管理</h1>
+    <span class="spacer"></span>
+    <span id="whoami" class="muted" style="color:#94a3b8"></span>
+    <a href="/">返回主界面</a>
+  </div>
+
+  <div class="wrap">
+    <div id="msg"></div>
+
+    <div class="toolbar">
+      <input type="text" id="q" placeholder="搜索企业名称 / 编号 / 纳税人识别号">
+      <select id="f-status"><option value="">全部状态</option></select>
+      <input type="text" id="f-industry" placeholder="行业" style="width:120px">
+      <select id="f-size">
+        <option value="10">10 条/页</option>
+        <option value="20" selected>20 条/页</option>
+        <option value="50">50 条/页</option>
+      </select>
+      <button class="btn ghost" id="btn-search">搜索</button>
+      <button class="btn ghost" id="btn-reset">重置</button>
+      <button class="btn" id="btn-new">＋ 新建项目</button>
+      <span class="count" id="count"></span>
+    </div>
+
+    <div class="card">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>编号</th><th>企业名称</th><th>纳税人识别号</th><th>行业</th><th>地区</th>
+            <th>稽查期间</th><th>税种范围</th><th>状态</th><th>更新时间</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"><tr><td colspan="10" class="empty">加载中…</td></tr></tbody>
+      </table>
+      <div class="pager">
+        <span id="pageinfo"></span>
+        <button id="prev">上一页</button>
+        <button id="next">下一页</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新建 / 编辑 -->
+  <div class="mask" id="m-form" hidden>
+    <div class="modal">
+      <h2 id="form-title">新建项目</h2>
+      <div class="body">
+        <div id="form-msg"></div>
+        <div class="form-row">
+          <label>企业名称 *<input type="text" id="f-name"></label>
+          <label>纳税人识别号<input type="text" id="f-tid" maxlength="18"></label>
+        </div>
+        <div class="form-row">
+          <label>行业<input type="text" id="f-ind"></label>
+          <label>地区<input type="text" id="f-reg"></label>
+        </div>
+        <div class="form-row">
+          <label>稽查期间起<input type="date" id="f-ps"></label>
+          <label>稽查期间止<input type="date" id="f-pe"></label>
+        </div>
+        <div class="form-row">
+          <label>税种范围（逗号分隔）<input type="text" id="f-scopes" placeholder="增值税,企业所得税"></label>
+        </div>
+        <div class="form-row">
+          <label>备注<textarea id="f-remark" rows="2"></textarea></label>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="btn ghost" data-close="m-form">取消</button>
+        <button class="btn" id="btn-save">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 详情 -->
+  <div class="mask" id="m-detail" hidden>
+    <div class="modal wide">
+      <h2 id="detail-title">项目详情</h2>
+      <div class="body" id="detail-body"></div>
+      <div class="foot"><button class="btn ghost" data-close="m-detail">关闭</button></div>
+    </div>
+  </div>
+
+  <!-- 删除二次确认 -->
+  <div class="mask" id="m-del" hidden>
+    <div class="modal" style="max-width:460px">
+      <h2>确认删除</h2>
+      <div class="body">
+        <p>即将删除项目：<b id="del-name"></b></p>
+        <p class="muted" style="font-size:12px">
+          将同时删除该项目的成员记录。此操作<b>不可撤销</b>；项目自身的操作留痕会保留以备追溯。
+        </p>
+      </div>
+      <div class="foot">
+        <button class="btn ghost" data-close="m-del">取消</button>
+        <button class="btn danger" id="btn-del-confirm">确认删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/projects.js" defer></script>
+</body>
+</html>

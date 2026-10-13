@@ -1589,7 +1589,7 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
         # ── 既有裁定 ──
         "_fmt": "各模块私有格式化助手（千分位 / 2位小数 / 指标百分比），签名与用途不同",
         "_norm": "各模块私有归一化助手（长度保持归一化 vs 去空白），非同一概念",
-        "parse_threshold": "各模块私有阈值解析（自由文本 vs 结构化字段），输入形态不同",
+        "parse_threshold": "各模块私有阈值解析（自由文本 vs 结构化字段），输入形态不同", "ensure_schema": "audit_trail 幂等建「审计表 audit_logs」；project_store 幂等建「项目表 projects/project_members」—— 同一**模式**（幂等建表+幂等加列）、**各自的数据源**，属裁定口径②（各文件自己的表，非同一概念）；两者均由 inspector 守卫且可重复调用",
         # ── ① 私有工具（同名单、异语义）──
         "_as_list": "gap_risk_detectors 保留原元素类型；quality_gates 强制 str 并滤空 ⇒ 语义不同",
         "_cn_num": "quality_gates 是「中文数字→int」解析；enterprise_report 是「int→中文数字」"

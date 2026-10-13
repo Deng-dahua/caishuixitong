@@ -5,11 +5,13 @@
   基线文档一旦与仓库实际脱节（改了代码没改文档 / 抄错数字），后续所有开发计划都建立在
   错误地基上。本脚本是"基线可信"的**结果级判据**——任一数字不符即退出码 1。
 
-判据（21 项，全部为「实测值」而非文档转录）：
+判据（全部为「实测值」而非文档转录）：
   端点 149/9/2/7 ｜ engine 190 ｜ tests 98 ｜ config 38 ｜ tools 12 ｜ yaml 18
   accounting.db 39 表 ｜ security.db 6 表
   规则主体 176（红线 91 + 已验证 85 + 检测器实现层 25/10/14）
   候选 460（add 97 / merge 141）｜ 176+97=273
+  ★ P0-1 稽查项目（2026-10-13 新增）：projects/project_members 两表 + 8 个 API 端点 + 6 状态 + 4 角色
+    + 4 个审计动作 + 页面路由 /projects
 
 用法：
   .venv/Scripts/python.exe scripts/_verify_baseline_numbers.py
@@ -47,15 +49,19 @@ def main() -> int:
     def chk(name, claimed, actual):
         (ok if claimed == actual else bad).append((name, claimed, actual))
 
-    # ── 端点（合计应为 167 = 149+9+2+7）──
+    # ── 端点（合计应为 175 = 149+9+8+2+7）──
     chk("main.py 路由", 149, _count("main.py", r"@app\.(get|post|put|delete|patch)\("))
     chk("tax_risk.py 路由", 9, _count("tax_risk.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("tax_rules_api.py 路由", 2, _count("tax_rules_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("file_parser.py 路由", 7, _count("file_parser.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("projects_api.py 路由", 8, _count("projects_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("projects_api.py 页面路由", 1, _count("projects_api.py", r"@page_router\.(get|post)\("))
+    chk("main.py 行数(零漂移)", 15156,
+        len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 190, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 98, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("engine/*.py", 192, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 99, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
     chk("config/*.json", 38, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
@@ -63,6 +69,20 @@ def main() -> int:
     # ── 数据库 ──
     chk("accounting.db 表数", 39, _tables("data/accounting.db"))
     chk("security.db 表数", 6, _tables("data/security.db"))
+
+    # ── P0-1 稽查项目（新增，2026-10-13）──
+    from engine.project_store import STATUSES, STATUS_CN, ROLES, ROLE_CN, STATUS_FLOW
+    chk("项目状态数", 6, len(STATUSES))
+    chk("项目角色数", 4, len(ROLES))
+    chk("状态中文名齐全", 6, len([s for s in STATUSES if STATUS_CN.get(s)]))
+    chk("角色中文名齐全", 4, len([r for r in ROLES if ROLE_CN.get(r)]))
+    chk("状态机覆盖全部状态", len(STATUSES),
+        len([s for s in STATUSES if s in STATUS_FLOW]))
+    chk("archived 为终态", 0, len(STATUS_FLOW.get("archived", ())))
+    from engine.audit_trail import ACTIONS, ACTION_CN
+    _pj = [a for a in ACTIONS if a.startswith("project.")]
+    chk("项目审计动作数", 4, len(_pj))
+    chk("项目审计动作中文名齐全", 4, len([a for a in _pj if ACTION_CN.get(a)]))
 
     # ── 规则分层（唯一权威 layer_semantics）──
     with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as fh:
