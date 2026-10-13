@@ -56,7 +56,7 @@ CORE_LAWS: Tuple[str, ...] = (
     "社会保险法",
     "住房公积金管理条例",
     "印花税法",
-    "增值税暂行条例",
+    "中华人民共和国增值税法",   # ★ 2026-10-13：原为「增值税暂行条例」，该条例已自 2026-01-01 废止
     "会计法",
 )
 
@@ -111,14 +111,27 @@ def _registered_keys() -> frozenset:
 
 
 def _wenhao_alias_index() -> Dict[str, str]:
-    """**文号 → 登记法名**（从登记表 `source` 字段派生；不含独立数据文件 ⇒ 不会漂移）。"""
+    """**文号 → 登记法名**（★ 唯一权威 = 登记表 `doc_no` 字段；不含独立数据文件 ⇒ 不会漂移）。
+
+    ★★ 为什么**不得**从 `source` 自由文本解析（2026-10-13 实测事故）：
+      `source` 天然会**交叉引用其它文件的文号**（如「扣除率后经财税〔2017〕37号等调整」
+      「经财政部 税务总局公告2026年第25号停止执行」）⇒ 解析会把该文号**错误归属到引用者**。
+      实测：`财税〔2017〕37号` 曾被解析成《农产品…核定扣除…通知》，**报告里会显示错误的版本**。
+      ⇒ 文号归属必须**显式登记**（`doc_no`），不得从正文猜测（同名不同义＝事故）。
+      `doc_no=None` 表示该文件无独立发文字号（法律、行政法规标题自身即标识）。
+    """
     global _ALIAS_CACHE
     if _ALIAS_CACHE is None:
         idx: Dict[str, str] = {}
         for e in registry_entries():
+            dn = e.get("doc_no")
+            if not dn:
+                continue
             base = _base_key(e.get("law") or "")
-            for wh in _WENHAO_RE.findall(str(e.get("source") or "")):
-                idx.setdefault(_norm_wh(wh), base)
+            for wh in ([dn] if isinstance(dn, str) else list(dn)):
+                key = _norm_wh(wh)
+                if key and key not in idx:
+                    idx[key] = base
         _ALIAS_CACHE = idx
     return _ALIAS_CACHE
 

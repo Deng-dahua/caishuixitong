@@ -7,7 +7,10 @@
   · 引用只写文号「财税〔2003〕158号」，登记表存全称。
 ⇒ 法条版本闸门报"未登记"（**假缺口**）。实测 39 个"未登记法名"中 **18 个**属此类。
 
-修法：从登记表自身 `source` 字段**派生**「文号 → 登记法名」别名表（单一权威，不会漂移）。
+修法：**显式登记** `doc_no` 字段（★ 唯一权威），别名表只由它派生。
+  ⚠ 曾用 `source` 自由文本解析（2026-10-13 实测事故）：`source` 天然**交叉引用其它文件文号**
+  （「扣除率后经财税〔2017〕37号等调整」）⇒ `财税〔2017〕37号` 被**错误归属**到引用者
+  （《农产品…核定扣除…通知》），**报告会显示错的版本**。⇒ 文号归属不得从正文猜。
 
 本组锁住六件事：
   ① 文号写法可归一到登记名；② 全称写法保持稳定（不改坏既有）；③ 「（试行）」类保留；
@@ -100,10 +103,13 @@ class TestAliasIndex:
         bad = {k: v for k, v in LV._wenhao_alias_index().items() if v not in idx}
         assert not bad, "别名指向未登记法名：%s" % list(bad.items())[:3]
 
-    def test_alias_derived_from_registry_source(self):
-        """别名表由登记表 `source` 派生（改了登记表即自动同步）。"""
+    def test_alias_derived_from_doc_no_field(self):
+        """别名表由登记表 `doc_no` **显式字段**派生（改了登记表即自动同步；不从正文猜）。"""
         assert LV._wenhao_alias_index().get("财税〔2003〕158号", "") \
             == LV.canonical_law("财政部 国家税务总局关于规范个人投资者个人所得税征收管理的通知")
+        # 每条有文号者必须来自 doc_no 字段（该键须显式声明，可为 null）
+        missing = [e.get("law") for e in LV.registry_entries() if "doc_no" not in e]
+        assert not missing, "登记项未显式声明 doc_no 键：%s" % missing[:3]
 
 
 class TestNoFalseUnregistered:
@@ -115,11 +121,11 @@ class TestNoFalseUnregistered:
         false_unreg = [n for n in unreg if LV._resolve_alias(n) and LV._resolve_alias(n) not in idx]
         assert not false_unreg, "文号可解析却仍判未登记：%s" % false_unreg[:5]
 
-    def test_unregistered_count_is_low(self):
-        """未登记法名应已大幅收敛（修复前 39；别名+登记后应 ≤ 15）。"""
+    def test_unregistered_count_is_zero(self):
+        """未登记法名应收敛为 0（修复前 39 → 别名归一 11 → 本轮逐条核实后 **0**）。"""
         idx = set(LV.registered_laws())
         unreg = {LV.canonical_law(split_citation(c)[0] or c) for c in _cites()} - idx - {""}
-        assert len(unreg) <= 15, "未登记法名仍偏多：%d → %s" % (len(unreg), sorted(unreg)[:5])
+        assert len(unreg) == 0, "未登记法名：%d → %s" % (len(unreg), sorted(unreg)[:5])
 
 
 class TestExpiredLawBlocked:
@@ -181,3 +187,124 @@ class TestRegistryIntegrity:
 
     def test_registry_count_grew(self):
         assert len(LV.registered_laws()) >= 50, "T-5 第二阶段应新增登记（现 45+）"
+
+
+class TestVatLawTransition:
+    """★★ 增值税法体系（2026-01-01 施行）—— 本轮实测发现的系统性时效问题。
+
+    事故：《增值税暂行条例》**自 2026-01-01 起废止**（《增值税法》第三十八条），
+    但登记表仍标 `current`，且**多条红线**引用它 ⇒ 引用已废止法而未被告警。
+    """
+
+    def test_vat_law_registered_and_current(self):
+        assert LV.is_current("中华人民共和国增值税法")
+        assert LV.is_current("中华人民共和国增值税法实施条例")
+
+    def test_old_vat_regulation_marked_expired(self):
+        assert LV.status_of("增值税暂行条例") in ("expired", "superseded")
+        assert LV.is_blocking("增值税暂行条例") is True
+
+    def test_implementation_rules_superseded(self):
+        assert LV.is_blocking("增值税暂行条例实施细则") is True
+
+    def test_core_laws_points_to_current_vat_law(self):
+        """CORE_LAWS 不得再指向已废止的暂行条例。"""
+        assert "增值税暂行条例" not in LV.CORE_LAWS
+        assert "中华人民共和国增值税法" in LV.CORE_LAWS
+        assert LV.unregistered_core_laws() == []
+
+    def test_no_redline_cites_old_vat_regulation(self):
+        """端到端：红线库不得再引用《增值税暂行条例》/实施细则。
+
+        ⚠ 判据须精确到**书名号内的全称**：`《中华人民共和国土地增值税暂行条例》`（现行有效的
+        另一部法）也含「增值税暂行条例」子串，用裸子串匹配会**误报**。
+        """
+        bad = [c[:70] for c in _cites()
+               if "《增值税暂行条例》" in c or "《中华人民共和国增值税暂行条例》" in c]
+        assert not bad, "仍引用已废止的暂行条例：%s" % bad
+
+
+class TestDocNoIntegrity:
+    """★★ 文号归属必须**显式登记**，不得从 `source` 正文猜（实测事故）。"""
+
+    def test_every_entry_declares_doc_no_key(self):
+        missing = [e.get("law") for e in LV.registry_entries() if "doc_no" not in e]
+        assert not missing, "登记项未显式声明 doc_no：%s" % missing[:5]
+
+    def test_no_duplicate_doc_no_across_entries(self):
+        seen, dup = {}, []
+        for e in LV.registry_entries():
+            dn = e.get("doc_no")
+            for w in ([dn] if isinstance(dn, str) else list(dn or [])):
+                if not w:
+                    continue
+                k = LV._norm_wh(w)
+                if k in seen and seen[k] != e.get("law"):
+                    dup.append((k, seen[k], e.get("law")))
+                seen[k] = e.get("law")
+        assert not dup, "同一文号被多条登记（归属歧义）：%s" % dup[:3]
+
+    def test_37_is_the_simplified_rate_notice(self):
+        """★ 实测事故回归：`财税〔2017〕37号` 必须归一到《简并增值税税率…通知》，
+        不得被 `source` 里的交叉引用（「扣除率后经财税〔2017〕37号等调整」）带偏到农产品核定扣除。"""
+        got = LV.canonical_law("财税〔2017〕37号")
+        assert "简并增值税税率" in got, "文号被错误归属：%s" % got
+        assert "核定扣除" not in got
+
+    def test_72_is_the_fund_notice(self):
+        got = LV.canonical_law("财税〔2020〕72号")
+        assert "民航发展基金" in got, "文号被错误归属：%s" % got
+
+    def test_reverse_wrong_doc_no_mapping_is_detectable(self, monkeypatch):
+        """★ 反向验证：把文号指向**错的**法 ⇒ 归一必错（证明上面的判据非空）。"""
+        wrong = LV._base_key("财政部 国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知")
+        monkeypatch.setattr(LV, "_wenhao_alias_index",
+                            lambda: {"财税〔2017〕37号": wrong}, raising=True)
+        assert LV.canonical_law("财税〔2017〕37号") == wrong, \
+            "判据失真：篡改 doc_no 指向后竟仍归一为正确法"
+
+
+class TestT5BatchRegistered:
+    """本轮核实批（逐条经官方渠道核实）已登记且状态正确。"""
+
+    @pytest.mark.parametrize("law", [
+        "中华人民共和国工会法",                       # 2021 修正，2022-01-01 施行
+        "残疾人就业条例",                             # 国务院令第488号，2007-05-01 施行
+        "财政部 国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知",   # 财税〔2012〕38号
+        "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知",      # 财税〔2016〕25号
+        "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知",  # 财税〔2016〕60号
+        "财政部 税务总局关于简并增值税税率有关政策的通知",   # 财税〔2017〕37号
+        "财政部关于民航发展基金等3项政府性基金有关政策的通知",  # 财税〔2020〕72号
+        "财政部 税务总局关于完善增值税期末留抵退税政策的公告",   # 2025年第7号
+        "国家税务总局关于办理增值税期末留抵退税有关征管事项的公告",  # 2025年第20号
+    ])
+    def test_registered(self, law):
+        assert LV.canonical_law(law) in set(LV.registered_laws()), "未登记：%s" % law
+
+    def test_abandoned_reit_announcements_are_expired(self):
+        """留抵退税 2022 年第 14／21 号已自 2025-09-01 全文废止。"""
+        assert LV.is_blocking("财政部 税务总局关于进一步加大增值税期末留抵退税政策实施力度的公告")
+        assert LV.is_blocking("财政部 税务总局关于扩大全额退还增值税留抵税额政策行业范围的公告")
+
+    def test_no_redline_cites_abandoned_reit(self):
+        bad = [c[:70] for c in _cites() if "2022年第14号" in c or "2022年第21号" in c]
+        assert not bad, "仍引用已废止的留抵退税公告：%s" % bad
+
+    def test_vehicle_purchase_tax_implementing_regulation_not_claimed(self):
+        """「车辆购置税法实施条例」经核实**并不存在**（车购税具体政策以财政部公告2019年第71号
+        + 国家税务总局公告2019年第26号承载）⇒ 不得登记，且红线不得再引用。"""
+        assert "车辆购置税法实施条例" not in set(LV.registered_laws())
+        bad = [c[:70] for c in _cites() if "车辆购置税法实施条例" in c]
+        assert not bad, "仍引用不存在的法规：%s" % bad
+
+
+class TestT5Acceptance:
+    """★ T-5 验收指标：红线库引用的法条**100% 可溯源**（未登记法名 = 0）。"""
+
+    def test_zero_unregistered_law_names(self):
+        idx = set(LV.registered_laws())
+        unreg = {LV.canonical_law(split_citation(c)[0] or c) for c in _cites()} - idx - {""}
+        assert not unreg, "仍有未登记法名：%s" % sorted(unreg)[:6]
+
+    def test_no_blocking_status_citation(self):
+        assert LV.audit_citations(_cites()) == [], "存在引用已废止/被取代法条的引用"
