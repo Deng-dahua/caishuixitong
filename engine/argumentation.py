@@ -186,6 +186,13 @@ GRADE_EXCLUDED = "已排除"
 #                          证据越充分，疑点置信越应下调，防误判偏高风险）。
 # 设计约束：base + closure(=1) + data(=1) ≈ 1.0（证据与数据全齐时接近满置信），
 #          高风险的 +0.08 不应突破 0.95 上界（下方 clamp）。
+# ★★ 2026-10-13（P0-5 阈值参数化）：本表的**同源数据副本**外置为
+#   `config/confidence_weights.json`（与 `config/risk_scores.json` ↔ `RISK_SCORE_BANDS`
+#   完全同构：执行权威在 Python，JSON 是同源副本，闸门断言**逐一相等**）。
+#   此前注释已声称"权重外置、可配"而实际未外置（**假参数化**，历史遗留项 C1，
+#   最早记录于 2026-09-29 记忆）；本轮闭合。
+#   ★ 调整任一权重 = **同值改两处**（此处 + `config/confidence_weights.json`），
+#     闸门 `check_confidence_weights_single_source` 会拦住只改一处。
 CONFIDENCE_WEIGHTS: Dict[str, float] = {
     "base": 0.50,
     "closure": 0.25,
@@ -194,6 +201,10 @@ CONFIDENCE_WEIGHTS: Dict[str, float] = {
     "low_risk": -0.05,
     "rebuttal_ratio": -0.20,
 }
+
+#: 区间/补足阈值（同属**阈值参数**）—— 同源副本见
+#: `config/confidence_weights.json::clamps`；闸门一并断言相等。
+CONFIDENCE_CLAMPS: Dict[str, float] = {"floor": 0.05, "cap": 0.95, "hit_min": 0.60}
 
 # ★★ P1-2（2026-10-09）「可信度必须可复算」——**唯一权威三件套**（公式文本 / 复算 / 百分比）。
 #   事故：正文百分比、条目 `confidence` 字段、分项明细 `confidence_breakdown` 三方各说各话。
@@ -208,11 +219,13 @@ CONFIDENCE_WEIGHTS: Dict[str, float] = {
 #   `confidence = round(Σ分项贡献, 2)`，正文百分比由同一函数算出；`redline_engine`
 #   归并时把 `confidence` 与 `confidence_breakdown` **一起**跟着"实际渲染的那份论证"走。
 #: 置信度区间下限（原始加权和低于此值按下限计）
-_CONF_FLOOR: float = 0.05
+# ★ 取值来源：`CONFIDENCE_CLAMPS`（同源副本 `config/confidence_weights.json::clamps`）
+#   此前为字面量 0.05/0.95/0.60 —— 与新增的 config 表会成为两份，故改为**派生**（单一权威）。
+_CONF_FLOOR: float = CONFIDENCE_CLAMPS["floor"]
 #: 置信度区间上限
-_CONF_CAP: float = 0.95
+_CONF_CAP: float = CONFIDENCE_CLAMPS["cap"]
 #: 触碰红线（且未被反证排除）后的置信度下限
-_CONF_HIT_MIN: float = 0.60
+_CONF_HIT_MIN: float = CONFIDENCE_CLAMPS["hit_min"]
 
 #: 可信度公式在正文中的**锚点**（闸门判定"可见域是否披露了同源公式"用；
 #: 容忍全/半角等号与标点规范化带来的空格差异）—— 与公式文本同源生成，禁止闸门自写字面量。

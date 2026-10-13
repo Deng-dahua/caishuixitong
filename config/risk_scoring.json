@@ -1,0 +1,76 @@
+{
+  "schema": "caishuixitong.risk_scoring/1",
+  "version": "1.0.0",
+  "updated": "2026-10-13",
+  "name": "风险综合排序分（多因子加权）",
+  "note": "★ 本表是「风险**排序分**」的唯一权威（P0-5 任务书要求的多因子评分）。★★ 与 `config/risk_scores.json`（等级→分值）是**两件不同的事**，不得相互替代：\n  · `risk_scores.json` / `engine/risk_levels.py`：**事项等级 → 分值**，单向派生，**用于风险定性**（5 档，含极高风险）；\n  · 本表：`severity × confidence × 金额影响 × 频次` 的**加权综合分（0-100）**，**只用于排序/展示优先级**。\n★ 铁律（沿用本项目 `risk_scores.json` 既有纪律）：**禁止用本分反推定性**。\n  本分**不得写回** `risk_level` / `conclusion_grade` / `verdict`，也不得作为处罚或定性依据。\n★ 任务书给的三档（80-100 高 / 50-79 中 / 0-49 低）在本表中登记为 `grade_view`，\n  它是**综合排序分的分档视图**（`priority_grade`），**与既有 5 档等级并列存在、互不覆盖**。\n  实测原因：既有等级词表有「极高风险」一档，三档视图会把极高降级为高 ⇒ 若用它替代等级，\n  会**改变结论严重度**。故本表只提供视图，不动等级。",
+  "discipline": [
+    "★ 权重之和须为 1.0（闸门断言）；每一项必须可解释（取值来源写在本表 factors.*.from）。",
+    "★ 缺失值**不得默认满分或 0 分顶替**：取不到 ⇒ 该项按 `missing_policy` 处理并在结果里标 `missing`。",
+    "★ 分值只作排序；前端必须以「等级」为主、以「排序分」为辅展示（不得只显示排序分）。"
+  ],
+  "weights": {
+    "severity": 0.4,
+    "confidence": 0.25,
+    "amount": 0.25,
+    "frequency": 0.1
+  },
+  "min_basis": 0.5,
+  "min_basis_note": "★ 参与计算的权重和低于此值 ⇒ **不给综合分**（返回 null + status=insufficient）。实测缺陷（2026-10-13）：其余因子全缺、仅频次缺省值 0.3 时，归一化把它放大到 100% 权重 ⇒ 算成 30 分（呈现为「低」档），属**误导**（那 0.3 还是缺省下界、非实测值）。0.5 = 恰好等于「严重度(0.4)+频次(0.1)」，即至少要有等级这一实据。",
+  "weights_cn": {
+    "severity": "基础严重度",
+    "confidence": "置信度",
+    "amount": "金额影响系数",
+    "frequency": "频次系数"
+  },
+  "factors": {
+    "severity": {
+      "from": "engine/risk_levels.risk_score_of(等级)：极高95/高80/中60/低40/信息20",
+      "normalize": "除以 100",
+      "missing_policy": "excluded",
+      "missing_note": "等级为空或属证据状态（待核验）⇒ 该项**整体剔除**并重算权重（不等于 0 分）"
+    },
+    "confidence": {
+      "from": "finding.confidence（0~1，唯一算法 engine/argumentation.confidence_from_breakdown）",
+      "normalize": "原值（已 0~1）",
+      "missing_policy": "excluded",
+      "missing_note": "取不到 ⇒ 该项剔除并重算权重"
+    },
+    "amount": {
+      "from": "finding.tax_impact 的涉税金额合计（available=false 时按缺失处理）",
+      "normalize": "按 bands 分段取值（对数分段，避免巨额单项通吃）",
+      "missing_policy": "excluded",
+      "missing_note": "`tax_impact.available=false` 或金额取不到 ⇒ 该项剔除并重算权重（**不得当 0 元**）"
+    },
+    "frequency": {
+      "from": "finding.finding_count（同规则命中条目数；无则用 1）",
+      "normalize": "按 bands 分段取值",
+      "missing_policy": "default_one",
+      "missing_note": "取不到按「命中 1 次」处理（这是**下界**，不是 0 —— 它确实命中过）"
+    }
+  },
+  "bands": {
+    "amount": [
+      {"max": 10000, "value": 0.2, "label": "1 万元以下"},
+      {"max": 100000, "value": 0.4, "label": "1-10 万元"},
+      {"max": 1000000, "value": 0.6, "label": "10-100 万元"},
+      {"max": 10000000, "value": 0.8, "label": "100-1000 万元"},
+      {"max": null, "value": 1.0, "label": "1000 万元以上"}
+    ],
+    "frequency": [
+      {"max": 1, "value": 0.3, "label": "1 条"},
+      {"max": 3, "value": 0.5, "label": "2-3 条"},
+      {"max": 9, "value": 0.7, "label": "4-9 条"},
+      {"max": null, "value": 1.0, "label": "10 条及以上"}
+    ]
+  },
+  "grade_view": {
+    "note": "★ 任务书口径的三档视图。**只描述排序分**，不替代既有 5 档等级（见顶部 note）。",
+    "bands": [
+      {"min": 80, "max": 100, "grade": "高", "label": "高（80-100）"},
+      {"min": 50, "max": 79, "grade": "中", "label": "中（50-79）"},
+      {"min": 0, "max": 49, "grade": "低", "label": "低（0-49）"}
+    ]
+  },
+  "excluded_note": "被剔除的因子（取不到值）在结果 `factors[].state` 标 `missing`，并在 `missing_weight` 里登记被剔除的权重之和；`score_basis` 写明实际参与计算的权重和。"
+}

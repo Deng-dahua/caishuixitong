@@ -1628,7 +1628,7 @@ def check_duplicate_definitions() -> List[Tuple[str, str, str]]:
         "affected_downstream": "doc_consistency_core 完整实现 + doc_ref_graph 薄转发 ⇒ 已收敛",
         "split_sentences": "dupkit 为**薄转发**（唯一权威 engine/sentencekit.split_sentences，"
                            "docstring 已注明）；本组被报系转发桩检测**只看函数体内 import**、"
-                           "未识别**模块级** import 的转发 ⇒ 实为已收敛",
+                           "未识别**模块级** import 的转发 ⇒ 实为已收敛", "_assemble": "report_compliance 组装**版本台账记录**；rule_executor 组装**发现/证据/执行**归一产物 —— 输入输出无交集，属裁定口径①（同名单、异语义）", "_legal_refs": "rule_loader 把**法规依据原文 → 结构化引用**（产出引用）；snapshot_invariance **读取**引用做快照比对 ⇒ 方向相反，仅同名", "_note": "enterprise_report 向**报告产物**写注记；rule_loader 向 **stderr 留痕**（加载器问题）⇒ 出口与消费者不同，属裁定口径①", "_root": "★ **已收敛**：rule_catalog 已改为**转发** `rule_loader._root()`（本轮实测发现两处字节级复制粘贴）；本组仍被报系转发桩检测**只看函数体内 import**、未识别 `return L._root()` 这类**模块级引用转发** —— 与左侧 `split_sentences` 同因，实为已收敛", "amount_of": "numparse 是**文本 → 金额**解析（全项目唯一权威）；risk_scoring 是**从 finding dict 取涉税金额合计**（输入是结构化发现而非文本）⇒ 入参形态不同，非同一概念", "config": "doc_consistency_core 读**文档一致性判据配置**；risk_scoring 读**风险评分配置**（config/risk_scoring.json）—— 各读自己的文件、缓存独立，属裁定口径②", "get": "analysis_task 按 **job_id** 取任务；fact_store 取**事实**；rule_catalog 按 **rule_id** 取规则 —— 三套不同索引，属裁定口径②（各文件自己的取数器）", "stamp": "rule_versions 给 finding 盖**规则版本**；risk_scoring 给 finding 盖**综合排序分** —— 作用对象相同但**盖的字段与语义不同**（版本留痕 vs 排序辅助），两者可叠加且互不覆盖", "stamp_all": "同上（stamp 的批量版）：规则版本打戳 vs 排序分打戳，字段不同、可叠加", "stats": "fact_store 统计**事实库**；rule_catalog 统计**规则库**（分层/法规依据覆盖）；tax_redlines 统计**红线库** —— 各自的对象与口径不同，属裁定口径②",
     }
     _files = [str(ROOT / "main.py")] + sorted(_glob.glob(str(ROOT / "engine" / "**" / "*.py"), recursive=True))
     defs: Dict[str, List[str]] = {}
@@ -13015,7 +13015,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency())   # 2026-10-13 红线不得引用已废止/被取代法规
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威
     return counts, general
 
 
@@ -18155,6 +18155,111 @@ def check_redline_legal_basis_currency() -> List[Tuple[str, str, str]]:
                                "（历史引用请用「」标注，勿用书名号）"
                                % (_expired[_name], _m.group(1))))
     print("  [法规时效] 引用已废止/被取代法规 %d 处（应为 0）" % _hits)
+    return issues
+
+
+def check_confidence_weights_single_source() -> List[Tuple[str, str, str]]:
+    """P0-5 阈值参数化：**置信度权重**的单一权威（`config/confidence_weights.json` ↔ 代码）。
+
+    背景（2026-10-13 实测的真缺口）：`engine/argumentation.py` 的注释**早已声称**
+    「权重外置、可配」，而权重实际硬编码在该文件（**假参数化**；历史遗留项 C1，
+    最早记录于 2026-09-29 记忆）。本轮按项目既有模式外置 —— 与
+    `config/risk_scores.json` ↔ `RISK_SCORE_BANDS` **完全同构**：
+
+      A【可读与非空】权重表与区间表必须可读且非空（禁空表静默通过）；
+      B【单一权威】`config/confidence_weights.json` 的 `weights` / `clamps`
+        必须与 `argumentation.CONFIDENCE_WEIGHTS` / `CONFIDENCE_CLAMPS` **逐一相等**
+        （同一概念不得两处各写一遍；浮点用 `==`：同值拷贝，容差会掩盖"改了一处"）；
+      C【区间已派生】`_CONF_FLOOR` / `_CONF_CAP` / `_CONF_HIT_MIN` 必须**取自**区间表
+        （否则字面量与表又成两份）；
+      D【公式同源】公式文本必须含每个权重的数值（改表即改公式，不靠人工跟改）；
+      E【分项账本恒等】`confidence_from_breakdown()` 复算必须等于「分项贡献之和」
+        （既有 P1-2 铁律的**实断言**，不是只看表）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import json as _json
+    try:
+        from engine import argumentation as _arg
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "engine/argumentation.py", "置信度权威不可用：%s" % exc)]
+
+    _p = ROOT / "config" / "confidence_weights.json"
+    try:
+        _cfg = _json.loads(_p.read_text(encoding="utf-8"))
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "config/confidence_weights.json",
+                 "权重权威表读不出来（判据无法校验）：%s" % exc)]
+
+    cfg_w = _cfg.get("weights") or {}
+    cfg_c = _cfg.get("clamps") or {}
+    # A 非空
+    if not cfg_w:
+        issues.append(("ERROR", "config/confidence_weights.json",
+                       "weights 为空 ⇒ 阈值无唯一权威（禁止空表静默通过）"))
+    if not cfg_c:
+        issues.append(("ERROR", "config/confidence_weights.json",
+                       "clamps 为空 ⇒ 区间阈值无唯一权威"))
+    if issues:
+        return issues
+
+    code_w = dict(getattr(_arg, "CONFIDENCE_WEIGHTS", {}) or {})
+    code_c = dict(getattr(_arg, "CONFIDENCE_CLAMPS", {}) or {})
+
+    # B 逐一相等（两个方向都要查：缺项与多项都算"两处不一致"）
+    for name, cfg_map, code_map, where in (
+            ("weights", cfg_w, code_w, "CONFIDENCE_WEIGHTS"),
+            ("clamps", cfg_c, code_c, "CONFIDENCE_CLAMPS")):
+        for k in sorted(set(cfg_map) | set(code_map)):
+            if k not in code_map:
+                issues.append(("ERROR", "engine/argumentation.py",
+                               "%s 的「%s」只在 config 里有 ⇒ 代码未实现该分项" % (name, k)))
+                continue
+            if k not in cfg_map:
+                issues.append(("ERROR", "config/confidence_weights.json",
+                               "%s 的「%s」只在代码里有 ⇒ 台账漏登记（改了一处）" % (name, k)))
+                continue
+            if float(cfg_map[k]) != float(code_map[k]):
+                issues.append(("ERROR", "config/confidence_weights.json",
+                               "%s「%s」两处不一致：config=%s 代码=%s"
+                               % (name, k, cfg_map[k], code_map[k])))
+
+    # C 区间已派生（不得再有一份字面量）
+    for attr, key in (("_CONF_FLOOR", "floor"), ("_CONF_CAP", "cap"),
+                      ("_CONF_HIT_MIN", "hit_min")):
+        v = getattr(_arg, attr, None)
+        if v is None:
+            issues.append(("ERROR", "engine/argumentation.py", "缺少 %s" % attr))
+        elif float(v) != float(code_c.get(key, float("nan"))):
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "%s=%s 未取自 CONFIDENCE_CLAMPS[%r]=%s"
+                           % (attr, v, key, code_c.get(key))))
+
+    # D 公式同源：公式文本必须出现每个权重的数值
+    try:
+        _txt = _arg.confidence_formula_text()
+    except Exception as exc:                       # noqa: BLE001
+        issues.append(("ERROR", "engine/argumentation.py", "公式文本生成失败：%s" % exc))
+        _txt = ""
+    if _txt:
+        for k, v in cfg_w.items():
+            if ("%.2f" % abs(float(v))) not in _txt:
+                issues.append(("ERROR", "engine/argumentation.py",
+                               "公式文本未含权重 %s=%.2f ⇒ 表与公式不同源" % (k, v)))
+
+    # E 实断言：分项贡献之和 == 复算置信度（唯一账本）
+    try:
+        _parts = [{"项": "基准分", "权重": cfg_w["base"], "取值": 1.0,
+                   "贡献": round(float(cfg_w["base"]), 4)},
+                  {"项": "证据链闭合度", "权重": cfg_w["closure"], "取值": 0.4,
+                   "贡献": round(float(cfg_w["closure"]) * 0.4, 4)}]
+        _sum = round(sum(float(p["贡献"]) for p in _parts), 2)
+        _back = _arg.confidence_from_breakdown(_parts)
+        if _back is None or round(float(_back), 2) != _sum:
+            issues.append(("ERROR", "engine/argumentation.py",
+                           "分项账本恒等被破坏：Σ贡献=%s 而复算=%s" % (_sum, _back)))
+    except Exception as exc:                       # noqa: BLE001
+        issues.append(("ERROR", "engine/argumentation.py",
+                       "分项账本复算断言失败：%s" % exc))
     return issues
 
 

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>规则库与风险发现 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a, .topbar button, .topbar select { color:#cbd5e1; background:none;
+              border:1px solid rgba(255,255,255,.25); border-radius:5px; padding:5px 12px;
+              font-size:12px; cursor:pointer; text-decoration:none; }
+    .topbar select { color:#e2e8f0; background:#1e293b; }
+    .topbar a:hover, .topbar button:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1600px; margin:0 auto; }
+    .tabs { display:flex; gap:4px; margin-bottom:12px; }
+    .tab { padding:8px 16px; background:#fff; border:1px solid #e2e8f0; border-radius:6px;
+           cursor:pointer; font-size:13px; color:#475569; }
+    .tab.active { background:#3b82f6; border-color:#3b82f6; color:#fff; font-weight:600; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:12px 14px; margin-bottom:12px; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .toolbar input, .toolbar select { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px;
+              font-size:13px; background:#fff; }
+    .toolbar input[type=text] { width:200px; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:8px 10px; text-align:left;
+            border-bottom:1px solid #f1f5f9; font-size:13px; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px;
+            white-space:nowrap; }
+    table.grid tr:hover td { background:#f8fafc; }
+    td.wrap { white-space:normal; max-width:380px; }
+    .tag { display:inline-block; padding:2px 9px; border-radius:10px; font-size:12px; }
+    .t-auth{background:#dcfce7;color:#15803d} .t-cand{background:#fef3c7;color:#b45309}
+    .t-deriv{background:#e0e7ff;color:#4338ca} .t-reg{background:#f1f5f9;color:#475569}
+    .lv-极高风险{background:#fee2e2;color:#991b1b} .lv-高风险{background:#fee2e2;color:#b91c1c}
+    .lv-中风险{background:#ffedd5;color:#c2410c} .lv-低风险{background:#dcfce7;color:#15803d}
+    .lv-待核验{background:#e0e7ff;color:#4338ca} .lv-信息{background:#f1f5f9;color:#475569}
+    .pg-高{background:#fee2e2;color:#b91c1c} .pg-中{background:#ffedd5;color:#c2410c}
+    .pg-低{background:#dcfce7;color:#15803d}
+    .muted { color:#94a3b8; font-size:12px; }
+    .empty { padding:28px; text-align:center; color:#94a3b8; }
+    .msg { padding:9px 12px; border-radius:5px; font-size:13px; margin:10px 0; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.warn { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .kpis { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+    .kpi { background:#f8fafc; border:1px solid #f1f5f9; border-radius:6px; padding:8px 10px; }
+    .kpi .v { font-size:19px; font-weight:700; color:#1e293b; }
+    .kpi .k { font-size:12px; color:#64748b; }
+    .mask { position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex;
+            align-items:center; justify-content:center; z-index:50; padding:20px; }
+    .mask[hidden] { display:none; }
+    .modal { background:#fff; border-radius:10px; width:100%; max-width:900px; max-height:90vh;
+             overflow:auto; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+    .modal h2 { margin:0; padding:14px 20px; font-size:15px; border-bottom:1px solid #f1f5f9; }
+    .modal .body { padding:16px 20px; }
+    .modal .foot { padding:12px 20px; border-top:1px solid #f1f5f9; text-align:right; }
+    .kv { display:grid; grid-template-columns:130px 1fr; gap:6px 12px; font-size:13px; }
+    .kv .k { color:#64748b; }
+    .sect { margin:16px 0 8px; font-size:13px; font-weight:700; color:#334155;
+            padding-bottom:6px; border-bottom:1px solid #f1f5f9; }
+    .prob { color:#b91c1c; font-size:12px; }
+    .pager { display:flex; gap:6px; align-items:center; justify-content:flex-end;
+             padding:10px 0; color:#64748b; font-size:12px; }
+    .pager button { padding:4px 10px; border:1px solid #cbd5e1; background:#fff;
+             border-radius:4px; cursor:pointer; font-size:12px; }
+    .pager button:disabled { opacity:.45; cursor:not-allowed; }
+  </style>
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>📚 规则库与风险发现</h1>
+    <select id="f-company" title="选择账套（风险发现取该账套的报告载荷）"></select>
+    <span class="spacer"></span>
+    <span class="muted" id="who" style="color:#94a3b8"></span>
+    <a href="/">返回主界面</a>
+  </div>
+
+  <div class="wrap">
+    <div id="alert"></div>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-rules" onclick="switchTab('rules')">规则库</div>
+      <div class="tab" id="tab-findings" onclick="switchTab('findings')">风险发现</div>
+      <div class="tab" id="tab-exec" onclick="switchTab('exec')">逐条执行记录</div>
+      <div class="tab" id="tab-versions" onclick="switchTab('versions')">规则版本</div>
+    </div>
+
+    <!-- 规则库 -->
+    <div id="pane-rules">
+      <div class="card">
+        <div class="kpis" id="rule-kpis"></div>
+      </div>
+      <div class="card">
+        <div class="toolbar">
+          <select id="f-source" title="规则来源"></select>
+          <select id="f-layer" title="所属层"></select>
+          <input type="text" id="f-q" placeholder="规则号 / 名称 关键词">
+          <select id="f-enabled" title="启用态">
+            <option value="">全部启用态</option>
+            <option value="true">已启用</option>
+            <option value="false">未启用</option>
+          </select>
+          <button class="btn" onclick="loadRules(1)">搜索</button>
+          <button class="btn ghost" onclick="resetRuleFilters()">重置</button>
+          <span class="muted" id="rule-count" style="margin-left:auto"></span>
+        </div>
+      </div>
+      <div class="card">
+        <table class="grid">
+          <thead><tr>
+            <th>规则号</th><th>名称</th><th>来源</th><th>层</th><th>税种</th>
+            <th>严重度</th><th>版本</th><th>启用态</th><th>法规依据</th><th>操作</th>
+          </tr></thead>
+          <tbody id="rule-rows"><tr><td colspan="10" class="empty">加载中…</td></tr></tbody>
+        </table>
+        <div class="pager" id="rule-pager"></div>
+      </div>
+    </div>
+
+    <!-- 风险发现 -->
+    <div id="pane-findings" hidden>
+      <div class="card">
+        <div class="toolbar">
+          <select id="f-level" title="等级">
+            <option value="">全部等级</option>
+            <option>极高风险</option><option>高风险</option><option>中风险</option>
+            <option>低风险</option><option>待核验</option><option>信息</option>
+          </select>
+          <input type="text" id="f-fq" placeholder="标题 / 规则号 关键词">
+          <button class="btn" onclick="loadFindings()">搜索</button>
+          <button class="btn ghost" onclick="document.getElementById('f-level').value='';document.getElementById('f-fq').value='';loadFindings()">重置</button>
+          <span class="muted" id="find-count" style="margin-left:auto"></span>
+        </div>
+        <div class="muted" style="margin-top:6px" id="find-note"></div>
+      </div>
+      <div class="card">
+        <table class="grid">
+          <thead><tr>
+            <th>#</th><th>标题</th><th>等级</th><th>综合排序分</th><th>三档视图</th>
+            <th>置信度</th><th>红线/规则</th><th>结论文号</th><th>操作</th>
+          </tr></thead>
+          <tbody id="find-rows"><tr><td colspan="9" class="empty">加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 逐条执行记录 -->
+    <div id="pane-exec" hidden>
+      <div class="card">
+        <div class="kpis" id="exec-kpis"></div>
+        <div class="muted" id="exec-note" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <table class="grid">
+          <thead><tr><th>规则号</th><th>引擎</th><th>状态</th><th>说明</th></tr></thead>
+          <tbody id="exec-rows"><tr><td colspan="4" class="empty">加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 规则版本 -->
+    <div id="pane-versions" hidden>
+      <div class="card" id="ver-card">加载中…</div>
+    </div>
+  </div>
+
+  <div class="mask" id="mask" hidden onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h2 id="modal-title">详情</h2>
+      <div class="body" id="modal-body"></div>
+      <div class="foot"><button class="btn ghost" onclick="closeModal()">关闭</button></div>
+    </div>
+  </div>
+
+  <script src="/static/js/rules.js"></script>
+</body>
+</html>

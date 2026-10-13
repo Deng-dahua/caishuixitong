@@ -1,0 +1,40 @@
+{
+  "schema": "caishuixitong.confidence_weights/1",
+  "version": "1.0.0",
+  "updated": "2026-10-13",
+  "name": "疑点置信度权重表（阈值参数化）",
+  "note": "★ 疑点「可信度」加权模型的**权重权威表**（P0-5 阈值参数化）。此前权重硬编码在 `engine/argumentation.py::CONFIDENCE_WEIGHTS`，注释声称「权重外置、可配」而实际未外置（**假参数化**，2026-10-13 实测）；现按项目既有模式外置为本表 —— 与 `config/risk_scores.json` **完全同构**：执行权威仍是 Python 常量，本表是**同源数据副本**，闸门 `check_confidence_weights_single_source` 断言二者**逐一相等**。★ 新增/调整一个分项权重 = 改**两处同值**（本表 + `CONFIDENCE_WEIGHTS`），闸门会拦住只改一处。",
+  "discipline": [
+    "★ 本表不得单独修改：权重是**判定参数**，改一处会导致「代码用一套、台账写另一套」。必须以同值同步 `engine/argumentation.py::CONFIDENCE_WEIGHTS`，闸门 `check_confidence_weights_single_source` 断言逐项相等。",
+    "★ 权重**不得由报告层覆盖**：`confidence_from_breakdown()` 是唯一复算算法，`confidence == round(Σ分项贡献, 2)` 必须恒成立。",
+    "★ 区间截断（floor/cap）与触碰红线补足**必须落成显式分项**，使「分项明细是唯一账本」成立（既有 P1-2 铁律）。",
+    "★ 下限/上限/触碰红线补足值一并登记在本表（同属阈值参数，不留一个在 .py 里）。"
+  ],
+  "weights": {
+    "base": 0.5,
+    "closure": 0.25,
+    "data_completeness": 0.1,
+    "high_risk": 0.08,
+    "low_risk": -0.05,
+    "rebuttal_ratio": -0.2
+  },
+  "weights_cn": {
+    "base": "基准分",
+    "closure": "证据链闭合度",
+    "data_completeness": "环节数据完整度",
+    "high_risk": "风险等级为高（加分）",
+    "low_risk": "风险等级为低（减分）",
+    "rebuttal_ratio": "反证已提交比例（反向计分）"
+  },
+  "clamps": {
+    "floor": 0.05,
+    "cap": 0.95,
+    "hit_min": 0.6
+  },
+  "clamps_cn": {
+    "floor": "区间下限（原始加权和低于此值按下限计）",
+    "cap": "区间上限",
+    "hit_min": "触碰红线（且未被反证排除）后的置信度下限"
+  },
+  "design_constraint": "base + closure(=1) + data(=1) ≈ 1.0（证据与数据全齐时接近满置信）；高风险的 +0.08 不应突破 cap 上界（由 clamps.cap 兜底）。"
+}

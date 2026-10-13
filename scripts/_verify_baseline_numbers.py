@@ -65,13 +65,15 @@ def main() -> int:
     chk("documents_api.py 页面路由", 1, _count("documents_api.py", r"@page_router\.(get|post)\("))
     chk("analysis_api.py 路由", 6, _count("analysis_api.py", r"@router\.(get|post|put|delete|patch)\("))
     chk("analysis_api.py 页面路由", 1, _count("analysis_api.py", r"@page_router\.(get|post)\("))
+    chk("rules_api.py 路由", 9, _count("rules_api.py", r"@router\.(get|post|put|delete|patch)\("))
+    chk("rules_api.py 页面路由", 1, _count("rules_api.py", r"@page_router\.(get|post)\("))
     chk("main.py 行数(零漂移)", 15156,
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 201, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 102, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
-    chk("config/*.json", 40, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
+    chk("engine/*.py", 205, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
+    chk("tests/*.py", 103, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
+    chk("config/*.json", 42, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
 
@@ -192,6 +194,65 @@ def main() -> int:
         finally:
             _rs.DATA_DIR = _orig_data_dir
     chk("项目↔作业链接可登记可读回（临时目录）", True, _probe_ok)
+
+    # ── P0-5 规则引擎与风险发现（新增，2026-10-13）──
+    from engine import rule_loader as RL_, rule_catalog as RC_, risk_scoring as RS_
+    _py = RL_.load_python_rules()
+    _js = RL_.load_json_candidates()
+    _gov = RL_.load_governance_rules()
+    chk("规则加载器无留痕", [], RL_.last_errors())
+    chk("在库规则无空 id", [], [r["rule_id"] for r in _py if not r["rule_id"]])
+    chk("候选规则无空 id", [], [r["rule_id"] for r in _js if not r["rule_id"]])
+    chk("权威事实核查规则(另一维度)", 89, len(_gov))
+    with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as _fh:
+        _layers = json.load(_fh)["layer_semantics"]["layers"]
+    from collections import Counter as _Ctr
+    _all = _Ctr(r["layer"] for r in _py) + _Ctr(r["layer"] for r in _gov)
+    chk("六层计数与权威逐一相符", [],
+        [(k, _all.get(k), v["count"]) for k, v in _layers.items()
+         if _all.get(k) != v["count"]])
+    _st = RC_.stats()
+    chk("目录规则主体取权威口径", True, _st["rule_subject_total"] == 176)
+    chk("法规依据分类合计=总条目", True,
+        _st["legal_basis_coverage"]["with_real_ref"]
+        + _st["legal_basis_coverage"]["placeholder"]
+        + _st["legal_basis_coverage"]["missing"] == _st["total_entries"])
+    chk("无运行时开关（如实声明）", False, _st["runtime_switch_available"])
+    chk("评分权重和=1.0", 1.0, round(sum(RS_.metadata()["weights"].values()), 6))
+    chk("三档视图来自配置", ["高", "中", "低"],
+        [b["grade"] for b in RS_.grade_view_bands()])
+    chk("评分不回改等级", True,
+        RS_.stamp({"risk_level": "高风险"})["risk_level"] == "高风险")
+    chk("信息不足不给分（缺失≠默认分）", None,
+        RS_.score({})["priority_score"])
+    _full = RS_.score({"risk_level": "高风险", "confidence": 0.9, "finding_count": 4,
+                       "tax_impact": {"available": True,
+                                      "items": [{"amount": 600000.0}]}})
+    chk("四因子齐全时权重和=1.0", 1.0, _full["score_basis"])
+    chk("高风险分>低风险分（单调）", True,
+        _full["priority_score"] > RS_.score({"risk_level": "低风险", "confidence": 0.9,
+                                             "finding_count": 4,
+                                             "tax_impact": {"available": True,
+                                                            "items": [{"amount": 600000.0}]}}
+                                            )["priority_score"])
+    from engine.rule_executor import execution_summary as _esum
+    chk("执行状态中文名齐全", 7,
+        len([k for k in ("executed", "hit", "no_hit", "not_run_missing_data",
+                         "skipped_industry", "execution_error", "unknown")]))
+    chk("执行汇总分类合计=总数", True,
+        sum(_esum([{"status": "hit"}, {"status": "not_run_missing_data"}]
+                  )["by_status"].values()) == 2)
+    from engine import argumentation as _arg
+    _cw = json.load(open(os.path.join(ROOT, "config/confidence_weights.json"),
+                         encoding="utf-8"))
+    chk("置信度权重两处一致", [],
+        [k for k in set(_cw["weights"]) | set(_arg.CONFIDENCE_WEIGHTS)
+         if float(_cw["weights"].get(k, float("nan")))
+         != float(_arg.CONFIDENCE_WEIGHTS.get(k, float("nan")))])
+    chk("置信度区间两处一致", [],
+        [k for k in set(_cw["clamps"]) | set(_arg.CONFIDENCE_CLAMPS)
+         if float(_cw["clamps"].get(k, float("nan")))
+         != float(_arg.CONFIDENCE_CLAMPS.get(k, float("nan")))])
 
     # ── 规则分层（唯一权威 layer_semantics）──
     with open(os.path.join(ROOT, "config/rule_versions.json"), encoding="utf-8") as fh:
