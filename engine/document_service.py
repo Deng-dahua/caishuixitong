@@ -317,6 +317,15 @@ def upload_documents(project_id: Any, files: Iterable[Tuple[str, bytes]], sessio
                          ("；拒绝 %d 个" % len(rejected)) if rejected else ""),
                request=request)
 
+    # ★ 2026-10-15 用户裁定：上传成功 ⇒ **自动解析与标准化**（后台线程，不阻塞响应）。
+    #   状态机 pending→parsing→success/failed 全程流转；解析复用 P0-3 唯一入口
+    #   extract_service.parse_document（幂等重建，自带 extract.run 审计）。
+    if uploaded:
+        # ★ 注意用 documents.id（u["id"]，主键）；u["doc_id"] 是业务编号（DO-…），
+        #   parse_document/set_parse_status 均按主键查 —— 传错会 404「资料不存在」。
+        _auto_parse_documents([int(u["id"]) for u in uploaded],
+                              session, engine=eng)
+
     return {"uploaded": uploaded, "duplicated": duplicated, "rejected": rejected,
             "stats": {"uploaded": len(uploaded), "duplicated": len(duplicated),
                       "rejected": len(rejected),
@@ -718,3 +727,46 @@ __all__ = [
     "save_pages", "set_parse_status", "classify_document", "delete_document",
     "chunk_init", "chunk_put", "chunk_status", "chunk_complete", "metadata",
 ]
+
+# --------------------------------------------------------------------------
+# ★ 2026-10-15 上传后自动解析与标准化（用户裁定）
+# --------------------------------------------------------------------------
+def _auto_parse_documents(doc_ids, session, *, engine=None) -> None:
+    """上传成功后**后台自动解析**（单线程顺序处理本次上传的全部资料）。
+
+    流转：pending→parsing→success/failed（状态机校验走 set_parse_status）；
+    解析复用 P0-3 唯一入口 `extract_service.parse_document`（幂等重建，
+    内部自带 extract.run 审计）。线程内任何异常**不静默**：置 failed + note、
+    留审计。daemon 线程不阻塞上传响应；进程退出时未完成的解析随行（重启后
+    资料仍是 pending/parsing，可在「解析与标准化」页手工重跑，幂等）。
+
+    ★ 函数体内延迟 import extract_service：其模块顶层反向 import 本模块
+      （DocumentError/_document_row），顶层互引会循环。"""
+    import threading                                    # noqa: PLC0415
+
+    def _run():
+        from engine.extract_service import parse_document as _parse   # noqa: PLC0415
+        for did in doc_ids:
+            try:
+                set_parse_status(did, "parsing", session, engine=engine)
+            except Exception:                           # noqa: BLE001 — 状态流转失败不阻断解析本身
+                pass
+            try:
+                _parse(did, session, engine=engine)
+                set_parse_status(did, "success", session, engine=engine)
+            except Exception as exc:                    # noqa: BLE001
+                try:
+                    set_parse_status(did, "failed", session, engine=engine,
+                                     note=str(exc)[:300])
+                except Exception:                       # noqa: BLE001
+                    pass
+                try:
+                    from engine.audit_trail import record as _rec   # noqa: PLC0415
+                    _rec("extract.run", target=str(did), company_id=None,
+                         detail="⚠ 自动解析失败：%s" % str(exc)[:200])
+                except Exception:                       # noqa: BLE001
+                    pass
+
+    threading.Thread(target=_run, name="auto-parse-documents",
+                     daemon=True).start()
+
