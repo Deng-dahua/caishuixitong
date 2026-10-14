@@ -137,7 +137,10 @@ def main():
     from main import purge_company_analysis_artifacts                   # noqa: PLC0415
     print("\n开始清理……")
     for cid in sorted(orphans):
-        out = purge_company_analysis_artifacts(cid, include_uploads=True)
+        # ★ 2026-10-14 修复：purge 新增 confirmed_deleted 守卫后本工具未跟上；
+        #   本工具的删除前提（企业已不在库）由上方 _scan(_db_company_ids()) 保证。
+        out = purge_company_analysis_artifacts(cid, include_uploads=True,
+                                               confirmed_deleted=True)
         print("  企业 %d：清理 %d 处（%s）%s"
               % (cid, len(out["cleared"]), "、".join(out["cleared"]),
                  ("；残留：" + "、".join(out["leftovers"])) if out["leftovers"] else ""))

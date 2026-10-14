@@ -131,15 +131,13 @@
       <div class="body">
         <div id="form-msg"></div>
         <div class="form-row">
-          <label>所属账套 *<select id="f-company"><option value="">加载中…</option></select></label>
-          <label>企业名称（取自账套）<input type="text" id="f-name" readonly></label>
+          <label>公司名称 *<input type="text" id="f-name"></label>
         </div>
         <div class="form-row">
-          <label>纳税人识别号（取自账套）<input type="text" id="f-tid" maxlength="18" readonly></label>
-          <label>行业（取自账套）<input type="text" id="f-ind" readonly></label>
+          <label>统一社会信用代码 *<input type="text" id="f-tid" maxlength="18" placeholder="18 位"></label>
         </div>
-        <div class="form-row">
-          <label>地区<input type="text" id="f-reg"></label>
+        <div class="form-row muted" style="font-size:12px;color:var(--gray-400)">
+          行业、地区、税种范围等信息将在发起分析后由系统自动分析确定，无需在此填写。
         </div>
         <div class="form-row">
           <label>稽查期间起<input type="date" id="f-ps"></label>
