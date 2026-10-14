@@ -69,21 +69,37 @@ def _allowed_company_ids(session: Any) -> Tuple[int, ...]:
 def _visible_sql(session: Any, alias: str = "p") -> Tuple[str, Dict[str, Any]]:
     """**租户隔离的唯一实现**：返回 (SQL 片段, 绑定参数)。
 
-    admin ⇒ 无限制；普通用户 ⇒ 必须命中其 `allowed_company_ids`。
-    ⚠ `company_id IS NULL` 的项目对普通用户**不可见**（不得用"无归属=公共"顶替）。
+    admin ⇒ 无限制。
+    ★ 2026-10-15 口径更新（账套退役、项目自持企业身份）：
+      普通用户可见 = **授权账套下的项目 ∪ 我创建的（owner）∪ 我是成员的项目**。
+      原「无账套授权 ⇒ 1=0」是账套时代口径——手机号用户授权清单为空，
+      导致 create 后按可见性回读自己刚建的项目 ⇒ 404「项目不存在或无权访问」。
+    ⚠ 仍不得用「无归属=公共」顶替：`company_id IS NULL` 的项目只对
+      owner/成员可见，无关用户依旧不可见（不泄露存在性）。
     """
     if _is_admin(session):
         return "1=1", {}
     ids = _allowed_company_ids(session)
-    if not ids:
-        return "1=0", {}                              # 无任何授权 ⇒ 看不见任何项目
-    keys = []
+    uid = getattr(session, "user_id", None)
+    clauses: List[str] = []
     params: Dict[str, Any] = {}
-    for i, cid in enumerate(ids):
-        k = "_cid%d" % i
-        keys.append(":" + k)
-        params[k] = cid
-    return "%s.company_id IN (%s)" % (alias, ", ".join(keys)), params
+    if ids:
+        keys = []
+        for i, cid in enumerate(ids):
+            k = "_cid%d" % i
+            keys.append(":" + k)
+            params[k] = cid
+        clauses.append("%s.company_id IN (%s)" % (alias, ", ".join(keys)))
+    if uid:
+        params["_uid"] = int(uid)
+        clauses.append("%s.owner_id = :_uid" % alias)
+        clauses.append(
+            "EXISTS (SELECT 1 FROM project_members pm "
+            "WHERE pm.project_id = %s.id AND pm.user_id = :_uid)" % alias
+        )
+    if not clauses:                                   # 无 uid 且无授权（理论不可达）⇒ 兜底
+        return "1=0", {}
+    return "(" + " OR ".join(clauses) + ")", params
 
 
 def _row_to_project(row: Any) -> Dict[str, Any]:
