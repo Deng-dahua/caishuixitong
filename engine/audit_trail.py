@@ -69,6 +69,7 @@ ACTIONS: Tuple[str, ...] = (
     "risk.rectify",      # 风险整改台账登记（标记已整改并生成整改编号 WB-RC-…）
     # ── 2026-10-14 新增（P0-8 权限、租户、审计）：**只在末尾追加**，顺序不得变动 ──
     "auth.login",        # 登录成功
+    "auth.change_password", "auth.register",  # 2026-10-15 自助改密 / 账号设置(手机号注册)
     "auth.login_failed", # 登录失败（含限流拦截；**用户名照记**，口令绝不入留痕）
     "auth.logout",       # 退出登录
     "auth.denied",       # 越权访问被拒（403：管理员路径 / 跨账套 / CSRF 失败）
@@ -110,6 +111,7 @@ ACTION_CN: Dict[str, str] = {
     "risk.comment": "风险批注",
     "risk.rectify": "整改台账登记",
     "auth.login": "登录成功",
+    "auth.change_password": "修改密码", "auth.register": "账号设置(手机号注册)",
     "auth.login_failed": "登录失败",
     "auth.logout": "退出登录",
     "auth.denied": "越权访问被拒",

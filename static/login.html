@@ -48,6 +48,7 @@
       <div id="error" role="alert"></div>
     </form>
     <p class="notice">登录失败会触发渐进式锁定。请勿共享账号或在公共设备保存密码。</p>
+    <p class="notice" style="text-align:center"><a href="/account-setup" style="color:#2563eb;font-weight:650">没有账号？去「账号设置」（手机号注册，初始密码=手机号）→</a></p>
   </main>
   <script>
     const form = document.getElementById("login-form");
@@ -69,9 +70,10 @@
         });
         const data = await response.json();
         if (!response.ok || !data.ok) throw new Error(data.message || "登录失败");
-        // ★ 2026-10-14 二次调整：账套概念退役 —— 登录后直接进主系统
-        //（项目自持企业身份，不再依赖账套选择）。
-        location.assign("/");
+        // ★ 2026-10-15 账号/角色流：初始密码(=手机号)账号首次登录 ⇒ 强制修改密码；
+        // 管理员登录后先进「角色设置」页；普通用户进主系统。
+        if (data.must_change_password) { location.assign("/change-password"); return; }
+        location.assign(data.role === "admin" ? "/roles" : "/");
       } catch (error) {
         errorBox.textContent = error.message || "网络异常，请稍后重试";
         errorBox.style.display = "block";

@@ -15154,3 +15154,77 @@ def get_calibration_status(db: Session = Depends(get_db)):
         "message": f"记忆库有{len(memory)}条记录" + (f"，{top_industry}行业样本充足，阈值已校准" if top_industry and industry_counts.get(top_industry, 0) >= 5 else "，样本不足，使用默认阈值")
     }
 
+
+
+# ═══ 账号设置(手机号注册)与修改密码 —— 2026-10-15 ═══
+# 用户裁定:账号=手机号,初始密码=手机号,首次登录强制改密;
+# 登录后管理员先进「角色设置」(/roles),普通用户进主系统。
+import re as _re_phone_15
+
+
+def _valid_phone_15(p: str) -> bool:
+    return bool(_re_phone_15.fullmatch(r"1\d{10}", (p or "").strip()))
+
+
+@app.post("/api/auth/register")
+async def api_auth_register(request: Request):
+    """免登录账号设置页:填手机号即可创建账号(初始密码=手机号)。"""
+    from security import create_user as _cu, find_user as _fu  # noqa: PLC0415
+    from engine.audit_trail import record as _at_rec          # noqa: PLC0415
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "message": "请求体非法"}, status_code=400)
+    phone = str(body.get("phone") or "").strip()
+    display = str(body.get("display_name") or "").strip()
+    if not _valid_phone_15(phone):
+        return JSONResponse({"ok": False, "message": "手机号必须为 1 开头的 11 位数字"}, status_code=400)
+    if _fu(phone):
+        return JSONResponse({"ok": False, "message": "该手机号已注册，请直接登录"}, status_code=400)
+    _cu(phone, phone, role="user", must_change_password=True,
+        display_name=display or phone, phone=phone,
+        skip_policy_check=True)   # 初始密码=手机号(11位)天然弱,由 must_change_password 兜底
+    _at_rec("auth.register", target=phone, company_id=None,
+            detail="账号设置：以手机号创建账号（初始密码=手机号，待首次登录修改）", request=request)
+    return {"ok": True, "username": phone, "initial_password": phone,
+            "must_change_password": True}
+
+
+@app.post("/api/auth/change-password")
+@app.post("/api/v1/auth/change-password")
+async def api_auth_change_password(request: Request):
+    """已登录用户修改自己的密码(验证旧密码;成功后需重新登录)。"""
+    from security import change_password_with_old as _cpwo      # noqa: PLC0415
+    from engine.audit_trail import record as _at_rec            # noqa: PLC0415
+    auth = getattr(request.state, "auth", None)
+    if not auth or not getattr(auth, "username", ""):
+        return JSONResponse({"ok": False, "message": "请先登录"}, status_code=401)
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "message": "请求体非法"}, status_code=400)
+    old = str(body.get("old_password") or "")
+    new = str(body.get("new_password") or "")
+    # 新密码强度交由 security.change_password_with_old 内 validate_password 全策略校验
+    try:
+        _cpwo(auth.username, old, new)
+    except ValueError as exc:
+        _at_rec("auth.change_password", target=auth.username, company_id=None,
+                detail="修改密码失败：%s" % exc, request=request)
+        return JSONResponse({"ok": False, "message": str(exc)}, status_code=400)
+    _at_rec("auth.change_password", target=auth.username, company_id=None,
+            detail="修改密码成功", request=request)
+    return {"ok": True, "message": "密码已修改，请重新登录"}
+
+
+@app.get("/account-setup", response_class=HTMLResponse)
+async def account_setup_page():
+    """账号设置页(免登录):手机号注册,初始密码=手机号。"""
+    return _read_html("static/account_setup.html")
+
+
+@app.get("/change-password", response_class=HTMLResponse)
+async def change_password_page():
+    """修改密码页(需登录)。"""
+    return _read_html("static/change_password.html")
+

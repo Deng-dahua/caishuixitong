@@ -19255,7 +19255,7 @@ def check_one_click_wiring_coverage() -> List[Tuple[str, str, str]]:
     try:
         _idx = (ROOT / "static" / "index.html").read_text(encoding="utf-8", errors="replace")
         # 认证流页面：设计上**无侧边栏**（登记在册，逐条例外，不用兜底放行）
-        _AUTH_FLOW = {"/login", "/select-company", "/new-company"}
+        _AUTH_FLOW = {"/login", "/select-company", "/new-company", "/account-setup"}
         _pages: Dict[str, str] = {}
         for _p in sorted(ROOT.glob("*_api.py")):
             _src = _p.read_text(encoding="utf-8", errors="replace")

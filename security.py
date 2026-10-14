@@ -167,8 +167,13 @@ def validate_password(password: str) -> None:
         raise ValueError("password must use at least three character categories")
 
 
-def hash_password(password: str, *, salt: Optional[bytes] = None) -> str:
-    validate_password(password)
+def hash_password(password: str, *, salt: Optional[bytes] = None,
+                  skip_policy_check: bool = False) -> str:
+    # ★ 2026-10-15:`skip_policy_check` 仅用于「初始密码=手机号」的账号设置
+    #   (手机号 11 位天然过不了 12 位策略;弱初始密由 must_change_password 兜底)。
+    #   默认 False ⇒ 既有调用一字不改、策略照常生效。
+    if not skip_policy_check:
+        validate_password(password)
     actual_salt = salt or secrets.token_bytes(16)
     digest = hashlib.scrypt(
         password.encode("utf-8"),
@@ -211,6 +216,7 @@ def create_user(
     id_card: str = "",
     bank_account: str = "",
     tenant_id: Optional[int] = None,
+    skip_policy_check: bool = False,
 ) -> int:
     """新建用户。
 
@@ -242,7 +248,7 @@ def create_user(
             """,
             (
                 normalized,
-                hash_password(password),
+                hash_password(password, skip_policy_check=skip_policy_check),
                 role,
                 json.dumps(allowed),
                 int(must_change_password),
@@ -671,7 +677,9 @@ def is_public_path(path: str) -> bool:
     # `/api/v1/auth/login` 是 P0-8 新增的登录端点（与既有 `/api/auth/login` 同语义，
     # 同一实现 `security_web.login_handler`）。**必须**登记为公开路径，否则请求会先被
     # 鉴权中间件拦成 401，永远到不了登录处理器。
-    if path in {"/login", "/healthz", "/api/auth/login", "/api/v1/auth/login", "/favicon.ico"}:
+    # ★ 2026-10-15:/api/auth/register 与 /account-setup 是免登录的账号设置入口
+    #   (手机号注册,初始密码=手机号),与登录同语义,必须公开。
+    if path in {"/login", "/healthz", "/api/auth/login", "/api/v1/auth/login", "/favicon.ico", "/api/auth/register", "/account-setup"}:
         return True
     if path.startswith("/static/"):
         return Path(path).suffix.lower() in _PUBLIC_ASSET_EXTENSIONS
@@ -698,3 +706,31 @@ def _bootstrap_admin_from_environment() -> None:
         exists = connection.execute("SELECT 1 FROM users LIMIT 1").fetchone()
     if not exists:
         create_user(username, password, role="admin")
+
+
+
+def change_password_with_old(username: str, old_password: str, new_password: str) -> None:
+    """★ 2026-10-15 用户自助修改密码：验证旧密码 ⇒ 写新密码 ⇒ 清 must_change_password
+    ⇒ 撤销该用户全部会话（改密后需重新登录）。
+
+    与 `reset_password`（管理员重置：不验旧密、语义为"代设置"）的区别：
+    本函数**必须**验证旧密码，且**必须**清 `must_change_password` 标记。"""
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT id, password_hash FROM users WHERE username = ? COLLATE NOCASE",
+            ((username or "").strip(),),
+        ).fetchone()
+        if not row:
+            raise ValueError("user not found")
+        if not verify_password(old_password or "", row["password_hash"]):
+            raise ValueError("原密码不正确")
+        try:
+            validate_password(new_password or "")
+        except ValueError:
+            raise ValueError("新密码强度不足：至少 12 位，且需包含大小写字母/数字/符号中的至少三类")
+        connection.execute(
+            "UPDATE users SET password_hash=?, must_change_password=0, updated_at=? WHERE id=?",
+            (hash_password(new_password), int(time.time()), row["id"]),
+        )
+        connection.execute("DELETE FROM sessions WHERE user_id=?", (row["id"],))
+
