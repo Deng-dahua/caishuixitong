@@ -160,8 +160,10 @@ async def enforce_request_security(request, call_next):
             request,
         )
 
-    if not selected_cookie and not is_api and path not in {"/select-company", "/new-company"}:
-        return _with_security_headers(RedirectResponse("/select-company", status_code=302), request)
+    # ★ 2026-10-15 账套概念退役（数据清空、项目自持企业身份）：
+    #   原「未选账套 ⇒ HTML 页面一律 302 /select-company」守卫删除——
+    #   手机号账号登录后直接进系统主页，不再被弹回账套选择页。
+    #   账套越权校验（candidate_company_ids → 403）与 API 路径逻辑不受影响。
     user_context_token = set_current_user_id(session.user_id)
     try:
         return _with_security_headers(await call_next(request), request)
