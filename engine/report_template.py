@@ -138,12 +138,25 @@ def apply_template(report: Dict[str, Any], industry: str,
 
 
 def validate_templates() -> List[str]:
-    """校验：每个已配置行业的报告模板都存在，且模板章节都能落到 `BASE_SECTIONS` 里。"""
+    """校验：每个已配置行业的报告模板都存在，且模板章节都能落到 `BASE_SECTIONS` 里。
+
+    ★ 2026-10-14（ODC-01 修复）：此前本函数 `from engine.industry_params import ... validate ...`
+      ——而该模块**没有 `validate`**（唯一权威叫 `validate_params`）⇒ ImportError 被
+      `except` 吞掉 ⇒ **本函数永远返回「industry_params 不可用」，从未真正校验过**。
+      现改为导入唯一权威 `validate_params`（并按前缀筛出模板相关问题），
+      再补 `BASE_SECTIONS` 白名单核算 —— 不再多头维护第二套校验实现。
+    """
     probs: List[str] = []
     try:
-        from engine.industry_params import industries, report_template, validate as _vip
+        from engine.industry_params import industries, report_template, validate_params  # noqa: PLC0415
     except Exception as exc:  # noqa: BLE001
         return ["industry_params 不可用：%s" % exc]
+    # ① 复用唯一权威校验器（它已覆盖「行业引用了未登记的报告模板」）
+    try:
+        probs.extend([p for p in validate_params() if "报告模板" in str(p)])
+    except Exception as exc:  # noqa: BLE001
+        probs.append("industry_params.validate_params 不可用：%s" % exc)
+    # ② 模板视角的补充判据：每个已配置行业的模板必须**取得到**（配置与模板表同源）
     for x in industries():
         iid = str(x.get("industry_id"))
         tid = str(x.get("report_template") or "")
@@ -152,14 +165,17 @@ def validate_templates() -> List[str]:
             continue
         if not report_template(x.get("label") or iid):
             probs.append("行业 %s 的模板 %s 取不到（配置与模板表不同源）" % (iid, tid))
+    # ③ 有效模板的章节必须都在 BASE_SECTIONS 白名单内（含台账新建的自定义模板）
     try:
-        from engine.report_compliance import load_config
-        for tid, tpl in ((load_config().get("templates") or {})).items():
-            for s in (tpl.get("sections") or []):
-                if str(s) not in BASE_SECTIONS:
-                    probs.append("模板 %s 的章节「%s」不在 BASE_SECTIONS 里（需同步登记）" % (tid, s))
-    except Exception:
-        pass
+        from engine.template_store import effective_templates      # noqa: PLC0415
+        tpls = effective_templates()
+    except Exception:                                             # noqa: BLE001
+        from engine.report_compliance import load_config          # noqa: PLC0415
+        tpls = (load_config().get("templates") or {})
+    for tid, tpl in tpls.items():
+        for s in ((tpl or {}).get("sections") or []):
+            if str(s) not in BASE_SECTIONS:
+                probs.append("模板 %s 的章节「%s」不在 BASE_SECTIONS 里（需同步登记）" % (tid, s))
     return probs
 
 

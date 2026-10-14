@@ -558,6 +558,26 @@ def _run_analyze(company_id, db, progress_callback=None):
     #    "cannot access local variable 'pipeline_log' where it is not associated with a value"
     #    （沙箱无回收站导致残留文件清理不掉，更易命中此路径）
     pipeline_log, file_results = [], []
+
+    # ═══ 人工校正值（ODC-02 / S6-TODO-001）：解析页的人工校正 ⇒ 分析取数覆盖 ═══
+    #   唯一权威 `engine.extract_overrides`（本处只做装配，薄转发）。
+    #   缺此接线时：用户在「解析与标准化」页校正了金额，一键分析**仍按原始解析结果取数**
+    #   （`pipeline` 从不读 `extracted_fields`）⇒ 校正不生效。
+    #   铁律：缺失 ≠ 0（取不到就保持原值）；应用结果进 `pipeline_log` + 报告载荷（不静默）。
+    from engine.extract_overrides import (
+        corrections_by_field as _eov_corr, apply_overrides as _eov_apply,
+        summarize as _eov_sum, receipt as _eov_receipt,
+        FINANCIAL_STATEMENT_KEYS as _EOV_FS, INCENTIVE_KEYS as _EOV_INC,
+    )
+    _extract_corr = {}
+    _applied_corrections: list = []
+    try:
+        _extract_corr = _eov_corr(company_id, engine=db.get_bind() if hasattr(db, "get_bind") else None)
+        if _extract_corr:
+            pipeline_log.append("[人工校正] 载入 %d 项已校正标准字段：%s"
+                                % (len(_extract_corr), "、".join(sorted(_extract_corr))))
+    except Exception as _eov_e:                                    # noqa: BLE001
+        pipeline_log.append("[人工校正] 载入失败（不影响主分析）：%s" % _eov_e)
     company_upload_dir = _get_company_upload_dir(company_id)
     docs = []
     # 构建内存列表中的有效文件ID集合
@@ -2529,6 +2549,14 @@ def _run_analyze(company_id, db, progress_callback=None):
         fin_bs, fin_is, fin_cf = ({}, {}, {})
         if trial_balance_data:
             fin_bs, fin_is, fin_cf = build_statements_from_trial_balance(trial_balance_data)
+        # ★ ODC-02 接线点 ①：人工校正覆盖三表取数（只覆盖被校正字段；取不到即保持原值）
+        if _extract_corr:
+            _tgt1 = {"balance_sheet": fin_bs, "income_statement": fin_is}
+            _tgt1, _ap1 = _eov_apply(_tgt1, _extract_corr, _EOV_FS)
+            fin_bs, fin_is = _tgt1["balance_sheet"], _tgt1["income_statement"]
+            if _ap1:
+                _applied_corrections.extend(_ap1)
+                pipeline_log.append("[人工校正] 财务报表取数：%s" % _eov_sum(_ap1))
         fin_findings = analyze_financial_statements(
             fin_bs, fin_is, fin_cf,
             vouchers or [], sal_invs or [], pur_invs or [], ctx, tax_declarations,
@@ -2653,6 +2681,14 @@ def _run_analyze(company_id, db, progress_callback=None):
             if _rev > 0: _income_stmt["revenue"] = _rev
             if _cost > 0: _income_stmt["total_cost"] = _cost
             if _rev > 0 and _cost > 0: _income_stmt["net_profit"] = _rev - _cost
+        # ★ ODC-02 接线点 ②：人工校正覆盖税收优惠取数（键约定不同 ⇒ 另一张键表，同一实现）
+        if _extract_corr:
+            _tgt2 = {"balance_sheet": _balance_sheet, "income_statement": _income_stmt}
+            _tgt2, _ap2 = _eov_apply(_tgt2, _extract_corr, _EOV_INC)
+            _balance_sheet, _income_stmt = _tgt2["balance_sheet"], _tgt2["income_statement"]
+            if _ap2:
+                _applied_corrections.extend(_ap2)
+                pipeline_log.append("[人工校正] 税收优惠取数：%s" % _eov_sum(_ap2))
         inc_findings, inc_opportunities = analyze_tax_incentives(
             ctx, sal_invs, pur_invs, bank_txs, salaries, _income_stmt, _balance_sheet, vouchers
         )
@@ -5889,6 +5925,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     result = {"ok": True, "report": {
         "overall_level": overall, "total_risks": total, "high_risk": high, "mid_risk": mid, "low_risk": total-high-mid,
         "files_count": len(docs), "rules_used": _actual_rule_count, "pipeline_log": humanise_log_lines(pipeline_log), "file_results": file_results,
+        # ★ ODC-02：人工校正的应用回执（按字段去重；`count_applied`=0 也明说"未采用"，不静默）
+        "extract_corrections": _eov_receipt(_applied_corrections),
         # ★ 未读取到数据的文件清单（空表示资料完整）——报告须据此声明"结论基于不完整资料"
         "read_failures": list(_read_failed),
         # ★ 分析覆盖清单：现有资料能查多少、需补什么才能判定（"该查的都查了吗"）

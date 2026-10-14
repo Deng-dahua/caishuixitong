@@ -290,13 +290,51 @@ def apply_level_adjustments(industry: str, risk_family: str, indicator: str,
     return out, hits
 
 
+def template_def(template_id: str) -> Dict[str, Any]:
+    """模板定义的**唯一读取入口** —— 经 `engine.template_store`（有效模板 = 内置 ⊕ 台账覆盖）。
+
+    ★ 2026-10-14（ODC-01 修复）：本函数此前在 `report_template()` 里**直读**
+      `config/report_compliance.json::templates` ⇒ 「报告模板管理」（`engine/template_store`）
+      的自定义 / 覆盖 / 停用**对实际报告不生效**（页面改了、报告章节顺序不变）。
+      现统一由 `template_store` 收口：内置仍来自 `report_compliance`（本模块不复制），
+      覆盖与停用走台账（`data/report_templates.jsonl`）。
+
+    ★ 唯一权威不可用时：**如实回落**直读内置表 **并留痕**（不静默、不伪造模板）。
+      取不到该模板 ⇒ 返回空 dict（由调用方按「未匹配」处理，**不冒用别行业模板**）。
+    """
+    tid = str(template_id or "").strip()
+    if not tid:
+        return {}
+    try:
+        from engine.template_store import get_template          # noqa: PLC0415
+    except Exception as exc:                                    # noqa: BLE001
+        import sys as _sys                                      # noqa: PLC0415
+        print("[industry-params] template_store 不可用，回落直读内置模板表：%s" % exc,
+              file=_sys.stderr, flush=True)
+        t = ((_read_json(_COMPLIANCE, {}) or {}).get("templates") or {}).get(tid) or {}
+        return dict(t) if t else {}
+    t = get_template(tid)
+    if not t:
+        return {}
+    return {
+        "label": str(t.get("label") or tid),
+        "sections": [str(x) for x in (t.get("sections") or [])],
+        "emphasis": str(t.get("emphasis") or ""),
+    }
+
+
 def report_template(industry: str) -> Dict[str, Any]:
-    """该行业匹配的报告模板（取不到返回空 dict，报告按通用结构呈现）。"""
+    """该行业匹配的报告模板（取不到返回空 dict，报告按通用结构呈现）。
+
+    ★ 模板定义经 `template_def()`（唯一读取入口）⇒ 模板页的覆盖/停用**对报告生效**。
+    """
     p = params_of(industry)
     if not p.get("matched"):
         return {}
     tid = str(p.get("report_template") or "")
-    tpl = ((_read_json(_COMPLIANCE, {}) or {}).get("templates") or {}).get(tid) or {}
+    if not tid:
+        return {}
+    tpl = template_def(tid)
     if not tpl:
         return {}
     out = dict(tpl)
@@ -330,7 +368,14 @@ def validate_params() -> List[str]:
         known_fams = set()
     mt_levels = {str(m.get("level_id")) for m in (
         (_read_json(_ANALYSIS_CATALOG, {}) or {}).get("materiality_levels") or [])}
-    tpl_ids = set((( _read_json(_COMPLIANCE, {}) or {}).get("templates") or {}).keys())
+    # ★ 已登记模板 id = **有效模板**（内置 ⊕ 台账覆盖），经唯一权威 `template_store`
+    #   —— 否则「模板页新建的自定义模板」会被本校验判成"未登记"（假红）。
+    #   唯一权威不可用 ⇒ 回落读内置配置（不静默：与 `template_def` 同一策略）。
+    try:
+        from engine.template_store import list_templates as _lt   # noqa: PLC0415
+        tpl_ids = {str(x.get("template_id")) for x in _lt(include_disabled=True)}
+    except Exception:                                            # noqa: BLE001
+        tpl_ids = set((( _read_json(_COMPLIANCE, {}) or {}).get("templates") or {}).keys())
     seen: Dict[str, int] = {}
     for i, x in enumerate(industries()):
         tag = "第 %d 条(%s)" % (i + 1, x.get("industry_id") or "无 id")

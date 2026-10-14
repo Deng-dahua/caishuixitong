@@ -140,6 +140,17 @@
     <div class="nav-item" data-perm="dashboard.view" onclick="location.href='/dashboard'" title="数据大屏：跨项目风险/资料/分析任务的聚合统计">
       <span class="icon">📈</span> 数据大屏
     </div>
+    <!-- ★ ODC-03（2026-10-14）：AI 辅助 / 多税种模型 此前**页面与路由都在、侧边栏无入口**
+         ⇒ 只能手输 URL 访问（功能不可达）。此处补齐入口。
+         不加 `data-perm`：`config/rbac.json` 未登记 `ai.*` / `taxmodel.*` 权限点，
+         新增权限点须同步权限点计数基线；这两页是**只读辅助/登记表**，按既有
+         「系统日志」「资料风险分析报告」同款（无 perm）处理即可。 -->
+    <div class="nav-item" onclick="location.href='/ai-assist'" title="AI 辅助分析（advisory）：解释事项 / 建议补资料 / 询问提纲 / 归纳疑点；**仅供线索参考，不替代规则判定**">
+      <span class="icon">🤖</span> AI 辅助
+    </div>
+    <div class="nav-item" onclick="location.href='/tax-models'" title="多税种深度模型：税种 → 深度模型清单、跨税种模型与覆盖情况（模型实现落在既有引擎模块）">
+      <span class="icon">🧮</span> 多税种模型
+    </div>
   </div>
 </nav>
 
@@ -158,7 +169,7 @@
 <script src="/static/js/tax-pipeline-pages.js?v=803fdfaa4a" defer></script>
 <script src="/static/js/report-block-renderer.js?v=640eddfb6d" defer></script>
 <script src="/static/js/report-modules.js?v=c1b5999257" defer></script>
-<script src="/static/js/tax-doc-analysis.js?v=fe83c84fb0" defer></script>
+<script src="/static/js/tax-doc-analysis.js?v=ba7d56c6c2" defer></script>
 <script src="/static/js/system-logs.js?v=611a55f3b3" defer></script>
     <!-- ★ 2026-10-07：原 `/static/js/file-import.js` 已下线（移入 data/trash/，可恢复）。
          依据：① 其入口 `showUploadModal` 全仓**无任何调用**（0 处引用）⇒ 整模块不可达；

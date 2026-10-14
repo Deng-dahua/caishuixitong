@@ -13015,7 +13015,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）
     return counts, general
 
 
@@ -19084,6 +19084,238 @@ def check_dashboard_wiring() -> List[Tuple[str, str, str]]:
             issues.append(("ERROR", "config/rbac.json", "缺少权限点 `dashboard.view`"))
     except Exception as exc:                                    # noqa: BLE001
         issues.append(("ERROR", "config/rbac.json", "RBAC 不可读：%s" % exc))
+    return issues
+
+
+def check_payload_written_after_analysis() -> List[Tuple[str, str, str]]:
+    """S12-DEC-002（2026-10-14）：一键分析**产物载荷**的落盘接线 + 产物存在 + 读方薄转发。
+
+    背景（实测）：`company_{cid}_full.json` 此前**只有离线脚本会写**，服务链路从不写
+    ⇒ 换任何账套，风险库 / 复核 / 规则页**立即为空**（P0 级端到端断链；反向验证已证
+    「断点是没人写，不是路径错」）。
+
+    三条判据均为**行为级**（不是「符号是否存在」）：
+      A【接线】`main.py::_persist_one_click_result` 的 AST 中必须真实存在
+        `report_payload.dump_payload(...)` 调用 —— 注释掉 / 删掉即 ERROR。
+      B【产物】凡在分析缓存（`data/cache/last_analysis_cache.json`）中有条目的账套，
+        `offline_reports_root()` 下必须有对应载荷文件（有产出必有落盘）。
+      C【读方薄转发】`engine/risk_service.load_payload` 必须调用
+        `report_payload.payload_path(...)`，不得自己拼路径（读写两侧同一权威）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    # ── A 接线（AST 级：注释掉/删除 ⇒ 命中不到该调用）──
+    try:
+        _main_tree = ast.parse((ROOT / "main.py").read_text(encoding="utf-8", errors="replace"))
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", "main.py", "解析失败，落盘接线判据失效：%s" % exc)]
+    _fn = None
+    for _n in ast.walk(_main_tree):
+        if isinstance(_n, ast.FunctionDef) and _n.name == "_persist_one_click_result":
+            _fn = _n
+    if _fn is None:
+        issues.append(("ERROR", "main.py", "未找到 `_persist_one_click_result`（落盘接线判据失效）"))
+    elif not any(isinstance(_n, ast.Call) and isinstance(_n.func, ast.Attribute)
+                 and _n.func.attr == "dump_payload" for _n in ast.walk(_fn)):
+        issues.append(("ERROR", "main.py",
+                       "`_persist_one_click_result` 未调用 `report_payload.dump_payload()`"
+                       " ⇒ 一键分析产物不落盘 ⇒ 风险库/复核端到端为空（S12-DEC-002 复发）"))
+
+    # ── C 读方薄转发（AST 级）──
+    try:
+        _rs_tree = ast.parse((ROOT / "engine" / "risk_service.py").read_text(
+            encoding="utf-8", errors="replace"))
+    except Exception as exc:                                    # noqa: BLE001
+        return issues + [("ERROR", "engine/risk_service.py", "解析失败，读方判据失效：%s" % exc)]
+    _load_fn = None
+    for _n in ast.walk(_rs_tree):
+        if isinstance(_n, ast.FunctionDef) and _n.name == "load_payload":
+            _load_fn = _n
+    if _load_fn is None:
+        issues.append(("ERROR", "engine/risk_service.py", "未找到 `load_payload`（读方判据失效）"))
+    elif not any(isinstance(_n, ast.Call) and isinstance(_n.func, ast.Name)
+                 and _n.func.id == "payload_path" for _n in ast.walk(_load_fn)):
+        issues.append(("ERROR", "engine/risk_service.py",
+                       "`load_payload` 未经 `payload_path()` 取路径 ⇒ 读写两侧可能各自漂移"))
+
+    # ── B 产物存在（端到端口径）──
+    _cache_p = ROOT / "data" / "cache" / "last_analysis_cache.json"
+    if _cache_p.exists():
+        try:
+            from runtime_storage import offline_reports_root as _orr   # noqa: PLC0415
+            _cache = json.loads(_cache_p.read_text(encoding="utf-8", errors="replace")) or {}
+            _root = _orr()
+            for _cid in list(_cache.keys()):
+                try:
+                    _cidi = int(_cid)
+                except Exception:                               # noqa: BLE001
+                    continue
+                if _cidi <= 0:
+                    continue
+                _fp = os.path.join(_root, "company_%d_full.json" % _cidi)
+                if not os.path.exists(_fp):
+                    issues.append(("ERROR", "data/cache/last_analysis_cache.json",
+                                   "账套 %d 有分析缓存但无落盘载荷「%s」⇒ 风险库/复核取不到数"
+                                   "（S12-DEC-002）" % (_cidi, _fp)))
+        except Exception as exc:                                # noqa: BLE001
+            issues.append(("WARN", "engine/report_payload.py", "产物存在断言未执行：%s" % exc))
+    return issues
+
+
+def check_one_click_wiring_coverage() -> List[Tuple[str, str, str]]:
+    """一键分析**接入面**四条常驻判据（★ 2026-10-14 · ODC-01/02/03 防复发）。
+
+    背景：本项目反复出现「**功能做了但不生效**」——页面与模块都在，但一键分析链不消费
+    （P1-5 报告模板管理空转、解析人工校正值不生效、P2-3/P2-4 页面无入口）。四类缺口各配判据：
+
+    ① **模板读取唯一入口**：`industry_params.template_def()` 必须与
+       `template_store.get_template()` **同源** —— 行为断言：同一模板的 `sections`
+       必须逐项相等；且 `industry_params` 源码必须 import `engine.template_store`。
+       否则「模板管理」页的覆盖/停用又回到空转（改页面、报告不变）。
+    ② **校正值接线**：`engine/pipeline.py` 必须 import `engine.extract_overrides` 并调用
+       `corrections_by_field` / `apply_overrides`；并做行为断言（合成用例）：
+       校正值覆盖原值、**缺失值不写 0**（铁律「缺失 ≠ 0」）。
+    ③ **页面可达**：`*_api.py` 里每个 HTML 页面路由都必须在 `static/index.html` 有入口。
+       认证流页面（`/login` `/select-company` `/new-company`）**在册例外**（设计上无侧边栏）
+       —— 例外必须逐条登记，不得用"兜底"放行。
+    ④ **前端渲染点存在**（形态③：后端产出但前端零读取）：`report_template_meta` 与
+       `extract_corrections` 必须出现在前端脚本的**去注释代码**里。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    # ── ① 模板读取唯一入口 ──
+    _ip_rel = "engine/industry_params.py"
+    try:
+        import sys as _sys                                    # noqa: PLC0415
+        _sys.path.insert(0, str(ROOT))
+        _ip_src = (ROOT / "engine" / "industry_params.py").read_text(encoding="utf-8", errors="replace")
+        if "from engine.template_store import" not in _ip_src:
+            issues.append(("ERROR", _ip_rel,
+                           "模板读取未走唯一权威 `engine.template_store` ⇒ 模板页覆盖/停用会对报告空转"))
+        from engine.industry_params import template_def        # noqa: PLC0415
+        from engine.template_store import get_template, builtin_templates   # noqa: PLC0415
+        _bad = []
+        for _tid in sorted(builtin_templates().keys()):
+            _a = list((template_def(_tid) or {}).get("sections") or [])
+            _b = list((get_template(_tid) or {}).get("sections") or [])
+            if _a != _b:
+                _bad.append((_tid, _a, _b))
+        if _bad:
+            issues.append(("ERROR", _ip_rel,
+                           "template_def 与 template_store.get_template 不同源（%d 个模板不一致）：%s"
+                           % (len(_bad), _bad[:3])))
+    except Exception as _e1:                                  # noqa: BLE001
+        issues.append(("ERROR", _ip_rel, "模板读取判据不可执行：%s" % _e1))
+
+    # ── ② 校正值接线（静态 + 行为）──
+    #   ★ 2026-10-14（反向验证抓出）：初版只查"名字是否出现过" ⇒ 把调用行删掉、
+    #     只留 import 别名，判据**仍绿**（假绿）。现改为 **AST 语句级**：
+    #     必须存在对 `extract_overrides` 导入别名的**实际调用**（`ast.Call`）。
+    _pl_rel = "engine/pipeline.py"
+    try:
+        import ast as _ast                                    # noqa: PLC0415
+        _pl_src = (ROOT / "engine" / "pipeline.py").read_text(encoding="utf-8", errors="replace")
+        _tree = _ast.parse(_pl_src)
+        _alias_of: Dict[str, str] = {}                        # 别名 -> 原名
+        for _n in _ast.walk(_tree):
+            if isinstance(_n, _ast.ImportFrom) and (_n.module or "").endswith("extract_overrides"):
+                for _a in _n.names:
+                    _alias_of[_a.asname or _a.name] = _a.name
+        if not _alias_of:
+            issues.append(("ERROR", _pl_rel,
+                           "未从 `engine.extract_overrides` 导入任何名字 ⇒ 解析人工校正未接线"))
+        else:
+            _called = set()
+            for _n in _ast.walk(_tree):
+                if isinstance(_n, _ast.Call) and isinstance(_n.func, _ast.Name) \
+                        and _n.func.id in _alias_of:
+                    _called.add(_alias_of[_n.func.id])
+            for _need in ("corrections_by_field", "apply_overrides"):
+                if _need not in _called:
+                    issues.append(("ERROR", _pl_rel,
+                                   "`%s` 只被导入、**未被调用** ⇒ 校正值不生效（判据为语句级，不接受仅存在名字）"
+                                   % _need))
+        from engine.extract_overrides import (                # noqa: PLC0415
+            apply_overrides, corrections_by_field, FINANCIAL_STATEMENT_KEYS, receipt)
+        _t = {"income_statement": {"revenue": 1.0, "cost": 2.0, "net_profit": 3.0}}
+        _corr = {"revenue": {"field": "revenue", "field_cn": "营业收入", "value": 9.0},
+                 "cost": {"field": "cost", "field_cn": "营业成本", "value": None}}
+        _t2, _ap = apply_overrides(_t, _corr, FINANCIAL_STATEMENT_KEYS)
+        if _t2["income_statement"]["revenue"] != 9.0:
+            issues.append(("ERROR", "engine/extract_overrides.py", "apply_overrides 未覆盖校正值"))
+        if _t2["income_statement"]["cost"] != 2.0:
+            issues.append(("ERROR", "engine/extract_overrides.py",
+                           "缺失校正值被写入（应为原值 2.0）⇒ 违反「缺失 ≠ 0」"))
+        if receipt(_ap).get("count_applied") != 1:
+            issues.append(("ERROR", "engine/extract_overrides.py",
+                           "receipt 计数错误（应为 1 项已应用）"))
+    except Exception as _e2:                                  # noqa: BLE001
+        issues.append(("ERROR", "engine/extract_overrides.py", "校正值接线判据不可执行：%s" % _e2))
+
+    # ── ③ 页面可达 ──
+    try:
+        _idx = (ROOT / "static" / "index.html").read_text(encoding="utf-8", errors="replace")
+        # 认证流页面：设计上**无侧边栏**（登记在册，逐条例外，不用兜底放行）
+        _AUTH_FLOW = {"/login", "/select-company", "/new-company"}
+        _pages: Dict[str, str] = {}
+        for _p in sorted(ROOT.glob("*_api.py")):
+            _src = _p.read_text(encoding="utf-8", errors="replace")
+            for _m in re.finditer(r"page_router\.get\(\s*\"(/[A-Za-z0-9_\-/]*)\"", _src):
+                _pages[_m.group(1)] = _p.name
+            for _m in re.finditer(r"@router\.get\(\s*\"(/[A-Za-z0-9_\-/]*)\"[^\n]*response_class=HTMLResponse",
+                                  _src):
+                _pages[_m.group(1)] = _p.name
+        for _path, _f in sorted(_pages.items()):
+            if _path in _AUTH_FLOW:
+                continue
+            if ("'%s'" % _path) not in _idx:
+                issues.append(("ERROR", "static/index.html",
+                               "页面 `%s`（%s）无侧边栏入口 ⇒ 只能手输 URL 访问（孤岛页）" % (_path, _f)))
+    except Exception as _e3:                                  # noqa: BLE001
+        issues.append(("ERROR", "static/index.html", "页面可达性判据不可执行：%s" % _e3))
+
+    # ── ④ 前端渲染点（形态③）──
+    #   ★ 存在性断言**必须先剥注释**（否则"把渲染代码删掉、注释里还留着字段名"照样通过）。
+    #   ★ 2026-10-14（反向验证抓出）：初版只查"字段名出现过" ⇒ 把**渲染调用行**删掉、
+    #     函数定义仍在，判据**仍绿**（假绿）。现加**调用级**判据：
+    #     含该字段的函数必须**被调用**（名字出现次数 ≥ 2：定义 1 次 + 调用 ≥1 次）。
+    try:
+        _js_raw = "\n".join(_j.read_text(encoding="utf-8", errors="replace")
+                            for _j in sorted((ROOT / "static" / "js").glob("*.js")))
+        _js = _js_code_only(_js_raw)
+        for _field, _why in (("report_template_meta", "行业报告模板（模板覆盖是否生效）"),
+                             ("extract_corrections", "人工校正（校正值是否被采用）")):
+            # (a) 必须作为**属性访问**出现（不是只在注释/字符串里被提到）
+            if not re.search(r"(\.|\[['\"])%s\b" % re.escape(_field), _js):
+                issues.append(("ERROR", "static/js",
+                               "`%s` 后端已产出但前端未作为属性读取（形态③：%s）" % (_field, _why)))
+                continue
+            # (b) 承载它的函数必须**被调用**（防"函数留着、调用被删"）
+            _fn_ok = False
+            for _m in re.finditer(r"function\s+([A-Za-z_$][\w$]*)\s*\(", _js):
+                _name = _m.group(1)
+                _start = _m.end() - 1
+                _depth, _end = 0, None
+                for _i in range(_start, min(len(_js), _start + 20000)):
+                    if _js[_i] == "{":
+                        _depth += 1
+                    elif _js[_i] == "}":
+                        _depth -= 1
+                        if _depth == 0:
+                            _end = _i
+                            break
+                if _end is None:
+                    continue
+                _body = _js[_start:_end]
+                if ("." + _field) in _body or ("['" + _field + "']") in _body:
+                    if len(re.findall(r"\b%s\s*\(" % re.escape(_name), _js)) >= 2:
+                        _fn_ok = True
+                        break
+            if not _fn_ok:
+                issues.append(("ERROR", "static/js",
+                               "`%s` 只在**未被调用**的函数里出现 ⇒ 渲染点失效（%s）" % (_field, _why)))
+    except Exception as _e4:                                  # noqa: BLE001
+        issues.append(("ERROR", "static/js", "前端渲染点判据不可执行：%s" % _e4))
+
     return issues
 
 

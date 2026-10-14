@@ -2668,6 +2668,62 @@ function _detectTaxScope(r, te) {
 
 }
 
+// ═══ 本报告「口径与采用」（2026-10-14 · ODC-01 / ODC-02）═══
+//   ★ 必须在**模块顶层**（本项目铁律：报告级函数放函数体内会取不到 ⇒ ReferenceError）。
+//   补齐**形态③**缺口：`report_template_meta`（行业报告模板是否生效）与
+//   `extract_corrections`（人工校正是否被采用）此前**后端已产出、前端零读取**
+//   ⇒ 用户无从判断"模板覆盖 / 人工校正到底生效没有"。
+function _tdaFmtAmt(v) {
+  if (v === null || v === undefined || v === '') return '—';
+  var n = Number(v);
+  if (!isFinite(n)) return String(v);
+  try {
+    return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } catch (e) { return String(n); }
+}
+
+function _renderScopeAdoptedBlock(r) {
+  if (!r || typeof r !== 'object') return '';
+  var tplMeta = r.report_template_meta || {};
+  var indP = r.industry_params || {};
+  var corr = r.extract_corrections || {};
+  var corrItems = Array.isArray(corr.items) ? corr.items : [];
+  var applied = corrItems.filter(function (x) { return x && x.applied; });
+  var skipped = corrItems.filter(function (x) { return x && !x.applied; });
+  var secs = Array.isArray(tplMeta.sections) ? tplMeta.sections : [];
+  var tplLine = tplMeta.matched
+    ? '报告模板：<strong style="color:#0f172a">' + escHtml(tplMeta.template_label || tplMeta.template_id || '—') + '</strong>'
+      + (indP.label ? '（行业：' + escHtml(indP.label) + '）' : '')
+      + '　·　章节顺序：<span style="color:#475569">' + escHtml(secs.join(' → ') || '—') + '</span>'
+      + (tplMeta.emphasis ? '　·　侧重：' + escHtml(tplMeta.emphasis) : '')
+    : '报告模板：未匹配到行业报告模板 ⇒ 按通用结构呈现';
+  var corrLine = (applied.length || skipped.length)
+    ? ('人工校正：<strong style="color:' + (applied.length ? '#16a34a' : '#64748b') + '">'
+       + escHtml(corr.note || ('本次分析采用了 ' + applied.length + ' 项人工校正')) + '</strong>'
+       + (applied.length
+           ? '<br>　' + applied.map(function (x) {
+               return escHtml(x.field_cn || x.field || '') + ' '
+                 + _tdaFmtAmt(x.previous) + ' → <strong>' + _tdaFmtAmt(x.current) + '</strong>';
+             }).join('　·　')
+           : '')
+       + (skipped.length
+           ? '<br>　<span style="color:#94a3b8">未采用：' + skipped.map(function (x) {
+               var rs = Array.isArray(x.reasons) ? x.reasons : [];
+               return escHtml(x.field_cn || x.field || '') + '（'
+                 + escHtml(rs.length ? rs[0] : '原因未记录') + '）';
+             }).join('、') + '</span>'
+           : ''))
+    : '';
+  return '<div id="report-scope-adopted" style="margin:0 0 14px;padding:10px 14px;'
+    + 'background:#fbfdff;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;'
+    + 'color:#475569;line-height:1.9">'
+    + '<div style="font-weight:700;color:#0f172a;font-size:13px">📐 本报告口径与采用</div>'
+    + '<div>' + tplLine + '</div>'
+    + (corrLine ? '<div>' + corrLine + '</div>' : '')
+    + '</div>';
+}
+
+
 function renderTaxDocReport(r) {
 
 
@@ -2879,7 +2935,8 @@ function renderTaxDocReport(r) {
   }
 
 
-  html = html;
+  // ★ ODC-01 / ODC-02：本报告「口径与采用」置顶（模板是否生效 / 校正是否被采用）
+  html = _renderScopeAdoptedBlock(r) + html;
 
   area.innerHTML = html;
 
