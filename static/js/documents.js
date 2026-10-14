@@ -14,7 +14,8 @@
   var PROJECT = null;
   var state = { page: 1, page_size: 20, total: 0, pages: 0, items: [],
                 deleting: null, classifying: null,
-                selected: {} };   // ★ 2026-10-15 批量删除：id -> true（翻页/刷新即清空）
+                selected: {},   // ★ 2026-10-15 批量删除：id -> true（翻页/刷新即清空）
+                exDoc: null };  // ★ 2026-10-15 详情弹窗当前解析的资料 id
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
@@ -306,8 +307,162 @@
           (d.pages || []).length + '）</div>' +
         '<table class="grid" style="margin-top:6px"><thead><tr><th>页</th><th>字符数</th><th>状态</th></tr></thead>' +
         '<tbody>' + pages + '</tbody></table>';
+      // ★ 2026-10-15 解析与标准化融入：详情即含解析结果（原 /extract 页能力）
+      state.exDoc = id;
+      $("ex-wrap").hidden = false;
+      $("ex-hint").textContent = "";
+      await loadExtractedInto(id);
     } catch (e) {
       $("detail-body").innerHTML = '<div class="msg err">' + esc(e.message) + "</div>";
+    }
+  }
+
+  // ── ★ 2026-10-15 解析与标准化融入（自 /extract 页移植；同一 API，零后端改动）──
+  var EX_META = null;
+  function loadExtractMeta() {
+    api(API + "/extract/meta").then(function (m) { EX_META = m; }).catch(function () { EX_META = null; });
+  }
+  function cnDomain(code) {
+    if (!EX_META) return code || "";
+    var hit = (EX_META.standard_fields.domains || []).filter(function (d) { return d.value === code; })[0];
+    return hit ? hit.label : (code || "");
+  }
+  function cnField(name) {
+    if (!EX_META) return name || "";
+    var hit = (EX_META.standard_fields.fields || []).filter(function (f) { return f.name === name; })[0];
+    return hit ? hit.cn : (name || "");
+  }
+  async function loadExtractedInto(id) {
+    try {
+      var d = await api(API + "/documents/" + id + "/extracted");
+      exRenderStats(d); exRenderFields(d); exRenderIssues(d); exRenderTables(d);
+    } catch (e) {
+      $("ex-hint").textContent = "加载解析结果失败：" + e.message;
+    }
+  }
+  async function exReparse() {
+    if (!state.exDoc) return;
+    $("ex-reparse").disabled = true;
+    $("ex-hint").textContent = "解析中…";
+    try {
+      var r = await api(API + "/documents/" + state.exDoc + "/extract", { method: "POST" });
+      $("ex-hint").textContent = "解析完成（作业 " + (r.job_id || "-") + "）";
+      if (r.parse_error) flash("解析提示：" + r.parse_error, "warn");
+      else flash("解析完成：表 " + (r.tables || []).length + " 张、" +
+                 (r.fields || []).length + " 个标准字段、" +
+                 (r.issues || []).length + " 条校验异常");
+      await loadExtractedInto(state.exDoc);
+    } catch (e) {
+      $("ex-hint").textContent = "";
+      flash("解析失败：" + e.message, "err");
+    } finally {
+      $("ex-reparse").disabled = false;
+    }
+  }
+  function exRenderStats(d) {
+    var s = d.issue_summary || {};
+    var errs = (s.by_severity || {}).error || 0;
+    var warns = (s.by_severity || {}).warning || 0;
+    $("ex-stats").innerHTML =
+      '<div><b>' + (d.tables || []).length + '</b> 解析表格</div>' +
+      '<div><b>' + (d.fields || []).length + '</b> 标准字段</div>' +
+      '<div><b>' + (d.issues || []).length + '</b> 校验异常</div>' +
+      '<div><b style="color:' + (errs ? "#b91c1c" : "#334155") + '">' + errs + '</b> 严重(error)</div>' +
+      '<div><b style="color:' + (warns ? "#b45309" : "#334155") + '">' + warns + '</b> 提示(warning)</div>' +
+      '<div><b>' + (d.fields || []).filter(function (f) { return f.corrected; }).length + '</b> 已人工校正</div>';
+  }
+  function exRenderFields(d) {
+    var tb = $("ex-tb-fields");
+    var fs = d.fields || [];
+    if (!fs.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="empty">未登记到标准字段（可能该格式暂不支持结构化解析，或字段名未在字典中）</td></tr>';
+      return;
+    }
+    tb.innerHTML = fs.map(function (f) {
+      var src = f.source || {};
+      var shown = f.value_amount !== null && f.value_amount !== undefined
+        ? f.value_amount : (f.value_period || f.value_text || "");
+      return '<tr>' +
+        '<td>' + esc(cnDomain(f.domain)) + '</td>' +
+        '<td><b>' + esc(f.field_cn || cnField(f.standard_field)) + '</b>' +
+          '<br><span class="muted" style="font-size:11px">' + esc(f.standard_field) + '</span></td>' +
+        '<td>' + esc(src.raw === undefined ? "" : src.raw) + '</td>' +
+        '<td' + (f.corrected ? ' style="color:#b45309"' : '') + '>' + esc(shown) +
+          (f.corrected ? '<br><span class="muted" style="font-size:11px">已校正（原值 ' + esc(f.original_value || "") + '）</span>' : '') + '</td>' +
+        '<td class="muted" style="font-size:11px">' +
+          esc((src.sheet ? src.sheet + " / " : "") + "第 " + (src.row || "?") + " 行") + '</td>' +
+        '<td><input type="text" data-fid="' + f.id + '" value="' + esc(shown) + '" style="width:130px"> ' +
+          '<button class="btn ghost" data-save="' + f.id + '">保存</button></td>' +
+      '</tr>';
+    }).join("");
+  }
+  function exRenderIssues(d) {
+    var tb = $("ex-tb-issues");
+    var is = d.issues || [];
+    if (!is.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="empty">未发现校验异常</td></tr>';
+      return;
+    }
+    tb.innerHTML = is.map(function (x) {
+      var st = x.status || "open";
+      var stCn = st === "open" ? "待处理" : (st === "resolved" ? "已处理" : "确认非问题");
+      return '<tr>' +
+        '<td><b>' + esc(x.rule_cn || x.rule) + '</b></td>' +
+        '<td>' + (x.severity === "error" ? '<b style="color:#b91c1c">严重</b>' : '提示') + '</td>' +
+        '<td>' + esc(x.message || "") + '</td>' +
+        '<td>' + esc(stCn) + '</td>' +
+        '<td>' + (st === "open"
+          ? '<button class="btn ghost" data-resolve="' + x.id + '" data-to="resolved">标记已处理</button> ' +
+            '<button class="btn ghost" data-resolve="' + x.id + '" data-to="ignored">确认非问题</button>'
+          : '<span class="muted">—</span>') + '</td>' +
+      '</tr>';
+    }).join("");
+  }
+  function exRenderTables(d) {
+    var box = $("ex-tables");
+    var ts = d.tables || [];
+    if (!ts.length) { box.innerHTML = '<div class="empty">暂无解析产物</div>'; return; }
+    box.innerHTML = ts.map(function (t) {
+      var rows = t.rows_preview || [];
+      var cols = rows.length ? Object.keys(rows[0]) : [];
+      var head = '<tr>' + cols.map(function (c) { return '<th>' + esc(c) + '</th>'; }).join("") + '</tr>';
+      var body = rows.map(function (r) {
+        return '<tr>' + cols.map(function (c) { return '<td>' + esc(r[c]) + '</td>'; }).join("") + '</tr>';
+      }).join("");
+      return '<div style="margin-bottom:14px">' +
+        '<div style="font-size:13px;font-weight:700;margin-bottom:6px">' +
+          '表' + (t.sheet_name ? '「' + esc(t.sheet_name) + '」' : '') +
+          '　<span class="muted" style="font-weight:400;font-size:12px">' +
+          '识别类型 ' + esc(t.doc_type || "(未识别)") + '　置信度 ' + esc(t.confidence) +
+          '　共 ' + t.row_count + ' 行 × ' + t.col_count + ' 列（仅预览前 ' + rows.length + ' 行）</span></div>' +
+        '<table class="grid"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>' +
+      '</div>';
+    }).join("");
+  }
+  async function exSaveField(fid) {
+    var input = document.querySelector('input[data-fid="' + fid + '"]');
+    if (!input) return;
+    try {
+      var r = await api(API + "/extracted/" + fid, {
+        method: "PUT", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value: input.value })
+      });
+      flash("已校正「" + (r.field_cn || r.standard_field) + "」：" + r.previous_value + " → " + r.value);
+      await loadExtractedInto(state.exDoc);
+    } catch (e) {
+      flash("校正失败：" + e.message, "err");
+    }
+  }
+  async function exResolveIssue(iid, to) {
+    try {
+      await api(API + "/extract/issues/" + iid + "/resolve", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: to })
+      });
+      flash(to === "resolved" ? "已标记为已处理" : "已确认非问题");
+      await loadExtractedInto(state.exDoc);
+    } catch (e) {
+      flash("操作失败：" + e.message, "err");
     }
   }
 
@@ -463,6 +618,18 @@
       else if (act === "download") downloadDoc(id);
       else if (act === "del" && d) askDelete(d);
     });
+    // ★ 2026-10-15 解析区块交互：重跑 / 字段校正 / 异常处理
+    var _exr = $("ex-reparse");
+    if (_exr) _exr.addEventListener("click", exReparse);
+    var _exw = $("ex-wrap");
+    if (_exw) _exw.addEventListener("click", function (e) {
+      var t = e.target;
+      if (!t || !t.getAttribute) return;
+      var sv = t.getAttribute("data-save");
+      if (sv) exSaveField(Number(sv));
+      var rv = t.getAttribute("data-resolve");
+      if (rv) exResolveIssue(Number(rv), t.getAttribute("data-to"));
+    });
     $("tbody").addEventListener("change", function (e) {   // ★ 行选择框
       var t = e.target;
       if (t && t.classList && t.classList.contains("row-sel")) {
@@ -497,6 +664,7 @@
 
   (async function init() {
     try {
+      loadExtractMeta();   // ★ 解析字典（域/字段中文名），失败静默降级为代码显示
       // R-4（2026-10-14）：原为 "/api/me" —— 该路径**后端并不存在**（实测 404），
       //   唯一权威是 `/api/auth/me`（P0-8 之前就有）。原写法被 .catch 静默吞掉，
       //   导致子页面右上角用户名永远不显示（无人报错 ⇒ 属"静默降级"）。
