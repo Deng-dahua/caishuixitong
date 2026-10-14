@@ -29,6 +29,26 @@ from security import (
 
 
 _COMPANY_PATH = re.compile(r"^/api/companies/(\d+)(?:/|$)")
+
+
+def _company_exists(company_id: int) -> bool:
+    """账套是否真实存在于业务库（★ 2026-10-15 区分「陈旧引用」与「越权」）。
+
+    数据清空/账套删除后，浏览器可能残留旧 company_id cookie ⇒ 那是陈旧引用，
+    应忽略而非 403。判定异常（库不可读等）⇒ 返回 True（保守：仍按存在走
+    越权 403 原逻辑，不放宽安全）。不缓存 ⇒ 新建账套立即可判，无安全窗口。"""
+    import sqlite3  # noqa: PLC0415 — 本地库轻量读取
+    try:
+        from database import ACCOUNTING_DB  # noqa: PLC0415
+        connection = sqlite3.connect(str(ACCOUNTING_DB), timeout=5)
+        try:
+            return connection.execute(
+                "SELECT 1 FROM companies WHERE id=?", (int(company_id),)
+            ).fetchone() is not None
+        finally:
+            connection.close()
+    except Exception:
+        return True
 _ADMIN_PATHS = ("/api/system-logs",)
 
 
@@ -139,7 +159,18 @@ async def enforce_request_security(request, call_next):
     selected_cookie = request.cookies.get("company_id", "")
     if selected_cookie.isdigit():
         candidate_company_ids.add(int(selected_cookie))
-    if any(company > 0 and not session.can_access_company(company) for company in candidate_company_ids):
+    # ★ 2026-10-15:不存在的账套=陈旧引用 ⇒ 忽略（不 403）；存在但无权 ⇒ 维持 403
+    _stale_cookie = (
+        selected_cookie.isdigit()
+        and int(selected_cookie) > 0
+        and not _company_exists(int(selected_cookie))
+    )
+    if any(
+        company > 0
+        and not session.can_access_company(company)
+        and _company_exists(company)
+        for company in candidate_company_ids
+    ):
         _audit_auth("auth.denied", target=path,
                     detail="越权访问账套 %s" % sorted(candidate_company_ids),
                     user_id=session.user_id, user_name=session.username)
@@ -166,7 +197,11 @@ async def enforce_request_security(request, call_next):
     #   账套越权校验（candidate_company_ids → 403）与 API 路径逻辑不受影响。
     user_context_token = set_current_user_id(session.user_id)
     try:
-        return _with_security_headers(await call_next(request), request)
+        response = _with_security_headers(await call_next(request), request)
+        if _stale_cookie:
+            # 清掉数据清空前残留的旧账套 cookie（下次请求起不再携带）
+            response.delete_cookie("company_id", path="/")
+        return response
     finally:
         reset_current_user_id(user_context_token)
 
