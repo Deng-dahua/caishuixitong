@@ -161,7 +161,8 @@ function renderCurrent(g) {
   el('cur-progress').textContent = '进度 ' + pct + '%'
     + (g.cancel_pending ? '（正在取消…）' : '')
     + (g.timed_out ? '（已超时）' : '');
-  el('cur-module').textContent = g.current_module ? ('正在执行：' + g.current_module) : '';
+  el('cur-module').textContent = (g.current_module && g.status === 'RUNNING')
+    ? ('正在执行：' + g.current_module) : '';   // ★ 2026-10-15 终态不显示「正在执行」（后端同步清空）
   el('step-list').innerHTML = (g.steps || []).map(function (s) {
     return '<div class="step ' + esc(s.status) + '">'
       + '<span class="no">' + s.no + '</span>'

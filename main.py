@@ -12420,6 +12420,11 @@ def _run_analysis_thread(task_id, company_id, user_id):
         try:
             with _analysis_lock:
                 _jt = _analysis_tasks.get(task_id)
+                # ★ 2026-10-15 完成态清空 current_module（error 保留 = 失败阶段定位）：
+                #   否则快照残留最后子模块名，前端显示「正在执行：供应链联网核查」
+                #   —— 任务已 100% 完成却像卡住（用户实测复现）。
+                if _jt is not None and _jt.get("status") in ("done", "cancelled", "blocked"):
+                    _jt["current_module"] = ""
                 _jsnap = dict(_jt) if isinstance(_jt, dict) else None
             if _jsnap is not None:
                 _register_job_finished(task_id, company_id, _jsnap)
