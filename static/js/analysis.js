@@ -101,20 +101,15 @@ async function boot() {
   // ★ 2026-10-15 自动匹配项目：URL ?project=N（从项目页/资料页带参跳入）优先；
   //   否则取**最近更新的项目**（列表接口默认按 updated_at 降序 ⇒ 首项即最近活跃），
   //   不再落在任意首项；匹配结果在按钮旁明示，用户仍可手动更换。
-  var autoId = 0, autoWhy = '';
+  var autoId = 0;
   var fromUrl = Number(new URLSearchParams(location.search).get('project')) || 0;
   if (fromUrl && PROJECTS.some(function (x) { return String(x.id) === String(fromUrl); })) {
-    autoId = fromUrl; autoWhy = '（按链接指定）';
+    autoId = fromUrl;
   } else if (PROJECTS.length) {
-    autoId = PROJECTS[0].id; autoWhy = '（最近更新）';
+    autoId = PROJECTS[0].id;   // 列表默认按 updated_at 降序 ⇒ 首项即最近活跃
   }
-  if (autoId) sel.value = String(autoId);
-  var hint = el('auto-hint');
-  if (hint) {
-    var hit = PROJECTS.filter(function (x) { return String(x.id) === String(autoId); })[0];
-    hint.textContent = hit ? ('已自动匹配：' + (hit.name || '') + autoWhy + '，可手动更换') : '';
-  }
-  sel.onchange = function () { loadHistory(); };   // ★ 2026-10-15 用户裁定：去掉「已手动选择」提示
+  if (autoId) sel.value = String(autoId);   // ★ 自动匹配仅静默选中（2026-10-15 用户裁定：不显示提示文字）
+  sel.onchange = function () { loadHistory(); };
   if (PROJECTS.length) { await loadHistory(); }
   else { el('history').innerHTML = '<tr><td colspan="10" class="empty">暂无项目</td></tr>'; }
   try {
