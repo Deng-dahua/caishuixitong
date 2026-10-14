@@ -390,11 +390,17 @@ def list_documents(project_id: Any, session: Any, *, engine=None, q: Any = None,
         by_cat = {str(r[0]): int(r[1]) for r in conn.execute(_text(
             "SELECT category, COUNT(*) FROM documents WHERE project_id=:pid GROUP BY category"
         ), {"pid": pid}).all()}
+        # ★ 2026-10-15 统计栏数据源：各解析状态计数（**全项目口径**，不受搜索/过滤影响）
+        by_status = {str(r[0]): int(r[1]) for r in conn.execute(_text(
+            "SELECT parse_status, COUNT(*) FROM documents WHERE project_id=:pid GROUP BY parse_status"
+        ), {"pid": pid}).all()}
     return {"items": [_row_to_doc(dict(r._mapping)) for r in rows],
             "total": total, "page": page_i, "page_size": size_i,
             "pages": (total + size_i - 1) // size_i if total else 0,
             "category_counts": {k: v for k, v in by_cat.items()},
-            "category_counts_cn": {category_cn(k): v for k, v in by_cat.items()}}
+            "category_counts_cn": {category_cn(k): v for k, v in by_cat.items()},
+            "status_counts": {k: v for k, v in by_status.items()},
+            "status_counts_cn": {PARSE_STATUS_CN.get(k, k): v for k, v in by_status.items()}}
 
 
 def get_document(document_id: Any, session: Any, *, engine=None,

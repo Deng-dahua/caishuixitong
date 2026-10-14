@@ -229,12 +229,43 @@
     try {
       var d = await api(API + "/projects/" + PROJECT + "/documents?" + p.toString());
       state.items = d.items || []; state.total = d.total; state.pages = d.pages; state.page = d.page;
+      renderStatBar(d);
       renderList();
     } catch (e) {
       $("tbody").innerHTML = '<tr><td colspan="8" class="empty">加载失败：' + esc(e.message) + "</td></tr>";
     }
   }
 
+  // ★ 2026-10-15 统计栏：上传总数 + 各解析状态数量（全项目口径；点胶囊即过滤）
+  var STAT_ORDER = [["success", "解析成功", "#16a34a"], ["parsing", "解析中", "#2563eb"],
+                    ["pending", "待解析", "#64748b"], ["failed", "失败", "#dc2626"],
+                    ["manual", "需人工校正", "#b45309"]];
+  function renderStatBar(d) {
+    var sc = d.status_counts || {};
+    var total = 0; Object.keys(sc).forEach(function (k) { total += sc[k]; });
+    var html = '<span style="padding:4px 12px;border-radius:14px;background:#1e293b;color:#fff;font-size:12px;font-weight:700">上传 ' + total + '</span>';
+    STAT_ORDER.forEach(function (s) {
+      var n = sc[s[0]] || 0;
+      var on = $("f-status").value === s[0];
+      html += '<span data-stat="' + s[0] + '" title="点击只看该状态" style="cursor:pointer;padding:4px 12px;border-radius:14px;font-size:12px;' +
+        'border:1px solid ' + (on ? s[2] : '#cbd5e1') + ';' +
+        'background:' + (on ? s[2] : '#fff') + ';color:' + (on ? '#fff' : s[2]) + ';' +
+        'font-weight:' + (n && s[0] !== "success" ? '800' : '600') + '">' +
+        s[1] + ' ' + n + '</span>';
+    });
+    $("stat-bar").innerHTML = html;
+  }
+  function bindStatBar() {
+    $("stat-bar").addEventListener("click", function (e) {
+      var t = e.target;
+      if (!t || !t.getAttribute) return;
+      var st = t.getAttribute("data-stat");
+      if (!st) return;
+      $("f-status").value = ($("f-status").value === st) ? "" : st;   // 再点一次取消过滤
+      state.page = 1;
+      loadList();
+    });
+  }
   function renderList() {
     var tb = $("tbody");
     state.selected = state.selected || {};
@@ -718,6 +749,7 @@
   (async function init() {
     try {
       loadExtractMeta();   // ★ 解析字典（域/字段中文名），失败静默降级为代码显示
+      bindStatBar();       // ★ 统计栏（点击胶囊过滤）
       // R-4（2026-10-14）：原为 "/api/me" —— 该路径**后端并不存在**（实测 404），
       //   唯一权威是 `/api/auth/me`（P0-8 之前就有）。原写法被 .catch 静默吞掉，
       //   导致子页面右上角用户名永远不显示（无人报错 ⇒ 属"静默降级"）。
