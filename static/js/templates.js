@@ -168,7 +168,8 @@
 
   document.addEventListener("DOMContentLoaded", async function () {
     try {
-      var me = await api("GET", "/api/me").catch(function () { return null; });
+      // R-4（2026-10-14）：原为 "/api/me"（后端不存在 ⇒ 404 被 .catch 静默吞掉）⇒ 改唯一权威路径
+      var me = await api("GET", "/api/auth/me").catch(function () { return null; });
       if (me && me.username) { el("who").textContent = me.username; }
     } catch (e) { /* 未登录由全局 401 处理 */ }
     try { await loadMeta(); }

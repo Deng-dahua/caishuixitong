@@ -38,14 +38,14 @@ from engine import (
     _SIGNAL_DOMAIN_MAP,
     build_orchestration_plan, build_data_profile, get_module_registry_summary,
     CAPABILITY_MATRIX, META_RULES, get_capability_summary,
-    run_legal_reasoning, run_cross_enterprise_analysis, run_trend_analysis, report_payload,
+    run_legal_reasoning, run_cross_enterprise_analysis, run_trend_analysis, report_payload, runtime_version as _RV,
 )
 from engine.domain_analysis import *  # 35域分析函数（从 main.py 提取）
 from engine.pipeline import *  # _run_analyze 核心管道
 from engine.pipeline import _run_analyze  # 显式导入（下划线前缀不被 wildcard 导出）
 
 from database import (
-    get_db, init_db, SessionLocal, is_db_busy_error,
+    get_db, init_db, SessionLocal, is_db_busy_error, is_db_readonly_error,
     Company, CompanyShareholder, CompanyDirector, CompanySupervisor, CompanyFinanceContact,
     SalesInvoice, PurchaseInvoice, BookkeepingInvoice,
     BankTransaction, SalaryRecord, VATDeclaration,
@@ -56,7 +56,7 @@ from database import (
 from tax_risk import router as tax_risk_router
 from utils import build_account_hierarchy as _build_account_hierarchy, clear_source_voucher_no as _clear_source_voucher_no, renumber_vouchers as _renumber_vouchers, renumber_archive as _renumber_archive, sync_biz_voucher_no as _sync_biz_voucher_no
 from tax_rules_api import router as tax_rules_api_router
-from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router; from rules_api import router as rules_router, page_router as rules_page_router; from risks_api import router as risks_router, page_router as risks_page_router; from reports_api import router as reports_router, page_router as reports_page_router; from rbac_api import router as rbac_router, page_router as rbac_page_router; from engine import parse_enhance as _PE; from engine import ocr_engine as _OC; from parse_api import router as parse_router; from ocr_api import router as ocr_router; from templates_api import router as templates_router, page_router as templates_page_router; from rule_versions_api import router as rule_versions_router, page_router as rule_versions_page_router; from legal_api import router as legal_router, page_router as legal_page_router; from industry_api import router as industry_router, page_router as industry_page_router; from ai_assist_api import router as ai_assist_router, page_router as ai_assist_page_router; from tax_models_api import router as tax_models_router, page_router as tax_models_page_router; from dashboard_api import router as dashboard_router, page_router as dashboard_page_router  # P1-1 解析增强 / P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计
+from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router; from rules_api import router as rules_router, page_router as rules_page_router; from risks_api import router as risks_router, page_router as risks_page_router; from reports_api import router as reports_router, page_router as reports_page_router; from rbac_api import router as rbac_router, page_router as rbac_page_router; from engine import parse_enhance as _PE; from engine import ocr_engine as _OC; from parse_api import router as parse_router; from ocr_api import router as ocr_router; from templates_api import router as templates_router, page_router as templates_page_router; from rule_versions_api import router as rule_versions_router, page_router as rule_versions_page_router; from legal_api import router as legal_router, page_router as legal_page_router; from industry_api import router as industry_router, page_router as industry_page_router; from ai_assist_api import router as ai_assist_router, page_router as ai_assist_page_router; from tax_models_api import router as tax_models_router, page_router as tax_models_page_router; from dashboard_api import router as dashboard_router, page_router as dashboard_page_router; from error_pages_api import error_route as _err_route, page_404_handler as _err404  # P1-1 解析增强 / P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
@@ -182,7 +182,7 @@ async def api_auth_me(request: Request):
 
 @app.get("/healthz")
 async def healthz():
-    return {"ok": True}
+    return {"ok": True, **_RV.health_payload()}
 
 
 def _load_api_config():
@@ -628,7 +628,7 @@ async def add_no_cache_headers(request, call_next):
     return response
 app.include_router(tax_risk_router)
 app.include_router(tax_rules_api_router)
-app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router); app.include_router(rules_router); app.include_router(rules_page_router); app.include_router(risks_router); app.include_router(risks_page_router); app.include_router(reports_router); app.include_router(reports_page_router); app.include_router(rbac_router); app.include_router(rbac_page_router); app.include_router(parse_router); app.include_router(ocr_router); app.include_router(templates_router); app.include_router(templates_page_router); app.include_router(rule_versions_router); app.include_router(rule_versions_page_router); app.include_router(legal_router); app.include_router(legal_page_router); app.include_router(industry_router); app.include_router(industry_page_router); app.include_router(ai_assist_router); app.include_router(ai_assist_page_router); app.include_router(tax_models_router); app.include_router(tax_models_page_router); app.include_router(dashboard_router); app.include_router(dashboard_page_router)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计 / P1-1 解析增强
+app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router); app.include_router(rules_router); app.include_router(rules_page_router); app.include_router(risks_router); app.include_router(risks_page_router); app.include_router(reports_router); app.include_router(reports_page_router); app.include_router(rbac_router); app.include_router(rbac_page_router); app.include_router(parse_router); app.include_router(ocr_router); app.include_router(templates_router); app.include_router(templates_page_router); app.include_router(rule_versions_router); app.include_router(rule_versions_page_router); app.include_router(legal_router); app.include_router(legal_page_router); app.include_router(industry_router); app.include_router(industry_page_router); app.include_router(ai_assist_router); app.include_router(ai_assist_page_router); app.include_router(tax_models_router); app.include_router(tax_models_page_router); app.include_router(dashboard_router); app.include_router(dashboard_page_router); app.add_exception_handler(404, _err404)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计 / P1-1 解析增强
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")
@@ -12755,11 +12755,11 @@ app.add_middleware(
 # 全局错误处理
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    import traceback; _db_busy = is_db_busy_error(exc)
+    import traceback; _code, _msg, _html = _err_route(request, exc)
     traceback.print_exc()
-    return JSONResponse(
-        status_code=(503 if _db_busy else 500),
-        content={"ok": False, "error": ("服务繁忙，请重试（数据库并发写入冲突）" if _db_busy else "服务器内部错误")}
+    return _html if _html is not None else JSONResponse(
+        status_code=_code,
+        content={"ok": False, "error": _msg}
     )
 
 # 简易频率限制

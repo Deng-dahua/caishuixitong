@@ -41,28 +41,51 @@ def get_db():
 
 
 def is_db_busy_error(exc: BaseException) -> bool:
-    """SQLite **忙/锁/只读** 类瞬时故障的判别（唯一权威）。
+    """SQLite **忙/锁** 类**瞬时**故障的判别（唯一权威）。
 
     ★ 2026-10-14（S12-TODO-002，P0 验收遗留 ⑤）：并发写入时 SQLite 会抛
-      `sqlite3.OperationalError: database is locked` /
-      `attempt to write a readonly database` / `database table is locked`。
-      这类**瞬时**故障此前一路冒泡 ⇒ 全局处理器统一返回 **500**
+      `sqlite3.OperationalError: database is locked` / `database table is locked` /
+      `sqlite_busy`。这类**瞬时**故障此前一路冒泡 ⇒ 全局处理器统一返回 **500**
       （"服务器内部错误"，用户无法区分、也不可重试）。
 
-    处理：由全局异常处理器转为 **503** + 可识别原因（"服务繁忙，请重试"）。
-      · 为什么不是重试：提交失败后回滚会丢失本事务的写入 ⇒ 应用级重试须重做整个事务，
+    处理：由全局处理器转为 **503** + 可识别原因（"服务繁忙，请重试"）。
+      · 为什么不是应用级重试：提交失败后回滚会丢失本事务的写入 ⇒ 重试须重做整个事务，
         成本高且易引入不一致；本批按「如实告知 + 可重试的语义码」处理。
       · `busy_timeout=10000` 已在连接层提供等待（见 `_configure_sqlite`），此处只兜底。
+
+    ★★ 2026-10-14 语义收窄（R-3）：**"只读"不再算"忙"**，改由 `is_db_readonly_error()`
+      认领 ⇒ 返回 **500**。理由（实测教训）：`attempt to write a readonly database`
+      多半**不可重试**（文件权限 / 挂载只读 / 被其它进程占为只读），
+      归入 503 会让用户/运维一直「稍后重试」而永不解决。
 
     判据只看**错误文本**（SQLAlchemy 会把 sqlite3 异常包一层，异常类不可靠）。
     """
     _t = str(exc).lower()
     return any(_k in _t for _k in (
         "database is locked",
-        "readonly database",
-        "read-only database",
         "database table is locked",
         "sqlite_busy",
+    ))
+
+
+def is_db_readonly_error(exc: BaseException) -> bool:
+    """SQLite「**只读**（不可写）」类故障的判别（唯一权威）。
+
+    与 `is_db_busy_error()` 的**语义分工**（2026-10-14，R-3）：
+
+      | 判别 | 典型文本 | 语义 | 状态码 | 提示 |
+      |---|---|---|---|---|
+      | `is_db_busy_error`     | `database is locked` / `sqlite_busy` | **瞬时**争用，可重试 | **503** | 请重试 |
+      | `is_db_readonly_error` | `attempt to write a readonly database` | **多数不可重试**：文件权限/挂载只读/被占用 | **500** | 检查权限与占用 |
+
+    ★ 为什么必须分开（实测）：隔离副本环境下 `/audit-logs` 首访曾返回 503「请重试」，
+      但根因是数据文件不可写 —— 提示"重试"会把人引向错误方向。
+    """
+    _t = str(exc).lower()
+    return any(_k in _t for _k in (
+        "readonly database",
+        "read-only database",
+        "readonly db",
     ))
 
 

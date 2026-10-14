@@ -350,7 +350,9 @@
   // ── 启动 ────────────────────────────────────────────────────────────
   (async function init() {
     try {
-      var me = await api("/api/me").catch(function () { return null; });
+      // R-4（2026-10-14）：原为 "/api/me" —— 该路径**后端并不存在**（实测 404），
+      //   唯一权威是 `/api/auth/me`。原写法被 .catch 静默吞掉 ⇒ 右侧用户名不显示。
+      var me = await api("/api/auth/me").catch(function () { return null; });
       if (me && me.username) $("whoami").textContent = me.username;
     } catch (e) { /* 未登录由全局 401 拦截跳转，无需处理 */ }
     try {

@@ -115,8 +115,8 @@ def main() -> int:
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 224, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))   # 2026-10-14 +1 report_payload(P0载荷落盘) +1 extract_overrides(ODC-02)
-    chk("tests/*.py", 118, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))    # 2026-10-14 +1 test_db_busy_503
+    chk("engine/*.py", 226, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))   # 2026-10-14 +1 report_payload +1 extract_overrides +1 runtime_version(R-1) +1 js_source(R-6)
+    chk("tests/*.py", 119, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))    # 2026-10-14 +1 test_db_busy_503 +1 test_service_version(R-1~R-3)
     chk("config/*.json", 44, len(glob.glob(os.path.join(ROOT, "config/*.json"))))  # P2-4 +1
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))

@@ -1,7 +1,6 @@
 // ==================== 全局状态 ====================
 var currentPage = 'tax-doc-analysis';
 var currentPeriod = '';
-var allAccounts = [];
 
 // ═══ 安全派发：运行时动态取函数，不存在就降级 — 永无人为补存根 ═══
 var _LOADING_HTML = '<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>';
@@ -467,9 +466,17 @@ window.enterApp = enterApp;  // 确保全局可访问
   //   语义澄清：公司列表**获取**的唯一权威是 `loadCompaniesRaw()`；
   //   列表**渲染**由各入口自己负责（见 `exitCompany` 的「fetch → showCompanyPick」两步式）。
   //   本行只需保证缓存就绪即可。
-  window._companiesForPick = (await loadCompaniesRaw()) || window._companiesForPick || [];
-  await loadCurrentPeriod();
-  await loadAllAccounts();
+  // ★ R-5（2026-10-14）解耦「取数」与「跳转」：本段任一取数失败**不得**阻断 navigateTo。
+  //   原第 472 行为 `await loadAllAccounts()`——它就贴在 navigateTo 前一行，且调用的是
+  //   **后端并不存在**的 `/api/accounts`（`allAccounts` 取值后全仓无人读取 ⇒ 调用与函数已删）。
+  //   一旦它抛异常，navigateTo 永不执行 ⇒ 内容区永久空白（与 2026-10-07 `loadCompanies`
+  //   未定义那次事故**同款位置**）。此处显式兜底，失败只告警、不阻断。
+  try {
+    window._companiesForPick = (await loadCompaniesRaw()) || window._companiesForPick || [];
+    await loadCurrentPeriod();
+  } catch (e) {
+    console.warn('进入应用时的取数失败（不影响页面跳转）', e);
+  }
   const lastPage = localStorage.getItem('lastPage') || 'tax-doc-analysis';
   navigateTo(lastPage);
 }
@@ -730,12 +737,6 @@ function stepPeriodMonth(delta) {
   if (m > 12) { m = 1; stepPeriodYear(1); }
   else if (m < 1) { m = 12; stepPeriodYear(-1); }
   sel.value = String(m).padStart(2, '0');
-}
-
-async function loadAllAccounts() {
-  try {
-    allAccounts = await api('/api/accounts');
-  } catch (e) {}
 }
 
 // ==================== 路由 ====================
@@ -1599,6 +1600,7 @@ if (document.readyState === 'complete') {
 }
 
 function _startApp() {
+  _initServiceSelfCheck();          // ★ R-1：服务版本自检（旧代码/未重启 ⇒ 顶部横幅）
   init().catch(function (e) {
     console.error('初始化失败', e);
   });
@@ -1607,4 +1609,50 @@ function _startApp() {
 function _bindPickPageButtons() {
   // 退出登录链接（兜底，HTML已有inline onclick，此处不重复绑定）
   // 创建新账套按钮已在HTML中使用 inline onclick，无需此处绑定
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 服务版本自检（R-1，2026-10-14）
+//   背景（两次实测事故同根因）：前端静态文件是**每次请求从磁盘读**（`/` 路由体 =
+//     `_read_html("static/index.html")`）⇒ 永远最新；而 Python 代码是**进程启动时的快照**。
+//     错配后的现象是「菜单是新的，点进去 404（{"detail":"Not Found"}）」或「侧边栏少项」——
+//     看起来像 bug，实则只是**没重启服务**（排查要靠比对进程启动时间 vs git 提交时间）。
+//   这里把结论变成**页面可见**：`/healthz` 的 `stale.stale` 为真 ⇒ 顶部醒目横幅提示重启。
+//   唯一权威在后端 `engine/runtime_version.py`；前端**只读结论、不自算版本**。
+// ═══════════════════════════════════════════════════════════════════════════════
+function checkServiceStaleness() {
+  fetch('/healthz', { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      var s = (j && j.stale) || {};
+      if (!s.stale) return;
+      var names = (s.changed_files || []).slice(0, 5).map(function (x) {
+        return x.file + '（' + x.change + '）';
+      }).join('、');
+      var more = (s.changed_count || 0) > 5 ? ' 等共 ' + s.changed_count + ' 个文件' : '';
+      showServiceStaleBanner((j.code && j.code.booted_at) || '未知时间', names + more);
+    })
+    .catch(function () { /* 服务不可用时静默；错误页/登录页会另行提示 */ });
+}
+
+function showServiceStaleBanner(bootedAt, filesText) {
+  if (document.getElementById('svc-stale-banner') || !document.body) return;
+  var d = document.createElement('div');
+  d.id = 'svc-stale-banner';
+  d.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#fef3c7;'
+    + 'border-bottom:1px solid #f59e0b;color:#92400e;font-size:13px;line-height:1.75;'
+    + 'padding:10px 40px 10px 16px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",'
+    + '"Microsoft YaHei",sans-serif;box-shadow:0 1px 4px rgba(15,23,42,.08)';
+  d.innerHTML = '⚠️ <b>服务运行的是旧代码</b>：进程启动于 ' + bootedAt + '，磁盘上后端已更新（'
+    + filesText + '）⇒ 请关闭服务后重新运行 <b>start8001.bat</b>，再刷新本页。'
+    + '<span style="position:absolute;right:14px;top:9px;cursor:pointer;font-weight:700;'
+    + 'font-size:15px" title="本次隐藏（刷新后复现）" '
+    + 'onclick="this.parentNode.parentNode.removeChild(this.parentNode)">✕</span>';
+  document.body.appendChild(d);
+}
+
+function _initServiceSelfCheck() {
+  checkServiceStaleness();
+  // 每 60 秒复检：长开页面时也能发现「磁盘代码已更新但没重启」
+  setInterval(checkServiceStaleness, 60000);
 }

@@ -13015,7 +13015,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）
     return counts, general
 
 
@@ -19315,6 +19315,117 @@ def check_one_click_wiring_coverage() -> List[Tuple[str, str, str]]:
                                "`%s` 只在**未被调用**的函数里出现 ⇒ 渲染点失效（%s）" % (_field, _why)))
     except Exception as _e4:                                  # noqa: BLE001
         issues.append(("ERROR", "static/js", "前端渲染点判据不可执行：%s" % _e4))
+
+    return issues
+
+
+def check_service_version_visibility() -> List[Tuple[str, str, str]]:
+    """服务版本可见化 / 页面级错误兜底 / DB 忙-只读语义拆分（2026-10-14，R-1~R-3）。
+
+    为什么设这道闸门：三次实测事故都是**同根因**——前端静态文件每次请求从磁盘读（永远最新），
+    而 Python 代码是进程启动时的快照 ⇒ 错配后现象是「菜单是新的，点进去 `{"detail":"Not Found"}`」
+    或「侧边栏少项」，看起来像 bug、实则只需重启。此前须人肉比对进程启动时间与 git 提交时间。
+
+    判据（**行为级优先**，静态断言先剥注释）：
+      ① 版本权威可用，且 `/healthz` 真的暴露版本载荷；
+      ② 前端 core.js **确实调用**了自检（定义 + 调用 ≥2 次，防"只定义没调用"）；
+      ③ 页面路径的错误返回 **HTML 兜底**（含重启判据），`/api/**` 仍返回 JSON；
+      ④ 「只读」不再被「忙」认领（语义拆分），状态码为 500（不是 503）；
+      ⑤ JS 剥注释**只有一处实现**（脚本侧薄转发）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    try:
+        from engine import runtime_version as _RV2                        # noqa: PLC0415
+        _pay = _RV2.health_payload()
+        if set(_pay) != {"code", "stale"}:
+            issues.append(("ERROR", "engine/runtime_version.py",
+                           "health_payload 键集异常：%s（应恰为 code/stale）" % sorted(_pay)))
+        if "booted_at" not in (_pay.get("code") or {}):
+            issues.append(("ERROR", "engine/runtime_version.py",
+                           "health_payload.code 缺 booted_at（无法自证启动时间）"))
+        if "stale" not in (_pay.get("stale") or {}):
+            issues.append(("ERROR", "engine/runtime_version.py",
+                           "health_payload.stale 缺 stale 布尔（前端无从判断）"))
+        if (_pay.get("code") or {}).get("count", 0) <= 0:
+            issues.append(("ERROR", "engine/runtime_version.py",
+                           "被监控的 Python 源文件数为 0 ⇒ 判据失效（不静默通过）"))
+    except Exception as _e1:                                              # noqa: BLE001
+        issues.append(("ERROR", "engine/runtime_version.py", "版本权威不可用：%s" % _e1))
+
+    _main_src = ""
+    try:
+        _main_src = _strip_comments_keep_lines(
+            (ROOT / "main.py").read_text(encoding="utf-8", errors="replace"))
+    except Exception as _e2:                                              # noqa: BLE001
+        issues.append(("ERROR", "main.py", "读取失败：%s" % _e2))
+    if _main_src and "health_payload" not in _main_src:
+        issues.append(("ERROR", "main.py", "/healthz 未暴露版本载荷（缺 health_payload）⇒ 版本不可见"))
+    if _main_src and "add_exception_handler(404" not in _main_src:
+        issues.append(("ERROR", "main.py",
+                       "未注册 404 页面兜底（add_exception_handler(404, ...)）⇒ 页面 404 仍摊 JSON"))
+
+    try:
+        from engine.js_source import strip_comments as _sc                # noqa: PLC0415
+        _core = _sc((ROOT / "static" / "js" / "core.js").read_text(encoding="utf-8", errors="replace"))
+        if _core.count("function checkServiceStaleness") != 1:
+            issues.append(("ERROR", "static/js/core.js",
+                           "自检函数定义数=%d（应恰为 1）" % _core.count("function checkServiceStaleness")))
+        if _core.count("checkServiceStaleness(") < 2:
+            issues.append(("ERROR", "static/js/core.js",
+                           "自检函数只有定义、**没有被调用** ⇒ 版本提示永不出现"))
+        if "/healthz" not in _core:
+            issues.append(("ERROR", "static/js/core.js", "自检未读取 /healthz（唯一权威载荷）"))
+        if "start8001.bat" not in _core:
+            issues.append(("ERROR", "static/js/core.js", "提示语未给出可执行动作（缺 start8001.bat）"))
+    except Exception as _e3:                                              # noqa: BLE001
+        issues.append(("ERROR", "static/js/core.js", "前端自检判据不可执行：%s" % _e3))
+
+    try:
+        import sqlite3                                                    # noqa: PLC0415
+        from error_pages_api import error_route as _er, page_404_handler as _p404
+        from database import is_db_busy_error as _busy2, is_db_readonly_error as _ro2
+
+        class _Rq:                                                        # noqa: D401
+            def __init__(self, path):
+                self.url = type("U", (), {"path": path})()
+
+        class _Xc(Exception):
+            detail = "Not Found"
+
+        _h404 = _p404(_Rq("/not-a-page"), _Xc())
+        _b404 = _h404.body.decode("utf-8")
+        if _h404.status_code != 404 or "<!DOCTYPE html>" not in _b404:
+            issues.append(("ERROR", "error_pages_api.py", "页面 404 未返回 HTML 兜底"))
+        if "start8001.bat" not in _b404:
+            issues.append(("ERROR", "error_pages_api.py",
+                           "404 页缺『是否只是没重启』的判据（含 start8001.bat）⇒ 同类事故仍难自查"))
+        if b"<!DOCTYPE" in _p404(_Rq("/api/v1/x"), _Xc()).body:
+            issues.append(("ERROR", "error_pages_api.py", "/api/** 的 404 被 HTML 化（污染接口语义）"))
+        _ro_res = _er(_Rq("/api/v1/x"), sqlite3.OperationalError("attempt to write a readonly database"))
+        _busy_res = _er(_Rq("/api/v1/x"), sqlite3.OperationalError("database is locked"))
+        if _ro_res[0] != 500:
+            issues.append(("ERROR", "error_pages_api.py",
+                           "只读被映射为 %d（应为 500；503 会误导用户反复重试）" % _ro_res[0]))
+        if _busy_res[0] != 503:
+            issues.append(("ERROR", "error_pages_api.py", "忙/锁未映射为 503（应为可重试语义）"))
+        if _busy2(sqlite3.OperationalError("attempt to write a readonly database")):
+            issues.append(("ERROR", "database.py",
+                           "『只读』仍被 is_db_busy_error 认领 ⇒ 语义拆分失效"))
+        if not _ro2(sqlite3.OperationalError("attempt to write a readonly database")):
+            issues.append(("ERROR", "database.py", "is_db_readonly_error 未认领『只读』"))
+    except Exception as _e4b:                                             # noqa: BLE001
+        issues.append(("ERROR", "error_pages_api.py", "页面兜底/语义拆分判据不可执行：%s" % _e4b))
+
+    try:
+        _audit_src = (ROOT / "scripts" / "_audit_fe_be_alignment.py").read_text(
+            encoding="utf-8", errors="replace")
+        if _audit_src.count("def strip_js_comments") > 0:
+            issues.append(("ERROR", "scripts/_audit_fe_be_alignment.py",
+                           "自带剥注释实现 ⇒ 违反单一权威（engine/js_source.strip_comments）；"
+                           "历史上已两次因自带实现遇正则字面量脱同步而产出假判据"))
+    except Exception as _e5:                                              # noqa: BLE001
+        issues.append(("ERROR", "scripts/_audit_fe_be_alignment.py", "判据不可执行：%s" % _e5))
 
     return issues
 
