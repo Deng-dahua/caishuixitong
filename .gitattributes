@@ -1,0 +1,7 @@
+# Windows 批处理脚本必须使用 CRLF 行尾。
+# 2026-10-14 实测事故：start8001.bat 以 LF-only 行尾检出后，cmd.exe 会把中文
+# 注释与相邻行粘连，set / if 语句被拆碎，%APP_PYTHON% 展开为空，python 根本没被
+# 启动 —— 表现为「双击后服务静默不启动、浏览器进不去」。
+# 这里从仓库层面强制 CRLF，不依赖任何机器的 core.autocrlf 设置。
+*.bat text eol=crlf
+*.cmd text eol=crlf
