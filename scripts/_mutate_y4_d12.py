@@ -120,13 +120,14 @@ if not _ok:
 
 if "_TAX_BASE_NATURE" in io.open(TI, encoding="utf-8").read():
     print("SKIP ①表与函数（已存在，幂等）")
-else:/n    swap(TI, "def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],",
+else:
+    swap(TI, "def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],",
          TABLE + "def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],", "①表与函数")
 
 # ── ② 签名加可选参数 amount_nature（带默认值 ⇒ 零回归）────────────────
 swap(TI,
-     "def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],
-                 rate_ctx: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:",
+     "def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],\n"
+                 "rate_ctx: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:",
      "def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],\n"
      "                 rate_ctx: Optional[Dict[str, Any]] = None,\n"
      "                 amount_nature: str = \"\") -> Dict[str, Any]:",

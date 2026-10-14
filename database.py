@@ -40,6 +40,32 @@ def get_db():
         db.close()
 
 
+def is_db_busy_error(exc: BaseException) -> bool:
+    """SQLite **忙/锁/只读** 类瞬时故障的判别（唯一权威）。
+
+    ★ 2026-10-14（S12-TODO-002，P0 验收遗留 ⑤）：并发写入时 SQLite 会抛
+      `sqlite3.OperationalError: database is locked` /
+      `attempt to write a readonly database` / `database table is locked`。
+      这类**瞬时**故障此前一路冒泡 ⇒ 全局处理器统一返回 **500**
+      （"服务器内部错误"，用户无法区分、也不可重试）。
+
+    处理：由全局异常处理器转为 **503** + 可识别原因（"服务繁忙，请重试"）。
+      · 为什么不是重试：提交失败后回滚会丢失本事务的写入 ⇒ 应用级重试须重做整个事务，
+        成本高且易引入不一致；本批按「如实告知 + 可重试的语义码」处理。
+      · `busy_timeout=10000` 已在连接层提供等待（见 `_configure_sqlite`），此处只兜底。
+
+    判据只看**错误文本**（SQLAlchemy 会把 sqlite3 异常包一层，异常类不可靠）。
+    """
+    _t = str(exc).lower()
+    return any(_k in _t for _k in (
+        "database is locked",
+        "readonly database",
+        "read-only database",
+        "database table is locked",
+        "sqlite_busy",
+    ))
+
+
 # ==================== 公司账套 ====================
 
 class Company(Base):

@@ -68,7 +68,7 @@ GATE = ANCH + NL + (
     '                    if "已触碰税务违规红线" in str(_p4.get("verdict") or ""):' + NL +
     '                        issues.append(("ERROR", "enterprise_readable_report",' + NL +
     '                                       "报告结论层出现触红断言（seq=%s）——读者看到的就是定性结论，' + NL +
-    '                                       "不得触红；触红只能作为带限定的中间态留在引擎层"' % _p4.get("seq")))' + NL +
+    '                                       "不得触红；触红只能作为带限定的中间态留在引擎层" % _p4.get("seq")))' + NL +
     '                _b4 = 0' + NL +
     '                for _p4 in _cp4:' + NL +
     '                    for _n4 in (_p4.get("narrative_paragraphs") or []):' + NL +

@@ -38,14 +38,14 @@ from engine import (
     _SIGNAL_DOMAIN_MAP,
     build_orchestration_plan, build_data_profile, get_module_registry_summary,
     CAPABILITY_MATRIX, META_RULES, get_capability_summary,
-    run_legal_reasoning, run_cross_enterprise_analysis, run_trend_analysis,
+    run_legal_reasoning, run_cross_enterprise_analysis, run_trend_analysis, report_payload,
 )
 from engine.domain_analysis import *  # 35域分析函数（从 main.py 提取）
 from engine.pipeline import *  # _run_analyze 核心管道
 from engine.pipeline import _run_analyze  # 显式导入（下划线前缀不被 wildcard 导出）
 
 from database import (
-    get_db, init_db, SessionLocal,
+    get_db, init_db, SessionLocal, is_db_busy_error,
     Company, CompanyShareholder, CompanyDirector, CompanySupervisor, CompanyFinanceContact,
     SalesInvoice, PurchaseInvoice, BookkeepingInvoice,
     BankTransaction, SalaryRecord, VATDeclaration,
@@ -11357,7 +11357,7 @@ def _persist_one_click_result(company_id, result):
         }
         for key, value in _last_analysis_cache.items()
     }
-    atomic_write_json(LAST_ANALYSIS_CACHE, disk_cache)
+    atomic_write_json(LAST_ANALYSIS_CACHE, disk_cache); _pl_dump = report_payload.dump_payload(company_id, report_data); _append_one_click_log(report_data, ("[报告载荷] 已落盘 %s（%s 字节）" % (_pl_dump.get("path"), _pl_dump.get("bytes"))) if _pl_dump.get("ok") else ("[报告载荷] 落盘失败（已留痕）: %s" % _pl_dump.get("error")))
     _append_analysis_history(company_id, result)
 
 
@@ -12755,11 +12755,11 @@ app.add_middleware(
 # 全局错误处理
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    import traceback
+    import traceback; _db_busy = is_db_busy_error(exc)
     traceback.print_exc()
     return JSONResponse(
-        status_code=500,
-        content={"ok": False, "error": "服务器内部错误"}
+        status_code=(503 if _db_busy else 500),
+        content={"ok": False, "error": ("服务繁忙，请重试（数据库并发写入冲突）" if _db_busy else "服务器内部错误")}
     )
 
 # 简易频率限制

@@ -27,8 +27,25 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_CAND = os.path.join(_ROOT, "config", "knowledge_candidates.json")
-_CASES = os.path.join(_ROOT, "config", "experience_cases.json")
+
+
+def _isolated_path(name: str) -> str:
+    """仓库配置文件的**调用时**路径解析（跟随 `APP_DATA_DIR` 隔离）。
+
+    ★ 2026-10-14（S12-TODO-005）：此前是模块级常量 `_ROOT/config/<name>` ⇒ **跑一次
+      全量回归就会改真实仓库配置**（自学习计数 +1、`updated` 刷新）⇒ 工作区变脏。
+      与 `engine/report_compliance._versions_path()`（2026-10-13 P0-7 实测事故）同一类、
+      同一修法：**派生物不得写死源码树路径**。
+
+    规则：
+      · 设了 `APP_DATA_DIR` ⇒ `<APP_DATA_DIR>/<name>`（隔离实例，只写自己的）；
+      · 未设（生产实例）⇒ `<project>/config/<name>`（现行位置，行为不变）。
+    ★ 必须在**调用时**解析（模块 import 期 `APP_DATA_DIR` 可能尚未设置）。
+    """
+    app_data = os.environ.get("APP_DATA_DIR")
+    if app_data:
+        return os.path.join(app_data, name)
+    return os.path.join(_ROOT, "config", name)
 
 #: 问题类别 → 建议落点（唯一权威表；新增类别只加一行）
 CATEGORY_TO_TARGET = {
@@ -65,7 +82,7 @@ def learn_from_diagnosis(problems: List[Dict[str, Any]], rates: Optional[Dict[st
                          *, sample_id: str = "") -> Dict[str, Any]:
     """从诊断结果提炼**候选**规则（不直接改判据）。"""
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    store = _load(_CAND, {"schema": 1, "note": "自学习候选规则（须人工确认后才合入权威表）", "candidates": []})
+    store = _load(_isolated_path("knowledge_candidates.json"), {"schema": 1, "note": "自学习候选规则（须人工确认后才合入权威表）", "candidates": []})
     cands: List[Dict[str, Any]] = store.setdefault("candidates", [])
     index = {c.get("key"): c for c in cands}
 
@@ -96,14 +113,14 @@ def learn_from_diagnosis(problems: List[Dict[str, Any]], rates: Optional[Dict[st
 
     store["updated"] = now
     store["last_run"] = {"sample_id": sample_id, "added": added, "bumped": bumped}
-    _save(_CAND, store)
+    _save(_isolated_path("knowledge_candidates.json"), store)
     return {"added": added, "bumped": bumped, "total": len(cands),
-            "path": _CAND, "note": "候选规则须人工确认后合入权威表（不自动改判据）"}
+            "path": _isolated_path("knowledge_candidates.json"), "note": "候选规则须人工确认后合入权威表（不自动改判据）"}
 
 
 def record_case(case: Dict[str, Any]) -> Dict[str, Any]:
     """把本次报告作为问题样本入库（幂等：同 case_id 不重复登记）。"""
-    store = _load(_CASES, {"schema": 1, "cases": []})
+    store = _load(_isolated_path("experience_cases.json"), {"schema": 1, "cases": []})
     cases: List[Dict[str, Any]] = store.setdefault("cases", [])
     cid = str(case.get("case_id") or "")
     for c in cases:
@@ -111,7 +128,7 @@ def record_case(case: Dict[str, Any]) -> Dict[str, Any]:
             return {"added": False, "reason": f"{cid} 已入库", "total": len(cases)}
     case.setdefault("added_at", datetime.now().strftime("%Y-%m-%d %H:%M"))
     cases.append(case)
-    _save(_CASES, store)
+    _save(_isolated_path("experience_cases.json"), store)
     return {"added": True, "total": len(cases), "case_id": cid}
 
 

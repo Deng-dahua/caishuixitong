@@ -282,7 +282,8 @@ def main() -> int:
            ("载荷不可用：%s" % rk.get("reason")) if _avail is False
            else "available=%s items=%d" % (_avail, len(items)))
         ok("⑥c 风险条目字段完整（编号/等级/税额/证据）",
-           bool(items) and all(("risk_no" in it) and ("level" in it) for it in items[:5]),
+           bool(items) and all(("risk_no" in it) and (("risk_level" in it) or ("level" in it))
+                               for it in items[:5]),
            "首条键=%s" % (sorted((items[0].keys() if items else []))[:14]))
         st, stats = c.json("GET", "/api/v1/projects/%s/risks/stats" % pid)
         ok("⑥c 风险统计可读", st == 200 and isinstance(stats, dict),

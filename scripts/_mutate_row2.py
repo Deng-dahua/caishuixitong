@@ -131,4 +131,4 @@ swap("engine/enterprise_report.py", [(
         if _summary_rows:
             # 如实披露被排除的汇总行（不得静默少算，也不得把汇总当明细）
             seg += "，另有 %d 行为汇总结算行（不计入笔数与金额）" % _summary_rows'''),
-)])
+])

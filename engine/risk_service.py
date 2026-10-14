@@ -80,10 +80,14 @@ def load_payload(company_id: Any, session: Any) -> Dict[str, Any]:
     """
     cid = require_company(company_id, session)
     try:
-        from runtime_storage import offline_reports_root          # noqa: PLC0415
+        # ★ 2026-10-14（S12-DEC-002）：路径**薄转发**到唯一权威 `engine.report_payload`
+        #   —— 此前本模块自己拼 `os.path.join(offline_reports_root(), "company_%d_full.json")`，
+        #   与落盘方（`main._persist_one_click_result` → `report_payload.dump_payload`）
+        #   各写一份字面量 ⇒ 读写两侧可能各自漂移。现收敛为同一处。
+        from engine.report_payload import payload_path            # noqa: PLC0415
+        path = payload_path(cid)
     except Exception as exc:                                      # noqa: BLE001
-        return {"available": False, "reason": "运行时目录权威不可用：%s" % exc}
-    path = os.path.join(offline_reports_root(), "company_%d_full.json" % cid)
+        return {"available": False, "reason": "载荷路径权威不可用：%s" % exc}
     if not os.path.exists(path):
         return {"available": False,
                 "reason": "该账套尚未生成报告载荷（请先执行一键分析）",
