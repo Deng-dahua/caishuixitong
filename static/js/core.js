@@ -778,7 +778,12 @@ function _applySystemStatsWithoutRebuilding(root) {
 }
 
 function navigateTo(page) {
-  var _allowedPages = ['tax-doc-analysis', 'methodology', 'system-logs'];
+  // ★ 2026-10-14 模块精简：SPA 内联页「系统日志」（读 data/logs/access.jsonl）已下线，
+  //   其「留痕查看」能力并入 P0-8 的「审计日志」独立页（/audit-logs）。
+  //   此处做一次性重定向，使引擎仪表盘等处的既有 navigateTo('system-logs') 入口
+  //   仍能落到正确的页（不需要逐处修改调用点）。
+  if (page === 'system-logs') { window.location.href = '/audit-logs'; return; }
+  var _allowedPages = ['tax-doc-analysis', 'methodology'];
   if (_allowedPages.indexOf(page) === -1) { page = 'tax-doc-analysis'; }
   currentPage = page;
   // 离开资料分析页时标记为非活跃
@@ -806,7 +811,6 @@ function navigateTo(page) {
     case 'compliance-workbench': _sR(container, 'renderComplianceWorkbench'); break;
     case 'company':                window.location.href = '/select-company'; break;
     case 'tax-doc-analysis':       _sR(container, 'renderTaxDocAnalysis'); break;
-    case 'system-logs':            _sR(container, 'renderSystemLogs'); break;
     case 'ai-interaction':
     case 'brain':
       // 旧入口已融合至智能引擎中枢单页

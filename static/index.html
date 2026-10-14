@@ -108,9 +108,6 @@
 
     
     <div class="nav-group-title">三、系统</div>
-    <div class="nav-item" data-page="system-logs">
-      <span class="icon">📋</span> 系统日志
-    </div>
     <!-- P0-8 权限与审计：`data-perm` 由 /static/js/rbac-nav.js 按服务端下发的权限集合显隐 -->
     <div class="nav-item" data-perm="user.view" onclick="location.href='/users'" title="用户管理：账号、角色、所属组织与账套授权（联系方式等敏感字段按角色脱敏）">
       <span class="icon">👥</span> 用户管理
@@ -163,14 +160,13 @@
 
 <script src="/static/js/tax-engine-dashboard.js?v=3958b1e87a"></script>
 <script src="/static/js/engine-hub.js?v=589db5b225"></script>
-<script src="/static/js/core.js?v=180915c5a7"></script>
+<script src="/static/js/core.js?v=ece0f45e79"></script>
 <script src="/static/js/constants.js?v=c09acc08fe" defer></script>
 <script src="/static/js/tax-risk-rules.js?v=58a784c1d9" defer></script>
 <script src="/static/js/tax-pipeline-pages.js?v=803fdfaa4a" defer></script>
 <script src="/static/js/report-block-renderer.js?v=640eddfb6d" defer></script>
 <script src="/static/js/report-modules.js?v=c1b5999257" defer></script>
 <script src="/static/js/tax-doc-analysis.js?v=ba7d56c6c2" defer></script>
-<script src="/static/js/system-logs.js?v=611a55f3b3" defer></script>
     <!-- ★ 2026-10-07：原 `/static/js/file-import.js` 已下线（移入 data/trash/，可恢复）。
          依据：① 其入口 `showUploadModal` 全仓**无任何调用**（0 处引用）⇒ 整模块不可达；
               ② 其内部调用 `createModal` / `renderBankTransactions` / `renderSalesInvoices` /
