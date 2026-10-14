@@ -502,3 +502,16 @@ def company_upload_dir(company_id: int) -> Path:
     destination = UPLOAD_DIR / str(int(company_id))
     destination.mkdir(parents=True, exist_ok=True)
     return destination
+
+
+def project_upload_dir(project_id: int) -> Path:
+    """★ 2026-10-15 账套退役配套：无账套项目的资料目录（项目维度虚拟空间）。
+
+    目录 = `data/uploads/project_<pid>/`（`project_` 前缀与数字账套空间
+    天然隔离：旧清单扫描器按 `int(子目录名)` 过滤，不会误收）。
+    与 `company_upload_dir` 同为**路径唯一权威**——下游禁自行拼目录。"""
+    if int(project_id) <= 0:
+        raise ValueError("project_id must be positive")
+    destination = UPLOAD_DIR / ("project_%d" % int(project_id))
+    destination.mkdir(parents=True, exist_ok=True)
+    return destination

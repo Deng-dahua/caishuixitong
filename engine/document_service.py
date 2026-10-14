@@ -209,12 +209,19 @@ def upload_documents(project_id: Any, files: Iterable[Tuple[str, bytes]], sessio
     with eng.connect() as conn:
         prow = _project_row(conn, session, project_id)
     pid = int(prow["id"])
-    cid = prow.get("company_id")
-    if cid in (None, ""):
-        raise DocumentError("项目未关联账套，无法存放资料", 409)
-    cid = int(cid)
+    # ★ 2026-10-15 账套退役：项目可无账套（company_id NULL）⇒ 资料归入
+    #   **项目维度虚拟空间**（目录 uploads/project_<pid>/、文件名前缀 p<pid>_，
+    #   路径唯一权威 runtime_storage.project_upload_dir），全链路照常，不再 409；
+    #   documents.company_id 记 0（"未归属账套"）；有账套的项目行为不变。
+    cid = int(prow.get("company_id") or 0)
 
-    udir = _upload_dir(cid)
+    if cid > 0:
+        udir = _upload_dir(cid)
+        _prefix = str(cid)
+    else:
+        from runtime_storage import project_upload_dir as _pud   # noqa: PLC0415
+        udir = str(_pud(pid))
+        _prefix = "p%d" % pid
     os.makedirs(udir, exist_ok=True)
     uname = str(getattr(session, "username", "") or "")
     ts = _now()
@@ -259,7 +266,7 @@ def upload_documents(project_id: Any, files: Iterable[Tuple[str, bytes]], sessio
                      if elsewhere else None)
 
         doc_id = _next_legacy_id()
-        fname = "%s_%s_%s" % (cid, doc_id, _safe_filename(name))
+        fname = "%s_%s_%s" % (_prefix, doc_id, _safe_filename(name))
         fpath = os.path.join(udir, fname)
         saved = False
         try:
@@ -552,9 +559,9 @@ def chunk_init(project_id: Any, filename: Any, size: Any, session: Any, *,
 
     with eng.connect() as conn:
         prow = _project_row(conn, session, project_id)
-    cid = prow.get("company_id")
-    if cid in (None, ""):
-        raise DocumentError("项目未关联账套，无法存放资料", 409)
+    # ★ 2026-10-15 账套退役：无账套 ⇒ 会话记 company_id=0
+    #   （合并走 upload_documents 时按项目重算空间，会话值仅记录用）
+    cid = int(prow.get("company_id") or 0)
 
     upload_id = uuid.uuid4().hex
     chunks_total = (total_size + CHUNK_SIZE - 1) // CHUNK_SIZE
