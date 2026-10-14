@@ -130,6 +130,7 @@
           <button class="btn ghost" id="btn-search">搜索</button>
           <button class="btn ghost" id="btn-reset">重置</button>
           <button class="btn danger" id="btn-del-selected" hidden onclick="window.__delSelected()">删除选中</button>
+          <button class="btn" id="btn-reparse-all" style="background:#2563eb;border-color:#2563eb" onclick="window.__reparseAll()">🔁 一键重析未成功</button>
           <span class="count" id="count"></span>
         </div>
         <table class="grid">
@@ -143,6 +144,25 @@
           <span id="pageinfo"></span>
           <button id="prev">上一页</button>
           <button id="next">下一页</button>
+        </div>
+
+        <!-- ★ 2026-10-15 解析结果显示栏（点行内「解析结果」按钮在此展示；原 /extract 页能力） -->
+        <div id="ex-wrap" hidden style="margin-top:16px;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;background:#f8fafc;max-height:60vh;overflow:auto">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <b style="font-size:14px">📋 解析结果：<span id="ex-doc-name">—</span></b>
+            <button class="btn ghost" id="ex-reparse">🔁 重新解析本条</button>
+            <button class="btn ghost" id="ex-close">收起</button>
+            <span class="muted" id="ex-hint" style="font-size:12px"></span>
+          </div>
+          <div id="ex-stats" style="display:flex;gap:18px;flex-wrap:wrap;margin:10px 0;font-size:13px"></div>
+          <div style="font-weight:700;font-size:13px;margin:8px 0 4px">标准字段（可人工校正）</div>
+          <table class="grid"><thead><tr><th>域</th><th>字段</th><th>原始值</th><th>标准化值</th><th>来源</th><th>人工校正</th></tr></thead>
+            <tbody id="ex-tb-fields"><tr><td colspan="6" class="empty">点行内「解析结果」查看</td></tr></tbody></table>
+          <div style="font-weight:700;font-size:13px;margin:12px 0 4px">校验异常</div>
+          <table class="grid"><thead><tr><th>规则</th><th>级别</th><th>说明</th><th>状态</th><th>处理</th></tr></thead>
+            <tbody id="ex-tb-issues"><tr><td colspan="5" class="empty">—</td></tr></tbody></table>
+          <div style="font-weight:700;font-size:13px;margin:12px 0 4px">解析表格（预览）</div>
+          <div id="ex-tables"></div>
         </div>
       </div>
     </div>
@@ -174,23 +194,6 @@
     <div class="modal">
       <h3 id="detail-title">资料详情</h3>
       <div class="body" id="detail-body"></div>
-      <!-- ★ 2026-10-15 解析与标准化融入（原 /extract 页能力并入本页，同一 API 零后端改动） -->
-      <div class="body" id="ex-wrap" hidden style="border-top:1px solid #e2e8f0;max-height:52vh;overflow:auto">
-        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-          <b style="font-size:14px">解析与标准化</b>
-          <button class="btn ghost" id="ex-reparse">重新解析</button>
-          <span class="muted" id="ex-hint" style="font-size:12px"></span>
-        </div>
-        <div id="ex-stats" style="display:flex;gap:18px;flex-wrap:wrap;margin:10px 0;font-size:13px"></div>
-        <div style="font-weight:700;font-size:13px;margin:8px 0 4px">标准字段（可人工校正）</div>
-        <table class="grid"><thead><tr><th>域</th><th>字段</th><th>原始值</th><th>标准化值</th><th>来源</th><th>人工校正</th></tr></thead>
-          <tbody id="ex-tb-fields"><tr><td colspan="6" class="empty">—</td></tr></tbody></table>
-        <div style="font-weight:700;font-size:13px;margin:12px 0 4px">校验异常</div>
-        <table class="grid"><thead><tr><th>规则</th><th>级别</th><th>说明</th><th>状态</th><th>处理</th></tr></thead>
-          <tbody id="ex-tb-issues"><tr><td colspan="5" class="empty">—</td></tr></tbody></table>
-        <div style="font-weight:700;font-size:13px;margin:12px 0 4px">解析表格（预览）</div>
-        <div id="ex-tables"></div>
-      </div>
       <div class="foot"><button class="btn ghost" data-close="m-detail">关闭</button></div>
     </div>
   </div>

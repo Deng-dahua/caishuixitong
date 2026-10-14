@@ -260,6 +260,7 @@
           '<td>' + esc(d.uploaded_by || "—") + '</td>' +
           '<td>' +
             '<button class="btn ghost" data-act="detail" data-id="' + d.id + '">详情</button> ' +
+            '<button class="btn ghost" data-act="exview" data-id="' + d.id + '" data-name="' + esc(d.original_name_masked || d.original_name) + '">解析结果</button> ' +
             '<button class="btn ghost" data-act="classify" data-id="' + d.id + '">分类</button> ' +
             '<button class="btn ghost" data-act="download" data-id="' + d.id + '">下载</button> ' +
             '<button class="btn danger" data-act="del" data-id="' + d.id + '">删除</button>' +
@@ -307,11 +308,6 @@
           (d.pages || []).length + '）</div>' +
         '<table class="grid" style="margin-top:6px"><thead><tr><th>页</th><th>字符数</th><th>状态</th></tr></thead>' +
         '<tbody>' + pages + '</tbody></table>';
-      // ★ 2026-10-15 解析与标准化融入：详情即含解析结果（原 /extract 页能力）
-      state.exDoc = id;
-      $("ex-wrap").hidden = false;
-      $("ex-hint").textContent = "";
-      await loadExtractedInto(id);
     } catch (e) {
       $("detail-body").innerHTML = '<div class="msg err">' + esc(e.message) + "</div>";
     }
@@ -531,6 +527,53 @@
     $("del-name").textContent = d.original_name_masked || d.original_name;
     openModal("m-del");
   }
+  // ★ 2026-10-15 一键重析未成功：全项目翻页拉取 ⇒ 过滤 parse_status !== "success"
+  //   ⇒ confirm ⇒ 逐条 POST /documents/{id}/extract（同步，幂等重建）⇒ 如实汇总。
+  window.__reparseAll = async function () {
+    if (!PROJECT) { flash("请先选择项目", "err"); return; }
+    var btn = $("btn-reparse-all");
+    btn.disabled = true; btn.textContent = "🔁 扫描中…";
+    var targets = [];
+    try {
+      var page = 1;
+      while (true) {
+        var d = await api(API + "/projects/" + PROJECT + "/documents?page=" + page + "&page_size=200");
+        (d.items || []).forEach(function (x) {
+          if (x.parse_status !== "success") targets.push({ id: x.id, name: x.original_name_masked || x.original_name, st: x.parse_status });
+        });
+        if (page >= (d.pages || 1)) break;
+        page++;
+      }
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "🔁 一键重析未成功";
+      flash("扫描失败：" + e.message, "err"); return;
+    }
+    if (!targets.length) {
+      btn.disabled = false; btn.textContent = "🔁 一键重析未成功";
+      flash("没有需要重析的资料（全部解析成功）"); return;
+    }
+    if (!window.confirm("本项目有 " + targets.length + " 条资料解析状态不是「成功」\n（" +
+        targets.slice(0, 5).map(function (t) { return t.name + "：" + t.st; }).join("；") +
+        (targets.length > 5 ? " …" : "") + "）\n\n确定全部重新解析？")) {
+      btn.disabled = false; btn.textContent = "🔁 一键重析未成功"; return;
+    }
+    var okN = 0, errs = [];
+    for (var i = 0; i < targets.length; i++) {
+      btn.textContent = "🔁 重析中 " + (i + 1) + "/" + targets.length + "…";
+      try {
+        await api(API + "/documents/" + targets[i].id + "/extract", { method: "POST" });
+        okN++;
+      } catch (e) {
+        errs.push(targets[i].name + "：" + e.message);
+      }
+    }
+    btn.disabled = false; btn.textContent = "🔁 一键重析未成功";
+    flash("重析完成：成功 " + okN + " 条" + (errs.length ? ("；失败 " + errs.length + " 条：" + errs.join("；")) : ""),
+          errs.length ? "err" : "");
+    await loadList();
+    if (state.exDoc) loadExtractedInto(state.exDoc);   // 面板开着 ⇒ 同步刷新
+  };
+
   // ★ 2026-10-15 批量删除：逐条走**同一删除权威出口**（DELETE /documents/{id}，
   //    回收站 + 审计每条独立留痕），结果如实汇总（成功/失败分开报）。
   window.__delSelected = async function () {
@@ -614,6 +657,14 @@
       var id = Number(t.getAttribute("data-id"));
       var d = state.items.filter(function (x) { return x.id === id; })[0];
       if (act === "detail") openDetail(id);
+      else if (act === "exview") {
+        state.exDoc = id;
+        $("ex-doc-name").textContent = t.getAttribute("data-name") || ("ID " + id);
+        $("ex-wrap").hidden = false;
+        $("ex-hint").textContent = "";
+        try { $("ex-wrap").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e2) {}
+        loadExtractedInto(id);
+      }
       else if (act === "classify" && d) openClassify(d);
       else if (act === "download") downloadDoc(id);
       else if (act === "del" && d) askDelete(d);
@@ -630,6 +681,8 @@
       var rv = t.getAttribute("data-resolve");
       if (rv) exResolveIssue(Number(rv), t.getAttribute("data-to"));
     });
+    var _exc = $("ex-close");                     // ★ 收起显示栏
+    if (_exc) _exc.addEventListener("click", function () { $("ex-wrap").hidden = true; state.exDoc = null; });
     $("tbody").addEventListener("change", function (e) {   // ★ 行选择框
       var t = e.target;
       if (t && t.classList && t.classList.contains("row-sel")) {
