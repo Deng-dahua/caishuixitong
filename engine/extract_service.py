@@ -247,6 +247,18 @@ def parse_document(document_id: Any, session: Any, *, engine=None,
                      ("；解析失败：%s" % parse_error) if parse_error else ""),
            request=request)
 
+    # ★ 2026-10-15 解析成功 ⇒ parse_status 自动流转到 success（单一权威：
+    #   自动线程/手工解析/一键重析全走本函数，状态不再与产物脱节）。
+    #   状态机无「直达」路径 ⇒ 按合法边走：failed→pending→parsing→success、
+    #   pending→parsing→success、parsing→success、manual→success。
+    if not parse_error:
+        try:
+            _flow_to_success(int(doc["id"]), session, eng)
+        except Exception:                             # noqa: BLE001 — 状态流转失败不掩盖解析成功
+            from engine.audit_trail import record as _rec    # noqa: PLC0415
+            _rec("extract.run", target=str(doc["id"]), company_id=cid,
+                 detail="⚠ 解析成功但状态流转失败（可在资料页重析归位）")
+
     return {
         "ok": True, "document_id": int(doc["id"]), "original_name": name,
         "tables": written_tables, "fields": written_fields,
@@ -254,6 +266,31 @@ def parse_document(document_id: Any, session: Any, *, engine=None,
         "parse_error": parse_error,
         "parsed_at": ts,
     }
+
+
+def _flow_to_success(document_id: int, session: Any, eng: Any) -> None:
+    """★ 2026-10-15：把 parse_status 按状态机**合法边**推进到 success。
+
+    路径：failed→pending→parsing→success；pending→parsing→success；
+    parsing→success；manual→success；已在 success ⇒ 原样返回。
+    （状态机唯一权威 document_types.PARSE_STATUS_FLOW，此处不另立规则。）"""
+    from sqlalchemy import text as _text              # noqa: PLC0415
+    from engine.document_service import set_parse_status as _sps   # noqa: PLC0415
+    with eng.connect() as conn:
+        row = conn.execute(_text(
+            "SELECT parse_status FROM documents WHERE id=:d"), {"d": int(document_id)}
+        ).first()
+    cur = str((row or ("pending",))[0] or "pending")
+    if cur == "success":
+        return
+    if cur == "failed":
+        _sps(int(document_id), "pending", session, engine=eng)
+        cur = "pending"
+    if cur == "pending":
+        _sps(int(document_id), "parsing", session, engine=eng)
+        cur = "parsing"
+    if cur != "success":
+        _sps(int(document_id), "success", session, engine=eng)
 
 
 def _domain_of(doc_type: Any) -> str:
