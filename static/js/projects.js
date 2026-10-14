@@ -130,12 +130,7 @@
     $("form-msg").innerHTML = "";
     $("f-name").value = project ? (project.name || "") : "";
     $("f-tid").value = project ? (project.taxpayer_id || "") : "";
-    $("f-ind").value = project ? (project.industry || "") : "";
-    $("f-reg").value = project ? (project.region || "") : "";
-    $("f-ps").value = project ? (project.period_start || "") : "";
-    $("f-pe").value = project ? (project.period_end || "") : "";
-    $("f-scopes").value = project && project.tax_scopes ? project.tax_scopes.join(",") : "";
-    $("f-remark").value = project ? (project.remark || "") : "";
+    // ★ 2026-10-15 表单只留「公司名称+统一社会信用代码」（行业/期间等由分析确定）
     openModal("m-form");
     $("f-name").focus();
   }
