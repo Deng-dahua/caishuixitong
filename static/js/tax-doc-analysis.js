@@ -126,90 +126,41 @@ function renderTaxDocAnalysis(container) {
     
 
 
-    // ── 资料上传区 ──
-
-
-    + '<div id="tda-upload-section" style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:10px;padding:20px 24px;margin-bottom:20px">'
-
-
-    // 2026-09-26 布局：标题行改为「基线对齐 + 自动换行」，避免说明文字被 8 个按钮挤压换行错位
-    + '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px">'
-
-
-    + '<div>'
-
-
-    + '<span style="font-weight:600;font-size:16px">上传经营资料 <span id="tda-file-count" style="color:var(--gray-400);font-weight:400;font-size:14px">(0 份)</span></span>'
-
-
-    + '<span style="font-size:12px;color:var(--gray-400);margin-left:12px">支持 Excel / PDF / Word / 图片 / XML / OFD / ZIP，可多文件同时上传；压缩包会逐成员安全解析</span>'
-
-
-    + '</div>'
-
-
-    // 2026-09-26 布局：按钮组允许换行（102 份资料时按钮不再溢出容器）
+    // ── 操作条（★ 2026-10-14 模块精简：本页收敛为「报告阅读与复核」——
+    //    资料上传/删除/清理并入「📎 资料上传与管理」/documents（P0-2）；
+    //    发起分析/进度/历史并入「⚡ 一键稽查分析任务」/analysis（P0-4）。
+    //    三处共用同一份资料登记（shared_state._tax_risk_docs）与同一分析引擎
+    //    （_execute_tax_risk_analysis），功能不丢失，只是入口归一到新研发模块）──
+    + '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 20px;margin-bottom:20px">'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
-
-
-    + '<input type="file" id="tda-file-input" multiple accept=".xlsx,.xls,.csv,.pdf,.txt,.docx,.doc,.jpg,.jpeg,.png,.bmp,.tiff,.xml,.ofd,.zip" style="display:none" onchange="uploadTaxDocs()">'
-
-
-    + '<button class="btn-toolbar" onclick="document.getElementById(\'tda-file-input\').click()" style="cursor:pointer">上传资料</button>'
-
-
-    + '<button class="btn-toolbar" onclick="analyzeTaxDocs()" id="tda-analyze-btn">一键分析并生成过程报告</button>'
-
-    + '<button class="btn-toolbar" onclick="analyzeTaxDocs(true)" id="tda-reanalyze-btn" title="忽略缓存，强制全量重新计算并覆盖旧报告">重新计算（强制）</button>'
-
-
     + '<button class="btn-toolbar" id="tda-export-pdf-btn" onclick="exportTaxDocReportPdf()">导出PDF</button>'
-
-
-    // 2026-09-26 用户要求：所有按钮样式统一（原"缓存"为灰色小字，与其他不一致）
     + '<button class="btn-toolbar" onclick="showCacheInfo()" id="tda-cache-btn">缓存</button>'
-
-    // 2026-09-26 布局：危险操作**右对齐**并与次操作用弹性占位隔开，避免误触
     + '<span style="flex:1 1 auto"></span>'
-    + '<button class="btn-toolbar" onclick="batchDelTdaDocs()">删除选中资料</button>'
-    + '<button class="btn-toolbar" onclick="purgeDeletedDocs()" id="tda-purge-btn" title="彻底清理此前因文件被占用而未能物理删除的残留">清理删除残留</button>'
-    // 2026-09-26 用户要求：所有按钮样式统一（原"删除报告"为红色警示样式，与其他不一致）
     + '<button class="btn-toolbar" onclick="deleteTaxDocReport()" id="tda-delete-btn">删除报告</button>'
-
-
-    + '</div></div>'
-
-
-    
-
-
-    // ── 文件列表 ──
-
-
-    // 2026-09-26 布局：资料清单与按钮区用分隔线断开，形成独立区块
-    + '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #cbd5e1"></div>'
-    + '<div id="tda-file-list" style="font-size:13px;color:var(--gray-500);min-height:40px">暂无上传资料</div>'
-
-
     + '</div>'
-
-
-    
+    + '<div style="margin-top:10px;padding-top:10px;border-top:1px dashed #cbd5e1;font-size:13px;color:var(--gray-500);line-height:1.8">'
+    + '资料的上传、分类与删除请前往 <a href="/documents" style="color:#2563eb;font-weight:600">📎 资料上传与管理</a>；'
+    + '发起分析、查看进度与历史请前往 <a href="/analysis" style="color:#2563eb;font-weight:600">⚡ 一键稽查分析任务</a>。'
+    + '本页专注展示与复核最近一次分析报告。'
+    + '</div>'
+    + '</div>'
 
 
     // ── 分析结果区 ──
 
 
-    + '<div id="tda-report-area"></div>'
+    + '<div id="tda-report-area"><div style="padding:48px 24px;text-align:center;color:var(--gray-400);font-size:14px;line-height:2">'
+    + '暂无分析报告。<br>请先在「📎 资料上传与管理」上传资料，再到「⚡ 一键稽查分析任务」发起分析；'
+    + '<br>分析完成后本页会自动展示最近一次报告。'
+    + '</div></div>'
 
 
     + '</div>';
 
 
-  // 加载已有文件列表
-
-
-  refreshTaxDocList();
+  // ★ 2026-10-14 模块精简：资料清单展示已并入 /documents，本页不再加载文件列表。
+  // （原 refreshTaxDocList() 调用移除；uploadTaxDocs/analyzeTaxDocs/refreshTaxDocList
+  //   等函数本体暂保留 —— 仅供回滚，UI 已无任何调用点。）
 
 
   // 如果有缓存报告，恢复显示
