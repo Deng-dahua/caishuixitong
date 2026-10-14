@@ -114,11 +114,7 @@ async function boot() {
     var hit = PROJECTS.filter(function (x) { return String(x.id) === String(autoId); })[0];
     hint.textContent = hit ? ('已自动匹配：' + (hit.name || '') + autoWhy + '，可手动更换') : '';
   }
-  sel.onchange = function () {
-    var h = el('auto-hint');
-    if (h) h.textContent = '已手动选择：' + (sel.options[sel.selectedIndex] || {}).text || '';
-    loadHistory();
-  };
+  sel.onchange = function () { loadHistory(); };   // ★ 2026-10-15 用户裁定：去掉「已手动选择」提示
   if (PROJECTS.length) { await loadHistory(); }
   else { el('history').innerHTML = '<tr><td colspan="10" class="empty">暂无项目</td></tr>'; }
   try {
