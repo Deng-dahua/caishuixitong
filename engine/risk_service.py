@@ -137,7 +137,9 @@ def company_of_project(project_id: Any, session: Any, *, engine: Any = None) -> 
                                int(getattr(exc, "status", 404))) from exc
     cid = int(proj.get("company_id") or 0)
     if cid <= 0:
-        raise RiskServiceError("该项目未绑定账套", 400)
+        # ★ 2026-10-15 账套退役：自动绑定内部账套，不再拒绝
+        from engine.project_service import ensure_company_for_project as _ensure   # noqa: PLC0415
+        cid = _ensure(session, proj, engine=engine)
     return cid
 
 

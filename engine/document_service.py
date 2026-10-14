@@ -209,16 +209,18 @@ def upload_documents(project_id: Any, files: Iterable[Tuple[str, bytes]], sessio
     with eng.connect() as conn:
         prow = _project_row(conn, session, project_id)
     pid = int(prow["id"])
-    # ★ 2026-10-15 账套退役：项目可无账套（company_id NULL）⇒ 资料归入
-    #   **项目维度虚拟空间**（目录 uploads/project_<pid>/、文件名前缀 p<pid>_，
-    #   路径唯一权威 runtime_storage.project_upload_dir），全链路照常，不再 409；
-    #   documents.company_id 记 0（"未归属账套"）；有账套的项目行为不变。
+    # ★ 2026-10-15 账套退役：项目无账套 ⇒ **自动绑定内部账套**（ensure 单一权威，
+    #   与分析/复核同口径）⇒ 资料直接归入账套空间（目录/命名/桥接/分析可见性
+    #   全链一致）；有账套的项目行为不变。project_ 目录仅作历史兼容保留。
     cid = int(prow.get("company_id") or 0)
+    if cid <= 0:
+        from engine.project_service import ensure_company_for_project as _ensure   # noqa: PLC0415
+        cid = _ensure(session, prow, engine=eng, request=request)
 
     if cid > 0:
         udir = _upload_dir(cid)
         _prefix = str(cid)
-    else:
+    else:                                                 # 理论兜底（ensure 失败才走到）
         from runtime_storage import project_upload_dir as _pud   # noqa: PLC0415
         udir = str(_pud(pid))
         _prefix = "p%d" % pid
@@ -574,9 +576,11 @@ def chunk_init(project_id: Any, filename: Any, size: Any, session: Any, *,
 
     with eng.connect() as conn:
         prow = _project_row(conn, session, project_id)
-    # ★ 2026-10-15 账套退役：无账套 ⇒ 会话记 company_id=0
-    #   （合并走 upload_documents 时按项目重算空间，会话值仅记录用）
+    # ★ 2026-10-15 账套退役：无账套 ⇒ 自动绑定内部账套（与 upload_documents 同口径）
     cid = int(prow.get("company_id") or 0)
+    if cid <= 0:
+        from engine.project_service import ensure_company_for_project as _ensure   # noqa: PLC0415
+        cid = _ensure(session, prow, engine=eng, request=request)
 
     upload_id = uuid.uuid4().hex
     chunks_total = (total_size + CHUNK_SIZE - 1) // CHUNK_SIZE

@@ -66,6 +66,87 @@ def _allowed_company_ids(session: Any) -> Tuple[int, ...]:
     return tuple(out)
 
 
+def ensure_company_for_project(session: Any, proj: Dict[str, Any], *, engine=None,
+                               request: Any = None) -> int:
+    """★ 2026-10-15 账套退役配套：项目**自动绑定内部账套**（本函数 = 单一权威）。
+
+    背景：分析/复核/资料存储引擎链以 company_id 为数据作用域（架构红线，不改引擎）；
+    账套已从**用户概念**退役，但保留为**内部实现**——本函数保证「项目必有账套」：
+    有 ⇒ 原样返回；无 ⇒ 按项目自持身份（名称+税号）创建内部账套并回填
+    projects.company_id。幂等（先按 uscc 复用）；UI 不暴露该账套。
+
+    创建语义与 main.create_company 一致：INSERT companies ⇒ 撤墓碑
+    （公司/报告/资料删除墓碑，防「复用 id 被静默拦报告」）⇒ 种子数据
+    （init_company_data：科目表/增值税科目/部门/期间——分析基础设施）⇒
+    授权给项目 owner（grant_company_to_user）。"""
+    from datetime import datetime                     # noqa: PLC0415
+    eng = _engine_or_default(engine)
+    from sqlalchemy import text as _text              # noqa: PLC0415
+    try:
+        cid = int(proj.get("company_id") or 0)
+    except Exception:                                 # noqa: BLE001
+        cid = 0
+    if cid > 0:
+        return cid
+    name = _clean_str(proj.get("name"), maxlen=100) or "未命名项目"
+    uscc = _clean_str(proj.get("taxpayer_id"), maxlen=50)
+
+    with eng.begin() as conn:
+        if uscc:
+            row = conn.execute(_text(
+                "SELECT id FROM companies WHERE uscc=:u"), {"u": uscc}).first()
+            if row:
+                cid = int(row[0])                     # 复用同税号已有账套（幂等）
+        if cid <= 0:
+            cid = int(conn.execute(_text(
+                "INSERT INTO companies (name, uscc, industry_code, created_at) "
+                "VALUES (:n,:u,:ind,:ts) RETURNING id"
+            ), {"n": name, "u": uscc or None,
+                "ind": _clean_str(proj.get("industry"), maxlen=30) or None,
+                "ts": datetime.now()}).first()[0])
+        conn.execute(_text(
+            "UPDATE projects SET company_id=:c, updated_at=:ts WHERE id=:p"
+        ), {"c": cid, "ts": _now(), "p": int(proj["id"])})
+
+    # 撤墓碑 + 种子数据 + 授权（与 main.create_company 同语义；延迟 import 防循环）
+    try:
+        import main as _main                          # noqa: PLC0415
+        _main._deleted_company_ids.discard(cid)       # noqa: SLF001
+        try:
+            _main._report_deleted_at.pop(cid, None)   # noqa: SLF001
+            _main._analysis_started_at.pop(cid, None)  # noqa: SLF001
+        except Exception:                             # noqa: BLE001
+            pass
+        try:
+            from runtime_storage import clear_company_doc_tombstones as _ccdt   # noqa: PLC0415
+            _ccdt(cid)
+        except Exception:                             # noqa: BLE001
+            pass
+        from database import SessionLocal, init_company_data   # noqa: PLC0415
+        db = SessionLocal()
+        try:
+            init_company_data(db, cid)
+            db.commit()
+        finally:
+            db.close()
+        try:
+            from security import grant_company_to_user as _grant   # noqa: PLC0415
+            _grant(int(getattr(session, "user_id", None) or 0), cid)
+        except Exception:                             # noqa: BLE001 — admin 恒真，授权失败不阻断
+            pass
+    except Exception:                                 # noqa: BLE001
+        _audit(ACT_PROJECT_UPDATE, target=name, company_id=cid,
+               detail="⚠ 内部账套 #%s 已绑定，但种子数据/撤墓碑步骤异常（分析前请核对）" % cid,
+               request=request)
+
+    _audit(ACT_PROJECT_UPDATE, target=name, company_id=cid,
+           detail="自动绑定内部账套 #%s（账套退役后的引擎数据作用域，UI 不暴露）" % cid,
+           request=request)
+    if isinstance(proj, dict):
+        proj["company_id"] = cid
+    return cid
+
+
 def _visible_sql(session: Any, alias: str = "p") -> Tuple[str, Dict[str, Any]]:
     """**租户隔离的唯一实现**：返回 (SQL 片段, 绑定参数)。
 

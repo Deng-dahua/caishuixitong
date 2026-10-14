@@ -305,7 +305,9 @@ def launch(project_id: Any, session: Any, *, force: bool = False,
     pid = int(proj["id"])
     company_id = _as_int(proj.get("company_id"), default=0)
     if company_id <= 0:
-        raise AnalysisTaskError("项目未绑定账套，无法发起分析", 400)
+        # ★ 2026-10-15 账套退役：不再拒绝 ⇒ 自动绑定内部账套（用户不感知）
+        from engine.project_service import ensure_company_for_project as _ensure   # noqa: PLC0415
+        company_id = _ensure(session, proj, engine=engine, request=request)
     _guard_project_status(proj)
     pf = preflight(pid, session, engine=engine)
     if not pf["ok"]:
