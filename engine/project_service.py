@@ -299,12 +299,24 @@ def create_project(payload: Dict[str, Any], session: Any, *, engine=None,
     _tid = _clean_str(payload.get("taxpayer_id"), maxlen=40)
     if len(_tid) != 18:
         raise ProjectError("统一社会信用代码必须为 18 位", 400)
+    # ★ 2026-10-15 去重：税号归一化（strip 后大写；USCC 本就是大写字母数字）
+    _tid = _tid.upper()
     payload["taxpayer_id"] = _tid
 
     ts = _now()
     uid = getattr(session, "user_id", None)
     uname = _clean_str(getattr(session, "username", ""), maxlen=80)
     with eng.begin() as conn:
+        # ★ 2026-10-15 去重：同一统一社会信用代码只允许一个在库项目
+        #   （UPPER() 比较兼容历史大小写混杂数据；报错带已有项目指引）
+        _dup = conn.execute(_text(
+            "SELECT code, name FROM projects WHERE UPPER(taxpayer_id) = :t LIMIT 1"
+        ), {"t": _tid}).first()
+        if _dup is not None:
+            _dm = _dup._mapping
+            raise ProjectError(
+                "同一统一社会信用代码的项目已存在：「%s」（编号 %s），不能重复创建，请直接使用原项目"
+                % (_dm.get("name") or "（未命名）", _dm.get("code") or "-"), 400)
         code = _clean_str(payload.get("code"), maxlen=40) or _next_code(conn, cid_int)
         row = conn.execute(_text(
             "INSERT INTO projects (company_id, code, name, taxpayer_id, industry, region, "
@@ -448,9 +460,22 @@ def update_project(project_id: Any, payload: Dict[str, Any], session: Any, *,
 
         # ★ 2026-10-14 二次调整：项目自持企业身份（不再有账套覆盖回填）；
         # 行业等由自动分析确定，前端表单只提交 name/taxpayer_id。
-        if "taxpayer_id" in payload and payload.get("taxpayer_id") is not None \
-                and len(_clean_str(payload.get("taxpayer_id"), maxlen=40)) != 18:
-            raise ProjectError("统一社会信用代码必须为 18 位", 400)
+        if "taxpayer_id" in payload and payload.get("taxpayer_id") is not None:
+            _utid = _clean_str(payload.get("taxpayer_id"), maxlen=40)
+            if len(_utid) != 18:
+                raise ProjectError("统一社会信用代码必须为 18 位", 400)
+            # ★ 2026-10-15 去重：归一化后查与其他项目（排除自身）的冲突
+            _utid = _utid.upper()
+            payload["taxpayer_id"] = _utid
+            _dup = conn.execute(_text(
+                "SELECT code, name FROM projects "
+                "WHERE UPPER(taxpayer_id) = :t AND id <> :pid LIMIT 1"
+            ), {"t": _utid, "pid": int(project_id)}).first()
+            if _dup is not None:
+                _dm = _dup._mapping
+                raise ProjectError(
+                    "统一社会信用代码与已有项目冲突：「%s」（编号 %s），一个代码只能对应一个项目"
+                    % (_dm.get("name") or "（未命名）", _dm.get("code") or "-"), 400)
         simple = (("name", 200), ("taxpayer_id", 40), ("industry", 60),
                   ("region", 60), ("remark", 500), ("code", 40))
         for key, mx in simple:
