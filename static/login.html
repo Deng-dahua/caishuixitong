@@ -69,7 +69,24 @@
         });
         const data = await response.json();
         if (!response.ok || !data.ok) throw new Error(data.message || "登录失败");
-        location.assign("/select-company");
+        // ★ 2026-10-14 入口归一：单账套自动直进主系统；多账套仍进选择页；
+        // 任何异常回落选择页，绝不阻塞登录。
+        var nextUrl = "/select-company";
+        try {
+          var cResp = await fetch("/api/companies", { cache: "no-store" });
+          if (cResp.ok) {
+            var cData = await cResp.json();
+            var cList = Array.isArray(cData) ? cData : (cData.companies || cData.data || []);
+            if (cList.length === 1) {
+              var sResp = await fetch("/api/auth/select-company", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ company_id: cList[0].id })
+              });
+              if (sResp.ok) nextUrl = "/";
+            }
+          }
+        } catch (e) { /* 回落选择页 */ }
+        location.assign(nextUrl);
       } catch (error) {
         errorBox.textContent = error.message || "网络异常，请稍后重试";
         errorBox.style.display = "block";

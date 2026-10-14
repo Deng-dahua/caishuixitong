@@ -276,6 +276,26 @@ def create_project(payload: Dict[str, Any], session: Any, *, engine=None,
             and cid_int not in _allowed_company_ids(session):
         raise ProjectError("无权在该账套下创建项目（跨租户被拒绝）", 403)
 
+    # ★ 2026-10-14 入口归一（方案 A）：企业身份三件套以账套为**单一权威**。
+    # 建项目必须挂账套（显式传入或会话选中，皆无 ⇒ 此处拒绝）；
+    # name / taxpayer_id(=uscc) / industry 一律从 companies 表回填、忽略前端传值，
+    # 消灭「同一企业在项目与账套两处录入、可不一致」的多头维护。
+    if cid_int is None:
+        raise ProjectError("请先选择所属账套，再创建项目", 400)
+    with eng.connect() as _conn:
+        _crow = dict(_conn.execute(
+            _text("SELECT * FROM companies WHERE id = :i"), {"i": cid_int}
+        ).mappings().first() or {})
+    if not _crow:
+        raise ProjectError("所选账套不存在（company_id=%s）" % cid_int, 400)
+    name = _clean_str(_crow.get("name"), maxlen=200)
+    if not name:
+        raise ProjectError("所选账套缺少企业名称，请先补全账套信息", 400)
+    payload["taxpayer_id"] = _clean_str(_crow.get("uscc"), maxlen=40)
+    payload["industry"] = _clean_str(_crow.get("industry_resolved")
+                                     or _crow.get("industry_code")
+                                     or _crow.get("industry"), maxlen=60)
+
     ts = _now()
     uid = getattr(session, "user_id", None)
     uname = _clean_str(getattr(session, "username", ""), maxlen=80)
@@ -421,6 +441,24 @@ def update_project(project_id: Any, payload: Dict[str, Any], session: Any, *,
         row = _fetch_visible(conn, session, project_id, for_write=True)
         old_status = str(row["status"])
 
+        # ★ 2026-10-14 入口归一：项目挂有账套 ⇒ 企业身份三件套以账套为准
+        # （覆盖 payload 手填值，保持与账套一致）；账套查不到 ⇒ 保持原值、不阻塞编辑。
+        _p_cid = payload.get("company_id", row["company_id"])
+        if _p_cid not in (None, ""):
+            try:
+                _p_cid_int = int(_p_cid)
+            except Exception:                         # noqa: BLE001
+                _p_cid_int = None
+            if _p_cid_int is not None:
+                _crow = dict(conn.execute(
+                    _text("SELECT * FROM companies WHERE id = :i"), {"i": _p_cid_int}
+                ).mappings().first() or {})
+                if _crow and _clean_str(_crow.get("name"), maxlen=200):
+                    payload["name"] = _clean_str(_crow.get("name"), maxlen=200)
+                    payload["taxpayer_id"] = _clean_str(_crow.get("uscc"), maxlen=40)
+                    payload["industry"] = _clean_str(_crow.get("industry_resolved")
+                                                     or _crow.get("industry_code")
+                                                     or _crow.get("industry"), maxlen=60)
         simple = (("name", 200), ("taxpayer_id", 40), ("industry", 60),
                   ("region", 60), ("remark", 500), ("code", 40))
         for key, mx in simple:

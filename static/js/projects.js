@@ -122,7 +122,44 @@
   }
 
   // ── 表单（新建 / 编辑）──────────────────────────────────────────────
-  function openForm(project) {
+  // ★ 2026-10-14 入口归一：企业身份（名称/税号/行业）以账套为单一权威，
+  // 建项目必须选账套，三件套只读带出、后端再次以账套回填兜底。
+  async function loadCompanyOptions(selectedId) {
+    var sel = $("f-company");
+    sel.innerHTML = '<option value="">加载中…</option>';
+    try {
+      var data = await api("/api/companies");
+      var list = Array.isArray(data) ? data : (data.companies || data.data || []);
+      if (!list.length) {
+        sel.innerHTML = '<option value="">（暂无可用账套）</option>';
+        $("form-msg").innerHTML = '<div class="msg err">还没有可用账套：请先到 ' +
+          '<a href="/select-company">选择账套</a> 页新建，再回来创建项目。</div>';
+        return;
+      }
+      sel.innerHTML = '<option value="">— 请选择账套 —</option>' + list.map(function (c) {
+        var nm = c.name || c.company_name || "";
+        var u = c.uscc ? "（" + c.uscc + "）" : "";
+        return '<option value="' + c.id + '" data-name="' + esc(nm) + '"' +
+          ' data-uscc="' + esc(c.uscc || "") + '"' +
+          ' data-ind="' + esc(c.industry_resolved || c.industry_registered || c.industry || "") + '">' +
+          esc(nm) + esc(u) + '</option>';
+      }).join("");
+      if (selectedId) sel.value = String(selectedId);
+      if (sel.value) syncCompanyFields();   // 挂有账套 ⇒ 以账套为准回填
+      // 未挂账套的历史项目：保留其原有显示值，由用户选择账套后覆盖
+    } catch (e) {
+      sel.innerHTML = '<option value="">（账套加载失败）</option>';
+    }
+  }
+  function syncCompanyFields() {
+    var sel = $("f-company");
+    var opt = sel.selectedOptions && sel.selectedOptions[0];
+    if (!opt || !opt.value) return;
+    $("f-name").value = opt.getAttribute("data-name") || "";
+    $("f-tid").value = opt.getAttribute("data-uscc") || "";
+    $("f-ind").value = opt.getAttribute("data-ind") || "";
+  }
+  async function openForm(project) {
     state.editing = project || null;
     $("form-title").textContent = project ? "编辑项目" : "新建项目";
     $("form-msg").innerHTML = "";
@@ -134,16 +171,23 @@
     $("f-pe").value = project ? (project.period_end || "") : "";
     $("f-scopes").value = project && project.tax_scopes ? project.tax_scopes.join(",") : "";
     $("f-remark").value = project ? (project.remark || "") : "";
+    await loadCompanyOptions(project ? (project.company_id || "") : "");
     openModal("m-form");
-    $("f-name").focus();
+    $("f-company").focus();
   }
 
   async function saveForm() {
+    var companyId = $("f-company").value;
+    if (!companyId) {
+      $("form-msg").innerHTML = '<div class="msg err">请先选择所属账套（企业信息统一由账套管理）</div>';
+      return;
+    }
     var name = $("f-name").value.trim();
-    if (!name) { $("form-msg").innerHTML = '<div class="msg err">企业名称不能为空</div>'; return; }
+    if (!name) { $("form-msg").innerHTML = '<div class="msg err">所属账套缺少企业名称，请先补全账套信息</div>'; return; }
     var scopes = $("f-scopes").value.split(/[,，]/).map(function (s) { return s.trim(); })
       .filter(function (s) { return s; });
     var payload = {
+      company_id: Number(companyId),
       name: name,
       taxpayer_id: $("f-tid").value.trim(),
       industry: $("f-ind").value.trim(),
@@ -312,6 +356,7 @@
     $("f-size").onchange = function () { state.page = 1; loadList(); };
     $("btn-new").onclick = function () { openForm(null); };
     $("btn-save").onclick = saveForm;
+    $("f-company").onchange = syncCompanyFields;   // 换选账套 ⇒ 企业字段联动回填
     $("btn-del-confirm").onclick = doDelete;
     $("prev").onclick = function () { if (state.page > 1) { state.page--; loadList(); } };
     $("next").onclick = function () { if (state.page < state.pages) { state.page++; loadList(); } };
