@@ -13,7 +13,8 @@
   var META = null;
   var PROJECT = null;
   var state = { page: 1, page_size: 20, total: 0, pages: 0, items: [],
-                deleting: null, classifying: null };
+                deleting: null, classifying: null,
+                selected: {} };   // ★ 2026-10-15 批量删除：id -> true（翻页/刷新即清空）
 
   function $(id) { return document.getElementById(id); }
   function esc(s) {
@@ -217,30 +218,36 @@
 
   // ── 列表 ───────────────────────────────────────────────────────────
   async function loadList() {
-    if (!PROJECT) { $("tbody").innerHTML = '<tr><td colspan="7" class="empty">请先选择项目</td></tr>'; return; }
+    if (!PROJECT) { $("tbody").innerHTML = '<tr><td colspan="8" class="empty">请先选择项目</td></tr>'; return; }
     var p = new URLSearchParams();
     var q = $("q").value.trim(); if (q) p.set("q", q);
     if ($("f-cat").value) p.set("category", $("f-cat").value);
     if ($("f-status").value) p.set("parse_status", $("f-status").value);
     p.set("page", state.page); p.set("page_size", $("f-size").value);
-    $("tbody").innerHTML = '<tr><td colspan="7" class="empty">加载中…</td></tr>';
+    $("tbody").innerHTML = '<tr><td colspan="8" class="empty">加载中…</td></tr>';
     try {
       var d = await api(API + "/projects/" + PROJECT + "/documents?" + p.toString());
       state.items = d.items || []; state.total = d.total; state.pages = d.pages; state.page = d.page;
       renderList();
     } catch (e) {
-      $("tbody").innerHTML = '<tr><td colspan="7" class="empty">加载失败：' + esc(e.message) + "</td></tr>";
+      $("tbody").innerHTML = '<tr><td colspan="8" class="empty">加载失败：' + esc(e.message) + "</td></tr>";
     }
   }
 
   function renderList() {
     var tb = $("tbody");
+    state.selected = state.selected || {};
+    Object.keys(state.selected).forEach(function (k) {   // ★ 翻页/刷新即清空失效选中
+      if (!state.items.some(function (d) { return String(d.id) === String(k); })) delete state.selected[k];
+    });
     if (!state.items.length) {
-      $("tbody").innerHTML = '<tr><td colspan="7" class="empty">暂无资料。拖拽文件到上方区域即可上传。</td></tr>';
+      $("tbody").innerHTML = '<tr><td colspan="8" class="empty">暂无资料。拖拽文件到上方区域即可上传。</td></tr>';
     } else {
       tb.innerHTML = state.items.map(function (d) {
         var rows = d.pages_ref || "";
         return '<tr>' +
+          '<td style="text-align:center"><input type="checkbox" class="row-sel" data-id="' + d.id + '"' +
+            (state.selected[String(d.id)] ? " checked" : "") + '></td>' +
           '<td class="wrap-cell" title="原件名：' + esc(d.original_name) + '"><b>' + esc(d.original_name_masked || d.original_name) + '</b>' +
             (d.original_name_masked && d.original_name_masked !== d.original_name
               ? '<br><span class="muted" style="font-size:11px">（显示已脱敏，原件名保留可追溯）</span>' : '') + '</td>' +
@@ -258,6 +265,12 @@
           '</td></tr>';
       }).join("");
     }
+    var n = Object.keys(state.selected).length;
+    var btn = $("btn-del-selected");
+    if (btn) { btn.hidden = n === 0; btn.textContent = "删除选中（" + n + "）"; }
+    var sa = $("sel-all");
+    if (sa) sa.checked = state.items.length > 0 &&
+      state.items.every(function (d) { return state.selected[String(d.id)]; });
     $("count").textContent = "共 " + state.total + " 条";
     $("pageinfo").textContent = state.pages ? ("第 " + state.page + " / " + state.pages + " 页") : "";
     $("prev").disabled = state.page <= 1;
@@ -363,6 +376,26 @@
     $("del-name").textContent = d.original_name_masked || d.original_name;
     openModal("m-del");
   }
+  // ★ 2026-10-15 批量删除：逐条走**同一删除权威出口**（DELETE /documents/{id}，
+  //    回收站 + 审计每条独立留痕），结果如实汇总（成功/失败分开报）。
+  window.__delSelected = async function () {
+    var ids = Object.keys(state.selected).map(Number);
+    if (!ids.length) return;
+    if (!window.confirm("确定删除选中的 " + ids.length + " 条资料？\n文件将移入回收站（可回滚），删除操作逐条留审计。")) return;
+    var okN = 0, errs = [];
+    for (var i = 0; i < ids.length; i++) {
+      try {
+        await api(API + "/documents/" + ids[i], { method: "DELETE" });
+        okN++;
+      } catch (e) {
+        errs.push("ID " + ids[i] + "：" + e.message);
+      }
+    }
+    state.selected = {};
+    flash("已删除 " + okN + " 条" + (errs.length ? ("；失败 " + errs.length + " 条：" + errs.join("；")) : ""),
+          errs.length ? "err" : "");
+    await loadList();
+  };
   async function doDelete() {
     if (!state.deleting) return;
     try {
@@ -429,6 +462,30 @@
       else if (act === "classify" && d) openClassify(d);
       else if (act === "download") downloadDoc(id);
       else if (act === "del" && d) askDelete(d);
+    });
+    $("tbody").addEventListener("change", function (e) {   // ★ 行选择框
+      var t = e.target;
+      if (t && t.classList && t.classList.contains("row-sel")) {
+        var id = String(t.getAttribute("data-id"));
+        if (t.checked) state.selected[id] = true; else delete state.selected[id];
+        var n = Object.keys(state.selected).length;
+        var btn = $("btn-del-selected");
+        if (btn) { btn.hidden = n === 0; btn.textContent = "删除选中（" + n + "）"; }
+        var sa = $("sel-all");
+        if (sa) sa.checked = state.items.length > 0 &&
+          state.items.every(function (d) { return state.selected[String(d.id)]; });
+      }
+    });
+    var _sa = $("sel-all");                                 // ★ 全选/全不选（本页）
+    if (_sa) _sa.addEventListener("change", function () {
+      state.selected = {};
+      if (_sa.checked) state.items.forEach(function (d) { state.selected[String(d.id)] = true; });
+      document.querySelectorAll("#tbody input.row-sel").forEach(function (cb) {
+        cb.checked = _sa.checked;
+      });
+      var btn = $("btn-del-selected");
+      var n = Object.keys(state.selected).length;
+      if (btn) { btn.hidden = n === 0; btn.textContent = "删除选中（" + n + "）"; }
     });
     ["m-classify", "m-detail", "m-del"].forEach(function (id) {
       $(id).addEventListener("click", function (e) { if (e.target === $(id)) $(id).hidden = true; });

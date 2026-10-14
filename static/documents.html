@@ -129,13 +129,15 @@
           <select id="f-size"><option value="10">10 条/页</option><option value="20" selected>20 条/页</option><option value="50">50 条/页</option></select>
           <button class="btn ghost" id="btn-search">搜索</button>
           <button class="btn ghost" id="btn-reset">重置</button>
+          <button class="btn danger" id="btn-del-selected" hidden onclick="window.__delSelected()">删除选中</button>
           <span class="count" id="count"></span>
         </div>
         <table class="grid">
           <thead><tr>
+            <th style="width:34px;text-align:center"><input type="checkbox" id="sel-all" title="全选/全不选（本页）"></th>
             <th>文件名</th><th>分类</th><th>解析状态</th><th>大小</th><th>上传时间</th><th>上传人</th><th>操作</th>
           </tr></thead>
-          <tbody id="tbody"><tr><td colspan="7" class="empty">请先选择项目</td></tr></tbody>
+          <tbody id="tbody"><tr><td colspan="8" class="empty">请先选择项目</td></tr></tbody>
         </table>
         <div class="pager">
           <span id="pageinfo"></span>
