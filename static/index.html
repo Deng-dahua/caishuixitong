@@ -128,6 +128,18 @@
     <div class="nav-item" data-perm="report.view" onclick="location.href='/rule-versions'" title="规则版本管理：版本历史、版本差异、发布与回滚">
       <span class="icon">🏷️</span> 规则版本
     </div>
+
+    <!-- P2 知识库与统计：`data-perm` 同上由 rbac-nav.js 按权限显隐 -->
+    <div class="nav-group-title">四、知识库与统计</div>
+    <div class="nav-item" data-perm="legal.view" onclick="location.href='/legal-library'" title="法规库：条文正文检索、法条版本状态、覆盖率（条文来自数据文件，不硬编码）">
+      <span class="icon">📖</span> 法规库
+    </div>
+    <div class="nav-item" data-perm="industry.view" onclick="location.href='/industry-indicators'" title="行业指标库：行业参数、指标基准区间与警戒口径">
+      <span class="icon">📊</span> 行业指标库
+    </div>
+    <div class="nav-item" data-perm="dashboard.view" onclick="location.href='/dashboard'" title="数据大屏：跨项目风险/资料/分析任务的聚合统计">
+      <span class="icon">📈</span> 数据大屏
+    </div>
   </div>
 </nav>
 

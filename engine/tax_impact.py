@@ -411,6 +411,22 @@ _NON_ESTIMABLE_TAXES: Dict[str, str] = {
 }
 
 
+def tax_rate_table() -> Dict[str, Dict[str, object]]:
+    """税率表（**唯一权威** = `_RATES`）的**只读**视图，供多税种深度模型页展示。
+
+    返回 `{税种: {"rate": 默认税率或 None, "note": 口径说明, "quantifiable": bool}}`。
+    ★ `rate is None` **不是"没登记"**，而是"如实承认本轮取不到适用税率"（未量化），
+      调用方必须照此展示，**不得**用默认值顶替。
+    """
+    out: Dict[str, Dict[str, object]] = {}
+    for tax, pair in _RATES.items():
+        rate, note = (pair if isinstance(pair, (list, tuple)) and len(pair) == 2
+                      else (None, ""))
+        out[str(tax)] = {"rate": rate, "note": str(note),
+                         "quantifiable": rate is not None}
+    return out
+
+
 def non_estimable_taxes() -> Dict[str, str]:
     """返回"本系统不参与敞口测算"的税种及理由（口径可复核，禁静默）。"""
     return dict(_NON_ESTIMABLE_TAXES)

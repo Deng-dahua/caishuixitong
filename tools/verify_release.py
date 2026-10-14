@@ -30,6 +30,11 @@ PRODUCTION_PYTHON = [
     # ── 2026-10-14 新增（P1 系列）：解析增强 / OCR 治理 / 模板管理 / 版本管理 ──
     "engine/parse_enhance.py", "engine/ocr_engine.py",
     "engine/template_store.py", "engine/rule_version_admin.py",
+    # ── 2026-10-14 新增（P2 系列）：法规库 / 行业指标库 / AI 辅助 / 多税种模型 / 数据大屏 ──
+    "engine/legal_library.py", "engine/industry_indicators.py",
+    "engine/ai_assist.py", "engine/tax_deep_models.py", "engine/dashboard.py",
+    "legal_api.py", "industry_api.py", "ai_assist_api.py",
+    "tax_models_api.py", "dashboard_api.py",
     "parse_api.py", "ocr_api.py", "templates_api.py", "rule_versions_api.py",
     "engine/agents/coordinator.py",
     "tools/migrate_llm_credentials.py",

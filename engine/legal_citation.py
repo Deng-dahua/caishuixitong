@@ -171,13 +171,58 @@ def _extract_from_redlines() -> Dict[Tuple[str, str], str]:
     return out
 
 
+#: 正文库来源文件（**唯一权威**：读路径只此一处；新增数据文件只加这一行）
+LIBRARY_FILES: Tuple[str, ...] = ("legal_library.json", "legal_refs.json")
+
+
+def library_paths() -> List[Path]:
+    """正文库来源文件的**绝对路径**（只列真实存在的；供法规库浏览页展示来源）。"""
+    return [p for p in (_ROOT / "static" / name for name in LIBRARY_FILES) if p.exists()]
+
+
+def library_file_entries() -> List[Dict[str, str]]:
+    """读**正文库原始条目**（供法规库浏览/检索；含 `source` 字段）。
+
+    ★ 与 `_load_library()` 的区别：后者是**解析用索引**（`(法名, 条号) → 正文`，
+      合并了红线库内嵌条文、不含 `source`）；本函数返回**正文库文件的逐条原样条目**。
+      两者读**同一批文件**（都走 `LIBRARY_FILES` / `library_paths()`）⇒ 不会各自漂移。
+    ★ **不臆造条文**：只返回文件里真实存在的条目；`content` 为空的条目跳过。
+    """
+    out: List[Dict[str, str]] = []
+    for name in LIBRARY_FILES:
+        p = _ROOT / "static" / name
+        if not p.exists():
+            continue
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for e in (data if isinstance(data, list) else []):
+            if not isinstance(e, dict):
+                continue
+            content = str(e.get("content") or "").strip()
+            if not content:
+                continue
+            law = str(e.get("law") or "").strip()
+            art = str(e.get("article") or "").strip()
+            if not law:
+                continue
+            if not art:
+                # 短名（如「征管法第63条」）⇒ 拆出条款号，与 `_load_library` 同口径
+                law, art, _n, _c = split_citation(law)
+            out.append({"law": law, "article": art, "content": content,
+                        "source": str(e.get("source") or "").strip(),
+                        "from": name})
+    return out
+
+
 def _load_library() -> Dict[Tuple[str, str], str]:
     global _LIB_CACHE
     if _LIB_CACHE is not None:
         return _LIB_CACHE
     lib: Dict[Tuple[str, str], str] = {}
     # ① 法条内容库
-    for name in ("legal_library.json", "legal_refs.json"):
+    for name in LIBRARY_FILES:
         p = _ROOT / "static" / name
         if not p.exists():
             continue

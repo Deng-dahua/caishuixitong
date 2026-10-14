@@ -134,6 +134,30 @@
       "group_code": "rule",
       "sort": 70,
       "description": "发布/回滚规则集版本，查看版本差异与生效状态"
+    },
+    {
+      "code": "legal.view",
+      "name": "查看法规库",
+      "group": "知识库",
+      "group_code": "knowledge",
+      "sort": 80,
+      "description": "浏览/检索法规正文库与法条版本登记（只读）"
+    },
+    {
+      "code": "industry.view",
+      "name": "查看行业指标库",
+      "group": "知识库",
+      "group_code": "knowledge",
+      "sort": 81,
+      "description": "浏览行业参数、基准区间与警戒口径（只读）"
+    },
+    {
+      "code": "dashboard.view",
+      "name": "查看数据大屏",
+      "group": "统计",
+      "group_code": "stats",
+      "sort": 90,
+      "description": "查看跨项目风险/资料/分析任务聚合统计大屏（只读）"
     }
   ],
   "roles": [
@@ -190,7 +214,10 @@
       "analysis.run",
       "risk.view",
       "report.view",
-      "report.generate"
+      "report.generate",
+      "legal.view",
+      "industry.view",
+      "dashboard.view"
     ],
     "tax_advisor": [
       "project.view",
@@ -202,7 +229,10 @@
       "risk.review",
       "report.view",
       "report.generate",
-      "template.manage"
+      "template.manage",
+      "legal.view",
+      "industry.view",
+      "dashboard.view"
     ],
     "review_expert": [
       "project.view",
@@ -210,7 +240,10 @@
       "risk.view",
       "risk.review",
       "report.view",
-      "audit.view"
+      "audit.view",
+      "legal.view",
+      "industry.view",
+      "dashboard.view"
     ],
     "auditor": [
       "project.view",
@@ -218,7 +251,10 @@
       "risk.view",
       "report.view",
       "audit.view",
-      "user.view"
+      "user.view",
+      "legal.view",
+      "industry.view",
+      "dashboard.view"
     ]
   },
   "role_redaction": {

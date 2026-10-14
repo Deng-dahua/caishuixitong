@@ -78,6 +78,34 @@ def benchmark_source(industry: str) -> str:
     return "实测校准" if industry in _load_calibrated() else "通用参考"
 
 
+def benchmark_sources() -> List[Dict[str, Any]]:
+    """行业基准的**数据来源清单**（唯一权威；供行业指标库页展示"基准从哪来"）。
+
+    返回 `[{name, path, exists, caliber}]`，按**优先级**排列（前者优先于后者）。
+    ★ 路径知识只在本模块（`_CALIBRATED_PATH` / `_PROFILES_PATH` 等）⇒ 别处不得再写一份路径。
+    """
+    rows: List[Dict[str, Any]] = [
+        {"name": "实录校准", "path": _CALIBRATED_PATH, "file": "industry_benchmarks_calibrated.json",
+         "caliber": "由 tools/calibrate_industry_benchmarks.py 用**真实账套**生成"},
+        {"name": "行业档案", "path": _PROFILES_PATH, "file": "industry_profiles.json",
+         "caliber": "系统既有权威行业档案（毛利率/进销比）"},
+    ]
+    try:
+        from engine.industry_resolver import industry_data_path     # noqa: PLC0415
+        _dp = industry_data_path()
+        rows.append({"name": "通用参考表", "path": _dp, "file": os.path.basename(str(_dp)),
+                     "caliber": "第三方公开行业统计经验值（" + BENCHMARK_CAUTION + "）"})
+    except Exception:                                          # noqa: BLE001
+        pass
+    for r in rows:
+        try:
+            r["exists"] = bool(os.path.exists(str(r.get("path") or "")))
+        except Exception:                                      # noqa: BLE001
+            r["exists"] = False
+        r.pop("path", None)                                    # 不向前端暴露绝对路径
+    return rows
+
+
 # 系统既有的权威行业档案（audit_enhancements.get_industry_benchmark 同源），
 # 含 8 个行业的毛利率区间与进销比等基准。优先于本文件的通用参考表，
 # 避免与系统其他模块出现两套口径。
@@ -207,6 +235,27 @@ _LABEL: Dict[str, str] = {en: zh for zh, en in _METRIC_ZH_TO_EN.items()}
 def indicator_label(key) -> str:
     """指标键 → 报告用中文名（唯一权威）。未登记则原样返回，由报告侧词表兜底。"""
     return _LABEL.get(str(key or ""), str(key or ""))
+
+
+def indicator_keys() -> List[str]:
+    """全部指标键（**唯一权威** = `_METRIC_ZH_TO_EN`；新增指标只改这一处）。"""
+    return [en for _zh, en in _METRIC_ZH_TO_EN.items()]
+
+
+def indicator_unit(key) -> str:
+    """指标键 → **量纲**（`"%"` 表示百分比；`""` 表示比值/无量纲）。
+
+    ★ 唯一权威 = `_METRIC_SCALE`（换算系数 >1 即为百分比口径）——
+      禁止在别处按指标名硬编码"哪个是百分比"（首版曾因统一 ×100 把进销比 0.4~0.95
+      变成 40~95，属单位错误；量纲必须与换算系数同源）。
+    """
+    zh = _LABEL.get(str(key or ""))
+    if not zh:
+        return ""
+    try:
+        return "%" if float(_METRIC_SCALE.get(zh, 1.0)) > 1.0 else ""
+    except (TypeError, ValueError):
+        return ""
 
 
 def _build_industry_benchmarks() -> Dict[str, Dict[str, Tuple[float, float]]]:

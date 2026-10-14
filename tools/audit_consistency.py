@@ -13015,7 +13015,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理
     return counts, general
 
 
@@ -18733,6 +18733,357 @@ def check_rule_version_manage_wiring() -> List[Tuple[str, str, str]]:
     if _i_par >= 0 and 0 <= _i_lit and _i_lit > _i_par:
         issues.append(("ERROR", "rule_versions_api.py",
                        "`/rule-versions/meta` 注册在 `{version}` **之后** ⇒ 会被路径参数吃掉"))
+    return issues
+
+
+def check_legal_library_wiring() -> List[Tuple[str, str, str]]:
+    """P2-1 法规库的**接线 / 路由顺序 / 读路径唯一**闸门。
+
+    判据：
+      A `engine/legal_library.py` 存在，且**不含第二套读盘** ——
+        不得出现 `legal_library.json` / `legal_refs.json` 字面量
+        （读路径唯一权威 = `legal_citation.library_paths()`）；
+      B `legal_api.py` 的字面量段（`meta`/`stats`/`laws`）注册在参数化段 `{law}` **之前**；
+      C `main.py` 含接线片段（import + include_router）；
+      D 权限点 `legal.view` 已登记（RBAC 单一权威）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    rel = "engine/legal_library.py"
+    f = ROOT / rel
+    if not f.exists():
+        return [("ERROR", rel, "P2-1 法规库读层缺失")]
+    txt = f.read_text(encoding="utf-8", errors="replace")
+    # ★ 与既有闸门同口径：**掩掉注释与文档串**再判 —— 说明文字里提到文件名不是"真读盘"
+    #   （实测踩过：本模块 docstring 说明数据来源，直接 grep 会得到假红）。
+    import re as _re                                            # noqa: PLC0415
+    _code = _re.sub(r'"""(?:.|\n)*?"""', lambda m: " " * len(m.group(0)), txt)
+    _code = _re.sub(r"'''(?:.|\n)*?'''", lambda m: " " * len(m.group(0)), _code)
+    _code = _re.sub(r"#[^\n]*", lambda m: " " * len(m.group(0)), _code)
+    for bad in ("legal_library.json", "legal_refs.json"):
+        if bad in _code:
+            issues.append(("ERROR", rel,
+                           "**代码**出现数据文件字面量 `%s` ⇒ 读盘路径出现第二处"
+                           "（唯一权威 = legal_citation.library_paths）" % bad))
+
+    api = (ROOT / "legal_api.py").read_text(encoding="utf-8", errors="replace")
+    i_par = api.find('"/legal-library/{law}"')
+    if i_par < 0:
+        issues.append(("ERROR", "legal_api.py", "缺少参数化段 `/legal-library/{law}`"))
+    for lit in ('"/legal-library/meta"', '"/legal-library/stats"', '"/legal-library/laws"'):
+        i_lit = api.find(lit)
+        if i_lit < 0:
+            issues.append(("ERROR", "legal_api.py", "缺少字面量段 `%s`" % lit))
+        elif i_par >= 0 and i_lit > i_par:
+            issues.append(("ERROR", "legal_api.py",
+                           "`%s` 注册在 `{law}` **之后** ⇒ 会被路径参数吃掉（静默 404）" % lit))
+
+    main_txt = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for tok in ("from legal_api import router as legal_router",
+                "app.include_router(legal_router)"):
+        if tok not in main_txt:
+            issues.append(("ERROR", "main.py", "缺少 P2-1 接线片段：`%s`" % tok))
+
+    try:
+        import sys as _s                                            # noqa: PLC0415
+        _s.path.insert(0, str(ROOT))
+        from engine import rbac as _RB                              # noqa: PLC0415
+        if "legal.view" not in _RB.permission_codes():
+            issues.append(("ERROR", "config/rbac.json", "缺少权限点 `legal.view`"))
+    except Exception as exc:                                        # noqa: BLE001
+        issues.append(("ERROR", "config/rbac.json", "RBAC 不可读：%s" % exc))
+    return issues
+
+
+def check_industry_indicators_wiring() -> List[Tuple[str, str, str]]:
+    """P2-2 行业指标库的**接线 / 路由顺序 / 硬编码 / 口径单一权威**闸门。
+
+    判据：
+      A `engine/industry_indicators.py` 必须**薄转发**口径警示（出现 `IB.BENCHMARK_CAUTION`），
+        且**不得**出现警示语字面量本身（防第二份声明）；
+      B 该模块**不得硬编码行业 id**（行业清单动态取自 `industry_params.industry_ids()`）；
+      C `industry_api.py` 的字面量段（`meta`/`stats`/`generic`）注册在参数化段 `{industry}` **之前**；
+      D `main.py` 含接线片段；E 权限点 `industry.view` 已登记。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    rel = "engine/industry_indicators.py"
+    f = ROOT / rel
+    if not f.exists():
+        return [("ERROR", rel, "P2-2 行业指标库读层缺失")]
+    txt = f.read_text(encoding="utf-8", errors="replace")
+    import re as _re                                            # noqa: PLC0415
+    _code = _re.sub(r'"""(?:.|\n)*?"""', lambda m: " " * len(m.group(0)), txt)
+    _code = _re.sub(r"'''(?:.|\n)*?'''", lambda m: " " * len(m.group(0)), _code)
+    _code = _re.sub(r"#[^\n]*", lambda m: " " * len(m.group(0)), _code)
+    if "IB.BENCHMARK_CAUTION" not in _code:
+        issues.append(("ERROR", rel,
+                       "未薄转发口径警示 `IB.BENCHMARK_CAUTION`（不得自写一份口径声明）"))
+    try:
+        _s = txt
+        _caution = "系统内置行业统计通用参考值"
+        if _caution in _code:
+            issues.append(("ERROR", rel, "**代码**出现口径警示语字面量 ⇒ 第二份声明"))
+        import sys as _s2                                       # noqa: PLC0415
+        _s2.path.insert(0, str(ROOT))
+        from engine import industry_params as _IP                # noqa: PLC0415
+        _ids = [str(x) for x in _IP.industry_ids() if x]
+        _hard = [i for i in _ids if ('"%s"' % i) in _code or ("'%s'" % i) in _code]
+        if _hard:
+            issues.append(("ERROR", rel,
+                           "**代码**硬编码行业 id：%s（行业清单须动态取自 industry_params）" % _hard))
+    except Exception as exc:                                    # noqa: BLE001
+        issues.append(("ERROR", rel, "行业参数不可读：%s" % exc))
+
+    api = (ROOT / "industry_api.py").read_text(encoding="utf-8", errors="replace")
+    i_par = api.find('"/industry-indicators/{industry}"')
+    if i_par < 0:
+        issues.append(("ERROR", "industry_api.py", "缺少参数化段 `/industry-indicators/{industry}`"))
+    for lit in ('"/industry-indicators/meta"', '"/industry-indicators/stats"',
+                '"/industry-indicators/generic"'):
+        i_lit = api.find(lit)
+        if i_lit < 0:
+            issues.append(("ERROR", "industry_api.py", "缺少字面量段 `%s`" % lit))
+        elif i_par >= 0 and i_lit > i_par:
+            issues.append(("ERROR", "industry_api.py",
+                           "`%s` 注册在 `{industry}` **之后** ⇒ 会被路径参数吃掉（静默 404）" % lit))
+
+    main_txt = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for tok in ("from industry_api import router as industry_router",
+                "app.include_router(industry_router)"):
+        if tok not in main_txt:
+            issues.append(("ERROR", "main.py", "缺少 P2-2 接线片段：`%s`" % tok))
+
+    try:
+        import sys as _s3                                       # noqa: PLC0415
+        _s3.path.insert(0, str(ROOT))
+        from engine import rbac as _RB                          # noqa: PLC0415
+        if "industry.view" not in _RB.permission_codes():
+            issues.append(("ERROR", "config/rbac.json", "缺少权限点 `industry.view`"))
+    except Exception as exc:                                    # noqa: BLE001
+        issues.append(("ERROR", "config/rbac.json", "RBAC 不可读：%s" % exc))
+    return issues
+
+
+def check_ai_assist_wiring() -> List[Tuple[str, str, str]]:
+    """P2-3 AI 辅助分析的**接线 / 路由顺序 / 辅助定位**闸门。
+
+    判据：
+      A `engine/ai_assist.py` 必须具备「辅助而非判定」的三道机制：
+        角色常量 `ROLE = "advisory"`、免责声明 `DISCLAIMER`、禁用定性词表 `FORBIDDEN_CLAIM_TERMS`；
+      B `assist()` 的返回体必须**显式**写 `"replaces_rules": False`（不得只靠文档说明）；
+      C LLM 文本必须过 `sanitize(`（防 AI 文本直出下"定性结论"）；
+      D `ai_assist_api.py` **不得**出现免责声明字面量（声明唯一权威在 `ai_assist.DISCLAIMER`）；
+      E 路由顺序：`/ai-assist/meta` 注册在 `/ai-assist/{code}` **之前**；
+      F `main.py` 含接线片段；G 权限点 `risk.view` 已登记。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    rel = "engine/ai_assist.py"
+    f = ROOT / rel
+    if not f.exists():
+        return [("ERROR", rel, "P2-3 AI 辅助层缺失")]
+    txt = f.read_text(encoding="utf-8", errors="replace")
+    for tok, why in (('ROLE = "advisory"', "角色常量 `ROLE`"),
+                     ("DISCLAIMER = (", "免责声明 `DISCLAIMER`"),
+                     ("FORBIDDEN_CLAIM_TERMS", "禁用定性词表")):
+        if tok not in txt:
+            issues.append(("ERROR", rel, "缺少%s ⇒ 无法保证「辅助而非判定」" % why))
+    if '"replaces_rules": False' not in txt:
+        issues.append(("ERROR", rel, "`assist()` 未显式写 `\"replaces_rules\": False`"))
+    if "sanitize(text)" not in txt:
+        issues.append(("ERROR", rel, "LLM 文本未过 `sanitize(text)` 清洗"
+                                     "（命中定性词会被直出 ⇒ 等于 AI 文本当判定用）"))
+
+    api_path = ROOT / "ai_assist_api.py"
+    if not api_path.exists():
+        issues.append(("ERROR", "ai_assist_api.py", "P2-3 接口层缺失"))
+    else:
+        api = api_path.read_text(encoding="utf-8", errors="replace")
+        if "本内容由 AI 辅助生成" in api:
+            issues.append(("ERROR", "ai_assist_api.py",
+                           "出现免责声明字面量 ⇒ 第二份声明（唯一权威 = engine/ai_assist.DISCLAIMER）"))
+        i_par = api.find('"/ai-assist/{code}"')
+        i_lit = api.find('"/ai-assist/meta"')
+        if i_par < 0:
+            issues.append(("ERROR", "ai_assist_api.py", "缺少参数化段 `/ai-assist/{code}`"))
+        if i_lit < 0:
+            issues.append(("ERROR", "ai_assist_api.py", "缺少字面量段 `/ai-assist/meta`"))
+        elif i_par >= 0 and i_lit > i_par:
+            issues.append(("ERROR", "ai_assist_api.py",
+                           "`/ai-assist/meta` 注册在 `{code}` **之后** ⇒ 会被路径参数吃掉"))
+
+    main_txt = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for tok in ("from ai_assist_api import router as ai_assist_router",
+                "app.include_router(ai_assist_router)"):
+        if tok not in main_txt:
+            issues.append(("ERROR", "main.py", "缺少 P2-3 接线片段：`%s`" % tok))
+
+    try:
+        import sys as _s                                        # noqa: PLC0415
+        _s.path.insert(0, str(ROOT))
+        from engine import rbac as _RB                          # noqa: PLC0415
+        if "risk.view" not in _RB.permission_codes():
+            issues.append(("ERROR", "config/rbac.json", "缺少权限点 `risk.view`"))
+    except Exception as exc:                                    # noqa: BLE001
+        issues.append(("ERROR", "config/rbac.json", "RBAC 不可读：%s" % exc))
+    return issues
+
+
+def check_tax_models_wiring() -> List[Tuple[str, str, str]]:
+    """P2-4 多税种深度模型的**接线 / 路由顺序 / 数据驱动 / 实现可溯源**闸门。
+
+    判据：
+      A `config/tax_deep_models.json` 可解析且 schema 齐备；模型 code **全局唯一**；
+      B **每个非空 `impl` 都必须有对应 `engine/<impl>.py`**（实现可溯源，禁写幻觉模块名）；
+      C `engine/tax_deep_models.py` 的**代码**不得硬编码税种名（税种清单动态取
+        `tax_impact.known_tax_types()`），且必须薄转发税率表 `tax_rate_table(`；
+      D 路由顺序：`/tax-models/meta`、`/coverage`、`/cross-tax` 在 `{tax}` **之前**；
+      E `main.py` 含接线片段；F 权限点 `risk.view` 已登记。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    rel_cfg = "config/tax_deep_models.json"
+    cfg_path = ROOT / rel_cfg
+    try:
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", rel_cfg, "无法读取/解析：%s" % exc)]
+    if not int(cfg.get("schema") or 0) >= 1:
+        issues.append(("ERROR", rel_cfg, "schema 缺失或版本过低"))
+    taxes = [x for x in (cfg.get("taxes") or []) if isinstance(x, dict) and x.get("tax")]
+    cross = [x for x in (cfg.get("cross_tax_models") or []) if isinstance(x, dict)]
+    models = [m for x in taxes for m in (x.get("models") or []) if isinstance(m, dict)] + cross
+    codes = [str(m.get("code") or "") for m in models]
+    if not models:
+        issues.append(("ERROR", rel_cfg, "未登记任何深度模型"))
+    if len(codes) != len(set(codes)):
+        dup = sorted({c for c in codes if codes.count(c) > 1})
+        issues.append(("ERROR", rel_cfg, "模型 code 重复：%s" % dup))
+    for m in models:
+        imp = str(m.get("impl") or "").strip()
+        if imp and not (ROOT / "engine" / ("%s.py" % imp)).is_file():
+            issues.append(("ERROR", rel_cfg,
+                           "模型 `%s` 的 impl=`%s` 无对应模块 `engine/%s.py`"
+                           "（实现不可溯源）" % (m.get("code"), imp, imp)))
+
+    rel = "engine/tax_deep_models.py"
+    f = ROOT / rel
+    if not f.exists():
+        issues.append(("ERROR", rel, "多税种深度模型读层缺失"))
+    else:
+        txt = f.read_text(encoding="utf-8", errors="replace")
+        import re as _re                                        # noqa: PLC0415
+        _code = _re.sub(r'"""(?:.|\n)*?"""', lambda m: " " * len(m.group(0)), txt)
+        _code = _re.sub(r"'''(?:.|\n)*?'''", lambda m: " " * len(m.group(0)), _code)
+        _code = _re.sub(r"#[^\n]*", lambda m: " " * len(m.group(0)), _code)
+        # ★ 必须检查**带模块前缀的调用**（`TI.xxx()`）而不是裸函数名 ——
+        #   否则 docstring/字符串里提到 `tax_rate_table()` 就会被误判为"已薄转发"
+        #   （实测踩过：本模块 metadata 的说明字符串含该词 ⇒ 判据假绿）。
+        for tok in ("TI.tax_rate_table()", "TI.known_tax_types()"):
+            if tok not in _code:
+                issues.append(("ERROR", rel, "未薄转发税率/税种权威 `%s`" % tok))
+        try:
+            import sys as _s                                    # noqa: PLC0415
+            _s.path.insert(0, str(ROOT))
+            from engine import tax_impact as _TI                # noqa: PLC0415
+            _hard = [t for t in sorted(_TI.known_tax_types())
+                     if ('"%s"' % t) in _code or ("'%s'" % t) in _code]
+            if _hard:
+                issues.append(("ERROR", rel,
+                               "**代码**硬编码税种名：%s（税种清单须动态取自 tax_impact）" % _hard[:5]))
+        except Exception as exc:                                # noqa: BLE001
+            issues.append(("ERROR", rel, "tax_impact 不可读：%s" % exc))
+
+    api_path = ROOT / "tax_models_api.py"
+    if not api_path.exists():
+        issues.append(("ERROR", "tax_models_api.py", "P2-4 接口层缺失"))
+    else:
+        api = api_path.read_text(encoding="utf-8", errors="replace")
+        i_par = api.find('"/tax-models/{tax}"')
+        if i_par < 0:
+            issues.append(("ERROR", "tax_models_api.py", "缺少参数化段 `/tax-models/{tax}`"))
+        for lit in ('"/tax-models/meta"', '"/tax-models/coverage"', '"/tax-models/cross-tax"'):
+            i_lit = api.find(lit)
+            if i_lit < 0:
+                issues.append(("ERROR", "tax_models_api.py", "缺少字面量段 `%s`" % lit))
+            elif i_par >= 0 and i_lit > i_par:
+                issues.append(("ERROR", "tax_models_api.py",
+                               "`%s` 注册在 `{tax}` **之后** ⇒ 会被路径参数吃掉" % lit))
+
+    main_txt = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for tok in ("from tax_models_api import router as tax_models_router",
+                "app.include_router(tax_models_router)"):
+        if tok not in main_txt:
+            issues.append(("ERROR", "main.py", "缺少 P2-4 接线片段：`%s`" % tok))
+
+    try:
+        import sys as _s2                                       # noqa: PLC0415
+        _s2.path.insert(0, str(ROOT))
+        from engine import rbac as _RB                          # noqa: PLC0415
+        if "risk.view" not in _RB.permission_codes():
+            issues.append(("ERROR", "config/rbac.json", "缺少权限点 `risk.view`"))
+    except Exception as exc:                                    # noqa: BLE001
+        issues.append(("ERROR", "config/rbac.json", "RBAC 不可读：%s" % exc))
+    return issues
+
+
+def check_dashboard_wiring() -> List[Tuple[str, str, str]]:
+    """P2-5 数据大屏的**接线 / 零 SQL / 取数通道唯一**闸门。
+
+    判据：
+      A `engine/dashboard.py` 必须**薄转发既有 Service 层**（5 个模块都被引用）——
+        否则大屏会自建一套取数 ⇒ 租户隔离与权限口径必然漂移；
+      B 该模块的**代码**必须**零 SQL**（不得出现 `SELECT` / `FROM <表>`）；
+      C `dashboard_api.py` 路径**不得含参数段**（`{`）⇒ 不存在被路径参数吃掉的顺序问题；
+      D `main.py` 含接线片段；E 权限点 `dashboard.view` 已登记。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    rel = "engine/dashboard.py"
+    f = ROOT / rel
+    if not f.exists():
+        return [("ERROR", rel, "P2-5 数据大屏读层缺失")]
+    txt = f.read_text(encoding="utf-8", errors="replace")
+    import re as _re                                            # noqa: PLC0415
+    _code = _re.sub(r'"""(?:.|\n)*?"""', lambda m: " " * len(m.group(0)), txt)
+    _code = _re.sub(r"'''(?:.|\n)*?'''", lambda m: " " * len(m.group(0)), _code)
+    _code = _re.sub(r"#[^\n]*", lambda m: " " * len(m.group(0)), _code)
+    # ★ 必须检查 **import 语句**（`from engine import <mod>`）而不是裸模块名 ——
+    #   否则 `metadata()` 里 `"via": "risk_service.stats"` 这类**说明字符串**会让判据假绿
+    #   （实测踩过：去掉真正的薄转发后判据仍报 ERROR 0）。
+    for mod in ("project_service", "document_service", "analysis_task",
+                "risk_service", "audit_trail"):
+        if ("from engine import %s" % mod) not in _code:
+            issues.append(("ERROR", rel, "未薄转发 `%s` ⇒ 大屏自建取数（租户隔离会漂移）" % mod))
+    up = _code.upper()
+    for bad in ("SELECT", "INSERT", "UPDATE ", "DELETE "):
+        if bad in up:
+            issues.append(("ERROR", rel,
+                           "**代码**出现 SQL 关键字 `%s` ⇒ 大屏必须经 Service 层取数（零 SQL）" % bad.strip()))
+
+    api_path = ROOT / "dashboard_api.py"
+    if not api_path.exists():
+        issues.append(("ERROR", "dashboard_api.py", "P2-5 接口层缺失"))
+    else:
+        api = api_path.read_text(encoding="utf-8", errors="replace")
+        for m in _re.finditer(r'@router\.\w+\(\s*"([^"]*)"', api):
+            if "{" in m.group(1):
+                issues.append(("ERROR", "dashboard_api.py",
+                               "路径含参数段 `%s` ⇒ 字面量段可能被吃掉" % m.group(1)))
+        for lit in ('"/dashboard/meta"', '"/dashboard/overview"', '"/dashboard/activity"'):
+            if lit not in api:
+                issues.append(("ERROR", "dashboard_api.py", "缺少字面量段 `%s`" % lit))
+
+    main_txt = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    for tok in ("from dashboard_api import router as dashboard_router",
+                "app.include_router(dashboard_router)"):
+        if tok not in main_txt:
+            issues.append(("ERROR", "main.py", "缺少 P2-5 接线片段：`%s`" % tok))
+
+    try:
+        import sys as _s                                        # noqa: PLC0415
+        _s.path.insert(0, str(ROOT))
+        from engine import rbac as _RB                          # noqa: PLC0415
+        if "dashboard.view" not in _RB.permission_codes():
+            issues.append(("ERROR", "config/rbac.json", "缺少权限点 `dashboard.view`"))
+    except Exception as exc:                                    # noqa: BLE001
+        issues.append(("ERROR", "config/rbac.json", "RBAC 不可读：%s" % exc))
     return issues
 
 

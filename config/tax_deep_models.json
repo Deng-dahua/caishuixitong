@@ -1,0 +1,134 @@
+{
+  "schema": 1,
+  "version": "2026.10",
+  "updated": "2026-10-14",
+  "note": "多税种深度模型登记表（**数据驱动**：新增一个深度模型只加一行；不得在代码里写税种/模型分支）。★ 税种清单的唯一权威仍是红线库 taxes 字段（engine.tax_impact.known_tax_types）；本表只登记「对该税种做哪些深度分析」以及「实现落在哪个既有引擎模块」。",
+  "field_note": {
+    "code": "模型编码（全局唯一，建议 <税种拼音缩写>_<动作>）",
+    "label": "模型中文名",
+    "focus": "关注指标/判断对象（线索层，不直接定性）",
+    "data_required": "所需数据（缺则如实标注为待补资料，不得用默认值顶替）",
+    "impl": "实现所在的既有引擎模块名（去掉 .py）；留空表示尚未实现 ⇒ 页面须如实标注",
+    "severity": "线索强度参考（high/medium/low），**不是风险等级**"
+  },
+  "taxes": [
+    {
+      "tax": "增值税",
+      "models": [
+        {"code": "vat_input_output_rate_match", "label": "进销项税率匹配",
+         "focus": "销项适用税率 vs 进项抵扣税率是否匹配；服务类品名按 13% 测算是典型口径错误",
+         "data_required": "销项发票明细（品名/税率）、进项发票明细",
+         "impl": "tax_impact", "severity": "high"},
+        {"code": "vat_input_output_inversion", "label": "进销倒挂",
+         "focus": "采购额长期大于销售额（进销比 > 1）；可能隐匿收入或虚增进项",
+         "data_required": "销项发票汇总、进项发票汇总",
+         "impl": "procurement_authenticity", "severity": "high"},
+        {"code": "vat_deemed_sale", "label": "视同销售漏计",
+         "focus": "自产/委托加工货物用于投资、分配、无偿赠送等是否已计销项税额",
+         "data_required": "存货出库记录、凭证摘要、对外投资与分配记录",
+         "impl": "vat_reversal", "severity": "medium"},
+        {"code": "vat_input_transfer_out", "label": "进项税额应转出未转出",
+         "focus": "用于免税项目、集体福利、非正常损失的外购货物进项是否转出",
+         "data_required": "进项明细、用途说明、非正常损失记录",
+         "impl": "vat_reversal", "severity": "medium"}
+      ]
+    },
+    {
+      "tax": "企业所得税",
+      "models": [
+        {"code": "cit_revenue_completeness", "label": "收入完整性",
+         "focus": "账面收入 vs 开票收入 vs 银行回款三口径是否闭合",
+         "data_required": "利润表、销项发票、银行流水",
+         "impl": "revenue_authenticity", "severity": "high"},
+        {"code": "cit_cost_expense_match", "label": "成本费用配比",
+         "focus": "成本与对应项目收入是否直接配比；期间费用与收入变动是否背离",
+         "data_required": "序时账（损益类科目）、收入明细、费用明细",
+         "impl": "cost_recon_detail", "severity": "high"},
+        {"code": "cit_expense_limit", "label": "期间费用限额",
+         "focus": "业务招待费/广告费/职工福利费/利息支出等法定扣除限额",
+         "data_required": "序时账费用明细、主营业务收入",
+         "impl": "main_biz_cost", "severity": "medium"},
+        {"code": "cit_related_party_pricing", "label": "关联交易定价",
+         "focus": "关联方交易是否符合独立交易原则（资本弱化另见对应红线）",
+         "data_required": "关联方清单、关联交易明细、借款合同",
+         "impl": "cross_enterprise_graph", "severity": "medium"}
+      ]
+    },
+    {
+      "tax": "个人所得税",
+      "models": [
+        {"code": "iit_payroll_full_declare", "label": "工资薪金全员全额申报",
+         "focus": "工资表人数/金额 vs 个税申报 vs 社保申报是否一致",
+         "data_required": "工资表、个税申报表、社保申报记录",
+         "impl": "payroll_rules", "severity": "high"},
+        {"code": "iit_labor_remuneration", "label": "劳务报酬代扣代缴",
+         "focus": "劳务支出是否取得发票/是否代扣个税；是否以工资名义列支劳务",
+         "data_required": "费用明细、劳务合同、付款记录",
+         "impl": "payroll_rules", "severity": "medium"}
+      ]
+    },
+    {
+      "tax": "印花税",
+      "models": [
+        {"code": "stamp_contract_base", "label": "合同金额申报一致性",
+         "focus": "应税合同金额 vs 印花税申报基数；购销合同是否按不含税金额申报",
+         "data_required": "合同台账、印花税申报记录",
+         "impl": "phase2_deep_dive", "severity": "medium"}
+      ]
+    },
+    {
+      "tax": "城市维护建设税",
+      "models": [
+        {"code": "surtax_base_consistency", "label": "随征基数一致性",
+         "focus": "城建税及教育费附加的计税依据应等于实际缴纳的增值税+消费税",
+         "data_required": "增值税申报记录、附加税费申报记录、税款缴纳凭证",
+         "impl": "tax_impact", "severity": "medium"}
+      ]
+    },
+    {
+      "tax": "土地增值税",
+      "models": [
+        {"code": "lvt_appreciation_split", "label": "增值额分项测算",
+         "focus": "转让收入 − 扣除项目金额（四级超率累进）；需分项目数据",
+         "data_required": "房地产开发项目收入与扣除项目分项明细",
+         "impl": "", "severity": "low"}
+      ]
+    },
+    {
+      "tax": "房产税",
+      "models": [
+        {"code": "pt_determine_method", "label": "计税方式判定",
+         "focus": "从价计征（原值减除 10%~30%）还是从租计征（租金 12%）",
+         "data_required": "房产原值台账、租赁合同、房产税申报记录",
+         "impl": "", "severity": "low"}
+      ]
+    },
+    {
+      "tax": "消费税",
+      "models": [
+        {"code": "ct_taxable_goods", "label": "应税消费品税目核对",
+         "focus": "是否生产/委托加工/进口应税消费品而未申报消费税",
+         "data_required": "产品品名与税目对照、生产与销售记录",
+         "impl": "", "severity": "low"}
+      ]
+    }
+  ],
+  "cross_tax_models": [
+    {"code": "cross_income_concealment", "label": "收入隐匿（跨税种）",
+     "focus": "少计收入同时牵连增值税、企业所得税、（分红还涉个税）",
+     "data_required": "销项发票、银行流水、利润表、股东往来",
+     "impl": "revenue_authenticity", "severity": "high"},
+    {"code": "cross_fake_invoice", "label": "虚开发票（跨税种）",
+     "focus": "无真实交易的进项/销项发票，牵连增值税与企业所得税",
+     "data_required": "发票明细、资金流、货物流（出入库）",
+     "impl": "procurement_authenticity", "severity": "high"},
+    {"code": "cross_signal_deep_dive", "label": "信号驱动定向深挖",
+     "focus": "按 Phase1 信号（购销倒挂/大额加工费/资金异常等）选择深挖域与深度",
+     "data_required": "全部已解析数据",
+     "impl": "phase2_deep_dive", "severity": "high"},
+    {"code": "cross_domain_negotiation", "label": "跨域结论一致性",
+     "focus": "同一事实在多个域产出的结论是否互相矛盾",
+     "data_required": "各域产出（发现列表）",
+     "impl": "cross_domain_negotiation", "severity": "medium"}
+  ]
+}

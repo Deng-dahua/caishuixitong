@@ -58,6 +58,15 @@ _CACHE: Optional[Dict[str, Any]] = None
 _FALLBACK: Dict[str, Any] = {"benchmarks": {"_default": {}}, "benchmarks_coarse": {}}
 
 
+def industry_data_path() -> str:
+    """行业数据文件（`static/industry_data.json`）的**绝对路径**（唯一权威）。
+
+    ★ 路径知识只在本模块（`_IND_PATH`）⇒ 别处不得再写一份路径
+      （供行业指标库页展示"基准从哪来"）。
+    """
+    return str(_IND_PATH)
+
+
 def load_industry_data() -> Dict[str, Any]:
     """加载行业数据（唯一实现，带缓存）。所有模块统一调用本函数。"""
     global _CACHE

@@ -238,8 +238,8 @@ ok(r.status_code == 200 and r.json()["active"] is False, "PUT 停用生效")
 
 r = c.get("/api/v1/roles")
 ok(r.status_code == 200, "GET /api/v1/roles 200")
-ok(len(r.json()["permissions"]) == 15,
-   "权限点 15（P1-5/6 各 +1）：%s" % len(r.json()["permissions"]))
+ok(len(r.json()["permissions"]) == 18,
+   "权限点 18（P1-5/6 各 +1；P2 +3）：%s" % len(r.json()["permissions"]))
 
 r = c.get("/api/v1/audit-logs")
 ok(r.status_code == 200, "GET /api/v1/audit-logs 200")

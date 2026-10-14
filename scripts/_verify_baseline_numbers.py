@@ -10,7 +10,7 @@
   accounting.db 必需表齐全（表数仅作信息）｜ security.db 6 表
   规则主体 176（红线 91 + 已验证 85 + 检测器实现层 25/10/14）
   候选 460（add 97 / merge 141）｜ 176+97=273
-  ★ App 实测：API 端点 240 ｜ 非 /api 路由 25 ｜ 业务页面 12
+  ★ App 实测：API 端点 260 ｜ 非 /api 路由 30 ｜ 业务页面 17
     （★ 隔离子进程里起 App 再数，**不污染真实数据**；对外一律引用 206）
   ★ P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核
   ★ P0-7 报告 / P0-8 权限·租户·审计（RBAC 5 角色 13 权限 / 租户隔离 / 脱敏）
@@ -115,9 +115,9 @@ def main() -> int:
         len(open(os.path.join(ROOT, "main.py"), encoding="utf-8").read().splitlines()))
 
     # ── 规模 ──
-    chk("engine/*.py", 217, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))
-    chk("tests/*.py", 112, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))
-    chk("config/*.json", 43, len(glob.glob(os.path.join(ROOT, "config/*.json"))))
+    chk("engine/*.py", 222, len(glob.glob(os.path.join(ROOT, "engine/*.py"))))   # P2 +5
+    chk("tests/*.py", 117, len(glob.glob(os.path.join(ROOT, "tests/*.py"))))    # P2 +5
+    chk("config/*.json", 44, len(glob.glob(os.path.join(ROOT, "config/*.json"))))  # P2-4 +1
     chk("tools/*.py", 12, len(glob.glob(os.path.join(ROOT, "tools/*.py"))))
     chk("rules_export/*.yaml", 18, len(glob.glob(os.path.join(ROOT, "rules_export/*.yaml"))))
 
@@ -333,14 +333,16 @@ def main() -> int:
     # ── App 实测端点总数（口径唯一权威；**不靠各项相加推**）──
     try:
         _rc = _app_route_counts()
-        chk("App API 端点数（实测）", 240, _rc["api"])
-        chk("App 非 /api 路由数（实测）", 25, _rc["other"])
+        chk("App API 端点数（实测）", 260, _rc["api"])
+        chk("App 非 /api 路由数（实测）", 30, _rc["other"])
         _page_all = ("/projects", "/documents", "/extract", "/analysis", "/rules",
                      "/risks", "/reports", "/users", "/roles", "/audit-logs",
-                     "/report-templates", "/rule-versions")
+                     "/report-templates", "/rule-versions",
+                     "/legal-library", "/industry-indicators", "/ai-assist",
+                     "/tax-models", "/dashboard")
         chk("业务页面均在 App 路由中（缺一即报）", [],
             [p for p in _page_all if p not in _rc["other_paths"]])
-        chk("OpenAPI 收录路径数（实测）", 227, _rc["schema_paths"])
+        chk("OpenAPI 收录路径数（实测）", 247, _rc["schema_paths"])
     except Exception as _exc:                                    # noqa: BLE001
         raise AssertionError("App 路由统计失败（判据不可用，参数不完整）：%s" % _exc)
 
@@ -412,7 +414,7 @@ def main() -> int:
     _rc_cfg = RB_.rbac_config()
     chk("RBAC 角色 5 个（任务书）", ["auditor", "enterprise_finance", "review_expert",
                                   "system_admin", "tax_advisor"], sorted(RB_.role_codes()))
-    chk("RBAC 权限点 15 个", 15, len(RB_.permission_codes()))   # P1-5/6 各 +1
+    chk("RBAC 权限点 18 个", 18, len(RB_.permission_codes()))   # P1-5/6 各 +1；P2 +3
     chk("角色→权限映射覆盖全部内置角色", [],
         sorted(set(RB_.role_codes()) - set(_rc_cfg.get("role_permissions") or {})))
     chk("角色→脱敏映射覆盖全部内置角色", [],

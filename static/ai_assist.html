@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>AI 辅助分析 - 财税风险防控系统</title>
+  <link rel="stylesheet" href="/static/css/app.css?v=9d7d76fc75">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a { color:#cbd5e1; border:1px solid rgba(255,255,255,.25); border-radius:5px;
+                padding:5px 12px; font-size:12px; text-decoration:none; }
+    .topbar a:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1180px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:14px; }
+    .card > h3 { margin:0; padding:12px 16px; font-size:14px; border-bottom:1px solid #f1f5f9; }
+    .card > .body { padding:14px 16px; }
+    .banner { padding:10px 14px; border-radius:6px; font-size:13px; line-height:1.65;
+              background:#fffbeb; color:#92400e; border:1px solid #fde68a; margin-bottom:12px; }
+    .banner.err { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+    .toolbar select, .toolbar input { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px; font-size:13px; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.ghost:hover { background:#f1f5f9; }
+    textarea { width:100%; min-height:150px; padding:9px 11px; border:1px solid #cbd5e1;
+               border-radius:6px; font-family:"Consolas","Courier New",monospace; font-size:12.5px; }
+    .muted { color:#94a3b8; }
+    .kpis { display:flex; flex-wrap:wrap; gap:10px; }
+    .kpi { flex:1 1 150px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:7px; padding:10px 12px; }
+    .kpi .n { font-size:16px; font-weight:700; color:#0f172a; }
+    .kpi .t { font-size:12px; color:#64748b; margin-top:3px; }
+    .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; background:#f1f5f9; color:#475569; }
+    .tag.ai { background:#e0e7ff; color:#3730a3; }
+    .tag.hint { background:#fef3c7; color:#b45309; }
+    .tag.ok { background:#dcfce7; color:#15803d; }
+    .tag.no { background:#fee2e2; color:#b91c1c; }
+    pre.plain { margin:0; white-space:pre-wrap; word-break:break-word; font-family:inherit;
+                line-height:1.68; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:11px 13px; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:8px 11px; text-align:left; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
+  </style>
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🤖 AI 辅助分析</h1>
+    <span class="spacer"></span>
+    <span class="muted" id="who" style="color:#94a3b8"></span>
+    <a href="/risks">风险结果</a>
+    <a href="/index">返回主界面</a>
+  </div>
+  <div class="wrap">
+    <div class="banner" id="disclaimer">加载中…</div>
+
+    <div class="card">
+      <h3>当前状态</h3>
+      <div class="body"><div class="kpis" id="kpis"></div>
+        <div class="muted" id="status-note" style="margin-top:8px;line-height:1.7"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>辅助能力 <span class="muted">（能力清单来自后端，本页不硬编码）</span></h3>
+      <div class="body">
+        <table class="grid">
+          <thead><tr><th style="width:170px">辅助类型</th><th style="width:230px">编码</th>
+            <th>说明</th><th style="width:210px">输入</th></tr></thead>
+          <tbody id="tb-caps"><tr><td colspan="4" class="muted">加载中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>生成辅助内容</h3>
+      <div class="body">
+        <div class="toolbar">
+          <select id="code"></select>
+          <button class="btn" id="btn-run">生成</button>
+          <button class="btn ghost" id="btn-sample">填入示例</button>
+          <span class="muted" id="hint"></span>
+        </div>
+        <div class="muted" style="margin-bottom:6px">输入（JSON）：</div>
+        <textarea id="payload" spellcheck="false"></textarea>
+        <div id="result" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/ai_assist.js"></script>
+</body>
+</html>
