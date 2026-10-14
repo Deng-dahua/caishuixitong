@@ -15181,13 +15181,15 @@ async def api_auth_register(request: Request):
         return JSONResponse({"ok": False, "message": "手机号必须为 1 开头的 11 位数字"}, status_code=400)
     if _fu(phone):
         return JSONResponse({"ok": False, "message": "该手机号已注册，请直接登录"}, status_code=400)
-    _cu(phone, phone, role="user", must_change_password=True,
+    # ★ 2026-10-15 用户裁定:手机号登录直接进系统主页,不强制改密
+    #   (初始密码=手机号;改密走侧边栏「修改密码」,由用户自助决定)。
+    _cu(phone, phone, role="user", must_change_password=False,
         display_name=display or phone, phone=phone,
-        skip_policy_check=True)   # 初始密码=手机号(11位)天然弱,由 must_change_password 兜底
+        skip_policy_check=True)   # 初始密码=手机号(11位)天然弱,策略豁免仅此处
     _at_rec("auth.register", target=phone, company_id=None,
             detail="账号设置：以手机号创建账号（初始密码=手机号，待首次登录修改）", request=request)
     return {"ok": True, "username": phone, "initial_password": phone,
-            "must_change_password": True}
+            "must_change_password": False}
 
 
 @app.post("/api/auth/change-password")

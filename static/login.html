@@ -70,9 +70,8 @@
         });
         const data = await response.json();
         if (!response.ok || !data.ok) throw new Error(data.message || "登录失败");
-        // ★ 2026-10-15 账号/角色流：初始密码(=手机号)账号首次登录 ⇒ 强制修改密码；
-        // 管理员登录后先进「角色设置」页；普通用户进主系统。
-        if (data.must_change_password) { location.assign("/change-password"); return; }
+        // ★ 2026-10-15 用户裁定：手机号账号登录直接进系统主页（不强制改密）；
+        // 管理员仍先进「角色设置」页再进主页。
         location.assign(data.role === "admin" ? "/roles" : "/");
       } catch (error) {
         errorBox.textContent = error.message || "网络异常，请稍后重试";
