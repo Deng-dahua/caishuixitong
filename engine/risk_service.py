@@ -22,6 +22,8 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
+from engine import legal_extras as LE              # 案例/解读/问答材料读层（统一读路径）
+from engine import legal_mapping as LM            # 法规⇄规则关联（唯一读路径；步骤 19）
 from engine import risk_review as REVIEW
 from engine import risk_scoring as SCORE
 from engine import rule_executor as EXEC
@@ -317,6 +319,11 @@ def list_risks(company_id: Any, session: Any, *, tax: str = "", level: str = "",
         amt = _amount(f)
         f["tax_impact_amount"] = amt
         f["amount_known"] = amt is not None
+        # ★ 2026-10-15（步骤 19）法规关联：列表只带**条款定位**（不带正文，控体积）；
+        #   正文在详情接口给（`get_risk`）。缺失 ⇒ 空列表，如实（不伪造依据）。
+        _lp = LM.provisions_of(f.get("rule_id") or f.get("redline_id"))
+        f["legal_provision_ids"] = [p["provision_id"] for p in _lp if p["provision_id"]]
+        f["legal_provisions_n"] = len(_lp)
 
     total = len(items)
     try:
@@ -367,6 +374,40 @@ def list_risks(company_id: Any, session: Any, *, tax: str = "", level: str = "",
 # ══════════════════════════════════════════════════════════════════════════
 # 详情
 # ══════════════════════════════════════════════════════════════════════════
+def _related_materials(finding: Dict[str, Any], *, limit: int = 5) -> Dict[str, Any]:
+    """发现 → 相关官方材料（案例/解读/问答）。
+
+    ★★ 粒度**只到法规级**（材料显式引用了该规则依据的那部法），
+      **不等于**"该案例适用本条条款" ⇒ 仅作参考线索，**不作定性依据**。
+      这一点在返回的 `note` 与 `granularity` 里都要说清（防前端误用）。
+    """
+    rid = finding.get("rule_id") or finding.get("redline_id")
+    provs = LM.provisions_of(rid)
+    if not provs:
+        return {"total": 0, "items": [], "law_codes": [], "granularity": "law",
+                "note": "该规则**无可确证条款** ⇒ 无法定位相关材料（不猜）。"}
+    codes: List[str] = []
+    for p in provs:
+        c = LE.law_code_of(p.get("provision_id"))
+        if c and c not in codes:
+            codes.append(c)
+    seen, items, total = set(), [], 0
+    for c in codes:
+        got = LE.for_law(c, limit=limit)
+        total += int(got.get("total") or 0)
+        for m in (got.get("items") or []):
+            mid = m.get("material_id")
+            if mid in seen:
+                continue
+            seen.add(mid)
+            items.append(m)
+    items.sort(key=lambda m: str(m.get("published_at") or ""), reverse=True)
+    return {"total": total, "items": items[:limit], "law_codes": codes,
+            "granularity": "law", "available": LE.available(),
+            "note": ("材料与法规的关联**只到法规级**（材料显式引用了该法），"
+                     "**不代表其适用本条款** ⇒ 仅作参考线索，不作定性依据。")}
+
+
 def _find(findings: List[Dict[str, Any]], risk_id: Any) -> Optional[Dict[str, Any]]:
     """按 `risk_no`（优先）或数字 `seq` 定位一条发现。"""
     s = str(risk_id or "").strip()
@@ -456,8 +497,16 @@ def get_risk(risk_id: Any, company_id: Any, session: Any, *,
                   "legal_basis_placeholder": bool(
                       any(x.get("placeholder") for x in (rule.get("legal_basis_ref") or []))),
                   "source_cn": rule.get("source_cn"),
-                  "authority_cn": rule.get("authority_cn")} if rule else {}),
+                  "authority_cn": rule.get("authority_cn"),
+                  # ★ 2026-10-15（步骤 19）**已确证**的法规条款（含条款正文，可复核）
+                  "legal_provisions": LM.provisions_of(
+                      rule.get("rule_id") or hit.get("redline_id"))} if rule else {}),
         "rule_found": bool(rule),
+        # ★ 2026-10-15（步骤 19）风险发现 → 法规条款（条款 ID + 原文 + 来源），
+        #   与 rule.legal_basis_ref（作者口径）**并列**、互不覆盖；查不到即空并说明原因。
+        "legal_basis": LM.for_finding(hit),
+        # ★ 相关官方材料（案例/解读/问答）—— **法规级**关联，参考线索，不作定性依据
+        "related_materials": _related_materials(hit),
         "review": cur,
         "trace": {
             "risk_no": rn,

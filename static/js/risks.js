@@ -343,6 +343,37 @@ function renderDetail(j) {
     if (rule.legal_basis_placeholder) {
       H.push('<div class="msg warn">该规则的法规依据为**占位值**（候选规则未入库）⇒ 不可视为已核实。</div>');
     }
+    /* ★ 2026-10-15（步骤 19）**已确证**的法规条款（含条款 ID 与原文，可复核）
+       与上方"作者登记的引用"**并列**展示：上方是规则作者写了什么，
+       这里是已核到哪一条 —— 两者不互相替代。 */
+    var lp = (j.legal_basis && j.legal_basis.provisions) || [];
+    if (lp.length) {
+      H.push('<div class="msg info" style="margin-top:8px">下列 ' + lp.length
+        + ' 条已确证到具体条款（条款 ID 可复核）：</div>');
+      H.push('<table class="grid"><thead><tr><th>条款 ID</th><th>法规</th><th>条文</th>'
+        + '<th>条款原文</th></tr></thead><tbody>');
+      lp.forEach(function (p) {
+        H.push('<tr><td>' + esc(p.provision_id || '—') + '</td><td>' + esc(p.law || '—') + '</td>'
+          + '<td>' + esc(p.article || '—') + '</td>'
+          + '<td class="wrap">' + esc(p.content || '（正文库无原文）') + '</td></tr>');
+      });
+      H.push('</tbody></table>');
+    } else if (j.legal_basis && j.legal_basis.note) {
+      H.push('<div class="msg warn" style="margin-top:8px">' + esc(j.legal_basis.note) + '</div>');
+    }
+    /* ★ 相关官方材料（案例 / 解读 / 问答）—— 粒度**只到法规级**，
+       仅是参考线索，不得当作"该案例适用本条条款"。 */
+    var rm = j.related_materials;
+    if (rm && rm.items && rm.items.length) {
+      H.push('<div class="msg info" style="margin-top:8px">相关官方材料（共 ' + (rm.total || 0)
+        + ' 条，列出前 ' + rm.items.length + ' 条）——' + esc(rm.note || '') + '</div>');
+      rm.items.forEach(function (m) {
+        H.push('<div style="margin:4px 0"><span class="tag">' + esc(m.kind || '') + '</span> '
+          + (m.url ? '<a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(m.title || '') + '</a>'
+                   : esc(m.title || ''))
+          + ' <span class="muted">' + esc(m.published_at || '') + ' · 命中：' + esc(m.matched_ref || '') + '</span></div>');
+      });
+    }
   }
   H.push('</div>');
 

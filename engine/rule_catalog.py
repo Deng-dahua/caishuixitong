@@ -25,6 +25,7 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
+from engine import legal_mapping as LM      # 法规⇄规则关联读层（唯一读路径，只增字段）
 from engine import rule_loader as L
 
 #: 系统在库规则的启用态：**事实**是"全部生效"（无运行时开关）——如实声明，不猜
@@ -144,6 +145,34 @@ def list_rules(*, source: Any = None, layer: Any = None, q: Any = None,
             "pages": (total + ps - 1) // ps if total else 0}
 
 
+def _attach_legal(rec: Dict[str, Any], *, with_content: bool) -> Dict[str, Any]:
+    """把**法规⇄规则关联**并入条目（STEP-EXT-LEGAL-FULL-MATCH 步骤 19）。
+
+    ★ 口径（防止第二个"法规依据"权威）：
+      · `legal_basis_ref` = **作者口径**（规则自己写的引用原文，可能为占位）—— 原样保留；
+      · `legal_provisions` = **可确证口径**（关联表 `config/legal_mappings.json` 里
+        真正落到具体条款、且正文库有原文的引用）—— 本函数新增，**不覆盖**前者。
+      两者并存且各自标注来源，前端/报告须能区分「作者写了」与「已确证」。
+    ★ `with_content=False`（列表用）只带条款定位（id/法名/条号/有无正文），不带正文，
+      避免列表接口体积膨胀；`get()`（详情）带正文。
+    """
+    rid = str(rec.get("rule_id") or "")
+    provs = LM.provisions_of(rid)
+    if with_content:
+        rec["legal_provisions"] = provs
+    else:
+        rec["legal_provisions"] = [
+            {"provision_id": p["provision_id"], "law": p["law"], "article": p["article"],
+             "has_content": p["has_content"], "verified": p["verified"]}
+            for p in provs]
+    rec["legal_provision_ids"] = [p["provision_id"] for p in provs if p["provision_id"]]
+    unres = LM.unresolved_of(rid)
+    if unres:
+        rec["legal_unresolved_n"] = len(unres)
+    rec["legal_mapping_source"] = "config/legal_mappings.json"
+    return rec
+
+
 def _public(rec: Dict[str, Any]) -> Dict[str, Any]:
     """对外形状：**不含 `raw`**（体积大且属实现细节），但保留可追溯所需字段。"""
     out = {k: v for k, v in rec.items() if k != "raw"}
@@ -155,11 +184,11 @@ def _public(rec: Dict[str, Any]) -> Dict[str, Any]:
     out["authority"] = L.AUTHORITY_OF.get(rec["source_kind"], "")
     out["authority_cn"] = L.AUTHORITY_CN.get(out["authority"], "")
     out["source_cn"] = L.SOURCE_CN.get(rec["source_kind"], rec["source_kind"])
-    return out
+    return _attach_legal(out, with_content=False)
 
 
 def get(rule_id: Any) -> Dict[str, Any]:
-    """规则详情（含 `raw` 原文，可追溯）。"""
+    """规则详情（含 `raw` 原文，可追溯）。**附已确证的法规条款（含条款正文）**。"""
     rid = str(rule_id or "")
     for r in entries():
         if r["rule_id"] == rid:
@@ -167,7 +196,7 @@ def get(rule_id: Any) -> Dict[str, Any]:
             out["authority"] = L.AUTHORITY_OF.get(r["source_kind"], "")
             out["authority_cn"] = L.AUTHORITY_CN.get(out["authority"], "")
             out["source_cn"] = L.SOURCE_CN.get(r["source_kind"], r["source_kind"])
-            return out
+            return _attach_legal(out, with_content=True)
     raise KeyError(rid)
 
 

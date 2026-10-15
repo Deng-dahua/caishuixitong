@@ -23,7 +23,7 @@
 
 | 输入 | 来源（唯一权威） | 说明 |
 |---|---|---|
-| 风险指标定义（触发条件 + 认定要件） | `config/risk_conditions.json`（94 条 = 91 红线 + 3 人工登记发现） | 由 `scripts/_gen_risk_conditions.py` 从 `engine.tax_redlines` 派生，人工可逐条修订 |
+| 风险指标定义（触发条件 + 认定要件） | `config/risk_conditions.json`（130 条 = 127 红线派生 + 3 人工登记发现） | 由 `scripts/_gen_risk_conditions.py` 从 `engine.tax_redlines` 派生，人工可逐条修订 |
 | 疑点数据 | `report_data.comprehensive.redline_detection.suspicions[]` | 每个疑点携带 `redline_id` / `constituents` / `constituent_sources` / `evidence_chain` |
 | 核对结果 | `engine.constituent_checkpoint.build_constituent_checkpoints(suspicion)` | 逐要件独立核对记录（含 `_conclusion` 枚举、`核对结论` 展示文本） |
 
@@ -48,7 +48,7 @@
 | 配置项 | 位置（文件:行） | 取值 |
 |---|---|---|
 | 触发条件字典 | `config/risk_conditions.json` → `risks[].trigger_conditions[]` | 每条 `{id, desc, auto}`；**94 条风险指标各 ≥1 条**（合计 **94 条**） |
-| 认定要件字典 | `config/risk_conditions.json` → `risks[].determination_criteria[]` | 每条 `{id, desc, is_precondition}`；**94 条风险指标各 ≥1 条**（合计 **456 条**，其中**前提条 70 条**） |
+| 认定要件字典 | `config/risk_conditions.json` → `risks[].determination_criteria[]` | 每条 `{id, desc, is_precondition}`；**130 条风险指标各 ≥1 条**（合计 **600 条**，其中**前提条 142 条**） |
 | 状态字典 | `engine/trigger_conditions.py` 第 53–57 行 | `SAY_TRIGGER` / `SAY_ROLLUP` / `SAY_SUSPICION_OK` / `SAY_RISK_PENDING` / `SAY_RISK_OK` |
 | 前提条标记 | `config/risk_conditions.json` → `determination_criteria[].is_precondition` | 结构化字段（**不是**文本词表）；派生规则见 `scripts/_gen_risk_conditions.py::is_existence_criterion` |
 | 结论枚举 | `engine/constituent_checkpoint.py` 第 53–71 行 `_CONCLUSION_ZH` | `checked_hit / checked_miss / threshold_unmet / not_concluded / not_checked / not_applicable` |
@@ -106,7 +106,7 @@
 | 本 Skill 依赖 | `config/risk_conditions.json` | 触发条件/认定要件配置（唯一权威） |
 | 本 Skill 依赖 | `engine/industry_resolver.py` | 业态剔除（要件数据源是否"本业态不适用"） |
 | 本 Skill 被依赖 | `engine/enterprise_report.py`（第 3094 行 `_enterprise_situations` → 第 3151 行 `verdict_sentence`；第 2516 行 `_finalize_trigger_determination`） | 报告里那两句分层结论句 + 结构化块落盘 |
-| 本 Skill 被依赖 | `tools/audit_consistency.py`（第 11542 行 `check_trigger_determination_separation()`，第 12948 行并入总链） | 质量门禁 |
+| 本 Skill 被依赖 | `tools/audit_consistency.py`（第 11561 行 `check_trigger_determination_separation()`，第 12967 行并入总链） | 质量门禁 |
 | 本 Skill 被依赖 | `engine/child_item_completeness.py`（Skill 6）/ `engine/data_source_status.py`（Skill 7） | 各自用 `is_precondition()` 判前提条（**不各自实现**） |
 
 ---

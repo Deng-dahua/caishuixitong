@@ -39,6 +39,7 @@ import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
+from engine import legal_mapping as LM          # 法规⇄规则关联（唯一读路径；步骤 19）
 from engine import report_render as RENDER
 from engine import report_store as STORE
 from engine import report_views as VIEWS
@@ -138,6 +139,12 @@ def _brief(v: Any, limit: int = 400) -> str:
     if limit and len(s) > limit:
         return s[:limit] + "…"      # ★ 截断**可见**（项目铁律）
     return s
+
+
+def _nk(v: Any) -> str:
+    """法名/条号**归一**（去空白 + 去「中华人民共和国」前缀）——仅供**完全等值去重**。"""
+    t = "".join(str(v or "").split())
+    return t[7:] if t.startswith("中华人民共和国") else t
 
 
 def _block_para(text: Any) -> Dict[str, Any]:
@@ -449,8 +456,18 @@ def _sec_evidence(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _sec_legal_basis(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """法规依据章 —— **两种口径并列、各自标注来源**（STEP-EXT-LEGAL-FULL-MATCH 步骤 19）。
+
+    ★★ 铁律（防"两个法规依据权威"）：
+      · **作者口径** = 规则自己登记的 `legal_basis_ref`（可能为占位）—— 原样呈现；
+      · **已确证口径** = 关联表 `config/legal_mappings.json` 里真落到具体条款、
+        且**正文库有原文**的引用（含 `provision_id`）—— 追加呈现。
+      两者**不互相覆盖**，各自标注状态；报告读者可区分「规则作者写了什么」与
+      「已核到什么条款」，不再出现"有引用就当已核实"的假闭环。
+    """
     seen, rows, placeholders = set(), [], 0
     lim = ctx["limit"]
+    confirmed_n = 0
     for f in ctx["findings"]:
         rule = ctx["rules"].get((str(f.get("rule_id") or ""),
                                  str(f.get("redline_id") or "")))
@@ -460,26 +477,49 @@ def _sec_legal_basis(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
         if rid in seen:
             continue
         seen.add(rid)
+        # ── ① 已确证条款（关联表唯一权威；含条款 ID 与原文节选）──
+        provs = LM.provisions_of(rid)
+        for p in provs:
+            confirmed_n += 1
+            rows.append([rid, _brief(rule.get("name"), 40),
+                         _brief(p.get("law"), 30), _brief(p.get("article"), 16),
+                         p.get("provision_id") or "—",
+                         _brief(p.get("content"), 110) or "（正文库无原文）",
+                         "已确证"])
+        # ── ② 作者口径（原样；占位一律标注，不得视为已核实）──
         refs = rule.get("legal_basis_ref") or []
         if not refs:
-            rows.append([rid, _brief(rule.get("name"), 40), "（无登记的法规依据）", "",
-                         "缺失"])
+            if not provs:
+                rows.append([rid, _brief(rule.get("name"), 40), "（无登记的法规依据）",
+                             "", "—", "—", "缺失"])
             continue
+        # 已确证的 (法名, 条号) 集合：作者口径中**完全同键**者不再重复列（已在上方展示）；
+        # ★ 只做**完全等值**去重，不做模糊配对（"第十一条、第十三条"这类多条引用
+        #   无法精确配对 ⇒ 一律保留原样，不猜）。
+        _ok_keys = {(_nk(p.get("law")), _nk(p.get("article"))) for p in provs}
         for x in refs:
             if x.get("placeholder"):
                 placeholders += 1
+            if not x.get("placeholder") and (_nk(x.get("law")), _nk(x.get("article"))) in _ok_keys:
+                continue
             rows.append([rid, _brief(rule.get("name"), 40),
-                         _brief(x.get("law"), 40) or "—",
-                         _brief(x.get("article"), 24) or "—",
-                         "占位（未入库）" if x.get("placeholder") else "已核实引用"])
+                         _brief(x.get("law"), 30),
+                         _brief(x.get("article"), 16) or "—",
+                         "—", "—",
+                         "占位（未入库）" if x.get("placeholder")
+                         else ("作者口径（已另有确证条款）" if provs else "未确证（仅作者口径）")])
     if not rows:
         return [_block_note("本次风险事项**未匹配到规则目录中的法规依据**——如实标示，不编造法规。",
                             "warn")]
-    out = [_block_table(["规则", "规则名称", "法规", "条文", "依据状态"],
+    out = [_block_table(["规则", "规则名称", "法规", "条文", "条款ID", "条款原文（节选）", "依据状态"],
                         rows[:lim or len(rows)],
-                        note=("法规依据只取规则目录登记的 `legal_basis_ref`（任务书要求「只写 "
-                              "legal_basis_ref」）；**占位值一律标注「占位（未入库）」**，"
-                              "不得视为已核实。"))]
+                        note=("**两种口径并列**：状态「已确证」= 关联表 `config/legal_mappings.json` "
+                              "落到具体条款（`provision_id`）且正文库有原文；「未确证（仅作者口径）」"
+                              "= 规则自己写了引用但**无法确证到具体条款**；「占位（未入库）」"
+                              "= 候选规则尚未入库 ⇒ **不可作为定性依据**。"))]
+    if confirmed_n:
+        out.append(_block_note("本轮共 **%d 处**法规依据已确证到具体条款（含条款原文可复核）。"
+                               % confirmed_n))
     if placeholders:
         out.append(_block_note(
             "★ 有 %d 处法规依据为**占位值**（候选规则未入库）⇒ 不可作为定性依据引用。"

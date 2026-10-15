@@ -4576,13 +4576,32 @@ def check_justification_scenario_coverage() -> List[Tuple[str, str, str]]:
         if len(jl) != exp:
             issues.append(("ERROR", "engine/tax_redlines.py",
                            f"{rid} justifications 期望 {exp} 条（基线 {ORIG_J[rid]} + 新增 {_new(rid)}），实际 {len(jl)} 条"))
+    # ★ 2026-10-15：`total` 必须覆盖**全部**红线（含批次），否则汇总校验自己先错
+    #   （实测：只累加 ORIG_J ⇒ 期望 370、实际报 298，是**假红**）。
+    total = 0
     for r in REDLINES:
+        total += len(r.get("justifications") or [])
         if not (r.get("justifications") or []):
             issues.append(("ERROR", "engine/tax_redlines.py",
                            f"{r.get('id')} justifications 为空"))
-    if total != 298:
+    # ★ 2026-10-15：原为「总数恒等于 298」硬锁。加入批次规则后该值必然过期，
+    #   但**不能因此去掉防削减能力**（否则静默丢条数无人发现）。改为两条**可增长**判据：
+    #     ① **下界**：总数 ≥ 基线期望之和 + 批次条数×2（基线只锁既有 91 条，
+    #        其余既有红线未纳入基线，故用下界而非等值）；
+    #     ② **批次规则逐条**：每条正当理由 ≥ 2 条（新规则不得只写入罪口、不留出罪口）。
+    _base_j = sum(ORIG_J[rid] + _new(rid) for rid in ORIG_J if rid in by_id)
+    _batch_rules = [r for r in REDLINES if r.get("_batch_id")]
+    _floor = _base_j + 2 * len(_batch_rules)
+    if total < _floor:
         issues.append(("ERROR", "engine/tax_redlines.py",
-                       f"justifications 总条数期望 298，实际 {total}"))
+                       f"justifications 总数 {total} 低于下界 {_floor}"
+                       f"（基线期望 {_base_j} + 批次 {len(_batch_rules)}×2）"
+                       "——有正当理由被静默削减"))
+    for _r in _batch_rules:
+        if len(_r.get("justifications") or []) < 2:
+            issues.append(("ERROR", "engine/tax_redlines.py",
+                           f"{_r.get('id')} 批次规则正当理由不足 2 条"
+                           f"（实 {len(_r.get('justifications') or [])} 条）"))
     return issues
 
 
@@ -13015,7 +13034,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）
     return counts, general
 
 
@@ -19626,6 +19645,178 @@ def check_level_display_single_source() -> List[Tuple[str, str, str]]:
         except Exception as exc:                                 # noqa: BLE001
             issues.append(("ERROR", "tools/audit_consistency.py",
                            "结构性风险等级字段保真检查执行失败：%s" % exc))
+
+    return issues
+
+
+def check_legal_mapping_wiring() -> List[Tuple[str, str, str]]:
+    """**法规 ⇄ 规则关联**接入闸门（STEP-EXT-LEGAL-FULL-MATCH 步骤 19）。
+
+    ★ 为什么必须行为级：这条链路横跨 4 个模块（关联表 → 规则目录 → 报告 → 风险 API）
+      与 2 个材料读层。任一处被改回"只有作者口径"或"表列被删"，静态看都合法，
+      但**用户看到的东西**就退化成旧样（本轮就是为了修这个才做的）。
+
+    判据（全部**实测行为**，不做文本存在性自证）：
+      ① 关联表可用，且 `verified` 条目**规则 id 真在规则目录里**（防孤儿映射）；
+      ② 每条 `verified` 的 `provision_id` **在正文库真有原文**（防"确证到不存在的条款"）；
+      ③ `report_service._sec_legal_basis` 渲染出的表**必须含「条款ID」列**，
+         且真产物上确有「已确证」行（防渲染层被改回旧表）；
+      ④ `rule_catalog.get` 必须带 `legal_provisions`（含 `content`）；
+      ⑤ `risk_service.get_risk` 必须带 `legal_basis` 与 `related_materials`；
+      ⑥ 材料层：`matched_by` 取值**只能是两类显式引用**（防有人改成关键词匹配）、
+         每条材料**必带 `granularity`**（防把法规级关联当条款级用）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        import json as _json
+        from engine import legal_extras as _LE
+        from engine import legal_mapping as _LM
+        from engine import report_service as _RSVC
+        from engine import risk_service as _RSVC2
+        from engine import rule_catalog as _RC
+    except Exception as exc:                                     # noqa: BLE001
+        return [("ERROR", "engine/legal_mapping.py",
+                 "关联链模块导入失败：%s" % exc)]
+
+    # ── ① 关联表可用 + 无孤儿映射 ──
+    if not _LM.available():
+        issues.append(("ERROR", "config/legal_mappings.json",
+                       "关联表不可用（读取失败或缺失）——步骤 19 链路失效，"
+                       "报告/风险详情的法规条款会整体退化为空"))
+        return issues
+    _known = {r["rule_id"] for r in _RC.entries()}
+    _orphan = sorted({m["rule_id"] for m in (_LM._doc().get("mappings") or [])   # noqa: SLF001
+                      if m.get("verified") and m["rule_id"] not in _known})
+    if _orphan:
+        issues.append(("ERROR", "config/legal_mappings.json",
+                       "关联表 %d 条确证映射指向**规则目录中不存在的规则 id**（孤儿映射，"
+                       "如 %s）——须重跑 `scripts/_gen_legal_mappings.py`"
+                       % (len(_orphan), ", ".join(_orphan[:3]))))
+
+    # ── ② 确证条款必须真有原文（不得"确证到不存在的条款"）──
+    _cov = _LM.coverage()
+    if _cov.get("provisions") and _cov.get("with_content") != _cov.get("provisions"):
+        issues.append(("ERROR", "config/legal_mappings.json",
+                       "有 %d 条**已确证**条款在正文库查不到原文（%s）——"
+                       "确证到无正文的条款等于假确证"
+                       % (_cov["provisions"] - _cov["with_content"],
+                          ", ".join((_cov.get("missing_content") or [])[:3]))))
+
+    # ── ③ 报告「法规依据」章必须渲染出条款 ID 与已确证行 ──
+    class _S:                                                    # noqa: D401
+        username = "audit"
+        is_admin = True
+        user_id = 0
+
+        def can_access_company(self, cid):                       # noqa: ANN001
+            return True
+
+    try:
+        _doc = _RSVC.build_document(1, _S(), view="full")
+        _sec = next((s for s in (_doc.get("sections") or [])
+                     if s.get("key") == "legal_basis"), None)
+        if _sec is None:
+            issues.append(("ERROR", "engine/report_service.py",
+                           "报告无 `legal_basis` 章节 —— 法规依据章缺失"))
+        else:
+            _tbl = next((b for b in (_sec.get("blocks") or [])
+                         if b.get("type") == "table"), None)
+            _cols = list((_tbl or {}).get("columns") or [])
+            if "条款ID" not in _cols:
+                issues.append(("ERROR", "engine/report_service.py",
+                               "报告「法规依据」表**未渲染条款 ID 列**（现列：%s）——"
+                               "步骤 19 的「已确证条款」未进报告" % ("、".join(_cols) or "无")))
+            _rows = list((_tbl or {}).get("rows") or [])
+            _ok = sum(1 for r in _rows if "已确证" in str(r[-1]))
+            if _rows and not _ok:
+                issues.append(("ERROR", "engine/report_service.py",
+                               "报告「法规依据」表 %d 行**无一条「已确证」** —— "
+                               "关联表未接通（渲染层仍在用作者口径单一口径）" % len(_rows)))
+    except Exception as exc:                                     # noqa: BLE001
+        issues.append(("ERROR", "engine/report_service.py",
+                       "报告法规依据章行为级检查执行失败：%s" % exc))
+
+    # ── ④ 规则目录详情须带条款（含正文）──
+    try:
+        _sample = None
+        for _r in _RC.entries():
+            if _LM.provisions_of(_r["rule_id"]):
+                _sample = _r["rule_id"]
+                break
+        if _sample is None:
+            issues.append(("ERROR", "config/legal_mappings.json",
+                           "规则目录中**无任何规则**有可确证条款 —— 关联表为空配置"))
+        else:
+            _g = _RC.get(_sample)
+            if not _g.get("legal_provisions"):
+                issues.append(("ERROR", "engine/rule_catalog.py",
+                               "`rule_catalog.get()` 未附带 `legal_provisions`"
+                               "（规则详情看不到已确证条款）"))
+            elif not any(p.get("content") for p in _g["legal_provisions"]):
+                issues.append(("ERROR", "engine/rule_catalog.py",
+                               "`rule_catalog.get()` 的 `legal_provisions` **未带条款正文**"
+                               "（详情页无法复核）"))
+    except Exception as exc:                                     # noqa: BLE001
+        issues.append(("ERROR", "engine/rule_catalog.py",
+                       "规则目录条款检查执行失败：%s" % exc))
+
+    # ── ⑤ 风险详情须带 legal_basis 与 related_materials ──
+    try:
+        _lst = _RSVC2.list_risks(1, _S(), page=1, page_size=1)
+        _items = _lst.get("items") or []
+        if _items:
+            if "legal_provision_ids" not in _items[0]:
+                issues.append(("ERROR", "engine/risk_service.py",
+                               "风险列表条目未带 `legal_provision_ids`"))
+            _d = _RSVC2.get_risk(_items[0].get("risk_no") or _items[0].get("seq"),
+                                 1, _S())
+            if "legal_basis" not in _d:
+                issues.append(("ERROR", "engine/risk_service.py",
+                               "风险详情未带 `legal_basis`（发现 → 法规条款未接通）"))
+            else:
+                _lb = _d["legal_basis"]
+                if _lb.get("provisions") and not any(
+                        p.get("content") for p in _lb["provisions"]):
+                    issues.append(("ERROR", "engine/risk_service.py",
+                                   "`legal_basis.provisions` 未带条款正文"))
+            _rm = _d.get("related_materials")
+            if _rm is None:
+                issues.append(("ERROR", "engine/risk_service.py",
+                               "风险详情未带 `related_materials`（案例/解读/问答未接通）"))
+            elif _rm.get("granularity") != "law":
+                issues.append(("ERROR", "engine/risk_service.py",
+                               "`related_materials.granularity` 必须为 `law` —— "
+                               "材料关联只到**法规级**，不得被当成条款级确证"))
+    except Exception as exc:                                     # noqa: BLE001
+        issues.append(("ERROR", "engine/risk_service.py",
+                       "风险详情法规/材料检查执行失败：%s" % exc))
+
+    # ── ⑥ 材料层：匹配方式只能两类显式引用 + 每条必带粒度 ──
+    _mdoc = _LE._doc()                                           # noqa: SLF001
+    if _mdoc.get("available"):
+        _bad_how: Dict[str, int] = {}
+        _no_gran = 0
+        for _m in (_mdoc.get("materials") or []):
+            if _m.get("granularity") != "law":
+                _no_gran += 1
+            for _h in (_m.get("matched_refs") or []):
+                _how = str(_h.get("matched_by") or "")
+                if _how not in ("书名号引用", "全名提及"):
+                    _bad_how[_how] = _bad_how.get(_how, 0) + 1
+        if _bad_how:
+            issues.append(("ERROR", "config/legal_materials.json",
+                           "材料关联出现**非显式引用**的匹配方式（%s）——"
+                           "只允许「书名号引用」与「全名提及」，"
+                           "关键词/相似度匹配会产生假关联（本项目铁律）"
+                           % ", ".join("%s×%d" % (k, v) for k, v in _bad_how.items())))
+        if _no_gran:
+            issues.append(("ERROR", "config/legal_materials.json",
+                           "%d 条材料缺 `granularity=law` 标注 —— "
+                           "会被误当成条款级确证" % _no_gran))
+    else:
+        issues.append(("WARN", "config/legal_materials.json",
+                       "材料库不可用 ⇒ 案例/解读/问答关联 SKIP（**不得当作通过**；"
+                       "先跑 `scripts/_gen_legal_materials.py`）"))
 
     return issues
 

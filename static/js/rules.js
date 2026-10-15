@@ -190,6 +190,16 @@ async function showRule(rid) {
         + (r.placeholder ? ' <span class="tag t-cand">占位</span>' : '')
         + '<div class="muted">' + esc(r.raw || '') + '</div></div>';
     }).join('') || '<div class="problem prob">无任何法规依据（如实为空，非"未登记"）</div>';
+    /* ★ 2026-10-15（步骤 19）已确证到具体条款者（含条款正文，可复核） */
+    var lp = (d.legal_provisions || []);
+    var refsConfirmed = lp.length
+      ? lp.map(function (p) {
+        return '<div><strong>' + esc(p.provision_id || '') + '</strong> '
+          + esc(p.law || '') + ' ' + esc(p.article || '')
+          + ' <span class="tag t-reg">已确证</span>'
+          + '<div class="muted">' + esc(p.content || '（正文库无原文）') + '</div></div>';
+      }).join('')
+      : '';
     var inputs = (d.inputs || []).map(function (s) { return '<span class="tag t-reg">' + esc(s) + '</span>'; }).join(' ')
       || '<span class="muted">—</span>';
     var reqs = (d.required_sources || []).map(function (s) { return '<span class="tag t-reg">' + esc(s) + '</span>'; }).join(' ')
@@ -208,7 +218,8 @@ async function showRule(rid) {
       + (d.changed_note ? '<div class="k">变更说明</div><div>' + esc(d.changed_note) + '</div>' : '')
       + '<div class="k">启用态</div><div>' + (d.enabled === null || d.enabled === undefined ? '<span class="muted">—</span>' : (d.enabled ? '已启用' : '未启用')) + '</div>'
       + '</div>'
-      + '<div class="sect">法规依据（legal_basis_ref）</div>' + refs
+      + '<div class="sect">法规依据（legal_basis_ref · 规则作者口径）</div>' + refs
+      + (refsConfirmed ? '<div class="sect">已确证条款（含条款原文，可复核）</div>' + refsConfirmed : '')
       + '<div class="sect">条件 / 判据</div><div>' + esc(d.condition || '（未登记表达式）') + '</div>'
       + '<div class="sect">依赖字段</div><div>' + inputs + '</div>'
       + '<div class="sect">依赖数据源</div><div>' + reqs + '</div>'
