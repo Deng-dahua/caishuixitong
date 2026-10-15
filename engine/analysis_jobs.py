@@ -349,6 +349,21 @@ def _audit_terminal(row: Dict[str, Any]) -> None:
 
 # ── 读侧：折叠（最后一次 finished 胜出）────────────────────────────────────────
 
+def delete_job_records(job_id: str) -> int:
+    """★ 2026-10-15 删除某作业的**全部流水行**（started/terminal 一起删）。
+
+    只删任务记录：分析结果/报告/资料各有专属出口，不在此列。
+    整组删除不会破坏自检（"有终态必有起点"按 job 分组判定）。
+    返回删除的行数；调用方负责权限校验与审计。"""
+    with _LOCK:
+        rows = _load_rows()
+        keep = [r for r in rows if str(r.get("job_id") or "") != str(job_id or "")]
+        removed = len(rows) - len(keep)
+        if removed:
+            _rewrite_rows(keep)
+        return removed
+
+
 def _started_of(job_id: str) -> Optional[Dict[str, Any]]:
     """取某作业**最早**的 `started` 行（无则 None）。"""
     best: Optional[Dict[str, Any]] = None

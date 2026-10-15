@@ -506,6 +506,64 @@ def cancel(job_id: Any, session: Any, *, engine=None) -> Dict[str, Any]:
     return out
 
 
+def delete_job(job_id: Any, session: Any, *, engine=None) -> Dict[str, Any]:
+    """★ 2026-10-15 删除一条分析任务的**记录**（历史列表清理）。
+
+    边界（如实）：
+      · **运行中任务不可删**（须先取消；后端拦截 + 前端禁选双保险）；
+      · 只删任务流水与项目链接（analysis_jobs.jsonl / analysis_task_links.jsonl，
+        经既有权威原语），**不动**分析结果/报告/资料（各有专属删除出口）；
+      · 审计 job.delete。"""
+    from engine.analysis_jobs import (                                 # noqa: PLC0415
+        delete_job_records as _del_rows, get_job as _job_of)
+    jid = str(job_id or "")
+    if not jid:
+        raise AnalysisTaskError("作业 id 不能为空", 400)
+    link = link_of(jid)
+    persisted = _job_of(jid)
+    runtime = _runtime(jid)
+    if not persisted and not runtime:
+        raise AnalysisTaskError("作业不存在", 404)
+    _authorize(session, link, company_id=((persisted or {}).get("company_id")))
+    if runtime and not _is_terminal(persisted, runtime):
+        raise AnalysisTaskError("任务仍在运行中，请先取消再删除", 409)
+    removed_rows = _del_rows(jid)
+    removed_links = _delete_link_rows(jid)
+    _audit("job.delete", jid, persisted, runtime,
+           "删除分析任务记录（流水 %d 行、链接 %d 条；结果与报告不受影响）"
+           % (removed_rows, removed_links), request=None)
+    return {"ok": True, "job_id": jid,
+            "removed_rows": removed_rows, "removed_links": removed_links}
+
+
+def _delete_link_rows(job_id: str) -> int:
+    """从 analysis_task_links.jsonl 删除某作业的链接行（同权威原语口径）。"""
+    import json as _json                        # noqa: PLC0415
+    p = links_path()
+    with _LINK_LOCK:
+        if not p.exists():
+            return 0
+        rows = []
+        for line in p.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rows.append(_json.loads(line))
+            except Exception:                    # noqa: BLE001 — 坏行原样保留（不静默丢）
+                rows.append({"__raw__": line})
+        keep = [r for r in rows if str(r.get("job_id") or "") != str(job_id or "")]
+        removed = len(rows) - len(keep)
+        if removed:
+            clean = [r for r in keep if not r.get("__raw__")]
+            raws = [r["__raw__"] for r in keep if r.get("__raw__")]
+            nl = chr(10)
+            data = "".join((_json.dumps(r, ensure_ascii=False) + nl) for r in clean) \
+                 + "".join((r + nl) for r in raws)
+            p.write_text(data, encoding="utf-8")
+        return removed
+
+
 def retry(job_id: Any, session: Any, *, engine=None, request: Any = None) -> Dict[str, Any]:
     """重试一次**失败或已取消**的作业（新建一次作业，不回改原作业）。"""
     current = get(job_id, session, engine=engine)
@@ -827,5 +885,5 @@ __all__ = [
     "TASK_STATUSES", "STATUS_CN", "TASK_TERMINAL", "RETRYABLE", "RUNTIME_TO_TASK",
     "DEFAULT_TIMEOUT_SECONDS", "TIMEOUT_NOTE", "AnalysisTaskError",
     "links_path", "register_link", "link_of", "jobs_of_project",
-    "preflight", "launch", "get", "list_for_project", "cancel", "retry", "metadata",
+    "preflight", "launch", "get", "list_for_project", "cancel", "retry", "delete_job", "metadata",
 ]

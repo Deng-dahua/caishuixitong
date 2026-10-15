@@ -111,7 +111,7 @@ async function boot() {
   if (autoId) sel.value = String(autoId);   // ★ 自动匹配仅静默选中（2026-10-15 用户裁定：不显示提示文字）
   sel.onchange = function () { loadHistory(); };
   if (PROJECTS.length) { await loadHistory(); }
-  else { el('history').innerHTML = '<tr><td colspan="10" class="empty">暂无项目</td></tr>'; }
+  else { el('history').innerHTML = '<tr><td colspan="11" class="empty">暂无项目</td></tr>'; }
   try {
     var me = await api('GET', '/api/auth/me');
     el('who').textContent = '当前用户：' + ((me && (me.username || me.user_name)) || '');
@@ -250,13 +250,17 @@ function fmtTime(t) {
   return String(t).replace('T', ' ').slice(0, 19);
 }
 
+var PICKED_JOBS = {};   // ★ 2026-10-15 批量删除：job_id -> true（切换项目/刷新即清空）
+var _DELETABLE = { SUCCESS: 1, FAILED: 1, CANCELLED: 1, BLOCKED: 1 };   // 终态才可删
 async function loadHistory() {
   var pid = currentProjectId();
-  if (!pid) { el('history').innerHTML = '<tr><td colspan="10" class="empty">请选择项目</td></tr>'; return; }
+  if (!pid) { el('history').innerHTML = '<tr><td colspan="11" class="empty">请选择项目</td></tr>'; return; }
+  PICKED_JOBS = {};   // 切换项目/刷新即清空
   try {
     var r = await api('GET', API + '/projects/' + pid + '/analysis-jobs?limit=50');
     if (!r.jobs || !r.jobs.length) {
-      el('history').innerHTML = '<tr><td colspan="10" class="empty">该项目暂无分析任务</td></tr>';
+      el('history').innerHTML = '<tr><td colspan="11" class="empty">该项目暂无分析任务</td></tr>';
+      _syncDelBtn();
       return;
     }
     el('history').innerHTML = r.jobs.map(function (j) {
@@ -264,7 +268,13 @@ async function loadHistory() {
       if (j.can_retry) {
         ops += ' · <a href="javascript:void(0)" onclick="retryById(\'' + esc(j.job_id) + '\')">重试</a>';
       }
-      return '<tr><td>' + esc(j.job_id) + (j.retry_of ? ' <span class="muted">(重试)</span>' : '') + '</td>'
+      var delable = _DELETABLE[j.status] && !j.cancel_pending;
+      return '<tr><td style="text-align:center">'
+        + (delable
+           ? '<input type="checkbox" class="job-sel" data-jid="' + esc(j.job_id) + '"'
+             + (PICKED_JOBS[j.job_id] ? ' checked' : '') + '>'
+           : '<span class="muted" title="运行中任务须先取消才能删除">—</span>')
+        + '</td><td>' + esc(j.job_id) + (j.retry_of ? ' <span class="muted">(重试)</span>' : '') + '</td>'
         + '<td>' + tagHtml(j.status) + (j.cancel_pending ? ' <span class="muted">收尾中</span>' : '') + '</td>'
         + '<td>' + esc(j.trigger_cn || j.trigger || '—') + '</td>'
         + '<td>' + (j.progress || 0) + '%</td>'
@@ -276,7 +286,8 @@ async function loadHistory() {
         + '<td>' + ops + '</td></tr>';
     }).join('');
   } catch (e) {
-    el('history').innerHTML = '<tr><td colspan="10" class="empty">加载失败：' + esc(e.message) + '</td></tr>';
+    _syncDelBtn();
+    el('history').innerHTML = '<tr><td colspan="11" class="empty">加载失败：' + esc(e.message) + '</td></tr>';
   }
 }
 
@@ -293,3 +304,51 @@ async function retryById(jobId) {
 
 window.addEventListener('beforeunload', function () { if (POLL) { clearTimeout(POLL); } });
 boot();
+
+// ★ 2026-10-15 批量删除：选择同步 / 删除按钮 / 逐条删除（权威出口 DELETE /analysis-jobs/{id}）
+function _syncDelBtn() {
+  var btn = el('btn-del-jobs');
+  if (!btn) return;
+  var n = Object.keys(PICKED_JOBS).length;
+  btn.hidden = n === 0;
+  btn.textContent = '\uD83D\uDDD1 删除选中（' + n + '）';
+}
+window.__delSelectedJobs = async function () {
+  var ids = Object.keys(PICKED_JOBS);
+  if (!ids.length) return;
+  if (!window.confirm('确定删除选中的 ' + ids.length + ' 条分析任务记录？只删任务历史记录；分析结果与报告不受影响。')) return;
+  var okN = 0, errs = [];
+  for (var i = 0; i < ids.length; i++) {
+    try {
+      await api('DELETE', API + '/analysis-jobs/' + ids[i]);
+      okN++;
+      if (CURRENT && CURRENT.job_id === ids[i]) { CURRENT = null; el('cur-id').textContent = ''; }
+    } catch (e) {
+      errs.push(ids[i] + '：' + e.message);
+    }
+  }
+  PICKED_JOBS = {};
+  alertBox(errs.length ? 'err' : 'ok',
+    '已删除 ' + okN + ' 条任务记录' + (errs.length ? ('；失败 ' + errs.length + ' 条：' + errs.join('；')) : ''));
+  await loadHistory();
+};
+(function bindJobDel() {
+  var tb = el('history');
+  if (tb) tb.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t && t.classList && t.classList.contains('job-sel')) {
+      var jid = t.getAttribute('data-jid');
+      if (t.checked) PICKED_JOBS[jid] = true; else delete PICKED_JOBS[jid];
+      _syncDelBtn();
+    }
+  });
+  var ja = document.getElementById('job-sel-all');
+  if (ja) ja.addEventListener('change', function () {
+    PICKED_JOBS = {};
+    document.querySelectorAll('#history input.job-sel').forEach(function (cb) {
+      cb.checked = ja.checked;
+      if (ja.checked) PICKED_JOBS[cb.getAttribute('data-jid')] = true;
+    });
+    _syncDelBtn();
+  });
+})();

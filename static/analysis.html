@@ -90,6 +90,8 @@
       <input type="checkbox" id="f-force" style="cursor:pointer"> 强制重算
     </label>
     <button id="btn-start" onclick="startAnalysis()">▶ 开始稽查分析</button>
+    <button id="btn-del-jobs" hidden onclick="window.__delSelectedJobs()"
+      style="background:#dc2626;border-color:#dc2626;color:#fff">🗑 删除选中</button>
     <span class="spacer"></span>
     <span class="muted" id="who" style="color:#94a3b8"></span>
     <a href="/">返回主界面</a>
@@ -122,10 +124,11 @@
       <div class="card" style="border:none;padding:0">
         <table class="grid">
           <thead><tr>
+            <th style="width:34px;text-align:center"><input type="checkbox" id="job-sel-all" title="全选/全不选（本页；运行中任务不可删）"></th>
             <th>作业号</th><th>状态</th><th>触发</th><th>进度</th>
             <th>开始</th><th>时长</th><th>疑点</th><th>等级</th><th>报告编号</th><th>操作</th>
           </tr></thead>
-          <tbody id="history"><tr><td colspan="10" class="empty">加载中…</td></tr></tbody>
+          <tbody id="history"><tr><td colspan="11" class="empty">加载中…</td></tr></tbody>
         </table>
       </div>
     </div>

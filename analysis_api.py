@@ -123,4 +123,10 @@ def retry_job(job_id: str, request: Request):
     return _call(SVC.retry, job_id, session, request=request)
 
 
+@router.delete("/analysis-jobs/{job_id}", summary="删除任务记录（历史清理；运行中不可删，结果/报告不受影响）")
+def delete_analysis_job(job_id: str, request: Request):
+    session = _session(request)
+    return _call(SVC.delete_job, job_id, session)
+
+
 __all__ = ["router", "page_router"]

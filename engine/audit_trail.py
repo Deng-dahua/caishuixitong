@@ -61,6 +61,7 @@ ACTIONS: Tuple[str, ...] = (
     "job.finished",      # 作业终态登记（完成 / 失败 / 拦截 / 取消，唯一终态漏斗）
     "job.cancel",        # 分析任务取消（用户主动中止，结果不予采用）
     "job.retry",         # 分析任务重试（对失败/取消的作业重新发起）
+    "job.delete",        # 分析任务记录删除（历史清理；不影响结果/报告，2026-10-15）
     # ── 2026-10-13 新增（P0-6 风险结果展示与复核）：**只在末尾追加**，顺序不得变动 ──
     "risk.review",       # 风险**人工处置**复核（确认/排除/误报/重开/转人工）
                          #   ★ 与既有 `finding.review`（**引擎数据一致性**复核）是**两个概念**：
@@ -107,6 +108,7 @@ ACTION_CN: Dict[str, str] = {
     "job.finished": "作业终态登记",
     "job.cancel": "分析任务取消",
     "job.retry": "分析任务重试",
+    "job.delete": "分析任务记录删除",
     "risk.review": "风险复核",
     "risk.comment": "风险批注",
     "risk.rectify": "整改台账登记",
