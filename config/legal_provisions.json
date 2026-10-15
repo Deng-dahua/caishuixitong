@@ -1,0 +1,1856 @@
+{
+ "schema": 1,
+ "updated": "2026-10-15",
+ "note": "★ **条款索引**（派生层）：`provision_id` → 条文定位与标签；**不含正文**（正文唯一权威 `static/legal_library.json`，写入走 `_load_legal_texts.py`）。`provision_id` = `{法短码}-{条号:03d}`；`content_sha256` 可反向校验指向的条文。★ `provision_id` 为 null ⇒ 该条的法名未登记短码或条号解析不出（**如实暴露**）。",
+ "count": 131,
+ "with_provision_id": 130,
+ "uncoded": [
+  "国家税务总局公告2014年第39号 正文"
+ ],
+ "provisions": [
+  {
+   "provision_id": "INVOICE-MEASURE-027",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十七条",
+   "article_no": 27,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "c5bab3f10964e138482caa4d70d8934dcf2ef885eff67d4a4d3da18417cda06e",
+   "content_len": 100,
+   "source": "国务院令第587号《中华人民共和国发票管理办法》"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-023",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十三条",
+   "article_no": 23,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "da18b2fae0b49d390068fbe46210653fde50849253b8ad782f5631d7efe006d9",
+   "content_len": 137,
+   "source": "国务院令第587号《中华人民共和国发票管理办法》"
+  },
+  {
+   "provision_id": "VAT-INVOICE-RULE-014",
+   "law": "增值税专用发票使用规定",
+   "law_code": "VAT-INVOICE-RULE",
+   "article": "第十四条",
+   "article_no": 14,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002"
+   ],
+   "content_sha256": "c22c8db53c5728a8fd87411843486433a8545245a1191bd1c4349bab0c2d26ff",
+   "content_len": 85,
+   "source": "国税发〔2006〕156号《增值税专用发票使用规定》"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-035",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十五条",
+   "article_no": 35,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005"
+   ],
+   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc",
+   "content_len": 180,
+   "source": "《中华人民共和国税收征收管理法》"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-036",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十六条",
+   "article_no": 36,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005"
+   ],
+   "content_sha256": "1d8dabd48b177ea4fc8fc0d3428813c077d047639657df3d0e0b524ca058ba3c",
+   "content_len": 126,
+   "source": "《中华人民共和国税收征收管理法》"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-060",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十条",
+   "article_no": 60,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005"
+   ],
+   "content_sha256": "b8f5d019a26cebc4afdb41afd1df646240f1025724db3e44227a493f90ddfc40",
+   "content_len": 204,
+   "source": "《中华人民共和国税收征收管理法》"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-064",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十四条第二款",
+   "article_no": 64,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005"
+   ],
+   "content_sha256": "66eee49837517ce18230751ed997e4718d2914ca2295db5a77b7569358f8b15c",
+   "content_len": 71,
+   "source": "《中华人民共和国税收征收管理法》"
+  },
+  {
+   "provision_id": "CIT-LAW-005",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第五条",
+   "article_no": 5,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "aec7e0ab69f34560529fca78407baba815e50ca684125235e26141825eee34a6",
+   "content_len": 57,
+   "source": "《中华人民共和国企业所得税法》"
+  },
+  {
+   "provision_id": "ACCOUNTING-LAW-009",
+   "law": "会计法",
+   "law_code": "ACCOUNTING-LAW",
+   "article": "第九条",
+   "article_no": 9,
+   "kind": "法律",
+   "topic_tags": [],
+   "content_sha256": "4a7f5575dd3ffa78e035abfd63d34f5efeed28e0e1346727d9c29e13e69e66d3",
+   "content_len": 75,
+   "source": "《中华人民共和国会计法》"
+  },
+  {
+   "provision_id": "STAMP-TAX-LAW-001",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-013"
+   ],
+   "content_sha256": "8a67fe439f77cc3d002f6d008ead12c11158b3178321b859fa0a2a6eeaa2c8ed",
+   "content_len": 96,
+   "source": "《中华人民共和国印花税法》"
+  },
+  {
+   "provision_id": "STAMP-TAX-LAW-005",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第五条",
+   "article_no": 5,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-013"
+   ],
+   "content_sha256": "7451317b43413a43f389f4a222536e97cac670ce5b944374fd49548997b6ff9f",
+   "content_len": 133,
+   "source": "《中华人民共和国印花税法》"
+  },
+  {
+   "provision_id": "IIT-LAW-002",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-004"
+   ],
+   "content_sha256": "e5b2888a449162df933a0a22865ceafa4933dc7da5cb21d487456a61c1ea0191",
+   "content_len": 83,
+   "source": "《中华人民共和国个人所得税法》"
+  },
+  {
+   "provision_id": "IIT-LAW-006",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第六条",
+   "article_no": 6,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-004"
+   ],
+   "content_sha256": "f2ee0785ccd3eaf60da2fc879935f65edfe352031c55f201abb89d47ac56bbee",
+   "content_len": 144,
+   "source": "《中华人民共和国个人所得税法》"
+  },
+  {
+   "provision_id": "IIT-LAW-009",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第九条",
+   "article_no": 9,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-004"
+   ],
+   "content_sha256": "05b2282d7588bd52a161dc3bbc3e353f176c04d6ec34de6fc89780edab47f780",
+   "content_len": 33,
+   "source": "《中华人民共和国个人所得税法》"
+  },
+  {
+   "provision_id": "IIT-LAW-010",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第十条",
+   "article_no": 10,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003",
+    "TOPIC-004"
+   ],
+   "content_sha256": "b66bbc290b46c1e8fa4892bfe08fc14f1960fe778db33f3cf4841dd933b6e4f2",
+   "content_len": 125,
+   "source": "《中华人民共和国个人所得税法》"
+  },
+  {
+   "provision_id": "IIT-REG-006",
+   "law": "个人所得税法实施条例",
+   "law_code": "IIT-REG",
+   "article": "第六条",
+   "article_no": 6,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-004"
+   ],
+   "content_sha256": "0386b8a3460a2f530cb7979ad5cb8fab8b33ce491fafeaa8d812a8ef395f81a7",
+   "content_len": 204,
+   "source": "《中华人民共和国个人所得税法实施条例》"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-008",
+   "law": "企业所得税税前扣除凭证管理办法（国家税务总局公告2018年第28号）",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第八条",
+   "article_no": 8,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003",
+    "TOPIC-012"
+   ],
+   "content_sha256": "57f78711b953d2c5ad9c2b1e19caa2513576270921d5cf35d88b48cb2203b5c3",
+   "content_len": 144,
+   "source": "国家税务总局公告2018年第28号"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "article_no": 63,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005"
+   ],
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c",
+   "content_len": 250,
+   "source": "《中华人民共和国税收征收管理法》（中华人民共和国主席令第49号）"
+  },
+  {
+   "provision_id": "CIT-LAW-008",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "article_no": 8,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7",
+   "content_len": 56,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号，2018年修正）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-022",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "article_no": 22,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d",
+   "content_len": 137,
+   "source": "《中华人民共和国发票管理办法》（国务院令第587号，2023年修订）"
+  },
+  {
+   "provision_id": "STAMP-TAX-LAW-002",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-013"
+   ],
+   "content_sha256": "fa0447cb0d124cdf325152b050da12ab155247b46e42cb6f85074fb07cc0c436",
+   "content_len": 43,
+   "source": "《中华人民共和国印花税法》（中华人民共和国主席令第八十九号，2021年6月10日第十三届全国人民代表大会常务委员会第二十九次会议通过，自2022年7月1日起施行）"
+  },
+  {
+   "provision_id": "CIT-LAW-041",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第四十一条",
+   "article_no": 41,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "0231e3254d50de034244db12bb93f6ecd1a12dca791f26ffa9559acacd167e7f",
+   "content_len": 123,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号，2018年12月29日修正）第六章 特别纳税调整"
+  },
+  {
+   "provision_id": "CIT-LAW-046",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第四十六条",
+   "article_no": 46,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "35b9c9db39dbef9a069ccf444c007df68d732a4b20515467d8772f9dd4cc9be0",
+   "content_len": 54,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号，2018年修正）"
+  },
+  {
+   "provision_id": "VAT-LAW-005",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第五条",
+   "article_no": 5,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "521b88a84b995c49d81c397b41cb191a0b2c0d50d21796436ca6b38431809866",
+   "content_len": 111,
+   "source": "《中华人民共和国增值税法》（中华人民共和国主席令第四十一号，2024年12月25日通过，自2026年1月1日起施行）"
+  },
+  {
+   "provision_id": "VAT-LAW-015",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第十五条",
+   "article_no": 15,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-004"
+   ],
+   "content_sha256": "c5c9497f0366a0c62e8cfbe956979dccb37517b64addaf56d84cd539341f6fcd",
+   "content_len": 89,
+   "source": "《中华人民共和国增值税法》（中华人民共和国主席令第四十一号）"
+  },
+  {
+   "provision_id": "VAT-LAW-022",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十二条",
+   "article_no": 22,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "eca19d6cfad1e9f05383eba5bc47adf8bb3e12bc1c856d729843f0f74198b26b",
+   "content_len": 175,
+   "source": "《中华人民共和国增值税法》（中华人民共和国主席令第四十一号）"
+  },
+  {
+   "provision_id": "VAT-LAW-028",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十八条",
+   "article_no": 28,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002"
+   ],
+   "content_sha256": "f7a542cd82d03c09cbefd6c9da1c65d606f208f49df8fb332863ec1ffd72e19e",
+   "content_len": 166,
+   "source": "《中华人民共和国增值税法》（中华人民共和国主席令第四十一号）"
+  },
+  {
+   "provision_id": "VAT-LAW-033",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第三十三条",
+   "article_no": 33,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "abd22358d253af565bfb257e988d9e1f3820de2dcaf33346a435ee8ccfcb59d9",
+   "content_len": 67,
+   "source": "《中华人民共和国增值税法》（中华人民共和国主席令第四十一号）"
+  },
+  {
+   "provision_id": "VAT-LAW-038",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第三十八条",
+   "article_no": 38,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "0dce1d601beff6a6f618de1cf0559ad317cb822b408aad9bda52aa7890d6776d",
+   "content_len": 37,
+   "source": "《中华人民共和国增值税法》（中华人民共和国主席令第四十一号）"
+  },
+  {
+   "provision_id": "CIT-LAW-003",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003",
+    "TOPIC-008"
+   ],
+   "content_sha256": "179c5d8154ad0bf5d7b733411934c1298a208ca83f1499bc4315830367ea04cb",
+   "content_len": 184,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号，2018年12月29日第二次修正）"
+  },
+  {
+   "provision_id": "CIT-LAW-006",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第六条",
+   "article_no": 6,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "4b755f205ae2d4162a9d67a46a9908e6ac5ef7447be4f09eef9dabde293aa88b",
+   "content_len": 126,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号）"
+  },
+  {
+   "provision_id": "CIT-LAW-007",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第七条",
+   "article_no": 7,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "b763796647695215cb7b1db7c4bcce9a0b095b0c378b43ac6a804b8ee06375df",
+   "content_len": 71,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号）"
+  },
+  {
+   "provision_id": "CIT-LAW-011",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第十一条",
+   "article_no": 11,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "f38f921bbef75305ae89cddc5301e3d11a632ab7afab028d2dba6021abd9ce98",
+   "content_len": 180,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号）"
+  },
+  {
+   "provision_id": "CIT-LAW-013",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第十三条",
+   "article_no": 13,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "66a7459b836223ec7e27b3dd185de9f6678de7020bb4a487ff7aa7c9758ff213",
+   "content_len": 111,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号）"
+  },
+  {
+   "provision_id": "CIT-LAW-018",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第十八条",
+   "article_no": 18,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "225245f506205f3965606c6e8fc7ec8a216038c462158b3fddc548f7cdd53a43",
+   "content_len": 47,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号）"
+  },
+  {
+   "provision_id": "CIT-LAW-030",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第三十条",
+   "article_no": 30,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003",
+    "TOPIC-006"
+   ],
+   "content_sha256": "6c355bbd976ebfa78d4015144078cb52736d169462e85be2fd9522b75978003c",
+   "content_len": 81,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号，2018年修正）"
+  },
+  {
+   "provision_id": "CIT-LAW-037",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第三十七条",
+   "article_no": 37,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-003",
+    "TOPIC-008"
+   ],
+   "content_sha256": "b9de45fa692e35f318598685a73d105dc477e00161f74f27b8c81b2420f24a39",
+   "content_len": 86,
+   "source": "《中华人民共和国企业所得税法》（中华人民共和国主席令第63号，2018年修正）第五章 源泉扣缴"
+  },
+  {
+   "provision_id": "CIT-REG-009",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第九条",
+   "article_no": 9,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "a1ff7ece542821bb4336cd8931492e19e1b53e1093c6d129d16a51ac5cf35aef",
+   "content_len": 115,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号，2019年第一次修订、2024年第二次修订）"
+  },
+  {
+   "provision_id": "CIT-REG-010",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第十条",
+   "article_no": 10,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "fcfd5147c83866f54a94c9c656854bbdc1e854cde51969422de8da1882b762dd",
+   "content_len": 70,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "CIT-REG-040",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第四十条",
+   "article_no": 40,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "64c6ded12e8e2432cb23ddc65cfd6a14043548f6e8a47455d3af2c0c31661e67",
+   "content_len": 34,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "CIT-REG-041",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第四十一条",
+   "article_no": 41,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "7392bf29176339514e39dea6577fb320b91c659a72aa6f550995dcd5e7b12c5f",
+   "content_len": 30,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "CIT-REG-042",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第四十二条",
+   "article_no": 42,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "1a639a10a35c0f0090246831a92083ee948ab29c9929c251ce06edb865ac4c40",
+   "content_len": 74,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "CIT-REG-043",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第四十三条",
+   "article_no": 43,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "602e1af244b0b2206d23bfbd39eb301cdfd5187b6978ef53edc525047c06ad0e",
+   "content_len": 56,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "CIT-REG-044",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第四十四条",
+   "article_no": 44,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "40d294d8528328a408be61603d8bf71f6d60f671f22963de35f9600f9c2be3cc",
+   "content_len": 85,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "CIT-REG-045",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第四十五条",
+   "article_no": 45,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "49842fd7febec0ef77cf95ec16fb24d7f12e2ae971f93a3a072865a8e985248f",
+   "content_len": 63,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "CIT-REG-059",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第五十九条",
+   "article_no": 59,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "57306bef500270ea5942fdbb109c4ec5ebfbc8476b595c669ca7cb05f7a770e8",
+   "content_len": 128,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "CIT-REG-091",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第九十一条",
+   "article_no": 91,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-003",
+    "TOPIC-008"
+   ],
+   "content_sha256": "8caac4051e081bcff550a5d1e9b549112df23da31efe0aad5507deba2dd06bca",
+   "content_len": 131,
+   "source": "《中华人民共和国企业所得税法实施条例》（中华人民共和国国务院令第512号）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-020",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十条",
+   "article_no": 20,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "def7ad52b112e1a1670585e3ca55232f6b45174f315a127e5976169a10496381",
+   "content_len": 32,
+   "source": "《中华人民共和国发票管理办法》（中华人民共和国国务院令第764号，2023年7月20日修订）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-021",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十一条",
+   "article_no": 21,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "13621904c211b096e62cc7d34a80a4eda996c84bfb672a9a6fe12f1351ace4ff",
+   "content_len": 144,
+   "source": "《中华人民共和国发票管理办法》（中华人民共和国国务院令第764号，2023年修订）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-035",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第三十五条",
+   "article_no": 35,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "02907ed1fd943344ba7acfef02c835aef845de475a25d99e32fef0195faabeff",
+   "content_len": 111,
+   "source": "《中华人民共和国发票管理办法》（中华人民共和国国务院令第764号，2023年修订）"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-017",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第十七条",
+   "article_no": 17,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005"
+   ],
+   "content_sha256": "991bda3ba9086631800eaf6a9c833c29ec54e5311275ebc801c10f09c268f2d6",
+   "content_len": 184,
+   "source": "《中华人民共和国税收征收管理法》（2015年4月24日第三次修正）"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-025",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第二十五条",
+   "article_no": 25,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-004",
+    "TOPIC-005"
+   ],
+   "content_sha256": "079c525a0fe9f026b1c840912bd8286c91eb447ef21caa3d5fa5365f948563ab",
+   "content_len": 191,
+   "source": "《中华人民共和国税收征收管理法》（2015年4月24日第三次修正）"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-066",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十六条",
+   "article_no": 66,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005",
+    "TOPIC-018"
+   ],
+   "content_sha256": "3de86e551bb322635b7a5db35e0d7511e016d75bda7533fa2381740eab55676d",
+   "content_len": 108,
+   "source": "《中华人民共和国税收征收管理法》（2015年4月24日第三次修正）"
+  },
+  {
+   "provision_id": "TAX-ADMIN-LAW-069",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十九条",
+   "article_no": 69,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005"
+   ],
+   "content_sha256": "f7913fce2d63d59d7354130bcf493311ff26614e15d510b65922c8df21d8cb82",
+   "content_len": 66,
+   "source": "《中华人民共和国税收征收管理法》（2015年4月24日第三次修正）"
+  },
+  {
+   "provision_id": "DEED-TAX-LAW-001",
+   "law": "契税法",
+   "law_code": "DEED-TAX-LAW",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-015"
+   ],
+   "content_sha256": "37a60c72ee3a626eedd710a27287dff42e71ce687fa00d57a25bb4cc489118cb",
+   "content_len": 49,
+   "source": "《中华人民共和国契税法》（2020年8月11日第十三届全国人民代表大会常务委员会第二十一次会议通过，自2021年9月1日起施行）"
+  },
+  {
+   "provision_id": "DEED-TAX-LAW-002",
+   "law": "契税法",
+   "law_code": "DEED-TAX-LAW",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-015"
+   ],
+   "content_sha256": "b527ce2f2a3482e1c204472b048687b979e400a826b97a4a1f3590803863d37b",
+   "content_len": 148,
+   "source": "《中华人民共和国契税法》（2020年8月11日通过，自2021年9月1日起施行）"
+  },
+  {
+   "provision_id": "DEED-TAX-LAW-004",
+   "law": "契税法",
+   "law_code": "DEED-TAX-LAW",
+   "article": "第四条",
+   "article_no": 4,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-005",
+    "TOPIC-015"
+   ],
+   "content_sha256": "05c7fd99e24cfdf664d635736b991e74893a1a7f4959f7cc1d773a9cfbe24fb6",
+   "content_len": 233,
+   "source": "《中华人民共和国契税法》（2020年8月11日通过，自2021年9月1日起施行）"
+  },
+  {
+   "provision_id": "RESOURCE-TAX-LAW-001",
+   "law": "资源税法",
+   "law_code": "RESOURCE-TAX-LAW",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-017"
+   ],
+   "content_sha256": "11745c085ddf7e9149b995c4c05af6a4098957e148459b469b58ca14977fadc0",
+   "content_len": 101,
+   "source": "《中华人民共和国资源税法》（2019年8月26日第十三届全国人民代表大会常务委员会第十二次会议通过，自2020年9月1日起施行）"
+  },
+  {
+   "provision_id": "RESOURCE-TAX-LAW-003",
+   "law": "资源税法",
+   "law_code": "RESOURCE-TAX-LAW",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-017"
+   ],
+   "content_sha256": "8274a31185d74b26a37600e662db443498d93b765dd6007449783119df0316d1",
+   "content_len": 213,
+   "source": "《中华人民共和国资源税法》（2019年8月26日通过，自2020年9月1日起施行）"
+  },
+  {
+   "provision_id": "EPT-LAW-002",
+   "law": "环境保护税法",
+   "law_code": "EPT-LAW",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-017"
+   ],
+   "content_sha256": "0de8d09cb01a636d56765b199a47660523e7474def4f010c83536fbd75e20284",
+   "content_len": 80,
+   "source": "《中华人民共和国环境保护税法》（2016年12月25日通过，根据2018年10月26日修正，自2018年1月1日起施行）"
+  },
+  {
+   "provision_id": "EPT-LAW-010",
+   "law": "环境保护税法",
+   "law_code": "EPT-LAW",
+   "article": "第十条",
+   "article_no": 10,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-017"
+   ],
+   "content_sha256": "3bb8a8d1d7babe78851acd86c9a781842a6569e270c6ed87a04883e888f0dd44",
+   "content_len": 257,
+   "source": "《中华人民共和国环境保护税法》（2016年12月25日通过，2018年10月26日修正）"
+  },
+  {
+   "provision_id": "UCT-LAW-002",
+   "law": "城市维护建设税法",
+   "law_code": "UCT-LAW",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-010"
+   ],
+   "content_sha256": "4286a8a3a086593f160a0ff12cb483638b2d5b0e6a4c2e4c194bdb720a8d3fd4",
+   "content_len": 127,
+   "source": "《中华人民共和国城市维护建设税法》（2020年8月11日通过，自2021年9月1日起施行）"
+  },
+  {
+   "provision_id": "VVT-LAW-001",
+   "law": "车船税法",
+   "law_code": "VVT-LAW",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-016"
+   ],
+   "content_sha256": "5c0f7b160f4a37ad4854ed49e43a6bf436c539872127e1eda77e965ef7cce20f",
+   "content_len": 73,
+   "source": "《中华人民共和国车船税法》（2011年2月25日第十一届全国人民代表大会常务委员会第十九次会议通过，自2012年1月1日起施行）"
+  },
+  {
+   "provision_id": "VVT-LAW-006",
+   "law": "车船税法",
+   "law_code": "VVT-LAW",
+   "article": "第六条",
+   "article_no": 6,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-016"
+   ],
+   "content_sha256": "27559998ba9485c5b40fc9b1b246ce42ddd91c6bc3a29959901f16e871c2918f",
+   "content_len": 62,
+   "source": "《中华人民共和国车船税法》（2011年2月25日通过，自2012年1月1日起施行）"
+  },
+  {
+   "provision_id": "FARMLAND-TAX-LAW-002",
+   "law": "耕地占用税法",
+   "law_code": "FARMLAND-TAX-LAW",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-015"
+   ],
+   "content_sha256": "31bfb6ae81f03e74e59ed4125737cc94c11fbf1c543e3b88a721223f89608117",
+   "content_len": 109,
+   "source": "《中华人民共和国耕地占用税法》（中华人民共和国主席令第十八号，2018年12月29日通过，自2019年9月1日起施行）"
+  },
+  {
+   "provision_id": "TOBACCO-TAX-LAW-001",
+   "law": "烟叶税法",
+   "law_code": "TOBACCO-TAX-LAW",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "法律",
+   "topic_tags": [],
+   "content_sha256": "b73e72b98f9157ca1eddeb197fadfc80fae44dc161be73721881c76c72217cd9",
+   "content_len": 63,
+   "source": "《中华人民共和国烟叶税法》（2017年12月27日第十二届全国人民代表大会常务委员会第三十一次会议通过，自2018年7月1日起施行）"
+  },
+  {
+   "provision_id": "TONNAGE-TAX-LAW-001",
+   "law": "船舶吨税法",
+   "law_code": "TONNAGE-TAX-LAW",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "法律",
+   "topic_tags": [],
+   "content_sha256": "055c128934a20b4e9fb6093e949b340eb42c5892523bdd82219e05a8a8876467",
+   "content_len": 52,
+   "source": "《中华人民共和国船舶吨税法》（2017年12月27日第十二届全国人民代表大会常务委员会第三十一次会议通过，根据2018年10月26日修正，自2018年7月1日起施行）"
+  },
+  {
+   "provision_id": "VPT-LAW-001",
+   "law": "车辆购置税法",
+   "law_code": "VPT-LAW",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-016"
+   ],
+   "content_sha256": "8a21d2632ea75ac24df4578c566ef121ffc3280396d0025691f6584dcd00d0aa",
+   "content_len": 84,
+   "source": "《中华人民共和国车辆购置税法》（中华人民共和国主席令第十九号，2018年12月29日通过，自2019年7月1日起施行）"
+  },
+  {
+   "provision_id": "CT-REG-001",
+   "law": "消费税暂行条例",
+   "law_code": "CT-REG",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-010"
+   ],
+   "content_sha256": "23b35a6ffe38c569a7e6e4d897ee49682dac2ee76479c1dc87b9453ee355e393",
+   "content_len": 86,
+   "source": "《中华人民共和国消费税暂行条例》（中华人民共和国国务院令第539号，2008年11月5日修订通过，自2009年1月1日起施行）"
+  },
+  {
+   "provision_id": "CT-REG-004",
+   "law": "消费税暂行条例",
+   "law_code": "CT-REG",
+   "article": "第四条",
+   "article_no": 4,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-010"
+   ],
+   "content_sha256": "8c6c6eebd26de51c4e338ace223d8e4dcd9124ab674e07acf4b0923ad9f9e3f4",
+   "content_len": 166,
+   "source": "《中华人民共和国消费税暂行条例》（中华人民共和国国务院令第539号）"
+  },
+  {
+   "provision_id": "CT-REG-010",
+   "law": "消费税暂行条例",
+   "law_code": "CT-REG",
+   "article": "第十条",
+   "article_no": 10,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-010"
+   ],
+   "content_sha256": "7358af329e75c4913283b6ff5a3f202c5e49f14f14cc4949b557d3fe41c6a41c",
+   "content_len": 40,
+   "source": "《中华人民共和国消费税暂行条例》（中华人民共和国国务院令第539号）"
+  },
+  {
+   "provision_id": "LVAT-REG-002",
+   "law": "土地增值税暂行条例",
+   "law_code": "LVAT-REG",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-009"
+   ],
+   "content_sha256": "29f07607de73c28d1a567e4eef27b0a26cd6b500fbb158e331ad7882c93e750e",
+   "content_len": 81,
+   "source": "《中华人民共和国土地增值税暂行条例》（1993年12月13日国务院令第138号发布，根据2011年1月8日《国务院关于废止和修改部分行政法规的决定》修订）"
+  },
+  {
+   "provision_id": "PROPERTY-TAX-REG-002",
+   "law": "房产税暂行条例",
+   "law_code": "PROPERTY-TAX-REG",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-014"
+   ],
+   "content_sha256": "112955f47805e87d9a3240ad25a50d5f29180b3f1990fe09af67fc61fc5bfdfb",
+   "content_len": 146,
+   "source": "《中华人民共和国房产税暂行条例》（1986年9月15日国务院发布，根据2011年1月8日《国务院关于废止和修改部分行政法规的决定》修订）"
+  },
+  {
+   "provision_id": "PROPERTY-TAX-REG-003",
+   "law": "房产税暂行条例",
+   "law_code": "PROPERTY-TAX-REG",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-014"
+   ],
+   "content_sha256": "70e66d26f3eb2f73508f059fa19df4f3fca8f13b4d6041972dbb7e2d9168e08e",
+   "content_len": 107,
+   "source": "《中华人民共和国房产税暂行条例》（1986年9月15日国务院发布，2011年修订）"
+  },
+  {
+   "provision_id": "ULT-REG-002",
+   "law": "城镇土地使用税暂行条例",
+   "law_code": "ULT-REG",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-014"
+   ],
+   "content_sha256": "924d825437dd1b44ebcd44c44a9eee8e1166cf7a05aa9a0649bf33df5fb5628f",
+   "content_len": 161,
+   "source": "《中华人民共和国城镇土地使用税暂行条例》（1988年9月27日国务院令第17号发布，根据2019年3月2日《国务院关于修改部分行政法规的决定》第四次修订）"
+  },
+  {
+   "provision_id": "ULT-REG-003",
+   "law": "城镇土地使用税暂行条例",
+   "law_code": "ULT-REG",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-014"
+   ],
+   "content_sha256": "c7a87fdd63d4ddf8b5d04840f5f1ef9ecea7e16179165c31a5d6f5e8c0980995",
+   "content_len": 74,
+   "source": "《中华人民共和国城镇土地使用税暂行条例》（1988年国务院令第17号发布，2019年第四次修订）"
+  },
+  {
+   "provision_id": "ULT-REG-004",
+   "law": "城镇土地使用税暂行条例",
+   "law_code": "ULT-REG",
+   "article": "第四条",
+   "article_no": 4,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-014"
+   ],
+   "content_sha256": "08cb2ff78b32df4bdaf5d9f53823a7ab8e24d4894e2d020f6e07dc0a66910a39",
+   "content_len": 83,
+   "source": "《中华人民共和国城镇土地使用税暂行条例》（1988年国务院令第17号发布，2019年第四次修订）"
+  },
+  {
+   "provision_id": "EDU-SURCHARGE-REG-003",
+   "law": "征收教育费附加的暂行规定",
+   "law_code": "EDU-SURCHARGE-REG",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-010",
+    "TOPIC-019"
+   ],
+   "content_sha256": "9cec68fceecab2529369c0a6207b756436339f9d1623311059c18c0971c0b2ae",
+   "content_len": 102,
+   "source": "《征收教育费附加的暂行规定》（1986年4月28日国务院发布，根据2011年1月8日《国务院关于废止和修改部分行政法规的决定》第三次修订）"
+  },
+  {
+   "provision_id": "CUSTOMS-LAW-053",
+   "law": "海关法",
+   "law_code": "CUSTOMS-LAW",
+   "article": "第五十三条",
+   "article_no": 53,
+   "kind": "法律",
+   "topic_tags": [],
+   "content_sha256": "6aafd1a43a0fbcbc9a7f15e63a9321097cd6b2af04fab24f6df32b5b99811912",
+   "content_len": 25,
+   "source": "《中华人民共和国海关法》（2021年4月29日第十三届全国人民代表大会常务委员会第二十八次会议第六次修正）"
+  },
+  {
+   "provision_id": "ACCOUNTING-LAW-003",
+   "law": "会计法",
+   "law_code": "ACCOUNTING-LAW",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "法律",
+   "topic_tags": [],
+   "content_sha256": "117f68a92531bc5a8d9248ce7cc245dc268fa22d4e49e793cd815c5874b73d90",
+   "content_len": 24,
+   "source": "《中华人民共和国会计法》（2024年6月28日第十四届全国人民代表大会常务委员会第十次会议第三次修正）"
+  },
+  {
+   "provision_id": "SOCIAL-INSURANCE-LAW-058",
+   "law": "社会保险法",
+   "law_code": "SOCIAL-INSURANCE-LAW",
+   "article": "第五十八条",
+   "article_no": 58,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-011"
+   ],
+   "content_sha256": "b994025d6426d88227afd1879c19d5012dd28eda86671a3fb0e2e4acee1e083b",
+   "content_len": 181,
+   "source": "《中华人民共和国社会保险法》（中华人民共和国主席令第35号，2010年10月28日通过，自2011年7月1日起施行）"
+  },
+  {
+   "provision_id": "HPF-REG-015",
+   "law": "住房公积金管理条例",
+   "law_code": "HPF-REG",
+   "article": "第十五条",
+   "article_no": 15,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-011"
+   ],
+   "content_sha256": "4ddae7550e53149ba274e868e8a1a9256b846348c8a8a354eecd422ba256c07b",
+   "content_len": 128,
+   "source": "《住房公积金管理条例》（1999年4月3日国务院令第262号发布，根据2002年3月24日、2019年3月24日及2026年修订）"
+  },
+  {
+   "provision_id": "HPF-REG-016",
+   "law": "住房公积金管理条例",
+   "law_code": "HPF-REG",
+   "article": "第十六条",
+   "article_no": 16,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-011"
+   ],
+   "content_sha256": "3948f33d165d81fc36ea2a5104062e6f2118e25d98d5fe066b0741dea5c88243",
+   "content_len": 86,
+   "source": "《住房公积金管理条例》（1999年国务院令第262号发布，根据2002年、2019年及2026年修订）"
+  },
+  {
+   "provision_id": "HPF-REG-020",
+   "law": "住房公积金管理条例",
+   "law_code": "HPF-REG",
+   "article": "第二十条",
+   "article_no": 20,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-011"
+   ],
+   "content_sha256": "dcf8024bb90a9b348922e973fcbc71c63f44bcb4bbb5a0a48441534fe9832727",
+   "content_len": 130,
+   "source": "《住房公积金管理条例》（1999年国务院令第262号发布，根据2002年、2019年及2026年修订）"
+  },
+  {
+   "provision_id": "UNION-LAW-043",
+   "law": "工会法",
+   "law_code": "UNION-LAW",
+   "article": "第四十三条",
+   "article_no": 43,
+   "kind": "法律",
+   "topic_tags": [],
+   "content_sha256": "d1b0aa6f62ab6a277171eb3c330df2461f4a1acbd79a010d8f56ae22dce9a3e0",
+   "content_len": 170,
+   "source": "《中华人民共和国工会法》（根据2021年12月24日第十三届全国人民代表大会常务委员会第三十二次会议《关于修改〈中华人民共和国工会法〉的决定》第三次修正，自2022年1月1日起施行）"
+  },
+  {
+   "provision_id": "VAT-REG-024",
+   "law": "增值税法实施条例",
+   "law_code": "VAT-REG",
+   "article": "第二十四条",
+   "article_no": 24,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "3f3b63ba29586d98a7a5dfe9b11e7e1fb812ea1cd29c98c425eb2c9b4b95ed43",
+   "content_len": 101,
+   "source": "《中华人民共和国增值税法实施条例》（中华人民共和国国务院令第826号，2025年12月25日公布，自2026年1月1日起施行）"
+  },
+  {
+   "provision_id": "DISABILITY-EMP-REG-008",
+   "law": "残疾人就业条例",
+   "law_code": "DISABILITY-EMP-REG",
+   "article": "第八条",
+   "article_no": 8,
+   "kind": "行政法规",
+   "topic_tags": [],
+   "content_sha256": "51e531847d7bd0db07128c9bad6372d9173eb73f71b9fae0f971ad77d19465c6",
+   "content_len": 130,
+   "source": "《残疾人就业条例》（中华人民共和国国务院令第488号，2007年2月25日公布，自2007年5月1日起施行）"
+  },
+  {
+   "provision_id": "DISABILITY-EMP-REG-009",
+   "law": "残疾人就业条例",
+   "law_code": "DISABILITY-EMP-REG",
+   "article": "第九条",
+   "article_no": 9,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-019"
+   ],
+   "content_sha256": "5ebcb3ae086381e795ccde70824c20bec3a4ff5279332cda5a82bb92b289bff0",
+   "content_len": 50,
+   "source": "《残疾人就业条例》（中华人民共和国国务院令第488号）"
+  },
+  {
+   "provision_id": "EQUITY-TRANSFER-IIT-MEASURE-012",
+   "law": "股权转让所得个人所得税管理办法（试行）",
+   "law_code": "EQUITY-TRANSFER-IIT-MEASURE",
+   "article": "第十二条",
+   "article_no": 12,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-004",
+    "TOPIC-020"
+   ],
+   "content_sha256": "377f1d85fca64b402570873d92debe28d1522c2c335f7591fa672befa6521c61",
+   "content_len": 282,
+   "source": "《股权转让所得个人所得税管理办法（试行）》（国家税务总局公告2014年第67号，自2015年1月1日起施行）"
+  },
+  {
+   "provision_id": "EQUITY-TRANSFER-IIT-MEASURE-013",
+   "law": "股权转让所得个人所得税管理办法（试行）",
+   "law_code": "EQUITY-TRANSFER-IIT-MEASURE",
+   "article": "第十三条",
+   "article_no": 13,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-004",
+    "TOPIC-020"
+   ],
+   "content_sha256": "ed2677a3ee07d66f9acff38f98499867b7a001ea4cd9c7a7fc58d00386620b4a",
+   "content_len": 255,
+   "source": "《股权转让所得个人所得税管理办法（试行）》（国家税务总局公告2014年第67号）"
+  },
+  {
+   "provision_id": "ASBE-BASIC-011",
+   "law": "企业会计准则——基本准则",
+   "law_code": "ASBE-BASIC",
+   "article": "第十一条",
+   "article_no": 11,
+   "kind": "部门规章",
+   "topic_tags": [],
+   "content_sha256": "ac2e1e0005b0c9e6d50e597e35f71baf4fb95c47643727271de455a81b0c7d10",
+   "content_len": 14,
+   "source": "《企业会计准则——基本准则》（财政部令第33号，2006年2月15日发布；根据2014年7月23日财政部令第76号《财政部关于修改〈企业会计准则——基本准则〉的决定》修订）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-004",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第四条",
+   "article_no": 4,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "60e9fc514c4ef1c77f19233bb68771aed189e3f3f100b7f6622b7062ced431fd",
+   "content_len": 116,
+   "source": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号，自2018年7月1日起施行）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-009",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第九条",
+   "article_no": 9,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-003"
+   ],
+   "content_sha256": "2d3e3b25cd0856e4084e8a0265442e181e7770f66a728712bbc47e5e627b2dd7",
+   "content_len": 275,
+   "source": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）"
+  },
+  {
+   "provision_id": "CUSTOMS-DUTY-LAW-002",
+   "law": "关税法",
+   "law_code": "CUSTOMS-DUTY-LAW",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-018"
+   ],
+   "content_sha256": "579c4f7f2b3ecae497c44979771e58e6206a9b38c35f184e3f030e21f8f4c884",
+   "content_len": 46,
+   "source": "《中华人民共和国关税法》（中华人民共和国主席令第二十三号，2024年4月26日第十四届全国人民代表大会常务委员会第九次会议通过，自2024年12月1日起施行；《中华人民共和国进出口关税条例》同时废止）"
+  },
+  {
+   "provision_id": "CUSTOMS-DUTY-LAW-024",
+   "law": "关税法",
+   "law_code": "CUSTOMS-DUTY-LAW",
+   "article": "第二十四条",
+   "article_no": 24,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-018"
+   ],
+   "content_sha256": "10663acbede24a044719cd786f8079c778b0382883431021af956c332444d0da",
+   "content_len": 56,
+   "source": "《中华人民共和国关税法》（中华人民共和国主席令第二十三号，自2024年12月1日起施行）——取代原《进出口关税条例》第十八条「完税价格」表述（现称「计税价格」）"
+  },
+  {
+   "provision_id": "CUSTOMS-DUTY-LAW-025",
+   "law": "关税法",
+   "law_code": "CUSTOMS-DUTY-LAW",
+   "article": "第二十五条",
+   "article_no": 25,
+   "kind": "法律",
+   "topic_tags": [
+    "TOPIC-018"
+   ],
+   "content_sha256": "3de7a81376660f91fa0e86fe6a06b2aa28e3561128ab9cc6f0246299fdddbd09",
+   "content_len": 274,
+   "source": "《中华人民共和国关税法》（中华人民共和国主席令第二十三号，自2024年12月1日起施行）"
+  },
+  {
+   "provision_id": "MOF-IIT-INVESTOR-002",
+   "law": "财政部 国家税务总局关于规范个人投资者个人所得税征收管理的通知",
+   "law_code": "MOF-IIT-INVESTOR",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-004"
+   ],
+   "content_sha256": "2e03aa424ef78d4308d44104782e40ff28828f09f0d1a4e141d68485cd9893d6",
+   "content_len": 149,
+   "source": "《财政部 国家税务总局关于规范个人投资者个人所得税征收管理的通知》（财税〔2003〕158号）"
+  },
+  {
+   "provision_id": "RMB-ACCOUNT-MEASURE-004",
+   "law": "人民币银行结算账户管理办法",
+   "law_code": "RMB-ACCOUNT-MEASURE",
+   "article": "第四条",
+   "article_no": 4,
+   "kind": "部门规章",
+   "topic_tags": [],
+   "content_sha256": "19a5563f41f606bb41e7a7822a8fbdd7d856b1de9828d23c3ef9e714b4bdf1d3",
+   "content_len": 28,
+   "source": "《人民币银行结算账户管理办法》（中国人民银行令〔2003〕第5号，2003年4月10日公布，自2003年9月1日起施行）"
+  },
+  {
+   "provision_id": "CIT-ASSESSED-MEASURE-003",
+   "law": "企业所得税核定征收办法",
+   "law_code": "CIT-ASSESSED-MEASURE",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "2c6ba9216c3a6d20d1a1ec9a15b12918d2b3e0ad1eb219ac81f43c9bb95b4727",
+   "content_len": 254,
+   "source": "《企业所得税核定征收办法（试行）》（国税发〔2008〕30号印发，经国家税务总局公告2018年第31号修改）"
+  },
+  {
+   "provision_id": "SAT-ANN-2011-25-004",
+   "law": "国家税务总局公告2011年第25号",
+   "law_code": "SAT-ANN-2011-25",
+   "article": "第四条",
+   "article_no": 4,
+   "kind": "规范性文件",
+   "topic_tags": [],
+   "content_sha256": "813382b46bd15ee26e9770232a376cbe77aa5b8b83ed863bd0af2093e9b50f32",
+   "content_len": 98,
+   "source": "《企业资产损失所得税税前扣除管理办法》（国家税务总局公告2011年第25号，自2011年1月1日起施行）"
+  },
+  {
+   "provision_id": "SAT-ANN-2011-25-005",
+   "law": "国家税务总局公告2011年第25号",
+   "law_code": "SAT-ANN-2011-25",
+   "article": "第五条",
+   "article_no": 5,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "bdec84e22c70bff4e04d5ee22bacae8ec534d3a50daefd0a261e2ad2bffc96f3",
+   "content_len": 54,
+   "source": "《企业资产损失所得税税前扣除管理办法》（国家税务总局公告2011年第25号）"
+  },
+  {
+   "provision_id": null,
+   "law": "国家税务总局公告2014年第39号",
+   "law_code": "SAT-ANN-2014-39",
+   "article": "正文",
+   "article_no": null,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002"
+   ],
+   "content_sha256": "afd717922c822d8e24089f7bd19c10d46ce4ae346d2da48d19c17199cafeb2ad",
+   "content_len": 268,
+   "source": "《国家税务总局关于纳税人对外开具增值税专用发票有关问题的公告》（国家税务总局公告2014年第39号，自2014年8月1日起施行）"
+  },
+  {
+   "provision_id": "MOF-CIT-RELATED-INTEREST-001",
+   "law": "财政部 国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知",
+   "law_code": "MOF-CIT-RELATED-INTEREST",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "e65f2daf8dcf06c9909aeeac2336cc4b5c9a9c7fcff1c7d2bb46d35164f7a9cf",
+   "content_len": 157,
+   "source": "《财政部 国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知》（财税〔2008〕121号，2008年9月19日）"
+  },
+  {
+   "provision_id": "MOF-IIT-TRANSITION-001",
+   "law": "财政部 税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知",
+   "law_code": "MOF-IIT-TRANSITION",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-004"
+   ],
+   "content_sha256": "9ff6172b71c5ed5529e591e51c51411b13c1478bc81ba65548f38d98a3fdcf9f",
+   "content_len": 365,
+   "source": "《财政部 税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知》（财税〔2018〕164号，2018年12月27日，自2019年1月1日起执行）"
+  },
+  {
+   "provision_id": "MOF-RD-SUPERDEDUCT-001",
+   "law": "财政部 国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知",
+   "law_code": "MOF-RD-SUPERDEDUCT",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-006"
+   ],
+   "content_sha256": "14deb351a332ef163202393d20ef7160964fdbf340bc298c2dd2ce57653180de",
+   "content_len": 230,
+   "source": "《财政部 国家税务总局 科技部关于完善研究开发费用税前加计扣除政策的通知》（财税〔2015〕119号，自2016年1月1日起执行）"
+  },
+  {
+   "provision_id": "MOF-STA-ANN-2023-7-001",
+   "law": "财政部 税务总局公告2023年第7号",
+   "law_code": "MOF-STA-ANN-2023-7",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-006"
+   ],
+   "content_sha256": "4f473af746340862a2b933329c8c6cdd28f6a6e519c8c9360ed5cf5bf40dc204",
+   "content_len": 119,
+   "source": "《财政部 税务总局关于进一步完善研发费用税前加计扣除政策的公告》（财政部 税务总局公告2023年第7号，自2023年1月1日起执行，作为制度性安排长期实施）"
+  },
+  {
+   "provision_id": "MOF-CIT-SPECIAL-FUND-001",
+   "law": "财政部 国家税务总局关于专项用途财政性资金企业所得税处理问题的通知",
+   "law_code": "MOF-CIT-SPECIAL-FUND",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "ad2c266584150fb37b6b1244ffcd340a70dc075d24fe348faaf67bff6bb3de0e",
+   "content_len": 172,
+   "source": "《财政部 国家税务总局关于专项用途财政性资金企业所得税处理问题的通知》（财税〔2011〕70号，自2011年1月1日起执行）"
+  },
+  {
+   "provision_id": "CS-2016-36-014",
+   "law": "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知",
+   "law_code": "CS-2016-36",
+   "article": "附件1第十四条",
+   "article_no": 14,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "c1933f15c4ecd2e7a4bc602ff92239b9fed0a6148a9730c23efcdd4391a444be",
+   "content_len": 225,
+   "source": "《财政部 国家税务总局关于全面推开营业税改征增值税试点的通知》（财税〔2016〕36号）附件1《营业税改征增值税试点实施办法》第十四条"
+  },
+  {
+   "provision_id": "CS-2016-36-014",
+   "law": "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知",
+   "law_code": "CS-2016-36",
+   "article": "第十四条",
+   "article_no": 14,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "0603a6d3093d5e80e75bfbaf29a2e0dc5d6614b5fb884483333b8c3f4d86f61d",
+   "content_len": 188,
+   "source": "《财政部 国家税务总局关于全面推开营业税改征增值税试点的通知》（财税〔2016〕36号）附件1第十四条"
+  },
+  {
+   "provision_id": "SAT-ANN-2019-38-001",
+   "law": "国家税务总局公告2019年第38号",
+   "law_code": "SAT-ANN-2019-38",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-010"
+   ],
+   "content_sha256": "e204050b496136f19b95ee51981442296c86f9c927f72065a0b7f73f4f6d691f",
+   "content_len": 278,
+   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号，自2020年2月1日起施行）"
+  },
+  {
+   "provision_id": "SAT-ANN-2019-38-002",
+   "law": "国家税务总局公告2019年第38号",
+   "law_code": "SAT-ANN-2019-38",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-018"
+   ],
+   "content_sha256": "7d0fedf66b1c65175be0729f727eff87dfaf2c815b510ef1167335ad70207021",
+   "content_len": 164,
+   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号）"
+  },
+  {
+   "provision_id": "DISABILITY-FUND-MEASURE-008",
+   "law": "残疾人就业保障金征收使用管理办法",
+   "law_code": "DISABILITY-FUND-MEASURE",
+   "article": "第八条",
+   "article_no": 8,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-019"
+   ],
+   "content_sha256": "6d940e313732989b153f378087632c58404b8ff9e601b148e6996389f8dfadc7",
+   "content_len": 322,
+   "source": "《残疾人就业保障金征收使用管理办法》（财税〔2015〕72号印发，自2015年10月1日起施行）"
+  },
+  {
+   "provision_id": "MOF-VAT-RATE-SIMPLIFY-001",
+   "law": "财政部 税务总局关于简并增值税税率有关政策的通知",
+   "law_code": "MOF-VAT-RATE-SIMPLIFY",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "16b59d64d28c8c3186cdcd50681201eec98d8bc2f022d903122043f1e1dba8d4",
+   "content_len": 211,
+   "source": "《财政部 税务总局关于简并增值税税率有关政策的通知》（财税〔2017〕37号，自2017年7月1日起执行）"
+  },
+  {
+   "provision_id": "SAT-LVAT-CLEARING-002",
+   "law": "国家税务总局关于房地产开发企业土地增值税清算管理有关问题的通知",
+   "law_code": "SAT-LVAT-CLEARING",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-009"
+   ],
+   "content_sha256": "98b5f499f3dd0714b8273abeb675b8faf315b0cae17f5345e0411a96cafff356",
+   "content_len": 273,
+   "source": "《国家税务总局关于房地产开发企业土地增值税清算管理有关问题的通知》（国税发〔2006〕187号；经国家税务总局公告2018年第31号修改）"
+  },
+  {
+   "provision_id": "SAT-UNION-FEE-VOUCHER-001",
+   "law": "国家税务总局关于工会经费企业所得税税前扣除凭据问题的公告",
+   "law_code": "SAT-UNION-FEE-VOUCHER",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "6c5ed0b9c0a92b9fd81f91efdc93cea5da2faebd3a398d7436a443ef5b7455a6",
+   "content_len": 70,
+   "source": "《国家税务总局关于工会经费企业所得税税前扣除凭据问题的公告》（国家税务总局公告2010年第24号）"
+  },
+  {
+   "provision_id": "MOF-CIVIL-AVIATION-FUND-001",
+   "law": "财政部关于民航发展基金等3项政府性基金有关政策的通知",
+   "law_code": "MOF-CIVIL-AVIATION-FUND",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [],
+   "content_sha256": "58ba74c380a07e9cd88ec0fdc29e05d96df02ed3e7c53bf42860f1d2798e5d54",
+   "content_len": 166,
+   "source": "《财政部关于民航发展基金等3项政府性基金有关政策的通知》（财税〔2020〕72号，2020年12月31日）"
+  },
+  {
+   "provision_id": "VVT-REG-002",
+   "law": "车船税法实施条例",
+   "law_code": "VVT-REG",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-016"
+   ],
+   "content_sha256": "affbff22647367ea34cc72106aeae07db17686bd1f1542405d7632e70e3a8d6f",
+   "content_len": 87,
+   "source": "《中华人民共和国车船税法实施条例》（中华人民共和国国务院令第611号，2011年12月5日公布，自2012年1月1日起施行；2019年3月2日修订）"
+  },
+  {
+   "provision_id": "MOF-RETENTION-REFUND-001",
+   "law": "财政部 税务总局关于完善增值税期末留抵退税政策的公告",
+   "law_code": "MOF-RETENTION-REFUND",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "71d1718bc55561857d98967cb4a00b1dc4ff173c1d44625500fc465bb7a09dfe",
+   "content_len": 448,
+   "source": "《财政部 税务总局关于完善增值税期末留抵退税政策的公告》（财政部 税务总局公告2025年第7号，自2025年9月1日起施行）"
+  },
+  {
+   "provision_id": "MOF-CCF-001",
+   "law": "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知",
+   "law_code": "MOF-CCF",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-019"
+   ],
+   "content_sha256": "d7df5d178c63ac35a5d516389788608c187cb9b9e107f12fac2b82dac2cf394b",
+   "content_len": 242,
+   "source": "《财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知》（财税〔2016〕25号，2016年3月28日）"
+  },
+  {
+   "provision_id": "MOF-CCF-SUPPLEMENT-001",
+   "law": "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知",
+   "law_code": "MOF-CCF-SUPPLEMENT",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-019"
+   ],
+   "content_sha256": "07a6ecbb45e6cf96b3372ce5481324dadd3dafe5b35821f8fd9666e349ea5f91",
+   "content_len": 112,
+   "source": "《财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知》（财税〔2016〕60号）"
+  },
+  {
+   "provision_id": "WATER-FUND-MEASURE-002",
+   "law": "水利建设基金筹集和使用管理办法",
+   "law_code": "WATER-FUND-MEASURE",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [],
+   "content_sha256": "8e14852abe57e8d8c8603eb58f250f8d030bae2ea131b50b83763132f248ff3e",
+   "content_len": 151,
+   "source": "《水利建设基金筹集和使用管理办法》（财综〔2011〕2号印发，自2011年1月1日起实行；执行期限经财税〔2020〕72号延续）"
+  },
+  {
+   "provision_id": "REALTY-TRANSFER-VAT-002",
+   "law": "纳税人转让不动产增值税征收管理暂行办法",
+   "law_code": "REALTY-TRANSFER-VAT",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "496fe3447b9dba146051ce65e285688dbf746e06cd381260d846bcd6acc82692",
+   "content_len": 95,
+   "source": "《纳税人转让不动产增值税征收管理暂行办法》（国家税务总局公告2016年第14号，自2016年5月1日起施行；经国家税务总局公告2018年第31号修改）"
+  },
+  {
+   "provision_id": "REALTY-LEASE-VAT-002",
+   "law": "纳税人提供不动产经营租赁服务增值税征收管理暂行办法",
+   "law_code": "REALTY-LEASE-VAT",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "9167f314ebd14aaeb0ee93a08276602478c510d6a43d46a2f2a50e89e4931467",
+   "content_len": 100,
+   "source": "《纳税人提供不动产经营租赁服务增值税征收管理暂行办法》（国家税务总局公告2016年第16号，自2016年5月1日起施行；经国家税务总局公告2018年第31号修改）"
+  },
+  {
+   "provision_id": "CROSS-COUNTY-CONSTRUCT-VAT-002",
+   "law": "纳税人跨县（市、区）提供建筑服务增值税征收管理暂行办法",
+   "law_code": "CROSS-COUNTY-CONSTRUCT-VAT",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "21b66c9a60f00de29adf208239473006f91f5e3151787c1d348df26f71e9e69e",
+   "content_len": 142,
+   "source": "《纳税人跨县（市、区）提供建筑服务增值税征收管理暂行办法》（国家税务总局公告2016年第17号，自2016年5月1日起施行）"
+  },
+  {
+   "provision_id": "MOF-VPT-POLICY-001",
+   "law": "财政部 税务总局关于车辆购置税有关具体政策的公告",
+   "law_code": "MOF-VPT-POLICY",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [],
+   "content_sha256": "72b8afb57e9f8ef8aa590b565c646a4b04cba105eac0f0023a638b7d543875f6",
+   "content_len": 66,
+   "source": "《财政部 税务总局关于车辆购置税有关具体政策的公告》（财政部 税务总局公告2019年第71号，自2019年7月1日起执行）"
+  },
+  {
+   "provision_id": "SAT-VPT-ADMIN-001",
+   "law": "国家税务总局关于车辆购置税征收管理有关事项的公告",
+   "law_code": "SAT-VPT-ADMIN",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [],
+   "content_sha256": "9c27ed51095e34b0cdfd93aa5bea82f026e8215a7db68242e09c07debfce25d0",
+   "content_len": 15,
+   "source": "《国家税务总局关于车辆购置税征收管理有关事项的公告》（国家税务总局公告2019年第26号，自2019年7月1日起施行）"
+  },
+  {
+   "provision_id": "SAT-RETENTION-REFUND-001",
+   "law": "国家税务总局关于办理增值税期末留抵退税有关征管事项的公告",
+   "law_code": "SAT-RETENTION-REFUND",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-005"
+   ],
+   "content_sha256": "98ae854352c68738a733189baab7dbcc9f4a9b585c7a90be0475403a2bbb2e40",
+   "content_len": 113,
+   "source": "《国家税务总局关于办理增值税期末留抵退税有关征管事项的公告》（国家税务总局公告2025年第20号，自2025年9月1日起施行）"
+  },
+  {
+   "provision_id": "MOF-EXPORT-VAT-CT-001",
+   "law": "财政部 税务总局关于出口业务增值税和消费税政策的公告",
+   "law_code": "MOF-EXPORT-VAT-CT",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-010"
+   ],
+   "content_sha256": "bd67c6a3e79b3c5da098276017655ac926ab9273361381103004ba8438ae8e1a",
+   "content_len": 164,
+   "source": "《财政部 税务总局关于出口业务增值税和消费税政策的公告》（财政部 税务总局公告2026年第11号，自2026年1月1日起施行）"
+  },
+  {
+   "provision_id": "EXPORT-REFUND-MEASURE-002",
+   "law": "出口业务增值税和消费税退（免）税管理办法",
+   "law_code": "EXPORT-REFUND-MEASURE",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002",
+    "TOPIC-010"
+   ],
+   "content_sha256": "504dca3074138ec7e6f49396de6f095d0db9bb5ed787f0b0cc8d5d02c7f05ff6",
+   "content_len": 105,
+   "source": "《出口业务增值税和消费税退（免）税管理办法》（国家税务总局公告2026年第5号，自2026年1月1日起施行；同时废止国家税务总局公告2012年第24号）"
+  },
+  {
+   "provision_id": "RMB-ACCOUNT-MEASURE-008",
+   "law": "人民币银行结算账户管理办法",
+   "law_code": "RMB-ACCOUNT-MEASURE",
+   "article": "第八条",
+   "article_no": 8,
+   "kind": "部门规章",
+   "topic_tags": [],
+   "content_sha256": "1c86ba17e89929ccc70ece424bcd59f0b5374df915ecd644a2e3c29db5c2b027",
+   "content_len": 60,
+   "source": "《人民币银行结算账户管理办法》（中国人民银行令〔2003〕第5号）"
+  },
+  {
+   "provision_id": "MOF-AGRI-DEDUCT-PILOT-002",
+   "law": "财政部 国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知",
+   "law_code": "MOF-AGRI-DEDUCT-PILOT",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-002"
+   ],
+   "content_sha256": "e1943d840db20b0f4ec631aabe5fb9cc6b6725dc806c6b37062a951bbbce6709",
+   "content_len": 143,
+   "source": "《财政部 国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知》（财税〔2012〕38号，自2012年7月1日起施行）附件1《农产品增值税进项税额核定扣除试点实施办法》"
+  }
+ ]
+}

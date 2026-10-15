@@ -1,0 +1,2647 @@
+{
+ "schema": 1,
+ "updated": "2026-10-15",
+ "note": "★ **法规 ⇄ 规则双向关联表**（唯一权威）。\n正向：`mappings[].rule_id → provision_id`；反向：`by_provision[provision_id] → [rule_id…]`。\n★ 条款 ID = `{法短码}-{条号:03d}`；法短码唯一权威 `config/legal_law_codes.json`。\n★ **只填可确证者**：`verified=true` 的条件是「法短码解析成功」**且**「正文库确有该条正文」；其余一律进 `unresolved` 并写明原因（不确定就不报）。\n★ `content_sha256` 取自正文库实际条目 → 可机器复核「关联指向的是真条文」。",
+ "rule_side": "engine/tax_redlines.py（RL-* 红线的 legal_basis）",
+ "provision_side": "static/legal_library.json（条款正文）× config/legal_law_codes.json（法名短码）",
+ "stats": {
+  "total_refs": 242,
+  "verified": 158,
+  "unresolved": 84,
+  "distinct_rules": 92,
+  "distinct_provisions": 75
+ },
+ "mappings": [
+  {
+   "rule_id": "RL-AST-001",
+   "raw_basis": "《企业所得税法》第十一条、第十三条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第十一条",
+   "provision_id": "CIT-LAW-011",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f38f921bbef75305ae89cddc5301e3d11a632ab7afab028d2dba6021abd9ce98"
+  },
+  {
+   "rule_id": "RL-AST-001",
+   "raw_basis": "《企业所得税法实施条例》第五十九条：固定资产按照直线法计算的折旧，准予扣除",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第五十九条",
+   "provision_id": "CIT-REG-059",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "57306bef500270ea5942fdbb109c4ec5ebfbc8476b595c669ca7cb05f7a770e8"
+  },
+  {
+   "rule_id": "RL-AST-002",
+   "raw_basis": "《企业所得税法》第七条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第七条",
+   "provision_id": "CIT-LAW-007",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "b763796647695215cb7b1db7c4bcce9a0b095b0c378b43ac6a804b8ee06375df"
+  },
+  {
+   "rule_id": "RL-AST-003",
+   "raw_basis": "《会计法》第九条",
+   "law": "会计法",
+   "law_code": "ACCOUNTING-LAW",
+   "article": "第九条",
+   "provision_id": "ACCOUNTING-LAW-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "4a7f5575dd3ffa78e035abfd63d34f5efeed28e0e1346727d9c29e13e69e66d3"
+  },
+  {
+   "rule_id": "RL-AST-003",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-CIT-001",
+   "raw_basis": "《企业所得税法》第四十一条：企业与其关联方之间的业务往来，不符合独立交易原则而减少企业或者其关联方应纳税收入或者所得额的，税务机关有权按照合理方法调整",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第四十一条",
+   "provision_id": "CIT-LAW-041",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "0231e3254d50de034244db12bb93f6ecd1a12dca791f26ffa9559acacd167e7f"
+  },
+  {
+   "rule_id": "RL-CIT-001",
+   "raw_basis": "《税收征收管理法》第三十六条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十六条",
+   "provision_id": "TAX-ADMIN-LAW-036",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "1d8dabd48b177ea4fc8fc0d3428813c077d047639657df3d0e0b524ca058ba3c"
+  },
+  {
+   "rule_id": "RL-CIT-002",
+   "raw_basis": "《企业所得税法》第四十一条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第四十一条",
+   "provision_id": "CIT-LAW-041",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "0231e3254d50de034244db12bb93f6ecd1a12dca791f26ffa9559acacd167e7f"
+  },
+  {
+   "rule_id": "RL-CIT-002",
+   "raw_basis": "《税收征收管理法》第三十六条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十六条",
+   "provision_id": "TAX-ADMIN-LAW-036",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "1d8dabd48b177ea4fc8fc0d3428813c077d047639657df3d0e0b524ca058ba3c"
+  },
+  {
+   "rule_id": "RL-CIT-003",
+   "raw_basis": "《企业所得税法》第三十条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第三十条",
+   "provision_id": "CIT-LAW-030",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6c355bbd976ebfa78d4015144078cb52736d169462e85be2fd9522b75978003c"
+  },
+  {
+   "rule_id": "RL-CIT-004",
+   "raw_basis": "《企业所得税法》第五条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第五条",
+   "provision_id": "CIT-LAW-005",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "aec7e0ab69f34560529fca78407baba815e50ca684125235e26141825eee34a6"
+  },
+  {
+   "rule_id": "RL-CIT-004",
+   "raw_basis": "《税收征收管理法》第三十五条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十五条",
+   "provision_id": "TAX-ADMIN-LAW-035",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc"
+  },
+  {
+   "rule_id": "RL-CIT-005",
+   "raw_basis": "《企业所得税法》第十八条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第十八条",
+   "provision_id": "CIT-LAW-018",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "225245f506205f3965606c6e8fc7ec8a216038c462158b3fddc548f7cdd53a43"
+  },
+  {
+   "rule_id": "RL-CIT-005",
+   "raw_basis": "《企业所得税法实施条例》第十条",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第十条",
+   "provision_id": "CIT-REG-010",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "fcfd5147c83866f54a94c9c656854bbdc1e854cde51969422de8da1882b762dd"
+  },
+  {
+   "rule_id": "RL-CIT-006",
+   "raw_basis": "《企业所得税法》第八条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-CIT-007",
+   "raw_basis": "《企业所得税法》第四十六条及财税〔2008〕121号（关联方债资比）",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第四十六条",
+   "provision_id": "CIT-LAW-046",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "35b9c9db39dbef9a069ccf444c007df68d732a4b20515467d8772f9dd4cc9be0"
+  },
+  {
+   "rule_id": "RL-CIT-007",
+   "raw_basis": "《企业所得税法实施条例》第四十条至第四十五条（各费用扣除限额）",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第四十条",
+   "provision_id": "CIT-REG-040",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "64c6ded12e8e2432cb23ddc65cfd6a14043548f6e8a47455d3af2c0c31661e67"
+  },
+  {
+   "rule_id": "RL-CIT-010",
+   "raw_basis": "《企业所得税法》第四十六条（企业从其关联方接受的债权性投资与权益性投资的比例超过规定标准而发生的利息支出，不得在计算应纳税所得额时扣除）",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第四十六条",
+   "provision_id": "CIT-LAW-046",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "35b9c9db39dbef9a069ccf444c007df68d732a4b20515467d8772f9dd4cc9be0"
+  },
+  {
+   "rule_id": "RL-CIT-011",
+   "raw_basis": "《中华人民共和国企业所得税法实施条例》第九条",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第九条",
+   "provision_id": "CIT-REG-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "a1ff7ece542821bb4336cd8931492e19e1b53e1093c6d129d16a51ac5cf35aef"
+  },
+  {
+   "rule_id": "RL-CIT-012",
+   "raw_basis": "《中华人民共和国企业所得税法》第八条、《中华人民共和国企业所得税法实施条例》第九条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-CIT-013",
+   "raw_basis": "《中华人民共和国企业所得税法》第八条、《企业资产损失所得税税前扣除管理办法》",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-CIT-016",
+   "raw_basis": "《中华人民共和国企业所得税法》第十八条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第十八条",
+   "provision_id": "CIT-LAW-018",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "225245f506205f3965606c6e8fc7ec8a216038c462158b3fddc548f7cdd53a43"
+  },
+  {
+   "rule_id": "RL-COST-001",
+   "raw_basis": "《企业所得税法》第八条：企业实际发生的与取得收入有关的、合理的支出准予扣除",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-COST-001",
+   "raw_basis": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）第九条",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第九条",
+   "provision_id": "CIT-VOUCHER-MEASURE-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "2d3e3b25cd0856e4084e8a0265442e181e7770f66a728712bbc47e5e627b2dd7"
+  },
+  {
+   "rule_id": "RL-COST-002",
+   "raw_basis": "《企业所得税法》第八条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-COST-002",
+   "raw_basis": "《发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-COST-003",
+   "raw_basis": "《发票管理办法》第二十条：所有单位和从事生产、经营活动的个人在购买商品、接受服务以及从事其他经营活动支付款项，应当向收款方取得发票",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十条",
+   "provision_id": "INVOICE-MEASURE-020",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "def7ad52b112e1a1670585e3ca55232f6b45174f315a127e5976169a10496381"
+  },
+  {
+   "rule_id": "RL-COST-004",
+   "raw_basis": "《企业所得税法》第四十一条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第四十一条",
+   "provision_id": "CIT-LAW-041",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "0231e3254d50de034244db12bb93f6ecd1a12dca791f26ffa9559acacd167e7f"
+  },
+  {
+   "rule_id": "RL-COST-004",
+   "raw_basis": "《税收征收管理法》第三十五条、第三十六条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十五条",
+   "provision_id": "TAX-ADMIN-LAW-035",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc"
+  },
+  {
+   "rule_id": "RL-COST-005",
+   "raw_basis": "《企业所得税法》第八条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-COST-005",
+   "raw_basis": "《企业所得税法实施条例》第九条",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第九条",
+   "provision_id": "CIT-REG-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "a1ff7ece542821bb4336cd8931492e19e1b53e1093c6d129d16a51ac5cf35aef"
+  },
+  {
+   "rule_id": "RL-COST-006",
+   "raw_basis": "《企业所得税法》第八条：企业实际发生的与取得收入有关的、合理的支出准予扣除",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-COST-006",
+   "raw_basis": "《税收征收管理法》第六十三条：在账簿上多列支出或者不列、少列收入，不缴或少缴应纳税款的，是偷税",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-FUND-001",
+   "raw_basis": "《个人所得税法》第二条、第九条（利息、股息、红利所得）",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第二条",
+   "provision_id": "IIT-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e5b2888a449162df933a0a22865ceafa4933dc7da5cb21d487456a61c1ea0191"
+  },
+  {
+   "rule_id": "RL-FUND-002",
+   "raw_basis": "《发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-FUND-004",
+   "raw_basis": "《人民币银行结算账户管理办法》（中国人民银行令〔2003〕第5号）第八条：银行结算账户的开立和使用应当遵守法律、行政法规，不得利用银行结算账户进行偷逃税款、逃废债务、套取现金及其他违法犯罪活动。★原引「现金管理暂行条例」第五条，该条例已自2025年1月20日废止（国务院令第797号附件2）；原要件①的金额门槛「超过结算起点1000元」随之失去法定依据，经业务裁定**不再保留**（2026-10-13）：本项改以「存在现金收付（含坐支、白条抵库等不规范形态）」为存在性前提，以「交易无法由银行流水印证／收入未申报或成本无合规凭证」为实质判据",
+   "law": "人民币银行结算账户管理办法",
+   "law_code": "RMB-ACCOUNT-MEASURE",
+   "article": "第八条",
+   "provision_id": "RMB-ACCOUNT-MEASURE-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "1c86ba17e89929ccc70ece424bcd59f0b5374df915ecd644a2e3c29db5c2b027"
+  },
+  {
+   "rule_id": "RL-FUND-004",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-FUND-005",
+   "raw_basis": "《税收征收管理法》第十七条：从事生产、经营的纳税人应当将其全部账号向税务机关报告",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第十七条",
+   "provision_id": "TAX-ADMIN-LAW-017",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "991bda3ba9086631800eaf6a9c833c29ec54e5311275ebc801c10f09c268f2d6"
+  },
+  {
+   "rule_id": "RL-FUND-005",
+   "raw_basis": "《税收征收管理法》第六十三条：在账簿上不列、少列收入，不缴或少缴应纳税款的，是偷税",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-FUND-006",
+   "raw_basis": "《会计法》第三条：各单位必须依法设置会计账簿，并保证其真实、完整",
+   "law": "会计法",
+   "law_code": "ACCOUNTING-LAW",
+   "article": "第三条",
+   "provision_id": "ACCOUNTING-LAW-003",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "117f68a92531bc5a8d9248ce7cc245dc268fa22d4e49e793cd815c5874b73d90"
+  },
+  {
+   "rule_id": "RL-FUND-006",
+   "raw_basis": "《企业会计准则——基本准则》第十一条：企业应当采用借贷记账法记账，借贷双方金额必须相等",
+   "law": "企业会计准则——基本准则",
+   "law_code": "ASBE-BASIC",
+   "article": "第十一条",
+   "provision_id": "ASBE-BASIC-011",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "ac2e1e0005b0c9e6d50e597e35f71baf4fb95c47643727271de455a81b0c7d10"
+  },
+  {
+   "rule_id": "RL-INC-001",
+   "raw_basis": "《税收征收管理法》第六十三条第一款：在账簿上少列收入，少缴应纳税款的，是偷税",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-INC-001",
+   "raw_basis": "《中华人民共和国增值税法》第二十八条：纳税义务发生时间为收讫销售款项或者取得销售款项索取凭据的当日",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十八条",
+   "provision_id": "VAT-LAW-028",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f7a542cd82d03c09cbefd6c9da1c65d606f208f49df8fb332863ec1ffd72e19e"
+  },
+  {
+   "rule_id": "RL-INC-002",
+   "raw_basis": "《个人所得税法》第二条",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第二条",
+   "provision_id": "IIT-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e5b2888a449162df933a0a22865ceafa4933dc7da5cb21d487456a61c1ea0191"
+  },
+  {
+   "rule_id": "RL-INC-002",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-INC-003",
+   "raw_basis": "《企业所得税法实施条例》第九条：企业应纳税所得额的计算，以权责发生制为原则",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第九条",
+   "provision_id": "CIT-REG-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "a1ff7ece542821bb4336cd8931492e19e1b53e1093c6d129d16a51ac5cf35aef"
+  },
+  {
+   "rule_id": "RL-INC-003",
+   "raw_basis": "《中华人民共和国增值税法》第二十八条及《中华人民共和国增值税法实施条例》第三十九条：采取预收款方式的，纳税义务发生时间为取得索取销售款项凭据的当日（应税交易完成之日）；原引「增值税暂行条例实施细则」第三十八条随「增值税暂行条例」废止",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十八条",
+   "provision_id": "VAT-LAW-028",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f7a542cd82d03c09cbefd6c9da1c65d606f208f49df8fb332863ec1ffd72e19e"
+  },
+  {
+   "rule_id": "RL-INC-004",
+   "raw_basis": "《企业所得税法》第六条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第六条",
+   "provision_id": "CIT-LAW-006",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "4b755f205ae2d4162a9d67a46a9908e6ac5ef7447be4f09eef9dabde293aa88b"
+  },
+  {
+   "rule_id": "RL-INC-004",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-INV-001",
+   "raw_basis": "《会计法》第九条",
+   "law": "会计法",
+   "law_code": "ACCOUNTING-LAW",
+   "article": "第九条",
+   "provision_id": "ACCOUNTING-LAW-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "4a7f5575dd3ffa78e035abfd63d34f5efeed28e0e1346727d9c29e13e69e66d3"
+  },
+  {
+   "rule_id": "RL-INV-001",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-INV-002",
+   "raw_basis": "《企业所得税法》第八条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-INV-002",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-INV-003",
+   "raw_basis": "《企业所得税法》第八条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-INV-003",
+   "raw_basis": "《税收征收管理法》第三十五条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十五条",
+   "provision_id": "TAX-ADMIN-LAW-035",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc"
+  },
+  {
+   "rule_id": "RL-OTH-001",
+   "raw_basis": "《印花税法》第一条、第五条",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第一条",
+   "provision_id": "STAMP-TAX-LAW-001",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "8a67fe439f77cc3d002f6d008ead12c11158b3178321b859fa0a2a6eeaa2c8ed"
+  },
+  {
+   "rule_id": "RL-OTH-002",
+   "raw_basis": "《房产税暂行条例》第二条、第三条",
+   "law": "房产税暂行条例",
+   "law_code": "PROPERTY-TAX-REG",
+   "article": "第二条",
+   "provision_id": "PROPERTY-TAX-REG-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "112955f47805e87d9a3240ad25a50d5f29180b3f1990fe09af67fc61fc5bfdfb"
+  },
+  {
+   "rule_id": "RL-OTH-002",
+   "raw_basis": "《城镇土地使用税暂行条例》第二条",
+   "law": "城镇土地使用税暂行条例",
+   "law_code": "ULT-REG",
+   "article": "第二条",
+   "provision_id": "ULT-REG-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "924d825437dd1b44ebcd44c44a9eee8e1166cf7a05aa9a0649bf33df5fb5628f"
+  },
+  {
+   "rule_id": "RL-OTH-003",
+   "raw_basis": "《征收教育费附加的暂行规定》第三条",
+   "law": "征收教育费附加的暂行规定",
+   "law_code": "EDU-SURCHARGE-REG",
+   "article": "第三条",
+   "provision_id": "EDU-SURCHARGE-REG-003",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9cec68fceecab2529369c0a6207b756436339f9d1623311059c18c0971c0b2ae"
+  },
+  {
+   "rule_id": "RL-OTH-003",
+   "raw_basis": "《城市维护建设税法》第二条",
+   "law": "城市维护建设税法",
+   "law_code": "UCT-LAW",
+   "article": "第二条",
+   "provision_id": "UCT-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "4286a8a3a086593f160a0ff12cb483638b2d5b0e6a4c2e4c194bdb720a8d3fd4"
+  },
+  {
+   "rule_id": "RL-OTH-004",
+   "raw_basis": "《城镇土地使用税暂行条例》第二条、第三条、第四条",
+   "law": "城镇土地使用税暂行条例",
+   "law_code": "ULT-REG",
+   "article": "第二条",
+   "provision_id": "ULT-REG-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "924d825437dd1b44ebcd44c44a9eee8e1166cf7a05aa9a0649bf33df5fb5628f"
+  },
+  {
+   "rule_id": "RL-OTH-005",
+   "raw_basis": "《车船税法》第一条、第六条",
+   "law": "车船税法",
+   "law_code": "VVT-LAW",
+   "article": "第一条",
+   "provision_id": "VVT-LAW-001",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "5c0f7b160f4a37ad4854ed49e43a6bf436c539872127e1eda77e965ef7cce20f"
+  },
+  {
+   "rule_id": "RL-OTH-006",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-OTH-007",
+   "raw_basis": "《印花税法》第二条、第五条（营业账簿税目按实收资本与资本公积合计金额万分之五，小微企业减半万分之二点五）",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第二条",
+   "provision_id": "STAMP-TAX-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "fa0447cb0d124cdf325152b050da12ab155247b46e42cb6f85074fb07cc0c436"
+  },
+  {
+   "rule_id": "RL-OTH-008",
+   "raw_basis": "《印花税法》第二条、第五条（产权转移书据税目，股权转让书据、不动产及土地使用权转让书据按价款万分之五计税）",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第二条",
+   "provision_id": "STAMP-TAX-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "fa0447cb0d124cdf325152b050da12ab155247b46e42cb6f85074fb07cc0c436"
+  },
+  {
+   "rule_id": "RL-OTH-009",
+   "raw_basis": "《印花税法》第二条、第五条（借款合同税目，银行业金融机构与借款人签订的借款合同按借款金额万分之零点五计税）",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第二条",
+   "provision_id": "STAMP-TAX-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "fa0447cb0d124cdf325152b050da12ab155247b46e42cb6f85074fb07cc0c436"
+  },
+  {
+   "rule_id": "RL-OTH-010",
+   "raw_basis": "《印花税法》第二条、第五条（租赁合同税目，经营租赁按租金千分之一计税；融资租赁按借款合同税目）",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第二条",
+   "provision_id": "STAMP-TAX-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "fa0447cb0d124cdf325152b050da12ab155247b46e42cb6f85074fb07cc0c436"
+  },
+  {
+   "rule_id": "RL-OTH-011",
+   "raw_basis": "《印花税法》第二条、第五条（保险合同税目，财产保险合同按保费千分之一计税；人身保险合同不征）",
+   "law": "印花税法",
+   "law_code": "STAMP-TAX-LAW",
+   "article": "第二条",
+   "provision_id": "STAMP-TAX-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "fa0447cb0d124cdf325152b050da12ab155247b46e42cb6f85074fb07cc0c436"
+  },
+  {
+   "rule_id": "RL-OTH-012",
+   "raw_basis": "《中华人民共和国税收征收管理法》第二十五条、第六十二条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第二十五条",
+   "provision_id": "TAX-ADMIN-LAW-025",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "079c525a0fe9f026b1c840912bd8286c91eb447ef21caa3d5fa5365f948563ab"
+  },
+  {
+   "rule_id": "RL-PAY-001",
+   "raw_basis": "《企业所得税法》第八条：企业实际发生的与取得收入有关的、合理的支出准予扣除",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-PAY-001",
+   "raw_basis": "《社会保险法》第五十八条：用人单位应当自用工之日起三十日内为其职工向社会保险经办机构申请办理社会保险登记",
+   "law": "社会保险法",
+   "law_code": "SOCIAL-INSURANCE-LAW",
+   "article": "第五十八条",
+   "provision_id": "SOCIAL-INSURANCE-LAW-058",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "b994025d6426d88227afd1879c19d5012dd28eda86671a3fb0e2e4acee1e083b"
+  },
+  {
+   "rule_id": "RL-PAY-001",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-PAY-002",
+   "raw_basis": "《个人所得税法》第九条、第十条（扣缴义务人全员全额扣缴申报）",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第九条",
+   "provision_id": "IIT-LAW-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "05b2282d7588bd52a161dc3bbc3e353f176c04d6ec34de6fc89780edab47f780"
+  },
+  {
+   "rule_id": "RL-PAY-002",
+   "raw_basis": "《税收征收管理法》第六十九条：扣缴义务人应扣未扣税款的，由税务机关向纳税人追缴税款，对扣缴义务人处应扣未扣税款百分之五十以上三倍以下的罚款",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十九条",
+   "provision_id": "TAX-ADMIN-LAW-069",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f7913fce2d63d59d7354130bcf493311ff26614e15d510b65922c8df21d8cb82"
+  },
+  {
+   "rule_id": "RL-PAY-003",
+   "raw_basis": "《企业所得税法》第八条",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-PAY-003",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-PAY-004",
+   "raw_basis": "《企业所得税税前扣除凭证管理办法》第九条",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第九条",
+   "provision_id": "CIT-VOUCHER-MEASURE-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "2d3e3b25cd0856e4084e8a0265442e181e7770f66a728712bbc47e5e627b2dd7"
+  },
+  {
+   "rule_id": "RL-PAY-004",
+   "raw_basis": "《个人所得税法实施条例》第六条：工资薪金所得与劳务报酬所得的区分",
+   "law": "个人所得税法实施条例",
+   "law_code": "IIT-REG",
+   "article": "第六条",
+   "provision_id": "IIT-REG-006",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "0386b8a3460a2f530cb7979ad5cb8fab8b33ce491fafeaa8d812a8ef395f81a7"
+  },
+  {
+   "rule_id": "RL-PAY-004",
+   "raw_basis": "《社会保险法》第五十八条",
+   "law": "社会保险法",
+   "law_code": "SOCIAL-INSURANCE-LAW",
+   "article": "第五十八条",
+   "provision_id": "SOCIAL-INSURANCE-LAW-058",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "b994025d6426d88227afd1879c19d5012dd28eda86671a3fb0e2e4acee1e083b"
+  },
+  {
+   "rule_id": "RL-PAY-005",
+   "raw_basis": "《个人所得税法》第二条、第六条",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第二条",
+   "provision_id": "IIT-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e5b2888a449162df933a0a22865ceafa4933dc7da5cb21d487456a61c1ea0191"
+  },
+  {
+   "rule_id": "RL-PAY-005",
+   "raw_basis": "《个人所得税法实施条例》第六条",
+   "law": "个人所得税法实施条例",
+   "law_code": "IIT-REG",
+   "article": "第六条",
+   "provision_id": "IIT-REG-006",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "0386b8a3460a2f530cb7979ad5cb8fab8b33ce491fafeaa8d812a8ef395f81a7"
+  },
+  {
+   "rule_id": "RL-PAY-006",
+   "raw_basis": "《个人所得税法》第九条",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第九条",
+   "provision_id": "IIT-LAW-009",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "05b2282d7588bd52a161dc3bbc3e353f176c04d6ec34de6fc89780edab47f780"
+  },
+  {
+   "rule_id": "RL-PAY-008",
+   "raw_basis": "《中华人民共和国个人所得税法》第六条、《个人所得税扣缴申报管理办法（试行）》",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第六条",
+   "provision_id": "IIT-LAW-006",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f2ee0785ccd3eaf60da2fc879935f65edfe352031c55f201abb89d47ac56bbee"
+  },
+  {
+   "rule_id": "RL-PAY-009",
+   "raw_basis": "《中华人民共和国个人所得税法》第二条、第三条",
+   "law": "个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第二条",
+   "provision_id": "IIT-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e5b2888a449162df933a0a22865ceafa4933dc7da5cb21d487456a61c1ea0191"
+  },
+  {
+   "rule_id": "RL-PTY-001",
+   "raw_basis": "《企业所得税法》第八条：企业实际发生的与取得收入有关的、合理的支出准予扣除",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第八条",
+   "provision_id": "CIT-LAW-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "9f82b738781c9962d90f5465895f82e24fc2ef4fee272697f759f39d6709e0d7"
+  },
+  {
+   "rule_id": "RL-PTY-001",
+   "raw_basis": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）第四条：税前扣除凭证在管理中遵循真实性、合法性、关联性原则",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第四条",
+   "provision_id": "CIT-VOUCHER-MEASURE-004",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "60e9fc514c4ef1c77f19233bb68771aed189e3f3f100b7f6622b7062ced431fd"
+  },
+  {
+   "rule_id": "RL-PTY-001",
+   "raw_basis": "《发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-PTY-002",
+   "raw_basis": "《发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-PTY-002",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-PTY-003",
+   "raw_basis": "《发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-PTY-003",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-PTY-004",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-PTY-004",
+   "raw_basis": "《中华人民共和国增值税法》第二十八条（纳税义务发生时间）",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十八条",
+   "provision_id": "VAT-LAW-028",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f7a542cd82d03c09cbefd6c9da1c65d606f208f49df8fb332863ec1ffd72e19e"
+  },
+  {
+   "rule_id": "RL-PTY-005",
+   "raw_basis": "《发票管理办法》第二十二条、第二十三条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-PTY-005",
+   "raw_basis": "《税收征收管理法》第六十条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十条",
+   "provision_id": "TAX-ADMIN-LAW-060",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "b8f5d019a26cebc4afdb41afd1df646240f1025724db3e44227a493f90ddfc40"
+  },
+  {
+   "rule_id": "RL-PTY-006",
+   "raw_basis": "《中华人民共和国发票管理办法》第二十一条、《中华人民共和国税收征收管理法》第三十五条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十一条",
+   "provision_id": "INVOICE-MEASURE-021",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "13621904c211b096e62cc7d34a80a4eda996c84bfb672a9a6fe12f1351ace4ff"
+  },
+  {
+   "rule_id": "RL-PTY-007",
+   "raw_basis": "《中华人民共和国发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-SPT-001",
+   "raw_basis": "《中华人民共和国土地增值税暂行条例》第二条：转让国有土地使用权、地上的建筑物及其附着物并取得收入的单位和个人，为土地增值税的纳税义务人",
+   "law": "土地增值税暂行条例",
+   "law_code": "LVAT-REG",
+   "article": "第二条",
+   "provision_id": "LVAT-REG-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "29f07607de73c28d1a567e4eef27b0a26cd6b500fbb158e331ad7882c93e750e"
+  },
+  {
+   "rule_id": "RL-SPT-001",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-SPT-002",
+   "raw_basis": "《中华人民共和国消费税暂行条例》第一条：在中华人民共和国境内生产、委托加工和进口本条例规定的消费品的单位和个人，为消费税的纳税人",
+   "law": "消费税暂行条例",
+   "law_code": "CT-REG",
+   "article": "第一条",
+   "provision_id": "CT-REG-001",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "23b35a6ffe38c569a7e6e4d897ee49682dac2ee76479c1dc87b9453ee355e393"
+  },
+  {
+   "rule_id": "RL-SPT-002",
+   "raw_basis": "《中华人民共和国消费税暂行条例》第四条：纳税人生产的应税消费品，于纳税人销售时纳税",
+   "law": "消费税暂行条例",
+   "law_code": "CT-REG",
+   "article": "第四条",
+   "provision_id": "CT-REG-004",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "8c6c6eebd26de51c4e338ace223d8e4dcd9124ab674e07acf4b0923ad9f9e3f4"
+  },
+  {
+   "rule_id": "RL-SPT-002",
+   "raw_basis": "《中华人民共和国消费税暂行条例》第十条：纳税人应税消费品的计税价格明显偏低又无正当理由的，由税务机关核定计税价格",
+   "law": "消费税暂行条例",
+   "law_code": "CT-REG",
+   "article": "第十条",
+   "provision_id": "CT-REG-010",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "7358af329e75c4913283b6ff5a3f202c5e49f14f14cc4949b557d3fe41c6a41c"
+  },
+  {
+   "rule_id": "RL-SPT-003",
+   "raw_basis": "《中华人民共和国资源税法》第一条：在中华人民共和国领域和中华人民共和国管辖的其他海域开发应税资源的单位和个人，为资源税的纳税人",
+   "law": "资源税法",
+   "law_code": "RESOURCE-TAX-LAW",
+   "article": "第一条",
+   "provision_id": "RESOURCE-TAX-LAW-001",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "11745c085ddf7e9149b995c4c05af6a4098957e148459b469b58ca14977fadc0"
+  },
+  {
+   "rule_id": "RL-SPT-003",
+   "raw_basis": "《中华人民共和国资源税法》第三条：资源税按照《税目税率表》实行从价计征或者从量计征",
+   "law": "资源税法",
+   "law_code": "RESOURCE-TAX-LAW",
+   "article": "第三条",
+   "provision_id": "RESOURCE-TAX-LAW-003",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "8274a31185d74b26a37600e662db443498d93b765dd6007449783119df0316d1"
+  },
+  {
+   "rule_id": "RL-SPT-003",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-SPT-004",
+   "raw_basis": "《中华人民共和国环境保护税法》第二条：在中华人民共和国领域和中华人民共和国管辖的其他海域，直接向环境排放应税污染物的企业事业单位和其他生产经营者为环境保护税的纳税人",
+   "law": "环境保护税法",
+   "law_code": "EPT-LAW",
+   "article": "第二条",
+   "provision_id": "EPT-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "0de8d09cb01a636d56765b199a47660523e7474def4f010c83536fbd75e20284"
+  },
+  {
+   "rule_id": "RL-SPT-004",
+   "raw_basis": "《中华人民共和国环境保护税法》第十条：应税污染物的计税依据按照污染物排放量折合的污染当量数确定",
+   "law": "环境保护税法",
+   "law_code": "EPT-LAW",
+   "article": "第十条",
+   "provision_id": "EPT-LAW-010",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "3bb8a8d1d7babe78851acd86c9a781842a6569e270c6ed87a04883e888f0dd44"
+  },
+  {
+   "rule_id": "RL-SPT-004",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-SPT-005",
+   "raw_basis": "《中华人民共和国关税法》第二十四条：进口货物的计税价格以成交价格以及该货物运抵中华人民共和国境内输入地点起卸前的运输及其相关费用、保险费为基础确定。★自2024年12月1日起，原「中华人民共和国进出口关税条例」已随《关税法》施行而废止（「完税价格」表述现为「计税价格」），本项引用已同步更新为现行依据",
+   "law": "关税法",
+   "law_code": "CUSTOMS-DUTY-LAW",
+   "article": "第二十四条",
+   "provision_id": "CUSTOMS-DUTY-LAW-024",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "10663acbede24a044719cd786f8079c778b0382883431021af956c332444d0da"
+  },
+  {
+   "rule_id": "RL-SPT-005",
+   "raw_basis": "《中华人民共和国关税法》第二十五条：进口货物的下列费用应当计入计税价格（含购货佣金以外的佣金和经纪费、容器费、包装材料及劳务费、买方免费或低价提供的料件工具模具等价款、与该货物有关的特许权使用费、卖方直接或间接获得的转售收益）",
+   "law": "关税法",
+   "law_code": "CUSTOMS-DUTY-LAW",
+   "article": "第二十五条",
+   "provision_id": "CUSTOMS-DUTY-LAW-025",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "3de7a81376660f91fa0e86fe6a06b2aa28e3561128ab9cc6f0246299fdddbd09"
+  },
+  {
+   "rule_id": "RL-SPT-005",
+   "raw_basis": "《中华人民共和国海关法》第五十三条：准许进出口的货物、进出境物品，由海关依法征收关税",
+   "law": "海关法",
+   "law_code": "CUSTOMS-LAW",
+   "article": "第五十三条",
+   "provision_id": "CUSTOMS-LAW-053",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6aafd1a43a0fbcbc9a7f15e63a9321097cd6b2af04fab24f6df32b5b99811912"
+  },
+  {
+   "rule_id": "RL-SPT-006",
+   "raw_basis": "《中华人民共和国企业所得税法》第三条第三款：非居民企业在中国境内未设立机构、场所的，或者虽设立机构、场所但取得的所得与其所设机构、场所没有实际联系的，应当就其来源于中国境内的所得缴纳企业所得税",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第三条",
+   "provision_id": "CIT-LAW-003",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "179c5d8154ad0bf5d7b733411934c1298a208ca83f1499bc4315830367ea04cb"
+  },
+  {
+   "rule_id": "RL-SPT-006",
+   "raw_basis": "《中华人民共和国企业所得税法》第三十七条：对非居民企业取得本法第三条第三款规定的所得应缴纳的所得税，实行源泉扣缴，以支付人为扣缴义务人",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第三十七条",
+   "provision_id": "CIT-LAW-037",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "b9de45fa692e35f318598685a73d105dc477e00161f74f27b8c81b2420f24a39"
+  },
+  {
+   "rule_id": "RL-SPT-006",
+   "raw_basis": "《中华人民共和国企业所得税法实施条例》第九十一条：减按10%的税率征收企业所得税",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第九十一条",
+   "provision_id": "CIT-REG-091",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "8caac4051e081bcff550a5d1e9b549112df23da31efe0aad5507deba2dd06bca"
+  },
+  {
+   "rule_id": "RL-SPT-007",
+   "raw_basis": "《中华人民共和国契税法》第一条：在中华人民共和国境内转移土地、房屋权属，承受的单位和个人为契税的纳税人",
+   "law": "契税法",
+   "law_code": "DEED-TAX-LAW",
+   "article": "第一条",
+   "provision_id": "DEED-TAX-LAW-001",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "37a60c72ee3a626eedd710a27287dff42e71ce687fa00d57a25bb4cc489118cb"
+  },
+  {
+   "rule_id": "RL-SPT-007",
+   "raw_basis": "《中华人民共和国契税法》第二条：转移土地、房屋权属包括土地使用权出让、土地使用权转让、房屋买卖、赠与、互换",
+   "law": "契税法",
+   "law_code": "DEED-TAX-LAW",
+   "article": "第二条",
+   "provision_id": "DEED-TAX-LAW-002",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "b527ce2f2a3482e1c204472b048687b979e400a826b97a4a1f3590803863d37b"
+  },
+  {
+   "rule_id": "RL-SPT-007",
+   "raw_basis": "《中华人民共和国契税法》第四条：计税依据为成交价格，成交价格明显偏低且无正当理由的，由税务机关依法核定",
+   "law": "契税法",
+   "law_code": "DEED-TAX-LAW",
+   "article": "第四条",
+   "provision_id": "DEED-TAX-LAW-004",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "05c7fd99e24cfdf664d635736b991e74893a1a7f4959f7cc1d773a9cfbe24fb6"
+  },
+  {
+   "rule_id": "RL-SPT-008",
+   "raw_basis": "《中华人民共和国税收征收管理法》第六十六条：以假报出口或者其他欺骗手段，骗取国家出口退税款的，由税务机关追缴其骗取的退税款，并处骗取税款一倍以上五倍以下的罚款",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十六条",
+   "provision_id": "TAX-ADMIN-LAW-066",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "3de86e551bb322635b7a5db35e0d7511e016d75bda7533fa2381740eab55676d"
+  },
+  {
+   "rule_id": "RL-SPT-008",
+   "raw_basis": "《中华人民共和国增值税法》第三十三条：纳税人出口货物或者跨境销售服务、无形资产，适用零税率的，应当向主管税务机关申报办理退（免）税",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第三十三条",
+   "provision_id": "VAT-LAW-033",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "abd22358d253af565bfb257e988d9e1f3820de2dcaf33346a435ee8ccfcb59d9"
+  },
+  {
+   "rule_id": "RL-SPT-009",
+   "raw_basis": "《中华人民共和国企业所得税法》第六条：企业以货币形式和非货币形式从各种来源取得的收入为收入总额",
+   "law": "企业所得税法",
+   "law_code": "CIT-LAW",
+   "article": "第六条",
+   "provision_id": "CIT-LAW-006",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "4b755f205ae2d4162a9d67a46a9908e6ac5ef7447be4f09eef9dabde293aa88b"
+  },
+  {
+   "rule_id": "RL-SPT-009",
+   "raw_basis": "《股权转让所得个人所得税管理办法（试行）》（国家税务总局公告2014年第67号）第十二条：申报的股权转让收入明显偏低且无正当理由的，主管税务机关可以核定股权转让收入",
+   "law": "股权转让所得个人所得税管理办法（试行）",
+   "law_code": "EQUITY-TRANSFER-IIT-MEASURE",
+   "article": "第十二条",
+   "provision_id": "EQUITY-TRANSFER-IIT-MEASURE-012",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "377f1d85fca64b402570873d92debe28d1522c2c335f7591fa672befa6521c61"
+  },
+  {
+   "rule_id": "RL-SPT-009",
+   "raw_basis": "《股权转让所得个人所得税管理办法（试行）》（国家税务总局公告2014年第67号）第十三条：股权转让收入明显偏低但视为有正当理由的情形",
+   "law": "股权转让所得个人所得税管理办法（试行）",
+   "law_code": "EQUITY-TRANSFER-IIT-MEASURE",
+   "article": "第十三条",
+   "provision_id": "EQUITY-TRANSFER-IIT-MEASURE-013",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "ed2677a3ee07d66f9acff38f98499867b7a001ea4cd9c7a7fc58d00386620b4a"
+  },
+  {
+   "rule_id": "RL-SPT-010",
+   "raw_basis": "《住房公积金管理条例》第十五条：单位录用职工的，应当自录用之日起30日内办理职工住房公积金账户的设立或者转移手续",
+   "law": "住房公积金管理条例",
+   "law_code": "HPF-REG",
+   "article": "第十五条",
+   "provision_id": "HPF-REG-015",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "4ddae7550e53149ba274e868e8a1a9256b846348c8a8a354eecd422ba256c07b"
+  },
+  {
+   "rule_id": "RL-SPT-010",
+   "raw_basis": "《住房公积金管理条例》第十六条：职工住房公积金的月缴存额为职工本人上一年度月平均工资乘以职工住房公积金缴存比例",
+   "law": "住房公积金管理条例",
+   "law_code": "HPF-REG",
+   "article": "第十六条",
+   "provision_id": "HPF-REG-016",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "3948f33d165d81fc36ea2a5104062e6f2118e25d98d5fe066b0741dea5c88243"
+  },
+  {
+   "rule_id": "RL-SPT-010",
+   "raw_basis": "《住房公积金管理条例》第二十条：单位应当按时、足额缴存住房公积金，不得逾期缴存或者少缴",
+   "law": "住房公积金管理条例",
+   "law_code": "HPF-REG",
+   "article": "第二十条",
+   "provision_id": "HPF-REG-020",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "dcf8024bb90a9b348922e973fcbc71c63f44bcb4bbb5a0a48441534fe9832727"
+  },
+  {
+   "rule_id": "RL-SPT-011",
+   "raw_basis": "《企业所得税核定征收办法》（国税发〔2008〕30号）第三条：纳税人具有下列情形之一的，核定征收企业所得税",
+   "law": "企业所得税核定征收办法",
+   "law_code": "CIT-ASSESSED-MEASURE",
+   "article": "第三条",
+   "provision_id": "CIT-ASSESSED-MEASURE-003",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "2c6ba9216c3a6d20d1a1ec9a15b12918d2b3e0ad1eb219ac81f43c9bb95b4727"
+  },
+  {
+   "rule_id": "RL-SPT-011",
+   "raw_basis": "《中华人民共和国税收征收管理法》第三十五条：纳税人有下列情形之一的，税务机关有权核定其应纳税额",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十五条",
+   "provision_id": "TAX-ADMIN-LAW-035",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc"
+  },
+  {
+   "rule_id": "RL-SPT-019",
+   "raw_basis": "《残疾人就业条例》（国务院令第488号）第八条、第九条",
+   "law": "残疾人就业条例",
+   "law_code": "DISABILITY-EMP-REG",
+   "article": "第八条",
+   "provision_id": "DISABILITY-EMP-REG-008",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "51e531847d7bd0db07128c9bad6372d9173eb73f71b9fae0f971ad77d19465c6"
+  },
+  {
+   "rule_id": "RL-SPT-021",
+   "raw_basis": "《企业所得税法实施条例》第四十一条（工会经费不超过工资薪金总额2%的部分准予扣除）",
+   "law": "企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "article": "第四十一条",
+   "provision_id": "CIT-REG-041",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "7392bf29176339514e39dea6577fb320b91c659a72aa6f550995dcd5e7b12c5f"
+  },
+  {
+   "rule_id": "RL-SPT-021",
+   "raw_basis": "《中华人民共和国工会法》第四十三条（建立工会组织的企业按每月全部职工工资总额的百分之二向工会拨缴经费）",
+   "law": "工会法",
+   "law_code": "UNION-LAW",
+   "article": "第四十三条",
+   "provision_id": "UNION-LAW-043",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "d1b0aa6f62ab6a277171eb3c330df2461f4a1acbd79a010d8f56ae22dce9a3e0"
+  },
+  {
+   "rule_id": "RL-VAT-001",
+   "raw_basis": "《中华人民共和国发票管理办法》第二十二条：任何单位和个人不得有下列虚开发票行为",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-VAT-001",
+   "raw_basis": "《税收征收管理法》第六十三条：进行虚假的纳税申报或者不申报，少缴应纳税款的，是偷税",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-VAT-002",
+   "raw_basis": "《发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-VAT-002",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-VAT-003",
+   "raw_basis": "《发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-VAT-004",
+   "raw_basis": "《发票管理办法》第二十一条（禁止虚开发票）",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十一条",
+   "provision_id": "INVOICE-MEASURE-021",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "13621904c211b096e62cc7d34a80a4eda996c84bfb672a9a6fe12f1351ace4ff"
+  },
+  {
+   "rule_id": "RL-VAT-004",
+   "raw_basis": "《发票管理办法》第三十五条（虚开罚则）",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第三十五条",
+   "provision_id": "INVOICE-MEASURE-035",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "02907ed1fd943344ba7acfef02c835aef845de475a25d99e32fef0195faabeff"
+  },
+  {
+   "rule_id": "RL-VAT-005",
+   "raw_basis": "《发票管理办法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十二条",
+   "provision_id": "INVOICE-MEASURE-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+  },
+  {
+   "rule_id": "RL-VAT-005",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-VAT-006",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-VAT-006",
+   "raw_basis": "《中华人民共和国增值税法》第二十八条（纳税义务发生时间）",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十八条",
+   "provision_id": "VAT-LAW-028",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f7a542cd82d03c09cbefd6c9da1c65d606f208f49df8fb332863ec1ffd72e19e"
+  },
+  {
+   "rule_id": "RL-VAT-007",
+   "raw_basis": "《发票管理办法》第二十一条（不得虚开发票）",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十一条",
+   "provision_id": "INVOICE-MEASURE-021",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "13621904c211b096e62cc7d34a80a4eda996c84bfb672a9a6fe12f1351ace4ff"
+  },
+  {
+   "rule_id": "RL-VAT-007",
+   "raw_basis": "《发票管理办法》第三十五条（虚开罚则）",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第三十五条",
+   "provision_id": "INVOICE-MEASURE-035",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "02907ed1fd943344ba7acfef02c835aef845de475a25d99e32fef0195faabeff"
+  },
+  {
+   "rule_id": "RL-VAT-008",
+   "raw_basis": "《财政部 国家税务总局关于全面推开营业税改征增值税试点的通知》（财税〔2016〕36号）附件1第十四条",
+   "law": "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知",
+   "law_code": "CS-2016-36",
+   "article": "第十四条",
+   "provision_id": "CS-2016-36-014",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "0603a6d3093d5e80e75bfbaf29a2e0dc5d6614b5fb884483333b8c3f4d86f61d"
+  },
+  {
+   "rule_id": "RL-VAT-008",
+   "raw_basis": "《中华人民共和国增值税法》第五条（视同应税交易情形）",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第五条",
+   "provision_id": "VAT-LAW-005",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "521b88a84b995c49d81c397b41cb191a0b2c0d50d21796436ca6b38431809866"
+  },
+  {
+   "rule_id": "RL-VAT-009",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-VAT-010",
+   "raw_basis": "《税收征收管理法》第二十五条（如实办理纳税申报）",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第二十五条",
+   "provision_id": "TAX-ADMIN-LAW-025",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "079c525a0fe9f026b1c840912bd8286c91eb447ef21caa3d5fa5365f948563ab"
+  },
+  {
+   "rule_id": "RL-VAT-010",
+   "raw_basis": "《税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-VAT-011",
+   "raw_basis": "《中华人民共和国增值税法》第二十二条（不得抵扣情形）",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十二条",
+   "provision_id": "VAT-LAW-022",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "eca19d6cfad1e9f05383eba5bc47adf8bb3e12bc1c856d729843f0f74198b26b"
+  },
+  {
+   "rule_id": "RL-VAT-011",
+   "raw_basis": "《中华人民共和国增值税法实施条例》第二十四条（已抵扣进项税额发生不得抵扣情形时应从当期进项税额中扣减）",
+   "law": "增值税法实施条例",
+   "law_code": "VAT-REG",
+   "article": "第二十四条",
+   "provision_id": "VAT-REG-024",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "3f3b63ba29586d98a7a5dfe9b11e7e1fb812ea1cd29c98c425eb2c9b4b95ed43"
+  },
+  {
+   "rule_id": "RL-VAT-016",
+   "raw_basis": "《中华人民共和国发票管理办法》第二十一条、《中华人民共和国增值税法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十一条",
+   "provision_id": "INVOICE-MEASURE-021",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "13621904c211b096e62cc7d34a80a4eda996c84bfb672a9a6fe12f1351ace4ff"
+  },
+  {
+   "rule_id": "RL-VAT-017",
+   "raw_basis": "《中华人民共和国发票管理办法》第二十一条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十一条",
+   "provision_id": "INVOICE-MEASURE-021",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "13621904c211b096e62cc7d34a80a4eda996c84bfb672a9a6fe12f1351ace4ff"
+  },
+  {
+   "rule_id": "RL-VAT-020",
+   "raw_basis": "《中华人民共和国发票管理办法》第二十一条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十一条",
+   "provision_id": "INVOICE-MEASURE-021",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "13621904c211b096e62cc7d34a80a4eda996c84bfb672a9a6fe12f1351ace4ff"
+  },
+  {
+   "rule_id": "RL-VAT-021",
+   "raw_basis": "《中华人民共和国税收征收管理法》第六十三条",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十三条",
+   "provision_id": "TAX-ADMIN-LAW-063",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "e06d2574cfbde634d94915d622ccf0b014cf3065869994131220e1afeabb416c"
+  },
+  {
+   "rule_id": "RL-VAT-022",
+   "raw_basis": "《中华人民共和国发票管理办法》第二十一条、《中华人民共和国增值税法》第二十二条",
+   "law": "发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第二十一条",
+   "provision_id": "INVOICE-MEASURE-021",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "13621904c211b096e62cc7d34a80a4eda996c84bfb672a9a6fe12f1351ace4ff"
+  },
+  {
+   "rule_id": "RL-VAT-023",
+   "raw_basis": "《中华人民共和国增值税法》第二十八条",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十八条",
+   "provision_id": "VAT-LAW-028",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f7a542cd82d03c09cbefd6c9da1c65d606f208f49df8fb332863ec1ffd72e19e"
+  },
+  {
+   "rule_id": "RL-VAT-024",
+   "raw_basis": "《中华人民共和国增值税法》第二十八条",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十八条",
+   "provision_id": "VAT-LAW-028",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f7a542cd82d03c09cbefd6c9da1c65d606f208f49df8fb332863ec1ffd72e19e"
+  },
+  {
+   "rule_id": "RL-VAT-027",
+   "raw_basis": "《中华人民共和国增值税法》第二十八条",
+   "law": "增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十八条",
+   "provision_id": "VAT-LAW-028",
+   "verified": true,
+   "provision_source": "static/legal_library.json",
+   "content_sha256": "f7a542cd82d03c09cbefd6c9da1c65d606f208f49df8fb332863ec1ffd72e19e"
+  }
+ ],
+ "by_provision": {
+  "ACCOUNTING-LAW-003": [
+   "RL-FUND-006"
+  ],
+  "ACCOUNTING-LAW-009": [
+   "RL-AST-003",
+   "RL-INV-001"
+  ],
+  "ASBE-BASIC-011": [
+   "RL-FUND-006"
+  ],
+  "CIT-ASSESSED-MEASURE-003": [
+   "RL-SPT-011"
+  ],
+  "CIT-LAW-003": [
+   "RL-SPT-006"
+  ],
+  "CIT-LAW-005": [
+   "RL-CIT-004"
+  ],
+  "CIT-LAW-006": [
+   "RL-INC-004",
+   "RL-SPT-009"
+  ],
+  "CIT-LAW-007": [
+   "RL-AST-002"
+  ],
+  "CIT-LAW-008": [
+   "RL-CIT-006",
+   "RL-CIT-012",
+   "RL-CIT-013",
+   "RL-COST-001",
+   "RL-COST-002",
+   "RL-COST-005",
+   "RL-COST-006",
+   "RL-INV-002",
+   "RL-INV-003",
+   "RL-PAY-001",
+   "RL-PAY-003",
+   "RL-PTY-001"
+  ],
+  "CIT-LAW-011": [
+   "RL-AST-001"
+  ],
+  "CIT-LAW-018": [
+   "RL-CIT-005",
+   "RL-CIT-016"
+  ],
+  "CIT-LAW-030": [
+   "RL-CIT-003"
+  ],
+  "CIT-LAW-037": [
+   "RL-SPT-006"
+  ],
+  "CIT-LAW-041": [
+   "RL-CIT-001",
+   "RL-CIT-002",
+   "RL-COST-004"
+  ],
+  "CIT-LAW-046": [
+   "RL-CIT-007",
+   "RL-CIT-010"
+  ],
+  "CIT-REG-009": [
+   "RL-CIT-011",
+   "RL-COST-005",
+   "RL-INC-003"
+  ],
+  "CIT-REG-010": [
+   "RL-CIT-005"
+  ],
+  "CIT-REG-040": [
+   "RL-CIT-007"
+  ],
+  "CIT-REG-041": [
+   "RL-SPT-021"
+  ],
+  "CIT-REG-059": [
+   "RL-AST-001"
+  ],
+  "CIT-REG-091": [
+   "RL-SPT-006"
+  ],
+  "CIT-VOUCHER-MEASURE-004": [
+   "RL-PTY-001"
+  ],
+  "CIT-VOUCHER-MEASURE-009": [
+   "RL-COST-001",
+   "RL-PAY-004"
+  ],
+  "CS-2016-36-014": [
+   "RL-VAT-008"
+  ],
+  "CT-REG-001": [
+   "RL-SPT-002"
+  ],
+  "CT-REG-004": [
+   "RL-SPT-002"
+  ],
+  "CT-REG-010": [
+   "RL-SPT-002"
+  ],
+  "CUSTOMS-DUTY-LAW-024": [
+   "RL-SPT-005"
+  ],
+  "CUSTOMS-DUTY-LAW-025": [
+   "RL-SPT-005"
+  ],
+  "CUSTOMS-LAW-053": [
+   "RL-SPT-005"
+  ],
+  "DEED-TAX-LAW-001": [
+   "RL-SPT-007"
+  ],
+  "DEED-TAX-LAW-002": [
+   "RL-SPT-007"
+  ],
+  "DEED-TAX-LAW-004": [
+   "RL-SPT-007"
+  ],
+  "DISABILITY-EMP-REG-008": [
+   "RL-SPT-019"
+  ],
+  "EDU-SURCHARGE-REG-003": [
+   "RL-OTH-003"
+  ],
+  "EPT-LAW-002": [
+   "RL-SPT-004"
+  ],
+  "EPT-LAW-010": [
+   "RL-SPT-004"
+  ],
+  "EQUITY-TRANSFER-IIT-MEASURE-012": [
+   "RL-SPT-009"
+  ],
+  "EQUITY-TRANSFER-IIT-MEASURE-013": [
+   "RL-SPT-009"
+  ],
+  "HPF-REG-015": [
+   "RL-SPT-010"
+  ],
+  "HPF-REG-016": [
+   "RL-SPT-010"
+  ],
+  "HPF-REG-020": [
+   "RL-SPT-010"
+  ],
+  "IIT-LAW-002": [
+   "RL-FUND-001",
+   "RL-INC-002",
+   "RL-PAY-005",
+   "RL-PAY-009"
+  ],
+  "IIT-LAW-006": [
+   "RL-PAY-008"
+  ],
+  "IIT-LAW-009": [
+   "RL-PAY-002",
+   "RL-PAY-006"
+  ],
+  "IIT-REG-006": [
+   "RL-PAY-004",
+   "RL-PAY-005"
+  ],
+  "INVOICE-MEASURE-020": [
+   "RL-COST-003"
+  ],
+  "INVOICE-MEASURE-021": [
+   "RL-PTY-006",
+   "RL-VAT-004",
+   "RL-VAT-007",
+   "RL-VAT-016",
+   "RL-VAT-017",
+   "RL-VAT-020",
+   "RL-VAT-022"
+  ],
+  "INVOICE-MEASURE-022": [
+   "RL-COST-002",
+   "RL-FUND-002",
+   "RL-PTY-001",
+   "RL-PTY-002",
+   "RL-PTY-003",
+   "RL-PTY-005",
+   "RL-PTY-007",
+   "RL-VAT-001",
+   "RL-VAT-002",
+   "RL-VAT-003",
+   "RL-VAT-005"
+  ],
+  "INVOICE-MEASURE-035": [
+   "RL-VAT-004",
+   "RL-VAT-007"
+  ],
+  "LVAT-REG-002": [
+   "RL-SPT-001"
+  ],
+  "PROPERTY-TAX-REG-002": [
+   "RL-OTH-002"
+  ],
+  "RESOURCE-TAX-LAW-001": [
+   "RL-SPT-003"
+  ],
+  "RESOURCE-TAX-LAW-003": [
+   "RL-SPT-003"
+  ],
+  "RMB-ACCOUNT-MEASURE-008": [
+   "RL-FUND-004"
+  ],
+  "SOCIAL-INSURANCE-LAW-058": [
+   "RL-PAY-001",
+   "RL-PAY-004"
+  ],
+  "STAMP-TAX-LAW-001": [
+   "RL-OTH-001"
+  ],
+  "STAMP-TAX-LAW-002": [
+   "RL-OTH-007",
+   "RL-OTH-008",
+   "RL-OTH-009",
+   "RL-OTH-010",
+   "RL-OTH-011"
+  ],
+  "TAX-ADMIN-LAW-017": [
+   "RL-FUND-005"
+  ],
+  "TAX-ADMIN-LAW-025": [
+   "RL-OTH-012",
+   "RL-VAT-010"
+  ],
+  "TAX-ADMIN-LAW-035": [
+   "RL-CIT-004",
+   "RL-COST-004",
+   "RL-INV-003",
+   "RL-SPT-011"
+  ],
+  "TAX-ADMIN-LAW-036": [
+   "RL-CIT-001",
+   "RL-CIT-002"
+  ],
+  "TAX-ADMIN-LAW-060": [
+   "RL-PTY-005"
+  ],
+  "TAX-ADMIN-LAW-063": [
+   "RL-AST-003",
+   "RL-COST-006",
+   "RL-FUND-004",
+   "RL-FUND-005",
+   "RL-INC-001",
+   "RL-INC-002",
+   "RL-INC-004",
+   "RL-INV-001",
+   "RL-INV-002",
+   "RL-OTH-006",
+   "RL-PAY-001",
+   "RL-PAY-003",
+   "RL-PTY-002",
+   "RL-PTY-003",
+   "RL-PTY-004",
+   "RL-SPT-001",
+   "RL-SPT-003",
+   "RL-SPT-004",
+   "RL-VAT-001",
+   "RL-VAT-002",
+   "RL-VAT-005",
+   "RL-VAT-006",
+   "RL-VAT-009",
+   "RL-VAT-010",
+   "RL-VAT-021"
+  ],
+  "TAX-ADMIN-LAW-066": [
+   "RL-SPT-008"
+  ],
+  "TAX-ADMIN-LAW-069": [
+   "RL-PAY-002"
+  ],
+  "UCT-LAW-002": [
+   "RL-OTH-003"
+  ],
+  "ULT-REG-002": [
+   "RL-OTH-002",
+   "RL-OTH-004"
+  ],
+  "UNION-LAW-043": [
+   "RL-SPT-021"
+  ],
+  "VAT-LAW-005": [
+   "RL-VAT-008"
+  ],
+  "VAT-LAW-022": [
+   "RL-VAT-011"
+  ],
+  "VAT-LAW-028": [
+   "RL-INC-001",
+   "RL-INC-003",
+   "RL-PTY-004",
+   "RL-VAT-006",
+   "RL-VAT-023",
+   "RL-VAT-024",
+   "RL-VAT-027"
+  ],
+  "VAT-LAW-033": [
+   "RL-SPT-008"
+  ],
+  "VAT-REG-024": [
+   "RL-VAT-011"
+  ],
+  "VVT-LAW-001": [
+   "RL-OTH-005"
+  ]
+ },
+ "unresolved": [
+  {
+   "rule_id": "RL-VAT-003",
+   "raw": "国家税务总局公告2014年第39号（不属于虚开的三种情形之外即涉嫌虚开）",
+   "law": "国家税务总局公告2014年第39号",
+   "law_code": "SAT-ANN-2014-39",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-004",
+   "raw": "《增值税专用发票使用规定》（引用较早，红字发票流程现按数电票规则执行，以现行规定为准）",
+   "law": "增值税专用发票使用规定",
+   "law_code": "VAT-INVOICE-RULE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-007",
+   "raw": "《增值税专用发票使用规定》（引用较早，具体适用须按业务发生期间取得官方有效文本并由有权人员复核）",
+   "law": "增值税专用发票使用规定",
+   "law_code": "VAT-INVOICE-RULE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-INC-002",
+   "raw": "《人民币银行结算账户管理办法》：单位银行结算账户的存款人只能在银行开立一个基本存款账户",
+   "law": "人民币银行结算账户管理办法",
+   "law_code": "RMB-ACCOUNT-MEASURE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-COST-003",
+   "raw": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）第八条",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第八条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-FUND-001",
+   "raw": "财政部 国家税务总局《关于规范个人投资者个人所得税征收管理的通知》（财税〔2003〕158号）",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-FUND-002",
+   "raw": "国家税务总局公告2014年第39号：纳税人对外开具增值税专用发票同时符合三项情形的不属于虚开",
+   "law": "国家税务总局公告2014年第39号",
+   "law_code": "SAT-ANN-2014-39",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-FUND-003",
+   "raw": "财税〔2003〕158号第二条：纳税年度终了后既不归还又未用于企业生产经营的，其未归还的借款可视为企业对个人投资者的红利分配，依照「利息、股息、红利所得」项目计征个人所得税",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-CIT-002",
+   "raw": "财税〔2016〕36号",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-CIT-003",
+   "raw": "财政部 税务总局公告2023年第7号（研发费用加计扣除100%）",
+   "law": "财政部 税务总局公告2023年第7号",
+   "law_code": "MOF-STA-ANN-2023-7",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-CIT-003",
+   "raw": "财税〔2015〕119号（研发活动范围与不得加计扣除的情形）",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-AST-002",
+   "raw": "财税〔2011〕70号：企业取得的专项用途财政性资金作为不征税收入须同时符合三项条件",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-OTH-001",
+   "raw": "《税收征收管理法》第六十四条第二款",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十四条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-SPT-001",
+   "raw": "《国家税务总局关于房地产开发企业土地增值税清算管理有关问题的通知》（国税发〔2006〕187号）：符合清算条件的项目应在规定期限内办理清算",
+   "law": "国家税务总局关于房地产开发企业土地增值税清算管理有关问题的通知",
+   "law_code": "SAT-LVAT-CLEARING",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-008",
+   "raw": "《出口业务增值税和消费税退（免）税管理办法》（国家税务总局公告2026年第5号）：纳税人办理出口退（免）税须如实报送备案资料；《财政部 税务总局关于出口业务增值税和消费税政策的公告》（财政部 税务总局公告2026年第11号）：出口货物适用退（免）税须同时符合销售给境外单位或个人、向海关报关并实际离境、按会计制度规定做销售、按照规定收汇四项条件",
+   "law": "出口业务增值税和消费税退（免）税管理办法",
+   "law_code": "EXPORT-REFUND-MEASURE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-011",
+   "raw": "《企业所得税核定征收办法》（国税发〔2008〕30号）：对账务健全、能够准确核算应纳税所得额的纳税人，不得实行核定征收",
+   "law": "企业所得税核定征收办法",
+   "law_code": "CIT-ASSESSED-MEASURE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-CIT-006",
+   "raw": "国家税务总局公告2011年第25号第四条、第五条",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-PAY-006",
+   "raw": "财税〔2018〕164号第一条",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-OTH-005",
+   "raw": "《车船税法实施条例》",
+   "law": "车船税法实施条例",
+   "law_code": "VVT-REG",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-009",
+   "raw": "《中华人民共和国增值税法》第十七条（销售额）及《中华人民共和国增值税法实施条例》第十五条（销售额不包括的代为收取款项）",
+   "law": "中华人民共和国增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第十七条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-OTH-006",
+   "raw": "《中华人民共和国增值税法》第十七条（销售额）及《中华人民共和国增值税法实施条例》第三十八条（销售折让、中止、退回的发票与销售额扣减）",
+   "law": "中华人民共和国增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第十七条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-CIT-008",
+   "raw": "《中华人民共和国税收征收管理法》",
+   "law": "中华人民共和国税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-CIT-008",
+   "raw": "《中华人民共和国企业所得税法》",
+   "law": "中华人民共和国企业所得税法",
+   "law_code": "CIT-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-CIT-008",
+   "raw": "《企业会计准则——基本准则》",
+   "law": "企业会计准则——基本准则",
+   "law_code": "ASBE-BASIC",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-CIT-009",
+   "raw": "《中华人民共和国企业所得税法》",
+   "law": "中华人民共和国企业所得税法",
+   "law_code": "CIT-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-CIT-009",
+   "raw": "《财税〔2008〕121号》",
+   "law": "财税〔2008〕121号",
+   "law_code": "CS-2008-121",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-CIT-009",
+   "raw": "《中华人民共和国税收征收管理法》",
+   "law": "中华人民共和国税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-INV-004",
+   "raw": "《中华人民共和国发票管理办法》",
+   "law": "中华人民共和国发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-INV-004",
+   "raw": "《中华人民共和国税收征收管理法》",
+   "law": "中华人民共和国税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-INV-004",
+   "raw": "《国家税务总局公告2019年第38号》",
+   "law": "国家税务总局公告2019年第38号",
+   "law_code": "SAT-ANN-2019-38",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-012",
+   "raw": "《中华人民共和国增值税法》",
+   "law": "中华人民共和国增值税法",
+   "law_code": "VAT-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-012",
+   "raw": "《中华人民共和国增值税法实施条例》",
+   "law": "中华人民共和国增值税法实施条例",
+   "law_code": "VAT-REG",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-012",
+   "raw": "《中华人民共和国企业所得税法实施条例》",
+   "law": "中华人民共和国企业所得税法实施条例",
+   "law_code": "CIT-REG",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-012",
+   "raw": "《国家税务总局公告2014年第67号》",
+   "law": "国家税务总局公告2014年第67号",
+   "law_code": "SAT-ANN-2014-67",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-012",
+   "raw": "《股权转让所得个人所得税管理办法（试行）》",
+   "law": "股权转让所得个人所得税管理办法（试行）",
+   "law_code": "EQUITY-TRANSFER-IIT-MEASURE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-012",
+   "raw": "《中华人民共和国个人所得税法》",
+   "law": "中华人民共和国个人所得税法",
+   "law_code": "IIT-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-013",
+   "raw": "《中华人民共和国个人所得税法》",
+   "law": "中华人民共和国个人所得税法",
+   "law_code": "IIT-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-013",
+   "raw": "《中华人民共和国个人所得税法实施条例》",
+   "law": "中华人民共和国个人所得税法实施条例",
+   "law_code": "IIT-REG",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-013",
+   "raw": "《中华人民共和国税收征收管理法》",
+   "law": "中华人民共和国税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-017",
+   "raw": "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知（财税〔2016〕25号：广告服务按计费销售额3%费率缴纳）",
+   "law": "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知",
+   "law_code": "MOF-CCF",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-017",
+   "raw": "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知（财税〔2016〕60号：娱乐服务按计费销售额3%费率缴纳）",
+   "law": "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知",
+   "law_code": "MOF-CCF-SUPPLEMENT",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-017",
+   "raw": "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知（财税〔2016〕36号）",
+   "law": "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知",
+   "law_code": "CS-2016-36",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-018",
+   "raw": "中华人民共和国车辆购置税法",
+   "law": "中华人民共和国车辆购置税法",
+   "law_code": "VPT-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-018",
+   "raw": "财政部 税务总局关于车辆购置税有关具体政策的公告（财政部 税务总局公告2019年第71号）",
+   "law": "财政部 税务总局关于车辆购置税有关具体政策的公告",
+   "law_code": "MOF-VPT-POLICY",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-018",
+   "raw": "国家税务总局关于车辆购置税征收管理有关事项的公告（国家税务总局公告2019年第26号）",
+   "law": "国家税务总局关于车辆购置税征收管理有关事项的公告",
+   "law_code": "SAT-VPT-ADMIN",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-014",
+   "raw": "中华人民共和国耕地占用税法",
+   "law": "中华人民共和国耕地占用税法",
+   "law_code": "FARMLAND-TAX-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-015",
+   "raw": "中华人民共和国烟叶税法",
+   "law": "中华人民共和国烟叶税法",
+   "law_code": "TOBACCO-TAX-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-016",
+   "raw": "中华人民共和国船舶吨税法",
+   "law": "中华人民共和国船舶吨税法",
+   "law_code": "TONNAGE-TAX-LAW",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-013",
+   "raw": "财政部 税务总局关于完善增值税期末留抵退税政策的公告（财政部 税务总局公告2025年第7号）",
+   "law": "财政部 税务总局关于完善增值税期末留抵退税政策的公告",
+   "law_code": "MOF-RETENTION-REFUND",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-013",
+   "raw": "国家税务总局关于办理增值税期末留抵退税有关征管事项的公告（国家税务总局公告2025年第20号）",
+   "law": "国家税务总局关于办理增值税期末留抵退税有关征管事项的公告",
+   "law_code": "SAT-RETENTION-REFUND",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-OTH-007",
+   "raw": "《税收征收管理法》第六十四条第二款",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十四条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-OTH-008",
+   "raw": "《税收征收管理法》第六十四条第二款",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十四条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-OTH-009",
+   "raw": "《税收征收管理法》第六十四条第二款",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十四条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-OTH-010",
+   "raw": "《税收征收管理法》第六十四条第二款",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十四条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-OTH-011",
+   "raw": "《税收征收管理法》第六十四条第二款",
+   "law": "税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第六十四条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-CIT-010",
+   "raw": "《财税〔2008〕121号》（企业实际支付给关联方利息支出税前扣除标准，非金融企业债资比 2:1、金融企业 5:1）",
+   "law": "财税〔2008〕121号",
+   "law_code": "CS-2008-121",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-019",
+   "raw": "《残疾人就业保障金征收使用管理办法》（财税〔2015〕72号）",
+   "law": "残疾人就业保障金征收使用管理办法",
+   "law_code": "DISABILITY-FUND-MEASURE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-020",
+   "raw": "《水利建设基金筹集和使用管理办法》（财综〔2011〕2号）",
+   "law": "水利建设基金筹集和使用管理办法",
+   "law_code": "WATER-FUND-MEASURE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-020",
+   "raw": "财政部关于民航发展基金等3项政府性基金有关政策的通知（财税〔2020〕72号：自2021年1月1日起继续征收水利建设基金；具体征收使用政策按现行规定及所在地实施细则执行）",
+   "law": "财政部关于民航发展基金等3项政府性基金有关政策的通知",
+   "law_code": "MOF-CIVIL-AVIATION-FUND",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-021",
+   "raw": "《国家税务总局关于工会经费企业所得税税前扣除凭据问题的公告》（国家税务总局公告2010年第24号）",
+   "law": "国家税务总局关于工会经费企业所得税税前扣除凭据问题的公告",
+   "law_code": "SAT-UNION-FEE-VOUCHER",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-014",
+   "raw": "《纳税人跨县（市、区）提供建筑服务增值税征收管理暂行办法》（国家税务总局公告2016年第17号）",
+   "law": "纳税人跨县（市、区）提供建筑服务增值税征收管理暂行办法",
+   "law_code": "CROSS-COUNTY-CONSTRUCT-VAT",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-014",
+   "raw": "《纳税人提供不动产经营租赁服务增值税征收管理暂行办法》（国家税务总局公告2016年第16号）",
+   "law": "纳税人提供不动产经营租赁服务增值税征收管理暂行办法",
+   "law_code": "REALTY-LEASE-VAT",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-014",
+   "raw": "《纳税人转让不动产增值税征收管理暂行办法》（国家税务总局公告2016年第14号）",
+   "law": "纳税人转让不动产增值税征收管理暂行办法",
+   "law_code": "REALTY-TRANSFER-VAT",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-015",
+   "raw": "《财政部 税务总局关于简并增值税税率有关政策的通知》（财税〔2017〕37号）",
+   "law": "财政部 税务总局关于简并增值税税率有关政策的通知",
+   "law_code": "MOF-VAT-RATE-SIMPLIFY",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-015",
+   "raw": "《农产品增值税进项税额核定扣除试点实施办法》（财税〔2012〕38号）",
+   "law": "农产品增值税进项税额核定扣除试点实施办法",
+   "law_code": "AGRI-INPUT-DEDUCT",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-018",
+   "raw": "《国家税务总局关于走逃（失联）企业开具增值税专用发票认定处理有关问题的公告》（国家税务总局公告2016年第76号）",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-VAT-019",
+   "raw": "《涉税专业服务监管办法（试行）》（国家税务总局公告2017年第13号）",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-PTY-008",
+   "raw": "《国家税务总局关于纳税人善意取得虚开的增值税专用发票处理问题的通知》（国税发〔2000〕187号）",
+   "law": "国家税务总局关于纳税人善意取得虚开的增值税专用发票处理问题的通知",
+   "law_code": "SAT-GOODFAITH-INVOICE-NOTICE",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-VAT-025",
+   "raw": "《中华人民共和国增值税法》第八条至第十条",
+   "law": "中华人民共和国增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第八条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-VAT-026",
+   "raw": "《中华人民共和国增值税法》第十七条、《中华人民共和国发票管理办法》第二十七条",
+   "law": "中华人民共和国增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第十七条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-VAT-028",
+   "raw": "《中华人民共和国增值税法》第二十四条至第二十六条",
+   "law": "中华人民共和国增值税法",
+   "law_code": "VAT-LAW",
+   "article": "第二十四条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-CIT-014",
+   "raw": "《财政部 国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知》（财税〔2008〕121号）",
+   "law": "财政部 国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知",
+   "law_code": "MOF-CIT-RELATED-INTEREST",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-CIT-015",
+   "raw": "《财政部 国家税务总局关于专项用途财政性资金企业所得税处理问题的通知》（财税〔2011〕70号）",
+   "law": "财政部 国家税务总局关于专项用途财政性资金企业所得税处理问题的通知",
+   "law_code": "MOF-CIT-SPECIAL-FUND",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-PAY-007",
+   "raw": "《财政部 税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知》（财税〔2018〕164号）",
+   "law": "财政部 税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知",
+   "law_code": "MOF-IIT-TRANSITION",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-PAY-010",
+   "raw": "《中华人民共和国个人所得税法》第一条、第六条",
+   "law": "中华人民共和国个人所得税法",
+   "law_code": "IIT-LAW",
+   "article": "第一条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-PAY-011",
+   "raw": "《个人所得税专项附加扣除暂行办法》",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-OTH-013",
+   "raw": "《中华人民共和国税收征收管理法》第三十一条、第三十二条",
+   "law": "中华人民共和国税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第三十一条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-OTH-014",
+   "raw": "《中华人民共和国税收征收管理法》第十六条",
+   "law": "中华人民共和国税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第十六条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-OTH-015",
+   "raw": "《中华人民共和国税收征收管理法》第十九条、第二十四条",
+   "law": "中华人民共和国税收征收管理法",
+   "law_code": "TAX-ADMIN-LAW",
+   "article": "第十九条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-OTH-016",
+   "raw": "《中华人民共和国发票管理办法》第十五条、第二十九条",
+   "law": "中华人民共和国发票管理办法",
+   "law_code": "INVOICE-MEASURE",
+   "article": "第十五条",
+   "reason": "正文库缺该条（`static/legal_library.json` 无此条 ⇒ 待补录）"
+  },
+  {
+   "rule_id": "RL-SPT-022",
+   "raw": "《财政部 国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知》（财税〔2015〕119号）",
+   "law": "财政部 国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知",
+   "law_code": "MOF-RD-SUPERDEDUCT",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  },
+  {
+   "rule_id": "RL-SPT-023",
+   "raw": "《国家税务总局关于研发费用税前加计扣除归集范围有关问题的公告》（国家税务总局公告2017年第40号）",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-SPT-024",
+   "raw": "《财政部 税务总局 科技部关于企业委托境外研究开发费用税前加计扣除有关政策问题的通知》（财税〔2018〕64号）",
+   "reason": "法名未在 `config/legal_law_codes.json` 登记（或无法名）"
+  },
+  {
+   "rule_id": "RL-SPT-025",
+   "raw": "《财政部 国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知》（财税〔2015〕119号）",
+   "law": "财政部 国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知",
+   "law_code": "MOF-RD-SUPERDEDUCT",
+   "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
+  }
+ ]
+}

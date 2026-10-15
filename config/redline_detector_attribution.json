@@ -1,60 +1,348 @@
 {
-  "schema": 1,
-  "purpose": "红线**归属声明**登记表：凡「已算出该红线事实」的检测器，必须自行声明 `redline_id`，不得让引擎按关键词猜。",
-  "why": "实测（2026-10-10，真产物 company_1_full.json）：26 条嫌疑里 3 条是 `match_mode=\"matched\"`（关键词兜底），其中 RL-AST-001 的实质事实已由 `_domain_depreciation_match` 算出，却因未声明归属，只能靠『标题里撞上「固定资产/折旧」两个字』配对 ⇒ ① 归属可被措辞改写（不是算的）；② 静态覆盖率审计把它记为「仅兜底」，检出能力被系统性低估。修法不是加白名单，而是**让算过的检测器自报归属**（`mode=\"declared\"`）。",
-  "discipline": [
-    "只认领**真算过**的要件：本表只声明『归属于哪条红线』，**不等于**认领该红线的构成要件（constituent_hits 仍由谁算过谁声明）。",
-    "`detector_file` 必须在 `engine/` 或 `main.py`（生产代码）；`scripts/` 下的一次性脚本**不计入**生产覆盖，登记在那里等于没登记。",
-    "新增一处 = 加一行数据，不改任何逻辑分支。"
-  ],
-  "declarations": [
-    {
-      "detector_file": "engine/domain_analysis.py",
-      "detector_fn": "_domain_depreciation_match",
-      "finding_type": "固定资产采购与折旧匹配提示",
-      "redline_id": "RL-AST-001",
-      "declared_at": "2026-10-10",
-      "evidence": "真产物：`银行流水发现2笔固定资产类付款，合计20,000.00元。应相应计提折旧。`（旧产物 match_mode=matched / match_reasons=[hint@title, hint@title]）。"
-    },
-    {
-      "detector_file": "engine/deduction_limit_detector.py",
-      "detector_fn": "_check_related_party_debt_equity",
-      "finding_type": "待核事实：关联方债权性投资与权益性投资比例偏高",
-      "redline_id": "RL-CIT-010",
-      "declared_at": "2026-10-10",
-      "evidence": "本检测器真算「关联方借款÷所有者权益 → 超 2:1」，即 RL-CIT-010 要件①②（见声明表 `_REDLINE_DECL`）。**原误挂 RL-CIT-002**「关联方无偿或低价资金往来：未按独立交易原则计息」（另一概念，本函数从未算过是否计息/利率是否偏离）⇒ 归属纠正；同时声明真算过的要件①②、不认领未计算的要件③④。RL-CIT-002 仍由 `engine/special_redline_detectors.py` 的关键词置疑 SPEC 覆盖，不受影响。"
-    },
-    {
-      "detector_file": "engine/verified_rule_engine.py",
-      "detector_fn": "_scan_deemed_sales",
-      "finding_type": "视同销售未计提销项税额（货物用于对外投资/分配给股东）",
-      "redline_id": "RL-VAT-012",
-      "declared_at": "2026-10-10",
-      "evidence": "VR036 的**通道3**由凭证借贷配对判定：同一张凭证内『存货类科目贷方转出』×『对外投资（长期股权投资等）或利润分配/应付股利借方』× 该凭证无销项税额计提分录 ⇒ 命中。这正是 RL-VAT-012 相对 RL-VAT-008 的**唯一净增量**「对外投资、分配给股东/投资者」（逐要件比对见 `config/redline_overlap_ledger.json` 第 1 对）⇒ 归属 012，并声明真算过的要件②③（要件①由 self_use 通道算、归 008；要件④未计算，不认领）。"
-    },
-    {
-      "detector_file": "engine/verified_rule_engine.py",
-      "detector_fn": "_scan_deemed_sales",
-      "finding_type": "视同销售未计提销项税额（无偿赠送/交付样品）",
-      "redline_id": "RL-VAT-008",
-      "declared_at": "2026-10-10",
-      "evidence": "VR036 的**gifts 通道**按摘要关键词归集「无偿赠送/交付样品」的支出，即 RL-VAT-008 要件①情形；此前未声明 `redline_id` ⇒ 只能靠标题命中 `match_hints` 猜归属（归属可被措辞改写，静态覆盖率也会把它算成『仅兜底』）。本次**只补归属声明、不认领构成要件**（该通道是关键词归集，并未逐笔复算『账面确无销项税额计提分录』= 要件②），故 `constituent_hits` 留空。"
-    },
-    {
-      "detector_file": "engine/export_rebate_crosscheck.py",
-      "detector_fn": "run_export_rebate_crosscheck",
-      "finding_type": "出口退税四单交叉核验（单证不一致/收汇缺口/产能不匹配）",
-      "redline_id": "RL-SPT-008",
-      "declared_at": "2026-10-10",
-      "evidence": "本模块**早就是 RL-SPT-008 的真检测器**（出口发票×报关单×收汇×产能四单交叉，已接线 pipeline），但 finding 只写了 `policy_ref`/`_gap_detector`，**没写 `redline_id`** ⇒ 覆盖率静态审计看不见它，把 RL-SPT-008 记成『仅兜底』（**系统性低估检出能力**，与 A-P0-1 同类；§16.3 用『VR 目录名称相似度』筛查，方法本身漏掉了非 VR 模块 ⇒ 结论『0 条已有实现仅缺归属』有盲区，本轮修正）。本次补 `redline_id` 并按每条 finding **认领真算过的要件**：单证不一致→②⑤、收汇缺口→④、产能不匹配→③；『缺报关单/收汇』那条属资料缺口 ⇒ 不认领要件。"
-    },
-    {
-      "detector_file": "engine/verified_rule_engine.py",
-      "detector_fn": "_scan_personal_service_withholding",
-      "finding_type": "向个人支付劳务性质报酬未代扣个税",
-      "redline_id": "RL-SPT-013",
-      "declared_at": "2026-10-10",
-      "evidence": "VR065「个人劳务报酬支付未代扣个税」真算的是**银行支出中向非雇员个人支付的劳务性质款项**（公转私 + 摘要劳务/咨询/佣金/服务费等），落在 RL-SPT-013 要件①『企业向个人支付报酬，且该类个人并非企业雇员』上（该要件正文明确包含『自由职业者、劳务人员』，并非仅限平台/网红）⇒ 归属 013。**只认领真算过的要件①**；『是否已依法代扣代缴』（要件②）本规则未复算 ⇒ 不认领（§16.3 曾以『名称相似度低』拒绝，属方法局限；要件正文比对才是判据）。"
-    }
-  ]
+ "schema": 1,
+ "purpose": "红线**归属声明**登记表：凡「已算出该红线事实」的检测器，必须自行声明 `redline_id`，不得让引擎按关键词猜。",
+ "why": "实测（2026-10-10，真产物 company_1_full.json）：26 条嫌疑里 3 条是 `match_mode=\"matched\"`（关键词兜底），其中 RL-AST-001 的实质事实已由 `_domain_depreciation_match` 算出，却因未声明归属，只能靠『标题里撞上「固定资产/折旧」两个字』配对 ⇒ ① 归属可被措辞改写（不是算的）；② 静态覆盖率审计把它记为「仅兜底」，检出能力被系统性低估。修法不是加白名单，而是**让算过的检测器自报归属**（`mode=\"declared\"`）。",
+ "discipline": [
+  "只认领**真算过**的要件：本表只声明『归属于哪条红线』，**不等于**认领该红线的构成要件（constituent_hits 仍由谁算过谁声明）。",
+  "`detector_file` 必须在 `engine/` 或 `main.py`（生产代码）；`scripts/` 下的一次性脚本**不计入**生产覆盖，登记在那里等于没登记。",
+  "新增一处 = 加一行数据，不改任何逻辑分支。"
+ ],
+ "declarations": [
+  {
+   "detector_file": "engine/domain_analysis.py",
+   "detector_fn": "_domain_depreciation_match",
+   "finding_type": "固定资产采购与折旧匹配提示",
+   "redline_id": "RL-AST-001",
+   "declared_at": "2026-10-10",
+   "evidence": "真产物：`银行流水发现2笔固定资产类付款，合计20,000.00元。应相应计提折旧。`（旧产物 match_mode=matched / match_reasons=[hint@title, hint@title]）。"
+  },
+  {
+   "detector_file": "engine/deduction_limit_detector.py",
+   "detector_fn": "_check_related_party_debt_equity",
+   "finding_type": "待核事实：关联方债权性投资与权益性投资比例偏高",
+   "redline_id": "RL-CIT-010",
+   "declared_at": "2026-10-10",
+   "evidence": "本检测器真算「关联方借款÷所有者权益 → 超 2:1」，即 RL-CIT-010 要件①②（见声明表 `_REDLINE_DECL`）。**原误挂 RL-CIT-002**「关联方无偿或低价资金往来：未按独立交易原则计息」（另一概念，本函数从未算过是否计息/利率是否偏离）⇒ 归属纠正；同时声明真算过的要件①②、不认领未计算的要件③④。RL-CIT-002 仍由 `engine/special_redline_detectors.py` 的关键词置疑 SPEC 覆盖，不受影响。"
+  },
+  {
+   "detector_file": "engine/verified_rule_engine.py",
+   "detector_fn": "_scan_deemed_sales",
+   "finding_type": "视同销售未计提销项税额（货物用于对外投资/分配给股东）",
+   "redline_id": "RL-VAT-012",
+   "declared_at": "2026-10-10",
+   "evidence": "VR036 的**通道3**由凭证借贷配对判定：同一张凭证内『存货类科目贷方转出』×『对外投资（长期股权投资等）或利润分配/应付股利借方』× 该凭证无销项税额计提分录 ⇒ 命中。这正是 RL-VAT-012 相对 RL-VAT-008 的**唯一净增量**「对外投资、分配给股东/投资者」（逐要件比对见 `config/redline_overlap_ledger.json` 第 1 对）⇒ 归属 012，并声明真算过的要件②③（要件①由 self_use 通道算、归 008；要件④未计算，不认领）。"
+  },
+  {
+   "detector_file": "engine/verified_rule_engine.py",
+   "detector_fn": "_scan_deemed_sales",
+   "finding_type": "视同销售未计提销项税额（无偿赠送/交付样品）",
+   "redline_id": "RL-VAT-008",
+   "declared_at": "2026-10-10",
+   "evidence": "VR036 的**gifts 通道**按摘要关键词归集「无偿赠送/交付样品」的支出，即 RL-VAT-008 要件①情形；此前未声明 `redline_id` ⇒ 只能靠标题命中 `match_hints` 猜归属（归属可被措辞改写，静态覆盖率也会把它算成『仅兜底』）。本次**只补归属声明、不认领构成要件**（该通道是关键词归集，并未逐笔复算『账面确无销项税额计提分录』= 要件②），故 `constituent_hits` 留空。"
+  },
+  {
+   "detector_file": "engine/export_rebate_crosscheck.py",
+   "detector_fn": "run_export_rebate_crosscheck",
+   "finding_type": "出口退税四单交叉核验（单证不一致/收汇缺口/产能不匹配）",
+   "redline_id": "RL-SPT-008",
+   "declared_at": "2026-10-10",
+   "evidence": "本模块**早就是 RL-SPT-008 的真检测器**（出口发票×报关单×收汇×产能四单交叉，已接线 pipeline），但 finding 只写了 `policy_ref`/`_gap_detector`，**没写 `redline_id`** ⇒ 覆盖率静态审计看不见它，把 RL-SPT-008 记成『仅兜底』（**系统性低估检出能力**，与 A-P0-1 同类；§16.3 用『VR 目录名称相似度』筛查，方法本身漏掉了非 VR 模块 ⇒ 结论『0 条已有实现仅缺归属』有盲区，本轮修正）。本次补 `redline_id` 并按每条 finding **认领真算过的要件**：单证不一致→②⑤、收汇缺口→④、产能不匹配→③；『缺报关单/收汇』那条属资料缺口 ⇒ 不认领要件。"
+  },
+  {
+   "detector_file": "engine/verified_rule_engine.py",
+   "detector_fn": "_scan_personal_service_withholding",
+   "finding_type": "向个人支付劳务性质报酬未代扣个税",
+   "redline_id": "RL-SPT-013",
+   "declared_at": "2026-10-10",
+   "evidence": "VR065「个人劳务报酬支付未代扣个税」真算的是**银行支出中向非雇员个人支付的劳务性质款项**（公转私 + 摘要劳务/咨询/佣金/服务费等），落在 RL-SPT-013 要件①『企业向个人支付报酬，且该类个人并非企业雇员』上（该要件正文明确包含『自由职业者、劳务人员』，并非仅限平台/网红）⇒ 归属 013。**只认领真算过的要件①**；『是否已依法代扣代缴』（要件②）本规则未复算 ⇒ 不认领（§16.3 曾以『名称相似度低』拒绝，属方法局限；要件正文比对才是判据）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "对开环开发票：交易闭环（待核）",
+   "redline_id": "RL-VAT-016",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 INVOICE-MEASURE-021）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "富余票：票货分离（待核）",
+   "redline_id": "RL-VAT-017",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 INVOICE-MEASURE-021）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "开票方走逃（失联）：发票来源异常（待核）",
+   "redline_id": "RL-VAT-018",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 SAT-RUNAWAY-INVOICE-ANN）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "涉税中介协助开票（待核）",
+   "redline_id": "RL-VAT-019",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 TAX-INTERMEDIARY-SUPERVISION）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "拆分交易化整为零：规避限额（待核）",
+   "redline_id": "RL-VAT-020",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 INVOICE-MEASURE-021）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "阴阳合同：合同与发票金额背离（待核）",
+   "redline_id": "RL-VAT-021",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 TAX-ADMIN-LAW-063）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "三流不一致：票/货/款背离（待核）",
+   "redline_id": "RL-VAT-022",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 INVOICE-MEASURE-021）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "空壳企业特征：无实质经营（待核）",
+   "redline_id": "RL-PTY-006",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 INVOICE-MEASURE-021）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "开票时间异常：集中/非营业时段（待核）",
+   "redline_id": "RL-PTY-007",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 INVOICE-MEASURE-022）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "善意取得情形识别（处理区分用）",
+   "redline_id": "RL-PTY-008",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-001（来源 SAT-GOODFAITH-INVOICE-NOTICE）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "纳税义务发生时间与开票时点脱节（待核）",
+   "redline_id": "RL-VAT-023",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-002（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "进销项期间错配：跨期调节（待核）",
+   "redline_id": "RL-VAT-024",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-002（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "计税方法适用错误：简易与一般混用（待核）",
+   "redline_id": "RL-VAT-025",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-002（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "折扣折让退回处理不合规（待核）",
+   "redline_id": "RL-VAT-026",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-002（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "预收款与预缴税款处理异常（待核）",
+   "redline_id": "RL-VAT-027",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-002（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "零税率/免税适用合规性存疑（待核）",
+   "redline_id": "RL-VAT-028",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-002（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "收入确认时点与权责发生制不符（待核）",
+   "redline_id": "RL-CIT-011",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-003（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "成本费用跨期列支（待核）",
+   "redline_id": "RL-CIT-012",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-003（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "资产损失未按规定申报即扣除（待核）",
+   "redline_id": "RL-CIT-013",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-003（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "关联方利息支出超债资比未调整（待核）",
+   "redline_id": "RL-CIT-014",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-003（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "不征税收入对应支出重复扣除（待核）",
+   "redline_id": "RL-CIT-015",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-003（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "亏损弥补期限或结转异常（待核）",
+   "redline_id": "RL-CIT-016",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-003（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "全年一次性奖金计税方式适用错误（待核）",
+   "redline_id": "RL-PAY-007",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-004（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "劳务报酬预扣预缴计算错误（待核）",
+   "redline_id": "RL-PAY-008",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-004（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "股东分红未按规定扣缴个税（待核）",
+   "redline_id": "RL-PAY-009",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-004（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "非居民个人所得扣缴异常（待核）",
+   "redline_id": "RL-PAY-010",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-004（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "专项附加扣除与资料一致性存疑（待核）",
+   "redline_id": "RL-PAY-011",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-004（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "逾期申报或漏报税种（待核）",
+   "redline_id": "RL-OTH-012",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-005（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "缴纳与申报金额不一致（待核）",
+   "redline_id": "RL-OTH-013",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-005（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "税务与工商登记信息不一致（待核）",
+   "redline_id": "RL-OTH-014",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-005（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "账簿凭证设置与保管不合规（待核）",
+   "redline_id": "RL-OTH-015",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-005（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "发票领用存与经营规模不匹配（待核）",
+   "redline_id": "RL-OTH-016",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-005（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "研发费用归集范围错误（待核）",
+   "redline_id": "RL-SPT-022",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-006（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "研发费用辅助账未按规定设置（待核）",
+   "redline_id": "RL-SPT-023",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-006（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "委托研发加计扣除基数或比例错误（待核）",
+   "redline_id": "RL-SPT-024",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-006（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/special_redline_detectors.py",
+   "detector_fn": "run_special_redline_detection",
+   "finding_type": "不适行业/活动未剔除（待核）",
+   "redline_id": "RL-SPT-025",
+   "declared_at": "2026-10-15",
+   "evidence": "批次规则 BATCH-006（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  }
+ ]
 }

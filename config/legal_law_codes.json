@@ -1,0 +1,701 @@
+{
+ "schema": 1,
+ "updated": "2026-10-15",
+ "note": "★ **法名规范表**（唯一权威）：一条法一行；`code` 是条款 ID 的短码前缀。条款 ID = `{code}-{条号:03d}`（如 `INVOICE-MEASURE-022` = 发票管理办法第二十二条）。★ 新增一部法**只加一行**；`code` 为空 ⇒ **该法尚未核定短码**（如实暴露，不猜）。★ 法名变体（含/不含「中华人民共和国」前缀、括注文号）一律登记为 `aliases`，使 `legal_basis_ref` 能稳定解析到同一条款。",
+ "law_count": 82,
+ "coded_count": 82,
+ "duplicate_codes": [],
+ "laws": [
+  {
+   "code": "IIT-LAW",
+   "name": "个人所得税法",
+   "aliases": [
+    "中华人民共和国个人所得税法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "IIT-LAW-"
+  },
+  {
+   "code": "IIT-REG",
+   "name": "个人所得税法实施条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "IIT-REG-"
+  },
+  {
+   "code": "RMB-ACCOUNT-MEASURE",
+   "name": "人民币银行结算账户管理办法",
+   "aliases": [],
+   "level": "部门规章",
+   "doc_num": null,
+   "provision_id_prefix": "RMB-ACCOUNT-MEASURE-"
+  },
+  {
+   "code": "ASBE-BASIC",
+   "name": "企业会计准则——基本准则",
+   "aliases": [],
+   "level": "部门规章",
+   "doc_num": null,
+   "provision_id_prefix": "ASBE-BASIC-"
+  },
+  {
+   "code": "CIT-ASSESSED-MEASURE",
+   "name": "企业所得税核定征收办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "CIT-ASSESSED-MEASURE-"
+  },
+  {
+   "code": "CIT-LAW",
+   "name": "企业所得税法",
+   "aliases": [
+    "中华人民共和国企业所得税法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CIT-LAW-"
+  },
+  {
+   "code": "CIT-REG",
+   "name": "企业所得税法实施条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "CIT-REG-"
+  },
+  {
+   "code": "CIT-VOUCHER-MEASURE",
+   "name": "企业所得税税前扣除凭证管理办法",
+   "aliases": [
+    "企业所得税税前扣除凭证管理办法（国家税务总局公告2018年第28号）"
+   ],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "CIT-VOUCHER-MEASURE-"
+  },
+  {
+   "code": "ACCOUNTING-LAW",
+   "name": "会计法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "ACCOUNTING-LAW-"
+  },
+  {
+   "code": "HPF-REG",
+   "name": "住房公积金管理条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "HPF-REG-"
+  },
+  {
+   "code": "SAT-DISCRETION-BENCHMARK",
+   "name": "全国税务行政处罚裁量基准",
+   "aliases": [
+    "全国税务行政处罚裁量基准（2026年版）"
+   ],
+   "level": "部门规章",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-DISCRETION-BENCHMARK-"
+  },
+  {
+   "code": "SPC-SPP-TAX-CRIME-INTERP",
+   "name": "关于办理危害税收征管刑事案件适用法律若干问题的解释",
+   "aliases": [
+    "两高解释",
+    "关于办理危害税收征管刑事案件适用法律若干问题的解释（两高解释）",
+    "最高人民法院 最高人民检察院关于办理危害税收征管刑事案件适用法律若干问题的解释"
+   ],
+   "level": "司法解释",
+   "doc_num": null,
+   "provision_id_prefix": "SPC-SPP-TAX-CRIME-INTERP-"
+  },
+  {
+   "code": "MOU-JOINT-PUNISHMENT",
+   "name": "关于对重大税收违法案件当事人实施联合惩戒措施的合作备忘录",
+   "aliases": [],
+   "level": "联合发文",
+   "doc_num": null,
+   "provision_id_prefix": "MOU-JOINT-PUNISHMENT-"
+  },
+  {
+   "code": "SAT-ABNORMAL-VOUCHER-ANN",
+   "name": "关于异常增值税扣税凭证管理等有关事项的公告",
+   "aliases": [
+    "国家税务总局关于异常增值税扣税凭证管理等有关事项的公告"
+   ],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-ABNORMAL-VOUCHER-ANN-"
+  },
+  {
+   "code": "SAT-GOODFAITH-LATE-FEE-REPLY",
+   "name": "关于纳税人善意取得虚开增值税专用发票已抵扣税款加收滞纳金问题的批复",
+   "aliases": [
+    "关于纳税人善意取得虚开增值税专用发票已抵扣税款加收滞纳金问题的批复（国税函〔2007〕1240号）"
+   ],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-GOODFAITH-LATE-FEE-REPLY-"
+  },
+  {
+   "code": "SAT-GOODFAITH-INVOICE-NOTICE",
+   "name": "关于纳税人善意取得虚开的增值税专用发票处理问题的通知",
+   "aliases": [
+    "关于纳税人善意取得虚开的增值税专用发票处理问题的通知（国税发〔2000〕187号）",
+    "国家税务总局关于纳税人善意取得虚开的增值税专用发票处理问题的通知"
+   ],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-GOODFAITH-INVOICE-NOTICE-"
+  },
+  {
+   "code": "SAT-RUNAWAY-INVOICE-ANN",
+   "name": "关于走逃（失联）企业开具增值税专用发票认定处理有关问题的公告",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-RUNAWAY-INVOICE-ANN-"
+  },
+  {
+   "code": "CUSTOMS-DUTY-LAW",
+   "name": "关税法",
+   "aliases": [
+    "中华人民共和国关税法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CUSTOMS-DUTY-LAW-"
+  },
+  {
+   "code": "AGRI-INPUT-DEDUCT",
+   "name": "农产品增值税进项税额核定扣除试点实施办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "AGRI-INPUT-DEDUCT-"
+  },
+  {
+   "code": "EXPORT-REFUND-MEASURE",
+   "name": "出口业务增值税和消费税退（免）税管理办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "EXPORT-REFUND-MEASURE-"
+  },
+  {
+   "code": "CRIMINAL-LAW",
+   "name": "刑法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CRIMINAL-LAW-"
+  },
+  {
+   "code": "STAMP-TAX-LAW",
+   "name": "印花税法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "STAMP-TAX-LAW-"
+  },
+  {
+   "code": "INVOICE-MEASURE",
+   "name": "发票管理办法",
+   "aliases": [
+    "中华人民共和国发票管理办法"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "INVOICE-MEASURE-"
+  },
+  {
+   "code": "INVOICE-MEASURE-RULES",
+   "name": "发票管理办法实施细则",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "INVOICE-MEASURE-RULES-"
+  },
+  {
+   "code": "SAT-ANN-2011-25",
+   "name": "国家税务总局公告2011年第25号",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-ANN-2011-25-"
+  },
+  {
+   "code": "SAT-ANN-2014-39",
+   "name": "国家税务总局公告2014年第39号",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-ANN-2014-39-"
+  },
+  {
+   "code": "SAT-ANN-2014-67",
+   "name": "国家税务总局公告2014年第67号",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-ANN-2014-67-"
+  },
+  {
+   "code": "SAT-ANN-2019-38",
+   "name": "国家税务总局公告2019年第38号",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-ANN-2019-38-"
+  },
+  {
+   "code": "SAT-RETENTION-REFUND",
+   "name": "国家税务总局关于办理增值税期末留抵退税有关征管事项的公告",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-RETENTION-REFUND-"
+  },
+  {
+   "code": "SAT-UNION-FEE-VOUCHER",
+   "name": "国家税务总局关于工会经费企业所得税税前扣除凭据问题的公告",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-UNION-FEE-VOUCHER-"
+  },
+  {
+   "code": "SAT-LVAT-CLEARING",
+   "name": "国家税务总局关于房地产开发企业土地增值税清算管理有关问题的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-LVAT-CLEARING-"
+  },
+  {
+   "code": "SAT-VPT-ADMIN",
+   "name": "国家税务总局关于车辆购置税征收管理有关事项的公告",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-VPT-ADMIN-"
+  },
+  {
+   "code": "LVAT-REG",
+   "name": "土地增值税暂行条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "LVAT-REG-"
+  },
+  {
+   "code": "UCT-LAW",
+   "name": "城市维护建设税法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "UCT-LAW-"
+  },
+  {
+   "code": "ULT-REG",
+   "name": "城镇土地使用税暂行条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "ULT-REG-"
+  },
+  {
+   "code": "VAT-INVOICE-RULE",
+   "name": "增值税专用发票使用规定",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "VAT-INVOICE-RULE-"
+  },
+  {
+   "code": "VAT-LAW",
+   "name": "增值税法",
+   "aliases": [
+    "中华人民共和国增值税法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "VAT-LAW-"
+  },
+  {
+   "code": "VAT-REG",
+   "name": "增值税法实施条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "VAT-REG-"
+  },
+  {
+   "code": "DEED-TAX-LAW",
+   "name": "契税法",
+   "aliases": [
+    "中华人民共和国契税法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "DEED-TAX-LAW-"
+  },
+  {
+   "code": "UNION-LAW",
+   "name": "工会法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "UNION-LAW-"
+  },
+  {
+   "code": "EDU-SURCHARGE-REG",
+   "name": "征收教育费附加的暂行规定",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "EDU-SURCHARGE-REG-"
+  },
+  {
+   "code": "PROPERTY-TAX-REG",
+   "name": "房产税暂行条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "PROPERTY-TAX-REG-"
+  },
+  {
+   "code": "DISABILITY-FUND-MEASURE",
+   "name": "残疾人就业保障金征收使用管理办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "DISABILITY-FUND-MEASURE-"
+  },
+  {
+   "code": "DISABILITY-EMP-REG",
+   "name": "残疾人就业条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "DISABILITY-EMP-REG-"
+  },
+  {
+   "code": "WATER-FUND-MEASURE",
+   "name": "水利建设基金筹集和使用管理办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "WATER-FUND-MEASURE-"
+  },
+  {
+   "code": "CUSTOMS-LAW",
+   "name": "海关法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CUSTOMS-LAW-"
+  },
+  {
+   "code": "CT-REG",
+   "name": "消费税暂行条例",
+   "aliases": [
+    "中华人民共和国消费税暂行条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "CT-REG-"
+  },
+  {
+   "code": "TAX-INTERMEDIARY-SUPERVISION",
+   "name": "涉税专业服务监管办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "TAX-INTERMEDIARY-SUPERVISION-"
+  },
+  {
+   "code": "TOBACCO-TAX-LAW",
+   "name": "烟叶税法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "TOBACCO-TAX-LAW-"
+  },
+  {
+   "code": "EPT-LAW",
+   "name": "环境保护税法",
+   "aliases": [
+    "中华人民共和国环境保护税法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "EPT-LAW-"
+  },
+  {
+   "code": "SOCIAL-INSURANCE-LAW",
+   "name": "社会保险法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "SOCIAL-INSURANCE-LAW-"
+  },
+  {
+   "code": "TAX-ADMIN-LAW",
+   "name": "税收征收管理法",
+   "aliases": [
+    "中华人民共和国税收征收管理法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "TAX-ADMIN-LAW-"
+  },
+  {
+   "code": "TAX-ADMIN-LAW-REG",
+   "name": "税收征收管理法实施细则",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "TAX-ADMIN-LAW-REG-"
+  },
+  {
+   "code": "SAT-INVOICE-POSNEG-LIST",
+   "name": "纳税人合规开具发票正负面清单",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-INVOICE-POSNEG-LIST-"
+  },
+  {
+   "code": "REALTY-LEASE-VAT",
+   "name": "纳税人提供不动产经营租赁服务增值税征收管理暂行办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "REALTY-LEASE-VAT-"
+  },
+  {
+   "code": "CROSS-COUNTY-CONSTRUCT-VAT",
+   "name": "纳税人跨县（市、区）提供建筑服务增值税征收管理暂行办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "CROSS-COUNTY-CONSTRUCT-VAT-"
+  },
+  {
+   "code": "REALTY-TRANSFER-VAT",
+   "name": "纳税人转让不动产增值税征收管理暂行办法",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "REALTY-TRANSFER-VAT-"
+  },
+  {
+   "code": "FARMLAND-TAX-LAW",
+   "name": "耕地占用税法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "FARMLAND-TAX-LAW-"
+  },
+  {
+   "code": "EQUITY-TRANSFER-IIT-MEASURE",
+   "name": "股权转让所得个人所得税管理办法（试行）",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "EQUITY-TRANSFER-IIT-MEASURE-"
+  },
+  {
+   "code": "TONNAGE-TAX-LAW",
+   "name": "船舶吨税法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "TONNAGE-TAX-LAW-"
+  },
+  {
+   "code": "APA-LAW",
+   "name": "行政处罚法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "APA-LAW-"
+  },
+  {
+   "code": "MOF-CIT-SPECIAL-FUND",
+   "name": "财政部 国家税务总局关于专项用途财政性资金企业所得税处理问题的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-CIT-SPECIAL-FUND-"
+  },
+  {
+   "code": "MOF-CIT-RELATED-INTEREST",
+   "name": "财政部 国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-CIT-RELATED-INTEREST-"
+  },
+  {
+   "code": "CS-2016-36",
+   "name": "财政部 国家税务总局关于全面推开营业税改征增值税试点的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "CS-2016-36-"
+  },
+  {
+   "code": "MOF-AGRI-DEDUCT-PILOT",
+   "name": "财政部 国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-AGRI-DEDUCT-PILOT-"
+  },
+  {
+   "code": "MOF-RD-SUPERDEDUCT",
+   "name": "财政部 国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-RD-SUPERDEDUCT-"
+  },
+  {
+   "code": "MOF-CCF-SUPPLEMENT",
+   "name": "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-CCF-SUPPLEMENT-"
+  },
+  {
+   "code": "MOF-CCF",
+   "name": "财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-CCF-"
+  },
+  {
+   "code": "MOF-IIT-INVESTOR",
+   "name": "财政部 国家税务总局关于规范个人投资者个人所得税征收管理的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-IIT-INVESTOR-"
+  },
+  {
+   "code": "MOF-STA-ANN-2023-7",
+   "name": "财政部 税务总局公告2023年第7号",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-STA-ANN-2023-7-"
+  },
+  {
+   "code": "MOF-IIT-TRANSITION",
+   "name": "财政部 税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-IIT-TRANSITION-"
+  },
+  {
+   "code": "MOF-EXPORT-VAT-CT",
+   "name": "财政部 税务总局关于出口业务增值税和消费税政策的公告",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-EXPORT-VAT-CT-"
+  },
+  {
+   "code": "MOF-RETENTION-REFUND",
+   "name": "财政部 税务总局关于完善增值税期末留抵退税政策的公告",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-RETENTION-REFUND-"
+  },
+  {
+   "code": "MOF-VAT-RATE-SIMPLIFY",
+   "name": "财政部 税务总局关于简并增值税税率有关政策的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-VAT-RATE-SIMPLIFY-"
+  },
+  {
+   "code": "MOF-VPT-POLICY",
+   "name": "财政部 税务总局关于车辆购置税有关具体政策的公告",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-VPT-POLICY-"
+  },
+  {
+   "code": "MOF-CIVIL-AVIATION-FUND",
+   "name": "财政部关于民航发展基金等3项政府性基金有关政策的通知",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "MOF-CIVIL-AVIATION-FUND-"
+  },
+  {
+   "code": "CS-2008-121",
+   "name": "财税〔2008〕121号",
+   "aliases": [],
+   "level": "规范性文件",
+   "doc_num": null,
+   "provision_id_prefix": "CS-2008-121-"
+  },
+  {
+   "code": "RESOURCE-TAX-LAW",
+   "name": "资源税法",
+   "aliases": [
+    "中华人民共和国资源税法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "RESOURCE-TAX-LAW-"
+  },
+  {
+   "code": "VVT-LAW",
+   "name": "车船税法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "VVT-LAW-"
+  },
+  {
+   "code": "VVT-REG",
+   "name": "车船税法实施条例",
+   "aliases": [],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "VVT-REG-"
+  },
+  {
+   "code": "VPT-LAW",
+   "name": "车辆购置税法",
+   "aliases": [],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "VPT-LAW-"
+  },
+  {
+   "code": "SAT-MAJOR-TAX-VIOLATION-DISCLOSURE",
+   "name": "重大税收违法失信主体信息公布管理办法",
+   "aliases": [],
+   "level": "部门规章",
+   "doc_num": null,
+   "provision_id_prefix": "SAT-MAJOR-TAX-VIOLATION-DISCLOSURE-"
+  }
+ ]
+}
