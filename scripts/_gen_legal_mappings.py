@@ -74,8 +74,8 @@ def parse_ref(raw: str) -> Tuple[str, str, str]:
         m2 = re.match(r"^([^（(：:，,。]+)", s)
         law = (m2.group(1) if m2 else "").strip()
         rest = s[len(law):]
-    am = re.search(r"第([零一二三四五六七八九十百]+)条", rest) or \
-        re.search(r"第([零一二三四五六七八九十百]+)条", s)
+    am = re.search(r"第([零一二三四五六七八九十百千两]+)条", rest) or \
+        re.search(r"第([零一二三四五六七八九十百千两]+)条", s)
     return law, (am.group(1) if am else ""), s
 
 

@@ -1,18 +1,48 @@
 {
  "schema": 1,
- "updated": "2026-10-15",
+ "updated": "2026-10-16",
  "source": "data/legal_crawl/legal_texts/*.json（fgk 政策法规库整部法全文）",
  "policy": "★ 只入页面效力标识＝『全文有效』且版本登记非 expired/superseded 的法规；其余**一律不入库**并在此逐部登记原因 —— 不拿过时文本顶替现行文本（引用已废止条文比缺条文更危险）。",
  "counts": {
-  "scanned": 140,
-  "loaded_laws": 101,
-  "loaded_articles_new": 440,
-  "blocked_laws": 29,
-  "no_article_laws": 10,
+  "scanned": 144,
+  "loaded_laws": 96,
+  "loaded_articles_new": 0,
+  "rewritten_crawled_entries": 9,
+  "purged_pseudo_entries": 0,
+  "blocked_laws": 32,
+  "no_article_laws": 16,
   "version_conflicts": 0,
-  "content_conflicts": 62,
-  "library_total": 7009
+  "content_conflicts": 0,
+  "library_total": 7639
  },
+ "rewritten": [
+  {
+   "law": "国务院关于修改对储蓄存款利息所得征收个人所得税的实施办法的决定",
+   "title": "国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定",
+   "count": 4
+  },
+  {
+   "law": "行政处罚法",
+   "title": "中华人民共和国行政处罚法",
+   "count": 1
+  },
+  {
+   "law": "行政复议法实施条例",
+   "title": "中华人民共和国行政复议法实施条例",
+   "count": 1
+  },
+  {
+   "law": "国务院关于废止营业税暂行条例和修改增值税暂行条例的决定",
+   "title": "国务院关于废止《中华人民共和国营业税暂行条例》和修改《中华人民共和国增值税暂行条例》的决定",
+   "count": 2
+  },
+  {
+   "law": "关税法",
+   "title": "中华人民共和国关税法",
+   "count": 1
+  }
+ ],
+ "purged_pseudo_entries": [],
  "blocked": [
   {
    "id": "c5192949",
@@ -168,6 +198,15 @@
    "reason": "页面效力标识为 '已修改'（非『全文有效』）⇒ 不入库：这是**过时/非现行**文本，用来引用会与法定原文不符"
   },
   {
+   "id": "c5195215",
+   "title": "中华人民共和国发票管理办法实施细则",
+   "law": "发票管理办法实施细则",
+   "level": "税务部门规章",
+   "effect": "已修改",
+   "written_date": "2019-07-24",
+   "reason": "页面效力标识为 '已修改'（非『全文有效』）⇒ 不入库：这是**过时/非现行**文本，用来引用会与法定原文不符"
+  },
+  {
    "id": "c5196906",
    "title": "中华人民共和国国务院关于中外合资建设港口码头优惠待遇的暂行法规",
    "law": "国务院关于中外合资建设港口码头优惠待遇的暂行法规",
@@ -274,6 +313,24 @@
    "effect": "全文废止",
    "written_date": "2001-12-14",
    "reason": "页面效力标识为 '全文废止'（非『全文有效』）⇒ 不入库：这是**过时/非现行**文本，用来引用会与法定原文不符"
+  },
+  {
+   "id": "c5214088",
+   "title": "中华人民共和国发票管理办法实施细则",
+   "law": "发票管理办法实施细则",
+   "level": "税务部门规章",
+   "effect": "已修改",
+   "written_date": "2014-12-27",
+   "reason": "页面效力标识为 '已修改'（非『全文有效』）⇒ 不入库：这是**过时/非现行**文本，用来引用会与法定原文不符"
+  },
+  {
+   "id": "c5219853",
+   "title": "中华人民共和国发票管理办法实施细则",
+   "law": "发票管理办法实施细则",
+   "level": "税务部门规章",
+   "effect": "已修改",
+   "written_date": "2011-02-14",
+   "reason": "页面效力标识为 '已修改'（非『全文有效』）⇒ 不入库：这是**过时/非现行**文本，用来引用会与法定原文不符"
   }
  ],
  "no_article": [
@@ -314,6 +371,15 @@
    "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
   },
   {
+   "id": "c5211780",
+   "title": "中华人民共和国刑法修正案（十一）",
+   "law": "刑法修正案（十一）",
+   "level": "法律",
+   "effect": "全文有效",
+   "written_date": "2020-12-26",
+   "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
+  },
+  {
    "id": "c5211792",
    "title": "中华人民共和国刑法修正案（十）",
    "law": "刑法修正案（十）",
@@ -323,12 +389,30 @@
    "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
   },
   {
+   "id": "c5211804",
+   "title": "中华人民共和国刑法修正案（八）",
+   "law": "刑法修正案（八）",
+   "level": "法律",
+   "effect": "全文有效",
+   "written_date": "2011-02-25",
+   "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
+  },
+  {
    "id": "c5211808",
    "title": "中华人民共和国刑法修正案（七）",
    "law": "刑法修正案（七）",
    "level": "法律",
    "effect": "全文有效",
    "written_date": "2009-02-28",
+   "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
+  },
+  {
+   "id": "c5211812",
+   "title": "中华人民共和国刑法修正案（六）",
+   "law": "刑法修正案（六）",
+   "level": "法律",
+   "effect": "全文有效",
+   "written_date": "2006-06-29",
    "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
   },
   {
@@ -359,6 +443,33 @@
    "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
   },
   {
+   "id": "c5212260",
+   "title": "中华人民共和国刑法修正案（九）",
+   "law": "刑法修正案（九）",
+   "level": "法律",
+   "effect": "全文有效",
+   "written_date": "2015-08-29",
+   "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
+  },
+  {
+   "id": "c5212262",
+   "title": "中华人民共和国刑法修正案",
+   "law": "刑法修正案",
+   "level": "法律",
+   "effect": "全文有效",
+   "written_date": "1999-12-25",
+   "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
+  },
+  {
+   "id": "c5233391",
+   "title": "中华人民共和国刑法修正案（十二）",
+   "law": "刑法修正案（十二）",
+   "level": "法律",
+   "effect": "全文有效",
+   "written_date": "2023-12-29",
+   "reason": "全文切不出『第X条』条文（可能是公布令/决定类文本）"
+  },
+  {
    "id": "c5245547",
    "title": "全国人民代表大会常务委员会关于修改《中华人民共和国环境保护税法》的决定",
    "law": "全国人民代表大会常务委员会关于修改环境保护税法的决定",
@@ -369,442 +480,7 @@
   }
  ],
  "version_conflicts": [],
- "content_conflicts": [
-  {
-   "law": "土地管理法",
-   "article": "第五十九条",
-   "existing_len": 104,
-   "crawled_len": 130,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "土地管理法",
-   "article": "第六十条",
-   "existing_len": 1,
-   "crawled_len": 224,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "土地管理法",
-   "article": "第六十一条",
-   "existing_len": 1,
-   "crawled_len": 125,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "土地管理法",
-   "article": "第六十二条",
-   "existing_len": 782,
-   "crawled_len": 403,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "个人所得税法",
-   "article": "第二条",
-   "existing_len": 83,
-   "crawled_len": 230,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "个人所得税法",
-   "article": "第六条",
-   "existing_len": 144,
-   "crawled_len": 650,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "个人所得税法",
-   "article": "第九条",
-   "existing_len": 33,
-   "crawled_len": 126,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "个人所得税法",
-   "article": "第十条",
-   "existing_len": 125,
-   "crawled_len": 200,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "印花税法",
-   "article": "第五条",
-   "existing_len": 133,
-   "crawled_len": 149,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "对储蓄存款利息所得征收个人所得税的实施办法",
-   "article": "第一条",
-   "existing_len": 17,
-   "crawled_len": 31,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "对储蓄存款利息所得征收个人所得税的实施办法",
-   "article": "第十二条",
-   "existing_len": 725,
-   "crawled_len": 72,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "企业所得税法实施条例",
-   "article": "第九条",
-   "existing_len": 115,
-   "crawled_len": 115,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "企业所得税法实施条例",
-   "article": "第四十二条",
-   "existing_len": 74,
-   "crawled_len": 74,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "企业所得税法实施条例",
-   "article": "第四十三条",
-   "existing_len": 56,
-   "crawled_len": 56,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "企业所得税法实施条例",
-   "article": "第四十四条",
-   "existing_len": 85,
-   "crawled_len": 85,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "企业所得税法实施条例",
-   "article": "第五十九条",
-   "existing_len": 128,
-   "crawled_len": 130,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "企业所得税法实施条例",
-   "article": "第九十一条",
-   "existing_len": 131,
-   "crawled_len": 135,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "劳动合同法实施条例",
-   "article": "第三十一条",
-   "existing_len": 44,
-   "crawled_len": 55,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "环境保护税法实施条例",
-   "article": "第三条",
-   "existing_len": 13,
-   "crawled_len": 133,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "环境保护税法实施条例",
-   "article": "第十二条",
-   "existing_len": 211,
-   "crawled_len": 73,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "个人所得税法实施条例",
-   "article": "第六条",
-   "existing_len": 204,
-   "crawled_len": 708,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "城镇土地使用税暂行条例",
-   "article": "第二条",
-   "existing_len": 161,
-   "crawled_len": 162,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "城镇土地使用税暂行条例",
-   "article": "第四条",
-   "existing_len": 83,
-   "crawled_len": 87,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "税收征收管理法",
-   "article": "第十七条",
-   "existing_len": 184,
-   "crawled_len": 186,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "税收征收管理法",
-   "article": "第三十五条",
-   "existing_len": 180,
-   "crawled_len": 248,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "税收征收管理法",
-   "article": "第五十条",
-   "existing_len": 89,
-   "crawled_len": 159,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "税收征收管理法",
-   "article": "第六十条",
-   "existing_len": 204,
-   "crawled_len": 360,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "税收征收管理法",
-   "article": "第六十三条",
-   "existing_len": 250,
-   "crawled_len": 251,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "税收征收管理法",
-   "article": "第七十四条",
-   "existing_len": 527,
-   "crawled_len": 30,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "税收征收管理法实施细则",
-   "article": "第六十一条",
-   "existing_len": 11,
-   "crawled_len": 155,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "税收征收管理法实施细则",
-   "article": "第八十八条",
-   "existing_len": 2667,
-   "crawled_len": 62,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "发票管理办法",
-   "article": "第二十二条",
-   "existing_len": 137,
-   "crawled_len": 165,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "发票管理办法",
-   "article": "第二十三条",
-   "existing_len": 137,
-   "crawled_len": 201,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "发票管理办法",
-   "article": "第二十七条",
-   "existing_len": 100,
-   "crawled_len": 42,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "城市房地产开发经营管理条例",
-   "article": "第十九条",
-   "existing_len": 31,
-   "crawled_len": 47,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "城市房地产开发经营管理条例",
-   "article": "第三十九条",
-   "existing_len": 1,
-   "crawled_len": 39,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "城市房地产开发经营管理条例",
-   "article": "第四十条",
-   "existing_len": 1346,
-   "crawled_len": 12,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "保险法",
-   "article": "第八十二条",
-   "existing_len": 13,
-   "crawled_len": 193,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "保险法",
-   "article": "第一百四十六条",
-   "existing_len": 1555,
-   "crawled_len": 43,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "票据法",
-   "article": "第二十六条",
-   "existing_len": 58,
-   "crawled_len": 72,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "票据法",
-   "article": "第七十一条",
-   "existing_len": 9,
-   "crawled_len": 164,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第十七条之一",
-   "existing_len": 609,
-   "crawled_len": 43,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第一百二十条之六",
-   "existing_len": 1600,
-   "crawled_len": 68,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第一百三十三条之二",
-   "existing_len": 343,
-   "crawled_len": 166,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第一百三十四条之一",
-   "existing_len": 369,
-   "crawled_len": 260,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第一百三十五条之一",
-   "existing_len": 494,
-   "crawled_len": 96,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第一百四十二条之一",
-   "existing_len": 1514,
-   "crawled_len": 249,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第一百六十二条之二",
-   "existing_len": 1568,
-   "crawled_len": 112,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第三百八十八条之一",
-   "existing_len": 837,
-   "crawled_len": 299,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第三百九十条之一",
-   "existing_len": 1128,
-   "crawled_len": 234,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第三百九十九条之一",
-   "existing_len": 1129,
-   "crawled_len": 75,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法",
-   "article": "第四百零八条之一",
-   "existing_len": 1378,
-   "crawled_len": 258,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "证券法",
-   "article": "第一百零三条",
-   "existing_len": 13,
-   "crawled_len": 200,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "证券法",
-   "article": "第一百四十六条",
-   "existing_len": 1850,
-   "crawled_len": 2808,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "刑法修正案（九）",
-   "article": "第二百八十七条之二",
-   "existing_len": 4081,
-   "crawled_len": 3837,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "政府信息公开条例",
-   "article": "第十三条",
-   "existing_len": 9,
-   "crawled_len": 64,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "政府信息公开条例",
-   "article": "第十五条",
-   "existing_len": 1,
-   "crawled_len": 82,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "政府信息公开条例",
-   "article": "第十六条",
-   "existing_len": 348,
-   "crawled_len": 131,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "公司法",
-   "article": "第七十六条",
-   "existing_len": 19,
-   "crawled_len": 242,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "公司法",
-   "article": "第八十三条",
-   "existing_len": 993,
-   "crawled_len": 66,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "公司法",
-   "article": "第一百三十条",
-   "existing_len": 24,
-   "crawled_len": 340,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  },
-  {
-   "law": "公司法",
-   "article": "第一百三十三条",
-   "existing_len": 574,
-   "crawled_len": 48,
-   "note": "两版正文**实质不同**（已抹空白差）⇒ 保留既有（人工核实版），不覆盖，待人工核对"
-  }
- ],
+ "content_conflicts": [],
  "loaded": [
   {
    "id": "c5192937",
@@ -814,7 +490,9 @@
    "effect": "全文有效",
    "written_date": "2018-12-29",
    "articles": 98,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5192938",
@@ -824,7 +502,9 @@
    "effect": "全文有效",
    "written_date": "2004-11-01",
    "articles": 36,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5192952",
@@ -834,7 +514,9 @@
    "effect": "全文有效",
    "written_date": "2019-08-26",
    "articles": 73,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5192953",
@@ -844,7 +526,9 @@
    "effect": "全文有效",
    "written_date": "2020-11-29",
    "articles": 53,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5192954",
@@ -854,7 +538,9 @@
    "effect": "全文有效",
    "written_date": "2019-08-26",
    "articles": 87,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193016",
@@ -864,7 +550,9 @@
    "effect": "全文有效",
    "written_date": "2001-10-27",
    "articles": 54,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193017",
@@ -874,7 +562,9 @@
    "effect": "全文有效",
    "written_date": "2006-08-27",
    "articles": 136,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193018",
@@ -884,7 +574,9 @@
    "effect": "全文有效",
    "written_date": "2018-12-29",
    "articles": 60,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193020",
@@ -894,7 +586,9 @@
    "effect": "全文有效",
    "written_date": "2024-11-08",
    "articles": 80,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193021",
@@ -904,7 +598,9 @@
    "effect": "全文有效",
    "written_date": "2009-08-27",
    "articles": 53,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193022",
@@ -914,7 +610,9 @@
    "effect": "全文有效",
    "written_date": "2009-12-26",
    "articles": 58,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193023",
@@ -924,7 +622,9 @@
    "effect": "全文有效",
    "written_date": "2010-12-25",
    "articles": 60,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193024",
@@ -934,7 +634,9 @@
    "effect": "全文有效",
    "written_date": "2012-04-27",
    "articles": 51,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193025",
@@ -944,7 +646,9 @@
    "effect": "全文有效",
    "written_date": "2012-12-28",
    "articles": 98,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193027",
@@ -954,7 +658,9 @@
    "effect": "全文有效",
    "written_date": "2017-12-27",
    "articles": 10,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193028",
@@ -964,7 +670,9 @@
    "effect": "全文有效",
    "written_date": "2018-08-31",
    "articles": 22,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193031",
@@ -974,7 +682,9 @@
    "effect": "全文有效",
    "written_date": "2018-10-26",
    "articles": 68,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193032",
@@ -984,7 +694,9 @@
    "effect": "全文有效",
    "written_date": "2025-10-28",
    "articles": 29,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193036",
@@ -994,7 +706,9 @@
    "effect": "全文有效",
    "written_date": "2018-10-26",
    "articles": 22,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193037",
@@ -1004,7 +718,9 @@
    "effect": "全文有效",
    "written_date": "2018-12-29",
    "articles": 16,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193038",
@@ -1014,7 +730,9 @@
    "effect": "全文有效",
    "written_date": "2018-12-29",
    "articles": 19,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193039",
@@ -1024,7 +742,9 @@
    "effect": "全文有效",
    "written_date": "2019-04-23",
    "articles": 13,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193040",
@@ -1034,7 +754,9 @@
    "effect": "全文有效",
    "written_date": "2019-08-26",
    "articles": 17,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193053",
@@ -1044,7 +766,9 @@
    "effect": "全文有效",
    "written_date": "2020-08-11",
    "articles": 16,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193055",
@@ -1054,7 +778,9 @@
    "effect": "全文有效",
    "written_date": "2020-08-11",
    "articles": 11,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193056",
@@ -1064,7 +790,9 @@
    "effect": "全文有效",
    "written_date": "2021-04-29",
    "articles": 86,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193057",
@@ -1074,7 +802,9 @@
    "effect": "全文有效",
    "written_date": "2021-04-29",
    "articles": 102,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5193058",
@@ -1084,7 +814,9 @@
    "effect": "全文有效",
    "written_date": "2021-06-10",
    "articles": 20,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 1
   },
   {
    "id": "c5194392",
@@ -1094,7 +826,9 @@
    "effect": "全文有效",
    "written_date": "1990-01-01",
    "articles": 16,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194405",
@@ -1104,7 +838,9 @@
    "effect": "全文有效",
    "written_date": "1999-01-22",
    "articles": 33,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194407",
@@ -1114,7 +850,9 @@
    "effect": "全文有效",
    "written_date": "2019-03-24",
    "articles": 31,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194411",
@@ -1124,7 +862,9 @@
    "effect": "全文有效",
    "written_date": "2007-02-25",
    "articles": 30,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194414",
@@ -1134,7 +874,9 @@
    "effect": "全文有效",
    "written_date": "2007-07-20",
    "articles": 15,
-   "new_articles": 10
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194417",
@@ -1144,7 +886,9 @@
    "effect": "全文有效",
    "written_date": "2007-12-06",
    "articles": 132,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 6
   },
   {
    "id": "c5194419",
@@ -1154,7 +898,9 @@
    "effect": "全文有效",
    "written_date": "2008-09-18",
    "articles": 38,
-   "new_articles": 7
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194422",
@@ -1164,7 +910,9 @@
    "effect": "全文有效",
    "written_date": "2008-11-10",
    "articles": 17,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194427",
@@ -1174,7 +922,9 @@
    "effect": "全文有效",
    "written_date": "2010-12-20",
    "articles": 67,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194433",
@@ -1184,7 +934,9 @@
    "effect": "全文有效",
    "written_date": "2011-01-08",
    "articles": 15,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194441",
@@ -1194,7 +946,9 @@
    "effect": "全文有效",
    "written_date": "2017-03-01",
    "articles": 45,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194443",
@@ -1204,7 +958,9 @@
    "effect": "全文有效",
    "written_date": "2017-12-25",
    "articles": 26,
-   "new_articles": 8
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194444",
@@ -1214,7 +970,9 @@
    "effect": "全文有效",
    "written_date": "2018-12-18",
    "articles": 36,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5194445",
@@ -1224,7 +982,9 @@
    "effect": "全文有效",
    "written_date": "2019-03-02",
    "articles": 14,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 2
   },
   {
    "id": "c5194446",
@@ -1234,7 +994,21 @@
    "effect": "全文有效",
    "written_date": "2019-03-02",
    "articles": 27,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
+  },
+  {
+   "id": "c5194804",
+   "title": "国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告",
+   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
+   "level": "税务规范性文件",
+   "effect": "全文有效",
+   "written_date": "2018-06-06",
+   "articles": 20,
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5195081",
@@ -1244,7 +1018,9 @@
    "effect": "全文有效",
    "written_date": "2015-04-24",
    "articles": 94,
-   "new_articles": 19
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5195082",
@@ -1254,7 +1030,9 @@
    "effect": "全文有效",
    "written_date": "2016-02-06",
    "articles": 113,
-   "new_articles": 26
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5195083",
@@ -1264,7 +1042,9 @@
    "effect": "全文有效",
    "written_date": "2019-03-02",
    "articles": 35,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5195084",
@@ -1274,7 +1054,9 @@
    "effect": "全文有效",
    "written_date": "2023-07-20",
    "articles": 43,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5195086",
@@ -1284,7 +1066,9 @@
    "effect": "全文有效",
    "written_date": "2020-11-29",
    "articles": 40,
-   "new_articles": 19
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5196866",
@@ -1294,7 +1078,9 @@
    "effect": "全文有效",
    "written_date": "2011-01-08",
    "articles": 11,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5209866",
@@ -1303,8 +1089,10 @@
    "level": "行政法规",
    "effect": "全文有效",
    "written_date": "2007-07-20",
-   "articles": 5,
-   "new_articles": 0
+   "articles": 19,
+   "new_articles": 0,
+   "rewritten": 4,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211552",
@@ -1314,7 +1102,9 @@
    "effect": "全文有效",
    "written_date": "2013-07-18",
    "articles": 1,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211554",
@@ -1324,7 +1114,9 @@
    "effect": "全文有效",
    "written_date": "2013-07-18",
    "articles": 1,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211769",
@@ -1334,7 +1126,9 @@
    "effect": "全文有效",
    "written_date": "2023-03-13",
    "articles": 120,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211771",
@@ -1344,7 +1138,9 @@
    "effect": "全文有效",
    "written_date": "2022-06-24",
    "articles": 70,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211776",
@@ -1354,7 +1150,9 @@
    "effect": "全文有效",
    "written_date": "2021-08-20",
    "articles": 74,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211778",
@@ -1363,18 +1161,10 @@
    "level": "法律",
    "effect": "全文有效",
    "written_date": "2021-01-22",
-   "articles": 85,
-   "new_articles": 0
-  },
-  {
-   "id": "c5211780",
-   "title": "中华人民共和国刑法修正案（十一）",
-   "law": "刑法修正案（十一）",
-   "level": "法律",
-   "effect": "全文有效",
-   "written_date": "2020-12-26",
-   "articles": 2,
-   "new_articles": 0
+   "articles": 87,
+   "new_articles": 0,
+   "rewritten": 1,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211782",
@@ -1384,7 +1174,9 @@
    "effect": "全文有效",
    "written_date": "2019-04-23",
    "articles": 33,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211784",
@@ -1394,7 +1186,9 @@
    "effect": "全文有效",
    "written_date": "2019-04-23",
    "articles": 83,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211786",
@@ -1404,7 +1198,9 @@
    "effect": "全文有效",
    "written_date": "2019-03-15",
    "articles": 42,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211790",
@@ -1414,7 +1210,9 @@
    "effect": "全文有效",
    "written_date": "2024-06-28",
    "articles": 51,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211794",
@@ -1424,7 +1222,9 @@
    "effect": "全文有效",
    "written_date": "2017-06-27",
    "articles": 103,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211796",
@@ -1434,7 +1234,9 @@
    "effect": "全文有效",
    "written_date": "2015-04-24",
    "articles": 185,
-   "new_articles": 63
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211800",
@@ -1443,8 +1245,10 @@
    "level": "法律",
    "effect": "全文有效",
    "written_date": "2012-10-26",
-   "articles": 20,
-   "new_articles": 0
+   "articles": 42,
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211802",
@@ -1454,17 +1258,9 @@
    "effect": "全文有效",
    "written_date": "2011-06-30",
    "articles": 71,
-   "new_articles": 0
-  },
-  {
-   "id": "c5211804",
-   "title": "中华人民共和国刑法修正案（八）",
-   "law": "刑法修正案（八）",
-   "level": "法律",
-   "effect": "全文有效",
-   "written_date": "2011-02-25",
-   "articles": 4,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211806",
@@ -1474,7 +1270,9 @@
    "effect": "全文有效",
    "written_date": "2024-02-27",
    "articles": 65,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211810",
@@ -1484,17 +1282,9 @@
    "effect": "全文有效",
    "written_date": "2006-08-27",
    "articles": 109,
-   "new_articles": 0
-  },
-  {
-   "id": "c5211812",
-   "title": "中华人民共和国刑法修正案（六）",
-   "law": "刑法修正案（六）",
-   "level": "法律",
-   "effect": "全文有效",
-   "written_date": "2006-06-29",
-   "articles": 1,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211816",
@@ -1504,7 +1294,9 @@
    "effect": "全文有效",
    "written_date": "2004-08-28",
    "articles": 110,
-   "new_articles": 44
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211824",
@@ -1514,7 +1306,9 @@
    "effect": "全文有效",
    "written_date": "1999-08-30",
    "articles": 48,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5211958",
@@ -1524,7 +1318,9 @@
    "effect": "全文有效",
    "written_date": "2017-12-22",
    "articles": 41,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212248",
@@ -1533,8 +1329,10 @@
    "level": "法律",
    "effect": "全文有效",
    "written_date": "2023-12-29",
-   "articles": 250,
-   "new_articles": 213
+   "articles": 505,
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212250",
@@ -1543,8 +1341,10 @@
    "level": "法律",
    "effect": "全文有效",
    "written_date": "2020-05-28",
-   "articles": 999,
-   "new_articles": 0
+   "articles": 1260,
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212252",
@@ -1553,8 +1353,10 @@
    "level": "法律",
    "effect": "全文有效",
    "written_date": "2019-12-28",
-   "articles": 177,
-   "new_articles": 21
+   "articles": 226,
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212254",
@@ -1564,7 +1366,9 @@
    "effect": "全文有效",
    "written_date": "2018-10-26",
    "articles": 308,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212256",
@@ -1574,27 +1378,9 @@
    "effect": "全文有效",
    "written_date": "2018-08-31",
    "articles": 89,
-   "new_articles": 0
-  },
-  {
-   "id": "c5212260",
-   "title": "中华人民共和国刑法修正案（九）",
-   "law": "刑法修正案（九）",
-   "level": "法律",
-   "effect": "全文有效",
-   "written_date": "2015-08-29",
-   "articles": 6,
-   "new_articles": 1
-  },
-  {
-   "id": "c5212262",
-   "title": "中华人民共和国刑法修正案",
-   "law": "刑法修正案",
-   "level": "法律",
-   "effect": "全文有效",
-   "written_date": "1999-12-25",
-   "articles": 1,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212264",
@@ -1604,7 +1390,9 @@
    "effect": "全文有效",
    "written_date": "1997-12-29",
    "articles": 48,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212273",
@@ -1614,7 +1402,9 @@
    "effect": "全文有效",
    "written_date": "2022-10-01",
    "articles": 39,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212275",
@@ -1624,7 +1414,9 @@
    "effect": "全文有效",
    "written_date": "2020-08-07",
    "articles": 20,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212277",
@@ -1634,7 +1426,9 @@
    "effect": "全文有效",
    "written_date": "2019-12-26",
    "articles": 49,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212279",
@@ -1644,7 +1438,9 @@
    "effect": "全文有效",
    "written_date": "2019-10-22",
    "articles": 72,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212281",
@@ -1654,7 +1450,9 @@
    "effect": "全文有效",
    "written_date": "2019-04-20",
    "articles": 44,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212283",
@@ -1664,7 +1462,9 @@
    "effect": "全文有效",
    "written_date": "2019-04-03",
    "articles": 56,
-   "new_articles": 1
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5212285",
@@ -1673,8 +1473,10 @@
    "level": "行政法规",
    "effect": "全文有效",
    "written_date": "2026-04-29",
-   "articles": 25,
-   "new_articles": 0
+   "articles": 78,
+   "new_articles": 0,
+   "rewritten": 1,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5220330",
@@ -1684,7 +1486,9 @@
    "effect": "全文有效",
    "written_date": "2023-09-01",
    "articles": 306,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5220333",
@@ -1694,7 +1498,9 @@
    "effect": "全文有效",
    "written_date": "2023-09-01",
    "articles": 90,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5224883",
@@ -1703,8 +1509,10 @@
    "level": "行政法规",
    "effect": "全文有效",
    "written_date": "2017-11-19",
-   "articles": 21,
-   "new_articles": 0
+   "articles": 30,
+   "new_articles": 0,
+   "rewritten": 2,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5233383",
@@ -1714,17 +1522,9 @@
    "effect": "全文有效",
    "written_date": "2023-12-29",
    "articles": 266,
-   "new_articles": 8
-  },
-  {
-   "id": "c5233391",
-   "title": "中华人民共和国刑法修正案（十二）",
-   "law": "刑法修正案（十二）",
-   "level": "法律",
-   "effect": "全文有效",
-   "written_date": "2023-12-29",
-   "articles": 1,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5234556",
@@ -1733,8 +1533,10 @@
    "level": "法律",
    "effect": "全文有效",
    "written_date": "2024-04-26",
-   "articles": 71,
-   "new_articles": 0
+   "articles": 73,
+   "new_articles": 0,
+   "rewritten": 1,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5237365",
@@ -1744,7 +1546,9 @@
    "effect": "全文有效",
    "written_date": "2024-12-25",
    "articles": 38,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5238092",
@@ -1754,7 +1558,9 @@
    "effect": "全文有效",
    "written_date": "2024-06-06",
    "articles": 27,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5239740",
@@ -1764,7 +1570,9 @@
    "effect": "全文有效",
    "written_date": "2024-08-30",
    "articles": 26,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5241238",
@@ -1774,7 +1582,9 @@
    "effect": "全文有效",
    "written_date": "2025-06-20",
    "articles": 14,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5246349",
@@ -1784,7 +1594,9 @@
    "effect": "全文有效",
    "written_date": "2025-12-25",
    "articles": 54,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5249174",
@@ -1794,7 +1606,9 @@
    "effect": "全文有效",
    "written_date": "2021-06-10",
    "articles": 57,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5250264",
@@ -1804,7 +1618,9 @@
    "effect": "全文有效",
    "written_date": "2026-05-15",
    "articles": 79,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   },
   {
    "id": "c5250533",
@@ -1814,7 +1630,9 @@
    "effect": "全文有效",
    "written_date": "2025-12-17",
    "articles": 44,
-   "new_articles": 0
+   "new_articles": 0,
+   "rewritten": 0,
+   "adjudicated_kept": 0
   }
  ],
  "_note": "★ 本台账是**时效核实的过程证据**：每一部未入库的法规都写明原因，可逐条复核。"

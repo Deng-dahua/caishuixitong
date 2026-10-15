@@ -4349,15 +4349,15 @@ def check_risk_item_section_wording() -> List[Tuple[str, str, str]]:
     for good in ("_enterprise_situations", "constituent_hits", "format_legal_basis"):
         if good not in src:
             issues.append(("ERROR", rel, f"缺少「{good}」（本企业逐条判定 / 法条补全条款内容）"))
-    # (C) 行为：法条补全必须能带回条款内容
+    # (C) 行为：法条补全必须能带回条款内容（★2026-10-16 换用现行第二十一条作探针：原探针的「第二十七条＋红字发票」属**旧版**内容，该引用 2026-10-06 已判「与现行文本不符」，见 tax_redlines RL-VAT-007）
     try:
         from engine.legal_citation import format_legal_basis
-        probe = format_legal_basis(["《发票管理办法》第二十七条"])
-        if ("：" not in probe) or ("红字发票" not in probe):
-            issues.append(("ERROR", "engine/legal_citation.py",
-                           "法定依据未补全条款内容（《发票管理办法》第二十七条）"))
+        probe = format_legal_basis(["《发票管理办法》第二十一条"])
+        if ("：" not in probe) or ("虚开" not in probe):
+            issues.append(("ERROR", "engine.legal_citation.py", "法定依据未补全条款内容（探针第二十一条/现行含「虚开」）"))
     except Exception as exc:
-        issues.append(("ERROR", "engine/legal_citation.py", f"法条解析异常: {exc}"))
+        issues.append(("ERROR", "engine.legal_citation.py", f"法条解析异常: {exc}"))
+    return issues
     return issues
 
 

@@ -181,24 +181,38 @@ def fetch_one(url: str) -> Dict[str, Any]:
 
 # ─────────────────────────── 主流程 ───────────────────────────
 
-def load_targets(levels: Tuple[str, ...]) -> List[Dict[str, Any]]:
+def load_targets(levels: Tuple[str, ...], extra_titles: Optional[Tuple[str, ...]] = None
+                 ) -> List[Dict[str, Any]]:
+    """采集目标 = 指定效力等级的**全部**法规 + `extra_titles` 精确匹配的**追加**法规。
+
+    ★ `extra_titles`（2026-10-16 新增）用途：**按需补采**——材料正文里显式引用、
+    但不在「法律/行政法规」两个等级内的法规（实测《企业所得税税前扣除凭证管理办法》
+    〔税务规范性文件〕、《发票管理办法实施细则》〔税务部门规章〕），
+    其条文正是材料**条款级关联**指向的对象。**不**扩大 TARGET_LEVELS 以免引入数百部无关文件。
+    """
     if not LIST_FILE.exists():
         raise SystemExit(f"!! 缺 {LIST_FILE}（先跑 scripts/_crawl_fgk_files.py）")
     data = json.loads(LIST_FILE.read_text(encoding="utf-8"))
+    want = {t.strip() for t in (extra_titles or ()) if t.strip()}
     out: List[Dict[str, Any]] = []
     for it in data.get("items") or []:
-        if (it.get("effect_level") or "") not in levels:
+        title = it.get("title") or ""
+        lv = it.get("effect_level") or ""
+        hit_level = lv in levels
+        hit_title = any(w == title or w == it.get("doc_no") for w in want)
+        if not (hit_level or hit_title):
             continue
         iid = item_id(it.get("url"))
         if not iid:
             continue
         out.append({"id": iid, "url": to_fgk_url(it.get("url")),
-                    "title": it.get("title") or "", "doc_no": it.get("doc_no") or "",
-                    "effect_level": it.get("effect_level") or "",
+                    "title": title, "doc_no": it.get("doc_no") or "",
+                    "effect_level": lv,
                     "channel_code": it.get("channel_code") or "",
                     "published_at": it.get("published_at") or "",
                     "issuer": it.get("issuer") or "",
-                    "list_url": it.get("url") or ""})
+                    "list_url": it.get("url") or "",
+                    "_via": "level" if hit_level else "extra_title"})
     return sorted(out, key=lambda r: (r["effect_level"], r["title"]))
 
 
@@ -212,9 +226,16 @@ def main() -> int:
     levels = TARGET_LEVELS
     if "--levels" in args:
         levels = tuple(args[args.index("--levels") + 1].split(","))
+    extra: Tuple[str, ...] = ()
+    if "--extra-titles" in args:
+        # 多条用 `;;` 分隔（标题内含逗号，不能用逗号分隔）
+        extra = tuple(t for t in args[args.index("--extra-titles") + 1].split(";;") if t.strip())
 
-    targets = load_targets(levels)
-    print("目标（%s）：%d 条" % ("/".join(levels), len(targets)))
+    targets = load_targets(levels, extra)
+    n_extra = sum(1 for t in targets if t.get("_via") == "extra_title")
+    print("目标（%s%s）：%d 条" % ("/".join(levels),
+                                  ("＋按标题补采 %d 部" % n_extra) if extra else "",
+                                  len(targets)))
     if limit:
         targets = targets[:limit]
     if dry:

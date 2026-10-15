@@ -10100,7 +10100,7 @@
      "article": "第十二条",
      "provision_id": "CIT-VOUCHER-MEASURE-012",
      "matched_by": "法名紧邻条号",
-     "in_library": false
+     "in_library": true
     },
     {
      "law_code": "TAX-ADMIN-LAW",
@@ -32277,7 +32277,7 @@
      "article": "第七十五条",
      "provision_id": "SECURITIES-LAW-075",
      "matched_by": "法名紧邻条号",
-     "in_library": false
+     "in_library": true
     }
    ],
    "granularity": "provision",
@@ -34195,7 +34195,7 @@
      "article": "第一千零三十九条",
      "provision_id": "CIVIL-CODE-1039",
      "matched_by": "法名紧邻条号",
-     "in_library": false
+     "in_library": true
     }
    ],
    "granularity": "provision",

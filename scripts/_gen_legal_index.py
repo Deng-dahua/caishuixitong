@@ -72,7 +72,7 @@ def main() -> int:
         content = str(e.get("content") or "")
         le = law_idx.get(law) or law_idx.get(re.sub(r"^中华人民共和国", "", law))
         code = (le or {}).get("code") or ""
-        m = re.search(r"第([零一二三四五六七八九十百]+)条", art)
+        m = re.search(r"第([零一二三四五六七八九十百千两]+)条", art)
         num = cn2num(m.group(1)) if m else None
         pid = ("%s-%03d" % (code, num)) if (code and num) else ""
         if not pid:

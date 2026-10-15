@@ -142,7 +142,7 @@
    "provision_id": "TAX-ADMIN-LAW-035",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc"
+   "content_sha256": "537a969ff2687eaaf48299e4eead47c9897d2c578461698ea75a29a07ac3981f"
   },
   {
    "rule_id": "RL-CIT-005",
@@ -252,7 +252,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-COST-003",
@@ -285,7 +285,7 @@
    "provision_id": "TAX-ADMIN-LAW-035",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc"
+   "content_sha256": "537a969ff2687eaaf48299e4eead47c9897d2c578461698ea75a29a07ac3981f"
   },
   {
    "rule_id": "RL-COST-005",
@@ -340,7 +340,7 @@
    "provision_id": "IIT-LAW-002",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "e5b2888a449162df933a0a22865ceafa4933dc7da5cb21d487456a61c1ea0191"
+   "content_sha256": "d9f2f80d5a814754b7ce26899392928fa2661c63b2701abe654e7f5c0b0d2630"
   },
   {
    "rule_id": "RL-FUND-002",
@@ -351,7 +351,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-FUND-004",
@@ -450,7 +450,7 @@
    "provision_id": "IIT-LAW-002",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "e5b2888a449162df933a0a22865ceafa4933dc7da5cb21d487456a61c1ea0191"
+   "content_sha256": "d9f2f80d5a814754b7ce26899392928fa2661c63b2701abe654e7f5c0b0d2630"
   },
   {
    "rule_id": "RL-INC-002",
@@ -571,7 +571,7 @@
    "provision_id": "TAX-ADMIN-LAW-035",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc"
+   "content_sha256": "537a969ff2687eaaf48299e4eead47c9897d2c578461698ea75a29a07ac3981f"
   },
   {
    "rule_id": "RL-OTH-001",
@@ -835,7 +835,7 @@
    "provision_id": "IIT-LAW-009",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "05b2282d7588bd52a161dc3bbc3e353f176c04d6ec34de6fc89780edab47f780"
+   "content_sha256": "59efbbf54849655f8f17b2041a5623b7f849bbbbaf79b6fb947aaaf52910229a"
   },
   {
    "rule_id": "RL-PAY-002",
@@ -890,7 +890,7 @@
    "provision_id": "IIT-REG-006",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "0386b8a3460a2f530cb7979ad5cb8fab8b33ce491fafeaa8d812a8ef395f81a7"
+   "content_sha256": "325713f53cdfb54c1bdc45cb2e458b52ad65ff510e6e477ea665440c4fbe60f4"
   },
   {
    "rule_id": "RL-PAY-004",
@@ -912,7 +912,7 @@
    "provision_id": "IIT-LAW-002",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "e5b2888a449162df933a0a22865ceafa4933dc7da5cb21d487456a61c1ea0191"
+   "content_sha256": "d9f2f80d5a814754b7ce26899392928fa2661c63b2701abe654e7f5c0b0d2630"
   },
   {
    "rule_id": "RL-PAY-005",
@@ -923,7 +923,7 @@
    "provision_id": "IIT-REG-006",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "0386b8a3460a2f530cb7979ad5cb8fab8b33ce491fafeaa8d812a8ef395f81a7"
+   "content_sha256": "325713f53cdfb54c1bdc45cb2e458b52ad65ff510e6e477ea665440c4fbe60f4"
   },
   {
    "rule_id": "RL-PAY-006",
@@ -934,7 +934,7 @@
    "provision_id": "IIT-LAW-009",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "05b2282d7588bd52a161dc3bbc3e353f176c04d6ec34de6fc89780edab47f780"
+   "content_sha256": "59efbbf54849655f8f17b2041a5623b7f849bbbbaf79b6fb947aaaf52910229a"
   },
   {
    "rule_id": "RL-PTY-001",
@@ -967,7 +967,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-PTY-002",
@@ -978,7 +978,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-PTY-002",
@@ -1000,7 +1000,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-PTY-003",
@@ -1044,7 +1044,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-PTY-005",
@@ -1055,7 +1055,7 @@
    "provision_id": "TAX-ADMIN-LAW-060",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "b8f5d019a26cebc4afdb41afd1df646240f1025724db3e44227a493f90ddfc40"
+   "content_sha256": "8c98239d3394157516b2d73dc49660cacf3820bc19c37b0a95ba22197f799b23"
   },
   {
    "rule_id": "RL-SPT-001",
@@ -1385,7 +1385,7 @@
    "provision_id": "TAX-ADMIN-LAW-035",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "ebe330520b60fc29664f20b4adbf7c77b27e7e6d56757975d089df56f8e5eefc"
+   "content_sha256": "537a969ff2687eaaf48299e4eead47c9897d2c578461698ea75a29a07ac3981f"
   },
   {
    "rule_id": "RL-SPT-019",
@@ -1429,7 +1429,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-VAT-001",
@@ -1451,7 +1451,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-VAT-002",
@@ -1473,7 +1473,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-VAT-004",
@@ -1506,7 +1506,7 @@
    "provision_id": "INVOICE-MEASURE-022",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "6e7017686b7fa5cd17840faf04887c8282b7a7514fe121e2c8da9df166fb837d"
+   "content_sha256": "7c839617b9af1ca994b03ed22d9ac56672a4416ac48b027cc313f987ac7cdb53"
   },
   {
    "rule_id": "RL-VAT-005",

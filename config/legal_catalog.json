@@ -22,7 +22,7 @@
   "行政法规": 78,
   "国务院文件": 35
  },
- "with_body": 152,
+ "with_body": 134,
  "items": [
   {
    "title": "财政部 税务总局关于调整部分产品出口退税政策的公告",
@@ -1713,7 +1713,7 @@
    "labels": "增值税纳税申报,小规模纳税人,一般纳税人,消费税,增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5247437/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于起征点标准等增值税征管事项的公告",
@@ -3139,7 +3139,7 @@
    "labels": "增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5242450/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于办理增值税期末留抵退税有关征管事项的公告",
@@ -8181,7 +8181,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5233391/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "中华人民共和国刑法",
@@ -14661,7 +14661,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211780/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "财政部 海关总署 税务总局关于海南自由贸易港交通工具及游艇“零关税”政策的通知",
@@ -16869,7 +16869,7 @@
    "labels": "一般纳税人,增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100012/c5194894/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局 海关总署关于北京2022年冬奥会和冬残奥会税收优惠政策的公告",
@@ -17733,7 +17733,7 @@
    "labels": "消费税,增值税,车辆购置税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5194873/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于加强新时代税务文化建设的意见",
@@ -19065,7 +19065,7 @@
    "labels": "个人所得税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于发行2018年印花税票的公告",
@@ -23205,7 +23205,7 @@
    "labels": "增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5202548/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "财政部 税务总局 保监会关于将商业健康保险个人所得税试点政策推广到全国范围实施的通知",
@@ -25725,7 +25725,7 @@
    "labels": "文化事业建设费",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5194648/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于选拔第四批全国税务领军人才培养对象的通告",
@@ -26289,7 +26289,7 @@
    "labels": "文化事业建设费",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5194625/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于推进国税、地税办税服务厅合作共建的指导意见",
@@ -26325,7 +26325,7 @@
    "labels": "增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5203752/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于完善办税服务相关制度的通知",
@@ -27993,7 +27993,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212260/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "财政部 国家税务总局关于对化肥恢复征收增值税政策的补充通知",
@@ -33441,7 +33441,7 @@
    "labels": "企业所得税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5204250/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于选拔首批全国税务领军人才税务系统外培养对象的通告",
@@ -36477,7 +36477,7 @@
    "labels": "一般纳税人,增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5203766/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于深入实施西部大开发战略有关企业所得税问题的公告",
@@ -37953,7 +37953,7 @@
    "labels": "企业所得税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5203866/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "财政部 国家税务总局关于经营高校学生公寓和食堂有关税收政策的通知",
@@ -39117,7 +39117,7 @@
    "labels": "教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211804/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于印发《税务系统培训班质量评估办法》的通知",
@@ -45117,7 +45117,7 @@
    "labels": "应纳税所得额,金融业,税收政策,企业所得税,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5203296/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "中华人民共和国劳动合同法实施条例",
@@ -50697,7 +50697,7 @@
    "labels": "投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211812/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "国家税务总局关于转发《财政部关于印发〈行政事业单位工资和津贴补贴有关会计核算办法〉的通知》的通知",
@@ -56769,7 +56769,7 @@
    "labels": "个体工商户,个人独资企业,合伙企业,投资,个人所得税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c102416/c5202842/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "财政部 国家税务总局关于农村税费改革试点地区个人取得农业特产所得征免个人所得税问题的通知",
@@ -60633,7 +60633,7 @@
    "labels": "投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212262/content.html",
    "source": "fgk",
-   "has_body_in_library": true
+   "has_body_in_library": false
   },
   {
    "title": "财政部 国家税务总局关于土地增值税优惠政策延期的通知",

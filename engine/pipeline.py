@@ -2579,6 +2579,21 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _dle:
         pipeline_log.append(f"税前扣除限额补充异常: {_dle}")
 
+    # ═══ 阈值参数化判定（亏损结转年限 / 分红代扣个税 / 委托研发加计比例） ═══
+    # 遗留项③收口：这三个法定阈值原先只在 config/rule_params.json **登记了值**、没有检测器
+    #   （engine_wired=false）。本模块给它们各建真检测器，阈值一律经 rule_params 读取。
+    #   ★ 数据前提如实：两侧数据不齐备则**静默**（另一侧属资料缺口，覆盖度模块已列明）。
+    try:
+        from engine.params_wired_detectors import detect_params_wired
+        _pw_data = {"vouchers": vouchers or [], "tax_declarations": tax_declarations or []}
+        _pw_findings = detect_params_wired(_pw_data, ctx)
+        if _pw_findings:
+            domain_results.append({"domain": "阈值参数化判定", "findings": _pw_findings})
+            pipeline_log.append(f"阈值参数化判定: {len(_pw_findings)}项发现")
+    except Exception as _pwe:
+        # ★ 不得静默（项目铁律：域异常必须留痕，`pipeline_log` 含"异常"即本轮该模块失效）
+        pipeline_log.append(f"阈值参数化判定异常: {_pwe}")
+
     # ═══ 顶额开票（RL-VAT-004）：单张金额贴近发票版本上限（检出能力补齐，原属盲区） ═══
     try:
         from engine.invoice_limit_detector import detect_invoice_limit_top

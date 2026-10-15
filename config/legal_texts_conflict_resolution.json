@@ -1,0 +1,165 @@
+{
+ "schema": 1,
+ "note": "★ 正文冲突**逐条复核结论**（可逐条复核，**含历史裁决**）。verdict: replace=改用采集版（既有版条号错位/内容残缺）；keep=保留既有版（采集版标点降级/异体字/内容等价）；manual=待人工。",
+ "counts": {
+  "replace": 9,
+  "keep": 9
+ },
+ "counts_this_run": {},
+ "verdicts": [
+  {
+   "law": "个人所得税法",
+   "article": "第二条",
+   "verdict": "replace",
+   "reason": "【人工核实】既有版把九项所得的**列举项编号（一）~（九）去掉**，且**漏掉第二款**（居民个人综合所得按年合并计算、非居民按月/按次）；采集版两项俱全 ⇒ 改采集版",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  },
+  {
+   "law": "个人所得税法",
+   "article": "第六条",
+   "verdict": "replace",
+   "reason": "【人工核实】既有版仅 144 字，**省略**各项所得应纳税所得额的计算规则（非居民个人、劳务报酬、稿酬、特许权使用费……）；采集版 650 字为完整条文 ⇒ 改采集版",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  },
+  {
+   "law": "个人所得税法",
+   "article": "第十条",
+   "verdict": "replace",
+   "reason": "【人工核实】既有版省略七项**列举项编号**；采集版保留编号与完整七项 ⇒ 改采集版",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  },
+  {
+   "law": "个人所得税法实施条例",
+   "article": "第六条",
+   "verdict": "replace",
+   "reason": "【人工核实】★ 既有版**正文被截断**（结尾停在「书画、雕」），系录入时丢字；采集版 708 字完整 ⇒ 改采集版（残缺正文比编号差异严重得多）",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  },
+  {
+   "law": "企业所得税法实施条例",
+   "article": "第九十一条",
+   "is_crawled_entry": false,
+   "existing_len": 131,
+   "crawled_len": 135,
+   "verdict": "keep",
+   "reason": "仅**标点 + 异体字**差异 ⇒ 保留既有（现行规范用字「账」）"
+  },
+  {
+   "law": "企业所得税法实施条例",
+   "article": "第九条",
+   "is_crawled_entry": false,
+   "existing_len": 115,
+   "crawled_len": 115,
+   "verdict": "keep",
+   "reason": "仅**标点 + 异体字**差异 ⇒ 保留既有（现行规范用字「账」）"
+  },
+  {
+   "law": "企业所得税法实施条例",
+   "article": "第五十九条",
+   "is_crawled_entry": false,
+   "existing_len": 128,
+   "crawled_len": 130,
+   "verdict": "keep",
+   "reason": "仅**标点 + 异体字**差异 ⇒ 保留既有（现行规范用字「账」）"
+  },
+  {
+   "law": "企业所得税法实施条例",
+   "article": "第四十三条",
+   "is_crawled_entry": false,
+   "existing_len": 56,
+   "crawled_len": 56,
+   "verdict": "keep",
+   "reason": "仅**标点 + 异体字**差异 ⇒ 保留既有（现行规范用字「账」）"
+  },
+  {
+   "law": "企业所得税法实施条例",
+   "article": "第四十二条",
+   "is_crawled_entry": false,
+   "existing_len": 74,
+   "crawled_len": 74,
+   "verdict": "keep",
+   "reason": "仅**标点 + 异体字**差异 ⇒ 保留既有（现行规范用字「账」）"
+  },
+  {
+   "law": "企业所得税法实施条例",
+   "article": "第四十四条",
+   "is_crawled_entry": false,
+   "existing_len": 85,
+   "crawled_len": 85,
+   "verdict": "keep",
+   "reason": "仅**标点 + 异体字**差异 ⇒ 保留既有（现行规范用字「账」）"
+  },
+  {
+   "law": "印花税法",
+   "article": "第五条",
+   "is_crawled_entry": false,
+   "existing_len": 133,
+   "crawled_len": 149,
+   "verdict": "keep",
+   "reason": "【人工核实】两版**内容实质相同**（同为印花税四项计税依据），差异仅在：既有版用**全角**标点、采集版用半角「(一)」且带编号。法定文本用全角 ⇒ **保留既有版**（不因标点体例替换）"
+  },
+  {
+   "law": "发票管理办法",
+   "article": "第二十七条",
+   "verdict": "replace",
+   "reason": "【人工核实】★ 既有版**条号错位**：其正文（「开具发票后，如发生销货退回需开红字发票……」）属**红字发票**条文（现行文本另有其条号）；采集版第二十七条（办理变更/注销税务登记时办理发票变更、缴销手续）为现行文本 ⇒ 改采集版",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  },
+  {
+   "law": "发票管理办法",
+   "article": "第二十三条",
+   "verdict": "replace",
+   "reason": "【人工核实】既有版省略（一）~（五）编号；采集版保留编号与完整各项（转借转让、明知伪造受让、拆本使用、扩大使用范围、以其他凭证代替）⇒ 改采集版",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  },
+  {
+   "law": "发票管理办法",
+   "article": "第二十二条",
+   "verdict": "replace",
+   "reason": "【人工核实】★ 既有版**条号错位**：其正文（「开具发票应当按照规定的时限……虚开发票行为（一）(二)(三)」）实为**第二十一条**内容；采集版第二十二条（安装税控装置、电子器具开具发票）为现行文本 ⇒ 改采集版（沿用错位正文会让报告**引错条文号**）",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  },
+  {
+   "law": "城镇土地使用税暂行条例",
+   "article": "第二条",
+   "is_crawled_entry": false,
+   "existing_len": 161,
+   "crawled_len": 162,
+   "verdict": "keep",
+   "reason": "仅**标点 + 异体字**差异 ⇒ 保留既有（现行规范用字「账」）"
+  },
+  {
+   "law": "城镇土地使用税暂行条例",
+   "article": "第四条",
+   "is_crawled_entry": false,
+   "existing_len": 83,
+   "crawled_len": 87,
+   "verdict": "keep",
+   "reason": "仅**标点 + 异体字**差异 ⇒ 保留既有（现行规范用字「账」）"
+  },
+  {
+   "law": "税收征收管理法",
+   "article": "第三十五条",
+   "verdict": "replace",
+   "reason": "【人工核实】既有版省略六项**列举项编号**（核定应纳税额的情形）；采集版保留编号与完整各项 ⇒ 改采集版",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  },
+  {
+   "law": "税收征收管理法",
+   "article": "第六十条",
+   "verdict": "replace",
+   "reason": "【人工核实】既有版省略列举项编号；采集版保留（一）~（五）与完整各项 ⇒ 改采集版",
+   "source": "人工核实终判表",
+   "resolved": "内容已与现行版一致（无需再替换）"
+  }
+ ],
+ "superseded_old_text": []
+}
