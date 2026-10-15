@@ -6,202 +6,285 @@
  "counts": {
   "scanned": 144,
   "loaded_laws": 96,
-  "loaded_articles_new": 630,
-  "rewritten_crawled_entries": 100,
-  "purged_pseudo_entries": 15,
+  "loaded_articles_new": -20,
+  "rewritten_crawled_entries": 9,
+  "purged_pseudo_entries": 0,
+  "law_name_migrated": 39,
+  "law_name_merged_groups": 20,
   "blocked_laws": 32,
   "no_article_laws": 16,
   "version_conflicts": 0,
-  "content_conflicts": 10,
-  "library_total": 7639
+  "content_conflicts": 0,
+  "library_total": 7636
  },
  "rewritten": [
   {
-   "law": "海关法",
-   "title": "中华人民共和国海关法",
-   "count": 3
-  },
-  {
-   "law": "对储蓄存款利息所得征收个人所得税的实施办法",
-   "title": "对储蓄存款利息所得征收个人所得税的实施办法",
-   "count": 2
-  },
-  {
-   "law": "劳动合同法实施条例",
-   "title": "中华人民共和国劳动合同法实施条例",
-   "count": 1
-  },
-  {
-   "law": "环境保护税法实施条例",
-   "title": "中华人民共和国环境保护税法实施条例",
-   "count": 2
-  },
-  {
-   "law": "税收征收管理法",
-   "title": "中华人民共和国税收征收管理法",
-   "count": 7
-  },
-  {
-   "law": "税收征收管理法实施细则",
-   "title": "中华人民共和国税收征收管理法实施细则",
-   "count": 2
-  },
-  {
-   "law": "城市房地产开发经营管理条例",
-   "title": "城市房地产开发经营管理条例",
-   "count": 3
-  },
-  {
    "law": "国务院关于修改对储蓄存款利息所得征收个人所得税的实施办法的决定",
    "title": "国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定",
-   "count": 5
+   "count": 4
   },
   {
    "law": "行政处罚法",
    "title": "中华人民共和国行政处罚法",
-   "count": 2
-  },
-  {
-   "law": "保险法",
-   "title": "中华人民共和国保险法",
-   "count": 2
-  },
-  {
-   "law": "国家赔偿法",
-   "title": "中华人民共和国国家赔偿法",
    "count": 1
-  },
-  {
-   "law": "票据法",
-   "title": "中华人民共和国票据法",
-   "count": 2
-  },
-  {
-   "law": "个人独资企业法",
-   "title": "中华人民共和国个人独资企业法",
-   "count": 2
-  },
-  {
-   "law": "刑法",
-   "title": "中华人民共和国刑法",
-   "count": 42
-  },
-  {
-   "law": "民法典",
-   "title": "中华人民共和国民法典",
-   "count": 1
-  },
-  {
-   "law": "证券法",
-   "title": "中华人民共和国证券法",
-   "count": 5
-  },
-  {
-   "law": "价格法",
-   "title": "中华人民共和国价格法",
-   "count": 3
-  },
-  {
-   "law": "政府信息公开条例",
-   "title": "中华人民共和国政府信息公开条例",
-   "count": 3
   },
   {
    "law": "行政复议法实施条例",
    "title": "中华人民共和国行政复议法实施条例",
-   "count": 3
+   "count": 1
   },
   {
    "law": "国务院关于废止营业税暂行条例和修改增值税暂行条例的决定",
    "title": "国务院关于废止《中华人民共和国营业税暂行条例》和修改《中华人民共和国增值税暂行条例》的决定",
-   "count": 3
-  },
-  {
-   "law": "公司法",
-   "title": "中华人民共和国公司法",
-   "count": 4
+   "count": 2
   },
   {
    "law": "关税法",
    "title": "中华人民共和国关税法",
-   "count": 2
+   "count": 1
   }
  ],
- "purged_pseudo_entries": [
+ "purged_pseudo_entries": [],
+ "law_name_merged": [
   {
-   "law": "刑法修正案",
-   "article": "第一百六十二条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "企业所得税税前扣除凭证管理办法",
+   "article": "第四条",
+   "kept_len": 116,
+   "dropped": [
+    {
+     "len": 116,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（九）",
-   "article": "第一百二十条之三",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "企业所得税税前扣除凭证管理办法",
+   "article": "第八条",
+   "kept_len": 175,
+   "dropped": [
+    {
+     "len": 144,
+     "_from": null
+    }
+   ],
+   "how": "★ 内容不同 ⇒ 保留较长者（须人工复核）"
   },
   {
-   "law": "刑法修正案（九）",
-   "article": "第一百二十条之四",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "企业所得税税前扣除凭证管理办法",
+   "article": "第九条",
+   "kept_len": 277,
+   "dropped": [
+    {
+     "len": 275,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（九）",
-   "article": "第一百二十条之五",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "关于异常增值税扣税凭证管理等有关事项的公告",
+   "article": "第一条",
+   "kept_len": 278,
+   "dropped": [
+    {
+     "len": 278,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（九）",
-   "article": "第一百二十条之六",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "关于异常增值税扣税凭证管理等有关事项的公告",
+   "article": "第二条",
+   "kept_len": 164,
+   "dropped": [
+    {
+     "len": 164,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（九）",
-   "article": "第二百八十七条之二",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于专项用途财政性资金企业所得税处理问题的通知",
+   "article": "第一条",
+   "kept_len": 172,
+   "dropped": [
+    {
+     "len": 172,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（九）",
-   "article": "第三百九十条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知",
+   "article": "第一条",
+   "kept_len": 157,
+   "dropped": [
+    {
+     "len": 157,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（八）",
-   "article": "第一百零三条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于全面推开营业税改征增值税试点的通知",
+   "article": "第十四条",
+   "kept_len": 188,
+   "dropped": [
+    {
+     "len": 188,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（八）",
-   "article": "第一百五十二条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于全面推开营业税改征增值税试点的通知",
+   "article": "附件1第十四条",
+   "kept_len": 225,
+   "dropped": [
+    {
+     "len": 225,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（八）",
-   "article": "第一百九十四条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知",
+   "article": "第二条",
+   "kept_len": 143,
+   "dropped": [
+    {
+     "len": 143,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（八）",
-   "article": "第二百三十二条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知",
+   "article": "第一条",
+   "kept_len": 230,
+   "dropped": [
+    {
+     "len": 230,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（六）",
-   "article": "第三百八十六条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知",
+   "article": "第一条",
+   "kept_len": 112,
+   "dropped": [
+    {
+     "len": 112,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（十一）",
-   "article": "第一百四十二条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知",
+   "article": "第一条",
+   "kept_len": 242,
+   "dropped": [
+    {
+     "len": 242,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（十一）",
-   "article": "第一百九十五条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部国家税务总局关于规范个人投资者个人所得税征收管理的通知",
+   "article": "第二条",
+   "kept_len": 149,
+   "dropped": [
+    {
+     "len": 149,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   },
   {
-   "law": "刑法修正案（十二）",
-   "article": "第三百九十条",
-   "reason": "所属文本为**非条文式**（修正案/决定/通知），该条目系旧切分把引用条号误当条文 ⇒ 清理"
+   "law": "财政部税务总局公告2023年第7号",
+   "article": "第一条",
+   "kept_len": 119,
+   "dropped": [
+    {
+     "len": 119,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
+  },
+  {
+   "law": "财政部税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知",
+   "article": "第一条",
+   "kept_len": 365,
+   "dropped": [
+    {
+     "len": 365,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
+  },
+  {
+   "law": "财政部税务总局关于出口业务增值税和消费税政策的公告",
+   "article": "第一条",
+   "kept_len": 164,
+   "dropped": [
+    {
+     "len": 164,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
+  },
+  {
+   "law": "财政部税务总局关于完善增值税期末留抵退税政策的公告",
+   "article": "第一条",
+   "kept_len": 448,
+   "dropped": [
+    {
+     "len": 448,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
+  },
+  {
+   "law": "财政部税务总局关于简并增值税税率有关政策的通知",
+   "article": "第一条",
+   "kept_len": 211,
+   "dropped": [
+    {
+     "len": 211,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
+  },
+  {
+   "law": "财政部税务总局关于车辆购置税有关具体政策的公告",
+   "article": "第一条",
+   "kept_len": 66,
+   "dropped": [
+    {
+     "len": 66,
+     "_from": null
+    }
+   ],
+   "how": "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
   }
  ],
  "blocked": [
@@ -964,7 +1047,7 @@
    "written_date": "2021-04-29",
    "articles": 102,
    "new_articles": 0,
-   "rewritten": 3,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1036,7 +1119,7 @@
    "written_date": "2007-07-20",
    "articles": 15,
    "new_articles": 0,
-   "rewritten": 2,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1060,7 +1143,7 @@
    "written_date": "2008-09-18",
    "articles": 38,
    "new_articles": 0,
-   "rewritten": 1,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1120,7 +1203,7 @@
    "written_date": "2017-12-25",
    "articles": 26,
    "new_articles": 0,
-   "rewritten": 2,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1162,12 +1245,12 @@
   {
    "id": "c5194804",
    "title": "国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
+   "law": "企业所得税税前扣除凭证管理办法",
    "level": "税务规范性文件",
    "effect": "全文有效",
    "written_date": "2018-06-06",
    "articles": 20,
-   "new_articles": 20,
+   "new_articles": 0,
    "rewritten": 0,
    "adjudicated_kept": 0
   },
@@ -1180,7 +1263,7 @@
    "written_date": "2015-04-24",
    "articles": 94,
    "new_articles": 0,
-   "rewritten": 7,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1192,7 +1275,7 @@
    "written_date": "2016-02-06",
    "articles": 113,
    "new_articles": 0,
-   "rewritten": 2,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1228,7 +1311,7 @@
    "written_date": "2020-11-29",
    "articles": 40,
    "new_articles": 0,
-   "rewritten": 3,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1251,8 +1334,8 @@
    "effect": "全文有效",
    "written_date": "2007-07-20",
    "articles": 19,
-   "new_articles": 10,
-   "rewritten": 5,
+   "new_articles": 0,
+   "rewritten": 4,
    "adjudicated_kept": 0
   },
   {
@@ -1323,8 +1406,8 @@
    "effect": "全文有效",
    "written_date": "2021-01-22",
    "articles": 87,
-   "new_articles": 1,
-   "rewritten": 2,
+   "new_articles": 0,
+   "rewritten": 1,
    "adjudicated_kept": 0
   },
   {
@@ -1396,7 +1479,7 @@
    "written_date": "2015-04-24",
    "articles": 185,
    "new_articles": 0,
-   "rewritten": 2,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1407,8 +1490,8 @@
    "effect": "全文有效",
    "written_date": "2012-10-26",
    "articles": 42,
-   "new_articles": 23,
-   "rewritten": 1,
+   "new_articles": 0,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1456,7 +1539,7 @@
    "written_date": "2004-08-28",
    "articles": 110,
    "new_articles": 0,
-   "rewritten": 2,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1468,7 +1551,7 @@
    "written_date": "1999-08-30",
    "articles": 48,
    "new_articles": 0,
-   "rewritten": 2,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1491,8 +1574,8 @@
    "effect": "全文有效",
    "written_date": "2023-12-29",
    "articles": 505,
-   "new_articles": 222,
-   "rewritten": 42,
+   "new_articles": 0,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1503,8 +1586,8 @@
    "effect": "全文有效",
    "written_date": "2020-05-28",
    "articles": 1260,
-   "new_articles": 261,
-   "rewritten": 1,
+   "new_articles": 0,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1515,8 +1598,8 @@
    "effect": "全文有效",
    "written_date": "2019-12-28",
    "articles": 226,
-   "new_articles": 49,
-   "rewritten": 5,
+   "new_articles": 0,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1552,7 +1635,7 @@
    "written_date": "1997-12-29",
    "articles": 48,
    "new_articles": 0,
-   "rewritten": 3,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1624,7 +1707,7 @@
    "written_date": "2019-04-03",
    "articles": 56,
    "new_articles": 0,
-   "rewritten": 3,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1635,8 +1718,8 @@
    "effect": "全文有效",
    "written_date": "2026-04-29",
    "articles": 78,
-   "new_articles": 52,
-   "rewritten": 3,
+   "new_articles": 0,
+   "rewritten": 1,
    "adjudicated_kept": 0
   },
   {
@@ -1671,8 +1754,8 @@
    "effect": "全文有效",
    "written_date": "2017-11-19",
    "articles": 30,
-   "new_articles": 7,
-   "rewritten": 3,
+   "new_articles": 0,
+   "rewritten": 2,
    "adjudicated_kept": 0
   },
   {
@@ -1684,7 +1767,7 @@
    "written_date": "2023-12-29",
    "articles": 266,
    "new_articles": 0,
-   "rewritten": 4,
+   "rewritten": 0,
    "adjudicated_kept": 0
   },
   {
@@ -1696,7 +1779,7 @@
    "written_date": "2024-04-26",
    "articles": 73,
    "new_articles": 0,
-   "rewritten": 2,
+   "rewritten": 1,
    "adjudicated_kept": 0
   },
   {
@@ -1796,74 +1879,5 @@
    "adjudicated_kept": 0
   }
  ],
- "_note": "★ 本台账是**时效核实的过程证据**：每一部未入库的法规都写明原因，可逐条复核。",
- "conflict_resolution": {
-  "resolved_at": "2026-10-16",
-  "verdicts": {
-   "replace": 10
-  },
-  "superseded_old_text": [
-   {
-    "law": "个人所得税法",
-    "article": "第二条",
-    "old_len": 83,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "个人所得税法",
-    "article": "第六条",
-    "old_len": 144,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "个人所得税法",
-    "article": "第九条",
-    "old_len": 33,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "个人所得税法",
-    "article": "第十条",
-    "old_len": 125,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "个人所得税法实施条例",
-    "article": "第六条",
-    "old_len": 204,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "税收征收管理法",
-    "article": "第三十五条",
-    "old_len": 180,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "税收征收管理法",
-    "article": "第六十条",
-    "old_len": 204,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "发票管理办法",
-    "article": "第二十二条",
-    "old_len": 137,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "发票管理办法",
-    "article": "第二十三条",
-    "old_len": 137,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   },
-   {
-    "law": "发票管理办法",
-    "article": "第二十七条",
-    "old_len": 100,
-    "finding": "被替换的原内容在**现行文本同法其他条号**下找不到 ⇒ 属**旧版文本**（现行版已无此条或已移位）；已按现行版替换，原内容留档于本台账可复核"
-   }
-  ],
-  "ledger": "config/legal_texts_conflict_resolution.json（逐条理由）"
- }
+ "_note": "★ 本台账是**时效核实的过程证据**：每一部未入库的法规都写明原因，可逐条复核。"
 }

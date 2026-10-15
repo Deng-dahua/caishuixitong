@@ -50,11 +50,19 @@ def main() -> int:
     reg = _load(ROOT / "config" / "legal_law_codes.json", {}) or {}
     topics = (_load(ROOT / "config" / "legal_topics.json", {}) or {}).get("topics") or []
 
+    # ★★ 2026-10-16 修（实测缺陷）：法名索引**必须按 `canonical_law` 归一后建键**。
+    #   原实现用**原始字符串**直接比对 ⇒ 登记名「财政部 国家税务总局关于…通知」
+    #   与库内名「财政部国家税务总局关于…通知」**只差一个空格**就匹配不上
+    #   ⇒ 实测 15 处通知/公告类条文拿不到 `provision_id`（法短码明明已登记）。
+    #   归一实现走**唯一权威** `engine.legal_version.canonical_law`（去空白/《》/国名前缀），
+    #   不得在此另写一套。
+    from engine.legal_version import canonical_law as _cl_law            # noqa: PLC0415
+
     law_idx: Dict[str, Dict[str, Any]] = {}
     for l in reg.get("laws") or []:
         for k in [l["name"], re.sub(r"^中华人民共和国", "", l["name"])] + list(l.get("aliases") or []):
             if k:
-                law_idx[k] = l
+                law_idx[_cl_law(k)] = l
 
     # 专题打标词表（专题 → 词）
     topic_kw: List[Tuple[str, str, List[str]]] = []
@@ -66,17 +74,41 @@ def main() -> int:
     # ── 条款索引（只覆盖已核实正文）──
     provisions: List[Dict[str, Any]] = []
     uncoded: List[str] = []
+    #: **整文条目**（无条号，如"正文"）：按法规级关联，**不臆造**条款 ID
+    article_less: List[str] = []
     for e in lib:
         law = str(e.get("law") or "")
         art = str(e.get("article") or "")
         content = str(e.get("content") or "")
-        le = law_idx.get(law) or law_idx.get(re.sub(r"^中华人民共和国", "", law))
+        le = law_idx.get(_cl_law(law))
         code = (le or {}).get("code") or ""
-        m = re.search(r"第([零一二三四五六七八九十百千两]+)条", art)
+        # ── `provision_id` 派生（★ 唯一性由结构保证，见下）────────────────
+        #   基础：`{法短码}-{条号:03d}`
+        #   必须再带**子定位后缀**，否则不同条文撞号（实测 60 处）：
+        #   · 「第X条**之N**」（刑法 53 条）        ⇒ `-Z{N}`
+        #     —— 只取 X 时「第十七条」与「第十七条之一」同 ID；
+        #   · 「第X条**第N款**」（库内 1 条）        ⇒ `-K{N}`
+        #   · 「**附件N**第X条」（库内 1 条）        ⇒ 条号前插 `ATT{N}-`
+        #     —— 附件另有独立条号体系，与正文同号不同条。
+        m_att = re.search(r"附件([零一二三四五六七八九十百千两0-9]+)", art)
+        m = re.search(r"第([零一二三四五六七八九十百千两]+)条(?:之([零一二三四五六七八九十百千两]+))?", art)
+        m_k = re.search(r"第([零一二三四五六七八九十百千两]+)款", art)
         num = cn2num(m.group(1)) if m else None
-        pid = ("%s-%03d" % (code, num)) if (code and num) else ""
+        sub = cn2num(m.group(2)) if (m and m.group(2)) else None
+        kuan = cn2num(m_k.group(1)) if m_k else None
+        att = m_att.group(1) if m_att else ""
+        pid = ""
+        if code and num:
+            pid = "%s%s%03d" % (code + "-", ("ATT%s-" % att) if att else "", num)
+            if sub:
+                pid += "-Z%d" % sub
+            if kuan:
+                pid += "-K%d" % kuan
         if not pid:
-            uncoded.append("%s %s" % (law, art))
+            if m:                                   # 有条号却派不出 ⇒ 法名/短码缺口（真缺口）
+                uncoded.append("%s %s" % (law, art))
+            else:                                   # **整文条目**（无条号，如"正文"）⇒ 按法规级关联
+                article_less.append("%s %s" % (law, art))
         tags = [tid for tid, _n, kws in topic_kw if any(k in content or k in law for k in kws)]
         provisions.append({
             "provision_id": pid or None,
@@ -92,14 +124,30 @@ def main() -> int:
         })
 
     with_pid = [p for p in provisions if p["provision_id"]]
+    # ★ 唯一性自检：`provision_id` 是条款级关联的**主键**，撞号即关联错条文。
+    _seen: Dict[str, List[str]] = {}
+    for p in with_pid:
+        _seen.setdefault(p["provision_id"], []).append("%s %s" % (p["law"], p["article"]))
+    dup_ids = {k: v for k, v in _seen.items() if len(v) > 1}
+    if dup_ids:
+        print("!! `provision_id` 撞号 %d 处（条款级关联会指错条文）：%s"
+              % (len(dup_ids), list(dup_ids.items())[:5]))
     (ROOT / "config" / "legal_provisions.json").write_text(json.dumps({
-        "schema": 1, "updated": "2026-10-15",
+        "schema": 1, "updated": "2026-10-16",
         "note": ("★ **条款索引**（派生层）：`provision_id` → 条文定位与标签；"
                  "**不含正文**（正文唯一权威 `static/legal_library.json`，写入走 `_load_legal_texts.py`）。"
-                 "`provision_id` = `{法短码}-{条号:03d}`；`content_sha256` 可反向校验指向的条文。"
-                 "★ `provision_id` 为 null ⇒ 该条的法名未登记短码或条号解析不出（**如实暴露**）。"),
+                 "`provision_id` = `{法短码}-{条号:03d}`，并带**子定位后缀**保证唯一："
+                 "「第X条之N」⇒ `-Z{N}`（刑法 53 条）；「第X条第N款」⇒ `-K{N}`；"
+                 "「附件N第X条」⇒ `{短码}-ATT{N}-{X:03d}`（附件另有独立条号体系）。"
+                 "`content_sha256` 可反向校验指向的条文。"
+                 "★ `provision_id` 为 null 分两类（如实暴露，互不混淆）："
+                 "① `uncoded`＝有条号但法名/短码缺口（真缺口）；"
+                 "② `article_less`＝**整文条目**（本身无条号，如「正文」）⇒ 按法规级关联。"),
         "count": len(provisions), "with_provision_id": len(with_pid),
+        "article_less_count": len(article_less),
+        "duplicate_ids": {k: v for k, v in sorted(dup_ids.items())},
         "uncoded": uncoded,
+        "article_less": article_less,
         "provisions": provisions,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
 

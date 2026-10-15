@@ -124,7 +124,8 @@ def build_crawled() -> Dict[Any, str]:
             continue
         if not o.get("ok") or o.get("effect") != "全文有效":
             continue
-        law = LLTF._canon(str(o.get("title") or ""))
+        # ★ 与入库脚本同一存储口径（法名收敛到**登记名**），否则 key 对不上。
+        law = LLTF._storage_law(LLTF._canon(str(o.get("title") or "")))
         for a, c in LLTF.split_articles(o.get("body") or ""):
             # ★ 必须套用**与入库脚本同一套用字规范化**（`帐`→`账` 等）。
             #   实测事故（2026-10-16）：首版复核脚本直接用原始切分结果，替换人工录入条目时
@@ -156,7 +157,8 @@ def incomplete_laws() -> Dict[str, str]:
             continue
         if not o.get("ok") or o.get("effect") != "全文有效":
             continue
-        law = LLTF._canon(str(o.get("title") or ""))
+        # ★ 与入库脚本同一存储口径（法名收敛到**登记名**），否则 key 对不上。
+        law = LLTF._storage_law(LLTF._canon(str(o.get("title") or "")))
         arts = LLTF.split_articles(o.get("body") or "")
         ks = [_k(a) for a, _ in arts]
         gaps = ["%s→%s" % (arts[i][0], arts[i + 1][0])

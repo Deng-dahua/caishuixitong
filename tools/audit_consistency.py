@@ -13034,7 +13034,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
 
 
@@ -18516,6 +18516,94 @@ def _cnnum_article_eq(cn: str, article: str) -> bool:
         return want is not None and cn_to_int(cn) == want
     except Exception:                                           # noqa: BLE001
         return False
+
+
+def check_provision_id_unique() -> List[Tuple[str, str, str]]:
+    """条款 ID（`provision_id`）**唯一性与可追溯性** —— 条款级关联的主键。
+
+    ★★ 为什么要有这道闸门（2026-10-16 实测事故）：`provision_id` 是
+      「规则/材料 → 具体条文」关联的**主键**。它一旦撞号，关联会把材料指到
+      **另一条条文**上 —— 比"关联不到"更危险（错误的确定性）。实测曾撞号 **60 处**：
+      · 「第X条**之N**」（刑法 53 条）：只取 X ⇒「第十七条」与「第十七条之一」同 ID；
+      · 法名未收敛：同一部法在库里有**两个 law 名**（如 `财政部 国家税务总局…`
+        与 `财政部国家税务总局…` **只差一个空格**）⇒ 同一条文各存一份、同 ID。
+      两处根因都已在生成端修掉（`_gen_legal_index.py` 子定位后缀 /
+      `_load_legal_texts_full._storage_law`）；本闸门**独立复核**，防止复发。
+
+    判据（全部从 `legal_provisions.json` 的条目内容**独立现算**，不信任汇总字段）：
+    A `provision_id` 唯一（同 ID 不得指两条不同条文）；
+    B ID 前缀 = 该条的 `law_code`（防拼错短码）；
+    C **同一部法只对应一个短码**（法名收敛的回归防线）；
+    D 有「第X条」的条目标题**必须**派得出 ID（真缺口必须为 0）；
+    E 汇总字段自洽（`duplicate_ids`/`uncoded` 与现算一致 —— 防"汇总字段被手改"）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    f = ROOT / "config" / "legal_provisions.json"
+    if not f.exists():
+        return [("WARN", "config/legal_provisions.json", "条款索引不存在 ⇒ 跳过（先跑 _gen_legal_index.py）")]
+    try:
+        d = json.loads(f.read_text(encoding="utf-8"))
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", "config/legal_provisions.json", "条款索引读不出来：%s" % exc)]
+    provs = d.get("provisions") or []
+
+    seen: Dict[str, List[str]] = {}
+    for p in provs:
+        pid = str(p.get("provision_id") or "")
+        if not pid:
+            continue
+        seen.setdefault(pid, []).append("%s %s" % (p.get("law"), p.get("article")))
+    dup = {k: v for k, v in seen.items() if len(v) > 1}
+    if dup:
+        issues.append(("ERROR", "config/legal_provisions.json",
+                       "`provision_id` **撞号 %d 处** ⇒ 条款级关联会把材料指到错条文：%s"
+                       % (len(dup), "；".join("%s→%s" % (k, "/".join(v[:2])) for k, v in list(dup.items())[:3]))))
+
+    # B 前缀 = law_code
+    bad_pref = [p for p in provs if p.get("provision_id") and p.get("law_code")
+                and not str(p["provision_id"]).startswith(str(p["law_code"]) + "-")]
+    if bad_pref:
+        issues.append(("ERROR", "config/legal_provisions.json",
+                       "%d 条条文的 `provision_id` 前缀与 `law_code` 不一致（短码拼错？）例：%s"
+                       % (len(bad_pref), bad_pref[0].get("provision_id"))))
+
+    # C 同一部法只对应一个短码（法名收敛回归防线）
+    law2code: Dict[str, set] = {}
+    for p in provs:
+        if p.get("law_code"):
+            law2code.setdefault(str(p.get("law")), set()).add(str(p.get("law_code")))
+    multi = {k: v for k, v in law2code.items() if len(v) > 1}
+    if multi:
+        issues.append(("ERROR", "config/legal_provisions.json",
+                       "%d 部法对应多个短码（法名未收敛）：%s"
+                       % (len(multi), list(multi.items())[:2])))
+    code2law: Dict[str, set] = {}
+    for law, cs in law2code.items():
+        for c in cs:
+            code2law.setdefault(c, set()).add(law)
+    multi2 = {k: v for k, v in code2law.items() if len(v) > 1}
+    if multi2:
+        issues.append(("ERROR", "config/legal_provisions.json",
+                       "%d 个短码对应多个法名（**同一条文会存两份、ID 撞号**）：%s"
+                       % (len(multi2), [(k, sorted(v)) for k, v in list(multi2.items())[:2]])))
+
+    # D 有条号的条目必须派得出 ID（真缺口为 0）
+    _ART = re.compile(r"第[零一二三四五六七八九十百千两]+条")
+    real_gap = ["%s %s" % (p.get("law"), p.get("article")) for p in provs
+                if not p.get("provision_id") and _ART.search(str(p.get("article") or ""))]
+    if real_gap:
+        issues.append(("ERROR", "config/legal_provisions.json",
+                       "%d 条**有条号却拿不到** `provision_id`（法短码未登记？）：%s"
+                       % (len(real_gap), real_gap[:3])))
+
+    # E 汇总字段自洽
+    if list(d.get("duplicate_ids") or {}) != sorted(dup):
+        issues.append(("WARN", "config/legal_provisions.json",
+                       "汇总字段 `duplicate_ids` 与现算不一致（疑被手改）"))
+    print("  [条款ID] 条目 %d｜有ID %d｜撞号 %d｜真缺口 %d｜整文条目(无条号) %d｜法名-短码 %d 组"
+          % (len(provs), len(seen), len(dup), len(real_gap),
+             len(d.get("article_less") or []), len(law2code)))
+    return issues
 
 
 def check_confidence_weights_single_source() -> List[Tuple[str, str, str]]:

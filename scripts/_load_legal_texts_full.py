@@ -235,6 +235,85 @@ def _canon(law: str) -> str:
     return canonical_law(law)
 
 
+def _law_storage_index() -> Dict[str, str]:
+    """`法名（归一键）→ 库内**存储用**规范名`（★ 唯一权威 `config/legal_law_codes.json`）。
+
+    ★ 为什么需要它（2026-10-16 实测缺陷）：`canonical_law` 只做**格式归一**
+      （去《》、去空白、去"中华人民共和国"），**不做"同一部法多名收敛"**。
+      于是**同一个短码**在库里对应了多个 `law` 名 —— 实测 15 个短码各带 2 个法名，
+      其中 **14 个只差一个空格**（`财政部 国家税务总局关于…通知` vs
+      `财政部国家税务总局关于…通知`），另 1 个是"短名 vs 发布公告全名"。
+      后果：同一条文在两套法名下各存一份 ⇒ ①条文重复；②`provision_id`
+      （= 短码 + 条号）**撞号 60 处**⇒ 条款级关联会指到错条文。
+    ⇒ 存储用的法名一律取**该短码的登记名**（登记表里一部法只有一行）。
+    """
+    try:
+        reg = json.loads((ROOT / "config" / "legal_law_codes.json").read_text(encoding="utf-8"))
+    except Exception:                                          # noqa: BLE001
+        return {}
+    idx: Dict[str, str] = {}
+    for l in (reg.get("laws") or []):
+        name = str(l.get("name") or "")
+        if not name:
+            continue
+        target = _canon(name)
+        for k in [name] + list(l.get("aliases") or []):
+            if k:
+                idx.setdefault(_canon(str(k)), target)
+    return idx
+
+
+_STORAGE_IDX: Optional[Dict[str, str]] = None
+
+
+def _storage_law(law: str) -> str:
+    """库内 `law` 字段的规范写法（登记名；查不到 ⇒ 退回 `canonical_law`，不臆断）。"""
+    global _STORAGE_IDX
+    if _STORAGE_IDX is None:
+        _STORAGE_IDX = _law_storage_index()
+    c = _canon(law)
+    return _STORAGE_IDX.get(c) or c
+
+
+def _dedupe_library(lib: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """按 `(law, article)` 去重（**法名收敛后才会出现重复**）。
+
+    保留规则（先判内容、再判来源，全部留痕）：
+      ① 内容**抹空白后相同** ⇒ 视为同一版文本，保留**带 `_from`（采集全文）**的一条
+         （采集版保留原始分段换行；人工版常无换行，两者等价）；
+      ② 内容真的不同 ⇒ 保留**较长**的一条，并把两条都记入 `merged`（可人工复核，
+         不静默丢）。
+    """
+    groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+    order: List[Tuple[str, str]] = []
+    for e in lib:
+        k = (str(e.get("law") or ""), str(e.get("article") or ""))
+        if k not in groups:
+            groups[k] = []
+            order.append(k)
+        groups[k].append(e)
+    out: List[Dict[str, Any]] = []
+    merged: List[Dict[str, Any]] = []
+    for k in order:
+        g = groups[k]
+        if len(g) == 1:
+            out.append(g[0])
+            continue
+        keys = {_ws_key(str(x.get("content") or "")) for x in g}
+        if len(keys) == 1:
+            win = next((x for x in g if x.get("_from")), g[0])
+            how = "内容一致（仅空白/换行差异）⇒ 保留采集全文版"
+        else:
+            win = max(g, key=lambda x: len(str(x.get("content") or "")))
+            how = "★ 内容不同 ⇒ 保留较长者（须人工复核）"
+        out.append(win)
+        merged.append({"law": k[0], "article": k[1], "kept_len": len(str(win.get("content") or "")),
+                       "dropped": [{"len": len(str(x.get("content") or "")),
+                                    "_from": x.get("_from")} for x in g if x is not win],
+                       "how": how})
+    return out, merged
+
+
 def _version_status(law: str) -> Tuple[str, str]:
     """查 `config/legal_versions.json` 的登记状态。返回 (status, doc)。未登记 ⇒ ("", "")。"""
     try:
@@ -304,34 +383,38 @@ def main() -> int:
     before = len(lib)
     print("现有正文库 %d 条（已裁决冲突 %d 处）" % (before, len(adjudicated)))
 
-    # ── law 名**归一迁移**（幂等）：给 `legal_law_codes.json` 新增别名后，
-    #    库里既有条目的 `law` 仍是旧写法 ⇒ 与条款索引/映射对不上（实测：补采
-    #    《企业所得税税前扣除凭证管理办法》后入库 20 条，其 law 写作
-    #    「国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告」，
-    #    与既有 2 条的「企业所得税税前扣除凭证管理办法」**分裂成两部法**）。
-    #    ⇒ 每次入库都按**唯一权威**（`legal_version.canonical_law`）重新归一；
-    #      已一致的条目零改动（幂等）。
+    # ── law 名**归一迁移**（幂等）────────────────────────────────
+    #   ★★ 2026-10-16 升级：从「只做格式归一」改为「收敛到**登记名**」。
+    #   背景（实测缺陷）：`canonical_law` 不做"同一部法多名收敛" ⇒ 同一短码
+    #   在库里带 2 个法名（15 个短码，其中 14 个只差一个空格），导致条文重复
+    #   且 `provision_id` 撞号 60 处。现一律取该短码在 `legal_law_codes.json`
+    #   的登记名；改名后按 `(law, article)` 去重（见 `_dedupe_library`）。
     try:
-        from engine.legal_version import canonical_law as _cl, reset_caches as _rc
+        from engine.legal_version import reset_caches as _rc
         _rc()                                     # 改了别名表 ⇒ 清缓存再读
     except Exception:                             # noqa: BLE001
-        _cl = None                                # type: ignore[assignment]
+        pass
+    global _STORAGE_IDX
+    _STORAGE_IDX = None                           # 登记表可能已变 ⇒ 强制重读
     migrated = 0
-    if _cl is not None:
-        for e in lib:
-            cur = str(e.get("law") or "")
-            new_law = _cl(cur)
-            if new_law and new_law != cur:
-                e["law"] = new_law
-                migrated += 1
-        if migrated:
-            print("law 名归一迁移：%d 条（按 config/legal_law_codes.json 别名）" % migrated)
-            # ★ 迁移改变了 key（law 名）⇒ 必须**重建**三个索引，
-            #   否则下面的"不得掉条"断言会把改名误判成"丢失"（首版即如此误报 18 条）。
-            existing = {(str(x.get("law") or ""), str(x.get("article") or "")) for x in lib}
-            existing_by_key = {(str(x.get("law") or ""), str(x.get("article") or "")):
-                               str(x.get("content") or "") for x in lib}
-            entry_by_key = {(str(x.get("law") or ""), str(x.get("article") or "")): x for x in lib}
+    for e in lib:
+        cur = str(e.get("law") or "")
+        new_law = _storage_law(cur)
+        if new_law and new_law != cur:
+            e["law"] = new_law
+            migrated += 1
+    if migrated:
+        print("law 名归一迁移（收敛到登记名）：%d 条" % migrated)
+    lib, merged_entries = _dedupe_library(lib)
+    if merged_entries:
+        print("法名收敛后去重：合并 %d 组重复条文（保留规则见 `_dedupe_library`）"
+              % len(merged_entries))
+    # ★ 改名/去重都改变了 key ⇒ 必须**重建**三个索引，否则下面的"不得掉条"断言
+    #   会把改名误判成"丢失"（首版即如此误报 18 条）。
+    existing = {(str(x.get("law") or ""), str(x.get("article") or "")) for x in lib}
+    existing_by_key = {(str(x.get("law") or ""), str(x.get("article") or "")):
+                       str(x.get("content") or "") for x in lib}
+    entry_by_key = {(str(x.get("law") or ""), str(x.get("article") or "")): x for x in lib}
 
     loaded: List[Dict[str, Any]] = []
     blocked: List[Dict[str, Any]] = []
@@ -350,7 +433,7 @@ def main() -> int:
         title = str(o.get("title") or "").strip()
         effect = str(o.get("effect") or "").strip()
         date = str(o.get("written_date") or "").strip()
-        law = _canon(title)
+        law = _storage_law(_canon(title))        # ★ 存储名一律取登记名（防同一部法多名）
         rec = {"id": o.get("id"), "title": title, "law": law, "level": o.get("effect_level"),
                "effect": effect, "written_date": date}
 
@@ -443,14 +526,17 @@ def main() -> int:
             keep_lib.append(e)
         lib = keep_lib
 
-    # ── 安全断言：不得掉条（**排除有意的伪条目清理**）──
+    # ── 安全断言：不得掉条（**排除两类有意减少**：伪条目清理、法名收敛后的去重）──
+    #   ★ 去重合并是**预期内**的减少（同一部法多名收敛后，同一条文本就只该有一条），
+    #     故基线为 `before - len(purged) - len(merged_entries)`；**真实丢失仍必须中止**。
     after_keys = {(str(x.get("law") or ""), str(x.get("article") or "")) for x in lib}
+    expected_min = before - len(purged) - len(merged_entries)
     missing = [k for k in existing_by_key
                if k not in after_keys
                and not any(p["law"] == k[0] and p["article"] == k[1] for p in purged)]
-    if len(lib) < before - len(purged) or missing:
-        print("!! 断言失败：条数 %d→%d，非预期丢失 %d 条 ⇒ **中止写盘**"
-              % (before, len(lib), len(missing)))
+    if len(lib) < expected_min or missing:
+        print("!! 断言失败：条数 %d→%d（预期下限 %d），非预期丢失 %d 条 ⇒ **中止写盘**"
+              % (before, len(lib), expected_min, len(missing)))
         return 3
 
     new_total = len(lib)
@@ -487,6 +573,8 @@ def main() -> int:
             "loaded_articles_new": new_total - before,
             "rewritten_crawled_entries": n_rw,
             "purged_pseudo_entries": len(purged),
+            "law_name_migrated": migrated,
+            "law_name_merged_groups": len(merged_entries),
             "blocked_laws": len(blocked),
             "no_article_laws": len(no_article),
             "version_conflicts": len(conflicts),
@@ -495,6 +583,7 @@ def main() -> int:
         },
         "rewritten": rewritten,
         "purged_pseudo_entries": purged,
+        "law_name_merged": merged_entries,
         "blocked": blocked,
         "no_article": no_article,
         "version_conflicts": conflicts,

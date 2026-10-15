@@ -1,26 +1,14 @@
 {
  "schema": 1,
- "updated": "2026-10-15",
- "note": "★ **条款索引**（派生层）：`provision_id` → 条文定位与标签；**不含正文**（正文唯一权威 `static/legal_library.json`，写入走 `_load_legal_texts.py`）。`provision_id` = `{法短码}-{条号:03d}`；`content_sha256` 可反向校验指向的条文。★ `provision_id` 为 null ⇒ 该条的法名未登记短码或条号解析不出（**如实暴露**）。",
- "count": 7639,
- "with_provision_id": 7623,
- "uncoded": [
-  "国家税务总局公告2014年第39号 正文",
-  "财政部国家税务总局关于专项用途财政性资金企业所得税处理问题的通知 第一条",
-  "财政部国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知 第一条",
-  "财政部国家税务总局关于全面推开营业税改征增值税试点的通知 第十四条",
-  "财政部国家税务总局关于全面推开营业税改征增值税试点的通知 附件1第十四条",
-  "财政部国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知 第二条",
-  "财政部国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知 第一条",
-  "财政部国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知 第一条",
-  "财政部国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知 第一条",
-  "财政部国家税务总局关于规范个人投资者个人所得税征收管理的通知 第二条",
-  "财政部税务总局公告2023年第7号 第一条",
-  "财政部税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知 第一条",
-  "财政部税务总局关于出口业务增值税和消费税政策的公告 第一条",
-  "财政部税务总局关于完善增值税期末留抵退税政策的公告 第一条",
-  "财政部税务总局关于简并增值税税率有关政策的通知 第一条",
-  "财政部税务总局关于车辆购置税有关具体政策的公告 第一条"
+ "updated": "2026-10-16",
+ "note": "★ **条款索引**（派生层）：`provision_id` → 条文定位与标签；**不含正文**（正文唯一权威 `static/legal_library.json`，写入走 `_load_legal_texts.py`）。`provision_id` = `{法短码}-{条号:03d}`，并带**子定位后缀**保证唯一：「第X条之N」⇒ `-Z{N}`（刑法 53 条）；「第X条第N款」⇒ `-K{N}`；「附件N第X条」⇒ `{短码}-ATT{N}-{X:03d}`（附件另有独立条号体系）。`content_sha256` 可反向校验指向的条文。★ `provision_id` 为 null 分两类（如实暴露，互不混淆）：① `uncoded`＝有条号但法名/短码缺口（真缺口）；② `article_less`＝**整文条目**（本身无条号，如「正文」）⇒ 按法规级关联。",
+ "count": 7636,
+ "with_provision_id": 7635,
+ "article_less_count": 1,
+ "duplicate_ids": {},
+ "uncoded": [],
+ "article_less": [
+  "国家税务总局公告2014年第39号 正文"
  ],
  "provisions": [
   {
@@ -6470,6 +6458,52 @@
    "source": "《中华人民共和国企业所得税法实施条例》中华人民共和国国务院令第714号，（全文有效，成文日期 2007-12-06）"
   },
   {
+   "provision_id": "CIT-VOUCHER-MEASURE-001",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003",
+    "TOPIC-005",
+    "TOPIC-012"
+   ],
+   "content_sha256": "60e34c91ab3b89f8d30d0370734bc60789aaa6f6dc50b14e8e3c90139fa1d4cf",
+   "content_len": 123,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-002",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "82daba73e958d7a39b0a39f7f36fec0d5a934f14664082bb29a5bdfbb36bd1d1",
+   "content_len": 66,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-003",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003",
+    "TOPIC-008"
+   ],
+   "content_sha256": "d1179120d2fe0e6b51a5c214014c6e95b0a56c5141ffb72921d370ae6fb3cba9",
+   "content_len": 35,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
    "provision_id": "CIT-VOUCHER-MEASURE-004",
    "law": "企业所得税税前扣除凭证管理办法",
    "law_code": "CIT-VOUCHER-MEASURE",
@@ -6481,7 +6515,49 @@
    ],
    "content_sha256": "60e9fc514c4ef1c77f19233bb68771aed189e3f3f100b7f6622b7062ced431fd",
    "content_len": 116,
-   "source": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号，自2018年7月1日起施行）"
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-005",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第五条",
+   "article_no": 5,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "879c49325b0c3ec41e01c52d0bb572f559414a3dfd128fc7f9a20188387af2b1",
+   "content_len": 43,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-006",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第六条",
+   "article_no": 6,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "284589022077d61066f366bd3642e3ce43f69911b5678860ffeda25681b0e8d8",
+   "content_len": 33,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-007",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第七条",
+   "article_no": 7,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "a7472842affe97539270f3a71b8896b41d2175313aad203f683b32a3c67c39d1",
+   "content_len": 53,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
   },
   {
    "provision_id": "CIT-VOUCHER-MEASURE-008",
@@ -6495,9 +6571,9 @@
     "TOPIC-003",
     "TOPIC-012"
    ],
-   "content_sha256": "57f78711b953d2c5ad9c2b1e19caa2513576270921d5cf35d88b48cb2203b5c3",
-   "content_len": 144,
-   "source": "国家税务总局公告2018年第28号"
+   "content_sha256": "2b158f8717dbe7f6b6d0e32ae34e80eb65346946bb1747da5a4343bd3855ba48",
+   "content_len": 175,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
   },
   {
    "provision_id": "CIT-VOUCHER-MEASURE-009",
@@ -6511,9 +6587,174 @@
     "TOPIC-002",
     "TOPIC-003"
    ],
-   "content_sha256": "2d3e3b25cd0856e4084e8a0265442e181e7770f66a728712bbc47e5e627b2dd7",
-   "content_len": 275,
-   "source": "《企业所得税税前扣除凭证管理办法》（国家税务总局公告2018年第28号）"
+   "content_sha256": "134b3f415b7a4c7ca823e4d95516ee67a5f4cf385c2a96e74e2addcc2e8b099e",
+   "content_len": 277,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-010",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十条",
+   "article_no": 10,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "36fb430b65fd47af73f222343df897a0565ddc1d3e98b7d24fb2d7f3f0c4b9cb",
+   "content_len": 126,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-011",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十一条",
+   "article_no": 11,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "665c9625105f8c394415a58d6659aaa6f0f395b97b1069c4b4d4a12e6b03127e",
+   "content_len": 58,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-012",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十二条",
+   "article_no": 12,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "ccfb0adbba8ed0d88e5f67c9b790cfa5d8d310ac6c2b30d96e3d50b86ed9eefe",
+   "content_len": 112,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-013",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十三条",
+   "article_no": 13,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "4b97bdf163cd1b042d2a2b85cc8b353f54cdb6499f9c24c39220910f0bb0534c",
+   "content_len": 119,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-014",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十四条",
+   "article_no": 14,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "074351452caa5701dbc55fe02376fe0a4bd265d25881151b9cba39107843e5c6",
+   "content_len": 262,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-015",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十五条",
+   "article_no": 15,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "0d78d49eff609c6e340cbe7a9a49a04d3187b6ce08905e8525ee2beb1949695e",
+   "content_len": 170,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-016",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十六条",
+   "article_no": 16,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "8addff0ce87b5ba9bcdb3f7989a51cf0c63b93170ebb7274118e017b5a2a3d91",
+   "content_len": 78,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-017",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十七条",
+   "article_no": 17,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "1cc6c040c8d4fdd700790a57e0f9f0a48187cb49be5f30cd2c5e104fbd7bae95",
+   "content_len": 144,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-018",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十八条",
+   "article_no": 18,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-003"
+   ],
+   "content_sha256": "533f20fcceb44f67910762f53a52dd24a4e9c2f55b7740b968d4185d44c6d4b5",
+   "content_len": 217,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-019",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第十九条",
+   "article_no": 19,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003"
+   ],
+   "content_sha256": "8545002a2ce60aed669b2c0ddde84d34f1a3f9a483da2d0cc015b7f0ec8289dd",
+   "content_len": 125,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
+  },
+  {
+   "provision_id": "CIT-VOUCHER-MEASURE-020",
+   "law": "企业所得税税前扣除凭证管理办法",
+   "law_code": "CIT-VOUCHER-MEASURE",
+   "article": "第二十条",
+   "article_no": 20,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-003"
+   ],
+   "content_sha256": "fa01beb695b62c46f17bbd44bd0127366ba899fbcb3df004da2eaba53c8babd3",
+   "content_len": 17,
+   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
   },
   {
    "provision_id": "BANKRUPTCY-LAW-001",
@@ -16876,6 +17117,38 @@
    "source": "《关于工资总额组成的规定》中华人民共和国国家统计局令第1号，（全文有效，成文日期 1990-01-01）"
   },
   {
+   "provision_id": "SAT-ABNORMAL-VOUCHER-ANN-001",
+   "law": "关于异常增值税扣税凭证管理等有关事项的公告",
+   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-010"
+   ],
+   "content_sha256": "e204050b496136f19b95ee51981442296c86f9c927f72065a0b7f73f4f6d691f",
+   "content_len": 278,
+   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号，自2020年2月1日起施行）"
+  },
+  {
+   "provision_id": "SAT-ABNORMAL-VOUCHER-ANN-002",
+   "law": "关于异常增值税扣税凭证管理等有关事项的公告",
+   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-018"
+   ],
+   "content_sha256": "7d0fedf66b1c65175be0729f727eff87dfaf2c815b510ef1167335ad70207021",
+   "content_len": 164,
+   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号）"
+  },
+  {
    "provision_id": "CUSTOMS-DUTY-LAW-001",
    "law": "关税法",
    "law_code": "CUSTOMS-DUTY-LAW",
@@ -17236,8 +17509,8 @@
    "topic_tags": [
     "TOPIC-018"
    ],
-   "content_sha256": "4fe8e99e1e9d96cfb173001549cb3779d3d4d00c02572b3163deb359d30bc797",
-   "content_len": 135,
+   "content_sha256": "d86391470cdd296cf62939f6c1ad2b5815f7eb28e12172312f336ff0148c9d03",
+   "content_len": 193,
    "source": "《中华人民共和国关税法》（全文有效，成文日期 2024-04-26）"
   },
   {
@@ -22416,7 +22689,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-017",
+   "provision_id": "CRIMINAL-LAW-017-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第十七条之一",
@@ -22670,7 +22943,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-037",
+   "provision_id": "CRIMINAL-LAW-037-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三十七条之一",
@@ -23678,7 +23951,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-120",
+   "provision_id": "CRIMINAL-LAW-120-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百二十条之一",
@@ -23690,7 +23963,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-120",
+   "provision_id": "CRIMINAL-LAW-120-Z2",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百二十条之二",
@@ -23702,7 +23975,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-120",
+   "provision_id": "CRIMINAL-LAW-120-Z3",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百二十条之三",
@@ -23714,7 +23987,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-120",
+   "provision_id": "CRIMINAL-LAW-120-Z4",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百二十条之四",
@@ -23726,7 +23999,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-120",
+   "provision_id": "CRIMINAL-LAW-120-Z5",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百二十条之五",
@@ -23738,7 +24011,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-120",
+   "provision_id": "CRIMINAL-LAW-120-Z6",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百二十条之六",
@@ -23906,7 +24179,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-133",
+   "provision_id": "CRIMINAL-LAW-133-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百三十三条之一",
@@ -23918,7 +24191,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-133",
+   "provision_id": "CRIMINAL-LAW-133-Z2",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百三十三条之二",
@@ -23942,7 +24215,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-134",
+   "provision_id": "CRIMINAL-LAW-134-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百三十四条之一",
@@ -23966,7 +24239,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-135",
+   "provision_id": "CRIMINAL-LAW-135-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百三十五条之一",
@@ -24026,7 +24299,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-139",
+   "provision_id": "CRIMINAL-LAW-139-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百三十九条之一",
@@ -24074,7 +24347,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-142",
+   "provision_id": "CRIMINAL-LAW-142-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百四十二条之一",
@@ -24330,7 +24603,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-162",
+   "provision_id": "CRIMINAL-LAW-162-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百六十二条之一",
@@ -24342,7 +24615,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-162",
+   "provision_id": "CRIMINAL-LAW-162-Z2",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百六十二条之二",
@@ -24438,7 +24711,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-169",
+   "provision_id": "CRIMINAL-LAW-169-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百六十九条之一",
@@ -24522,7 +24795,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-175",
+   "provision_id": "CRIMINAL-LAW-175-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百七十五条之一",
@@ -24558,7 +24831,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-177",
+   "provision_id": "CRIMINAL-LAW-177-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百七十七条之一",
@@ -24666,7 +24939,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-185",
+   "provision_id": "CRIMINAL-LAW-185-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第一百八十五条之一",
@@ -24928,7 +25201,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-205",
+   "provision_id": "CRIMINAL-LAW-205-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百零五条之一",
@@ -25018,7 +25291,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-210",
+   "provision_id": "CRIMINAL-LAW-210-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百一十条之一",
@@ -25142,7 +25415,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-219",
+   "provision_id": "CRIMINAL-LAW-219-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百一十九条之一",
@@ -25214,7 +25487,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-224",
+   "provision_id": "CRIMINAL-LAW-224-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百二十四条之一",
@@ -25346,7 +25619,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-234",
+   "provision_id": "CRIMINAL-LAW-234-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百三十四条之一",
@@ -25382,7 +25655,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-236",
+   "provision_id": "CRIMINAL-LAW-236-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百三十六条之一",
@@ -25490,7 +25763,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-244",
+   "provision_id": "CRIMINAL-LAW-244-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百四十四条之一",
@@ -25610,7 +25883,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-253",
+   "provision_id": "CRIMINAL-LAW-253-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百五十三条之一",
@@ -25706,7 +25979,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-260",
+   "provision_id": "CRIMINAL-LAW-260-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百六十条之一",
@@ -25742,7 +26015,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-262",
+   "provision_id": "CRIMINAL-LAW-262-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百六十二条之一",
@@ -25754,7 +26027,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-262",
+   "provision_id": "CRIMINAL-LAW-262-Z2",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百六十二条之二",
@@ -25934,7 +26207,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-276",
+   "provision_id": "CRIMINAL-LAW-276-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百七十六条之一",
@@ -25994,7 +26267,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-280",
+   "provision_id": "CRIMINAL-LAW-280-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百八十条之一",
@@ -26006,7 +26279,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-280",
+   "provision_id": "CRIMINAL-LAW-280-Z2",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百八十条之二",
@@ -26066,7 +26339,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-284",
+   "provision_id": "CRIMINAL-LAW-284-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百八十四条之一",
@@ -26102,7 +26375,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-286",
+   "provision_id": "CRIMINAL-LAW-286-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百八十六条之一",
@@ -26126,7 +26399,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-287",
+   "provision_id": "CRIMINAL-LAW-287-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百八十七条之一",
@@ -26138,7 +26411,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-287",
+   "provision_id": "CRIMINAL-LAW-287-Z2",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百八十七条之二",
@@ -26200,7 +26473,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-291",
+   "provision_id": "CRIMINAL-LAW-291-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百九十一条之一",
@@ -26212,7 +26485,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-291",
+   "provision_id": "CRIMINAL-LAW-291-Z2",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百九十一条之二",
@@ -26248,7 +26521,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-293",
+   "provision_id": "CRIMINAL-LAW-293-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百九十三条之一",
@@ -26332,7 +26605,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-299",
+   "provision_id": "CRIMINAL-LAW-299-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第二百九十九条之一",
@@ -26440,7 +26713,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-307",
+   "provision_id": "CRIMINAL-LAW-307-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百零七条之一",
@@ -26464,7 +26737,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-308",
+   "provision_id": "CRIMINAL-LAW-308-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百零八条之一",
@@ -26788,7 +27061,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-334",
+   "provision_id": "CRIMINAL-LAW-334-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百三十四条之一",
@@ -26824,7 +27097,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-336",
+   "provision_id": "CRIMINAL-LAW-336-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百三十六条之一",
@@ -26908,7 +27181,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-342",
+   "provision_id": "CRIMINAL-LAW-342-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百四十二条之一",
@@ -26944,7 +27217,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-344",
+   "provision_id": "CRIMINAL-LAW-344-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百四十四条之一",
@@ -27088,7 +27361,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-355",
+   "provision_id": "CRIMINAL-LAW-355-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百五十五条之一",
@@ -27496,7 +27769,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-388",
+   "provision_id": "CRIMINAL-LAW-388-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百八十八条之一",
@@ -27532,7 +27805,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-390",
+   "provision_id": "CRIMINAL-LAW-390-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百九十条之一",
@@ -27652,7 +27925,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-399",
+   "provision_id": "CRIMINAL-LAW-399-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第三百九十九条之一",
@@ -27775,7 +28048,7 @@
    "source": "《中华人民共和国刑法》（全文有效，成文日期 2023-12-29）"
   },
   {
-   "provision_id": "CRIMINAL-LAW-408",
+   "provision_id": "CRIMINAL-LAW-408-Z1",
    "law": "刑法",
    "law_code": "CRIMINAL-LAW",
    "article": "第四百零八条之一",
@@ -33951,8 +34224,8 @@
    "topic_tags": [
     "TOPIC-004"
    ],
-   "content_sha256": "da0c59d3ac8a93e382e13a95510f4df868f3370821ccd5be01156f887ef1389e",
-   "content_len": 43,
+   "content_sha256": "5eaf1a935f94cccce80f9dd76b3c64faf26e7829a1a9c79be3467173319e6d64",
+   "content_len": 49,
    "source": "《国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定》中华人民共和国国务院令第502号，（全文有效，成文日期 2007-07-20）"
   },
   {
@@ -34007,8 +34280,8 @@
    "topic_tags": [
     "TOPIC-004"
    ],
-   "content_sha256": "3a5151f4282ee0275abf61837b0ee3e4a0b8fd8cb570a08e803e8b70af8895c9",
-   "content_len": 104,
+   "content_sha256": "66190037a6a089365fcbe5de31f0ebb04ccb1cb032f11abd7430146c4e7f73f1",
+   "content_len": 99,
    "source": "《国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定》中华人民共和国国务院令第502号，（全文有效，成文日期 2007-07-20）"
   },
   {
@@ -34078,8 +34351,8 @@
    "topic_tags": [
     "TOPIC-004"
    ],
-   "content_sha256": "24139b23d0443de71ab558568610e283c401eceb15d78394733a553deb415281",
-   "content_len": 61,
+   "content_sha256": "81679752d48be4005845254c5e1824ebde78ea978ebde5db4cc29efa8a8a3d46",
+   "content_len": 67,
    "source": "《国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定》中华人民共和国国务院令第502号，（全文有效，成文日期 2007-07-20）"
   },
   {
@@ -34092,8 +34365,8 @@
    "topic_tags": [
     "TOPIC-004"
    ],
-   "content_sha256": "08dfa5883f2b1441cc6b55f265b452fefce97ae0076ac31527ca30f8eb7e8ca2",
-   "content_len": 127,
+   "content_sha256": "46ec5d3061ae10f8aef202433e89d1e620b731dfdc9f2e7f51b917a2b7926658",
+   "content_len": 331,
    "source": "《国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定》中华人民共和国国务院令第502号，（全文有效，成文日期 2007-07-20）"
   },
   {
@@ -34190,8 +34463,8 @@
    "topic_tags": [
     "TOPIC-002"
    ],
-   "content_sha256": "3005cf2b5d54897b30667f0ac830c27a37951dd74c85b476019d3b27b2b8f593",
-   "content_len": 82,
+   "content_sha256": "0cd0168a0ab503ca11ab2b1ddfe228547d75f8e8a70c667a167099083e26f1df",
+   "content_len": 54,
    "source": "《国务院关于废止《中华人民共和国营业税暂行条例》和修改《中华人民共和国增值税暂行条例》的决定》国务院令第691号，（全文有效，成文日期 2017-11-19）"
   },
   {
@@ -34232,10 +34505,12 @@
    "article_no": 9,
    "kind": "行政法规",
    "topic_tags": [
-    "TOPIC-002"
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-004"
    ],
-   "content_sha256": "5e5154545eb23a0ae1099e90c062774ee71ffb4d75d74ddd3ba2a0bb4b410c88",
-   "content_len": 76,
+   "content_sha256": "effc710513d45a9282431529742cdcc8f556468d2755d22e92d07d457c0643bc",
+   "content_len": 1160,
    "source": "《国务院关于废止《中华人民共和国营业税暂行条例》和修改《中华人民共和国增值税暂行条例》的决定》国务院令第691号，（全文有效，成文日期 2017-11-19）"
   },
   {
@@ -34565,305 +34840,6 @@
    "source": "《国家税务总局关于办理增值税期末留抵退税有关征管事项的公告》（国家税务总局公告2025年第20号，自2025年9月1日起施行）"
   },
   {
-   "provision_id": "CIT-VOUCHER-MEASURE-001",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第一条",
-   "article_no": 1,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003",
-    "TOPIC-005",
-    "TOPIC-012"
-   ],
-   "content_sha256": "60e34c91ab3b89f8d30d0370734bc60789aaa6f6dc50b14e8e3c90139fa1d4cf",
-   "content_len": 123,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-002",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第二条",
-   "article_no": 2,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-003"
-   ],
-   "content_sha256": "82daba73e958d7a39b0a39f7f36fec0d5a934f14664082bb29a5bdfbb36bd1d1",
-   "content_len": 66,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-003",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第三条",
-   "article_no": 3,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-003",
-    "TOPIC-008"
-   ],
-   "content_sha256": "d1179120d2fe0e6b51a5c214014c6e95b0a56c5141ffb72921d370ae6fb3cba9",
-   "content_len": 35,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-004",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第四条",
-   "article_no": 4,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-003"
-   ],
-   "content_sha256": "60e9fc514c4ef1c77f19233bb68771aed189e3f3f100b7f6622b7062ced431fd",
-   "content_len": 116,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-005",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第五条",
-   "article_no": 5,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-003"
-   ],
-   "content_sha256": "879c49325b0c3ec41e01c52d0bb572f559414a3dfd128fc7f9a20188387af2b1",
-   "content_len": 43,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-006",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第六条",
-   "article_no": 6,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-003"
-   ],
-   "content_sha256": "284589022077d61066f366bd3642e3ce43f69911b5678860ffeda25681b0e8d8",
-   "content_len": 33,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-007",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第七条",
-   "article_no": 7,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-003"
-   ],
-   "content_sha256": "a7472842affe97539270f3a71b8896b41d2175313aad203f683b32a3c67c39d1",
-   "content_len": 53,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-008",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第八条",
-   "article_no": 8,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003",
-    "TOPIC-012"
-   ],
-   "content_sha256": "2b158f8717dbe7f6b6d0e32ae34e80eb65346946bb1747da5a4343bd3855ba48",
-   "content_len": 175,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-009",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第九条",
-   "article_no": 9,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-002",
-    "TOPIC-003"
-   ],
-   "content_sha256": "134b3f415b7a4c7ca823e4d95516ee67a5f4cf385c2a96e74e2addcc2e8b099e",
-   "content_len": 277,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-010",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十条",
-   "article_no": 10,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "36fb430b65fd47af73f222343df897a0565ddc1d3e98b7d24fb2d7f3f0c4b9cb",
-   "content_len": 126,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-011",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十一条",
-   "article_no": 11,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "665c9625105f8c394415a58d6659aaa6f0f395b97b1069c4b4d4a12e6b03127e",
-   "content_len": 58,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-012",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十二条",
-   "article_no": 12,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "ccfb0adbba8ed0d88e5f67c9b790cfa5d8d310ac6c2b30d96e3d50b86ed9eefe",
-   "content_len": 112,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-013",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十三条",
-   "article_no": 13,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "4b97bdf163cd1b042d2a2b85cc8b353f54cdb6499f9c24c39220910f0bb0534c",
-   "content_len": 119,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-014",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十四条",
-   "article_no": 14,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "074351452caa5701dbc55fe02376fe0a4bd265d25881151b9cba39107843e5c6",
-   "content_len": 262,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-015",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十五条",
-   "article_no": 15,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "0d78d49eff609c6e340cbe7a9a49a04d3187b6ce08905e8525ee2beb1949695e",
-   "content_len": 170,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-016",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十六条",
-   "article_no": 16,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "8addff0ce87b5ba9bcdb3f7989a51cf0c63b93170ebb7274118e017b5a2a3d91",
-   "content_len": 78,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-017",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十七条",
-   "article_no": 17,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "1cc6c040c8d4fdd700790a57e0f9f0a48187cb49be5f30cd2c5e104fbd7bae95",
-   "content_len": 144,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-018",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十八条",
-   "article_no": 18,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-002",
-    "TOPIC-003"
-   ],
-   "content_sha256": "533f20fcceb44f67910762f53a52dd24a4e9c2f55b7740b968d4185d44c6d4b5",
-   "content_len": 217,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-019",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第十九条",
-   "article_no": 19,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-003"
-   ],
-   "content_sha256": "8545002a2ce60aed669b2c0ddde84d34f1a3f9a483da2d0cc015b7f0ec8289dd",
-   "content_len": 125,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
-   "provision_id": "CIT-VOUCHER-MEASURE-020",
-   "law": "国家税务总局关于发布企业所得税税前扣除凭证管理办法的公告",
-   "law_code": "CIT-VOUCHER-MEASURE",
-   "article": "第二十条",
-   "article_no": 20,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-003"
-   ],
-   "content_sha256": "fa01beb695b62c46f17bbd44bd0127366ba899fbcb3df004da2eaba53c8babd3",
-   "content_len": 17,
-   "source": "《国家税务总局关于发布《企业所得税税前扣除凭证管理办法》的公告》国家税务总局公告2018年第28号，（全文有效，成文日期 2018-06-06）"
-  },
-  {
    "provision_id": "SAT-UNION-FEE-VOUCHER-001",
    "law": "国家税务总局关于工会经费企业所得税税前扣除凭据问题的公告",
    "law_code": "SAT-UNION-FEE-VOUCHER",
@@ -34876,38 +34852,6 @@
    "content_sha256": "6c5ed0b9c0a92b9fd81f91efdc93cea5da2faebd3a398d7436a443ef5b7455a6",
    "content_len": 70,
    "source": "《国家税务总局关于工会经费企业所得税税前扣除凭据问题的公告》（国家税务总局公告2010年第24号）"
-  },
-  {
-   "provision_id": "SAT-ABNORMAL-VOUCHER-ANN-001",
-   "law": "国家税务总局关于异常增值税扣税凭证管理等有关事项的公告",
-   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
-   "article": "第一条",
-   "article_no": 1,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-002",
-    "TOPIC-010"
-   ],
-   "content_sha256": "e204050b496136f19b95ee51981442296c86f9c927f72065a0b7f73f4f6d691f",
-   "content_len": 278,
-   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号，自2020年2月1日起施行）"
-  },
-  {
-   "provision_id": "SAT-ABNORMAL-VOUCHER-ANN-002",
-   "law": "国家税务总局关于异常增值税扣税凭证管理等有关事项的公告",
-   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
-   "article": "第二条",
-   "article_no": 2,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-002",
-    "TOPIC-018"
-   ],
-   "content_sha256": "7d0fedf66b1c65175be0729f727eff87dfaf2c815b510ef1167335ad70207021",
-   "content_len": 164,
-   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号）"
   },
   {
    "provision_id": "SAT-LVAT-CLEARING-002",
@@ -78936,7 +78880,7 @@
    "source": "《中华人民共和国税收征收管理法》（全文有效，成文日期 2015-04-24）"
   },
   {
-   "provision_id": "TAX-ADMIN-LAW-064",
+   "provision_id": "TAX-ADMIN-LAW-064-K2",
    "law": "税收征收管理法",
    "law_code": "TAX-ADMIN-LAW",
    "article": "第六十四条第二款",
@@ -83515,8 +83459,8 @@
    "topic_tags": [
     "TOPIC-005"
    ],
-   "content_sha256": "8145b819342646588a259ffaa8ce1630cb016168d2b6cc2040106ad230b750c4",
-   "content_len": 104,
+   "content_sha256": "77fb72c0404aab72238cb6b7acdef4992168cd350cf871c73f33bc953ebf49dc",
+   "content_len": 105,
    "source": "《中华人民共和国行政处罚法》（全文有效，成文日期 2021-01-22）"
   },
   {
@@ -85525,8 +85469,8 @@
    "article_no": 57,
    "kind": "行政法规",
    "topic_tags": [],
-   "content_sha256": "42e2264e77584db9dc9f8e59f9621b2114308aa250062fce07628e3f79cf086e",
-   "content_len": 161,
+   "content_sha256": "3794038974e60c9937c394d4e482b182f9a3d2281cff4aaf6773c984519b7ba5",
+   "content_len": 19,
    "source": "《中华人民共和国行政复议法实施条例》（全文有效，成文日期 2026-04-29）"
   },
   {
@@ -92862,12 +92806,12 @@
    "source": "《财政部关于民航发展基金等3项政府性基金有关政策的通知》（财税〔2020〕72号，2020年12月31日）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-CIT-SPECIAL-FUND-001",
    "law": "财政部国家税务总局关于专项用途财政性资金企业所得税处理问题的通知",
-   "law_code": null,
+   "law_code": "MOF-CIT-SPECIAL-FUND",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-003"
    ],
@@ -92876,12 +92820,12 @@
    "source": "《财政部 国家税务总局关于专项用途财政性资金企业所得税处理问题的通知》（财税〔2011〕70号，自2011年1月1日起执行）"
   },
   {
-   "provision_id": null,
+   "provision_id": "CS-2008-121-001",
    "law": "财政部国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知",
-   "law_code": null,
+   "law_code": "CS-2008-121",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-003"
    ],
@@ -92890,12 +92834,12 @@
    "source": "《财政部 国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知》（财税〔2008〕121号，2008年9月19日）"
   },
   {
-   "provision_id": null,
+   "provision_id": "CS-2016-36-014",
    "law": "财政部国家税务总局关于全面推开营业税改征增值税试点的通知",
-   "law_code": null,
+   "law_code": "CS-2016-36",
    "article": "第十四条",
    "article_no": 14,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-002"
    ],
@@ -92904,12 +92848,12 @@
    "source": "《财政部 国家税务总局关于全面推开营业税改征增值税试点的通知》（财税〔2016〕36号）附件1第十四条"
   },
   {
-   "provision_id": null,
+   "provision_id": "CS-2016-36-ATT1-014",
    "law": "财政部国家税务总局关于全面推开营业税改征增值税试点的通知",
-   "law_code": null,
+   "law_code": "CS-2016-36",
    "article": "附件1第十四条",
    "article_no": 14,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-002"
    ],
@@ -92918,12 +92862,12 @@
    "source": "《财政部 国家税务总局关于全面推开营业税改征增值税试点的通知》（财税〔2016〕36号）附件1《营业税改征增值税试点实施办法》第十四条"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-AGRI-DEDUCT-PILOT-002",
    "law": "财政部国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知",
-   "law_code": null,
+   "law_code": "MOF-AGRI-DEDUCT-PILOT",
    "article": "第二条",
    "article_no": 2,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-002"
    ],
@@ -92932,12 +92876,12 @@
    "source": "《财政部 国家税务总局关于在部分行业试行农产品增值税进项税额核定扣除办法的通知》（财税〔2012〕38号，自2012年7月1日起施行）附件1《农产品增值税进项税额核定扣除试点实施办法》"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-RD-SUPERDEDUCT-001",
    "law": "财政部国家税务总局关于研究开发费用税前加计扣除有关政策问题的通知",
-   "law_code": null,
+   "law_code": "MOF-RD-SUPERDEDUCT",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-006"
    ],
@@ -92946,12 +92890,12 @@
    "source": "《财政部 国家税务总局 科技部关于完善研究开发费用税前加计扣除政策的通知》（财税〔2015〕119号，自2016年1月1日起执行）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-CCF-SUPPLEMENT-001",
    "law": "财政部国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知",
-   "law_code": null,
+   "law_code": "MOF-CCF-SUPPLEMENT",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-002",
     "TOPIC-019"
@@ -92961,12 +92905,12 @@
    "source": "《财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的补充通知》（财税〔2016〕60号）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-CCF-001",
    "law": "财政部国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知",
-   "law_code": null,
+   "law_code": "MOF-CCF",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-001",
     "TOPIC-002",
@@ -92977,12 +92921,12 @@
    "source": "《财政部 国家税务总局关于营业税改征增值税试点有关文化事业建设费政策及征收管理问题的通知》（财税〔2016〕25号，2016年3月28日）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-IIT-INVESTOR-002",
    "law": "财政部国家税务总局关于规范个人投资者个人所得税征收管理的通知",
-   "law_code": null,
+   "law_code": "MOF-IIT-INVESTOR",
    "article": "第二条",
    "article_no": 2,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-004"
    ],
@@ -92991,12 +92935,12 @@
    "source": "《财政部 国家税务总局关于规范个人投资者个人所得税征收管理的通知》（财税〔2003〕158号）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-STA-ANN-2023-7-001",
    "law": "财政部税务总局公告2023年第7号",
-   "law_code": null,
+   "law_code": "MOF-STA-ANN-2023-7",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-006"
    ],
@@ -93005,12 +92949,12 @@
    "source": "《财政部 税务总局关于进一步完善研发费用税前加计扣除政策的公告》（财政部 税务总局公告2023年第7号，自2023年1月1日起执行，作为制度性安排长期实施）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-IIT-TRANSITION-001",
    "law": "财政部税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知",
-   "law_code": null,
+   "law_code": "MOF-IIT-TRANSITION",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-004"
    ],
@@ -93019,12 +92963,12 @@
    "source": "《财政部 税务总局关于个人所得税法修改后有关优惠政策衔接问题的通知》（财税〔2018〕164号，2018年12月27日，自2019年1月1日起执行）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-EXPORT-VAT-CT-001",
    "law": "财政部税务总局关于出口业务增值税和消费税政策的公告",
-   "law_code": null,
+   "law_code": "MOF-EXPORT-VAT-CT",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-002",
     "TOPIC-010"
@@ -93034,12 +92978,12 @@
    "source": "《财政部 税务总局关于出口业务增值税和消费税政策的公告》（财政部 税务总局公告2026年第11号，自2026年1月1日起施行）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-RETENTION-REFUND-001",
    "law": "财政部税务总局关于完善增值税期末留抵退税政策的公告",
-   "law_code": null,
+   "law_code": "MOF-RETENTION-REFUND",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-002"
    ],
@@ -93048,12 +92992,12 @@
    "source": "《财政部 税务总局关于完善增值税期末留抵退税政策的公告》（财政部 税务总局公告2025年第7号，自2025年9月1日起施行）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-VAT-RATE-SIMPLIFY-001",
    "law": "财政部税务总局关于简并增值税税率有关政策的通知",
-   "law_code": null,
+   "law_code": "MOF-VAT-RATE-SIMPLIFY",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [
     "TOPIC-002"
    ],
@@ -93062,12 +93006,12 @@
    "source": "《财政部 税务总局关于简并增值税税率有关政策的通知》（财税〔2017〕37号，自2017年7月1日起执行）"
   },
   {
-   "provision_id": null,
+   "provision_id": "MOF-VPT-POLICY-001",
    "law": "财政部税务总局关于车辆购置税有关具体政策的公告",
-   "law_code": null,
+   "law_code": "MOF-VPT-POLICY",
    "article": "第一条",
    "article_no": 1,
-   "kind": null,
+   "kind": "规范性文件",
    "topic_tags": [],
    "content_sha256": "72b8afb57e9f8ef8aa590b565c646a4b04cba105eac0f0023a638b7d543875f6",
    "content_len": 66,

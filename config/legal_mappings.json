@@ -230,7 +230,7 @@
    "provision_id": "CIT-VOUCHER-MEASURE-009",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "2d3e3b25cd0856e4084e8a0265442e181e7770f66a728712bbc47e5e627b2dd7"
+   "content_sha256": "134b3f415b7a4c7ca823e4d95516ee67a5f4cf385c2a96e74e2addcc2e8b099e"
   },
   {
    "rule_id": "RL-COST-002",
@@ -263,7 +263,7 @@
    "provision_id": "CIT-VOUCHER-MEASURE-008",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "57f78711b953d2c5ad9c2b1e19caa2513576270921d5cf35d88b48cb2203b5c3"
+   "content_sha256": "2b158f8717dbe7f6b6d0e32ae34e80eb65346946bb1747da5a4343bd3855ba48"
   },
   {
    "rule_id": "RL-COST-003",
@@ -890,7 +890,7 @@
    "provision_id": "CIT-VOUCHER-MEASURE-009",
    "verified": true,
    "provision_source": "static/legal_library.json",
-   "content_sha256": "2d3e3b25cd0856e4084e8a0265442e181e7770f66a728712bbc47e5e627b2dd7"
+   "content_sha256": "134b3f415b7a4c7ca823e4d95516ee67a5f4cf385c2a96e74e2addcc2e8b099e"
   },
   {
    "rule_id": "RL-PAY-004",
