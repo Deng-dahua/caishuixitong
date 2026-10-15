@@ -16,6 +16,17 @@ from engine.audit_coverage import build_coverage_report, format_coverage_text
 
 from engine.vat_reversal import classify_input_tax_reversal
 
+# ★ 2026-10-15（遗留项③「规则 params 阈值参数化接引擎判定」）：VR038/039/040 的**法定扣除限额**
+#   原先散落在本文件（算式里 `rev * 0.15`）与 `deduction_limit_detector` 的常量里各写一份
+#   ⇒ 已收敛到唯一权威表 `config/rule_params.json`。此处取一次，供**判定与规格描述共用**
+#   （描述里的百分比也必须来自同一处，否则改了阈值报告文案仍写旧数）。
+#   取不到 ⇒ None：判定分支一律**跳该项**（不退回 0），描述分支退回中性表述（不编造数字）。
+from engine import rule_params as _rule_params
+_P_BE_ACTUAL = _rule_params.ratio("biz_entertainment_actual_ratio")
+_P_BE_REVENUE = _rule_params.ratio("biz_entertainment_revenue_ratio")
+_P_AD_REVENUE = _rule_params.ratio("ad_promo_revenue_ratio")
+_P_WELFARE = _rule_params.ratio("welfare_wage_ratio")
+
 
 VERIFIED_RULE_CATALOG = [
     {
@@ -493,7 +504,13 @@ VERIFIED_RULE_CATALOG = [
         "lifecycle": ["成本费用归集", "纳税调整"],
         "required_sources": ["vouchers", "declaration"],
         "status": "verified_executable_screening",
-        "limitation": "业务招待费按发生额的60%扣除，且最高不得超过当年销售(营业)收入的5‰，超出部分须作纳税调增。本规则据凭证归集招待费并比对收入限额，未做纳税调整即预警。",
+        "limitation": (
+            f"业务招待费按发生额的{_P_BE_ACTUAL:.0%}扣除，且最高不得超过当年销售(营业)收入的"
+            f"{_P_BE_REVENUE * 1000:.0f}‰，超出部分须作纳税调增。本规则据凭证归集招待费并比对收入限额，"
+            "未做纳税调整即预警。"
+            if (_P_BE_ACTUAL is not None and _P_BE_REVENUE is not None) else
+            "业务招待费按法定限额（发生额比例与营业收入上限孰低）扣除，超出部分须作纳税调增。"
+            "★ 阈值未登记（config/rule_params.json）⇒ 判定已跳过。"),
     },
     {
         "id": "VR039",
@@ -504,7 +521,12 @@ VERIFIED_RULE_CATALOG = [
         "lifecycle": ["成本费用归集", "纳税调整"],
         "required_sources": ["vouchers", "declaration"],
         "status": "verified_executable_screening",
-        "limitation": "广告费和业务宣传费不超过当年销售(营业)收入15%的部分准予扣除，超过部分准予在以后纳税年度结转。本规则据凭证归集并比对收入限额。",
+        "limitation": (
+            f"广告费和业务宣传费不超过当年销售(营业)收入{_P_AD_REVENUE:.0%}的部分准予扣除，"
+            "超过部分准予在以后纳税年度结转。本规则据凭证归集并比对收入限额。"
+            if _P_AD_REVENUE is not None else
+            "广告费和业务宣传费不超过当年销售(营业)收入法定比例的部分准予扣除，超过部分准予结转。"
+            "★ 阈值未登记（config/rule_params.json）⇒ 判定已跳过。"),
     },
     {
         "id": "VR040",
@@ -515,7 +537,12 @@ VERIFIED_RULE_CATALOG = [
         "lifecycle": ["成本费用归集", "纳税调整"],
         "required_sources": ["vouchers", "declaration"],
         "status": "verified_executable_screening",
-        "limitation": "职工福利费不超过工资薪金总额14%的部分准予扣除，超出须纳税调增。本规则据凭证归集福利费并比对工资总额限额。",
+        "limitation": (
+            f"职工福利费不超过工资薪金总额{_P_WELFARE:.0%}的部分准予扣除，超出须纳税调增。"
+            "本规则据凭证归集福利费并比对工资总额限额。"
+            if _P_WELFARE is not None else
+            "职工福利费不超过工资薪金总额法定比例的部分准予扣除，超出须纳税调增。"
+            "★ 阈值未登记（config/rule_params.json）⇒ 判定已跳过。"),
     },
     {
         "id": "VR041",
@@ -4766,12 +4793,20 @@ def _scan_biz_entertainment_limit(data, spec):
     rev = _annual_revenue(data)
     if rev <= 0:
         return []
-    deduct_cap = min(occ * 0.6, rev * 0.005)
+    # ★ 2026-10-15（遗留项③）：限额从唯一权威表读取，不写字面量（原为 min(occ*0.6, rev*0.005)）。
+    #   阈值未登记 ⇒ 跳过本项判定并留痕（绝不退回 0 —— 0 会让"无扣除上限"变成"任何金额都超限"）。
+    from engine import rule_params as _rp
+    r_actual = _rp.ratio("biz_entertainment_actual_ratio")
+    r_rev = _rp.ratio("biz_entertainment_revenue_ratio")
+    if r_actual is None or r_rev is None:
+        return []
+    deduct_cap = min(occ * r_actual, rev * r_rev)
     over = occ - deduct_cap
     if over <= 0:
         return []
     detail = (
-        f"业务招待费账面发生额{occ:,.2f}元，按税法规定限额为 min(发生额×60%, 营业收入×5‰)="
+        f"业务招待费账面发生额{occ:,.2f}元，按税法规定限额为 "
+        f"min(发生额×{r_actual:.0%}, 营业收入×{r_rev * 1000:.0f}‰)="
         f"{deduct_cap:,.2f}元，超限{over:,.2f}元须作纳税调增。若汇算清缴未做调整，存在少缴企业所得税风险。"
     )
     _f038 = _rule_finding(spec, detail,
@@ -4801,12 +4836,17 @@ def _scan_ad_promo_limit(data, spec):
     rev = _annual_revenue(data)
     if rev <= 0:
         return []
-    cap = rev * 0.15
+    # ★ 2026-10-15（遗留项③）：限额从唯一权威表读取（原为 rev * 0.15）。
+    from engine import rule_params as _rp
+    r_ad = _rp.ratio("ad_promo_revenue_ratio")
+    if r_ad is None:
+        return []
+    cap = rev * r_ad
     over = occ - cap
     if over <= 0:
         return []
     detail = (
-        f"广告费和业务宣传费账面{occ:,.2f}元，扣除限额为营业收入×15%={cap:,.2f}元，"
+        f"广告费和业务宣传费账面{occ:,.2f}元，扣除限额为营业收入×{r_ad:.0%}={cap:,.2f}元，"
         f"超限{over:,.2f}元（可在以后纳税年度结转扣除）。若当年未正确区分资本性支出与费用化支出，"
         "或超限部分未作纳税调增，存在所得税风险。"
     )
@@ -4834,20 +4874,30 @@ def _scan_welfare_limit(data, spec):
     if occ <= 0:
         return []
     wage, src = _wage_total_with_source(data)
+    # ★ 2026-10-15（遗留项③）：限额从唯一权威表读取（原为 wage * 0.14，文案另写死 2%/8%）。
+    from engine import rule_params as _rp
+    r_wel = _rp.ratio("welfare_wage_ratio")
+    if r_wel is None:
+        return []
     if wage <= 0:
         # 工资总额缺失：仅提示绝对值，无法精确限额
         return [_rule_finding(spec,
                          f"检出职工福利费等相关支出{occ:,.2f}元，但未获取到工资薪金总额数据，"
-                         "无法核对14%扣除限额。须补充工资总额（payroll或应付职工薪酬）以完成限额比对。",
+                         f"无法核对{r_wel:.0%}扣除限额。须补充工资总额（payroll或应付职工薪酬）以完成限额比对。",
                          {"welfare_total": round(occ, 2), "wage_total": 0, "note": "工资总额缺失"},
                          spec["required_sources"], priority="提示")]
-    cap = wage * 0.14
+    cap = wage * r_wel
     over = occ - cap
     if over <= 0:
         return []
+    r_union = _rp.ratio("union_wage_ratio")
+    r_edu = _rp.ratio("edu_wage_ratio")
+    _extra = (f"（工会经费{r_union:.0%}、职工教育经费{r_edu:.0%}另有专项限额）"
+              if r_union is not None and r_edu is not None else "")
     detail = (
-        f"职工福利费等相关支出{occ:,.2f}元，工资薪金总额{wage:,.2f}元，扣除限额为工资总额×14%="
-        f"{cap:,.2f}元，超限{over:,.2f}元须纳税调增（工会经费2%、职工教育经费8%另有专项限额）。"
+        f"职工福利费等相关支出{occ:,.2f}元，工资薪金总额{wage:,.2f}元，扣除限额为"
+        f"工资总额×{r_wel:.0%}={cap:,.2f}元，超限{over:,.2f}元须纳税调增。"
+        + (_extra or "")
     )
     _f040 = _rule_finding(spec, detail,
                      {"welfare_total": round(occ, 2), "wage_total": round(wage, 2),

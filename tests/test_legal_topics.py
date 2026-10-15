@@ -176,8 +176,18 @@ class TestEndToEndWiring:
         src = (ROOT / "engine" / "legal_topics.py").read_text(encoding="utf-8")
         assert "LM.content_of" in src, "条款正文未走 legal_mapping.content_of（唯一读法）"
 
-    def test_材料粒度声明为法规级(self, LE):
+    def test_材料粒度三态且自洽(self, LE):
+        """★ 三态（2026-10-15）：`provision`/`law`/`none` 必须显式且与证据自洽。
+
+        回归自「只到法规级」——断言不得放松为"随便一个值都行"：
+        必须**三态之一**，且 `provision` ⇔ 真有条款 ID。
+        """
         d = LE.list_materials(page=1, page_size=1)
         assert d["items"], "材料列表为空"
         m = LE.material_detail(d["items"][0]["material_id"])
-        assert m.get("granularity") == "law"
+        assert m.get("granularity") in ("provision", "law", "none"), \
+            "粒度必须显式且在三态内，实得 %r" % m.get("granularity")
+        if m.get("granularity") == "provision":
+            assert m.get("matched_provisions"), "声明条款级却无条款依据"
+        else:
+            assert not (m.get("matched_provisions") or []), "有条款依据却未标条款级（漏标）"

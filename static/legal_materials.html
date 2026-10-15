@@ -80,7 +80,7 @@
     </div>
 
     <div class="card">
-      <h3>材料列表 <span class="muted">（标题+摘要来自官方发布；关联**只到法规级**）</span></h3>
+      <h3>材料列表 <span class="muted">（标题+摘要来自官方发布；关联粒度标注在「关联粒度」列，条款级/法规级/未确证三态）</span></h3>
       <div class="body">
         <div class="toolbar">
           <input type="text" id="q" placeholder="关键词（标题 / 摘要 / 文号）">
@@ -92,14 +92,21 @@
             <option value="true">仅已关联法规</option>
             <option value="false">仅未关联的</option>
           </select>
+          <select id="gran-sel">
+            <option value="">全部粒度</option>
+            <option value="provision">条款级（正文显式引用条号）</option>
+            <option value="law">法规级（仅确证引用了该法）</option>
+            <option value="none">未确证</option>
+          </select>
           <button class="btn" id="btn-search">检索</button>
           <button class="btn ghost" id="btn-reset">重置</button>
           <span class="muted" id="hint"></span>
         </div>
         <table class="grid">
           <thead><tr><th style="width:70px">类型</th><th>标题 / 摘要</th>
-            <th style="width:110px">发布日期</th><th style="width:220px">显式引用的法规</th></tr></thead>
-          <tbody id="tb"><tr><td colspan="4" class="muted">加载中…</td></tr></tbody>
+            <th style="width:100px">关联粒度</th>
+            <th style="width:110px">发布日期</th><th style="width:220px">显式引用的法规 / 条款</th></tr></thead>
+          <tbody id="tb"><tr><td colspan="5" class="muted">加载中…</td></tr></tbody>
         </table>
         <div class="toolbar" style="margin-top:10px">
           <button class="btn ghost" id="pg-prev">上一页</button>

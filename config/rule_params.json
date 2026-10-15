@@ -1,0 +1,172 @@
+{
+  "schema": "caishuixitong.rule_params/1",
+  "version": "1.0.0",
+  "updated": "2026-10-15",
+  "note": "★ **规则判定阈值（引擎侧）的唯一权威表**。回答遗留项：「规则 params 阈值参数化接引擎判定」。\n\n## 为什么要有这张表（实测背景）\n同一批**法定扣除限额**此前在**两处各写一份**，属多头维护：\n  · `engine/verified_rule_engine.py`：VR038 业务招待费 `occ*0.6` / `rev*0.005`、VR039 广告费 `rev*0.15`、VR040 职工福利费 `wage*0.14`（**字面量直接写在算式里**）；\n  · `engine/deduction_limit_detector.py`：`_UNION_RATE=0.02`、`_EDU_RATE=0.08`、`_DONATION_RATE=0.12`、`_DEBT_EQUITY_RATIO=2.0`。\n⇒ 税率/限额一旦调整（如职工教育经费 2.5%→8%），必须记得改齐所有副本，漏一处即「同一条规则两个答案」。\n\n## 与相邻两张表的分工（不得混用）\n| 表 | 管什么 | 取值特征 |\n|---|---|---|\n| **本表 `config/rule_params.json`** | **全国统一法定阈值**（比例/倍数/年限/税率） | 一定有确定值 |\n| `config/region_params.json` | **地区/地方性税政参数**（房产税扣除比例、契税税率…） | 多为 `value=null` + `pending_local`（**禁止预设地方值**） |\n| `config/rulelist_v{1,11,12}.json::params` | **候选规则库**（外部清单）自带的阈值，服务 DSL 落地 | 按 `src` 嵌套登记 |\n\n★ **参数名不得跨表重复**（闸门 `check_rule_params_single_source` 断言）。\n\n## 纪律\n1. **按「参数名」登记，不按「规则ID」**：同一阈值被多条规则引用时**只登记一次**，各规则在 `used_by` 里列出 —— 这正是消除多头维护的关键（例：债资比 2:1 同时服务 RL-CIT-010 与 RL-CIT-014）。\n2. **引擎代码不得再出现这些阈值的字面量**（闸门 B 段现算断言）。\n3. **取不到 ≠ 用默认值**：读取器 `engine/rule_params.py` 在参数未登记时返回 `None`，**绝不返回 0 或任何兜底值**；调用方须据此**跳过判定并留痕**（项目铁律：缺失≠0）。\n4. **`engine_wired` 如实标注**：`true` = 引擎中已有检测器**真的按此阈值判定**；`false` = 仅登记阈值，引擎暂无检测器 ⇒ **不得对外宣称已接入**。\n5. 新增同类阈值 ＝ 在本表加一行 + 引用的检测器改读 `rule_params.value()`。",
+  "params": {
+    "biz_entertainment_actual_ratio": {
+      "cn": "业务招待费：按发生额扣除的比例",
+      "value": 0.6,
+      "unit": "比例",
+      "expr": "发生额 × 0.6",
+      "legal_basis": "《中华人民共和国企业所得税法实施条例》第四十三条",
+      "engine_wired": true,
+      "wired_in": [
+        "engine/verified_rule_engine.py::_scan_biz_entertainment_limit（VR038）"
+      ],
+      "used_by": [
+        "VR038",
+        "RL-CIT-007"
+      ],
+      "used_by_note": "RL-CIT-007「税前扣除限额超限未纳税调整」是业务招待费/广告费/职工福利费/工会经费/职工教育经费/公益性捐赠六项的**共同归属红线**。"
+    },
+    "biz_entertainment_revenue_ratio": {
+      "cn": "业务招待费：不得超过当年销售（营业）收入的比例",
+      "value": 0.005,
+      "unit": "比例（5‰）",
+      "expr": "营业收入 × 0.005",
+      "legal_basis": "《中华人民共和国企业所得税法实施条例》第四十三条",
+      "engine_wired": true,
+      "wired_in": [
+        "engine/verified_rule_engine.py::_scan_biz_entertainment_limit（VR038）"
+      ],
+      "used_by": [
+        "VR038",
+        "RL-CIT-007"
+      ]
+    },
+    "ad_promo_revenue_ratio": {
+      "cn": "广告费和业务宣传费：不超过当年销售（营业）收入的比例",
+      "value": 0.15,
+      "unit": "比例",
+      "expr": "营业收入 × 0.15",
+      "legal_basis": "《中华人民共和国企业所得税法实施条例》第四十四条",
+      "engine_wired": true,
+      "wired_in": [
+        "engine/verified_rule_engine.py::_scan_ad_promo_limit（VR039）"
+      ],
+      "used_by": [
+        "VR039",
+        "RL-CIT-007"
+      ]
+    },
+    "welfare_wage_ratio": {
+      "cn": "职工福利费：不超过工资薪金总额的比例",
+      "value": 0.14,
+      "unit": "比例",
+      "expr": "工资薪金总额 × 0.14",
+      "legal_basis": "《中华人民共和国企业所得税法实施条例》第四十条",
+      "engine_wired": true,
+      "wired_in": [
+        "engine/verified_rule_engine.py::_scan_welfare_limit（VR040）"
+      ],
+      "used_by": [
+        "VR040",
+        "RL-CIT-007"
+      ]
+    },
+    "union_wage_ratio": {
+      "cn": "工会经费：不超过工资薪金总额的比例",
+      "value": 0.02,
+      "unit": "比例",
+      "expr": "工资薪金总额 × 0.02",
+      "legal_basis": "《中华人民共和国企业所得税法实施条例》第四十一条",
+      "engine_wired": true,
+      "wired_in": [
+        "engine/deduction_limit_detector.py::_check_union_and_edu"
+      ],
+      "used_by": [
+        "RL-CIT-007"
+      ]
+    },
+    "edu_wage_ratio": {
+      "cn": "职工教育经费：不超过工资薪金总额的比例",
+      "value": 0.08,
+      "unit": "比例",
+      "expr": "工资薪金总额 × 0.08",
+      "legal_basis": "《财政部 税务总局关于企业职工教育经费税前扣除政策的通知》（财税〔2018〕51号）",
+      "legal_note": "★ 时效提示：《企业所得税法实施条例》第四十二条原文为 2.5%，财税〔2018〕51号已自 2018-01-01 起统一提高至 8% ⇒ **现行口径取 8%**（本表登记现行有效值，不登记已被修改的原文比例）。",
+      "engine_wired": true,
+      "wired_in": [
+        "engine/deduction_limit_detector.py::_check_union_and_edu"
+      ],
+      "used_by": [
+        "RL-CIT-007"
+      ]
+    },
+    "public_welfare_donation_profit_ratio": {
+      "cn": "公益性捐赠支出：不超过年度利润总额的比例",
+      "value": 0.12,
+      "unit": "比例",
+      "expr": "年度利润总额 × 0.12",
+      "legal_basis": "《中华人民共和国企业所得税法》第九条",
+      "engine_wired": true,
+      "wired_in": [
+        "engine/deduction_limit_detector.py::_check_public_welfare_donation"
+      ],
+      "used_by": [
+        "RL-CIT-007"
+      ]
+    },
+    "debt_equity_ratio_nonfin": {
+      "cn": "非金融企业关联方债权性投资与权益性投资比例上限",
+      "value": 2.0,
+      "unit": "倍（2:1）",
+      "expr": "关联方债权性投资 / 权益性投资 ≤ 2.0",
+      "legal_basis": "《财政部 国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知》（财税〔2008〕121号）第一条",
+      "engine_wired": true,
+      "wired_in": [
+        "engine/deduction_limit_detector.py::_check_related_party_debt_equity"
+      ],
+      "used_by": [
+        "RL-CIT-009",
+        "RL-CIT-010",
+        "RL-CIT-014"
+      ],
+      "note": "★ 同一阈值由三条红线共用（RL-CIT-009 关联方债资比超限 / RL-CIT-010 资本弱化超 2:1 / RL-CIT-014 关联方利息未调整）⇒ 按参数名登记一次，避免三处各写一份。"
+    },
+    "loss_carryforward_years": {
+      "cn": "企业亏损结转弥补年限",
+      "value": 5,
+      "unit": "年",
+      "expr": "结转年限 ≤ 5 年（高新技术企业、科技型中小企业为 10 年，属专门优惠另有规定）",
+      "legal_basis": "《中华人民共和国企业所得税法》第十八条",
+      "engine_wired": false,
+      "used_by": [
+        "RL-CIT-005",
+        "RL-CIT-016"
+      ],
+      "not_wired_reason": "引擎暂无「历年亏损台账 + 本年弥补额」的可复算数据源（需连续年度的纳税申报表或亏损弥补明细表）；按纪律不虚构检测器，故如实标注未接入。"
+    },
+    "dividend_iit_rate": {
+      "cn": "利息、股息、红利所得个人所得税税率",
+      "value": 0.2,
+      "unit": "比例税率",
+      "expr": "分配金额 × 0.2",
+      "legal_basis": "《中华人民共和国个人所得税法》第三条（利息、股息、红利所得适用比例税率 20%）",
+      "engine_wired": false,
+      "used_by": [
+        "RL-PAY-009"
+      ],
+      "not_wired_reason": "引擎暂无「利润分配/应付股利发生额 × 个税代扣台账」配对数据（需个税申报表或代扣明细）；如实标注未接入。"
+    },
+    "entrusted_rd_deduction_ratio": {
+      "cn": "委托研发：按实际发生额计入委托方研发费用的比例",
+      "value": 0.8,
+      "unit": "比例",
+      "expr": "委托研发实际发生额 × 0.8 计入加计扣除基数",
+      "legal_basis": "《财政部 国家税务总局 科学技术部关于完善研究开发费用税前加计扣除政策的通知》（财税〔2015〕119号）",
+      "engine_wired": false,
+      "used_by": [
+        "RL-SPT-024"
+      ],
+      "not_wired_reason": "引擎暂无「委托研发费用明细 + 技术合同登记编号」的专项归集数据；如实标注未接入。"
+    }
+  },
+  "wire_summary": {
+    "total": 11,
+    "engine_wired": 8,
+    "not_wired": 3,
+    "_note": "★ 本统计由 scripts/_gen_rule_params_report.py 现算写入（防手工维护漂移）。"
+  }
+}

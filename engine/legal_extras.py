@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
-"""案例 / 解读 / 问答 **材料读层**（STEP-EXT-LEGAL-FULL-MATCH 步骤 19）—— 唯一读路径。
+"""案例 / 解读 / 问答 **材料读层** —— 唯一读路径。
 
 数据权威：`config/legal_materials.json`（由 `scripts/_gen_legal_materials.py` 幂等生成，
-关联结论派生自**官方摘要原文的显式引用**，非关键词匹配）。
+关联结论派生自**官方原文的显式引用**，非关键词匹配）。
 
-★★ 粒度如实（防"假精确"）：
-  材料与法规的关联**只到「法规」级**（该材料显式引用了某部法）；
-  **不能**确证到「条款」级（摘要通常不写条号）⇒ `for_provision()` 返回的
-  `granularity="law"`，调用方**不得**把它当作"该案例适用第 N 条"的论断。
+★★ 粒度**三态如实**（2026-10-15 补采正文后由两态升级为三态；防"假精确"与"假粗糙"）：
+  · `granularity="provision"` —— 材料**正文**里出现「法名**紧邻**条号」，且该条款 ID
+    在 `config/legal_provisions.json` 中真实存在 ⇒ 关联**到条款级**；
+  · `granularity="law"` —— 只确证到「引用了某部法」（正文无「法名紧邻条号」写法）⇒
+    **不得**当作"该案例适用第 N 条"的论断；
+  · `granularity="none"` —— 连法规引用都未确证 ⇒ 如实留空。
+  ★ `for_provision()` **优先**返回条款级命中；无命中才退回法规级，并在 `granularity` 里说明。
 
 ★ 缺失如实：材料库不存在 ⇒ `available()=False`，各查询返回空并说明原因，不伪造。
 """
@@ -79,6 +82,8 @@ def _brief_material(m: Dict[str, Any], law_code: str) -> Dict[str, Any]:
         "url": m.get("url"),
         "matched_ref": (refs[0]["matched_ref"] if refs else ""),
         "matched_by": (refs[0]["matched_by"] if refs else ""),
+        "granularity": m.get("granularity"),
+        "provision_ids": list(m.get("provision_ids") or []),
     }
 
 
@@ -95,16 +100,38 @@ def for_law(law_code: Any, *, kind: Any = None, limit: int = 20, offset: int = 0
     return {"total": total, "law_code": code, "kind": kind or "", "offset": off, "limit": lim,
             "items": [_brief_material(m, code) for m in items[off:off + lim]],
             "granularity": "law",
-            "note": "关联粒度=**法规级**（材料显式引用了该法），非条款级。"}
+            "note": ("本查询的关联层级=**法**（材料显式引用了《%s》）；"
+                     "每条材料自带更细粒度：`provision`（其正文含「法名紧邻条号」）/"
+                     "`law` / `none`，需要条款级请用 `for_provision(条款ID)`。" % code)}
 
 
 def for_provision(provision_id: Any, *, limit: int = 5, offset: int = 0) -> Dict[str, Any]:
-    """某**条款**的相关官方材料（★ 粒度仍是**法规级**，见模块 docstring）。"""
+    """某**条款**的相关官方材料。
+
+    ★ 两级优先（2026-10-15）：先取**条款级**命中（材料正文显式引用了该条款 ID），
+      无命中才**如实退回**法规级并标 `granularity="law"` —— 不再一律说"只到法规级"。
+    """
     pid = str(provision_id or "")
+    if not available():
+        return {"total": 0, "items": [], "available": False, "provision_id": pid,
+                "granularity": "none", "note": "材料库不可用 ⇒ 如实为空，不伪造。"}
+    exact = [m for m in (_doc().get("materials") or []) if pid in (m.get("provision_ids") or [])]
+    exact.sort(key=lambda m: str(m.get("published_at") or ""), reverse=True)
+    if exact:
+        off, lim = max(0, int(offset or 0)), max(1, min(int(limit or 5), 200))
+        code = law_code_of(pid)
+        return {"total": len(exact), "provision_id": pid, "law_code": code,
+                "offset": off, "limit": lim,
+                "items": [_brief_material(m, code) for m in exact[off:off + lim]],
+                "granularity": "provision",
+                "note": ("关联粒度=**条款级**：材料正文出现「法名紧邻条号」的显式引用，"
+                         "且该条款 ID 已登记。仍属**参考线索**，个案适用与否需人工判断。")}
     got = for_law(law_code_of(pid), limit=limit, offset=offset)
     got["provision_id"] = pid
-    got["note"] = ("材料与法规的关联只到**法规级**（该材料引用了所属法），"
-                   "**不等于**该材料适用本条条款 ⇒ 只作参考线索，不得当定性依据。")
+    got["granularity"] = "law"
+    got["note"] = ("**无条款级命中** ⇒ 退回法规级（有材料引用了所属法，但正文未出现"
+                   "「法名紧邻本条款号」的写法）⇒ 只作参考线索，**不得**当作"
+                   "「该材料适用本条」的依据。")
     return got
 
 
@@ -118,6 +145,8 @@ def _brief(m: Dict[str, Any], *, with_snippet: bool = True) -> Dict[str, Any]:
         "related_law_codes": list(m.get("related_law_codes") or []),
         "matched_refs": list(m.get("matched_refs") or []),
         "granularity": m.get("granularity"),
+        "provision_ids": list(m.get("provision_ids") or []),
+        "content_len": int(m.get("content_len") or 0),
     }
     if with_snippet:
         out["snippet"] = m.get("snippet")
@@ -125,9 +154,11 @@ def _brief(m: Dict[str, Any], *, with_snippet: bool = True) -> Dict[str, Any]:
 
 
 def list_materials(*, kind: Any = None, q: Any = None, law_code: Any = None,
-                   linked: Any = None, page: int = 1, page_size: int = 20,
+                   linked: Any = None, granularity: Any = None,
+                   provision_id: Any = None,
+                   page: int = 1, page_size: int = 20,
                    with_snippet: bool = True) -> Dict[str, Any]:
-    """**材料列表**（案例/解读/问答；按类型 / 关键词 / 关联法 / 是否已关联筛选 + 分页）。
+    """**材料列表**（案例/解读/问答；按类型 / 关键词 / 关联法 / 粒度 / 条款筛选 + 分页）。
 
     ★ 与 `search` 的差别：本函数是**列表页专用**（分页 + 多维筛选 + 可按需关摘要），
       `search` 保留为向后兼容的薄转发。
@@ -142,6 +173,12 @@ def list_materials(*, kind: Any = None, q: Any = None, law_code: Any = None,
     lc = str(law_code or "").strip()
     if lc:
         items = [m for m in items if lc in (m.get("related_law_codes") or [])]
+    pid = str(provision_id or "").strip()
+    if pid:
+        items = [m for m in items if pid in (m.get("provision_ids") or [])]
+    gd = str(granularity or "").strip()
+    if gd:
+        items = [m for m in items if str(m.get("granularity") or "") == gd]
     if linked is not None and str(linked).strip() != "":
         want = str(linked).strip().lower() in ("1", "true", "yes", "on")
         items = [m for m in items if bool(m.get("related_law_codes")) == want]
@@ -153,6 +190,7 @@ def list_materials(*, kind: Any = None, q: Any = None, law_code: Any = None,
     # 类型 → 数量分布（**以筛选后的集合为准**，与列表一致，避免"数字与列表对不上"）
     from collections import Counter
     by_kind = dict(Counter(str(m.get("kind") or "") for m in items).most_common())
+    by_granularity = dict(Counter(str(m.get("granularity") or "") for m in items).most_common())
     items.sort(key=lambda m: str(m.get("published_at") or ""), reverse=True)
     total = len(items)
     p = max(1, int(page or 1))
@@ -161,10 +199,13 @@ def list_materials(*, kind: Any = None, q: Any = None, law_code: Any = None,
             "pages": (total + ps - 1) // ps if total else 0,
             "items": [_brief(m, with_snippet=with_snippet)
                       for m in items[(p - 1) * ps: p * ps]],
-            "by_kind": by_kind, "kind": kd, "q": str(q or ""), "law_code": lc,
-            "note": ("材料来自三平台官方发布（标题+摘要原文）；"
-                     "`related_law_codes` 是材料**显式引用**的法（书名号 / 带法规后缀全名），"
-                     "关联**只到法规级**，不代表适用某条款。")}
+            "by_kind": by_kind, "by_granularity": by_granularity,
+            "kind": kd, "q": str(q or ""), "law_code": lc,
+            "granularity": gd, "provision_id": pid,
+            "note": ("材料来自三平台官方发布；`related_law_codes` 是材料**显式引用**的法；"
+                     "`provision_ids` 仅在正文出现「法名紧邻条号」时才非空 "
+                     "（`granularity=provision` 为条款级，`law` 仅法规级，`none` 未确证）。"
+                     "跨设备可读正文见 `material_detail().content`。")}
 
 
 def material_detail(material_id: Any) -> Dict[str, Any]:
@@ -192,10 +233,51 @@ def material_detail(material_id: Any) -> Dict[str, Any]:
             "rules_using": _rules_of_law(code),
         })
     out["related_laws"] = laws
-    out["granularity"] = "law"
-    out["granularity_note"] = ("关联**只到法规级**（材料显式引用了该法）；"
-                              "**不代表**该材料适用某具体条款 ⇒ 参考线索，不作定性依据。")
+    # ★ 条款级命中（2026-10-15 补采正文后）：逐条附「法名 + 条号 + 是否已入正文库」
+    from engine import legal_mapping as LM2
+    pidx = LM2.provision_index()
+    provs: List[Dict[str, Any]] = []
+    for p in (m.get("matched_provisions") or []):
+        pid = str(p.get("provision_id") or "")
+        meta = pidx.get(pid) or {}
+        provs.append({**p,
+                      "law": meta.get("law") or "",
+                      "article_no": meta.get("article_no"),
+                      "in_library": bool(p.get("in_library"))})
+    out["matched_provisions"] = provs
+    out["granularity_note"] = (
+        "关联到**条款级**（正文出现「法名紧邻条号」的显式引用，已校验 ID 登记）；"
+        "`in_library=false` 表示该条文尚未入正文库（如实暴露，不臆造原文）。"
+        if provs else
+        "关联**只到法规级**（材料引用了该法，但正文未出现「法名紧邻条号」的写法）"
+        "⇒ **不代表**适用某具体条款，只作参考线索。")
+    # 正文（跨设备可读；`content_len` 为 0 时说明未采集成功，不留空壳）
+    if not out.get("content"):
+        out["content"] = _fulltext(mid)
+        out["content_len"] = len(out["content"]) or int(m.get("content_len") or 0)
+        if not out["content"]:
+            out["content_note"] = ("正文未采集（`data/legal_crawl/material_texts/` 无此条产物）"
+                                   "⇒ 只提供标题与摘要，不伪造正文。")
+        else:
+            out["content_source"] = ("data/legal_crawl/material_texts/%s.json（采集层产物，"
+                                     "HTML→纯文本，未人工校对）" % mid)
     return out
+
+
+def _fulltext(material_id: str) -> str:
+    """读某条材料的**采集正文**（`data/legal_crawl/material_texts/<mid>.json`）。
+
+    ★ 正文属**采集候选层**（与 `legal_texts/*.json` 同层）⇒ 落 `data/`，不塞进 `config/`
+      （2055 条正文会让结论文件膨胀数倍）。取不到 ⇒ 空串（调用方如实说明，不伪造）。
+    """
+    fp = _ROOT / "data" / "legal_crawl" / "material_texts" / f"{material_id}.json"
+    if not fp.exists():
+        return ""
+    try:
+        o = json.loads(fp.read_text(encoding="utf-8"))
+    except Exception:                                            # noqa: BLE001
+        return ""
+    return str(o.get("body") or "") if o.get("ok") else ""
 
 
 def _rules_of_law(law_code: Any) -> List[Dict[str, Any]]:

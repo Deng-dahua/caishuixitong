@@ -15,11 +15,20 @@ from engine.numparse import to_number  # ★ 2026-09-25 统一数值解析（唯
 from collections import defaultdict
 
 # ── 阈值 ──
-_UNION_RATE = 0.02          # 工会经费：工资薪金总额 2%
-_EDU_RATE = 0.08            # 职工教育经费：工资薪金总额 8%
-_DONATION_RATE = 0.12       # 公益性捐赠：年度利润总额 12%
-_DEBT_EQUITY_RATIO = 2.0    # 非金融企业关联方债资比 2:1
+# ★★ 2026-10-15（遗留项③「规则 params 阈值参数化接引擎判定」）：四个**法定限额**已从本模块
+#   的硬编码常量**收敛到唯一权威表** `config/rule_params.json`，经 `engine/rule_params.py` 读取。
+#   原写法（`_UNION_RATE=0.02` 等）与 `engine/verified_rule_engine.py` 的 VR038/039/040 各写一份
+#   ⇒ 同一法定限额两处维护，改一处漏一处即"同一条规则两个答案"。
+#   现纪律：**本模块不得再出现法定阈值的字面量**；取不到阈值 ⇒ **跳过该项判定并留痕**
+#   （绝不退回 0 —— 用 0 当限额会让"无扣除上限"变成"任何金额都超限"）。
 _MIN_BASE = 10000.0         # 基数下限（元），低于此不判定，避免小样本噪音
+                            # ★ 这是**工程阈值**（防小样本噪音），非法定口径 ⇒ 不登记在 rule_params 表
+
+
+def _ratio_of(name: str):
+    """取法定比例/倍数阈值（唯一权威 `config/rule_params.json`）。取不到 ⇒ None。"""
+    from engine import rule_params as _rp
+    return _rp.ratio(name)
 
 # ── 归属声明（A-P0-1：算过的检测器必须自报 redline_id，不许让引擎按关键词猜）───────────
 # 唯一登记处：本模块每个检测器「真算过的事实」归属哪条红线，在此声明**一次**；
@@ -117,31 +126,33 @@ def _check_union_and_edu(vouchers):
             union += _dr(v)
         if "教育经费" in a or "职工教育" in a:
             edu += _dr(v)
-    # 工会经费
-    lim_u = wage * _UNION_RATE
-    if union > lim_u > 0:
+    # 工会经费（限额取自 config/rule_params.json::union_wage_ratio）
+    r_union = _ratio_of("union_wage_ratio")
+    lim_u = wage * r_union if r_union is not None else None
+    if lim_u is not None and union > lim_u > 0:
         findings.append(_mk(
             "待核事实：工会经费超过税前扣除限额",
             "中风险", 5,
             f"工会经费发生额{union:,.2f}元，工资薪金总额{wage:,.2f}元，扣除限额{lim_u:,.2f}元，"
             f"超支约{union - lim_u:,.2f}元。",
-            "工会经费不超过工资薪金总额2%的部分准予扣除，超过部分应作纳税调增。",
-            f"工会经费 / 工资薪金总额 = {union / wage:.2%}（限额2%）。",
+            f"工会经费不超过工资薪金总额{r_union:.0%}的部分准予扣除，超过部分应作纳税调增。",
+            f"工会经费 / 工资薪金总额 = {union / wage:.2%}（限额{r_union:.0%}）。",
             "超限额部分未调增将少缴企业所得税。",
             "《企业所得税法实施条例》第四十一条（工会经费扣除限额为工资薪金总额的2%）",
             "核实工会经费是否取得工会经费收入专用收据，超支部分在汇算清缴时纳税调增。",
             "成本费用", "凭证-工会经费限额", "RL-CIT-007", "union_fund_over_limit", round(union - lim_u, 2),
         ))
-    # 职工教育经费
-    lim_e = wage * _EDU_RATE
-    if edu > lim_e > 0:
+    # 职工教育经费（限额取自 config/rule_params.json::edu_wage_ratio）
+    r_edu = _ratio_of("edu_wage_ratio")
+    lim_e = wage * r_edu if r_edu is not None else None
+    if lim_e is not None and edu > lim_e > 0:
         findings.append(_mk(
             "待核事实：职工教育经费超过税前扣除限额",
             "中风险", 5,
             f"职工教育经费发生额{edu:,.2f}元，工资薪金总额{wage:,.2f}元，扣除限额{lim_e:,.2f}元，"
             f"超支约{edu - lim_e:,.2f}元（可在以后年度结转扣除）。",
-            "职工教育经费不超过工资薪金总额8%的部分准予扣除，超过部分准予结转以后纳税年度扣除。",
-            f"职工教育经费 / 工资薪金总额 = {edu / wage:.2%}（限额8%）。",
+            f"职工教育经费不超过工资薪金总额{r_edu:.0%}的部分准予扣除，超过部分准予结转以后纳税年度扣除。",
+            f"职工教育经费 / 工资薪金总额 = {edu / wage:.2%}（限额{r_edu:.0%}）。",
             "超限额部分当期不得扣除（可结转），未调整将影响当期应纳税所得额。",
             "《企业所得税法实施条例》第四十二条（职工教育经费扣除限额为工资薪金总额的8%）",
             "核实职工教育经费归集与凭证，超支部分按规定结转扣除或纳税调整。",
@@ -161,15 +172,17 @@ def _check_public_welfare_donation(vouchers, income):
         a = _acct(v)
         if ("捐赠" in a) or ("公益性" in a):
             donation += _dr(v)
-    lim = profit * _DONATION_RATE
-    if donation > lim > 0:
+    # 限额取自 config/rule_params.json::public_welfare_donation_profit_ratio
+    r_don = _ratio_of("public_welfare_donation_profit_ratio")
+    lim = profit * r_don if r_don is not None else None
+    if lim is not None and donation > lim > 0:
         return [_mk(
             "待核事实：公益性捐赠超过税前扣除限额",
             "中风险", 5,
             f"公益性捐赠支出{donation:,.2f}元，年度利润总额{profit:,.2f}元（{basis}），"
             f"扣除限额{lim:,.2f}元，超支约{donation - lim:,.2f}元。",
-            "企业发生的公益性捐赠支出，不超过年度利润总额12%的部分准予扣除，超过部分准予结转以后三年内扣除。",
-            f"公益性捐赠 / 年度利润总额 = {donation / profit:.2%}（限额12%）。",
+            f"企业发生的公益性捐赠支出，不超过年度利润总额{r_don:.0%}的部分准予扣除，超过部分准予结转以后三年内扣除。",
+            f"公益性捐赠 / 年度利润总额 = {donation / profit:.2%}（限额{r_don:.0%}）。",
             "超限额部分当期不得扣除（可结转三年），未调整将影响应纳税所得额。",
             "《企业所得税法》第九条、《企业所得税法实施条例》第五十三条（公益性捐赠扣除限额）",
             "核实捐赠是否通过公益性社会组织或县级以上人民政府（取得合规捐赠票据），超支部分结转或调增。",
@@ -194,9 +207,13 @@ def _check_related_party_debt_equity(bs, vouchers):
             related_loan += _safe(v.get("credit", v.get("贷方", 0)))
     if related_loan <= 0:
         return []
+    # 限额取自 config/rule_params.json::debt_equity_ratio_nonfin（同一阈值服务 RL-CIT-009/010/014）
+    r_de = _ratio_of("debt_equity_ratio_nonfin")
+    if r_de is None:
+        return []
     ratio = related_loan / equity
-    if ratio > _DEBT_EQUITY_RATIO:
-        excess = related_loan - equity * _DEBT_EQUITY_RATIO
+    if ratio > r_de:
+        excess = related_loan - equity * r_de
         # ★★ 2026-10-10（A 轨道·归属纠正）—— 本检测器**真算的是「资本弱化·关联债资比超 2:1」**，
         #   即 `RL-CIT-010` 的构成要件①②（存在关联方借款/资金拆借 + 债资比超标准）。
         #   原写法把它挂到 `RL-CIT-002`「关联方无偿或低价资金往来：未按独立交易原则计息」
@@ -209,13 +226,13 @@ def _check_related_party_debt_equity(bs, vouchers):
             "待核事实：关联方债权性投资与权益性投资比例偏高",
             "中风险", 6,
             f"（疑似）关联方借款{related_loan:,.2f}元，所有者权益{equity:,.2f}元，"
-            f"债资比约{ratio:.2f}:1，超出非金融企业2:1标准，超标准债权投资约{excess:,.2f}元。",
-            "非金融企业实际支付给关联方的利息支出，在债权性投资与权益性投资比例不超过2:1的部分准予扣除，"
+            f"债资比约{ratio:.2f}:1，超出非金融企业{r_de:.0f}:1标准，超标准债权投资约{excess:,.2f}元。",
+            f"非金融企业实际支付给关联方的利息支出，在债权性投资与权益性投资比例不超过{r_de:.0f}:1的部分准予扣除，"
             "超过部分不得扣除，且利率不得超过金融企业同期同类贷款利率。",
-            f"关联方借款 / 所有者权益 = {ratio:.2f}:1（标准2:1）。",
+            f"关联方借款 / 所有者权益 = {ratio:.2f}:1（标准{r_de:.0f}:1）。",
             "超标准部分对应的利息支出不得税前扣除，未调整将少缴企业所得税。",
             "《企业所得税法》第四十六条；财税〔2008〕121号（关联方债资比2:1）",
-            "核实关联方借款性质与利率，按2:1限额计算可扣除利息并作纳税调整，补充关联关系与独立交易原则举证。",
+            f"核实关联方借款性质与利率，按{r_de:.0f}:1限额计算可扣除利息并作纳税调整，补充关联关系与独立交易原则举证。",
             "关联交易", "凭证-关联方债资比",
             _REDLINE_DECL["_check_related_party_debt_equity"]["redline_id"],
             "related_party_debt_equity_ratio", round(ratio, 4),
@@ -229,11 +246,11 @@ def _check_related_party_debt_equity(bs, vouchers):
             {"index": 1, "evidence": f"归集到关联方借款/资金拆借（科目含「关联/股东」且含「借款/应付/拆借/往来」）"
                                      f"合计 {related_loan:,.2f} 元。"},
             {"index": 2, "evidence": f"关联债资比＝关联方借款 {related_loan:,.2f} 元 ÷ 所有者权益 "
-                                     f"{equity:,.2f} 元 ≈ {ratio:.2f}:1，超过非金融企业 2:1 标准。"},
+                                     f"{equity:,.2f} 元 ≈ {ratio:.2f}:1，超过非金融企业 {r_de:.0f}:1 标准。"},
         ]
         _f["_detection_method"] = (
             "归集所有者权益（权益性投资）与关联方借款/资金拆借贷方余额（债权性投资）"
-            "→ 计算关联债资比 → 超过非金融企业 2:1 标准即列为待核事实")
+            f"→ 计算关联债资比 → 超过非金融企业 {r_de:.0f}:1 标准即列为待核事实")
         return [_f]
     return []
 

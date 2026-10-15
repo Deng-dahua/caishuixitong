@@ -361,17 +361,23 @@ function renderDetail(j) {
     } else if (j.legal_basis && j.legal_basis.note) {
       H.push('<div class="msg warn" style="margin-top:8px">' + esc(j.legal_basis.note) + '</div>');
     }
-    /* ★ 相关官方材料（案例 / 解读 / 问答）—— 粒度**只到法规级**，
-       仅是参考线索，不得当作"该案例适用本条条款"。 */
+    /* ★ 相关官方材料（案例 / 解读 / 问答）—— 粒度**两级如实**：
+       provision=材料正文出现「法名紧邻条号」且指向本规则已确证条款；law=只确证引用了该法。
+       两者都仅是参考线索，不得当作"该案例适用本条条款"。 */
     var rm = j.related_materials;
     if (rm && rm.items && rm.items.length) {
       H.push('<div class="msg info" style="margin-top:8px">相关官方材料（共 ' + (rm.total || 0)
         + ' 条，列出前 ' + rm.items.length + ' 条）——' + esc(rm.note || '') + '</div>');
       rm.items.forEach(function (m) {
-        H.push('<div style="margin:4px 0"><span class="tag">' + esc(m.kind || '') + '</span> '
+        // ★ 每条标注自身粒度（不靠顶层一个词概括，避免"个别条款级被读成整批条款级"）
+        var gTag = m.granularity === "provision" ? ' <span class="tag">条款级</span>'
+          : (m.granularity === "law" ? ' <span class="muted">法规级</span>' : '');
+        H.push('<div style="margin:4px 0"><span class="tag">' + esc(m.kind || '') + '</span>' + gTag + ' '
           + (m.url ? '<a href="' + esc(m.url) + '" target="_blank" rel="noopener">' + esc(m.title || '') + '</a>'
                    : esc(m.title || ''))
-          + ' <span class="muted">' + esc(m.published_at || '') + ' · 命中：' + esc(m.matched_ref || '') + '</span></div>');
+          + ' <span class="muted">' + esc(m.published_at || '') + ' · 命中：' + esc(m.matched_ref || '')
+          + ((m.provision_ids && m.provision_ids.length)
+              ? ' · 条款：' + esc(m.provision_ids.join("、")) : '') + '</span></div>');
       });
     }
   }

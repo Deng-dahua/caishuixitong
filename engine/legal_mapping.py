@@ -138,15 +138,18 @@ def mapping_rows(*, verified_only: bool = False) -> List[Dict[str, Any]]:
     return rows
 
 
-def provision_index() -> Dict[str, Dict[str, str]]:
-    """`provision_id → {law, article, law_code, kind, topic_tags}`（唯一权威 `config/legal_provisions.json`）。
+def provision_index() -> Dict[str, Dict[str, Any]]:
+    """`provision_id → {law, article, article_no, law_code, kind, topic_tags}`（唯一权威 `config/legal_provisions.json`）。
 
     ★ 为什么放在这里：本模块是"条款"这一概念的读层入口；专题页/材料页/规则页
       都需要"给我条款 ID，还我法名与条号（再取正文）"⇒ 只应有一份实现。
+
+    ★ 2026-10-15：补返 `article_no`（条款索引本就登记的数字条号）。只**增**键、
+      不改既有键语义 ⇒ 既有消费方零影响；材料页要按条号展示，缺它就得各自再解析一遍。
     """
     if "p_index" in _CACHE:
         return _CACHE["p_index"]
-    idx: Dict[str, Dict[str, str]] = {}
+    idx: Dict[str, Dict[str, Any]] = {}
     try:
         d = json.loads((_ROOT / "config" / "legal_provisions.json").read_text(encoding="utf-8"))
     except Exception:                                            # noqa: BLE001
@@ -155,6 +158,7 @@ def provision_index() -> Dict[str, Dict[str, str]]:
         pid = str(p.get("provision_id") or "")
         if pid:
             idx[pid] = {"law": str(p.get("law") or ""), "article": str(p.get("article") or ""),
+                        "article_no": p.get("article_no"),
                         "law_code": str(p.get("law_code") or ""),
                         "kind": str(p.get("kind") or ""),
                         "topic_tags": list(p.get("topic_tags") or [])}

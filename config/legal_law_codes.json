@@ -2,8 +2,8 @@
  "schema": 1,
  "updated": "2026-10-15",
  "note": "★ **法名规范表**（唯一权威）：一条法一行；`code` 是条款 ID 的短码前缀。条款 ID = `{code}-{条号:03d}`（如 `INVOICE-MEASURE-022` = 发票管理办法第二十二条）。★ 新增一部法**只加一行**；`code` 为空 ⇒ **该法尚未核定短码**（如实暴露，不猜）。★ 法名变体（含/不含「中华人民共和国」前缀、括注文号）一律登记为 `aliases`，使 `legal_basis_ref` 能稳定解析到同一条款。",
- "law_count": 82,
- "coded_count": 82,
+ "law_count": 152,
+ "coded_count": 152,
  "duplicate_codes": [],
  "laws": [
   {
@@ -696,6 +696,706 @@
    "level": "部门规章",
    "doc_num": null,
    "provision_id_prefix": "SAT-MAJOR-TAX-VIOLATION-DISCLOSURE-"
+  },
+  {
+   "code": "CIVIL-CODE",
+   "name": "民法典",
+   "aliases": [
+    "中华人民共和国民法典"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CIVIL-CODE-"
+  },
+  {
+   "code": "CRIM-PROC-LAW",
+   "name": "刑事诉讼法",
+   "aliases": [
+    "中华人民共和国刑事诉讼法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CRIM-PROC-LAW-"
+  },
+  {
+   "code": "CIVIL-PROC-LAW",
+   "name": "民事诉讼法",
+   "aliases": [
+    "中华人民共和国民事诉讼法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CIVIL-PROC-LAW-"
+  },
+  {
+   "code": "COMPANY-LAW",
+   "name": "公司法",
+   "aliases": [
+    "中华人民共和国公司法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "COMPANY-LAW-"
+  },
+  {
+   "code": "SECURITIES-LAW",
+   "name": "证券法",
+   "aliases": [
+    "中华人民共和国证券法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "SECURITIES-LAW-"
+  },
+  {
+   "code": "BANKRUPTCY-LAW",
+   "name": "企业破产法",
+   "aliases": [
+    "中华人民共和国企业破产法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "BANKRUPTCY-LAW-"
+  },
+  {
+   "code": "INSURANCE-LAW",
+   "name": "保险法",
+   "aliases": [
+    "中华人民共和国保险法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "INSURANCE-LAW-"
+  },
+  {
+   "code": "LEGISLATION-LAW",
+   "name": "立法法",
+   "aliases": [
+    "中华人民共和国立法法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "LEGISLATION-LAW-"
+  },
+  {
+   "code": "PARTNERSHIP-LAW",
+   "name": "合伙企业法",
+   "aliases": [
+    "中华人民共和国合伙企业法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "PARTNERSHIP-LAW-"
+  },
+  {
+   "code": "ADMIN-LITIGATION-LAW",
+   "name": "行政诉讼法",
+   "aliases": [
+    "中华人民共和国行政诉讼法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "ADMIN-LITIGATION-LAW-"
+  },
+  {
+   "code": "LABOR-CONTRACT-LAW",
+   "name": "劳动合同法",
+   "aliases": [
+    "中华人民共和国劳动合同法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "LABOR-CONTRACT-LAW-"
+  },
+  {
+   "code": "ADMIN-RECONSIDER-LAW",
+   "name": "行政复议法",
+   "aliases": [
+    "中华人民共和国行政复议法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "ADMIN-RECONSIDER-LAW-"
+  },
+  {
+   "code": "E-COMMERCE-LAW",
+   "name": "电子商务法",
+   "aliases": [
+    "中华人民共和国电子商务法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "E-COMMERCE-LAW-"
+  },
+  {
+   "code": "LAND-ADMIN-LAW",
+   "name": "土地管理法",
+   "aliases": [
+    "中华人民共和国土地管理法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "LAND-ADMIN-LAW-"
+  },
+  {
+   "code": "EDUCATION-LAW",
+   "name": "教育法",
+   "aliases": [
+    "中华人民共和国教育法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "EDUCATION-LAW-"
+  },
+  {
+   "code": "ADMIN-LICENSE-LAW",
+   "name": "行政许可法",
+   "aliases": [
+    "中华人民共和国行政许可法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "ADMIN-LICENSE-LAW-"
+  },
+  {
+   "code": "MINERAL-RESOURCE-LAW",
+   "name": "矿产资源法",
+   "aliases": [
+    "中华人民共和国矿产资源法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "MINERAL-RESOURCE-LAW-"
+  },
+  {
+   "code": "MINERAL-RESOURCE-REG",
+   "name": "矿产资源法实施条例",
+   "aliases": [
+    "中华人民共和国矿产资源法实施条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "MINERAL-RESOURCE-REG-"
+  },
+  {
+   "code": "PI-PROTECT-LAW",
+   "name": "个人信息保护法",
+   "aliases": [
+    "中华人民共和国个人信息保护法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "PI-PROTECT-LAW-"
+  },
+  {
+   "code": "URBAN-REAL-ESTATE-LAW",
+   "name": "城市房地产管理法",
+   "aliases": [
+    "中华人民共和国城市房地产管理法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "URBAN-REAL-ESTATE-LAW-"
+  },
+  {
+   "code": "BUSINESS-ENV-REG",
+   "name": "优化营商环境条例",
+   "aliases": [
+    "中华人民共和国优化营商环境条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "BUSINESS-ENV-REG-"
+  },
+  {
+   "code": "ADMIN-COERCION-LAW",
+   "name": "行政强制法",
+   "aliases": [
+    "中华人民共和国行政强制法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "ADMIN-COERCION-LAW-"
+  },
+  {
+   "code": "ANTI-MONOPOLY-LAW",
+   "name": "反垄断法",
+   "aliases": [
+    "中华人民共和国反垄断法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "ANTI-MONOPOLY-LAW-"
+  },
+  {
+   "code": "DISABLED-PROTECT-LAW",
+   "name": "残疾人保障法",
+   "aliases": [
+    "中华人民共和国残疾人保障法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "DISABLED-PROTECT-LAW-"
+  },
+  {
+   "code": "WORK-INJURY-REG",
+   "name": "工伤保险条例",
+   "aliases": [
+    "中华人民共和国工伤保险条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "WORK-INJURY-REG-"
+  },
+  {
+   "code": "NEGOTIABLE-INSTRUMENT-LAW",
+   "name": "票据法",
+   "aliases": [
+    "中华人民共和国票据法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "NEGOTIABLE-INSTRUMENT-LAW-"
+  },
+  {
+   "code": "STATE-SECRET-LAW",
+   "name": "保守国家秘密法",
+   "aliases": [
+    "中华人民共和国保守国家秘密法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "STATE-SECRET-LAW-"
+  },
+  {
+   "code": "SOIL-WATER-CONSERV-LAW",
+   "name": "水土保持法",
+   "aliases": [
+    "中华人民共和国水土保持法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "SOIL-WATER-CONSERV-LAW-"
+  },
+  {
+   "code": "ISLAND-PROTECT-LAW",
+   "name": "海岛保护法",
+   "aliases": [
+    "中华人民共和国海岛保护法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "ISLAND-PROTECT-LAW-"
+  },
+  {
+   "code": "HAINAN-FTP-LAW",
+   "name": "海南自由贸易港法",
+   "aliases": [
+    "中华人民共和国海南自由贸易港法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "HAINAN-FTP-LAW-"
+  },
+  {
+   "code": "GOV-INFO-DISCLOSE-REG",
+   "name": "政府信息公开条例",
+   "aliases": [
+    "中华人民共和国政府信息公开条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "GOV-INFO-DISCLOSE-REG-"
+  },
+  {
+   "code": "SEA-AREA-USE-LAW",
+   "name": "海域使用管理法",
+   "aliases": [
+    "中华人民共和国海域使用管理法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "SEA-AREA-USE-LAW-"
+  },
+  {
+   "code": "CIVIL-AIR-DEFENSE-LAW",
+   "name": "人民防空法",
+   "aliases": [
+    "中华人民共和国人民防空法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CIVIL-AIR-DEFENSE-LAW-"
+  },
+  {
+   "code": "STATE-LAND-TRANSFER-REG",
+   "name": "城镇国有土地使用权出让和转让暂行条例",
+   "aliases": [
+    "中华人民共和国城镇国有土地使用权出让和转让暂行条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "STATE-LAND-TRANSFER-REG-"
+  },
+  {
+   "code": "MILITARY-INSURANCE-LAW",
+   "name": "军人保险法",
+   "aliases": [
+    "中华人民共和国军人保险法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "MILITARY-INSURANCE-LAW-"
+  },
+  {
+   "code": "FOREIGN-INVEST-REG",
+   "name": "外商投资法实施条例",
+   "aliases": [
+    "中华人民共和国外商投资法实施条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "FOREIGN-INVEST-REG-"
+  },
+  {
+   "code": "SOLE-PROPRIETORSHIP-LAW",
+   "name": "个人独资企业法",
+   "aliases": [
+    "中华人民共和国个人独资企业法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "SOLE-PROPRIETORSHIP-LAW-"
+  },
+  {
+   "code": "PRICE-LAW",
+   "name": "价格法",
+   "aliases": [
+    "中华人民共和国价格法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "PRICE-LAW-"
+  },
+  {
+   "code": "CITY-SANITATION-REG",
+   "name": "城市市容和环境卫生管理条例",
+   "aliases": [
+    "中华人民共和国城市市容和环境卫生管理条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "CITY-SANITATION-REG-"
+  },
+  {
+   "code": "ADMIN-ENFORCE-SUPERVISION-REG",
+   "name": "行政执法监督条例",
+   "aliases": [
+    "中华人民共和国行政执法监督条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "ADMIN-ENFORCE-SUPERVISION-REG-"
+  },
+  {
+   "code": "MAJOR-DECISION-PROC-REG",
+   "name": "重大行政决策程序暂行条例",
+   "aliases": [
+    "中华人民共和国重大行政决策程序暂行条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "MAJOR-DECISION-PROC-REG-"
+  },
+  {
+   "code": "FOREIGN-INVEST-LAW",
+   "name": "外商投资法",
+   "aliases": [
+    "中华人民共和国外商投资法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "FOREIGN-INVEST-LAW-"
+  },
+  {
+   "code": "RULE-MAKING-PROC-REG",
+   "name": "规章制定程序条例",
+   "aliases": [
+    "中华人民共和国规章制定程序条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "RULE-MAKING-PROC-REG-"
+  },
+  {
+   "code": "INDIVIDUAL-BUSINESS-REG",
+   "name": "促进个体工商户发展条例",
+   "aliases": [
+    "中华人民共和国促进个体工商户发展条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "INDIVIDUAL-BUSINESS-REG-"
+  },
+  {
+   "code": "LABOR-SUPERVISION-REG",
+   "name": "劳动保障监察条例",
+   "aliases": [
+    "中华人民共和国劳动保障监察条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "LABOR-SUPERVISION-REG-"
+  },
+  {
+   "code": "WEEE-RECYCLE-REG",
+   "name": "废弃电器电子产品回收处理管理条例",
+   "aliases": [
+    "中华人民共和国废弃电器电子产品回收处理管理条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "WEEE-RECYCLE-REG-"
+  },
+  {
+   "code": "ANTI-UNFAIR-COMPETITION-LAW",
+   "name": "反不正当竞争法",
+   "aliases": [
+    "中华人民共和国反不正当竞争法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "ANTI-UNFAIR-COMPETITION-LAW-"
+  },
+  {
+   "code": "UNEMPLOYMENT-INSURANCE-REG",
+   "name": "失业保险条例",
+   "aliases": [
+    "中华人民共和国失业保险条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "UNEMPLOYMENT-INSURANCE-REG-"
+  },
+  {
+   "code": "LABOR-CONTRACT-REG",
+   "name": "劳动合同法实施条例",
+   "aliases": [
+    "中华人民共和国劳动合同法实施条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "LABOR-CONTRACT-REG-"
+  },
+  {
+   "code": "SOCIAL-INSURANCE-COLLECT-REG",
+   "name": "社会保险费征缴暂行条例",
+   "aliases": [
+    "中华人民共和国社会保险费征缴暂行条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "SOCIAL-INSURANCE-COLLECT-REG-"
+  },
+  {
+   "code": "FAIR-COMPETITION-REVIEW-REG",
+   "name": "公平竞争审查条例",
+   "aliases": [
+    "中华人民共和国公平竞争审查条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "FAIR-COMPETITION-REVIEW-REG-"
+  },
+  {
+   "code": "REG-FILING-REVIEW-REG",
+   "name": "法规规章备案审查条例",
+   "aliases": [
+    "中华人民共和国法规规章备案审查条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "REG-FILING-REVIEW-REG-"
+  },
+  {
+   "code": "ADMIN-RECONSIDER-REG",
+   "name": "行政复议法实施条例",
+   "aliases": [
+    "中华人民共和国行政复议法实施条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "ADMIN-RECONSIDER-REG-"
+  },
+  {
+   "code": "BT-VAT-REPEAL-DECISION",
+   "name": "国务院关于废止营业税暂行条例和修改增值税暂行条例的决定",
+   "aliases": [
+    "中华人民共和国国务院关于废止营业税暂行条例和修改增值税暂行条例的决定"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "BT-VAT-REPEAL-DECISION-"
+  },
+  {
+   "code": "URBAN-REAL-ESTATE-DEV-REG",
+   "name": "城市房地产开发经营管理条例",
+   "aliases": [
+    "中华人民共和国城市房地产开发经营管理条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "URBAN-REAL-ESTATE-DEV-REG-"
+  },
+  {
+   "code": "STATE-COMPENSATION-LAW",
+   "name": "国家赔偿法",
+   "aliases": [
+    "中华人民共和国国家赔偿法"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "STATE-COMPENSATION-LAW-"
+  },
+  {
+   "code": "ADMIN-ENFORCE-CRIMINAL-TRANSFER-REG",
+   "name": "行政执法机关移送涉嫌犯罪案件的规定",
+   "aliases": [
+    "中华人民共和国行政执法机关移送涉嫌犯罪案件的规定"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "ADMIN-ENFORCE-CRIMINAL-TRANSFER-REG-"
+  },
+  {
+   "code": "EPT-REG",
+   "name": "环境保护税法实施条例",
+   "aliases": [
+    "中华人民共和国环境保护税法实施条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "EPT-REG-"
+  },
+  {
+   "code": "WAGE-TOTAL-REG",
+   "name": "关于工资总额组成的规定",
+   "aliases": [
+    "中华人民共和国关于工资总额组成的规定"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "WAGE-TOTAL-REG-"
+  },
+  {
+   "code": "PLATFORM-TAX-INFO-REG",
+   "name": "互联网平台企业涉税信息报送规定",
+   "aliases": [
+    "中华人民共和国互联网平台企业涉税信息报送规定"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "PLATFORM-TAX-INFO-REG-"
+  },
+  {
+   "code": "CRIM-LAW-AMEND-1",
+   "name": "刑法修正案",
+   "aliases": [
+    "中华人民共和国刑法修正案"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CRIM-LAW-AMEND-1-"
+  },
+  {
+   "code": "CRIM-LAW-AMEND-6",
+   "name": "刑法修正案（六）",
+   "aliases": [
+    "中华人民共和国刑法修正案（六）"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CRIM-LAW-AMEND-6-"
+  },
+  {
+   "code": "CRIM-LAW-AMEND-8",
+   "name": "刑法修正案（八）",
+   "aliases": [
+    "中华人民共和国刑法修正案（八）"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CRIM-LAW-AMEND-8-"
+  },
+  {
+   "code": "CRIM-LAW-AMEND-9",
+   "name": "刑法修正案（九）",
+   "aliases": [
+    "中华人民共和国刑法修正案（九）"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CRIM-LAW-AMEND-9-"
+  },
+  {
+   "code": "CRIM-LAW-AMEND-11",
+   "name": "刑法修正案（十一）",
+   "aliases": [
+    "中华人民共和国刑法修正案（十一）"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CRIM-LAW-AMEND-11-"
+  },
+  {
+   "code": "CRIM-LAW-AMEND-12",
+   "name": "刑法修正案（十二）",
+   "aliases": [
+    "中华人民共和国刑法修正案（十二）"
+   ],
+   "level": "法律",
+   "doc_num": null,
+   "provision_id_prefix": "CRIM-LAW-AMEND-12-"
+  },
+  {
+   "code": "IIT-SAVING-INTEREST-MEASURE",
+   "name": "对储蓄存款利息所得征收个人所得税的实施办法",
+   "aliases": [
+    "中华人民共和国对储蓄存款利息所得征收个人所得税的实施办法"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "IIT-SAVING-INTEREST-MEASURE-"
+  },
+  {
+   "code": "IIT-SAVING-INTEREST-AMEND-DECISION",
+   "name": "国务院关于修改对储蓄存款利息所得征收个人所得税的实施办法的决定",
+   "aliases": [
+    "中华人民共和国国务院关于修改对储蓄存款利息所得征收个人所得税的实施办法的决定"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "IIT-SAVING-INTEREST-AMEND-DECISION-"
+  },
+  {
+   "code": "OFFSHORE-OIL-COOP-REG",
+   "name": "对外合作开采海洋石油资源条例",
+   "aliases": [
+    "中华人民共和国对外合作开采海洋石油资源条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "OFFSHORE-OIL-COOP-REG-"
+  },
+  {
+   "code": "ONSHORE-OIL-COOP-REG",
+   "name": "对外合作开采陆上石油资源条例",
+   "aliases": [
+    "中华人民共和国对外合作开采陆上石油资源条例"
+   ],
+   "level": "行政法规",
+   "doc_num": null,
+   "provision_id_prefix": "ONSHORE-OIL-COOP-REG-"
   }
  ]
 }

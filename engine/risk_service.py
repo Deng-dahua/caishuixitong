@@ -377,14 +377,17 @@ def list_risks(company_id: Any, session: Any, *, tax: str = "", level: str = "",
 def _related_materials(finding: Dict[str, Any], *, limit: int = 5) -> Dict[str, Any]:
     """发现 → 相关官方材料（案例/解读/问答）。
 
-    ★★ 粒度**只到法规级**（材料显式引用了该规则依据的那部法），
-      **不等于**"该案例适用本条条款" ⇒ 仅作参考线索，**不作定性依据**。
-      这一点在返回的 `note` 与 `granularity` 里都要说清（防前端误用）。
+    ★★ 粒度**两级优先**（2026-10-15 补采材料正文后升级）：
+      ① 该规则**已确证条款**有**条款级**材料（材料正文出现「法名紧邻条号」且指该条款）
+         ⇒ 返回它们并标 `granularity="provision"`；
+      ② 无条款级命中 ⇒ **如实退回**法规级并标 `granularity="law"`。
+      两级都**不等于**"该案例适用本条款" ⇒ 仅作参考线索，**不作定性依据**。
+      这一点在 `note` 与每个 item 的 `granularity` 里都说清（防前端误用）。
     """
     rid = finding.get("rule_id") or finding.get("redline_id")
     provs = LM.provisions_of(rid)
     if not provs:
-        return {"total": 0, "items": [], "law_codes": [], "granularity": "law",
+        return {"total": 0, "items": [], "law_codes": [], "granularity": "none",
                 "note": "该规则**无可确证条款** ⇒ 无法定位相关材料（不猜）。"}
     codes: List[str] = []
     for p in provs:
@@ -392,20 +395,44 @@ def _related_materials(finding: Dict[str, Any], *, limit: int = 5) -> Dict[str, 
         if c and c not in codes:
             codes.append(c)
     seen, items, total = set(), [], 0
-    for c in codes:
-        got = LE.for_law(c, limit=limit)
+    exact_pids: List[str] = []
+    for p in provs:                                             # ① 条款级优先
+        pid = str(p.get("provision_id") or "")
+        if not pid:
+            continue
+        got = LE.for_provision(pid, limit=limit)
+        if got.get("granularity") == "provision":
+            exact_pids.append(pid)
+        if got.get("granularity") != "provision":
+            continue                                            # 退回级的留给 ② 统一取
         total += int(got.get("total") or 0)
         for m in (got.get("items") or []):
             mid = m.get("material_id")
-            if mid in seen:
-                continue
-            seen.add(mid)
-            items.append(m)
+            if mid and mid not in seen:
+                seen.add(mid)
+                items.append(m)
+    if not items:                                               # ② 如实退回法规级
+        for c in codes:
+            got = LE.for_law(c, limit=limit)
+            total += int(got.get("total") or 0)
+            for m in (got.get("items") or []):
+                mid = m.get("material_id")
+                if mid in seen:
+                    continue
+                seen.add(mid)
+                items.append(m)
     items.sort(key=lambda m: str(m.get("published_at") or ""), reverse=True)
+    gran = "provision" if exact_pids else "law"
     return {"total": total, "items": items[:limit], "law_codes": codes,
-            "granularity": "law", "available": LE.available(),
-            "note": ("材料与法规的关联**只到法规级**（材料显式引用了该法），"
-                     "**不代表其适用本条款** ⇒ 仅作参考线索，不作定性依据。")}
+            "granularity": gran, "available": LE.available(),
+            "matched_provision_ids": exact_pids,
+            "note": ("材料与法规的关联**到条款级**（材料正文出现「法名紧邻条号」的显式引用，"
+                     "且指向本规则已确证的条款）；仍**不代表个案适用本条款**"
+                     "⇒ 仅作参考线索，不作定性依据。"
+                     if gran == "provision" else
+                     "材料与法规的关联**只到法规级**（材料显式引用了该法，但正文未出现"
+                     "「法名紧邻本规则条款号」的写法）；**不代表其适用本条款**"
+                     "⇒ 仅作参考线索，不作定性依据。")}
 
 
 def _find(findings: List[Dict[str, Any]], risk_id: Any) -> Optional[Dict[str, Any]]:

@@ -273,8 +273,10 @@ def topic_materials(topic_id: Any, *, law_code: Any = None,
                     "granularity": got.get("granularity")})
     return {"topic_id": str(topic_id), "total": len(rows), "items": out,
             "by_law": rows,
-            "note": ("材料与法规的关联**只到法规级**（材料显式引用了该法），"
-                     "不代表其适用本条款 ⇒ 参考线索，不作定性依据。"
+            "note": ("材料与法规的关联**两级如实**：材料正文出现「法名紧邻条号」的显式引用时"
+                     "为条款级（`granularity=provision`），否则只到法规级"
+                     "（`granularity=law`）；两者都**不代表个案适用某条款**"
+                     "⇒ 参考线索，不作定性依据。"
                      "`samples` 为前几条示例，完整列表见 `/legal-materials?law_code=`。")}
 
 

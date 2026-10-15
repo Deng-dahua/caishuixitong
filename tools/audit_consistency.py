@@ -13034,7 +13034,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
 
 
@@ -18114,7 +18114,12 @@ def check_legal_text_coverage() -> List[Tuple[str, str, str]]:
 
     _base = float(cov.get("coverage") or 0)
     _now = (_hit / _tot) if _tot else 0.0
-    if _now + 1e-9 < _base:
+    # ★★ 2026-10-15 修（闸门自身缺陷）：登记值由录入器 `round(_, 4)` 写入，
+    #   现算却是**未截断的原始浮点** ⇒ 同一份数据也会判"退化"（实测 241/242：
+    #   登记 0.9959 vs 现算 0.99586776… ⇒ `_now < _base` 恒真 ⇒ **假 ERROR**）。
+    #   比较必须在**同一精度**下：现算按登记的同样小数位取整后再比。
+    _now_r = round(_now, 4)
+    if _now_r + 1e-9 < _base:
         issues.append(("ERROR", str(cov_path),
                        "法规正文覆盖率**退化**：%d/%d = %.1f%% < 登记 %.1f%% ⇒ "
                        "红线引用了正文库中没有的条文，请补录（禁编造）后重跑录入脚本"
@@ -18193,6 +18198,324 @@ def check_redline_legal_basis_currency() -> List[Tuple[str, str, str]]:
                                % (_expired[_name], _m.group(1))))
     print("  [法规时效] 引用已废止/被取代法规 %d 处（应为 0）" % _hits)
     return issues
+
+
+def check_rule_params_single_source() -> List[Tuple[str, str, str]]:
+    """规则阈值**唯一权威**闸门（2026-10-15，遗留项③「规则 params 阈值参数化接引擎判定」）。
+
+    ★ 背景（实测）：同一批法定扣除限额此前**两处各写一份** ——
+      `engine/verified_rule_engine.py` 的 VR038/039/040 把 `0.6`/`0.005`/`0.15`/`0.14`
+      **直接写进算式**，`engine/deduction_limit_detector.py` 又用 `_UNION_RATE=0.02` 等常量写了一遍
+      ⇒ 法定比例一旦调整，必须记得改齐所有副本，漏一处即「同一条规则两个答案」。
+      现已收敛到 `config/rule_params.json`（读取唯一入口 `engine/rule_params.py`）。
+
+    判据（A~D，任一不满足即 ERROR）：
+      A【表结构完备】每条含非空 `cn` / `value` / `unit` / `legal_basis` / `used_by`，且 `engine_wired` 为布尔；
+      B【不得跨表重名】参数名不得与 `config/region_params.json` 重名
+        （后者管**地区性**参数，前者管**全国法定**阈值；同名会导致"取到哪个表"的歧义）；
+      C【未接入须写明理由】`engine_wired=false` 的条目必须给出 `not_wired_reason`
+        （禁止只标 false 不解释 —— 那样"未接入"会被读成"已接入"）；
+      D【声称已接入必须真的引用】`engine_wired=true` 的条目，其 `wired_in` 列出的**文件**
+        必须真的出现该参数名 ⇒ 机器可核对，防「声明接了、代码里仍是字面量」的假参数化。
+    """
+    import json as _json
+    import re as _re
+    issues: List[Tuple[str, str, str]] = []
+    p = ROOT / "config" / "rule_params.json"
+    if not p.exists():
+        return [("ERROR", "config/rule_params.json",
+                 "规则阈值表缺失 ⇒ 「阈值唯一权威」无落点；引擎将回落到各自字面量（多头维护复发）")]
+    try:
+        d = _json.loads(p.read_text(encoding="utf-8"))
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", "config/rule_params.json", "读不出来：%s" % exc)]
+    params = d.get("params") or {}
+    if not params:
+        return [("ERROR", "config/rule_params.json",
+                 "params 为空 ⇒ 违反「空表不得静默通过」")]
+
+    # B 与地区参数表不得重名
+    region_names: set = set()
+    _rp = ROOT / "config" / "region_params.json"
+    if _rp.exists():
+        try:
+            region_names = set((_json.loads(_rp.read_text(encoding="utf-8")).get("params") or {}).keys())
+        except Exception:                                       # noqa: BLE001
+            pass
+
+    wired_checked = 0
+    for name, e in params.items():
+        if name.startswith("_") or not isinstance(e, dict):
+            continue
+        for k in ("cn", "value", "unit", "legal_basis", "used_by"):
+            if e.get(k) in (None, "", [], {}):
+                issues.append(("ERROR", "config/rule_params.json",
+                               "参数 `%s` 缺 `%s`（阈值表条目必须自证口径与依据）" % (name, k)))
+        if not isinstance(e.get("engine_wired"), bool):
+            issues.append(("ERROR", "config/rule_params.json",
+                           "参数 `%s` 的 `engine_wired` 必须显式布尔（true=引擎真按此阈值判定）" % name))
+        if name in region_names:
+            issues.append(("ERROR", "config/rule_params.json",
+                           "参数 `%s` 与 config/region_params.json 重名 ⇒ 取数歧义"
+                           "（本表=全国法定阈值，地区表=地方自定参数，**不得同名**）" % name))
+        # C 未接入须给理由
+        if e.get("engine_wired") is False and not e.get("not_wired_reason"):
+            issues.append(("ERROR", "config/rule_params.json",
+                           "参数 `%s` 标注 engine_wired=false 却未给 `not_wired_reason` ⇒ "
+                           "「未接入」必须写明原因（否则会被读成已接入）" % name))
+        # D 声称已接入 ⇒ 文件里必须真的引用
+        if e.get("engine_wired") is True:
+            files = e.get("wired_in") or []
+            if not files:
+                issues.append(("ERROR", "config/rule_params.json",
+                               "参数 `%s` 声明 engine_wired=true 却未列 `wired_in` ⇒ 无法核对" % name))
+            for ref in files:
+                rel = str(ref).split("::")[0].split("（")[0].strip()
+                fp = ROOT / rel
+                if not fp.exists():
+                    issues.append(("ERROR", "config/rule_params.json",
+                                   "参数 `%s` 的 wired_in 指向不存在的文件 `%s`" % (name, rel)))
+                    continue
+                wired_checked += 1
+                try:
+                    src = fp.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                if name not in src:
+                    issues.append(("ERROR", rel,
+                                   "参数 `%s` 声明已接入（wired_in），但该文件中**找不到该参数名** ⇒ "
+                                   "疑似仍是字面量（假参数化）：改为 `rule_params.ratio(\"%s\")`"
+                                   % (name, name)))
+    print("  [规则阈值] 条目 %d｜engine_wired %d｜核对 wired_in %d 处"
+          % (len([k for k in params if not k.startswith("_")]),
+             len([k for k, v in params.items() if isinstance(v, dict) and v.get("engine_wired") is True]),
+             wired_checked))
+    return issues
+
+
+def check_cnnum_single_source() -> List[Tuple[str, str, str]]:
+    """中文数字解析**唯一权威**闸门（2026-10-15）。
+
+    ★ 背景（实测两处事故）：同一件事曾有 **5 处私有实现**，能力各不相同 ——
+      ① 两处只支持到「九十九」⇒ 「第一百零三条」解析不出，
+         整部法全文入库后**条款索引 1806 条拿不到 `provision_id`**；
+      ② 另一处的**排序键**在无「之N」时不乘 100（`第十五条`→15、`第十五条之一`→1501）
+         ⇒「第十六条」(16) 竟小于 1501，被切分器判为"续行"而**吞掉条号**
+         （修复后正文库再增 440 条：实测 6569 → 7009）。
+      已收敛到 `engine/cnnum.py`。
+
+    判据（A/B，任一不满足即 ERROR）：
+      A【不得新增第 N 份】全仓不得再出现"中文数字对照表"字面量定义
+        （同时含「零」与「十」两键的 dict），白名单：`engine/cnnum.py`（权威）+
+        `engine/quality_gates.py`（历史实现，属质量闸门域，已登记待收敛）；
+      B【权威行为正确】行为级断言（防"表被删/逻辑被改坏"却仍显示通过）：
+        解析值正确 + 条号排序键**单调递增**（含「之N」时不得压过下一条）。
+    """
+    import re as _re
+    issues: List[Tuple[str, str, str]] = []
+    # 白名单：允许出现中文数字表的文件（新增需在此登记并说明理由）
+    white = {"engine/cnnum.py": "唯一权威实现",
+             "engine/quality_gates.py": "历史实现（质量闸门域，待收敛；不属法条通径）"}
+    # 判据：同一 dict 字面量里同时出现「零」与「十」的键（单字映射多为其它用途，不算）
+    pat_zero = _re.compile(r"""['"]零['"]\s*:\s*\d""")
+    pat_ten = _re.compile(r"""['"]十['"]\s*:\s*\d""")
+    scanned = 0
+    for d in ("engine", "scripts", "tools", "static"):
+        base = ROOT / d
+        if not base.exists():
+            continue
+        for fp in base.rglob("*.py"):
+            rel = fp.relative_to(ROOT).as_posix()
+            if rel in white or "/_" in rel and rel.startswith("baseline/"):
+                continue
+            if rel.startswith("baseline/") or ".venv" in rel:
+                continue
+            try:
+                src = fp.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            scanned += 1
+            if pat_zero.search(src) and pat_ten.search(src):
+                issues.append(("ERROR", rel,
+                               "出现**中文数字对照表**私有定义 ⇒ 与唯一权威 `engine/cnnum.py` "
+                               "构成多头维护（历史教训：能力不一致导致 1806 条条款拿不到 ID、"
+                               "排序键错乱吞掉 440 条）。改 `from engine.cnnum import cn_to_int`；"
+                               "确属特殊域需保留者，请在闸门白名单登记理由"))
+
+    # B 行为级断言（权威本身不得被改坏）
+    try:
+        from engine.cnnum import cn_to_int as _c2i, article_sort_key as _key
+    except Exception as exc:                                    # noqa: BLE001
+        issues.append(("ERROR", "engine/cnnum.py", "权威实现不可导入：%s" % exc))
+        return issues
+    for s, want in (("十五", 15), ("二十", 20), ("一百", 100), ("一百零三", 103),
+                    ("一百二十三", 123), ("三百六十五", 365), ("十", 10)):
+        got = _c2i(s)
+        if got != want:
+            issues.append(("ERROR", "engine/cnnum.py",
+                           "行为断言失败：`cn_to_int(%r)` 应为 %d，实得 %r" % (s, want, got)))
+    # 排序键单调：第十五条 < 第十五条之一 < 第十六条（旧实现的错乱点）
+    seq = ["第十五条", "第十五条之一", "第十六条", "第二十条", "第二十条之二", "第二十一条"]
+    keys = [_key(x) for x in seq]
+    if keys != sorted(keys) or len(set(keys)) != len(keys):
+        issues.append(("ERROR", "engine/cnnum.py",
+                       "条号排序键**非严格递增**（旧事故复发点）：%s ⇒ %s"
+                       % (seq, keys)))
+    print("  [中文数字] 扫描 %d 个 py 文件｜白名单 %d 个｜行为断言 %d 组"
+          % (scanned, len(white), 7 + 1))
+    return issues
+
+
+def check_material_granularity_truthful() -> List[Tuple[str, str, str]]:
+    """材料关联粒度**三态如实**闸门（2026-10-15，遗留项②/④）。
+
+    ★ 背景：材料与法规的组织关联此前**只到法规级**（`granularity="law"`，
+      原话「摘要未写明 ⇒ 条款级留空待人工，不猜」）。补采材料正文后，
+      正文里出现「法名**紧邻**条号」的显式引用 ⇒ 关联可提升到**条款级**。
+      提升这件事**最容易做成假的**：随手用关键词"就近配对"就会产出
+      "看起来专业但不成立"的条款关联。故设本闸门。
+
+    判据（A~D，任一不满足即 ERROR）：
+      A【三态自洽】`granularity` 与证据字段必须互洽：
+        provision ⇔ `provision_ids` 非空；law ⇔ 有 `related_law_codes` 且无 `provision_ids`；
+        none ⇔ 两者皆空。任何"声明条款级却无 ID"或"有 ID 却标 law"都判 ERROR。
+      B【ID 形状合法】`provision_ids` 必须形如 `{法短码}-{条号:03d}`，且其法短码
+        必须真在 `config/legal_law_codes.json` 中登记（防拼装出不存在的 ID）。
+      C【依据可复核】对声明条款级的材料，其**采集正文**必须真的同时含该法名与该条号
+        （抽样复核；正文缺失则不判 —— 属"未采集"，另行统计）。
+      D【不得静默降级】`granularity` 必须是三态之一（禁空值/自造值）。
+    """
+    import json as _json
+    import re as _re
+    issues: List[Tuple[str, str, str]] = []
+    p = ROOT / "config" / "legal_materials.json"
+    if not p.exists():
+        return [("ERROR", "config/legal_materials.json", "材料库缺失 ⇒ 粒度判据无落点")]
+    try:
+        d = _json.loads(p.read_text(encoding="utf-8"))
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", "config/legal_materials.json", "读不出来：%s" % exc)]
+    mats = d.get("materials") or []
+    if not mats:
+        return [("ERROR", "config/legal_materials.json", "materials 为空")]
+
+    try:
+        codes = {str(l.get("code")) for l in
+                 (_json.loads((ROOT / "config" / "legal_law_codes.json")
+                              .read_text(encoding="utf-8")).get("laws") or [])}
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", "config/legal_law_codes.json", "法短码表读不出来：%s" % exc)]
+
+    from engine import legal_extras as _EX
+    from engine.legal_version import canonical_law as _cl
+    allowed = {"provision", "law", "none"}
+    n_prov = n_law = n_none = 0
+    checked = 0
+    for m in mats:
+        g = m.get("granularity")
+        if g not in allowed:                                    # D
+            issues.append(("ERROR", "config/legal_materials.json",
+                           "材料 %s 的 granularity=%r 不在三态 {provision, law, none} 内"
+                           "（不得空值或自造）" % (m.get("material_id"), g)))
+            continue
+        pids = list(m.get("provision_ids") or [])
+        laws = list(m.get("related_law_codes") or [])
+        # A 三态自洽
+        if g == "provision":
+            n_prov += 1
+            if not pids:
+                issues.append(("ERROR", "config/legal_materials.json",
+                               "材料 %s 声明 granularity=provision 却无 provision_ids ⇒ 假条款级"
+                               % m.get("material_id")))
+        elif g == "law":
+            n_law += 1
+            if pids:
+                issues.append(("ERROR", "config/legal_materials.json",
+                               "材料 %s 有 provision_ids 却标 granularity=law ⇒ 漏标（粒度被低估）"
+                               % m.get("material_id")))
+            if not laws:
+                issues.append(("ERROR", "config/legal_materials.json",
+                               "材料 %s 标 granularity=law 却无 related_law_codes ⇒ 无依据" 
+                               % m.get("material_id")))
+        else:                                                   # none
+            n_none += 1
+            if pids or laws:
+                issues.append(("ERROR", "config/legal_materials.json",
+                               "材料 %s 标 granularity=none 却有关联证据（laws=%d, pids=%d）"
+                               % (m.get("material_id"), len(laws), len(pids))))
+        # B ID 形状合法
+        for pid in pids:
+            mm = _re.match(r"^([A-Z0-9\-]+)-(\d{3,})$", pid)
+            if not mm:
+                issues.append(("ERROR", "config/legal_materials.json",
+                               "条款 ID `%s`（材料 %s）形状非法，应为 `{法短码}-{条号:03d}`"
+                               % (pid, m.get("material_id"))))
+            elif mm.group(1) not in codes:
+                issues.append(("ERROR", "config/legal_materials.json",
+                               "条款 ID `%s` 的法短码 `%s` 未在 config/legal_law_codes.json 登记"
+                               % (pid, mm.group(1))))
+
+    # C 依据可复核（抽样：声明条款级且正文非空的前 60 条）
+    #   ★ 复核的是**生成时用的同一条判据**——「法名紧邻条号」在正文中真实存在，
+    #     而不是"正文里出现过法名"（后者太松：并列引多部法时必然通过）。
+    #   ★ 法名从**条款 ID 反查**（`legal_materials.json` 的 `matched_provisions` 只存
+    #     `law_code`，没有 `law` 字段；首版误按空法名比对 ⇒ 60 条假 ERROR）。
+    from engine import legal_mapping as _LM
+    _pidx = _LM.provision_index()
+    _art_win = _re.compile(r"[》」】\)\s、，,；;：:]{0,4}第([零〇一二三四五六七八九十百千两]+)条")
+    prov_mats = [m for m in mats if m.get("granularity") == "provision" and m.get("content_len")]
+    for m in prov_mats[:60]:
+        body = _EX._fulltext(str(m.get("material_id")))         # noqa: SLF001（读层内部取正文）
+        if not body:
+            continue
+        checked += 1
+        for pitem in (m.get("matched_provisions") or []):
+            pid = str(pitem.get("provision_id") or "")
+            meta = _pidx.get(pid) or {}
+            law = _cl(str(meta.get("law") or ""))
+            art = str(meta.get("article") or "") or str(pitem.get("article") or "")
+            if not meta:
+                # 条款 ID 不在索引里：允许（=条文未入正文库，已由 in_library 如实标注），
+                # 但**不得**同时声称它在库（自相矛盾 ⇒ 材料库与条款索引已脱同步）。
+                if pitem.get("in_library"):
+                    issues.append(("ERROR", "config/legal_materials.json",
+                                   "材料 %s 的 %s 标 `in_library=true`，但该 ID 在条款索引"
+                                   "（config/legal_provisions.json）中**查不到** ⇒ 两表脱同步"
+                                   % (m.get("material_id"), pid)))
+                continue
+            if not (law and art):
+                continue
+            # 正文里该法名之后必须紧跟该条号（允许隔书名号收尾符与空白）
+            ok = any(
+                (lambda mm: bool(mm) and _cnnum_article_eq(mm.group(1), art))(
+                    _art_win.search(body, i + len(law)))
+                for i in (x.start() for x in _re.finditer(_re.escape(law), body))
+            )
+            if not ok:
+                issues.append(("ERROR", "config/legal_materials.json",
+                               "材料 %s 声明条款级 %s（%s%s），但正文中**找不到「法名紧邻该条号」**"
+                               "⇒ 依据不成立（疑为「就近配对」式假关联）"
+                               % (m.get("material_id"), pid, law, art)))
+                break
+    print("  [材料粒度] 条款级 %d｜法规级 %d｜未确证 %d｜抽样复核依据 %d 条"
+          % (n_prov, n_law, n_none, checked))
+    return issues
+
+
+def _cnnum_article_eq(cn: str, article: str) -> bool:
+    """中文条号与「第X条」是否指同一条（走唯一权威 `engine.cnnum`）。
+
+    ★ 用模块级 `re`（不是 `_re`：那个别名只在个别函数内局部导入过，
+      在模块级函数里引用会 NameError，且被本函数的 `except` 吞成 False
+      ⇒ 闸门曾因此误报 60 条假 ERROR —— 判据自身的名字错误比数据错误更难发现）。
+    """
+    try:
+        from engine.cnnum import cn_to_int
+        m = re.match(r"^第(.+?)条", str(article or ""))
+        want = cn_to_int(m.group(1)) if m else None
+        return want is not None and cn_to_int(cn) == want
+    except Exception:                                           # noqa: BLE001
+        return False
 
 
 def check_confidence_weights_single_source() -> List[Tuple[str, str, str]]:
@@ -19783,10 +20106,20 @@ def check_legal_mapping_wiring() -> List[Tuple[str, str, str]]:
             if _rm is None:
                 issues.append(("ERROR", "engine/risk_service.py",
                                "风险详情未带 `related_materials`（案例/解读/问答未接通）"))
-            elif _rm.get("granularity") != "law":
-                issues.append(("ERROR", "engine/risk_service.py",
-                               "`related_materials.granularity` 必须为 `law` —— "
-                               "材料关联只到**法规级**，不得被当成条款级确证"))
+            else:
+                # ★ 2026-10-15：粒度升级为**三态**（provision/law/none）。
+                #   判据精神不变 —— "必须显式声明且不得把低粒度说成高粒度"；
+                #   强化为：声明 provision ⇒ 必须给出命中的条款 ID（可复核）。
+                _g = _rm.get("granularity")
+                if _g not in ("provision", "law", "none"):
+                    issues.append(("ERROR", "engine/risk_service.py",
+                                   "`related_materials.granularity` 必须显式且为 "
+                                   "provision/law/none 之一（实得 %r）—— "
+                                   "缺声明会被当成条款级确证" % _g))
+                elif _g == "provision" and not _rm.get("matched_provision_ids"):
+                    issues.append(("ERROR", "engine/risk_service.py",
+                                   "`related_materials` 声明条款级却未给 `matched_provision_ids` "
+                                   "⇒ 无法复核（假条款级）"))
     except Exception as exc:                                     # noqa: BLE001
         issues.append(("ERROR", "engine/risk_service.py",
                        "风险详情法规/材料检查执行失败：%s" % exc))
@@ -19796,8 +20129,13 @@ def check_legal_mapping_wiring() -> List[Tuple[str, str, str]]:
     if _mdoc.get("available"):
         _bad_how: Dict[str, int] = {}
         _no_gran = 0
+        # ★ 2026-10-15：粒度由**两态**（law/空）升级为**三态**（provision/law/none）。
+        #   本判据的**精神不变** —— "每条必须显式标注粒度、不得静默默认"；
+        #   三态的自洽性/ID 合法性/依据可复核性另由专闸
+        #   `check_material_granularity_truthful` 深查（本处只守"必须标注"）。
+        _ALLOWED_GRAN = ("provision", "law", "none")
         for _m in (_mdoc.get("materials") or []):
-            if _m.get("granularity") != "law":
+            if str(_m.get("granularity") or "") not in _ALLOWED_GRAN:
                 _no_gran += 1
             for _h in (_m.get("matched_refs") or []):
                 _how = str(_h.get("matched_by") or "")
@@ -19811,8 +20149,9 @@ def check_legal_mapping_wiring() -> List[Tuple[str, str, str]]:
                            % ", ".join("%s×%d" % (k, v) for k, v in _bad_how.items())))
         if _no_gran:
             issues.append(("ERROR", "config/legal_materials.json",
-                           "%d 条材料缺 `granularity=law` 标注 —— "
-                           "会被误当成条款级确证" % _no_gran))
+                           "%d 条材料缺粒度标注（须为 %s 之一）—— "
+                           "缺标注会被误当成条款级确证"
+                           % (_no_gran, "/".join(_ALLOWED_GRAN))))
     else:
         issues.append(("WARN", "config/legal_materials.json",
                        "材料库不可用 ⇒ 案例/解读/问答关联 SKIP（**不得当作通过**；"

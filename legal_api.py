@@ -179,15 +179,17 @@ def legal_relations_lookup(request: Request, title: str = Query(""), doc_no: str
     return CAT.relations_of(title=title or None, doc_no=doc_no or None)
 
 
-@router.get("/legal-materials", summary="案例/解读/问答材料列表（类型/关键词/关联法筛选）")
+@router.get("/legal-materials", summary="案例/解读/问答材料列表（类型/关键词/关联法/粒度筛选）")
 def legal_materials(request: Request, kind: str = Query(""), q: str = Query(""),
                     law_code: str = Query(""), linked: str = Query(""),
+                    granularity: str = Query(""), provision_id: str = Query(""),
                     page: int = Query(1), page_size: int = Query(20),
                     with_snippet: bool = Query(True)):
     _request_perm(request, "legal.view")
     from engine import legal_extras as EX                          # noqa: PLC0415
     return EX.list_materials(kind=kind, q=q, law_code=law_code,
-                             linked=linked or None, page=page,
+                             linked=linked or None, granularity=granularity,
+                             provision_id=provision_id or None, page=page,
                              page_size=page_size, with_snippet=with_snippet)
 
 

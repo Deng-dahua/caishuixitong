@@ -85,8 +85,12 @@ class TestReadLayerBoundary:
         assert le.law_code_of("VAT-LAW-028") == "VAT-LAW"
         assert le.law_code_of("") == ""
 
-    def test_材料关联粒度必为法规级(self, le):
-        """★ 关联只到法规级 ⇒ 任何按条款取材料的接口都必须显式声明粒度。"""
+    def test_材料关联粒度必显式声明且自洽(self, le):
+        """★ 粒度**三态**（2026-10-15 补采材料正文后升级）：`provision`/`law`/`none`。
+
+        任何按条款取材料的接口都必须**显式声明粒度**，且与证据字段自洽 ——
+        `provision` 级必须真有条款 ID；无条款级命中时如实退回 `law` 并说明。
+        """
         pid = None
         for m in lm_doc_mappings():
             if m.get("verified"):
@@ -95,8 +99,17 @@ class TestReadLayerBoundary:
         if not pid:
             pytest.skip("关联表无可确证条款")
         got = le.for_provision(pid, limit=2)
-        assert got.get("granularity") == "law"
-        assert "不等于" in got.get("note", "") or "非条款" in got.get("note", "")
+        gran = got.get("granularity")
+        assert gran in ("provision", "law", "none"), "粒度必须显式且在三态内，实得 %r" % gran
+        # 自洽：声明条款级 ⇒ 返回的条目必须真带该条款 ID
+        if gran == "provision":
+            assert got.get("items"), "声明条款级却无条目"
+            assert any(pid in (it.get("provision_ids") or []) for it in got["items"]), \
+                "声明条款级，但返回条目里没有该条款 ID ⇒ 假条款级"
+        # 两种粒度**都**不得被读成"适用本条"
+        note = str(got.get("note") or "")
+        assert ("不代表" in note or "不得" in note or "不等于" in note), \
+            "粒度说明必须写清「不代表个案适用本条」"
 
 
 def lm_doc_mappings():
@@ -148,7 +161,13 @@ class TestEndToEndWiring:
         got = RSVC.get_risk(items[0].get("risk_no") or items[0].get("seq"), 1, self._session())
         assert "legal_basis" in got, "详情缺 legal_basis"
         assert "related_materials" in got, "详情缺 related_materials"
-        assert (got["related_materials"] or {}).get("granularity") == "law"
+        # ★ 三态（2026-10-15）：优先条款级，无命中如实退回法规级；无条款可确证则为 none
+        rm = got["related_materials"] or {}
+        assert rm.get("granularity") in ("provision", "law", "none"), \
+            "related_materials 粒度必须显式且在三态内，实得 %r" % rm.get("granularity")
+        if rm.get("granularity") == "provision":
+            assert rm.get("matched_provision_ids"), \
+                "声明条款级却未给出命中的条款 ID ⇒ 无法复核"
 
 
 class TestMaterialMatchingDiscipline:

@@ -3,7 +3,9 @@
  * 约定：
  *   · **前端不硬编码任何条数** —— 类型分布（`by_kind`）由后端给（且与当前筛选一致）。
  *   · **不硬编码任何材料内容/条文**。
- *   · 粒度如实：材料与法规的关联**只到法规级**，页面上明确标注，**不得**说成"适用某条款"。
+ *   · 粒度如实（**三态**）：`provision`（正文出现「法名紧邻条号」= 条款级）/
+ *     `law`（只确证引用了该法）/ `none`（未确证）—— 页面明确标注，**不得**把
+ *     `law` 级说成"适用某条款"。
  *   · 无权限 403 如实展示。
  */
 (function () {
@@ -42,8 +44,10 @@
     try { s = await api("GET", API + "/legal-materials/stats"); }
     catch (e) { el("kpis").innerHTML = '<div class="muted">统计加载失败：' + esc(e.message) + "</div>"; return; }
     el("src-note").textContent = "（来源：" + (s.source || "") + "）";
-    el("note").innerHTML = "关联口径：材料与法规的关联**只到法规级**（由官方摘要里的**显式引用**确证：" +
-      "书名号引用 / 带法规后缀全名），**不做**关键词或相似度匹配；" +
+    el("note").innerHTML = "关联口径：材料的**显式引用**确证（书名号引用 / 带法规后缀全名），" +
+      "**不做**关键词或相似度匹配。粒度三态：" +
+      "<b>条款级</b>（材料正文出现「法名紧邻条号」，已校验条款 ID 登记）/ " +
+      "<b>法规级</b>（只确证引用了该法）/ <b>未确证</b>；" +
       "未匹配到法规的材料 <b>照样保留</b>（" + (s.unlinked || 0) + " 条），不丢数据。";
     var bk = s.by_kind || {};
     var H = kpi(s.total, "全部", !KIND);
@@ -64,6 +68,7 @@
     var url = API + "/legal-materials?page=" + PAGE + "&page_size=" + SIZE +
       "&kind=" + encodeURIComponent(el("kind-sel").value) +
       "&q=" + encodeURIComponent(el("q").value.trim()) +
+      "&granularity=" + encodeURIComponent(el("gran-sel").value) +
       "&linked=" + encodeURIComponent(el("linked-sel").value);
     var j;
     try { j = await api("GET", url); }
@@ -80,6 +85,12 @@
       var laws = (m.matched_refs || []).map(function (h) {
         return tag(h.matched_ref || h.law_code, "") + " <span class=\"muted\">" + esc(h.matched_by || "") + "</span>";
       }).join("<br>");
+      // ★ 粒度三态如实标注（2026-10-15）：provision=正文出现「法名紧邻条号」；
+      //   law=只确证引用了该法；none=未确证。**不得**把 law 级显示成条款级。
+      var g = m.granularity || "none";
+      var gTxt = { provision: "条款级", law: "法规级", none: "未确证" }[g] || g;
+      var gCls = g === "provision" ? "" : "muted";
+      var provs = (m.provision_ids || []).map(function (p) { return tag(p, ""); }).join(" ");
       return "<tr>" +
         "<td>" + tag(m.kind || "", m.kind || "") + "</td>" +
         '<td><span class="law-link" data-mat="' + esc(m.material_id) + '">' + esc(m.title) + "</span>" +
@@ -87,10 +98,14 @@
           + (String(m.snippet).length > 160 ? "…" : "") + "</div>" : "") +
         (m.url ? '<div style="margin-top:4px"><a class="law-link" href="' + esc(m.url)
           + '" target="_blank" rel="noopener">官方原文</a></div>' : "") + "</td>" +
+        '<td class="muted"><span class="' + gCls + '">' + esc(gTxt) + "</span>" +
+        (m.content_len ? '<div class="muted" style="font-size:12px">正文 ' + m.content_len + " 字</div>" : "") +
+        "</td>" +
         '<td class="muted">' + esc(m.published_at || "—") + "</td>" +
-        "<td>" + (laws || '<span class="muted">未关联法规</span>') + "</td>" +
+        "<td>" + (laws || '<span class="muted">未关联法规</span>') +
+        (provs ? '<div style="margin-top:4px">' + provs + "</div>" : "") + "</td>" +
         "</tr>";
-    }).join("") || '<tr><td colspan="4" class="muted">（无匹配材料）</td></tr>';
+    }).join("") || '<tr><td colspan="5" class="muted">（无匹配材料）</td></tr>';
   }
 
   async function openMaterial(mid) {
@@ -105,6 +120,19 @@
       (d.url ? '<br>原文：<a class="law-link" href="' + esc(d.url) + '" target="_blank" rel="noopener">'
         + esc(d.url) + "</a>" : "") + "</div>";
     H += '<div class="sec-title">摘要原文</div><pre class="plain">' + esc(d.snippet || "（无摘要）") + "</pre>";
+    // ★ 条款级命中（2026-10-15 补采正文后才可能有）：只列**正文里显式引用**的条款
+    var pv = d.matched_provisions || [];
+    if (pv.length) {
+      H += '<div class="sec-title">正文显式引用的条款（' + pv.length + "，条款级）</div>" +
+        '<table class="grid"><thead><tr><th style="width:230px">条款 ID</th>' +
+        '<th style="width:120px">条号</th><th>所属法</th><th style="width:110px">正文库</th></tr></thead><tbody>' +
+        pv.map(function (p) {
+          return "<tr><td>" + tag(p.provision_id || "", "") + "</td>" +
+            "<td>" + esc(p.article || "—") + "</td>" +
+            "<td>" + esc(p.law || p.law_code || "—") + "</td>" +
+            '<td class="muted">' + (p.in_library ? "已收录" : "未收录") + "</td></tr>";
+        }).join("") + "</tbody></table>";
+    }
     var laws = d.related_laws || [];
     H += '<div class="sec-title">显式引用的法规（' + laws.length + "）</div>";
     if (laws.length) {
@@ -120,10 +148,19 @@
             "<td>" + (ru || '<span class="muted">（暂无规则经已确证条款引用该法）</span>') + "</td></tr>";
         }).join("") + "</tbody></table>";
     } else {
-      H += '<div class="msg warn">该材料**未显式引用任何法规**（官方摘要里没有书名号引用或完整法名）' +
+      H += '<div class="msg warn">该材料<b>未显式引用任何法规</b>（官方摘要与正文里都没有书名号引用或完整法名）' +
         "⇒ 如实为空，<b>不能</b>据此推断它涉及某部法。</div>";
     }
     H += '<div class="msg info" style="margin-top:10px">' + esc(d.granularity_note || "") + "</div>";
+    // ★ 正文（采集层产物；未采集成功时如实说明，不留空壳）
+    if (d.content) {
+      H += '<div class="sec-title">正文（' + d.content_len + " 字）</div>" +
+        '<pre class="plain" style="max-height:420px;overflow:auto">' + esc(d.content) + "</pre>" +
+        (d.content_source ? '<div class="muted" style="font-size:12px">来源：' + esc(d.content_source) + "</div>" : "");
+    } else {
+      H += '<div class="sec-title">正文</div><div class="msg warn">' +
+        esc(d.content_note || "正文未采集 ⇒ 只提供标题与摘要，不伪造正文。") + "</div>";
+    }
     el("dlg-body").innerHTML = H;
     el("dlg").showModal();
   }
@@ -132,6 +169,7 @@
     el("btn-search").onclick = function () { PAGE = 1; loadList(); };
     el("btn-reset").onclick = function () {
       el("q").value = ""; el("kind-sel").value = ""; el("linked-sel").value = "";
+      el("gran-sel").value = "";
       PAGE = 1; KIND = ""; loadStats(); loadList();
     };
     el("q").addEventListener("keydown", function (e) {
@@ -141,6 +179,7 @@
       PAGE = 1; KIND = el("kind-sel").value; loadStats(); loadList();
     });
     el("linked-sel").addEventListener("change", function () { PAGE = 1; loadList(); });
+    el("gran-sel").addEventListener("change", function () { PAGE = 1; loadList(); });
     el("pg-prev").onclick = function () { if (PAGE > 1) { PAGE--; loadList(); } };
     el("pg-next").onclick = function () { if (LAST && PAGE < (LAST.pages || 1)) { PAGE++; loadList(); } };
     el("dlg-close").onclick = function () { el("dlg").close(); };

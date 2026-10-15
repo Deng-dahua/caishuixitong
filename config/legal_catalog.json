@@ -22,7 +22,7 @@
   "行政法规": 78,
   "国务院文件": 35
  },
- "with_body": 76,
+ "with_body": 152,
  "items": [
   {
    "title": "财政部 税务总局关于调整部分产品出口退税政策的公告",
@@ -1119,7 +1119,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5250264/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "商务部等6部门关于加力优化离境退税措施扩大入境消费的通知",
@@ -1219,7 +1219,7 @@
    "labels": "自然人,合伙企业",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5212285/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于修订部分税务执法文书的公告",
@@ -2111,7 +2111,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5250533/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "市场监管总局等六部门关于发布《企业注销指引（2025年修订）》的公告",
@@ -3430,7 +3430,7 @@
    "labels": "税费征管",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5241238/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于发布《涉税专业服务管理执法文书式样》的公告",
@@ -4640,7 +4640,7 @@
    "labels": "资源税,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193020/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "纳税人享受先进制造业企业增值税加计抵减政策，是否要向税务部门提交声明？",
@@ -5213,7 +5213,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5239740/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "我行是中国邮政储蓄银行纳入“三农金融事业部”改革的下辖某县支行（一般纳税人）。请问我行发放贷款取得的利息收入是不是可以适用增值税简易计税政策？",
@@ -6372,7 +6372,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5238092/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "我公司为2024年8月新设立企业，登记为一般纳税人，当月购买房产并申报缴纳印花税，能否享受“六税两费”减免优惠？",
@@ -7456,7 +7456,7 @@
    "labels": "教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211806/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "我公司是按月申报的增值税小规模纳税人，2023年1月3日，自行开具了4张免税发票已交给客户，请问如果我公司要享受减按1%征收增值税政策，是否必须追回上述免税发票？",
@@ -8181,7 +8181,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5233391/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国刑法",
@@ -8193,7 +8193,7 @@
    "labels": "投资,教育,金融业,增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212248/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国公司法",
@@ -8205,7 +8205,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5233383/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 生态环境部 商务部 海关总署 税务总局关于在有条件的自由贸易试验区和自由贸易港试点有关进口税收政策措施的公告",
@@ -9715,7 +9715,7 @@
    "labels": "教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5220333/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国民事诉讼法",
@@ -9727,7 +9727,7 @@
    "labels": "教育,国际组织",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5220330/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "某单位取得的长途客运手撕客票能否抵扣进项税额？",
@@ -10893,7 +10893,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211769/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于接续推出2023年“便民办税春风行动”第二批措施的通知",
@@ -11193,7 +11193,7 @@
    "labels": "投资,教育,优化营商,个体工商户",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5212273/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局关于银行业金融机构、金融资产管理公司不良债权以物抵债有关税收政策的公告",
@@ -11517,7 +11517,7 @@
    "labels": "投资,自然人",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211771/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局办公厅关于印发《2022年全国税务系统政务公开重点任务清单》的通知",
@@ -12549,7 +12549,7 @@
    "labels": "教育,国际组织",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211774/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局 国家广播电视总局关于联合举办第五届全国税收公益广告作品征集暨展播活动的通知",
@@ -13101,7 +13101,7 @@
    "labels": "自然人,教育,国际组织",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211776/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "退役军人事务部等16部门关于促进退役军人投身乡村振兴的指导意见",
@@ -13461,7 +13461,7 @@
    "labels": "进出口税收,土地闲置费,自然人,教育费附加,国际税收,车辆购置税,城市维护建设税,个人所得税,企业所得税,消费税,增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5249174/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国印花税法",
@@ -13701,7 +13701,7 @@
    "labels": "教育,教育费附加,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193056/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "生态环境部 财政部 税务总局关于发布计算环境保护税应税污染物排放量的排污系数和物料衡算方法的公告",
@@ -14541,7 +14541,7 @@
    "labels": "教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211778/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于表彰全国税务系统文明单位和精神文明建设先进工作者的决定",
@@ -14661,7 +14661,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211780/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 海关总署 税务总局关于海南自由贸易港交通工具及游艇“零关税”政策的通知",
@@ -14793,7 +14793,7 @@
    "labels": "土地闲置费,房地产业,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5195086/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国城镇国有土地使用权出让和转让暂行条例",
@@ -14805,7 +14805,7 @@
    "labels": "教育,投资,城镇土地使用税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5192953/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局关于广告费和业务宣传费支出税前扣除有关事项的公告",
@@ -15189,7 +15189,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5212275/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 海关总署 税务总局关于不再执行20种商品停止减免税规定的公告",
@@ -15597,7 +15597,7 @@
    "labels": "农户,教育,个体工商户,个人独资企业,合伙企业,自然人,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212250/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于《内地和澳门特别行政区关于对所得避免双重征税和防止偷漏税的安排》第四议定书生效执行的公告",
@@ -16557,7 +16557,7 @@
    "labels": "投资,教育,自然人,合伙企业",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212252/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于进一步完善涉税专业服务监管制度有关事项的公告",
@@ -16605,7 +16605,7 @@
    "labels": "投资,自然人,合伙企业",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5212277/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于发行2019年印花税票的公告",
@@ -17013,7 +17013,7 @@
    "labels": "投资,教育,优化营商",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5212279/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局关于确认中国红十字会总会等群众团体2019年度公益性捐赠税前扣除资格的公告",
@@ -17277,7 +17277,7 @@
    "labels": "土地闲置费,房地产业,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5192952/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国土地管理法",
@@ -17289,7 +17289,7 @@
    "labels": "教育,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5192954/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于印发《开展税务证明事项告知承诺制试点工作方案》的通知",
@@ -17925,7 +17925,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211784/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国反不正当竞争法",
@@ -17937,7 +17937,7 @@
    "labels": "自然人",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211782/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部关于调整部分政府性基金有关政策的通知",
@@ -17961,7 +17961,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5212281/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局关于铁路债券利息收入所得税政策的公告",
@@ -18141,7 +18141,7 @@
    "labels": "教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5212283/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 自然资源部关于进一步明确矿业权出让收益征收管理有关问题的通知",
@@ -18237,7 +18237,7 @@
    "labels": "个体工商户,生育保险,工伤保险,失业保险,基本医疗保险,基本养老保险,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5194407/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于第六批全国税务领军人才学员选拔笔试的通告",
@@ -18381,7 +18381,7 @@
    "labels": "投资,国际组织,自然人,合伙企业",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211786/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局关于非居民个人和无住所居民个人有关个人所得税政策的公告",
@@ -18501,7 +18501,7 @@
    "labels": "废弃电器电子产品处理基金",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5195083/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国车船税法实施条例",
@@ -19533,7 +19533,7 @@
    "labels": "教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193031/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国刑事诉讼法",
@@ -19545,7 +19545,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212254/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局 生态环境部关于明确环境保护税应税污染物适用等有关问题的通知",
@@ -19881,7 +19881,7 @@
    "labels": "自然人",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212256/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国个人所得税法",
@@ -21885,7 +21885,7 @@
    "labels": "环境保护税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5194443/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 海关总署 税务总局关于调整天然气进口税收优惠政策有关问题的通知",
@@ -21909,7 +21909,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5211958/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局 国家发展改革委 商务部关于境外投资者以分配利润直接投资暂不征收预提所得税政策问题的通知",
@@ -22425,7 +22425,7 @@
    "labels": "教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212258/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于卷烟消费税计税价格核定管理有关问题的公告",
@@ -22773,7 +22773,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211794/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于成立节能减排工作领导小组的通知",
@@ -23529,7 +23529,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5194441/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国进出口关税条例",
@@ -26601,7 +26601,7 @@
    "labels": "个体工商户,合伙企业,自然人,契税,耕地占用税,印花税,个人所得税,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5195082/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 海关总署 国家税务总局关于鼓励科普事业发展进口税收政策的通知",
@@ -27993,7 +27993,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212260/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 国家税务总局关于对化肥恢复征收增值税政策的补充通知",
@@ -29073,7 +29073,7 @@
    "labels": "投资,基本医疗保险,基本养老保险",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211796/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 国家税务总局 中国人民银行关于2015年财税库银税收收入电子缴库横向联网有关工作事项的通知",
@@ -33957,7 +33957,7 @@
    "labels": "资源税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5211554/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国对外合作开采海洋石油资源条例",
@@ -33969,7 +33969,7 @@
    "labels": "资源税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5211552/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "文化部 财政部 海关总署 税务总局关于公布2013年获得进口动漫开发生产用品免税资格的动漫企业名单的通知",
@@ -35121,7 +35121,7 @@
    "labels": "建筑业,采矿业,工伤保险,基本养老保险,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193025/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于印发《跨地区经营汇总纳税企业所得税征收管理办法》的公告",
@@ -35421,7 +35421,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211800/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "第十九批享受优惠政策的企业(集团)技术中心名单公告",
@@ -36345,7 +36345,7 @@
    "labels": "失业保险,基本医疗保险,基本养老保险",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193024/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于执行内地与港澳间税收安排涉及个人受雇所得有关问题的公告",
@@ -38337,7 +38337,7 @@
    "labels": "教育,金融业",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211802/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "社会保险个人权益记录管理办法",
@@ -39117,7 +39117,7 @@
    "labels": "教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211804/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于印发《税务系统培训班质量评估办法》的通知",
@@ -39657,7 +39657,7 @@
    "labels": "水土保持补偿,教育,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193023/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于电网企业输电线路部分报废损失税前扣除问题的公告",
@@ -39717,7 +39717,7 @@
    "labels": "个体工商户,工伤保险,失业保险,基本医疗保险,基本养老保险,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5194427/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国务院关于修改《中华人民共和国发票管理办法》的决定",
@@ -41709,7 +41709,7 @@
    "labels": "无居民海岛使用金,教育",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193022/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 国家税务总局关于企业境外所得税收抵免有关问题的通知",
@@ -42297,7 +42297,7 @@
    "labels": "教育,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193021/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于跨境贸易人民币结算出口货物退（免）税有关事项的通知",
@@ -45129,7 +45129,7 @@
    "labels": "工伤保险",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5194419/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于下发出口商品退税率文库(200809018版)的通知",
@@ -47565,7 +47565,7 @@
    "labels": "教育,个人所得税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5194414/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于中国联通有限公司及所属分公司和中国联合通信有限公司贵州分公司业务销售附带赠送行为有关流转税问题的通知",
@@ -50157,7 +50157,7 @@
    "labels": "自然人,合伙企业",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211810/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国企业破产法",
@@ -50169,7 +50169,7 @@
    "labels": "基本医疗保险,基本养老保险,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193017/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部办公厅 国家税务总局办公厅关于更正财税[2006]90号文中有关单位名称的通知",
@@ -50697,7 +50697,7 @@
    "labels": "投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211812/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于转发《财政部关于印发〈行政事业单位工资和津贴补贴有关会计核算办法〉的通知》的通知",
@@ -54429,7 +54429,7 @@
    "labels": "教育,个体工商户",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5192938/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "关于实施《工伤保险条例》若干问题的意见",
@@ -54765,7 +54765,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211816/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于进一步加强税收征管工作的若干意见",
@@ -58845,7 +58845,7 @@
    "labels": "海域使用金",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5193016/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于中国人民银行总行所属分支机构免征房产税城镇土地使用税的通知",
@@ -60633,7 +60633,7 @@
    "labels": "投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212262/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 国家税务总局关于土地增值税优惠政策延期的通知",
@@ -61041,7 +61041,7 @@
    "labels": "投资,自然人,个人独资企业",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5211824/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于对监狱管理部门承受土地房屋直接用于监狱建设免征契税的批复",
@@ -61509,7 +61509,7 @@
    "labels": "个体工商户,失业保险,基本养老保险,投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5194405/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于明确我国对外签订税收协定中教师和研究人员条款适用范围的通知",
@@ -62301,7 +62301,7 @@
    "labels": "投资",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100009/c5212264/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于股份制企业转增股本和派发红股征免个人所得税的通知",
@@ -65229,7 +65229,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100010/c5194392/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务局关于执行中意两国政府对所得避免双重征税和防止偷漏税的协定有关条文解释的通知",
@@ -85613,7 +85613,7 @@
    "url": "",
    "source": "flk",
    "effect": "有效",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国印花税法",
@@ -85860,7 +85860,7 @@
    "url": "",
    "source": "flk",
    "effect": "有效",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国耕地占用税法",
@@ -85899,7 +85899,7 @@
    "url": "",
    "source": "flk",
    "effect": "有效",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "中华人民共和国资源税法",

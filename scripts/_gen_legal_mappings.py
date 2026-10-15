@@ -29,25 +29,10 @@ sys.path.insert(0, str(ROOT))
 
 OUT = ROOT / "config" / "legal_mappings.json"
 
-_CN = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
-
-
-def cn2num(s: str) -> int | None:
-    """中文数字 → 阿拉伯（支持 一~九十九 与 百）。取不到 ⇒ None（不猜）。"""
-    s = str(s or "").strip()
-    if not s:
-        return None
-    if s == "十":
-        return 10
-    m = re.match(r"^十(.)$", s)
-    if m:
-        return 10 + _CN.get(m.group(1), 0)
-    m = re.match(r"^(.)十(.)?$", s)
-    if m:
-        return _CN.get(m.group(1), 0) * 10 + (_CN.get(m.group(2), 0) if m.group(2) else 0)
-    if re.match(r"^[零一二三四五六七八九]$", s):
-        return _CN[s]
-    return None
+# ★★ 2026-10-15 收敛：中文数字解析改用**唯一权威** `engine/cnnum.py`。
+#   原私有实现（与 `_gen_legal_index.py` 各写一份）只支持到「九十九」⇒
+#   「第一百零三条」等解析不出，会让**可确证的条款映射被误判为不可确证**。
+from engine.cnnum import cn_to_int as cn2num        # noqa: E402  （保留旧名，调用点零改动）
 
 
 def _sha(text: str) -> str:

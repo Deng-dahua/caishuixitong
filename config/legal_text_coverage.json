@@ -1,7 +1,7 @@
 {
   "_note": "红线库引用 → 法规正文库（static/legal_library.json）的可匹配覆盖率。由 scripts/_load_legal_texts.py **现算**写入；闸门 check_legal_text_coverage 据此防退化。★ 与「版本登记」（config/legal_versions.json）是两件事。",
-  "total_refs": 206,
-  "matched_refs": 205,
-  "coverage": 0.9951,
-  "library_size": 131
+  "total_refs": 242,
+  "matched_refs": 241,
+  "coverage": 0.9959,
+  "library_size": 7009
 }
