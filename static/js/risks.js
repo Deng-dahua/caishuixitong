@@ -58,9 +58,15 @@ function num(v) {
   if (!isFinite(n)) { return esc(v); }
   return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+// ★ 2026-10-15（用户裁定）：等级「待核验」的**呈现措辞**改为「涉嫌风险」——
+//   该等级的含义是"已触碰税务红线、但尚未定性"，称"待核验"会让企业误以为
+//   疑点没核出来。底层数据值不变（兼容既有载荷），所有显示经此单点映射。
+var LEVEL_DISPLAY = { '待核验': '涉嫌风险' };
+function levelDisplay(lv) { var s = String(lv || ''); return LEVEL_DISPLAY[s] || s; }
 function lvTag(lv) {
   var s = String(lv || '');
-  return '<span class="tag lv-' + esc(s) + '">' + esc(s || '—') + '</span>';
+  var shown = levelDisplay(s);
+  return '<span class="tag lv-' + esc(s) + '">' + esc(shown || '—') + '</span>';
 }
 function stTag(v, cn) {
   var s = String(v || 'pending');
@@ -243,7 +249,7 @@ function drawBars(host, obj, colors) {
     var c = (colors && colors[k]) || '#3b82f6';
     return '<div class="bar-col"><div class="bar-val">' + v + '</div>'
       + '<div class="bar" style="height:' + h + 'px;background:' + c + '"></div>'
-      + '<div class="bar-lbl">' + esc(k) + '</div></div>';
+      + '<div class="bar-lbl">' + esc(levelDisplay(k)) + '</div></div>';
   }).join('');
 }
 
