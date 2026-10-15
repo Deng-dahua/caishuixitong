@@ -19574,6 +19574,59 @@ def check_level_display_single_source() -> List[Tuple[str, str, str]]:
     except OSError:
         pass
 
+    # ── ③ 结构性**风险等级**字段不得被措辞清洗改写（数据驱动，新增字段自动覆盖）──
+    #   ★★ 2026-10-15（同一事故第三次出血）：`detected_risk_level` 未登记
+    #      `enterprise_report._ENUM_KEYS_PROTECTED` ⇒ 值「待核验」被 `_scrub_out_vague`
+    #      改写成展述词「已提供同类资料」⇒ 导出报告等级表把 2 项印成非等级词。
+    #   判据**精确**（不误伤别的枚举，实测 `evidence_grade`/`review_level`/`conclusion_grade`
+    #   都是**另一类**枚举，其值非等级但完全正常）：仅当**风险等级字段**持有
+    #   `report_wording.STATUS_TEXT` 的**替换值**（如「已提供同类资料」/「须核对」）
+    #   或 `DISPLAY_LABELS` 的**展示词**（如「涉嫌风险」）时，才是"结构字段被当展示文本改写"。
+    _prod = ROOT / "scripts" / "four_reports" / "company_1_full.json"
+    if not _prod.exists():
+        issues.append(("WARN", "scripts/four_reports/company_1_full.json",
+                       "无真跑产物 ⇒ 结构性风险等级字段保真检查 SKIP（**不得当作通过**，"
+                       "须先重跑一键分析恢复产物）"))
+    else:
+        try:
+            from engine.report_wording import STATUS_TEXT as _ST   # noqa: PLC0415
+            from engine.risk_levels import DISPLAY_LABELS as _DL2   # noqa: PLC0415
+            _level_keys = set(_DL2) | {"risk_level", "level", "risk_level_capped_from",
+                                       "detected_risk_level",
+                                       "risk_level_capped_by_grade_from"}
+            _tainted = {v for k, v in _ST.items() if v and v != k}
+            _tainted |= {v for v in _DL2.values() if v}
+            _pd = json.loads(_prod.read_text(encoding="utf-8", errors="replace"))
+            _bad: Dict[str, int] = {}
+            _seen = set()
+
+            def _scan(o):                                        # noqa: ANN001
+                if isinstance(o, dict):
+                    if id(o) in _seen:
+                        return
+                    _seen.add(id(o))
+                    for k, v in o.items():
+                        if (isinstance(k, str) and k in _level_keys
+                                and isinstance(v, str) and v.strip() in _tainted):
+                            _bad["%s=%s" % (k, v.strip())] = _bad.get("%s=%s" % (k, v.strip()), 0) + 1
+                        _scan(v)
+                elif isinstance(o, list):
+                    if id(o) in _seen:
+                        return
+                    _seen.add(id(o))
+                    for v in o:
+                        _scan(v)
+
+            _scan(_pd)
+            for _kv, _n in sorted(_bad.items(), key=lambda x: -x[1])[:5]:
+                issues.append(("ERROR", "scripts/four_reports/company_1_full.json",
+                               "结构性风险等级字段被改写为展示/状态词（%d 处，如 %s）——"
+                               "该键须登记 `enterprise_report._ENUM_KEYS_PROTECTED`，"
+                               "展示写法只在渲染层翻译" % (_n, _kv)))
+        except Exception as exc:                                 # noqa: BLE001
+            issues.append(("ERROR", "tools/audit_consistency.py",
+                           "结构性风险等级字段保真检查执行失败：%s" % exc))
+
     return issues
 
 

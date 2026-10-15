@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import html
 import io
 import re
 import sys
@@ -54,9 +55,13 @@ def _extract_text(fmt: str, data: bytes) -> str:
     if fmt == "xlsx":
         try:
             with zipfile.ZipFile(io.BytesIO(data)) as z:
-                return "".join(
+                raw = "".join(
                     z.read(n).decode("utf-8", "replace")
                     for n in z.namelist() if n.endswith(".xml"))
+            # ★ xlsx（openpyxl）把文本写成**数字字符引用**（`&#39118;...`）⇒ 必须反转义，
+            #   否则按子串统计必然得 0 —— 这正是**验收判据自身的假绿陷阱**（实测踩到：
+            #   文件里明明是「涉嫌风险」，裸搜却 0 命中）。
+            return html.unescape(raw)
         except Exception:  # noqa: BLE001
             return ""
     if fmt == "pdf":

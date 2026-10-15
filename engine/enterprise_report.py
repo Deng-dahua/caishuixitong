@@ -2381,6 +2381,12 @@ _ENUM_KEYS_PROTECTED = frozenset({
     "level",
     "conclusion_grade",
     "code", "key", "id", "trace_id", "redline_id", "seq", "级别", "等级",
+    # ★★ 2026-10-15（同一事故第三次出血，用户裁定后浮现）：等级呈现新增的两个**结构化**
+    #   字段未登记保护集 ⇒ 其值「待核验」被 `_scrub_out_vague` 改写成展述词
+    #   「已提供同类资料」⇒ 导出报告「风险总览」的等级表把 2 项印成「已提供同类资料」
+    #   （既不是等级、也不是展示词），且 `risk_service.stats` 按它统计必然错档。
+    #   铁律：**结构性枚举字段不得被当展示文本替换**，展示写法一律在渲染层翻译。
+    "detected_risk_level", "risk_level_capped_by_grade_from",
 })
 
 
