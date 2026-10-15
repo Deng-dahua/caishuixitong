@@ -58,11 +58,11 @@ function num(v) {
   if (!isFinite(n)) { return esc(v); }
   return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-// ★ 2026-10-15（用户裁定）：等级「待核验」的**呈现措辞**改为「涉嫌风险」——
-//   该等级的含义是"已触碰税务红线、但尚未定性"，称"待核验"会让企业误以为
-//   疑点没核出来。底层数据值不变（兼容既有载荷），所有显示经此单点映射。
-var LEVEL_DISPLAY = { '待核验': '涉嫌风险' };
-function levelDisplay(lv) { var s = String(lv || ''); return LEVEL_DISPLAY[s] || s; }
+// ★ 2026-10-15（用户裁定）：等级「待核验」的呈现措辞统一为「涉嫌风险」。
+//   映射**唯一出处** = `static/js/constants.js::LEVEL_DISPLAY`（后端
+//   `engine/risk_levels.py::DISPLAY_LABELS` 的 JS 侧镜像，闸门比对同源）；
+//   本文件只消费，不得再写第二份映射。
+function levelDisplay(lv) { return levelDisplayOf(lv); }
 function lvTag(lv) {
   var s = String(lv || '');
   var shown = levelDisplay(s);

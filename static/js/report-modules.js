@@ -1494,7 +1494,10 @@ var ReportEngine = (function() {
 
       allF.forEach(function(f,i){
         var s = f.score||0;
-        var tl = (f.level||'') || (s>=8?'高风险':(s>=6?'中风险':'低风险'));
+        // ★ 2026-10-15：等级徽标展示唯一出处 = constants.js::LEVEL_DISPLAY
+        //   （后端 risk_levels.DISPLAY_LABELS 的 JS 侧镜像；「待核验/待核」→「涉嫌风险」）
+        var tl = (typeof levelDisplayOf === 'function' ? levelDisplayOf(f.level) : (f.level || ''))
+                 || (s>=8?'高风险':(s>=6?'中风险':'低风险'));
         var bc = f.level_fixed ? S.red : (s>=8?S.red:(s>=6?S.amber:'#94a3b8'));
         var tc = f.level_fixed ? 'rtag' : (s>=8?'rtag':(s>=6?'atag':'gtag'));
         var badge = (f.level_fixed?' <span class="tag rtag" style="font-size:10px">税务合规重点</span>':'');

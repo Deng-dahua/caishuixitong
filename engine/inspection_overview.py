@@ -23,6 +23,9 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from engine.overall_conclusion import _group_by_theme
+# ★ 2026-10-15（用户裁定）：执行摘要里的等级词一律走展示唯一权威
+#   `risk_levels.display_label`（「待核验」→「涉嫌风险」），不在本模块自写措辞。
+from engine.risk_levels import display_label as _display_label
 
 
 def _lvl_counts(tiers: List[Dict[str, Any]]) -> Dict[str, int]:
@@ -121,8 +124,8 @@ def build_inspection_overview(report_data: Any,
     P.append(
         "四、风险程度评定：本轮整体风险程度评定为「%s」。评定依据为：潜在税额影响、涉及金额、证据缺口、"
         "是否涉及虚开或偷税、补证紧迫性五项综合排序，仅供参考；各风险等级（高/中/低）项数、"
-        "待核验事项清单，详见下文「本轮检查总体结论」；主营业务成本两口径勾稽见第三章台账后的专项明细。"
-        % _grade
+        "%s（未定性）事项清单，详见下文「本轮检查总体结论」；主营业务成本两口径勾稽见第三章台账后的专项明细。"
+        % (_grade, _display_label("待核验"))
     )
 
     # ── 五、企业整体风险综合评价（定调句：等级 + 主要风险领域 + 遵从评价）──
@@ -173,7 +176,8 @@ def build_inspection_overview(report_data: Any,
         _pos.append("重点关注：对 %d 项高风险事项（证据相对集中、涉及隐匿收入或虚开发票方向），"
                     "建议列为后续优先检查事项" % n_high)
     if n_pend:
-        _pos.append("待核验事项：对 %d 项证据不足事项，建议先行补证，不宜在证据补齐前作出处理结论" % n_pend)
+        _pos.append("%s（未定性）事项：对 %d 项证据不足事项，建议先行补证，不宜在证据补齐前作出处理结论"
+                    % (_display_label("待核验"), n_pend))
     if further:
         _pos.append("限期补正资料：对 %d 项因资料缺失未能实施的检查，建议限期要求企业补齐后再行检查" % len(further))
     _pos.append("复查要求：企业完成真实更正与资料补充后，应发起新一轮全量复查，核对原问题是否处理完成、"

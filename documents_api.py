@@ -104,7 +104,7 @@ def documents_meta(request: Request):
 def chunk_init(payload: ChunkInitIn, request: Request):
     session = _session(request)
     return _call(SVC.chunk_init, payload.project_id, payload.filename, payload.size,
-                 session, md5=payload.md5)
+                 session, md5=payload.md5, request=request)
 
 
 @router.put("/documents/chunk/{upload_id}/{chunk_index}", summary="上传一个分片（幂等）")

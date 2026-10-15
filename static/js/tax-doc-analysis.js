@@ -1211,7 +1211,7 @@ function renderAnalyzeHeader(report) {
       + '<span style="font-size:18px;font-weight:700;color:#1e293b">推理引擎综合税务合规结论</span>'
 
 
-      + '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + (synthFinding.level || '?') + '</span>'
+      + '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + (_levelText(synthFinding.level) || '?') + '</span>'
 
 
       + '<span style="font-size:13px;color:var(--gray-500)">评分 ' + (synthFinding.score || '?') + '/100</span>'
@@ -1272,17 +1272,19 @@ function renderAnalyzeHeader(report) {
 
 
 /**
- * 风险等级 → 面向读者的表述（**渲染层翻译**，唯一入口）。
- * ★ 2026-10-05（用户："报告永远不能出现待核实。能确定的风险就是风险"）：
- *   `risk_level` 的取值里，「待核验/待核」是**证据成熟度/降级标识**（机器用，
- *   闸门 `check_downgraded_problem_wording` 依赖它），**不能在数据层改**；
- *   但**不能让读者看到**这种内部标识 ⇒ 在此翻译：
- *     · 待核验/待核 → 「已查明待办事项」（它有确定事实，只是未做风险分级）
- *     · 空值 → 不显示（调用方已有判空）
+ * 风险等级 → 面向读者的表述（**渲染层翻译**，本报告页唯一入口）。
+ * ★ 2026-10-15（用户裁定）：「待核验/待核」是"已触碰税务红线、但尚未定性"，
+ *   对企业而言是实实在在的隐患 ⇒ 统一呈现为「涉嫌风险」（不假装已定性，
+ *   也不假装没事）。映射**唯一出处** = `static/js/constants.js::LEVEL_DISPLAY`
+ *   （后端 `engine/risk_levels.py::DISPLAY_LABELS` 的 JS 侧镜像，闸门比对同源）；
+ *   本函数只做消费转发 + constants.js 未加载时的原样透出（缺失≠编造）。
+ *   底层数据值不变：`risk_level` 的「待核验/待核」是机器用降级标识，
+ *   闸门 `check_downgraded_problem_wording` 依赖，**不能在数据层改**。
  */
 function _levelText(lv) {
-  var s = String(lv || '').trim();
-  if (s === '待核验' || s === '待核') return '已查明待办事项';
+  var s = String(lv === null || lv === undefined ? '' : lv).trim();
+  if (!s) return '';
+  if (typeof levelDisplayOf === 'function') return levelDisplayOf(s);
   return s;
 }
 
@@ -3348,7 +3350,7 @@ function _askReport(fi) {
   if (f && lbl) {
 
 
-    lbl.textContent = '（#' + fi + '「' + (f.type||'?').slice(0,30).replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'') + '」' + (f.level||'') + '）';
+    lbl.textContent = '（#' + fi + '「' + (f.type||'?').slice(0,30).replace(/^Synthesis:\s*/,'').replace(/^Causal:\s*/,'') + '」' + _levelText(f.level) + '）';
 
 
   }
@@ -7138,7 +7140,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
     h += '<p style="text-indent:2em;margin:8px 0;text-align:justify;display:flex;align-items:center;gap:0">' +
 
 
-      '<span style="flex:1;min-width:0"><strong>【发现' + (fi+1) + '】' + finType + '</strong> —— 风险等级：' + lv;
+      '<span style="flex:1;min-width:0"><strong>【发现' + (fi+1) + '】' + finType + '</strong> —— 风险等级：' + (_levelText(lv) || '—');
 
 
     // ── AGI增强徽章 ──
@@ -7174,7 +7176,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
       if (bw.level) {
 
 
-        h += ' <span style="font-size:10px;color:#6366f1;border:1px solid #6366f1;border-radius:3px;padding:0 4px">' + bw.level + '</span>';
+        h += ' <span style="font-size:10px;color:#6366f1;border:1px solid #6366f1;border-radius:3px;padding:0 4px">' + _levelText(bw.level) + '</span>';
 
 
       }
@@ -7273,7 +7275,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
       f._mergedItems.forEach(function(sub, si) {
 
 
-        h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>子项' + (si+1) + '：' + (sub.title || '') + '</strong> [' + (sub.level || '') + '] —— ' + (sub.detail || '') + '</p>';
+        h += '<p style="text-indent:2em;margin:8px 0;text-align:justify"><strong>子项' + (si+1) + '：' + (sub.title || '') + '</strong> [' + _levelText(sub.level) + '] —— ' + (sub.detail || '') + '</p>';
 
 
         if (sub.tax_impact && sub.tax_impact.length > 10) {
@@ -7499,7 +7501,7 @@ h += '<h2 id="ch3">第三章 发现的问题</h2>';
     h += '<span style="font-size:18px;font-weight:700;color:#1e293b">综合税务合规结论</span>';
 
 
-    h += '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + (synthFinding.level || '?') + '</span>';
+    h += '<span style="display:inline-block;padding:4px 16px;background:' + riskColor + ';color:#fff;border-radius:6px;font-size:14px;font-weight:700">' + (_levelText(synthFinding.level) || '?') + '</span>';
 
 
     h += '<span style="font-size:13px;color:#64748b">综合评分 ' + (synthFinding.score || '?') + '/100</span>';

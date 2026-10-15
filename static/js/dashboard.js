@@ -101,7 +101,12 @@
     el("c-proj").innerHTML = bars(P.by_status);
     el("c-doc").innerHTML = bars(D.by_category);
     el("c-task").innerHTML = bars(T.by_status);
-    el("c-risk").innerHTML = bars(R.by_level);
+    el("c-risk").innerHTML = bars((R.by_level || []).map(function (x) {
+      // ★ 2026-10-15：等级展示唯一出处 = constants.js::LEVEL_DISPLAY
+      //   （后端 risk_levels.DISPLAY_LABELS 的 JS 侧镜像）；数据键仍是权威等级名。
+      return { key: (typeof levelDisplayOf === 'function' ? levelDisplayOf(x.key) : x.key),
+               count: x.count };
+    }));
     el("c-tax").innerHTML = bars((R.by_tax || []).slice(0, 10));
     el("risk-scope").textContent = "（" + R.payload_available + " / " + R.scanned_companies + " 个账套）";
     el("act-scope").textContent = "（近 " + (act.days || []).length + " 天有留痕）";

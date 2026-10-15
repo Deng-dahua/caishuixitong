@@ -5866,7 +5866,8 @@ def _promote_standalone_to_problems(out: dict, problems: List[dict], report_data
                     _fact += "…"
                 _by_axis_lbl.setdefault(str(_cr.get("axis_label") or "环节"), []).append(
                     (str(_cr.get("redline_name") or _rid),
-                     str((_p or {}).get("risk_level") or "待核验"),
+                     # ★ 2026-10-15：叙述里的等级词走展示权威（裸「待核验」不得进正文）
+                     _display_label(str((_p or {}).get("risk_level") or "待核验")),
                      _fact))
             # ★★ 2026-10-08（重复率自检阻断的**最大单项**）：同一份「各环节信号清单」
             #   此前被拼进**三处**（「为何列入检查」「一、涉及的风险事项」「二、发现的依据」）

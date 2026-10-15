@@ -67,7 +67,7 @@ if str(ROOT) not in sys.path:
 #   本闸门**不得**再自建等级表 —— 闸门自己漂移就失去裁判资格。
 from engine.risk_levels import LEGAL_LEVELS            # noqa: E402
 from engine.risk_levels import RISK_GRADES             # noqa: E402
-from engine.risk_levels import cap_level, severity     # noqa: E402  (供各 check_* 复用)
+from engine.risk_levels import cap_level, severity, display_label     # noqa: E402  (供各 check_* 复用)
 
 # ══════════════ 权威源：全部实时读取，禁止在此写死计数 ══════════════
 
@@ -2864,7 +2864,7 @@ def check_overall_conclusion_no_dup() -> List[Tuple[str, str, str]]:
     #   旧判据 = "每个等级清单标题只出现一次"（承认逐项清单存在）；
     #   新口径 = 第一章**不得再有逐项清单** —— 项数只以"高风险 N 项、中风险 M 项…"的
     #   **计数**形式出现一次，逐项明细一律指向第二章风险事项台账（与后章不重复）。
-    for lvl in ("高风险", "中风险", "低风险", "已列明"):
+    for lvl in ("高风险", "中风险", "低风险", display_label("待核验")):   # 2026-10-15 展示词由唯一权威派生（原硬编码「已列明」会漏检新展示词）
         if any(p.startswith(lvl + " ") and "项：" in p for p in P):
             issues.append(("ERROR", "engine/overall_conclusion.py",
                            "第一章又出现「%s」逐项清单（执行摘要不逐项平铺："
@@ -13015,7 +13015,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）
     return counts, general
 
 
@@ -19426,6 +19426,153 @@ def check_service_version_visibility() -> List[Tuple[str, str, str]]:
                            "历史上已两次因自带实现遇正则字面量脱同步而产出假判据"))
     except Exception as _e5:                                              # noqa: BLE001
         issues.append(("ERROR", "scripts/_audit_fe_be_alignment.py", "判据不可执行：%s" % _e5))
+
+    return issues
+
+
+def check_level_display_single_source() -> List[Tuple[str, str, str]]:
+    """等级**展示写法**唯一权威闸门（2026-10-15，用户裁定「待核验→涉嫌风险」）。
+
+    根因：同一个等级词曾有**三套展示映射**互不一致 ——
+      · 后端 `risk_levels.DISPLAY_LABELS`（曾写「已列明」）；
+      · 网页报告 `tax-doc-analysis.js::_levelText`（曾写「已查明待办事项」，且是**死函数**）；
+      · 风险页 `risks.js::LEVEL_DISPLAY`（「涉嫌风险」）。
+    ⇒ 同一条发现，风险页叫「涉嫌风险」、网页报告叫「已查明待办事项」、
+      导出 PDF/Word/HTML 叫裸「待核验」。
+
+    本闸门两层判据（都可反向验证）：
+      ① **行为级**（伪造最小 ctx 真调 `report_service` 三个等级渲染节）——
+         断言：导出报告的等级统计表 / 分税种明细 / 重点风险卡片里，
+         「待核验」 findings 呈现「涉嫌风险」、结论等级「待核」呈现术语「待核事项」，
+         且**任何裸「待核验/待核」不得出现**。谁绕过 `display_label` 谁就报 ERROR。
+      ② **前端同步**（`constants.js::LEVEL_DISPLAY` 是后端权威的 JS 侧镜像）——
+         断言：JS 映射逐键与 `display_label` 同值；`risks.js` 不得再自写第二份；
+         `tax-doc-analysis.js` 不得有 competing 措辞（「已查明待办事项」清零）
+         且合成发现徽标不得裸拼 `synthFinding.level`。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    # ── ① 行为级：导出链三节真调 ─────────────────────────────
+    try:
+        from engine.risk_levels import display_label as _dl
+        from engine import report_service as RSVC
+    except Exception as exc:                                     # noqa: BLE001
+        return [("ERROR", "engine/report_service.py",
+                 "等级展示权威闸门无法导入被检模块：%s" % exc)]
+
+    # 权威本身必须已是用户裁定的措辞（反向验证锚点：改回去这里先红）
+    if _dl("待核验") != "涉嫌风险" or _dl("待核") != "涉嫌风险":
+        issues.append(("ERROR", "engine/risk_levels.py",
+                       "DISPLAY_LABELS 应把「待核验/待核」呈现为「涉嫌风险」（用户 2026-10-15 裁定），"
+                       "实测 待核验→%s、待核→%s" % (_dl("待核验"), _dl("待核"))))
+
+    try:
+        # ①-a 等级统计表（_sec_risk_overview）
+        _ctx_ov = {"stats": {"available": True, "by_level": {"待核验": 2, "高风险": 1},
+                             "by_tax": {}, "by_state_cn": {}, "by_amount_band": {},
+                             "amount_by_band": {}, "total": 3, "amount_total": 0,
+                             "amount_unknown_count": 0, "pending_amount_total": 0,
+                             "reviewed_total": 0, "rectification_total": 0, "notes": {}},
+                   "documents": {"items": [], "total": 0}, "extract_counts": {},
+                   "payload": {}, "limit": 50}
+        _ov = RSVC._sec_risk_overview(_ctx_ov)
+        _ov_txt = json.dumps(_ov, ensure_ascii=False, default=str)
+        if "涉嫌风险" not in _ov_txt:
+            issues.append(("ERROR", "engine/report_service.py",
+                           "等级统计表未呈现「涉嫌风险」（`_sec_risk_overview` 须走 "
+                           "`risk_levels.display_label`，不得裸印 by_level 的键）"))
+        if "待核验" in _ov_txt:
+            issues.append(("ERROR", "engine/report_service.py",
+                           "等级统计表出现裸「待核验」（结构性字段值被当展示文本）"))
+
+        # ①-b 分税种明细（_sec_tax_detail）
+        _ctx_tax = {"findings": [{"seq": 1, "title": "测试事项", "risk_level": "待核验",
+                                  "taxes": ["增值税"]}],
+                    "amounts": {}, "state_cn": {}, "limit": 50}
+        _tx = RSVC._sec_tax_detail(_ctx_tax)
+        _tx_txt = json.dumps(_tx, ensure_ascii=False, default=str)
+        if "涉嫌风险" not in _tx_txt or "待核验" in _tx_txt:
+            issues.append(("ERROR", "engine/report_service.py",
+                           "分税种明细「等级」列未走 `display_label`（实测含裸「待核验」或缺「涉嫌风险」）"))
+
+        # ①-c 重点风险卡片（_sec_key_risks）：风险等级 + 结论等级两轴
+        _ctx_key = {"key_findings": [{"seq": 1, "risk_no": "R1", "title": "测试事项",
+                                      "risk_level": "待核验", "conclusion_grade": "待核",
+                                      "taxes": [], "priority_score": None}],
+                    "findings": [{"seq": 1, "risk_no": "R1", "risk_level": "待核验"}],
+                    "reviews": {}, "amounts": {}}
+        _ky = RSVC._sec_key_risks(_ctx_key)
+        _ky_txt = json.dumps(_ky, ensure_ascii=False, default=str)
+        if "涉嫌风险" not in _ky_txt or "待核验" in _ky_txt:
+            issues.append(("ERROR", "engine/report_service.py",
+                           "重点风险卡片「风险等级」未走 `display_label`（实测含裸「待核验」或缺「涉嫌风险」）"))
+        if "待核事项" not in _ky_txt or "待核" in _ky_txt.replace("待核事项", ""):
+            issues.append(("ERROR", "engine/report_service.py",
+                           "重点风险卡片「结论等级」未走结论术语权威（「待核」应呈现为「待核事项」，"
+                           "唯一权威 config/conclusion_grades.json::term_authority）"))
+    except Exception as exc:                                     # noqa: BLE001
+        issues.append(("ERROR", "engine/report_service.py",
+                       "等级展示行为级断言执行失败（伪造 ctx 形状与实现漂移）：%s" % exc))
+
+    # ── ② 前端同步 ───────────────────────────────────────────
+    try:
+        _const = (ROOT / "static" / "js" / "constants.js").read_text(
+            encoding="utf-8", errors="replace")
+        _m = re.search(r"var\s+LEVEL_DISPLAY\s*=\s*\{([^}]*)\}", _const)
+        if not _m:
+            issues.append(("ERROR", "static/js/constants.js",
+                           "缺全局 `LEVEL_DISPLAY` 映射（等级展示 JS 侧唯一镜像必须在此定义）"))
+        else:
+            _pairs = dict(re.findall(r"'([^']+)'\s*:\s*'([^']+)'", _m.group(1)))
+            if "待核验" not in _pairs or _pairs.get("待核验") != _dl("待核验"):
+                issues.append(("ERROR", "static/js/constants.js",
+                               "LEVEL_DISPLAY['待核验']=%r 与后端权威 %r 不同源"
+                               % (_pairs.get("待核验"), _dl("待核验"))))
+            if "待核" not in _pairs or _pairs.get("待核") != _dl("待核"):
+                issues.append(("ERROR", "static/js/constants.js",
+                               "LEVEL_DISPLAY['待核']=%r 与后端权威 %r 不同源"
+                               % (_pairs.get("待核"), _dl("待核"))))
+    except OSError as exc:
+        issues.append(("ERROR", "static/js/constants.js", "无法读取：%s" % exc))
+
+    _js_dir = ROOT / "static" / "js"
+    for _jf in ("risks.js", "tax-doc-analysis.js", "report-block-renderer.js",
+                "report-modules.js", "dashboard.js"):
+        _p = _js_dir / _jf
+        if not _p.exists():
+            continue
+        try:
+            _src = _p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if "已查明待办事项" in _src:
+            issues.append(("ERROR", "static/js/%s" % _jf,
+                           "出现 competing 措辞「已查明待办事项」（等级展示唯一出处 = constants.js"
+                           "::LEVEL_DISPLAY；2026-10-15 用户裁定统一为「涉嫌风险」）"))
+        if _jf == "risks.js" and re.search(r"var\s+LEVEL_DISPLAY\s*=", _src):
+            issues.append(("ERROR", "static/js/risks.js",
+                           "自写第二份 LEVEL_DISPLAY（唯一出处 = constants.js，本文件只消费 "
+                           "`levelDisplayOf`）"))
+        if _jf == "tax-doc-analysis.js" and re.search(
+                r"\+\s*\(\s*synthFinding\.level\s*\|\|", _src):
+            issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                           "合成发现徽标裸拼 `synthFinding.level`（须经 `_levelText` 翻译）"))
+        # 这几处**直接展示等级键/值**（风险分布大屏、事实段等级徽标）⇒
+        # 必须引用全局映射；否则「待核验」会原样印到页面。
+        if _jf in ("dashboard.js", "report-modules.js") and "levelDisplayOf" not in _src:
+            issues.append(("ERROR", "static/js/%s" % _jf,
+                           "展示等级却未引用全局映射 `levelDisplayOf`（等级键会裸印「待核验」）"))
+
+    # risks.html 须先加载 constants.js 再加载 risks.js（否则全局映射不可见）
+    try:
+        _rh = (ROOT / "static" / "risks.html").read_text(
+            encoding="utf-8", errors="replace")
+        _i_c, _i_r = _rh.find("constants.js"), _rh.find("risks.js")
+        if _i_r >= 0 and (_i_c < 0 or _i_c > _i_r):
+            issues.append(("ERROR", "static/risks.html",
+                           "constants.js 须先于 risks.js 加载（levelDisplayOf 全局映射依赖）"))
+    except OSError:
+        pass
 
     return issues
 

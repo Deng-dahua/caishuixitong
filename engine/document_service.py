@@ -555,8 +555,14 @@ def _save_session(sess: Dict[str, Any]) -> None:
 
 
 def chunk_init(project_id: Any, filename: Any, size: Any, session: Any, *,
-               engine=None, md5: Any = None) -> Dict[str, Any]:
-    """发起分片上传会话（断点续传的起点）。"""
+               engine=None, md5: Any = None, request: Any = None) -> Dict[str, Any]:
+    """发起分片上传会话（断点续传的起点）。
+
+    ★ 2026-10-15 修既有缺陷：本函数内 `_ensure(..., request=request)` 依赖 `request`，
+      但签名原先**没有该形参** ⇒ 项目无账套时（`cid <= 0` 分支）执行到即 `NameError`
+      ⇒ 断点续传起点直接 500（由闸门 `check_undefined_names` 检出）。
+      现补形参（默认 None，向后兼容）；API 层传入真实 request 以留痕。
+    """
     eng = _engine_or_default(engine)
     ensure_schema(eng)
     name = str(filename or "").strip()

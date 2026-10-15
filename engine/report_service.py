@@ -42,6 +42,33 @@ from typing import Any, Dict, List, Optional, Tuple
 from engine import report_render as RENDER
 from engine import report_store as STORE
 from engine import report_views as VIEWS
+# ★ 2026-10-15（用户裁定「涉嫌风险」统一呈现）：报告正文里出现的一切等级词，
+#   一律经唯一权威 `risk_levels.display_label` 翻译；**禁止**把结构化字段值
+#   （risk_level / by_level 的键）直接写进表格或卡片 —— 那正是本文件三处
+#   等级渲染点长期绕过权威、把裸「待核验」印进导出报告的根因（闸门
+#   `check_level_display_single_source` 行为级锁死，见 tools/audit_consistency.py）。
+from engine.risk_levels import display_label as _display_label
+
+
+def _conclusion_label(value: Any) -> str:
+    """结论等级字段值 → **对外术语**（唯一权威 `config/conclusion_grades.json::term_authority`）。
+
+    「待核」这类裁决语/旧字面是**降级疑点的内部标识**，读者看到的应是术语
+    「待核事项」（L2），不是裸标识；L1~L4 显式级直接取 `term_of`。
+    取不到映射时**原样返回**（缺失≠编造）。
+    """
+    s = str(value or "").strip()
+    if not s:
+        return ""
+    try:
+        from engine.conclusion_grade import term_of as _term_of
+        from engine.conclusion_grade import effective_grade_id as _egid
+        if s.upper() in ("L1", "L2", "L3", "L4"):
+            return _term_of(s.upper()) or s
+        gid, _reg = _egid({"conclusion_grade": s})
+        return (_term_of(gid) or s) if gid else s
+    except Exception:                                            # noqa: BLE001
+        return s
 
 __all__ = ["ReportServiceError", "generate", "get", "list_reports", "versions",
            "download", "metadata", "build_document"]
@@ -335,7 +362,8 @@ def _sec_risk_overview(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
             ("已人工复核", st.get("reviewed_total")),
             ("整改台账条数", st.get("rectification_total")),
         ]),
-        _block_table(["风险等级", "件数"], [[k, v] for k, v in lv.items()],
+        _block_table(["风险等级", "件数"],
+                     [[_display_label(k), v] for k, v in lv.items()],
                      note="等级唯一权威 `engine/risk_levels.py`（5 档）；本报告不重算等级。"),
         _block_table(["复核处置状态", "件数"], [[k, v] for k, v in stt.items()],
                      note="处置状态唯一权威 P0-6 `engine/risk_review.py`。"),
@@ -364,7 +392,7 @@ def _sec_tax_detail(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
     lim = ctx["limit"]
     for tax, fs in groups:
-        rows = [[f.get("seq"), _brief(f.get("title"), 70), f.get("risk_level"),
+        rows = [[f.get("seq"), _brief(f.get("title"), 70), _display_label(f.get("risk_level")),
                  f.get("priority_score"), _money((ctx["amounts"] or {}).get(f.get("seq")))
                  or "—", (ctx["state_cn"] or {}).get(str(f.get("risk_no")), "待处理")]
                 for f in (fs[:lim] if lim else fs)]
@@ -388,8 +416,8 @@ def _sec_key_risks(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
         out.append(_block_para("【%s】%s" % (f.get("seq"), _brief(f.get("title"), 90))))
         out.append(_block_kv([
             ("风险编号", rn),
-            ("风险等级", f.get("risk_level")),
-            ("结论等级", f.get("conclusion_grade")),
+            ("风险等级", _display_label(f.get("risk_level"))),
+            ("结论等级", _conclusion_label(f.get("conclusion_grade"))),
             ("综合排序分", f.get("priority_score")),
             ("涉税金额（测算，元）", _money((ctx["amounts"] or {}).get(f.get("seq"))) or "—"),
             ("税种", "、".join(f.get("taxes") or []) or "—"),

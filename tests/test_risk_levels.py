@@ -159,7 +159,10 @@ class TestDisplayLabelAuthority:
 
     def test_display_label_mapping(self):
         from engine.risk_levels import display_label
-        assert display_label("待核验") == "已列明"
+        # ★ 2026-10-15（用户裁定）：「待核验/待核」呈现为「涉嫌风险」
+        #   （未定性 ≠ 没事；原「已列明」口径废止）。见闸门 check_level_display_single_source。
+        assert display_label("待核验") == "涉嫌风险"
+        assert display_label("待核") == "涉嫌风险"
         assert display_label("信息") == "提示性事项"
         for lv in ("极高风险", "高风险", "中风险", "低风险"):
             assert display_label(lv) == lv
@@ -187,7 +190,7 @@ class TestDisplayLabelAuthority:
         assert by_level.get("待核验") == 2, by_level
         by_disp = counts.get("by_level_display") or {}
         assert by_disp.get(display_label("待核验")) == 2, by_disp
-        assert by_disp.get("已列明") == 2, "展示写法必须可用（否则下游会去改 by_level 的键）"
+        assert by_disp.get("涉嫌风险") == 2, "展示写法必须可用（否则下游会去改 by_level 的键）"
 
     def test_report_body_avoids_pending_wording(self):
         """用户口径：报告**正文**不得出现「待核实/待核验」这类不确定措辞。
