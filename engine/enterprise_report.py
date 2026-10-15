@@ -7698,6 +7698,12 @@ def build_enterprise_readable_report(report_data, edition=None):
                     _p["risk_level"] = _capped
                     _p["risk_level_capped_by_grade_from"] = _from
                     _cap_n += 1
+            # ★ 2026-10-15（用户裁定「虽没定性也是隐患，明确涉嫌风险的呈现」）：
+            #   结论未定性 ⇒ risk_level 保持受控（防「结论待核、等级高风险」自相矛盾，
+            #   门禁 B3 语义不变），但**检出等级**必须原生携带并呈现 —— 企业有权
+            #   知道这个隐患按检出证据达到了什么强度。
+            _p["detected_risk_level"] = (_p.get("risk_level_capped_by_grade_from")
+                                         or _p.get("risk_level") or "")
             _p["risk_level"] = _normalize_risk_level(_p.get("risk_level"))
             # ② 七环结构收敛（红线项与域分析项同构；环名由 schema 决定）
             if _rrs is not None:

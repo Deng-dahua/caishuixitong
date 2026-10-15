@@ -159,7 +159,11 @@ async function loadList() {
       + '<td>' + esc(x.seq) + '</td>'
       + '<td class="muted">' + esc(x.risk_no || '—') + '</td>'
       + '<td class="wrap">' + esc(x.title || '') + '</td>'
-      + '<td>' + lvTag(x.risk_level) + '</td>'
+      + '<td>' + lvTag(x.detected_risk_level || x.risk_level)
+          + (x.risk_level_capped_by_grade_from
+             ? '<br><span class="muted" style="font-size:11px">⚠ 涉嫌风险（未定性，暂列'
+               + esc(x.risk_level) + '）</span>' : '')
+          + '</td>'
       + '<td class="num">' + (x.priority_score === null || x.priority_score === undefined
           ? '<span class="muted">信息不足</span>' : esc(x.priority_score)) + '</td>'
       + '<td class="num">' + num(x.amount_known === false ? null : x.tax_impact_amount) + '</td>'
@@ -264,7 +268,10 @@ function renderDetail(j) {
   /* 概要 */
   H.push('<div class="card"><h3>概要</h3><div class="kv">');
   H.push(kv('风险编号', esc(j.risk_no || '—') + '<span class="pill">序号 ' + esc(j.seq) + '</span>'));
-  H.push(kv('风险等级', lvTag(f.risk_level)
+  H.push(kv('风险等级', lvTag(f.detected_risk_level || f.risk_level)
+    + (f.risk_level_capped_by_grade_from
+       ? '<span class="muted">　⚠ 涉嫌风险（未定性，受控暂列' + esc(f.risk_level) +
+         '；检出强度 ' + esc(f.risk_level_capped_by_grade_from) + '）</span>' : '')
     + (f.risk_level_basis ? '<span class="muted">　依据：' + esc(f.risk_level_basis) + '</span>' : '')));
   H.push(kv('结论等级', esc(f.conclusion_grade || '—')));
   H.push(kv('综合排序分', (sc.priority_score === null || sc.priority_score === undefined

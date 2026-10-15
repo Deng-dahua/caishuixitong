@@ -297,6 +297,12 @@ def list_risks(company_id: Any, session: Any, *, tax: str = "", level: str = "",
         items = SCORE.stamp_all(items)
     items = _sort(items, sort, order)
 
+    # ★ 2026-10-15（用户裁定）：每条补「检出等级」——
+    #   封顶前的原始检出强度（capped_by_grade_from 即封顶前等级），
+    #   旧载荷无需重析即时生效；呈现层据此明确「涉嫌风险」。
+    for f in items:
+        f["detected_risk_level"] = (f.get("risk_level_capped_by_grade_from")
+                                    or f.get("risk_level") or "")
     # 复核态并入每条（列表也要能直接看到处置状态）
     for f in items:
         rn = str(f.get("risk_no") or "")
@@ -494,7 +500,11 @@ def stats(company_id: Any, session: Any) -> Dict[str, Any]:
     amount_total = 0.0
     amount_unknown = 0
     for f in findings:
-        lv = str(f.get("risk_level") or "未标注")
+        # ★ 2026-10-15（用户裁定）：统计按**检出等级**（封顶前），与呈现一致——
+        #   未定性条目受控等级为"低风险"，若按它统计会把 2 高/9 中全部显示成"低"。
+        lv = str(f.get("detected_risk_level")
+                 or f.get("risk_level_capped_by_grade_from")
+                 or f.get("risk_level") or "未标注")
         by_level[lv] = by_level.get(lv, 0) + 1
         taxes = [str(x) for x in (f.get("taxes") or [])] or (
             [str(f.get("tax"))] if f.get("tax") else ["未标注"])
