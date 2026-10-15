@@ -5,7 +5,8 @@
  "relation_types": {
   "amended": "修订/修正",
   "abolished": "废止/失效",
-  "cited_by": "据以制定/依据"
+  "cited_by": "据以制定/依据",
+  "related": "相关制度"
  },
  "sources": {
   "fgk": {
@@ -21,8 +22,9 @@
   "unresolved": 8,
   "by_relation": {
    "abolished": 1194,
-   "cited_by": 1138,
-   "amended": 418
+   "cited_by": 1104,
+   "amended": 418,
+   "related": 34
   },
   "with_target": 2744,
   "with_date": 1560
@@ -46770,7 +46772,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国企业所得税法",
    "targets_all": [
     "中华人民共和国企业所得税法"
@@ -46787,7 +46790,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国企业所得税法实施条例",
    "targets_all": [
     "中华人民共和国企业所得税法实施条例"
@@ -46803,8 +46807,9 @@
    "subject_code": "CIT-REG",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "国务院令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "国务院令",
    "target": "中华人民共和国国务院令第797号",
    "targets_all": [
     "中华人民共和国国务院令第797号"
@@ -46820,8 +46825,9 @@
    "subject_code": "CIT-REG",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改决定",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改决定",
    "target": "国务院关于修改和废止部分行政法规的决定",
    "targets_all": [
     "国务院关于修改和废止部分行政法规的决定"
@@ -46837,8 +46843,9 @@
    "subject_code": "CIT-REG",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "其他",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "其他",
    "target": "其他",
    "targets_all": [
     "其他"
@@ -46855,7 +46862,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国会计法",
    "targets_all": [
     "中华人民共和国会计法"
@@ -46871,8 +46879,9 @@
    "subject_code": "ACCOUNTING-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "主席令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "主席令",
    "target": "中华人民共和国主席令（第二十八号）",
    "targets_all": [
     "中华人民共和国主席令（第二十八号）"
@@ -46888,8 +46897,9 @@
    "subject_code": "ACCOUNTING-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "草案的说明",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "草案的说明",
    "target": "关于《中华人民共和国会计法（修正草案）》的说明",
    "targets_all": [
     "关于《中华人民共和国会计法（修正草案）》的说明"
@@ -46905,8 +46915,9 @@
    "subject_code": "ACCOUNTING-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "审议结果的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "审议结果的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《中华人民共和国会计法（修正草案）》审议结果的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《中华人民共和国会计法（修正草案）》审议结果的报告"
@@ -46922,8 +46933,9 @@
    "subject_code": "ACCOUNTING-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改意见的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改意见的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《全国人民代表大会常务委员会关于修改〈中华人民共和国会计法〉的决定（草案）》修改意见的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《全国人民代表大会常务委员会关于修改〈中华人民共和国会计法〉的决定（草案）》修改意见的报告"
@@ -46939,8 +46951,9 @@
    "subject_code": "ACCOUNTING-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "其他",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "其他",
    "target": "全国人民代表大会常务委员会关于修改《中华人民共和国会计法》的决定",
    "targets_all": [
     "全国人民代表大会常务委员会关于修改《中华人民共和国会计法》的决定"
@@ -46957,7 +46970,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "住房公积金管理条例",
    "targets_all": [
     "住房公积金管理条例"
@@ -46973,8 +46987,9 @@
    "subject_code": "HPF-REG",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "国务院令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "国务院令",
    "target": "中华人民共和国国务院令第844号",
    "targets_all": [
     "中华人民共和国国务院令第844号"
@@ -46990,8 +47005,9 @@
    "subject_code": "HPF-REG",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改决定",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改决定",
    "target": "国务院关于修改《住房公积金管理条例》的决定",
    "targets_all": [
     "国务院关于修改《住房公积金管理条例》的决定"
@@ -47007,8 +47023,9 @@
    "subject_code": "HPF-REG",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "其他",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "其他",
    "target": "其他",
    "targets_all": [
     "其他"
@@ -47024,8 +47041,9 @@
    "subject_code": "CUSTOMS-DUTY-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "主席令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "主席令",
    "target": "中华人民共和国主席令（第二十三号）",
    "targets_all": [
     "中华人民共和国主席令（第二十三号）"
@@ -47041,8 +47059,9 @@
    "subject_code": "CUSTOMS-DUTY-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "草案的说明",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "草案的说明",
    "target": "关于《中华人民共和国关税法（草案）》的说明",
    "targets_all": [
     "关于《中华人民共和国关税法（草案）》的说明"
@@ -47058,8 +47077,9 @@
    "subject_code": "CUSTOMS-DUTY-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "审议结果的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "审议结果的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《中华人民共和国关税法（草案）》审议结果的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《中华人民共和国关税法（草案）》审议结果的报告"
@@ -47075,8 +47095,9 @@
    "subject_code": "CUSTOMS-DUTY-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改意见的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改意见的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《中华人民共和国关税法（草案二次审议稿）》修改意见的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《中华人民共和国关税法（草案二次审议稿）》修改意见的报告"
@@ -47093,7 +47114,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国刑法",
    "targets_all": [
     "中华人民共和国刑法"
@@ -47110,7 +47132,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国发票管理办法",
    "targets_all": [
     "中华人民共和国发票管理办法"
@@ -47126,8 +47149,9 @@
    "subject_code": "INVOICE-MEASURE",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "国务院令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "国务院令",
    "target": "中华人民共和国国务院令第764号",
    "targets_all": [
     "中华人民共和国国务院令第764号"
@@ -47143,8 +47167,9 @@
    "subject_code": "INVOICE-MEASURE",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改决定",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改决定",
    "target": "国务院关于修改和废止部分行政法规的决定",
    "targets_all": [
     "国务院关于修改和废止部分行政法规的决定"
@@ -47160,8 +47185,9 @@
    "subject_code": "INVOICE-MEASURE",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "其他",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "其他",
    "target": "其他",
    "targets_all": [
     "其他"
@@ -47177,8 +47203,9 @@
    "subject_code": "VAT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "主席令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "主席令",
    "target": "中华人民共和国主席令（第四十一号）",
    "targets_all": [
     "中华人民共和国主席令（第四十一号）"
@@ -47194,8 +47221,9 @@
    "subject_code": "VAT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "草案的说明",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "草案的说明",
    "target": "关于《中华人民共和国增值税法（草案）》的说明",
    "targets_all": [
     "关于《中华人民共和国增值税法（草案）》的说明"
@@ -47211,8 +47239,9 @@
    "subject_code": "VAT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改情况的汇报",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改情况的汇报",
    "target": "全国人民代表大会宪法和法律委员会关于《中华人民共和国增值税法（草案）》修改情况的汇报",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《中华人民共和国增值税法（草案）》修改情况的汇报"
@@ -47228,8 +47257,9 @@
    "subject_code": "VAT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "审议结果的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "审议结果的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《中华人民共和国增值税法（草案）》审议结果的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《中华人民共和国增值税法（草案）》审议结果的报告"
@@ -47245,8 +47275,9 @@
    "subject_code": "VAT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改意见的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改意见的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《中华人民共和国增值税法（草案三次审议稿）》修改意见的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《中华人民共和国增值税法（草案三次审议稿）》修改意见的报告"
@@ -47262,8 +47293,9 @@
    "subject_code": "VAT-REG",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "国务院令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "国务院令",
    "target": "中华人民共和国国务院令第826号",
    "targets_all": [
     "中华人民共和国国务院令第826号"
@@ -47279,8 +47311,9 @@
    "subject_code": "VAT-REG",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "其他",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "其他",
    "target": "其他",
    "targets_all": [
     "其他"
@@ -47297,7 +47330,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国工会法",
    "targets_all": [
     "中华人民共和国工会法"
@@ -47313,8 +47347,9 @@
    "subject_code": "UNION-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "主席令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "主席令",
    "target": "中华人民共和国主席令第一〇七号",
    "targets_all": [
     "中华人民共和国主席令第一〇七号"
@@ -47330,8 +47365,9 @@
    "subject_code": "UNION-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "草案的说明",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "草案的说明",
    "target": "关于《中华人民共和国工会法（修正草案）》的说明",
    "targets_all": [
     "关于《中华人民共和国工会法（修正草案）》的说明"
@@ -47347,8 +47383,9 @@
    "subject_code": "UNION-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "审议结果的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "审议结果的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《中华人民共和国工会法（修正草案）》审议结果的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《中华人民共和国工会法（修正草案）》审议结果的报告"
@@ -47364,8 +47401,9 @@
    "subject_code": "UNION-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "其他",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "其他",
    "target": "全国人民代表大会常务委员会关于修改《中华人民共和国工会法》的决定",
    "targets_all": [
     "全国人民代表大会常务委员会关于修改《中华人民共和国工会法》的决定"
@@ -47382,7 +47420,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国海关法",
    "targets_all": [
     "中华人民共和国海关法"
@@ -47399,7 +47438,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国环境保护税法",
    "targets_all": [
     "中华人民共和国环境保护税法"
@@ -47416,7 +47456,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国环境保护税法",
    "targets_all": [
     "中华人民共和国环境保护税法"
@@ -47432,8 +47473,9 @@
    "subject_code": "EPT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "主席令",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "主席令",
    "target": "中华人民共和国主席令（第六十二号）",
    "targets_all": [
     "中华人民共和国主席令（第六十二号）"
@@ -47449,8 +47491,9 @@
    "subject_code": "EPT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改决定",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改决定",
    "target": "全国人民代表大会常务委员会关于修改《中华人民共和国环境保护税法》的决定",
    "targets_all": [
     "全国人民代表大会常务委员会关于修改《中华人民共和国环境保护税法》的决定"
@@ -47466,8 +47509,9 @@
    "subject_code": "EPT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "草案的说明",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "草案的说明",
    "target": "关于《中华人民共和国环境保护税法（修正草案）》的说明",
    "targets_all": [
     "关于《中华人民共和国环境保护税法（修正草案）》的说明"
@@ -47483,8 +47527,9 @@
    "subject_code": "EPT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "审议结果的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "审议结果的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《中华人民共和国环境保护税法（修正草案）》审议结果的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《中华人民共和国环境保护税法（修正草案）》审议结果的报告"
@@ -47500,8 +47545,9 @@
    "subject_code": "EPT-LAW",
    "subject_doc_no": "",
    "subject_url": "",
-   "relation": "cited_by",
-   "relation_cn": "修改意见的报告",
+   "relation": "related",
+   "relation_cn": "相关制度",
+   "target_type": "修改意见的报告",
    "target": "全国人民代表大会宪法和法律委员会关于《全国人民代表大会常务委员会关于修改〈中华人民共和国环境保护税法〉的决定（草案）》修改意见的报告",
    "targets_all": [
     "全国人民代表大会宪法和法律委员会关于《全国人民代表大会常务委员会关于修改〈中华人民共和国环境保护税法〉的决定（草案）》修改意见的报告"
@@ -47518,7 +47564,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国社会保险法",
    "targets_all": [
     "中华人民共和国社会保险法"
@@ -47535,7 +47582,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国船舶吨税法",
    "targets_all": [
     "中华人民共和国船舶吨税法"
@@ -47552,7 +47600,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国行政处罚法",
    "targets_all": [
     "中华人民共和国行政处罚法"
@@ -47569,7 +47618,8 @@
    "subject_doc_no": "",
    "subject_url": "",
    "relation": "amended",
-   "relation_cn": "版本更替",
+   "relation_cn": "修订/修正",
+   "note": "同一部法的版本链（flk 历史沿革）",
    "target": "中华人民共和国车船税法",
    "targets_all": [
     "中华人民共和国车船税法"

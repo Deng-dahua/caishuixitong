@@ -13034,7 +13034,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
 
 
@@ -19818,6 +19818,230 @@ def check_legal_mapping_wiring() -> List[Tuple[str, str, str]]:
                        "材料库不可用 ⇒ 案例/解读/问答关联 SKIP（**不得当作通过**；"
                        "先跑 `scripts/_gen_legal_materials.py`）"))
 
+    return issues
+
+
+def check_legal_frontend_wiring() -> List[Tuple[str, str, str]]:
+    """步骤 22 前端（专题 / 目录 / 关系 / 材料 / 条款）的**接线 + 顺序 + 无硬编码**闸门。
+
+    判据（A~F 静态 + G 行为级）：
+      A 三个页面文件存在，且页面路由已注册（`legal_api.page_router`）；
+      B 侧边栏 `static/index.html` 有 `/legal-topics` 与 `/legal-materials` 入口
+        （**孤岛页**是与 `check_one_click_wiring_coverage` 同类的真缺陷）；
+      C 同前缀内**字面量段先于参数化段**（`/legal-topics/stats` 先于 `/legal-topics/{topic_id}`；
+        `/legal-materials/stats` 先于 `/legal-materials/{material_id}`）⇒ 否则静默 404；
+      D 读层三件套存在，且**不含数据文件字面量**（读盘路径不得出现第二处）；
+      E 前端 JS **不硬编码条数**：不得出现 `TOPIC-` 编号清单、不得写死"20 个专题"
+        之类规模数字（一律取后端）；也不得内嵌条文正文；
+      F 页面 HTML 各自引用自己的 JS（不是互相引用或漏引）；
+      G **行为级**：按读层真调，确认专题/目录/关系/材料/条款五类各能取到数据，
+        且缺口时给出 `reason`/`note`（**不得静默空**）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    import re as _re                                            # noqa: PLC0415
+
+    # ── A 页面文件与路由 ──
+    for page, js in (("legal_topics.html", "legal_topics.js"),
+                     ("legal_materials.html", "legal_materials.js")):
+        if not (ROOT / "static" / page).exists():
+            issues.append(("ERROR", "static/%s" % page, "步骤 22 页面缺失"))
+        if not (ROOT / "static" / "js" / js).exists():
+            issues.append(("ERROR", "static/js/%s" % js, "步骤 22 前端脚本缺失"))
+    api_txt = (ROOT / "legal_api.py").read_text(encoding="utf-8", errors="replace")
+    for route in ('"/legal-topics"', '"/legal-materials"'):
+        if route not in api_txt:
+            issues.append(("ERROR", "legal_api.py", "缺少页面路由 `%s`" % route))
+
+    # ── B 侧边栏入口（防孤岛页）──
+    idx = (ROOT / "static" / "index.html").read_text(encoding="utf-8", errors="replace")
+    for url in ("/legal-topics", "/legal-materials"):
+        if url not in idx:
+            issues.append(("ERROR", "static/index.html",
+                           "页面 `%s` 无侧边栏入口 ⇒ 只能手输 URL 访问（孤岛页）" % url))
+
+    # ── C 路由顺序（字面量必须先于参数化段）──
+    def _order(lit: str, param: str) -> None:
+        i_lit, i_par = api_txt.find(lit), api_txt.find(param)
+        if i_lit < 0:
+            issues.append(("ERROR", "legal_api.py", "缺少字面量段 `%s`" % lit))
+        elif i_par < 0:
+            issues.append(("ERROR", "legal_api.py", "缺少参数化段 `%s`" % param))
+        elif i_lit > i_par:
+            issues.append(("ERROR", "legal_api.py",
+                           "`%s` 注册在 `%s` **之后** ⇒ 会被路径参数吃掉（静默 404）"
+                           % (lit, param)))
+
+    _order('"/legal-topics/stats"', '"/legal-topics/{topic_id}"')
+    _order('"/legal-materials/stats"', '"/legal-materials/{material_id}"')
+    # 目录/关系无参数化段，但字面量段必须在同前缀列表之后（同 find 顺序即注册顺序）
+    for lit, after in (('"/legal-catalog/stats"', '"/legal-catalog"'),
+                       ('"/legal-catalog/item"', '"/legal-catalog/stats"'),
+                       ('"/legal-relations/lookup"', '"/legal-relations"')):
+        i_lit, i_after = api_txt.find(lit), api_txt.find(after)
+        if i_lit < 0:
+            issues.append(("ERROR", "legal_api.py", "缺少字面量段 `%s`" % lit))
+        elif i_after >= 0 and i_lit < i_after:
+            issues.append(("ERROR", "legal_api.py",
+                           "`%s` 注册在 `%s` 之前（顺序与惯例不一致，易误读）" % (lit, after)))
+
+    # ── D 读层不得**重复实现正文读取**（唯一权威 = legal_mapping.content_of）──
+    #   ★ 判据修正记录（2026-10-15）：初版禁止 `legal_catalog.json` / `legal_provisions.json`
+    #     字面量 ⇒ **假红**：`legal_topics` 的职责就是读专题索引 + 按目录下标取条目，
+    #     它**必须**读这两个文件。真正要防的是"**另写一份条款正文读取**"
+    #     （正文唯一权威 `static/legal_library.json`，读法转发 `legal_mapping.content_of`）。
+    for rel in ("engine/legal_topics.py", "engine/legal_catalog.py"):
+        f = ROOT / rel
+        if not f.exists():
+            issues.append(("ERROR", rel, "步骤 22 读层缺失"))
+            continue
+        txt = f.read_text(encoding="utf-8", errors="replace")
+        code = _re.sub(r'"""(?:.|\n)*?"""', lambda m: " " * len(m.group(0)), txt)
+        code = _re.sub(r"'''(?:.|\n)*?'''", lambda m: " " * len(m.group(0)), code)
+        code = _re.sub(r"#[^\n]*", lambda m: " " * len(m.group(0)), code)
+        # ★ 只抓**真读盘调用**（`_j("legal_library.json")` / `open(...,"legal_library.json")` /
+        #   `read_text()` 旁的该文件名）—— 说明性字符串（如 `authority` 字典里写
+        #   "正文唯一权威 static/legal_library.json"）**不是**第二处实现。
+        #   实测初版只判"字符串出现" ⇒ `legal_catalog.stats()` 的 authority 说明被误判为假红。
+        if _re.search(r"(?:open\(|read_text|_j\(|_read\()[^\n]{0,60}legal_library\.json", code) \
+                or _re.search(r"legal_library\.json[^\n]{0,30}\)[^\n]{0,20}read_text", code):
+            issues.append(("ERROR", rel,
+                           "**代码**真读盘 `legal_library.json` ⇒ 另写了一份条款正文读取"
+                           "（唯一权威转发 `legal_mapping.content_of`）"))
+    # 行为判据：`legal_topics` 取条款正文**必须**经唯一读法
+    try:
+        _tp = (ROOT / "engine" / "legal_topics.py").read_text(encoding="utf-8", errors="replace")
+        if "LM.content_of" not in _tp:
+            issues.append(("ERROR", "engine/legal_topics.py",
+                           "条款正文未走 `legal_mapping.content_of`（唯一读法）"
+                           "⇒ 存在第二套正文读取的风险"))
+    except OSError:
+        pass
+
+    # ── E 前端不得硬编码规模/条文（★ 掩掉注释与字符串示例后再判）──
+    for js in ("legal_topics.js", "legal_materials.js"):
+        p = ROOT / "static" / "js" / js
+        if not p.exists():
+            continue
+        _raw = p.read_text(encoding="utf-8", errors="replace")
+        # ★ 掩注释：注释里举例（如"深链 ?topic=TOPIC-001"）**不是硬编码缺陷**
+        #   —— 与既有闸门"掩注释再判"同口径（实测初版未掩 ⇒ 假红）。
+        src = _re.sub(r"/\*(?:.|\n)*?\*/", lambda m: " " * len(m.group(0)), _raw)
+        src = _re.sub(r"//[^\n]*", lambda m: " " * len(m.group(0)), src)
+        # E1 不得写死专题编号（应完全由后端返回驱动）
+        if _re.search(r"TOPIC-0\d\d", src):
+            issues.append(("ERROR", "static/js/%s" % js,
+                           "写死专题编号 `TOPIC-0xx` ⇒ 专题清单必须完全来自后端"
+                           "（新增专题零改前端）"))
+        # E2 不得写死"20 个专题"这类规模数字
+        if _re.search(r"20\s*(个)?专题", src):
+            issues.append(("ERROR", "static/js/%s" % js,
+                           "写死专题规模数字（如「20 个专题」）⇒ 规模一律取后端"))
+        # E3 不得内嵌条文正文（"第…条"形式的长句）
+        if _re.search(r"第[一二三四五六七八九十百]+条[，。；]", src):
+            issues.append(("ERROR", "static/js/%s" % js,
+                           "疑似内嵌条文正文（前端严禁硬编码条文）"))
+
+    # ── F 页面各自引用自己的 JS ──
+    for page, js in (("legal_topics.html", "legal_topics.js"),
+                     ("legal_materials.html", "legal_materials.js")):
+        p = ROOT / "static" / page
+        if p.exists() and ('/static/js/%s' % js) not in p.read_text(encoding="utf-8", errors="replace"):
+            issues.append(("ERROR", "static/%s" % page, "页面未引用 `/static/js/%s`" % js))
+
+    # ── G 行为级：五类读层真能取到数据 + 缺口须有 reason/note ──
+    try:
+        import sys as _s                                          # noqa: PLC0415
+        if str(ROOT) not in _s.path:
+            _s.path.insert(0, str(ROOT))
+        from engine import legal_catalog as _LC                    # noqa: PLC0415
+        from engine import legal_extras as _LE                     # noqa: PLC0415
+        from engine import legal_topics as _LT                     # noqa: PLC0415
+
+        if not _LT.available():
+            issues.append(("ERROR", "config/legal_topic_index.json",
+                           "专题索引不可用 ⇒ 专题页整体为空；请跑 `scripts/_gen_legal_topic_index.py`"))
+        else:
+            lst = _LT.list_topics()
+            if not lst.get("total"):
+                issues.append(("ERROR", "config/legal_topic_index.json", "专题列表为空"))
+            # 取第一个专题做端到端行为检查
+            tid = str((lst.get("items") or [{}])[0].get("id") or "")
+            det = _LT.topic_detail(tid)
+            if not det.get("found"):
+                issues.append(("ERROR", "engine/legal_topics.py",
+                               "专题详情取不到（%s）" % tid))
+            docs = _LT.topic_documents(tid, page=1, page_size=1)
+            if not docs.get("total"):
+                issues.append(("ERROR", "engine/legal_topics.py",
+                               "专题 %s 法规清单为空（清单口径失效）" % tid))
+            elif not docs.get("note"):
+                issues.append(("ERROR", "engine/legal_topics.py",
+                               "专题法规清单未声明口径（`note` 为空）⇒ 读者无从判断'清单是什么'"))
+            # ★ 遍历**全部**专题检查"缺口如实"：无材料时**必须有 reason**
+            #   （只查第一个专题会漏 —— 实测 TOPIC-001 有材料，走不到缺口分支）
+            for t in (lst.get("items") or []):
+                _tid = str(t.get("id") or "")
+                _m = _LT.topic_materials(_tid)
+                if not _m.get("total") and not _m.get("reason"):
+                    issues.append(("ERROR", "engine/legal_topics.py",
+                                   "专题 %s 材料为空却**无 `reason`** ⇒ 静默空"
+                                   "（应为'暂无已核实条款…'之类明确说明）" % _tid))
+
+        if not _LC.available():
+            issues.append(("ERROR", "config/legal_catalog.json", "法规目录不可用"))
+        else:
+            d1 = _LC.list_documents(page=1, page_size=1)
+            if not d1.get("total"):
+                issues.append(("ERROR", "config/legal_catalog.json", "法规目录为空"))
+            rel = _LC.relations(page=1, page_size=1)
+            if not rel.get("total"):
+                issues.append(("ERROR", "config/legal_relations.json", "关系表为空"))
+            # 关系类型必须**只取白名单**（防混入非关系词，如实测曾出现"国务院令"）
+            known = set((rel.get("relation_types") or {}).keys())
+            bad = set()
+            for x in _LC.relations(page=1, page_size=200).get("items") or []:
+                if str(x.get("relation")) not in known:
+                    bad.add(str(x.get("relation")))
+            if bad:
+                issues.append(("ERROR", "config/legal_relations.json",
+                               "关系类型出现**未登记值**：%s（须只取 `relation_types` 白名单）"
+                               % ", ".join(sorted(bad)[:4])))
+            # 目录去重：同 URL 路径只应剩一条
+            from urllib.parse import urlparse as _up               # noqa: PLC0415
+            import json as _json                                   # noqa: PLC0415
+            try:
+                items = _json.loads((ROOT / "config" / "legal_catalog.json")
+                                    .read_text(encoding="utf-8")).get("items") or []
+                seen, dup = set(), 0
+                for it in items:
+                    pth = _up(str(it.get("url") or "")).path
+                    if not pth:
+                        continue
+                    if pth in seen:
+                        dup += 1
+                    seen.add(pth)
+                if dup:
+                    issues.append(("ERROR", "config/legal_catalog.json",
+                                   "目录存在 %d 条**同 URL 路径**重复条目（未按 URL 去重）"
+                                   "—— 前端列表会出现重复项" % dup))
+            except Exception:                                      # noqa: BLE001
+                pass
+
+        if not _LE.available():
+            issues.append(("ERROR", "config/legal_materials.json", "材料库不可用"))
+        else:
+            m1 = _LE.list_materials(page=1, page_size=1)
+            if not m1.get("total"):
+                issues.append(("ERROR", "config/legal_materials.json", "材料列表为空"))
+            # 材料关联只能两类显式引用（与 check_legal_mapping_wiring 一致，此处查列表输出）
+            for x in (m1.get("items") or []):
+                for h in (x.get("matched_refs") or []):
+                    if str(h.get("matched_by") or "") not in ("书名号引用", "全名提及"):
+                        issues.append(("ERROR", "config/legal_materials.json",
+                                       "材料匹配方式非显式引用：%s" % h.get("matched_by")))
+    except Exception as exc:                                       # noqa: BLE001
+        issues.append(("ERROR", "tools/audit_consistency.py",
+                       "步骤 22 行为级检查执行失败：%s" % exc))
     return issues
 
 

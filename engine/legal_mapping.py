@@ -126,6 +126,66 @@ def provisions_of(rule_id: Any) -> List[Dict[str, Any]]:
     return [_decorate(m) for m in _by_rule().get(rid, []) if m.get("verified")]
 
 
+def mapping_rows(*, verified_only: bool = False) -> List[Dict[str, Any]]:
+    """关联表**逐条原始行**（公开入口，供其它读层反查；避免跨模块取私有 `_doc`）。
+
+    ★ 与 `provisions_of` 的区别：后者按 rule_id 聚合并附正文；本函数给**原始行**，
+      调用方自行索引（如"按法短码反查规则"）。
+    """
+    rows = list(_doc().get("mappings") or [])
+    if verified_only:
+        rows = [m for m in rows if m.get("verified")]
+    return rows
+
+
+def provision_index() -> Dict[str, Dict[str, str]]:
+    """`provision_id → {law, article, law_code, kind, topic_tags}`（唯一权威 `config/legal_provisions.json`）。
+
+    ★ 为什么放在这里：本模块是"条款"这一概念的读层入口；专题页/材料页/规则页
+      都需要"给我条款 ID，还我法名与条号（再取正文）"⇒ 只应有一份实现。
+    """
+    if "p_index" in _CACHE:
+        return _CACHE["p_index"]
+    idx: Dict[str, Dict[str, str]] = {}
+    try:
+        d = json.loads((_ROOT / "config" / "legal_provisions.json").read_text(encoding="utf-8"))
+    except Exception:                                            # noqa: BLE001
+        d = {}
+    for p in (d.get("provisions") or []):
+        pid = str(p.get("provision_id") or "")
+        if pid:
+            idx[pid] = {"law": str(p.get("law") or ""), "article": str(p.get("article") or ""),
+                        "law_code": str(p.get("law_code") or ""),
+                        "kind": str(p.get("kind") or ""),
+                        "topic_tags": list(p.get("topic_tags") or [])}
+    _CACHE["p_index"] = idx
+    return idx
+
+
+def content_of(provision_id: Any) -> Dict[str, Any]:
+    """条款 ID → **条款正文**（转发正文库读路径，唯一权威；查不到 ⇒ 空 + `has_content=false`）。
+
+    ★ 缺失如实：正文库未收录该条 ⇒ `content=""`，调用方须如实标注，**不得**编造条文，
+      也不得用"该法其他条"顶替。
+    """
+    pid = str(provision_id or "")
+    meta = provision_index().get(pid) or {}
+    law = str(meta.get("law") or "")
+    art = str(meta.get("article") or "")
+    if not (law and art):
+        # 条款索引里没有 ⇒ 退回关联表（mappings 也带 law/article）
+        for m in (_doc().get("mappings") or []):
+            if str(m.get("provision_id") or "") == pid:
+                law, art = str(m.get("law") or ""), str(m.get("article") or "")
+                break
+    e = _content_index().get((_norm_key(law), art)) or {}
+    content = str(e.get("content") or "")
+    return {"provision_id": pid, "law": law, "article": art, "content": content,
+            "has_content": bool(content),
+            "source": str(e.get("source") or ""),
+            "content_source": "static/legal_library.json（经 legal_citation.library_file_entries）"}
+
+
 def rules_of(provision_id: Any) -> List[str]:
     """某条款被哪些规则引用（反向追溯；来自 `by_provision` 唯一权威）。"""
     pid = str(provision_id or "")
@@ -219,5 +279,6 @@ def coverage() -> Dict[str, Any]:
             "note": "`with_content` 只统计**正文库里真有原文**的条款；缺失者列于 `missing_content`，不编造。"}
 
 
-__all__ = ["available", "reset_cache", "law_code_of", "provisions_of", "rules_of",
-           "unresolved_of", "for_finding", "enrich_finding", "stats", "coverage"]
+__all__ = ["available", "reset_cache", "law_code_of", "mapping_rows", "provision_index", "content_of",
+           "provisions_of", "rules_of", "unresolved_of", "for_finding", "enrich_finding",
+           "stats", "coverage"]

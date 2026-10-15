@@ -24,6 +24,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -150,6 +151,59 @@ def main() -> int:
             "source": "flk", "effect": m.get("sxx_cn"),
             "has_body_in_library": False,
         })
+    # ── 去重（指令 3.3 明确要求：按文号 / URL / 内容去重）──
+    #   ★ 实测缺陷（2026-10-15）：`fgk`（法规栏目）与 `fgk-category`（案例/解读/问答栏目）
+    #     会抓到**同一篇内容**（如政策问答）⇒ 不去重时目录里同一标题出现 2 次
+    #     （实测 540 种标题、多出 561 条）⇒ 前端列表出现重复项。
+    #   去重键优先级：URL（最可靠）→ 文号 → 标题+日期。合并时保留"更权威"的一条
+    #   （有文号优先 → 法规类 kind 优先 → fgk 原栏目优先），并把来源记为合并来源。
+    _REG_KINDS = {"法律", "行政法规", "国务院文件", "税务部门规章", "税务规范性文件",
+                  "财税文件", "工作通知", "其他文件"}
+
+    def _key(c: Dict[str, Any]) -> Any:
+        # ★ URL 去重须**只取路径**：实测同一内容在两个栏目页给出的 URL 只差**域名**
+        #   （`www.chinatax.gov.cn/zcfgk/c100024/c5252370/content.html` vs
+        #    `fgk.chinatax.gov.cn/zcfgk/c100024/c5252370/content.html`）
+        #   ⇒ 用完整 URL 作键**永远去不掉**（实测 540 种标题重复一条未合并）。
+        u = str(c.get("url") or "").strip()
+        if u:
+            path = urlparse(u).path
+            if path:
+                return ("path", path)
+            return ("url", u)
+        dn = str(c.get("doc_no") or "").strip()
+        if dn:
+            return ("doc_no", dn)
+        return ("title", str(c.get("title") or "").strip(),
+                str(c.get("published_at") or "").strip())
+
+    def _rank(c: Dict[str, Any]) -> tuple:
+        return (1 if str(c.get("doc_no") or "").strip() else 0,
+                1 if str(c.get("kind") or "") in _REG_KINDS else 0,
+                1 if str(c.get("source")) == "fgk" else 0,
+                len(str(c.get("title") or "")))
+
+    _merged: Dict[Any, Dict[str, Any]] = {}
+    _dup_n = 0
+    for c in catalog:
+        k = _key(c)
+        old = _merged.get(k)
+        if old is None:
+            _merged[k] = c
+            continue
+        _dup_n += 1
+        keep, drop = (c, old) if _rank(c) > _rank(old) else (old, c)
+        # 合并：保留 `keep` 为主体，把 `drop` 的独有信息补上（来源并记、kind 并记）
+        srcs = {s for s in (str(keep.get("source")), str(drop.get("source"))) if s}
+        keep = dict(keep)
+        keep["source"] = "+".join(sorted(srcs))
+        if str(drop.get("kind") or "") and str(drop.get("kind")) != str(keep.get("kind")):
+            keep["kind_alt"] = str(drop.get("kind"))
+        _merged[k] = keep
+    catalog = list(_merged.values())
+    if _dup_n:
+        print("目录去重：合并 %d 条重复（按 URL/文号/标题+日期）" % _dup_n)
+
     # 标记哪些条目已有正文入库（按法名匹配条文库）
     lib_laws = {str(e.get("law") or "") for e in lib}
     lib_laws |= {re.sub(r"^中华人民共和国", "", x) for x in lib_laws}

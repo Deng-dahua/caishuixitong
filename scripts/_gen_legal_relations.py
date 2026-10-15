@@ -36,6 +36,14 @@ REL_PATTERNS: Tuple[Tuple[str, str, str], ...] = (
     ("cited_by", r"(?:根据|依据)", "据以制定/依据"),
 )
 
+#: 由**结构化来源**（flk `xgzl` 相关制度）产出的关系类型 —— 不靠正则，故单列。
+#  ★ `relation_cn` 必须**只从白名单映射**取值：早前把原始 `busi_type`（"国务院令"/
+#    "修改决定"/"审议结果的报告"…）直接当 `relation_cn` ⇒ 关系类型里混进**非关系词**，
+#    前端"按关系类型"筛选会出现无意义选项（**错误信息级别**，实测报出）。
+EXTRA_RELATION_TYPES: Dict[str, str] = {
+    "related": "相关制度",
+}
+
 #: 文号形态（用于从描述里抽被引用文件）——★ 两种形态**分开**，勿混
 #:   ① 带年份：财税〔2000〕187号 / 国税发〔2000〕187号 / 国家税务总局公告2019年第38号
 #:   ② 纯序号：国务院令第499号 / 国家税务总局令第56号（**令号只有 2~4 位，早期常为 3 位**）
@@ -165,7 +173,12 @@ def main() -> int:
                 relations.append({
                     "subject_title": m.get("title"), "subject_law": l["law_name"],
                     "subject_code": l.get("law_code") or "", "subject_doc_no": "",
-                    "subject_url": "", "relation": "amended", "relation_cn": "版本更替",
+                    "subject_url": "", "relation": "amended", "relation_cn": "修订/修正",
+                    # ★ 2026-10-15 修：`relation_cn` 必须**只取白名单映射**。早前这里写死
+                    #   "版本更替"，而 fgk 侧同一 `relation` 用"修订/修正" ⇒ 同一关系类型
+                    #   出现两个中文名（前端按 relation_cn 分组会裂开）。版本链的说明放
+                    #   `note`，不进 `relation_cn`。
+                    "note": "同一部法的版本链（flk 历史沿革）",
                     "target": prev.get("title"), "targets_all": [prev.get("title")],
                     "date": prev.get("gbrq") or "",
                     "evidence": "flk 历史沿革：%s（%s）→ %s（%s）" % (
@@ -174,16 +187,20 @@ def main() -> int:
                     "source": "flk.npc.gov.cn",
                 })
         for x in (l.get("doc_num_from_xgzl") or []):
-            key = (l["law_name"], "cited_by", x.get("title"), "")
+            key = (l["law_name"], "related", x.get("title"), "")
             if key in seen:
                 continue
             seen.add(key)
             relations.append({
                 "subject_title": m.get("title"), "subject_law": l["law_name"],
                 "subject_code": l.get("law_code") or "", "subject_doc_no": "",
-                "subject_url": "", "relation": "cited_by",
-                "relation_cn": {"国务院令": "国务院令", "修改决定": "修改决定"}.get(
-                    x.get("busi_type"), x.get("busi_type") or "相关制度"),
+                "subject_url": "",
+                # ★ 2026-10-15 修（**错误信息级别**）：早前把 `busi_type`（"国务院令"/"修改决定"）
+                #   直接当 `relation_cn` ⇒ 关系类型里混进"国务院令""修改决定""审议结果的报告"
+                #   等**非关系词**，前端"按关系类型"筛选会给出无意义选项。
+                #   现改为独立一类 `related`（相关制度），原始形态放 `target_type`。
+                "relation": "related", "relation_cn": "相关制度",
+                "target_type": str(x.get("busi_type") or ""),
                 "target": x.get("title"), "targets_all": [x.get("title")],
                 "date": "", "evidence": "flk 相关制度：%s（%s / %s）" % (
                     x.get("title"), x.get("busi_type"), x.get("file_type")),
@@ -199,7 +216,9 @@ def main() -> int:
                  "双源 = fgk 题注描述 + flk 历史沿革与相关制度。"
                  "**只登记能从原文确证的关系**，解析不出的进 `unresolved`（不猜、不编造）；"
                  "每条 relation 都带 `evidence` 原文，可人工复核。"),
-        "relation_types": {r: c for r, _p, c in REL_PATTERNS},
+        "relation_types": dict(
+            list({r: c for r, _p, c in REL_PATTERNS}.items())
+            + list(EXTRA_RELATION_TYPES.items())),
         "sources": {
             "fgk": {"items_scanned": len(fgk.get("items") or []), "with_description": n_desc},
             "flk": {"laws_matched": n_flk},

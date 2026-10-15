@@ -108,26 +108,125 @@ def for_provision(provision_id: Any, *, limit: int = 5, offset: int = 0) -> Dict
     return got
 
 
-def search(kind: Any = None, q: Any = None, *, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
-    """在材料**标题+摘要**上字面检索（不做语义推断）。"""
+def _brief(m: Dict[str, Any], *, with_snippet: bool = True) -> Dict[str, Any]:
+    """列表用形状（可关掉摘要以控体积）。"""
+    out = {
+        "material_id": m.get("material_id"), "kind": m.get("kind"),
+        "title": m.get("title"), "published_at": m.get("published_at"),
+        "publisher": m.get("publisher"), "doc_no": m.get("doc_no"),
+        "url": m.get("url"), "source": m.get("source"),
+        "related_law_codes": list(m.get("related_law_codes") or []),
+        "matched_refs": list(m.get("matched_refs") or []),
+        "granularity": m.get("granularity"),
+    }
+    if with_snippet:
+        out["snippet"] = m.get("snippet")
+    return out
+
+
+def list_materials(*, kind: Any = None, q: Any = None, law_code: Any = None,
+                   linked: Any = None, page: int = 1, page_size: int = 20,
+                   with_snippet: bool = True) -> Dict[str, Any]:
+    """**材料列表**（案例/解读/问答；按类型 / 关键词 / 关联法 / 是否已关联筛选 + 分页）。
+
+    ★ 与 `search` 的差别：本函数是**列表页专用**（分页 + 多维筛选 + 可按需关摘要），
+      `search` 保留为向后兼容的薄转发。
+    """
     if not available():
         return {"total": 0, "items": [], "available": False,
-                "note": "材料库不可用 ⇒ 如实为空。"}
+                "note": "材料库不可用（`config/legal_materials.json` 缺失）⇒ 如实为空。"}
+    items = list(_doc().get("materials") or [])
+    kd = str(kind or "").strip()
+    if kd:
+        items = [m for m in items if str(m.get("kind")) == kd]
+    lc = str(law_code or "").strip()
+    if lc:
+        items = [m for m in items if lc in (m.get("related_law_codes") or [])]
+    if linked is not None and str(linked).strip() != "":
+        want = str(linked).strip().lower() in ("1", "true", "yes", "on")
+        items = [m for m in items if bool(m.get("related_law_codes")) == want]
     kw = "".join(str(q or "").split())
-    kd = str(kind or "")
-    items = []
-    for m in (_doc().get("materials") or []):
-        if kd and m.get("kind") != kd:
-            continue
-        if kw and kw not in (str(m.get("title") or "") + str(m.get("snippet") or "")):
-            continue
-        items.append(m)
+    if kw:
+        items = [m for m in items
+                 if kw in str(m.get("title")) or kw in str(m.get("snippet"))
+                 or kw in str(m.get("doc_no"))]
+    # 类型 → 数量分布（**以筛选后的集合为准**，与列表一致，避免"数字与列表对不上"）
+    from collections import Counter
+    by_kind = dict(Counter(str(m.get("kind") or "") for m in items).most_common())
     items.sort(key=lambda m: str(m.get("published_at") or ""), reverse=True)
     total = len(items)
-    off, lim = max(0, int(offset or 0)), max(1, min(int(limit or 20), 200))
-    return {"total": total, "kind": kd, "q": str(q or ""), "offset": off, "limit": lim,
-            "items": items[off:off + lim],
-            "note": "标题+摘要**字面**检索（不做语义推断）；命中处原文见 `matched_refs`。"}
+    p = max(1, int(page or 1))
+    ps = max(1, min(int(page_size or 20), 200))
+    return {"total": total, "page": p, "page_size": ps,
+            "pages": (total + ps - 1) // ps if total else 0,
+            "items": [_brief(m, with_snippet=with_snippet)
+                      for m in items[(p - 1) * ps: p * ps]],
+            "by_kind": by_kind, "kind": kd, "q": str(q or ""), "law_code": lc,
+            "note": ("材料来自三平台官方发布（标题+摘要原文）；"
+                     "`related_law_codes` 是材料**显式引用**的法（书名号 / 带法规后缀全名），"
+                     "关联**只到法规级**，不代表适用某条款。")}
+
+
+def material_detail(material_id: Any) -> Dict[str, Any]:
+    """单条材料详情（含关联法规的规范名 + 该法**已核实条款** + 引用该法条款的**规则**）。"""
+    if not available():
+        return {"found": False, "available": False, "note": "材料库不可用。"}
+    mid = str(material_id or "")
+    m = next((x for x in (_doc().get("materials") or [])
+              if str(x.get("material_id")) == mid), None)
+    if m is None:
+        return {"found": False, "available": True,
+                "note": "无此材料 id（不近似匹配、不猜测）。"}
+    out = dict(m)
+    out["found"] = True
+    # 关联法规：法短码 → 规范名 + 已核实条款 + 引用这些条款的规则
+    from engine import legal_mapping as LM
+    laws: List[Dict[str, Any]] = []
+    for code in (m.get("related_law_codes") or []):
+        hits = [h for h in (m.get("matched_refs") or [])
+                if str((h or {}).get("law_code")) == code]
+        laws.append({
+            "law_code": code,
+            "law_name": (hits[0].get("matched_ref") if hits else code),
+            "matched_by": (hits[0].get("matched_by") if hits else ""),
+            "rules_using": _rules_of_law(code),
+        })
+    out["related_laws"] = laws
+    out["granularity"] = "law"
+    out["granularity_note"] = ("关联**只到法规级**（材料显式引用了该法）；"
+                              "**不代表**该材料适用某具体条款 ⇒ 参考线索，不作定性依据。")
+    return out
+
+
+def _rules_of_law(law_code: Any) -> List[Dict[str, Any]]:
+    """引用某部法（经其已确证条款）的**规则**清单（反查）。
+
+    ★ 数据链路：规则 → 条款（`legal_mapping`）→ 条款所属法（`law_code_of`）。
+      只返回**有可确证条款**的规则；查不到 ⇒ 空列表（如实）。
+    """
+    if "law_rules" not in _CACHE:
+        from engine import legal_mapping as LM                     # noqa: PLC0415
+        idx: Dict[str, List[Dict[str, Any]]] = {}
+        for m in LM.mapping_rows():                                # 公开入口（不取私有）
+            if not m.get("verified"):
+                continue
+            code = LM.law_code_of(m.get("provision_id"))
+            if not code:
+                continue
+            bucket = idx.setdefault(code, [])
+            rid = str(m.get("rule_id") or "")
+            if any(x["rule_id"] == rid for x in bucket):
+                continue
+            bucket.append({"rule_id": rid, "provision_id": m.get("provision_id"),
+                           "law": m.get("law"), "article": m.get("article")})
+        _CACHE["law_rules"] = idx
+    return list(_CACHE["law_rules"].get(str(law_code or ""), []))
+
+
+def search(kind: Any = None, q: Any = None, *, limit: int = 20, offset: int = 0) -> Dict[str, Any]:
+    """在材料**标题+摘要**上字面检索（**保留原签名**，薄转发 `list_materials`）。"""
+    return list_materials(kind=kind, q=q, page=int(offset or 0) + 1,
+                          page_size=limit, with_snippet=True)
 
 
 def stats() -> Dict[str, Any]:
@@ -140,5 +239,5 @@ def stats() -> Dict[str, Any]:
     return c
 
 
-__all__ = ["available", "reset_cache", "for_law", "for_provision", "search", "stats",
-           "law_code_of"]
+__all__ = ["available", "reset_cache", "for_law", "for_provision", "search",
+           "stats", "law_code_of", "list_materials", "material_detail"]
