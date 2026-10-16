@@ -354,3 +354,114 @@ def _legal_refs(texts: List[str]) -> List[Dict[str, Any]]:
             else:
                 out.append({"law": str(p), "article": "", "raw": t, "placeholder": False})
     return out
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# ⑤ 候选阈值唯一索引（D-01：把三册 params 收敛为单一入口，含冲突登记）
+# ══════════════════════════════════════════════════════════════════════════
+#: 候选阈值所在分册（★ 唯一权威：新增一册只加这里一行）
+CANDIDATE_BOOKS: Tuple[str, ...] = ("rulelist_v1.json", "rulelist_v11.json", "rulelist_v12.json")
+
+#: 分册短名（对外展示用；与文件名一一对应）
+BOOK_SHORT: Dict[str, str] = {
+    "rulelist_v1.json": "V1.0",
+    "rulelist_v11.json": "V1.1",
+    "rulelist_v12.json": "V1.2",
+}
+
+
+def param_index() -> Dict[str, Any]:
+    """**候选阈值唯一索引**：`rule_id → {book, key, file, value}`。
+
+    ## 为什么需要它（D-01 裁定）
+    三册 `config/rulelist_v1|v11|v12.json` 各自维护 `params` 段（合 128 个阈值键）。
+    此前消费方有两条**不一致**的取法：
+      ① `tools/export_rulelist_yaml.py::_collect()` 用 `dict.update()` 把三册合并 ——
+         **同名键静默覆盖**（后册胜出，无任何留痕）；且 `params_ref` 仍写死在各自分册。
+      ② `engine/rulelist_v1.py::params_of()` 只读 V1.0 一册。
+    ⇒ 取同一规则阈值可能得到两个答案，且冲突无人发现。
+
+    现在：**取候选阈值只有本函数一个入口**（分册差异由索引内部消化），
+    冲突**必须显式登记**、绝不静默覆盖。
+
+    ## 纪律
+    · 同一 key 出现在多册且**值不等** ⇒ 记入 `conflicts`（**不算通过**，须人工收敛）；
+    · 值相等 ⇒ 记入 `redundant`（可收敛为一行，非错误）；
+    · 未登记的 rule_id ⇒ `params.get(rid)` 为 `None`（**不兜底为 {}**，
+      与 `engine.rule_params.value()` 同纪律：缺失≠默认值）。
+    """
+    params: Dict[str, Dict[str, Any]] = {}
+    seen_in: Dict[str, List[str]] = {}
+    conflicts: List[Dict[str, Any]] = []
+    redundant: List[str] = []
+
+    for name in CANDIDATE_BOOKS:
+        path = os.path.join(_root(), "config", name)
+        if not os.path.exists(path):
+            _note("候选阈值分册不存在：%s" % name)
+            continue
+        try:
+            with open(path, encoding="utf-8") as fh:
+                doc = json.load(fh)
+        except Exception as exc:                            # noqa: BLE001
+            _note("候选阈值分册读取失败 %s：%s" % (name, exc))
+            continue
+        for key, val in (doc.get("params") or {}).items():
+            if str(key).startswith("_"):                    # `_note` 等说明键不参与索引
+                continue
+            seen_in.setdefault(key, []).append(name)
+            if key not in params:
+                params[key] = {"book": BOOK_SHORT.get(name, name), "key": key,
+                               "file": "config/%s" % name,
+                               "params_ref": "config/%s::params.%s" % (name, key),
+                               "value": val}
+                continue
+            # ★ 重复登记：值相等 ⇒ 可收敛；值不等 ⇒ **冲突**（不得静默取后者）
+            prev = params[key]
+            if prev.get("value") == val:
+                redundant.append(key)
+            else:
+                conflicts.append({
+                    "key": key,
+                    "books": list(seen_in[key]),
+                    "kept": prev["params_ref"],
+                    "conflicting": "config/%s::params.%s" % (name, key),
+                    "kept_value": prev.get("value"),
+                    "conflicting_value": val,
+                })
+
+    if conflicts:
+        _note("候选阈值**冲突**（同一键在多册取值不同，已保留先册、须人工收敛）：%s"
+              % [c["key"] for c in conflicts])
+    if redundant:
+        _note("候选阈值重复登记（多册同键同值，建议收敛为一行）：%s" % redundant)
+
+    return {
+        "params": params,
+        "conflicts": conflicts,
+        "redundant": sorted(set(redundant)),
+        "books": [_B for _B in CANDIDATE_BOOKS],
+        "stats": {
+            "keys": len(params),
+            "conflicts": len(conflicts),
+            "redundant": len(set(redundant)),
+            "books": {BOOK_SHORT.get(b, b): sum(1 for v in params.values() if v["file"].endswith(b))
+                      for b in CANDIDATE_BOOKS},
+        },
+    }
+
+
+def param_of(rule_id: str) -> Optional[Dict[str, Any]]:
+    """按 **rule_id** 取该规则的候选阈值条目（`param_index()` 的单点取用）。
+
+    未登记 ⇒ `None`（**不返回空 dict、不兜底**）。索引内已含 `params_ref`，
+    消费方不必再判"这条属于哪一册"。
+    """
+    if not rule_id:
+        return None
+    return param_index()["params"].get(str(rule_id))
+
+
+def param_conflicts() -> List[Dict[str, Any]]:
+    """候选阈值冲突清单（**空 = 无冲突**）。供闸门与接口直接消费。"""
+    return list(param_index()["conflicts"])

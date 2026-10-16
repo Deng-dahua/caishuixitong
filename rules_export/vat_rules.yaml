@@ -594,11 +594,11 @@ rules:
     score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
-    condition: "difference_tax_sales - difference_tax_cost > params.gap_threshold"
+    condition: "difference_tax_sales - difference_tax_cost > params.diff_amount"
     params_ref: "config/rulelist_v1.json::params.VAT-021"
     params:
       diff_amount: 0.0
-      _basis: "差额征税销售额 − 扣除额 > diff_amount（默认 >0 即提示）；需申报表附列资料（差额征税栏）"
+      _basis: "差额征税销售额 − 扣除额 > diff_amount（默认 >0 即提示）；需申报表附列资料（差额征税栏）。★ 2026-10-13 口径修正：logic 原引用 params.gap_threshold，与其 params 登记名 diff_amount 属同一含义的两个名（悬空引用），已统一为 diff_amount。"
     inputs:
       - "差额征税销售额"
       - "扣除额"

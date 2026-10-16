@@ -13055,7 +13055,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique() + check_candidate_param_index())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
 
 
@@ -18528,6 +18528,97 @@ def _cnnum_article_eq(cn: str, article: str) -> bool:
         return want is not None and cn_to_int(cn) == want
     except Exception:                                           # noqa: BLE001
         return False
+
+
+def check_candidate_param_index() -> List[Tuple[str, str, str]]:
+    """候选阈值**唯一索引**（D-01）—— 三册 `params` 只有一个取用入口，且不得跨册冲突。
+
+    ★★ 为什么要有这道闸门（2026-10-16 阶段1 D-01 裁定）：
+      三册 `config/rulelist_v1|v11|v12.json` 各自维护 `params`，此前消费方有两条
+      **互不一致**的取法：`tools/export_rulelist_yaml.py::_collect()` 用 `dict.update()`
+      把三册合并（**同名键静默覆盖、无留痕**），而 `engine/rulelist_v1.py::params_of()`
+      只读 V1.0 一册 ⇒ 同一条规则的阈值可能得到**两个答案**且无人发现。
+      现收敛为 `engine.rule_loader.param_index()` 单一入口；本闸门守它不被改回。
+
+    判据：
+      A 索引**无跨册冲突**（同一键在多册取值不同 ⇒ ERROR，须人工收敛）；
+      B 索引键数 == 三册 `params` 去重后键数（防索引漏读/多读）；
+      C 每条候选规则的 `params_ref` 与索引一致（防消费方各写一份）；
+      D 索引内每个 `params_ref` 指向的分册**确实存在**。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    sys.path.insert(0, str(ROOT))
+    try:
+        from engine import rule_loader as _RL                        # noqa: PLC0415
+    except Exception as exc:                                         # noqa: BLE001
+        return [("ERROR", "engine/rule_loader.py", "导入失败：%s" % exc)]
+
+    idx = _RL.param_index()
+
+    # A 冲突
+    conf = idx.get("conflicts") or []
+    if conf:
+        issues.append(("ERROR", "config/rulelist_v*.json",
+                       "**候选阈值跨册冲突 %d 条**（同一键在多册取值不同 ⇒ 取到哪个答案取决于册序）：%s"
+                       % (len(conf), [c["key"] for c in conf][:8])))
+
+    # B 键数自洽：直接重数三册
+    raw_keys: set = set()
+    for name in _RL.CANDIDATE_BOOKS:
+        p = ROOT / "config" / name
+        if not p.exists():
+            issues.append(("ERROR", "config/%s" % name, "候选阈值分册缺失"))
+            continue
+        try:
+            doc = json.loads(p.read_text(encoding="utf-8"))
+        except Exception as exc:                                     # noqa: BLE001
+            issues.append(("ERROR", "config/%s" % name, "读取失败：%s" % exc))
+            continue
+        raw_keys |= {str(k) for k in (doc.get("params") or {}) if not str(k).startswith("_")}
+    if len(raw_keys) != idx["stats"]["keys"]:
+        issues.append(("ERROR", "engine/rule_loader.py",
+                       "索引键数 %d ≠ 三册去重键数 %d（索引漏读或多读）"
+                       % (idx["stats"]["keys"], len(raw_keys))))
+
+    # C 候选规则的 params_ref 必须与索引一致
+    mism: List[str] = []
+    for name in _RL.CANDIDATE_BOOKS:
+        p = ROOT / "config" / name
+        if not p.exists():
+            continue
+        doc = json.loads(p.read_text(encoding="utf-8"))
+        for r in (doc.get("rules") or []):
+            rid = str(r.get("src") or "")
+            if not rid:
+                continue
+            want = "config/%s::params.%s" % (name, rid)
+            got = (idx["params"].get(rid) or {}).get("params_ref", "")
+            if got and got != want:
+                mism.append("%s: 表内 %s ≠ 索引 %s" % (rid, want, got))
+    if mism:
+        issues.append(("ERROR", "config/rulelist_v*.json",
+                       "候选规则 params_ref 与索引不一致 %d 条：%s" % (len(mism), mism[:5])))
+
+    # D params_ref 指向的分册存在
+    missing: List[str] = []
+    for key, ent in idx["params"].items():
+        f = ROOT / str(ent.get("file") or "")
+        if not f.exists():
+            missing.append("%s → %s" % (key, ent.get("file")))
+    if missing:
+        issues.append(("ERROR", "config/rulelist_v*.json",
+                       "索引指向不存在的分册 %d 条：%s" % (len(missing), missing[:5])))
+
+    if not issues:
+        issues.append(("INFO", "config/rulelist_v*.json",
+                       "候选阈值唯一索引：键 %d（V1.0 %d / V1.1 %d / V1.2 %d），冲突 0，"
+                       "重复登记 %d，params_ref 全部一致 ✓"
+                       % (idx["stats"]["keys"],
+                          idx["stats"]["books"].get("V1.0", 0),
+                          idx["stats"]["books"].get("V1.1", 0),
+                          idx["stats"]["books"].get("V1.2", 0),
+                          idx["stats"]["redundant"])))
+    return issues
 
 
 def check_law_code_unique() -> List[Tuple[str, str, str]]:

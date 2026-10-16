@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-16T08:46:03.824Z",
+ "generated_at": "2026-10-16T14:57:05.408Z",
  "project_id": 10,
  "permission_source": "config/rbac.json::role_permissions（唯一权威）",
  "probes": [
@@ -74,6 +74,84 @@
    "name": "新建项目",
    "perm": "project.write",
    "kind": "write"
+  },
+  {
+   "key": "project.delete",
+   "name": "删除项目",
+   "perm": "project.write",
+   "kind": "write"
+  },
+  {
+   "key": "project.member",
+   "name": "新增项目成员",
+   "perm": "project.write",
+   "kind": "write"
+  },
+  {
+   "key": "doc.delete",
+   "name": "删除资料",
+   "perm": "document.write",
+   "kind": "write"
+  },
+  {
+   "key": "doc.classify",
+   "name": "修正资料分类",
+   "perm": "document.write",
+   "kind": "write"
+  },
+  {
+   "key": "doc.parsestatus",
+   "name": "设置解析状态",
+   "perm": "document.write",
+   "kind": "write"
+  },
+  {
+   "key": "extract.correct",
+   "name": "校正解析字段",
+   "perm": "document.write",
+   "kind": "write"
+  },
+  {
+   "key": "extract.resolve",
+   "name": "处理解析异常",
+   "perm": "document.write",
+   "kind": "write"
+  },
+  {
+   "key": "report.delete",
+   "name": "删除报告（旧路由）",
+   "perm": "report.generate",
+   "kind": "write"
+  },
+  {
+   "key": "user.create",
+   "name": "新建用户",
+   "perm": "user.manage",
+   "kind": "write"
+  },
+  {
+   "key": "user.update",
+   "name": "修改用户",
+   "perm": "user.manage",
+   "kind": "write"
+  },
+  {
+   "key": "role.create",
+   "name": "新建角色",
+   "perm": "role.manage",
+   "kind": "write"
+  },
+  {
+   "key": "ruleversion.publish",
+   "name": "发布规则版本",
+   "perm": "ruleversion.manage",
+   "kind": "write"
+  },
+  {
+   "key": "template.upsert",
+   "name": "新建/覆盖报告模板",
+   "perm": "template.manage",
+   "kind": "write"
   }
  ],
  "rows": [
@@ -88,7 +166,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":23,\"company_id\":null,\"code\":\"PJ-20261016-0015\",\"name\":\"权限矩阵探测项目（自动生成，可删）\",\"taxpayer_id\":\"91440300MA5PB03588\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[]"
+   "detail": "{\"items\":[{\"id\":34,\"company_id\":null,\"code\":\"PJ-20261016-0026\",\"name\":\"权限矩阵探测项目（自动生成，可删）\",\"taxpayer_id\":\"91440300MA5PB88496\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[]"
   },
   {
    "role": "system_admin",
@@ -101,7 +179,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T16:41:33\",\"total\":21,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
+   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T22:54:46\",\"total\":22,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
   },
   {
    "role": "system_admin",
@@ -114,7 +192,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":31,\"doc_no\":\"RW-1-159193\",\"version\":\"V28\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
+   "detail": "{\"items\":[{\"id\":52,\"doc_no\":\"RW-1-91da8f\",\"version\":\"V60\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
   },
   {
    "role": "system_admin",
@@ -127,7 +205,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":331,\"project_id\":10,\"company_id\":1,\"doc_id\":125,\"filename\":\"1_125_权限矩阵探测.txt\",\"original_name\":\"权限矩阵探测.txt\",\"ext\":\".txt\",\"size\":1,\"md5\":\"02129bb861061d1a052c592e2dc6b383\",\"sha256\":\"4b68"
+   "detail": "{\"items\":[{\"id\":339,\"project_id\":10,\"company_id\":1,\"doc_id\":133,\"filename\":\"1_133_场景7-真大序时账.xlsx\",\"original_name\":\"场景7-真大序时账.xlsx\",\"ext\":\".xlsx\",\"size\":12410385,\"md5\":\"7dc17cfdc85fe8d9fbc458f7821f12a5"
   },
   {
    "role": "system_admin",
@@ -153,7 +231,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":1142,\"company_id\":null,\"user_name\":\"sim_admin\",\"action\":\"auth.login\",\"target\":\"sim_admin\",\"detail\":\"登录成功（角色：system_admin）\",\"created_at\":\"2026-10-16T16:45:08+08:00\",\"user_id\":7,\"action_"
+   "detail": "{\"items\":[{\"id\":1374,\"company_id\":null,\"user_name\":\"sim_admin\",\"action\":\"auth.login\",\"target\":\"sim_admin\",\"detail\":\"登录成功（角色：system_admin）\",\"created_at\":\"2026-10-16T22:56:28+08:00\",\"user_id\":7,\"action_"
   },
   {
    "role": "system_admin",
@@ -179,7 +257,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"risk_no\":\"WB-R-91440300MA5H824G7M-202501-020\",\"company_id\":1,\"state\":\"confirmed\",\"state_cn\":\"已确认\",\"manual_required\":false,\"rectification_no\":\"\",\"rectification_note\":\"\",\"updated_at\":\"2026-10-16T16:45"
+   "detail": "{\"risk_no\":\"WB-R-91440300MA5H824G7M-202501-020\",\"company_id\":1,\"state\":\"confirmed\",\"state_cn\":\"已确认\",\"manual_required\":false,\"rectification_no\":\"\",\"rectification_note\":\"\",\"updated_at\":\"2026-10-16T22:56"
   },
   {
    "role": "system_admin",
@@ -192,7 +270,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"id\":32,\"doc_no\":\"RW-1-5fc957\",\"version\":\"V30\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\"sim_adviso"
+   "detail": "{\"id\":53,\"doc_no\":\"RW-1-bde9c6\",\"version\":\"V62\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\"sim_adviso"
   },
   {
    "role": "system_admin",
@@ -205,7 +283,7 @@
    "declared_raw": true,
    "status": 201,
    "verdict": "✅ 一致",
-   "detail": "{\"ok\":true,\"job_id\":\"350eb2375db7\",\"reused\":false,\"message\":\"分析已启动\",\"project_id\":10,\"project_name\":\"元质量模拟·2025年度自查\",\"company_id\":1,\"preflight\":{\"ok\":true,\"total\":12,\"unparsed\":0,\"parsed\":12,\"by_catego"
+   "detail": "{\"ok\":true,\"job_id\":\"7d237ac6d6b5\",\"reused\":false,\"message\":\"分析已启动\",\"project_id\":10,\"project_name\":\"元质量模拟·2025年度自查\",\"company_id\":1,\"preflight\":{\"ok\":true,\"total\":20,\"unparsed\":0,\"parsed\":20,\"by_catego"
   },
   {
    "role": "system_admin",
@@ -231,7 +309,176 @@
    "declared_raw": true,
    "status": 201,
    "verdict": "✅ 一致",
-   "detail": "{\"id\":24,\"company_id\":null,\"code\":\"PJ-20261016-0016\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB27941\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status\":\"draf"
+   "detail": "{\"id\":35,\"company_id\":null,\"code\":\"PJ-20261016-0027\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB90981\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status\":\"draf"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "project.delete",
+   "name": "删除项目",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"项目不存在或无权访问\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "project.member",
+   "name": "新增项目成员",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"成员必须提供 user_id 或 user_name\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "doc.delete",
+   "name": "删除资料",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "doc.classify",
+   "name": "修正资料分类",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "doc.parsestatus",
+   "name": "设置解析状态",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "extract.correct",
+   "name": "校正解析字段",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"字段记录不存在\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "extract.resolve",
+   "name": "处理解析异常",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"异常记录不存在\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "report.delete",
+   "name": "删除报告（旧路由）",
+   "perm": "report.generate",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"removed\":true,\"cleared\":[\"磁盘分析缓存\"],\"leftovers\":[],\"message\":\"报告已清除（清理 1 处：磁盘分析缓存；文件已移至项目回收站 data/trash，如需物理删除须手动清空该目录）\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "user.create",
+   "name": "新建用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"password must be at least 12 characters\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "user.update",
+   "name": "修改用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"用户不存在\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "role.create",
+   "name": "新建角色",
+   "perm": "role.manage",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 409,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"角色编码已存在：probe_role_x\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "ruleversion.publish",
+   "name": "发布规则版本",
+   "perm": "ruleversion.manage",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"版本号必须形如 `YYYY.NN`（年份.两位月份），当前为 ''\"}"
+  },
+  {
+   "role": "system_admin",
+   "user": "sim_admin",
+   "key": "template.upsert",
+   "name": "新建/覆盖报告模板",
+   "perm": "template.manage",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"label（模板名称）不能为空\"}"
   },
   {
    "role": "enterprise_finance",
@@ -244,7 +491,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":19,\"company_id\":null,\"code\":\"PJ-20261016-0011\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB14833\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"sta"
+   "detail": "{\"items\":[{\"id\":32,\"company_id\":null,\"code\":\"PJ-20261016-0024\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB09180\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"sta"
   },
   {
    "role": "enterprise_finance",
@@ -257,7 +504,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T16:45:22\",\"total\":21,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
+   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T22:54:46\",\"total\":22,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
   },
   {
    "role": "enterprise_finance",
@@ -270,7 +517,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":32,\"doc_no\":\"RW-1-5fc957\",\"version\":\"V30\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
+   "detail": "{\"items\":[{\"id\":53,\"doc_no\":\"RW-1-bde9c6\",\"version\":\"V62\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
   },
   {
    "role": "enterprise_finance",
@@ -283,7 +530,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":331,\"project_id\":10,\"company_id\":1,\"doc_id\":125,\"filename\":\"1_125_权限矩阵探测.txt\",\"original_name\":\"权限矩阵探测.txt\",\"ext\":\".txt\",\"size\":1,\"md5\":\"02129bb861061d1a052c592e2dc6b383\",\"sha256\":\"4b68"
+   "detail": "{\"items\":[{\"id\":339,\"project_id\":10,\"company_id\":1,\"doc_id\":133,\"filename\":\"1_133_场景7-真大序时账.xlsx\",\"original_name\":\"场景7-真大序时账.xlsx\",\"ext\":\".xlsx\",\"size\":12410385,\"md5\":\"7dc17cfdc85fe8d9fbc458f7821f12a5"
   },
   {
    "role": "enterprise_finance",
@@ -333,9 +580,9 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 200,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"risk_no\":\"WB-R-91440300MA5H824G7M-202501-020\",\"company_id\":1,\"state\":\"confirmed\",\"state_cn\":\"已确认\",\"manual_required\":false,\"rectification_no\":\"\",\"rectification_note\":\"\",\"updated_at\":\"2026-10-16T16:45"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：risk.review；当前角色：enterprise_finance）\"}"
   },
   {
    "role": "enterprise_finance",
@@ -348,7 +595,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"id\":33,\"doc_no\":\"RW-1-b02e88\",\"version\":\"V31\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\"sim_adviso"
+   "detail": "{\"id\":54,\"doc_no\":\"RW-1-419866\",\"version\":\"V63\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\"sim_adviso"
   },
   {
    "role": "enterprise_finance",
@@ -387,7 +634,176 @@
    "declared_raw": true,
    "status": 201,
    "verdict": "✅ 一致",
-   "detail": "{\"id\":25,\"company_id\":null,\"code\":\"PJ-20261016-0017\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB40178\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status\":\"draf"
+   "detail": "{\"id\":36,\"company_id\":null,\"code\":\"PJ-20261016-0028\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB01538\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status\":\"draf"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "project.delete",
+   "name": "删除项目",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"项目不存在或无权访问\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "project.member",
+   "name": "新增项目成员",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"成员必须提供 user_id 或 user_name\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "doc.delete",
+   "name": "删除资料",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "doc.classify",
+   "name": "修正资料分类",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "doc.parsestatus",
+   "name": "设置解析状态",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "extract.correct",
+   "name": "校正解析字段",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"字段记录不存在\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "extract.resolve",
+   "name": "处理解析异常",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"异常记录不存在\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "report.delete",
+   "name": "删除报告（旧路由）",
+   "perm": "report.generate",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"removed\":true,\"cleared\":[\"磁盘分析缓存\"],\"leftovers\":[],\"message\":\"报告已清除（清理 1 处：磁盘分析缓存；文件已移至项目回收站 data/trash，如需物理删除须手动清空该目录）\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "user.create",
+   "name": "新建用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：enterprise_finance）\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "user.update",
+   "name": "修改用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：enterprise_finance）\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "role.create",
+   "name": "新建角色",
+   "perm": "role.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：role.manage；当前角色：enterprise_finance）\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "ruleversion.publish",
+   "name": "发布规则版本",
+   "perm": "ruleversion.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"缺少权限：ruleversion.manage\"}"
+  },
+  {
+   "role": "enterprise_finance",
+   "user": "sim_finance",
+   "key": "template.upsert",
+   "name": "新建/覆盖报告模板",
+   "perm": "template.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"缺少权限：template.manage\"}"
   },
   {
    "role": "tax_advisor",
@@ -400,7 +816,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":20,\"company_id\":null,\"code\":\"PJ-20261016-0012\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB23708\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"sta"
+   "detail": "{\"items\":[{\"id\":33,\"company_id\":null,\"code\":\"PJ-20261016-0025\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB16601\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"sta"
   },
   {
    "role": "tax_advisor",
@@ -413,7 +829,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T16:45:22\",\"total\":21,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
+   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T22:54:46\",\"total\":22,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
   },
   {
    "role": "tax_advisor",
@@ -426,7 +842,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":33,\"doc_no\":\"RW-1-b02e88\",\"version\":\"V31\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
+   "detail": "{\"items\":[{\"id\":54,\"doc_no\":\"RW-1-419866\",\"version\":\"V63\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
   },
   {
    "role": "tax_advisor",
@@ -439,7 +855,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":331,\"project_id\":10,\"company_id\":1,\"doc_id\":125,\"filename\":\"1_125_权限矩阵探测.txt\",\"original_name\":\"权限矩阵探测.txt\",\"ext\":\".txt\",\"size\":1,\"md5\":\"02129bb861061d1a052c592e2dc6b383\",\"sha256\":\"4b68"
+   "detail": "{\"items\":[{\"id\":339,\"project_id\":10,\"company_id\":1,\"doc_id\":133,\"filename\":\"1_133_场景7-真大序时账.xlsx\",\"original_name\":\"场景7-真大序时账.xlsx\",\"ext\":\".xlsx\",\"size\":12410385,\"md5\":\"7dc17cfdc85fe8d9fbc458f7821f12a5"
   },
   {
    "role": "tax_advisor",
@@ -491,7 +907,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"risk_no\":\"WB-R-91440300MA5H824G7M-202501-020\",\"company_id\":1,\"state\":\"confirmed\",\"state_cn\":\"已确认\",\"manual_required\":false,\"rectification_no\":\"\",\"rectification_note\":\"\",\"updated_at\":\"2026-10-16T16:45"
+   "detail": "{\"risk_no\":\"WB-R-91440300MA5H824G7M-202501-020\",\"company_id\":1,\"state\":\"confirmed\",\"state_cn\":\"已确认\",\"manual_required\":false,\"rectification_no\":\"\",\"rectification_note\":\"\",\"updated_at\":\"2026-10-16T22:56"
   },
   {
    "role": "tax_advisor",
@@ -504,7 +920,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"id\":34,\"doc_no\":\"RW-1-291a1c\",\"version\":\"V32\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\"sim_adviso"
+   "detail": "{\"id\":55,\"doc_no\":\"RW-1-7d9ab8\",\"version\":\"V64\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\"sim_adviso"
   },
   {
    "role": "tax_advisor",
@@ -543,7 +959,176 @@
    "declared_raw": true,
    "status": 201,
    "verdict": "✅ 一致",
-   "detail": "{\"id\":26,\"company_id\":null,\"code\":\"PJ-20261016-0018\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB49337\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status\":\"draf"
+   "detail": "{\"id\":37,\"company_id\":null,\"code\":\"PJ-20261016-0029\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB09041\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status\":\"draf"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "project.delete",
+   "name": "删除项目",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"项目不存在或无权访问\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "project.member",
+   "name": "新增项目成员",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"成员必须提供 user_id 或 user_name\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "doc.delete",
+   "name": "删除资料",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "doc.classify",
+   "name": "修正资料分类",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "doc.parsestatus",
+   "name": "设置解析状态",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"资料不存在或无权访问\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "extract.correct",
+   "name": "校正解析字段",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"字段记录不存在\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "extract.resolve",
+   "name": "处理解析异常",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"异常记录不存在\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "report.delete",
+   "name": "删除报告（旧路由）",
+   "perm": "report.generate",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"removed\":true,\"cleared\":[\"磁盘分析缓存\"],\"leftovers\":[],\"message\":\"报告已清除（清理 1 处：磁盘分析缓存；文件已移至项目回收站 data/trash，如需物理删除须手动清空该目录）\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "user.create",
+   "name": "新建用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：tax_advisor）\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "user.update",
+   "name": "修改用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：tax_advisor）\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "role.create",
+   "name": "新建角色",
+   "perm": "role.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：role.manage；当前角色：tax_advisor）\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "ruleversion.publish",
+   "name": "发布规则版本",
+   "perm": "ruleversion.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"缺少权限：ruleversion.manage\"}"
+  },
+  {
+   "role": "tax_advisor",
+   "user": "sim_advisor",
+   "key": "template.upsert",
+   "name": "新建/覆盖报告模板",
+   "perm": "template.manage",
+   "kind": "write",
+   "declared": true,
+   "declared_raw": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"label（模板名称）不能为空\"}"
   },
   {
    "role": "review_expert",
@@ -556,7 +1141,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":21,\"company_id\":null,\"code\":\"PJ-20261016-0013\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB29915\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"sta"
+   "detail": "{\"items\":[{\"id\":27,\"company_id\":5,\"code\":\"PJ-20261016-0019\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB55491\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status"
   },
   {
    "role": "review_expert",
@@ -569,7 +1154,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T16:45:22\",\"total\":21,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
+   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T22:54:46\",\"total\":22,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
   },
   {
    "role": "review_expert",
@@ -582,7 +1167,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":34,\"doc_no\":\"RW-1-291a1c\",\"version\":\"V32\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
+   "detail": "{\"items\":[{\"id\":55,\"doc_no\":\"RW-1-7d9ab8\",\"version\":\"V64\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
   },
   {
    "role": "review_expert",
@@ -595,7 +1180,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":331,\"project_id\":10,\"company_id\":1,\"doc_id\":125,\"filename\":\"1_125_权限矩阵探测.txt\",\"original_name\":\"权限矩阵探测.txt\",\"ext\":\".txt\",\"size\":1,\"md5\":\"02129bb861061d1a052c592e2dc6b383\",\"sha256\":\"4b68"
+   "detail": "{\"items\":[{\"id\":339,\"project_id\":10,\"company_id\":1,\"doc_id\":133,\"filename\":\"1_133_场景7-真大序时账.xlsx\",\"original_name\":\"场景7-真大序时账.xlsx\",\"ext\":\".xlsx\",\"size\":12410385,\"md5\":\"7dc17cfdc85fe8d9fbc458f7821f12a5"
   },
   {
    "role": "review_expert",
@@ -621,7 +1206,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":1156,\"company_id\":null,\"user_name\":\"sim_expert\",\"action\":\"auth.login\",\"target\":\"sim_expert\",\"detail\":\"登录成功（角色：review_expert）\",\"created_at\":\"2026-10-16T16:45:50+08:00\",\"user_id\":6,\"acti"
+   "detail": "{\"items\":[{\"id\":1389,\"company_id\":null,\"user_name\":\"sim_expert\",\"action\":\"auth.login\",\"target\":\"sim_expert\",\"detail\":\"登录成功（角色：review_expert）\",\"created_at\":\"2026-10-16T22:56:54+08:00\",\"user_id\":6,\"acti"
   },
   {
    "role": "review_expert",
@@ -647,7 +1232,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"risk_no\":\"WB-R-91440300MA5H824G7M-202501-020\",\"company_id\":1,\"state\":\"confirmed\",\"state_cn\":\"已确认\",\"manual_required\":false,\"rectification_no\":\"\",\"rectification_note\":\"\",\"updated_at\":\"2026-10-16T16:45"
+   "detail": "{\"risk_no\":\"WB-R-91440300MA5H824G7M-202501-020\",\"company_id\":1,\"state\":\"confirmed\",\"state_cn\":\"已确认\",\"manual_required\":false,\"rectification_no\":\"\",\"rectification_note\":\"\",\"updated_at\":\"2026-10-16T22:56"
   },
   {
    "role": "review_expert",
@@ -658,9 +1243,9 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 200,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"id\":35,\"doc_no\":\"RW-1-991e3d\",\"version\":\"V33\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\"sim_adviso"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：report.generate；当前角色：review_expert）\"}"
   },
   {
    "role": "review_expert",
@@ -671,9 +1256,9 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 409,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"detail\":\"该账套正在执行分析，请稍后再试\"}"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：analysis.run；当前角色：review_expert）\"}"
   },
   {
    "role": "review_expert",
@@ -684,9 +1269,9 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 201,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"uploaded\":[],\"duplicated\":[{\"filename\":\"权限矩阵探测.txt\",\"md5\":\"02129bb861061d1a052c592e2dc6b383\",\"duplicate_of\":331,\"duplicate_of_name\":\"权限矩阵探测.txt\",\"scope\":\"project\",\"reason\":\"同一项目内已存在相同内容（MD5/SHA256 一"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\"}"
   },
   {
    "role": "review_expert",
@@ -697,9 +1282,178 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 201,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"id\":27,\"company_id\":null,\"code\":\"PJ-20261016-0019\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB55491\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status\":\"draf"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：project.write；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "project.delete",
+   "name": "删除项目",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：project.write；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "project.member",
+   "name": "新增项目成员",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：project.write；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "doc.delete",
+   "name": "删除资料",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "doc.classify",
+   "name": "修正资料分类",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "doc.parsestatus",
+   "name": "设置解析状态",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "extract.correct",
+   "name": "校正解析字段",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "extract.resolve",
+   "name": "处理解析异常",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "report.delete",
+   "name": "删除报告（旧路由）",
+   "perm": "report.generate",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：report.generate；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "user.create",
+   "name": "新建用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "user.update",
+   "name": "修改用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "role.create",
+   "name": "新建角色",
+   "perm": "role.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：role.manage；当前角色：review_expert）\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "ruleversion.publish",
+   "name": "发布规则版本",
+   "perm": "ruleversion.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"缺少权限：ruleversion.manage\"}"
+  },
+  {
+   "role": "review_expert",
+   "user": "sim_expert",
+   "key": "template.upsert",
+   "name": "新建/覆盖报告模板",
+   "perm": "template.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"缺少权限：template.manage\"}"
   },
   {
    "role": "auditor",
@@ -712,7 +1466,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":22,\"company_id\":null,\"code\":\"PJ-20261016-0014\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB65787\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"sta"
+   "detail": "{\"items\":[{\"id\":28,\"company_id\":null,\"code\":\"PJ-20261016-0020\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB63730\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"sta"
   },
   {
    "role": "auditor",
@@ -725,7 +1479,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T16:45:22\",\"total\":21,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
+   "detail": "{\"available\":true,\"company_id\":1,\"generated_at\":\"2026-10-16T22:54:46\",\"total\":22,\"page\":1,\"page_size\":5,\"pages\":5,\"items\":[{\"seq\":20,\"title\":\"成本列支的资金与负债证据不足：真实性须核对\",\"premise_note\":\"\",\"redline_id\":\"RL-"
   },
   {
    "role": "auditor",
@@ -738,7 +1492,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":35,\"doc_no\":\"RW-1-991e3d\",\"version\":\"V33\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
+   "detail": "{\"items\":[{\"id\":55,\"doc_no\":\"RW-1-7d9ab8\",\"version\":\"V64\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\""
   },
   {
    "role": "auditor",
@@ -751,7 +1505,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":331,\"project_id\":10,\"company_id\":1,\"doc_id\":125,\"filename\":\"1_125_权限矩阵探测.txt\",\"original_name\":\"权限矩阵探测.txt\",\"ext\":\".txt\",\"size\":1,\"md5\":\"02129bb861061d1a052c592e2dc6b383\",\"sha256\":\"4b68"
+   "detail": "{\"items\":[{\"id\":339,\"project_id\":10,\"company_id\":1,\"doc_id\":133,\"filename\":\"1_133_场景7-真大序时账.xlsx\",\"original_name\":\"场景7-真大序时账.xlsx\",\"ext\":\".xlsx\",\"size\":12410385,\"md5\":\"7dc17cfdc85fe8d9fbc458f7821f12a5"
   },
   {
    "role": "auditor",
@@ -777,7 +1531,7 @@
    "declared_raw": true,
    "status": 200,
    "verdict": "✅ 一致",
-   "detail": "{\"items\":[{\"id\":1160,\"company_id\":null,\"user_name\":\"sim_auditor\",\"action\":\"auth.login\",\"target\":\"sim_auditor\",\"detail\":\"登录成功（角色：auditor）\",\"created_at\":\"2026-10-16T16:45:56+08:00\",\"user_id\":8,\"action_c"
+   "detail": "{\"items\":[{\"id\":1391,\"company_id\":null,\"user_name\":\"sim_auditor\",\"action\":\"auth.login\",\"target\":\"sim_auditor\",\"detail\":\"登录成功（角色：auditor）\",\"created_at\":\"2026-10-16T22:57:01+08:00\",\"user_id\":8,\"action_c"
   },
   {
    "role": "auditor",
@@ -801,9 +1555,9 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 200,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"risk_no\":\"WB-R-91440300MA5H824G7M-202501-020\",\"company_id\":1,\"state\":\"confirmed\",\"state_cn\":\"已确认\",\"manual_required\":false,\"rectification_no\":\"\",\"rectification_note\":\"\",\"updated_at\":\"2026-10-16T16:46"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：risk.review；当前角色：auditor）\"}"
   },
   {
    "role": "auditor",
@@ -814,9 +1568,9 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 200,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"id\":36,\"doc_no\":\"RW-1-7df728\",\"version\":\"V34\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"name\":\"内部辅助分析工作底稿（税务自查）\",\"period_start\":\"\",\"period_end\":\"\",\"reviewed\":true,\"reviewed_by\":\"sim_adviso"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：report.generate；当前角色：auditor）\"}"
   },
   {
    "role": "auditor",
@@ -827,9 +1581,9 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 409,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"detail\":\"该账套正在执行分析，请稍后再试\"}"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：analysis.run；当前角色：auditor）\"}"
   },
   {
    "role": "auditor",
@@ -840,9 +1594,9 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 201,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"uploaded\":[],\"duplicated\":[{\"filename\":\"权限矩阵探测.txt\",\"md5\":\"02129bb861061d1a052c592e2dc6b383\",\"duplicate_of\":331,\"duplicate_of_name\":\"权限矩阵探测.txt\",\"scope\":\"project\",\"reason\":\"同一项目内已存在相同内容（MD5/SHA256 一"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\"}"
   },
   {
    "role": "auditor",
@@ -853,15 +1607,184 @@
    "kind": "write",
    "declared": false,
    "declared_raw": false,
-   "status": 201,
-   "verdict": "⚠ 声明无权限却放行",
-   "detail": "{\"id\":28,\"company_id\":null,\"code\":\"PJ-20261016-0020\",\"name\":\"权限矩阵探测项目（可删）\",\"taxpayer_id\":\"91440300MA5PB63730\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"period_end\":\"\",\"tax_scopes\":[],\"status\":\"draf"
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：project.write；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "project.delete",
+   "name": "删除项目",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：project.write；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "project.member",
+   "name": "新增项目成员",
+   "perm": "project.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：project.write；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "doc.delete",
+   "name": "删除资料",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "doc.classify",
+   "name": "修正资料分类",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "doc.parsestatus",
+   "name": "设置解析状态",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "extract.correct",
+   "name": "校正解析字段",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "extract.resolve",
+   "name": "处理解析异常",
+   "perm": "document.write",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "report.delete",
+   "name": "删除报告（旧路由）",
+   "perm": "report.generate",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：report.generate；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "user.create",
+   "name": "新建用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "user.update",
+   "name": "修改用户",
+   "perm": "user.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "role.create",
+   "name": "新建角色",
+   "perm": "role.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无权执行该操作（需要权限：role.manage；当前角色：auditor）\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "ruleversion.publish",
+   "name": "发布规则版本",
+   "perm": "ruleversion.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"缺少权限：ruleversion.manage\"}"
+  },
+  {
+   "role": "auditor",
+   "user": "sim_auditor",
+   "key": "template.upsert",
+   "name": "新建/覆盖报告模板",
+   "perm": "template.manage",
+   "kind": "write",
+   "declared": false,
+   "declared_raw": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"缺少权限：template.manage\"}"
   }
  ],
  "summary": {
-  "total": 60,
-  "consistent": 50,
-  "missing_enforcement": 10,
+  "total": 125,
+  "consistent": 125,
+  "missing_enforcement": 0,
   "scope_blocked": 0,
   "over_denied": 0
  }

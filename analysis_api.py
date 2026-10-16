@@ -66,6 +66,21 @@ def _session(request: Request):
     return auth
 
 
+def _require_perm(session, code: str):
+    """写操作的**功能权限点**校验（MQ2-D1）。
+
+    权威：`engine.rbac.rebac_allows()`（经 `require_permission` 抛 403）。
+    本函数只做「RbacError → HTTPException」的边界转换，**不自判角色**（否则即第二套口径）。
+    """
+    from engine.rbac import RbacError, require_permission          # noqa: PLC0415
+    try:
+        require_permission(session, code)
+    except RbacError as exc:
+        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
+                            detail=str(getattr(exc, "message", exc))) from exc
+    return session
+
+
 def _call(fn, *args, **kwargs):
     """统一把任务层业务异常转成 HTTP（**唯一转换点**，避免各处各写一套）。"""
     try:
@@ -91,6 +106,7 @@ def get_meta(request: Request):
 def launch_job(project_id: int, payload: Optional[LaunchJobRequest] = None,
                request: Request = None):
     session = _session(request)
+    _require_perm(session, "analysis.run")
     force = bool(getattr(payload, "force", False))
     return _call(SVC.launch, project_id, session, force=force, request=request)
 
@@ -114,18 +130,21 @@ def get_job(job_id: str, request: Request):
 @router.post("/analysis-jobs/{job_id}/cancel", summary="取消任务（结果不予采用）")
 def cancel_job(job_id: str, request: Request):
     session = _session(request)
+    _require_perm(session, "analysis.run")
     return _call(SVC.cancel, job_id, session)
 
 
 @router.post("/analysis-jobs/{job_id}/retry", summary="重试任务（仅失败/已取消可重试）")
 def retry_job(job_id: str, request: Request):
     session = _session(request)
+    _require_perm(session, "analysis.run")
     return _call(SVC.retry, job_id, session, request=request)
 
 
 @router.delete("/analysis-jobs/{job_id}", summary="删除任务记录（历史清理；运行中不可删，结果/报告不受影响）")
 def delete_analysis_job(job_id: str, request: Request):
     session = _session(request)
+    _require_perm(session, "analysis.run")
     return _call(SVC.delete_job, job_id, session)
 
 

@@ -63,6 +63,21 @@ def _session(request: Request):
     return auth
 
 
+def _require_perm(session, code: str):
+    """写操作的**功能权限点**校验（MQ2-D1）。
+
+    权威：`engine.rbac.rebac_allows()`（经 `require_permission` 抛 403）。
+    本函数只做「RbacError → HTTPException」的边界转换，**不自判角色**（否则即第二套口径）。
+    """
+    from engine.rbac import RbacError, require_permission          # noqa: PLC0415
+    try:
+        require_permission(session, code)
+    except RbacError as exc:
+        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
+                            detail=str(getattr(exc, "message", exc))) from exc
+    return session
+
+
 def _svc(fn, *args, **kwargs):
     """调 Service 并把 `ReportServiceError` 转 HTTP 语义。
 
@@ -130,6 +145,7 @@ def generate_report(project_id: int, request: Request,
     ```
     """
     session = _session(request)
+    _require_perm(session, "report.generate")
     body = payload if isinstance(payload, dict) else {}
     view = str(body.get("view") or "full")
     fmts = body.get("formats")

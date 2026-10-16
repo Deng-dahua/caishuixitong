@@ -27,6 +27,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -38,6 +40,16 @@ _ROOT = Path(__file__).resolve().parent.parent
 _COMPLIANCE = _ROOT / "config" / "report_compliance.json"
 #: ★ 台账**路径**（`Path` 在调用时解析；见 `ledger_path()`）
 _p_NAME = "report_versions.jsonl"
+
+#: ★★ 版本号分配的**进程内互斥锁**（MQ2-D2，2026-10-16）。
+#:   为什么必须有：`record_version()` 原本是「读台账计数 → +1 → 追加写」，
+#:   三步**非原子** ⇒ 多路并发（FastAPI 同步端点跑在线程池）会同时读到同一计数，
+#:   得到**相同版本号**并各写一条台账。实测事故：`(RW-1-177dd0,V38)×3`、`(RW-1-8c983f,V44)×2`。
+#:   与项目既有惯例一致（`engine/analysis_jobs.py::_LOCK`、`engine/analysis_task.py::_LINK_LOCK`）。
+_VERSION_LOCK = threading.RLock()
+
+#: 版本号形如 `V12`（解析用；不匹配的行按"无版本号"处理，**不静默当 0 参与 max**）
+_VERSION_RE = re.compile(r"^V(\d+)$")
 
 
 def ledger_path() -> Path:
@@ -206,8 +218,19 @@ def _doc_no(company_id: Any, edition_kind: str, version: str) -> str:
 
 
 def next_version(company_id: Any, edition_kind: str = "internal_working_paper") -> str:
-    """下一个版本号（同企业同文稿类型递增）：V1、V2…；**以台账为准**，不猜。"""
-    n = 0
+    """下一个版本号（同企业同文稿类型递增）：V1、V2…；**以台账为准**，不猜。
+
+    ★ MQ2-D2（2026-10-16）修两处：
+      ① **口径**：原先按"台账命中**行数** + 1" ⇒ 台账一旦出现历史重复行
+         （并发事故遗留 `V38×3`），后续取号会**偏大且仍可能撞已用号**；
+         现改为 **`max(已用 V 号) + 1`** —— 只用"已用号的最大值"，与行数解耦。
+      ② **并发**：本函数自身只读；调用方 `record_version()` 必须持 `_VERSION_LOCK`
+         把"取号 + 追加写"变成原子段（否则两个线程会读到同一 max）。
+
+    解析容错：非 `V<数字>` 形态的版本值**不参与 max**（不静默当 0），
+    但会在返回值上被自然避开（因为 max 只增）。
+    """
+    top = 0
     _p = ledger_path()
     if _p.exists():
         for line in _p.read_text(encoding="utf-8").splitlines():
@@ -216,12 +239,15 @@ def next_version(company_id: Any, edition_kind: str = "internal_working_paper") 
                 continue
             try:
                 o = json.loads(line)
-            except Exception:
+            except Exception:                                    # noqa: BLE001
                 continue
-            if o.get("company_id") == str(company_id) and \
-                    o.get("edition_kind") == edition_kind:
-                n += 1
-    return "V%d" % (n + 1)
+            if o.get("company_id") != str(company_id) or \
+                    o.get("edition_kind") != edition_kind:
+                continue
+            m = _VERSION_RE.match(str(o.get("version") or ""))
+            if m:
+                top = max(top, int(m.group(1)))
+    return "V%d" % (top + 1)
 
 
 def record_version(company_id: Any, block: Dict[str, Any],
@@ -234,27 +260,32 @@ def record_version(company_id: Any, block: Dict[str, Any],
     `analysis_id`：产出这份报告的**分析作业 id**（`engine.analysis_jobs` 的 `job_id`），
     用于**报告 → 作业**的单向回指（作业行**不**重复记 `doc_no`，避免两个事实来源）。
     取不到作业 id 时（如单元测试、离线渲染）**留空**，**不伪造**。
+
+    ★ MQ2-D2（2026-10-16）：**取号 + 追加写**整体置于 `_VERSION_LOCK` 之内 ——
+      原实现无锁，并发生成报告时多线程会取得同一版本号（实测 `V38×3` / `V44×2`）。
+      锁的范围仅覆盖本函数（不改版本管理框架、不动其他台账）。
     """
-    ver = next_version(company_id, doc_kind_of(edition_kind))
-    rec = {
-        "doc_no": _doc_no(company_id, edition_kind, ver),
-        "company_id": str(company_id or ""),
-        "doc_name": (block.get("document") or {}).get("name") or "税务风险扫描工作底稿",
-        "edition_kind": doc_kind_of(edition_kind),
-        "version": ver,
-        "generated_at": generated_at or _now(),
-        "generator": (block.get("system") or {}).get("name") or "",
-        "system_version": (block.get("system") or {}).get("version") or "",
-        "reviewed": bool((block.get("system") or {}).get("reviewed")),
-        "redaction_role": str(role or ""),
-        "change_note": str(change_note or "首次生成。"),
-        "analysis_id": str(analysis_id or ""),
-    }
-    _p = ledger_path()
-    _p.parent.mkdir(parents=True, exist_ok=True)
-    with open(_p, "a", encoding="utf-8") as fh:
-        fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
-    return rec
+    with _VERSION_LOCK:
+        ver = next_version(company_id, doc_kind_of(edition_kind))
+        rec = {
+            "doc_no": _doc_no(company_id, edition_kind, ver),
+            "company_id": str(company_id or ""),
+            "doc_name": (block.get("document") or {}).get("name") or "税务风险扫描工作底稿",
+            "edition_kind": doc_kind_of(edition_kind),
+            "version": ver,
+            "generated_at": generated_at or _now(),
+            "generator": (block.get("system") or {}).get("name") or "",
+            "system_version": (block.get("system") or {}).get("version") or "",
+            "reviewed": bool((block.get("system") or {}).get("reviewed")),
+            "redaction_role": str(role or ""),
+            "change_note": str(change_note or "首次生成。"),
+            "analysis_id": str(analysis_id or ""),
+        }
+        _p = ledger_path()
+        _p.parent.mkdir(parents=True, exist_ok=True)
+        with open(_p, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        return rec
 
 
 def change_log(company_id: Any = None, limit: int = 20) -> List[Dict[str, Any]]:

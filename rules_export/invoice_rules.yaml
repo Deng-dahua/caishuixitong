@@ -236,12 +236,12 @@ rules:
     score_note: "外部清单未逐条给出分值 ⇒ 不编造；且系统不使用规则自评分（事项等级唯一权威 engine/risk_levels.py）"
     version: "1.0.0"
     enabled: false
-    condition: "same_customer_invoice_count > params.count_threshold"
+    condition: "same_customer_invoice_count > params.same_pair_count"
     params_ref: "config/rulelist_v11.json::params.INV-008"
     params:
       same_pair_count: 3
       window_days: 45
-      _basis: "同一对方同金额开票次数（invoice_pattern_detector._SAME_PAIR_COUNT）"
+      _basis: "同一对方同金额开票次数（invoice_pattern_detector._SAME_PAIR_COUNT）。★ 2026-10-13 口径修正：logic 原引用 params.count_threshold，与其 params 登记名 same_pair_count 属同一含义的两个名（悬空引用），已统一为 same_pair_count。"
     inputs:
       - "客户开票次数"
     risk:

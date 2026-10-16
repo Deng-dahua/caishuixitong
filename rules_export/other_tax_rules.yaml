@@ -688,7 +688,8 @@ rules:
     params_ref: "config/rulelist_v11.json::params.PCT-006"
     params:
       base_diff_tolerance: 0.0
-      _basis: "计税依据与原值×(1-扣除)的偏差容忍"
+      deduction_ratio: null
+      _basis: "计税依据与原值×(1-扣除)的偏差容忍；扣除比例 deduction_ratio 属**地方参数**（房产税计税余值扣除比例，法定区间 10%~30%，具体由省级政府确定）⇒ 见 config/region_params.json::property_tax_deduction_ratio。★ 2026-10-13：原 logic 引用 params.deduction_ratio 但未登记 ⇒ 悬空引用，现补登记为 null 并**明确「未提供则待核」，禁止以默认值静默计算**。"
     inputs:
       - "计税依据"
       - "原值"

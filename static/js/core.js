@@ -1016,11 +1016,52 @@ function getPageState(key) {
 }
 
 // ═══════════════════ 税务AGI 仪表盘 ═══════════════════
+/**
+ * ★ D-02（2026-10-16）：本面板依赖的 `/api/agi/pipeline/dashboard` 与 `/api/agi/status`
+ *   随 AGI 子系统于 2026-09-30 **整体下线**（后端已无这两个端点）。
+ *   原实现两处 `.catch(function(){return {};})` 把请求失败**静默吞掉**，
+ *   随后按 `d1.ok ? d1 : {默认值}` 渲染 ⇒ 用户看到的是「**全 0 的仪表盘**」，
+ *   把"取不到"伪装成了"值为 0"（既违反"缺失≠0"，也让运维无法定位）。
+ *   现改为：**先探测可用性；不可用即如实呈现下线说明**，不再渲染 0。
+ */
+function _agiOfflineNotice(statusA, statusB) {
+  return '<div style="max-width:760px;margin:40px auto;padding:28px 30px;background:#fff;'
+    + 'border:1px solid #e2e8f0;border-left:4px solid #b45309;border-radius:8px;'
+    + 'font-size:14px;line-height:2.0;color:#334155">'
+    + '<h2 style="margin:0 0 12px;font-size:18px;color:#0f172a">⚠ 该面板依赖的功能已下线</h2>'
+    + '<p style="margin:0 0 10px">本页原依赖 AGI（智能分析）子系统，该子系统已于 '
+    + '<strong>2026-09-30 整体移除</strong>，其接口不再提供。</p>'
+    + '<p style="margin:0 0 10px">因此下方指标<strong>无法取得</strong>——'
+    + '此处不显示任何数字，以免把"取不到"误读成"值为 0"。</p>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:6px 0 14px">'
+    + '<thead><tr><th style="text-align:left;padding:6px 10px;background:#f8fafc;border-bottom:1px solid #e2e8f0">依赖端点</th>'
+    + '<th style="text-align:left;padding:6px 10px;background:#f8fafc;border-bottom:1px solid #e2e8f0">实测状态</th></tr></thead>'
+    + '<tbody>'
+    + '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-family:monospace">'
+    + 'GET /api/agi/pipeline/dashboard</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9">'
+    + (statusA ? ('HTTP ' + statusA) : '请求未送达') + '　已下线</td></tr>'
+    + '<tr><td style="padding:6px 10px;font-family:monospace">GET /api/agi/status</td>'
+    + '<td style="padding:6px 10px">' + (statusB ? ('HTTP ' + statusB) : '请求未送达') + '　已下线</td></tr>'
+    + '</tbody></table>'
+    + '<p style="margin:0;color:#64748b;font-size:13px">替代入口：'
+    + '<a href="/analysis" style="color:#2563eb">一键稽查分析</a> ／ '
+    + '<a href="/rules" style="color:#2563eb">规则库与风险发现</a> ／ '
+    + '<a href="/dashboard" style="color:#2563eb">数据大屏</a>。</p>'
+    + '</div>';
+}
+
 async function renderAgiDashboard(container) {
   container.innerHTML = '<div style="text-align:center;padding:60px;color:#64748b;"><div class="spinner"></div><p>加载税务AGI状态...</p></div>';
   try {
-    var d1 = await fetch('/api/agi/pipeline/dashboard').then(function(r){return r.json();}).catch(function(){return {};});
-    var d2 = await fetch('/api/agi/status').then(function(r){return r.json();}).catch(function(){return {};});
+    // ★ 探测可用性（保留状态码，不再静默吞失败）
+    var _st1 = 0, _st2 = 0;
+    var d1 = await fetch('/api/agi/pipeline/dashboard').then(function(r){_st1=r.status;return r.json();}).catch(function(){return null;});
+    var d2 = await fetch('/api/agi/status').then(function(r){_st2=r.status;return r.json();}).catch(function(){return null;});
+    if ((d1 === null || _st1 === 404 || _st1 === 405) && (d2 === null || _st2 === 404 || _st2 === 405)) {
+      container.innerHTML = _agiOfflineNotice(_st1, _st2);
+      return;
+    }
+    d1 = d1 || {}; d2 = d2 || {};
 
     var pipe = d1.ok ? d1 : {stats:{modules_connected:0,events_collected:0},total_events:0,modules_active:0,health:'idle',module_breakdown:[],knowledge_base:{},cross_memory:{analyses:0}};
     var agi = d2.ok ? d2 : {knowledge_base:{},healing:{},causal_network:{},cross_analysis:{},version:{agent:'3.0',features:[]},methodology:{},rule_discovery:{},patrol:{},legal_reasoning:{},trend_analysis:{},overrides:{},external_verify:{},corrections:{}};
@@ -1147,28 +1188,43 @@ async function renderAgiDashboard(container) {
     // ═══ 九、API端点清单 ═══
     h += '<section id="agi-api" class="hb-section">';
     h += '<h2 class="hb-section-title"><span class="hb-section-num">九</span> API端点清单</h2>';
+    // ★ D-02（2026-10-16）：本清单**逐条标注实测状态**。AGI 子系统已于 2026-09-30 整体移除，
+    //   清单里 14 条中 9 条后端已不存在。原清单**不加区分地列出** ⇒ 读者会把「已下线」当「可用」。
+    //   状态口径：`live` = 后端已注册（实测可路由）；`offline` = 后端已无该端点（实测 404/405）。
+    h += '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 10px">'
+      + '下表逐条标注<strong>实测状态</strong>：标注「已下线」的端点**后端已不存在**'
+      + '（AGI 子系统 2026-09-30 整体移除），调用会返回 404，请勿依赖。</p>';
     h += '<table class="hb-table hb-table-striped">';
-    h += '<thead><tr><th style="width:80px;">方法</th><th>端点</th><th>功能说明</th></tr></thead><tbody>';
+    h += '<thead><tr><th style="width:80px;">方法</th><th>端点</th><th>功能说明</th>'
+      + '<th style="width:90px;">实测状态</th></tr></thead><tbody>';
     var apis = [
-      ['GET','/api/agi/status','AGI完整状态面板（分析引擎+知识库+因果网络+SCM+元认知+知识图谱+自愈+巡逻）'],
-      ['GET','/api/agi/pipeline/dashboard','Pipeline仪表盘数据'],
-      ['POST','/api/agi/query','自然语言查询分析结果'],
-      ['POST','/api/agi/chat','对话式税务合规'],
-      ['POST','/api/agi/self-check/{company_id}','闭环自检'],
-      ['GET','/api/agi/overrides/summary','AGI覆盖层概况'],
-      ['POST','/api/agi/overrides/{id}/activate','激活覆盖层'],
-      ['POST','/api/agi/overrides/{id}/rollback','回滚覆盖层'],
-      ['POST','/api/agi/overrides/emergency-reset','紧急恢复'],
-      ['GET','/api/agi/patrol/status','巡逻状态（含因果影响分析）'],
-      ['POST','/api/agi/patrol/trigger','触发巡逻'],
-      ['GET','/api/agi/verify-supplier','供应商验证'],
-      ['GET','/api/agi/verify-channels','验证渠道'],
-      ['POST','/api/agi/parallel/toggle','并行加速开关'],
+      ['GET','/api/agi/status','AGI完整状态面板（分析引擎+知识库+因果网络+SCM+元认知+知识图谱+自愈+巡逻）','offline'],
+      ['GET','/api/agi/pipeline/dashboard','Pipeline仪表盘数据','offline'],
+      ['POST','/api/agi/query','自然语言查询分析结果','live'],
+      ['POST','/api/agi/chat','对话式税务合规','offline'],
+      ['POST','/api/agi/self-check/{company_id}','闭环自检','live'],
+      ['GET','/api/agi/overrides/summary','AGI覆盖层概况','offline'],
+      ['POST','/api/agi/overrides/{id}/activate','激活覆盖层','offline'],
+      ['POST','/api/agi/overrides/{id}/rollback','回滚覆盖层','offline'],
+      ['POST','/api/agi/overrides/emergency-reset','紧急恢复','offline'],
+      ['GET','/api/agi/patrol/status','巡逻状态（含因果影响分析）','offline'],
+      ['POST','/api/agi/patrol/trigger','触发巡逻','offline'],
+      ['GET','/api/agi/verify-supplier','供应商验证','live'],
+      ['GET','/api/agi/verify-channels','验证渠道','live'],
+      ['POST','/api/agi/parallel/toggle','并行加速开关','live'],
     ];
     for (var a = 0; a < apis.length; a++) {
       var api = apis[a];
+      var live = api[3] === 'live';
       var mc = api[0]==='GET'?'#2563eb':'#16a34a';
-      h += '<tr><td style="font-weight:700;color:'+mc+'">'+api[0]+'</td><td style="font-family:monospace;font-size:12px;">'+api[1]+'</td><td style="font-size:12px;">'+api[2]+'</td></tr>';
+      var tag = live
+        ? '<span style="display:inline-block;padding:1px 7px;border-radius:9px;background:#ecfdf5;color:#059669;font-size:11px;font-weight:600">可用</span>'
+        : '<span style="display:inline-block;padding:1px 7px;border-radius:9px;background:#fef2f2;color:#b91c1c;font-size:11px;font-weight:600">已下线</span>';
+      h += '<tr' + (live ? '' : ' style="opacity:.62"') + '>'
+        + '<td style="font-weight:700;color:' + (live ? mc : '#94a3b8') + '">' + api[0] + '</td>'
+        + '<td style="font-family:monospace;font-size:12px;' + (live ? '' : 'text-decoration:line-through') + '">' + api[1] + '</td>'
+        + '<td style="font-size:12px;">' + api[2] + '</td>'
+        + '<td>' + tag + '</td></tr>';
     }
     h += '</tbody></table></section>';
 

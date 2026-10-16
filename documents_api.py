@@ -73,6 +73,21 @@ def _session(request: Request):
     return auth
 
 
+def _require_perm(session, code: str):
+    """写操作的**功能权限点**校验（MQ2-D1）。
+
+    权威：`engine.rbac.rebac_allows()`（经 `require_permission` 抛 403）。
+    本函数只做「RbacError → HTTPException」的边界转换，**不自判角色**（否则即第二套口径）。
+    """
+    from engine.rbac import RbacError, require_permission          # noqa: PLC0415
+    try:
+        require_permission(session, code)
+    except RbacError as exc:
+        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
+                            detail=str(getattr(exc, "message", exc))) from exc
+    return session
+
+
 def _call(fn, *args, **kwargs):
     """统一把 Service 业务异常转 HTTP（**唯一转换点**）。"""
     try:
@@ -103,6 +118,7 @@ def documents_meta(request: Request):
 @router.post("/documents/chunk/init", summary="发起分片上传（断点续传起点）")
 def chunk_init(payload: ChunkInitIn, request: Request):
     session = _session(request)
+    _require_perm(session, "document.write")
     return _call(SVC.chunk_init, payload.project_id, payload.filename, payload.size,
                  session, md5=payload.md5, request=request)
 
@@ -110,6 +126,7 @@ def chunk_init(payload: ChunkInitIn, request: Request):
 @router.put("/documents/chunk/{upload_id}/{chunk_index}", summary="上传一个分片（幂等）")
 async def chunk_put(upload_id: str, chunk_index: int, request: Request):
     session = _session(request)
+    _require_perm(session, "document.write")
     content = await request.body()
     return _call(SVC.chunk_put, upload_id, chunk_index, content, session)
 
@@ -123,6 +140,7 @@ def chunk_status(upload_id: str, request: Request):
 @router.post("/documents/chunk/{upload_id}/complete", summary="合并分片并入库")
 def chunk_complete(upload_id: str, request: Request):
     session = _session(request)
+    _require_perm(session, "document.write")
     return _call(SVC.chunk_complete, upload_id, session, request=request)
 
 
@@ -137,6 +155,7 @@ async def upload_documents(
     files: List[UploadFile] = File(..., description="一个或多个文件"),
 ):
     session = _session(request)
+    _require_perm(session, "document.write")
     payload = []
     for f in files:
         payload.append((f.filename or "upload", await f.read()))
@@ -214,12 +233,14 @@ def download_document(document_id: int, request: Request):
 @router.delete("/documents/{document_id}", summary="删除资料（文件移入回收站）")
 def delete_document(document_id: int, request: Request):
     session = _session(request)
+    _require_perm(session, "document.write")
     return _call(SVC.delete_document, document_id, session, request=request)
 
 
 @router.post("/documents/{document_id}/classify", summary="人工修正资料分类")
 def classify_document(document_id: int, payload: ClassifyIn, request: Request):
     session = _session(request)
+    _require_perm(session, "document.write")
     return _call(SVC.classify_document, document_id, payload.category, session,
                  request=request, note=payload.note)
 
@@ -227,6 +248,7 @@ def classify_document(document_id: int, payload: ClassifyIn, request: Request):
 @router.put("/documents/{document_id}/parse-status", summary="更新解析状态（供解析器调用）")
 def set_parse_status(document_id: int, payload: ParseStatusIn, request: Request):
     session = _session(request)
+    _require_perm(session, "document.write")
     return _call(SVC.set_parse_status, document_id, payload.parse_status, session,
                  note=payload.note)
 

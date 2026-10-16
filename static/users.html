@@ -165,15 +165,41 @@
     el.innerHTML = text ? '<div class="msg ' + (ok ? "ok" : "err") + '">' + esc(text) + "</div>" : "";
   }
 
+  /**
+   * ★ MQ2-D6（2026-10-16）修两处：
+   *   ① **只拼有值的查询参数**。原实现恒拼 `&tenant_id=`（组织筛选为「全部组织」时值为空串），
+   *      而后端 `GET /api/v1/users` 的 `tenant_id` 是 `Optional[int]` ⇒ FastAPI 返回 **422**
+   *      ⇒ 管理员一进本页就「加载失败」、表格停在「加载中…」（阻断型缺陷）。
+   *      其余页面（如 `risks.js`）早有 `if (v !== '' && v !== null)` 守卫，本页是**单点遗漏**。
+   *   ② **错误信息可读**。422 的 `detail` 是 **数组**（`[{loc,msg,type},…]`），
+   *      原写法 `res.data.detail || …` 直接把数组拼进字符串 ⇒ 页面显示「[object Object]」。
+   */
+  function errText(data, status) {
+    if (!data) { return "HTTP " + status; }
+    var d = data.detail;
+    if (Array.isArray(d)) {
+      return d.map(function (x) {
+        var loc = (x && x.loc ? x.loc.join(".") : "");
+        return (loc ? loc + "：" : "") + ((x && x.msg) || JSON.stringify(x));
+      }).join("；") || ("HTTP " + status);
+    }
+    if (d && typeof d === "object") { return d.msg || JSON.stringify(d); }
+    return d || data.message || ("HTTP " + status);
+  }
+
   function load() {
-    var qs = "?page=" + state.page + "&page_size=" + state.size
-      + "&q=" + encodeURIComponent($("q").value.trim())
-      + "&tenant_id=" + encodeURIComponent($("f-tenant").value);
-    fetch("/api/v1/users" + qs, { credentials:"same-origin" }).then(function (r) {
+    var p = new URLSearchParams();
+    p.set("page", state.page);
+    p.set("page_size", state.size);
+    var q = $("q").value.trim();
+    if (q) { p.set("q", q); }
+    var tenant = $("f-tenant").value;
+    if (tenant !== "" && tenant !== null) { p.set("tenant_id", tenant); }   // ★ 空值不拼（MQ2-D6①）
+    fetch("/api/v1/users?" + p.toString(), { credentials:"same-origin" }).then(function (r) {
       return r.json().then(function (d) { return { status:r.status, data:d }; });
     }).then(function (res) {
       if (res.status !== 200) {
-        showMsg("加载失败：" + (res.data.detail || res.data.message || res.status), false);
+        showMsg("加载失败：" + errText(res.data, res.status), false);      // ★ 可读错误（MQ2-D6②）
         return;
       }
       state.items = res.data.items || [];

@@ -100,17 +100,24 @@ def _q(s) -> str:
 
 
 def _collect() -> list[dict]:
-    params: dict = {}
-    for _tag, path in SOURCES:
-        d = json.loads(path.read_text(encoding="utf-8"))
-        params.update({k: v for k, v in (d.get("params") or {}).items() if not k.startswith("_")})
+    # ★ D-01（2026-10-16）：阈值合并改用**唯一索引** `engine.rule_loader.param_index()`。
+    #   此前是 `params.update(...)` 逐册覆盖 —— 同名键**静默覆盖**（后册胜出、无留痕），
+    #   且 `params_ref` 写死在各自数据表里；两处口径可各自漂移而不被发现。
+    #   现在：取阈值只有索引一个入口，冲突由索引显式登记（见 `_check` 的断言）。
+    sys.path.insert(0, str(ROOT))
+    from engine import rule_loader as _RL                       # noqa: PLC0415
+    _idx = _RL.param_index()
+    params = {k: v.get("value") for k, v in _idx["params"].items()}
+    _ref = {k: v.get("params_ref", "") for k, v in _idx["params"].items()}
 
     rows, ids = [], []
     for tag, path in SOURCES:
         d = json.loads(path.read_text(encoding="utf-8"))
         for r in d["rules"]:
             ids.append(r["src"])
-            rows.append({"rid": r["src"], "src_set": tag, "raw": r, "params": params.get(r["src"])})
+            rows.append({"rid": r["src"], "src_set": tag, "raw": r,
+                         "params": params.get(r["src"]),
+                         "params_ref": _ref.get(r["src"]) or r.get("params_ref", "")})
     clash = sorted({x for x in ids if ids.count(x) > 1})
     assert not clash, "三表 ID 冲突: %s" % clash
     return rows
@@ -150,6 +157,12 @@ def _check(rows: list[dict]) -> None:
             bad_inline.append("%s: %s" % (rid, logic))
     assert not bad_missing, "字段缺失/非法: %s" % bad_missing[:10]
     assert not bad_inline, "阈值内联（应引用 params.*）: %s" % bad_inline[:10]
+
+    # ★ D-01：候选阈值不得跨册冲突（唯一索引 `engine.rule_loader.param_index()` 判定）
+    from engine import rule_loader as _RL                        # noqa: PLC0415
+    _conf = _RL.param_conflicts()
+    assert not _conf, "候选阈值跨册冲突（同一键多册取值不同）: %s" % [c["key"] for c in _conf]
+    print("[params] 候选阈值唯一索引：冲突 0 ✓（键 %d）" % _RL.param_index()["stats"]["keys"])
 
     # 前缀唯一归属
     seen: dict[str, str] = {}
@@ -208,7 +221,9 @@ def _render(fname: str, sub: list[dict]) -> str:
         L.append("    version: " + _q("1.0.0"))
         L.append("    enabled: false")
         L.append("    condition: " + _q(raw["logic"]))
-        L.append("    params_ref: " + _q(raw.get("params_ref", "")))
+        # params_ref 一律取**索引**的值（D-01：单一入口；索引已按分册解析）
+        _pref = r.get("params_ref") or raw.get("params_ref", "")
+        L.append("    params_ref: " + _q(_pref))
         p = r["params"]
         if p:
             L.append("    params:")

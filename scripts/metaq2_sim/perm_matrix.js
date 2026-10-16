@@ -64,6 +64,21 @@ const PROBES = [
   { key: 'analysis.run', name: '发起分析任务', method: 'POST', path: () => `/api/v1/projects/${PID}/analysis-jobs`, perm: 'analysis.run', kind: 'write', body: () => ({ force: false }) },
   { key: 'doc.upload', name: '上传资料', method: 'POST', path: () => `/api/v1/projects/${PID}/documents`, perm: 'document.write', kind: 'write', multipart: true },
   { key: 'project.write', name: '新建项目', method: 'POST', path: '/api/v1/projects', perm: 'project.write', kind: 'write', body: () => ({ name: '权限矩阵探测项目（可删）', taxpayer_id: '91440300MA5PB' + String(Date.now()).slice(-5) }) },
+  // ── 第二批：写类全谱（★ 统一用「不存在的资源 id / 非法 body」探测 —— 零副作用，
+  //    且能区分「权限先拦(403)」与「已进业务层(400/404/422)」）──
+  { key: 'project.delete', name: '删除项目', method: 'DELETE', path: '/api/v1/projects/999999', perm: 'project.write', kind: 'write' },
+  { key: 'project.member', name: '新增项目成员', method: 'POST', path: '/api/v1/projects/999999/members', perm: 'project.write', kind: 'write', body: () => ({ username: 'probe_x' }) },
+  { key: 'doc.delete', name: '删除资料', method: 'DELETE', path: '/api/v1/documents/999999', perm: 'document.write', kind: 'write' },
+  { key: 'doc.classify', name: '修正资料分类', method: 'POST', path: '/api/v1/documents/999999/classify', perm: 'document.write', kind: 'write', body: () => ({ category: 'other' }) },
+  { key: 'doc.parsestatus', name: '设置解析状态', method: 'PUT', path: '/api/v1/documents/999999/parse-status', perm: 'document.write', kind: 'write', body: () => ({ parse_status: 'pending' }) },
+  { key: 'extract.correct', name: '校正解析字段', method: 'PUT', path: '/api/v1/extracted/999999', perm: 'document.write', kind: 'write', body: () => ({ value: 'probe' }) },
+  { key: 'extract.resolve', name: '处理解析异常', method: 'POST', path: '/api/v1/extract/issues/999999/resolve', perm: 'document.write', kind: 'write', body: () => ({ status: 'resolved' }) },
+  { key: 'report.delete', name: '删除报告（旧路由）', method: 'DELETE', path: '/api/tax-risk-docs/report?company_id=999999', perm: 'report.generate', kind: 'write' },
+  { key: 'user.create', name: '新建用户', method: 'POST', path: '/api/v1/users', perm: 'user.manage', kind: 'write', body: () => ({ username: 'probe_x_' + Date.now(), password: 'Probe-2026!', roles: ['auditor'] }) },
+  { key: 'user.update', name: '修改用户', method: 'PUT', path: '/api/v1/users/999999', perm: 'user.manage', kind: 'write', body: () => ({ display_name: 'probe' }) },
+  { key: 'role.create', name: '新建角色', method: 'POST', path: '/api/v1/roles', perm: 'role.manage', kind: 'write', body: () => ({ code: 'probe_role_x', name: '探测角色', permissions: [] }) },
+  { key: 'ruleversion.publish', name: '发布规则版本', method: 'POST', path: '/api/v1/rule-versions/publish', perm: 'ruleversion.manage', kind: 'write', body: () => ({}) },
+  { key: 'template.upsert', name: '新建/覆盖报告模板', method: 'POST', path: '/api/v1/report-templates/probe_x', perm: 'template.manage', kind: 'write', body: () => ({}) },
 ];
 
 let RISK_NO = '';

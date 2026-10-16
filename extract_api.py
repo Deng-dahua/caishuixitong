@@ -50,6 +50,21 @@ def _session(request: Request):
     return auth
 
 
+def _require_perm(session, code: str):
+    """写操作的**功能权限点**校验（MQ2-D1）。
+
+    权威：`engine.rbac.rebac_allows()`（经 `require_permission` 抛 403）。
+    本函数只做「RbacError → HTTPException」的边界转换，**不自判角色**（否则即第二套口径）。
+    """
+    from engine.rbac import RbacError, require_permission          # noqa: PLC0415
+    try:
+        require_permission(session, code)
+    except RbacError as exc:
+        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
+                            detail=str(getattr(exc, "message", exc))) from exc
+    return session
+
+
 def _call(fn, *args, **kwargs):
     try:
         return fn(*args, **kwargs)
@@ -102,6 +117,7 @@ def run_extract(document_id: int, request: Request):
       需要真正异步（批量解析）时，复用 `analysis_jobs` 的既有异步链路即可。
     """
     session = _session(request)
+    _require_perm(session, "document.write")
     from engine.analysis_jobs import job_finished, job_started   # noqa: PLC0415
     import uuid as _uuid                              # noqa: PLC0415
     job_id = "extract-" + _uuid.uuid4().hex[:12]
@@ -127,6 +143,7 @@ def run_extract(document_id: int, request: Request):
 @router.put("/extracted/{field_id}", summary="人工校正一个标准字段值")
 def correct_extracted(field_id: int, payload: CorrectIn, request: Request):
     session = _session(request)
+    _require_perm(session, "document.write")
     return _call(SVC.correct_field, field_id, {"value": payload.value}, session,
                  request=request)
 
@@ -134,6 +151,7 @@ def correct_extracted(field_id: int, payload: CorrectIn, request: Request):
 @router.post("/extract/issues/{issue_id}/resolve", summary="标记校验异常为已处理/非问题")
 def resolve_issue(issue_id: int, payload: ResolveIn, request: Request):
     session = _session(request)
+    _require_perm(session, "document.write")
     return _call(SVC.resolve_issue, issue_id, {"status": payload.status}, session,
                  request=request)
 

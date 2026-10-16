@@ -72,6 +72,21 @@ def _session(request: Request):
     return auth
 
 
+def _require_perm(session, code: str):
+    """写操作的**功能权限点**校验（MQ2-D1）。
+
+    权威：`engine.rbac.rebac_allows()`（经 `require_permission` 抛 403）。
+    本函数只做「RbacError → HTTPException」的边界转换，**不自判角色**（否则即第二套口径）。
+    """
+    from engine.rbac import RbacError, require_permission          # noqa: PLC0415
+    try:
+        require_permission(session, code)
+    except RbacError as exc:
+        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
+                            detail=str(getattr(exc, "message", exc))) from exc
+    return session
+
+
 def _svc(fn, *args, **kwargs):
     """调 Service 层并把 `RiskServiceError` / `RiskReviewError` 转成 HTTP 语义。
 
@@ -138,6 +153,7 @@ def bulk_review_risks(request: Request,
       结果逐条给出 `ok / noop / failed` 三态与原因。超上限 ⇒ 400（请分批）。
     """
     session = _session(request)
+    _require_perm(session, "risk.review")
     body = payload if isinstance(payload, dict) else {}
     ids = body.get("risk_ids") or body.get("risk_nos") or []
     if not isinstance(ids, (list, tuple)):
@@ -289,6 +305,7 @@ def review_risk(risk_id: str, request: Request,
       否则 400 —— 本项目不生成"无理由的处置"。
     """
     session = _session(request)
+    _require_perm(session, "risk.review")
     rid = str(risk_id or "").strip()
     body = payload if isinstance(payload, dict) else {}
     action = str(body.get("action") or "").strip()
@@ -306,6 +323,7 @@ def comment_risk(risk_id: str, request: Request,
                  payload: Dict[str, Any] = Body(default_factory=dict)):
     """请求体：`{text, company_id?, project_id?}`。"""
     session = _session(request)
+    _require_perm(session, "risk.review")
     rid = str(risk_id or "").strip()
     body = payload if isinstance(payload, dict) else {}
     text = str(body.get("text") or body.get("note") or "").strip()

@@ -233,8 +233,20 @@ def parse_document(document_id: Any, session: Any, *, engine=None,
                                "confidence": t.get("confidence"),
                                "row_count": len(rows)})
 
-    if not tables and parse_error:
-        # 解析失败**如实记录**，不假装成功
+    # ★ MQ2-D3（2026-10-16）：**「无错误」≠「解析成功」**。
+    #   原判据只看 `parse_error`，于是两类"空内容"被记成成功：
+    #     ① 非财税资料（如 `.txt`）：解析器既没报错、也没产出任何表 ⇒ success；
+    #     ② 内容损坏的 `.xlsx`：产出了一张 **0 行** 的表（row_count=0 / 字段 0）⇒ success。
+    #   后果：下游把"什么都没解析出来"当"已解析完成"，进而使覆盖率/资料齐备性判断失真。
+    #   修法（**只改判定条件，不改解析引擎**）：成功必须同时满足
+    #     「无解析错误」**且**「至少有一张表且该表有数据行」。
+    ok = _parse_ok(tables, parse_error)
+    if not ok and not parse_error:
+        parse_error = ("未解析出任何数据行（表 %d 张、行 0）——"
+                       "非财税资料或内容损坏；已标记为解析失败" % len(tables))
+
+    # 无内容/解析失败 ⇒ 如实登记一行 failed，不假装成功
+    if not ok:
         with eng.begin() as conn:
             conn.execute(_text(
                 "INSERT INTO extracted_tables (document_id, project_id, company_id, doc_type, "
@@ -251,13 +263,21 @@ def parse_document(document_id: Any, session: Any, *, engine=None,
     #   自动线程/手工解析/一键重析全走本函数，状态不再与产物脱节）。
     #   状态机无「直达」路径 ⇒ 按合法边走：failed→pending→parsing→success、
     #   pending→parsing→success、parsing→success、manual→success。
-    if not parse_error:
+    # ★ MQ2-D3：无内容 ⇒ 按合法边流转到 **failed**（而非 success）。
+    if ok:
         try:
             _flow_to_success(int(doc["id"]), session, eng)
         except Exception:                             # noqa: BLE001 — 状态流转失败不掩盖解析成功
             from engine.audit_trail import record as _rec    # noqa: PLC0415
             _rec("extract.run", target=str(doc["id"]), company_id=cid,
                  detail="⚠ 解析成功但状态流转失败（可在资料页重析归位）")
+    else:
+        try:
+            _flow_to_failed(int(doc["id"]), session, eng)
+        except Exception:                             # noqa: BLE001
+            from engine.audit_trail import record as _rec    # noqa: PLC0415
+            _rec("extract.run", target=str(doc["id"]), company_id=cid,
+                 detail="⚠ 解析无内容但状态流转失败（可在资料页重析归位）")
 
     return {
         "ok": True, "document_id": int(doc["id"]), "original_name": name,
@@ -266,6 +286,38 @@ def parse_document(document_id: Any, session: Any, *, engine=None,
         "parse_error": parse_error,
         "parsed_at": ts,
     }
+
+
+def _parse_ok(tables: List[Dict[str, Any]], parse_error: str) -> bool:
+    """**解析成功判定**（MQ2-D3 单一权威）：「无解析错误」**且**「至少一张表有数据行」。
+
+    ★ 为什么不能只看 `parse_error`：实测两类"空内容"被记成 success ——
+      ① 非财税资料（`.txt`）：解析器既没报错、也没产出表；
+      ② 内容损坏的 `.xlsx`：产出一张 **0 行** 的表。
+    判据抽成函数是为了**可直接单测**（避免只能端到端验、回归慢）。
+    """
+    return (not parse_error) and any((t.get("rows") or []) for t in (tables or []))
+
+
+def _flow_to_failed(document_id: int, session: Any, eng: Any) -> None:
+    """★ MQ2-D3：把 parse_status 按状态机**合法边**推进到 failed（无内容/解析失败）。
+
+    路径：pending→failed、parsing→failed；success→pending→failed、manual→pending→failed。
+    （`PARSE_STATUS_FLOW` 的 `failed` 前驱：pending 与 parsing；故先把非法当前态退回 pending。）
+    """
+    from sqlalchemy import text as _text              # noqa: PLC0415
+    from engine.document_service import set_parse_status as _sps   # noqa: PLC0415
+    from engine.document_types import PARSE_STATUS_FLOW as _FLOW    # noqa: PLC0415
+    with eng.connect() as conn:
+        row = conn.execute(_text(
+            "SELECT parse_status FROM documents WHERE id=:d"), {"d": int(document_id)}
+        ).first()
+    cur = str((row or ("pending",))[0] or "pending")
+    if cur == "failed":
+        return
+    if "failed" not in (_FLOW.get(cur) or ()):        # 当前态不能直达 failed ⇒ 先退回 pending
+        _sps(int(document_id), "pending", session, engine=eng)
+    _sps(int(document_id), "failed", session, engine=eng)
 
 
 def _flow_to_success(document_id: int, session: Any, eng: Any) -> None:

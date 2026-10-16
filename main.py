@@ -2375,9 +2375,31 @@ def clear_transfer_cache(company_id: int = Query(...)):
     except Exception as e:
         return {"ok": False, "message": f"清除失败: {str(e)}"}
 
+def _require_perm(request: Request, code: str):
+    """写操作的**功能权限点**校验（MQ2-D1，仅用于旧路由的补齐）。
+
+    权威：`engine.rbac.require_permission()`（与 `/api/v1/*` 同一实现，**不另立口径**）。
+    本函数只做「RbacError → HTTPException」的边界转换。
+    """
+    from engine.rbac import RbacError, require_permission as _rp     # noqa: PLC0415
+    auth = getattr(request.state, "auth", None)
+    if auth is None:
+        raise HTTPException(status_code=401, detail="未登录")
+    try:
+        _rp(auth, code)
+    except RbacError as exc:
+        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
+                            detail=str(getattr(exc, "message", exc))) from exc
+    return auth
+
+
 @app.delete("/api/tax-risk-docs/report")
-def delete_tax_risk_report(company_id: int = Query(...)):
+def delete_tax_risk_report(request: Request, company_id: int = Query(...)):
     """删除指定账套的分析报告 —— 清除**全部副本**并逐项校验。
+
+    ★ MQ2-D1（2026-10-16）：本端点此前**无任何权限点校验** —— 任何登录用户可删除
+      任意账套的报告（破坏性操作）。现补 `report.generate`（报告域唯一写权限点；
+      不新增权限点，避免扩大权限模型）。
 
     2026-09-25 用户反馈"删了报告感觉后台还有备份、重新生成还是旧报告"。
     根因：旧实现只清 last_analysis_cache 一处，报告在另外 5 处仍留存：
@@ -2397,6 +2419,7 @@ def delete_tax_risk_report(company_id: int = Query(...)):
       只删 Company 行 + 授权 ⇒ 报告的 6 处副本 + 离线产物全部残留
       （实测：库里早没有 id=2/3/4，`scripts/four_reports/` 却还躺着它们的产物）。
       两处各自实现 = 必然漏。"""
+    _require_perm(request, "report.generate")      # ★ MQ2-D1：破坏性操作，必须先过权限点
     out = purge_company_analysis_artifacts(company_id, include_uploads=False)
     cleared, leftovers = out["cleared"], out["leftovers"]
     ok = not leftovers

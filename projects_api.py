@@ -101,6 +101,21 @@ def _session(request: Request):
     return auth
 
 
+def _require_perm(session, code: str):
+    """写操作的**功能权限点**校验（MQ2-D1）。
+
+    权威：`engine.rbac.rebac_allows()`（经 `require_permission` 抛 403）。
+    本函数只做「RbacError → HTTPException」的边界转换，**不自判角色**（否则即第二套口径）。
+    """
+    from engine.rbac import RbacError, require_permission          # noqa: PLC0415
+    try:
+        require_permission(session, code)
+    except RbacError as exc:
+        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
+                            detail=str(getattr(exc, "message", exc))) from exc
+    return session
+
+
 def _call(fn, *args, **kwargs):
     """统一把 Service 的业务异常转成 HTTP（**唯一转换点**，避免各处各写一套）。"""
     try:
@@ -124,6 +139,7 @@ def get_meta(request: Request):
 @router.post("", summary="新建稽查项目", status_code=201)
 def create_project(payload: ProjectCreate, request: Request):
     session = _session(request)
+    _require_perm(session, "project.write")
     return _call(SVC.create_project, payload.model_dump(), session, request=request)
 
 
@@ -154,6 +170,7 @@ def get_project(project_id: int, request: Request):
 @router.put("/{project_id}", summary="修改项目（含状态迁移）")
 def update_project(project_id: int, payload: ProjectUpdate, request: Request):
     session = _session(request)
+    _require_perm(session, "project.write")
     return _call(SVC.update_project, project_id, payload.model_dump(exclude_unset=True),
                  session, request=request)
 
@@ -161,6 +178,7 @@ def update_project(project_id: int, payload: ProjectUpdate, request: Request):
 @router.delete("/{project_id}", summary="删除项目（含其成员记录）")
 def delete_project(project_id: int, request: Request):
     session = _session(request)
+    _require_perm(session, "project.write")
     return _call(SVC.delete_project, project_id, session, request=request)
 
 
@@ -176,4 +194,5 @@ def list_members(project_id: int, request: Request):
 @router.post("/{project_id}/members", summary="新增成员 / 调整成员角色", status_code=201)
 def add_member(project_id: int, payload: MemberAdd, request: Request):
     session = _session(request)
+    _require_perm(session, "project.write")
     return _call(SVC.add_member, project_id, payload.model_dump(), session, request=request)
