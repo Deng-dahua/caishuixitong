@@ -1,0 +1,138 @@
+{
+ "scenario": "S5",
+ "name": "异常场景",
+ "role": "企业财务/审计员",
+ "user": "sim_finance",
+ "steps": [
+  {
+   "sid": "S5-01",
+   "step": 1,
+   "name": "上传错误格式文件（.txt）",
+   "result": "success",
+   "ms": 3855,
+   "error": "",
+   "note": "本次上传：成功 0 个，跳过重复 1 个，失败 0 个",
+   "blocker": "提示未说明\"格式不支持\"，用户不知如何改正",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-01_错误格式文件.png"
+  },
+  {
+   "sid": "S5-02",
+   "step": 2,
+   "name": "上传超大文件（205MB）",
+   "result": "success",
+   "ms": 2826,
+   "error": "",
+   "note": "本次上传：成功 0 个，跳过重复 0 个，失败 1 个 模拟·超大文件.xlsx 205.00 MB 超过上限",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-02_超大文件.png"
+  },
+  {
+   "sid": "S5-03",
+   "step": 3,
+   "name": "上传重复文件",
+   "result": "success",
+   "ms": 4337,
+   "error": "",
+   "note": "本次上传：成功 0 个，跳过重复 1 个，失败 0 个",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-03_重复文件.png"
+  },
+  {
+   "sid": "S5-04",
+   "step": 4,
+   "name": "解析失败（损坏的 xlsx）",
+   "result": "fail",
+   "ms": 5981,
+   "error": "损坏的 xlsx 竟解析成功（解析器过度宽容）",
+   "note": "",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-04_解析失败.png"
+  },
+  {
+   "sid": "S5-05",
+   "step": 5,
+   "name": "分析中断（发起后立即取消）",
+   "result": "success",
+   "ms": 6690,
+   "error": "",
+   "note": "取消前=执行中 → 取消后标签=\"已取消\"；确认弹窗=false；接口=CANCELLED/running 进度=8（未达 100）；页面提示=已取消（本次结果不予采用）。可点「重试」重新分析。",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-05_分析中断.png"
+  },
+  {
+   "sid": "S5-06",
+   "step": 6,
+   "name": "报告生成失败（非法视图）",
+   "result": "success",
+   "ms": 908,
+   "error": "",
+   "note": "HTTP 400；用户可见提示={\"detail\":\"未知报告视图：'不存在的视图'（合法值：full、tax_specific、management、self_check）\"}",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-06_报告生成失败.png"
+  },
+  {
+   "sid": "S5-07",
+   "step": 7,
+   "name": "权限不足（审计员发起分析）",
+   "result": "fail",
+   "ms": 9537,
+   "error": "审计员（无 analysis.run / report.generate）未被拒：发起分析 HTTP 409、生成报告 HTTP 200，请求已进入业务层",
+   "note": "项目 pid=10；分析响应={\"detail\":\"该账套正在执行分析，请稍后再试\"}；报告响应={\"id\":49,\"doc_no\":\"RW-1-9c9fd3\",\"version\":\"V56\",\"project_id\":10,\"company_id\":1,\"view\":\"self_check\",\"；页面「开始分析」按钮禁用=false（可见导航 0 项）",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-07_权限不足.png"
+  },
+  {
+   "sid": "S5-08",
+   "step": 8,
+   "name": "会话过期（会话凭据失效）",
+   "result": "success",
+   "ms": 6556,
+   "error": "",
+   "note": "会话前=200 → 篡改后 /api/auth/me=401；访问 /projects 落点=/login（已跳登录页）",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-08_会话过期.png"
+  },
+  {
+   "sid": "S5-09",
+   "step": 9,
+   "name": "负向对照：资料主体与账套不一致",
+   "result": "success",
+   "ms": 4398,
+   "error": "",
+   "note": "引擎=已拦截（未出报告）；用户可见原因=资料主体与账套不一致，已停止分析。当前账套为「元质量模拟测试有限公司」，但上传的资料归属「深圳海更数字传媒有限公司」。请切换到（或新建）该企业的账套后重新分析，或删除不属于本账套的资料。",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S5-09_主体不一致拦截.png"
+  }
+ ],
+ "conclusion": "fail",
+ "step_count": 9,
+ "fail_count": 2,
+ "blocked_count": 0,
+ "blockers": [
+  {
+   "sid": "S5-01",
+   "name": "上传错误格式文件（.txt）",
+   "blocker": "提示未说明\"格式不支持\"，用户不知如何改正"
+  }
+ ],
+ "console_errors": [
+  "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+  "Failed to load resource: the server responded with a status of 409 (Conflict)",
+  "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+  "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+  "初始化失败 TypeError: Cannot read properties of undefined (reading 'id')\n    at initAppFlow (http://127.0.0.1:8023/static/js/core.js?v=ece0f45e79:319:25)"
+ ],
+ "page_errors": [],
+ "shots": [
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-01_错误格式文件.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-02_超大文件.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-03_重复文件.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-04_解析失败.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-05_分析中断.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-06_报告生成失败.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-07_权限不足.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-08_会话过期.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S5-09_主体不一致拦截.png"
+ ],
+ "total_ms": 45088
+}

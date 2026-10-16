@@ -1,0 +1,102 @@
+{
+ "scenario": "S2",
+ "name": "税务师复核操作",
+ "role": "税务师",
+ "user": "sim_advisor",
+ "steps": [
+  {
+   "sid": "S2-01",
+   "step": 1,
+   "name": "登录系统",
+   "result": "success",
+   "ms": 1769,
+   "error": "",
+   "note": "落点 /；侧栏=未渲染",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-01_税务师登录.png"
+  },
+  {
+   "sid": "S2-02",
+   "step": 2,
+   "name": "打开待复核项目",
+   "result": "success",
+   "ms": 5271,
+   "error": "",
+   "note": "可选 5 个；KPI=风险事项总数 22 6 6 已排除 0 已整改 0 1 1 待处理 15 复核进度 7 / 22 31.8%",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-02_待复核项目.png"
+  },
+  {
+   "sid": "S2-03",
+   "step": 3,
+   "name": "逐条查看风险（详情 + 证据链）",
+   "result": "success",
+   "ms": 9374,
+   "error": "",
+   "note": "G7M-202501-020=5371字；G7M-202501-002=4514字；G7M-202501-003=3618字",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-03_逐条查看风险.png"
+  },
+  {
+   "sid": "S2-04",
+   "step": 4,
+   "name": "确认高风险",
+   "result": "success",
+   "ms": 10294,
+   "error": "",
+   "note": "动作集=[confirm,exclude*,false_positive*,rectify*,to_manual,reopen*]；提示=当前可执行的复核动作： | 已完成「确认成立」：待处理 → 已确认；回读={\"confirmed\":7,\"false_positive\":1,\"pending\":14} 已复核 8/22",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-04_确认高风险.png"
+  },
+  {
+   "sid": "S2-05",
+   "step": 5,
+   "name": "排除误报",
+   "result": "success",
+   "ms": 10370,
+   "error": "",
+   "note": "目标=G7M-202501-010 act=false_positive；提示=当前可执行的复核动作： | 已完成「误报」：待处理 → 误报；回读={\"confirmed\":7,\"false_positive\":2,\"pending\":13}",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-05_排除误报.png"
+  },
+  {
+   "sid": "S2-06",
+   "step": 6,
+   "name": "添加批注",
+   "result": "success",
+   "ms": 2541,
+   "error": "",
+   "note": "批注（1） #1 sim_advisor 2026-10-16T17:25:44+08:00 场景模拟批注：建议补充该期间银行流水与合同。",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-06_添加批注.png"
+  },
+  {
+   "sid": "S2-07",
+   "step": 7,
+   "name": "提交复核结果（复核看板核对）",
+   "result": "success",
+   "ms": 4239,
+   "error": "",
+   "note": "已处置 9 处置率 100% 超期待处理 0 从未处置 0 待处理 0 已确认 7 已排除 0 已整改 0 误报 2 | 「从未处置」与「超期」分开计：前者**没有起点**（不能算超期），后者自最近一次处置起算；缺失 ≠ 0。 | 超期阈值 3 天；共 9 条纳入统计。 || stats keys=[\"available\",\"company_id\",\"generated_at\",\"total\",\"by_level\",\"by_tax\",\"by_state\",\"by_state_cn\"]",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-07_复核看板.png"
+  }
+ ],
+ "conclusion": "success",
+ "step_count": 7,
+ "fail_count": 0,
+ "blocked_count": 0,
+ "blockers": [],
+ "console_errors": [],
+ "page_errors": [],
+ "shots": [
+  "docs\\元质量_20261016\\场景模拟_截图\\S2-01_税务师登录.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S2-02_待复核项目.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S2-03_逐条查看风险.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S2-04_确认高风险.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S2-05_排除误报.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S2-06_添加批注.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S2-07_复核看板.png"
+ ],
+ "total_ms": 43858
+}

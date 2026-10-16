@@ -1,0 +1,61 @@
+{
+ "scenario": "S7",
+ "name": "断网恢复场景",
+ "role": "企业财务",
+ "user": "sim_finance",
+ "steps": [
+  {
+   "sid": "S7-01",
+   "step": 1,
+   "name": "上传中途断网（真实 11.8MB 大表，走分片通道）",
+   "result": "success",
+   "ms": 1770,
+   "error": "",
+   "note": "11.84MB 共 3 片；第 1 片 200；第 2 片被中途切断；续传依据：已收=[0]，缺失=[1,2]",
+   "blocker": "",
+   "shot": ""
+  },
+  {
+   "sid": "S7-02",
+   "step": 2,
+   "name": "恢复后继续（补齐分片并合并入库）",
+   "result": "success",
+   "ms": 3811,
+   "error": "",
+   "note": "续传前已收 1/3 片 → 补齐 → complete HTTP 200；入库 1 份（id=339 大小=12410385 状态=parsing）；列表可见 ✅",
+   "blocker": "",
+   "shot": ""
+  },
+  {
+   "sid": "S7-03",
+   "step": 3,
+   "name": "分析中途断网（轮询中断后回读一致性）",
+   "result": "success",
+   "ms": 1856,
+   "error": "",
+   "note": "发起被拒（HTTP 409）：{\"detail\":\"该账套正在执行分析，请稍后再试\"}",
+   "blocker": "",
+   "shot": ""
+  },
+  {
+   "sid": "S7-04",
+   "step": 4,
+   "name": "报告生成中途断网（不留半成品）",
+   "result": "success",
+   "ms": 6499,
+   "error": "",
+   "note": "请求被切断（status=0）；断前报告 0 条 → 断后 0 条（Δ=0）",
+   "blocker": "",
+   "shot": ""
+  }
+ ],
+ "conclusion": "success",
+ "step_count": 4,
+ "fail_count": 0,
+ "blocked_count": 0,
+ "blockers": [],
+ "console_errors": [],
+ "page_errors": [],
+ "shots": [],
+ "total_ms": 13936
+}

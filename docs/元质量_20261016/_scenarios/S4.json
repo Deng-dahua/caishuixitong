@@ -1,0 +1,95 @@
+{
+ "scenario": "S4",
+ "name": "系统管理员配置操作",
+ "role": "系统管理员",
+ "user": "sim_admin",
+ "steps": [
+  {
+   "sid": "S4-01",
+   "step": 1,
+   "name": "登录系统",
+   "result": "success",
+   "ms": 1064,
+   "error": "",
+   "note": "落点 /roles（管理员登录后按设计先进入角色页）",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-01_管理员登录.png"
+  },
+  {
+   "sid": "S4-02",
+   "step": 2,
+   "name": "打开用户管理（列表默认加载）",
+   "result": "fail",
+   "ms": 4094,
+   "error": "用户管理列表未加载：默认组织筛选项值为空（tenant_id=\"\"）⇒ 接口 422；页面提示「加载失败：[object Object]」，表格停在「加载中…」",
+   "note": "#f-tenant 当前值=\"\"；修复前需手动选择一个组织才能看到用户列表",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-02_用户管理列表.png"
+  },
+  {
+   "sid": "S4-03",
+   "step": 3,
+   "name": "创建用户",
+   "result": "success",
+   "ms": 6920,
+   "error": "",
+   "note": "用户 sim_created_247016 创建成功且列表可见（口令框=true，角色已勾选=true）；工作绕过：需先选组织（见上一步缺陷）",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-03_创建用户.png"
+  },
+  {
+   "sid": "S4-04",
+   "step": 4,
+   "name": "分配角色",
+   "result": "success",
+   "ms": 4446,
+   "error": "",
+   "note": "sim_created_247016 角色已改为 [\"enterprise_finance\",\"tax_advisor\"]（勾选 tax_advisor）",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-04_分配角色.png"
+  },
+  {
+   "sid": "S4-05",
+   "step": 5,
+   "name": "配置权限（角色-权限矩阵 + 新建自定义角色）",
+   "result": "success",
+   "ms": 6442,
+   "error": "",
+   "note": "权限矩阵 19 行 / 角色列表 10 行；自定义角色 sim_role_67144 创建成功（权限点 18 个）",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-05_配置权限.png"
+  },
+  {
+   "sid": "S4-06",
+   "step": 6,
+   "name": "查看审计日志",
+   "result": "success",
+   "ms": 4089,
+   "error": "",
+   "note": "50 行；动作样本=sim_admin,sim_finance,sim_auditor,sim_expert,sim_advisor；页面=🧾 审计日志 用户管理 角色管理 返回主界面 全部动作 资料上传（doc.upload） 资料删除（doc.delete） 发起分析（analysis.start） 结论复核（finding.review） 报告导出（report.export） 报告下载（",
+   "blocker": "",
+   "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-06_审计日志.png"
+  }
+ ],
+ "conclusion": "fail",
+ "step_count": 6,
+ "fail_count": 1,
+ "blocked_count": 0,
+ "blockers": [],
+ "console_errors": [
+  "Failed to load resource: the server responded with a status of 500 (Internal Server Error)",
+  "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+  "Failed to load resource: the server responded with a status of 422 (Unprocessable Content)",
+  "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+ ],
+ "page_errors": [],
+ "shots": [
+  "docs\\元质量_20261016\\场景模拟_截图\\S4-01_管理员登录.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S4-02_用户管理列表.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S4-03_创建用户.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S4-04_分配角色.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S4-05_配置权限.png",
+  "docs\\元质量_20261016\\场景模拟_截图\\S4-06_审计日志.png"
+ ],
+ "total_ms": 27055
+}

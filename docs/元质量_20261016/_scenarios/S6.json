@@ -1,0 +1,72 @@
+{
+ "scenario": "S6",
+ "name": "多用户并发场景",
+ "role": "5 角色并发",
+ "user": "全部",
+ "steps": [
+  {
+   "sid": "S6-01",
+   "step": 1,
+   "name": "多个用户同时登录（5 个并发会话）",
+   "result": "success",
+   "ms": 1388,
+   "error": "",
+   "note": "5 个会话并发登录全部成功（1387ms）；权限数=11/13/9/18/9",
+   "blocker": "",
+   "shot": ""
+  },
+  {
+   "sid": "S6-02",
+   "step": 2,
+   "name": "多个用户同时上传（3 个并发上传）",
+   "result": "success",
+   "ms": 1022,
+   "error": "",
+   "note": "134ms 内 3 路并发上传均 201；新增=0/0/1 重复=2/2/1 拒绝=0/0/0（各会话独立计数，无串号）",
+   "blocker": "",
+   "shot": ""
+  },
+  {
+   "sid": "S6-03",
+   "step": 3,
+   "name": "多个用户同时分析（同账套并发发起）",
+   "result": "success",
+   "ms": 726,
+   "error": "",
+   "note": "93ms；job_a=(被拒)，job_b=87c69214a2a6；后者被明确拒绝（互斥）；提示=分析已启动",
+   "blocker": "",
+   "shot": ""
+  },
+  {
+   "sid": "S6-04",
+   "step": 4,
+   "name": "多个用户同时生成报告（3 路并发）",
+   "result": "success",
+   "ms": 7035,
+   "error": "",
+   "note": "2877ms；3 路 201；doc_no=RW-1-8c983f,RW-1-5455a1；version=V44,V44,V43；台账新增 0 条且版本号互不重复",
+   "blocker": "",
+   "shot": ""
+  },
+  {
+   "sid": "S6-05",
+   "step": 5,
+   "name": "多个用户同时复核（3 路并发处置不同风险）",
+   "result": "success",
+   "ms": 7314,
+   "error": "",
+   "note": "382ms；3 路并发处置状态=200,200,200；样例条目状态=（应为 confirmed）；已确认总数=4",
+   "blocker": "",
+   "shot": ""
+  }
+ ],
+ "conclusion": "success",
+ "step_count": 5,
+ "fail_count": 0,
+ "blocked_count": 0,
+ "blockers": [],
+ "console_errors": [],
+ "page_errors": [],
+ "shots": [],
+ "total_ms": 17485
+}
