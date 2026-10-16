@@ -2101,7 +2101,7 @@
    "rule_id": "RL-CIT-009",
    "raw": "《财税〔2008〕121号》",
    "law": "财税〔2008〕121号",
-   "law_code": "CS-2008-121",
+   "law_code": "MOF-CIT-RELATED-INTEREST",
    "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
   },
   {
@@ -2129,7 +2129,7 @@
    "rule_id": "RL-INV-004",
    "raw": "《国家税务总局公告2019年第38号》",
    "law": "国家税务总局公告2019年第38号",
-   "law_code": "SAT-ANN-2019-38",
+   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
    "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
   },
   {
@@ -2157,7 +2157,7 @@
    "rule_id": "RL-SPT-012",
    "raw": "《国家税务总局公告2014年第67号》",
    "law": "国家税务总局公告2014年第67号",
-   "law_code": "SAT-ANN-2014-67",
+   "law_code": "EQUITY-TRANSFER-IIT-MEASURE",
    "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
   },
   {
@@ -2276,7 +2276,7 @@
    "rule_id": "RL-CIT-010",
    "raw": "《财税〔2008〕121号》（企业实际支付给关联方利息支出税前扣除标准，非金融企业债资比 2:1、金融企业 5:1）",
    "law": "财税〔2008〕121号",
-   "law_code": "CS-2008-121",
+   "law_code": "MOF-CIT-RELATED-INTEREST",
    "reason": "未取到条号（该依据为整法/文号引用，非条款级）"
   },
   {

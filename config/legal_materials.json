@@ -39081,7 +39081,7 @@
      "article": "第三十三条",
      "provision_id": "INVOICE-MEASURE-RULES-033",
      "matched_by": "法名紧邻条号",
-     "in_library": false
+     "in_library": true
     }
    ],
    "granularity": "provision",
@@ -43559,7 +43559,7 @@
      "article": "第三十三条",
      "provision_id": "INVOICE-MEASURE-RULES-033",
      "matched_by": "法名紧邻条号",
-     "in_library": false
+     "in_library": true
     }
    ],
    "granularity": "provision",

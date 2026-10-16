@@ -644,16 +644,51 @@ def infer_rate_context(sal_invs=None, net_profit=None, employee_count=None,
 #   ⇒ **凭空 62,361.60**（发工资不产生销项税）。
 #   本表只声明"各税种的基数必须是什么性质"；性质不符 ⇒ **不估**（如实标注），
 #   **不删税种声明** —— 隐匿收入确实可能牵涉增值税，删掉会掩盖真实风险。
-_TAX_BASE_NATURE: Dict[str, str] = {
-    "增值税": "sales",
-    "城建税及教育费附加": "sales",
-    "城市维护建设税": "sales",
-    "教育费附加": "sales",
-    "地方教育附加": "sales",
-    "企业所得税": "profit",
-    "个人所得税": "wage",
-    "印花税": "contract",
+_TAX_BASE_NATURE: Dict[str, tuple] = {
+    "增值税": ("sales",),
+    "城建税及教育费附加": ("sales",),
+    "城市维护建设税": ("sales",),
+    "教育费附加": ("sales",),
+    "地方教育附加": ("sales",),
+    "企业所得税": ("profit",),
+    # ★★ 2026-10-16 修（实测缺陷）：个税的计税基数**随所得项目而变** ——
+    #   工资薪金（wage）、股息红利/经营所得（profit）、财产转让（contract）……
+    #   原表写死单个 `"wage"` ⇒ 一旦事实是「股东分红未代扣个税」（基数为利润分配=profit），
+    #   相容性判据就报"基数口径与税种要求不符"，而那一项**本该照 20% 正常测算**
+    #   （实测：报告产物 seq=8 因此被闸门判 ERROR，且金额还被写成 0.0 = 漏计风险）。
+    #   ⇒ 改为**可接受性质集合**（成员判据），既保留 D12 的本意（工资差额不得算增值税），
+    #     也不把"个税只认工资"这一错误口径固化。
+    "个人所得税": ("wage", "profit"),
+    "印花税": ("contract",),
 }
+
+#: 个人所得税**按所得项目**取税率 —— 比例税率与综合所得累进**不是一回事**，
+#: 一律按工资薪金 3% 起点档测算会把股息红利（20%）低估约 6.7 倍。
+#: 数据驱动：新增所得项目 ⇒ 加一行（**先命中者胜**，故特殊的写在前面）。
+_PIT_RATE_BY_INCOME: tuple = (
+    (("股息", "红利", "分红", "利润分配"), 0.20,
+     "股息、红利所得适用 20% 比例税率（《中华人民共和国个人所得税法》第三条第三项）"),
+    (("偶然所得",), 0.20,
+     "偶然所得适用 20% 比例税率（《中华人民共和国个人所得税法》第三条第九项）"),
+    (("财产转让", "股权转让", "转让所得"), 0.20,
+     "财产转让所得适用 20% 比例税率（《中华人民共和国个人所得税法》第三条第五项）"),
+)
+
+
+def infer_pit_income(obj: Any) -> Dict[str, Any]:
+    """按**所得项目**判定个人所得税税率与口径；判不出返回空字典（调用方走 `_RATES` 兜底）。
+
+    ★ 与 `infer_amount_nature` 同一设计：判据全在数据表 `_PIT_RATE_BY_INCOME`（新增一行即可），
+      **判不出就不改行为**（保持既有 3% 保守起点档 + 如实标注）。
+    """
+    _t = obj if isinstance(obj, str) else " ".join(
+        str(obj.get(k) or "") for k in ("title", "finding_type", "detail", "suspect", "taxes")
+    )
+    for _kws, _r, _n in _PIT_RATE_BY_INCOME:
+        for _k in _kws:
+            if _k in _t:
+                return {"rate": float(_r), "note": _n}
+    return {}
 
 #: 事实类型 → 基数性质（**按顺序**匹配，先命中者胜）。
 #   ⚠ 账户/往来/公私混同类**必须排在销售类之前**：否则「公私混同隐匿收入」
@@ -725,7 +760,8 @@ def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],
 
                  rate_ctx: Optional[Dict[str, Any]] = None,
                  amount_nature: str = "",
-                 amount_is_tax: bool = False) -> Dict[str, Any]:
+                 amount_is_tax: bool = False,
+                 pit_income: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """按税种测算潜在税额影响。amount 为不含税涉案金额；取不到→未量化。
 
     ★ 2026-09-29（点评整改 P0-4）：rate_ctx 由 infer_rate_context() 构造
@@ -776,8 +812,19 @@ def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],
             if not _smb_verified and rate and float(rate) < _CIT_STATUTORY_RATE:
                 note = smb_upper_bound_note()
                 rate = _CIT_STATUTORY_RATE
-        if t == "个人所得税" and float(amount) < _PIT_BASIC_DEDUCTION:
-            # 金额低于年度基本减除费用：若属工资薪金年度累计，无实际个税影响
+        _pit = pit_income if isinstance(pit_income, dict) else {}
+        if t == "个人所得税" and _pit.get("rate"):
+            # ★ 2026-10-16：按**所得项目**取税率（股息红利/财产转让/偶然所得 20%，
+            #   综合所得另按累进）。判不出所得项目 ⇒ `_pit` 为空 ⇒ 保持既有兜底口径，行为不变。
+            rate = float(_pit["rate"])
+            note = str(_pit.get("note") or note)
+        if (t == "个人所得税" and float(amount) < _PIT_BASIC_DEDUCTION
+                and not _pit.get("rate")):
+            # 金额低于年度基本减除费用：**只对综合所得（工资薪金等）**成立。
+            #   ★ 2026-10-16 修（实测缺陷）：股息红利、财产转让、偶然所得按次计税、
+            #   **没有**年度基本减除费用 ⇒ 旧实现一律套用本分支会把"股东分红未代扣个税"
+            #   写成 `amount=0.0 / 无实际个税影响`（漏计 20% 全额）。现按所得项目分流：
+            #   已判出所得项目（`_pit` 非空）⇒ 不走本分支，正常按比例税率测算。
             items.append({"tax": t, "rate": "0",
                           "amount": 0.0,
                           "note": f"涉案金额低于 {_PIT_BASIC_DEDUCTION:,.0f} 元基本减除费用，"
@@ -786,13 +833,14 @@ def estimate_tax(amount: Optional[float], taxes: Optional[List[str]],
             continue
         # ★ 2026-10-04（疑点4 D12）：**基数性质相容性** —— 基数口径与本税种要求不符
         #   ⇒ **不估**（不删税种、不用默认值顶替），如实登记一条未量化项。
+        #   ★ 2026-10-16：要求值改为**可接受性质集合**（个税的基数随所得项目而变，见上表）。
         _need = _TAX_BASE_NATURE.get(t)
-        if amount_nature and _need and _need != amount_nature:
+        if amount_nature and _need and amount_nature not in _need:
             items.append({"tax": t, "rate": "", "amount": None,
                           "note": ("本项事实的金额口径为「%s」，与本税种要求的基数性质"
                                    "「%s」不符，不作加计（无对应的应税收入/所得/工资事实支撑）；"
                                    "如另存在应税收入事实，应另行核对。"
-                                   % (amount_nature, _need))})
+                                   % (amount_nature, "/".join(_need)))})
             continue
         # ★★ 2026-10-06（用户评语 #3-③）：锚定金额**本身即税额**时，影响额＝该金额，
         #   **不得再乘税率**（旧实现一律 `amount * rate` ⇒ 把 4,501.34 算成 270.08）。

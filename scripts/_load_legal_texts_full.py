@@ -73,6 +73,11 @@ _ART_RE = re.compile(rf"^{_GUARD}第([{_CN}]+)条((?:之[{_CN}]+)?)[\s\u3000]*(.
 #: 章节/编 标题行（`第一章　总　　则`）；★ 不含"条"，故不会与条文抢匹配
 _SEC_RE = re.compile(rf"^{_GUARD}第[{_CN}]+[章节编]")
 _NUM_RE = re.compile(rf"^第([{_CN}]+)条((?:之[{_CN}]+)?)$")
+#: 「条号**独占一行**」（HTML 里条号与正文分属两个元素 ⇒ 提取成两行）。
+#   实测来源：gov.cn 现行《发票管理办法实施细则》（2024 第四次修正）。
+#   ★ 只在「下一行既不是条号、也不是章节标题」时才与前一行合并 ——
+#     否则会把**目录的条号清单**当成条文（目录里连续多行都是裸条号）。
+_BARE_ART_RE = re.compile(rf"^{_GUARD}第[{_CN}]+条(?:之[{_CN}]+)?$")
 
 # ★★ 2026-10-15 收敛：中文数字解析改用**唯一权威** `engine/cnnum.py`（本模块原自带一份，
 #   与 `_gen_legal_index.py` / `_gen_legal_mappings.py` 的同名实现构成多头维护）。
@@ -114,7 +119,26 @@ def split_articles(body: str) -> List[Tuple[str, str]]:
             out.append((state["no"], "\n".join(state["buf"]).strip()))
         state["no"], state["buf"] = None, []
 
-    for raw in str(body or "").split("\n"):
+    # ── 预处理：合并「条号独占一行」的排版 ──────────────────────────
+    #   HTML 提取常见：`<span>第三十三条</span><span>《办法》…</span>` ⇒ 两行。
+    #   若不合并，条号行会被当作「空内容的条文」，正文行里的**行内引用条号**
+    #   会被当成条文起点 ⇒ 实测《发票管理办法实施细则》第三十三条正文
+    #   丢了前缀「《办法》」且被塞进一个多余的「第二十五条」。
+    _raw_lines = [ln.strip() for ln in str(body or "").split("\n") if ln.strip()]
+    _merged: List[str] = []
+    _i = 0
+    while _i < len(_raw_lines):
+        _cur = _raw_lines[_i]
+        _nxt = _raw_lines[_i + 1] if _i + 1 < len(_raw_lines) else ""
+        if (_BARE_ART_RE.match(_cur) and _nxt
+                and not _BARE_ART_RE.match(_nxt) and not _SEC_RE.match(_nxt)):
+            _merged.append(_cur + " " + _nxt)
+            _i += 2
+            continue
+        _merged.append(_cur)
+        _i += 1
+
+    for raw in _merged:
         line = raw.strip()
         if not line:
             continue
@@ -502,6 +526,15 @@ def main() -> int:
             existing_by_key[key] = content
             n_e = {"law": law, "article": art, "content": content, "source": src_text,
                    "_from": "crawl:fgk", "_effect": effect, "_written_date": date}
+            # ★ provenance：**效力依据**如实落盘。fgk 主链为页面 `span.xg` 标识；
+            #   非 fgk 来源（`config/legal_texts_manual_sources.json`）为**官方页面沿革句**，
+            #   二者不得混同 —— 复核时能一眼看出"这条凭什么算现行文本"。
+            if o.get("effect_source"):
+                n_e["_effect_source"] = str(o.get("effect_source"))
+                n_e["_effect_evidence"] = str(o.get("effect_evidence") or "")
+                n_e["_version"] = str(o.get("version") or "")
+                if o.get("effective_from"):
+                    n_e["_effective_from"] = str(o.get("effective_from"))
             lib.append(n_e)
             entry_by_key[key] = n_e
             n_new += 1

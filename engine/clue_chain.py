@@ -29,6 +29,10 @@ from engine.sentencekit import (  # ★ 报告文本唯一实现
     render_value, translate_key, clamp_text,
 )
 
+#: 环节 `source` 属**相对指代**（指向上一环节结果/本环节自身），**不是资料名** ——
+#: 这类 source 不得做"是否已提供"的比对与「（本轮未提供）」标注（见 `_src_disp`）。
+_REL_SRC_RE = re.compile(r"^(上述|前述|上文|前文|上一环|上一环节|前一环|该环节|本环节|对比结果|比对结果)")
+
 # 金额/占比/数量/人次的数字提取（保留原始写法，不改写、不换算）
 _NUM_PATTERNS = [
     r"[-+]?\d[\d,]*(?:\.\d+)?\s*万元",
@@ -415,6 +419,15 @@ def build_clue_chain(finding: Dict, redline: Dict, engine_data: Optional[Dict] =
         """
         _t = str(_s or "").strip()
         if not _t:
+            return _t
+        # ★★ 2026-10-16：**相对指代不做"未提供"标注**（判据：它根本不是资料名）。
+        #   事故：环的 source 写作「上述比对结果」，`materials_available()` 把它当资料清单
+        #   去比对 ⇒ 判成"未提供" ⇒ 正文出现
+        #   「第3步从上述比对结果**（本轮未提供）**中判断是否触碰红线构成要件」
+        #   —— "从某项中判断"与"该项未提供"**自相矛盾**；且同一句跨 2 个章节逐字重复
+        #   （触发跨章节模板句闸门）。相对指代（上述/前述/上一环/该环节…）指向的是
+        #   **上一环节的结果**，不是一份可"提供"的资料，故一律原样显示。
+        if _REL_SRC_RE.match(_t):
             return _t
         try:
             _ok, _miss = materials_available(_t, provided_materials)

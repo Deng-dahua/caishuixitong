@@ -37,6 +37,11 @@ _ART_RE = re.compile(
 )
 _LIB_CACHE: Optional[Dict[Tuple[str, str], str]] = None
 
+#: 复合引用（一句话引两部法）的**切段点**：分隔符后**紧跟《》**才算切。
+#   ★ 用前瞻 `(?=《)` 是关键：`《法A》第X条、第Y条`（同法两条）不切，
+#     而 `《法A》第X条及《法B》第Y条`（两部法）正确切成两段。
+_MULTI_SEP_RE = re.compile(r"(?:及|以及|和|、|；|;|，|,)\s*(?=《)")
+
 
 # ── 「法律依据写在哪个字段」的**唯一权威** ─────────────────────────────────────────
 # ★★ 2026-10-04（疑点10-21 合并批次 ⑭）：同一份法条会被写进**两个字段**——
@@ -149,6 +154,43 @@ def split_citation(s: str) -> Tuple[str, str, str, str]:
     # ★ 2026-10-12 兜底：法名**不得残留条文号**（见 `strip_article_from_law` 说明）
     law = strip_article_from_law(law)
     return norm_law(law), norm_art(art), note, content
+
+
+def split_citations(s: str) -> List[Tuple[str, str, str, str]]:
+    """把一条引用拆成**多组** (法名, 条款号, 括注, 内容)。
+
+    ★★ 为什么要新增（2026-10-16，实测缺陷）：一条 `legal_basis` 里会**一句话引两部法**
+      （如「《中华人民共和国增值税法》第二十八条**及**《中华人民共和国增值税法实施条例》
+      第三十九条」）。原 `split_citation` 只取**首个**《》及其后的条号 ⇒ 返回
+      `(增值税法, 第三十九条)` —— 法名与条号**错配**（增值税法只有 38 条），
+      既漏计一部法，又把条号挂到错的法上。实测这条引用长期是覆盖率里唯一"不可匹配"项。
+
+    切分规则：只在**分隔符后紧跟《》**处切段（`及/以及/和/、/；/，`）——
+      这样「《法A》第X条、第Y条」（同一部法的两条）**不会被切开**（`、`后没有《》），
+      而「《法A》…及《法B》…」会正确切成两段、各自配对法名与条号。
+
+    ★ 兼容：`split_citation()` 保留原签名（返回首个），调用面零改动；
+      需要**逐条**统计的场景（覆盖率）改用本函数。
+    """
+    raw = str(s or "").strip()
+    if not raw:
+        return []
+    content = ""
+    head = raw
+    m = re.search(r"[：:]", raw)
+    if m:
+        head, content = raw[: m.start()], raw[m.end():].strip()
+    segs = [x for x in _MULTI_SEP_RE.split(head) if x and x.strip()]
+    if not segs:
+        segs = [head]
+    out: List[Tuple[str, str, str, str]] = []
+    for i, seg in enumerate(segs):
+        law, art, note, c = split_citation(seg.strip())
+        if not (law or art):
+            continue
+        # 说明性正文（冒号之后的整段）归**最后一段**（它是对整条引用的说明）
+        out.append((law, art, note, c or (content if i == len(segs) - 1 else "")))
+    return out
 
 
 def _extract_from_redlines() -> Dict[Tuple[str, str], str]:

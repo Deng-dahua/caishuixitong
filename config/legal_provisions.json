@@ -2,8 +2,8 @@
  "schema": 1,
  "updated": "2026-10-16",
  "note": "★ **条款索引**（派生层）：`provision_id` → 条文定位与标签；**不含正文**（正文唯一权威 `static/legal_library.json`，写入走 `_load_legal_texts.py`）。`provision_id` = `{法短码}-{条号:03d}`，并带**子定位后缀**保证唯一：「第X条之N」⇒ `-Z{N}`（刑法 53 条）；「第X条第N款」⇒ `-K{N}`；「附件N第X条」⇒ `{短码}-ATT{N}-{X:03d}`（附件另有独立条号体系）。`content_sha256` 可反向校验指向的条文。★ `provision_id` 为 null 分两类（如实暴露，互不混淆）：① `uncoded`＝有条号但法名/短码缺口（真缺口）；② `article_less`＝**整文条目**（本身无条号，如「正文」）⇒ 按法规级关联。",
- "count": 7636,
- "with_provision_id": 7635,
+ "count": 7680,
+ "with_provision_id": 7679,
  "article_less_count": 1,
  "duplicate_ids": {},
  "uncoded": [],
@@ -17117,38 +17117,6 @@
    "source": "《关于工资总额组成的规定》中华人民共和国国家统计局令第1号，（全文有效，成文日期 1990-01-01）"
   },
   {
-   "provision_id": "SAT-ABNORMAL-VOUCHER-ANN-001",
-   "law": "关于异常增值税扣税凭证管理等有关事项的公告",
-   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
-   "article": "第一条",
-   "article_no": 1,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-002",
-    "TOPIC-010"
-   ],
-   "content_sha256": "e204050b496136f19b95ee51981442296c86f9c927f72065a0b7f73f4f6d691f",
-   "content_len": 278,
-   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号，自2020年2月1日起施行）"
-  },
-  {
-   "provision_id": "SAT-ABNORMAL-VOUCHER-ANN-002",
-   "law": "关于异常增值税扣税凭证管理等有关事项的公告",
-   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
-   "article": "第二条",
-   "article_no": 2,
-   "kind": "规范性文件",
-   "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-002",
-    "TOPIC-018"
-   ],
-   "content_sha256": "7d0fedf66b1c65175be0729f727eff87dfaf2c815b510ef1167335ad70207021",
-   "content_len": 164,
-   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号）"
-  },
-  {
    "provision_id": "CUSTOMS-DUTY-LAW-001",
    "law": "关税法",
    "law_code": "CUSTOMS-DUTY-LAW",
@@ -17509,8 +17477,8 @@
    "topic_tags": [
     "TOPIC-018"
    ],
-   "content_sha256": "d86391470cdd296cf62939f6c1ad2b5815f7eb28e12172312f336ff0148c9d03",
-   "content_len": 193,
+   "content_sha256": "4fe8e99e1e9d96cfb173001549cb3779d3d4d00c02572b3163deb359d30bc797",
+   "content_len": 135,
    "source": "《中华人民共和国关税法》（全文有效，成文日期 2024-04-26）"
   },
   {
@@ -32863,6 +32831,669 @@
    "source": "《中华人民共和国发票管理办法》（全文有效，成文日期 2023-07-20）"
   },
   {
+   "provision_id": "INVOICE-MEASURE-RULES-001",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "1aae854b987e16fca713620786ab372b91b75e96c6eb2101fc5746bfedf4c7e9",
+   "content_len": 38,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-002",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "95ee3ad0ca4b59311814f0f1f25cbb1063ca6efc04e5898a4c35437b78482131",
+   "content_len": 72,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-003",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三条",
+   "article_no": 3,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "b8d5ded0ee4ec071e8554ff73a9cc6dbc6693370b49d65b2e4912e44e760d661",
+   "content_len": 102,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-004",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第四条",
+   "article_no": 4,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "c29c6c911950c2f79a75772dc3dfff45cc7b2654e0e7213ab69aba0c525fd159",
+   "content_len": 47,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-005",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第五条",
+   "article_no": 5,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "f54e037cb1afcf6531a0473d885430ad5c2c7d06eae64f0d60bae3179236634b",
+   "content_len": 129,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-006",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第六条",
+   "article_no": 6,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "87bf6af5ddbfb925f3ddf33d51df2d2eeec760054c6dbbb888bec12116b60779",
+   "content_len": 131,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-007",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第七条",
+   "article_no": 7,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "da10b8a7c0408a4d5985e4ade0c9b9561f5e92843fa2e7489ecc248d579443a0",
+   "content_len": 139,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-008",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第八条",
+   "article_no": 8,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "a7a5cebee7f3ec42a0a2ca4172ddd801c3e668454894edf95ab313bef1196036",
+   "content_len": 66,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-009",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第九条",
+   "article_no": 9,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "1a6bc9c1d7219e9d0834656750ef9c03a5bd7f179e30c7cc71e2196e50e5ee02",
+   "content_len": 37,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-010",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十条",
+   "article_no": 10,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "d515065d46e7215fb060d4aef6f362959b93041291afc0d4e2d2174932d37155",
+   "content_len": 105,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-011",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十一条",
+   "article_no": 11,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "3bcbf65ced6239cf3b9936ab4e906a42b365388c9dfbff5255df90c2ab334216",
+   "content_len": 46,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-012",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十二条",
+   "article_no": 12,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "59b658b47a6c8ad520290462326a35e382a4c57140d8d0e24d5415fe401d0996",
+   "content_len": 57,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-013",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十三条",
+   "article_no": 13,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "82fe1b82eeaba652d42d793524db53411a722d34280431700a705d93a67d45ab",
+   "content_len": 107,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-014",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十四条",
+   "article_no": 14,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "6470ff173e07b1329daf4c9d60abfe3fc372b1d385193ae955122293321afd76",
+   "content_len": 41,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-015",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十五条",
+   "article_no": 15,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "971b47030e60cd2b7c53dd880792ec33ece1761a1ff12665987d06c95d982228",
+   "content_len": 47,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-016",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十六条",
+   "article_no": 16,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "1b88cdb9fbdd118a48384b402f89fcbdc339120969d251432f41ab1dc2d3221a",
+   "content_len": 89,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-017",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十七条",
+   "article_no": 17,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "511903c988e9f917d63957db20fa10df4cc954037b139ab7db8a32a00f99687a",
+   "content_len": 34,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-018",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十八条",
+   "article_no": 18,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "597fd9fae229ef445400906a059664808283937c1454d457351afcfb4a1a0cae",
+   "content_len": 98,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-019",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第十九条",
+   "article_no": 19,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "2bcd040c3e5c4aac655ce3e5ba0cbbf88e46c1fe47a18df697e8b39164a8fd32",
+   "content_len": 33,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-020",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十条",
+   "article_no": 20,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "8b1cb4ae840f8afce307d3a17b25efd9107d07af6040f56fb14c675ddadc268b",
+   "content_len": 39,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-021",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十一条",
+   "article_no": 21,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "86420179708e526bbafc025ae48baa402db63aef87cf4d3dd7b1a43130a71d01",
+   "content_len": 45,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-022",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十二条",
+   "article_no": 22,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "ad3e7abf946d7086a3c3ae195d20a66dd80b993ce8ba71555e4fa505a81c0688",
+   "content_len": 88,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-023",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十三条",
+   "article_no": 23,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "8cc1edf3a2eae97f38c64df0858e6df041c1590a1c387eeceb2bc6546b1537c4",
+   "content_len": 42,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-024",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十四条",
+   "article_no": 24,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "5b169b1d83f47e51e96474ded336e175d5fa4fd847797e7d209252651d6b6655",
+   "content_len": 47,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-025",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十五条",
+   "article_no": 25,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "32b525d19bf4faadadb54eae640b0b287292af6bec46ab0ee26171bb22382025",
+   "content_len": 37,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-026",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十六条",
+   "article_no": 26,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "457d5ef92c8d0a0e49eeb578a4e83f5d48e0a9383540918419d258cac9dc301a",
+   "content_len": 171,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-027",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十七条",
+   "article_no": 27,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "734c220b1edfa383d1c2923ba928e62ba8d9814b7624765924c96a930e4cce6e",
+   "content_len": 50,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-028",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十八条",
+   "article_no": 28,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "ba656760eb9d62485945938a1d0c9b166c7eb6c62daf614d5bf6feeaa29c2732",
+   "content_len": 84,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-029",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第二十九条",
+   "article_no": 29,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "9118917a30068636d1e3c801b881e1172600f1c7acf0a274794153a01a662a51",
+   "content_len": 142,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-030",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十条",
+   "article_no": 30,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "48c5c8da7355880c310b5d637da38d1079a63ea6a1d2e35726031d2bc46164b5",
+   "content_len": 35,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-031",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十一条",
+   "article_no": 31,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "d59f84ca6027f7fa81ab83e8a6395c29018f377148de9c4813cc6324fc52cf72",
+   "content_len": 57,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-032",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十二条",
+   "article_no": 32,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "2138d8e05c5517876da3be32f09def82f5c767e413e6d875a6fd0e29177746a7",
+   "content_len": 81,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-033",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十三条",
+   "article_no": 33,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "409b65c01b7ecc9e6c0564ff1555d43a04d83289549cce66909115c207edfe0b",
+   "content_len": 37,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-034",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十四条",
+   "article_no": 34,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "1aa3046ac11280fd16acaa8203375a9566de22640b7acc42c02bf7eff8d40224",
+   "content_len": 46,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-035",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十五条",
+   "article_no": 35,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "6a9b2a94f344971a7fca7e1212f4d0f86fbf3f6f520902dadb8a096d7c3db903",
+   "content_len": 49,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-036",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十六条",
+   "article_no": 36,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "79d3439e908f3975a38ec53c3fdebe7807afd05d574b10c647c71f8e6d07582a",
+   "content_len": 32,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-037",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十七条",
+   "article_no": 37,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "892165bc217ba3f512d18d88a90ebc42a1ce07f906ce9df56ad4a131a55fed83",
+   "content_len": 65,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-038",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十八条",
+   "article_no": 38,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "04844149109df63561b704a37862811be9f905c9d8d02371ae8ec4c1061c981d",
+   "content_len": 108,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-039",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第三十九条",
+   "article_no": 39,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "fe26c77f56924948fe40396b318ac3193947f66452795404c0931d99953fda87",
+   "content_len": 56,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-040",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第四十条",
+   "article_no": 40,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-003",
+    "TOPIC-005",
+    "TOPIC-012",
+    "TOPIC-018"
+   ],
+   "content_sha256": "5df2bee63d36bb7699131ccdf205807270512546c87a3c3fdc7adf6273a6f27d",
+   "content_len": 202,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-041",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第四十一条",
+   "article_no": 41,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "bede25a42737c812445ac54463dfd8adc225fb152acea1ef58abcc2f1a10e8b8",
+   "content_len": 112,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-042",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第四十二条",
+   "article_no": 42,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "473508628bd6a21b0e3c2bee1050b1cf0dd281764165e3095126fe3c64110432",
+   "content_len": 36,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-043",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第四十三条",
+   "article_no": 43,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "ba4c701d4168919778c7ab1634c9ec444e1d1097b7909bf38e55b195f2caba28",
+   "content_len": 39,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
+   "provision_id": "INVOICE-MEASURE-RULES-044",
+   "law": "发票管理办法实施细则",
+   "law_code": "INVOICE-MEASURE-RULES",
+   "article": "第四十四条",
+   "article_no": 44,
+   "kind": "行政法规",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-012"
+   ],
+   "content_sha256": "863db84d1623b3f7d92450e9a1479cc7c8d57e3e9f50842b24a7b01709e843dc",
+   "content_len": 19,
+   "source": "《中华人民共和国发票管理办法实施细则》国家税务总局令第56号，（全文有效，成文日期 未知）"
+  },
+  {
    "provision_id": "PARTNERSHIP-LAW-001",
    "law": "合伙企业法",
    "law_code": "PARTNERSHIP-LAW",
@@ -34224,8 +34855,8 @@
    "topic_tags": [
     "TOPIC-004"
    ],
-   "content_sha256": "5eaf1a935f94cccce80f9dd76b3c64faf26e7829a1a9c79be3467173319e6d64",
-   "content_len": 49,
+   "content_sha256": "da0c59d3ac8a93e382e13a95510f4df868f3370821ccd5be01156f887ef1389e",
+   "content_len": 43,
    "source": "《国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定》中华人民共和国国务院令第502号，（全文有效，成文日期 2007-07-20）"
   },
   {
@@ -34280,8 +34911,8 @@
    "topic_tags": [
     "TOPIC-004"
    ],
-   "content_sha256": "66190037a6a089365fcbe5de31f0ebb04ccb1cb032f11abd7430146c4e7f73f1",
-   "content_len": 99,
+   "content_sha256": "3a5151f4282ee0275abf61837b0ee3e4a0b8fd8cb570a08e803e8b70af8895c9",
+   "content_len": 104,
    "source": "《国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定》中华人民共和国国务院令第502号，（全文有效，成文日期 2007-07-20）"
   },
   {
@@ -34351,8 +34982,8 @@
    "topic_tags": [
     "TOPIC-004"
    ],
-   "content_sha256": "81679752d48be4005845254c5e1824ebde78ea978ebde5db4cc29efa8a8a3d46",
-   "content_len": 67,
+   "content_sha256": "24139b23d0443de71ab558568610e283c401eceb15d78394733a553deb415281",
+   "content_len": 61,
    "source": "《国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定》中华人民共和国国务院令第502号，（全文有效，成文日期 2007-07-20）"
   },
   {
@@ -34365,8 +34996,8 @@
    "topic_tags": [
     "TOPIC-004"
    ],
-   "content_sha256": "46ec5d3061ae10f8aef202433e89d1e620b731dfdc9f2e7f51b917a2b7926658",
-   "content_len": 331,
+   "content_sha256": "08dfa5883f2b1441cc6b55f265b452fefce97ae0076ac31527ca30f8eb7e8ca2",
+   "content_len": 127,
    "source": "《国务院关于修改《对储蓄存款利息所得征收个人所得税的实施办法》的决定》中华人民共和国国务院令第502号，（全文有效，成文日期 2007-07-20）"
   },
   {
@@ -34463,8 +35094,8 @@
    "topic_tags": [
     "TOPIC-002"
    ],
-   "content_sha256": "0cd0168a0ab503ca11ab2b1ddfe228547d75f8e8a70c667a167099083e26f1df",
-   "content_len": 54,
+   "content_sha256": "3005cf2b5d54897b30667f0ac830c27a37951dd74c85b476019d3b27b2b8f593",
+   "content_len": 82,
    "source": "《国务院关于废止《中华人民共和国营业税暂行条例》和修改《中华人民共和国增值税暂行条例》的决定》国务院令第691号，（全文有效，成文日期 2017-11-19）"
   },
   {
@@ -34505,12 +35136,10 @@
    "article_no": 9,
    "kind": "行政法规",
    "topic_tags": [
-    "TOPIC-001",
-    "TOPIC-002",
-    "TOPIC-004"
+    "TOPIC-002"
    ],
-   "content_sha256": "effc710513d45a9282431529742cdcc8f556468d2755d22e92d07d457c0643bc",
-   "content_len": 1160,
+   "content_sha256": "5e5154545eb23a0ae1099e90c062774ee71ffb4d75d74ddd3ba2a0bb4b410c88",
+   "content_len": 76,
    "source": "《国务院关于废止《中华人民共和国营业税暂行条例》和修改《中华人民共和国增值税暂行条例》的决定》国务院令第691号，（全文有效，成文日期 2017-11-19）"
   },
   {
@@ -34852,6 +35481,38 @@
    "content_sha256": "6c5ed0b9c0a92b9fd81f91efdc93cea5da2faebd3a398d7436a443ef5b7455a6",
    "content_len": 70,
    "source": "《国家税务总局关于工会经费企业所得税税前扣除凭据问题的公告》（国家税务总局公告2010年第24号）"
+  },
+  {
+   "provision_id": "SAT-ABNORMAL-VOUCHER-ANN-001",
+   "law": "国家税务总局关于异常增值税扣税凭证管理等有关事项的公告",
+   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
+   "article": "第一条",
+   "article_no": 1,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-010"
+   ],
+   "content_sha256": "e204050b496136f19b95ee51981442296c86f9c927f72065a0b7f73f4f6d691f",
+   "content_len": 278,
+   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号，自2020年2月1日起施行）"
+  },
+  {
+   "provision_id": "SAT-ABNORMAL-VOUCHER-ANN-002",
+   "law": "国家税务总局关于异常增值税扣税凭证管理等有关事项的公告",
+   "law_code": "SAT-ABNORMAL-VOUCHER-ANN",
+   "article": "第二条",
+   "article_no": 2,
+   "kind": "规范性文件",
+   "topic_tags": [
+    "TOPIC-001",
+    "TOPIC-002",
+    "TOPIC-018"
+   ],
+   "content_sha256": "7d0fedf66b1c65175be0729f727eff87dfaf2c815b510ef1167335ad70207021",
+   "content_len": 164,
+   "source": "《国家税务总局关于异常增值税扣税凭证管理等有关事项的公告》（国家税务总局公告2019年第38号）"
   },
   {
    "provision_id": "SAT-LVAT-CLEARING-002",
@@ -83459,8 +84120,8 @@
    "topic_tags": [
     "TOPIC-005"
    ],
-   "content_sha256": "77fb72c0404aab72238cb6b7acdef4992168cd350cf871c73f33bc953ebf49dc",
-   "content_len": 105,
+   "content_sha256": "8145b819342646588a259ffaa8ce1630cb016168d2b6cc2040106ad230b750c4",
+   "content_len": 104,
    "source": "《中华人民共和国行政处罚法》（全文有效，成文日期 2021-01-22）"
   },
   {
@@ -85469,8 +86130,8 @@
    "article_no": 57,
    "kind": "行政法规",
    "topic_tags": [],
-   "content_sha256": "3794038974e60c9937c394d4e482b182f9a3d2281cff4aaf6773c984519b7ba5",
-   "content_len": 19,
+   "content_sha256": "42e2264e77584db9dc9f8e59f9621b2114308aa250062fce07628e3f79cf086e",
+   "content_len": 161,
    "source": "《中华人民共和国行政复议法实施条例》（全文有效，成文日期 2026-04-29）"
   },
   {
@@ -92820,9 +93481,9 @@
    "source": "《财政部 国家税务总局关于专项用途财政性资金企业所得税处理问题的通知》（财税〔2011〕70号，自2011年1月1日起执行）"
   },
   {
-   "provision_id": "CS-2008-121-001",
+   "provision_id": "MOF-CIT-RELATED-INTEREST-001",
    "law": "财政部国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知",
-   "law_code": "CS-2008-121",
+   "law_code": "MOF-CIT-RELATED-INTEREST",
    "article": "第一条",
    "article_no": 1,
    "kind": "规范性文件",

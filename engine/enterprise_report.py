@@ -434,6 +434,15 @@ _METRIC_CN = {
     "uncovered_amount": "未覆盖金额",
     "unexplained_gap": "未解释差额",
     "unfunded_person_month_count": "未缴存人月数",
+    # ★ 2026-10-16：`engine/params_wired_detectors.py` 的三个阈值检测器
+    #   （分红个税代扣 RL-PAY-009 / 亏损结转 RL-CIT-016）新增了指标键 ⇒ 必须同步登记，
+    #   否则报告正文出现英文键（闸门 `check_metric_keys_translated` 实测报 5 个未译键）。
+    #   ★ 纪律：新增检测器 ⇒ 其 `observed_metrics` 的**每个键**都要在本表加一行。
+    "dividend_payable": "应付股利贷方发生额",
+    "iit_should_withhold": "应代扣个人所得税",
+    "iit_withheld": "已代扣个人所得税",
+    "shortfall": "代扣差额",
+    "dividend_iit_rate": "股息红利所得个人所得税税率",
 }
 
 # ★ 2026-09-25：引擎实际产出的 metrics 键**唯一清单**（前端 `_renderCapMetrics`
@@ -3868,8 +3877,14 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
                         "code": "分项限额回填失败", "detail": str(_e2)[:120], "redline_id": rid,
                     })
         chain_desc = _clue_narrative(clue, not_required=not_required_docs)
+        # ★★ 2026-10-16：把固定引导句**独立成句**（原为「…算出来的：」+ 描述，同一句）。
+        #   为什么要改：① 它逐条逐字重复（18 个事项都以此开头），属**报告级通用口径**，
+        #   应上提为报告级一次（登记在 `config/common_clauses.json` 的 hoist 清单，
+        #   由 `engine/common_clauses.hoist_common_clauses` 从各事项移除）；
+        #   ② 只有**独立成句**，上提机制才能把它从正文里摘掉而**不牵连**后面的
+        #   发现过程描述（原写法用"："连接，摘掉整句会连描述一起丢）。
         p2 = (
-            "这个疑点不是估计出来的，是从资料里一步步算出来的："
+            "这个疑点不是估计出来的，是从资料里一步步算出来的。"
             + (chain_desc or "本轮资料不足以还原完整的发现过程。")
         )
         if clue.get("data_gaps"):
@@ -4586,11 +4601,15 @@ def _build_redline_problems(suspicions=None, findings=None, rate_ctx=None,
             # ★ 2026-10-06（用户评语 #3-③）：同时传"锚定金额**是否本身就是税额**"——
             #   进项/销项税额类差额若再乘税率是**逻辑错误**（实测 4,501.34→270.08）。
             from engine.tax_impact import (infer_amount_nature as _ian,
-                                           infer_amount_is_tax as _iati)
+                                           infer_amount_is_tax as _iati,
+                                           infer_pit_income as _ipit)
             _p["tax_impact"] = estimate_tax(_norm.get("amount"), _p.get("taxes"),
                                             rate_ctx=rate_ctx,
                                             amount_nature=_ian(_p),
-                                            amount_is_tax=_iati(_p))
+                                            amount_is_tax=_iati(_p),
+                                            # ★ 2026-10-16：个人所得税**按所得项目**取税率
+                                            #   （股息红利 20% ≠ 工资薪金 3% 起点档）。
+                                            pit_income=_ipit(_p))
             if _am:
                 _scope = str(_norm.get("scope_note") or "")
                 _p["tax_impact"]["amount_context"] = (
@@ -4891,7 +4910,15 @@ def _dedup_observed(values):
 #     ③ 指标倾倒：`匹配明细=人员=初永伟、转出个人金额=1,071,343.80等5项…等10项`
 #        —— 把 `observed_metrics` 的原始结构直接倒进正文，读者拿不到"本项到底凭什么"。
 _OBS_META_READ_PREFIX = ("已读取资料", "已读取", "读取并归集", "本轮已上传并成功读取")
-_OBS_META_GAP_PREFIX = ("本轮未取得", "该环节未取得", "该环节未产出", "未取得该环节")
+# ★★ 2026-10-16 补两个前缀（**语义错分**，实测事故）：
+#   环节取不到读数时写的两句缺口说明 ——「因缺少资料（X）未取得本环节数据，该部分无法核对」
+#   （`clue_chain` material_missing 分支）与「本环节未产出对题读数（属检查程序待完善项）」
+#   （engine_gap 分支）—— **都不在**本元组里 ⇒ `_obs_kind()` 判成 `fact`
+#   ⇒ `_clue_narrative` 把它们当**账内读数**写成「看到因缺少资料…未取得本环节数据」，
+#   即把"这一步没有数据"表述成"看到的事实"（与"观测值不得冒充证据"的立意相反）。
+#   实测后果（2026-10-08 产物）：这句话跨 2 个章节逐字重复，触发跨章节模板句闸门。
+_OBS_META_GAP_PREFIX = ("本轮未取得", "该环节未取得", "该环节未产出", "未取得该环节",
+                        "因缺少资料", "本环节未产出对题读数")
 _OBS_PILE_RE = re.compile(r"等\s*\d+\s*项")
 
 

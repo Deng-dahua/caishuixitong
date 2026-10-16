@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 
 import tempfile
 from pathlib import Path
@@ -82,42 +83,22 @@ class TestLibraryContract:
         assert float(c.get("coverage") or 0) > 0.9, "覆盖率基线异常偏低：%s" % c
 
     def test_registered_baseline_matches_reality(self):
-        """基线必须与现算一致 —— 否则闸门的"防退化"是空的。"""
+        """基线必须与现算一致 —— 否则闸门的"防退化"是空的。
+
+        ★ 2026-10-16：改为调用**唯一实现** `engine.legal_coverage.compute`
+          （原来自带第三份现算代码，与录入脚本/闸门各写一套 ⇒ 三处必然分叉）。
+        """
         mod = _load_audit()
         c = _cov()
         assert len(_lib()) == int(c.get("library_size") or -1), \
             "库条数 %d ≠ 基线 %d（请重跑 scripts/_load_legal_texts.py）" % (
                 len(_lib()), int(c.get("library_size") or -1))
-        # 现算覆盖率（与闸门同口径）
-        import re
-        import sys
-        sys.path.insert(0, str(ROOT))
-        from engine.legal_citation import split_citation
-        from engine.legal_version import canonical_law
-        from engine.tax_redlines import REDLINES
-
-        def _an(a):
-            return re.sub(r"\s+", "", str(a or ""))
-
-        idx = {}
-        for x in _lib():
-            idx.setdefault(canonical_law(x["law"]), set()).add(_an(x["article"]))
-        tot = hit = 0
-        for r in REDLINES:
-            lb = (r or {}).get("legal_basis")
-            if isinstance(lb, str):
-                lb = [lb]
-            for it in (lb or []):
-                if not isinstance(it, str) or not it.strip():
-                    continue
-                law, art, _, _ = split_citation(it)
-                tot += 1
-                arts = idx.get(canonical_law(law))
-                if arts and (not art or any(a.startswith(_an(art)) or _an(art).startswith(a)
-                                            for a in arts if a)):
-                    hit += 1
-        assert abs((hit / tot) - float(c["coverage"])) < 0.002, \
-            "现算覆盖率 %.4f ≠ 基线 %.4f" % (hit / tot, float(c["coverage"]))
+        from engine.legal_coverage import compute
+        now = compute(_lib())
+        assert now["total_refs"] == int(c.get("total_refs") or -1), \
+            "现算引用数 %d ≠ 基线 %d" % (now["total_refs"], int(c.get("total_refs") or -1))
+        assert abs(float(now["coverage"]) - float(c["coverage"] or 0)) < 1e-6, \
+            "现算覆盖率 %.4f ≠ 基线 %.4f" % (now["coverage"], float(c["coverage"] or 0))
         assert mod is not None
 
 
@@ -176,9 +157,36 @@ class TestGateReverse:
         monkeypatch.undo()
 
     def test_gate_detects_coverage_regression(self, monkeypatch):
-        """把基线抬高（= 红线引用了正文库没有的条文）⇒ 闸门 A 段必报 ERROR。"""
-        def mutate(_lib, cov):
-            cov["coverage"] = 1.0                  # 现实是 0.9951 ⇒ 必然退化
+        """**削弱数据**（把被引用那部法的条文改到不存在的法名下）⇒ 闸门 A 段必报 ERROR。
+
+        ★★ 2026-10-16 修：原注入是「把基线抬到 1.0」—— 覆盖率现已达 **100%**，
+          任何 ≤1 的基线都不可能被"低于" ⇒ **注入失效、测试空转**（这是我第一次写这道
+          反向验证时踩到的坑：注入方式必须真能触发判据）。改为削弱数据。
+        """
+        from engine.legal_citation import split_citations
+        from engine.tax_redlines import REDLINES
+        first = ""
+        for r in REDLINES:
+            lb = (r or {}).get("legal_basis")
+            lb = [lb] if isinstance(lb, str) else (lb or [])
+            for it in lb:
+                if isinstance(it, str) and it.strip():
+                    got = split_citations(it)
+                    if got:
+                        first = got[0][0]
+                    break
+            if first:
+                break
+        assert first, "取不到被引用的法名 ⇒ 注入无从谈起"
+
+        def mutate(lib, _cov):
+            n = 0
+            for x in lib:
+                if first in str(x.get("law") or ""):
+                    x["law"] = "（反向验证注入）不存在的法名"
+                    n += 1
+            assert n, "正文库里没有 %r 的条文 ⇒ 注入无效" % first
+
         with tempfile.TemporaryDirectory() as td:
             mod = self._sandbox(monkeypatch, Path(td), mutate)
             errs = [i for i in mod.check_legal_text_coverage() if i[0] == "ERROR"]

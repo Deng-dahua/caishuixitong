@@ -1111,55 +1111,41 @@ BATCH: List[Dict[str, str]] = (
 
 
 def _write_coverage(lib: List[Dict[str, Any]]) -> None:
-    """现算「红线引用 → 正文库」覆盖率并**登记**（供闸门比对，防退化）。
+    """现算覆盖率并**登记**基线（供闸门防退化比对）。
 
-    ★ 为什么必须登记：改了引用（换法、换条）却忘了补条文时，覆盖率会**静默下降** ——
-      登记基线后，闸门 `check_legal_text_coverage` 立刻报 ERROR。
+    ★★ 2026-10-16 收敛：现算逻辑移到**唯一实现** `engine/legal_coverage.py`
+      （原先本函数与闸门 `check_legal_text_coverage` **各写一套**，
+      分叉风险高：登记基线与现算用的不是同一把尺子 ⇒ 假绿/假红）。
+      本函数现在只负责"调它 + 打印"。
     """
-    import re
+    from engine.legal_coverage import write_registry
 
-    from engine.legal_citation import split_citation
-    from engine.legal_version import canonical_law
-    from engine.tax_redlines import REDLINES
-
-    def _an(a: Any) -> str:
-        return re.sub(r"\s+", "", str(a or ""))
-
-    idx: Dict[str, set] = {}
-    for x in lib:
-        idx.setdefault(canonical_law(x["law"]), set()).add(_an(x["article"]))
-
-    tot = hit = 0
-    for r in REDLINES:
-        lb = r.get("legal_basis")
-        if isinstance(lb, str):
-            lb = [lb]
-        for it in (lb or []):
-            if not isinstance(it, str) or not it.strip():
-                continue
-            law, art, _, _ = split_citation(it)
-            tot += 1
-            arts = idx.get(canonical_law(law))
-            if arts and (not art or any(a.startswith(_an(art)) or _an(art).startswith(a)
-                                        for a in arts if a)):
-                hit += 1
-    out = {
-        "_note": "红线库引用 → 法规正文库（static/legal_library.json）的可匹配覆盖率。"
-                 "由 scripts/_load_legal_texts.py **现算**写入；闸门 check_legal_text_coverage 据此防退化。"
-                 "★ 与「版本登记」（config/legal_versions.json）是两件事。",
-        "total_refs": tot,
-        "matched_refs": hit,
-        "coverage": round(hit / tot, 4) if tot else 0,
-        "library_size": len(lib),
-    }
-    (ROOT / "config" / "legal_text_coverage.json").write_text(
-        json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print("覆盖率登记：%d/%d = %.1f%%（正文库 %d 条）"
-          % (hit, tot, (hit / tot * 100) if tot else 0, len(lib)))
+    out = write_registry()
+    print("覆盖率登记：%d/%d = %.1f%%（正文库 %d 条，未匹配 %d 处）"
+          % (out["matched_refs"], out["total_refs"],
+             (out["coverage"] or 0) * 100, out["library_size"], len(out["unmatched"])))
 
 
 def _key(law: Any, article: Any) -> Tuple[str, str]:
     return (str(law or "").strip(), str(article or "").strip())
+
+
+def _storage_law(law: Any) -> str:
+    """库内 `law` 字段的**存储口径**（★ 与全量入库器同一实现，不得各写一套）。
+
+    ★★ 为什么必须共用（2026-10-16 实测的**非幂等循环**）：本脚本的 `BATCH` 是
+      人工逐条核实的条文，其 `law` 写作当时的名字（如带空格的
+      「财政部 国家税务总局关于…通知」）。而全量入库器
+      （`_load_legal_texts_full.py`）会把库内 `law` **收敛到登记名**（去空格）。
+      两边口径不同 ⇒ 本脚本每次运行都认为这些条目"不存在"⇒ **重复新增**，
+      下一轮全量入库又去重 ⇒ 反复来回（实测每次 +17 条再合并 17 组）。
+      ⇒ 统一走全量入库器的 `_storage_law`（唯一实现）。
+    """
+    try:
+        import _load_legal_texts_full as _LF                # 同目录脚本，唯一实现
+        return _LF._storage_law(str(law or ""))             # noqa: SLF001
+    except Exception:                                       # noqa: BLE001
+        return str(law or "").strip()
 
 
 def main() -> int:
@@ -1168,7 +1154,8 @@ def main() -> int:
     args = ap.parse_args()
 
     lib: List[Dict[str, Any]] = json.loads(LIB_PATH.read_text(encoding="utf-8"))
-    have = {_key(x.get("law"), x.get("article")) for x in lib}
+    # ★ 两边口径必须一致：既存条目按**存储口径**归一，本脚本新增也按存储口径写。
+    have = {_key(_storage_law(x.get("law")), x.get("article")) for x in lib}
 
     to_add: List[Dict[str, str]] = []
     dup: List[Tuple[str, str]] = []
@@ -1177,6 +1164,7 @@ def main() -> int:
         for req in ("law", "article", "content", "source"):
             if not str(item.get(req) or "").strip():
                 bad.append("条目缺 %s：%s" % (req, item))
+        item = {**item, "law": _storage_law(item.get("law"))}
         k = _key(item.get("law"), item.get("article"))
         if k in have:
             dup.append(k)

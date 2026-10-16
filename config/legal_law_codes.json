@@ -2,8 +2,8 @@
  "schema": 1,
  "updated": "2026-10-16",
  "note": "★ **法名规范表**（唯一权威）：一条法一行；`code` 是条款 ID 的短码前缀。条款 ID = `{code}-{条号:03d}`（如 `INVOICE-MEASURE-022` = 发票管理办法第二十二条）。★ 新增一部法**只加一行**；`code` 为空 ⇒ **该法尚未核定短码**（如实暴露，不猜）。★ 法名变体（含/不含「中华人民共和国」前缀、括注文号）一律登记为 `aliases`，使 `legal_basis_ref` 能稳定解析到同一条款。",
- "law_count": 152,
- "coded_count": 152,
+ "law_count": 149,
+ "coded_count": 149,
  "duplicate_codes": [],
  "laws": [
   {
@@ -126,9 +126,10 @@
   },
   {
    "code": "SAT-ABNORMAL-VOUCHER-ANN",
-   "name": "关于异常增值税扣税凭证管理等有关事项的公告",
+   "name": "国家税务总局关于异常增值税扣税凭证管理等有关事项的公告",
    "aliases": [
-    "国家税务总局关于异常增值税扣税凭证管理等有关事项的公告"
+    "关于异常增值税扣税凭证管理等有关事项的公告",
+    "国家税务总局公告2019年第38号"
    ],
    "level": "规范性文件",
    "doc_num": null,
@@ -238,22 +239,6 @@
    "level": "规范性文件",
    "doc_num": null,
    "provision_id_prefix": "SAT-ANN-2014-39-"
-  },
-  {
-   "code": "SAT-ANN-2014-67",
-   "name": "国家税务总局公告2014年第67号",
-   "aliases": [],
-   "level": "规范性文件",
-   "doc_num": null,
-   "provision_id_prefix": "SAT-ANN-2014-67-"
-  },
-  {
-   "code": "SAT-ANN-2019-38",
-   "name": "国家税务总局公告2019年第38号",
-   "aliases": [],
-   "level": "规范性文件",
-   "doc_num": null,
-   "provision_id_prefix": "SAT-ANN-2019-38-"
   },
   {
    "code": "SAT-RETENTION-REFUND",
@@ -508,7 +493,9 @@
   {
    "code": "EQUITY-TRANSFER-IIT-MEASURE",
    "name": "股权转让所得个人所得税管理办法（试行）",
-   "aliases": [],
+   "aliases": [
+    "国家税务总局公告2014年第67号"
+   ],
    "level": "规范性文件",
    "doc_num": null,
    "provision_id_prefix": "EQUITY-TRANSFER-IIT-MEASURE-"
@@ -540,7 +527,9 @@
   {
    "code": "MOF-CIT-RELATED-INTEREST",
    "name": "财政部 国家税务总局关于企业关联方利息支出税前扣除标准有关税收政策问题的通知",
-   "aliases": [],
+   "aliases": [
+    "财税〔2008〕121号"
+   ],
    "level": "规范性文件",
    "doc_num": null,
    "provision_id_prefix": "MOF-CIT-RELATED-INTEREST-"
@@ -648,14 +637,6 @@
    "level": "规范性文件",
    "doc_num": null,
    "provision_id_prefix": "MOF-CIVIL-AVIATION-FUND-"
-  },
-  {
-   "code": "CS-2008-121",
-   "name": "财税〔2008〕121号",
-   "aliases": [],
-   "level": "规范性文件",
-   "doc_num": null,
-   "provision_id_prefix": "CS-2008-121-"
   },
   {
    "code": "RESOURCE-TAX-LAW",
@@ -1398,6 +1379,26 @@
    "level": "行政法规",
    "doc_num": null,
    "provision_id_prefix": "ONSHORE-OIL-COOP-REG-"
+  }
+ ],
+ "merged_codes": [
+  {
+   "from_code": "SAT-ANN-2019-38",
+   "to_code": "SAT-ABNORMAL-VOUCHER-ANN",
+   "from_name": "国家税务总局公告2019年第38号",
+   "reason": "同一部法的**重复登记**（文号型 vs 主题型）⇒ 保留主题型短码，文号型名并入别名；原 `provision_id` 前缀作废（派生层已重建）"
+  },
+  {
+   "from_code": "SAT-ANN-2014-67",
+   "to_code": "EQUITY-TRANSFER-IIT-MEASURE",
+   "from_name": "国家税务总局公告2014年第67号",
+   "reason": "同一部法的**重复登记**（文号型 vs 主题型）⇒ 保留主题型短码，文号型名并入别名；原 `provision_id` 前缀作废（派生层已重建）"
+  },
+  {
+   "from_code": "CS-2008-121",
+   "to_code": "MOF-CIT-RELATED-INTEREST",
+   "from_name": "财税〔2008〕121号",
+   "reason": "同一部法的**重复登记**（文号型 vs 主题型）⇒ 保留主题型短码，文号型名并入别名；原 `provision_id` 前缀作废（派生层已重建）"
   }
  ]
 }

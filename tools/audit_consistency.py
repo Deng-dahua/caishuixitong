@@ -5526,9 +5526,14 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
                             continue
                         _amt7 = _it7.get("amount")
                         _bad7.append((_p7.get("seq"), _it7.get("tax"), _nat7, _need7))
-                        if _need7 != _nat7 and _amt7 is not None:
+                        # ★ 2026-10-16：要求值现为**可接受性质集合**（个税的基数随所得项目
+                        #   而变：工资薪金=wage、股息红利=profit）⇒ 用**成员判据**，
+                        #   不再用等号（等号会把"股息红利 20%"误判成不相容）。
+                        if _nat7 not in _need7 and _amt7 is not None:
                             issues.append(("ERROR", "engine/tax_impact.py",
-                                           "基数口径与税种要求不符却仍给出金额 seq=%s %s（口径=%s 要求=%s）" % (_p7.get("seq"), _it7.get("tax"), _nat7, _need7)))
+                                           "基数口径与税种要求不符却仍给出金额 seq=%s %s（口径=%s 要求=%s）"
+                                           % (_p7.get("seq"), _it7.get("tax"), _nat7,
+                                              "/".join(_need7))))
                         if _need7 == _nat7 and _amt7 is None \
                                 and "与本税种要求的基数性质" in str(_it7.get("note") or ""):
                             issues.append(("ERROR", "engine/tax_impact.py",
@@ -10206,16 +10211,32 @@ def check_next_actions_not_ghost_requirements() -> List[Tuple[str, str, str]]:
             return False
 
         def _already_have(x: str) -> bool:
+            """`x` 是否**已经到手**（判据本身即可复核）。
+
+            ★★ 2026-10-16 修（**判据误报**，不是数据错）：判据本意是抓
+              「让企业去补一份**已经交了的资料**」。但**类别级**比较过粗 ——
+              `material_names.canonical` 把「成本明细账」与「应付账款明细」
+              都归成**同一类别**「科目余额表」；于是「补充提供**应付账款明细账及账龄分析**」
+              被判成"已有"，**实际上**同项里 成本明细账=已有、应付账款明细=**尚未取得**
+              （要件核对表的「核对结论」写着"尚未取得：应付账款明细"）⇒ **要求补充完全正确**。
+              ⇒ 类别级只在**该类别下所有已声明来源都「已有」**时才判"已然在手"
+                （＝"这一类都不缺"），否则退回**名称级**严格子串判断。
+            """
+            # ① 名称级（严格）：完全相同 / 互为子串
             for n, st in list(own.items()) + list(ev_own.items()):
                 if st != "已有":
                     continue
                 if x == n or x in n or n in x:
                     return True
-                if _canon:
-                    _cx, _cn = _canon(x), _canon(n)
-                    if _cx and _cn and _cx == _cn:
-                        return True
-            return False
+            if not _canon:
+                return False
+            # ② 类别级：仅当**该类别下每个已声明来源都是「已有」**
+            cx = _canon(x)
+            if not cx:
+                return False
+            members = [(n, st) for n, st in list(own.items()) + list(ev_own.items())
+                       if _canon(n) == cx]
+            return bool(members) and all(st == "已有" for _n, st in members)
 
         for np_ in (p.get("narrative_paragraphs") or []):
             if not isinstance(np_, dict):
@@ -13034,7 +13055,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
 
 
@@ -18035,9 +18056,12 @@ def check_legal_text_coverage() -> List[Tuple[str, str, str]]:
         且 ``(law, article)`` 不得重复（重复 = 同一口径两处维护）；
       C **条数不得减少** —— 正文库条数不得低于登记值（防误删）。
 
-    ★ 不可匹配项**必须**是「引用写法问题」而非「缺条文」：当前登记 total=206、matched=205，
-      唯一未匹配项是「一句话引两部法」被切分器取首部所致（``《增值税法》第二十八条及
-      《增值税法实施条例》第三十九条``）；此类应如实留在待确认，**不得编造条文凑覆盖率**。
+    ★★ 2026-10-16：现算逻辑**收敛到唯一实现** ``engine/legal_coverage.py::compute``
+      （本闸门只做"调它 + 与登记基线比对"），并把**未匹配项逐条列出**。
+      同轮修掉一处**引用切分缺陷**：一句话引两部法时只取首部且法名/条号错配
+      （``《增值税法》第二十八条及《增值税法实施条例》第三十九条``）⇒
+      改用 ``legal_citation.split_citations`` 逐处计入，当前 **245/245 = 100%**、未匹配 0 处。
+      ★ 纪律不变：**不得编造条文凑覆盖率**，取不到就如实留在 ``unmatched``。
     """
     issues: List[Tuple[str, str, str]] = []
     lib_path = ROOT / "static" / "legal_library.json"
@@ -18079,39 +18103,21 @@ def check_legal_text_coverage() -> List[Tuple[str, str, str]]:
                        "正文库条数 %d < 登记基线 %d ⇒ 疑误删（如确需减少，请重跑录入脚本更新基线）"
                        % (len(lib), int(cov.get("library_size") or 0))))
 
-    sys.path.insert(0, str(ROOT))
+    # ★★ 2026-10-16 收敛：覆盖率**现算**移到唯一实现 `engine/legal_coverage.py`
+    #   （原先本闸门与录入脚本 `_load_legal_texts.py::_write_coverage` **各写一套**：
+    #    分叉后"登记基线"与"现算"用的不是同一把尺子 ⇒ 假绿/假红）。
+    #   同轮还修了**复合引用漏算**：一句话引两部法原先只取首部，且法名与条号**错配**
+    #   （实测 `《增值税法》第二十八条及《增值税法实施条例》第三十九条` ⇒ 返回
+    #    `(增值税法, 第三十九条)`，而增值税法只有 38 条）⇒ 现按 `split_citations`
+    #    逐处计入，引用数 242 → 245、可匹配 245（100%），未匹配 0 处。
     try:
-        import re as _re
-
-        from engine.legal_citation import split_citation as _sc
-        from engine.legal_version import canonical_law as _cl
-        from engine.tax_redlines import REDLINES as _RL
-
-        def _an(a: object) -> str:
-            return _re.sub(r"\s+", "", str(a or ""))
-
-        _idx: Dict[str, set] = {}
-        for x in lib:
-            _idx.setdefault(_cl(str(x.get("law") or "")), set()).add(_an(x.get("article")))
-        _tot = _hit = 0
-        for _r in _RL:
-            _lb = (_r or {}).get("legal_basis")
-            if isinstance(_lb, str):
-                _lb = [_lb]
-            for _it in (_lb or []):
-                if not isinstance(_it, str) or not _it.strip():
-                    continue
-                _law, _art, _, _ = _sc(_it)
-                _tot += 1
-                _arts = _idx.get(_cl(_law))
-                if _arts and (not _art or any(a.startswith(_an(_art)) or _an(_art).startswith(a)
-                                              for a in _arts if a)):
-                    _hit += 1
+        from engine.legal_coverage import compute as _cov_compute
+        _r = _cov_compute(lib)
     except Exception as exc:                                    # noqa: BLE001
-        issues.append(("ERROR", "engine/tax_redlines.py",
+        issues.append(("ERROR", "engine/legal_coverage.py",
                        "覆盖率现算失败：%s（若导入异常，检查 sys.path）" % exc))
         return issues
-
+    _tot, _hit = int(_r["total_refs"]), int(_r["matched_refs"])
     _base = float(cov.get("coverage") or 0)
     _now = (_hit / _tot) if _tot else 0.0
     # ★★ 2026-10-15 修（闸门自身缺陷）：登记值由录入器 `round(_, 4)` 写入，
@@ -18124,8 +18130,14 @@ def check_legal_text_coverage() -> List[Tuple[str, str, str]]:
                        "法规正文覆盖率**退化**：%d/%d = %.1f%% < 登记 %.1f%% ⇒ "
                        "红线引用了正文库中没有的条文，请补录（禁编造）后重跑录入脚本"
                        % (_hit, _tot, _now * 100, _base * 100)))
-    print("  [法规正文] 引用 %d 处｜可匹配 %d（%.1f%%，基线 %.1f%%）｜正文库 %d 条"
-          % (_tot, _hit, _now * 100, _base * 100, len(lib)))
+    # ★ 未匹配项**逐条**列出（不得以任何方式凑覆盖率；为空即全绿）
+    for _u in (_r.get("unmatched") or [])[:10]:
+        issues.append(("WARN", str(cov_path),
+                       "未匹配引用（规则 %s）：%s ⇒ 与正文库对不上（%s）"
+                       % (_u.get("rule_id"), str(_u.get("citation"))[:70],
+                          "该法不在正文库" if not _u.get("law_in_library") else "条号无对应条文")))
+    print("  [法规正文] 引用 %d 处｜可匹配 %d（%.1f%%，基线 %.1f%%）｜正文库 %d 条｜未匹配 %d 处"
+          % (_tot, _hit, _now * 100, _base * 100, len(lib), len(_r.get("unmatched") or [])))
     return issues
 
 
@@ -18516,6 +18528,73 @@ def _cnnum_article_eq(cn: str, article: str) -> bool:
         return want is not None and cn_to_int(cn) == want
     except Exception:                                           # noqa: BLE001
         return False
+
+
+def check_law_code_unique() -> List[Tuple[str, str, str]]:
+    """`config/legal_law_codes.json` **短码表唯一性** —— 一部法只许登记一个短码。
+
+    ★★ 为什么要有这道闸门（2026-10-16 实测事故）：同一份文件被登记了**两行两个短码**
+      —— 一行用**主题型名**（「关于异常增值税扣税凭证管理等有关事项的公告」），
+      一行用**文号型名**（「国家税务总局公告2019年第38号」）；实测 3 组。
+      后果（都是真缺陷，不是"重复登记而已"）：
+        ① 法名 → 短码的映射取决于**登记表行序**（先到先得）⇒ 同一份数据
+           在不同顺序下可能落到不同短码，**不稳定**；
+        ② 条款 ID 前缀二选一 ⇒ 同一部法两次生成给出不同 `provision_id`；
+        ③ 覆盖率按法名比对时**时对时不上**（实测覆盖率从 241 掉到 240）。
+      ⇒ 合并为一行（保留主题型短码，文号型名并入别名；见
+        `scripts/_merge_duplicate_law_codes.py`，台账 `merged_codes` 可追溯）。
+
+    判据：
+      A 任何两个短码**不得共享归一名**（含别名）—— 即不得指向同一部法；
+      B `code` / `name` 各自唯一；
+      C `provision_id_prefix` 必须等于 `code + "-"`（防前缀与短码不一致）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    f = ROOT / "config" / "legal_law_codes.json"
+    if not f.exists():
+        return [("WARN", "config/legal_law_codes.json", "短码表不存在 ⇒ 跳过")]
+    try:
+        d = json.loads(f.read_text(encoding="utf-8"))
+    except Exception as exc:                                    # noqa: BLE001
+        return [("ERROR", "config/legal_law_codes.json", "短码表读不出来：%s" % exc)]
+
+    sys.path.insert(0, str(ROOT))
+    from engine.legal_version import canonical_law as _cl                     # noqa: PLC0415
+
+    laws = d.get("laws") or []
+    name2codes: Dict[str, set] = {}
+    for l in laws:
+        for k in [l.get("name")] + list(l.get("aliases") or []):
+            if k:
+                name2codes.setdefault(_cl(str(k)), set()).add(str(l.get("code")))
+    dup = {k: sorted(v) for k, v in name2codes.items() if len(v) > 1}
+    if dup:
+        issues.append(("ERROR", "config/legal_law_codes.json",
+                       "**同一部法登记了多个短码**（%d 组 ⇒ 法名→短码映射不稳定、"
+                       "`provision_id` 前缀二选一、覆盖率时对时不上）：%s"
+                       % (len(dup), list(dup.items())[:3])))
+    for field in ("code", "name"):
+        seen: Dict[str, int] = {}
+        for i, l in enumerate(laws):
+            v = str(l.get(field) or "")
+            if not v:
+                issues.append(("ERROR", "config/legal_law_codes.json",
+                               "第 %d 行缺 `%s`" % (i + 1, field)))
+                continue
+            if v in seen:
+                issues.append(("ERROR", "config/legal_law_codes.json",
+                               "`%s` 重复：`%s`（第 %d 行与第 %d 行）"
+                               % (field, v, seen[v], i + 1)))
+            else:
+                seen[v] = i + 1
+    bad_pref = [l for l in laws if l.get("provision_id_prefix") != str(l.get("code") or "") + "-"]
+    if bad_pref:
+        issues.append(("ERROR", "config/legal_law_codes.json",
+                       "%d 行的 `provision_id_prefix` ≠ `code + '-'`（前缀与短码不一致）：例 %s"
+                       % (len(bad_pref), bad_pref[0].get("code"))))
+    print("  [短码表] 登记 %d 部｜归一名 %d 个｜重复登记 %d 组｜已合并留痕 %d 条"
+          % (len(laws), len(name2codes), len(dup), len(d.get("merged_codes") or [])))
+    return issues
 
 
 def check_provision_id_unique() -> List[Tuple[str, str, str]]:

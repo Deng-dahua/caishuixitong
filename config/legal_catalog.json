@@ -22,7 +22,7 @@
   "行政法规": 78,
   "国务院文件": 35
  },
- "with_body": 133,
+ "with_body": 137,
  "items": [
   {
    "title": "财政部 税务总局关于调整部分产品出口退税政策的公告",
@@ -16869,7 +16869,7 @@
    "labels": "一般纳税人,增值税",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100012/c5194894/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "财政部 税务总局 海关总署关于北京2022年冬奥会和冬残奥会税收优惠政策的公告",
@@ -17397,7 +17397,7 @@
    "labels": "税费征管",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100011/c5195215/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于实施便民办税缴费十条新举措的通知",
@@ -30069,7 +30069,7 @@
    "labels": null,
    "url": "http://www.chinatax.gov.cn/zcfgk/c100011/c5214088/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "个体工商户个人所得税计税办法",
@@ -39237,7 +39237,7 @@
    "labels": "税费征管",
    "url": "http://www.chinatax.gov.cn/zcfgk/c100011/c5219853/content.html",
    "source": "fgk",
-   "has_body_in_library": false
+   "has_body_in_library": true
   },
   {
    "title": "国家税务总局关于代理出口货物相关税收问题的公告",
