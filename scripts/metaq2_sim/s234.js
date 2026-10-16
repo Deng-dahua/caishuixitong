@@ -1,6 +1,6 @@
 /**
  * 场景2：税务师复核操作（7 步）——角色：税务师（sim_advisor）
- * 场景3：复核专家审批操作（7 步）——角色：复核专家（sim_expert）
+ * 场景3：复核专家审批操作（8 步）——角色：复核专家（sim_expert）
  * 场景4：系统管理员配置操作（5 步）——角色：系统管理员（sim_admin）
  *
  * ★ 复核动作铁律（实测得出）：标 `*` 的动作（排除/误报/已整改/重新打开）**点击即提交**，
@@ -221,8 +221,14 @@ async function reviewAction(page, actText, note, pid) {
       const it = (d.items || [])[0];
       return { total: d.total, first: it ? { doc_no: it.doc_no || it.id, view: it.view, reviewed: it.reviewed } : null };
     }, PID);
-    const tabs = await p3.evaluate(() => Array.from(document.querySelectorAll('.tab')).map(t => (t.innerText || '').trim()));
-    return { note: `页签=[${tabs.join(',')}]；报告 ${list.total} 份，最新=${JSON.stringify(list.first)}` };
+    // ★ 记录**可见**页签（2026-10-17 起「生成报告」页签按 report.generate 门控，
+    //   复核专家不可见 —— 这本身就是前端门控生效的证据，不应再用全量 DOM 掩盖）
+    const tabs = await p3.evaluate(() => {
+      const all = Array.from(document.querySelectorAll('.tab'));
+      return { all: all.map(t => (t.innerText || '').trim()),
+               visible: all.filter(t => t.offsetParent !== null).map(t => (t.innerText || '').trim()) };
+    });
+    return { note: `页签：DOM ${tabs.all.length} 项 / **可见 ${tabs.visible.length} 项**=[${tabs.visible.join(',')}]；报告 ${list.total} 份，最新=${JSON.stringify(list.first)}` };
   }, { page: () => p3, shotName: '待审批报告' });
 
   await s3.step('查看风险汇总', async () => {
@@ -255,40 +261,106 @@ async function reviewAction(page, actText, note, pid) {
     return { note: `详情正文 ${has.len} 字，含证据/条款区` };
   }, { page: () => p3, shotName: '证据链' });
 
-  await s3.step('确认报告（走界面，带复核标识）', async () => {
-    await p3.goto(L.BASE + '/reports', { waitUntil: 'domcontentloaded' });
-    await p3.waitForTimeout(2000);
+  // ★ 裁定（2026-10-17，MQ2-O4）：复核专家**不导出报告**是**刻意设计**（角色描述明写）。
+  //   而 `report_service.build_document` 已实现「reviewed 省略 ⇒ 按账套实际处置记录推断，
+  //   复核人取处置记录的 updated_by」⇒ 正确链路 = 复核专家处置 → 持 report.generate 的
+  //   角色生成报告（**不勾标识**）→ 复核标识与复核人由后端推断。原判据写错了。
+  await s3.step('复核风险（落处置记录）', async () => {
+    if (!PID) return { result: 'blocked', blocker: '无项目' };
+    await p3.goto(L.BASE + '/risks', { waitUntil: 'domcontentloaded' });
+    await p3.waitForTimeout(1800);
     await p3.selectOption('#project', String(PID));
-    await p3.waitForTimeout(2500);
-    const can = await p3.evaluate(async () => {
-      const d = await (await fetch('/api/auth/me', { cache: 'no-store' })).json();
-      return { n: (d.permissions || []).length, has: (d.permissions || []).includes('report.generate') };
+    await p3.waitForTimeout(3000);
+    // 限「待处理」：已复核条目再次处置会被服务端**正确幂等拒绝**（"本次未产生变更"）
+    await p3.evaluate(() => {
+      const st = document.getElementById('f-state');
+      if (st) { const o = Array.from(st.options).find(x => /待处理|pending/.test(x.textContent) || x.value === 'pending'); if (o) st.value = o.value; }
     });
-    const ui = await p3.evaluate(() => {
-      const rv = document.getElementById('f-reviewed'), who = document.getElementById('f-reviewer'), note = document.getElementById('f-note');
-      if (rv) rv.value = '1';
-      if (who) who.value = '模拟·复核专家';
-      if (note) note.value = '场景模拟：复核后出具';
+    await p3.click('#btn-search');
+    await p3.waitForTimeout(3200);
+    const key = await p3.evaluate(() => {
+      const b = document.querySelector('#tb-risks button[data-open]');
+      if (!b) return null;
+      const k = b.getAttribute('data-open'); b.click(); return k;
+    });
+    if (!key) return { result: 'fail', error: '无待处理风险可复核' };
+    await p3.waitForTimeout(3000);
+    const r = await reviewAction(p3, '确认成立', '场景模拟：复核专家确认该条风险成立（供报告标识推断）', PID);
+    if (!r.ok) return { result: 'fail', error: '无「确认成立」动作按钮，实际动作=' + (r.acts || []).join(',') };
+    if (!/已完成|成功/.test(r.msg || '')) return { result: 'fail', error: '复核动作未生效，页面提示=' + (r.msg || '(空)') };
+    // ★ 判据：处置留痕的复核人必须**取自会话**（= 本场景用户 sim_expert，非客户端传入）
+    const h = await p3.evaluate(async (a) => {
+      const q = await (await fetch(`/api/v1/risks/${encodeURIComponent(a[0])}/history?project_id=${a[1]}`, { cache: 'no-store' })).json();
+      return { reviewed: q.reviewed, state_cn: q.state_cn || '', updated_by: q.updated_by || '',
+               events: (q.events || []).length };
+    }, [key, PID]);
+    if (!h.reviewed) return { result: 'fail', error: '处置后 reviewed 仍为假', note: JSON.stringify(h) };
+    if (h.updated_by !== 'sim_expert') {
+      return { result: 'fail', error: `处置留痕复核人应为会话用户 sim_expert，实际=${h.updated_by || '(空)'}`, note: JSON.stringify(h) };
+    }
+    return { note: `目标=${String(key).slice(-14)}；动作=${r.act}；提示=${r.msg}；留痕 reviewed=${h.reviewed} 状态=${h.state_cn} 复核人=${h.updated_by}（取自会话）·事件 ${h.events} 条` };
+  }, { page: () => p3, shotName: '复核专家处置' });
+
+  await s3.step('确认报告（复核标识由处置记录推断）', async () => {
+    if (!PID) return { result: 'blocked', blocker: '无项目' };
+    const { page: pa } = await L.newPage(browser, s3);
+    const url = await L.login(pa, 'sim_advisor', L.PW, s3);
+    if (url.includes('/login')) return { result: 'fail', error: '税务师登录失败' };
+    const perm = await pa.evaluate(async () => {
+      const d = await (await fetch('/api/auth/me', { cache: 'no-store' })).json();
+      return { has: (d.permissions || []).includes('report.generate'), n: (d.permissions || []).length };
+    });
+    if (!perm.has) return { result: 'fail', error: `税务师应持 report.generate（实际 ${perm.n} 项不含）` };
+    await pa.goto(L.BASE + '/reports', { waitUntil: 'domcontentloaded' });
+    await pa.waitForTimeout(2200);
+    await pa.selectOption('#project', String(PID));
+    await pa.waitForTimeout(2500);
+    const ui = await pa.evaluate(() => {
+      const rv = document.getElementById('f-reviewed');
+      const who = document.getElementById('f-reviewer');
+      if (who) who.value = '';                 // ★ 复核人**留空** ⇒ 由后端从处置记录推断
       const c = document.querySelector('.vcard[data-view]');
       if (c) c.click();
-      return { hasReviewed: !!rv, hasReviewer: !!who };
+      return { rvValue: rv ? rv.value : null, options: rv ? Array.from(rv.options).map(o => o.value) : [] };
     });
-    await p3.waitForTimeout(400);
-    await p3.click('#btn-generate');
-    const w = await L.waitFor(p3, () => {
+    // ★ 判据 1：默认必须走「按实际处置记录推断」（空值）—— 否则本用例证明不了推断
+    if (ui.rvValue !== '') {
+      return { result: 'fail', error: `「人工复核标识」默认值应为空（走推断），实际=${JSON.stringify(ui.rvValue)}`, note: JSON.stringify(ui.options) };
+    }
+    await pa.waitForTimeout(400);
+    await pa.click('#btn-generate');
+    const w = await L.waitFor(pa, () => {
       const rc = document.getElementById('result-card');
       return { ok: !!(rc && rc.style.display !== 'none'),
                alert: (document.getElementById('alert') || {}).innerText || '',
                stat: (document.getElementById('gen-status') || {}).innerText || '' };
     }, { timeout: 300000, interval: 2500 });
     const v = w.value || {};
-    if (!w.ok) {
-      return { result: 'blocked',
-               blocker: `复核专家界面点「生成报告」未产出（提示=${(v.alert || v.stat || '(空)').slice(0, 140)}）`,
-               note: `权限 ${can.n} 项，含 report.generate=${can.has}；复核标识/复核人输入框=${ui.hasReviewed}/${ui.hasReviewer}` };
+    if (!w.ok) return { result: 'fail', error: `税务师（持 report.generate）生成报告失败：${(v.alert || v.stat || '(空)').slice(0, 140)}` };
+    // ★ 判据 2：报告须带**推断出来的**复核标识与复核人
+    const rep = await pa.evaluate(async (p) => {
+      const list = await (await fetch(`/api/v1/reports?project_id=${p}&page_size=1`, { cache: 'no-store' })).json();
+      const it = (list.items || [])[0];
+      if (!it) return null;
+      const one = await (await fetch(`/api/v1/reports/${encodeURIComponent(it.doc_no || it.id)}`, { cache: 'no-store' })).json();
+      return { doc_no: it.doc_no || it.id, reviewed: one.reviewed, reviewed_by: one.reviewed_by || '',
+               version: one.version };
+    }, PID);
+    if (!rep) return { result: 'fail', error: '生成成功但报告列表为空（前后端不一致）' };
+    if (rep.reviewed !== true) {
+      return { result: 'fail', error: '复核标识未按处置记录推断为真（本用例已先由复核专家处置）', note: JSON.stringify(rep) };
     }
-    return { note: `界面生成成功；复核标识/复核人输入框=${ui.hasReviewed}/${ui.hasReviewer}；提示=${(v.alert || '').slice(0, 140)}` };
-  }, { page: () => p3, shotName: '确认报告' });
+    if (!rep.reviewed_by) {
+      return { result: 'fail', error: '复核标识为真但复核人为空（未从处置记录带出）', note: JSON.stringify(rep) };
+    }
+    // 复核人须是**本账套实际做过处置**的用户（表单该字段留空 ⇒ 必来自处置记录）
+    const KNOWN_REVIEWERS = ['sim_expert', 'sim_advisor', 'sim_finance', 'sim_admin'];
+    if (!KNOWN_REVIEWERS.includes(rep.reviewed_by)) {
+      return { result: 'fail', error: `复核人不在实际处置用户集合内：${rep.reviewed_by}`, note: JSON.stringify(rep) };
+    }
+    return { note: `报告 ${rep.doc_no}（${rep.version}）：reviewed=${rep.reviewed}，复核人=${rep.reviewed_by}（表单留空 ⇒ **由处置记录推断**）。` +
+                   `注：推断取「序遍历中第一条有处置记录的发现」，故本账套多角色均处置过时，复核人可能是先处置者（非缺陷，见裁定 §取证 3）` };
+  }, { page: () => p3, shotName: '确认报告（推断复核标识）' });
 
   await s3.step('签字（复核人落款核验）', async () => {
     const r = await p3.evaluate(async (p) => {

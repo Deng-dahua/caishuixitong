@@ -94,13 +94,16 @@
     <div id="alert"></div>
 
     <div class="tabs">
-      <div class="tab active" data-tab="gen" id="tab-gen">生成报告</div>
+      <!-- P0-8 前端权限门控：无 report.generate（复核专家/审计员）⇒ 隐藏「生成报告」页签与表单。
+           机制权威 = /static/js/rbac-nav.js（消费服务端下发的 permissions，不推断角色）；
+           真正的拦截仍在服务端 require_permission。 -->
+      <div class="tab active" data-tab="gen" id="tab-gen" data-perm="report.generate">生成报告</div>
       <div class="tab" data-tab="history" id="tab-history">报告列表 / 历史版本</div>
       <div class="tab" data-tab="versions" id="tab-versions">版本台账</div>
     </div>
 
     <!-- ═══════════ 生成 ═══════════ -->
-    <div id="pane-gen">
+    <div id="pane-gen" data-perm="report.generate">
       <div class="card">
         <h3>1. 选择报告视图 <span class="hint">视图 = 同一份底稿的**范围/粒度**，不是四份不同名称的报告</span></h3>
         <div class="views" id="view-cards"></div>
@@ -182,6 +185,7 @@
   </div>
 
   <script src="/static/js/security.js"></script>
+  <script src="/static/js/rbac-nav.js?v=4d62d2a49e" defer></script>
   <script src="/static/js/reports.js"></script>
 </body>
 </html>

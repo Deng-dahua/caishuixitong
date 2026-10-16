@@ -386,4 +386,12 @@ document.addEventListener('DOMContentLoaded', function () {
     var b = ev.target.closest ? ev.target.closest('[data-open]') : null;
     if (b) { openDetail(b.getAttribute('data-open')); }
   });
+  // ★ P0-8 前端门控（2026-10-17）：无 report.generate（复核专家/审计员）时，
+  //   「生成报告」页签与表单已被 `data-perm` 隐藏（rbac-nav.js）；这里把默认页签
+  //   切到「报告列表」，否则会停在已隐藏的空白页签上。仅**体验**，真拦截在服务端。
+  if (window.RBAC && window.RBAC.ready) {
+    window.RBAC.ready(function () {
+      if (!window.RBAC.has('report.generate')) { switchTab('history'); }
+    });
+  }
 });

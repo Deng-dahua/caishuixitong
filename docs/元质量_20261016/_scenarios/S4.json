@@ -9,7 +9,7 @@
    "step": 1,
    "name": "登录系统",
    "result": "success",
-   "ms": 1084,
+   "ms": 992,
    "error": "",
    "note": "落点 /roles（管理员登录后按设计先进入角色页）",
    "blocker": "",
@@ -20,9 +20,9 @@
    "step": 2,
    "name": "创建用户",
    "result": "success",
-   "ms": 4807,
+   "ms": 4815,
    "error": "",
-   "note": "用户 sim_created_734403 创建成功（口令框=true，角色已勾选=true）；护栏：不选角色会被前端拒绝",
+   "note": "用户 sim_created_276123 创建成功（口令框=true，角色已勾选=true）；护栏：不选角色会被前端拒绝",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-02_创建用户.png"
   },
@@ -31,9 +31,9 @@
    "step": 3,
    "name": "分配角色",
    "result": "success",
-   "ms": 4981,
+   "ms": 4997,
    "error": "",
-   "note": "sim_created_734403 角色=[\"enterprise_finance\"]",
+   "note": "sim_created_276123 角色=[\"enterprise_finance\"]",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-03_分配角色.png"
   },
@@ -42,9 +42,9 @@
    "step": 4,
    "name": "配置权限（角色-权限矩阵 + 新建自定义角色）",
    "result": "success",
-   "ms": 6456,
+   "ms": 6509,
    "error": "",
-   "note": "权限矩阵 19 行 / 角色列表 12 行；自定义角色 sim_role_48853 创建成功（权限点 18 个）",
+   "note": "权限矩阵 19 行 / 角色列表 13 行；自定义角色 sim_role_90489 创建成功（权限点 18 个）",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-04_配置权限.png"
   },
@@ -53,9 +53,9 @@
    "step": 5,
    "name": "查看审计日志",
    "result": "success",
-   "ms": 4084,
+   "ms": 4076,
    "error": "",
-   "note": "50 行；动作样本=sim_admin,sim_expert,sim_advisor,sim_auditor,sim_finance；页面=🧾 审计日志 用户管理 角色管理 返回主界面 全部动作 资料上传（doc.upload） 资料删除（doc.delete） 发起分析（analysis.start） 结论复核（finding.review） 报告导出（report.exp",
+   "note": "50 行；动作样本=sim_admin,sim_advisor,sim_expert,sim_auditor,sim_finance,—；页面=🧾 审计日志 用户管理 角色管理 返回主界面 全部动作 资料上传（doc.upload） 资料删除（doc.delete） 发起分析（analysis.start） 结论复核（finding.review） 报告导出（report.exp",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S4-05_审计日志.png"
   }
@@ -65,7 +65,9 @@
  "fail_count": 0,
  "blocked_count": 0,
  "blockers": [],
- "console_errors": [],
+ "console_errors": [
+  "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+ ],
  "page_errors": [],
  "shots": [
   "docs\\元质量_20261016\\场景模拟_截图\\S4-01_管理员登录.png",
@@ -74,5 +76,5 @@
   "docs\\元质量_20261016\\场景模拟_截图\\S4-04_配置权限.png",
   "docs\\元质量_20261016\\场景模拟_截图\\S4-05_审计日志.png"
  ],
- "total_ms": 21412
+ "total_ms": 21389
 }
