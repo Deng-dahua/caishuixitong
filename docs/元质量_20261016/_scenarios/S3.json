@@ -9,7 +9,7 @@
    "step": 1,
    "name": "登录系统",
    "result": "success",
-   "ms": 5107,
+   "ms": 4935,
    "error": "",
    "note": "落点 /；导航 DOM 21 项，**实际可见 19 项**：📂稽查项目/📎资料上传与管理/🧩资料解析与校正/⚡一键稽查分析任务/📚规则库与风险发现/🔎风险结果与复核/📄报告生成与导出/📁资料风险分析报告/🧾审计日志/🔑修改密码/📐报告模板/🏷️规则版本/📖法规库/🗂️法规专题/📰案例·解读·问答/📊行业指标库/📈数据大屏/🤖AI辅助/🧮多税种模型",
    "blocker": "",
@@ -20,9 +20,9 @@
    "step": 2,
    "name": "打开待审批报告",
    "result": "success",
-   "ms": 5170,
+   "ms": 5162,
    "error": "",
-   "note": "页签=[生成报告,报告列表 / 历史版本,版本台账]；报告 40 份，最新={\"doc_no\":\"RW-1-904bf4\",\"view\":\"full\",\"reviewed\":true}",
+   "note": "页签=[生成报告,报告列表 / 历史版本,版本台账]；报告 58 份，最新={\"doc_no\":\"RW-1-b1bdf3\",\"view\":\"self_check\",\"reviewed\":true}",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S3-02_待审批报告.png"
   },
@@ -31,9 +31,9 @@
    "step": 3,
    "name": "查看风险汇总",
    "result": "success",
-   "ms": 8213,
+   "ms": 8189,
    "error": "",
-   "note": "风险等级分布 2 高风险 14 中风险 3 低风险 3 涉嫌风险 复核状态分布 13 待处理 7 已确认 0 已排除 0 已整改 2 误报 已复核 9 / 22（40.9%）；整改台账 0 条。 税种分布 9 增值税 9 企业所得税 5 未标注 3 个人所得税 1 印花税 1 城市维护建设税 1 教育费附加 1 地方教育附加 1 社会保险费 1 文化事业建设费 金额分档（按测算金额） 2 1-10 万元 2 10-100 万元 2 1 万元以下 测算金额合计 519,968.35 元；★ 有 16 条金额取不到（t",
+   "note": "风险等级分布 2 高风险 14 中风险 3 低风险 3 涉嫌风险 复核状态分布 11 待处理 8 已确认 0 已排除 0 已整改 3 误报 已复核 11 / 22（50%）；整改台账 0 条。 税种分布 9 增值税 9 企业所得税 5 未标注 3 个人所得税 1 印花税 1 城市维护建设税 1 教育费附加 1 地方教育附加 1 社会保险费 1 文化事业建设费 金额分档（按测算金额） 2 1-10 万元 2 10-100 万元 2 1 万元以下 测算金额合计 519,968.35 元；★ 有 16 条金额取不到（ta",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S3-03_风险汇总.png"
   },
@@ -42,9 +42,9 @@
    "step": 4,
    "name": "查看证据链",
    "result": "success",
-   "ms": 4026,
+   "ms": 4035,
    "error": "",
-   "note": "详情正文 5817 字，含证据/条款区",
+   "note": "详情正文 6171 字，含证据/条款区",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S3-04_证据链.png"
   },
@@ -52,11 +52,11 @@
    "sid": "S3-05",
    "step": 5,
    "name": "确认报告（走界面，带复核标识）",
-   "result": "success",
-   "ms": 10122,
+   "result": "blocked",
+   "ms": 306141,
    "error": "",
-   "note": "界面生成成功；复核标识/复核人输入框=true/true；提示=报告已生成：内部辅助分析工作底稿（全景）（V54），格式 PDF、Word、Excel、HTML，耗时 2.95 秒。",
-   "blocker": "",
+   "note": "权限 9 项，含 report.generate=false；复核标识/复核人输入框=true/true",
+   "blocker": "复核专家界面点「生成报告」未产出（提示=生成失败：无权执行该操作（需要权限：report.generate；当前角色：review_expert））",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S3-05_确认报告.png"
   },
   {
@@ -64,9 +64,9 @@
    "step": 6,
    "name": "签字（复核人落款核验）",
    "result": "success",
-   "ms": 73,
+   "ms": 95,
    "error": "",
-   "note": "报告 RW-1-1f3391：reviewed=true，reviewed_by=模拟·复核专家，view=full",
+   "note": "报告 RW-1-b1bdf3：reviewed=true，reviewed_by=sim_advisor，view=self_check",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S3-06_签字落款.png"
   },
@@ -75,19 +75,27 @@
    "step": 7,
    "name": "归档（报告版本台账）",
    "result": "success",
-   "ms": 8105,
+   "ms": 8116,
    "error": "",
-   "note": "版本台账 唯一权威 data/report_versions.jsonl（append-only） 文书编号 版本 报告名称 文稿类型 复核 生成时间 分析作业 说明 RW-1-1f3391 V54 内部辅助分析工作底稿 internal_working_paper 已复核 2026-10-16T17:26:19 af4beafc7051 场景模拟：复核后出具 RW-1-904bf4 V53 内部辅助分析工作底稿 internal_working_paper 已复核 2026-10-16T17:19:00 af4b",
+   "note": "版本台账 唯一权威 data/report_versions.jsonl（append-only） 文书编号 版本 报告名称 文稿类型 复核 生成时间 分析作业 说明 RW-1-b1bdf3 V75 内部辅助分析工作底稿 internal_working_paper 已复核 2026-10-16T23:06:23 7d237ac6d6b5 MQ2-D2 并发验收 #9 RW-1-bbca16 V74 内部辅助分析工作底稿 internal_working_paper 已复核 2026-10-16T23:06:23 ",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S3-07_归档版本台账.png"
   }
  ],
- "conclusion": "success",
+ "conclusion": "blocked",
  "step_count": 7,
  "fail_count": 0,
- "blocked_count": 0,
- "blockers": [],
- "console_errors": [],
+ "blocked_count": 1,
+ "blockers": [
+  {
+   "sid": "S3-05",
+   "name": "确认报告（走界面，带复核标识）",
+   "blocker": "复核专家界面点「生成报告」未产出（提示=生成失败：无权执行该操作（需要权限：report.generate；当前角色：review_expert））"
+  }
+ ],
+ "console_errors": [
+  "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+ ],
  "page_errors": [],
  "shots": [
   "docs\\元质量_20261016\\场景模拟_截图\\S3-01_复核专家登录.png",
@@ -98,5 +106,5 @@
   "docs\\元质量_20261016\\场景模拟_截图\\S3-06_签字落款.png",
   "docs\\元质量_20261016\\场景模拟_截图\\S3-07_归档版本台账.png"
  ],
- "total_ms": 40816
+ "total_ms": 336673
 }

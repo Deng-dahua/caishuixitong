@@ -52,6 +52,117 @@ def _company_exists(company_id: int) -> bool:
 _ADMIN_PATHS = ("/api/system-logs",)
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# 旧路由写端点的**功能权限点**（MQ2-D1 扩展，2026-10-17）
+# ══════════════════════════════════════════════════════════════════════════════
+# 为什么需要本表：`_ADMIN_PATHS` 只管一个前缀；`/api/v1/*` 各端点在函数内自查；
+# 而 `/api/*` 旧路由的写端点此前**只做认证 + 账套数据范围**，没有功能权限点 ——
+# 任何登录用户可删除任意账套资料、发起分析、改纠正规则库、改全局巡检配置。
+#
+# 本表是旧路由写操作的**唯一权威**（与 `_ADMIN_PATHS` 同构、同处一文件）：
+# 新增一个端点只需在此加一行，**不改任何逻辑分支**。
+#
+# · 未登记的写端点 = **有意放行**（公共路径 / 自我服务 / 405 墓桩），不是漏配；
+#   `tests/test_legacy_route_permissions.py` 会核对"未登记集合"防漏配。
+# · 权限点**必须**取自 `config/rbac.json::permissions`（不新增权限点、不扩模型）。
+# · 只读方法（GET/HEAD/OPTIONS）不归本表管辖。
+# · 键 = (HTTP 方法, FastAPI **路由模板**) —— 与源码装饰器写法逐字一致，
+#   带路径参数的端点写 `{doc_id}` 这类模板（运行时按匹配到的 route 取模板）。
+_LEGACY_WRITE_PERMS: tuple = (
+    # ── 资料管理：上传 / 删除 / 清理 / OCR ──
+    ("POST", "/api/tax-risk-docs/upload", "document.write"),
+    ("POST", "/api/tax-risk-docs/batch-delete", "document.write"),
+    ("DELETE", "/api/tax-risk-docs/{doc_id}", "document.write"),
+    ("POST", "/api/tax-risk-docs/purge-pending", "document.write"),
+    ("POST", "/api/tax-risk-docs/ocr", "document.write"),
+    # 上轮已补的两处（2026-10-16）—— 纳入本表使其成为唯一权威，
+    # main.py 函数体内的同名校验**保留**为冗余保险（双重检查、不重复实现）。
+    ("DELETE", "/api/tax-risk-docs/clear-transfer", "document.write"),
+    ("DELETE", "/api/tax-risk-docs/report", "report.generate"),
+    # ── 分析任务：发起 / 续跑 / 同步兜底 / 政策影响检查 ──
+    ("POST", "/api/tax-risk-docs/analyze-start", "analysis.run"),
+    ("POST", "/api/tax-risk-docs/analyze-resume", "analysis.run"),
+    ("POST", "/api/tax-risk-docs/analyze", "analysis.run"),
+    ("POST", "/api/audit/analyze-async/{company_id}", "analysis.run"),
+    ("POST", "/api/policy/check", "analysis.run"),
+    # ── 风险复核：复核结论 / 预览修改效果 ──
+    ("POST", "/api/tax-risk-docs/review", "risk.review"),
+    ("POST", "/api/tax-risk-docs/review-single", "risk.review"),
+    ("POST", "/api/tax-risk-docs/edit-preview", "risk.review"),
+    # 反馈中「会改变结论」的两类（可 adjust 分数 / 会清分析缓存）归复核域。
+    ("POST", "/api/audit/feedback", "risk.review"),
+    ("POST", "/api/feedback", "risk.review"),
+    # ── 整改：复核处置的延伸（高风险发现 → 整改任务）──
+    ("POST", "/api/remediation/create", "risk.review"),
+    ("PUT", "/api/remediation/{record_id}", "risk.review"),
+    ("POST", "/api/remediation/batch-from-findings", "risk.review"),
+    # ── 查阅：引擎问答（只读）──
+    ("POST", "/api/tax-risk-docs/ask", "risk.view"),
+    # ── 报告：工作底稿 / 交付 / LLM 叙事（后者有调用成本）──
+    ("POST", "/api/workpaper/generate", "report.generate"),
+    ("POST", "/api/compliance/rounds/{round_id}/deliver", "report.generate"),
+    ("POST", "/api/audit/generate-narrative", "report.generate"),
+    # ── 账套管理（`POST /api/companies` 见 _LEGACY_ADMIN_ONLY，与既有特例一致）──
+    ("PUT", "/api/company", "project.write"),
+    ("DELETE", "/api/companies/{company_id}", "project.write"),
+    ("PUT", "/api/companies/{company_id}/industry", "project.write"),
+    ("POST", "/api/companies/{company_id}/auto-detect-industry", "project.write"),
+    ("POST", "/api/companies/{company_id}/online-lookup", "project.write"),
+    # ── 规则库：解析 / 上传 / 改写 / 刷新 / 相关性检查（与 v1 `rule_versions_api` 同权限点）──
+    ("POST", "/api/tax-risk-rules/parse-report", "ruleversion.manage"),
+    ("POST", "/api/tax-risk-rules/upload-report", "ruleversion.manage"),
+    ("POST", "/api/tax-risk-rules/promote-auto-rule", "ruleversion.manage"),
+    ("POST", "/api/tax-risk-rules/update-rule", "ruleversion.manage"),
+    ("POST", "/api/tax-risk-rules/batch-refresh", "ruleversion.manage"),
+    ("POST", "/api/tax-risk-rules/batch-rewrite", "ruleversion.manage"),
+    ("POST", "/api/tax-risk-rules/check-relevance", "ruleversion.manage"),
+    # 反馈中「改纠正规则库」的四类（直接改引擎行为）归规则域。
+    ("PUT", "/api/feedback/update", "ruleversion.manage"),
+    ("DELETE", "/api/feedback/delete", "ruleversion.manage"),
+    ("POST", "/api/feedback/restore", "ruleversion.manage"),
+    ("POST", "/api/feedback/sync-modules", "ruleversion.manage"),
+)
+
+#: **仅管理员**可执行：没有对应业务权限点的**全局运维**端点（改全局状态，
+#: 非某账套的业务数据）。复用既有 `session.is_admin` 语义，不新增权限点。
+_LEGACY_ADMIN_ONLY: tuple = (
+    # 与既有 `/api/companies` 写操作特例一致（既有特例保留，本表反映实际要求）
+    ("POST", "/api/companies"),
+    ("POST", "/api/industries/refresh-benchmarks"),
+    ("DELETE", "/api/pipeline/history"),
+    ("POST", "/api/patrol/config"),
+    ("POST", "/api/patrol/run"),
+    ("POST", "/api/notifications/config"),
+    # AGI 遗留端点：子系统名义上移除，但代码仍在跑（`propagate-to-chains`
+    # 真的会改全局税务合规指令/线索链/证据链/分析链）⇒ 必须限管理员。
+    ("POST", "/api/agi/query"),
+    ("POST", "/api/agi/self-check/{company_id}"),
+    ("POST", "/api/agi/parallel/toggle"),
+    ("POST", "/api/agi/sample"),
+    ("POST", "/api/agi/predict"),
+    ("POST", "/api/agi/rectify"),
+    ("POST", "/api/agi/rectify/update"),
+    ("POST", "/api/agi/propagate-to-chains"),
+)
+
+#: 哨兵：`_required_legacy_perm()` 用它表示"仅管理员"（而非某个权限点）。
+_ADMIN_ONLY = "\x00admin-only"
+
+_LEGACY_PERM_INDEX = {(m, p): perm for m, p, perm in _LEGACY_WRITE_PERMS}
+_LEGACY_ADMIN_INDEX = frozenset(_LEGACY_ADMIN_ONLY)
+
+
+def _required_legacy_perm(method: str, route_path: str):
+    """旧路由写端点所需的权限。
+
+    → 权限点字符串 = 需要该权限点；`_ADMIN_ONLY` = 仅管理员；`None` = **有意放行**。
+    """
+    spec = (str(method or "").upper(), str(route_path or ""))
+    if spec in _LEGACY_ADMIN_INDEX:
+        return _ADMIN_ONLY
+    return _LEGACY_PERM_INDEX.get(spec)
+
+
 def _audit_auth(action: str, *, target: Any = "", detail: Any = "",
                 user_id: Any = None, user_name: Any = None) -> None:
     """认证类留痕（薄转发 `engine.audit_trail.record`）。
@@ -127,6 +238,7 @@ async def enforce_request_security(request, call_next):
     path_match = _COMPANY_PATH.match(path)
     if path_match:
         candidate_company_ids.add(int(path_match.group(1)))
+    matched_route_path = ""
     for route in request.app.routes:
         try:
             match, child_scope = route.matches(request.scope)
@@ -136,7 +248,41 @@ async def enforce_request_security(request, call_next):
             route_company = child_scope.get("path_params", {}).get("company_id")
             if str(route_company or "").isdigit():
                 candidate_company_ids.add(int(route_company))
+            # 记下**路由模板**（含 `{doc_id}` 一类占位），供旧路由权限表查表用。
+            matched_route_path = getattr(route, "path", "") or ""
             break
+
+    # ── 旧路由写操作的**功能权限点**校验（MQ2-D1 扩展，2026-10-17）──────────────
+    # 位置：认证 ✓ → _ADMIN_PATHS ✓ → CSRF ✓ → **本检查** → 账套数据范围 → 业务。
+    # 只读方法不校验；`/api/v1/*` 走各自端点内的 `_require_perm`（不在本表内，
+    # 故此处对其为 no-op）；未在表中登记的写端点 = 有意放行（公共/自我服务/墓桩）。
+    if request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}:
+        _need = _required_legacy_perm(request.method.upper(), matched_route_path)
+        if _need == _ADMIN_ONLY:
+            if not session.is_admin:
+                _audit_auth("auth.denied", target=path,
+                            detail="仅管理员可执行（旧路由运维端点；角色 %s）" % session.role,
+                            user_id=session.user_id, user_name=session.username)
+                return _with_security_headers(
+                    JSONResponse({"ok": False, "message": "仅管理员可执行此操作"}, status_code=403),
+                    request,
+                )
+        elif _need:
+            # 延迟导入：避免 security_web 与 engine 包的导入环
+            # （与 `main.py::_require_perm` 同一权威 `engine.rbac.require_permission`）。
+            from engine.rbac import RbacError, require_permission  # noqa: PLC0415
+            try:
+                require_permission(session, _need)
+            except RbacError as exc:
+                _audit_auth("auth.denied", target=path,
+                            detail="缺少功能权限点 %s（角色 %s）" % (_need, session.role),
+                            user_id=session.user_id, user_name=session.username)
+                return _with_security_headers(
+                    JSONResponse({"ok": False, "message": str(getattr(exc, "message", exc)),
+                                  "required_permission": _need},
+                                 status_code=int(getattr(exc, "status", 403))),
+                    request,
+                )
 
     if (
         request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}

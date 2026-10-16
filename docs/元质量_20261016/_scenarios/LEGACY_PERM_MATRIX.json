@@ -1,0 +1,1001 @@
+{
+ "probes": [
+  {
+   "key": "doc.batch_delete",
+   "desc": "批量删除资料",
+   "need": "document.write"
+  },
+  {
+   "key": "doc.purge_pending",
+   "desc": "清理删除残留",
+   "need": "document.write"
+  },
+  {
+   "key": "doc.delete",
+   "desc": "删除单条资料",
+   "need": "document.write"
+  },
+  {
+   "key": "ana.analyze_start",
+   "desc": "发起异步分析",
+   "need": "analysis.run"
+  },
+  {
+   "key": "ana.policy_check",
+   "desc": "政策影响检查",
+   "need": "analysis.run"
+  },
+  {
+   "key": "rev.review",
+   "desc": "报告复核",
+   "need": "risk.review"
+  },
+  {
+   "key": "rev.edit_preview",
+   "desc": "编辑效果预览",
+   "need": "risk.review"
+  },
+  {
+   "key": "rem.create",
+   "desc": "创建整改",
+   "need": "risk.review"
+  },
+  {
+   "key": "view.ask",
+   "desc": "引擎问答",
+   "need": "risk.view"
+  },
+  {
+   "key": "rep.workpaper",
+   "desc": "生成工作底稿",
+   "need": "report.generate"
+  },
+  {
+   "key": "rep.deliver",
+   "desc": "交付报告",
+   "need": "report.generate"
+  },
+  {
+   "key": "prj.delete_company",
+   "desc": "删除账套",
+   "need": "project.write"
+  },
+  {
+   "key": "prj.industry",
+   "desc": "改行业分类",
+   "need": "project.write"
+  },
+  {
+   "key": "rule.check_relevance",
+   "desc": "规则相关性检查",
+   "need": "ruleversion.manage"
+  },
+  {
+   "key": "rule.feedback_update",
+   "desc": "改纠正规则库",
+   "need": "ruleversion.manage"
+  },
+  {
+   "key": "adm.agi_query",
+   "desc": "AGI 问答（遗留）",
+   "need": "\u0000admin"
+  },
+  {
+   "key": "adm.pipeline_history",
+   "desc": "删历史条目",
+   "need": "\u0000admin"
+  },
+  {
+   "key": "adm.create_company",
+   "desc": "新建账套",
+   "need": "\u0000admin"
+  }
+ ],
+ "rows": [
+  {
+   "key": "doc.batch_delete",
+   "desc": "批量删除资料",
+   "role": "system_admin",
+   "need": "document.write",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"缺少账套 company_id\"}"
+  },
+  {
+   "key": "doc.batch_delete",
+   "desc": "批量删除资料",
+   "role": "enterprise_finance",
+   "need": "document.write",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"缺少账套 company_id\"}"
+  },
+  {
+   "key": "doc.batch_delete",
+   "desc": "批量删除资料",
+   "role": "tax_advisor",
+   "need": "document.write",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"缺少账套 company_id\"}"
+  },
+  {
+   "key": "doc.batch_delete",
+   "desc": "批量删除资料",
+   "role": "review_expert",
+   "need": "document.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\",\"required_permission\":\"document.write\"}"
+  },
+  {
+   "key": "doc.batch_delete",
+   "desc": "批量删除资料",
+   "role": "auditor",
+   "need": "document.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\",\"required_permission\":\"document.write\"}"
+  },
+  {
+   "key": "doc.purge_pending",
+   "desc": "清理删除残留",
+   "role": "system_admin",
+   "need": "document.write",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"purged\":0,\"released_own_handles\":0,\"still_locked\":[],\"registered\":0,\"message\":\"已彻底清理 0 个文件\"}"
+  },
+  {
+   "key": "doc.purge_pending",
+   "desc": "清理删除残留",
+   "role": "enterprise_finance",
+   "need": "document.write",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"purged\":0,\"released_own_handles\":0,\"still_locked\":[],\"registered\":0,\"message\":\"已彻底清理 0 个文件\"}"
+  },
+  {
+   "key": "doc.purge_pending",
+   "desc": "清理删除残留",
+   "role": "tax_advisor",
+   "need": "document.write",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"purged\":0,\"released_own_handles\":0,\"still_locked\":[],\"registered\":0,\"message\":\"已彻底清理 0 个文件\"}"
+  },
+  {
+   "key": "doc.purge_pending",
+   "desc": "清理删除残留",
+   "role": "review_expert",
+   "need": "document.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\",\"required_permission\":\"document.write\"}"
+  },
+  {
+   "key": "doc.purge_pending",
+   "desc": "清理删除残留",
+   "role": "auditor",
+   "need": "document.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\",\"required_permission\":\"document.write\"}"
+  },
+  {
+   "key": "doc.delete",
+   "desc": "删除单条资料",
+   "role": "system_admin",
+   "need": "document.write",
+   "declared": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"文件不存在\"}"
+  },
+  {
+   "key": "doc.delete",
+   "desc": "删除单条资料",
+   "role": "enterprise_finance",
+   "need": "document.write",
+   "declared": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"文件不存在\"}"
+  },
+  {
+   "key": "doc.delete",
+   "desc": "删除单条资料",
+   "role": "tax_advisor",
+   "need": "document.write",
+   "declared": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"文件不存在\"}"
+  },
+  {
+   "key": "doc.delete",
+   "desc": "删除单条资料",
+   "role": "review_expert",
+   "need": "document.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：document.write；当前角色：review_expert）\",\"required_permission\":\"document.write\"}"
+  },
+  {
+   "key": "doc.delete",
+   "desc": "删除单条资料",
+   "role": "auditor",
+   "need": "document.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：document.write；当前角色：auditor）\",\"required_permission\":\"document.write\"}"
+  },
+  {
+   "key": "ana.analyze_start",
+   "desc": "发起异步分析",
+   "role": "system_admin",
+   "need": "analysis.run",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"task_id\":\"2609274cc3ff\",\"message\":\"分析已启动\"}"
+  },
+  {
+   "key": "ana.analyze_start",
+   "desc": "发起异步分析",
+   "role": "enterprise_finance",
+   "need": "analysis.run",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"task_id\":\"a7a5b7e1102c\",\"message\":\"分析已启动\"}"
+  },
+  {
+   "key": "ana.analyze_start",
+   "desc": "发起异步分析",
+   "role": "tax_advisor",
+   "need": "analysis.run",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"task_id\":\"643e51e732bd\",\"message\":\"分析已启动\"}"
+  },
+  {
+   "key": "ana.analyze_start",
+   "desc": "发起异步分析",
+   "role": "review_expert",
+   "need": "analysis.run",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：analysis.run；当前角色：review_expert）\",\"required_permission\":\"analysis.run\"}"
+  },
+  {
+   "key": "ana.analyze_start",
+   "desc": "发起异步分析",
+   "role": "auditor",
+   "need": "analysis.run",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：analysis.run；当前角色：auditor）\",\"required_permission\":\"analysis.run\"}"
+  },
+  {
+   "key": "ana.policy_check",
+   "desc": "政策影响检查",
+   "role": "system_admin",
+   "need": "analysis.run",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"company_id\":999999,\"checked_at\":\"2026-10-17T05:46:52.819363\",\"impacts\":[],\"total_impacts\":0}"
+  },
+  {
+   "key": "ana.policy_check",
+   "desc": "政策影响检查",
+   "role": "enterprise_finance",
+   "need": "analysis.run",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"company_id\":999999,\"checked_at\":\"2026-10-17T05:46:52.890688\",\"impacts\":[],\"total_impacts\":0}"
+  },
+  {
+   "key": "ana.policy_check",
+   "desc": "政策影响检查",
+   "role": "tax_advisor",
+   "need": "analysis.run",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"company_id\":999999,\"checked_at\":\"2026-10-17T05:46:52.962542\",\"impacts\":[],\"total_impacts\":0}"
+  },
+  {
+   "key": "ana.policy_check",
+   "desc": "政策影响检查",
+   "role": "review_expert",
+   "need": "analysis.run",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：analysis.run；当前角色：review_expert）\",\"required_permission\":\"analysis.run\"}"
+  },
+  {
+   "key": "ana.policy_check",
+   "desc": "政策影响检查",
+   "role": "auditor",
+   "need": "analysis.run",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：analysis.run；当前角色：auditor）\",\"required_permission\":\"analysis.run\"}"
+  },
+  {
+   "key": "rev.review",
+   "desc": "报告复核",
+   "role": "system_admin",
+   "need": "risk.review",
+   "declared": true,
+   "status": 500,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"error\":\"服务器内部错误。\"}"
+  },
+  {
+   "key": "rev.review",
+   "desc": "报告复核",
+   "role": "enterprise_finance",
+   "need": "risk.review",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：risk.review；当前角色：enterprise_finance）\",\"required_permission\":\"risk.review\"}"
+  },
+  {
+   "key": "rev.review",
+   "desc": "报告复核",
+   "role": "tax_advisor",
+   "need": "risk.review",
+   "declared": true,
+   "status": 500,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"error\":\"服务器内部错误。\"}"
+  },
+  {
+   "key": "rev.review",
+   "desc": "报告复核",
+   "role": "review_expert",
+   "need": "risk.review",
+   "declared": true,
+   "status": 500,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"error\":\"服务器内部错误。\"}"
+  },
+  {
+   "key": "rev.review",
+   "desc": "报告复核",
+   "role": "auditor",
+   "need": "risk.review",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：risk.review；当前角色：auditor）\",\"required_permission\":\"risk.review\"}"
+  },
+  {
+   "key": "rev.edit_preview",
+   "desc": "编辑效果预览",
+   "role": "system_admin",
+   "need": "risk.review",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"暂无分析结果，请先运行一键分析\"}"
+  },
+  {
+   "key": "rev.edit_preview",
+   "desc": "编辑效果预览",
+   "role": "enterprise_finance",
+   "need": "risk.review",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：risk.review；当前角色：enterprise_finance）\",\"required_permission\":\"risk.review\"}"
+  },
+  {
+   "key": "rev.edit_preview",
+   "desc": "编辑效果预览",
+   "role": "tax_advisor",
+   "need": "risk.review",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"暂无分析结果，请先运行一键分析\"}"
+  },
+  {
+   "key": "rev.edit_preview",
+   "desc": "编辑效果预览",
+   "role": "review_expert",
+   "need": "risk.review",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"暂无分析结果，请先运行一键分析\"}"
+  },
+  {
+   "key": "rev.edit_preview",
+   "desc": "编辑效果预览",
+   "role": "auditor",
+   "need": "risk.review",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：risk.review；当前角色：auditor）\",\"required_permission\":\"risk.review\"}"
+  },
+  {
+   "key": "rem.create",
+   "desc": "创建整改",
+   "role": "system_admin",
+   "need": "risk.review",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"id\":1,\"message\":\"整改记录已创建\"}"
+  },
+  {
+   "key": "rem.create",
+   "desc": "创建整改",
+   "role": "enterprise_finance",
+   "need": "risk.review",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：risk.review；当前角色：enterprise_finance）\",\"required_permission\":\"risk.review\"}"
+  },
+  {
+   "key": "rem.create",
+   "desc": "创建整改",
+   "role": "tax_advisor",
+   "need": "risk.review",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"id\":2,\"message\":\"整改记录已创建\"}"
+  },
+  {
+   "key": "rem.create",
+   "desc": "创建整改",
+   "role": "review_expert",
+   "need": "risk.review",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":true,\"id\":3,\"message\":\"整改记录已创建\"}"
+  },
+  {
+   "key": "rem.create",
+   "desc": "创建整改",
+   "role": "auditor",
+   "need": "risk.review",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：risk.review；当前角色：auditor）\",\"required_permission\":\"risk.review\"}"
+  },
+  {
+   "key": "view.ask",
+   "desc": "引擎问答",
+   "role": "system_admin",
+   "need": "risk.view",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"请输入问题或上传政策文件进行讨论\"}"
+  },
+  {
+   "key": "view.ask",
+   "desc": "引擎问答",
+   "role": "enterprise_finance",
+   "need": "risk.view",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"请输入问题或上传政策文件进行讨论\"}"
+  },
+  {
+   "key": "view.ask",
+   "desc": "引擎问答",
+   "role": "tax_advisor",
+   "need": "risk.view",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"请输入问题或上传政策文件进行讨论\"}"
+  },
+  {
+   "key": "view.ask",
+   "desc": "引擎问答",
+   "role": "review_expert",
+   "need": "risk.view",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"请输入问题或上传政策文件进行讨论\"}"
+  },
+  {
+   "key": "view.ask",
+   "desc": "引擎问答",
+   "role": "auditor",
+   "need": "risk.view",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"请输入问题或上传政策文件进行讨论\"}"
+  },
+  {
+   "key": "rep.workpaper",
+   "desc": "生成工作底稿",
+   "role": "system_admin",
+   "need": "report.generate",
+   "declared": true,
+   "status": 409,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无缓存报告，请先执行一键分析后再生成底稿\"}"
+  },
+  {
+   "key": "rep.workpaper",
+   "desc": "生成工作底稿",
+   "role": "enterprise_finance",
+   "need": "report.generate",
+   "declared": true,
+   "status": 409,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无缓存报告，请先执行一键分析后再生成底稿\"}"
+  },
+  {
+   "key": "rep.workpaper",
+   "desc": "生成工作底稿",
+   "role": "tax_advisor",
+   "need": "report.generate",
+   "declared": true,
+   "status": 409,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无缓存报告，请先执行一键分析后再生成底稿\"}"
+  },
+  {
+   "key": "rep.workpaper",
+   "desc": "生成工作底稿",
+   "role": "review_expert",
+   "need": "report.generate",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：report.generate；当前角色：review_expert）\",\"required_permission\":\"report.generate\"}"
+  },
+  {
+   "key": "rep.workpaper",
+   "desc": "生成工作底稿",
+   "role": "auditor",
+   "need": "report.generate",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：report.generate；当前角色：auditor）\",\"required_permission\":\"report.generate\"}"
+  },
+  {
+   "key": "rep.deliver",
+   "desc": "交付报告",
+   "role": "system_admin",
+   "need": "report.generate",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"未找到对应分析轮次，请重新执行一键分析\"}"
+  },
+  {
+   "key": "rep.deliver",
+   "desc": "交付报告",
+   "role": "enterprise_finance",
+   "need": "report.generate",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"未找到对应分析轮次，请重新执行一键分析\"}"
+  },
+  {
+   "key": "rep.deliver",
+   "desc": "交付报告",
+   "role": "tax_advisor",
+   "need": "report.generate",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"未找到对应分析轮次，请重新执行一键分析\"}"
+  },
+  {
+   "key": "rep.deliver",
+   "desc": "交付报告",
+   "role": "review_expert",
+   "need": "report.generate",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：report.generate；当前角色：review_expert）\",\"required_permission\":\"report.generate\"}"
+  },
+  {
+   "key": "rep.deliver",
+   "desc": "交付报告",
+   "role": "auditor",
+   "need": "report.generate",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：report.generate；当前角色：auditor）\",\"required_permission\":\"report.generate\"}"
+  },
+  {
+   "key": "prj.delete_company",
+   "desc": "删除账套",
+   "role": "system_admin",
+   "need": "project.write",
+   "declared": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"账套不存在\"}"
+  },
+  {
+   "key": "prj.delete_company",
+   "desc": "删除账套",
+   "role": "enterprise_finance",
+   "need": "project.write",
+   "declared": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"账套不存在\"}"
+  },
+  {
+   "key": "prj.delete_company",
+   "desc": "删除账套",
+   "role": "tax_advisor",
+   "need": "project.write",
+   "declared": true,
+   "status": 404,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"账套不存在\"}"
+  },
+  {
+   "key": "prj.delete_company",
+   "desc": "删除账套",
+   "role": "review_expert",
+   "need": "project.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：project.write；当前角色：review_expert）\",\"required_permission\":\"project.write\"}"
+  },
+  {
+   "key": "prj.delete_company",
+   "desc": "删除账套",
+   "role": "auditor",
+   "need": "project.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：project.write；当前角色：auditor）\",\"required_permission\":\"project.write\"}"
+  },
+  {
+   "key": "prj.industry",
+   "desc": "改行业分类",
+   "role": "system_admin",
+   "need": "project.write",
+   "declared": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无效的行业代码，可选: 广告传媒, 信息技术, 咨询服务, 建筑工程, 纺织制造, 餐饮服务, 物流运输, 医药健康, 商贸\"}"
+  },
+  {
+   "key": "prj.industry",
+   "desc": "改行业分类",
+   "role": "enterprise_finance",
+   "need": "project.write",
+   "declared": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无效的行业代码，可选: 广告传媒, 信息技术, 咨询服务, 建筑工程, 纺织制造, 餐饮服务, 物流运输, 医药健康, 商贸\"}"
+  },
+  {
+   "key": "prj.industry",
+   "desc": "改行业分类",
+   "role": "tax_advisor",
+   "need": "project.write",
+   "declared": true,
+   "status": 400,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":\"无效的行业代码，可选: 广告传媒, 信息技术, 咨询服务, 建筑工程, 纺织制造, 餐饮服务, 物流运输, 医药健康, 商贸\"}"
+  },
+  {
+   "key": "prj.industry",
+   "desc": "改行业分类",
+   "role": "review_expert",
+   "need": "project.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：project.write；当前角色：review_expert）\",\"required_permission\":\"project.write\"}"
+  },
+  {
+   "key": "prj.industry",
+   "desc": "改行业分类",
+   "role": "auditor",
+   "need": "project.write",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：project.write；当前角色：auditor）\",\"required_permission\":\"project.write\"}"
+  },
+  {
+   "key": "rule.check_relevance",
+   "desc": "规则相关性检查",
+   "role": "system_admin",
+   "need": "ruleversion.manage",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"error\":\"文本内容不能为空\"}"
+  },
+  {
+   "key": "rule.check_relevance",
+   "desc": "规则相关性检查",
+   "role": "enterprise_finance",
+   "need": "ruleversion.manage",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：ruleversion.manage；当前角色：enterprise_finance）\",\"required_permission\":\"ruleversion.manage\"}"
+  },
+  {
+   "key": "rule.check_relevance",
+   "desc": "规则相关性检查",
+   "role": "tax_advisor",
+   "need": "ruleversion.manage",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：ruleversion.manage；当前角色：tax_advisor）\",\"required_permission\":\"ruleversion.manage\"}"
+  },
+  {
+   "key": "rule.check_relevance",
+   "desc": "规则相关性检查",
+   "role": "review_expert",
+   "need": "ruleversion.manage",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：ruleversion.manage；当前角色：review_expert）\",\"required_permission\":\"ruleversion.manage\"}"
+  },
+  {
+   "key": "rule.check_relevance",
+   "desc": "规则相关性检查",
+   "role": "auditor",
+   "need": "ruleversion.manage",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：ruleversion.manage；当前角色：auditor）\",\"required_permission\":\"ruleversion.manage\"}"
+  },
+  {
+   "key": "rule.feedback_update",
+   "desc": "改纠正规则库",
+   "role": "system_admin",
+   "need": "ruleversion.manage",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"指纹不能为空\"}"
+  },
+  {
+   "key": "rule.feedback_update",
+   "desc": "改纠正规则库",
+   "role": "enterprise_finance",
+   "need": "ruleversion.manage",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：ruleversion.manage；当前角色：enterprise_finance）\",\"required_permission\":\"ruleversion.manage\"}"
+  },
+  {
+   "key": "rule.feedback_update",
+   "desc": "改纠正规则库",
+   "role": "tax_advisor",
+   "need": "ruleversion.manage",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：ruleversion.manage；当前角色：tax_advisor）\",\"required_permission\":\"ruleversion.manage\"}"
+  },
+  {
+   "key": "rule.feedback_update",
+   "desc": "改纠正规则库",
+   "role": "review_expert",
+   "need": "ruleversion.manage",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：ruleversion.manage；当前角色：review_expert）\",\"required_permission\":\"ruleversion.manage\"}"
+  },
+  {
+   "key": "rule.feedback_update",
+   "desc": "改纠正规则库",
+   "role": "auditor",
+   "need": "ruleversion.manage",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"无权执行该操作（需要权限：ruleversion.manage；当前角色：auditor）\",\"required_permission\":\"ruleversion.manage\"}"
+  },
+  {
+   "key": "adm.agi_query",
+   "desc": "AGI 问答（遗留）",
+   "role": "system_admin",
+   "need": "\u0000admin",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"answer\":\"请先运行一键分析，我才能回答您的问题。\"}"
+  },
+  {
+   "key": "adm.agi_query",
+   "desc": "AGI 问答（遗留）",
+   "role": "enterprise_finance",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.agi_query",
+   "desc": "AGI 问答（遗留）",
+   "role": "tax_advisor",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.agi_query",
+   "desc": "AGI 问答（遗留）",
+   "role": "review_expert",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.agi_query",
+   "desc": "AGI 问答（遗留）",
+   "role": "auditor",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.pipeline_history",
+   "desc": "删历史条目",
+   "role": "system_admin",
+   "need": "\u0000admin",
+   "declared": true,
+   "status": 200,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"索引0越界（当前0条）\"}"
+  },
+  {
+   "key": "adm.pipeline_history",
+   "desc": "删历史条目",
+   "role": "enterprise_finance",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.pipeline_history",
+   "desc": "删历史条目",
+   "role": "tax_advisor",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.pipeline_history",
+   "desc": "删历史条目",
+   "role": "review_expert",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.pipeline_history",
+   "desc": "删历史条目",
+   "role": "auditor",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.create_company",
+   "desc": "新建账套",
+   "role": "system_admin",
+   "need": "\u0000admin",
+   "declared": true,
+   "status": 422,
+   "verdict": "✅ 一致",
+   "detail": "{\"detail\":[{\"type\":\"missing\",\"loc\":[\"body\",\"name\"],\"msg\":\"Field required\",\"input\":{}},{\"type\":\"missing\",\"loc\":[\"body\",\"uscc\"],\"msg\":\"Field required\",\""
+  },
+  {
+   "key": "adm.create_company",
+   "desc": "新建账套",
+   "role": "enterprise_finance",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.create_company",
+   "desc": "新建账套",
+   "role": "tax_advisor",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.create_company",
+   "desc": "新建账套",
+   "role": "review_expert",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  },
+  {
+   "key": "adm.create_company",
+   "desc": "新建账套",
+   "role": "auditor",
+   "need": "\u0000admin",
+   "declared": false,
+   "status": 403,
+   "verdict": "✅ 一致",
+   "detail": "{\"ok\":false,\"message\":\"仅管理员可执行此操作\"}"
+  }
+ ],
+ "summary": {
+  "total": 90,
+  "ok": 90,
+  "bad": 0
+ }
+}
