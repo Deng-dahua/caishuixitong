@@ -1,0 +1,95 @@
+{
+ "generated_at": "2026-10-17T16:40:01+0800",
+ "drill": {
+  "S1_backup": {
+   "method": "VACUUM INTO（在线一致性快照）",
+   "seconds": 0.04,
+   "size_kb": 4720.0,
+   "tables": 46
+  },
+  "S2_verify": {
+   "integrity_check": "ok",
+   "tables": 46,
+   "row_counts_match": true,
+   "sample": {
+    "accounts": 378,
+    "audit_logs": 1714,
+    "bank_transactions": 0,
+    "bookkeeping_invoices": 0,
+    "column_templates": 0,
+    "companies": 2
+   }
+  },
+  "S3_disaster": {
+   "victim_table": "documents",
+   "rows_before": 22,
+   "rows_after": 0,
+   "action": "DELETE 全表（模拟误删）"
+  },
+  "S4_restore": {
+   "method": "用备份文件覆盖（停服恢复）",
+   "seconds": 0.005,
+   "restored_rows": 22,
+   "expect_rows": 22,
+   "integrity_check": "ok",
+   "data_recovered": true
+  },
+  "summary": {
+   "steps_passed": 4,
+   "steps_total": 4,
+   "backup_online": true,
+   "restore_requires_downtime": true,
+   "note": "数据库层面可安全备份/恢复（VACUUM INTO 在线快照 + 覆盖恢复）；但**系统未内置备份调度、无备份保留策略、无恢复入口** ⇒ 只能由运维手工操作，且恢复必须停服。"
+  }
+ },
+ "dimensions": [
+  {
+   "dim": "数据备份",
+   "verdict": "**无**",
+   "proof": "系统无备份功能：取证到的 7 处 backup 全是假阳性（清理 *_bk 表 / 税审规则文本）。本次演练证明**数据库可被在线快照**（S1 通过），但**没有人/没有调度在做**。",
+   "advice": "P0：加每日 `VACUUM INTO` 快照 + 保留 N 份 + 校验可打开"
+  },
+  {
+   "dim": "备份恢复",
+   "verdict": "**无（手工可行）**",
+   "proof": "演练 S4：用备份覆盖可完整恢复（22 行全部回来、integrity=ok，耗时 0.005s）。但需**停服**，且无「一键恢复」入口。",
+   "advice": "P1：提供 `scripts/restore.py`（校验 + 备份当前库 + 覆盖 + 冒烟），并写入运维手册"
+  },
+  {
+   "dim": "服务重启",
+   "verdict": "部分",
+   "proof": "无 systemd/supervisor/Windows 服务注册；靠手动双击 `start8001.bat`。进程崩溃后**不会自动拉起**（本轮多次出现「8001 未监听」即此因）。",
+   "advice": "P1：注册为 Windows 服务（`nssm`）或加看护脚本（进程退出即重启）"
+  },
+  {
+   "dim": "故障转移",
+   "verdict": "无",
+   "proof": "单机单实例；SQLite 单写者，多实例会撞 readonly（阶段 3 实测）。无主备/无切换。",
+   "advice": "P3：属架构级改造，本轮不建议动"
+  },
+  {
+   "dim": "降级",
+   "verdict": "部分（业务级，非运维级）",
+   "proof": "引擎有大量 `FALLBACK` 业务兜底（如 `_NO_BLIND_CONSTITUENT_FALLBACK`）；但**无运维降级开关**（如「停用 AI、只跑规则」「只读模式」）。",
+   "advice": "P2：加 2 个开关（只读模式 / 关闭外部依赖），配置化即可"
+  },
+  {
+   "dim": "熔断",
+   "verdict": "**无**",
+   "proof": "全库 0 处熔断（circuit breaker）。外部依赖（LLM、webhook）失败时仅单次 try/except，无「连续失败即熔断一段时间」的保护。",
+   "advice": "P2：加最简熔断（连续 N 次失败 → 冷却 M 秒），尤其对 LLM 调用"
+  },
+  {
+   "dim": "限流",
+   "verdict": "有",
+   "proof": "`main.py:12810` IP 级滑动窗口限流中间件；`security_web.py:372` 登录失败限流（带 Retry-After）。",
+   "advice": "—"
+  },
+  {
+   "dim": "幂等",
+   "verdict": "部分",
+   "proof": "①分片上传幂等（`documents_api.py:126` 同 chunk_index 重传覆盖）；②风险复核对重复处置**幂等拒绝**（「本次未产生变更」）。但**分析任务/报告生成无幂等键**，重复提交会产生新任务/新版本。",
+   "advice": "P2：分析任务加 `Idempotency-Key`（同 key 在 X 分钟内返回同一 job）"
+  }
+ ]
+}

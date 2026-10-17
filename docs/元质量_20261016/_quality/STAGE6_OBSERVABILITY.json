@@ -1,0 +1,717 @@
+{
+ "generated_at": "2026-10-17T16:25:41+08:00",
+ "global": {
+  "健康检查": [
+   "main.py:183",
+   "main.py:10282"
+  ],
+  "指标": [],
+  "告警": [
+   "main.py:10007",
+   "main.py:10014",
+   "main.py:10016",
+   "main.py:10017",
+   "main.py:10042",
+   "main.py:10043",
+   "main.py:10047",
+   "main.py:10053",
+   "main.py:10055",
+   "main.py:10060"
+  ],
+  "print_vs_logger": {
+   "print": 412,
+   "logger": 6,
+   "print_files": 59,
+   "logger_files": 5
+  }
+ },
+ "rows": [
+  {
+   "domain": "认证与会话",
+   "files": [
+    "main.py",
+    "security.py",
+    "security_web.py"
+   ],
+   "stat": {
+    "logger": 3,
+    "audit": 21,
+    "trace": 11,
+    "present_files": [
+     "main.py",
+     "security.py"
+    ],
+    "writes": 71
+   },
+   "verdict": {
+    "日志": [
+     "有",
+     "logger 调用 3 次"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "有",
+     "11 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "有",
+     "写操作 71 个、审计 21 处"
+    ]
+   }
+  },
+  {
+   "domain": "稽查项目",
+   "files": [
+    "projects_api.py",
+    "engine/project_service.py",
+    "engine/project_store.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 13,
+    "trace": 0,
+    "present_files": [
+     "engine/project_service.py"
+    ],
+    "writes": 3
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "有",
+     "写操作 3 个、审计 13 处"
+    ]
+   }
+  },
+  {
+   "domain": "资料管理",
+   "files": [
+    "documents_api.py",
+    "engine/document_service.py",
+    "engine/document_store.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 4,
+    "trace": 0,
+    "present_files": [
+     "engine/document_service.py"
+    ],
+    "writes": 7
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "有",
+     "写操作 7 个、审计 4 处"
+    ]
+   }
+  },
+  {
+   "domain": "解析与校正",
+   "files": [
+    "extract_api.py",
+    "engine/extract_store.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 2,
+    "trace": 0,
+    "present_files": [
+     "engine/extract_store.py"
+    ],
+    "writes": 3
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "部分",
+     "写操作 3 个、审计 2 处（覆盖不完整）"
+    ]
+   }
+  },
+  {
+   "domain": "一键分析任务",
+   "files": [
+    "analysis_api.py",
+    "engine/analysis_jobs.py",
+    "engine/analysis_task.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 5,
+    "trace": 0,
+    "present_files": [
+     "engine/analysis_task.py"
+    ],
+    "writes": 4
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "有",
+     "写操作 4 个、审计 5 处"
+    ]
+   }
+  },
+  {
+   "domain": "风险结果与复核",
+   "files": [
+    "risks_api.py",
+    "engine/risk_review.py",
+    "engine/risk_service.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 2,
+    "trace": 1,
+    "present_files": [
+     "engine/risk_service.py"
+    ],
+    "writes": 3
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "部分",
+     "1 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "部分",
+     "写操作 3 个、审计 2 处（覆盖不完整）"
+    ]
+   }
+  },
+  {
+   "domain": "报告生成与导出",
+   "files": [
+    "reports_api.py",
+    "engine/report_service.py",
+    "engine/report_store.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 4,
+    "trace": 0,
+    "present_files": [
+     "engine/report_service.py"
+    ],
+    "writes": 1
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "有",
+     "写操作 1 个、审计 4 处"
+    ]
+   }
+  },
+  {
+   "domain": "规则库与版本",
+   "files": [
+    "tax_rules_api.py",
+    "engine/rule_versions.py",
+    "engine/tax_redlines.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 2,
+    "trace": 0,
+    "present_files": [
+     "tax_rules_api.py",
+     "engine/tax_redlines.py"
+    ],
+    "writes": 2
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "部分",
+     "写操作 2 个、审计 2 处（覆盖不完整）"
+    ]
+   }
+  },
+  {
+   "domain": "法规库",
+   "files": [
+    "legal_api.py",
+    "engine/legal_coverage.py",
+    "engine/legal_citation.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 0,
+    "trace": 0,
+    "present_files": [],
+    "writes": 0
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "无需",
+     "该域 **0 个写操作**（纯只读），审计不适用"
+    ]
+   }
+  },
+  {
+   "domain": "用户与角色",
+   "files": [
+    "rbac_api.py",
+    "engine/access_service.py",
+    "engine/rbac.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 13,
+    "trace": 0,
+    "present_files": [
+     "rbac_api.py",
+     "engine/access_service.py"
+    ],
+    "writes": 4
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "有",
+     "写操作 4 个、审计 13 处"
+    ]
+   }
+  },
+  {
+   "domain": "审计日志",
+   "files": [
+    "audit.py",
+    "engine/audit_trail.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 12,
+    "trace": 0,
+    "present_files": [
+     "audit.py",
+     "engine/audit_trail.py"
+    ],
+    "writes": 0
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "无需",
+     "该域 **0 个写操作**（纯只读），审计不适用"
+    ]
+   }
+  },
+  {
+   "domain": "AI 辅助",
+   "files": [
+    "ai_assist_api.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 0,
+    "trace": 0,
+    "present_files": [],
+    "writes": 1
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "无（缺口）",
+     "该域有 **1 个写操作**但 **0 处审计埋点** ⇒ 操作不可追溯"
+    ]
+   }
+  },
+  {
+   "domain": "行业指标",
+   "files": [
+    "industry_api.py",
+    "engine/industry_indicators.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 0,
+    "trace": 0,
+    "present_files": [],
+    "writes": 0
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "无（业务大屏不覆盖本域）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "无需",
+     "该域 **0 个写操作**（纯只读），审计不适用"
+    ]
+   }
+  },
+  {
+   "domain": "数据大屏",
+   "files": [
+    "dashboard_api.py",
+    "engine/dashboard.py"
+   ],
+   "stat": {
+    "logger": 0,
+    "audit": 0,
+    "trace": 0,
+    "present_files": [],
+    "writes": 0
+   },
+   "verdict": {
+    "日志": [
+     "有（未分级）",
+     "该域实现文件 **logger 调用 0 次**（靠 print），无法分级/采集/检索"
+    ],
+    "指标": [
+     "无",
+     "全库 **0 处** 指标采集（无 Prometheus/psutil/CPU/内存/QPS/延迟）"
+    ],
+    "链路追踪": [
+     "无",
+     "0 处 trace_id/request_id 引用"
+    ],
+    "告警": [
+     "部分",
+     "仅有 1 个 webhook 通知配置（main.py:10007），**无阈值/无触发条件/无升级策略**"
+    ],
+    "仪表盘": [
+     "有（业务）",
+     "有业务数据大屏（/dashboard），但**无运维指标仪表盘**"
+    ],
+    "健康检查": [
+     "有",
+     "全局 /healthz（main.py:183）与 /api/health（main.py:10282）"
+    ],
+    "审计日志": [
+     "无需",
+     "该域 **0 个写操作**（纯只读），审计不适用"
+    ]
+   }
+  }
+ ],
+ "tally": {
+  "日志": {
+   "有": 1,
+   "有（未分级）": 13
+  },
+  "指标": {
+   "无": 14
+  },
+  "链路追踪": {
+   "有": 1,
+   "无": 12,
+   "部分": 1
+  },
+  "告警": {
+   "部分": 14
+  },
+  "仪表盘": {
+   "无（业务大屏不覆盖本域）": 13,
+   "有（业务）": 1
+  },
+  "健康检查": {
+   "有": 14
+  },
+  "审计日志": {
+   "有": 6,
+   "部分": 3,
+   "无需": 4,
+   "无（缺口）": 1
+  }
+ },
+ "dimensions": [
+  "日志",
+  "指标",
+  "链路追踪",
+  "告警",
+  "仪表盘",
+  "健康检查",
+  "审计日志"
+ ]
+}

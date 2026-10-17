@@ -1,0 +1,2536 @@
+{
+ "generated_at": "2026-10-17T16:15:37+08:00",
+ "modules": [
+  {
+   "key": "home",
+   "name": "首页/总览",
+   "readonly": false,
+   "evidence": {
+    "page": "index.html",
+    "scripts": [
+     "home-overview.js",
+     "core.js"
+    ],
+    "groups": 10,
+    "defaults": {
+     "selected": [
+      {
+       "line": 2048,
+       "text": "yearOpts += '<option value=\"' + y + '\" ' + (String(y) === String(year) ? 'selected>' : '>') + y + '年</option>';"
+      },
+      {
+       "line": 2053,
+       "text": "monthOpts += '<option value=\"' + mv + '\" ' + (mv === String(month) ? 'selected>' : '>') + mv + '月</option>';"
+      }
+     ],
+     "value_prefill": [],
+     "localStorage": [
+      {
+       "line": 596,
+       "text": "var u = JSON.parse(localStorage.getItem('taxUser') || 'null');"
+      },
+      {
+       "line": 759,
+       "text": "var data = JSON.parse(localStorage.getItem('taxUser') || 'null');"
+      },
+      {
+       "line": 834,
+       "text": "var lastId = localStorage.getItem('lastCompanyId');"
+      },
+      {
+       "line": 885,
+       "text": "else { try { py = JSON.parse(localStorage.getItem('taxUser')||'{}').pinyin || ''; } catch(e) {} }"
+      },
+      {
+       "line": 964,
+       "text": "localStorage.setItem('lastCompanyId', companyId);"
+      },
+      {
+       "line": 965,
+       "text": "localStorage.setItem('lastCompanyName', companyName);"
+      },
+      {
+       "line": 1009,
+       "text": "const lastPage = localStorage.getItem('lastPage') || 'home';"
+      },
+      {
+       "line": 1123,
+       "text": "const saved = localStorage.getItem('currentPeriod');"
+      },
+      {
+       "line": 1125,
+       "text": "if (currentPeriod !== saved) localStorage.setItem('currentPeriod', currentPeriod);"
+      },
+      {
+       "line": 1153,
+       "text": "localStorage.setItem('currentPeriod', currentPeriod);"
+      },
+      {
+       "line": 1195,
+       "text": "localStorage.setItem('currentPeriod', currentPeriod);"
+      },
+      {
+       "line": 1328,
+       "text": "localStorage.setItem('lastPage', page);"
+      }
+     ]
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [
+      {
+       "line": 1526,
+       "text": "const err = await res.json().catch(() => ({ detail: '请求失败' }));"
+      },
+      {
+       "line": 1527,
+       "text": "throw new Error(err.detail || '请求失败');"
+      }
+     ],
+     "specific": [
+      {
+       "line": 277,
+       "text": "需要恢复文件导入弹窗时，请先补齐上述 10 个渲染函数再重新引回本行。 -->"
+      },
+      {
+       "line": 1046,
+       "text": "if (!currentCompanyId) { toast('请先选择账套', 'warning'); return; }"
+      },
+      {
+       "line": 1047,
+       "text": "if (!window.currentModule) { toast('请先进入一个功能模块', 'warning'); return; }"
+      },
+      {
+       "line": 1093,
+       "text": "if (!name) { toast('请输入公司全称', 'error'); btn.disabled = false; btn.textContent = '✅ 创建账套，进入系统'; return; }"
+      },
+      {
+       "line": 1192,
+       "text": "if (!y || !m) { toast('请先在顶格栏选择年份和月份', 'warning'); return; }"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 1063,
+       "text": "toast('当前模块【' + module + '】暂不支持 AI 自动处理', 'info');"
+      },
+      {
+       "line": 1728,
+       "text": "+ '下表逐条标注<strong>实测状态</strong>：标注「已下线」的端点**后端已不存在**'"
+      },
+      {
+       "line": 1968,
+       "text": "if (idx === -1) { alert('凭证号格式错误：' + voucherFull); return; }"
+      },
+      {
+       "line": 1971,
+       "text": "if (isNaN(voucher_no)) { alert('凭证号格式错误：' + voucherFull); return; }"
+      }
+     ]
+    },
+    "confirm": [
+     {
+      "line": 931,
+      "text": "if (!confirm('确定要删除账套「' + companyName + '」吗？\\n\\n⚠️ 此操作不可逆，该账套下的所有数据（凭证、发票、报表等）将一并删除。')) return;"
+     }
+    ],
+    "undo": [
+     {
+      "line": 133,
+      "text": "<div id=\"nav-rule-versions\" class=\"nav-item\" data-perm=\"report.view\" onclick=\"location.href='/rule-versions'\" title=\"规则版"
+     },
+     {
+      "line": 269,
+      "text": "<!-- ★ 2026-10-07：原 `/static/js/file-import.js` 已下线（移入 data/trash/，可恢复）。"
+     },
+     {
+      "line": 277,
+      "text": "需要恢复文件导入弹窗时，请先补齐上述 10 个渲染函数再重新引回本行。 -->"
+     },
+     {
+      "line": 1647,
+      "text": "h += _agiEngineCard('🔄','自动巡逻','PatrolEngine','<code>auto_patrol.py</code>','定期重分析已分析企业→对比前后两次报告的差异：①新增风险——上次无本次有 ②消失风险—"
+     },
+     {
+      "line": 1696,
+      "text": "h += _agiEngineCard('🛡️','覆盖层引擎','OverrideEngine','<code>override_engine.py</code>','AGI自主修正安全回滚机制——防止自学习过度修正。四阶段状态机：①待审"
+     },
+     {
+      "line": 1741,
+      "text": "['POST','/api/agi/overrides/{id}/rollback','回滚覆盖层','offline'],"
+     },
+     {
+      "line": 1742,
+      "text": "['POST','/api/agi/overrides/emergency-reset','紧急恢复','offline'],"
+     }
+    ],
+    "memory": [
+     {
+      "line": 596,
+      "text": "var u = JSON.parse(localStorage.getItem('taxUser') || 'null');"
+     },
+     {
+      "line": 759,
+      "text": "var data = JSON.parse(localStorage.getItem('taxUser') || 'null');"
+     },
+     {
+      "line": 779,
+      "text": "localStorage.removeItem('taxUser');"
+     },
+     {
+      "line": 834,
+      "text": "var lastId = localStorage.getItem('lastCompanyId');"
+     },
+     {
+      "line": 874,
+      "text": "sessionStorage.removeItem('onRegistrationPage');"
+     },
+     {
+      "line": 885,
+      "text": "else { try { py = JSON.parse(localStorage.getItem('taxUser')||'{}').pinyin || ''; } catch(e) {} }"
+     },
+     {
+      "line": 935,
+      "text": "localStorage.removeItem('lastCompanyId');"
+     },
+     {
+      "line": 936,
+      "text": "localStorage.removeItem('lastCompanyName');"
+     },
+     {
+      "line": 947,
+      "text": "localStorage.removeItem('lastCompanyId');"
+     },
+     {
+      "line": 948,
+      "text": "localStorage.removeItem('lastCompanyName');"
+     },
+     {
+      "line": 961,
+      "text": "sessionStorage.removeItem('onRegistrationPage');"
+     },
+     {
+      "line": 964,
+      "text": "localStorage.setItem('lastCompanyId', companyId);"
+     },
+     {
+      "line": 965,
+      "text": "localStorage.setItem('lastCompanyName', companyName);"
+     },
+     {
+      "line": 1009,
+      "text": "const lastPage = localStorage.getItem('lastPage') || 'home';"
+     },
+     {
+      "line": 1021,
+      "text": "localStorage.removeItem('lastCompanyId');"
+     },
+     {
+      "line": 1022,
+      "text": "localStorage.removeItem('lastCompanyName');"
+     },
+     {
+      "line": 1023,
+      "text": "localStorage.removeItem('lastPage');"
+     },
+     {
+      "line": 1033,
+      "text": "localStorage.removeItem('taxUser');"
+     },
+     {
+      "line": 1034,
+      "text": "localStorage.removeItem('lastCompanyId');"
+     },
+     {
+      "line": 1035,
+      "text": "localStorage.removeItem('lastCompanyName');"
+     },
+     {
+      "line": 1036,
+      "text": "localStorage.removeItem('lastPage');"
+     },
+     {
+      "line": 1123,
+      "text": "const saved = localStorage.getItem('currentPeriod');"
+     },
+     {
+      "line": 1125,
+      "text": "if (currentPeriod !== saved) localStorage.setItem('currentPeriod', currentPeriod);"
+     },
+     {
+      "line": 1153,
+      "text": "localStorage.setItem('currentPeriod', currentPeriod);"
+     },
+     {
+      "line": 1195,
+      "text": "localStorage.setItem('currentPeriod', currentPeriod);"
+     },
+     {
+      "line": 1328,
+      "text": "localStorage.setItem('lastPage', page);"
+     }
+    ],
+    "keyboard": [],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 10 个可视分组"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 2 处（首个：yearOpts += '<option value=\"' + y + '\" ' + (String(y) === String(year)）"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 9 处 vs 笼统 2 处（示例：需要恢复文件导入弹窗时，请先补齐上述 10 个渲染函数再重新引回本行。 -->）"
+    ],
+    "确认机制": [
+     "有",
+     "二次确认 1 处（首个：if (!confirm('确定要删除账套「' + companyName + '」吗？\\n\\n⚠️ 此操作不可逆，该账套下的所有数据（凭证）"
+    ],
+    "撤销机制": [
+     "有",
+     "撤销/恢复类入口 7 处（首个：<div id=\"nav-rule-versions\" class=\"nav-item\" data-perm=\"report.view\" o）"
+    ],
+    "记忆机制": [
+     "有",
+     "26 处本地记忆（键示例：currentPeriod, lastCompanyId, lastCompanyName, lastPage, tax）"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "projects",
+   "name": "稽查项目",
+   "readonly": false,
+   "evidence": {
+    "page": "projects.html",
+    "scripts": [
+     "projects.js"
+    ],
+    "groups": 1,
+    "defaults": {
+     "selected": [
+      {
+       "line": 100,
+       "text": "<option value=\"20\" selected>20 条/页</option>"
+      }
+     ],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 444,
+       "text": "if (!payload.user_name && !payload.user_id) { flash(\"请填写成员姓名或用户 ID\", \"err\"); return; }"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 320,
+       "text": "if (!name) { $(\"form-msg\").innerHTML = '<div class=\"msg err\">公司名称不能为空</div>'; return; }"
+      }
+     ]
+    },
+    "confirm": [
+     {
+      "line": 159,
+      "text": "<!-- 删除二次确认 -->"
+     },
+     {
+      "line": 162,
+      "text": "<h2>确认删除</h2>"
+     },
+     {
+      "line": 171,
+      "text": "<button class=\"btn danger\" id=\"btn-del-confirm\" data-perm=\"project.write\">确认删除</button>"
+     }
+    ],
+    "undo": [
+     {
+      "line": 166,
+      "text": "将同时删除该项目的成员记录。此操作<b>不可撤销</b>；项目自身的操作留痕会保留以备追溯。"
+     }
+    ],
+    "memory": [],
+    "keyboard": [
+     {
+      "line": 483,
+      "text": "$(\"q\").addEventListener(\"keydown\", function (e) {"
+     },
+     {
+      "line": 484,
+      "text": "if (e.key === \"Enter\") { state.page = 1; loadList(); }"
+     },
+     {
+      "line": 519,
+      "text": "document.addEventListener(\"keydown\", function (e) {"
+     },
+     {
+      "line": 520,
+      "text": "if (e.key === \"Escape\") [\"m-form\", \"m-detail\", \"m-del\"].forEach(function (i) { $(i).hidden = true; });"
+     }
+    ],
+    "flow": "新建 → 填表 → 保存（符合）"
+   },
+   "verdict": {
+    "操作顺序": [
+     "符合",
+     "新建 → 填表 → 保存（符合）"
+    ],
+    "信息分组": [
+     "偏单块",
+     "页面内仅 1 个分组（信息未分区）"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 1 处（首个：<option value=\"20\" selected>20 条/页</option>）"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 2 处 vs 笼统 0 处（示例：if (!payload.user_name && !payload.user_id) { flash(\"请填写成员姓名或用户 ID\", \"）"
+    ],
+    "确认机制": [
+     "有",
+     "二次确认 3 处（首个：<!-- 删除二次确认 -->）"
+    ],
+    "撤销机制": [
+     "有",
+     "撤销/恢复类入口 1 处（首个：将同时删除该项目的成员记录。此操作<b>不可撤销</b>；项目自身的操作留痕会保留以备追溯。）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 4 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "documents",
+   "name": "资料上传与管理",
+   "readonly": false,
+   "evidence": {
+    "page": "documents.html",
+    "scripts": [
+     "documents.js"
+    ],
+    "groups": 2,
+    "defaults": {
+     "selected": [
+      {
+       "line": 131,
+       "text": "<select id=\"f-size\"><option value=\"10\">10 条/页</option><option value=\"20\" selected>20 条/页</option><option value=\"50\">50 条"
+      }
+     ],
+     "value_prefill": [
+      {
+       "line": 645,
+       "text": "'<td><input type=\"text\" data-fid=\"' + f.id + '\" value=\"' + esc(shown) + '\" style=\"width:130px\"> ' +"
+      }
+     ],
+     "localStorage": [
+      {
+       "line": 290,
+       "text": "var saved = localStorage.getItem(\"docProjectId\");"
+      },
+      {
+       "line": 901,
+       "text": "localStorage.setItem(\"docProjectId\", String(PROJECT || \"\"));"
+      }
+     ]
+    },
+    "batch": {
+     "select_all": [
+      {
+       "line": 140,
+       "text": "<th style=\"width:34px;text-align:center\"><input type=\"checkbox\" id=\"sel-all\" title=\"全选/全不选（本页）\"></th>"
+      },
+      {
+       "line": 955,
+       "text": "var _sa = $(\"sel-all\");                                 // ★ 全选/全不选（本页）"
+      }
+     ],
+     "bulk_buttons": [
+      {
+       "line": 114,
+       "text": "<div class=\"muted\" style=\"font-size:12px\">支持批量多选</div>"
+      },
+      {
+       "line": 239,
+       "text": "selected: {},   // ★ 2026-10-15 批量删除：id -> true（翻页/刷新即清空）"
+      }
+     ]
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 143,
+       "text": "<tbody id=\"tbody\"><tr><td colspan=\"8\" class=\"empty\">请先选择项目</td></tr></tbody>"
+      },
+      {
+       "line": 281,
+       "text": "o.value = \"\"; o.textContent = \"（暂无项目，请先新建项目）\";"
+      },
+      {
+       "line": 418,
+       "text": "if (!PROJECT) { flash(\"请先选择项目\", \"err\"); return; }"
+      },
+      {
+       "line": 444,
+       "text": "if (!PROJECT) { $(\"tbody\").innerHTML = '<tr><td colspan=\"8\" class=\"empty\">请先选择项目</td></tr>'; return; }"
+      },
+      {
+       "line": 789,
+       "text": "if (!PROJECT) { flash(\"请先选择项目\", \"err\"); return; }"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 309,
+       "text": "$(\"ext-hint\").innerHTML = \"支持格式：\" + esc(exts)"
+      },
+      {
+       "line": 629,
+       "text": "tb.innerHTML = '<tr><td colspan=\"6\" class=\"empty\">未登记到标准字段（可能该格式暂不支持结构化解析，或字段名未在字典中）</td></tr>';"
+      },
+      {
+       "line": 774,
+       "text": ": (\"已下载（\" + (msgText || \"该格式随附水印说明\") + \"）\"),"
+      }
+     ]
+    },
+    "confirm": [
+     {
+      "line": 203,
+      "text": "<!-- 删除二次确认 -->"
+     },
+     {
+      "line": 206,
+      "text": "<h3>确认删除</h3>"
+     },
+     {
+      "line": 213,
+      "text": "<button class=\"btn danger\" id=\"btn-del-confirm\" data-perm=\"document.write\">确认删除</button>"
+     },
+     {
+      "line": 811,
+      "text": "if (!window.confirm(\"本项目有 \" + targets.length + \" 条资料解析状态不是「成功」\\n（\" +"
+     },
+     {
+      "line": 838,
+      "text": "if (!window.confirm(\"确定删除选中的 \" + ids.length + \" 条资料？\\n文件将移入回收站（可回滚），删除操作逐条留审计。\")) return;"
+     }
+    ],
+    "undo": [
+     {
+      "line": 209,
+      "text": "<p class=\"muted\" style=\"font-size:12px\">文件将<b>移入回收站</b>（可追溯），登记信息删除。此操作不可撤销。</p>"
+     },
+     {
+      "line": 838,
+      "text": "if (!window.confirm(\"确定删除选中的 \" + ids.length + \" 条资料？\\n文件将移入回收站（可回滚），删除操作逐条留审计。\")) return;"
+     }
+    ],
+    "memory": [
+     {
+      "line": 290,
+      "text": "var saved = localStorage.getItem(\"docProjectId\");"
+     },
+     {
+      "line": 366,
+      "text": "var uploadId = localStorage.getItem(key);"
+     },
+     {
+      "line": 379,
+      "text": "localStorage.setItem(key, uploadId);"
+     },
+     {
+      "line": 399,
+      "text": "localStorage.removeItem(key);"
+     },
+     {
+      "line": 901,
+      "text": "localStorage.setItem(\"docProjectId\", String(PROJECT || \"\"));"
+     }
+    ],
+    "keyboard": [
+     {
+      "line": 893,
+      "text": "$(\"q\").addEventListener(\"keydown\", function (e) { if (e.key === \"Enter\") { state.page = 1; loadList(); } });"
+     },
+     {
+      "line": 969,
+      "text": "document.addEventListener(\"keydown\", function (e) {"
+     },
+     {
+      "line": 970,
+      "text": "if (e.key === \"Escape\") [\"m-classify\", \"m-detail\", \"m-del\"].forEach(function (i) { $(i).hidden = true; });"
+     }
+    ],
+    "flow": "选项目 → 选文件 → 上传 → 等解析（自然顺序，符合）"
+   },
+   "verdict": {
+    "操作顺序": [
+     "符合",
+     "选项目 → 选文件 → 上传 → 等解析（自然顺序，符合）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 2 个可视分组"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 2 处（首个：<select id=\"f-size\"><option value=\"10\">10 条/页</option><option value=\"2）"
+    ],
+    "快捷操作": [
+     "有",
+     "批量/快捷入口 2 处（首个：<div class=\"muted\" style=\"font-size:12px\">支持批量多选</div>）"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 8 处 vs 笼统 0 处（示例：<tbody id=\"tbody\"><tr><td colspan=\"8\" class=\"empty\">请先选择项目</td></tr></）"
+    ],
+    "确认机制": [
+     "有",
+     "二次确认 5 处（首个：<!-- 删除二次确认 -->）"
+    ],
+    "撤销机制": [
+     "有",
+     "撤销/恢复类入口 2 处（首个：<p class=\"muted\" style=\"font-size:12px\">文件将<b>移入回收站</b>（可追溯），登记信息删除。此操）"
+    ],
+    "记忆机制": [
+     "有",
+     "5 处本地记忆（键示例：见证据）"
+    ],
+    "批量操作": [
+     "有",
+     "全选 + 批量执行（2 + 2 处）"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 3 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "extract",
+   "name": "资料解析与校正",
+   "readonly": false,
+   "evidence": {
+    "page": "extract.html",
+    "scripts": [
+     "extract.js"
+    ],
+    "groups": 3,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [
+      {
+       "line": 286,
+       "text": "'<td><input type=\"text\" data-fid=\"' + f.id + '\" value=\"' + esc(shown) + '\"> ' +"
+      }
+     ],
+     "localStorage": [
+      {
+       "line": 191,
+       "text": "var saved = localStorage.getItem(\"extractProjectId\");"
+      },
+      {
+       "line": 375,
+       "text": "localStorage.setItem(\"extractProjectId\", String(PROJECT || \"\"));"
+      }
+     ]
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 80,
+       "text": "<select id=\"doc\"><option value=\"\">（请选择资料）</option></select>"
+      },
+      {
+       "line": 99,
+       "text": "<tbody id=\"tb-fields\"><tr><td colspan=\"6\" class=\"empty\">请选择资料并解析</td></tr></tbody>"
+      },
+      {
+       "line": 199,
+       "text": "sel.innerHTML = '<option value=\"\">（请选择资料）</option>';"
+      },
+      {
+       "line": 211,
+       "text": "flash(\"该项目下暂无资料，请先在「资料管理」上传\", \"warn\");"
+      },
+      {
+       "line": 221,
+       "text": "if (!DOC) { flash(\"请先选择资料\", \"err\"); return; }"
+      },
+      {
+       "line": 378,
+       "text": "$(\"tb-fields\").innerHTML = '<tr><td colspan=\"6\" class=\"empty\">请选择资料并解析</td></tr>';"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 270,
+       "text": "tb.innerHTML = '<tr><td colspan=\"6\" class=\"empty\">未登记到标准字段（可能该格式暂不支持结构化解析，或字段名未在字典中）</td></tr>';"
+      }
+     ]
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [
+     {
+      "line": 191,
+      "text": "var saved = localStorage.getItem(\"extractProjectId\");"
+     },
+     {
+      "line": 375,
+      "text": "localStorage.setItem(\"extractProjectId\", String(PROJECT || \"\"));"
+     }
+    ],
+    "keyboard": [],
+    "flow": "选项目 → 选资料 → 看字段 → 改值 → 保存（先看后改，符合）"
+   },
+   "verdict": {
+    "操作顺序": [
+     "符合",
+     "选项目 → 选资料 → 看字段 → 改值 → 保存（先看后改，符合）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 3 个可视分组"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 1 处（首个：'<td><input type=\"text\" data-fid=\"' + f.id + '\" value=\"' + esc(shown) ）"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 7 处 vs 笼统 0 处（示例：<select id=\"doc\"><option value=\"\">（请选择资料）</option></select>）"
+    ],
+    "确认机制": [
+     "无",
+     "破坏性操作前无二次确认"
+    ],
+    "撤销机制": [
+     "无",
+     "无撤销/回收站入口（误操作不可逆）"
+    ],
+    "记忆机制": [
+     "有",
+     "2 处本地记忆（键示例：见证据）"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "analysis",
+   "name": "一键稽查分析任务",
+   "readonly": false,
+   "evidence": {
+    "page": "analysis.html",
+    "scripts": [
+     "analysis.js"
+    ],
+    "groups": 3,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [
+      {
+       "line": 127,
+       "text": "<th style=\"width:34px;text-align:center\"><input type=\"checkbox\" id=\"job-sel-all\" title=\"全选/全不选（本页；运行中任务不可删）\"></th>"
+      }
+     ],
+     "bulk_buttons": [
+      {
+       "line": 394,
+       "text": "var PICKED_JOBS = {};   // ★ 2026-10-15 批量删除：job_id -> true（切换项目/刷新即清空）"
+      }
+     ]
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 241,
+       "text": ": '<option value=\"\">（无项目，请先在「稽查项目」中新建）</option>';"
+      },
+      {
+       "line": 270,
+       "text": "if (!pid) { alertBox('err', '请先选择稽查项目'); return; }"
+      },
+      {
+       "line": 398,
+       "text": "if (!pid) { el('history').innerHTML = '<tr><td colspan=\"11\" class=\"empty\">请选择项目</td></tr>'; return; }"
+      }
+     ],
+     "with_reason": []
+    },
+    "confirm": [
+     {
+      "line": 357,
+      "text": "if (!window.confirm('确认取消作业 ' + CURRENT.job_id + ' ？\\n取消后本次结果不予采用（可重试）。')) { return; }"
+     },
+     {
+      "line": 460,
+      "text": "if (!window.confirm('确定删除选中的 ' + ids.length + ' 条分析任务记录？只删任务历史记录；分析结果与报告不受影响。')) return;"
+     }
+    ],
+    "undo": [],
+    "memory": [],
+    "keyboard": [],
+    "flow": "选项目 → 开始 → 看进度/步骤 → 完成（符合）"
+   },
+   "verdict": {
+    "操作顺序": [
+     "符合",
+     "选项目 → 开始 → 看进度/步骤 → 完成（符合）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 3 个可视分组"
+    ],
+    "默认值": [
+     "无",
+     "表单每次从零填，无预填/默认选中"
+    ],
+    "快捷操作": [
+     "有",
+     "批量/快捷入口 1 处（首个：var PICKED_JOBS = {};   // ★ 2026-10-15 批量删除：job_id -> true（切换项目/刷新即清空）"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 3 处 vs 笼统 0 处（示例：: '<option value=\"\">（无项目，请先在「稽查项目」中新建）</option>';）"
+    ],
+    "确认机制": [
+     "有",
+     "二次确认 2 处（首个：if (!window.confirm('确认取消作业 ' + CURRENT.job_id + ' ？\\n取消后本次结果不予采用（可重试））"
+    ],
+    "撤销机制": [
+     "无",
+     "无撤销/回收站入口（误操作不可逆）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "有",
+     "全选 + 批量执行（1 + 1 处）"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "rules",
+   "name": "规则库与风险发现",
+   "readonly": true,
+   "evidence": {
+    "page": "rules.html",
+    "scripts": [
+     "rules.js"
+    ],
+    "groups": 8,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 433,
+       "text": "el('find-rows').innerHTML = '<tr><td colspan=\"9\" class=\"empty\">请选择账套</td></tr>';"
+      },
+      {
+       "line": 532,
+       "text": "if (!cid) { el('exec-rows').innerHTML = '<tr><td colspan=\"4\" class=\"empty\">请选择账套</td></tr>'; return; }"
+      }
+     ],
+     "with_reason": []
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [
+     {
+      "line": 593,
+      "text": "window.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModal(); } });"
+     }
+    ],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 8 个可视分组"
+    ],
+    "默认值": [
+     "无需",
+     "只读检索页，无表单默认值需求"
+    ],
+    "快捷操作": [
+     "部分",
+     "无批量入口；有筛选/重置等检索快捷（只读页可接受）"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 2 处 vs 笼统 0 处（示例：el('find-rows').innerHTML = '<tr><td colspan=\"9\" class=\"empty\">请选择账套</）"
+    ],
+    "确认机制": [
+     "无需",
+     "只读页，无破坏性操作"
+    ],
+    "撤销机制": [
+     "无需",
+     "只读页，无可撤销操作"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无需",
+     "只读页，无批量操作需求"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 1 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "risks",
+   "name": "风险结果与复核",
+   "readonly": false,
+   "evidence": {
+    "page": "risks.html",
+    "scripts": [
+     "risks.js"
+    ],
+    "groups": 12,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [
+      {
+       "line": 264,
+       "text": "<button class=\"btn ghost\" id=\"bk-all\">全选本页</button>"
+      }
+     ],
+     "bulk_buttons": [
+      {
+       "line": 258,
+       "text": "<h3>批量复核 <span class=\"hint\">逐条独立执行；部分失败不回滚，逐条如实回报</span></h3>"
+      },
+      {
+       "line": 978,
+       "text": "async function runBulk() {"
+      },
+      {
+       "line": 991,
+       "text": "try { j = await api('POST', API + '/risks/bulk-review', body); }"
+      },
+      {
+       "line": 992,
+       "text": "catch (e) { alertBox('err', '批量复核失败：' + e.message); return; }"
+      },
+      {
+       "line": 1049,
+       "text": "el('bk-run').onclick = runBulk;"
+      }
+     ]
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 419,
+       "text": "el('tb-risks').innerHTML = '<tr><td colspan=\"9\" class=\"muted\">请先选择稽查项目</td></tr>';"
+      },
+      {
+       "line": 865,
+       "text": "if (!act) { alertBox('err', '请先点击一个复核动作按钮。'); return; }"
+      },
+      {
+       "line": 892,
+       "text": "if (!CID) { el('tb-rect').innerHTML = '<tr><td colspan=\"6\" class=\"muted\">请先选择项目</td></tr>'; return; }"
+      },
+      {
+       "line": 907,
+       "text": "if (!CID) { el('tb-exec').innerHTML = '<tr><td colspan=\"4\" class=\"muted\">请先选择项目</td></tr>'; return; }"
+      },
+      {
+       "line": 940,
+       "text": "el('board-note').textContent = '请先选择稽查项目';"
+      },
+      {
+       "line": 941,
+       "text": "el('tb-stale').innerHTML = '<tr><td colspan=\"3\" class=\"muted\">请先选择项目</td></tr>';"
+      },
+      {
+       "line": 980,
+       "text": "if (!ids.length) { alertBox('warn', '请先在「风险列表」页勾选要处置的风险'); return; }"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 262,
+       "text": "<input type=\"text\" id=\"bk-note\" placeholder=\"理由/说明（排除 / 误报 / 已整改 / 重开 必填）\" style=\"min-width:320px\">"
+      },
+      {
+       "line": 604,
+       "text": "H.push('<div class=\"note-box\"><textarea id=\"d-note\" placeholder=\"理由/说明（标注 * 的动作必填；'"
+      },
+      {
+       "line": 880,
+       "text": "if (!note.trim()) { alertBox('err', '批注内容不能为空。'); return; }"
+      }
+     ]
+    },
+    "confirm": [],
+    "undo": [
+     {
+      "line": 258,
+      "text": "<h3>批量复核 <span class=\"hint\">逐条独立执行；部分失败不回滚，逐条如实回报</span></h3>"
+     },
+     {
+      "line": 262,
+      "text": "<input type=\"text\" id=\"bk-note\" placeholder=\"理由/说明（排除 / 误报 / 已整改 / 重开 必填）\" style=\"min-width:320px\">"
+     }
+    ],
+    "memory": [],
+    "keyboard": [],
+    "flow": "选项目 → 筛选 → 开详情 → 处置（先因后果，符合）"
+   },
+   "verdict": {
+    "操作顺序": [
+     "符合",
+     "选项目 → 筛选 → 开详情 → 处置（先因后果，符合）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 12 个可视分组"
+    ],
+    "默认值": [
+     "无",
+     "表单每次从零填，无预填/默认选中"
+    ],
+    "快捷操作": [
+     "有",
+     "批量/快捷入口 5 处（首个：<h3>批量复核 <span class=\"hint\">逐条独立执行；部分失败不回滚，逐条如实回报</span></h3>）"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 10 处 vs 笼统 0 处（示例：el('tb-risks').innerHTML = '<tr><td colspan=\"9\" class=\"muted\">请先选择稽查项目）"
+    ],
+    "确认机制": [
+     "无",
+     "破坏性操作前无二次确认"
+    ],
+    "撤销机制": [
+     "有",
+     "撤销/恢复类入口 2 处（首个：<h3>批量复核 <span class=\"hint\">逐条独立执行；部分失败不回滚，逐条如实回报</span></h3>）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "有",
+     "全选 + 批量执行（1 + 5 处）"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "reports",
+   "name": "报告生成与导出",
+   "readonly": false,
+   "evidence": {
+    "page": "reports.html",
+    "scripts": [
+     "reports.js"
+    ],
+    "groups": 5,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [
+      {
+       "line": 308,
+       "text": "}).join('') + '<button class=\"btn ghost sm\" id=\"btn-allfmt\">全选</button>'"
+      }
+     ],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 323,
+       "text": "if (!PID) { alertBox('err', '请先选择稽查项目。'); return; }"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 114,
+       "text": "<h3>2. 导出格式与复核标识</h3>"
+      },
+      {
+       "line": 156,
+       "text": "<th>格式</th><th>复核</th><th>风险项</th><th>生成时间</th><th>生成人</th><th>操作</th>"
+      },
+      {
+       "line": 325,
+       "text": "if (!fmts.length) { alertBox('err', '请至少选择一种导出格式。'); return; }"
+      },
+      {
+       "line": 393,
+       "text": "+ '<table class=\"grid\" style=\"margin-top:10px\"><thead><tr><th>格式</th><th>文件名</th>'"
+      }
+     ]
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [],
+    "flow": "选项目 → 选视图/格式 → 生成 → 预览/下载（符合）"
+   },
+   "verdict": {
+    "操作顺序": [
+     "符合",
+     "选项目 → 选视图/格式 → 生成 → 预览/下载（符合）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 5 个可视分组"
+    ],
+    "默认值": [
+     "无",
+     "表单每次从零填，无预填/默认选中"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 5 处 vs 笼统 0 处（示例：if (!PID) { alertBox('err', '请先选择稽查项目。'); return; }）"
+    ],
+    "确认机制": [
+     "无",
+     "破坏性操作前无二次确认"
+    ],
+    "撤销机制": [
+     "无",
+     "无撤销/回收站入口（误操作不可逆）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "templates",
+   "name": "报告模板",
+   "readonly": false,
+   "evidence": {
+    "page": "templates.html",
+    "scripts": [
+     "templates.js"
+    ],
+    "groups": 3,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 244,
+       "text": "if (!tid) { alertBox(\"warn\", \"请填写模板编码\"); return; }"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 283,
+       "text": "+ '内置模板在未覆盖前历史为空，空历史不表示模板不存在）</td></tr>';"
+      }
+     ]
+    },
+    "confirm": [
+     {
+      "line": 260,
+      "text": "if (!window.confirm(\"确认停用模板「\" + tid + \"」？\\n（若它覆盖了内置模板，将回到内置出厂值）\")) return;"
+     }
+    ],
+    "undo": [],
+    "memory": [],
+    "keyboard": [],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 3 个可视分组"
+    ],
+    "默认值": [
+     "无",
+     "表单每次从零填，无预填/默认选中"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 2 处 vs 笼统 0 处（示例：if (!tid) { alertBox(\"warn\", \"请填写模板编码\"); return; }）"
+    ],
+    "确认机制": [
+     "有",
+     "二次确认 1 处（首个：if (!window.confirm(\"确认停用模板「\" + tid + \"」？\\n（若它覆盖了内置模板，将回到内置出厂值）\")) ret）"
+    ],
+    "撤销机制": [
+     "无",
+     "无撤销/回收站入口（误操作不可逆）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "rule_versions",
+   "name": "规则版本",
+   "readonly": false,
+   "evidence": {
+    "page": "rule_versions.html",
+    "scripts": [
+     "rule_versions.js"
+    ],
+    "groups": 4,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 200,
+       "text": "if (!v) { alertBox(\"warn\", \"请填写版本号（格式 YYYY.NN）\"); return; }"
+      },
+      {
+       "line": 211,
+       "text": "if (!v) { alertBox(\"warn\", \"请填写要回滚到的版本号\"); return; }"
+      },
+      {
+       "line": 224,
+       "text": "if (!a || !b) { alertBox(\"warn\", \"请填写两个版本号\"); return; }"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 200,
+       "text": "if (!v) { alertBox(\"warn\", \"请填写版本号（格式 YYYY.NN）\"); return; }"
+      }
+     ]
+    },
+    "confirm": [
+     {
+      "line": 212,
+      "text": "if (!window.confirm(\"确认回滚到版本「\" + v + \"」？\\n（回滚会变更『当前生效版本』，并留痕）\")) return;"
+     }
+    ],
+    "undo": [
+     {
+      "line": 68,
+      "text": "<h3>版本清单 <span class=\"muted\">出厂历史 + 发布/回滚事件（同一版本以事件为准）</span></h3>"
+     },
+     {
+      "line": 79,
+      "text": "<h3>发布 / 回滚</h3>"
+     },
+     {
+      "line": 87,
+      "text": "<button class=\"btn ghost\" id=\"btn-rollback\" data-perm=\"ruleversion.manage\">回滚到该版本</button>"
+     },
+     {
+      "line": 209,
+      "text": "async function rollback() {"
+     },
+     {
+      "line": 211,
+      "text": "if (!v) { alertBox(\"warn\", \"请填写要回滚到的版本号\"); return; }"
+     },
+     {
+      "line": 212,
+      "text": "if (!window.confirm(\"确认回滚到版本「\" + v + \"」？\\n（回滚会变更『当前生效版本』，并留痕）\")) return;"
+     },
+     {
+      "line": 214,
+      "text": "var j = await api(\"POST\", API + \"/rule-versions/rollback\","
+     },
+     {
+      "line": 216,
+      "text": "alertBox(\"ok\", j.message || \"已回滚\");"
+     },
+     {
+      "line": 218,
+      "text": "} catch (e) { alertBox(\"err\", \"回滚失败：\" + e.message); }"
+     },
+     {
+      "line": 257,
+      "text": "el(\"btn-rollback\").onclick = rollback;"
+     }
+    ],
+    "memory": [],
+    "keyboard": [],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 4 个可视分组"
+    ],
+    "默认值": [
+     "无",
+     "表单每次从零填，无预填/默认选中"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 4 处 vs 笼统 0 处（示例：if (!v) { alertBox(\"warn\", \"请填写版本号（格式 YYYY.NN）\"); return; }）"
+    ],
+    "确认机制": [
+     "有",
+     "二次确认 1 处（首个：if (!window.confirm(\"确认回滚到版本「\" + v + \"」？\\n（回滚会变更『当前生效版本』，并留痕）\")) retur）"
+    ],
+    "撤销机制": [
+     "有",
+     "撤销/恢复类入口 10 处（首个：<h3>版本清单 <span class=\"muted\">出厂历史 + 发布/回滚事件（同一版本以事件为准）</span></h3>）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "legal_library",
+   "name": "法规库",
+   "readonly": true,
+   "evidence": {
+    "page": "legal_library.html",
+    "scripts": [
+     "legal_library.js"
+    ],
+    "groups": 3,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": []
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [
+     {
+      "line": 275,
+      "text": "el(\"q\").addEventListener(\"keydown\", function (e) {"
+     },
+     {
+      "line": 276,
+      "text": "if (e.key === \"Enter\") { PAGE = 1; loadEntries(); }"
+     }
+    ],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 3 个可视分组"
+    ],
+    "默认值": [
+     "无需",
+     "只读检索页，无表单默认值需求"
+    ],
+    "快捷操作": [
+     "部分",
+     "无批量入口；有筛选/重置等检索快捷（只读页可接受）"
+    ],
+    "错误提示": [
+     "无提示",
+     "未发现前端错误提示文案"
+    ],
+    "确认机制": [
+     "无需",
+     "只读页，无破坏性操作"
+    ],
+    "撤销机制": [
+     "无需",
+     "只读页，无可撤销操作"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无需",
+     "只读页，无批量操作需求"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 2 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "legal_topics",
+   "name": "法规专题",
+   "readonly": true,
+   "evidence": {
+    "page": "legal_topics.html",
+    "scripts": [
+     "legal_topics.js"
+    ],
+    "groups": 2,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 103,
+       "text": "<div id=\"detail\"><div class=\"card\"><div class=\"body muted\">← 请选择一个专题查看详情</div></div></div>"
+      }
+     ],
+     "with_reason": []
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [
+     {
+      "line": 437,
+      "text": "el(\"topic-q\").addEventListener(\"keydown\", function (e) {"
+     },
+     {
+      "line": 438,
+      "text": "if (e.key === \"Enter\") { loadTopics(); }"
+     }
+    ],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 2 个可视分组"
+    ],
+    "默认值": [
+     "无需",
+     "只读检索页，无表单默认值需求"
+    ],
+    "快捷操作": [
+     "部分",
+     "无批量入口；有筛选/重置等检索快捷（只读页可接受）"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 1 处 vs 笼统 0 处（示例：<div id=\"detail\"><div class=\"card\"><div class=\"body muted\">← 请选择一个专题查看）"
+    ],
+    "确认机制": [
+     "无需",
+     "只读页，无破坏性操作"
+    ],
+    "撤销机制": [
+     "无需",
+     "只读页，无可撤销操作"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无需",
+     "只读页，无批量操作需求"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 2 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "legal_materials",
+   "name": "案例·解读·问答",
+   "readonly": true,
+   "evidence": {
+    "page": "legal_materials.html",
+    "scripts": [
+     "legal_materials.js"
+    ],
+    "groups": 2,
+    "defaults": {
+     "selected": [
+      {
+       "line": 190,
+       "text": "return '<option value=\"' + esc(k) + '\"' + (KIND === k ? \" selected\" : \"\") + \">\" + esc(k) +"
+      }
+     ],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": []
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [
+     {
+      "line": 303,
+      "text": "el(\"q\").addEventListener(\"keydown\", function (e) {"
+     },
+     {
+      "line": 304,
+      "text": "if (e.key === \"Enter\") { PAGE = 1; loadList(); }"
+     }
+    ],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 2 个可视分组"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 1 处（首个：return '<option value=\"' + esc(k) + '\"' + (KIND === k ? \" selected\" : ）"
+    ],
+    "快捷操作": [
+     "部分",
+     "无批量入口；有筛选/重置等检索快捷（只读页可接受）"
+    ],
+    "错误提示": [
+     "无提示",
+     "未发现前端错误提示文案"
+    ],
+    "确认机制": [
+     "无需",
+     "只读页，无破坏性操作"
+    ],
+    "撤销机制": [
+     "无需",
+     "只读页，无可撤销操作"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无需",
+     "只读页，无批量操作需求"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 2 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "industry",
+   "name": "行业指标库",
+   "readonly": true,
+   "evidence": {
+    "page": "industry_indicators.html",
+    "scripts": [
+     "industry_indicators.js"
+    ],
+    "groups": 4,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": []
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [
+     {
+      "line": 270,
+      "text": "el(\"q\").addEventListener(\"keydown\", function (e) { if (e.key === \"Enter\") { loadList(); } });"
+     }
+    ],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 4 个可视分组"
+    ],
+    "默认值": [
+     "无需",
+     "只读检索页，无表单默认值需求"
+    ],
+    "快捷操作": [
+     "部分",
+     "无批量入口；有筛选/重置等检索快捷（只读页可接受）"
+    ],
+    "错误提示": [
+     "无提示",
+     "未发现前端错误提示文案"
+    ],
+    "确认机制": [
+     "无需",
+     "只读页，无破坏性操作"
+    ],
+    "撤销机制": [
+     "无需",
+     "只读页，无可撤销操作"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无需",
+     "只读页，无批量操作需求"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 1 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "dashboard",
+   "name": "数据大屏",
+   "readonly": true,
+   "evidence": {
+    "page": "dashboard.html",
+    "scripts": [
+     "dashboard.js"
+    ],
+    "groups": 8,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": [
+      {
+       "line": 187,
+       "text": "if (P.capped) { w.push('<div class=\"msg warn\">项目数超出扫描上限（' + meta.caps.projects +"
+      }
+     ]
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 8 个可视分组"
+    ],
+    "默认值": [
+     "无需",
+     "只读检索页，无表单默认值需求"
+    ],
+    "快捷操作": [
+     "部分",
+     "无批量入口；有筛选/重置等检索快捷（只读页可接受）"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 1 处 vs 笼统 0 处（示例：if (P.capped) { w.push('<div class=\"msg warn\">项目数超出扫描上限（' + meta.caps.）"
+    ],
+    "确认机制": [
+     "无需",
+     "只读页，无破坏性操作"
+    ],
+    "撤销机制": [
+     "无需",
+     "只读页，无可撤销操作"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无需",
+     "只读页，无批量操作需求"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "users",
+   "name": "用户管理",
+   "readonly": false,
+   "evidence": {
+    "page": "users.html",
+    "scripts": [],
+    "groups": 1,
+    "defaults": {
+     "selected": [
+      {
+       "line": 84,
+       "text": "<option value=\"20\" selected>20 条/页</option>"
+      }
+     ],
+     "value_prefill": [
+      {
+       "line": 262,
+       "text": "return '<label><input type=\"checkbox\" value=\"' + esc(r.code) + '\"' + on + \"> \""
+      }
+     ],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": [
+      {
+       "line": 336,
+       "text": "if (!body.username || !body.password) { showMsg(\"用户名与初始口令必填\", false); return; }"
+      }
+     ]
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [
+     {
+      "line": 389,
+      "text": "$(\"q\").addEventListener(\"keydown\", function (e) {"
+     },
+     {
+      "line": 390,
+      "text": "if (e.key === \"Enter\") { state.page = 1; load(); } });"
+     }
+    ],
+    "flow": "新建 → 填用户名/口令 → 选角色 → 保存（口令在角色前，符合直觉）"
+   },
+   "verdict": {
+    "操作顺序": [
+     "符合",
+     "新建 → 填用户名/口令 → 选角色 → 保存（口令在角色前，符合直觉）"
+    ],
+    "信息分组": [
+     "偏单块",
+     "页面内仅 1 个分组（信息未分区）"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 2 处（首个：<option value=\"20\" selected>20 条/页</option>）"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 1 处 vs 笼统 0 处（示例：if (!body.username || !body.password) { showMsg(\"用户名与初始口令必填\", false); ）"
+    ],
+    "确认机制": [
+     "无",
+     "破坏性操作前无二次确认"
+    ],
+    "撤销机制": [
+     "无",
+     "无撤销/回收站入口（误操作不可逆）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 2 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "roles",
+   "name": "角色管理",
+   "readonly": false,
+   "evidence": {
+    "page": "roles.html",
+    "scripts": [],
+    "groups": 3,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [
+      {
+       "line": 198,
+       "text": "return '<label><input type=\"checkbox\" value=\"' + esc(p.code) + '\"> '"
+      }
+     ],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": [
+      {
+       "line": 153,
+       "text": "$(\"tbody\").innerHTML = '<tr><td colspan=\"6\" class=\"empty\">无权限查看</td></tr>';"
+      },
+      {
+       "line": 210,
+       "text": "if (!body.code || !body.name) { showMsg(\"角色编码与名称必填\", false); return; }"
+      }
+     ]
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 3 个可视分组"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 1 处（首个：return '<label><input type=\"checkbox\" value=\"' + esc(p.code) + '\"> '）"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 2 处 vs 笼统 0 处（示例：$(\"tbody\").innerHTML = '<tr><td colspan=\"6\" class=\"empty\">无权限查看</td></）"
+    ],
+    "确认机制": [
+     "无",
+     "破坏性操作前无二次确认"
+    ],
+    "撤销机制": [
+     "无",
+     "无撤销/回收站入口（误操作不可逆）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "audit_logs",
+   "name": "审计日志",
+   "readonly": true,
+   "evidence": {
+    "page": "audit_logs.html",
+    "scripts": [],
+    "groups": 1,
+    "defaults": {
+     "selected": [
+      {
+       "line": 71,
+       "text": "<option value=\"50\" selected>50 条/页</option>"
+      }
+     ],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": [
+      {
+       "line": 129,
+       "text": "$(\"tbody\").innerHTML = '<tr><td colspan=\"7\" class=\"empty\">无权限查看</td></tr>';"
+      }
+     ]
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [
+     {
+      "line": 183,
+      "text": "$(\"q\").addEventListener(\"keydown\", function (e) { if (e.key === \"Enter\") { state.page = 1; load(); } });"
+     }
+    ],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "偏单块",
+     "页面内仅 1 个分组（信息未分区）"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 1 处（首个：<option value=\"50\" selected>50 条/页</option>）"
+    ],
+    "快捷操作": [
+     "部分",
+     "无批量入口；有筛选/重置等检索快捷（只读页可接受）"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 1 处 vs 笼统 0 处（示例：$(\"tbody\").innerHTML = '<tr><td colspan=\"7\" class=\"empty\">无权限查看</td></）"
+    ],
+    "确认机制": [
+     "无需",
+     "只读页，无破坏性操作"
+    ],
+    "撤销机制": [
+     "无需",
+     "只读页，无可撤销操作"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无需",
+     "只读页，无批量操作需求"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 1 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  },
+  {
+   "key": "ai_assist",
+   "name": "AI 辅助",
+   "readonly": false,
+   "evidence": {
+    "page": "ai_assist.html",
+    "scripts": [
+     "ai_assist.js"
+    ],
+    "groups": 3,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": []
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 3 个可视分组"
+    ],
+    "默认值": [
+     "无",
+     "表单每次从零填，无预填/默认选中"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "无提示",
+     "未发现前端错误提示文案"
+    ],
+    "确认机制": [
+     "无",
+     "破坏性操作前无二次确认"
+    ],
+    "撤销机制": [
+     "无",
+     "无撤销/回收站入口（误操作不可逆）"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "tax_models",
+   "name": "多税种模型",
+   "readonly": true,
+   "evidence": {
+    "page": "tax_models.html",
+    "scripts": [
+     "tax_models.js"
+    ],
+    "groups": 3,
+    "defaults": {
+     "selected": [],
+     "value_prefill": [],
+     "localStorage": []
+    },
+    "batch": {
+     "select_all": [],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [],
+     "with_reason": []
+    },
+    "confirm": [],
+    "undo": [],
+    "memory": [],
+    "keyboard": [],
+    "flow": ""
+   },
+   "verdict": {
+    "操作顺序": [
+     "未取证",
+     "无真跑主流程记录（只读页/辅助页）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 3 个可视分组"
+    ],
+    "默认值": [
+     "无需",
+     "只读检索页，无表单默认值需求"
+    ],
+    "快捷操作": [
+     "部分",
+     "无批量入口；有筛选/重置等检索快捷（只读页可接受）"
+    ],
+    "错误提示": [
+     "无提示",
+     "未发现前端错误提示文案"
+    ],
+    "确认机制": [
+     "无需",
+     "只读页，无破坏性操作"
+    ],
+    "撤销机制": [
+     "无需",
+     "只读页，无可撤销操作"
+    ],
+    "记忆机制": [
+     "无",
+     "不记住筛选/选择，每次重新选"
+    ],
+    "批量操作": [
+     "无需",
+     "只读页，无批量操作需求"
+    ],
+    "键盘操作": [
+     "无",
+     "无键盘快捷键（只能鼠标）"
+    ]
+   }
+  },
+  {
+   "key": "tax_doc_analysis",
+   "name": "资料风险分析报告",
+   "readonly": false,
+   "evidence": {
+    "page": "index.html",
+    "scripts": [
+     "tax-doc-analysis.js"
+    ],
+    "groups": 10,
+    "defaults": {
+     "selected": [
+      {
+       "line": 9557,
+       "text": "'<option value=\"0.85\">0.85x 新闻联播</option><option value=\"1.0\" selected>1.0x 标准</option><option value=\"1.15\">1.15x 略快</opt"
+      }
+     ],
+     "value_prefill": [],
+     "localStorage": [
+      {
+       "line": 2744,
+       "text": "localStorage.setItem('_tax_engine_new_analysis', JSON.stringify({"
+      }
+     ]
+    },
+    "batch": {
+     "select_all": [
+      {
+       "line": 757,
+       "text": "+ '<label><input type=\"checkbox\" onchange=\"toggleAllTdaDocs(this)\" style=\"margin-right:4px\">全选</label>'"
+      }
+     ],
+     "bulk_buttons": []
+    },
+    "errors": {
+     "generic": [],
+     "specific": [
+      {
+       "line": 277,
+       "text": "需要恢复文件导入弹窗时，请先补齐上述 10 个渲染函数再重新引回本行。 -->"
+      },
+      {
+       "line": 493,
+       "text": "+ '暂无分析报告。<br>请先在「📎 资料上传与管理」上传资料，再到「⚡ 一键稽查分析任务」发起分析；'"
+      },
+      {
+       "line": 944,
+       "text": "if (boxes.length === 0) { toast('请先选择要删除的资料', 'warning'); return; }"
+      },
+      {
+       "line": 2484,
+       "text": "if (!cid) { toast('请先选择公司账套', 'error'); return; }"
+      },
+      {
+       "line": 4649,
+       "text": "if (!content.trim()) { alert(\"请输入编辑内容\"); return; }"
+      },
+      {
+       "line": 8579,
+       "text": "if (!content) { toast('请填写内容', 'warning'); return; }"
+      },
+      {
+       "line": 8890,
+       "text": "recipient = prompt('请输入正式报告接收对象（企业、部门或人员）：', (report.target_entity || {}).name || '本企业管理层');"
+      },
+      {
+       "line": 8892,
+       "text": "purpose = prompt('请输入本次正式交付用途：', '企业内部税务合规决策');"
+      }
+     ],
+     "with_reason": [
+      {
+       "line": 725,
+       "text": "if (!listEl) { console.error('[tax-doc] tda-file-list 元素不存在'); return; }"
+      },
+      {
+       "line": 4829,
+       "text": "alert('您的浏览器不支持语音识别，请使用Chrome浏览器。');"
+      },
+      {
+       "line": 6270,
+       "text": "+ '亦不因本报告未列出而视为不存在；此类方向须由风险检查员结合外部数据与下户取证另行核实。</p>' +"
+      }
+     ]
+    },
+    "confirm": [
+     {
+      "line": 870,
+      "text": "if (!confirm('确认删除该文件？')) return;"
+     },
+     {
+      "line": 950,
+      "text": "if (!confirm('确定删除选中的 ' + ids.length + ' 个文件？')) return;"
+     },
+     {
+      "line": 9032,
+      "text": "if (!confirm('确定要删除当前报告吗？将清除该账套的报告缓存、分析历史、检查点与中转站明细。')) return;"
+     },
+     {
+      "line": 10703,
+      "text": "if (!confirm('确认清除所有解析缓存？下次分析需要重新解析文件。')) return;"
+     }
+    ],
+    "undo": [
+     {
+      "line": 133,
+      "text": "<div id=\"nav-rule-versions\" class=\"nav-item\" data-perm=\"report.view\" onclick=\"location.href='/rule-versions'\" title=\"规则版"
+     },
+     {
+      "line": 269,
+      "text": "<!-- ★ 2026-10-07：原 `/static/js/file-import.js` 已下线（移入 data/trash/，可恢复）。"
+     },
+     {
+      "line": 277,
+      "text": "需要恢复文件导入弹窗时，请先补齐上述 10 个渲染函数再重新引回本行。 -->"
+     },
+     {
+      "line": 575,
+      "text": "console.warn('[tax-doc] 最近一次分析报告恢复失败', error);"
+     },
+     {
+      "line": 3224,
+      "text": "'<span>重新出现 ' + (rcnt.reopened_risks||0) + '</span>' +"
+     },
+     {
+      "line": 5724,
+      "text": "area._exportReopened = [];"
+     },
+     {
+      "line": 5727,
+      "text": "area._exportReopened.push(closed[i]);"
+     },
+     {
+      "line": 5732,
+      "text": "if (!area || !area._exportReopened) return;"
+     },
+     {
+      "line": 5733,
+      "text": "for (var i = 0; i < area._exportReopened.length; i++) {"
+     },
+     {
+      "line": 5734,
+      "text": "area._exportReopened[i].removeAttribute('open');"
+     },
+     {
+      "line": 5736,
+      "text": "area._exportReopened = null;"
+     }
+    ],
+    "memory": [
+     {
+      "line": 2744,
+      "text": "localStorage.setItem('_tax_engine_new_analysis', JSON.stringify({"
+     }
+    ],
+    "keyboard": [
+     {
+      "line": 5788,
+      "text": "if (item.key === 'cost_recon_detail') {"
+     }
+    ],
+    "flow": "选项目 → 上传/选资料 → 一键分析 → 看报告 → 导出（符合）"
+   },
+   "verdict": {
+    "操作顺序": [
+     "符合",
+     "选项目 → 上传/选资料 → 一键分析 → 看报告 → 导出（符合）"
+    ],
+    "信息分组": [
+     "合理",
+     "页面内 10 个可视分组"
+    ],
+    "默认值": [
+     "有",
+     "预填/默认选中 1 处（首个：'<option value=\"0.85\">0.85x 新闻联播</option><option value=\"1.0\" selected>）"
+    ],
+    "快捷操作": [
+     "无",
+     "无批量/快捷入口，需逐条操作"
+    ],
+    "错误提示": [
+     "明确",
+     "具体提示 11 处 vs 笼统 0 处（示例：需要恢复文件导入弹窗时，请先补齐上述 10 个渲染函数再重新引回本行。 -->）"
+    ],
+    "确认机制": [
+     "有",
+     "二次确认 4 处（首个：if (!confirm('确认删除该文件？')) return;）"
+    ],
+    "撤销机制": [
+     "有",
+     "撤销/恢复类入口 11 处（首个：<div id=\"nav-rule-versions\" class=\"nav-item\" data-perm=\"report.view\" o）"
+    ],
+    "记忆机制": [
+     "有",
+     "1 处本地记忆（键示例：_tax_engine_new_analysis）"
+    ],
+    "批量操作": [
+     "无",
+     "只能逐条操作"
+    ],
+    "键盘操作": [
+     "部分",
+     "键盘事件 1 处（含 Enter/Esc 等），无系统化快捷键"
+    ]
+   }
+  }
+ ],
+ "dimensions": [
+  "操作顺序",
+  "信息分组",
+  "默认值",
+  "快捷操作",
+  "错误提示",
+  "确认机制",
+  "撤销机制",
+  "记忆机制",
+  "批量操作",
+  "键盘操作"
+ ],
+ "tally": {
+  "操作顺序": {
+   "未取证": 13,
+   "符合": 8
+  },
+  "信息分组": {
+   "合理": 18,
+   "偏单块": 3
+  },
+  "默认值": {
+   "有": 9,
+   "无": 6,
+   "无需": 6
+  },
+  "快捷操作": {
+   "无": 10,
+   "有": 3,
+   "部分": 8
+  },
+  "错误提示": {
+   "明确": 16,
+   "无提示": 5
+  },
+  "确认机制": {
+   "有": 7,
+   "无": 6,
+   "无需": 8
+  },
+  "撤销机制": {
+   "有": 6,
+   "无": 7,
+   "无需": 8
+  },
+  "记忆机制": {
+   "有": 4,
+   "无": 17
+  },
+  "批量操作": {
+   "无": 10,
+   "有": 3,
+   "无需": 8
+  },
+  "键盘操作": {
+   "无": 11,
+   "部分": 10
+  }
+ }
+}

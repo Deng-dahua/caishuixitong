@@ -1,0 +1,162 @@
+{
+ "stage10": [
+  {
+   "type": "需求文档",
+   "verdict": "部分完整",
+   "standalone": false,
+   "problem": "有《需求规格与概要设计_V1.0.md》（docs/），但后续 12 个批次的增量需求散落在各批次报告里，**无统一的需求基线**（哪条需求已实现、哪条变更过，无法一处查全）。"
+  },
+  {
+   "type": "设计文档（架构）",
+   "verdict": "完整",
+   "standalone": true,
+   "problem": "README + 《需求规格与概要设计》+ 各批次设计文档；模块职责多写在源码 docstring 里（如 legal_*/report_* 的分层）。可读、可追溯。"
+  },
+  {
+   "type": "设计文档（数据库）",
+   "verdict": "**不完整**",
+   "standalone": false,
+   "problem": "**无独立表结构文档**。42+ 张表的字段与语义只能读 `database.py` / 各 `*_store.py` 的 `CREATE TABLE` 与 ORM 注释；无 ER 图、无字段字典。交接成本高。"
+  },
+  {
+   "type": "设计文档（接口）",
+   "verdict": "完整",
+   "standalone": true,
+   "problem": "FastAPI 自带 OpenAPI（289 条路由自动生成 schema），`/docs` 与 `/redoc` 可用（**但被登录拦截，见下**）。"
+  },
+  {
+   "type": "API 文档",
+   "verdict": "部分可用",
+   "standalone": true,
+   "problem": "**`/docs`、`/redoc`、`/openapi.json` 实测均 302 → 重定向到登录页**：开发者拿到 schema 前必须先有账号。功能存在、可达性受限。"
+  },
+  {
+   "type": "部署文档",
+   "verdict": "**不完整**",
+   "standalone": false,
+   "problem": "**无独立部署手册**（标题级检索 0 篇）。README 有首次启动 4 步 + 生产部署 6 条要点，质量不错；但**端口写错**：README 说 `http://127.0.0.1:8000`，实际 `start8001.bat` 是 `set PORT=8001` ⇒ **照 README 操作会访问失败**。"
+  },
+  {
+   "type": "运维文档",
+   "verdict": "**缺失**",
+   "standalone": false,
+   "problem": "**无运维手册**：日志在哪（`data/logs/`）、常见故障怎么判（如 `readonly database`、端口未监听）、巡检做什么，都没有成文。本轮遇到的多个运维问题只能靠现场排查。"
+  },
+  {
+   "type": "用户手册",
+   "verdict": "**缺失**",
+   "standalone": false,
+   "problem": "**无面向最终用户的操作手册**。用户只能靠自己摸索界面；阶段 4 的「可学习性」评分偏低（3.79）与这里互为因果。"
+  },
+  {
+   "type": "测试文档",
+   "verdict": "完整",
+   "standalone": true,
+   "problem": "`tests/` 内 2000+ 用例（本轮全量跑 2209 passed）；`docs/` 下有失败样例、回归报告、反向验证记录。可复跑、可追溯。"
+  },
+  {
+   "type": "变更日志",
+   "verdict": "**不完整**",
+   "standalone": false,
+   "problem": "**无连续 CHANGELOG**（`CHANGELOG.md` 不存在）。变更有记录，但形式是**按批次/按专项的报告**（如“第01批…”“元质量…报告”），不是按版本累计的变更流。"
+  },
+  {
+   "type": "知识库（FAQ/最佳实践）",
+   "verdict": "部分完整",
+   "standalone": true,
+   "problem": "有大量**开发侧**知识（MEMORY.md、各类基线文档、裁决记录）；**无用户侧 FAQ**。开发者能查，使用者查不到。"
+  }
+ ],
+ "stage11": [
+  {
+   "stage": "持续集成",
+   "auto": "无",
+   "standalone": false,
+   "problem": "**无 CI 配置**（`.github/`、`.gitlab-ci.yml`、`Jenkinsfile` 全部不存在）。提交代码不会自动构建。"
+  },
+  {
+   "stage": "持续测试",
+   "auto": "无（有手动脚本）",
+   "standalone": false,
+   "problem": "无自动化测试流水线；但有 **62 个 `_verify_*.py` 脚本 + 2209 条 pytest 用例**，可手动一键跑。能力有、自动化没有。"
+  },
+  {
+   "stage": "持续部署",
+   "auto": "无",
+   "standalone": false,
+   "problem": "部署方式：手动双击 `start8001.bat`（或 `start.sh`）。"
+  },
+  {
+   "stage": "蓝绿部署",
+   "auto": "无",
+   "standalone": false,
+   "problem": "单实例单端口，无蓝绿。"
+  },
+  {
+   "stage": "灰度发布",
+   "auto": "无",
+   "standalone": false,
+   "problem": "无流量切分能力。"
+  },
+  {
+   "stage": "回滚",
+   "auto": "部分",
+   "standalone": false,
+   "problem": "**代码**可回滚（git 有完整历史，本轮已用 `git checkout` 恢复过文件）；**数据**无版本化（DB 无迁移框架，回滚代码不保证兼容旧表结构）。"
+  },
+  {
+   "stage": "版本管理",
+   "auto": "部分",
+   "standalone": false,
+   "problem": "git 提交历史完整（本轮新增 4 次提交）；但 **0 个 tag**，无版本号体系 ⇒ 「当前是哪个版本」只能靠 commit hash。报告里有 `V81/V84` 等版本号，但那是**报告版本**不是**系统版本**。"
+  },
+  {
+   "stage": "环境管理",
+   "auto": "部分",
+   "standalone": true,
+   "problem": "有 `APP_DATA_DIR` 环境变量隔离（本轮所有测试都用独立目录，**机制有效**）；但无「开发/测试/生产」三套配置文件的约定，也没有环境标识。"
+  }
+ ],
+ "stage12": [
+  {
+   "dim": "可解释性",
+   "verdict": "符合",
+   "proof": "每条风险都带「依据」：`engine/legal_citation.py`（法条引用）+ `evidence_chain.py`（证据链）+ `determination_criteria`（认定要件）。**风险等级不因复核而改动**（复核只改处置状态），避免「人说了算」。"
+  },
+  {
+   "dim": "可审计性",
+   "verdict": "符合",
+   "proof": "240 处审计埋点 + `audit_trail` 唯一权威 + `user_id` 可追溯改名/重名；报告的复核标识由**处置记录推断**（不靠手填）。"
+  },
+  {
+   "dim": "无偏见",
+   "verdict": "**部分符合**",
+   "proof": "无「按企业规模/地区/行业差别对待」的规则（规则按事实条件判定，不按主体属性）；但**未做偏见测试**（如同一事实、不同行业名，结论是否一致）。代码内偏见/公平相关守卫仅 6 处，且多为文本。"
+  },
+  {
+   "dim": "人工复核",
+   "verdict": "符合",
+   "proof": "5 态复核状态机 + `review_expert` 独立复核岗（不导出报告）+ 批量复核上限（`BULK_LIMIT`）+ 「转人工」动作（不改状态、只打标记）。"
+  },
+  {
+   "dim": "免责声明",
+   "verdict": "符合",
+   "proof": "报告内「（见报告性质和使用说明）」+ 页脚性质说明；`output_variants` 有内部/对外版差异（对外版剔除内部字段，**但保留主体与金额**——按用户铁律不脱敏主体）。"
+  },
+  {
+   "dim": "数据合规",
+   "verdict": "**部分符合**",
+   "proof": "数据来源为**企业自有财务资料**与公开法规；法规正文经官方源入库且带 provenance；**但**：无正式《数据处理说明》，用户也不被显式告知数据用途。"
+  },
+  {
+   "dim": "用户知情",
+   "verdict": "**不符合**",
+   "proof": "**无知情同意流程**：账号由管理员开通、用户直接使用，未见「数据处理告知与同意」页面/勾选。"
+  },
+  {
+   "dim": "隐私保护",
+   "verdict": "**部分符合**",
+   "proof": "有脱敏权威（`engine/redaction.py`）与最小必要原则文本；**缺**：留存期限成文规定、用户删除请求的处理路径。"
+  }
+ ]
+}

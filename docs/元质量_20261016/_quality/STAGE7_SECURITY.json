@@ -1,0 +1,167 @@
+{
+ "generated_at": "2026-10-17T16:28:49+08:00",
+ "base": "http://127.0.0.1:8024",
+ "results": [
+  {
+   "id": "A1",
+   "dim": "认证",
+   "title": "未登录访问 /api/v1/projects",
+   "expect": "期望 401/302",
+   "status": 401,
+   "body": "{\"ok\":false,\"message\":\"请先登录\",\"code\":401}"
+  },
+  {
+   "id": "A1",
+   "dim": "认证",
+   "title": "未登录访问 /api/auth/me",
+   "expect": "期望 401/302",
+   "status": 401,
+   "body": "{\"ok\":false,\"message\":\"请先登录\",\"code\":401}"
+  },
+  {
+   "id": "A1",
+   "dim": "认证",
+   "title": "未登录访问 /api/v1/risks/review-board?company_id=1",
+   "expect": "期望 401/302",
+   "status": 401,
+   "body": "{\"ok\":false,\"message\":\"请先登录\",\"code\":401}"
+  },
+  {
+   "id": "A2",
+   "dim": "防攻击",
+   "title": "有会话无 CSRF 头的写操作",
+   "expect": "期望 403",
+   "status": 403,
+   "body": "{\"ok\":false,\"message\":\"CSRF 校验失败\"}"
+  },
+  {
+   "id": "A3",
+   "dim": "授权",
+   "title": "审计员读 company_id=99999 的复核看板",
+   "expect": "期望 403/404",
+   "status": 404,
+   "body": "{\"detail\":\"账套不存在或无权访问\"}"
+  },
+  {
+   "id": "A3",
+   "dim": "授权",
+   "title": "审计员读项目 6 的风险列表",
+   "expect": "期望 403/200(若授权)",
+   "status": 200,
+   "body": "{\"available\":false,\"reason\":\"该账套尚未生成报告载荷（请先执行一键分析）\",\"items\":[],\"total\":0,\"page\":1,\"page_size\":0,\"generated_at\":\"\",\"filter_stats\":{},\"review_summary\":{},\"project_id\":6}"
+  },
+  {
+   "id": "A4",
+   "dim": "授权",
+   "title": "审计员创建用户",
+   "expect": "期望 403",
+   "status": 403,
+   "body": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：auditor）\"}"
+  },
+  {
+   "id": "A4",
+   "dim": "授权",
+   "title": "企业财务创建用户",
+   "expect": "期望 403",
+   "status": 403,
+   "body": "{\"detail\":\"无权执行该操作（需要权限：user.manage；当前角色：enterprise_finance）\"}"
+  },
+  {
+   "id": "A4",
+   "dim": "授权",
+   "title": "审计员删项目 6",
+   "expect": "期望 403",
+   "status": 403,
+   "body": "{\"detail\":\"无权执行该操作（需要权限：project.write；当前角色：auditor）\"}"
+  },
+  {
+   "id": "A5",
+   "dim": "防攻击",
+   "title": "项目搜索注入 ' OR 1=1--",
+   "expect": "期望不返回全量、不 500",
+   "status": 200,
+   "body": "{\"items\":[],\"total\":0,\"page\":1,\"page_size\":5,\"pages\":0}"
+  },
+  {
+   "id": "A5",
+   "dim": "防攻击",
+   "title": "风险列表 id 注入 1 OR 1=1",
+   "expect": "期望 4xx/不 500",
+   "status": 404,
+   "body": "{\"detail\":\"风险事项不存在\"}"
+  },
+  {
+   "id": "A6",
+   "dim": "防攻击",
+   "title": "字段写入 <script> 后回读",
+   "expect": "JSON 原样返回（转义责任在前端）；不得在服务端拼进 HTML",
+   "status": 200,
+   "body": "回读含原始 script 标签=True（JSON 通道正常）；{\"id\":6,\"company_id\":2,\"code\":\"PJ-20261016-0001\",\"name\":\"元质量模拟·2025年度税务风险自查\",\"taxpayer_id\":\"91440300MA5SIMQ2X1\",\"industry\":\"\",\"region\":\"\",\"period_start\":\"\",\"per"
+  },
+  {
+   "id": "A7",
+   "dim": "防攻击",
+   "title": "路径遍历 /static/../security.py",
+   "expect": "期望 400/404",
+   "status": 404,
+   "body": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>页面不存在 - 财税风险防控系统</title>\n<style>\n  body{margin:0;background:#f8fafc;color:#0"
+  },
+  {
+   "id": "A7",
+   "dim": "防攻击",
+   "title": "路径遍历 /static/%2e%2e/security.py",
+   "expect": "期望 400/404",
+   "status": 404,
+   "body": "{\"detail\":\"Not Found\"}"
+  },
+  {
+   "id": "A7",
+   "dim": "防攻击",
+   "title": "路径遍历 /static/js/../../main.py",
+   "expect": "期望 400/404",
+   "status": 404,
+   "body": "<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>页面不存在 - 财税风险防控系统</title>\n<style>\n  body{margin:0;background:#f8fafc;color:#0"
+  },
+  {
+   "id": "A8",
+   "dim": "防泄露",
+   "title": "不存在的账套错误信息",
+   "expect": "期望不含堆栈/绝对路径",
+   "status": 200,
+   "body": "{\"total\":0,\"by_state\":{\"pending\":0,\"confirmed\":0,\"excluded\":0,\"rectified\":0,\"false_positive\":0},\"by_state_cn\":{\"待处理\":0,\"已确认\":0,\"已排除\":0,\"已整改\":0,\"误报\":0},\"done\":0,\"done_ratio\":0.0,\"stale_days\":3,\"overdue\":[],\"overdue_count\""
+  },
+  {
+   "id": "A9",
+   "dim": "脱敏",
+   "title": "审计日志列表是否掩码用户名",
+   "expect": "期望掩码或按权限",
+   "status": 200,
+   "body": "{\"items\":[{\"id\":1917,\"company_id\":2,\"user_name\":\"sim_admin\",\"action\":\"project.update\",\"target\":\"PJ-20261016-0001\",\"detail\":\"更新项目字段：remark\",\"created_at\":\"2026-10-17T16:28:48+08:00\",\"user_id\":7,\"action_cn\":\"项目修改\"},{\"id\":19"
+  },
+  {
+   "id": "A10",
+   "dim": "认证",
+   "title": "退出后重用旧 cookie",
+   "expect": "期望 401",
+   "status": 401,
+   "body": "{\"ok\":false,\"message\":\"请先登录\",\"code\":401}"
+  }
+ ],
+ "detail": {
+  "sqli_projects_total": 0,
+  "xss_echo_raw": true,
+  "a8_leak": false
+ },
+ "code_facts": {
+  "csrf_hits": 24,
+  "masking_hits": 94,
+  "mfa_hits": 0,
+  "at_rest_crypto": 24,
+  "backup_hits": 7,
+  "watermark_hits": 74,
+  "pipl_dsll": 20,
+  "sql_concat_suspect": 4,
+  "param_binding": 742,
+  "audit_hits": 240
+ }
+}

@@ -1,0 +1,166 @@
+{
+ "generated_at": "2026-10-17T16:35:36+0800",
+ "base": "http://127.0.0.1:8024",
+ "response_time": [
+  {
+   "label": "健康检查",
+   "path": "/healthz",
+   "n": 12,
+   "errors": 0,
+   "p50": 18.0,
+   "p95": 21.1,
+   "max": 64.7,
+   "min": 16.2
+  },
+  {
+   "label": "会话读取",
+   "path": "/api/auth/me",
+   "n": 12,
+   "errors": 0,
+   "p50": 74.3,
+   "p95": 138.5,
+   "max": 165.7,
+   "min": 67.2
+  },
+  {
+   "label": "项目列表",
+   "path": "/api/v1/projects?page=1&page_size=20",
+   "n": 12,
+   "errors": 0,
+   "p50": 70.8,
+   "p95": 81.1,
+   "max": 82.1,
+   "min": 63.1
+  },
+  {
+   "label": "风险列表(20条)",
+   "path": "/api/v1/projects/6/risks?page=1&page_size=20",
+   "n": 12,
+   "errors": 0,
+   "p50": 67.6,
+   "p95": 76.7,
+   "max": 77.0,
+   "min": 62.9
+  },
+  {
+   "label": "复核看板(统计)",
+   "path": "/api/v1/risks/review-board?project_id=6",
+   "n": 12,
+   "errors": 0,
+   "p50": 71.2,
+   "p95": 77.8,
+   "max": 79.2,
+   "min": 63.9
+  },
+  {
+   "label": "法规条款列表",
+   "path": "/api/v1/legal-library?page=1&page_size=20",
+   "n": 12,
+   "errors": 0,
+   "p50": 3691.8,
+   "p95": 7554.7,
+   "max": 7623.4,
+   "min": 3646.6
+  },
+  {
+   "label": "报告历史",
+   "path": "/api/v1/reports?project_id=6&page=1",
+   "n": 12,
+   "errors": 0,
+   "p50": 34.5,
+   "p95": 36.5,
+   "max": 86.5,
+   "min": 31.4
+  }
+ ],
+ "concurrency": [
+  {
+   "label": "复核看板 w=1",
+   "path": "/api/v1/risks/review-board?project_id=6",
+   "workers": 1,
+   "rounds": 5,
+   "requests": 5,
+   "wall_s": 0.22,
+   "rps": 22.4,
+   "errors": 0,
+   "error_rate": 0.0,
+   "p50": 45.7,
+   "p95": 50.7,
+   "max": 53.9
+  },
+  {
+   "label": "复核看板 w=5",
+   "path": "/api/v1/risks/review-board?project_id=6",
+   "workers": 5,
+   "rounds": 5,
+   "requests": 25,
+   "wall_s": 0.79,
+   "rps": 31.8,
+   "errors": 0,
+   "error_rate": 0.0,
+   "p50": 156.9,
+   "p95": 160.2,
+   "max": 162.4
+  },
+  {
+   "label": "复核看板 w=10",
+   "path": "/api/v1/risks/review-board?project_id=6",
+   "workers": 10,
+   "rounds": 5,
+   "requests": 50,
+   "wall_s": 1.55,
+   "rps": 32.2,
+   "errors": 0,
+   "error_rate": 0.0,
+   "p50": 308.4,
+   "p95": 335.9,
+   "max": 337.4
+  },
+  {
+   "label": "复核看板 w=20",
+   "path": "/api/v1/risks/review-board?project_id=6",
+   "workers": 20,
+   "rounds": 5,
+   "requests": 100,
+   "wall_s": 3.36,
+   "rps": 29.8,
+   "errors": 0,
+   "error_rate": 0.0,
+   "p50": 670.4,
+   "p95": 755.3,
+   "max": 913.8
+  },
+  {
+   "label": "复核看板 w=30",
+   "path": "/api/v1/risks/review-board?project_id=6",
+   "workers": 30,
+   "rounds": 5,
+   "requests": 150,
+   "wall_s": 4.86,
+   "rps": 30.9,
+   "errors": 0,
+   "error_rate": 0.0,
+   "p50": 946.4,
+   "p95": 1333.5,
+   "max": 1617.2
+  }
+ ],
+ "data_volume": {
+  "rows": 100000,
+  "size_mb": 3.35,
+  "gen_s": 4.4,
+  "parsed_rows": 100001,
+  "parse_s": 5.35,
+  "parse_ok": true,
+  "parse_note": "遍历 100001 行（含表头）"
+ },
+ "storage": {
+  "data_dir_mb": 132.9,
+  "db_bytes": {
+   "accounting.db": 8155136,
+   "security.db": 204800
+  },
+  "uploads_mb": 14.4,
+  "projects": 6
+ }
+}
