@@ -9,21 +9,50 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import logging
 import os
 import re
 import secrets
 import sqlite3
+import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Dict, Iterable, Optional
 
 from runtime_storage import SECURITY_DB
 
 
 PASSWORD_MIN_LENGTH = 12
 SESSION_TTL_SECONDS = int(os.environ.get("APP_SESSION_TTL_SECONDS", "28800"))
+
+#: ── P0-1（2026-10-17）：会话读取**不再每请求写库** ──────────────────────
+#: 根因：`get_session()` 由鉴权中间件在**每个请求**上调用（`security_web.py`），
+#: 原实现每次都要 `DELETE FROM sessions WHERE expires_at<=?`
+#: 再 `UPDATE sessions SET last_seen=?` —— 即**每个请求两次写事务**。
+#: 在 WAL + 多连接 + 外部进程并发访问下会抛
+#: `sqlite3.OperationalError: attempt to write a readonly database`，
+#: 表现为 `/api/auth/me` 随机 500，用户端看到按钮短暂消失、页面数据不全
+#: （阶段 3 实测：7 次 500，跨 3/19 模块**随机**出现）。
+#:
+#: 修法（语义不变、可观测）：
+#:   ① 过期判定改为 **SQL 显式比较 `expires_at > now`** —— 过期会话**永远**被拒绝，
+#:      不依赖"那次 DELETE 有没有跑"（原先靠 DELETE 淘汰，节流后必须补上这条，
+#:      否则清理周期内的过期会话会被放行，属**安全回归**）；
+#:   ② 过期会话清理：每进程最多每 `_SWEEP_INTERVAL_SECONDS` 秒一次；
+#:   ③ `last_seen` 写库：每会话最多每 `_TOUCH_INTERVAL_SECONDS` 秒一次
+#:      （该字段**无任何消费点**，仅为留痕，节流不改变任何行为）；
+#:   ④ 上述写操作**失败不影响会话读取**（读是主路径），但**必须留日志**，不许静默。
+_SWEEP_INTERVAL_SECONDS = float(os.environ.get("APP_SESSION_SWEEP_INTERVAL_SECONDS", "60"))
+_TOUCH_INTERVAL_SECONDS = float(os.environ.get("APP_SESSION_TOUCH_INTERVAL_SECONDS", "60"))
+
+_session_state_lock = threading.Lock()
+_last_sweep_at = 0.0
+_last_touch_at: Dict[str, float] = {}
+_session_write_failures = 0          # 只用于可观测（测试与运维据此判断是否在降级）
+
+logger = logging.getLogger(__name__)
 COOKIE_SECURE = os.environ.get("APP_COOKIE_SECURE", "1") not in {"0", "false", "False"}
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_.@\-\u4e00-\u9fff]{2,64}$")
 _PUBLIC_ASSET_EXTENSIONS = {
@@ -63,7 +92,16 @@ def _connect():
     connection = sqlite3.connect(str(SECURITY_DB), timeout=10)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys=ON")
-    connection.execute("PRAGMA journal_mode=WAL")
+    # ★ 2026-10-17（P0-1 根因之二）：**不在每个连接上切 journal_mode**。
+    #   `PRAGMA journal_mode=WAL` 在库已是 WAL 时通常是读，但在
+    #   「另一连接正在 checkpoint / 有未提交事务 / 有外部进程持有」时，切模式要拿**排他锁**
+    #   ⇒ 失败即抛 `sqlite3.OperationalError: attempt to write a readonly database`。
+    #   而 `_connect()` 是**每次鉴权、每次读写**都调用的（`get_session` 由中间件每请求调）
+    #   ⇒ 高频撞锁，表现为 `/api/auth/me`、`create_user` 等**随机 500**。
+    #   实测证据（2026-10-17）：同时跑两个 uvicorn 指向同一 `security.db` 时，
+    #   `create_user` 直接 500；清理为单实例后立即恢复 201。
+    #   ⇒ WAL 只在 `init_security_db()` 里设一次；连接级只保留必要项。
+    connection.execute("PRAGMA busy_timeout=10000")     # 争用时等待而非立即失败
     try:
         yield connection
         connection.commit()
@@ -76,6 +114,12 @@ def _connect():
 
 def init_security_db() -> None:
     with _connect() as connection:
+        # ★ WAL 在**初始化时设一次**即可（连接级不再切，见 `_connect` 的说明）。
+        #   失败不影响可用性（默认 journal 模式也能工作），但**不静默**：留日志。
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.Error as exc:
+            logger.warning("[会话] 无法切换到 WAL（继续用默认 journal 模式）：%s", exc)
         connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -599,32 +643,86 @@ def create_session(user: dict, *, client_fingerprint: str = "") -> tuple[str, st
     return token, csrf_token
 
 
+def sweep_expired_sessions(now: Optional[int] = None) -> bool:
+    """清理过期会话（**低频**：每进程最多每 `_SWEEP_INTERVAL_SECONDS` 秒一次）。
+
+    返回是否真的执行了清理。这是 P0-1 的配套——把原先"每请求都删"改为"定期删"。
+    过期会话的**拒绝**不依赖本函数（`get_session` 的 SQL 已显式比较 `expires_at > now`），
+    本函数只负责回收磁盘行。
+    """
+    global _last_sweep_at, _session_write_failures
+    moment = float(time.time() if now is None else now)
+    with _session_state_lock:
+        if moment - _last_sweep_at < _SWEEP_INTERVAL_SECONDS:
+            return False
+        _last_sweep_at = moment
+    try:
+        with _connect() as connection:
+            connection.execute("DELETE FROM sessions WHERE expires_at<=?", (int(moment),))
+        return True
+    except sqlite3.Error as exc:
+        # 失败也**保持节流**（退避语义）：否则每次请求都会重撞同一个错误
+        _session_write_failures += 1
+        logger.warning("[会话] 过期会话清理未能执行（不影响本次会话读取）：%s", exc)
+        return False
+
+
+def touch_session(token_hash: str, now: Optional[int] = None) -> bool:
+    """更新 `last_seen`（**低频**：每会话最多每 `_TOUCH_INTERVAL_SECONDS` 秒一次）。
+
+    返回是否真的写了库。`last_seen` 当前**无任何消费点**（全仓仅此处写、无人读），
+    因此节流不改变任何业务行为；保留它是为了留痕。
+    """
+    global _session_write_failures
+    moment = float(time.time() if now is None else now)
+    with _session_state_lock:
+        if moment - _last_touch_at.get(token_hash, 0.0) < _TOUCH_INTERVAL_SECONDS:
+            return False
+        _last_touch_at[token_hash] = moment
+        # 防止节流缓存无限增长：超过上限时清掉一半最旧的键（只影响"下次多写一次"，无副作用）
+        if len(_last_touch_at) > 4096:
+            for _k in sorted(_last_touch_at, key=_last_touch_at.get)[:2048]:
+                _last_touch_at.pop(_k, None)
+    try:
+        with _connect() as connection:
+            connection.execute("UPDATE sessions SET last_seen=? WHERE token_hash=?",
+                               (int(moment), token_hash))
+        return True
+    except sqlite3.Error as exc:
+        _session_write_failures += 1
+        logger.warning("[会话] last_seen 未能更新（不影响本次会话读取）：%s", exc)
+        return False
+
+
 def get_session(raw_token: str, *, client_fingerprint: str = "") -> Optional[SessionContext]:
+    """按令牌取会话。**主路径只读**（P0-1）——写库是附带的、低频的、失败不阻断。"""
     if not raw_token:
         return None
     now = int(time.time())
+    token_hash = _token_hash(raw_token)
     with _connect() as connection:
-        connection.execute("DELETE FROM sessions WHERE expires_at<=?", (now,))
+        # ★ 过期判定必须在 SQL 里显式做：不能依赖"清理任务有没有跑过"
+        #   （P0-1 之前靠 `DELETE ... WHERE expires_at<=?` 顺带淘汰；
+        #     清理改为低频后，若这里不比较 expires_at，过期会话在清理周期内会被放行）
         row = connection.execute(
             """
             SELECT s.user_id, s.csrf_hash, s.selected_company_id, s.expires_at,
                    s.client_fingerprint, u.username, u.role, u.company_ids, u.active,
                    u.tenant_id
             FROM sessions s JOIN users u ON u.id=s.user_id
-            WHERE s.token_hash=?
+            WHERE s.token_hash=? AND s.expires_at > ?
             """,
-            (_token_hash(raw_token),),
+            (token_hash, now),
         ).fetchone()
-        if not row or not row["active"]:
-            return None
-        expected_fingerprint = row["client_fingerprint"] or ""
-        actual_fingerprint = _token_hash(client_fingerprint) if client_fingerprint else ""
-        if expected_fingerprint and not hmac.compare_digest(expected_fingerprint, actual_fingerprint):
-            return None
-        connection.execute(
-            "UPDATE sessions SET last_seen=? WHERE token_hash=?",
-            (now, _token_hash(raw_token)),
-        )
+    if not row or not row["active"]:
+        return None
+    expected_fingerprint = row["client_fingerprint"] or ""
+    actual_fingerprint = _token_hash(client_fingerprint) if client_fingerprint else ""
+    if expected_fingerprint and not hmac.compare_digest(expected_fingerprint, actual_fingerprint):
+        return None
+    # 写操作在读事务之外、且失败不阻断（读是主路径）
+    sweep_expired_sessions(now)
+    touch_session(token_hash, now)
     return SessionContext(
         user_id=int(row["user_id"]),
         username=row["username"],

@@ -46,6 +46,43 @@ async function reviewAction(page, actText, note, pid) {
   return { ok: clicked.ok, act: clicked.act, acts: clicked.acts, msg, state };
 }
 
+/** 数据准备：保证该项目至少有 `need` 条「待处理」风险。
+ *
+ * ★ 为什么需要（2026-10-17）：复核状态按 `risk_no` 在 events.jsonl 里**累积**，
+ *   每跑一轮 S2/S3 就会消耗掉若干 pending ⇒ 多轮之后无粮，S2-05 / S3-05 恒 blocked
+ *   （实测：S1 之后只剩 1 条待处理，S2-04 用掉即归零）。
+ * ★ 为什么用 `reopen`：这是**产品自带的合法动作**（状态机允许回到 pending，且必留痕），
+ *   用它恢复数据 ≠ 伪造数据；绝不直接改 events.jsonl。
+ */
+async function ensurePending(page, pid, need) {
+  return page.evaluate(async (args) => {
+    const [projectId, want] = args;
+    const j = async (u) => (await fetch(u, { cache: 'no-store' })).json();
+    const board = await j('/api/v1/risks/review-board?project_id=' + projectId);
+    const pending = (board.by_state || {}).pending || 0;
+    if (pending >= want) return { pending, done: 0, after: pending };
+    const list = await j('/api/v1/projects/' + projectId + '/risks?page=1&page_size=60');
+    const items = list.items || list.risks || [];
+    const csrf = decodeURIComponent((document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/) || [])[1] || '');
+    let done = 0;
+    for (const it of items) {
+      if (pending + done >= want) break;
+      const rn = it.risk_no || it.id;
+      if (!rn) continue;
+      const r = await fetch('/api/v1/risks/' + encodeURIComponent(rn) + '/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify({ project_id: projectId, action: 'reopen',
+          note: '场景模拟数据准备：将已处置条目重新打开以便演示复核动作（会留痕）' }),
+      });
+      if (r.ok) done += 1;
+    }
+    const after = await j('/api/v1/risks/review-board?project_id=' + projectId);
+    return { pending, done, after: (after.by_state || {}).pending || 0 };
+  }, [pid, need]);
+}
+
+
 (async () => {
   const browser = await L.newBrowser();
   const results = [];
@@ -62,6 +99,11 @@ async function reviewAction(page, actText, note, pid) {
 
   await s2.step('打开待复核项目', async () => {
     if (!PID) return { result: 'blocked', blocker: 'S1 未产出项目 id' };
+    // ★ 数据准备（2026-10-17）：pending 会逐轮被消耗光 ⇒ 先确保有 2 条可复核。
+    const healed = await ensurePending(p2, PID, 2);
+    if (healed.done) {
+      console.log('     （数据准备：reopen ' + healed.done + ' 条，待处理 ' + healed.pending + ' → ' + healed.after + '）');
+    }
     await p2.goto(L.BASE + '/risks', { waitUntil: 'domcontentloaded' });
     await p2.waitForTimeout(1600);
     await p2.evaluate(async () => (await fetch('/api/v1/risks/meta', { cache: 'no-store' })).json());
@@ -138,27 +180,56 @@ async function reviewAction(page, actText, note, pid) {
       const dr = document.querySelector('.drawer'); if (dr) dr.classList.remove('open');
     });
     await p2.waitForTimeout(600);
-    // 仍限「待处理」，避免点到刚被上一步确认掉的条目
-    await p2.evaluate(() => {
-      const st = document.getElementById('f-state');
-      if (st) { const o = Array.from(st.options).find(x => /待处理|pending/.test(x.textContent) || x.value === 'pending'); if (o) st.value = o.value; }
-    });
-    await p2.click('#btn-search');
+    // ★ 判据修正（2026-10-17）：原实现**强制筛「待处理」**再取第 2 条，
+    //   但上一步刚把 pending 用掉、且 pending 会逐轮耗尽 ⇒ 恒 blocked（假失败）。
+    //   现改为**两路**，且都遵守状态机（`engine/risk_review.STATE_FLOW`）：
+    //     · pending  → `false_positive`（误报）；
+    //     · confirmed → `exclude`（排除）—— `confirmed` 的合法目标只有
+    //       rectified/excluded/pending，**不含 false_positive**（已确认不能再判误报）。
+    //   两路验证的是同一能力：把一条不利状态的风险**改判为非风险状态**。
+    const pick = async (wantState) => {
+      await p2.evaluate((st8) => {
+        const st = document.getElementById('f-state');
+        if (st) {
+          const o = Array.from(st.options).find(x => x.value === st8)
+            || Array.from(st.options).find(x => new RegExp(st8 === 'pending' ? '待处理' : '已确认').test(x.textContent));
+          if (o) st.value = o.value;
+        }
+      }, wantState);
+      await p2.click('#btn-search');
+      await p2.waitForTimeout(2800);
+      return p2.evaluate(() => {
+        const bs = document.querySelectorAll('#tb-risks button[data-open]');
+        if (!bs.length) return null;
+        bs[0].click();
+        return bs[0].getAttribute('data-open');
+      });
+    };
+    let key = await pick('pending');
+    let actLabel = '误报';
+    let note = '场景模拟：同额发票非同一笔业务，判定为误报';
+    let expectState = 'false_positive';
+    if (!key) {
+      // 兜底：已确认 → 排除（状态机允许）
+      await p2.evaluate(() => {
+        const b = Array.from(document.querySelectorAll('button')).find(x => (x.innerText || '').includes('关闭'));
+        if (b) b.click();
+      });
+      await p2.waitForTimeout(500);
+      key = await pick('confirmed');
+      actLabel = '排除';
+      note = '场景模拟：取得合理解释，排除该项风险';
+      expectState = 'excluded';
+    }
+    if (!key) return { result: 'blocked', blocker: '两种状态（待处理/已确认）均无可处置条目，无法演示排除误报' };
     await p2.waitForTimeout(3000);
-    const key = await p2.evaluate(() => {
-      const bs = document.querySelectorAll('#tb-risks button[data-open]');
-      if (!bs.length) return null;
-      const b = bs[bs.length > 1 ? 1 : 0];
-      b.click(); return b.getAttribute('data-open');
-    });
-    if (!key) return { result: 'blocked', blocker: '风险条目不足 2 条，无法演示"排除误报"' };
-    await p2.waitForTimeout(3000);
-    const r = await reviewAction(p2, '误报', '场景模拟：同额发票非同一笔业务，判定为误报', PID);
-    if (!r.ok) return { result: 'fail', error: '无「误报/排除」动作按钮，实际动作=' + (r.acts || []).join(',') };
+    const r = await reviewAction(p2, actLabel, note, PID);
+    if (!r.ok) return { result: 'fail', error: `无「${actLabel}」动作按钮，实际动作=` + (r.acts || []).join(',') };
     if (!/已完成|成功/.test(r.msg || '')) return { result: 'fail', error: '排除动作未生效，页面提示=' + (r.msg || '(空)'), note: `目标=${key} act=${r.act}` };
-    const ok = (r.state.by_state.false_positive || 0) >= 1 || (r.state.by_state.excluded || 0) >= 1;
-    if (!ok) return { result: 'fail', error: '接口回读未见「误报/已排除」，分布=' + JSON.stringify(r.state.by_state) };
-    return { note: `目标=${key.slice(-14)} act=${r.act}；提示=${r.msg}；回读=${JSON.stringify(r.state.by_state)}` };
+    const got = (r.state.by_state[expectState] || 0) >= 1
+      || (r.state.by_state.false_positive || 0) >= 1 || (r.state.by_state.excluded || 0) >= 1;
+    if (!got) return { result: 'fail', error: '接口回读未见「误报/已排除」，分布=' + JSON.stringify(r.state.by_state) };
+    return { note: `目标=${key.slice(-14)} 动作=${actLabel}(→${expectState})；提示=${r.msg}；回读=${JSON.stringify(r.state.by_state)}` };
   }, { page: () => p2, shotName: '排除误报' });
 
   await s2.step('添加批注', async () => {
@@ -196,6 +267,11 @@ async function reviewAction(page, actText, note, pid) {
     if (url.includes('/login')) { const e = await L.visibleText(p3, '#error', 200); return { result: 'fail', error: '登录失败：' + (e || '') }; }
     await p3.goto(L.BASE + '/', { waitUntil: 'domcontentloaded' });
     await p3.waitForTimeout(2500);
+    // ★ 数据准备（同 S2）：S3-05 需要至少 1 条待处理风险才能演示「复核落处置记录」。
+    if (PID) {
+      const h3 = await ensurePending(p3, PID, 1);
+      if (h3.done) console.log('     （数据准备：reopen ' + h3.done + ' 条，待处理 → ' + h3.after + '）');
+    }
     const nav = await p3.evaluate(() => {
       const all = Array.from(document.querySelectorAll('.nav-item'));
       const vis = all.filter(n => n.offsetParent !== null).map(n => (n.innerText || '').trim().replace(/\s+/g, ''));

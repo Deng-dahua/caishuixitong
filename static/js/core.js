@@ -155,6 +155,7 @@ function _ensureVisibleTextSanitizer(root) {
 }
 
 const pages = {
+  'home': '首页总览',
   'chat': '财税问答',
   'dashboard': '数据看板',
   'company': '公司信息',
@@ -477,7 +478,11 @@ window.enterApp = enterApp;  // 确保全局可访问
   } catch (e) {
     console.warn('进入应用时的取数失败（不影响页面跳转）', e);
   }
-  const lastPage = localStorage.getItem('lastPage') || 'tax-doc-analysis';
+  // ★ P0-2（2026-10-17）：首次访问（无 lastPage）落到**首页总览**，
+  //   而不是直接跳进「资料风险分析报告」—— 后者会让新用户看不到任何导航上下文
+  //   （阶段 3 实测：首页正文仅 0.4KB，因为进入即被切走）。
+  //   老用户仍尊重其上次停留的页面（不打扰既有习惯）。
+  const lastPage = localStorage.getItem('lastPage') || 'home';
   navigateTo(lastPage);
 }
 
@@ -783,7 +788,11 @@ function navigateTo(page) {
   //   此处做一次性重定向，使引擎仪表盘等处的既有 navigateTo('system-logs') 入口
   //   仍能落到正确的页（不需要逐处修改调用点）。
   if (page === 'system-logs') { window.location.href = '/audit-logs'; return; }
-  var _allowedPages = ['tax-doc-analysis', 'methodology'];
+  // ★ P0-2（2026-10-17）：内页白名单加入 `home`（首页总览）。
+  //   此前白名单只有两个内页 ⇒ `navigateTo('home')` 会被**静默改成**
+  //   `tax-doc-analysis`，首页永远显示不出来（实测：默认落点改了也没用，
+  //   因为白名单在最后把它矫正回去了）。新增内页时必须同时登记到这里。
+  var _allowedPages = ['home', 'tax-doc-analysis', 'methodology'];
   if (_allowedPages.indexOf(page) === -1) { page = 'tax-doc-analysis'; }
   currentPage = page;
   // 离开资料分析页时标记为非活跃

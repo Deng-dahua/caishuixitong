@@ -63,13 +63,23 @@ const PROBE = () => {
   const required = q('[required], .req, [data-required]').length;
 
   // 说明性文案：h3 内 hint / .hint / .muted / .note-box / small
-  const hints = q('h3 .hint, .hint, .muted, .note-box, small').filter(vis);
+  // ★ 2026-10-17 口径修正：原选择器只认 `.hint/.muted/.note-box/small`，
+  //   于是首页「口径说明」区块（用 .kpi-sub 排版正文）被算成"0 字"——
+  //   这是**探针漏项**，不是页面没说明（实测该区块有 200+ 字）。
+  //   现补上 `.kpi-sub`、`.section-card-body`，并把纯数字标签排除（只统计解释性文字）。
+  const hints = q('h3 .hint, .hint, .muted, .note-box, small, .kpi-sub, .section-card-body')
+    .filter(vis)
+    .filter((el) => !/^[\s\d.%—\-]*$/.test((el.innerText || '').trim()));
   const hintChars = hints.reduce((n, el) => n + ((el.innerText || '').trim().length), 0);
 
   // 反馈载体
   const feedback = ['#msg', '#alert', '#flash', '#gen-status', '.msg', '[id*=status]', '[id*=tip]']
     .reduce((n, s) => n + q(s).filter(vis).length, 0);
   const loadingText = /加载中|正在|请稍候|处理中/.test(body);
+  // ★ 2026-10-17 新增：**数据来源/口径标注**数（"来源：…"、"口径"字样）。
+  //   展示型页面（首页/大屏）不承载操作，其"可反馈性"体现在用户能否知道
+  //   "这个数字从哪来、算的是什么"——仅统计有写操作的页面会系统性低估它们。
+  const sourceNotes = (body.match(/来源：|口径|取自/g) || []).length;
 
   // 恢复性入口
   const RECOVER = /取消|关闭|重置|回滚|回收站|撤销|还原|恢复|重试|返回/;
@@ -102,6 +112,7 @@ const PROBE = () => {
     hintBlocks: hints.length,
     hintChars,
     feedback,
+    sourceNotes,
     loadingText,
     recover,
     placeholders,
@@ -134,8 +145,24 @@ const PROBE = () => {
       const resp = await page.goto(L.BASE + m.route, { waitUntil: 'domcontentloaded', timeout: 30000 });
       rec.httpStatus = resp ? resp.status() : null;
       rec.loadMs = Date.now() - t0;
-      await page.waitForTimeout(2600);              // 等页面自身的数据请求渲染完
-      rec.metrics = await page.evaluate(PROBE);
+      // ★ 2026-10-17 修正采样纪律：原先固定等 2600ms —— 用户管理页要 3s+ 才加载完，
+      //   于是采样时抓到的是「加载中…」（bodyChars=109、0 条数据），
+      //   把「说明字数」判成 0、把「满意度」误判为 3（假数据）。
+      //   现改为**等真实渲染信号**：`.empty` 不再是"加载中"，且已有表格行/卡片。
+      // ★ 采样纪律（2026-10-17 三次返工后的定稿）：
+      //   ① 等**网络空闲**（页面自身的数据请求全部落地）—— 比"猜毫秒"可靠；
+      //   ② 再等一个固定缓冲（图表/表格收尾渲染）；
+      //   ③ 连续两次采样**稳定**才采纳（避免渲染中途采到半成品）；
+      //   ④ 把两次的控件数都记下来，若差异大就标记 `unstable=true`（报告里如实说明）。
+      await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+      await page.waitForTimeout(2000);
+      let m1 = await page.evaluate(PROBE);
+      await page.waitForTimeout(1200);
+      let m2 = await page.evaluate(PROBE);
+      // 取"控件更多"的那次（渲染更完整），并记录稳定性
+      rec.metrics = (m2.controls >= m1.controls) ? m2 : m1;
+      rec.unstable = Math.abs(m2.controls - m1.controls) > 3;
+      rec.stillLoading = /加载中|正在|请稍候/.test((rec.metrics.empty || ''));
       rec.consoleErrors = consoleErrors.slice(0, 5);
       rec.ok = true;
     } catch (e) {
