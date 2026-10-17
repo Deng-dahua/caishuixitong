@@ -9,7 +9,7 @@
    "step": 1,
    "name": "登录系统",
    "result": "success",
-   "ms": 1736,
+   "ms": 2065,
    "error": "",
    "note": "落点 /；侧栏=未渲染",
    "blocker": "",
@@ -20,9 +20,9 @@
    "step": 2,
    "name": "打开待复核项目",
    "result": "success",
-   "ms": 5244,
+   "ms": 5331,
    "error": "",
-   "note": "可选 2 个；KPI=风险事项总数 21 10 10 已排除 0 已整改 0 4 4 待处理 7 复核进度 14 / 21 66.7%",
+   "note": "可选 2 个；KPI=风险事项总数 21 12 12 已排除 0 已整改 0 5 5 待处理 4 复核进度 17 / 21 81%",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-02_待复核项目.png"
   },
@@ -31,7 +31,7 @@
    "step": 3,
    "name": "逐条查看风险（详情 + 证据链）",
    "result": "success",
-   "ms": 9373,
+   "ms": 9402,
    "error": "",
    "note": "G7M-202501-020=5701字；G7M-202501-002=4511字；G7M-202501-003=3618字",
    "blocker": "",
@@ -42,9 +42,9 @@
    "step": 4,
    "name": "确认高风险",
    "result": "success",
-   "ms": 10302,
+   "ms": 10501,
    "error": "",
-   "note": "动作集=[confirm,exclude*,false_positive*,rectify*,to_manual,reopen*]；提示=当前可执行的复核动作： | 已完成「确认成立」：待处理 → 已确认；回读={\"confirmed\":11,\"false_positive\":4,\"pending\":6} 已复核 15/21",
+   "note": "动作集=[confirm,exclude*,false_positive*,rectify*,to_manual,reopen*]；提示=当前可执行的复核动作： | 已完成「确认成立」：待处理 → 已确认；回读={\"confirmed\":13,\"false_positive\":5,\"pending\":3} 已复核 18/21",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-04_确认高风险.png"
   },
@@ -53,9 +53,9 @@
    "step": 5,
    "name": "排除误报",
    "result": "success",
-   "ms": 10398,
+   "ms": 10606,
    "error": "",
-   "note": "目标=G7M-202501-016 act=false_positive；提示=当前可执行的复核动作： | 已完成「误报」：待处理 → 误报；回读={\"confirmed\":11,\"false_positive\":5,\"pending\":5}",
+   "note": "目标=G7M-202501-019 act=false_positive；提示=当前可执行的复核动作： | 已完成「误报」：待处理 → 误报；回读={\"confirmed\":13,\"false_positive\":6,\"pending\":2}",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-05_排除误报.png"
   },
@@ -64,9 +64,9 @@
    "step": 6,
    "name": "添加批注",
    "result": "success",
-   "ms": 2546,
+   "ms": 2557,
    "error": "",
-   "note": "批注（1） #1 sim_advisor 2026-10-17T07:26:51+08:00 场景模拟批注：建议补充该期间银行流水与合同。",
+   "note": "批注（1） #1 sim_advisor 2026-10-17T09:41:12+08:00 场景模拟批注：建议补充该期间银行流水与合同。",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-06_添加批注.png"
   },
@@ -75,9 +75,9 @@
    "step": 7,
    "name": "提交复核结果（复核看板核对）",
    "result": "success",
-   "ms": 4248,
+   "ms": 4371,
    "error": "",
-   "note": "已处置 16 处置率 100% 超期待处理 0 从未处置 0 待处理 0 已确认 11 已排除 0 已整改 0 误报 5 | 「从未处置」与「超期」分开计：前者**没有起点**（不能算超期），后者自最近一次处置起算；缺失 ≠ 0。 | 超期阈值 3 天；共 16 条纳入统计。 || stats keys=[\"available\",\"company_id\",\"generated_at\",\"total\",\"by_level\",\"by_tax\",\"by_state\",\"by_state_cn\"]",
+   "note": "已处置 19 处置率 100% 超期待处理 0 从未处置 0 待处理 0 已确认 13 已排除 0 已整改 0 误报 6 | 「从未处置」与「超期」分开计：前者**没有起点**（不能算超期），后者自最近一次处置起算；缺失 ≠ 0。 | 超期阈值 3 天；共 19 条纳入统计。 || stats keys=[\"available\",\"company_id\",\"generated_at\",\"total\",\"by_level\",\"by_tax\",\"by_state\",\"by_state_cn\"]",
    "blocker": "",
    "shot": "docs\\元质量_20261016\\场景模拟_截图\\S2-07_复核看板.png"
   }
@@ -98,5 +98,5 @@
   "docs\\元质量_20261016\\场景模拟_截图\\S2-06_添加批注.png",
   "docs\\元质量_20261016\\场景模拟_截图\\S2-07_复核看板.png"
  ],
- "total_ms": 43847
+ "total_ms": 44833
 }

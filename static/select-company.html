@@ -98,7 +98,7 @@ button{cursor:pointer}
   <div class="header">
     <h1>选择账套</h1>
     <p>选择一个公司，进入财税合规工作台</p>
-    <a id="new-company-link" href="/new-company" class="btn-new">+ 新建账套</a>
+    <a id="new-company-link" href="/new-company" class="btn-new" data-perm-admin="1">+ 新建账套</a>
   </div>
   <div class="loading" id="loading">正在加载账套…</div>
   <div class="grid" id="company-grid" hidden></div>
@@ -159,7 +159,10 @@ button{cursor:pointer}
 <script>
 'use strict';
 var csrfToken = '';
-var currentRole = '';
+// ★ 2026-10-17：此前本页自行用 `currentRole === 'admin'` 推断角色（**第二权威**）。
+//   现统一改为消费 `/api/auth/me` 下发的 `is_admin`（服务端唯一权威），
+//   管理员专用入口的显隐交给 `data-perm-admin`（rbac-nav.js）。
+var isAdmin = false;
 var providerCatalog = [];
 var credentialList = [];
 var editingCredentialId = null;
@@ -222,7 +225,7 @@ async function loadCompanies() {
     grid.textContent = '';
     if (!companies.length) {
       loading.className = 'empty';
-      loading.textContent = currentRole === 'admin' ? '还没有账套，请先新建。' : '当前用户尚未被授权访问账套。';
+      loading.textContent = isAdmin ? '还没有账套，请先新建。' : '当前用户尚未被授权访问账套。';
       return;
     }
     loading.hidden = true;
@@ -248,7 +251,7 @@ async function loadCompanies() {
       main.addEventListener('click', enter);
       main.addEventListener('keydown', function(event){ if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); enter(); } });
       card.appendChild(main);
-      if (currentRole === 'admin') {
+      if (isAdmin) {
         var remove = textElement('button','btn-del-company','×');
         remove.type = 'button';
         remove.title = '删除此账套';
@@ -506,8 +509,8 @@ async function init() {
   try {
     var me = await requestJson('/api/auth/me', {cache:'no-store'});
     document.getElementById('user-name').textContent = me.username || '未知用户';
-    currentRole = me.role || '';
-    if (currentRole !== 'admin') document.getElementById('new-company-link').hidden = true;
+    // ★ 只消费服务端下发的 is_admin，不自行推断角色；入口显隐由 data-perm-admin 处理
+    isAdmin = !!me.is_admin;
   } catch (error) {
     return;
   }
@@ -523,5 +526,6 @@ document.getElementById('cancel-edit').addEventListener('click', resetCredential
 document.addEventListener('keydown', function(event){ if (event.key === 'Escape') closeModelModal(); });
 init();
 </script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </body>
 </html>

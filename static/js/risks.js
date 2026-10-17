@@ -306,13 +306,15 @@ function renderDetail(j) {
     H.push('<button class="btn sm ' + (a.value === 'rectify' ? '' : 'ghost')
       + (a.value === 'false_positive' ? ' danger' : '')
       + '" data-act="' + esc(a.value) + '" data-note="' + (a.note_required ? '1' : '')
+      // ★ 复核动作写入口：无 risk.review（如企业财务/审计员）⇒ 隐藏（rbac-nav.js）
+      + '" data-perm="risk.review"'
       + '">' + esc(a.label) + (a.note_required ? ' *' : '') + '</button>');
   });
   H.push('</div>');
   H.push('<div class="note-box"><textarea id="d-note" placeholder="理由/说明（标注 * 的动作必填；'
     + '排除、误报、标记已整改、重新打开均需说明）"></textarea>');
-  H.push('<div class="toolbar" style="margin-top:6px"><button class="btn" id="d-do">提交复核</button>'
-    + '<button class="btn ghost" id="d-cmt">仅批注</button>'
+  H.push('<div class="toolbar" style="margin-top:6px"><button class="btn" id="d-do" data-perm="risk.review">提交复核</button>'
+    + '<button class="btn ghost" id="d-cmt" data-perm="risk.review">仅批注</button>'
     + '<span class="muted">批注不改状态</span></div></div>');
   H.push('<div id="d-cmts" style="margin-top:10px">' + renderComments(r) + '</div>');
   H.push('<div id="d-hist" style="margin-top:8px">' + renderHistory(r) + '</div>');
@@ -459,6 +461,8 @@ function renderDetail(j) {
   H.push('<div class="card"><h3>建议</h3><div>' + esc(j.suggestion || '（无）') + '</div></div>');
 
   el('d-body').innerHTML = H.join('');
+  // 动态节点刚插入 ⇒ 重新套用一次门控（否则 data-perm 不生效）
+  if (window.RBAC && window.RBAC.reapply) { window.RBAC.reapply(); }
   bindDetail(j);
 }
 

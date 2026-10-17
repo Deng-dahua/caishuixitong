@@ -89,9 +89,9 @@
     <label class="muted" style="display:flex;align-items:center;gap:5px;color:#cbd5e1;font-size:12px">
       <input type="checkbox" id="f-force" style="cursor:pointer"> 强制重算
     </label>
-    <button id="btn-start" onclick="startAnalysis()">▶ 开始稽查分析</button>
+    <button id="btn-start" onclick="startAnalysis()" data-perm="analysis.run">▶ 开始稽查分析</button>
     <button id="btn-del-jobs" hidden onclick="window.__delSelectedJobs()"
-      style="background:#dc2626;border-color:#dc2626;color:#fff">🗑 删除选中</button>
+      style="background:#dc2626;border-color:#dc2626;color:#fff" data-perm="analysis.run">🗑 删除选中</button>
     <span class="spacer"></span>
     <span class="muted" id="who" style="color:#94a3b8"></span>
     <a href="/">返回主界面</a>
@@ -104,8 +104,8 @@
       <h3>当前任务</h3>
       <div class="row">
         <button class="btn ghost" onclick="refreshCurrent()">↻ 刷新</button>
-        <button class="btn ghost" id="btn-cancel" onclick="cancelCurrent()" disabled>■ 取消</button>
-        <button class="btn ghost" id="btn-retry" onclick="retryCurrent()" disabled>⟳ 重试</button>
+        <button class="btn ghost" id="btn-cancel" onclick="cancelCurrent()" disabled data-perm="analysis.run">■ 取消</button>
+        <button class="btn ghost" id="btn-retry" onclick="retryCurrent()" disabled data-perm="analysis.run">⟳ 重试</button>
         <span class="muted" id="cur-id"></span>
       </div>
       <div class="progress-outer"><div class="progress-inner" id="bar"></div></div>
@@ -135,5 +135,6 @@
   </div>
 
   <script src="/static/js/analysis.js"></script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </body>
 </html>

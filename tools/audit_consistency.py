@@ -8021,33 +8021,43 @@ def check_static_asset_cache_version() -> List[Tuple[str, str, str]]:
 
     判据（单一权威）：版本号 = 该文件 sha1 前 10 位；同步工具
     `tools/sync_asset_versions.py`；本闸门只做校验（不自动改文件）。
+
+    ★ 2026-10-17 扩围：由「只查 `static/index.html`」改为「**遍历 `static/*.html`**」——
+      非首页的 `?v=` 此前无人校验，实测已有 4 个页面失配（同一份 `rbac-nav.js`
+      内容已变、页面仍指旧哈希）。仅查首页 = 其余 24 个页面"改了等于没改"。
     """
     issues: List[Tuple[str, str, str]] = []
-    index = ROOT / "static" / "index.html"
-    if not index.exists():
+    # ★ 2026-10-17：此前**只校验 `static/index.html`**，其余页面的 `?v=` 无人管 ——
+    #   同一份 JS 改了内容，非首页仍指向旧哈希（实测 4 个页面已失配：rbac-nav.js
+    #   `4d62d2a49e` 而文件实际为 `ac23045192`）。现改为**遍历 `static/*.html`**。
+    static_dir = ROOT / "static"
+    pages = sorted(static_dir.glob("*.html")) if static_dir.is_dir() else []
+    if not pages:
         return issues
     try:
         import hashlib
-        html = index.read_text(encoding="utf-8")
-        refs = re.findall(r"(/static/(?:js|css)/[A-Za-z0-9_.\-]+)\?v=([0-9A-Za-z_.\-]+)", html)
-        stale, missing = [], []
-        for rel, cur in refs:
-            p = ROOT / rel.lstrip("/").replace("/", os.sep)
-            if not p.exists():
-                missing.append(rel)
-                continue
-            want = hashlib.sha1(p.read_bytes()).hexdigest()[:10]
-            if cur != want:
-                stale.append((rel, cur, want))
-        if stale:
-            _ex = "；".join("%s %s→%s" % (r, c, w) for r, c, w in stale[:4])
-            issues.append(("ERROR", "static/index.html",
-                           "静态资源版本号与文件内容不一致（浏览器会继续用旧 JS/CSS，"
-                           "改动用户看不到，共 %d 处）：%s。跑 python tools/sync_asset_versions.py 同步"
-                           % (len(stale), _ex)))
-        if missing:
-            issues.append(("ERROR", "static/index.html",
-                           "静态资源引用指向不存在的文件: " + "、".join(missing[:5])))
+        for page in pages:
+            rel_page = "static/%s" % page.name
+            html = page.read_text(encoding="utf-8")
+            refs = re.findall(r"(/static/(?:js|css)/[A-Za-z0-9_.\-]+)\?v=([0-9A-Za-z_.\-]+)", html)
+            stale, missing = [], []
+            for rel, cur in refs:
+                p = ROOT / rel.lstrip("/").replace("/", os.sep)
+                if not p.exists():
+                    missing.append(rel)
+                    continue
+                want = hashlib.sha1(p.read_bytes()).hexdigest()[:10]
+                if cur != want:
+                    stale.append((rel, cur, want))
+            if stale:
+                _ex = "；".join("%s %s→%s" % (r, c, w) for r, c, w in stale[:4])
+                issues.append(("ERROR", rel_page,
+                               "静态资源版本号与文件内容不一致（浏览器会继续用旧 JS/CSS，"
+                               "改动用户看不到，共 %d 处）：%s。跑 python tools/sync_asset_versions.py 同步"
+                               % (len(stale), _ex)))
+            if missing:
+                issues.append(("ERROR", rel_page,
+                               "静态资源引用指向不存在的文件: " + "、".join(missing[:5])))
     except Exception as exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"静态资源版本校验跳过: {exc}"))
     return issues

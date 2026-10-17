@@ -260,7 +260,7 @@
           <label>动作</label>
           <select id="bk-action"></select>
           <input type="text" id="bk-note" placeholder="理由/说明（排除 / 误报 / 已整改 / 重开 必填）" style="min-width:320px">
-          <button class="btn" id="bk-run">对当前页已勾选风险执行</button>
+          <button class="btn" id="bk-run" data-perm="risk.review">对当前页已勾选风险执行</button>
           <button class="btn ghost" id="bk-all">全选本页</button>
           <button class="btn ghost" id="bk-none">清空选择</button>
           <span class="muted" id="bk-hint"></span>
@@ -284,5 +284,6 @@
   <script src="/static/js/constants.js"></script>
   <script src="/static/js/security.js"></script>
   <script src="/static/js/risks.js"></script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </body>
 </html>

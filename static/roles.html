@@ -58,15 +58,15 @@
     .hint { color:#94a3b8; font-size:12px; margin:6px 2px; }
   </style>
   <script src="/static/js/security.js"></script>
-  <script src="/static/js/rbac-nav.js?v=4d62d2a49e" defer></script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </head>
 <body>
   <div class="topbar">
     <h1>🔐 角色管理</h1>
     <span class="spacer"></span>
     <span id="whoami" style="color:#94a3b8;font-size:12px"></span>
-    <a href="/users" data-perm="user.view">用户管理</a>
-    <a href="/audit-logs" data-perm="audit.view">审计日志</a>
+    <a id="nav-users" href="/users" data-perm="user.view">用户管理</a>
+    <a id="nav-audit-logs" href="/audit-logs" data-perm="audit.view">审计日志</a>
     <a href="/">返回主界面</a>
   </div>
 

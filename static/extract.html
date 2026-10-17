@@ -78,7 +78,7 @@
       <div class="body">
         <div class="toolbar">
           <select id="doc"><option value="">（请选择资料）</option></select>
-          <button class="btn" id="btn-parse">开始解析</button>
+          <button class="btn" id="btn-parse" data-perm="document.write">开始解析</button>
           <button class="btn ghost" id="btn-refresh">刷新</button>
           <span class="muted" id="parse-hint"></span>
         </div>
@@ -122,5 +122,6 @@
   </div>
 
   <script src="/static/js/extract.js" defer></script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </body>
 </html>

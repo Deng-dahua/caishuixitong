@@ -102,7 +102,7 @@
       </select>
       <button class="btn ghost" id="btn-search">搜索</button>
       <button class="btn ghost" id="btn-reset">重置</button>
-      <button class="btn" id="btn-new">＋ 新建项目</button>
+      <button class="btn" id="btn-new" data-perm="project.write">＋ 新建项目</button>
       <span class="count" id="count"></span>
     </div>
 
@@ -142,7 +142,7 @@
       </div>
       <div class="foot">
         <button class="btn ghost" data-close="m-form">取消</button>
-        <button class="btn" id="btn-save">保存</button>
+        <button class="btn" id="btn-save" data-perm="project.write">保存</button>
       </div>
     </div>
   </div>
@@ -168,11 +168,12 @@
       </div>
       <div class="foot">
         <button class="btn ghost" data-close="m-del">取消</button>
-        <button class="btn danger" id="btn-del-confirm">确认删除</button>
+        <button class="btn danger" id="btn-del-confirm" data-perm="project.write">确认删除</button>
       </div>
     </div>
   </div>
 
   <script src="/static/js/projects.js" defer></script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </body>
 </html>

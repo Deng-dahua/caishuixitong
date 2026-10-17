@@ -43,7 +43,7 @@ body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:linear-gr
       <input type="text" id="uscc" placeholder="请输入18位统一社会信用代码" required maxlength="18" minlength="18">
       <div class="hint">18位字母数字组合</div>
     </div>
-    <button type="submit" class="btn btn-primary" id="submit-btn">创 建 账 套</button>
+    <button type="submit" class="btn btn-primary" id="submit-btn" data-perm-admin="1">创 建 账 套</button>
   </form>
   <button class="btn btn-back" onclick="window.location.href='/select-company'">← 返回账套列表</button>
 </div>
@@ -110,5 +110,6 @@ document.getElementById('uscc').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') handleCreate();
 });
 </script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </body>
 </html>

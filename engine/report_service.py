@@ -639,6 +639,28 @@ _SECTION_BUILDERS = {
 # ══════════════════════════════════════════════════════════════════════════
 # 组装入口
 # ══════════════════════════════════════════════════════════════════════════
+def infer_reviewer(findings: List[Dict[str, Any]],
+                   reviews: Dict[str, Any]) -> str:
+    """从**处置记录**推断复核人 = **最后处置者**（`updated_at` 最新的一条）。
+
+    ★ O9（2026-10-17）：此前取"按发现序遍历到的**第一条**已处置记录" —— 在本账套
+      多角色都处置过时（如先税务师后复核专家）会把**先处置者**当成复核人，与
+      「复核人」语义不符。现按 `updated_at`（ISO 文本，可直接字符串比较）取最新；
+      同刻取遍历到的后者（确定性）。取不到 ⇒ 返回 `""`（**不猜**、不伪造人名）。
+    """
+    latest_at = ""
+    who = ""
+    for f in findings or []:
+        m = reviews.get(str(f.get("risk_no") or "")) or {}
+        if not m.get("reviewed"):
+            continue
+        at = str(m.get("updated_at") or "")
+        if at >= latest_at:
+            latest_at = at
+            who = str(m.get("updated_by") or "")
+    return str(who or "")
+
+
 @_boundary
 def build_document(project_id: Any, session: Any, *, view: Any = "full",
                    reviewed: Optional[bool] = None, reviewed_by: str = "",
@@ -696,11 +718,8 @@ def build_document(project_id: Any, session: Any, *, view: Any = "full",
         reviewed = bool(done_any)
     who = str(reviewed_by or "")
     if reviewed and not who:
-        for f in findings:
-            m = reviews.get(str(f.get("risk_no") or "")) or {}
-            if m.get("reviewed"):
-                who = str(m.get("updated_by") or "")
-                break
+        # ★ O9：复核人取**最后处置者**（见 `infer_reviewer` 的说明）
+        who = infer_reviewer(findings, reviews)
     review_label = ("已复核" + ("（%s）" % who if who else "")
                     if reviewed else "未经人工复核")
 

@@ -109,12 +109,12 @@
     <div class="card">
       <h2>上传资料</h2>
       <div class="body">
-        <div id="drop">
+        <div id="drop" data-perm="document.write">
           <div class="big">把文件拖到这里，或点击选择</div>
           <div class="muted" style="font-size:12px">支持批量多选</div>
           <div class="sub" id="ext-hint">加载字典中…</div>
         </div>
-        <input type="file" id="picker" multiple hidden>
+        <input type="file" id="picker" multiple hidden data-perm="document.write">
         <div id="queue"></div>
       </div>
     </div>
@@ -131,8 +131,8 @@
           <select id="f-size"><option value="10">10 条/页</option><option value="20" selected>20 条/页</option><option value="50">50 条/页</option></select>
           <button class="btn ghost" id="btn-search">搜索</button>
           <button class="btn ghost" id="btn-reset">重置</button>
-          <button class="btn danger" id="btn-del-selected" hidden onclick="window.__delSelected()">删除选中</button>
-          <button class="btn" id="btn-reparse-all" style="background:#2563eb;border-color:#2563eb" onclick="window.__reparseAll()">🔁 一键重析未成功</button>
+          <button class="btn danger" id="btn-del-selected" hidden onclick="window.__delSelected()" data-perm="document.write">删除选中</button>
+          <button class="btn" id="btn-reparse-all" style="background:#2563eb;border-color:#2563eb" onclick="window.__reparseAll()" data-perm="document.write">🔁 一键重析未成功</button>
           <span class="count" id="count"></span>
         </div>
         <table class="grid">
@@ -152,7 +152,7 @@
         <div id="ex-wrap" hidden style="margin-top:16px;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;background:#f8fafc;max-height:60vh;overflow:auto">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <b style="font-size:14px">📋 解析结果：<span id="ex-doc-name">—</span></b>
-            <button class="btn ghost" id="ex-reparse">🔁 重新解析本条</button>
+            <button class="btn ghost" id="ex-reparse" data-perm="document.write">🔁 重新解析本条</button>
             <button class="btn ghost" id="ex-close">收起</button>
             <span class="muted" id="ex-hint" style="font-size:12px"></span>
           </div>
@@ -186,7 +186,7 @@
       </div>
       <div class="foot">
         <button class="btn ghost" data-close="m-classify">取消</button>
-        <button class="btn" id="btn-classify-save">保存</button>
+        <button class="btn" id="btn-classify-save" data-perm="document.write">保存</button>
       </div>
     </div>
   </div>
@@ -210,11 +210,12 @@
       </div>
       <div class="foot">
         <button class="btn ghost" data-close="m-del">取消</button>
-        <button class="btn danger" id="btn-del-confirm">确认删除</button>
+        <button class="btn danger" id="btn-del-confirm" data-perm="document.write">确认删除</button>
       </div>
     </div>
   </div>
 
   <script src="/static/js/documents.js" defer></script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </body>
 </html>

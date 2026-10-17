@@ -1,0 +1,290 @@
+{
+  "schema": "caishuixitong.frontend_perms/1",
+  "version": "1.0.0",
+  "updated": "2026-10-17",
+  "note": "前端权限门控的**唯一权威数据表**（P0-8 扩展轮）。机制本体是 `static/js/rbac-nav.js`（消费 `/api/auth/me` 下发的 `permissions` / `is_admin`，**不推断角色**）。本表只声明『哪个页面的哪个入口需要哪个权限点』；新增一个入口只在本表加一行，由 `scripts/_wire_frontend_perms.py` 注入，不改任何逻辑分支。★ 前端隐藏只是**体验**，真正的拦截在服务端（`security_web._LEGACY_WRITE_PERMS` / `_LEGACY_ADMIN_ONLY` / 各 v1 端点 require_permission）。",
+  "pages": {
+    "documents.html": [
+      {
+        "id": "drop",
+        "perm": "document.write",
+        "what": "上传资料（拖拽/点击入口）"
+      },
+      {
+        "id": "picker",
+        "perm": "document.write",
+        "what": "上传资料（文件选择框）"
+      },
+      {
+        "id": "btn-del-selected",
+        "perm": "document.write",
+        "what": "删除选中资料"
+      },
+      {
+        "id": "btn-reparse-all",
+        "perm": "document.write",
+        "what": "一键重析未成功"
+      },
+      {
+        "id": "ex-reparse",
+        "perm": "document.write",
+        "what": "重新解析本条"
+      },
+      {
+        "id": "btn-classify-save",
+        "perm": "document.write",
+        "what": "保存资料分类"
+      },
+      {
+        "id": "btn-del-confirm",
+        "perm": "document.write",
+        "what": "确认删除"
+      }
+    ],
+    "extract.html": [
+      {
+        "id": "btn-parse",
+        "perm": "document.write",
+        "what": "开始解析"
+      }
+    ],
+    "analysis.html": [
+      {
+        "id": "btn-start",
+        "perm": "analysis.run",
+        "what": "开始稽查分析"
+      },
+      {
+        "id": "btn-del-jobs",
+        "perm": "analysis.run",
+        "what": "删除选中作业"
+      },
+      {
+        "id": "btn-cancel",
+        "perm": "analysis.run",
+        "what": "取消作业"
+      },
+      {
+        "id": "btn-retry",
+        "perm": "analysis.run",
+        "what": "重试作业"
+      }
+    ],
+    "risks.html": [
+      {
+        "id": "bk-run",
+        "perm": "risk.review",
+        "what": "对勾选风险批量复核"
+      }
+    ],
+    "projects.html": [
+      {
+        "id": "btn-new",
+        "perm": "project.write",
+        "what": "新建项目"
+      },
+      {
+        "id": "btn-save",
+        "perm": "project.write",
+        "what": "保存项目"
+      },
+      {
+        "id": "btn-del-confirm",
+        "perm": "project.write",
+        "what": "确认删除项目"
+      }
+    ],
+    "rule_versions.html": [
+      {
+        "id": "btn-publish",
+        "perm": "ruleversion.manage",
+        "what": "发布规则新版本"
+      },
+      {
+        "id": "btn-rollback",
+        "perm": "ruleversion.manage",
+        "what": "回滚规则版本"
+      }
+    ],
+    "templates.html": [
+      {
+        "id": "btn-save",
+        "perm": "template.manage",
+        "what": "保存报告模板"
+      }
+    ],
+    "new-company.html": [
+      {
+        "id": "submit-btn",
+        "admin": true,
+        "what": "创建账套（服务端仅管理员）"
+      }
+    ],
+    "select-company.html": [
+      {
+        "id": "new-company-link",
+        "admin": true,
+        "what": "新建账套入口（服务端仅管理员）"
+      }
+    ],
+    "index.html": [
+      {
+        "id": "nav-users",
+        "perm": "user.view",
+        "what": "侧栏/顶栏入口：用户管理"
+      },
+      {
+        "id": "nav-roles",
+        "perm": "role.manage",
+        "what": "侧栏/顶栏入口：角色管理"
+      },
+      {
+        "id": "nav-audit-logs",
+        "perm": "audit.view",
+        "what": "侧栏/顶栏入口：审计日志"
+      },
+      {
+        "id": "nav-report-templates",
+        "perm": "report.view",
+        "what": "侧栏入口：报告模板"
+      },
+      {
+        "id": "nav-rule-versions",
+        "perm": "report.view",
+        "what": "侧栏入口：规则版本"
+      },
+      {
+        "id": "nav-legal-library",
+        "perm": "legal.view",
+        "what": "侧栏入口：法规库"
+      },
+      {
+        "id": "nav-legal-topics",
+        "perm": "legal.view",
+        "what": "侧栏入口：法规专题"
+      },
+      {
+        "id": "nav-legal-materials",
+        "perm": "legal.view",
+        "what": "侧栏入口：案例·解读·问答"
+      },
+      {
+        "id": "nav-industry-indicators",
+        "perm": "industry.view",
+        "what": "侧栏入口：行业指标库"
+      },
+      {
+        "id": "nav-dashboard",
+        "perm": "dashboard.view",
+        "what": "侧栏入口：数据大屏"
+      }
+    ],
+    "users.html": [
+      {
+        "id": "nav-roles",
+        "perm": "role.manage",
+        "what": "侧栏/顶栏入口：角色管理"
+      },
+      {
+        "id": "nav-audit-logs",
+        "perm": "audit.view",
+        "what": "侧栏/顶栏入口：审计日志"
+      },
+      {
+        "id": "btn-new",
+        "perm": "user.manage",
+        "what": "新建（按页面：用户 / 自定义角色）"
+      }
+    ],
+    "roles.html": [
+      {
+        "id": "nav-users",
+        "perm": "user.view",
+        "what": "侧栏/顶栏入口：用户管理"
+      },
+      {
+        "id": "nav-audit-logs",
+        "perm": "audit.view",
+        "what": "侧栏/顶栏入口：审计日志"
+      },
+      {
+        "id": "btn-new",
+        "perm": "role.manage",
+        "what": "新建（按页面：用户 / 自定义角色）"
+      }
+    ],
+    "audit_logs.html": [
+      {
+        "id": "nav-users",
+        "perm": "user.view",
+        "what": "侧栏/顶栏入口：用户管理"
+      },
+      {
+        "id": "nav-roles",
+        "perm": "role.manage",
+        "what": "侧栏/顶栏入口：角色管理"
+      }
+    ],
+    "reports.html": [
+      {
+        "id": "tab-gen",
+        "perm": "report.generate",
+        "what": "「生成报告」页签"
+      },
+      {
+        "id": "pane-gen",
+        "perm": "report.generate",
+        "what": "生成报告表单区"
+      }
+    ]
+  },
+  "dynamic_entries": {
+    "note": "**动态渲染**的写入口（由 JS 拼 HTML）没法用 HTML 属性注入，改由渲染模板自带 `data-perm` + 渲染后调用 `window.RBAC.reapply()`。本表登记以实现『漏配检测』。",
+    "static/js/documents.js": [
+      {
+        "marker": "data-act=\\\"del\\\"",
+        "perm": "document.write",
+        "what": "列表行内『删除』"
+      },
+      {
+        "marker": "data-save=",
+        "perm": "document.write",
+        "what": "解析结果详情内『保存』校正"
+      }
+    ],
+    "static/js/extract.js": [
+      {
+        "marker": "data-save=",
+        "perm": "document.write",
+        "what": "校正『保存』"
+      }
+    ],
+    "static/js/risks.js": [
+      {
+        "marker": "data-act=",
+        "perm": "risk.review",
+        "what": "复核动作按钮（确认/误报/整改/转人工）"
+      },
+      {
+        "marker": "id=\\\"d-cmt\\\"",
+        "perm": "risk.review",
+        "what": "『仅批注』"
+      }
+    ]
+  },
+  "read_only_pages": {
+    "dashboard.html": "只读（统计图表）",
+    "legal_library.html": "只读（法规检索/分页）",
+    "legal_topics.html": "只读（专题清单）",
+    "legal_materials.html": "只读（官方材料检索）",
+    "tax_models.html": "只读（多税种模型说明）",
+    "industry_indicators.html": "只读（行业指标检索）",
+    "rules.html": "只读（规则库展示/页签切换）"
+  },
+  "no_gate_reason": {
+    "ai_assist.html": "POST /ai-assist/{code} 服务端**无权限点**（登录即可）⇒ 不门控、也**不新增权限点**（避免扩大权限模型）",
+    "login.html": "公开页",
+    "account_setup.html": "公共（免登录账号设置，服务端 is_public_path 白名单；页面内的『创建』即注册本身）",
+    "change_password.html": "自我服务（改自己密码，服务端按会话校验旧密，不属功能权限点管辖）"
+  }
+}

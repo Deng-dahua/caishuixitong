@@ -92,7 +92,7 @@
         </div>
         <div class="row"><label style="min-width:60px">备注</label><textarea id="t-note" placeholder="变更原因（留痕会记录）"></textarea></div>
         <div class="row">
-          <button class="btn" id="btn-save">保存（版本自增）</button>
+          <button class="btn" id="btn-save" data-perm="template.manage">保存（版本自增）</button>
           <button class="btn ghost" id="btn-clear">清空表单</button>
           <span class="muted" id="save-hint"></span>
         </div>
@@ -111,5 +111,6 @@
   </div>
 
   <script src="/static/js/templates.js" defer></script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 </body>
 </html>

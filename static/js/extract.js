@@ -156,9 +156,11 @@
         '<td class="muted" style="font-size:11px">' +
           esc((src.sheet ? src.sheet + " / " : "") + "第 " + (src.row || "?") + " 行") + '</td>' +
         '<td><input type="text" data-fid="' + f.id + '" value="' + esc(shown) + '"> ' +
-          '<button class="btn ghost" data-save="' + f.id + '">保存</button></td>' +
+          '<button class="btn ghost" data-save="' + f.id + '" data-perm="document.write">保存</button></td>' +
       '</tr>';
     }).join("");
+    // ★ 动态节点刚插入 ⇒ 重新套用门控（无 document.write 者看不到「保存」）
+    if (window.RBAC && window.RBAC.reapply) { window.RBAC.reapply(); }
   }
 
   function renderIssues(d) {

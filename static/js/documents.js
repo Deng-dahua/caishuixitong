@@ -294,7 +294,7 @@
             '<button class="btn ghost" data-act="exview" data-id="' + d.id + '" data-name="' + esc(d.original_name_masked || d.original_name) + '">解析结果</button> ' +
             '<button class="btn ghost" data-act="classify" data-id="' + d.id + '">分类</button> ' +
             '<button class="btn ghost" data-act="download" data-id="' + d.id + '">下载</button> ' +
-            '<button class="btn danger" data-act="del" data-id="' + d.id + '">删除</button>' +
+            '<button class="btn danger" data-act="del" data-id="' + d.id + '" data-perm="document.write">删除</button>' +
           '</td></tr>';
       }).join("");
     }
@@ -308,6 +308,8 @@
     $("pageinfo").textContent = state.pages ? ("第 " + state.page + " / " + state.pages + " 页") : "";
     $("prev").disabled = state.page <= 1;
     $("next").disabled = state.pages === 0 || state.page >= state.pages;
+    // ★ 列表行含动态写入口（删除/保存）⇒ 重新套用门控
+    if (window.RBAC && window.RBAC.reapply) { window.RBAC.reapply(); }
   }
 
   // ── 详情 / 分类 / 下载 / 删除 ─────────────────────────────────────
@@ -419,9 +421,10 @@
         '<td class="muted" style="font-size:11px">' +
           esc((src.sheet ? src.sheet + " / " : "") + "第 " + (src.row || "?") + " 行") + '</td>' +
         '<td><input type="text" data-fid="' + f.id + '" value="' + esc(shown) + '" style="width:130px"> ' +
-          '<button class="btn ghost" data-save="' + f.id + '">保存</button></td>' +
+          '<button class="btn ghost" data-save="' + f.id + '" data-perm="document.write">保存</button></td>' +
       '</tr>';
     }).join("");
+    if (window.RBAC && window.RBAC.reapply) { window.RBAC.reapply(); }
   }
   function exRenderIssues(d) {
     var tb = $("ex-tb-issues");

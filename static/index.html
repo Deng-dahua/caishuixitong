@@ -97,41 +97,41 @@
     
     <div class="nav-group-title">三、系统</div>
     <!-- P0-8 权限与审计：`data-perm` 由 /static/js/rbac-nav.js 按服务端下发的权限集合显隐 -->
-    <div class="nav-item" data-perm="user.view" onclick="location.href='/users'" title="用户管理：账号、角色、所属组织与账套授权（联系方式等敏感字段按角色脱敏）">
+    <div id="nav-users" class="nav-item" data-perm="user.view" onclick="location.href='/users'" title="用户管理：账号、角色、所属组织与账套授权（联系方式等敏感字段按角色脱敏）">
       <span class="icon">👥</span> 用户管理
     </div>
-    <div class="nav-item" data-perm="role.manage" onclick="location.href='/roles'" title="角色管理：内置角色与权限点、角色-权限映射、自定义角色">
+    <div id="nav-roles" class="nav-item" data-perm="role.manage" onclick="location.href='/roles'" title="角色管理：内置角色与权限点、角色-权限映射、自定义角色">
       <span class="icon">🔐</span> 角色管理
     </div>
-    <div class="nav-item" data-perm="audit.view" onclick="location.href='/audit-logs'" title="审计日志：上传/分析/修改/下载/导出/复核/状态变更与登录留痕">
+    <div id="nav-audit-logs" class="nav-item" data-perm="audit.view" onclick="location.href='/audit-logs'" title="审计日志：上传/分析/修改/下载/导出/复核/状态变更与登录留痕">
       <span class="icon">🧾</span> 审计日志
     </div>
     <div class="nav-item" onclick="location.href='/change-password'" title="修改当前登录账号的密码（所有登录用户可用）">
       <span class="icon">🔑</span> 修改密码
     </div>
     <!-- P1-5 报告模板管理 / P1-6 规则版本管理：`data-perm` 同上由 rbac-nav.js 按权限显隐 -->
-    <div class="nav-item" data-perm="report.view" onclick="location.href='/report-templates'" title="报告模板管理：章节顺序与侧重的新建/覆盖/停用，含变更历史（不增删风险事项）">
+    <div id="nav-report-templates" class="nav-item" data-perm="report.view" onclick="location.href='/report-templates'" title="报告模板管理：章节顺序与侧重的新建/覆盖/停用，含变更历史（不增删风险事项）">
       <span class="icon">📐</span> 报告模板
     </div>
-    <div class="nav-item" data-perm="report.view" onclick="location.href='/rule-versions'" title="规则版本管理：版本历史、版本差异、发布与回滚">
+    <div id="nav-rule-versions" class="nav-item" data-perm="report.view" onclick="location.href='/rule-versions'" title="规则版本管理：版本历史、版本差异、发布与回滚">
       <span class="icon">🏷️</span> 规则版本
     </div>
 
     <!-- P2 知识库与统计：`data-perm` 同上由 rbac-nav.js 按权限显隐 -->
     <div class="nav-group-title">四、知识库与统计</div>
-    <div class="nav-item" data-perm="legal.view" onclick="location.href='/legal-library'" title="法规库：条文正文检索、法条版本状态、覆盖率（条文来自数据文件，不硬编码）">
+    <div id="nav-legal-library" class="nav-item" data-perm="legal.view" onclick="location.href='/legal-library'" title="法规库：条文正文检索、法条版本状态、覆盖率（条文来自数据文件，不硬编码）">
       <span class="icon">📖</span> 法规库
     </div>
-    <div class="nav-item" data-perm="legal.view" onclick="location.href='/legal-topics'" title="法规专题：20 个专题的法规清单（分层）、关联规则、已核实条款、相关官方材料与法规关系链">
+    <div id="nav-legal-topics" class="nav-item" data-perm="legal.view" onclick="location.href='/legal-topics'" title="法规专题：20 个专题的法规清单（分层）、关联规则、已核实条款、相关官方材料与法规关系链">
       <span class="icon">🗂️</span> 法规专题
     </div>
-    <div class="nav-item" data-perm="legal.view" onclick="location.href='/legal-materials'" title="案例·解读·问答：三平台官方材料，按类型/关键词检索，可查看其显式引用的法规（粒度=法规级）">
+    <div id="nav-legal-materials" class="nav-item" data-perm="legal.view" onclick="location.href='/legal-materials'" title="案例·解读·问答：三平台官方材料，按类型/关键词检索，可查看其显式引用的法规（粒度=法规级）">
       <span class="icon">📰</span> 案例·解读·问答
     </div>
-    <div class="nav-item" data-perm="industry.view" onclick="location.href='/industry-indicators'" title="行业指标库：行业参数、指标基准区间与警戒口径">
+    <div id="nav-industry-indicators" class="nav-item" data-perm="industry.view" onclick="location.href='/industry-indicators'" title="行业指标库：行业参数、指标基准区间与警戒口径">
       <span class="icon">📊</span> 行业指标库
     </div>
-    <div class="nav-item" data-perm="dashboard.view" onclick="location.href='/dashboard'" title="数据大屏：跨项目风险/资料/分析任务的聚合统计">
+    <div id="nav-dashboard" class="nav-item" data-perm="dashboard.view" onclick="location.href='/dashboard'" title="数据大屏：跨项目风险/资料/分析任务的聚合统计">
       <span class="icon">📈</span> 数据大屏
     </div>
     <!-- ★ ODC-03（2026-10-14）：AI 辅助 / 多税种模型 此前**页面与路由都在、侧边栏无入口**
@@ -178,7 +178,7 @@
 <script src="/static/js/correction-rules.js?v=4f574b682d" defer></script>
 <script src="/static/js/human-learning-page.js?v=1ccc56897c" defer></script>
 <script src="/static/js/module-headers.js?v=38c0d6206d" defer></script>
-<script src="/static/js/rbac-nav.js?v=4d62d2a49e" defer></script>
+<script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 <!-- CACHE-BUST: 2026071113-REPORT-STANDARDS-FIX -->
 
 

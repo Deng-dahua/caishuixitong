@@ -476,6 +476,13 @@ def auth_me_handler(request):
         "role": session.role,
         "roles": roles,
         "permissions": permissions,
+        # ★ 2026-10-17：显式**管理员标识**。服务端是"谁是管理员"的**唯一权威**
+        #  （`session.is_admin`）；前端据此门控**管理员专用**入口（`data-perm-admin`），
+        #  以免前端自行推断角色（那会形成第二权威）。
+        #  背景：服务端有若干**仅管理员**端点（`security_web._LEGACY_ADMIN_ONLY`，如
+        #  新建/删除账套、全局巡检配置），它们**不对应任何权限点**，故前端无法用
+        #  `data-perm="<权限码>"` 表达，需要这个布尔量。
+        "is_admin": bool(session.is_admin),
         "tenant_id": getattr(session, "tenant_id", None),
         "company_ids": sorted(session.allowed_company_ids),
         "selected_company_id": session.selected_company_id,
