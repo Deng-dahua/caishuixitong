@@ -14,7 +14,7 @@ py -3.13 -m venv .venv
 .\start8001.bat
 ```
 
-浏览器访问 `http://127.0.0.1:8000`。本地 HTTP 启动脚本只监听回环地址，并将
+浏览器访问 `http://127.0.0.1:8001`（★ 端口以 `start8001.bat` 里的 `set PORT=8001` 为准；此前 README 误写 8000）。本地 HTTP 启动脚本只监听回环地址，并将
 安全 Cookie 的 HTTPS 要求仅在本机开发会话中关闭。
 
 Linux/macOS 使用 `.venv/bin/python manage_users.py ...` 和 `./start.sh`。

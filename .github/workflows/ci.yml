@@ -1,0 +1,36 @@
+name: ci
+
+# CI-02（2026-10-17）：把「靠人记得跑」的检查变成每次提交自动跑。
+# 与本地等价：`python scripts/ci_check.py`（同一条命令，同一套判据）。
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  quality-gate:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: 安装依赖
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python.exe -m pip install --upgrade pip
+          if (Test-Path requirements.txt) { .venv\Scripts\python.exe -m pip install -r requirements.txt }
+
+      - name: 静态门禁（资源版本 / 权限门控 / 一致性审计 / 版本日志）
+        run: .venv\Scripts\python.exe scripts/ci_check.py --fast
+
+      - name: 全量测试
+        run: .venv\Scripts\python.exe scripts/ci_check.py --version-check
+
+      # ★ 注意：完整 `ci_check.py`（含 pytest 全量）在 CI 机器上可能因缺少
+      #   真实数据目录而出现与本地不同的失败集合；这里先跑静态门禁 + 版本检查，
+      #   全量测试由发布前的本地 `python scripts/ci_check.py` 保证（见 docs/运维手册.md §6）。

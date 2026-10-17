@@ -56,7 +56,10 @@ from database import (
 from tax_risk import router as tax_risk_router
 from utils import build_account_hierarchy as _build_account_hierarchy, clear_source_voucher_no as _clear_source_voucher_no, renumber_vouchers as _renumber_vouchers, renumber_archive as _renumber_archive, sync_biz_voucher_no as _sync_biz_voucher_no
 from tax_rules_api import router as tax_rules_api_router
-from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router; from rules_api import router as rules_router, page_router as rules_page_router; from risks_api import router as risks_router, page_router as risks_page_router; from reports_api import router as reports_router, page_router as reports_page_router; from rbac_api import router as rbac_router, page_router as rbac_page_router; from engine import parse_enhance as _PE; from engine import ocr_engine as _OC; from parse_api import router as parse_router; from ocr_api import router as ocr_router; from templates_api import router as templates_router, page_router as templates_page_router; from rule_versions_api import router as rule_versions_router, page_router as rule_versions_page_router; from legal_api import router as legal_router, page_router as legal_page_router; from industry_api import router as industry_router, page_router as industry_page_router; from ai_assist_api import router as ai_assist_router, page_router as ai_assist_page_router; from tax_models_api import router as tax_models_router, page_router as tax_models_page_router; from dashboard_api import router as dashboard_router, page_router as dashboard_page_router; from error_pages_api import error_route as _err_route, page_404_handler as _err404  # P1-1 解析增强 / P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计
+from file_parser import router as file_parser_router; from projects_api import router as projects_router, page_router as projects_page_router; from documents_api import router as documents_router, page_router as documents_page_router; from extract_api import router as extract_router, page_router as extract_page_router; from analysis_api import router as analysis_router, page_router as analysis_page_router; from rules_api import router as rules_router, page_router as rules_page_router; from risks_api import router as risks_router, page_router as risks_page_router; from reports_api import router as reports_router, page_router as reports_page_router; from rbac_api import router as rbac_router, page_router as rbac_page_router; from engine import parse_enhance as _PE; from engine import ocr_engine as _OC; from parse_api import router as parse_router; from ocr_api import router as ocr_router; from templates_api import router as templates_router, page_router as templates_page_router; from rule_versions_api import router as rule_versions_router, page_router as rule_versions_page_router; from legal_api import router as legal_router, page_router as legal_page_router; from industry_api import router as industry_router, page_router as industry_page_router; from ai_assist_api import router as ai_assist_router, page_router as ai_assist_page_router; from tax_models_api import router as tax_models_router, page_router as tax_models_page_router; from dashboard_api import router as dashboard_router, page_router as dashboard_page_router; from backup_api import router as backup_router, page_router as backup_page_router
+from consent_api import router as consent_router, page_router as consent_page_router
+from trash_api import router as trash_router, page_router as trash_page_router
+from error_pages_api import error_route as _err_route, page_404_handler as _err404  # P1-1 解析增强 / P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计
 
 # ═══ 统一城市列表 — 从 shared_state 导入 ═══
 from shared_state import _CHINA_CITIES_UNIFIED, _CHINA_CITY_REGEX, _last_analysis_cache, _analysis_history, _tax_risk_docs
@@ -103,9 +106,40 @@ from request_context import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化数据库+自检+恢复分析缓存"""
+    # ★ O-01（2026-10-17）：统一日志。此前产品代码 print 412 次、logger 仅 6 次 ——
+    #   无级别、不可采集，线上排障只能翻 stdout。这里先落地基础设施
+    #   （stdout + data/logs/app.log 轮转，格式统一），新代码一律 `get_logger()`。
+    try:
+        from engine.logging_setup import setup as _log_setup
+        _log_setup()
+    except Exception as _e:                        # noqa: BLE001
+        print("[STARTUP] 日志初始化失败（不影响启动）：%s" % _e)
     init_security_db()
     init_llm_credentials_db()
     init_db()
+    # ★ S-10（2026-10-17）：**每日自动备份**。评估结论是「系统会做快照，但没有人调度」
+    #   —— 备份能力存在而不执行，等于没有备份。这里起一个守护线程每小时判一次
+    #   （`engine.backup.is_due()` 按 APP_BACKUP_INTERVAL_HOURS，默认 24h），
+    #   到点就在线快照（VACUUM INTO），并保留最近 N 份（默认 14）。
+    try:
+        import threading as _threading
+        from engine import backup as _bk
+
+        def _backup_loop():
+            while True:
+                try:
+                    _res = _bk.ensure_daily_backup()
+                    if _res.get("ran"):
+                        print("[BACKUP] 已生成每日备份：%s" % _res.get("folder"))
+                    elif _res.get("error"):
+                        print("[BACKUP] 备份失败：%s" % _res.get("error"))
+                except Exception as _e:            # noqa: BLE001
+                    print("[BACKUP] 备份异常：%s" % _e)
+                time.sleep(3600)
+
+        _threading.Thread(target=_backup_loop, name="daily-backup", daemon=True).start()
+    except Exception as _e:                        # noqa: BLE001
+        print("[BACKUP] 调度器启动失败：%s" % _e)
     # 注意：回收站（data/trash/）物理清理不在此自动执行——
     # 环境安全守护对 os.remove 按轮次累计计数（50 个即终止进程），
     # 启动时批量清理会把服务器杀死。回收站文件不参与列表与分析，
@@ -149,6 +183,34 @@ app = FastAPI(title="财税风险防控系统", description="全行业通用财�
 # 2026-09-30：AGI 子系统（knowledge_base / auto_patrol / agi_* / causal_* / human_learning 等 11 模块）已整体移除。
 
 # ═══════════════ 个人登录 ═══════════════
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    """★ O-02（2026-10-17）：逐请求采集指标（数量/状态/耗时）。
+
+    位置：**在鉴权之前**（`app.middleware` 后注册的先执行）——
+    这样 401/403 也能被统计到；否则"错误率"会漏掉鉴权失败。
+    ★ 采集绝不阻塞业务：任何异常都吞掉，只丢一条样本。
+    """
+    import time as _t
+    _t0 = _t.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        try:
+            from engine import metrics as _m
+            _m.record_request(request.url.path, request.method, 500, _t.perf_counter() - _t0)
+        except Exception:
+            pass
+        raise
+    try:
+        from engine import metrics as _m
+        _m.record_request(request.url.path, request.method, response.status_code,
+                          _t.perf_counter() - _t0)
+    except Exception:
+        pass
+    return response
+
+
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     # ★ 2026-10-07：本函数下方原有「旧登录会话 + 跳转」整段实现（在早返回之后**不可达**，
@@ -628,7 +690,7 @@ async def add_no_cache_headers(request, call_next):
     return response
 app.include_router(tax_risk_router)
 app.include_router(tax_rules_api_router)
-app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router); app.include_router(rules_router); app.include_router(rules_page_router); app.include_router(risks_router); app.include_router(risks_page_router); app.include_router(reports_router); app.include_router(reports_page_router); app.include_router(rbac_router); app.include_router(rbac_page_router); app.include_router(parse_router); app.include_router(ocr_router); app.include_router(templates_router); app.include_router(templates_page_router); app.include_router(rule_versions_router); app.include_router(rule_versions_page_router); app.include_router(legal_router); app.include_router(legal_page_router); app.include_router(industry_router); app.include_router(industry_page_router); app.include_router(ai_assist_router); app.include_router(ai_assist_page_router); app.include_router(tax_models_router); app.include_router(tax_models_page_router); app.include_router(dashboard_router); app.include_router(dashboard_page_router); app.add_exception_handler(404, _err404)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计 / P1-1 解析增强
+app.include_router(file_parser_router); app.include_router(projects_router); app.include_router(projects_page_router); app.include_router(documents_router); app.include_router(documents_page_router); app.include_router(extract_router); app.include_router(extract_page_router); app.include_router(analysis_router); app.include_router(analysis_page_router); app.include_router(rules_router); app.include_router(rules_page_router); app.include_router(risks_router); app.include_router(risks_page_router); app.include_router(reports_router); app.include_router(reports_page_router); app.include_router(rbac_router); app.include_router(rbac_page_router); app.include_router(parse_router); app.include_router(ocr_router); app.include_router(templates_router); app.include_router(templates_page_router); app.include_router(rule_versions_router); app.include_router(rule_versions_page_router); app.include_router(legal_router); app.include_router(legal_page_router); app.include_router(industry_router); app.include_router(industry_page_router); app.include_router(ai_assist_router); app.include_router(ai_assist_page_router); app.include_router(tax_models_router); app.include_router(tax_models_page_router); app.include_router(dashboard_router); app.include_router(dashboard_page_router); app.include_router(backup_router); app.include_router(backup_page_router); app.include_router(consent_router); app.include_router(consent_page_router); app.include_router(trash_router); app.include_router(trash_page_router); app.add_exception_handler(404, _err404)  # P0-1 项目 / P0-2 资料 / P0-3 解析 / P0-4 分析任务 / P0-5 规则引擎 / P0-6 风险复核 / P0-7 报告 / P0-8 权限·租户·审计 / P1-1 解析增强
 
 # 挂载静态文件（JS/CSS 禁用缓存，确保前端代码即时生效）
 @app.middleware("http")

@@ -216,6 +216,10 @@ def _extract_from_redlines() -> Dict[Tuple[str, str], str]:
 #: 正文库来源文件（**唯一权威**：读路径只此一处；新增数据文件只加这一行）
 LIBRARY_FILES: Tuple[str, ...] = ("legal_library.json", "legal_refs.json")
 
+#: 正文库条目缓存（PF-01，2026-10-17）：键 = 每文件的 (文件名, mtime_ns, size)
+_ENTRIES_CACHE: Optional[List[Dict[str, str]]] = None
+_ENTRIES_CACHE_KEY: Optional[Tuple[Any, ...]] = None
+
 
 def library_paths() -> List[Path]:
     """正文库来源文件的**绝对路径**（只列真实存在的；供法规库浏览页展示来源）。"""
@@ -229,7 +233,25 @@ def library_file_entries() -> List[Dict[str, str]]:
       合并了红线库内嵌条文、不含 `source`）；本函数返回**正文库文件的逐条原样条目**。
       两者读**同一批文件**（都走 `LIBRARY_FILES` / `library_paths()`）⇒ 不会各自漂移。
     ★ **不臆造条文**：只返回文件里真实存在的条目；`content` 为空的条目跳过。
+    ★ **按文件 mtime+size 缓存**（2026-10-17，PF-01）：本函数是法规库页每次请求的入口，
+      每次重新解析 7.6k 条 JSON 要 26 ms；法定文件只在人工录入时变化，
+      用 (路径, mtime_ns, size) 做键即可安全缓存 —— 文件一变键就变，**不会读到旧内容**。
+      返回值是**共享只读结构**，调用方不得原地修改（各消费点目前都是只读遍历）。
     """
+    stamps = []
+    global _ENTRIES_CACHE, _ENTRIES_CACHE_KEY
+    for name in LIBRARY_FILES:
+        p = _ROOT / "static" / name
+        try:
+            st = p.stat()
+        except OSError:
+            stamps.append((name, None, None))
+            continue
+        stamps.append((name, st.st_mtime_ns, st.st_size))
+    key = tuple(stamps)
+    if _ENTRIES_CACHE_KEY == key and _ENTRIES_CACHE is not None:
+        return _ENTRIES_CACHE
+
     out: List[Dict[str, str]] = []
     for name in LIBRARY_FILES:
         p = _ROOT / "static" / name
@@ -255,7 +277,16 @@ def library_file_entries() -> List[Dict[str, str]]:
             out.append({"law": law, "article": art, "content": content,
                         "source": str(e.get("source") or "").strip(),
                         "from": name})
+    _ENTRIES_CACHE = out
+    _ENTRIES_CACHE_KEY = key
     return out
+
+
+def reset_library_entries_cache() -> None:
+    """清空正文库条目缓存（测试/热更新用；正常运行由 mtime 自动失效）。"""
+    global _ENTRIES_CACHE, _ENTRIES_CACHE_KEY
+    _ENTRIES_CACHE = None
+    _ENTRIES_CACHE_KEY = None
 
 
 def _load_library() -> Dict[Tuple[str, str], str]:

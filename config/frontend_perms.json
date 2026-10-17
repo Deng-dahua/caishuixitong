@@ -236,6 +236,20 @@
         "perm": "report.generate",
         "what": "生成报告表单区"
       }
+    ],
+    "backup.html": [
+      {
+        "id": "btn-create",
+        "admin": true,
+        "what": "立即备份（服务端仅管理员：GET/POST /api/v1/system/backups）"
+      }
+    ],
+    "recycle.html": [
+      {
+        "id": "btn-empty",
+        "admin": true,
+        "what": "清空回收站（服务端仅管理员；分批、需 confirm=true）"
+      }
     ]
   },
   "dynamic_entries": {
@@ -285,6 +299,7 @@
     "ai_assist.html": "POST /ai-assist/{code} 服务端**无权限点**（登录即可）⇒ 不门控、也**不新增权限点**（避免扩大权限模型）",
     "login.html": "公开页",
     "account_setup.html": "公共（免登录账号设置，服务端 is_public_path 白名单；页面内的『创建』即注册本身）",
-    "change_password.html": "自我服务（改自己密码，服务端按会话校验旧密，不属功能权限点管辖）"
+    "change_password.html": "自我服务（改自己密码，服务端按会话校验旧密，不属功能权限点管辖）",
+    "consent.html": "自我服务页：每个使用数据的人都必须能看到告知，不做权限门控（服务端只要求登录）"
   }
 }

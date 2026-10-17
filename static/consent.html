@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>数据处理告知与免责声明 - 财税风险防控系统</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; line-height:1.85; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a { color:#cbd5e1; border:1px solid rgba(255,255,255,.25); border-radius:5px;
+                padding:5px 12px; font-size:12px; text-decoration:none; }
+    .topbar a:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:18px 20px 40px; max-width:860px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; }
+    .card > .body { padding:18px 22px; }
+    h2 { font-size:15px; margin:18px 0 6px; color:#0f172a; }
+    h2:first-child { margin-top:0; }
+    p { margin:0 0 10px; color:#334155; }
+    .meta { font-size:12px; color:#64748b; margin-bottom:14px; }
+    .msg { padding:8px 12px; border-radius:5px; font-size:13px; margin-bottom:12px; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .msg.warn { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    .actions { margin-top:18px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .btn { padding:8px 18px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:14px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn:disabled { opacity:.55; cursor:not-allowed; }
+    code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12px; }
+  </style>
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>📋 数据处理告知与免责声明</h1>
+    <span class="spacer"></span>
+    <a href="/">返回首页</a>
+  </div>
+
+  <div class="wrap">
+    <div id="msg"></div>
+    <div class="card">
+      <div class="body">
+        <div class="meta" id="meta">载入中…</div>
+        <div id="items"></div>
+        <div class="actions">
+          <button class="btn" id="btn-accept">我已阅读并知悉</button>
+          <span id="state" style="font-size:13px;color:#64748b"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function csrf() {
+      var m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+    function say(kind, t) {
+      document.getElementById('msg').innerHTML =
+        t ? '<div class="msg ' + kind + '">' + esc(t) + '</div>' : '';
+    }
+
+    var data = null;
+
+    function render(d) {
+      data = d;
+      document.getElementById('meta').textContent =
+        '条款版本 ' + d.version + '　·　' + (d.accepted ? '你已确认过本版本' : '你尚未确认本版本');
+      document.getElementById('items').innerHTML = (d.items || []).map(function (it) {
+        return '<h2>' + esc(it.title) + '</h2><p>' + esc(it.body) + '</p>';
+      }).join('');
+      var btn = document.getElementById('btn-accept');
+      btn.disabled = !!d.accepted;
+      document.getElementById('state').textContent = d.accepted
+        ? '已确认，无需重复操作（条款改版后需重新确认）'
+        : '确认后会留下一条记录（时间 / 账号 / IP），可在审计日志中查询';
+    }
+
+    function load() {
+      fetch('/api/v1/system/consent', { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) {
+          if (r.status === 401) { location.href = '/login'; throw new Error('未登录'); }
+          if (!r.ok) { throw new Error('HTTP ' + r.status); }
+          return r.json();
+        })
+        .then(render)
+        .catch(function (e) { say('err', '读取条款失败：' + e.message); });
+    }
+
+    document.getElementById('btn-accept').addEventListener('click', function () {
+      var btn = this;
+      btn.disabled = true;
+      fetch('/api/v1/system/consent/accept', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'X-CSRF-Token': csrf() }
+      }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) {
+          if (!res.ok) { throw new Error(res.j.detail || ('HTTP')); }
+          say('ok', '已记录你的确认（' + res.j.accepted_at + '，版本 ' + res.j.version + '）');
+          load();
+        })
+        .catch(function (e) { say('err', '确认失败：' + e.message); btn.disabled = false; });
+    });
+
+    document.addEventListener('DOMContentLoaded', load);
+  })();
+  </script>
+  <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
+</body>
+</html>

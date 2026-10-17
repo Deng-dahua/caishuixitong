@@ -48,6 +48,13 @@
       <div id="error" role="alert"></div>
     </form>
     <p class="notice">登录失败会触发渐进式锁定。请勿共享账号或在公共设备保存密码。</p>
+    <!-- E-04（2026-10-17）：免责声明此前只写在报告正文里，登录页没有 ——
+         新用户看不到"结论不构成税务鉴证意见"这一条。 -->
+    <p class="notice" style="margin-top:8px;line-height:1.7">
+      本系统仅将你上传的资料用于财税风险识别，输出为<b>风险线索与法规依据</b>，
+      <b>不构成税务鉴证意见或法律意见</b>。继续登录即表示你已知悉
+      <a href="/consent" style="color:#2563eb">《数据处理告知与免责声明》</a>。
+    </p>
     <p class="notice" style="text-align:center"><a href="/account-setup" style="color:#2563eb;font-weight:650">没有账号？去「账号设置」（手机号注册，初始密码=手机号）→</a></p>
   </main>
   <script>
@@ -81,5 +88,6 @@
       }
     });
   </script>
+  <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>
 </html>

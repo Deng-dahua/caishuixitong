@@ -73,7 +73,12 @@ rem    UTF-8, and leaves %ERRORLEVEL% meaningful (a pipe would swallow it).
 rem -- Open the browser a few seconds later, once uvicorn is listening.
 rem    (Separate detached cmd so the delay does not block the server.)
 start "" /min cmd /c "ping -n 7 127.0.0.1 >nul & start http://127.0.0.1:%PORT%"
-"%APP_PYTHON%" -m uvicorn main:app --host 127.0.0.1 --port %PORT% >> "%LOG%" 2>&1
+rem -- D-03 (2026-10-17): run through the supervisor so a crash is
+rem    restarted automatically (1/2/5/10/30/60s backoff).  The supervisor
+rem    also refuses to start a 2nd instance (two uvicorn on one
+rem    security.db always ends in "attempt to write a readonly database").
+set "APP_PORT=%PORT%"
+"%APP_PYTHON%" scripts\serve_supervisor.py >> "%LOG%" 2>&1
 set "RC=%ERRORLEVEL%"
 
 echo [launcher] exit  code=%RC% >> "%LOG%"

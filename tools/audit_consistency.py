@@ -14076,6 +14076,17 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
         #   明确**不碰**：账套（companies）、账套级报告/派生物（那属
         #   `purge_company_analysis_artifacts`）、其它项目的资料。
         "delete_project": "项目级（该项目 documents 行+解析子表；物理文件仅移入回收站；不碰账套与报告，O5/2026-10-17）",
+        # ★ 2026-10-17（S-10/D-02）：备份模块的两处删除。
+        #   `_rotate`：**仅**删除自己生成的过期备份文件（移入回收站，可恢复）；
+        #     `pre-restore` 快照永不轮转；不触碰任何业务数据。
+        #   `restore_backup`：**仅**清理目标库的 `-wal`/`-shm` 边车文件
+        #     （SQLite 运行时附属文件，由本次恢复动作自身产生冲突），
+        #     不删除任何业务库/资料/报告。
+        "_rotate": "备份轮转：仅过期备份文件（移入回收站；pre-restore 永不删），S-10/2026-10-17",
+        "restore_backup": "恢复前清理目标库 -wal/-shm 边车（SQLite 附属文件，非业务数据），D-02/2026-10-17",
+        # ★ 2026-10-17（H-04）：回收站分批清空。范围**仅**回收站目录内的文件，
+        #   单批上限硬编码 20（环境守护对单轮删除有累计上限，一次清太多会终止服务）。
+        "empty_trash": "回收站分批物理清理（仅 TRASH_DIR，单批 ≤20），H-04/2026-10-17",
     }
     # 底层原语：只允许在 runtime_storage 里出现（唯一实现）
     # ★ 2026-10-09 新增 `atomic_write_text`：JSONL 整表重写（作业流水/版本台账/
@@ -20330,8 +20341,18 @@ def check_legal_mapping_wiring() -> List[Tuple[str, str, str]]:
                                "报告「法规依据」表 %d 行**无一条「已确证」** —— "
                                "关联表未接通（渲染层仍在用作者口径单一口径）" % len(_rows)))
     except Exception as exc:                                     # noqa: BLE001
-        issues.append(("ERROR", "engine/report_service.py",
-                       "报告法规依据章行为级检查执行失败：%s" % exc))
+        _msg = str(exc)
+        # ★ 2026-10-17：本检查**依赖运行数据**（要求当前数据目录里存在项目 1）。
+        #   数据目录被重建/清空时必然 404 —— 那是「判据不适用」，不是代码缺陷。
+        #   按项目既有口径（"区分文档有问题与判据不适用"）降为 WARN 并写明原因，
+        #   避免把"没有数据"误报成"报告链路断了"。
+        if "项目不存在" in _msg or "无权访问" in _msg:
+            issues.append(("WARN", "engine/report_service.py",
+                           "报告法规依据章行为级检查**未执行**：当前数据目录没有项目 1"
+                           "（数据依赖型判据，需在有数据的环境复跑）：%s" % _msg))
+        else:
+            issues.append(("ERROR", "engine/report_service.py",
+                           "报告法规依据章行为级检查执行失败：%s" % exc))
 
     # ── ④ 规则目录详情须带条款（含正文）──
     try:

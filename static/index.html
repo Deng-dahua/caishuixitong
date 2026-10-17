@@ -123,6 +123,17 @@
     <div id="nav-audit-logs" class="nav-item" data-perm="audit.view" onclick="location.href='/audit-logs'" title="审计日志：上传/分析/修改/下载/导出/复核/状态变更与登录留痕">
       <span class="icon">🧾</span> 审计日志
     </div>
+    <!-- H-04（2026-10-17）：回收站（仅管理员；删除的文件先来这里，可还原） -->
+    <div id="nav-recycle" class="nav-item" data-perm-admin="1" onclick="location.href='/recycle'" title="回收站：查看已删除文件、还原、分批清空（不可撤销）">
+      <span class="icon">🗑️</span> 回收站
+    </div>
+    <!-- S-10（2026-10-17）：备份与恢复（仅管理员，服务端 session.is_admin 唯一权威） -->
+    <div id="nav-backup" class="nav-item" data-perm-admin="1" onclick="location.href='/backup'" title="备份与恢复：在线一致快照、校验（重算 SHA-256）、恢复指引；每日自动备份">
+      <span class="icon">💾</span> 备份与恢复
+    </div>
+    <div id="nav-consent" class="nav-item" onclick="location.href='/consent'" title="数据处理告知与免责声明（数据范围/目的/留存/你的权利）">
+      <span class="icon">📋</span> 数据处理告知
+    </div>
     <div class="nav-item" onclick="location.href='/change-password'" title="修改当前登录账号的密码（所有登录用户可用）">
       <span class="icon">🔑</span> 修改密码
     </div>
@@ -281,6 +292,7 @@
 <script src="/static/js/human-learning-page.js?v=1ccc56897c" defer></script>
 <script src="/static/js/module-headers.js?v=38c0d6206d" defer></script>
 <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
+<script src="/static/js/consent-guard.js?v=31ec05edb5" defer></script>
 <script src="/static/js/home-overview.js?v=37116d887d" defer></script>
 <!-- CACHE-BUST: 2026071113-REPORT-STANDARDS-FIX -->
 
@@ -335,5 +347,6 @@ function exitToCompanyPick() {
 
 </div><!-- /#app-view -->
 
+  <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>
 </html>

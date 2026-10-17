@@ -458,6 +458,18 @@ async def select_company_handler(data: dict, request):
     return response
 
 
+def _consent_required(username: str) -> bool:
+    """当前用户是否还没确认最新版《数据处理告知》（E-01）。
+
+    任何异常都按"未确认"返回，但**绝不让它影响登录本身**。
+    """
+    try:
+        from engine import consent as _c          # noqa: PLC0415
+        return not _c.is_accepted(username)
+    except Exception:                             # noqa: BLE001
+        return True
+
+
 def auth_me_handler(request):
     session = request.state.auth
     # P0-8：把「当前会话的角色与权限」一并发给前端 —— 菜单/按钮/数据可见性
@@ -483,6 +495,9 @@ def auth_me_handler(request):
         #  新建/删除账套、全局巡检配置），它们**不对应任何权限点**，故前端无法用
         #  `data-perm="<权限码>"` 表达，需要这个布尔量。
         "is_admin": bool(session.is_admin),
+        # ★ E-01（2026-10-17）：知情同意状态。仅"告知"，**不阻断业务**
+        #   （读不到同意表时按未确认处理，但不影响登录 —— 告知不该变成可用性故障）。
+        "consent_required": _consent_required(session.username),
         "tenant_id": getattr(session, "tenant_id", None),
         "company_ids": sorted(session.allowed_company_ids),
         "selected_company_id": session.selected_company_id,

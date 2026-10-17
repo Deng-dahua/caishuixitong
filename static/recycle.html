@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>回收站 - 财税风险防控系统</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+           background:#f5f7fa; color:#1e293b; font-size:14px; }
+    .topbar { display:flex; align-items:center; gap:12px; padding:12px 20px; background:#1e293b; color:#fff; }
+    .topbar h1 { font-size:16px; margin:0; font-weight:700; }
+    .topbar .spacer { flex:1; }
+    .topbar a { color:#cbd5e1; border:1px solid rgba(255,255,255,.25); border-radius:5px;
+                padding:5px 12px; font-size:12px; text-decoration:none; }
+    .topbar a:hover { background:rgba(255,255,255,.12); color:#fff; }
+    .wrap { padding:16px 20px; max-width:1400px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:14px; }
+    .card > h3 { margin:0; padding:12px 16px; font-size:14px; border-bottom:1px solid #f1f5f9; }
+    .card > .body { padding:14px 16px; }
+    .kpis { display:flex; gap:26px; flex-wrap:wrap; margin-bottom:12px; }
+    .kpis > div { font-size:12px; color:#64748b; }
+    .kpis b { display:block; font-size:20px; color:#0f172a; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+    .btn { padding:6px 14px; border:1px solid #3b82f6; background:#3b82f6; color:#fff;
+           border-radius:5px; font-size:13px; cursor:pointer; }
+    .btn:hover { background:#2563eb; }
+    .btn.ghost { background:#fff; color:#334155; border-color:#cbd5e1; }
+    .btn.danger { background:#fff; color:#b91c1c; border-color:#fca5a5; }
+    .btn.danger:hover { background:#fef2f2; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    table.grid { width:100%; border-collapse:collapse; }
+    table.grid th, table.grid td { padding:8px 11px; text-align:left; border-bottom:1px solid #f1f5f9; font-size:13px; }
+    table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
+    table.grid tr:hover td { background:#f8fafc; }
+    .muted { color:#94a3b8; }
+    .msg { padding:8px 12px; border-radius:5px; font-size:13px; margin-bottom:10px; }
+    .msg.err { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; }
+    .msg.ok { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+    .msg.warn { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:12px; }
+  </style>
+  <script src="/static/js/security.js"></script>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🗑️ 回收站</h1>
+    <span class="spacer"></span>
+    <span class="muted" id="who" style="color:#94a3b8"></span>
+    <a href="/">返回首页</a>
+  </div>
+
+  <div class="wrap">
+    <div id="msg"></div>
+
+    <div class="card">
+      <h3>概况</h3>
+      <div class="body">
+        <div class="kpis" id="kpis"><div><b>—</b>载入中</div></div>
+        <div class="toolbar" style="margin-bottom:0">
+          <button class="btn ghost" id="btn-refresh">刷新</button>
+          <button class="btn danger" id="btn-empty" data-perm-admin="1">清空一批（最多 20 个）</button>
+          <span class="muted">删除的文件先来这里，<b>可以还原</b>；清空才是真删除且不可撤销。</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>文件清单</h3>
+      <div class="body">
+        <table class="grid">
+          <thead><tr><th>文件名</th><th>大小</th><th>删除时间</th><th>推断归属</th><th>操作</th></tr></thead>
+          <tbody id="tb"><tr><td colspan="5" class="muted">载入中…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/recycle.js?v=a1a0c5e705" defer></script>
+  <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
+  <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
+</body>
+</html>
