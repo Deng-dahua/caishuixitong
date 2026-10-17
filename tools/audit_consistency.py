@@ -14070,6 +14070,12 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
         "_run_declaration_consistency": "同名上传覆盖：旧版移入项目回收站",
         "analyze_tax_risk_docs_resume": "重跑前清失败检查点（状态重置，非业务数据）",
         "delete_credential": "用户级 LLM 凭证（DB 行即全部，另在 llm_credentials.py）", "_cleanup_upload_session": "上传会话临时态（data/upload_sessions/<id>/ 分片 + <id>.json）—— **不是**用户资料/交付物（P0-2，2026-10-13）", "_reset_document_extract": "本模块三张解析登记表（extracted_tables/extracted_fields/extract_issues）中该文档的行——**不触碰** documents 表与物理文件（P0-3，2026-10-13）",
+        # ★ 2026-10-17（O5）：删项目的级联出口。范围**仅限该项目自己的资料**：
+        #   documents 行 + 其解析子表（extracted_tables/extracted_fields/document_pages/
+        #   extract_issues）+ 对应物理文件**移入回收站**（move_to_trash，可恢复）。
+        #   明确**不碰**：账套（companies）、账套级报告/派生物（那属
+        #   `purge_company_analysis_artifacts`）、其它项目的资料。
+        "delete_project": "项目级（该项目 documents 行+解析子表；物理文件仅移入回收站；不碰账套与报告，O5/2026-10-17）",
     }
     # 底层原语：只允许在 runtime_storage 里出现（唯一实现）
     # ★ 2026-10-09 新增 `atomic_write_text`：JSONL 整表重写（作业流水/版本台账/

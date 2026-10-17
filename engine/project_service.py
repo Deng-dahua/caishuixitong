@@ -605,24 +605,77 @@ def update_project(project_id: Any, payload: Dict[str, Any], session: Any, *,
 
 
 def delete_project(project_id: Any, session: Any, *, engine=None,
-                   request: Any = None) -> Dict[str, Any]:
-    """删除项目：删 `projects` 行 + 其 `project_members` 行（**成员是项目的从属物**）。
+                   request: Any = None, cascade: bool = False) -> Dict[str, Any]:
+    """删除项目：删 `projects` 行 + 其 `project_members` 行，并处置**归属本项目的资料**。
 
-    ⚠ 只删本项目自身数据；**不触碰**账套（`companies`）及其资料/报告派生物
-      —— 那些的删除唯一权威是 `main.purge_company_analysis_artifacts`。
+    ★ 2026-10-17（O5）：此前只删 `projects`/`project_members` 两行，
+      挂在项目下的 `documents` **原样残留**（实测删项目 10 后仍剩 20 条，
+      另有 102 条指向早已不存在的项目 ⇒ 孤儿资料）⇒ 项目删了、资料还在，
+      列表按项目过滤查不到、按账套统计却算进去，数据自相矛盾。
+
+    **处置口径（两级，默认不误删）**：
+      · 未传 `cascade=True` 且该项目下有资料 ⇒ **409**，并在消息里报数量，
+        要求调用方显式确认（前端据此提示"将一并删除 N 份资料"）。
+      · `cascade=True` ⇒ 删 `documents` 及其解析子表；**物理文件 `move_to_trash`（可恢复）**，
+        **绝不 `os.remove`**（项目铁律：删除优先进回收站）。
+      · 报告的删除唯一权威仍是 `main.purge_company_analysis_artifacts`，本函数**不碰**账套与报告。
     """
     eng = _engine_or_default(engine)
     ensure_schema(eng)
     from sqlalchemy import text as _text              # noqa: PLC0415
+    from runtime_storage import move_to_trash         # noqa: PLC0415
     with eng.begin() as conn:
         row = _fetch_visible(conn, session, project_id, for_write=True)
         nm, code, cid = str(row["name"]), str(row["code"] or ""), row["company_id"]
-        conn.execute(_text("DELETE FROM project_members WHERE project_id=:p"),
-                     {"p": int(row["id"])})
-        conn.execute(_text("DELETE FROM projects WHERE id=:p"), {"p": int(row["id"])})
+        pid = int(row["id"])
+        # ★ `documents` 是**运行时按需建表**（`engine.document_store.ensure_schema`），
+        #   老库/新库可能根本没有该表 ⇒ 必须先判断表存在，否则 `SELECT` 直接抛
+        #   `no such table: documents`，把"删项目"整个打死（2026-10-17 实测：
+        #   `test_project_api` 因此失败）。表不存在 ⇒ 语义上就是"该项目没有资料"。
+        has_docs = conn.execute(
+            _text("SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents'")
+        ).fetchone() is not None
+        docs = []
+        if has_docs:
+            docs = conn.execute(
+                _text("SELECT id, storage_path FROM documents WHERE project_id=:p"),
+                {"p": pid},
+            ).fetchall()
+        if docs and not cascade:
+            raise ProjectError(
+                "项目下还有 %d 份资料，删除项目将**一并删除**这些资料"
+                "（可恢复：文件进回收站）。请确认后带 cascade=true 重试。" % len(docs),
+                409)
+        doc_ids = [int(d[0]) for d in docs]
+        paths = [str(d[1] or "") for d in docs]
+        if has_docs:
+            for table in ("extracted_tables", "extracted_fields",
+                          "document_pages", "extract_issues"):
+                exists = conn.execute(
+                    _text("SELECT 1 FROM sqlite_master WHERE type='table' AND name=:t"),
+                    {"t": table},
+                ).fetchone() is not None
+                if exists:
+                    conn.execute(
+                        _text("DELETE FROM %s WHERE document_id IN "
+                              "(SELECT id FROM documents WHERE project_id=:p)" % table),
+                        {"p": pid})
+            conn.execute(_text("DELETE FROM documents WHERE project_id=:p"), {"p": pid})
+        conn.execute(_text("DELETE FROM project_members WHERE project_id=:p"), {"p": pid})
+        conn.execute(_text("DELETE FROM projects WHERE id=:p"), {"p": pid})
+    # 物理文件在事务提交后处理（移入回收站，可恢复）
+    trashed = 0
+    for p in paths:
+        if p and move_to_trash(p):
+            trashed += 1
     _audit(ACT_PROJECT_DELETE, target=code or nm, company_id=cid,
-           detail="删除稽查项目「%s」（含其成员记录）" % nm, request=request)
-    return {"ok": True, "id": int(project_id), "message": "项目已删除"}
+           detail="删除稽查项目「%s」（含其成员记录%s）"
+                  % (nm, "、%d 份资料" % len(doc_ids) if doc_ids else ""),
+           request=request)
+    return {"ok": True, "id": pid,
+            "documents_deleted": len(set(doc_ids)),
+            "files_trashed": trashed,
+            "message": "项目已删除" + ("，%d 份资料已移入回收站" % trashed if doc_ids else "")}
 
 
 # --------------------------------------------------------------------------

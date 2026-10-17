@@ -7666,7 +7666,14 @@ def _extract_invoice_fields_from_text(text):
 @app.post("/api/tax-risk-docs/review")
 async def review_tax_risk_docs(request: Request, company_id: int = Query(...),
                                db: Session = Depends(get_db)):
-    """报告复核：优先使用缓存，无缓存时重新分析"""
+    """报告复核：优先使用缓存，无缓存时重新分析
+
+    ★ 2026-10-17（O2）：此前对**不存在的账套**会一路走到 `_run_analyze` 抛异常 ⇒ 返回 **500**。
+      现先校验账套（与 `delete_company` 同口径），不存在即 **404**（4xx，不冒充服务端故障）。
+    """
+    _c = db.query(Company).filter(Company.id == company_id).first()
+    if not _c:
+        raise HTTPException(404, "账套不存在")
     cached = _last_analysis_cache.get(company_id)
     if cached and cached.get("report"):
         report = cached["report"]
@@ -9241,8 +9248,15 @@ def create_remediation(
     trace_id: str = Query(""),
     db: Session = Depends(get_db),
 ):
-    """创建整改记录"""
-    from database import RemediationRecord
+    """创建整改记录
+
+    ★ 2026-10-17（O1）：此前**不校验账套是否存在**，对任意 `company_id` 都落一条整改记录
+      （实测 `company_id=999999` 也能建成功）⇒ 产生指向不存在账套的孤儿台账。
+      现与 `delete_company` 同口径：查 `Company` 行，不存在即 404。
+    """
+    from database import RemediationRecord, Company
+    if not db.query(Company).filter(Company.id == company_id).first():
+        raise HTTPException(404, "账套不存在")
     rec = RemediationRecord(
         company_id=company_id,
         finding_type=finding_type,

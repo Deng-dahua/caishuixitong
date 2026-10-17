@@ -23,7 +23,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -175,11 +175,13 @@ def update_project(project_id: int, payload: ProjectUpdate, request: Request):
                  session, request=request)
 
 
-@router.delete("/{project_id}", summary="删除项目（含其成员记录）")
-def delete_project(project_id: int, request: Request):
+@router.delete("/{project_id}", summary="删除项目（含其成员记录与资料）")
+def delete_project(project_id: int, request: Request,
+                   cascade: bool = Query(False, description="true=一并删除项目下资料（文件进回收站）")):
+    """删除项目。项目下有资料且未传 `cascade=true` ⇒ **409**（要求显式确认，避免误删）。"""
     session = _session(request)
     _require_perm(session, "project.write")
-    return _call(SVC.delete_project, project_id, session, request=request)
+    return _call(SVC.delete_project, project_id, session, request=request, cascade=cascade)
 
 
 # --------------------------------------------------------------------------
