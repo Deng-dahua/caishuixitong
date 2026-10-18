@@ -13,6 +13,8 @@
   var API = "/api/v1/projects";
   var META = { statuses: [], roles: [], status_flow: {} };
   var state = { page: 1, page_size: 20, total: 0, pages: 0, items: [], editing: null, deleting: null };
+  // ★ 2026-10-18（用户要求）：列表勾选 + 删除选中。切换页/刷新即清空（避免"删了看不到的行"）。
+  var PICKED = {};
 
   // ── 小工具 ──────────────────────────────────────────────────────────
   function $(id) { return document.getElementById(id); }
@@ -100,6 +102,7 @@
 
   // ── 列表 ────────────────────────────────────────────────────────────
   async function loadList() {
+    PICKED = {};            // 换页/搜索/刷新都重新开始勾选（不跨页累加）
     var params = new URLSearchParams();
     var q = $("q").value.trim();
     if (q) params.set("q", q);
@@ -141,7 +144,7 @@
   function renderList() {
     var body = $("tbody");
     if (!state.items.length) {
-      body.innerHTML = '<tr><td colspan="14" class="empty">暂无项目。点击右上角「＋ 新建项目」开始。</td></tr>';
+      body.innerHTML = '<tr><td colspan="15" class="empty">暂无项目。点击右上角「＋ 新建项目」开始。</td></tr>';
     } else {
       body.innerHTML = state.items.map(function (p) {
         var period = fmtPeriod(p);
@@ -151,6 +154,8 @@
         var pendingTag = miss.length
           ? ' <span class="tag pending" title="缺：' + esc(miss.join("、")) + '">待补全</span>' : "";
         return '<tr>' +
+          '<td style="text-align:center"><input type="checkbox" class="proj-sel" data-pid="'
+            + esc(p.id) + '"' + (PICKED[p.id] ? ' checked' : '') + '></td>' +
           '<td>' + esc(p.code || "—") + '</td>' +
           '<td class="wrap-cell"><b>' + esc(p.name) + '</b>' + pendingTag + '</td>' +
           '<td>' + esc(p.taxpayer_id || "—") + '</td>' +
@@ -171,6 +176,7 @@
           '</td></tr>';
       }).join("");
     }
+    syncSel();
     $("count").textContent = "共 " + state.total + " 个项目";
     $("pageinfo").textContent = state.pages ? ("第 " + state.page + " / " + state.pages + " 页") : "";
     $("prev").disabled = state.page <= 1;
@@ -486,6 +492,88 @@
     }
   }
 
+  // ── 勾选与「删除选中」（2026-10-18，用户要求）──────────────────────────
+  // ★ 口径：
+  //   · 只勾**本页可见**的行；翻页/搜索/刷新即清空（避免删掉自己没看到的项目）；
+  //   · 删除走既有 `DELETE /api/v1/projects/{id}`（服务端唯一出口，文件进回收站）；
+  //   · 项目下有资料时服务端返 **409**（要求显式确认）⇒ 这里**逐条**询问是否一并删除，
+  //     不"一票全删"，避免一个项目的资料连带影响其它项目的判定；
+  //   · 结果**逐条汇总**（成功/跳过/失败），不笼统说"已删除"。
+  function pickedIds() {
+    return Object.keys(PICKED).filter(function (k) { return PICKED[k]; });
+  }
+
+  function syncSel() {
+    var n = pickedIds().length;
+    var btn = $("btn-del-selected");
+    if (btn) {
+      btn.hidden = n === 0;
+      btn.textContent = n ? ("删除选中（" + n + "）") : "删除选中";
+    }
+    var all = $("sel-all");
+    if (all) {
+      var boxes = document.querySelectorAll("#tbody input.proj-sel");
+      var checked = 0;
+      Array.prototype.forEach.call(boxes, function (b) { if (b.checked) checked++; });
+      all.checked = boxes.length > 0 && checked === boxes.length;
+      all.indeterminate = checked > 0 && checked < boxes.length;
+    }
+  }
+
+  async function delSelected() {
+    var ids = pickedIds();
+    if (!ids.length) return;
+    var names = ids.map(function (id) {
+      var hit = state.items.filter(function (p) { return String(p.id) === String(id); })[0];
+      return hit ? (hit.name + "（" + (hit.code || id) + "）") : ("#" + id);
+    });
+    if (!window.confirm("确定删除以下 " + ids.length + " 个稽查项目？\n\n"
+                        + names.join("\n")
+                        + "\n\n项目下的资料会一并移入回收站（可还原）。")) return;
+    var okN = 0, skipN = 0, badN = 0, cascadeN = 0;
+    var btn = $("btn-del-selected");
+    if (btn) { btn.disabled = true; btn.textContent = "删除中…"; }
+    try {
+      for (var i = 0; i < ids.length; i++) {
+        var id = ids[i];
+        try {
+          await api(API + "/" + id, { method: "DELETE" });
+          okN++; delete PICKED[id];
+        } catch (e) {
+          // 409 = 项目下有资料 ⇒ 逐条确认后再删（服务端要求 cascade=true）
+          if (e && e.status === 409) {
+            var hit = state.items.filter(function (p) { return String(p.id) === String(id); })[0];
+            var nm = hit ? hit.name : ("#" + id);
+            if (window.confirm("「" + nm + "」项目下仍有资料。\n\n"
+                               + "是否连同项目下资料一起删除？\n"
+                               + "（资料记录删除，文件移入回收站，可在回收站还原）")) {
+              try {
+                await api(API + "/" + id + "?cascade=true", { method: "DELETE" });
+                okN++; cascadeN++; delete PICKED[id];
+              } catch (e2) {
+                badN++;
+                flash("「" + nm + "」删除失败：" + e2.message, "err");
+              }
+            } else {
+              skipN++;
+            }
+          } else {
+            badN++;
+            flash("#" + id + " 删除失败：" + (e && e.message ? e.message : "未知错误"), "err");
+          }
+        }
+      }
+      flash("删除完成：成功 " + okN + " 个"
+            + (cascadeN ? "（其中 " + cascadeN + " 个含资料已移入回收站）" : "")
+            + "，跳过 " + skipN + " 个，失败 " + badN + " 个",
+            badN ? "warn" : "ok");
+      await loadList();
+    } finally {
+      if (btn) { btn.disabled = false; }
+      syncSel();
+    }
+  }
+
   // ── 删除（二次确认）────────────────────────────────────────────────
   function askDelete(p) {
     state.deleting = p;
@@ -521,6 +609,24 @@
     // 工商信息【自动查填】（按钮受 data-perm="project.write" 门控，无权限时隐藏）
     if ($("btn-fetch-bizinfo")) $("btn-fetch-bizinfo").onclick = fetchBizInfo;
     $("btn-del-confirm").onclick = doDelete;
+    $("btn-del-selected").onclick = delSelected;
+    $("sel-all").onchange = function () {
+      var on = $("sel-all").checked;
+      Array.prototype.forEach.call(document.querySelectorAll("#tbody input.proj-sel"),
+        function (b) {
+          b.checked = on;
+          var id = b.getAttribute("data-pid");
+          if (on) PICKED[id] = true; else delete PICKED[id];
+        });
+      syncSel();
+    };
+    $("tbody").addEventListener("change", function (e) {
+      var t = e.target;
+      if (!t || !t.classList || !t.classList.contains("proj-sel")) return;
+      var id = t.getAttribute("data-pid");
+      if (t.checked) PICKED[id] = true; else delete PICKED[id];
+      syncSel();
+    });
     $("prev").onclick = function () { if (state.page > 1) { state.page--; loadList(); } };
     $("next").onclick = function () { if (state.page < state.pages) { state.page++; loadList(); } };
 

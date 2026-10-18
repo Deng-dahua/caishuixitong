@@ -1,0 +1,65 @@
+{
+  "schema": "caishuixitong.rule_layer_labels/1",
+  "version": "1.0.0",
+  "updated": "2026-10-18",
+  "note": "规则「层」的**中文名唯一权威**（规则库下拉与表格列都取本表）。\n★ 为什么单独一张表：`layer` 的值来自各数据源的实际标识（Python 模块名 / 候选清单文件名），\n  它**不是**给人看的中文名。此前前端直接显示原值 ⇒ 下拉里出现 `gap_risk_detectors`\n  `rulelist_v12.json` 这类英文/文件名（用户实测反馈）。\n★ 新增一个层只加一行数据，不改任何逻辑分支。\n★ 闸门 `check_rule_layer_labels`：实际出现的层必须都在本表登记（否则 ERROR）。",
+  "labels": {
+    "tax_redlines": {
+      "cn": "税务红线库",
+      "note": "规则主体（红线本体 + 构成要件 + 法规依据），唯一权威 engine/tax_redlines.py"
+    },
+    "special_redline_detectors": {
+      "cn": "专项红线检测器",
+      "note": "检测器实现层：表驱动检测规格（SPECS），不计入规则主体总数"
+    },
+    "verified_rule_engine": {
+      "cn": "已验证原子规则",
+      "note": "逐条可执行、有执行回执的原子规则（VR*）"
+    },
+    "fact_check_rules": {
+      "cn": "权威事实核查规则",
+      "note": "另一维度体系（事实核查），**不得与规则主体相加**"
+    },
+    "gap_risk_detectors": {
+      "cn": "缺口风险检测器",
+      "note": "按资料缺口反推的风险检测器"
+    },
+    "gap_tax_obligations": {
+      "cn": "缺口纳税义务项",
+      "note": "按纳税义务清单反查的缺口项"
+    },
+    "rulelist_v1.json": {
+      "cn": "外部候选清单 v1.0",
+      "note": "候选（未入库）：增值税/企业所得税主干指标"
+    },
+    "rulelist_v11.json": {
+      "cn": "外部候选清单 v1.1",
+      "note": "候选（未入库）：个税/社保/薪酬与发票细则"
+    },
+    "rulelist_v12.json": {
+      "cn": "外部候选清单 v1.2",
+      "note": "候选（未入库）：小税种与专项事项"
+    }
+  },
+  "severity_labels": {
+    "high": "高风险",
+    "medium": "中风险",
+    "low": "低风险",
+    "critical": "极高风险",
+    "info": "信息"
+  },
+  "severity_note": "候选清单里 `sev` 只有 high/medium/low 三档（英文）。映射到系统权威等级词表；\n新增档位只加一行数据。未登记的值 ⇒ 原样显示并标「未登记」，**不猜**。",
+  "candidate_status_labels": {
+    "covered": "系统已覆盖",
+    "partial": "部分覆盖（需并入）",
+    "missing": "未入库（需新建）",
+    "placeholder": "待明确口径后入库"
+  },
+  "candidate_status_note": "对应候选清单的 `status` 字段。四个值都必须有中文名 —— 缺一个就会出现英文（用户实测反馈）。",
+  "candidate_action_labels": {
+    "keep_existing": "沿用现有规则",
+    "merge": "并入现有规则",
+    "add": "新增检测器",
+    "specify_first": "先明确口径"
+  }
+}

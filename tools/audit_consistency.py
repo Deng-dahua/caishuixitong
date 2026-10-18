@@ -13104,6 +13104,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_risk_score_monotone()               # 2026-10-12 T-2 风险分值须由等级单调派生
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
+               + check_rule_layer_labels()               # 2026-10-18 规则库中文标签（层/严重度/候选状态）
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
                + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_legal_library_tier_disclosure() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique() + check_candidate_param_index())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
@@ -18065,6 +18066,82 @@ def check_candidate_params_no_dangling() -> List[Tuple[str, str, str]]:
                                    "条目 `%s` 是地方自定参数却预设了 value=%r ⇒ "
                                    "**禁止预设地方值**（须由业务按属地确认后填入）"
                                    % (_k, _v.get("value"))))
+    return issues
+
+
+def check_rule_layer_labels() -> List[Tuple[str, str, str]]:
+    """规则库**中文标签**闸门（2026-10-18）。
+
+    ★ 背景（用户实测）：规则库下拉里出现 `rulelist_v12.json` / `gap_risk_detectors`
+      这类英文与原值 —— 因为 `layer` 的值是模块名/文件名，前端直接显示。
+    ★ 判据（三条，全部数据驱动）：
+      A【层的覆盖】实际出现的每个 `layer` 必须在 `config/rule_layer_labels.json::labels` 登记中文名；
+      B【候选状态/动作】候选清单出现的每个 `status` / `action` 必须各有中文名；
+      C【严重度】出现的每个 `sev` 必须有中文名。
+      未登记 ⇒ ERROR（**不允许**静默显示英文：那正是本轮要修的缺陷）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    cfg_p = ROOT / "config" / "rule_layer_labels.json"
+    if not cfg_p.exists():
+        return [("ERROR", "config/rule_layer_labels.json",
+                 "中文标签权威表缺失（层/严重度/候选状态将退化显示英文）")]
+    try:
+        import json as _j
+        cfg = _j.loads(cfg_p.read_text(encoding="utf-8"))
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "config/rule_layer_labels.json", "读不出来：%s" % exc)]
+
+    try:
+        from engine import rule_catalog as _CAT       # noqa: PLC0415
+        from engine import rule_candidate_ledger as _CL  # noqa: PLC0415
+        _CAT.reset_cache()
+        items = _CAT.entries()
+    except Exception as exc:                       # noqa: BLE001
+        return [("ERROR", "engine/rule_catalog.py", "规则目录不可用：%s" % exc)]
+
+    # A 层
+    have_layers = {str(k) for k in (cfg.get("labels") or {})}
+    used_layers = {str(_CAT.layer_of(r)) for r in items if _CAT.layer_of(r)}
+    for ly in sorted(used_layers - have_layers):
+        issues.append(("ERROR", "config/rule_layer_labels.json",
+                       "层「%s」未登记中文名（规则库下拉会显示英文/文件名）" % ly))
+
+    # B 候选状态 / 动作
+    st_map = {str(k) for k in (cfg.get("candidate_status_labels") or {})}
+    ac_map = {str(k) for k in (cfg.get("candidate_action_labels") or {})}
+    led = _CL.ledger()
+    for key, reg, what in (("status", st_map, "候选状态"),
+                           ("action", ac_map, "候选处置动作")):
+        used = {str(x.get(key) or "") for x in led["items"]} - {""}
+        for v in sorted(used - reg):
+            issues.append(("ERROR", "config/rule_layer_labels.json",
+                           "%s「%s」未登记中文名（会显示英文）" % (what, v)))
+
+    # C 严重度
+    #   ★ 真规则的 `severity` 本身就是**中文**权威等级词（低风险/待核验…），
+    #     只有候选清单用英文 high/medium/low ⇒ 判据是「**既非中文权威词、又未登记映射**」。
+    sev_map = {str(k) for k in (cfg.get("severity_labels") or {})}
+    try:
+        from engine.risk_levels import LEGAL_LEVELS as _LV  # noqa: PLC0415
+        zh_ok = {str(x) for x in _LV}
+    except Exception:                              # noqa: BLE001
+        zh_ok = set()
+    used_sev = {str(r.get("severity") or "") for r in items} - {""}
+    for v in sorted(used_sev - sev_map - zh_ok):
+        issues.append(("ERROR", "config/rule_layer_labels.json",
+                       "严重度「%s」既非权威中文等级、也未登记映射（会显示英文）" % v))
+
+    # 台账自洽：处置计数之和必须=候选总数（防"有候选没进台账"）
+    _sum = sum(int(v) for v in (led.get("by_disposition") or {}).values())
+    if _sum != int(led.get("total") or 0):
+        issues.append(("ERROR", "engine/rule_candidate_ledger.py",
+                       "候选台账处置计数之和 %d ≠ 候选总数 %d（有候选未被处置）"
+                       % (_sum, int(led.get("total") or 0))))
+
+    print("  [规则中文标签] 层 %d/%d 已登记｜严重度 %d 类｜候选处置 %s｜可执行 %d 条"
+          % (len(used_layers & have_layers), len(used_layers), len(used_sev),
+             json.dumps(led.get("by_disposition"), ensure_ascii=False),
+             int(led.get("executable_n") or 0)))
     return issues
 
 

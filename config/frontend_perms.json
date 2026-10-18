@@ -34,18 +34,11 @@
         "id": "btn-classify-save",
         "perm": "document.write",
         "what": "保存资料分类"
-      }
-    ],
-    "extract.html": [
-      {
-        "id": "btn-parse",
-        "perm": "document.write",
-        "what": "开始解析"
       },
       {
         "id": "btn-batch",
         "perm": "document.write",
-        "what": "批量解析（本次上限 50 份）"
+        "what": "批量解析"
       }
     ],
     "analysis.html": [
@@ -97,6 +90,11 @@
         "id": "btn-fetch-bizinfo",
         "perm": "project.write",
         "what": "自动查填工商信息"
+      },
+      {
+        "id": "btn-del-selected",
+        "perm": "project.write",
+        "what": "删除选中项目"
       }
     ],
     "rule_versions.html": [
@@ -264,13 +262,6 @@
         "marker": "data-save=",
         "perm": "document.write",
         "what": "解析结果详情内『保存』校正"
-      }
-    ],
-    "static/js/extract.js": [
-      {
-        "marker": "data-save=",
-        "perm": "document.write",
-        "what": "校正『保存』"
       }
     ],
     "static/js/risks.js": [

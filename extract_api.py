@@ -181,14 +181,6 @@ def list_issues(
 # --------------------------------------------------------------------------
 # 页面
 # --------------------------------------------------------------------------
-@page_router.get("/extract", response_class=HTMLResponse, include_in_schema=False)
-def extract_page():
-    """解析与校正页（静态 HTML，无服务端模板）。"""
-    path = os.path.join(_ROOT, "static", "extract.html")
-    for enc in ("utf-8-sig", "gbk", "gb18030", "utf-8"):
-        try:
-            with open(path, "r", encoding=enc) as fh:
-                return fh.read()
-        except (UnicodeDecodeError, LookupError):
-            continue
-    return "<h1>Encoding error</h1>"
+# ★ 2026-10-18（用户要求）：原独立「资料解析与校正」页已并入「资料上传与管理」，
+#   页面路由随之下线。**API 端点全部保留**（资料页的上传自动解析、批量解析、
+#   字段校正、异常处理都用同一套接口）；删除的只是那一个 HTML 入口。

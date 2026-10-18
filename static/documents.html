@@ -44,6 +44,7 @@
     .qitem .bar > i { display:block; height:100%; width:0; background:#3b82f6; transition:width .15s; }
     .qitem .st { width:96px; font-size:12px; }
     .st-ok { color:#15803d } .st-err { color:#b91c1c } .st-dup { color:#b45309 } .st-run { color:#1d4ed8 }
+    .st-warn { color:#b45309 }   /* 已上传但解析未成功：如实标注，不冒充成功 */
     /* 工具栏 */
     .toolbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
     .toolbar input, .toolbar select { padding:6px 10px; border:1px solid #cbd5e1; border-radius:5px;
@@ -82,6 +83,11 @@
     .mask { position:fixed; inset:0; background:rgba(15,23,42,.45); display:flex; align-items:center;
             justify-content:center; z-index:50; padding:20px; }
     .mask[hidden] { display:none; }
+    /* ★ 2026-10-18（真缺陷修复）：`hidden` 属性在 flex 容器里会被浏览器默认样式
+       `display: flex` 覆盖（`[hidden]{display:none}` 优先级更低）⇒ 按钮"应该隐藏却照常显示"。
+       本页 toolbar 是 flex ⇒ 必须显式声明。实测：`#btn-del-selected` 带 hidden 仍可见。 */
+    [hidden] { display: none !important; }
+
     .modal { background:#fff; border-radius:10px; width:100%; max-width:560px; max-height:88vh; overflow:auto;
              box-shadow:0 20px 50px rgba(0,0,0,.25); }
     .modal h3 { margin:0; padding:13px 18px; font-size:15px; border-bottom:1px solid #f1f5f9; }
@@ -99,7 +105,6 @@
     <span class="spacer"></span>
     <select id="proj" style="padding:5px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:#334155;color:#fff;font-size:12px"></select>
     <span id="whoami" class="muted" style="color:#94a3b8"></span>
-    <a href="/projects">项目管理</a>
     <a href="/">返回主界面</a>
   </div>
 
@@ -107,15 +112,35 @@
     <div id="msg"></div>
 
     <div class="card">
-      <h2>上传资料</h2>
+      <h2>上传资料 <span class="hint">上传完成后<b>自动解析并标准化</b>（字段归一 + 校验），结果见下方清单的「解析结果」</span></h2>
       <div class="body">
         <div id="drop" data-perm="document.write">
           <div class="big">把文件拖到这里，或点击选择</div>
-          <div class="muted" style="font-size:12px">支持批量多选</div>
+          <div class="muted" style="font-size:12px">支持批量多选；每个文件上传成功后立即解析，无需再单独点「开始解析」</div>
           <div class="sub" id="ext-hint">加载字典中…</div>
         </div>
         <input type="file" id="picker" multiple hidden data-perm="document.write">
         <div id="queue"></div>
+      </div>
+    </div>
+
+    <!-- ★ 2026-10-18（用户要求）：原「资料解析与校正」页的批量解析并入本页 -->
+    <div class="card">
+      <h2>批量解析 <span class="hint">逐份独立执行，部分失败不影响其它；失败项可逐条重试</span></h2>
+      <div class="body">
+        <div class="toolbar">
+          <label>范围</label>
+          <select id="bk-scope">
+            <option value="pending">本项目「待解析 / 解析失败」的（推荐）</option>
+            <option value="all">本项目全部（含已解析，会重新解析）</option>
+          </select>
+          <label>本次最多</label>
+          <input type="number" id="bk-limit" value="20" min="1" max="50" style="width:80px">
+          <span class="muted">份（上限 50）</span>
+          <button class="btn" id="btn-batch" data-perm="document.write">开始批量解析</button>
+          <span class="muted" id="batch-hint"></span>
+        </div>
+        <div class="muted" id="batch-result" style="margin-top:8px;line-height:1.9"></div>
       </div>
     </div>
 
@@ -170,6 +195,16 @@
     </div>
   </div>
 
+  <!-- ★ 2026-10-18：原「资料解析与校正」页的解析能力面板并入本页（只读、全部取后端） -->
+  <div class="card" style="margin:16px 20px 24px;max-width:1500px">
+    <h2>解析能力 <span class="hint">标准字段数 / 校验规则数 / 行数上限档位（全部取后端，不硬编码）</span></h2>
+    <div class="body">
+      <div id="cap-stats" class="stat" style="display:flex;gap:22px;flex-wrap:wrap"></div>
+      <div id="cap-caps" class="muted" style="line-height:1.9"></div>
+      <div id="ocr-status" class="muted" style="line-height:1.9;margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0"></div>
+    </div>
+  </div>
+
   <!-- 分类修正 -->
   <div class="mask" id="m-classify" hidden>
     <div class="modal">
@@ -203,7 +238,7 @@
   <!-- ★ 2026-10-18（用户要求）：列表行内「删除」按钮已取消 ⇒ 单条删除确认弹窗随之移除，
        不留无入口的死代码。删除统一走「勾选 + 删除选中」（文件进回收站、逐条留审计）。 -->
 
-  <script src="/static/js/documents.js?v=f824213e41" defer></script>
+  <script src="/static/js/documents.js?v=0b60daa94e" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>

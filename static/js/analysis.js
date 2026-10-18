@@ -185,8 +185,38 @@ async function selectJob(jobId) {
     var g = await api('GET', API + '/analysis-jobs/' + jobId);
     renderCurrent(g);
     schedulePoll(jobId, g.status);
+    revealCurrent(jobId);
   } catch (e) {
     alertBox('err', '读取任务失败：' + e.message);
+  }
+}
+
+/* ★ 2026-10-18（用户反馈「查看按钮没有任何反应」）：真因**不是**按钮没绑定，
+ *   而是「当前任务」卡片在**任务历史表格上方**——用户看的是表格里那一行，
+ *   点完只有上方卡片内容变了，屏幕可见区域**什么都没动** ⇒ 主观上就是"没反应"。
+ *   修法：① 行内高亮被选中的那一行（就近反馈）；② 平滑滚到「当前任务」卡片并短暂描边，
+ *   让"点了→结果在哪"这件事在屏幕上可见。
+ *   同时把行内 `onclick` 换成事件委托（内联 onclick 一旦被 CSP/编码问题破坏就彻底静默，
+ *   委托失败至少还能报错定位）。 */
+var _REVEAL_TIMER = null;
+function revealCurrent(jobId) {
+  var rows = document.querySelectorAll('#history tr');
+  Array.prototype.forEach.call(rows, function (tr) {
+    var cb = tr.querySelector('input.job-sel');
+    var jid = cb ? cb.getAttribute('data-jid') : null;
+    if (!jid) {
+      var tds = tr.querySelectorAll('td');
+      jid = tds.length > 1 ? (tds[1].textContent || '').trim().split(' ')[0] : null;
+    }
+    tr.classList.toggle('row-active', !!jid && jid === jobId);
+  });
+  var card = document.getElementById('cur-card');
+  if (card && card.scrollIntoView) {
+    try { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    catch (e) { card.scrollIntoView(); }
+    card.classList.add('flash');
+    if (_REVEAL_TIMER) clearTimeout(_REVEAL_TIMER);
+    _REVEAL_TIMER = setTimeout(function () { card.classList.remove('flash'); }, 1400);
   }
 }
 
@@ -264,7 +294,8 @@ async function loadHistory() {
       return;
     }
     el('history').innerHTML = r.jobs.map(function (j) {
-      var ops = '<a href="javascript:void(0)" onclick="selectJob(\'' + esc(j.job_id) + '\')">查看</a>';
+      var ops = '<a href="javascript:void(0)" class="job-view" data-jid="'
+        + esc(j.job_id) + '">查看</a>';
       if (j.can_retry) {
         ops += ' · <a href="javascript:void(0)" onclick="retryById(\'' + esc(j.job_id) + '\')">重试</a>';
       }
@@ -332,6 +363,18 @@ window.__delSelectedJobs = async function () {
     '已删除 ' + okN + ' 条任务记录' + (errs.length ? ('；失败 ' + errs.length + ' 条：' + errs.join('；')) : ''));
   await loadHistory();
 };
+(function bindJobView() {
+  var tb = el('history');
+  if (tb) tb.addEventListener('click', function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a.job-view') : null;
+    if (!a) return;
+    e.preventDefault();
+    var jid = a.getAttribute('data-jid');
+    if (!jid) return;
+    selectJob(jid);
+  });
+})();
+
 (function bindJobDel() {
   var tb = el('history');
   if (tb) tb.addEventListener('change', function (e) {

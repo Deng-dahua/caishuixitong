@@ -119,8 +119,14 @@
       var data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || ("HTTP " + res.status));
       if (data.uploaded && data.uploaded.length) {
-        setQ(el, 100, "已完成", "st-ok");
-        return { ok: true, item: data.uploaded[0] };
+        var up = data.uploaded[0];
+        // ★ 2026-10-18（用户要求）：**上传即自动解析与标准化**，不再要求用户另点「开始解析」。
+        //   解析失败不影响"上传成功"这一事实（文件已入库），只如实标注解析状态。
+        setQ(el, 88, "上传完成，自动解析中…");
+        var px = await autoParse(up.id);
+        setQ(el, 100, px.ok ? "已完成（已解析）" : ("已上传（解析未成功：" + px.reason + "）"),
+             px.ok ? "st-ok" : "st-warn");
+        return { ok: true, item: up, parsed: px };
       }
       if (data.duplicated && data.duplicated.length) {
         var d = data.duplicated[0];
@@ -133,6 +139,20 @@
     } catch (e) {
       setQ(el, 100, "失败", "st-err");
       return { ok: false, detail: e.message };
+    }
+  }
+
+  /** 上传后自动解析（幂等）。返回 {ok, reason, tables, fields, issues}；**不抛**。 */
+  async function autoParse(docId) {
+    try {
+      var r = await api(API + "/documents/" + docId + "/extract", { method: "POST" });
+      if (r && r.parse_error) {
+        return { ok: false, reason: String(r.parse_error).slice(0, 40) };
+      }
+      return { ok: true, tables: (r.tables || []).length,
+               fields: (r.fields || []).length, issues: (r.issues || []).length };
+    } catch (e) {
+      return { ok: false, reason: (e && e.message ? e.message : "解析失败").slice(0, 40) };
     }
   }
 
@@ -199,6 +219,7 @@
     var max1 = (META && META.limits.max_size) || 10485760;
     var maxR = (META && META.limits.resumable_max_size) || 209715200;
     var okN = 0, dupN = 0, badN = 0;
+    var parsed = [];
     for (var i = 0; i < files.length; i++) {
       var f = files[i], r;
       if (f.size > maxR) {
@@ -208,11 +229,15 @@
       }
       r = f.size > max1 ? await uploadChunked(PROJECT, f) : await uploadOne(PROJECT, f);
       if (r.ok && r.duplicated) dupN++;
-      else if (r.ok) okN++;
+      else if (r.ok) { okN++; if (r.parsed) parsed.push(r.parsed); }
       else badN++;
       if (!r.ok && r.detail) flash(f.name + "：" + r.detail, "err");
     }
-    flash("本次上传：成功 " + okN + " 个，跳过重复 " + dupN + " 个，失败 " + badN + " 个",
+    var pOk = 0, pBad = 0;
+    parsed.forEach(function (x) { if (x && x.ok) pOk++; else if (x) pBad++; });
+    flash("本次上传：成功 " + okN + " 个，跳过重复 " + dupN + " 个，失败 " + badN + " 个"
+          + (okN ? ("；自动解析成功 " + pOk + " 个"
+                    + (pBad ? ("、" + pBad + " 个未解析成功（见清单解析状态）") : "")) : ""),
           badN ? "warn" : "ok");
     await loadList();
   }
@@ -342,6 +367,88 @@
         '<tbody>' + pages + '</tbody></table>';
     } catch (e) {
       $("detail-body").innerHTML = '<div class="msg err">' + esc(e.message) + "</div>";
+    }
+  }
+
+  // ── 批量解析（原 /extract 页 H-05，2026-10-18 并入本页）─────────────────
+  async function runBatch() {
+    if (!PROJECT) { flash("请先选择项目", "err"); return; }
+    var scope = $("bk-scope").value;
+    var lim = Number($("bk-limit").value) || 20;
+    if (lim < 1 || lim > 50) { flash("「本次最多」必须在 1~50 之间", "err"); return; }
+    var onlyPending = (scope === "pending");
+    if (!window.confirm("将对本项目最多 " + lim + " 份资料执行解析（"
+        + (onlyPending ? "仅待解析/失败" : "全部，含已解析") + "）。继续？")) { return; }
+    var btn = $("btn-batch");
+    btn.disabled = true;
+    $("batch-hint").textContent = "批量解析中…（逐份执行，请勿关闭页面）";
+    $("batch-result").innerHTML = "";
+    try {
+      var r = await api(API + "/projects/" + PROJECT + "/extract-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ only_pending: onlyPending, limit: lim })
+      });
+      $("batch-hint").textContent = "完成：成功 " + r.ok + " · 失败 " + r.failed
+        + "（共 " + r.total + " 份）";
+      var lines = (r.items || []).map(function (x) {
+        return "· 资料 " + x.document_id + " → " + (x.status === "ok"
+          ? ("成功（表 " + x.tables + " / 字段 " + x.fields + " / 异常 " + x.issues + "）"
+             + (x.parse_error ? " 提示：" + esc(x.parse_error) : ""))
+          : ("<b>失败</b>：" + esc(x.message)));
+      });
+      $("batch-result").innerHTML = esc(r.note || "") + "<br>" + lines.join("<br>");
+      if (r.failed) { flash("批量解析完成，但有 " + r.failed + " 份失败（明细见上方）", "warn"); }
+      else { flash("批量解析完成：成功 " + r.ok + " 份"); }
+      await loadList();
+    } catch (e) {
+      $("batch-hint").textContent = "";
+      flash("批量解析失败：" + e.message, "err");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── 解析能力面板（原 /extract 页 P1-1，只读，全部取后端）─────────────────
+  async function loadCapability() {
+    try {
+      var m = await api(API + "/parse/meta");
+      var fields = (((m.standard_fields || {}).fields) || []).length;
+      var caps = m.row_caps || [];
+      var ruleN = Object.keys(m.validation || {}).length;
+      $("cap-stats").innerHTML =
+        "<div><b>" + fields + "</b> 标准字段</div>" +
+        "<div><b>" + ruleN + "</b> 校验规则</div>" +
+        "<div><b>" + caps.length + "</b> 行数上限档位</div>" +
+        "<div><b>" + (m.row_cap_consistent ? "一致" : "不一致") + "</b> 上限登记</div>";
+      var notes = m.parse_notes || {};
+      $("cap-caps").innerHTML =
+        "上限档位：" + caps.map(function (c) {
+          return c.cap + "（" + esc(c.note) + "）";
+        }).join("；") +
+        "<br>" + esc(notes.cursor || "") +
+        "<br>" + esc(notes.truncation || "");
+      await loadOcr();
+    } catch (e) {
+      $("cap-stats").innerHTML =
+        '<div class="muted">解析能力信息不可用：' + esc(e.message) + "</div>";
+    }
+  }
+
+  async function loadOcr() {
+    var box = $("ocr-status");
+    if (!box) return;
+    try {
+      var o = await api(API + "/ocr/meta");
+      var engines = (o.engines || []).map(function (e) {
+        return e.name + (e.available ? "✅" : "⛔");
+      }).join("　");
+      var last = o.last;
+      box.innerHTML = "<b>OCR 引擎</b>：" + engines
+        + (last ? ("　最近一次：" + esc(last.at || "") + "（" + esc(last.engine || "") + "）") : "")
+        + (o.note ? ("<br>" + esc(o.note)) : "");
+    } catch (e) {
+      box.innerHTML = "";
     }
   }
 
@@ -687,6 +794,8 @@
       else if (act === "download") downloadDoc(id);
     });
     // ★ 2026-10-15 解析区块交互：重跑 / 字段校正 / 异常处理
+    if ($("btn-batch")) $("btn-batch").onclick = runBatch;
+    loadCapability();
     var _exr = $("ex-reparse");
     if (_exr) _exr.addEventListener("click", exReparse);
     var _exw = $("ex-wrap");

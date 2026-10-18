@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from engine import legal_mapping as LM      # 法规⇄规则关联读层（唯一读路径，只增字段）
 from engine import rule_loader as L
+from engine import rule_candidate_ledger as CL
 
 #: 系统在库规则的启用态：**事实**是"全部生效"（无运行时开关）——如实声明，不猜
 RUNTIME_SWITCH_AVAILABLE = False
@@ -55,6 +56,10 @@ _CACHE: Dict[str, Any] = {}
 def reset_cache() -> None:
     """清空目录缓存（规则文件或代码变更后调用）。"""
     _CACHE.clear()
+    try:
+        CL.reset_cache()          # 台账/标签缓存必须同步清（否则中文名与处置结论会滞后）
+    except Exception:             # noqa: BLE001
+        pass
 
 
 def _versions_index() -> Dict[str, Dict[str, Any]]:
@@ -111,9 +116,14 @@ def layer_of(rec: Dict[str, Any]) -> str:
 # 查询
 # ══════════════════════════════════════════════════════════════════════════
 def list_rules(*, source: Any = None, layer: Any = None, q: Any = None,
-               tax: Any = None, enabled: Any = None,
+               tax: Any = None, enabled: Any = None, disposition: Any = None,
                page: Any = 1, page_size: Any = 20) -> Dict[str, Any]:
-    """规则列表（筛选 / 搜索 / 分页）。"""
+    """规则列表（筛选 / 搜索 / 分页）。
+
+    `disposition`（2026-10-18）：按**候选入库处置**过滤 ——
+    `kept/merged/stale_status/blocked/pending`，只对 source=json 的候选有意义；
+    非候选条目在该过滤下**一律排除**（如实：问"未入库的"就不该混进已入库的）。
+    """
     items = entries()
     s = str(source or "").strip()
     if s:
@@ -131,6 +141,13 @@ def list_rules(*, source: Any = None, layer: Any = None, q: Any = None,
     if enabled is not None and str(enabled).strip() != "":
         want = str(enabled).strip().lower() in ("1", "true", "yes", "on")
         items = [r for r in items if bool(r.get("enabled")) == want]
+    dp = str(disposition or "").strip()
+    if dp:
+        kept_ids = {(x["rule_id"], x["list"]) for x in CL.ledger()["items"]
+                    if x["disposition"] == dp}
+        items = [r for r in items
+                 if r["source_kind"] == "json"
+                 and (r["rule_id"], str(r.get("layer") or "")) in kept_ids]
     try:
         p = max(1, int(page))
     except Exception:                                        # noqa: BLE001
@@ -184,6 +201,8 @@ def _public(rec: Dict[str, Any]) -> Dict[str, Any]:
     out["authority"] = L.AUTHORITY_OF.get(rec["source_kind"], "")
     out["authority_cn"] = L.AUTHORITY_CN.get(out["authority"], "")
     out["source_cn"] = L.SOURCE_CN.get(rec["source_kind"], rec["source_kind"])
+    # ★ 2026-10-18：中文标签 + 候选处置结论（版本/法规依据/数据源缺口/入库去向）
+    CL.enrich(out)
     return _attach_legal(out, with_content=False)
 
 
@@ -196,6 +215,7 @@ def get(rule_id: Any) -> Dict[str, Any]:
             out["authority"] = L.AUTHORITY_OF.get(r["source_kind"], "")
             out["authority_cn"] = L.AUTHORITY_CN.get(out["authority"], "")
             out["source_cn"] = L.SOURCE_CN.get(r["source_kind"], r["source_kind"])
+            CL.enrich(out)
             return _attach_legal(out, with_content=True)
     raise KeyError(rid)
 
@@ -284,8 +304,15 @@ def meta() -> Dict[str, Any]:
                      "authority": L.AUTHORITY_OF[k],
                      "authority_cn": L.AUTHORITY_CN[L.AUTHORITY_OF[k]]}
                     for k in L.SOURCE_KINDS],
-        "layers": [{"value": x, "label": x} for x in layers],
+        # ★ 2026-10-18：层的中文名唯一权威 = config/rule_layer_labels.json
+        #   （此前直接下发原值 ⇒ 下拉里是 rulelist_v12.json / gap_risk_detectors 这类英文）
+        "layers": CL.layer_options(layers),
         "taxes": taxes,
+        # ★ 中文标签（严重度/候选状态/处置动作）也由后端下发，前端不硬编码
+        "severity_labels": (CL.labels().get("severity_labels") or {}),
+        "candidate_status_labels": (CL.labels().get("candidate_status_labels") or {}),
+        "candidate_action_labels": (CL.labels().get("candidate_action_labels") or {}),
+        "candidate_summary": CL.summary(),
         "runtime_switch_available": RUNTIME_SWITCH_AVAILABLE,
         "runtime_switch_note": RUNTIME_SWITCH_NOTE,
         "dsl_scope": L.load_dsl_scope(),

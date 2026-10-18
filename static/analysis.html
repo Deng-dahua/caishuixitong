@@ -100,7 +100,7 @@
   <div class="wrap">
     <div id="alert"></div>
 
-    <div class="card">
+    <div class="card" id="cur-card">
       <h3>当前任务</h3>
       <div class="row">
         <button class="btn ghost" onclick="refreshCurrent()">↻ 刷新</button>
@@ -134,7 +134,14 @@
     </div>
   </div>
 
-  <script src="/static/js/analysis.js?v=53395277a1"></script>
+  <style>
+    /* ★ 2026-10-18：点「查看」后的可见反馈（否则更新的是上方卡片、用户看表格以为没反应） */
+    #history tr.row-active td { background:#eff6ff; }
+    #history tr.row-active td:first-child { box-shadow: inset 3px 0 0 #2563eb; }
+    #cur-card.flash { box-shadow: 0 0 0 3px #2563eb55; transition: box-shadow .2s; }
+    #history a.job-view { color:#2563eb; text-decoration:underline; cursor:pointer; }
+  </style>
+  <script src="/static/js/analysis.js?v=2e8e0f0f8d"></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>

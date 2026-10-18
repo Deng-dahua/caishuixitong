@@ -102,18 +102,21 @@ def rules_versions(request: Request):
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-@router.get("/rules", summary="规则列表（来源/层/税种/关键词/启用态 + 分页）")
+@router.get("/rules", summary="规则列表（来源/层/税种/关键词/启用态/入库处置 + 分页）")
 def list_rules(request: Request,
                source: Optional[str] = None,
                layer: Optional[str] = None,
                tax: Optional[str] = None,
                q: Optional[str] = None,
                enabled: Optional[str] = None,
+               disposition: Optional[str] = Query(
+                   None, description="候选入库处置：kept/merged/stale_status/blocked/pending"),
                page: int = Query(1, ge=1),
                page_size: int = Query(20, ge=1, le=200)):
     _session(request)
     return CAT.list_rules(source=source, layer=layer, tax=tax, q=q,
-                          enabled=enabled, page=page, page_size=page_size)
+                          enabled=enabled, disposition=disposition,
+                          page=page, page_size=page_size)
 
 
 @router.get("/rules/{rule_id}", summary="规则详情（含原文与法规依据引用）")

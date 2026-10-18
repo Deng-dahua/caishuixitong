@@ -44,6 +44,9 @@
     .tag { display:inline-block; padding:2px 9px; border-radius:10px; font-size:12px; }
     .t-auth{background:#dcfce7;color:#15803d} .t-cand{background:#fef3c7;color:#b45309}
     .t-deriv{background:#e0e7ff;color:#4338ca} .t-reg{background:#f1f5f9;color:#475569}
+    /* ★ 2026-10-18：严重度/处置用色（与风险等级同色系，避免"中风险显示成绿"） */
+    .t-high{background:#fee2e2;color:#b91c1c} .t-mid{background:#fef3c7;color:#b45309}
+    .t-low{background:#e0f2fe;color:#0369a1}
     .lv-极高风险{background:#fee2e2;color:#991b1b} .lv-高风险{background:#fee2e2;color:#b91c1c}
     .lv-中风险{background:#ffedd5;color:#c2410c} .lv-低风险{background:#dcfce7;color:#15803d}
     .lv-待核验{background:#e0e7ff;color:#4338ca} .lv-信息{background:#f1f5f9;color:#475569}
@@ -114,6 +117,15 @@
             <option value="true">已启用</option>
             <option value="false">未启用</option>
           </select>
+          <!-- ★ 2026-10-18：候选清单（未入库）的处置筛选 —— 只有选了它才只看候选 -->
+          <select id="f-disp" title="候选清单入库处置">
+            <option value="">全部入库处置</option>
+            <option value="kept">已覆盖（沿用现有规则）</option>
+            <option value="merged">部分覆盖（并入现有规则）</option>
+            <option value="stale_status">清单状态过期（系统已实现）</option>
+            <option value="blocked">暂不能入库（缺数据源）</option>
+            <option value="pending">待明确口径后入库</option>
+          </select>
           <button class="btn" onclick="loadRules(1)">搜索</button>
           <button class="btn ghost" onclick="resetRuleFilters()">重置</button>
           <span class="muted" id="rule-count" style="margin-left:auto"></span>
@@ -122,10 +134,12 @@
       <div class="card">
         <table class="grid">
           <thead><tr>
-            <th>规则号</th><th>名称</th><th>来源</th><th>层</th><th>税种</th>
-            <th>严重度</th><th>版本</th><th>启用态</th><th>法规依据</th><th>操作</th>
+            <th>规则号</th><th>名称</th><th>来源</th><th>所属层</th><th>税种</th>
+            <th>严重度</th><th>版本</th><th>启用态</th><th>法规依据</th>
+            <th title="候选清单的处置结论：已覆盖 / 部分覆盖 / 清单状态过期 / 暂不能入库 / 待明确口径">入库处置</th>
+            <th>操作</th>
           </tr></thead>
-          <tbody id="rule-rows"><tr><td colspan="10" class="empty">加载中…</td></tr></tbody>
+          <tbody id="rule-rows"><tr><td colspan="11" class="empty">加载中…</td></tr></tbody>
         </table>
         <div class="pager" id="rule-pager"></div>
       </div>
@@ -186,7 +200,7 @@
     </div>
   </div>
 
-  <script src="/static/js/rules.js?v=ff1603cb6c"></script>
+  <script src="/static/js/rules.js?v=4391dc08ac"></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>
 </html>

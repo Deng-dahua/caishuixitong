@@ -30,6 +30,11 @@
     .btn.danger { background:#dc2626; border-color:#dc2626; }
     .btn.danger:hover { background:#b91c1c; }
     .btn:disabled { opacity:.5; cursor:not-allowed; }
+    /* ★ 2026-10-18（真缺陷修复）：`hidden` 属性在 flex 容器里会被浏览器默认样式
+       `display: flex` 覆盖（`[hidden]{display:none}` 优先级更低）⇒ 按钮"应该隐藏却照常显示"。
+       本页 toolbar 是 flex ⇒ 必须显式声明。实测：`#btn-del-selected` 带 hidden 仍可见。 */
+    [hidden] { display: none !important; }
+
     /* ★ 2026-10-18：企业名称旁的【自动查填】按钮（工商信息查询） */
     .input-with-btn { display:flex; gap:6px; align-items:stretch; }
     .input-with-btn > input { flex:1; min-width:0; }
@@ -124,6 +129,8 @@
       </select>
       <button class="btn ghost" id="btn-search">搜索</button>
       <button class="btn ghost" id="btn-reset">重置</button>
+      <button class="btn danger" id="btn-del-selected" hidden
+              data-perm="project.write">删除选中</button>
       <button class="btn" id="btn-new" data-perm="project.write">＋ 新建项目</button>
       <span class="count" id="count"></span>
     </div>
@@ -133,13 +140,15 @@
       <table class="grid wide-table">
         <thead>
           <tr>
+            <th style="width:34px;text-align:center"><input type="checkbox" id="sel-all"
+                  title="全选/全不选（本页）"></th>
             <th>编号</th><th>企业名称</th><th>统一社会信用代码</th>
             <th>法定代表人</th><th>注册资本</th><th>成立日期</th><th>登记状态</th>
             <th>行业</th><th>地区</th><th>稽查期间</th><th>税种范围</th>
             <th>状态</th><th>更新时间</th><th>操作</th>
           </tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="14" class="empty">加载中…</td></tr></tbody>
+        <tbody id="tbody"><tr><td colspan="15" class="empty">加载中…</td></tr></tbody>
       </table>
       </div>
       <div class="pager">
@@ -247,7 +256,7 @@
     </div>
   </div>
 
-  <script src="/static/js/projects.js?v=cc8d5f1cc1" defer></script>
+  <script src="/static/js/projects.js?v=778419cf4d" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>

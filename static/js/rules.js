@@ -110,6 +110,65 @@ function switchTab(t) {
   if (t === 'versions') { loadVersions(); }
 }
 
+// ── 单元格构造（2026-10-18：层/严重度/版本/法规依据/入库处置 全部中文）──
+function _cand(k) {
+  var d = (META && META.candidate_summary && META.candidate_summary.by_disposition) || {};
+  return d[k] || 0;
+}
+
+function sevTag(x) {
+  var cn = x.severity_cn || x.severity || '—';
+  if (!x.severity) { return '<span class="muted">—</span>'; }
+  var cls = (cn === '极高风险' || cn === '高风险') ? 't-high'
+          : (cn === '中风险' ? 't-mid' : (cn === '低风险' ? 't-low' : 't-cand'));
+  // 未登记的中文名要看得出来（不静默显示英文）
+  var unknown = (cn === x.severity) ? ' <span class="problem prob" title="严重度未登记中文名">未登记</span>' : '';
+  return '<span class="tag ' + cls + '">' + esc(cn) + '</span>' + unknown;
+}
+
+function verCell(x) {
+  var v = x.version || '';
+  if (x.version_registered) {
+    return esc(v) + ' <span class="tag t-auth" title="版本已在 config/rule_versions.json 登记">已登记</span>';
+  }
+  if (x.candidate && x.candidate.version) {
+    // 候选：版本由「跟随系统规则」或「清单自身版次」确定，来源写在 title 里
+    return esc(x.candidate.version)
+      + ' <span class="tag t-cand" title="' + esc(x.candidate.version_source || '') + '">候选</span>';
+  }
+  return '<span class="problem prob">未登记</span>';
+}
+
+function legalCell(x) {
+  // ① 已确证条款（转查关联表得到的真实条款 ID）
+  var det = x.legal_basis_determined || [];
+  if (det.length) {
+    var t = det.map(function (p) { return (p.law || '') + (p.article || ''); }).join('、');
+    return '<span class="tag t-auth" title="' + esc(t) + '">已确定 ' + det.length + ' 条</span>';
+  }
+  // ② 候选：给出**没确定的原因**，而不是一个"占位"标签了事
+  if (x.candidate && x.candidate.legal_status) {
+    var map = { determined: '<span class="tag t-auth">已确定</span>',
+                no_mapping: '<span class="tag t-cand" title="映射到的规则在条款关联表里没有可确证条款">待补映射</span>',
+                no_rule: '<span class="tag t-cand" title="系统内无对应规则，未建立条款映射">无对应规则</span>' };
+    return (map[x.candidate.legal_status] || '<span class="tag t-cand">待确定</span>')
+      + '<span class="muted" style="font-size:11px" title="' + esc(x.candidate.legal_note || '') + '"> ⓘ</span>';
+  }
+  // ③ 真规则自身的作者口径
+  if (x.has_legal_basis) { return '<span class="tag t-auth">有</span>'; }
+  if (x.legal_basis_placeholder) { return '<span class="tag t-cand" title="规则作者只写了占位文本">占位</span>'; }
+  return '<span class="problem prob">缺失</span>';
+}
+
+function dispCell(x) {
+  if (!x.candidate) { return '<span class="muted">—</span>'; }
+  var d = x.candidate.disposition;
+  var cls = (d === 'kept' || d === 'merged') ? 't-auth'
+          : (d === 'stale_status' ? 't-mid' : 't-cand');
+  return '<span class="tag ' + cls + '" title="' + esc(x.candidate.disposition_cn || '') + '">'
+    + esc(x.candidate.disposition_cn || x.candidate.status_cn || '—') + '</span>';
+}
+
 // ── 规则库 ──────────────────────────────────────────────────────────────
 async function loadStats() {
   try {
@@ -120,7 +179,10 @@ async function loadStats() {
     ['规则主体（权威口径）', STATS.rule_subject_total],
     ['目录总条目', STATS.total_entries],
     ['系统在库（Python）', STATS.python_rules],
-    ['候选清单（未入库）', STATS.candidate_rules],
+    ['候选清单总数', STATS.candidate_rules],
+    ['其中：已覆盖/已并入', _cand('kept') + _cand('merged')],
+    ['其中：清单状态过期', _cand('stale_status')],
+    ['其中：待建/待明确', _cand('blocked') + _cand('pending')],
     ['法规依据·真引用', cov.with_real_ref],
     ['法规依据·占位', cov.placeholder],
     ['法规依据·缺失', cov.missing]
@@ -135,7 +197,7 @@ async function loadStats() {
 
 function resetRuleFilters() {
   el('f-source').value = ''; el('f-layer').value = ''; el('f-q').value = '';
-  el('f-enabled').value = '';
+  el('f-enabled').value = ''; el('f-disp').value = '';
   loadRules(1);
 }
 
@@ -146,30 +208,32 @@ async function loadRules(page) {
   if (el('f-layer').value) { qs.push('layer=' + encodeURIComponent(el('f-layer').value)); }
   if (el('f-q').value.trim()) { qs.push('q=' + encodeURIComponent(el('f-q').value.trim())); }
   if (el('f-enabled').value) { qs.push('enabled=' + el('f-enabled').value); }
+  if (el('f-disp').value) {
+    qs.push('disposition=' + encodeURIComponent(el('f-disp').value));
+    // 处置只存在于候选清单 ⇒ 等价于只看候选（否则真规则会被静默混进来又全被过滤掉）
+    qs.push('source=json');
+  }
   try {
     var r = await api('GET', API + '/rules?' + qs.join('&'));
     el('rule-count').textContent = '共 ' + r.total + ' 条规则（第 ' + r.page + '/' + (r.pages || 1) + ' 页）';
     if (!r.items.length) {
-      el('rule-rows').innerHTML = '<tr><td colspan="10" class="empty">无匹配规则</td></tr>';
+      el('rule-rows').innerHTML = '<tr><td colspan="11" class="empty">无匹配规则</td></tr>';
     } else {
       el('rule-rows').innerHTML = r.items.map(function (x) {
         var en = (x.enabled === null || x.enabled === undefined)
           ? '<span class="muted">—</span>'
           : (x.enabled ? '<span class="tag t-auth">已启用</span>' : '<span class="tag t-reg">未启用</span>');
-        var lb = x.has_legal_basis
-          ? '<span class="tag t-auth">有</span>'
-          : (x.legal_basis_placeholder ? '<span class="tag t-cand">占位</span>'
-                                       : '<span class="problem prob">缺失</span>');
         return '<tr><td>' + esc(x.rule_id) + '</td>'
           + '<td class="wrap">' + esc(x.name) + '</td>'
           + '<td>' + badgeOf(x.authority) + '</td>'
-          + '<td class="muted">' + esc(x.layer) + '</td>'
+          + '<td class="muted" title="' + esc(x.layer || '') + '">' + esc(x.layer_cn || x.layer) + '</td>'
           + '<td>' + esc(x.tax || '') + '</td>'
-          + '<td>' + esc(x.severity || '—') + '</td>'
-          + '<td>' + esc(x.version || '') + (x.version_registered ? '' : ' <span class="problem prob">(未登记)</span>') + '</td>'
+          + '<td>' + sevTag(x) + '</td>'
+          + '<td>' + verCell(x) + '</td>'
           + '<td>' + en + '</td>'
-          + '<td>' + lb + '</td>'
-          + '<td><a href="javascript:void(0)" onclick="showRule(\'' + esc(x.rule_id) + '\')">详情</a></td></tr>';
+          + '<td>' + legalCell(x) + '</td>'
+          + '<td>' + dispCell(x) + '</td>'
+          + '<td><a href="javascript:void(0)" class="rule-view" data-rid="' + esc(x.rule_id) + '">详情</a></td></tr>';
       }).join('');
     }
     var pages = r.pages || 1;
@@ -178,7 +242,7 @@ async function loadRules(page) {
       + '<span>第 ' + r.page + ' / ' + pages + ' 页</span>'
       + '<button onclick="loadRules(' + (r.page + 1) + ')" ' + (r.page >= pages ? 'disabled' : '') + '>下一页</button>';
   } catch (e) {
-    el('rule-rows').innerHTML = '<tr><td colspan="10" class="empty">加载失败：' + esc(e.message) + '</td></tr>';
+    el('rule-rows').innerHTML = '<tr><td colspan="11" class="empty">加载失败：' + esc(e.message) + '</td></tr>';
   }
 }
 
@@ -210,9 +274,9 @@ async function showRule(rid) {
       + '<div class="k">规则号</div><div>' + esc(d.rule_id) + '</div>'
       + '<div class="k">名称</div><div>' + esc(d.name) + '</div>'
       + '<div class="k">来源</div><div>' + esc(d.source_cn || '') + ' · ' + esc(d.authority_cn || '') + '</div>'
-      + '<div class="k">所属层</div><div>' + esc(d.layer) + '</div>'
+      + '<div class="k">所属层</div><div>' + esc(d.layer_cn || d.layer) + '</div>'
       + '<div class="k">税种</div><div>' + esc((d.taxes || []).join('、') || d.tax || '—') + '</div>'
-      + '<div class="k">严重度</div><div>' + esc(d.severity || '—') + '</div>'
+      + '<div class="k">严重度</div><div>' + esc(d.severity_cn || d.severity || '—') + '</div>'
       + '<div class="k">版本</div><div>' + esc(d.version) + '（' + (d.version_registered ? '已登记' : '<span class="problem prob">未登记</span>') + '）</div>'
       + (d.effective_from ? '<div class="k">生效日</div><div>' + esc(d.effective_from) + '</div>' : '')
       + (d.changed_note ? '<div class="k">变更说明</div><div>' + esc(d.changed_note) + '</div>' : '')
@@ -319,7 +383,7 @@ async function showFinding(seq) {
       + '<div class="sect">规则与法规依据</div>'
       + (d.rule_found
           ? '<div class="kv"><div class="k">规则名</div><div>' + esc(rule.name) + '</div>'
-            + '<div class="k">层 / 来源</div><div>' + esc(rule.layer) + ' · ' + esc(rule.source_cn || '') + '</div>'
+            + '<div class="k">层 / 来源</div><div>' + esc(rule.layer_cn || rule.layer) + ' · ' + esc(rule.source_cn || '') + '</div>'
             + '<div class="k">版本</div><div>' + esc(rule.version) + '</div></div>'
             + '<div style="margin-top:6px">' + lb + '</div>'
           : '<div class="msg warn">' + esc(d.note || '规则未在目录中') + '</div>')
@@ -393,6 +457,15 @@ async function loadVersions() {
     el('ver-card').innerHTML = '<div class="msg err">版本读取失败：' + esc(e.message) + '</div>';
   }
 }
+
+// ★ 2026-10-18：规则详情链接改**事件委托**（内联 onclick 一旦被破坏就彻底静默）
+el('rule-rows').addEventListener('click', function (e) {
+  var a = e.target && e.target.closest ? e.target.closest('a.rule-view') : null;
+  if (!a) { return; }
+  e.preventDefault();
+  var rid = a.getAttribute('data-rid');
+  if (rid) { showRule(rid); }
+});
 
 el('f-company').addEventListener('change', function () {
   if (TAB === 'findings') { loadFindings(); }
