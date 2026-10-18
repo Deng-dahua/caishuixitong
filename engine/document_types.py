@@ -96,8 +96,13 @@ PARSE_STATUS_FLOW: Dict[str, Tuple[str, ...]] = {
     "pending": ("parsing", "manual", "failed"),
     "parsing": ("success", "failed", "manual"),
     "success": ("pending", "manual"),
-    "failed": ("pending", "manual"),
-    "manual": ("pending", "success"),
+    # ★ 2026-10-18（GAP-10）：`failed → success` 必须允许。
+    #   原表只允许 failed→pending/manual：用户补好文件或修好解析器后**重新解析成功**时，
+    #   状态机拒绝置 success 并抛 400，而该异常又把真正的失败原因覆盖成
+    #   「解析状态非法迁移：失败 → 成功（允许：待解析、需人工校正）」——
+    #   用户在界面上看到的是状态机术语，**看不到文件到底哪里坏了**（实测 5 份全中）。
+    "failed": ("pending", "manual", "success"),
+    "manual": ("pending", "success", "failed"),
 }
 
 # --------------------------------------------------------------------------

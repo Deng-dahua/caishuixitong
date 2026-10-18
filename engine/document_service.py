@@ -769,6 +769,20 @@ def _auto_parse_documents(doc_ids, session, *, engine=None) -> None:
                 pass
             try:
                 _parse(did, session, engine=engine)
+                # ★ 2026-10-18（GAP-10）：**不再盲目置 success**。
+                #   `parse_document` 已按"无解析错误且至少一张表有数据行"（`_parse_ok`）
+                #   自行把状态流转到 success/failed，并在失败时写清 note。
+                #   这里再无条件置 success 会与它的判定冲突（旧代码正是这样把
+                #   failed 顶成 success，撞上状态机后把真实失败原因覆盖成状态机术语）。
+                with engine.connect() as _conn:
+                    from sqlalchemy import text as _text2          # noqa: PLC0415
+                    _st = _conn.execute(
+                        _text2("SELECT parse_status FROM documents WHERE id=:d"),
+                        {"d": int(did)}).first()
+                if _st and str(_st[0]) == "failed":
+                    continue
+                if _st and str(_st[0]) in ("success",):
+                    continue
                 set_parse_status(did, "success", session, engine=engine)
             except Exception as exc:                    # noqa: BLE001
                 try:

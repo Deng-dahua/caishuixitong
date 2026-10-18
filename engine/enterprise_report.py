@@ -2007,11 +2007,24 @@ def _doc_covered_categories(report_data):
 
     判据 = ① `file_results` 里每个文件的 `type` 经 `_DOC_TYPE_TO_CATEGORY` 映射；
            ② `comprehensive.material_intel` 里出现的键（可能是类别名本身）。
+
+    ★★ 2026-10-18（META-SYSTEM-COMPLETENESS-AUDIT / GAP-04）：**必须排除"读了但没读出任何数据"的文件**。
+    旧实现只看 `type`（由文件名/内容识别得出），完全不看是否真读到内容。实测后果：
+      账套里上传了 `建设工程施工合同.docx`，解析 0 行 0 字段（`read_failures` 明列该文件），
+      但类别判"合同文件已提供" ⇒ 红线「有销无进」的证据链把「对应期间的采购合同」
+      判成 **status=已有**，并写"本轮已提供「合同文件」…可作为本项证据"。
+      —— **"文件在盘里"被当成"证据已具备"**，这是证据真实性缺陷，不只是定位缺失。
+    现口径：`read_failures` 里的文件不计入已提供（它没有为本次分析贡献任何数据）。
     """
     covered = set()
+    # 读取失败清单（唯一权威 = pipeline._collect_read_failures 的产物，落在 read_failures）
+    _failed = {str(x) for x in (report_data.get("read_failures") or []) if str(x).strip()}
     for fr in (report_data.get("file_results") or []):
         if not isinstance(fr, dict):
             continue
+        _fname = str(fr.get("file") or fr.get("filename") or "")
+        if _fname and _fname in _failed:
+            continue                       # ★ 未读出任何数据 ⇒ 不算已提供
         # 双重利用：type 是内容真实类别；补充自证资料的 sup_* 挂在 supplementary_category 上
         cats = _DOC_TYPE_TO_CATEGORY.get(str(fr.get("type") or "").strip())
         _sup_cat = _DOC_TYPE_TO_CATEGORY.get(str(fr.get("supplementary_category") or "").strip())

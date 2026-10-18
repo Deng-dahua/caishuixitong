@@ -540,22 +540,43 @@ def build_evidence_chain(finding: Dict, redline: Dict,
                 continue
             name = _nm_eff
         if role == "反证":
-            # 反证（正当理由）是否成立，只认企业是否实际提交，
-            # 严禁按资料类别关键词猜测——否则「银行承兑汇票」里的「转账」
-            # 二字会被当成反证已提供，把真实疑点错误排除。
-            # 2026-09-25：判据由 `name[:6]` 固定长度前缀改为**具体材料名命中**
-            # （原写法对「退休返聘协议、实习协议、非全日制用工协议」只取前 6 字，
-            #  且会把任意含该 6 字的文本当作已提交）。
-            _tokens = [t for alts in _material_requirements(name) for t in alts]
-            _hit = next((h for h in (_covered_by(t, _submitted) for t in _tokens) if h), None)
-            submitted = bool(_hit)
+            # ★★ 2026-10-18 重写（META-SYSTEM-COMPLETENESS-AUDIT / GAP-03+GAP-04）
+            #
+            # 旧判据：把 finding 自带 `opposing_evidence / supporting_evidence /
+            # reasonable_explanations` 的**文本**与材料名做包含匹配 ⇒ 只要企业在
+            # 描述里**写下材料名**就算"反证已提交"。实测后果：
+            #   ① 同一 finding 只改这段文本（材料名有/无），verdict 就从
+            #      「疑似触碰红线 conf=0.6」翻成「未触碰违规红线 conf=0.3」
+            #      —— **不核验协议内容、不核验是否真发生**；
+            #   ② 于是"善意取得"这类主观状态，企业写上名字即可出罪（漏报），
+            #      也可能被无关文本误触发（误报）。
+            #
+            # 新判据：反证与直接证据**同一口径** —— 必须在**本轮已取得材料清单**
+            # （`available`，唯一权威 = material_readiness）里能定位到该材料；
+            # 只有"真拿到了、能指到"才算已提交。finding 里的文本降级为
+            # **企业声明线索**（写进 basis 供复核，不参与判定）。
+            m = _match_material(name, purpose, available, role="反证")
+            submitted = (m["status"] == "已有")
+            # 企业是否在发现里**声明**了这个反证（仅作提示，不作判定）
+            _declared = next((h for h in (_covered_by(t, _submitted)
+                                          for t in (t for alts in _material_requirements(name) for t in alts))
+                              if h), None)
+            if submitted:
+                _hit = _declared or {"form": (m.get("matched") or ["已提供资料"])[0],
+                                     "material": name}
+                basis = "本轮已提供与本项对应的材料「%s」，可作为反证核验" % _hit["form"]
+            elif _declared:
+                basis = ("企业已声明持有「%s」，但**本轮资料清单中未定位到该材料**；"
+                         "声明不等于已提交，须补充上传后核对" % _declared["form"])
+            else:
+                basis = "本轮未取得该正当理由对应的材料"
             elements.append({
                 "role": role, "name": name, "purpose": purpose,
                 "status": "已提交" if submitted else "待企业提交",
-                "basis": (("企业已提交与本项对应的书面材料「%s」，须纳入论证核验" % _hit["form"])
-                          if submitted else "企业尚未提交该正当理由的书面证明"),
-                "matched": [_hit["material"]] if submitted else [],
-                "matched_detail": [_hit] if submitted else [],
+                "basis": basis,
+                "matched": list(m.get("matched") or []) if submitted else [],
+                "matched_detail": list(m.get("matched_detail") or []) if submitted else [],
+                "declared_by_enterprise": bool(_declared),
                 "related": [],
                 "weight": _ROLE_WEIGHT.get(role, 1),
             })

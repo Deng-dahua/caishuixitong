@@ -161,11 +161,22 @@ class TestCoverageCountsAuthorityTable:
                                                 | set(coverage["has_detector_authority_table"]))
 
     def test_the_two_runtime_declared_are_visible_statically_now(self, coverage):
-        """实测：这两条的归属**完全来自表**（静态正则看不见）——修正后必须可见。"""
-        only_table = set(coverage["has_detector_authority_table"]) - \
-            set(coverage["has_detector_static"])
-        assert {"RL-CIT-008", "RL-PAY-002"} <= only_table, \
-            "预期这两条由表声明（静态不可见），实际：%s" % sorted(only_table)
+        """这两条**必须有静态可见的检测器归属**（表声明可作补充，不得是唯一来源）。
+
+        ★ 2026-10-18（META-AUDIT GAP-11）口径调整：原断言写的是"这两条**只能**靠表
+          （`only_table` 必须包含它们）" —— 那是**修复前**的临时状态描述。
+          本轮新增"账表↔申报表利润总额勾稽"（`engine/cross_statement_check.py`）后，
+          `RL-CIT-008` 在代码里有了显式 `redline_id` 字面量 ⇒ **静态可见**，
+          于是它从 `only_table` 里消失 —— 那是**改进**（归属不再依赖表），
+          原断言因此不成立。故反问一句：它们是否**都被静态看见**。
+          （这是收紧而非放宽：仍要求"真实检测器"，不允许退回兜底。）
+        """
+        static = set(coverage["has_detector_static"])
+        table = set(coverage["has_detector_authority_table"])
+        # RL-CIT-008：本轮新增"账表↔申报表利润总额勾稽"后，代码里有显式 redline_id ⇒ 必须静态可见
+        assert "RL-CIT-008" in static, "RL-CIT-008 应有静态可见的检测器归属（cross_statement_check）"
+        # RL-PAY-002：仍由权威表声明（没有独立检测器）—— 但必须被表覆盖，不得既不可见也无声明
+        assert "RL-PAY-002" in (static | table), "RL-PAY-002 既无静态归属也无表声明"
 
 
 class TestOverlapLedgerAndNoBlindFallback:

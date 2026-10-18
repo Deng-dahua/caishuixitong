@@ -259,8 +259,12 @@ def _sec_cover(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
         _block_kv([
             ("报告名称", ctx["name"]),
             ("视图", "%s（%s）" % (ctx["view_label"], ctx["view"])),
-            ("文书编号", ctx["doc_no"] or "（尚未登记）"),
-            ("版本", ctx["version"] or "（尚未登记）"),
+            # ★ 2026-10-18（GAP-08）：用**不可见标记**占位，`generate` 拿到台账编号后回填。
+            #   旧版直接写 "（尚未登记）"：因为 `build_document` 在版本登记**之前**执行，
+            #   于是封面永远显示"（尚未登记）"，而同一份文件的页眉/水印却写着 `RW-… V2`
+            #   —— 同一份报告自相矛盾（端到端实测 6.2 抓到）。
+            ("文书编号", ctx["doc_no"] or "[[DOC_NO]]"),
+            ("版本", ctx["version"] or "[[DOC_VER]]"),
             ("企业名称", c.get("name")),
             ("纳税人识别号", c.get("uscc")),
             ("行业", c.get("industry")),
@@ -290,7 +294,6 @@ def _sec_disclaimer(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
             ("授权", d.get("authorization")),
             ("免责声明正文", d.get("identity_line")),
         ]),
-        _block_note("本节为**必含章节**：缺失时报告**不予产出**（渲染层直接报错，不静默）。"),
     ]
 
 
@@ -662,6 +665,28 @@ def infer_reviewer(findings: List[Dict[str, Any]],
 
 
 @_boundary
+def _fill_identity_placeholders(node, doc_no: str, version: str):
+    """把封面里的身份占位标记换成真实编号（见 `_sec_cover` 的注释）。
+
+    ★ 用**可见**占位标记 `[[DOC_NO]]`（不用控制字符：`\x01` 会让 python-docx 抛
+      `ValueError: All strings must be XML compatible`，实测把报告 API 测试打红）；
+      也不匹配"（尚未登记）"字面量 —— 后者可能合法出现在别的章节里，全局替换会误伤。
+    """
+    repl = {"[[DOC_NO]]": doc_no or "（尚未登记）",
+            "[[DOC_VER]]": version or "（尚未登记）"}
+    if isinstance(node, str):
+        s = node
+        for k, v in repl.items():
+            if k in s:
+                s = s.replace(k, v)
+        return s
+    if isinstance(node, list):
+        return [_fill_identity_placeholders(x, doc_no, version) for x in node]
+    if isinstance(node, dict):
+        return {k: _fill_identity_placeholders(v, doc_no, version) for k, v in node.items()}
+    return node
+
+
 def build_document(project_id: Any, session: Any, *, view: Any = "full",
                    reviewed: Optional[bool] = None, reviewed_by: str = "",
                    reviewed_note: str = "", company_id: Any = None,
@@ -866,6 +891,8 @@ def generate(project_id: Any, session: Any, *, view: Any = "full",
     doc["doc_no"] = str(rec.get("doc_no") or "")
     doc["version"] = str(rec.get("version") or "")
     doc["watermark_text"] = RENDER.watermark_text_of(doc)
+    # ★ 回填封面占位（见 `_sec_cover`）：文书编号/版本在登记之后才有值
+    doc = _fill_identity_placeholders(doc, doc["doc_no"], doc["version"])
 
     # ── ② 渲染（免责声明缺失/被顶替 ⇒ 此处即抛错，不产报告）──
     outdir = os.path.join(report_output_root(), str(cid))

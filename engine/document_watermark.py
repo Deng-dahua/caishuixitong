@@ -63,10 +63,54 @@ def is_embeddable(filename: str) -> bool:
     return os.path.splitext(filename or "")[1].lower() in EMBEDDABLE
 
 
+def _watermark_lines(text: str, font: str, size: float, avail: float):
+    """把水印文字排成若干行，使每行宽度不超过 `avail`（GAP-08：解决文字被页边裁掉）。
+
+    ★ 实测问题：旧实现固定 `size=max(14, min(w,h)/26)` 后 `drawCentredString` 居中绘制，
+      水印文字（含文书编号+版本+复核状态+复核人+时间，约 60~90 字）在 A4 上旋转 35° 后
+      两端超出 mediabox，**每页首部被裁**（PDF 文本提取实测："内部使用 · 内部辅助分析"
+      整段消失，只剩"工作底稿（全景）…"）。
+    策略：按 " · " 分段 → 逐段累积成行 → 优先保证**不缩字号**；
+          单段超宽时按字符二分（CJK 按字数估宽），仍不行才缩字号。
+    """
+    from reportlab.pdfbase.pdfmetrics import stringWidth      # noqa: PLC0415
+
+    # ★ 宽度估算必须自己算 CJK：`stringWidth` 对 CID 中文字体（STSong-Light）按**西文**
+    #   度量返回，实测把 50 个汉字的宽度算成小一半 ⇒ 分行阈值失效 ⇒ 首字仍被裁。
+    #   这里按"全角 1.0em / 半角 0.55em"估算（保守，宁可行数多一行）。
+    def _w(s):
+        em = 0.0
+        for ch in str(s):
+            em += 1.0 if ("\u4e00" <= ch <= "\u9fff" or "\u3000" <= ch <= "\u303f"
+                          or "\uff00" <= ch <= "\uffef") else 0.55
+        return em * size
+
+    segs = [s for s in str(text or "").split(" · ") if s] or [str(text or "")]
+    lines, cur = [], ""
+    for seg in segs:
+        cand = (cur + " · " + seg) if cur else seg
+        if _w(cand) <= avail:
+            cur = cand
+            continue
+        if cur:
+            lines.append(cur)
+            cur = ""
+        # 单段自身超宽 ⇒ 按字符切
+        while _w(seg) > avail and len(seg) > 4:
+            cut = max(4, int(len(seg) * avail / max(_w(seg), 1)))
+            lines.append(seg[:cut])
+            seg = seg[cut:]
+        cur = seg
+    if cur:
+        lines.append(cur)
+    return lines or [str(text or "")]
+
+
 def _pdf_watermark(content: bytes, text: str) -> bytes:
     from pypdf import PdfReader, PdfWriter          # noqa: PLC0415
     from reportlab.pdfgen import canvas             # noqa: PLC0415
     from reportlab.lib.pagesizes import A4          # noqa: PLC0415
+    import math as _math                            # noqa: PLC0415
 
     reader = PdfReader(io.BytesIO(content))
     writer = PdfWriter()
@@ -80,20 +124,53 @@ def _pdf_watermark(content: bytes, text: str) -> bytes:
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=(w, h))
         c.saveState()
+        size = max(14.0, min(w, h) / 26.0)
         try:
-            c.setFont(font, max(14.0, min(w, h) / 26.0))
+            c.setFont(font, size)
         except Exception:                            # noqa: BLE001
-            c.setFont("Helvetica", max(14.0, min(w, h) / 26.0))
+            font = "Helvetica"
+            c.setFont(font, size)
+        # ★ 旋转 35° 后的可用文本长度：文本沿 35° 方向延伸，
+        #   其**水平投影** L·cos35 必须 ≤ 页宽 w、**垂直投影** L·sin35 必须 ≤ 页高 h
+        #   ⇒ L ≤ min(w/cos35, h/sin35)。留 5% 边距。
+        #   ⚠ 之前误算成 min(w,h)/sin35（这是"对角线"长度）⇒ 阈值偏大 30%，
+        #     首字仍被裁（实测"内部使用"→"部使用"）。
+        _rad = _math.radians(35)
+        avail = min(w / max(_math.cos(_rad), 0.1),
+                    h / max(_math.sin(_rad), 0.1)) * 0.95
+        lines = _watermark_lines(text, font, size, avail)
+        # 行数多时略降字号（不超过 2 行时保持原字号）
+        if len(lines) > 2:
+            size = max(9.0, size * 2.0 / len(lines))
+            try:
+                c.setFont(font, size)
+            except Exception:                        # noqa: BLE001
+                c.setFont("Helvetica", size)
         c.setFillColorRGB(0.72, 0.72, 0.72)
         c.translate(w / 2.0, h / 2.0)
         c.rotate(35)
-        c.drawCentredString(0, 0, text)
+        gap = size * 1.7
+        y0 = (len(lines) - 1) * gap / 2.0
+        for i, ln in enumerate(lines):
+            c.drawCentredString(0, y0 - i * gap, ln)
         c.restoreState()
         c.showPage()
         c.save()
         overlay = PdfReader(io.BytesIO(buf.getvalue())).pages[0]
         page.merge_page(overlay)
         writer.add_page(page)
+    # ★ 元数据必须**迁移后再写**：pypdf 的 `PdfWriter()` 新建文档不带原 Info，
+    #   旧实现只在 reportlab 侧设了 title/author，随后被这里重建 ⇒ 最终只剩
+    #   `/Producer: pypdf`（实测 PDF metadata title/author/creationDate 全空）。
+    try:
+        meta = dict(reader.metadata or {})
+    except Exception:                                # noqa: BLE001
+        meta = {}
+    meta.setdefault("/Title", "报告")
+    try:
+        writer.add_metadata({k: str(v) for k, v in meta.items() if v})
+    except Exception:                                # noqa: BLE001
+        pass
     out = io.BytesIO()
     writer.write(out)
     return out.getvalue()

@@ -1752,6 +1752,15 @@ def _ocr_png_bytes(images):
     """
     if not images:
         return ""
+    # ★★ 2026-10-18（GAP-09）：**入参归一化**。
+    #   本函数名是 `_ocr_png_bytes`（单数），既有调用点传的是**单个 bytes**；
+    #   而函数体按"list of bytes"写 `for b in images` ⇒ 遍历的是**每个字节(int)**，
+    #   于是三家引擎全部在 `Image.open(BytesIO(int))` 上抛
+    #   `TypeError: a bytes-like object is required, not 'int'`。
+    #   实测后果（测评 1.1）：OCR 全链路恒失败 —— 上传的发票影像/扫描件**永远解析不出内容**，
+    #   日志只有一行 "无可用 OCR 引擎"，看起来像"本机没装引擎"，实际是参数类型错误。
+    if isinstance(images, (bytes, bytearray, memoryview)):
+        images = [bytes(images)]
     chunks = []
 
     # 引擎0：rapidocr-onnxruntime（首选：纯 pip、离线、无系统依赖）
@@ -7502,7 +7511,27 @@ def _parse_docx(filepath, original_name=""):
             # 无表格 → 提取段落文本
             paragraphs = [p.text.strip() for p in doc.paragraphs if p.text.strip()]
             if paragraphs:
-                return {"type": "document_text", "rows": paragraphs, "source": os.path.basename(filepath)}
+                # ★★ 2026-10-18（GAP-07）：**合同是段落型文档，必须结构化**。
+                #   旧实现只把段落塞进 `document_text`（这是**非财税**文本的兜底类型），
+                #   于是 `contract_data` 拿不到任何合同行 → 合同金额为 0 →
+                #   印花税只能拿发票反推、"合同 vs 开票"只能写"缺数据"、
+                #   但证据链又因为**文件名含"合同"**判成"已有证据"（三处连锁失真）。
+                #   现口径：认得出合同要素就按 contract 返回（走既有路由），
+                #   认不出才退回 document_text，并把原因写进 `_parse_note`。
+                try:
+                    from engine.contract_parser import parse_contract_text
+                    _ct = parse_contract_text(paragraphs, original_name or os.path.basename(filepath))
+                    if _ct.get("rows"):
+                        _ct["source"] = os.path.basename(filepath)
+                        return _ct
+                    # 认不出要素：仍返回文本，但**显式说明**（不静默）
+                    return {"type": "document_text", "rows": paragraphs,
+                            "source": os.path.basename(filepath),
+                            "_parse_note": _ct.get("_parse_note") or "合同要素未识别"}
+                except Exception as _cte:
+                    return {"type": "document_text", "rows": paragraphs,
+                            "source": os.path.basename(filepath),
+                            "_parse_note": "合同要素解析异常：%s" % _cte}
             return None
         
         # 组装类Sheet结构走指纹匹配
@@ -11029,7 +11058,30 @@ def _build_reconciliation_matrix(report_data):
             "note": "缺增值税申报表，无法做票税勾稽，须调取申报表", "source_rule": "VR018",
         })
 
-    if not has_contract:
+    # ★★ 2026-10-18（GAP-05）：合同 vs 开票 —— 必须**有合同就真的比**。
+    #   旧实现只有 `if not has_contract:` 分支：没有合同时显示"缺数据"（合理），
+    #   **有合同时这一项直接不出现**（静默消失）⇒ 阴阳合同风险结构性发现不了。
+    #   现口径三态：
+    #     · 有合同且有金额 ⇒ 算差异（超 10% 判"差异"）
+    #     · 有合同但取不到金额 ⇒ "缺数据"并写明"合同金额列未解析出"
+    #     · 没合同 ⇒ "缺数据"（原文案保留）
+    _ct = report_data.get("contract_summary") or {}
+    _ct_amt = _parse_amount_str(_ct.get("total_amount"))
+    _ct_cnt = int(_ct.get("count") or 0)
+    if has_contract and _ct_amt and sales_amount:
+        _gap_pair("合同流", "发票流", "合同 vs 开票", _ct_amt, sales_amount, "五流勾稽",
+                  "合同金额与销项开票合计的差异；差异过大须核实是否存在阴阳合同、"
+                  "未开票收入或合同未履行（合同 %d 份）" % _ct_cnt)
+    elif has_contract:
+        pairs.append({
+            "left": "合同流", "right": "发票流", "name": "合同 vs 开票",
+            "status": "缺数据", "left_amount": None, "right_amount": round(sales_amount, 2),
+            "gap": None, "gap_ratio": None,
+            "note": "已上传合同台账（%d 份），但金额列未解析出可用数值，无法计算合同与开票差异"
+                    % _ct_cnt,
+            "source_rule": "五流勾稽",
+        })
+    else:
         pairs.append({
             "left": "合同流", "right": "发票流", "name": "合同 vs 开票",
             "status": "缺数据", "left_amount": None, "right_amount": round(sales_amount, 2),

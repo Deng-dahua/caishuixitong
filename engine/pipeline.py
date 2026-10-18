@@ -435,6 +435,112 @@ def _apply_human_feedback_priors(redline_detection, pipeline_log, company_id):
     return redline_detection
 
 
+def _parse_xml_invoice(filepath, original_name=""):
+    """XML 电子发票解析（GAP-09）。
+
+    ★ 测评实证：`电子发票.xml` 上传后 `parse_status=failed`、0 行 0 字段 ——
+      pipeline 里**根本没有 `.xml` 分支**（分派只有 xls/xlsx/pdf/docx/图片）。
+      而 XML 是税务总局标准电子发票格式之一，属"应支持却完全没实现"。
+
+    判据：按标签名（忽略命名空间）提取常见发票要素；**取不到就留空**，不猜。
+    只处理"看起来像发票"的 XML（含 Invoice/发票/发票号码 等标签），其余如实说明未识别。
+    """
+    import xml.etree.ElementTree as _ET
+
+    try:
+        raw = open(filepath, "rb").read()
+    except Exception as exc:                                     # noqa: BLE001
+        return {"rows": [], "_parse_note": "XML 读取失败：%s" % exc}
+    if not raw.strip():
+        return {"rows": [], "_parse_note": "XML 为空文件"}
+    try:
+        root = _ET.fromstring(raw)
+    except Exception as exc:                                     # noqa: BLE001
+        return {"rows": [], "_parse_note": "XML 结构非法（%s）" % exc}
+
+    def _local(tag: str) -> str:
+        return tag.rsplit("}", 1)[-1] if "}" in tag else tag
+
+    # 展平：{标签名: 文本}
+    flat = {}
+    for el in root.iter():
+        t = _local(el.tag)
+        txt = (el.text or "").strip()
+        if t and txt and t not in flat:
+            flat[t] = txt
+
+    def pick(*names):
+        for n in names:
+            if flat.get(n):
+                return flat[n]
+        return ""
+
+    def _sub(parent_tags, child_tags):
+        """取「父元素下的子元素文本」（如 Seller/Name、Buyer/Name、Items/Item/Name）。
+
+        ★ 不能直接用扁平表：`Name` 这种标签在 Seller / Buyer / Item 下都会出现，
+          扁平化后 `pick("Name")` 会取到**第一个**（实测把销售方名称当成了货物名称）。
+        """
+        for el in root.iter():
+            if _local(el.tag) not in parent_tags:
+                continue
+            for ch in el.iter():
+                if _local(ch.tag) in child_tags and (ch.text or "").strip():
+                    return ch.text.strip()
+        return ""
+
+    inv_no = pick("InvoiceNo", "发票号码", "DigitalInvoiceNo", "invoiceNumber")
+    amount = pick("Amount", "金额", "TaxExclusiveAmount", "amountWithoutTax")
+    tax = pick("Tax", "税额", "TaxAmount")
+    total = pick("AmountWithTax", "价税合计", "TotalAmount", "totalAmount")
+    seller = _sub(("Seller", "销售方", "销方"), ("Name", "SellerName", "名称"))
+    buyer = _sub(("Buyer", "购买方", "购方"), ("Name", "BuyerName", "名称"))
+    goods = _sub(("Item", "Items", "货物明细"), ("Name", "ItemName", "货物或应税劳务名称"))
+    rate = _sub(("Item", "Items"), ("Rate", "税率", "taxRate")) or pick("Rate", "税率", "taxRate")
+    date = pick("InvoiceDate", "开票日期", "issueDate")
+
+    if not any((inv_no, amount, total)):
+        return {"rows": [], "_parse_note": "XML 已解析（%d 个标签），但未识别到发票号码/金额/价税合计" % len(flat)}
+
+    from engine.numparse import to_number
+    row = {
+        "invoice_no": inv_no, "amount": to_number(amount), "tax": to_number(tax),
+        "total": to_number(total), "seller": seller, "buyer": buyer,
+        "goods": goods, "tax_rate": rate, "date": date,
+        "_source": original_name,
+    }
+    got = [k for k in ("invoice_no", "amount", "total", "seller", "buyer", "goods") if row.get(k)]
+    return {"type": "invoice_universal", "rows": [row],
+            "_parse_note": "XML 发票要素已提取：%s" % "、".join(got)}
+
+
+def _contract_summary(contracts) -> dict:
+    """合同台账汇总（GAP-05：让合同金额在分析产物里有一个**可被勾稽消费**的落点）。
+
+    ★ 缺失≠0：一份合同都没解析出来 ⇒ `count=0, total_amount=None`；
+      有合同但所有金额都解析失败 ⇒ `count>0, total_amount=None`（如实说明取不到）。
+    """
+    rows = [r for r in (contracts or []) if isinstance(r, dict)]
+    if not rows:
+        return {"count": 0, "total_amount": None,
+                "note": "本轮未取得可解析的合同台账"}
+    total = 0.0
+    got = 0
+    for r in rows:
+        v = to_number(r.get("amount") if r.get("amount") is not None
+                      else (r.get("合同金额") or 0))
+        if v:
+            total += abs(float(v))
+            got += 1
+    return {
+        "count": len(rows),
+        "amount_rows": got,
+        "total_amount": round(total, 2) if got else None,
+        "note": ("合同台账 %d 份，其中 %d 份含金额" % (len(rows), got)) if got
+                else ("合同台账 %d 份，但金额列全部为空/无法解析" % len(rows)),
+    }
+
+
 def _collect_read_failures(file_results) -> list:
     """列出**未读取到任何数据**的文件（唯一实现）。
 
@@ -1205,14 +1311,35 @@ def _run_analyze(company_id, db, progress_callback=None):
                     ftype = parsed.get("type", "unknown")
                     n = len(parsed.get("rows", []))
                     fr["type"] = ftype
+                    # ★ 2026-10-18（GAP-09）：**必须落 `_rows`**。
+                    #   `read_failures` 的判据就是 `_rows` 为空 —— 此前 DOCX 分支只往
+                    #   `actions` 写一句"DOCX文本：6段"，从不赋 `_rows`，
+                    #   于是**每一份 Word 资料都被算作"未读取到任何数据"**（实测 5 份全中）。
+                    fr["_rows"] = parsed.get("rows", [])
+                    if parsed.get("_parse_note"):
+                        fr["actions"].append(str(parsed["_parse_note"]))
                     if isinstance(parsed["rows"][0], str):
-                        fr["actions"].append(f"DOCX文本: {n}段")
+                        fr["actions"].append(f"DOCX文本: {n}段（未识别为结构化资料）")
                     else:
                         # ★ 与 PDF/xls 共用同一套路由
                         _route_parsed(ftype, parsed, fr, tag="DOCX")
                     pipeline_log.append(f"{fname} -> {ftype}: {n}条 (DOCX)")
                 else:
                     fr["actions"].append("DOCX无有效表格数据")
+                    if isinstance(parsed, dict) and parsed.get("_parse_note"):
+                        fr["actions"].append(str(parsed["_parse_note"]))
+            elif ext == ".xml":
+                # ★ 2026-10-18（GAP-09）：XML 电子发票此前**无任何解析分支** ⇒ 恒失败。
+                parsed = _parse_xml_invoice(fpath, fname)
+                if isinstance(parsed, dict) and parsed.get("rows"):
+                    fr["type"] = parsed.get("type") or "invoice_universal"
+                    fr["_rows"] = parsed["rows"]
+                    fr["actions"].append(str(parsed.get("_parse_note") or "XML 发票要素已提取"))
+                    _route_parsed(fr["type"], parsed, fr, tag="XML")
+                    pipeline_log.append(f"{fname} -> {fr['type']}: {len(parsed['rows'])}条 (XML)")
+                else:
+                    fr["actions"].append(
+                        str((parsed or {}).get("_parse_note") or "XML 未识别到发票要素"))
             elif ext in (".jpg", ".jpeg", ".png", ".bmp", ".tiff"):
                 # 首次OCR触发模型下载（~200MB，仅一次）
                 if not hasattr(_parse_image_ocr, '_easyocr_reader'):
@@ -1222,6 +1349,8 @@ def _run_analyze(company_id, db, progress_callback=None):
                     ftype = parsed.get("type", "ocr_text")
                     n = len(parsed.get("rows", []))
                     fr["type"] = ftype
+                    # ★ 2026-10-18（GAP-09）：OCR 分支同样必须落 `_rows`（否则恒算"未读到数据"）
+                    fr["_rows"] = parsed.get("rows", [])
                     inv_fields = parsed.get("invoice_fields")
                     if inv_fields:
                         fr["actions"].append(f"OCR识别: {n}条，提取发票号={inv_fields.get('invoice_no','?')}，金额={inv_fields.get('amount','?')}")
@@ -2421,7 +2550,7 @@ def _run_analyze(company_id, db, progress_callback=None):
     _has_inv_or_bank = len(invoices) > 0 or len(bank_txs) > 0
     _has_bank = len(bank_txs) > 0
     
-    if _has_any_data: domain_results.append({"domain": "合同比对分析", "findings": _domain_contract_comparison(db, company_id, sal_invs, pur_invs)})
+    if _has_any_data: domain_results.append({"domain": "合同比对分析", "findings": _domain_contract_comparison(db, company_id, sal_invs, pur_invs, contract_data=contract_data)})
     else: domain_results.append({"domain": "合同比对分析", "findings": []})
     if _has_inv_or_bank: domain_results.append({"domain": "经营实质分析", "findings": _domain_business_substance(db, company_id, sal_invs, pur_invs, bank_txs, salaries)})
     else: domain_results.append({"domain": "经营实质分析", "findings": []})
@@ -2604,6 +2733,19 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as _lte:
         pipeline_log.append(f"顶额开票检测异常: {_lte}")
 
+    # ═══ 单张发票错用税率（RL-VAT-025）：票面税率 vs 该品名法定税率（GAP-06） ═══
+    #   ★ 测评实证：此前**没有任何**单张口径的税率比对；唯一的月度汇总口径产出
+    #     还会被输出治理的 hard_ban（"配比异常"）静默删除。
+    #   判据全在 `config/invoice_tax_rate_map.json`（数据驱动，未命中品名不判）。
+    try:
+        from engine.invoice_rate_detector import detect_misused_rate
+        _mr_findings = detect_misused_rate(clean_invs, ctx)
+        if _mr_findings:
+            domain_results.append({"domain": "错用税率检测", "findings": _mr_findings})
+            pipeline_log.append(f"错用税率检测: {len(_mr_findings)}项发现")
+    except Exception as _mre:
+        pipeline_log.append(f"错用税率检测异常: {_mre}")
+
     # ═══ 发票数据质量（RL-PTY-005）：票号重复 / 票面勾稽错误（检出能力补齐，原属盲区） ═══
     try:
         from engine.invoice_quality_detector import detect_invoice_quality
@@ -2770,19 +2912,34 @@ def _run_analyze(company_id, db, progress_callback=None):
         detail = str(f.get("detail", ""))
         how = str(f.get("how_found", ""))
         policy = str(f.get("policy_ref", ""))
-        # ═══ 法规时效校验（2026-07-25 老邓要求） ═══
+        # ═══ 法规时效校验（2026-07-25 老邓要求；2026-10-18 重写 GAP-02）═══
+        # ★ 旧实现用 `_law_cache.scan_text()` 的输出做**裸 str.replace**，实测可产出：
+        #     《中华人民共和国中华人民共和国增值税法》（双前缀）
+        #     《中华人民共和国土地中华人民共和国增值税法》（合成词）
+        #     《中华人民共和国房产税法》（该法不存在）
+        #   根因：① `DEPRECATED_LAWS` 把「增值税法」本身当废止条目；
+        #         ② 无序子串匹配；③ 不看是否已带全称前缀。
+        #   现口径：**只有 `action=replace` 才改写**（真废止 + 有承接法 + 版本表已登记 expired），
+        #   其余一律**只告警不改写**（warn_only/noop），且改写走幂等的 `apply_replacements`。
+        #   任何被改写/被拦截的引用都进 pipeline_log，不静默。
         if policy:
             try:
-                from engine.law_validity_checker import _law_cache
-                if _law_cache and _law_cache.is_deprecated(policy):
-                    fixes = _law_cache.scan_text(policy)
-                    if fixes:
-                        new_policy = policy
-                        for fx in fixes:
-                            new_policy = new_policy.replace(fx["found"], fx["suggested"])
+                from engine.law_validity_checker import (apply_replacements,
+                                                        check_law_validity)
+                verdict = check_law_validity(policy)
+                if verdict.get("action") == "replace":
+                    new_policy, applied = apply_replacements(policy)
+                    if new_policy != policy:
                         f["policy_ref"] = new_policy
-                        pipeline_log.append(f"[法规校验] 发现 {len(fixes)} 处过期引用，已自动替换")
-            except Exception: pass
+                        pipeline_log.append(
+                            "[法规校验] 已废止引用自动改写：%s（%d 处）"
+                            % ("；".join("%s→%s" % (a["found"], a["suggested"])
+                                        for a in applied), len(applied)))
+                elif verdict.get("alert") in ("WARN", "ERROR"):
+                    # ★ 不改写，但必须留痕 —— 旧版对这类情况**什么都不做也不说**。
+                    pipeline_log.append("[法规校验] 待人工核对：%s" % verdict.get("reason", "")[:160])
+            except Exception as _lv_exc:                     # noqa: BLE001
+                pipeline_log.append("[法规校验] 检查异常（不影响主分析）：%s" % _lv_exc)
         level = str(f.get("level", ""))
         
         violations = []
@@ -4912,7 +5069,12 @@ def _run_analyze(company_id, db, progress_callback=None):
             # ⚠ 2026-09-25：原实现直接取 _DOC_TYPE_TO_CATEGORY 的值拼成列表，而该映射的键
             #   与解析器实际类型名不一致（如 vat_declaration 查不到），导致红线判定拿到的
             #   "已提供资料"清单同样是错的。统一改用 _doc_covered_categories（唯一实现）。
-            _provided_mats = sorted(_doc_covered_categories({"file_results": file_results or []}))
+            # ★ 2026-10-18（GAP-04）：**必须把 read_failures 一并传入**。
+            #   只传 file_results 会让"读了但 0 行"的文件仍被算作"资料已提供"，
+            #   实测把「合同」证据判成"已有"（文件在盘里 ≠ 证据已具备）。
+            _provided_mats = sorted(_doc_covered_categories(
+                {"file_results": file_results or [],
+                 "read_failures": list(_read_failed)}))
             _redline_detection = run_redline_detection(
                 all_findings,
                              # ★ B1（2026-09-29）：红线判定要用到**本企业实际指标**，
@@ -5076,7 +5238,8 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception:
         _self_company = ""
     all_findings = _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers,
-                                        company_name=_self_company)
+                                        company_name=_self_company,
+                                        file_results=file_results)
     
     # ═══ 信号类型标注：为每条发现打上结构化信号标签（驱动因果推理） ═══
     all_findings = _enrich_signal_types(all_findings)
@@ -5734,6 +5897,25 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as e:
         pipeline_log.append(f"[两税差异] 执行异常(不影响主分析): {e}")
 
+    # ── ⑥-① 账表 ↔ 申报表「利润总额」跨表勾稽（GAP-11）──
+    #   ★ 测评实证：全库 26 处提到"利润总额"，没有一处做"报表 vs 所得税申报表"的比对；
+    #     最接近的 CIT-003 比的是**同一张申报表内部**的 利润总额 vs 应纳税所得额。
+    #   三态明示（compared / one_sided / unavailable），缺失侧不出结论、不按 0 参与。
+    try:
+        from engine.cross_statement_check import run_cross_statement_check
+        from database import Company as _CS_Company
+        _cs_co = db.query(_CS_Company).filter(_CS_Company.id == company_id).first()
+        _cs = run_cross_statement_check(
+            income_stmt=fin_is, tax_declarations=tax_declarations,
+            company_name=(_cs_co.name if _cs_co else ""))
+        comprehensive["cross_statement_profit"] = _cs
+        pipeline_log.append("[跨表勾稽·利润总额] %s" % (_cs.get("summary") or ""))
+        if _cs.get("findings"):
+            domain_results.append({"domain": "账表申报跨表勾稽",
+                                   "findings": _cs["findings"]})
+    except Exception as _cse:
+        pipeline_log.append(f"[跨表勾稽·利润总额] 执行异常(不影响主分析): {_cse}")
+
     # ── ⑥-③ 税率语境（2026-09-29 点评整改 P0-4：潜在税额测算的税率单一构造点）──
     # 旧版对销项全为服务费的企业按 13% 测增值税、按 25% 测所得税，敞口虚高 2~3 倍。
     # 此处按销项有效税率与净利润/人数/资产推断适用税率语境，供 enterprise_report 测算时选用。
@@ -5944,6 +6126,10 @@ def _run_analyze(company_id, db, progress_callback=None):
         "extract_corrections": _eov_receipt(_applied_corrections),
         # ★ 未读取到数据的文件清单（空表示资料完整）——报告须据此声明"结论基于不完整资料"
         "read_failures": list(_read_failed),
+        # ★ 2026-10-18（GAP-05）：**合同台账汇总**——此前合同金额在分析产物里完全没有落点，
+        #   导致「合同 vs 开票」勾稽项只能写"缺数据"、印花税只能拿发票反推。
+        #   取不到金额时 `total_amount` 为 None（**缺失≠0**），由报告如实表述。
+        "contract_summary": _contract_summary(contract_data),
         # ★ 分析覆盖清单：现有资料能查多少、需补什么才能判定（"该查的都查了吗"）
         "analysis_coverage": _coverage,
         # ★ 2026-09-25 宗旨执行情况：已查出的风险的解除方式与自证清单、终局两态
@@ -7815,7 +8001,117 @@ def _voucher_relevant(v, gram_set):
     return bool(hit)
 
 
-def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, company_name=""):
+def _locate_evidence_rows(evidence_rows, file_results):
+    """为证据行回填「来源文件 + 表内行号」，让复核人能直接翻到原始那一行（GAP-04）。
+
+    ★ 背景：`evidence_rows` 此前只有 `source`（资料**类别**，如"银行流水"）+ `ref_id`
+      + 金额/对方/日期，**没有文件名、没有行号、没有列**。用户拿到报告无法回链核对，
+      等于"证据不可验证"。
+
+    匹配优先级（命中即止；**匹配不到就留空，绝不猜行号**）：
+      ① `ref_id` 命中行内的发票号 / 凭证号 / 流水号；
+      ② `date` + `amount` 同时命中的唯一行；
+      ③ `counterparty` + `amount` 同时命中的唯一行。
+
+    产出的定位字段：
+      `source_file`  原始文件名（`file_results[].file`）
+      `sheet`        工作表名（解析器没给就留空，不臆造）
+      `row_index`    表内行号（1 基，**含表头**；由 `_header_row` 推算）
+      `row_locator`  人类可读定位（"某文件.xlsx 第 137 行"）
+      `locate_status` `located` / `not_found`（**如实标注查不到**，不静默留空）
+    """
+    rows = [r for r in (evidence_rows or []) if isinstance(r, dict)]
+    if not rows or not file_results:
+        return evidence_rows
+
+    def _norm(v):
+        s = str(v or "").strip()
+        return s.replace(",", "").replace("，", "").replace(" ", "")
+
+    def _norm_date(v):
+        """日期归一：`20260314` / `2026-03-14` / `2026/3/14 10:00` 一律压成 8 位数字。
+
+        ★ 实测：银行流水 `ref_id` 是紧凑格式 `20260314`，而原始行 `date` 是
+          `2026-03-14`；不归一则「日期+金额」这一路永远匹配不上（定位率虚低）。
+        """
+        s = _norm(v)
+        digits = "".join(ch for ch in s if ch.isdigit())
+        return digits[:8] if len(digits) >= 8 else ""
+
+    # ── 建索引：[(file, sheet, row_index, row_dict, id_values, date, amount, cp)]
+    index = []
+    for fr in (file_results or []):
+        if not isinstance(fr, dict):
+            continue
+        fname = str(fr.get("file") or fr.get("filename") or "")
+        if not fname:
+            continue
+        sheet = str(fr.get("sheet") or fr.get("sheet_name") or "")
+        # ★ `_header_row` 的取值在不同解析器里不统一（有 int，也有把整行表头存成字符串的），
+        #   直接 int() 会在 CSV 上抛 `invalid literal for int(): '发票号码 购方名称 …'`
+        #   —— 实测把整轮分析打成 FAILED（step7 生成风险发现）。故安全转换 + 默认 0。
+        try:
+            base = int(fr.get("_header_row") or 0) + 1
+        except (TypeError, ValueError):
+            base = 1
+        for i, row in enumerate(fr.get("_rows") or []):
+            if not isinstance(row, dict):
+                continue
+            ids = {_norm(row.get(k)) for k in
+                   ("inv_no", "digital_inv_no", "inv_code", "voucher_no", "凭证号",
+                    "serial_no", "流水号", "id", "发票号码")
+                   if _norm(row.get(k))}
+            date = _norm_date(row.get("date") or row.get("交易日期") or row.get("开票日期")
+                              or row.get("日期") or row.get("记账日期"))
+            amount = _norm(row.get("amount") if row.get("amount") is not None else
+                           (row.get("total") if row.get("total") is not None else
+                            (row.get("价税合计") if row.get("价税合计") is not None else
+                             (row.get("贷方金额") if row.get("贷方金额") is not None else
+                              (row.get("credit") if row.get("credit") is not None else
+                               (row.get("借方金额") if row.get("借方金额") is not None else
+                                (row.get("debit") if row.get("debit") is not None else
+                                 (row.get("invoice_amount") if row.get("invoice_amount") is not None else
+                                  (row.get("实发金额") or row.get("发生额") or row.get("金额") or "")))))))))
+            cp = _norm(row.get("counterparty") or row.get("对方户名") or row.get("seller")
+                       or row.get("销方名称") or row.get("buyer") or row.get("购方名称") or "")
+            index.append({"file": fname, "sheet": sheet, "row_index": base + i,
+                          "ids": ids, "date": date, "amount": amount, "cp": cp})
+
+    for r in rows:
+        rid = _norm(r.get("ref_id"))
+        rdate = _norm_date(r.get("date"))
+        ramt = _norm(r.get("amount"))
+        rcp = _norm(r.get("counterparty"))
+        hit = None
+        # ① 单据号
+        if rid:
+            hit = next((x for x in index if rid in x["ids"]), None)
+        # ①-b 单据号本身就是日期（银行流水 ref_id 常为 YYYYMMDD）+ 金额
+        if hit is None and rid and ramt and _norm_date(rid):
+            cands = [x for x in index if x["date"] == _norm_date(rid) and x["amount"] == ramt]
+            hit = cands[0] if len(cands) == 1 else None
+        # ② 日期 + 金额（要求唯一）
+        if hit is None and rdate and ramt:
+            cands = [x for x in index if x["date"] == rdate and x["amount"] == ramt]
+            hit = cands[0] if len(cands) == 1 else None
+        # ③ 对方 + 金额（要求唯一）
+        if hit is None and rcp and ramt:
+            cands = [x for x in index if x["cp"] == rcp and x["amount"] == ramt]
+            hit = cands[0] if len(cands) == 1 else None
+        if hit:
+            r["source_file"] = hit["file"]
+            if hit["sheet"]:
+                r["sheet"] = hit["sheet"]
+            r["row_index"] = hit["row_index"]
+            r["row_locator"] = "%s 第 %d 行" % (hit["file"], hit["row_index"])
+            r["locate_status"] = "located"
+        else:
+            r["locate_status"] = "not_found"
+    return evidence_rows
+
+
+def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, company_name="",
+                          file_results=None):
     """为每条发现附加原始数据行级引用（evidence_rows），实现白盒可验证结论。
     
     每条 evidence_row 包含：数据来源类型、引用ID（发票号/流水号/凭证号）、
@@ -8220,7 +8516,14 @@ def _enrich_evidence_rows(all_findings, bank_txs, invoices, salaries, vouchers, 
             f["evidence_rows_scope"] = "只取与本项结论真正相关的原始行，最多%d笔" % max_rows
         if unique_rows:
             f["evidence_rows"] = unique_rows
-    
+
+    # ★ 2026-10-18（GAP-04）：回填「来源文件 + 表内行号」
+    #   收尾处统一做（只做一次），不散落在各分支里 —— 否则新增采样分支必然漏挂定位。
+    if file_results:
+        for f in (all_findings or []):
+            if isinstance(f, dict) and f.get("evidence_rows"):
+                f["evidence_rows"] = _locate_evidence_rows(f["evidence_rows"], file_results)
+
     return all_findings
 
 

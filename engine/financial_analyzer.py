@@ -866,8 +866,17 @@ def build_statements_from_trial_balance(rows):
     income_stmt["taxes_and_surcharges"] = taxes_surcharges
     income_stmt["entertainment_expense"] = 0  # 科目余额表无法区分招待费明细，留 0
     # 利润总额 = 收入 − 成本 − 税金及附加 − 期间费用（三费）
-    income_stmt["net_profit"] = round(
-        revenue - cost - taxes_surcharges - selling - admin - finance, 2)
+    # ★ 2026-10-18（GAP-11）：本式算出来的**是利润总额**（未减所得税费用、未含营业外收支），
+    #   但旧版只写进 `net_profit` 一个键 ⇒「财务报表利润总额 vs 所得税申报表利润总额」
+    #   这条跨表勾稽**无处取数**（只能退化成表内"利润总额 vs 应纳税所得额"）。
+    #   现同时给出 `profit_total`（勾稽用）并保留 `net_profit`（既有消费方兼容），
+    #   且把口径写进 `profit_total_basis`，避免读者把它当成净利润。
+    _profit_total = round(revenue - cost - taxes_surcharges - selling - admin - finance, 2)
+    income_stmt["profit_total"] = _profit_total
+    income_stmt["net_profit"] = _profit_total          # 历史同名字段，语义见 profit_total_basis
+    income_stmt["profit_total_basis"] = (
+        "收入−成本−税金及附加−三费（科目余额表无营业外收支与所得税费用明细，"
+        "故本口径不含这两项）")
 
     return balance_sheet, income_stmt, cash_flow
 

@@ -2270,24 +2270,59 @@ def _domain_invoice_lifecycle(invoices):
             "category": "域9 发票生命周期"})
     return findings
 
-def _domain_contract_comparison(db, company_id, sal_invs, pur_invs):
-    """域11: 合同比对"""
+def _domain_contract_comparison(db, company_id, sal_invs, pur_invs, contract_data=None):
+    """域11: 合同比对（★ 2026-10-18 重写，GAP-07）
+
+    ★ 旧实现的**结构性误报**：它只读数据库 `Contract` 表，而全库 `Contract(` 除模型定义外
+      **没有任何写入路径**（`database.py:440` 是唯一定义）⇒ `parties` 恒为空 ⇒
+      只要销项客户 ≥2 家就必然报"销项客户无合同"，覆盖率恒 0/N。
+      且它完全无视 pipeline 里**已经解析出来的** `contract_data`。
+
+    现口径（两级数据源，优先已解析台账）：
+      ① 有 `contract_data`（本轮解析出的合同行）⇒ 用它的甲方/乙方/名称做匹配；
+      ② 否则退回数据库 `Contract` 表（兼容历史数据）；
+      ③ **两级都为空 ⇒ 不出结论**（"未取得合同台账"属资料缺口，由覆盖度模块列明，
+         不能在这里假装成"客户无合同"这种事实性结论）。
+    """
     from database import Contract, _normalize_customer_name
     findings = []
-    cts = db.query(Contract).filter(Contract.company_id == company_id).all()
+
     parties = set()
-    for ct in cts:
-        if ct.party_a: parties.add(_normalize_customer_name(ct.party_a))
-        if ct.party_b: parties.add(_normalize_customer_name(ct.party_b))
+    _src_rows = [r for r in (contract_data or []) if isinstance(r, dict)]
+    for r in _src_rows:
+        for key in ("party_a", "party_b", "name", "counterparty", "对方单位"):
+            n = _normalize_customer_name(str(r.get(key) or ""))
+            if n:
+                parties.add(n)
+    _from_table = False
+    if not _src_rows:
+        try:
+            cts = db.query(Contract).filter(Contract.company_id == company_id).all()
+        except Exception:
+            cts = []
+        for ct in cts:
+            if ct.party_a:
+                parties.add(_normalize_customer_name(ct.party_a))
+            if ct.party_b:
+                parties.add(_normalize_customer_name(ct.party_b))
+        _from_table = bool(cts)
+
+    # ★ 没有任何合同来源 ⇒ 不作"客户无合同"的事实判断（避免结构性误报）
+    if not _src_rows and not _from_table:
+        return findings
+
     buyers = set()
     for i in sal_invs:
         n = _normalize_customer_name(i.get("buyer", ""))
-        if n: buyers.add(n)
+        if n:
+            buyers.add(n)
     no_ct = buyers - parties
     if no_ct and len(no_ct) >= 2:
         coverage = len(buyers) - len(no_ct)
         findings.append({"type": "销项客户无合同", "level": "中风险", "score": 6,
-        "how_found": "從销项发票中提取所有购方名称，与合同档案中的甲方/乙方名称进行模糊匹配，找出有发票但无合同的客户。",
+        "how_found": ("从销项发票提取购方名称，与本轮已解析的合同台账（甲方/乙方/合同名称）"
+                      "模糊匹配，找出有发票但无对应合同的客户"
+                      + ("；合同来源为历史档案表" if _from_table else "")),
             "detail": f"{len(no_ct)}个销项客户无合同，合同覆盖率仅{coverage}/{len(buyers)}。",
             "description": f"贵公司共有{len(buyers)}个销项发票客户，但仅有{coverage}个客户能找到对应的合同，{len(no_ct)}个客户的交易缺少合同支撑。合同是证明交易真实性的核心证据，也是税务合规中判断'四流合一'（合同流、资金流、发票流、货物流）的首要环节。大量交易无合同，一旦被税务合规将难以证明交易的真实性和合理性。",
             "tax_impact": "缺少合同支撑的交易，税务机关可能要求企业补充提供其他交易真实性证据。如无法提供，将面临进项税额不予抵扣、成本不予税前扣除、甚至被认定为虚开发票的严重后果。此外，合同是印花税的计税依据，无合同也意味着印花税可能存在漏缴。",
@@ -3682,19 +3717,61 @@ def _domain_advanced_rules(bank_txs, sal_invs, pur_invs, salaries, social_securi
                 "category": "域16 扩展规则"
             })
 
-    # ── 规则6: 发票备注栏合规检测 ──
+    # ── 规则6: 发票备注栏合规检测（GAP-06：改为**按法定必须备注的业务类型**逐票判） ──
+    #   ★ 旧实现：`销项发票里备注为空的张数 / 总张数 > 50%` 就报。两个问题：
+    #     ① 一刀切 —— 货物销售本就不要求备注，纯货物企业会被误报；
+    #     ② 反向漏报 —— 若 40% 空白但全是建筑服务，反而不报。
+    #   现口径：只有**法定必须备注**的业务类型才纳入分母；输出空备注的票号清单（可回链）。
+    _REMARK_REQUIRED = (
+        ("建筑服务", "建筑服务发票须备注项目名称与项目地址"),
+        ("运输服务", "货物运输发票须备注起运地、到达地、车种车号及货物信息"),
+        ("货运", "货物运输发票须备注起运地、到达地、车种车号及货物信息"),
+        ("不动产租赁", "不动产经营租赁发票须备注不动产详细地址"),
+        ("房屋租赁", "不动产经营租赁发票须备注不动产详细地址"),
+        ("场地租赁", "不动产经营租赁发票须备注不动产详细地址"),
+        ("销售不动产", "销售不动产发票须备注不动产详细地址"),
+        ("差额征税", "差额征税发票须备注「差额征税」字样"),
+        ("代开", "代开发票须备注代开单位与完税凭证号")
+    )
     if sal_invs:
-        no_remark = sum(1 for inv in sal_invs if not inv.get("remark", "").strip())
-        if sal_invs and no_remark / len(sal_invs) > T.ratios.half:
+        _need = []
+        for inv in sal_invs:
+            _txt = "%s %s" % (str(inv.get("goods") or inv.get("货物或应税劳务名称") or ""),
+                              str(inv.get("biz_type") or ""))
+            _why = next((w for k, w in _REMARK_REQUIRED if k in _txt), "")
+            if _why:
+                _need.append((inv, _why))
+        _missing = [(inv, why) for inv, why in _need
+                    if not str(inv.get("remark") or inv.get("备注") or "").strip()]
+        if _need and _missing:
+            _nos = [str(inv.get("invoice_no") or inv.get("inv_no") or "")[:24]
+                    for inv, _ in _missing if (inv.get("invoice_no") or inv.get("inv_no"))]
+            _ratio = len(_missing) / len(_need)
             findings.append({
-                "type": "发票备注栏信息缺失",
-                "level": "低风险", "score": 3,
-                "detail": f"{no_remark}/{len(sal_invs)}张销项发票无备注信息。",
-                "description": f"有{no_remark}张销项发票未填写备注栏信息。根据规定，建筑服务、运输服务、不动产租赁、销售不动产等特定业务的发票备注栏属于必填项目。大量空白备注栏可能意味着未按规定填写发票信息，虽然不直接构成偷逃税，但在税务合规中会被认定为发票管理不规范。",
-                "how_found": "扫描销项发票的备注字段，统计空白率。",
-                "tax_impact": "特定业务备注栏缺失的发票不得作为税收凭证，购买方取得的此类发票不得抵扣进项税额或税前扣除。",
-                "policy_ref": "《国家税务总局关于全面推开营业税改征增值税试点有关税收征收管理事项的公告》（2016年第23号）关于发票备注栏的规定。",
-                "suggestion": "1）检查发票是否涉及需要备注的特殊业务类型；2）规范开票流程，确保备注栏按要求填写。",
+                "type": "法定必须备注的发票备注栏空缺",
+                "level": "低风险" if _ratio < T.ratios.half else "中风险",
+                "score": 3 if _ratio < T.ratios.half else 5,
+                "detail": ("%d 张属法定必须填写备注栏的业务类型（建筑服务、货物运输、不动产租赁/销售、"
+                           "差额征税、代开等），其中 %d 张备注栏为空（占该类 %.0f%%）%s。" % (
+                               len(_need), len(_missing), _ratio * 100,
+                               ("；涉及票号：" + "、".join(_nos[:10])) if _nos else "")),
+                "description": ("备注栏不是通用必填项，但建筑服务、货物运输、不动产租赁与销售、"
+                                "差额征税、代开发票等特定业务，备注栏内容属法定要件。"
+                                "缺失会使该发票不得作为购买方的抵扣/扣除凭证，也反映开票流程不规范。"),
+                "how_found": ("逐票按「货物或应税劳务名称/业务类型」识别是否属法定必须备注的类型，"
+                              "再检查该票备注栏是否为空（不再按全量空白率一刀切）"),
+                "tax_impact": "特定业务备注栏缺失的发票，购买方不得据此抵扣进项税额或税前扣除。",
+                "policy_ref": ("《国家税务总局关于全面推开营业税改征增值税试点有关税收征收管理事项的公告》"
+                               "（2016年第23号）第四条第（二）（三）（四）项"),
+                "suggestion": ("按业务类型补开或红冲重开：建筑服务备注项目名称与地址、货物运输备注起运到达地"
+                               "及车号、不动产租赁备注详细地址；差额征税须注明「差额征税」。"),
+                "observed_metrics": {
+                    "required_total": len(_need),
+                    "missing_count": len(_missing),
+                    "missing_ratio": round(_ratio, 4),
+                    "missing_invoice_nos": _nos[:20],
+                    "reasons": sorted({why for _, why in _missing})
+                },
                 "category": "域16 扩展规则"
             })
 
@@ -13788,13 +13865,31 @@ def _stamp_duty_base(item, src):
     kind = item.get("base_kind")
     kws = item.get("keywords") or []
     if kind == "invoices":
+        # ★★ 2026-10-18（GAP-05/07）：**先看合同台账，再看发票**。
+        #   旧实现完全不读 `contracts`（`_domain_stamp_duty_check` 收到该参数却在函数体里
+        #   一次都没用），于是「买卖合同」税基只由发票反推 —— 而 RL-OTH-001 的规则名正是
+        #   「印花税计税依据不足：**合同金额与开票不符**」，要件①要求"购销合同金额或实际
+        #   结算金额与计税依据存在差异"，却没有任何代码对合同金额求值。
+        #   现口径：有合同台账 ⇒ 以合同金额为税基（法定计税依据就是合同所列金额）；
+        #   无合同 ⇒ 退回发票反推，并在依据说明里显式写"合同台账未取得，以发票反推"。
+        _ct = [r for r in (src.get("contracts") or []) if isinstance(r, dict)]
+        _ct_total = 0.0
+        for r in _ct:
+            _ct_total += amount_of(r, absolute=True)
         s = sum(amount_of(r, absolute=True) for r in (src.get("sal_invs") or [])
                 if isinstance(r, dict))
         p = sum(amount_of(r, absolute=True) for r in (src.get("pur_invs") or [])
                 if isinstance(r, dict))
+        if _ct_total > 0:
+            _note = "合同台账 %d 份金额合计（%s）" % (
+                len(_ct), format(_ct_total, ",.2f"))
+            if s + p > 0:
+                _note += "；同期开票合计 %s" % format(s + p, ",.2f")
+            return round(_ct_total, 2), _note
         if s + p <= 0:
             return 0.0, ""
-        return round(s + p, 2), "购销发票金额合计（销 %s ＋ 购 %s）" % (format(s, ",.2f"), format(p, ",.2f"))
+        return round(s + p, 2), "购销发票金额合计（销 %s ＋ 购 %s；合同台账未取得，以发票反推）" % (
+            format(s, ",.2f"), format(p, ",.2f"))
     if kind == "equity":
         prefixes = item.get("code_prefixes") or []
         tot = 0.0
@@ -13853,7 +13948,9 @@ def _domain_stamp_duty_check(bank_txs=None, invoices=None, contracts=None, vouch
     findings = []
     try:
         src = dict(sal_invs=sal_invs, pur_invs=pur_invs, vouchers=vouchers,
-                   bank_txs=bank_txs, balances=balances, fixed_assets=fixed_assets)
+                   bank_txs=bank_txs, balances=balances, fixed_assets=fixed_assets,
+                   # ★ 2026-10-18（GAP-05/07）：合同台账必须真正参与 —— 旧实现收了参数却从不使用
+                   contracts=contracts if isinstance(contracts, list) else [])
         computed = []
         for _item in _STAMP_DUTY_ITEMS:
             try:

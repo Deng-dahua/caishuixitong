@@ -33,7 +33,23 @@ _NEAR = 0.995
 
 
 def _inv_amount(inv):
-    return to_number(inv.get("total", inv.get("amount", inv.get("je", 0))))
+    """发票**不含税金额**（判定顶额的唯一口径）。
+
+    ★★ 2026-10-18（GAP-06）：旧实现是
+        `to_number(inv.get("total", inv.get("amount", inv.get("je", 0))))`
+      —— 优先取 `total`（**价税合计**），而 `_LIMITS` 是**不含税**档位（见本文件 29 行注释
+      与模块 docstring）。口径相反导致：13% 税率下不含税 8,850 元（价税合计 10,000）
+      被判"顶额"；而真正的不含税 9,999.99 元（价税合计 11,299.99）超出上界、
+      **恰好在本该抓的那一档上系统性漏判**（实测构造样例 0 命中）。
+      现改为优先 `amount`，取不到才退回 `total`/`je`，并在返回值旁标注用的是哪一列。
+    """
+    for key in ("amount", "invoice_amount", "金额", "je"):
+        v = inv.get(key)
+        if v not in (None, ""):
+            n = to_number(v)
+            if n:
+                return n
+    return to_number(inv.get("total", inv.get("价税合计", 0)))
 
 
 def _inv_no(inv):

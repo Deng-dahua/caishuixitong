@@ -9461,6 +9461,15 @@ def check_redline_indicator_declared() -> List[Tuple[str, str, str]]:
         cs = r.get("constituents") or []
         if not rid or not cs:
             continue
+        # ★ 2026-10-18（GAP-03）：**出罪型规则豁免**。
+        #   这类规则（如 RL-PTY-008 善意取得识别）的定义就是"识别不构成风险的情形"，
+        #   它被命中说明出现了正当理由 —— 正确做法是 `exculpatory=True` + **清空**
+        #   违规要件索引（`violation_any_of=[]`），由 `argumentation` 走
+        #   `_VERDICT_EXCULPATORY` 分支。若仍要求它声明"违规组合逻辑"，
+        #   等于逼着把合规要件登记成违规要件（本轮修的正是那个颠倒）。
+        #   判据是数据字段，不是白名单：新增同类规则只需在数据里加 `exculpatory: True`。
+        if r.get("exculpatory"):
+            continue
         if redline_verdict_rule(rid):
             continue
         c1 = str(cs[0])

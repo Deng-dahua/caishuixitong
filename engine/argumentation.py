@@ -53,6 +53,9 @@ _VERDICT_WEAK = "现有资料不足以形成税务疑点"                   # �
 #   根因：把「有信号」直接等同于「已核对到法定情形」。外部数据未取得 ⇒ 要件无从核对
 #   ⇒ 既不触碰红线、也不出罪，必须走独立裁决档，不能挤进触碰红线档。
 _VERDICT_EXTERNAL = "账内检出需外部数据核验的信号（不作定性，待外部核验后再判断）"
+#: 出罪型规则（`redline.exculpatory=True`）专用结论 —— 与"未触碰违规红线"区分开，
+#: 因为后者的语义是"查过、证据不支持违规"，而本档的语义是"出现了法定正当情形"。
+_VERDICT_EXCULPATORY = "经识别属正当情形（本项不作风险定性，仅作处理区分）"
 
 # ★ 2026-10-02：触碰红线档（HIT_PENDING）的**段尾断言**，抽为模块常量。
 #   理由：它是一句会进报告的**触碰红线断言**，而「能不能这么说」取决于报告端才有的
@@ -507,8 +510,22 @@ def build_argumentation(finding: Dict, redline: Dict, clue: Dict,
         # 外部核验待办：账内有信号、结论待外部数据 —— 既非已定性，也非触碰红线待补证
         # （此时 redline_hit 已由上一行置 False，故不会落进下面的触碰红线分支）
         verdict, grade = _VERDICT_EXTERNAL, GRADE_PENDING
+    elif redline.get("exculpatory"):
+        # ★★ 2026-10-18（GAP-03）：**出罪型规则**（如 RL-PTY-008 善意取得识别）。
+        #   这类规则的定义就是「识别不构成风险的情形」，它被关键词命中恰恰说明
+        #   出现了正当理由，**不能判定为触碰红线**。
+        #   旧实现把它当普通红线 ⇒ 实测渲染成「疑似触碰税务违规红线 conf=0.6」，
+        #   与规则名"非风险定性"、method"本项不作风险定性"直接矛盾。
+        redline_hit = False
+        verdict, grade = _VERDICT_EXCULPATORY, GRADE_EXCLUDED
     elif redline_hit and rebuttal_ratio >= 0.5 and closure < 0.60:
-        verdict, grade = _VERDICT_EXCLUDED, GRADE_EXCLUDED
+        # ★ 2026-10-18（GAP-03 配套）：**高风险不自动出罪**。
+        #   反证成立只能把结论降为"待核 + 反证已具备"，不能凭一份材料声明
+        #   把高风险判成无风险（那是最危险的放纵）。低/中风险允许出罪。
+        if "高" in level:
+            verdict, grade = _VERDICT_HIT_PENDING, GRADE_PENDING
+        else:
+            verdict, grade = _VERDICT_EXCLUDED, GRADE_EXCLUDED
     elif redline_hit and closure >= 0.80 and not evidence.get("direct_missing"):
         verdict, grade = _VERDICT_CONFIRMED, GRADE_CONFIRMED
     elif redline_hit:

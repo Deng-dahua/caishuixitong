@@ -559,6 +559,40 @@ _RENDERERS = {"html": _render_html, "pdf": _render_pdf,
               "docx": _render_docx, "xlsx": _render_xlsx}
 
 
+def _clean_doc_text(node, _depth: int = 0):
+    """深度清理文档模型里的文本（去 markdown、去内部编写说明、回填身份占位符）。
+
+    ★★ 2026-10-18（GAP-08）：端到端实测（META-SYSTEM-COMPLETENESS-AUDIT 6.2）：
+      导出的 PDF/DOCX 里 **各有 62~64 处 `**`**，且把写给开发者的句子直接印给客户：
+      `本节为**必含章节**：缺失时报告**不予产出**（渲染层直接报错，不静默）。`
+      根因：**质量门禁（`text_guardrails` / `content_placeholder_guard` / `quality_gates`）
+      全部只接在"一键分析"那条链上**，而本条导出链（`report_service`→`report_render`）
+      一个门禁都没接（`grep` 实证为空）。
+    本函数把「清理」收敛到**渲染入口**：只要走 `render()`，就一定被清理 ——
+    不再依赖上游每条链各自记得调用（那正是漏掉的根因）。
+    `strip_markup` 是项目既有唯一权威（已处理 `*住宿服务*` 品名与 `**` 数据占位等坑）。
+    """
+    if isinstance(node, str):
+        try:
+            from engine.text_guardrails import strip_markup
+            s = strip_markup(node)
+        except Exception:                                        # noqa: BLE001
+            s = node
+        # 内部编写说明（不是给读者的）—— 命中即删，不留在交付件里
+        if "本节为" in s and "必含章节" in s:
+            return ""
+        # ★ 身份占位符兜底（GAP-08）：`generate()` 会回填；若调用方直接 `build_document→render`
+        #   （测试/预览路径），这里必须给出可读文本，**不得把标记原样交给读者**。
+        if "[[DOC_NO]]" in s or "[[DOC_VER]]" in s:
+            s = s.replace("[[DOC_NO]]", "（尚未登记）").replace("[[DOC_VER]]", "（尚未登记）")
+        return s
+    if isinstance(node, list):
+        return [_clean_doc_text(x, _depth + 1) for x in node]
+    if isinstance(node, dict):
+        return {k: _clean_doc_text(v, _depth + 1) for k, v in node.items()}
+    return node
+
+
 def render(doc: Dict[str, Any], fmt: Any) -> Tuple[bytes, str]:
     """渲染为指定格式 ⇒ `(bytes, watermark_mode)`。
 
@@ -568,6 +602,8 @@ def render(doc: Dict[str, Any], fmt: Any) -> Tuple[bytes, str]:
     from engine.report_views import validate_format             # noqa: PLC0415
     f = validate_format(fmt)
     _require_disclaimer(doc)
+    # ★ 出口统一清理（GAP-08）：不依赖上游是否调用过 strip_markup
+    doc = _clean_doc_text(doc)
     try:
         data = _RENDERERS[f](doc)
     except ReportRenderError:

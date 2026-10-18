@@ -278,6 +278,20 @@ def parse_document(document_id: Any, session: Any, *, engine=None,
             from engine.audit_trail import record as _rec    # noqa: PLC0415
             _rec("extract.run", target=str(doc["id"]), company_id=cid,
                  detail="⚠ 解析无内容但状态流转失败（可在资料页重析归位）")
+        # ★★ 2026-10-18（GAP-10）：**把真实失败原因写到资料上**。
+        #   旧实现：`parse_document` 内部置 failed 时**不写 note**，而调用方
+        #   `_auto_parse_documents` 随后又 `set_parse_status(..., "success")`，
+        #   状态机拒绝（failed→success 当时不允许）并抛 400 ⇒ 外层 catch 把
+        #   **状态机错误**写成了 note：「解析状态非法迁移：失败 → 成功（允许：待解析、需人工校正）」。
+        #   于是用户永远看不到"这个文件到底哪里坏了"（实测 5 份文档的 note 一模一样）。
+        #   现口径：失败原因直接落 note；状态机已允许 failed→success，重析不会再撞墙。
+        if parse_error:
+            try:
+                from engine.document_service import set_parse_status as _sps   # noqa: PLC0415
+                _sps(int(doc["id"]), "failed", session, engine=eng,
+                     note="解析失败：%s" % str(parse_error)[:280])
+            except Exception:                         # noqa: BLE001 — 写 note 失败不影响解析结果
+                pass
 
     return {
         "ok": True, "document_id": int(doc["id"]), "original_name": name,
@@ -564,6 +578,44 @@ def _parse_file(path: str, ext: str, name: str) -> Tuple[List[Dict[str, Any]], s
             err = "OCR 失败（%s）：%s" % (type(exc).__name__, exc)
     else:
         err = "该格式（%s）暂不支持结构化解析" % (ext or "(无扩展名)")
+    # ★★ 2026-10-18（GAP-09）：**补 DOCX 与 XML**。
+    #   上面三个分支只覆盖 Excel/CSV、PDF、图片；Word 合同与 XML 电子发票在
+    #   **抽取链路**里一律落到 `else` ⇒ `parse_status=failed`、"0 行 0 字段"。
+    #   而 pipeline 侧的解析器（`_parse_docx` / `_parse_xml_invoice`）早已能读它们 ——
+    #   两条链路口径不一致，用户看到的却是"该格式暂不支持"。
+    #   现统一复用 pipeline 侧的唯一实现（不另写解析器）。
+    if ext == ".docx":
+        try:
+            import main as _main                      # noqa: PLC0415
+            r = _main._parse_docx(path, name)         # noqa: SLF001
+            if isinstance(r, dict) and r.get("rows"):
+                rows = [x for x in r["rows"] if isinstance(x, dict)]
+                if rows:
+                    tables.append({"sheet": "", "doc_type": r.get("type") or "",
+                                   "confidence": 0.7,
+                                   "source": str(r.get("source") or "docx"),
+                                   "header": list(rows[0].keys()), "rows": rows})
+                    err = ""
+                else:
+                    err = str(r.get("_parse_note") or "DOCX 内容未结构化")
+            else:
+                err = str((r or {}).get("_parse_note") or "DOCX 未提取到可用内容")
+        except Exception as exc:                      # noqa: BLE001
+            err = "DOCX 解析失败（%s）：%s" % (type(exc).__name__, exc)
+    elif ext == ".xml":
+        try:
+            from engine.pipeline import _parse_xml_invoice   # noqa: PLC0415
+            r = _parse_xml_invoice(path, name)
+            rows = [x for x in (r or {}).get("rows") or [] if isinstance(x, dict)]
+            if rows:
+                tables.append({"sheet": "", "doc_type": r.get("type") or "invoice_universal",
+                               "confidence": 0.8, "source": "xml",
+                               "header": list(rows[0].keys()), "rows": rows})
+                err = ""
+            else:
+                err = str((r or {}).get("_parse_note") or "XML 未识别到发票要素")
+        except Exception as exc:                      # noqa: BLE001
+            err = "XML 解析失败（%s）：%s" % (type(exc).__name__, exc)
     return tables, err
 
 
