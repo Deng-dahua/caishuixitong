@@ -479,17 +479,24 @@ class DocumentFrontendContractTests(unittest.TestCase):
                 assert page.status_code == 200, page.text
                 for kw in ("资料上传与管理", "/static/js/documents.js", "/static/js/security.js",
                            "把文件拖到", "picker", "f-cat", "f-status", "tbody",
-                           "m-classify", "m-detail", "m-del", "proj"):
+                           "m-classify", "m-detail", "btn-del-selected", "proj"):
                     assert kw in page.text, "页面缺关键元素：%s" % kw
+                # ★ 2026-10-18（用户裁定「删除每一行的删除按钮」）：
+                #   单条删除弹窗 `m-del` 与行内删除按钮**都不应再存在**。
+                #   删除能力并未消失 —— 由「勾选 + 删除选中」承担（同一后端删除出口）。
+                assert 'data-act="del"' not in page.text, "行内删除按钮又出现了"
 
                 js = c.get("/static/js/documents.js")
                 assert js.status_code == 200
                 src = js.text
                 for kw in ("handleFiles", "dataTransfer", "uploadOne", "uploadChunked",
                            "localStorage", "chunk/init", "openClassify", "downloadDoc",
-                           "askDelete", "X-Watermark-Mode", "decodeURIComponent",
+                           "__delSelected", "X-Watermark-Mode", "decodeURIComponent",
                            "prev", "next", "f-size"):
                     assert kw in src, "脚本缺实现：%s" % kw
+                # 行内删除（askDelete / data-act="del"）必须已移除，且不能残留死弹窗引用
+                assert 'data-act="del"' not in src, "脚本仍有行内删除按钮"
+                assert "askDelete" not in src, "行内删除的死函数仍在"
 
                 # 字典必须来自后端（前端**不得**硬编码分类中文名）
                 assert "/documents/meta" in src, "前端未从后端取字典"

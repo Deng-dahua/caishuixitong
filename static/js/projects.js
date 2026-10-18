@@ -51,6 +51,34 @@
   }
 
   // ── 元数据（字典唯一来源 = 后端）────────────────────────────────────
+  function fillDatalist(id, values) {
+    var el = $(id);
+    if (!el) return;
+    el.innerHTML = values.map(function (v) {
+      return '<option value="' + esc(v) + '"></option>';
+    }).join("");
+  }
+  function fillSelect(id, values, emptyLabel) {
+    var el = $(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">' + esc(emptyLabel || "（未填）") + "</option>" +
+      values.map(function (v) {
+        return '<option value="' + esc(v) + '">' + esc(v) + "</option>";
+      }).join("");
+  }
+  // 税种范围多选（选项来自后端 /meta 的 tax_types，前端不硬编码）
+  var SCOPE = {};
+  function renderTaxChips() {
+    var box = $("pf-tax-scopes");
+    if (!box) return;
+    box.innerHTML = (META.tax_types || []).map(function (t) {
+      var on = !!SCOPE[t.value];
+      return '<label data-scope="' + esc(t.value) + '"' + (on ? ' class="on"' : "") + '>' +
+        '<input type="checkbox" value="' + esc(t.value) + '"' + (on ? " checked" : "") + '>' +
+        esc(t.label) + "</label>";
+    }).join("");
+  }
+
   async function loadMeta() {
     META = await api(API + "/meta");
     var sel = $("f-status");
@@ -59,6 +87,15 @@
       o.value = s.value; o.textContent = s.label;
       sel.appendChild(o);
     });
+    // ★ 2026-10-18：企业画像/稽查要素字典 —— 全部取后端，前端不写死任何选项
+    fillDatalist("dl-industry", (META.industries || []).map(function (x) { return x.value; }));
+    fillDatalist("dl-region", META.regions || []);
+    fillSelect("pf-registration_status", META.registration_statuses || [], "（未填）");
+    fillSelect("pf-company_type", META.company_types || [], "（未填）");
+    Array.prototype.forEach.call(document.querySelectorAll(".cap-unit"), function (e) {
+      e.textContent = META.capital_unit || "万元";
+    });
+    renderTaxChips();
   }
 
   // ── 列表 ────────────────────────────────────────────────────────────
@@ -89,19 +126,38 @@
     }
   }
 
+  function fmtCapital(v) {
+    if (v === null || v === undefined || v === "") return "—";
+    var n = Number(v);
+    if (isNaN(n)) return "—";
+    return n.toLocaleString("zh-CN", { maximumFractionDigits: 2 }) + " " +
+      ((META && META.capital_unit) || "万元");
+  }
+  function fmtPeriod(p) {
+    return (p.period_start || p.period_end)
+      ? esc(p.period_start || "—") + " ~ " + esc(p.period_end || "—") : "—";
+  }
+
   function renderList() {
     var body = $("tbody");
     if (!state.items.length) {
-      body.innerHTML = '<tr><td colspan="10" class="empty">暂无项目。点击右上角「＋ 新建项目」开始。</td></tr>';
+      body.innerHTML = '<tr><td colspan="14" class="empty">暂无项目。点击右上角「＋ 新建项目」开始。</td></tr>';
     } else {
       body.innerHTML = state.items.map(function (p) {
-        var period = (p.period_start || p.period_end)
-          ? esc(p.period_start || "—") + " ~ " + esc(p.period_end || "—") : "—";
+        var period = fmtPeriod(p);
         var scopes = (p.tax_scopes && p.tax_scopes.length) ? p.tax_scopes.join("、") : "—";
+        // ★ 缺项如实标注（不补默认值）：把「缺哪几项」放进 title，便于点编辑补录
+        var miss = p.profile_missing || [];
+        var pendingTag = miss.length
+          ? ' <span class="tag pending" title="缺：' + esc(miss.join("、")) + '">待补全</span>' : "";
         return '<tr>' +
           '<td>' + esc(p.code || "—") + '</td>' +
-          '<td class="wrap-cell"><b>' + esc(p.name) + '</b></td>' +
+          '<td class="wrap-cell"><b>' + esc(p.name) + '</b>' + pendingTag + '</td>' +
           '<td>' + esc(p.taxpayer_id || "—") + '</td>' +
+          '<td>' + esc(p.legal_representative || "—") + '</td>' +
+          '<td>' + fmtCapital(p.registered_capital) + '</td>' +
+          '<td>' + esc(p.established_date || "—") + '</td>' +
+          '<td>' + esc(p.registration_status || "—") + '</td>' +
           '<td>' + esc(p.industry || "—") + '</td>' +
           '<td>' + esc(p.region || "—") + '</td>' +
           '<td>' + period + '</td>' +
@@ -122,31 +178,97 @@
   }
 
   // ── 表单（新建 / 编辑）──────────────────────────────────────────────
-  // ★ 2026-10-14 二次调整（用户裁定）：账套概念退役 —— 新建项目只填
-  // 「公司名称 + 统一社会信用代码」；行业/地区等由自动分析确定（后续回填）。
+  // ★ 2026-10-18（用户要求）：行业/地区/稽查期间等**在建项目这一步收集**，
+  //   并补录企业重点工商信息 ⇒ 表单分「第 1 步 企业基本信息」「第 2 步 稽查要素」。
+  //   ⚠ 旧注释「只填名称+税号，其余由分析确定」已作废：实测项目行业/地区/期间长期为空。
+  function pf(k) { return $("pf-" + k); }
+
+  var FORM_TEXT_KEYS = ["legal_representative", "registration_status", "company_type",
+                        "registered_address", "business_scope"];
+
   async function openForm(project) {
     state.editing = project || null;
     $("form-title").textContent = project ? "编辑项目" : "新建项目";
     $("form-msg").innerHTML = "";
-    $("f-name").value = project ? (project.name || "") : "";
-    $("f-tid").value = project ? (project.taxpayer_id || "") : "";
-    // ★ 2026-10-15 表单只留「公司名称+统一社会信用代码」（行业/期间等由分析确定）
+    pf("name").value = project ? (project.name || "") : "";
+    pf("tid").value = project ? (project.taxpayer_id || "") : "";
+    pf("industry").value = project ? (project.industry || "") : "";
+    pf("region").value = project ? (project.region || "") : "";
+    pf("ps").value = project ? (project.period_start || "") : "";
+    pf("pe").value = project ? (project.period_end || "") : "";
+    pf("remark").value = project ? (project.remark || "") : "";
+    pf("registered_capital").value =
+      (project && project.registered_capital !== null && project.registered_capital !== undefined)
+        ? project.registered_capital : "";
+    pf("established_date").value = project ? (project.established_date || "") : "";
+    FORM_TEXT_KEYS.forEach(function (k) {
+      var el = pf(k);
+      if (el) el.value = project ? (project[k] || "") : "";
+    });
+    SCOPE = {};
+    ((project && project.tax_scopes) || []).forEach(function (s) { SCOPE[s] = true; });
+    renderTaxChips();
     openModal("m-form");
-    $("f-name").focus();
+    pf("name").focus();
+  }
+
+  function collectScopes() {
+    var out = [];
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#pf-tax-scopes label"),
+      function (lab) {
+        if (lab.classList.contains("on")) out.push(lab.getAttribute("data-scope"));
+      });
+    return out;
+  }
+
+  function showFormError(msg) {
+    $("form-msg").innerHTML = '<div class="msg err">' + esc(msg) + "</div>";
+    $("form-msg").scrollIntoView({ block: "nearest" });
   }
 
   async function saveForm() {
-    var name = $("f-name").value.trim();
-    if (!name) { $("form-msg").innerHTML = '<div class="msg err">公司名称不能为空</div>'; return; }
-    var tid = $("f-tid").value.trim();
-    if (tid.length !== 18) {
-      $("form-msg").innerHTML = '<div class="msg err">统一社会信用代码必须为 18 位</div>';
-      return;
-    }
+    var name = pf("name").value.trim();
+    if (!name) { showFormError("企业名称不能为空"); return; }
+    var tid = pf("tid").value.trim().toUpperCase();
+    if (tid.length !== 18) { showFormError("统一社会信用代码必须为 18 位"); return; }
+    // 第 2 步稽查要素：必填（这是稽查范围的起点，留空会让后续比对失去期间/行业口径）
+    var industry = pf("industry").value.trim();
+    var region = pf("region").value.trim();
+    var ps = pf("ps").value, pe = pf("pe").value;
+    var scopes = collectScopes();
+    var lack = [];
+    if (!industry) lack.push("行业");
+    if (!region) lack.push("地区");
+    if (!ps) lack.push("稽查期间起");
+    if (!pe) lack.push("稽查期间止");
+    if (!scopes.length) lack.push("税种范围");
+    if (lack.length) { showFormError("请补全稽查要素（第 2 步）：" + lack.join("、")); return; }
+    if (ps > pe) { showFormError("稽查期间起止颠倒：起 " + ps + " 晚于 止 " + pe); return; }
+
+    var capRaw = pf("registered_capital").value.trim();
     var payload = {
       name: name,
-      taxpayer_id: tid
+      taxpayer_id: tid,
+      industry: industry,
+      region: region,
+      period_start: ps,
+      period_end: pe,
+      tax_scopes: scopes,
+      remark: pf("remark").value.trim(),
+      legal_representative: pf("legal_representative").value.trim(),
+      registered_capital: capRaw === "" ? null : Number(capRaw),
+      established_date: pf("established_date").value || "",
+      registration_status: pf("registration_status").value || "",
+      registered_address: pf("registered_address").value.trim(),
+      business_scope: pf("business_scope").value.trim(),
+      company_type: pf("company_type").value || ""
     };
+    if (payload.registered_capital !== null &&
+        (isNaN(payload.registered_capital) || payload.registered_capital < 0)) {
+      showFormError("注册资本必须是非负数字（单位：万元）");
+      return;
+    }
     try {
       if (state.editing) {
         await api(API + "/" + state.editing.id, {
@@ -164,7 +286,7 @@
       closeModal("m-form");
       await loadList();
     } catch (e) {
-      $("form-msg").innerHTML = '<div class="msg err">' + esc(e.message) + "</div>";
+      showFormError(e.message);
     }
   }
 
@@ -176,8 +298,7 @@
     try {
       var p = await api(API + "/" + id);
       $("detail-title").textContent = "项目详情：" + (p.name || "");
-      var period = (p.period_start || p.period_end)
-        ? (p.period_start || "—") + " ~ " + (p.period_end || "—") : "—";
+      var period = fmtPeriod(p);   // 已转义，避免脏数据破坏 DOM
       var nextBtns = (p.allowed_next_status_cn || []).map(function (label, i) {
         var v = p.allowed_next_status[i];
         return '<button class="btn ghost" data-mv="' + esc(v) + '" data-id="' + p.id + '">→ ' + esc(label) + '</button>';
@@ -196,12 +317,28 @@
           '</div>';
       }).join("") || '<div class="muted">暂无操作日志</div>';
 
+      var miss = p.profile_missing || [];
       body.innerHTML =
+        (miss.length
+          ? '<div class="msg warn">本项目缺少稽查要素：' + esc(miss.join("、")) +
+            '。点右上角「编辑」补录后，比对期间与行业口径才会生效。</div>' : '') +
+        '<div class="sect">企业基本信息（工商登记口径）</div>' +
         '<div class="kv">' +
           '<div class="k">项目编号</div><div>' + esc(p.code || "—") + '</div>' +
           '<div class="k">企业名称</div><div><b>' + esc(p.name) + '</b></div>' +
-          '<div class="k">纳税人识别号</div><div>' + esc(p.taxpayer_id || "—") + '</div>' +
-          '<div class="k">行业 / 地区</div><div>' + esc(p.industry || "—") + ' / ' + esc(p.region || "—") + '</div>' +
+          '<div class="k">统一社会信用代码</div><div>' + esc(p.taxpayer_id || "—") + '</div>' +
+          '<div class="k">法定代表人</div><div>' + esc(p.legal_representative || "—") + '</div>' +
+          '<div class="k">注册资本</div><div>' + fmtCapital(p.registered_capital) + '</div>' +
+          '<div class="k">成立日期</div><div>' + esc(p.established_date || "—") + '</div>' +
+          '<div class="k">登记状态</div><div>' + esc(p.registration_status || "—") + '</div>' +
+          '<div class="k">公司类型</div><div>' + esc(p.company_type || "—") + '</div>' +
+          '<div class="k">注册地址</div><div>' + esc(p.registered_address || "—") + '</div>' +
+          '<div class="k">经营范围</div><div class="wrap-cell">' + esc(p.business_scope || "—") + '</div>' +
+        '</div>' +
+        '<div class="sect">稽查要素</div>' +
+        '<div class="kv">' +
+          '<div class="k">行业</div><div>' + esc(p.industry || "—") + '</div>' +
+          '<div class="k">地区</div><div>' + esc(p.region || "—") + '</div>' +
           '<div class="k">稽查期间</div><div>' + esc(period) + '</div>' +
           '<div class="k">税种范围</div><div>' + esc((p.tax_scopes || []).join("、") || "—") + '</div>' +
           '<div class="k">备注</div><div>' + esc(p.remark || "—") + '</div>' +
@@ -318,6 +455,15 @@
     document.addEventListener("click", function (e) {
       var t = e.target;
       if (!t || !t.getAttribute) return;
+      // 税种范围 chips（点标签或复选框都能切换，状态以 class 为准）
+      var lab = t.closest ? t.closest("#pf-tax-scopes label") : null;
+      if (lab) {
+        e.preventDefault();
+        lab.classList.toggle("on");
+        var cb = lab.querySelector("input[type=checkbox]");
+        if (cb) cb.checked = lab.classList.contains("on");
+        return;
+      }
       var act = t.getAttribute("data-act");
       if (act) {
         var id = Number(t.getAttribute("data-id"));

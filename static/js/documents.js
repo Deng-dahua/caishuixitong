@@ -13,7 +13,7 @@
   var META = null;
   var PROJECT = null;
   var state = { page: 1, page_size: 20, total: 0, pages: 0, items: [],
-                deleting: null, classifying: null,
+                classifying: null,
                 selected: {},   // ★ 2026-10-15 批量删除：id -> true（翻页/刷新即清空）
                 exDoc: null };  // ★ 2026-10-15 详情弹窗当前解析的资料 id
 
@@ -293,8 +293,7 @@
             '<button class="btn ghost" data-act="detail" data-id="' + d.id + '">详情</button> ' +
             '<button class="btn ghost" data-act="exview" data-id="' + d.id + '" data-name="' + esc(d.original_name_masked || d.original_name) + '">解析结果</button> ' +
             '<button class="btn ghost" data-act="classify" data-id="' + d.id + '">分类</button> ' +
-            '<button class="btn ghost" data-act="download" data-id="' + d.id + '">下载</button> ' +
-            '<button class="btn danger" data-act="del" data-id="' + d.id + '" data-perm="document.write">删除</button>' +
+            '<button class="btn ghost" data-act="download" data-id="' + d.id + '">下载</button>' +
           '</td></tr>';
       }).join("");
     }
@@ -556,11 +555,10 @@
     }
   }
 
-  function askDelete(d) {
-    state.deleting = d;
-    $("del-name").textContent = d.original_name_masked || d.original_name;
-    openModal("m-del");
-  }
+  // ★ 2026-10-18（用户要求）：**列表行内不再提供删除按钮** —— 单条删除入口取消；
+  //   删除统一走「勾选 + 删除选中」（同一后端删除出口 DELETE /documents/{id}，
+  //   文件进回收站、逐条留审计，语义不变）。原行内删除的函数与确认弹窗一并删除，
+  //   不留死代码（入口与弹窗一一对应，没有入口就不留弹窗）。
   // ★ 2026-10-15 一键重析未成功：全项目翻页拉取 ⇒ 过滤 parse_status !== "success"
   //   ⇒ confirm ⇒ 逐条 POST /documents/{id}/extract（同步，幂等重建）⇒ 如实汇总。
   window.__reparseAll = async function () {
@@ -628,19 +626,6 @@
           errs.length ? "err" : "");
     await loadList();
   };
-  async function doDelete() {
-    if (!state.deleting) return;
-    try {
-      var r = await api(API + "/documents/" + state.deleting.id, { method: "DELETE" });
-      closeModal("m-del");
-      flash(r.message || "资料已删除");
-      state.deleting = null;
-      await loadList();
-    } catch (e) {
-      closeModal("m-del");
-      flash("删除失败：" + e.message, "err");
-    }
-  }
 
   // ── 事件 ───────────────────────────────────────────────────────────
   function bind() {
@@ -673,7 +658,6 @@
     $("prev").onclick = function () { if (state.page > 1) { state.page--; loadList(); } };
     $("next").onclick = function () { if (state.page < state.pages) { state.page++; loadList(); } };
     $("btn-classify-save").onclick = saveClassify;
-    $("btn-del-confirm").onclick = doDelete;
     $("proj").onchange = function () {
       PROJECT = Number($("proj").value) || null;
       localStorage.setItem("docProjectId", String(PROJECT || ""));
@@ -701,7 +685,6 @@
       }
       else if (act === "classify" && d) openClassify(d);
       else if (act === "download") downloadDoc(id);
-      else if (act === "del" && d) askDelete(d);
     });
     // ★ 2026-10-15 解析区块交互：重跑 / 字段校正 / 异常处理
     var _exr = $("ex-reparse");
@@ -741,11 +724,11 @@
       var n = Object.keys(state.selected).length;
       if (btn) { btn.hidden = n === 0; btn.textContent = "删除选中（" + n + "）"; }
     });
-    ["m-classify", "m-detail", "m-del"].forEach(function (id) {
+    ["m-classify", "m-detail"].forEach(function (id) {
       $(id).addEventListener("click", function (e) { if (e.target === $(id)) $(id).hidden = true; });
     });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape") ["m-classify", "m-detail", "m-del"].forEach(function (i) { $(i).hidden = true; });
+      if (e.key === "Escape") ["m-classify", "m-detail"].forEach(function (i) { $(i).hidden = true; });
     });
   }
 

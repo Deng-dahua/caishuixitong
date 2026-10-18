@@ -112,6 +112,24 @@ _SUBJECT_KEYS: Tuple[str, ...] = (
 )
 
 
+def tax_scope_options() -> List[str]:
+    """**稽查项目「税种范围」下拉的唯一权威**（2026-10-18 立）。
+
+    构成 = 18 个税种（`_TAX_NAME_KW`，与"正向识别涉税"同源，禁止另写一份）
+          + 两项附加（随增值税征收的费，实务上与税同列）
+          + `LEVIES` 里的非税项（社保费/公积金/政府性基金）。
+
+    新增一个税/费 ⇒ 只改 `_TAX_NAME_KW` 或 `LEVIES`，本函数自动跟随。
+    """
+    extras = ["教育费附加", "地方教育附加"]
+    levy_labels = [str(v.get("label") or k) for k, v in LEVIES.items() if k != "税"]
+    out: List[str] = []
+    for x in list(_TAX_NAME_KW) + extras + levy_labels:
+        if x not in out:
+            out.append(x)
+    return out
+
+
 def _subject_text(obj: Any) -> str:
     """取本项的**主题文本**（用于性质判定）；dict 只取 `_SUBJECT_KEYS`。"""
     if isinstance(obj, dict):

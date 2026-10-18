@@ -37,6 +37,89 @@ class ProjectError(Exception):
 
 
 # --------------------------------------------------------------------------
+# ★ 2026-10-18（用户要求）项目画像字段 —— **单一权威表**
+#   背景：新建项目原先只收「名称 + 统一社会信用代码」，行业/地区/稽查期间留空，
+#   列表三列长期显示"—"（实测项目 42 全空）。现改为**在建项目这一步收集**。
+#   规则：新增一个画像字段 ⇒ 只加一行；建表列（project_store._want）、写入白名单、
+#        详情展示、`profile_missing` 判定、`metadata()` 全部自动跟随，不改逻辑分支。
+# --------------------------------------------------------------------------
+#: (字段名, 中文名, 最大长度, 类型)；类型 ∈ text / capital / date
+PROFILE_FIELDS: Tuple[Tuple[str, str, int, str], ...] = (
+    ("legal_representative", "法定代表人", 50, "text"),
+    ("registered_capital", "注册资本", 0, "capital"),
+    ("established_date", "成立日期", 10, "date"),
+    ("registration_status", "登记状态", 40, "text"),
+    ("registered_address", "注册地址", 200, "text"),
+    ("company_type", "公司类型", 40, "text"),
+    ("business_scope", "经营范围", 1000, "text"),
+)
+
+#: 稽查要素（建项目必填项 —— 前端强校验；后端**不硬性阻断**以兼容 API/历史数据，
+#: 缺失由 `profile_missing` 如实标注"待补全"，绝不编造默认值）。
+AUDIT_FIELDS: Tuple[Tuple[str, str], ...] = (
+    ("industry", "行业"),
+    ("region", "地区"),
+    ("period_start", "稽查期间起"),
+    ("period_end", "稽查期间止"),
+    ("tax_scopes", "税种范围"),
+)
+
+
+def _to_capital(v: Any) -> Optional[float]:
+    """注册资本（万元）→ float 或 None。空 ⇒ None（**缺失≠0**，不得顶替）。"""
+    if v in (None, "", "—"):
+        return None
+    if isinstance(v, (int, float)):
+        n = float(v)
+    else:
+        from engine.numparse import to_number              # noqa: PLC0415
+        n = float(to_number(str(v).replace("万元", "").replace(",", "")) or 0)
+    if n < 0:
+        raise ProjectError("注册资本不能为负数", 400)
+    return round(n, 2)
+
+
+def _to_date(v: Any, label: str = "日期") -> str:
+    """日期归一为 `YYYY-MM-DD`（接受 `2020/1/5`、`20200105`）；空 ⇒ 空串。"""
+    s = _clean_str(v, maxlen=20)
+    if not s:
+        return ""
+    import re                                              # noqa: PLC0415
+    m = re.match(r"^(\d{4})[-/.年]?(\d{1,2})[-/.月]?(\d{1,2})日?$", s)
+    if not m:
+        raise ProjectError("%s格式非法：%s（应为 YYYY-MM-DD）" % (label, s), 400)
+    y, mo, d = (int(x) for x in m.groups())
+    if not (1900 <= y <= 2200 and 1 <= mo <= 12 and 1 <= d <= 31):
+        raise ProjectError("%s超出合理范围：%s" % (label, s), 400)
+    return "%04d-%02d-%02d" % (y, mo, d)
+
+
+def _industry_code_of(label: Any) -> str:
+    """中文行业名 → `companies.industry_code`（英文键）。
+
+    ★ 映射**唯一来源** = `config/industry_params.json` 的 `industries[]`（label ↔ industry_id），
+      禁止在本模块另写一张对照表。未命中 ⇒ 空串（**不猜**，也不塞默认行业）。
+    """
+    key = _clean_str(label, maxlen=60)
+    if not key:
+        return ""
+    for item in _profile_dicts().get("industries") or []:
+        if item.get("value") == key:
+            return str(item.get("id") or "")
+    return ""
+
+
+def _profile_value(field: str, kind: str, maxlen: int, raw: Any) -> Any:
+    """按类型清洗一个画像字段（写入白名单的唯一实现）。"""
+    if kind == "capital":
+        return _to_capital(raw)
+    if kind == "date":
+        return _to_date(raw, "成立日期")
+    return _clean_str(raw, maxlen=maxlen)
+
+
+
+# --------------------------------------------------------------------------
 # 内部工具
 # --------------------------------------------------------------------------
 def _engine_or_default(engine):
@@ -91,6 +174,23 @@ def ensure_company_for_project(session: Any, proj: Dict[str, Any], *, engine=Non
     name = _clean_str(proj.get("name"), maxlen=100) or "未命名项目"
     uscc = _clean_str(proj.get("taxpayer_id"), maxlen=50)
 
+    # ★ 2026-10-18：项目是工商信息的**录入点（权威）**，内部账套是**派生物**。
+    #   建内部账套时把画像同步过去，使分析链路（以 company 为作用域）也能取到；
+    #   复用已有账套时**只补空、不覆盖**（不冲掉人工维护的数据）。
+    _ind_label = _clean_str(proj.get("industry"), maxlen=60)
+    _ind_code = _industry_code_of(_ind_label)
+    _cap = proj.get("registered_capital")
+    _est = _clean_str(proj.get("established_date"), maxlen=10) or None
+    _prof_cols = {
+        "legal_representative": _clean_str(proj.get("legal_representative"), maxlen=50) or None,
+        "registered_capital": (round(float(_cap), 2) if _cap not in (None, "") else None),
+        "established_date": _est,
+        "address": _clean_str(proj.get("registered_address"), maxlen=200) or None,
+        "business_scope": _clean_str(proj.get("business_scope"), maxlen=1000) or None,
+        "company_type": _clean_str(proj.get("company_type"), maxlen=40) or None,
+        "industry_code": _ind_code or None,
+    }
+
     with eng.begin() as conn:
         if uscc:
             row = conn.execute(_text(
@@ -99,11 +199,24 @@ def ensure_company_for_project(session: Any, proj: Dict[str, Any], *, engine=Non
                 cid = int(row[0])                     # 复用同税号已有账套（幂等）
         if cid <= 0:
             cid = int(conn.execute(_text(
-                "INSERT INTO companies (name, uscc, industry_code, created_at) "
-                "VALUES (:n,:u,:ind,:ts) RETURNING id"
-            ), {"n": name, "u": uscc or None,
-                "ind": _clean_str(proj.get("industry"), maxlen=30) or None,
+                "INSERT INTO companies (name, uscc, industry_code, registered_capital, "
+                " established_date, legal_representative, address, business_scope, "
+                " company_type, created_at) "
+                "VALUES (:n,:u,:ind,:cap,:est,:lrp,:addr,:scope,:ctype,:ts) RETURNING id"
+            ), {"n": name, "u": uscc or None, "ind": _ind_code or None,
+                "cap": _prof_cols["registered_capital"], "est": _est,
+                "lrp": _prof_cols["legal_representative"],
+                "addr": _prof_cols["address"], "scope": _prof_cols["business_scope"],
+                "ctype": _prof_cols["company_type"],
                 "ts": datetime.now()}).first()[0])
+        else:
+            # 已有账套：逐列 `COALESCE(现值, 项目值)` ⇒ 只补空，不覆盖
+            _sets = ", ".join("%s=COALESCE(%s, :%s)" % (c, c, c)
+                              for c in _prof_cols if _prof_cols[c] is not None)
+            _vals = {c: v for c, v in _prof_cols.items() if v is not None}
+            if _sets:
+                _vals["_cid"] = cid
+                conn.execute(_text("UPDATE companies SET %s WHERE id=:_cid" % _sets), _vals)
         conn.execute(_text(
             "UPDATE projects SET company_id=:c, updated_at=:ts WHERE id=:p"
         ), {"c": cid, "ts": _now(), "p": int(proj["id"])})
@@ -196,7 +309,25 @@ def _row_to_project(row: Any) -> Dict[str, Any]:
             scopes = [s for s in str(raw_scopes).split(",") if s]
     m["tax_scopes"] = scopes
     m["status_cn"] = STATUS_CN.get(str(m.get("status")), str(m.get("status") or ""))
+    # ★ 2026-10-18：注册资本统一为 float|None（SQLite 可能回读 int/None）
+    cap = m.get("registered_capital")
+    if cap not in (None, ""):
+        try:
+            m["registered_capital"] = round(float(cap), 2)
+        except Exception:                             # noqa: BLE001
+            m["registered_capital"] = None
+    else:
+        m["registered_capital"] = None
+    # ★ 缺项如实标注（**不补默认值**）：列表据此显示「待补全」，详情列出缺哪几项
+    missing = [label for key, label in AUDIT_FIELDS
+               if not (m.get(key) not in (None, "", [], ()))]
+    m["profile_missing"] = missing
+    m["profile_complete"] = not missing
+    m["profile_info_missing"] = [
+        label for key, label, _mx, _k in PROFILE_FIELDS
+        if m.get(key) in (None, "", 0)]
     return m
+
 
 
 def _row_to_member(row: Any) -> Dict[str, Any]:
@@ -399,11 +530,17 @@ def create_project(payload: Dict[str, Any], session: Any, *, engine=None,
                 "同一统一社会信用代码的项目已存在：「%s」（编号 %s），不能重复创建，请直接使用原项目"
                 % (_dm.get("name") or "（未命名）", _dm.get("code") or "-"), 400)
         code = _clean_str(payload.get("code"), maxlen=40) or _next_code(conn, cid_int)
+        # ★ 2026-10-18：企业重点工商信息随项目创建一并落库（画像字段白名单见 PROFILE_FIELDS）
+        _prof = {}
+        for _f, _cn, _mx, _kind in PROFILE_FIELDS:
+            _prof[_f] = _profile_value(_f, _kind, _mx, payload.get(_f))
         row = conn.execute(_text(
             "INSERT INTO projects (company_id, code, name, taxpayer_id, industry, region, "
             " period_start, period_end, tax_scopes, status, remark, owner_id, owner_name, "
-            " created_at, updated_at) "
-            "VALUES (:cid,:code,:name,:tid,:ind,:reg,:ps,:pe,:ts,:st,:rm,:oid,:onm,:ca,:ua) "
+            " created_at, updated_at, legal_representative, registered_capital, established_date, "
+            " registration_status, registered_address, business_scope, company_type) "
+            "VALUES (:cid,:code,:name,:tid,:ind,:reg,:ps,:pe,:ts,:st,:rm,:oid,:onm,:ca,:ua,"
+            " :lrp,:cap,:est,:rst,:addr,:scope,:ctype) "
             "RETURNING id"
         ), {
             "cid": cid_int, "code": code, "name": name,
@@ -414,6 +551,10 @@ def create_project(payload: Dict[str, Any], session: Any, *, engine=None,
             "ts": _normalize_scopes(payload.get("tax_scopes")),
             "st": status, "rm": _clean_str(payload.get("remark"), maxlen=500),
             "oid": uid, "onm": uname, "ca": ts, "ua": ts,
+            "lrp": _prof["legal_representative"], "cap": _prof["registered_capital"],
+            "est": _prof["established_date"], "rst": _prof["registration_status"],
+            "addr": _prof["registered_address"], "scope": _prof["business_scope"],
+            "ctype": _prof["company_type"],
         }).first()
         pid = int(row[0])
         # ★ 创建人自动成为 owner 成员（否则"创建人可写"这条就只能靠 owner_id 单点，成员列表会缺人）
@@ -565,6 +706,11 @@ def update_project(project_id: Any, payload: Dict[str, Any], session: Any, *,
                     raise ProjectError("企业名称不能为空", 400)
                 sets.append("%s=:%s" % (key, key))
                 params[key] = _clean_str(payload.get(key), maxlen=mx)
+        # ★ 2026-10-18：企业重点工商信息（同一张 PROFILE_FIELDS 表驱动，禁另写一份）
+        for key, _cn, mx, kind in PROFILE_FIELDS:
+            if key in payload:
+                sets.append("%s=:%s" % (key, key))
+                params[key] = _profile_value(key, kind, mx, payload.get(key))
         if "period_start" in payload or "period_end" in payload:
             ps = payload.get("period_start", row["period_start"])
             pe = payload.get("period_end", row["period_end"])
@@ -745,16 +891,71 @@ def add_member(project_id: Any, payload: Dict[str, Any], session: Any, *,
 # 元数据（供前端下拉/字典；**唯一权威**来自 project_store 常量）
 # --------------------------------------------------------------------------
 def metadata() -> Dict[str, Any]:
+    """项目字典 —— **前端不硬编码任何选项**（单一权威 = 后端 / 数据文件）。
+
+    `industries` 取自 `config/industry_params.json`（行业模型口径，与风险指标/报告模板同一套）；
+    `tax_types` 取自 `engine/levy_nature.tax_scope_options()`（税种全表，唯一权威）；
+    其余选项取自 `config/project_profile_dicts.json`。
+    """
+    d = _profile_dicts()
+    from engine.levy_nature import tax_scope_options        # noqa: PLC0415
     return {
         "statuses": [{"value": s, "label": STATUS_CN[s]} for s in STATUSES],
         "roles": [{"value": r, "label": ROLE_CN[r]} for r in ROLES],
         "status_flow": {s: {"next": list(STATUS_FLOW[s]),
                             "next_cn": [STATUS_CN[x] for x in STATUS_FLOW[s]]}
                         for s in STATUSES},
+        # ── 企业画像 / 稽查要素字典（2026-10-18 新增）──
+        "industries": d["industries"],
+        "regions": d["regions"],
+        "registration_statuses": d["registration_statuses"],
+        "company_types": d["company_types"],
+        "capital_unit": d["capital_unit"],
+        "tax_types": [{"value": x, "label": x} for x in tax_scope_options()],
+        "profile_fields": [{"key": k, "label": cn, "kind": kind,
+                            "maxlen": mx, "unit": d["capital_unit"] if kind == "capital" else ""}
+                           for k, cn, mx, kind in PROFILE_FIELDS],
+        "audit_fields": [{"key": k, "label": cn} for k, cn in AUDIT_FIELDS],
+        "audit_required": [k for k, _cn in AUDIT_FIELDS],
     }
+
+
+_PROFILE_DICTS: Dict[str, Any] = {}
+
+
+def _profile_dicts() -> Dict[str, Any]:
+    """读画像字典（**进程内缓存**；数据文件是唯一权威，改文件后重启即生效）。"""
+    global _PROFILE_DICTS
+    if _PROFILE_DICTS:
+        return _PROFILE_DICTS
+    import os                                             # noqa: PLC0415
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    with open(os.path.join(root, "config", "project_profile_dicts.json"),
+              encoding="utf-8") as fh:
+        prof = json.load(fh)
+    with open(os.path.join(root, "config", "industry_params.json"),
+              encoding="utf-8") as fh:
+        ind = json.load(fh)
+    _PROFILE_DICTS = {
+        "regions": [str(x) for x in (prof.get("regions") or [])],
+        "registration_statuses": [str(x) for x in (prof.get("registration_statuses") or [])],
+        "company_types": [str(x) for x in (prof.get("company_types") or [])],
+        "capital_unit": str(prof.get("capital_unit") or "万元"),
+        "industries": [{"value": str(x.get("label") or ""),
+                        "id": str(x.get("industry_id") or "")}
+                       for x in (ind.get("industries") or []) if x.get("label")],
+    }
+    return _PROFILE_DICTS
+
+
+def reset_profile_cache() -> None:
+    """仅供测试/热更新：清空字典缓存。"""
+    global _PROFILE_DICTS
+    _PROFILE_DICTS = {}
 
 
 __all__ = [
     "ProjectError", "create_project", "list_projects", "get_project",
     "update_project", "delete_project", "list_members", "add_member", "metadata",
+    "PROFILE_FIELDS", "AUDIT_FIELDS", "reset_profile_cache",
 ]

@@ -63,18 +63,31 @@ def projects_page():
 # 请求体（Pydantic ⇒ Swagger 有完整 schema）
 # --------------------------------------------------------------------------
 class ProjectCreate(BaseModel):
-    """新建项目。"""
+    """新建项目。
+
+    ★ 2026-10-18（用户要求）：行业/地区/稽查期间等**在建项目这一步收集**，
+      并补录企业重点工商信息。后端**不硬性阻断**缺项（兼容 API/历史数据），
+      缺失由 `profile_missing` 如实在列表标注「待补全」，不编造默认值。
+    """
     name: str = Field(..., description="企业名称（项目名）", examples=["示例科技有限公司"])
     taxpayer_id: Optional[str] = Field(None, description="纳税人识别号（统一社会信用代码）")
-    industry: Optional[str] = Field(None, description="行业")
-    region: Optional[str] = Field(None, description="地区")
+    industry: Optional[str] = Field(None, description="行业（取值见 /meta 的 industries）")
+    region: Optional[str] = Field(None, description="地区（省/自治区/直辖市，可精确到市）")
     period_start: Optional[str] = Field(None, description="稽查期间起（YYYY-MM-DD）")
     period_end: Optional[str] = Field(None, description="稽查期间止（YYYY-MM-DD）")
-    tax_scopes: Optional[List[str]] = Field(None, description="税种范围（数组）")
+    tax_scopes: Optional[List[str]] = Field(None, description="税种范围（数组，取值见 /meta 的 tax_types）")
     status: Optional[str] = Field("draft", description="状态（新建只允许 draft=草稿）")
     remark: Optional[str] = Field(None, description="备注")
     company_id: Optional[int] = Field(None, description="所属账套（租户边界）；缺省用会话选中账套")
     code: Optional[str] = Field(None, description="项目编号（缺省自动生成 PJ-YYYYMMDD-####）")
+    # ── 企业重点工商信息（2026-10-18 新增；字段权威 = project_service.PROFILE_FIELDS）──
+    legal_representative: Optional[str] = Field(None, description="法定代表人")
+    registered_capital: Optional[float] = Field(None, description="注册资本（万元）")
+    established_date: Optional[str] = Field(None, description="成立日期（YYYY-MM-DD）")
+    registration_status: Optional[str] = Field(None, description="登记状态")
+    registered_address: Optional[str] = Field(None, description="注册地址")
+    business_scope: Optional[str] = Field(None, description="经营范围")
+    company_type: Optional[str] = Field(None, description="公司类型")
 
 
 class ProjectUpdate(BaseModel):
@@ -89,6 +102,13 @@ class ProjectUpdate(BaseModel):
     status: Optional[str] = Field(None, description="目标状态（须为当前状态的合法后继）")
     remark: Optional[str] = None
     code: Optional[str] = None
+    legal_representative: Optional[str] = None
+    registered_capital: Optional[float] = None
+    established_date: Optional[str] = None
+    registration_status: Optional[str] = None
+    registered_address: Optional[str] = None
+    business_scope: Optional[str] = None
+    company_type: Optional[str] = None
 
 
 class MemberAdd(BaseModel):

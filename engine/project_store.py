@@ -101,7 +101,18 @@ CREATE TABLE IF NOT EXISTS projects (
     owner_id          INTEGER,
     owner_name        TEXT,
     created_at        TEXT,
-    updated_at        TEXT
+    updated_at        TEXT,
+    -- ★ 2026-10-18（用户要求：行业/地区/稽查期间等必须在建项目步骤收集填列，
+    --   并补企业重点工商信息）：项目自持企业身份 ⇒ 工商信息随项目录入与保存。
+    --   这些列**只增不改**；历史项目为空时由 `profile_missing` 如实标出「待补全」，
+    --   不以任何默认值顶替（缺失≠0，也不得编造）。
+    legal_representative   TEXT,
+    registered_capital     REAL,
+    established_date       TEXT,
+    registration_status    TEXT,
+    registered_address     TEXT,
+    business_scope         TEXT,
+    company_type           TEXT
 )
 """
 
@@ -164,6 +175,11 @@ def ensure_schema(engine=None) -> None:
                     ("tax_scopes", "TEXT"), ("remark", "TEXT"),
                     ("owner_id", "INTEGER"), ("owner_name", "TEXT"),
                     ("created_at", "TEXT"), ("updated_at", "TEXT"),
+                    # ★ 2026-10-18：企业重点工商信息（老库在此幂等补列）
+                    ("legal_representative", "TEXT"), ("registered_capital", "REAL"),
+                    ("established_date", "TEXT"), ("registration_status", "TEXT"),
+                    ("registered_address", "TEXT"), ("business_scope", "TEXT"),
+                    ("company_type", "TEXT"),
                 ),
                 "project_members": (
                     ("user_name", "TEXT"),

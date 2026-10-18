@@ -31,12 +31,16 @@
     .btn.danger:hover { background:#b91c1c; }
     .btn:disabled { opacity:.5; cursor:not-allowed; }
     .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+    /* ★ 2026-10-18：列表已扩到 14 列（企业信息 + 稽查要素）⇒ 容器横向滚动，不挤压 */
+    .table-scroll { overflow-x:auto; }
     table.grid { width:100%; border-collapse:collapse; }
+    table.grid.wide-table { min-width:1420px; }
     table.grid th, table.grid td { padding:9px 12px; text-align:left; border-bottom:1px solid #f1f5f9;
               font-size:13px; white-space:nowrap; }
     table.grid th { background:#f8fafc; color:#64748b; font-weight:600; font-size:12px; }
     table.grid tr:hover td { background:#f8fafc; }
     table.grid td.wrap-cell { white-space:normal; max-width:260px; }
+    table.grid td.sub { color:#94a3b8; font-size:11px; }
     .tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px; }
     .st-draft{background:#f1f5f9;color:#475569} .st-uploading{background:#dbeafe;color:#1d4ed8}
     .st-analyzing{background:#fef3c7;color:#b45309} .st-reviewing{background:#ede9fe;color:#6d28d9}
@@ -76,6 +80,16 @@
     .logline .t { color:#94a3b8; margin-right:8px; }
     .statustrack { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
     .statustrack .now { font-weight:700; }
+    /* 税种范围多选（chips） */
+    .chips { display:flex; flex-wrap:wrap; gap:6px; max-height:112px; overflow:auto;
+             padding:2px 0; }
+    .chips label { display:inline-flex; align-items:center; gap:4px; font-size:12px;
+             color:#334155; background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px;
+             padding:3px 9px; cursor:pointer; flex:0 0 auto; }
+    .chips label.on { background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; }
+    .tag.pending { background:#fffbeb; color:#b45309; border:1px solid #fde68a; }
+    .hint { font-size:12px; color:#94a3b8; margin:-2px 0 10px; line-height:1.6; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:6px 22px; }
   </style>
   <!-- 全局 fetch 拦截（自动附加 CSRF / 401 跳登录）；显式引用，不依赖 _read_html 注入 -->
   <script src="/static/js/security.js?v=96a020abfa"></script>
@@ -107,15 +121,19 @@
     </div>
 
     <div class="card">
-      <table class="grid">
+      <div class="table-scroll">
+      <table class="grid wide-table">
         <thead>
           <tr>
-            <th>编号</th><th>企业名称</th><th>纳税人识别号</th><th>行业</th><th>地区</th>
-            <th>稽查期间</th><th>税种范围</th><th>状态</th><th>更新时间</th><th>操作</th>
+            <th>编号</th><th>企业名称</th><th>统一社会信用代码</th>
+            <th>法定代表人</th><th>注册资本</th><th>成立日期</th><th>登记状态</th>
+            <th>行业</th><th>地区</th><th>稽查期间</th><th>税种范围</th>
+            <th>状态</th><th>更新时间</th><th>操作</th>
           </tr>
         </thead>
-        <tbody id="tbody"><tr><td colspan="10" class="empty">加载中…</td></tr></tbody>
+        <tbody id="tbody"><tr><td colspan="14" class="empty">加载中…</td></tr></tbody>
       </table>
+      </div>
       <div class="pager">
         <span id="pageinfo"></span>
         <button id="prev">上一页</button>
@@ -126,19 +144,57 @@
 
   <!-- 新建 / 编辑 -->
   <div class="mask" id="m-form" hidden>
-    <div class="modal">
+    <div class="modal wide">
       <h2 id="form-title">新建项目</h2>
       <div class="body">
         <div id="form-msg"></div>
+
+        <div class="sect">第 1 步 · 企业基本信息（按工商登记口径填写）</div>
+        <div class="hint">名称与统一社会信用代码为必填；工商信息用于风险画像与报告主体描述，
+          不确定的可留空（留空即显示“—”，系统不会用默认值顶替）。</div>
         <div class="form-row">
-          <label>公司名称 *<input type="text" id="f-name"></label>
+          <label>企业名称 *<input type="text" id="pf-name"></label>
+          <label>统一社会信用代码 *<input type="text" id="pf-tid" maxlength="18" placeholder="18 位"></label>
         </div>
         <div class="form-row">
-          <label>统一社会信用代码 *<input type="text" id="f-tid" maxlength="18" placeholder="18 位"></label>
+          <label>法定代表人<input type="text" id="pf-legal_representative" placeholder="工商登记法定代表人"></label>
+          <label>注册资本（<span class="cap-unit">万元</span>）
+            <input type="number" id="pf-registered_capital" min="0" step="0.01" placeholder="如 5000"></label>
+          <label>成立日期<input type="date" id="pf-established_date"></label>
         </div>
-        <div class="form-row muted" style="font-size:12px;color:var(--gray-400)">
-          行业、地区、税种范围等信息将在发起分析后由系统自动分析确定，无需在此填写。
+        <div class="form-row">
+          <label>登记状态<select id="pf-registration_status"></select></label>
+          <label>公司类型<select id="pf-company_type"></select></label>
         </div>
+        <div class="form-row">
+          <label>注册地址<input type="text" id="pf-registered_address" placeholder="工商登记住所"></label>
+        </div>
+        <div class="form-row">
+          <label>经营范围<textarea id="pf-business_scope" rows="2"
+                 placeholder="工商登记经营范围（可节选，用于判断业务实质与行业归属）"></textarea></label>
+        </div>
+
+        <div class="sect">第 2 步 · 稽查要素（决定稽查范围与比对口径，需在此填列）</div>
+        <div class="hint">这四项是稽查工作的起点，<b>必填</b>；它们决定后续比对期间、
+          适用行业指标与税种范围。</div>
+        <div class="form-row">
+          <label>行业 *<input type="text" id="pf-industry" list="dl-industry"
+                 placeholder="选择或填写（如：制造业）"></label>
+          <label>地区 *<input type="text" id="pf-region" list="dl-region"
+                 placeholder="如：广东省深圳市"></label>
+        </div>
+        <div class="form-row">
+          <label>稽查期间起 *<input type="date" id="pf-ps"></label>
+          <label>稽查期间止 *<input type="date" id="pf-pe"></label>
+        </div>
+        <div class="form-row">
+          <label>税种范围 *（可多选）<span class="chips" id="pf-tax-scopes"></span></label>
+        </div>
+        <div class="form-row">
+          <label>备注<textarea id="pf-remark" rows="2" placeholder="稽查重点、来源线索等（选填）"></textarea></label>
+        </div>
+        <datalist id="dl-industry"></datalist>
+        <datalist id="dl-region"></datalist>
       </div>
       <div class="foot">
         <button class="btn ghost" data-close="m-form">取消</button>
@@ -173,7 +229,7 @@
     </div>
   </div>
 
-  <script src="/static/js/projects.js?v=a1702143ba" defer></script>
+  <script src="/static/js/projects.js?v=59543f8179" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>

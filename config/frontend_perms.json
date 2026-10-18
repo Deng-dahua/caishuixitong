@@ -1,7 +1,7 @@
 {
   "schema": "caishuixitong.frontend_perms/1",
   "version": "1.0.0",
-  "updated": "2026-10-17",
+  "updated": "2026-10-18",
   "note": "前端权限门控的**唯一权威数据表**（P0-8 扩展轮）。机制本体是 `static/js/rbac-nav.js`（消费 `/api/auth/me` 下发的 `permissions` / `is_admin`，**不推断角色**）。本表只声明『哪个页面的哪个入口需要哪个权限点』；新增一个入口只在本表加一行，由 `scripts/_wire_frontend_perms.py` 注入，不改任何逻辑分支。★ 前端隐藏只是**体验**，真正的拦截在服务端（`security_web._LEGACY_WRITE_PERMS` / `_LEGACY_ADMIN_ONLY` / 各 v1 端点 require_permission）。",
   "pages": {
     "documents.html": [
@@ -34,11 +34,6 @@
         "id": "btn-classify-save",
         "perm": "document.write",
         "what": "保存资料分类"
-      },
-      {
-        "id": "btn-del-confirm",
-        "perm": "document.write",
-        "what": "确认删除"
       }
     ],
     "extract.html": [
@@ -260,11 +255,6 @@
   "dynamic_entries": {
     "note": "**动态渲染**的写入口（由 JS 拼 HTML）没法用 HTML 属性注入，改由渲染模板自带 `data-perm` + 渲染后调用 `window.RBAC.reapply()`。本表登记以实现『漏配检测』。",
     "static/js/documents.js": [
-      {
-        "marker": "data-act=\\\"del\\\"",
-        "perm": "document.write",
-        "what": "列表行内『删除』"
-      },
       {
         "marker": "data-save=",
         "perm": "document.write",

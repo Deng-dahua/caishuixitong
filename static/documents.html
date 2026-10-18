@@ -200,22 +200,10 @@
     </div>
   </div>
 
-  <!-- 删除二次确认 -->
-  <div class="mask" id="m-del" hidden>
-    <div class="modal" style="max-width:440px">
-      <h3>确认删除</h3>
-      <div class="body">
-        <p>即将删除资料：<b id="del-name"></b></p>
-        <p class="muted" style="font-size:12px">文件将<b>移入回收站</b>（可追溯），登记信息删除。此操作不可撤销。</p>
-      </div>
-      <div class="foot">
-        <button class="btn ghost" data-close="m-del">取消</button>
-        <button class="btn danger" id="btn-del-confirm" data-perm="document.write">确认删除</button>
-      </div>
-    </div>
-  </div>
+  <!-- ★ 2026-10-18（用户要求）：列表行内「删除」按钮已取消 ⇒ 单条删除确认弹窗随之移除，
+       不留无入口的死代码。删除统一走「勾选 + 删除选中」（文件进回收站、逐条留审计）。 -->
 
-  <script src="/static/js/documents.js?v=a3b1186c56" defer></script>
+  <script src="/static/js/documents.js?v=f824213e41" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>
