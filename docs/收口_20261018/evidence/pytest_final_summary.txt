@@ -1,0 +1,933 @@
+........................................................................ [  2%]
+........................................................................ [  5%]
+........................................................................ [  8%]
+........................................................................ [ 11%]
+........................................................................ [ 14%]
+.............................................F..F....................... [ 17%]
+........................................................................ [ 20%]
+...........................................................F............ [ 23%]
+........F....F.F.....FFFF....F......FFF.......F......................... [ 26%]
+........................................................................ [ 28%]
+........................................................................ [ 31%]
+........................................................................ [ 34%]
+........................................................................ [ 37%]
+........................................................................ [ 40%]
+........................................................................ [ 43%]
+........................s............................................... [ 46%]
+........................................................................ [ 49%]
+........................................................................ [ 52%]
+.......................F................................................... [ 55%]
+........................................................................ [ 58%]
+........................................................................ [ 60%]
+........................................................................ [ 63%]
+................. [ 64%]
+.....................................................F............ [ 67%]
+..................ss.......................ss........................... [ 70%]
+........................................................................ [ 73%]
+........................................................................ [ 75%]
+........................................................................ [ 78%]
+........................................................................ [ 81%]
+.........F....F.F....................................................... [ 84%]
+........................................................................ [ 87%]
+........................................................................ [ 90%]
+........................................................................ [ 93%]
+........................................................................ [ 96%]
+........................................................................ [ 99%]
+......................                                                   [100%]
+================================== FAILURES ===================================
+_______________ TestGateRegression.test_gate_config_level_clean _______________
+
+self = <test_child_item_completeness.TestGateRegression object at 0x0000023FCF7560D0>
+
+    def test_gate_config_level_clean(self):
+        from tools.audit_consistency import check_child_item_completeness
+        errs = [i for i in check_child_item_completeness() if i[0] == "ERROR"]
+>       assert errs == [], errs[:3]
+E       AssertionError: [('ERROR', 'config/child_items.json', 'RL-INC-001：本项正文/明细表/发现明细里出现的子项「银行收款显著大于销项开票（未开票收入隐匿线索）」未登记为子项（来源 family_members...（收入、票账差异、资金、成本）：本项正文/明细表/发现明细里出现的子项「待核线索：资金回流与公私混同检测」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核')]
+E       assert [('ERROR', 'c...py 并复核'), ...] == []
+E         
+E         Left contains 9 more items, first extra item: ('ERROR', 'config/child_items.json', 'RL-INC-001：本项正文/明细表/发现明细里出现的子项「银行收款显著大于销项开票（未开票收入隐匿线索）」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核')
+E         Use -v to get more diff
+
+tests\test_child_item_completeness.py:398: AssertionError
+_____ TestGateReverseValidation.test_reverse_unregistered_child_detected ______
+
+self = <test_child_item_completeness.TestGateReverseValidation object at 0x0000023FCF756350>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x0000023FE9FEB1C0>
+
+    def test_reverse_unregistered_child_detected(self, monkeypatch):
+        """删掉配置里的一条「垫付」子项 ⇒ `audit_product` 必须报「未登记」。"""
+        import engine.child_item_completeness as C
+        cfg = self._cfg()
+        target = None
+        for r in cfg["risks"]:
+            for c in r["child_items"]:
+                if "垫付" in str(c.get("desc") or ""):
+                    target = (r["parent_risk_code"], c["desc"])
+                    break
+            if target:
+                break
+        assert target, "配置里找不到「垫付」子项：反向验证用例已失效（须先修数据）"
+        for r in cfg["risks"]:
+            if r["parent_risk_code"] == target[0]:
+                r["child_items"] = [c for c in r["child_items"] if c.get("desc") != target[1]]
+        monkeypatch.setattr(C, "_CACHE", cfg, raising=False)
+        issues = C.audit_product(self._rep())
+>       assert any(i.get("kind") == "child_unregistered" and "垫付" in str(i.get("detail"))
+                   for i in issues), issues[:3]
+E       AssertionError: [{'parent': 'RL-INC-001', 'id': 'S1', 'kind': 'child_unregistered', 'detail': '本项正文/明细表/发现明细里出现的子项「银行收款显著大于销项开票（未开票收入隐...ed', 'detail': '本项正文/明细表/发现明细里出现的子项「待核线索：资金回流与公私混同检测」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核'}]
+E       assert False
+E        +  where False = any(<generator object TestGateReverseValidation.test_reverse_unregistered_child_detected.<locals>.<genexpr> at 0x0000023FE9FB3F10>)
+
+tests\test_child_item_completeness.py:448: AssertionError
+__________________ TestD1NumberAuthority.test_pass_real_docs __________________
+
+self = <test_doc_consistency_skills.TestD1NumberAuthority object at 0x0000023FCF8C0050>
+
+    @pytest.mark.plain
+    def test_pass_real_docs(self):
+        from engine.doc_number_authority import audit
+        errs = [i for i in audit() if i["level"] == "ERROR"]
+>       assert errs == [], errs[:3]
+E       AssertionError: [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+E       assert [{'level': 'E... 个** `check'}] == []
+E         
+E         Left contains 2 more items, first extra item: {'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.json → numbers)）｜原文：**已登记的数字权威（7 个）**：`rule_count`（门禁规则条数 9）｜`test_case_count`（28）｜`risk_count`（94）｜'}
+E         Use -v to get more diff
+
+tests\test_doc_consistency_skills.py:62: AssertionError
+__________ TestRegistrationAndWiring.test_all_five_gates_zero_error ___________
+
+self = <test_doc_consistency_skills.TestRegistrationAndWiring object at 0x0000023FD00D5F30>
+
+    @pytest.mark.plain
+    def test_all_five_gates_zero_error(self):
+        import tools.audit_consistency as A
+        for fn in (A.check_doc_number_authority, A.check_rule_reference_sync,
+                   A.check_doc_residue_scan, A.check_todo_status_sync, A.check_doc_ref_graph):
+            iss = fn()
+            errs = [i for i in iss if i[0] == "ERROR"]
+>           assert errs == [], (fn.__name__, errs[:3])
+E           AssertionError: ('check_doc_number_authority', [('ERROR', '5个Skill设计文档.md:41', '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency....\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check')])
+E           assert [('ERROR', '5... 个** `check')] == []
+E             
+E             Left contains 2 more items, first extra item: ('ERROR', '5个Skill设计文档.md:41', '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.json → numbers)）｜原文：**已登记的数字权威（7 个）**：`rule_count`（门禁规则条数 9）｜`test_case_count`（28）｜`risk_count`（94）｜')
+E             Use -v to get more diff
+
+tests\test_doc_consistency_skills.py:296: AssertionError
+_________ TestNewJudgments.test_sum_check_catches_inconsistent_total __________
+
+self = <test_doc_consistency_skills.TestNewJudgments object at 0x0000023FCF8C11D0>
+
+    @pytest.mark.breaking
+    def test_sum_check_catches_inconsistent_total(self):
+        """**反向**：把 `01` §6 的分项改成加总 31 ⇒ D1 必须报「分项加总 ≠ 合计」。"""
+        from engine import doc_number_authority as D1
+        p = DOCDIR / self.F01
+        snap = p.read_text(encoding="utf-8")
+        try:
+            p.write_text(snap.replace("分项 10 + 7 + 3 + 3 + 2 + 3 = 28",
+                                      "分项 10 + 7 + 3 + 3 + 2 + 6 = 31", 1), encoding="utf-8")
+            errs = [i for i in D1.audit() if i["level"] == "ERROR"]
+            assert any("分项加总" in str(i.get("detail")) for i in errs), errs[:3]
+        finally:
+            p.write_text(snap, encoding="utf-8")
+>       assert not [i for i in D1.audit() if i["level"] == "ERROR"]
+E       AssertionError: assert not [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+
+tests\test_doc_consistency_skills.py:390: AssertionError
+_________ TestNewJudgments.test_reverse_wrong_line_number_is_detected _________
+
+self = <test_doc_consistency_skills.TestNewJudgments object at 0x0000023FD00D63F0>
+
+    @pytest.mark.reverse
+    def test_reverse_wrong_line_number_is_detected(self):
+        """**反向**：把 `02` 的门禁调用行号改成失真的值 ⇒ D1 必须报红。
+    
+        ★ 2026-10-08：变异锚点**动态取权威值**（原先写死 11200，闸门一行号位移用例即腐化）。
+        """
+        from engine import doc_number_authority as D1
+        cur = _gate_call_line_authority()
+        p = DOCDIR / self.F02
+        snap = p.read_text(encoding="utf-8")
+        old = "第 **%d** 行 `run_checks()` 总链" % cur
+        try:
+            got = snap.replace(old, "第 **%d** 行 `run_checks()` 总链" % (cur + 7), 1)
+            assert got != snap, "变异锚点未命中：%s" % old
+            p.write_text(got, encoding="utf-8")
+            errs = [i for i in D1.audit() if i["level"] == "ERROR"]
+            assert any("行号" in str(i.get("detail")) for i in errs), errs[:3]
+        finally:
+            p.write_text(snap, encoding="utf-8")
+>       assert not [i for i in D1.audit() if i["level"] == "ERROR"]
+E       AssertionError: assert not [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+
+tests\test_doc_consistency_skills.py:422: AssertionError
+_____ TestFinalRoundJudgments.test_reverse_wrong_full_passed_is_detected ______
+
+self = <test_doc_consistency_skills.TestFinalRoundJudgments object at 0x0000023FD00D6520>
+
+    @pytest.mark.reverse
+    def test_reverse_wrong_full_passed_is_detected(self):
+        """**反向**：把 `05` §2 的 passed 改成别的数 ⇒ D1 必须报红。
+    
+        ⚠ **锚点必须从文件里现取**（不能硬编码 `1456`）：全量 passed 会随用例增减而变，
+          硬编码会在下一次加测试时**静默失效**（锚点找不到 ⇒ 用例无效）。实测踩过。
+        """
+        import re
+        cur = None
+        for ln in (DOCDIR / self.F05).read_text(encoding="utf-8").split("\n"):
+            m = re.match(r"\| passed \| \*{0,2}(\d+)\*{0,2} \|$", ln.strip())
+            if m:
+                cur = m.group(1)
+                break
+        assert cur, "未找到『| passed | **N** |』行 —— 文档结构变了"
+>       self._mutate(self.F05, "| passed | **%s** |" % cur, "| passed | **1424** |",
+                     "D1", "全量回归 passed")
+
+tests\test_doc_consistency_skills.py:560: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_doc_consistency_skills.TestFinalRoundJudgments object at 0x0000023FD00D6520>
+fname = '05_回归测试报告.md', old = '| passed | **2056** |'
+new = '| passed | **1424** |', gate = 'D1', must_contain = '全量回归 passed'
+extra_gate = None
+
+    def _mutate(self, fname, old, new, gate, must_contain, extra_gate=None):
+        """改真文件 → 跑门禁 → 还原（返回是否按预期报红）。"""
+        from engine import doc_number_authority as D1, todo_status_sync as D4
+        m = {"D1": D1, "D4": D4}
+        p = DOCDIR / fname
+        snap = p.read_text(encoding="utf-8")
+        try:
+            got = snap.replace(old, new, 1)
+            assert got != snap, "变异锚点未命中：%s" % old[:40]
+            p.write_text(got, encoding="utf-8")
+            errs = [i for i in m[gate].audit() if i["level"] == "ERROR"]
+            assert any(must_contain in str(i.get("detail")) for i in errs), errs[:3]
+        finally:
+            p.write_text(snap, encoding="utf-8")
+>       assert not [i for i in m[gate].audit() if i["level"] == "ERROR"]
+E       AssertionError: assert not [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+
+tests\test_doc_consistency_skills.py:507: AssertionError
+_____ TestFinalRoundJudgments.test_reverse_wrong_skill_total_is_detected ______
+
+self = <test_doc_consistency_skills.TestFinalRoundJudgments object at 0x0000023FD00D6650>
+
+    @pytest.mark.reverse
+    def test_reverse_wrong_skill_total_is_detected(self):
+        """**反向**：把 `06` §1 的 Skill 总数改错 ⇒ D1 必须报红。"""
+>       self._mutate(self.F06, "| Skill 总数 | **62**", "| Skill 总数 | **55**",
+                     "D1", "Skill 总数")
+
+tests\test_doc_consistency_skills.py:566: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_doc_consistency_skills.TestFinalRoundJudgments object at 0x0000023FD00D6650>
+fname = '06_写入系统证据.md', old = '| Skill 总数 | **62**', new = '| Skill 总数 | **55**'
+gate = 'D1', must_contain = 'Skill 总数', extra_gate = None
+
+    def _mutate(self, fname, old, new, gate, must_contain, extra_gate=None):
+        """改真文件 → 跑门禁 → 还原（返回是否按预期报红）。"""
+        from engine import doc_number_authority as D1, todo_status_sync as D4
+        m = {"D1": D1, "D4": D4}
+        p = DOCDIR / fname
+        snap = p.read_text(encoding="utf-8")
+        try:
+            got = snap.replace(old, new, 1)
+            assert got != snap, "变异锚点未命中：%s" % old[:40]
+            p.write_text(got, encoding="utf-8")
+            errs = [i for i in m[gate].audit() if i["level"] == "ERROR"]
+            assert any(must_contain in str(i.get("detail")) for i in errs), errs[:3]
+        finally:
+            p.write_text(snap, encoding="utf-8")
+>       assert not [i for i in m[gate].audit() if i["level"] == "ERROR"]
+E       AssertionError: assert not [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+
+tests\test_doc_consistency_skills.py:507: AssertionError
+_ TestFinalRoundJudgments.test_reverse_wrong_gate_call_line_in_06_is_detected _
+
+self = <test_doc_consistency_skills.TestFinalRoundJudgments object at 0x0000023FCF8D3650>
+
+    @pytest.mark.reverse
+    def test_reverse_wrong_gate_call_line_in_06_is_detected(self):
+        """**反向**：`06 §4` 的调用行号改错 ⇒ D1 必须报红（此前 06 不在 claims 里）。
+    
+        ★ 2026-10-08：变异锚点动态取权威值（原先写死 11200 ⇒ 闸门行号位移后用例腐化）。
+        """
+        cur = _gate_call_line_authority()
+>       self._mutate(self.F06, "| 调用位置 | 第 **%d** 行" % cur,
+                     "| 调用位置 | 第 **%d** 行" % (cur + 7),
+                     "D1", "门禁调用行号")
+
+tests\test_doc_consistency_skills.py:578: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_doc_consistency_skills.TestFinalRoundJudgments object at 0x0000023FCF8D3650>
+fname = '06_写入系统证据.md', old = '| 调用位置 | 第 **13038** 行'
+new = '| 调用位置 | 第 **13045** 行', gate = 'D1', must_contain = '门禁调用行号'
+extra_gate = None
+
+    def _mutate(self, fname, old, new, gate, must_contain, extra_gate=None):
+        """改真文件 → 跑门禁 → 还原（返回是否按预期报红）。"""
+        from engine import doc_number_authority as D1, todo_status_sync as D4
+        m = {"D1": D1, "D4": D4}
+        p = DOCDIR / fname
+        snap = p.read_text(encoding="utf-8")
+        try:
+            got = snap.replace(old, new, 1)
+            assert got != snap, "变异锚点未命中：%s" % old[:40]
+            p.write_text(got, encoding="utf-8")
+            errs = [i for i in m[gate].audit() if i["level"] == "ERROR"]
+            assert any(must_contain in str(i.get("detail")) for i in errs), errs[:3]
+        finally:
+            p.write_text(snap, encoding="utf-8")
+>       assert not [i for i in m[gate].audit() if i["level"] == "ERROR"]
+E       AssertionError: assert not [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+
+tests\test_doc_consistency_skills.py:507: AssertionError
+_ TestFinalRoundJudgments.test_consistency_check_catches_intra_file_mismatch __
+
+self = <test_doc_consistency_skills.TestFinalRoundJudgments object at 0x0000023FCFA79D00>
+
+    @pytest.mark.breaking
+    def test_consistency_check_catches_intra_file_mismatch(self):
+        """**反向**：`05` §2 的耗时与该文件文末的耗时不一致 ⇒ D1 必须报"同一文件内前后不一致"。"""
+        import re
+        from engine import doc_number_authority as D1
+        p = DOCDIR / self.F05
+        snap = p.read_text(encoding="utf-8")
+        m = re.search(r"\| 耗时 \| \*{0,2}([\d.]+)s\*{0,2}", snap)
+        assert m, "未找到『| 耗时 | **N.NNs**』行 —— 文档结构变了"
+        cur = m.group(1)                        # ★ 同样**现取**，不硬编码（见上一个用例的说明）
+        try:
+            got = snap.replace("| 耗时 | **%ss**" % cur, "| 耗时 | **62.04s**", 1)
+            assert got != snap
+            p.write_text(got, encoding="utf-8")
+            errs = [i for i in D1.audit() if i["level"] == "ERROR"]
+            assert any("同一文件内前后不一致" in str(i.get("detail")) for i in errs), errs[:3]
+        finally:
+            p.write_text(snap, encoding="utf-8")
+>       assert not [i for i in D1.audit() if i["level"] == "ERROR"]
+E       AssertionError: assert not [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+
+tests\test_doc_consistency_skills.py:602: AssertionError
+_ TestUltimateRoundJudgments.test_reverse_unregistered_indicator_phrase_is_flagged _
+
+self = <test_doc_consistency_skills.TestUltimateRoundJudgments object at 0x0000023FCF8C16D0>
+
+    @pytest.mark.reverse
+    def test_reverse_unregistered_indicator_phrase_is_flagged(self):
+        """**反向**：在某份声明类文件里写一个**未被任何 claims 覆盖**的指标短语 ⇒ 元判据必须报 ERROR。
+    
+        用「共 N 种 kind」做样例（该短语的 claims 只挂在 5个Skill设计文档/配置JSON 上）。"""
+        from engine import doc_number_authority as D1
+        p = DOCDIR / self.F05
+        snap = p.read_text(encoding="utf-8")
+        try:
+            p.write_text(snap + "\n（附注）该模块实测共 **7** 种 kind。\n", encoding="utf-8")
+            errs = [i for i in D1.audit() if i["level"] == "ERROR"]
+            assert any("元判据" in str(i.get("detail")) for i in errs), errs[:3]
+        finally:
+            p.write_text(snap, encoding="utf-8")
+>       assert not [i for i in D1.audit() if i["level"] == "ERROR"]
+E       AssertionError: assert not [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+
+tests\test_doc_consistency_skills.py:706: AssertionError
+___ TestUltimateRoundJudgments.test_reverse_wrong_authority_count_detected ____
+
+self = <test_doc_consistency_skills.TestUltimateRoundJudgments object at 0x0000023FCFC65F50>
+
+    @pytest.mark.reverse
+    def test_reverse_wrong_authority_count_detected(self):
+        """**反向**：把「数字权威（N 个）」改错 ⇒ ERROR。"""
+>       self._mutate(self.FA, "**已登记的数字权威（%d 个）**" % self._A("authority_count"),
+                     "**已登记的数字权威（7 个）**")
+
+tests\test_doc_consistency_skills.py:786: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_doc_consistency_skills.TestUltimateRoundJudgments object at 0x0000023FCFC65F50>
+fname = '5个Skill设计文档.md', fixed = '**已登记的数字权威（22 个）**'
+broken = '**已登记的数字权威（7 个）**'
+
+    def _mutate(self, fname, fixed, broken):
+        from engine import doc_number_authority as D1
+        p = DOCDIR / fname
+        snap = p.read_text(encoding="utf-8")
+        try:
+            got = snap if broken in snap else snap.replace(fixed, broken, 1)
+>           assert got != snap, "锚点未命中：%s" % fixed[:40]
+E           AssertionError: 锚点未命中：**已登记的数字权威（22 个）**
+E           assert '# Skill 化补充 · 5 个文档一致性 Skill —— 设计文档\n\n> 日期：2026-10-07 ｜ 批次：**第01批（Skill-1 触发条件与认定要件分离）· Skill 化补充**\n> 依据：用户《第1批 Sk...列门禁函数，且已并链）；③ 失败样例全部取自本次 11 处问题（逐 Skill 列明）；\n④ 通过样例为修复后实测 0 ERROR；⑤ 回归与自动应用见《5 个 Skill 回归测试报告》《5 个 Skill 自动应用验证结果》。\n' != '# Skill 化补充 · 5 个文档一致性 Skill —— 设计文档\n\n> 日期：2026-10-07 ｜ 批次：**第01批（Skill-1 触发条件与认定要件分离）· Skill 化补充**\n> 依据：用户《第1批 Sk...列门禁函数，且已并链）；③ 失败样例全部取自本次 11 处问题（逐 Skill 列明）；\n④ 通过样例为修复后实测 0 ERROR；⑤ 回归与自动应用见《5 个 Skill 回归测试报告》《5 个 Skill 自动应用验证结果》。\n'
+
+tests\test_doc_consistency_skills.py:775: AssertionError
+______ TestUltimateRoundJudgments.test_reverse_wrong_kind_count_detected ______
+
+self = <test_doc_consistency_skills.TestUltimateRoundJudgments object at 0x0000023FCFC67B50>
+
+    @pytest.mark.reverse
+    def test_reverse_wrong_kind_count_detected(self):
+        """**反向**：把「N 种 kind」改错 ⇒ ERROR。"""
+>       self._mutate(self.FA, "取权威值（%d 种 kind）" % self._A("authority_kind_count"),
+                     "取权威值（5 种 kind）")
+
+tests\test_doc_consistency_skills.py:792: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_doc_consistency_skills.TestUltimateRoundJudgments object at 0x0000023FCFC67B50>
+fname = '5个Skill设计文档.md', fixed = '取权威值（9 种 kind）', broken = '取权威值（5 种 kind）'
+
+    def _mutate(self, fname, fixed, broken):
+        from engine import doc_number_authority as D1
+        p = DOCDIR / fname
+        snap = p.read_text(encoding="utf-8")
+        try:
+            got = snap if broken in snap else snap.replace(fixed, broken, 1)
+            assert got != snap, "锚点未命中：%s" % fixed[:40]
+            p.write_text(got, encoding="utf-8")
+            errs = [i for i in D1.audit() if i["level"] == "ERROR"]
+            assert errs, "改错后无人报错"
+        finally:
+            p.write_text(snap, encoding="utf-8")
+>       assert not [i for i in D1.audit() if i["level"] == "ERROR"]
+E       AssertionError: assert not [{'level': 'ERROR', 'where': '5个Skill设计文档.md:41', 'detail': '数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.jso...*\\*D[0-9]-R[0-9]+\\*\\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check'}]
+
+tests\test_doc_consistency_skills.py:781: AssertionError
+___ TestUltimateRoundJudgments.test_reverse_wrong_judgement_count_detected ____
+
+self = <test_doc_consistency_skills.TestUltimateRoundJudgments object at 0x0000023FCFC37C50>
+
+    @pytest.mark.reverse
+    def test_reverse_wrong_judgement_count_detected(self):
+        """**反向**：把「（N 条判据）」改错 ⇒ ERROR。"""
+>       self._mutate(self.FV, "（**%d 条判据**）" % self._A("judgement_count"), "（11 条判据）")
+
+tests\test_doc_consistency_skills.py:798: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <test_doc_consistency_skills.TestUltimateRoundJudgments object at 0x0000023FCFC37C50>
+fname = '5个Skill验收自证.md', fixed = '（**25 条判据**）', broken = '（11 条判据）'
+
+    def _mutate(self, fname, fixed, broken):
+        from engine import doc_number_authority as D1
+        p = DOCDIR / fname
+        snap = p.read_text(encoding="utf-8")
+        try:
+            got = snap if broken in snap else snap.replace(fixed, broken, 1)
+>           assert got != snap, "锚点未命中：%s" % fixed[:40]
+E           AssertionError: 锚点未命中：（**25 条判据**）
+E           assert '# Skill 化补充 · 5 个 Skill 是否满足验收标准\n\n> 用户验收 6 项 ｜ 日期：2026-10-07 ｜ 全部附**实际文件路径 / 命令 / 结果**\n\n| # | 落地验收要求 | 证据（实际） | 判...ate())"   # []\n```\n\n---\n\n**本项是否满足验收标准**：**满足**（6/6）。每项均附文件路径 / 命令 / 实测结果；\n"11 处问题"逐处映射到具体 Skill；反向验证与自动应用均有实测。\n' != '# Skill 化补充 · 5 个 Skill 是否满足验收标准\n\n> 用户验收 6 项 ｜ 日期：2026-10-07 ｜ 全部附**实际文件路径 / 命令 / 结果**\n\n| # | 落地验收要求 | 证据（实际） | 判...ate())"   # []\n```\n\n---\n\n**本项是否满足验收标准**：**满足**（6/6）。每项均附文件路径 / 命令 / 实测结果；\n"11 处问题"逐处映射到具体 Skill；反向验证与自动应用均有实测。\n'
+
+tests\test_doc_consistency_skills.py:775: AssertionError
+____________ DocumentUnitTests.test_service_upload_dedup_classify _____________
+
+self = <test_document_api.DocumentUnitTests testMethod=test_service_upload_dedup_classify>
+
+    def test_service_upload_dedup_classify(self):
+        result = _run(
+            """
+            import hashlib
+            from security import SessionContext
+            from engine import document_service as SVC
+            from engine.document_types import guess_category, category_cn, ALLOWED_EXTENSIONS
+    
+            sess = SessionContext(user_id=1, username="unitadmin", role="admin",
+                                  allowed_company_ids=frozenset(company_ids if False else {1}),
+                                  selected_company_id=1, csrf_hash="", expires_at=0)
+            # 建一个项目（P0-1）
+            from engine import project_service as PSVC
+            proj = PSVC.create_project({"name": "资料单元测试企业", "company_id": 1}, sess)
+            pid = proj["id"]
+    
+            # 1) 扩展名白名单：存量 12 种一个不少 + 新增 xml/ofd/zip
+            for e in (".xlsx", ".xls", ".csv", ".pdf", ".txt", ".docx", ".doc",
+                      ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".xml", ".ofd", ".zip"):
+                assert e in ALLOWED_EXTENSIONS, "白名单缺失 %s" % e
+            assert len(ALLOWED_EXTENSIONS) == 15, len(ALLOWED_EXTENSIONS)
+    
+            # 2) 分类映射（复用 filename_type_map.json + config/document_categories.json）
+            cases = [("资产负债表2024.xlsx", "财务报表"),
+                     ("银行流水.xlsx", "银行流水"),
+                     ("销项发票明细.xlsx", "发票"),
+                     ("增值税申报表.xlsx", "申报表"),
+                     ("科目余额表.xlsx", "账簿"),
+                     ("采购合同.pdf", "合同"),
+                     ("工资表.xlsx", "薪酬")]
+            for fn, want in cases:
+                c, t = guess_category(fn)
+                assert category_cn(c) == want, "%s 期望 %s 实际 %s" % (fn, want, category_cn(c))
+            # 未识别 ⇒ **其他**（不猜测）
+            c2, t2 = guess_category("某个没有特征的附件.xyz")
+            assert t2 == "" and category_cn(c2) == "其他", (c2, t2)
+    
+            # 3) 上传（有效文件）
+            xlsx = b"PK\\x03\\x04" + b"a" * 200
+            r = SVC.upload_documents(pid, [
+                ("资产负债表2024.xlsx", xlsx),
+                ("不支持的.bin", b"xxx"),
+                ("坏签名.xlsx", b"NOTAPKFILE"),
+            ], sess)
+            assert r["stats"]["uploaded"] == 1, r["stats"]
+            assert r["stats"]["rejected"] == 2, r["stats"]
+            reasons = " ".join(x["reason"] for x in r["rejected"])
+            assert "不支持的文件类型" in reasons, reasons
+            assert "内容与扩展名不匹配" in reasons, reasons
+            up = r["uploaded"][0]
+            assert up["category"] == "financial_statement", up
+            assert up["md5"] == hashlib.md5(xlsx).hexdigest(), up
+            assert up["sha256"] == hashlib.sha256(xlsx).hexdigest(), up
+    
+            # 4) 查重（同一项目内 ⇒ 跳过，且如实回报 duplicate_of）
+            r2 = SVC.upload_documents(pid, [("另一个名字.xlsx", xlsx)], sess)
+            assert r2["stats"]["uploaded"] == 0 and r2["stats"]["duplicated"] == 1, r2["stats"]
+            dup = r2["duplicated"][0]
+            assert dup["duplicate_of"] == up["id"] and dup["scope"] == "project", dup
+    
+            # 5) 跨项目同内容 ⇒ **不跳过**（合法场景），但提示 same_content_elsewhere
+            p2 = PSVC.create_project({"name": "第二项目", "company_id": 1}, sess)
+            r3 = SVC.upload_documents(p2["id"], [("同名内容.xlsx", xlsx)], sess)
+            assert r3["stats"]["uploaded"] == 1, r3["stats"]
+            assert r3["uploaded"][0].get("same_content_elsewhere"), r3["uploaded"][0]
+    
+            # 6) 分类人工修正（置 manual，防自动回改）
+            c = SVC.classify_document(up["id"], "ledger", sess, note="实为账簿")
+            assert c["category"] == "ledger" and c["classify_by"] == "manual", c
+            assert c["previous_category"] == "financial_statement", c
+            got = SVC.get_document(up["id"], sess)
+            assert got["category_cn"] == "账簿" and got["classify_by"] == "manual", got
+            # 非法分类 ⇒ 400 语义
+            try:
+                SVC.classify_document(up["id"], "不存在的类", sess)
+                raise AssertionError("非法分类竟然成功")
+            except SVC.DocumentError as e:
+                assert e.status == 400
+    
+            # 7) 解析状态机：合法迁移 + 非法迁移
+            SVC.set_parse_status(up["id"], "parsing", sess)
+            SVC.set_parse_status(up["id"], "success", sess)
+            try:
+                SVC.set_parse_status(up["id"], "不存在", sess)
+                raise AssertionError("非法状态竟然成功")
+            except SVC.DocumentError as e:
+                assert e.status == 400
+            # manual 只能从已有状态进去；success→manual 合法
+            SVC.set_parse_status(up["id"], "manual", sess)
+            st = SVC.get_document(up["id"], sess)
+            assert st["parse_status_cn"] == "需人工校正", st
+    
+            # 8) 分页记录
+            SVC.save_pages(up["id"], [{"page_no": 1, "char_count": 12, "excerpt": "x"},
+                                      {"page_no": 2, "char_count": 3, "excerpt": "y"}], sess)
+            assert SVC.get_document(up["id"], sess)["page_count"] == 2
+    
+            # 9) 列表：搜索 / 分类筛选 / 状态筛选
+            lst = SVC.list_documents(pid, sess)
+            assert lst["total"] == 1 and "账簿" in lst["category_counts_cn"], lst
+            assert SVC.list_documents(pid, sess, q="资产负债")["total"] == 1
+            assert SVC.list_documents(pid, sess, q="不存在")["total"] == 0
+            assert SVC.list_documents(pid, sess, category="ledger")["total"] == 1
+            assert SVC.list_documents(pid, sess, category="invoice")["total"] == 0
+    
+            # 10) 脱敏：仅掩个人敏感标识；**税号/企业名/金额不脱敏**（主体与金额必须可复核）
+            from engine.document_types import mask_sensitive, has_sensitive
+            assert mask_sensitive("张三 13812345678") == "张三 138****5678", \
+                mask_sensitive("张三 13812345678")
+            assert mask_sensitive("身份证440101199001011234") == "身份证440101********1234"
+            assert mask_sensitive("卡号6222021234567890123") == "卡号6222********0123"
+            # 纳税人识别号 / 正常文件名 **保持不变**（不得脱敏）
+            assert mask_sensitive("91440300MA5DC00001") == "91440300MA5DC00001"
+            assert mask_sensitive("资产负债表2024.xlsx") == "资产负债表2024.xlsx"
+            assert not has_sensitive("91440300MA5DC00001")
+            assert has_sensitive("13812345678")
+            # 展示字段已脱敏，原件名原样保留（可追溯）
+            assert got["original_name_masked"] == got["original_name"]
+    
+            # 11) 删除
+            d = SVC.delete_document(up["id"], sess)
+            assert d["ok"], d
+            try:
+                SVC.get_document(up["id"], sess)
+                raise AssertionError("删除后仍可查到")
+            except SVC.DocumentError as e:
+                assert e.status == 404
+    
+            print("DOCUMENT UNIT TESTS PASSED")
+            """
+        )
+>       self.assertEqual(result.returncode, 0,
+                         msg="stdout:\n%s\nstderr:\n%s" % (result.stdout, result.stderr))
+E       AssertionError: 1 != 0 : stdout:
+E       2026-10-18 18:26:07,150 [INFO] [rid=-] root: 日志已初始化 level=INFO file=C:\Users\Administrator\AppData\Local\Temp\tmp_sadlr5k\logs\app.log
+E       
+E       stderr:
+E       Traceback (most recent call last):
+E         File "<string>", line 79, in <module>
+E           SVC.set_parse_status(up["id"], "parsing", sess)
+E           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         File "C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\engine\document_service.py", line 458, in set_parse_status
+E           _validate_status_transition(str(rec.get("parse_status") or "pending"), new)
+E           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E         File "C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\engine\document_service.py", line 168, in _validate_status_transition
+E           raise DocumentError(
+E           ...<4 lines>...
+E               400)
+E       engine.document_service.DocumentError: 解析状态非法迁移：失败 → 解析中（允许：待解析、需人工校正、成功）
+
+tests\test_document_api.py:188: AssertionError
+_____ ObligationRedlineWiringTests.test_authoritative_redline_count_is_89 _____
+
+self = <test_obligation_redlines_wiring.ObligationRedlineWiringTests testMethod=test_authoritative_redline_count_is_89>
+
+    def test_authoritative_redline_count_is_89(self):
+        # 权威计数必须实时等于 91（74 原 + 6 义务红线 + 1 营业账簿 + 4 印花税合同类
+        #   + 1 资本弱化 + 3 费类义务 + 2 场景红线(异地预缴/农产品收购发票)），杜绝硬编码漂移
+>       self.assertEqual(len(REDLINES), 91)
+E       AssertionError: 127 != 91
+
+tests\test_obligation_redlines_wiring.py:66: AssertionError
+_ ReportWatermarkDisclaimerTests.test_watermark_and_disclaimer_in_all_formats _
+
+self = <test_report_api.ReportWatermarkDisclaimerTests testMethod=test_watermark_and_disclaimer_in_all_formats>
+
+    def test_watermark_and_disclaimer_in_all_formats(self):
+        script = _boot() + textwrap.dedent("""
+            import docx as _docx, openpyxl
+            from pypdf import PdfReader
+            from engine import report_render as R, report_service as RS
+    
+            cid, pid = make_project()
+            S = sess()
+    
+            def probe(doc):
+                out = {}
+                for f in ('pdf', 'docx', 'xlsx', 'html'):
+                    out[f] = R.render(doc, f)[0]
+                return out
+    
+            # ── 未复核 ──
+            doc = RS.build_document(pid, S, view='full', reviewed=False)
+            got = probe(doc)
+            wm = doc['watermark_text']
+            assert '未经人工复核' in wm, wm
+            t = ''.join((p.extract_text() or '') for p in PdfReader(io.BytesIO(got['pdf'])).pages)
+            assert '内部使用' in t and '未经人工复核' in t, 'PDF 水印未嵌入'
+            assert '不具有税务机关行政执法文书的效力' in t, 'PDF 缺免责声明'
+            dx = _docx.Document(io.BytesIO(got['docx']))
+            hdr = ' '.join(p.text for s in dx.sections for p in s.header.paragraphs)
+            assert '内部使用' in hdr and '未经人工复核' in hdr, 'DOCX 页眉水印缺失'
+            assert '不具有税务机关行政执法文书的效力' in hdr, 'DOCX 页眉缺免责声明'
+            wb = openpyxl.load_workbook(io.BytesIO(got['xlsx']))
+            ws = wb[wb.sheetnames[0]]
+            assert '内部使用' in (ws.oddHeader.center.text or ''), 'XLSX 页眉水印缺失'
+            assert '不具有税务机关' in (ws.oddFooter.left.text or ''), 'XLSX 页脚缺免责声明'
+            h = got['html'].decode('utf-8')
+            assert "class='wm'" in h and '未经人工复核' in h, 'HTML 水印层缺失'
+            assert '不具有税务机关行政执法文书的效力' in h, 'HTML 缺免责声明'
+    
+            # ── 已复核（人工复核标识必须随水印与页眉走） ──
+            doc2 = RS.build_document(pid, S, view='full', reviewed=True,
+                                     reviewed_by='复核员甲')
+            assert '已复核' in doc2['watermark_text'] and '复核员甲' in doc2['watermark_text']
+            got2 = probe(doc2)
+            t2 = ''.join((p.extract_text() or '') for p in PdfReader(io.BytesIO(got2['pdf'])).pages)
+            assert '已复核' in t2 and '复核员甲' in t2, 'PDF 未体现已复核标识'
+            h2 = got2['html'].decode('utf-8')
+            assert '已复核' in h2, 'HTML 未体现已复核标识'
+    
+            # ── 缺免责声明章节 / 自写声明顶替 ⇒ **必须被拒**（不得产出无声明的报告） ──
+            bad = dict(doc)
+            bad['sections'] = [s for s in doc['sections'] if s['key'] != 'disclaimer']
+            try:
+                R.render(bad, 'html')
+                raise AssertionError('缺免责声明章节仍被渲染 ⇒ 判据是假的')
+            except R.ReportRenderError as exc:
+                assert exc.status == 500 and '免责声明' in exc.message, exc.message
+            bad2 = dict(doc)
+            bad2['sections'] = [dict(s) for s in doc['sections']]
+            for s in bad2['sections']:
+                if s['key'] == 'disclaimer':
+                    s['blocks'] = [{'type': 'paragraph', 'text': '本报告仅供参考。'}]
+            try:
+                R.render(bad2, 'docx')
+                raise AssertionError('自写声明顶替仍被渲染 ⇒ 判据是假的')
+            except R.ReportRenderError as exc:
+                assert 'identity_line' in exc.message, exc.message
+    
+            # ── 生成回执必须自证：免责声明存在 + 水印方式为 embedded ──
+            with TestClient(app) as c:
+                c.post('/api/auth/login',
+                       json={'username': ADMIN_USER, 'password': ADMIN_PASS})
+                hh = {'X-CSRF-Token': c.cookies.get('csrf_token')}
+                cid2, pid2 = make_project(c, hh)
+                out = c.post(BASE + '/projects/%d/reports' % pid2, headers=hh,
+                             json={'view': 'full', 'reviewed': True,
+                                   'reviewed_by': '复核员乙'}).json()
+                assert out['disclaimer_present'] is True
+                assert out['reviewed'] is True
+                assert set(out['watermark_mode'].values()) == {'embedded'}, out['watermark_mode']
+                r1 = c.get(BASE + '/reports/%s/download' % out['doc_no'],
+                           params={'format': 'pdf'})
+                assert r1.headers['X-Review-Status'] == 'reviewed'
+                print("P07 WATERMARK/DISCLAIMER TESTS PASSED")
+            """)
+>       _assert_ok(_run(script), "P07 WATERMARK/DISCLAIMER TESTS PASSED")
+
+tests\test_report_api.py:471: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = CompletedProcess(args=['C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\envs\\default\\Scripts\\python.exe', '...']\n                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\nKeyError: \'id\'\n')
+marker = 'P07 WATERMARK/DISCLAIMER TESTS PASSED'
+
+    def _assert_ok(result, marker: str) -> None:
+>       assert result.returncode == 0, (
+            "脚本失败（exit=%s）\n--- stderr 头部 ---\n%s\n--- stdout 尾部 ---\n%s"
+            % (result.returncode, result.stderr[:1500], result.stdout[-1200:]))
+E       AssertionError: 脚本失败（exit=1）
+E         --- stderr 头部 ---
+E         C:\Users\Administrator\.workbuddy\binaries\python\envs\default\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+E           from starlette.testclient import TestClient as TestClient  # noqa
+E         Traceback (most recent call last):
+E           File "<string>", line 113, in <module>
+E             cid2, pid2 = make_project(c, hh)
+E                          ~~~~~~~~~~~~^^^^^^^
+E           File "<string>", line 41, in make_project
+E             pid = client.post('/api/v1/projects', headers=headers,
+E                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E                               json={'name': '报告项目', 'company_id': cid, 'taxpayer_id': USCC,
+E                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+E                                     'period_start': '2025-01', 'period_end': '2025-12'}).json()['id']
+E                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+E         KeyError: 'id'
+E         
+E         --- stdout 尾部 ---
+E         2026-10-18 18:32:19,645 [INFO] [rid=-] root: 日志已初始化 level=INFO file=C:\Users\Administrator\AppData\Local\Temp\tmphn2_4z0y\logs\app.log
+E         2026-10-18 18:32:27,218 [INFO] [rid=-] database: 数据库初始化完成（0 家公司）
+E         2026-10-18 18:32:27,219 [INFO] [rid=-] main: [STARTUP] 28维(10四星/18三星) | 调度中枢:21模块 | 质量保障:5层22组件全覆盖
+E         2026-10-18 18:32:27,280 [INFO] [rid=-] main: [BACKUP] 已生成每日备份：20261018T183227_daily
+E         2026-10-18 18:32:27,407 [INFO] [rid=-] httpx: HTTP Request: POST http://testserver/api/auth/login "HTTP/1.1 200 OK"
+E         2026-10-18 18:32:27,532 [INFO] [rid=-] httpx: HTTP Request: POST http://testserver/api/companies "HTTP/1.1 200 OK"
+E         2026-10-18 18:32:27,550 [INFO] [rid=-] httpx: HTTP Request: POST http://testserver/api/auth/select-company "HTTP/1.1 200 OK"
+E         2026-10-18 18:32:27,570 [INFO] [rid=-] httpx: HTTP Request: POST http://testserver/api/v1/projects "HTTP/1.1 400 Bad Request"
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\envs\\default\\Scripts\\python.exe', '...']\n                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\nKeyError: \'id\'\n').returncode
+
+tests\test_report_api.py:104: AssertionError
+___ TestDetectorLayerBelongsToRedlines.test_layers_are_not_trivially_empty ____
+
+self = <test_rule_layer_authority.TestDetectorLayerBelongsToRedlines object at 0x0000023FE9153BB0>
+
+    def test_layers_are_not_trivially_empty(self):
+        """防止"把层清空"来伪造通过。"""
+>       assert len(_special_ids()) == 25
+E       AssertionError: assert 61 == 25
+E        +  where 61 = len(['RL-INC-004', 'RL-COST-001', 'RL-FUND-003', 'RL-FUND-004', 'RL-INV-001', 'RL-INV-002', ...])
+E        +    where ['RL-INC-004', 'RL-COST-001', 'RL-FUND-003', 'RL-FUND-004', 'RL-INV-001', 'RL-INV-002', ...] = _special_ids()
+
+tests\test_rule_layer_authority.py:107: AssertionError
+________ RuleVersionUnitTests.test_baseline_then_publish_then_rollback ________
+
+self = <test_rule_version_admin_p16.RuleVersionUnitTests testMethod=test_baseline_then_publish_then_rollback>
+
+    def test_baseline_then_publish_then_rollback(self):
+        result = _run("""
+            import sys
+            sys.path.insert(0, ".")
+            from engine import rule_versions as RV
+            from engine import rule_version_admin as A
+            from security import SessionContext
+            s = SessionContext(user_id=1, username="p16u", role="admin",
+                               allowed_company_ids=frozenset(), selected_company_id=None,
+                               csrf_hash="", expires_at=0)
+    
+            base = str(RV.load_versions().get("rule_set_version") or "")
+            # ① 未发布 ⇒ 与基线**完全一致**（既有报告溯源不受影响）
+            assert RV.published_version() == "", RV.published_version()
+            assert A.current_version() == base, (A.current_version(), base)
+            assert len(RV.registered_ids()) == 176, len(RV.registered_ids())
+    
+            # ② 发布 ⇒ 生效版本切换 + 快照落盘（逐条规则版本）
+            r = A.publish("2099.01", s, note="单元测试发布")
+            assert r["from_version"] == base and r["to_version"] == "2099.01", r
+            assert r["rule_count"] == 176, r["rule_count"]
+            assert A.current_version() == "2099.01", A.current_version()
+            assert RV.rule_set_version() == "2099.01", "唯一判读点未生效"
+            snap = A.snapshot_of("2099.01")
+            assert snap and len(snap.get("rules") or {}) == 176, snap
+    
+            # ③ 差异：从"无快照的基线"到"有快照的新版本" ⇒ **不可比对**（不返回空差异）
+            d0 = A.diff(base, "2099.01")
+            assert d0["comparable"] is False and d0["reason"], d0
+            assert d0["added"] == [] and "无快照" in d0["note"]
+    
+            # ④ 发布第二个版本 ⇒ 两版**都有快照**时可比对
+            A.publish("2099.02", s, note="第二版")
+            d1 = A.diff("2099.01", "2099.02")
+            assert d1["comparable"] is True, d1
+            assert d1["counts"]["from"] == 176 and d1["counts"]["to"] == 176, d1["counts"]
+            assert d1["counts"]["changed"] == 0, d1["changed"]
+    
+            # ⑤ **反向**：手工把快照里一条规则的版本改掉 ⇒ diff 必须报"版本变更"
+            sp = A._snapshot_path("2099.02")
+            import json
+            raw = json.loads(sp.read_text(encoding="utf-8"))
+            k = sorted(raw["rules"].keys())[0]
+            raw["rules"][k] = "9.9.9"
+            sp.write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
+            d2 = A.diff("2099.01", "2099.02")
+            assert d2["counts"]["changed"] == 1, d2["counts"]
+            assert d2["changed"][0]["rule_id"] == k, d2["changed"]
+            assert d2["changed"][0]["to"] == "9.9.9", d2["changed"]
+    
+            # ⑥ 回滚 ⇒ 回到指定历史版本
+            rb = A.rollback_version("2099.01", s, note="回滚")
+            assert rb["to_version"] == "2099.01", rb
+            assert A.current_version() == "2099.01", A.current_version()
+    
+            # ⑦ 清单：当前版本唯一标记；台账事件在清单里
+            vs = A.list_versions()
+            cur = [x for x in vs if x.get("is_current")]
+            assert len(cur) == 1 and cur[0]["version"] == "2099.01", vs
+            assert any(x.get("source") == "ledger" for x in vs), vs
+            print("FLOW-OK base=%s" % base)
+        """)
+>       _assert_ok(result)
+
+tests\test_rule_version_admin_p16.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = CompletedProcess(args=['C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\envs\\default\\Scripts\\python.exe', '...registered_ids()) == 176, len(RV.registered_ids())\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 212\n')
+
+    def _assert_ok(result: subprocess.CompletedProcess) -> None:
+        if result.returncode != 0:
+>           raise AssertionError("子进程失败\nSTDOUT:\n%s\nSTDERR:\n%s"
+                                 % (result.stdout[-3000:], result.stderr[-3000:]))
+E           AssertionError: 子进程失败
+E           STDOUT:
+E           
+E           STDERR:
+E           Traceback (most recent call last):
+E             File "<string>", line 15, in <module>
+E               assert len(RV.registered_ids()) == 176, len(RV.registered_ids())
+E                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: 212
+
+tests\test_rule_version_admin_p16.py:50: AssertionError
+______________ RuleVersionApiTests.test_endpoints_and_permission ______________
+
+self = <test_rule_version_admin_p16.RuleVersionApiTests testMethod=test_endpoints_and_permission>
+
+    def test_endpoints_and_permission(self):
+        result = _run("""
+            import sys, os
+            sys.path.insert(0, ".")
+            from fastapi.testclient import TestClient
+            import main
+            from security import init_security_db, create_user
+            from engine import rbac as R
+            init_security_db(); R.ensure_rbac_schema()
+            create_user("p16int", "P1-6-Int-Pass-2026!", role="admin")
+            c = TestClient(main.app)
+            assert c.post("/api/v1/auth/login",
+                          json={"username": "p16int",
+                                "password": "P1-6-Int-Pass-2026!"}).status_code == 200
+            H = {"X-CSRF-Token": c.cookies.get("csrf_token")}
+    
+            m = c.get("/api/v1/rule-versions/meta")
+            assert m.status_code == 200, m.text
+            assert m.json()["current_version"], m.json()
+            assert m.json()["registered_rule_count"] == 176, m.json()
+    
+            l = c.get("/api/v1/rule-versions")
+            assert l.status_code == 200 and l.json()["total"] >= 1, l.text
+            assert c.get("/api/v1/rule-versions/1999.01").status_code == 404
+            assert c.get("/api/v1/rule-versions/2026.10").status_code == 200
+            # diff 缺参数 ⇒ 422；非法版本 ⇒ 400
+            assert c.get("/api/v1/rule-versions/diff?from=2026.10").status_code == 422
+            assert c.get("/api/v1/rule-versions/diff?from=bad&to=2026.10").status_code == 400
+    
+            # 写：无 CSRF ⇒ 403；CSRF 但无权限 ⇒ 403
+            assert c.post("/api/v1/rule-versions/publish",
+                          json={"version": "2096.01"}).status_code == 403
+            R.create_role("p16_nomanage", "P1-6 无版本管理权", ["report.view"])
+            uid = create_user("p16ro", "P1-6-RO-Pass-2026!", role="user")
+            R.assign_user_roles(uid, ["p16_nomanage"])
+            c2 = TestClient(main.app)
+            assert c2.post("/api/v1/auth/login",
+                           json={"username": "p16ro",
+                                 "password": "P1-6-RO-Pass-2026!"}).status_code == 200
+            assert c2.get("/api/v1/rule-versions").status_code == 200, "读权限应放行"
+            h2 = {"X-CSRF-Token": c2.cookies.get("csrf_token")}
+            w = c2.post("/api/v1/rule-versions/publish", headers=h2,
+                        json={"version": "2096.02"})
+            assert w.status_code == 403, (w.status_code, w.text[:200])
+            assert "ruleversion.manage" in (w.json().get("detail") or ""), w.json()
+    
+            # 管理员：发布 + 回滚 + 页面可达
+            assert c.post("/api/v1/rule-versions/publish", headers=H,
+                          json={"version": "2096.03", "note": "集成"}).status_code == 200
+            assert c.get("/api/v1/rule-versions/meta").json()["current_version"] == "2096.03"
+            assert c.post("/api/v1/rule-versions/rollback", headers=H,
+                          json={"version": "2026.10"}).status_code == 200
+            pg = c.get("/rule-versions")
+            assert pg.status_code == 200 and "text/html" in pg.headers.get("content-type", "")
+            print("INTEG-OK")
+        """)
+>       _assert_ok(result)
+
+tests\test_rule_version_admin_p16.py:221: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = CompletedProcess(args=['C:\\Users\\Administrator\\.workbuddy\\binaries\\python\\envs\\default\\Scripts\\python.exe', '...', \'note\': \'「当前生效版本」唯一判读点 = `rule_versions.rule_set_version()`；**未发布时与配置基线完全一致**。版本差异基于发布时快照；无快照时如实说明，不返回空差异。\'}\n')
+
+    def _assert_ok(result: subprocess.CompletedProcess) -> None:
+        if result.returncode != 0:
+>           raise AssertionError("子进程失败\nSTDOUT:\n%s\nSTDERR:\n%s"
+                                 % (result.stdout[-3000:], result.stderr[-3000:]))
+E           AssertionError: 子进程失败
+E           STDOUT:
+E           2026-10-18 18:34:38,885 [INFO] [rid=-] root: 日志已初始化 level=INFO file=C:\Users\Administrator\AppData\Local\Temp\tmp30ssia5k\logs\app.log
+E           2026-10-18 18:34:42,208 [INFO] [rid=-] httpx: HTTP Request: POST http://testserver/api/v1/auth/login "HTTP/1.1 200 OK"
+E           2026-10-18 18:34:42,233 [INFO] [rid=-] httpx: HTTP Request: GET http://testserver/api/v1/rule-versions/meta "HTTP/1.1 200 OK"
+E           
+E           STDERR:
+E           C:\Users\Administrator\.workbuddy\binaries\python\envs\default\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+E             from starlette.testclient import TestClient as TestClient  # noqa
+E           Traceback (most recent call last):
+E             File "<string>", line 19, in <module>
+E               assert m.json()["registered_rule_count"] == 176, m.json()
+E                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: {'current_version': '2026.11', 'config_version': '2026.11', 'registered_rule_count': 212, 'version_pattern': '^\\d{4}\\.(0[1-9]|1[0-2])$', 'storage': 'data/rule_version_events.jsonl（append-only）+ data/rule_version_snapshots/*.json', 'note': '「当前生效版本」唯一判读点 = `rule_versions.rule_set_version()`；**未发布时与配置基线完全一致**。版本差异基于发布时快照；无快照时如实说明，不返回空差异。'}
+
+tests\test_rule_version_admin_p16.py:50: AssertionError
+============================== warnings summary ===============================
+tests/test_empty_section_handling.py::RenderAllFormatsTests::test_missing_key_is_tolerated
+tests/test_empty_section_handling.py::RenderAllFormatsTests::test_pdf_mentions_skipped
+  C:\Users\Administrator\.workbuddy\binaries\python\envs\default\Lib\site-packages\pypdf\_page.py:1328: DeprecationWarning: Calling `PageObject.replace_contents()` for pages not assigned to a writer is deprecated and will be removed in pypdf 7.0.0. Attach the page to the writer first or use `PdfWriter(clone_from=...)` directly. The existing approach has proved being unreliable.
+    self.replace_contents(ContentStream(new_content_array, self.pdf))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_child_item_completeness.py::TestGateRegression::test_gate_config_level_clean
+FAILED tests/test_child_item_completeness.py::TestGateReverseValidation::test_reverse_unregistered_child_detected
+FAILED tests/test_doc_consistency_skills.py::TestD1NumberAuthority::test_pass_real_docs
+FAILED tests/test_doc_consistency_skills.py::TestRegistrationAndWiring::test_all_five_gates_zero_error
+FAILED tests/test_doc_consistency_skills.py::TestNewJudgments::test_sum_check_catches_inconsistent_total
+FAILED tests/test_doc_consistency_skills.py::TestNewJudgments::test_reverse_wrong_line_number_is_detected
+FAILED tests/test_doc_consistency_skills.py::TestFinalRoundJudgments::test_reverse_wrong_full_passed_is_detected
+FAILED tests/test_doc_consistency_skills.py::TestFinalRoundJudgments::test_reverse_wrong_skill_total_is_detected
+FAILED tests/test_doc_consistency_skills.py::TestFinalRoundJudgments::test_reverse_wrong_gate_call_line_in_06_is_detected
+FAILED tests/test_doc_consistency_skills.py::TestFinalRoundJudgments::test_consistency_check_catches_intra_file_mismatch
+FAILED tests/test_doc_consistency_skills.py::TestUltimateRoundJudgments::test_reverse_unregistered_indicator_phrase_is_flagged
+FAILED tests/test_doc_consistency_skills.py::TestUltimateRoundJudgments::test_reverse_wrong_authority_count_detected
+FAILED tests/test_doc_consistency_skills.py::TestUltimateRoundJudgments::test_reverse_wrong_kind_count_detected
+FAILED tests/test_doc_consistency_skills.py::TestUltimateRoundJudgments::test_reverse_wrong_judgement_count_detected
+FAILED tests/test_document_api.py::DocumentUnitTests::test_service_upload_dedup_classify
+FAILED tests/test_obligation_redlines_wiring.py::ObligationRedlineWiringTests::test_authoritative_redline_count_is_89
+FAILED tests/test_report_api.py::ReportWatermarkDisclaimerTests::test_watermark_and_disclaimer_in_all_formats
+FAILED tests/test_rule_layer_authority.py::TestDetectorLayerBelongsToRedlines::test_layers_are_not_trivially_empty
+FAILED tests/test_rule_version_admin_p16.py::RuleVersionUnitTests::test_baseline_then_publish_then_rollback
+FAILED tests/test_rule_version_admin_p16.py::RuleVersionApiTests::test_endpoints_and_permission
+20 failed, 2459 passed, 5 skipped, 2 warnings, 202 subtests passed in 813.53s (0:13:33)

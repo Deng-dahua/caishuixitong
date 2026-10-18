@@ -15,11 +15,14 @@
 """
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, Request
 
 from engine import parse_enhance as PE
+# ★ 字段字典的读取只走这一处薄引用（字段名/中文名/域字段清单**不在此另抄表**）
+from engine.standard_fields import (domain_cn, field as _field,
+                                    fields_of_domain)
 
 from engine.api_common import (admin_of, call_boundary, request_perm,
                              require_perm, session_of)
@@ -87,37 +90,79 @@ def cap_manifest(request: Request) -> Dict[str, Any]:
     return PE.manifest()
 
 
+def _coverage_field_names(dom: str, registered: List[str]) -> List[str]:
+    """覆盖率体检的**字段清单**（纯函数，可单测；GAP-14）。
+
+    三条来源合并（按顺序去重）：
+      ① 本域字段 —— 让"域内本该有、但没被认出来"的字段进入体检面；
+      ② common 字段（期间/摘要等跨资料通用字段）；
+      ③ **该表已登记字段** —— 未知域资料（合同/协议/档案）靠跨域白名单取数，
+         这些字段不属于任何域，只有这条通路能把它们纳入体检；缺了它，
+         未知域资料的覆盖率永远只有 common 两三个字段（体检等于没做）。
+    """
+    names: List[str] = []
+    for src in (fields_of_domain(dom) if dom else [], fields_of_domain("common")):
+        for f in src:
+            n = str(f.get("name"))
+            if n and n not in names:
+                names.append(n)
+    for n in registered or []:
+        if n and n not in names:
+            names.append(n)
+    return names
+
+
 @router.get("/documents/{document_id}/field-coverage",
             summary="标准字段覆盖度体检（哪一列没被认出来）")
 def field_coverage(document_id: int, request: Request) -> Dict[str, Any]:
     """对某份已解析资料做**只读**覆盖度体检：每个标准字段命中多少行。
 
     ★ 只读统计，**不下结论**（是否算"缺失"由 `engine.extract_validate` 判）。
+
+    ★ 2026-10-18 修复（GAP-14：本接口曾**恒返 rows=0 / fields={}**）。三处口径错误：
+      ① `t.get("rows")` —— `get_extracted` 只给 `rows_preview`，`rows` 取成 `[]`
+         ⇒ 行数恒 0（现改为 `include_rows=True` 取全量，覆盖率必须基于全量行）；
+      ② `t.get("domain")` —— 表里存的是 `doc_type`，没有 `domain` 键
+         ⇒ 域恒空串，`fields_of_domain("")` 恒空；
+      ③ 回落取 `got["standard_fields"]` —— `get_extracted` **不返回**这个键
+         ⇒ 字段清单恒空，`PE.field_coverage` 根本没被调用。
+      现口径：域由 `extract_service._domain_of(doc_type)` 推导（**唯一权威**，不另写映射），
+      字段清单 = 本域字段 + common + 该表已登记字段（后者让"没被认出来的域字段"也进入
+      体检面，否则 `unrecognized_fields` 永远为空、体检等于自证）。
     """
     session = _require(request, "document.view")
     from engine import extract_service as SVC      # noqa: PLC0415
-    from engine.standard_fields import fields_of_domain, domain_cn   # noqa: PLC0415
     try:
-        got = SVC.get_extracted(document_id, session)
+        got = SVC.get_extracted(document_id, session, include_rows=True)
     except SVC.ExtractError as exc:
         raise HTTPException(status_code=int(exc.status), detail=str(exc.message)) from exc
-    tables = got.get("tables") or []
+
+    # 该表已登记的标准字段（按 table_id 归组；`table_id` 缺失的历史数据归入全部表）
+    registered: Dict[Any, List[str]] = {}
+    for f in (got.get("fields") or []):
+        registered.setdefault(f.get("table_id"), []).append(str(f.get("standard_field") or ""))
+
     out_tables = []
-    for t in tables:
+    for t in (got.get("tables") or []):
         rows = t.get("rows") or []
-        dom = str(t.get("domain") or "")
-        names = [str(f.get("name")) for f in fields_of_domain(dom)] if dom else []
-        if not names:
-            names = [str(f.get("name")) for f in
-                     (got.get("standard_fields") or {}).get("fields", [])]  # type: ignore[union-attr]
-        cov = PE.field_coverage(rows, names) if names else {"rows": len(rows), "fields": {}}
+        doc_type = str(t.get("doc_type") or "")
+        dom = SVC._domain_of(doc_type)              # noqa: SLF001 —— 域推导唯一权威
+        names = _coverage_field_names(
+            dom, registered.get(t.get("id"), []) + registered.get(None, []))
+        cov = PE.field_coverage(rows, names)
         out_tables.append({
-            "table": t.get("table_name") or t.get("name") or "",
-            "domain": dom, "domain_cn": t.get("domain_cn") or domain_cn(dom),
+            "table_id": t.get("id"),
+            "table": t.get("sheet_name") or "",
+            "doc_type": doc_type,
+            "domain": dom, "domain_cn": domain_cn(dom),
+            "row_count": len(rows),
             "coverage": cov,
+            # 明示字段中文名（前端不用自己查字典）
+            "field_cn": {n: str((_field(n) or {}).get("cn") or n) for n in names},
         })
     return {"document_id": int(document_id), "tables": out_tables,
-            "table_count": len(out_tables)}
+            "table_count": len(out_tables),
+            "rows_total": sum(int((x.get("row_count") or 0)) for x in out_tables)}
 
 
 __all__ = ["router"]

@@ -8612,76 +8612,49 @@ async function exportTaxDocReport() {
 }
 
 
-// 导出 PDF：复用交付 HTML（自包含样式、草稿带水印），在新窗口打印为 PDF（浏览器「另存为 PDF」）。
+// 导出报告：**服务端渲染**（GAP-20，2026-10-18）。
+// ★ 旧实现是 `window.print()`：只有草稿版有 CSS 水印，正式版导出件**无任何防伪标识**，
+//   且**没有元数据**（无文档号/版本/复核标识/指纹）—— 用户日常导出的就是这种文件。
+//   现改为请求 `GET /api/tax-risk-docs/export`，由 `engine.report_render` 真渲染
+//   （4 视图 × 4 格式，水印为**真嵌入**），并写入 `report.export` 审计留痕。
+//   渲染失败**必须报错**，不回退浏览器打印（回退会静默丢掉防伪与留痕）。
 async function exportTaxDocReportPdf() {
-  var report = window._reportData || taxDocReportData || {};
-  var round = report.compliance_round || {};
-  var roundId = round.round_id || '';
-  if (!roundId) {
-    toast('当前报告尚未形成受控分析轮次，请重新执行一键分析', 'warning');
-    return;
-  }
   var btn = document.getElementById('tda-export-pdf-btn');
   var oldText = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = '生成PDF…'; }
+  if (btn) { btn.disabled = true; btn.textContent = '生成中…'; }
   try {
     var cid = _tdaCid();
-    var detailResp = await fetch('/api/compliance/rounds/' + encodeURIComponent(roundId) + '?company_id=' + encodeURIComponent(cid));
-    var detail = await _safeJson(detailResp, '报告发布状态');
-    if (!detailResp.ok || !detail.ok) throw new Error(detail.detail || detail.message || '无法读取报告发布状态');
-    var isOfficial = (detail.round || {}).status === 'published';
-    var body = { delivery_type: isOfficial ? 'official' : 'draft', format: 'html' };
-    if (isOfficial) {
-      body.recipient = '本企业管理层';
-      body.purpose = '企业内部税务合规决策（PDF导出）';
+    if (!cid) throw new Error('未选择账套，无法导出');
+    var url = '/api/tax-risk-docs/export?company_id=' + encodeURIComponent(cid)
+            + '&format=pdf&view=full';
+    // ★ POST（不是 GET）：导出写审计留痕、属"报告流出去了"的动作 ⇒ 必须受 CSRF 保护。
+    //   CSRF 头由 `static/js/security.js` 的 fetch 包装**统一注入**（非 GET 自动带），
+    //   此处不再自己解析 cookie（那会形成第二套取法）。
+    var resp = await fetch(url, {method: 'POST', credentials: 'same-origin'});
+    if (!resp.ok) {
+      var msg = '报告导出失败（HTTP ' + resp.status + '）';
+      try {
+        var j = await resp.json();
+        msg = j.detail || j.message || msg;
+      } catch (e) { /* 非 JSON ⇒ 保留状态码提示 */ }
+      throw new Error(msg);
     }
-    var response = await fetch('/api/compliance/rounds/' + encodeURIComponent(roundId) + '/deliver?company_id=' + encodeURIComponent(cid), {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    });
-    if (!response.ok) {
-      var error = await response.json().catch(function(){return {detail:'报告交付失败'};});
-      throw new Error(error.detail || error.message || '报告交付失败');
-    }
-    // ★ 2026-09-29（点评整改 P0-9）：**打印/另存为PDF 必须打印用户看到的完整报告**。
-    //   旧实现把 /deliver 返回的「三节摘要 HTML」（报告性质 / 待核事项 / 五流清单）
-    //   当成打印稿——用户点「导出PDF」得到的是摘要，与屏幕上的九章检查工作报告
-    //   完全不符（导出管线与呈现脱节）。
-    //   现改为：克隆屏幕上正在看的报告 → 经唯一净化点摘控件/展开折叠 → 打印。
-    //   水印仍按发布状态走治理（草稿带水印、正式无水印），不削弱交付约束。
-    var area = _reportExportSource();
-    var reportHtml;
-    if (area) {
-      var clone = area.cloneNode(true);
-      _sanitizeExportClone(clone);
-      var wm = isOfficial ? ''
-        : '<div class="wm">内部草稿 · 仅供内部复核 · 非正式结论</div>';
-      reportHtml = '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
-        + '<title>' + esc(_reportDocName(window.__wbLastReport)) + '</title>'
-        + '<style>body{font-family:"PingFang SC","Microsoft YaHei",serif;color:#1a1a1a;'
-        + 'margin:0;padding:32px 40px;line-height:1.85;position:relative}'
-        + 'table{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0}'
-        + 'th,td{border:1px solid #ddd;padding:6px 8px;text-align:left;vertical-align:top}'
-        + 'th{background:#f4f6f8}'
-        + '.wm{position:fixed;top:42%;left:0;right:0;text-align:center;font-size:52px;'
-        + 'color:rgba(0,0,0,0.07);font-weight:700;transform:rotate(-24deg);'
-        + 'pointer-events:none;z-index:9}'
-        + 'details>summary{list-style:none}@page{margin:12mm}'
-        + '</style></head><body>' + wm + clone.innerHTML + '</body></html>';
-    } else {
-      reportHtml = await response.text();
-    }
-    var w = window.open('', '_blank');
-    if (!w) throw new Error('浏览器拦截了弹出窗口，请允许本站弹出窗口后重试');
-    w.document.open();
-    w.document.write(reportHtml);
-    w.document.close();
-    w.focus();
-    setTimeout(function(){ w.print(); }, 400);
-    toast('已生成打印视图，请在打印对话框中选择「另存为 PDF」', 'success');
+    // 服务端渲染回执（可核对"确实走了服务端"与"水印方式"）
+    var docNo = resp.headers.get('X-Report-Doc-No') || '';
+    var wm = resp.headers.get('X-Report-Watermark') || '';
+    var blob = await resp.blob();
+    if (!blob || !blob.size) throw new Error('服务端返回空文件，未生成报告');
+    var a = document.createElement('a');
+    var href = URL.createObjectURL(blob);
+    a.href = href;
+    a.download = (docNo || 'report') + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(href); }, 4000);
+    toast('报告已由服务端生成并下载' + (wm ? '（水印：' + wm + '）' : ''), 'success');
   } catch (error) {
-    toast(error.message || 'PDF 导出失败', 'error');
+    toast(error.message || '报告导出失败', 'error');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = oldText; }
   }

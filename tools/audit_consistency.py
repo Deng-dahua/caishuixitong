@@ -5945,19 +5945,34 @@ def check_report_consistency() -> List[Tuple[str, str, str]]:
         if 'data-export-exclude="1"' not in _win:
             issues.append(("ERROR", "static/js/tax-doc-analysis.js",
                            f"「{_zh}」的导出提示段未标记 data-export-exclude（控件文案会入文）"))
-    # 导出 PDF 必须打印**当前完整报告**，不得只打印三节摘要
+    # 导出 PDF 必须**是屏幕上那份完整报告**
+    # ★ 2026-10-18（GAP-20）：口径已换 —— 导出改走**服务端渲染**
+    #   （`GET /api/tax-risk-docs/export` → `engine.report_render`，水印真嵌入、
+    #   带文档号/版本/复核标识）。所以判据不能再要求"克隆 DOM 再打印"
+    #   （那正是被替换掉的旧实现），而应断言：
+    #     ① 走服务端端点，**不再** `window.print()`（浏览器打印无防伪、无元数据）；
+    #     ② 失败时**报错**，不得回退浏览器打印（回退会静默丢掉防伪与留痕）；
+    #     ③ 读服务端回执头（否则"走了服务端"无法自证）。
+    #   ⚠ 判据只换口径、不放松：新版比旧版多要求"无 window.print"与"读回执"。
     _fn_i = _tda_src.find("async function exportTaxDocReportPdf")
     _fn_j = _tda_src.find("function deleteTaxDocReport", _fn_i if _fn_i >= 0 else 0)
     _pdf_seg = _tda_src[_fn_i:_fn_j] if (_fn_i >= 0 and _fn_j > _fn_i) else ""
-    if "_reportExportSource()" not in _tda_src:
+    if not _pdf_seg:
         issues.append(("ERROR", "static/js/tax-doc-analysis.js",
-                       "导出PDF未复用当前报告（只打印三节摘要，与屏幕报告不符）"))
-    elif "_reportExportSource()" not in _pdf_seg:
+                       "未找到导出报告函数（exportTaxDocReportPdf）"))
+    elif "/api/tax-risk-docs/export" not in _pdf_seg:
         issues.append(("ERROR", "static/js/tax-doc-analysis.js",
-                       "导出PDF未取当前报告（只打印三节摘要，与屏幕报告不符）"))
-    elif "_sanitizeExportClone(clone)" not in _pdf_seg and "_sanitizeExportClone(clone0)" not in _pdf_seg:
+                       "导出报告未走服务端渲染端点（浏览器打印无防伪/无元数据）"))
+    elif "window.print" in _pdf_seg:
         issues.append(("ERROR", "static/js/tax-doc-analysis.js",
-                       "导出PDF未经导出净化（控件文案/折叠空表会进交付文件）"))
+                       "导出报告仍在用 window.print（正式版导出件将无防伪标识）"))
+    elif "X-Report-Watermark" not in _pdf_seg:
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "导出未读服务端回执头（无法自证走了服务端渲染）"))
+    elif "_reportExportSource()" in _pdf_seg:
+        # 旧路径未清干净（同一函数里还留着 DOM 克隆打印分支）
+        issues.append(("ERROR", "static/js/tax-doc-analysis.js",
+                       "导出函数仍保留浏览器打印分支（与服务端渲染两条口径）"))
 
     # ══════════════════════════════════════════════════════════════
     # ★ 2026-10-02（用户质疑「内容是不是不匹配啊」派生出的同类缺陷）
@@ -13090,7 +13105,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
-               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique() + check_candidate_param_index())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
+               + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_legal_library_tier_disclosure() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique() + check_candidate_param_index())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
 
 
@@ -18317,8 +18332,42 @@ def check_legal_text_coverage() -> List[Tuple[str, str, str]]:
                        "未匹配引用（规则 %s）：%s ⇒ 与正文库对不上（%s）"
                        % (_u.get("rule_id"), str(_u.get("citation"))[:70],
                           "该法不在正文库" if not _u.get("law_in_library") else "条号无对应条文")))
-    print("  [法规正文] 引用 %d 处｜可匹配 %d（%.1f%%，基线 %.1f%%）｜正文库 %d 条｜未匹配 %d 处"
-          % (_tot, _hit, _now * 100, _base * 100, len(lib), len(_r.get("unmatched") or [])))
+
+    # ★★ 2026-10-18（GAP-17）：覆盖率**必须分两列**，且两列都不得退化。
+    #   旧口径只有一个 `coverage`，把"法规在库"（引用可定位）与"条号真对上"
+    #   （条号级可核对）混成一个数；约 15% 的引用只写到法名，拿单一数字当
+    #   "合规度"会误导。 ⇒ 登记文件必须同时含两列；任一列退化即 ERROR。
+    _lack = [k for k in ("law_coverage", "article_coverage", "no_article_refs",
+                         "article_total_refs") if k not in cov]
+    if _lack:
+        issues.append(("ERROR", str(cov_path),
+                       "覆盖率登记缺少 GAP-17 两列指标 %s ⇒ 无法区分「引用可定位」与"
+                       "「条号级可核对」（重跑 engine.legal_coverage.write_registry）"
+                       % _lack))
+    else:
+        for _key, _label in (("law_coverage", "引用可定位率"),
+                             ("article_coverage", "条号级可核对率")):
+            _base2 = float(cov.get(_key) or 0)
+            _now2 = float(_r.get(_key) or 0)
+            if round(_now2, 4) + 1e-9 < _base2:
+                issues.append(("ERROR", str(cov_path),
+                               "%s**退化**：现算 %.1f%% < 登记 %.1f%% ⇒ 引用与正文库脱节"
+                               % (_label, _now2 * 100, _base2 * 100)))
+        # 未写条号的引用数必须如实登记（它正是"两列不能合并"的理由）
+        if int(cov.get("no_article_refs") or 0) != int(_r.get("no_article_refs") or 0):
+            issues.append(("ERROR", str(cov_path),
+                           "`no_article_refs` 登记值 %s 与现算 %s 不一致 ⇒ "
+                           "「只到法名」的引用数被改写（禁止美化口径）"
+                           % (cov.get("no_article_refs"), _r.get("no_article_refs"))))
+
+    print("  [法规正文] 引用 %d 处｜可匹配 %d（%.1f%%，基线 %.1f%%）｜"
+          "引用可定位 %.1f%%｜条号级可核对 %d/%d=%.1f%%｜仅到法名 %d 处｜正文库 %d 条｜未匹配 %d 处"
+          % (_tot, _hit, _now * 100, _base * 100,
+             float(_r.get("law_coverage") or 0) * 100,
+             int(_r.get("article_matched_refs") or 0), int(_r.get("article_total_refs") or 0),
+             float(_r.get("article_coverage") or 0) * 100,
+             int(_r.get("no_article_refs") or 0),
+             len(lib), len(_r.get("unmatched") or [])))
     return issues
 
 
@@ -19514,6 +19563,88 @@ def check_rule_version_manage_wiring() -> List[Tuple[str, str, str]]:
     if _i_par >= 0 and 0 <= _i_lit and _i_lit > _i_par:
         issues.append(("ERROR", "rule_versions_api.py",
                        "`/rule-versions/meta` 注册在 `{version}` **之后** ⇒ 会被路径参数吃掉"))
+    return issues
+
+
+def check_legal_library_tier_disclosure() -> List[Tuple[str, str, str]]:
+    """法规库**分档披露**闸门（GAP-18，2026-10-18）。
+
+    背景：法规库 7,692 条里税务核心法仅 1,105 条（14.4%），背景法（民法典/刑法/
+    诉讼法/立法法）4,948 条。若文档或统计接口**只给总条数**，读者会把"库很大"
+    当成"税务覆盖很全" —— 这是用总量掩盖结构，属"误导性表述"。
+
+    判据：
+      A `engine/legal_tier.py` 与 `config/legal_law_tiers.json` 必须存在（唯一权威）；
+      B `engine.legal_library.stats()` 必须返回 `by_tier`（含 tax 档条数与占比）；
+      C 分层判定**必须来自配置**：`legal_tier` 里不得硬编码具体法名清单
+        （除配置文件名外，源码不出现"中华人民共和国XX法"这类法名字面量）；
+      D 文档里出现"法规库共 N 条"这类总量表述时，**同一行**必须同时给税务口径
+        （防"只报总数"）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    tier_py = ROOT / "engine" / "legal_tier.py"
+    tier_cfg = ROOT / "config" / "legal_law_tiers.json"
+    if not tier_py.exists():
+        issues.append(("ERROR", str(tier_py), "法规分层唯一实现缺失（GAP-18 会复发）"))
+        return issues
+    if not tier_cfg.exists():
+        issues.append(("ERROR", str(tier_cfg), "法规分层配置缺失（分层判定必须以数据为准）"))
+        return issues
+
+    # C 源码不得硬编码法名清单
+    src = tier_py.read_text(encoding="utf-8")
+    hard = re.findall(r"《?中华人民共和国[\u4e00-\u9fff]{2,12}(?:法|条例|办法)》?", src)
+    if hard:
+        issues.append(("ERROR", str(tier_py),
+                       "分层判定硬编码了法名 %s ⇒ 应写进 config/legal_law_tiers.json"
+                       % sorted(set(hard))[:5]))
+
+    # B 统计接口必须分档
+    try:
+        sys.path.insert(0, str(ROOT))
+        from engine import legal_library as _LL               # noqa: PLC0415
+        st = _LL.stats()
+        bt = st.get("by_tier") or {}
+        if not isinstance(bt, dict) or "by_tier" not in bt:
+            issues.append(("ERROR", str(ROOT / "engine" / "legal_library.py"),
+                           "stats() 未返回 by_tier（只报总数 = 掩盖税务口径占比）"))
+        else:
+            tiers = {x.get("tier"): x for x in (bt.get("by_tier") or [])}
+            if "tax" not in tiers:
+                issues.append(("ERROR", "engine/legal_library.py",
+                               "by_tier 缺 tax 档（必须给出税务核心法条数）"))
+            elif not bt.get("tax_share") and bt.get("tax_share") != 0:
+                issues.append(("ERROR", "engine/legal_library.py",
+                               "by_tier 缺 tax_share（税务口径占比）"))
+            else:
+                print("  [法规分层] 总 %s 条｜税务核心法 %s 条（%.1f%%）｜涉税相关 %s｜背景法 %s"
+                      % (bt.get("articles"), bt.get("tax_articles"),
+                         float(bt.get("tax_share") or 0) * 100,
+                         (tiers.get("related") or {}).get("articles"),
+                         (tiers.get("background") or {}).get("articles")))
+    except Exception as exc:                                  # noqa: BLE001
+        issues.append(("ERROR", "engine/legal_library.py", "分档统计不可得：%s" % exc))
+
+    # D 文档"只报总数"检查（同一行必须出现税务口径）
+    total_re = re.compile(r"(法规库|条文库|法律库)[^。\n]{0,20}?(\d[\d,]{2,})\s*条")
+    allow_files = [ROOT / "docs"]
+    for d in allow_files:
+        if not d.exists():
+            continue
+        for p in sorted(d.glob("*.md")):
+            try:
+                for i, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1):
+                    m = total_re.search(line)
+                    if not m:
+                        continue
+                    if any(k in line for k in ("税务核心法", "税务口径", "tax_share", "by_tier")):
+                        continue
+                    # 带"含/其中/分档"等限定且给出层名的也放过
+                    issues.append(("WARN", str(p),
+                                   "第 %d 行只报法规库总条数（%s 条）而未同处给税务口径 ⇒ "
+                                   "应改用 engine.legal_tier.disclosure_line()" % (i, m.group(2))))
+            except Exception:                                 # noqa: BLE001
+                continue
     return issues
 
 

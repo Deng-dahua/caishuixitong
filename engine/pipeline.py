@@ -4957,6 +4957,39 @@ def _run_analyze(company_id, db, progress_callback=None):
                     _f["final_answer"] = ""
                 _scenario_execution.setdefault("findings", []).append(_f)
                 _objective_injected += 1
+        # ═══════════════════════════════════════════════════════════════════
+        # ★ 2026-10-18（GAP-16）：**用户上传的报表**勾稽结果并入分析。
+        #   此前 `extract_validate` 对上传报表算了 1 元容差勾稽（资产总计 ≠
+        #   负债合计 + 所有者权益合计）并写进 `extract_issues`，但一键分析
+        #   **从不读它** —— 用户传了一张不平的资产负债表，报告毫无反应。
+        #   注意：分析链里的 `_check_balance_sheet_balance` 勾稽的是「科目余额表
+        #   **反推**出来的三表」，与"用户上传的那张表"是两回事，不能互相顶替。
+        #   唯一取数口：`engine.statement_check_feed`。
+        # ═══════════════════════════════════════════════════════════════════
+        try:
+            from engine.statement_check_feed import collect_findings as _xcheck_collect
+            _x_findings, _x_receipt = _xcheck_collect(company_id)
+            if _x_findings:
+                _existing_x = {str(_f.get("fact_id") or "") for _f in
+                               (_scenario_execution.get("findings") or [])}
+                _x_added = 0
+                for _xf in _x_findings:
+                    if str(_xf.get("fact_id") or "") in _existing_x:
+                        continue
+                    _scenario_execution.setdefault("findings", []).append(_xf)
+                    _existing_x.add(str(_xf.get("fact_id") or ""))
+                    _x_added += 1
+                pipeline_log.append(
+                    "[上传报表勾稽] 已并入 %d 项发现（%s）" % (_x_added, _x_receipt.get("note")))
+                _existing_fact_ids.update(
+                    str(_xf.get("fact_id") or "") for _xf in _x_findings)
+            else:
+                # ★ 不静默：读不到 与 没有异常 必须区分（缺失如实）
+                pipeline_log.append(
+                    "[上传报表勾稽] 未并入发现（%s）" % _x_receipt.get("note"))
+        except Exception as _xe:                          # noqa: BLE001
+            pipeline_log.append("[上传报表勾稽] 取数异常，本项未参与：%s" % _xe)
+
         if _objective_injected:
             all_findings = _scenario_execution["findings"]
             # 注入后重算域汇总，使 BOM/仓储/运输/存货勾稽域进入报告 domain_summary

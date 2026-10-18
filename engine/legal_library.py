@@ -233,9 +233,27 @@ def stats() -> Dict[str, Any]:
         "unregistered_laws": unregistered,
         "blocking_laws": blocking,
         "coverage": _coverage(),
+        # ★ 2026-10-18（GAP-18）：**分档披露**。7,680 条里税务口径只占约 10%~15%，
+        #   背景法（民法典/刑法/诉讼法）占八以上 —— 只报总数会让读者把"库很大"
+        #   当成"税务覆盖很全"。分层权威 = `engine.legal_tier`（数据驱动）。
+        "by_tier": _tier_stats(rows),
+        "tier_note": ("`by_tier` 为按 `config/legal_law_tiers.json` 分层的条数；"
+                      "对外表述**不得只给 `articles`**，须同时给 `tax` 档条数与占比。"),
         "note": ("`blocking_laws` 为**已被取代/失效**的法（红线引用到即由闸门拦下）；"
                  "`unregistered_laws` 为**版本未登记**（不等于失效，须人工核对）。"),
     }
+
+
+def _tier_stats(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """分档条数（薄转发 `engine.legal_tier.library_stats`，不另写一套判定）。"""
+    try:
+        from engine.legal_tier import library_stats as _ls    # noqa: PLC0415
+        st = _ls(rows)
+        return {"articles": st["articles"], "tax_articles": st["tax_articles"],
+                "tax_share": st["tax_share"], "by_tier": st["by_tier"]}
+    except Exception as exc:                                  # noqa: BLE001
+        # 取不到就如实说"不可得"，不留空让人猜
+        return {"error": "分层统计不可得：%s" % exc}
 
 
 __all__ = ["metadata", "article_entries", "laws", "law_detail", "stats"]

@@ -25,6 +25,9 @@
     "voucher": "ledger",
     "ledger": "ledger",
     "inventory": "ledger",
+    "trial_balance": "ledger",
+    "journal": "ledger",
+    "general_ledger": "ledger",
 
     "sales_invoice": "invoice",
     "purchase_invoice": "invoice",

@@ -78,7 +78,9 @@ class ProjectServiceUnitTests(unittest.TestCase):
 
             # 2) 建：正常
             p = SVC.create_project({
-                "name": "单元测试企业", "taxpayer_id": "91440300MA5UNIT01",
+                # ★ 2026-10-18：原样例 `91440300MA5UNIT01` 只有 17 位（法定为 18 位），
+                #   服务层校验是对的、样例数据是错的 ⇒ 修数据不改判据。
+                "name": "单元测试企业", "taxpayer_id": "91440300MA5UNIT011",
                 "industry": "制造业", "region": "深圳",
                 "period_start": "2024-01-01", "period_end": "2024-12-31",
                 "tax_scopes": ["增值税", "企业所得税", "增值税"],
@@ -497,10 +499,12 @@ class ProjectFrontendContractTests(unittest.TestCase):
                                   "password": "Integration-Test-2026!"})
                 h = {"X-CSRF-Token": client.cookies.get("csrf_token")}
 
-                # 已登录但**未选账套** ⇒ 既有安全策略重定向到 /select-company（不是缺陷）
+                # 已登录但**未选账套** ⇒ 直接可进（★ 2026-10-15 用户裁定"账套概念退役"：
+                #   原"未选账套 ⇒ HTML 页面一律 302 /select-company"守卫已**有意删除**，
+                #   手机号账号登录后直接进主页。此处锁的是**现行口径**，不是放宽判据。）
                 noselect = client.get("/projects", follow_redirects=False)
-                assert noselect.status_code == 302, noselect.status_code
-                assert "/select-company" in noselect.headers.get("location", ""), \\
+                assert noselect.status_code == 200, noselect.status_code
+                assert "/select-company" not in noselect.headers.get("location", ""), \\
                     noselect.headers.get("location")
 
                 cid = client.post("/api/companies", headers=h,

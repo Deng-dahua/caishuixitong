@@ -144,10 +144,17 @@ class TianyanchaVerifier(BaseVerifier):
     def verify_company(self, company_name: str, tax_id: str = "") -> Dict:
         if not self.token:
             return {"ok": False, "error": "天眼查Token未配置", "configure": "设置环境变量 TYC_TOKEN"}
-        
-        # TODO: 对接天眼查API
-        # API文档: https://open.tianyancha.com
-        return {"ok": False, "error": "API对接待实现", "source": self.name}
+
+        # ★ 2026-10-18（收口）：**未实现，且不假装实现**。
+        #   这是"外部数据源对接"，需要①正式商务账号 ②按厂商文档实现签名/限流/字段映射
+        #   ③法务确认调用范围 —— 三件都不在代码侧，无法靠"写个函数"完成。
+        #   因此这里不做 TODO 式占位（TODO 会被当成"快好了"，反而掩盖真状态），
+        #   而是**如实返回"未对接"**并登记到《v2 Backlog》。
+        #   现状：系统在缺此数据源时按"外部核验不可得"走中性口径（不臆断、不降级为风险）。
+        return {"ok": False,
+                "error": "天眼查 API 未对接（需商务账号与法务确认，已登记 v2 Backlog）",
+                "source": self.name,
+                "status": "not_integrated"}
     
     def get_status(self):
         return "已配置" if self.token else "未配置Token"

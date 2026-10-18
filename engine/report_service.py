@@ -284,7 +284,7 @@ def _sec_cover(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 def _sec_disclaimer(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
     d = ctx["disclaimer"]
-    return [
+    blocks = [
         _block_para(d.get("identity_line")),
         _block_kv([
             ("报告性质", d.get("non_enforcement_note")),
@@ -295,6 +295,16 @@ def _sec_disclaimer(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
             ("免责声明正文", d.get("identity_line")),
         ]),
     ]
+    # ★ 2026-10-18（GAP-22）：**行业模板口径声明**。导出链（本模块 → report_render）
+    #   用的是 12 节结构，与「一键分析」报告的 9 章结构是两套文档模型，
+    #   行业模板（`engine/report_template`）目前只作用于后者。
+    #   **要么接进来、要么如实声明** —— 这里选"如实声明"，并且把该行业模板的
+    #   重点与章节顺序**照实列出**，让读者自己判断导出件与屏幕件的关系。
+    #   （不静默：用户不会以为"导出件也按行业适配过了"。）
+    decl = str(ctx.get("template_declaration") or "").strip()
+    if decl:
+        blocks.append(_block_note(decl))
+    return blocks
 
 
 def _sec_project(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -623,6 +633,11 @@ def _sec_attachments(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
+#: 空章节的**唯一**原因文案（GAP-21）。
+#: ★ 不写"其余/兜底/略"这类含糊词；要说清"为什么没有"，让读者知道下一步做什么。
+_EMPTY_SECTION_REASON = "本轮所报资料未产出该章内容，已不列示；补齐相关资料后重新生成即会出现。"
+
+
 _SECTION_BUILDERS = {
     "cover": _sec_cover,
     "disclaimer": _sec_disclaimer,
@@ -791,6 +806,13 @@ def build_document(project_id: Any, session: Any, *, view: Any = "full",
         "files": {},
         "limit": VIEWS.item_limit_of(view_code),
     }
+    # ★ 2026-10-18（GAP-22）：行业模板与导出链的**关系要显式声明**。
+    #   事实：行业模板（`engine/report_template`，9 章口径）只作用于一键分析报告；
+    #   本模块组装的是 12 节结构的**报告管理/导出**文档模型 ⇒ 行业模板不参与重排。
+    #   以前这件事**完全没说**，用户从导出件里看不出"行业适配到底生没生效"。
+    #   现在：`out_doc["template_meta"]` 如实登记，并在免责声明章写一段口径声明。
+    _tpl_meta, _tpl_decl = _industry_template_meta(ctx["company"].get("industry"))
+    ctx["template_declaration"] = _tpl_decl
     # 免责声明（唯一权威）
     sec_blk = RC.security_block("internal_working_paper")
     ctx["disclaimer"] = {
@@ -804,11 +826,20 @@ def build_document(project_id: Any, session: Any, *, view: Any = "full",
                              or (RC.authorization_block() or {}).get("note") or ""),
     }
     sections = []
+    skipped: List[Dict[str, Any]] = []
     for key in secs:
         builder = _SECTION_BUILDERS.get(key)
         if builder is None:
             continue
         blocks = [b for b in builder(ctx) if not _is_blank(b)]
+        # ★ 2026-10-18（GAP-21）：**空章节整章剔除**，并在 `skipped_sections` 里如实登记。
+        #   旧口径只丢空块、不丢空章 ⇒ 报告里会出现"只有标题的章节壳"（观感与可信度都受损）。
+        #   两种做法都不许"静默"：剔除必须留下原因，渲染层必须写明"本章无内容"，
+        #   否则读者会以为是漏印。
+        if not blocks:
+            skipped.append({"key": key, "title": VIEWS.SECTION_CN[key],
+                            "reason": _EMPTY_SECTION_REASON})
+            continue
         sections.append({"key": key, "title": VIEWS.SECTION_CN[key], "blocks": blocks})
     out_doc = {
         "name": ctx["name"], "view": view_code, "view_label": ctx["view_label"],
@@ -820,8 +851,16 @@ def build_document(project_id: Any, session: Any, *, view: Any = "full",
                                              "end": ctx["period_end"]},
         "project": ctx["project"], "disclaimer": ctx["disclaimer"],
         "sections": sections,
+        # ★ 2026-10-18（GAP-21）：**空章节**（本轮无数据，已整章剔除）如实登记 + 给原因。
+        #   与 `omitted`（视图按范围裁剪）**语义不同**，不得混用：
+        #     · `omitted`  = "这个视图不看这一章"（换视图就有）
+        #     · `skipped_sections` = "这一章本轮确实没内容"（换视图也没有，须补数据）
+        "skipped_sections": skipped,
         "omitted": [{"key": k, "title": VIEWS.SECTION_CN[k]}
                     for k in VIEWS.omitted_sections_of(view_code)],
+        # ★ 2026-10-18（GAP-22）：行业模板与导出链的关系（如实声明，详见
+        #   `_industry_template_meta`）。`applied=False` 是**事实**，不是缺陷标记。
+        "template_meta": _tpl_meta,
         "counts": {"sections": len(sections), "findings": len(findings),
                    "taxes": len({t for f in findings for t in (f.get("taxes") or [])}),
                    "evidences": len(collected.get("evidences") or []),
@@ -833,6 +872,43 @@ def build_document(project_id: Any, session: Any, *, view: Any = "full",
     #   `generate` 在拿到台账编号后会**重算一次**（那时才有 doc_no/version）。
     out_doc["watermark_text"] = RENDER.watermark_text_of(out_doc)
     return out_doc
+
+
+def _industry_template_meta(industry: Any) -> Tuple[Dict[str, Any], str]:
+    """行业模板与**本导出链**的关系（GAP-22，唯一实现）。
+
+    返回 `(meta, declaration_text)`：
+      · `meta.applied` 恒为 `False` 并写明原因 —— 本链走 12 节结构，
+        行业模板的 9 章重排**不适用**（不是"忘了接"，是两套文档模型）；
+      · 适配信息（是否匹配、重点、9 章顺序）**照实列出**，供读者对照；
+      · 行业匹配不上 ⇒ 明说"按通用结构"，不冒用别行业模板（与模板模块铁律一致）。
+    """
+    meta: Dict[str, Any] = {"industry": str(industry or ""), "applied": False,
+                            "matched": False, "template_id": "", "emphasis": "",
+                            "sections": [], "reason": ""}
+    decl = ""
+    try:
+        from engine import report_template as RT                 # noqa: PLC0415
+        tpl = RT.template_of(str(industry or ""))
+        meta["matched"] = bool(tpl)
+        meta["template_id"] = str(tpl.get("template_id") or "")
+        meta["emphasis"] = str(tpl.get("emphasis") or "")
+        meta["sections"] = list(RT.section_order(str(industry or "")) or [])
+        meta["reason"] = ("本导出件按 12 节通用结构装配，行业模板的 9 章重排只适用于"
+                          "「一键分析」报告；行业模板的适配信息见 meta，导出件不重排章节。")
+        if tpl:
+            decl = ("行业模板口径：本导出件按 12 节通用结构装配，未按行业模板重排章节"
+                    "（行业模板仅作用于「一键分析」报告）。本次识别行业「%s」，"
+                    "该行业模板重点为「%s」。需要行业适配版请使用「一键分析」报告。"
+                    % (str(industry or "（未识别）"), meta["emphasis"] or "（模板未登记重点）"))
+        else:
+            decl = ("行业模板口径：未匹配到「%s」的行业模板，本导出件按通用结构装配；"
+                    "不冒用其他行业模板。" % (str(industry or "（未填行业）")))
+    except Exception as exc:                                     # noqa: BLE001
+        # 取不到就如实说"不可得"，不留空让人猜
+        meta["reason"] = "行业模板信息不可得：%s" % exc
+        decl = "行业模板口径：行业模板信息读取失败（%s），本导出件按通用结构装配。" % exc
+    return meta, decl
 
 
 def _is_blank(b: Dict[str, Any]) -> bool:

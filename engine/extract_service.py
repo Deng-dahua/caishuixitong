@@ -24,14 +24,27 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from engine.extract_store import ensure_schema
 from engine.extract_validate import RULES, RULE_CN, summary as _vsum, validate_rows
+from engine.numparse import to_number_checked
 from engine.standard_fields import (
-    aliases_of, domain_cn, field as _field, field_names, fields_of_domain,
-    normalize_value, value_from_row,
+    aliases_of, cross_domain_hits, domain_cn, field as _field, field_names,
+    fields_of_domain, normalize_value, value_from_row,
 )
+
+#: 进程内缓存（**只读派生**：配置读出后常驻；改配置须调 `reset_caches()`）
+_CACHE: Dict[str, Any] = {}
+
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_DECLARATION_LINES = os.path.join(_PROJECT_ROOT, "config", "declaration_lines.json")
+
+
+def reset_caches() -> None:
+    """丢弃本模块的派生缓存（改 `config/declaration_lines.json` 后必须调用）。"""
+    _CACHE.clear()
 
 
 class ExtractError(Exception):
@@ -369,29 +382,41 @@ def _domain_of(doc_type: Any) -> str:
 
 
 def _registered_names(rows: List[Dict[str, Any]], doc_type: Any) -> List[str]:
-    """本表**命中**的标准字段：域字段（含 common）+ 实际能在行里取到值的全局字段。
+    """本表**命中**的标准字段：域字段（含 common）+ **白名单内**的跨域字段。
 
     ★ 口径：只登记**真取到值**的字段（不登记空字段 ⇒ 不制造"假字段"）；
-      必填字段即便取不到也登记一次（否则「必填缺失」无从判定）。
+    ★ GAP-13 域隔离：跨域登记只允许 `config/standard_fields.json::_isolation`
+      白名单内的字段，且只能凭**该字段独有的别名**命中（共用别名如「日期」
+      「金额」「税额」不作依据）—— 该规则唯一实现在 `standard_fields.cross_domain_hits`。
+    ★ 必填字段**按本表所在域**要求（不為别的域强加必填缺失）；未知域才要求全部必填。
     """
+    from engine.standard_fields import required_names as _req
     dom = _domain_of(doc_type)
     names: List[str] = []
     for f in fields_of_domain(dom) + fields_of_domain("common"):
         names.append(str(f.get("name")))
-    for f in _other_domain_hits(rows, exclude=set(names)):
-        names.append(f)
-    for n in [str(x.get("name")) for x in _required_all()]:
+    # ① 域内必填字段（即便取不到也登记，否则「必填缺失」无从判定）
+    req_local = [n for n in _req(dom) if n] if dom else [str(x.get("name")) for x in _required_all()]
+    for n in req_local:
         if n not in names:
             names.append(n)
+    # ② 白名单内的跨域命中（受域隔离约束）
+    for n in cross_domain_hits(rows, dom, exclude=set(names)):
+        if n not in names:
+            names.append(n)
+    # ③ 未知域：全部必填字段都登记（没有域可依据 ⇒ 不放过必填缺失）
+    if not dom:
+        for n in [str(x.get("name")) for x in _required_all()]:
+            if n not in names:
+                names.append(n)
     seen: set = set()
     out: List[str] = []
     for n in names:
         if n and n not in seen:
             seen.add(n)
             out.append(n)
-    # 过滤：既非必填、行里也取不到值的字段 → 丢弃（避免登记空字段）
-    from engine.standard_fields import required_names as _req
-    req = set(_req())
+    # 过滤：既非本域必填、行里也取不到值的字段 → 丢弃（避免登记空字段）
+    req = set(_req(dom) if dom else _req())
     keep = []
     for n in out:
         if n in req:
@@ -407,17 +432,9 @@ def _required_all() -> List[Dict[str, Any]]:
     return [x for x in _f() if x.get("required")]
 
 
-def _other_domain_hits(rows: List[Dict[str, Any]], exclude: set) -> List[str]:
-    """跨域命中：某些资料（如 PDF 合同）可能带发票/银行字段 —— 取到即登记。"""
-    from engine.standard_fields import fields as _f   # noqa: PLC0415
-    out = []
-    for f in _f():
-        n = str(f.get("name"))
-        if n in exclude:
-            continue
-        if any(value_from_row(n, r) not in (None, "") for r in rows):
-            out.append(n)
-    return out
+# ★ 2026-10-18 已删除 `_other_domain_hits()`：它是"任何域的字段只要取到值就登记"
+#   的无上界实现（GAP-13 串域根因）。域隔离口径唯一实现在
+#   `engine.standard_fields.cross_domain_hits()`，本模块只做薄调用。
 
 
 def _fallback_vertical_kv(path: str, ext: str, parsed: Any) -> Optional[Dict[str, Any]]:
@@ -506,6 +523,321 @@ def _fallback_vertical_kv(path: str, ext: str, parsed: Any) -> Optional[Dict[str
     return None
 
 
+#: 报表族类型码（这些表的**项目名在单元格值里**，不在列名上 ⇒ 必须透视）
+STATEMENT_TYPES: Tuple[str, ...] = (
+    "financial_statement", "financial_statements", "balance_sheet",
+    "income_statement", "cash_flow_statement", "equity_statement",
+)
+
+#: 报表里的**序号类列**（是数值，但不是金额；不排除会把"行次 30"当成"资产总计"）
+_ORDINAL_HEADERS: Tuple[str, ...] = (
+    "行次", "序号", "行号", "编号", "附注", "no", "No", "NO",
+)
+
+#: 报表金额列的**列名择优顺序**（前面优先；都不命中才退回第一个数值列）
+_AMOUNT_HEADER_HINTS: Tuple[str, ...] = (
+    "期末余额", "期末", "本年累计", "本年", "本期金额", "本期", "本期发生额",
+    "金额", "余额", "累计", "实际", "合并",
+)
+
+#: 报表项目名的**序号/连接词前缀**（真实报表都这么写：`一、营业收入`、`减：营业成本`）
+#: 标准字段别名是**严格相等**匹配（`营业收入`），不去前缀就永远取不到。
+_STATEMENT_LABEL_PREFIX = re.compile(
+    r"^\s*(?:[一二三四五六七八九十]+[、．.]|减\s*[:：]|加\s*[:：]|其中\s*[:：]|"
+    r"\([一二三四五六七八九十]+\)|（[一二三四五六七八九十]+）)\s*")
+
+
+def _strip_statement_prefix(label: str) -> str:
+    """去掉报表项目名的序号/连接词前缀（可多层，如「其中：一、xxx」）。"""
+    s = str(label or "").strip()
+    for _ in range(3):
+        new = _STATEMENT_LABEL_PREFIX.sub("", s)
+        if new == s:
+            break
+        s = new
+    return s.strip()
+
+
+def _pivot_statement_sheet(path: str, ext: str, doc_type: str) -> Optional[Dict[str, Any]]:
+    """把**财务报表**透视成一行 `{报表项目名: 金额}`（GAP-15，2026-10-18）。
+
+    为什么必须单独做（既有通用解析器做不到）：
+      财务报表的**字段名在单元格的值里**（"资产总计"、"负债合计"…），不在列名上。
+      通用解析器按"表头→行"取值，于是：
+        · **纵向**表（项目 | 期末余额）⇒ 列名是"项目/期末余额"，`total_assets`
+          （别名="资产总计"）永远取不到；
+        · **横向双栏**表（资产 | 期末 | 年初 | 负债和所有者权益 | 期末 | 年初）
+          ⇒ 左右两组被拼成一行，金额互相错配（实测：货币资金 1,250,000 变成
+          短期借款 300,000），数据**看起来有、其实全错**，比没有更危险。
+    做法：识别"文本项目列 + 其右侧数值列"为一组，可识别多组（横向双栏 2 组、
+    纵向 1 组），全部并入同一行 `{项目名: 首个数值列的值}`。
+
+    ★ 保守启用（宁缺勿错）：透视出的项目里**必须至少有一个命中报表域字段别名**
+      （如"资产总计"），否则返回 `None`，让调用方照常报"未识别出结构"，不伪造。
+    """
+    if ext not in (".xlsx", ".xls"):
+        return None
+    from engine.numparse import to_number_checked     # noqa: PLC0415
+    try:
+        from engine.workbook import load_workbook, close_workbook   # noqa: PLC0415
+    except Exception:                                 # noqa: BLE001
+        return None
+    from engine.standard_fields import fields_of_domain   # noqa: PLC0415
+    known = set()
+    for f in fields_of_domain("report"):
+        known.add(str(f.get("name")))
+    known_aliases = set()
+    from engine.standard_fields import aliases_of      # noqa: PLC0415
+    for n in known:
+        known_aliases.update(aliases_of(n))
+
+    wb = None
+    try:
+        wb = load_workbook(path, read_only=True, data_only=True)
+        for ws in wb.worksheets:
+            grid: List[List[Any]] = []
+            for row in ws.iter_rows(values_only=True):
+                grid.append(list(row or []))
+                if len(grid) > 400:
+                    break
+            grid = [r for r in grid if any(c not in (None, "") for c in r)]
+            if len(grid) < 3:
+                continue
+            width = max(len(r) for r in grid)
+            if width < 2:
+                continue
+
+            def _cell(r: List[Any], c: int) -> Any:
+                return r[c] if c < len(r) else None
+
+            def _is_text_col(c: int) -> bool:
+                vals = [str(_cell(r, c)).strip() for r in grid[1:]
+                        if _cell(r, c) not in (None, "")]
+                if len(vals) < 2:
+                    return False
+                txt = sum(1 for v in vals if not to_number_checked(v, default=-1.0)[1])
+                return txt >= len(vals) * 0.6
+
+            def _is_num_col(c: int) -> bool:
+                vals = [_cell(r, c) for r in grid[1:] if _cell(r, c) not in (None, "")]
+                if len(vals) < 2:
+                    return False
+                ok = sum(1 for v in vals if to_number_checked(v, default=-1.0)[1])
+                return ok >= len(vals) * 0.7
+
+            # 组 = (项目列, 紧随其后的若干数值列)
+            # ★ 数值列不都是金额：**「行次/序号」也是数值列**（实测纵向资产负债表
+            #   `项目|行次|期末余额|年初余额` 会把"行次"1/4/30/45/60 当金额取走）。
+            #   先按列名**排除**序号类，再按列名**择优**（期末>本年>本期>金额>余额…），
+            #   都没有命中才取第一个 —— 全靠两张词表，不写死列位置。
+            _hdr = [str(x or "").strip() for x in grid[0]] if grid else []
+
+            def _head(c: int) -> str:
+                return _hdr[c] if c < len(_hdr) else ""
+
+            def _is_ordinal_col(c: int) -> bool:
+                return any(k in _head(c) for k in _ORDINAL_HEADERS)
+
+            def _pick_amount_col(cols: List[int]) -> int:
+                cands = [c for c in cols if not _is_ordinal_col(c)] or list(cols)
+                for hint in _AMOUNT_HEADER_HINTS:
+                    for c in cands:
+                        if hint in _head(c):
+                            return c
+                return cands[0]
+
+            groups: List[Tuple[int, List[int]]] = []
+            c = 0
+            while c < width:
+                if _is_text_col(c):
+                    amt_cols = [x for x in (c + 1, c + 2, c + 3)
+                                if x < width and _is_num_col(x)]
+                    if amt_cols:
+                        groups.append((c, amt_cols))
+                        c = max(amt_cols) + 1
+                        continue
+                c += 1
+            if not groups:
+                continue
+
+            pivoted: Dict[str, Any] = {}
+            order: List[str] = []
+            for name_c, amt_cols in groups:
+                amt_c = _pick_amount_col(amt_cols)
+                for r in grid[1:]:
+                    nm = _cell(r, name_c)
+                    if nm in (None, ""):
+                        continue
+                    k = str(nm).strip()
+                    if not k or k in pivoted:
+                        continue
+                    amt = _cell(r, amt_c)
+                    if amt in (None, ""):
+                        continue
+                    if not to_number_checked(amt, default=0.0)[1]:
+                        continue
+                    pivoted[k] = amt
+                    order.append(k)
+                    # ★ 同时登记**去前缀**的键：真实报表写「一、营业收入」「减：营业成本」，
+                    #   而标准字段别名是严格相等的「营业收入」「营业成本」⇒ 不去前缀取不到。
+                    bare = _strip_statement_prefix(k)
+                    if bare and bare != k and bare not in pivoted:
+                        pivoted[bare] = amt
+            if len(pivoted) < 2:
+                continue
+            # ★ 保守门槛：至少一个项目命中报表域字段别名，否则不认
+            if not (set(pivoted) & known_aliases):
+                continue
+            return {"sheet": str(ws.title or ""), "doc_type": doc_type,
+                    "confidence": 0.8, "source": "statement-pivot",
+                    "header": ["项目"] + order[:400],
+                    "rows": [pivoted]}
+    except Exception:                                 # noqa: BLE001
+        return None
+    finally:
+        if wb is not None:
+            try:
+                close_workbook(wb)                    # ★ 必须关（read_only 的 zip 句柄）
+            except Exception:                         # noqa: BLE001
+                pass
+    return None
+
+
+def _declaration_specs() -> Dict[str, Any]:
+    """申报表行次映射（**唯一权威** `config/declaration_lines.json`）。"""
+    if "_decl_specs" not in _CACHE:
+        try:
+            with open(_DECLARATION_LINES, "r", encoding="utf-8") as fh:
+                _CACHE["_decl_specs"] = (json.load(fh) or {}).get("declarations") or {}
+        except Exception:                             # noqa: BLE001
+            _CACHE["_decl_specs"] = {}
+    return _CACHE["_decl_specs"]
+
+
+#: 申报文本行：`项目名 行次 [=公式] 本月数 [本年累计 ...]`
+#: 例：`销项税额 11 14,749.62 14,749.62 0.00 0.00`
+#:     `应纳税额 19=11-18 2,063.52 2,063.52 0.00 0.00`（行次后带公式 ⇒ 单独容错）
+_DECL_LINE_RE = re.compile(
+    r"^(?P<label>[^\d]{2,60}?)\s*(?P<line>\d{1,3})\s*(?:=\s*[\d\+\-\*\/\(\)]+)?\s+"
+    r"(?P<amount>-?[\d,]+(?:\.\d+)?)\b")
+
+
+def _extract_declaration_lines(scan_text: str, spec: Dict[str, Any],
+                               key: str) -> Optional[Dict[str, Any]]:
+    """纯函数：申报表**文本** → 一行 `{标准字段: 金额}`（可单测，不依赖 PDF）。
+
+    ★ 保守口径：行次不在映射表就跳过（不按项目名猜字段）；一个字段都没抽到
+      ⇒ 返回 `None`（不伪造空表）。
+    """
+    lines_map: Dict[str, Dict[str, Any]] = {
+        str(k): v for k, v in (spec.get("lines") or {}).items() if isinstance(v, dict)}
+    row: Dict[str, Any] = {}
+    hit_lines: List[str] = []
+    mismatched: List[Dict[str, str]] = []
+    for raw in (scan_text or "").splitlines():
+        ln = raw.strip()
+        if not ln:
+            continue
+        m = _DECL_LINE_RE.match(ln.replace("——", "").strip())
+        if not m:
+            continue
+        code = str(m.group("line")).strip()
+        spec_f = lines_map.get(code)
+        if not spec_f:
+            continue
+        fname = str(spec_f.get("field") or "")
+        if not fname:
+            continue
+        amt_txt = str(m.group("amount") or "").replace(",", "")
+        num, ok = to_number_checked(amt_txt, default=0.0)
+        if not ok:
+            continue
+        label = str(m.group("label") or "").strip()
+        cn = str(spec_f.get("cn") or "")
+        if cn and not any(ch in label for ch in cn if "\u4e00" <= ch <= "\u9fff"):
+            mismatched.append({"line": code, "label": label, "expect_cn": cn})
+        if fname in row:
+            continue                                  # 同一字段多行 ⇒ 首行为准（本月数）
+        row[fname] = num
+        row[cn or fname] = num                        # 同时保留中文键（人读/回溯）
+        hit_lines.append(code)
+    if not row:
+        return None
+    # 税种由表种直接确定（数据驱动：`declaration_lines.json` 的 `tax_type`），
+    # 不从正文猜 —— 申报域的 `tax_type` 是必填项，缺失会被判"必填缺失"。
+    _tax_type = str(spec.get("tax_type") or "").strip()
+    if _tax_type:
+        row["tax_type"] = _tax_type
+        row["税种"] = _tax_type
+    return {"sheet": "%s（行次抽取）" % (spec.get("cn") or key),
+            "doc_type": "vat_declaration" if key.startswith("vat") else "declaration",
+            "confidence": 0.85, "source": "declaration-lines",
+            "header": ["行次"] + hit_lines,
+            "rows": [row],
+            "_declaration": {"kind": key, "hit_lines": hit_lines,
+                             "label_mismatch": mismatched,
+                             "spec_version": str(spec.get("_version") or "")}}
+
+
+def _parse_declaration_text(path: str, name: str) -> Optional[Dict[str, Any]]:
+    """把**申报表 PDF** 的文本层按「行次」抽成一行 `{标准字段: 金额}`（GAP-15）。
+
+    事故背景：12 份增值税申报表 PDF 共 55 行、**0 个标准字段** —— 通用 PDF 表格
+    解析把每页拆成"标题/值"两列，行次与金额的关系完全丢失。
+
+    做法：文本层逐行匹配 `项目名 行次 [=公式] 本月数 …`，用**行次**作为主键查
+    `config/declaration_lines.json`（行次比项目名文字稳定，换版极少改含义）。
+
+    ★ 保守口径：
+      · 表种认不出来 ⇒ 返回 `None`（不猜）；
+      · 行次不在映射表 ⇒ 跳过（不按项目名猜字段）；
+      · 项目名与映射表 `cn` 完全不含相同二字 ⇒ 仍按行次取值，但记入
+        `label_mismatch`（供校验提示，不静默）；
+      · 一个字段都没抽到 ⇒ 返回 `None`（不伪造空表）。
+    """
+    try:
+        import pdfplumber                            # noqa: PLC0415
+    except Exception:                                # noqa: BLE001
+        return None
+    try:
+        with pdfplumber.open(path) as pdf:
+            pages = [(p.extract_text() or "") for p in pdf.pages]
+    except Exception:                                # noqa: BLE001
+        return None
+    text = "\n".join(pages)
+    if not text.strip():
+        return None
+
+    specs = _declaration_specs()
+    pick: Optional[Tuple[str, Dict[str, Any]]] = None
+    flat = text.replace(" ", "")
+    for key, spec in specs.items():
+        det = spec.get("detect") or {}
+        alls = [str(x) for x in (det.get("text_all") or [])]
+        anys = [str(x) for x in (det.get("text_any") or [])]
+        if alls and not all(x.replace(" ", "") in flat for x in alls):
+            continue
+        if anys and not any(x.replace(" ", "") in flat for x in anys):
+            continue
+        pick = (key, spec)
+        break
+    if pick is None:
+        # 文件名/内容都不匹配 ⇒ 认不出表种，不猜
+        return None
+    key, spec = pick
+
+    # ★ 只从**主表页**抽行次（附列资料页的 17/18/19 会与主表撞号，实测已误抓过）。
+    #   若整份文件都是附列资料（无主表页），退回全页。
+    main_pages = [t for t in pages if "附列资料" not in t]
+    scan_text = "\n".join(main_pages) if main_pages else text
+    out = _extract_declaration_lines(scan_text, spec, key)
+    if out is None:
+        return None
+    out["_declaration"]["main_pages"] = len(main_pages)
+    out["_declaration"]["pages"] = len(pages)
+    return out
+
+
 def _parse_file(path: str, ext: str, name: str) -> Tuple[List[Dict[str, Any]], str]:
     """**复用**现有解析链路，返回 `(tables, parse_error)`。
 
@@ -518,7 +850,19 @@ def _parse_file(path: str, ext: str, name: str) -> Tuple[List[Dict[str, Any]], s
         try:
             import main as _main                      # noqa: PLC0415
             r = _main._parse_excel_structured(path, ext, name)   # noqa: SLF001
-            if isinstance(r, dict) and r.get("rows"):
+            _dt = str((r or {}).get("type") or "") if isinstance(r, dict) else ""
+            # ★ 报表族优先走"项目透视"（GAP-15）：通用解析对报表不仅取不到字段，
+            #   横向双栏时还会把左右两组金额错配 —— 那比"没有"更危险。
+            _pivoted = False
+            if _dt in STATEMENT_TYPES:
+                pv = _pivot_statement_sheet(path, ext, _dt)
+                if pv:
+                    tables.append(pv)
+                    _pivoted = True
+                    err = ""
+            if _pivoted:
+                pass                                  # 已用透视结果，不再走通用路径
+            elif isinstance(r, dict) and r.get("rows"):
                 rows = r.get("rows") or []
                 tables.append({"sheet": "", "doc_type": r.get("type") or "",
                                "confidence": float(r.get("confidence") or 0),
@@ -540,6 +884,13 @@ def _parse_file(path: str, ext: str, name: str) -> Tuple[List[Dict[str, Any]], s
             err = "解析失败（%s）：%s" % (type(exc).__name__, exc)
     # ② PDF ⇒ pdfplumber（既有依赖）取表 + 文本
     elif ext == ".pdf":
+        # ★ 2026-10-18（GAP-15）：**申报表优先按行次抽取**。通用 PDF 表格解析把申报表
+        #   拆成"标题/值"两列，行次与金额的对应关系全丢（实测 12 份增值税申报表
+        #   共 55 行、0 个标准字段）。行次映射见 `config/declaration_lines.json`。
+        decl = _parse_declaration_text(path, name)
+        if decl:
+            tables.append(decl)
+            return tables, err
         try:
             import pdfplumber                         # noqa: PLC0415
             with pdfplumber.open(path) as pdf:
@@ -623,8 +974,15 @@ def _parse_file(path: str, ext: str, name: str) -> Tuple[List[Dict[str, Any]], s
 # 查询 / 人工校正
 # --------------------------------------------------------------------------
 def get_extracted(document_id: Any, session: Any, *, engine=None,
-                  domain: Any = None, only_corrected: Any = None) -> Dict[str, Any]:
-    """取某资料的解析结果（表 + 标准字段 + 校验异常）。"""
+                  domain: Any = None, only_corrected: Any = None,
+                  include_rows: bool = False) -> Dict[str, Any]:
+    """取某资料的解析结果（表 + 标准字段 + 校验异常）。
+
+    ★ `include_rows`（2026-10-18，GAP-14）：默认只给 `rows_preview`（前 20 行）——
+      明细表可能很大，不该塞进常规响应。但**覆盖度体检必须以全量行为准**，
+      否则"覆盖率"算的是预览的覆盖率（GAP-14 事故：接口恒返 0，因为
+      `tables[*]` 里根本没有 `rows` 键，`rows` 取成 `[]`）。
+    """
     eng = _engine_or_default(engine)
     ensure_schema(eng)
     from sqlalchemy import text as _text              # noqa: PLC0415
@@ -657,9 +1015,12 @@ def get_extracted(document_id: Any, session: Any, *, engine=None,
     for r in trows:
         m = dict(r._mapping)
         try:
-            m["rows_preview"] = json.loads(m.get("rows_json") or "[]")[:20]
+            _all_rows = json.loads(m.get("rows_json") or "[]")
         except Exception:                             # noqa: BLE001
-            m["rows_preview"] = []
+            _all_rows = []
+        m["rows_preview"] = _all_rows[:20]
+        if include_rows:
+            m["rows"] = _all_rows                      # ★ 全量（供覆盖度体检，见 docstring）
         m.pop("rows_json", None)                      # 明细表可能很大，仅给预览
         tables.append(m)
     fields = []

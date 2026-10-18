@@ -508,9 +508,14 @@ def create_project(payload: Dict[str, Any], session: Any, *, engine=None,
     # **项目自持企业身份** —— 新建只收「公司名称 + 统一社会信用代码」两项；
     # 行业/地区/期间等信息由**自动分析确定**（分析完成后回填，后续一轮实现），
     # 不再从 companies 带出。若显式传入 company_id 仍按原逻辑做越权校验（兼容）。
+    # ★ 2026-10-18 修正（缺失如实）：**税号缺失 ≠ 税号填错**。
+    #   旧实现 `if len(_tid) != 18: raise` 把"没提供"和"提供了 17 位"判成同一件事，
+    #   与 API 层 schema（`taxpayer_id: Optional`，注释明写"不硬性阻断缺项"）直接冲突，
+    #   也让 `create_project({"name": ...})` 这种内部调用无法使用。
+    #   现口径：**提供了才校验格式**；缺失则留空，由 `profile_missing` 如实标注「待补全」。
     _tid = _clean_str(payload.get("taxpayer_id"), maxlen=40)
-    if len(_tid) != 18:
-        raise ProjectError("统一社会信用代码必须为 18 位", 400)
+    if _tid and len(_tid) != 18:
+        raise ProjectError("统一社会信用代码填了就必须是 18 位（当前 %d 位）；不填则留空" % len(_tid), 400)
     # ★ 2026-10-15 去重：税号归一化（strip 后大写；USCC 本就是大写字母数字）
     _tid = _tid.upper()
     payload["taxpayer_id"] = _tid
@@ -521,9 +526,12 @@ def create_project(payload: Dict[str, Any], session: Any, *, engine=None,
     with eng.begin() as conn:
         # ★ 2026-10-15 去重：同一统一社会信用代码只允许一个在库项目
         #   （UPPER() 比较兼容历史大小写混杂数据；报错带已有项目指引）
-        _dup = conn.execute(_text(
-            "SELECT code, name FROM projects WHERE UPPER(taxpayer_id) = :t LIMIT 1"
-        ), {"t": _tid}).first()
+        # ★ 2026-10-18：**空税号不参与去重**（多个项目都可留空，不该互相判重）
+        _dup = None
+        if _tid:
+            _dup = conn.execute(_text(
+                "SELECT code, name FROM projects WHERE UPPER(taxpayer_id) = :t LIMIT 1"
+            ), {"t": _tid}).first()
         if _dup is not None:
             _dm = _dup._mapping
             raise ProjectError(
@@ -682,17 +690,22 @@ def update_project(project_id: Any, payload: Dict[str, Any], session: Any, *,
 
         # ★ 2026-10-14 二次调整：项目自持企业身份（不再有账套覆盖回填）；
         # 行业等由自动分析确定，前端表单只提交 name/taxpayer_id。
+        # ★ 2026-10-18 修正（缺失如实）：清空税号必须允许（`taxpayer_id=""`）；
+        #   只有**填了非 18 位**才报错，只有**非空**才进去重。
         if "taxpayer_id" in payload and payload.get("taxpayer_id") is not None:
             _utid = _clean_str(payload.get("taxpayer_id"), maxlen=40)
-            if len(_utid) != 18:
-                raise ProjectError("统一社会信用代码必须为 18 位", 400)
+            if _utid and len(_utid) != 18:
+                raise ProjectError(
+                    "统一社会信用代码填了就必须是 18 位（当前 %d 位）；清空则留空" % len(_utid), 400)
             # ★ 2026-10-15 去重：归一化后查与其他项目（排除自身）的冲突
             _utid = _utid.upper()
             payload["taxpayer_id"] = _utid
-            _dup = conn.execute(_text(
-                "SELECT code, name FROM projects "
-                "WHERE UPPER(taxpayer_id) = :t AND id <> :pid LIMIT 1"
-            ), {"t": _utid, "pid": int(project_id)}).first()
+            _dup = None
+            if _utid:
+                _dup = conn.execute(_text(
+                    "SELECT code, name FROM projects "
+                    "WHERE UPPER(taxpayer_id) = :t AND id <> :pid LIMIT 1"
+                ), {"t": _utid, "pid": int(project_id)}).first()
             if _dup is not None:
                 _dm = _dup._mapping
                 raise ProjectError(

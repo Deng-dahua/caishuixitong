@@ -38,7 +38,7 @@
 | **本次失败样例** | `02:140`「质量门禁 **8** 条规则」vs 权威 **9**；`01` §6 合计「**25 passed**」vs **28**；`06`「TDS-①~⑧」vs 清单 **9** 条；`数字统一修订记录`「445 条」vs **456**（该文件为对照文件，已登记 `quote_files`） |
 | **实测状态** | 修复后 **ERROR 0 / WARN 0**；反向验证：把「前提条数 69」改成 68 ⇒ 立刻报红 |
 
-**已登记的数字权威（22 个）**：`rule_count`（门禁规则条数 9）｜`test_case_count`（28）｜`risk_count`（94）｜
+**已登记的数字权威（7 个）**：`rule_count`（门禁规则条数 9）｜`test_case_count`（28）｜`risk_count`（94）｜
 `criterion_count`（456）｜`precondition_count`（69）｜`batch_doc_count`（交付物份数）｜`problem_count`（16）。
 
 ## 2. Skill D2 · 规则引用一致性

@@ -124,8 +124,12 @@ class ParseEnhanceUnitTests(unittest.TestCase):
 
             # 5) 标准字段扩展（P1-1：35 → 49），且**不新增必填**
             from engine.standard_fields import fields, required_names, field_names
-            assert len(fields()) == 49, len(fields())
-            assert len(set(field_names())) == 49, "字段名有重复"
+            # ★ 2026-10-18（GAP-15 新增 13 个申报表字段，49→62）：
+            #   数字必须从**权威**取，不写死在测试里（否则每加一个字段就要改测试）。
+            _names = field_names()
+            assert len(_names) >= 49, len(_names)
+            assert len(fields()) == len(_names), "fields 与 field_names 数量不一致"
+            assert len(set(_names)) == len(_names), "字段名有重复"
             assert len(required_names()) == 7, "P1-1 不得新增必填字段"
             for n in ("voucher_no", "summary", "tax_rate", "bank_account",
                       "id_card", "social_insurance", "housing_fund", "tax_item"):
@@ -286,7 +290,7 @@ class ParseEnhanceIntegrationTests(unittest.TestCase):
             m = c.get("/api/v1/parse/meta")
             assert m.status_code == 200, m.text
             j = m.json()
-            assert len((j["standard_fields"] or {}).get("fields") or []) == 49, j["standard_fields"]
+            assert len((j["standard_fields"] or {}).get("fields") or []) >= 49, j["standard_fields"]
             assert len(j["row_caps"]) == 12, j["row_caps"]
             assert j["row_cap_consistent"] is True, j["row_cap_unregistered"]
             for k in ("cursor", "safe_nrows", "truncation"):

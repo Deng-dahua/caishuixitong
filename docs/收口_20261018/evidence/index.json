@@ -1,0 +1,63 @@
+{
+  "base": "http://127.0.0.1:8005",
+  "login_sec": 3.15,
+  "captured_at": "2026-10-18 17:54:18",
+  "viewport": "1500x1000",
+  "pages": [
+    {
+      "page": "01_home",
+      "path": "/",
+      "http_status": 200,
+      "title": "财税风险防控系统 - 中小企业版",
+      "visible_text_len": 597,
+      "bytes": 83611,
+      "missing_hints": [],
+      "elapsed_sec": 2.98,
+      "verdict": "OK"
+    },
+    {
+      "page": "02_projects",
+      "path": "/projects",
+      "http_status": 200,
+      "title": "稽查项目管理 - 财税风险防控系统",
+      "visible_text_len": 191,
+      "bytes": 28753,
+      "missing_hints": [],
+      "elapsed_sec": 2.02,
+      "verdict": "OK"
+    },
+    {
+      "page": "03_documents",
+      "path": "/documents",
+      "http_status": 200,
+      "title": "资料上传与管理 - 财税风险防控系统",
+      "visible_text_len": 417,
+      "bytes": 46796,
+      "missing_hints": [],
+      "elapsed_sec": 2.05,
+      "verdict": "OK"
+    },
+    {
+      "page": "04_risks",
+      "path": "/risks",
+      "http_status": 200,
+      "title": "风险结果与复核 - 财税风险防控系统",
+      "visible_text_len": 283,
+      "bytes": 41483,
+      "missing_hints": [],
+      "elapsed_sec": 2.11,
+      "verdict": "OK"
+    },
+    {
+      "page": "05_legal",
+      "path": "/legal-library",
+      "http_status": 200,
+      "title": "法规库 - 财税风险防控系统",
+      "visible_text_len": 4000,
+      "bytes": 2046250,
+      "missing_hints": [],
+      "elapsed_sec": 2.75,
+      "verdict": "OK"
+    }
+  ]
+}

@@ -27,6 +27,7 @@ _CACHE: Dict[str, Any] = {}
 
 
 def reset_cache() -> None:
+    """丢弃全部缓存（改字典后必须调用；`alias_owners` 随之重算）。"""
     _CACHE.clear()
 
 
@@ -105,6 +106,96 @@ def aliases_of(name: str) -> List[str]:
 
 def fields_of_domain(domain: str) -> List[Dict[str, Any]]:
     return [f for f in fields() if str(f.get("domain")) == str(domain)]
+
+
+# --------------------------------------------------------------------------
+# 域隔离（GAP-13）**唯一实现**
+# --------------------------------------------------------------------------
+# 背景：旧口径「任何域的字段，行里取到值就登记」⇒ 发票的品名被登记成银行域
+# 「对手方」、账簿的记账日期被登记成银行域「交易日期」、流水的金额被登记成
+# 发票域「不含税金额」。下游按域聚合（extract_overrides / 字段覆盖率 / 报表
+# 取数）就会串账。规则见 `config/standard_fields.json::_isolation`。
+def isolation_config() -> Dict[str, Any]:
+    return dict(_load().get("_isolation") or {})
+
+
+def cross_domain_allowed(doc_domain: str) -> Tuple[str, ...]:
+    """该资料域**允许额外登记**的跨域字段（未列出 = 不许）。
+    
+    ★ 已知域（ledger/invoice/bank/...）默认 **空**；空串键管「资料类型未识别」
+      （合同/协议/档案等），那里跨域取数是合理需求。
+    """
+    allow = (isolation_config().get("cross_domain_allow") or {})
+    return tuple(str(x) for x in (allow.get(str(doc_domain or "")) or ()))
+
+
+def alias_owners() -> Dict[str, List[str]]:
+    """别名 → 声明了它的标准字段名（**跨域判据的底座**，缓存）。"""
+    if "alias_owners" not in _CACHE:
+        own: Dict[str, List[str]] = {}
+        for f in fields():
+            n = str(f.get("name"))
+            for a in aliases_of(n):
+                own.setdefault(a, []).append(n)
+        _CACHE["alias_owners"] = own
+    return dict(_CACHE["alias_owners"])
+
+
+def shared_aliases() -> Tuple[str, ...]:
+    """被 ≥2 个标准字段共用的别名（跨域时**不可**单独作为命中依据）。"""
+    return tuple(a for a, v in alias_owners().items() if len(v) > 1)
+
+
+def exclusive_aliases(name: str) -> List[str]:
+    """只被该字段声明的别名（跨域命中的**唯一**可信依据）。"""
+    own = alias_owners()
+    return [a for a in aliases_of(name) if len(own.get(a) or ()) == 1]
+
+
+def _nonempty(v: Any) -> bool:
+    if v is None:
+        return False
+    return not (isinstance(v, str) and not v.strip())
+
+
+def cross_domain_hits(rows: List[Dict[str, Any]],
+                      doc_domain: str,
+                      exclude: Any = ()) -> List[str]:
+    """本表**可额外登记**的跨域字段名（按字段声明顺序）。
+
+    三重约束（缺一不登记）：
+      ① 字段在 `cross_domain_allow[doc_domain]` 白名单内；
+      ② 字段不属于本域、也不是 `common`（本域字段另有通路）；
+      ③ 命中只能靠**该字段独有的别名**（共用别名不作依据 ⇒ 宁缺勿错）。
+    """
+    allow = set(cross_domain_allowed(doc_domain))
+    if not allow:
+        return []
+    dom = str(doc_domain or "")
+    ex = set(str(x) for x in (exclude or ()))
+    out: List[str] = []
+    for f in fields():
+        n = str(f.get("name"))
+        if n in ex or n not in allow:
+            continue
+        if dom and str(f.get("domain")) in (dom, "common"):
+            continue
+        for a in exclusive_aliases(n):
+            if any(isinstance(r, dict) and _nonempty(r.get(a)) for r in rows):
+                out.append(n)
+                break
+    return out
+
+
+def metadata_isolation() -> Dict[str, Any]:
+    """域隔离配置（供前端/闸门核对；**不隐藏规则**）。"""
+    cfg = isolation_config()
+    return {
+        "cross_domain_allow": {k: list(v or []) for k, v in
+                               (cfg.get("cross_domain_allow") or {}).items()
+                               if not str(k).startswith("_")},
+        "shared_aliases": list(shared_aliases()),
+    }
 
 
 # --------------------------------------------------------------------------
@@ -217,9 +308,13 @@ def metadata() -> Dict[str, Any]:
                     for k, v in (_load().get("_domains") or {}).items()],
         "types": list(TYPES),
         "validation_rules": list((_load().get("_validation") or {}).keys()),
+        "isolation": metadata_isolation(),
     }
 
 
 __all__ = ["fields", "field", "field_names", "fields_of_domain", "aliases_of",
            "to_standard_period", "normalize_value", "value_from_row",
-           "required_names", "domain_cn", "metadata", "reset_cache", "TYPES"]
+           "required_names", "domain_cn", "metadata", "reset_cache", "TYPES",
+           # GAP-13 域隔离（唯一实现）
+           "isolation_config", "cross_domain_allowed", "cross_domain_hits",
+           "alias_owners", "shared_aliases", "exclusive_aliases", "metadata_isolation"]

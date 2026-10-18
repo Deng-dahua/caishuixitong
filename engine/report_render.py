@@ -234,6 +234,13 @@ def _render_html(doc: Dict[str, Any], *, full_page: bool = True) -> bytes:
                         "需要这些章节请改用「全景」视图重新生成。"
                         % (doc.get("view_label") or "", "、".join(
                             str(x.get("title")) for x in om))))
+    sk = doc.get("skipped_sections") or []
+    if sk:
+        T.append("<h2>本报告未列示的章节</h2><div class='omitted'>%s</div>"
+                 % _html_esc("以下章节本轮无内容，已不列示（不是漏印）：%s。"
+                             "原因：%s"
+                             % ("、".join(str(x.get("title")) for x in sk),
+                                str((sk[0] or {}).get("reason") or ""))))
     T.append("<div class='foot'>%s<br>%s<br>%s</div>"
              % (_html_esc(disc.get("identity_line")),
                 _html_esc(_review_line(doc).replace("**", "")),
@@ -334,6 +341,13 @@ def _render_pdf(doc: Dict[str, Any]) -> bytes:
             elif t == "note":
                 flow.append(Paragraph(_html_esc(b.get("text")), st_note))
             flow.append(Spacer(1, 2.5))
+    sk = doc.get("skipped_sections") or []
+    if sk:
+        flow.append(Paragraph("本报告未列示的章节", st_h2))
+        flow.append(Paragraph(_html_esc(
+            "以下章节本轮无内容，已不列示（不是漏印）：%s。原因：%s"
+            % ("、".join(str(x.get("title")) for x in sk),
+               str((sk[0] or {}).get("reason") or ""))), st_note))
     om = doc.get("omitted") or []
     if om:
         flow.append(Paragraph("本视图未包含的章节", st_h2))
@@ -450,6 +464,12 @@ def _render_docx(doc: Dict[str, Any]) -> bytes:
                     d.add_paragraph(str(x), style="List Bullet")
             elif t == "note":
                 d.add_paragraph(str(b.get("text") or ""))
+    sk = doc.get("skipped_sections") or []
+    if sk:
+        d.add_heading("本报告未列示的章节", level=2)
+        d.add_paragraph("以下章节本轮无内容，已不列示（不是漏印）：%s。原因：%s"
+                        % ("、".join(str(x.get("title")) for x in sk),
+                           str((sk[0] or {}).get("reason") or "")))
     om = doc.get("omitted") or []
     if om:
         d.add_heading("本视图未包含的章节", level=2)
@@ -539,6 +559,14 @@ def _render_xlsx(doc: Dict[str, Any]) -> bytes:
         ws = wb.active
         ws.title = "封面"
         ws["A1"] = doc_title(doc)
+    sk = doc.get("skipped_sections") or []
+    if sk:
+        wss = wb.create_sheet("未列示的章节")
+        wss.oddHeader.center.text = wm
+        wss["A1"] = "以下章节本轮无内容，已不列示（不是漏印）："
+        for i, x in enumerate(sk, start=2):
+            wss.cell(row=i, column=1, value=str(x.get("title")))
+        wss["A%d" % (len(sk) + 3)] = "原因：%s" % str((sk[0] or {}).get("reason") or "")
     om = doc.get("omitted") or []
     if om:
         ws = wb.create_sheet("未包含的章节")

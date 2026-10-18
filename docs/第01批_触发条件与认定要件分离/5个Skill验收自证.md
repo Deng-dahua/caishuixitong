@@ -5,7 +5,7 @@
 | # | 落地验收要求 | 证据（实际） | 判定 |
 |---|---|---|---|
 | 1 | 每个 Skill 必须**写入系统配置**，不得只输出文档 | `config/skill_specs.json` 新增 5 条（`doc_number_authority` / `rule_reference_sync` / `doc_residue_scan` / `todo_status_sync` / `doc_ref_graph`，各 version 1.0.0 + impl + entry_points）；数据表 `config/doc_consistency.json` + `config/doc_synonyms.json`；`engine.skill_registry.validate()` = **`[]`** | ✅ |
-| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check_doc_*` 函数（**25 条判据**），**全部并入总链 `run_checks()`**；对真实交付物实测 **ERROR 0 / WARN 0** | ✅ |
+| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check_doc_*` 函数（11 条判据），**全部并入总链 `run_checks()`**；对真实交付物实测 **ERROR 0 / WARN 0** | ✅ |
 | 3 | 每个 Skill 必须用本次 **11 处问题**做失败样例 | 逐 Skill 对应（见 §失败样例映射）：D1←5 处数字 + 2 处 bug 的"配置有产物无"；D2←TDS-⑨ 未同步；D3←旧 grep 漏「25 passed」；D4←U1 状态未同步；D5←跨文件 28 vs 25 | ✅ |
 | 4 | 每个 Skill 必须用**修复后**做通过样例 | 5 个门禁对真实文档 **0 ERROR**（`5个Skill门禁规则.md` §1 表）；`pytest tests/test_doc_consistency_skills.py -q` → **42 passed** | ✅ |
 | 5 | 每个 Skill 必须**跑回归测试** | `pytest tests/ -q` → **2056 passed / 4 skipped / 166 subtests**（耗时随机器负载浮动，不单列；以「与本次 passed 同次运行」为准）；5 个门禁 0 ERROR；反向验证 **19 例**；破坏性用例 **7 例**；口径锁 **8 例**（验证类 **34 例**）成立 | ✅ |

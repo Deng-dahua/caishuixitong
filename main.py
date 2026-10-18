@@ -3365,6 +3365,13 @@ _FILE_FINGERPRINTS = {
                      "收入金额", "支出金额", "贷方金额", "借方金额", "本次余额", "交易余额",
                      "流水号", "交易流水号", "凭证号", "交易行名", "借贷标志", "借贷",
                      "交易金额", "发生额", "币种", "起息日", "柜员号", "网点号"],
+        # ★ 2026-10-18（GAP-23 实测连带修复）：`keywords` 里混了「记账日期/凭证号/
+        #   发生额」这些**账簿通用词** ⇒ 标准序时账（8 列）曾以 7 分被判成银行流水，
+        #   整份账簿被送进银行域。银行流水必须有"只有银行流水才有"的信号。
+        #   ★ 数据驱动：要放宽/收紧只改这一行。
+        "require_any": ["对方户名", "对方账号", "对方行名", "对方开户行", "交易余额",
+                        "本次余额", "流水号", "交易流水号", "柜员号", "网点号",
+                        "起息日", "借贷标志", "交易行名", "币种"],
         "score_threshold": 3,
         "parser": lambda s, h: _parse_bank_sheet(s),
         "secondary": ["摘要", "用途", "附言", "备注", "对方", "收入", "支出", "余额"],
@@ -4884,6 +4891,17 @@ def _parse_by_content(names, get_sheet, original_name="", extra_text=None):
                                 sec_hits.append(kw)
                 
                 threshold = fp["score_threshold"]
+                # ★ 2026-10-18（GAP-23 实测连带修复）：**必须有"本类型独有信号"**。
+                #   事故：一份 8 列标准**序时账**（记账日期/凭证号/科目编码/科目名称/
+                #   摘要/借方发生额/贷方发生额/对方单位）被判成 `bank_statement`（7 分），
+                #   因为 `bank_statement.keywords` 里混进了「记账日期/凭证号/发生额」
+                #   这些**账簿通用词** ⇒ 整份账簿被送进银行流水域，账务域反而拿不到数据。
+                #   口径：`require_any` 列出的词，至少要命中一个；一个都没命中 ⇒ 该类型不成立
+                #   （不参与竞争，也不给结构阶段留"兜底覆写"的机会）。
+                #   新增/调整只改 `_FILE_FINGERPRINTS[<type>]["require_any"]` 一行数据。
+                _req_any = fp.get("require_any") or []
+                if _req_any and not any(k in all_text for k in _req_any):
+                    continue
                 # 标题行加分：如有标题方向匹配，额外加分
                 if ftype in title_bonus:
                     score += title_bonus[ftype]
@@ -5674,11 +5692,15 @@ def _profile_sheet_columns(sheet):
             header_row = candidate_header
     
     # 跳过表头和空行，取样本数据（最多100行）
+    # ★ 2026-10-18（GAP-15）：**不再在这里剔除"合计/小计"行**。
+    #   原因：那是对"明细表"的口径；对**财务报表**而言，「资产总计/负债合计/
+    #   所有者权益合计」就是核心数据行，剔掉后一份 4 行的资产负债表只剩 2 行，
+    #   结构判定直接判不出报表（实测被判成 invoice）。汇总行的处理属**具体解析器**
+    #   的职责（它知道自己在解析什么），表格画像只做纯形态统计。
     sample_rows = []
     sample_start = header_row + 1
     for r in range(sample_start, min(nrows, sample_start + 100)):
         row_vals = _get_row_values(sheet, r)
-        if _is_summary_row(row_vals): continue
         if _is_repeat_header(row_vals, _get_row_values(sheet, header_row)): continue
         # 至少2个非空值
         non_empty = [str(v).strip() for v in row_vals if v and str(v).strip() not in ("None", "nan")]
@@ -5750,13 +5772,15 @@ def _profile_sheet_columns(sheet):
     signature = "|".join(signature_parts)
     
     # 统计有效数据行数
+    # ★ 2026-10-18（GAP-15）：口径必须与上面 `sample_rows` **同一把尺**（曾有第二处
+    #   独立剔除 `_is_summary_row` ⇒ 采样留下 4 行、行数只算 2 行，两份口径互相打架，
+    #   报表结构判定因 total_rows<min_rows 被直接排除）。汇总行处理交给具体解析器。
     valid_rows = 0
     for r in range(sample_start, min(nrows, sample_start + 200)):
         row_vals = _get_row_values(sheet, r)
-        if not _is_summary_row(row_vals):
-            non_empty = [v for v in row_vals if v and str(v).strip() not in ("None", "nan")]
-            if len(non_empty) >= 2:
-                valid_rows += 1
+        non_empty = [v for v in row_vals if v and str(v).strip() not in ("None", "nan")]
+        if len(non_empty) >= 2:
+            valid_rows += 1
     
     return {
         "total_rows": valid_rows,
@@ -5800,6 +5824,9 @@ _STRUCTURAL_PATTERNS = [
         "min_rows": 1,
         "required_types": ["amount"],
         "min_amount_cols": 4,
+        # ★ 工资表必须有"能定位到人"的证据（身份证号）或**真正的宽表**
+        #   （>=10 个金额列：应发/实发/社保/公积金/个税…）。二者皆无 ⇒ 不是工资表。
+        "required_bonus": ["has_id_card", "many_amount_cols"],
         "bonus": {
             "has_id_card": 6,         # 身份证号=极强信号
             "many_amount_cols": 5,    # amount>=10列
@@ -5841,6 +5868,9 @@ _STRUCTURAL_PATTERNS = [
         "min_rows": 1,
         "required_types": ["amount"],
         "min_amount_cols": 4,
+        # ★ 社保清单按人申报，身份证号是定义性特征（缺身份证的"多金额列"表更像
+        #   科目余额表/工资表）。2026-10-18 与 housing_fund 同批加严。
+        "required_bonus": ["has_id_card"],
         "bonus": {
             "has_id_card": 4,
             "has_person_name": 3,
@@ -5862,6 +5892,10 @@ _STRUCTURAL_PATTERNS = [
         "min_rows": 1,
         "required_types": ["amount"],
         "min_amount_cols": 3,
+        # ★ 缴存比例是公积金的**定义性特征**：没有比例列的"人名+金额"表通常是
+        #   工资或社保明细，不是公积金（2026-10-18 事故：科目余额表靠"科目名称
+        #   被误判成人名"混进 95% 并覆写了正确的 trial_balance）。
+        "required_bonus": ["has_percentage"],
         "bonus": {
             "has_percentage": 6,      # 公积金必有缴存比例=极强信号
             "has_person_name": 3,     # 人名
@@ -5877,6 +5911,37 @@ _STRUCTURAL_PATTERNS = [
         },
         "confidence": 0.80,
     },
+    # ═══ 财务报表（资产负债表 / 利润表 / 现金流量表）═══
+    # 核心特征：**项目名文本列 + 多个金额列 + 无日期 + 无编码**；行数 5~80
+    # ★ 2026-10-18（GAP-15）：此前结构模式表**根本没有报表模式**，一份标准资产负债表
+    #   会被猜成 `invoice`（85%）并覆写关键词阶段正确的 `financial_statements`。
+    #   与「科目余额表」的**唯一硬区别是"没有科目编码列"**：靠 has_code 硬分流
+    #   （报表 penalty has_code / 科目余额表 bonus has_code），不靠行数或列数猜。
+    {
+        "type": "financial_statement",
+        "col_count_range": (2, 14),
+        "min_rows": 3,                # ★ 小型报表（4~5 行）也是真报表，不能因行少就排除
+        "required_types": ["amount"],
+        "min_amount_cols": 2,
+        # ★ 报表的金额列是"每组 2~3 个"（期末/年初、本期/上期）；**≥5 个金额列**
+        #   一定是账簿（借/贷/期初/本期/期末成对）。这是与科目余额表的**硬分流**：
+        #   实测科目余额表的「科目编码」列全是数字 ⇒ 被判 amount 列 ⇒
+        #   `has_code` 惩罚不生效（曾让 6 个金额列的科目余额表以 98% 被判成报表）。
+        "max_amount_cols": 4,
+        "required_bonus": ["has_text"],
+        "bonus": {
+            "no_date": 2,             # 报表没有逐行业务日期
+            "has_text": 3,            # 必须有"报表项目"名列
+            "low_col_count": 2,       # 横向三表通常 <= 8 列
+        },
+        "penalty": {
+            "has_code": -6,           # ★ 有科目/发票编码列 ⇒ 不是报表（硬特征）
+            "has_date": -4,
+            "has_id_card": -3,
+            "has_percentage": -1,
+        },
+        "confidence": 0.80,
+    },
     # ═══ 科目余额表 ═══
     # 核心特征：无日期、>=4个amount列、>=10行
     {
@@ -5888,6 +5953,7 @@ _STRUCTURAL_PATTERNS = [
         "bonus": {
             "many_amount_cols": 4,    # 5个以上amount列
             "no_date": 2,             # 无日期=科目余额表的特征
+            "has_code": 4,            # ★ 科目编码列 = 与财务报表的硬区分
             "many_rows": 2,           # rows>=20
         },
         "penalty": {
@@ -5969,7 +6035,11 @@ def _match_structural_pattern(profile):
             person_name_count += 1
         if t == "id_card": has_id_card = True
         if t == "code": has_code = True
-        if t in ("text", "text_cn"): has_text = True
+        # ★ 2026-10-18（GAP-15）：`has_text` 的语义是"**存在非数值列**"，
+        #   不能再排除 person_name/company_name/short_cn —— 否则财务报表的
+        #   「资产/货币资金」这类项目名列（被判 person_name）就不算文本列，
+        #   报表结构特征 `required_bonus=["has_text"]` 永远不满足。
+        if t in ("text", "text_cn", "short_cn", "person_name", "company_name"): has_text = True
         if t == "company_name": has_company = True
     
     # 额外特征：金额+税额配对（发票特征）
@@ -6108,6 +6178,38 @@ def _match_structural_pattern(profile):
             score += penalty["many_person_names"]
             reasons.append(f"many_persons({person_name_count}){penalty['many_person_names']}")
         
+        # ── 主特征缺失惩罚（★ 2026-10-18，GAP-13 连带修复）──
+        # 事故：一份**科目余额表**（8 列「科目编码/科目名称/期初借方…期末贷方」）
+        #   被结构分析判成 `housing_fund`（95% 置信度），并据此**覆写**关键词阶段
+        #   已经正确识别的 `trial_balance`（10 分、命中 10 个精确列名）。
+        # 根因：「科目名称」列的样本（库存现金/银行存款/主营业务成本…）被判成
+        #   `person_name`，于是 housing_fund 靠 `has_person+3` 与 trial_balance 打平（9 分），
+        #   再凭**人工拍的 base_confidence**（0.80 > 0.75）胜出 —— 而 `has_percentage`
+        #   （代码注释自称"公积金必有缴存比例＝极强信号"）**根本没命中**。
+        # 口径：一个类型若**缺了自己的定义性主特征**，不得靠次要加分混入高分 ⇒ 大幅降权。
+        #   新增/调整只改 `_STRUCTURAL_PATTERNS` 的 `required_bonus` 一行数据。
+        _req_bonus = pattern.get("required_bonus") or []
+        if _req_bonus:
+            _many_amt_th = (10 if pattern["type"] == "salary"
+                            else (6 if pattern["type"] == "social_security" else 5))
+            _ctx = {
+                "has_percentage": has_percentage,
+                "has_id_card": has_id_card,
+                "has_person_name": has_person_name,
+                "has_company": has_company,
+                "has_code": has_code,
+                "has_text": has_text,
+                "has_date": has_date,
+                "many_amount_cols": amount_cols >= _many_amt_th,
+                "many_rows": total_rows >= 10,
+                "low_col_count": col_count <= 12,
+                "high_col_count": col_count >= 15,
+                "amounts_match_ratio": amounts_match_ratio,
+            }
+            if not any(_ctx.get(k) for k in _req_bonus):
+                score -= 8
+                reasons.append("missing_main_signal(%s)-8" % ",".join(_req_bonus))
+
         # ── 最终得分 → 置信度 ──
         # score 越大越确信，base_confidence 是底分
         base_conf = pattern["confidence"]
@@ -6370,7 +6472,12 @@ def _parse_trial_balance_sheet(sheet, header):
         return _parse_generic_table(sheet, header or [])
 
     rows = []
-    for r in range(start, min(nrows, 3000)):
+    # ★ 2026-10-18（GAP-23 实测补修）：上限必须与 `parse_enhance.ROW_CAPS` **一致**。
+    #   登记表写明 5000 =「核心明细表（序时账 / 银行流水 / 发票 / 存货 / **科目余额**）」
+    #   并注明 3000 只用于「中等明细表（工资 / 成本费用 / 申报明细）」，
+    #   但本函数此前用 3000 ⇒ 实测 5,000 行科目余额表**静默只读 2,999 行**
+    #   （用户看到的是"分析了你上传的账"，实际少了 40%）。
+    for r in range(start, min(nrows, 5000)):
         vals = _row(r)
 
         def g(k):
@@ -8995,6 +9102,69 @@ def generate_working_papers(company_id: int = Query(...)):
 # ═══════════════════════════════════════════════════════════
 # 报告版本切换 —— 详细版 / 简报版 / 底稿版
 # ═══════════════════════════════════════════════════════════
+
+#: 报告导出留痕动作名（**唯一出处**；改口径只改这一处）。
+#: 为什么要常量：审计动作名曾在多处各写一遍字面量 ⇒ 改口径时会漏改一处，
+#: 而"报告流出去了"的留痕一旦漏记，事后无法追溯谁导出了什么。
+_EXPORT_AUDIT_ACTION = "report.export"
+
+
+@app.post("/api/tax-risk-docs/export")
+def export_tax_risk_report(request: Request, company_id: int = Query(...),
+                           format: str = Query("pdf"), view: str = Query("full")):
+    """**主页面报告导出（服务端渲染）** —— GAP-20，2026-10-18。
+
+    为什么必须走服务端（此前是 `window.print()`）：
+      · 浏览器打印**只有草稿版有 CSS 水印**，正式版导出件无任何防伪标识；
+      · 打印件**没有元数据**（无文档号、无版本、无复核标识、无指纹）；
+      · 用户日常点"导出PDF"拿到的就是这种无防伪、无留痕的文件。
+
+    现口径：复用**既有** `engine.report_render.render()`（4 视图 × 4 格式，
+    水印为**真嵌入**、`WATERMARK_METHOD` 已登记），并写入审计留痕（`report.export`）。
+    渲染失败 ⇒ 500 且**明确报错**，不退回浏览器打印（降级会静默丢掉防伪）。
+    """
+    from fastapi.responses import Response
+
+    from engine.api_common import request_perm as _request_perm
+    # `request_perm(request, perm)` 自己取会话（401 优先于 403），无需先 session_of
+    auth = _request_perm(request, "report.generate")
+    try:
+        from engine import report_render as RENDER               # noqa: PLC0415
+        from engine import report_service as RSVC                # noqa: PLC0415
+        from engine.report_views import (FORMAT_EXT, FORMAT_MEDIA,  # noqa: PLC0415
+                                         validate_format)
+    except Exception as exc:                                     # noqa: BLE001
+        raise HTTPException(500, "报告渲染能力不可用：%s" % exc)
+
+    fmt = validate_format(format)
+    doc = RSVC.build_document(None, auth, view=view, company_id=company_id)
+    data, wm_mode = RENDER.render(doc, fmt)
+
+    doc_no = str(doc.get("doc_no") or doc.get("id") or "").strip() or "report"
+    filename = "%s%s" % (doc_no, FORMAT_EXT.get(fmt, "." + fmt))
+    try:
+        from engine.audit_trail import record as _audit_record   # noqa: PLC0415
+        _audit_record(
+            _EXPORT_AUDIT_ACTION, target=filename, company_id=company_id,
+            detail="服务端渲染导出：格式=%s；视图=%s；水印=%s；文档号=%s"
+                   % (fmt, view, wm_mode, doc_no),
+            request=request,
+        )
+    except Exception:                                            # noqa: BLE001
+        pass                                                     # 留痕失败不阻断交付
+    return Response(
+        content=data,
+        media_type=FORMAT_MEDIA.get(fmt, "application/octet-stream"),
+        headers={
+            "Content-Disposition": 'attachment; filename="%s"' % filename,
+            # 供前端/审计核对"确实走了服务端渲染、水印方式为何"
+            "X-Report-Render": "server",
+            "X-Report-Format": fmt,
+            "X-Report-Watermark": wm_mode,
+            "X-Report-Doc-No": doc_no,
+        },
+    )
+
 
 @app.get("/api/tax-risk-docs/report-summary")
 def get_report_summary(company_id: int = Query(...), version: str = Query("full")):

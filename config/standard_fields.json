@@ -63,7 +63,8 @@
         "期初余额借方",
         "年初借方",
         "期初余额(借)",
-        "期初借"
+        "期初借",
+        "open_debit"
       ]
     },
     {
@@ -77,7 +78,8 @@
         "期初余额贷方",
         "年初贷方",
         "期初余额(贷)",
-        "期初贷"
+        "期初贷",
+        "open_credit"
       ]
     },
     {
@@ -92,7 +94,9 @@
         "本期发生借方",
         "借方发生额",
         "本期借",
-        "借方发生"
+        "借方发生",
+        "current_debit",
+        "cur_debit"
       ]
     },
     {
@@ -107,7 +111,9 @@
         "本期发生贷方",
         "贷方发生额",
         "本期贷",
-        "贷方发生"
+        "贷方发生",
+        "current_credit",
+        "cur_credit"
       ]
     },
     {
@@ -120,7 +126,8 @@
         "期末借方",
         "期末余额借方",
         "期末余额(借)",
-        "期末借"
+        "期末借",
+        "close_debit"
       ]
     },
     {
@@ -133,7 +140,8 @@
         "期末贷方",
         "期末余额贷方",
         "期末余额(贷)",
-        "期末贷"
+        "期末贷",
+        "close_credit"
       ]
     },
     {
@@ -391,7 +399,7 @@
       "domain": "bank",
       "type": "text",
       "required": false,
-      "aliases_from": "BANK_TX_TEXT_KEYS",
+      "aliases_from": "COUNTERPARTY_KEYS",
       "aliases": []
     },
     {
@@ -479,13 +487,15 @@
     {
       "name": "summary",
       "cn": "摘要",
-      "domain": "ledger",
+      "domain": "common",
       "type": "text",
       "required": false,
       "aliases": [
         "摘要",
         "业务摘要",
-        "摘要说明"
+        "摘要说明",
+        "交易摘要",
+        "用途"
       ]
     },
     {
@@ -644,8 +654,192 @@
         "公积金",
         "住房公积"
       ]
+    },
+    {
+      "name": "output_tax",
+      "cn": "销项税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "output_tax",
+        "销项税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "input_tax",
+      "cn": "进项税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "input_tax",
+        "进项税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "credit_prior",
+      "cn": "上期留抵税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "credit_prior",
+        "上期留抵税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "input_tax_transfer",
+      "cn": "进项税额转出",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "input_tax_transfer",
+        "进项税额转出"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "deductible_total",
+      "cn": "应抵扣税额合计",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "deductible_total",
+        "应抵扣税额合计"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "actual_deduct",
+      "cn": "实际抵扣税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "actual_deduct",
+        "实际抵扣税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "credit_carryforward",
+      "cn": "期末留抵税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "credit_carryforward",
+        "期末留抵税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "tax_payable_total",
+      "cn": "应纳税额合计",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "tax_payable_total",
+        "应纳税额合计"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "tax_unpaid_prior",
+      "cn": "期初未缴税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "tax_unpaid_prior",
+        "期初未缴税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "tax_paid",
+      "cn": "本期已缴税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "tax_paid",
+        "本期已缴税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "tax_unpaid_end",
+      "cn": "期末未缴税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "tax_unpaid_end",
+        "期末未缴税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "tax_supplement",
+      "cn": "本期应补退税额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "tax_supplement",
+        "本期应补退税额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
+    },
+    {
+      "name": "taxable_amount_simple",
+      "cn": "按简易办法计税销售额",
+      "domain": "declaration",
+      "type": "amount",
+      "required": false,
+      "aliases": [
+        "taxable_amount_simple",
+        "按简易办法计税销售额"
+      ],
+      "_note": "2026-10-18 GAP-15：申报表行次映射（权威 config/declaration_lines.json）"
     }
   ],
+  "_isolation": {
+    "_desc": "★ **域隔离规则唯一权威**（GAP-13，2026-10-18 立）。解析一张表时，除本表 `domain` 与 `common` 外，只允许登记 `cross_domain_allow` 显式列出的字段；未列出 = 不许跨域。",
+    "_why": "旧行为是「任何域的字段只要行里取到值就登记」（`extract_service._other_domain_hits` 无上界），实测三类串域：① 发票表的「货物或应税劳务名称」被登记成银行域「对手方」；② 账簿的「记账日期」被登记成银行域「交易日期」；③ 银行流水的「金额」被登记成发票域「不含税金额」⇒ 下游按域聚合会串账。",
+    "_rule_ambiguous_alias": "跨域命中只能凭**该字段独有的别名**（alias 只被它一个字段声明）。被 ≥2 个字段共用的别名（如「日期」「税额」「借方发生额」「摘要」）在跨域时**一律不作依据**（宁缺勿错）。",
+    "_rule_amount_excluded": "★ **金额类字段不进跨域白名单**：含税/不含税/应发/实发/借/贷这些**口径依赖所在域**，跨域登记必然串义（实测：「金额」在发票域=不含税金额，在合同里=合同总价，两者不可等同）。金额一律由**本域字段**承载，取不到就如实缺失。",
+    "_rule_required": "必填字段只按**本表所在域**要求（资料类型未识别时才要求全部必填），不为别的域强加必填缺失。",
+    "cross_domain_allow": {
+      "_desc": "键 = 资料域（空串 = 资料类型未识别/无对应域，如合同、协议、档案）；值 = 允许额外登记的字段名。**已知域默认不允许任何跨域字段**。",
+      "": [
+        "invoice_no",
+        "invoice_code",
+        "invoice_date",
+        "buyer",
+        "seller",
+        "buyer_tax_no",
+        "seller_tax_no",
+        "goods",
+        "tax_rate",
+        "counterparty",
+        "tx_date",
+        "direction",
+        "bank_name",
+        "bank_account",
+        "person_name",
+        "id_card"
+      ]
+    }
+  },
   "_validation": {
     "required_missing": "标准字段中 required=true 且整表未取到任何值的 ⇒ 记「必填缺失」",
     "amount_format": "type=amount 的列，逐行调用 numparse.to_number_checked ⇒ 解析失败的行记「金额格式错误」（附行号与原值）",
@@ -660,6 +854,6 @@
     "tax_rate_validity": "税率经 rate_to_percent 归一后不在法定档位（0/1/1.5/3/5/6/9/10/11/13/16/17 %）⇒ 记「税率非标准档位」；无法解析为税率的单独标注「无法解析为税率」",
     "duplicate_invoice_no": "同一表内发票号码重复 ⇒ 记「发票号码重复」（**只看号码**；整行重复由 duplicate 报，两者不重叠）"
   },
-  "updated": "2026-10-14",
-  "_version_note": "2026-10-14（P1-1 标准化增强）：新增 14 个标准字段（ledger 凭证号/摘要/凭证日期；invoice 发票代码/税率/销方·购方纳税人识别号；bank 银行账号/开户行/收付方向；declaration 税目；payroll 身份证号/社保费/住房公积金）⇒ 35 → 49。全部 required=false，**不新增必填约束**（向后兼容）。 （历史）2026-10-13: invoice_date/tx_date 补 date 别名；日期归一补 YYYYMMDD"
+  "updated": "2026-10-18",
+  "_version_note": "2026-10-18（GAP-13 域隔离）：新增 `_isolation` 段（跨域白名单 + 歧义别名规则 + 必填按域）；`counterparty.aliases_from` 由 `BANK_TX_TEXT_KEYS` 改为 `COUNTERPARTY_KEYS`（前者是「拼接流水文本」的字段清单，含摘要/品名 ⇒ 对手方曾取到品名）。字段数不变 49。 （历史）2026-10-14（P1-1 标准化增强）：新增 14 个标准字段 ⇒ 35 → 49。2026-10-13: invoice_date/tx_date 补 date 别名；日期归一补 YYYYMMDD"
 }

@@ -1,0 +1,129 @@
+{
+  "checked_at": "2026-10-18 18:20:53",
+  "passed": 12,
+  "total": 12,
+  "items": [
+    {
+      "mechanism": "① 版本归一",
+      "passed": true,
+      "evidence": "静态资源版本核对：[sync_asset_versions] 全部同步（28 个页面 / 124 个资源引用）；报告文书版本=内部辅助分析工作底稿 / 内部辅助分析工作底稿",
+      "detail": {
+        "rc": 0,
+        "sec": 0.42,
+        "out": "[sync_asset_versions] 全部同步（28 个页面 / 124 个资源引用）\n",
+        "err": ""
+      }
+    },
+    {
+      "mechanism": "② 真实场景模拟",
+      "passed": true,
+      "evidence": "端到端：上传=201 解析=200 覆盖率=200（行 2 / 字段 12）",
+      "detail": {
+        "upload": 201,
+        "extract": 200,
+        "coverage": 200,
+        "cov_rows": 2,
+        "cov_fields": 12
+      }
+    },
+    {
+      "mechanism": "③ 用户视角",
+      "passed": true,
+      "evidence": "真实浏览器截图 6 张，5/5 页 OK（视口 1500x1000）",
+      "detail": {
+        "pages": [
+          {
+            "page": "01_home",
+            "title": "财税风险防控系统 - 中小企业版",
+            "bytes": 83611,
+            "verdict": "OK"
+          },
+          {
+            "page": "02_projects",
+            "title": "稽查项目管理 - 财税风险防控系统",
+            "bytes": 28753,
+            "verdict": "OK"
+          },
+          {
+            "page": "03_documents",
+            "title": "资料上传与管理 - 财税风险防控系统",
+            "bytes": 46796,
+            "verdict": "OK"
+          },
+          {
+            "page": "04_risks",
+            "title": "风险结果与复核 - 财税风险防控系统",
+            "bytes": 41483,
+            "verdict": "OK"
+          },
+          {
+            "page": "05_legal",
+            "title": "法规库 - 财税风险防控系统",
+            "bytes": 2046250,
+            "verdict": "OK"
+          }
+        ]
+      }
+    },
+    {
+      "mechanism": "④ 人工习惯",
+      "passed": true,
+      "evidence": "记忆上次选择=有；回收站=有；批量操作=有；二次确认删除=有",
+      "detail": {
+        "记忆上次选择": true,
+        "回收站": true,
+        "批量操作": true,
+        "二次确认删除": true
+      }
+    },
+    {
+      "mechanism": "⑤ 冗余检测",
+      "passed": true,
+      "evidence": "去重权威 dedup_pipeline.duplicate_rate=有；dupkit=有"
+    },
+    {
+      "mechanism": "⑥ 可观测性",
+      "passed": true,
+      "evidence": "统一日志入口 logkit=有；告警=有；请求 ID 格式随日志（见 logging_setup）"
+    },
+    {
+      "mechanism": "⑦ 安全合规",
+      "passed": true,
+      "evidence": "权限/租户/CSRF 三组测试：32 passed in 0.65s",
+      "detail": {
+        "rc": 0,
+        "sec": 2.17
+      }
+    },
+    {
+      "mechanism": "⑧ 性能容量",
+      "passed": true,
+      "evidence": "法规库统计 0.133s；5,000 行科目余额表解析 0.5s（读入 4999 行）",
+      "detail": {
+        "lib_sec": 0.133,
+        "parse_sec": 0.5,
+        "rows": 4999
+      }
+    },
+    {
+      "mechanism": "⑨ 灾难恢复",
+      "passed": true,
+      "evidence": "备份唯一权威 engine/backup（VACUUM INTO + manifest/sha256）；现存快照 3 份（最新 20261018T173422_daily）"
+    },
+    {
+      "mechanism": "⑩ 文档知识",
+      "passed": true,
+      "evidence": "docs/*.md 66 份；项目技能 26 个（caishuixitong-*）"
+    },
+    {
+      "mechanism": "⑪ CI/CD",
+      "passed": true,
+      "evidence": "ci.yml + scripts/ci_check.py（本地同一条命令）+ tools/verify_release.py 三者齐备"
+    },
+    {
+      "mechanism": "⑫ 伦理合规",
+      "passed": true,
+      "evidence": "知情同意(E-01)=有；免责声明要素=有；脱敏模块已移除（用户裁定禁脱敏）=True"
+    }
+  ]
+}

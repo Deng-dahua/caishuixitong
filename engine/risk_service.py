@@ -324,6 +324,16 @@ def list_risks(company_id: Any, session: Any, *, tax: str = "", level: str = "",
         _lp = LM.provisions_of(f.get("rule_id") or f.get("redline_id"))
         f["legal_provision_ids"] = [p["provision_id"] for p in _lp if p["provision_id"]]
         f["legal_provisions_n"] = len(_lp)
+        # ★ 2026-10-18（GAP-19）：**无法规依据的必须降级为线索并显式标注**。
+        #   实测近四成风险 `legal_provisions_n=0` 却与"有法条支撑"的风险同列同等级，
+        #   读者无法分辨。唯一实现 `engine.legal_basis_gate.annotate`
+        #   （只在读取层派生，落盘的结构性等级一字不改）。
+        try:
+            from engine.legal_basis_gate import annotate as _basis_annotate   # noqa: PLC0415
+            _basis_annotate(f, len(_lp))
+        except Exception as _be:                                          # noqa: BLE001
+            f["legal_basis_status"] = "unavailable"
+            f["legal_basis_note"] = "法规依据标注失败（%s）⇒ 本条未作降级，须人工核对" % _be
 
     total = len(items)
     try:
@@ -467,6 +477,16 @@ def get_risk(risk_id: Any, company_id: Any, session: Any, *,
     rn = str(hit.get("risk_no") or "")
     f = SCORE.stamp(hit) if with_score else dict(hit)
 
+    # ★ 2026-10-18（GAP-19）：**无法规依据的风险必须降级为线索并显式标注**，
+    #   详情页与列表页用**同一把尺**（`engine.legal_basis_gate.annotate`）。
+    _lbf = LM.for_finding(hit)
+    try:
+        from engine.legal_basis_gate import annotate as _basis_annotate   # noqa: PLC0415
+        _basis_annotate(f, len(_lbf.get("provisions") or []))
+    except Exception as _be:                                              # noqa: BLE001
+        f["legal_basis_status"] = "unavailable"
+        f["legal_basis_note"] = "法规依据标注失败（%s）⇒ 本条未作降级" % _be
+
     # 规则侧（版本 / 法规依据 / 层）—— 有则带上，无则**如实空**，绝不编造
     rule: Dict[str, Any] = {}
     for rid in (hit.get("rule_id"), hit.get("redline_id")):
@@ -531,7 +551,11 @@ def get_risk(risk_id: Any, company_id: Any, session: Any, *,
         "rule_found": bool(rule),
         # ★ 2026-10-15（步骤 19）风险发现 → 法规条款（条款 ID + 原文 + 来源），
         #   与 rule.legal_basis_ref（作者口径）**并列**、互不覆盖；查不到即空并说明原因。
-        "legal_basis": LM.for_finding(hit),
+        "legal_basis": _lbf,
+        # ★ 2026-10-18（GAP-19）：依据状态（grounded / none / unavailable）与线索标注
+        "legal_basis_status": str(f.get("legal_basis_status") or ""),
+        "legal_basis_note": str(f.get("legal_basis_note") or ""),
+        "is_clue": str(f.get("legal_basis_status") or "") == "none",
         # ★ 相关官方材料（案例/解读/问答）—— **法规级**关联，参考线索，不作定性依据
         "related_materials": _related_materials(hit),
         "review": cur,

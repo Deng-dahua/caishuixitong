@@ -101,6 +101,11 @@ _LEGACY_WRITE_PERMS: tuple = (
     # ── 报告：工作底稿 / 交付 / LLM 叙事（后者有调用成本）──
     ("POST", "/api/workpaper/generate", "report.generate"),
     ("POST", "/api/compliance/rounds/{round_id}/deliver", "report.generate"),
+    # ★ 2026-10-18（GAP-20）：主页面"导出报告"改走**服务端渲染**（带水印与元数据）。
+    #   与 `/deliver` 同权（都是"报告流出去了"），故同用 report.generate。
+    #   用 POST（不是 GET）：导出会写审计留痕、且属"报告流出去了"的动作，
+    #   必须受 CSRF 保护（GET 无 CSRF 校验 ⇒ 第三方页面可诱导导出）。
+    ("POST", "/api/tax-risk-docs/export", "report.generate"),
     ("POST", "/api/audit/generate-narrative", "report.generate"),
     # ── 账套管理（`POST /api/companies` 见 _LEGACY_ADMIN_ONLY，与既有特例一致）──
     ("PUT", "/api/company", "project.write"),
