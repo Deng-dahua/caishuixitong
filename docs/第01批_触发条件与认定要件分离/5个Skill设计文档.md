@@ -13,7 +13,7 @@
 
 | 层 | 文件 | 职责 |
 |---|---|---|
-| **唯一核心** | `engine/doc_consistency_core.py` | 取权威值（9 种 kind）/ 抽文档值（正则声明）/ 同义展开 / 解析 U 表 / 遍历引用图；**5 个 Skill 的逻辑都在这里** |
+| **唯一核心** | `engine/doc_consistency_core.py` | 取权威值（5 种 kind）/ 抽文档值（正则声明）/ 同义展开 / 解析 U 表 / 遍历引用图；**5 个 Skill 的逻辑都在这里** |
 | Skill D1 | `engine/doc_number_authority.py` | 薄转发 `check_numbers()` + 数据表键 `numbers` |
 | Skill D2 | `engine/rule_reference_sync.py` | 薄转发 `check_rules()` + 数据表键 `rules` |
 | Skill D3 | `engine/doc_residue_scan.py` | 薄转发 `check_residue()` + `expand_grep()`（展开同义写法）|
