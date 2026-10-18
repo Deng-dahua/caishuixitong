@@ -142,3 +142,6 @@ docs/元质量_20261016/_scenarios/S1_导出_*
 # 本地收口验收工作目录（隔离实例数据/临时产物，134MB；证据已归档到
 # docs/收口_20261018/evidence/）
 _audit_20261018/
+
+# 交付包构建产物（由 scripts/_build_release.py 生成，可重新生成）
+release-v1.0.0/
