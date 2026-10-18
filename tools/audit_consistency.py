@@ -8040,6 +8040,14 @@ def check_static_asset_cache_version() -> List[Tuple[str, str, str]]:
             rel_page = "static/%s" % page.name
             html = page.read_text(encoding="utf-8")
             refs = re.findall(r"(/static/(?:js|css)/[A-Za-z0-9_.\-]+)\?v=([0-9A-Za-z_.\-]+)", html)
+            # ★★ 2026-10-18：**必须也查"完全没有 ?v= 的引用"**。
+            #   此前只查已带 `?v=` 的是否过期 ⇒ 对"根本没写版本号"完全无声。
+            #   实测 22 个页面 / 40 处引用没有版本号，含 **所有页面专属 JS**
+            #   （risks.js / projects.js / extract.js / documents.js / users.js …）⇒
+            #   浏览器按 URL 缓存，这些文件的前端改动**可能永远到不了用户**。
+            #   这是"改了等于没改"最隐蔽的一类：不是版本号错了，而是压根没有版本号。
+            raw_refs = re.findall(
+                r'(?:src|href)="(/static/(?:js|css)/[A-Za-z0-9_.\-]+)"', html)
             stale, missing = [], []
             for rel, cur in refs:
                 p = ROOT / rel.lstrip("/").replace("/", os.sep)
@@ -8058,6 +8066,12 @@ def check_static_asset_cache_version() -> List[Tuple[str, str, str]]:
             if missing:
                 issues.append(("ERROR", rel_page,
                                "静态资源引用指向不存在的文件: " + "、".join(missing[:5])))
+            if raw_refs:
+                issues.append(("ERROR", rel_page,
+                               "%d 处静态资源引用**完全没有 `?v=`**（浏览器会按 URL 长期缓存，"
+                               "这些 JS/CSS 的改动用户可能永远看不到）：%s。"
+                               "跑 python tools/sync_asset_versions.py 补齐"
+                               % (len(raw_refs), "、".join(raw_refs[:5]))))
     except Exception as exc:
         issues.append(("WARN", "tools/audit_consistency.py", f"静态资源版本校验跳过: {exc}"))
     return issues
@@ -12934,6 +12948,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_fact_intro_subject_consistency()  # 2026-10-09 P0-4 事实引子须与标题同主体
                + check_company_artifact_consistency() # 2026-10-06 删账套必须连派生物一起清
                + check_delete_exits()                 # 2026-10-06 删除出口唯一（任何删除都要删干净）
+               + check_api_boundary_single_source()   # 2026-10-17 R-02 API 公共边界唯一权威
+               + check_print_budget()                 # 2026-10-17 O-01 print 预算（只许减不许增）
                + check_report_version_reuse_authority()  # 2026-10-09 增量复用判据须走权威
                + check_audit_trail_single_writer()    # 2026-10-09 业务留痕写入唯一权威
                + check_report_payload_single_shape()  # 2026-10-09 报告载荷形状唯一（T-P0-8）
@@ -14045,6 +14061,135 @@ def check_company_artifact_consistency() -> List[Tuple[str, str, str]]:
                                % (_fname, _path, "、".join(_PURGE_AUTHORITIES))))
     return issues
 
+
+
+def check_api_boundary_single_source():
+    """**API 公共边界唯一权威**（R-02，2026-10-17）。
+
+    阶段 5 冗余检测发现：`_session` 在 10 个 API 文件各复制一份、`_call` 8 份、
+    `_require_perm`/`_request_perm` 各 6 份。这不是"代码不好看"，而是
+    **权限口径漂移的机制** —— 改一处忘一处就会造出"某个接口用旧口径判权限"。
+
+    收敛后（`engine/api_common.py`）本检查保证不许回退：
+      · 任何 `*api*.py` 不得再定义 `_session/_require_perm/_request_perm/_perm/_admin`；
+      · `_call` 允许存在（调用点太多，改签名风险大于收益），但**必须**转发到
+        `call_boundary`，且**必须**显式声明异常类型 —— 禁止 `except Exception`
+        那种把代码缺陷伪装成 4xx 的写法。
+    """
+    issues = []
+    forbidden = ("_session", "_require_perm", "_request_perm", "_perm", "_admin")
+    files = sorted(p for p in ROOT.glob("*api*.py") if not p.name.startswith("_bk"))
+    for p in files:
+        rel = p.name
+        try:
+            src = p.read_text(encoding="utf-8", errors="replace")
+            tree = ast.parse(src)
+        except SyntaxError as exc:
+            issues.append(("ERROR", rel, "无法解析：%s" % exc))
+            continue
+        for node in tree.body:
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            if node.name in forbidden:
+                issues.append(("ERROR", rel,
+                               "第 %d 行重新定义了 `%s` —— 公共边界唯一权威在 "
+                               "`engine/api_common.py`（R-02）：请改为 `%s = ...` 别名，"
+                               "否则权限口径会再次分裂" % (node.lineno, node.name, node.name)))
+            if node.name == "_call":
+                body = ast.get_source_segment(src, node) or ""
+                if "call_boundary" not in body:
+                    issues.append(("ERROR", rel,
+                                   "第 %d 行的 `_call` 未转发到 `engine.api_common.call_boundary`"
+                                   "%s" % (node.lineno,
+                                           "（且出现 except Exception —— 会把代码缺陷伪装成 4xx）"
+                                           if "except Exception" in body else "")))
+    return issues
+
+
+def check_print_budget():
+    """**print 预算**（O-01，2026-10-17）。
+
+    评估结论：产品代码曾 **print 398 次、logger 仅 6 次** —— 无级别、不可采集，
+    线上排障只能翻 stdout。已把基础模块与报告生成链的 138 处迁到 `logkit`。
+
+    本检查的作用**不是**要求立刻清零（那会一次性改动几十个业务文件，风险大于收益），
+    而是**冻结现状、只许减不许增**：
+      · 超过预算 ⇒ ERROR（新增 print 必须改用 `get_logger`）；
+      · 低于预算 ⇒ 提示可以把预算调低（**留在 WARN 之外**，避免噪音）。
+
+    ★ 工具/验证脚本（`_rev_verify_*` / `_p0_*` / `_sync_*` 等）的 print 是"输出本身"，
+      不计入预算 —— 改成 logger 反而看不到结果。
+    """
+    import ast as _ast
+
+    budget_main = 2           # 冻结值（main.py 迁移 30 处后仅剩命令行回显）
+    budget_total = 55         # 冻结值（全产品：迁 138 处后实测 50，留 5 处余量）
+    files = []
+    for pat in ("*.py", "engine/*.py"):
+        files.extend(p for p in ROOT.glob(pat))
+    counted = []
+    for p in sorted(set(files)):
+        if p.name.startswith(("_bk", "_rev_verify", "_p0_", "_sync_", "_verify", "_probe")):
+            continue
+        try:
+            src = p.read_text(encoding="utf-8", errors="replace")
+            tree = _ast.parse(src)
+        except SyntaxError:
+            continue
+        n = 0
+        for node in _ast.walk(tree):
+            if (isinstance(node, _ast.Call) and isinstance(node.func, _ast.Name)
+                    and node.func.id == "print"):
+                n += 1
+        if n:
+            counted.append((n, p.name))
+    total = sum(n for n, _ in counted)
+    main_n = dict((name, n) for n, name in counted).get("main.py", 0)
+    issues = []
+
+    # ★★ 2026-10-18（真实事故）：`print(..., flush=True)` 机械迁移成
+    #   `_log.info(..., flush=True)` —— **Logger 不接受 flush 关键字**，
+    #   运行到那一行才抛 `TypeError: Logger._log() got an unexpected keyword argument 'flush'`。
+    #   当时 19 处全中（`main.py` 分析/OCR/删除终局等关键路径），
+    #   由 `test_report_delete_finality` 抓到。这里加闸门，防同类再犯。
+    #   判据：任何 `_log.<level>(...)` 的**关键字参数**里不得出现 print 专有参数。
+    _PRINT_ONLY_KW = {"flush", "sep", "end", "file"}
+    for p in sorted(set(files)):
+        if p.name.startswith(("_bk", "_rev_verify", "_p0_", "_sync_", "_verify", "_probe")):
+            continue
+        try:
+            src = p.read_text(encoding="utf-8", errors="replace")
+            tree = _ast.parse(src)
+        except SyntaxError:
+            continue
+        for node in _ast.walk(tree):
+            if not isinstance(node, _ast.Call):
+                continue
+            fn = node.func
+            if not (isinstance(fn, _ast.Attribute) and isinstance(fn.value, _ast.Name)
+                    and fn.value.id in ("_log", "logger")):
+                continue
+            bad = [kw.arg for kw in node.keywords if kw.arg in _PRINT_ONLY_KW]
+            if bad:
+                issues.append(("ERROR", p.name,
+                               "第 %d 行 logger 调用带了 print 专有参数 %s —— "
+                               "Logger 不接受这些关键字，运行到此处会抛 TypeError"
+                               "（print→logger 迁移时最容易漏的一处）"
+                               % (node.lineno, bad)))
+
+    if total > budget_total:
+        issues.append(("ERROR", "产品代码",
+                       "print 总数 %d 超过预算 %d ⇒ 新增的请改用 "
+                       "`from logkit import get_logger`（O-01：日志必须可分级/可采集）"
+                       % (total, budget_total)))
+    if main_n > budget_main:
+        issues.append(("ERROR", "main.py",
+                       "print %d 处超过预算 %d ⇒ 同上" % (main_n, budget_main)))
+    if total < budget_total - 10:
+        issues.append(("WARN", "产品代码",
+                       "print 已降到 %d（预算 %d）⇒ 可把 budget_total 调低到 %d"
+                       % (total, budget_total, total)))
+    return issues
 
 def check_delete_exits() -> List[Tuple[str, str, str]]:
     """「删除出口唯一」：系统里**一切真正删东西的调用**必须落在声明的出口函数里（2026-10-06）。

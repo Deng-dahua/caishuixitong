@@ -34,6 +34,13 @@ from engine import rule_catalog as CAT
 from engine import rule_executor as EXEC
 from engine import risk_scoring as SCORE
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_session = session_of
+
 router = APIRouter(prefix="/api/v1", tags=["规则引擎（P0-5）"])
 
 #: 页面路由（**无前缀**）。单独一个 router 是为了让 `main.py` 只需**同一行内**
@@ -54,13 +61,6 @@ def rules_page():
         except (UnicodeDecodeError, LookupError):
             continue
     return "<h1>Encoding error</h1>"
-
-
-def _session(request: Request):
-    auth = getattr(request.state, "auth", None)
-    if auth is None:
-        raise HTTPException(status_code=401, detail="未登录")
-    return auth
 
 
 def _findings_payload(company_id: Any, session: Any) -> Dict[str, Any]:

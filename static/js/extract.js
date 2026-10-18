@@ -109,6 +109,46 @@
     }
   }
 
+  // ── 批量解析（H-05）───────────────────────────────────────────────
+  async function runBatch() {
+    if (!PROJECT) { flash("请先选择项目", "err"); return; }
+    var scope = $("bk-scope").value;
+    var lim = Number($("bk-limit").value) || 20;
+    if (lim < 1 || lim > 50) { flash("「本次最多」必须在 1~50 之间", "err"); return; }
+    var onlyPending = (scope === "pending");
+    if (!window.confirm("将对本项目最多 " + lim + " 份资料执行解析（"
+        + (onlyPending ? "仅待解析/失败" : "全部，含已解析") + "）。继续？")) { return; }
+    var btn = $("btn-batch");
+    btn.disabled = true;
+    $("batch-hint").textContent = "批量解析中…（逐份执行，请勿关闭页面）";
+    $("batch-result").innerHTML = "";
+    try {
+      var r = await api(API + "/projects/" + PROJECT + "/extract-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ only_pending: onlyPending, limit: lim })
+      });
+      $("batch-hint").textContent = "完成：成功 " + r.ok + " · 失败 " + r.failed
+        + "（共 " + r.total + " 份）";
+      var lines = (r.items || []).map(function (x) {
+        return "· 资料 " + x.document_id + " → " + (x.status === "ok"
+          ? ("成功（表 " + x.tables + " / 字段 " + x.fields + " / 异常 " + x.issues + "）"
+             + (x.parse_error ? " 提示：" + esc(x.parse_error) : ""))
+          : ("<b>失败</b>：" + esc(x.message)));
+      });
+      $("batch-result").innerHTML = esc(r.note || "") + "<br>" + lines.join("<br>");
+      if (r.failed) { flash("批量解析完成，但有 " + r.failed + " 份失败（明细见下方）", "warn"); }
+      else { flash("批量解析完成：成功 " + r.ok + " 份"); }
+      await loadDocs();
+      if (DOC) { await loadExtracted(); }
+    } catch (e) {
+      $("batch-hint").textContent = "";
+      flash("批量解析失败：" + e.message, "err");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   async function loadExtracted() {
     if (!DOC) { $("doc").value = ""; return; }
     try {
@@ -241,6 +281,7 @@
 
   function bind() {
     $("btn-parse").onclick = runParse;
+    $("btn-batch").onclick = runBatch;
     $("btn-refresh").onclick = loadExtracted;
     $("proj").onchange = async function () {
       PROJECT = Number($("proj").value) || null;

@@ -103,17 +103,37 @@ def test_permission_code_is_registered(spec, perm) -> None:
 
 
 def test_helper_present_in_patched_files() -> None:
-    """③ 补过校验的文件必须带 `_require_perm` 辅助（单一转换点，不自判角色）。"""
+    """③ 补过校验的文件必须**能用** `_require_perm`（单一转换点，不自判角色）。
+
+    ★ 2026-10-18（R-02）：收敛前每个文件各自 `def _require_perm(...)` 复制一份
+    （`_session` 10 份、`_require_perm` 6 份）——"改一处忘一处"正是权限口径漂移的机制。
+    收敛后统一为**别名引用** `engine/api_common`。故判据放宽到"两种形态都算数"，
+    但**强度不降**：仍要求最终实现走 `require_permission` 权威，且不得自判角色。
+    """
+    import engine.api_common as AC
+
     for fname in ("reports_api.py", "risks_api.py", "analysis_api.py",
                   "documents_api.py", "projects_api.py", "extract_api.py"):
         src = (ROOT / fname).read_text(encoding="utf-8")
-        assert "def _require_perm(" in src, "%s 缺 `_require_perm` 辅助" % fname
-        # 辅助必须走 require_permission（唯一权威），不得自判角色
-        seg = src[src.index("def _require_perm("):]
-        seg = seg[: seg.find("\ndef ", 5)]
-        assert "require_permission(" in seg, "%s 的 _require_perm 未走 require_permission 权威" % fname
-        assert "session.role" not in seg and "is_admin" not in seg, (
-            "%s 的 _require_perm 出现自判角色痕迹（应为唯一权威转发）" % fname)
+        has_def = "def _require_perm(" in src
+        has_alias = "_require_perm = require_perm" in src
+        assert has_def or has_alias, (
+            "%s 既没有定义 `_require_perm`，也没有引用唯一权威的别名" % fname)
+        if has_def:
+            seg = src[src.index("def _require_perm("):]
+            seg = seg[: seg.find("\ndef ", 5)]
+            assert "require_permission(" in seg, "%s 的 _require_perm 未走 require_permission 权威" % fname
+            assert "session.role" not in seg and "is_admin" not in seg, (
+                "%s 的 _require_perm 出现自判角色痕迹（应为唯一权威转发）" % fname)
+        else:
+            # 别名形态：权威实现必须在 api_common，且它自身仍须满足同样两条要求
+            impl_src = (ROOT / "engine" / "api_common.py").read_text(encoding="utf-8")
+            seg = impl_src[impl_src.index("def require_perm("):]
+            seg = seg[: seg.find("\ndef ", 5)]
+            assert "require_permission(" in seg, "api_common.require_perm 未走 require_permission 权威"
+            assert "session.role" not in seg and "is_admin" not in seg, (
+                "api_common.require_perm 出现自判角色痕迹")
+            assert AC.require_perm is not None
 
 
 def test_main_old_route_report_delete_guarded() -> None:

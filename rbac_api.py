@@ -36,6 +36,13 @@ from pydantic import BaseModel, Field
 
 from engine import access_service as SVC
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_session = session_of
+
 router = APIRouter(prefix="/api/v1", tags=["权限与审计（P0-8）"])
 
 #: 页面路由（**无前缀**）。单独一个 router 是为了让 `main.py` 只需**同一行内**
@@ -120,19 +127,10 @@ class RoleCreate(BaseModel):
 # --------------------------------------------------------------------------
 # 内部
 # --------------------------------------------------------------------------
-def _session(request: Request):
-    auth = getattr(request.state, "auth", None)
-    if auth is None:
-        raise HTTPException(status_code=401, detail="未登录")
-    return auth
-
-
 def _call(fn, *args, **kwargs):
-    """把 Service 的 `AccessError` 统一转成 HTTP（**唯一转换点**）。"""
-    try:
-        return fn(*args, **kwargs)
-    except SVC.AccessError as exc:
-        raise HTTPException(status_code=int(exc.status), detail=str(exc.message)) from exc
+    """业务异常 → HTTP 的**唯一转换点**在 `engine/api_common.call_boundary`；
+    本函数只声明「本域该捕获哪一类业务异常」（SVC.AccessError）。"""
+    return call_boundary(fn, *args, exc_types=(SVC.AccessError,), **kwargs)
 
 
 # --------------------------------------------------------------------------

@@ -28,6 +28,14 @@ from pydantic import BaseModel, Field
 
 from engine import extract_service as SVC
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_require_perm = require_perm
+_session = session_of
+
 router = APIRouter(prefix="/api/v1", tags=["解析与标准化（P0-3）"])
 
 page_router = APIRouter(tags=["解析与标准化（页面）"])
@@ -43,33 +51,10 @@ class ResolveIn(BaseModel):
     status: str = Field("resolved", description="resolved（已处理）/ ignored（确认非问题）")
 
 
-def _session(request: Request):
-    auth = getattr(request.state, "auth", None)
-    if auth is None:
-        raise HTTPException(status_code=401, detail="未登录")
-    return auth
-
-
-def _require_perm(session, code: str):
-    """写操作的**功能权限点**校验（MQ2-D1）。
-
-    权威：`engine.rbac.rebac_allows()`（经 `require_permission` 抛 403）。
-    本函数只做「RbacError → HTTPException」的边界转换，**不自判角色**（否则即第二套口径）。
-    """
-    from engine.rbac import RbacError, require_permission          # noqa: PLC0415
-    try:
-        require_permission(session, code)
-    except RbacError as exc:
-        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
-                            detail=str(getattr(exc, "message", exc))) from exc
-    return session
-
-
 def _call(fn, *args, **kwargs):
-    try:
-        return fn(*args, **kwargs)
-    except SVC.ExtractError as exc:
-        raise HTTPException(status_code=int(exc.status), detail=str(exc.message)) from exc
+    """业务异常 → HTTP 的**唯一转换点**在 `engine/api_common.call_boundary`；
+    本函数只声明「本域该捕获哪一类业务异常」（SVC.ExtractError）。"""
+    return call_boundary(fn, *args, exc_types=(SVC.ExtractError,), **kwargs)
 
 
 # --------------------------------------------------------------------------
@@ -135,6 +120,30 @@ def run_extract(document_id: int, request: Request):
     except HTTPException as exc:
         job_finished(job_id, "error", company_id, error_message=str(exc.detail)[:200])
         raise
+
+
+# --------------------------------------------------------------------------
+# H-05（2026-10-17）：批量解析
+# --------------------------------------------------------------------------
+class BatchExtractIn(BaseModel):
+    """批量解析入参（全部可选，默认「本项目待解析/失败的，最多 20 份」）。"""
+    only_pending: bool = Field(True, description="只挑「待解析 / 解析失败」的（默认）；"
+                                                 "false 则连已成功的一起重解析")
+    limit: int = Field(20, ge=1, le=50, description="本次最多处理多少份（上限 50）")
+    document_ids: Optional[List[int]] = Field(None, description="显式指定资料 id 列表；给了就不按状态筛")
+
+
+@router.post("/projects/{project_id}/extract-batch",
+             summary="批量解析（逐条独立执行、逐条如实回报；部分失败不回滚）")
+def run_extract_batch(project_id: int, payload: BatchExtractIn, request: Request):
+    """为什么是同步 + 分批：单份解析是秒级，一次几十份仍在 HTTP 可接受范围内；
+    分批能让用户看到逐条结果、失败项可单独重试。上限 50 份/次（超出即 400，不静默截断）。
+    """
+    session = _session(request)
+    _require_perm(session, "document.write")
+    return _call(SVC.parse_batch, project_id, session,
+                 only_pending=payload.only_pending, limit=payload.limit,
+                 document_ids=payload.document_ids, request=request)
 
 
 # --------------------------------------------------------------------------

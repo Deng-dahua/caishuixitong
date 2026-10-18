@@ -21,14 +21,14 @@ from fastapi import APIRouter, HTTPException, Request
 
 from engine import parse_enhance as PE
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_session = session_of
+
 router = APIRouter(prefix="/api/v1", tags=["解析与标准化增强（P1-1）"])
-
-
-def _session(request: Request):
-    auth = getattr(request.state, "auth", None)
-    if auth is None:
-        raise HTTPException(status_code=401, detail="未登录")
-    return auth
 
 
 def _require(request: Request, perm: str) -> Any:

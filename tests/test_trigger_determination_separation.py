@@ -208,9 +208,18 @@ class TestStructuredOutput:
 
     @pytest.mark.parametrize("seq,risk_code", sorted(SAMPLE_SEQ.items()))
     def test_sample_first_criterion_is_conforming(self, seq, risk_code):
-        """疑点1/3/4/12 第1条（前提条）必须写「符合情形」，不得写"未形成核对结论"。"""
-        p = [x for x in self._problems() if x.get("seq") == seq]
-        assert p, "疑点 %s 不在产物里（编号可能已重排，需重核）" % seq
+        """样例疑点的第 1 条（前提条）必须写「符合情形」，不得写「未形成核对结论」。
+
+        ★ 2026-10-18：改为**按 risk_code 定位**，不再按 seq 定位。
+        原因：本用例原本断言 `seq=7 ⇔ RL-PAY-001`，这是**数据依赖的硬编码** ——
+        产物重生后疑点从 18 条变 24 条，seq 随之重排（RL-PAY-001 由 7→8），
+        用例就变成"因为编号变了所以失败"，**测的不再是判据本身**。
+        按代码定位后语义完全不变（仍要求这 4 个风险的前提条写「符合情形」），
+        且不再受疑点条数波动影响。保留 `seq` 参数只为记录历史编号。
+        """
+        p = [x for x in self._problems()
+             if (x.get("trigger_determination") or {}).get("risk_code") == risk_code]
+        assert p, "风险 %s 不在产物里（产物可能未重生）" % risk_code
         blk = p[0]["trigger_determination"]
         assert blk["risk_code"] == risk_code, blk["risk_code"]
         first = [c for c in blk["determination_criteria"] if str(c.get("id")) == "C1"]

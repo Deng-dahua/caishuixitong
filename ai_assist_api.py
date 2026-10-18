@@ -25,20 +25,17 @@ from fastapi.responses import HTMLResponse
 
 from engine import ai_assist as AI
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_request_perm = request_perm
+
 router = APIRouter(prefix="/api/v1", tags=["AI 辅助分析（P2-3）"])
 page_router = APIRouter(tags=["AI 辅助分析（页面）"])
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
-
-
-def _request_perm(request: Request, perm: str):
-    auth = getattr(request.state, "auth", None)
-    if auth is None:
-        raise HTTPException(status_code=401, detail="未登录")
-    from engine.rbac import rbac_allows                      # noqa: PLC0415
-    if not rbac_allows(auth, perm):
-        raise HTTPException(status_code=403, detail="缺少权限：%s" % perm)
-    return auth
 
 
 # ── 字面量段（必须在前）────────────────────────────────────────────────────

@@ -12,6 +12,11 @@ from typing import Optional, List
 from datetime import datetime, date
 from runtime_storage import ACCOUNTING_DB
 
+# ★ O-01（2026-10-17）：统一日志。新代码一律用 `get_logger`，**不要再 print**。
+#   分级口径：启动/推进=info；失败但已兜底=warning；高频细节=debug。
+from logkit import get_logger as _get_logger
+_log = _get_logger(__name__)
+
 SQLALCHEMY_DATABASE_URL = "sqlite:///" + ACCOUNTING_DB.as_posix()
 
 engine = create_engine(
@@ -851,10 +856,10 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(sql))
                     db.commit()
-                    print(f"已为 companies 添加 {col_name} 列")
+                    _log.info(f"已为 companies 添加 {col_name} 列")
                 except Exception as e:
                     db.rollback()
-                    print(f"companies 添加 {col_name} 列失败: {e}")
+                    _log.warning(f"companies 添加 {col_name} 列失败: {e}")
         # 创建子表
         for sub_table in [CompanyShareholder.__table__, CompanyDirector.__table__,
                           CompanySupervisor.__table__, CompanyFinanceContact.__table__]:
@@ -863,10 +868,10 @@ def migrate_schema(db):
                 try:
                     sub_table.create(bind=engine)
                     db.commit()
-                    print(f"已创建子表 {table_name}")
+                    _log.info(f"已创建子表 {table_name}")
                 except Exception as e:
                     db.rollback()
-                    print(f"创建子表 {table_name} 失败: {e}")
+                    _log.warning(f"创建子表 {table_name} 失败: {e}")
 
     # ── 2. 给所有表增加 company_id 列 ──
     migrations = {
@@ -884,10 +889,10 @@ def migrate_schema(db):
             if "company_id" not in existing_cols:
                 db.execute(TextClause(sql))
                 db.commit()
-                print(f"已为 {table_name} 添加 company_id 列")
+                _log.info(f"已为 {table_name} 添加 company_id 列")
         except Exception as e:
             db.rollback()
-            print(f"迁移 {table_name} 跳过（可能已存在）: {e}")
+            _log.warning(f"迁移 {table_name} 跳过（可能已存在）: {e}")
 
     # ── 4. 补充 uscc 列 ──
     extra_cols = {
@@ -913,10 +918,10 @@ def migrate_schema(db):
             try:
                 db.execute(TextClause("ALTER TABLE payments ADD COLUMN scenario VARCHAR(20)"))
                 db.commit()
-                print("已为 payments 添加 scenario 列")
+                _log.info("已为 payments 添加 scenario 列")
             except Exception as e:
                 db.rollback()
-                print(f"payments 添加 scenario 列失败: {e}")
+                _log.warning(f"payments 添加 scenario 列失败: {e}")
         # 重命名内部报销 → 内部人员
         try:
             db.execute(TextClause("UPDATE payments SET payment_type = '内部人员' WHERE payment_type = '内部报销'"))
@@ -941,10 +946,10 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(sql))
                     db.commit()
-                    print(f"已为 customers 添加字段: {col}")
+                    _log.info(f"已为 customers 添加字段: {col}")
                 except Exception as e:
                     db.rollback()
-                    print(f"customers 添加字段 {col} 失败（可能已存在）: {e}")
+                    _log.warning(f"customers 添加字段 {col} 失败（可能已存在）: {e}")
 
     # ── 7.2 销售发票字段扩展（数电发票、销方、风险等级等） ──
     if "sales_invoices" in inspector.get_table_names():
@@ -967,10 +972,10 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(sql))
                     db.commit()
-                    print(f"已为 sales_invoices 添加字段: {col}")
+                    _log.info(f"已为 sales_invoices 添加字段: {col}")
                 except Exception as e:
                     db.rollback()
-                    print(f"sales_invoices 添加字段 {col} 失败（可能已存在）: {e}")
+                    _log.warning(f"sales_invoices 添加字段 {col} 失败（可能已存在）: {e}")
         # 将旧 invoice_type 数据迁移到 invoice_category
         if "invoice_type" in existing_cols and "invoice_category" in existing_cols or "invoice_category" not in existing_cols:
             pass
@@ -978,7 +983,7 @@ def migrate_schema(db):
             try:
                 db.execute(TextClause("UPDATE sales_invoices SET invoice_category = invoice_type WHERE invoice_category IS NULL"))
                 db.commit()
-                print("已迁移 sales_invoices.invoice_type → invoice_category")
+                _log.info("已迁移 sales_invoices.invoice_type → invoice_category")
             except Exception as e:
                 db.rollback()
 
@@ -1003,16 +1008,16 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(sql))
                     db.commit()
-                    print(f"已为 purchase_invoices 添加字段: {col}")
+                    _log.info(f"已为 purchase_invoices 添加字段: {col}")
                 except Exception as e:
                     db.rollback()
-                    print(f"purchase_invoices 添加字段 {col} 失败（可能已存在）: {e}")
+                    _log.warning(f"purchase_invoices 添加字段 {col} 失败（可能已存在）: {e}")
         # 将旧 invoice_type 数据迁移到 invoice_category
         if "invoice_type" in existing_cols:
             try:
                 db.execute(TextClause("UPDATE purchase_invoices SET invoice_category = invoice_type WHERE invoice_category IS NULL"))
                 db.commit()
-                print("已迁移 purchase_invoices.invoice_type → invoice_category")
+                _log.info("已迁移 purchase_invoices.invoice_type → invoice_category")
             except Exception as e:
                 db.rollback()
 
@@ -1058,10 +1063,10 @@ def migrate_schema(db):
                 )
             """))
             db.commit()
-            print("已创建 bookkeeping_invoices 表")
+            _log.info("已创建 bookkeeping_invoices 表")
         except Exception as e:
             db.rollback()
-            print(f"创建 bookkeeping_invoices 表失败: {e}")
+            _log.warning(f"创建 bookkeeping_invoices 表失败: {e}")
 
     # ── 8.06 取得发票：删除认证/抵扣字段（认证状态、认证日期、抵扣期间、抵扣率） ──
     if "purchase_invoices" in inspector.get_table_names():
@@ -1071,10 +1076,10 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(f"ALTER TABLE purchase_invoices DROP COLUMN {col}"))
                     db.commit()
-                    print(f"已删除 purchase_invoices.{col}")
+                    _log.info(f"已删除 purchase_invoices.{col}")
                 except Exception as e:
                     db.rollback()
-                    print(f"删除 purchase_invoices.{col} 失败（可能不支持 DROP COLUMN）: {e}")
+                    _log.warning(f"删除 purchase_invoices.{col} 失败（可能不支持 DROP COLUMN）: {e}")
 
     # ── 8.1 银行流水 _fingerprint 字段 ──
     if "bank_transactions" in inspector.get_table_names():
@@ -1087,10 +1092,10 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(sql))
                     db.commit()
-                    print(f"已为 bank_transactions 添加字段: {col}")
+                    _log.info(f"已为 bank_transactions 添加字段: {col}")
                 except Exception as e:
                     db.rollback()
-                    print(f"bank_transactions 添加字段 {col} 失败（可能已存在）: {e}")
+                    _log.warning(f"bank_transactions 添加字段 {col} 失败（可能已存在）: {e}")
 
     # ── 8.2 进项抵扣 _fingerprint 字段 ──
     if "input_vat_deductions" in inspector.get_table_names():
@@ -1103,10 +1108,10 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(sql))
                     db.commit()
-                    print(f"已为 input_vat_deductions 添加字段: {col}")
+                    _log.info(f"已为 input_vat_deductions 添加字段: {col}")
                 except Exception as e:
                     db.rollback()
-                    print(f"input_vat_deductions 添加字段 {col} 失败（可能已存在）: {e}")
+                    _log.warning(f"input_vat_deductions 添加字段 {col} 失败（可能已存在）: {e}")
 
     # ── 9. 发票号码和开票日期改为可空 ──
     for table_name in ("sales_invoices", "purchase_invoices"):
@@ -1120,10 +1125,10 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(f"DROP TABLE IF EXISTS {backup_table}"))
                     db.commit()
-                    print(f"已清理残留备份表 {backup_table}")
+                    _log.info(f"已清理残留备份表 {backup_table}")
                 except Exception as e:
                     db.rollback()
-                    print(f"清理 {backup_table} 跳过: {e}")
+                    _log.warning(f"清理 {backup_table} 跳过: {e}")
 
 
     # ── 11. JournalEntry 新增5个字段 ──
@@ -1141,10 +1146,10 @@ def migrate_schema(db):
                     # safe: col_name/col_def 来自硬编码列表，无注入风险
                     db.execute(TextClause(f"ALTER TABLE journal_entries ADD COLUMN {col_name} {col_def}"))
                     db.commit()
-                    print(f"  [OK] 已添加 journal_entries.{col_name}")
+                    _log.info(f"  [OK] 已添加 journal_entries.{col_name}")
                 except Exception as e:
                     db.rollback()
-                    print(f"  [X] journal_entries.{col_name} 迁移失败: {e}")
+                    _log.warning(f"  [X] journal_entries.{col_name} 迁移失败: {e}")
 
     # ── 11.5. JournalEntry 新增 source 列 ──
     if "journal_entries" in inspector.get_table_names():
@@ -1153,18 +1158,18 @@ def migrate_schema(db):
             try:
                 db.execute(TextClause("ALTER TABLE journal_entries ADD COLUMN source VARCHAR(50) DEFAULT '手动录入'"))
                 db.commit()
-                print("  [OK] 已添加 journal_entries.source")
+                _log.info("  [OK] 已添加 journal_entries.source")
             except Exception as e:
                 db.rollback()
-                print(f"  [X] journal_entries.source 迁移失败: {e}")
+                _log.warning(f"  [X] journal_entries.source 迁移失败: {e}")
         if "ref_id" not in je_cols:
             try:
                 db.execute(TextClause("ALTER TABLE journal_entries ADD COLUMN ref_id INTEGER"))
                 db.commit()
-                print("  [OK] 已添加 journal_entries.ref_id")
+                _log.info("  [OK] 已添加 journal_entries.ref_id")
             except Exception as e:
                 db.rollback()
-                print(f"  [X] journal_entries.ref_id 迁移失败: {e}")
+                _log.warning(f"  [X] journal_entries.ref_id 迁移失败: {e}")
 
     # ── 12. 已有公司补充 销项税额 科目（221001001） ──
     if "accounts" in inspector.get_table_names():
@@ -1183,10 +1188,10 @@ def migrate_schema(db):
                         level=3, parent_code="221001"
                     ))
                     db.commit()
-                    print(f"  [OK] 为 {comp.name} 添加科目 221001001 销项税额")
+                    _log.info(f"  [OK] 为 {comp.name} 添加科目 221001001 销项税额")
                 except Exception as e:
                     db.rollback()
-                    print(f"  [X] 221001001 销项税额 迁移失败: {e}")
+                    _log.warning(f"  [X] 221001001 销项税额 迁移失败: {e}")
 
     # ── 12.5. 已有公司补充 待认证进项税额 科目（221001003） ──
     if "accounts" in inspector.get_table_names():
@@ -1205,10 +1210,10 @@ def migrate_schema(db):
                         level=3, parent_code="221001"
                     ))
                     db.commit()
-                    print(f"  [OK] 为 {comp.name} 添加科目 221001003 待认证进项税额")
+                    _log.info(f"  [OK] 为 {comp.name} 添加科目 221001003 待认证进项税额")
                 except Exception as e:
                     db.rollback()
-                    print(f"  [X] 221001003 待认证进项税额 迁移失败: {e}")
+                    _log.warning(f"  [X] 221001003 待认证进项税额 迁移失败: {e}")
 
 
     # ── 12.7. 为档案表补充 updated_at 列 ──
@@ -1219,10 +1224,10 @@ def migrate_schema(db):
                 try:
                     db.execute(TextClause(f"ALTER TABLE {tbl} ADD COLUMN updated_at TIMESTAMP"))
                     db.commit()
-                    print(f"  [OK] {tbl} 添加 updated_at 列")
+                    _log.info(f"  [OK] {tbl} 添加 updated_at 列")
                 except Exception as e:
                     db.rollback()
-                    print(f"  [X] {tbl} updated_at 迁移失败: {e}")
+                    _log.warning(f"  [X] {tbl} updated_at 迁移失败: {e}")
 
 
 
@@ -1230,23 +1235,23 @@ def migrate_schema(db):
     if "social_security_declarations" not in inspector.get_table_names():
         SocialSecurityDeclaration.__table__.create(bind=db.get_bind())
         db.commit()
-        print("  [OK] 已创建 social_security_declarations 表")
+        _log.info("  [OK] 已创建 social_security_declarations 表")
     if "social_security_details" not in inspector.get_table_names():
         SocialSecurityDetail.__table__.create(bind=db.get_bind())
         db.commit()
-        print("  [OK] 已创建 social_security_details 表")
+        _log.info("  [OK] 已创建 social_security_details 表")
 
     # ── 16. 公积金缴存表──
     if "housing_fund_declarations" not in inspector.get_table_names():
         HousingFundDeclaration.__table__.create(bind=db.get_bind())
         db.commit()
-        print("  [OK] 已创建 housing_fund_declarations 表")
+        _log.info("  [OK] 已创建 housing_fund_declarations 表")
 
     # ── 18. 文化事业建设费申报表 ──
     if "cultural_construction_fee_declarations" not in inspector.get_table_names():
         CulturalConstructionFeeDeclaration.__table__.create(bind=db.get_bind())
         db.commit()
-        print("  [OK] 已创建 cultural_construction_fee_declarations 表")
+        _log.info("  [OK] 已创建 cultural_construction_fee_declarations 表")
 
     # ── 18.1 CCF 新增 50% 减征字段（财税〔2025〕7号） ──
     if "cultural_construction_fee_declarations" in inspector.get_table_names():
@@ -1256,19 +1261,19 @@ def migrate_schema(db):
                 "ALTER TABLE cultural_construction_fee_declarations ADD COLUMN row10a_fee_reduction_current NUMERIC(18,2) DEFAULT 0.0"
             ))
             db.commit()
-            print("  [OK] CCF 新增 row10a_fee_reduction_current 列")
+            _log.info("  [OK] CCF 新增 row10a_fee_reduction_current 列")
         if "row10a_fee_reduction_ytd" not in ccf_cols:
             db.execute(TextClause(
                 "ALTER TABLE cultural_construction_fee_declarations ADD COLUMN row10a_fee_reduction_ytd NUMERIC(18,2) DEFAULT 0.0"
             ))
             db.commit()
-            print("  [OK] CCF 新增 row10a_fee_reduction_ytd 列")
+            _log.info("  [OK] CCF 新增 row10a_fee_reduction_ytd 列")
         if "fee_reduction_rate" not in ccf_cols:
             db.execute(TextClause(
                 "ALTER TABLE cultural_construction_fee_declarations ADD COLUMN fee_reduction_rate NUMERIC(18,4) DEFAULT 0.5"
             ))
             db.commit()
-            print("  [OK] CCF 新增 fee_reduction_rate 列")
+            _log.info("  [OK] CCF 新增 fee_reduction_rate 列")
 
     # ── 19. 补充索引与唯一约束 ──
     idx_defs = [
@@ -1339,7 +1344,7 @@ def migrate_schema(db):
             db.commit()
         except Exception as e:
             db.rollback()
-            print(f"  [X] {tbl}.{col} NULL值更新失败: {e}")
+            _log.warning(f"  [X] {tbl}.{col} NULL值更新失败: {e}")
             continue
         # Step2: 重建表以添加 NOT NULL 约束（SQLite 必须）
         try:
@@ -1355,7 +1360,7 @@ def migrate_schema(db):
             db.commit()
             db.execute(TextClause(f"DROP TABLE _bk_{tbl}"))
             db.commit()
-            print(f"  [OK] {tbl}.{col} NOT NULL 约束已添加")
+            _log.info(f"  [OK] {tbl}.{col} NOT NULL 约束已添加")
         except Exception as e:
             db.rollback()
             try:
@@ -1364,7 +1369,7 @@ def migrate_schema(db):
                 db.commit()
             except Exception:
                 pass
-            print(f"  [X] {tbl}.{col} NOT NULL 迁移失败（已回滚）: {e}")
+            _log.warning(f"  [X] {tbl}.{col} NOT NULL 迁移失败（已回滚）: {e}")
 
 
 def _normalize_customer_name(name: str) -> str:
@@ -2045,11 +2050,11 @@ def init_db():
             try:
                 init_company_data(db, company.id)
             except Exception as e:
-                print(f"[init_db] 警告：公司{company.id} 数据初始化失败: {e}")
+                _log.warning(f"[init_db] 警告：公司{company.id} 数据初始化失败: {e}")
 
 
         db.commit()
-        print(f"数据库初始化完成（{len(companies)} 家公司）")
+        _log.info(f"数据库初始化完成（{len(companies)} 家公司）")
 
         # 初始化审计日志表
         try:
@@ -2080,7 +2085,7 @@ def init_db():
 
     except Exception as e:
         db.rollback()
-        print(f"初始化错误: {e}")
+        _log.warning(f"初始化错误: {e}")
         raise  # 重新抛出，让调用方知道初始化失败
     finally:
         db.close()

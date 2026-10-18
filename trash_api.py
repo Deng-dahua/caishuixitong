@@ -22,26 +22,23 @@ from pydantic import BaseModel
 
 from engine import trash_service as SVC
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_admin = admin_of
+
 router = APIRouter(prefix="/api/v1/system", tags=["回收站（H-04）"])
 page_router = APIRouter(tags=["回收站（页面）"])
 
 _ROOT = Path(__file__).resolve().parent
 
 
-def _admin(request: Request):
-    s = getattr(request.state, "auth", None)
-    if s is None:
-        raise HTTPException(401, "未登录")
-    if not s.is_admin:
-        raise HTTPException(403, "仅管理员可管理回收站")
-    return s
-
-
 def _call(fn, *args, **kwargs):
-    try:
-        return fn(*args, **kwargs)
-    except SVC.TrashError as exc:
-        raise HTTPException(exc.status, exc.message) from exc
+    """业务异常 → HTTP 的**唯一转换点**在 `engine/api_common.call_boundary`；
+    本函数只声明「本域该捕获哪一类业务异常」（SVC.TrashError）。"""
+    return call_boundary(fn, *args, exc_types=(SVC.TrashError,), **kwargs)
 
 
 @router.get("/trash", summary="回收站清单")

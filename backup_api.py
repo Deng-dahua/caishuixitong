@@ -24,20 +24,17 @@ from fastapi.responses import HTMLResponse
 
 from engine import backup as BK
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_admin = admin_of
+
 router = APIRouter(prefix="/api/v1/system", tags=["系统备份（S-10）"])
 page_router = APIRouter(tags=["系统备份（页面）"])
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
-
-
-def _admin(request: Request):
-    """只读中间件写入的 session；非管理员一律 403（不泄露是否存在该资源）。"""
-    session = getattr(request.state, "auth", None)
-    if session is None:
-        raise HTTPException(401, "未登录")
-    if not session.is_admin:
-        raise HTTPException(403, "仅管理员可管理备份")
-    return session
 
 
 @router.get("/backups", summary="备份清单与状态")
@@ -154,3 +151,31 @@ def get_metrics_text(request: Request):
     from engine import metrics as M                   # noqa: PLC0415
 
     return PlainTextResponse(M.prometheus_text(), media_type="text/plain; version=0.0.4")
+
+
+# --------------------------------------------------------------------------
+# O-03（2026-10-18）：阈值告警
+# --------------------------------------------------------------------------
+@router.get("/alerts", summary="阈值告警状态与历史（含「为什么没报」）")
+def get_alerts(request: Request):
+    """仅管理员：阈值判定只看数量与耗时，不涉及业务结论。"""
+    _admin(request)
+    from engine import alerting as AL        # noqa: PLC0415
+
+    return AL.status()
+
+
+@router.post("/alerts/evaluate", summary="立即评估阈值（返回本次应发出的告警）")
+def evaluate_alerts(request: Request):
+    """手动触发一次评估。**冷却窗口内重复调用不会重复告警**（可传 `force` 绕过）。
+
+    ★ 为什么保留冷却：持续故障若不冷却，每次评估都报一遍，告警就会被无视。
+    """
+    _admin(request)
+    from engine import alerting as AL        # noqa: PLC0415
+
+    force = str(request.query_params.get("force") or "").lower() in ("1", "true", "yes")
+    fired = AL.evaluate(respect_cooldown=not force)
+    return {"ok": True, "count": len(fired), "items": fired,
+            "note": ("同一规则在冷却窗口内只报一次；`force=true` 可绕过（仅用于验证）。"
+                     "投递复用既有通知配置（webhook / 站内），本接口只返回判定结果。")}

@@ -24,27 +24,23 @@ from fastapi.responses import HTMLResponse
 
 from engine import rule_version_admin as ADMIN
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_perm = request_perm
+
 router = APIRouter(prefix="/api/v1", tags=["规则版本管理（P1-6）"])
 page_router = APIRouter(tags=["规则版本管理（页面）"])
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
-def _perm(request: Request, code: str):
-    auth = getattr(request.state, "auth", None)
-    if auth is None:
-        raise HTTPException(status_code=401, detail="未登录")
-    from engine.rbac import rbac_allows                      # noqa: PLC0415
-    if not rbac_allows(auth, code):
-        raise HTTPException(status_code=403, detail="缺少权限：%s" % code)
-    return auth
-
-
 def _call(fn, *args, **kwargs):
-    try:
-        return fn(*args, **kwargs)
-    except ADMIN.RuleVersionError as exc:
-        raise HTTPException(status_code=int(exc.status), detail=str(exc.message)) from exc
+    """业务异常 → HTTP 的**唯一转换点**在 `engine/api_common.call_boundary`；
+    本函数只声明「本域该捕获哪一类业务异常」（ADMIN.RuleVersionError）。"""
+    return call_boundary(fn, *args, exc_types=(ADMIN.RuleVersionError,), **kwargs)
 
 
 @router.get("/rule-versions/meta", summary="规则版本字典（当前/配置版本、版本号规则）")

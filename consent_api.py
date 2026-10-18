@@ -16,17 +16,17 @@ from fastapi.responses import HTMLResponse
 
 from engine import consent as CS
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_session = session_of
+
 router = APIRouter(prefix="/api/v1/system", tags=["知情同意（E-01）"])
 page_router = APIRouter(tags=["知情同意（页面）"])
 
 _ROOT = os.path.dirname(os.path.abspath(__file__))
-
-
-def _session(request: Request):
-    s = getattr(request.state, "auth", None)
-    if s is None:
-        raise HTTPException(401, "未登录")
-    return s
 
 
 @router.get("/consent", summary="条款全文与当前用户确认状态")

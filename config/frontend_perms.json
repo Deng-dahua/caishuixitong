@@ -46,6 +46,11 @@
         "id": "btn-parse",
         "perm": "document.write",
         "what": "开始解析"
+      },
+      {
+        "id": "btn-batch",
+        "perm": "document.write",
+        "what": "批量解析（本次上限 50 份）"
       }
     ],
     "analysis.html": [

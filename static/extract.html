@@ -57,7 +57,7 @@
     .edit-row input { padding:4px 7px; border:1px solid #cbd5e1; border-radius:4px; font-size:12px; width:130px; }
     .edit-row button { padding:3px 9px; font-size:12px; }
   </style>
-  <script src="/static/js/security.js"></script>
+  <script src="/static/js/security.js?v=96a020abfa"></script>
 </head>
 <body>
   <div class="topbar">
@@ -83,6 +83,26 @@
           <span class="muted" id="parse-hint"></span>
         </div>
         <div class="stat" id="stats"></div>
+      </div>
+    </div>
+
+    <!-- H-05（2026-10-17）：批量解析。此前只能"选一份 → 点解析"，102 份资料要点 102 次。 -->
+    <div class="card">
+      <h2>批量解析 <span class="hint">逐份独立执行，部分失败不影响其它；失败项可直接重试</span></h2>
+      <div class="body">
+        <div class="toolbar">
+          <label>范围</label>
+          <select id="bk-scope">
+            <option value="pending">本项目「待解析 / 解析失败」的（推荐）</option>
+            <option value="all">本项目全部（含已解析，会重解析）</option>
+          </select>
+          <label>本次最多</label>
+          <input type="number" id="bk-limit" value="20" min="1" max="50" style="width:80px">
+          <span class="muted">份（上限 50）</span>
+          <button class="btn" id="btn-batch" data-perm="document.write">开始批量解析</button>
+          <span class="muted" id="batch-hint"></span>
+        </div>
+        <div class="muted" id="batch-result" style="margin-top:8px;line-height:1.9"></div>
       </div>
     </div>
 
@@ -121,7 +141,7 @@
     </div>
   </div>
 
-  <script src="/static/js/extract.js" defer></script>
+  <script src="/static/js/extract.js?v=abd33757ef" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>

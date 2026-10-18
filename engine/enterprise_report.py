@@ -62,6 +62,11 @@ from engine.risk_levels import display_label as _display_label
 from engine.industry_benchmark import BENCHMARK_CAUTION as _BENCH_CAUTION
 from engine.industry_benchmark import indicator_label as _bench_indicator_label
 
+# ★ O-01（2026-10-17）：统一日志。新代码一律用 `get_logger`，**不要再 print**。
+#   分级口径：启动/推进=info；失败但已兜底=warning；高频细节=debug。
+from logkit import get_logger as _get_logger
+_log = _get_logger(__name__)
+
 
 def _norm_text(text):
     """中文标点规范化：消除拼接残留的 "。。""。；"".、" 等异常序列。"""
@@ -266,6 +271,13 @@ _METRIC_CN = {
     # VR036 通道3：货物用于对外投资/分配给股东（RL-VAT-012 净增量）
     "invest_distribute_count": "对外投资/分配笔数",
     "invest_distribute_total": "对外投资/分配存货成本合计",
+    # VR036 通道：销项开票 vs 增值税申报 月度差异（O-01 批次补登，2026-10-18）
+    # ★ 语义取自 engine/verified_rule_engine.py：
+    #   `over_invoiced` = 开票>申报 的月份数（已开票未申报嫌疑，指向漏报，**待核**）；
+    #   `over_declared` = 申报>开票 的月份数（未开票收入已依法申报，**正常经营**）。
+    #   两者方向相反、结论相反，中文名必须写清楚，不能合成一个"差异月份数"。
+    "over_invoiced_months": "开票>申报月份数（待核漏报）",
+    "over_declared_months": "申报>开票月份数（未开票收入已申报）",
     # VR037 关联交易转让定价
     "deviation_count": "单价偏离笔数", "threshold": "偏离阈值", "median_price": "中位单价",
     "deviation": "偏离幅度", "direction": "方向", "counterparty": "交易对手方",
@@ -1976,7 +1988,7 @@ try:
             _DOC_TYPE_TO_CATEGORY[_dt] = tuple(_cur) + ("发票",)
 except Exception as _e:  # pragma: no cover - 依赖缺失不静默放行
     import sys
-    print("WARN engine.material_recognition 加载失败，补充自证资料识别不可用:", _e, file=sys.stderr)
+    _log.warning("WARN engine.material_recognition 加载失败，补充自证资料识别不可用: %s", _e)
 
 
 def _note(out_obj, msg) -> None:
@@ -7337,7 +7349,7 @@ def build_enterprise_readable_report(report_data, edition=None):
     except Exception as _se:  # noqa: BLE001
         # 项目惯例：异常**写进产物**（让失效可见、可复核），不只打日志
         _spec_attach_errors.append(str(_se)[:160])
-        print("[专项比对挂载] 失败：%s" % _se)
+        _log.warning("[专项比对挂载] 失败：%s" % _se)
 
     # ★★★ 2026-10-05（用户追问「这些内容就不能融入到第二章吗？」——**问了三次**，
     #   说明我前两轮只加"指针"没做到"并入"）：
@@ -7375,7 +7387,7 @@ def build_enterprise_readable_report(report_data, edition=None):
                         for c in _hit
                     ]
     except Exception as _ge:  # noqa: BLE001
-        print("[资料缺口挂载] 失败：%s" % str(_ge)[:160])
+        _log.warning("[资料缺口挂载] 失败：%s" % str(_ge)[:160])
 
     # ★★★ 2026-10-05（同上一并处理：用户追问「这些内容就不能融入到第二章吗？」）：
     #   询问清单里**指向具体疑点**的主题，整条挂到该疑点（`questions`）；
@@ -7577,10 +7589,10 @@ def build_enterprise_readable_report(report_data, edition=None):
             #     ⇒ 一律走唯一权威 `_resync_summary_counts`（按定稿列表重算**全部**派生计数）。
             _rc = _resync_summary_counts(out)
             if _rc:
-                print("[计数定稿·并入后] 已按定稿列表重算：已确认 %d / 已核定 %d / 待核 %d / 受阻 %d"
+                _log.info("[计数定稿·并入后] 已按定稿列表重算：已确认 %d / 已核定 %d / 待核 %d / 受阻 %d"
                       % (_rc["confirmed"], _rc["verified"], _rc["pending"], _rc["further"]))
     except Exception as _pe:  # noqa: BLE001
-        print("[并入库并入] 失败：%s" % str(_pe)[:160])
+        _log.warning("[并入库并入] 失败：%s" % str(_pe)[:160])
 
     # ★★ 2026-10-06（用户：「疑点1的本项还包含以下风险信号，这部分内容不是已经在一至五里说了吗？」）：
     #   **本项自己的来源行不得作为"额外风险信号"重复列出**。
@@ -7641,9 +7653,9 @@ def build_enterprise_readable_report(report_data, edition=None):
             else:
                 _p.pop("related_risks", None)
         if _dropped:
-            print("[相关风险信号] 剔除 %d 个「本项自己」的重复条目" % _dropped)
+            _log.info("[相关风险信号] 剔除 %d 个「本项自己」的重复条目" % _dropped)
     except Exception as _sr_err:  # noqa: BLE001
-        print("[相关风险信号] 自我去重失败：%s" % str(_sr_err)[:160])
+        _log.warning("[相关风险信号] 自我去重失败：%s" % str(_sr_err)[:160])
 
     # ★★ 2026-10-06（用户评语：事项数量虚高 —— 同一事实被拆成多个疑点、疑点27–34 重复前文）：
     #   **同族事项合并**（唯一权威 `engine.finding_families`）：同族只留一个**主事项**
@@ -7654,12 +7666,12 @@ def build_enterprise_readable_report(report_data, edition=None):
         from engine.finding_families import merge_families as _mf
         _mfst = _mf(problems)
         if _mfst.get("removed_items"):
-            print("[同族合并] %d 个族合并掉 %d 个子项：%s"
+            _log.info("[同族合并] %d 个族合并掉 %d 个子项：%s"
                   % (_mfst["merged_families"], _mfst["removed_items"],
                      "；".join("%s(留:%s)" % (d["family"], d["lead"])
                                for d in _mfst["detail"][:3])))
     except Exception as _mf_err:  # noqa: BLE001
-        print("[同族合并] 失败（事项数会虚高，属缺陷）：%s" % str(_mf_err)[:160])
+        _log.warning("[同族合并] 失败（事项数会虚高，属缺陷）：%s" % str(_mf_err)[:160])
 
     # ★★ 2026-10-06（用户评语 #7「『检查程序待完善项』与『资料缺失』混用／结论先行」）：
     #   当**所需资料本轮已提供、但检查程序未产出可展示数据**（`clue_chain.data_gaps`
@@ -7690,7 +7702,7 @@ def build_enterprise_readable_report(report_data, edition=None):
             "待检查程序完善或企业补充说明后重新检查。")
         _gap_downgraded.append(str(_p.get("title") or "")[:18])
     if _gap_downgraded:
-        print("[不作定量] %d 项因「检查程序未产出数据」降级为待核验、不作定量：%s"
+        _log.info("[不作定量] %d 项因「检查程序未产出数据」降级为待核验、不作定量：%s"
               % (len(_gap_downgraded), "、".join(_gap_downgraded[:5])))
 
     # ★★ 2026-10-06（用户评语 #1「总数、编号与风险等级严重不一致」）：
@@ -7750,11 +7762,11 @@ def build_enterprise_readable_report(report_data, edition=None):
                     if _miss:
                         _ring_gap += 1
                 except Exception as _re2:  # noqa: BLE001 —— 不静默
-                    print("[七环收敛] seq=%s 失败：%s" % (_p.get("seq"), str(_re2)[:120]))
+                    _log.warning("[七环收敛] seq=%s 失败：%s" % (_p.get("seq"), str(_re2)[:120]))
         if _cap_n:
-            print("[等级上限] 按结论等级压制风险等级 %d 项" % _cap_n)
+            _log.info("[等级上限] 按结论等级压制风险等级 %d 项" % _cap_n)
         if _ring_gap:
-            print("[七环收敛] %d 项仍有必填环缺口" % _ring_gap)
+            _log.info("[七环收敛] %d 项仍有必填环缺口" % _ring_gap)
         problems.sort(key=lambda _p: (
             _RISK_PRESENT_ORDER.get(str(_p.get("risk_level") or "").strip(), 99),
             -float((((_p.get("tax_impact") or {}).get("amount")) or 0) or 0),
@@ -7772,7 +7784,7 @@ def build_enterprise_readable_report(report_data, edition=None):
             except Exception:  # noqa: BLE001
                 pass
         if _seq_remap:
-            print("[编号定稿] 疑点编号已连续重排：%s" % _seq_remap)
+            _log.info("[编号定稿] 疑点编号已连续重排：%s" % _seq_remap)
 
         # ★★ T-2（2026-10-12）：**风险分值必须在此刻派生**（等级已定稿之后）。
         #   为什么必须在这里、而不是更早：上方「结论等级→风险等级上限」压制会**改写**
@@ -7792,28 +7804,28 @@ def build_enterprise_readable_report(report_data, edition=None):
         try:
             _fstat = _finalize_topics_basis_uniqueness(out, problems)
             if _fstat["tables_moved"]:
-                print("[主题收口] 移出主题不符明细表 %d 张（如社保低基数表不夹带在人数不符项下）"
+                _log.info("[主题收口] 移出主题不符明细表 %d 张（如社保低基数表不夹带在人数不符项下）"
                       % _fstat["tables_moved"])
             if _fstat["basis_added"]:
-                print("[等级依据] 为 %d 个组合项补写独立依据（组合项不单独定高风险）"
+                _log.info("[等级依据] 为 %d 个组合项补写独立依据（组合项不单独定高风险）"
                       % _fstat["basis_added"])
             if _fstat["sentences_diff"]:
-                print("[模板句去重] %d 句模板句已按本项主题差异化" % _fstat["sentences_diff"])
+                _log.info("[模板句去重] %d 句模板句已按本项主题差异化" % _fstat["sentences_diff"])
         except Exception as _fin_exc:  # noqa: BLE001
-            print("[主题收口] 执行失败（不阻断）：%s" % str(_fin_exc)[:160])
+            _log.warning("[主题收口] 执行失败（不阻断）：%s" % str(_fin_exc)[:160])
 
         # ★ 2026-10-07（质检 P0-1/P0-2）：**计数与合规都必须在定稿后再收口一次**
         try:
             _cnt = _sync_item_counts(out, problems)
             if _cnt.get("fixed"):
-                print("[计数收口] 全文事项数声明已同步为 %d 项（%d 处）"
+                _log.info("[计数收口] 全文事项数声明已同步为 %d 项（%d 处）"
                       % (len(problems), _cnt["fixed"]))
         except Exception as _c1:  # noqa: BLE001
-            print("[计数收口] 执行失败（不阻断）：%s" % str(_c1)[:160])
+            _log.warning("[计数收口] 执行失败（不阻断）：%s" % str(_c1)[:160])
         try:
             _attach_compliance_to_readable(out, report_data)
         except Exception as _c2:  # noqa: BLE001
-            print("[合规收口] 执行失败（不阻断）：%s" % str(_c2)[:160])
+            _log.warning("[合规收口] 执行失败（不阻断）：%s" % str(_c2)[:160])
 
         # ★★ 2026-10-06（用户第 1 批 ①）：**税额敞口的"已量化 X / 总数 Y"必须按定稿列表算**。
         #   事故：`build_tax_impact_summary` 在本段之前用**旧列表（26 项）**算过一次，
@@ -7825,7 +7837,7 @@ def build_enterprise_readable_report(report_data, edition=None):
                 problems,
                 ctx=(report_data.get("comprehensive", {}) or {}).get("tax_rate_context"))
         except Exception as _tis_err:  # noqa: BLE001
-            print("[计数定稿] 税额敞口汇总重算失败：%s" % str(_tis_err)[:120])
+            _log.warning("[计数定稿] 税额敞口汇总重算失败：%s" % str(_tis_err)[:120])
         # 主体一致性自检里引用的 seq 必须同步（否则指向不存在的编号）
         _sca_rc = out.get("subject_consistency_audit")
         if isinstance(_sca_rc, dict):
@@ -7838,10 +7850,10 @@ def build_enterprise_readable_report(report_data, edition=None):
         try:
             out, _dropped_empty = _remove_empty_tables(out)
             if _dropped_empty:
-                print("[表格治理] 剔除空白表格 %d 张（无表头/无数据，渲染出来只是空框）"
+                _log.info("[表格治理] 剔除空白表格 %d 张（无表头/无数据，渲染出来只是空框）"
                       % _dropped_empty)
         except Exception as _ete:  # noqa: BLE001
-            print("[表格治理] 空白表格剔除失败：%s" % str(_ete)[:120])
+            _log.warning("[表格治理] 空白表格剔除失败：%s" % str(_ete)[:120])
 
         # ★★ 2026-10-06（C 类普查：**第 3 处计数**）：具体问题章首的「主线研判」——
         #   「主线研判：本轮共 N 项风险事项（高N 中N 低N 尚需核实N）」同样在
@@ -7852,18 +7864,18 @@ def build_enterprise_readable_report(report_data, edition=None):
             if _bm2:
                 out["main_assessment"] = _bm2
         except Exception as _bm_exc:  # noqa: BLE001
-            print("[计数定稿] 主线研判重算失败：%s" % str(_bm_exc)[:120])
+            _log.warning("[计数定稿] 主线研判重算失败：%s" % str(_bm_exc)[:120])
         _sm2 = out.get("summary")
         if isinstance(_sm2, dict):
             # ★ 2026-10-08：走唯一权威（含 pending/verified/further 一并重算），
             #   不再只补 `confirmed_problem_count` 一个字段。
             _rc2 = _resync_summary_counts(out)
-            print("[计数定稿] summary 重算：已确认 %d / 已核定 %d / 待核 %d / 受阻 %d"
+            _log.info("[计数定稿] summary 重算：已确认 %d / 已核定 %d / 待核 %d / 受阻 %d"
                   % (_rc2.get("confirmed", 0), _rc2.get("verified", 0),
                      _rc2.get("pending", 0), _rc2.get("further", 0)))
-        print("[计数定稿] 总述/等级判据/主线研判已按定稿列表重算：共 %d 项" % len(problems))
+        _log.info("[计数定稿] 总述/等级判据/主线研判已按定稿列表重算：共 %d 项" % len(problems))
     except Exception as _rc_err:  # noqa: BLE001
-        print("[计数定稿] 重算失败（报告仍按旧计数输出，属缺陷）：%s" % str(_rc_err)[:160])
+        _log.warning("[计数定稿] 重算失败（报告仍按旧计数输出，属缺陷）：%s" % str(_rc_err)[:160])
 
     # ★★ 2026-10-06（用户要求）：给每条风险事项加**自我怀疑**层 ——
     #   「以终为始拆解疑点的关键信息 → 自我反驳 → 再索取资料进行自我验证」。
@@ -7877,9 +7889,9 @@ def build_enterprise_readable_report(report_data, edition=None):
         _sd_n = _bsd(problems, provided_materials=_prov_mat)
         if _sd_n:
             out["confirmed_problems"] = problems
-            print("[自我怀疑] 已为 %d 条风险事项生成「可能错在哪里 + 验证清单」" % _sd_n)
+            _log.info("[自我怀疑] 已为 %d 条风险事项生成「可能错在哪里 + 验证清单」" % _sd_n)
     except Exception as _sd_err:  # noqa: BLE001
-        print("[自我怀疑] 生成失败：%s" % str(_sd_err)[:160])
+        _log.warning("[自我怀疑] 生成失败：%s" % str(_sd_err)[:160])
 
     # ★★ 2026-10-08（P0-2 去重收口）：报告级「税费性质与法定后果」声明。
     #   逐项「若不补证的后果」只留本项情形 + **引用**（`levy_nature.item_consequence_text`），
@@ -7905,10 +7917,10 @@ def build_enterprise_readable_report(report_data, edition=None):
                     _cs0.append({"heading": _LEVY_DECL_NAME, "text": _t,
                                  "scope": "declaration"})
             out["common_statements"] = _cs0
-            print("[税费性质] 报告级「%s」声明 %d 条（逐项后果段改为引用）"
+            _log.info("[税费性质] 报告级「%s」声明 %d 条（逐项后果段改为引用）"
                   % (_LEVY_DECL_NAME, len(_levy_decls)))
     except Exception as _ld_err:  # noqa: BLE001 —— 不静默：引用悬空属缺陷，必须留痕
-        print("[税费性质] 报告级声明生成失败（逐项引用将悬空，属缺陷）：%s" % str(_ld_err)[:160])
+        _log.warning("[税费性质] 报告级声明生成失败（逐项引用将悬空，属缺陷）：%s" % str(_ld_err)[:160])
 
     # ★★ 2026-10-06（用户评语：重复冗余占全文三分之一以上、同一资料被要求三次）：
     #   **去重唯一权威** `engine.report_dedup`，在此一次性收口（所有段落都已定稿）：
@@ -7969,13 +7981,13 @@ def build_enterprise_readable_report(report_data, edition=None):
                                       % (_fi.get("kind"), str(_fi.get("detail"))[:120]))
         except Exception as _fc_err:      # noqa: BLE001 - 留痕，不静默
             _note(out, f"[字段完整性] 体检未执行: {_fc_err}")
-        print("[去重] 元话语删 %d 句｜共性段上提 %d 处／共性句上提 %d 处（合并为 %d 条报告级声明）｜表注去重 %d 处"
+        _log.info("[去重] 元话语删 %d 句｜共性段上提 %d 处／共性句上提 %d 处（合并为 %d 条报告级声明）｜表注去重 %d 处"
               % (_ddst.get("meta_removed", 0), _ddst.get("hoisted", 0),
                  _ddst.get("sentences_hoisted", 0),
                  len(_ddst.get("common_statements") or []),
                  _ddst.get("table_notes_removed", 0)))
     except Exception as _dd_err:  # noqa: BLE001
-        print("[去重] 失败（报告将保留重复内容，属缺陷）：%s" % str(_dd_err)[:160])
+        _log.warning("[去重] 失败（报告将保留重复内容，属缺陷）：%s" % str(_dd_err)[:160])
 
     # ★★ 2026-10-07（Skill 6 第 2 版）：**子项与关联项逐项核对清单**在定稿处统一产出。
     #   用户复核：疑点1 进项侧 9 笔红冲、疑点3 风险族 5 个子项、疑点4 要件④、疑点15 个人垫付
@@ -7983,12 +7995,12 @@ def build_enterprise_readable_report(report_data, edition=None):
     try:
         _cc_stat = _finalize_child_checklist(out, problems)
         if _cc_stat.get("listed"):
-            print("[子项清单] 已为 %d 个疑点生成「子项与关联项逐项核对」清单"
+            _log.info("[子项清单] 已为 %d 个疑点生成「子项与关联项逐项核对」清单"
                   "（结构化审计块 %d 个）" % (_cc_stat["listed"], _cc_stat.get("audited", 0)))
         if _cc_stat.get("failed"):
-            print("[子项清单] 有 %d 个疑点未产出清单（须查）" % _cc_stat["failed"])
+            _log.info("[子项清单] 有 %d 个疑点未产出清单（须查）" % _cc_stat["failed"])
     except Exception as _cc_err:  # noqa: BLE001
-        print("[子项清单] 收口失败（报告将缺少子项清单，属缺陷）：%s" % str(_cc_err)[:160])
+        _log.warning("[子项清单] 收口失败（报告将缺少子项清单，属缺陷）：%s" % str(_cc_err)[:160])
 
     # ★★ 2026-10-07（Skill 1【输出】字段）：**触发条件/认定要件分离**的结构化块也在定稿处收口。
     #   口径由唯一权威 `trigger_conditions.classify()` 一次产出（报告里的那两句话就是它的文本形态）；
@@ -7996,12 +8008,12 @@ def build_enterprise_readable_report(report_data, edition=None):
     try:
         _td_stat = _finalize_trigger_determination(out, problems, report_data)
         if _td_stat.get("built"):
-            print("[触发条件] 已为 %d 个疑点落盘触发条件/认定要件结构化块（无触发命中 %d 个）"
+            _log.info("[触发条件] 已为 %d 个疑点落盘触发条件/认定要件结构化块（无触发命中 %d 个）"
                   % (_td_stat["built"], _td_stat.get("no_trigger", 0)))
         if _td_stat.get("skipped"):
-            print("[触发条件] 有 %d 个疑点未取到对应疑点对象，已跳过（须查）" % _td_stat["skipped"])
+            _log.warning("[触发条件] 有 %d 个疑点未取到对应疑点对象，已跳过（须查）" % _td_stat["skipped"])
     except Exception as _td_err:  # noqa: BLE001
-        print("[触发条件] 收口失败（报告将缺少结构化块，属缺陷）：%s" % str(_td_err)[:160])
+        _log.warning("[触发条件] 收口失败（报告将缺少结构化块，属缺陷）：%s" % str(_td_err)[:160])
 
     # ★★ 2026-10-07（Skill 7「数据源状态一致性」）：**数据源状态表**同样在定稿处收口。
     #   事故：要件核对表写「独立数据源本轮未取得」，而同页明细表正列着确认单编号、
@@ -8011,12 +8023,12 @@ def build_enterprise_readable_report(report_data, edition=None):
     try:
         _ds_stat = _finalize_data_source_status(out, problems, report_data)
         if _ds_stat.get("built"):
-            print("[数据源状态] 已为 %d 个疑点落盘数据源状态表（冲突 %d 处）"
+            _log.warning("[数据源状态] 已为 %d 个疑点落盘数据源状态表（冲突 %d 处）"
                   % (_ds_stat["built"], _ds_stat.get("conflicts", 0)))
         if _ds_stat.get("skipped"):
-            print("[数据源状态] 有 %d 个疑点未取到对应疑点对象，已跳过（须查）" % _ds_stat["skipped"])
+            _log.warning("[数据源状态] 有 %d 个疑点未取到对应疑点对象，已跳过（须查）" % _ds_stat["skipped"])
     except Exception as _ds_err:  # noqa: BLE001
-        print("[数据源状态] 收口失败（报告将缺少数据源状态表，属缺陷）：%s" % str(_ds_err)[:160])
+        _log.warning("[数据源状态] 收口失败（报告将缺少数据源状态表，属缺陷）：%s" % str(_ds_err)[:160])
 
     # ★★★ 2026-10-06：**询问主题挂载必须在"并入独立风险事项"之后执行**。
     #   事故：本段原先放在上方（早于 `_promote_standalone_*`），而
@@ -8034,7 +8046,7 @@ def build_enterprise_readable_report(report_data, edition=None):
             inspection_questions_report["attached_theme_count"] = _attached_n
             out["inspection_questions_report"] = inspection_questions_report
     except Exception as _qe:  # noqa: BLE001
-        print("[询问挂载] 失败：%s" % str(_qe)[:160])
+        _log.warning("[询问挂载] 失败：%s" % str(_qe)[:160])
 
     _scrub_out_vague.scrubbed = 0
     _scrub_out_vague(out)
@@ -8052,7 +8064,7 @@ def build_enterprise_readable_report(report_data, edition=None):
         from engine.table_governance import govern_all_tables as _gt_final
         out = _gt_final(out)
     except Exception as _tg_err:  # noqa: BLE001
-        print("[表格治理] 终局收口失败（后追加的表将未治理，属缺陷）：%s" % str(_tg_err)[:160])
+        _log.warning("[表格治理] 终局收口失败（后追加的表将未治理，属缺陷）：%s" % str(_tg_err)[:160])
 
     # ★★★ 2026-10-06（**顺序缺陷第 3 例**）：措辞清洗也必须**终局收口**。
     #   实测事故：清洗原在 6429 行（询问挂载之后、表格治理之前）执行，报了"替换 208 处"，
@@ -8062,7 +8074,7 @@ def build_enterprise_readable_report(report_data, edition=None):
     #   ⚠ 并留痕计数：**"清洗跑没跑、改了几处"必须可见**（本项目铁律：改了看不出生效＝事故）。
     _scrub_out_vague.scrubbed = 0
     out = _scrub_out_vague(out)
-    print("[措辞清洗] 替换 %d 处（首次 %d 处）｜禁用模糊词唯一权威 report_wording.scrub_vague"
+    _log.info("[措辞清洗] 替换 %d 处（首次 %d 处）｜禁用模糊词唯一权威 report_wording.scrub_vague"
           % (_scrub_out_vague.scrubbed, _n_scrub_first))
 
     # ★★★ 2026-10-07（实测事故：企业会看到「**未考虑**进项留抵」这种带星号的句子）：
@@ -8071,6 +8083,6 @@ def build_enterprise_readable_report(report_data, edition=None):
     #   而 `tax_impact_summary.note` 等后拼/旁路的串没走到它 ⇒ 产物 120 处、页面 73 处。
     #   ⚠ 必须放在**所有内容定稿之后**（后面再拼串就又漏了）；幂等，可重复执行。
     out = _strip_markup_out(out)
-    print("[去标记] 清除 markdown 标记 %d 处｜唯一权威 text_guardrails.strip_markup"
+    _log.info("[去标记] 清除 markdown 标记 %d 处｜唯一权威 text_guardrails.strip_markup"
           % _strip_markup_out.stripped)
     return out

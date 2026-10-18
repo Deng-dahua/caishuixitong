@@ -29,6 +29,11 @@ import ssl
 import time as _time_module_inner
 from pypdf import PdfReader
 
+# ★ O-01（2026-10-17）：统一日志。新代码一律用 `get_logger`，**不要再 print**。
+#   分级口径：启动/推进=info；失败但已兜底=warning；高频细节=debug。
+from logkit import get_logger as _get_logger
+_log = _get_logger(__name__)
+
 # ═══ 税务合规员推理引擎（模块化架构）═══
 from engine import (
     save_analysis_memory, query_similar_cases,
@@ -113,7 +118,7 @@ async def lifespan(app: FastAPI):
         from engine.logging_setup import setup as _log_setup
         _log_setup()
     except Exception as _e:                        # noqa: BLE001
-        print("[STARTUP] 日志初始化失败（不影响启动）：%s" % _e)
+        _log.warning("[STARTUP] 日志初始化失败（不影响启动）：%s" % _e)
     init_security_db()
     init_llm_credentials_db()
     init_db()
@@ -130,16 +135,16 @@ async def lifespan(app: FastAPI):
                 try:
                     _res = _bk.ensure_daily_backup()
                     if _res.get("ran"):
-                        print("[BACKUP] 已生成每日备份：%s" % _res.get("folder"))
+                        _log.info("[BACKUP] 已生成每日备份：%s" % _res.get("folder"))
                     elif _res.get("error"):
-                        print("[BACKUP] 备份失败：%s" % _res.get("error"))
+                        _log.warning("[BACKUP] 备份失败：%s" % _res.get("error"))
                 except Exception as _e:            # noqa: BLE001
-                    print("[BACKUP] 备份异常：%s" % _e)
+                    _log.warning("[BACKUP] 备份异常：%s" % _e)
                 time.sleep(3600)
 
         _threading.Thread(target=_backup_loop, name="daily-backup", daemon=True).start()
     except Exception as _e:                        # noqa: BLE001
-        print("[BACKUP] 调度器启动失败：%s" % _e)
+        _log.warning("[BACKUP] 调度器启动失败：%s" % _e)
     # 注意：回收站（data/trash/）物理清理不在此自动执行——
     # 环境安全守护对 os.remove 按轮次累计计数（50 个即终止进程），
     # 启动时批量清理会把服务器杀死。回收站文件不参与列表与分析，
@@ -153,7 +158,7 @@ async def lifespan(app: FastAPI):
                 _disk = _j.load(_f)
             for _cid, _v in _disk.items():
                 _last_analysis_cache[int(_cid)] = _v
-            print(f"[STARTUP] 恢复缓存: {len(_disk)}条分析记录")
+            _log.info(f"[STARTUP] 恢复缓存: {len(_disk)}条分析记录")
     except: pass
     # 从磁盘恢复分析历史（重启不丢）
     try:
@@ -164,14 +169,14 @@ async def lifespan(app: FastAPI):
                 _hdisk = _j.load(_f)
             for _cid, _v in _hdisk.items():
                 _analysis_history[int(_cid)] = _v
-            print(f"[STARTUP] 恢复分析历史: {sum(len(v) for v in _hdisk.values())}条")
+            _log.info(f"[STARTUP] 恢复分析历史: {sum(len(v) for v in _hdisk.values())}条")
     except: pass
     try:
         caps = get_capability_summary()
         orch = get_module_registry_summary()
         from engine.capability_matrix import check_quality_system
         qs = check_quality_system()
-        print(f"[STARTUP] {caps['total_dimensions']}维({caps['four_star_count']}四星/{caps['three_star_count']}三星) | 调度中枢:{orch['total_modules']}模块 | 质量保障:{qs['layers']}层{qs['components']}组件{qs['status']}")
+        _log.info(f"[STARTUP] {caps['total_dimensions']}维({caps['four_star_count']}四星/{caps['three_star_count']}三星) | 调度中枢:{orch['total_modules']}模块 | 质量保障:{qs['layers']}层{qs['components']}组件{qs['status']}")
     except: pass
     # ⑥ 代码变更追踪 → AGI
     try: _track_code_changes()
@@ -193,6 +198,14 @@ async def metrics_middleware(request: Request, call_next):
     """
     import time as _t
     _t0 = _t.perf_counter()
+    # ★ O-04（2026-10-18）：请求关联 id。沿用调用方带来的 `X-Request-ID`（反代/前端可传），
+    #   没有就生成一个；写入 contextvar ⇒ **所有日志自动带上**，响应头回传 ⇒
+    #   用户报"刚才失败了"时能凭它精确 grep 到那一次请求的全部日志。
+    try:
+        from engine import request_context as _rc
+        _rid = _rc.set_trace_id(request.headers.get(_rc.HEADER))
+    except Exception:
+        _rid = ""
     try:
         response = await call_next(request)
     except Exception:
@@ -201,11 +214,20 @@ async def metrics_middleware(request: Request, call_next):
             _m.record_request(request.url.path, request.method, 500, _t.perf_counter() - _t0)
         except Exception:
             pass
+        try:
+            _log.exception("未捕获异常 path=%s (rid=%s)", request.url.path, _rid)
+        except Exception:
+            pass
         raise
     try:
         from engine import metrics as _m
         _m.record_request(request.url.path, request.method, response.status_code,
                           _t.perf_counter() - _t0)
+    except Exception:
+        pass
+    try:
+        if _rid:
+            response.headers[_rc.HEADER] = _rid
     except Exception:
         pass
     return response
@@ -1436,7 +1458,7 @@ def _write_analysis_checkpoint(company_id, stage, status, error=None):
 #   守卫（`_is_result_deleted`）与留痕口径必然分叉 —— 那就是下一个"删除被静默
 #   撤销"事故的温床。故**所有**登记都必须走下面两个函数。
 #   铁律：登记失败只留痕、**绝不阻断分析**（台账是旁路证据，不是主链）；
-#        但**绝不静默**（`print(..., flush=True)` 到服务端日志）。
+#        但**绝不静默**（`print(...)` 到服务端日志）。
 # ═══════════════════════════════════════════════════════════════════════════
 def _register_job_started(company_id, job_id, user_id, trigger="manual", force=False):
     """登记**作业起点**（唯一漏斗）。返回落盘行；失败返回 None 并留痕。
@@ -1466,7 +1488,7 @@ def _register_job_started(company_id, job_id, user_id, trigger="manual", force=F
             pass                                 # record() 自身已留痕，这里不再吞一次
         return row
     except Exception as _je:                     # noqa: BLE001
-        print(f"[analysis-jobs] 作业起点登记异常(不影响分析): {_je}", flush=True)
+        _log.warning(f"[analysis-jobs] 作业起点登记异常(不影响分析): {_je}")
         return None
 
 
@@ -1485,8 +1507,8 @@ def _register_job_finished(task_id, company_id, snap, reused_from=""):
         if not isinstance(snap, dict):
             return None
         if _is_result_deleted(company_id, snap.get("started_at")):
-            print(f"[analysis-jobs] 账套 {company_id} 的分析结果已被删除，"
-                  f"跳过作业终态登记（作业 {task_id}）", flush=True)
+            _log.warning(f"[analysis-jobs] 账套 {company_id} 的分析结果已被删除，"
+                  f"跳过作业终态登记（作业 {task_id}）")
             return None
         from engine.analysis_jobs import job_finished as _jf
         _st = str(snap.get("status") or "")
@@ -1528,7 +1550,7 @@ def _register_job_finished(task_id, company_id, snap, reused_from=""):
                    reused_from=str(reused_from or ""),
                    rule_set_version=str(_rv_blk.get("rule_set_version") or ""))
     except Exception as _je:                     # noqa: BLE001
-        print(f"[analysis-jobs] 作业终态登记异常(不影响分析结果): {_je}", flush=True)
+        _log.warning(f"[analysis-jobs] 作业终态登记异常(不影响分析结果): {_je}")
         return None
 
 
@@ -1752,10 +1774,10 @@ def _ocr_png_bytes(images):
                 if t and str(t).strip():
                     chunks.append(str(t).strip())
         if chunks:
-            print(f"[OCR] rapidocr 提取 {len(chunks)} 段", flush=True)
+            _log.info(f"[OCR] rapidocr 提取 {len(chunks)} 段")
             return _OC.record_ocr_run(chunks, "rapidocr")  # P1-2 运行留痕（返回值与拼接逐字符相同）
     except Exception as e:
-        print(f"[OCR] rapidocr 不可用: {type(e).__name__}: {e}", flush=True)
+        _log.warning(f"[OCR] rapidocr 不可用: {type(e).__name__}: {e}")
 
     # 引擎1：easyocr（依赖 torch，约 2.5GB，通常不安装）
     try:
@@ -1772,7 +1794,7 @@ def _ocr_png_bytes(images):
                 if conf and conf > 0.3 and txt and str(txt).strip():
                     chunks.append(str(txt).strip())
         if chunks:
-            print(f"[OCR] easyocr 提取 {len(chunks)} 段", flush=True)
+            _log.info(f"[OCR] easyocr 提取 {len(chunks)} 段")
             return _OC.record_ocr_run(chunks, "easyocr")  # P1-2
     except Exception:
         pass
@@ -1794,9 +1816,9 @@ def _ocr_png_bytes(images):
             if t and t.strip():
                 chunks.append(t.strip())
         if chunks:
-            print(f"[OCR] tesseract 提取 {len(chunks)} 段", flush=True)
+            _log.info(f"[OCR] tesseract 提取 {len(chunks)} 段")
     except Exception as e:
-        print(f"[OCR] 无可用 OCR 引擎: {type(e).__name__}: {e}", flush=True)
+        _log.info(f"[OCR] 无可用 OCR 引擎: {type(e).__name__}: {e}")
 
     return _OC.record_ocr_run(chunks, "none")  # P1-2 全部引擎不可用 ⇒ 显式留痕（不静默）
 
@@ -1816,7 +1838,7 @@ def _ocr_pdf_pages(filepath, max_pages=20, dpi=300):
             images.append(pix.tobytes("png"))
         doc.close()
     except Exception as _e:
-        print(f"[PDF-OCR] 页面渲染失败: {_e}", flush=True)
+        _log.warning(f"[PDF-OCR] 页面渲染失败: {_e}")
         return ""
 
     return _ocr_png_bytes(images)
@@ -1888,7 +1910,7 @@ def _extract_pdf_text(filepath, original_name=""):
         return ocr_text
 
     _err_brief = ("; ".join(errs))[:200] or "无文本层且OCR不可用"
-    print(f"[PDF] {_name} 文本提取失败（{_err_brief}）", flush=True)
+    _log.warning(f"[PDF] {_name} 文本提取失败（{_err_brief}）")
     return None
 
 
@@ -7570,9 +7592,9 @@ def _parse_image_ocr(filepath, original_name=""):
             text_blocks.append({"text": str(_txt).strip(), "y": _yc, "x": _xl,
                                 "conf": float(_conf) if _conf is not None else 0.9})
         if text_blocks:
-            print(f"[图片OCR] rapidocr 提取 {len(text_blocks)} 个文字块", flush=True)
+            _log.info(f"[图片OCR] rapidocr 提取 {len(text_blocks)} 个文字块")
     except Exception as _e:
-        print(f"[图片OCR] rapidocr 不可用: {type(_e).__name__}: {_e}", flush=True)
+        _log.warning(f"[图片OCR] rapidocr 不可用: {type(_e).__name__}: {_e}")
 
     # ═══ 引擎1: EasyOCR（中文优化，首次使用自动下载模型~200MB） ═══
     easyocr_reader = None
@@ -11352,10 +11374,9 @@ def _persist_one_click_result(company_id, result):
     # ★ 删除终局守卫：本账套结果已被删除 → 不写内存、不落盘、不写历史。
     # （进行中的分析任务跑完会走到这里；若无守卫，删除报告后 2 分钟会被写回复活）
     if _is_result_deleted(company_id):
-        print(
+        _log.warning(
             f"[删除终局] 账套 {company_id} 的结果已被删除，跳过写回"
             f"（最近结果缓存/分析历史/分析检查点均不写）",
-            flush=True,
         )
         return
     if company_id not in _last_analysis_cache and len(_last_analysis_cache) >= _MAX_ANALYSIS_CACHE:
@@ -11427,12 +11448,11 @@ def _persist_one_click_result(company_id, result):
     try:
         _written = _write_resolved_industry(company_id, report_data)
         if _written:
-            print(f"[行业口径] company {company_id} 回写本轮行业「{_written}」", flush=True)
+            _log.info(f"[行业口径] company {company_id} 回写本轮行业「{_written}」")
     except Exception as _e:
-        print(
+        _log.warning(
             f"[行业口径] 回写 company {company_id} 行业失败（不影响分析结果）："
             f"{type(_e).__name__}: {_e}",
-            flush=True,
         )
 
     _last_analysis_cache[company_id] = {
@@ -12468,11 +12488,11 @@ def _run_analysis_thread(task_id, company_id, user_id):
                         try:
                             _enroll_patrol_snapshot(company_id, result)
                         except Exception as _pe:
-                            print(f"[post-analysis] 巡逻登记异常(不影响分析结果): {_pe}", flush=True)
+                            _log.warning(f"[post-analysis] 巡逻登记异常(不影响分析结果): {_pe}")
                         try:
                             _maybe_cross_patrol(company_id, kb_before, db)
                         except Exception as _pe:
-                            print(f"[post-analysis] 跨企业巡逻异常(不影响分析结果): {_pe}", flush=True)
+                            _log.warning(f"[post-analysis] 跨企业巡逻异常(不影响分析结果): {_pe}")
                     else:
                         message = (result or {}).get("message", "分析失败")
                         _analysis_tasks[task_id]["status"] = "error"
@@ -12492,7 +12512,7 @@ def _run_analysis_thread(task_id, company_id, user_id):
             try:
                 _write_analysis_checkpoint(company_id, "done", "ok")
             except Exception as _ce:
-                print(f"[checkpoint] 成功检查点写入异常(不影响分析结果): {_ce}", flush=True)
+                _log.warning(f"[checkpoint] 成功检查点写入异常(不影响分析结果): {_ce}")
         finally:
             db.close()
     except Exception as _e:
@@ -12528,7 +12548,7 @@ def _run_analysis_thread(task_id, company_id, user_id):
             if _jsnap is not None:
                 _register_job_finished(task_id, company_id, _jsnap)
         except Exception as _je:                 # noqa: BLE001
-            print(f"[analysis-jobs] 作业终态登记入口异常(不影响分析结果): {_je}", flush=True)
+            _log.warning(f"[analysis-jobs] 作业终态登记入口异常(不影响分析结果): {_je}")
         reset_current_user_id(user_context_token)
         reset_current_job_id(job_context_token)
         # ★ 2026-09-25：分析结束统一回收工作簿句柄。
@@ -12539,7 +12559,7 @@ def _run_analysis_thread(task_id, company_id, user_id):
             from engine.workbook import release_all as _release_wb
             _n = _release_wb()
             if _n:
-                print(f"[句柄回收] 分析结束释放 {_n} 个工作簿句柄", flush=True)
+                _log.info(f"[句柄回收] 分析结束释放 {_n} 个工作簿句柄")
         except Exception:
             pass
 
@@ -12617,8 +12637,7 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                     _cr = (_cached.get("report") or {}).get("report") or {}
                     _cached_report_ok = _is_cur_ver(_cr.get("enterprise_readable_report") or {})
                 except Exception as _cv_exc:  # noqa: BLE001
-                    print(f"[增量复用] 缓存版式校验失败（按脏缓存处理，将全量重算）：{_cv_exc}",
-                          flush=True)
+                    _log.warning(f"[增量复用] 缓存版式校验失败（按脏缓存处理，将全量重算）：{_cv_exc}")
                     _cached_report_ok = False
                 if _cached_fp == _fp and _fresh and _cached_report_ok:
                     _inc_id = _uuid.uuid4().hex[:12]
@@ -12653,8 +12672,7 @@ def analyze_tax_risk_docs_start(request: Request, company_id: int = Query(...),
                                       and j.get("status") == "done"), None)
                         _rf = str((_prev or {}).get("job_id") or "")
                     except Exception as _lje:        # noqa: BLE001
-                        print(f"[analysis-jobs] 增量复用来源解析异常(不影响复用): {_lje}",
-                              flush=True)
+                        _log.warning(f"[analysis-jobs] 增量复用来源解析异常(不影响复用): {_lje}")
                     _register_job_finished(_inc_id, company_id,
                                            dict(_analysis_tasks.get(_inc_id) or {}),
                                            reused_from=_rf)

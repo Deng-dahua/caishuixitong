@@ -11,6 +11,11 @@ from database import BankTransaction, Supplier, Customer, Employee, Department
 from sqlalchemy import func, or_, and_
 from collections import defaultdict
 
+# ★ O-01（2026-10-17）：统一日志。新代码一律用 `get_logger`，**不要再 print**。
+#   分级口径：启动/推进=info；失败但已兜底=warning；高频细节=debug。
+from logkit import get_logger as _get_logger
+_log = _get_logger(__name__)
+
 
 def audit_all(company_id: int) -> dict:
     """运行全部审查，返回 {检查项: 结果}"""
@@ -331,22 +336,22 @@ def _check_system_consistency() -> list:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("用法: python audit.py <company_id>")
+        _log.info("用法: python audit.py <company_id>")
         sys.exit(1)
     company_id = int(sys.argv[1])
     result = audit_all(company_id)
-    print(f"\n{'='*60}")
-    print(f"财税系统自动审查 — 公司ID={company_id}")
-    print(f"{'='*60}")
-    print(f"结果: {'[PASS] 全部通过' if result['passed'] else '[FAIL] 发现问题'}")
-    print(f"错误总数: {result['total_errors']}")
-    print()
+    _log.info(f"\n{'='*60}")
+    _log.info(f"财税系统自动审查 — 公司ID={company_id}")
+    _log.info(f"{'='*60}")
+    _log.info(f"结果: {'[PASS] 全部通过' if result['passed'] else '[FAIL] 发现问题'}")
+    _log.warning(f"错误总数: {result['total_errors']}")
+    _log.info()
     for check, count in result['results'].items():
         icon = "[OK]" if count == 0 else "[ERR]"
-        print(f"  {icon} {check}: {count}项")
+        _log.info(f"  {icon} {check}: {count}项")
     if result['errors']:
-        print(f"\n详细错误:")
+        _log.warning(f"\n详细错误:")
         for e in result['errors']:
-            print(f"  • {e}")
-    print()
+            _log.info(f"  • {e}")
+    _log.info()
     sys.exit(0 if result['passed'] else 1)

@@ -39,6 +39,15 @@ STATIC_DIR = os.path.join(ROOT, "static")
 #   不应被追加版本号。
 _REF = re.compile(r"(/static/(?:js|css)/[A-Za-z0-9_.\-]+)\?v=([0-9A-Za-z_.\-]+)")
 
+#: ★★ 2026-10-18：**完全没有 `?v=` 的引用**（此前被工具与闸门同时忽略）。
+#:    后果实测：22 个页面的 40 处引用（含 risks.js / projects.js / extract.js /
+#:    documents.js / users.js 等**所有页面专属 JS**）都没有版本号 ⇒
+#:    浏览器按 URL 缓存，**这些文件的前端改动可能永远到不了用户**。
+#:    这正是"改了等于没改"最隐蔽的一类：闸门只查"已有 ?v= 是否过期"，
+#:    对"根本没有 ?v="完全无声 —— 属于判据漏项，不是页面合规。
+#:    只在**标签属性**里匹配（src=/href=），避免命中注释与 JS 字符串。
+_REF_NO_V = re.compile(r'((?:src|href)=")(/static/(?:js|css)/[A-Za-z0-9_.\-]+)(")')
+
 
 def target_pages():
     """需要同步的页面 = `static/*.html`（按名称排序，输出可复现）。"""
@@ -61,12 +70,26 @@ def asset_version(rel_path: str) -> str:
 
 
 def scan(html: str):
-    """返回 [(引用路径, 当前 v, 应为 v)]；缺失文件时 应为 v 为空串。"""
+    """返回 [(引用路径, 当前 v, 应为 v)]；缺失文件时 应为 v 为空串。
+
+    ★ 2026-10-18：**把"没有 ?v=" 的引用也纳入**（当前 v 记为 `""`），
+      否则它们永远不会被同步、也永远不会被报出来。
+    """
     out = []
+    seen = set()
     for m in _REF.finditer(html):
         rel, cur = m.group(1), m.group(2)
         out.append((rel, cur, asset_version(rel)))
+        seen.add((rel, m.start()))
+    for m in _REF_NO_V.finditer(html):
+        rel = m.group(2)
+        out.append((rel, "", asset_version(rel)))
     return out
+
+
+def _raw_count(html: str) -> int:
+    """有多少处引用**完全没有 ?v=**（用于判断是否需要补写）。"""
+    return len(_REF_NO_V.findall(html))
 
 
 def main(argv) -> int:
@@ -79,6 +102,7 @@ def main(argv) -> int:
     total_rows = 0
     total_stale = 0
     total_missing = 0
+    total_noversion = 0
     changed_files = 0
 
     for path in pages:
@@ -88,10 +112,13 @@ def main(argv) -> int:
 
         rows = scan(html)
         total_rows += len(rows)
-        stale = [(r, c, w) for r, c, w in rows if w and c != w]
+        # c == "" 表示"压根没有 ?v="（单独计入 total_noversion，不重复算过期）
+        stale = [(r, c, w) for r, c, w in rows if w and c and c != w]
         missing = [r for r, _c, w in rows if not w]
+        raw = [r for r, c, w in rows if c == "" and w]
         total_stale += len(stale)
         total_missing += len(missing)
+        total_noversion += len(raw)
         if not rows:
             continue
         rel_page = os.path.relpath(path, ROOT).replace(os.sep, "/")
@@ -99,20 +126,29 @@ def main(argv) -> int:
             print("  更新 %s  %s  %s → %s" % (rel_page, rel, cur, want))
         for rel in missing:
             print("  !! %s 引用指向不存在的文件: %s" % (rel_page, rel))
-        if stale and not check_only:
+        for rel in raw:
+            print("  补版本号 %s  %s" % (rel_page, rel))
+        if (stale or _raw_count(html)) and not check_only:
             def _sub(m):
                 want = asset_version(m.group(1))
                 return "%s?v=%s" % (m.group(1), want) if want else m.group(0)
             new_html = _REF.sub(_sub, html)
+
+            def _sub_raw(m):
+                """给**没有 ?v=** 的引用补上版本号（文件不存在则原样保留）。"""
+                want = asset_version(m.group(2))
+                return "%s%s?v=%s%s" % (m.group(1), m.group(2), want, m.group(3)) if want else m.group(0)
+            new_html = _REF_NO_V.sub(_sub_raw, new_html)
             # 行尾保持原样（逐字节回写，不改 CRLF/LF）
             with open(path, "wb") as fh:
                 fh.write(new_html.encode("utf-8"))
             changed_files += 1
 
     if check_only:
-        if total_stale or total_missing:
-            print("[sync_asset_versions] 不同步：%d 处版本号过期 / %d 处文件缺失"
-                  "（跑 python tools/sync_asset_versions.py 修复）" % (total_stale, total_missing))
+        if total_stale or total_missing or total_noversion:
+            print("[sync_asset_versions] 不同步：%d 处版本号过期 / %d 处文件缺失 / "
+                  "%d 处**完全没有版本号**（跑 python tools/sync_asset_versions.py 修复）"
+                  % (total_stale, total_missing, total_noversion))
             return 1
         print("[sync_asset_versions] 全部同步（%d 个页面 / %d 个资源引用）"
               % (len(pages), total_rows))

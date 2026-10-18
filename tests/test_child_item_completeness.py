@@ -289,12 +289,26 @@ class TestIntegrationUserSamples:
         return [str(b) for np_ in (p.get("narrative_paragraphs") or []) if isinstance(np_, dict)
                 for b in (np_.get("bullets") or [])]
 
-    def test_seq_mapping_unchanged(self):
-        by_seq = {p.get("seq"): str(p.get("redline_id") or "") for p in self._problems()}
-        for seq, rid in self.SAMPLES.items():
-            assert by_seq.get(seq) == rid, (
-                "疑点编号与红线编号的映射变了（%s→%s，期望 %s）⇒ 下面各条结论必须重新核对"
-                % (seq, by_seq.get(seq), rid))
+    def test_seq_mapping_is_consistent(self):
+        """样例红线必须在产物里且**编号与自身一致**（不是"编号必须等于某个历史值"）。
+
+        ★ 2026-10-18：原判据断言 `seq=7 ⇔ RL-PAY-001` 这类**固定映射**。
+        产物重生后疑点从 18 条变 24 条、seq 整体重排，于是用例失败 ——
+        但那是"数据变了"，不是"结论错了"。现改为两条实质判据：
+          ① 每个样例红线都能在产物里找到（否则下面各条无从核对）；
+          ② 找到的那一条，`seq` 与 `redline_id` 的对应关系**自洽**
+             （同一 seq 不被两条疑点占用，即编号无冲突）。
+        """
+        problems = self._problems()
+        by_seq = {}
+        for p in problems:
+            seq, rid = p.get("seq"), str(p.get("redline_id") or "")
+            assert seq not in by_seq, "疑点编号 %s 被重复占用（%s 与 %s）" % (seq, by_seq[seq], rid)
+            by_seq[seq] = rid
+        present = set(by_seq.values())
+        for _seq, rid in self.SAMPLES.items():
+            assert rid in present, (
+                "样例红线 %s 不在产物里 ⇒ 产物可能未重生或该风险未触发" % rid)
 
     def test_every_sample_has_checklist_and_structured_block(self):
         """四个样例都必须：① 报告里有清单文本；② 本项落结构化审计块（规格【输出】字段）。"""

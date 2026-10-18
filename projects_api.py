@@ -29,6 +29,14 @@ from pydantic import BaseModel, Field
 
 from engine import project_service as SVC
 
+from engine.api_common import (admin_of, call_boundary, request_perm,
+                             require_perm, session_of)
+
+# ★ R-02（2026-10-17）：以下名字是**别名**，逻辑唯一在 engine/api_common。
+#   禁止在本文件重新定义（闸门 `check_api_boundary_single_source` 会报错）。
+_require_perm = require_perm
+_session = session_of
+
 router = APIRouter(prefix="/api/v1/projects", tags=["稽查项目（P0-1）"])
 
 #: 页面路由（**无前缀**）。单独一个 router 是为了让 `main.py` 只需**同一行内**
@@ -93,35 +101,10 @@ class MemberAdd(BaseModel):
 # --------------------------------------------------------------------------
 # 内部
 # --------------------------------------------------------------------------
-def _session(request: Request):
-    """取当前会话。取不到 ⇒ 401（**不静默放行**）。"""
-    auth = getattr(request.state, "auth", None)
-    if auth is None:
-        raise HTTPException(status_code=401, detail="未登录")
-    return auth
-
-
-def _require_perm(session, code: str):
-    """写操作的**功能权限点**校验（MQ2-D1）。
-
-    权威：`engine.rbac.rebac_allows()`（经 `require_permission` 抛 403）。
-    本函数只做「RbacError → HTTPException」的边界转换，**不自判角色**（否则即第二套口径）。
-    """
-    from engine.rbac import RbacError, require_permission          # noqa: PLC0415
-    try:
-        require_permission(session, code)
-    except RbacError as exc:
-        raise HTTPException(status_code=int(getattr(exc, "status", 403)),
-                            detail=str(getattr(exc, "message", exc))) from exc
-    return session
-
-
 def _call(fn, *args, **kwargs):
-    """统一把 Service 的业务异常转成 HTTP（**唯一转换点**，避免各处各写一套）。"""
-    try:
-        return fn(*args, **kwargs)
-    except SVC.ProjectError as exc:
-        raise HTTPException(status_code=int(exc.status), detail=str(exc.message)) from exc
+    """业务异常 → HTTP 的**唯一转换点**在 `engine/api_common.call_boundary`；
+    本函数只声明「本域该捕获哪一类业务异常」（SVC.ProjectError）。"""
+    return call_boundary(fn, *args, exc_types=(SVC.ProjectError,), **kwargs)
 
 
 # --------------------------------------------------------------------------

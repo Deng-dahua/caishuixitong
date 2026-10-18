@@ -767,5 +767,117 @@ def metadata() -> Dict[str, Any]:
     }
 
 
-__all__ = ["ExtractError", "parse_document", "get_extracted", "correct_field",
-           "resolve_issue", "list_issues", "metadata"]
+
+
+# --------------------------------------------------------------------------
+# H-05（2026-10-17）：**批量解析**
+# --------------------------------------------------------------------------
+#: 单次批量上限。为什么不放开：解析是**同步**执行的（单份秒级），
+#: 一次几百份会让 HTTP 请求长时间不返回、前端看起来像卡死；
+#: 分批做还能让用户看到逐条结果、失败可重试。
+BATCH_LIMIT = 50
+
+
+def parse_batch(project_id: Any, session: Any, *, only_pending: bool = True,
+                limit: Any = BATCH_LIMIT, document_ids: Any = None,
+                engine=None, request: Any = None) -> Dict[str, Any]:
+    """批量解析一个项目下的资料：**逐条独立执行、逐条如实回报**。
+
+    ★ 三条硬约束
+      ① **部分失败不回滚**：每份资料是独立事务（`parse_document` 自身幂等重建），
+         一份失败不影响其它份 —— 与 `risk_review.bulk_review` 同一口径；
+      ② **上限**：最多 `BATCH_LIMIT` 份/次，超出即报错（不静默截断，避免"以为都解析了"）；
+      ③ **只报真实结果**：`ok/failed/skipped` 三类分开计数，失败项带原因。
+    """
+    from engine import document_service as DSVC        # noqa: PLC0415
+
+    want = None
+    if document_ids:
+        try:
+            want = [int(x) for x in document_ids]
+        except (TypeError, ValueError):
+            raise ExtractError("document_ids 必须是整数列表", 400) from None
+        if len(want) > BATCH_LIMIT:
+            raise ExtractError("单次最多 %d 份（本次 %d 份）；请分批执行"
+                               % (BATCH_LIMIT, len(want)), 400)
+    # ★ 不能用 `limit or BATCH_LIMIT`：`0 or 50` 会把非法的 0 静默变成 50，
+    #   用户以为"只跑了 0 份"实际跑了 50 份（测试抓到的真 bug）。
+    try:
+        lim = BATCH_LIMIT if limit is None else int(limit)
+    except (TypeError, ValueError):
+        raise ExtractError("limit 必须是整数", 400) from None
+    if lim < 1 or lim > BATCH_LIMIT:
+        raise ExtractError("limit 必须在 1~%d 之间（本次 %d）" % (BATCH_LIMIT, lim), 400)
+
+    # 候选集：显式指定 > 按状态筛（默认只挑"待解析/失败"的，不重解析已成功的）
+    if want is None:
+        statuses = ("pending", "failed") if only_pending else None
+        picked: List[Dict[str, Any]] = []
+        page = 1
+        while len(picked) < lim:
+            kwargs = {"page": page, "page_size": 100, "sort": "uploaded_at",
+                      "order": "asc"}
+            if statuses:
+                # 接口只支持单状态筛选 ⇒ 分两次取，保证"待解析 + 失败"都覆盖
+                for st in statuses:
+                    part = DSVC.list_documents(project_id, session, engine=engine,
+                                               parse_status=st, **kwargs)
+                    for it in part.get("items") or []:
+                        if it.get("id") not in {x.get("id") for x in picked}:
+                            picked.append(it)
+                            if len(picked) >= lim:
+                                break
+                    if len(picked) >= lim:
+                        break
+            else:
+                part = DSVC.list_documents(project_id, session, engine=engine, **kwargs)
+                items = part.get("items") or []
+                for it in items:
+                    picked.append(it)
+                    if len(picked) >= lim:
+                        break
+            total_pages = int((part or {}).get("pages") or 1)
+            if page >= total_pages or len(picked) >= lim:
+                break
+            page += 1
+        want = [int(x["id"]) for x in picked[:lim]]
+
+    if not want:
+        return {"total": 0, "ok": 0, "failed": 0, "skipped": 0, "items": [],
+                "limit": lim,
+                "note": "本项目没有符合条件的资料（默认只挑「待解析 / 解析失败」的；"
+                        "勾选「含已解析」才会重解析成功项）。"}
+
+    items: List[Dict[str, Any]] = []
+    ok = failed = skipped = 0
+    for did in want:
+        try:
+            res = parse_document(did, session, engine=engine, request=request)
+            ok += 1
+            items.append({"document_id": did, "status": "ok",
+                          "tables": len(res.get("tables") or []),
+                          "fields": len(res.get("fields") or []),
+                          "issues": len(res.get("issues") or []),
+                          "parse_error": res.get("parse_error") or "",
+                          "message": "解析完成" if not res.get("parse_error")
+                                     else "解析完成（有提示）"})
+        except ExtractError as exc:
+            # 业务失败（如物理文件不存在）⇒ 如实回报，继续下一份
+            failed += 1
+            items.append({"document_id": did, "status": "failed",
+                          "message": str(exc.message)})
+        except Exception as exc:                        # noqa: BLE001
+            failed += 1
+            items.append({"document_id": did, "status": "failed",
+                          "message": "%s: %s" % (type(exc).__name__, str(exc)[:160])})
+
+    return {
+        "total": len(want), "ok": ok, "failed": failed, "skipped": skipped,
+        "limit": lim, "items": items,
+        "note": ("逐条独立执行，部分失败不回滚。失败项可直接重试（同一资料重复解析是"
+                 "幂等重建，不会产生重复数据）。单次上限 %d 份。" % BATCH_LIMIT),
+    }
+
+
+__all__ = ["ExtractError", "parse_document", "parse_batch", "get_extracted",
+           "correct_field", "resolve_issue", "list_issues", "metadata", "BATCH_LIMIT"]
