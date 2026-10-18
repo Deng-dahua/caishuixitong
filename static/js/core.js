@@ -2,6 +2,76 @@
 var currentPage = 'tax-doc-analysis';
 var currentPeriod = '';
 
+/* ══════════════ 落点解析（唯一权威，2026-10-18）══════════════
+ *
+ * 用户需求（三条，必须同时成立且互不打架）：
+ *   ① **登录后**直接显示「首页总览」——不看上次停在哪；
+ *   ② 任何内页点「返回主界面」也显示「首页总览」；
+ *   ③ **刷新页面**仍显示当前所在页（不被打回首页）。
+ *
+ * ★ ① 与 ③ 天然冲突：两者都经由同一个 `GET /` 落地，唯一的差别是
+ *   **"这次进入是有人主动导航，还是一次刷新"**。故必须引入一个**能区分二者
+ *   的一次性信号**，否则只能牺牲其中一条（改之前就是牺牲了 ①：
+ *   `GET /` 一律读 `lastPage`，登录后永远回到上次停留的内页）。
+ *
+ * 做法：`GET /?page=<内页键>` = 「**主动导航到该页**」的一次性信号。
+ *   · 登录成功 → `/?page=home`；内页「返回主界面」→ `/?page=home`；
+ *   · 读到时**立刻用 `history.replaceState` 抹掉该参数**（不留历史、不重载）
+ *     ⇒ 之后用户再按 F5，URL 已是干净的 `/`，走 `lastPage`
+ *     ⇒ ③ 刷新停在当前页（`navigateTo` 每切一页都写 `lastPage`）。
+ *
+ * 为什么用"URL 参数"而不是"另一个 localStorage 标志位"：
+ *   标志位需要在两处（写与读）各维护一次顺序，且**整页跳转/多标签页**下会串味
+ *   （同一浏览器开两个标签，一个主动导航会污染另一个的刷新行为）。
+ *   URL 参数天然只作用于**发起它的那次导航**，是这个问题的最小正确信号。
+ *
+ * 白名单 `_allowedPages` 仍是**唯一权威**（下方 `navigateTo` 与本处共用同一个
+ *   变量，不再各自维护一份）—— `?page=xxx` 非法值一律**视为没给**，
+ *   绝不静默改成别的页（猜错用户意图比不管更糟）。
+ */
+//: SPA 内页白名单（唯一权威；新增内页必须登记到这里，否则会被静默改回 tax-doc-analysis）
+var _allowedPages = ['home', 'tax-doc-analysis', 'methodology'];
+//: 首次进入（无任何信号）的落点 —— 首页总览
+var _DEFAULT_PAGE = 'home';
+//: 主动导航信号用的 URL 参数名
+var _LANDING_PARAM = 'page';
+
+/** 读取「主动导航」信号；非法/缺失 ⇒ 返回 null（视为"没给"）。 */
+function _readLandingParam() {
+  try {
+    var v = new URLSearchParams(window.location.search).get(_LANDING_PARAM);
+    if (v && _allowedPages.indexOf(v) !== -1) { return v; }
+  } catch (e) { /* 异常 ⇒ 视为没给，不影响刷新恢复 */ }
+  return null;
+}
+
+/** 消费一次性信号：把 `?page=` 从地址栏抹掉（不产生历史记录、不触发重载）。 */
+function _consumeLandingParam() {
+  try {
+    var u = new URL(window.location.href);
+    if (!u.searchParams.has(_LANDING_PARAM)) { return; }
+    u.searchParams.delete(_LANDING_PARAM);
+    var q = u.searchParams.toString();
+    window.history.replaceState(null, '', u.pathname + (q ? '?' + q : '') + u.hash);
+  } catch (e) { /* 抹不掉也不阻断跳转（最坏只是刷新时仍按该页落地，无害） */ }
+}
+
+/**
+ * 落点解析（唯一权威）。
+ *   ① 显式导航信号（`?page=`，一次性）> ② 上次停留页（刷新）> ③ 首页总览（首次）
+ */
+function _resolveLandingPage() {
+  var explicit = _readLandingParam();
+  if (explicit) {
+    _consumeLandingParam();
+    return explicit;
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('lastPage'); } catch (e) { /* 隐私模式 ⇒ 当没存过 */ }
+  if (saved && _allowedPages.indexOf(saved) !== -1) { return saved; }
+  return _DEFAULT_PAGE;
+}
+
 // ═══ 安全派发：运行时动态取函数，不存在就降级 — 永无人为补存根 ═══
 var _LOADING_HTML = '<div style="padding:60px;text-align:center;color:#94a3b8">模块加载中，请稍候...</div>';
 function _sR(container, fnName) {
@@ -478,12 +548,14 @@ window.enterApp = enterApp;  // 确保全局可访问
   } catch (e) {
     console.warn('进入应用时的取数失败（不影响页面跳转）', e);
   }
-  // ★ P0-2（2026-10-17）：首次访问（无 lastPage）落到**首页总览**，
-  //   而不是直接跳进「资料风险分析报告」—— 后者会让新用户看不到任何导航上下文
-  //   （阶段 3 实测：首页正文仅 0.4KB，因为进入即被切走）。
-  //   老用户仍尊重其上次停留的页面（不打扰既有习惯）。
-  const lastPage = localStorage.getItem('lastPage') || 'home';
-  navigateTo(lastPage);
+  // ★ 2026-10-18 改（用户需求：登录后直接显示首页总览、返回主界面也显示首页总览、
+  //   刷新则显示当前页）—— 三种进入方式由**唯一权威** `_resolveLandingPage()` 区分：
+  //     ① 有 `?page=` 信号（登录成功 / 内页「返回主界面」带的）⇒ 落到该页（= 首页总览）；
+  //     ② 无信号（用户按 F5 / 重新打开）⇒ 落到 `lastPage`（刷新停在当前页）；
+  //     ③ 什么都没有（首次访问）⇒ 首页总览。
+  //   此前此处是 `localStorage.getItem('lastPage') || 'home'` —— 于是**登录后**
+  //   永远回到上次停留的内页，需求 ① 无法满足（这就是本轮的根因）。
+  navigateTo(_resolveLandingPage());
 }
 
 // ═══ API Key状态检查 ═══
@@ -792,7 +864,10 @@ function navigateTo(page) {
   //   此前白名单只有两个内页 ⇒ `navigateTo('home')` 会被**静默改成**
   //   `tax-doc-analysis`，首页永远显示不出来（实测：默认落点改了也没用，
   //   因为白名单在最后把它矫正回去了）。新增内页时必须同时登记到这里。
-  var _allowedPages = ['home', 'tax-doc-analysis', 'methodology'];
+  // ★ 2026-10-18：白名单**提升为模块级唯一权威**（文件头 `var _allowedPages`），
+  //   与 `_resolveLandingPage()`（`?page=` 信号校验）**共用同一份** —— 此前本处
+  //   另写一份，等于两个权威，落点解析与切页校验会各判一套（本文件已多次因
+  //   "多头维护"出过事故）。
   if (_allowedPages.indexOf(page) === -1) { page = 'tax-doc-analysis'; }
   currentPage = page;
   // 离开资料分析页时标记为非活跃

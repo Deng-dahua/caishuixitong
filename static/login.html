@@ -77,9 +77,16 @@
         });
         const data = await response.json();
         if (!response.ok || !data.ok) throw new Error(data.message || "登录失败");
-        // ★ 2026-10-15 用户裁定：手机号账号登录直接进系统主页（不强制改密）；
-        // 管理员仍先进「角色设置」页再进主页。
-        location.assign(data.role === "admin" ? "/roles" : "/");
+        // ★ 2026-10-18 用户需求：**登录后一律直接显示「首页总览」**。
+        //   此前按角色分流（管理员 → /roles 角色设置页、其他 → /），且 `/` 又会读
+        //   `localStorage.lastPage` 把用户送回上次停留的内页 ⇒ 两种情况都到不了首页。
+        //   现统一带一次性信号 `?page=home` 进系统：core.js 的 `_resolveLandingPage()`
+        //   优先认它，落地后立即抹掉参数 ⇒ 之后刷新仍停在当前页（需求③不受影响）。
+        //   「角色管理」页入口保留在侧边栏（`data-perm="role.manage"`），不再自动跳转。
+        //   强制改密优先：留着口令没改就直接进系统，等于把安全策略静默废除。
+        location.assign(
+          data.must_change_password ? "/change-password" : "/?page=home"
+        );
       } catch (error) {
         errorBox.textContent = error.message || "网络异常，请稍后重试";
         errorBox.style.display = "block";

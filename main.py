@@ -885,6 +885,22 @@ async def redirect_to_root():
     return RedirectResponse("/", status_code=302)
 
 
+@app.get("/index")
+@app.get("/index.html")
+async def redirect_index_to_home():
+    """`/index`、`/index.html` 兼容跳转 → 首页总览（2026-10-18）。
+
+    此前系统**没有 `/index` 路由**，而 8 个独立页的「返回主界面」按钮写的就是
+    `href="/index"` ⇒ 实测为**坏链接**（无会话时 302→/login，带会话时 404）：
+    用户点了「返回主界面」直接看到 404。
+
+    现前端已统一改为 `/?page=home`（见 `scripts/_wire_home_links.py`），本路由是
+    **兼容兜底**：让遗留书签、外部引用、以及将来可能漏改的一处，都不再 404。
+    目标同为首页总览（带一次性信号，语义与按钮一致）。
+    """
+    return RedirectResponse("/?page=home", status_code=302)
+
+
 @app.get("/api/meta/processing-keywords")
 def get_processing_keywords():
     """返回加工判定关键词（供前端使用，来源：industry_profiles.json）"""

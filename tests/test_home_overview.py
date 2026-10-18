@@ -77,12 +77,31 @@ def test_navigate_allowed_pages_contains_home() -> None:
 
 
 def test_default_page_is_home() -> None:
-    """首次访问（无 lastPage）必须落首页；老用户仍回上次页面。"""
+    """首次访问（无任何信号、无 lastPage）必须落首页。
+
+    ★ 2026-10-18 修正（判据曾变成**假绿**）：原判据直接对源码正则
+      `localStorage.getItem('lastPage') \\|\\| 'home'`。本轮把该表达式从代码里
+      移除、改为经 `_resolveLandingPage()` 解析（其中含说明性注释引用了这句旧写法），
+      于是**判据匹配到了注释文本 ⇒ 一直绿**，而真实代码早已不含该表达式。
+      "把渲染代码删掉、注释里还留着字段名照样通过" —— 本仓明载的假判据形态。
+
+      现口径：**剥注释后**断言唯一权威 `_DEFAULT_PAGE` 为 `'home'`。
+      更完整的落点解析判据（含反向验证）在 `tests/test_home_landing.py`。
+    """
+    import re as _re
+
     src = _s(CORE)
-    m = re.search(r"localStorage\.getItem\('lastPage'\)\s*\|\|\s*'([^']+)'", src)
-    assert m, "core.js 未找到默认落点表达式"
+    src = src.replace("\r\n", "\n").replace("\r", "\n")
+    src = _re.sub(r"/\*.*?\*/", "", src, flags=_re.S)          # 块注释
+    src = _re.sub(r"(?m)^\s*//.*$", "", src)                   # 行注释
+    m = _re.search(r"(?m)^var _DEFAULT_PAGE = '([^']+)'", src)
+    assert m, (
+        "core.js 未找到默认落点权威 `_DEFAULT_PAGE`（剥注释后仍无 ⇒ 落点解析被拆了？）")
     assert m.group(1) == "home", (
         "默认落点应为 'home'，实际 '%s'（新用户会直接跳进资料分析页，看不到总览）" % m.group(1))
+    # 且必须经唯一权威函数落地，不得在别处另写一份兜底
+    assert "_resolveLandingPage()" in src, (
+        "落点未经 `_resolveLandingPage()` 解析 ⇒ 登录/返回/刷新会各判一套")
 
 
 def test_page_title_registered() -> None:

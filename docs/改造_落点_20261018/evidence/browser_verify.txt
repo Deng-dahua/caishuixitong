@@ -1,0 +1,17 @@
+OK  [①-登录] 登录后可见页为首页总览                                          got=['page-home']
+OK  [①-登录] URL 已抹掉一次性参数（`page=` 不在 search 里）                    got=False
+OK  [①-登录] 四块 KPI 均有文本                                          got=True
+OK  [③-刷新] 切到内页后可见页                                             got=['page-tax-doc-analysis']
+OK  [③-刷新] F5 后仍停在该内页                                           got=['page-tax-doc-analysis']
+OK  [③-刷新] 刷新后未被打回首页总览                                          got=False
+OK  [②-返回] /projects 顶栏存在返回链接                                   got=True
+OK  [②-返回] 返回链接目标                                               got='/?page=home'
+OK  [②-返回] 点返回后可见页为首页总览                                         got=['page-home']
+OK  [②-返回] URL 已抹掉一次性参数（`page=` 不在 search 里）                    got=False
+OK  [负向] 仅一个内页容器可见                                            got=1
+OK  [负向] /index 最终可达（非 404）                                   got=True
+OK  [负向] /index 最终落到首页总览                                      got=True
+OK  [负向] 无与本轮落点改动相关的报错                                        got=[]
+      （既有噪声 3 条，与本轮无关，不判红）: [('console', 'Failed to load resource: the server responded with a status of 404 (Not Found)'), ('console', '[tax-doc] tda-file-list 元素不存在')]
+
+==== 合计 14 项，失败 0 项 ====
