@@ -428,6 +428,12 @@ _METRIC_CN = {
     "book_cost_total": "账面主营业务成本合计",
     "book_cost_source": "账面成本取数口径",
     "amount_mismatch_amount": "金额不一致合计",
+    # ★ 2026-10-18：真跑产物普查新暴露的 4 个键（来自 `engine/invoice_rate_detector.py`，
+    #   历史产物未覆盖到该分支故一直没译；只加数据行，不改逻辑）。
+    "mismatch_amount": "税率或金额不一致合计",
+    "undetermined_count": "未能判定项数",
+    "skipped_no_goods": "缺货物名称跳过项数",
+    "skipped_no_rate": "缺税率跳过项数",
     "analysis_base_date": "分析基准日",
     "ap_detail_provided": "已提供应付账款明细",
     "ap_from_trial_balance": "应付账款取自余额表",

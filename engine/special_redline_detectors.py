@@ -1386,6 +1386,26 @@ _BATCH_SPECS: List[Dict] = (
     }
 ]
 )
+
+# ═══ 2026-10-18 新增：超经营范围开票（关键词置疑 SPEC；真正的相似度判定在
+#     engine/business_scope_rule.py，本 SPEC 只保证"文本提到即入册可查"）
+_BATCH_SPECS.append({
+    "redline_id": "RL-INV-005",
+    "topic": "超经营范围开票预警（待核）",
+    "tax_type": "增值税",
+    "signals": ["超经营范围", "超出经营范围", "经营范围不符", "经营范围外",
+                "品名与经营范围", "开票品名不符"],
+    "decl_keywords": [],
+    "needs": ["销项发票", "营业执照", "销售合同", "出库单", "银行流水"],
+    "method": "取销项发票品名与工商登记经营范围做相似度比对（字符级 + 同义词组），"
+              "无可对应类目且交易证据缺失 ⇒ 置疑开票内容真实性；"
+              "仅超范围而有真实交易的，不构成本项",
+    "policy_ref": "《中华人民共和国发票管理办法》第二十一条",
+    "level": "低风险",
+    "score": 3,
+    "_batch_id": "BATCH-007",
+})
+
 SPECS.extend(_BATCH_SPECS)
 # ═══ END BATCH_SPECS_LOADER ═══
 

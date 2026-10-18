@@ -30,6 +30,14 @@
     .btn.danger { background:#dc2626; border-color:#dc2626; }
     .btn.danger:hover { background:#b91c1c; }
     .btn:disabled { opacity:.5; cursor:not-allowed; }
+    /* ★ 2026-10-18：企业名称旁的【自动查填】按钮（工商信息查询） */
+    .input-with-btn { display:flex; gap:6px; align-items:stretch; }
+    .input-with-btn > input { flex:1; min-width:0; }
+    .btn.mini { padding:4px 10px; font-size:12px; white-space:nowrap; }
+    .biz-note { margin:2px 0 8px; color:#64748b; font-size:12px; }
+    .biz-warn { margin:8px 0; padding:9px 12px; border-radius:6px; font-size:13px;
+                background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+    .biz-warn b { color:#7f1d1d; }
     .card { background:#fff; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
     /* ★ 2026-10-18：列表已扩到 14 列（企业信息 + 稽查要素）⇒ 容器横向滚动，不挤压 */
     .table-scroll { overflow-x:auto; }
@@ -153,9 +161,19 @@
         <div class="hint">名称与统一社会信用代码为必填；工商信息用于风险画像与报告主体描述，
           不确定的可留空（留空即显示“—”，系统不会用默认值顶替）。</div>
         <div class="form-row">
-          <label>企业名称 *<input type="text" id="pf-name"></label>
+          <label>企业名称 *
+            <span class="input-with-btn">
+              <input type="text" id="pf-name" autocomplete="off">
+              <button type="button" class="btn mini" id="btn-fetch-bizinfo"
+                      data-perm="project.write"
+                      title="按企业全称查询工商登记信息，自动填入下方字段（查不到时请手工填写）">自动查填</button>
+            </span>
+          </label>
           <label>统一社会信用代码 *<input type="text" id="pf-tid" maxlength="18" placeholder="18 位"></label>
         </div>
+        <div class="biz-note" id="bizinfo-note">填好企业全称后点【自动查填】可取回统一社会信用代码、法定代表人、
+          注册资本、成立日期、登记状态、注册地址、公司类型与经营范围；取不到的字段不会用默认值顶替。</div>
+        <div class="biz-warn" id="bizinfo-warn" hidden></div>
         <div class="form-row">
           <label>法定代表人<input type="text" id="pf-legal_representative" placeholder="工商登记法定代表人"></label>
           <label>注册资本（<span class="cap-unit">万元</span>）
@@ -229,7 +247,7 @@
     </div>
   </div>
 
-  <script src="/static/js/projects.js?v=59543f8179" defer></script>
+  <script src="/static/js/projects.js?v=cc8d5f1cc1" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>

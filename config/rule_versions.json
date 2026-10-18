@@ -22,7 +22,7 @@
   }
  ],
  "counts": {
-  "tax_redlines": 127,
+  "tax_redlines": 128,
   "verified_rule_engine": 85
  },
  "layer_semantics": {
@@ -30,7 +30,7 @@
   "layers": {
    "tax_redlines": {
     "cn": "红线规则",
-    "count": 127,
+    "count": 128,
     "source": "engine/tax_redlines.py::REDLINES",
     "kind": "rule",
     "counts_toward_rule_total": true,
@@ -45,11 +45,11 @@
    },
    "special_redline_detectors": {
     "cn": "专项红线探测（检测器实现层）",
-    "count": 61,
+    "count": 62,
     "source": "engine/special_redline_detectors.py::SPECS",
     "kind": "detector_implementation",
     "counts_toward_rule_total": false,
-    "note": "检测器**实现层**（不计入规则总数）：表驱动 SPECS 61 条（原 25 + 批次 36）。其 redline_id 全部落在红线库内。"
+    "note": "检测器**实现层**（不计入规则总数）：表驱动 SPECS 62 条（原 25 + 批次 37）。其 redline_id 全部落在红线库内。"
    },
    "gap_risk_detectors": {
     "cn": "缺口风险探测（检测器实现层）",
@@ -166,6 +166,42 @@
    "version": "1.0.0",
    "effective_from": "2026-10-10",
    "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+   "layer": "tax_redlines"
+  },
+  "RL-CIT-011": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CIT-REG-009",
+   "layer": "tax_redlines"
+  },
+  "RL-CIT-012": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CIT-LAW-008",
+   "layer": "tax_redlines"
+  },
+  "RL-CIT-013": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CIT-LAW-008",
+   "layer": "tax_redlines"
+  },
+  "RL-CIT-014": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CS-2008-121",
+   "layer": "tax_redlines"
+  },
+  "RL-CIT-015": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 MOF-CIT-SPECIAL-FUND",
+   "layer": "tax_redlines"
+  },
+  "RL-CIT-016": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CIT-LAW-018",
    "layer": "tax_redlines"
   },
   "RL-COST-001": {
@@ -288,6 +324,12 @@
    "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
    "layer": "tax_redlines"
   },
+  "RL-INV-005": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-18",
+   "changed_note": "初始登记（新增规则：超经营范围开票预警；检测器 engine/business_scope_rule.py）",
+   "layer": "tax_redlines"
+  },
   "RL-OTH-001": {
    "version": "1.0.0",
    "effective_from": "2026-10-10",
@@ -354,6 +396,36 @@
    "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
    "layer": "tax_redlines"
   },
+  "RL-OTH-012": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 TAX-ADMIN-LAW-025",
+   "layer": "tax_redlines"
+  },
+  "RL-OTH-013": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 TAX-ADMIN-LAW-031",
+   "layer": "tax_redlines"
+  },
+  "RL-OTH-014": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 TAX-ADMIN-LAW-016",
+   "layer": "tax_redlines"
+  },
+  "RL-OTH-015": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 TAX-ADMIN-LAW-019",
+   "layer": "tax_redlines"
+  },
+  "RL-OTH-016": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 INVOICE-MEASURE-015",
+   "layer": "tax_redlines"
+  },
   "RL-PAY-001": {
    "version": "1.0.0",
    "effective_from": "2026-10-10",
@@ -390,6 +462,36 @@
    "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
    "layer": "tax_redlines"
   },
+  "RL-PAY-007": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 MOF-IIT-TRANSITION",
+   "layer": "tax_redlines"
+  },
+  "RL-PAY-008": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 IIT-LAW-006",
+   "layer": "tax_redlines"
+  },
+  "RL-PAY-009": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 IIT-LAW-002",
+   "layer": "tax_redlines"
+  },
+  "RL-PAY-010": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 IIT-LAW-001",
+   "layer": "tax_redlines"
+  },
+  "RL-PAY-011": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 IIT-LAW-006",
+   "layer": "tax_redlines"
+  },
   "RL-PTY-001": {
    "version": "1.0.0",
    "effective_from": "2026-10-10",
@@ -418,6 +520,24 @@
    "version": "1.0.0",
    "effective_from": "2026-10-10",
    "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+   "layer": "tax_redlines"
+  },
+  "RL-PTY-006": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
+   "layer": "tax_redlines"
+  },
+  "RL-PTY-007": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-022；法规依据条款 INVOICE-MEASURE-022",
+   "layer": "tax_redlines"
+  },
+  "RL-PTY-008": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 SAT-GOODFAITH-INVOICE-NOTICE；法规依据条款 SAT-GOODFAITH-INVOICE-NOTICE",
    "layer": "tax_redlines"
   },
   "RL-SPT-001": {
@@ -546,6 +666,30 @@
    "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
    "layer": "tax_redlines"
   },
+  "RL-SPT-022": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-006 · 研发费用加计扣除专题新增规则）；来源 —；法规依据条款 MOF-RD-SUPERDEDUCT",
+   "layer": "tax_redlines"
+  },
+  "RL-SPT-023": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-006 · 研发费用加计扣除专题新增规则）；来源 —；法规依据条款 MOF-RD-SUPERDEDUCT",
+   "layer": "tax_redlines"
+  },
+  "RL-SPT-024": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-006 · 研发费用加计扣除专题新增规则）；来源 —；法规依据条款 MOF-RD-SUPERDEDUCT",
+   "layer": "tax_redlines"
+  },
+  "RL-SPT-025": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-006 · 研发费用加计扣除专题新增规则）；来源 —；法规依据条款 MOF-RD-SUPERDEDUCT",
+   "layer": "tax_redlines"
+  },
   "RL-VAT-001": {
    "version": "1.0.0",
    "effective_from": "2026-10-10",
@@ -634,6 +778,84 @@
    "version": "1.0.0",
    "effective_from": "2026-10-10",
    "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-016": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-017": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-018": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 SAT-RUNAWAY-INVOICE-ANN；法规依据条款 SAT-RUNAWAY-INVOICE-ANN",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-019": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 TAX-INTERMEDIARY-SUPERVISION；法规依据条款 TAX-INTERMEDIARY-SUPERVISION",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-020": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-021": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 TAX-ADMIN-LAW-063；法规依据条款 TAX-ADMIN-LAW-063",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-022": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-023": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-028",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-024": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-028",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-025": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-008",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-026": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 INVOICE-MEASURE-027",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-027": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-028",
+   "layer": "tax_redlines"
+  },
+  "RL-VAT-028": {
+   "version": "1.0.0",
+   "effective_from": "2026-10-15",
+   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-024",
    "layer": "tax_redlines"
   },
   "VR001": {
@@ -1145,223 +1367,7 @@
    "effective_from": "2026-10-10",
    "changed_note": "初始登记（P0-A 规则版本留痕闭环）",
    "layer": "verified_rule_engine"
-  },
-  "RL-VAT-016": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-017": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-018": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 SAT-RUNAWAY-INVOICE-ANN；法规依据条款 SAT-RUNAWAY-INVOICE-ANN",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-019": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 TAX-INTERMEDIARY-SUPERVISION；法规依据条款 TAX-INTERMEDIARY-SUPERVISION",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-020": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-021": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 TAX-ADMIN-LAW-063；法规依据条款 TAX-ADMIN-LAW-063",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-022": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
-   "layer": "tax_redlines"
-  },
-  "RL-PTY-006": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-021；法规依据条款 INVOICE-MEASURE-021",
-   "layer": "tax_redlines"
-  },
-  "RL-PTY-007": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 INVOICE-MEASURE-022；法规依据条款 INVOICE-MEASURE-022",
-   "layer": "tax_redlines"
-  },
-  "RL-PTY-008": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-001 · 虚开发票专题新增规则）；来源 SAT-GOODFAITH-INVOICE-NOTICE；法规依据条款 SAT-GOODFAITH-INVOICE-NOTICE",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-023": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-028",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-024": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-028",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-025": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-008",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-026": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 INVOICE-MEASURE-027",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-027": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-028",
-   "layer": "tax_redlines"
-  },
-  "RL-VAT-028": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-002 · 增值税法专题新增规则）；来源 —；法规依据条款 VAT-LAW-024",
-   "layer": "tax_redlines"
-  },
-  "RL-CIT-011": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CIT-REG-009",
-   "layer": "tax_redlines"
-  },
-  "RL-CIT-012": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CIT-LAW-008",
-   "layer": "tax_redlines"
-  },
-  "RL-CIT-013": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CIT-LAW-008",
-   "layer": "tax_redlines"
-  },
-  "RL-CIT-014": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CS-2008-121",
-   "layer": "tax_redlines"
-  },
-  "RL-CIT-015": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 MOF-CIT-SPECIAL-FUND",
-   "layer": "tax_redlines"
-  },
-  "RL-CIT-016": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-003 · 企业所得税汇算清缴专题新增规则）；来源 —；法规依据条款 CIT-LAW-018",
-   "layer": "tax_redlines"
-  },
-  "RL-PAY-007": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 MOF-IIT-TRANSITION",
-   "layer": "tax_redlines"
-  },
-  "RL-PAY-008": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 IIT-LAW-006",
-   "layer": "tax_redlines"
-  },
-  "RL-PAY-009": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 IIT-LAW-002",
-   "layer": "tax_redlines"
-  },
-  "RL-PAY-010": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 IIT-LAW-001",
-   "layer": "tax_redlines"
-  },
-  "RL-PAY-011": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-004 · 个人所得税综合所得专题新增规则）；来源 —；法规依据条款 IIT-LAW-006",
-   "layer": "tax_redlines"
-  },
-  "RL-OTH-012": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 TAX-ADMIN-LAW-025",
-   "layer": "tax_redlines"
-  },
-  "RL-OTH-013": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 TAX-ADMIN-LAW-031",
-   "layer": "tax_redlines"
-  },
-  "RL-OTH-014": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 TAX-ADMIN-LAW-016",
-   "layer": "tax_redlines"
-  },
-  "RL-OTH-015": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 TAX-ADMIN-LAW-019",
-   "layer": "tax_redlines"
-  },
-  "RL-OTH-016": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-005 · 税收征管与行政处罚专题新增规则）；来源 —；法规依据条款 INVOICE-MEASURE-015",
-   "layer": "tax_redlines"
-  },
-  "RL-SPT-022": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-006 · 研发费用加计扣除专题新增规则）；来源 —；法规依据条款 MOF-RD-SUPERDEDUCT",
-   "layer": "tax_redlines"
-  },
-  "RL-SPT-023": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-006 · 研发费用加计扣除专题新增规则）；来源 —；法规依据条款 MOF-RD-SUPERDEDUCT",
-   "layer": "tax_redlines"
-  },
-  "RL-SPT-024": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-006 · 研发费用加计扣除专题新增规则）；来源 —；法规依据条款 MOF-RD-SUPERDEDUCT",
-   "layer": "tax_redlines"
-  },
-  "RL-SPT-025": {
-   "version": "1.0.0",
-   "effective_from": "2026-10-15",
-   "changed_note": "新增（BATCH-006 · 研发费用加计扣除专题新增规则）；来源 —；法规依据条款 MOF-RD-SUPERDEDUCT",
-   "layer": "tax_redlines"
   }
  },
- "updated": "2026-10-15"
+ "updated": "2026-10-18"
 }

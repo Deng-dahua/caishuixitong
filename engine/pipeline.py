@@ -4990,6 +4990,38 @@ def _run_analyze(company_id, db, progress_callback=None):
         except Exception as _xe:                          # noqa: BLE001
             pipeline_log.append("[上传报表勾稽] 取数异常，本项未参与：%s" % _xe)
 
+        # ═══════════════════════════════════════════════════════════════════
+        # ★ 2026-10-18 新增：**超经营范围开票预警**（RL-INV-005）
+        #   口径：销项发票品名 × 工商登记经营范围（字符相似度 + 同义词组）；
+        #   只对"明显对不上"的才报（不确定一律不报，宁缺勿错）。
+        #   唯一实现：`engine/business_scope_rule.py`（本处只做并入，不重算）。
+        #   拿不到经营范围 / 拿不到销项品名 ⇒ **不参与**，并在 pipeline_log 写明原因
+        #   （"没有数据"绝不等于"没有风险"）。
+        # ═══════════════════════════════════════════════════════════════════
+        try:
+            from engine.business_scope_rule import collect_findings as _scope_collect
+            _scope_findings, _scope_receipt = _scope_collect(company_id, invoices)
+            if _scope_findings:
+                _existing_s = {str(_f.get("fact_id") or "") for _f in
+                               (_scenario_execution.get("findings") or [])}
+                _s_added = 0
+                for _sf in _scope_findings:
+                    if str(_sf.get("fact_id") or "") in _existing_s:
+                        continue
+                    _scenario_execution.setdefault("findings", []).append(_sf)
+                    _existing_s.add(str(_sf.get("fact_id") or ""))
+                    _s_added += 1
+                pipeline_log.append(
+                    "[超经营范围开票] 已并入 %d 项预警（%s）"
+                    % (_s_added, _scope_receipt.get("note")))
+            else:
+                pipeline_log.append(
+                    "[超经营范围开票] 未产预警（%s；经营范围来源：%s）"
+                    % (_scope_receipt.get("note") or "—",
+                       _scope_receipt.get("scope_origin") or "—"))
+        except Exception as _se:                          # noqa: BLE001
+            pipeline_log.append("[超经营范围开票] 取数异常，本项未参与：%s" % _se)
+
         if _objective_injected:
             all_findings = _scenario_execution["findings"]
             # 注入后重算域汇总，使 BOM/仓储/运输/存货勾稽域进入报告 domain_summary

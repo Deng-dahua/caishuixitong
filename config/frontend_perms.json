@@ -92,6 +92,11 @@
         "id": "btn-del-confirm",
         "perm": "project.write",
         "what": "确认删除项目"
+      },
+      {
+        "id": "btn-fetch-bizinfo",
+        "perm": "project.write",
+        "what": "自动查填工商信息"
       }
     ],
     "rule_versions.html": [

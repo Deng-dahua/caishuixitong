@@ -343,6 +343,14 @@
    "redline_id": "RL-SPT-025",
    "declared_at": "2026-10-15",
    "evidence": "批次规则 BATCH-006（来源 ）；SPECS 表驱动检测（signals 命中即置疑）。"
+  },
+  {
+   "detector_file": "engine/business_scope_rule.py",
+   "detector_fn": "collect_findings",
+   "finding_type": "超经营范围开票预警",
+   "redline_id": "RL-INV-005",
+   "declared_at": "2026-10-18",
+   "evidence": "真算事实：取 `companies.business_scope`（缺失回退 `projects.business_scope`）× 销项发票品名，逐条算字符相似度（字面包含 / 二元组 Jaccard / 字符重合率 + 同义词组），低于 `config/business_info.json::scope_rule.unmatched_below` 才判不匹配。归入本函数（`mode=declared`）；未算过的要件（交易真实性、许可资质）不认领。"
   }
  ]
 }

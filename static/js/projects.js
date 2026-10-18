@@ -190,6 +190,8 @@
     state.editing = project || null;
     $("form-title").textContent = project ? "编辑项目" : "新建项目";
     $("form-msg").innerHTML = "";
+    bizNote("");
+    bizWarn("");
     pf("name").value = project ? (project.name || "") : "";
     pf("tid").value = project ? (project.taxpayer_id || "") : "";
     pf("industry").value = project ? (project.industry || "") : "";
@@ -225,6 +227,79 @@
   function showFormError(msg) {
     $("form-msg").innerHTML = '<div class="msg err">' + esc(msg) + "</div>";
     $("form-msg").scrollIntoView({ block: "nearest" });
+  }
+
+  // ── 工商信息查询（【自动查填】，2026-10-18 新增）────────────────────
+  // 接口：GET /api/v1/business/query（服务端负责 缓存→本地库→公示系统 的取数与清洗）
+  // ★ 三条硬规矩：
+  //   ① 只填**取到值**的字段：空值不覆盖用户已填内容，也不清空（缺失≠0）；
+  //   ② 查询失败**只是提示**，不阻断保存（用户要求"不能阻断项目创建"）；
+  //   ③ 登记状态为注销/吊销等时**弹红色警告**（后端 risk_status_warning 是唯一判据，前端不重判）。
+  var BIZ_FIELDS = ["legal_representative", "registered_capital", "established_date",
+                    "registration_status", "registered_address", "company_type",
+                    "business_scope"];
+
+  function bizNote(text, kind) {
+    var el = $("bizinfo-note");
+    if (!el) return;
+    el.textContent = text || "";
+    el.style.color = kind === "err" ? "#b91c1c" : (kind === "ok" ? "#047857" : "#64748b");
+  }
+
+  function bizWarn(html) {
+    var el = $("bizinfo-warn");
+    if (!el) return;
+    if (!html) { el.hidden = true; el.innerHTML = ""; return; }
+    el.innerHTML = html;
+    el.hidden = false;
+  }
+
+  async function fetchBizInfo() {
+    var btn = $("btn-fetch-bizinfo");
+    var name = pf("name").value.trim();
+    bizWarn("");
+    if (name.length < 2) {
+      bizNote("请先填写企业全称（至少 2 个字）再查填", "err");
+      pf("name").focus();
+      return;
+    }
+    var old = btn ? btn.textContent : "";
+    if (btn) { btn.disabled = true; btn.textContent = "查询中…"; }
+    bizNote("正在查询工商信息…");
+    try {
+      var url = "/api/v1/business/query?name=" + encodeURIComponent(name)
+        + (state.editing && state.editing.id
+           ? "&project_id=" + encodeURIComponent(state.editing.id) : "");
+      var d = await api(url);
+      if (!d || !d.ok || !d.profile) {
+        bizNote((d && d.message ? d.message : "查询超时，请手动填写")
+                + (d && d.detail ? "（" + d.detail + "）" : ""), "err");
+        return;
+      }
+      var p = d.profile;
+      var filled = 0;
+      if (p.tax_id) { pf("tid").value = p.tax_id; filled += 1; }
+      BIZ_FIELDS.forEach(function (k) {
+        if (p[k] === null || p[k] === undefined || p[k] === "") return;
+        var el = pf(k);
+        if (!el) return;
+        el.value = p[k];
+        filled += 1;
+      });
+      var missing = (p.missing || []).length;
+      bizNote("已查填 " + filled + " 项（来源：" + (d.source_detail || d.source || "—")
+              + (d.cache_hit ? "，命中缓存" : "")
+              + "）" + (missing ? "；" + missing + " 项未取得，请手工补齐" : ""),
+              filled ? "ok" : "err");
+      if (d.risk_status_warning) {
+        bizWarn("<b>登记状态异常：</b>" + esc(d.risk_status_warning));
+      }
+    } catch (e) {
+      bizNote("查询失败：" + (e && e.message ? e.message : "网络异常")
+              + "；请手动填写，不影响项目创建", "err");
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = old; }
+    }
   }
 
   async function saveForm() {
@@ -443,6 +518,8 @@
     $("f-size").onchange = function () { state.page = 1; loadList(); };
     $("btn-new").onclick = function () { openForm(null); };
     $("btn-save").onclick = saveForm;
+    // 工商信息【自动查填】（按钮受 data-perm="project.write" 门控，无权限时隐藏）
+    if ($("btn-fetch-bizinfo")) $("btn-fetch-bizinfo").onclick = fetchBizInfo;
     $("btn-del-confirm").onclick = doDelete;
     $("prev").onclick = function () { if (state.page > 1) { state.page--; loadList(); } };
     $("next").onclick = function () { if (state.page < state.pages) { state.page++; loadList(); } };
