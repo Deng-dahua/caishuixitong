@@ -1,5 +1,5 @@
 // ==================== 全局状态 ====================
-var currentPage = 'tax-doc-analysis';
+var currentPage = 'home';
 var currentPeriod = '';
 
 /* ══════════════ 落点解析（唯一权威，2026-10-18）══════════════
@@ -29,10 +29,13 @@ var currentPeriod = '';
  *   变量，不再各自维护一份）—— `?page=xxx` 非法值一律**视为没给**，
  *   绝不静默改成别的页（猜错用户意图比不管更糟）。
  */
-//: SPA 内页白名单（唯一权威；新增内页必须登记到这里，否则会被静默改回 tax-doc-analysis）
-var _allowedPages = ['home', 'tax-doc-analysis', 'methodology'];
+//: SPA 内页白名单（唯一权威；新增内页必须登记到这里，否则会被静默改回 `_FALLBACK_PAGE`）
+var _allowedPages = ['home', 'methodology'];
 //: 首次进入（无任何信号）的落点 —— 首页总览
 var _DEFAULT_PAGE = 'home';
+//: 非法页键的兜底页（★ 2026-10-19：原为 `tax-doc-analysis`，该内页已并入 /reports 并删除，
+//:   故兜底改为 `home` —— 兜底到"已不存在的页"会建出空容器并显示"模块加载超时"）
+var _FALLBACK_PAGE = 'home';
 //: 主动导航信号用的 URL 参数名
 var _LANDING_PARAM = 'page';
 
@@ -143,37 +146,14 @@ function getUserPath() {
     return (u && u.pinyin) ? '/' + u.pinyin : '';
   } catch(e) { return ''; }
 }
-function normalizeDisplayValue(value) {
-  if (value === undefined || value === null) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return String(value);
-  if (value instanceof Date) return value.toISOString();
-  if (Array.isArray(value)) return value.map(normalizeDisplayValue).filter(Boolean).join('、');
-  if (typeof value === 'object') {
-    try {
-      var seen = typeof WeakSet === 'function' ? new WeakSet() : null;
-      var json = JSON.stringify(value, function(key, item) {
-        if (item && typeof item === 'object' && seen) {
-          if (seen.has(item)) return '[循环引用]';
-          seen.add(item);
-        }
-        return item;
-      });
-      if (!json || json === '{}') return '结构化数据（无可展示字段）';
-      return json.length > 2000 ? json.slice(0, 2000) + '…' : json;
-    } catch (error) {
-      return '结构化数据（请展开详情查看）';
-    }
-  }
-  return String(value);
-}
-
-function escapeHtml(s) {
-    var text = normalizeDisplayValue(s);
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-var esc = escapeHtml;      // 全局统一转义函数（简写）
-var escHtml = escapeHtml;  // 全局统一转义函数（全名，供 tax-pipeline-pages / tax-risk-rules 等模块使用）
+/* ★ 2026-10-19：`normalizeDisplayValue` / `escapeHtml` / `esc` / `escHtml` / `toast`
+   的实现**已迁至 `static/js/dom-utils.js`（唯一权威）**。
+   原因：`tax-doc-analysis.js::renderTaxDocReport` 需要它们，而该渲染现已并入
+   独立页 `/reports`；`core.js` 是 SPA 主控制器（加载即自启 `_startApp`），
+   引到独立页会带来无关请求与报错。审计闸门 `check_js_undefined_calls` 又要求
+   "每个页面脚本包内必须查得到被调用的名字" ⇒ 抽成共享模块、两页都加载。
+   **本文件不得再定义这几个名字**（重复定义 = 多头维护，转义实现分叉）。
+   加载顺序：`dom-utils.js` 必须先于本文件（本文件顶层即引用 `esc`/`escHtml`）。 */
 
 var _visibleTextObserver = null;
 function _cleanVisibleTextValue(value) {
@@ -260,7 +240,8 @@ const pages = {
   'social-security': '社会保险费',
   'housing-fund': '住房公积金',
   'bookkeeping-invoices': '记账发票',
-  'tax-doc-analysis': '资料风险分析报告',
+  // 'tax-doc-analysis': '资料风险分析报告',   ← ★ 2026-10-19 该内页已并入
+  //   「报告生成与导出」(/reports) 并删除；标题映射随之移除（不留死键）。
   'system-logs': '系统日志',
   'ai-interaction': 'AI交互',
   'feedback-template': '审核内容模板',
@@ -860,6 +841,15 @@ function navigateTo(page) {
   //   此处做一次性重定向，使引擎仪表盘等处的既有 navigateTo('system-logs') 入口
   //   仍能落到正确的页（不需要逐处修改调用点）。
   if (page === 'system-logs') { window.location.href = '/audit-logs'; return; }
+  // ★ 2026-10-19（用户要求：把资料风险分析报告并入报告生成与导出模块，然后删除该模块）：
+  //   该 SPA 内页已下线，报告阅读改由独立页 `/reports` 的「分析报告」页签承载。
+  //   ★ 本重定向**必须放在白名单校验之前**（与上面 `system-logs` 同理）：
+  //     `tax-doc-analysis` 已从 `_allowedPages` 移除，若放到 switch 里处理，
+  //     会先被 `_FALLBACK_PAGE` 静默改成首页 ⇒ 这两处深链永远到不了本行：
+  //       · `tax-engine-dashboard.js:1533`（引擎仪表盘的「资料风险分析报告」链接）
+  //       · `tax-pipeline-pages.js:1820`（"暂无过滤记录"的引导链接）
+  //     放在此处 ⇒ 两个入口仍可用，且不必逐处修改既有调用点。
+  if (page === 'tax-doc-analysis') { window.location.href = '/reports'; return; }
   // ★ P0-2（2026-10-17）：内页白名单加入 `home`（首页总览）。
   //   此前白名单只有两个内页 ⇒ `navigateTo('home')` 会被**静默改成**
   //   `tax-doc-analysis`，首页永远显示不出来（实测：默认落点改了也没用，
@@ -868,13 +858,16 @@ function navigateTo(page) {
   //   与 `_resolveLandingPage()`（`?page=` 信号校验）**共用同一份** —— 此前本处
   //   另写一份，等于两个权威，落点解析与切页校验会各判一套（本文件已多次因
   //   "多头维护"出过事故）。
-  if (_allowedPages.indexOf(page) === -1) { page = 'tax-doc-analysis'; }
+  // ★ 2026-10-19：非法页键的兜底页改为模块级常量 `_FALLBACK_PAGE`（原硬编码为
+  //   `tax-doc-analysis`，该内页已删除）—— 兜底到"已不存在的页"会建出空容器并
+  //   显示"模块加载超时"，比兜底到首页总览更糟。
+  if (_allowedPages.indexOf(page) === -1) { page = _FALLBACK_PAGE; }
   currentPage = page;
-  // 离开资料分析页时标记为非活跃
-  if (typeof taxDocPageActive !== 'undefined') taxDocPageActive = false;
-  if (typeof taxDocAnalyzing !== 'undefined' && taxDocAnalyzing) {
-    // 有正在进行中的分析，标记为非活跃但不禁用（分析继续在后台运行）
-  }
+  // ★ 2026-10-19：原「离开资料分析页时标记为非活跃」一段已移除 —— 该 SPA 内页
+  //   已下线（并入 /reports）。`taxDocPageActive` 仍由 `tax-doc-analysis.js` 自身
+  //   定义与使用（`reports.js` 不依赖它：`renderTaxDocReport` 不检查该标志）。
+  //   此处保留对「分析进行中」的中性说明，不再改写任何标志（改一个已无页面消费的
+  //   全局变量属死代码，且会掩盖"谁在用它"）。
   console.log('[navigateTo] 切换到：' + page);
   localStorage.setItem('lastPage', page);
   document.querySelectorAll('.nav-item').forEach(el => {
@@ -894,7 +887,8 @@ function navigateTo(page) {
     case 'company-overview':    _sR(container, 'renderCompanyOverview'); break;
     case 'compliance-workbench': _sR(container, 'renderComplianceWorkbench'); break;
     case 'company':                window.location.href = '/select-company'; break;
-    case 'tax-doc-analysis':       _sR(container, 'renderTaxDocAnalysis'); break;
+    // ★ 2026-10-19：`tax-doc-analysis` 的跳转已在 `navigateTo` **开头**处理
+    //   （白名单校验之前），故此处不再需要 case（放了也是死代码）。
     case 'ai-interaction':
     case 'brain':
       // 旧入口已融合至智能引擎中枢单页
@@ -1080,13 +1074,8 @@ async function api(method, url, body) {
   return res.json();
 }
 
-function toast(msg, type = 'default') {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
-}
+// ★ 2026-10-19：`toast()` 已迁至 `static/js/dom-utils.js`（唯一权威），见该文件。
+//   本文件不得再定义（重复定义 = 多头维护）。
 
 // ==================== 分页工具 ====================
 var _paginationState = {};

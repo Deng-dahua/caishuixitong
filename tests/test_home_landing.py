@@ -332,19 +332,25 @@ def test_reverse_r2_one_shot_broken() -> None:
 
 
 def test_reverse_r3_dual_whitelist_broken() -> None:
-    """注入：`navigateTo` 内重新声明白名单 ⇒ 唯一权威判据必须报错。"""
+    """注入：`navigateTo` 内重新声明白名单 ⇒ 唯一权威判据必须报错。
+
+    ★ 2026-10-19：锚点原写死 `page = 'tax-doc-analysis'`；该内页已并入 /reports
+      并被删除，兜底改为模块级常量 `_FALLBACK_PAGE` ⇒ 此处锚点随之更新为
+      `_FALLBACK_PAGE` 版本（锚点失效时本项会以"锚点未命中"报错，这是**故意**的：
+      它防止反向验证悄悄退化成空转）。
+    """
     _with_broken(
         "CORE",
-        "if (_allowedPages.indexOf(page) === -1) { page = 'tax-doc-analysis'; }",
-        "var _allowedPages = ['home', 'tax-doc-analysis'];\n"
-        "  if (_allowedPages.indexOf(page) === -1) { page = 'tax-doc-analysis'; }",
+        "if (_allowedPages.indexOf(page) === -1) { page = _FALLBACK_PAGE; }",
+        "var _allowedPages = ['home'];\n"
+        "  if (_allowedPages.indexOf(page) === -1) { page = _FALLBACK_PAGE; }",
         test_whitelist_is_module_level_single_source)
 
 
 def test_reverse_r4_default_page_broken() -> None:
-    """注入：默认落点改回 tax-doc-analysis ⇒ 默认页判据必须报错。"""
+    """注入：默认落点改为非首页 ⇒ 默认页判据必须报错。"""
     _with_broken("CORE", "var _DEFAULT_PAGE = 'home';",
-                 "var _DEFAULT_PAGE = 'tax-doc-analysis';", test_default_page_is_home)
+                 "var _DEFAULT_PAGE = 'methodology';", test_default_page_is_home)
 
 
 def test_reverse_r5_enter_app_broken() -> None:

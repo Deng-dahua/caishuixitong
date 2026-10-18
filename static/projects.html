@@ -39,6 +39,15 @@
     .input-with-btn { display:flex; gap:6px; align-items:stretch; }
     .input-with-btn > input { flex:1; min-width:0; }
     .btn.mini { padding:4px 10px; font-size:12px; white-space:nowrap; }
+    /* ★ 2026-10-19：工商信息**自动**查填的状态指示器（不是按钮，不可点击）。
+       四种状态由 `projects.js` 设 `data-state`：idle 自动 / busy 查询中 /
+       ok 已填报 / none 未查到。尺寸与 `.btn.mini` 对齐，避免布局跳动。 */
+    .biz-auto-status { display:inline-flex; align-items:center; white-space:nowrap;
+                padding:4px 10px; border-radius:6px; font-size:12px; cursor:default;
+                border:1px solid #cbd5e1; background:#f8fafc; color:#64748b; }
+    .biz-auto-status[data-state="busy"] { border-color:#93c5fd; background:#eff6ff; color:#1d4ed8; }
+    .biz-auto-status[data-state="ok"]   { border-color:#86efac; background:#f0fdf4; color:#15803d; }
+    .biz-auto-status[data-state="none"] { border-color:#fde68a; background:#fffbeb; color:#b45309; }
     .biz-note { margin:2px 0 8px; color:#64748b; font-size:12px; }
     .biz-warn { margin:8px 0; padding:9px 12px; border-radius:6px; font-size:13px;
                 background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
@@ -172,16 +181,25 @@
         <div class="form-row">
           <label>企业名称 *
             <span class="input-with-btn">
-              <input type="text" id="pf-name" autocomplete="off">
-              <button type="button" class="btn mini" id="btn-fetch-bizinfo"
-                      data-perm="project.write"
-                      title="按企业全称查询工商登记信息，自动填入下方字段（查不到时请手工填写）">自动查填</button>
+              <input type="text" id="pf-name" autocomplete="off"
+                     placeholder="填全称后自动查询工商登记信息">
+              <!-- ★ 2026-10-19（用户要求「工商信息是自动添加，而不是手动的」）：
+                   此处原为【自动查填】**按钮**（需人工点击）。现改为**自动触发**：
+                   企业全称输入停顿或失焦即自动查询并填入下方字段。
+                   本元素保留为**状态指示器**（`role="status"`，不可点击），
+                   两个作用：① 让用户看见"正在查/已填报/查不到"的进度；
+                   ② 继续承载 `data-perm="project.write"` 门控 —— 无该权限时隐藏，
+                   同时 `projects.js` 也据此**不做自动查询**（前后端同一权限点）。 -->
+              <span id="btn-fetch-bizinfo" role="status" data-perm="project.write"
+                    class="biz-auto-status" aria-live="polite"
+                    title="工商信息将按企业全称自动查询并填入下方字段（查不到时请手工填写）">自动</span>
             </span>
           </label>
           <label>统一社会信用代码 *<input type="text" id="pf-tid" maxlength="18" placeholder="18 位"></label>
         </div>
-        <div class="biz-note" id="bizinfo-note">填好企业全称后点【自动查填】可取回统一社会信用代码、法定代表人、
-          注册资本、成立日期、登记状态、注册地址、公司类型与经营范围；取不到的字段不会用默认值顶替。</div>
+        <div class="biz-note" id="bizinfo-note">企业全称填好后，系统会**自动**查询并填入统一社会信用代码、法定代表人、
+          注册资本、成立日期、登记状态、注册地址、公司类型与经营范围；取不到的字段不会用默认值顶替，
+          已手工填写的内容不会被覆盖。</div>
         <div class="biz-warn" id="bizinfo-warn" hidden></div>
         <div class="form-row">
           <label>法定代表人<input type="text" id="pf-legal_representative" placeholder="工商登记法定代表人"></label>
@@ -256,7 +274,7 @@
     </div>
   </div>
 
-  <script src="/static/js/projects.js?v=061b001298" defer></script>
+  <script src="/static/js/projects.js?v=36e35149a0" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>

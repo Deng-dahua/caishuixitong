@@ -78,6 +78,11 @@
     .bar-track { background:#e2e8f0; border-radius:6px; height:8px; overflow:hidden; margin-top:6px; }
     .bar-fill { height:100%; background:#3b82f6; width:0; transition:width .3s; }
     code { background:#f1f5f9; padding:1px 4px; border-radius:3px; font-size:12px; }
+    /* ★ 2026-10-19：「分析报告」页签并入本页后，报告正文容器的移动端适配随之迁移
+       （原在 `static/index.html` 的 @media 里，该内页已删除）。 */
+    @media (max-width:768px){
+      #tda-report-area { font-size:13px; }
+    }
   </style>
 </head>
 <body>
@@ -97,13 +102,42 @@
       <!-- P0-8 前端权限门控：无 report.generate（复核专家/审计员）⇒ 隐藏「生成报告」页签与表单。
            机制权威 = /static/js/rbac-nav.js（消费服务端下发的 permissions，不推断角色）；
            真正的拦截仍在服务端 require_permission。 -->
-      <div class="tab active" data-tab="gen" id="tab-gen" data-perm="report.generate">生成报告</div>
+      <!-- ★ 2026-10-19（用户要求：把资料风险分析报告模块融入本模块，然后删除该模块）：
+           「分析报告」页签 = 原 SPA 内页「资料风险分析报告」的**阅读与复核**能力，
+           现并入本页作为第一个页签。渲染仍复用 `tax-doc-analysis.js::renderTaxDocReport`
+           （报告级渲染的**唯一实现**，不另写一份 —— 否则两条链会各出各的报告）。
+           数据源不变：`GET /api/tax-risk-docs/last-analysis?company_id=`。 -->
+      <div class="tab active" data-tab="analysis" id="tab-analysis">分析报告</div>
+      <div class="tab" data-tab="gen" id="tab-gen" data-perm="report.generate">生成报告</div>
       <div class="tab" data-tab="history" id="tab-history">报告列表 / 历史版本</div>
       <div class="tab" data-tab="versions" id="tab-versions">版本台账</div>
     </div>
 
+    <!-- ═══════════ 分析报告（原「资料风险分析报告」内页，2026-10-19 并入）═══════════ -->
+    <div id="pane-analysis">
+      <div class="card">
+        <div class="toolbar" style="margin-bottom:6px">
+          <button class="btn ghost sm" id="tda-export-pdf-btn" onclick="exportTaxDocReportPdf()">导出PDF</button>
+          <button class="btn ghost sm" onclick="showCacheInfo()" id="tda-cache-btn">缓存</button>
+          <span class="spacer"></span>
+          <button class="btn ghost sm" onclick="deleteTaxDocReport()" id="tda-delete-btn">删除报告</button>
+        </div>
+        <div class="hint" style="margin:0 0 8px">
+          本页签展示**最近一次**一键稽查分析的完整报告（阅读与复核）。
+          资料的上传/分类请前往 <a href="/documents">📎 资料上传与管理</a>；
+          发起分析、查看进度与历史请前往 <a href="/analysis">⚡ 一键稽查分析任务</a>。
+        </div>
+      </div>
+      <!-- ★ 报告正文容器：id 必须是 `tda-report-area`（`renderTaxDocReport` 硬编码取它）。 -->
+      <div id="tda-report-area"><div class="muted" style="padding:40px 16px;text-align:center;line-height:2">
+        暂无分析报告。<br>请先在「📎 资料上传与管理」上传资料，再到「⚡ 一键稽查分析任务」发起分析；
+        <br>分析完成后本页签会自动展示最近一次报告。
+      </div></div>
+    </div>
+
     <!-- ═══════════ 生成 ═══════════ -->
-    <div id="pane-gen" data-perm="report.generate">
+    <!-- ★ 2026-10-19：默认页签改为「分析报告」⇒ 本面板初始隐藏（由 switchTab 管理显隐） -->
+    <div id="pane-gen" data-perm="report.generate" style="display:none">
       <div class="card">
         <h3>1. 选择报告视图 <span class="hint">视图 = 同一份底稿的**范围/粒度**，不是四份不同名称的报告</span></h3>
         <div class="views" id="view-cards"></div>
@@ -186,7 +220,19 @@
 
   <script src="/static/js/security.js?v=96a020abfa"></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
-  <script src="/static/js/reports.js?v=498381aa24"></script>
+  <!-- ★ 2026-10-19（用户要求：资料风险分析报告并入本模块）：
+       本页新增「分析报告」页签，复用 `tax-doc-analysis.js::renderTaxDocReport`
+       渲染报告正文（报告级渲染的唯一实现，不另写一份）。
+       下面三个是它的**运行依赖**，顺序不可调换：
+         ① `dom-utils.js`  —— `escHtml`/`escapeHtml`/`toast`（唯一权威实现）
+         ② `constants.js`  —— `levelDisplayOf`（等级展示的唯一权威 JS 镜像）
+         ③ `tax-doc-analysis.js` —— 报告正文渲染本体
+       ★ 刻意**不引入 `core.js`**：它是 SPA 主控制器，加载即自启 `_startApp()`
+         （拉账套、注册导航、切页），在独立页会产生无关请求与报错。 -->
+  <script src="/static/js/dom-utils.js?v=19e4f1d277"></script>
+  <script src="/static/js/constants.js?v=da5ad45ec2"></script>
+  <script src="/static/js/tax-doc-analysis.js?v=fc8f866b15" defer></script>
+  <script src="/static/js/reports.js?v=4378e47914"></script>
   <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
 </body>
 </html>

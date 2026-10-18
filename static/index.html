@@ -44,7 +44,6 @@
       #main{margin-left:0;padding:3px}
       .content-area{padding:4px}
       .nav-item{padding:8px 12px;font-size:12px}
-      #tda-report-area{font-size:13px}
     }
     /* ★ P0-2 首页总览：表格与提示样式。
        命名与 documents.html / risks.html 一致（各页此前各自定义 `table.grid` / `.msg`），
@@ -103,13 +102,16 @@
       <span class="icon">📄</span> 报告生成与导出
     </div>
 
-    <div class="nav-group-title">二、风险分析</div>
-    <div class="nav-item nav-item-highlight" data-page="tax-doc-analysis">
-      <span class="icon">📁</span> 资料风险分析报告
-    </div>
+    <!-- ★ 2026-10-19（用户要求：把资料风险分析报告模块融入报告生成与导出模块，
+         然后删除资料风险分析报告模块）：
+         原「二、风险分析」分组下唯一的入口 `data-page="tax-doc-analysis"`
+         （📁 资料风险分析报告）**已删除** —— 报告阅读与复核现并入
+         `/reports`「报告生成与导出」的**「分析报告」页签**（该页签为默认页签）。
+         分组标题也一并删除：该组已无任何条目，留着会出现"空标题"。
+         历史入口兼容：`navigateTo('tax-doc-analysis')` 在 core.js 里被重定向到
+         `/reports`（引擎仪表盘等处仍有该深链）。 -->
 
-    
-    <div class="nav-group-title">三、系统</div>
+    <div class="nav-group-title">二、系统</div>
     <!-- P0-8 权限与审计：`data-perm` 由 /static/js/rbac-nav.js 按服务端下发的权限集合显隐 -->
     <div id="nav-users" class="nav-item" data-perm="user.view" onclick="location.href='/users'" title="用户管理：账号、角色、所属组织与账套授权（联系方式等敏感字段按角色脱敏）">
       <span class="icon">👥</span> 用户管理
@@ -143,7 +145,7 @@
     </div>
 
     <!-- P2 知识库与统计：`data-perm` 同上由 rbac-nav.js 按权限显隐 -->
-    <div class="nav-group-title">四、知识库与统计</div>
+    <div class="nav-group-title">三、知识库与统计</div>
     <div id="nav-legal-library" class="nav-item" data-perm="legal.view" onclick="location.href='/legal-library'" title="法规库：条文正文检索、法条版本状态、覆盖率（条文来自数据文件，不硬编码）">
       <span class="icon">📖</span> 法规库
     </div>
@@ -265,9 +267,13 @@
   </div>
 </div>
 
+<!-- ★ 2026-10-19：共享 DOM/展示工具（`normalizeDisplayValue`/`escapeHtml`/`esc`/
+     `escHtml`/`toast` 的唯一权威实现）。**必须在 core.js 与 tax-doc-analysis.js 之前**
+     —— 这两个文件的顶层代码即引用这些名字。 -->
+<script src="/static/js/dom-utils.js?v=19e4f1d277"></script>
 <script src="/static/js/tax-engine-dashboard.js?v=3958b1e87a"></script>
 <script src="/static/js/engine-hub.js?v=589db5b225"></script>
-<script src="/static/js/core.js?v=032452b65f"></script>
+<script src="/static/js/core.js?v=416a7a6d7b"></script>
 <script src="/static/js/constants.js?v=da5ad45ec2" defer></script>
 <script src="/static/js/tax-risk-rules.js?v=58a784c1d9" defer></script>
 <script src="/static/js/tax-pipeline-pages.js?v=803fdfaa4a" defer></script>

@@ -282,21 +282,36 @@ class ContractTests(unittest.TestCase):
     def test_frontend_button_and_perm_registration(self):
         import json
         html = open(os.path.join(ROOT, "static", "projects.html"), encoding="utf-8").read()
-        # ★ 必须定位到**按钮自己的标签**：projects.html 里有 4 个按钮都带
-        #   `data-perm="project.write"`，全文断言会让"本按钮门控被删"照样通过
+        # ★ 必须定位到**该元素自己的标签**：projects.html 里有多个元素都带
+        #   `data-perm="project.write"`，全文断言会让"本元素门控被删"照样通过
         #   （反向验证抓出来的假绿）。
         import re as _re
-        tag = _re.search(r'<button[^>]*id="btn-fetch-bizinfo"[^>]*>', html)
-        self.assertIsNotNone(tag, "找不到【自动查填】按钮")
+        # ★ 2026-10-19（用户要求「工商信息是自动添加，而不是手动的」）：
+        #   该元素已由**按钮**改为**状态指示器**（`role="status"`，不可点击），
+        #   自动触发见 `projects.js::scheduleBizAuto` / 输入框 input+blur 绑定。
+        #   断言随之改为：**不得是 button**、必须是 status 指示器、仍受权限门控。
+        tag = _re.search(r'<[a-z]+[^>]*id="btn-fetch-bizinfo"[^>]*>', html)
+        self.assertIsNotNone(tag, "找不到工商信息状态指示器 #btn-fetch-bizinfo")
+        self.assertNotIn("<button", tag.group(0).lower(),
+                         "工商信息查填必须**自动**触发，不得是可点击按钮（用户 2026-10-19 裁定）")
+        self.assertIn('role="status"', tag.group(0), "该元素应声明为状态指示器（role=status）")
         self.assertIn('data-perm="project.write"', tag.group(0),
-                      "【自动查填】按钮必须受权限门控")
+                      "工商信息自动查填必须受权限门控")
         js = open(os.path.join(ROOT, "static", "js", "projects.js"), encoding="utf-8").read()
         self.assertIn("/api/v1/business/query", js)
         self.assertIn("risk_status_warning", js, "注销/吊销警告必须由后端判据驱动")
+        # ★ 自动触发的证据（不是"改了就算"）：必须有输入/失焦绑定 + 防抖调度
+        self.assertIn("scheduleBizAuto", js, "缺自动触发调度函数（仍是手动？）")
+        self.assertIn('nameInput.addEventListener("input"', js,
+                      "企业全称输入框必须绑定 input 事件（输入停顿自动查）")
+        self.assertIn('nameInput.addEventListener("blur"', js,
+                      "企业全称输入框必须绑定 blur 事件（失焦兜底查）")
+        # ★ 绝不得覆盖用户已填内容（自动触发下的头号风险）
+        self.assertIn("kept", js, "自动填务必区分「已填报」与「因已填写保持不变」")
         perms = json.load(open(os.path.join(ROOT, "config", "frontend_perms.json"),
                                encoding="utf-8"))
         ids = {x.get("id") for x in (perms["pages"].get("projects.html") or [])}
-        self.assertIn("btn-fetch-bizinfo", ids, "新入口必须登记到前端权限表")
+        self.assertIn("btn-fetch-bizinfo", ids, "该入口必须登记到前端权限表")
 
     def test_table_created_lazily_and_idempotent(self):
         eng = _eng()

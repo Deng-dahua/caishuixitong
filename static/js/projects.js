@@ -198,6 +198,11 @@
     $("form-msg").innerHTML = "";
     bizNote("");
     bizWarn("");
+    // ★ 2026-10-19：打开表单时重置自动查填的去重记忆与状态指示器 ——
+    //   否则编辑另一个项目时，同名判定会因上一次的 `_bizLastQuery` 而跳过查询。
+    _bizLastQuery = "";
+    if (_bizTimer) { window.clearTimeout(_bizTimer); _bizTimer = null; }
+    bizState("idle", "自动");
     pf("name").value = project ? (project.name || "") : "";
     pf("tid").value = project ? (project.taxpayer_id || "") : "";
     pf("industry").value = project ? (project.industry || "") : "";
@@ -235,15 +240,46 @@
     $("form-msg").scrollIntoView({ block: "nearest" });
   }
 
-  // ── 工商信息查询（【自动查填】，2026-10-18 新增）────────────────────
+  // ── 工商信息查询（**自动**查填，2026-10-19 由「手动点按钮」改为自动）────────
   // 接口：GET /api/v1/business/query（服务端负责 缓存→本地库→公示系统 的取数与清洗）
-  // ★ 三条硬规矩：
-  //   ① 只填**取到值**的字段：空值不覆盖用户已填内容，也不清空（缺失≠0）；
-  //   ② 查询失败**只是提示**，不阻断保存（用户要求"不能阻断项目创建"）；
-  //   ③ 登记状态为注销/吊销等时**弹红色警告**（后端 risk_status_warning 是唯一判据，前端不重判）。
+  // ★ 用户的裁定（2026-10-19）：「工商信息是自动添加，而不是手动的」。
+  //   原实现要人工点【自动查填】按钮 ⇒ 现在改为企业全称一填好就自动查。
+  // ★ 四条硬规矩（前三条沿用 2026-10-18，第 4 条为自动触发新增）：
+  //   ① 只填**取到值**且**当前为空**的字段 —— 绝不覆盖用户已填内容（自动触发下更关键：
+  //      用户明明手工写了，一次自动查询把它改掉就是事故）；
+  //   ② 查询失败**只是提示**，不阻断保存与输入（用户要求"不能阻断项目创建"）；
+  //   ③ 登记状态为注销/吊销等时**弹红色警告**（后端 risk_status_warning 是唯一判据）；
+  //   ④ 自动触发必须**防抖 + 去重**：输入停顿后查一次；同名不重复查
+  //      （否则每敲一个字发一次请求，既打服务端又反复闪烁状态）。
   var BIZ_FIELDS = ["legal_representative", "registered_capital", "established_date",
                     "registration_status", "registered_address", "company_type",
                     "business_scope"];
+  //: 自动触发参数（唯一调参点）：输入停顿多久后查 / 企业全称最短长度 / 同名等待间隔
+  var BIZ_DEBOUNCE_MS = 700;
+  var BIZ_MIN_LEN = 4;          // 中文企业全称规范至少「X州市XX」量级；<4 字基本是半截输入
+  var _bizTimer = null;         // 防抖定时器
+  var _bizLastQuery = "";       // 上次**已发出**查询的企业全称（去重用）
+  var _bizInFlight = false;     // 是否有查询在途（避免并发重复）
+
+  /** 是否允许自动查填：与元素上的 `data-perm="project.write"` 同一权限点。 */
+  function bizAllowed() {
+    var el = $("btn-fetch-bizinfo");
+    if (!el) return false;
+    // `rbac-nav.js` 对无权限元素会隐藏（display:none / hidden 属性）
+    if (el.hidden) return false;
+    if (el.getAttribute("data-perm-ok") === "0") return false;
+    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
+    if (cs && cs.display === "none") return false;
+    return true;
+  }
+
+  /** 设置状态指示器（不是按钮，不可点击）。state: idle|busy|ok|none */
+  function bizState(state, text) {
+    var el = $("btn-fetch-bizinfo");
+    if (!el) return;
+    el.setAttribute("data-state", state);
+    if (text) el.textContent = text;
+  }
 
   function bizNote(text, kind) {
     var el = $("bizinfo-note");
@@ -260,52 +296,81 @@
     el.hidden = false;
   }
 
-  async function fetchBizInfo() {
-    var btn = $("btn-fetch-bizinfo");
+  /** 自动查填主体（原名 fetchBizInfo —— 不再由按钮触发，改由输入停顿/失焦触发）。
+
+    名保留 `fetchBizInfo` 是为了不打断既有测试与调用；但它现在**不接受点击**，
+    只由 `scheduleBizAuto()` 调度。 */
+  async function fetchBizInfo(opts) {
+    opts = opts || {};
     var name = pf("name").value.trim();
-    bizWarn("");
-    if (name.length < 2) {
-      bizNote("请先填写企业全称（至少 2 个字）再查填", "err");
-      pf("name").focus();
+    if (!bizAllowed()) return;                       // 无权限 ⇒ 完全不动
+    if (name.length < BIZ_MIN_LEN) {
+      // 半截输入：不查、不报错，恢复 idle（避免边打字边闪红字）
+      _bizLastQuery = "";
+      bizState("idle", "自动");
+      if (opts.fromBlur) {
+        bizNote("企业全称太短，暂不自动查询（至少 " + BIZ_MIN_LEN + " 个字）");
+      }
       return;
     }
-    var old = btn ? btn.textContent : "";
-    if (btn) { btn.disabled = true; btn.textContent = "查询中…"; }
-    bizNote("正在查询工商信息…");
+    if (_bizInFlight) return;                        // 有查询在途 ⇒ 不并发
+    if (name === _bizLastQuery) return;              // 同名 ⇒ 不重复查
+    _bizLastQuery = name;
+    _bizInFlight = true;
+    bizWarn("");
+    bizState("busy", "查询中…");
+    bizNote("正在自动查询工商信息…");
     try {
       var url = "/api/v1/business/query?name=" + encodeURIComponent(name)
         + (state.editing && state.editing.id
            ? "&project_id=" + encodeURIComponent(state.editing.id) : "");
       var d = await api(url);
       if (!d || !d.ok || !d.profile) {
+        bizState("none", "未查到");
         bizNote((d && d.message ? d.message : "查询超时，请手动填写")
                 + (d && d.detail ? "（" + d.detail + "）" : ""), "err");
         return;
       }
       var p = d.profile;
-      var filled = 0;
-      if (p.tax_id) { pf("tid").value = p.tax_id; filled += 1; }
-      BIZ_FIELDS.forEach(function (k) {
-        if (p[k] === null || p[k] === undefined || p[k] === "") return;
-        var el = pf(k);
-        if (!el) return;
-        el.value = p[k];
+      var filled = 0, kept = 0;
+      // ★ 规矩①（自动触发下最重要）：**只填空字段**，绝不覆盖用户已填内容。
+      function put(id, val, isSelect) {
+        var el = pf(id);
+        if (!el || val === null || val === undefined || val === "") return;
+        if (String(el.value || "").trim() !== "") { kept += 1; return; }
+        el.value = val;
+        if (isSelect && el.value !== val) { el.value = val; }
         filled += 1;
-      });
+      }
+      put("tid", p.tax_id);
+      BIZ_FIELDS.forEach(function (k) { put(k, p[k]); });
       var missing = (p.missing || []).length;
-      bizNote("已查填 " + filled + " 项（来源：" + (d.source_detail || d.source || "—")
+      bizState(filled ? "ok" : "none", filled ? "已自动填报" : "未查到");
+      bizNote("已自动填报 " + filled + " 项（来源：" + (d.source_detail || d.source || "—")
               + (d.cache_hit ? "，命中缓存" : "")
-              + "）" + (missing ? "；" + missing + " 项未取得，请手工补齐" : ""),
+              + "）" + (kept ? "；" + kept + " 项因已填写保持不变" : "")
+              + (missing ? "；" + missing + " 项未取得，请手工补齐" : ""),
               filled ? "ok" : "err");
       if (d.risk_status_warning) {
         bizWarn("<b>登记状态异常：</b>" + esc(d.risk_status_warning));
       }
     } catch (e) {
+      bizState("none", "未查到");
       bizNote("查询失败：" + (e && e.message ? e.message : "网络异常")
               + "；请手动填写，不影响项目创建", "err");
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = old; }
+      _bizInFlight = false;
     }
+  }
+
+  /** 调度一次自动查询（防抖）。输入停顿 700ms 或失焦时各调一次。 */
+  function scheduleBizAuto(delay) {
+    if (!bizAllowed()) return;
+    if (_bizTimer) window.clearTimeout(_bizTimer);
+    _bizTimer = window.setTimeout(function () {
+      _bizTimer = null;
+      fetchBizInfo();
+    }, delay === undefined ? BIZ_DEBOUNCE_MS : delay);
   }
 
   async function saveForm() {
@@ -606,8 +671,14 @@
     $("f-size").onchange = function () { state.page = 1; loadList(); };
     $("btn-new").onclick = function () { openForm(null); };
     $("btn-save").onclick = saveForm;
-    // 工商信息【自动查填】（按钮受 data-perm="project.write" 门控，无权限时隐藏）
-    if ($("btn-fetch-bizinfo")) $("btn-fetch-bizinfo").onclick = fetchBizInfo;
+    // ★ 2026-10-19（用户要求：工商信息**自动**添加，不手动）：不再绑按钮点击，
+    //   改为**企业全称输入停顿即自动查** + **失焦兜底查**。两者都经防抖，不会重复发请求。
+    //   状态指示器 `#btn-fetch-bizinfo` 只显示进度（`data-perm` 仍由其承载权限门控）。
+    var nameInput = pf("name");
+    if (nameInput) {
+      nameInput.addEventListener("input", function () { scheduleBizAuto(); });
+      nameInput.addEventListener("blur", function () { scheduleBizAuto(0); });
+    }
     $("btn-del-confirm").onclick = doDelete;
     $("btn-del-selected").onclick = delSelected;
     $("sel-all").onchange = function () {

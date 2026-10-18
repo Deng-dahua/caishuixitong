@@ -17,7 +17,7 @@
 
 var API = '/api/v1';
 var META = null, PROJECTS = [], PID = null, CID = null, VIEW = 'full';
-var TABS = ['gen', 'history', 'versions'];
+var TABS = ['analysis', 'gen', 'history', 'versions'];
 
 function el(id) { return document.getElementById(id); }
 function esc(s) {
@@ -79,6 +79,11 @@ async function boot() {
     if (me.ok) { var d = await me.json(); el('who').textContent = d.username || d.user_name || ''; }
   } catch (e) { /* 非关键 */ }
   if (PID) { await refreshAll(); }
+  // ★ 2026-10-19：默认页签是「分析报告」（HTML 里 `#tab-analysis` 带 active、
+  //   `#pane-analysis` 默认可见）。`refreshAll()` 已包含 `loadAnalysisReport()`，
+  //   此处无需再切；显式调 `switchTab('analysis')` 只用于**对齐显隐状态**
+  //   （防止 `pane-gen` 等在 HTML 里残留可见）。
+  switchTab('analysis');
 }
 
 function renderViewCards() {
@@ -359,11 +364,67 @@ function switchTab(name) {
     el('tab-' + t).classList.toggle('active', t === name);
     el('pane-' + t).style.display = (t === name ? '' : 'none');
   });
+  if (name === 'analysis') { loadAnalysisReport(); }
   if (name === 'history') { loadList(); }
   if (name === 'versions') { loadVersions(); }
 }
+
+/* ─────────── 分析报告（原「资料风险分析报告」内页，2026-10-19 并入）───────────
+ *
+ * ★ 渲染**复用** `tax-doc-analysis.js::renderTaxDocReport`（报告级渲染的唯一实现）
+ *   —— 本页不另写一份渲染，否则两条链会各出各的报告（本项目反复强调的铁律）。
+ *   该函数只要求：① 页面存在 `#tda-report-area` 容器；② 传入**报告正文对象**。
+ *
+ * ★ 数据契约（★ 双层嵌套，写错就见不到任何内容）：
+ *   `GET /api/tax-risk-docs/last-analysis?company_id=` 返回**外层**对象
+ *   `{ok, report, blocks, ...}`；真正的报告正文是 **`data.report`**（123 个字段）。
+ *   原内页的写法就是 `taxDocReportData = data.report`（不可写成 `data`）。
+ *
+ * ★ 口径如实：没有分析结果时**如实说明原因**（不假装已生成、不用空报告顶替）。
+ */
+async function loadAnalysisReport() {
+  var area = el('tda-report-area');
+  if (!area) { return; }
+  if (!CID) {
+    try { var p = await api('GET', API + '/projects/' + PID); CID = p.company_id; } catch (e) { }
+  }
+  // ★ 2026-10-19 关键接线：`tax-doc-analysis.js::_tdaCid()` 读的是全局
+  //   `currentCompanyId`（原由 `core.js` 里的账套上下文维护）。本页**刻意不引 core.js**
+  //   ⇒ 必须由本页把它设好，否则「导出PDF / 缓存 / 删除报告」会因 cid=0 报
+  //   「未选择账套」（且这三个按钮就在同一个页签上，用户一定会点到）。
+  //   `_tdaCid` 用 `typeof` 探测，故这里赋值即可生效，无需改 tax-doc-analysis.js。
+  if (CID) { window.currentCompanyId = Number(CID); }
+  if (!CID) {
+    area.innerHTML = '<div class="msg warn">无法确定账套 —— 请先在上方选择一个稽查项目。</div>';
+    return;
+  }
+  if (typeof renderTaxDocReport !== 'function') {
+    // 不静默：渲染器没加载出来必须让用户看见（否则只是一个空白页）
+    area.innerHTML = '<div class="msg err">报告渲染器未加载（tax-doc-analysis.js）。'
+      + '这不影响本页其它功能，请刷新页面重试。</div>';
+    return;
+  }
+  area.innerHTML = '<div class="muted" style="padding:40px 16px;text-align:center">加载中…</div>';
+  try {
+    var r = await fetch('/api/tax-risk-docs/last-analysis?company_id=' + encodeURIComponent(CID),
+                        { credentials: 'same-origin', cache: 'no-store' });
+    if (r.status === 401) { window.location.href = '/login'; return; }
+    var d = await r.json();
+    if (!d || !d.ok || !d.report) {
+      area.innerHTML = '<div class="msg warn">该项目尚无分析报告。'
+        + (d && d.message ? esc(d.message) : '请先到「⚡ 一键稽查分析任务」发起分析；分析完成后本页签会自动展示。')
+        + '</div>';
+      return;
+    }
+    window.taxDocReportData = d.report;      // 让「导出PDF / 缓存 / 删除报告」可用
+    renderTaxDocReport(d.report);
+  } catch (e) {
+    area.innerHTML = '<div class="msg err">读取分析报告失败：' + esc(e.message) + '</div>';
+  }
+}
 async function refreshAll() {
   try { var p = await api('GET', API + '/projects/' + PID); CID = p.company_id; } catch (e) { }
+  await loadAnalysisReport();
   await loadList();
   await loadVersions();
 }
@@ -375,7 +436,11 @@ document.addEventListener('DOMContentLoaded', function () {
   el('btn-refresh').onclick = function () { refreshAll(); };
   el('btn-list-refresh').onclick = function () { loadList(); };
   el('f-listview').onchange = function () { loadList(); };
-  el('project').onchange = function () { PID = el('project').value; CID = null; refreshAll(); };
+  el('project').onchange = function () {
+    PID = el('project').value; CID = null;
+    window.currentCompanyId = 0;   // ★ 换项目 ⇒ 先清账套，避免「分析报告」页签沿用上一个项目的导出目标
+    refreshAll();
+  };
   el('d-close').onclick = function () {
     el('drawer').classList.remove('open'); el('mask').classList.remove('open');
   };
@@ -387,11 +452,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (b) { openDetail(b.getAttribute('data-open')); }
   });
   // ★ P0-8 前端门控（2026-10-17）：无 report.generate（复核专家/审计员）时，
-  //   「生成报告」页签与表单已被 `data-perm` 隐藏（rbac-nav.js）；这里把默认页签
-  //   切到「报告列表」，否则会停在已隐藏的空白页签上。仅**体验**，真拦截在服务端。
+  //   「生成报告」页签与表单已被 `data-perm` 隐藏（rbac-nav.js）。
+  //   ★ 2026-10-19 更新：默认页签现为「**分析报告**」（不需要 report.generate，
+  //   它读的是 /api/tax-risk-docs/last-analysis，属只读查阅）⇒ 无该权限时
+  //   **不再需要切走**；仅当「分析报告」页签本身也被隐藏（不存在）时才切「报告列表」。
   if (window.RBAC && window.RBAC.ready) {
     window.RBAC.ready(function () {
-      if (!window.RBAC.has('report.generate')) { switchTab('history'); }
+      var analysisTab = el('tab-analysis');
+      var analysisVisible = analysisTab && analysisTab.style.display !== 'none'
+        && !analysisTab.hidden;
+      if (!analysisVisible) { switchTab('history'); }
     });
   }
 });

@@ -1,0 +1,23 @@
+OK   [需求2] 侧边栏无「资料风险分析报告」入口                                   got=False
+OK   [需求2] 侧边栏无 data-page=tax-doc-analysis                    got=False
+OK   [需求2] /reports 默认页签                                      got='分析报告'
+OK   [需求2] 分析报告面板可见                                           got=True
+OK   [需求2] 报告正文容器存在                                           got=True
+OK   [需求2] 报告正文非空（已渲染）                                        got=True
+OK   [需求2] 正文含报告级内容                                           got=True
+OK   [需求2] 未出现「渲染器未加载」                                        got=False
+OK   [需求2] 报告渲染依赖全部就绪                                         got={'escHtml': 'function', 'escapeHtml': 'function', 'toast': 'function', 'levelDisplayOf': 'function', 'renderTaxDocReport': 'function'}
+OK   [需求2] currentCompanyId 已接线（非 0）                          got=True
+OK   [需求2] 「报告列表」页签仍可用                                        got=True
+OK   [需求2] 切回「分析报告」正常                                         got=True
+OK   [需求2] 深链 navigateTo('tax-doc-analysis') 落到 /reports      got=True
+OK   [需求1] 查填入口不是按钮（role=status）                              got='span|status'
+OK   [需求1] 未点按钮即自动填入工商字段                                      got=True
+OK   [需求1] 统一社会信用代码自动填入                                       got=True
+OK   [需求1] 状态指示器已更新                                           got='ok'
+      填入的字段：['tid', 'legal_representative', 'business_scope', 'registered_capital', 'established_date']
+      状态文案：'已自动填报 5 项（来源：本地账套库（companies），命中缓存）；3 项未取得，请手工补齐'
+OK   [负向] 无与本次改动相关的报错                                        got=[]
+      （既有噪声 6 条，与本轮无关，不判红）: [('console', 'Failed to load resource: the server responded with a status of 404 (Not Found)'), ('console', '[tax-doc] tda-file-list 元素不存在')]
+
+==== 合计 18 项，失败 0 项 ====
