@@ -175,35 +175,30 @@
       <div class="body">
         <div id="form-msg"></div>
 
-        <div class="sect">第 1 步 · 企业基本信息（按工商登记口径填写）</div>
-        <div class="hint">名称与统一社会信用代码为必填；工商信息用于风险画像与报告主体描述，
-          不确定的可留空（留空即显示“—”，系统不会用默认值顶替）。</div>
+        <div class="sect" id="sect-biz">企业工商登记信息</div>
+        <div class="hint" id="biz-hint">只需填写<b>企业名称</b>，点「保存」时系统会自动加载其余工商登记信息</div>
         <div class="form-row">
           <label>企业名称 *
             <input type="text" id="pf-name" autocomplete="off"
-                   placeholder="填全称后自动查询工商登记信息并逐项填列">
+                   placeholder="填企业全称，点保存后自动加载工商登记信息">
           </label>
-          <label>统一社会信用代码 *<input type="text" id="pf-tid" maxlength="18" placeholder="18 位"></label>
+          <label>统一社会信用代码<input type="text" id="pf-tid" maxlength="18" placeholder="自动加载"></label>
         </div>
-        <!-- ★ 2026-10-19（用户：「我要的是编辑项目页面下所有的信息都是自动获取自动填列的，
-                 而不是甚至一个自动按钮！！！」）：
-               原【自动查填】按钮 → 上一轮改为 `role="status"` 状态徽标 → 本轮**整个删掉**。
-               理由：任何看起来像按钮的东西都会让人以为"还得点它一下"。
-               现在的行为完全自动化：
-                 · 企业全称一填好（输入停顿/失焦）⇒ 自动查工商 ⇒ 逐项填列；
-                 · 同时自动推导行业（经营范围/发票品名）与地区（注册地址/信用代码），
-                   也自动填列；
-                 · 打开「编辑项目」⇒ 再按最近一次分析结果补齐期间/税种等空字段。
-               权限门控不靠这个元素：`projects.js::bizAllowed()` 直接问 `window.RBAC`
-               （唯一权威 = 服务端下发的 permissions，不推断角色）。 -->
-        <div class="biz-note" id="bizinfo-note">企业全称填好后，系统会<b>自动</b>查询并填入统一社会信用代码、法定代表人、
-          注册资本、成立日期、登记状态、注册地址、公司类型与经营范围，并<b>自动推导</b>行业与地区；
-          取不到的字段不会用默认值顶替，已手工填写的内容不会被覆盖。</div>
+        <!-- ★ 2026-10-19（用户：「新建项目我只要填写企业名称，然后按保存，
+                 其余信息在按保存按钮时自动加载！！！」）：
+               新建态下，本区块内除「企业名称」外的字段**自动加载后只读展示**——
+               用户只需动手填名称，其余由 `business_info` 唯一权威取数填列；
+               编辑态恢复可编辑（人工修正入口仍在，不砍能力）。
+               加载发生在**点保存时**（`saveForm` 内 await），不是边打字边填。 -->
+        <div class="biz-note" id="bizinfo-note">点「保存」后自动加载：统一社会信用代码、法定代表人、
+          注册资本、成立日期、登记状态、注册地址、公司类型与经营范围，并自动推导行业与地区；
+          取不到的字段不会用默认值顶替，加载失败时会如实说明原因。</div>
         <div class="biz-warn" id="bizinfo-warn" hidden></div>
+        <div id="biz-fields">
         <div class="form-row">
-          <label>法定代表人<input type="text" id="pf-legal_representative" placeholder="工商登记法定代表人"></label>
+          <label>法定代表人<input type="text" id="pf-legal_representative" placeholder="自动加载"></label>
           <label>注册资本（<span class="cap-unit">万元</span>）
-            <input type="number" id="pf-registered_capital" min="0" step="0.01" placeholder="如 5000"></label>
+            <input type="number" id="pf-registered_capital" min="0" step="0.01" placeholder="自动加载"></label>
           <label>成立日期<input type="date" id="pf-established_date"></label>
         </div>
         <div class="form-row">
@@ -211,34 +206,42 @@
           <label>公司类型<select id="pf-company_type"></select></label>
         </div>
         <div class="form-row">
-          <label>注册地址<input type="text" id="pf-registered_address" placeholder="工商登记住所"></label>
+          <label>注册地址<input type="text" id="pf-registered_address" placeholder="自动加载"></label>
         </div>
         <div class="form-row">
           <label>经营范围<textarea id="pf-business_scope" rows="2"
-                 placeholder="工商登记经营范围（可节选，用于判断业务实质与行业归属）"></textarea></label>
+                 placeholder="自动加载（可节选，用于判断业务实质与行业归属）"></textarea></label>
+        </div>
         </div>
 
-        <div class="sect">第 2 步 · 稽查要素（决定稽查范围与比对口径，需在此填列）</div>
-        <div class="hint">这四项是稽查工作的起点，<b>必填</b>；它们决定后续比对期间、
-          适用行业指标与税种范围。</div>
+        <!-- ★ 2026-10-19：稽查要素（行业/地区/期间/税种/备注）在**新建态隐藏** ——
+             用户要求「新建页面的内容仅是工商登记信息」。这些值仍会被自动推导并随保存提交
+             （行业来自经营范围/资料，地区来自注册地址），只是不需要人填。
+             编辑态仍显示，供人工修正。 -->
+        <div id="sect-audit" hidden>
+        <div class="sect">稽查要素（自动推导，可人工修正）</div>
+        <div class="hint">行业与地区由系统自动推导；稽查期间与税种范围在<b>分析资料后</b>按资料覆盖期
+          与涉税情况回填。<b>行业以分析资料后确定的为准</b>——工商登记口径与资料分析不一致时，
+          采用资料分析的结论。</div>
         <!-- ★ 2026-10-19：打开编辑页时，下面这些空字段会按**最近一次分析结果**自动补全，
              本行如实显示「每个字段依据什么来源 / 哪些推不出来、为什么」（不留白让人猜）。 -->
         <div class="biz-note" id="form-autofill" aria-live="polite"></div>
         <div class="form-row">
-          <label>行业 *<input type="text" id="pf-industry" list="dl-industry"
-                 placeholder="选择或填写（如：制造业）"></label>
-          <label>地区 *<input type="text" id="pf-region" list="dl-region"
-                 placeholder="如：广东省深圳市"></label>
+          <label>行业<input type="text" id="pf-industry" list="dl-industry"
+                 placeholder="自动推导（分析结果优先）"></label>
+          <label>地区<input type="text" id="pf-region" list="dl-region"
+                 placeholder="自动推导"></label>
         </div>
         <div class="form-row">
-          <label>稽查期间起 *<input type="date" id="pf-ps"></label>
-          <label>稽查期间止 *<input type="date" id="pf-pe"></label>
+          <label>稽查期间起<input type="date" id="pf-ps"></label>
+          <label>稽查期间止<input type="date" id="pf-pe"></label>
         </div>
         <div class="form-row">
-          <label>税种范围 *（可多选）<span class="chips" id="pf-tax-scopes"></span></label>
+          <label>税种范围（可多选）<span class="chips" id="pf-tax-scopes"></span></label>
         </div>
         <div class="form-row">
           <label>备注<textarea id="pf-remark" rows="2" placeholder="稽查重点、来源线索等（选填）"></textarea></label>
+        </div>
         </div>
         <datalist id="dl-industry"></datalist>
         <datalist id="dl-region"></datalist>
@@ -276,7 +279,7 @@
     </div>
   </div>
 
-  <script src="/static/js/projects.js?v=9442d0e304" defer></script>
+  <script src="/static/js/projects.js?v=8be1cf7dfa" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=8c10b70862" defer></script>
 </body>

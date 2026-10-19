@@ -13196,6 +13196,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_rule_layer_labels()               # 2026-10-18 规则库中文标签（层/严重度/候选状态）
+               + check_analysis_industry_overrides_registered()  # 2026-10-19 行业以分析资料结果为准
                + check_report_coverage_disclosure()  # 2026-10-19 覆盖率必须真渲染（后端算了不显示的防复发）
                + check_report_view_focus()          # 2026-10-19 报告视图之间必须真的不同（禁止换名字同一份）
                + check_capability_claims_honest()   # 2026-10-19 能力声称不得超出实际（已实装/免费可用）
@@ -21139,6 +21140,93 @@ def check_legal_frontend_wiring() -> List[Tuple[str, str, str]]:
     except Exception as exc:                                       # noqa: BLE001
         issues.append(("ERROR", "tools/audit_consistency.py",
                        "步骤 22 行为级检查执行失败：%s" % exc))
+    return issues
+
+
+def check_analysis_industry_overrides_registered() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-19 立：**行业以「分析资料后确定」的为准**，不得被工商登记推断盖回。
+
+    ## 用户裁定（原话）
+    「行业信息可能在分析资料后与工商信息不一致，则以分析资料后确定的行业为准」
+
+    ## 这条为什么需要闸门
+    行业有**三个来源**，且优先级必须固定，否则同一企业会出现"新建时填 A、报告里写 B"：
+      ① 分析资料后算出 `_industry_resolved`（**最高**，用户裁定）；
+      ② 经营范围/企业名称推断（工商口径，`industry_from_scope`）；
+      ③ 人工填写（项目表单）。
+
+    实际落地链：分析完成 → `main._persist_one_click_result`
+      → `project_profile_fill.analysis_values(report, company_row)`
+      → `project_service.sync_profile_from_analysis`（有出入即写 `projects.industry`）。
+    一旦有人把 ①②  的顺序调换、或在 `sync_profile_from_analysis` 里给 industry
+    加"已存在就不覆盖"的保护（本仓对 `period_*`/`tax_scopes` 正是这么做的，很容易被
+    错误地复制到行业上），用户裁定就会被静默推翻，而**页面看起来一切正常**。
+
+    ## 判据（行为级，构造"工商口径与资料口径冲突"的最小用例）
+      · `analysis_values` 必须取 `_industry_resolved.industry`（不是经营范围推断值）；
+      · `sync_profile_from_analysis` 的源码里，**industry 不得出现在"只在为空时才写"
+        的条件里**（期间/税种可以有，行业不行）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.project_profile_fill import analysis_values
+    except Exception as exc:                                       # noqa: BLE001
+        return [("ERROR", "engine/project_profile_fill.py",
+                 "行业取值断言无法执行：%s" % exc)]
+
+    row = {"name": "闸门测试企业有限公司", "tax_id": "91440300MA5H824G7M",
+           "business_scope": "五金产品零售;日用百货销售",
+           "registered_address": "广东省深圳市南山区"}
+    report = {"target_entity": {
+        "name": "闸门测试企业有限公司",
+        "uscc": "91440300MA5H824G7M",
+        "industry_registered": "五金零售",
+        "_industry_resolved": {"industry": "文化传媒",
+                               "source": "发票品名+经营范围",
+                               "confidence": "高",
+                               "scope_note": "工商登记口径与资料不一致，采用资料口径"},
+    }}
+    try:
+        vals = analysis_values(report, row)
+        got = str((vals.get("industry") or {}).get("value") or "")
+    except Exception as exc:                                       # noqa: BLE001
+        return [("ERROR", "engine/project_profile_fill.py",
+                 "行业取值断言执行失败：%s" % exc)]
+    if got != "文化传媒":
+        issues.append(("ERROR", "engine/project_profile_fill.py",
+                       "行业取值未优先采用「分析资料后确定的行业」：期望「文化传媒」，实得「%s」——"
+                       "用户裁定『不一致时以分析资料确定的行业为准』被推翻" % got))
+
+    # ── 回写侧：industry 不得被"只在为空时才写"保护住 ──
+    try:
+        src = (ROOT / "engine" / "project_service.py").read_text(
+            encoding="utf-8", errors="replace")
+        code = _strip_comments_keep_lines(src)
+        i = code.find("def sync_profile_from_analysis")
+        j = code.find("\ndef ", i + 10)
+        body = code[i: j if j > 0 else len(code)]
+        if i < 0:
+            issues.append(("ERROR", "engine/project_service.py",
+                           "找不到 `sync_profile_from_analysis`（分析→项目回写的唯一入口）"))
+        else:
+            # industry 必须「有出入即覆盖」⇒ 在它被写库之前**不得有任何"已存在就跳过"的分支**。
+            # ★ 首版只匹配 `if not ...r.get("industry")` 一种写法，漏掉了
+            #   `if key == "industry" and _clean_str(r.get("industry")): continue`
+            #   —— 同样是"挡住覆盖"，只是换了个写法（反向验证当场抓出）。
+            #   现按**语义**判：任何 `if ... r.get("industry") ...: continue` 即判红。
+            guard_pat = re.compile(
+                r"if\s+[^\n]{0,160}(?:r\.get\(\s*[\"']industry[\"']|r\[\s*[\"']industry[\"']\s*\])"
+                r"[^\n]{0,80}:\s*\n\s*continue")
+            hit = guard_pat.search(body)
+            if hit:
+                issues.append(("ERROR", "engine/project_service.py",
+                               "`sync_profile_from_analysis` 对 industry 加了「已存在就跳过」的守卫"
+                               "（%s）—— 这会让分析结果**永远盖不掉**工商登记口径；"
+                               "用户裁定『不一致时以分析资料确定的行业为准』"
+                               "要求 **有出入即覆盖**（期间/税种才允许守卫）。"
+                               % hit.group(0).strip().replace("\n", " ")[:90]))
+    except OSError as exc:                                         # noqa: BLE001
+        issues.append(("ERROR", "engine/project_service.py", "读取失败：%s" % exc))
     return issues
 
 

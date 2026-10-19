@@ -390,11 +390,19 @@ def test_reverse_r2_scroll_to_top_removed() -> None:
 
 
 def test_reverse_r3_auto_button_restored() -> None:
-    """注入：把"自动"徽标加回表单 ⇒ ④「不要任何自动按钮」判据必须报错。"""
+    """注入：把"自动"徽标加回表单 ⇒ ④「不要任何自动按钮」判据必须报错。
+
+    ★ 2026-10-19（用户改需求）锚点随表单调整：原锚点是
+      `<label>统一社会信用代码 *<input ...>`（带必填星号），而本轮用户要求
+      「新建项目只需填企业名称」⇒ 税号不再是必填，`*` 已移除 ⇒ 旧锚点必然失效
+      （表现为"反向验证锚点未命中，本项是空转的"）。
+      现改用**唯一不变**的锚点：`id="pf-tid"` 的完整标签开头。
+      判据本身（`#btn-fetch-bizinfo` 不得出现在 HTML 里）不变，注入点仍然有效。
+    """
     _with_broken("PROJECTS_HTML",
-                 '<label>统一社会信用代码 *<input type="text" id="pf-tid"',
+                 '<label>统一社会信用代码<input type="text" id="pf-tid"',
                  '<span id="btn-fetch-bizinfo" role="status">自动</span>\n'
-                 '          <label>统一社会信用代码 *<input type="text" id="pf-tid"',
+                 '          <label>统一社会信用代码<input type="text" id="pf-tid"',
                  test_no_auto_button_left)
 
 

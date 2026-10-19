@@ -224,6 +224,14 @@
     //   ⇒ 这是形态④「后端有、前端不消费」的不对齐：能力在，用户拿不到。
     //   只对**新建**预取（新建企业本地库必无数据，最需要提前告知）；编辑已有项目不打扰。
     if (!project) { loadBizChannelHint(); }
+    // ★★ 2026-10-19（用户：「新建项目我只要填写企业名称，然后按保存，其余信息在按保存
+    //   按钮时自动加载」+「新建项目页面的内容仅是工商登记信息」）：
+    //      · 新建态：**隐藏稽查要素整块**，工商字段改为**只读展示**（自动加载后可见，但不用人填）；
+    //        只留「企业名称」可编辑。
+    //      · 编辑态：全部可编辑（人工修正入口不能砍）。
+    //   ⚠ 只读用 `disabled` 而非 `readonly`：`<select>` 不支持 readonly；
+    //     且我们只读 `.value`（disabled 不影响 JS 取值与提交）。
+    _applyFormMode(!!project);
     SCOPE = {};
     ((project && project.tax_scopes) || []).forEach(function (s) { SCOPE[s] = true; });
     renderTaxChips();
@@ -233,6 +241,41 @@
     //   打开编辑页即按**最近一次分析结果**补全所有空字段（行业/地区/期间/税种/工商 7 项），
     //   并把"每个字段依据什么来源、哪些推不出来、为什么"如实写在提示区。
     if (project && project.id) { autoCompleteForm(project.id); }
+  }
+
+  /** 新建/编辑两种形态的**唯一开关**（表单可用性口径只在这里定义）。
+   *
+   * ★ 2026-10-19（用户两项要求）：
+   *   ①「新建项目我只要填写企业名称，然后按保存，其余信息在按保存按钮时自动加载」
+   *      ⇒ 新建态：工商字段**只读**（`disabled`），只留企业名称可编辑；
+   *   ②「新建项目页面的内容仅是工商登记信息」
+   *      ⇒ 新建态：**隐藏**稽查要素整块（行业/地区/期间/税种/备注）；
+   *         这些值仍由自动加载推导并随保存提交，只是不需要人看见与填写。
+   *
+   * 编辑态一律恢复可编辑且显示稽查要素 —— **人工修正入口不砍**（自动加载错了要能改）。
+   *
+   * ⚠ 用 `disabled` 而非 `readonly`：`<select>` 不支持 readonly；本页只读 `.value`，
+   *   disabled 不影响 JS 取值与 payload 组装。
+   */
+  var BIZ_INPUT_IDS = ["tid", "legal_representative", "registered_capital",
+                       "established_date", "registration_status", "company_type",
+                       "registered_address", "business_scope"];
+  function _applyFormMode(editing) {
+    var audit = $("sect-audit");
+    if (audit) { audit.hidden = !editing; }
+    var hint = $("biz-hint");
+    if (hint) {
+      hint.innerHTML = editing
+        ? "可直接修改下方任一字段；留空的字段会按最近一次分析结果补全"
+        : "只需填写<b>企业名称</b>，点「保存」时系统会自动加载其余工商登记信息";
+    }
+    BIZ_INPUT_IDS.forEach(function (k) {
+      var el = pf(k);
+      if (!el) return;
+      // 编辑态：可改；新建态：只读占位（自动加载后由程序赋值，`disabled` 不影响赋值）
+      el.disabled = false;          // 先复位，避免上一次新建态残留
+      if (!editing) { el.disabled = true; }
+    });
   }
 
   /** 打开编辑页时的**自动补全**：只填空字段，并逐项说明来源 / 不可得原因。
@@ -424,25 +467,37 @@
   async function fetchBizInfo(opts) {
     opts = opts || {};
     var name = pf("name").value.trim();
-    if (!bizAllowed()) return;                       // 无权限 ⇒ 完全不动
+    // ★ 2026-10-19：返回值改为**结构化结果** —— 保存时要 `await` 它、并据 `ok` 决定
+    //   是"已自动加载"还是"没取到、如实告知但允许继续建项目"。
+    //   （旧实现 `return` 空值，调用方无从判断是否真的填上了东西。）
+    if (!bizAllowed()) {
+      return { ok: false, code: "no_permission",
+               message: "当前账号没有「创建/修改项目」权限，无法自动加载工商信息" };
+    }
     if (name.length < BIZ_MIN_LEN) {
       // 半截输入：不查、不报错，恢复 idle（避免边打字边闪红字）
       _bizLastQuery = "";
       if (opts.fromBlur) {
         bizNote("企业全称太短，暂不自动查询（至少 " + BIZ_MIN_LEN + " 个字）");
       }
-      return;
+      return { ok: false, code: "too_short",
+               message: "企业全称太短（至少 " + BIZ_MIN_LEN + " 个字），无法查询工商信息" };
     }
-    if (_bizInFlight) return;                        // 有查询在途 ⇒ 不并发
-    if (name === _bizLastQuery) return;              // 同名 ⇒ 不重复查
+    if (_bizInFlight) return { ok: false, code: "inflight", message: "上一次查询尚未完成" };
+    // ★ `force`：保存时**必须**真的查一次，不能被"同名已查过"挡掉
+    //   （否则用户改了名称又改回来、或首次加载失败后点保存，会永远拿不到数据）。
+    if (!opts.force && name === _bizLastQuery) {
+      return { ok: false, code: "duplicate", message: "该企业已查询过" };
+    }
     _bizLastQuery = name;
     _bizInFlight = true;
     bizWarn("");
-    bizNote("正在自动查询工商信息…");
+    bizNote("正在自动加载工商登记信息…");
     try {
       var url = "/api/v1/business/query?name=" + encodeURIComponent(name)
         + (state.editing && state.editing.id
-           ? "&project_id=" + encodeURIComponent(state.editing.id) : "");
+           ? "&project_id=" + encodeURIComponent(state.editing.id) : "")
+        + (opts.force ? "&refresh=1" : "");
       var d = await api(url);
       if (!d || !d.ok || !d.profile) {
         // ★ 2026-10-19（如实）：失败时**逐通道给出原因** —— 用户要能看出
@@ -455,10 +510,12 @@
             return (a.provider || "通道") + "：" + (a.reason || "未说明原因");
           }).join("；");
         }
-        bizNote((d && d.message ? d.message : "查询超时，请手动填写")
+        var msg = (d && d.message ? d.message : "查询超时，请手动填写");
+        bizNote(msg
                 + (why ? "（未取到数据，逐通道原因 —— " + why + "）" : "")
                 + (!why && d && d.detail ? "（" + d.detail + "）" : ""), "err");
-        return;
+        return { ok: false, code: "unavailable", message: msg,
+                 detail: (d && d.detail) || "", attempts: (d && d.attempts) || [] };
       }
       var p = d.profile;
       var filled = 0, kept = 0;
@@ -511,9 +568,16 @@
       if (d.risk_status_warning) {
         bizWarn("<b>登记状态异常：</b>" + esc(d.risk_status_warning));
       }
+      // 保存流程需要知道"到底填了几项、来源是什么、登记状态是否异常"
+      return { ok: true, filled: filled, kept: kept, missing: missing,
+               profile: p, derived: dv, source: d.source || "",
+               source_detail: d.source_detail || "", cache_hit: !!d.cache_hit,
+               risk_status_warning: d.risk_status_warning || "" };
     } catch (e) {
       bizNote("查询失败：" + (e && e.message ? e.message : "网络异常")
               + "；请手动填写，不影响项目创建", "err");
+      return { ok: false, code: "exception",
+               message: (e && e.message) || "网络异常" };
     } finally {
       _bizInFlight = false;
     }
@@ -532,21 +596,56 @@
   async function saveForm() {
     var name = pf("name").value.trim();
     if (!name) { showFormError("企业名称不能为空"); return; }
+    var isNew = !(state.editing && state.editing.id);
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ★★ 2026-10-19（用户：「新建项目我只要填写企业名称，然后按保存，
+    //   其余信息在按保存按钮时自动加载！！！」）
+    //
+    // 新建态：**保存前先等一次自动加载**（`force=true` 绕过去重，`refresh=1` 绕过缓存），
+    //   然后把加载到的工商信息随同名称一起提交 —— 用户只动手填一个字段。
+    //
+    // 三条口径（都是本仓既有铁律，不新造）：
+    //   ① **加载失败不阻断创建**：后端 `create_project` 本就允许只收名称
+    //      （`taxpayer_id` 可空、`profile_missing` 如实标注待补全）。
+    //      若强行不让建，用户遇到通道故障就彻底用不了系统。
+    //   ② **失败必须说清原因**：`fetchBizInfo` 已把逐通道原因写进提示区，
+    //      并在保存后追加一句"已按名称创建，其余字段待补"（缺失≠0）。
+    //   ③ **不在保存里偷偷改用户填的值**：`put()` 只填空字段，已填的不动。
+    // ══════════════════════════════════════════════════════════════════════
+    var auto = null;
+    if (isNew) {
+      var btn = $("btn-save");
+      if (btn) { btn.disabled = true; btn.textContent = "正在加载工商信息…"; }
+      if (_bizTimer) { window.clearTimeout(_bizTimer); _bizTimer = null; }  // 取消待触发的防抖
+      try {
+        auto = await fetchBizInfo({ force: true });
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = "保存"; }
+      }
+    }
+
+    // ── 校验：新建态**只有企业名称必填** ──
+    //   ★ 旧实现强制「税号 18 位 + 行业/地区/期间/税种全部必填」⇒ 与用户要求
+    //     "只填企业名称"直接冲突，且与后端 `create_project` 的口径相矛盾
+    //     （后端明写"税号缺失 ≠ 税号填错"，缺失一律由 `profile_missing` 如实标注）。
     var tid = pf("tid").value.trim().toUpperCase();
-    if (tid.length !== 18) { showFormError("统一社会信用代码必须为 18 位"); return; }
-    // 第 2 步稽查要素：必填（这是稽查范围的起点，留空会让后续比对失去期间/行业口径）
+    // 税号：**填了才校验**（沿用后端口径）；为空合法。
+    if (tid && tid.length !== 18) {
+      showFormError("统一社会信用代码填了就必须是 18 位（当前 " + tid.length + " 位）；不填则留空");
+      return;
+    }
+
     var industry = pf("industry").value.trim();
     var region = pf("region").value.trim();
     var ps = pf("ps").value, pe = pf("pe").value;
     var scopes = collectScopes();
-    var lack = [];
-    if (!industry) lack.push("行业");
-    if (!region) lack.push("地区");
-    if (!ps) lack.push("稽查期间起");
-    if (!pe) lack.push("稽查期间止");
-    if (!scopes.length) lack.push("税种范围");
-    if (lack.length) { showFormError("请补全稽查要素（第 2 步）：" + lack.join("、")); return; }
-    if (ps > pe) { showFormError("稽查期间起止颠倒：起 " + ps + " 晚于 止 " + pe); return; }
+    if (ps && pe && ps > pe) {
+      showFormError("稽查期间起止颠倒：起 " + ps + " 晚于 止 " + pe);
+      return;
+    }
+    // 编辑态：如果人已经在编辑页手动改了稽查要素，仍按"起止不颠倒"约束；
+    //   但**不再强制全填** —— 缺的由分析后回填补齐（sync_profile_from_analysis）。
 
     var capRaw = pf("registered_capital").value.trim();
     var payload = {
@@ -583,7 +682,18 @@
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        flash("项目已创建");
+        // ★ 如实告知本次创建**到底自动加载到了什么**（用户只填了名称，
+        //   必须让他知道其余字段是填上了、还是取不到待补）。
+        if (auto && auto.ok) {
+          flash("项目已创建：已自动加载 " + auto.filled + " 项工商信息"
+                + (auto.source_detail ? "（来源：" + auto.source_detail + "）" : "")
+                + (auto.missing ? "，" + auto.missing + " 项未取得（可稍后在编辑页补齐，"
+                                  + "或补齐资料后由分析结果回填）" : ""));
+        } else {
+          flash("项目已创建（仅企业名称）：工商信息未能自动加载 —— "
+                + ((auto && auto.message) || "未取得")
+                + "。可稍后在「编辑」页补齐，或配置工商通道后重新加载。");
+        }
       }
       closeModal("m-form");
       await loadList();
@@ -816,6 +926,21 @@
   }
 
   // ── 事件绑定 ────────────────────────────────────────────────────────
+  /** 测试钩子（**只给验收脚本用**，不在任何业务路径上被调用）。
+   *
+   * ★ 为什么要暴露它：新建态"点保存即自动加载"是**时序**行为（先查询、后提交），
+   *   静态读代码无法证明顺序正确，必须在 DOM 桩里真跑一遍 `saveForm()`。
+   *   只暴露这一个入口，不暴露内部状态。
+   */
+  window.__test_saveForm = function (name) {
+    pf("name").value = String(name || "");
+    return saveForm();
+  };
+  window.__test_applyFormMode = _applyFormMode;
+  //: 验收用：直接调查填主体（证明"权限/名称长度/去重"哪一关挡住了）
+  window.__test_fetchBizInfo = fetchBizInfo;
+  window.__test_bizAllowed = bizAllowed;
+
   function bind() {
     $("btn-search").onclick = function () { state.page = 1; loadList(); };
     $("btn-reset").onclick = function () {
@@ -827,13 +952,23 @@
     $("f-size").onchange = function () { state.page = 1; loadList(); };
     $("btn-new").onclick = function () { openForm(null); };
     $("btn-save").onclick = saveForm;
-    // ★ 2026-10-19（用户要求：工商信息**自动**添加，不手动）：不再绑按钮点击，
+    // ★ 2026-10-19（用户要求：工商信息**自动**添加，不手动）：不绑按钮点击，
     //   改为**企业全称输入停顿即自动查** + **失焦兜底查**。两者都经防抖，不会重复发请求。
-    //   状态指示器 `#btn-fetch-bizinfo` 只显示进度（`data-perm` 仍由其承载权限门控）。
+    //   ★★ 2026-10-19 二次调整（用户：「新建项目我只要填写企业名称，然后按保存，
+    //      其余信息在按保存按钮时自动加载」）：
+    //      新建态**不再边打字边查** —— 只在点「保存」时查（见 `saveForm` 里的 `force` 查询）。
+    //      理由：新建时用户只说"填个名字"，边打字边发请求既打扰（字段在眼前跳变），
+    //            也会让"到底哪次查的"变得不可解释。编辑态保留即时查（改名称要立刻看到结果）。
     var nameInput = pf("name");
     if (nameInput) {
-      nameInput.addEventListener("input", function () { scheduleBizAuto(); });
-      nameInput.addEventListener("blur", function () { scheduleBizAuto(0); });
+      nameInput.addEventListener("input", function () {
+        if (!(state.editing && state.editing.id)) return;   // 新建态：等保存
+        scheduleBizAuto();
+      });
+      nameInput.addEventListener("blur", function () {
+        if (!(state.editing && state.editing.id)) return;   // 新建态：等保存
+        scheduleBizAuto(0);
+      });
     }
     $("btn-del-confirm").onclick = doDelete;
     $("btn-del-selected").onclick = delSelected;
