@@ -73,6 +73,24 @@ SECTION_CN: Dict[str, str] = {
 # ── 视图（★ 唯一权威）────────────────────────────────────────────────────
 VIEWS: Tuple[str, ...] = ("full", "tax_specific", "management", "self_check")
 
+#: 视图的**组织维度**（★ 唯一权威）：视图之间**必须**在这一维度上真正不同。
+#: 2026-10-19 立：此前 `tax_specific` 与 `full` 的章节与上限**完全相同**，
+#: 而 `VIEW_DESC` 却声称「按税种分组」—— 实测差异只有 4 行时间戳/水印。
+#: 这是「声称 > 实际」的典型，故把「组织维度」显式登记，并配闸门
+#: `verify_view_focus()`/`check_report_view_focus()` 断言其**真的不同**。
+VIEW_FOCUS: Dict[str, str] = {
+    "full": "severity",       # 按等级轻重 → 排序分（综合底稿）
+    "tax_specific": "tax",    # **按税种**（税种为一级组织）
+    "management": "severity",  # 管理层关心轻重，不关心税种细分
+    "self_check": "tax",      # 企业自查同样按税种组织（保留明细，去掉逐条证据）
+}
+
+#: 组织维度的**中文标签**（唯一权威；前端只读 `focus_label`，不得自写文案）
+FOCUS_LABEL: Dict[str, str] = {
+    "severity": "按等级轻重组织",
+    "tax": "按税种组织",
+}
+
 VIEW_LABEL: Dict[str, str] = {
     "full": "全景",
     "tax_specific": "分税种专项",
@@ -82,7 +100,10 @@ VIEW_LABEL: Dict[str, str] = {
 
 VIEW_DESC: Dict[str, str] = {
     "full": "全部 12 章节，逐条风险、逐条证据、逐条法规依据 —— 完整底稿视图。",
-    "tax_specific": "按税种组织的明细视图：风险总览与明细按税种分组展开，便于分税种自查与沟通。",
+    "tax_specific": "以**税种为一级组织**：风险总览给出「税种×等级」交叉表，"
+                    "分税种明细按税种逐个展开成**税种专项档案**（该税种的等级分布、"
+                    "涉税金额小计与未取到金额条数、逐条明细、证据、法规依据与整改建议）。"
+                    "与税种无关的章节（资料清单、跨税种综合排序）不在本视图内，已如实登记。",
     "management": "面向管理层的摘要视图：只保留概况、总览、重点风险与整改建议（每节条数受限），"
                   "明细类章节不在本视图内（已在报告内如实标注去向）。",
     "self_check": "面向企业自查的视图：保留概况、数据来源、总览、分税种明细与整改建议，"
@@ -90,9 +111,14 @@ VIEW_DESC: Dict[str, str] = {
 }
 
 #: 各视图保留的章节（顺序即报告内顺序；`cover`/`disclaimer` 必含）
+#: ★ 2026-10-19：`tax_specific` 不再与 `full` 完全相同 —— 去掉 `attachments`
+#:   （资料清单是**项目级**清单，与"税种聚焦"无关），保留 `tax_detail`（税种组织载体）。
+#:   `self_check` 是"税种组织 + 更窄范围"（去 key_risks/evidence/legal_basis，保留附件清单）。
 VIEW_SECTIONS: Dict[str, Tuple[str, ...]] = {
     "full": SECTIONS,
-    "tax_specific": SECTIONS,
+    "tax_specific": ("cover", "disclaimer", "project", "data_source", "risk_overview",
+                     "tax_detail", "key_risks", "evidence", "legal_basis",
+                     "rectification", "review_record"),
     "management": ("cover", "disclaimer", "project", "risk_overview",
                    "key_risks", "rectification", "review_record"),
     "self_check": ("cover", "disclaimer", "project", "data_source", "risk_overview",
@@ -181,6 +207,16 @@ def sections_of(view: Any) -> List[str]:
     return list(VIEW_SECTIONS[_validate_view(view)])
 
 
+def focus_of(view: Any) -> str:
+    """该视图的**组织维度**（`tax` / `severity`）—— 见 `VIEW_FOCUS` 的说明。"""
+    return VIEW_FOCUS[_validate_view(view)]
+
+
+def is_tax_focused(view: Any) -> bool:
+    """该视图是否**按税种组织**（决定 `tax_detail` 走「税种专项档案」还是「分组清单」）。"""
+    return focus_of(view) == "tax"
+
+
 def omitted_sections_of(view: Any) -> List[str]:
     """该视图**未包含**的章节（**如实登记**，供报告内标注与接口回执）。"""
     keep = set(VIEW_SECTIONS[_validate_view(view)])
@@ -240,10 +276,50 @@ def verify_view_names() -> List[str]:
     return issues
 
 
+def verify_view_focus() -> List[str]:
+    """机器断言：视图之间**必须真的不同**（供闸门调用，2026-10-19 立）。
+
+    ## 为什么必须有这条（事故）
+
+    实测（`docs/核实_工商渠道与五类报告_20261019.md`）：`tax_specific` 与 `full`
+    的 `VIEW_SECTIONS`/`VIEW_ITEM_LIMIT` **完全相同**，`VIEW_DESC` 却声称
+    「按税种分组」；把报告名/时间戳/水印抹掉后，两者差异仅 **4 行** ——
+    用户以为拿到了两份报告，实际是同一份。这是「声称 > 实际」的典型，
+    而**单看某个视图的定义永远看不出**（必须**两两对比**）。
+
+    ## 判据（结果级，两两对比）
+
+      ① 任意两个视图，其 `(focus, sections, item_limit)` 三元组**不得完全相同**
+         —— 否则就是"换个名字同一份内容"，必须报错；
+      ② `focus == "tax"` 的视图**必须**保留 `tax_detail` 章（否则"按税种组织"
+         没有承载章节，声明再次落空）；
+      ③ `VIEW_FOCUS` 的键必须与 `VIEWS` 一一对应（新增视图漏登记 ⇒ 报错）。
+    """
+    issues: List[str] = []
+    if set(VIEW_FOCUS) != set(VIEWS):
+        issues.append("VIEW_FOCUS 与 VIEWS 不一致：缺 %s / 多 %s"
+                      % (sorted(set(VIEWS) - set(VIEW_FOCUS)),
+                         sorted(set(VIEW_FOCUS) - set(VIEWS))))
+    seen: Dict[Tuple[str, Tuple[str, ...], Optional[int]], str] = {}
+    for v in VIEWS:
+        sig = (VIEW_FOCUS.get(v, ""), tuple(VIEW_SECTIONS.get(v) or ()),
+               VIEW_ITEM_LIMIT.get(v))
+        if sig in seen:
+            issues.append("视图 %s 与 %s 的（组织维度/章节/上限）完全相同 —— "
+                          "两个入口同一份内容（声称不同、实际相同）" % (v, seen[sig]))
+        else:
+            seen[sig] = v
+        if VIEW_FOCUS.get(v) == "tax" and "tax_detail" not in (VIEW_SECTIONS.get(v) or ()):
+            issues.append("视图 %s 声明按税种组织（focus=tax），却未保留 tax_detail 章" % v)
+    return issues
+
+
 def metadata() -> Dict[str, Any]:
     """字典（前端不硬编码标签）。"""
     return {
         "views": [{"value": v, "label": VIEW_LABEL[v], "desc": VIEW_DESC[v],
+                   "focus": VIEW_FOCUS[v],
+                   "focus_label": FOCUS_LABEL.get(VIEW_FOCUS[v], VIEW_FOCUS[v]),
                    "name": name_of(v),
                    "sections": [{"value": s, "label": SECTION_CN[s]}
                                 for s in VIEW_SECTIONS[v]],
@@ -259,5 +335,9 @@ def metadata() -> Dict[str, Any]:
                  "`engine/enterprise_report._doc_display_name`）；视图是**范围/粒度**维度，"
                  "**不是**四份不同名称的报告。名称唯一权威："
                  "`engine/report_compliance.document_meta`。被裁掉的章节一律如实登记"
-                 "（`omitted_sections`）并在报告内标注去向。"),
+                 "（`omitted_sections`）并在报告内标注去向。"
+                 "★ 视图还有**组织维度** `focus`（`tax`=按税种组织 / `severity`=按等级轻重）："
+                 "`tax` 视图的「分税种明细」章是**税种专项档案**（逐税种给出等级分布、"
+                 "金额口径、明细、法规依据、证据与整改建议）；`severity` 视图是分组清单。"
+                 "两者**必须真的不同**（闸门 `verify_view_focus()` 两两断言）。"),
     }

@@ -401,8 +401,19 @@
            ? "&project_id=" + encodeURIComponent(state.editing.id) : "");
       var d = await api(url);
       if (!d || !d.ok || !d.profile) {
+        // ★ 2026-10-19（如实）：失败时**逐通道给出原因** —— 用户要能看出
+        //   "为什么没取到、该配什么"（A 通道要 GSXT_COOKIE、C 通道要 token），
+        //   而不是只看到一句"查询超时"（那句话曾掩盖了"通道根本没配"的事实）。
+        //   ★ 这里走 `bizNote` → textContent ⇒ 只能是**纯文本**，不得写 <b>/<br>。
+        var why = "";
+        if (d && d.attempts && d.attempts.length) {
+          why = d.attempts.map(function (a) {
+            return (a.provider || "通道") + "：" + (a.reason || "未说明原因");
+          }).join("；");
+        }
         bizNote((d && d.message ? d.message : "查询超时，请手动填写")
-                + (d && d.detail ? "（" + d.detail + "）" : ""), "err");
+                + (why ? "（未取到数据，逐通道原因 —— " + why + "）" : "")
+                + (!why && d && d.detail ? "（" + d.detail + "）" : ""), "err");
         return;
       }
       var p = d.profile;
@@ -440,9 +451,16 @@
                           + "（" + (item.source || "来源未标注") + "）");
       });
       var missing = (p.missing || []).length;
+      // ★ 2026-10-19（如实）：`local_db` 来源必须说明"取自本系统已有档案，
+      //   不是本次外网核验" —— 否则用户会以为"自动查填"真的去公示系统查过一次，
+      //   而实际是把用户自己建项目时填的值再读回来（新企业则完全没有数据）。
+      var srcHint = (d.source === "local_db")
+        ? "取自本系统已有档案（非外网核验；新建企业请配 A/C 通道）"
+        : "";
       bizNote("已自动填报 " + filled + " 项（来源：" + (d.source_detail || d.source || "—")
               + (d.cache_hit ? "，命中缓存" : "")
-              + "）" + (kept ? "；" + kept + " 项因已填写保持不变" : "")
+              + "）" + (srcHint ? "【" + srcHint + "】" : "")
+              + (kept ? "；" + kept + " 项因已填写保持不变" : "")
               + (missing ? "；" + missing + " 项未取得，请手工补齐" : "")
               + (derivedNotes.length ? "。" + derivedNotes.join("；") : ""),
               filled ? "ok" : "err");

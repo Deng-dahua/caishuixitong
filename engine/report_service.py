@@ -385,14 +385,80 @@ def _sec_risk_overview(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
         _block_table(["风险等级", "件数"],
                      [[_display_label(k), v] for k, v in lv.items()],
                      note="等级唯一权威 `engine/risk_levels.py`（5 档）；本报告不重算等级。"),
+    ]
+    # ★ 2026-10-19（tax_specific 真聚焦）：按税种组织的视图，总览必须给
+    #   **税种 × 等级** 交叉表（这是"税种为一级组织"的第一处体现，也是与全景视图
+    #   最直观的差异）。口径与 `风险总览` 的其余表**同源**（同一份发现集合、同一等级权威），
+    #   故不构成第二套口径。
+    if str(ctx.get("focus") or "") == "tax":
+        out.append(_tax_level_cross_table(ctx))
+    out.extend([
         _block_table(["复核处置状态", "件数"], [[k, v] for k, v in stt.items()],
                      note="处置状态唯一权威 P0-6 `engine/risk_review.py`。"),
         _block_table(["税种", "件数"], [[k, v] for k, v in list(tx.items())[:30]]),
         _block_table(["金额分档", "件数", "金额合计（元）"],
                      [[k, v, _money(amt.get(k)) or "—"] for k, v in band.items()],
                      note=str((st.get("notes") or {}).get("amount_unknown") or "")),
-    ]
+    ])
     return out
+
+
+def _finding_level(f: Dict[str, Any]) -> str:
+    """发现的**呈现等级**（唯一权威 `engine/risk_levels`，与 `risk_service.stats` 同口径）。
+
+    ★ 消费 `detected_risk_level`（检出等级，封顶前）——与总览统计一致；
+      取不到则回退 `risk_level`。**不**在本模块重算等级（等级权威在 `risk_levels`）。
+    """
+    return _display_label(str(f.get("detected_risk_level")
+                              or f.get("risk_level_capped_by_grade_from")
+                              or f.get("risk_level") or ""))
+
+
+#: 等级**展示词**列（由唯一权威 `risk_levels.LEGAL_LEVELS` 逐项翻译而来，去重保序）。
+#: ★ 2026-10-19 实测（结果级验收抓出）：`LEGAL_LEVELS` 是**内部标识**，
+#:   其中「待核验」→ 展示为「涉嫌风险」、「信息」→ 展示为「提示性事项」。
+#:   若交叉表**直接用内部标识当列名**，这两类事项会**对不上列而静默丢数**
+#:   （实测增值税：行合计 10，各等级之和 9 —— 差 1 就是这么丢的）。
+#:   故列一律用展示词；**词表外的等级归入「未标注等级」列**，绝不静默丢弃。
+_UNLABELED_LEVEL = "未标注等级"
+
+
+def _display_levels() -> List[str]:
+    """等级展示词列表（去重保序，唯一来源 `risk_levels.LEGAL_LEVELS`）。"""
+    from engine.risk_levels import LEGAL_LEVELS                     # noqa: PLC0415
+    out: List[str] = []
+    for x in LEGAL_LEVELS:
+        lbl = _display_label(x)
+        if lbl and lbl not in out:
+            out.append(lbl)
+    return out
+
+
+def _tax_level_cross_table(ctx: Dict[str, Any]) -> Dict[str, Any]:
+    """「税种 × 等级」交叉表（按税种组织的视图专用）。"""
+    groups = _findings_by_tax(ctx["findings"])
+    dl = _display_levels()
+    cols = ["税种"] + dl + [_UNLABELED_LEVEL, "合计"]
+    rows: List[List[Any]] = []
+    for tax, fs in groups:
+        cnt: Dict[str, int] = {}
+        for f in fs:
+            lv = _finding_level(f)
+            cnt[lv if lv in dl else _UNLABELED_LEVEL] = \
+                cnt.get(lv if lv in dl else _UNLABELED_LEVEL, 0) + 1
+        rows.append([tax] + [cnt.get(x, 0) for x in cols[1:-1]] + [len(fs)])
+    rows.sort(key=lambda r: (-int(r[-1]), str(r[0])))
+    tot = [sum(int(r[i]) for r in rows) for i in range(1, len(cols))]
+    rows.append(["合计"] + tot)
+    return _block_table(
+        cols, rows,
+        note=("税种与等级的**交叉分布**（税种为一级组织视角）。★ 两条口径必须一起读："
+              "① 一条发现若挂多个税种，会在各税种行**分别计数** ⇒ 各税种行**不得相加当总数**，"
+              "总数以「风险事项总数」为准；"
+              "② 等级列用**展示词**（「待核验」按本仓口径显示为「涉嫌风险」，"
+              "「信息」显示为「提示性事项」），词表外的等级归入「%s」——"
+              "**不静默丢弃**，故每行「合计」必等于该行各列之和。"
+              "等级权威 `engine/risk_levels.py`。" % _UNLABELED_LEVEL))
 
 
 def _findings_by_tax(findings: List[Dict[str, Any]]) -> List[Tuple[str, List[Dict[str, Any]]]]:
@@ -406,6 +472,23 @@ def _findings_by_tax(findings: List[Dict[str, Any]]) -> List[Tuple[str, List[Dic
 
 
 def _sec_tax_detail(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """分税种明细章 —— **两种组织口径，按视图的 `focus` 分派**。
+
+    ★ 2026-10-19（"真做税种聚焦"）：
+      此前本函数**无论哪个视图都返回同一份"按税种分组的清单"**，导致
+      `tax_specific` 与 `full` 正文完全相同（实测仅差时间戳/水印 4 行），
+      而 `VIEW_DESC` 却声称前者"按税种组织" ⇒ 声称 > 实际。
+      现按 `ctx["focus"]` 分派：
+        · `tax`      ⇒ `_tax_specific_archive`：**税种为一级组织**，每个税种一节专项档案；
+        · `severity` ⇒ `_tax_detail_listing`：全景的分组清单（保留原有观感，不回归）。
+    """
+    if str(ctx.get("focus") or "") == "tax":
+        return _tax_specific_archive(ctx)
+    return _tax_detail_listing(ctx)
+
+
+def _tax_detail_listing(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """全景视图的分税种明细（**分组清单**：税种小标题 + 一张表）。"""
     groups = _findings_by_tax(ctx["findings"])
     if not groups:
         return [_block_note("无风险事项，故无分税种明细。")]
@@ -422,6 +505,139 @@ def _sec_tax_detail(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
         out.append(_block_table(
             ["序号", "风险事项", "等级", "排序分", "涉税金额（元）", "复核状态"], rows,
             note="排序分只作排序、**不改等级**；金额取不到的项显示「—」，**未按 0 元计入**。"))
+    return out
+
+
+def _tax_specific_archive(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """**税种专项档案**（按税种组织的视图专用，2026-10-19 新增）。
+
+    每个税种独立成节，节内依次给出：
+      ① 该税种**等级分布**与**涉税金额口径**（小计 / 取不到金额的条数）；
+      ② 该税种**逐条明细**（含等级、排序分、金额、复核状态）；
+      ③ 该税种落到具体条款的**法规依据**（关联表唯一权威，含条款原文节选）；
+      ④ 该税种**归集到的证据**；
+      ⑤ 该税种**整改建议**。
+    ⇒ 拿到"增值税这一节"就等于拿到了该税种的完整专项材料，不必在全景里翻找。
+
+    ## 口径（防"第二套权威"）
+      · 分组唯一权威 `_findings_by_tax`（与全景同一实现）；
+      · 等级唯一权威 `_finding_level`（转 `risk_levels.display_label`）；
+      · 金额唯一权威 `ctx["amounts"]`（`risk_scoring.amount_of`）—— **取不到即「—」，不按 0 计**；
+      · 法规依据唯一权威 `legal_mapping.provisions_of`（与本仓 `_sec_legal_basis` 同源）；
+      · 证据归属唯一权威发现的 `risk_no`（与本仓 `_sec_evidence` 同源）；
+      · 被裁条目**逐个如实登记**，不静默截断。
+    """
+    groups = _findings_by_tax(ctx["findings"])
+    if not groups:
+        return [_block_note("无风险事项，故无分税种专项档案。")]
+    from engine import legal_mapping as LM                        # noqa: PLC0415
+    lim = ctx["limit"]
+    amounts = ctx["amounts"] or {}
+    state_cn = ctx["state_cn"] or {}
+    reviews = ctx["reviews"] or {}
+    out: List[Dict[str, Any]] = [
+        _block_para("本视图**以税种为一级组织**：下按税种逐个给出专项档案"
+                    "（等级分布 → 逐条明细 → 法规依据 → 证据 → 整改建议）。"),
+    ]
+    for tax, fs in groups:
+        out.append(_block_para("◆ 税种：%s（%d 项）" % (tax, len(fs))))
+        # ① 等级分布 + 金额口径
+        #   ★ 必须用**展示词**统计（`_display_levels()`）—— 用内部标识（LEGAL_LEVELS）
+        #     去匹配展示词会**永远匹配不上**，等级分布会恒为「（无等级标注）」（实测踩中）。
+        dl = _display_levels()
+        cnt: Dict[str, int] = {}
+        amt_sum = 0.0
+        amt_unknown = 0
+        for f in fs:
+            lv = _finding_level(f)
+            key = lv if lv in dl else _UNLABELED_LEVEL
+            cnt[key] = cnt.get(key, 0) + 1
+            a = amounts.get(f.get("seq"))
+            if a in (None, ""):
+                amt_unknown += 1
+            else:
+                try:
+                    amt_sum += float(a)
+                except Exception:                                 # noqa: BLE001
+                    amt_unknown += 1
+        out.append(_block_kv([
+            ("本税种事项数", len(fs)),
+            ("等级分布", "；".join("%s %d 项" % (x, cnt[x])
+                                 for x in (dl + [_UNLABELED_LEVEL]) if cnt.get(x))
+             or "（无等级标注）"),
+            ("测算涉税金额小计（元）", _money(amt_sum) or "—"),
+            ("金额取不到的条数", amt_unknown),
+        ]))
+        # ② 逐条明细（被裁条目**逐个登记**）
+        listed = fs[:lim] if lim else fs
+        rows = [[f.get("seq"), _brief(f.get("title"), 70), _finding_level(f),
+                 f.get("priority_score"), _money(amounts.get(f.get("seq"))) or "—",
+                 state_cn.get(str(f.get("risk_no")), "待处理")]
+                for f in listed]
+        out.append(_block_table(
+            ["序号", "风险事项", "等级", "排序分", "涉税金额（元）", "复核状态"], rows,
+            note=("本税种共 %d 项，本表列出 %d 项（视图条数上限 %s）。"
+                  % (len(fs), len(rows), lim if lim else "不限"))))
+        if lim and len(fs) > lim:
+            for f in fs[lim:]:
+                out.append(_block_para(
+                    "未在本表列出的第 %s 项：%s（等级 %s；需查看请改用「全景」视图）。"
+                    % (f.get("seq"), _brief(f.get("title"), 60), _finding_level(f))))
+        # ③ 法规依据（关联表唯一权威；仅本税种规则）
+        seen_rule, legal_rows = set(), []
+        for f in fs:
+            rule = ctx["rules"].get((str(f.get("rule_id") or ""),
+                                     str(f.get("redline_id") or "")))
+            if not rule:
+                continue
+            rid = str(rule.get("rule_id") or "")
+            if rid in seen_rule:
+                continue
+            seen_rule.add(rid)
+            for p in LM.provisions_of(rid):
+                legal_rows.append([rid, _brief(rule.get("name"), 40),
+                                   _brief(p.get("law"), 30), _brief(p.get("article"), 16),
+                                   p.get("provision_id") or "—",
+                                   _brief(p.get("content"), 90) or "（正文库无原文）"])
+        if legal_rows:
+            out.append(_block_table(
+                ["规则", "规则名称", "法规", "条文", "条款ID", "条款原文（节选）"], legal_rows,
+                note=("**已确证到具体条款**的法规依据（关联表 `config/legal_mappings.json` "
+                      "唯一权威）。仅列本税种规则；占位/未确证口径见「法规依据」章。")))
+        else:
+            out.append(_block_note("本税种所涉规则**未确证到具体条款**"
+                                   "（占位或未入库口径见「法规依据」章，不在此重复）。"))
+        # ④ 证据（按发现的序号归属）
+        seq_set = {str(f.get("seq")) for f in fs}
+        evs = [e for e in (ctx["evidences"] or [])
+               if str(e.get("finding_seq") or "") in seq_set]
+        if evs:
+            out.append(_block_table(
+                ["所属事项序号", "证据角色", "证据名称", "说明", "来源", "现状"],
+                [[e.get("finding_seq"), e.get("role"), _brief(e.get("name"), 40),
+                  _brief(e.get("detail"), 80), _brief(e.get("sources"), 60), e.get("status")]
+                 for e in evs[:lim or len(evs)]],
+                note="证据唯一来源 P0-5 `rule_executor` 归集结果；仅列本税种事项的证据。"))
+        # ⑤ 整改建议（本税种）
+        sugs = [[f.get("seq"), _brief(f.get("title"), 50), _brief(f.get("suggestion"), 300)]
+                for f in fs if _brief(f.get("suggestion"), 300)]
+        if sugs:
+            out.append(_block_table(
+                ["序号", "风险事项", "整改建议"], sugs,
+                note="建议由引擎按本项证据缺口与规则要求生成，原样呈现、不改写。"))
+        # 复核记录（本税种，若有）
+        done = [reviews[str(f.get("risk_no"))] for f in fs
+                if reviews.get(str(f.get("risk_no")), {}).get("reviewed")]
+        if done:
+            out.append(_block_table(
+                ["风险编号", "当前处置状态", "最近动作", "操作人", "时间"],
+                [[m.get("risk_no"), m.get("state_cn"),
+                  ((m.get("history") or [{}])[-1].get("action_cn") or ""),
+                  ((m.get("history") or [{}])[-1].get("actor") or ""),
+                  (((m.get("history") or [{}])[-1].get("at") or "")[:19])]
+                 for m in done],
+                note="处置状态与历史唯一权威 P0-6 `engine/risk_review`。"))
+        out.append(_block_note("◇ 以上为「%s」的专项档案全部内容。" % tax))
     return out
 
 
@@ -782,6 +998,9 @@ def build_document(project_id: Any, session: Any, *, view: Any = "full",
     secs = VIEWS.sections_of(view_code)
     ctx: Dict[str, Any] = {
         "view": view_code, "view_label": VIEWS.VIEW_LABEL[view_code],
+        # ★ 2026-10-19：**组织维度**（`tax` / `severity`）—— 决定 `tax_detail` 章走
+        #   「税种专项档案」还是「分组清单」，也让报告自身声明"它到底按什么组织"。
+        "focus": VIEWS.focus_of(view_code),
         "name": VIEWS.name_of(view_code),
         "doc_no": "", "version": "",
         "generated_at": _now(), "generated_by": str(getattr(session, "username", "") or ""),
@@ -843,6 +1062,9 @@ def build_document(project_id: Any, session: Any, *, view: Any = "full",
         sections.append({"key": key, "title": VIEWS.SECTION_CN[key], "blocks": blocks})
     out_doc = {
         "name": ctx["name"], "view": view_code, "view_label": ctx["view_label"],
+        # ★ 2026-10-19（真做税种聚焦）：报告**自述**其组织维度；`tax_detail` 章的
+        #   呈现形态由此决定，读者/下游都能据 `focus` 判断这份报告按什么组织。
+        "focus": ctx["focus"],
         "doc_no": ctx["doc_no"], "version": ctx["version"],
         "generated_at": ctx["generated_at"], "generated_by": ctx["generated_by"],
         "reviewed": ctx["reviewed"], "reviewed_by": ctx["reviewed_by"],

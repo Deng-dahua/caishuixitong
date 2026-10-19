@@ -13196,6 +13196,8 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_rule_layer_labels()               # 2026-10-18 规则库中文标签（层/严重度/候选状态）
+               + check_report_view_focus()          # 2026-10-19 报告视图之间必须真的不同（禁止换名字同一份）
+               + check_capability_claims_honest()   # 2026-10-19 能力声称不得超出实际（已实装/免费可用）
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
                + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_legal_library_tier_disclosure() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique() + check_candidate_param_index())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
@@ -21136,6 +21138,283 @@ def check_legal_frontend_wiring() -> List[Tuple[str, str, str]]:
     except Exception as exc:                                       # noqa: BLE001
         issues.append(("ERROR", "tools/audit_consistency.py",
                        "步骤 22 行为级检查执行失败：%s" % exc))
+    return issues
+
+
+def check_report_view_focus() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-19 立：报告**视图之间必须真的不同**（禁止"换个名字同一份内容"）。
+
+    ## 为什么立这条（事故）
+    实测（`docs/核实_工商渠道与五类报告_20261019.md` §2.3）：`tax_specific` 与 `full`
+    的章节与上限**完全相同**，`VIEW_DESC` 却声称「按税种分组」；抹掉报告名/时间戳/水印后
+    两者差异仅 **4 行**。用户以为拿到了两份报告，实际是同一份 —— 典型的「声称 > 实际」。
+
+    而**单看某一个视图的定义永远看不出这个问题**（必须两两对比），
+    所以这条闸门同时做两件事：
+      ① **签名级**：`report_views.verify_view_focus()` 两两断言
+         `(组织维度, 章节, 上限)` 不得完全相同；`focus=tax` 的视图必须保留 `tax_detail` 章；
+      ② **行为级**（不依赖真实数据、不依赖"我改了哪一行"）：用**合成发现**分别以
+         `focus=severity` 与 `focus=tax` 调 `_sec_tax_detail`，要求
+         · `tax` 形态**必须**出现「◆ 税种：」（税种专项档案）；
+         · `severity` 形态**不得**出现「◆ 税种：」；
+         · 两者块结构必须不同（否则等于没接线）。
+    两条都过才算"真的聚焦"——只有签名没有行为，就是"声明了但没实现"。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine import report_views as V
+        from engine import report_service as RS
+    except Exception as exc:                                       # noqa: BLE001
+        return [("ERROR", "engine/report_views.py", "视图模块不可用：%s" % exc)]
+
+    for p in V.verify_view_focus():
+        issues.append(("ERROR", "engine/report_views.py", p))
+
+    # ── ② 行为级：合成数据，不依赖真实账套 ──
+    findings = [
+        {"seq": 1, "risk_no": "R1", "title": "事项一", "risk_level": "高风险",
+         "detected_risk_level": "高风险", "taxes": ["增值税"], "priority_score": 90,
+         "rule_id": "RULE-A", "redline_id": "", "suggestion": "补开发票",
+         "conclusion_grade": "L3"},
+        {"seq": 2, "risk_no": "R2", "title": "事项二", "risk_level": "中风险",
+         "detected_risk_level": "待核验", "taxes": ["企业所得税"], "priority_score": 60,
+         "rule_id": "RULE-B", "redline_id": "", "suggestion": "核对成本凭证",
+         "conclusion_grade": "L2"},
+        {"seq": 3, "risk_no": "R3", "title": "事项三", "risk_level": "信息",
+         "detected_risk_level": "信息", "taxes": [], "priority_score": 10,
+         "rule_id": "", "redline_id": "", "suggestion": "", "conclusion_grade": "L1"},
+    ]
+    base_ctx = {
+        "findings": findings, "evidences": [], "rules": {}, "amounts": {1: 1000.0},
+        "state_cn": {}, "reviews": {}, "limit": None,
+    }
+
+    def _texts(blocks):
+        out = []
+        for b in blocks:
+            t = b.get("type")
+            if t in ("paragraph", "note"):
+                out.append(str(b.get("text") or ""))
+            elif t == "kv":
+                out.append(" ".join("%s=%s" % (i.get("k"), i.get("v"))
+                                    for i in (b.get("items") or [])))
+            elif t == "table":
+                out.append(" ".join(str(c) for c in (b.get("columns") or [])))
+        return "\n".join(out)
+
+    try:
+        # ★ 行为级必须**读视图定义**（`V.focus_of`）而非硬编码 focus ——
+        #   否则"把 VIEW_FOCUS 改坏"这类注入只能被签名级抓到，
+        #   行为级会因自己传了字面量而假绿（"接线"没被验证）。
+        ctx_tax = dict(base_ctx, focus=V.focus_of("tax_specific"), view="tax_specific")
+        ctx_sev = dict(base_ctx, focus=V.focus_of("full"), view="full")
+        blk_tax = RS._sec_tax_detail(ctx_tax)
+        blk_sev = RS._sec_tax_detail(ctx_sev)
+    except Exception as exc:                                       # noqa: BLE001
+        return issues + [("ERROR", "engine/report_service.py",
+                          "分税种明细章行为断言执行失败：%s" % exc)]
+
+    txt_tax, txt_sev = _texts(blk_tax), _texts(blk_sev)
+    if "◆ 税种：" not in txt_tax:
+        issues.append(("ERROR", "engine/report_service.py",
+                       "focus=tax 的分税种明细章**未输出税种专项档案**（缺「◆ 税种：」）"
+                       "—— 视图声明按税种组织，实现却仍是分组清单（声称 > 实际）"))
+    if "◆ 税种：" in txt_sev:
+        issues.append(("ERROR", "engine/report_service.py",
+                       "focus=severity 的全景视图也输出了税种专项档案"
+                       "—— 两种形态混同，视图划分失效"))
+    if [b.get("type") for b in blk_tax] == [b.get("type") for b in blk_sev]:
+        issues.append(("ERROR", "engine/report_service.py",
+                       "税种聚焦形态与全景形态**块结构相同** ⇒ 等于没有聚焦"))
+    # ③ 等级列必须是**展示词**且带「未标注等级」兜底（否则对不上列会静默丢数）
+    cross = [b for b in RS._sec_risk_overview(
+        {"stats": {"available": True, "total": 3, "by_level": {"高风险": 1},
+                   "by_tax": {"增值税": 1}, "by_state_cn": {}, "by_band": {},
+                   "amount_by_band": {}},
+         "findings": findings, "amounts": {1: 1000.0}, "focus": "tax",
+         "limit": None}) or [] if b.get("type") == "table"]
+    cols = [b.get("columns") or [] for b in cross]
+    tax_cols = [c for c in cols if c[:1] == ["税种"]]
+    if not tax_cols:
+        issues.append(("ERROR", "engine/report_service.py",
+                       "税种聚焦视图的风险总览缺少「税种×等级」交叉表"))
+    else:
+        c0 = tax_cols[0]
+        if "未标注等级" not in c0:
+            issues.append(("ERROR", "engine/report_service.py",
+                           "「税种×等级」交叉表缺「未标注等级」兜底列"
+                           "—— 词表外等级会被静默丢数（行合计≠各列之和）"))
+        if "涉嫌风险" not in c0 or "提示性事项" not in c0:
+            issues.append(("ERROR", "engine/report_service.py",
+                           "交叉表等级列未使用**展示词**（应为「涉嫌风险」「提示性事项」）"
+                           "—— 用内部标识当列名会与展示值对不上而丢数"))
+    return issues
+
+
+def check_capability_claims_honest() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-19 立：**能力声称不得超出实际**（禁止把"写了代码"说成"能取到数"）。
+
+    ## 为什么立这条（事故链）
+    用户连问三轮，最后贴着源码说"你没有接入给财税稽查系统"。核实后确认：
+    `engine/enterprise_report.py` 原注释写「免费通道（国家企业信用信息公示系统+搜索引擎）
+    **已实装**」，而实测公示系统 **HTTP 521**（风控），取不到任何登记字段。
+    "已实装"指**代码写了**，读者读成**能取到数** —— 这两个意思差着一整条产线。
+    同类还有：前端能力卡写「4通道工商数据验证」（其中 2 个**未对接**）、
+    `GovCreditVerifier.get_status()` 返回「**免费可用**」（实际受风控）。
+
+    ## 判据（★ 精确到形态，避免"判据把合法的解释性文字判红"）
+    首版按"全文出现『已实装』即 ERROR"，**立刻误报**：本轮修复后，源码里为了说明
+    "这个措辞为什么不能用"而在 **docstring/注释**中引用了它本身。
+    这与本项目既有教训同源（判据扫全文 ⇒ 把注释判成违规）。故改为三层：
+
+      ① **行为级（主判据，直击原案）**：直接调 `get_status()` / `verify_company()` /
+         `_build_external_verify_report()`，断言**返回给用户的那段文字**如实：
+         · 公示系统通道状态**不得**是"免费可用"，且必须点明受风控/限制；
+         · 搜索引擎通道必须点明"非登记字段来源"；
+         · 天眼查/企查查未对接时 `verify_company` 必须 `ok=False` + `not_integrated`；
+         · 无核验数据时 `note` 不得声称已接通/已实装，且必须写明"未取得"。
+      ② **前端文案（精确串）**：`static/js/*.js` 的代码（剥注释）不得出现
+         「4通道工商数据验证」这类把"4 个通道都做了"说成"4 个都能用"的串。
+      ③ **非 docstring 字面量**：Python 里**会直接下发到界面/报告**的字符串不得含
+         「免费可用」（docstring 属开发文档、用于解释，不在此列 —— 用 `ast` 精确排除）。
+
+    另有两项配置一致性（配置说走某通道、代码里没有 = 假通道）：
+      · `business_info.json::providers` 与 `providers._PROVIDERS` **双向一致**；
+      · `channel_plan.routes` 的每个值必须在该链上（A+C 登记了却不在链上 = 路线没落地）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    # ── ① 行为级：通道状态与核验结论必须如实 ──
+    try:
+        from engine.external_verifier import (GovCreditVerifier, QichachaVerifier,
+                                              SearchEngineVerifier, TianyanchaVerifier)
+        g_st = str(GovCreditVerifier().get_status() or "")
+        if "免费可用" in g_st:
+            issues.append(("ERROR", "engine/external_verifier.py",
+                           "公示系统通道状态仍写「免费可用」——实测受风控（HTTP 521），"
+                           "取不到登记字段，须如实标注"))
+        if not any(k in g_st for k in ("风控", "限制", "验证码")):
+            issues.append(("ERROR", "engine/external_verifier.py",
+                           "公示系统通道状态未注明受风控/需人工过验证码（%r）" % g_st))
+        s_st = str(SearchEngineVerifier().get_status() or "")
+        if not any(k in s_st for k in ("非登记字段", "线索", "搜到")):
+            issues.append(("ERROR", "engine/external_verifier.py",
+                           "搜索引擎通道状态未注明「不是登记字段来源」（%r）" % s_st))
+        for cls, nm in ((TianyanchaVerifier, "天眼查"), (QichachaVerifier, "企查查")):
+            r = cls().verify_company("测试企业有限公司")
+            if r.get("ok"):
+                issues.append(("ERROR", "engine/external_verifier.py",
+                               "%s 未对接却返回 ok=True（假装已对接）" % nm))
+            elif str(r.get("status") or "") != "not_integrated" and \
+                    "未对接" not in str(r.get("error") or ""):
+                issues.append(("ERROR", "engine/external_verifier.py",
+                               "%s 未对接时未如实标注 status=not_integrated（%s）"
+                               % (nm, str(r.get("error"))[:40])))
+    except Exception as exc:                                       # noqa: BLE001
+        issues.append(("ERROR", "engine/external_verifier.py",
+                       "外部核验通道状态断言执行失败：%s" % exc))
+
+    try:
+        from engine.enterprise_report import _build_external_verify_report as _buf
+        empty = _buf({})
+        bad = [w for w in ("已实装", "免费可用") if w in str(empty.get("note") or "")]
+        if bad:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "无核验数据时的说明仍含 %s（把'写了代码'说成'能取到数'）" % bad))
+        # 通道全部未响应 ⇒ 必须明说"未取到"，不得写成"已核验"
+        nohit = _buf({"comprehensive": {"external_verify": {
+            "channels_used": ["国家企业信用信息公示系统"],
+            "results": {"国家企业信用信息公示系统": {"ok": False, "error": "HTTP 521"}},
+            "assessment": {"verdict": "无法核实"}}}})
+        s = str(nohit.get("summary") or "")
+        if "未取到" not in s and "未取得" not in s:
+            issues.append(("ERROR", "engine/enterprise_report.py",
+                           "各通道均未取到数据时，摘要未明说「未取到」（%r）——"
+                           "会让人以为核验已生效" % s[:60]))
+        n = str(nohit.get("note") or "")
+        for k in ("如实", "未对接", "风控"):
+            if k not in n:
+                issues.append(("ERROR", "engine/enterprise_report.py",
+                               "外部核验说明缺「%s」的如实声明（缺口径会让读者误判能力）" % k))
+    except Exception as exc:                                       # noqa: BLE001
+        issues.append(("ERROR", "engine/enterprise_report.py",
+                       "外部核验报告章断言执行失败：%s" % exc))
+
+    # ── ② 前端文案：精确串（剥注释后）──
+    js_dir = ROOT / "static" / "js"
+    if js_dir.is_dir():
+        for p in sorted(js_dir.glob("*.js")):
+            rel = str(p.relative_to(ROOT)).replace("\\", "/")
+            try:
+                code = _js_code_only(p.read_text(encoding="utf-8", errors="replace"))
+            except OSError:
+                continue
+            if "4通道工商数据验证" in code:
+                issues.append(("ERROR", rel,
+                               "能力卡仍写「4通道工商数据验证」——其中天眼查/企查查**未对接**，"
+                               "公示系统受风控，须逐通道如实标注状态"))
+
+    # ── ③ Python 非 docstring 字面量（docstring 用于解释，不在此列）──
+    import ast as _ast
+    for p in sorted((ROOT / "engine").rglob("*.py")) + sorted(ROOT.glob("*.py")):
+        rel = str(p.relative_to(ROOT)).replace("\\", "/")
+        try:
+            src = p.read_text(encoding="utf-8", errors="replace")
+            tree = _ast.parse(src)
+        except (OSError, SyntaxError):
+            continue
+        doc_ids = set()
+        for node in _ast.walk(tree):
+            if isinstance(node, (_ast.Module, _ast.FunctionDef,
+                                 _ast.AsyncFunctionDef, _ast.ClassDef)):
+                body = getattr(node, "body", [])
+                if body and isinstance(body[0], _ast.Expr) \
+                        and isinstance(body[0].value, _ast.Constant) \
+                        and isinstance(body[0].value.value, str):
+                    doc_ids.add(id(body[0].value))
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Constant) and isinstance(node.value, str) \
+                    and id(node) not in doc_ids:
+                if "免费可用" in node.value:
+                    issues.append(("ERROR", rel,
+                                   "字符串字面量含「免费可用」（会直接下发到界面/报告）——"
+                                   "须改为如实描述实测状态"))
+
+    # ── 配置声明的通道 vs 代码实现 ──
+    try:
+        from engine.business_info import providers as PR
+        from engine.business_info import service as SVC
+        cfg = SVC.config()
+        declared = [str(x) for x in (cfg.get("providers") or [])]
+        impl = set(PR.registry().keys())
+        for name in declared:
+            if name not in impl:
+                issues.append(("ERROR", "config/business_info.json",
+                               "配置声明通道「%s」在 `providers._PROVIDERS` 中**没有实现**"
+                               "（假通道：配置说能用、代码里没有）" % name))
+        for name in sorted(impl - set(declared)):
+            issues.append(("ERROR", "config/business_info.json",
+                           "`providers` 已实现通道「%s」未登记在 `providers` 链上"
+                           "（实现了却不启用，等于没有）" % name))
+        routes = ((cfg.get("channel_plan") or {}).get("routes") or {})
+        for key, name in routes.items():
+            if name not in declared:
+                issues.append(("ERROR", "config/business_info.json",
+                               "路线 %s 指向「%s」，但它不在 `providers` 链上（路线未落地）"
+                               % (key, name)))
+        # 通道状态必须可查（否则界面/文档只能靠"能力声称"，正是本次事故的成因）
+        st = PR.channel_status(cfg)
+        if len(st) != len(declared):
+            issues.append(("ERROR", "engine/business_info/providers.py",
+                           "`channel_status()` 返回 %d 条，与配置通道数 %d 不一致"
+                           % (len(st), len(declared))))
+        for x in st:
+            if not str(x.get("note") or "").strip():
+                issues.append(("ERROR", "engine/business_info/providers.py",
+                               "通道「%s」缺如实状态说明（note 为空）" % x.get("provider")))
+    except Exception as exc:                                       # noqa: BLE001
+        issues.append(("ERROR", "engine/business_info/providers.py",
+                       "工商通道配置一致性断言执行失败：%s" % exc))
     return issues
 
 

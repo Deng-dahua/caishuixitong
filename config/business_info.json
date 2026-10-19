@@ -2,16 +2,73 @@
   "schema": 1,
   "version": "1.0.0",
   "updated": "2026-10-18",
-  "note": "工商信息查询的**唯一配置权威**。代码里不得出现 URL/UA/超时/阈值字面量；改行为只改本文件。\n★ 本文件**不含任何 API Key、账号、代理**：免费方案，鉴权只看环境变量 GSXT_COOKIE（可选）。\n★ 责任边界：外网抓取成败取决于公示系统风控（验证码/滑块），抓不到时**如实失败**，不伪造数据。",
+  "note": "工商信息查询的**唯一配置权威**。代码里不得出现 URL/UA/超时/阈值字面量；改行为只改本文件。\n★ 本文件**不含任何 API Key、账号、代理**：Token 一律只从环境变量读取（见 paid_api）。\n★ 通道方案（用户 2026-10-19 裁定）：**A（人工 cookie）+ C（付费 token）**，见 channel_plan。\n★ 责任边界：外网抓取成败取决于公示系统风控（验证码/滑块）与服务商配额，取不到时**如实失败**，不伪造数据。",
   "cache": {
     "ttl_hours": 168,
     "grace_hours": 720,
     "note": "ttl 内直接命中（不再发起外网请求，防反复触发反爬）；grace 内可命中但标记 stale=true（仍会尝试刷新失败后回退展示，并如实标注数据时点）。"
   },
+  "source_confidence": {
+    "local_db": 0.95,
+    "manual_cookie": 0.85,
+    "paid_api": 0.9,
+    "default": 0.7,
+    "note": "各通道取到数据的**置信度**（唯一权威，代码不得写死）。口径：本地库=用户自填值回读（高但非外部核验）；A 人工 cookie=公示系统原文（高）；C 付费服务=第三方整理（略低于官方原文）；未知通道取 default。"
+  },
   "providers": [
     "local_db",
-    "gsxt"
+    "manual_cookie",
+    "paid_api"
   ],
+  "channel_plan": {
+    "note": "★ 2026-10-19 用户裁定：工商通道走 **A + C**（B 逐省适配、D 仅线索，均不采用）。\nA = `manual_cookie`：人工过验证码后配置环境变量 GSXT_COOKIE（免费基线，取不到就如实失败）。\nC = `paid_api`：接通付费数据服务 token（覆盖率兜底，按调用量计费）。\n★ 顺序即优先级：本地库（离线、零反爬）→ A（免费）→ C（付费）。\n★ 代码里**不得**出现 URL / token / 环境变量名 / 超时字面量 —— 全部只在本文件。",
+    "routes": {
+      "A": "manual_cookie",
+      "C": "paid_api"
+    },
+    "retired": {
+      "B": "地方市监/税务公开数据逐省适配 —— 维护成本高、覆盖不全，不采用",
+      "D": "搜索引擎兜底 —— 只能给线索、不能作登记字段来源，仅作既有 `external_verifier` 的旁证，不进本通道链"
+    }
+  },
+  "manual_cookie": {
+    "enabled": true,
+    "route": "A",
+    "label": "A·人工过验证码（免费）",
+    "search_url": "https://www.gsxt.gov.cn/corp-query-search-1.html",
+    "max_candidates": 3,
+    "require_exact_name": true,
+    "cookie_env": "GSXT_COOKIE",
+    "cookie_required": true,
+    "anti_bot_markers": [
+      "验证码",
+      "滑动验证",
+      "拖动滑块",
+      "访问过于频繁",
+      "请输入图片中的字符",
+      "unusual traffic",
+      "captcha"
+    ],
+    "min_cookie_len": 12,
+    "note": "A 通道：国家企业信用信息公示系统**无公开免 Key API**，页面带验证码/滑块。\n运维步骤：①浏览器打开 search_url，人工通过验证码 ②复制请求头 Cookie ③写入环境变量 cookie_env（不落盘、不入代码）④配置后本通道即可无人值守复用至 cookie 失效。\n★ 实测（2026-10-19）：无 cookie 时该站返回 HTTP 521（风控拒绝），同环境百度/统计局/税务总局均 200 ⇒ 是对方反爬，非本机网络。\n★ 未配置 cookie ⇒ 本通道**如实失败**并给出上述可执行说明，**不伪造数据**。"
+  },
+  "paid_api": {
+    "enabled": true,
+    "route": "C",
+    "label": "C·付费数据服务（token）",
+    "token_env": "BUSINESS_API_TOKEN",
+    "provider_env": "BUSINESS_API_PROVIDER",
+    "base_url_env": "BUSINESS_API_BASE_URL",
+    "insecure_tls_env": "BUSINESS_API_INSECURE_TLS",
+    "timeout_sec": 6.0,
+    "max_bytes": 2097152,
+    "default_provider_name": "付费数据服务",
+    "known_providers": [
+      "tianyancha",
+      "qichacha"
+    ],
+    "note": "C 通道：通用**付费工商数据服务**（天眼查/企查查及同类），按调用量计费。\n★ 三个环境变量（**不在代码里写死**）：\n  token_env     —— API token（Bearer）；\n  provider_env  —— 服务商标识（如 tianyancha / qichacha）；\n  base_url_env  —— 服务查询接口地址（各服务商文档为准，**不在代码里硬编码域名**）。\n★ 另可用 insecure_tls_env=1 仅在该服务证书链不完整时临时放行（默认严格校验）。\n★ 未配置 token 或地址 ⇒ 如实失败并列出上述变量名，**不编造、不静默降级**。\n★ 字段映射：响应经 `engine.business_info.dto` 统一清洗（别名表已覆盖常见服务商字段名与中文标签），不在本通道内自建字段口径。"
+  },
   "request": {
     "total_timeout_sec": 9.0,
     "provider_timeout_sec": 7.0,

@@ -124,6 +124,10 @@ class ReportRenderUnitTests(unittest.TestCase):
                 assert V.SECTION_CN.get(s), s
             # 2) 名称合规：以唯一名称开头且不含禁用别名
             assert V.verify_view_names() == [], V.verify_view_names()
+            # 2b) ★ 2026-10-19：视图之间必须**真的不同**（tax_specific 曾与 full 完全重复）
+            assert V.verify_view_focus() == [], V.verify_view_focus()
+            assert V.focus_of('tax_specific') == 'tax'
+            assert V.focus_of('full') == 'severity'
             from engine.report_identity import canonical_name
             cn = canonical_name()
             for v in V.VIEWS:
@@ -132,7 +136,7 @@ class ReportRenderUnitTests(unittest.TestCase):
             # 3) 视图-章节映射与"如实登记被裁章节"
             assert set(V.sections_of('full')) == set(V.SECTIONS)
             assert V.omitted_sections_of('full') == []
-            for v in ('management', 'self_check'):
+            for v in ('tax_specific', 'management', 'self_check'):
                 keep, omit = set(V.sections_of(v)), set(V.omitted_sections_of(v))
                 assert keep & omit == set(), (v, keep & omit)
                 assert keep | omit == set(V.SECTIONS), (v, keep | omit)

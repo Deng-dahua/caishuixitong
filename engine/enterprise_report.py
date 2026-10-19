@@ -6476,9 +6476,33 @@ def _build_external_verify_report(report_data):
 
     数据来自 report_data["comprehensive"]["external_verify"]
     （engine/external_verifier 的 ExternalVerificationEngine.verify 输出）。
-    免费通道（国家企业信用公示系统+搜索引擎）已实装；天眼查/企查查需 token。
+
+    ★★ 2026-10-19（如实描述，纠正"声称 > 实际"）：
+      本函数原注释写「免费通道（国家企业信用信息公示系统+搜索引擎）**已实装**」，
+      实测**两半句真假不同**（证据见 `docs/核实_工商渠道与五类报告_20261019.md`）：
+
+        · 「已实装」——**指代码写了，不等于取得到数**。实测公示系统返回 **HTTP 521**
+          （风控拒绝：需人工过验证码/滑块），同环境百度/统计局/税务总局均 200
+          ⇒ 是**对方反爬**，不是本机网络。故「已实装」这个说法会让人以为核验真的生效了。
+        · 「搜索引擎」**确实可用**，但它只能判断"搜到/搜不到"，**不是工商登记字段的来源**
+          （登记字段的权威源只有公示系统；搜索通道内部判据偏松，不作核验依据）。
+
+      ⇒ 措辞改为**如实描述实测状态**：免费通道为「尽力而为」，受公示系统风控限制，
+        无人干预（过验证码）时**取不到登记字段**；要取到须 A（人工过验证码后配置
+        `GSXT_COOKIE`）或 C（付费 API token）。**缺数据时如实说"未取得"，不编造。**
     """
     ce = (report_data.get("comprehensive") or {}).get("external_verify") or {}
+    #: 各通道的**实测可用性**（如实声明，不带"已实装"这类会被误读为"生效"的词）
+    CHANNEL_HONESTY = {
+        "国家企业信用信息公示系统": ("已实现，但**当前受公示系统风控限制**"
+                                    "（实测 HTTP 521：需人工过验证码/滑块）⇒ 无人干预时取不到登记字段。"
+                                    "取到数据须：A 人工过验证码后配置环境变量 GSXT_COOKIE；"
+                                    "或 C 接通付费 API token。"),
+        "搜索引擎综合核实": "**可用**，但只判断「搜到/搜不到」，**不是工商登记字段来源**"
+                            "（登记字段权威源只有公示系统）；结论仅供参考、不作核验依据。",
+        "天眼查": "**未对接**（需商务账号 + token + 法务确认；已登记 v2 Backlog）⇒ 本次未启用。",
+        "企查查": "**未对接**（同上）⇒ 本次未启用。",
+    }
     if not ce:
         return {
             "title": "外部工商与风险核验（企业自报数据之外的独立视角）",
@@ -6507,7 +6531,8 @@ def _build_external_verify_report(report_data):
         if not isinstance(res, dict):
             continue
         if res.get("status") == "跳过(免费模式)":
-            chan_summary.append(f"{ch}：付费通道（本次未启用）")
+            chan_summary.append(f"{ch}：" + CHANNEL_HONESTY.get(
+                ch, "付费通道（本次未启用）"))
             continue
         if not res.get("ok"):
             # ★ 2026-09-29（点评整改）：原始 HTTP 错误码不出正式文书，转业务语言
@@ -6518,7 +6543,9 @@ def _build_external_verify_report(report_data):
                 _err = "连接超时"
             else:
                 _err = (_err[:24] or "未知原因")
-            chan_summary.append(f"{ch}：未响应（{_err}）")
+            _hon = CHANNEL_HONESTY.get(ch) or ""
+            chan_summary.append(f"{ch}：未响应（{_err}）"
+                                + (f"；{_hon}" if _hon else ""))
             continue
         if ch == "国家企业信用信息公示系统":
             st = res.get("status", "未知")
@@ -6526,7 +6553,8 @@ def _build_external_verify_report(report_data):
         elif ch == "搜索引擎综合核实":
             chk = res.get("checks") or {}
             det = "、".join([f"{k}={'有' if v else '无'}" for k, v in chk.items()])
-            chan_summary.append(f"{ch}：{det}；综合={res.get('assessment','')}")
+            chan_summary.append(f"{ch}：{det}；综合={res.get('assessment','')}"
+                                + f"（{CHANNEL_HONESTY.get(ch)}）")
         else:
             chan_summary.append(f"{ch}：{res.get('source','')} 已响应")
 
@@ -6556,18 +6584,34 @@ def _build_external_verify_report(report_data):
             lines.append(f"  - {s['signal']} → {s['hint']}")
     body = "\n".join(lines)
 
+    # ★ 2026-10-19（如实描述）：summary **不得**把"配了几个通道"说成"核验过了"。
+    #   实测公示系统被风控（521）⇒ 真相常是"通道配了但没取到数"。这里按**实际响应**
+    #   的免费通道数计，并在一个都没响应时明说"本轮未取到外部核验数据"（不制造假闭环）。
+    _free = [c for c in channels if c not in ("天眼查", "企查查")]
+    _resp = [c for c in _free
+             if isinstance(results.get(c), dict) and results[c].get("ok")]
+    if _resp:
+        _sum = ("本轮通过 %d 个免费通道（实际响应 %d 个：%s）对企业工商与风险状况作独立核验，"
+                "综合结论：%s。" % (len(_free), len(_resp), "、".join(_resp), verdict))
+    else:
+        _sum = ("本轮已配置 %d 个免费通道，但**均未取到数据**（公示系统受风控拦截：需人工过验证码），"
+                "未能对外部工商登记信息作独立核验，综合结论：%s。" % (len(_free), verdict))
     return {
         "title": "外部工商与风险核验（企业自报数据之外的独立视角）",
         "available": True,
-        "summary": f"本轮通过{len([c for c in channels if c not in ('天眼查','企查查')])}个免费通道对企业工商与风险状况作独立核验，"
-                   f"综合结论：{verdict}。",
+        "summary": _sum,
         "body": body,
         "channels": chan_summary,
         "signals": signals,
         "verdict": verdict,
         "recommendation": rec,
         "note": "外部核验结论属「待证线索」，由企业自报数据之外的公开/第三方视角所得，仅供风险检查员延伸调查参考，"
-                "不作为定性依据；付费深度通道（天眼查/企查查）配置 token 后可自动启用，进一步穿透股权与关联企业。",
+                "不作为定性依据。★ 通道可用性**如实声明**：国家企业信用信息公示系统通道已实现，"
+                "但当前受对方风控限制（需人工过验证码/滑块）⇒ 无人干预时取不到登记字段，"
+                "取到须 A（人工过验证码后配置 GSXT_COOKIE）或 C（接通付费 API token）；"
+                "搜索引擎通道可用但只判断「搜到/搜不到」，**不是登记字段来源**；"
+                "天眼查/企查查**未对接**（需商务账号 + token + 法务确认）。"
+                "缺数据时一律如实记为「未取得」，**不编造、不用默认值顶替**。",
     }
 
 

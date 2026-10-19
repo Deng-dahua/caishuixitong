@@ -86,6 +86,21 @@ def _warning_of(profile: Dict[str, Any], cfg: Dict[str, Any]) -> Optional[str]:
     return None
 
 
+def confidence_of(provider: Any, cfg: Dict[str, Any]) -> float:
+    """通道 → 置信度（**唯一权威** `config/business_info.json::source_confidence`）。
+
+    ★ 2026-10-19：此前写死 `0.95 if res.provider == "local_db" else 0.7` ——
+      在"只在 local_db 与 gsxt 之间二选一"时勉强够用，但通道一扩容（A/C）就会
+      把新通道一律按 0.7 处理（**口径漂移**）。现改为配置表驱动，新增通道只加一行。
+    """
+    tbl = cfg.get("source_confidence") or {}
+    try:
+        return float(tbl.get(str(provider)) if tbl.get(str(provider)) is not None
+                     else tbl.get("default", 0.7))
+    except Exception:                                            # noqa: BLE001
+        return 0.7
+
+
 class BusinessInfoService:
     """工商信息查询服务（可注入 engine 便于测试隔离）。"""
 
@@ -152,7 +167,7 @@ class BusinessInfoService:
                 continue
             prof = DTO.build_profile(res.raw, cfg=cfg, source=res.provider,
                                      source_detail=res.source_detail,
-                                     confidence=0.95 if res.provider == "local_db" else 0.7)
+                                     confidence=confidence_of(res.provider, cfg))
             if not prof.name:
                 prof.name = raw_name
             if not prof.name:
@@ -270,4 +285,13 @@ def query_company(name: Any, *, project_id: Optional[int] = None,
     return _with_derived(res)
 
 
-__all__ = ["BusinessInfoService", "query_company", "config", "reset_cache"]
+def channels(*, engine: Any = None) -> Dict[str, Any]:
+    """各通道的**如实状态**（供接口/界面展示"现在到底能用哪个"，唯一来源 = providers）。"""
+    cfg = config()
+    return {"providers": list(cfg.get("providers") or []),
+            "plan": (cfg.get("channel_plan") or {}),
+            "items": PR.channel_status(cfg)}
+
+
+__all__ = ["BusinessInfoService", "query_company", "config", "reset_cache",
+           "confidence_of", "channels"]

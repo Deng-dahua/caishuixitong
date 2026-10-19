@@ -4,11 +4,22 @@
 设计：插件式架构，新数据源只需实现 verify() 方法即可接入。
 AGI自动选择最合适的验证渠道。
 
-当前支持：
-  - 国家企业信用信息公示系统 (免费，HTML解析)
-  - 天眼查 API (token配置)
-  - 企查查 API (token配置)
-  
+★★ 2026-10-19（如实描述，纠正"声称 > 实际"）：本模块头部原写
+   「当前支持：国家企业信用信息公示系统 (免费，HTML解析) / 天眼查 API (token配置) /
+     企查查 API (token配置)」——**"支持"与"能用"是两回事**，实测状态如下
+   （证据：`docs/核实_工商渠道与五类报告_20261019.md`）：
+
+   | 通道 | 代码 | 实测可用性 |
+   |---|---|---|
+   | 国家企业信用信息公示系统 | `GovCreditVerifier` | 站点受风控（实测 HTTP 521）⇒ **无人干预时取不到**；本类实际走**搜狗检索**间接取状态，非登记字段权威源 |
+   | 搜索引擎综合核实 | `SearchEngineVerifier` | **可用**，但只判断"搜到/搜不到"，**不是登记字段来源**，结论仅供参考 |
+   | 天眼查 | `TianyanchaVerifier` | **未对接**（需商务账号+token+法务确认，已登记 v2 Backlog），`verify_company` 如实返回 `not_integrated` |
+   | 企查查 | `QichachaVerifier` | **未对接**（同上） |
+
+   ⇒ 真实可无人值守取到**工商登记字段**的通道目前**为 0**；要取到须
+     A（人工过验证码后配置 `GSXT_COOKIE`，见 `engine/business_info`）或
+     C（接通付费 API token）。**缺数据一律如实记为"未取得"，不编造、不用默认值顶替。**
+
 默认回退：搜索引擎模糊核实（搜狗/360）
 """
 import json, os, re, time
@@ -69,7 +80,9 @@ class GovCreditVerifier(BaseVerifier):
             return {"ok": False, "error": str(e), "source": self.name}
     
     def get_status(self):
-        return "免费可用"
+        # ★ 2026-10-19：不得写"免费可用"（那会让人以为能取到登记字段）。
+        #   实测该站受风控（HTTP 521），且本类实际走搜狗检索间接取状态。
+        return "受风控限制（需人工过验证码）·非登记字段权威源"
 
 # ═══════════════════ 2. 搜索引擎综合核实 ═══════════════════
 
@@ -129,52 +142,57 @@ class SearchEngineVerifier(BaseVerifier):
         }
     
     def get_status(self):
-        return "免费可用(搜索引擎)"
+        return "可用（但只判断搜到/搜不到，非登记字段来源）"
 
 
 # ═══════════════════ 3. 天眼查API ═══════════════════
 
 class TianyanchaVerifier(BaseVerifier):
     name = "天眼查"
-    
+
     def __init__(self):
         # 从环境或配置加载token
         self.token = os.environ.get("TYC_TOKEN", "")
-    
-    def verify_company(self, company_name: str, tax_id: str = "") -> Dict:
-        if not self.token:
-            return {"ok": False, "error": "天眼查Token未配置", "configure": "设置环境变量 TYC_TOKEN"}
 
-        # ★ 2026-10-18（收口）：**未实现，且不假装实现**。
-        #   这是"外部数据源对接"，需要①正式商务账号 ②按厂商文档实现签名/限流/字段映射
-        #   ③法务确认调用范围 —— 三件都不在代码侧，无法靠"写个函数"完成。
-        #   因此这里不做 TODO 式占位（TODO 会被当成"快好了"，反而掩盖真状态），
-        #   而是**如实返回"未对接"**并登记到《v2 Backlog》。
-        #   现状：系统在缺此数据源时按"外部核验不可得"走中性口径（不臆断、不降级为风险）。
+    def verify_company(self, company_name: str, tax_id: str = "") -> Dict:
+        # ★ 2026-10-19（如实描述）：原实现在**未配置 token** 时返回
+        #   `{"ok": False, "error": "天眼查Token未配置"}` —— 这会让读者以为
+        #   "**配了 token 就能用**"。事实是：**API 根本没对接**，配了 token 也用不了
+        #   （还需商务账号 + 按厂商文档实现签名/限流/字段映射 + 法务确认）。
+        #   故统一如实标注 `status=not_integrated`，token 状态只作附加信息。
+        #   ★ 不做 TODO 式占位（TODO 会被当成"快好了"，反而掩盖真状态）。
+        _tok = "（TYC_TOKEN 已配置，但接口仍未对接）" if self.token else ""
         return {"ok": False,
-                "error": "天眼查 API 未对接（需商务账号与法务确认，已登记 v2 Backlog）",
+                "error": "天眼查 API **未对接**（需商务账号、接口实现与法务确认；"
+                         "已登记 v2 Backlog）" + _tok,
                 "source": self.name,
                 "status": "not_integrated"}
-    
+
     def get_status(self):
-        return "已配置" if self.token else "未配置Token"
+        return ("未对接（需商务账号 + 接口实现 + 法务确认）"
+                + ("；token 已配置" if self.token else ""))
 
 
 # ═══════════════════ 4. 企查查API ═══════════════════
 
 class QichachaVerifier(BaseVerifier):
     name = "企查查"
-    
+
     def __init__(self):
         self.token = os.environ.get("QCC_TOKEN", "")
-    
+
     def verify_company(self, company_name: str, tax_id: str = "") -> Dict:
-        if not self.token:
-            return {"ok": False, "error": "企查查Token未配置", "configure": "设置环境变量 QCC_TOKEN"}
-        return {"ok": False, "error": "API对接待实现", "source": self.name}
-    
+        # 与天眼查同口径：**未对接**就是未对接，不因"没配 token"而换个说法。
+        _tok = "（QCC_TOKEN 已配置，但接口仍未对接）" if self.token else ""
+        return {"ok": False,
+                "error": "企查查 API **未对接**（需商务账号、接口实现与法务确认；"
+                         "已登记 v2 Backlog）" + _tok,
+                "source": self.name,
+                "status": "not_integrated"}
+
     def get_status(self):
-        return "已配置" if self.token else "未配置Token"
+        return ("未对接（需商务账号 + 接口实现 + 法务确认）"
+                + ("；token 已配置" if self.token else ""))
 
 
 # ═══════════════════ 验证引擎 ═══════════════════
@@ -249,7 +267,11 @@ class ExternalVerificationEngine:
             "verdict": ("需深入核实" if abnormal_count > 0
                         else ("正常" if verified_any > 0 else "无法核实（各通道均未检索到可核实信息）")),
             "recommendation": (
-                "建议通过天眼查/企查查进一步核实" if abnormal_count > 0
+                # ★ 2026-10-19（如实描述）：原写「建议通过天眼查/企查查进一步核实」——
+                #   但那两个通道**尚未对接**（需商务账号+token），照原样写等于让读者
+                #   以为"点一下就能用"。改为**如实说明须先接通**。
+                "存在异常信号，建议先接通付费核验通道（天眼查/企查查，当前未对接、需 token）"
+                "或人工查验公示系统后复核" if abnormal_count > 0
                 else "企业工商信息正常" if verified_any > 0
                 else "所有渠道均未检索到可核实信息，本结论不构成无风险证明，建议人工查验或接通付费通道"
             ),

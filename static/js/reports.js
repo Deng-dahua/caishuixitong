@@ -92,6 +92,11 @@ function renderViewCards() {
       + '<div class="vt">' + esc(v.label) + '</div>'
       + '<div class="vn">' + esc(v.name) + '</div>'
       + '<div class="vd">' + esc(v.desc) + '</div>'
+      // ★ 2026-10-19（真做税种聚焦）：把**组织维度**显式写出来 ——
+      //   此前 `tax_specific` 与 `full` 内容相同，用户无法从卡片看出差别
+      //   （当时唯一差别是报告名）。`focus_label` 由后端下发（唯一权威
+      //   `report_views.FOCUS_LABEL`），前端不自写文案。
+      + (v.focus_label ? '<div class="vc">组织方式：' + esc(v.focus_label) + '</div>' : '')
       + '<div class="vc">含 ' + (v.sections || []).length + ' 章'
       + ((v.omitted_sections || []).length
           ? '；未含：' + (v.omitted_sections || []).map(function (x) { return esc(x.label); }).join('、')

@@ -78,6 +78,21 @@ def query_business_info(
                 "data_quality": {"missing": [], "notes": []}}
 
 
+@router.get("/channels", summary="各工商通道的**如实状态**（A/C 是否已配置、哪条现在真能用）")
+def business_channels(request: Request, response: Response) -> Dict[str, Any]:
+    """返回通道事实（**不是能力声称**）：每条通道的已配置/可用状态与说明。
+
+    ★ 2026-10-19 立：界面与文档长期只写"4 通道工商数据验证"这类**能力声称**，
+      读者看不出"哪条现在真能取到数"。本接口把事实集中到唯一来源
+      （配置 + 环境变量），供界面如实展示。
+    ★ 只读、不触发任何外网请求；密钥类环境变量**只报"是否已配置"，不回显值**。
+    """
+    session = _session(request)
+    _require_perm(session, "project.write")
+    response.headers["Cache-Control"] = "no-store"
+    return BI.channels()
+
+
 @router.get("/cached", summary="只看本地已落库的工商档案（不触发外网请求）")
 def cached_business_info(
     request: Request,

@@ -273,11 +273,22 @@ class ContractTests(unittest.TestCase):
         self.assertIn('/api/v1/business', src)
         # ★ 必须定位到 **query 函数体**：`cached` 里也有一行同样的门禁，
         #   只扫全文会让"query 的门禁被删掉"这种退化**照样通过**（反向验证抓出来的）。
+        # ★ 2026-10-19 收紧右边界：原先以 `def cached_business_info` 为界，
+        #   后来在它**之前**插入了 `def business_channels`（同样带门禁）⇒
+        #   切片会把它包进来，于是"删掉 query 的门禁"**仍能通过**（判据变假）。
+        #   现改为"到**下一个顶层 def** 为止"，无论中间再插几个端点都不会放宽。
         i = src.index("def query_business_info")
-        j = src.index("def cached_business_info")
+        m = re.search(r"\ndef [a-zA-Z_]", src[i + 10:])
+        j = i + 10 + m.start() if m else len(src)
         seg = src[i:j]
         self.assertIn('_require_perm(session, "project.write")', seg,
                       "query 接口必须校验「创建项目的权限」")
+        # 新增的 /channels 端点同样必须门禁（它暴露配置状态，不等于公开信息）
+        c = src.index("def business_channels")
+        mc = re.search(r"\ndef [a-zA-Z_]", src[c + 10:])
+        cj = c + 10 + mc.start() if mc else len(src)
+        self.assertIn('_require_perm(session, "project.write")', src[c:cj],
+                      "channels 接口必须校验「创建项目的权限」")
 
     def test_frontend_button_and_perm_registration(self):
         import json

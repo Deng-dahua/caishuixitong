@@ -1234,7 +1234,7 @@ async function renderAgiDashboard(container) {
     h += '<div class="agi-card-grid">';
     h += _agiEngineCard('⚡','并行加速','ParallelRunner','<code>parallel_runner.py</code>','多模块并行执行——基于模块间依赖DAG自动计算并行执行计划。有依赖→串行，无依赖→并行（39个域分析函数间互不依赖→全部并行）。max_workers默认4，可配置调整。串行/并行可开关切换——调试用串行追踪错误，生产用并行加速。性能：36域串行约45秒→并行约25-30秒→提升35-45%。','青');
     h += _agiEngineCard('🛡️','覆盖层引擎','OverrideEngine','<code>override_engine.py</code>','AGI自主修正安全回滚机制——防止自学习过度修正。四阶段状态机：①待审核→覆盖建议等待确认 ②激活→人工确认后生效 ③生效中→监控效果→假阴性触发回滚 ④紧急恢复→一键回滚所有激活覆盖→清零AGI修正。完整审计日志记录每次激活/回滚，持久化到overrides_storage.json。','红');
-    h += _agiEngineCard('🔒','外部验证','ExternalVerifier','<code>external_verifier.py</code>','4通道工商数据验证——任一通道成功即更新企业信息。①天眼查API（需配置Key）②企查查API（备用）③国家企业信用信息公示系统（免费）④搜索引擎后备（仅供参考标注「待核实」）。结果写入entity_profile.json→24小时缓存有效期。','蓝');
+    h += _agiEngineCard('🔒','外部验证','ExternalVerifier','<code>external_verifier.py</code>','4个核验通道<b>如实声明状态</b>——①天眼查API：未对接（需商务账号+token+法务确认）②企查查API：未对接（同上）③国家企业信用信息公示系统：已实现但<b>当前受对方风控限制</b>（实测 HTTP 521，需人工过验证码）⇒ 无人干预时取不到登记字段；人工过验证码后配置环境变量 GSXT_COOKIE 方可取数 ④搜索引擎后备：可用，但只判断「搜到/搜不到」，不是登记字段来源，仅作线索。核验结论一律标注「待核实」，缺数据如实记为未取得。','蓝');
     h += '</div></section>';
 
     // ═══ 七、调度中枢（2个） ═══
@@ -1422,7 +1422,7 @@ function _renderAgiFallback(container, errMsg) {
     '</div>' +
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;">' +
       _agiCard('🗣️','对话税务合规','—','中文税务问答') +
-      _agiCard('🔗','外部验证','—','天眼查/企查查/工商') +
+      _agiCard('🔗','外部验证','—','4通道·状态如实声明') +
       _agiCard('🔁','闭环自检','—','AGI自主修正覆盖层') +
       _agiCard('⚡','并行加速','—','多域并发分析') +
     '</div>' +
