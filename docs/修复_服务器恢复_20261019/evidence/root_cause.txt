@@ -1,0 +1,48 @@
+# 「服务器进不去」根因（2026-10-19 实测）
+
+## 现象
+curl --noproxy '*' http://127.0.0.1:8001/healthz  → 连接失败（无监听）
+注意：不带 --noproxy 时返回 502 —— 那是本机 http_proxy(127.0.0.1:54878) 的应答，
+      不是服务本身，排查时务必加 --noproxy '*'。
+
+## 根因链（日志原文）
+data/logs/server8001.combined.log 尾部：
+  [2026-10-19T13:59:42+08:00] 守护启动：127.0.0.1:8001 → ...\server8001.combined.log
+  Traceback (most recent call last):
+    File "...\scripts\serve_supervisor.py", line 96, in main
+      proc = _spawn()
+    File "...\scripts\serve_supervisor.py", line 72, in _spawn
+      out = SERVER_LOG.open("a", encoding="utf-8")
+  PermissionError: [Errno 13] Permission denied:
+      '...\caishuixitong\data\logs\server8001.combined.log'
+  [launcher] exit  code=1
+
+时间线：
+  13:17:34  正常拉起（PID=18532）
+  13:59:42  试图重启时，日志文件被"上一轮遗留子进程"占用（Windows 对打开中的文件拒绝再打开）
+  13:59:42+ **守护进程整个退出** —— 连"将在 Xs 后重启"都没写
+
+## 为什么这是可用性缺口（比"一次启动失败"严重得多）
+守护器本来的职责是"崩溃自动重启"。但它自己因为**打不开日志**就死了
+⇒ 服务无人拉起、守护也没了 ⇒ 用户看到"服务器进不去"，且**不会自愈**。
+
+## 两处同源缺陷
+1. `_spawn()` 的 `SERVER_LOG.open("a")` 无异常处理，异常冒泡出主 `while` 循环
+   （主循环当时也没有兜底）⇒ 守护进程退出；
+2. `_log()` 同样没有兜底 —— 测试跑出来才发现：当**所有**日志文件都不可写时，
+   `_open_server_log` 的兜底分支里调 `_log` 报"备用日志也不可写"，
+   而 `_log` 自己写不进去 ⇒ 异常又冒出去。
+
+## 修复
+1. `_open_server_log()`：重试 5 次 × 0.4s（Windows 句柄释放常只需几百毫秒，
+   重试可保住"日志路径单一权威"）→ 仍失败则开**带时间戳的备用日志**并留痕 →
+   再失败退 `DEVNULL`。**三级兜底始终返回可用写入目标，绝不抛**。
+2. 主循环 `try: _spawn() except Exception`：吞下异常、按退避重试、留痕、不退出
+   （`--once` 模式返回 1；若端口已被别人监听则正常交接退出）。
+3. `_log()`：`OSError` 一律吞，退化为 stdout；stdout 再失败也吞。
+   —— "服务不能因为日志而不可用"。
+
+## 恢复结果
+16:04:07 守护重启 → PID=6388 → healthz=200、/login=200，
+真 Chrome 实测：登录页正常 → 登录后落 page-home → 项目列表首行显示
+「PJ-20261018-0001 深圳海更数字传媒有限公司 … 张晓冬 1,000 万元 … 广告传媒 广东省深圳市 …」
