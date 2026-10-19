@@ -15590,3 +15590,73 @@ async def change_password_page():
     """修改密码页(需登录)。"""
     return _read_html("static/change_password.html")
 
+
+@app.post("/api/auth/change-password-public")
+async def api_auth_change_password_public(request: Request):
+    """**未登录**自助修改密码（2026-10-19，用户要求：修改密码设置到登录页面）。
+
+    ## 为什么需要未登录版本
+    用户把「修改密码」从登录后的侧边栏移到了**登录页** —— 这意味着用户可能在
+    **登录不进去的时候**（比如忘了自己改过的密码）就来改密。若强制先登录，
+    该入口在最需要它的场景下不可用（忘了密码 ⇒ 登不进去 ⇒ 改不了）。
+
+    ## 凭据强度 = 登录
+    必须提供「账号 + 原密码 + 新密码」。验证原密码通过才允许改 ——
+    与登录同一强度（都要求知道原密码）。**故它不是提权入口**：
+    能通过本端点的人，本来就能登录。
+
+    ## ★ 安全护栏（三条，缺一不可）
+      ① **复用登录限流**（`login_is_allowed` / `record_login_result`）：
+         否则本端点会成为**绕过登录限流的密码爆破入口** ——
+         攻击者可以拿它反复试原密码，而登录端点那边风平浪静。
+      ② 失败**不泄露账号是否存在**：统一回「账号或原密码不正确」，
+         避免"账号是否存在"被枚举（`change_password_with_old` 对 user not found
+         与密码错误抛的都是 ValueError，此处统一措辞）。
+      ③ **改密后撤销该用户全部会话**（`change_password_with_old` 已内建），
+         并要求重新登录 —— 改密即踢下线，不给旧会话留窗口。
+
+    ## 免登录白名单
+    本路径必须登记到 `security.is_public_path`（否则请求先被鉴权中间件拦成 401，
+    永远到不了本处理器）—— 与 `/api/auth/register` 同一处理。
+    同时写入 `security_web._AUTH_FLOW` 审计例外（认证流页面，非业务操作）。
+    """
+    from security import (change_password_with_old as _cpwo,   # noqa: PLC0415
+                          login_is_allowed as _lia,
+                          normalize_client_ip as _ncip,
+                          record_login_result as _rlr)
+    from engine.audit_trail import record as _at_rec            # noqa: PLC0415
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "message": "请求体非法"}, status_code=400)
+    username = str(body.get("username") or "").strip()
+    old = str(body.get("old_password") or "")
+    new = str(body.get("new_password") or "")
+    if not username or not old or not new:
+        return JSONResponse({"ok": False, "message": "请填写账号、原密码与新密码"},
+                            status_code=400)
+    client_ip = _ncip(request.client.host if request.client else "")
+    allowed, retry_after = _lia(username, client_ip)
+    if not allowed:
+        _at_rec("auth.change_password", target=username, company_id=None,
+                detail="未登录改密被限流（%d 秒）" % retry_after, request=request)
+        return JSONResponse(
+            {"ok": False, "message": "尝试次数过多，请在 %d 秒后重试" % retry_after},
+            status_code=429, headers={"Retry-After": str(retry_after)})
+    try:
+        _cpwo(username, old, new)
+    except ValueError as exc:
+        _rlr(username, client_ip, False)                        # ★ 计入限流（同登录口径）
+        # ★ 统一措辞：不区分"账号不存在"与"原密码错误"，防账号枚举
+        detail = str(exc)
+        public = ("账号或原密码不正确"
+                  if ("not found" in detail or "原密码不正确" in detail)
+                  else detail)
+        _at_rec("auth.change_password", target=username, company_id=None,
+                detail="未登录改密失败：%s" % detail, request=request)
+        return JSONResponse({"ok": False, "message": public}, status_code=400)
+    _rlr(username, client_ip, True)                             # 成功 ⇒ 清该身份失败计数
+    _at_rec("auth.change_password", target=username, company_id=None,
+            detail="未登录自助改密成功（已验证原密码；全部会话已撤销）", request=request)
+    return {"ok": True, "message": "密码已修改，请用新密码登录"}
+

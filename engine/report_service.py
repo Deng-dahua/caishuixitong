@@ -1233,6 +1233,134 @@ def list_reports(session: Any, *, project_id: Any = None, company_id: Any = None
 
 
 @_boundary
+def delete_reports(report_ids: Any, session: Any, *, request: Any = None,
+                   engine: Any = None) -> Dict[str, Any]:
+    """批量删除**交付物登记**及其落盘文件（2026-10-19，用户要求"删除选中"）。
+
+    ## 删除范围（★ 逐项如实，绝不扩大）
+    对每个 `report_id`（= 文书编号 `doc_no`，兼容 `reports.id`）：
+      ① `reports` 表**登记行** —— 删掉 ⇒ 报告不再出现在列表；
+      ② 该行 `files` 里登记的**落盘产物**（pdf/docx/xlsx/html）——
+         经 `runtime_storage.move_to_trash` **移入回收站**（可恢复），
+         **绝不 `os.remove`**（本项目铁律：删物理文件一律可恢复）。
+
+    ## 明确**不删**（如实声明）
+      · **版本台账行**（`data/report_versions.jsonl`）**保留** —— 该台账是
+        **append-only 审计留痕**（本模块明载"同一份报告重复生成也要留两条，
+        生成动作本身要可追溯"）。删台账会让"这份报告曾经生成过"这一事实消失，
+        与审计要求冲突。故删除动作只在 `audit_trail` 里留一条 `report.delete`。
+      · **不碰**分析结果/资料/上传原件/其它报告 —— 那些是账套级对象，
+        归 `purge_company_analysis_artifacts` 管（本函数**只删报告交付物**）。
+
+    ## 口径：逐条返回结果（不谎报）
+    返回 `{deleted:[...], skipped:[{id, reason}], cleared:[...], leftovers:[...]}`。
+    越权/不存在 ⇒ 该条进 `skipped`（**不整批失败** —— 批量删除里一条失败不该拖垮其余，
+    但必须让用户看见是哪条、为什么，绝不静默跳过）。
+    """
+    from runtime_storage import move_to_trash, report_output_root   # noqa: PLC0415
+    from sqlalchemy import text as _sql                            # noqa: PLC0415
+    from engine.report_store import _default_engine               # noqa: PLC0415
+
+    ids = report_ids if isinstance(report_ids, (list, tuple, set)) else [report_ids]
+    ids = [str(x).strip() for x in ids if str(x or "").strip()]
+    if not ids:
+        raise ReportServiceError("未提供要删除的报告（report_ids 为空）", 400)
+    if len(ids) > 200:
+        raise ReportServiceError("一次最多删除 200 份报告（本次 %d）" % len(ids), 400)
+
+    eng = engine if engine is not None else _default_engine()
+    STORE.ensure_schema(eng)
+    allowed = {int(x) for x in (getattr(session, "allowed_company_ids", ()) or ())}
+    is_admin = bool(getattr(session, "is_admin", False))
+    root = os.path.abspath(report_output_root())
+
+    deleted: List[Dict[str, Any]] = []
+    skipped: List[Dict[str, Any]] = []
+    cleared: List[str] = []
+    leftovers: List[str] = []
+
+    for rid in ids:
+        # 1) 定位登记行：先按 doc_no，再兼容按主键 id
+        with eng.connect() as conn:
+            row = conn.execute(_sql(
+                "SELECT * FROM reports WHERE doc_no = :x"), {"x": rid}).mappings().first()
+            if row is None and rid.isdigit():
+                row = conn.execute(_sql(
+                    "SELECT * FROM reports WHERE id = :x"), {"x": int(rid)}).mappings().first()
+        if row is None:
+            skipped.append({"id": rid, "reason": "报告不存在（可能已被删除）"})
+            continue
+        row = dict(row)
+        cid = int(row.get("company_id") or 0)
+        # 2) 租户边界：跨租户按"不存在"处理（不泄露存在性，与列表/详情同口径）
+        if not is_admin and allowed and cid not in allowed:
+            skipped.append({"id": rid, "reason": "无权访问该报告（或不存在）"})
+            continue
+
+        # 3) 先移文件（可恢复），再删登记行 —— 顺序很重要：
+        #    若先删行后移文件，中途失败会留下"文件在、登记没了"的孤儿（无法再定位）。
+        files = row.get("files") or {}
+        if isinstance(files, str):
+            try:
+                files = json.loads(files)
+            except Exception:                                    # noqa: BLE001
+                files = {}
+        # ★ `leftovers` 是**跨条目累积**的全局列表，故本条目的失败必须单独判 ——
+        #   直接 `if leftovers:` 会让"第一条失败"把后面所有条目都误判为有残留
+        #   （每轮都 skip），这是遍历里最典型的累积型误判。
+        before = len(leftovers)
+        for fmt, rel in (files or {}).items():
+            rel = str(rel or "")
+            if not rel:
+                continue
+            path = os.path.abspath(os.path.join(root, rel))
+            if not path.startswith(root + os.sep):
+                leftovers.append("路径非法（越界，未处理）：%s" % rel)
+                continue
+            if not os.path.exists(path):
+                continue                      # 已不在（可能上一轮删过）：不算失败
+            try:
+                # `move_to_trash` 返回 **bool**（是否移动成功），路径由它内部决定
+                # （同名冲突会加序号），故此处只判成功与否、不自造目标路径。
+                moved = move_to_trash(path)
+                if not moved:
+                    leftovers.append("文件 %s 未能移入回收站（move_to_trash 返回 False）" % rel)
+                else:
+                    cleared.append(rel)
+            except Exception as exc:                              # noqa: BLE001
+                # 移不动 ≠ 静默：如实记账，且**不删登记行**（否则文件成孤儿）
+                leftovers.append("文件 %s 移入回收站失败：%s" % (rel, exc))
+        if len(leftovers) > before:
+            # 有未清干净的文件 ⇒ 保留登记行，让用户能重试（不制造孤儿文件）
+            skipped.append({"id": rid, "reason": "部分文件未能移入回收站，已保留登记以便重试"})
+            continue
+
+        # 4) 删登记行
+        with eng.begin() as conn:
+            conn.execute(_sql("DELETE FROM reports WHERE id = :i"), {"i": int(row["id"])})
+        with eng.connect() as conn:
+            still = conn.execute(_sql("SELECT 1 FROM reports WHERE id = :i"),
+                                 {"i": int(row["id"])}).fetchone()
+        if still is not None:
+            leftovers.append("登记行 %s 删除后回读仍存在" % rid)
+            continue
+        deleted.append({"id": rid, "doc_no": row.get("doc_no"),
+                        "version": row.get("version"), "name": row.get("name"),
+                        "company_id": cid, "files": len(files or {})})
+        _audit("report.delete", row, cid,
+               "删除报告交付物：文书编号 %s（版本 %s）、视图 %s、移入回收站文件 %d 个；"
+               "版本台账行按 append-only 口径**保留**"
+               % (row.get("doc_no"), row.get("version"), row.get("view"), len(files or {})),
+               request, session)
+
+    return {"deleted": deleted, "skipped": skipped, "cleared": cleared,
+            "leftovers": leftovers,
+            "note": ("已删除的是**交付物登记 + 落盘文件**（文件移入回收站，可恢复）；"
+                     "版本台账 `data/report_versions.jsonl` 按 append-only 口径**保留**，"
+                     "未删除 —— 该台账是报告曾经生成过的审计留痕。")}
+
+
+@_boundary
 def versions(company_id: Any, session: Any) -> Dict[str, Any]:
     """某账套的报告**版本台账**（唯一权威 `report_compliance.change_log`）。"""
     from engine import report_compliance as RC                   # noqa: PLC0415

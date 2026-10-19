@@ -63,6 +63,12 @@ INTENTIONALLY_UNREGISTERED = {
     # ① 公共路径（`security.is_public_path` 白名单，必须免登录）
     ("POST", "/api/auth/login"): "登录（公开路径）",
     ("POST", "/api/auth/register"): "免登录账号设置（公开路径）",
+    # ★ 2026-10-19（用户要求：修改密码设置到登录页面）：未登录自助改密。
+    #   属**公共路径**（已登记 `security.is_public_path`），且**必须**公开 ——
+    #   该入口最需要它的场景就是"忘了密码登不进去"。凭据=账号+原密码（与登录同强度），
+    #   且**复用登录限流**（`login_is_allowed`/`record_login_result`），
+    #   故不构成绕过限流的密码爆破面，也不是提权入口。
+    ("POST", "/api/auth/change-password-public"): "未登录自助改密（公开路径；凭据=账号+原密码，复用登录限流）",
     # ② 自我服务（已按 `auth.user_id` 做所有权隔离，不属功能权限点管辖）
     ("POST", "/api/auth/logout"): "登出自己",
     ("POST", "/api/auth/select-company"): "选择自己可见的账套",

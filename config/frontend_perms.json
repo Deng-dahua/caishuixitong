@@ -238,6 +238,11 @@
         "id": "pane-gen",
         "perm": "report.generate",
         "what": "生成报告表单区"
+      },
+      {
+        "id": "btn-del-reports",
+        "perm": "report.generate",
+        "what": "报告列表「删除选中」（与生成报告同功能域；服务端 POST /api/v1/reports/delete 亦校验该权限）"
       }
     ],
     "backup.html": [

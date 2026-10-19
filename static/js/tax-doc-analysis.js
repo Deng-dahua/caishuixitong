@@ -382,7 +382,13 @@ async function refreshTaxDocList() {
     var listEl = document.getElementById('tda-file-list');
 
 
-    if (!listEl) { console.error('[tax-doc] tda-file-list 元素不存在'); return; }
+    // ★ 2026-10-19：资料清单展示**早已并入 `/documents`**（见本文件 `renderTaxDocAnalysis`
+    //   里 2026-10-14 的注释），`#tda-file-list` 在本系统**任何页面都不再存在**
+    //   （已实测：22 个独立页 + SPA 内页全部无此元素）。此前的 `console.error` 属
+    //   **误导性报错** —— 它把"功能已合并"报成"出错了"，且每渲染一次报告就白跑一次
+    //   `/api/tax-risk-docs/list` 请求（在 `/reports` 的「分析报告」页签上会反复出现）。
+    //   现改为**静默正常返回**：这不再是异常，而是"该功能已迁移"的预期状态。
+    if (!listEl) { return; }
 
 
     // 更新文件数量显示
@@ -2755,7 +2761,12 @@ function renderTaxDocReport(r) {
   }
 
 
-  if (typeof refreshTaxDocList === 'function') refreshTaxDocList();
+  // ★ 2026-10-19：此处原为 `refreshTaxDocList()` —— 它是**资料清单**的刷新
+  //   （读 `/api/tax-risk-docs/list` 填 `#tda-file-list`）。但该清单展示已于
+  //   2026-10-14 **并入 `/documents`**，本页不再有 `#tda-file-list`
+  //   ⇒ 每次渲染报告都白跑一次接口、且触发一次误导性 console 报错。
+  //   渲染报告**不需要**资料清单（报告正文自带"资料数量"字段 `r.files_count`）。
+  //   删除该调用是"去掉已死路径"，不是去掉功能。
 
 
   // 预处理——数据规整

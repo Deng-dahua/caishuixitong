@@ -173,4 +173,35 @@ def download_report(report_id: str, request: Request, fmt: str = Query("pdf", al
     return Response(content=data, media_type=media, headers=headers)
 
 
+# --------------------------------------------------------------------------
+# 删除（2026-10-19，用户要求：报告列表加「删除选中」）
+# --------------------------------------------------------------------------
+@router.post("/reports/delete", summary="批量删除报告交付物（文件移入回收站，可恢复）")
+def delete_reports(request: Request, payload: Dict[str, Any] = Body(default=None)):
+    """★ 用 **POST + 请求体** 而不是 `DELETE /reports/{id}`：本操作是**批量**的
+    （一次删 N 份），路径参数只能表达单个；且批量删除要求**显式确认**（`confirm=1`），
+    确认语义放在请求体里比放在 URL 上更难被误触发（URL 可被预取/被书签/copy-paste 复现）。
+
+    ★ 权限：`report.generate`（与"生成报告"同一功能域 —— 能生成才谈得上清理自己生成的交付物）。
+    ★ 必须显式 `confirm`：不带 ⇒ **400** 并要求确认，避免误点即删（对齐"删项目未传 cascade ⇒ 409"的口径）。
+    ★ 台账不动：见 `engine/report_service.delete_reports` 的 docstring（append-only 保留）。
+    """
+    session = _session(request)
+    _require_perm(session, "report.generate")
+    body = dict(payload or {})
+    if not _truthy(body.get("confirm")):
+        raise HTTPException(status_code=400,
+                            detail="删除报告需要显式确认（请传 confirm=true）")
+    ids = body.get("report_ids")
+    result = _svc(SVC.delete_reports, ids, session, request=request)
+    return result
+
+
+def _truthy(v: Any) -> bool:
+    """把 `true/"true"/1/"1"/"yes"/"on"` 视为真（表单与 JSON 两种来源都要认）。"""
+    if isinstance(v, bool):
+        return v
+    return str(v or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 __all__ = ["router", "page_router"]

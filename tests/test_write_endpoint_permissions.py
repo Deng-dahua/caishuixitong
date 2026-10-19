@@ -26,6 +26,9 @@ if str(ROOT) not in sys.path:
 #: 写端点 → 期望的权限码（★ 与实现同源；新增写端点必须在此登记，否则测试不覆盖它）
 WRITE_GUARD_REQUIRED = {
     ("reports_api.py", "post", "/projects/{project_id}/reports"): "report.generate",
+    # ★ 2026-10-19（用户要求：报告列表加「删除选中」）：批量删报告 = 与「生成报告」同一
+    #   功能域（能生成才谈得上清理自己生成的交付物）。端点用 POST + `confirm` 显式确认。
+    ("reports_api.py", "post", "/reports/delete"): "report.generate",
     ("risks_api.py", "post", "/risks/bulk-review"): "risk.review",
     ("risks_api.py", "post", "/risks/{risk_id}/review"): "risk.review",
     ("risks_api.py", "post", "/risks/{risk_id}/comment"): "risk.review",

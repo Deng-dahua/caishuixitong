@@ -78,6 +78,21 @@
     .bar-track { background:#e2e8f0; border-radius:6px; height:8px; overflow:hidden; margin-top:6px; }
     .bar-fill { height:100%; background:#3b82f6; width:0; transition:width .3s; }
     code { background:#f1f5f9; padding:1px 4px; border-radius:3px; font-size:12px; }
+    /* ★ 2026-10-19（用户报「切换模块时还显示资料风险分析报告的页面」）：
+       报告正文自带整页封面（`.cover > h1` = 报告名，如「内部辅助分析工作底稿」）。
+       内嵌到本页后与页面主标题并存两个 H1，看起来像"两个模块叠在一起"。
+       下面把封面**降级为「报告信息卡」**：信息一项不减（报告编号/被审企业/日期/资料数量
+       全部保留），只压掉大标题观感与整页留白。作用域限定在 `#tda-report-area` 内，
+       不影响导出 PDF（那条链走的是同一份 DOM，但用的是自己的样式表）。 */
+    #tda-report-area .cover.rpt-cover-card {
+      border:1px solid #e2e8f0; border-radius:8px; background:#f8fafc;
+      margin:0 0 18px; padding:14px 18px; text-align:left;
+    }
+    #tda-report-area .cover.rpt-cover-card h1.rpt-cover-demoted {
+      font-size:15px; font-weight:700; color:#0f172a; letter-spacing:0;
+      margin:0 0 8px; padding:0 0 8px; border-bottom:1px solid #e2e8f0;
+      text-align:left; display:block;
+    }
     /* ★ 2026-10-19：「分析报告」页签并入本页后，报告正文容器的移动端适配随之迁移
        （原在 `static/index.html` 的 @media 里，该内页已删除）。 */
     @media (max-width:768px){
@@ -91,7 +106,9 @@
     <span class="muted" style="color:#94a3b8" id="who"></span>
     <div class="spacer"></div>
     <select id="project" title="选择稽查项目（决定对哪个账套出报告）"></select>
-    <button id="btn-refresh">刷新</button>
+    <!-- ★ 2026-10-19（用户要求）：顶栏【刷新】按钮已删除。
+         刷新能力未丢失：切换项目会 `refreshAll()`（含分析报告/列表/版本台账三块），
+         各页签在切换到时会按需重新拉取；浏览器 F5 亦可整页刷新。 -->
     <a href="/?page=home">返回主界面</a>
   </div>
 
@@ -182,15 +199,26 @@
         <div class="toolbar">
           <label>视图</label>
           <select id="f-listview"><option value="">全部</option></select>
-          <button class="btn ghost" id="btn-list-refresh">刷新</button>
+          <!-- ★ 2026-10-19（用户要求）：此处的【刷新】按钮已删除（列表在切到本页签时
+               自动加载、删除选中后自动重载）。同一行新增【删除选中】——
+               未勾选任何行时**不显示**（见 `reports.js::syncReportSel`）。 -->
+          <button class="btn ghost" id="btn-del-reports" hidden
+                  data-perm="report.generate">删除选中（<span id="del-picked-n">0</span>）</button>
         </div>
         <table class="grid" style="margin-top:10px">
           <thead><tr>
+            <th style="width:34px;text-align:center">
+              <input type="checkbox" id="rep-sel-all" title="全选/全不选（本页）">
+            </th>
             <th>文书编号</th><th>版本</th><th>报告名称</th><th>视图</th>
             <th>格式</th><th>复核</th><th>风险项</th><th>生成时间</th><th>生成人</th><th>操作</th>
           </tr></thead>
-          <tbody id="tb-reports"><tr><td colspan="10" class="muted">加载中…</td></tr></tbody>
+          <tbody id="tb-reports"><tr><td colspan="11" class="muted">加载中…</td></tr></tbody>
         </table>
+        <div class="hint" style="margin-top:8px">
+          删除的是**交付物登记与落盘文件**（文件进回收站，可恢复）；
+          版本台账 <code>data/report_versions.jsonl</code> 为 append-only 审计留痕，**不被删除**。
+        </div>
       </div>
     </div>
 
@@ -231,8 +259,8 @@
          （拉账套、注册导航、切页），在独立页会产生无关请求与报错。 -->
   <script src="/static/js/dom-utils.js?v=19e4f1d277"></script>
   <script src="/static/js/constants.js?v=da5ad45ec2"></script>
-  <script src="/static/js/tax-doc-analysis.js?v=fc8f866b15" defer></script>
-  <script src="/static/js/reports.js?v=4378e47914"></script>
-  <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
+  <script src="/static/js/tax-doc-analysis.js?v=3db3117002" defer></script>
+  <script src="/static/js/reports.js?v=0da2ef12d2"></script>
+  <script src="/static/js/page-memory.js?v=8c10b70862" defer></script>
 </body>
 </html>

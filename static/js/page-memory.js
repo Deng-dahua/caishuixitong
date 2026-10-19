@@ -58,6 +58,12 @@
 
   function remember(el) {
     if (!el || !el.id || skips.test(el.id)) { return; }
+    // ★ 2026-10-19 修（真实隐患）：**按 `type` 排除敏感输入**，不能只靠 id 关键字。
+    //   此前 `change` 监听（下方 bind）对 `type` **全不设防**，只靠 id 命中
+    //   `password|pwd` 关键字来跳过 —— 那是**偶然**保护：只要 id 不叫 "password"
+    //   （例如新增的 `pw-old` / `pw-new`），密码就被明文写进 localStorage。
+    //   `blur` 分支虽有 type 判断，但 `change` 分支没有 —— 两条路径必须同口径。
+    if (isSensitive(el)) { return; }
     var all = load();
     var k = bucketKey();
     all[k] = all[k] || {};
@@ -65,16 +71,28 @@
     save(all);
   }
 
+  /** 是否属于"绝不可持久化"的敏感输入（类型级判据，与 id 命名无关）。 */
+  function isSensitive(el) {
+    var t = String((el && el.type) || '').toLowerCase();
+    if (t === 'password' || t === 'file' || t === 'hidden') { return true; }
+    // 浏览器对未识别的 type 会回落成 text；`autocomplete` 的新旧密码提示一并排除
+    var ac = String((el && el.getAttribute && el.getAttribute('autocomplete')) || '').toLowerCase();
+    if (ac.indexOf('password') !== -1) { return true; }
+    return false;
+  }
+
   function bind() {
     restore();
     document.addEventListener('change', function (ev) {
       var t = ev.target;
-      if (t && (t.tagName === 'SELECT' || t.tagName === 'INPUT')) { remember(t); }
+      // ★ 与 blur 分支同口径：SELECT 全记；INPUT 先过 isSensitive（含 type=password）
+      if (t && t.tagName === 'SELECT') { remember(t); return; }
+      if (t && t.tagName === 'INPUT' && !isSensitive(t)) { remember(t); }
     }, true);
     // 输入框失焦也记（搜索框常常不触发 change）
     document.addEventListener('blur', function (ev) {
       var t = ev.target;
-      if (t && t.tagName === 'INPUT' && t.type !== 'password' && t.type !== 'file') {
+      if (t && t.tagName === 'INPUT' && !isSensitive(t)) {
         remember(t);
       }
     }, true);

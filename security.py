@@ -777,7 +777,11 @@ def is_public_path(path: str) -> bool:
     # 鉴权中间件拦成 401，永远到不了登录处理器。
     # ★ 2026-10-15:/api/auth/register 与 /account-setup 是免登录的账号设置入口
     #   (手机号注册,初始密码=手机号),与登录同语义,必须公开。
-    if path in {"/login", "/healthz", "/api/auth/login", "/api/v1/auth/login", "/favicon.ico", "/api/auth/register", "/account-setup"}:
+    # ★ 2026-10-19（用户要求：修改密码设置到登录页面）：
+    #   `/api/auth/change-password-public` 是**未登录自助改密**（凭据=账号+原密码，
+    #   与登录同强度且复用登录限流）。必须公开，否则请求先被鉴权中间件拦成 401，
+    #   永远到不了处理器 —— 而该入口最需要它的场景恰恰是"登不进去的时候"。
+    if path in {"/login", "/healthz", "/api/auth/login", "/api/v1/auth/login", "/favicon.ico", "/api/auth/register", "/account-setup", "/api/auth/change-password-public"}:
         return True
     if path.startswith("/static/"):
         return Path(path).suffix.lower() in _PUBLIC_ASSET_EXTENSIONS

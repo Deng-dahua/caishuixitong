@@ -14254,6 +14254,13 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
         #     不删除任何业务库/资料/报告。
         "_rotate": "备份轮转：仅过期备份文件（移入回收站；pre-restore 永不删），S-10/2026-10-17",
         "restore_backup": "恢复前清理目标库 -wal/-shm 边车（SQLite 附属文件，非业务数据），D-02/2026-10-17",
+        # ★ 2026-10-19（用户要求：报告列表加「删除选中」）：**报告交付物级**删除出口。
+        #   范围**仅限**：`reports` 表登记行 + 该行 `files` 登记的落盘产物
+        #   （pdf/docx/xlsx/html，经 `move_to_trash` 移入回收站，可恢复）。
+        #   明确**不碰**：版本台账 `data/report_versions.jsonl`（append-only 审计留痕，
+        #   明载"重复生成也要留两条，生成动作本身要可追溯"⇒ 删台账会让事实消失）、
+        #   分析结果/资料/上传原件（那些属账套级，归 `purge_company_analysis_artifacts`）。
+        "delete_reports": "报告交付物级（reports 登记行 + 其 files 落盘产物移入回收站；台账 append-only 保留，2026-10-19）",
         # ★ 2026-10-17（H-04）：回收站分批清空。范围**仅**回收站目录内的文件，
         #   单批上限硬编码 20（环境守护对单轮删除有累计上限，一次清太多会终止服务）。
         "empty_trash": "回收站分批物理清理（仅 TRASH_DIR，单批 ≤20），H-04/2026-10-17",

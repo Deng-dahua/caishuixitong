@@ -116,7 +116,9 @@
     <span class="muted" style="color:#94a3b8" id="who"></span>
     <div class="spacer"></div>
     <select id="project" title="选择稽查项目（决定查看哪个账套的风险）"></select>
-    <button id="btn-refresh">刷新</button>
+    <!-- ★ 2026-10-19（用户要求）：顶栏【刷新】按钮已删除。
+         刷新能力未丢失：切换项目（`#project` onchange）与首屏都会自动拉取；
+         确需手动重取时，浏览器 F5 即为整页刷新（本页数据全部来自接口，无本地编辑态）。 -->
     <a href="/?page=home">返回主界面</a>
   </div>
 
@@ -283,8 +285,8 @@
 
   <script src="/static/js/constants.js?v=da5ad45ec2"></script>
   <script src="/static/js/security.js?v=96a020abfa"></script>
-  <script src="/static/js/risks.js?v=a4ccc53ee5"></script>
+  <script src="/static/js/risks.js?v=87475c81ff"></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
-  <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
+  <script src="/static/js/page-memory.js?v=8c10b70862" defer></script>
 </body>
 </html>

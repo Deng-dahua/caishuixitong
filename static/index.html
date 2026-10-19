@@ -133,9 +133,14 @@
     <div id="nav-consent" class="nav-item" onclick="location.href='/consent'" title="数据处理告知与免责声明（数据范围/目的/留存/你的权利）">
       <span class="icon">📋</span> 数据处理告知
     </div>
-    <div class="nav-item" onclick="location.href='/change-password'" title="修改当前登录账号的密码（所有登录用户可用）">
-      <span class="icon">🔑</span> 修改密码
-    </div>
+    <!-- ★ 2026-10-19（用户要求：修改密码模块设置到登录页面去）：
+         侧边栏「🔑 修改密码」入口已**删除** —— 改密入口统一到**登录页**
+         （未登录即可自助改密，见 `static/login.html` 的可折叠「修改密码」面板）。
+         为什么登录页保留"未登录可改"：该需求最需要它的场景是"忘了密码登不进去"，
+         强制先登录会让入口在最需要时不可用。
+         ★ `GET /change-password` 页面**仍然保留**：它是**强制改密**（首次登录
+         `must_change_password=true`）的落点，由 `login.html` 跳转 —— 那一步是
+         **已登录态**下的强制动作，与登录页的自助改密是两条不同路径，不能合并。 -->
     <!-- P1-5 报告模板管理 / P1-6 规则版本管理：`data-perm` 同上由 rbac-nav.js 按权限显隐 -->
     <div id="nav-report-templates" class="nav-item" data-perm="report.view" onclick="location.href='/report-templates'" title="报告模板管理：章节顺序与侧重的新建/覆盖/停用，含变更历史（不增删风险事项）">
       <span class="icon">📐</span> 报告模板
@@ -279,7 +284,7 @@
 <script src="/static/js/tax-pipeline-pages.js?v=803fdfaa4a" defer></script>
 <script src="/static/js/report-block-renderer.js?v=640eddfb6d" defer></script>
 <script src="/static/js/report-modules.js?v=1275442cb0" defer></script>
-<script src="/static/js/tax-doc-analysis.js?v=fc8f866b15" defer></script>
+<script src="/static/js/tax-doc-analysis.js?v=3db3117002" defer></script>
     <!-- ★ 2026-10-07：原 `/static/js/file-import.js` 已下线（移入 data/trash/，可恢复）。
          依据：① 其入口 `showUploadModal` 全仓**无任何调用**（0 处引用）⇒ 整模块不可达；
               ② 其内部调用 `createModal` / `renderBankTransactions` / `renderSalesInvoices` /
@@ -350,6 +355,6 @@ function exitToCompanyPick() {
 
 </div><!-- /#app-view -->
 
-  <script src="/static/js/page-memory.js?v=7ad84b2737" defer></script>
+  <script src="/static/js/page-memory.js?v=8c10b70862" defer></script>
 </body>
 </html>

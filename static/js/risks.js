@@ -744,7 +744,8 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function () {})
       .then(function () { refreshAll(); });
   };
-  el('btn-refresh').onclick = function () { refreshAll(); };
+  // ★ 2026-10-19（用户要求）：顶栏【刷新】按钮已删除，其绑定随之移除。
+  //   刷新能力由「切换项目 onchange → refreshAll()」与首屏加载承担，未丢失。
   el('btn-search').onclick = function () { PAGE = 1; loadList(); };
   el('btn-reset').onclick = function () {
     ['f-tax', 'f-level', 'f-state', 'f-period', 'f-amin', 'f-amax', 'f-q', 'f-reviewed']

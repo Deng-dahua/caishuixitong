@@ -1,0 +1,29 @@
+OK   [⑤-改密] 登录页有「修改密码」入口                                     got=True
+OK   [⑤-改密] 改密表单初始隐藏                                         got='none'
+OK   [⑤-改密] 点入口后表单可见                                         got=True
+OK   [⑤-改密] 错误原密码被拒                                          got=True
+OK   [⑤-改密] 措辞不泄露账号是否存在                                      got=False
+      服务端措辞：'账号或原密码不正确'
+OK   [⑤-改密] 三个密码框均为 password 类型                              got=['password', 'password', 'password']
+OK   [⑤-改密] localStorage 未泄露密码                               got=False
+OK   [⑤-改密] 侧边栏无「修改密码」                                       got=False
+OK   [①-刷新] /risks 无 #btn-refresh                            got=False
+OK   [①-刷新] /risks 页面正常加载                                    got=True
+OK   [②-刷新] /reports 无 #btn-refresh                          got=False
+OK   [②-刷新] /reports 无 #btn-list-refresh                     got=False
+OK   [③-封面] 报告封面存在（信息未丢）                                     got=True
+OK   [③-封面] 封面标题已降级                                          got=True
+OK   [③-封面] 封面已转为信息卡                                         got=True
+      封面标题 '内部辅助分析工作底稿' 字号=15px（页面 h1 通常 24px+）
+OK   [④-勾选] 表头全选框存在                                          got=True
+OK   [④-勾选] 删除选中按钮存在                                         got=True
+OK   [④-勾选] 未勾选时按钮隐藏                                         got=True
+OK   [④-勾选] 行数 > 0（可测）                                       got=False
+      列表行数 = 0
+OK   [④-删除] 缺 confirm ⇒ 400 拒绝                               got=400
+OK   [④-删除] 带 confirm 时不存在报告进 skipped（不整批失败）                 got=1
+      skipped 理由：'报告不存在（可能已被删除）'（status=200）
+OK   [负向] 无与本次改动相关的报错                                      got=[]
+      （既有噪声 3 条，与本轮无关）: [('console', 'Failed to load resource: the server responded with a status of 404 (Not Found)'), ('console', 'Failed to load resource: the server responded with a status of 400 (Bad Request)')]
+
+==== 合计 22 项，失败 0 项 ====

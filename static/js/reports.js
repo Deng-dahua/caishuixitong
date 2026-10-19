@@ -224,23 +224,51 @@ function bindDownloadButtons(root) {
 }
 
 /* ─────────────────── 列表 / 版本台账 ─────────────────── */
+// ★ 2026-10-19（用户要求：报告列表加勾选 + 「删除选中」）：
+//   勾选状态只记「本页已勾选的文书编号」。**切页签/换项目/重新加载列表即清空**
+//   —— 与本仓 `/projects` 的批量删除同一口径：绝不删"用户当前看不到的行"。
+var REP_PICKED = {};
+
+/** 同步「删除选中」按钮的可见性与计数（未勾选 ⇒ 不显示）。 */
+function syncReportSel() {
+  var n = Object.keys(REP_PICKED).length;
+  var btn = el('btn-del-reports');
+  if (btn) { btn.hidden = (n === 0); }
+  var c = el('del-picked-n');
+  if (c) { c.textContent = String(n); }
+  // 全选框：本页全部勾选才打勾；一份都没有时保持未勾且禁用
+  var all = el('rep-sel-all');
+  if (all) {
+    var boxes = document.querySelectorAll('#tb-reports input.rep-sel');
+    var checked = document.querySelectorAll('#tb-reports input.rep-sel:checked');
+    all.checked = boxes.length > 0 && checked.length === boxes.length;
+    all.disabled = boxes.length === 0;
+    all.indeterminate = checked.length > 0 && checked.length < boxes.length;
+  }
+}
+
 async function loadList() {
   if (!PID) { return; }
-  el('tb-reports').innerHTML = '<tr><td colspan="10" class="muted">加载中…</td></tr>';
+  REP_PICKED = {};                       // ★ 重新加载 ⇒ 清空勾选（不删看不见的行）
+  syncReportSel();
+  el('tb-reports').innerHTML = '<tr><td colspan="11" class="muted">加载中…</td></tr>';
   var q = 'project_id=' + PID + '&page=1&page_size=100';
   var v = el('f-listview').value;
   if (v) { q += '&view=' + encodeURIComponent(v); }
   var j;
   try { j = await api('GET', API + '/reports?' + q); }
   catch (e) {
-    el('tb-reports').innerHTML = '<tr><td colspan="10" class="muted">' + esc(e.message) + '</td></tr>';
+    el('tb-reports').innerHTML = '<tr><td colspan="11" class="muted">' + esc(e.message) + '</td></tr>';
     return;
   }
   el('list-hint').textContent = '共 ' + j.total + ' 份（本页展示 ' + j.items.length + ' 份）；'
     + '文书编号/版本以版本台账为唯一权威';
   el('tb-reports').innerHTML = j.items.map(function (x) {
     var fmts = (x.formats_cn || []).map(function (f) { return esc(f); }).join(' / ');
-    return '<tr><td><code>' + esc(x.doc_no) + '</code></td><td>' + esc(x.version) + '</td>'
+    return '<tr>'
+      + '<td style="text-align:center"><input type="checkbox" class="rep-sel" data-doc="'
+      + esc(x.doc_no) + '" title="勾选后可批量删除"></td>'
+      + '<td><code>' + esc(x.doc_no) + '</code></td><td>' + esc(x.version) + '</td>'
       + '<td class="wrap">' + esc(x.name) + '</td><td>' + esc(x.view_label) + '</td>'
       + '<td>' + fmts + '</td>'
       + '<td>' + (x.reviewed ? '<span class="tag t-ok">已复核</span>'
@@ -249,7 +277,48 @@ async function loadList() {
       + '<td>' + esc((x.generated_at || '').slice(0, 19)) + '</td>'
       + '<td>' + esc(x.generated_by) + '</td>'
       + '<td><button class="btn sm ghost" data-open="' + esc(x.doc_no) + '">详情</button></td></tr>';
-  }).join('') || '<tr><td colspan="10" class="muted">该项目尚无报告</td></tr>';
+  }).join('') || '<tr><td colspan="11" class="muted">该项目尚无报告</td></tr>';
+  syncReportSel();
+}
+
+/** 批量删除选中报告（走 `POST /api/v1/reports/delete`，必须显式 confirm）。 */
+async function delSelectedReports() {
+  var ids = Object.keys(REP_PICKED);
+  if (!ids.length) { return; }
+  if (!window.confirm('确定删除选中的 ' + ids.length + ' 份报告吗？\n\n'
+      + '· 删除的是**交付物登记与落盘文件**（pdf/docx/xlsx/html）；\n'
+      + '· 文件会**移入回收站**，可在「回收站」还原；\n'
+      + '· 版本台账（append-only 审计留痕）**不被删除**。')) { return; }
+  var btn = el('btn-del-reports');
+  var old = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '删除中…'; }
+  var ok = 0, skip = 0, left = 0, details = [];
+  for (var i = 0; i < ids.length; i += 1) {
+    // ★ 逐条调用（不是一次性批量）：这样"哪份失败、为什么"能如实落到用户眼前，
+    //   而不是一个笼统的"部分失败"。条数上限 200 由服务端把关。
+    try {
+      var r = await api('POST', API + '/reports/delete',
+                        { report_ids: [ids[i]], confirm: true });
+      if ((r.deleted || []).length) { ok += 1; }
+      (r.skipped || []).forEach(function (s) {
+        skip += 1; details.push(s.id + '：' + (s.reason || ''));
+      });
+      if ((r.leftovers || []).length) {
+        left += (r.leftovers || []).length;
+        details.push(ids[i] + '：' + r.leftovers.join('；'));
+      }
+    } catch (e) {
+      skip += 1; details.push(ids[i] + '：' + (e && e.message ? e.message : e));
+    }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = old; }
+  REP_PICKED = {};
+  var msg = '删除完成：成功 ' + ok + ' 份' + (skip ? '，跳过 ' + skip + ' 份' : '')
+    + (left ? '，有 ' + left + ' 项文件未清干净（登记已保留，可重试）' : '');
+  if (details.length) { msg += '\n\n' + details.slice(0, 8).join('\n'); }
+  window.alert(msg);
+  await loadList();
+  await loadVersions();
 }
 
 async function loadVersions() {
@@ -418,9 +487,49 @@ async function loadAnalysisReport() {
     }
     window.taxDocReportData = d.report;      // 让「导出PDF / 缓存 / 删除报告」可用
     renderTaxDocReport(d.report);
+    _demoteReportCover();
   } catch (e) {
     area.innerHTML = '<div class="msg err">读取分析报告失败：' + esc(e.message) + '</div>';
   }
+}
+
+/* ─── 封面标题降级（2026-10-19，用户报「切换模块时还显示资料风险分析报告的页面」）───
+ *
+ * ## 用户看到的现象与真实原因
+ * 用户切到「报告生成与导出」模块，看到页面上赫然写着报告封面的大标题
+ * （现为「内部辅助分析工作底稿」，由 `config/report_identity.json` 唯一权威下发），
+ * 于是认为「资料风险分析报告」这个模块并没有被删掉。
+ *
+ * **真实原因**：报告正文**自带整页封面** —— `tax-doc-analysis.js` 渲染时注入
+ * `<div class="cover"><h1>{报告名}</h1>…</div>`（封面含报告编号/被审企业/报告日期/资料数量）。
+ * 内嵌到 `/reports` 后，就与本页主标题（`<h1>📄 报告生成与导出</h1>`）**并存两个 H1**
+ * ⇒ 视觉上像"两个模块叠在一起"。
+ *
+ * ## 为什么不是"把封面删掉"
+ * 封面里的**报告编号 / 被审查企业 / 报告日期 / 资料数量**是"看报告"时的必要信息，
+ * 删掉等于丢内容（且导出 PDF 走的是同一条渲染链，删了会连带影响交付物）。
+ *
+ * ## 采用的修法：**降级，不删除**
+ * 只把封面那个**与页面标题重复的大标题 `h1`** 降为次级标题样式（视觉上成为
+ * "报告信息卡"的标题），信息一项不减；同时把封面块的"整页居中留白"改为紧凑卡片，
+ * 使页面层级变成：**页面标题（报告生成与导出）→ 分析报告页签 → 报告信息卡 → 正文**。
+ *
+ * ★ 只在本页签内生效（作用域限定 `#tda-report-area`），不改 `tax-doc-analysis.js`
+ *   —— 那是报告渲染的唯一实现（导出 PDF / 离线链路共用），不能为一个页面的观感去动它。
+ */
+function _demoteReportCover() {
+  var area = el('tda-report-area');
+  if (!area) { return; }
+  var cover = area.querySelector('.cover');
+  if (!cover) { return; }
+  var h1 = cover.querySelector('h1');
+  if (h1) {
+    // 保留文字，降为「报告信息卡」的标题：改标签名会破坏 CSS 选择器，
+    // 故只加类 + 覆盖样式（可逆、不影响导出用的同一份 DOM 结构语义）。
+    h1.classList.add('rpt-cover-demoted');
+    h1.setAttribute('title', '报告名称（唯一权威：config/report_identity.json）');
+  }
+  cover.classList.add('rpt-cover-card');
 }
 async function refreshAll() {
   try { var p = await api('GET', API + '/projects/' + PID); CID = p.company_id; } catch (e) { }
@@ -433,9 +542,36 @@ document.addEventListener('DOMContentLoaded', function () {
   boot();
   TABS.forEach(function (t) { el('tab-' + t).onclick = function () { switchTab(t); }; });
   el('btn-generate').onclick = doGenerate;
-  el('btn-refresh').onclick = function () { refreshAll(); };
-  el('btn-list-refresh').onclick = function () { loadList(); };
+  // ★ 2026-10-19（用户要求）：顶栏【刷新】与报告列表内【刷新】按钮均已删除，绑定随之移除。
+  //   刷新能力未丢失：切到「报告列表」页签会自动 `loadList()`、切「版本台账」自动 `loadVersions()`，
+  //   换项目触发 `refreshAll()`（三块全覆盖）；「删除选中」完成后也会自动重载列表。
   el('f-listview').onchange = function () { loadList(); };
+  // ★ 2026-10-19：报告列表勾选 + 删除选中（口径与 `/projects` 批量删除一致）
+  if (el('rep-sel-all')) {
+    el('rep-sel-all').onchange = function () {
+      var on = el('rep-sel-all').checked;
+      Array.prototype.forEach.call(
+        document.querySelectorAll('#tb-reports input.rep-sel'),
+        function (b) {
+          b.checked = on;
+          var d = b.getAttribute('data-doc');
+          if (on) { REP_PICKED[d] = true; } else { delete REP_PICKED[d]; }
+        });
+      syncReportSel();
+    };
+  }
+  if (el('tb-reports')) {
+    // 事件委托（列表是动态 innerHTML，逐行绑会随重渲染丢失）
+    el('tb-reports').addEventListener('change', function (ev) {
+      var t = ev.target;
+      if (!t || !t.classList || !t.classList.contains('rep-sel')) { return; }
+      var d = t.getAttribute('data-doc');
+      if (t.checked) { REP_PICKED[d] = true; } else { delete REP_PICKED[d]; }
+      syncReportSel();
+    });
+  }
+  if (el('btn-del-reports')) { el('btn-del-reports').onclick = delSelectedReports; }
+  syncReportSel();
   el('project').onchange = function () {
     PID = el('project').value; CID = null;
     window.currentCompanyId = 0;   // ★ 换项目 ⇒ 先清账套，避免「分析报告」页签沿用上一个项目的导出目标

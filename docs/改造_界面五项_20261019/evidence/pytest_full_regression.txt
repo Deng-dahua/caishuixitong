@@ -1,0 +1,9 @@
+# 全量回归（2026-10-19 第二批）
+20 failed, 2586 passed, 5 skipped, 203 subtests passed in 815.48s
+
+# 基线（2026-10-18 收口）：20 failed / 2459 passed / 5 skipped
+# 上一轮（2026-10-19 第一批）：20 failed / 2557 passed
+# 本轮：20 failed / 2586 passed（净增 29）
+# 逐项 diff：20 项失败清单与基线**完全相同**（零新增失败）
+
+# 20 项失败均为基线已有，与本次改动无关（清单同 pytest_full_regression 前一份）
