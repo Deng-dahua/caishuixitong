@@ -13062,6 +13062,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_fact_intro_subject_consistency()  # 2026-10-09 P0-4 事实引子须与标题同主体
                + check_company_artifact_consistency() # 2026-10-06 删账套必须连派生物一起清
                + check_delete_exits()                 # 2026-10-06 删除出口唯一（任何删除都要删干净）
+               + check_document_project_binding()     # 2026-10-20 资料登记必须挂项目（project_id IS NULL 非法）
                + check_api_boundary_single_source()   # 2026-10-17 R-02 API 公共边界唯一权威
                + check_print_budget()                 # 2026-10-17 O-01 print 预算（只许减不许增）
                + check_report_version_reuse_authority()  # 2026-10-09 增量复用判据须走权威
@@ -14491,6 +14492,72 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
             issues.append(("ERROR", _hits[0],
                            "底层删除原语 `%s` 不在 runtime_storage.py（在 %s）—— "
                            "唯一实现必须落在 runtime_storage" % (_n, _hits[0])))
+    return issues
+
+
+def check_document_project_binding() -> List[Tuple[str, str, str]]:
+    """资料登记**必须挂项目**：`documents.project_id IS NULL` 是不合法状态（2026-10-20）。
+
+    ## 病根（2026-10-17 事故实测）
+      `scripts/_recover_after_incident.py::step4_reregister_uploads` 在事故恢复时把
+      `data/uploads/1/` 下 102 个原件补登记为 `documents` 行，但**没挂项目**
+      （`project_id = NULL`）。后果：这类行既进不了资料列表、也进不了分析，是纯僵尸
+      登记（读路径 `engine.document_service._document_row` 对 `project_id` 为空
+      **直接抛 409**："资料未归属任何项目"）。用户 2026-10-20 拍板清理，并留下本闸门
+      防复发 —— 否则下次事故恢复又会造一批。
+
+    ## 判据（两层）
+      ① **静态**：正常写入路径 `engine/document_service.py` 的 INSERT 必须带
+         `project_id`（不得写成恒 NULL 的形态）；
+      ② **数据**（有库才判，数据依赖型）：`documents` 表里
+         `project_id IS NULL` 的行数必须为 0。
+      数据依赖型判据在无库环境下如实"未执行"（不伪装成通过）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    # ── ① 静态：正常上传路径的 INSERT 必须带 project_id ─────────────────────
+    _svc = ROOT / "engine" / "document_service.py"
+    if _svc.exists():
+        _t = _svc.read_text(encoding="utf-8", errors="replace")
+        _t = re.sub(r'""".*?"""', " ", _t, flags=re.S)       # 去 docstring
+        _t = re.sub(r"#[^\n]*", "", _t)                       # 去行注释
+        if "INSERT INTO documents" in _t:
+            if not re.search(r"INSERT INTO documents\s*\(\s*project_id", _t):
+                issues.append(("ERROR", "engine/document_service.py",
+                               "资料登记 INSERT 未包含 `project_id` 列 —— "
+                               "`documents.project_id IS NULL` 是不合法状态"
+                               "（列表/分析都读不到）。"))
+    else:
+        issues.append(("WARN", "engine/document_service.py",
+                       "找不到资料服务模块，跳过静态判据"))
+
+    # ── ② 数据：库里不得存在 project_id IS NULL 的登记行 ────────────────────
+    try:
+        import sqlite3                                       # noqa: PLC0415
+        from runtime_storage import ACCOUNTING_DB            # noqa: PLC0415
+        db = Path(str(ACCOUNTING_DB))
+        if not db.exists():
+            issues.append(("WARN", "data/accounting.db",
+                           "数据依赖型判据**未执行**：找不到记账库，"
+                           "需在有数据的环境复跑 `check_document_project_binding`"))
+        else:
+            con = sqlite3.connect("file:%s?mode=ro" % db.as_posix(), uri=True)
+            try:
+                n = int(con.execute(
+                    "SELECT COUNT(*) FROM documents WHERE project_id IS NULL"
+                ).fetchone()[0])
+            finally:
+                con.close()
+            if n:
+                issues.append(("ERROR", "data/accounting.db",
+                               "存在 %d 行 `project_id IS NULL` 的资料登记 —— "
+                               "此类行进不了列表/分析（读路径直接 409），属僵尸登记，"
+                               "应清理（`scripts/_purge_incident_orphan_docs.py --apply`）"
+                               % n))
+    except Exception as exc:                                 # noqa: BLE001
+        issues.append(("WARN", "data/accounting.db",
+                       "数据依赖型判据**未执行**：%s: %s"
+                       % (type(exc).__name__, exc)))
     return issues
 
 

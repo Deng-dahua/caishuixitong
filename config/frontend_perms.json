@@ -34,11 +34,6 @@
         "id": "btn-classify-save",
         "perm": "document.write",
         "what": "保存资料分类"
-      },
-      {
-        "id": "btn-batch",
-        "perm": "document.write",
-        "what": "批量解析"
       }
     ],
     "analysis.html": [

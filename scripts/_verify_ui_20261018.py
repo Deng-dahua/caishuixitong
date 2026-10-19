@@ -135,7 +135,9 @@ def main(argv=None) -> int:
         rec("2", "顶栏保留「返回主界面」", "返回主界面" in top_links, True)
 
         # ══════════ 任务 3：解析能力已并入资料页 + 上传自动解析 ══════════
-        rec("3", "有「批量解析」卡片", page.locator("#btn-batch").count(), 1)
+        # ★ 2026-10-20（用户裁定）：批量解析区块已整块删除（上传即自动解析）⇒
+        #   判据随之更新为"该卡片已不存在"，**不是**删掉判据（信息量不减）。
+        rec("3", "「批量解析」卡片已移除", page.locator("#btn-batch").count(), 0)
         rec("3", "有解析能力面板", page.locator("#cap-stats").count(), 1)
         cap_txt = page.locator("#cap-stats").inner_text().replace("\n", " ")
         rec("3", "能力面板已取到真实数字（含『标准字段』）", "标准字段" in cap_txt, True)
