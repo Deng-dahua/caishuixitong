@@ -124,25 +124,9 @@
       </div>
     </div>
 
-    <!-- ★ 2026-10-18（用户要求）：原「资料解析与校正」页的批量解析并入本页 -->
-    <div class="card">
-      <h2>批量解析 <span class="hint">逐份独立执行，部分失败不影响其它；失败项可逐条重试</span></h2>
-      <div class="body">
-        <div class="toolbar">
-          <label>范围</label>
-          <select id="bk-scope">
-            <option value="pending">本项目「待解析 / 解析失败」的（推荐）</option>
-            <option value="all">本项目全部（含已解析，会重新解析）</option>
-          </select>
-          <label>本次最多</label>
-          <input type="number" id="bk-limit" value="20" min="1" max="50" style="width:80px">
-          <span class="muted">份（上限 50）</span>
-          <button class="btn" id="btn-batch" data-perm="document.write">开始批量解析</button>
-          <span class="muted" id="batch-hint"></span>
-        </div>
-        <div class="muted" id="batch-result" style="margin-top:8px;line-height:1.9"></div>
-      </div>
-    </div>
+    <!-- ★ 2026-10-20（用户裁定）：批量解析区块整块删除——上传即自动解析（后端
+         `_auto_parse_documents`），批量入口已无场景。后端 `/extract-batch` 保留
+         （API 契约与守护测试不动）；单份失败仍可在资料行内重试解析。 -->
 
     <div class="card">
       <h2>资料清单</h2>
@@ -238,7 +222,7 @@
   <!-- ★ 2026-10-18（用户要求）：列表行内「删除」按钮已取消 ⇒ 单条删除确认弹窗随之移除，
        不留无入口的死代码。删除统一走「勾选 + 删除选中」（文件进回收站、逐条留审计）。 -->
 
-  <script src="/static/js/documents.js?v=d7c2249ef4" defer></script>
+  <script src="/static/js/documents.js?v=a18f92beeb" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=8c10b70862" defer></script>
 </body>
