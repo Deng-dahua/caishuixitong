@@ -165,8 +165,17 @@ function dispCell(x) {
   var d = x.candidate.disposition;
   var cls = (d === 'kept' || d === 'merged') ? 't-auth'
           : (d === 'stale_status' ? 't-mid' : 't-cand');
-  return '<span class="tag ' + cls + '" title="' + esc(x.candidate.disposition_cn || '') + '">'
+  var html = '<span class="tag ' + cls + '" title="' + esc(x.candidate.disposition_cn || '') + '">'
     + esc(x.candidate.disposition_cn || x.candidate.status_cn || '—') + '</span>';
+  // ★ 2026-10-20：待建/暂不能入库的候选必须显示**专家裁定**（法条/缺什么）
+  var ex = x.candidate.expert || x.expert;
+  if (ex && ex.verdict_cn) {
+    var tip = (ex.verdict_cn || '') + (ex.legal ? '｜依据：' + ex.legal : '')
+      + (ex.data ? '｜数据源：' + ex.data : '') + (ex.note ? '｜' + ex.note : '');
+    html += ' <span class="tag t-mid" title="' + esc(tip) + '">裁定：'
+      + esc(ex.verdict_cn.split('：')[0]) + ' ⓘ</span>';
+  }
+  return html;
 }
 
 // ── 规则库 ──────────────────────────────────────────────────────────────
@@ -175,21 +184,60 @@ async function loadStats() {
     STATS = await api('GET', API + '/rules/stats');
   } catch (e) { STATS = null; return; }
   var cov = STATS.legal_basis_coverage || {};
-  var kpis = [
-    ['规则主体（权威口径）', STATS.rule_subject_total],
-    ['目录总条目', STATS.total_entries],
-    ['系统在库（Python）', STATS.python_rules],
-    ['候选清单总数', STATS.candidate_rules],
-    ['其中：已覆盖/已并入', _cand('kept') + _cand('merged')],
-    ['其中：清单状态过期', _cand('stale_status')],
-    ['其中：待建/待明确', _cand('blocked') + _cand('pending')],
-    ['法规依据·真引用', cov.with_real_ref],
-    ['法规依据·占位', cov.placeholder],
-    ['法规依据·缺失', cov.missing]
-  ];
-  el('rule-kpis').innerHTML = kpis.map(function (kv) {
-    return '<div class="kpi"><div class="v">' + esc(kv[1]) + '</div><div class="k">' + esc(kv[0]) + '</div></div>';
-  }).join('');
+  var ea = STATS.expert_adjudication || {};
+  // ★ 2026-10-20（用户：「实在看不明白这些是什么意思」）：KPI 改为**三组**，
+  //   每组一个"这组回答什么问题"的标题，每个数字带一句人话解释（title 悬停可见）。
+  function kpi(v, k, tip) {
+    return '<div class="kpi" title="' + esc(tip || k) + '"><div class="v">' + esc(v)
+      + '</div><div class="k">' + esc(k) + '</div></div>';
+  }
+  function group(title, explain, html) {
+    return '<div style="margin:0 0 14px"><div style="font-weight:700;font-size:13px;margin:0 0 2px"'
+      + '>' + esc(title) + '</div>'
+      + '<div class="muted" style="font-size:12px;margin:0 0 8px">' + esc(explain) + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:10px">' + html + '</div></div>';
+  }
+  var g1 = kpi(STATS.rule_subject_total, '真正生效的规则',
+      '系统实际用来分析风险的部分：213 = 89 条红线规则 + 124 条已验证规则（检测器是实现层，不重复计）。')
+    + kpi(STATS.python_rules, '其中 Python 检测器', '每条生效规则背后真正跑代码的检测器数量。')
+    + kpi(STATS.total_entries, '目录总条目（含候选）', '上面 213 条 ＋ 460 条候选清单 ＋ 版本登记等目录行，全部登记在案的总数。');
+  var cand = _cand('kept') + _cand('merged');
+  var g2 = kpi(STATS.candidate_rules, '候选清单（未入库）',
+      '三轮规则盘点收进来的"外部建议清单"，还没有建成系统规则。全部 460 条已经<b>逐条专家裁定</b>（见下方裁定分布）。')
+    + kpi(cand, '已被覆盖/并入',
+      '候选里的想法系统里已经有对应规则了（131 条直接覆盖 + 141 条并入口径）——不丢，留作对照。')
+    + kpi(_cand('stale_status'), '清单状态过期',
+      '清单写着"缺"，但 `by` 指向的规则其实已经存在——是清单没更新，不是规则缺。')
+    + kpi(_cand('blocked') + _cand('pending'), '待专业处置',
+      '裁定为「需外部数据 / 需特定表栏次 / 业务插件 / 应建」等的条数——每条在列表"处置"列可看结论。');
+  var g3 = kpi(cov.with_real_ref, '有真法规依据',
+      '规则正文里写的是真法名＋条号（能复核到法条原文）。')
+    + kpi(cov.placeholder, '占位（"法规库自动匹配"）',
+      '只写了占位文本的——候选清单 460 条全是这类占位；其中可确证到具体条款的已在台账标"已确定"。')
+    + kpi(cov.missing, '没有任何法规依据',
+      '连占位都没有的——如实为空。多为检测器实现层（它们的权威规则另有法条）。');
+  var g4 = '';
+  if (ea.total) {
+    var cn = ea.by_verdict_cn || {};
+    var names = [
+      ['应建', 'buildable', '数据源已具备，列入检测器建设'],
+      ['可建线索级', 'clue_only', '现有资料可发现线索，不作违规认定'],
+      ['需外部数据', 'needs_external', '机关侧/境外/第三方信息，已逐条写明缺什么'],
+      ['业务插件', 'industry_plugin', '行业/事件/地域专用，退出通用候选'],
+      ['重复淘汰', 'duplicate', '与其他候选同口径，已注明保留对象'],
+      ['需特定表栏次', 'needs_form', '政策明确，须先支持对应申报表栏次解析']
+    ];
+    g4 = group('候选专家裁定（' + (ea.total || 0) + ' 条待处置候选，逐条人工核定）',
+      '机械处置回答"清单状态"，裁定回答"专业上该怎么办"。裁定唯一权威 config/rule_adjudications.json。',
+      names.map(function (p) {
+        return kpi(ea.by_verdict[p[1]] || 0, p[0], p[2]);
+      }).join(''));
+  }
+  el('rule-kpis').innerHTML =
+    group('① 系统真正在用什么', '回答"风险分析时实际跑的是哪些规则"。', g1)
+    + group('② 候选清单处置（460 条外部建议）', '回答"盘点收进来的建议怎么处置了"。', g2)
+    + group('③ 法规依据覆盖', '回答"每条规则说得出法条依据吗"（848 条目录逐一统计）。', g3)
+    + g4;
   if ((STATS.loader_errors || []).length) {
     alertBox('warn', '加载器留痕：' + STATS.loader_errors.join('；'));
   }

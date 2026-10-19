@@ -254,6 +254,8 @@ def stats() -> Dict[str, Any]:
                      "（「法规库自动匹配」）；系统在库规则中另有部分**无任何法规依据**"
                      "（已验证规则与检测器层未登记 legal_basis）⇒ 如实计 0/占位，不以占位顶替。"),
         },
+        "expert_adjudication": (CL.ledger().get("expert_adjudication")
+                                if hasattr(CL, "ledger") else None),
         "runtime_switch_available": RUNTIME_SWITCH_AVAILABLE,
         "runtime_switch_note": RUNTIME_SWITCH_NOTE,
         "loader_errors": L.last_errors(),

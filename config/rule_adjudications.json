@@ -1,0 +1,978 @@
+{
+  "schema": 1,
+  "updated": "2026-10-20",
+  "adjudicated_by": "磨砺（税务稽查专家口径，逐条人工核定）",
+  "_verdict_cn": {
+    "buildable": "应建：数据源已具备，列入检测器建设",
+    "clue_only": "可建线索级：现有资料可发现线索，不作违规认定",
+    "needs_external": "需外部数据：机关侧/境外/第三方信息，企业账套原则性不具备（已写明缺什么）",
+    "industry_plugin": "业务插件：行业/事件/地域专用，退出通用候选、转业务触发插件清单",
+    "duplicate": "重复：与其他候选同口径（已注明保留对象）",
+    "needs_form": "政策明确·需特定表栏次：须先支持对应申报表/文书栏次解析"
+  },
+  "_disposition_dist": {
+    "buildable": 8,
+    "needs_external": 48,
+    "needs_form": 18,
+    "clue_only": 21,
+    "industry_plugin": 59,
+    "duplicate": 22
+  },
+  "_note": "机械处置（pending/blocked…）回答『清单状态』；本裁定回答『专业上该怎么办』。两者都如实展示。覆盖核对：pending/blocked 共 176 条，裁定 176 条，缺一即被闸门 check_rule_adjudication_complete 拦下。",
+  "verdicts": {
+    "AA-005": {
+      "verdict": "needs_form",
+      "legal": "《企业所得税法》第41条；国家税务总局公告2017年第6号（同期资料）",
+      "data": "关联交易额（往来/收入明细）已可归集；缺：关联申报表 G000000 栏次",
+      "note": "关联申报表解析后可定阈值"
+    },
+    "AA-006": {
+      "verdict": "needs_form",
+      "legal": "《企业所得税法》第41条",
+      "data": "同 AA-005",
+      "note": "与 AA-005 同链路（资产转让型）"
+    },
+    "AA-008": {
+      "verdict": "needs_form",
+      "legal": "《企业所得税法》第41条；国家税务总局公告2011年第41号",
+      "data": "同 AA-005",
+      "note": "与 AA-005 同链路（债务豁免型）"
+    },
+    "AA-010": {
+      "verdict": "needs_external",
+      "legal": "《企业所得税法》第41条；国家税务总局公告2015年第32号",
+      "data": "缺：成本分摊协议报送信息（机关侧）",
+      "note": "企业上传协议后线索级"
+    },
+    "AA-011": {
+      "verdict": "needs_external",
+      "legal": "国家税务总局公告2017年第6号（预约定价安排）",
+      "data": "缺：APA 签署与执行信息（机关侧）"
+    },
+    "AA-013": {
+      "verdict": "clue_only",
+      "legal": "国家税务总局公告2016年第42号（主体文档门槛）",
+      "data": "企业上传资料清单已在库（资料齐备性机制）⇒ 达门槛而无文档即提示",
+      "note": "门槛判定需关联交易额归集（同 AA-005 链路）"
+    },
+    "AA-014": {
+      "verdict": "clue_only",
+      "legal": "国家税务总局公告2016年第42号（本地文档门槛）",
+      "data": "同 AA-013",
+      "note": "同链路"
+    },
+    "AA-015": {
+      "verdict": "clue_only",
+      "legal": "国家税务总局公告2016年第42号（国别报告门槛）",
+      "data": "同 AA-013",
+      "note": "同链路"
+    },
+    "AA-016": {
+      "verdict": "clue_only",
+      "legal": "国家税务总局公告2016年第42号（特殊事项文档）",
+      "data": "同 AA-013",
+      "note": "同链路"
+    },
+    "AA-017": {
+      "verdict": "clue_only",
+      "legal": "《企业所得税法》第47条（一般反避税：合理商业目的）",
+      "data": "不可纯机检——交易结构与目的须人工判断",
+      "note": "专家线索级，系统只能列交易清单供人工研判"
+    },
+    "AA-018": {
+      "verdict": "needs_external",
+      "legal": "国家税务总局公告2017年第6号（导管公司认定）",
+      "data": "缺：境外股东实质经营信息（境外）"
+    },
+    "AA-019": {
+      "verdict": "needs_external",
+      "legal": "税收协定「受益所有人」；国家税务总局公告2018年第9号",
+      "data": "缺：受益所有人信息（境外）"
+    },
+    "AA-020": {
+      "verdict": "clue_only",
+      "legal": "税收协定主要目的测试（PPT 条款）",
+      "data": "不可纯机检——协定优惠适用须人工判断",
+      "note": "列享受协定优惠清单供人工研判"
+    },
+    "ABS-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕140号（资管产品）",
+      "data": "资产证券化插件"
+    },
+    "ADM-003": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法》第17条（登记信息真实）",
+      "data": "缺：工商登记地址实时数据（外部通道被风控，已实证 521）",
+      "note": "可用企业自填地址一致性校验替代（线索级）"
+    },
+    "ADM-004": {
+      "verdict": "needs_external",
+      "legal": "《发票管理办法》第15条（领用管理）",
+      "data": "缺：发票领用簿数据（机关侧）"
+    },
+    "ADM-005": {
+      "verdict": "needs_external",
+      "legal": "《发票管理办法》实施细则（税控管理）",
+      "data": "缺：税控设备状态（税控侧）"
+    },
+    "ADM-007": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法》第24条（账证管理）",
+      "data": "缺：征管系统更正痕迹（机关侧）"
+    },
+    "ADM-008": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法实施细则》第31条",
+      "data": "缺：更正申报历史（机关侧）；企业留存多版申报表可线索级"
+    },
+    "ADM-013": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法》第31条（延期缴纳审批）",
+      "data": "缺：延期缴税审批文书（机关侧）"
+    },
+    "ADM-015": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法实施细则》第21条（报验登记）",
+      "data": "缺：跨区域报验信息（机关侧）",
+      "note": "建筑企业项目资料上传后可线索级"
+    },
+    "ADM-016": {
+      "verdict": "needs_external",
+      "legal": "同 ADM-015（外管证核销）",
+      "data": "缺：核销信息（机关侧）"
+    },
+    "ADM-017": {
+      "verdict": "needs_form",
+      "legal": "《企业所得税法》第50条；国家税务总局公告2012年第57号（汇总纳税）",
+      "data": "缺：A109000 分摊表栏次解析",
+      "note": "总分机构分摊比例与实际缴纳比对"
+    },
+    "ADM-018": {
+      "verdict": "industry_plugin",
+      "legal": "《企业所得税法》第52条（合并纳税须国务院批准）",
+      "data": "合并纳税企业极少，事件型插件"
+    },
+    "ADM-019": {
+      "verdict": "clue_only",
+      "legal": "《税收征收管理法》第35条（税额核定）、一般反避税口径",
+      "data": "注册地地区码 ↔ 已知洼地地区清单（可内置数据表）",
+      "note": "注册地在洼地＝线索，须结合业务实质人工判断"
+    },
+    "ADM-020": {
+      "verdict": "clue_only",
+      "legal": "财税〔2009〕87号→财政部 税务总局公告2021年第18号（不征税收入条件）",
+      "data": "账面「其他收益—政府补助」明细（总账已具备）",
+      "note": "返还与税收挂钩的判断须人工，账面补助线索级"
+    },
+    "ANIME-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2018〕38号（动漫企业优惠）",
+      "data": "动漫行业插件"
+    },
+    "ASSESS-002": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法》第35条；国家税务总局公告2021年第25号（核定征收）",
+      "data": "缺：核定征收鉴定表（机关侧文书）"
+    },
+    "ASSESS-003": {
+      "verdict": "needs_external",
+      "legal": "同 ASSESS-002",
+      "data": "缺：核定申报口径（机关侧）"
+    },
+    "BANKR-001": {
+      "verdict": "industry_plugin",
+      "legal": "《企业破产法》；破产重整税收口径",
+      "data": "破产重整插件"
+    },
+    "BANKR-004": {
+      "verdict": "needs_external",
+      "legal": "《企业破产法》第113条",
+      "data": "缺：破产财产分配方案（法院/管理人侧）"
+    },
+    "BOND-001": {
+      "verdict": "industry_plugin",
+      "legal": "保税区相关税收口径",
+      "data": "保税区插件"
+    },
+    "BOND-002": {
+      "verdict": "industry_plugin",
+      "legal": "综保区相关税收口径（国发〔2019〕3号）",
+      "data": "综保区插件"
+    },
+    "BOT-001": {
+      "verdict": "industry_plugin",
+      "legal": "BOT 项目相关税收口径",
+      "data": "BOT 插件"
+    },
+    "CATER-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕140号（餐饮服务）",
+      "data": "餐饮服务插件"
+    },
+    "CBEC-001": {
+      "verdict": "industry_plugin",
+      "legal": "财关税〔2018〕49号（跨境电商零售出口）",
+      "data": "跨境电商插件"
+    },
+    "CHILD-001": {
+      "verdict": "industry_plugin",
+      "legal": "财政部 税务总局公告2019年第76号（社区托育免税）",
+      "data": "托育服务插件"
+    },
+    "CONS-001": {
+      "verdict": "needs_form",
+      "legal": "《消费税暂行条例》第2条（税目税率表）",
+      "data": "消费税申报表税目栏次",
+      "note": "税目适用错误须申报表税目支持"
+    },
+    "CONS-006": {
+      "verdict": "buildable",
+      "legal": "《消费税暂行条例》第1条（生产委托加工应税消费品）；《增值税暂行条例》第1条",
+      "data": "消费税销售额 ↔ 增值税申报销售额（两申报表均已在库）",
+      "note": "应税消费品两税收入口径差可机检"
+    },
+    "CONSTR-005": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号附件2（清包工简易计税）",
+      "data": "建筑行业插件"
+    },
+    "CONSTR-008": {
+      "verdict": "clue_only",
+      "legal": "《建筑法》第28条（禁止转包）；财税〔2016〕36号附件2",
+      "data": "合同域可解析分包/转包条款",
+      "note": "转包认定须人工，合同线索级"
+    },
+    "CONSTR-009": {
+      "verdict": "needs_form",
+      "legal": "国家税务总局公告2015年第52号（建筑项目个税）",
+      "data": "缺：项目所在地个税申报栏次",
+      "note": "全员全额申报地口径须机关支持"
+    },
+    "CONSTR-010": {
+      "verdict": "needs_external",
+      "legal": "《社会保险法》；人社部建地统筹口径",
+      "data": "缺：项目所在地参保信息（异地社保机构）"
+    },
+    "CULT-001": {
+      "verdict": "industry_plugin",
+      "legal": "财政部 税务总局公告2021年第28号（文化体制改革优惠）",
+      "data": "文化产业插件"
+    },
+    "CUS-002": {
+      "verdict": "needs_external",
+      "legal": "《进出口关税条例》第8~11条",
+      "data": "缺：报关单税则号列与税率（海关侧）",
+      "note": "企业上传报关单时可作线索级"
+    },
+    "CUS-003": {
+      "verdict": "needs_external",
+      "legal": "《进出口关税条例》第42条（减免）",
+      "data": "缺：减免批文（海关侧）"
+    },
+    "CUSTOMS-002": {
+      "verdict": "duplicate",
+      "legal": "同 EXPORT-004（加工贸易核销）",
+      "data": "与 EXPORT-004 同口径",
+      "note": "保留 EXPORT-004"
+    },
+    "CUSTOMS-004": {
+      "verdict": "duplicate",
+      "legal": "同 CUS-003（关税减免）",
+      "data": "与 CUS-003 同口径",
+      "note": "保留 CUS-003"
+    },
+    "DEED-004": {
+      "verdict": "needs_form",
+      "legal": "《契税法》第4条（差别税率 3%~5%）",
+      "data": "契税申报表税率栏次",
+      "note": "地区适用税率须机关口径"
+    },
+    "DEED-005": {
+      "verdict": "needs_external",
+      "legal": "《契税法》第6条（免税情形）",
+      "data": "缺：减免备案/婚姻家庭关系证明（机关侧）"
+    },
+    "EDU-001": {
+      "verdict": "industry_plugin",
+      "legal": "《营业税改征增值税试点过渡政策》（教育服务免税口径）",
+      "data": "教育服务插件"
+    },
+    "EINV-004": {
+      "verdict": "needs_external",
+      "legal": "《发票管理办法》（查验）",
+      "data": "缺：查验平台接口（已实证被风控）",
+      "note": "全电发票可通过已有发票数据内部校验部分要素"
+    },
+    "EINV-005": {
+      "verdict": "clue_only",
+      "legal": "《发票管理办法》第21条（合规取得）",
+      "data": "发票数据 inv_status（正常/异常作废）已在库",
+      "note": "状态异常发票仍入账＝可检线索"
+    },
+    "ELDER-001": {
+      "verdict": "industry_plugin",
+      "legal": "财政部 税务总局公告2019年第76号（社区养老免税）",
+      "data": "养老服务插件"
+    },
+    "ENT-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号（娱乐服务 6%＋消费税）",
+      "data": "娱乐服务插件"
+    },
+    "EPC-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号（混同销售分摊）",
+      "data": "EPC 插件"
+    },
+    "EST-003": {
+      "verdict": "industry_plugin",
+      "legal": "国税发〔2009〕31号（预计计税毛利额）",
+      "data": "房地产行业专用"
+    },
+    "EST-005": {
+      "verdict": "duplicate",
+      "legal": "同 LAT-006",
+      "data": "与 LAT-006 同口径（开发成本分摊）",
+      "note": "并入 LAT-006 转插件"
+    },
+    "EST-006": {
+      "verdict": "industry_plugin",
+      "legal": "国税发〔2009〕31号第27条（土地成本）",
+      "data": "房地产行业专用"
+    },
+    "EST-008": {
+      "verdict": "industry_plugin",
+      "legal": "国税发〔2009〕31号第17条（公共配套设施）",
+      "data": "房地产行业专用"
+    },
+    "EST-009": {
+      "verdict": "industry_plugin",
+      "legal": "国税发〔2009〕31号第29条（开发间接费）",
+      "data": "房地产行业专用"
+    },
+    "EXPORT-004": {
+      "verdict": "needs_external",
+      "legal": "国家税务总局公告2013年第12号（进料加工核销）",
+      "data": "缺：海关手册/账册核销信息（海关侧）"
+    },
+    "EXPORT-010": {
+      "verdict": "duplicate",
+      "legal": "同 EXPORT-013",
+      "data": "与 EXPORT-013 同名同口径",
+      "note": "保留 EXPORT-013"
+    },
+    "EXPORT-013": {
+      "verdict": "needs_form",
+      "legal": "财税〔2012〕39号（视同内销征税）",
+      "data": "缺：出口转内销申报栏次",
+      "note": "与 EXPORT-010 同口径，保留本条"
+    },
+    "EXPORT-014": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2018〕103号（跨境电商综试区无票免税）",
+      "data": "跨境电商插件"
+    },
+    "FACT-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号（保理口径）",
+      "data": "保理业务插件"
+    },
+    "FIN-001": {
+      "verdict": "buildable",
+      "legal": "《会计法》第3条；《企业会计准则——基本准则》资产=负债+所有者权益",
+      "data": "资产负债表三要素已在库（report 域 total_assets/liabilities/equity）",
+      "note": "现校验规则 extract_validate 已有 cross_check 同口径——本候选实为已覆盖，应更新清单状态"
+    },
+    "FIN-004": {
+      "verdict": "buildable",
+      "legal": "检查程序类：风险线索（无直接法条，不作认定）",
+      "data": "利润表收入 ↔ 资产负债表应收账款变动（报表域齐备）",
+      "note": "背离为线索，转指标类检测"
+    },
+    "FINA-002": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号附件2（金融商品转让）",
+      "data": "金融行业插件"
+    },
+    "FINA-003": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2019〕85号（金融企业准备金）",
+      "data": "金融行业插件"
+    },
+    "FLEX-003": {
+      "verdict": "needs_external",
+      "legal": "《社会保险法》第60条；人社部发〔2021〕56号（新就业形态）",
+      "data": "缺：代缴协议与实际用工关系（第三方）"
+    },
+    "FLEX-004": {
+      "verdict": "needs_external",
+      "legal": "《个人所得税法》第9条（扣缴义务认定）",
+      "data": "缺：代征资质与结报信息（机关侧）"
+    },
+    "FTZ-001": {
+      "verdict": "industry_plugin",
+      "legal": "自贸区相关税收口径",
+      "data": "自贸区插件"
+    },
+    "FUND-010": {
+      "verdict": "buildable",
+      "legal": "检查程序类：资金占用线索（关联方资金占用涉税风险）；无直接法条，不作认定",
+      "data": "预付账款账龄（科目余额表域已具备）",
+      "note": "挂账 1 年以上大额预付＝线索"
+    },
+    "FUNDM-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2008〕1号（基金分红免税）",
+      "data": "公募基金插件"
+    },
+    "GEN-006": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法》第25条（申报真实性）",
+      "data": "缺：工商年报数据（外部通道受限）"
+    },
+    "GEN-007": {
+      "verdict": "buildable",
+      "legal": "《税收征收管理法》第32条（逾期加收滞纳金）",
+      "data": "申报表所属期与申报期限逻辑已在库（多期申报表）",
+      "note": "按所属期序列判应报未报/逾期"
+    },
+    "GEN-012": {
+      "verdict": "clue_only",
+      "legal": "检查程序类：波动线索",
+      "data": "多期申报表序列（已在库）",
+      "note": "环比/同比突变＝线索"
+    },
+    "GEN-013": {
+      "verdict": "clue_only",
+      "legal": "《税收征收管理法》第25条",
+      "data": "按所属期序列发现缺失期间（多期申报表在库）",
+      "note": "应报未报线索级"
+    },
+    "GOT-003": {
+      "verdict": "needs_external",
+      "legal": "《耕地占用税法》第7条",
+      "data": "缺：占地批文与用途认定（自然资源部门）"
+    },
+    "GUAR-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号（担保费按贷款服务）",
+      "data": "担保行业插件"
+    },
+    "HAINAN-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2020〕31号（海南自贸港 15% 企业所得税）",
+      "data": "海南地域插件"
+    },
+    "HAINAN-002": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2020〕32号（海南自贸港个税）",
+      "data": "海南地域插件"
+    },
+    "HAINAN-003": {
+      "verdict": "industry_plugin",
+      "legal": "财政部 海关总署 税务总局公告2020年第33号（离岛免税）",
+      "data": "离岛免税插件"
+    },
+    "HAINAN-004": {
+      "verdict": "industry_plugin",
+      "legal": "跨境电子商务零售进口税收政策（财关税〔2016〕40号）",
+      "data": "跨境电商保税进口插件"
+    },
+    "HNTECH-002": {
+      "verdict": "clue_only",
+      "legal": "《企业所得税法》第28条；科技部 国税发〔2008〕172号（高新认定比例）",
+      "data": "研发费用归集（账面研发支出）已在库；高新资质与认定口径在外部",
+      "note": "账面研发占比线索级；高新要求需外部资质确认"
+    },
+    "HNTECH-003": {
+      "verdict": "clue_only",
+      "legal": "国科发火〔2016〕195号（科技人员占比 ≥10%）",
+      "data": "工资表岗位信息（薪酬域）已在库",
+      "note": "科技人员占比线索级"
+    },
+    "HNW-001": {
+      "verdict": "needs_external",
+      "legal": "《个人所得税法》第15条（涉税信息共享）",
+      "data": "缺：个人层面全球所得与资产信息（个人/境外）",
+      "note": "企业账套口径无法支撑个人税负评估"
+    },
+    "HNW-002": {
+      "verdict": "needs_external",
+      "legal": "《个人所得税法》第15条；CRS 金融账户涉税信息",
+      "data": "缺：境外资产信息（CRS 交换——机关侧）"
+    },
+    "HNW-003": {
+      "verdict": "duplicate",
+      "legal": "同 INT-010（境外所得申报）",
+      "data": "与 INT-010 同口径",
+      "note": "并入 INT-010"
+    },
+    "HNW-004": {
+      "verdict": "industry_plugin",
+      "legal": "信托计划税务口径（财政部 税务总局相关公告）",
+      "data": "家族信托插件"
+    },
+    "HNW-005": {
+      "verdict": "needs_external",
+      "legal": "《个人所得税法》（保险赔付免税边界）",
+      "data": "缺：大额保单信息（保险机构侧）"
+    },
+    "HOTEL-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号（住宿服务 6%）",
+      "data": "住宿服务插件"
+    },
+    "IC-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕27号→发改高技〔2021〕413号（集成电路优惠）",
+      "data": "集成电路行业插件"
+    },
+    "IIT-004": {
+      "verdict": "buildable",
+      "legal": "《个人所得税法》第3条第3款（利息股息红利所得 20%）、第9条（扣缴义务人）",
+      "data": "账面「利润分配/应付股利」明细（总账）↔ 个人所得税申报（利息股息红利所得）比对",
+      "note": "分红决议属企业账面可见事件，具备建检测器条件"
+    },
+    "IIT-009": {
+      "verdict": "needs_external",
+      "legal": "《个人所得税法》第4条、财税〔2018〕164号",
+      "data": "缺：外籍个人身份与补贴备案资料（机关侧/个人侧）",
+      "note": "账套无外籍身份信息；如有外籍员工工资记录可作线索级延伸"
+    },
+    "IIT-016": {
+      "verdict": "needs_form",
+      "legal": "财税〔2018〕164号第5条（离职补偿单独计税）",
+      "data": "账面辞退福利可见；缺：个税申报补偿金单独计税栏次",
+      "note": "先支持补偿金单独计税口径再建"
+    },
+    "IIT-017": {
+      "verdict": "needs_external",
+      "legal": "财税〔2016〕101号（递延纳税备案）",
+      "data": "缺：递延备案信息（机关侧）",
+      "note": "备案资料企业留存的，可凭上传资料作线索级"
+    },
+    "IIT-018": {
+      "verdict": "buildable",
+      "legal": "《个人所得税法》第3条第3款、第9条",
+      "data": "账面「应付利息/其他应收—个人」↔ 个税申报比对",
+      "note": "与 IIT-004 同链路，可并为同一检测器两分支"
+    },
+    "IIT-019": {
+      "verdict": "clue_only",
+      "legal": "《个人所得税法》第3条第3款（财产租赁所得）",
+      "data": "账面租赁费支付对象为个人（往来/费用明细）",
+      "note": "支付给个人的租金未代扣线索；不作认定"
+    },
+    "IIT-020": {
+      "verdict": "clue_only",
+      "legal": "《个人所得税法》第3条第3款（偶然所得）、财政部 税务总局公告2019年第74号",
+      "data": "账面向个人无偿赠送/营销支出明细",
+      "note": "赠送礼品质押线索级"
+    },
+    "INT-006": {
+      "verdict": "needs_external",
+      "legal": "税收协定「常设机构」条款",
+      "data": "缺：境外人员入境天数（出入境/考勤——境外）",
+      "note": "有境外员工工资记录可线索级"
+    },
+    "INT-007": {
+      "verdict": "industry_plugin",
+      "legal": "税收协定国际运输条款",
+      "data": "国际运输业务专用"
+    },
+    "INT-010": {
+      "verdict": "needs_external",
+      "legal": "《企业所得税法》第3条第3款、第23条（境外所得）",
+      "data": "缺：境外投资收益信息（境外）；账面投资收益明细可线索级",
+      "note": "账面对外投资+投资收益变动线索"
+    },
+    "INT-011": {
+      "verdict": "needs_form",
+      "legal": "《企业所得税法》第23、24条（抵免限额）；财税〔2009〕125号",
+      "data": "缺：A108000 境外所得税收抵免明细表栏次",
+      "note": "下述 INT-012~016 五条与本条同一张表，并入本条链路"
+    },
+    "INT-012": {
+      "verdict": "duplicate",
+      "legal": "同 INT-011（A108000 直接抵免列）",
+      "data": "并入 INT-011"
+    },
+    "INT-013": {
+      "verdict": "duplicate",
+      "legal": "同 INT-011（A108000 间接抵免列）",
+      "data": "并入 INT-011"
+    },
+    "INT-014": {
+      "verdict": "duplicate",
+      "legal": "同 INT-011（分国不分项）",
+      "data": "并入 INT-011"
+    },
+    "INT-015": {
+      "verdict": "duplicate",
+      "legal": "同 INT-011（综合抵免）",
+      "data": "并入 INT-011"
+    },
+    "INT-016": {
+      "verdict": "duplicate",
+      "legal": "同 INT-011（饶让抵免）",
+      "data": "并入 INT-011"
+    },
+    "INT-018": {
+      "verdict": "clue_only",
+      "legal": "《企业所得税法》第38条；国家税务总局公告2013年第40号（对外支付备案）",
+      "data": "银行流水大额跨境付汇（对手方/摘要可识别）已在库",
+      "note": "大额付汇未见备案资料＝线索；备案信息本身在机关侧"
+    },
+    "INT-019": {
+      "verdict": "duplicate",
+      "legal": "同 INT-018（服务贸易等项目对外支付税务备案）",
+      "data": "并入 INT-018"
+    },
+    "INT-020": {
+      "verdict": "needs_external",
+      "legal": "国家税务总局公告2015年第60号（协定待遇后续管理）",
+      "data": "缺：非居民享受备案信息（机关侧）"
+    },
+    "INV-007": {
+      "verdict": "needs_external",
+      "legal": "《发票管理办法》第21条（虚开情形）",
+      "data": "缺：开票设备/IP 归集（税控侧）"
+    },
+    "INV-020": {
+      "verdict": "buildable",
+      "legal": "国家税务总局公告2016年第23号（发票备注栏要求）",
+      "data": "发票数据 remark 列已在库（销售/采购发票域）",
+      "note": "建筑服务等特定票种备注栏必填，缺失即可检"
+    },
+    "LAT-005": {
+      "verdict": "industry_plugin",
+      "legal": "国税发〔2006〕187号（土增税清算普通住宅标准）",
+      "data": "房地产行业专用",
+      "note": "转房地产行业插件"
+    },
+    "LAT-006": {
+      "verdict": "industry_plugin",
+      "legal": "国税发〔2006〕187号第4条（成本分摊）",
+      "data": "房地产行业专用",
+      "note": "与 EST-005 同口径，转插件并合并"
+    },
+    "LAT-009": {
+      "verdict": "industry_plugin",
+      "legal": "《土地增值税暂行条例》第7条（四级超率累进）",
+      "data": "房地产行业专用"
+    },
+    "LAT-010": {
+      "verdict": "industry_plugin",
+      "legal": "《土地增值税暂行条例实施细则》第8条",
+      "data": "房地产行业专用"
+    },
+    "LEASE-002": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号附件2（售后回租口径）",
+      "data": "融资租赁行业插件"
+    },
+    "LEASE-003": {
+      "verdict": "industry_plugin",
+      "legal": "《企业所得税法实施条例》第47条（经营租赁费用）",
+      "data": "租赁行业插件；通用租赁费用已有发票/合同覆盖"
+    },
+    "LIQ-001": {
+      "verdict": "needs_external",
+      "legal": "《企业所得税法》第55条（清算所得申报）",
+      "data": "缺：注销/清算状态（工商/机关——外部通道受限）",
+      "note": "系统内企业仍在用 ⇒ 注销状态本身不可得"
+    },
+    "LIQ-002": {
+      "verdict": "needs_form",
+      "legal": "财税〔2009〕60号（清算所得税处理）",
+      "data": "缺：清算申报表栏次"
+    },
+    "LIQ-003": {
+      "verdict": "needs_external",
+      "legal": "财税〔2009〕60号第5条（股东分得剩余资产）",
+      "data": "缺：股东个人层面的分配信息（个人侧）"
+    },
+    "LIQ-004": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2009〕60号（清算期间经营）",
+      "data": "清算期插件"
+    },
+    "LUT-003": {
+      "verdict": "needs_external",
+      "legal": "《城镇土地使用税暂行条例》第6条（免税情形）",
+      "data": "缺：免税备案/土地用途证明（机关侧）"
+    },
+    "LUT-006": {
+      "verdict": "needs_external",
+      "legal": "《城镇土地使用税暂行条例》、国土资规〔2016〕6号",
+      "data": "缺：土地闲置认定（自然资源部门）"
+    },
+    "MED-001": {
+      "verdict": "industry_plugin",
+      "legal": "《营业税改征增值税试点过渡政策》（医疗服务免税）",
+      "data": "医疗服务插件"
+    },
+    "MICRO-001": {
+      "verdict": "industry_plugin",
+      "legal": "《增值税暂行条例》（贷款服务 6%）",
+      "data": "小贷公司插件"
+    },
+    "PCT-003": {
+      "verdict": "needs_form",
+      "legal": "《房产税暂行条例》第3条（从租计征 12%）",
+      "data": "租赁合同（合同域可解析）↔ 房产税从租申报栏次",
+      "note": "免租期从价/从租切换的申报口径须申报表支持"
+    },
+    "PCT-004": {
+      "verdict": "needs_external",
+      "legal": "财税〔1986〕财税地字8号（应税房产范围）",
+      "data": "缺：不动产权证载信息（不动产登记——外部通道受限）",
+      "note": "已实证公示系统被风控，登记字段不可免费无人值守获取"
+    },
+    "PCT-007": {
+      "verdict": "needs_form",
+      "legal": "《房产税暂行条例》第4条（税率 1.2%/12%）",
+      "data": "房产税申报表税率栏次",
+      "note": "地区适用税率须以机关口径为准"
+    },
+    "PE-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2008〕159号（合伙企业先分后税）",
+      "data": "私募基金插件"
+    },
+    "PLAT-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号（平台经营者涉税）",
+      "data": "平台经济插件"
+    },
+    "PLAT-002": {
+      "verdict": "industry_plugin",
+      "legal": "《个人所得税法》（主播打赏口径）",
+      "data": "平台经济插件"
+    },
+    "PLAT-004": {
+      "verdict": "industry_plugin",
+      "legal": "《税收征收管理法》及平台经济地方口径",
+      "data": "MCN 机构插件"
+    },
+    "PLAT-006": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法实施细则》第44条（委托代征）",
+      "data": "缺：委托代征协议与结报信息（机关侧）"
+    },
+    "PLAT-007": {
+      "verdict": "needs_external",
+      "legal": "国家税务总局公告2019年第8号（汇总代开）",
+      "data": "缺：汇总代开清单（机关侧）"
+    },
+    "PLAT-008": {
+      "verdict": "clue_only",
+      "legal": "《发票管理办法》实施细则（代开）",
+      "data": "发票数据 inv_type/代开标识（已在库）",
+      "note": "自然人代开发票集中出现＝线索"
+    },
+    "PLAT-009": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法》第37条（临时登记）",
+      "data": "缺：临时税务登记信息（机关侧）"
+    },
+    "PPP-001": {
+      "verdict": "industry_plugin",
+      "legal": "PPP 项目相关税收口径（税总函〔2016〕458号等）",
+      "data": "PPP 插件"
+    },
+    "REIT-001": {
+      "verdict": "industry_plugin",
+      "legal": "财政部 税务总局公告2022年第3号（基础设施 REITs）",
+      "data": "REITs 插件"
+    },
+    "REIT-002": {
+      "verdict": "duplicate",
+      "legal": "同 REIT-001（REITs 分红环节）",
+      "data": "并入 REIT-001 插件"
+    },
+    "REL-006": {
+      "verdict": "duplicate",
+      "legal": "《企业所得税法》第41条（独立交易原则）",
+      "data": "与 AA-005 完全同名同口径",
+      "note": "保留 AA-005，本条淘汰"
+    },
+    "REL-007": {
+      "verdict": "duplicate",
+      "legal": "《企业所得税法》第41条",
+      "data": "与 AA-006 完全同名同口径",
+      "note": "保留 AA-006，本条淘汰"
+    },
+    "REL-009": {
+      "verdict": "duplicate",
+      "legal": "《企业所得税法》第41条；国家税务总局公告2011年第41号",
+      "data": "与 AA-008 完全同名同口径",
+      "note": "保留 AA-008，本条淘汰"
+    },
+    "REO-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2009〕59号（股权收购特殊性处理条件）",
+      "data": "重组事件型，须重组协议与备案资料",
+      "note": "转重组插件（企业发生重组才启用）"
+    },
+    "REO-002": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2009〕59号（资产收购）",
+      "data": "同 REO-001"
+    },
+    "REO-003": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2009〕59号（合并）",
+      "data": "同 REO-001"
+    },
+    "REO-004": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2009〕59号（分立）",
+      "data": "同 REO-001"
+    },
+    "REO-005": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2009〕59号（债务重组）",
+      "data": "同 REO-001"
+    },
+    "REO-008": {
+      "verdict": "needs_form",
+      "legal": "财税〔2014〕116号（非货币性资产投资 5 年递延）",
+      "data": "缺：非货币资产投资递延申报栏次",
+      "note": "账面非货币交易可线索级"
+    },
+    "REO-009": {
+      "verdict": "needs_external",
+      "legal": "财税〔2016〕101号（技术入股递延备案）",
+      "data": "缺：递延备案信息（机关侧）"
+    },
+    "REO-010": {
+      "verdict": "duplicate",
+      "legal": "同 IIT-017（财税〔2016〕101号递延备案）",
+      "data": "与 IIT-017 同口径",
+      "note": "并入 IIT-017"
+    },
+    "REO-011": {
+      "verdict": "clue_only",
+      "legal": "国家税务总局公告2015年第80号（转增股本个税）",
+      "data": "账面资本公积/未分配利润转增实收资本变动（总账）",
+      "note": "股改事件线索，代扣申报比对需个税数据"
+    },
+    "REO-012": {
+      "verdict": "duplicate",
+      "legal": "同 REO-011（未分配利润转增）",
+      "data": "并入 REO-011 同链路"
+    },
+    "REO-013": {
+      "verdict": "duplicate",
+      "legal": "同 REO-011（资本公积转增——补税口径不同须分栏）",
+      "data": "并入 REO-011 同链路（股份制企业股票溢价发行除外，需分栏）"
+    },
+    "REO-014": {
+      "verdict": "needs_external",
+      "legal": "国家税务总局公告2015年第7号（间接转让）",
+      "data": "缺：境外中间控股公司架构信息（境外）"
+    },
+    "REO-015": {
+      "verdict": "duplicate",
+      "legal": "同 AA-017（合理商业目的）",
+      "data": "与 AA-017 同口径",
+      "note": "并入 AA-017"
+    },
+    "RRT-004": {
+      "verdict": "needs_form",
+      "legal": "国家税务总局公告2022年第22号（留抵退税）",
+      "data": "缺：增值税申报表留抵抵减栏次"
+    },
+    "SI-003": {
+      "verdict": "clue_only",
+      "legal": "《社会保险法》第58条（30 日内办理参保）",
+      "data": "入离职日期（薪酬域）↔ 社保起缴月份（社保申报域）",
+      "note": "试用期约定与参保时点比对，线索级"
+    },
+    "SI-005": {
+      "verdict": "needs_external",
+      "legal": "《社会保险法》第57、60条；人社部令第22号（劳务派遣暂行规定）",
+      "data": "缺：派遣协议与派遣单位参保凭证（第三方）",
+      "note": "系统内无派遣单位侧数据"
+    },
+    "SPORT-001": {
+      "verdict": "industry_plugin",
+      "legal": "体育服务相关口径（ cart oval 一般计税）",
+      "data": "体育服务插件"
+    },
+    "SUR-002": {
+      "verdict": "needs_form",
+      "legal": "财税〔2016〕12号（免征限额）、财政部 税务总局公告2023年第12号（小规模减半）",
+      "data": "附加税费申报表减免性质代码栏次",
+      "note": "减免性质代码适用错误是可检点，须申报表支持"
+    },
+    "SUR-007": {
+      "verdict": "duplicate",
+      "legal": "同 SUR-002（同一张附加税费申报表）",
+      "data": "与 SUR-002 同表同口径",
+      "note": "并入 SUR-002 的申报表栏次需求"
+    },
+    "SUR-008": {
+      "verdict": "needs_external",
+      "legal": "《税收征收管理法》第51条（退税）",
+      "data": "缺：退库文书（机关侧）"
+    },
+    "TAXINC-003": {
+      "verdict": "needs_form",
+      "legal": "《企业所得税法》第26、28条（优惠计算）",
+      "data": "缺：A107010 等优惠明细表栏次解析",
+      "note": "与 TAXINC-015 同口径，保留一条"
+    },
+    "TAXINC-004": {
+      "verdict": "duplicate",
+      "legal": "国家税务总局公告2017年第40号（叠加享受顺序）",
+      "data": "与 TAXINC-016 同名同口径",
+      "note": "保留 TAXINC-016"
+    },
+    "TAXINC-011": {
+      "verdict": "industry_plugin",
+      "legal": "《企业所得税法》第33条；企业所得税优惠目录",
+      "data": "资源综合利用行业专用"
+    },
+    "TAXINC-015": {
+      "verdict": "duplicate",
+      "legal": "同 TAXINC-003（优惠金额计算）",
+      "data": "与 TAXINC-003 同口径",
+      "note": "保留 TAXINC-003（needs_form）"
+    },
+    "TAXINC-016": {
+      "verdict": "needs_form",
+      "legal": "国家税务总局公告2017年第40号（叠加享受顺序）",
+      "data": "缺：优惠明细表叠加享受栏次"
+    },
+    "TOUR-001": {
+      "verdict": "industry_plugin",
+      "legal": "财税〔2016〕36号附件2（旅游服务差额征税）",
+      "data": "旅游服务插件"
+    },
+    "TRUST-001": {
+      "verdict": "industry_plugin",
+      "legal": "信托计划相关税收口径",
+      "data": "信托插件"
+    },
+    "VET-003": {
+      "verdict": "needs_external",
+      "legal": "《车船税法》第3、4条",
+      "data": "缺：车辆登记与减免凭证（车管/保险侧）",
+      "note": "交强险代收代缴信息在企业侧不可得"
+    },
+    "VPT-002": {
+      "verdict": "clue_only",
+      "legal": "《车辆购置税法》第4、5条（最低计税价格）",
+      "data": "固定资产—车辆入账价 ↔ 发票金额（均已在库）",
+      "note": "入账价与发票价背离线索"
+    },
+    "VPT-003": {
+      "verdict": "needs_external",
+      "legal": "《车辆购置税法》第9条（免税）",
+      "data": "缺：免税图册/备案（机关侧）"
+    }
+  }
+}

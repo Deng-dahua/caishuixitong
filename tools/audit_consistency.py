@@ -13200,6 +13200,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_extract_validation_domain_aware()  # 2026-10-19 资料校验按域分派（流水余额勾稽/红冲分诊/凭证重复豁免）
                + check_document_delete_cleans_extract()  # 2026-10-19 删资料必须清三张解析登记表
                + check_doc_category_code_single()  # 2026-10-19 分类存储代码唯一（other）
+               + check_rule_adjudication_complete()  # 2026-10-20 待建/暂不能入库候选必须逐条有专家裁定
                + check_report_coverage_disclosure()  # 2026-10-19 覆盖率必须真渲染（后端算了不显示的防复发）
                + check_report_view_focus()          # 2026-10-19 报告视图之间必须真的不同（禁止换名字同一份）
                + check_capability_claims_honest()   # 2026-10-19 能力声称不得超出实际（已实装/免费可用）
@@ -21346,6 +21347,51 @@ def check_document_delete_cleans_extract() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", "engine/document_service.py",
                        "delete_document 未实际调用 `_reset_document_extract(conn, …)`"
                        "（三张解析登记表会残留孤儿，项目级异常清单变幽灵清单）"))
+    return issues
+
+
+def check_rule_adjudication_complete() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-20 立：候选清单的每一条「待建/暂不能入库」都必须有**专家裁定**。
+
+    用户质问：「你能接受来源未入库、版本未确定、无法规依据、入库处置暂不能入库吗？
+    是不是应该逐条规则根据常识专业确定？」⇒ 不能接受长期挂账。
+    裁定唯一权威 `config/rule_adjudications.json`（`scripts/_gen_rule_adjudications.py`
+    生成，内含覆盖核对）。判据：
+      ① pending/blocked 候选 **100%** 有裁定；
+      ② verdict 必须在六类枚举内；
+      ③ needs_external 必须**写明缺什么**（data 非空）；
+      ④ duplicate 必须注明保留对象（note/legal 非空）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.rule_candidate_ledger import adjudications, ledger
+    except Exception as exc:                                       # noqa: BLE001
+        return [("ERROR", "engine/rule_candidate_ledger.py", "无法导入：%s" % exc)]
+    adj = adjudications()
+    if adj.get("_error"):
+        return [("ERROR", "config/rule_adjudications.json",
+                 "裁定文件读不出来：%s" % adj["_error"])]
+    verd = adj.get("verdicts") or {}
+    enum = {"buildable", "clue_only", "needs_external", "industry_plugin",
+            "duplicate", "needs_form"}
+    items = ledger()["items"]
+    targets = [x for x in items if x.get("disposition") in ("pending", "blocked")]
+    miss = [x["rule_id"] for x in targets if x["rule_id"] not in verd]
+    if miss:
+        issues.append(("ERROR", "config/rule_adjudications.json",
+                       "待处置候选 %d 条中有 %d 条**没有专家裁定**：%s（逐条专业确定是用户明确要求）"
+                       % (len(targets), len(miss), miss[:10])))
+    for rid, v in verd.items():
+        if v.get("verdict") not in enum:
+            issues.append(("ERROR", "config/rule_adjudications.json",
+                           "%s 的 verdict=%r 不在六类枚举内" % (rid, v.get("verdict"))))
+        if v.get("verdict") == "needs_external" and not str(v.get("data") or "").strip():
+            issues.append(("ERROR", "config/rule_adjudications.json",
+                           "%s 裁定「需外部数据」但未写明缺什么数据（data 为空）" % rid))
+        if v.get("verdict") == "duplicate" and not (
+                str(v.get("note") or "").strip() or str(v.get("legal") or "").strip()):
+            issues.append(("ERROR", "config/rule_adjudications.json",
+                           "%s 裁定「重复」但未注明保留对象" % rid))
     return issues
 
 

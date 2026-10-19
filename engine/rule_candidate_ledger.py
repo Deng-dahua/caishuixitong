@@ -252,6 +252,13 @@ def resolve(row: Dict[str, Any], *, list_name: str = "",
         disp, disp_cn = "unknown", "状态未登记（见闸门）"
     if stale:
         disp = "stale_status"
+    # ★ 2026-10-20：并入专家裁定（pending/blocked 必有——生成器内做覆盖核对）
+    expert = None
+    if disp in ("pending", "blocked"):
+        v = (adjudications().get("verdicts") or {}).get(src)
+        if v:
+            expert = {"verdict": v.get("verdict"), "legal": v.get("legal"),
+                      "data": v.get("data"), "note": v.get("note")}
         disp_cn = ("清单状态过期：系统已由 %s 实现（清单仍标「%s」，须订正清单）"
                    % ("、".join(existing), candidate_status_cn(status)))
 
@@ -276,6 +283,7 @@ def resolve(row: Dict[str, Any], *, list_name: str = "",
         "inputs": inputs,
         "missing_inputs": missing,
         "executable": executable,
+        "expert": expert,
         "disposition": disp,
         "disposition_cn": disp_cn,
         "existing_rules": existing,
@@ -310,9 +318,43 @@ def ledger() -> Dict[str, Any]:
         "by_legal": dict(Counter(r["legal_status"] for r in rows)),
         "executable_n": sum(1 for r in rows if r["executable"]),
         "items": rows,
+        "expert_adjudication": _adjudication_summary(),
     }
     _CACHE["ledger"] = out
     return out
+
+
+def adjudications() -> Dict[str, Any]:
+    """专家裁定（唯一权威 `config/rule_adjudications.json`，读盘带缓存）。
+
+    ★ 2026-10-20（用户质问「能接受待建/无法规依据/暂不能入库吗」）：
+      机械处置只回答"清单状态"；本裁定是**人工专业核定层**，逐条给出
+      「应建 / 线索级 / 需外部数据（缺什么）/ 业务插件 / 重复 / 需表栏次」。
+      由 `scripts/_gen_rule_adjudications.py` 生成（176/176 覆盖核对在脚本内）。
+    """
+    if "adjud" in _CACHE:
+        return _CACHE["adjud"]
+    path = os.path.join(_ROOT, "config", "rule_adjudications.json")
+    d: Dict[str, Any] = {}
+    try:
+        with open(path, encoding="utf-8") as fh:
+            d = json.load(fh) or {}
+    except Exception as exc:                                   # noqa: BLE001
+        d = {"_error": str(exc), "verdicts": {}}
+    _CACHE["adjud"] = d
+    return d
+
+
+def _adjudication_summary() -> Dict[str, Any]:
+    adj = adjudications()
+    verd = adj.get("verdicts") or {}
+    from collections import Counter
+    return {
+        "total": len(verd),
+        "by_verdict": dict(Counter(str(x.get("verdict")) for x in verd.values())),
+        "by_verdict_cn": dict(Counter(str(adj.get("_verdict_cn", {}).get(
+            x.get("verdict"), x.get("verdict"))) for x in verd.values())),
+    }
 
 
 def summary() -> Dict[str, Any]:
@@ -332,6 +374,18 @@ def enrich(rec: Dict[str, Any]) -> Dict[str, Any]:
         one = next((x for x in ledger()["items"]
                     if x["rule_id"] == rec.get("rule_id")
                     and x["list"] == str(rec.get("layer") or "")), None)
+        # ★ 2026-10-20：附**专家裁定**（待建/暂不能入库的候选必须有专业结论）
+        if one and one.get("disposition") in ("pending", "blocked"):
+            v = (adjudications().get("verdicts") or {}).get(str(rec.get("rule_id")))
+            if v:
+                cn = (adjudications().get("_verdict_cn") or {})
+                rec["expert"] = {
+                    "verdict": v.get("verdict"),
+                    "verdict_cn": cn.get(v.get("verdict"), v.get("verdict")),
+                    "legal": v.get("legal"),
+                    "data": v.get("data"),
+                    "note": v.get("note"),
+                }
         if one:
             rec["candidate"] = {k: one[k] for k in (
                 "status_cn", "action_cn", "severity_cn", "version", "version_source",
