@@ -1,0 +1,16 @@
+# 历史项目补齐（scripts/_backfill_project_profile.py --apply --company 1）
+项目 42（PJ-20261018-0001）｜账套 1
+  · industry               ''            → '广告传媒'        [分析结果（销项发票品名推断）]
+  · region                 ''            → '广东省深圳市'      [企业名称行政区划 + 登记机关行政区划码]
+  · legal_representative   ''            → '张晓冬'          [工商档案]
+  · registered_capital     ''            → '1000.0'         [工商档案]
+  · established_date       ''            → '2022-03-03'      [工商档案]
+  · business_scope         ''            → '五金产品零售;…'    [工商档案]
+  · period_start           ''            → '2025-01-01'      [分析结果（报告期间）]
+  · period_end             ''            → '2025-12-31'      [分析结果（报告期间）]
+  · tax_scopes             '[]'          → '["增值税"]'       [分析结果（已上传申报表）]
+合计待改字段：9 个
+
+# 幂等复核（再跑一次，不加 --apply）
+  ✓ 无需改动（已一致，或分析未给出可填值）
+合计待改字段：0 个（预览）

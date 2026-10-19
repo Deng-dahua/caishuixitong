@@ -967,8 +967,145 @@ def reset_profile_cache() -> None:
     _PROFILE_DICTS = {}
 
 
+# --------------------------------------------------------------------------
+# 分析结果 ⇒ 项目记录的回写（2026-10-19 立）
+# --------------------------------------------------------------------------
+def sync_profile_from_analysis(company_id: Any, values: Dict[str, Any], *,
+                               engine=None, actor: str = "系统（分析结果回写）",
+                               dry_run: bool = False) -> Dict[str, Any]:
+    """把一次分析**确实取得**的企业信息回写到该账套下的项目记录（唯一写入口）。
+
+    ## 为什么需要它（根因）
+
+    用户的疑问「为什么分析报告能显示行业等信息，项目列表里却不显示」的答案是：
+    分析把行业只写进了 `companies.industry_resolved`（选择账套页用），
+    **从未回写 `projects`**；而项目列表读的是 `projects.industry` ⇒ 报告有、列表没有。
+    本函数补的正是这条**断掉的回写链**（不是"两个模块脱离"，分析一直在读项目数据）。
+
+    ## 铁律（逐条对应本仓既有事故）
+
+    ① **空值永不覆盖**：`values` 里取不到值的字段（`""` / `[]` / `None`）一律跳过 ——
+       缺失≠0，也≠"该字段应为空"；
+    ② **只在有出入时写**：与现值相同的字段不产生 UPDATE（避免 `updated_at` 无意义抖动）；
+    ③ **写入字段白名单单一权威**：`taxpayer_id/industry/region/period_*/tax_scopes`
+       + `PROFILE_FIELDS`（工商 7 项），**不在这里另列一份字段表**；
+    ④ **逐条留痕**：每个被改字段都进 `project_logs` 与 `audit_trail`（谁改的、从什么改成什么、
+       依据哪条来源），可追溯到"这次分析"；
+    ⑤ **不碰状态机**：状态（`status`）与成员、编号一律不动；
+    ⑥ **项目口径优先于公司口径**：只写 `projects`，不改 `companies`
+       （`_write_resolved_industry` 那条链仍独立存在，两者不互相覆盖）。
+    """
+    from sqlalchemy import text as _text                          # noqa: PLC0415
+    from engine.project_profile_fill import _norm as _n           # noqa: PLC0415
+
+    cid = int(company_id)
+    vals = values or {}
+    eng = _engine_or_default(engine)
+    ensure_schema(eng)
+
+    changes: List[Dict[str, Any]] = []
+    touched: List[int] = []
+    with eng.begin() as conn:
+        rows = conn.execute(_text(
+            "SELECT * FROM projects WHERE company_id=:_c ORDER BY id"), {"_c": cid}).fetchall()
+        for row in rows:
+            r = row._mapping if hasattr(row, "_mapping") else row
+            pid = int(r["id"])
+            sets, params = [], {"_pid": pid}
+            for key in ("taxpayer_id", "industry", "region"):
+                raw = vals.get(key)
+                v = raw.get("value") if isinstance(raw, dict) else raw
+                sv = _clean_str(v, maxlen={"taxpayer_id": 40, "industry": 60, "region": 60}[key])
+                if not sv:
+                    continue                      # ① 空值不覆盖
+                if key == "taxpayer_id":
+                    sv = sv.upper()
+                    if len(sv) != 18:
+                        continue                  # 不合法的信用代码不入库（不写半截值）
+                if _n(r.get(key)) == _n(sv):
+                    continue                      # ② 无出入不写
+                sets.append("%s=:_v_%s" % (key, key))
+                params["_v_" + key] = sv
+                changes.append({"project_id": pid, "field": key,
+                                "from": _clean_str(r.get(key), maxlen=200), "to": sv,
+                                "source": (raw.get("source") if isinstance(raw, dict) else "") or ""})
+            # 工商 7 项（同一张 PROFILE_FIELDS 表驱动，禁另列）
+            for key, _cn, mx, kind in PROFILE_FIELDS:
+                raw = vals.get(key)
+                v = raw.get("value") if isinstance(raw, dict) else raw
+                try:
+                    sv = _profile_value(key, kind, mx, v)
+                except Exception:                 # noqa: BLE001  # 单个坏值不影响其它字段
+                    continue
+                if sv in (None, "", 0):
+                    continue                      # ① 空值不覆盖（0 也视为未取得）
+                if _n(r.get(key)) == _n(sv):
+                    continue
+                sets.append("%s=:_v_%s" % (key, key))
+                params["_v_" + key] = sv
+                changes.append({"project_id": pid, "field": key,
+                                "from": _clean_str(r.get(key), maxlen=200), "to": _clean_str(sv, maxlen=200),
+                                "source": (raw.get("source") if isinstance(raw, dict) else "") or ""})
+            # 稽查期间：两段必须同时取得才写（半截期间会把期间判据弄坏）
+            ps_raw = (vals.get("period_start") or {})
+            pe_raw = (vals.get("period_end") or {})
+            ps = _clean_str(ps_raw.get("value") if isinstance(ps_raw, dict) else ps_raw, maxlen=20)
+            pe = _clean_str(pe_raw.get("value") if isinstance(pe_raw, dict) else pe_raw, maxlen=20)
+            if ps and pe:
+                try:
+                    ps, pe = _validate_period(ps, pe)
+                except ProjectError:
+                    ps = pe = ""
+                if ps and pe:
+                    # ★ 期间是**稽查范围**（人定的工作边界）：只在项目未设期间时补，
+                    #   绝不覆盖用户已设定的期间（与"工商信息有出入就更新"不同）。
+                    if not (_clean_str(r.get("period_start")) or _clean_str(r.get("period_end"))):
+                        sets += ["period_start=:_v_ps", "period_end=:_v_pe"]
+                        params["_v_ps"], params["_v_pe"] = ps, pe
+                        changes.append({"project_id": pid, "field": "period_start",
+                                        "from": _clean_str(r.get("period_start")), "to": ps,
+                                        "source": "分析结果（报告期间）"})
+                        changes.append({"project_id": pid, "field": "period_end",
+                                        "from": _clean_str(r.get("period_end")), "to": pe,
+                                        "source": "分析结果（报告期间）"})
+            # 税种范围：同上，只在未设时补
+            sc_raw = vals.get("tax_scopes") or {}
+            sc = sc_raw.get("value") if isinstance(sc_raw, dict) else sc_raw
+            sc_json = _normalize_scopes(sc) if sc else ""
+            if sc_json and sc_json != "[]" and not _clean_str(r.get("tax_scopes")).strip("[]"):
+                sets.append("tax_scopes=:_v_ts")
+                params["_v_ts"] = sc_json
+                changes.append({"project_id": pid, "field": "tax_scopes",
+                                "from": _clean_str(r.get("tax_scopes")), "to": sc_json,
+                                "source": (sc_raw.get("source") if isinstance(sc_raw, dict) else "") or ""})
+            if not sets or dry_run:
+                if sets:
+                    touched.append(pid)
+                continue
+            sets.append("updated_at=:_ua")
+            params["_ua"] = _now()
+            conn.execute(_text("UPDATE projects SET %s WHERE id=:_pid" % ", ".join(sets)), params)
+            touched.append(pid)
+
+    if not dry_run and changes:
+        per_pid: Dict[int, List[Dict[str, Any]]] = {}
+        for c in changes:
+            per_pid.setdefault(c["project_id"], []).append(c)
+        for pid, items in per_pid.items():
+            detail = "分析结果回写：" + "；".join(
+                "%s「%s」→「%s」%s" % (i["field"], i["from"] or "—", i["to"],
+                                    ("（%s）" % i["source"]) if i["source"] else "")
+                for i in items)
+            _audit("project.profile_sync", target=pid, company_id=cid,
+                   detail={"actor": actor, "changed": items})
+    return {"ok": True, "company_id": cid, "projects": touched,
+            "changed_fields": len(changes), "changes": changes,
+            "dry_run": bool(dry_run)}
+
+
 __all__ = [
     "ProjectError", "create_project", "list_projects", "get_project",
     "update_project", "delete_project", "list_members", "add_member", "metadata",
     "PROFILE_FIELDS", "AUDIT_FIELDS", "reset_profile_cache",
+    "sync_profile_from_analysis",
 ]

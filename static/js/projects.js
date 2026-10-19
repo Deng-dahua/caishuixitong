@@ -202,7 +202,6 @@
     //   否则编辑另一个项目时，同名判定会因上一次的 `_bizLastQuery` 而跳过查询。
     _bizLastQuery = "";
     if (_bizTimer) { window.clearTimeout(_bizTimer); _bizTimer = null; }
-    bizState("idle", "自动");
     pf("name").value = project ? (project.name || "") : "";
     pf("tid").value = project ? (project.taxpayer_id || "") : "";
     pf("industry").value = project ? (project.industry || "") : "";
@@ -223,6 +222,70 @@
     renderTaxChips();
     openModal("m-form");
     pf("name").focus();
+    // ★ 2026-10-19（用户：「编辑项目页面下所有的信息都是自动获取自动填列的」）：
+    //   打开编辑页即按**最近一次分析结果**补全所有空字段（行业/地区/期间/税种/工商 7 项），
+    //   并把"每个字段依据什么来源、哪些推不出来、为什么"如实写在提示区。
+    if (project && project.id) { autoCompleteForm(project.id); }
+  }
+
+  /** 打开编辑页时的**自动补全**：只填空字段，并逐项说明来源 / 不可得原因。
+   *
+   * ★ 为什么不覆盖已填值：已填值可能是人工核定的结论（例如稽查期间是人定的
+   *   工作边界，分析只能说"资料覆盖 2025 年度"，不能替人改稽查范围）。
+   *   有出入时**系统回写**由后端 `project_service.sync_profile_from_analysis`
+   *   在分析完成时统一处理（用户要求：工商信息有出入就更新为分析所得）。
+   */
+  async function autoCompleteForm(projectId) {
+    var st = $("form-autofill");
+    if (st) { st.textContent = "正在按最近一次分析结果补全…"; st.style.color = "#64748b"; }
+    var d;
+    try {
+      d = await api(API + "/" + encodeURIComponent(projectId) + "/profile-suggestions");
+    } catch (e) {
+      if (st) {
+        st.textContent = "自动补全暂不可用：" + (e && e.message ? e.message : "网络异常")
+          + "（不影响手工填写与保存）";
+        st.style.color = "#b45309";
+      }
+      return;
+    }
+    var fields = (d && d.fields) || {};
+    var LINE = { industry: "行业", region: "地区", period_start: "稽查期间起",
+                 period_end: "稽查期间止", tax_scopes: "税种范围" };
+    var filledList = [], keptList = [], missList = [];
+    Object.keys(fields).forEach(function (key) {
+      var f = fields[key] || {};
+      if (key === "tax_scopes") {
+        // 税种是多选 chips：只在没勾任何一项时补
+        if (f.suggested && f.suggested.length && !collectScopes().length) {
+          f.suggested.forEach(function (s) { SCOPE[s] = true; });
+          renderTaxChips();
+          filledList.push("税种范围");
+        } else if (f.reason) {
+          missList.push("税种范围：" + f.reason);
+        }
+        return;
+      }
+      var el = pf(key);
+      if (!el) return;
+      var label = LINE[key] || key;
+      if (f.suggested) {
+        el.value = f.suggested;
+        filledList.push(label + "「" + f.suggested + "」（" + (f.source || "来源未标注") + "）");
+      } else if (f.reason) {
+        missList.push(label + "：" + f.reason);
+      } else if (key in LINE) {
+        keptList.push(label + "保持已填");
+      }
+    });
+    var parts = [];
+    if (filledList.length) { parts.push("已自动补全 " + filledList.length + " 项：" + filledList.join("、")); }
+    if (keptList.length) { parts.push(keptList.join("、")); }
+    if (missList.length) { parts.push("未自动填：" + missList.join("；")); }
+    if (st) {
+      st.textContent = parts.join("。") || "本次没有可自动补全的字段。";
+      st.style.color = filledList.length ? "#047857" : (missList.length ? "#b45309" : "#64748b");
+    }
   }
 
   function collectScopes() {
@@ -261,24 +324,38 @@
   var _bizLastQuery = "";       // 上次已发出查询的企业全称（去重用）
   var _bizInFlight = false;     // 是否有查询在途（避免并发重复）
 
-  /** 是否允许自动查填：与元素上的 `data-perm="project.write"` 同一权限点。 */
+  /** 是否允许自动查填 —— **权限点唯一权威 = 服务端下发的 permissions**。
+   *
+   * ★ 2026-10-19：此前靠"检查一个状态徽标是否被 `rbac-nav.js` 隐藏"来间接判断权限
+   *   （那个徽标本轮已删除，用户明确不要任何像按钮的东西）。现在直接问 `window.RBAC`：
+   *     ① 不推断角色（本仓铁律：前端不得写 `role === 'admin'`）；
+   *     ② 权限状态**未就绪**时返回 false（从严），但**不丢掉这次触发** ——
+   *        注册一次 `RBAC.ready()` 回调，就绪后若名称已填则补查一次
+   *        （否则用户在页面刚打开时输入，会永久得不到自动填列，还以为功能坏了）。
+   *     ⚠ 就绪标志是 `RBAC.state.loaded`（不是 `ready`，那是注册回调的函数名）；
+   *        首版写成 `state.ready` ⇒ 恒为 undefined ⇒ 自动查填**从未触发**（真机验收抓出来的）。
+   */
+  var _bizReadyHooked = false;
   function bizAllowed() {
-    var el = $("btn-fetch-bizinfo");
-    if (!el) return false;
-    // `rbac-nav.js` 对无权限元素会隐藏（display:none / hidden 属性）
-    if (el.hidden) return false;
-    if (el.getAttribute("data-perm-ok") === "0") return false;
-    var cs = window.getComputedStyle ? window.getComputedStyle(el) : null;
-    if (cs && cs.display === "none") return false;
-    return true;
-  }
-
-  /** 设置状态指示器（不是按钮，不可点击）。state: idle|busy|ok|none */
-  function bizState(state, text) {
-    var el = $("btn-fetch-bizinfo");
-    if (!el) return;
-    el.setAttribute("data-state", state);
-    if (text) el.textContent = text;
+    try {
+      if (!window.RBAC || !window.RBAC.has) return false;
+      var st = window.RBAC.state || {};
+      if (!st.loaded) {
+        if (!_bizReadyHooked && window.RBAC.ready) {
+          _bizReadyHooked = true;
+          window.RBAC.ready(function () {
+            _bizReadyHooked = false;
+            if (bizAllowed() && pf("name").value.trim().length >= BIZ_MIN_LEN) {
+              scheduleBizAuto(0);
+            }
+          });
+        }
+        return false;
+      }
+      return !!window.RBAC.has('project.write');
+    } catch (e) {
+      return false;
+    }
   }
 
   function bizNote(text, kind) {
@@ -307,7 +384,6 @@
     if (name.length < BIZ_MIN_LEN) {
       // 半截输入：不查、不报错，恢复 idle（避免边打字边闪红字）
       _bizLastQuery = "";
-      bizState("idle", "自动");
       if (opts.fromBlur) {
         bizNote("企业全称太短，暂不自动查询（至少 " + BIZ_MIN_LEN + " 个字）");
       }
@@ -318,7 +394,6 @@
     _bizLastQuery = name;
     _bizInFlight = true;
     bizWarn("");
-    bizState("busy", "查询中…");
     bizNote("正在自动查询工商信息…");
     try {
       var url = "/api/v1/business/query?name=" + encodeURIComponent(name)
@@ -326,7 +401,6 @@
            ? "&project_id=" + encodeURIComponent(state.editing.id) : "");
       var d = await api(url);
       if (!d || !d.ok || !d.profile) {
-        bizState("none", "未查到");
         bizNote((d && d.message ? d.message : "查询超时，请手动填写")
                 + (d && d.detail ? "（" + d.detail + "）" : ""), "err");
         return;
@@ -344,18 +418,38 @@
       }
       put("tid", p.tax_id);
       BIZ_FIELDS.forEach(function (k) { put(k, p[k]); });
+      // ★ 2026-10-19（用户：「编辑项目页面下所有的信息都是自动获取自动填列的」）：
+      //   工商信息填完后，**连行业与地区一起自动填**（第 2 步不再需要人去点/去选）。
+      //   推断口径唯一权威在后端（`business_info.service._with_derived` →
+      //   `project_profile_fill` / `industry_resolver`），前端只负责填与说明来源，
+      //   绝不在这里再写一套关键词判断（否则同一企业会出现"页面 A、报告 B"）。
+      var dv = d.derived || {};
+      var derivedNotes = [];
+      [["industry", "行业"], ["region", "地区"]].forEach(function (pair) {
+        var key = pair[0], label = pair[1];
+        var item = dv[key] || {};
+        if (!item.value) {
+          if (item.reason) derivedNotes.push(label + "未自动填（" + item.reason + "）");
+          return;
+        }
+        var before = filled;
+        var el = pf(key);
+        put(key, item.value);
+        derivedNotes.push(label + (filled > before ? "已自动填「" + item.value + "」"
+                                                   : "保持已填值（推导为「" + item.value + "」）")
+                          + "（" + (item.source || "来源未标注") + "）");
+      });
       var missing = (p.missing || []).length;
-      bizState(filled ? "ok" : "none", filled ? "已自动填报" : "未查到");
       bizNote("已自动填报 " + filled + " 项（来源：" + (d.source_detail || d.source || "—")
               + (d.cache_hit ? "，命中缓存" : "")
               + "）" + (kept ? "；" + kept + " 项因已填写保持不变" : "")
-              + (missing ? "；" + missing + " 项未取得，请手工补齐" : ""),
+              + (missing ? "；" + missing + " 项未取得，请手工补齐" : "")
+              + (derivedNotes.length ? "。" + derivedNotes.join("；") : ""),
               filled ? "ok" : "err");
       if (d.risk_status_warning) {
         bizWarn("<b>登记状态异常：</b>" + esc(d.risk_status_warning));
       }
     } catch (e) {
-      bizState("none", "未查到");
       bizNote("查询失败：" + (e && e.message ? e.message : "网络异常")
               + "；请手动填写，不影响项目创建", "err");
     } finally {

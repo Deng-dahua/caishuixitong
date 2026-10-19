@@ -180,26 +180,25 @@
           不确定的可留空（留空即显示“—”，系统不会用默认值顶替）。</div>
         <div class="form-row">
           <label>企业名称 *
-            <span class="input-with-btn">
-              <input type="text" id="pf-name" autocomplete="off"
-                     placeholder="填全称后自动查询工商登记信息">
-              <!-- ★ 2026-10-19（用户要求「工商信息是自动添加，而不是手动的」）：
-                   此处原为【自动查填】**按钮**（需人工点击）。现改为**自动触发**：
-                   企业全称输入停顿或失焦即自动查询并填入下方字段。
-                   本元素保留为**状态指示器**（`role="status"`，不可点击），
-                   两个作用：① 让用户看见"正在查/已填报/查不到"的进度；
-                   ② 继续承载 `data-perm="project.write"` 门控 —— 无该权限时隐藏，
-                   同时 `projects.js` 也据此**不做自动查询**（前后端同一权限点）。 -->
-              <span id="btn-fetch-bizinfo" role="status" data-perm="project.write"
-                    class="biz-auto-status" aria-live="polite"
-                    title="工商信息将按企业全称自动查询并填入下方字段（查不到时请手工填写）">自动</span>
-            </span>
+            <input type="text" id="pf-name" autocomplete="off"
+                   placeholder="填全称后自动查询工商登记信息并逐项填列">
           </label>
           <label>统一社会信用代码 *<input type="text" id="pf-tid" maxlength="18" placeholder="18 位"></label>
         </div>
+        <!-- ★ 2026-10-19（用户：「我要的是编辑项目页面下所有的信息都是自动获取自动填列的，
+                 而不是甚至一个自动按钮！！！」）：
+               原【自动查填】按钮 → 上一轮改为 `role="status"` 状态徽标 → 本轮**整个删掉**。
+               理由：任何看起来像按钮的东西都会让人以为"还得点它一下"。
+               现在的行为完全自动化：
+                 · 企业全称一填好（输入停顿/失焦）⇒ 自动查工商 ⇒ 逐项填列；
+                 · 同时自动推导行业（经营范围/发票品名）与地区（注册地址/信用代码），
+                   也自动填列；
+                 · 打开「编辑项目」⇒ 再按最近一次分析结果补齐期间/税种等空字段。
+               权限门控不靠这个元素：`projects.js::bizAllowed()` 直接问 `window.RBAC`
+               （唯一权威 = 服务端下发的 permissions，不推断角色）。 -->
         <div class="biz-note" id="bizinfo-note">企业全称填好后，系统会<b>自动</b>查询并填入统一社会信用代码、法定代表人、
-          注册资本、成立日期、登记状态、注册地址、公司类型与经营范围；取不到的字段不会用默认值顶替，
-          已手工填写的内容不会被覆盖。</div>
+          注册资本、成立日期、登记状态、注册地址、公司类型与经营范围，并<b>自动推导</b>行业与地区；
+          取不到的字段不会用默认值顶替，已手工填写的内容不会被覆盖。</div>
         <div class="biz-warn" id="bizinfo-warn" hidden></div>
         <div class="form-row">
           <label>法定代表人<input type="text" id="pf-legal_representative" placeholder="工商登记法定代表人"></label>
@@ -222,6 +221,9 @@
         <div class="sect">第 2 步 · 稽查要素（决定稽查范围与比对口径，需在此填列）</div>
         <div class="hint">这四项是稽查工作的起点，<b>必填</b>；它们决定后续比对期间、
           适用行业指标与税种范围。</div>
+        <!-- ★ 2026-10-19：打开编辑页时，下面这些空字段会按**最近一次分析结果**自动补全，
+             本行如实显示「每个字段依据什么来源 / 哪些推不出来、为什么」（不留白让人猜）。 -->
+        <div class="biz-note" id="form-autofill" aria-live="polite"></div>
         <div class="form-row">
           <label>行业 *<input type="text" id="pf-industry" list="dl-industry"
                  placeholder="选择或填写（如：制造业）"></label>
@@ -274,7 +276,7 @@
     </div>
   </div>
 
-  <script src="/static/js/projects.js?v=aaabf414d5" defer></script>
+  <script src="/static/js/projects.js?v=a3bffb2445" defer></script>
   <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
   <script src="/static/js/page-memory.js?v=8c10b70862" defer></script>
 </body>

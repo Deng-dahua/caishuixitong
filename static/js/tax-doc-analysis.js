@@ -2904,8 +2904,18 @@ function renderTaxDocReport(r) {
 
   area.innerHTML = html;
 
-
-  area.scrollIntoView({ behavior: 'smooth' });
+  // ★ 2026-10-19（用户要求「进入分析报告页面设置为显示页面顶端」）：
+  //   本报告**内嵌**在 `/reports` 的「分析报告」页签里时**不得**自己滚动
+  //   —— 原来的 `scrollIntoView` 会把页面滚到报告区（实测 scrollY=119），
+  //   用户一进页面就看不到页面标题与页签，像"被吞掉了一截"。
+  //   判据取**声明式标记** `<body class="embed-report">`（写在 HTML 里，不依赖脚本加载顺序；
+  //   若用全局变量，`reports.js` 先执行、本文件的 `var` 后初始化会把它覆盖回去）。
+  //   独立页面（若将来恢复）仍保留自动滚动到报告区的旧行为。
+  var _tdaEmbedded = !!(document.body && document.body.classList
+    && document.body.classList.contains('embed-report'));
+  if (!_tdaEmbedded) {
+    area.scrollIntoView({ behavior: 'smooth' });
+  }
 
 
   

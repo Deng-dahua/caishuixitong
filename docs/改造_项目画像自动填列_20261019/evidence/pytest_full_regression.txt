@@ -1,0 +1,8 @@
+# 全量回归（2026-10-19 第四批）
+20 failed, 2617 passed, 5 skipped, 203 subtests passed in 781.47s
+
+# passed 序列：收口基线 2459 → 报告并入 2557 → 界面五项 2586 → 可见文案 2592 → 本轮 2617
+# 净增 25 = 本轮新增 tests/test_project_profile_autofill.py 的 25 项（18 正向 + 7 反向）
+# 逐项 diff：20 项失败清单与基线**完全相同**（零新增失败）
+
+# 20 项失败均为基线已有，与本次改动无关（清单同上一批 pytest_full_regression.txt）

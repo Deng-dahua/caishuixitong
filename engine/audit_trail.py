@@ -51,6 +51,7 @@ ACTIONS: Tuple[str, ...] = (
     "project.update",        # 稽查项目修改（含状态迁移）
     "project.delete",        # 稽查项目删除
     "project.member_change",  # 稽查项目成员变更（新增/角色调整）
+    "project.profile_sync",   # 分析结果回写项目画像（系统自动，2026-10-19）
     # ── 2026-10-13 新增（P0-2 资料上传）：**只在末尾追加**，既有动作顺序不得变动 ──
     "doc.download",      # 资料下载（含水印生成）
     "doc.classify",      # 资料分类修正（人工）
@@ -101,6 +102,7 @@ ACTION_CN: Dict[str, str] = {
     "project.update": "项目修改",
     "project.delete": "项目删除",
     "project.member_change": "项目成员变更",
+    "project.profile_sync": "项目画像回写（分析结果）",
     "doc.download": "资料下载",
     "doc.classify": "资料分类修正",
     "extract.run": "资料解析",

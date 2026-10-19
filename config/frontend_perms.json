@@ -87,11 +87,6 @@
         "what": "确认删除项目"
       },
       {
-        "id": "btn-fetch-bizinfo",
-        "perm": "project.write",
-        "what": "工商信息自动查填（状态指示器；无权限则不自动查询）"
-      },
-      {
         "id": "btn-del-selected",
         "perm": "project.write",
         "what": "删除选中项目"

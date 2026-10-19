@@ -217,11 +217,57 @@ class BusinessInfoService:
                 "data_quality": {"missing": [], "notes": []}}
 
 
+def _with_derived(res: Dict[str, Any]) -> Dict[str, Any]:
+    """给查询结果补上**可自动填列**的派生字段（行业 / 地区），唯一实现挂载点。
+
+    ## 为什么在这里补（而不是前端算）
+
+    行业推断的唯一权威是 `engine.industry_resolver`（Python），地区解析的唯一权威是
+    `engine.project_profile_fill.region_of`。前端如果自己再写一套正则/关键词，
+    就是**第二套口径**（同一个企业可能页面上填 A、报告里写 B）—— 本仓明令禁止。
+
+    ## 口径
+
+      · 失败结果（`ok=False`）不补派生字段（没有工商信息可推）；
+      · 每个派生项都是 `{value, source, reason}`：`reason` 说明"为什么推不出来"，
+        前端据此如实显示，**不留白让人猜**；
+      · 只**建议**，不改变 `profile`（调用方决定填不填）。
+    """
+    if not isinstance(res, dict) or not res.get("ok"):
+        return res
+    prof = res.get("profile") or {}
+    try:
+        from engine.project_profile_fill import (                    # noqa: PLC0415
+            industry_from_scope, region_of)
+        ind = industry_from_scope(
+            company_name=str(prof.get("name") or res.get("name") or ""),
+            business_scope=str(prof.get("business_scope") or ""),
+            registered_industry="",
+            sales_goods=[],
+        )
+        reg = region_of(address=str(prof.get("registered_address") or ""),
+                        company_name=str(prof.get("name") or res.get("name") or ""),
+                        uscc=str(prof.get("tax_id") or ""))
+        res["derived"] = {"industry": ind, "region": reg}
+    except Exception as exc:                                          # noqa: BLE001
+        # 派生失败不得让整次查询失败（工商信息本身是有效的）
+        res["derived"] = {"industry": {"value": "", "source": "",
+                                       "reason": "行业推导不可用：%s" % exc},
+                          "region": {"value": "", "source": "",
+                                     "reason": "地区推导不可用：%s" % exc}}
+    return res
+
+
 def query_company(name: Any, *, project_id: Optional[int] = None,
                   refresh: bool = False, engine: Any = None) -> Dict[str, Any]:
-    """模块级便捷入口（供 API 与规则复用）。"""
-    return BusinessInfoService(engine=engine).query_company(
+    """模块级便捷入口（供 API 与规则复用）。
+
+    ★ 派生字段（行业/地区）在此**统一挂载**（`_with_derived`）——
+      所有调用方（HTTP 接口、规则、脚本）一次到位，不必各自补一遍。
+    """
+    res = BusinessInfoService(engine=engine).query_company(
         name, project_id=project_id, refresh=refresh)
+    return _with_derived(res)
 
 
 __all__ = ["BusinessInfoService", "query_company", "config", "reset_cache"]

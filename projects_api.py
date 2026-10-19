@@ -170,6 +170,71 @@ def get_project(project_id: int, request: Request):
     return _call(SVC.get_project, project_id, session)
 
 
+@router.get("/{project_id}/profile-suggestions",
+            summary="编辑项目页的**自动填列建议**（逐字段：值/来源/不可得原因）")
+def project_profile_suggestions(project_id: int, request: Request):
+    """返回该项目的逐字段建议值，供「编辑项目」表单**自动填列**。
+
+    ## 为什么要有这个端点（用户 2026-10-19 的要求）
+
+      > 「编辑项目页面下所有的信息都是自动获取自动填列的 …… 而不是甚至一个自动按钮」
+
+    前端一次请求即可拿到：每个字段的**建议值**、**依据来源**（注册地址解析 / 工商档案 /
+    分析结果 / 登记机关行政区划码）、以及**推导不出来的原因**（如实说明，不留白让人猜）。
+
+    ## 口径（不另建第二套权威）
+
+      · 派生逻辑唯一实现 = `engine.project_profile_fill`（行业走 `industry_resolver`）；
+      · 报告来源唯一权威 = `engine.risk_service.load_payload`（报告载荷，服务落盘的那份）；
+      · 工商档案唯一权威 = `engine.business_info.store`；
+      · 本端点**只读**，不写任何库（写入由分析完成后的
+        `project_service.sync_profile_from_analysis` 统一执行）。
+
+    取不到报告载荷 ⇒ 工商类字段仍给建议（来自工商档案），
+    期间/税种等分析类字段如实返回「尚未分析，无法推导」。
+    """
+    session = _session(request)
+    detail = _call(SVC.get_project, project_id, session)
+    # ★ `project_service.get_project` 返回的是**项目本身**（不是 `{project: ...}` 包一层）。
+    #   兼容两种形状：万一将来改成包一层也不会静默取到空 dict
+    #   （首版就写成 `detail.get("project")` ⇒ 拿到 None ⇒ 所有字段都"推导不出"，
+    #     接口返回一堆「未能识别」而实际数据齐全 —— 实测抓出来的）。
+    project = detail.get("project") if isinstance(detail, dict) and "project" in detail else detail
+    project = project if isinstance(project, dict) else {}
+
+    report: Dict[str, Any] = {}
+    report_state = "分析结果不可得"
+    try:
+        from engine.risk_service import load_payload                # noqa: PLC0415
+        cid = project.get("company_id")
+        if cid:
+            got = load_payload(cid, session)
+            if got.get("available"):
+                report = got.get("payload") or {}
+                report_state = "已读取最近一次分析结果"
+            else:
+                report_state = str(got.get("reason") or "分析结果不可得")
+    except Exception as exc:                                        # noqa: BLE001
+        report_state = "分析结果读取失败：%s" % exc
+
+    company_row = None
+    try:
+        from engine.business_info import store as BIZ               # noqa: PLC0415
+        tid = str(project.get("taxpayer_id") or "")
+        name = str(project.get("name") or "")
+        company_row = (BIZ.get_by_tax_id(tid) if tid
+                       else (BIZ.get(name) if name else None))
+    except Exception:                                               # noqa: BLE001
+        company_row = None
+
+    from engine.project_profile_fill import suggest_for_project     # noqa: PLC0415
+    out = suggest_for_project(project, report, company_row)
+    out["project_id"] = project_id
+    out["report_state"] = report_state
+    out["company_row_found"] = bool(company_row)
+    return out
+
+
 @router.put("/{project_id}", summary="修改项目（含状态迁移）")
 def update_project(project_id: int, payload: ProjectUpdate, request: Request):
     session = _session(request)

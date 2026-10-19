@@ -11693,6 +11693,41 @@ def _persist_one_click_result(company_id, result):
             f"{type(_e).__name__}: {_e}",
         )
 
+    # ★ 2026-10-19（用户三问定位到的根因）：把本轮**确实取得**的企业信息回写**稽查项目**记录。
+    #   此前只有 `_write_resolved_industry` 写 `companies.industry_resolved`（选择账套页用），
+    #   `projects.industry/region/period_*/profile_*` **从未被回写** ⇒ 报告里有行业、
+    #   项目列表里是「—」。回写口径见 `project_service.sync_profile_from_analysis`：
+    #   空值不覆盖、无出入不写、逐条留痕、不碰状态机。失败只 warning，绝不吞掉分析结果。
+    try:
+        from engine.project_profile_fill import analysis_values as _pf_values  # noqa: PLC0415
+        from engine.project_service import (                                  # noqa: PLC0415
+            sync_profile_from_analysis as _pf_sync)
+        # 工商档案（`sys_company_info`）是工商类字段的唯一权威；取不到就只靠分析结果，
+        #   不做任何替代（`analysis_values` 会如实标注每个字段的来源）。
+        _pf_row = None
+        try:
+            from engine.business_info import store as _bis                  # noqa: PLC0415
+            _pf_tid = str((report_data.get("target_entity") or {}).get("uscc") or "")
+            _pf_name = str((report_data.get("target_entity") or {}).get("name") or "")
+            _pf_row = (_bis.get_by_tax_id(_pf_tid) if _pf_tid
+                       else (_bis.get(_pf_name) if _pf_name else None))
+        except Exception:                                                    # noqa: BLE001
+            _pf_row = None
+        _pf_vals = _pf_values(report_data, _pf_row)
+        _pf_res = _pf_sync(company_id, _pf_vals)
+        if _pf_res.get("changed_fields"):
+            _log.info("[项目回写] company %s 回写 %d 个字段到项目 %s"
+                      % (company_id, _pf_res["changed_fields"], _pf_res.get("projects")))
+            _append_one_click_log(
+                report_data, "[项目回写] 已把本轮取得的企业信息回写到稽查项目（%d 个字段：%s）"
+                % (_pf_res["changed_fields"],
+                   "、".join(sorted({c["field"] for c in _pf_res.get("changes") or []}))))
+    except Exception as _e:                                                  # noqa: BLE001
+        _log.warning(
+            f"[项目回写] 回写 company {company_id} 项目画像失败（不影响分析结果）："
+            f"{type(_e).__name__}: {_e}",
+        )
+
     _last_analysis_cache[company_id] = {
         "report": result,
         "timestamp": datetime.now().isoformat(),

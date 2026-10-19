@@ -286,17 +286,16 @@ class ContractTests(unittest.TestCase):
         #   `data-perm="project.write"`，全文断言会让"本元素门控被删"照样通过
         #   （反向验证抓出来的假绿）。
         import re as _re
-        # ★ 2026-10-19（用户要求「工商信息是自动添加，而不是手动的」）：
-        #   该元素已由**按钮**改为**状态指示器**（`role="status"`，不可点击），
-        #   自动触发见 `projects.js::scheduleBizAuto` / 输入框 input+blur 绑定。
-        #   断言随之改为：**不得是 button**、必须是 status 指示器、仍受权限门控。
-        tag = _re.search(r'<[a-z]+[^>]*id="btn-fetch-bizinfo"[^>]*>', html)
-        self.assertIsNotNone(tag, "找不到工商信息状态指示器 #btn-fetch-bizinfo")
-        self.assertNotIn("<button", tag.group(0).lower(),
-                         "工商信息查填必须**自动**触发，不得是可点击按钮（用户 2026-10-19 裁定）")
-        self.assertIn('role="status"', tag.group(0), "该元素应声明为状态指示器（role=status）")
-        self.assertIn('data-perm="project.write"', tag.group(0),
-                      "工商信息自动查填必须受权限门控")
+        # ★★ 2026-10-19（用户原话：「我要的是编辑项目页面下所有的信息都是自动获取
+        #   自动填列的，然后显示在列表中，而不是甚至一个自动按钮！！！」）：
+        #   演变三步：① 最初是可点击按钮【自动查填】→ ② 改为 `role="status"` 状态徽标
+        #   → ③ **本轮整个删除**。用户说得明确：任何像按钮的东西都会让人以为还得点它。
+        #   故本判据反转为：**该 id 必须不存在**（连徽标都不留）。
+        self.assertIsNone(
+            _re.search(r'<[a-z]+[^>]*id="btn-fetch-bizinfo"[^>]*>', html),
+            "`#btn-fetch-bizinfo` 必须彻底删除（用户 2026-10-19：不要任何自动按钮/徽标）")
+        self.assertNotIn("autofill", html.lower().replace("form-autofill", ""),
+                         "表单里不得再出现额外的「自动」触发控件（提示区除外）")
         js = open(os.path.join(ROOT, "static", "js", "projects.js"), encoding="utf-8").read()
         self.assertIn("/api/v1/business/query", js)
         self.assertIn("risk_status_warning", js, "注销/吊销警告必须由后端判据驱动")
@@ -308,10 +307,20 @@ class ContractTests(unittest.TestCase):
                       "企业全称输入框必须绑定 blur 事件（失焦兜底查）")
         # ★ 绝不得覆盖用户已填内容（自动触发下的头号风险）
         self.assertIn("kept", js, "自动填务必区分「已填报」与「因已填写保持不变」")
+        # ★ 权限门控不再靠"元素被隐藏"，而是直接问服务端下发的 permissions
+        self.assertIn("window.RBAC", js,
+                      "自动查填的权限判断必须问 RBAC（服务端 permissions 唯一权威）")
+        self.assertIn("'project.write'", js, "自动查填必须校验 project.write")
+        # ★ 行业/地区也必须自动填（用户要求"所有信息都自动"），且来源由后端派生
+        self.assertIn("d.derived", js, "未使用后端派生的行业/地区（前端不得自建第二套推断）")
+        self.assertIn("profile-suggestions", js,
+                      "编辑页必须调用自动补全接口（行业/地区/期间/税种/工商 7 项）")
+        # ★ 前端权限表不得残留已删元素（残留会让 `test_mapped_entries_carry_attributes` 报红）
         perms = json.load(open(os.path.join(ROOT, "config", "frontend_perms.json"),
                                encoding="utf-8"))
         ids = {x.get("id") for x in (perms["pages"].get("projects.html") or [])}
-        self.assertIn("btn-fetch-bizinfo", ids, "该入口必须登记到前端权限表")
+        self.assertNotIn("btn-fetch-bizinfo", ids,
+                         "元素已删除，权限表条目必须同步删除（否则闸门报「元素不存在」）")
 
     def test_table_created_lazily_and_idempotent(self):
         eng = _eng()

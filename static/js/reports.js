@@ -435,6 +435,9 @@ function switchTab(name) {
     el('tab-' + t).classList.toggle('active', t === name);
     el('pane-' + t).style.display = (t === name ? '' : 'none');
   });
+  // ★ 换页签也是"进入"，一律从页面顶端开始（否则会停在上一页签的滚动位置，
+  //   切到「分析报告」时直接落在正文中段，看不到页签与报告信息卡）。
+  _scrollPageTop();
   if (name === 'analysis') { loadAnalysisReport(); }
   if (name === 'history') { loadList(); }
   if (name === 'versions') { loadVersions(); }
@@ -490,8 +493,28 @@ async function loadAnalysisReport() {
     window.taxDocReportData = d.report;      // 让「导出PDF / 缓存 / 删除报告」可用
     renderTaxDocReport(d.report);
     _demoteReportCover();
+    _scrollPageTop();
   } catch (e) {
     area.innerHTML = '<div class="msg err">读取分析报告失败：' + esc(e.message) + '</div>';
+  }
+}
+
+/* ─── 进入「分析报告」即显示**页面顶端**（2026-10-19 用户要求）───────────────
+ *
+ * 为什么需要显式处理：报告正文很长（实测 10 万+ 字、整页高 10 万像素），
+ * 而 `tax-doc-analysis.js` 渲染完会 `scrollIntoView` 到报告区 —— 那是它作为
+ * **独立内页**时的合理行为；内嵌到本页后，用户一进来就看不到页面标题与页签，
+ * 观感像"页面被吞掉一截"（实测 scrollY=119）。
+ *
+ * 本页已用 `<body class="embed-report">` 让它**不再自动滚动**；这里再主动
+ * 把视口归位到顶部，确保：进页面 / 切回「分析报告」页签 / 换项目重渲染，
+ * 三种进入方式都从**页面顶端**开始读。
+ */
+function _scrollPageTop() {
+  try {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  } catch (e) {
+    window.scrollTo(0, 0);
   }
 }
 
