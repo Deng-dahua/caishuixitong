@@ -48,6 +48,12 @@ PAGES = [
     "/tax-models",
 ]
 
+#: ★ 这些页面显示的是**数据库里的历史行**（而非当前源码生成的文案）。
+#:   审计日志是 append-only 的：事后修好源码**不会回改历史行**，
+#:   所以此处命中只作"历史留痕"提示，不判为当前代码缺陷。
+#:   （源码层面的判据在 tools/audit_consistency.py::check_no_markdown_leak_in_html。）
+HISTORICAL_ONLY = {"/audit-logs"}
+
 #: 未渲染 HTML 标记的字面量（尖括号 + 常见标签名）
 _RAW_TAG = re.compile(
     r"<(?:\/?)(?:b|strong|i|em|br|p|div|span|code|ul|li|table|tr|td|th)\b[^>]{0,40}>",
@@ -64,6 +70,7 @@ def main(argv=None) -> int:
     from playwright.sync_api import sync_playwright
 
     fails = []
+    notes = []          # 历史留痕类提示（不算当前代码缺陷）
     with sync_playwright() as pw:
         browser = pw.chromium.launch(channel="chrome", headless=True)
         ctx = browser.new_context(viewport={"width": 1500, "height": 1000}, locale="zh-CN")
@@ -93,10 +100,22 @@ def main(argv=None) -> int:
                 });
                 return out;
             }""")
-            mark = "  "
-            if found["stars"] or found["tags"]:
+            hit = bool(found["stars"] or found["tags"])
+            # ★ 区分「当前代码有缺陷」与「历史数据里存着旧文本」：
+            #   `/audit-logs` 显示的是 **数据库里的历史行**（append-only，事后改源码
+            #   不会回改历史行）⇒ 它命中**不构成"当前代码有缺陷"的证据**，归入提示。
+            #   否则这条会永久红着，把真正的回归掩盖掉（"假判据/常红判据"同样有害）。
+            #   注意：这只排除"这一页的显示结果"，不排除"审计文案源码"——
+            #   源码层面的判据由 tools/audit_consistency.py 的
+            #   check_no_markdown_leak_in_html 负责（它扫 .html 与 .js 字面量）。
+            if hit and url in HISTORICAL_ONLY:
+                notes.append((url, found))
+                mark = "· "
+            elif hit:
                 mark = "★ "
                 fails.append((url, found))
+            else:
+                mark = "  "
             print("%s%-24s ** = %d  未渲染标记 = %d"
                   % (mark, url, len(found["stars"]), len(found["tags"])))
             for s in found["stars"][:2]:
@@ -105,7 +124,12 @@ def main(argv=None) -> int:
                 print("      [tag] %r" % s)
         browser.close()
 
-    print("\n==== 扫描 %d 页，异常 %d 页 ====" % (len(PAGES), len(fails)))
+    print("\n==== 扫描 %d 页：异常 %d 页，历史留痕提示 %d 页 ===="
+          % (len(PAGES), len(fails), len(notes)))
+    if notes:
+        print("   历史留痕（append-only 数据行，源码已修、不回改历史）：")
+        for url, _f in notes:
+            print("     · %s —— 判据覆盖：源码层由审计闸门负责；可另跑一次新动作验证新记录无 **" % url)
     return 1 if fails else 0
 
 
