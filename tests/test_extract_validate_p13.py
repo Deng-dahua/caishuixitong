@@ -2,7 +2,7 @@
 """P1-3 数据校验规则扩展 —— 单元测试 + 集成测试 + 反向判据。
 
 ★ 判据口径
-  · **齐备性**：12 条校验规则（P1-3 由 6 扩到 12）全部有中文名，且与
+  · **齐备性**：13 条校验规则（P1-3 由 6 扩到 12；2026-10-19 新增 bank_balance_check）全部有中文名，且与
     `config/standard_fields.json::_validation` 的键集合**完全一致**。
   · **可触发**：6 条新规则各自能被针对性样例触发（不是"写了代码但从不生效"）。
   · **反敏感**：把规则的判据常量改掉 ⇒ 该规则**不再触发**（证明判据真的在读它，
@@ -58,8 +58,8 @@ class ValidateRulesUnitTests(unittest.TestCase):
             from engine.extract_validate import RULES, RULE_CN
             d = json.load(open("config/standard_fields.json", encoding="utf-8"))
 
-            assert len(RULES) == 12, RULES
-            assert len(set(RULES)) == 12, "规则名重复"
+            assert len(RULES) == 13, RULES
+            assert len(set(RULES)) == 13, "规则名重复"
             for r in RULES:
                 assert RULE_CN.get(r), ("缺中文名", r)
             # 规则清单 ↔ 配置说明表**必须同集合**（新增规则须两处同步）
@@ -144,8 +144,8 @@ class ValidateRulesUnitTests(unittest.TestCase):
 
 
 class ValidateRulesIntegrationTests(unittest.TestCase):
-    def test_parse_meta_exposes_twelve_rules_and_notes(self):
-        """P1-1 的 `/parse/meta` 必须暴露 12 条校验规则与判定口径说明（供前端与审计引用）。"""
+    def test_parse_meta_exposes_all_rules_and_notes(self):
+        """P1-1 的 `/parse/meta` 必须暴露全部校验规则与判定口径说明（供前端与审计引用）。"""
         result = _run("""
             import sys, os
             sys.path.insert(0, ".")
@@ -159,8 +159,8 @@ class ValidateRulesIntegrationTests(unittest.TestCase):
                           json={"username": "p13pm",
                                 "password": "P1-3-PM-Pass-2026!"}).status_code == 200
             j = c.get("/api/v1/parse/meta").json()
-            assert len(j["validation"]) == 12, j["validation"]
-            assert len(j["validation_notes"]) == 12, j["validation_notes"]
+            assert len(j["validation"]) == 13, j["validation"]
+            assert len(j["validation_notes"]) == 13, j["validation_notes"]
             assert set(j["validation"]) == set(j["validation_notes"]), (
                 set(j["validation"]) ^ set(j["validation_notes"]))
             print("PARSE-META-OK")
@@ -168,7 +168,7 @@ class ValidateRulesIntegrationTests(unittest.TestCase):
         _assert_ok(result)
         self.assertIn("PARSE-META-OK", result.stdout)
 
-    def test_meta_exposes_twelve_rules(self):
+    def test_meta_exposes_all_rules(self):
         result = _run("""
             import sys, os
             sys.path.insert(0, ".")
@@ -185,7 +185,7 @@ class ValidateRulesIntegrationTests(unittest.TestCase):
             assert m.status_code == 200, m.text
             j = m.json()
             # ★ `rules` 是既有形状 `[{value,label}]`（P0-3 定义，**不改**）
-            assert len(j["rules"]) == 12, j["rules"]
+            assert len(j["rules"]) == 13, j["rules"]
             for it in j["rules"]:
                 assert it.get("value") and it.get("label"), it
             print("INTEG-OK rules=%d" % len(j["rules"]))

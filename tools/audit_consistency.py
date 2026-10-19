@@ -13197,6 +13197,9 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_rule_layer_labels()               # 2026-10-18 规则库中文标签（层/严重度/候选状态）
                + check_analysis_industry_overrides_registered()  # 2026-10-19 行业以分析资料结果为准
+               + check_extract_validation_domain_aware()  # 2026-10-19 资料校验按域分派（流水余额勾稽/红冲分诊/凭证重复豁免）
+               + check_document_delete_cleans_extract()  # 2026-10-19 删资料必须清三张解析登记表
+               + check_doc_category_code_single()  # 2026-10-19 分类存储代码唯一（other）
                + check_report_coverage_disclosure()  # 2026-10-19 覆盖率必须真渲染（后端算了不显示的防复发）
                + check_report_view_focus()          # 2026-10-19 报告视图之间必须真的不同（禁止换名字同一份）
                + check_capability_claims_honest()   # 2026-10-19 能力声称不得超出实际（已实装/免费可用）
@@ -21227,6 +21230,151 @@ def check_analysis_industry_overrides_registered() -> List[Tuple[str, str, str]]
                                % hit.group(0).strip().replace("\n", " ")[:90]))
     except OSError as exc:                                         # noqa: BLE001
         issues.append(("ERROR", "engine/project_service.py", "读取失败：%s" % exc))
+    return issues
+
+
+def check_extract_validation_domain_aware() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-19 立：资料校验判据必须**按域分派**（行为级，直接跑判据函数）。
+
+    ## 为什么立（用户质询链）
+    用户问「银行流水提示借贷不平衡，合理吗」——不合理。流水借=支出、贷=收入，
+    两列合计本来就不该相等；同理数电发票"同号一正一负"是红字冲销的正常形态、
+    凭证内同科目同金额多行是合并记账。⇒ 三类误报都要按税务常识修，并用行为级
+    判据钉死：
+      · bank 域：借贷合计不等**不得**报 debit_credit_unbalanced；
+        余额被篡改/缺行**必须**报 bank_balance_check；一致流水不得误报；
+      · ledger 域：借贷不等仍须报（账簿平衡是硬约束）；同凭证内重复行不报；
+      · invoice：同号正负对 ⇒ 消息须点明红字冲销；同号同额 ⇒ 须报真重复。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.extract_validate import validate_rows                     # noqa: PLC0415
+    except Exception as exc:                                             # noqa: BLE001
+        return [("ERROR", "engine/extract_validate.py", "无法导入：%s" % exc)]
+
+    def _rules(iss):
+        return [i["rule"] for i in iss]
+
+    # ① bank：Σ借≠Σ贷 但余额连续 ⇒ 不得报借贷不平衡、也不得报余额异常
+    bank_ok = [
+        {"交易日期": "2026-01-01", "借方发生额": 100.0, "贷方发生额": 0.0, "余额": 900.0},
+        {"交易日期": "2026-01-02", "借方发生额": 0.0, "贷方发生额": 250.0, "余额": 1150.0},
+        {"交易日期": "2026-01-03", "借方发生额": 60.0, "贷方发生额": 0.0, "余额": 1090.0},
+    ]
+    r = _rules(validate_rows(bank_ok, domain="bank",
+                             standard_names=["tx_date", "debit", "credit", "balance"]))
+    if "debit_credit_unbalanced" in r:
+        issues.append(("ERROR", "engine/extract_validate.py",
+                       "bank 域对 Σ借≠Σ贷 报了「借贷不平衡」——流水两列本就不该相等"
+                       "（差额=期间净流入），该判据只适用账簿/凭证域"))
+    if "bank_balance_check" in r:
+        issues.append(("ERROR", "engine/extract_validate.py",
+                       "bank 域一致流水被误报「余额勾稽异常」（正向即红 ⇒ 判据假）"))
+    # ② bank：余额被篡改 ⇒ 必须报
+    broken = [dict(x) for x in bank_ok]
+    broken[1]["余额"] = 123456.0
+    r = _rules(validate_rows(broken, domain="bank",
+                             standard_names=["tx_date", "debit", "credit", "balance"]))
+    if "bank_balance_check" not in r:
+        issues.append(("ERROR", "engine/extract_validate.py",
+                       "bank 域余额断裂未报 bank_balance_check（反向注入不变红 ⇒ 判据假）"))
+    # ③ ledger：Σ借≠Σ贷 ⇒ 必须报借贷不平衡
+    ledger_bad = [{"本期借方": 100.0, "本期贷方": 90.0}]
+    r = _rules(validate_rows(ledger_bad, domain="ledger",
+                             standard_names=["current_debit", "current_credit"]))
+    if "debit_credit_unbalanced" not in r:
+        issues.append(("ERROR", "engine/extract_validate.py",
+                       "账簿域 Σ借≠Σ贷 未报「借贷不平衡」（平衡是账簿硬约束，漏报=假绿）"))
+    # ④ ledger：同凭证内整行重复 ⇒ 不报；凭证号不在字段集（无法区分）⇒ 保守仍报
+    #   （整行重复含凭证号 ⇒ 同构行必然同凭证，"跨凭证同构"在该口径下不存在）
+    within = [{"凭证号": "记-1", "科目编码": "1001", "科目名称": "银行存款", "本期借方": 5.0},
+              {"凭证号": "记-1", "科目编码": "1001", "科目名称": "银行存款", "本期借方": 5.0}]
+    ln = ["voucher_no", "account_code", "account_name", "current_debit"]
+    r = _rules(validate_rows(within, domain="ledger", standard_names=ln))
+    if "duplicate" in r:
+        issues.append(("ERROR", "engine/extract_validate.py",
+                       "凭证域「同凭证号内」重复分录被报「重复数据」——合并记账的正常形态，"
+                       "只有跨凭证整行重复才报"))
+    no_vno = [{"科目编码": "1001", "科目名称": "银行存款", "本期借方": 5.0},
+              {"科目编码": "1001", "科目名称": "银行存款", "本期借方": 5.0}]
+    r = _rules(validate_rows(no_vno, domain="ledger",
+                             standard_names=["account_code", "account_name", "current_debit"]))
+    if "duplicate" not in r:
+        issues.append(("ERROR", "engine/extract_validate.py",
+                       "凭证域连凭证号列都没有时未报「重复数据」（无法区分是否同凭证 ⇒ 不应静默豁免）"))
+    # ⑤ invoice：同号一正一负 ⇒ 须点明红字；同号同额 ⇒ 须报真重复
+    inv = [{"发票号码": "A", "金额": 117.22},
+           {"发票号码": "A", "金额": -34.25},
+           {"发票号码": "B", "金额": 50.0},
+           {"发票号码": "B", "金额": 50.0}]
+    iss = validate_rows(inv, domain="invoice",
+                        standard_names=["invoice_no", "invoice_amount"])
+    red = [i for i in iss if i["rule"] == "duplicate_invoice_no"
+           and i["detail"].get("red_flush")]
+    trued = [i for i in iss if i["rule"] == "duplicate_invoice_no"
+             and i["detail"].get("true_dup")]
+    if not red:
+        issues.append(("ERROR", "engine/extract_validate.py",
+                       "数电发票同号「一正一负」未按红字冲销分诊（实测蓝票/红字同号导出是正常形态）"))
+    if not trued:
+        issues.append(("ERROR", "engine/extract_validate.py",
+                       "同号同额真重复未单独分诊（漏报）"))
+    return issues
+
+
+def check_document_delete_cleans_extract() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-19 立：删除资料必须同步清**三张解析登记表**（源码级+精确到函数体）。
+
+    实测事故：delete_document 只删 documents + document_pages ⇒ 真实库 281 表 /
+    1506 字段 / 240 条异常成孤儿，「项目级校验异常清单」87% 是幽灵。
+    修法 = 复用解析模块声明出口 `_reset_document_extract`（不另立第二套）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    path = ROOT / "engine" / "document_service.py"
+    try:
+        src = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return [("ERROR", "engine/document_service.py", "无法读取：%s" % exc)]
+    i = src.find("def delete_document")
+    if i < 0:
+        return [("ERROR", "engine/document_service.py", "找不到 delete_document")]
+    j = src.find("\ndef ", i + 10)
+    body = src[i: j if j > 0 else len(src)]
+    # ★ 断言精确到**调用形态**（`_rst(conn` ）：只查名字会被 import 行骗过
+    #   （首版反向验证即被抓出：把调用行删了、import 还在 ⇒ 源码含字串但行为已退化）。
+    if "_rst(conn" not in body:
+        issues.append(("ERROR", "engine/document_service.py",
+                       "delete_document 未实际调用 `_reset_document_extract(conn, …)`"
+                       "（三张解析登记表会残留孤儿，项目级异常清单变幽灵清单）"))
+    return issues
+
+
+def check_doc_category_code_single() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-19 立：分类**存储代码唯一**（`other`），中文名「其他」只是显示名。
+
+    实测事故：旧实现把中文名「其他」当代码写库 ⇒ 同概念两种拼法
+    （`other` 102 行 + `其他` 14 行），分类统计/过滤各认一半。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    try:
+        from engine.document_types import (OTHER_CATEGORY, category_cn,   # noqa: PLC0415
+                                           guess_category, validate_category)
+    except Exception as exc:                                             # noqa: BLE001
+        return [("ERROR", "engine/document_types.py", "无法导入：%s" % exc)]
+    if OTHER_CATEGORY != "other":
+        issues.append(("ERROR", "engine/document_types.py",
+                       "OTHER_CATEGORY=%r——存储代码必须是 `other`（中文名只作显示）"
+                       % OTHER_CATEGORY))
+    if category_cn("other") != "其他":
+        issues.append(("ERROR", "engine/document_types.py",
+                       "category_cn('other')=%r——显示名必须是「其他」" % category_cn("other")))
+    if validate_category("其他") != "other":
+        issues.append(("ERROR", "engine/document_types.py",
+                       "validate_category('其他') 未归一为 'other'（写入口会把中文别名再次落库）"))
+    cat, _typ = guess_category("完全无关的文件名-xyz.pdf")
+    if cat != "other":
+        issues.append(("ERROR", "engine/document_types.py",
+                       "guess_category 未识别时应返回代码 'other'，实际 %r" % cat))
     return issues
 
 

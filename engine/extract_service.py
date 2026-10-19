@@ -266,6 +266,14 @@ def parse_document(document_id: Any, session: Any, *, engine=None,
                 " parse_status, parsed_at) VALUES (:d,:p,:c,'', 'failed', :ts)"
             ), {"d": int(doc["id"]), "p": pid, "c": cid, "ts": ts})
 
+    # ★ 2026-10-19（用户：「一看资料的具体内容就能识别」）：解析成功 ⇒ 用**表头内容
+    #   识别**回填文档级分类（此前只看文件名 ⇒ 实测 93% 落"其他"）。人工修正不覆盖。
+    if ok:
+        try:
+            _classify_doc_from_content(doc, tables, eng)
+        except Exception:                             # noqa: BLE001 — 回填失败不影响解析
+            pass
+
     _audit("extract.run", target=name, company_id=cid,
            detail="解析资料：表 %d 张、标准字段 %d 项、校验异常 %d 条%s"
                   % (len(written_tables), len(written_fields), len(all_issues),
@@ -313,6 +321,59 @@ def parse_document(document_id: Any, session: Any, *, engine=None,
         "parse_error": parse_error,
         "parsed_at": ts,
     }
+
+
+def _classify_doc_from_content(doc: Dict[str, Any], tables: List[Dict[str, Any]],
+                               eng: Any) -> Optional[Dict[str, Any]]:
+    """解析后用**表级内容识别**回填文档级分类（单一权威 = 既有 `_FILE_FINGERPRINTS`）。
+
+    ★ 为什么存在（2026-10-19，用户：「你是税务稽查专家，一看资料的具体内容就能识别」）：
+      上传时的分类**只看文件名关键词**（`filename_type_map.json`）⇒ 实测 125 份资料里
+      116 份（93%）落"其他"——而它们的**表头内容**早已被解析器正确识别为
+      bank_statement / purchase_invoice / …（`extracted_tables.doc_type`）。
+      缺的不是识别能力，是**识别结果没回填到文档级**。
+
+    口径：
+      · 表类型取**行数最多**的非空 `doc_type`（一份混合工作簿以主表为准）；
+      · 只在 `classify_by != 'manual'` 时回填（**人工修正永不被覆盖**）；
+      · 只在「doc_type 为空 或 category 为 其他」时回填（已正确分类的不动）；
+      · 类型码 → 业务大类走 `document_types.type_to_category`（config 权威）；
+      · note 如实记录依据（几张表、原分类是什么），不留无源之改。
+    """
+    from collections import Counter                     # noqa: PLC0415
+    from engine.document_types import type_to_category  # noqa: PLC0415
+    try:
+        cand = [str(t.get("doc_type") or "") for t in tables if t.get("doc_type")]
+        if not cand:
+            return None
+        best, _n = Counter(cand).most_common(1)[0]
+        cat = type_to_category().get(best, "")
+        if not cat:
+            return None
+        cur_type = str(doc.get("doc_type") or "")
+        cur_cat = str(doc.get("category") or "")
+        # ★ 可回填的两类：①本来就未分类；②**上一次也是"内容识别"自动推导的**
+        #   （识别器修好后要能自我更正——实测：结构误判曾把 3 份流水写成
+        #   financial_statement，若不许更正，错误就固化了）。人工修正（manual）永不覆盖。
+        prev_auto_content = str(doc.get("note") or "").startswith("内容识别：")
+        if cur_cat not in ("other", "其他", "") and not prev_auto_content:
+            return None                                 # 人工/既有明确分类 ⇒ 不动
+        if cur_type == best and cur_cat == cat:
+            return None
+        from sqlalchemy import text as _text            # noqa: PLC0415
+        note = ("内容识别：%s（依据 %d 张解析表；原分类 %s / 类型 %s）"
+                % (best, len(cand), cur_cat or "空", cur_type or "空"))
+        with eng.begin() as conn:
+            conn.execute(_text(
+                "UPDATE documents SET doc_type=:dt, category=:cat, classify_by='auto', "
+                " note=COALESCE(:nt, note), updated_at=updated_at WHERE id=:d"
+            ), {"dt": best, "cat": cat, "nt": note, "d": int(doc["id"])})
+        return {"doc_type": best, "category": cat, "note": note}
+    except Exception:                                   # noqa: BLE001 — 回填失败不影响解析产物
+        from engine.audit_trail import record as _rec   # noqa: PLC0415
+        _rec("extract.run", target=str(doc.get("id")), company_id=doc.get("company_id"),
+             detail="⚠ 内容识别回填分类失败（不影响解析产物）")
+        return None
 
 
 def _parse_ok(tables: List[Dict[str, Any]], parse_error: str) -> bool:

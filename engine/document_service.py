@@ -493,7 +493,14 @@ def classify_document(document_id: Any, category: Any, session: Any, *, engine=N
 # --------------------------------------------------------------------------
 def delete_document(document_id: Any, session: Any, *, engine=None,
                     request: Any = None) -> Dict[str, Any]:
-    """删除资料：文件**移入回收站**（可追溯）+ 删登记行 + 从既有清单移除 + 留痕。"""
+    """删除资料：文件**移入回收站**（可追溯）+ 删登记行 + 从既有清单移除 + 留痕。
+
+    ★ 2026-10-19（实测缺陷修复）：旧实现只删 `documents` + `document_pages`，
+      **漏了三张解析登记表**（extracted_tables / extracted_fields / extract_issues）
+      ⇒ 真实库里 281 表 / 1506 字段 / 240 条异常成为**孤儿**（引用已删资料），
+      「项目级校验异常清单」87% 是幽灵。现复用解析模块的声明出口
+      `_reset_document_extract`（已登记 `check_delete_exits::_EXITS`，不另立第二套）。
+    """
     eng = _engine_or_default(engine)
     ensure_schema(eng)
     from sqlalchemy import text as _text              # noqa: PLC0415
@@ -503,6 +510,9 @@ def delete_document(document_id: Any, session: Any, *, engine=None,
         moved = _to_trash(path) if path and os.path.exists(path) else False
         conn.execute(_text("DELETE FROM document_pages WHERE document_id=:d"),
                      {"d": rec["id"]})
+        # ★ 解析产物随资料一起删（延迟 import：extract_service 顶层反向引用本模块）
+        from engine.extract_service import _reset_document_extract as _rst   # noqa: PLC0415
+        extract_clean = _rst(conn, int(rec["id"]))
         conn.execute(_text("DELETE FROM documents WHERE id=:d"), {"d": rec["id"]})
 
     # 同步从既有资料清单移除（否则一键分析仍会读到已删资料）
@@ -516,10 +526,15 @@ def delete_document(document_id: Any, session: Any, *, engine=None,
 
     _audit("doc.delete", target=str(rec.get("original_name") or ""),
            company_id=rec.get("company_id"),
-           detail="删除资料（文件%s）" % ("已移入回收站" if moved else "未找到物理文件"),
+           detail="删除资料（文件%s；解析登记清理：表 %d / 字段 %d / 异常 %d）"
+                  % ("已移入回收站" if moved else "未找到物理文件",
+                     extract_clean.get("extracted_tables", 0),
+                     extract_clean.get("extracted_fields", 0),
+                     extract_clean.get("extract_issues", 0)),
            request=request)
     return {"ok": True, "id": int(rec["id"]),
             "moved_to_trash": moved,
+            "extract_cleaned": extract_clean,
             "message": "资料已删除" + ("（文件已移入回收站，可追溯）" if moved
                                        else "（未找到物理文件，仅删登记）")}
 

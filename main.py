@@ -5033,6 +5033,12 @@ def _parse_by_content(names, get_sheet, original_name="", extra_text=None):
                 ("social_security", "housing_fund"), ("social_security", "salary"),
                 ("housing_fund", "salary"), ("housing_fund", "social_security"),
                 ("voucher", "bank_statement"), ("bank_statement", "voucher"),
+                # ★ 2026-10-19（实测：达冠农行 3 份流水被判成财务报表）：
+                #   流水（交易时间/收入/支出/余额）与数字报表在**纯结构**层面同样不可区分
+                #   ——结构层对"数字网格"给 0.975 高置信，但列名语义（对方户名/账户余额）
+                #   只有关键词层看得见。⇒ 冲突时信任关键词（与上方 voucher↔bank 同理）。
+                ("bank_statement", "financial_statement"),
+                ("financial_statement", "bank_statement"),
             ]
             if (kw_type, st_type) in STRUCT_AMBIGUOUS_PAIRS:
                 cv["winner"] = "keyword"

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""解析结果**校验**（P0-3）：6 类规则，唯一权威。
+"""解析结果**校验**（P0-3）：规则清单唯一权威 = 下文 `RULES`（bank 域分派见设计口径）。
 
 规则（与 `config/standard_fields.json::_validation` 一一对应，**键即规则名**）：
   · `required_missing`          必填缺失
@@ -14,7 +14,12 @@
     由调用方落 `extract_issues` 并展示，人工决定如何处理。
   · **不确定就不报**：取不到参与计算的量（如报表三项缺一）⇒ **跳过该规则**，
     报"无法判定"而非伪装成"通过"（与项目铁律「缺失≠0」一致）。
-  · `severity`：`error`（必填缺失 / 借贷不平衡 / 金额格式）· `warning`（期间错配 / 重复 / 勾稽）
+  · **按域分派**（2026-10-19）：同一列名在不同业务域语义不同——
+    `debit`/`credit` 在账簿域是借贷（Σ必须相等），在流水域是支出/收入（Σ本就不等）⇒
+    bank 域走 `bank_balance_check`（余额勾稽），其余域走 `debit_credit_unbalanced`；
+    发票"同号一正一负"按数电红字冲销分诊；凭证内同科目同金额多行是合并记账。
+  · `severity`：`error`（必填缺失 / 借贷不平衡 / 金额格式 / 余额勾稽异常）·
+    `warning`（期间错配 / 重复 / 勾稽 / 余额连续性 / 红冲分诊等）
 ↓ 见下：`RULES` 已扩展（P1-3 由 6 条扩到 12 条）
 """
 from __future__ import annotations
@@ -35,6 +40,7 @@ RULES: Tuple[str, ...] = (
     "period_mismatch",
     "duplicate",
     "debit_credit_unbalanced",
+    "bank_balance_check",
     "cross_check",
     # ── P1-3 新增 6 条（全部适用所有企业，**只报不修、不确定就不报**）──
     "amount_negative",
@@ -51,6 +57,7 @@ RULE_CN: Dict[str, str] = {
     "period_mismatch": "期间错配",
     "duplicate": "重复数据",
     "debit_credit_unbalanced": "借贷不平衡",
+    "bank_balance_check": "银行流水余额勾稽异常",
     "cross_check": "报表勾稽异常",
     "amount_negative": "金额异常负值",
     "null_rate": "关键列缺失率过高",
@@ -130,6 +137,107 @@ def rate_to_percent(value: Any) -> Optional[float]:
     return f
 
 
+def _bank_balance_issues(rows: List[Dict[str, Any]],
+                         names: List[str]) -> List[Dict[str, Any]]:
+    """银行流水**余额勾稽**（替代误用于流水的「借贷平衡」判据）。
+
+    为什么不是「借方合计=贷方合计」：流水的借=支出、贷=收入，两列合计**本来
+    就不该相等**（差额=期间净流入）⇒ 那条判据只适用于账簿/凭证域。
+
+    口径（只报不修 / **不确定就不报**）：
+      · 逐行取标准字段 `balance` / `debit`（借=支出）/ `credit`（贷=收入）；
+      · 有金额却取不到余额的行 ⇒ 余额链被它截断 ⇒ **整表跳过**（不猜）；
+        无金额也无余额的行（空行/表尾杂质）⇒ 不参与，计数如实写入 detail；
+      · **按日期分组**后做**顺序无关**的组间不变量：相邻两组 R1→R2，
+        「R2 的某行余额 − R1 的某行余额 == R2 的净额（Σ贷−Σ借）」应当成立
+        （余额是"交易后"口径，R2 首笔前的余额必是 R1 某行的余额）。
+        同日多笔的先后不可知 ⇒ 组内不判、组间用**集合存在性**判 ⇒ 既不漏报、
+        也不因排序歧义误报（实测：0720 两笔同秒、真实顺序与稳定排序相反，
+        朴素逐行链式检查会**假报断裂**——这正是弃用链式的原因）；
+      · 组间不变量不成立 ⇒ warning「余额连续性断裂」（对账单被抽行/改动的信号）；
+      · 聚合：最早/最晚日期组都只有一行时，期初（余额−贷+借）＋Σ贷−Σ借＝期末，
+        差额超容忍 ⇒ error「余额勾稽异常」——通常意味着流水缺行或余额列解析错位。
+    """
+    issues: List[Dict[str, Any]] = []
+    if names and "balance" not in names:
+        return issues
+    recs: List[Dict[str, Any]] = []
+    junk = 0
+    for i, r in enumerate(rows, 1):
+        bal = _std_amount("balance", r)
+        dv = _std_amount("debit", r) if (not names or "debit" in names) else None
+        cv = _std_amount("credit", r) if (not names or "credit" in names) else None
+        if bal is None:
+            if dv is None and cv is None:
+                junk += 1                             # 无金额也无余额：杂质行，不参与
+                continue
+            return issues                             # 有金额却无余额：链被截断，不猜
+        raw_d = value_from_row("tx_date", r) if (not names or "tx_date" in names) else None
+        dkey = ""
+        if raw_d not in (None, ""):
+            pv, ok, _ = normalize_value("tx_date", raw_d)
+            dkey = str(pv) if ok else str(raw_d)
+        recs.append({"row": i, "bal": bal, "d": dv or 0.0, "c": cv or 0.0, "date": dkey})
+    if not recs:
+        return issues
+    # 无日期的行无法定位到组 ⇒ 只能整表跳过（不猜它在链上的位置）
+    if any(not x["date"] for x in recs):
+        return issues
+    recs.sort(key=lambda x: x["date"])
+
+    # 按日期分组（升序；同日多笔在组内，顺序歧义被"集合存在性"吸收）
+    groups: List[Dict[str, Any]] = []
+    for x in recs:
+        if groups and groups[-1]["date"] == x["date"]:
+            groups[-1]["rows"].append(x)
+        else:
+            groups.append({"date": x["date"], "rows": [x]})
+    for g in groups:
+        g["net"] = sum(x["c"] - x["d"] for x in g["rows"])
+        g["bals"] = [x["bal"] for x in g["rows"]]
+
+    breaks: List[Dict[str, Any]] = []
+    checked = 0
+    for g1, g2 in zip(groups, groups[1:]):
+        checked += 1
+        ok = any(abs((y - x) - g2["net"]) <= _TOLERANCE
+                 for x in g1["bals"] for y in g2["bals"])
+        if not ok:
+            breaks.append({"from_date": g1["date"], "to_date": g2["date"],
+                           "net_g2": round(g2["net"], 2),
+                           "bals_from": [round(b, 2) for b in g1["bals"]][:8],
+                           "bals_to": [round(b, 2) for b in g2["bals"]][:8]})
+    if breaks and checked:
+        issues.append(_issue(
+            "bank_balance_check",
+            "余额连续性断裂 %d 处（判了 %d 个相邻日期组；组内多笔不判顺序）："
+            "上一日期组的余额经「＋收入－支出」推不到下一日期组的任何余额 —— "
+            "请核对流水是否被抽行/改动，或解析是否错位" % (len(breaks), checked),
+            {"items": breaks[:50], "total": len(breaks), "checked_groups": checked,
+             "junk_rows_skipped": junk}, "warning"))
+
+    # 聚合勾稽：首尾组都只有一行时，期初/期末无歧义才判
+    if len(groups) >= 2 and len(groups[0]["rows"]) == 1 and len(groups[-1]["rows"]) == 1:
+        f, l = groups[0]["rows"][0], groups[-1]["rows"][0]
+        opening = f["bal"] - f["c"] + f["d"]
+        closing = l["bal"]
+        c_sum = sum(x["c"] for x in recs)
+        d_sum = sum(x["d"] for x in recs)
+        expect = opening + c_sum - d_sum
+        diff = closing - expect
+        if abs(diff) > _TOLERANCE:
+            issues.append(_issue(
+                "bank_balance_check",
+                "余额勾稽异常：期初 %.2f ＋ 收入合计 %.2f － 支出合计 %.2f = %.2f，"
+                "但期末余额为 %.2f（差额 %.2f）——通常意味着流水缺行、或余额列解析错位"
+                % (opening, c_sum, d_sum, expect, closing, diff),
+                {"opening": round(opening, 2), "credit_sum": round(c_sum, 2),
+                 "debit_sum": round(d_sum, 2), "expect_closing": round(expect, 2),
+                 "closing": round(closing, 2), "diff": round(diff, 2),
+                 "junk_rows_skipped": junk}, "error"))
+    return issues
+
+
 def validate_rows(rows: List[Dict[str, Any]], *, domain: str = "",
                   standard_names: Optional[List[str]] = None,
                   expect_period: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -202,8 +310,14 @@ def validate_rows(rows: List[Dict[str, Any]], *, domain: str = "",
                     {"expect": exp, "found": mismatch[:20]}, "warning"))
 
     # ── ④ 重复数据（整行标准字段完全一致）──
-    seen: Dict[str, int] = {}
+    #   ★ 2026-10-19（按域修正）：凭证/序时账里「同一凭证内」出现两行完全相同的
+    #     分录是**合并记账的正常形态**（记-4 里两笔 9.00 元手续费就是两行）——
+    #     实测 42 条"重复数据"抽样全部属于此类。⇒ `ledger` 域：同凭证号内的
+    #     重复行**不报**；跨凭证的整行重复才报（那才是真克隆）。凭证号取不到 ⇒
+    #     无法区分，维持原判（不猜）。
+    seen: Dict[str, Tuple[int, str]] = {}
     dups: List[Dict[str, Any]] = []
+    within_voucher = 0
     key_names = [n for n in (names or [])] or None
     for i, r in enumerate(rows, 1):
         if key_names:
@@ -213,42 +327,60 @@ def validate_rows(rows: List[Dict[str, Any]], *, domain: str = "",
         if not any(v not in ("", "None") for v in payload.values()):
             continue                                  # 全空行不算重复
         k = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+        vno = str(value_from_row("voucher_no", r) or "").strip() if dom == "ledger" else ""
         if k in seen:
-            dups.append({"row": i, "same_as_row": seen[k]})
+            if vno and seen[k][1] == vno:
+                within_voucher += 1                   # 同凭证内：合并记账，正常
+                continue
+            dups.append({"row": i, "same_as_row": seen[k][0]})
         else:
-            seen[k] = i
+            seen[k] = (i, vno)
     if dups:
+        msg = "有 %d 行为完全重复的数据" % len(dups)
+        if within_voucher:
+            msg += "（另有 %d 行属同一凭证内的重复分录——合并记账，不计入）" % within_voucher
         issues.append(_issue(
-            "duplicate", "有 %d 行为完全重复的数据" % len(dups),
-            {"items": dups[:50], "total": len(dups)}, "warning"))
+            "duplicate", msg,
+            {"items": dups[:50], "total": len(dups),
+             "within_voucher_skipped": within_voucher}, "warning"))
 
-    # ── ⑤ 借贷不平衡（仅当借贷列**同时有值**才判；缺一侧 ⇒ 跳过）──
-    for pair in (("current_debit", "current_credit"), ("opening_debit", "opening_credit"),
-                 ("closing_debit", "closing_credit"), ("debit", "credit")):
-        d_name, c_name = pair
-        if names and (d_name not in names or c_name not in names):
-            continue
-        d_sum = c_sum = 0.0
-        d_hit = c_hit = False
-        for r in rows:
-            dv = _std_amount(d_name, r)
-            cv = _std_amount(c_name, r)
-            if dv is not None:
-                d_sum += dv
-                d_hit = True
-            if cv is not None:
-                c_sum += cv
-                c_hit = True
-        if not (d_hit and c_hit):
-            continue                                  # 缺一侧 ⇒ 无法判定，**跳过**（不伪装通过）
-        if abs(d_sum - c_sum) > _TOLERANCE:
-            issues.append(_issue(
-                "debit_credit_unbalanced",
-                "「%s / %s」合计不平衡：借方 %.2f、贷方 %.2f、差额 %.2f"
-                % ((_field(d_name) or {}).get("cn", d_name),
-                   (_field(c_name) or {}).get("cn", c_name), d_sum, c_sum, d_sum - c_sum),
-                {"debit_field": d_name, "credit_field": c_name, "debit_sum": round(d_sum, 2),
-                 "credit_sum": round(c_sum, 2), "diff": round(d_sum - c_sum, 2)}, "error"))
+    # ── ⑤ 借贷不平衡 / 银行流水余额勾稽（**按域分派**）──
+    #   ★ 2026-10-19（用户质询「银行流水提示借贷不平衡，合理吗」——**不合理**）：
+    #     流水的「借方发生额=支出、贷方发生额=收入」，两列合计**本来就不该相等**
+    #     （差额 = 期间净流入/流出）。把账簿的借贷平衡判据套到流水上，等于把常态
+    #     误报成 error（实测库里 37 条全部打在银行流水上，如「借方 254,549.80、
+    #     贷方 312,120.00、差额 -57,570.20」——那只是这个月收大于付）。
+    #     ⇒ 分派：`bank` 域 → 余额勾稽（`bank_balance_check`）；其余域（账簿/凭证）
+    #       → 借贷平衡（原判据不变）。
+    if dom == "bank":
+        issues.extend(_bank_balance_issues(rows, names))
+    else:
+        for pair in (("current_debit", "current_credit"), ("opening_debit", "opening_credit"),
+                     ("closing_debit", "closing_credit"), ("debit", "credit")):
+            d_name, c_name = pair
+            if names and (d_name not in names or c_name not in names):
+                continue
+            d_sum = c_sum = 0.0
+            d_hit = c_hit = False
+            for r in rows:
+                dv = _std_amount(d_name, r)
+                cv = _std_amount(c_name, r)
+                if dv is not None:
+                    d_sum += dv
+                    d_hit = True
+                if cv is not None:
+                    c_sum += cv
+                    c_hit = True
+            if not (d_hit and c_hit):
+                continue                              # 缺一侧 ⇒ 无法判定，**跳过**（不伪装通过）
+            if abs(d_sum - c_sum) > _TOLERANCE:
+                issues.append(_issue(
+                    "debit_credit_unbalanced",
+                    "「%s / %s」合计不平衡：借方 %.2f、贷方 %.2f、差额 %.2f"
+                    % ((_field(d_name) or {}).get("cn", d_name),
+                       (_field(c_name) or {}).get("cn", c_name), d_sum, c_sum, d_sum - c_sum),
+                    {"debit_field": d_name, "credit_field": c_name, "debit_sum": round(d_sum, 2),
+                     "credit_sum": round(c_sum, 2), "diff": round(d_sum - c_sum, 2)}, "error"))
 
     # ── ⑥ 报表勾稽（三项**都取到**才判；缺一 ⇒ 跳过）──
     def _sum_col(n: str) -> Tuple[Optional[float], int]:
@@ -377,23 +509,65 @@ def validate_rows(rows: List[Dict[str, Any]], *, domain: str = "",
                 {"items": bad_rate[:50], "total": len(bad_rate)}, "warning"))
 
     # ── ⑫ 发票号码重复（**只看号码**；整行重复由 `duplicate` 报，两者不重叠）──
+    #   ★ 2026-10-19（按税务常识修正）：数电发票平台导出时，**红字冲销与蓝票同号**——
+    #     同一 20 位号码一行正数、一行负数（实测 117.22 / -34.25）是**正常形态**，
+    #     不是"重复导入或错填"。⇒ 按金额方向分诊：
+    #       一正一负 ⇒ 疑似红字冲销（如实说明，请核实对应关系，不吓人）；
+    #       同向同额 ⇒ 真重复（维持原措辞）；
+    #       同向不同额 ⇒ 同号多行且金额同向，须人工核对。
     if not names or "invoice_no" in names:
-        seen_no: Dict[str, int] = {}
+        seen_no: Dict[str, Tuple[int, float]] = {}
         dup_no: List[Dict[str, Any]] = []
+        red_pairs: List[Dict[str, Any]] = []
+        true_dups: List[Dict[str, Any]] = []
+        mixed: List[Dict[str, Any]] = []
+
+        def _amt(r: Dict[str, Any]) -> Optional[float]:
+            for n in ("invoice_amount", "amount"):    # 发票域权威名 + 兜底
+                a = _std_amount(n, r)
+                if a is not None:
+                    return a
+            return None
+
         for i, r in enumerate(rows, 1):
             v = value_from_row("invoice_no", r)
             s = str(v).strip() if v not in (None, "") else ""
             if not s:
                 continue
+            amt = _amt(r)
             if s in seen_no:
-                dup_no.append({"row": i, "invoice_no": s, "same_as_row": seen_no[s]})
+                j, j_amt = seen_no[s]
+                entry = {"row": i, "invoice_no": s, "same_as_row": j,
+                         "amount_this": round(amt, 2) if amt is not None else None,
+                         "amount_prev": round(j_amt, 2) if j_amt is not None else None}
+                dup_no.append(entry)
+                if amt is not None and j_amt is not None and (amt >= 0) != (j_amt >= 0):
+                    entry["kind"] = "red_flush"
+                    red_pairs.append(entry)
+                elif amt is not None and j_amt is not None and abs(amt - j_amt) <= _TOLERANCE:
+                    entry["kind"] = "true_dup"
+                    true_dups.append(entry)
+                else:
+                    entry["kind"] = "check"
+                    mixed.append(entry)
             else:
-                seen_no[s] = i
+                seen_no[s] = (i, amt if amt is not None else 0.0)
         if dup_no:
+            parts: List[str] = []
+            if red_pairs:
+                parts.append("%d 对「一正一负」——符合数电发票红字冲销形态"
+                             "（平台把蓝票与红字一并导出，同号属正常），请核对冲销对应关系"
+                             % len(red_pairs))
+            if true_dups:
+                parts.append("%d 对同号同额——可能是重复导入，须人工排查" % len(true_dups))
+            if mixed:
+                parts.append("%d 对同号同向不同额——请核对是否分次开票或拆行" % len(mixed))
             issues.append(_issue(
                 "duplicate_invoice_no",
-                "有 %d 行发票号码与前面的行重复（可能是重复导入或错填）" % len(dup_no),
-                {"items": dup_no[:50], "total": len(dup_no)}, "warning"))
+                "有 %d 行发票号码与前面的行重复：%s" % (len(dup_no), "；".join(parts)),
+                {"items": dup_no[:50], "total": len(dup_no),
+                 "red_flush": len(red_pairs), "true_dup": len(true_dups),
+                 "check": len(mixed)}, "warning"))
 
     return issues
 

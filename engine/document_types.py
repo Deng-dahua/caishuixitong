@@ -108,7 +108,14 @@ PARSE_STATUS_FLOW: Dict[str, Tuple[str, ...]] = {
 # --------------------------------------------------------------------------
 # ③ 业务大类（6 大类 + 薪酬/档案/其他）。**值本身由 config 文件声明**，此处只做兜底常量。
 # --------------------------------------------------------------------------
-OTHER_CATEGORY = "其他"
+# ★ 2026-10-19（统一分类代码）：`OTHER_CATEGORY` 是**存储代码**（`other`），
+#   中文名固定走 `CATEGORY_CN`（`other → 其他`）。旧实现把中文名「其他」当代码
+#   写进 `documents.category` ⇒ 同一个概念落库两种拼法（实测 `other` 102 行 +
+#   `其他` 14 行），分类统计/过滤各认一半。⇒ 代码唯一 `other`；写入口
+#   `validate_category` 把「其他」归一为 `other`（存量迁移见回填脚本）。
+OTHER_CATEGORY = "other"
+#: 旧数据里出现过的中文字面值（读侧兼容、写侧归一）
+_OTHER_LEGACY = "其他"
 
 #: 大类中文名（与 `config/document_categories.json` 的 `categories` 段对应）
 CATEGORY_CN: Dict[str, str] = {
@@ -206,7 +213,8 @@ def category_cn(code: str) -> str:
     cfg = _load_json(_CATEGORY_MAP, {}) or {}
     cn = dict(CATEGORY_CN)
     cn.update({str(k): str(v) for k, v in (cfg.get("categories") or {}).items()})
-    return cn.get(str(code), OTHER_CATEGORY)
+    # 兜底给**中文显示名**（不是代码）：未知代码如实显示「其他」
+    return cn.get(str(code), cn.get(OTHER_CATEGORY, "其他"))
 
 
 def categories() -> List[Dict[str, str]]:
@@ -282,9 +290,11 @@ def can_parse_transition(old: str, new: str) -> bool:
 
 
 def validate_category(code: str) -> str:
-    allowed = {c["value"] for c in categories()} | {OTHER_CATEGORY}
+    allowed = {c["value"] for c in categories()}
     c = str(code or "").strip()
-    if c not in allowed:
+    if c == _OTHER_LEGACY:
+        c = OTHER_CATEGORY                             # ★ 中文别名归一为代码（防二义落库）
+    if c not in (allowed | {OTHER_CATEGORY}):
         raise ValueError("分类非法：%s" % (c or "(空)"))
     return c
 
