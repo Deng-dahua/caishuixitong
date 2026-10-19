@@ -42,7 +42,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:8001")
     ap.add_argument("--user", default="admin")
-    ap.add_argument("--password", default="CaiShui-2026#Recover")
+    ap.add_argument("--password", default=os.environ.get("APP_ADMIN_PASSWORD", ""),
+                    help="管理员口令（缺省取环境变量 APP_ADMIN_PASSWORD；不硬编码进仓库）")
     ap.add_argument("--shots", default="_audit_ui/shots")
     args = ap.parse_args()
     os.makedirs(args.shots, exist_ok=True)

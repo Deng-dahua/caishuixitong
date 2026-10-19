@@ -109,7 +109,8 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", default="http://127.0.0.1:8001")
     ap.add_argument("--user", default="admin")
-    ap.add_argument("--password", default="CaiShui-2026#Recover")
+    ap.add_argument("--password", default=os.environ.get("APP_ADMIN_PASSWORD", ""),
+                    help="管理员口令（缺省取环境变量 APP_ADMIN_PASSWORD；不硬编码进仓库）")
     ap.add_argument("--channel", default="chrome",
                     help="用系统已装的 chrome/msedge（playwright 自带内核版本可能未下载）")
     ap.add_argument("--headless", action="store_true", default=True)
