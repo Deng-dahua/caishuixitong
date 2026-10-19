@@ -159,6 +159,16 @@ def main() -> int:
           "%d 次" % joined.count("金额取不到的条数"))
     check("每节给出「测算涉税金额小计」", "测算涉税金额小计" in joined)
     check("节末有收束标记「以上为…的专项档案」", "专项档案全部内容" in joined)
+    # ★ 2026-10-19（看导出件时发现）：原实现取 `f.get("priority_score")`，而发现字典里
+    #   没有该字段（分值是算出来的）⇒「排序分」整列恒为「—」（数据算了不显示）。
+    #   判据：明细表里**至少有一个非「—」的排序分**，否则说明又退回了空列。
+    _tbl = [b for s3 in d_tax["sections"] if s3["key"] == "tax_detail"
+            for b in s3["blocks"]
+            if b.get("type") == "table" and "排序分" in (b.get("columns") or [])]
+    _pri = [r[3] for b in _tbl for r in (b.get("rows") or []) if len(r) > 3]
+    _vals = [x for x in _pri if x not in (None, "", "—")]
+    check("「排序分」列有真实值（不是恒为「—」）",
+          bool(_vals), "非空 %d/%d 行，例：%s" % (len(_vals), len(_pri), _vals[:3]))
 
     print("\n【正向】③ 「税种×等级」交叉表数字可复核")
     cross = None

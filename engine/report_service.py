@@ -471,6 +471,29 @@ def _findings_by_tax(findings: List[Dict[str, Any]]) -> List[Tuple[str, List[Dic
     return sorted(buckets.items(), key=lambda kv: (-len(kv[1]), kv[0]))
 
 
+def _priority_of(ctx: Dict[str, Any], f: Dict[str, Any]) -> Any:
+    """发现的**综合排序分**（唯一权威 `risk_scoring.score().priority_score`）。
+
+    ★ 2026-10-19 实测（结果级验收看导出件时发现）：原实现直接取
+      `f.get("priority_score")` —— 但发现字典里**没有**这个字段（它是算出来的，
+      `build_document` 给 `key_findings` 排序时才调 `SCORE.score(f)`）⇒
+      报告里「排序分」整列恒为「—」。这是典型的「数据算了不显示」。
+      现按 `key_findings` 排序**同源**取值，并按 `seq` 缓存（同一发现只算一次）。
+    """
+    cache = ctx.setdefault("_priority_cache", {})
+    key = f.get("seq")
+    if key in cache:
+        return cache[key]
+    val: Any = None
+    try:
+        from engine import risk_scoring as SCORE                    # noqa: PLC0415
+        val = SCORE.score(f).get("priority_score")
+    except Exception:                                            # noqa: BLE001
+        val = f.get("priority_score")
+    cache[key] = val
+    return val
+
+
 def _sec_tax_detail(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
     """分税种明细章 —— **两种组织口径，按视图的 `focus` 分派**。
 
@@ -496,7 +519,7 @@ def _tax_detail_listing(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
     lim = ctx["limit"]
     for tax, fs in groups:
         rows = [[f.get("seq"), _brief(f.get("title"), 70), _display_label(f.get("risk_level")),
-                 f.get("priority_score"), _money((ctx["amounts"] or {}).get(f.get("seq")))
+                 _priority_of(ctx, f), _money((ctx["amounts"] or {}).get(f.get("seq")))
                  or "—", (ctx["state_cn"] or {}).get(str(f.get("risk_no")), "待处理")]
                 for f in (fs[:lim] if lim else fs)]
         note = ("本税种共 %d 项，本表列出 %d 项（视图条数上限 %s）。"
@@ -571,7 +594,7 @@ def _tax_specific_archive(ctx: Dict[str, Any]) -> List[Dict[str, Any]]:
         # ② 逐条明细（被裁条目**逐个登记**）
         listed = fs[:lim] if lim else fs
         rows = [[f.get("seq"), _brief(f.get("title"), 70), _finding_level(f),
-                 f.get("priority_score"), _money(amounts.get(f.get("seq"))) or "—",
+                 _priority_of(ctx, f), _money(amounts.get(f.get("seq"))) or "—",
                  state_cn.get(str(f.get("risk_no")), "待处理")]
                 for f in listed]
         out.append(_block_table(
