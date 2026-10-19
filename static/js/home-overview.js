@@ -60,13 +60,15 @@
     renderProjects();
     state.active = state.projects[0] || null;
     if (!state.active) {
-      setText('home-hint', '还没有项目 —— 先点「新建稽查项目」开始');
+      setText('home-hint', '还没有项目 —— 请到「稽查项目管理」创建');
       setText('home-kpi-pending-sub', '无项目');
       setText('home-kpi-docs-sub', '无项目');
       setText('home-kpi-job-sub', '无项目');
       return;
     }
-    setText('home-hint', '数据来源：最近更新的项目「' + (state.active.name || '') + '」');
+    // ★ 2026-10-20（用户裁定）：「数据来源：最近更新的项目…」提示行已删除；
+    //   成功加载时清空提示位（否则初始文案会一直挂着）。
+    setText('home-hint', '');
     await Promise.all([
       loadBoard(state.active.id),
       loadDocs(state.active.id),
@@ -77,7 +79,7 @@
   function renderProjects() {
     if (!state.projects.length) {
       setHtml('home-projects',
-        '<div class="kpi-sub">还没有项目。点上方「＋ 新建稽查项目」创建第一个项目后，' +
+        '<div class="kpi-sub">还没有项目。到「稽查项目管理」创建第一个项目后，' +
         '这里会显示最近更新的项目。</div>');
       return;
     }

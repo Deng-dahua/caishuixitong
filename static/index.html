@@ -194,19 +194,13 @@
          `#content-area > [id^="page-"]`，若用别的 id 会与内页**同时显示**。 -->
     <div id="page-home">
     <div id="home-overview">
+      <!-- ★ 2026-10-20（用户裁定）：「从这里开始」快捷入口删除（新建/上传/一键稽查/
+           生成报告——与侧栏重复）；「数据来源：最近更新的项目…」提示行一并删除。
+           保留「风险复核」与异常/无项目提示位（home-hint 仅在读取失败或无项目时显示）。 -->
       <div class="quick-actions">
-        <div class="quick-actions-title">从这里开始</div>
-        <button class="btn" id="home-new-project" data-perm="project.write"
-                onclick="location.href='/projects'">＋ 新建稽查项目</button>
-        <button class="btn ghost" id="home-upload" data-perm="document.write"
-                onclick="location.href='/documents'">📎 上传财税资料</button>
-        <button class="btn ghost" id="home-analyze" data-perm="analysis.run"
-                onclick="location.href='/analysis'">⚡ 一键稽查分析</button>
         <button class="btn ghost" id="home-risk" data-perm="risk.review"
                 onclick="location.href='/risks'">🔎 风险复核</button>
-        <button class="btn ghost" id="home-report" data-perm="report.generate"
-                onclick="location.href='/reports'">📄 生成报告</button>
-        <span class="kpi-sub" style="align-self:center" id="home-hint">正在读取…</span>
+        <span class="kpi-sub" style="align-self:center" id="home-hint"></span>
       </div>
 
       <div class="kpi-grid" id="home-kpi">
@@ -308,7 +302,7 @@
 <script src="/static/js/module-headers.js?v=38c0d6206d" defer></script>
 <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 <script src="/static/js/consent-guard.js?v=31ec05edb5" defer></script>
-<script src="/static/js/home-overview.js?v=37116d887d" defer></script>
+<script src="/static/js/home-overview.js?v=2299147d24" defer></script>
 <!-- CACHE-BUST: 2026071113-REPORT-STANDARDS-FIX -->
 
 
