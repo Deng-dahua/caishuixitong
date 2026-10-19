@@ -217,6 +217,13 @@
       var el = pf(k);
       if (el) el.value = project ? (project[k] || "") : "";
     });
+    // ★ 2026-10-19（前端后端对齐）：打开**新建**表单时预取一次通道状态。
+    //   背景：后端已提供 `GET /api/v1/business/channels`（如实告知哪条通道现在真能用），
+    //   但前端此前**零调用** ⇒ 用户完全看不到"为什么新建企业查不到工商信息"，
+    //   只能看到一句"查询超时，请手动填写"，无法区分是网络问题还是通道没配。
+    //   ⇒ 这是形态④「后端有、前端不消费」的不对齐：能力在，用户拿不到。
+    //   只对**新建**预取（新建企业本地库必无数据，最需要提前告知）；编辑已有项目不打扰。
+    if (!project) { loadBizChannelHint(); }
     SCOPE = {};
     ((project && project.tax_scopes) || []).forEach(function (s) { SCOPE[s] = true; });
     renderTaxChips();
@@ -371,6 +378,43 @@
     if (!html) { el.hidden = true; el.innerHTML = ""; return; }
     el.innerHTML = html;
     el.hidden = false;
+  }
+
+  /** 预取通道状态，如实告知"现在能不能从外部取到工商信息"。
+   *
+   * ★ 2026-10-19（前后端对齐修复）：后端 `GET /api/v1/business/channels` 早就返回
+   *   「哪条通道已配置 / 现在真能用」，但前端**从未调用** —— 用户只能等企业全称填完、
+   *   查询失败后看到一句"查询超时"，无法区分"网络问题"还是"通道没配"。
+   *   这是「后端有、前端不消费」：能力在，用户拿不到。
+   *
+   * ★ 只提示**事实**、不诱导：三条通道全不可用时明确说"新建企业将查不到工商信息，
+   *   需手工填写"，并给出要配的变量名（变量名由后端下发，前端不自写）。
+   * ★ 失败一律静默（这是辅助提示，绝不能因为它挡住建项目）。
+   */
+  async function loadBizChannelHint() {
+    try {
+      var d = await api("/api/v1/business/channels");
+      var items = (d && d.items) || [];
+      if (!items.length) return;
+      // 外网通道 = 除 local_db 之外的（local_db 是本地档案回读，不是外网来源）
+      var ext = items.filter(function (x) { return x.provider !== "local_db"; });
+      var usable = ext.filter(function (x) { return x.available; });
+      if (usable.length) {
+        bizNote("工商信息可自动查填（可用通道：" + usable.map(function (x) {
+          return x.label || x.provider;
+        }).join("、") + "）");
+        return;
+      }
+      if (!ext.length) return;
+      // 全不可用 ⇒ 如实说清后果 + 要配什么（变量名取自后端 note，前端不硬编码）
+      bizNote("当前没有可用的外部工商通道 ⇒ 新建企业查不到工商信息，请手工填写"
+              + "（本地档案里已有的企业仍可自动带出）。启用通道见下方说明。", "err");
+      bizWarn("<b>外部工商通道未启用</b>——" + ext.map(function (x) {
+        return esc(x.label || x.provider) + "：" + esc(x.note || "");
+      }).join("<br>"));
+    } catch (e) {
+      /* 辅助提示失败不影响建项目，静默 */
+    }
   }
 
   /** 自动查填主体（原名 fetchBizInfo —— 不再由按钮触发，改由输入停顿/失焦触发）。

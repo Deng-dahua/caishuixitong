@@ -2381,10 +2381,23 @@ async function analyzeTaxDocs(force) {
 
 
     var closeInfo = (data.report||{}).coverage_closure || {};
+    // ★ 2026-10-19（前后端对齐）：`coverage_closure` 后端从未产出 ⇒ 原提示恒为
+    //   「0 项规则/场景已记账，未决 0 项」——**假数字**（用户以为一项都没跑）。
+    //   回落到后端真实账本 `analysis_coverage`：应查 219 / 已执行 89 / 待补 130。
+    var acToast = (data.report||{}).analysis_coverage || {};
+    var closureText;
+    if (closeInfo.total_items) {
+      closureText = (closeInfo.total_items||0) + '项规则/场景已记账，未决'
+        + (closeInfo.unresolved_items||0) + '项';
+    } else if (acToast.total) {
+      closureText = '应查' + acToast.total + '项，已执行' + (acToast.executed||0)
+        + '项，待补资料后判定' + (acToast.blocked||0) + '项';
+    } else {
+      closureText = '';   // 取不到就不编数字（缺失≠0）
+    }
     toast(
-      '分析完成：' + data.report.total_risks + '项待核事项，' +
-      (closeInfo.total_items||0) + '项规则/场景已记账，未决' +
-      (closeInfo.unresolved_items||0) + '项',
+      '分析完成：' + data.report.total_risks + '项待核事项'
+      + (closureText ? '，' + closureText : ''),
       'success'
     );
 
@@ -4352,8 +4365,7 @@ window._edtSubmitEdit = function() {
       el.textContent = "✅ 已记录，已更新规则库"; el.style.color = "#16a34a";
       // 触发规则传播到五链
       fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){});
-      // 触发人类学习引擎
-      fetch("/api/human-learning/learn", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({correction:content, source:"编辑", context:{error_detail:scope.title||""}})}).catch(function(){});
+      // ★ 2026-10-19：人类学习引擎调用已随 AGI 子系统下线移除（后端 /api/human-learning/* 已于 2026-09-30 删除），不留死接口。
     }
 
 
@@ -4396,8 +4408,10 @@ window._edtSubmitAudit = function() {
     if (d.ok) {
       el.textContent = "✅ 审核已记录，已更新规则库"; el.style.color = "#16a34a";
       fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){});
-      // 审核确认=认可引擎判断，增强相关规则置信度
-      fetch("/api/human-learning/learn", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({correction:note||"审核确认", source:"审核", context:{action:"confirm"}})}).catch(function(){});
+      // ★ 2026-10-19（前后端对齐）：原此处写「审核确认=认可引擎判断，增强相关规则置信度」
+      //   并在其下调用 `/api/human-learning/learn`。该接口已于 2026-09-30 随 AGI 子系统
+      //   整体移除 ⇒ 那次调用必然 404 且被 `.catch()` 静默吞掉，**置信度实际从未被增强**。
+      //   现删除调用，并去掉那句"已在做的事"的措辞（留着它等于继续向读者声称一个不存在的动作）。
     }
 
 
@@ -4468,7 +4482,7 @@ window._edtSendAsk = function() {
 
 
 window._edtSubmitAskResult = function() {
-  var scope = window._editScope; if (scope && scope.title) { fetch("/api/agi/content-feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapter:scope.title||"", wrong_content:"", correct_content:"[追问] 对话已记录"})}).catch(function(){}); fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){}); fetch("/api/human-learning/learn", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({correction:JSON.stringify(window._askHistory||[]), source:"追问", context:{error_detail:scope.title||""}})}).catch(function(){}); }
+  var scope = window._editScope; if (scope && scope.title) { fetch("/api/agi/content-feedback", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({chapter:scope.title||"", wrong_content:"", correct_content:"[追问] 对话已记录"})}).catch(function(){}); fetch("/api/agi/propagate-to-chains", {method:"POST"}).catch(function(){});}
 
 
   var el = document.getElementById("edt-ask-result");
@@ -5950,6 +5964,61 @@ function _buildEnterpriseReadableBody(r, dateStr) {
       + '不体现在已上传资料中的风险方向，<strong>不在本报告的覆盖范围内</strong>，'
       + '亦不因本报告未列出而视为不存在；此类方向须由风险检查员结合外部数据与下户取证另行核实。</p>' +
       '<p class="i2">本报告所列事项的定性权在风险检查员；系统结论不得替代法定程序认定。</p>';
+  }
+
+  // ═══ 本轮应查项与执行情况（覆盖率如实披露）════════════════════════════════
+  // ★★ 2026-10-19（前后端对齐 · 本轮最重的一处，已实测定位）：
+  //   ① 后端**早已产出** `analysis_coverage`（真实产物实测：应查 219 项、已执行 89 项、
+  //      待补 130 项、执行率 40.6%，附 `missing_sources` 与 `summary_text`），
+  //      但前端**一个字段都没读**（审计【1】把它列为"僵尸字段"）。
+  //   ② 前端原先渲染覆盖率用的是 `coverage_closure` —— 该字段后端**从未产出**
+  //      （真实产物深搜 0 命中）；且那个渲染点位于 `_renderReportFallback` 中
+  //      `_isEnterpriseEdition(r)` 提前 return **之后的旧版兜底分支**（实测为死代码：
+  //      插入 throw 也不触发）⇒ 对当前真实数据**永不显示**。
+  //   ⇒ 结果：用户看不到"219 项里只跑了 89 项"这件决定"本报告能信到什么程度"的事实。
+  //   修法：在**企业版正文本章之后**（顶层，必执行）按后端真实字段如实渲染。
+  //   ★ 只展示业务口径：不列内部规则编号（报告正文铁律），不编造后端没有的分类；
+  //   ★ 数字一律原样取自后端，不做四舍五入以外的加工（缺失≠0）。
+  var _ac = r.analysis_coverage || {};
+  if (_ac.total) {
+    var _acRatio = (typeof _ac.executed_ratio === 'number')
+      ? (Math.round(_ac.executed_ratio * 1000) / 10) + '%' : '—';
+    html += '<h3 id="company-coverage-exec">本轮应查项与执行情况</h3>';
+    if (_ac.summary_text) {
+      html += '<p class="i2" style="line-height:2">' + esc(_ac.summary_text) + '</p>';
+    }
+    html += '<div class="table-wrap" style="margin:10px 0 18px"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+      + '<thead><tr style="background:#f1f5f9">'
+      + '<th style="padding:6px 8px;border:1px solid #e2e8f0">应查项目</th>'
+      + '<th style="padding:6px 8px;border:1px solid #e2e8f0">已执行</th>'
+      + '<th style="padding:6px 8px;border:1px solid #e2e8f0">待补资料后判定</th>'
+      + '<th style="padding:6px 8px;border:1px solid #e2e8f0">未执行</th>'
+      + '<th style="padding:6px 8px;border:1px solid #e2e8f0">执行率</th></tr></thead><tbody><tr>'
+      + '<td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center">' + esc(_ac.total) + '</td>'
+      + '<td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center">' + esc(_ac.executed) + '</td>'
+      + '<td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center">' + esc(_ac.blocked) + '</td>'
+      + '<td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center">'
+      + esc(_ac.not_executed == null ? '—' : _ac.not_executed) + '</td>'
+      + '<td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center">' + esc(_acRatio) + '</td>'
+      + '</tr></tbody></table></div>';
+    var _acMissing = _ac.missing_sources || {};
+    var _acKeys = Object.keys(_acMissing);
+    if (_acKeys.length) {
+      html += '<p class="i2">需企业补充以下资料（与上表"待补资料后判定"项数对应）：</p>';
+      html += '<div class="table-wrap" style="margin:10px 0 18px"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+        + '<thead><tr style="background:#f1f5f9">'
+        + '<th style="padding:6px 8px;border:1px solid #e2e8f0">资料</th>'
+        + '<th style="padding:6px 8px;border:1px solid #e2e8f0">涉及项数</th></tr></thead><tbody>';
+      _acKeys.sort(function (a, b) { return (_acMissing[b] || 0) - (_acMissing[a] || 0); })
+        .forEach(function (k) {
+          html += '<tr><td style="padding:6px 8px;border:1px solid #e2e8f0">' + esc(k) + '</td>'
+            + '<td style="padding:6px 8px;border:1px solid #e2e8f0;text-align:center">'
+            + esc(_acMissing[k]) + '</td></tr>';
+        });
+      html += '</tbody></table></div>';
+    }
+    html += '<p class="i2" style="line-height:2">上述待补事项在资料补齐前<strong>不作违规认定</strong>；'
+      + '资料不全时"未见异常"<strong>不等于</strong>企业合规。补齐资料后重新分析，即可得到完整结论。</p>';
   }
 
   // ═══ 专项能力章节（数据层早已产出，此前前端无渲染入口）═══

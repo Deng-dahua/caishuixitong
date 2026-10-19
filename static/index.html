@@ -284,7 +284,7 @@
 <script src="/static/js/tax-pipeline-pages.js?v=a1b823bb5c" defer></script>
 <script src="/static/js/report-block-renderer.js?v=640eddfb6d" defer></script>
 <script src="/static/js/report-modules.js?v=1275442cb0" defer></script>
-<script src="/static/js/tax-doc-analysis.js?v=48559250d0" defer></script>
+<script src="/static/js/tax-doc-analysis.js?v=d45a68aa2d" defer></script>
     <!-- ★ 2026-10-07：原 `/static/js/file-import.js` 已下线（移入 data/trash/，可恢复）。
          依据：① 其入口 `showUploadModal` 全仓**无任何调用**（0 处引用）⇒ 整模块不可达；
               ② 其内部调用 `createModal` / `renderBankTransactions` / `renderSalesInvoices` /
@@ -297,7 +297,14 @@
 <script src="/static/js/tax-auditor-handbook.js?v=203ac137d8" defer></script>
 <script src="/static/js/tax-knowledge-hub.js?v=060ce37d68" defer></script>
 <script src="/static/js/correction-rules.js?v=4f574b682d" defer></script>
-<script src="/static/js/human-learning-page.js?v=1ccc56897c" defer></script>
+<!-- ★ 2026-10-19（前后端对齐）：**移除** human-learning-page.js 的加载。
+     理由：后端 `/api/human-learning/*` 已于 2026-09-30 随 AGI 子系统整体移除
+     （见 `main.py:15441`），而本页脚本仍在调 3 个已删接口（`status` / `learn` / `<p>`）
+     ⇒ 静默 404；且页面容器 `page-human-learning` 与 `_allowedPages` 登记**都不存在**
+     ⇒ 它是**孤儿脚本**：没有任何入口能渲染它，只剩这行加载。
+     按项目铁律「停用入口 ≠ 删实现」：**只删入口**，`static/js/human-learning-page.js`
+     文件保留（将来若恢复该模块，需同时恢复后端接口与页面容器/白名单再引回本行）。
+     判据：`scripts/_audit_fe_be_alignment.py` 的【A1 真断链】应为 0。 -->
 <script src="/static/js/module-headers.js?v=38c0d6206d" defer></script>
 <script src="/static/js/rbac-nav.js?v=ac23045192" defer></script>
 <script src="/static/js/consent-guard.js?v=31ec05edb5" defer></script>

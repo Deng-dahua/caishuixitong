@@ -16,6 +16,9 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# ★ 2026-10-19：脚本模式下 `sys.path[0]` 是 `scripts/` ⇒ `import engine` 会 ModuleNotFoundError。
+#   必须显式插入 ROOT（本仓 skill 已把这条列为硬规矩，本轮实测又踩中一次）。
+sys.path.insert(0, str(ROOT))
 JS_DIR = ROOT / "static" / "js"
 
 DEFAULT_PAYLOAD = ROOT / "data" / "cache" / "last_analysis_cache.json"
@@ -68,7 +71,16 @@ def load_payload(p: Path) -> dict:
 
 
 def js_text() -> str:
-    return "\n".join(f.read_text(encoding="utf-8", errors="ignore")
+    """拼接前端 JS 源码 —— ★ **必须先剥注释**。
+
+    ★ 2026-10-19 修判据（第三处假红）：旧实现直接拼原文 ⇒ 注释里出现的
+      `report.generate`（那是**权限点名**）、`report.export`（那是**审计动作名**）
+      被当成"前端读了 report 对象的字段" ⇒ 恒报 2 个缺失字段。
+      与项目既有铁律一致：**存在性/缺失性断言都必须先剥注释**。
+      统一走 `engine/js_source.strip_comments`（唯一权威，勿在脚本内自带实现）。
+    """
+    from engine.js_source import strip_comments as _strip       # noqa: PLC0415
+    return "\n".join(_strip(f.read_text(encoding="utf-8", errors="ignore"))
                      for f in sorted(JS_DIR.glob("*.js")))
 
 
@@ -100,11 +112,33 @@ def main() -> int:
     print("  合计 %d 个" % len(zombie))
 
     # ── 【2】前端读 → 后端是否有 ──
+    #
+    # ★★ 2026-10-19 修判据（整表假红，已核实）：原实现把 `report.X` 与 `r.X` **同等对待**，
+    #   于是 `items.forEach(function (r) { return r.name })`、`r.amount`、`r.category`
+    #   这类**数组元素/临时变量**的读取全被当成"报告顶层字段" ⇒ 一次性报出 70+ 个
+    #   "后端未产出"，其中 `action/amount/category/date/desc/description` 等通用词占绝大多数。
+    #   这违反本仓既有铁律：**同一文件里 `report` 与 `r` 是两个命名空间**，
+    #   静态 grep 分不清 ⇒ **字段级结论必须以运行时渲染为准**（见 `_audit_frontend_render.js`）。
+    #
+    #   现口径：
+    #     ① `report.X` = 报告层（函数内显式 `var report = r.enterprise_readable_report`）⇒ **高置信度**，直接判缺失；
+    #     ② `r.X`     = 可能是报告、也可能只是 forEach 的临时变量 ⇒ **低置信度**，单列"仅供线索"，
+    #        不参与"真正不对齐"的结论。
     print("\n【2】前端读取的报告字段 → 后端**未产出**（渲染 undefined）")
-    reads = set(re.findall(r"\breport\.([a-zA-Z_]\w*)", js))
-    reads |= set(re.findall(r"\br\.([a-zA-Z_]\w*)", js))
-    missing = sorted(k for k in reads if k not in payload and not k.startswith("_"))
-    # 白名单：r.* 里的明显非报告字段（数组元素/正则/临时量）
+    # 只认**独立**的 `report.`（前面不能是 `.` 或单词字符，否则是 `xxx.report.foo` 这类别的对象属性）
+    # ★ 再排除**方法调用** `report.export(` / `report.generate(` —— 那是行为不是字段
+    #   （实测【2】剩 2 个 export/generate，全是调用，属判据把方法当字段）。
+    report_reads = set(re.findall(r"(?<![.\w])report\.([a-zA-Z_]\w*)(?!\s*\()", js))
+    # ★ 2026-10-19 修判据（第二处假红）：`report` 变量是
+    #   `var report = r.enterprise_readable_report` ⇒ 它读的字段在 **err 层**（报告层），
+    #   **不在 payload 顶层**。旧实现只查 `k not in payload` ⇒ overall_conclusion /
+    #   main_assessment / material_readiness / confirmed_problems 等**全都存在**的字段
+    #   被整批判成"后端未产出"。（同一文件【3】早已声明"两个命名空间都要查"，【2】漏了。）
+    esperr_for_read = payload.get("enterprise_readable_report") or {}
+    missing = sorted(k for k in report_reads
+                     if k not in payload and k not in esperr_for_read
+                     and not k.startswith("_"))
+    # 白名单：`report.*` 里的明显非报告字段（DOM/数组/临时量）
     NOISE = {
         "length", "push", "map", "filter", "forEach", "join", "split", "indexOf",
         "slice", "replace", "trim", "toFixed", "test", "exec", "match", "value",
@@ -123,7 +157,16 @@ def main() -> int:
             print("  ✗ %s" % k)
     else:
         print("  （无）")
-    print("  合计 %d 个" % len(missing))
+    print("  合计 %d 个（`report.X` 报告层命名空间，高置信度）" % len(missing))
+
+    # ② `r.X` 单列，明确标注不可作为结论（命名空间不确定）
+    r_reads = set(re.findall(r"\br\.([a-zA-Z_]\w*)", js))
+    r_miss = sorted(k for k in r_reads if k not in payload and k not in NOISE
+                    and not k.startswith("_"))
+    print("\n【2b】`r.X` 读取但产物无（**低置信度线索**：`r` 可能是 forEach 临时变量，"
+          "不可直接当作「不对齐」结论）: %d 个" % len(r_miss))
+    print("  " + ("、".join(r_miss[:24]) + ("…" if len(r_miss) > 24 else "") if r_miss else "（无）"))
+    print("  ★ 字段级结论请以运行时渲染为准：`node scripts/_audit_frontend_render.js <payload>`")
 
     # ── 【3】一键分析后处理落地证据 ──
     print("\n【3】一键分析后处理的落地证据（真实产物中存在 = 端到端确已执行）")

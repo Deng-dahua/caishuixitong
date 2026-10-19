@@ -116,12 +116,39 @@ ctx.window.getComputedStyle = () => ({ getPropertyValue: () => '' });
 
 vm.createContext(ctx);
 
-// ── 加载前端脚本（多文件按序：core 提供 api/esc 等） ──
-const files = ['constants.js', 'core.js', 'tax-doc-analysis.js'];
+// ── 加载前端脚本（**顺序必须与 index.html 真实加载顺序一致**）──
+//
+// ★★ 2026-10-19 修判据自身缺陷（这是"工具坏了"的典型，比缺陷更危险）：
+//   原先硬编码 `['constants.js','core.js','tax-doc-analysis.js']`，**漏了 `dom-utils.js`**。
+//   而本项目已于同日把 `escapeHtml/escHtml/toast` **收敛到 `dom-utils.js` 为唯一权威**，
+//   并明令 `core.js` 不得再定义（防"转义分叉 = XSS"）。
+//   ⇒ 脚本少了 dom-utils.js，`escHtml` 就是未定义的 ⇒ `renderTaxDocReport` 在
+//     `tax-doc-analysis.js:2858` 抛 ReferenceError ⇒ 报告区 HTML **0 字符**，
+//     把"322,557 字符 / 0 缺陷"的基线整个判成"前端根本没产出报告"（**假红**）。
+//   浏览器侧核对过：`index.html:278 dom-utils.js` 先于 `:281 core.js`、`:287 tax-doc-analysis.js`
+//   ⇒ 产品没问题，**是审计脚本过时**。
+//
+//   修法（防再次过时）：清单显式列出 + **从 index.html 反查校验完整性** ——
+//   页面实际加载的 js 若有任何一个不在清单里，直接报出来（而不是静默少加载）。
+const files = ['dom-utils.js', 'constants.js', 'core.js', 'tax-doc-analysis.js'];
+
+// 从 index.html 抽出真实加载的脚本，用来校验上面清单没漏（漏了就是下一次假红）
+let pageScripts = [];
+try {
+  const html = fs.readFileSync(path.join(ROOT, 'static', 'index.html'), 'utf8');
+  pageScripts = Array.from(html.matchAll(/<script[^>]+src="\/static\/js\/([^"?]+)/g))
+    .map((m) => m[1]);
+} catch (e) { /* 读不到就不校验，不阻断审计 */ }
+const missingFromList = pageScripts.filter((f) => !files.includes(f));
+if (missingFromList.length) {
+  console.log('  [清单缺项] index.html 加载但审计未加载: ' + missingFromList.join(', ')
+    + '  ⇒ 如需覆盖它们请加入 files 清单（否则审计可能假红）');
+}
+
 const loaded = [];
 for (const f of files) {
   const p = path.join(ROOT, 'static', 'js', f);
-  if (!fs.existsSync(p)) continue;
+  if (!fs.existsSync(p)) { console.log('  [缺文件] ' + f); continue; }
   try {
     vm.runInContext(fs.readFileSync(p, 'utf8'), ctx, { filename: f });
     loaded.push(f);
@@ -130,6 +157,9 @@ for (const f of files) {
   }
 }
 console.log('已加载脚本: ' + loaded.join(', '));
+// ★ 判据自检：转义函数必须可用（否则渲染必然中断，且报出来的会是"业务缺陷"而非"环境缺件"）
+console.log('转义函数可用: escHtml=' + (typeof ctx.escHtml === 'function')
+  + ' esc=' + (typeof ctx.esc === 'function'));
 console.log('renderTaxDocReport 可用: ' + (typeof ctx.renderTaxDocReport === 'function'));
 
 // ── 运行渲染 ──

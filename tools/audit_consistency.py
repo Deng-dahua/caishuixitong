@@ -13196,6 +13196,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_candidate_params_no_dangling()     # 2026-10-13 候选库参数不得悬空 + 地区参数表合规
                + check_rule_dsl_and_externalizable()     # 2026-10-13 T-6 规则外置：表达力边界 + 字段缺口不得扩大
                + check_rule_layer_labels()               # 2026-10-18 规则库中文标签（层/严重度/候选状态）
+               + check_report_coverage_disclosure()  # 2026-10-19 覆盖率必须真渲染（后端算了不显示的防复发）
                + check_report_view_focus()          # 2026-10-19 报告视图之间必须真的不同（禁止换名字同一份）
                + check_capability_claims_honest()   # 2026-10-19 能力声称不得超出实际（已实装/免费可用）
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
@@ -21138,6 +21139,78 @@ def check_legal_frontend_wiring() -> List[Tuple[str, str, str]]:
     except Exception as exc:                                       # noqa: BLE001
         issues.append(("ERROR", "tools/audit_consistency.py",
                        "步骤 22 行为级检查执行失败：%s" % exc))
+    return issues
+
+
+def check_report_coverage_disclosure() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-19 立：报告正文**必须披露「应查项 / 已执行 / 待补」**（覆盖率不得只算不显示）。
+
+    ## 为什么立这条（本轮实测出来的真事故）
+
+    后端**一直在算**覆盖率账本 `analysis_coverage`（真实产物实测：应查 **219** 项、
+    已执行 **89** 项、待补 **130** 项、执行率 **40.6%**，并附 `missing_sources` 与
+    `summary_text`）——这是判断"这份报告能信到什么程度"的核心事实。
+
+    而前端：
+      ① **一个字段都没读** `analysis_coverage`（审计【1】把它列为"僵尸字段"）；
+      ② 原本想用的 `coverage_closure` **后端从未产出**（真实产物深搜 0 命中）；
+      ③ 那个渲染点还落在 `_renderReportFallback` 中 `_isEnterpriseEdition(r)` **提前 return
+         之后的旧版兜底分支**里（实测：插入 `throw` 也不触发 ⇒ 死代码）。
+    ⇒ 结论：**用户在任何出口都看不到"219 项里只跑了 89 项"**。
+    这是本仓最贵的缺陷形态（"后端算了、两条链路都不渲染"），且完全静默。
+
+    ## 判据（存在性断言，**先剥注释**）
+      · `_buildEnterpriseReadableBody`（企业版正文的**唯一渲染实现**）的函数体内，
+        剥注释后的代码**必须**消费 `analysis_coverage` 的 `total`/`executed`/`blocked`；
+      · 且必须渲染"待补资料后判定"这一列名（证明数量表真的输出，不只是读了变量）。
+      · 反向：若只在 `_renderReportFallback` 的**非企业版分支**里渲染、企业版没有 ⇒ 判红
+        （真实数据走企业版，那等于没渲染）。
+
+    ⚠ 为什么不能只看 `_renderReportFallback`：实测该函数在
+      `if (_isEnterpriseEdition(r)) { ... return }` 处**提前返回**，
+      其后的 1800 余行（含 `coverage_closure`／风险卡／闭环台账）对真实数据是**死代码**。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    js_rel = "static/js/tax-doc-analysis.js"
+    p = ROOT / js_rel
+    if not p.exists():
+        return [("ERROR", js_rel, "文件不存在")]
+    try:
+        src = p.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        return [("ERROR", js_rel, "读取失败：%s" % exc)]
+
+    # 取 `_buildEnterpriseReadableBody` 函数体（到下一个顶层 function 为止）
+    marker = "function _buildEnterpriseReadableBody"
+    i = src.find(marker)
+    if i < 0:
+        return [("ERROR", js_rel, "找不到 `_buildEnterpriseReadableBody`（企业版正文渲染入口）")]
+    nxt = src.find("\nfunction ", i + len(marker))
+    body_raw = src[i: nxt if nxt > 0 else len(src)]
+    # ★★ 判据类型必须选对（本轮实测踩中）：`_js_code_only` 会把**字符串内容也替换成空格**
+    #   （它专用于"看代码结构、不看文案"）。而本闸门要断言"**渲染了某列名**"，
+    #   列名正写在字符串字面量里 ⇒ 用 `_js_code_only` 会恒报"未渲染"（假红）。
+    #   故改用 `engine.js_source.strip_comments`（**只剥注释、保留字面量**）。
+    from engine.js_source import strip_comments as _strip_js   # noqa: PLC0415
+    body = _strip_js(body_raw)
+
+    for field in ("analysis_coverage",):
+        if field not in body:
+            issues.append(("ERROR", js_rel,
+                           "企业版正文**未消费** `%s` —— 后端算了覆盖率（应查/已执行/待补），"
+                           "用户却在报告里看不到（「后端算了不显示」）" % field))
+    for probe, why in ((".total", "应查项数"), (".executed", "已执行项数"),
+                       (".blocked", "待补资料后判定项数")):
+        if probe not in body:
+            issues.append(("ERROR", js_rel,
+                           "企业版正文未取 `analysis_coverage%s`（%s）" % (probe, why)))
+    if "待补资料后判定" not in body:
+        issues.append(("ERROR", js_rel,
+                       "企业版正文未输出「待补资料后判定」列 —— 覆盖率数量表没有真的渲染"))
+    if "missing_sources" not in body:
+        issues.append(("ERROR", js_rel,
+                       "企业版正文未输出 `missing_sources`（缺哪些资料、各涉及几项）"
+                       "—— 读者只看到数字、不知道要补什么"))
     return issues
 
 
