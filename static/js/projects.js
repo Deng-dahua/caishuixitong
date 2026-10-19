@@ -258,7 +258,7 @@
   var BIZ_DEBOUNCE_MS = 700;
   var BIZ_MIN_LEN = 4;          // 中文企业全称规范至少「X州市XX」量级；<4 字基本是半截输入
   var _bizTimer = null;         // 防抖定时器
-  var _bizLastQuery = "";       // 上次**已发出**查询的企业全称（去重用）
+  var _bizLastQuery = "";       // 上次已发出查询的企业全称（去重用）
   var _bizInFlight = false;     // 是否有查询在途（避免并发重复）
 
   /** 是否允许自动查填：与元素上的 `data-perm="project.write"` 同一权限点。 */

@@ -8025,6 +8025,96 @@ def check_evidence_rows_semantic_match(_path=None) -> List[Tuple[str, str, str]]
     return issues
 
 
+def check_no_markdown_leak_in_html() -> List[Tuple[str, str, str]]:
+    """静态页面的**可见文案**里不得出现 markdown 记号（`**加粗**` 等）—— 2026-10-19 立。
+
+    ## 为什么立这条闸门
+    本轮用户贴回页面上的一段文字，里面赫然写着
+    「本页签展示**最近一次**一键稽查分析的完整报告」——**星号被浏览器原样显示出来了**。
+    成因：写 HTML 文案时沿用了 markdown 习惯（`**强调**`），而 HTML 不解析 markdown
+    ⇒ 用户看到的是「\\*\\*最近一次\\*\\*」这种带星号的句子。
+
+    这是**文档与实现的语境混用**：在 `.md` 里 `**` 是加粗，在 `.html` 里它就是两个星号。
+    项目里已有先例口径（报告正文「禁 markdown」），本条把同一口径**扩到静态页面文案**。
+
+    ## 判据口径（避免误报，逐条说明）
+      · **只看"会渲染出来的文本"**：先剥 HTML 注释 `<!-- -->`、CSS 注释 `/* */`、
+        整个 `<style>` / `<script>` 块、再去掉标签 ⇒ 剩下的才是用户能看到的字；
+      · **只看成对出现的 `**`**（`**xxx**` 形态），单星号（如通配符、乘法）不判 ——
+        页面文案里单星号极罕见，若真出现由人工判断，不在此闸门管辖；
+      · 代码块/属性值里的星号（类名 `[class*="x"]` 等）已因"去标签+剥注释"被排除。
+
+    ## ★ 2026-10-19 扩围：**同时扫 JS 的字符串字面量**
+    首版只扫 `.html`，但实测 `/industry-indicators` 与 `/rules` 页面上仍有星号 ——
+    它们来自 **JS 动态渲染的文案**（`industry_indicators.js` 拼 HTML 时写 `"**xxx**"`）
+    与**后端下发的文案**（`rule_catalog.RUNTIME_SWITCH_NOTE`）。
+    ⇒ 只扫 HTML = **闸门覆盖不到就静默漏掉**（本仓明载的失效形态）。
+    现对 `static/js/*.js` 的**字符串字面量**做同样判据；对**后端文案**另有
+    `RUNTIME_SWITCH_NOTE` 这类"经 `esc()` 转义后渲染"的场景 —— 那些**不得含任何标记**
+    （含 `<b>`，会被转义成字面文本），故只要求"无 `**`"即可。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    static_dir = ROOT / "static"
+    if not static_dir.is_dir():
+        return issues
+    try:
+        for page in sorted(static_dir.glob("*.html")):
+            raw = page.read_text(encoding="utf-8", errors="replace")
+            t = re.sub(r"<!--.*?-->", "", raw, flags=re.S)          # HTML 注释
+            t = re.sub(r"/\*.*?\*/", "", t, flags=re.S)             # CSS 注释
+            t = re.sub(r"<style.*?</style>", "", t, flags=re.S | re.I)
+            t = re.sub(r"<script.*?</script>", "", t, flags=re.S | re.I)
+            text = re.sub(r"<[^>]+>", "", t)                        # 去标签 ⇒ 纯可见文本
+            hits = re.findall(r"\*\*[^*\n]{1,40}\*\*", text)
+            if hits:
+                issues.append((
+                    "ERROR", "static/%s" % page.name,
+                    "可见文案里出现 markdown 记号（浏览器会原样显示星号，共 %d 处）：%s"
+                    "。HTML 不解析 markdown —— 要强调请用 <b>…</b>" % (len(hits), hits[:3])))
+
+        # ── JS 的**字符串字面量**（动态渲染的文案同样会显示到页面上）──
+        # ★ 必须**逐行剥注释再做字面量匹配**：首版先做 `re.sub(r"(?m)^\s*//.*$", ...)`
+        #   再跑跨行字符串正则，结果"行尾注释里的 `**…**`"会因正则跨行（`re.S`）
+        #   被卷进某个字面量里 ⇒ **误报**（实测：`projects.js` 一行纯注释里的 `**已发出**`
+        #   被判成"渲染到页面"）。现改为：**先按行剔掉注释行**，再匹配字面量。
+        js_dir = static_dir / "js"
+        for js in sorted(js_dir.glob("*.js")) if js_dir.is_dir() else []:
+            raw = js.read_text(encoding="utf-8", errors="replace")
+            raw = re.sub(r"/\*.*?\*/", "", raw, flags=re.S)        # 块注释（可跨行，先剥）
+            # 逐行处理：整行行注释直接丢弃；**行尾注释**只保留代码部分
+            kept = []
+            for ln in raw.split("\n"):
+                st = ln.strip()
+                if st.startswith("//"):
+                    continue
+                # 行尾注释：找不在引号内的 `//`。简化处理——引号计数为偶数时才认
+                q = ln.count("'") + ln.count('"')
+                i = ln.find("//")
+                if i != -1 and q % 2 == 0:
+                    ln = ln[:i]
+                kept.append(ln)
+            raw = "\n".join(kept)
+            bad = []
+            for m in re.finditer(r"""(['"])((?:\\.|(?!\1)[^\\])*?)\1""", raw, re.S):
+                lit = m.group(2)
+                # 只认"像 HTML 片段或纯文案"的字面量：含中文、且含成对星号
+                if "**" not in lit:
+                    continue
+                if not re.search(r"[\u4e00-\u9fff]", lit):
+                    continue
+                for h in re.findall(r"\*\*[^*\n]{1,40}\*\*", lit):
+                    bad.append(h)
+            if bad:
+                issues.append((
+                    "ERROR", "static/js/%s" % js.name,
+                    "JS 字符串文案里出现 markdown 记号（渲染到页面会原样显示星号，共 %d 处）：%s"
+                    "。拼 HTML 请用 <b>…</b>；若是 confirm/alert 等纯文本对话框则去掉标记"
+                    % (len(bad), bad[:3])))
+    except Exception as _e:                                        # noqa: BLE001
+        issues.append(("ERROR", "static/*", "markdown 泄漏判据不可执行：%s" % _e))
+    return issues
+
+
 def check_static_asset_cache_version() -> List[Tuple[str, str, str]]:
     """静态资源 `?v=` 必须等于文件**内容哈希** —— 否则前端改动用户永远看不到。
 
@@ -13057,6 +13147,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_summary_count_consistency()    # 2026-10-08 summary 派生计数单一权威（26≠16 根因）
                + check_clause_compliance()            # 2026-10-08 用户条款（集成10条+专注5条）机器判据
                + check_static_asset_cache_version()  # 2026-10-02 前端缓存版本（改了看不到）
+               + check_no_markdown_leak_in_html()    # 2026-10-19 页面可见文案不得漏 markdown 记号（** 会原样显示）
                + check_suspicion_subject_consistency()  # 2026-10-02 疑点主体一致性（内容与主体错配）
                + check_conclusion_phrase_authority()    # 2026-10-08 结论用语/报告级口径句唯一权威
                + check_report_text_stutter()        # 2026-10-03 报告文本口吃/语义冲突病句

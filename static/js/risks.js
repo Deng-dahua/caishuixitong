@@ -153,8 +153,8 @@ async function loadList() {
   var fs = j.filter_stats || {};
   var notes = [];
   if (fs.excluded_unknown_amount) {
-    notes.push('★ 有 ' + fs.excluded_unknown_amount + ' 条**金额取不到**（载荷未测算金额），'
-      + '**未按 0 元参与金额筛选**，已被排除。');
+    notes.push('★ 有 ' + fs.excluded_unknown_amount + ' 条<b>金额取不到</b>（载荷未测算金额），'
+      + '<b>未按 0 元参与金额筛选</b>，已被排除。');
   }
   if (fs.excluded_no_period) { notes.push('有 ' + fs.excluded_no_period + ' 条无期间信息被排除。'); }
   el('filter-note').innerHTML = notes.length ? notes.map(esc).join(' ') : '';

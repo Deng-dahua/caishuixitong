@@ -1265,7 +1265,7 @@ async function renderAgiDashboard(container) {
     //   清单里 14 条中 9 条后端已不存在。原清单**不加区分地列出** ⇒ 读者会把「已下线」当「可用」。
     //   状态口径：`live` = 后端已注册（实测可路由）；`offline` = 后端已无该端点（实测 404/405）。
     h += '<p style="font-size:13px;color:#64748b;line-height:2.0;margin:0 0 10px">'
-      + '下表逐条标注<strong>实测状态</strong>：标注「已下线」的端点**后端已不存在**'
+      + '下表逐条标注<strong>实测状态</strong>：标注「已下线」的端点<b>后端已不存在</b>'
       + '（AGI 子系统 2026-09-30 整体移除），调用会返回 404，请勿依赖。</p>';
     h += '<table class="hb-table hb-table-striped">';
     h += '<thead><tr><th style="width:80px;">方法</th><th>端点</th><th>功能说明</th>'

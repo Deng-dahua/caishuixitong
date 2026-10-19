@@ -1,0 +1,117 @@
+2026-10-19 09:35:48,305 [INFO] [rid=-] root: 日志已初始化 level=INFO file=C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\data\logs\app.log
+2026-10-19 09:38:42,101 [INFO] [rid=-] engine.enterprise_report: [计数定稿·并入后] 已按定稿列表重算：已确认 43 / 已核定 0 / 待核 43 / 受阻 8
+2026-10-19 09:38:42,102 [INFO] [rid=-] engine.enterprise_report: [相关风险信号] 剔除 4 个「本项自己」的重复条目
+2026-10-19 09:38:42,103 [INFO] [rid=-] engine.enterprise_report: [同族合并] 6 个族合并掉 19 个子项：收入与银行收款(留:银行收款大于申报收入：存在账外收入嫌疑)；印花税税目申报(留:印花税计税依据不足：合同金额与开票不符)；薪酬与用工三源(留:工资表人数与社保参保人数不符)
+2026-10-19 09:38:42,104 [INFO] [rid=-] engine.enterprise_report: [等级上限] 按结论等级压制风险等级 19 项
+2026-10-19 09:38:42,104 [INFO] [rid=-] engine.enterprise_report: [编号定稿] 疑点编号已连续重排：{'14': 13, '16': 14, '18': 15, '19': 16, '32': 17, '33': 18, '35': 19, '36': 20, '39': 21, '43': 22, '20': 23, '23': 24}
+2026-10-19 09:38:42,106 [INFO] [rid=-] engine.enterprise_report: [主题收口] 移出主题不符明细表 1 张（如社保低基数表不夹带在人数不符项下）
+2026-10-19 09:38:42,106 [INFO] [rid=-] engine.enterprise_report: [模板句去重] 45 句模板句已按本项主题差异化
+2026-10-19 09:38:42,106 [INFO] [rid=-] engine.enterprise_report: [计数收口] 全文事项数声明已同步为 24 项（2 处）
+2026-10-19 09:38:42,119 [INFO] [rid=-] engine.enterprise_report: [表格治理] 剔除空白表格 1 张（无表头/无数据，渲染出来只是空框）
+2026-10-19 09:38:42,119 [INFO] [rid=-] engine.enterprise_report: [计数定稿] summary 重算：已确认 24 / 已核定 0 / 待核 24 / 受阻 8
+2026-10-19 09:38:42,119 [INFO] [rid=-] engine.enterprise_report: [计数定稿] 总述/等级判据/主线研判已按定稿列表重算：共 24 项
+2026-10-19 09:38:42,120 [INFO] [rid=-] engine.enterprise_report: [自我怀疑] 已为 24 条风险事项生成「可能错在哪里 + 验证清单」
+2026-10-19 09:38:42,121 [INFO] [rid=-] engine.enterprise_report: [税费性质] 报告级「税费性质与法定后果」声明 3 条（逐项后果段改为引用）
+2026-10-19 09:38:42,243 [INFO] [rid=-] engine.enterprise_report: [去重] 元话语删 48 句｜共性段上提 8 处／共性句上提 58 处（合并为 7 条报告级声明）｜表注去重 0 处
+2026-10-19 09:38:42,317 [INFO] [rid=-] engine.enterprise_report: [子项清单] 已为 8 个疑点生成「子项与关联项逐项核对」清单（结构化审计块 24 个）
+2026-10-19 09:38:42,359 [INFO] [rid=-] engine.enterprise_report: [触发条件] 已为 24 个疑点落盘触发条件/认定要件结构化块（无触发命中 0 个）
+2026-10-19 09:38:42,378 [WARNING] [rid=-] engine.enterprise_report: [数据源状态] 已为 18 个疑点落盘数据源状态表（冲突 0 处）
+2026-10-19 09:38:42,379 [WARNING] [rid=-] engine.enterprise_report: [数据源状态] 有 6 个疑点未取到对应疑点对象，已跳过（须查）
+2026-10-19 09:38:42,608 [INFO] [rid=-] engine.enterprise_report: [措辞清洗] 替换 0 处（首次 319 处）｜禁用模糊词唯一权威 report_wording.scrub_vague
+2026-10-19 09:38:42,665 [INFO] [rid=-] engine.enterprise_report: [去标记] 清除 markdown 标记 79 处｜唯一权威 text_guardrails.strip_markup
+  [Skill 规范] 已登记 62 个 Skill（有回归测试 62 个）；声明未量化约定 45 个
+  [法条版本] 已登记 74 部；红线库引用 248 处、其中未登记版本的法名 0 个
+  [规则外置] 候选 460 条｜可解析 453｜可外置 5（登记 5）｜超表达力 7｜不规范 0｜字段缺口 538（登记 538）
+  [规则中文标签] 层 9/9 已登记｜严重度 5 类｜候选处置 {"kept": 131, "merged": 141, "stale_status": 12, "blocked": 85, "pending": 91}｜可执行 2 条
+  [法规正文] 引用 253 处｜可匹配 253（100.0%，基线 100.0%）｜引用可定位 100.0%｜条号级可核对 215/215=100.0%｜仅到法名 38 处｜正文库 7680 条｜未匹配 0 处
+  [法规时效] 引用已废止/被取代法规 0 处（应为 0）
+  [法规分层] 总 7692 条｜税务核心法 1105 条（14.4%）｜涉税相关 1639｜背景法 4948
+  [规则阈值] 条目 11｜engine_wired 11｜核对 wired_in 11 处
+  [中文数字] 扫描 681 个 py 文件｜白名单 2 个｜行为断言 8 组
+  [材料粒度] 条款级 227｜法规级 855｜未确证 973｜抽样复核依据 60 条
+  [条款ID] 条目 7680｜有ID 7679｜撞号 0｜真缺口 0｜整文条目(无条号) 1｜法名-短码 133 组
+  [短码表] 登记 149 部｜归一名 155 个｜重复登记 0 组｜已合并留痕 3 条
+==============================================================================
+跨模块数字与法条一致性校验
+==============================================================================
+
+【权威值】（实时取自引擎，非本文件硬编码）
+  rules            = 89
+  clue_paths       = 38
+  evidence_plans   = 25
+  analysis_plans   = 25
+  modules          = 25
+  redlines         = 128
+  verified_rules   = 85
+
+【COUNT 计数常量】
+  WARN  engine/enterprise_report.py: 「红线」文中 91 ≠ 权威 128
+  WARN  engine/enterprise_report.py: 「红线」文中 91 ≠ 权威 128
+  WARN  engine/invoice_rate_detector.py: 「红线」文中 127 ≠ 权威 128
+  WARN  engine/memory.py: 「红线」文中 91 ≠ 权威 128
+  WARN  engine/redline_benchmark.py: 「红线」文中 91 ≠ 权威 128
+  WARN  engine/subject_consistency.py: 「红线」文中 91 ≠ 权威 128
+  WARN  engine/subject_consistency.py: 「红线」文中 91 ≠ 权威 128
+  WARN  static/methodology_canonical_catalog.json: 「红线」文中 91 ≠ 权威 128
+  WARN  static/methodology_canonical_catalog.json: 「红线」文中 91 ≠ 权威 128
+  WARN  tests/test_redline_methodology.py: 「红线」文中 91 ≠ 权威 128
+  WARN  tests/test_rule_layer_authority.py: 「红线」文中 91 ≠ 权威 128
+
+【LAW/POLLUTE/TAX/DOMAIN 其他检查】
+  WARN  engine/legal_tier.py: 刑法第505条 超出已知上限 452
+  WARN  engine/tax_redlines.py: RL-OTH-012 税种名不在标准税目表：'其他税费'（如属新增口径请补入 CANONICAL_TAXES）
+  WARN  engine/tax_redlines.py: RL-OTH-013 税种名不在标准税目表：'其他税费'（如属新增口径请补入 CANONICAL_TAXES）
+  WARN  engine/tax_redlines.py: RL-OTH-014 税种名不在标准税目表：'其他税费'（如属新增口径请补入 CANONICAL_TAXES）
+  WARN  engine/tax_redlines.py: RL-OTH-015 税种名不在标准税目表：'其他税费'（如属新增口径请补入 CANONICAL_TAXES）
+  WARN  engine/tax_redlines.py: RL-OTH-016 税种名不在标准税目表：'其他税费'（如属新增口径请补入 CANONICAL_TAXES）
+  ERROR scripts/four_reports/company_1_full.json: confirmed_problems[seq=17]会计收入与销项开票金额月度差异：依据段**无任何资料事实**（连一个数字都没有）—— 风险事项必须能指出『是资料的哪些情况』
+  ERROR scripts/four_reports/company_1_full.json: 正文存在 1 种跨章节重复模板句（阈值 1 章节）—— 应上提为报告级一次。×3 其中1个环节因所需资料（相关资料）本轮未提供而未取得读数，已计入检查受限范围…
+  ERROR scripts/four_reports/company_1_full.json: 子项「银行收款显著大于销项开票」未写进主事项正文（静默丢失）
+  WARN  engine/: 仍有 31 组跨模块**真实分歧**（非转发桩），请确认是否属同一概念、能否收敛：['_acct', '_brief', '_doc', '_engine_or_none', '_inv_no', '_j', '_norm_key', '_pct', '_pick', '_register', '_rel', '_rows', '_versions_index', 'available', 'classify', 'collect_findings', 'detect_loss_carryforward', 'enrich_finding', 'evaluate', 'history', 'law_code_of', 'list_documents', 'params_of', 'record', 'reset', 'reset_caches', 'snapshot', 'status', 'summarize', 'summary', 'tier_of']
+  WARN  全量产物: 疑点「会计收入与销项开票金额月度差异」的触发条件尚未登记到 config/risk_conditions.json（当前用本项标记名兜底）——请为该发现登记 risk_code/aliases
+  WARN  全量产物: 疑点「增值税申报销售额与销项开票金额月度差异」的触发条件尚未登记到 config/risk_conditions.json（当前用本项标记名兜底）——请为该发现登记 risk_code/aliases
+  WARN  全量产物: 疑点「增值税税负率与行业区间偏离」的触发条件尚未登记到 config/risk_conditions.json（当前用本项标记名兜底）——请为该发现登记 risk_code/aliases
+  WARN  全量产物: 疑点「多税种联动稽查风险画像（收入、票账差异、」的触发条件尚未登记到 config/risk_conditions.json（当前用本项标记名兜底）——请为该发现登记 risk_code/aliases
+  ERROR config/child_items.json: RL-INC-001：本项正文/明细表/发现明细里出现的子项「银行收款显著大于销项开票（未开票收入隐匿线索）」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核
+  ERROR config/child_items.json: 多税种联动稽查风险画像（收入、票账差异、资金、成本）：本项正文/明细表/发现明细里出现的子项「银行流水余额滚动关系不一致：资金流水勾稽断裂」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核
+  ERROR config/child_items.json: 多税种联动稽查风险画像（收入、票账差异、资金、成本）：本项正文/明细表/发现明细里出现的子项「待核线索：资金回流与公私混同检测」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核
+  ERROR config/child_items.json: 多税种联动稽查风险画像（收入、票账差异、资金、成本）：本项正文/明细表/发现明细里出现的子项「公转私大额频繁支出：变相分配与个税风险」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核
+  ERROR config/child_items.json: 多税种联动稽查风险画像（收入、票账差异、资金、成本）：本项正文/明细表/发现明细里出现的子项「同一资金对手方存在大额双向收付」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核
+  ERROR config/child_items.json: 多税种联动稽查风险画像（收入、票账差异、资金、成本）：本项正文/明细表/发现明细里出现的子项「资金回流与公私混同检测」未登记为子项（来源 family_members）—— 请重跑 scripts/_gen_child_items.py 并复核
+  ERROR config/child_items.json: RL-PTY-001：本项正文/明细表/发现明细里出现的子项「表2 公司已付金额·按供应商分布（合计 663,108.91 元，来源：银行流水·对公/平台代付匹配」未登记为子项（来源 detail_table）—— 请重跑 scripts/_gen_child_items.py 并复核
+  ERROR config/child_items.json: RL-PTY-001：本项正文/明细表/发现明细里出现的子项「表4 应付账款核对（账面汇总 526,486.00 元，来源：科目余额表）」未登记为子项（来源 detail_table）—— 请重跑 scripts/_gen_child_items.py 并复核
+  WARN  config/doc_consistency.json: 数字「全量回归 passed」权威值取不到：回执**已过期**：`tests/` 有文件在最近一次全量运行（2026-10-19 08:38:46）之后被改动，请重跑 `pytest tests/ -q`
+  ERROR 5个Skill设计文档.md:41: 数字「已登记的数字权威条数」文档写 7、权威值 22（len(config/doc_consistency.json → numbers)）｜原文：**已登记的数字权威（7 个）**：`rule_count`（门禁规则条数 9）｜`test_case_count`（28）｜`risk_count`（94）｜
+  ERROR 5个Skill设计文档.md:16: 数字「权威 kind 种类数」文档写 5、权威值 9（distinct(config/doc_consistency.json → numbers.authority.kind) = ['catalog_count', 'config_count', 'file_count', 'grep_line', 'json_len', 'product_count', 'pytest_collect', 'pytest_receipt', 'regex_count']）｜原文：| **唯一核心** | `engine/doc_consistency_core.py` | 取权威值（5 种 kind）/ 抽文档值（正则声明）/ 同义展开
+  ERROR 5个Skill验收自证.md:8: 数字「门禁判据条数（Skill 判据，非 TDS 规则）」文档写 11、权威值 25（regex_count(docs/第01批_触发条件与认定要件分离/5个Skill门禁规则.md, /^\| \*\*D[0-9]-R[0-9]+\*\*/) = 25）｜原文：| 2 | 每个 Skill 必须**增加质量门禁**校验规则 | `tools/audit_consistency.py` 新增 **5 个** `check
+  ERROR enterprise_readable_report: 缺料三态不自洽 seq=11：需要2 ≠ 逐字0+同类0+确未提供0
+  ERROR engine/enterprise_report.py: 企业报告正文暴露内部文件名/模块名: invoice_tax_rate_map.json
+  WARN  C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\docs\STEP-EXT-LEGAL-FULL_现状盘点与冲突裁定_20261015.md: 第 73 行只报法规库总条数（131 条）而未同处给税务口径 ⇒ 应改用 engine.legal_tier.disclosure_line()
+  WARN  C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\docs\统一开发基线_现状对比与增量计划_20261010.md: 第 488 行只报法规库总条数（200 条）而未同处给税务口径 ⇒ 应改用 engine.legal_tier.disclosure_line()
+  WARN  engine/report_service.py: 报告法规依据章行为级检查**未执行**：当前数据目录没有项目 1（数据依赖型判据，需在有数据的环境复跑）：项目不存在或无权访问
+  INFO  config/rulelist_v*.json: 候选阈值唯一索引：键 128（V1.0 12 / V1.1 58 / V1.2 58），冲突 0，重复登记 0，params_ref 全部一致 ✓
+
+------------------------------------------------------------------------------
+ERROR 16 项 | WARN 26 项
+------------------------------------------------------------------------------
+
+── 文本维度：跨模块共享内容一致性 ──
+  📋 共享内容审计: 10个text_sync块（一致0 失败0 历史遗留10） + 20个concept_link
+  ⚠ report_section_rpt-1: 历史遗留块（职责、文种与法律边界），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-2: 历史遗留块（编制启动与输入门禁），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-3: 历史遗留块（单项发现的七联单），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-4: 历史遗留块（证据组织与全链路溯源），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-5: 历史遗留块（法律适用与时效核验），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-6: 历史遗留块（金额测算、时间轴与勾稽），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-7: 历史遗留块（成稿结构、叙事与呈现），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-8: 历史遗留块（编制全过程审核），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-9: 历史遗留块（常见误判的归因与复核矩阵），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ report_section_rpt-10: 历史遗留块（质量放行、版本交付与受控反馈），权威源文件不存在 C:\Users\Administrator\WorkBuddy\2026-08-04-21-37-33\caishuixitong\static\js\tax-report-standards.js
+  ⚠ [7项判定可靠性要求] 关联模块文件不存在: 编制要求§2
+  ⚠ [12项报告质量标准] 关联模块文件不存在: 编制要求§7
+  ⚠ [12条收款分类规则] 关联模块文件不存在: 审核模板 #场景5 数据源问题
+  ⚠ [15条跨域协商规则] 关联模块文件不存在: 编制要求§8 跨域协同与一致性约束
+  ⚠ [审核反馈闭环机制] 关联模块文件不存在: 编制要求§9 交付、一致性与持续改进
+  ⚠ [四触发同步机制] 关联模块文件不存在: 编制要求§9 交付、一致性与持续改进
+  ⚠ [12条关键法律条文] 关联模块文件不存在: 编制要求(各章法律依据引用)
+  ⚠ [引擎铁律编号体系(12条)] 关联模块文件不存在: 编制要求§8 跨域协同与一致性约束

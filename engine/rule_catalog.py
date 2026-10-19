@@ -33,7 +33,7 @@ from engine import rule_candidate_ledger as CL
 RUNTIME_SWITCH_AVAILABLE = False
 
 RUNTIME_SWITCH_NOTE = ("系统在库规则（红线 / 已验证规则）的执行权威是 Python 常量，"
-                       "**当前没有运行时启用/禁用开关**（实测两库均无 enabled 机制）。"
+                       "当前没有运行时启用/禁用开关（实测两库均无 enabled 机制）。"
                        "本页展示的是事实启用态；如需真正的运行时开关，须改判定层，"
                        "属 P0-5 边界之外，需另行裁定。候选清单的 enabled=false 表示"
                        "「尚未接入系统」，不是「被禁用」。")

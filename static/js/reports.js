@@ -285,10 +285,12 @@ async function loadList() {
 async function delSelectedReports() {
   var ids = Object.keys(REP_PICKED);
   if (!ids.length) { return; }
+  // ★ 2026-10-19：本对话框是 `window.confirm()` —— **纯文本**，不解析 HTML/markdown。
+  //   故这里既不能用 `**…**`（会显示星号），也不能用 `<b>`（会显示尖括号）⇒ 一律纯文本。
   if (!window.confirm('确定删除选中的 ' + ids.length + ' 份报告吗？\n\n'
-      + '· 删除的是**交付物登记与落盘文件**（pdf/docx/xlsx/html）；\n'
-      + '· 文件会**移入回收站**，可在「回收站」还原；\n'
-      + '· 版本台账（append-only 审计留痕）**不被删除**。')) { return; }
+      + '· 删除的是交付物登记与落盘文件（pdf/docx/xlsx/html）；\n'
+      + '· 文件会移入回收站，可在「回收站」还原；\n'
+      + '· 版本台账（append-only 审计留痕）不被删除。')) { return; }
   var btn = el('btn-del-reports');
   var old = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = '删除中…'; }

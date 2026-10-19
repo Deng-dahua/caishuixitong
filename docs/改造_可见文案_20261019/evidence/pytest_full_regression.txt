@@ -1,0 +1,28 @@
+# 全量回归（2026-10-19 第三批）
+20 failed, 2592 passed, 5 skipped, 203 subtests passed in 4874.19s
+
+# passed 序列：收口基线 2459 → 报告并入 2557 → 界面五项 2586 → 本轮 2592（净增 6）
+# 净增 6 = 本轮 tests/test_ui_batch2_20261019.py 从 27 项增至 33 项（+6）
+# 逐项 diff：20 项失败清单与基线**完全相同**（零新增失败）
+
+# 20 项失败均为基线已有，与本次改动无关：
+FAILED tests/test_child_item_completeness.py::TestGateRegression::test_gate_config_level_clean
+FAILED tests/test_child_item_completeness.py::TestGateReverseValidation::test_reverse_unregistered_child_detected
+FAILED tests/test_doc_consistency_skills.py::TestD1NumberAuthority::test_pass_real_docs
+FAILED tests/test_doc_consistency_skills.py::TestRegistrationAndWiring::test_all_five_gates_zero_error
+FAILED tests/test_doc_consistency_skills.py::TestNewJudgments::test_sum_check_catches_inconsistent_total
+FAILED tests/test_doc_consistency_skills.py::TestNewJudgments::test_reverse_wrong_line_number_is_detected
+FAILED tests/test_doc_consistency_skills.py::TestFinalRoundJudgments::test_reverse_wrong_full_passed_is_detected
+FAILED tests/test_doc_consistency_skills.py::TestFinalRoundJudgments::test_reverse_wrong_skill_total_is_detected
+FAILED tests/test_doc_consistency_skills.py::TestFinalRoundJudgments::test_reverse_wrong_gate_call_line_in_06_is_detected
+FAILED tests/test_doc_consistency_skills.py::TestFinalRoundJudgments::test_consistency_check_catches_intra_file_mismatch
+FAILED tests/test_doc_consistency_skills.py::TestUltimateRoundJudgments::test_reverse_unregistered_indicator_phrase_is_flagged
+FAILED tests/test_doc_consistency_skills.py::TestUltimateRoundJudgments::test_reverse_wrong_authority_count_detected
+FAILED tests/test_doc_consistency_skills.py::TestUltimateRoundJudgments::test_reverse_wrong_kind_count_detected
+FAILED tests/test_doc_consistency_skills.py::TestUltimateRoundJudgments::test_reverse_wrong_judgement_count_detected
+FAILED tests/test_document_api.py::DocumentUnitTests::test_service_upload_dedup_classify
+FAILED tests/test_obligation_redlines_wiring.py::ObligationRedlineWiringTests::test_authoritative_redline_count_is_89
+FAILED tests/test_report_api.py::ReportWatermarkDisclaimerTests::test_watermark_and_disclaimer_in_all_formats
+FAILED tests/test_rule_layer_authority.py::TestDetectorLayerBelongsToRedlines::test_layers_are_not_trivially_empty
+FAILED tests/test_rule_version_admin_p16.py::RuleVersionUnitTests::test_baseline_then_publish_then_rollback
+FAILED tests/test_rule_version_admin_p16.py::RuleVersionApiTests::test_endpoints_and_permission

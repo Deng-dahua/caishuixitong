@@ -171,7 +171,7 @@ def activity(session: Any, days: int = 14) -> Dict[str, Any]:
         "by_action": _sorted_pairs(by_action)[:12],
         "total": len(rows),
         "note": ("按日计数基于留痕 `created_at`（北京时间）；`capped=true` 表示已达扫描上限"
-                 "（%d 条），大屏**不抽样、不估算**，超限时如实标注。" % ACTIVITY_LIMIT),
+                 "（%d 条），大屏不抽样、不估算，超限时如实标注。" % ACTIVITY_LIMIT),
     }
 
 

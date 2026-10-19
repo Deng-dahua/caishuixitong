@@ -132,19 +132,18 @@
 
     <!-- ═══════════ 分析报告（原「资料风险分析报告」内页，2026-10-19 并入）═══════════ -->
     <div id="pane-analysis">
-      <div class="card">
-        <div class="toolbar" style="margin-bottom:6px">
-          <button class="btn ghost sm" id="tda-export-pdf-btn" onclick="exportTaxDocReportPdf()">导出PDF</button>
-          <button class="btn ghost sm" onclick="showCacheInfo()" id="tda-cache-btn">缓存</button>
-          <span class="spacer"></span>
-          <button class="btn ghost sm" onclick="deleteTaxDocReport()" id="tda-delete-btn">删除报告</button>
-        </div>
-        <div class="hint" style="margin:0 0 8px">
-          本页签展示**最近一次**一键稽查分析的完整报告（阅读与复核）。
-          资料的上传/分类请前往 <a href="/documents">📎 资料上传与管理</a>；
-          发起分析、查看进度与历史请前往 <a href="/analysis">⚡ 一键稽查分析任务</a>。
-        </div>
-      </div>
+      <!-- ★ 2026-10-19（用户要求）：原先这一块（【导出PDF】【缓存】【删除报告】三个按钮
+           + 一段"本页签展示最近一次…"的说明文案）**已整体删除**。
+           理由：报告正文自身已带完整封面与说明；该工具条与页面功能重复，
+           且【删除报告】与「报告列表」的【删除选中】存在两个删除入口（易误用）。
+
+           ★ 保留 WEB 端的 JS 函数本体（`exportTaxDocReportPdf` / `showCacheInfo` /
+             `deleteTaxDocReport`，在 `tax-doc-analysis.js`）—— 不删，因为：
+             · 审计闸门 `check_report_consistency` 的行为级判据依赖
+               `exportTaxDocReportPdf` 的函数体（必须走服务端渲染端点
+               `/api/tax-risk-docs/export`、禁 `window.print`、须读 `X-Report-Watermark` 回执）；
+             · 该函数与离线链路共用同一渲染实现，删除会连带影响交付物口径。
+           ⇒ 「界面入口下线」与「实现删除」是两件事（本仓既有铁律）。 -->
       <!-- ★ 报告正文容器：id 必须是 `tda-report-area`（`renderTaxDocReport` 硬编码取它）。 -->
       <div id="tda-report-area"><div class="muted" style="padding:40px 16px;text-align:center;line-height:2">
         暂无分析报告。<br>请先在「📎 资料上传与管理」上传资料，再到「⚡ 一键稽查分析任务」发起分析；
@@ -156,7 +155,7 @@
     <!-- ★ 2026-10-19：默认页签改为「分析报告」⇒ 本面板初始隐藏（由 switchTab 管理显隐） -->
     <div id="pane-gen" data-perm="report.generate" style="display:none">
       <div class="card">
-        <h3>1. 选择报告视图 <span class="hint">视图 = 同一份底稿的**范围/粒度**，不是四份不同名称的报告</span></h3>
+        <h3>1. 选择报告视图 <span class="hint">视图 = 同一份底稿的<b>范围/粒度</b>，不是四份不同名称的报告</span></h3>
         <div class="views" id="view-cards"></div>
         <div class="muted" id="view-note" style="margin-top:8px"></div>
       </div>
@@ -177,7 +176,7 @@
           <input type="text" id="f-note" placeholder="change_note（选填）">
         </div>
         <div class="muted" style="margin-top:8px">
-          免责声明与人工复核标识由**渲染层强制**：缺失时报告**不予产出**（直接报错，不静默）。
+          免责声明与人工复核标识由<b>渲染层强制</b>：缺失时报告<b>不予产出</b>（直接报错，不静默）。
         </div>
         <div class="toolbar" style="margin-top:10px">
           <button class="btn" id="btn-generate">▶ 生成报告</button>
@@ -216,8 +215,8 @@
           <tbody id="tb-reports"><tr><td colspan="11" class="muted">加载中…</td></tr></tbody>
         </table>
         <div class="hint" style="margin-top:8px">
-          删除的是**交付物登记与落盘文件**（文件进回收站，可恢复）；
-          版本台账 <code>data/report_versions.jsonl</code> 为 append-only 审计留痕，**不被删除**。
+          删除的是<b>交付物登记与落盘文件</b>（文件进回收站，可恢复）；
+          版本台账 <code>data/report_versions.jsonl</code> 为 append-only 审计留痕，<b>不被删除</b>。
         </div>
       </div>
     </div>
@@ -260,7 +259,7 @@
   <script src="/static/js/dom-utils.js?v=19e4f1d277"></script>
   <script src="/static/js/constants.js?v=da5ad45ec2"></script>
   <script src="/static/js/tax-doc-analysis.js?v=3db3117002" defer></script>
-  <script src="/static/js/reports.js?v=0da2ef12d2"></script>
+  <script src="/static/js/reports.js?v=649e6c8c2d"></script>
   <script src="/static/js/page-memory.js?v=8c10b70862" defer></script>
 </body>
 </html>

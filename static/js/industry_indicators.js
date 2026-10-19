@@ -70,7 +70,7 @@
       return "<tr><td>" + esc(x.label) + '</td><td class="muted">' + esc(x.key) + "</td>" +
         "<td>" + esc(UNITS[x.key] || "比值") + "</td>" +
         '<td class="num">' + esc(x.industries) + "/" + esc(s.industries) + "</td>" +
-        '<td class="muted">' + (x.industries ? "已在部分行业登记区间" : "**所有行业均无区间，需核对**") + "</td></tr>";
+        '<td class="muted">' + (x.industries ? "已在部分行业登记区间" : "<b>所有行业均无区间，需核对</b>") + "</td></tr>";
     }).join("");
   }
 

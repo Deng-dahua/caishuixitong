@@ -64,7 +64,7 @@ def _decorate_model(m: Dict[str, Any], *, tax: str = "", cross: bool = False) ->
         "implemented": _impl_exists(impl),
         "impl_note": ("" if _impl_exists(impl)
                       else ("实现模块 `engine/%s.py` 不存在或未登记" % impl) if impl
-                      else "尚未实现（登记为**待建**，不假装已实现）"),
+                      else "尚未实现（登记为待建，不假装已实现）"),
         "severity": sev,
         "severity_cn": SEVERITY_CN.get(sev, sev),
     }

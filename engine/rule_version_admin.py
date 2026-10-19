@@ -250,6 +250,6 @@ def metadata() -> Dict[str, Any]:
         "version_pattern": VERSION_RE.pattern,
         "storage": "data/rule_version_events.jsonl（append-only）+ data/rule_version_snapshots/*.json",
         "note": ("「当前生效版本」唯一判读点 = `rule_versions.rule_set_version()`；"
-                 "**未发布时与配置基线完全一致**。版本差异基于发布时快照；"
+                 "未发布时与配置基线完全一致。版本差异基于发布时快照；"
                  "无快照时如实说明，不返回空差异。"),
     }

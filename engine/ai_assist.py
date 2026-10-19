@@ -207,7 +207,7 @@ def status() -> Dict[str, Any]:
         "backend": backend,
         "reason": "" if available else "未配置云端大模型且本机无可用本地模型（Ollama）",
         "disclaimer": DISCLAIMER,
-        "note": ("AI 不可用时，`/ai-assist` 回落为**规则侧线索**（engine=rule_hint, is_ai=false），"
+        "note": ("AI 不可用时，`/ai-assist` 回落为规则侧线索（engine=rule_hint, is_ai=false），"
                  "不会假装成 AI 输出。"),
     }
 

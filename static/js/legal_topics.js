@@ -252,7 +252,7 @@
         "<div><b>" + esc(p.provision_id || "") + "</b> " + esc(p.law || "") + " " + esc(p.article || "") +
         (p.verified ? " " + tag("已确证", "has-body") : "") + "</div>" +
         '<pre class="plain">' + esc(p.content || "（正文库无原文）") + "</pre></div>";
-    }).join("") : '<div class="msg warn">该规则**无可确证条款**（关联表中未落到具体条款）——如实为空。</div>';
+    }).join("") : '<div class="msg warn">该规则<b>无可确证条款</b>（关联表中未落到具体条款）——如实为空。</div>';
     var refs = d.legal_basis_ref || [];
     H += '<div class="sec-title">规则作者登记的法规依据（legal_basis_ref，原样）</div>';
     H += refs.length ? refs.map(function (x) {

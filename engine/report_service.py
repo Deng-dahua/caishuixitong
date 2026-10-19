@@ -1349,14 +1349,14 @@ def delete_reports(report_ids: Any, session: Any, *, request: Any = None,
                         "company_id": cid, "files": len(files or {})})
         _audit("report.delete", row, cid,
                "删除报告交付物：文书编号 %s（版本 %s）、视图 %s、移入回收站文件 %d 个；"
-               "版本台账行按 append-only 口径**保留**"
+               "版本台账行按 append-only 口径保留"
                % (row.get("doc_no"), row.get("version"), row.get("view"), len(files or {})),
                request, session)
 
     return {"deleted": deleted, "skipped": skipped, "cleared": cleared,
             "leftovers": leftovers,
-            "note": ("已删除的是**交付物登记 + 落盘文件**（文件移入回收站，可恢复）；"
-                     "版本台账 `data/report_versions.jsonl` 按 append-only 口径**保留**，"
+            "note": ("已删除的是交付物登记 + 落盘文件（文件移入回收站，可恢复）；"
+                     "版本台账 `data/report_versions.jsonl` 按 append-only 口径保留，"
                      "未删除 —— 该台账是报告曾经生成过的审计留痕。")}
 
 

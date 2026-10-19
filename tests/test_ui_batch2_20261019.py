@@ -32,6 +32,7 @@
 """
 from __future__ import annotations
 
+import glob
 import os
 import re
 
@@ -48,6 +49,7 @@ REPORTS_API = os.path.join(ROOT, "reports_api.py")
 REPORT_SERVICE = os.path.join(ROOT, "engine", "report_service.py")
 PAGE_MEMORY = os.path.join(ROOT, "static", "js", "page-memory.js")
 AUDIT = os.path.join(ROOT, "tools", "audit_consistency.py")
+PROJECTS_HTML = os.path.join(ROOT, "static", "projects.html")
 
 
 def _s(path: str) -> str:
@@ -403,3 +405,99 @@ def test_reverse_r7_public_whitelist_removed() -> None:
 if __name__ == "__main__":       # pragma: no cover
     import pytest
     raise SystemExit(pytest.main([__file__, "-q"]))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 第三批（2026-10-19 当晚）：删「分析报告」页签工具条 + 修 markdown 记号泄漏
+# ══════════════════════════════════════════════════════════════════════════════
+
+def test_analysis_pane_toolbar_removed() -> None:
+    """`/reports`「分析报告」页签里那块工具条（导出PDF/缓存/删除报告 + 说明文案）已删除。
+
+    ★ 但**只删界面入口，不删实现**：三个函数本体必须仍在 `tax-doc-analysis.js` ——
+      审计闸门 `check_report_consistency` 的行为级判据依赖 `exportTaxDocReportPdf`
+      的函数体（须走 `/api/tax-risk-docs/export`、禁 `window.print`、须读
+      `X-Report-Watermark` 回执）。
+    """
+    code = _code(REPORTS_HTML)
+    for bid in ("tda-export-pdf-btn", "tda-cache-btn", "tda-delete-btn"):
+        assert 'id="%s"' % bid not in code, (
+            "reports.html 仍存在 #%s（该工具条应已删除）" % bid)
+    # 报告正文容器必须保留（renderTaxDocReport 硬编码取它）
+    assert 'id="tda-report-area"' in _s(REPORTS_HTML), "报告正文容器被误删"
+    # 函数实现必须保留（删了会让审计判据报「未找到导出报告函数」）
+    tda = _code(os.path.join(ROOT, "static", "js", "tax-doc-analysis.js"))
+    for fn in ("async function exportTaxDocReportPdf", "function deleteTaxDocReport",
+               "async function showCacheInfo"):
+        assert fn in tda, "`%s` 被误删 —— 只应删界面入口，实现须保留" % fn
+
+
+def test_no_markdown_bold_leak_in_any_page() -> None:
+    """★ 任何静态页面的**可见文案**都不得出现成对的 `**`（浏览器会原样显示星号）。
+
+    实证：用户贴回的页面文字里写着「本页签展示**最近一次**…」—— 星号真的显示出来了。
+    HTML 不解析 markdown ⇒ 在 `.html` 里 `**` 就是两个星号。
+    """
+    import re as _re
+
+    bad = []
+    for f in sorted(glob.glob(os.path.join(ROOT, "static", "*.html"))):
+        raw = _s(f)
+        t = _re.sub(r"<!--.*?-->", "", raw, flags=_re.S)          # HTML 注释
+        t = _re.sub(r"/\*.*?\*/", "", t, flags=_re.S)             # CSS 注释
+        t = _re.sub(r"<style.*?</style>", "", t, flags=_re.S | _re.I)
+        t = _re.sub(r"<script.*?</script>", "", t, flags=_re.S | _re.I)
+        text = _re.sub(r"<[^>]+>", "", t)                          # 去标签 ⇒ 纯可见文本
+        hits = _re.findall(r"\*\*[^*\n]{1,40}\*\*", text)
+        if hits:
+            bad.append("%s → %s" % (os.path.basename(f), hits[:3]))
+    assert not bad, "以下页面的可见文案含 markdown 记号（会原样显示星号）：%s" % bad
+
+
+def test_markdown_leak_gate_is_wired() -> None:
+    """新闸门 `check_no_markdown_leak_in_html` 必须**注册进 `run_checks`**（否则形同虚设）。"""
+    src = _s(AUDIT)
+    assert "def check_no_markdown_leak_in_html" in src, "审计缺该闸门"
+    # 项目铁律：run_checks 源码里必须出现每个 check_* 函数名
+    m = re.search(r"def run_checks\(.*?\n(?=def |\Z)", src, re.S)
+    assert m, "未找到 run_checks 函数体"
+    assert "check_no_markdown_leak_in_html()" in m.group(0), (
+        "闸门未注册进 run_checks ⇒ 不会被执行（接线自检会 FATAL，此处提前拦下）")
+
+
+def test_reverse_r8_analysis_toolbar_restored() -> None:
+    """注入：把「导出PDF」按钮加回分析报告页签 ⇒ 判据必须报错。"""
+    _with_broken("REPORTS_HTML",
+                 '<div id="tda-report-area">',
+                 '<button id="tda-export-pdf-btn">导出PDF</button>\n      '
+                 '<div id="tda-report-area">',
+                 test_analysis_pane_toolbar_removed)
+
+
+def test_reverse_r9_markdown_leak_injected() -> None:
+    """注入：往某页可见文案里塞一对星号 ⇒ markdown 泄漏判据必须报错。
+
+    ★ 注入文件必须落在 `static/` 目录内 —— 该判据是 **glob 遍历 `static/*.html`**
+      （它要覆盖全部页面），若把破坏样本写到 `tests/` 下（`_with_broken` 的默认位置），
+      判据根本扫不到 ⇒ 反向验证会"注入后仍绿"（首版就是这样假绿的）。
+    """
+    import pytest
+
+    tmp = os.path.join(ROOT, "static", "_broken_md_leak.html")
+    with open(tmp, "w", encoding="utf-8", newline="") as fh:
+        fh.write('<!doctype html><html><body>\n'
+                 '  <p>本页签展示**最近一次**完整报告</p>\n'
+                 '</body></html>\n')
+    try:
+        with pytest.raises(AssertionError):
+            test_no_markdown_bold_leak_in_any_page()
+    finally:
+        os.remove(tmp)
+
+
+def test_reverse_r10_gate_unwired() -> None:
+    """注入：把闸门从 `run_checks` 里摘掉 ⇒ 接线判据必须报错。"""
+    _with_broken("AUDIT",
+                 "+ check_no_markdown_leak_in_html()",
+                 "+ None  # 被摘掉",
+                 test_markdown_leak_gate_is_wired)

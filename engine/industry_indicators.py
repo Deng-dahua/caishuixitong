@@ -122,7 +122,7 @@ def generic() -> Dict[str, Any]:
     rows = [{"key": k, "label": IB.indicator_label(k), "unit": IB.indicator_unit(k),
              "low": bench[k][0], "high": bench[k][1]} for k in IB.indicator_keys() if k in bench]
     return {"matched": matched, "source": source, "indicators": rows,
-            "note": "该区间在**未匹配到行业**时使用（降低误报）；不得当作某一具体行业的基准。"}
+            "note": "该区间在「未匹配到行业」时使用（降低误报）；不得当作某一具体行业的基准。"}
 
 
 def stats() -> Dict[str, Any]:

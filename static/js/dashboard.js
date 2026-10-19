@@ -89,9 +89,9 @@
 
     var w = [];
     if (P.capped) { w.push('<div class="msg warn">项目数超出扫描上限（' + meta.caps.projects +
-      "），大屏只汇总前 " + P.scanned + " 个 —— 此处**如实标注**，未抽样估算。</div>"); }
+      "），大屏只汇总前 " + P.scanned + " 个 —— 此处<b>如实标注</b>，未抽样估算。</div>"); }
     if (act.capped) { w.push('<div class="msg warn">留痕已达扫描上限（' + meta.caps.activity +
-      "），按日计数为**已扫样本**的计数。</div>"); }
+      "），按日计数为<b>已扫样本</b>的计数。</div>"); }
     if (R.payload_unavailable > 0) { w.push('<div class="msg warn">' + R.payload_unavailable +
       " 个账套读不到风险载荷（一键分析未跑或产物缺失）⇒ 风险分布未含这些账套。" +
       (R.unavailable_reasons && R.unavailable_reasons.length

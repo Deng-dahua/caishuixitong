@@ -1,0 +1,24 @@
+  /projects                ** = 0  未渲染标记 = 0
+  /documents               ** = 0  未渲染标记 = 0
+  /analysis                ** = 0  未渲染标记 = 0
+  /rules                   ** = 0  未渲染标记 = 0
+  /risks                   ** = 0  未渲染标记 = 0
+  /reports                 ** = 0  未渲染标记 = 0
+  /users                   ** = 0  未渲染标记 = 0
+  /roles                   ** = 0  未渲染标记 = 0
+★ /audit-logs              ** = 1  未渲染标记 = 0
+      [**] '删除报告交付物：文书编号 RW-1-5132f7（版本 V22）、视图 full、移入回收站文件 4 个；版本台账行按 append-only 口径**保留**'
+  /recycle                 ** = 0  未渲染标记 = 0
+  /backup                  ** = 0  未渲染标记 = 0
+  /consent                 ** = 0  未渲染标记 = 0
+  /report-templates        ** = 0  未渲染标记 = 0
+  /rule-versions           ** = 0  未渲染标记 = 0
+  /legal-library           ** = 0  未渲染标记 = 0
+  /legal-topics            ** = 0  未渲染标记 = 0
+  /legal-materials         ** = 0  未渲染标记 = 0
+  /industry-indicators     ** = 0  未渲染标记 = 0
+  /dashboard               ** = 0  未渲染标记 = 0
+  /ai-assist               ** = 0  未渲染标记 = 0
+  /tax-models              ** = 0  未渲染标记 = 0
+
+==== 扫描 21 页，异常 1 页 ====
