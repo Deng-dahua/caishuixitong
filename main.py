@@ -3007,7 +3007,51 @@ def purge_company_analysis_artifacts(company_id: int,
             except Exception as exc:
                 leftovers.append(f"学习层 {_store} 清理失败: {exc}")
 
-    # ⑬ **数据库行**：所有带 `company_id` 列的表（industry_benchmarks 等，随表结构演进自动覆盖）。
+    # ⑬ **报告交付物目录** `output/reports/{cid}/`（报告 pdf/docx/xlsx/html 的落盘处）。
+    #    ★★ 2026-10-20 新增（第 14 处派生物，**实测漏洞**）：
+    #      此前 `purge_company_analysis_artifacts` 清了「离线产物」（⑦ `four_reports/`）
+    #      与「上传原件」（⑨），**却从不碰报告交付物目录** —— 实测 company 1 删除后
+    #      `output/reports/1/` 仍有 **38 个文件**（且含 V4/V10/V12 等**已不在 `reports`
+    #      表里**的历史版本遗留：逐条按 `files` 字段删根本删不到）。
+    #      ⇒ 违反用户铁律「删了就是真删了（页面/内存/磁盘/数据库/派生物一个不留）」。
+    #    做法：**按目录整体清**（不逐条读 `files` —— 那会漏掉历史版本遗留），
+    #      与 ⑨ 上传原件目录同款；逐文件走 `purge_file`（移入回收站，可恢复）。
+    #    顺序：放在 ⑬（删登记行/含 `reports` 表）**之前** —— 先移文件后删登记，
+    #      与 `delete_reports` 同一口径（先文件后行，否则失败即产生无法定位的孤儿文件）。
+    #    安全护栏：目标目录必须在 `report_output_root()` 之下（唯一权威，跟随数据根）。
+    if include_uploads and confirmed_deleted:
+        try:
+            from runtime_storage import report_output_root as _ror    # noqa: PLC0415
+            _rroot = os.path.abspath(_ror())
+            _cdir = os.path.abspath(os.path.join(_rroot, str(cid)))
+            if os.path.isdir(_cdir) and _cdir.startswith(_rroot + os.sep):
+                _nrf = 0
+                for _root, _dirs, _files in os.walk(_cdir):
+                    for _fn in _files:
+                        _fp = os.path.join(_root, _fn)
+                        try:
+                            _audit("报告交付物", _fp, os.path.getsize(_fp))
+                        except OSError:
+                            pass
+                        _okp, _why = purge_file(_fp)
+                        if _okp:
+                            _nrf += 1
+                        else:
+                            leftovers.append(f"报告交付物 {_fn} 未移除({_why})")
+                # 清掉空的子目录与目录本身（purge_file 已移走文件）
+                for _root2, _dirs2, _files2 in os.walk(_cdir, topdown=False):
+                    try:
+                        os.rmdir(_root2)
+                    except OSError:
+                        pass
+                if _nrf:
+                    cleared.append(f"报告交付物({_nrf}个，已移入项目回收站)")
+                if os.path.isdir(_cdir):
+                    leftovers.append("报告交付物目录未能移除（可能仍有残留文件）")
+        except Exception as exc:  # noqa: BLE001
+            leftovers.append(f"报告交付物: {exc}")
+
+    # ⑭ **数据库行**：所有带 `company_id` 列的表（industry_benchmarks 等，随表结构演进自动覆盖）。
     #    ★★ 2026-10-06 新增（第 13 处派生物，实测 industry_benchmarks 残留 3 行）。
     #    删完后 VACUUM —— 否则已删数据仍物理留在数据库文件的数据页里（"删了还能翻出来"）。
     if include_uploads and confirmed_deleted:

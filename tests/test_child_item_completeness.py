@@ -279,8 +279,8 @@ class TestIntegrationUserSamples:
 
     @staticmethod
     def _problems():
-        rep = json.loads((ROOT / "scripts" / "four_reports" / "company_1_full.json")
-                         .read_text(encoding="utf-8"))
+        from tests.fixtures._paths import offline_report
+        rep = json.loads(offline_report().read_text(encoding="utf-8"))
         er = rep.get("enterprise_readable_report") or rep
         return [p for p in (er.get("confirmed_problems") or []) if isinstance(p, dict)]
 
@@ -407,8 +407,8 @@ class TestGateRegression:
 
     def test_checklist_present_in_product(self):
         """回归：有子项的疑点，报告里必须真能看到清单（防"生成了却没挂上去"）。"""
-        rep = json.loads((ROOT / "scripts" / "four_reports" / "company_1_full.json")
-                         .read_text(encoding="utf-8"))
+        from tests.fixtures._paths import offline_report
+        rep = json.loads(offline_report().read_text(encoding="utf-8"))
         er = rep.get("enterprise_readable_report") or rep
         n = 0
         for p in (er.get("confirmed_problems") or []):
@@ -424,8 +424,8 @@ class TestGateReverseValidation:
         return json.loads((ROOT / "config" / "child_items.json").read_text(encoding="utf-8"))
 
     def _rep(self):
-        return json.loads((ROOT / "scripts" / "four_reports" / "company_1_full.json")
-                          .read_text(encoding="utf-8"))
+        from tests.fixtures._paths import offline_report
+        return json.loads(offline_report().read_text(encoding="utf-8"))
 
     def test_reverse_unregistered_child_detected(self, monkeypatch):
         """删掉配置里的一条「垫付」子项 ⇒ `audit_product` 必须报「未登记」。"""

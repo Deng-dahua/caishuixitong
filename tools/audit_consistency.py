@@ -301,11 +301,23 @@ POLLUTION_ALLOWLIST = {
 # 整目录跳过：历史审计报告是**时点快照**，会引用当时的旧计数与污染样本，
 # 属正常记述；闸门只卡「现行代码与数据」，不改写历史文档。
 POLLUTION_SKIP_PARTS = {"reports"}
-# 整文件跳过：1720 在其中是**检测目标**而非被污染文本（护栏正则）
+# 整文件跳过：1720 在其中是**检测目标**而非被污染文本（护栏正则），
+# 或**纯数据快照**（1720 是金额/时间戳的合法取值，不可能是条款号）。
 POLLUTION_SKIP_FILES = {
     "engine/report_standards.py",   # _MALFORMED_POLICY_RE 运行时过滤畸形条款号
     "static/id_remap.json",         # 旧规则 id → 新 id 映射表，1720 是合法旧 id
     "static/tax_agi_override.json", # 规则 id 命名（audit_rules_1720_*），非计数
+    # ★ 2026-10-20：测试夹具 = 固化的**真实分析产物快照**（36MB 全量载荷）。
+    #   其中 1720 出现在银行流水字段 `"tx_time": "131720"`（13:17:20）与
+    #   金额 `701720.48` 等**数据取值**里，绝不可能是条款号形态。
+    #   本判据的本意是抓「条款号被改写出的畸形串」（第205条→第201720条），
+    #   数据快照里不存在该风险 ⇒ 整文件豁免（与 id_remap.json 同性质）。
+    #   为什么迁移后才暴露：该夹具原在 `scripts/four_reports/`（`SCAN_DIRS` 不含它，
+    #   故从未被扫）；2026-10-20 迁入 `tests/`（在扫描范围）才显形 —— 属位置变化
+    #   带来的新误报，豁免之即可，**不需**改判据逻辑（改逻辑会错放真污染）。
+    "tests/fixtures/company_1_full.json",     # 全量分析产物快照（数据）
+    "tests/fixtures/company_1_summary.json",  # 摘要产物快照（数据）
+    "tests/fixtures/wb_trisk_001_baseline.json",  # 既有基线快照（数据）
 }
 # 允许出现 1720 的数字上下文：时间戳小数位（19.811720）、版本号等，属巧合
 _NUMERIC_TOKEN_RE = re.compile(r"[0-9.]+")
@@ -14332,7 +14344,7 @@ def check_delete_exits() -> List[Tuple[str, str, str]]:
 
     # 业务出口：函数名 → 清理范围（必须在函数体里找得到实现，且**只此一处**）
     _EXITS = {
-        "purge_company_analysis_artifacts": "账套级（报告/文件/原件/缓存/DB/学习层，共 13 处）",
+        "purge_company_analysis_artifacts": "账套级（报告/文件/原件/缓存/DB/学习层，共 14 处；⑬ 报告交付物目录 output/reports/{cid}/ 于 2026-10-20 补入）",
         "_delete_tax_risk_docs": "资料级（磁盘原件+中转站+列表+墓碑）",
         "_clear_transfer": "中转站解析缓存",
         "purge_pending_deletions": "失败删除的补齐执行（墓碑驱动，仍走资料级语义）",

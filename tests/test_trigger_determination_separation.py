@@ -171,8 +171,8 @@ class TestStructuredOutput:
     @staticmethod
     def _problems():
         import json
-        rep = json.loads((ROOT / "scripts" / "four_reports" / "company_1_full.json")
-                         .read_text(encoding="utf-8"))
+        from tests.fixtures._paths import offline_report
+        rep = json.loads(offline_report().read_text(encoding="utf-8"))
         er = rep.get("enterprise_readable_report") or rep
         return [p for p in (er.get("confirmed_problems") or []) if isinstance(p, dict)]
 

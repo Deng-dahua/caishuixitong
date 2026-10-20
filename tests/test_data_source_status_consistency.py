@@ -28,7 +28,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-REPORT = ROOT / "scripts" / "four_reports" / "company_1_full.json"
+from tests.fixtures._paths import offline_report
+
+REPORT = offline_report()      # ★ 夹具单一权威（tests/fixtures/），不再指向运行时产物目录
 #: 本企业本轮已取得资料（取自产物 `comprehensive.data_overview.present`）
 AVAIL = ["银行流水", "增值税申报表", "科目余额表", "记账凭证", "工资表",
          "销项发票", "进项发票", "社保明细", "进项抵扣", "公积金缴存"]

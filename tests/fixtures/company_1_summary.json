@@ -1,0 +1,439 @@
+{
+ "company_id": 1,
+ "company_name": "深圳海更数字传媒有限公司",
+ "capabilities": [
+  {
+   "capability": "two_tax_income",
+   "available": true,
+   "verdict": "两税勾稽未能比对（缺一张申报表，差额不予测算）",
+   "summary": "仅取得增值税申报表，企业所得税申报表未取得，两税收入差异无法量化。",
+   "metrics_keys": [
+    "vat_sales",
+    "cit_income",
+    "diff",
+    "diff_pct",
+    "vat_over_cit",
+    "only_one_side"
+   ]
+  },
+  {
+   "capability": "bank_flow",
+   "available": true,
+   "verdict": "存在资金流与申报严重背离，须深入核实",
+   "summary": "银行流水收款8,371,659.92元 vs 增值税申报表销售额6,636,800.57元，未开票/账外敞口风险敞口（最终口径，净敞口）227,659.35元（以剔除明显非销售流入后的净敞口为准（毛差额含非销售流入，会高估）。） 起点口径（毛差额）1,734,859.35元，仅作起点参考，不作为最终风险敞口。；对公账户收自自然人1,082,000.00元。",
+   "metrics_keys": [
+    "flow_receipt",
+    "flow_pay",
+    "corporate_receipt",
+    "personal_receipt",
+    "third_party_receipt",
+    "nonsales_receipt",
+    "invoice_total",
+    "reported_income",
+    "declared_side",
+    "declared_value",
+    "uninvoiced_gap",
+    "uninvoiced_gap_after_nonsales"
+   ]
+  },
+  {
+   "capability": "input_voucher",
+   "available": true,
+   "verdict": "未发现异常",
+   "summary": "进项发票1014张、进项税225,093.81元；供应商集中度12.6%。",
+   "metrics_keys": [
+    "input_invoice_count",
+    "input_amount_total",
+    "input_tax_total",
+    "abnormal_deduction_tax",
+    "abnormal_supplier_count",
+    "concentration_supplier",
+    "concentration_ratio",
+    "should_transfer_out_tax",
+    "no_reversal_tax",
+    "pending_invoice_type_tax",
+    "circular_supplier_count",
+    "circular_mirror_count"
+   ]
+  },
+  {
+   "capability": "false_invoice",
+   "available": true,
+   "verdict": "存在多项虚开特征组合，须重点核查业务真实性",
+   "summary": "销项6,636,800.57元 / 进项5,110,675.32元；进销背离×1.299；前3客户占57.4%；资金回流1,057,104.48元；",
+   "metrics_keys": [
+    "sales_total",
+    "purchase_total",
+    "in_out_ratio",
+    "top1_customer_share",
+    "top3_customer_share",
+    "same_amount_groups",
+    "circular_supplier_count",
+    "circular_mirror_count",
+    "circular_unrelated_count",
+    "fund_loop_amount",
+    "high_risk_relationships"
+   ]
+  },
+  {
+   "capability": "fund_loop",
+   "available": true,
+   "verdict": "存在跨企业资金回流闭环，须核实业务真实性",
+   "summary": "资金回流闭环合计395,000.00元（直接395,000.00元）。",
+   "metrics_keys": [
+    "direct_loop_amount",
+    "indirect_loop_amount",
+    "circular_amount",
+    "direct_loop_parties",
+    "even_two_way_parties",
+    "near_two_way_parties",
+    "asymmetric_parties",
+    "related_groups"
+   ]
+  },
+  {
+   "capability": "cross_enterprise",
+   "available": null,
+   "verdict": "",
+   "summary": "系统内1家企业，未发现明显的跨企业关联关系。",
+   "metrics_keys": []
+  },
+  {
+   "capability": "revenue_authenticity",
+   "available": true,
+   "verdict": "账外收入嫌疑↑",
+   "summary": "起点信号成立；维度1：申报销售额 6,636,800.57 元与开票收入 6,636,800.57 元基本吻合，未开票收入申报缺口不明显。 维度2：开票收入中有 3,579,933.39 元（占 41.9%）未匹配到银行/第三方平台收款；其中 1,082,094.53 元来自个人账户（4 个自然人），收入经个人账户归集，可作为待核线索。 维度3（应收）：仅取得应收账款科目汇总余额，缺客户明细，无法逐户核实账龄。 综合裁定：账外收入嫌疑↑。",
+   "metrics_keys": [
+    "start_signal",
+    "bank_in_total",
+    "declared_total",
+    "invoiced_total",
+    "unmatched_amount",
+    "person_inflow_amount",
+    "ar_unreceived_total",
+    "ar_long_aging_count",
+    "ar_max_aging_days",
+    "base_date"
+   ]
+  }
+ ],
+ "report_chapters": [
+  {
+   "key": "compilation_style",
+   "value": "内部辅助分析工作底稿（风险检查文书式）"
+  },
+  {
+   "key": "generated_date",
+   "value": "2026年10月16日 07时06分"
+  },
+  {
+   "key": "report_edition",
+   "value": "税务稽查专家工作底稿版"
+  },
+  {
+   "key": "identity",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "inspector_perspective",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "inspector_reasoning",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "material_readiness",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "one_sided_digest",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "resolution_ledger",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "special_attach_errors",
+   "value": "[]"
+  },
+  {
+   "key": "redline_summary",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "summary",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "overall_conclusion",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "inspection_overview",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "cost_recon_detail",
+   "title": "",
+   "available": true,
+   "verdict": ""
+  },
+  {
+   "key": "tax_impact_summary",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "main_assessment",
+   "title": "",
+   "available": true,
+   "verdict": ""
+  },
+  {
+   "key": "discovery_overview",
+   "value": "[{\"no\": 1, \"category\": \"确认问题\", \"type\": \"红字冲销与作废发票比例异常\", \"grade\": \"须核对\", \"summary\": \"本项之所以列入检查，是因为出现了以下情况：红冲/作废发票情形（共13笔）"
+  },
+  {
+   "key": "inspection_procedures",
+   "value": "[{\"seq\": 1, \"name\": \"确认被检查企业、期间和资料批次\", \"narrative\": \"确认被检查企业为深圳海更数字传媒有限公司，检查期间以本轮资料记载期间为准；登记并冻结102份资料。本轮程序结果为：企业主体、检查轮次和"
+  },
+  {
+   "key": "materials",
+   "value": "[{\"seq\": 1, \"document_type\": \"银行流水明细\", \"display_name\": \"银行流水明细\", \"read_method\": \"电子表格/结构化读取\", \"read_result\": \"12份读取完整，共4"
+  },
+  {
+   "key": "materials_note",
+   "value": "通用要求：本轮使用范围为：全部可进入本轮自动核对。文件指纹、解析回执、复算指标和逐行定位保留在内部资料底稿中，可按文件名回查。"
+  },
+  {
+   "key": "action_plan_note",
+   "value": "通用要求：处理过程能够回查，更正后的数据能与账务、申报资料相互核对一致。"
+  },
+  {
+   "key": "confirmed_problems",
+   "value": "[{\"seq\": 1, \"title\": \"红字冲销与作废发票比例异常\", \"premise_note\": \"\", \"redline_id\": \"RL-VAT-007\", \"rule_id\": \"\", \"conclusion_grade\":"
+  },
+  {
+   "key": "subject_consistency_audit",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "completed_checks",
+   "value": "[]"
+  },
+  {
+   "key": "derivation_tree_report",
+   "value": "null"
+  },
+  {
+   "key": "analysis_coverage",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "cross_enterprise_report",
+   "title": "跨企业关联交易闭环（供应链网状违法图谱）",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "industry_benchmark_report",
+   "title": "行业指标对标",
+   "available": false,
+   "verdict": "未发现异常"
+  },
+  {
+   "key": "related_party_report",
+   "title": "关联方顺藤摸瓜追查分析",
+   "available": false,
+   "verdict": "未发现异常"
+  },
+  {
+   "key": "external_verify_report",
+   "title": "外部工商与风险核实（企业自报数据之外的独立视角）",
+   "available": true,
+   "verdict": "需深入核实"
+  },
+  {
+   "key": "bank_flow_report",
+   "title": "银行流水（资金流）比对",
+   "available": true,
+   "verdict": "存在资金流与申报严重背离，须深入核实"
+  },
+  {
+   "key": "two_tax_report",
+   "title": "增值税收入 与 企业所得税收入差异比对",
+   "available": true,
+   "verdict": "两税勾稽未能比对（缺一张申报表，差额不予测算）"
+  },
+  {
+   "key": "revenue_authenticity_report",
+   "title": "收入真实性（账外收入嫌疑）",
+   "available": true,
+   "verdict": "账外收入嫌疑↑"
+  },
+  {
+   "key": "input_voucher_report",
+   "title": "进项异常凭证 / 应转出未转出比对",
+   "available": true,
+   "verdict": "未发现异常"
+  },
+  {
+   "key": "false_invoice_report",
+   "title": "虚开风险网络比对",
+   "available": true,
+   "verdict": "存在多项虚开特征组合，须重点核查业务真实性"
+  },
+  {
+   "key": "fund_loop_report",
+   "title": "跨企业资金回流闭环",
+   "available": true,
+   "verdict": "存在跨企业资金回流闭环，须核实业务真实性"
+  },
+  {
+   "key": "inspection_questions_report",
+   "title": "十八、风险检查询问清单与待澄清事项",
+   "available": true,
+   "verdict": "存在多项需企业澄清与举证的事项，须逐条答复并补充资料"
+  },
+  {
+   "key": "capability_boundary",
+   "title": "能力边界与彻底风险检查路线",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "action_plan",
+   "value": "[{\"seq\": \"一\", \"problem\": \"红字冲销与作废发票比例异常\", \"narrative\": \"本项已给出处理建议：第一，补充提供退货单、折让协议、拒收证明；第二，由企业对上述正当理由逐项提交书面证明与原始单据\", \"_te"
+  },
+  {
+   "key": "further_checks",
+   "value": "[{\"seq\": 1, \"title\": \"未收到“合同文件”导致相关检查未完成\", \"narrative_paragraphs\": [{\"heading\": \"本轮检查结论\", \"text\": \"经检查，本轮没有收到这项资料，没法取得完成"
+  },
+  {
+   "key": "working_paper_report",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "recheck",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "report_statement",
+   "value": "[\"整改过程中不得倒签、补造、篡改、删除或隐匿资料。\", \"本报告不替代税务机关依法定程序作出的认定；是否达到相应标准，须由有权人员依法核实后另行判断。\", \"结论用语：本报告结论只用四个术语——风险信号、待核事项、已认定事实、违法认定；其"
+  },
+  {
+   "key": "_promoted_standalone_count",
+   "value": "8"
+  },
+  {
+   "key": "compliance",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "compliance_text",
+   "value": "本文件为《内部辅助分析工作底稿》（内部辅助分析工作底稿（仅供内部风险复核与整改使用）），本工作底稿是依据企业提供的资料所做的风险线索梳理，不是税务处理决定、税务行政处罚决定或其他执法文书；不构成对任何事实的定性与对任何税款的核定。保密等级为"
+  },
+  {
+   "key": "document_meta",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "signature_block",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "security",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "authorization",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "system_block",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "feedback",
+   "title": "企业申辩与反馈",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "common_statements",
+   "value": "[{\"heading\": \"税费性质与法定后果\", \"text\": \"税费性质与法定后果（税款）：主管税务机关可依《税收征收管理法》第三十二条加收滞纳金；构成偷税、抗税、骗税的，依第六十三条等规定追缴税款、滞纳金并处罚款。是否构成偷税、以及"
+  },
+  {
+   "key": "pipeline_log",
+   "value": "[\"[字段截断] month_gap：本段自称列举期间月份，但缺 2025-01、2025-02、2025-03、2025-04、2025-05、2025-06、2025-07、2025-08、2025-09、2025-10、2025-11"
+  },
+  {
+   "key": "report_template_meta",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "common_clauses",
+   "value": "[{\"id\": \"CC-01\", \"text\": \"各项是否成立，一律另按该事项的构成要件逐条核对后认定；逐条核对结果见各事项的要件清单。\", \"section\": \"报告性质和使用说明\"}, {\"id\": \"CC-19\", \"text\":"
+  },
+  {
+   "key": "workpaper_no",
+   "value": "WB-TR-91440300MA5H824G7M-202501-01"
+  },
+  {
+   "key": "indexes",
+   "title": "",
+   "available": null,
+   "verdict": ""
+  },
+  {
+   "key": "audit_trail",
+   "value": "[{\"at\": \"2026-10-16T07:06:57+08:00\", \"operator\": \"未提供操作人（系统自动分析，本次未采集操作人身份）\", \"action\": \"生成工作底稿\", \"target\": \"WB-TR-91440"
+  }
+ ],
+ "overall_risk": ""
+}

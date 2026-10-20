@@ -149,9 +149,8 @@ class TestInjectionPointIsReportNotSeal:
 
     def test_report_builder_is_the_injection_point(self):
         """报告产出点（编号定稿后）必须注入 —— 用真跑产物验证。"""
-        p = ROOT / "scripts" / "four_reports" / "company_1_full.json"
-        if not p.exists():
-            pytest.skip("无真跑产物")
+        p = ROOT / "tests" / "fixtures" / "company_1_full.json"
+        assert p.exists(), "测试夹具缺失：%s" % p
         d = json.loads(p.read_text(encoding="utf-8"))
         er = d.get("enterprise_readable_report") or d
         probs = er.get("confirmed_problems") or []
@@ -222,9 +221,8 @@ class TestGateReverse:
 
     def test_real_product_is_consistent(self):
         """真跑产物（若存在）必须等级↔分值一致。"""
-        p = ROOT / "scripts" / "four_reports" / "company_1_full.json"
-        if not p.exists():
-            pytest.skip("无真跑产物")
+        p = ROOT / "tests" / "fixtures" / "company_1_full.json"
+        assert p.exists(), "测试夹具缺失：%s" % p
         d = json.loads(p.read_text(encoding="utf-8"))
         er = d.get("enterprise_readable_report") or d
         for it in (er.get("confirmed_problems") or []):

@@ -5,3 +5,8 @@
 # 这里从仓库层面强制 CRLF，不依赖任何机器的 core.autocrlf 设置。
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# 测试夹具：大体积 JSON 样本，标记为二进制 ⇒ git 不做行尾转换、diff 不逐行展开
+# （2026-10-20：35MB 全量分析产物固化进版本库，供测试解耦运行时产物目录）
+tests/fixtures/company_1_full.json -text -diff
+tests/fixtures/company_1_summary.json -text -diff

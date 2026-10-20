@@ -228,10 +228,8 @@ class TestCountSingleSourceAndSequence:
         """连续编号是**显示层契约**（前端渲染「疑点{seq}」）——不得有洞。"""
         import json
         from pathlib import Path
-        p = Path(__file__).resolve().parents[1] / "scripts" / "four_reports" / "company_1_full.json"
-        if not p.exists():
-            import pytest
-            pytest.skip("无真跑产物")
+        p = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "company_1_full.json"
+        assert p.exists(), "测试夹具缺失：%s（夹具是版本库内样本，不应缺失）" % p
         d = json.loads(p.read_text(encoding="utf-8", errors="replace"))
         er = (d.get("report") if isinstance(d.get("report"), dict) else d) \
             .get("enterprise_readable_report") or {}
@@ -244,10 +242,8 @@ class TestCountSingleSourceAndSequence:
         """税额敞口汇总的**分母**必须等于报告事项总数（否则第1页与第4页自相矛盾）。"""
         import json
         from pathlib import Path
-        p = Path(__file__).resolve().parents[1] / "scripts" / "four_reports" / "company_1_full.json"
-        if not p.exists():
-            import pytest
-            pytest.skip("无真跑产物")
+        p = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "company_1_full.json"
+        assert p.exists(), "测试夹具缺失：%s（夹具是版本库内样本，不应缺失）" % p
         d = json.loads(p.read_text(encoding="utf-8", errors="replace"))
         er = (d.get("report") if isinstance(d.get("report"), dict) else d) \
             .get("enterprise_readable_report") or {}
@@ -261,10 +257,8 @@ class TestCountSingleSourceAndSequence:
         """报告里不得有**无用表格**：无表头 / 无数据 / 行全空（渲染出来只是空框）。"""
         import json
         from pathlib import Path
-        p = Path(__file__).resolve().parents[1] / "scripts" / "four_reports" / "company_1_full.json"
-        if not p.exists():
-            import pytest
-            pytest.skip("无真跑产物")
+        p = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "company_1_full.json"
+        assert p.exists(), "测试夹具缺失：%s（夹具是版本库内样本，不应缺失）" % p
         d = json.loads(p.read_text(encoding="utf-8", errors="replace"))
         er = (d.get("report") if isinstance(d.get("report"), dict) else d) \
             .get("enterprise_readable_report") or {}

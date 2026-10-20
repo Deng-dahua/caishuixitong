@@ -32,7 +32,7 @@ if ROOT not in sys.path:
 from engine.enterprise_report import (                     # noqa: E402
     _ENUM_CODE_CN, _METRIC_CN, _metric_kv_text, _translate_key)
 
-ART = os.path.join(ROOT, "scripts", "four_reports", "company_1_full.json")
+ART = os.path.join(ROOT, "tests", "fixtures", "company_1_full.json")   # ★ 夹具（版本库内固化）
 _ENUM_LIKE = re.compile(r"^[a-z][a-z0-9_]*$")
 _IDENT_EQ = re.compile(r"(?<![A-Za-z_])[a-z][a-z0-9_]{3,}=")
 
@@ -94,8 +94,7 @@ class TestMetricKvText(unittest.TestCase):
         （普查逻辑与 `scripts/_audit_unlocalized_metrics.py` 同一口径：
           缺哪几个就在 `_METRIC_CN` / `_ENUM_CODE_CN` 各补一行，不改逻辑分支。）
         """
-        if not os.path.exists(ART):
-            self.skipTest("无真跑产物")
+        assert os.path.exists(ART), "测试夹具缺失：%s" % ART
         with open(ART, encoding="utf-8") as fh:
             d = json.load(fh)
         rep = d.get("report") if isinstance(d.get("report"), dict) else d
@@ -133,8 +132,7 @@ class TestProductNoIdentifierInText(unittest.TestCase):
     """产物级：报告层**文本**里不得出现「英文标识符=」形态。"""
 
     def test_no_identifier_eq_in_report_text(self):
-        if not os.path.exists(ART):
-            self.skipTest("无真跑产物")
+        assert os.path.exists(ART), "测试夹具缺失：%s" % ART
         with open(ART, encoding="utf-8") as fh:
             d = json.load(fh)
         rep = d.get("report") if isinstance(d.get("report"), dict) else d

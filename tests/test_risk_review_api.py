@@ -43,7 +43,7 @@ os.environ.update({
 })
 sys.path.insert(0, %(root)r)
 os.makedirs(os.path.join(D, 'offline_reports'), exist_ok=True)
-shutil.copy(os.path.join(%(root)r, 'scripts', 'four_reports', 'company_1_full.json'),
+shutil.copy(os.path.join(%(root)r, 'tests', 'fixtures', 'company_1_full.json'),
             os.path.join(D, 'offline_reports', 'company_1_full.json'))
 from fastapi.testclient import TestClient
 import security

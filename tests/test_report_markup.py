@@ -29,7 +29,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-REPORT = ROOT / "scripts" / "four_reports" / "company_1_full.json"
+from tests.fixtures._paths import offline_report
+
+REPORT = offline_report()      # ★ 夹具单一权威（tests/fixtures/），不再指向运行时产物目录
 
 
 class TestStripMarkupUnit:

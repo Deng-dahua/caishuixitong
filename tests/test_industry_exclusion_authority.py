@@ -225,11 +225,11 @@ class TestCrossLayerConsistency(unittest.TestCase):
 class TestProductLevel(unittest.TestCase):
     """产物级：报告可见字段不得要求服务型企业补货物流资料，且不得有残词。"""
 
-    ART = os.path.join(ROOT, "scripts", "four_reports", "company_1_full.json")
+    ART = os.path.join(ROOT, "tests", "fixtures", "company_1_full.json")   # ★ 夹具（版本库内固化）
 
     def setUp(self):
         if not os.path.exists(self.ART):
-            self.skipTest("无真跑产物")
+            self.fail("测试夹具缺失：%s（夹具是版本库内样本，不应缺失）" % self.ART)
         import json
         with open(self.ART, encoding="utf-8") as f:
             d = json.load(f)
