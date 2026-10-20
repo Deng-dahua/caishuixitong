@@ -150,6 +150,7 @@
     },
     "ADM-018": {
       "verdict": "industry_plugin",
+      "plugin": "合并纳税插件",
       "legal": "《企业所得税法》第52条（合并纳税须国务院批准）",
       "data": "合并纳税企业极少，事件型插件"
     },
@@ -596,27 +597,32 @@
     "INT-012": {
       "verdict": "duplicate",
       "legal": "同 INT-011（A108000 直接抵免列）",
-      "data": "并入 INT-011"
+      "data": "并入 INT-011",
+      "note": "并入 INT-011（A108000 直接抵免列），本条淘汰"
     },
     "INT-013": {
       "verdict": "duplicate",
       "legal": "同 INT-011（A108000 间接抵免列）",
-      "data": "并入 INT-011"
+      "data": "并入 INT-011",
+      "note": "并入 INT-011（A108000 间接抵免列），本条淘汰"
     },
     "INT-014": {
       "verdict": "duplicate",
       "legal": "同 INT-011（分国不分项）",
-      "data": "并入 INT-011"
+      "data": "并入 INT-011",
+      "note": "并入 INT-011（分国不分项抵免口径），本条淘汰"
     },
     "INT-015": {
       "verdict": "duplicate",
       "legal": "同 INT-011（综合抵免）",
-      "data": "并入 INT-011"
+      "data": "并入 INT-011",
+      "note": "并入 INT-011（综合抵免口径），本条淘汰"
     },
     "INT-016": {
       "verdict": "duplicate",
       "legal": "同 INT-011（饶让抵免）",
-      "data": "并入 INT-011"
+      "data": "并入 INT-011",
+      "note": "并入 INT-011（饶让抵免口径），本条淘汰"
     },
     "INT-018": {
       "verdict": "clue_only",
@@ -627,7 +633,8 @@
     "INT-019": {
       "verdict": "duplicate",
       "legal": "同 INT-018（服务贸易等项目对外支付税务备案）",
-      "data": "并入 INT-018"
+      "data": "并入 INT-018",
+      "note": "并入 INT-018（对外支付备案），本条淘汰"
     },
     "INT-020": {
       "verdict": "needs_external",
@@ -674,6 +681,7 @@
     },
     "LEASE-003": {
       "verdict": "industry_plugin",
+      "plugin": "租赁行业插件",
       "legal": "《企业所得税法实施条例》第47条（经营租赁费用）",
       "data": "租赁行业插件；通用租赁费用已有发票/合同覆盖"
     },
@@ -790,7 +798,8 @@
     "REIT-002": {
       "verdict": "duplicate",
       "legal": "同 REIT-001（REITs 分红环节）",
-      "data": "并入 REIT-001 插件"
+      "data": "并入 REIT-001 插件",
+      "note": "并入 REIT-001（REITs 插件，分红环节），本条随插件合并"
     },
     "REL-006": {
       "verdict": "duplicate",
@@ -812,29 +821,34 @@
     },
     "REO-001": {
       "verdict": "industry_plugin",
+      "plugin": "企业重组插件",
       "legal": "财税〔2009〕59号（股权收购特殊性处理条件）",
       "data": "重组事件型，须重组协议与备案资料",
       "note": "转重组插件（企业发生重组才启用）"
     },
     "REO-002": {
       "verdict": "industry_plugin",
+      "plugin": "企业重组插件",
       "legal": "财税〔2009〕59号（资产收购）",
-      "data": "同 REO-001"
+      "data": "同 REO-001，并入企业重组插件"
     },
     "REO-003": {
       "verdict": "industry_plugin",
+      "plugin": "企业重组插件",
       "legal": "财税〔2009〕59号（合并）",
-      "data": "同 REO-001"
+      "data": "同 REO-001，并入企业重组插件"
     },
     "REO-004": {
       "verdict": "industry_plugin",
+      "plugin": "企业重组插件",
       "legal": "财税〔2009〕59号（分立）",
-      "data": "同 REO-001"
+      "data": "同 REO-001，并入企业重组插件"
     },
     "REO-005": {
       "verdict": "industry_plugin",
+      "plugin": "企业重组插件",
       "legal": "财税〔2009〕59号（债务重组）",
-      "data": "同 REO-001"
+      "data": "同 REO-001，并入企业重组插件"
     },
     "REO-008": {
       "verdict": "needs_form",
@@ -862,12 +876,14 @@
     "REO-012": {
       "verdict": "duplicate",
       "legal": "同 REO-011（未分配利润转增）",
-      "data": "并入 REO-011 同链路"
+      "data": "并入 REO-011 同链路",
+      "note": "并入 REO-011（未分配利润转增），本条淘汰"
     },
     "REO-013": {
       "verdict": "duplicate",
       "legal": "同 REO-011（资本公积转增——补税口径不同须分栏）",
-      "data": "并入 REO-011 同链路（股份制企业股票溢价发行除外，需分栏）"
+      "data": "并入 REO-011 同链路（股份制企业股票溢价发行除外，需分栏）",
+      "note": "并入 REO-011（资本公积转增，须与未分配利润转增分栏——补税口径不同），本条淘汰"
     },
     "REO-014": {
       "verdict": "needs_external",

@@ -1,0 +1,770 @@
+{
+ "schema": 1,
+ "generated_by": "scripts/_gen_rule_dispositions.py",
+ "generated_at": "2026-10-20",
+ "source": "config/rule_adjudications.json（裁定唯一权威）",
+ "_note": "本台账 = 裁定的**执行落地**（每条怎么落地 + 实测证据）。★ 8 条应建的『数据源都在』前提已逐条实测核实，**部分不成立**（见 data_verified / evidence）。",
+ "buildable": {
+  "count": 8,
+  "items": [
+   {
+    "rule_id": "CONS-006",
+    "legal": "《消费税暂行条例》第1条（生产委托加工应税消费品）；《增值税暂行条例》第1条",
+    "data_claimed": "消费税销售额 ↔ 增值税申报销售额（两申报表均已在库）",
+    "note": "应税消费品两税收入口径差可机检",
+    "data_verified": "unfounded",
+    "evidence": "库中**无消费税申报表**（sqlite_master 无 consum*/excise* 表）；vat_declarations 亦无消费税列，且该表 0 行。",
+    "action": "须先支持消费税申报表录入/解析（或改判 needs_form / needs_external）"
+   },
+   {
+    "rule_id": "FIN-001",
+    "legal": "《会计法》第3条；《企业会计准则——基本准则》资产=负债+所有者权益",
+    "data_claimed": "资产负债表三要素已在库（report 域 total_assets/liabilities/equity）",
+    "note": "现校验规则 extract_validate 已有 cross_check 同口径——本候选实为已覆盖，应更新清单状态",
+    "data_verified": "existing_covered",
+    "evidence": "库中**无 balance_sheets/income_statements 表**（报表三要素在产物 JSON 的 report 域，非结构化表）；且 engine/extract_validate.py 已有 `cross_check` 同口径实现（资产负债表不平衡）。",
+    "action": "**本候选实为已覆盖** —— 应更新候选清单状态为「已覆盖」，不另建检测器"
+   },
+   {
+    "rule_id": "FIN-004",
+    "legal": "检查程序类：风险线索（无直接法条，不作认定）",
+    "data_claimed": "利润表收入 ↔ 资产负债表应收账款变动（报表域齐备）",
+    "note": "背离为线索，转指标类检测",
+    "data_verified": "partial",
+    "evidence": "库中无独立报表表；利润表收入/应收账款变动可从产物 JSON 或科目余额取，但无结构化字段可直接联接。",
+    "action": "可建**指标类线索**检测（不作违规认定），须先定指标取值口径"
+   },
+   {
+    "rule_id": "FUND-010",
+    "legal": "检查程序类：资金占用线索（关联方资金占用涉税风险）；无直接法条，不作认定",
+    "data_claimed": "预付账款账龄（科目余额表域已具备）",
+    "note": "挂账 1 年以上大额预付＝线索",
+    "data_verified": "partial",
+    "evidence": "库中 accounts 有「预付账款」科目；无独立「科目余额表」表（inventory_balances 为存货余额，非全科目）。账龄需从凭证/余额推算。",
+    "action": "可建**线索级**检测（挂账≥1年大额预付），须先定账龄推算口径"
+   },
+   {
+    "rule_id": "GEN-007",
+    "legal": "《税收征收管理法》第32条（逾期加收滞纳金）",
+    "data_claimed": "申报表所属期与申报期限逻辑已在库（多期申报表）",
+    "note": "按所属期序列判应报未报/逾期",
+    "data_verified": "partial",
+    "evidence": "vat_declarations 有 `period` 列（结构具备），但该表 **0 行** ⇒ 当前无数据可判；须有申报表数据才能验。",
+    "action": "结构就绪、**待数据** —— 可先开发检测器（按所属期序列判应报未报/逾期）"
+   },
+   {
+    "rule_id": "IIT-004",
+    "legal": "《个人所得税法》第3条第3款（利息股息红利所得 20%）、第9条（扣缴义务人）",
+    "data_claimed": "账面「利润分配/应付股利」明细（总账）↔ 个人所得税申报（利息股息红利所得）比对",
+    "note": "分红决议属企业账面可见事件，具备建检测器条件",
+    "data_verified": "unfounded",
+    "evidence": "库中 accounts **无「应付股利」科目**（`select name from accounts where name like '%股利%'` 为空）；**无个税申报表**。",
+    "action": "须先补个税申报数据源（或改判 needs_external）"
+   },
+   {
+    "rule_id": "IIT-018",
+    "legal": "《个人所得税法》第3条第3款、第9条",
+    "data_claimed": "账面「应付利息/其他应收—个人」↔ 个税申报比对",
+    "note": "与 IIT-004 同链路，可并为同一检测器两分支",
+    "data_verified": "unfounded",
+    "evidence": "库中 accounts **无「应付利息」科目**；**无个税申报表**。（与 IIT-004 同链路）",
+    "action": "与 IIT-004 合并处置，须先补个税申报数据源"
+   },
+   {
+    "rule_id": "INV-020",
+    "legal": "国家税务总局公告2016年第23号（发票备注栏要求）",
+    "data_claimed": "发票数据 remark 列已在库（销售/采购发票域）",
+    "note": "建筑服务等特定票种备注栏必填，缺失即可检",
+    "data_verified": "structure_ok",
+    "evidence": "sales_invoices / purchase_invoices / bookkeeping_invoices **均有 `remark` 列**（实测 PRAGMA table_info 确认），但三表当前 0 行。",
+    "action": "**数据源结构成立，可直接开发**检测器（特定票种备注栏必填校验）"
+   }
+  ],
+  "_summary": {
+   "可直接开发": [
+    "FIN-004",
+    "FUND-010",
+    "GEN-007",
+    "INV-020"
+   ],
+   "前提不成立须先补数据源": [
+    "CONS-006",
+    "IIT-004",
+    "IIT-018"
+   ],
+   "实为已覆盖": [
+    "FIN-001"
+   ]
+  }
+ },
+ "industry_plugins": {
+  "count": 59,
+  "groups": {
+   "BOT 插件": [
+    "BOT-001"
+   ],
+   "EPC 插件": [
+    "EPC-001"
+   ],
+   "MCN 机构插件": [
+    "PLAT-004"
+   ],
+   "PPP 插件": [
+    "PPP-001"
+   ],
+   "REITs 插件": [
+    "REIT-001"
+   ],
+   "企业重组插件": [
+    "REO-001",
+    "REO-002",
+    "REO-003",
+    "REO-004",
+    "REO-005"
+   ],
+   "住宿服务插件": [
+    "HOTEL-001"
+   ],
+   "体育服务插件": [
+    "SPORT-001"
+   ],
+   "保理业务插件": [
+    "FACT-001"
+   ],
+   "保税区插件": [
+    "BOND-001"
+   ],
+   "信托插件": [
+    "TRUST-001"
+   ],
+   "公募基金插件": [
+    "FUNDM-001"
+   ],
+   "养老服务插件": [
+    "ELDER-001"
+   ],
+   "动漫行业插件": [
+    "ANIME-001"
+   ],
+   "医疗服务插件": [
+    "MED-001"
+   ],
+   "合并纳税插件": [
+    "ADM-018"
+   ],
+   "国际运输业务专用": [
+    "INT-007"
+   ],
+   "娱乐服务插件": [
+    "ENT-001"
+   ],
+   "家族信托插件": [
+    "HNW-004"
+   ],
+   "小贷公司插件": [
+    "MICRO-001"
+   ],
+   "平台经济插件": [
+    "PLAT-001",
+    "PLAT-002"
+   ],
+   "建筑行业插件": [
+    "CONSTR-005"
+   ],
+   "房地产行业专用": [
+    "EST-003",
+    "EST-006",
+    "EST-008",
+    "EST-009",
+    "LAT-005",
+    "LAT-006",
+    "LAT-009",
+    "LAT-010"
+   ],
+   "托育服务插件": [
+    "CHILD-001"
+   ],
+   "担保行业插件": [
+    "GUAR-001"
+   ],
+   "教育服务插件": [
+    "EDU-001"
+   ],
+   "文化产业插件": [
+    "CULT-001"
+   ],
+   "旅游服务插件": [
+    "TOUR-001"
+   ],
+   "海南地域插件": [
+    "HAINAN-001",
+    "HAINAN-002"
+   ],
+   "清算期插件": [
+    "LIQ-004"
+   ],
+   "破产重整插件": [
+    "BANKR-001"
+   ],
+   "离岛免税插件": [
+    "HAINAN-003"
+   ],
+   "私募基金插件": [
+    "PE-001"
+   ],
+   "租赁行业插件": [
+    "LEASE-003"
+   ],
+   "综保区插件": [
+    "BOND-002"
+   ],
+   "自贸区插件": [
+    "FTZ-001"
+   ],
+   "融资租赁行业插件": [
+    "LEASE-002"
+   ],
+   "资产证券化插件": [
+    "ABS-001"
+   ],
+   "资源综合利用行业专用": [
+    "TAXINC-011"
+   ],
+   "跨境电商保税进口插件": [
+    "HAINAN-004"
+   ],
+   "跨境电商插件": [
+    "CBEC-001",
+    "EXPORT-014"
+   ],
+   "金融行业插件": [
+    "FINA-002",
+    "FINA-003"
+   ],
+   "集成电路行业插件": [
+    "IC-001"
+   ],
+   "餐饮服务插件": [
+    "CATER-001"
+   ]
+  },
+  "items": [
+   {
+    "rule_id": "BOT-001",
+    "plugin": "BOT 插件",
+    "legal": "BOT 项目相关税收口径",
+    "note": ""
+   },
+   {
+    "rule_id": "EPC-001",
+    "plugin": "EPC 插件",
+    "legal": "财税〔2016〕36号（混同销售分摊）",
+    "note": ""
+   },
+   {
+    "rule_id": "PLAT-004",
+    "plugin": "MCN 机构插件",
+    "legal": "《税收征收管理法》及平台经济地方口径",
+    "note": ""
+   },
+   {
+    "rule_id": "PPP-001",
+    "plugin": "PPP 插件",
+    "legal": "PPP 项目相关税收口径（税总函〔2016〕458号等）",
+    "note": ""
+   },
+   {
+    "rule_id": "REIT-001",
+    "plugin": "REITs 插件",
+    "legal": "财政部 税务总局公告2022年第3号（基础设施 REITs）",
+    "note": ""
+   },
+   {
+    "rule_id": "REO-001",
+    "plugin": "企业重组插件",
+    "legal": "财税〔2009〕59号（股权收购特殊性处理条件）",
+    "note": "转重组插件（企业发生重组才启用）"
+   },
+   {
+    "rule_id": "REO-002",
+    "plugin": "企业重组插件",
+    "legal": "财税〔2009〕59号（资产收购）",
+    "note": ""
+   },
+   {
+    "rule_id": "REO-003",
+    "plugin": "企业重组插件",
+    "legal": "财税〔2009〕59号（合并）",
+    "note": ""
+   },
+   {
+    "rule_id": "REO-004",
+    "plugin": "企业重组插件",
+    "legal": "财税〔2009〕59号（分立）",
+    "note": ""
+   },
+   {
+    "rule_id": "REO-005",
+    "plugin": "企业重组插件",
+    "legal": "财税〔2009〕59号（债务重组）",
+    "note": ""
+   },
+   {
+    "rule_id": "HOTEL-001",
+    "plugin": "住宿服务插件",
+    "legal": "财税〔2016〕36号（住宿服务 6%）",
+    "note": ""
+   },
+   {
+    "rule_id": "SPORT-001",
+    "plugin": "体育服务插件",
+    "legal": "体育服务相关口径（ cart oval 一般计税）",
+    "note": ""
+   },
+   {
+    "rule_id": "FACT-001",
+    "plugin": "保理业务插件",
+    "legal": "财税〔2016〕36号（保理口径）",
+    "note": ""
+   },
+   {
+    "rule_id": "BOND-001",
+    "plugin": "保税区插件",
+    "legal": "保税区相关税收口径",
+    "note": ""
+   },
+   {
+    "rule_id": "TRUST-001",
+    "plugin": "信托插件",
+    "legal": "信托计划相关税收口径",
+    "note": ""
+   },
+   {
+    "rule_id": "FUNDM-001",
+    "plugin": "公募基金插件",
+    "legal": "财税〔2008〕1号（基金分红免税）",
+    "note": ""
+   },
+   {
+    "rule_id": "ELDER-001",
+    "plugin": "养老服务插件",
+    "legal": "财政部 税务总局公告2019年第76号（社区养老免税）",
+    "note": ""
+   },
+   {
+    "rule_id": "ANIME-001",
+    "plugin": "动漫行业插件",
+    "legal": "财税〔2018〕38号（动漫企业优惠）",
+    "note": ""
+   },
+   {
+    "rule_id": "MED-001",
+    "plugin": "医疗服务插件",
+    "legal": "《营业税改征增值税试点过渡政策》（医疗服务免税）",
+    "note": ""
+   },
+   {
+    "rule_id": "ADM-018",
+    "plugin": "合并纳税插件",
+    "legal": "《企业所得税法》第52条（合并纳税须国务院批准）",
+    "note": ""
+   },
+   {
+    "rule_id": "INT-007",
+    "plugin": "国际运输业务专用",
+    "legal": "税收协定国际运输条款",
+    "note": ""
+   },
+   {
+    "rule_id": "ENT-001",
+    "plugin": "娱乐服务插件",
+    "legal": "财税〔2016〕36号（娱乐服务 6%＋消费税）",
+    "note": ""
+   },
+   {
+    "rule_id": "HNW-004",
+    "plugin": "家族信托插件",
+    "legal": "信托计划税务口径（财政部 税务总局相关公告）",
+    "note": ""
+   },
+   {
+    "rule_id": "MICRO-001",
+    "plugin": "小贷公司插件",
+    "legal": "《增值税暂行条例》（贷款服务 6%）",
+    "note": ""
+   },
+   {
+    "rule_id": "PLAT-001",
+    "plugin": "平台经济插件",
+    "legal": "财税〔2016〕36号（平台经营者涉税）",
+    "note": ""
+   },
+   {
+    "rule_id": "PLAT-002",
+    "plugin": "平台经济插件",
+    "legal": "《个人所得税法》（主播打赏口径）",
+    "note": ""
+   },
+   {
+    "rule_id": "CONSTR-005",
+    "plugin": "建筑行业插件",
+    "legal": "财税〔2016〕36号附件2（清包工简易计税）",
+    "note": ""
+   },
+   {
+    "rule_id": "EST-003",
+    "plugin": "房地产行业专用",
+    "legal": "国税发〔2009〕31号（预计计税毛利额）",
+    "note": ""
+   },
+   {
+    "rule_id": "EST-006",
+    "plugin": "房地产行业专用",
+    "legal": "国税发〔2009〕31号第27条（土地成本）",
+    "note": ""
+   },
+   {
+    "rule_id": "EST-008",
+    "plugin": "房地产行业专用",
+    "legal": "国税发〔2009〕31号第17条（公共配套设施）",
+    "note": ""
+   },
+   {
+    "rule_id": "EST-009",
+    "plugin": "房地产行业专用",
+    "legal": "国税发〔2009〕31号第29条（开发间接费）",
+    "note": ""
+   },
+   {
+    "rule_id": "LAT-005",
+    "plugin": "房地产行业专用",
+    "legal": "国税发〔2006〕187号（土增税清算普通住宅标准）",
+    "note": "转房地产行业插件"
+   },
+   {
+    "rule_id": "LAT-006",
+    "plugin": "房地产行业专用",
+    "legal": "国税发〔2006〕187号第4条（成本分摊）",
+    "note": "与 EST-005 同口径，转插件并合并"
+   },
+   {
+    "rule_id": "LAT-009",
+    "plugin": "房地产行业专用",
+    "legal": "《土地增值税暂行条例》第7条（四级超率累进）",
+    "note": ""
+   },
+   {
+    "rule_id": "LAT-010",
+    "plugin": "房地产行业专用",
+    "legal": "《土地增值税暂行条例实施细则》第8条",
+    "note": ""
+   },
+   {
+    "rule_id": "CHILD-001",
+    "plugin": "托育服务插件",
+    "legal": "财政部 税务总局公告2019年第76号（社区托育免税）",
+    "note": ""
+   },
+   {
+    "rule_id": "GUAR-001",
+    "plugin": "担保行业插件",
+    "legal": "财税〔2016〕36号（担保费按贷款服务）",
+    "note": ""
+   },
+   {
+    "rule_id": "EDU-001",
+    "plugin": "教育服务插件",
+    "legal": "《营业税改征增值税试点过渡政策》（教育服务免税口径）",
+    "note": ""
+   },
+   {
+    "rule_id": "CULT-001",
+    "plugin": "文化产业插件",
+    "legal": "财政部 税务总局公告2021年第28号（文化体制改革优惠）",
+    "note": ""
+   },
+   {
+    "rule_id": "TOUR-001",
+    "plugin": "旅游服务插件",
+    "legal": "财税〔2016〕36号附件2（旅游服务差额征税）",
+    "note": ""
+   },
+   {
+    "rule_id": "HAINAN-001",
+    "plugin": "海南地域插件",
+    "legal": "财税〔2020〕31号（海南自贸港 15% 企业所得税）",
+    "note": ""
+   },
+   {
+    "rule_id": "HAINAN-002",
+    "plugin": "海南地域插件",
+    "legal": "财税〔2020〕32号（海南自贸港个税）",
+    "note": ""
+   },
+   {
+    "rule_id": "LIQ-004",
+    "plugin": "清算期插件",
+    "legal": "财税〔2009〕60号（清算期间经营）",
+    "note": ""
+   },
+   {
+    "rule_id": "BANKR-001",
+    "plugin": "破产重整插件",
+    "legal": "《企业破产法》；破产重整税收口径",
+    "note": ""
+   },
+   {
+    "rule_id": "HAINAN-003",
+    "plugin": "离岛免税插件",
+    "legal": "财政部 海关总署 税务总局公告2020年第33号（离岛免税）",
+    "note": ""
+   },
+   {
+    "rule_id": "PE-001",
+    "plugin": "私募基金插件",
+    "legal": "财税〔2008〕159号（合伙企业先分后税）",
+    "note": ""
+   },
+   {
+    "rule_id": "LEASE-003",
+    "plugin": "租赁行业插件",
+    "legal": "《企业所得税法实施条例》第47条（经营租赁费用）",
+    "note": ""
+   },
+   {
+    "rule_id": "BOND-002",
+    "plugin": "综保区插件",
+    "legal": "综保区相关税收口径（国发〔2019〕3号）",
+    "note": ""
+   },
+   {
+    "rule_id": "FTZ-001",
+    "plugin": "自贸区插件",
+    "legal": "自贸区相关税收口径",
+    "note": ""
+   },
+   {
+    "rule_id": "LEASE-002",
+    "plugin": "融资租赁行业插件",
+    "legal": "财税〔2016〕36号附件2（售后回租口径）",
+    "note": ""
+   },
+   {
+    "rule_id": "ABS-001",
+    "plugin": "资产证券化插件",
+    "legal": "财税〔2016〕140号（资管产品）",
+    "note": ""
+   },
+   {
+    "rule_id": "TAXINC-011",
+    "plugin": "资源综合利用行业专用",
+    "legal": "《企业所得税法》第33条；企业所得税优惠目录",
+    "note": ""
+   },
+   {
+    "rule_id": "HAINAN-004",
+    "plugin": "跨境电商保税进口插件",
+    "legal": "跨境电子商务零售进口税收政策（财关税〔2016〕40号）",
+    "note": ""
+   },
+   {
+    "rule_id": "CBEC-001",
+    "plugin": "跨境电商插件",
+    "legal": "财关税〔2018〕49号（跨境电商零售出口）",
+    "note": ""
+   },
+   {
+    "rule_id": "EXPORT-014",
+    "plugin": "跨境电商插件",
+    "legal": "财税〔2018〕103号（跨境电商综试区无票免税）",
+    "note": ""
+   },
+   {
+    "rule_id": "FINA-002",
+    "plugin": "金融行业插件",
+    "legal": "财税〔2016〕36号附件2（金融商品转让）",
+    "note": ""
+   },
+   {
+    "rule_id": "FINA-003",
+    "plugin": "金融行业插件",
+    "legal": "财税〔2019〕85号（金融企业准备金）",
+    "note": ""
+   },
+   {
+    "rule_id": "IC-001",
+    "plugin": "集成电路行业插件",
+    "legal": "财税〔2016〕27号→发改高技〔2021〕413号（集成电路优惠）",
+    "note": ""
+   },
+   {
+    "rule_id": "CATER-001",
+    "plugin": "餐饮服务插件",
+    "legal": "财税〔2016〕140号（餐饮服务）",
+    "note": ""
+   }
+  ],
+  "_usage": "企业发生该业务/属该行业/属该地域时**才启用**对应插件；未发生则从通用库排除（避免对全行业误报）。"
+ },
+ "duplicates": {
+  "count": 22,
+  "items": [
+   {
+    "rule_id": "CUSTOMS-002",
+    "merge_into": "与 EXPORT-004 同口径",
+    "kept": "保留 EXPORT-004",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "CUSTOMS-004",
+    "merge_into": "与 CUS-003 同口径",
+    "kept": "保留 CUS-003",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "EST-005",
+    "merge_into": "与 LAT-006 同口径（开发成本分摊）",
+    "kept": "并入 LAT-006 转插件",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "EXPORT-010",
+    "merge_into": "与 EXPORT-013 同名同口径",
+    "kept": "保留 EXPORT-013",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "HNW-003",
+    "merge_into": "与 INT-010 同口径",
+    "kept": "并入 INT-010",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "INT-012",
+    "merge_into": "并入 INT-011",
+    "kept": "并入 INT-011（A108000 直接抵免列），本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "INT-013",
+    "merge_into": "并入 INT-011",
+    "kept": "并入 INT-011（A108000 间接抵免列），本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "INT-014",
+    "merge_into": "并入 INT-011",
+    "kept": "并入 INT-011（分国不分项抵免口径），本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "INT-015",
+    "merge_into": "并入 INT-011",
+    "kept": "并入 INT-011（综合抵免口径），本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "INT-016",
+    "merge_into": "并入 INT-011",
+    "kept": "并入 INT-011（饶让抵免口径），本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "INT-019",
+    "merge_into": "并入 INT-018",
+    "kept": "并入 INT-018（对外支付备案），本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "REIT-002",
+    "merge_into": "并入 REIT-001 插件",
+    "kept": "并入 REIT-001（REITs 插件，分红环节），本条随插件合并",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "REL-006",
+    "merge_into": "与 AA-005 完全同名同口径",
+    "kept": "保留 AA-005，本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "REL-007",
+    "merge_into": "与 AA-006 完全同名同口径",
+    "kept": "保留 AA-006，本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "REL-009",
+    "merge_into": "与 AA-008 完全同名同口径",
+    "kept": "保留 AA-008，本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "REO-010",
+    "merge_into": "与 IIT-017 同口径",
+    "kept": "并入 IIT-017",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "REO-012",
+    "merge_into": "并入 REO-011 同链路",
+    "kept": "并入 REO-011（未分配利润转增），本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "REO-013",
+    "merge_into": "并入 REO-011 同链路（股份制企业股票溢价发行除外，需分栏）",
+    "kept": "并入 REO-011（资本公积转增，须与未分配利润转增分栏——补税口径不同），本条淘汰",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "REO-015",
+    "merge_into": "与 AA-017 同口径",
+    "kept": "并入 AA-017",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "SUR-007",
+    "merge_into": "与 SUR-002 同表同口径",
+    "kept": "并入 SUR-002 的申报表栏次需求",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "TAXINC-004",
+    "merge_into": "与 TAXINC-016 同名同口径",
+    "kept": "保留 TAXINC-016",
+    "list_status": "merged_or_retired"
+   },
+   {
+    "rule_id": "TAXINC-015",
+    "merge_into": "与 TAXINC-003 同口径",
+    "kept": "保留 TAXINC-003（needs_form）",
+    "list_status": "merged_or_retired"
+   }
+  ],
+  "_usage": "候选清单状态置 merged_or_retired；保留对象见 merge_into。"
+ },
+ "db_facts": {
+  "tables_with_rows": {
+   "companies": 2,
+   "industry_benchmarks": 6,
+   "company_directors": 1,
+   "company_supervisors": 1,
+   "company_finance_contacts": 1,
+   "departments": 20,
+   "accounts": 108,
+   "periods": 2,
+   "audit_logs": 2204,
+   "sqlite_sequence": 9,
+   "projects": 2,
+   "project_members": 2,
+   "documents": 125,
+   "extracted_tables": 125,
+   "extracted_fields": 768,
+   "extract_issues": 113,
+   "reports": 2,
+   "sys_company_info": 2
+  },
+  "probe_error": null
+ }
+}

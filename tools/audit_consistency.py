@@ -13214,6 +13214,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_document_delete_cleans_extract()  # 2026-10-19 删资料必须清三张解析登记表
                + check_doc_category_code_single()  # 2026-10-19 分类存储代码唯一（other）
                + check_rule_adjudication_complete()  # 2026-10-20 待建/暂不能入库候选必须逐条有专家裁定
+               + check_rule_disposition_ledger()    # 2026-10-20 处置执行台账须与裁定同步（8应建/59插件/22重复）
                + check_report_coverage_disclosure()  # 2026-10-19 覆盖率必须真渲染（后端算了不显示的防复发）
                + check_report_view_focus()          # 2026-10-19 报告视图之间必须真的不同（禁止换名字同一份）
                + check_capability_claims_honest()   # 2026-10-19 能力声称不得超出实际（已实装/免费可用）
@@ -15845,6 +15846,18 @@ def _sync_content_flow() -> int:
 
 
 def main() -> int:
+    # ★★ 2026-10-20（交接审查 F02）：**门禁不允许因为"字符打不出来"而失效**。
+    #   实测（中文 Windows，控制台/重定向为 GBK）：`print_report` 打印 `⇒` 时抛
+    #   `UnicodeEncodeError: 'gbk' codec can't encode character '\u21d2'` ⇒
+    #   ① 报告一个字都没落盘、② 退出码 1、③ `scripts/ci_check.py` 的正则
+    #   `ERROR (\d+) 项` 取不到任何东西 ⇒ 判「审计未正常完成」⇒ **CI 永久红**。
+    #   处置：保留控制台编码，只把无法编码的字符替换掉（不改变任何判据与结论）。
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(errors="replace")       # type: ignore[attr-defined]
+        except Exception:                               # noqa: BLE001 - 无该属性时保持原样
+            pass
+
     parser = argparse.ArgumentParser(description="跨模块数字与法条一致性校验")
     parser.add_argument("--calibrate", action="store_true", help="只输出权威值")
     parser.add_argument("--sync", action="store_true", help="自动修正计数常量（仅白名单文件）")
@@ -21471,6 +21484,70 @@ def check_rule_adjudication_complete() -> List[Tuple[str, str, str]]:
                 str(v.get("note") or "").strip() or str(v.get("legal") or "").strip()):
             issues.append(("ERROR", "config/rule_adjudications.json",
                            "%s 裁定「重复」但未注明保留对象" % rid))
+    return issues
+
+
+def check_rule_disposition_ledger() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-20 立：候选规则的**处置执行台账**必须与裁定 100% 同步。
+
+    用户 2026-10-20 三件下一步事项（8 条应建 / 59 条插件 / 22 条重复）落成
+    `config/rule_dispositions.json`（`scripts/_gen_rule_dispositions.py` 生成）。
+    本闸门确保它**永不失同步**（防多头维护 —— 本项目铁律）：
+      ① 台账存在且可解析；
+      ② 三类计数与裁定文件**逐类相等**（buildable/industry_plugin/duplicate）；
+      ③ 8 条应建**每条都有实测核实结论**（`data_verified` 非空且枚举内）——
+         这是"核实能力声称要跑一遍"的落地：用户以为"数据源都在"，
+         实测发现 CONS-006/IIT-004/IIT-018 前提不成立、FIN-001 实为已覆盖；
+      ④ 「前提不成立」的条目必须写明 `action`（怎么补），不得只标结论。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    disp_p = ROOT / "config" / "rule_dispositions.json"
+    adj_p = ROOT / "config" / "rule_adjudications.json"
+    if not disp_p.exists():
+        return [("ERROR", "config/rule_dispositions.json",
+                 "处置执行台账不存在 —— 用户三件下一步事项（8 应建/59 插件/22 重复）"
+                 "须落成台账并随裁定同步（跑 `scripts/_gen_rule_dispositions.py`）")]
+    try:
+        disp = json.loads(disp_p.read_text(encoding="utf-8"))
+    except Exception as exc:                                       # noqa: BLE001
+        return [("ERROR", "config/rule_dispositions.json", "台账读不出来：%s" % exc)]
+    try:
+        adj = json.loads(adj_p.read_text(encoding="utf-8"))
+    except Exception as exc:                                       # noqa: BLE001
+        return [("ERROR", "config/rule_adjudications.json", "裁定文件读不出来：%s" % exc)]
+
+    verd = adj.get("verdicts") or {}
+    want = {
+        "buildable": sum(1 for v in verd.values() if v.get("verdict") == "buildable"),
+        "industry_plugin": sum(1 for v in verd.values()
+                               if v.get("verdict") == "industry_plugin"),
+        "duplicate": sum(1 for v in verd.values() if v.get("verdict") == "duplicate"),
+    }
+    got = {
+        "buildable": (disp.get("buildable") or {}).get("count"),
+        "industry_plugin": (disp.get("industry_plugins") or {}).get("count"),
+        "duplicate": (disp.get("duplicates") or {}).get("count"),
+    }
+    for k in want:
+        if int(got.get(k) or 0) != want[k]:
+            issues.append(("ERROR", "config/rule_dispositions.json",
+                           "台账「%s」计数 %r ≠ 裁定文件 %d —— 台账与裁定失同步"
+                           "（跑 `scripts/_gen_rule_dispositions.py` 重建）"
+                           % (k, got.get(k), want[k])))
+
+    # ③④ 8 条应建的实测核实结论
+    enum = {"structure_ok", "partial", "unfounded", "existing_covered"}
+    items = (disp.get("buildable") or {}).get("items") or []
+    for x in items:
+        rid = x.get("rule_id")
+        dv = str(x.get("data_verified") or "").strip()
+        if dv not in enum:
+            issues.append(("ERROR", "config/rule_dispositions.json",
+                           "应建 %s 缺实测核实结论（data_verified=%r 不在 %s）—— "
+                           "「数据源都在」是**声称**，须跑一遍库核实" % (rid, dv, sorted(enum))))
+        if dv == "unfounded" and not str(x.get("action") or "").strip():
+            issues.append(("ERROR", "config/rule_dispositions.json",
+                           "应建 %s 核实为「前提不成立」但未写明 action（怎么补）" % rid))
     return issues
 
 
