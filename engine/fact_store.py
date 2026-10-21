@@ -311,6 +311,114 @@ class FactStore:
         """同键覆盖留痕（供审计轨迹使用）。"""
         return list(self._revisions)
 
+    # ------------------------------------------------------------ 序列化（★ 2026-10-21）
+    def to_dict(self) -> Dict[str, Any]:
+        """**可 JSON 序列化的快照**（报告出口用；不是内部状态导出）。
+
+        ★ 为什么必须有它（2026-10-21 线上 500 根因）：
+          `FactStore` 实例被挂到 `report_data["_fact_store"]`，而 `GET
+          /api/tax-risk-docs/last-analysis` 直接 `return cached["report"]` ——
+          FastAPI 的 `jsonable_encoder` 对非 dict/list 对象走 `vars(obj)` 分支，
+          取出 `_by_key`（`Dict[Tuple[str,str,str], ...]`），
+          `jsonable_encoder(key)` 把 tuple 转成 list 后拿去做字典键 ⇒
+          `TypeError: unhashable type: 'list'`（encoders.py:297）⇒ 接口 500。
+          **磁盘缓存看起来正常是假象**：落盘走 `runtime_storage._to_json_safe`，
+          它对非原生类型 `return str(value)`，把实例洗成
+          `"<engine.fact_store.FactStore object at 0x...>"`；只有**进程内原始对象**
+          才带实例 ⇒ 分析完成后不重启，接口必崩。
+
+          设计取舍：导出**两组**信息，缺一不可 ——
+            ① `facts`：每个 `fact_id` 的**最新值**（`_facts`）；
+            ② `groups`：**按 (kind,label,period) 分组的全部事实**（`_by_key`，
+               含被覆盖的历史值）。若只导 ①，则「同键不同值」的冲突在重建后
+            **静默消失**（实测：冲突从 1 降到 0）——事实级门禁（B1）会漏判。
+          `groups` 的键用 **`[kind, label, period]` 的 list** 表示（**不用 tuple** ——
+          tuple 键正是本次 500 的根因）。
+          `conflicts_cache` 不导出（可由 `_by_key` 重算）。
+        """
+        return {
+            "company_code": self.company_code,
+            "period": self.period,
+            "facts": [f.to_dict() for f in self._facts.values()],
+            # ★ 分组快照：保留被覆盖的历史值，冲突才不会在重建后消失
+            "groups": [
+                {"key": [k[0], k[1], k[2]], "facts": [f.to_dict() for f in v]}
+                for k, v in self._by_key.items()
+            ],
+            "revisions": list(self._revisions),
+            "errors": list(self.errors),
+            "conflicts": [c.to_dict() for c in self.conflicts()],
+            "stats": self.stats(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Any) -> Optional["FactStore"]:
+        """从 `to_dict()` 的快照**重建**实例（供 reading 侧恢复能力）。
+
+        解析失败返回 None（不抛）——调用方按"事实库未挂载"处理（与既有的
+        `get_store(create=False)` 语义一致：拿不到就如实降级，不臆测）。
+        """
+        if not isinstance(data, dict) or "facts" not in data:
+            return None
+        try:
+            st = cls(company_code=str(data.get("company_code") or ""),
+                     period=str(data.get("period") or ""))
+
+            def _mk(row: Any) -> Optional[Fact]:
+                """快照行 → Fact。只传**真实存在**的字段：可选字段为 None 时让 dataclass
+                默认值生效（`value` 例外 —— None 是合法值，表示"本轮未取得"，不得顶替）。"""
+                if not isinstance(row, dict):
+                    return None
+                kw: Dict[str, Any] = {}
+                for k in ("fact_id", "kind", "label", "value", "unit", "scope",
+                          "tax_inclusive", "period", "source", "derivation",
+                          "related", "scope_note", "owner", "declared_at", "raw"):
+                    if k not in row:
+                        continue
+                    if row[k] is None and k not in ("value", "tax_inclusive", "raw"):
+                        continue
+                    kw[k] = row[k]
+                try:
+                    return Fact(**kw)
+                except TypeError:
+                    return None
+
+            for row in (data.get("facts") or []):
+                f = _mk(row)
+                if f is not None:
+                    st._facts[f.fact_id] = f
+
+            # ★ 优先用 groups 重建 `_by_key`（保留被覆盖的历史值 ⇒ 冲突不丢）。
+            #   旧快照无 groups 时回退：按 _facts 自行分组（会丢历史值，但至少可用）。
+            groups = data.get("groups")
+            if isinstance(groups, list) and groups:
+                for g in groups:
+                    if not isinstance(g, dict):
+                        continue
+                    k = g.get("key")
+                    if not (isinstance(k, (list, tuple)) and len(k) == 3):
+                        continue
+                    tkey = (str(k[0]), str(k[1]), str(k[2]))
+                    bucket: List[Fact] = []
+                    for row in (g.get("facts") or []):
+                        f = _mk(row)
+                        if f is not None:
+                            bucket.append(f)
+                    if bucket:
+                        st._by_key[tkey] = bucket
+            else:
+                for f in st._facts.values():
+                    tkey = (f.kind, _norm_label(f.label),
+                            _norm_period(f.period) or st.period)
+                    st._by_key.setdefault(tkey, []).append(f)
+
+            st._revisions = [r for r in (data.get("revisions") or []) if isinstance(r, dict)]
+            st.errors = [str(e) for e in (data.get("errors") or [])]
+            st.conflicts_cache = None      # 让 conflicts() 按重建后的 _by_key 重算
+            return st
+        except Exception:                  # noqa: BLE001 —— 快照损坏时如实降级，不抛
+            return None
+
     def conflicting_labels(self) -> List[str]:
         return sorted({c.key[1] for c in self.conflicts()})
 
@@ -352,12 +460,24 @@ _STORE_KEY = "_fact_store"
 
 
 def get_store(container: Any, *, create: bool = False, company_code: str = "", period: str = "") -> Optional[FactStore]:
-    """从 `report_data` 等 dict 上取事实库；`create=True` 时不存在则创建。"""
+    """从 `report_data` 等 dict 上取事实库；`create=True` 时不存在则创建。
+
+    ★ 2026-10-21：支持**快照 dict**（`to_dict()` 的产物）。
+      报告出口为防 FastAPI 序列化崩溃，会把实例替换成快照（见 `FactStore.to_dict`）。
+      若本函数只认实例，则 workpaper / quality_gates 等读路径在**跨请求**（读缓存）
+      时会看到 dict 而判"事实库未挂载"，能力静默消失。故此处识别快照并**重建实例**，
+      保证"出口降级"不影响任何读取方的能力。
+    """
     if not isinstance(container, dict):
         return None
     st = container.get(_STORE_KEY)
     if isinstance(st, FactStore):
         return st
+    if isinstance(st, dict):                      # 快照 → 重建（跨请求读路径）
+        rebuilt = FactStore.from_dict(st)
+        if rebuilt is not None:
+            container[_STORE_KEY] = rebuilt       # 就地升级为实例，后续调用零开销
+            return rebuilt
     if not create:
         return None
     st = FactStore(company_code=company_code, period=period)

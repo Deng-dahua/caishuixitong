@@ -9951,6 +9951,14 @@ def _lookup_supply_chain(db, company_id, target_entity, sal_invs, pur_invs):
             "amount": amt,
         })
 
+    # ★ 2026-10-21：`supply_personnel_map[*]["their_names"]` 内部用 `set` 做集合运算
+    #   （见上方 `my_all_names & their_names`），但 set **不是 JSON 原生类型** ——
+    #   外露给 FastAPI / 落盘会出问题（本次线上 500 的同类项）。
+    #   此处（所有集合运算已完成后）统一转成**排序 list**：稳定输出、可序列化。
+    for _spm in (results.get("supply_personnel_map") or {}).values():
+        if isinstance(_spm, dict) and isinstance(_spm.get("their_names"), (set, frozenset)):
+            _spm["their_names"] = sorted(x for x in _spm["their_names"] if x)
+
     return results
 
 

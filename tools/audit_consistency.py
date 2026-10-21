@@ -13242,6 +13242,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_report_view_focus()          # 2026-10-19 报告视图之间必须真的不同（禁止换名字同一份）
                + check_capability_claims_honest()   # 2026-10-19 能力声称不得超出实际（已实装/免费可用）
                + check_flexible_matching_wiring()   # 2026-10-21 资金流×发票流柔性匹配须接线且话术不硬判
+               + check_report_export_serializable()  # 2026-10-21 报告出口须归一化（否则接口 500）
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
                + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_legal_library_tier_disclosure() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique() + check_candidate_param_index())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
@@ -22016,6 +22017,125 @@ def check_flexible_matching_wiring() -> List[Tuple[str, str, str]]:
                 issues.append(("ERROR", rel,
                                "仍含硬判话术「%s」—— 应改为"
                                "「尚未在本次银行流水中体现…请结合应收账款核实」" % ph))
+    return issues
+
+
+
+def check_report_export_serializable() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-21 立：报告对象**出口必须归一化为 JSON 原生**，否则接口 500。
+
+    缺陷实况（线上复现）：
+      `report_data["_fact_store"]` 是 `FactStore` **实例**（内部 `_by_key` 为
+      `Dict[Tuple[str,str,str], ...]`）。实例被原样放进 `_last_analysis_cache`
+      ⇒ `GET /api/tax-risk-docs/last-analysis` 直接 `return cached["report"]`
+      ⇒ FastAPI `jsonable_encoder` 对非 dict/list 对象走 `vars()`，
+      把 tuple 键转 list 后作字典键 ⇒ `TypeError: unhashable type: 'list'`
+      （encoders.py:297）⇒ **HTTP 500**。
+      ★ 隐蔽性：落盘走 `_to_json_safe` 会把实例洗成字符串，重启后从磁盘回填的
+        缓存是干净的 ⇒ **只有"分析完成且未重启"那段时间会崩**（用户正是撞在这里）。
+
+    判据（静态 + 契约 + 行为，三条都不可少）：
+      ① 唯一权威模块 `engine/report_serialization.py` 存在且导出 `normalize`/`scrub_in_place`；
+      ② **写缓存前**必须调用归一化（`_persist_one_click_result` 内、写
+         `_last_analysis_cache[company_id]` 之前出现 `scrub_in_place(`/`report_serialization`）；
+      ③ 归一化不得在出口自写一份（禁止在写缓存段内出现 `json.dumps` 往返）；
+      ④ 行为级：真实 `FactStore` 实例经该权威归一后，`jsonable_encoder` 必须**通过**
+         （防"函数在、但逻辑被改坏"）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+
+    # ① 唯一权威模块与导出
+    auth = ROOT / "engine" / "report_serialization.py"
+    if not auth.exists():
+        return [("ERROR", "engine/report_serialization.py",
+                 "缺报告出口归一化权威（报告含 FactStore/tuple/set/date ⇒ 接口 500）")]
+    _asrc = auth.read_text(encoding="utf-8", errors="replace")
+    for fn in ("normalize", "scrub_in_place"):
+        if ("def %s(" % fn) not in _asrc:
+            issues.append(("ERROR", "engine/report_serialization.py",
+                           "缺核心函数 `%s`" % fn))
+
+    # ② / ③ 出口接线（精确到**写缓存之前**这一段，防"名字在别处出现过"骗过判据）
+    try:
+        _main = (ROOT / "main.py").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        _main = ""
+    i_fn = _main.find("def _persist_one_click_result")
+    i_cache = _main.find("_last_analysis_cache[company_id] = {", i_fn) if i_fn > 0 else -1
+    if i_fn <= 0:
+        issues.append(("ERROR", "main.py",
+                       "找不到 `_persist_one_click_result`（报告持久化唯一入口）"))
+    elif i_cache <= 0:
+        issues.append(("ERROR", "main.py",
+                       "找不到写缓存处 `_last_analysis_cache[company_id] = {`"))
+    else:
+        _seg = _main[i_fn:i_cache]
+        # ★ 断言**真实调用形态**，不是"名字出现过"。
+        #   反向验证实测抓出：首版只查 `report_serialization` 字符串，
+        #   而它仍留在 `from engine.report_serialization import ...` 这行 ——
+        #   把真调用（`result = _scrub(result)`）删掉，判据**照样通过**（太松）。
+        #   与 `check_flexible_matching_wiring` ② / `test_ui_batch2` 的教训同源。
+        _seg_code = re.sub(r"#[^\n]*", "", _seg)          # 剥注释（注释里的名字不算）
+        if not re.search(r"(?<![\w.])(?:_scrub|scrub_in_place)\s*\([^)]*\)", _seg_code):
+            issues.append(("ERROR", "main.py",
+                           "写缓存前未**真实调用**归一化 —— 分析完成后接口将 500"
+                           "（FactStore 实例含 tuple 键 dict）"))
+        if "json.dumps" in _seg_code:
+            issues.append(("WARN", "main.py",
+                           "出口段出现 `json.dumps` —— 归一化须复用唯一权威"
+                           "`engine.report_serialization`，不得自写一份"))
+
+    # ④ 行为级：真实实例必须能被归一化并被 FastAPI 接受
+    try:
+        import importlib
+        _rs = importlib.import_module("engine.report_serialization")
+        _fs = importlib.import_module("engine.fact_store")
+        _st = _fs.FactStore(company_code="AUDIT", period="2026-01")
+        _st.declare(kind="amount", label="审计探针金额", value=1, period="2026-01")
+        _probe = {"_fact_store": _st, "span": (1, 2), "names": {"x"}, ("k1", "k2"): "v"}
+        _out = _rs.normalize(_probe)
+        from fastapi.encoders import jsonable_encoder as _je
+        _je(_out)                                # 通过则无异常
+
+        # ★ 语义保真（不只"能序列化"）：首版判据只验 `_je` 通过，
+        #   把 `set` 分支改坏后 **set 落入 `str()` 兜底仍然"能序列化"** ⇒ 假绿。
+        #   故必须断言**转换结果形态**：
+        if _out.get("span") != [1, 2]:
+            issues.append(("ERROR", "engine/report_serialization.py",
+                           "tuple 未转 list（实得 %r）" % (_out.get("span"),)))
+        if _out.get("names") != ["x"]:
+            issues.append(("ERROR", "engine/report_serialization.py",
+                           "set 未转 list（实得 %r）" % (_out.get("names"),)))
+        if not any(isinstance(k, str) and k.startswith("(") for k in _out.keys()):
+            issues.append(("ERROR", "engine/report_serialization.py",
+                           "非字符串 dict 键未转 str（tuple 键会致 500）"))
+        if not isinstance(_out.get("_fact_store"), dict) or \
+                "stats" not in (_out.get("_fact_store") or {}):
+            issues.append(("ERROR", "engine/report_serialization.py",
+                           "事实库实例未转可序列化快照（走的是 str() 兜底 ⇒ 信息丢失）"))
+        # date → ISO（不是 str(date) 的 repr）
+        import datetime as _dtm
+        _d = _rs.normalize(_dtm.date(2026, 3, 31))
+        if _d != "2026-03-31":
+            issues.append(("ERROR", "engine/report_serialization.py",
+                           "date 未转 ISO 字符串（实得 %r）" % (_d,)))
+
+        # 反向：**含事实**的原始实例**必须**仍是坏的（否则说明该风险点已消失，
+        #   判据 ④ 的前提变了，需复核）。★ 必须**先 declare 一条事实** ——
+        #   空实例的 `_by_key` 是空 dict，反而能序列化（首版判据即栽在这里）。
+        _raw_st = _fs.FactStore(company_code="AUDIT", period="2026-01")
+        _raw_st.declare(kind="amount", label="审计探针金额", value=1, period="2026-01")
+        try:
+            _je({"_fact_store": _raw_st})
+            _raw_ok = True
+        except TypeError:
+            _raw_ok = False
+        if _raw_ok:
+            issues.append(("WARN", "engine/fact_store.py",
+                           "原始 FactStore 实例已可直接序列化 —— 判据 ④ 的前提已变，请复核"))
+    except Exception as _e:                                          # noqa: BLE001
+        issues.append(("ERROR", "engine/report_serialization.py",
+                       "行为级验证失败：%s: %s" % (type(_e).__name__, _e)))
     return issues
 
 

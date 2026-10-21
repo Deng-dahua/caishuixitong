@@ -100,6 +100,16 @@ def _num(v: Any) -> float:
     return _to_number(v)
 
 
+def _jsonable(value: Any) -> Any:
+    """JSON 原生化（唯一权威：`engine.report_serialization` —— **只转发，不自实现**）。
+
+    ★ 2026-10-21：本模块桶内带 `invoice_span`(tuple) 与发票日期(date)，
+      外露给 FastAPI 会 500。统一转成 JSON 原生，转换口径由唯一权威决定。
+    """
+    from engine.report_serialization import normalize as _normalize
+    return _normalize(value)
+
+
 def _tx_text(tx: Any) -> str:
     """一条流水的全部可用文本（唯一权威：fieldkit.bank_tx_text）。"""
     from engine.fieldkit import bank_tx_text
@@ -702,7 +712,10 @@ def run_flexible_matching(data: Dict[str, Any], *,
                            "（预收/往来/赊销回款/账外收入），并提供合同、发货记录、"
                            "应收账款明细账与期后回款凭证；正常赊销与预收不构成疑点。"),
         "note": "未匹配 ≠ 隐匿收入；本项结论属待证线索，不作为定性依据。",
-        "objects": objects,
+        # ★ 2026-10-21：`objects` 桶内带 `invoice_span`（tuple）与发票日期（date 对象），
+        #   均非 JSON 原生 —— 直接外露会被 FastAPI `jsonable_encoder` 抛错（线上 500 同源）。
+        #   统一走**唯一权威** `engine.report_serialization.normalize`（不另写一份转换）。
+        "objects": _jsonable(objects),
         "reconcile": reconcile,
         "unmatched": unmatched,
     }

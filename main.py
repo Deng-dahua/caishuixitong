@@ -11778,6 +11778,24 @@ def _persist_one_click_result(company_id, result):
             f"{type(_e).__name__}: {_e}",
         )
 
+    # ═══ 报告出口归一化（★ 2026-10-21 根治「分析后接口 500」）═══════════════════
+    #   缺陷：`report_data["_fact_store"]` 是 **FactStore 实例**（`_by_key` 为 tuple 键
+    #   dict）；该实例被原样放进 `_last_analysis_cache` ⇒ `GET /api/tax-risk-docs/
+    #   last-analysis` 直接 `return cached["report"]` ⇒ FastAPI `jsonable_encoder`
+    #   对实例走 `vars()`、把 tuple 键转 list 后作字典键 ⇒
+    #   `TypeError: unhashable type: 'list'`（encoders.py:297）⇒ **500**。
+    #   为什么以前没暴露：落盘走 `_to_json_safe` 会把实例洗成字符串，重启后从磁盘
+    #   回填的缓存是"干净"的 ⇒ 只有**分析完成且未重启**的那段时间会崩。
+    #   修法（单一权威 `engine.report_serialization`）：在此**就地归一**，
+    #   一次覆盖全部 30+ 个读缓存端点（不在每个端点各打补丁 —— 那是多头维护）。
+    #   ⚠ 必须在写入缓存**之前**做，且缓存与落盘共用同一（已归一）对象。
+    try:
+        from engine.report_serialization import scrub_in_place as _scrub
+        result = _scrub(result)
+    except Exception as _norm_exc:                                          # noqa: BLE001
+        _log.warning(f"[报告归一] 出口归一化失败（已跳过，可能导致响应 500）："
+                     f"{type(_norm_exc).__name__}: {_norm_exc}")
+
     _last_analysis_cache[company_id] = {
         "report": result,
         "timestamp": datetime.now().isoformat(),
