@@ -6,6 +6,19 @@
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
+# PowerShell 脚本必须 **UTF-8 带 BOM + CRLF**。
+# 2026-10-21 实测事故：scripts/install_server_task.ps1 以 UTF-8 **无 BOM** 写入后，
+# Windows PowerShell 5.1（本机默认）按 **ANSI/GBK** 解码该文件，中文注释被误解码
+# ⇒ 行尾被吞、花括号失配 ⇒ 解析器报 6 处语法错误（"表达式或语句中包含意外的标记"），
+# 脚本**完全无法运行**。
+# 判据：`[Parser]::ParseFile()` 对无 BOM 版报 6 错、加 BOM 后 0 错。
+# 处置：从仓库层面固定编码与行尾，不依赖任何机器的默认代码页。
+#   `working-tree-encoding=UTF-8` 让 git 检出时按 UTF-8 写回（**保留 BOM**，见下）；
+#   `eol=crlf` 保证行尾统一。
+# ★ BOM 本身由文件内容承载，git 不会自动增删；此处的作用是**禁止编码/行尾被转换**，
+#   防止下一次 checkout 把 BOM 或 CRLF 抹掉而复现乱码。
+*.ps1 text eol=crlf working-tree-encoding=UTF-8
+
 # 测试夹具：大体积 JSON 样本，标记为二进制 ⇒ git 不做行尾转换、diff 不逐行展开
 # （2026-10-20：35MB 全量分析产物固化进版本库，供测试解耦运行时产物目录）
 tests/fixtures/company_1_full.json -text -diff
