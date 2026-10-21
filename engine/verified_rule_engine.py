@@ -7858,11 +7858,11 @@ def _scan_revenue_receipt_evidence(data, spec):
             for r in sorted(unmatched_rows, key=lambda x: -_number(x.get("amount")))[:5]
         )
         detail = (
-            f"开票收入中有{unmatched:,.2f}元（占开票收入{unmatched / total * 100:.1f}%）未匹配到银行流水或第三方平台"
-            f"（财付通/支付宝等）收款记录，如{examples}。"
-            "现实中存在三种可能：①客户赊账未付（应收账款挂账，须核验账龄与期后回款）；"
-            "②收款进入个人账户或未入账账户（账外收款风险）；③收入凭证与真实交易不符（虚构收入）。"
-            "须逐笔核验收款去向与回款时间。"
+            f"开票收入中有{unmatched:,.2f}元（占开票收入{unmatched / total * 100:.1f}%）"
+            f"尚未在本次提供的银行流水中体现，如{examples}。"
+            "可能存在应收账款挂账或跨期回款（客户赊账、分批/合并付款、次月回款等），"
+            "请结合资产负债表【应收账款】明细核实；"
+            "若其中另有收款进入个人账户或未入账账户，方涉账外收款，须逐笔核验收款去向与回款时间。"
         )
         if _ar_metrics.get("ar_long_aging_count"):
             detail += (f"账面应收账款另有 {_ar_metrics.get('ar_long_aging_count')} 个客户挂账超 1 年"
@@ -7898,8 +7898,9 @@ def _scan_revenue_receipt_evidence(data, spec):
         _f061["redline_id"] = "RL-INC-001"
         _f061["constituent_hits"] = [
             {"index": 1, "evidence": f"开票收入 {total:,.2f} 元中 {unmatched:,.2f} 元"
-                                     f"（{unmatched / total * 100:.1f}%）未匹配到银行或第三方平台收款——"
-                                     "收款与开票收入存在差异（方向为收款少于开票；属赊账、账外收款或收入不实，须逐笔核验）"},
+                                     f"（{unmatched / total * 100:.1f}%）尚未在本次银行流水中体现——"
+                                     "收款与开票收入存在差异（差异可源于应收账款挂账、跨期回款或分批付款；"
+                                     "亦可能是账外收款或收入不实，须结合应收账款明细逐笔核验）"},
         ]
         findings.append(_f061)
     elif ratio < 0.5:

@@ -37,6 +37,9 @@ SPECIAL_TO_PROBLEM: Dict[str, str] = {
     # 银行流水比对 + 收入真实性 → 疑点3「银行收款大于申报收入：存在账外收入嫌疑」
     "bank_flow_report": "银行收款大于申报收入",
     "revenue_authenticity_report": "银行收款大于申报收入",
+    # ★ 2026-10-21：资金流×发票流柔性匹配 —— 同属"收款大于申报"这一疑点的证据链
+    #   （它把差异解释为应收/预收，是**降低**该疑点误报的关键论证），一并并入。
+    "fund_invoice_matching_report": "银行收款大于申报收入",
     # 两税收入差异 → 疑点25「表间勾稽四方比对不一致」
     "two_tax_report": "表间勾稽四方比对",
     # 跨企业资金回流闭环 → 疑点18「待核线索：资金回流与公私混同检测」
@@ -82,6 +85,7 @@ SPECIAL_TITLES: Dict[str, str] = {
     "cost_recon_detail": "主营业务成本两口径勾稽（发票口径 ↔ 账面口径）",
     "bank_flow_report": "银行流水（资金流）比对",
     "revenue_authenticity_report": "收入真实性（账外收入嫌疑）三维度验证",
+    "fund_invoice_matching_report": "资金流与发票流匹配（三维聚合）",
     "two_tax_report": "增值税收入 与 企业所得税收入差异比对",
     "fund_loop_report": "跨企业资金回流闭环比对",
     "cross_enterprise_report": "跨企业关联交易闭环比对",

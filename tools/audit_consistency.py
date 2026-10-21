@@ -8954,6 +8954,10 @@ def check_bank_receipt_nature_single_source() -> List[Tuple[str, str, str]]:
 
         # ★ 2026-10-03 追加 B：**调用点不得漏传序时账** ——
         #   漏传会静默退回「猜摘要」，报告里的「性质待判定」永远消不掉（本轮实际踩过）。
+        # ★★ 2026-10-21 修本判据自身缺陷（实测）：原实现**逐行**用 `[^)]*` 取参数，
+        #   参数换行书写（`classify_receipts(a,\n  b)`）时第二行取不到 ⇒ 把
+        #   **参数正确但跨行**的调用误报为"未传序时账"。判据须按**调用整体**看参数：
+        #   以 `(` 起、按括号配平收集到 `)` 为止（最多向后看 6 行）。
         import re as _re3
         for _p2 in sorted((ROOT / "engine").glob("*.py")):
             try:
@@ -8963,7 +8967,26 @@ def check_bank_receipt_nature_single_source() -> List[Tuple[str, str, str]]:
             for _i2, _ln in enumerate(_lines, 1):
                 if _ln.lstrip().startswith("#"):
                     continue
-                _m2 = _re3.search(r"(classify_receipts|classify_credit)\(([^)]*)\)", _ln)
+                if not _re3.search(r"(classify_receipts|classify_credit)\s*\(", _ln):
+                    continue
+                # 括号配平收集调用参数（跨行）
+                _buf, _depth, _done = "", 0, False
+                for _k in range(_i2 - 1, min(_i2 + 6, len(_lines))):
+                    _seg = _lines[_k]
+                    if _seg.lstrip().startswith("#") and _k > _i2 - 1:
+                        continue
+                    for _ch in _seg:
+                        _buf += _ch
+                        if _ch == "(":
+                            _depth += 1
+                        elif _ch == ")":
+                            _depth -= 1
+                            if _depth == 0:
+                                _done = True
+                                break
+                    if _done:
+                        break
+                _m2 = _re3.search(r"(classify_receipts|classify_credit)\s*\((.*)\)", _buf, _re3.S)
                 if not _m2:
                     continue
                 _args = _m2.group(2)
@@ -13218,6 +13241,7 @@ def run_checks() -> Tuple[List[Tuple[str, str, str, int, int]],
                + check_report_coverage_disclosure()  # 2026-10-19 覆盖率必须真渲染（后端算了不显示的防复发）
                + check_report_view_focus()          # 2026-10-19 报告视图之间必须真的不同（禁止换名字同一份）
                + check_capability_claims_honest()   # 2026-10-19 能力声称不得超出实际（已实装/免费可用）
+               + check_flexible_matching_wiring()   # 2026-10-21 资金流×发票流柔性匹配须接线且话术不硬判
                + check_legal_text_coverage()             # 2026-10-13 法规正文库覆盖率不得退化（与版本登记是两件事）
                + check_redline_legal_basis_currency() + check_confidence_weights_single_source() + check_rbac_single_source() + check_row_cap_manifest() + check_ocr_engine_single_source() + check_extract_rules_sync() + check_review_flow_wiring() + check_template_manage_wiring() + check_rule_version_manage_wiring() + check_legal_library_wiring() + check_legal_library_tier_disclosure() + check_industry_indicators_wiring() + check_ai_assist_wiring() + check_tax_models_wiring() + check_dashboard_wiring() + check_payload_written_after_analysis() + check_one_click_wiring_coverage() + check_service_version_visibility() + check_level_display_single_source() + check_legal_mapping_wiring() + check_legal_frontend_wiring() + check_rule_params_single_source() + check_cnnum_single_source() + check_material_granularity_truthful() + check_provision_id_unique() + check_law_code_unique() + check_candidate_param_index())   # 2026-10-13 红线不得引用已废止/被取代法规 + P0-5 置信度权重阈值单一权威 + 2026-10-14 P0-8 RBAC/租户/脱敏单一权威 + P1-1 解析上限登记与 O(n²) 回归防线 + P1-2 OCR 引擎治理单一权威 + P1-3 校验规则清单与配置同步 + P1-4 复核流程能力与路由顺序 + P1-5 报告模板管理 + P1-6 规则版本管理 + ODC-01/02/03 一键分析接入面（模板唯一入口 / 校正值接线 / 页面可达 / 前端渲染点）+ 2026-10-15 等级展示唯一权威（待核验/待核→涉嫌风险）+ 2026-10-15 STEP-EXT-LEGAL-FULL-MATCH 步骤19 法规⇄规则关联接入（报告条款ID列 / 风险详情条款正文 / 材料法规级关联）+ 2026-10-15 步骤22 前端接线（专题/目录/关系/材料/条款页面可达 + 路由顺序 + 无硬编码 + 缺口必带 reason）
     return counts, general
@@ -21927,6 +21951,73 @@ def check_capability_claims_honest() -> List[Tuple[str, str, str]]:
         issues.append(("ERROR", "engine/business_info/providers.py",
                        "工商通道配置一致性断言执行失败：%s" % exc))
     return issues
+
+
+def check_flexible_matching_wiring() -> List[Tuple[str, str, str]]:
+    """★ 2026-10-21 立：资金流×发票流**柔性匹配**能力必须接线，且话术不得硬判账外收入。
+
+    用户要求（2026-10-21）：比对从"单笔匹配"升级为「三维聚合」，避免多对多/一对多误报；
+    并把"未匹配到银行流水"这类**暗示账外收入**的话术改为建议性措辞。
+
+    判据：
+      ① `engine/fund_invoice_flexible.py` 存在，且导出四个核心函数；
+      ② pipeline 已接线（`run_flexible_matching` 被调用，结果写入 comprehensive）；
+      ③ 该模块**复用**既有唯一权威（bank_nature / ar_aging / fund_matching / numparse），
+         不得另立数值解析或名称规范化；
+      ④ 报告话术里**不得**再出现"未匹配到银行流水/未匹配到发票"这类硬判措辞
+         （应表述为"尚未在本次银行流水中体现…请结合应收账款核实"）。
+    """
+    issues: List[Tuple[str, str, str]] = []
+    mod = ROOT / "engine" / "fund_invoice_flexible.py"
+    if not mod.exists():
+        return [("ERROR", "engine/fund_invoice_flexible.py",
+                 "缺柔性匹配模块（用户 2026-10-21 要求的三维聚合匹配引擎未落地）")]
+    src = mod.read_text(encoding="utf-8", errors="replace")
+    for fn in ("aggregate_by_object", "reconcile_income", "classify_unmatched",
+               "run_flexible_matching"):
+        if ("def %s(" % fn) not in src:
+            issues.append(("ERROR", "engine/fund_invoice_flexible.py",
+                           "缺核心函数 `%s`" % fn))
+    # ③ 单一权威复用
+    for auth in ("engine.bank_nature", "engine.ar_aging", "engine.fund_matching",
+                 "engine.numparse"):
+        if auth not in src:
+            issues.append(("ERROR", "engine/fund_invoice_flexible.py",
+                           "未复用既有唯一权威 `%s`（不得另立第二套）" % auth))
+
+    # ② pipeline 接线 —— ★ 断言**真实调用形态**，不是"名字出现过"。
+    #   反向验证实测抓出：旧判据只查 `"run_flexible_matching" in src`，
+    #   而该名字出现在 `from engine... import run_flexible_matching` 这行——
+    #   把真调用改掉（`run_flexible_matching(...)` → 别的）判据**照样通过**（太松）。
+    #   与 `test_ui_batch2` 的教训同源：断言必须精确到形态。
+    _pipe = (ROOT / "engine" / "pipeline.py").read_text(encoding="utf-8", errors="replace")
+    _pipe_code = re.sub(r'"""(?:.|\n)*?"""', " ", _pipe)
+    _pipe_code = re.sub(r"#[^\n]*", "", _pipe_code)
+    if not re.search(r"\brun_flexible_matching\s*\(", _pipe_code):
+        issues.append(("ERROR", "engine/pipeline.py",
+                       "柔性匹配未接线（找不到 `run_flexible_matching(...)` 真实调用 ⇒ 能力空转）"))
+    if "fund_invoice_matching" not in _pipe_code:
+        issues.append(("ERROR", "engine/pipeline.py",
+                       "柔性匹配结果未写入 comprehensive（报告取不到）"))
+
+    # ④ 话术：不得硬判
+    _bad_phrases = ("未匹配到银行流水或第三方平台", "未匹配到银行或第三方平台收款")
+    for rel in ("engine/verified_rule_engine.py", "engine/revenue_authenticity.py",
+                "engine/enterprise_report.py"):
+        p = ROOT / rel
+        if not p.exists():
+            continue
+        t = p.read_text(encoding="utf-8", errors="replace")
+        # 逐行剥注释/docstring（防注释里提到被禁串而误报）
+        t = re.sub(r'"""(?:.|\n)*?"""', " ", t)
+        t = re.sub(r"#[^\n]*", "", t)
+        for ph in _bad_phrases:
+            if ph in t and "尚未" not in t.split(ph)[0][-40:]:
+                issues.append(("ERROR", rel,
+                               "仍含硬判话术「%s」—— 应改为"
+                               "「尚未在本次银行流水中体现…请结合应收账款核实」" % ph))
+    return issues
+
 
 
 if __name__ == "__main__":

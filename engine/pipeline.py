@@ -6023,6 +6023,39 @@ def _run_analyze(company_id, db, progress_callback=None):
     except Exception as e:
         pipeline_log.append(f"[收入真实性] 执行异常(不影响主分析): {e}")
 
+    # ── ⑥-②b 资金流×发票流**柔性匹配**（三维聚合 + 资产负债表调节 + 未匹配四分类）──
+    # ★ 2026-10-21（用户要求：解决多对多/一对多误报）：
+    #   「单笔对单笔」会把分批付款、合并付款、预收/应收、跨期回款全部判成"未匹配"
+    #   ⇒ 报告满屏"未匹配"⇒ 把正常赊销读成账外收入。本能力按「对象×期间」聚合比对，
+    #   并用资产负债表（应收/预收）调节差额；未匹配流水按预收/尾款/非经营/异常四类拆分。
+    #   与 ④⑤⑥ 同构：失败仅记录日志、不阻断主分析。
+    try:
+        from engine.fund_invoice_flexible import run_flexible_matching
+        _fm = run_flexible_matching(
+            {
+                "sal_invs": sal_invs,
+                "pur_invs": pur_invs,
+                "bank_txs": bank_txs,
+                "tax_declarations": tax_declarations,
+                "accounts_receivable": accounts_receivable,
+                "trial_balance": trial_balance_data,
+                "vouchers": vouchers,
+                "contracts": contract_data,
+            },
+            side="sale",
+            company_name=(locals().get("_ra_name") or ""),
+        )
+        comprehensive["fund_invoice_matching"] = _fm
+        _fm_m = _fm.get("metrics", {}) or {}
+        pipeline_log.append(
+            "[柔性匹配] 对象=%s 吻合=%s 差额=%s 跨期=%s 未匹配=%s(异常%s笔) 结论=%s"
+            % (_fm_m.get("object_count"), _fm_m.get("matched_object_count"),
+               _fm_m.get("gap_object_count"), _fm_m.get("cross_period_object_count"),
+               _fm_m.get("unmatched_total"), _fm_m.get("suspect_count"),
+               _fm.get("verdict", "")))
+    except Exception as e:
+        pipeline_log.append(f"[柔性匹配] 执行异常(不影响主分析): {e}")
+
     # ── ⑦ 进项异常凭证 / 应转出未转出（第四阶 P1：票表比对自动放行的进项侧盲区）──
     # 走逃失联/非正常户开具的异常抵扣凭证、购进用于免税/福利/个人消费的应转出未转出。
     try:

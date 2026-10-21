@@ -128,12 +128,13 @@ def _dim2_invoice_vs_bank(data: Dict[str, Any]):
         detail = "无开票收入，维度2不适用。"
     elif unmatched >= 50000 or (total > 0 and unmatched / total >= 0.10):
         detail = (f"开票收入中有 {unmatched:,.2f} 元（占 {unmatched / total * 100:.1f}%）"
-                  f"未匹配到银行/第三方平台收款；")
+                  f"尚未在本次提供的银行流水中体现，可能存在应收账款挂账或跨期回款，"
+                  f"请结合资产负债表【应收账款】明细核实；")
         if person_in >= 50000 or (bank_in_total > 0 and person_in / bank_in_total >= 0.10):
             detail += (f"其中 {person_in:,.2f} 元来自个人账户（{len(person_names)} 个自然人），"
-                       f"收入经个人账户归集，是账外收款的直接证据。")
+                       f"须核实该部分收款性质与去向（个人账户归集是账外收款线索之一）。")
         else:
-            detail += "其余多为客户赊账未付，须按维度3核验账龄与期后回款。"
+            detail += "其余多为客户赊账未付或分批/合并付款，须按维度3核验账龄与期后回款。"
     else:
         detail = f"开票收入中 {ratio * 100:.0f}% 已匹配银行/平台收款，未收款比例较低。"
     return {"total": round(total, 2), "matched": round(matched, 2), "unmatched": round(unmatched, 2),

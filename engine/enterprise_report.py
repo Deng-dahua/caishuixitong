@@ -6734,6 +6734,88 @@ def _build_revenue_authenticity_report(report_data):
     }
 
 
+def _build_fund_invoice_matching_report(report_data):
+    """资金流×发票流**柔性匹配**章节（2026-10-21 新增，用户要求的三维聚合）。
+
+    数据来自 report_data["comprehensive"]["fund_invoice_matching"]
+    （engine/fund_invoice_flexible.run_flexible_matching 输出）。
+
+    ★ 与"满屏 not_found 明细"的区别：本章节输出的是**结构化结论**——
+      ① 逐对象聚合的吻合/差额（差额一律提示"多为应收/预收"，不硬判账外收入）；
+      ② 资产负债表调节结果（残差是否在容忍度内）；
+      ③ 未匹配资金流入按【预收性质/收款尾款/非经营流水/真正异常】**四类拆分**，
+         只有【真正异常】才提示"重点核查"。
+    """
+    fi = (report_data.get("comprehensive") or {}).get("fund_invoice_matching") or {}
+    if not fi:
+        return {
+            "title": "资金流与发票流匹配（三维聚合）",
+            "available": False,
+            "summary": "本轮未提供销项发票或银行流水，未做资金流与发票流的柔性匹配。",
+            "body": "本项按「对象×期间」聚合比对发票与流水，并用资产负债表（应收/预收）"
+                    "调节差额。缺少销项发票或银行收款流水均无法实施。",
+            "signals": [], "verdict": "未提供基础数据",
+            "recommendation": "上传销项发票与银行流水（建议含应收账款明细与科目余额表）后重新分析。",
+            "note": "未匹配 ≠ 隐匿收入；结论属待证线索，不作为定性依据。",
+        }
+
+    m = fi.get("metrics") or {}
+    rec = fi.get("reconcile") or {}
+    um = fi.get("unmatched") or {}
+    cats = um.get("categories") or {}
+    over = um.get("over_invoiced") or []
+    suspects = um.get("suspects") or []
+
+    # 未匹配四分类逐类成表（结构化展示，替代"清一色未匹配明细"）
+    cat_rows = []
+    for name in ("预收性质", "收款尾款", "非经营流水", "真正异常"):
+        c = cats.get(name) or {}
+        if c.get("count"):
+            cat_rows.append({"分类": name, "笔数": c.get("count"),
+                             "金额": round(c.get("amount", 0), 2)})
+
+    detail = []
+    detail.append("☑ 按对象聚合：%d 个交易对手完成桶级比对，吻合 %d 个、存在差额 %d 个。"
+                  % (m.get("object_count", 0), m.get("matched_object_count", 0),
+                     m.get("gap_object_count", 0)))
+    if m.get("cross_period_object_count"):
+        detail.append("☑ 按期间聚合：%d 个对象存在跨期收款（已在跨期窗口内完成匹配）。"
+                      % m["cross_period_object_count"])
+    if rec.get("detail"):
+        detail.append("☑ 资产负债表调节：" + rec["detail"])
+    if cat_rows:
+        detail.append("☑ 无对应发票的资金流入按四类拆分（仅【真正异常】建议重点核查）：")
+        for r in cat_rows:
+            detail.append("　· 【%s】%d 笔、合计 %s 元"
+                          % (r["分类"], r["笔数"], format(r["金额"], ",.2f")))
+    if over:
+        detail.append("☑ 有开票但收款不足的对象（差额归应收账款，不属未匹配流入）：%d 个。"
+                      % len(over))
+
+    return {
+        "title": "资金流与发票流匹配（三维聚合）",
+        "available": True,
+        "summary": fi.get("summary", ""),
+        "body": "\n".join(detail),
+        "metrics": m,
+        "signals": fi.get("signals") or [],
+        "verdict": fi.get("verdict", ""),
+        "recommendation": fi.get("recommendation", ""),
+        "note": fi.get("note", "未匹配 ≠ 隐匿收入；结论属待证线索，不作为定性依据。"),
+        # 结构化明细透传，供报告分层渲染
+        "object_summary": [
+            {"对象": k, "开票": round(b["invoice_total"], 2),
+             "收款": round(b["flow_total"], 2), "差额": round(b["diff"], 2),
+             "吻合": bool(b["matched"]), "跨期笔数": b["out_window"]}
+            for k, b in sorted((fi.get("objects") or {}).items(),
+                               key=lambda kv: abs(kv[1]["diff"]), reverse=True)[:20]
+        ],
+        "unmatched_categories": cat_rows,
+        "suspects": suspects,
+        "reconcile": rec,
+    }
+
+
 def _build_input_voucher_report(report_data):
     """第四阶 P1：进项异常凭证 / 应转出未转出比对章节。"""
     iv = (report_data.get("comprehensive") or {}).get("input_voucher") or {}
@@ -7350,6 +7432,7 @@ def build_enterprise_readable_report(report_data, edition=None):
     bank_flow_report = _build_bank_flow_report(report_data)
     two_tax_report = _build_two_tax_report(report_data)
     revenue_authenticity_report = _build_revenue_authenticity_report(report_data)
+    fund_invoice_matching_report = _build_fund_invoice_matching_report(report_data)
     input_voucher_report = _build_input_voucher_report(report_data)
     false_invoice_report = _build_false_invoice_report(report_data)
     fund_loop_report = _build_fund_loop_report(report_data)
@@ -7378,6 +7461,7 @@ def build_enterprise_readable_report(report_data, edition=None):
     _spec_kinds = {
         "bank_flow_report": bank_flow_report,
         "revenue_authenticity_report": revenue_authenticity_report,
+        "fund_invoice_matching_report": fund_invoice_matching_report,
         "two_tax_report": two_tax_report,
         "fund_loop_report": fund_loop_report,
         "cross_enterprise_report": cross_enterprise_report,
@@ -7492,6 +7576,7 @@ def build_enterprise_readable_report(report_data, edition=None):
     for _sec in (two_tax_report, input_voucher_report, false_invoice_report,
                  fund_loop_report, external_verify_report, bank_flow_report,
                  cross_enterprise_report, derivation_tree_report, revenue_authenticity_report,
+                 fund_invoice_matching_report,
                  industry_benchmark_report, related_party_report, inspection_questions_report):
         _translate_all_metric_dicts(_sec)
 
@@ -7585,6 +7670,7 @@ def build_enterprise_readable_report(report_data, edition=None):
         "bank_flow_report": bank_flow_report,
         "two_tax_report": two_tax_report,
         "revenue_authenticity_report": revenue_authenticity_report,
+        "fund_invoice_matching_report": fund_invoice_matching_report,
         "input_voucher_report": input_voucher_report,
         "false_invoice_report": false_invoice_report,
         "fund_loop_report": fund_loop_report,
